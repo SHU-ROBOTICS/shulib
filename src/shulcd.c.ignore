@@ -1,0 +1,64 @@
+#include "main.h"
+#include "pros/llemu.h"
+
+#define LCD_WIDTH	480 
+#define LCD_HEIGHT 	240
+#define LLEMU_LINES 8
+
+static lv_style_t shu_style;
+
+static lv_style_t frame_style;
+// static lv_style_t screen_style;
+// static lv_style_t button_style;
+// static lv_style_t button_pressed_style;
+
+typedef struct shulcd_s {
+	lv_obj_t* frame;
+	lv_obj_t* screen;
+	lv_obj_t* lcd_text[8];
+} shulcd_s_t;
+
+static lv_obj_t* _create_shulcd(void) {
+	// lv_style_copy(&frame_style, &lv_style_pretty_color);
+	// frame_style.body.main_color = LV_COLOR_GRAY;
+	// frame_style.body.grad_color = LV_COLOR_SILVER;
+
+	// lv_style_copy(&screen_style, &lv_style_plain);
+	// screen_style.body.main_color = LV_COLOR_MAKE(0x5A, 0xBC, 0x03);
+	// screen_style.body.grad_color = LV_COLOR_MAKE(0x5A, 0xBC, 0x03);
+	// screen_style.text.color = LV_COLOR_MAKE(0x32, 0x3D, 0x13);
+	// screen_style.text.font = &pros_font_dejavu_mono_20;
+
+	// lv_style_copy(&button_style, &lv_style_plain);
+	// button_style.body.main_color = LV_COLOR_GRAY;
+	// button_style.body.grad_color = LV_COLOR_MAKE(0x30, 0x30, 0x30);
+
+	// lv_style_copy(&button_pressed_style, &lv_style_plain);
+	// button_pressed_style.body.main_color = LV_COLOR_MAKE(0x0A, 0x0A, 0x0A);
+	// button_pressed_style.body.grad_color = LV_COLOR_MAKE(0x80, 0x80, 0x80);
+
+	lv_obj_t* lcd_dummy = lv_obj_create(lv_scr_act());
+	lv_obj_set_size(lcd_dummy, LCD_WIDTH, LCD_HEIGHT);
+
+	lv_obj_t* frame = lv_obj_create(lcd_dummy);
+	lv_obj_set_size(frame, LCD_WIDTH, LCD_HEIGHT);
+    
+	lv_obj_t* screen = lv_obj_create(frame);
+	lv_obj_set_size(screen, 426, 160);
+	lv_obj_align(screen, LV_ALIGN_CENTER, 0, 0);
+	
+	shulcd_s_t* lcd = (shulcd_s_t*)malloc(sizeof(shulcd_s_t));
+	lcd->frame = frame;
+	lcd->screen = screen;
+
+	for (size_t i = 0; i < LLEMU_LINES; i++) {
+		lcd->lcd_text[i] = lv_label_create(lcd->screen);
+		lv_obj_set_width(lcd->lcd_text[i], 426);
+		lv_obj_align(lcd->lcd_text[i], LV_ALIGN_TOP_LEFT, 5, 20 * i);
+		lv_obj_set_align(lcd->lcd_text[i], LV_TEXT_ALIGN_LEFT);
+		// lv_label_set_no_break(lcd->lcd_text[i], true);
+		lv_label_set_text(lcd->lcd_text[i], "");
+	}
+
+	return lcd_dummy;
+}

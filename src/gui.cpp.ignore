@@ -1,0 +1,22 @@
+#include "liblvgl/lvgl.h"
+#include "main.h"
+
+class GUI {
+private:
+  lv_obj_t *frame;
+  lv_obj_t *screen;
+  lv_obj_t *lcd_text[8];
+
+public:
+  GUI() {
+    lv_obj_t *lcd_dummy = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(lcd_dummy, LCD_WIDTH, LCD_HEIGHT);
+
+    lv_obj_t *frame = lv_obj_create(lcd_dummy);
+    lv_obj_set_size(frame, LCD_WIDTH, LCD_HEIGHT);
+
+    lv_obj_t *screen = lv_obj_create(frame);
+    lv_obj_set_size(screen, 426, 160);
+    lv_obj_align(screen, LV_ALIGN_CENTER, 0, 0);
+  }
+};
