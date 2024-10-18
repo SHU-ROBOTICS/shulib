@@ -1,3 +1,8 @@
+<img src="docs/assets/banner.png">
+<p align="center">
+    <img src="https://img.shields.io/github/v/tag/n0es/shulib?label=shulib&color=%23004488">
+    <img src="https://img.shields.io/github/contributors/n0es/shulib">
+</p>
 # shulib
 **Seton Hall University Library for VEX Robotics**
 
@@ -8,7 +13,7 @@
 - [License](#license)
 
 ## Introduction
-shulib is a comprehensive library designed for VEX Robotics, developed by Seton Hall University. It provides essential tools and modules to streamline the development process, enabling teams to focus on innovation and performance. Whether you're building a simple chassis or implementing complex positioning systems, shulib offers reliable components to support your robotic projects.
+shulib is a PROS template heavily inspired by lemlib, designed to make implementing new developments simple and seamless.
 
 ## Features
 ### Current Features (In Development but Usable)
