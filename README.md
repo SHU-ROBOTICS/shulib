@@ -1,18 +1,28 @@
-# shulib
+<p align="center">
+  <img src="docs/assets/banner.png">
+  <img src="https://img.shields.io/github/v/tag/n0es/shulib?label=shulib&color=%23004488">
+  <img src="https://img.shields.io/github/contributors/n0es/shulib">
+</p>
+
 **Seton Hall University Library for VEX Robotics**
 
 ## Table of Contents
+
 - [Introduction](#introduction)
 - [Features](#features)
 - [To-Do](#to-do)
 - [License](#license)
 
 ## Introduction
-shulib is a comprehensive library designed for VEX Robotics, developed by Seton Hall University. It provides essential tools and modules to streamline the development process, enabling teams to focus on innovation and performance. Whether you're building a simple chassis or implementing complex positioning systems, shulib offers reliable components to support your robotic projects.
+
+shulib is a PROS template heavily inspired by lemlib, designed to make implementing new developments simple and seamless.
 
 ## Features
+
 ### Current Features (In Development but Usable)
+
 - **Chassis Constructors**
+
   - Easily build and customize your robot's chassis with predefined templates and flexible parameters.
   - Supports various configurations to accommodate different robot designs.
 
@@ -22,7 +32,9 @@ shulib is a comprehensive library designed for VEX Robotics, developed by Seton 
   - Provides essential data for autonomous navigation and movement precision.
 
 ### Planned Features
+
 - **Communication Protocols**
+
   - Enhanced communication between multiple robots.
   - Integration with other libraries and frameworks.
 
@@ -31,17 +43,22 @@ shulib is a comprehensive library designed for VEX Robotics, developed by Seton 
   - Dashboard integrations for monitoring and control.
 
 ## To-Do
+
 ### Upcoming Features
+
 - [ ] **Communication Protocols**
 - [ ] **Comprehensive Documentation**
 
 ### Ongoing Improvements
+
 - [ ] **Odometry**
 
 ### Bug Fixes
+
 - [ ] ...
 
 ## License
+
 shulib is released under the [MIT License](LICENSE).
 
 ---
