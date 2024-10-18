@@ -1,8 +1,6 @@
-<p align="center">
-  <img src="docs/assets/banner.png">
-  <img src="https://img.shields.io/github/v/tag/n0es/shulib?label=shulib&color=%23004488">
-  <img src="https://img.shields.io/github/contributors/n0es/shulib">
-</p>
+<img src="docs/assets/banner.png">
+<img src="https://img.shields.io/github/v/tag/n0es/shulib?label=shulib&color=%23004488">
+<img src="https://img.shields.io/github/contributors/n0es/shulib">
 
 **Seton Hall University Library for VEX Robotics**
 
