@@ -1,7 +1,7 @@
 #include <math.h>
 #include "pros/imu.hpp"
 #include "shulib/util.hpp"
-#include "autonomous_commands.c" 
+#include "autonomous_commands.h"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/odometry.hpp"
 #include "shulib/chassis/odomUnit.hpp"
