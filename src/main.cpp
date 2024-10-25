@@ -2,6 +2,7 @@
 #include "shulib/api.hpp" // IWYU pragma: keep
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/drivetrain/xdrive.hpp"
+#include "shulib/GUI/gui.c"
 
 Controller master(CONTROLLER_MASTER);
 

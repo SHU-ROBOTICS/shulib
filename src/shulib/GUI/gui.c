@@ -1,12 +1,9 @@
-#include "main.h"
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
 
 #define SCREEN_WIDTH_PX 480
 #define SCREEN_HEIGHT_PX 240
 
-LV_IMG_DECLARE(setonhalllogo);
+LV_IMG_DECLARE(setonhalllogo.c);
 
 /* Debug class for logging */
 typedef struct {
@@ -267,17 +264,4 @@ void MainUI_create_main_screen(MainUI *ui) {
 
     // Log the initialization
     Debug_Log("Main screen created.");
-}
-
-/* Main entry point for initializing the UI */
-void initialize() {
-    // Instantiate the MainUI class
-    static MainUI ui;
-
-    // Assign the function pointers to their respective functions
-    ui.initialize = MainUI_initialize;
-    ui.create_main_screen = MainUI_create_main_screen;
-
-    // Initialize the UI (show the title screen and transition to the main screen)
-    ui.initialize(&ui);
 }

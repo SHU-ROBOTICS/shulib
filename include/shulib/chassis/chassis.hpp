@@ -4,6 +4,7 @@
 #include "shulib/chassis/odomUnit.hpp"
 #include "shulib/chassis/drivetrain.hpp"
 #include "shulib/pose.hpp"
+#include "CommandStruct.hpp"
 
 namespace shulib {
 
@@ -54,6 +55,14 @@ public:
 
   void resetLocalPosition();
 
+  void followPath();
+
+  void addCommand(Command* command);  // Method to register commands
+
+  void executeCommands();             // Execute all registered commands
+
+  void followPath(CommandStruct* commands, size_t commandCount); 
+
 protected:
   bool motionRunning = false;
   bool motionQueued = false;
@@ -74,6 +83,7 @@ protected:
 
 private:
   pros::Mutex mutex;
+  std::vector<Command*> commands;  // Vector to store registered commands
 };
 
 } // namespace shulib

@@ -1,10 +1,14 @@
 #include <math.h>
 #include "pros/imu.hpp"
 #include "shulib/util.hpp"
+#include "autonomous_commands.c" 
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/odometry.hpp"
 #include "shulib/chassis/odomUnit.hpp"
 #include "pros/rtos.hpp"
+#include "Chassis.hpp"
+#include "MoveWithHeadingCommand.hpp"
+
 
 shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
                                  OdomUnit *back, pros::Imu *imu)
@@ -98,4 +102,35 @@ void shulib::Chassis::resetLocalPosition() {
 
 void shulib::Chassis::setBrakeMode(pros::motor_brake_mode_e mode) {
     drivetrain.setBrakeMode(mode);
+}
+
+// Function to convert degrees to radians
+inline float degToRad(float degrees) {
+    return degrees * M_PI / 180.0;
+}
+
+void shulib::Chassis::followPath(CommandStruct* commands, size_t commandCount) {
+    for (size_t i = 0; i < commandCount; ++i) {
+        CommandStruct& cmd = commands[i];
+
+        switch (cmd.command) {
+            case CMD_MOVE_WITH_HEADING: {
+                MoveWithHeadingCommand moveCmd(cmd.x, cmd.y, cmd.heading, cmd.speed);
+                moveCmd.execute();
+                break;
+            }
+            case CMD_PICK_UP: {
+                // Implement PickUpCommand similarly
+                break;
+            }
+            case CMD_PLACE: {
+                // Implement PlaceCommand similarly
+                break;
+            }
+            // Add other cases here...
+            default:
+                std::cerr << "Unknown command type" << std::endl;
+                break;
+        }
+    }
 }
