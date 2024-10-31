@@ -24,9 +24,12 @@ public:
     motorConfigs.push_back(blConfig);
 
     // Back Right Motor Configuration
-    MotorConfig brConfig = {&frontLeft, 1, 1, -1};
+    MotorConfig brConfig = {&backRight, 1, 1, -1};
     motorConfigs.push_back(brConfig);
   }
+
+  // tostring
+  std::string toString() { return "XDrive"; }
 };
 
 } // namespace shulib

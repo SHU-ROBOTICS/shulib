@@ -8,7 +8,7 @@ shulib::OdomUnit::OdomUnit(pros::Rotation* sensor, float diameter, float offset)
 }
 
 void shulib::OdomUnit::reset() {
-    if (this->sensor != nullptr) this->sensor->reset();
+    if (this->sensor != nullptr) this->sensor->reset_position();
 }
 
 double shulib::OdomUnit::get_travel() {

@@ -11,10 +11,10 @@
 #include "shulib/chassis/odomUnit.hpp"
 
 // tracking thread
-pros::Task* trackingTask = nullptr;
+pros::Task *trackingTask = nullptr;
 
 // telemetry thread
-pros::Task* telemetryTask = nullptr;
+pros::Task *telemetryTask = nullptr;
 
 // global variables
 shulib::OdomSensors odomSensors(nullptr, nullptr, nullptr, nullptr); // the sensors to be used for odometry

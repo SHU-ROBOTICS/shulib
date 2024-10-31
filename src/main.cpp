@@ -2,20 +2,20 @@
 #include "shulib/api.hpp" // IWYU pragma: keep
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/drivetrain/xdrive.hpp"
-#include "shulib/GUI/gui.c"
+// #include "shulib/GUI/gui.c"
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup frontLeft({17, 18});
+MotorGroup frontLeft({-17, -18});
 MotorGroup frontRight({19, 20});
-MotorGroup backLeft({13, 14});
+MotorGroup backLeft({-13, -14});
 MotorGroup backRight({11, 12});
 
 IMU imu(10);
 
-pros::Rotation left(1);
-pros::Rotation right(2);
-pros::Rotation back(3);
+pros::Rotation left(-8);
+pros::Rotation right(9);
+pros::Rotation back(7);
 
 shulib::OdomUnit leftOdom(&left, 2.75, 0);
 shulib::OdomUnit rightOdom(&right, 2.75, 0);

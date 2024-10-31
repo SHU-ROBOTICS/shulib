@@ -21,6 +21,9 @@ public:
     motorConfigs.push_back(rightConfig);
   }
 
+  // tostring
+  std::string toString() override { return "TankDrive"; }
+
 private:
   float trackWidth;
 };

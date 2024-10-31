@@ -1,13 +1,12 @@
 #include <math.h>
 #include "pros/imu.hpp"
 #include "shulib/util.hpp"
-#include "autonomous_commands.h"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/odometry.hpp"
 #include "shulib/chassis/odomUnit.hpp"
 #include "pros/rtos.hpp"
 #include "Chassis.hpp"
-#include "MoveWithHeadingCommand.hpp"
+#include "shulib/RobotCommands/MoveWithHeadingCommand.hpp"
 
 
 shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
@@ -23,6 +22,7 @@ shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
  * @param sensors reference to the sensors struct
  */
 void calibrateIMU(shulib::OdomSensors &sensors) {
+  std::cout << "Calibrating IMU" << std::endl;
   int attempt = 1;
   bool calibrated = false;
   // calibrate inertial, and if calibration fails, then repeat 5 times or until
@@ -38,10 +38,12 @@ void calibrateIMU(shulib::OdomSensors &sensors) {
     if (!isnanf(sensors.imu->get_heading()) &&
         !isinf(sensors.imu->get_heading())) {
       calibrated = true;
+      std::cout << "IMU calibrated successfully" << std::endl;
       break;
     }
     // indicate error
     pros::c::controller_rumble(pros::E_CONTROLLER_MASTER, "---");
+    std::cout << "IMU failed to calibrate! Attempt #" << attempt << std::endl;
     // shulib::infoSink()->warn("IMU failed to calibrate! Attempt #{}",
     // attempt);
     attempt++;
@@ -65,16 +67,21 @@ void shulib::Chassis::calibrate(bool calibrateImu) {
     throw std::runtime_error("Left tracking wheel not initialized");
   if (sensors.right == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
+  if (sensors.back != nullptr)
+    throw std::runtime_error("Back tracking wheel not initialized");
 
   sensors.left->reset();
   sensors.right->reset();
+  sensors.back->reset();
 
-  if (sensors.back != nullptr)
-    sensors.back->reset();
+  std::cout << "Tracking wheels calibrated!" << std::endl;
+  
+  setPose(Pose(0, 0, 0), false);
   setSensors(sensors, drivetrain);
   init();
   // rumble to controller to indicate success
   pros::c::controller_rumble(pros::E_CONTROLLER_MASTER, ".");
+  std::cout << "Chassis calibrated!" << std::endl;
 }
 
 void shulib::Chassis::setPose(float x, float y, float theta, bool radians) {

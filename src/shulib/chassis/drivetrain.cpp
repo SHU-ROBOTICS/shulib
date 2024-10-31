@@ -25,3 +25,7 @@ void shulib::Drivetrain::setBrakeMode(pros::motor_brake_mode_e mode) {
     config.motors->set_brake_mode_all(mode);
   }
 }
+
+std::string shulib::Drivetrain::toString() {
+  return "Drivetrain";
+}

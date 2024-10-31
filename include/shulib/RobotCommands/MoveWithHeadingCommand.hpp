@@ -1,4 +1,3 @@
-// MoveWithHeadingCommand.hpp
 #ifndef MOVE_WITH_HEADING_COMMAND_HPP
 #define MOVE_WITH_HEADING_COMMAND_HPP
 
@@ -10,8 +9,6 @@ private:
     float x, y, heading, speed;
 
 public:
-    float x, y, heading, speed;
-
     MoveWithHeadingCommand(float xPos, float yPos, float head, float spd)
         : x(xPos), y(yPos), heading(head), speed(spd) {}
 

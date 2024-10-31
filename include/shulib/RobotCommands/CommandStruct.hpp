@@ -2,7 +2,7 @@
 #ifndef COMMAND_STRUCT_HPP
 #define COMMAND_STRUCT_HPP
 
-#include "CommandType.hpp"
+#include "shulib/RobotCommands/CommandType.hpp"
 
 struct CommandStruct {
     CommandType command;

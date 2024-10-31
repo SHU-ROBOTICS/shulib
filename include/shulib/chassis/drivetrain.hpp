@@ -18,6 +18,9 @@ public:
   // Generic brake mode setter
   virtual void setBrakeMode(pros::motor_brake_mode_e mode);
 
+  // tostring
+  virtual std::string toString();
+
 protected:
   float wheelDiameter;
   float rpm;

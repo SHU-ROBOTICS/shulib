@@ -4,7 +4,8 @@
 #include "shulib/chassis/odomUnit.hpp"
 #include "shulib/chassis/drivetrain.hpp"
 #include "shulib/pose.hpp"
-#include "CommandStruct.hpp"
+#include "shulib/RobotCommands/CommandStruct.hpp"
+#include "shulib/RobotCommands/Command.hpp"
 
 namespace shulib {
 
