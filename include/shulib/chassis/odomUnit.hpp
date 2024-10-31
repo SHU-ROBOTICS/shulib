@@ -28,6 +28,13 @@ public:
   double get_travel();
 
   /**
+   * @brief Get the change in travel distance since the last call to this function
+   *
+   * @return float change in travel distance in inches
+   */
+  double get_travel_delta();
+
+  /**
    * @brief Get the offset of the tracking wheel from the tracking center
    *
    * @return float offset in inches
@@ -35,10 +42,10 @@ public:
   double get_offset();
 
 private:
+  pros::Rotation *sensor = nullptr;
   float diameter;
   float offset;
-  float rpm;
-  pros::Rotation *sensor = nullptr;
+  float lastPosition;
 };
 
 } // namespace shulib

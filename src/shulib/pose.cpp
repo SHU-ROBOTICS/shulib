@@ -37,10 +37,3 @@ shulib::Pose shulib::Pose::rotate(float angle) const {
     return shulib::Pose(this->x * std::cos(angle) - this->y * std::sin(angle),
                         this->x * std::sin(angle) + this->y * std::cos(angle), this->theta);
 }
-
-std::string shulib::format_as(const shulib::Pose& pose) {
-    // the double brackets become single brackets
-    return "shulib::Pose { x: " + std::to_string(pose.x) + ", y: " + std::to_string(pose.y) +
-           ", theta: " + std::to_string(pose.theta) + " }";
-
-}

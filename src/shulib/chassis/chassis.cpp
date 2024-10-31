@@ -67,7 +67,7 @@ void shulib::Chassis::calibrate(bool calibrateImu) {
     throw std::runtime_error("Left tracking wheel not initialized");
   if (sensors.right == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
-  if (sensors.back != nullptr)
+  if (sensors.back == nullptr)
     throw std::runtime_error("Back tracking wheel not initialized");
 
   sensors.left->reset();

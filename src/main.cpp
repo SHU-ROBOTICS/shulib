@@ -17,8 +17,8 @@ pros::Rotation left(-8);
 pros::Rotation right(9);
 pros::Rotation back(7);
 
-shulib::OdomUnit leftOdom(&left, 2.75, 0);
-shulib::OdomUnit rightOdom(&right, 2.75, 0);
+shulib::OdomUnit leftOdom(&left, 2.75, -5.875);
+shulib::OdomUnit rightOdom(&right, 2.75, 5.875);
 shulib::OdomUnit backOdom(&back, 2.75, 0);
 
 shulib::XDrive drivetrain(frontLeft, frontRight, backLeft, backRight, 2.25, 200,
