@@ -98,26 +98,31 @@ void shulib::update() {
   float dR = odomSensors.right->get_travel_delta();
   float dS = odomSensors.back->get_travel_delta();
 
+  Pose localPose(0,0,0);
+  localPose.theta = (dR - dL) / (sL - sR);
+
   float deltaX = 0;
   float deltaY = 0;
-  float deltaTheta = (dR - dL) / (sL - sR);
   float rC = 0;
 
-  if (deltaTheta == 0) {
-    deltaX = (dL + dR) / 2;
-    deltaY = dS;
+  odomPose.theta += localPose.theta;
+  if (abs(localPose.theta) < 0.0001) {  // Check for very small angles
+    deltaY = (dL + dR) / 2;
+    deltaX = dS;
   } else {
-    rC = (dR / deltaTheta) + sR;
-    deltaX = 2 * sin(deltaTheta / 2) * rC;
+    rC = (dR / localPose.theta) + sR;
+    deltaY = 2 * sin(localPose.theta / 2) * rC;
 
-    rC = (dS / deltaTheta) + sS;
-    deltaY = 2 * sin(deltaTheta / 2) * rC;
+    rC = (dS / localPose.theta) + sS;
+    deltaX = 2 * sin(localPose.theta / 2) * rC;
   }
 
   // set odomPose
-  odomPose.theta -= deltaTheta;
-  odomPose.y += deltaX;
-  odomPose.x += deltaY;
+  odomPose.y += deltaY * cos(odomPose.theta);
+  odomPose.x += deltaY * sin(odomPose.theta);
+
+  odomPose.y += deltaX * sin(odomPose.theta);
+  odomPose.x += deltaX * -cos(odomPose.theta);
 }
 
 void shulib::init() {
@@ -133,7 +138,7 @@ void shulib::init() {
     telemetryTask = new pros::Task{[=] {
       while (true) {
         std::string odomData = odomPose;
-        printf("{'odometry':%s}\n", odomData.c_str());
+        printf("{'odometry':%s, 'grabbed': 'True'}\n", odomData.c_str());
         pros::delay(telemetryDelay);
       }
     }};
