@@ -18,14 +18,6 @@ public:
   // Generic brake mode setter
   virtual void setBrakeMode(pros::motor_brake_mode_e mode);
 
-  // tostring
-  virtual std::string toString();
-
-protected:
-  float wheelDiameter;
-  float rpm;
-  float horizontalDrift;
-
   // Configuration for each motor group
   struct MotorConfig {
     pros::MotorGroup *motors;
@@ -33,6 +25,17 @@ protected:
     float verticalCoefficient;
     float turnCoefficient;
   };
+
+  // MotorConfig getter
+  virtual std::vector<MotorConfig> getMotorConfigs() { return motorConfigs; }
+
+  // tostring
+  virtual std::string toString();
+
+protected:
+  float wheelDiameter;
+  float rpm;
+  float horizontalDrift;
 
   std::vector<MotorConfig> motorConfigs;
 };

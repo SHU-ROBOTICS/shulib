@@ -68,11 +68,11 @@ bool wallStakeMode = false;
 
 void fifteen() {
   // right: pneumatics
-  if (master.get_digital(DIGITAL_RIGHT)) {
+  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
     grabber.toggle();
   }
   // y : pneumatics #2
-  if (master.get_digital(DIGITAL_Y)) {
+  if (master.get_digital_new_press(DIGITAL_Y)) {
     doinker.toggle();
   }
   // r1 : wall stake mode
