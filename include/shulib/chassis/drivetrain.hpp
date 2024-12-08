@@ -18,6 +18,10 @@ public:
   // Generic brake mode setter
   virtual void setBrakeMode(pros::motor_brake_mode_e mode);
 
+  float getWheelDiameter(){
+    return wheelDiameter;
+  }
+
   // Configuration for each motor group
   struct MotorConfig {
     pros::MotorGroup *motors;
@@ -41,3 +45,4 @@ protected:
 };
 
 } // namespace shulib
+

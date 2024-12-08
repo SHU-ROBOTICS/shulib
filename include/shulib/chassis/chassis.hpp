@@ -48,6 +48,8 @@ public:
 
   void drive(int horizontal, int vertical, int turn, bool fieldCentric = false);
 
+  void moveToLocalPose(Pose p, bool async = true);
+
   void cancelMotion();
 
   void cancelAllMotions();
@@ -63,6 +65,8 @@ public:
   void executeCommands();             // Execute all registered commands
 
   void followPath(CommandStruct* commands, size_t commandCount); 
+
+  void fifteen();
 
 protected:
   bool motionRunning = false;

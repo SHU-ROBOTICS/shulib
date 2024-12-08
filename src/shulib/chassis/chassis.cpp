@@ -141,3 +141,30 @@ void shulib::Chassis::followPath(CommandStruct* commands, size_t commandCount) {
         }
     }
 }
+
+void shulib::Chassis::moveToLocalPose(Pose p, bool async){
+  float targetX = p.x;
+  float targetY = p.y;
+  float targetTheta = p.theta;
+  Pose pCurrent = getPose();
+  float horizontal = targetX - pCurrent.x;
+  float vertical = targetY - pCurrent.y;
+  float turn = targetTheta - pCurrent.theta;
+
+  float dist = pCurrent.distance(p);
+
+  int rotations = dist/(M_PI * (drivetrain.getWheelDiameter()));
+
+  // while(sensors.left->get_travel() || sensors.right->get_travel() < rotations){
+
+  // }
+  for (const auto &config : drivetrain.getMotorConfigs()) {
+    int motorOutput = horizontal * config.horizontalCoefficient +
+                      vertical * config.verticalCoefficient +
+                      turn * config.turnCoefficient;
+    config.motors->move_relative(motorOutput * (M_PI * (drivetrain.getWheelDiameter())), 50);
+  }
+ // while(async && !drivetrain.allMotorsStopped()) {
+  //  pros::delay(5);
+ // }
+}
