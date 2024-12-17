@@ -68,9 +68,8 @@ void competition_initialize() {}
 
 void autonomous() { pookster.moveToLocalPose(Pose(12, 12, 0)); }
 
-pros::adi::Pneumatics doinker('H', true);
-pros::adi::Pneumatics grabber('G', true);
-pros::Motor intake(15);
+pros::adi::Pneumatics grabber('H', false);
+pros::Motor intake(8);
 pros::Motor lift(17);
 
 
@@ -79,13 +78,26 @@ pros::Motor conveyor(1);
 
 void pooksterControls(){
   if(master.get_digital(DIGITAL_UP)){
-    conveyor.move(127);
+    conveyor.move(-127);
   }
   else if(master.get_digital(DIGITAL_DOWN)){
-    conveyor.move(-127);
+    conveyor.move(127);
   }
   else{
     conveyor.move(0);
+  }
+
+  if(master.get_digital_new_press(DIGITAL_RIGHT)){
+    grabber.toggle();
+  }
+  if(master.get_digital(DIGITAL_L1)){
+    intake.move(127);
+  }
+  else if(master.get_digital(DIGITAL_L2)){
+    intake.move(-127);
+  }
+  else{
+    intake.move(0);
   }
 }
 

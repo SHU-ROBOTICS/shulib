@@ -17,7 +17,7 @@ public:
     motorConfigs.push_back(leftConfig);
 
     // Configure right motors
-    MotorConfig rightConfig = {&rightMotors, 0, 1, -1};
+    MotorConfig rightConfig = {&rightMotors, 0, -1, 1};
     motorConfigs.push_back(rightConfig);
   }
 
