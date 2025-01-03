@@ -14,18 +14,18 @@ MotorGroup frontRight({8, 7});
 MotorGroup backLeft({-1, -4});
 MotorGroup backRight({6, 3});
 
-MotorGroup pooksterLeft({5, 3, -6, -4});
-MotorGroup pooksterRight({9, 2, -7, -10});
+MotorGroup pooksterLeft({-2, -3, 16, 14, -12, -13});
+MotorGroup pooksterRight({-17, -18, 11, 19, -15, -20});
 
 // IMU imu(10);
 
-// pros::Rotation left(-6);
-// pros::Rotation right(9);
+pros::Rotation left(-5);
+pros::Rotation right(4);
 // pros::Rotation back(7);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(nullptr, 2.75, -5.25);
-shulib::OdomUnit rightOdom(nullptr, 2.75, 5.25);
+shulib::OdomUnit leftOdom(&left, 2.75, -2.625);
+shulib::OdomUnit rightOdom(&right, 2.75, 2.625);
 shulib::OdomUnit backOdom(nullptr, 2.75, 0);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15.5, 3.25, 2);
@@ -68,13 +68,12 @@ void competition_initialize() {}
 
 void autonomous() { pookster.moveToLocalPose(Pose(12, 12, 0)); }
 
-pros::adi::Pneumatics grabber('H', false);
-pros::Motor intake(8);
-pros::Motor lift(17);
 
 
 bool wallStakeMode = false;
-pros::Motor conveyor(1);
+pros::adi::Pneumatics grabber('A', true);
+pros::Motor intake(9);
+pros::Motor conveyor(10);
 
 void pooksterControls(){
   if(master.get_digital(DIGITAL_UP)){
