@@ -32,10 +32,7 @@ shulib::OdomSensors sensors(&leftOdom,   // left odom unit
                             nullptr       // inertial sensor
 );
 
-shulib::ControllerSettings lateralSettings(10, 0, 3, 3, 1, 100, 3, 500, 20);
-shulib::ControllerSettings angularSettings(2, 0, 1, 1, 1, 100, 3, 500, 20);
-
-shulib::Chassis chassis(drivetrain, sensors, lateralSettings, angularSettings);
+shulib::Chassis chassis(drivetrain, sensors);
 
 void initialize() {
   lcd::initialize();
@@ -123,7 +120,6 @@ void opcontrol() {
                   master.get_analog(ANALOG_RIGHT_X));
 
     fifteen();
-    printf("wallStake: %f\n", wallStake.get_position());
 
     pros::delay(20);
   }

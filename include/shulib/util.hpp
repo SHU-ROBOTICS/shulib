@@ -80,25 +80,6 @@ constexpr float degToRad(float deg) { return deg * M_PI / 180; }
 constexpr float sanitizeAngle(float angle, bool radians = true);
 
 /**
- * @brief Calculate the error between 2 angles. Useful when calculating the
- * error between 2 headings
- *
- * @param target target angle
- * @param position position angle
- * @param radians true if angle is in radians, false if not. False by default
- * @param direction which direction to turn to get to the target angle
- * @return float wrapped angle
- *
- * @b Example
- * @code {.cpp}
- * angleError(10, 350, false); // returns 20
- * angleError(350, 10, false); // returns -20
- * @endcode
- */
-float angleError(float target, float position, bool radians = true,
-                 AngularDirection direction = AngularDirection::AUTO);
-
-/**
  * @brief Return the sign of a number
  *
  * @param x the number to get the sign of
