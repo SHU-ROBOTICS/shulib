@@ -58,15 +58,7 @@ public:
 
   void resetLocalPosition();
 
-  void followPath();
-
-  void addCommand(Command* command);  // Method to register commands
-
-  void executeCommands();             // Execute all registered commands
-
-  void followPath(CommandStruct* commands, size_t commandCount); 
-
-  void fifteen();
+    void init();
 
 protected:
   bool motionRunning = false;

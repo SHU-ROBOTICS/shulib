@@ -56,5 +56,5 @@ void update();
  * @brief Initialize the odometry system
  *
  */
-void init();
+void init_odometry();
 } // namespace shulib

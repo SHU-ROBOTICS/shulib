@@ -64,23 +64,29 @@ void shulib::Chassis::calibrate(bool calibrateImu) {
   // if sensors are nullptrs, error
   if (sensors.left == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
+  logger().debug("Left tracking wheel initialized");
   if (sensors.right == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
+  logger().debug("Right tracking wheel initialized");
   if (sensors.back == nullptr)
     throw std::runtime_error("Back tracking wheel not initialized");
+  logger().debug("Back tracking wheel initialized");
 
   sensors.left->reset();
   sensors.right->reset();
   sensors.back->reset();
 
-  std::cout << "Tracking wheels calibrated!" << std::endl;
-  
+  logger().debug("Tracking wheels calibrated!");
+
   setPose(Pose(0, 0, 0), false);
   setSensors(sensors, drivetrain);
-  init();
+  init_odometry();
   // rumble to controller to indicate success
   pros::c::controller_rumble(pros::E_CONTROLLER_MASTER, ".");
-  std::cout << "Chassis calibrated!" << std::endl;
+  logger().success("Chassis calibrated!");
+}
+
+void shulib::Chassis::init() {
 }
 
 void shulib::Chassis::setPose(float x, float y, float theta, bool radians) {
