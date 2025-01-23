@@ -40,6 +40,7 @@ namespace shulib
 
     void resetLocalPosition();
 
+    void init();
 
   protected:
     float distTraveled = 0;

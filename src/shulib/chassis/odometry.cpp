@@ -8,8 +8,8 @@
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/odomUnit.hpp"
 #include "shulib/util.hpp"
+#include "shulib/logger.hpp"
 #include <math.h>
-
 
 // tracking thread
 pros::Task *trackingTask = nullptr;
@@ -125,22 +125,22 @@ void shulib::update() {
   odomPose.x += deltaX * -cos(odomPose.theta);
 }
 
-void shulib::init() {
+void shulib::init_odometry() {
+  shulib::logger().log("Initializing odometry...");
   if (trackingTask == nullptr) {
     trackingTask = new pros::Task{[=] {
+      shulib::Pose lastLoggedPose(0, 0, 0);
       while (true) {
         update();
+        if (abs(odomPose.x - lastLoggedPose.x) > 0.1 ||
+            abs(odomPose.y - lastLoggedPose.y) > 0.1 ||
+            abs(odomPose.theta - lastLoggedPose.theta) > 0.1) {
+          shulib::logger().updateTelemetry("odometry", odomPose);
+          lastLoggedPose = odomPose;
+        }
         pros::delay(10);
       }
     }};
-  }
-  if (telemetryTask == nullptr && telemetryDelay > 0) {
-    telemetryTask = new pros::Task{[=] {
-      while (true) {
-        std::string odomData = odomPose;
-        printf("{'odometry':%s, 'grabbed': 'True'}\n", odomData.c_str());
-        pros::delay(telemetryDelay);
-      }
-    }};
+    shulib::logger().success("Odometry initialized!");
   }
 }

@@ -3,6 +3,7 @@
 #include "shulib/api.hpp" // IWYU pragma: keep
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/drivetrain/xdrive.hpp"
+#include "shulib/logger.hpp"
 // #include "shulib/GUI/gui.c"
 
 Controller master(CONTROLLER_MASTER);
@@ -19,9 +20,9 @@ pros::Rotation right(11);
 pros::Rotation back(7);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(nullptr, 2.75, -5.875);
-shulib::OdomUnit rightOdom(nullptr, 2.75, 5.875);
-shulib::OdomUnit backOdom(nullptr, 2.75, 4);
+shulib::OdomUnit leftOdom(&left, 2.75, -5.875);
+shulib::OdomUnit rightOdom(&right, 2.75, 5.875);
+shulib::OdomUnit backOdom(&back, 2.75, 4);
 
 shulib::XDrive drivetrain(frontLeft, frontRight, backLeft, backRight, 2.25, 200,
                           2);
@@ -37,20 +38,11 @@ shulib::Chassis chassis(drivetrain, sensors);
 void initialize() {
   lcd::initialize();
   lcd::set_text(0, "Hello, PROS User!");
+  
+  logger().init();
 
   chassis.calibrate();
   chassis.setPose({36, -60, 0});
-
-  Task screenTask([&]() {
-    while (true) {
-      // print robot location to the brain screen
-      lcd::print(0, "X: %f", chassis.getPose().x);
-      pros::lcd::print(1, "Y: %f", chassis.getPose().y);
-      lcd::print(2, "Theta: %f", chassis.getPose().theta);
-
-      delay(50);
-    }
-  });
 }
 
 void disabled() {}
@@ -108,6 +100,17 @@ void fifteen() {
   } else {
     intake.move(0);
     conveyor.move(0);
+  }
+
+  shulib::logger().updateTelemetry("test", master.get_digital(DIGITAL_B));
+
+  if (master.get_digital(DIGITAL_X)) {
+    chassis.setPose(0, 0, 0);
+    shulib::logger().updateTelemetry("test", true);
+  }
+
+  if (master.get_digital(DIGITAL_LEFT)) {
+    printf("chassis pose: %f, %f, %f\n", chassis.getPose().x, chassis.getPose().y, chassis.getPose().theta);
   }
 }
 

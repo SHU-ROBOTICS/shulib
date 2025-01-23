@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pros/rtos.hpp"
+#include "shulib/pose.hpp"
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -17,11 +18,22 @@ public:
     return instance;
   }
 
+  void init();
+
   // Update a telemetry value
   template <typename T>
   void updateTelemetry(const std::string &key, const T &value) {
     mutex.take();
     telemetryData[key] = std::to_string(value);
+    mutex.give();
+  }
+
+  // Specialization for Pose type
+  void updateTelemetry(const std::string &key, const shulib::Pose &pose) {
+    mutex.take();
+    std::stringstream ss;
+    ss << "{\"x\":" << pose.x << ",\"y\":" << pose.y << ",\"theta\":" << pose.theta << "}";
+    telemetryData[key] = ss.str();
     mutex.give();
   }
 
@@ -38,10 +50,13 @@ public:
     mutex.give();
   }
 
+  // Message type enum
+  enum class MessageType { LOG, ERROR, WARNING, SUCCESS, ANNOUNCE, DEBUG };
+
   // Add a debug message
-  void debug(const std::string &message) {
+  void print(const std::string &message, MessageType type) {
     mutex.take();
-    debugMessages.push_back(message);
+    debugMessages.push_back(std::make_pair(message, type));
     mutex.give();
   }
 
@@ -51,19 +66,18 @@ public:
   // Call this periodically to send data
   void update();
 
-  // Message type enum
-  enum class MessageType { LOG, ERROR, WARNING, SUCCESS, ANNOUNCE };
-
   // Different message type methods
-  void error(const std::string &message) { debug("[ERROR] " + message); }
+  void error(const std::string &message) { print(message, MessageType::ERROR); }
 
-  void warning(const std::string &message) { debug("[WARNING] " + message); }
+  void warning(const std::string &message) { print(message, MessageType::WARNING); }
 
-  void success(const std::string &message) { debug("[SUCCESS] " + message); }
+  void success(const std::string &message) { print(message, MessageType::SUCCESS); }
 
-  void announce(const std::string &message) { debug("[ANNOUNCE] " + message); }
+  void announce(const std::string &message) { print(message, MessageType::ANNOUNCE); }
 
-  void log(const std::string &message) { debug("[LOG] " + message); }
+  void log(const std::string &message) { print(message, MessageType::LOG); }
+
+  void debug(const std::string &message) { print(message, MessageType::DEBUG); }
 
   // Variadic template versions for multiple arguments
   template <typename... Args> void error(const Args &...args) {
@@ -97,7 +111,7 @@ public:
   }
 
 private:
-  Logger() : lastTelemetryTime(0), telemetryInterval(200) {}
+  Logger() : lastTelemetryTime(0), telemetryInterval(200), telemetryTask(nullptr) {}
   Logger(const Logger &) = delete;
   Logger &operator=(const Logger &) = delete;
 
@@ -147,10 +161,11 @@ private:
 
   std::unordered_map<std::string, std::string> telemetryData;
   std::unordered_map<std::string, std::string> previousTelemetryData;
-  std::vector<std::string> debugMessages;
+  std::vector<std::pair<std::string, MessageType>> debugMessages;
   pros::Mutex mutex;
   uint32_t lastTelemetryTime;
   int telemetryInterval;
+  pros::Task* telemetryTask;
 
   void sendTelemetry();
   void sendDebugMessages();
