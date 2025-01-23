@@ -44,14 +44,16 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 &fifteenBackOdom, nullptr);
 */
 
-void initialize() {
-  lcd::initialize();
-  lcd::set_text(0, "Hello, PROS User!");
+void initialize()
+{
+    lcd::initialize();
+    lcd::set_text(0, "Hello, PROS User!");
 
-  pookster.calibrate();
-  pookster.setPose({36, -60, 0});
+    pookster.calibrate();
+    pookster.setPose({36, -60, 0});
 
-  Task screenTask([&]() {
+    Task screenTask([&]()
+                    {
     while (true) {
       // print robot location to the brain screen
       lcd::print(0, "X: %f", pookster.getPose().x);
@@ -59,8 +61,7 @@ void initialize() {
       lcd::print(2, "Theta: %f", pookster.getPose().theta);
 
       delay(50);
-    }
-  });
+    } });
 }
 
 void disabled() {}
@@ -68,47 +69,55 @@ void competition_initialize() {}
 
 void autonomous() { pookster.moveToLocalPose(Pose(12, 12, 0)); }
 
-
-
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(9);
 pros::Motor conveyor(10);
 
-void pooksterControls(){
-  if(master.get_digital(DIGITAL_UP)){
-    conveyor.move(-127);
-  }
-  else if(master.get_digital(DIGITAL_DOWN)){
-    conveyor.move(127);
-  }
-  else{
-    conveyor.move(0);
-  }
+void pooksterControls()
+{
+    if (master.get_digital(DIGITAL_R1))
+    {
+        conveyor.move(-127);
+    }
+    else if (master.get_digital(DIGITAL_R2))
+    {
+        conveyor.move(127);
+    }
+    else
+    {
+        conveyor.move(0);
+    }
 
-  if(master.get_digital_new_press(DIGITAL_RIGHT)){
-    grabber.toggle();
-  }
-  if(master.get_digital(DIGITAL_L1)){
-    intake.move(127);
-  }
-  else if(master.get_digital(DIGITAL_L2)){
-    intake.move(-127);
-  }
-  else{
-    intake.move(0);
-  }
+    if (master.get_digital_new_press(DIGITAL_RIGHT))
+    {
+        grabber.toggle();
+    }
+    
+    if (master.get_digital(DIGITAL_L1))
+    {
+        intake.move(127);
+    }
+    else if (master.get_digital(DIGITAL_L2))
+    {
+        intake.move(-127);
+    }
+    else
+    {
+        intake.move(0);
+    }
 }
 
+void opcontrol()
+{
+    while (true)
+    {
+        pookster.drive(master.get_analog(ANALOG_LEFT_X),
+                       master.get_analog(ANALOG_LEFT_Y),
+                       master.get_analog(ANALOG_RIGHT_X));
 
-void opcontrol() {
-  while (true) {
-    pookster.drive(master.get_analog(ANALOG_LEFT_X),
-                  master.get_analog(ANALOG_LEFT_Y),
-                  master.get_analog(ANALOG_RIGHT_X));
+        pooksterControls();
 
-    pooksterControls();
-
-    pros::delay(20);
-  }
+        pros::delay(20);
+    }
 }
