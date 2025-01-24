@@ -138,6 +138,7 @@ void shulib::init_odometry() {
           shulib::logger().updateTelemetry("odometry", odomPose);
           lastLoggedPose = odomPose;
         }
+        shulib::logger().updateTelemetry("temps", drive.getTemps());
         pros::delay(10);
       }
     }};

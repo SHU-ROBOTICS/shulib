@@ -1,6 +1,8 @@
 #pragma once
 
 #include "pros/motor_group.hpp"
+#include <map>
+#include <string>
 
 namespace shulib {
 
@@ -18,8 +20,12 @@ public:
   // Generic brake mode setter
   virtual void setBrakeMode(pros::motor_brake_mode_e mode);
 
+  // Generic max voltage setter
+  virtual void setMaxVoltage(int voltage);
+
   // Configuration for each motor group
   struct MotorConfig {
+    std::string name;
     pros::MotorGroup *motors;
     float horizontalCoefficient;
     float verticalCoefficient;
@@ -28,6 +34,9 @@ public:
 
   // MotorConfig getter
   virtual std::vector<MotorConfig> getMotorConfigs() { return motorConfigs; }
+
+  // getTemps
+  std::map<std::string, double> getTemps();
 
   // tostring
   virtual std::string toString();

@@ -1,6 +1,7 @@
 #include "shulib/logger.hpp"
 #include "pros/rtos.hpp"
 #include <iostream>
+#include <sstream>
 
 namespace shulib {
 
@@ -68,6 +69,20 @@ void Logger::init() {
     });
   }
   success("Logger initialized!");
+}
+
+template<>
+void shulib::Logger::updateTelemetry(const std::string &key, const std::map<std::string, double> &value) {
+    std::stringstream ss;
+    ss << "{";
+    bool first = true;
+    for (const auto &pair : value) {
+        if (!first) ss << ",";
+        ss << "\"" << pair.first << "\":" << pair.second;
+        first = false;
+    }
+    ss << "}";
+    updateTelemetry(key, ss.str());
 }
 
 } // namespace shulib
