@@ -18,7 +18,7 @@ void shulib::Drivetrain::drive(int horizontal, int vertical, int turn,
     int motorOutput = horizontal * config.horizontalCoefficient +
                       vertical * config.verticalCoefficient +
                       turn * config.turnCoefficient;
-    config.motors->move(motorOutput);
+    config.motors->move_voltage(std::min(motorOutput*5000, 6000));
   }
 }
 
