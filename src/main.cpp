@@ -16,7 +16,7 @@ MotorGroup backRight({15, 14});
 // IMU imu(10);
 
 pros::Rotation left(-20);
-pros::Rotation right(11);
+pros::Rotation right(-11);
 pros::Rotation back(7);
 // set these to nullptrs instead
 
@@ -40,6 +40,7 @@ void initialize() {
   lcd::set_text(0, "Hello, PROS User!");
   
   logger().init();
+
 
   chassis.calibrate();
   chassis.setPose({36, -60, 0});
