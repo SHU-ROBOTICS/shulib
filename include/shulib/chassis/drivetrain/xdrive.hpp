@@ -14,11 +14,11 @@ public:
          float wheelDiameter, float rpm, float horizontalDrift)
       : Drivetrain(wheelDiameter, rpm, horizontalDrift) {
     // Front Left Motor Configuration
-    MotorConfig flConfig = {"front_left", &frontLeft, 1, 1, 1};
+    MotorConfig flConfig = {"front_left", &frontLeft, -1, 1, -1};
     motorConfigs.push_back(flConfig);
 
     // Front Right Motor Configuration
-    MotorConfig frConfig = {"front_right", &frontRight, -1, 1, -1};
+    MotorConfig frConfig = {"front_right", &frontRight, 1, 1, 1};
     motorConfigs.push_back(frConfig);
 
     // Back Left Motor Configuration
