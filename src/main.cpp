@@ -54,72 +54,6 @@ void disabled() {}
 void competition_initialize() {}
 void autonomous() {}
 
-
-pros::adi::Pneumatics doinker('H', false);
-pros::adi::Pneumatics grabber('G', false);
-pros::Motor intake(2);
-pros::Motor lift(9);
-pros::MotorGroup conveyor({1, -10});
-pros::MotorGroup wallStake({3, -8}, pros::v5::MotorGears::red, pros::v5::MotorUnits::degrees);
-
-double conveyorSpeed = .8;
-double intakeSpeed = 1;
-
-void fifteen() {
-  // right: pneumatics
-  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
-    grabber.toggle();
-  }
-  // y : pneumatics #2
-  if (master.get_digital_new_press(DIGITAL_Y)) {
-    doinker.toggle();
-  }
-  // r1 : wall stake setup
-  if (master.get_digital_new_press(DIGITAL_R1)) {
-    if (abs(wallStake.get_position()) < 1) {
-      wallStake.move_absolute(37, 50);
-    } else {
-      wallStake.move_absolute(0, 20);
-    }
-  }
-  // r2 : wall stake lift
-  if (master.get_digital_new_press(DIGITAL_R2)) {
-    // check if wall stake is at 37 degrees with a tolerance of 1 degree
-    if (abs(wallStake.get_position() - 37) < 2) {
-      wallStake.move_absolute(140, 30);
-    } else {
-      wallStake.move_absolute(37, 30);
-    }
-  }
-  // l2: intake, l1: outtake
-  if (master.get_digital(DIGITAL_L2)) {
-    intake.move(127 * intakeSpeed);
-    conveyor.move(-127 * conveyorSpeed);
-  } else if (master.get_digital(DIGITAL_L1)) {
-    intake.move(-127 * intakeSpeed);
-    conveyor.move(127 * conveyorSpeed);
-  } else if (master.get_digital(DIGITAL_UP)) { // up: conveyor up, down: conveyor down
-    conveyor.move(127 * conveyorSpeed);
-  } else if (master.get_digital(DIGITAL_DOWN)) {
-    conveyor.move(-127 * conveyorSpeed);
-  } else {
-    intake.move(0);
-    conveyor.move(0);
-  }
-
-  shulib::logger().updateTelemetry("test", master.get_digital(DIGITAL_B));
-
-  if (master.get_digital(DIGITAL_X)) {
-    chassis.setPose(0, 0, 0);
-    shulib::logger().updateTelemetry("test", true);
-  }
-
-  if (master.get_digital(DIGITAL_LEFT)) {
-    printf("chassis pose: %f, %f, %f\n", chassis.getPose().x, chassis.getPose().y, chassis.getPose().theta);
-  }
-
-void autonomous() { pookster.moveToLocalPose(Pose(12, 12, 0)); }
-
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(9);
@@ -171,7 +105,7 @@ void opcontrol()
 {
     while (true)
     {
-        pookster.drive(master.get_analog(ANALOG_LEFT_X),
+        chassis.drive(master.get_analog(ANALOG_LEFT_X),
                        master.get_analog(ANALOG_LEFT_Y),
                        master.get_analog(ANALOG_RIGHT_X));
 
