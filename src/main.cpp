@@ -76,35 +76,43 @@ pros::Motor conveyor(10);
 
 void pooksterControls()
 {
-    if (master.get_digital(DIGITAL_R1))
+    if (master.get_digital(DIGITAL_X))
     {
         conveyor.move(-127);
-    }
-    else if (master.get_digital(DIGITAL_R2))
-    {
-        conveyor.move(127);
+        intake.move(127);
     }
     else
     {
-        conveyor.move(0);
+        
+        if (master.get_digital(DIGITAL_R1))
+        {
+            conveyor.move(-127);
+        }
+        else if (master.get_digital(DIGITAL_R2))
+        {
+            conveyor.move(127);
+        }
+        else
+        {
+            conveyor.move(0);
+        }
+        if (master.get_digital(DIGITAL_L1))
+        {
+            intake.move(127);
+        }
+        else if (master.get_digital(DIGITAL_L2))
+        {
+            intake.move(-127);
+        }
+        else
+        {
+            intake.move(0);
+        }
     }
 
     if (master.get_digital_new_press(DIGITAL_RIGHT))
     {
         grabber.toggle();
-    }
-    
-    if (master.get_digital(DIGITAL_L1))
-    {
-        intake.move(127);
-    }
-    else if (master.get_digital(DIGITAL_L2))
-    {
-        intake.move(-127);
-    }
-    else
-    {
-        intake.move(0);
     }
 }
 
@@ -117,6 +125,15 @@ void opcontrol()
                        master.get_analog(ANALOG_RIGHT_X));
 
         pooksterControls();
+
+        // if conveyor voltage spikes, reverse for 500ms
+        // if (conveyor.get_voltage() > 1000)
+        // {
+        //     conveyor.move(-127);
+        //     pros::delay(500);
+        //     conveyor.move(0);
+        // }
+
 
         pros::delay(20);
     }
