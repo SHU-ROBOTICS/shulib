@@ -15,7 +15,7 @@ shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
 shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
     : drivetrain(drivetrain), sensors(sensors)
 {
-  drivetrain.setMaxVoltage(6000);
+  // drivetrain.setMaxVoltage(6000);
 }
 
 /**
