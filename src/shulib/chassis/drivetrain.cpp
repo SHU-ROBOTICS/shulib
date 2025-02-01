@@ -39,7 +39,7 @@ std::map<std::string, double> shulib::Drivetrain::getTemps() {
   std::map<std::string, double> temps;
   for (const auto& config : motorConfigs) {
     int i = 0;
-    for (const auto& temp : config.motors->get_voltage_all()) {
+    for (const auto& temp : config.motors->get_temperature_all()) {
       temps[config.name + "_" + std::to_string(i)] = temp;
       i++;
     }

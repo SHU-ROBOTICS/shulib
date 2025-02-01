@@ -57,4 +57,16 @@ void update();
  *
  */
 void init_odometry();
+/**
+ * @brief Set the correction factor for theta calculations
+ * 
+ * @param factor The correction factor to apply to theta calculations
+ */
+void setThetaCorrectionFactor(double factor);
+/**
+ * @brief Get the correction factor for theta calculations
+ * 
+ * @return The correction factor for theta calculations
+ */
+double getThetaCorrectionFactor();
 } // namespace shulib

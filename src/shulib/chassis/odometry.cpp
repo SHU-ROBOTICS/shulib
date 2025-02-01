@@ -24,6 +24,7 @@ shulib::Drivetrain drive(0, 0, 0);    // the drivetrain to be used for odometry
 shulib::Pose odomPose(0, 0, 0);       // the pose of the robot
 shulib::Pose odomSpeed(0, 0, 0);      // the speed of the robot
 shulib::Pose odomLocalSpeed(0, 0, 0); // the local speed of the robot
+double thetaCorrectionFactor = 1.0;    // correction factor for theta calculations
 
 float prevVertical = 0;
 float prevLeft = 0;
@@ -99,7 +100,7 @@ void shulib::update() {
   float dS = odomSensors.back->get_travel_delta();
 
   Pose localPose(0,0,0);
-  localPose.theta = (dR - dL) / (sL - sR);
+  localPose.theta = ((dR - dL) / (sL - sR)) * thetaCorrectionFactor;
 
   float deltaX = 0;
   float deltaY = 0;
@@ -145,3 +146,13 @@ void shulib::init_odometry() {
     shulib::logger().success("Odometry initialized!");
   }
 }
+
+void shulib::setThetaCorrectionFactor(double factor) {
+    thetaCorrectionFactor = factor;
+    logger().log("Set theta correction factor to: " + std::to_string(factor));
+}
+
+double shulib::getThetaCorrectionFactor() {
+    return thetaCorrectionFactor;
+}
+  
