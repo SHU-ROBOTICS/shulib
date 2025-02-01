@@ -58,6 +58,8 @@ bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(9);
 pros::Motor conveyor(10);
+pros::MotorGroup wallStakeLift({6,-7}, pros::v5::MotorGears::red, pros::v5::MotorEncoderUnits::degrees);
+
 
 void pooksterControls()
 {
@@ -68,7 +70,6 @@ void pooksterControls()
     }
     else
     {
-        
         if (master.get_digital(DIGITAL_R1))
         {
             conveyor.move(-127);
@@ -95,6 +96,22 @@ void pooksterControls()
         }
     }
 
+    if (master.get_digital_new_press(DIGITAL_A))
+    {
+        wallStakeMode = !wallStakeMode;
+    }
+
+    if (wallStakeMode)
+    {
+        wallStakeLift.move_absolute(180, 60);
+    }
+    else
+    {
+        wallStakeLift.move_absolute(0, 60);
+    }
+
+
+
     if (master.get_digital_new_press(DIGITAL_RIGHT))
     {
         grabber.toggle();
@@ -103,20 +120,55 @@ void pooksterControls()
 
 void opcontrol()
 {
+    wallStakeLift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+
     while (true)
     {
         chassis.drive(master.get_analog(ANALOG_LEFT_X),
                        master.get_analog(ANALOG_LEFT_Y),
                        master.get_analog(ANALOG_RIGHT_X));
-
+        logger().updateTelemetry("conveyor_voltage", conveyor.get_voltage());
+        logger().updateTelemetry("wallStakeVoltage", wallStakeLift.get_voltage());
         pooksterControls();
 
-        // if conveyor voltage spikes, reverse for 500ms
-        // if (conveyor.get_voltage() > 1000)
-        // {
-        //     conveyor.move(-127);
-        //     pros::delay(500);
-        //     conveyor.move(0);
+
+        // static uint32_t stuckStartTime = 0;
+        // int voltage = wallStakeLift.get_voltage();
+        // int absVoltage = abs(voltage);
+        
+        // if (absVoltage > 3000 && absVoltage < 7000) {
+        //     if (stuckStartTime == 0) {
+        //         stuckStartTime = pros::millis();
+        //     } else if (pros::millis() - stuckStartTime >= 200) {
+        //         double position = wallStakeLift.get_position();
+        //         wallStakeLift.set_zero_position(voltage > 0 ? position + 180 : position - 180);
+        //         pros::delay(250);
+        //         stuckStartTime = 0;
+        //     }
+
+        // } else {
+        //     stuckStartTime = 0;
+        // }
+
+
+
+        // if conveyor voltage gets stuck between 3000 and 7000 (or -7000 and -3000) for 500ms, reverse direction for 500ms
+        // static uint32_t stuckStartTime = 0;
+        // int voltage = conveyor.get_voltage();
+        // int absVoltage = abs(voltage);
+        
+        // if (absVoltage > 3000 && absVoltage < 7000) {
+        //     if (stuckStartTime == 0) {
+        //         stuckStartTime = pros::millis();
+        //     } else if (pros::millis() - stuckStartTime >= 200) {
+        //         // Reverse the direction based on current voltage sign
+        //         conveyor.move(voltage > 0 ? -127 : 127);
+        //         pros::delay(250);
+        //         conveyor.move(0);
+        //         stuckStartTime = 0;
+        //     }
+        // } else {
+        //     stuckStartTime = 0;
         // }
 
 
