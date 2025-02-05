@@ -58,10 +58,23 @@ void update();
  */
 void init_odometry();
 /**
+ * @brief Set the correction factor for x calculations
+ * 
+ * @param factor The correction factor to apply to x calculations
+ */
+void setXCorrectionFactor(double factor);
+/**
+ * @brief Set the correction factor for y calculations
+ * 
+ * @param factor The correction factor to apply to y calculations
+ */
+void setYCorrectionFactor(double factor);
+/**
  * @brief Set the correction factor for theta calculations
  * 
  * @param factor The correction factor to apply to theta calculations
  */
+
 void setThetaCorrectionFactor(double factor);
 /**
  * @brief Get the correction factor for theta calculations

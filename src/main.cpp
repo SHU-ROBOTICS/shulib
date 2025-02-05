@@ -5,9 +5,11 @@
 #include "shulib/chassis/drivetrain/xdrive.hpp"
 #include "shulib/logger.hpp"
 #include "shulib/chassis/odometry.hpp"
+#include "shulib/pid.hpp"
 // #include "shulib/GUI/gui.c"
 
 Controller master(CONTROLLER_MASTER);
+
 
 MotorGroup frontLeft({-18, -19});
 MotorGroup frontRight({12, 13});
@@ -59,8 +61,11 @@ void initialize()
         pros::delay(100);
     }
 
+    shulib::setXCorrectionFactor(1);
+    shulib::setYCorrectionFactor(1.03225806);
     shulib::setThetaCorrectionFactor(0.922861);
     
+
 
     logger().log("IMU calibrated!");
     logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -153,7 +158,46 @@ void fifteen()
     }
 }
 
-void autonomous()
+void drive_forward(double distance)
+{
+    Pose target = chassis.getPose();
+    target.y += distance;
+    logger().updateTelemetry("target", target);
+    float error = target.y - chassis.getPose().y;
+    PID pid(10, 0, 0);
+    while(abs(error) > .125)
+    {
+        error = target.y - chassis.getPose().y;
+        float output = pid.update(error);
+
+        logger().updateTelemetry("error", error);
+        logger().updateTelemetry("output", output);
+
+        chassis.drive(0, output, 0);
+
+        pros::delay(10);
+    }
+    chassis.drive(0, 0, 0);
+    pros::delay(100);
+    
+    error = target.y - chassis.getPose().y;
+    while(abs(error) > .05)
+    {
+        float error = target.y - chassis.getPose().y;
+        float output = pid.update(error);
+
+        logger().updateTelemetry("error", error);
+        logger().updateTelemetry("output", output);
+
+        chassis.drive(0, output, 0);
+
+        pros::delay(10);
+    }
+    chassis.drive(0, 0, 0);
+}
+
+
+void rotation_calibration()
 {
     logger().log("Starting autonomous");
     chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
@@ -272,4 +316,16 @@ void opcontrol()
 
         pros::delay(20);
     }
+}
+
+void movement_calibration()
+{
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+    chassis.setPose(0, 0, 0);
+    chassis.drive(127, 0, 360);
+}
+
+void autonomous()
+{
+    drive_forward(12);
 }

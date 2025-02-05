@@ -24,7 +24,11 @@ shulib::Drivetrain drive(0, 0, 0);    // the drivetrain to be used for odometry
 shulib::Pose odomPose(0, 0, 0);       // the pose of the robot
 shulib::Pose odomSpeed(0, 0, 0);      // the speed of the robot
 shulib::Pose odomLocalSpeed(0, 0, 0); // the local speed of the robot
+
+double xCorrectionFactor = 1.0;    // correction factor for x calculations
+double yCorrectionFactor = 1.0;    // correction factor for y calculations
 double thetaCorrectionFactor = 1.0;    // correction factor for theta calculations
+
 
 float prevVertical = 0;
 float prevLeft = 0;
@@ -119,14 +123,15 @@ void shulib::update() {
   }
 
   // set odomPose
-  odomPose.y += deltaY * cos(odomPose.theta);
-  odomPose.x += deltaY * sin(odomPose.theta);
+  odomPose.y += deltaY * cos(odomPose.theta) * yCorrectionFactor;
+  odomPose.x += deltaY * sin(odomPose.theta) * yCorrectionFactor;
 
-  odomPose.y += deltaX * sin(odomPose.theta);
-  odomPose.x += deltaX * -cos(odomPose.theta);
+  odomPose.y += deltaX * sin(odomPose.theta) * xCorrectionFactor;
+  odomPose.x += deltaX * -cos(odomPose.theta) * xCorrectionFactor;
 }
 
 void shulib::init_odometry() {
+
   shulib::logger().log("Initializing odometry...");
   if (trackingTask == nullptr) {
     trackingTask = new pros::Task{[=] {
@@ -145,6 +150,16 @@ void shulib::init_odometry() {
     }};
     shulib::logger().success("Odometry initialized!");
   }
+}
+
+void shulib::setXCorrectionFactor(double factor) {
+    xCorrectionFactor = factor;
+    logger().log("Set x correction factor to: " + std::to_string(factor));
+}
+
+void shulib::setYCorrectionFactor(double factor) {
+    yCorrectionFactor = factor;
+    logger().log("Set y correction factor to: " + std::to_string(factor));
 }
 
 void shulib::setThetaCorrectionFactor(double factor) {
