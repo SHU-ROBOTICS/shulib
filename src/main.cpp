@@ -47,6 +47,7 @@ pros::MotorGroup wallStake({3, -8}, pros::v5::MotorGears::red, pros::v5::MotorUn
 
 pros::IMU imu(4);
 
+
 void initialize()
 {
     lcd::initialize();
@@ -54,6 +55,8 @@ void initialize()
 
     logger().init();
     imu.reset();
+
+
 
     logger().log("IMU not calibrated, calibrating...");
     while (imu.is_calibrating())
@@ -164,7 +167,7 @@ void drive_forward(double distance)
     target.y += distance;
     logger().updateTelemetry("target", target);
     float error = target.y - chassis.getPose().y;
-    PID pid(10, 0, 0);
+    PID pid(1, 0, 0);
     while(abs(error) > .125)
     {
         error = target.y - chassis.getPose().y;
@@ -328,4 +331,12 @@ void movement_calibration()
 void autonomous()
 {
     drive_forward(12);
+    pros::delay(1000);
+    drive_forward(48);
+    pros::delay(1000);
+    drive_forward(-12);
+    pros::delay(1000);
+    drive_forward(-48);
+    pros::delay(1000);
+    
 }
