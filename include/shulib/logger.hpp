@@ -112,7 +112,7 @@ public:
   }
 
 private:
-  Logger() : lastTelemetryTime(0), telemetryInterval(200), telemetryTask(nullptr) {}
+  Logger() : lastTelemetryTime(0), telemetryInterval(50), telemetryTask(nullptr) {}
   Logger(const Logger &) = delete;
   Logger &operator=(const Logger &) = delete;
 
