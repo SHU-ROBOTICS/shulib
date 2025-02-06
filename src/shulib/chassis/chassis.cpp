@@ -10,6 +10,7 @@
 
 shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
                                  OdomUnit *back, pros::Imu *imu)
+
     : left(left), right(right), back(back), imu(imu) {}
 
 shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)

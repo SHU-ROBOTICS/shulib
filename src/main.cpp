@@ -163,40 +163,142 @@ void fifteen()
 
 void drive_forward(double distance)
 {
-    Pose target = chassis.getPose();
-    target.y += distance;
-    logger().updateTelemetry("target", target);
-    float error = target.y - chassis.getPose().y;
-    PID pid(1, 0, 0);
-    while(abs(error) > .125)
-    {
-        error = target.y - chassis.getPose().y;
-        float output = pid.update(error);
+    logger().log("Starting drive_forward with target distance: " + std::to_string(distance));
+    // Get the current pose and compute target position and desired heading.
+    Pose startPose = chassis.getPose();
+    double targetY = startPose.y + distance;
+    double desiredTheta = startPose.theta; // we want to maintain this heading
 
-        logger().updateTelemetry("error", error);
-        logger().updateTelemetry("output", output);
+    // Log initial state
+    logger().log("Start pose - X: " + std::to_string(startPose.x) + 
+                 " Y: " + std::to_string(startPose.y) + 
+                 " Theta: " + std::to_string(startPose.theta));
+    logger().log("Target Y: " + std::to_string(targetY));
 
-        chassis.drive(0, output, 0);
+    double minOutput = 2.0; // Minimum output to overcome static friction
+    double error = targetY - chassis.getPose().y;
+    int stuckCounter = 0;
+    double lastError = error;
 
-        pros::delay(10);
+    // Two-phase control with separate PIDs
+    if (fabs(error) > 0.125) {
+        // Coarse control phase
+        logger().log("Starting coarse control phase (target error < 0.125)");
+        // Create PID controllers with better tuned values
+        // Linear PID with integral term to overcome static friction
+        PID linearPID(12, 0.01, 0.1);  // P=12 for quick response, I=0.01 to overcome friction, D=0.1 for smoothing
+        // Heading PID with derivative term for stability
+        PID headingPID(3, 0, 0.05);    // Lower P to reduce fighting, added D for smoothing
+        
+        while (fabs(error) > 0.125)
+        {
+            Pose currentPose = chassis.getPose();
+            error = targetY - currentPose.y;
+            double forwardOutput = linearPID.update(error);
+
+            // Add minimum power to overcome static friction
+            if (fabs(forwardOutput) < minOutput && fabs(forwardOutput) > 0.1) {
+                forwardOutput = (forwardOutput > 0) ? minOutput : -minOutput;
+            }
+
+            // Compute heading error (difference between desired and current heading)
+            double headingError = desiredTheta - currentPose.theta;
+            // Normalize heading error to [-180, 180]
+            while (headingError > 180) headingError -= 360;
+            while (headingError < -180) headingError += 360;
+            double rotationOutput = headingPID.update(headingError);
+
+            // Check if we're stuck
+            if (fabs(error - lastError) < 0.001) {
+                stuckCounter++;
+                if (stuckCounter > 100) { // 1 second stuck
+                    logger().log("WARNING: Possibly stuck - minimal progress detected");
+                    logger().log("Current Y: " + std::to_string(currentPose.y) + 
+                               " Error: " + std::to_string(error));
+                    // Give an extra push when stuck
+                    forwardOutput *= 1.5;
+                }
+            } else {
+                stuckCounter = 0;
+            }
+            lastError = error;
+
+            // Log every 500ms
+            if (stuckCounter % 50 == 0) {
+                logger().log("Coarse Phase - Error: " + std::to_string(error) + 
+                            " Forward: " + std::to_string(forwardOutput) + 
+                            " Rotation: " + std::to_string(rotationOutput));
+            }
+
+            // Drive with forward power and rotation correction
+            chassis.drive(0, forwardOutput, rotationOutput);
+
+            pros::delay(10);
+        }
+
+        logger().log("Coarse control phase complete. Starting fine control phase");
+        // Stop briefly
+        chassis.drive(0, 0, 0);
+        pros::delay(100);
     }
-    chassis.drive(0, 0, 0);
-    pros::delay(100);
+
+    // Fine control phase with new PIDs
+    logger().log("Starting fine control phase (target error < 0.05)");
+    PID finePID(8, 0.02, 0.05);  // Lower gains for fine control
+    PID fineHeadingPID(2, 0, 0.03);    // Lower gains for fine control
     
-    error = target.y - chassis.getPose().y;
-    while(abs(error) > .05)
+    stuckCounter = 0;
+    lastError = error;
+    
+    while (fabs(error) > 0.05)
     {
-        float error = target.y - chassis.getPose().y;
-        float output = pid.update(error);
+        Pose currentPose = chassis.getPose();
+        error = targetY - currentPose.y;
+        double forwardOutput = finePID.update(error);
 
-        logger().updateTelemetry("error", error);
-        logger().updateTelemetry("output", output);
+        // Add minimum power to overcome static friction
+        if (fabs(forwardOutput) < minOutput && fabs(forwardOutput) > 0.1) {
+            forwardOutput = (forwardOutput > 0) ? minOutput : -minOutput;
+        }
 
-        chassis.drive(0, output, 0);
+        double headingError = desiredTheta - currentPose.theta;
+        // Normalize heading error
+        while (headingError > 180) headingError -= 360;
+        while (headingError < -180) headingError += 360;
+        double rotationOutput = fineHeadingPID.update(headingError);
 
+        // Check if we're stuck
+        if (fabs(error - lastError) < 0.0005) {
+            stuckCounter++;
+            if (stuckCounter > 100) {
+                logger().log("WARNING: Possibly stuck in fine control - minimal progress detected");
+                logger().log("Current Y: " + std::to_string(currentPose.y) + 
+                           " Error: " + std::to_string(error));
+                // Give an extra push when stuck
+                forwardOutput *= 1.5;
+            }
+        } else {
+            stuckCounter = 0;
+        }
+        lastError = error;
+
+        // Log every 500ms
+        if (stuckCounter % 50 == 0) {
+            logger().log("Fine Phase - Error: " + std::to_string(error) + 
+                        " Forward: " + std::to_string(forwardOutput) + 
+                        " Rotation: " + std::to_string(rotationOutput));
+        }
+
+        chassis.drive(0, forwardOutput, rotationOutput);
         pros::delay(10);
     }
+
+    // Finally, stop all motion.
     chassis.drive(0, 0, 0);
+    logger().log("Drive forward complete. Final pose - X: " + 
+                 std::to_string(chassis.getPose().x) + 
+                 " Y: " + std::to_string(chassis.getPose().y) + 
+                 " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
 
@@ -330,6 +432,7 @@ void movement_calibration()
 
 void autonomous()
 {
+    logger().log("Starting autonomous");
     drive_forward(12);
     pros::delay(1000);
     drive_forward(48);

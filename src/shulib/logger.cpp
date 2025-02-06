@@ -2,6 +2,7 @@
 #include "pros/rtos.hpp"
 #include <iostream>
 #include <sstream>
+#include <queue>
 
 namespace shulib {
 
@@ -20,23 +21,43 @@ void Logger::sendTelemetry() {
   mutex.take();
 
   if (!debugMessages.empty()) {
-    std::stringstream ss;
-    ss << "[";
-    for (size_t i = 0; i < debugMessages.size(); i++) {
-      const auto &msg = debugMessages[i];
-      ss << "{ \"message\": \"" << msg.first << "\", \"type\": \"" 
-         << (msg.second == MessageType::ERROR ? "error" :
-             msg.second == MessageType::WARNING ? "warning" :
-             msg.second == MessageType::SUCCESS ? "success" :
-             msg.second == MessageType::ANNOUNCE ? "announce" :
-             msg.second == MessageType::DEBUG ? "debug" : "log") << "\" }";
-      if (i < debugMessages.size() - 1) {
-        ss << ", ";
-      }
-    }
-    ss << "]";
-    telemetryData["messages"] = ss.str();
+    const size_t maxSize = 900;
+    std::queue<std::pair<std::string, MessageType>> messageQueue(std::deque<std::pair<std::string, MessageType>>(debugMessages.begin(), debugMessages.end()));
     debugMessages.clear();
+
+    while (!messageQueue.empty()) {
+      std::vector<std::pair<std::string, MessageType>> currentChunk;
+      std::stringstream ss;
+      ss << "{\"messages\": [";
+      size_t currentSize = 15; // Initial size for {"messages": []}
+
+      while (!messageQueue.empty()) {
+        const auto &msg = messageQueue.front();
+        std::string msgJson = "{ \"message\": \"" + msg.first + "\", \"type\": \"" + 
+          (msg.second == MessageType::ERROR ? "error" :
+           msg.second == MessageType::WARNING ? "warning" :
+           msg.second == MessageType::SUCCESS ? "success" :
+           msg.second == MessageType::ANNOUNCE ? "announce" :
+           msg.second == MessageType::DEBUG ? "debug" : "log") + "\" }";
+
+        size_t newSize = currentSize + msgJson.length() + (currentChunk.empty() ? 0 : 2); // +2 for ", "
+        if (newSize > maxSize && !currentChunk.empty()) {
+          break;
+        }
+
+        currentChunk.push_back(msg);
+        if (!currentChunk.empty() && currentChunk.size() > 1) {
+          ss << ", ";
+        }
+        ss << msgJson;
+        currentSize = newSize;
+        messageQueue.pop();
+      }
+
+      ss << "]}";
+      printf("%s\n", ss.str().c_str());
+      pros::delay(5);
+    }
   }
 
   if (!telemetryData.empty()) {

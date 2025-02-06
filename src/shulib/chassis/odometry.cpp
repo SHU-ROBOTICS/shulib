@@ -18,6 +18,8 @@ pros::Task *trackingTask = nullptr;
 pros::Task *telemetryTask = nullptr;
 
 // global variables
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
+
 shulib::OdomSensors odomSensors(nullptr, nullptr, nullptr,
                                 nullptr); // the sensors to be used for odometry
 shulib::Drivetrain drive(0, 0, 0);    // the drivetrain to be used for odometry
@@ -131,7 +133,6 @@ void shulib::update() {
 }
 
 void shulib::init_odometry() {
-
   shulib::logger().log("Initializing odometry...");
   if (trackingTask == nullptr) {
     trackingTask = new pros::Task{[=] {
@@ -145,8 +146,25 @@ void shulib::init_odometry() {
           lastLoggedPose = odomPose;
         }
         shulib::logger().updateTelemetry("temps", drive.getTemps());
+        std::string batteryTelemetry = "{\"voltage\":" + std::to_string(pros::battery::get_voltage()) +
+        ", \"current\":" + std::to_string(pros::battery::get_current()) +
+        ", \"temperature\":" + std::to_string(pros::battery::get_temperature()) +
+        ", \"capacity\":" + std::to_string(pros::battery::get_capacity()) +
+        "}";
+        shulib::logger().updateTelemetry("battery", batteryTelemetry);
+        std::string controllerTelemetry = "{\"capacity\":" + std::to_string(controller.get_battery_capacity()) +
+        ", \"level\":" + std::to_string(controller.get_battery_level()) +
+        "}";
+        shulib::logger().updateTelemetry("controller", controllerTelemetry);
+
+
+
         pros::delay(10);
+
       }
+
+
+
     }};
     shulib::logger().success("Odometry initialized!");
   }
