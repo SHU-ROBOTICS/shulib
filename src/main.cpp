@@ -76,8 +76,9 @@ void initialize()
     logger().log("IMU roll: " + std::to_string(imu.get_roll()));
 
     chassis.calibrate();
-    chassis.setPose({36, -60, 0});
+    chassis.setPose({-44, -48, 0});
 }
+
 
 void disabled() {}
 void competition_initialize() {}
@@ -164,58 +165,117 @@ void fifteen()
 void drive_forward(double distance)
 {
     logger().log("Starting drive_forward with target distance: " + std::to_string(distance));
-    // Get the current pose and compute target position and desired heading.
     Pose startPose = chassis.getPose();
     double targetY = startPose.y + distance;
-    double desiredTheta = startPose.theta; // we want to maintain this heading
+    
+    // Calculate target point in 2D space
+    double targetX = startPose.x;  // maintain X position
+    // Calculate desired heading (angle to target point)
+    double dx = targetX - startPose.x;
+    double dy = targetY - startPose.y;
+    double desiredTheta = std::atan2(dy, dx) * 180.0 / M_PI;  // Convert to degrees
+    
+    // Normalize to [-180, 180]
+    while (desiredTheta > 180) desiredTheta -= 360;
+    while (desiredTheta < -180) desiredTheta += 360;
 
-    // Log initial state
     logger().log("Start pose - X: " + std::to_string(startPose.x) + 
                  " Y: " + std::to_string(startPose.y) + 
                  " Theta: " + std::to_string(startPose.theta));
-    logger().log("Target Y: " + std::to_string(targetY));
+    logger().log("Target - X: " + std::to_string(targetX) + 
+                 " Y: " + std::to_string(targetY) + 
+                 " Theta: " + std::to_string(desiredTheta));
 
-    double minOutput = 2.0; // Minimum output to overcome static friction
+    const double MIN_OUTPUT = 30.0;  // Minimum power to move
+    const double MAX_OUTPUT = 80.0;  // Maximum power allowed
+    const double MAX_ROTATION = 40.0; // Maximum rotation power
+    const double MIN_ROTATION = 10.0; // Minimum rotation power
+    const double ACCEL_RATE = 2.0;   // How fast to ramp up speed (power units per iteration)
+    const double DECEL_ZONE = 6.0;   // Start slowing down when within this distance
+    const double ANGLE_TOLERANCE = 5.0; // Degrees of acceptable heading error
+    const double SEVERE_ANGLE_ERROR = 20.0; // Degrees of severe heading error
+    
     double error = targetY - chassis.getPose().y;
     int stuckCounter = 0;
     double lastError = error;
-
+    double currentMaxSpeed = MIN_OUTPUT;  // Start at minimum speed
+    
     // Two-phase control with separate PIDs
-    if (fabs(error) > 0.125) {
+    if (fabs(error) > 0.5) {
         // Coarse control phase
-        logger().log("Starting coarse control phase (target error < 0.125)");
-        // Create PID controllers with better tuned values
-        // Linear PID with integral term to overcome static friction
-        PID linearPID(12, 0.01, 0.1);  // P=12 for quick response, I=0.01 to overcome friction, D=0.1 for smoothing
-        // Heading PID with derivative term for stability
-        PID headingPID(3, 0, 0.05);    // Lower P to reduce fighting, added D for smoothing
+        logger().log("Starting coarse control phase (target error < 0.5)");
+        PID linearPID(12, 0.01, 0.1);
+        // Increased heading gains for better tracking
+        PID headingPID(8, 0.02, 0.2);  // More aggressive heading control
         
-        while (fabs(error) > 0.125)
+        while (fabs(error) > 0.5)
         {
             Pose currentPose = chassis.getPose();
             error = targetY - currentPose.y;
             double forwardOutput = linearPID.update(error);
 
-            // Add minimum power to overcome static friction
-            if (fabs(forwardOutput) < minOutput && fabs(forwardOutput) > 0.1) {
-                forwardOutput = (forwardOutput > 0) ? minOutput : -minOutput;
+            // Update desired heading based on current position
+            dx = targetX - currentPose.x;
+            dy = targetY - currentPose.y;
+            desiredTheta = std::atan2(dy, dx) * 180.0 / M_PI;
+            while (desiredTheta > 180) desiredTheta -= 360;
+            while (desiredTheta < -180) desiredTheta += 360;
+
+            // Ramp up speed gradually
+            if (currentMaxSpeed < MAX_OUTPUT) {
+                currentMaxSpeed += ACCEL_RATE;
+                if (currentMaxSpeed > MAX_OUTPUT) currentMaxSpeed = MAX_OUTPUT;
             }
 
-            // Compute heading error (difference between desired and current heading)
+            // Calculate deceleration factor based on distance to target
+            double decelFactor = 1.0;
+            if (fabs(error) < DECEL_ZONE) {
+                decelFactor = fabs(error) / DECEL_ZONE;  // Linear ramp down
+                decelFactor = decelFactor * (currentMaxSpeed - MIN_OUTPUT) / currentMaxSpeed + MIN_OUTPUT / currentMaxSpeed;
+            }
+
+            // Apply speed limits and deceleration
+            forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
+            forwardOutput *= decelFactor;
+
             double headingError = desiredTheta - currentPose.theta;
-            // Normalize heading error to [-180, 180]
             while (headingError > 180) headingError -= 360;
             while (headingError < -180) headingError += 360;
-            double rotationOutput = headingPID.update(headingError);
+            
+            // Aggressive speed reduction based on heading error
+            double angleErrorFactor = 1.0;
+            if (fabs(headingError) > ANGLE_TOLERANCE) {
+                // Exponential reduction in speed as angle error increases
+                angleErrorFactor = std::exp(-fabs(headingError) / 15.0);
+                
+                // Almost stop if severely off course
+                if (fabs(headingError) > SEVERE_ANGLE_ERROR) {
+                    angleErrorFactor = 0.1; // Reduce to 10% speed
+                }
+            }
+            
+            forwardOutput *= angleErrorFactor;
+            
+            // Ensure minimum power to overcome friction
+            if (fabs(forwardOutput) < MIN_OUTPUT && fabs(forwardOutput) > 0.1) {
+                forwardOutput = (forwardOutput > 0) ? MIN_OUTPUT : -MIN_OUTPUT;
+            }
+            
+            // Scale up heading correction based on drift amount
+            double driftFactor = 1.0 + fabs(headingError) / 5.0; // More aggressive correction
+            double rotationOutput = headingPID.update(headingError) * driftFactor;
+            
+            // Limit rotation output
+            rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
             // Check if we're stuck
             if (fabs(error - lastError) < 0.001) {
                 stuckCounter++;
-                if (stuckCounter > 100) { // 1 second stuck
+                if (stuckCounter > 100) {
                     logger().log("WARNING: Possibly stuck - minimal progress detected");
                     logger().log("Current Y: " + std::to_string(currentPose.y) + 
-                               " Error: " + std::to_string(error));
-                    // Give an extra push when stuck
+                               " Error: " + std::to_string(error) +
+                               " Heading: " + std::to_string(currentPose.theta));
                     forwardOutput *= 1.5;
                 }
             } else {
@@ -223,58 +283,78 @@ void drive_forward(double distance)
             }
             lastError = error;
 
-            // Log every 500ms
             if (stuckCounter % 50 == 0) {
                 logger().log("Coarse Phase - Error: " + std::to_string(error) + 
                             " Forward: " + std::to_string(forwardOutput) + 
-                            " Rotation: " + std::to_string(rotationOutput));
+                            " Speed: " + std::to_string(currentMaxSpeed) +
+                            " Heading: " + std::to_string(currentPose.theta) +
+                            " Target Heading: " + std::to_string(desiredTheta) +
+                            " Angle Factor: " + std::to_string(angleErrorFactor));
             }
 
-            // Drive with forward power and rotation correction
             chassis.drive(0, forwardOutput, rotationOutput);
-
             pros::delay(10);
         }
 
         logger().log("Coarse control phase complete. Starting fine control phase");
-        // Stop briefly
         chassis.drive(0, 0, 0);
         pros::delay(100);
     }
 
-    // Fine control phase with new PIDs
-    logger().log("Starting fine control phase (target error < 0.05)");
-    PID finePID(8, 0.02, 0.05);  // Lower gains for fine control
-    PID fineHeadingPID(2, 0, 0.03);    // Lower gains for fine control
+    // Fine control phase
+    logger().log("Starting fine control phase (target error < 0.15)");
+    PID finePID(8, 0.02, 0.05);
+    PID fineHeadingPID(6, 0.01, 0.1);  // Still fairly aggressive heading control
     
+    // Reset for fine control
     stuckCounter = 0;
     lastError = error;
+    currentMaxSpeed = MIN_OUTPUT;  // Reset speed for fine control
     
-    while (fabs(error) > 0.05)
+    while (fabs(error) > 0.15)
     {
         Pose currentPose = chassis.getPose();
         error = targetY - currentPose.y;
         double forwardOutput = finePID.update(error);
 
-        // Add minimum power to overcome static friction
-        if (fabs(forwardOutput) < minOutput && fabs(forwardOutput) > 0.1) {
-            forwardOutput = (forwardOutput > 0) ? minOutput : -minOutput;
-        }
+        // Update desired heading
+        dx = targetX - currentPose.x;
+        dy = targetY - currentPose.y;
+        desiredTheta = std::atan2(dy, dx) * 180.0 / M_PI;
+        while (desiredTheta > 180) desiredTheta -= 360;
+        while (desiredTheta < -180) desiredTheta += 360;
+
+        // In fine control, we keep speed limited
+        forwardOutput = std::clamp(forwardOutput, -MIN_OUTPUT * 1.5, MIN_OUTPUT * 1.5);
 
         double headingError = desiredTheta - currentPose.theta;
-        // Normalize heading error
         while (headingError > 180) headingError -= 360;
         while (headingError < -180) headingError += 360;
-        double rotationOutput = fineHeadingPID.update(headingError);
+        
+        // Aggressive speed reduction in fine control
+        double angleErrorFactor = 1.0;
+        if (fabs(headingError) > ANGLE_TOLERANCE) {
+            angleErrorFactor = std::exp(-fabs(headingError) / 10.0);  // Even more aggressive in fine control
+            if (fabs(headingError) > SEVERE_ANGLE_ERROR) {
+                angleErrorFactor = 0.1;
+            }
+        }
+        forwardOutput *= angleErrorFactor;
+        
+        // Scale up heading correction in fine control
+        double driftFactor = 1.0 + fabs(headingError) / 3.0; // More aggressive in fine control
+        double rotationOutput = fineHeadingPID.update(headingError) * driftFactor;
+        
+        // Limit rotation output
+        rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION/2, MAX_ROTATION/2);
 
-        // Check if we're stuck
         if (fabs(error - lastError) < 0.0005) {
             stuckCounter++;
             if (stuckCounter > 100) {
                 logger().log("WARNING: Possibly stuck in fine control - minimal progress detected");
                 logger().log("Current Y: " + std::to_string(currentPose.y) + 
-                           " Error: " + std::to_string(error));
-                // Give an extra push when stuck
+                           " Error: " + std::to_string(error) +
+                           " Heading: " + std::to_string(currentPose.theta));
                 forwardOutput *= 1.5;
             }
         } else {
@@ -282,18 +362,18 @@ void drive_forward(double distance)
         }
         lastError = error;
 
-        // Log every 500ms
         if (stuckCounter % 50 == 0) {
             logger().log("Fine Phase - Error: " + std::to_string(error) + 
                         " Forward: " + std::to_string(forwardOutput) + 
-                        " Rotation: " + std::to_string(rotationOutput));
+                        " Heading: " + std::to_string(currentPose.theta) +
+                        " Target Heading: " + std::to_string(desiredTheta) +
+                        " Angle Factor: " + std::to_string(angleErrorFactor));
         }
 
         chassis.drive(0, forwardOutput, rotationOutput);
         pros::delay(10);
     }
 
-    // Finally, stop all motion.
     chassis.drive(0, 0, 0);
     logger().log("Drive forward complete. Final pose - X: " + 
                  std::to_string(chassis.getPose().x) + 
@@ -301,6 +381,151 @@ void drive_forward(double distance)
                  " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
+void rotate_to(double target_angle)
+{
+    logger().log("Starting rotation to " + std::to_string(target_angle) + " degrees");
+    Pose startPose = chassis.getPose();
+    double desiredTheta = target_angle;
+
+    logger().log("Start pose - X: " + std::to_string(startPose.x) + 
+                 " Y: " + std::to_string(startPose.y) + 
+                 " Theta: " + std::to_string(startPose.theta));
+
+    const double MIN_ROTATION = 10.0;  // Minimum rotation power
+    const double MAX_ROTATION = 40.0;  // Maximum rotation power
+    const double ACCEL_RATE = 1.0;     // How fast to ramp up rotation speed
+    const double DECEL_ANGLE = 45.0;   // Start slowing down when within this angle
+    
+    double error = target_angle - chassis.getPose().theta;
+    // Normalize error to [-180, 180]
+    while (error > 180) error -= 360;
+    while (error < -180) error += 360;
+
+    int stuckCounter = 0;
+    double lastError = error;
+    double currentMaxSpeed = MIN_ROTATION;  // Start at minimum speed
+    
+    // Two-phase control with separate PIDs
+    if (fabs(error) > 1.0) {
+        // Coarse control phase
+        logger().log("Starting coarse rotation (target error < 1.0)");
+        PID rotationPID(2.0, 0.01, 0.1);  // Conservative gains for rotation
+        
+        while (fabs(error) > 1.0)
+        {
+            Pose currentPose = chassis.getPose();
+            error = target_angle - currentPose.theta;
+            while (error > 180) error -= 360;
+            while (error < -180) error += 360;
+
+            double rotationOutput = rotationPID.update(error);
+
+            // Ramp up speed gradually
+            if (currentMaxSpeed < MAX_ROTATION) {
+                currentMaxSpeed += ACCEL_RATE;
+                if (currentMaxSpeed > MAX_ROTATION) currentMaxSpeed = MAX_ROTATION;
+            }
+
+            // Calculate deceleration factor based on angle to target
+            double decelFactor = 1.0;
+            if (fabs(error) < DECEL_ANGLE) {
+                decelFactor = fabs(error) / DECEL_ANGLE;  // Linear ramp down
+                // Ensure we don't go below minimum output
+                decelFactor = decelFactor * (currentMaxSpeed - MIN_ROTATION) / currentMaxSpeed + MIN_ROTATION / currentMaxSpeed;
+            }
+
+            // Apply speed limits and deceleration
+            rotationOutput = std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
+            rotationOutput *= decelFactor;
+
+            // Ensure minimum power to overcome friction
+            if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1) {
+                rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
+            }
+
+            // Check if we're stuck
+            if (fabs(error - lastError) < 0.001) {
+                stuckCounter++;
+                if (stuckCounter > 100) {
+                    logger().log("WARNING: Possibly stuck - minimal progress detected");
+                    logger().log("Current Theta: " + std::to_string(currentPose.theta) + 
+                               " Error: " + std::to_string(error));
+                    rotationOutput *= 1.5;
+                }
+            } else {
+                stuckCounter = 0;
+            }
+            lastError = error;
+
+            if (stuckCounter % 50 == 0) {
+                logger().log("Coarse Phase - Error: " + std::to_string(error) + 
+                            " Output: " + std::to_string(rotationOutput) + 
+                            " Speed: " + std::to_string(currentMaxSpeed));
+            }
+
+            chassis.drive(0, 0, rotationOutput);
+            pros::delay(10);
+        }
+
+        logger().log("Coarse rotation complete. Starting fine rotation");
+        chassis.drive(0, 0, 0);
+        pros::delay(100);
+    }
+
+    // Fine control phase
+    logger().log("Starting fine rotation (target error < 0.5)");
+    PID fineRotationPID(1.0, 0.02, 0.05);  // More conservative gains for fine control
+    
+    // Reset for fine control
+    stuckCounter = 0;
+    lastError = error;
+    currentMaxSpeed = MIN_ROTATION;  // Reset speed for fine control
+    
+    while (fabs(error) > 0.5)
+    {
+        Pose currentPose = chassis.getPose();
+        error = target_angle - currentPose.theta;
+        while (error > 180) error -= 360;
+        while (error < -180) error += 360;
+
+        double rotationOutput = fineRotationPID.update(error);
+
+        // In fine control, we keep speed limited
+        rotationOutput = std::clamp(rotationOutput, -MIN_ROTATION * 1.5, MIN_ROTATION * 1.5);
+
+        // Ensure minimum power
+        if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1) {
+            rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
+        }
+
+        if (fabs(error - lastError) < 0.0005) {
+            stuckCounter++;
+            if (stuckCounter > 100) {
+                logger().log("WARNING: Possibly stuck in fine control - minimal progress detected");
+                logger().log("Current Theta: " + std::to_string(currentPose.theta) + 
+                           " Error: " + std::to_string(error));
+                rotationOutput *= 1.5;
+            }
+        } else {
+            stuckCounter = 0;
+        }
+        lastError = error;
+
+        if (stuckCounter % 50 == 0) {
+            logger().log("Fine Phase - Error: " + std::to_string(error) + 
+                        " Output: " + std::to_string(rotationOutput));
+        }
+
+        chassis.drive(0, 0, rotationOutput);
+        pros::delay(10);
+    }
+
+    chassis.drive(0, 0, 0);
+    logger().log("Rotation complete. Final pose - X: " + 
+                 std::to_string(chassis.getPose().x) + 
+                 " Y: " + std::to_string(chassis.getPose().y) + 
+                 " Theta: " + std::to_string(chassis.getPose().theta));
+}
 
 void rotation_calibration()
 {
@@ -430,16 +655,239 @@ void movement_calibration()
     chassis.drive(127, 0, 360);
 }
 
+void test_min_output()
+{
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+    int power = 0;
+    double start_x = chassis.getPose().x;
+    double start_y = chassis.getPose().y;
+    double start_theta = chassis.getPose().theta;
+    while (true)
+
+    {
+        power += 1;
+        chassis.drive(power, 0, 0);
+        pros::delay(500);
+
+        if (chassis.getPose().x > start_x + .5)
+        {
+            logger().log("Min output X: " + std::to_string(power));
+            chassis.drive(0, 0, 0);
+            break;
+        }
+    }
+    power = 0;
+    while (true)
+    {
+        power += 1;
+        chassis.drive(0, power, 0);
+        pros::delay(500);
+
+        if (chassis.getPose().y > start_y + .5)
+        {
+            logger().log("Min output Y: " + std::to_string(power));
+            chassis.drive(0, 0, 0);
+            break;
+        }
+    }
+    power = 0;
+    while (true)
+    {
+        power += 1;
+        chassis.drive(0, 0, power);
+        pros::delay(500);
+
+        if (chassis.getPose().theta > start_theta + .5)
+        {
+            logger().log("Min output theta: " + std::to_string(power));
+            chassis.drive(0, 0, 0);
+            break;
+        }
+    }
+}
+
+void move_to_pose(Pose target_pose)
+{
+    logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
+                 " Y: " + std::to_string(target_pose.y) + 
+                 " Theta: " + std::to_string(target_pose.theta));
+
+    Pose currentPose = chassis.getPose();
+    
+    // Calculate distance and angle to target position
+    double dx = target_pose.x - currentPose.x;
+    double dy = target_pose.y - currentPose.y;
+    double distance = std::sqrt(dx*dx + dy*dy);
+    double angle_to_target = std::atan2(dy, dx) * 180.0 / M_PI;
+    
+    // Normalize angle to [-180, 180]
+    while (angle_to_target > 180) angle_to_target -= 360;
+    while (angle_to_target < -180) angle_to_target += 360;
+    
+    logger().log("Distance to target: " + std::to_string(distance) + 
+                 " Angle to target: " + std::to_string(angle_to_target));
+    
+    // If we're already very close to the target position
+    if (distance < 0.5) {
+        // Just rotate to final heading
+        rotate_to(target_pose.theta);
+        return;
+    }
+    
+    // First, rotate to face the target point
+    rotate_to(angle_to_target);
+    
+    // Movement constants
+    const double MIN_OUTPUT = 30.0;
+    const double MAX_OUTPUT = 80.0;
+    const double MAX_ROTATION = 40.0;
+    const double MIN_ROTATION = 10.0;
+    const double ACCEL_RATE = 2.0;
+    const double DECEL_ZONE = 6.0;
+    const double ANGLE_TOLERANCE = 5.0;
+    const double SEVERE_ANGLE_ERROR = 20.0;
+    
+    // Initialize control variables
+    int stuckCounter = 0;
+    double currentMaxSpeed = MIN_OUTPUT;
+    double lastError = distance;
+    
+    // Coarse movement phase
+    logger().log("Starting coarse movement (target error < 0.5)");
+    PID linearPID(12, 0.01, 0.1);
+    PID headingPID(8, 0.02, 0.2);
+    
+    while (distance > 0.5)
+    {
+        currentPose = chassis.getPose();
+        dx = target_pose.x - currentPose.x;
+        dy = target_pose.y - currentPose.y;
+        distance = std::sqrt(dx*dx + dy*dy);
+        
+        // Recalculate desired heading to target
+        angle_to_target = std::atan2(dy, dx) * 180.0 / M_PI;
+        while (angle_to_target > 180) angle_to_target -= 360;
+        while (angle_to_target < -180) angle_to_target += 360;
+        
+        double forwardOutput = linearPID.update(distance);
+        
+        // Ramp up speed gradually
+        if (currentMaxSpeed < MAX_OUTPUT) {
+            currentMaxSpeed += ACCEL_RATE;
+            if (currentMaxSpeed > MAX_OUTPUT) currentMaxSpeed = MAX_OUTPUT;
+        }
+        
+        // Calculate deceleration factor
+        double decelFactor = 1.0;
+        if (distance < DECEL_ZONE) {
+            decelFactor = distance / DECEL_ZONE;
+            decelFactor = decelFactor * (currentMaxSpeed - MIN_OUTPUT) / currentMaxSpeed + MIN_OUTPUT / currentMaxSpeed;
+        }
+        
+        // Apply speed limits and deceleration
+        forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
+        forwardOutput *= decelFactor;
+        
+        // Calculate heading error and correction
+        double headingError = angle_to_target - currentPose.theta;
+        while (headingError > 180) headingError -= 360;
+        while (headingError < -180) headingError += 360;
+        
+        // Aggressive speed reduction based on heading error
+        double angleErrorFactor = 1.0;
+        if (fabs(headingError) > ANGLE_TOLERANCE) {
+            angleErrorFactor = std::exp(-fabs(headingError) / 15.0);
+            if (fabs(headingError) > SEVERE_ANGLE_ERROR) {
+                angleErrorFactor = 0.1;
+            }
+        }
+        
+        forwardOutput *= angleErrorFactor;
+        
+        // Ensure minimum power
+        if (fabs(forwardOutput) < MIN_OUTPUT && fabs(forwardOutput) > 0.1) {
+            forwardOutput = (forwardOutput > 0) ? MIN_OUTPUT : -MIN_OUTPUT;
+        }
+        
+        // Calculate rotation output
+        double driftFactor = 1.0 + fabs(headingError) / 5.0;
+        double rotationOutput = headingPID.update(headingError) * driftFactor;
+        rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
+        
+        // Stuck detection
+        if (fabs(distance - lastError) < 0.001) {
+            stuckCounter++;
+            if (stuckCounter > 100) {
+                logger().log("WARNING: Possibly stuck - minimal progress detected");
+                logger().log("Current pose - X: " + std::to_string(currentPose.x) + 
+                           " Y: " + std::to_string(currentPose.y) +
+                           " Distance: " + std::to_string(distance) +
+                           " Heading: " + std::to_string(currentPose.theta));
+                forwardOutput *= 1.5;
+            }
+        } else {
+            stuckCounter = 0;
+        }
+        lastError = distance;
+        
+        // Logging
+        if (stuckCounter % 50 == 0) {
+            logger().log("Movement - Distance: " + std::to_string(distance) + 
+                        " Forward: " + std::to_string(forwardOutput) + 
+                        " Speed: " + std::to_string(currentMaxSpeed) +
+                        " Heading: " + std::to_string(currentPose.theta) +
+                        " Target Heading: " + std::to_string(angle_to_target) +
+                        " Angle Factor: " + std::to_string(angleErrorFactor));
+        }
+        
+        chassis.drive(0, forwardOutput, rotationOutput);
+        pros::delay(10);
+    }
+    
+    chassis.drive(0, 0, 0);
+    pros::delay(100);
+    
+    // Finally, rotate to the target heading
+    rotate_to(target_pose.theta);
+    
+    // Log final position and errors
+    currentPose = chassis.getPose();
+    dx = target_pose.x - currentPose.x;
+    dy = target_pose.y - currentPose.y;
+    double final_distance_error = std::sqrt(dx*dx + dy*dy);
+    double final_angle_error = target_pose.theta - currentPose.theta;
+    while (final_angle_error > 180) final_angle_error -= 360;
+    while (final_angle_error < -180) final_angle_error += 360;
+    
+    logger().log("Move to pose complete. Final pose - X: " + std::to_string(currentPose.x) + 
+                 " Y: " + std::to_string(currentPose.y) + 
+                 " Theta: " + std::to_string(currentPose.theta));
+    logger().log("Final errors - Distance: " + std::to_string(final_distance_error) + 
+                 " Angle: " + std::to_string(final_angle_error));
+}
+
 void autonomous()
 {
     logger().log("Starting autonomous");
-    drive_forward(12);
-    pros::delay(1000);
-    drive_forward(48);
-    pros::delay(1000);
-    drive_forward(-12);
-    pros::delay(1000);
-    drive_forward(-48);
-    pros::delay(1000);
+
+    // test_min_output();
+    // our min output is 30
+
+    chassis.setPose(-44, -48, 0);
+
+    move_to_pose(Pose(-44, 0, 90));  // Move to origin and face 90 degrees
+    //move_to_pose(Pose(0, -48, 90));  // Move to origin and face 90 degrees
+    // pros::delay(1000);
+    // move_to_pose(Pose(-44, -48, 0));  // Return to start
+    // pros::delay(1000);
+    
+
+    // drive_forward(48);
+    // pros::delay(1000);
+    // drive_forward(-12);
+    // pros::delay(1000);
+
+    // drive_forward(-48);
+    // pros::delay(1000);
     
 }
