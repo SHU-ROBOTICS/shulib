@@ -157,14 +157,8 @@ void shulib::init_odometry() {
         "}";
         shulib::logger().updateTelemetry("controller", controllerTelemetry);
 
-
-
         pros::delay(10);
-
       }
-
-
-
     }};
     shulib::logger().success("Odometry initialized!");
   }
