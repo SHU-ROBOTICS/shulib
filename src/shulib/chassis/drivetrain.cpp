@@ -1,6 +1,7 @@
 #include "shulib/chassis/drivetrain.hpp"
 #include "shulib/chassis/odometry.hpp"
 #include <cmath>
+#include <map>
 
 
 void shulib::Drivetrain::drive(int horizontal, int vertical, int turn,
@@ -24,6 +25,18 @@ void shulib::Drivetrain::setBrakeMode(pros::motor_brake_mode_e mode) {
   for (const auto& config : motorConfigs) {
     config.motors->set_brake_mode_all(mode);
   }
+}
+
+std::map<std::string, double> shulib::Drivetrain::getTemps() {
+  std::map<std::string, double> temps;
+  for (const auto& config : motorConfigs) {
+    int i = 0;
+    for (const auto& temp : config.motors->get_temperature_all()) {
+      temps[config.name + "_" + std::to_string(i)] = temp;
+      i++;
+    }
+  }
+  return temps;
 }
 
 std::string shulib::Drivetrain::toString() {

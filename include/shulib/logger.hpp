@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include <iomanip>
+#include <map>
 
 
 namespace shulib {
@@ -111,7 +112,7 @@ public:
   }
 
 private:
-  Logger() : lastTelemetryTime(0), telemetryInterval(200), telemetryTask(nullptr) {}
+  Logger() : lastTelemetryTime(0), telemetryInterval(250), telemetryTask(nullptr) {}
   Logger(const Logger &) = delete;
   Logger &operator=(const Logger &) = delete;
 
@@ -175,3 +176,7 @@ private:
 inline Logger &logger() { return Logger::getInstance(); }
 
 } // namespace shulib
+
+// Just declare the specialization
+template<>
+void shulib::Logger::updateTelemetry(const std::string &key, const std::map<std::string, double> &value);

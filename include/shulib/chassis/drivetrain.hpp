@@ -1,6 +1,8 @@
 #pragma once
 
 #include "pros/motor_group.hpp"
+#include <map>
+#include <string>
 
 namespace shulib {
 
@@ -28,10 +30,13 @@ public:
     float horizontalCoefficient;
     float verticalCoefficient;
     float turnCoefficient;
+    std::string name;
   };
 
   // MotorConfig getter
   virtual std::vector<MotorConfig> getMotorConfigs() { return motorConfigs; }
+
+  std::map<std::string, double> getTemps();
 
   // tostring
   virtual std::string toString();

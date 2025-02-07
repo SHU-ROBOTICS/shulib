@@ -5,7 +5,6 @@
 #include "shulib/chassis/odometry.hpp"
 #include "shulib/chassis/odomUnit.hpp"
 #include "pros/rtos.hpp"
-#include "shulib/RobotCommands/MoveWithHeadingCommand.hpp"
 #include "shulib/logger.hpp"
 
 
