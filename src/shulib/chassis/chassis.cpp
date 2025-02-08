@@ -95,10 +95,15 @@ void shulib::Chassis::calibrate(bool calibrateImu)
   logger().success("Chassis calibrated!");
 }
 
+void shulib::Chassis::flip() {
+  shulib::flip();
+}
+
 void shulib::Chassis::init() {
 }
 
 void shulib::Chassis::setPose(float x, float y, float theta, bool radians)
+
 {
   shulib::setPose(shulib::Pose(x, y, theta), radians);
 }

@@ -28,6 +28,8 @@ namespace shulib
 
     void calibrate(bool calibrateImu = true);
 
+    void flip();
+
     void setPose(float x, float y, float theta, bool radians = false);
 
     void setPose(Pose pose, bool radians = false);

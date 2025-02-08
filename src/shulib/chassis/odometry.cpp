@@ -132,8 +132,13 @@ void shulib::update() {
   odomPose.x += deltaX * -cos(odomPose.theta) * xCorrectionFactor;
 }
 
+void shulib::flip() {
+  odomPose.theta += 180;
+}
+
 void shulib::init_odometry() {
   shulib::logger().log("Initializing odometry...");
+
   if (trackingTask == nullptr) {
     trackingTask = new pros::Task{[=] {
       shulib::Pose lastLoggedPose(0, 0, 0);

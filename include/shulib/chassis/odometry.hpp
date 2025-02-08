@@ -53,8 +53,13 @@ Pose estimatePose(float time, bool radians = false);
  */
 void update();
 /**
+ * @brief Flip the robot 180 degrees
+ */
+void flip();
+/**
  * @brief Initialize the odometry system
  *
+
  */
 void init_odometry();
 /**
