@@ -54,7 +54,7 @@ void initialize()
     logger().init();
 
     shulib::setXCorrectionFactor(1.03225806);
-    shulib::setYCorrectionFactor(0.96);
+    shulib::setYCorrectionFactor(0.93);
     shulib::setThetaCorrectionFactor(0.922861);
 
     logger().log("IMU calibrated!");
@@ -178,95 +178,67 @@ void rotate_to(double target_angle)
     while (error < -180)
         error += 360;
 
-    int stuckCounter = 0;
     double lastError = error;
     double currentMaxSpeed = MIN_ROTATION; // Start at minimum speed
 
-    // Two-phase control with separate PIDs
-    if (fabs(error) > 5)
+    // Coarse control phase
+    logger().log("Starting coarse rotation (target error < 1.0)");
+    PID rotationPID(2.0, 0.01, 0.1); // Conservative gains for rotation
+
+    while (fabs(error) > 5.0)
     {
-        // Coarse control phase
-        logger().log("Starting coarse rotation (target error < 1.0)");
-        PID rotationPID(2.0, 0.01, 0.1); // Conservative gains for rotation
+        Pose currentPose = chassis.getPose();
+        error = target_angle - currentPose.theta;
+        while (error > 180)
+            error -= 360;
+        while (error < -180)
+            error += 360;
 
-        while (fabs(error) > 1.0)
+        double rotationOutput = rotationPID.update(error);
+
+        // Ramp up speed gradually
+        if (currentMaxSpeed < MAX_ROTATION)
         {
-            Pose currentPose = chassis.getPose();
-            error = target_angle - currentPose.theta;
-            while (error > 180)
-                error -= 360;
-            while (error < -180)
-                error += 360;
-
-            double rotationOutput = rotationPID.update(error);
-
-            // Ramp up speed gradually
-            if (currentMaxSpeed < MAX_ROTATION)
-            {
-                currentMaxSpeed += ACCEL_RATE;
-                if (currentMaxSpeed > MAX_ROTATION)
-                    currentMaxSpeed = MAX_ROTATION;
-            }
-
-            // Calculate deceleration factor based on angle to target
-            double decelFactor = 1.0;
-            if (fabs(error) < DECEL_ANGLE)
-            {
-                decelFactor = fabs(error) / DECEL_ANGLE; // Linear ramp down
-                // Ensure we don't go below minimum output
-                decelFactor = decelFactor * (currentMaxSpeed - MIN_ROTATION) / currentMaxSpeed + MIN_ROTATION / currentMaxSpeed;
-            }
-
-            // Apply speed limits and deceleration
-            rotationOutput = std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
-            rotationOutput *= decelFactor;
-
-            // Ensure minimum power to overcome friction
-            if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1)
-            {
-                rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
-            }
-
-            // Check if we're stuck
-            if (fabs(error - lastError) < 0.001)
-            {
-                stuckCounter++;
-                if (stuckCounter > 100)
-                {
-                    logger().log("WARNING: Possibly stuck - minimal progress detected");
-                    logger().log("Current Theta: " + std::to_string(currentPose.theta) +
-                                 " Error: " + std::to_string(error));
-                    rotationOutput *= 1.5;
-                }
-            }
-            else
-            {
-                stuckCounter = 0;
-            }
-            lastError = error;
-
-            if (stuckCounter % 50 == 0)
-            {
-                logger().log("Coarse Phase - Error: " + std::to_string(error) +
-                             " Output: " + std::to_string(rotationOutput) +
-                             " Speed: " + std::to_string(currentMaxSpeed));
-            }
-
-            chassis.drive(0, 0, rotationOutput);
-            pros::delay(10);
+            currentMaxSpeed += ACCEL_RATE;
+            if (currentMaxSpeed > MAX_ROTATION)
+                currentMaxSpeed = MAX_ROTATION;
         }
 
-        logger().log("Coarse rotation complete. Starting fine rotation");
-        chassis.drive(0, 0, 0);
-        pros::delay(100);
+        // Calculate deceleration factor based on angle to target
+        double decelFactor = 1.0;
+        if (fabs(error) < DECEL_ANGLE)
+        {
+            decelFactor = fabs(error) / DECEL_ANGLE; // Linear ramp down
+            // Ensure we don't go below minimum output
+            decelFactor = decelFactor * (currentMaxSpeed - MIN_ROTATION) / currentMaxSpeed + MIN_ROTATION / currentMaxSpeed;
+        }
+
+        // Apply speed limits and deceleration
+        rotationOutput = std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
+        rotationOutput *= decelFactor;
+
+        // Ensure minimum power to overcome friction
+        if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1)
+        {
+            rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
+        }
+
+        lastError = error;
+
+
+        chassis.drive(0, 0, rotationOutput);
+        pros::delay(20);
     }
+
+    logger().log("Coarse rotation complete. Starting fine rotation");
+    chassis.drive(0, 0, 0);
+    pros::delay(100);
 
     // Fine control phase
     logger().log("Starting fine rotation (target error < 0.5)");
     PID fineRotationPID(1.0, 0.02, 0.05); // More conservative gains for fine control
 
     // Reset for fine control
-    stuckCounter = 0;
     lastError = error;
     currentMaxSpeed = MIN_ROTATION; // Reset speed for fine control
 
@@ -281,8 +253,8 @@ void rotate_to(double target_angle)
 
         double rotationOutput = fineRotationPID.update(error);
 
-        // In fine control, we keep speed limited
-        rotationOutput = std::clamp(rotationOutput, -MIN_ROTATION * 1.5, MIN_ROTATION * 1.5);
+        rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
+
 
         // Ensure minimum power
         if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1)
@@ -290,31 +262,8 @@ void rotate_to(double target_angle)
             rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
         }
 
-        if (fabs(error - lastError) < 0.0005)
-        {
-            stuckCounter++;
-            if (stuckCounter > 100)
-            {
-                logger().log("WARNING: Possibly stuck in fine control - minimal progress detected");
-                logger().log("Current Theta: " + std::to_string(currentPose.theta) +
-                             " Error: " + std::to_string(error));
-                rotationOutput *= 1.5;
-            }
-        }
-        else
-        {
-            stuckCounter = 0;
-        }
-        lastError = error;
-
-        if (stuckCounter % 50 == 0)
-        {
-            logger().log("Fine Phase - Error: " + std::to_string(error) +
-                         " Output: " + std::to_string(rotationOutput));
-        }
-
         chassis.drive(0, 0, rotationOutput);
-        pros::delay(10);
+        pros::delay(20);
     }
 
     chassis.drive(0, 0, 0);
@@ -599,9 +548,10 @@ void move_to_pose(Pose target_pose, double speedFactor = 1.0)
             logger().log("error_rotation: " + std::to_string(angle_error) + " error_distance: " + std::to_string(distance));
             logger().log("rotation_output: " + std::to_string(rotationOutput) + " forward_output: " + std::to_string(forwardOutput));
         }
-        pros::delay(25);
+        pros::delay(20);
     }
     chassis.drive(0, 0, 0);
+    logger().log("Rotating to target theta: " + std::to_string(target_pose.theta));
     rotate_to(target_pose.theta);
     logger().log("Move to pose complete");
 }
@@ -681,7 +631,7 @@ void move_vertical(double distance_inches)
             logger().log("rotation_output: " + std::to_string(rotationOutput) +
                          " forward_output: " + std::to_string(forwardOutput));
         }
-        pros::delay(25);
+        pros::delay(20);
     }
 
     chassis.drive(0, 0, 0);
@@ -709,9 +659,22 @@ void autonomous()
 {
     logger().log("Starting autonomous");
 
+    // rotate_to(90);
+    // pros::delay(500);
+
+    // rotate_to(-90);
+    // pros::delay(500);
+
+    // rotate_to(180);
+    // pros::delay(500);
+
+    // rotate_to(0);
+    // pros::delay(500);
+    
     // approach midline
     move_to_pose(Pose(-60, -14, 5));
     pros::delay(500);
+
 
     // deploy grabbers
     grabber.set_value(true);

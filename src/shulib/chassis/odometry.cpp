@@ -9,6 +9,7 @@
 #include "shulib/chassis/odomUnit.hpp"
 #include "shulib/util.hpp"
 #include "shulib/logger.hpp"
+#include "shulib/pid.hpp"
 #include <math.h>
 
 // tracking thread
@@ -106,7 +107,8 @@ void shulib::update() {
   float dS = odomSensors.back->get_travel_delta();
 
   Pose localPose(0,0,0);
-  localPose.theta = ((dR - dL) / (sL - sR)) * thetaCorrectionFactor;
+  float raw_dTheta = (dR - dL) / (sL - sR);
+  localPose.theta = raw_dTheta * thetaCorrectionFactor;
 
   float deltaX = 0;
   float deltaY = 0;
@@ -162,7 +164,7 @@ void shulib::init_odometry() {
         "}";
         shulib::logger().updateTelemetry("controller", controllerTelemetry);
 
-        pros::delay(10);
+        pros::delay(20);
       }
     }};
     shulib::logger().success("Odometry initialized!");

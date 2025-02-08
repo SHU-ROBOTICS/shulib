@@ -5,7 +5,7 @@ class PID {
     public:
         PID(float kP, float kI, float kD): kP(kP), kI(kI), kD(kD) {}
 
-        float update(float error);
+        float update(float error, float dt = .02);
 
         void reset();
 
