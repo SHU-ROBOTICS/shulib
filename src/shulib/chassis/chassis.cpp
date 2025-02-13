@@ -67,8 +67,14 @@ void calibrateIMU(shulib::OdomSensors &sensors)
 void shulib::Chassis::calibrate(bool calibrateImu)
 {
   // calibrate the IMU if it exists and the user doesn't specify otherwise
-  if (sensors.imu != nullptr && calibrateImu)
-    calibrateIMU(sensors);
+  if (sensors.imu != nullptr) {
+    logger().log("Calibrating IMU...");
+    sensors.imu->reset();
+
+    while (sensors.imu->is_calibrating())
+      pros::delay(100);
+    logger().success("IMU calibrated!");
+  }
   // initialize odom
   // if sensors are nullptrs, error
   if (sensors.left == nullptr)

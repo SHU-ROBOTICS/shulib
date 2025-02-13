@@ -28,11 +28,12 @@ shulib::Pose odomPose(0, 0, 0);       // the pose of the robot
 shulib::Pose odomSpeed(0, 0, 0);      // the speed of the robot
 shulib::Pose odomLocalSpeed(0, 0, 0); // the local speed of the robot
 
+// correction factors for odometry
 double xCorrectionFactor = 1.0;    // correction factor for x calculations
 double yCorrectionFactor = 1.0;    // correction factor for y calculations
 double thetaCorrectionFactor = 1.0;    // correction factor for theta calculations
 
-
+// previous values for odometry
 float prevVertical = 0;
 float prevLeft = 0;
 float prevRight = 0;
@@ -115,6 +116,8 @@ void shulib::update() {
   float rC = 0;
 
   odomPose.theta += localPose.theta;
+    
+
   if (abs(localPose.theta) < 0.0001) {  // Check for very small angles
     deltaY = (dL + dR) / 2;
     deltaX = dS;

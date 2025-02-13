@@ -4,17 +4,19 @@
 #include <string>
 #include <cmath>
 
-
 void shulib::Drivetrain::drive(int horizontal, int vertical, int turn,
-                               bool fieldCentric) {
-    if (fieldCentric) {
-        double angle = shulib::getPose().theta;
-        double cosA = cos(angle);
-        double sinA = sin(angle);
-        horizontal = horizontal * cosA - vertical * sinA;
-        vertical = horizontal * sinA + vertical * cosA;
-    }
-  for (const auto &config : motorConfigs) {
+                               bool fieldCentric)
+{
+  if (fieldCentric)
+  {
+    double angle = shulib::getPose(true).theta;
+    double cosA = cos(angle);
+    double sinA = sin(angle);
+    horizontal = horizontal * cosA - vertical * sinA;
+    vertical = horizontal * sinA + vertical * cosA;
+  }
+  for (const auto &config : motorConfigs)
+  {
     int motorOutput = horizontal * config.horizontalCoefficient +
                       vertical * config.verticalCoefficient +
                       turn * config.turnCoefficient;
@@ -22,24 +24,30 @@ void shulib::Drivetrain::drive(int horizontal, int vertical, int turn,
   }
 }
 
-void shulib::Drivetrain::setBrakeMode(pros::motor_brake_mode_e mode) {
-  for (const auto& config : motorConfigs) {
+void shulib::Drivetrain::setBrakeMode(pros::motor_brake_mode_e mode)
+{
+  for (const auto &config : motorConfigs)
+  {
     config.motors->set_brake_mode_all(mode);
   }
 }
 
-void shulib::Drivetrain::setMaxVoltage(int voltage) {
-  for (const auto& config : motorConfigs) {
+void shulib::Drivetrain::setMaxVoltage(int voltage)
+{
+  for (const auto &config : motorConfigs)
+  {
     config.motors->set_voltage_limit(voltage);
   }
 }
 
-
-std::map<std::string, double> shulib::Drivetrain::getTemps() {
+std::map<std::string, double> shulib::Drivetrain::getTemps()
+{
   std::map<std::string, double> temps;
-  for (const auto& config : motorConfigs) {
+  for (const auto &config : motorConfigs)
+  {
     int i = 0;
-    for (const auto& temp : config.motors->get_temperature_all()) {
+    for (const auto &temp : config.motors->get_temperature_all())
+    {
       temps[config.name + "_" + std::to_string(i)] = temp;
       i++;
     }
@@ -47,6 +55,7 @@ std::map<std::string, double> shulib::Drivetrain::getTemps() {
   return temps;
 }
 
-std::string shulib::Drivetrain::toString() {
+std::string shulib::Drivetrain::toString()
+{
   return "Drivetrain";
 }
