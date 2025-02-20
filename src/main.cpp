@@ -10,9 +10,10 @@
 #include "shulib/pid.hpp"
 #include "shulib/util.hpp"
 #include <string>
-#include <iostream>
+#include <fstream>
 
 // #include "shulib/GUI/gui.c"
+
 
 Controller master(CONTROLLER_MASTER);
 
@@ -47,6 +48,8 @@ backRight, 2.25, 200, 2);
 shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 &fifteenBackOdom, nullptr);
 */
+
+std::ifstream in();
 
 void initialize() {
   lcd::initialize();
