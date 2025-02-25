@@ -18,7 +18,7 @@
 Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterLeft({-2, -4, 5, 11, -13, -14});
-MotorGroup pooksterRight({6, 7, -8, -9, 19, 20});
+MotorGroup pooksterRight({6, -7, -8, -9, 19, 20});
 
 // IMU imu(10);
 
@@ -513,8 +513,8 @@ void autonomous() {
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
-pros::Motor intake(10);
-pros::MotorGroup conveyor({-17, 12});
+pros::Motor intake(-10);
+pros::MotorGroup conveyor({17, -12});
 pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
                                pros::v5::MotorEncoderUnits::degrees);
 

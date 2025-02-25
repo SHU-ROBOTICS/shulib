@@ -48,6 +48,8 @@ public:
 
   void drive(int horizontal, int vertical, int turn, bool fieldCentric = false);
 
+  void driveCurve(int horizontal, int vertical, int turn, int coeff, bool fieldCentric = false);
+
   void moveToLocalPose(Pose p, bool async = true);
 
   void cancelMotion();

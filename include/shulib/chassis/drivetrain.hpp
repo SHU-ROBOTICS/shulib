@@ -20,6 +20,9 @@ public:
   // Generic brake mode setter
   virtual void setBrakeMode(pros::motor_brake_mode_e mode);
 
+  // driving method for differential turns
+  virtual void driveCurve(int horizontal, int vertical, int turn, int coeff, bool fieldCentric); 
+
   float getWheelDiameter(){
     return wheelDiameter;
   }
