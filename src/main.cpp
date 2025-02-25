@@ -17,13 +17,13 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterLeft({-2, -3, 16, 14, -12, -13});
-MotorGroup pooksterRight({-17, -18, 11, 19, -15, -20});
+MotorGroup pooksterLeft({-2, -4, 5, 11, -13, -14});
+MotorGroup pooksterRight({6, 7, -8, -9, 19, 20});
 
 // IMU imu(10);
 
-pros::Rotation left(5);
-pros::Rotation right(-4);
+pros::Rotation left(1);
+pros::Rotation right(18);
 // pros::Rotation back(7);
 // set these to nullptrs instead
 
@@ -508,14 +508,14 @@ void autonomous() {
   // moveVertical();
   Pose t(12, 12, 45);
   chassis.setPose(0, 0, 0);
-  (t);
+  move_to_pose(t);
 }
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
-pros::Motor intake(9);
-pros::Motor conveyor(10);
-pros::MotorGroup wallStakeLift({6, -7}, pros::v5::MotorGears::red,
+pros::Motor intake(10);
+pros::MotorGroup conveyor({-17, 12});
+pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
                                pros::v5::MotorEncoderUnits::degrees);
 
 void pooksterControls() {
