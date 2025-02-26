@@ -17,8 +17,8 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup miniPookLeft({16, 18, 17, 19, -13});
-MotorGroup miniPookRight({13, 14, 15, 12, 11});
+MotorGroup miniPookLeft({-16, 18, -17, 19, -20});
+MotorGroup miniPookRight({-13, 14, -15, 12, -11});
 
 // IMU imu(10);
 
@@ -509,39 +509,31 @@ void autonomous() {
 }
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics grabber('A', true);
-pros::Motor intake(-10);
-pros::MotorGroup conveyor({1, 10});
-pros::MotorGroup wallStakeLift({2, 9}, pros::v5::MotorGears::red,
+pros::adi::Pneumatics grabber('H', true);
+pros::Motor intake(-6);
+pros::MotorGroup conveyor({-1, 10});
+pros::MotorGroup wallStakeLift({2, -9}, pros::v5::MotorGears::red,
                                pros::v5::MotorEncoderUnits::degrees);
 
 void pooksterControls() {
-  if (master.get_digital(DIGITAL_X)) {
+  if (master.get_digital(DIGITAL_L2)) {
     conveyor.move(-127);
     intake.move(127);
   } else {
-    if (master.get_digital(DIGITAL_R1)) {
-      conveyor.move(-127);
-    } else if (master.get_digital(DIGITAL_R2)) {
+    if (master.get_digital(DIGITAL_L1)) {
       conveyor.move(127);
+      intake.move(-127);
     } else {
       conveyor.move(0);
     }
-    if (master.get_digital(DIGITAL_L1)) {
-      intake.move(-127);
-    } else if (master.get_digital(DIGITAL_L2)) {
-      intake.move(127);
-    } else {
-      intake.move(0);
-    }
-  }
+  } 
 
-  if (master.get_digital_new_press(DIGITAL_A)) {
+  if (master.get_digital_new_press(DIGITAL_R1)) {
     wallStakeMode = !wallStakeMode;
   }
 
   if (wallStakeMode) {
-    wallStakeLift.move_absolute(180, 60);
+    wallStakeLift.move_absolute(225, 60);
   } else {
     wallStakeLift.move_absolute(0, 60);
   }
