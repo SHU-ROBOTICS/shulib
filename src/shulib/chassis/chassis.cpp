@@ -8,9 +8,8 @@
 #include "shulib/logger.hpp"
 
 
-shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
-                                 OdomUnit *back, pros::Imu *imu)
-    : left(left), right(right), back(back), imu(imu) {}
+shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right)
+    : left(left), right(right) {}
 
 shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
     : drivetrain(drivetrain), sensors(sensors) {}
@@ -20,7 +19,7 @@ shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
  *
  * @param sensors reference to the sensors struct
  */
-void calibrateIMU(shulib::OdomSensors &sensors) {
+/* void calibrateIMU(shulib::OdomSensors &sensors) {
   std::cout << "Calibrating IMU" << std::endl;
   int attempt = 1;
   bool calibrated = false;
@@ -54,12 +53,12 @@ void calibrateIMU(shulib::OdomSensors &sensors) {
     // "
     //                           "wheels / motor encoders");
   }
-}
+} */
 
 void shulib::Chassis::calibrate(bool calibrateImu) {
   // calibrate the IMU if it exists and the user doesn't specify otherwise
-  if (sensors.imu != nullptr && calibrateImu)
-    calibrateIMU(sensors);
+ // if (sensors.imu != nullptr && calibrateImu)
+   // calibrateIMU(sensors);
   // initialize odom
   // if sensors are nullptrs, error
   if (sensors.left == nullptr)
@@ -68,13 +67,13 @@ void shulib::Chassis::calibrate(bool calibrateImu) {
   if (sensors.right == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
   logger().debug("Right tracking wheel initialized");
-  if (sensors.back == nullptr)
+  /* if (sensors.back == nullptr)
     throw std::runtime_error("Back tracking wheel not initialized");
-  logger().debug("Back tracking wheel initialized");
+  logger().debug("Back tracking wheel initialized"); */
 
   sensors.left->reset();
   sensors.right->reset();
-  sensors.back->reset();
+  // sensors.back->reset();
 
   logger().debug("Tracking wheels calibrated!");
 

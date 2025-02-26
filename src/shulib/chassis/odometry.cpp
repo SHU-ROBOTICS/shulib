@@ -21,8 +21,7 @@ pros::Task *telemetryTask = nullptr;
 // global variables
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-shulib::OdomSensors odomSensors(nullptr, nullptr, nullptr,
-                                nullptr); // the sensors to be used for odometry
+shulib::OdomSensors odomSensors(nullptr, nullptr); // the sensors to be used for odometry
 shulib::Drivetrain drive(0, 0, 0);    // the drivetrain to be used for odometry
 shulib::Pose odomPose(0, 0, 0);       // the pose of the robot
 shulib::Pose odomSpeed(0, 0, 0);      // the speed of the robot
@@ -100,11 +99,9 @@ shulib::Pose shulib::estimatePose(float time, bool radians) {
 void shulib::update() {
   float sL = odomSensors.left->get_offset();
   float sR = odomSensors.right->get_offset();
-  float sS = odomSensors.back->get_offset();
 
   float dL = odomSensors.left->get_travel_delta();
   float dR = odomSensors.right->get_travel_delta();
-  float dS = odomSensors.back->get_travel_delta();
 
   Pose localPose(0,0,0);
   localPose.theta = (dR - dL) / (sL - sR) * thetaCorrectionFactor;
@@ -116,12 +113,11 @@ void shulib::update() {
   odomPose.theta += localPose.theta;
   if (abs(localPose.theta) < 0.0001) {  // Check for very small angles
     deltaY = (dL + dR) / 2;
-    deltaX = dS;
   } else {
     rC = (dR / localPose.theta) + sR;
     deltaY = 2 * sin(localPose.theta / 2) * rC;
 
-    rC = (dS / localPose.theta) + sS;
+    // rC = (dS / localPose.theta);
     deltaX = 2 * sin(localPose.theta / 2) * rC;
   }
 

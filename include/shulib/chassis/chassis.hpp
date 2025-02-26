@@ -11,12 +11,9 @@ namespace shulib {
 
 class OdomSensors {
 public:
-  OdomSensors(OdomUnit *left, OdomUnit *right, OdomUnit *back,
-              pros::Imu *imu);
+  OdomSensors(OdomUnit *left, OdomUnit *right);
   OdomUnit *left;
   OdomUnit *right;
-  OdomUnit *back;
-  pros::Imu *imu;
 };
 
 /**

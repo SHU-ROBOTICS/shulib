@@ -17,26 +17,23 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterLeft({-2, -4, 5, 11, -13, -14});
-MotorGroup pooksterRight({6, -7, -8, -9, 19, 20});
+MotorGroup miniPookLeft({16, 18, 17, 19, -13});
+MotorGroup miniPookRight({13, 14, 15, 12, 11});
 
 // IMU imu(10);
 
-pros::Rotation left(1);
-pros::Rotation right(18);
+pros::Rotation left(7);
+pros::Rotation right(8);
 // pros::Rotation back(7);
 // set these to nullptrs instead
 
 shulib::OdomUnit leftOdom(&left, 2.75, -2.625);
 shulib::OdomUnit rightOdom(&right, 2.75, 2.625);
-shulib::OdomUnit backOdom(nullptr, 2.75, 0);
 
-shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15.5, 3.25, 2);
+shulib::TankDrive drivetrain(miniPookLeft, miniPookRight, 15.5, 3.25, 2);
 
 shulib::OdomSensors sensors(&leftOdom,  // left odom unit
-                            &rightOdom, // right odom unit
-                            &backOdom,  // horizontal odom unit
-                            nullptr     // inertial sensor
+                            &rightOdom // right odom unit
 );
 shulib::Chassis chassis(drivetrain, sensors);
 
@@ -362,7 +359,7 @@ void move_to_pose(Pose target_pose)
     logger().log("Angle error: " + std::to_string(angle_error));
 
 
-    if (abs(angle_error) > 1) {
+    if (fabs(angle_error) > 1) {
         logger().log("Rotating to angle: " + std::to_string(angle));
         rotate_to(angle);
     }
@@ -514,8 +511,8 @@ void autonomous() {
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(-10);
-pros::MotorGroup conveyor({17, -12});
-pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
+pros::MotorGroup conveyor({1, 10});
+pros::MotorGroup wallStakeLift({2, 9}, pros::v5::MotorGears::red,
                                pros::v5::MotorEncoderUnits::degrees);
 
 void pooksterControls() {
