@@ -18,7 +18,7 @@
 Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterLeft({-2, -4, 5, 11, -13, -14});
-MotorGroup pooksterRight({6, -7, -8, -9, 19, 20});
+MotorGroup pooksterRight({-6, -7, -8, -9, 19, 20});
 
 // IMU imu(10);
 
@@ -519,39 +519,47 @@ pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
                                pros::v5::MotorEncoderUnits::degrees);
 
 void pooksterControls() {
-  if (master.get_digital(DIGITAL_X)) {
-    conveyor.move(-127);
+  if (master.get_digital(DIGITAL_L2)) {
     intake.move(127);
   } else {
-    if (master.get_digital(DIGITAL_R1)) {
-      conveyor.move(-127);
-    } else if (master.get_digital(DIGITAL_R2)) {
-      conveyor.move(127);
-    } else {
-      conveyor.move(0);
-    }
     if (master.get_digital(DIGITAL_L1)) {
       intake.move(-127);
-    } else if (master.get_digital(DIGITAL_L2)) {
-      intake.move(127);
     } else {
       intake.move(0);
     }
-  }
+  } 
+
+  if (master.get_digital(DIGITAL_R2)) {
+    conveyor.move(127);
+  } else {
+    if (master.get_digital(DIGITAL_R1)) {
+      conveyor.move(-127);
+    } else {
+      conveyor.move(0);
+    }
+  } 
 
   if (master.get_digital_new_press(DIGITAL_A)) {
     wallStakeMode = !wallStakeMode;
   }
 
-  if (wallStakeMode) {
-    wallStakeLift.move_absolute(180, 60);
-  } else {
-    wallStakeLift.move_absolute(0, 60);
+  if (master.get_digital_new_press(DIGITAL_A)) {
+    if (fabs(wallStakeLift.get_position() - 31) < 1) {
+      wallStakeLift.move_absolute(31, 50);
+    } else {
+      wallStakeLift.move_absolute(0, 20);
+    }
+  }
+  // r2 : wall stake lift
+  if (master.get_digital_new_press(DIGITAL_Y)) {
+    // check if wall stake is at 30 degrees with a tolerance of 1 degree
+    if (fabs(wallStakeLift.get_position() - 31) < 2) {
+      wallStakeLift.move_absolute(140, 30);
+    } else {
+      wallStakeLift.move_absolute(31, 30);
+    }
   }
 
-  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
-    grabber.toggle();
-  }
 }
 
 void opcontrol() {
