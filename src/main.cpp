@@ -540,16 +540,14 @@ void pooksterControls() {
   } 
 
   if (master.get_digital_new_press(DIGITAL_A)) {
+    if (wallStakeMode == false) {
+        wallStakeLift.move_absolute(31, 50);
+    } else {
+        wallStakeLift.move_absolute(0, 20);
+    }
     wallStakeMode = !wallStakeMode;
   }
-
-  if (master.get_digital_new_press(DIGITAL_A)) {
-    if (fabs(wallStakeLift.get_position() - 31) < 1) {
-      wallStakeLift.move_absolute(31, 50);
-    } else {
-      wallStakeLift.move_absolute(0, 20);
-    }
-  }
+  
   // r2 : wall stake lift
   if (master.get_digital_new_press(DIGITAL_Y)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
@@ -557,6 +555,14 @@ void pooksterControls() {
       wallStakeLift.move_absolute(140, 30);
     } else {
       wallStakeLift.move_absolute(31, 30);
+    }
+  }
+
+  if(master.get_digital_new_press(DIGITAL_RIGHT)){
+    if(grabber.is_extended()){
+      grabber.retract();
+    } else {
+      grabber.extend();
     }
   }
 
