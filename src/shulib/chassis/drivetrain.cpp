@@ -21,7 +21,7 @@ void shulib::Drivetrain::drive(int horizontal, int vertical, int turn,
   }
 }
 
-void shulib::Drivetrain::driveCurve(int horizontal, int vertical, int turn, int coeff, bool fieldCentric) {
+void shulib::Drivetrain::driveCurve(int horizontal, int vertical, int turn, float coeff, bool fieldCentric) {
   if (fieldCentric) {
     double angle = shulib::getPose().theta;
     double cosA = cos(angle);
