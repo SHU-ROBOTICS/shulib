@@ -517,14 +517,15 @@ pros::MotorGroup wallStakeLift({2, -9}, pros::v5::MotorGears::red,
 
 void pooksterControls() {
   if (master.get_digital(DIGITAL_L2)) {
-    conveyor.move(-127);
-    intake.move(127);
+    conveyor.move(127);
+    intake.move(-127);
   } else {
     if (master.get_digital(DIGITAL_L1)) {
-      conveyor.move(127);
-      intake.move(-127);
+      conveyor.move(-127);
+      intake.move(127);
     } else {
       conveyor.move(0);
+      intake.move(0);
     }
   } 
 
