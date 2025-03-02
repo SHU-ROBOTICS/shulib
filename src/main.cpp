@@ -343,7 +343,7 @@ void rotate_to(double target_angle)
                  " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
-void move_to_pose(Pose target_pose)
+void move_to_pose(Pose target_pose, bool intaking)
 {
     logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
 
@@ -370,10 +370,10 @@ void move_to_pose(Pose target_pose)
     logger().log("Moving forward");
 
     const double MIN_OUTPUT = 20.0;
-    const double MAX_OUTPUT = 35.0;
+    const double MAX_OUTPUT = 70.0;
     const double MAX_ROTATION = 30.0;
     const double MIN_ROTATION = 20.0;
-    const double ACCEL_RATE = 2.0;
+    const double ACCEL_RATE = 4.0;
     const double DECEL_ZONE = 6.0;
 
     double currentMaxSpeed = MIN_OUTPUT;
@@ -412,6 +412,10 @@ void move_to_pose(Pose target_pose)
 
         chassis.drive(0, forwardOutput, rotationOutput);
 
+        if(intaking == true){
+          intake.move(127);
+        }
+
         log_counter++;
         if (log_counter % 25 == 0) {
             logger().log("error_rotation: " + std::to_string(angle_error) + " error_distance: " + std::to_string(distance));
@@ -422,11 +426,17 @@ void move_to_pose(Pose target_pose)
 
     }
     chassis.drive(0, 0, 0);
+
+    if(intaking == true){
+      limitedIntake(500);
+    }
+
+
     logger().log("Move to pose complete");
 }
 
 
-void move_vertical(double distance_inches)
+void move_vertical(double distance_inches, bool intaking)
 {
     logger().log("Starting vertical move - Distance: " + std::to_string(distance_inches) + " inches");
     
@@ -436,9 +446,9 @@ void move_vertical(double distance_inches)
     double target_distance = std::abs(distance_inches);
 
     const double MIN_OUTPUT = 20.0;
-    const double MAX_OUTPUT = 40.0;
+    const double MAX_OUTPUT = 80.0;
     const double MAX_ROTATION = 25.0;
-    const double ACCEL_RATE = 2.0;
+    const double ACCEL_RATE = 4.0;
     const double DECEL_ZONE = 6.0;
 
     double currentMaxSpeed = MIN_OUTPUT;
@@ -449,6 +459,7 @@ void move_vertical(double distance_inches)
     
     int log_counter = 0;
     while (total_distance_traveled < target_distance) {
+
         Pose current_pose = chassis.getPose();
         
         // Calculate incremental distance traveled
@@ -485,6 +496,10 @@ void move_vertical(double distance_inches)
 
         chassis.drive(0, forwardOutput, rotationOutput);
 
+        if(intaking == true){
+          intake.move(127);
+        }
+
         log_counter++;
         if (log_counter % 25 == 0) {
             logger().log("error_heading: " + std::to_string(heading_error) + 
@@ -497,7 +512,24 @@ void move_vertical(double distance_inches)
     }
     
     chassis.drive(0, 0, 0);
+
+    if(intaking == true){
+      limitedIntake(500);
+    }
+
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
+}
+
+void limitedIntake(int n){
+  intake.move(127);
+  pros::delay(n);
+  intake.move(0);
+}
+
+void limitedConveyor(int n){
+  conveyor.move(127);
+  pros::delay(n);
+  conveyor.move(0);
 }
 
 void autonomous() {
@@ -506,9 +538,14 @@ void autonomous() {
   // MIN_OUTPUT_THETA 25
   // rotation_calibration();
   // moveVertical();
-  Pose t(12, 12, 45);
-  chassis.setPose(0, 0, 0);
-  move_to_pose(t);
+  chassis.setPose(-66, 0, 90);
+
+  move_vertical(6, true);
+  pros::delay(100);
+  move_vertical(-6, false);
+  pros::delay(100);
+  limitedConveyor(1000);
+
 }
 
 bool wallStakeMode = false;
