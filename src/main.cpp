@@ -520,6 +520,97 @@ void move_vertical(double distance_inches, bool intaking)
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
 }
 
+void curve_to_pose(Pose target_pose, bool intaking, bool reverse, float turn)
+{
+    logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
+
+                 " Y: " + std::to_string(target_pose.y) + 
+                 " Theta: " + std::to_string(target_pose.theta));
+    logger().updateTelemetry("target", target_pose);
+
+    Pose current_pose = chassis.getPose();
+    double distance = current_pose.distance(target_pose);
+    double angle = -shulib::radToDeg(current_pose.angle(target_pose))-270;
+    while (angle > 360) angle -= 360;
+    while (angle < 0) angle += 360;
+
+    logger().log("Angle to target: " + std::to_string(angle));
+    double angle_error = angle - current_pose.theta;
+    logger().log("Angle error: " + std::to_string(angle_error));
+
+
+    if (abs(angle_error) > 1) {
+        logger().log("Rotating to angle: " + std::to_string(angle));
+        rotate_to(angle);
+    }
+    pros::delay(1000);
+    logger().log("Moving forward");
+
+    const double MIN_OUTPUT = 20.0;
+    const double MAX_OUTPUT = 70.0;
+    const double MAX_ROTATION = 30.0;
+    const double MIN_ROTATION = 20.0;
+    const double ACCEL_RATE = 4.0;
+    const double DECEL_ZONE = 6.0;
+
+    double currentMaxSpeed = MIN_OUTPUT;
+    
+    PID linearPID(12, 0.01, 0);
+    
+    int log_counter = 0;
+    while (distance > 1) {
+        current_pose = chassis.getPose();
+        
+        distance = current_pose.distance(target_pose);
+
+        angle = -shulib::radToDeg(current_pose.angle(target_pose))-270;
+        while (angle > 360) angle -= 360;
+        while (angle < 0) angle += 360;
+        angle_error = angle - current_pose.theta;
+        
+        double forwardOutput = linearPID.update(distance);
+
+        if (currentMaxSpeed < MAX_OUTPUT) {
+            currentMaxSpeed += ACCEL_RATE;
+            if (currentMaxSpeed > MAX_OUTPUT) currentMaxSpeed = MAX_OUTPUT;
+        }
+
+        double decelFactor = 1.0;
+        if (distance < DECEL_ZONE) {
+            decelFactor = distance / DECEL_ZONE;
+            decelFactor = decelFactor * (currentMaxSpeed - MIN_OUTPUT) / currentMaxSpeed + MIN_OUTPUT / currentMaxSpeed;
+        }
+        forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
+        forwardOutput *= decelFactor;
+
+        if(reverse){
+          chassis.driveCurve(0, -forwardOutput, (1/turn), 0);
+        } else {
+          chassis.driveCurve(0, forwardOutput, turn, 0);
+        }
+
+        if(intaking){
+          intake.move(127);
+        }
+
+        log_counter++;
+        if (log_counter % 25 == 0) {
+            logger().log("error_rotation: " + std::to_string(angle_error) + " error_distance: " + std::to_string(distance));
+        }
+        pros::delay(10);
+
+
+    }
+    chassis.drive(0, 0, 0);
+
+    if(intaking == true){
+      limitedIntake(500);
+    }
+
+
+    logger().log("Move to pose complete");
+}
+
 void limitedIntake(int n){
   intake.move(127);
   pros::delay(n);
