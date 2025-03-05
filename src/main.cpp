@@ -343,7 +343,7 @@ void rotate_to(double target_angle)
                  " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
-void move_to_pose(Pose target_pose, bool intaking)
+void move_to_pose(Pose target_pose, bool intaking, bool reverse)
 {
     logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
 
@@ -410,11 +410,16 @@ void move_to_pose(Pose target_pose, bool intaking)
         double rotationOutput = headingPID.update(angle_error);
         rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-        chassis.drive(0, forwardOutput, rotationOutput);
+        if(reverse){
+          chassis.drive(0, -forwardOutput, rotationOutput);
+        } else {
+          chassis.drive(0, forwardOutput, rotationOutput + 180);
+        }
 
-        if(intaking == true){
+        if(intaking){
           intake.move(127);
         }
+        
 
         log_counter++;
         if (log_counter % 25 == 0) {
@@ -425,12 +430,12 @@ void move_to_pose(Pose target_pose, bool intaking)
 
 
     }
+
     chassis.drive(0, 0, 0);
 
     if(intaking == true){
       limitedIntake(500);
     }
-
 
     logger().log("Move to pose complete");
 }
@@ -520,7 +525,7 @@ void move_vertical(double distance_inches, bool intaking)
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
 }
 
-void curve_to_pose(Pose target_pose, bool intaking, bool reverse, float turn)
+void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
 {
     logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
 
@@ -552,8 +557,21 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse, float turn)
     const double MIN_ROTATION = 20.0;
     const double ACCEL_RATE = 4.0;
     const double DECEL_ZONE = 6.0;
+    const double POWVEL_CONV_FACTOR = 0.12943587531;
 
     double currentMaxSpeed = MIN_OUTPUT;
+
+    Pose startPos = chassis.getPose();
+    Pose startLeftWheels = Pose(startPos.x + 12.0, startPos.y, startPos.theta);
+    Pose startRightWheels = Pose(startPos.x - 12.0, startPos.y, startPos.theta);
+
+    double distLeft = startLeftWheels.distance(target_pose);
+    double distRight = startRightWheels.distance(target_pose);
+
+    double arcLeft = distLeft * 180;
+    double arcRight = distRight * 180;
+
+    float turn = arcLeft / arcRight;
     
     PID linearPID(12, 0.01, 0);
     
