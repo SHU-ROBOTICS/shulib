@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "pookster",
+    "project_name": "advanced pooking",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -256,7 +256,7 @@
     },
     "upload_options": {
       "description": "driving code",
-      "slot": 1,
+      "slot": 4,
       "icon": "pizza"
     },
     "use_early_access": false

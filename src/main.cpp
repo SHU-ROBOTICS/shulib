@@ -48,8 +48,12 @@ backRight, 2.25, 200, 2);
 shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 &fifteenBackOdom, nullptr);
 */
-
-std::ifstream in();
+bool wallStakeMode = false;
+pros::adi::Pneumatics grabber('A', true);
+pros::Motor intake(-10);
+pros::MotorGroup conveyor({17, -12});
+pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
+                               pros::v5::MotorEncoderUnits::degrees);
 
 void initialize() {
   lcd::initialize();
@@ -195,6 +199,18 @@ void rotation_calibration() {
 
   logger().updateTelemetry("final_correction", correctionFactor);
   logger().log("Correction factor: " + std::to_string(correctionFactor));
+}
+
+void limitedIntake(int n){
+  intake.move(127);
+  pros::delay(n);
+  intake.move(0);
+}
+
+void limitedConveyor(int n){
+  conveyor.move(127);
+  pros::delay(n);
+  conveyor.move(0);
 }
 
 void rotate_to(double target_angle)
@@ -343,7 +359,7 @@ void rotate_to(double target_angle)
                  " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
-void move_to_pose(Pose target_pose, bool intaking, bool reverse)
+void move_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
 {
     logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
 
@@ -362,7 +378,7 @@ void move_to_pose(Pose target_pose, bool intaking, bool reverse)
     logger().log("Angle error: " + std::to_string(angle_error));
 
 
-    if (abs(angle_error) > 1) {
+    if (fabs(angle_error) > 1) {
         logger().log("Rotating to angle: " + std::to_string(angle));
         rotate_to(angle);
     }
@@ -419,6 +435,10 @@ void move_to_pose(Pose target_pose, bool intaking, bool reverse)
         if(intaking){
           intake.move(127);
         }
+
+        if(conv){
+          conveyor.move(127);
+        }
         
 
         log_counter++;
@@ -433,7 +453,7 @@ void move_to_pose(Pose target_pose, bool intaking, bool reverse)
 
     chassis.drive(0, 0, 0);
 
-    if(intaking == true){
+    if(intaking){
       limitedIntake(500);
     }
 
@@ -441,7 +461,7 @@ void move_to_pose(Pose target_pose, bool intaking, bool reverse)
 }
 
 
-void move_vertical(double distance_inches, bool intaking)
+void move_vertical(double distance_inches, bool intaking, bool conv)
 {
     logger().log("Starting vertical move - Distance: " + std::to_string(distance_inches) + " inches");
     
@@ -501,8 +521,12 @@ void move_vertical(double distance_inches, bool intaking)
 
         chassis.drive(0, forwardOutput, rotationOutput);
 
-        if(intaking == true){
+        if(intaking){
           intake.move(127);
+        }
+
+        if(conv){
+          conveyor.move(127);
         }
 
         log_counter++;
@@ -518,14 +542,14 @@ void move_vertical(double distance_inches, bool intaking)
     
     chassis.drive(0, 0, 0);
 
-    if(intaking == true){
+    if(intaking){
       limitedIntake(500);
     }
 
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
 }
 
-void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
+void curve_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
 {
     logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
 
@@ -544,7 +568,7 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
     logger().log("Angle error: " + std::to_string(angle_error));
 
 
-    if (abs(angle_error) > 1) {
+    if (fabs(angle_error) > 1) {
         logger().log("Rotating to angle: " + std::to_string(angle));
         rotate_to(angle);
     }
@@ -573,10 +597,10 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
     double distLeft = startLeftWheels.distance(endLeftWheels);
     double distRight = startRightWheels.distance(endRightWheels);
 
-    double leftMidPoint = (abs(endLeftWheels.x - startLeftWheels.x)) / 2;
-    double rightMidPoint = (abs(endRightWheels.x - startRightWheels.x)) / 2;
+    double leftMidPoint = (fabs(endLeftWheels.x - startLeftWheels.x)) / 2;
+    double rightMidPoint = (fabs(endRightWheels.x - startRightWheels.x)) / 2;
 
-    double deltaTheta = abs(target_pose.theta - startPos.theta);
+    double deltaTheta = fabs(target_pose.theta - startPos.theta);
 
     double leftArcHeight = -1 * ((leftMidPoint - startLeftWheels.x) * (leftMidPoint - endLeftWheels.x)) * (1/deltaTheta);
     double rightArcHeight = -1 * ((rightMidPoint - startRightWheels.x) * (rightMidPoint - endRightWheels.x)) * (1/deltaTheta);
@@ -628,6 +652,10 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
           intake.move(127);
         }
 
+        if(conv){
+          conveyor.move(127);
+        }
+
         log_counter++;
         if (log_counter % 25 == 0) {
             logger().log("error_rotation: " + std::to_string(angle_error) + " error_distance: " + std::to_string(distance));
@@ -638,24 +666,12 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
     }
     chassis.drive(0, 0, 0);
 
-    if(intaking == true){
+    if(intaking){
       limitedIntake(500);
     }
 
 
     logger().log("Move to pose complete");
-}
-
-void limitedIntake(int n){
-  intake.move(127);
-  pros::delay(n);
-  intake.move(0);
-}
-
-void limitedConveyor(int n){
-  conveyor.move(127);
-  pros::delay(n);
-  conveyor.move(0);
 }
 
 void autonomous() {
@@ -666,55 +682,48 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(-66, 0, 90);
 
-  move_vertical(6, true);
+  move_vertical(6, true, false);
   pros::delay(100);
-  move_vertical(-6, false);
+  move_vertical(-6, false, false);
   pros::delay(100);
   limitedConveyor(750);
 
-  rotate_to(138.8);
+ /* rotate_to(318.8);
   pros::delay(100);
-  move_to_pose(Pose(-24, 48, 138.8), false, false);
+  move_to_pose(Pose(-24, 48, 318.8), true, false, false);
   grabber.toggle();
   pros::delay(100);
-  rotate_to(270);
+  rotate_to(90);
   pros::delay(100);
-  move_to_pose(Pose(0, 48, 270), true, true);
+  move_vertical(24, true, false);
   pros::delay(100);
-  curve_to_pose(Pose(0, 6, 135), true, true);
+  curve_to_pose(Pose(0, 6, -45), false, true, false);
   pros::delay(100);
   limitedConveyor(750);
-  rotate_to(45);
+  rotate_to(-135);
   pros::delay(100);
-  move_to_pose(Pose(-60, 60, 45), true, true);
+  move_to_pose(Pose(-60, 60, -135), false, true, true);
   pros::delay(100);
   grabber.toggle();
   pros::delay(100);
-  curve_to_pose(Pose(-48, 60, 360), false, true);
+  curve_to_pose(Pose(-48, 60, 0), false, true, false);
   pros::delay(100);
-  rotate_to(270);
+  rotate_to(90);
   pros::delay(100);
 
   wallStakeLift.move_absolute(27, 50);
   pros::delay(100);
-  move_to_pose(Pose(0, 60, 270), true, true);
+  move_to_pose(Pose(0, 60, 90), true, true, false);
   pros::delay(100);
   limitedConveyor(750);
-  rotate_to(360);
+  rotate_to(180);
   pros::delay(100);
-  move_vertical(-7, false);
+  move_vertical(7, false, false);
   pros::delay(100);
-  wallStakeLift.move_absolute(140, 30);
+  wallStakeLift.move_absolute(140, 30);*/
 
 
 }
-
-bool wallStakeMode = false;
-pros::adi::Pneumatics grabber('A', true);
-pros::Motor intake(-10);
-pros::MotorGroup conveyor({17, -12});
-pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
-                               pros::v5::MotorEncoderUnits::degrees);
 
 void pooksterControls() {
   if (master.get_digital(DIGITAL_L2)) {
@@ -770,9 +779,9 @@ void opcontrol() {
   wallStakeLift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
   while (true) {
-    chassis.drive(master.get_analog(ANALOG_LEFT_X),
+    chassis.driveCurve(master.get_analog(ANALOG_LEFT_X),
                   master.get_analog(ANALOG_LEFT_Y),
-                  master.get_analog(ANALOG_RIGHT_X));
+                  master.get_analog(ANALOG_RIGHT_X), 0.6);
     logger().updateTelemetry("conveyor_voltage", conveyor.get_voltage());
     logger().updateTelemetry("wallStakeVoltage", wallStakeLift.get_voltage());
     pooksterControls();
