@@ -38,7 +38,7 @@ void shulib::Drivetrain::driveCurve(int horizontal, int vertical, int turn, floa
   turn * configL.turnCoefficient;
   configL.motors->move(motorOutputA);
 
-  int motorOutputB = motorOutputA * coeff;
+  float motorOutputB = motorOutputA * coeff;
   configR.motors->move(motorOutputB);
 
 }

@@ -558,6 +558,8 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
     const double ACCEL_RATE = 4.0;
     const double DECEL_ZONE = 6.0;
     const double POWVEL_CONV_FACTOR = 0.12943587531;
+    const double ARC_HEIGHT = 5.0;
+
 
     double currentMaxSpeed = MIN_OUTPUT;
 
@@ -565,14 +567,29 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse)
     Pose startLeftWheels = Pose(startPos.x + 12.0, startPos.y, startPos.theta);
     Pose startRightWheels = Pose(startPos.x - 12.0, startPos.y, startPos.theta);
 
-    double distLeft = startLeftWheels.distance(target_pose);
-    double distRight = startRightWheels.distance(target_pose);
+    Pose endLeftWheels = Pose(target_pose.x + 12.0, target_pose.y, target_pose.theta);
+    Pose endRightWheels = Pose(target_pose.x - 12.0, target_pose.y, target_pose.theta);
 
-    double arcLeft = distLeft * 180;
-    double arcRight = distRight * 180;
+    double distLeft = startLeftWheels.distance(endLeftWheels);
+    double distRight = startRightWheels.distance(endRightWheels);
 
+    double leftMidPoint = (abs(endLeftWheels.x - startLeftWheels.x)) / 2;
+    double rightMidPoint = (abs(endRightWheels.x - startRightWheels.x)) / 2;
+
+    double deltaTheta = abs(target_pose.theta - startPos.theta);
+
+    double leftArcHeight = -1 * ((leftMidPoint - startLeftWheels.x) * (leftMidPoint - endLeftWheels.x)) * (1/deltaTheta);
+    double rightArcHeight = -1 * ((rightMidPoint - startRightWheels.x) * (rightMidPoint - endRightWheels.x)) * (1/deltaTheta);
+
+    double arcLeft = ((pow(distLeft, 2) + pow(leftArcHeight, 2)) * asin((2 * distLeft * leftArcHeight) 
+      / (pow(distLeft, 2) + pow(leftArcHeight, 2)))) / (2 * leftArcHeight);
+    double arcRight = ((pow(distRight, 2) + pow(rightArcHeight, 2)) * asin((2 * distRight * rightArcHeight) 
+      / (pow(distRight, 2) + pow(rightArcHeight, 2)))) / (2 * rightArcHeight);
+
+      
     float turn = arcLeft / arcRight;
     
+
     PID linearPID(12, 0.01, 0);
     
     int log_counter = 0;
@@ -653,7 +670,42 @@ void autonomous() {
   pros::delay(100);
   move_vertical(-6, false);
   pros::delay(100);
-  limitedConveyor(1000);
+  limitedConveyor(750);
+
+  rotate_to(138.8);
+  pros::delay(100);
+  move_to_pose(Pose(-24, 48, 138.8), false, false);
+  grabber.toggle();
+  pros::delay(100);
+  rotate_to(270);
+  pros::delay(100);
+  move_to_pose(Pose(0, 48, 270), true, true);
+  pros::delay(100);
+  curve_to_pose(Pose(0, 6, 135), true, true);
+  pros::delay(100);
+  limitedConveyor(750);
+  rotate_to(45);
+  pros::delay(100);
+  move_to_pose(Pose(-60, 60, 45), true, true);
+  pros::delay(100);
+  grabber.toggle();
+  pros::delay(100);
+  curve_to_pose(Pose(-48, 60, 360), false, true);
+  pros::delay(100);
+  rotate_to(270);
+  pros::delay(100);
+
+  wallStakeLift.move_absolute(27, 50);
+  pros::delay(100);
+  move_to_pose(Pose(0, 60, 270), true, true);
+  pros::delay(100);
+  limitedConveyor(750);
+  rotate_to(360);
+  pros::delay(100);
+  move_vertical(-7, false);
+  pros::delay(100);
+  wallStakeLift.move_absolute(140, 30);
+
 
 }
 
