@@ -471,9 +471,9 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
     double target_distance = std::abs(distance_inches);
 
     const double MIN_OUTPUT = 20.0;
-    const double MAX_OUTPUT = 80.0;
-    const double MAX_ROTATION = 25.0;
-    const double ACCEL_RATE = 4.0;
+    const double MAX_OUTPUT = 40.0;
+    const double MAX_ROTATION = 40.0;
+    const double ACCEL_RATE = 2.0;
     const double DECEL_ZONE = 6.0;
 
     double currentMaxSpeed = MIN_OUTPUT;
@@ -519,15 +519,15 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
         double rotationOutput = headingPID.update(heading_error);
         rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-        chassis.drive(0, forwardOutput, rotationOutput);
+        chassis.drive(0, forwardOutput,0);
 
-        if(intaking){
-          intake.move(127);
-        }
+       // if(intaking){
+        //  intake.move(127);
+        //}
 
-        if(conv){
-          conveyor.move(127);
-        }
+       // if(conv){
+       //   conveyor.move(127);
+       // }
 
         log_counter++;
         if (log_counter % 25 == 0) {
@@ -542,9 +542,9 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
     
     chassis.drive(0, 0, 0);
 
-    if(intaking){
-      limitedIntake(500);
-    }
+   // if(intaking){
+    //  limitedIntake(500);
+   // }
 
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
 }
@@ -682,11 +682,11 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(-66, 0, 90);
 
-  move_vertical(6, true, false);
+  move_vertical(6, false, false);
   pros::delay(100);
   move_vertical(-6, false, false);
-  pros::delay(100);
-  limitedConveyor(750);
+  //pros::delay(100);
+  //limitedConveyor(750);
 
  /* rotate_to(318.8);
   pros::delay(100);
@@ -779,9 +779,9 @@ void opcontrol() {
   wallStakeLift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
   while (true) {
-    chassis.driveCurve(master.get_analog(ANALOG_LEFT_X),
+    chassis.drive(master.get_analog(ANALOG_LEFT_X),
                   master.get_analog(ANALOG_LEFT_Y),
-                  master.get_analog(ANALOG_RIGHT_X), 0.6);
+                  master.get_analog(ANALOG_RIGHT_X));
     logger().updateTelemetry("conveyor_voltage", conveyor.get_voltage());
     logger().updateTelemetry("wallStakeVoltage", wallStakeLift.get_voltage());
     pooksterControls();
@@ -824,3 +824,4 @@ void opcontrol() {
     pros::delay(20);
   }
 }
+
