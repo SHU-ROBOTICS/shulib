@@ -429,7 +429,7 @@ void move_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
         if(reverse){
           chassis.drive(0, -forwardOutput, rotationOutput);
         } else {
-          chassis.drive(0, forwardOutput, rotationOutput + 180);
+          chassis.drive(0, forwardOutput, rotationOutput);
         }
 
         if(intaking){
@@ -682,9 +682,11 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(-66, 0, 90);
 
-  move_vertical(6, false, false);
-  pros::delay(100);
-  move_vertical(-6, false, false);
+  move_to_pose(Pose(-60, 0, 90), false, false, false );
+
+  //move_vertical(6, false, false);
+  //pros::delay(100);
+  //move_vertical(-6, false, false);
   //pros::delay(100);
   //limitedConveyor(750);
 
