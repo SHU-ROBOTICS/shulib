@@ -681,13 +681,13 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(-66, 0, 90);
 
-  move_to_pose(Pose(-60, 0, 90), false, false, false );
+  //move_to_pose(Pose(-60, 0, 90), false, false, false );
 
-  //move_vertical(6, false, false);
-  //pros::delay(100);
-  //move_vertical(-6, false, false);
-  //pros::delay(100);
-  //limitedConveyor(750);
+  move_vertical(6, false, false);
+  pros::delay(100);
+  move_vertical(-6, false, false);
+  pros::delay(100);
+  limitedConveyor(750);
 
  /* rotate_to(318.8);
   pros::delay(100);
