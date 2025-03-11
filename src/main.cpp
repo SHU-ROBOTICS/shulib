@@ -472,7 +472,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
 
     const double MIN_OUTPUT = 20.0;
     const double MAX_OUTPUT = 40.0;
-    const double MAX_ROTATION = 40.0;
+    const double MAX_ROTATION = 25.0;
     const double ACCEL_RATE = 2.0;
     const double DECEL_ZONE = 6.0;
 
@@ -480,11 +480,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
     double last_y = start_pose.y;
     
     PID linearPID(12, 0.01, 0);
-    PID headingPID(8, 0.02, 0);
+    PID headingPID(8, 0.01, 0.2);
     
     int log_counter = 0;
     while (total_distance_traveled < target_distance) {
-
         Pose current_pose = chassis.getPose();
         
         // Calculate incremental distance traveled
@@ -519,14 +518,14 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
         double rotationOutput = headingPID.update(heading_error);
         rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-        chassis.drive(0, forwardOutput,0);
+        chassis.drive(0, forwardOutput, rotationOutput);
 
        // if(intaking){
         //  intake.move(127);
-        //}
+       // }
 
        // if(conv){
-       //   conveyor.move(127);
+        //  conveyor.move(127);
        // }
 
         log_counter++;
