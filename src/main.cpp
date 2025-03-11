@@ -10,14 +10,13 @@
 #include "shulib/pid.hpp"
 #include "shulib/util.hpp"
 #include <string>
-#include <fstream>
 
 // #include "shulib/GUI/gui.c"
 
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup miniPookLeft({-16, 18, -17, 19, -20});
+MotorGroup miniPookLeft({-16, 5, -17, 19, -20});
 MotorGroup miniPookRight({-13, 14, -15, 12, -11});
 
 // IMU imu(10);
@@ -46,7 +45,12 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 &fifteenBackOdom, nullptr);
 */
 
-std::ifstream in();
+bool wallStakeMode = false;
+pros::adi::Pneumatics grabber('H', true);
+pros::Motor intake(-6);
+pros::MotorGroup conveyor({-1, 10});
+pros::MotorGroup wallStakeLift({2, -9}, pros::v5::MotorGears::red,
+                               pros::v5::MotorEncoderUnits::degrees);
 
 void initialize() {
   lcd::initialize();
@@ -194,6 +198,12 @@ void rotation_calibration() {
   logger().log("Correction factor: " + std::to_string(correctionFactor));
 }
 
+void limitedIntake(int n){
+  intake.move(127);
+  pros::delay(n);
+  intake.move(0);
+}
+
 void rotate_to(double target_angle)
 {
     logger().log("Starting rotation to " + std::to_string(target_angle) + " degrees");
@@ -206,7 +216,7 @@ void rotate_to(double target_angle)
 
     const double MIN_ROTATION = 20.0;  // Minimum rotation power
     const double MAX_ROTATION = 35.0;  // Maximum rotation power
-    const double ACCEL_RATE = 1.0;     // How fast to ramp up rotation speed
+    const double ACCEL_RATE = 2.0;     // How fast to ramp up rotation speed
     const double DECEL_ANGLE = 45.0;   // Start slowing down when within this angle
     
     double error = target_angle - chassis.getPose().theta;
@@ -222,7 +232,7 @@ void rotate_to(double target_angle)
     if (fabs(error) > 1.0) {
         // Coarse control phase
         logger().log("Starting coarse rotation (target error < 1.0)");
-        PID rotationPID(2.0, 0.01, 0.1);  // Conservative gains for rotation
+        PID rotationPID(2, 0.02, 0.1);  // Conservative gains for rotation
         
         while (fabs(error) > 1.0)
         {
@@ -287,7 +297,7 @@ void rotate_to(double target_angle)
 
     // Fine control phase
     logger().log("Starting fine rotation (target error < 0.5)");
-    PID fineRotationPID(1.0, 0.02, 0.05);  // More conservative gains for fine control
+    PID fineRotationPID(1, 0.005, 0.08);  // More conservative gains for fine control
     
     // Reset for fine control
     stuckCounter = 0;
@@ -340,7 +350,7 @@ void rotate_to(double target_angle)
                  " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
-void move_to_pose(Pose target_pose)
+void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv)
 {
     logger().log("Starting move to pose - Target X: " + std::to_string(target_pose.x) + 
 
@@ -367,16 +377,16 @@ void move_to_pose(Pose target_pose)
     logger().log("Moving forward");
 
     const double MIN_OUTPUT = 20.0;
-    const double MAX_OUTPUT = 35.0;
+    const double MAX_OUTPUT = 70.0;
     const double MAX_ROTATION = 30.0;
     const double MIN_ROTATION = 20.0;
-    const double ACCEL_RATE = 2.0;
+    const double ACCEL_RATE = 6.0;
     const double DECEL_ZONE = 6.0;
 
     double currentMaxSpeed = MIN_OUTPUT;
     
     PID linearPID(12, 0.01, 0);
-    PID headingPID(8, 0.02, 0);
+    PID headingPID(8, 0.01, 0.1);
     
     int log_counter = 0;
     while (distance > 1) {
@@ -407,7 +417,15 @@ void move_to_pose(Pose target_pose)
         double rotationOutput = headingPID.update(angle_error);
         rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-        chassis.drive(0, forwardOutput, rotationOutput);
+        chassis.drive(0, forwardOutput, 0);
+
+        if(intaking){
+          intake.move(127);
+        }
+
+        if(conv){
+          conveyor.move(127);
+        }
 
         log_counter++;
         if (log_counter % 25 == 0) {
@@ -419,11 +437,16 @@ void move_to_pose(Pose target_pose)
 
     }
     chassis.drive(0, 0, 0);
+
+    if(intaking){
+      limitedIntake(500);
+    }
+
     logger().log("Move to pose complete");
 }
 
 
-void move_vertical(double distance_inches)
+void move_vertical(double distance_inches, bool intaking, bool conv)
 {
     logger().log("Starting vertical move - Distance: " + std::to_string(distance_inches) + " inches");
     
@@ -442,7 +465,7 @@ void move_vertical(double distance_inches)
     double last_y = start_pose.y;
     
     PID linearPID(12, 0.01, 0);
-    PID headingPID(8, 0.02, 0);
+    PID headingPID(8, 0.01, 0.2);
     
     int log_counter = 0;
     while (total_distance_traveled < target_distance) {
@@ -482,6 +505,14 @@ void move_vertical(double distance_inches)
 
         chassis.drive(0, forwardOutput, rotationOutput);
 
+       // if(intaking){
+        //  intake.move(127);
+       // }
+
+       // if(conv){
+        //  conveyor.move(127);
+       // }
+
         log_counter++;
         if (log_counter % 25 == 0) {
             logger().log("error_heading: " + std::to_string(heading_error) + 
@@ -494,35 +525,48 @@ void move_vertical(double distance_inches)
     }
     
     chassis.drive(0, 0, 0);
+
+   // if(intaking){
+    //  limitedIntake(500);
+   // }
+
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
 }
 
 void autonomous() {
-  // test_min_output();
-  // MIN_OUTPUT_Y 20
-  // MIN_OUTPUT_THETA 25
-  // rotation_calibration();
-  // moveVertical();
-  Pose t(12, 12, 45);
-  chassis.setPose(0, 0, 0);
-  move_to_pose(t);
-}
+  chassis.setPose(Pose(-66, 0, 0));
+  rotate_to(90);
+  pros::delay(100);
+  rotate_to(-90);
 
-bool wallStakeMode = false;
-pros::adi::Pneumatics grabber('H', true);
-pros::Motor intake(-6);
-pros::MotorGroup conveyor({-1, 10});
-pros::MotorGroup wallStakeLift({2, -9}, pros::v5::MotorGears::red,
-                               pros::v5::MotorEncoderUnits::degrees);
+  /* move_to_pose(Pose(-63, 0, 90), false, false, false);
+  pros::delay(100);
+  move_vertical(-6, false, false); */
+
+ /* move_vertical(10, false, false);
+  pros::delay(100);
+  move_vertical(-10, false, false); */
+}
 
 void pooksterControls() {
   if (master.get_digital(DIGITAL_L2)) {
-    conveyor.move(127);
-    intake.move(-127);
+    if(wallStakeMode){
+      conveyor.move(75);
+      intake.move(-127);
+    } else {
+      conveyor.move(127);
+      intake.move(-127);
+    }
+
   } else {
     if (master.get_digital(DIGITAL_L1)) {
-      conveyor.move(-127);
-      intake.move(127);
+      if(wallStakeMode){
+        conveyor.move(-75);
+        intake.move(127);
+      } else {
+        conveyor.move(-127);
+        intake.move(127);
+      }
     } else {
       conveyor.move(0);
       intake.move(0);
@@ -531,20 +575,19 @@ void pooksterControls() {
 
   if (master.get_digital_new_press(DIGITAL_R1)) {
     wallStakeMode = !wallStakeMode;
-  }
-
-  if (master.get_digital_new_press(DIGITAL_R1)) {
-    if (fabs(wallStakeLift.get_position() - 27) < 1) {
+        if (wallStakeLift.get_position() < 2) {
       wallStakeLift.move_absolute(30, 50);
     } else {
       wallStakeLift.move_absolute(0, 20);
     }
   }
+
+
   // r2 : wall stake lift
   if (master.get_digital_new_press(DIGITAL_R2)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
     if (fabs(wallStakeLift.get_position() - 27) < 2) {
-      wallStakeLift.move_absolute(140, 30);
+      wallStakeLift.move_absolute(120, 30);
     } else {
       wallStakeLift.move_absolute(27, 30);
     }
