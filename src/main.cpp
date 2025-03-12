@@ -456,16 +456,16 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
     double target_distance = std::abs(distance_inches);
 
     const double MIN_OUTPUT = 20.0;
-    const double MAX_OUTPUT = 40.0;
-    const double MAX_ROTATION = 25.0;
+    const double MAX_OUTPUT = 50.0;
+    const double MAX_ROTATION = 10.0;
     const double ACCEL_RATE = 2.0;
-    const double DECEL_ZONE = 6.0;
+    const double DECEL_ZONE = 10.0;
 
     double currentMaxSpeed = MIN_OUTPUT;
     double last_y = start_pose.y;
     
     PID linearPID(12, 0.01, 0);
-    PID headingPID(8, 0.01, 0.2);
+    PID headingPID(10, 0.005, 0.25);
     
     int log_counter = 0;
     while (total_distance_traveled < target_distance) {
@@ -537,15 +537,14 @@ void autonomous() {
   chassis.setPose(Pose(-66, 0, 0));
   rotate_to(90);
   pros::delay(100);
-  rotate_to(-90);
-
+  std::cout << chassis.getPose().theta << std::endl;
   /* move_to_pose(Pose(-63, 0, 90), false, false, false);
   pros::delay(100);
   move_vertical(-6, false, false); */
 
- /* move_vertical(10, false, false);
+  /* move_vertical(48, false, false);
   pros::delay(100);
-  move_vertical(-10, false, false); */
+  move_vertical(-48, false, false); */
 }
 
 void pooksterControls() {
