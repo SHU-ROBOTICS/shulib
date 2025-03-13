@@ -508,13 +508,13 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
 
         chassis.drive(0, forwardOutput, rotationOutput);
 
-       // if(intaking){
-        //  intake.move(127);
-       // }
+       if(intaking){
+          intake.move(-127);
+       }
 
-       // if(conv){
-        //  conveyor.move(127);
-       // }
+        if(conv){
+          conveyor.move(-127);
+        }
 
         log_counter++;
         if (log_counter % 25 == 0) {
@@ -529,19 +529,41 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
     
     chassis.drive(0, 0, 0);
 
-   // if(intaking){
-    //  limitedIntake(500);
-   // }
+    if(intaking){
+      intake.move(0);
+    }
+
+    if(conv){
+      conveyor.move(0);
+    }
 
     logger().log("Vertical move complete - Total distance traveled: " + std::to_string(total_distance_traveled));
 }
 
 void autonomous() {
-  chassis.setPose(Pose(-66, 0, 0));
+  chassis.setPose(Pose(-51, -65, 0));
 
-  rotate_to(135);
+  rotate_to(212.2);
   pros::delay(100);
-  rotate_to(0);
+  move_vertical(-32, false, false);
+  pros::delay(100);
+  grabber.toggle();
+  rotate_to(90);
+  pros::delay(100);
+  move_vertical(24, true, false);
+  pros::delay(100);
+  rotate_to(315);
+  pros::delay(100);
+  move_vertical(34, true, true);
+  pros::delay(100);
+  rotate_to(45);
+  pros::delay(100);
+  move_vertical(30.4, true, true);
+  pros::delay(100);
+  rotate_to(90);
+  pros::delay(100);
+  move_vertical(7, true, true);
+
   /* move_to_pose(Pose(-63, 0, 90), false, false, false);
   pros::delay(100);
   move_vertical(-6, false, false); */
