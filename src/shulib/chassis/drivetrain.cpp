@@ -21,7 +21,7 @@ void shulib::Drivetrain::drive(int horizontal, int vertical, int turn,
   }
 }
 
-void shulib::Drivetrain::driveCurve(int horizontal, int vertical, int turn, float coeff, bool fieldCentric) {
+/* void shulib::Drivetrain::driveCurve(int horizontal, int vertical, int turn, float coeff, bool fieldCentric) {
   if (fieldCentric) {
     double angle = shulib::getPose().theta;
     double cosA = cos(angle);
@@ -39,9 +39,9 @@ void shulib::Drivetrain::driveCurve(int horizontal, int vertical, int turn, floa
   configL.motors->move(motorOutputA);
 
   float motorOutputB = motorOutputA * coeff;
-  configR.motors->move(-motorOutputB);
+  configR.motors->move(-motorOutputB); 
 
-}
+} */
 
 void shulib::Drivetrain::setBrakeMode(pros::motor_brake_mode_e mode) {
   for (const auto& config : motorConfigs) {

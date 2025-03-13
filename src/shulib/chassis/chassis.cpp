@@ -107,9 +107,9 @@ void shulib::Chassis::drive(int horizontal, int vertical, int turn, bool fieldCe
     drivetrain.drive(horizontal, vertical, turn, fieldCentric);
 }
 
-void shulib::Chassis::driveCurve(int horizontal, int vertical, int turn, float coeff, bool fieldCentric) {
+/* void shulib::Chassis::driveCurve(int horizontal, int vertical, int turn, float coeff, bool fieldCentric) {
   drivetrain.driveCurve(horizontal, vertical, turn, coeff, fieldCentric);
-}
+} */
 
 void shulib::Chassis::resetLocalPosition() {
     float theta = this->getPose().theta;

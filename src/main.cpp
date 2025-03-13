@@ -11,7 +11,7 @@
 #include "shulib/util.hpp"
 #include <string>
 #include <fstream>
-
+#include <iostream>
 // #include "shulib/GUI/gui.c"
 
 
@@ -236,6 +236,8 @@ void rotate_to(double target_angle)
     int stuckCounter = 0;
     double lastError = error;
     double currentMaxSpeed = MIN_ROTATION;  // Start at minimum speed
+
+    int logCount = 0;
     
     // Two-phase control with separate PIDs
     if (fabs(error) > 1.0) {
@@ -296,6 +298,12 @@ void rotate_to(double target_angle)
             }
 
             chassis.drive(0, 0, rotationOutput);
+
+            logCount++;
+
+            if(logCount % 25 == 0){
+              std::cout << currentPose.x << ", " << currentPose.y << ", " << currentPose.theta << std::flush;
+            }
             pros::delay(10);
         }
 
@@ -472,15 +480,15 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
 
     const double MIN_OUTPUT = 20.0;
     const double MAX_OUTPUT = 40.0;
-    const double MAX_ROTATION = 25.0;
+    const double MAX_ROTATION = 10.0;
     const double ACCEL_RATE = 2.0;
-    const double DECEL_ZONE = 6.0;
+    const double DECEL_ZONE = 3.0;
 
     double currentMaxSpeed = MIN_OUTPUT;
     double last_y = start_pose.y;
     
-    PID linearPID(12, 0.01, 0);
-    PID headingPID(8, 0.01, 0.2);
+    PID linearPID(15, 0.02, 0);
+    PID headingPID(10, 0.01, 0.2);
     
     int log_counter = 0;
     while (total_distance_traveled < target_distance) {
@@ -518,7 +526,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
         double rotationOutput = headingPID.update(heading_error);
         rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-        chassis.drive(0, forwardOutput, rotationOutput);
+        chassis.drive(0, forwardOutput, 0);
 
        // if(intaking){
         //  intake.move(127);
@@ -610,10 +618,11 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
       / (pow(distRight, 2) + pow(rightArcHeight, 2)))) / (2 * rightArcHeight);
 
       
-    float turn = arcLeft / arcRight;
+    float differential = arcLeft / arcRight;
     
 
     PID linearPID(12, 0.01, 0);
+    PID headingPID(10, 0.01, 0.1);
     
     int log_counter = 0;
     while (distance > 1) {
@@ -641,10 +650,13 @@ void curve_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
         forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
         forwardOutput *= decelFactor;
 
-        if(reverse){
-          chassis.driveCurve(0, -forwardOutput, (1/turn), 0);
+        double rotationOutput = headingPID.update(angle_error);
+        rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
+
+        if(!reverse){
+         // chassis.driveCurve(0, forwardOutput, rotationOutput, differential);
         } else {
-          chassis.driveCurve(0, forwardOutput, turn, 0);
+         // chassis.driveCurve(0, -forwardOutput, rotationOutput, (1/differential));
         }
 
         if(intaking){
@@ -679,15 +691,14 @@ void autonomous() {
   // MIN_OUTPUT_THETA 25
   // rotation_calibration();
   // moveVertical();
-  chassis.setPose(-66, 0, 90);
+  chassis.setPose(-66, 0, 0);
 
   //move_to_pose(Pose(-60, 0, 90), false, false, false );
 
-  move_vertical(6, false, false);
+  move_vertical(3, false, false);
   pros::delay(100);
-  move_vertical(-6, false, false);
-  pros::delay(100);
-  limitedConveyor(750);
+  move_vertical(-3, false, false);
+
 
  /* rotate_to(318.8);
   pros::delay(100);
