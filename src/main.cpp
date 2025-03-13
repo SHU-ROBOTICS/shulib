@@ -52,8 +52,10 @@ bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(-10);
 pros::MotorGroup conveyor({17, -12});
-pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,
-                               pros::v5::MotorEncoderUnits::degrees);
+pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
+
+// Global variable to store the robot's initial odometry position
+Pose globalInitialPose = {0, 0, 0};  // Default to (0,0,0)
 
 void initialize() {
   lcd::initialize();
@@ -61,25 +63,26 @@ void initialize() {
 
   logger().init();
 
-  imu.reset();
+  std::cout << "[IMU] Resetting IMU...\n";
+  imu.reset();  
+  pros::delay(500);  
 
-  logger().log("IMU not calibrated, calibrating...");
+  std::cout << "[IMU] Waiting for calibration...\n";
   while (imu.is_calibrating()) {
-    pros::delay(100);
+      std::cout << "[IMU] Calibrating...\n";
+      pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1.03225806);
-  shulib::setYCorrectionFactor(0.95);
-  shulib::setThetaCorrectionFactor(0.842);
+  std::cout << "[IMU] Calibration complete. IMU yaw: " << imu.get_yaw() << std::endl;
 
-  logger().log("IMU calibrated!");
-  logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
-  logger().log("IMU yaw: " + std::to_string(imu.get_yaw()));
-  logger().log("IMU roll: " + std::to_string(imu.get_roll()));
+  // 🔹 Capture the initial odometry and store it in `globalInitialPose`
+  globalInitialPose = chassis.getPose();
 
-  chassis.calibrate();
-  chassis.setPose({36, -60, 0});
+  std::cout << "[DEBUG] Initial Odometry - X: " << globalInitialPose.x 
+            << " inches | Y: " << globalInitialPose.y 
+            << " inches | Theta: " << globalInitialPose.theta << " degrees\n";
 }
+
 
 void disabled() {}
 void competition_initialize() {}
@@ -115,12 +118,20 @@ void test_min_output() {
 }
 
 void rotation_calibration() {
-  logger().log("Starting autonomous");
+  std::cout << "[DEBUG] Starting rotation calibration...\n";
+  
   chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-  // Reset IMU and chassis pose
-  imu.tare();
-  chassis.setPose(0, 0, 0);
-  pros::delay(500); // Give time for reset
+
+  // 🔹 Capture Initial Odometry
+  Pose startPose = chassis.getPose();
+  double initialTheta = startPose.theta;
+
+  // 🔹 Convert Encoder Ticks to Inches
+  const double wheel_diameter = 2.75;
+  const double wheel_circumference = wheel_diameter * 3.1415926535;
+  const double encoder_ticks_per_revolution = 360.0;
+  const double inches_per_tick = wheel_circumference / encoder_ticks_per_revolution;
+  const double chassis_width = 15.5;  
 
   double correctionFactor = shulib::getThetaCorrectionFactor();
   const double TARGET_ANGLE = 180.0;
@@ -129,77 +140,66 @@ void rotation_calibration() {
   int iterations = 0;
 
   while (iterations < MAX_ITERATIONS) {
-    double start_yaw = imu.get_yaw();
-    double start_theta = chassis.getPose().theta;
+      // 🔹 Capture Initial Encoder Positions
+      double start_left = left.get_position();
+      double start_right = right.get_position();
+      double startTheta = chassis.getPose().theta;
 
-    logger().log("Starting rotation..");
-    logger().log("Start yaw: " + std::to_string(start_yaw));
-    logger().log("Start theta: " + std::to_string(start_theta));
+      std::cout << "[DEBUG] Starting rotation...\n";
+      std::cout << "[DEBUG] Start Theta: " << startTheta << " degrees\n";
 
-    chassis.drive(0, 0, 40);
-    pros::delay(500);
-    // Rotate clockwise
-    while (true) {
-      double current_yaw = imu.get_yaw();
-      // Calculate total rotation considering wraparound
-      double total_rotation = current_yaw > start_yaw
-                                  ? current_yaw - start_yaw
-                                  : TARGET_ANGLE - (start_yaw - current_yaw);
+      chassis.drive(0, 0, 40);
+      pros::delay(500); // Give time for motors to start moving
 
-      logger().updateTelemetry("total_rotation", total_rotation);
-      logger().updateTelemetry("imu_yaw", imu.get_yaw());
-      logger().updateTelemetry("chassis_theta", chassis.getPose().theta);
+      // 🔹 Rotate Until Target Angle is Reached
+      while (true) {
+          double leftOdo = left.get_position() * inches_per_tick;
+          double rightOdo = right.get_position() * inches_per_tick;
+          double estimatedTheta = (rightOdo - leftOdo) / chassis_width;
 
-      if (total_rotation >= TARGET_ANGLE - TOLERANCE)
-        break;
+          double total_rotation = estimatedTheta - startTheta;
 
-      chassis.drive(0, 0, 40); // Increased power for more consistent rotation
-      pros::delay(10);
-    }
+          std::cout << "[DEBUG] Total Rotation: " << total_rotation 
+                    << " degrees | Target: " << TARGET_ANGLE - TOLERANCE << " degrees\n";
 
-    chassis.drive(0, 0, 0); // Stop rotation
-    logger().log("Rotation finished!");
-    logger().log("Settling...");
-    pros::delay(2000); // Longer settle time
+          if (fabs(total_rotation) >= TARGET_ANGLE - TOLERANCE) break;
 
-    // Calculate rotation amounts
-    double chassis_rotation = std::abs(chassis.getPose().theta - start_theta);
-    double imu_rotation = std::abs(imu.get_yaw() - start_yaw);
+          chassis.drive(0, 0, 40);
+          pros::delay(10);
+      }
 
-    logger().log("End yaw: " + std::to_string(imu.get_yaw()));
-    logger().log("End theta: " + std::to_string(chassis.getPose().theta));
-    logger().log("");
-    logger().log("Chassis rotation: " + std::to_string(chassis_rotation));
-    logger().log("IMU rotation: " + std::to_string(imu_rotation));
-    logger().log("");
+      chassis.drive(0, 0, 0);
+      std::cout << "[DEBUG] Rotation finished!\n";
+      pros::delay(2000); // Settling time
 
-    // Update correction factor
-    if (chassis_rotation > 1.0) { // Prevent division by very small numbers
-      double new_correction = imu_rotation / chassis_rotation;
-      correctionFactor *= new_correction;
-      shulib::setThetaCorrectionFactor(correctionFactor);
-      logger().log("Correction factor: " + std::to_string(correctionFactor));
-      logger().log("");
+      // 🔹 Calculate Rotation Differences
+      double final_left = left.get_position() * inches_per_tick;
+      double final_right = right.get_position() * inches_per_tick;
+      double finalTheta = chassis.getPose().theta;
 
-      logger().updateTelemetry("chassis_rotation", chassis_rotation);
-      logger().updateTelemetry("imu_rotation", imu_rotation);
-      logger().updateTelemetry("iteration_correction", new_correction);
-      logger().updateTelemetry("cumulative_correction", correctionFactor);
-    }
+      double odometry_rotation = fabs(final_right - final_left) / chassis_width;
+      double chassis_rotation = fabs(finalTheta - startTheta);
 
-    // Reset for next iteration
-    imu.reset();
-    while (imu.is_calibrating()) {
-      pros::delay(10);
-    }
-    chassis.setPose(0, 0, 0);
-    pros::delay(100);
-    iterations++;
+      std::cout << "[DEBUG] Final Odometry Rotation: " << odometry_rotation << " degrees\n";
+      std::cout << "[DEBUG] Final Chassis Rotation: " << chassis_rotation << " degrees\n";
+
+      // 🔹 Update Correction Factor
+      if (chassis_rotation > 1.0) {
+          double new_correction = odometry_rotation / chassis_rotation;
+          correctionFactor *= new_correction;
+          shulib::setThetaCorrectionFactor(correctionFactor);
+          std::cout << "[DEBUG] Updated Correction Factor: " << correctionFactor << "\n";
+      }
+
+      // 🔹 Reset for Next Iteration
+      chassis.setPose(0, 0, 0);
+      pros::delay(100);
+      iterations++;
   }
 
-  logger().updateTelemetry("final_correction", correctionFactor);
-  logger().log("Correction factor: " + std::to_string(correctionFactor));
+  std::cout << "[DEBUG] Final Correction Factor: " << correctionFactor << "\n";
 }
+
 
 void limitedIntake(int n){
   intake.move(127);
@@ -213,158 +213,106 @@ void limitedConveyor(int n){
   conveyor.move(0);
 }
 
-void rotate_to(double target_angle)
-{
-    logger().log("Starting rotation to " + std::to_string(target_angle) + " degrees");
-    Pose startPose = chassis.getPose();
-    double desiredTheta = target_angle;
+void rotate_to(double target_angle) {
+  std::cout << "\n\n[DEBUG] Starting rotation to " << target_angle << " degrees\n";
 
-    logger().log("Start pose - X: " + std::to_string(startPose.x) + 
-                 " Y: " + std::to_string(startPose.y) + 
-                 " Theta: " + std::to_string(startPose.theta));
+  // Use the global initial pose instead of resetting odometry
+  Pose startPose = globalInitialPose;
+  double initialOdoTheta = startPose.theta;
 
-    const double MIN_ROTATION = 20.0;  // Minimum rotation power
-    const double MAX_ROTATION = 35.0;  // Maximum rotation power
-    const double ACCEL_RATE = 1.0;     // How fast to ramp up rotation speed
-    const double DECEL_ANGLE = 45.0;   // Start slowing down when within this angle
-    
-    double error = target_angle - chassis.getPose().theta;
-    // Normalize error to [-180, 180]
-    while (error > 180) error -= 360;
-    while (error < -180) error += 360;
+  std::cout << "[DEBUG] Reference Odometry - X: " << startPose.x 
+            << " inches | Y: " << startPose.y 
+            << " inches | Theta: " << initialOdoTheta << " degrees\n";
 
-    int stuckCounter = 0;
-    double lastError = error;
-    double currentMaxSpeed = MIN_ROTATION;  // Start at minimum speed
+  // === Convert Encoder Ticks to Inches ===
+  const double wheel_diameter = 2.75;
+  const double wheel_circumference = wheel_diameter * 3.1415926535;
+  const double encoder_ticks_per_revolution = 360.0;
+  const double inches_per_tick = wheel_circumference / encoder_ticks_per_revolution;
+  const double chassis_width = 15.5;
 
-    int logCount = 0;
-    
-    // Two-phase control with separate PIDs
-    if (fabs(error) > 1.0) {
-        // Coarse control phase
-        logger().log("Starting coarse rotation (target error < 1.0)");
-        PID rotationPID(2.0, 0.01, 0.1);  // Conservative gains for rotation
-        
-        while (fabs(error) > 1.0)
-        {
-            Pose currentPose = chassis.getPose();
-            error = target_angle - currentPose.theta;
-            while (error > 180) error -= 360;
-            while (error < -180) error += 360;
+  double error = target_angle - initialOdoTheta;
 
-            double rotationOutput = rotationPID.update(error);
+  while (error > 180) error -= 360;
+  while (error < -180) error += 360;
 
-            // Ramp up speed gradually
-            if (currentMaxSpeed < MAX_ROTATION) {
-                currentMaxSpeed += ACCEL_RATE;
-                if (currentMaxSpeed > MAX_ROTATION) currentMaxSpeed = MAX_ROTATION;
-            }
+  int logCount = 0;
+  int iterationCount = 0;
+  double lastError = error;
+  double lastLeftOdo = left.get_position();
+  double lastRightOdo = right.get_position();
+  double currentMaxSpeed = 15.0;
 
-            // Calculate deceleration factor based on angle to target
-            double decelFactor = 1.0;
-            if (fabs(error) < DECEL_ANGLE) {
-                decelFactor = fabs(error) / DECEL_ANGLE;  // Linear ramp down
-                // Ensure we don't go below minimum output
-                decelFactor = decelFactor * (currentMaxSpeed - MIN_ROTATION) / currentMaxSpeed + MIN_ROTATION / currentMaxSpeed;
-            }
+  std::cout << "[DEBUG] Starting coarse rotation...\n";
+  PID rotationPID(1.2, 0.02, 0.1);
 
-            // Apply speed limits and deceleration
-            rotationOutput = std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
-            rotationOutput *= decelFactor;
+  while (fabs(error) > 3.0) {  
+      iterationCount++;
+      if (iterationCount > 500) {
+          std::cout << "[ERROR] Rotation timeout! Exiting to prevent infinite spin.\n";
+          break;
+      }
 
-            // Ensure minimum power to overcome friction
-            if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1) {
-                rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
-            }
+      double leftOdoTicks = left.get_position();   
+      double rightOdoTicks = right.get_position(); 
 
-            // Check if we're stuck
-            if (fabs(error - lastError) < 0.001) {
-                stuckCounter++;
-                if (stuckCounter > 100) {
-                    logger().log("WARNING: Possibly stuck - minimal progress detected");
-                    logger().log("Current Theta: " + std::to_string(currentPose.theta) + 
-                               " Error: " + std::to_string(error));
-                    rotationOutput *= 1.5;
-                }
-            } else {
-                stuckCounter = 0;
-            }
-            lastError = error;
+      double leftOdo = leftOdoTicks * inches_per_tick;
+      double rightOdo = rightOdoTicks * inches_per_tick;
 
-            if (stuckCounter % 50 == 0) {
-                logger().log("Coarse Phase - Error: " + std::to_string(error) + 
-                            " Output: " + std::to_string(rotationOutput) + 
-                            " Speed: " + std::to_string(currentMaxSpeed));
-            }
+      if (fabs(leftOdo) < 0.0001) leftOdo = 0.0001;
+      if (fabs(rightOdo) < 0.0001) rightOdo = 0.0001;
 
-            chassis.drive(0, 0, rotationOutput);
+      double estimatedTheta = (rightOdo - leftOdo) / chassis_width;
+      error = target_angle - estimatedTheta;
 
-            logCount++;
+      while (error > 180) error -= 360;
+      while (error < -180) error += 360;
 
-            if(logCount % 25 == 0){
-              std::cout << currentPose.x << ", " << currentPose.y << ", " << currentPose.theta << std::flush;
-            }
-            pros::delay(10);
-        }
+      double rotationOutput = rotationPID.update(error);
 
-        logger().log("Coarse rotation complete. Starting fine rotation");
-        chassis.drive(0, 0, 0);
-        pros::delay(100);
-    }
+      // 🔹 Dynamically Adjust Rotation Power Based on Progress
+      if (fabs(error) < 30.0) { 
+          rotationOutput *= 0.5;  // Slow down near target
+      }
+      if (fabs(error) < 10.0) { 
+          rotationOutput *= 0.3;  // Reduce power more as we get close
+      }
 
-    // Fine control phase
-    logger().log("Starting fine rotation (target error < 0.5)");
-    PID fineRotationPID(1.0, 0.02, 0.05);  // More conservative gains for fine control
-    
-    // Reset for fine control
-    stuckCounter = 0;
-    lastError = error;
-    currentMaxSpeed = MIN_ROTATION;  // Reset speed for fine control
-    
-    while (fabs(error) > 0.5)
-    {
-        Pose currentPose = chassis.getPose();
-        error = target_angle - currentPose.theta;
-        while (error > 180) error -= 360;
-        while (error < -180) error += 360;
+      rotationOutput = std::clamp(rotationOutput, -25.0, 25.0); 
 
-        double rotationOutput = fineRotationPID.update(error);
+      if (fabs(rotationOutput) < 15.0 && fabs(rotationOutput) > 0.1) {
+          rotationOutput = (rotationOutput > 0) ? 15.0 : -15.0;
+      }
 
-        // In fine control, we keep speed limited
-        rotationOutput = std::clamp(rotationOutput, -MIN_ROTATION * 1.5, MIN_ROTATION * 1.5);
+      // 🔹 Detect Wheel Slipping
+      double rawDifference = fabs(leftOdo - rightOdo);
+      if (rawDifference > 5.0) {
+          std::cout << "[WARNING] Wheel Slipping Detected! Left: " << leftOdo 
+                    << " inches | Right: " << rightOdo 
+                    << " inches | Diff: " << rawDifference << " inches\n";
 
-        // Ensure minimum power
-        if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1) {
-            rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
-        }
+          // Slow down if slipping is detected
+          rotationOutput *= 0.7;
+      }
 
-        if (fabs(error - lastError) < 0.0005) {
-            stuckCounter++;
-            if (stuckCounter > 100) {
-                logger().log("WARNING: Possibly stuck in fine control - minimal progress detected");
-                logger().log("Current Theta: " + std::to_string(currentPose.theta) + 
-                           " Error: " + std::to_string(error));
-                rotationOutput *= 1.5;
-            }
-        } else {
-            stuckCounter = 0;
-        }
-        lastError = error;
+      lastError = error;
 
-        if (stuckCounter % 50 == 0) {
-            logger().log("Fine Phase - Error: " + std::to_string(error) + 
-                        " Output: " + std::to_string(rotationOutput));
-        }
+      if (logCount % 10 == 0) {  // Adjusted logging frequency
+          std::cout << "[ODO ROTATION] Left Odo: " << leftOdo
+                    << " inches | Right Odo: " << rightOdo
+                    << " inches | Estimated Theta: " << estimatedTheta
+                    << " degrees | Error: " << error
+                    << " degrees | Output: " << rotationOutput << " power\n";
+      }
 
-        chassis.drive(0, 0, rotationOutput);
-        pros::delay(10);
-    }
+      chassis.drive(0, 0, rotationOutput);
+      logCount++;
+      pros::delay(10);
+  }
 
-    chassis.drive(0, 0, 0);
-    logger().log("Rotation complete. Final pose - X: " + 
-                 std::to_string(chassis.getPose().x) + 
-                 " Y: " + std::to_string(chassis.getPose().y) + 
-                 " Theta: " + std::to_string(chassis.getPose().theta));
+  chassis.drive(0, 0, 0);
+  std::cout << "[DEBUG] Rotation complete. Final Estimated Theta: " 
+            << ((right.get_position() - left.get_position()) / chassis_width) << " degrees\n\n";
 }
 
 void move_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
@@ -695,46 +643,10 @@ void autonomous() {
 
   //move_to_pose(Pose(-60, 0, 90), false, false, false );
 
-  move_vertical(3, false, false);
-  pros::delay(100);
-  move_vertical(-3, false, false);
-
-
- /* rotate_to(318.8);
-  pros::delay(100);
-  move_to_pose(Pose(-24, 48, 318.8), true, false, false);
-  grabber.toggle();
-  pros::delay(100);
   rotate_to(90);
-  pros::delay(100);
-  move_vertical(24, true, false);
-  pros::delay(100);
-  curve_to_pose(Pose(0, 6, -45), false, true, false);
-  pros::delay(100);
-  limitedConveyor(750);
-  rotate_to(-135);
-  pros::delay(100);
-  move_to_pose(Pose(-60, 60, -135), false, true, true);
-  pros::delay(100);
-  grabber.toggle();
-  pros::delay(100);
-  curve_to_pose(Pose(-48, 60, 0), false, true, false);
-  pros::delay(100);
-  rotate_to(90);
-  pros::delay(100);
-
-  wallStakeLift.move_absolute(27, 50);
-  pros::delay(100);
-  move_to_pose(Pose(0, 60, 90), true, true, false);
-  pros::delay(100);
-  limitedConveyor(750);
-  rotate_to(180);
-  pros::delay(100);
-  move_vertical(7, false, false);
-  pros::delay(100);
-  wallStakeLift.move_absolute(140, 30);*/
-
-
+  move_vertical(24, false, false);
+  rotate_to(0);
+  pros::delay(500);
 }
 
 int actionCount = 1;
