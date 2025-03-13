@@ -762,7 +762,7 @@ void pooksterControls() {
 
  /* if (master.get_digital_new_press(DIGITAL_A)) {
     if (wallStakeMode == false) {
-        wallStakeLift.move_absolute(27, 50);
+        wallStakeLift.move_absolute(30, 50);
     } else {
         wallStakeLift.move_absolute(0, 20);
     }
@@ -772,26 +772,27 @@ void pooksterControls() {
   // r2 : wall stake lift
   if (master.get_digital_new_press(DIGITAL_Y)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
-    if (fabs(wallStakeLift.get_position() - 27) < 2) {
+    if (fabs(wallStakeLift.get_position() - 30) < 2) {
       wallStakeLift.move_absolute(140, 30);
     } else {
-      wallStakeLift.move_absolute(27, 30);
+      wallStakeLift.move_absolute(30, 30);
     }
   } */
 
 
   if(master.get_digital_new_press(DIGITAL_Y)){
-    switch(actionCount % 4){
-      case 0:
-        wallStakeLift.move_absolute(0, 20);
-      case 1:
-        wallStakeLift.move_absolute(30, 50);
-      case 2:
-        wallStakeLift.move_absolute(140, 30);
-      case 3:
-        wallStakeLift.move_absolute(30, 50);
+    if (wallStakeMode == false) {
+        if(fabs(wallStakeLift.get_position() - 140) < 2){
+          wallStakeLift.move_absolute(0, 20);
+        } else {
+          wallStakeLift.move_absolute(30, 50);
+        }
+    } else {
+        if (fabs(wallStakeLift.get_position() - 30) < 2) {
+          wallStakeLift.move_absolute(140, 30);
+        }
     }
-    actionCount++;
+    wallStakeMode = !wallStakeMode;
   }
 
   if(master.get_digital_new_press(DIGITAL_RIGHT)){
