@@ -216,35 +216,36 @@ void limitedConveyor(int n){
 void rotate_to(double target_angle) {
   std::cout << "\n\n[DEBUG] Starting rotation to " << target_angle << " degrees\n";
 
-  // Use the global initial pose instead of resetting odometry
-  Pose startPose = globalInitialPose;
+  // Use only odometry—IMU is ignored
+  Pose startPose = chassis.getPose();
   double initialOdoTheta = startPose.theta;
 
-  std::cout << "[DEBUG] Reference Odometry - X: " << startPose.x 
+  std::cout << "[DEBUG] Initial Odometry - X: " << startPose.x 
             << " inches | Y: " << startPose.y 
             << " inches | Theta: " << initialOdoTheta << " degrees\n";
 
   // === Convert Encoder Ticks to Inches ===
-  const double wheel_diameter = 2.75;
+  const double wheel_diameter = 2.75;  // Diameter of tracking wheels (in inches)
   const double wheel_circumference = wheel_diameter * 3.1415926535;
   const double encoder_ticks_per_revolution = 360.0;
   const double inches_per_tick = wheel_circumference / encoder_ticks_per_revolution;
-  const double chassis_width = 15.5;
+  const double chassis_width = 18; // Distance between left and right wheels
+
+  // Capture Initial Encoder Positions
+  double leftStart = left.get_position();
+  double rightStart = right.get_position();
+
+  std::cout << "[DEBUG] Initial Encoders - Left: " << leftStart 
+            << " ticks | Right: " << rightStart << " ticks\n";
 
   double error = target_angle - initialOdoTheta;
-
   while (error > 180) error -= 360;
   while (error < -180) error += 360;
 
   int logCount = 0;
   int iterationCount = 0;
   double lastError = error;
-  double lastLeftOdo = left.get_position();
-  double lastRightOdo = right.get_position();
-  double currentMaxSpeed = 15.0;
-
-  std::cout << "[DEBUG] Starting coarse rotation...\n";
-  PID rotationPID(1.2, 0.02, 0.1);
+  double rotationPower = 25.0;  // Fixed power, no dynamic changes
 
   while (fabs(error) > 3.0) {  
       iterationCount++;
@@ -253,65 +254,41 @@ void rotate_to(double target_angle) {
           break;
       }
 
-      double leftOdoTicks = left.get_position();   
-      double rightOdoTicks = right.get_position(); 
+      // Read Current Encoder Positions
+      double leftOdoTicks = left.get_position();
+      double rightOdoTicks = right.get_position();
 
-      double leftOdo = leftOdoTicks * inches_per_tick;
-      double rightOdo = rightOdoTicks * inches_per_tick;
+      // Convert Ticks to Inches
+      double leftOdo = (leftOdoTicks - leftStart) * inches_per_tick;
+      double rightOdo = (rightOdoTicks - rightStart) * inches_per_tick;
 
-      if (fabs(leftOdo) < 0.0001) leftOdo = 0.0001;
-      if (fabs(rightOdo) < 0.0001) rightOdo = 0.0001;
-
+      // Compute Rotation in Degrees Based on Wheel Movement
       double estimatedTheta = (rightOdo - leftOdo) / chassis_width;
       error = target_angle - estimatedTheta;
 
       while (error > 180) error -= 360;
       while (error < -180) error += 360;
 
-      double rotationOutput = rotationPID.update(error);
+      // Apply Fixed Rotation Power
+      double rotationOutput = (error > 0) ? rotationPower : -rotationPower;
 
-      // 🔹 Dynamically Adjust Rotation Power Based on Progress
-      if (fabs(error) < 30.0) { 
-          rotationOutput *= 0.5;  // Slow down near target
-      }
-      if (fabs(error) < 10.0) { 
-          rotationOutput *= 0.3;  // Reduce power more as we get close
-      }
-
-      rotationOutput = std::clamp(rotationOutput, -25.0, 25.0); 
-
-      if (fabs(rotationOutput) < 15.0 && fabs(rotationOutput) > 0.1) {
-          rotationOutput = (rotationOutput > 0) ? 15.0 : -15.0;
-      }
-
-      // 🔹 Detect Wheel Slipping
-      double rawDifference = fabs(leftOdo - rightOdo);
-      if (rawDifference > 5.0) {
-          std::cout << "[WARNING] Wheel Slipping Detected! Left: " << leftOdo 
-                    << " inches | Right: " << rightOdo 
-                    << " inches | Diff: " << rawDifference << " inches\n";
-
-          // Slow down if slipping is detected
-          rotationOutput *= 0.7;
-      }
-
-      lastError = error;
-
-      if (logCount % 10 == 0) {  // Adjusted logging frequency
-          std::cout << "[ODO ROTATION] Left Odo: " << leftOdo
-                    << " inches | Right Odo: " << rightOdo
+      // Debug Every Few Iterations
+      if (logCount % 5 == 0) {  
+          std::cout << "[ODO ROTATION] Left: " << leftOdo << " inches | Right: " << rightOdo
                     << " inches | Estimated Theta: " << estimatedTheta
                     << " degrees | Error: " << error
                     << " degrees | Output: " << rotationOutput << " power\n";
       }
 
+      // Drive Rotation
       chassis.drive(0, 0, rotationOutput);
       logCount++;
       pros::delay(10);
   }
 
+  // Stop Motors
   chassis.drive(0, 0, 0);
-  std::cout << "[DEBUG] Rotation complete. Final Estimated Theta: " 
+  std::cout << "[DEBUG] Rotation complete. Final Theta: " 
             << ((right.get_position() - left.get_position()) / chassis_width) << " degrees\n\n";
 }
 
