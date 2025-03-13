@@ -210,6 +210,9 @@ void rotate_to(double target_angle)
     Pose startPose = chassis.getPose();
     double desiredTheta = target_angle;
 
+    double dTheta = fabs(desiredTheta - startPose.theta);
+    setThetaCorrectionFactor(0.425);
+
     logger().log("Start pose - X: " + std::to_string(startPose.x) + 
                  " Y: " + std::to_string(startPose.y) + 
                  " Theta: " + std::to_string(startPose.theta));
@@ -232,7 +235,7 @@ void rotate_to(double target_angle)
     if (fabs(error) > 1.0) {
         // Coarse control phase
         logger().log("Starting coarse rotation (target error < 1.0)");
-        PID rotationPID(2, 0.02, 0.1);  // Conservative gains for rotation
+        PID rotationPID(2, 0.01, 0.15);  // Conservative gains for rotation
         
         while (fabs(error) > 1.0)
         {
@@ -287,7 +290,7 @@ void rotate_to(double target_angle)
             }
 
             chassis.drive(0, 0, rotationOutput);
-            pros::delay(10);
+            pros::delay(5);
         }
 
         logger().log("Coarse rotation complete. Starting fine rotation");
@@ -340,7 +343,7 @@ void rotate_to(double target_angle)
         }
 
         chassis.drive(0, 0, rotationOutput);
-        pros::delay(10);
+        pros::delay(5);
     }
 
     chassis.drive(0, 0, 0);
@@ -432,7 +435,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv)
             logger().log("error_rotation: " + std::to_string(angle_error) + " error_distance: " + std::to_string(distance));
             logger().log("rotation_output: " + std::to_string(rotationOutput) + " forward_output: " + std::to_string(forwardOutput));
         }
-        pros::delay(10);
+        pros::delay(5);
 
 
     }
@@ -521,7 +524,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
             logger().log("rotation_output: " + std::to_string(rotationOutput) + 
                         " forward_output: " + std::to_string(forwardOutput));
         }
-        pros::delay(10);
+        pros::delay(5);
     }
     
     chassis.drive(0, 0, 0);
@@ -535,9 +538,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
 
 void autonomous() {
   chassis.setPose(Pose(-66, 0, 0));
-  rotate_to(90);
+
+  rotate_to(135);
   pros::delay(100);
-  std::cout << chassis.getPose().theta << std::endl;
+  rotate_to(0);
   /* move_to_pose(Pose(-63, 0, 90), false, false, false);
   pros::delay(100);
   move_vertical(-6, false, false); */
