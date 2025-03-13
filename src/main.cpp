@@ -737,6 +737,8 @@ void autonomous() {
 
 }
 
+int actionCount = 1;
+
 void pooksterControls() {
   if (master.get_digital(DIGITAL_L2)) {
     intake.move(127);
@@ -758,7 +760,7 @@ void pooksterControls() {
     }
   } 
 
-  if (master.get_digital_new_press(DIGITAL_A)) {
+ /* if (master.get_digital_new_press(DIGITAL_A)) {
     if (wallStakeMode == false) {
         wallStakeLift.move_absolute(27, 50);
     } else {
@@ -775,6 +777,21 @@ void pooksterControls() {
     } else {
       wallStakeLift.move_absolute(27, 30);
     }
+  } */
+
+
+  if(master.get_digital_new_press(DIGITAL_Y)){
+    switch(actionCount % 4){
+      case 0:
+        wallStakeLift.move_absolute(0, 20);
+      case 1:
+        wallStakeLift.move_absolute(30, 50);
+      case 2:
+        wallStakeLift.move_absolute(140, 30);
+      case 3:
+        wallStakeLift.move_absolute(30, 50);
+    }
+    actionCount++;
   }
 
   if(master.get_digital_new_press(DIGITAL_RIGHT)){
