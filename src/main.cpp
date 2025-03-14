@@ -541,28 +541,35 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
 }
 
 void autonomous() {
-  chassis.setPose(Pose(-51, -65, 0));
+  chassis.setPose(Pose(-51, -65, 206.5));
+  grabber.retract();
 
-  rotate_to(212.2);
-  pros::delay(100);
   move_vertical(-32, false, false);
   pros::delay(100);
   grabber.toggle();
   rotate_to(90);
-  pros::delay(100);
-  move_vertical(24, true, false);
-  pros::delay(100);
-  rotate_to(315);
-  pros::delay(100);
-  move_vertical(34, true, true);
-  pros::delay(100);
-  rotate_to(45);
-  pros::delay(100);
-  move_vertical(30.4, true, true);
-  pros::delay(100);
-  rotate_to(90);
-  pros::delay(100);
-  move_vertical(7, true, true);
+  // pros::delay(100);
+  // move_vertical(24, true, false);
+  // pros::delay(100);
+  // rotate_to(315);
+  // pros::delay(100);
+  // move_vertical(34, true, true);
+  // pros::delay(100);
+  // rotate_to(45);
+  // pros::delay(100);
+  // move_vertical(30.4, true, true);
+  // pros::delay(100);
+  // rotate_to(90);
+  // pros::delay(100);
+  // move_vertical(7, true, true);
+  // pros::delay(100);
+  // move_vertical(-7, false, false);
+  // pros::delay(100);
+  // rotate_to(225);
+  // pros::delay(100);
+  // move_vertical(68, true, true);
+  // pros::delay(100);
+  // rotate_to(45);
 
   /* move_to_pose(Pose(-63, 0, 90), false, false, false);
   pros::delay(100);
