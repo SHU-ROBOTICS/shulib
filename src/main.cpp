@@ -388,7 +388,7 @@ void rotate_to(double target_angle) {
                " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
-// Struct to hold parsed command data
+// Struct for storing parsed command data
 struct CommandData {
   std::string command;
   double x;
@@ -397,96 +397,70 @@ struct CommandData {
   double speed;
 };
 
-// CommandParser class to read and parse commands
-class CommandParser {
-public:
-  std::vector<CommandData> parseFromFile(const std::string& filename) {
-      std::ifstream file(filename);
-      if (!file.is_open()) {
-          std::cerr << "Error: Could not open file " << filename << std::endl;
-          return {};
-      }
-
-      std::vector<CommandData> commands;
-      std::string line;
-      bool firstLine = true;
-
-      while (std::getline(file, line)) {
-          if (firstLine) { // Skip header
-              firstLine = false;
-              continue;
-          }
-
-          CommandData cmd;
-          if (parseLine(line, cmd)) {
-              commands.push_back(cmd);
-          }
-      }
-
-      return commands;
-  }
-
-  std::vector<CommandData> parseFromString(const std::string& data) {
-      std::istringstream stream(data);
-      std::vector<CommandData> commands;
-      std::string line;
-      bool firstLine = true;
-
-      while (std::getline(stream, line)) {
-          if (firstLine) { // Skip header
-              firstLine = false;
-              continue;
-          }
-
-          CommandData cmd;
-          if (parseLine(line, cmd)) {
-              commands.push_back(cmd);
-          }
-      }
-
-      return commands;
-  }
-
-private:
-  bool parseLine(const std::string& line, CommandData& cmd) {
-      std::stringstream ss(line);
-      std::string token;
-
-      // Extract command
-      if (!std::getline(ss, cmd.command, ',')) return false;
-
-      // Extract x, y, heading, and speed
-      if (!std::getline(ss, token, ',')) return false;
-      cmd.x = std::stod(token);
-
-      if (!std::getline(ss, token, ',')) return false;
-      cmd.y = std::stod(token);
-
-      if (!std::getline(ss, token, ',')) return false;
-      cmd.heading = std::stod(token);
-
-      if (!std::getline(ss, token, ',')) return false;
-      cmd.speed = std::stod(token);
-
-      return true;
-  }
+// **🚀 Hardcoded List of Commands (Instead of File)**
+const std::vector<CommandData> autonomousCommands = {
+  {"NONE", 27.07, 28.05, -1.77, 0},
+  {"MOVE_WITH_HEADING", 28.08, 28.02, -1.77, 50},
+  {"MOVE_WITH_HEADING", 29.09, 27.99, -1.77, 50},
+  {"MOVE_WITH_HEADING", 30.1, 27.96, -1.77, 50},
+  {"MOVE_WITH_HEADING", 31.11, 27.93, -1.77, 50},
+  {"MOVE_WITH_HEADING", 32.12, 27.89, -1.77, 50},
+  {"MOVE_WITH_HEADING", 33.13, 27.86, -1.77, 50},
+  {"MOVE_WITH_HEADING", 34.14, 27.83, -1.77, 50},
+  {"MOVE_WITH_HEADING", 35.16, 27.8, -1.77, 50},
+  {"MOVE_WITH_HEADING", 36.17, 27.77, -1.77, 50},
+  {"MOVE_WITH_HEADING", 37.18, 27.74, -1.77, 50},
+  {"MOVE_WITH_HEADING", 38.19, 27.71, -1.77, 50},
+  {"MOVE_WITH_HEADING", 39.2, 27.68, -1.77, 50},
+  {"MOVE_WITH_HEADING", 40.21, 27.64, -1.77, 50},
+  {"MOVE_WITH_HEADING", 41.22, 27.61, -1.77, 50},
+  {"MOVE_WITH_HEADING", 42.23, 27.58, -1.77, 50},
+  {"MOVE_WITH_HEADING", 43.24, 27.55, -1.77, 50},
+  {"MOVE_WITH_HEADING", 44.26, 27.52, -1.77, 50},
+  {"MOVE_WITH_HEADING", 45.27, 27.49, -1.77, 50},
+  {"MOVE_WITH_HEADING", 46.28, 27.46, -1.77, 50},
+  {"MOVE_WITH_HEADING", 47.29, 27.42, -1.77, 50},
+  {"MOVE_WITH_HEADING", 48.3, 27.39, -1.77, 50},
+  {"MOVE_WITH_HEADING", 49.31, 27.36, -1.77, 50},
+  {"MOVE_WITH_HEADING", 50.32, 27.33, -1.77, 50},
+  {"MOVE_WITH_HEADING", 51.33, 27.3, -1.77, 50},
+  {"MOVE_WITH_HEADING", 52.34, 27.27, -1.77, 50},
+  {"MOVE_WITH_HEADING", 53.36, 27.24, -1.77, 50},
+  {"MOVE_WITH_HEADING", 54.37, 27.21, -1.77, 50},
+  {"MOVE_WITH_HEADING", 55.38, 27.17, -1.77, 50},
+  {"MOVE_WITH_HEADING", 56.39, 27.14, -1.77, 50},
+  {"MOVE_WITH_HEADING", 57.4, 27.11, -1.77, 50},
+  {"MOVE_WITH_HEADING", 58.41, 27.08, -1.77, 50},
+  {"MOVE_WITH_HEADING", 59.42, 27.05, -1.77, 50},
+  {"MOVE_WITH_HEADING", 60.43, 27.02, -1.77, 50},
+  {"MOVE_WITH_HEADING", 61.44, 26.99, -1.77, 50},
+  {"MOVE_WITH_HEADING", 62.46, 26.96, -1.77, 50},
+  {"MOVE_WITH_HEADING", 63.47, 26.92, -1.77, 50},
+  {"MOVE_WITH_HEADING", 64.48, 26.89, -1.77, 50},
+  {"MOVE_WITH_HEADING", 65.49, 26.86, -1.77, 50},
+  {"MOVE_WITH_HEADING", 66.5, 26.83, -1.77, 50},
+  {"MOVE_WITH_HEADING", 67.51, 26.8, -1.77, 50},
+  {"MOVE_WITH_HEADING", 68.52, 26.77, -1.77, 50},
+  {"MOVE_WITH_HEADING", 69.53, 26.74, -1.77, 50},
+  {"MOVE_WITH_HEADING", 70.54, 26.7, -1.77, 50},
+  {"MOVE_WITH_HEADING", 71.55, 26.67, -1.77, 50},
+  {"MOVE_WITH_HEADING", 72.57, 26.64, -1.77, 50},
+  {"MOVE_WITH_HEADING", 73.58, 26.61, -1.77, 50},
+  {"MOVE_WITH_HEADING", 74.59, 26.58, -1.77, 50},
+  {"MOVE_WITH_HEADING", 75.6, 26.55, -1.77, 50},
+  {"MOVE_WITH_HEADING", 76.61, 26.52, -1.77, 50},
+  {"MOVE_WITH_HEADING", 77.62, 26.49, -1.77, 50},
+  {"MOVE_WITH_HEADING", 78.63, 26.45, -1.77, 50},
+  {"MOVE_WITH_HEADING", 79.64, 26.42, -1.77, 50},
+  {"MOVE_WITH_HEADING", 80.65, 26.39, -1.77, 50},
+  {"MOVE_WITH_HEADING", 81.67, 26.36, -1.77, 50},
+  {"MOVE_WITH_HEADING", 82.68, 26.33, -1.77, 50},
+  {"NONE", 82.68, 26.33, -1.77, 0}
 };
-
-// Function to print parsed commands
-void printCommands(const std::vector<CommandData>& commands) {
-  for (const auto& cmd : commands) {
-      std::cout << "Command: " << cmd.command
-                << ", X: " << cmd.x
-                << ", Y: " << cmd.y
-                << ", Heading: " << cmd.heading
-                << ", Speed: " << cmd.speed << std::endl;
-  }
-}
 
 void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   logger().log(
       "Starting move to pose - Target X: " + std::to_string(target_pose.x) +
-
       " Y: " + std::to_string(target_pose.y) +
       " Theta: " + std::to_string(target_pose.theta));
   logger().updateTelemetry("target", target_pose);
@@ -494,93 +468,68 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   Pose current_pose = chassis.getPose();
   double distance = current_pose.distance(target_pose);
   double angle = -shulib::radToDeg(current_pose.angle(target_pose)) - 270;
-  while (angle > 360)
-    angle -= 360;
-  while (angle < 0)
-    angle += 360;
-
+  
+  angle = std::fmod(angle + 360, 360);  // Normalize to 0-360 range
   logger().log("Angle to target: " + std::to_string(angle));
+
   double angle_error = angle - current_pose.theta;
   logger().log("Angle error: " + std::to_string(angle_error));
 
   if (fabs(angle_error) > 1) {
-    logger().log("Rotating to angle: " + std::to_string(angle));
-    rotate_to(angle);
+      logger().log("Rotating to angle: " + std::to_string(angle));
+      rotate_to(angle);
   }
-  pros::delay(1000);
-  logger().log("Moving forward");
 
   const double MIN_OUTPUT = 20.0;
   const double MAX_OUTPUT = 70.0;
   const double MAX_ROTATION = 30.0;
-  const double MIN_ROTATION = 20.0;
   const double ACCEL_RATE = 6.0;
   const double DECEL_ZONE = 6.0;
 
   double currentMaxSpeed = MIN_OUTPUT;
-
   PID linearPID(12, 0.01, 0);
   PID headingPID(8, 0.01, 0.1);
 
   int log_counter = 0;
   while (distance > 1) {
-    current_pose = chassis.getPose();
+      current_pose = chassis.getPose();
+      distance = current_pose.distance(target_pose);
 
-    distance = current_pose.distance(target_pose);
+      angle = -shulib::radToDeg(current_pose.angle(target_pose)) - 270;
+      angle = std::fmod(angle + 360, 360);
+      angle_error = angle - current_pose.theta;
 
-    angle = -shulib::radToDeg(current_pose.angle(target_pose)) - 270;
-    while (angle > 360)
-      angle -= 360;
-    while (angle < 0)
-      angle += 360;
-    angle_error = angle - current_pose.theta;
+      double forwardOutput = linearPID.update(distance);
 
-    double forwardOutput = linearPID.update(distance);
+      // Dynamic acceleration and deceleration
+      if (currentMaxSpeed < MAX_OUTPUT) {
+          currentMaxSpeed = std::min(currentMaxSpeed + ACCEL_RATE, MAX_OUTPUT);
+      }
 
-    if (currentMaxSpeed < MAX_OUTPUT) {
-      currentMaxSpeed += ACCEL_RATE;
-      if (currentMaxSpeed > MAX_OUTPUT)
-        currentMaxSpeed = MAX_OUTPUT;
-    }
+      double decelFactor = (distance < DECEL_ZONE) ? (distance / DECEL_ZONE) : 1.0;
+      forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed) * decelFactor;
 
-    double decelFactor = 1.0;
-    if (distance < DECEL_ZONE) {
-      decelFactor = distance / DECEL_ZONE;
-      decelFactor =
-          decelFactor * (currentMaxSpeed - MIN_OUTPUT) / currentMaxSpeed +
-          MIN_OUTPUT / currentMaxSpeed;
-    }
-    forwardOutput =
-        std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
-    forwardOutput *= decelFactor;
+      double rotationOutput = headingPID.update(angle_error);
+      rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-    double rotationOutput = headingPID.update(angle_error);
-    rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
+      chassis.drive(0, forwardOutput, 0);
 
-    chassis.drive(0, forwardOutput, 0);
+      if (intaking) intake.move(127);
+      if (conv) conveyor.move(127);
 
-    if (intaking) {
-      intake.move(127);
-    }
+      log_counter++;
+      if (log_counter % 25 == 0) {
+          logger().log("error_rotation: " + std::to_string(angle_error) +
+                       " error_distance: " + std::to_string(distance));
+          logger().log("rotation_output: " + std::to_string(rotationOutput) +
+                       " forward_output: " + std::to_string(forwardOutput));
+      }
 
-    if (conv) {
-      conveyor.move(127);
-    }
-
-    log_counter++;
-    if (log_counter % 25 == 0) {
-      logger().log("error_rotation: " + std::to_string(angle_error) +
-                   " error_distance: " + std::to_string(distance));
-      logger().log("rotation_output: " + std::to_string(rotationOutput) +
-                   " forward_output: " + std::to_string(forwardOutput));
-    }
-    pros::delay(5);
+      pros::delay(5);
   }
+
   chassis.drive(0, 0, 0);
-
-  if (intaking) {
-    limitedIntake(500);
-  }
+  if (intaking) limitedIntake(500);
 
   logger().log("Move to pose complete");
 }
@@ -686,29 +635,21 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 }
 
 void autonomous() {
+  Pose last_known_pose(0, 0, 0); // Store last known position
 
-   // Example CSV-style input data
-   std::string inputData =
-   "command,x,y,heading,speed\n"
-   "NONE,16.98,19.19,13.6,0\n"
-   "MOVE_WITH_HEADING,17.96,19.43,13.6,50\n"
-   "MOVE_WITH_HEADING,18.95,19.67,13.6,50\n"
-   "MOVE_WITH_HEADING,19.93,19.91,13.6,50\n"
-   "MOVE_WITH_HEADING,20.92,20.15,13.6,50\n";
+  for (const auto& cmd : autonomousCommands) {
+      Pose target_pose(cmd.x, cmd.y, cmd.heading);
 
-  // Create parser object
-  CommandParser parser;
-
-  // Parse from string
-  std::vector<CommandData> commands = parser.parseFromString(inputData);
-
-  // Print parsed results
-  printCommands(commands);
-
-  chassis.setPose(Pose(0, 0, 0));
-
-   rotate_to(90);
-   pros::delay(100);
+      if (cmd.command == "NONE") {
+          last_known_pose = target_pose; // Update last known pose but do NOT move
+      } 
+      else if (cmd.command == "MOVE_WITH_HEADING") {
+          move_to_pose(target_pose, false, false, false);
+      } 
+      else {
+          logger().log("Unknown command: " + cmd.command);
+      }
+  } 
 }
 
 void pooksterControls() {
