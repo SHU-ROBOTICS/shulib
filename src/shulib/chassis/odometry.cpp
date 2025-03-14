@@ -142,17 +142,17 @@ void shulib::init_odometry() {
           shulib::logger().updateTelemetry("odometry", odomPose);
           lastLoggedPose = odomPose;
         }
-        shulib::logger().updateTelemetry("temps", drive.getTemps());
-        std::string batteryTelemetry = "{\"voltage\":" + std::to_string(pros::battery::get_voltage()) +
-        ", \"current\":" + std::to_string(pros::battery::get_current()) +
-        ", \"temperature\":" + std::to_string(pros::battery::get_temperature()) +
-        ", \"capacity\":" + std::to_string(pros::battery::get_capacity()) +
-        "}";
-        shulib::logger().updateTelemetry("battery", batteryTelemetry);
-        std::string controllerTelemetry = "{\"capacity\":" + std::to_string(controller.get_battery_capacity()) +
-        ", \"level\":" + std::to_string(controller.get_battery_level()) +
-        "}";
-        shulib::logger().updateTelemetry("controller", controllerTelemetry);
+        // shulib::logger().updateTelemetry("temps", drive.getTemps());
+        // std::string batteryTelemetry = "{\"voltage\":" + std::to_string(pros::battery::get_voltage()) +
+        // ", \"current\":" + std::to_string(pros::battery::get_current()) +
+        // ", \"temperature\":" + std::to_string(pros::battery::get_temperature()) +
+        // ", \"capacity\":" + std::to_string(pros::battery::get_capacity()) +
+        // "}";
+        // shulib::logger().updateTelemetry("battery", batteryTelemetry);
+        // std::string controllerTelemetry = "{\"capacity\":" + std::to_string(controller.get_battery_capacity()) +
+        // ", \"level\":" + std::to_string(controller.get_battery_level()) +
+        // "}";
+        // shulib::logger().updateTelemetry("controller", controllerTelemetry);
         pros::delay(10);
       }
     }};

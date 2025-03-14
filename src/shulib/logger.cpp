@@ -56,7 +56,7 @@ void Logger::sendTelemetry() {
 
       ss << "]}";
       printf("%s\n", ss.str().c_str());
-      pros::delay(5);
+      pros::delay(50);
     }
   }
 
