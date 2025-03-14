@@ -12,6 +12,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <fstream>  // Include file handling for optional logging
 // #include "shulib/GUI/gui.c"
 
 // ✅ Constants
@@ -144,65 +145,104 @@ void compute_normalized_theta() {
   }
 }
 
-// ==========================
-// 🔄 ROTATION FUNCTION (DEBUG PID) 🔄
-// ==========================
 void rotate_to(double target_angle) {
   std::cout << "[START] Rotating to " << target_angle << " degrees" << std::endl;
 
-  double leftStart = left.get_position();  // Initial left motor position
-  double rightStart = right.get_position();  // Initial right motor position
+  double leftStart = left.get_position();
+  double rightStart = right.get_position();
 
-  double error = target_angle;  // Initial error (difference between current and target angle)
-  int stuckCounter = 0;  // Tracks if rotation is stuck
-  double lastError = error;  // Stores previous error for comparison
+  double error = target_angle;
+  int stuckCounter = 0;
+  int stableCounter = 0;
+  double lastError = error;
 
-  while (fabs(error) > 1.0) {  // Continue rotating until error is small enough
-      double left_ticks = left.get_position() - leftStart;  // Change in left motor position
-      double right_ticks = right.get_position() - rightStart;  // Change in right motor position
+  // PID tuning for smoother movement
+  double P_GAIN = 0.5;
+  double D_GAIN = 0.2;
+  double MIN_POWER = 20.0;
+  double ERROR_TOLERANCE = 5.0;
 
-      // Compute Theta (current angle based on wheel movements)
+  int loopCounter = 0;
+
+  while (stableCounter < 10) {  
+      double left_ticks = left.get_position() - leftStart;
+      double right_ticks = right.get_position() - rightStart;
+
+      // ✅ Add explicit logs to verify encoder movement
+      std::cout << "[DEBUG] Left Encoder: " << left.get_position() 
+                << " | Right Encoder: " << right.get_position()
+                << " | Left Ticks: " << left_ticks
+                << " | Right Ticks: " << right_ticks << std::endl;
+
+      // Compute Theta
       double theta = ((right_ticks - left_ticks) / TICKS_PER_DEGREE);
+      double raw_theta = theta;  // ✅ Store raw Theta before wrapping
 
-      // Ensure Theta stays within [0, 360] degrees
+      // ✅ Debug before wrapping
+      std::cout << "[DEBUG] BEFORE WRAP: Theta: " << raw_theta 
+                << " | Target: " << target_angle << std::endl;
+
       theta = fmod(theta, 360);
       if (theta < 0) theta += 360;
 
-      // Compute error (difference between target and current angle)
-      error = target_angle - theta;
-      if (fabs(error) > 180) error -= 360;  // Adjust for shortest rotation direction
+      // ✅ Debug after wrapping
+      std::cout << "[DEBUG] AFTER WRAP: Theta: " << theta 
+                << " | Wrapped Difference: " << (theta - raw_theta) << std::endl;
 
-      // Check if stuck (if error change is too small over multiple iterations)
-      if (fabs(error - lastError) < 0.5) {  // Change in error is too small
+      // Compute shortest rotation error
+      double old_error = error;
+      error = target_angle - theta;
+
+      if (error > 180) error -= 360;
+      if (error < -180) error += 360;
+
+      // ✅ Log Error Values
+      std::cout << "[DEBUG] Error: " << error 
+                << " | Prev Error: " << old_error 
+                << " | Theta: " << theta << std::endl;
+
+      // ✅ Ensure encoder values are actually changing
+      if (fabs(left_ticks) < 1 && fabs(right_ticks) < 1) {
           stuckCounter++;
-          if (stuckCounter > 5) {  // If stuck for too long, exit loop
+          std::cout << "[ERROR] Encoders are not changing! Stuck Counter: " << stuckCounter << std::endl;
+          if (stuckCounter > 5) {
               std::cout << "[ERROR] Rotation stuck! Stopping!" << std::endl;
               break;
           }
       } else {
-          stuckCounter = 0;  // Reset stuck counter if there's progress
+          stuckCounter = 0;
       }
-      lastError = error;  // Update lastError for next iteration
 
-      // ======= PROPORTIONAL CONTROL (P-Controller) =======
-      // The P-controller adjusts power based on how far we are from the target angle.
-      // If error is large, it applies more power. If error is small, it applies less power.
-      // The proportional gain (P-gain) determines how strongly the system reacts to error.
-      double raw_power = error * 2.0;  // P-control: Multiply error by gain (2.0)
+      // ✅ Check if robot is stopping too soon
+      if (fabs(error) < ERROR_TOLERANCE) {
+          stableCounter++;
+          std::cout << "[INFO] Stable Cycle: " << stableCounter << "/10 (Error within tolerance)" << std::endl;
+      } else {
+          stableCounter = 0;  // Reset if error is still too large
+      }
 
-      // Debug Logs (Shows PID calculations)
+      // PID Control (Proportional + Derivative)
+      double derivative = (error - lastError) / 0.05;
+      double raw_power = (error * P_GAIN) + (derivative * D_GAIN);
+      double clamped_power = std::clamp(raw_power, -60.0, 60.0);
+
+      // Prevent too weak movements (fix jitter)
+      if (fabs(clamped_power) < MIN_POWER) 
+          clamped_power = MIN_POWER * (clamped_power > 0 ? 1 : -1);
+
+      // ✅ Add final movement debug log
       std::cout << "[DEBUG] Theta: " << theta 
                 << " | Error: " << error 
-                << " | Raw Output: " << raw_power 
-                << std::endl;
+                << " | PID Output: " << raw_power 
+                << " | Clamped Power: " << clamped_power << std::endl;
 
-      // Apply rotational movement (power determines turn speed)
-      chassis.drive(0, 0, raw_power);  // ✅ Uses chassis.drive() correctly
+      chassis.drive(0, 0, clamped_power);
 
-      pros::delay(50);  // Small delay to allow stable control
+      lastError = error;
+      loopCounter++;
+      pros::delay(50);
   }
 
-  // Stop movement once target angle is reached
   chassis.drive(0, 0, 0);
   std::cout << "[COMPLETE] Rotation Finished!" << std::endl;
 }
@@ -532,8 +572,6 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
   chassis.setPose(-66, 0, 0);
-
-  compute_normalized_theta();
 
   rotate_to(180);
 }
