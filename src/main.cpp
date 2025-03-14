@@ -399,65 +399,20 @@ struct CommandData {
 
 // **🚀 Hardcoded List of Commands (Instead of File)**
 const std::vector<CommandData> autonomousCommands = {
-  {"NONE", 27.07, 28.05, -1.77, 0},
-  {"MOVE_WITH_HEADING", 28.08, 28.02, -1.77, 50},
-  {"MOVE_WITH_HEADING", 29.09, 27.99, -1.77, 50},
-  {"MOVE_WITH_HEADING", 30.1, 27.96, -1.77, 50},
-  {"MOVE_WITH_HEADING", 31.11, 27.93, -1.77, 50},
-  {"MOVE_WITH_HEADING", 32.12, 27.89, -1.77, 50},
-  {"MOVE_WITH_HEADING", 33.13, 27.86, -1.77, 50},
-  {"MOVE_WITH_HEADING", 34.14, 27.83, -1.77, 50},
-  {"MOVE_WITH_HEADING", 35.16, 27.8, -1.77, 50},
-  {"MOVE_WITH_HEADING", 36.17, 27.77, -1.77, 50},
-  {"MOVE_WITH_HEADING", 37.18, 27.74, -1.77, 50},
-  {"MOVE_WITH_HEADING", 38.19, 27.71, -1.77, 50},
-  {"MOVE_WITH_HEADING", 39.2, 27.68, -1.77, 50},
-  {"MOVE_WITH_HEADING", 40.21, 27.64, -1.77, 50},
-  {"MOVE_WITH_HEADING", 41.22, 27.61, -1.77, 50},
-  {"MOVE_WITH_HEADING", 42.23, 27.58, -1.77, 50},
-  {"MOVE_WITH_HEADING", 43.24, 27.55, -1.77, 50},
-  {"MOVE_WITH_HEADING", 44.26, 27.52, -1.77, 50},
-  {"MOVE_WITH_HEADING", 45.27, 27.49, -1.77, 50},
-  {"MOVE_WITH_HEADING", 46.28, 27.46, -1.77, 50},
-  {"MOVE_WITH_HEADING", 47.29, 27.42, -1.77, 50},
-  {"MOVE_WITH_HEADING", 48.3, 27.39, -1.77, 50},
-  {"MOVE_WITH_HEADING", 49.31, 27.36, -1.77, 50},
-  {"MOVE_WITH_HEADING", 50.32, 27.33, -1.77, 50},
-  {"MOVE_WITH_HEADING", 51.33, 27.3, -1.77, 50},
-  {"MOVE_WITH_HEADING", 52.34, 27.27, -1.77, 50},
-  {"MOVE_WITH_HEADING", 53.36, 27.24, -1.77, 50},
-  {"MOVE_WITH_HEADING", 54.37, 27.21, -1.77, 50},
-  {"MOVE_WITH_HEADING", 55.38, 27.17, -1.77, 50},
-  {"MOVE_WITH_HEADING", 56.39, 27.14, -1.77, 50},
-  {"MOVE_WITH_HEADING", 57.4, 27.11, -1.77, 50},
-  {"MOVE_WITH_HEADING", 58.41, 27.08, -1.77, 50},
-  {"MOVE_WITH_HEADING", 59.42, 27.05, -1.77, 50},
-  {"MOVE_WITH_HEADING", 60.43, 27.02, -1.77, 50},
-  {"MOVE_WITH_HEADING", 61.44, 26.99, -1.77, 50},
-  {"MOVE_WITH_HEADING", 62.46, 26.96, -1.77, 50},
-  {"MOVE_WITH_HEADING", 63.47, 26.92, -1.77, 50},
-  {"MOVE_WITH_HEADING", 64.48, 26.89, -1.77, 50},
-  {"MOVE_WITH_HEADING", 65.49, 26.86, -1.77, 50},
-  {"MOVE_WITH_HEADING", 66.5, 26.83, -1.77, 50},
-  {"MOVE_WITH_HEADING", 67.51, 26.8, -1.77, 50},
-  {"MOVE_WITH_HEADING", 68.52, 26.77, -1.77, 50},
-  {"MOVE_WITH_HEADING", 69.53, 26.74, -1.77, 50},
-  {"MOVE_WITH_HEADING", 70.54, 26.7, -1.77, 50},
-  {"MOVE_WITH_HEADING", 71.55, 26.67, -1.77, 50},
-  {"MOVE_WITH_HEADING", 72.57, 26.64, -1.77, 50},
-  {"MOVE_WITH_HEADING", 73.58, 26.61, -1.77, 50},
-  {"MOVE_WITH_HEADING", 74.59, 26.58, -1.77, 50},
-  {"MOVE_WITH_HEADING", 75.6, 26.55, -1.77, 50},
-  {"MOVE_WITH_HEADING", 76.61, 26.52, -1.77, 50},
-  {"MOVE_WITH_HEADING", 77.62, 26.49, -1.77, 50},
-  {"MOVE_WITH_HEADING", 78.63, 26.45, -1.77, 50},
-  {"MOVE_WITH_HEADING", 79.64, 26.42, -1.77, 50},
-  {"MOVE_WITH_HEADING", 80.65, 26.39, -1.77, 50},
-  {"MOVE_WITH_HEADING", 81.67, 26.36, -1.77, 50},
-  {"MOVE_WITH_HEADING", 82.68, 26.33, -1.77, 50},
-  {"NONE", 82.68, 26.33, -1.77, 0}
+  {"NONE", 25.1, 21.16, 90.59, 0},
+  {"MOVE_WITH_HEADING", 25.09, 22.17, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.08, 23.18, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.07, 24.18, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.06, 25.19, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.05, 26.2, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.04, 27.21, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.03, 28.21, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.02, 29.22, 90.59, 50},
+  {"MOVE_WITH_HEADING", 25.01, 30.23, 90.59, 50},
+  {"MOVE_WITH_HEADING", 24.99, 31.24, 90.59, 50}
 };
 
+/*
 void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   logger().log(
       "Starting move to pose - Target X: " + std::to_string(target_pose.x) +
@@ -487,8 +442,8 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   const double DECEL_ZONE = 6.0;
 
   double currentMaxSpeed = MIN_OUTPUT;
-  PID linearPID(12, 0.01, 0);
-  PID headingPID(8, 0.01, 0.1);
+  PID linearPID(12, 0.03, 0);
+  PID headingPID(10, 0.005, 0.25);
 
   int log_counter = 0;
   while (distance > 1) {
@@ -533,6 +488,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
 
   logger().log("Move to pose complete");
 }
+*/
 
 void move_vertical(double distance_inches, bool intaking, bool conv) {
   logger().log("Starting vertical move - Distance: " +
@@ -635,13 +591,25 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 }
 
 void autonomous() {
-  Pose last_known_pose(0, 0, 0); // Store last known position
 
+  chassis.setPose({0, 0, 0});
+
+  Pose currentPose = chassis.getPose();
+
+  logger().log("Starting autonomous" + std::to_string(currentPose.x) + " " + std::to_string(currentPose.y) + " " + std::to_string(currentPose.theta));
+
+  move_to_pose((currentPose), false, false, false);
+
+  Pose updatedpose = chassis.getPose();
+
+  logger().log("Autonomous complete" + std::to_string(updatedpose.x) + " " + std::to_string(updatedpose.y) + " " + std::to_string(updatedpose.theta));
+
+  /*
   for (const auto& cmd : autonomousCommands) {
       Pose target_pose(cmd.x, cmd.y, cmd.heading);
 
       if (cmd.command == "NONE") {
-          last_known_pose = target_pose; // Update last known pose but do NOT move
+          move_to_pose(target_pose, false, false, false);
       } 
       else if (cmd.command == "MOVE_WITH_HEADING") {
           move_to_pose(target_pose, false, false, false);
@@ -650,6 +618,7 @@ void autonomous() {
           logger().log("Unknown command: " + cmd.command);
       }
   } 
+  */
 }
 
 void pooksterControls() {
@@ -700,41 +669,6 @@ void opcontrol() {
     logger().updateTelemetry("conveyor_voltage", conveyor.get_voltage());
     logger().updateTelemetry("wallStakeVoltage", wallStakeLift.get_voltage());
     pooksterControls();
-
-    // static uint32_t stuckStartTime = 0;
-    // int voltage = wallStakeLift.get_voltage();
-    // int absVoltage = abs(voltage);
-
-    // if (absVoltage > 3000 && absVoltage < 7000) {
-    //     if (stuckStartTime == 0) {
-    //         stuckStartTime = pros::millis();
-    //     } else if (pros::millis() - stuckStartTime >= 200) {
-    //         double position = wallStakeLift.get_position();
-    //         wallStakeLift.set_zero_position(voltage > 0 ? position + 180 :
-    //         position - 180); pros::delay(250); stuckStartTime = 0;
-    //     }
-
-    // } else {
-    //     stuckStartTime = 0;
-    // }
-
-    // if conveyor voltage gets stuck between 3000 and 7000 (or -7000 and -3000)
-    // for 500ms, reverse direction for 500ms static uint32_t stuckStartTime =
-    // 0; int voltage = conveyor.get_voltage(); int absVoltage = abs(voltage);
-
-    // if (absVoltage > 3000 && absVoltage < 7000) {
-    //     if (stuckStartTime == 0) {
-    //         stuckStartTime = pros::millis();
-    //     } else if (pros::millis() - stuckStartTime >= 200) {
-    //         // Reverse the direction based on current voltage sign
-    //         conveyor.move(voltage > 0 ? -127 : 127);
-    //         pros::delay(250);
-    //         conveyor.move(0);
-    //         stuckStartTime = 0;
-    //     }
-    // } else {
-    //     stuckStartTime = 0;
-    // }
 
     pros::delay(20);
   }
