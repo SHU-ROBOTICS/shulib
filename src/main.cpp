@@ -9,7 +9,12 @@
 #include "shulib/logger.hpp"
 #include "shulib/pid.hpp"
 #include "shulib/util.hpp"
+#include <iostream>
+#include <fstream>  // <-- Add this line
+#include <sstream>
+#include <vector>
 #include <string>
+
 
 // #include "shulib/GUI/gui.c"
 
@@ -383,6 +388,101 @@ void rotate_to(double target_angle) {
                " Theta: " + std::to_string(chassis.getPose().theta));
 }
 
+// Struct to hold parsed command data
+struct CommandData {
+  std::string command;
+  double x;
+  double y;
+  double heading;
+  double speed;
+};
+
+// CommandParser class to read and parse commands
+class CommandParser {
+public:
+  std::vector<CommandData> parseFromFile(const std::string& filename) {
+      std::ifstream file(filename);
+      if (!file.is_open()) {
+          std::cerr << "Error: Could not open file " << filename << std::endl;
+          return {};
+      }
+
+      std::vector<CommandData> commands;
+      std::string line;
+      bool firstLine = true;
+
+      while (std::getline(file, line)) {
+          if (firstLine) { // Skip header
+              firstLine = false;
+              continue;
+          }
+
+          CommandData cmd;
+          if (parseLine(line, cmd)) {
+              commands.push_back(cmd);
+          }
+      }
+
+      return commands;
+  }
+
+  std::vector<CommandData> parseFromString(const std::string& data) {
+      std::istringstream stream(data);
+      std::vector<CommandData> commands;
+      std::string line;
+      bool firstLine = true;
+
+      while (std::getline(stream, line)) {
+          if (firstLine) { // Skip header
+              firstLine = false;
+              continue;
+          }
+
+          CommandData cmd;
+          if (parseLine(line, cmd)) {
+              commands.push_back(cmd);
+          }
+      }
+
+      return commands;
+  }
+
+private:
+  bool parseLine(const std::string& line, CommandData& cmd) {
+      std::stringstream ss(line);
+      std::string token;
+
+      // Extract command
+      if (!std::getline(ss, cmd.command, ',')) return false;
+
+      // Extract x, y, heading, and speed
+      if (!std::getline(ss, token, ',')) return false;
+      cmd.x = std::stod(token);
+
+      if (!std::getline(ss, token, ',')) return false;
+      cmd.y = std::stod(token);
+
+      if (!std::getline(ss, token, ',')) return false;
+      cmd.heading = std::stod(token);
+
+      if (!std::getline(ss, token, ',')) return false;
+      cmd.speed = std::stod(token);
+
+      return true;
+  }
+};
+
+// Function to print parsed commands
+void printCommands(const std::vector<CommandData>& commands) {
+  for (const auto& cmd : commands) {
+      std::cout << "Command: " << cmd.command
+                << ", X: " << cmd.x
+                << ", Y: " << cmd.y
+                << ", Heading: " << cmd.heading
+                << ", Speed: " << cmd.speed << std::endl;
+  }
+}
+
 void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   logger().log(
       "Starting move to pose - Target X: " + std::to_string(target_pose.x) +
@@ -586,6 +686,25 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 }
 
 void autonomous() {
+
+   // Example CSV-style input data
+   std::string inputData =
+   "command,x,y,heading,speed\n"
+   "NONE,16.98,19.19,13.6,0\n"
+   "MOVE_WITH_HEADING,17.96,19.43,13.6,50\n"
+   "MOVE_WITH_HEADING,18.95,19.67,13.6,50\n"
+   "MOVE_WITH_HEADING,19.93,19.91,13.6,50\n"
+   "MOVE_WITH_HEADING,20.92,20.15,13.6,50\n";
+
+  // Create parser object
+  CommandParser parser;
+
+  // Parse from string
+  std::vector<CommandData> commands = parser.parseFromString(inputData);
+
+  // Print parsed results
+  printCommands(commands);
+
   chassis.setPose(Pose(0, 0, 0));
 
    rotate_to(90);
