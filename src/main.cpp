@@ -14,6 +14,13 @@
 #include <iostream>
 // #include "shulib/GUI/gui.c"
 
+// ✅ Constants
+constexpr double WHEEL_DIAMETER = 3.25; // Inches
+constexpr double ROBOT_WIDTH = 18.0;    // Distance between left & right encoders
+constexpr double TICKS_PER_ROTATION = 360.0;  // Encoder ticks per full wheel spin
+
+// **TICKS_PER_DEGREE Calculation**
+constexpr double TICKS_PER_DEGREE = (TICKS_PER_ROTATION * WHEEL_DIAMETER * M_PI) / (ROBOT_WIDTH * 360.0);
 
 Controller master(CONTROLLER_MASTER);
 
@@ -54,33 +61,11 @@ pros::Motor intake(-10);
 pros::MotorGroup conveyor({17, -12});
 pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
 
-// Global variable to store the robot's initial odometry position
-Pose globalInitialPose = {0, 0, 0};  // Default to (0,0,0)
-
 void initialize() {
   lcd::initialize();
   lcd::set_text(0, "Hello, PROS User!");
 
   logger().init();
-
-  std::cout << "[IMU] Resetting IMU...\n";
-  imu.reset();  
-  pros::delay(500);  
-
-  std::cout << "[IMU] Waiting for calibration...\n";
-  while (imu.is_calibrating()) {
-      std::cout << "[IMU] Calibrating...\n";
-      pros::delay(100);
-  }
-
-  std::cout << "[IMU] Calibration complete. IMU yaw: " << imu.get_yaw() << std::endl;
-
-  // 🔹 Capture the initial odometry and store it in `globalInitialPose`
-  globalInitialPose = chassis.getPose();
-
-  std::cout << "[DEBUG] Initial Odometry - X: " << globalInitialPose.x 
-            << " inches | Y: " << globalInitialPose.y 
-            << " inches | Theta: " << globalInitialPose.theta << " degrees\n";
 }
 
 
@@ -117,90 +102,6 @@ void test_min_output() {
   }
 }
 
-void rotation_calibration() {
-  std::cout << "[DEBUG] Starting rotation calibration...\n";
-  
-  chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
-
-  // 🔹 Capture Initial Odometry
-  Pose startPose = chassis.getPose();
-  double initialTheta = startPose.theta;
-
-  // 🔹 Convert Encoder Ticks to Inches
-  const double wheel_diameter = 2.75;
-  const double wheel_circumference = wheel_diameter * 3.1415926535;
-  const double encoder_ticks_per_revolution = 360.0;
-  const double inches_per_tick = wheel_circumference / encoder_ticks_per_revolution;
-  const double chassis_width = 15.5;  
-
-  double correctionFactor = shulib::getThetaCorrectionFactor();
-  const double TARGET_ANGLE = 180.0;
-  const double TOLERANCE = 1.0;
-  const int MAX_ITERATIONS = 3;
-  int iterations = 0;
-
-  while (iterations < MAX_ITERATIONS) {
-      // 🔹 Capture Initial Encoder Positions
-      double start_left = left.get_position();
-      double start_right = right.get_position();
-      double startTheta = chassis.getPose().theta;
-
-      std::cout << "[DEBUG] Starting rotation...\n";
-      std::cout << "[DEBUG] Start Theta: " << startTheta << " degrees\n";
-
-      chassis.drive(0, 0, 40);
-      pros::delay(500); // Give time for motors to start moving
-
-      // 🔹 Rotate Until Target Angle is Reached
-      while (true) {
-          double leftOdo = left.get_position() * inches_per_tick;
-          double rightOdo = right.get_position() * inches_per_tick;
-          double estimatedTheta = (rightOdo - leftOdo) / chassis_width;
-
-          double total_rotation = estimatedTheta - startTheta;
-
-          std::cout << "[DEBUG] Total Rotation: " << total_rotation 
-                    << " degrees | Target: " << TARGET_ANGLE - TOLERANCE << " degrees\n";
-
-          if (fabs(total_rotation) >= TARGET_ANGLE - TOLERANCE) break;
-
-          chassis.drive(0, 0, 40);
-          pros::delay(10);
-      }
-
-      chassis.drive(0, 0, 0);
-      std::cout << "[DEBUG] Rotation finished!\n";
-      pros::delay(2000); // Settling time
-
-      // 🔹 Calculate Rotation Differences
-      double final_left = left.get_position() * inches_per_tick;
-      double final_right = right.get_position() * inches_per_tick;
-      double finalTheta = chassis.getPose().theta;
-
-      double odometry_rotation = fabs(final_right - final_left) / chassis_width;
-      double chassis_rotation = fabs(finalTheta - startTheta);
-
-      std::cout << "[DEBUG] Final Odometry Rotation: " << odometry_rotation << " degrees\n";
-      std::cout << "[DEBUG] Final Chassis Rotation: " << chassis_rotation << " degrees\n";
-
-      // 🔹 Update Correction Factor
-      if (chassis_rotation > 1.0) {
-          double new_correction = odometry_rotation / chassis_rotation;
-          correctionFactor *= new_correction;
-          shulib::setThetaCorrectionFactor(correctionFactor);
-          std::cout << "[DEBUG] Updated Correction Factor: " << correctionFactor << "\n";
-      }
-
-      // 🔹 Reset for Next Iteration
-      chassis.setPose(0, 0, 0);
-      pros::delay(100);
-      iterations++;
-  }
-
-  std::cout << "[DEBUG] Final Correction Factor: " << correctionFactor << "\n";
-}
-
-
 void limitedIntake(int n){
   intake.move(127);
   pros::delay(n);
@@ -213,83 +114,88 @@ void limitedConveyor(int n){
   conveyor.move(0);
 }
 
-void rotate_to(double target_angle) {
-  std::cout << "\n\n[DEBUG] Starting rotation to " << target_angle << " degrees\n";
+// ==========================
+// 🔄 ODOMETRY NORMALIZATION 🔄
+// ==========================
+void compute_normalized_theta() {
+  std::cout << "==============================" << std::endl;
+  std::cout << "🚀 NORMALIZING ODOMETRY" << std::endl;
+  std::cout << "==============================" << std::endl;
 
-  // Use only odometry—IMU is ignored
-  Pose startPose = chassis.getPose();
-  double initialOdoTheta = startPose.theta;
-
-  std::cout << "[DEBUG] Initial Odometry - X: " << startPose.x 
-            << " inches | Y: " << startPose.y 
-            << " inches | Theta: " << initialOdoTheta << " degrees\n";
-
-  // === Convert Encoder Ticks to Inches ===
-  const double wheel_diameter = 2.75;  // Diameter of tracking wheels (in inches)
-  const double wheel_circumference = wheel_diameter * 3.1415926535;
-  const double encoder_ticks_per_revolution = 360.0;
-  const double inches_per_tick = wheel_circumference / encoder_ticks_per_revolution;
-  const double chassis_width = 18; // Distance between left and right wheels
-
-  // Capture Initial Encoder Positions
   double leftStart = left.get_position();
   double rightStart = right.get_position();
 
-  std::cout << "[DEBUG] Initial Encoders - Left: " << leftStart 
-            << " ticks | Right: " << rightStart << " ticks\n";
+  for (int i = 0; i < 20; i++) {  // Simulating multiple readings
+      pros::delay(200);
 
-  double error = target_angle - initialOdoTheta;
-  while (error > 180) error -= 360;
-  while (error < -180) error += 360;
+      double left_ticks = left.get_position() - leftStart;
+      double right_ticks = right.get_position() - rightStart;
 
-  int logCount = 0;
-  int iterationCount = 0;
+      // Compute Theta
+      double theta = ((right_ticks - left_ticks) / TICKS_PER_DEGREE);
+
+      // Wrap theta around [0, 360] degrees
+      theta = fmod(theta, 360);
+      if (theta < 0) theta += 360;
+
+      std::cout << "[NORMALIZED ODO] Left: " << left_ticks 
+                << " | Right: " << right_ticks 
+                << " | Theta: " << theta << " degrees" << std::endl;
+  }
+}
+
+// ==========================
+// 🔄 ROTATION FUNCTION 🔄
+// ==========================
+void rotate_to(double target_angle) {
+  std::cout << "[START] Rotating to " << target_angle << " degrees" << std::endl;
+
+  double leftStart = left.get_position();
+  double rightStart = right.get_position();
+
+  double error = target_angle;
+  int stuckCounter = 0;
   double lastError = error;
-  double rotationPower = 25.0;  // Fixed power, no dynamic changes
 
-  while (fabs(error) > 3.0) {  
-      iterationCount++;
-      if (iterationCount > 500) {
-          std::cout << "[ERROR] Rotation timeout! Exiting to prevent infinite spin.\n";
-          break;
+  while (fabs(error) > 1.0) {
+      double left_ticks = left.get_position() - leftStart;
+      double right_ticks = right.get_position() - rightStart;
+
+      // Compute Theta
+      double theta = ((right_ticks - left_ticks) / TICKS_PER_DEGREE);
+
+      // Clamp Theta within [0, 360]
+      theta = fmod(theta, 360);
+      if (theta < 0) theta += 360;
+
+      // Compute error
+      error = target_angle - theta;
+      if (fabs(error) > 180) error -= 360;
+
+      // Check if stuck
+      if (fabs(error - lastError) < 0.5) {
+          stuckCounter++;
+          if (stuckCounter > 5) {  // Stops if stuck for multiple iterations
+              std::cout << "[ERROR] Rotation stuck! Stopping!" << std::endl;
+              break;
+          }
+      } else {
+          stuckCounter = 0;
       }
+      lastError = error;
 
-      // Read Current Encoder Positions
-      double leftOdoTicks = left.get_position();
-      double rightOdoTicks = right.get_position();
+      // PID Control (simple P-only)
+      double power = error * 2.0;  // Tunable P-gain
+      power = std::clamp(power, -60.0, 60.0);
 
-      // Convert Ticks to Inches
-      double leftOdo = (leftOdoTicks - leftStart) * inches_per_tick;
-      double rightOdo = (rightOdoTicks - rightStart) * inches_per_tick;
+      chassis.drive(0, 0, power);  // ✅ Uses chassis.drive() correctly
 
-      // Compute Rotation in Degrees Based on Wheel Movement
-      double estimatedTheta = (rightOdo - leftOdo) / chassis_width;
-      error = target_angle - estimatedTheta;
-
-      while (error > 180) error -= 360;
-      while (error < -180) error += 360;
-
-      // Apply Fixed Rotation Power
-      double rotationOutput = (error > 0) ? rotationPower : -rotationPower;
-
-      // Debug Every Few Iterations
-      if (logCount % 5 == 0) {  
-          std::cout << "[ODO ROTATION] Left: " << leftOdo << " inches | Right: " << rightOdo
-                    << " inches | Estimated Theta: " << estimatedTheta
-                    << " degrees | Error: " << error
-                    << " degrees | Output: " << rotationOutput << " power\n";
-      }
-
-      // Drive Rotation
-      chassis.drive(0, 0, rotationOutput);
-      logCount++;
-      pros::delay(10);
+      std::cout << "[DEBUG] Theta: " << theta << " | Error: " << error << " | Output: " << power << std::endl;
+      pros::delay(50);
   }
 
-  // Stop Motors
   chassis.drive(0, 0, 0);
-  std::cout << "[DEBUG] Rotation complete. Final Theta: " 
-            << ((right.get_position() - left.get_position()) / chassis_width) << " degrees\n\n";
+  std::cout << "[COMPLETE] Rotation Finished!" << std::endl;
 }
 
 void move_to_pose(Pose target_pose, bool intaking, bool reverse, bool conv)
@@ -618,12 +524,9 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(-66, 0, 0);
 
-  //move_to_pose(Pose(-60, 0, 90), false, false, false );
+  compute_normalized_theta();
 
-  rotate_to(90);
-  move_vertical(24, false, false);
-  rotate_to(0);
-  pros::delay(500);
+  rotate_to(180);
 }
 
 int actionCount = 1;
