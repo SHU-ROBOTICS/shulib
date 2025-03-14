@@ -4,12 +4,13 @@
 // http://thepilons.ca/wp-content/uploads/2018/10/Tracking.pdf
 
 #include "shulib/chassis/odometry.hpp"
+#include "pros/misc.h"
 #include "pros/rtos.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/odomUnit.hpp"
 #include "shulib/util.hpp"
+#include "shulib/logger.hpp"
 #include <math.h>
-
 
 // tracking thread
 pros::Task *trackingTask = nullptr;
@@ -18,12 +19,17 @@ pros::Task *trackingTask = nullptr;
 pros::Task *telemetryTask = nullptr;
 
 // global variables
-shulib::OdomSensors odomSensors(nullptr, nullptr, nullptr,
-                                nullptr); // the sensors to be used for odometry
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
+
+shulib::OdomSensors odomSensors(nullptr, nullptr); // the sensors to be used for odometry
 shulib::Drivetrain drive(0, 0, 0);    // the drivetrain to be used for odometry
 shulib::Pose odomPose(0, 0, 0);       // the pose of the robot
 shulib::Pose odomSpeed(0, 0, 0);      // the speed of the robot
 shulib::Pose odomLocalSpeed(0, 0, 0); // the local speed of the robot
+
+double xCorrectionFactor = 1;
+double yCorrectionFactor = 1;
+double thetaCorrectionFactor = 1;
 
 float prevVertical = 0;
 float prevLeft = 0;
@@ -31,6 +37,7 @@ float prevRight = 0;
 float prevHorizontal = 0;
 float prevBack = 0;
 float prevImu = 0;
+
 
 int telemetryDelay = 200;
 
@@ -92,14 +99,12 @@ shulib::Pose shulib::estimatePose(float time, bool radians) {
 void shulib::update() {
   float sL = odomSensors.left->get_offset();
   float sR = odomSensors.right->get_offset();
-  float sS = odomSensors.back->get_offset();
 
   float dL = odomSensors.left->get_travel_delta();
   float dR = odomSensors.right->get_travel_delta();
-  float dS = odomSensors.back->get_travel_delta();
 
   Pose localPose(0,0,0);
-  localPose.theta = (dR - dL) / (sL - sR);
+  localPose.theta = (dR - dL) / (sL - sR) * thetaCorrectionFactor;
 
   float deltaX = 0;
   float deltaY = 0;
@@ -108,39 +113,68 @@ void shulib::update() {
   odomPose.theta += localPose.theta;
   if (abs(localPose.theta) < 0.0001) {  // Check for very small angles
     deltaY = (dL + dR) / 2;
-    deltaX = dS;
   } else {
     rC = (dR / localPose.theta) + sR;
     deltaY = 2 * sin(localPose.theta / 2) * rC;
 
-    rC = (dS / localPose.theta) + sS;
+    // rC = (dS / localPose.theta);
     deltaX = 2 * sin(localPose.theta / 2) * rC;
   }
 
   // set odomPose
-  odomPose.y += deltaY * cos(odomPose.theta);
-  odomPose.x += deltaY * sin(odomPose.theta);
+  odomPose.y += deltaY * cos(odomPose.theta) * yCorrectionFactor;
+  odomPose.x += deltaY * sin(odomPose.theta) * yCorrectionFactor;
 
-  odomPose.y += deltaX * sin(odomPose.theta);
-  odomPose.x += deltaX * -cos(odomPose.theta);
+  odomPose.y += deltaX * sin(odomPose.theta) * xCorrectionFactor;
+  odomPose.x += deltaX * -cos(odomPose.theta) * xCorrectionFactor;
 }
 
-void shulib::init() {
+void shulib::init_odometry() {
+  shulib::logger().log("Initializing odometry...");
   if (trackingTask == nullptr) {
     trackingTask = new pros::Task{[=] {
+      shulib::Pose lastLoggedPose(0, 0, 0);
       while (true) {
         update();
+        if (abs(odomPose.x - lastLoggedPose.x) > 0.1 ||
+            abs(odomPose.y - lastLoggedPose.y) > 0.1 ||
+            abs(odomPose.theta - lastLoggedPose.theta) > 0.1) {
+          shulib::logger().updateTelemetry("odometry", odomPose);
+          lastLoggedPose = odomPose;
+        }
+        // shulib::logger().updateTelemetry("temps", drive.getTemps());
+        // std::string batteryTelemetry = "{\"voltage\":" + std::to_string(pros::battery::get_voltage()) +
+        // ", \"current\":" + std::to_string(pros::battery::get_current()) +
+        // ", \"temperature\":" + std::to_string(pros::battery::get_temperature()) +
+        // ", \"capacity\":" + std::to_string(pros::battery::get_capacity()) +
+        // "}";
+        // shulib::logger().updateTelemetry("battery", batteryTelemetry);
+        // std::string controllerTelemetry = "{\"capacity\":" + std::to_string(controller.get_battery_capacity()) +
+        // ", \"level\":" + std::to_string(controller.get_battery_level()) +
+        // "}";
+        // shulib::logger().updateTelemetry("controller", controllerTelemetry);
         pros::delay(10);
       }
     }};
+    shulib::logger().success("Odometry initialized!");
   }
-  if (telemetryTask == nullptr && telemetryDelay > 0) {
-    telemetryTask = new pros::Task{[=] {
-      while (true) {
-        std::string odomData = odomPose;
-        printf("{'odometry':%s, 'grabbed': 'True'}\n", odomData.c_str());
-        pros::delay(telemetryDelay);
-      }
-    }};
-  }
+}
+
+void shulib::setXCorrectionFactor(double factor) {
+    xCorrectionFactor = factor;
+    logger().log("Set x correction factor to: " + std::to_string(factor));
+}
+
+void shulib::setYCorrectionFactor(double factor) {
+    yCorrectionFactor = factor;
+    logger().log("Set y correction factor to: " + std::to_string(factor));
+}
+
+void shulib::setThetaCorrectionFactor(double factor) {
+    thetaCorrectionFactor = factor;
+    logger().log("Set theta correction factor to: " + std::to_string(factor));
+}
+
+double shulib::getThetaCorrectionFactor() {
+    return thetaCorrectionFactor;
 }

@@ -9,8 +9,8 @@ class TankDrive : public Drivetrain {
 public:
   TankDrive(pros::MotorGroup &leftMotors,
             pros::MotorGroup &rightMotors, float trackWidth,
-            float wheelDiameter, float rpm, float horizontalDrift)
-      : Drivetrain(wheelDiameter, rpm, horizontalDrift),
+            float wheelDiameter, float rpm)
+      : Drivetrain(wheelDiameter, rpm, 0),
         trackWidth(trackWidth) {
     // Configure left motors
     MotorConfig leftConfig = {&leftMotors, 0, 1, 1};

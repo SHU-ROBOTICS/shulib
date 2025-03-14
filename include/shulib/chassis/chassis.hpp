@@ -11,12 +11,9 @@ namespace shulib {
 
 class OdomSensors {
 public:
-  OdomSensors(OdomUnit *left, OdomUnit *right, OdomUnit *back,
-              pros::Imu *imu);
+  OdomSensors(OdomUnit *left, OdomUnit *right);
   OdomUnit *left;
   OdomUnit *right;
-  OdomUnit *back;
-  pros::Imu *imu;
 };
 
 /**
@@ -48,6 +45,10 @@ public:
 
   void drive(int horizontal, int vertical, int turn, bool fieldCentric = false);
 
+  void driveCurve(int horizontal, int vertical, int turn, int coeff, bool fieldCentric = false);
+
+  void moveToLocalPose(Pose p, bool async = true);
+
   void cancelMotion();
 
   void cancelAllMotions();
@@ -56,13 +57,7 @@ public:
 
   void resetLocalPosition();
 
-  void followPath();
-
-  void addCommand(Command* command);  // Method to register commands
-
-  void executeCommands();             // Execute all registered commands
-
-  void followPath(CommandStruct* commands, size_t commandCount); 
+    void init();
 
 protected:
   bool motionRunning = false;

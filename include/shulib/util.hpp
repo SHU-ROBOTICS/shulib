@@ -171,3 +171,5 @@ float ema(float current, float previous, float smooth);
  */
 float getCurvature(Pose pose, Pose other);
 } // namespace shulib
+
+float getDistance(float x1, float x2, float y1, float y2);

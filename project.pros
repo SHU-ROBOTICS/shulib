@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "robor",
+    "project_name": "miniPook",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -255,7 +255,7 @@
       }
     },
     "upload_options": {
-      "description": "testing",
+      "description": "driving code",
       "slot": 1,
       "icon": "pizza"
     },

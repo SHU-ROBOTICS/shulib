@@ -56,5 +56,27 @@ void update();
  * @brief Initialize the odometry system
  *
  */
-void init();
+void init_odometry();
+// namespace shulib
+
+void setXCorrectionFactor(double factor);
+/**
+ * @brief Set the correction factor for y calculations
+ * 
+ * @param factor The correction factor to apply to y calculations
+ */
+void setYCorrectionFactor(double factor);
+/**
+ * @brief Set the correction factor for theta calculations
+ * 
+ * @param factor The correction factor to apply to theta calculations
+ */
+
+void setThetaCorrectionFactor(double factor);
+/**
+ * @brief Get the correction factor for theta calculations
+ * 
+ * @return The correction factor for theta calculations
+ */
+double getThetaCorrectionFactor();
 } // namespace shulib

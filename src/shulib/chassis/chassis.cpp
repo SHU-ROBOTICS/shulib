@@ -5,13 +5,11 @@
 #include "shulib/chassis/odometry.hpp"
 #include "shulib/chassis/odomUnit.hpp"
 #include "pros/rtos.hpp"
-#include "Chassis.hpp"
-#include "shulib/RobotCommands/MoveWithHeadingCommand.hpp"
+#include "shulib/logger.hpp"
 
 
-shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
-                                 OdomUnit *back, pros::Imu *imu)
-    : left(left), right(right), back(back), imu(imu) {}
+shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right)
+    : left(left), right(right) {}
 
 shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
     : drivetrain(drivetrain), sensors(sensors) {}
@@ -21,7 +19,7 @@ shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
  *
  * @param sensors reference to the sensors struct
  */
-void calibrateIMU(shulib::OdomSensors &sensors) {
+/* void calibrateIMU(shulib::OdomSensors &sensors) {
   std::cout << "Calibrating IMU" << std::endl;
   int attempt = 1;
   bool calibrated = false;
@@ -55,33 +53,39 @@ void calibrateIMU(shulib::OdomSensors &sensors) {
     // "
     //                           "wheels / motor encoders");
   }
-}
+} */
 
 void shulib::Chassis::calibrate(bool calibrateImu) {
   // calibrate the IMU if it exists and the user doesn't specify otherwise
-  if (sensors.imu != nullptr && calibrateImu)
-    calibrateIMU(sensors);
+ // if (sensors.imu != nullptr && calibrateImu)
+   // calibrateIMU(sensors);
   // initialize odom
   // if sensors are nullptrs, error
   if (sensors.left == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
+  logger().debug("Left tracking wheel initialized");
   if (sensors.right == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
-  if (sensors.back == nullptr)
+  logger().debug("Right tracking wheel initialized");
+  /* if (sensors.back == nullptr)
     throw std::runtime_error("Back tracking wheel not initialized");
+  logger().debug("Back tracking wheel initialized"); */
 
   sensors.left->reset();
   sensors.right->reset();
-  sensors.back->reset();
+  // sensors.back->reset();
 
-  std::cout << "Tracking wheels calibrated!" << std::endl;
-  
+  logger().debug("Tracking wheels calibrated!");
+
   setPose(Pose(0, 0, 0), false);
   setSensors(sensors, drivetrain);
-  init();
+  init_odometry();
   // rumble to controller to indicate success
   pros::c::controller_rumble(pros::E_CONTROLLER_MASTER, ".");
-  std::cout << "Chassis calibrated!" << std::endl;
+  logger().success("Chassis calibrated!");
+}
+
+void shulib::Chassis::init() {
 }
 
 void shulib::Chassis::setPose(float x, float y, float theta, bool radians) {
@@ -102,6 +106,10 @@ void shulib::Chassis::drive(int horizontal, int vertical, int turn, bool fieldCe
     drivetrain.drive(horizontal, vertical, turn, fieldCentric);
 }
 
+void shulib::Chassis::driveCurve(int horizontal, int vertical, int turn, int coeff, bool fieldCentric) {
+  drivetrain.driveCurve(horizontal, vertical, turn, coeff, fieldCentric);
+}
+
 void shulib::Chassis::resetLocalPosition() {
     float theta = this->getPose().theta;
     shulib::setPose(shulib::Pose(0, 0, theta), false);
@@ -116,28 +124,29 @@ inline float degToRad(float degrees) {
     return degrees * M_PI / 180.0;
 }
 
-void shulib::Chassis::followPath(CommandStruct* commands, size_t commandCount) {
-    for (size_t i = 0; i < commandCount; ++i) {
-        CommandStruct& cmd = commands[i];
+void shulib::Chassis::moveToLocalPose(Pose p, bool async){
+  float targetX = p.x;
+  float targetY = p.y;
+  float targetTheta = p.theta;
+  Pose pCurrent = getPose();
+  float horizontal = targetX - pCurrent.x;
+  float vertical = targetY - pCurrent.y;
+  float turn = targetTheta - pCurrent.theta;
 
-        switch (cmd.command) {
-            case CMD_MOVE_WITH_HEADING: {
-                MoveWithHeadingCommand moveCmd(cmd.x, cmd.y, cmd.heading, cmd.speed);
-                moveCmd.execute();
-                break;
-            }
-            case CMD_PICK_UP: {
-                // Implement PickUpCommand similarly
-                break;
-            }
-            case CMD_PLACE: {
-                // Implement PlaceCommand similarly
-                break;
-            }
-            // Add other cases here...
-            default:
-                std::cerr << "Unknown command type" << std::endl;
-                break;
-        }
-    }
+  float dist = pCurrent.distance(p);
+
+  int rotations = dist/(M_PI * (drivetrain.getWheelDiameter()));
+
+  // while(sensors.left->get_travel() || sensors.right->get_travel() < rotations){
+
+  // }
+  for (const auto &config : drivetrain.getMotorConfigs()) {
+    int motorOutput = horizontal * config.horizontalCoefficient +
+                      vertical * config.verticalCoefficient +
+                      turn * config.turnCoefficient;
+    config.motors->move_relative(motorOutput * (M_PI * (drivetrain.getWheelDiameter())), 50);
+  }
+ // while(async && !drivetrain.allMotorsStopped()) {
+  //  pros::delay(5);
+ // }
 }

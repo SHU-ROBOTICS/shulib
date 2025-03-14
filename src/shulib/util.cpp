@@ -53,3 +53,8 @@ float shulib::getCurvature(Pose pose, Pose other) {
     // return curvature
     return side * ((2 * x) / (d * d));
 }
+
+float getDistance(float x1, float x2, float y1, float y2){
+    float d = sqrtf(pow(x2 - x1, 2) + pow(y2 - y1, 2));
+    return d;
+}
