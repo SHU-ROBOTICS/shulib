@@ -145,55 +145,64 @@ void compute_normalized_theta() {
 }
 
 // ==========================
-// 🔄 ROTATION FUNCTION 🔄
+// 🔄 ROTATION FUNCTION (DEBUG PID) 🔄
 // ==========================
 void rotate_to(double target_angle) {
   std::cout << "[START] Rotating to " << target_angle << " degrees" << std::endl;
 
-  double leftStart = left.get_position();
-  double rightStart = right.get_position();
+  double leftStart = left.get_position();  // Initial left motor position
+  double rightStart = right.get_position();  // Initial right motor position
 
-  double error = target_angle;
-  int stuckCounter = 0;
-  double lastError = error;
+  double error = target_angle;  // Initial error (difference between current and target angle)
+  int stuckCounter = 0;  // Tracks if rotation is stuck
+  double lastError = error;  // Stores previous error for comparison
 
-  while (fabs(error) > 1.0) {
-      double left_ticks = left.get_position() - leftStart;
-      double right_ticks = right.get_position() - rightStart;
+  while (fabs(error) > 1.0) {  // Continue rotating until error is small enough
+      double left_ticks = left.get_position() - leftStart;  // Change in left motor position
+      double right_ticks = right.get_position() - rightStart;  // Change in right motor position
 
-      // Compute Theta
+      // Compute Theta (current angle based on wheel movements)
       double theta = ((right_ticks - left_ticks) / TICKS_PER_DEGREE);
 
-      // Clamp Theta within [0, 360]
+      // Ensure Theta stays within [0, 360] degrees
       theta = fmod(theta, 360);
       if (theta < 0) theta += 360;
 
-      // Compute error
+      // Compute error (difference between target and current angle)
       error = target_angle - theta;
-      if (fabs(error) > 180) error -= 360;
+      if (fabs(error) > 180) error -= 360;  // Adjust for shortest rotation direction
 
-      // Check if stuck
-      if (fabs(error - lastError) < 0.5) {
+      // Check if stuck (if error change is too small over multiple iterations)
+      if (fabs(error - lastError) < 0.5) {  // Change in error is too small
           stuckCounter++;
-          if (stuckCounter > 5) {  // Stops if stuck for multiple iterations
+          if (stuckCounter > 5) {  // If stuck for too long, exit loop
               std::cout << "[ERROR] Rotation stuck! Stopping!" << std::endl;
               break;
           }
       } else {
-          stuckCounter = 0;
+          stuckCounter = 0;  // Reset stuck counter if there's progress
       }
-      lastError = error;
+      lastError = error;  // Update lastError for next iteration
 
-      // PID Control (simple P-only)
-      double power = error * 2.0;  // Tunable P-gain
-      power = std::clamp(power, -60.0, 60.0);
+      // ======= PROPORTIONAL CONTROL (P-Controller) =======
+      // The P-controller adjusts power based on how far we are from the target angle.
+      // If error is large, it applies more power. If error is small, it applies less power.
+      // The proportional gain (P-gain) determines how strongly the system reacts to error.
+      double raw_power = error * 2.0;  // P-control: Multiply error by gain (2.0)
 
-      chassis.drive(0, 0, power);  // ✅ Uses chassis.drive() correctly
+      // Debug Logs (Shows PID calculations)
+      std::cout << "[DEBUG] Theta: " << theta 
+                << " | Error: " << error 
+                << " | Raw Output: " << raw_power 
+                << std::endl;
 
-      std::cout << "[DEBUG] Theta: " << theta << " | Error: " << error << " | Output: " << power << std::endl;
-      pros::delay(50);
+      // Apply rotational movement (power determines turn speed)
+      chassis.drive(0, 0, raw_power);  // ✅ Uses chassis.drive() correctly
+
+      pros::delay(50);  // Small delay to allow stable control
   }
 
+  // Stop movement once target angle is reached
   chassis.drive(0, 0, 0);
   std::cout << "[COMPLETE] Rotation Finished!" << std::endl;
 }
