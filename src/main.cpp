@@ -528,13 +528,13 @@ void move_vertical(double distance_inches, bool intaking, bool conv)
 
         chassis.drive(0, forwardOutput, 0);
 
-       // if(intaking){
-        //  intake.move(127);
-       // }
+        if(intaking){
+           intake.move(127);
+        }
 
-       // if(conv){
-        //  conveyor.move(127);
-       // }
+        if(conv){
+           conveyor.move(127);
+        }
 
         log_counter++;
         if (log_counter % 25 == 0) {
@@ -693,48 +693,11 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(-66, 0, 0);
 
-  //move_to_pose(Pose(-60, 0, 90), false, false, false );
-
-  move_vertical(3, false, false);
+  move_vertical(12, true, false);
   pros::delay(100);
-  move_vertical(-3, false, false);
-
-
- /* rotate_to(318.8);
-  pros::delay(100);
-  move_to_pose(Pose(-24, 48, 318.8), true, false, false);
-  grabber.toggle();
-  pros::delay(100);
-  rotate_to(90);
-  pros::delay(100);
-  move_vertical(24, true, false);
-  pros::delay(100);
-  curve_to_pose(Pose(0, 6, -45), false, true, false);
+  move_vertical(-12, true, false);
   pros::delay(100);
   limitedConveyor(750);
-  rotate_to(-135);
-  pros::delay(100);
-  move_to_pose(Pose(-60, 60, -135), false, true, true);
-  pros::delay(100);
-  grabber.toggle();
-  pros::delay(100);
-  curve_to_pose(Pose(-48, 60, 0), false, true, false);
-  pros::delay(100);
-  rotate_to(90);
-  pros::delay(100);
-
-  wallStakeLift.move_absolute(27, 50);
-  pros::delay(100);
-  move_to_pose(Pose(0, 60, 90), true, true, false);
-  pros::delay(100);
-  limitedConveyor(750);
-  rotate_to(180);
-  pros::delay(100);
-  move_vertical(7, false, false);
-  pros::delay(100);
-  wallStakeLift.move_absolute(140, 30);*/
-
-
 }
 
 int actionCount = 1;
