@@ -110,7 +110,7 @@ void Logger::init() {
     telemetryTask = new pros::Task([this] {
       while (true) {
         this->sendTelemetry();
-        pros::delay(this->telemetryInterval);
+        pros::delay(100);
       }
     });
   }
