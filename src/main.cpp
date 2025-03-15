@@ -605,15 +605,17 @@ void autonomous() {
   pros::delay(100);
   move_vertical(-12, true, false);
   pros::delay(100);
-  move_vertical(8, false, false);
   limitedConveyor(1000);
   pros::delay(100);
-  rotate_to(116.9);
+  move_vertical(8, false, false);
+  pros::delay(100);
+  rotate_to(112);
+  pros::delay(100);
+  chassis.setPose(0, 0, 0);
   pros::delay(100);
   move_vertical(-55, false, false);
   pros::delay(100);
   grabber.toggle();
-
 
 
  /* rotate_to(318.8);
