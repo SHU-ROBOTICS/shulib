@@ -54,7 +54,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 */
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics grabber('H', true);
+pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(-10);
 pros::MotorGroup conveyor({17, -12});
 pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
@@ -215,7 +215,7 @@ void limitedConveyor(int n) {
   if(fabs(wallStakeLift.get_position() - 27) < 2){
     conveyor.move(70);
   } else {
-    conveyor.move(127);
+    conveyor.move(-127);
   }
   pros::delay(n);
   conveyor.move(0);
@@ -556,13 +556,13 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     chassis.drive(0, forwardOutput, rotationOutput);
 
-       // if(intaking){
-        //  intake.move(127);
-       // }
+     if(intaking){
+        intake.move(-127);
+     }
 
-       // if(conv){
-        //  conveyor.move(127);
-       // }
+      if(conv){
+        conveyor.move(-127);
+      }
 
     log_counter++;
     if (log_counter % 25 == 0) {
@@ -597,12 +597,23 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
   chassis.setPose(-66, 0, 0);
+  grabber.extend();
 
   //move_to_pose(Pose(-60, 0, 90), false, false, false );
 
-  move_vertical(3, false, false);
+  move_vertical(12, true, false);
   pros::delay(100);
-  move_vertical(-3, false, false);
+  move_vertical(-12, true, false);
+  pros::delay(100);
+  move_vertical(8, false, false);
+  limitedConveyor(1000);
+  pros::delay(100);
+  rotate_to(116.9);
+  pros::delay(100);
+  move_vertical(-55, false, false);
+  pros::delay(100);
+  grabber.toggle();
+
 
 
  /* rotate_to(318.8);
@@ -642,54 +653,62 @@ void autonomous() {
 
 }
 
-int actionCount = 1;
-
 void pooksterControls() {
   if (master.get_digital(DIGITAL_L2)) {
-      conveyor.move(127);
-      intake.move(-127);
+    intake.move(127);
   } else {
     if (master.get_digital(DIGITAL_L1)) {
-      conveyor.move(-127);
-      intake.move(127);
+      intake.move(-127);
     } else {
-      conveyor.move(0);
       intake.move(0);
     }
   }
-
- /* if (master.get_digital_new_press(DIGITAL_A)) {
-    if (wallStakeMode == false) {
-        wallStakeLift.move_absolute(27, 50);
+ 
+  if (master.get_digital(DIGITAL_R2)) {
+    conveyor.move(127);
+  } else {
+    if (master.get_digital(DIGITAL_R1)) {
+      conveyor.move(-127);
     } else {
-      wallStakeLift.move_absolute(0, 20);
+      conveyor.move(0);
     }
   }
-
+ 
+ /* if (master.get_digital_new_press(DIGITAL_A)) {
+    if (wallStakeMode == false) {
+        wallStakeLift.move_absolute(30, 50);
+    } else {
+        wallStakeLift.move_absolute(0, 20);
+    }
+    wallStakeMode = !wallStakeMode;
+  }
+ 
   // r2 : wall stake lift
-  if (master.get_digital_new_press(DIGITAL_R2)) {
+  if (master.get_digital_new_press(DIGITAL_Y)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
-    if (fabs(wallStakeLift.get_position() - 27) < 2) {
+    if (fabs(wallStakeLift.get_position() - 30) < 2) {
       wallStakeLift.move_absolute(140, 30);
     } else {
       wallStakeLift.move_absolute(30, 30);
     }
-  }
-
+  } */
+ 
+ 
   if(master.get_digital_new_press(DIGITAL_Y)){
-    switch(actionCount % 4){
-      case 0:
-        wallStakeLift.move_absolute(0, 20);
-      case 1:
-        wallStakeLift.move_absolute(30, 50);
-      case 2:
-        wallStakeLift.move_absolute(140, 30);
-      case 3:
-        wallStakeLift.move_absolute(30, 50);
+    if (wallStakeMode == false) {
+        if(fabs(wallStakeLift.get_position() - 140) < 2){
+          wallStakeLift.move_absolute(0, 20);
+        } else {
+          wallStakeLift.move_absolute(30, 50);
+        }
+    } else {
+        if (fabs(wallStakeLift.get_position() - 30) < 2) {
+          wallStakeLift.move_absolute(140, 30);
+        }
     }
-    actionCount++;
+    wallStakeMode = !wallStakeMode;
   }
-
+ 
   if(master.get_digital_new_press(DIGITAL_RIGHT)){
     if(grabber.is_extended()){
       grabber.retract();
@@ -697,12 +716,12 @@ void pooksterControls() {
       grabber.extend();
     }
   }
-
+ 
 }
-
+ 
 void opcontrol() {
   wallStakeLift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-
+ 
   while (true) {
     chassis.drive(master.get_analog(ANALOG_LEFT_X),
                   master.get_analog(ANALOG_LEFT_Y),
@@ -710,7 +729,42 @@ void opcontrol() {
     logger().updateTelemetry("conveyor_voltage", conveyor.get_voltage());
     logger().updateTelemetry("wallStakeVoltage", wallStakeLift.get_voltage());
     pooksterControls();
-
+ 
+    // static uint32_t stuckStartTime = 0;
+    // int voltage = wallStakeLift.get_voltage();
+    // int absVoltage = abs(voltage);
+ 
+    // if (absVoltage > 3000 && absVoltage < 7000) {
+    //     if (stuckStartTime == 0) {
+    //         stuckStartTime = pros::millis();
+    //     } else if (pros::millis() - stuckStartTime >= 200) {
+    //         double position = wallStakeLift.get_position();
+    //         wallStakeLift.set_zero_position(voltage > 0 ? position + 180 :
+    //         position - 180); pros::delay(250); stuckStartTime = 0;
+    //     }
+ 
+    // } else {
+    //     stuckStartTime = 0;
+    // }
+ 
+    // if conveyor voltage gets stuck between 3000 and 7000 (or -7000 and -3000)
+    // for 500ms, reverse direction for 500ms static uint32_t stuckStartTime =
+    // 0; int voltage = conveyor.get_voltage(); int absVoltage = abs(voltage);
+ 
+    // if (absVoltage > 3000 && absVoltage < 7000) {
+    //     if (stuckStartTime == 0) {
+    //         stuckStartTime = pros::millis();
+    //     } else if (pros::millis() - stuckStartTime >= 200) {
+    //         // Reverse the direction based on current voltage sign
+    //         conveyor.move(voltage > 0 ? -127 : 127);
+    //         pros::delay(250);
+    //         conveyor.move(0);
+    //         stuckStartTime = 0;
+    //     }
+    // } else {
+    //     stuckStartTime = 0;
+    // }
+ 
     pros::delay(20);
   }
 }
