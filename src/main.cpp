@@ -693,14 +693,14 @@ void pooksterControls() {
  
   if(master.get_digital_new_press(DIGITAL_Y)){
     if (wallStakeMode == false) {
-        if(fabs(wallStakeLift.get_position() - 122.7) < 2){
+        if(fabs(wallStakeLift.get_position() - 132.7) < 2){
           wallStakeLift.move_absolute(0, 20);
         } else {
           wallStakeLift.move_absolute(30, 50);
         }
     } else {
         if (fabs(wallStakeLift.get_position() - 30) < 2) {
-          wallStakeLift.move_absolute(122.7, 30);
+          wallStakeLift.move_absolute(132.7, 30);
         }
     }
     wallStakeMode = !wallStakeMode;
