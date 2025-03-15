@@ -554,7 +554,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     double rotationOutput = headingPID.update(heading_error);
     rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-    chassis.drive(0, forwardOutput,rotationOutput);
+    chassis.drive(0, forwardOutput,0);
 
      if(intaking){
         intake.move(-127);
@@ -608,7 +608,11 @@ void autonomous() {
   move_vertical(-12, true, false);
   limitedConveyor(1000);
   pros::delay(100);
-  move_vertical(8, false, false);
+  move_vertical(12, false, false);
+  pros::delay(100);
+  rotate_to(-88);
+  pros::delay(100);
+  move_vertical(24, true, false);
 
 
  /* rotate_to(318.8);
