@@ -261,7 +261,7 @@ void rotate_to(double target_angle) {
   if (fabs(error) > 1.0) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
-    PID rotationPID(0.24, 0.0295, 0.04); // Conservative gains for rotation
+    PID rotationPID(0.2, 0.035, 0.045); // Conservative gains for rotation
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -693,14 +693,14 @@ void pooksterControls() {
  
   if(master.get_digital_new_press(DIGITAL_Y)){
     if (wallStakeMode == false) {
-        if(fabs(wallStakeLift.get_position() - 113) < 2){
+        if(fabs(wallStakeLift.get_position() - 112.7) < 2){
           wallStakeLift.move_absolute(0, 20);
         } else {
           wallStakeLift.move_absolute(30, 50);
         }
     } else {
         if (fabs(wallStakeLift.get_position() - 30) < 2) {
-          wallStakeLift.move_absolute(113, 30);
+          wallStakeLift.move_absolute(112.7, 30);
         }
     }
     wallStakeMode = !wallStakeMode;
