@@ -674,17 +674,15 @@ void pooksterControls() {
     }
   }
  
- /* if (master.get_digital_new_press(DIGITAL_A)) {
-    if (wallStakeMode == false) {
-        wallStakeLift.move_absolute(30, 50);
-    } else {
-        wallStakeLift.move_absolute(0, 20);
-    }
-    wallStakeMode = !wallStakeMode;
+  if (master.get_digital(DIGITAL_A)) {
+    wallStakeLift.move(-127);
+    pros::delay(1000);
+    wallStakeLift.move(0);
+    wallStakeLift.set_zero_position(wallStakeLift.get_position());
   }
  
   // r2 : wall stake lift
-  if (master.get_digital_new_press(DIGITAL_Y)) {
+  /* if (master.get_digital_new_press(DIGITAL_Y)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
     if (fabs(wallStakeLift.get_position() - 30) < 2) {
       wallStakeLift.move_absolute(140, 30);
