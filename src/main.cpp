@@ -673,13 +673,6 @@ void pooksterControls() {
     }
   }
  
-  if (master.get_digital(DIGITAL_A)) {
-    wallStakeLift.move(-127);
-    pros::delay(1000);
-    wallStakeLift.move(0);
-    wallStakeLift.set_zero_position(wallStakeLift.get_position());
-  }
- 
   // r2 : wall stake lift
   /* if (master.get_digital_new_press(DIGITAL_Y)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
@@ -690,20 +683,27 @@ void pooksterControls() {
     }
   } */
  
- 
-  if(master.get_digital_new_press(DIGITAL_Y)){
-    if (wallStakeMode == false) {
-        if(fabs(wallStakeLift.get_position() - 132.7) < 2){
-          wallStakeLift.move_absolute(0, 20);
-        } else {
-          wallStakeLift.move_absolute(30, 50);
-        }
-    } else {
-        if (fabs(wallStakeLift.get_position() - 30) < 2) {
-          wallStakeLift.move_absolute(132.7, 30);
-        }
+
+  if(master.get_digital(DIGITAL_A)){
+    wallStakeLift.move(-90);
+    pros::delay(500);
+    wallStakeLift.move(0);
+    wallStakeLift.set_zero_position()
+  } else {
+    if(master.get_digital_new_press(DIGITAL_Y)){
+      if (wallStakeMode == false) {
+          if(fabs(wallStakeLift.get_position() - 132.7) < 2){
+            wallStakeLift.move_absolute(0, 20);
+          } else {
+            wallStakeLift.move_absolute(30, 50);
+          }
+      } else {
+          if (fabs(wallStakeLift.get_position() - 30) < 2) {
+            wallStakeLift.move_absolute(132.7, 30);
+          }
+      }
+      wallStakeMode = !wallStakeMode;
     }
-    wallStakeMode = !wallStakeMode;
   }
  
   if(master.get_digital_new_press(DIGITAL_RIGHT)){
