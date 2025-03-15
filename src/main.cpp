@@ -503,7 +503,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   const double MAX_OUTPUT = 50.0;
   const double MAX_ROTATION = 10.0;
   const double ACCEL_RATE = 2.0;
-  const double DECEL_ZONE = 10.0;
+  const double DECEL_ZONE = 5.0;
 
   double currentMaxSpeed = MIN_OUTPUT;
   double last_y = start_pose.y;
@@ -554,7 +554,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     double rotationOutput = headingPID.update(heading_error);
     rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-    chassis.drive(0, forwardOutput, rotationOutput);
+    chassis.drive(0, forwardOutput,rotationOutput);
 
      if(intaking){
         intake.move(-127);
@@ -596,26 +596,19 @@ void autonomous() {
   // MIN_OUTPUT_THETA 25
   // rotation_calibration();
   // moveVertical();
-  chassis.setPose(-66, 0, 0);
+  chassis.setPose(0, 0, 0);
   grabber.extend();
 
   //move_to_pose(Pose(-60, 0, 90), false, false, false );
 
   move_vertical(12, true, false);
   pros::delay(100);
-  move_vertical(-12, true, false);
+  limitedIntake(1000);
   pros::delay(100);
+  move_vertical(-12, true, false);
   limitedConveyor(1000);
   pros::delay(100);
   move_vertical(8, false, false);
-  pros::delay(100);
-  rotate_to(112);
-  pros::delay(100);
-  chassis.setPose(0, 0, 0);
-  pros::delay(100);
-  move_vertical(-55, false, false);
-  pros::delay(100);
-  grabber.toggle();
 
 
  /* rotate_to(318.8);
