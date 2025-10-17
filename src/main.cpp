@@ -21,19 +21,19 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterLeft({-2,-4,5,11,-13,-14});
-MotorGroup pooksterRight({-6,-7,-8,-9,19,20});
+MotorGroup pooksterLeft({12,-13,14,-8,16,-17});
+MotorGroup pooksterRight({2,-3,4,-5,6,-7});
 
 // IMU imu(10);
 
-pros::Rotation left(1);
-pros::Rotation right(-18);
-// pros::Rotation back(7);
+pros::Rotation left(-1);
+pros::Rotation right(10);
+pros::Rotation back(11);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(&left, 2.75, -2.55);
-shulib::OdomUnit rightOdom(&right,2.75, 2.55);
-shulib::OdomUnit backOdom(nullptr, 2.75, 0);
+shulib::OdomUnit leftOdom(&left, 2.75, -7.5);
+shulib::OdomUnit rightOdom(&right,2.75, 7.5);
+shulib::OdomUnit backOdom(&back, 2.75, 0);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15.25, 3.25, 400); //trackwidth, wheeldiameter, rpm
 
@@ -72,9 +72,9 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1.03225806);
-  shulib::setYCorrectionFactor(0.95);
-  shulib::setThetaCorrectionFactor(0.842);
+  shulib::setXCorrectionFactor(1);
+  shulib::setYCorrectionFactor(1);
+  shulib::setThetaCorrectionFactor(1);
 
   logger().log("IMU calibrated!");
   logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -261,7 +261,7 @@ void rotate_to(double target_angle) {
   if (fabs(error) > 1.0) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
-    PID rotationPID(0.2, 0.035, 0.045); // Conservative gains for rotation
+    PID rotationPID(0.2, 0.25, 0); // Conservative gains for rotation
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -412,7 +412,7 @@ const std::vector<CommandData> autonomousCommands = {
   {"MOVE_WITH_HEADING", 24.99, 31.24, 90.59, 50}
 };
 
-/*
+
 void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   logger().log(
       "Starting move to pose - Target X: " + std::to_string(target_pose.x) +
@@ -488,7 +488,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
 
   logger().log("Move to pose complete");
 }
-*/
+
 
 void move_vertical(double distance_inches, bool intaking, bool conv) {
   logger().log("Starting vertical move - Distance: " +
@@ -597,22 +597,7 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
   chassis.setPose(0, 0, 0);
-  grabber.extend();
-
-  //move_to_pose(Pose(-60, 0, 90), false, false, false );
-
-  move_vertical(12, true, false);
-  pros::delay(100);
-  limitedIntake(1000);
-  pros::delay(100);
-  move_vertical(-12, true, false);
-  limitedConveyor(1000);
-  pros::delay(100);
-  move_vertical(12, false, false);
-  pros::delay(100);
-  rotate_to(-88);
-  pros::delay(100);
-  move_vertical(24, true, false);
+  rotate_to(60);
 
 
  /* rotate_to(318.8);
@@ -688,7 +673,7 @@ void pooksterControls() {
     wallStakeLift.move(-90);
     pros::delay(500);
     wallStakeLift.move(0);
-    wallStakeLift.set_zero_position()
+   // wallStakeLift.set_zero_position();
   } else {
     if(master.get_digital_new_press(DIGITAL_Y)){
       if (wallStakeMode == false) {
