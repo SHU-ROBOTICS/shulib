@@ -55,7 +55,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
-pros::Motor intake(-10);
+pros::Motor intake(-21);
 pros::MotorGroup conveyor({17, -12});
 pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
 
@@ -72,9 +72,9 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1);
-  shulib::setYCorrectionFactor(1);
-  shulib::setThetaCorrectionFactor(1);
+  shulib::setXCorrectionFactor(1.104166667);
+  shulib::setYCorrectionFactor(1.104166667);
+  shulib::setThetaCorrectionFactor(1.33333333);
 
   logger().log("IMU calibrated!");
   logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -235,14 +235,12 @@ void rotate_to(double target_angle) {
                " to " + std::to_string(target_angle) + " degrees");
   double desiredTheta = target_angle;
 
-  //setThetaCorrectionFactor(0.435/2.0); // Conservative correction factor
-
   logger().log("Start pose - X: " + std::to_string(startPose.x) +
                " Y: " + std::to_string(startPose.y) +
                " Theta: " + std::to_string(startPose.theta));
 
-  const double MIN_ROTATION = 20.0; // Minimum rotation power
-  const double MAX_ROTATION = 60.0; // Maximum rotation power
+  const double MIN_ROTATION = 30.0; // Minimum rotation power
+  const double MAX_ROTATION = 80.0; // Maximum rotation power
   const double ACCEL_RATE = 2.0;    // How fast to ramp up rotation speed
   const double DECEL_ANGLE = 45.0;  // Start slowing down when within this angle
 
@@ -261,7 +259,7 @@ void rotate_to(double target_angle) {
   if (fabs(error) > 1.0) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
-    PID rotationPID(0.2, 0.25, 0); // Conservative gains for rotation
+    PID rotationPID(1, 0, 0); // Conservative gains for rotation
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -328,7 +326,7 @@ void rotate_to(double target_angle) {
     chassis.drive(0, 0, 0);
     pros::delay(100);
   }
-
+  /*
   // Fine control phase
   logger().log("Starting fine rotation (target error < 0.5)");
   PID fineRotationPID(1, 0.005,
@@ -386,6 +384,7 @@ void rotate_to(double target_angle) {
                std::to_string(chassis.getPose().x) +
                " Y: " + std::to_string(chassis.getPose().y) +
                " Theta: " + std::to_string(chassis.getPose().theta));
+  */
 }
 
 // Struct for storing parsed command data
@@ -590,6 +589,12 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                std::to_string(total_distance_traveled));
 }
 
+void positionReset(){
+  pros::delay(100);
+  chassis.setPose(0,0,0);
+  pros::delay(100);
+}
+
 void autonomous() {
   // test_min_output();
   // MIN_OUTPUT_Y 20
@@ -597,7 +602,40 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
   chassis.setPose(0, 0, 0);
-  rotate_to(60);
+  
+  move_vertical(72, false, false);
+  pros::delay(100);
+  rotate_to(-3);
+  positionReset();
+  rotate_to(-90);
+
+  positionReset();
+
+  move_vertical(48, false, false);
+  pros::delay(100);
+  rotate_to(-3);
+  positionReset();
+  rotate_to(-90);
+
+  positionReset();
+
+  move_vertical(62.5, false, false);
+  pros::delay(100);
+  //rotate_to(-3);
+  //positionReset();
+  rotate_to(90);
+
+  positionReset();
+
+  move_vertical(48, false, false);
+  pros::delay(100);
+  rotate_to(-3);
+  positionReset();
+  rotate_to(90);
+
+  positionReset();
+
+  move_vertical(62.5, false, false);
 
 
  /* rotate_to(318.8);
@@ -638,10 +676,10 @@ void autonomous() {
 }
 
 void pooksterControls() {
-  if (master.get_digital(DIGITAL_L2)) {
+  if (master.get_digital(DIGITAL_L1)) {
     intake.move(127);
   } else {
-    if (master.get_digital(DIGITAL_L1)) {
+    if (master.get_digital(DIGITAL_L2)) {
       intake.move(-127);
     } else {
       intake.move(0);
