@@ -21,14 +21,14 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterLeft({12,-13,14,-8,16,-17});
-MotorGroup pooksterRight({2,-3,4,-5,6,-7});
+MotorGroup pooksterLeft({-11,12,-13,14,-15});
+MotorGroup pooksterRight({-16,17,-18,19,-20});
 
 // IMU imu(10);
 
 pros::Rotation left(-1);
 pros::Rotation right(10);
-pros::Rotation back(11);
+pros::Rotation back(9);
 // set these to nullptrs instead
 
 shulib::OdomUnit leftOdom(&left, 2.75, -7.5);
@@ -55,9 +55,10 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
-pros::Motor intake(-21);
-pros::MotorGroup conveyor({17, -12});
-pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
+pros::Motor intake(-1);
+pros::Motor conveyor(-2);
+//pros::MotorGroup conveyor({17, -12});
+//pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
 
 void initialize() {
   lcd::initialize();
@@ -208,24 +209,6 @@ void rotation_calibration() {
 void limitedIntake(int n) {
   intake.move(-127);
   pros::delay(n);
-  intake.move(0);
-}
-
-void limitedConveyor(int n) {
-  if(fabs(wallStakeLift.get_position() - 27) < 2){
-    conveyor.move(70);
-  } else {
-    conveyor.move(-127);
-  }
-  pros::delay(n);
-  conveyor.move(0);
-}
-
-void limitedCombo(int n){
-  conveyor.move(127);
-  intake.move(-127);
-  pros::delay(n);
-  conveyor.move(0);
   intake.move(0);
 }
 
@@ -469,8 +452,6 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
       chassis.drive(0, forwardOutput, 0);
 
       if (intaking) intake.move(127);
-      if (conv) conveyor.move(127);
-
       log_counter++;
       if (log_counter % 25 == 0) {
           logger().log("error_rotation: " + std::to_string(angle_error) +
@@ -559,10 +540,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
         intake.move(-127);
      }
 
-      if(conv){
-        conveyor.move(-127);
-      }
-
     log_counter++;
     if (log_counter % 25 == 0) {
       logger().log(
@@ -580,11 +557,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   if (intaking) {
     intake.move(0);
   }
-
-  if (conv) {
-    conveyor.move(0);
-  }
-
   logger().log("Vertical move complete - Total distance traveled: " +
                std::to_string(total_distance_traveled));
 }
@@ -676,20 +648,20 @@ void autonomous() {
 }
 
 void pooksterControls() {
-  if (master.get_digital(DIGITAL_L1)) {
+  if (master.get_digital(DIGITAL_R1)) {
     intake.move(127);
   } else {
-    if (master.get_digital(DIGITAL_L2)) {
+    if (master.get_digital(DIGITAL_R2)) {
       intake.move(-127);
     } else {
       intake.move(0);
     }
   }
- 
-  if (master.get_digital(DIGITAL_R2)) {
+
+  if (master.get_digital(DIGITAL_L1)) {
     conveyor.move(127);
   } else {
-    if (master.get_digital(DIGITAL_R1)) {
+    if (master.get_digital(DIGITAL_L2)) {
       conveyor.move(-127);
     } else {
       conveyor.move(0);
@@ -706,28 +678,6 @@ void pooksterControls() {
     }
   } */
  
-
-  if(master.get_digital(DIGITAL_A)){
-    wallStakeLift.move(-90);
-    pros::delay(500);
-    wallStakeLift.move(0);
-   // wallStakeLift.set_zero_position();
-  } else {
-    if(master.get_digital_new_press(DIGITAL_Y)){
-      if (wallStakeMode == false) {
-          if(fabs(wallStakeLift.get_position() - 132.7) < 2){
-            wallStakeLift.move_absolute(0, 20);
-          } else {
-            wallStakeLift.move_absolute(30, 50);
-          }
-      } else {
-          if (fabs(wallStakeLift.get_position() - 30) < 2) {
-            wallStakeLift.move_absolute(132.7, 30);
-          }
-      }
-      wallStakeMode = !wallStakeMode;
-    }
-  }
  
   if(master.get_digital_new_press(DIGITAL_RIGHT)){
     if(grabber.is_extended()){
@@ -740,14 +690,11 @@ void pooksterControls() {
 }
  
 void opcontrol() {
-  wallStakeLift.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
  
   while (true) {
     chassis.drive(master.get_analog(ANALOG_LEFT_X),
                   master.get_analog(ANALOG_LEFT_Y),
                   master.get_analog(ANALOG_RIGHT_X));
-    logger().updateTelemetry("conveyor_voltage", conveyor.get_voltage());
-    logger().updateTelemetry("wallStakeVoltage", wallStakeLift.get_voltage());
     pooksterControls();
  
     // static uint32_t stuckStartTime = 0;
