@@ -480,7 +480,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double target_distance = std::abs(distance_inches);
 
   const double MIN_OUTPUT = 20.0;
-  const double MAX_OUTPUT = 50.0;
+  const double MAX_OUTPUT = 75.0;
   const double MAX_ROTATION = 10.0;
   const double ACCEL_RATE = 2.0;
   const double DECEL_ZONE = 5.0;
@@ -575,39 +575,12 @@ void autonomous() {
   // moveVertical();
   chassis.setPose(0, 0, 0);
   
-  move_vertical(72, false, false);
+  move_vertical(24, false, false);
   pros::delay(100);
-  rotate_to(-3);
+
   positionReset();
   rotate_to(-90);
 
-  positionReset();
-
-  move_vertical(48, false, false);
-  pros::delay(100);
-  rotate_to(-3);
-  positionReset();
-  rotate_to(-90);
-
-  positionReset();
-
-  move_vertical(62.5, false, false);
-  pros::delay(100);
-  //rotate_to(-3);
-  //positionReset();
-  rotate_to(90);
-
-  positionReset();
-
-  move_vertical(48, false, false);
-  pros::delay(100);
-  rotate_to(-3);
-  positionReset();
-  rotate_to(90);
-
-  positionReset();
-
-  move_vertical(62.5, false, false);
 
 
  /* rotate_to(318.8);
