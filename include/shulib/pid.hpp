@@ -5,14 +5,18 @@ class PID {
     public:
         PID(float kP, float kI, float kD): kP(kP), kI(kI), kD(kD){}
 
-        float update(float error);
+        float update(float error, float time);
+
+        void setKP(float newKP);
+        void setKI(float newKI);
+        void setKD(float newKD);
 
         void reset();
 
     protected:
-        const float kP;
-        const float kI;
-        const float kD;
+        float kP;
+        float kI;
+        float kD;
 
         float integral = 0;
         float prevError = 0;

@@ -22,18 +22,18 @@
 Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterLeft({-11,12,-13,14,-15});
-MotorGroup pooksterRight({-16,17,-18,19,-20});
+MotorGroup pooksterRight({-4,17,-18,19,-20});
 
 // IMU imu(10);
 
-pros::Rotation left(-1);
-pros::Rotation right(10);
+pros::Rotation left(-10);
+pros::Rotation right(3);
 pros::Rotation back(9);
 // set these to nullptrs instead
 
 shulib::OdomUnit leftOdom(&left, 2.75, -7.5);
 shulib::OdomUnit rightOdom(&right,2.75, 7.5);
-shulib::OdomUnit backOdom(&back, 2.75, 0);
+shulib::OdomUnit backOdom(&back, 2.75, 3.0);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15.25, 3.25, 400); //trackwidth, wheeldiameter, rpm
 
@@ -73,9 +73,9 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1.104166667);
-  shulib::setYCorrectionFactor(1.104166667);
-  shulib::setThetaCorrectionFactor(1.33333333);
+  shulib::setXCorrectionFactor(1.0);
+  shulib::setYCorrectionFactor(0.925);
+  shulib::setThetaCorrectionFactor(1.09);
 
   logger().log("IMU calibrated!");
   logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -222,10 +222,14 @@ void rotate_to(double target_angle) {
                " Y: " + std::to_string(startPose.y) +
                " Theta: " + std::to_string(startPose.theta));
 
-  const double MIN_ROTATION = 30.0; // Minimum rotation power
-  const double MAX_ROTATION = 80.0; // Maximum rotation power
+  const double MIN_ROTATION = 25.0; // Minimum rotation power
+  const double MAX_ROTATION = 70.0; // Maximum rotation power
   const double ACCEL_RATE = 2.0;    // How fast to ramp up rotation speed
-  const double DECEL_ANGLE = 45.0;  // Start slowing down when within this angle
+  double DECEL_ANGLE = fabs(target_angle) - 22.5;  // Start slowing down when within this angle
+
+  if(target_angle < 0){
+    DECEL_ANGLE *= -1;
+  }
 
   double error = target_angle - chassis.getPose().theta;
   // Normalize error to [-180, 180]
@@ -236,13 +240,14 @@ void rotate_to(double target_angle) {
 
   int stuckCounter = 0;
   double lastError = error;
-  double currentMaxSpeed = MIN_ROTATION; // Start at minimum speed
+  double currentMaxSpeed = MAX_ROTATION; // Start at minimum speed
 
   // Two-phase control with separate PIDs
   if (fabs(error) > 1.0) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
-    PID rotationPID(1, 0, 0); // Conservative gains for rotation
+
+    PID rotationPID(0.5,0.3,0);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -252,29 +257,29 @@ void rotate_to(double target_angle) {
       while (error < -180)
         error += 360;
 
-      double rotationOutput = rotationPID.update(error);
+      double rotationOutput = rotationPID.update(error, 0.005);
 
       // Ramp up speed gradually
-      if (currentMaxSpeed < MAX_ROTATION) {
+      /*if (currentMaxSpeed < MAX_ROTATION) {
         currentMaxSpeed += ACCEL_RATE;
         if (currentMaxSpeed > MAX_ROTATION)
           currentMaxSpeed = MAX_ROTATION;
-      }
+      }*/
 
       // Calculate deceleration factor based on angle to target
-      double decelFactor = 1.0;
+      /*double decelFactor = 1.0;
       if (fabs(error) < DECEL_ANGLE) {
         decelFactor = fabs(error) / DECEL_ANGLE; // Linear ramp down
         // Ensure we don't go below minimum output
         decelFactor =
             decelFactor * (currentMaxSpeed - MIN_ROTATION) / currentMaxSpeed +
             MIN_ROTATION / currentMaxSpeed;
-      }
+      }*/
 
       // Apply speed limits and deceleration
       rotationOutput =
           std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
-      rotationOutput *= decelFactor;
+      //rotationOutput *= decelFactor;
 
       // Ensure minimum power to overcome friction
       if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1) {
@@ -436,7 +441,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
       angle = std::fmod(angle + 360, 360);
       angle_error = angle - current_pose.theta;
 
-      double forwardOutput = linearPID.update(distance);
+      double forwardOutput = linearPID.update(distance, 5);
 
       // Dynamic acceleration and deceleration
       if (currentMaxSpeed < MAX_OUTPUT) {
@@ -446,7 +451,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
       double decelFactor = (distance < DECEL_ZONE) ? (distance / DECEL_ZONE) : 1.0;
       forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed) * decelFactor;
 
-      double rotationOutput = headingPID.update(angle_error);
+      double rotationOutput = headingPID.update(angle_error, 0.005);
       rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
       chassis.drive(0, forwardOutput, 0);
@@ -487,9 +492,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
   double currentMaxSpeed = MIN_OUTPUT;
   double last_y = start_pose.y;
+  double last_x = start_pose.x;
 
-  PID linearPID(12, 0.03, 0);
-  PID headingPID(10, 0.005, 0.25);
+  PID linearPID(4, 2, 0);
+  PID headingPID(0, 0, 0);
 
   int log_counter = 0;
   while (total_distance_traveled < target_distance) {
@@ -497,8 +503,12 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     // Calculate incremental distance traveled
     double dy = std::abs(current_pose.y - last_y);
-    total_distance_traveled += dy;
     last_y = current_pose.y;
+
+    double dx = std::abs(current_pose.x - last_x);
+    last_x = current_pose.x;
+
+    total_distance_traveled += sqrt(pow(dx, 2) + pow(dy, 2));
 
     double remaining_distance = target_distance - total_distance_traveled;
 
@@ -509,7 +519,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     while (heading_error < -180)
       heading_error += 360;
 
-    double forwardOutput = linearPID.update(remaining_distance);
+    double forwardOutput = linearPID.update(remaining_distance, 0.005);
     // Invert output if moving backwards
     if (distance_inches < 0)
       forwardOutput = -forwardOutput;
@@ -531,13 +541,17 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
         std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
     forwardOutput *= decelFactor;
 
-    double rotationOutput = headingPID.update(heading_error);
+    double rotationOutput = headingPID.update(heading_error, 0.005);
     rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
     chassis.drive(0, forwardOutput,0);
 
      if(intaking){
         intake.move(-127);
+     }
+
+     if(conv){
+        conveyor.move(-127);
      }
 
     log_counter++;
@@ -574,13 +588,12 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
   chassis.setPose(0, 0, 0);
-  
+
   move_vertical(24, false, false);
   pros::delay(100);
-
-  positionReset();
   rotate_to(-90);
-
+  pros::delay(100);
+  move_vertical(12, false, false);
 
 
  /* rotate_to(318.8);
