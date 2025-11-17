@@ -22,17 +22,17 @@
 Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterLeft({-11,12,-13,14,-15});
-MotorGroup pooksterRight({-4,17,-18,19,-20});
+MotorGroup pooksterRight({-16,17,-18,19,-20});
 
 // IMU imu(10);
 
-pros::Rotation left(-10);
-pros::Rotation right(3);
+pros::Rotation left(-8);
+pros::Rotation right(10);
 pros::Rotation back(9);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(&left, 2.75, -7.5);
-shulib::OdomUnit rightOdom(&right,2.75, 7.5);
+shulib::OdomUnit leftOdom(&left, 2.75, -7);
+shulib::OdomUnit rightOdom(&right,2.75, 7);
 shulib::OdomUnit backOdom(&back, 2.75, 3.0);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15.25, 3.25, 400); //trackwidth, wheeldiameter, rpm
@@ -56,7 +56,10 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', true);
 pros::Motor intake(-1);
-pros::Motor conveyor(-2);
+pros::MotorGroup lowerConveyor{-2, 3};
+pros::Motor upperConveyor{4};
+pros::Motor releaser(5);
+
 //pros::MotorGroup conveyor({17, -12});
 //pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
 
@@ -73,9 +76,9 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1.0);
-  shulib::setYCorrectionFactor(0.925);
-  shulib::setThetaCorrectionFactor(1.09);
+  shulib::setXCorrectionFactor(1);
+  shulib::setYCorrectionFactor(1);
+  shulib::setThetaCorrectionFactor(1);
 
   logger().log("IMU calibrated!");
   logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -247,7 +250,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(0.5,0.3,0);
+    PID rotationPID(0.5,0.6,0);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -551,7 +554,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
      }
 
      if(conv){
-        conveyor.move(-127);
+        lowerConveyor.move(-127);
      }
 
     log_counter++;
@@ -636,24 +639,36 @@ void autonomous() {
 void pooksterControls() {
   if (master.get_digital(DIGITAL_R1)) {
     intake.move(127);
+    lowerConveyor.move(127);
   } else {
     if (master.get_digital(DIGITAL_R2)) {
       intake.move(-127);
+      lowerConveyor.move(-127);
     } else {
       intake.move(0);
+      lowerConveyor.move(0);
     }
   }
 
   if (master.get_digital(DIGITAL_L1)) {
-    conveyor.move(127);
+    upperConveyor.move(127);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      conveyor.move(-127);
+      upperConveyor.move(-127);
     } else {
-      conveyor.move(0);
+      upperConveyor.move(0);
     }
   }
  
+  if (master.get_digital(DIGITAL_Y)) {
+    releaser.move(127);
+  } else {
+    if (master.get_digital(DIGITAL_Y)) {
+      releaser.move(-127);
+    } else {
+      releaser.move(0);
+    }
+  }
   // r2 : wall stake lift
   /* if (master.get_digital_new_press(DIGITAL_Y)) {
     // check if wall stake is at 30 degrees with a tolerance of 1 degree
