@@ -686,10 +686,10 @@ void pooksterControls() {
     }
   }
  
-  if (master.get_digital(DIGITAL_Y)) {
+  if (master.get_digital(DIGITAL_RIGHT)) {
     releaser.move(127);
   } else {
-    if (master.get_digital(DIGITAL_Y)) {
+    if (master.get_digital(DIGITAL_RIGHT)) {
       releaser.move(-127);
     } else {
       releaser.move(0);
@@ -706,7 +706,7 @@ void pooksterControls() {
   } */
  
  
-  if(master.get_digital_new_press(DIGITAL_RIGHT)){
+  if(master.get_digital_new_press(DIGITAL_Y)){
     if(grabber.is_extended()){
       grabber.retract();
     } else {
