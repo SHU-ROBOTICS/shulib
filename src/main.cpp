@@ -54,7 +54,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 */
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics grabber('A', true);
+pros::adi::Pneumatics grabber('A', false);
 pros::Motor intake(-1);
 pros::Motor conveyor(-2);
 //pros::MotorGroup conveyor({17, -12});
@@ -494,7 +494,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(4, 2, 0);
+  PID linearPID(8, 4, 0.5);
   PID headingPID(0, 0, 0);
 
   int log_counter = 0;
@@ -593,7 +593,7 @@ void autonomous() {
   pros::delay(100);
   rotate_to(-90);
   pros::delay(100);
-  move_vertical(12, false, false);
+  move_vertical(24, false, false);
 
 
  /* rotate_to(318.8);
