@@ -54,7 +54,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 */
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics grabber('A', true);
+pros::adi::Pneumatics grabber('A', false);
 pros::Motor intake(-1);
 pros::MotorGroup lowerConveyor{-2, 3};
 pros::Motor upperConveyor{4};
@@ -86,7 +86,7 @@ void initialize() {
   logger().log("IMU roll: " + std::to_string(imu.get_roll()));
 
   chassis.calibrate();
-  chassis.setPose({36, -60, 0});
+  chassis.setPose({36, -60, -180});
 }
 
 void disabled() {}
@@ -250,7 +250,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(0.5,0.6,0);
+    PID rotationPID(2,0.5,0.1);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -306,7 +306,8 @@ void rotate_to(double target_angle) {
       if (stuckCounter % 50 == 0) {
         logger().log("Coarse Phase - Error: " + std::to_string(error) +
                      " Output: " + std::to_string(rotationOutput) +
-                     " Speed: " + std::to_string(currentMaxSpeed));
+                     " Speed: " + std::to_string(currentMaxSpeed) +
+                     " Theta: " + std::to_string(chassis.getPose().theta));
       }
 
       chassis.drive(0, 0, rotationOutput);
@@ -488,16 +489,16 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double target_distance = std::abs(distance_inches);
 
   const double MIN_OUTPUT = 20.0;
-  const double MAX_OUTPUT = 75.0;
+  const double MAX_OUTPUT = 60.0;
   const double MAX_ROTATION = 10.0;
   const double ACCEL_RATE = 2.0;
   const double DECEL_ZONE = 5.0;
 
-  double currentMaxSpeed = MIN_OUTPUT;
+  double currentMaxSpeed = MAX_OUTPUT;
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(4, 2, 0);
+  PID linearPID(10, 2.5, 0.3);
   PID headingPID(0, 0, 0);
 
   int log_counter = 0;
@@ -527,7 +528,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     if (distance_inches < 0)
       forwardOutput = -forwardOutput;
 
-    if (currentMaxSpeed < MAX_OUTPUT) {
+    /*if (currentMaxSpeed < MAX_OUTPUT) {
       currentMaxSpeed += ACCEL_RATE;
       if (currentMaxSpeed > MAX_OUTPUT)
         currentMaxSpeed = MAX_OUTPUT;
@@ -539,10 +540,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
       decelFactor =
           decelFactor * (currentMaxSpeed - MIN_OUTPUT) / currentMaxSpeed +
           MIN_OUTPUT / currentMaxSpeed;
-    }
+    }*/
     forwardOutput =
         std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
-    forwardOutput *= decelFactor;
+    //forwardOutput *= decelFactor;
 
     double rotationOutput = headingPID.update(heading_error, 0.005);
     rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
@@ -590,13 +591,38 @@ void autonomous() {
   // MIN_OUTPUT_THETA 25
   // rotation_calibration();
   // moveVertical();
-  chassis.setPose(0, 0, 0);
-
-  move_vertical(24, false, false);
+  chassis.setPose(0, 0, -180);
   pros::delay(100);
+
+  move_vertical(-6, false, false);
+  pros::delay(100);
+
   rotate_to(-90);
   pros::delay(100);
-  move_vertical(12, false, false);
+  chassis.setPose(0, 0, -90);
+  pros::delay(100);
+
+  move_vertical(60, false, false);
+  pros::delay(750);
+
+  move_vertical(-13, false, false);
+  pros::delay(100);
+
+  rotate_to(5);
+  pros::delay(100);
+  chassis.setPose(0, 0, 0);
+  pros::delay(100);
+
+  move_vertical(14, false, false);
+  pros::delay(100);
+
+  move_vertical(-14, false, false);
+  pros::delay(100);
+
+  rotate_to(180);
+  pros::delay(100);
+  chassis.setPose(0, 0, 180);
+  pros::delay(100);
 
 
  /* rotate_to(318.8);
