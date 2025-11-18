@@ -55,10 +55,10 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', false);
-pros::Motor intake(-1);
-pros::MotorGroup lowerConveyor{-2, 3};
-pros::Motor upperConveyor{4};
-pros::Motor releaser(5);
+pros::MotorGroup intake{-1,2};
+pros::MotorGroup lowerConveyor{-3, 4};
+pros::Motor upperConveyor{5};
+pros::Motor releaser(6);
 
 //pros::MotorGroup conveyor({17, -12});
 //pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
