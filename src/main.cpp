@@ -250,7 +250,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(2,0.5,0.1);
+    PID rotationPID(2,0.3,0.05);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -602,21 +602,21 @@ void autonomous() {
   chassis.setPose(0, 0, -90);
   pros::delay(100);
 
-  move_vertical(60, false, false);
+  move_vertical(65.0, false, false);
   pros::delay(750);
 
-  move_vertical(-13, false, false);
+  move_vertical(-15, false, false);
   pros::delay(100);
 
-  rotate_to(5);
+  chassis.setPose(0, 0, -90);
   pros::delay(100);
-  chassis.setPose(0, 0, 0);
+  rotate_to(0);
   pros::delay(100);
 
   move_vertical(14, false, false);
   pros::delay(100);
 
-  move_vertical(-14, false, false);
+  move_vertical(-15, false, false);
   pros::delay(100);
 
   rotate_to(180);
@@ -624,6 +624,41 @@ void autonomous() {
   chassis.setPose(0, 0, 180);
   pros::delay(100);
 
+  move_vertical(15, false, false);
+  pros::delay(750);
+
+  move_vertical(-15, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0, 0, 180);
+  pros::delay(100);
+  rotate_to(0);
+  pros::delay(100);
+  chassis.setPose(0, 0, 0);
+  pros::delay(100);
+
+  move_vertical(15, false, false);
+  pros::delay(750);
+
+  move_vertical(-15, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0, 0, 0);
+  pros::delay(100);
+  rotate_to(47.5);
+  pros::delay(100);
+  chassis.setPose(0, 0, 47.5);
+  pros::delay(100);
+
+  move_vertical(34, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0, 0, 47.5);
+  pros::delay(100);
+  rotate_to(0);
+  pros::delay(100);
+  chassis.setPose(0, 0, 0);
+  pros::delay(100); 
 
  /* rotate_to(318.8);
   pros::delay(100);
