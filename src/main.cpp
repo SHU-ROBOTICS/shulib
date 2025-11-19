@@ -57,7 +57,7 @@ bool wallStakeMode = false;
 pros::adi::Pneumatics grabber('A', false);
 pros::MotorGroup intake{-1,2};
 pros::MotorGroup lowerConveyor{-3, 4};
-pros::Motor upperConveyor{5};
+pros::Motor upperConveyor{-5};
 pros::Motor releaser(6);
 
 //pros::MotorGroup conveyor({17, -12});
