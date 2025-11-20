@@ -58,7 +58,7 @@ pros::adi::Pneumatics grabber('A', false);
 pros::MotorGroup intake{-1,2};
 pros::MotorGroup lowerConveyor{-3, 4};
 pros::Motor upperConveyor{-5};
-pros::Motor releaser(6);
+pros::Motor releaser(21);
 
 //pros::MotorGroup conveyor({17, -12});
 //pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
