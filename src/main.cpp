@@ -55,7 +55,9 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 */
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics level('A', false);
+pros::adi::Pneumatics arm('B', false);
+pros::adi::Pneumatics lever('A', false);
+
 pros::MotorGroup intake{-1,2};
 pros::MotorGroup lowerConveyor{-3, 4};
 pros::Motor upperConveyor{-5};
@@ -66,8 +68,6 @@ int toggleCount = 0;
 void timer(int time){
   pros::delay(time);
 }
-
-std::thread t(timer, 1000);
 
 //pros::MotorGroup conveyor({17, -12});
 //pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
@@ -565,6 +565,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
      if(conv){
         lowerConveyor.move(-127);
+        upperConveyor.move(-127);
      }
 
     log_counter++;
@@ -770,17 +771,12 @@ void pooksterControls() {
       upperConveyor.move(0);
     }
   }
- 
-  if (master.get_digital(DIGITAL_RIGHT)) {
 
-
-
-    if(toggleCount % 1 == 0){
-      if(toggleCount % 2 == 0){
-        releaser.move(0);
-      } else{
-        releaser.move(127);
-      }
+  if (master.get_digital(DIGITAL_Y)) {
+    releaser.move(127);
+  } else {
+    if (master.get_digital(DIGITAL_Y)) {
+      releaser.move(-127);
     } else {
       releaser.move(0);
     }
@@ -797,10 +793,18 @@ void pooksterControls() {
  
  
   if(master.get_digital_new_press(DIGITAL_Y)){
-    if(level.is_extended()){
-      level.retract();
+    if(lever.is_extended()){
+      lever.retract();
     } else {
-      level.extend();
+      lever.extend();
+    }
+  }
+
+  if(master.get_digital_new_press(DIGITAL_LEFT)){
+    if(arm.is_extended()){
+      arm.retract();
+    } else {
+      arm.extend();
     }
   }
  
