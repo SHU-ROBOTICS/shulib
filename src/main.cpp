@@ -792,7 +792,7 @@ void pooksterControls() {
   } */
  
  
-  if(master.get_digital_new_press(DIGITAL_Y)){
+  if(master.get_digital_new_press(DIGITAL_RIGHT)){
     if(lever.is_extended()){
       lever.retract();
     } else {
