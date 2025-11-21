@@ -636,11 +636,11 @@ void autonomous() {
 
   //INTAKING THE STUPID POLL THINGS
 
-  std::thread intakeThread([&](){limitedCombo(500); });
+  /*std::thread intakeThread([&](){limitedCombo(500); });
   std::thread movementThread(oscillation, 6);
 
   intakeThread.join();
-  movementThread.join();
+  movementThread.join();*/
 
 
   //INITIAL INTAKER
