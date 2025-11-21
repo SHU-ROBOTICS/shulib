@@ -608,6 +608,8 @@ void move_vertical(double distance_inches, bool intaking, bool conv, bool needsR
   if (intaking) {
     intake.move(0);
   }
+
+  
   logger().log("Vertical move complete - Total distance traveled: " +
                std::to_string(total_distance_traveled));
 }
