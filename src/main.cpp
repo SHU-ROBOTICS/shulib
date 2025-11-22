@@ -655,7 +655,7 @@ void autonomous() {
   pros::delay(100);
 
   lever.extend();
-  pros::delay(50);
+  pros::delay(2000);
 
   move_vertical(-20, false, false);
   pros::delay(100);
