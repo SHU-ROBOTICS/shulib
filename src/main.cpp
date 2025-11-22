@@ -679,7 +679,9 @@ void autonomous() {
   pros::delay(100);
 
   move_vertical(59, true, true);
-  pros::delay(750);
+  pros::delay(100);
+
+  limitedCombo((void*)1000);
 
   move_vertical(-14, true, true);
   pros::delay(100);
