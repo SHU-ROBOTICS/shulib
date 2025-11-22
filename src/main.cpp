@@ -655,7 +655,7 @@ void autonomous() {
   pros::delay(100);
 
   lever.extend();
-  pros::delay(500);
+  pros::delay(2000);
 
   move_vertical(-20, false, false);
   pros::delay(100);
@@ -663,7 +663,7 @@ void autonomous() {
   lever.retract();
   pros::delay(50);
 
-  move_vertical(20, true, true);
+  move_vertical(20, true, true); //look into this later
   pros::delay(100);
 
   move_vertical(-5, false, false);
@@ -675,7 +675,7 @@ void autonomous() {
   chassis.setPose(0, 0, -90);
   pros::delay(100);
 
-  move_vertical(56, true, true);
+  move_vertical(59, true, true);
   pros::delay(750);
 
   move_vertical(-14, true, true);
@@ -686,12 +686,12 @@ void autonomous() {
   rotate_to(0);
   pros::delay(100);
 
-  move_vertical(12, false, false);
+  move_vertical(13, false, false);
   pros::delay(50);
 
   limitedComboFull(750, 1);
 
-  move_vertical(-12, false, false);
+  move_vertical(-13, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,0);
@@ -705,13 +705,13 @@ void autonomous() {
 
   lever.extend();
 
-  move_vertical(13, false, false);
+  move_vertical(14, false, false);
   pros::delay(750);
 
-  pros::Task(oscillation, (void*)6);
   pros::Task(limitedCombo,(void*)700);
+  pros::Task(oscillation, (void*)6);
 
-  move_vertical(-13, false, false);
+  move_vertical(-14, false, false);
   pros::delay(100);
 
   lever.retract();
@@ -724,7 +724,7 @@ void autonomous() {
   pros::delay(50);
   rotate_to(0);
 
-  move_vertical(11, false, false);
+  move_vertical(12, false, false);
   pros::delay(50);
 
   limitedComboFull(750, 1);
@@ -734,22 +734,22 @@ void autonomous() {
 
   chassis.setPose(0, 0, 0);
   pros::delay(100);
-  rotate_to(47.5);
+  rotate_to(45);
   pros::delay(100);
-  chassis.setPose(0, 0, 47.5);
-  pros::delay(100);
-
-  move_vertical(30, false, false);
+  chassis.setPose(0, 0, 45);
   pros::delay(100);
 
-  chassis.setPose(0, 0, 47.5);
+  move_vertical(29, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0, 0, 45);
   pros::delay(100);
   rotate_to(0);
   pros::delay(100);
   chassis.setPose(0, 0, 0);
   pros::delay(100); 
 
-  move_vertical(22, true, true);
+  move_vertical(44, true, true);
   pros::delay(100);
 
   chassis.setPose(0, 0, 0);
