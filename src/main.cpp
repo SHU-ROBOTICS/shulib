@@ -13,8 +13,7 @@
 #include <fstream>  // <-- Add this line
 #include <sstream>
 #include <vector>
-#include <string>
-#include <thread>
+#include <string> 
 
 
 // #include "shulib/GUI/gui.c"
@@ -218,8 +217,8 @@ void rotation_calibration() {
   logger().log("Correction factor: " + std::to_string(correctionFactor));
 }
 
-void limitedIntake(int n) {
-  intake.move(-127);
+void limitedIntake(int n, int reverse) {
+  intake.move(-127 * reverse);
   pros::delay(n);
   intake.move(0);
 }
@@ -232,11 +231,23 @@ void limitedConveyor(int n){
   upperConveyor.move(0);
 }
 
-void limitedCombo(int n){
+void limitedComboFull(int n, int reverse){
+  lowerConveyor.move(127 * reverse);
+  upperConveyor.move(127 * reverse);
+  releaser.move(127 * reverse);
+  intake.move(-127 * reverse);
+  pros::delay(n);
+  lowerConveyor.move(0);
+  upperConveyor.move(0);
+  releaser.move(0);
+  intake.move(0);
+}
+
+void limitedCombo(void* n){
   lowerConveyor.move(127);
   upperConveyor.move(127);
   intake.move(-127);
-  pros::delay(n);
+  pros::delay((int)n);
   lowerConveyor.move(0);
   upperConveyor.move(0);
   intake.move(0);
@@ -501,13 +512,13 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   }
 
   chassis.drive(0, 0, 0);
-  if (intaking) limitedIntake(500);
+  if (intaking) limitedIntake(500, 1);
 
   logger().log("Move to pose complete");
 }
 
 
-void move_vertical(double distance_inches, bool intaking, bool conv, bool needsRelease) {
+void move_vertical(double distance_inches, bool intaking, bool conv) {
   logger().log("Starting vertical move - Distance: " +
                std::to_string(distance_inches) + " inches");
 
@@ -587,10 +598,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv, bool needsR
         upperConveyor.move(-127);
      }
 
-     if(needsRelease){
-      releaser.move(127);
-     }
-
     log_counter++;
     if (log_counter % 25 == 0) {
       logger().log(
@@ -609,7 +616,12 @@ void move_vertical(double distance_inches, bool intaking, bool conv, bool needsR
     intake.move(0);
   }
 
-  
+  if(conv){
+    lowerConveyor.move(-127);
+    upperConveyor.move(-127);
+  }
+
+
   logger().log("Vertical move complete - Total distance traveled: " +
                std::to_string(total_distance_traveled));
 }
@@ -620,12 +632,12 @@ void positionReset(){
   pros::delay(100);
 }
 
-void oscillation(int cycles){
-  for(int i = 0; i < cycles; i++){
-    move_vertical(2, false, false, false);
+void oscillation(void* cycles){
+  for(int i = 0; i < (int)cycles; i++){
+    move_vertical(-7, false, false);
     pros::delay(50);
-    move_vertical(-2, false, false, false);
-    pros::delay(20);   
+    move_vertical(7, false, false);
+    pros::delay(50);   
   }
 }
 
@@ -636,35 +648,22 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  //INTAKING THE STUPID POLL THINGS
 
-  /*std::thread intakeThread([&](){limitedCombo(500); });
-  std::thread movementThread(oscillation, 6);
+  //MOVEMENT ROUTINE
 
-  intakeThread.join();
-  movementThread.join();*/
+  chassis.setPose(0, 0, -180);
+  pros::delay(100);
 
-
-  //INITIAL INTAKER
-
-  /*lever.extend();
+  lever.extend();
   pros::delay(50);
 
-  move_vertical(-5, false, false, false);
+  move_vertical(-20, false, false);
   pros::delay(100);
 
   lever.retract();
   pros::delay(50);
 
-  move_vertical(5, true, true, false);
-  pros::delay(10);
-  limitedCombo(500);*/
-
-
-
-  //MOVEMENT ROUTINE
-
-  /*chassis.setPose(0, 0, -180);
+  move_vertical(20, true, true);
   pros::delay(100);
 
   move_vertical(-5, false, false);
@@ -675,10 +674,10 @@ void autonomous() {
   chassis.setPose(0, 0, -90);
   pros::delay(100);
 
-  move_vertical(55, false, false);
+  move_vertical(56, true, true);
   pros::delay(750);
 
-  move_vertical(-14, false, false);
+  move_vertical(-14, true, true);
   pros::delay(100);
 
   chassis.setPose(0, 0, -90);
@@ -687,31 +686,47 @@ void autonomous() {
   pros::delay(100);
 
   move_vertical(10, false, false);
+  pros::delay(50);
+
+  limitedComboFull(750, 1);
+
+  move_vertical(-10, false, false);
   pros::delay(100);
 
-  move_vertical(-12, false, false);
-  pros::delay(100);
-
+  chassis.setPose(0,0,0);
+  rotate_to(90);
+  pros::delay(50);
+  chassis.setPose(0, 0, 90);
+  pros::delay(50);
   rotate_to(180);
-  pros::delay(100);
-  chassis.setPose(0, 0, 180);
-  pros::delay(100);
+  pros::delay(50);
+  chassis.setPose(0,0,180);
 
-  move_vertical(10, false, false);
+  lever.extend();
+
+  move_vertical(12, false, false);
   pros::delay(750);
+
+  pros::Task(oscillation, (void*)6);
+  pros::Task(limitedCombo,(void*)700);
 
   move_vertical(-12, false, false);
   pros::delay(100);
 
-  chassis.setPose(0, 0, 180);
-  pros::delay(100);
-  rotate_to(0);
-  pros::delay(100);
-  chassis.setPose(0, 0, 0);
-  pros::delay(100);
+  lever.retract();
 
-  move_vertical(10, false, false);
-  pros::delay(750);
+  chassis.setPose(0, 0, 180);
+  pros::delay(50);
+  rotate_to(90);
+  pros::delay(50);
+  chassis.setPose(0, 0, 90);
+  pros::delay(50);
+  rotate_to(0);
+
+  move_vertical(11, false, false);
+  pros::delay(50);
+
+  limitedComboFull(750, 1);
 
   move_vertical(-15, false, false);
   pros::delay(100);
@@ -733,7 +748,7 @@ void autonomous() {
   chassis.setPose(0, 0, 0);
   pros::delay(100); 
 
-  move_vertical(22, false, false);
+  move_vertical(22, true, true);
   pros::delay(100);
 
   chassis.setPose(0, 0, 0);
@@ -743,18 +758,20 @@ void autonomous() {
   chassis.setPose(0, 0, -90);
   pros::delay(100);  
 
-  move_vertical(16, false, false);
+  move_vertical(16, true, true);
   pros::delay(100);
 
   move_vertical(-8, false, false);
   pros::delay(100);
 
   chassis.setPose(0, 0, -90);
-  pros::delay(100);
+  pros::delay(50);
+  rotate_to(0);
+  pros::delay(50);
+  chassis.setPose(0, 0, 0);
+  pros::delay(50);
   rotate_to(45);
-  pros::delay(100);
-  chassis.setPose(0, 0, 45);
-  pros::delay(100);
+  pros::delay(50);
 
   move_vertical(15, false, false);
   pros::delay(100);
@@ -767,7 +784,9 @@ void autonomous() {
   pros::delay(100);
 
   move_vertical(10, false, false);
-  pros::delay(100);
+  pros::delay(50);
+
+  limitedComboFull(700, -1);
 
   move_vertical(-12, false, false);
   pros::delay(100);
@@ -776,37 +795,47 @@ void autonomous() {
   pros::delay(100);
   rotate_to(-37.5);
   pros::delay(100);
-  chassis.setPose(0, 0, -37.5);
+  chassis.setPose(0, 0, -45);
   pros::delay(100);
 
   move_vertical(24, false, false);
   pros::delay(100);
 
-  chassis.setPose(0, 0, -37.5);
+  chassis.setPose(0, 0, -45);
   pros::delay(100);
   rotate_to(0);
   pros::delay(100);
   chassis.setPose(0, 0, 0);
   pros::delay(100);
 
+  lever.extend();
+
   move_vertical(15, false, false);
   pros::delay(100);
+
+  pros::Task(oscillation, (void*)6);
+  pros::Task(limitedCombo,(void*)700);
+
+  lever.retract();
 
   move_vertical(-15, false, false);
   pros::delay(100);
 
   chassis.setPose(0, 0, 0);
-  pros::delay(100);
+  pros::delay(50);
+  rotate_to(90);
+  pros::delay(50);
+  chassis.setPose(0, 0, 90);
+  pros::delay(50);
   rotate_to(180);
-  pros::delay(100);
-  chassis.setPose(0, 0, 180);
-  pros::delay(100);
 
-  move_vertical(15, false, false);
-  pros::delay(100);
+  move_vertical(12, false, false);
+  pros::delay(50);
+
+  limitedComboFull(700, 1);
 
   move_vertical(-15, false, false);
-  pros::delay(100);*/
+  pros::delay(100);
 
 }
 
@@ -835,17 +864,17 @@ void pooksterControls() {
     }
   }
 
-  if (master.get_digital(DIGITAL_Y)) {
+  if (master.get_digital(DIGITAL_RIGHT)) {
     releaser.move(127);
   } else {
-    if (master.get_digital(DIGITAL_Y)) {
+    if (master.get_digital(DIGITAL_RIGHT)) {
       releaser.move(-127);
     } else {
       releaser.move(0);
     }
   }
  
-  if(master.get_digital_new_press(DIGITAL_RIGHT)){
+  if(master.get_digital_new_press(DIGITAL_Y)){
     if(lever.is_extended()){
       lever.retract();
     } else {
