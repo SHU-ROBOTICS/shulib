@@ -633,11 +633,14 @@ void positionReset(){
 }
 
 void oscillation(void* cycles){
-  for(int i = 0; i < (int)cycles; i++){
+  int i = 0;
+  while(i < int(cycles)){
     move_vertical(-7, false, false);
     pros::delay(50);
     move_vertical(7, false, false);
     pros::delay(50);   
+
+    i++;
   }
 }
 
