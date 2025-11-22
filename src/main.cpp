@@ -651,10 +651,12 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
+  limitedIntake(10000, 1);
+
 
   //MOVEMENT ROUTINE
 
-  chassis.setPose(0, 0, -180);
+  /*chassis.setPose(0, 0, -180);
   pros::delay(100);
 
   lever.extend();
@@ -664,7 +666,7 @@ void autonomous() {
   pros::delay(100);
 
   lever.retract();
-  pros::delay(50);
+  pros::delay(100);
 
   move_vertical(20, true, true); //look into this later
   pros::delay(100);
@@ -691,12 +693,12 @@ void autonomous() {
   rotate_to(0);
   pros::delay(100);
 
-  move_vertical(13, false, false);
+  move_vertical(15, false, false);
   pros::delay(50);
 
   limitedComboFull(750, 1);
 
-  move_vertical(-13, false, false);
+  move_vertical(-15, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,0);
@@ -713,7 +715,7 @@ void autonomous() {
   move_vertical(14, false, false);
   pros::delay(750);
 
-  pros::Task(limitedCombo,(void*)700);
+  pros::Task(limitedCombo,(void*)1000);
   pros::Task(oscillation, (void*)6);
 
   move_vertical(-14, false, false);
@@ -841,7 +843,7 @@ void autonomous() {
   limitedComboFull(700, 1);
 
   move_vertical(-15, false, false);
-  pros::delay(100);
+  pros::delay(100);*/
 
 }
 
