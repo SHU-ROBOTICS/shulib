@@ -22,7 +22,7 @@
 Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterLeft({-11,12,-13,14,-15});
-MotorGroup pooksterRight({-16,17,-18,19,-20});
+MotorGroup pooksterRight({-16,17,-6,19,-20});
 
 // IMU imu(10);
 
@@ -55,7 +55,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics arm('B', false);
-pros::adi::Pneumatics lever('A', false);
+pros::adi::Pneumatics lever('C', false);
 
 pros::MotorGroup intake{-1,2};
 pros::MotorGroup lowerConveyor{-3, 4};
@@ -235,7 +235,7 @@ void limitedComboFull(int n, int reverse){
   lowerConveyor.move(127 * reverse);
   upperConveyor.move(127 * reverse);
   releaser.move(127 * reverse);
-  intake.move(-127 * reverse);
+  intake.move(127 * reverse);
   pros::delay(n);
   lowerConveyor.move(0);
   upperConveyor.move(0);
@@ -246,7 +246,7 @@ void limitedComboFull(int n, int reverse){
 void limitedCombo(void* n){
   lowerConveyor.move(127);
   upperConveyor.move(127);
-  intake.move(-127);
+  intake.move(127);
   pros::delay((int)n);
   lowerConveyor.move(0);
   upperConveyor.move(0);
@@ -786,7 +786,7 @@ void autonomous() {
   move_vertical(10, false, false);
   pros::delay(50);
 
-  limitedComboFull(700, -1);
+  limitedComboFull(750, -1);
 
   move_vertical(-12, false, false);
   pros::delay(100);
