@@ -21,8 +21,8 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterLeft({-11,12,-13,14,-15});
-MotorGroup pooksterRight({-16,17,-6,19,-20});
+MotorGroup pooksterLeft({-16,17,-18,19,-20});
+MotorGroup pooksterRight({-11,12,-13,14,-15});
 
 // IMU imu(10);
 
@@ -31,11 +31,11 @@ pros::Rotation right(10);
 pros::Rotation back(9);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(&left, 2.75, -7);
-shulib::OdomUnit rightOdom(&right,2.75, 7);
-shulib::OdomUnit backOdom(&back, 2.75, 3.0);
+shulib::OdomUnit leftOdom(&left, 2.75, -6.5);
+shulib::OdomUnit rightOdom(&right,2.75, 6.5);
+shulib::OdomUnit backOdom(&back, 2.75, 2.5);
 
-shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15.25, 3.25, 400); //trackwidth, wheeldiameter, rpm
+shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.25, 400); //trackwidth, wheeldiameter, rpm
 
 shulib::OdomSensors sensors(&leftOdom,  // left odom unit
                             &rightOdom, // right odom unit
@@ -44,7 +44,7 @@ shulib::OdomSensors sensors(&leftOdom,  // left odom unit
 );
 shulib::Chassis chassis(drivetrain, sensors);
 
-pros::IMU imu(8);
+pros::IMU imu(6);
 
 /* shulib::XDrive fifteenDriveTrain(frontLeft, frontRight, backLeft,
 backRight, 2.25, 200, 2);
@@ -289,7 +289,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(2,0.3,0.1);
+    PID rotationPID(2,0.75,0.0475);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -651,7 +651,10 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  limitedIntake(10000, 1);
+  chassis.setPose(0,0,0);
+
+  rotate_to(90);
+  pros::delay(100);
 
 
   //MOVEMENT ROUTINE

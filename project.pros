@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "Black Pearl",
+    "project_name": "newThing",
     "target": "v5",
     "templates": {
       "kernel": {
@@ -256,7 +256,7 @@
     },
     "upload_options": {
       "description": "driving code",
-      "slot": 1,
+      "slot": 3,
       "icon": "pizza"
     },
     "use_early_access": false
