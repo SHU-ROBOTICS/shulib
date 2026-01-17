@@ -58,7 +58,7 @@ pros::adi::Pneumatics lever('C', false);
 
 pros::MotorGroup intake{2, -3};
 pros::MotorGroup conveyor{4, -5};
-pros::Motor releaser(6);
+pros::Motor releaser(-6);
 pros::Motor test(7);
 
 int toggleCount = 0;
