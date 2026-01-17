@@ -56,9 +56,10 @@ bool wallStakeMode = false;
 pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 
-pros::Motor testOne(2);
-pros::Motor testTwo(3);
-pros::Motor releaser(4);
+pros::MotorGroup intake{2, -3};
+pros::MotorGroup conveyor{4, -5};
+pros::Motor releaser(6);
+pros::Motor test(7);
 
 int toggleCount = 0;
 
@@ -851,26 +852,26 @@ void autonomous() {
 void pooksterControls() {
 
   if (master.get_digital(DIGITAL_R1)) {
-    testOne.move(127);
+    intake.move(127);
   } else {
     if (master.get_digital(DIGITAL_R2)) {
-      testOne.move(-127);
+      intake.move(-127);
     } else {
-      testOne.move(0);
+      intake.move(0);
     }
   }
 
   if (master.get_digital(DIGITAL_L1)) {
-    testTwo.move(127);
+    conveyor.move(127);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      testTwo.move(-127);
+      conveyor.move(-127);
     } else {
-      testTwo.move(0);
+      conveyor.move(0);
     }
   }
 
-  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
+  if (master.get_digital_new_press(DIGITAL_DOWN)) {
     if(toggleCount == 0){
       toggleCount++;
       releaser.move(127);
@@ -879,21 +880,11 @@ void pooksterControls() {
       releaser.move(0);
     }
   } 
- 
-  if(master.get_digital_new_press(DIGITAL_Y)){
-    if(lever.is_extended()){
-      lever.retract();
-    } else {
-      lever.extend();
-    }
-  }
 
-  if(master.get_digital_new_press(DIGITAL_LEFT)){
-    if(arm.is_extended()){
-      arm.retract();
-    } else {
-      arm.extend();
-    }
+  if (master.get_digital(DIGITAL_Y)) {
+    test.move(127);
+  } else {
+    test.move(0);
   }
  
 }
