@@ -59,7 +59,7 @@ pros::adi::Pneumatics lever('C', false);
 pros::MotorGroup intake{2, -3};
 pros::MotorGroup conveyor{4, -5};
 pros::Motor releaser(-6);
-pros::Motor test(7);
+pros::Motor test(-7);
 
 int toggleCount = 0;
 
@@ -874,17 +874,17 @@ void pooksterControls() {
   if (master.get_digital_new_press(DIGITAL_DOWN)) {
     if(toggleCount == 0){
       toggleCount++;
-      releaser.move(127);
+      test.move(127);
     } else {
       toggleCount = 0;
-      releaser.move(0);
+      test.move(0);
     }
   } 
 
   if (master.get_digital(DIGITAL_Y)) {
-    test.move(127);
+    releaser.move(127);
   } else {
-    test.move(0);
+    releaser.move(0);
   }
  
 }
