@@ -23,7 +23,6 @@ Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterLeft({-16,17,-18,19,-20});
 MotorGroup pooksterRight({-11,12,-13,14,-15});
-
 // IMU imu(10);
 
 pros::Rotation left(-8);
@@ -57,10 +56,9 @@ bool wallStakeMode = false;
 pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 
-pros::MotorGroup intake{-1,2};
-pros::MotorGroup lowerConveyor{-3, 4};
-pros::Motor upperConveyor{-5};
-pros::Motor releaser(21);
+pros::Motor testOne(2);
+pros::Motor testTwo(3);
+pros::Motor releaser(4);
 
 int toggleCount = 0;
 
@@ -86,7 +84,7 @@ void initialize() {
 
   shulib::setXCorrectionFactor(1);
   shulib::setYCorrectionFactor(1);
-  shulib::setThetaCorrectionFactor(0.95);
+  shulib::setThetaCorrectionFactor(1);
 
   logger().log("IMU calibrated!");
   logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -217,7 +215,7 @@ void rotation_calibration() {
   logger().log("Correction factor: " + std::to_string(correctionFactor));
 }
 
-void limitedIntake(int n, int reverse) {
+/*void limitedIntake(int n, int reverse) {
   intake.move(-127 * reverse);
   pros::delay(n);
   intake.move(0);
@@ -251,7 +249,7 @@ void limitedCombo(void* n){
   lowerConveyor.move(0);
   upperConveyor.move(0);
   intake.move(0);
-}
+}*/
 
 
 void rotate_to(double target_angle) {
@@ -289,7 +287,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(2,0.75,0.0475);
+    PID rotationPID(1,0.4,0);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -499,7 +497,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
 
       chassis.drive(0, forwardOutput, 0);
 
-      if (intaking) intake.move(127);
+      //if (intaking) intake.move(127);
       log_counter++;
       if (log_counter % 25 == 0) {
           logger().log("error_rotation: " + std::to_string(angle_error) +
@@ -512,7 +510,7 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   }
 
   chassis.drive(0, 0, 0);
-  if (intaking) limitedIntake(500, 1);
+  //if (intaking) limitedIntake(500, 1);
 
   logger().log("Move to pose complete");
 }
@@ -590,12 +588,12 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     chassis.drive(0, forwardOutput,0);
 
      if(intaking){
-        intake.move(-127);
+       // intake.move(-127);
      }
 
      if(conv){
-        lowerConveyor.move(-127);
-        upperConveyor.move(-127);
+        //lowerConveyor.move(-127);
+        //upperConveyor.move(-127);
      }
 
     log_counter++;
@@ -613,12 +611,12 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   chassis.drive(0, 0, 0);
 
   if (intaking) {
-    intake.move(0);
+    //intake.move(0);
   }
 
   if(conv){
-    lowerConveyor.move(-127);
-    upperConveyor.move(-127);
+    //lowerConveyor.move(-127);
+    //upperConveyor.move(-127);
   }
 
 
@@ -853,37 +851,34 @@ void autonomous() {
 void pooksterControls() {
 
   if (master.get_digital(DIGITAL_R1)) {
-    intake.move(127);
-    lowerConveyor.move(127);
+    testOne.move(127);
   } else {
     if (master.get_digital(DIGITAL_R2)) {
-      intake.move(-127);
-      lowerConveyor.move(-127);
+      testOne.move(-127);
     } else {
-      intake.move(0);
-      lowerConveyor.move(0);
+      testOne.move(0);
     }
   }
 
   if (master.get_digital(DIGITAL_L1)) {
-    upperConveyor.move(127);
+    testTwo.move(127);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      upperConveyor.move(-127);
+      testTwo.move(-127);
     } else {
-      upperConveyor.move(0);
+      testTwo.move(0);
     }
   }
 
-  if (master.get_digital(DIGITAL_RIGHT)) {
-    releaser.move(127);
-  } else {
-    if (master.get_digital(DIGITAL_RIGHT)) {
-      releaser.move(-127);
+  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
+    if(toggleCount == 0){
+      toggleCount++;
+      releaser.move(127);
     } else {
+      toggleCount = 0;
       releaser.move(0);
     }
-  }
+  } 
  
   if(master.get_digital_new_press(DIGITAL_Y)){
     if(lever.is_extended()){

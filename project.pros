@@ -256,7 +256,7 @@
     },
     "upload_options": {
       "description": "driving code",
-      "slot": 3,
+      "slot": 4,
       "icon": "pizza"
     },
     "use_early_access": false
