@@ -21,8 +21,8 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterLeft({-16,17,-18,19,-20});
-MotorGroup pooksterRight({-11,12,-13,14,-15});
+MotorGroup pooksterRight({11, -13, 15, -17, 19});
+MotorGroup pooksterLeft({12, -14, 16, -18, 20});
 // IMU imu(10);
 
 pros::Rotation left(-8);
@@ -56,9 +56,9 @@ bool wallStakeMode = false;
 pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 
-pros::Motor testOne(2);
-pros::Motor testTwo(3);
-pros::Motor releaser(4);
+pros::MotorGroup intake{-6, 7};
+pros::MotorGroup conveyor{2, -3, -4, 5};
+pros::Motor releaser(1);
 
 int toggleCount = 0;
 
@@ -287,7 +287,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1,0.5,0.02);
+    PID rotationPID(1,0.3,0.001);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -297,7 +297,7 @@ void rotate_to(double target_angle) {
       while (error < -181)
         error += 360;
 
-      double rotationOutput = rotationPID.update(error, 0.005);
+      double rotationOutput = rotationPID.update(error, 0.001);
 
       // Ramp up speed gradually
       /*if (currentMaxSpeed < MAX_ROTATION) {
@@ -652,7 +652,6 @@ void autonomous() {
   chassis.setPose(0,0,0);
 
   rotate_to(90);
-  pros::delay(100);
 
 
   //MOVEMENT ROUTINE
@@ -851,26 +850,29 @@ void autonomous() {
 void pooksterControls() {
 
   if (master.get_digital(DIGITAL_R1)) {
-    testOne.move(127);
+    intake.move(-127);
+    conveyor.move(-127);
   } else {
-    if (master.get_digital(DIGITAL_R2)) {
-      testOne.move(-127);
+    if (master.get_digital(DIGITAL_L1)) {
+      intake.move(127);
+      conveyor.move(127);
     } else {
-      testOne.move(0);
+      intake.move(0);
+      conveyor.move(0);
     }
   }
 
-  if (master.get_digital(DIGITAL_L1)) {
-    testTwo.move(127);
+  if (master.get_digital(DIGITAL_R2)) {
+    releaser.move(127);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      testTwo.move(-127);
+      releaser.move(-127);
     } else {
-      testTwo.move(0);
+      releaser.move(0);
     }
   }
 
-  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
+  /*if (master.get_digital_new_press(DIGITAL_RIGHT)) {
     if(toggleCount == 0){
       toggleCount++;
       releaser.move(127);
@@ -894,7 +896,7 @@ void pooksterControls() {
     } else {
       arm.extend();
     }
-  }
+  }*/
  
 }
  
