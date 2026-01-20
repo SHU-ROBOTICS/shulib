@@ -872,7 +872,7 @@ void pooksterControls() {
     }
   }
 
-  /*if (master.get_digital_new_press(DIGITAL_RIGHT)) {
+  if (master.get_digital_new_press(DIGITAL_RIGHT)) {
     if(toggleCount == 0){
       toggleCount++;
       releaser.move(127);
@@ -882,7 +882,7 @@ void pooksterControls() {
     }
   } 
  
-  if(master.get_digital_new_press(DIGITAL_Y)){
+  if(master.get_digital_new_press(DIGITAL_LEFT)){
     if(lever.is_extended()){
       lever.retract();
     } else {
@@ -890,13 +890,13 @@ void pooksterControls() {
     }
   }
 
-  if(master.get_digital_new_press(DIGITAL_LEFT)){
+  if(master.get_digital_new_press(DIGITAL_Y)){
     if(arm.is_extended()){
       arm.retract();
     } else {
       arm.extend();
     }
-  }*/
+  }
  
 }
  
