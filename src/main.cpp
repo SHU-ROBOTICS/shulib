@@ -32,7 +32,7 @@ pros::Rotation back(9);
 
 shulib::OdomUnit leftOdom(&left, 2.75, -6.5);
 shulib::OdomUnit rightOdom(&right,2.75, 6.5);
-shulib::OdomUnit backOdom(&back, 2.75, 0);
+shulib::OdomUnit backOdom(&back, 2.75, -4.0);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.25, 400); //trackwidth, wheeldiameter, rpm
 
@@ -262,8 +262,8 @@ void rotate_to(double target_angle) {
                " Y: " + std::to_string(startPose.y) +
                " Theta: " + std::to_string(startPose.theta));
 
-  const double MIN_ROTATION = 25.0; // Minimum rotation power
-  const double MAX_ROTATION = 50.0; // Maximum rotation power
+  const double MIN_ROTATION = 30.0; // Minimum rotation power
+  const double MAX_ROTATION = 75.0; // Maximum rotation power
   const double ACCEL_RATE = 2.0;    // How fast to ramp up rotation speed
   double DECEL_ANGLE = fabs(target_angle) - 45;  // Start slowing down when within this angle
 
@@ -287,7 +287,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1,0.3,0.001);
+    PID rotationPID(20,0,0);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
