@@ -8,236 +8,230 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
-#include <vector>
-#include <string>
 
 namespace shulib::seasons::pushback::auton {
-
-// ─────────────────────────────────────────────────────────────
-// Motor Configuration
-// Due to inconsistent physical mounting, different operations
-// require different port sign configurations:
-//
-// FORWARD: Left {-12,-14,-16,-18,-20}, Right {11,13,15,17,19}
-// TURNING: Left {-12, 14, 16, 18, 20}, Right {11,13,15,17,19}
-// ─────────────────────────────────────────────────────────────
-
-// Motor groups for FORWARD motion
-pros::MotorGroup leftForward({-12, -14, -16, -18, -20});
-pros::MotorGroup rightForward({11, 13, 15, 17, 19});
-
-// Motor groups for TURNING (only left side changes)
-pros::MotorGroup leftTurn({-12, 14, 16, 18, 20});
-pros::MotorGroup rightTurn({11, 13, 15, 17, 19});
-
-// Helper: Drive forward/backward using FORWARD config
-void driveForward(int power) {
-    leftForward.move(power);
-    rightForward.move(power);
-}
-
-// Helper: Stop forward motors
-void stopForward() {
-    leftForward.move(0);
-    rightForward.move(0);
-}
-
-// Helper: Turn using TURN config (positive = turn right/clockwise)
-void driveTurn(int power) {
-    leftTurn.move(power);
-    rightTurn.move(-power);
-}
-
-// Helper: Stop turn motors
-void stopTurn() {
-    leftTurn.move(0);
-    rightTurn.move(0);
-}
 
 // ─────────────────────────────────────────────────────────────
 // Motion Functions
 // ─────────────────────────────────────────────────────────────
 
-void rotateTo(Chassis& chassis, double target_angle) {
-    printf("=== ROTATE TO %.1f deg ===\n", target_angle);
+void rotateTo(Chassis& chassis, double target_angle_deg) {
+    printf("=== ROTATE TO %.1f deg ===\n", target_angle_deg);
     fflush(stdout);
     
-    const double MIN_ROTATION = 30.0;
-    const double MAX_ROTATION = 60.0;
-    const double TOLERANCE = 3.0;  // degrees
+    const double MIN_POWER = 20.0;
+    const double MAX_POWER = 50.0;
+    const double TOLERANCE = 2.0;
+    const int TIMEOUT = 2000;  // Reduced from 3000
 
-    PID rotationPID(1.2, 0.1, 0.05);
-
-    int iterations = 0;
-    const int MAX_ITERATIONS = 600;  // 3 sec timeout
+    PID turnPID(1.5, 0.01, 0.15);
     
-    double error;
-    do {
-        // Get current angle in degrees
-        double currentTheta = radToDeg(chassis.getPose().theta);
-        error = target_angle - currentTheta;
+    int elapsed = 0;
+    int settleCount = 0;
+    int stallCount = 0;
+    double lastAngle = chassis.getPose().theta;
+    
+    while (elapsed < TIMEOUT) {
+        double currentAngle = chassis.getPose().theta;
+        double error = target_angle_deg - currentAngle;
         
-        // Normalize to [-180, 180]
+        // Normalize error to [-180, 180]
         while (error > 180) error -= 360;
         while (error < -180) error += 360;
-
-        double output = rotationPID.update(error, 0.005);
-        output = std::clamp(output, -MAX_ROTATION, MAX_ROTATION);
-
-        // Apply minimum power if error is significant
-        if (fabs(output) < MIN_ROTATION && fabs(error) > 1.0) {
-            output = (error > 0) ? MIN_ROTATION : -MIN_ROTATION;
-        }
-
-        // Use TURN motor configuration
-        driveTurn(output);
         
-        pros::delay(5);
-        iterations++;
-        
-        if (iterations % 100 == 0) {
-            printf("  Rotating: current=%.1f target=%.1f error=%.1f\n", 
-                   currentTheta, target_angle, error);
-            fflush(stdout);
+        // Check if settled
+        if (fabs(error) < TOLERANCE) {
+            settleCount++;
+            if (settleCount > 5) break;  // 50ms settle time
+        } else {
+            settleCount = 0;
         }
         
-    } while (fabs(error) > TOLERANCE && iterations < MAX_ITERATIONS);
-
-    stopTurn();
+        // Stall detection - if angle hasn't changed much in 300ms, exit
+        if (fabs(currentAngle - lastAngle) < 0.5) {
+            stallCount++;
+            if (stallCount > 30) {
+                printf("  (stall detected)\n");
+                break;
+            }
+        } else {
+            stallCount = 0;
+            lastAngle = currentAngle;
+        }
+        
+        double power = turnPID.update(error, 0.01);
+        power = std::clamp(power, -MAX_POWER, MAX_POWER);
+        
+        // Apply minimum power for errors > 5 degrees
+        if (fabs(power) < MIN_POWER && fabs(error) > 5.0) {
+            power = (error > 0) ? MIN_POWER : -MIN_POWER;
+        }
+        
+        // Zero power when very close (prevents oscillation)
+        if (fabs(error) < TOLERANCE) {
+            power = 0;
+        }
+        
+        chassis.drive(0, 0, power);
+        
+        pros::delay(10);
+        elapsed += 10;
+    }
     
-    double finalTheta = radToDeg(chassis.getPose().theta);
-    printf("=== ROTATE COMPLETE: %.1f deg (error=%.1f) ===\n", finalTheta, error);
+    chassis.drive(0, 0, 0);
+    
+    double finalAngle = chassis.getPose().theta;
+    printf("=== ROTATE DONE: %.1f deg (target was %.1f) ===\n", finalAngle, target_angle_deg);
     fflush(stdout);
 }
 
-void moveVertical(Chassis& chassis, double distance_inches, 
+void moveVertical(Chassis& chassis, double distance_inches,
                   Mechanisms* mech, bool intaking, bool conveyor) {
-    printf("=== MOVE VERTICAL %.1f inches ===\n", distance_inches);
+    printf("=== MOVE %.1f inches ===\n", distance_inches);
     fflush(stdout);
-
-    chassis.setPose(0, 0, 0);  // Reset for distance tracking
-    pros::delay(50);
-
-    double target_distance = std::abs(distance_inches);
+    
+    Pose start = chassis.getPose();
+    double target = fabs(distance_inches);
     int direction = (distance_inches >= 0) ? 1 : -1;
     
-    const double MAX_OUTPUT = 60.0;
-    const double MIN_OUTPUT = 25.0;
-
-    PID linearPID(8, 1.5, 0.2);
-    PID headingPID(2, 0, 0);  // Keep straight
-
-    int iterations = 0;
-    const int MAX_ITERATIONS = 1000;  // 5 sec timeout
+    const double MAX_POWER = 60.0;
+    const double MIN_POWER = 20.0;
+    const double TOLERANCE = 1.0;  // Increased from 0.5 for faster exit
+    const int TIMEOUT = 4000;
     
-    double totalDistance = 0;
-    Pose lastPose = chassis.getPose();
+    PID drivePID(5.0, 0.05, 0.2);  // Increased P gain
+    PID headingPID(1.0, 0, 0);
     
-    while (totalDistance < target_distance && iterations < MAX_ITERATIONS) {
-        Pose currentPose = chassis.getPose();
+    double startHeading = start.theta;
+    
+    int elapsed = 0;
+    int settleCount = 0;
+    int stallCount = 0;
+    double lastTraveled = 0;
+    
+    while (elapsed < TIMEOUT) {
+        Pose current = chassis.getPose();
+        double dx = current.x - start.x;
+        double dy = current.y - start.y;
+        double traveled = sqrt(dx*dx + dy*dy);
+        double remaining = target - traveled;
         
-        // Calculate distance traveled since last iteration
-        double dx = currentPose.x - lastPose.x;
-        double dy = currentPose.y - lastPose.y;
-        totalDistance += sqrt(dx*dx + dy*dy);
-        lastPose = currentPose;
-        
-        double remaining = target_distance - totalDistance;
-        
-        // Linear output
-        double linearOutput = linearPID.update(remaining, 0.005);
-        linearOutput = std::clamp(linearOutput, -MAX_OUTPUT, MAX_OUTPUT);
-        
-        if (fabs(linearOutput) < MIN_OUTPUT && remaining > 1.0) {
-            linearOutput = (linearOutput >= 0) ? MIN_OUTPUT : -MIN_OUTPUT;
+        // Exit if close enough
+        if (remaining < TOLERANCE) {
+            settleCount++;
+            if (settleCount > 5) break;  // 50ms settle
+        } else {
+            settleCount = 0;
         }
         
-        linearOutput *= direction;
+        // Stall detection - if position hasn't changed in 300ms, exit
+        if (fabs(traveled - lastTraveled) < 0.1) {
+            stallCount++;
+            if (stallCount > 30) {
+                printf("  (stall detected at %.1f inches)\n", traveled);
+                break;
+            }
+        } else {
+            stallCount = 0;
+            lastTraveled = traveled;
+        }
         
-        // Heading correction (keep straight)
-        double headingError = radToDeg(currentPose.theta);
-        double headingCorrection = headingPID.update(-headingError, 0.005);
-        headingCorrection = std::clamp(headingCorrection, -15.0, 15.0);
+        // Calculate drive power
+        double power = drivePID.update(remaining, 0.01);
+        power = std::clamp(power, -MAX_POWER, MAX_POWER);
         
-        // Apply to FORWARD motor configuration with heading correction
-        leftForward.move(linearOutput + headingCorrection);
-        rightForward.move(linearOutput - headingCorrection);
-
+        // Apply minimum power for distances > 3 inches
+        if (power < MIN_POWER && remaining > 3.0) {
+            power = MIN_POWER;
+        }
+        
+        power *= direction;
+        
+        // Heading correction
+        double currentHeading = current.theta;
+        double headingError = startHeading - currentHeading;
+        while (headingError > 180) headingError -= 360;
+        while (headingError < -180) headingError += 360;
+        
+        double turnCorrection = headingPID.update(headingError, 0.01);
+        turnCorrection = std::clamp(turnCorrection, -10.0, 10.0);
+        
+        chassis.drive(0, power, turnCorrection);
+        
         if (mech != nullptr) {
             if (intaking) mech->intakeIn();
             if (conveyor) mech->conveyorUp();
         }
         
-        pros::delay(5);
-        iterations++;
-        
-        if (iterations % 100 == 0) {
-            printf("  Moving: traveled=%.1f remaining=%.1f\n", totalDistance, remaining);
-            fflush(stdout);
-        }
+        pros::delay(10);
+        elapsed += 10;
     }
-
-    stopForward();
-
+    
+    chassis.drive(0, 0, 0);
+    
     if (mech != nullptr) {
         mech->intakeStop();
         mech->conveyorStop();
     }
     
-    Pose finalPose = chassis.getPose();
-    printf("=== MOVE COMPLETE: traveled=%.1f, X=%.1f Y=%.1f ===\n", 
-           totalDistance, finalPose.x, finalPose.y);
+    Pose end = chassis.getPose();
+    double edx = end.x - start.x;
+    double edy = end.y - start.y;
+    double totalTraveled = sqrt(edx*edx + edy*edy);
+    printf("=== MOVE DONE: %.1f inches ===\n", totalTraveled);
     fflush(stdout);
 }
 
-void moveToPose(Chassis& chassis, Pose target_pose,
+void moveToPose(Chassis& chassis, Pose target,
                 Mechanisms* mech, bool reverse, bool intaking, bool conveyor) {
+    printf("=== MOVE TO POSE (%.1f, %.1f) ===\n", target.x, target.y);
+    fflush(stdout);
+    
     Pose current = chassis.getPose();
     
-    // Calculate angle to target
-    double dx = target_pose.x - current.x;
-    double dy = target_pose.y - current.y;
-    double angleToTarget = radToDeg(atan2(dy, dx));
+    double dx = target.x - current.x;
+    double dy = target.y - current.y;
+    double angleToTarget = atan2(dx, dy) * 180.0 / M_PI;
     
-    // Turn to face target
+    if (reverse) {
+        angleToTarget += 180;
+        while (angleToTarget > 180) angleToTarget -= 360;
+    }
+    
     rotateTo(chassis, angleToTarget);
-    pros::delay(100);
+    pros::delay(50);  // Brief pause between turn and drive
     
-    // Drive to target
     double distance = sqrt(dx*dx + dy*dy);
+    if (reverse) distance = -distance;
     moveVertical(chassis, distance, mech, intaking, conveyor);
     
-    // Turn to final heading if specified
-    if (target_pose.theta != 0) {
-        rotateTo(chassis, target_pose.theta);
+    if (target.theta != 0) {
+        rotateTo(chassis, target.theta);
     }
+    
+    printf("=== MOVE TO POSE DONE ===\n");
+    fflush(stdout);
 }
 
 void positionReset(Chassis& chassis) {
-    pros::delay(100);
+    pros::delay(50);
     float theta = chassis.getPose().theta;
     chassis.setPose(0, 0, theta);
-    pros::delay(100);
+    pros::delay(50);
 }
 
 // ─────────────────────────────────────────────────────────────
-// Autonomous Routines
+// Autonomous Selector
 // ─────────────────────────────────────────────────────────────
 
 void run(Chassis& chassis, const RobotConfig& config) {
-    printf("\n\n=============================\n");
-    printf("AUTONOMOUS STARTING\n");
-    printf("Robot: %s\n", config.name.c_str());
+    printf("\n=============================\n");
+    printf("AUTONOMOUS: %s\n", config.name.c_str());
     printf("=============================\n\n");
     fflush(stdout);
     
     Mechanisms mech(config.mechanisms);
-    
-    // Set brake mode on all motors
-    leftForward.set_brake_mode_all(pros::E_MOTOR_BRAKE_HOLD);
-    rightForward.set_brake_mode_all(pros::E_MOTOR_BRAKE_HOLD);
-    leftTurn.set_brake_mode_all(pros::E_MOTOR_BRAKE_HOLD);
-    rightTurn.set_brake_mode_all(pros::E_MOTOR_BRAKE_HOLD);
+    chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
 
     #if defined(AUTON_SKILLS)
         skills(chassis, mech);
@@ -261,100 +255,94 @@ void run(Chassis& chassis, const RobotConfig& config) {
     fflush(stdout);
 }
 
+// ─────────────────────────────────────────────────────────────
+// Autonomous Routines
+// ─────────────────────────────────────────────────────────────
+
 void skills(Chassis& chassis, Mechanisms& mech) {
-    printf("Running Skills\n");
+    printf("Running Skills Autonomous\n");
     fflush(stdout);
     
     chassis.setPose(0, 0, 0);
     
-    // Example skills routine
     moveVertical(chassis, 24, nullptr, false, false);
     rotateTo(chassis, 90);
     moveVertical(chassis, 24, nullptr, false, false);
+    rotateTo(chassis, 180);
+    moveVertical(chassis, 24, nullptr, false, false);
+    rotateTo(chassis, 270);
+    moveVertical(chassis, 24, nullptr, false, false);
+    rotateTo(chassis, 0);
 }
 
 void redLeft(Chassis& chassis, Mechanisms& mech) {
-    printf("Running Red Left\n");
+    printf("Running Red Left Autonomous\n");
+    fflush(stdout);
     chassis.setPose(0, 0, 0);
 }
 
 void redRight(Chassis& chassis, Mechanisms& mech) {
-    printf("Running Red Right\n");
+    printf("Running Red Right Autonomous\n");
+    fflush(stdout);
     chassis.setPose(0, 0, 0);
 }
 
 void blueLeft(Chassis& chassis, Mechanisms& mech) {
-    printf("Running Blue Left\n");
+    printf("Running Blue Left Autonomous\n");
+    fflush(stdout);
     chassis.setPose(0, 0, 0);
 }
 
 void blueRight(Chassis& chassis, Mechanisms& mech) {
-    printf("Running Blue Right\n");
+    printf("Running Blue Right Autonomous\n");
+    fflush(stdout);
     chassis.setPose(0, 0, 0);
 }
 
 void test(Chassis& chassis, Mechanisms& mech) {
-    printf("=== DUAL-CONFIG MOTION TEST ===\n");
-    printf("Forward uses: L={-12,-14,-16,-18,-20} R={11,13,15,17,19}\n");
-    printf("Turning uses: L={-12, 14, 16, 18, 20} R={11,13,15,17,19}\n\n");
+    printf("=== CHASSIS.DRIVE() TEST ===\n\n");
     fflush(stdout);
     
-    // Test 1: Forward
-    printf("TEST 1: Drive forward 24 inches\n");
-    fflush(stdout);
     chassis.setPose(0, 0, 0);
-    pros::delay(200);
+    pros::delay(100);
     
+    // Test 1: Forward 24 inches
+    printf("Test 1: Forward 24 inches\n");
+    fflush(stdout);
     moveVertical(chassis, 24, nullptr, false, false);
     
     Pose p1 = chassis.getPose();
-    printf("Result: X=%.1f Y=%.1f Theta=%.1f deg\n\n", p1.x, p1.y, radToDeg(p1.theta));
+    printf("Result: X=%.1f Y=%.1f Theta=%.1f\n\n", p1.x, p1.y, p1.theta);
     fflush(stdout);
-    pros::delay(500);
+    pros::delay(200);  // Reduced from 500
     
-    // Test 2: Turn 90
-    printf("TEST 2: Turn to 90 degrees\n");
+    // Test 2: Turn 90 degrees
+    printf("Test 2: Turn to 90 degrees\n");
     fflush(stdout);
-    chassis.setPose(0, 0, 0);
-    pros::delay(200);
-    
     rotateTo(chassis, 90);
     
     Pose p2 = chassis.getPose();
-    printf("Result: Theta=%.1f deg (expected 90)\n\n", radToDeg(p2.theta));
+    printf("Result: Theta=%.1f (expected ~90)\n\n", p2.theta);
     fflush(stdout);
-    pros::delay(500);
-    
-    // Test 3: Turn back to 0
-    printf("TEST 3: Turn back to 0 degrees\n");
-    fflush(stdout);
-    
-    rotateTo(chassis, 0);
-    
-    Pose p3 = chassis.getPose();
-    printf("Result: Theta=%.1f deg (expected 0)\n\n", radToDeg(p3.theta));
-    fflush(stdout);
-    pros::delay(500);
-    
-    // Test 4: Square
-    printf("TEST 4: Square pattern\n");
-    fflush(stdout);
-    chassis.setPose(0, 0, 0);
     pros::delay(200);
     
-    for (int i = 0; i < 4; i++) {
-        printf("Side %d: forward 12in, turn to %d deg\n", i+1, (i+1)*90);
-        fflush(stdout);
-        moveVertical(chassis, 12, nullptr, false, false);
-        pros::delay(200);
-        rotateTo(chassis, (i + 1) * 90);
-        pros::delay(200);
-    }
+    // Test 3: Forward another 24 inches
+    printf("Test 3: Forward 24 inches\n");
+    fflush(stdout);
+    moveVertical(chassis, 24, nullptr, false, false);
     
-    Pose pFinal = chassis.getPose();
-    printf("\nFinal: X=%.1f Y=%.1f Theta=%.1f deg\n", 
-           pFinal.x, pFinal.y, radToDeg(pFinal.theta));
-    printf("(Should be near 0,0 if square was accurate)\n\n");
+    Pose p3 = chassis.getPose();
+    printf("Result: X=%.1f Y=%.1f\n\n", p3.x, p3.y);
+    fflush(stdout);
+    pros::delay(200);
+    
+    // Test 4: Turn back to 0
+    printf("Test 4: Turn to 0 degrees\n");
+    fflush(stdout);
+    rotateTo(chassis, 0);
+    
+    Pose p4 = chassis.getPose();
+    printf("Result: Theta=%.1f (expected ~0)\n\n", p4.theta);
     fflush(stdout);
     
     printf("=== TEST COMPLETE ===\n");

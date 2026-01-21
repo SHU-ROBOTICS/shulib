@@ -9,42 +9,49 @@ namespace robots {
 /**
  * @brief TestBot Robot Configuration
  * 
- * Drivetrain: 10-motor tank drive
+ * Drivetrain: 10-motor tank drive (5 per side)
  * Tracking: 3-wheel odometry (no IMU)
  * 
- * NOTE: This config is optimized for FORWARD motion in opcontrol.
- * The autonomous routines in auton.cpp use direct motor control
- * with different port signs for forward vs turning operations.
+ * Motor Layout (physically stacked, alternating directions):
+ * 
+ *   RIGHT SIDE (11-15):         LEFT SIDE (16-20):
+ *     Port 11: Forward  → +       Port 16: Backward → -
+ *     Port 12: Backward → -       Port 17: Forward  → +
+ *     Port 13: Forward  → +       Port 18: Backward → -
+ *     Port 14: Backward → -       Port 19: Forward  → +
+ *     Port 15: Forward  → +       Port 20: Backward → -
+ * 
+ * TESTED AND WORKING: 2026-01-21
  */
 inline const RobotConfig TESTBOT = {
     "TestBot",
 
     DrivetrainConfig{
-        {-12, -14, -16, -18, -20},   // Left motors (forward config)
-        {11, 13, 15, 17, 19},        // Right motors
-        15.0,
-        3.25,
-        400
+        {-16, 17, -18, 19, -20},       // Left motors
+        {11, -12, 13, -14, 15},        // Right motors
+        15.0,                           // Track width (inches)
+        3.25,                           // Wheel diameter (inches)
+        400                             // Motor RPM
     },
 
     TrackingConfig{
-        -8,                           // Left tracking port
-        10,                           // Right tracking port
-        9,                            // Back tracking port
-        2.75,                         // Tracking wheel diameter
-        -6.5,                         // Left offset
-        6.5,                          // Right offset
-        0.0                           // Back offset
+        -8,                             // Left tracking port
+        10,                             // Right tracking port
+        9,                              // Back tracking port
+        2.75,                           // Tracking wheel diameter
+        -6.5,                           // Left offset
+        6.5,                            // Right offset
+        0.0                             // Back offset
     },
 
     MechanismConfig{
-        {-6, 7},                      // Intake ports
-        {2, -3, -4, 5},               // Conveyor ports
-        {1},                          // Releaser ports
-        'B',                          // Pneumatic arm port
-        'C',                          // Pneumatic lever port
-        false,                        // Arm default state
-        false                         // Lever default state
+        {-6, 7},                        // Intake ports
+        {2, -3, -4, 5},                 // Conveyor ports
+        {1},                            // Releaser ports
+        'B',                            // Pneumatic arm port
+        'C',                            // Pneumatic lever port
+        false,                          // Arm default state
+        false                           // Lever default state
     }
 };
 
