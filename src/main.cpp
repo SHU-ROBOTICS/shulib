@@ -21,8 +21,8 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterRight({11, -13, 15, -17, 19});
-MotorGroup pooksterLeft({12, -14, 16, -18, 20});
+MotorGroup pooksterRight({-11, 12, -13, 14, -15});
+MotorGroup pooksterLeft({-16, 17, -18, 19, -20});
 // IMU imu(10);
 
 pros::Rotation left(-8);
@@ -32,7 +32,7 @@ pros::Rotation back(9);
 
 shulib::OdomUnit leftOdom(&left, 2.75, -6.5);
 shulib::OdomUnit rightOdom(&right,2.75, 6.5);
-shulib::OdomUnit backOdom(&back, 2.75, 0);
+shulib::OdomUnit backOdom(&back, 2.75, 1);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.25, 400); //trackwidth, wheeldiameter, rpm
 
@@ -250,7 +250,6 @@ void limitedCombo(void* n){
   upperConveyor.move(0);
   intake.move(0);
 }*/
-
 
 void rotate_to(double target_angle) {
   Pose startPose = chassis.getPose();
@@ -650,8 +649,37 @@ void autonomous() {
   // moveVertical();
 
   chassis.setPose(0,0,0);
+  move_vertical(12, false, false);
 
+  pros::delay(1000);
   rotate_to(90);
+
+  pros::delay(100);
+  chassis.setPose(0,0,0);
+
+  pros::delay(1000);
+  rotate_to(90);
+
+  pros::delay(1000);
+  move_vertical(12, false, false);
+
+  // pros::delay(200);
+  // rotate_to(90);
+
+  // pros::delay(200);
+  // rotate_to(0);
+
+  // pros::delay(200);
+  // move_vertical(12, false, false);
+
+  // pros::delay(200);
+  // rotate_to(90);
+
+  // pros::delay(200);
+  // rotate_to(180);
+
+  // pros::delay(200);
+  // move_vertical(12, false, false);
 
 
   //MOVEMENT ROUTINE
