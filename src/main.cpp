@@ -18,9 +18,14 @@
 #elif defined(ROBOT_QUEENS_REVENGE)
     #include "shulib/robots/queens_revenge.hpp"
     const auto& ROBOT = shulib::robots::QUEENS_REVENGE;
+#elif defined(ROBOT_TESTBOT)
+    #include "shulib/robots/testbot.hpp"
+    const auto& ROBOT = shulib::robots::TESTBOT;
 #else
     #error "No robot selected! Uncomment a robot in config.hpp"
 #endif
+
+// ─────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────
 // Global Objects (built from config)

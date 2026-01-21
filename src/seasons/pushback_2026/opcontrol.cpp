@@ -1,22 +1,48 @@
 #include "shulib/seasons/pushback_2026/opcontrol.hpp"
 #include "shulib/seasons/pushback_2026/mechanisms.hpp"
+#include "shulib/seasons/pushback_2026/auton.hpp"
+#include "shulib/core/pose.hpp"
 #include "pros/misc.hpp"
 #include "pros/rtos.hpp"
+#include <cstdio>
 
 namespace shulib::seasons::pushback::opcontrol {
 
 void run(Chassis& chassis, const RobotConfig& config) {
     pros::Controller master(pros::E_CONTROLLER_MASTER);
     Mechanisms mech(config.mechanisms);
+    
+    printf("\n=== OPCONTROL STARTED ===\n");
+    printf("Press A to run autonomous\n");
+    printf("Press B to print position\n\n");
 
     while (true) {
         // ─────────────────────────────────────────────────────────
-        // Drivetrain Control (arcade/tank style)
+        // PRESS A TO RUN AUTONOMOUS (for testing)
+        // ─────────────────────────────────────────────────────────
+        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)) {
+            printf("\n>>> A PRESSED - Running Autonomous <<<\n");
+            master.rumble("-");
+            auton::run(chassis, config);
+            master.rumble(".");
+            printf(">>> Autonomous Complete <<<\n\n");
+        }
+
+        // ─────────────────────────────────────────────────────────
+        // PRESS B TO PRINT POSITION TO TERMINAL
+        // ─────────────────────────────────────────────────────────
+        if (master.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)) {
+            shulib::Pose p = chassis.getPose();
+            printf("Position: X=%.2f  Y=%.2f  Theta=%.2f\n", p.x, p.y, p.theta);
+        }
+
+        // ─────────────────────────────────────────────────────────
+        // Drivetrain Control
         // ─────────────────────────────────────────────────────────
         int horizontal = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_X);
         int vertical = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int turn = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-
+        
         chassis.drive(horizontal, vertical, turn);
 
         // ─────────────────────────────────────────────────────────

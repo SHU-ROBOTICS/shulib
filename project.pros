@@ -1,7 +1,7 @@
 {
   "py/object": "pros.conductor.project.Project",
   "py/state": {
-    "project_name": "QueensRevenge",
+    "project_name": "shulib",
     "target": "v5",
     "templates": {
       "kernel": {

@@ -1,4 +1,5 @@
 #pragma once
+
 #ifdef __cplusplus
 #include "robot_config.hpp"
 
@@ -6,25 +7,26 @@ namespace shulib {
 namespace robots {
 
 /**
- * @brief XEBEC Robot Configuration
+ * @brief TestBot Robot Configuration
  * 
  * Drivetrain: 10-motor tank drive
  * Tracking: 3-wheel odometry (no IMU)
  * 
- * NOTE: All motor ports are negative to reverse direction.
- * This is because of how motors are physically mounted.
+ * NOTE: This config is optimized for FORWARD motion in opcontrol.
+ * The autonomous routines in auton.cpp use direct motor control
+ * with different port signs for forward vs turning operations.
  */
-inline const RobotConfig XEBEC = {
-    "XEBEC",
-    
+inline const RobotConfig TESTBOT = {
+    "TestBot",
+
     DrivetrainConfig{
-        {-12, -14, -16, -18, -20},   // Left motors (all negative)
-        {-11, -13, -15, -17, -19},   // Right motors (all negative)
-        15.0,                         // Track width
-        3.25,                         // Wheel diameter
-        400                           // RPM
+        {-12, -14, -16, -18, -20},   // Left motors (forward config)
+        {11, 13, 15, 17, 19},        // Right motors
+        15.0,
+        3.25,
+        400
     },
-    
+
     TrackingConfig{
         -8,                           // Left tracking port
         10,                           // Right tracking port
@@ -34,7 +36,7 @@ inline const RobotConfig XEBEC = {
         6.5,                          // Right offset
         0.0                           // Back offset
     },
-    
+
     MechanismConfig{
         {-6, 7},                      // Intake ports
         {2, -3, -4, 5},               // Conveyor ports
@@ -48,4 +50,5 @@ inline const RobotConfig XEBEC = {
 
 }  // namespace robots
 }  // namespace shulib
+
 #endif  // __cplusplus
