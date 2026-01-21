@@ -849,26 +849,28 @@ void autonomous() {
 
 void pooksterControls() {
 
-  if (master.get_digital(DIGITAL_R1)) {
-    intake.move(-127);
-    conveyor.move(-127);
-  } else {
-    if (master.get_digital(DIGITAL_L1)) {
-      intake.move(127);
-      conveyor.move(127);
-    } else {
-      intake.move(0);
-      conveyor.move(0);
-    }
-  }
-
-  if (master.get_digital(DIGITAL_R2)) {
-    releaser.move(127);
+  if (master.get_digital(DIGITAL_L1)) {
+    intake.move(127);
+    conveyor.move(127);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      releaser.move(-127);
+      releaser.move(127);
     } else {
-      releaser.move(0);
+      if(master.get_digital(DIGITAL_R1)){
+        intake.move(-127);
+        conveyor.move(-127);
+        releaser.move(-127);
+      } else {
+        if(master.get_digital(DIGITAL_R2)){
+          intake.move(-127);
+          conveyor.move(-127);
+          releaser.move(127);
+        } else {
+          intake.move(0);
+          conveyor.move(0);
+          releaser.move(0);
+        }
+      }
     }
   }
 
