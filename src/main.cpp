@@ -504,7 +504,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(2, 0, 0.085, 25);
+  PID linearPID(3, 0, 0.085, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -512,7 +512,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   bool stopped = false;
 
   int log_counter = 0;
-  while ((total_distance_traveled < target_distance) && !stopped) {
+  while ((total_distance_traveled < target_distance)) {
     Pose current_pose = chassis.getPose();
 
     // Calculate incremental distance traveled
@@ -563,7 +563,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     prevOutput = currentOutput;
     currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
 
-    if(prevOutput - currentOutput <= 200){
+    if(prevOutput - currentOutput >= 25){
       stopped = true;
     }
 
@@ -584,6 +584,8 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
       logger().log("rotation_output: " + std::to_string(rotationOutput) +
                    " forward_output: " + std::to_string(forwardOutput));
     }
+    logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
+
     pros::delay(5);
   }
 
@@ -619,8 +621,8 @@ void autonomous() {
   chassis.setPose(0,0,0);
   pros::delay(50);
 
-  //limitedIntake(2000, 1, -1); REMEMBER THIS: intake timing
-  rotate_to(90);
+  limitedIntake(2000, 1, -1); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
+
 
   //MOVEMENT ROUTINE
 
@@ -872,7 +874,7 @@ void opcontrol() {
                   master.get_analog(ANALOG_RIGHT_X));
     pooksterControls();
 
-    logger().log(std::to_string(pooksterLeft.get_voltage()));
+    logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
  
     // static uint32_t stuckStartTime = 0;
     // int voltage = wallStakeLift.get_voltage();
