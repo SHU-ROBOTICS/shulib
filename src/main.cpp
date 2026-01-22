@@ -55,6 +55,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 bool wallStakeMode = false;
 pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
+pros::adi::Pneumatics solenoid('D', false);
 
 pros::MotorGroup intake{-6, 7};
 pros::MotorGroup conveyor{2, -3, -4, 5};
@@ -260,7 +261,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(0.5,0.15,0.009, 32.5);
+    PID rotationPID(1.05,0.15,0.009, 32.5);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -618,7 +619,8 @@ void autonomous() {
   chassis.setPose(0,0,0);
   pros::delay(50);
 
-  limitedIntake(3000, 1, -1);
+  //limitedIntake(2000, 1, -1); REMEMBER THIS: intake timing
+  rotate_to(90);
 
   //MOVEMENT ROUTINE
 
@@ -841,13 +843,7 @@ void pooksterControls() {
   }
 
   if (master.get_digital_new_press(DIGITAL_RIGHT)) {
-    if(toggleCount == 0){
-      toggleCount++;
-      releaser.move(127);
-    } else {
-      toggleCount = 0;
-      releaser.move(0);
-    }
+      solenoid.toggle();
   } 
  
   if(master.get_digital_new_press(DIGITAL_LEFT)){
