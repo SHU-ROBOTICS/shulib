@@ -3,7 +3,7 @@
 namespace shulib {
 class PID {
     public:
-        PID(float kP, float kI, float kD): kP(kP), kI(kI), kD(kD){}
+        PID(float kP, float kI, float kD, float kC): kP(kP), kI(kI), kD(kD), kC(kC){}
 
         float update(float error, float time);
 
@@ -17,6 +17,7 @@ class PID {
         float kP;
         float kI;
         float kD;
+        float kC;
 
         float integral = 0;
         float prevError = 0;

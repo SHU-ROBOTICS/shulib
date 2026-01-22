@@ -215,41 +215,15 @@ void rotation_calibration() {
   logger().log("Correction factor: " + std::to_string(correctionFactor));
 }
 
-/*void limitedIntake(int n, int reverse) {
+void limitedIntake(int n, int reverse, int releaserMode){
   intake.move(-127 * reverse);
+  conveyor.move(-127 * reverse);
+  releaser.move(50 * releaserMode);
   pros::delay(n);
   intake.move(0);
-}
-
-void limitedConveyor(int n){
-  lowerConveyor.move(127);
-  upperConveyor.move(127);
-  pros::delay(n);
-  lowerConveyor.move(0);
-  upperConveyor.move(0);
-}
-
-void limitedComboFull(int n, int reverse){
-  lowerConveyor.move(127 * reverse);
-  upperConveyor.move(127 * reverse);
-  releaser.move(127 * reverse);
-  intake.move(127 * reverse);
-  pros::delay(n);
-  lowerConveyor.move(0);
-  upperConveyor.move(0);
+  conveyor.move(0);
   releaser.move(0);
-  intake.move(0);
 }
-
-void limitedCombo(void* n){
-  lowerConveyor.move(127);
-  upperConveyor.move(127);
-  intake.move(127);
-  pros::delay((int)n);
-  lowerConveyor.move(0);
-  upperConveyor.move(0);
-  intake.move(0);
-}*/
 
 
 void rotate_to(double target_angle) {
@@ -262,8 +236,7 @@ void rotate_to(double target_angle) {
                " Y: " + std::to_string(startPose.y) +
                " Theta: " + std::to_string(startPose.theta));
 
-  const double MIN_ROTATION = 30.0; // Minimum rotation power
-  const double MAX_ROTATION = 75.0; // Maximum rotation power
+  const double MAX_ROTATION = 100.0; // Maximum rotation power
   const double ACCEL_RATE = 2.0;    // How fast to ramp up rotation speed
   double DECEL_ANGLE = fabs(target_angle) - 45;  // Start slowing down when within this angle
 
@@ -283,11 +256,11 @@ void rotate_to(double target_angle) {
   double currentMaxSpeed = MAX_ROTATION; // Start at minimum speed
 
   // Two-phase control with separate PIDs
-  if (fabs(error) > 1.0) {
+  if (fabs(error) > 0.1) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(20,0,0);
+    PID rotationPID(0.5,0.15,0.009, 32.5);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -321,11 +294,6 @@ void rotate_to(double target_angle) {
           std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
       //rotationOutput *= decelFactor;
 
-      // Ensure minimum power to overcome friction
-      if (fabs(rotationOutput) < MIN_ROTATION && fabs(rotationOutput) > 0.1) {
-        rotationOutput = (rotationOutput > 0) ? MIN_ROTATION : -MIN_ROTATION;
-      }
-
       // Check if we're stuck
       if (fabs(error - lastError) < 0.001) {
         stuckCounter++;
@@ -348,6 +316,7 @@ void rotate_to(double target_angle) {
       }
 
       chassis.drive(0, 0, rotationOutput);
+      logger().log(std::to_string(pooksterLeft.get_voltage()) + " LALALALALALALALA");
       pros::delay(5);
     }
 
@@ -470,8 +439,8 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   const double DECEL_ZONE = 6.0;
 
   double currentMaxSpeed = MIN_OUTPUT;
-  PID linearPID(12, 0.03, 0);
-  PID headingPID(10, 0.005, 0.25);
+  PID linearPID(12, 0.03, 0, 3.5);
+  PID headingPID(10, 0.005, 0.25, 3.5);
 
   int log_counter = 0;
   while (distance > 1) {
@@ -525,7 +494,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double total_distance_traveled = 0;
   double target_distance = std::abs(distance_inches);
 
-  const double MIN_OUTPUT = 20.0;
   const double MAX_OUTPUT = 60.0;
   const double MAX_ROTATION = 10.0;
   const double ACCEL_RATE = 2.0;
@@ -535,11 +503,15 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(10, 2.5, 0.3);
-  PID headingPID(0, 0, 0);
+  PID linearPID(2, 0, 0.085, 25);
+  PID headingPID(0, 0, 0, 0);
+
+  double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
+  double prevOutput;
+  bool stopped = false;
 
   int log_counter = 0;
-  while (total_distance_traveled < target_distance) {
+  while ((total_distance_traveled < target_distance) && !stopped) {
     Pose current_pose = chassis.getPose();
 
     // Calculate incremental distance traveled
@@ -587,13 +559,19 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     chassis.drive(0, forwardOutput,0);
 
+    prevOutput = currentOutput;
+    currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
+
+    if(prevOutput - currentOutput <= 200){
+      stopped = true;
+    }
+
      if(intaking){
-       // intake.move(-127);
+       intake.move(-127);
      }
 
      if(conv){
-        //lowerConveyor.move(-127);
-        //upperConveyor.move(-127);
+        conveyor.move(-127);
      }
 
     log_counter++;
@@ -630,18 +608,6 @@ void positionReset(){
   pros::delay(100);
 }
 
-void oscillation(void* cycles){
-  int i = 0;
-  while(i < int(cycles)){
-    move_vertical(-7, false, false);
-    pros::delay(50);
-    move_vertical(7, false, false);
-    pros::delay(50);   
-
-    i++;
-  }
-}
-
 void autonomous() {
   // test_min_output();
   // MIN_OUTPUT_Y 20
@@ -650,9 +616,9 @@ void autonomous() {
   // moveVertical();
 
   chassis.setPose(0,0,0);
+  pros::delay(50);
 
-  rotate_to(90);
-
+  limitedIntake(3000, 1, -1);
 
   //MOVEMENT ROUTINE
 
@@ -909,6 +875,8 @@ void opcontrol() {
                   master.get_analog(ANALOG_LEFT_Y),
                   master.get_analog(ANALOG_RIGHT_X));
     pooksterControls();
+
+    logger().log(std::to_string(pooksterLeft.get_voltage()));
  
     // static uint32_t stuckStartTime = 0;
     // int voltage = wallStakeLift.get_voltage();
