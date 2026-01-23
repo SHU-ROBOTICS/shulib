@@ -53,7 +53,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 */
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics arm('B', false);
+pros::adi::Pneumatics arm('B', true);
 pros::adi::Pneumatics lever('C', false);
 pros::adi::Pneumatics solenoid('D', false);
 
@@ -605,14 +605,28 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                std::to_string(total_distance_traveled));
 }
 
-void tubeFunction(int time, int power){
-  pooksterLeft.move(power);
-  pooksterRight.move(-power);
-  
-  pros::delay(time);
+struct tubeParams{
+  int time;
+  int power;
+};
 
-  pooksterLeft.move(0);
-  pooksterRight.move(0);
+void tubeFunction(void* params){
+  tubeParams* args = static_cast<tubeParams*>(params);
+
+  int time = args->time;
+  int power = args->power;
+
+  for(int i = 0; i < 6; i++){
+    pooksterLeft.move(power);
+    pooksterRight.move(power * -1);
+    
+    pros::delay(time);
+
+    pooksterLeft.move(0);
+    pooksterRight.move(0);
+
+    pros::delay(time);
+  }
 
 }
 
@@ -631,9 +645,13 @@ void autonomous() {
 
   chassis.setPose(0,0,0);
   pros::delay(50);
-  
-  Task tubeIntakeTask(tubeFunction, (void*)time, 2000); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
 
+  tubeParams* paramsOne = new tubeParams {200, 127 };
+  
+  pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
+  limitedIntake(2400, 1, -1, 100);
+
+  rotate_to(90);
 
   //MOVEMENT ROUTINE
 
