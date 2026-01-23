@@ -53,7 +53,7 @@ shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
 */
 
 bool wallStakeMode = false;
-pros::adi::Pneumatics arm('B', true);
+pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 pros::adi::Pneumatics solenoid('D', false);
 
@@ -261,7 +261,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1.05,0.15,0.009, 32.5);
+    PID rotationPID(1.0,0,0.015, 32.5);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -504,7 +504,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(3, 0, 0.085, 25);
+  PID linearPID(3, 0, 0.5, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -643,206 +643,122 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  chassis.setPose(0,0,0);
+  chassis.setPose(0,0,90);
+  arm.toggle();
   pros::delay(50);
+
+  move_vertical(32, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,90);
+  pros::delay(100);
+
+  rotate_to(180);
+  arm.toggle();
+
+  //INTAKE + SCORE LONG ROUTINE
+  move_vertical(9, false, false);
+  pros::delay(100);
 
   tubeParams* paramsOne = new tubeParams {200, 127 };
   
   pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
-  limitedIntake(2400, 1, -1, 100);
+  limitedIntake(2400, 1, -1, 115);
+
+  move_vertical(-3.5, false, false);
+  pros::delay(100);
+
+  rotate_to(10); //change later
+  pros::delay(100);
+
+  move_vertical(-27.5, false,false);
+  pros::delay(100);
+
+  limitedIntake(2400, -1, 0, 90);
+  pros::delay(100);
+
+  move_vertical(-17, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,90);
+  arm.toggle();
+  pros::delay(100);
 
   rotate_to(90);
-
-  //MOVEMENT ROUTINE
-
-  /*chassis.setPose(0, 0, -180);
   pros::delay(100);
 
-  lever.extend();
-  pros::delay(2000);
-
-  move_vertical(-20, false, false);
+  move_vertical(15, true, true);
   pros::delay(100);
 
-  lever.retract();
+  move_vertical(-15, true, true);
+  pros::delay(100);
+  chassis.setPose(0,0,90);
+  pros::delay(50);
+
+  rotate_to(-45);
   pros::delay(100);
 
-  move_vertical(20, true, true); //look into this later
+  move_vertical(-16, false, false);
   pros::delay(100);
+  chassis.setPose(0,0,-45);
+  pros::delay(50);
 
-  move_vertical(-5, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0,0,-180);
-  rotate_to(-90);
-  pros::delay(100);
-  chassis.setPose(0, 0, -90);
-  pros::delay(100);
-
-  move_vertical(59, true, true);
-  pros::delay(100);
-
-  limitedCombo((void*)1000);
-
-  move_vertical(-14, true, true);
-  pros::delay(100);
-
-  chassis.setPose(0, 0, -90);
-  pros::delay(100);
   rotate_to(0);
   pros::delay(100);
 
-  move_vertical(15, false, false);
-  pros::delay(50);
-
-  limitedComboFull(750, 1);
-
-  move_vertical(-15, false, false);
+  move_vertical(72, false, false);
   pros::delay(100);
-
   chassis.setPose(0,0,0);
+  pros::delay(50);
+
   rotate_to(90);
-  pros::delay(50);
-  chassis.setPose(0, 0, 90);
-  pros::delay(50);
-  rotate_to(180);
-  pros::delay(50);
-  chassis.setPose(0,0,180);
-
-  lever.extend();
-
-  move_vertical(14, false, false);
-  pros::delay(750);
-
-  pros::Task(limitedCombo,(void*)1000);
-  pros::Task(oscillation, (void*)6);
-
-  move_vertical(-14, false, false);
   pros::delay(100);
 
-  lever.retract();
-
-  chassis.setPose(0, 0, 180);
-  pros::delay(50);
-  rotate_to(90);
-  pros::delay(50);
-  chassis.setPose(0, 0, 90);
-  pros::delay(50);
-  rotate_to(0);
-
-  move_vertical(12, false, false);
-  pros::delay(50);
-
-  limitedComboFull(750, 1);
-
-  move_vertical(-15, false, false);
+  move_vertical(41, true, true);
   pros::delay(100);
 
-  chassis.setPose(0, 0, 0);
+  move_vertical(-15, true, true);
   pros::delay(100);
+  chassis.setPose(0,0,90);
+  pros::delay(50);
+
   rotate_to(45);
   pros::delay(100);
-  chassis.setPose(0, 0, 45);
+
+  move_vertical(-48, false, false);
   pros::delay(100);
 
-  move_vertical(29, false, false);
-  pros::delay(100);
+  limitedIntake(2400, 1, 1, 80);
 
-  chassis.setPose(0, 0, 45);
+  move_vertical(48, false, false);
   pros::delay(100);
+  chassis.setPose(0,0,45);
+  pros::delay(50);
+
   rotate_to(0);
   pros::delay(100);
-  chassis.setPose(0, 0, 0);
-  pros::delay(100); 
 
-  move_vertical(44, true, true);
+  arm.toggle();
+  pros::delay(50);
+
+  move_vertical(13, false, false);
+  pros::delay(100);
+  
+  tubeParams* paramsTwo = new tubeParams {200, 127 };
+  
+  pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
+  limitedIntake(2400, 1, -1, 115);
+
+  move_vertical(-3, false, false);
   pros::delay(100);
 
-  chassis.setPose(0, 0, 0);
-  pros::delay(100);
+  arm.toggle();
+  pros::delay(50);
+
   rotate_to(-90);
   pros::delay(100);
-  chassis.setPose(0, 0, -90);
-  pros::delay(100);  
 
-  move_vertical(16, true, true);
-  pros::delay(100);
-
-  move_vertical(-8, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0, 0, -90);
-  pros::delay(50);
-  rotate_to(0);
-  pros::delay(50);
-  chassis.setPose(0, 0, 0);
-  pros::delay(50);
-  rotate_to(45);
-  pros::delay(50);
-
-  move_vertical(15, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0, 0, 45);
-  pros::delay(100);
-  rotate_to(135);
-  pros::delay(100);
-  chassis.setPose(0, 0, 135);
-  pros::delay(100);
-
-  move_vertical(10, false, false);
-  pros::delay(50);
-
-  limitedComboFull(750, -1);
-
-  move_vertical(-12, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0, 0, 135);
-  pros::delay(100);
-  rotate_to(-37.5);
-  pros::delay(100);
-  chassis.setPose(0, 0, -45);
-  pros::delay(100);
-
-  move_vertical(24, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0, 0, -45);
-  pros::delay(100);
-  rotate_to(0);
-  pros::delay(100);
-  chassis.setPose(0, 0, 0);
-  pros::delay(100);
-
-  lever.extend();
-
-  move_vertical(15, false, false);
-  pros::delay(100);
-
-  pros::Task(oscillation, (void*)6);
-  pros::Task(limitedCombo,(void*)700);
-
-  lever.retract();
-
-  move_vertical(-15, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0, 0, 0);
-  pros::delay(50);
-  rotate_to(90);
-  pros::delay(50);
-  chassis.setPose(0, 0, 90);
-  pros::delay(50);
-  rotate_to(180);
-
-  move_vertical(12, false, false);
-  pros::delay(50);
-
-  limitedComboFull(700, 1);
-
-  move_vertical(-15, false, false);
-  pros::delay(100);*/
+  move_vertical(60, false, false);
 
 }
 
