@@ -674,13 +674,14 @@ void autonomous() {
   move_vertical(-27.5, false,false);
   pros::delay(100);
 
-  limitedIntake(2400, -1, 0, 90);
+  limitedIntake(2400, 1, 1, 117.5);
   pros::delay(100);
 
   move_vertical(-17, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,90);
+  pros::delay(50);
   arm.toggle();
   pros::delay(100);
 
@@ -697,6 +698,11 @@ void autonomous() {
 
   rotate_to(-45);
   pros::delay(100);
+
+  move_vertical(48, false, false);
+  pros::delay(100);
+
+  limitedIntake(2400, -1, 0, 0);
 
   move_vertical(-16, false, false);
   pros::delay(100);
