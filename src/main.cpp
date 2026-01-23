@@ -504,7 +504,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(3, 0, 0.5, 25);
+  PID linearPID(3, 0, 0.175, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -592,12 +592,11 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   chassis.drive(0, 0, 0);
 
   if (intaking) {
-    //intake.move(0);
+    intake.move(0);
   }
 
   if(conv){
-    //lowerConveyor.move(-127);
-    //upperConveyor.move(-127);
+    conveyor.move(-127);
   }
 
 
@@ -643,18 +642,19 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  chassis.setPose(0,0,90);
+  /*chassis.setPose(0,0,90);
   arm.toggle();
   pros::delay(50);
 
-  move_vertical(32, false, false);
+  move_vertical(33, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,90);
   pros::delay(100);
 
   rotate_to(180);
-  arm.toggle();
+  arm.toggle(); 
+  pros::delay(50);
 
   //INTAKE + SCORE LONG ROUTINE
   move_vertical(9, false, false);
@@ -663,27 +663,27 @@ void autonomous() {
   tubeParams* paramsOne = new tubeParams {200, 127 };
   
   pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
-  limitedIntake(2400, 1, -1, 115);
+  limitedIntake(2300, 1, -1, 115);
 
-  move_vertical(-3.5, false, false);
+  move_vertical(-4, false, false);
   pros::delay(100);
+  arm.toggle();
+  pros::delay(50);
 
-  rotate_to(10); //change later
+  rotate_to(-175); //change later
   pros::delay(100);
 
   move_vertical(-27.5, false,false);
   pros::delay(100);
 
-  limitedIntake(2400, 1, 1, 117.5);
+  limitedIntake(2000, 1, 1, 117);
   pros::delay(100);
 
-  move_vertical(-17, false, false);
+  move_vertical(16, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,90);
+  chassis.setPose(0,0,180);
   pros::delay(50);
-  arm.toggle();
-  pros::delay(100);
 
   rotate_to(90);
   pros::delay(100);
@@ -691,8 +691,9 @@ void autonomous() {
   move_vertical(15, true, true);
   pros::delay(100);
 
-  move_vertical(-15, true, true);
-  pros::delay(100);
+  move_vertical(-17, true, true);
+  pros::delay(100); */
+  arm.toggle();
   chassis.setPose(0,0,90);
   pros::delay(50);
 
@@ -704,7 +705,7 @@ void autonomous() {
 
   limitedIntake(2400, -1, 0, 0);
 
-  move_vertical(-16, false, false);
+  /*move_vertical(-16, false, false);
   pros::delay(100);
   chassis.setPose(0,0,-45);
   pros::delay(50);
@@ -764,14 +765,14 @@ void autonomous() {
   rotate_to(-90);
   pros::delay(100);
 
-  move_vertical(60, false, false);
+  move_vertical(60, false, false);*/
 
 }
 
 void pooksterControls() {
 
   if (master.get_digital(DIGITAL_L1)) {
-    intake.move(127);
+    intake.move(45);
     conveyor.move(127);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
