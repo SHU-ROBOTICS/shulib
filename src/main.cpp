@@ -674,92 +674,43 @@ void autonomous() {
   move_vertical(-27.5, false,false);
   pros::delay(100);
 
-  limitedIntake(2400, -1, 0, 90);
+  limitedIntake(1200, 1, 1, 90);
   pros::delay(100);
 
   move_vertical(-17, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,90);
+  chassis.setPose(0,0,180);
+  pros::delay(50);
   arm.toggle();
   pros::delay(100);
 
-  rotate_to(90);
+  rotate_to(135);
   pros::delay(100);
 
-  move_vertical(15, true, true);
+  move_vertical(47.5, false, false);
   pros::delay(100);
 
-  move_vertical(-15, true, true);
-  pros::delay(100);
-  chassis.setPose(0,0,90);
-  pros::delay(50);
-
-  rotate_to(-45);
-  pros::delay(100);
+  limitedIntake(600, -1, 0, 0);
 
   move_vertical(-16, false, false);
   pros::delay(100);
-  chassis.setPose(0,0,-45);
+  chassis.setPose(0,0,135);
   pros::delay(50);
 
   rotate_to(0);
   pros::delay(100);
 
-  move_vertical(72, false, false);
+  move_vertical(-36, false, false);
   pros::delay(100);
   chassis.setPose(0,0,0);
-  pros::delay(50);
-
-  rotate_to(90);
-  pros::delay(100);
-
-  move_vertical(41, true, true);
-  pros::delay(100);
-
-  move_vertical(-15, true, true);
-  pros::delay(100);
-  chassis.setPose(0,0,90);
-  pros::delay(50);
-
-  rotate_to(45);
-  pros::delay(100);
-
-  move_vertical(-48, false, false);
-  pros::delay(100);
-
-  limitedIntake(2400, 1, 1, 80);
-
-  move_vertical(48, false, false);
-  pros::delay(100);
-  chassis.setPose(0,0,45);
-  pros::delay(50);
-
-  rotate_to(0);
-  pros::delay(100);
-
-  arm.toggle();
-  pros::delay(50);
-
-  move_vertical(13, false, false);
-  pros::delay(100);
-  
-  tubeParams* paramsTwo = new tubeParams {200, 127 };
-  
-  pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
-  limitedIntake(2400, 1, -1, 115);
-
-  move_vertical(-3, false, false);
-  pros::delay(100);
-
-  arm.toggle();
   pros::delay(50);
 
   rotate_to(-90);
   pros::delay(100);
 
-  move_vertical(60, false, false);
-
+  move_vertical(36, false, false);
+  pros::delay(100);
 }
 
 void pooksterControls() {
