@@ -216,10 +216,10 @@ void rotation_calibration() {
   logger().log("Correction factor: " + std::to_string(correctionFactor));
 }
 
-void limitedIntake(int n, int reverse, int releaserMode){
+void limitedIntake(int n, int reverse, int releaserMode, int releasePower){
   intake.move(-127 * reverse);
   conveyor.move(-127 * reverse);
-  releaser.move(50 * releaserMode);
+  releaser.move(127 * releaserMode);
   pros::delay(n);
   intake.move(0);
   conveyor.move(0);
@@ -605,6 +605,17 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                std::to_string(total_distance_traveled));
 }
 
+void tubeFunction(int time, int power){
+  pooksterLeft.move(power);
+  pooksterRight.move(-power);
+  
+  pros::delay(time);
+
+  pooksterLeft.move(0);
+  pooksterRight.move(0);
+
+}
+
 void positionReset(){
   pros::delay(100);
   chassis.setPose(0,0,0);
@@ -620,8 +631,8 @@ void autonomous() {
 
   chassis.setPose(0,0,0);
   pros::delay(50);
-
-  limitedIntake(2000, 1, -1); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
+  
+  Task tubeIntakeTask(tubeFunction, (void*)time, 2000); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
 
 
   //MOVEMENT ROUTINE
