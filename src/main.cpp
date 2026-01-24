@@ -676,13 +676,10 @@ void autonomous() {
 
   chassis.setPose(0,0,180);
 
-  rotate_to(-170); //change later
-  pros::delay(100);
-
   move_vertical(-27.5, false,false);
   pros::delay(100);
 
-  limitedIntake(1500, 1, 1, 117);
+  limitedIntake(1600, 1, 1, 117);
   pros::delay(100);
 
   move_vertical(17, false, false);
