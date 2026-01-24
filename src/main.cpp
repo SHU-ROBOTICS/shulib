@@ -720,7 +720,7 @@ void pooksterControls() {
   if (master.get_digital(DIGITAL_L1)) {
     intake.move(127);
     conveyor.move(127);
-    releaser.move(-127);
+    releaser.move(-70);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
       releaser.move(127);
