@@ -658,7 +658,7 @@ void autonomous() {
 
   rotate_to(180);
   arm.toggle(); 
-  pros::delay(150);
+  pros::delay(300);
 
   //INTAKE + SCORE LONG ROUTINE
   move_vertical(9, false, false);
@@ -682,7 +682,7 @@ void autonomous() {
   limitedIntake(1600, 1, 1, 117);
   pros::delay(100);
 
-  move_vertical(17, false, false);
+  move_vertical(17.5, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,180);
@@ -691,10 +691,10 @@ void autonomous() {
   rotate_to(90);
   pros::delay(100);
 
-  move_vertical(15, true, true);
+  move_vertical(14.5, true, true);
   pros::delay(100);
 
-  move_vertical(-17, true, true);
+  move_vertical(-16.5, true, true);
   pros::delay(100); 
   arm.toggle();
   chassis.setPose(0,0,90);
@@ -703,13 +703,13 @@ void autonomous() {
   rotate_to(-45);
   pros::delay(100);
 
-  move_vertical(48, false, false);
+  move_vertical(52, false, false);
   pros::delay(100);
 
   limitedIntake(2400, -1, 0, 0);
 
   arm.toggle();
-  move_vertical(-12, false, false);
+  move_vertical(-16, false, false);
   pros::delay(100);
   chassis.setPose(0,0,-45);
   pros::delay(50);
