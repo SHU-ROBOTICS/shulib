@@ -619,17 +619,10 @@ void tubeFunction(void* params){
   int time = args->time;
   int power = args->power;
 
-  for(int i = 0; i < 6; i++){
     pooksterLeft.move(power);
     pooksterRight.move(power * -1);
     
     pros::delay(time);
-
-    pooksterLeft.move(0);
-    pooksterRight.move(0);
-
-    pros::delay(time);
-  }
 
 }
 
@@ -647,13 +640,15 @@ void autonomous() {
   // moveVertical();
 
   chassis.setPose(0,0,90);
-  arm.toggle();
+
   pros::delay(50);
 
-  move_vertical(33, false, false);
+  move_vertical(34, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,90);
+  pros::delay(100);
+  arm.toggle();
   pros::delay(100);
 
   rotate_to(180);
@@ -664,7 +659,7 @@ void autonomous() {
   move_vertical(9, false, false);
   pros::delay(100);
 
-  tubeParams* paramsOne = new tubeParams {200, 127 };
+  tubeParams* paramsOne = new tubeParams {2500, 127 };
   
   pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
   limitedIntake(2400, 1, -1, 115);
@@ -688,28 +683,10 @@ void autonomous() {
   chassis.setPose(0,0,180);
   pros::delay(50);
 
-  rotate_to(90);
-  pros::delay(100);
-
-  move_vertical(14.5, true, true);
-  pros::delay(100);
-
-  move_vertical(-16.5, true, true);
-  pros::delay(100); 
-  arm.toggle();
-  chassis.setPose(0,0,90);
-  pros::delay(50);
-
   rotate_to(-45);
   pros::delay(100);
 
-  move_vertical(52, false, false);
-  pros::delay(100);
-
-  limitedIntake(2400, -1, 0, 0);
-
-  arm.toggle();
-  move_vertical(-16, false, false);
+  move_vertical(34, false, false);
   pros::delay(100);
   chassis.setPose(0,0,-45);
   pros::delay(50);
@@ -717,23 +694,21 @@ void autonomous() {
   rotate_to(0);
   pros::delay(100);
 
-  move_vertical(68, false, false);
+  move_vertical(72, false, false);
   pros::delay(100);
   chassis.setPose(0,0,0);
   pros::delay(50);
 
-  rotate_to(92);
+  rotate_to(90);
   pros::delay(100);
 
-  move_vertical(41, true, true);
+  move_vertical(24, true, true);
   pros::delay(100);
 
-  move_vertical(-16, true, true);
-  pros::delay(100);
   chassis.setPose(0,0,90);
   pros::delay(50);
 
-  rotate_to(45);
+  rotate_to(0);
   pros::delay(100);
 
   move_vertical(-48, false, false);
