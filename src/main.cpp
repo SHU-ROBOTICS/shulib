@@ -265,7 +265,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1.0,0,0.015, 32.5);
+    PID rotationPID(1.1,0,0.015, 32.5);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -508,7 +508,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(3, 0, 0.175, 25);
+  PID linearPID(3, 0, 0.15, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -618,12 +618,17 @@ void tubeFunction(void* params){
 
   int time = args->time;
   int power = args->power;
-
+  for(int i = 0; i < 6; i++){
     pooksterLeft.move(power);
     pooksterRight.move(power * -1);
     
     pros::delay(time);
 
+    pooksterLeft.move(0);
+    pooksterRight.move(0);
+
+    pros::delay(50);
+  }
 }
 
 void positionReset(){
@@ -641,6 +646,7 @@ void autonomous() {
 
   chassis.setPose(0,0,90);
 
+  arm.toggle();
   pros::delay(50);
 
   move_vertical(34, false, false);
@@ -648,7 +654,6 @@ void autonomous() {
 
   chassis.setPose(0,0,90);
   pros::delay(100);
-  arm.toggle();
   pros::delay(100);
 
   rotate_to(180);
@@ -656,13 +661,15 @@ void autonomous() {
   pros::delay(300);
 
   //INTAKE + SCORE LONG ROUTINE
-  move_vertical(9, false, false);
+
+  move_vertical(6, false, false);
   pros::delay(100);
 
-  tubeParams* paramsOne = new tubeParams {2500, 127 };
+  tubeParams* paramsOne = new tubeParams {300, 127 };
   
   pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
-  limitedIntake(2400, 1, -1, 115);
+  limitedIntake(2500, 1, -1, 115);
+  pros::delay(100);
 
   move_vertical(-4, false, false);
   pros::delay(100);
@@ -671,13 +678,13 @@ void autonomous() {
 
   chassis.setPose(0,0,180);
 
-  move_vertical(-27.5, false,false);
+  move_vertical(-26.5, false,false);
   pros::delay(100);
 
   limitedIntake(1600, 1, 1, 117);
   pros::delay(100);
 
-  move_vertical(17.5, false, false);
+  move_vertical(16.5, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,180);
@@ -711,40 +718,36 @@ void autonomous() {
   rotate_to(0);
   pros::delay(100);
 
-  move_vertical(-48, false, false);
+  move_vertical(12, false, false);
   pros::delay(100);
 
-  limitedIntake(2400, 1, 1, 80);
-
-  move_vertical(48, false, false);
-  pros::delay(100);
-  chassis.setPose(0,0,45);
-  pros::delay(50);
-
-  rotate_to(0);
-  pros::delay(100);
-
-  arm.toggle();
-  pros::delay(50);
-
-  move_vertical(13, false, false);
-  pros::delay(100);
-  
   tubeParams* paramsTwo = new tubeParams {200, 127 };
   
-  pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
-  limitedIntake(2400, 1, -1, 115);
+  pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2");
+  limitedIntake(2400, 1, -1, 80);
 
-  move_vertical(-3, false, false);
+  move_vertical(-26.5, false, false);
   pros::delay(100);
 
-  arm.toggle();
-  pros::delay(50);
+  limitedIntake(2400, 1, 1, 115);
+  pros::delay(100);
 
+  move_vertical(17, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,0);
+  pros::delay(50);
   rotate_to(-90);
   pros::delay(100);
 
-  move_vertical(60, false, false);
+  move_vertical(24, false, false);
+
+  chassis.setPose(0,0,-90);
+  pros::delay(50);
+  rotate_to(180);
+  pros::delay(100);
+
+  move_vertical(102.5, false, false);
 
 }
 
