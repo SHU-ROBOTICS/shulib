@@ -265,7 +265,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1.1,0,0.015, 32.5);
+    PID rotationPID(1,0,0.015, 30);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -508,7 +508,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(3, 0, 0.15, 25);
+  PID linearPID(3, 0.3, 0.25, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -624,10 +624,10 @@ void tubeFunction(void* params){
     
     pros::delay(time);
 
-    pooksterLeft.move(0);
-    pooksterRight.move(0);
+    pooksterLeft.move(-10);
+    pooksterRight.move(-10);
 
-    pros::delay(50);
+    pros::delay(time);
   }
 }
 
@@ -637,6 +637,21 @@ void positionReset(){
   pros::delay(100);
 }
 
+void tempMovement(int time, int backwards){
+  chassis.drive(0, 100 * backwards, 0);
+
+  pros::delay(100);
+}
+
+void tempTurn(int time, int backwards){
+  pooksterLeft.move(100 * backwards);
+  pooksterRight.move(100 * backwards);
+
+  pros::delay(time);
+}
+
+
+
 void autonomous() {
   // test_min_output();
   // MIN_OUTPUT_Y 20
@@ -644,8 +659,7 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  chassis.setPose(0,0,90);
-
+  /*chassis.setPose(0,0,90);
   arm.toggle();
   pros::delay(50);
 
@@ -678,17 +692,17 @@ void autonomous() {
 
   chassis.setPose(0,0,180);
 
-  move_vertical(-26.5, false,false);
+  move_vertical(-26, false,false);
   pros::delay(100);
 
-  limitedIntake(1600, 1, 1, 117);
+  limitedIntake(2400, 1, 1, 117);
   pros::delay(100);
 
   move_vertical(16.5, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,180);
-  pros::delay(50);
+  pros::delay(100);
 
   rotate_to(-45);
   pros::delay(100);
@@ -696,15 +710,15 @@ void autonomous() {
   move_vertical(34, false, false);
   pros::delay(100);
   chassis.setPose(0,0,-45);
-  pros::delay(50);
+  pros::delay(100);
 
-  rotate_to(0);
+  rotate_to(-7.5);
   pros::delay(100);
 
   move_vertical(72, false, false);
   pros::delay(100);
   chassis.setPose(0,0,0);
-  pros::delay(50);
+  pros::delay(100);
 
   rotate_to(90);
   pros::delay(100);
@@ -713,9 +727,11 @@ void autonomous() {
   pros::delay(100);
 
   chassis.setPose(0,0,90);
-  pros::delay(50);
+  pros::delay(100);
 
   rotate_to(0);
+  pros::delay(100);
+  arm.toggle();
   pros::delay(100);
 
   move_vertical(12, false, false);
@@ -729,6 +745,9 @@ void autonomous() {
   move_vertical(-26.5, false, false);
   pros::delay(100);
 
+  arm.toggle();
+  pros::delay(100);
+
   limitedIntake(2400, 1, 1, 115);
   pros::delay(100);
 
@@ -736,18 +755,18 @@ void autonomous() {
   pros::delay(100);
 
   chassis.setPose(0,0,0);
-  pros::delay(50);
+  pros::delay(100);
   rotate_to(-90);
   pros::delay(100);
 
   move_vertical(24, false, false);
 
   chassis.setPose(0,0,-90);
-  pros::delay(50);
+  pros::delay(100);
   rotate_to(180);
   pros::delay(100);
 
-  move_vertical(102.5, false, false);
+  move_vertical(118.5, false, false);*/
 
 }
 
