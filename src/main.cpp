@@ -659,7 +659,7 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  /*chassis.setPose(0,0,90);
+  chassis.setPose(0,0,90);
   arm.toggle();
   pros::delay(50);
 
@@ -751,7 +751,7 @@ void autonomous() {
   limitedIntake(2400, 1, 1, 115);
   pros::delay(100);
 
-  move_vertical(17, false, false);
+  move_vertical(16.5, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,0);
@@ -766,7 +766,15 @@ void autonomous() {
   rotate_to(180);
   pros::delay(100);
 
-  move_vertical(118.5, false, false);*/
+  move_vertical(118.5, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,180);
+  pros::delay(100);
+  rotate_to(-90);
+  pros::delay(100);
+
+  tempMovement(1500, 1);
 
 }
 
