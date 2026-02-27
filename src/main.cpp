@@ -84,8 +84,8 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1);
-  shulib::setYCorrectionFactor(1);
+  shulib::setXCorrectionFactor(1.15);
+  shulib::setYCorrectionFactor(1.15);
   shulib::setThetaCorrectionFactor(1.275);
 
   logger().log("IMU calibrated!");
@@ -510,7 +510,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(5, 0, 0.1, 25);
+  PID linearPID(2.5, 0, 0.1, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -522,15 +522,8 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     Pose current_pose = chassis.getPose();
 
     // Calculate incremental distance traveled
-    double dy = std::abs(current_pose.y - last_y);
-    last_y = current_pose.y;
-
-    double dx = std::abs(current_pose.x - last_x);
-    last_x = current_pose.x;
-
-    total_distance_traveled += sqrt(pow(dx, 2) + pow(dy, 2));
-
-    remaining_distance = target_distance - total_distance_traveled;
+    double actual_displacement = start_pose.distance(current_pose);
+    remaining_distance = target_distance - actual_displacement;
 
     // Calculate heading error relative to initial rotation
     double heading_error = initial_theta - current_pose.theta;
@@ -541,8 +534,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     double forwardOutput = linearPID.update(remaining_distance, 0.001);
     // Invert output if moving backwards
-    if (distance_inches < 0)
-      forwardOutput = -forwardOutput;
 
     /*if (currentMaxSpeed < MAX_OUTPUT) {
       currentMaxSpeed += ACCEL_RATE;
@@ -628,7 +619,7 @@ void tubeFunction(void* params){
     pros::delay(time);
 
     pooksterLeft.move(-10);
-    pooksterRight.move(-10);
+    pooksterRight.move(10);
 
     pros::delay(time);
   }
@@ -673,7 +664,7 @@ void autonomous() {
   arm.toggle();
   pros::delay(50);
 
-  move_vertical(36, false, false);
+  move_vertical(37, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,90);
@@ -851,8 +842,6 @@ void opcontrol() {
     pooksterControls();
 
     logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
-
-    Task brainReadout(readout);
  
     // static uint32_t stuckStartTime = 0;
     // int voltage = wallStakeLift.get_voltage();
