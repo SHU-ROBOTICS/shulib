@@ -533,6 +533,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
       heading_error += 360;
 
     double forwardOutput = linearPID.update(remaining_distance, 0.001);
+
+    if (distance_inches < 0){
+      forwardOutput = -forwardOutput;
+    }
     // Invert output if moving backwards
 
     /*if (currentMaxSpeed < MAX_OUTPUT) {
@@ -613,7 +617,7 @@ void tubeFunction(void* params){
   int time = args->time;
   int power = args->power;
 
-  for(int i = 0; i < 8; i++){
+  for(int i = 0; i < 6; i++){
     pooksterLeft.move(power);
     pooksterRight.move(power * -1);
     
@@ -697,10 +701,10 @@ void autonomous() {
   chassis.setPose(0,0,180);
   pros::delay(100);
 
-  rotate_to(181);
+  rotate_to(181.5);
   pros::delay(100);
 
-  move_vertical(-26, false,false);
+  move_vertical(-26.5, false,false);
   pros::delay(100);
 
   limitedIntake(2400, 1, 1, 117);
