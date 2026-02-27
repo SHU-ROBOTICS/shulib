@@ -15,7 +15,6 @@
 #include <vector>
 #include <string> 
 
-
 // #include "shulib/GUI/gui.c"
 
 
@@ -25,16 +24,16 @@ MotorGroup pooksterRight({11, -13, 15, -17, 19});
 MotorGroup pooksterLeft({12, -14, 16, -18, 20});
 // IMU imu(10);
 
-pros::Rotation left(-8);
-pros::Rotation right(10);
+pros::Rotation right(-8);
+pros::Rotation left(10);
 pros::Rotation back(9);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(&left, 2.75, -6.5);
-shulib::OdomUnit rightOdom(&right,2.75, 6.5);
-shulib::OdomUnit backOdom(&back, 2.75, -4.0);
+shulib::OdomUnit leftOdom(&left, 1.5, -6.5);
+shulib::OdomUnit rightOdom(&right,1.5, 6.5);
+shulib::OdomUnit backOdom(&back, 1.5, -4.0);
 
-shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.25, 400); //trackwidth, wheeldiameter, rpm
+shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3, 400); //trackwidth, wheeldiameter, rpm
 
 shulib::OdomSensors sensors(&leftOdom,  // left odom unit
                             &rightOdom, // right odom unit
@@ -85,7 +84,7 @@ void initialize() {
 
   shulib::setXCorrectionFactor(1);
   shulib::setYCorrectionFactor(1);
-  shulib::setThetaCorrectionFactor(1);
+  shulib::setThetaCorrectionFactor(1.275);
 
   logger().log("IMU calibrated!");
   logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
@@ -261,7 +260,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1.0,0,0.015, 32.5);
+    PID rotationPID(0.5,0,0.015, 25);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -494,6 +493,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double initial_theta = start_pose.theta;
   double total_distance_traveled = 0;
   double target_distance = std::abs(distance_inches);
+  double remaining_distance = target_distance;
 
   const double MAX_OUTPUT = 60.0;
   const double MAX_ROTATION = 10.0;
@@ -504,7 +504,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(3, 0, 0.175, 25);
+  PID linearPID(3, 0, 0.1, 20);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -512,7 +512,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   bool stopped = false;
 
   int log_counter = 0;
-  while ((total_distance_traveled < target_distance)) {
+  while (std::abs(remaining_distance) >= 0.1) {
     Pose current_pose = chassis.getPose();
 
     // Calculate incremental distance traveled
@@ -524,7 +524,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     total_distance_traveled += sqrt(pow(dx, 2) + pow(dy, 2));
 
-    double remaining_distance = target_distance - total_distance_traveled;
+    remaining_distance = target_distance - total_distance_traveled;
 
     // Calculate heading error relative to initial rotation
     double heading_error = initial_theta - current_pose.theta;
@@ -533,7 +533,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     while (heading_error < -180)
       heading_error += 360;
 
-    double forwardOutput = linearPID.update(remaining_distance, 0.005);
+    double forwardOutput = linearPID.update(remaining_distance, 0.001);
     // Invert output if moving backwards
     if (distance_inches < 0)
       forwardOutput = -forwardOutput;
@@ -643,11 +643,13 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  chassis.setPose(0,0,90);
+  chassis.setPose(0,0,0);
   arm.toggle();
-  pros::delay(100);
+  pros::delay(500);
 
-  move_vertical(32, false, false);
+  move_vertical(24, false, false);
+
+  /*move_vertical(32, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,90);
@@ -709,7 +711,7 @@ void autonomous() {
   pros::delay(100);
 
   move_vertical(36, false, false);
-  pros::delay(100);
+  pros::delay(100);*/
 }
 
 void pooksterControls() {
@@ -763,11 +765,13 @@ void pooksterControls() {
 }
  
 void opcontrol() {
+
+  double dampConstant = 0.75;
  
   while (true) {
-    chassis.drive(master.get_analog(ANALOG_LEFT_X),
-                  master.get_analog(ANALOG_LEFT_Y),
-                  master.get_analog(ANALOG_RIGHT_X));
+    chassis.drive(master.get_analog(ANALOG_LEFT_X) * 0.75,
+                  master.get_analog(ANALOG_LEFT_Y) * 0.75,
+                  master.get_analog(ANALOG_RIGHT_X) * 0.75);
     pooksterControls();
 
     logger().log(std::to_string(pooksterLeft.get_actual_velocity()));

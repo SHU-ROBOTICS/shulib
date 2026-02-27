@@ -107,7 +107,7 @@ void shulib::update() {
   float dS = odomSensors.back->get_travel_delta();
 
   Pose localPose(0,0,0);
-  localPose.theta = (dR - dL) / (sL - sR) * thetaCorrectionFactor;
+  localPose.theta = ((dR - dL) / (sL - sR)) * thetaCorrectionFactor;
 
   float deltaX = 0;
   float deltaY = 0;
