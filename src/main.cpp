@@ -84,8 +84,8 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1.15);
-  shulib::setYCorrectionFactor(1.15);
+  shulib::setXCorrectionFactor(1.175);
+  shulib::setYCorrectionFactor(1.175);
   shulib::setThetaCorrectionFactor(1.275);
 
   logger().log("IMU calibrated!");
@@ -612,17 +612,23 @@ void tubeFunction(void* params){
 
   int time = args->time;
   int power = args->power;
-  for(int i = 0; i < 6; i++){
+
+  for(int i = 0; i < 8; i++){
     pooksterLeft.move(power);
     pooksterRight.move(power * -1);
     
     pros::delay(time);
 
-    pooksterLeft.move(-10);
-    pooksterRight.move(10);
+    pooksterLeft.move(-20);
+    pooksterRight.move(20);
 
     pros::delay(time);
   }
+
+  pooksterLeft.move(0);
+  pooksterRight.move(0);
+
+  pros::delay(100);
 }
 
 void positionReset(){
@@ -664,11 +670,7 @@ void autonomous() {
   arm.toggle();
   pros::delay(50);
 
-  move_vertical(37, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0,0,90);
-  pros::delay(100);
+  move_vertical(37.5, false, false);
   pros::delay(100);
 
   rotate_to(180);
@@ -682,8 +684,9 @@ void autonomous() {
 
   tubeParams* paramsOne = new tubeParams {300, 127 };
   
-  pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
+  Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
   limitedIntake(2500, 1, -1, 115);
+
   pros::delay(100);
 
   move_vertical(-4, false, false);
