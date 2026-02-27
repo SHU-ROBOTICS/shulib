@@ -2,7 +2,8 @@
 #include "pros/adi.hpp"
 #include "pros/misc.h"
 #include "pros/rotation.hpp"
-#include "shulib/api.hpp" // IWYU pragma: keep
+#include "shulib/api.hpp"
+#include "pros/apix.h" // IWYU pragma: keep
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/drivetrain/tankdrive.hpp"
 #include "shulib/chassis/odometry.hpp"
@@ -652,6 +653,13 @@ void tempTurn(int time, int backwards){
   pros::delay(time);
 }
 
+void readout(){
+    pros::screen::print(TEXT_LARGE, 1, "Power: %d", (int)pooksterLeft.get_actual_velocity());
+    pros::delay(10);
+    pros::screen::erase();
+    pros::delay(1);
+}
+
 
 
 void autonomous() {
@@ -693,6 +701,10 @@ void autonomous() {
   pros::delay(100);
 
   chassis.setPose(0,0,180);
+  pros::delay(100);
+
+  rotate_to(181);
+  pros::delay(100);
 
   move_vertical(-26, false,false);
   pros::delay(100);
@@ -839,6 +851,8 @@ void opcontrol() {
     pooksterControls();
 
     logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
+
+    Task brainReadout(readout);
  
     // static uint32_t stuckStartTime = 0;
     // int voltage = wallStakeLift.get_voltage();
