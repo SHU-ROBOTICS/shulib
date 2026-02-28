@@ -735,7 +735,7 @@ void autonomous() {
   rotate_to(90);
   pros::delay(100);
 
-  move_vertical(24, true, true);
+  move_vertical(24, false, false);
   pros::delay(100);
 
   chassis.setPose(0,0,90);
@@ -749,7 +749,7 @@ void autonomous() {
   move_vertical(12, false, false);
   pros::delay(100);
 
-  tubeParams* paramsTwo = new tubeParams {200, 127 };
+  tubeParams* paramsTwo = new tubeParams {300, 127 };
   
   pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2");
   limitedIntake(2400, 1, -1, 80);
