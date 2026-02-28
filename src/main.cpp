@@ -1,3 +1,4 @@
+// src/main.cpp
 #include "main.h" 
 #include "pros/adi.hpp"
 #include "pros/misc.h"
@@ -9,33 +10,48 @@
 #include "shulib/logger.hpp"
 #include "shulib/pid.hpp"
 #include "shulib/util.hpp"
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <string> 
+
+
+// #include "shulib/GUI/gui.c"
 
 
 Controller master(CONTROLLER_MASTER);
 
 MotorGroup pooksterRight({11, -13, 15, -17, 19});
 MotorGroup pooksterLeft({12, -14, 16, -18, 20});
+// IMU imu(10);
 
 pros::Rotation right(-8);
 pros::Rotation left(10);
 pros::Rotation back(9);
+// set these to nullptrs instead
 
 shulib::OdomUnit leftOdom(&left, 1.5, -6.5);
 shulib::OdomUnit rightOdom(&right,1.5, 6.5);
 shulib::OdomUnit backOdom(&back, 1.5, -4.0);
 
-shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.00, 400);
+shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.00, 400); //trackwidth, wheeldiameter, rpm
 
-shulib::OdomSensors sensors(&leftOdom,
-                            &rightOdom,
-                            &backOdom,
-                            nullptr
+shulib::OdomSensors sensors(&leftOdom,  // left odom unit
+                            &rightOdom, // right odom unit
+                            &backOdom, // back odom unit
+                            nullptr // back odom unit
 );
 shulib::Chassis chassis(drivetrain, sensors);
 
 pros::IMU imu(6);
+
+/* shulib::XDrive fifteenDriveTrain(frontLeft, frontRight, backLeft,
+backRight, 2.25, 200, 2);
+
+shulib::OdomSensors fifteenSensors(&fifteenLeftOdom, &fifteenRightOdom,
+&fifteenBackOdom, nullptr);
+*/
 
 bool wallStakeMode = false;
 pros::adi::Pneumatics arm('B', false);
@@ -52,6 +68,9 @@ void timer(int time){
   pros::delay(time);
 }
 
+//pros::MotorGroup conveyor({17, -12});
+//pros::MotorGroup wallStakeLift({-15, 16}, pros::v5::MotorGears::red,pros::v5::MotorEncoderUnits::degrees);
+
 void initialize() {
   lcd::initialize();
   lcd::set_text(0, "Hello, PROS User!");
@@ -65,8 +84,8 @@ void initialize() {
     pros::delay(100);
   }
 
-  shulib::setXCorrectionFactor(1);
-  shulib::setYCorrectionFactor(1);
+  shulib::setXCorrectionFactor(1.175);
+  shulib::setYCorrectionFactor(1.175);
   shulib::setThetaCorrectionFactor(1.275);
 
   logger().log("IMU calibrated!");
@@ -80,7 +99,6 @@ void initialize() {
 
 void disabled() {}
 void competition_initialize() {}
-
 void test_min_output() {
   chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
   int power = 0;
@@ -115,9 +133,10 @@ void test_min_output() {
 void rotation_calibration() {
   logger().log("Starting autonomous");
   chassis.setBrakeMode(pros::E_MOTOR_BRAKE_HOLD);
+  // Reset IMU and chassis pose
   imu.tare();
   chassis.setPose(0, 0, 0);
-  pros::delay(500);
+  pros::delay(500); // Give time for reset
 
   double correctionFactor = shulib::getThetaCorrectionFactor();
   const double TARGET_ANGLE = 180.0;
@@ -135,8 +154,10 @@ void rotation_calibration() {
 
     chassis.drive(0, 0, 40);
     pros::delay(500);
+    // Rotate clockwise
     while (true) {
       double current_yaw = imu.get_yaw();
+      // Calculate total rotation considering wraparound
       double total_rotation = current_yaw > start_yaw
                                   ? current_yaw - start_yaw
                                   : TARGET_ANGLE - (start_yaw - current_yaw);
@@ -148,28 +169,33 @@ void rotation_calibration() {
       if (total_rotation >= TARGET_ANGLE - TOLERANCE)
         break;
 
-      chassis.drive(0, 0, 40);
+      chassis.drive(0, 0, 40); // Increased power for more consistent rotation
       pros::delay(10);
     }
 
-    chassis.drive(0, 0, 0);
+    chassis.drive(0, 0, 0); // Stop rotation
     logger().log("Rotation finished!");
     logger().log("Settling...");
-    pros::delay(2000);
+    pros::delay(2000); // Longer settle time
 
+    // Calculate rotation amounts
     double chassis_rotation = std::abs(chassis.getPose().theta - start_theta);
     double imu_rotation = std::abs(imu.get_yaw() - start_yaw);
 
     logger().log("End yaw: " + std::to_string(imu.get_yaw()));
     logger().log("End theta: " + std::to_string(chassis.getPose().theta));
+    logger().log("");
     logger().log("Chassis rotation: " + std::to_string(chassis_rotation));
     logger().log("IMU rotation: " + std::to_string(imu_rotation));
+    logger().log("");
 
-    if (chassis_rotation > 1.0) {
+    // Update correction factor
+    if (chassis_rotation > 1.0) { // Prevent division by very small numbers
       double new_correction = imu_rotation / chassis_rotation;
       correctionFactor *= new_correction;
       shulib::setThetaCorrectionFactor(correctionFactor);
       logger().log("Correction factor: " + std::to_string(correctionFactor));
+      logger().log("");
 
       logger().updateTelemetry("chassis_rotation", chassis_rotation);
       logger().updateTelemetry("imu_rotation", imu_rotation);
@@ -177,6 +203,7 @@ void rotation_calibration() {
       logger().updateTelemetry("cumulative_correction", correctionFactor);
     }
 
+    // Reset for next iteration
     imu.reset();
     while (imu.is_calibrating()) {
       pros::delay(10);
@@ -205,76 +232,63 @@ void limitedIntake(int n, int reverse, int releaserMode, int releasePower){
 }
 
 
-// ============================================================
-//  ROTATE_TO - with diagnostic logging
-// ============================================================
 void rotate_to(double target_angle) {
   Pose startPose = chassis.getPose();
+  logger().log("Starting rotation from " + std::to_string(startPose.theta) +
+               " to " + std::to_string(target_angle) + " degrees");
+  double desiredTheta = target_angle;
 
-  logger().log("-------- ROTATE_TO START --------");
-  logger().log("[ROTATE] target=" + std::to_string(target_angle) +
-               "deg | start_theta=" + std::to_string(startPose.theta) +
-               "deg | start_pose=(" + std::to_string(startPose.x) +
-               ", " + std::to_string(startPose.y) + ")");
+  logger().log("Start pose - X: " + std::to_string(startPose.x) +
+               " Y: " + std::to_string(startPose.y) +
+               " Theta: " + std::to_string(startPose.theta));
 
-  const double MAX_ROTATION = 100.0;
-  const double ACCEL_RATE = 2.0;
-  double DECEL_ANGLE = fabs(target_angle) - 45;
+  const double MAX_ROTATION = 100.0; // Maximum rotation power
+  const double ACCEL_RATE = 2.0;    // How fast to ramp up rotation speed
+  double DECEL_ANGLE = fabs(target_angle) - 45;  // Start slowing down when within this angle
 
   if(target_angle < 0){
     DECEL_ANGLE *= -1;
   }
 
   double error = target_angle - chassis.getPose().theta;
-  while (error > 181) error -= 360;
-  while (error < -181) error += 360;
-
-  logger().log("[ROTATE] initial_error=" + std::to_string(error) + "deg");
+  // Normalize error to [-180, 180]
+  while (error > 181)
+    error -= 360;
+  while (error < -181)
+    error += 360;
 
   int stuckCounter = 0;
   double lastError = error;
-  double currentMaxSpeed = MAX_ROTATION;
+  double currentMaxSpeed = MAX_ROTATION; // Start at minimum speed
 
+  // Two-phase control with separate PIDs
   if (fabs(error) > 0.1) {
-    PID rotationPID(0.5, 0, 0.015, 25);
+    // Coarse control phase
+    logger().log("Starting coarse rotation (target error < 1.0)");
 
-    logger().log("[ROTATE] PID gains: kP=0.5, kI=0, kD=0.015, kC=25");
-    logger().log("[ROTATE] entering coarse phase (exit when error < 1.0deg)");
-
-    int loopCount = 0;
-    int signChanges = 0;
-    double prevErrorSign = (error > 0) ? 1.0 : -1.0;
-    uint32_t startTime = pros::millis();
+    PID rotationPID(0.75,0,0.015, 25);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
       error = target_angle - currentPose.theta;
-      while (error > 181) error -= 360;
-      while (error < -181) error += 360;
+      while (error > 181)
+        error -= 360;
+      while (error < -181)
+        error += 360;
 
       double rotationOutput = rotationPID.update(error, 0.001);
 
-      rotationOutput = std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
+      // Apply speed limits and deceleration
+      rotationOutput =
+          std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
 
-      // Detect oscillation (error sign changes)
-      double currentSign = (error > 0) ? 1.0 : -1.0;
-      if (currentSign != prevErrorSign) {
-        signChanges++;
-        if (signChanges >= 3) {
-          logger().warning("[ROTATE] OSCILLATION detected - " + std::to_string(signChanges) +
-                          " sign changes | error=" + std::to_string(error) +
-                          " | output=" + std::to_string(rotationOutput));
-        }
-        prevErrorSign = currentSign;
-      }
-
-      // Stuck detection
+      // Check if we're stuck
       if (fabs(error - lastError) < 0.001) {
         stuckCounter++;
         if (stuckCounter > 100) {
-          logger().warning("[ROTATE] STUCK - no progress for " + std::to_string(stuckCounter) +
-                          " cycles | theta=" + std::to_string(currentPose.theta) +
-                          " | error=" + std::to_string(error));
+          logger().log("WARNING: Possibly stuck - minimal progress detected");
+          logger().log("Current Theta: " + std::to_string(currentPose.theta) +
+                       " Error: " + std::to_string(error));
           rotationOutput *= 1.5;
         }
       } else {
@@ -282,49 +296,39 @@ void rotate_to(double target_angle) {
       }
       lastError = error;
 
-      // Periodic status log every 50 iterations (~250ms)
-      loopCount++;
-      if (loopCount % 50 == 0) {
-        uint32_t elapsed = pros::millis() - startTime;
-        logger().log("[ROTATE] t=" + std::to_string(elapsed) + "ms" +
-                     " | error=" + std::to_string(error) +
-                     " | output=" + std::to_string(rotationOutput) +
-                     " | theta=" + std::to_string(currentPose.theta) +
-                     " | loops=" + std::to_string(loopCount));
+      if (stuckCounter % 50 == 0) {
+        logger().log("Coarse Phase - Error: " + std::to_string(error) +
+                     " Output: " + std::to_string(rotationOutput) +
+                     " Speed: " + std::to_string(currentMaxSpeed) +
+                     " Theta: " + std::to_string(chassis.getPose().theta));
       }
 
       chassis.drive(0, 0, rotationOutput);
+      logger().log(std::to_string(pooksterLeft.get_voltage()) + " LALALALALALALALA");
       pros::delay(5);
     }
 
-    uint32_t totalTime = pros::millis() - startTime;
+    logger().log("Coarse rotation complete. Starting fine rotation");
     chassis.drive(0, 0, 0);
     pros::delay(100);
-
-    Pose finalPose = chassis.getPose();
-    double finalError = target_angle - finalPose.theta;
-    while (finalError > 181) finalError -= 360;
-    while (finalError < -181) finalError += 360;
-
-    logger().log("[ROTATE] coarse phase done in " + std::to_string(totalTime) + "ms" +
-                 " | " + std::to_string(loopCount) + " loops" +
-                 " | " + std::to_string(signChanges) + " oscillations");
-    logger().log("[ROTATE] final_theta=" + std::to_string(finalPose.theta) +
-                 " | final_error=" + std::to_string(finalError) +
-                 " | final_pose=(" + std::to_string(finalPose.x) +
-                 ", " + std::to_string(finalPose.y) + ")");
-
-    // Warn if position drifted during rotation (should be ~zero for pure rotation)
-    double positionDrift = startPose.distance(finalPose);
-    if (positionDrift > 1.0) {
-      logger().warning("[ROTATE] position drifted " + std::to_string(positionDrift) +
-                      "in during rotation (expected ~0)");
-    }
-  } else {
-    logger().log("[ROTATE] error < 0.1deg, skipping rotation");
   }
 
-  logger().log("-------- ROTATE_TO END ----------");
+  // Log final state
+  Pose finalPose = chassis.getPose();
+  double finalError = target_angle - finalPose.theta;
+  while (finalError > 181) finalError -= 360;
+  while (finalError < -181) finalError += 360;
+  logger().log("[ROTATE] final_theta=" + std::to_string(finalPose.theta) +
+               " | final_error=" + std::to_string(finalError) +
+               " | final_pose=(" + std::to_string(finalPose.x) +
+               ", " + std::to_string(finalPose.y) + ")");
+
+  // Warn if position drifted during rotation (should be ~zero for pure rotation)
+  double positionDrift = startPose.distance(finalPose);
+  if (positionDrift > 1.0) {
+    logger().warning("[ROTATE] position drifted " + std::to_string(positionDrift) +
+                    "in during rotation (expected ~0)");
+  }
 }
 
 // Struct for storing parsed command data
@@ -336,6 +340,7 @@ struct CommandData {
   double speed;
 };
 
+// **Hardcoded List of Commands (Instead of File)**
 const std::vector<CommandData> autonomousCommands = {
   {"NONE", 25.1, 21.16, 90.59, 0},
   {"MOVE_WITH_HEADING", 25.09, 22.17, 90.59, 50},
@@ -351,35 +356,26 @@ const std::vector<CommandData> autonomousCommands = {
 };
 
 
-// ============================================================
-//  MOVE_TO_POSE - with diagnostic logging
-// ============================================================
 void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
-  logger().log("-------- MOVE_TO_POSE START --------");
+  logger().log(
+      "Starting move to pose - Target X: " + std::to_string(target_pose.x) +
+      " Y: " + std::to_string(target_pose.y) +
+      " Theta: " + std::to_string(target_pose.theta));
+  logger().updateTelemetry("target", target_pose);
 
   Pose current_pose = chassis.getPose();
   double distance = current_pose.distance(target_pose);
   double angle = -shulib::radToDeg(current_pose.angle(target_pose)) - 270;
-  angle = std::fmod(angle + 360, 360);
+  
+  angle = std::fmod(angle + 360, 360);  // Normalize to 0-360 range
+  logger().log("Angle to target: " + std::to_string(angle));
+
   double angle_error = angle - current_pose.theta;
-
-  logger().log("[M2P] target=(" + std::to_string(target_pose.x) +
-               ", " + std::to_string(target_pose.y) +
-               ", " + std::to_string(target_pose.theta) + ")");
-  logger().log("[M2P] start=(" + std::to_string(current_pose.x) +
-               ", " + std::to_string(current_pose.y) +
-               ", " + std::to_string(current_pose.theta) + ")");
-  logger().log("[M2P] distance=" + std::to_string(distance) +
-               "in | angle_to_target=" + std::to_string(angle) +
-               "deg | angle_error=" + std::to_string(angle_error) + "deg");
-
-  logger().updateTelemetry("target", target_pose);
+  logger().log("Angle error: " + std::to_string(angle_error));
 
   if (fabs(angle_error) > 1) {
-    logger().log("[M2P] heading error > 1deg, rotating first");
-    rotate_to(angle);
-  } else {
-    logger().log("[M2P] heading error < 1deg, skipping initial rotation");
+      logger().log("Rotating to angle: " + std::to_string(angle));
+      rotate_to(angle);
   }
 
   const double MIN_OUTPUT = 20.0;
@@ -392,92 +388,53 @@ void move_to_pose(Pose target_pose, bool reverse, bool intaking, bool conv) {
   PID linearPID(12, 0.03, 0, 3.5);
   PID headingPID(10, 0.005, 0.25, 3.5);
 
-  logger().log("[M2P] linear PID: kP=12, kI=0.03, kD=0, kC=3.5");
-  logger().log("[M2P] heading PID: kP=10, kI=0.005, kD=0.25, kC=3.5");
-  logger().log("[M2P] MAX_OUTPUT=" + std::to_string(MAX_OUTPUT) +
-               " | DECEL_ZONE=" + std::to_string(DECEL_ZONE) + "in");
-
-  int loopCount = 0;
-  uint32_t startTime = pros::millis();
-  double prevDistance = distance;
-
+  int log_counter = 0;
   while (distance > 1) {
-    current_pose = chassis.getPose();
-    distance = current_pose.distance(target_pose);
+      current_pose = chassis.getPose();
+      distance = current_pose.distance(target_pose);
 
-    angle = -shulib::radToDeg(current_pose.angle(target_pose)) - 270;
-    angle = std::fmod(angle + 360, 360);
-    angle_error = angle - current_pose.theta;
+      angle = -shulib::radToDeg(current_pose.angle(target_pose)) - 270;
+      angle = std::fmod(angle + 360, 360);
+      angle_error = angle - current_pose.theta;
 
-    double forwardOutput = linearPID.update(distance, 5);
+      double forwardOutput = linearPID.update(distance, 5);
 
-    if (currentMaxSpeed < MAX_OUTPUT) {
-      currentMaxSpeed = std::min(currentMaxSpeed + ACCEL_RATE, MAX_OUTPUT);
-    }
-
-    double decelFactor = (distance < DECEL_ZONE) ? (distance / DECEL_ZONE) : 1.0;
-    double rawForward = forwardOutput;
-    forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed) * decelFactor;
-
-    double rotationOutput = headingPID.update(angle_error, 0.005);
-    double rawRotation = rotationOutput;
-    rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
-
-    chassis.drive(0, forwardOutput, 0);
-
-    // Log clamping events
-    if (fabs(rawForward) > currentMaxSpeed) {
-      if (loopCount % 50 == 0) {
-        logger().warning("[M2P] forward output CLAMPED: " + std::to_string(rawForward) +
-                        " -> " + std::to_string(forwardOutput));
+      // Dynamic acceleration and deceleration
+      if (currentMaxSpeed < MAX_OUTPUT) {
+          currentMaxSpeed = std::min(currentMaxSpeed + ACCEL_RATE, MAX_OUTPUT);
       }
-    }
 
-    // Warn if distance is increasing (moving away from target)
-    if (distance > prevDistance + 0.5) {
-      logger().warning("[M2P] MOVING AWAY from target! distance increased " +
-                      std::to_string(prevDistance) + " -> " + std::to_string(distance));
-    }
-    prevDistance = distance;
+      double decelFactor = (distance < DECEL_ZONE) ? (distance / DECEL_ZONE) : 1.0;
+      forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed) * decelFactor;
 
-    // Periodic status every 50 loops (~250ms)
-    loopCount++;
-    if (loopCount % 50 == 0) {
-      uint32_t elapsed = pros::millis() - startTime;
-      logger().log("[M2P] t=" + std::to_string(elapsed) + "ms" +
-                   " | dist=" + std::to_string(distance) +
-                   " | fwd=" + std::to_string(forwardOutput) +
-                   " | heading_err=" + std::to_string(angle_error) +
-                   " | rot=" + std::to_string(rotationOutput) +
-                   " | pose=(" + std::to_string(current_pose.x) +
-                   ", " + std::to_string(current_pose.y) +
-                   ", " + std::to_string(current_pose.theta) + ")");
-    }
+      double rotationOutput = headingPID.update(angle_error, 0.005);
+      rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
 
-    pros::delay(5);
+      chassis.drive(0, forwardOutput, 0);
+
+      //if (intaking) intake.move(127);
+      log_counter++;
+      if (log_counter % 25 == 0) {
+          logger().log("error_rotation: " + std::to_string(angle_error) +
+                       " error_distance: " + std::to_string(distance));
+          logger().log("rotation_output: " + std::to_string(rotationOutput) +
+                       " forward_output: " + std::to_string(forwardOutput));
+      }
+
+      pros::delay(5);
   }
 
   chassis.drive(0, 0, 0);
+  //if (intaking) limitedIntake(500, 1);
 
-  uint32_t totalTime = pros::millis() - startTime;
-  Pose finalPose = chassis.getPose();
-  double finalError = finalPose.distance(target_pose);
-
-  logger().log("[M2P] complete in " + std::to_string(totalTime) + "ms" +
-               " | " + std::to_string(loopCount) + " loops");
-  logger().log("[M2P] final_pose=(" + std::to_string(finalPose.x) +
-               ", " + std::to_string(finalPose.y) +
-               ", " + std::to_string(finalPose.theta) +
-               ") | final_error=" + std::to_string(finalError) + "in");
-  logger().log("-------- MOVE_TO_POSE END ----------");
+  logger().log("Move to pose complete");
 }
 
 
 // ============================================================
-//  MOVE_VERTICAL - with extensive diagnostic logging
-//  This is the primary suspect for forward movement issues.
-//  Extra diagnostics compare accumulated distance vs actual
-//  displacement to detect odometry drift.
+//  MOVE_VERTICAL
+//  Uses displacement-based remaining distance (not accumulated).
+//  Includes veering diagnostics for hardware debugging.
 // ============================================================
 void move_vertical(double distance_inches, bool intaking, bool conv) {
   logger().log("======== MOVE_VERTICAL START ========");
@@ -488,9 +445,9 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double target_distance = std::abs(distance_inches);
   double remaining_distance = target_distance;
 
+  std::string dirLabel = (distance_inches >= 0) ? "FORWARD" : "REVERSE";
   logger().log("[VERT] target=" + std::to_string(distance_inches) + "in" +
-               " (abs=" + std::to_string(target_distance) + "in)" +
-               " | direction=" + std::string(distance_inches >= 0 ? "FORWARD" : "REVERSE"));
+               " | direction=" + dirLabel);
   logger().log("[VERT] start_pose=(" + std::to_string(start_pose.x) +
                ", " + std::to_string(start_pose.y) +
                ", " + std::to_string(start_pose.theta) + ")");
@@ -500,17 +457,14 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   const double ACCEL_RATE = 2.0;
   const double DECEL_ZONE = 5.0;
 
-  logger().log("[VERT] constants: MAX_OUTPUT=" + std::to_string(MAX_OUTPUT) +
-               " | MAX_ROTATION=" + std::to_string(MAX_ROTATION));
-
   double currentMaxSpeed = MAX_OUTPUT;
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(5, 0, 0.1, 25);
+  PID linearPID(4, 0, 0.075, 25);
   PID headingPID(0, 0, 0, 0);
 
-  logger().log("[VERT] linear PID: kP=5, kI=0, kD=0.1, kC=25");
+  logger().log("[VERT] linear PID: kP=4, kI=0, kD=0.075, kC=25");
   logger().warning("[VERT] NOTE: heading PID gains are ALL ZERO - no heading correction active");
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -518,90 +472,41 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   bool stopped = false;
 
   int loopCount = 0;
-  int clampCount = 0;
-  int signChangeCount = 0;
-  double prevRemainingSign = 1.0;
-  double maxForwardOutput = 0;
-  double maxPositionJump = 0;
   uint32_t startTime = pros::millis();
 
   // ── Veering / Motor Imbalance Tracking ─────────────────
   double cumulativeLeftVel = 0;
   double cumulativeRightVel = 0;
   int velocitySamples = 0;
-  double maxVelDifference = 0;  // Largest single-sample L-R difference
+  double maxVelDifference = 0;
   double maxLeftTemp = 0;
   double maxRightTemp = 0;
 
   while (std::abs(remaining_distance) >= 0.1) {
     Pose current_pose = chassis.getPose();
 
-    // Calculate incremental distance traveled
-    double dy = std::abs(current_pose.y - last_y);
-    double dx = std::abs(current_pose.x - last_x);
-    double stepDist = sqrt(pow(dx, 2) + pow(dy, 2));
-
-    // Track largest single-step jump (possible sensor glitch)
-    if (stepDist > maxPositionJump) {
-      maxPositionJump = stepDist;
-    }
-    if (stepDist > 2.0) {
-      logger().warning("[VERT] LARGE POSITION JUMP: " + std::to_string(stepDist) +
-                      "in in one cycle! dx=" + std::to_string(dx) +
-                      " dy=" + std::to_string(dy) +
-                      " | possible sensor glitch or lag");
-    }
-
-    last_y = current_pose.y;
-    last_x = current_pose.x;
-
-    total_distance_traveled += stepDist;
-    remaining_distance = target_distance - total_distance_traveled;
-
-    // DIAGNOSTIC: Compare accumulated distance vs actual displacement from start
-    // If these diverge, the accumulation method is adding phantom distance
+    // Displacement-based remaining distance (not accumulated)
     double actual_displacement = start_pose.distance(current_pose);
-    double accumulation_error = total_distance_traveled - actual_displacement;
-
-    if (fabs(accumulation_error) > 1.0 && loopCount % 50 == 0) {
-      logger().warning("[VERT] ACCUMULATION DRIFT: accumulated=" + std::to_string(total_distance_traveled) +
-                      " vs actual_displacement=" + std::to_string(actual_displacement) +
-                      " | drift=" + std::to_string(accumulation_error) + "in" +
-                      " | This means odometry noise is adding phantom distance");
-    }
+    remaining_distance = target_distance - actual_displacement;
 
     // Calculate heading error relative to initial rotation
     double heading_error = initial_theta - current_pose.theta;
-    while (heading_error > 180) heading_error -= 360;
-    while (heading_error < -180) heading_error += 360;
+    while (heading_error > 180)
+      heading_error -= 360;
+    while (heading_error < -180)
+      heading_error += 360;
 
     double forwardOutput = linearPID.update(remaining_distance, 0.001);
-    if (distance_inches < 0) forwardOutput = -forwardOutput;
 
-    double rawForward = forwardOutput;
-    forwardOutput = std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
+    if (distance_inches < 0){
+      forwardOutput = -forwardOutput;
+    }
 
-    if (fabs(rawForward) > currentMaxSpeed) {
-      clampCount++;
-    }
-    if (fabs(forwardOutput) > maxForwardOutput) {
-      maxForwardOutput = fabs(forwardOutput);
-    }
+    forwardOutput =
+        std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
 
     double rotationOutput = headingPID.update(heading_error, 0.001);
     rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
-
-    // Detect if remaining_distance changed sign (overshot target)
-    double currentRemainingSign = (remaining_distance >= 0) ? 1.0 : -1.0;
-    if (currentRemainingSign != prevRemainingSign && loopCount > 0) {
-      signChangeCount++;
-      logger().warning("[VERT] TARGET CROSSED - remaining went from " +
-                      std::string(prevRemainingSign > 0 ? "positive" : "negative") +
-                      " to " + std::string(currentRemainingSign > 0 ? "positive" : "negative") +
-                      " | remaining=" + std::to_string(remaining_distance) +
-                      " | This means the robot overshot and is correcting");
-    }
-    prevRemainingSign = currentRemainingSign;
 
     chassis.drive(0, forwardOutput, 0);
 
@@ -623,14 +528,11 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
       conveyor.move(-127);
     }
 
-    // Periodic detailed status every 50 loops (~250ms)
-    loopCount++;
-
     // ── Per-cycle motor imbalance tracking ─────────────────
+    loopCount++;
     {
       double leftVelNow = pooksterLeft.get_actual_velocity();
       double rightVelNow = pooksterRight.get_actual_velocity();
-      // Only accumulate when robot is actually trying to move (not starting/stopping)
       if (fabs(forwardOutput) > 5) {
         cumulativeLeftVel += fabs(leftVelNow);
         cumulativeRightVel += fabs(rightVelNow);
@@ -642,13 +544,13 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
       }
     }
 
+    // Periodic detailed status every 50 loops (~250ms)
     if (loopCount % 50 == 0) {
       uint32_t elapsed = pros::millis() - startTime;
       double leftVel = pooksterLeft.get_actual_velocity();
       double rightVel = pooksterRight.get_actual_velocity();
       double velDiff = fabs(leftVel) - fabs(rightVel);
 
-      // Get motor temperatures per side
       double leftTemp = pooksterLeft.get_temperature();
       double rightTemp = pooksterRight.get_temperature();
       if (leftTemp > maxLeftTemp) maxLeftTemp = leftTemp;
@@ -656,19 +558,14 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
       logger().log("[VERT] t=" + std::to_string(elapsed) + "ms" +
                    " | remaining=" + std::to_string(remaining_distance) +
-                   " | accumulated=" + std::to_string(total_distance_traveled) +
                    " | actual_disp=" + std::to_string(actual_displacement) +
-                   " | drift=" + std::to_string(accumulation_error));
-      logger().log("[VERT]   fwd_out=" + std::to_string(forwardOutput) +
-                   " | heading_err=" + std::to_string(heading_error) +
+                   " | fwd_out=" + std::to_string(forwardOutput));
+      logger().log("[VERT]   heading_err=" + std::to_string(heading_error) +
                    " | pose=(" + std::to_string(current_pose.x) +
                    ", " + std::to_string(current_pose.y) +
                    ", " + std::to_string(current_pose.theta) + ")");
 
       // ── VEERING DIAGNOSTICS ──────────────────────────────
-      // This is the key block for diagnosing why the robot veers.
-      // velDiff > 0 means LEFT side is faster -> robot veers RIGHT
-      // velDiff < 0 means RIGHT side is faster -> robot veers LEFT
       logger().log("[VEER] L_vel=" + std::to_string(leftVel) +
                    " | R_vel=" + std::to_string(rightVel) +
                    " | diff=" + std::to_string(velDiff) +
@@ -681,17 +578,14 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                                      : rightTemp > leftTemp + 5 ? "RIGHT HOTTER (possible tight gearbox RIGHT)"
                                      : "temps balanced"));
 
-      // Running average imbalance
       if (velocitySamples > 0) {
         double avgLeft = cumulativeLeftVel / velocitySamples;
         double avgRight = cumulativeRightVel / velocitySamples;
-        double avgDiff = avgLeft - avgRight;
         double pctImbalance = (avgLeft + avgRight > 0)
             ? ((avgLeft - avgRight) / ((avgLeft + avgRight) / 2.0)) * 100.0
             : 0;
         logger().log("[VEER] running_avg: L=" + std::to_string(avgLeft) +
                      " R=" + std::to_string(avgRight) +
-                     " | avg_diff=" + std::to_string(avgDiff) +
                      " | imbalance=" + std::to_string(pctImbalance) + "%");
 
         if (fabs(pctImbalance) > 15) {
@@ -702,10 +596,9 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                           std::to_string(pctImbalance) + "% | " + diagnosis);
         }
       }
-
-      logger().log("[VERT]   clamps=" + std::to_string(clampCount) +
-                   " | overshoots=" + std::to_string(signChangeCount));
     }
+
+    logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
 
     pros::delay(5);
   }
@@ -723,8 +616,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   logger().log("[VERT] target=" + std::to_string(distance_inches) + "in" +
                " | actual_displacement=" + std::to_string(actual_final_displacement) + "in" +
                " | overshoot=" + std::to_string(overshoot) + "in");
-  logger().log("[VERT] accumulated_distance=" + std::to_string(total_distance_traveled) +
-               " | accumulation_drift=" + std::to_string(total_distance_traveled - actual_final_displacement) + "in");
   logger().log("[VERT] heading_drift=" + std::to_string(heading_drift) + "deg" +
                " | start_theta=" + std::to_string(initial_theta) +
                " | end_theta=" + std::to_string(finalPose.theta));
@@ -732,14 +623,9 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                ", " + std::to_string(finalPose.y) +
                ", " + std::to_string(finalPose.theta) + ")");
   logger().log("[VERT] time=" + std::to_string(totalTime) + "ms" +
-               " | loops=" + std::to_string(loopCount) +
-               " | output_clamps=" + std::to_string(clampCount) +
-               " | overshoots=" + std::to_string(signChangeCount) +
-               " | max_fwd=" + std::to_string(maxForwardOutput) +
-               " | max_jump=" + std::to_string(maxPositionJump) + "in");
+               " | loops=" + std::to_string(loopCount));
 
   // ── VEERING SUMMARY ──────────────────────────────────────
-  std::string dirLabel = (distance_inches >= 0) ? "FORWARD" : "REVERSE";
   logger().log("-------- VEERING ANALYSIS (" + dirLabel + " " +
                std::to_string(fabs(distance_inches)) + "in) --------");
   if (velocitySamples > 0) {
@@ -766,7 +652,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                       std::to_string(fabs(heading_drift)) + " degrees during straight move");
 
       if (fabs(pctImbalance) > 10) {
-        // Motors are imbalanced AND robot veered
         std::string slow_side = pctImbalance > 0 ? "RIGHT" : "LEFT";
         std::string hot_side = maxLeftTemp > maxRightTemp + 3 ? "LEFT"
                              : maxRightTemp > maxLeftTemp + 3 ? "RIGHT"
@@ -788,7 +673,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                           " side is hotter. May be multiple issues. Check both gearboxes.");
         }
       } else {
-        // Robot veered but motors are balanced - odom or external factor
         logger().warning(std::string("[VEER] Motors are balanced but robot still veered.") +
                         " Possible causes: weight distribution, one side has more" +
                         " wheel friction, uneven field surface, or odom wheel issue" +
@@ -813,11 +697,13 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     logger().success("[VERT] movement within 1in tolerance");
   }
 
-  if (total_distance_traveled - actual_final_displacement > 1.0) {
-    logger().warning("[VERT] DIAGNOSTIC: accumulated " +
-                    std::to_string(total_distance_traveled - actual_final_displacement) +
-                    "in more than actual displacement. Suggests odometry noise or oscillation " +
-                    "is inflating the distance counter. Consider using displacement from start instead.");
+  if (intaking) {
+    //intake.move(0);
+  }
+
+  if(conv){
+    //lowerConveyor.move(-127);
+    //upperConveyor.move(-127);
   }
 
   logger().log("======== MOVE_VERTICAL END ==========");
@@ -833,17 +719,23 @@ void tubeFunction(void* params){
 
   int time = args->time;
   int power = args->power;
+
   for(int i = 0; i < 6; i++){
     pooksterLeft.move(power);
     pooksterRight.move(power * -1);
     
     pros::delay(time);
 
-    pooksterLeft.move(-10);
-    pooksterRight.move(-10);
+    pooksterLeft.move(-20);
+    pooksterRight.move(20);
 
     pros::delay(time);
   }
+
+  pooksterLeft.move(0);
+  pooksterRight.move(0);
+
+  pros::delay(100);
 }
 
 void positionReset(){
@@ -854,12 +746,14 @@ void positionReset(){
 
 void tempMovement(int time, int backwards){
   chassis.drive(0, 100 * backwards, 0);
+
   pros::delay(100);
 }
 
 void tempTurn(int time, int backwards){
   pooksterLeft.move(100 * backwards);
   pooksterRight.move(100 * backwards);
+
   pros::delay(time);
 }
 
@@ -871,7 +765,14 @@ void readout(){
 }
 
 
+
 void autonomous() {
+  // test_min_output();
+  // MIN_OUTPUT_Y 20
+  // MIN_OUTPUT_THETA 25
+  // rotation_calibration();
+  // moveVertical();
+
   chassis.setPose(0,0,90);
   arm.toggle();
   pros::delay(50);
@@ -879,21 +780,20 @@ void autonomous() {
   move_vertical(36, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,90);
-  pros::delay(100);
-  pros::delay(100);
-
   rotate_to(180);
   arm.toggle(); 
   pros::delay(300);
+
+  //INTAKE + SCORE LONG ROUTINE
 
   move_vertical(6, false, false);
   pros::delay(100);
 
   tubeParams* paramsOne = new tubeParams {300, 127 };
   
-  pros::Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation");
-  limitedIntake(2500, 1, -1, 115);
+  Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
+  limitedIntake(2500, 1, -1, 120);
+
   pros::delay(100);
 
   move_vertical(-4, false, false);
@@ -904,17 +804,97 @@ void autonomous() {
   chassis.setPose(0,0,180);
   pros::delay(100);
 
-  rotate_to(181);
+  rotate_to(182);
   pros::delay(100);
 
-  move_vertical(-26, false,false);
+  move_vertical(-27, false,false);
   pros::delay(100);
 
   limitedIntake(2400, 1, 1, 117);
   pros::delay(100);
+
+  move_vertical(16.5, false, false);
+  pros::delay(100);
+
+  //chassis.setPose(0,0,182);
+  //pros::delay(100);
+
+  rotate_to(-45);
+  pros::delay(100);
+
+  move_vertical(34, false, false);
+  pros::delay(100);
+  chassis.setPose(0,0,-45);
+  pros::delay(100);
+
+  rotate_to(-7.5);
+  pros::delay(100);
+
+  move_vertical(72, false, false);
+  pros::delay(100);
+  chassis.setPose(0,0,0);
+  pros::delay(100);
+
+  rotate_to(90);
+  pros::delay(100);
+
+  move_vertical(24, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,90);
+  pros::delay(100);
+
+  rotate_to(0);
+  pros::delay(100);
+  arm.toggle();
+  pros::delay(100);
+
+  move_vertical(12, false, false);
+  pros::delay(100);
+
+  tubeParams* paramsTwo = new tubeParams {300, 127 };
+  
+  pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2");
+  limitedIntake(2400, 1, -1, 80);
+
+  move_vertical(-26.5, false, false);
+  pros::delay(100);
+
+  arm.toggle();
+  pros::delay(100);
+
+  limitedIntake(2400, 1, 1, 115);
+  pros::delay(100);
+
+  move_vertical(16.5, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,0);
+  pros::delay(100);
+  rotate_to(-90);
+  pros::delay(100);
+
+  move_vertical(24, false, false);
+
+  chassis.setPose(0,0,-90);
+  pros::delay(100);
+  rotate_to(180);
+  pros::delay(100);
+
+  move_vertical(118.5, false, false);
+  pros::delay(100);
+
+  chassis.setPose(0,0,180);
+  pros::delay(100);
+  rotate_to(-90);
+  pros::delay(100);
+
+  tempMovement(1500, 1);
+
 }
 
 void pooksterControls() {
+
   if (master.get_digital(DIGITAL_L1)) {
     intake.move(45);
     conveyor.move(127);
@@ -942,7 +922,7 @@ void pooksterControls() {
   }
 
   if (master.get_digital_new_press(DIGITAL_RIGHT)) {
-    solenoid.toggle();
+      solenoid.toggle();
   } 
  
   if(master.get_digital_new_press(DIGITAL_LEFT)){
@@ -960,14 +940,13 @@ void pooksterControls() {
       arm.extend();
     }
   }
+ 
 }
  
 void opcontrol() {
   logger().log("======== OPCONTROL START ========");
 
   // ── Opcontrol Drive Diagnostics ──────────────────────────
-  // These track motor behavior over time during driver control
-  // to diagnose veering, stuck wheels, and gearbox issues.
   int opLoopCount = 0;
 
   // Per-direction accumulators (forward vs backward)
@@ -1058,7 +1037,6 @@ void opcontrol() {
                           std::to_string(fabs(pctImbalance)) + "% -> robot veers toward " +
                           slowSide);
 
-          // Temperature correlation
           if (maxLeftTemp > maxRightTemp + 3 && slowSide == "LEFT") {
             logger().error("[OPCTL] LEFT side is BOTH slower AND hotter." +
                           std::string(" Likely LEFT gearbox friction / tight bearing."));
