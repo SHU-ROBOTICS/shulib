@@ -726,8 +726,8 @@ void tubeFunction(void* params){
     
     pros::delay(time);
 
-    pooksterLeft.move(-30);
-    pooksterRight.move(30);
+    pooksterLeft.move(-20);
+    pooksterRight.move(20);
 
     pros::delay(time);
   }
@@ -804,7 +804,7 @@ void autonomous() {
   chassis.setPose(0,0,180);
   pros::delay(100);
 
-  rotate_to(182);
+  rotate_to(181.5);
   pros::delay(100);
 
   move_vertical(-27, false,false);
