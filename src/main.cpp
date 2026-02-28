@@ -827,21 +827,21 @@ void autonomous() {
   chassis.setPose(0,0,-45);
   pros::delay(100);
 
-  rotate_to(-7.5);
+  rotate_to(-3);
   pros::delay(100);
 
   move_vertical(72, false, false);
   pros::delay(100);
-  chassis.setPose(0,0,0);
+  chassis.setPose(0,0,-3);
   pros::delay(100);
 
-  rotate_to(90);
+  rotate_to(88);
   pros::delay(100);
 
-  move_vertical(24, false, false);
+  move_vertical(22, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,90);
+  chassis.setPose(0,0,88);
   pros::delay(100);
 
   rotate_to(0);
