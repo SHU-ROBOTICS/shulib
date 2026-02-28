@@ -510,7 +510,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(4, 0, 0.075, 25);
+  PID linearPID(4, 0.025, 0.1, 25);
   PID headingPID(0, 0, 0, 0);
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -623,8 +623,8 @@ void tubeFunction(void* params){
     
     pros::delay(time);
 
-    pooksterLeft.move(-20);
-    pooksterRight.move(20);
+    pooksterLeft.move(-30);
+    pooksterRight.move(30);
 
     pros::delay(time);
   }
