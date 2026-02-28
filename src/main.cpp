@@ -2,7 +2,6 @@
 #include "pros/adi.hpp"
 #include "pros/misc.h"
 #include "pros/rotation.hpp"
-#include "shulib/api.hpp"
 #include "pros/apix.h" // IWYU pragma: keep
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/drivetrain/tankdrive.hpp"
@@ -10,9 +9,6 @@
 #include "shulib/logger.hpp"
 #include "shulib/pid.hpp"
 #include "shulib/util.hpp"
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <vector>
 #include <string> 
 
@@ -529,6 +525,14 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double maxPositionJump = 0;
   uint32_t startTime = pros::millis();
 
+  // ── Veering / Motor Imbalance Tracking ─────────────────
+  double cumulativeLeftVel = 0;
+  double cumulativeRightVel = 0;
+  int velocitySamples = 0;
+  double maxVelDifference = 0;  // Largest single-sample L-R difference
+  double maxLeftTemp = 0;
+  double maxRightTemp = 0;
+
   while (std::abs(remaining_distance) >= 0.1) {
     Pose current_pose = chassis.getPose();
 
@@ -621,10 +625,34 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     // Periodic detailed status every 50 loops (~250ms)
     loopCount++;
+
+    // ── Per-cycle motor imbalance tracking ─────────────────
+    {
+      double leftVelNow = pooksterLeft.get_actual_velocity();
+      double rightVelNow = pooksterRight.get_actual_velocity();
+      // Only accumulate when robot is actually trying to move (not starting/stopping)
+      if (fabs(forwardOutput) > 5) {
+        cumulativeLeftVel += fabs(leftVelNow);
+        cumulativeRightVel += fabs(rightVelNow);
+        velocitySamples++;
+        double diff = fabs(leftVelNow) - fabs(rightVelNow);
+        if (fabs(diff) > fabs(maxVelDifference)) {
+          maxVelDifference = diff;
+        }
+      }
+    }
+
     if (loopCount % 50 == 0) {
       uint32_t elapsed = pros::millis() - startTime;
       double leftVel = pooksterLeft.get_actual_velocity();
       double rightVel = pooksterRight.get_actual_velocity();
+      double velDiff = fabs(leftVel) - fabs(rightVel);
+
+      // Get motor temperatures per side
+      double leftTemp = pooksterLeft.get_temperature();
+      double rightTemp = pooksterRight.get_temperature();
+      if (leftTemp > maxLeftTemp) maxLeftTemp = leftTemp;
+      if (rightTemp > maxRightTemp) maxRightTemp = rightTemp;
 
       logger().log("[VERT] t=" + std::to_string(elapsed) + "ms" +
                    " | remaining=" + std::to_string(remaining_distance) +
@@ -636,9 +664,46 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                    " | pose=(" + std::to_string(current_pose.x) +
                    ", " + std::to_string(current_pose.y) +
                    ", " + std::to_string(current_pose.theta) + ")");
-      logger().log("[VERT]   motor_vel L=" + std::to_string(leftVel) +
-                   " R=" + std::to_string(rightVel) +
-                   " | clamps=" + std::to_string(clampCount) +
+
+      // ── VEERING DIAGNOSTICS ──────────────────────────────
+      // This is the key block for diagnosing why the robot veers.
+      // velDiff > 0 means LEFT side is faster -> robot veers RIGHT
+      // velDiff < 0 means RIGHT side is faster -> robot veers LEFT
+      logger().log("[VEER] L_vel=" + std::to_string(leftVel) +
+                   " | R_vel=" + std::to_string(rightVel) +
+                   " | diff=" + std::to_string(velDiff) +
+                   " | " + std::string(velDiff > 5 ? "LEFT FASTER->veers RIGHT"
+                                     : velDiff < -5 ? "RIGHT FASTER->veers LEFT"
+                                     : "balanced"));
+      logger().log("[VEER] L_temp=" + std::to_string(leftTemp) + "C" +
+                   " | R_temp=" + std::to_string(rightTemp) + "C" +
+                   " | " + std::string(leftTemp > rightTemp + 5 ? "LEFT HOTTER (possible tight gearbox LEFT)"
+                                     : rightTemp > leftTemp + 5 ? "RIGHT HOTTER (possible tight gearbox RIGHT)"
+                                     : "temps balanced"));
+
+      // Running average imbalance
+      if (velocitySamples > 0) {
+        double avgLeft = cumulativeLeftVel / velocitySamples;
+        double avgRight = cumulativeRightVel / velocitySamples;
+        double avgDiff = avgLeft - avgRight;
+        double pctImbalance = (avgLeft + avgRight > 0)
+            ? ((avgLeft - avgRight) / ((avgLeft + avgRight) / 2.0)) * 100.0
+            : 0;
+        logger().log("[VEER] running_avg: L=" + std::to_string(avgLeft) +
+                     " R=" + std::to_string(avgRight) +
+                     " | avg_diff=" + std::to_string(avgDiff) +
+                     " | imbalance=" + std::to_string(pctImbalance) + "%");
+
+        if (fabs(pctImbalance) > 15) {
+          std::string diagnosis = pctImbalance > 0
+              ? "LEFT motors consistently faster - robot will veer RIGHT. Check RIGHT side gearbox/friction."
+              : "RIGHT motors consistently faster - robot will veer LEFT. Check LEFT side gearbox/friction.";
+          logger().warning("[VEER] SIGNIFICANT MOTOR IMBALANCE: " +
+                          std::to_string(pctImbalance) + "% | " + diagnosis);
+        }
+      }
+
+      logger().log("[VERT]   clamps=" + std::to_string(clampCount) +
                    " | overshoots=" + std::to_string(signChangeCount));
     }
 
@@ -672,6 +737,73 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                " | overshoots=" + std::to_string(signChangeCount) +
                " | max_fwd=" + std::to_string(maxForwardOutput) +
                " | max_jump=" + std::to_string(maxPositionJump) + "in");
+
+  // ── VEERING SUMMARY ──────────────────────────────────────
+  std::string dirLabel = (distance_inches >= 0) ? "FORWARD" : "REVERSE";
+  logger().log("-------- VEERING ANALYSIS (" + dirLabel + " " +
+               std::to_string(fabs(distance_inches)) + "in) --------");
+  if (velocitySamples > 0) {
+    double avgLeft = cumulativeLeftVel / velocitySamples;
+    double avgRight = cumulativeRightVel / velocitySamples;
+    double pctImbalance = (avgLeft + avgRight > 0)
+        ? ((avgLeft - avgRight) / ((avgLeft + avgRight) / 2.0)) * 100.0
+        : 0;
+
+    logger().log("[VEER] FINAL: avg_L_vel=" + std::to_string(avgLeft) +
+                 " | avg_R_vel=" + std::to_string(avgRight) +
+                 " | imbalance=" + std::to_string(pctImbalance) + "%" +
+                 " | max_single_diff=" + std::to_string(maxVelDifference) +
+                 " | samples=" + std::to_string(velocitySamples));
+    logger().log("[VEER] FINAL: max_L_temp=" + std::to_string(maxLeftTemp) + "C" +
+                 " | max_R_temp=" + std::to_string(maxRightTemp) + "C");
+    logger().log("[VEER] heading_drift=" + std::to_string(heading_drift) + "deg" +
+                 " | lateral_offset=" + std::to_string(finalPose.x - start_pose.x) + "in");
+
+    // ── DIAGNOSIS ──────────────────────────────────────────
+    if (fabs(heading_drift) > 3.0) {
+      std::string veering_direction = heading_drift > 0 ? "LEFT" : "RIGHT";
+      logger().warning("[VEER] ROBOT VEERED " + veering_direction + " by " +
+                      std::to_string(fabs(heading_drift)) + " degrees during straight move");
+
+      if (fabs(pctImbalance) > 10) {
+        // Motors are imbalanced AND robot veered
+        std::string slow_side = pctImbalance > 0 ? "RIGHT" : "LEFT";
+        std::string hot_side = maxLeftTemp > maxRightTemp + 3 ? "LEFT"
+                             : maxRightTemp > maxLeftTemp + 3 ? "RIGHT"
+                             : "NEITHER";
+
+        logger().warning("[VEER] DIAGNOSIS: " + slow_side + " motors are slower by " +
+                        std::to_string(fabs(pctImbalance)) + "%");
+
+        if (hot_side == slow_side) {
+          logger().error("[VEER] LIKELY CAUSE: " + slow_side +
+                        std::string(" side gearbox is tight or has excessive friction.") +
+                        " That side is BOTH slower AND hotter.");
+        } else if (hot_side == "NEITHER") {
+          logger().warning(std::string("[VEER] Temps are similar. Could be motor quality difference,") +
+                          " weight distribution, or wheel friction. Try swapping motor groups" +
+                          " left<->right to isolate if it follows the motors or the chassis.");
+        } else {
+          logger().warning("[VEER] Unusual: " + slow_side + " side is slower but " + hot_side +
+                          " side is hotter. May be multiple issues. Check both gearboxes.");
+        }
+      } else {
+        // Robot veered but motors are balanced - odom or external factor
+        logger().warning(std::string("[VEER] Motors are balanced but robot still veered.") +
+                        " Possible causes: weight distribution, one side has more" +
+                        " wheel friction, uneven field surface, or odom wheel issue" +
+                        " causing false heading readings.");
+        logger().warning(std::string("[VEER] Check odom WHEEL HEALTH logs above -") +
+                        " if L/R odom imbalance is large, an odom wheel" +
+                        " may have different contact than the other.");
+      }
+    } else {
+      logger().success("[VEER] heading drift under 3 degrees - straight tracking OK");
+    }
+  } else {
+    logger().warning("[VEER] No velocity samples collected (robot may not have moved)");
+  }
+  logger().log("-------- END VEERING ANALYSIS --------");
 
   if (fabs(overshoot) > 2.0) {
     logger().error("[VERT] LARGE ERROR: off by " + std::to_string(overshoot) + "in from target!");
@@ -831,14 +963,170 @@ void pooksterControls() {
 }
  
 void opcontrol() {
+  logger().log("======== OPCONTROL START ========");
+
+  // ── Opcontrol Drive Diagnostics ──────────────────────────
+  // These track motor behavior over time during driver control
+  // to diagnose veering, stuck wheels, and gearbox issues.
+  int opLoopCount = 0;
+
+  // Per-direction accumulators (forward vs backward)
+  double fwdLeftVelSum = 0, fwdRightVelSum = 0;
+  int fwdSamples = 0;
+  double revLeftVelSum = 0, revRightVelSum = 0;
+  int revSamples = 0;
+
+  // Overall accumulators
+  double totalLeftVelSum = 0, totalRightVelSum = 0;
+  int totalSamples = 0;
+  double maxLeftTemp = 0, maxRightTemp = 0;
+
+  // Track when we last printed a diagnostic (don't spam)
+  uint32_t lastDiagTime = pros::millis();
+  const uint32_t DIAG_INTERVAL_MS = 2000;  // Full report every 2 seconds
+
   while (true) {
-    chassis.drive(master.get_analog(ANALOG_LEFT_X),
-                  master.get_analog(ANALOG_LEFT_Y),
-                  master.get_analog(ANALOG_RIGHT_X));
+    int stickY = master.get_analog(ANALOG_LEFT_Y);
+    int stickX = master.get_analog(ANALOG_LEFT_X);
+    int stickRot = master.get_analog(ANALOG_RIGHT_X);
+
+    chassis.drive(stickX, stickY, stickRot);
     pooksterControls();
 
-    Task brainReadout(readout);
- 
+    // ── Gather motor data every cycle ────────────────────
+    opLoopCount++;
+    double leftVel = pooksterLeft.get_actual_velocity();
+    double rightVel = pooksterRight.get_actual_velocity();
+
+    // Only track when the driver is actually commanding forward/backward
+    // (not turning in place, not stationary)
+    bool drivingStraightish = (abs(stickY) > 20 && abs(stickRot) < 30);
+
+    if (drivingStraightish) {
+      double absL = fabs(leftVel);
+      double absR = fabs(rightVel);
+      totalLeftVelSum += absL;
+      totalRightVelSum += absR;
+      totalSamples++;
+
+      if (stickY > 0) {
+        // Forward
+        fwdLeftVelSum += absL;
+        fwdRightVelSum += absR;
+        fwdSamples++;
+      } else {
+        // Reverse
+        revLeftVelSum += absL;
+        revRightVelSum += absR;
+        revSamples++;
+      }
+    }
+
+    // Track temperatures
+    double leftTemp = pooksterLeft.get_temperature();
+    double rightTemp = pooksterRight.get_temperature();
+    if (leftTemp > maxLeftTemp) maxLeftTemp = leftTemp;
+    if (rightTemp > maxRightTemp) maxRightTemp = rightTemp;
+
+    // ── Periodic diagnostic report ───────────────────────
+    uint32_t now = pros::millis();
+    if (now - lastDiagTime >= DIAG_INTERVAL_MS) {
+      lastDiagTime = now;
+
+      logger().log("-------- OPCONTROL DRIVE DIAGNOSTICS --------");
+      logger().log("[OPCTL] temps: L=" + std::to_string(leftTemp) + "C" +
+                   " R=" + std::to_string(rightTemp) + "C" +
+                   " | max: L=" + std::to_string(maxLeftTemp) + "C" +
+                   " R=" + std::to_string(maxRightTemp) + "C");
+
+      if (totalSamples > 10) {
+        double avgL = totalLeftVelSum / totalSamples;
+        double avgR = totalRightVelSum / totalSamples;
+        double pctImbalance = (avgL + avgR > 0)
+            ? ((avgL - avgR) / ((avgL + avgR) / 2.0)) * 100.0
+            : 0;
+
+        logger().log("[OPCTL] overall: avg_L=" + std::to_string(avgL) +
+                     " avg_R=" + std::to_string(avgR) +
+                     " | imbalance=" + std::to_string(pctImbalance) + "%" +
+                     " | samples=" + std::to_string(totalSamples));
+
+        if (fabs(pctImbalance) > 10) {
+          std::string slowSide = pctImbalance > 0 ? "RIGHT" : "LEFT";
+          std::string fastSide = pctImbalance > 0 ? "LEFT" : "RIGHT";
+          logger().warning("[OPCTL] " + slowSide + " side is slower by " +
+                          std::to_string(fabs(pctImbalance)) + "% -> robot veers toward " +
+                          slowSide);
+
+          // Temperature correlation
+          if (maxLeftTemp > maxRightTemp + 3 && slowSide == "LEFT") {
+            logger().error("[OPCTL] LEFT side is BOTH slower AND hotter." +
+                          std::string(" Likely LEFT gearbox friction / tight bearing."));
+          } else if (maxRightTemp > maxLeftTemp + 3 && slowSide == "RIGHT") {
+            logger().error("[OPCTL] RIGHT side is BOTH slower AND hotter." +
+                          std::string(" Likely RIGHT gearbox friction / tight bearing."));
+          } else {
+            logger().warning("[OPCTL] Temps don't clearly point to one side." +
+                            std::string(" Could be motor quality, weight dist, or wheel grip."));
+          }
+        }
+      }
+
+      // ── Forward vs backward comparison ─────────────────
+      if (fwdSamples > 10) {
+        double fwdL = fwdLeftVelSum / fwdSamples;
+        double fwdR = fwdRightVelSum / fwdSamples;
+        double fwdImb = (fwdL + fwdR > 0)
+            ? ((fwdL - fwdR) / ((fwdL + fwdR) / 2.0)) * 100.0
+            : 0;
+        logger().log("[OPCTL] FORWARD:  avg_L=" + std::to_string(fwdL) +
+                     " avg_R=" + std::to_string(fwdR) +
+                     " | imbalance=" + std::to_string(fwdImb) + "%" +
+                     " | samples=" + std::to_string(fwdSamples));
+      }
+
+      if (revSamples > 10) {
+        double revL = revLeftVelSum / revSamples;
+        double revR = revRightVelSum / revSamples;
+        double revImb = (revL + revR > 0)
+            ? ((revL - revR) / ((revL + revR) / 2.0)) * 100.0
+            : 0;
+        logger().log("[OPCTL] REVERSE:  avg_L=" + std::to_string(revL) +
+                     " avg_R=" + std::to_string(revR) +
+                     " | imbalance=" + std::to_string(revImb) + "%" +
+                     " | samples=" + std::to_string(revSamples));
+      }
+
+      // ── Direction comparison diagnosis ─────────────────
+      if (fwdSamples > 10 && revSamples > 10) {
+        double fwdImb = ((fwdLeftVelSum/fwdSamples) - (fwdRightVelSum/fwdSamples));
+        double revImb = ((revLeftVelSum/revSamples) - (revRightVelSum/revSamples));
+
+        if (fabs(fwdImb) > fabs(revImb) + 5) {
+          logger().warning("[OPCTL] DIRECTION CLUE: Imbalance is WORSE going forward." +
+              std::string(" This suggests the problem is direction-dependent.") +
+              " Possible causes: weight distribution shifts forward," +
+              " front wheel contact changes, or gear engagement" +
+              " differs by direction.");
+        } else if (fabs(revImb) > fabs(fwdImb) + 5) {
+          logger().warning("[OPCTL] DIRECTION CLUE: Imbalance is WORSE going backward.");
+        } else {
+          logger().log("[OPCTL] Imbalance is similar in both directions." +
+              std::string(" Problem is NOT direction-dependent.") +
+              " Points to: tight gearbox, odom wheel issue, or" +
+              " motor quality difference.");
+        }
+      }
+
+      // ── Instantaneous snapshot ─────────────────────────
+      logger().log("[OPCTL] RIGHT NOW: stick_Y=" + std::to_string(stickY) +
+                   " stick_rot=" + std::to_string(stickRot) +
+                   " | L_vel=" + std::to_string(leftVel) +
+                   " R_vel=" + std::to_string(rightVel) +
+                   " | heading=" + std::to_string(chassis.getPose().theta) + "deg");
+      logger().log("-------- END OPCONTROL DIAGNOSTICS --------");
+    }
+
     pros::delay(20);
   }
 }

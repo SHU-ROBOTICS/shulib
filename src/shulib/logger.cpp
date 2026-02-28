@@ -2,7 +2,6 @@
 #include "pros/rtos.hpp"
 #include <iostream>
 #include <sstream>
-#include <queue>
 #include <iomanip>
 
 namespace shulib {
