@@ -3,139 +3,122 @@
 #include <iostream>
 #include <sstream>
 #include <queue>
-#include <iomanip>
 
 namespace shulib {
 
-// Helper to format a timestamp from pros::millis() as MM:SS.mmm
-static std::string getTimestamp() {
-    uint32_t ms = pros::millis();
-    uint32_t totalSeconds = ms / 1000;
-    uint32_t minutes = totalSeconds / 60;
-    uint32_t seconds = totalSeconds % 60;
-    uint32_t millis = ms % 1000;
-
-    std::stringstream ss;
-    ss << std::setfill('0') << std::setw(2) << minutes << ":"
-       << std::setfill('0') << std::setw(2) << seconds << "."
-       << std::setfill('0') << std::setw(3) << millis;
-    return ss.str();
-}
-
-// Helper to convert MessageType to a fixed-width label
-static std::string getTypeLabel(Logger::MessageType type) {
-    switch (type) {
-        case Logger::MessageType::ERROR:    return "ERROR";
-        case Logger::MessageType::WARNING:  return "WARN ";
-        case Logger::MessageType::SUCCESS:  return "OK   ";
-        case Logger::MessageType::ANNOUNCE: return "ANNC ";
-        case Logger::MessageType::DEBUG:    return "DEBUG";
-        case Logger::MessageType::LOG:
-        default:                            return "LOG  ";
-    }
-}
-
 void Logger::update() {
-    uint32_t currentTime = pros::millis();
-    if (currentTime - lastTelemetryTime >= telemetryInterval) {
-        sendTelemetry();
-        lastTelemetryTime = currentTime;
-    }
-    sendDebugMessages();
+  uint32_t currentTime = pros::millis();
+
+  if (currentTime - lastTelemetryTime >= telemetryInterval) {
+    sendTelemetry();
+    lastTelemetryTime = currentTime;
+  }
+
+  sendDebugMessages();
 }
 
 void Logger::sendTelemetry() {
-    mutex.take();
+  mutex.take();
 
-    // --- HUMAN-READABLE LOG MESSAGES ---
-    // Output each message as a clean, readable line:
-    //   [MM:SS.mmm] [TYPE ] message text here
-    if (!debugMessages.empty()) {
-        for (const auto &msg : debugMessages) {
-            std::stringstream line;
-            line << "[" << getTimestamp() << "] "
-                 << "[" << getTypeLabel(msg.second) << "] "
-                 << msg.first;
-            printf("%s\n", line.str().c_str());
+  if (!debugMessages.empty()) {
+    const size_t maxSize = 900;
+    std::queue<std::pair<std::string, MessageType>> messageQueue(std::deque<std::pair<std::string, MessageType>>(debugMessages.begin(), debugMessages.end()));
+    debugMessages.clear();
+
+    while (!messageQueue.empty()) {
+      std::vector<std::pair<std::string, MessageType>> currentChunk;
+      std::stringstream ss;
+      ss << "{\"messages\": [";
+      size_t currentSize = 15; // Initial size for {"messages": []}
+
+      while (!messageQueue.empty()) {
+        const auto &msg = messageQueue.front();
+        std::string msgJson = "{ \"message\": \"" + msg.first + "\", \"type\": \"" + 
+          (msg.second == MessageType::ERROR ? "error" :
+           msg.second == MessageType::WARNING ? "warning" :
+           msg.second == MessageType::SUCCESS ? "success" :
+           msg.second == MessageType::ANNOUNCE ? "announce" :
+           msg.second == MessageType::DEBUG ? "debug" : "log") + "\" }";
+
+        size_t newSize = currentSize + msgJson.length() + (currentChunk.empty() ? 0 : 2); // +2 for ", "
+        if (newSize > maxSize && !currentChunk.empty()) {
+          break;
         }
-        debugMessages.clear();
+
+        currentChunk.push_back(msg);
+        if (!currentChunk.empty() && currentChunk.size() > 1) {
+          ss << ", ";
+        }
+        ss << msgJson;
+        currentSize = newSize;
+        messageQueue.pop();
+      }
+
+      ss << "]}";
+      printf("%s\n", ss.str().c_str());
+      pros::delay(5);
     }
+  }
 
-    // --- TELEMETRY JSON (unchanged format, prefixed for easy filtering) ---
-    // Only sends values that changed since last send.
-    // Prefixed with [TELEM] so you can visually skip it or grep for it.
-    if (!telemetryData.empty()) {
-        const size_t targetChunkSize = 900;
-        std::vector<std::string> chunks;
-        std::stringstream chunk;
-        chunk << "{";
-        bool isFirst = true;
+  if (!telemetryData.empty()) {
+    const size_t targetChunkSize = 900;
+    std::vector<std::string> chunks;
+    std::stringstream chunk;
+    chunk << "{";
+    bool isFirst = true;
 
-        for (const auto &pair : telemetryData) {
-            auto prevIt = previousTelemetryData.find(pair.first);
-            if (prevIt == previousTelemetryData.end() || prevIt->second != pair.second) {
-                std::string entry = "\"" + pair.first + "\": " + pair.second;
-
-                if (!isFirst) {
-                    if (chunk.str().length() + entry.length() + 2 > targetChunkSize) {
-                        chunk << "}";
-                        chunks.push_back(chunk.str());
-                        chunk.str("");
-                        chunk << "{" << entry;
-                    } else {
-                        chunk << ", " << entry;
-                    }
-                } else {
-                    chunk << entry;
-                    isFirst = false;
-                }
-                previousTelemetryData[pair.first] = pair.second;
-            }
-        }
-
-        if (chunk.str().length() > 1) {
+    for (const auto &pair : telemetryData) {
+      auto prevIt = previousTelemetryData.find(pair.first);
+      if (prevIt == previousTelemetryData.end() || prevIt->second != pair.second) {
+        std::string entry = "\"" + pair.first + "\": " + pair.second;
+        
+        if (!isFirst) {
+          if (chunk.str().length() + entry.length() + 2 > targetChunkSize) {
             chunk << "}";
             chunks.push_back(chunk.str());
+            chunk.str("");
+            chunk << "{" << entry;
+          } else {
+            chunk << ", " << entry;
+          }
+        } else {
+          chunk << entry;
+          isFirst = false;
         }
-
-        for (size_t i = 0; i < chunks.size(); i++) {
-            printf("[TELEM] %s\n", chunks[i].c_str());
-            if (i < chunks.size() - 1) {
-                pros::delay(5);
-            }
-        }
+        previousTelemetryData[pair.first] = pair.second;
+      }
     }
 
-    mutex.give();
-}
+    if (chunk.str().length() > 1) {
+      chunk << "}";
+      chunks.push_back(chunk.str());
+    }
 
-void Logger::sendDebugMessages() {
-    // Messages are now handled in sendTelemetry() to keep output ordering sane.
-    // This function exists to satisfy the header declaration.
+    for (size_t i = 0; i < chunks.size(); i++) {
+      printf("%s\n", chunks[i].c_str());
+      if (i < chunks.size() - 1) {
+        pros::delay(5);
+      }
+    }
+  }
+  mutex.give();
 }
 
 void Logger::init() {
-    printf("\n");
-    printf("========================================\n");
-    printf("  shulib logger starting\n");
-    printf("  timestamp format: [MM:SS.mmm]\n");
-    printf("  telemetry lines prefixed with [TELEM]\n");
-    printf("========================================\n");
-    printf("\n");
-
-    if (telemetryTask == nullptr) {
-        telemetryTask = new pros::Task([this] {
-            while (true) {
-                this->sendTelemetry();
-                pros::delay(100);
-            }
-        });
-    }
-    success("Logger initialized!");
+  printf("Initializing logger...\n");
+  if (telemetryTask == nullptr) {
+    telemetryTask = new pros::Task([this] {
+      while (true) {
+        this->sendTelemetry();
+        pros::delay(100);
+      }
+    });
+  }
+  success("Logger initialized!");
 }
 
 template<>
-void Logger::updateTelemetry(const std::string &key, const std::map<std::string, double> &value) {
+void shulib::Logger::updateTelemetry(const std::string &key, const std::map<std::string, double> &value) {
     std::stringstream ss;
     ss << "{";
     bool first = true;
