@@ -14,7 +14,7 @@ void shulib::OdomUnit::reset() {
 
 double shulib::OdomUnit::get_travel() {
     if (this->sensor != nullptr) {
-        return (float(this->sensor->get_position()) * this->diameter * M_PI / 36000);
+        return (float(this->sensor->get_position()) * this->diameter * 3.14159 / 36000);
     } else {
         return 0;
     }

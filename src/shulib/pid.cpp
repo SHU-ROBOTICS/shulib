@@ -5,7 +5,7 @@ float shulib::PID::update(float error, float time) {
     float derivative = ((error - prevError) / time);
     integral += (error * time);
     prevError = error;
-    return (kP * error) + (kI * integral) + (kD * derivative) + (kC * (std::abs(error) / error));
+    return (kP * error) + (kI * integral) + (kD * derivative);
 }
 
 void shulib::PID::setKP(float newKP){

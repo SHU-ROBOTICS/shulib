@@ -8,9 +8,9 @@
 #include "shulib/logger.hpp"
 
 
-shulib::OdomSensors::OdomSensors(OdomUnit *left, OdomUnit *right,
+shulib::OdomSensors::OdomSensors(OdomUnit *right,
                                  OdomUnit *back, pros::Imu *imu)
-    : left(left), right(right), back(back), imu(imu) {}
+    : right(right), back(back), imu(imu) {}
 
 shulib::Chassis::Chassis(Drivetrain drivetrain, OdomSensors sensors)
     : drivetrain(drivetrain), sensors(sensors) {}
@@ -59,11 +59,12 @@ void calibrateIMU(shulib::OdomSensors &sensors) {
 void shulib::Chassis::calibrate(bool calibrateImu) {
   // calibrate the IMU if it exists and the user doesn't specify otherwise
   if (sensors.imu != nullptr && calibrateImu)
-    calibrateIMU(sensors);
+    sensors.imu->tare_rotation();
+    //calibrateIMU(sensors);
   // initialize odom
   // if sensors are nullptrs, error
-  if (sensors.left == nullptr)
-    throw std::runtime_error("Left tracking wheel not initialized");
+  //if (sensors.left == nullptr)
+    //throw std::runtime_error("Left tracking wheel not initialized");
   logger().debug("Left tracking wheel initialized");
   if (sensors.right == nullptr)
     throw std::runtime_error("Left tracking wheel not initialized");
@@ -72,7 +73,6 @@ void shulib::Chassis::calibrate(bool calibrateImu) {
     throw std::runtime_error("Back tracking wheel not initialized");
   logger().debug("Back tracking wheel initialized");
 
-  sensors.left->reset();
   sensors.right->reset();
   sensors.back->reset();
 

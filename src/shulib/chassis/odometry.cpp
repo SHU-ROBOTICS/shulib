@@ -18,7 +18,7 @@ pros::Task *trackingTask = nullptr;
 // global variables
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-shulib::OdomSensors odomSensors(nullptr, nullptr, nullptr, nullptr);
+shulib::OdomSensors odomSensors(nullptr, nullptr, nullptr);
 shulib::Drivetrain drive(0, 0, 0);
 shulib::Pose odomPose(0, 0, 0);
 shulib::Pose odomSpeed(0, 0, 0);
@@ -75,16 +75,18 @@ void shulib::setSensors(shulib::OdomSensors sensors,
 
 shulib::Pose shulib::getPose(bool radians) {
   if (radians)
-    return odomPose;
+    return shulib::Pose(odomPose.x, odomPose.y, degToRad(odomSensors.imu->get_rotation()));
   else
-    return shulib::Pose(odomPose.x, odomPose.y, radToDeg(odomPose.theta));
+    return shulib::Pose(odomPose.x, odomPose.y, odomSensors.imu->get_rotation());
 }
 
 void shulib::setPose(shulib::Pose pose, bool radians) {
-  if (radians)
+  if (radians){
     odomPose = pose;
-  else
+  }
+  else{
     odomPose = shulib::Pose(pose.x, pose.y, degToRad(pose.theta));
+  }
 }
 
 shulib::Pose shulib::getSpeed(bool radians) {
@@ -119,12 +121,12 @@ shulib::Pose shulib::estimatePose(float time, bool radians) {
   return futurePose;
 }
 
+double prevTheta = 0;
+
 void shulib::update() {
-  float sL = odomSensors.left->get_offset();
   float sR = odomSensors.right->get_offset();
   float sS = odomSensors.back->get_offset();
 
-  float dL = odomSensors.left->get_travel_delta();
   float dR = odomSensors.right->get_travel_delta();
   float dS = odomSensors.back->get_travel_delta();
 
@@ -132,7 +134,7 @@ void shulib::update() {
 
   // ── Wheel Health Monitoring ──────────────────────────────
   // Track total travel per wheel
-  leftTotalTravel += std::fabs(dL);
+ /* leftTotalTravel += std::fabs(dL);
   rightTotalTravel += std::fabs(dR);
   backTotalTravel += std::fabs(dS);
 
@@ -315,18 +317,23 @@ void shulib::update() {
                          " dS=" + std::to_string(dS) +
                          " | heading_change=" + std::to_string((dR - dL) / (sL - sR)));
   }
+  */
 
   // ── Standard Odometry Math (unchanged) ───────────────────
   Pose localPose(0, 0, 0);
-  localPose.theta = ((dR - dL) / (sL - sR)) * thetaCorrectionFactor;
+  //localPose.theta = 0; PLACEHOLDER
+
+  double absTheta = odomPose.theta;
+  localPose.theta = absTheta - prevTheta;
+  prevTheta = absTheta;
+
 
   float deltaX = 0;
   float deltaY = 0;
   float rC = 0;
 
-  odomPose.theta += localPose.theta;
   if (abs(localPose.theta) < 0.0001) {
-    deltaY = (dL + dR) / 2;
+    deltaY = dR;
     deltaX = dS;
   } else {
     rC = (dR / localPose.theta) + sR;
@@ -336,11 +343,12 @@ void shulib::update() {
     deltaX = 2 * sin(localPose.theta / 2) * rC;
   }
 
-  odomPose.y += deltaY * cos(odomPose.theta) * yCorrectionFactor;
-  odomPose.x += deltaY * sin(odomPose.theta) * yCorrectionFactor;
+  float avg = odomPose.theta - localPose.theta/2;
+  odomPose.y += deltaY * cos(avg) * yCorrectionFactor;
+  odomPose.x += deltaY * sin(avg) * yCorrectionFactor;
 
-  odomPose.y += deltaX * sin(odomPose.theta) * xCorrectionFactor;
-  odomPose.x += deltaX * -cos(odomPose.theta) * xCorrectionFactor;
+  odomPose.y += deltaX * sin(avg) * xCorrectionFactor;
+  odomPose.x += deltaX * -cos(avg) * xCorrectionFactor;
 }
 
 void shulib::init_odometry() {

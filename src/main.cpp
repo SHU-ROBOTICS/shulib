@@ -27,24 +27,22 @@ MotorGroup pooksterLeft({12, -14, 16, -18, 20});
 // IMU imu(10);
 
 pros::Rotation right(-8);
-pros::Rotation left(10);
 pros::Rotation back(9);
 // set these to nullptrs instead
 
-shulib::OdomUnit leftOdom(&left, 1.5, -6.5);
-shulib::OdomUnit rightOdom(&right,1.5, 6.5);
+pros::IMU imu(6);
+
+shulib::OdomUnit rightOdom(&right,1.5, 0);
 shulib::OdomUnit backOdom(&back, 1.5, -4.0);
 
 shulib::TankDrive drivetrain(pooksterLeft, pooksterRight, 15, 3.00, 400); //trackwidth, wheeldiameter, rpm
 
-shulib::OdomSensors sensors(&leftOdom,  // left odom unit
+shulib::OdomSensors sensors(
                             &rightOdom, // right odom unit
                             &backOdom, // back odom unit
-                            nullptr // back odom unit
+                            &imu // back odom unit
 );
 shulib::Chassis chassis(drivetrain, sensors);
-
-pros::IMU imu(6);
 
 /* shulib::XDrive fifteenDriveTrain(frontLeft, frontRight, backLeft,
 backRight, 2.25, 200, 2);
@@ -58,7 +56,7 @@ pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 pros::adi::Pneumatics solenoid('D', false);
 
-pros::MotorGroup intake{-6, 7};
+pros::MotorGroup intake{-10, 7};
 pros::MotorGroup conveyor{2, -3, -4, 5};
 pros::Motor releaser(1);
 
@@ -79,22 +77,13 @@ void initialize() {
 
   imu.reset();
 
-  logger().log("IMU not calibrated, calibrating...");
-  while (imu.is_calibrating()) {
-    pros::delay(100);
-  }
-
-  shulib::setXCorrectionFactor(1.175);
-  shulib::setYCorrectionFactor(1.175);
-  shulib::setThetaCorrectionFactor(1.275);
-
-  logger().log("IMU calibrated!");
-  logger().log("IMU pitch: " + std::to_string(imu.get_pitch()));
-  logger().log("IMU yaw: " + std::to_string(imu.get_yaw()));
-  logger().log("IMU roll: " + std::to_string(imu.get_roll()));
+  shulib::setXCorrectionFactor(1.125);
+  shulib::setYCorrectionFactor(1.125);
+  shulib::setThetaCorrectionFactor(1);
 
   chassis.calibrate();
-  chassis.setPose({36, -60, -180});
+  rightOdom.reset();
+  backOdom.reset();
 }
 
 void disabled() {}
@@ -242,7 +231,7 @@ void rotate_to(double target_angle) {
                " Y: " + std::to_string(startPose.y) +
                " Theta: " + std::to_string(startPose.theta));
 
-  const double MAX_ROTATION = 100.0; // Maximum rotation power
+  const double MAX_ROTATION = 60.0; // Maximum rotation power
   const double ACCEL_RATE = 2.0;    // How fast to ramp up rotation speed
   double DECEL_ANGLE = fabs(target_angle) - 45;  // Start slowing down when within this angle
 
@@ -252,9 +241,9 @@ void rotate_to(double target_angle) {
 
   double error = target_angle - chassis.getPose().theta;
   // Normalize error to [-180, 180]
-  while (error > 181)
+  while (error > 180)
     error -= 360;
-  while (error < -181)
+  while (error < -180)
     error += 360;
 
   int stuckCounter = 0;
@@ -266,17 +255,17 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(0.75,0,0.015, 25);
+    PID rotationPID(1.5,0,0.075, 0);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
       error = target_angle - currentPose.theta;
-      while (error > 181)
+      while (error > 180)
         error -= 360;
-      while (error < -181)
+      while (error < -180)
         error += 360;
 
-      double rotationOutput = rotationPID.update(error, 0.001);
+      double rotationOutput = rotationPID.update(error, 0.02);
 
       // Apply speed limits and deceleration
       rotationOutput =
@@ -305,7 +294,7 @@ void rotate_to(double target_angle) {
 
       chassis.drive(0, 0, rotationOutput);
       logger().log(std::to_string(pooksterLeft.get_voltage()) + " LALALALALALALALA");
-      pros::delay(5);
+      pros::delay(20);
     }
 
     logger().log("Coarse rotation complete. Starting fine rotation");
@@ -461,10 +450,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(4, 0.025, 0.1, 25);
+  PID linearPID(12.5, 0, 0.25, 0);
   PID headingPID(0, 0, 0, 0);
 
-  logger().log("[VERT] linear PID: kP=4, kI=0, kD=0.075, kC=25");
+  logger().log("[VERT] linear PID: kP=7.5, kI=0, kD=0");
   logger().warning("[VERT] NOTE: heading PID gains are ALL ZERO - no heading correction active");
 
   double currentOutput = (pooksterLeft.get_actual_velocity() + pooksterRight.get_actual_velocity()) / 2;
@@ -490,13 +479,13 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     remaining_distance = target_distance - actual_displacement;
 
     // Calculate heading error relative to initial rotation
-    double heading_error = initial_theta - current_pose.theta;
+    /*double heading_error = initial_theta - current_pose.theta;
     while (heading_error > 180)
       heading_error -= 360;
     while (heading_error < -180)
-      heading_error += 360;
+      heading_error += 360;*/
 
-    double forwardOutput = linearPID.update(remaining_distance, 0.001);
+    double forwardOutput = linearPID.update(remaining_distance, 0.01);
 
     if (distance_inches < 0){
       forwardOutput = -forwardOutput;
@@ -505,8 +494,8 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     forwardOutput =
         std::clamp(forwardOutput, -currentMaxSpeed, currentMaxSpeed);
 
-    double rotationOutput = headingPID.update(heading_error, 0.001);
-    rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);
+    /*double rotationOutput = headingPID.update(heading_error, 0.01);
+    rotationOutput = std::clamp(rotationOutput, -MAX_ROTATION, MAX_ROTATION);*/
 
     chassis.drive(0, forwardOutput, 0);
 
@@ -560,7 +549,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
                    " | remaining=" + std::to_string(remaining_distance) +
                    " | actual_disp=" + std::to_string(actual_displacement) +
                    " | fwd_out=" + std::to_string(forwardOutput));
-      logger().log("[VERT]   heading_err=" + std::to_string(heading_error) +
+      logger().log("[VERT]   heading_err="
                    " | pose=(" + std::to_string(current_pose.x) +
                    ", " + std::to_string(current_pose.y) +
                    ", " + std::to_string(current_pose.theta) + ")");
@@ -600,7 +589,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
 
     logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
 
-    pros::delay(5);
+    pros::delay(20);
   }
 
   chassis.drive(0, 0, 0);
@@ -773,20 +762,20 @@ void autonomous() {
   // rotation_calibration();
   // moveVertical();
 
-  chassis.setPose(0,0,90);
+  imu.set_rotation(90);
   arm.toggle();
   pros::delay(50);
 
   move_vertical(36, false, false);
   pros::delay(100);
 
-  rotate_to(180);
+  //rotate_to(180);
   arm.toggle(); 
   pros::delay(300);
 
   //INTAKE + SCORE LONG ROUTINE
-
-  move_vertical(6, false, false);
+  
+  /*move_vertical(6, false, false);
   pros::delay(100);
 
   tubeParams* paramsOne = new tubeParams {300, 127 };
@@ -835,13 +824,13 @@ void autonomous() {
   chassis.setPose(0,0,-3);
   pros::delay(100);
 
-  rotate_to(88);
+  rotate_to(90);
   pros::delay(100);
 
-  move_vertical(22, false, false);
+  move_vertical(24, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,88);
+  chassis.setPose(0,0,90);
   pros::delay(100);
 
   rotate_to(0);
@@ -889,8 +878,7 @@ void autonomous() {
   rotate_to(-90);
   pros::delay(100);
 
-  tempMovement(1500, 1);
-
+  tempMovement(1500, 1); */
 }
 
 void pooksterControls() {
