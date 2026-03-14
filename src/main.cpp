@@ -255,7 +255,7 @@ void rotate_to(double target_angle) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(1.5,0,0.075, 0);
+    PID rotationPID(3,0,0.2, 0);
 
     while (fabs(error) > 1.0) {
       Pose currentPose = chassis.getPose();
@@ -766,7 +766,7 @@ void autonomous() {
   arm.toggle();
   pros::delay(50);
 
-  move_vertical(36, false, false);
+  move_vertical(36.5, false, false);
   pros::delay(100);
 
   rotate_to(180);
@@ -790,13 +790,13 @@ void autonomous() {
   arm.toggle();
   pros::delay(100);
 
-  move_vertical(-18.5, false,false);
+  move_vertical(-19, false,false);
   pros::delay(100);
 
   limitedIntake(2400, 1, 1, 120);
   pros::delay(100);
 
-  move_vertical(16.5, false, false);
+  move_vertical(15.5, false, false);
   pros::delay(100);
 
   //chassis.setPose(0,0,182);
@@ -831,7 +831,7 @@ void autonomous() {
   tubeParams* paramsTwo = new tubeParams {300, 127 };
   
   pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2");
-  limitedIntake(2400, 1, -1, 80);
+  limitedIntake(3500, 1, -1, 80);
 
   move_vertical(-26.5, false, false);
   pros::delay(100);
@@ -842,7 +842,7 @@ void autonomous() {
   limitedIntake(2400, 1, 1, 115);
   pros::delay(100);
 
-  move_vertical(16.5, false, false);
+  move_vertical(15.5, false, false);
   pros::delay(100);
 
 
