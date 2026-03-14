@@ -775,7 +775,7 @@ void autonomous() {
 
   //INTAKE + SCORE LONG ROUTINE
   
-  move_vertical(8, false, false);
+  move_vertical(7.5, false, false);
   pros::delay(100);
 
   tubeParams* paramsOne = new tubeParams {300, 127 };
@@ -785,7 +785,7 @@ void autonomous() {
 
   pros::delay(100);
 
-  move_vertical(-8, false, false);
+  move_vertical(-7.5, false, false);
   pros::delay(100);
   arm.toggle();
   pros::delay(100);
@@ -831,7 +831,7 @@ void autonomous() {
   tubeParams* paramsTwo = new tubeParams {300, 127 };
   
   pros::Task tubeIntakeTaskTwo(tubeFunction, paramsOne, "Oscillation 2");
-  limitedIntake(3500, 1, -1, 80);
+  limitedIntake(4500, 1, -1, 80);
 
   move_vertical(-26.5, false, false);
   pros::delay(100);
