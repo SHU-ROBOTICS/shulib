@@ -251,13 +251,13 @@ void rotate_to(double target_angle) {
   double currentMaxSpeed = MAX_ROTATION; // Start at minimum speed
 
   // Two-phase control with separate PIDs
-  if (fabs(error) > 0.1) {
+  if ((fabs(error) > 0.1)) {
     // Coarse control phase
     logger().log("Starting coarse rotation (target error < 1.0)");
 
-    PID rotationPID(3,0,0.2, 0);
+    PID rotationPID(3.0,0,0.2, 0);
 
-    while (fabs(error) > 1.0) {
+    while ((fabs(error) > 1.0) && (stuckCounter <= 100)) {
       Pose currentPose = chassis.getPose();
       error = target_angle - currentPose.theta;
       while (error > 180)
@@ -271,29 +271,15 @@ void rotate_to(double target_angle) {
       rotationOutput =
           std::clamp(rotationOutput, -currentMaxSpeed, currentMaxSpeed);
 
-      // Check if we're stuck
-      if (fabs(error - lastError) < 0.001) {
-        stuckCounter++;
-        if (stuckCounter > 100) {
-          logger().log("WARNING: Possibly stuck - minimal progress detected");
-          logger().log("Current Theta: " + std::to_string(currentPose.theta) +
-                       " Error: " + std::to_string(error));
-          rotationOutput *= 1.5;
-        }
-      } else {
-        stuckCounter = 0;
-      }
       lastError = error;
-
-      if (stuckCounter % 50 == 0) {
-        logger().log("Coarse Phase - Error: " + std::to_string(error) +
-                     " Output: " + std::to_string(rotationOutput) +
-                     " Speed: " + std::to_string(currentMaxSpeed) +
-                     " Theta: " + std::to_string(chassis.getPose().theta));
-      }
 
       chassis.drive(0, 0, rotationOutput);
       logger().log(std::to_string(pooksterLeft.get_voltage()) + " LALALALALALALALA");
+
+      if(rotationOutput <= 10){
+        stuckCounter++;
+      }
+
       pros::delay(20);
     }
 
@@ -447,8 +433,6 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   const double DECEL_ZONE = 5.0;
 
   double currentMaxSpeed = MAX_OUTPUT;
-  double last_y = start_pose.y;
-  double last_x = start_pose.x;
 
   PID linearPID(15, 0, 1, 0);
   PID headingPID(0, 0, 0, 0);
@@ -463,6 +447,8 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   int loopCount = 0;
   uint32_t startTime = pros::millis();
 
+  int stuckCounter = 0;
+
   // ── Veering / Motor Imbalance Tracking ─────────────────
   double cumulativeLeftVel = 0;
   double cumulativeRightVel = 0;
@@ -471,7 +457,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double maxLeftTemp = 0;
   double maxRightTemp = 0;
 
-  while (std::abs(remaining_distance) >= 0.1) {
+  while ((std::abs(remaining_distance) >= 0.1) && (stuckCounter <= 100)) {
     Pose current_pose = chassis.getPose();
 
     // Displacement-based remaining distance (not accumulated)
@@ -588,6 +574,10 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     }
 
     logger().log(std::to_string(pooksterLeft.get_actual_velocity()));
+
+    if(forwardOutput <= 10){
+      stuckCounter++;
+    }
 
     pros::delay(20);
   }
@@ -775,7 +765,7 @@ void autonomous() {
 
   //INTAKE + SCORE LONG ROUTINE
   
-  move_vertical(7.5, false, false);
+  move_vertical(8, false, false);
   pros::delay(100);
 
   tubeParams* paramsOne = new tubeParams {300, 127 };
