@@ -257,7 +257,7 @@ void rotate_to(double target_angle) {
 
     PID rotationPID(3.0,0,0.2, 0);
 
-    while ((fabs(error) > 1.0) && (stuckCounter <= 100)) {
+    while ((fabs(error) > 1.0) && (stuckCounter <= 50)) {
       Pose currentPose = chassis.getPose();
       error = target_angle - currentPose.theta;
       while (error > 180)
@@ -457,7 +457,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double maxLeftTemp = 0;
   double maxRightTemp = 0;
 
-  while ((std::abs(remaining_distance) >= 0.1) && (stuckCounter <= 100)) {
+  while ((std::abs(remaining_distance) >= 0.1) && (stuckCounter <= 50)) {
     Pose current_pose = chassis.getPose();
 
     // Displacement-based remaining distance (not accumulated)
@@ -783,7 +783,7 @@ void autonomous() {
   move_vertical(-18.5, false,false);
   pros::delay(100);
 
-  limitedIntake(2400, 1, 1, 120);
+  limitedIntake(2400, 1, 1, 110);
   pros::delay(100);
 
   move_vertical(15.5, false, false);
@@ -829,7 +829,7 @@ void autonomous() {
   arm.toggle();
   pros::delay(100);
 
-  limitedIntake(2400, 1, 1, 115);
+  limitedIntake(2400, 1, 1, 110);
   pros::delay(100);
 
   move_vertical(15.5, false, false);
