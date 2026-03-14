@@ -756,7 +756,7 @@ void autonomous() {
   arm.toggle();
   pros::delay(50);
 
-  move_vertical(36.5, false, false);
+  move_vertical(36, false, false);
   pros::delay(100);
 
   rotate_to(180);
