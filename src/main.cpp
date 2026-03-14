@@ -77,8 +77,8 @@ void initialize() {
 
   imu.reset();
 
-  shulib::setXCorrectionFactor(1.125);
-  shulib::setYCorrectionFactor(1.125);
+  shulib::setXCorrectionFactor(1.05);
+  shulib::setYCorrectionFactor(1.05);
   shulib::setThetaCorrectionFactor(1);
 
   chassis.calibrate();
@@ -450,7 +450,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
   double last_y = start_pose.y;
   double last_x = start_pose.x;
 
-  PID linearPID(12.5, 0, 0.25, 0);
+  PID linearPID(15, 0, 1, 0);
   PID headingPID(0, 0, 0, 0);
 
   logger().log("[VERT] linear PID: kP=7.5, kI=0, kD=0");
@@ -485,7 +485,7 @@ void move_vertical(double distance_inches, bool intaking, bool conv) {
     while (heading_error < -180)
       heading_error += 360;*/
 
-    double forwardOutput = linearPID.update(remaining_distance, 0.01);
+    double forwardOutput = linearPID.update(remaining_distance, 0.02);
 
     if (distance_inches < 0){
       forwardOutput = -forwardOutput;
@@ -709,7 +709,7 @@ void tubeFunction(void* params){
   int time = args->time;
   int power = args->power;
 
-  for(int i = 0; i < 6; i++){
+  for(int i = 0; i < 8; i++){
     pooksterLeft.move(power);
     pooksterRight.move(power * -1);
     
@@ -766,40 +766,37 @@ void autonomous() {
   arm.toggle();
   pros::delay(50);
 
-  move_vertical(36, false, false);
+  move_vertical(36.5, false, false);
   pros::delay(100);
 
-  //rotate_to(180);
+  rotate_to(180);
   arm.toggle(); 
   pros::delay(300);
 
   //INTAKE + SCORE LONG ROUTINE
   
-  /*move_vertical(6, false, false);
+  move_vertical(8, false, false);
   pros::delay(100);
 
   tubeParams* paramsOne = new tubeParams {300, 127 };
   
   Task tubeIntakeTask(tubeFunction, paramsOne, "Oscillation"); //INTAKE AND OUTTAKE TIMING FOR OUTSIDE GOAL (add 1 second for error)
-  limitedIntake(2500, 1, -1, 120);
+  limitedIntake(4500, 1, -1, 122);
 
   pros::delay(100);
 
-  move_vertical(-4, false, false);
+  move_vertical(-8, false, false);
   pros::delay(100);
   arm.toggle();
   pros::delay(100);
 
-  chassis.setPose(0,0,180);
+  rotate_to(180);
   pros::delay(100);
 
-  rotate_to(181.5);
+  move_vertical(-18.5, false,false);
   pros::delay(100);
 
-  move_vertical(-27, false,false);
-  pros::delay(100);
-
-  limitedIntake(2400, 1, 1, 117);
+  limitedIntake(2400, 1, 1, 120);
   pros::delay(100);
 
   move_vertical(16.5, false, false);
@@ -813,24 +810,17 @@ void autonomous() {
 
   move_vertical(34, false, false);
   pros::delay(100);
-  chassis.setPose(0,0,-45);
-  pros::delay(100);
 
-  rotate_to(-3);
+  rotate_to(0);
   pros::delay(100);
 
   move_vertical(72, false, false);
-  pros::delay(100);
-  chassis.setPose(0,0,-3);
   pros::delay(100);
 
   rotate_to(90);
   pros::delay(100);
 
   move_vertical(24, false, false);
-  pros::delay(100);
-
-  chassis.setPose(0,0,90);
   pros::delay(100);
 
   rotate_to(0);
@@ -858,27 +848,22 @@ void autonomous() {
   move_vertical(16.5, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,0);
-  pros::delay(100);
+
   rotate_to(-90);
   pros::delay(100);
 
   move_vertical(24, false, false);
 
-  chassis.setPose(0,0,-90);
-  pros::delay(100);
   rotate_to(180);
   pros::delay(100);
 
   move_vertical(118.5, false, false);
   pros::delay(100);
 
-  chassis.setPose(0,0,180);
-  pros::delay(100);
   rotate_to(-90);
   pros::delay(100);
 
-  tempMovement(1500, 1); */
+  tempMovement(1500, 1);
 }
 
 void pooksterControls() {

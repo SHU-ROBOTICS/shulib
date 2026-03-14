@@ -4,7 +4,7 @@
 float shulib::PID::update(float error, float time) {
     float derivative = ((error - prevError) / time);
     integral += (error * time);
-    prevError = error;
+    this->prevError = error;
     return (kP * error) + (kI * integral) + (kD * derivative);
 }
 
