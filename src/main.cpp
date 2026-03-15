@@ -780,7 +780,7 @@ void autonomous() {
   arm.toggle();
   pros::delay(100);
 
-  move_vertical(-18.5, false,false);
+  move_vertical(-18.75, false,false);
   pros::delay(100);
 
   limitedIntake(2400, 1, 1, 110);
