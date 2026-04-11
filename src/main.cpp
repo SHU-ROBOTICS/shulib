@@ -25,7 +25,6 @@ Controller master(CONTROLLER_MASTER);
 MotorGroup pooksterRight({11, -13, 15, -17, 19});
 MotorGroup pooksterLeft({12, -14, 16, -18, 20});
 // IMU imu(10);
-
 pros::Rotation right(-8);
 pros::Rotation back(9);
 // set these to nullptrs instead
@@ -56,10 +55,9 @@ pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 pros::adi::Pneumatics solenoid('D', false);
 
-pros::MotorGroup intake{-10, 7};
-pros::MotorGroup conveyor{2, -3, -4, 5};
+pros::MotorGroup intake{-10};
+pros::MotorGroup conveyor{-3, -4};
 pros::Motor releaser(1);
-
 int toggleCount = 0;
 
 void timer(int time){
@@ -856,22 +854,22 @@ void autonomous() {
 void pooksterControls() {
 
   if (master.get_digital(DIGITAL_L1)) {
-    intake.move(45);
-    conveyor.move(127);
-    releaser.move(127);
+    intake.move(90);
+    conveyor.move(90);
+    releaser.move(90);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      releaser.move(127);
+      releaser.move(90);
     } else {
       if(master.get_digital(DIGITAL_R1)){
-        intake.move(-127);
-        conveyor.move(-127);
-        releaser.move(-127);
+        intake.move(-90);
+        conveyor.move(-90);
+        releaser.move(-90);
       } else {
         if(master.get_digital(DIGITAL_R2)){
-          intake.move(-127);
-          conveyor.move(-127);
-          releaser.move(127);
+          intake.move(-90);
+          conveyor.move(-90);
+          releaser.move(90);
         } else {
           intake.move(0);
           conveyor.move(0);
