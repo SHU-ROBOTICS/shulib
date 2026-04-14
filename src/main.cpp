@@ -22,8 +22,8 @@
 
 Controller master(CONTROLLER_MASTER);
 
-MotorGroup pooksterRight({11, -13, 15, -17, 19});
-MotorGroup pooksterLeft({12, -14, 16, -18, 20});
+MotorGroup pooksterRight({-17, 18, 19, -20});
+MotorGroup pooksterLeft({-11, 12, 13, -14});
 // IMU imu(10);
 pros::Rotation right(-8);
 pros::Rotation back(9);
@@ -55,9 +55,9 @@ pros::adi::Pneumatics arm('B', false);
 pros::adi::Pneumatics lever('C', false);
 pros::adi::Pneumatics solenoid('D', false);
 
-pros::MotorGroup intake{-10};
-pros::MotorGroup conveyor{-3, -4};
-pros::Motor releaser(1);
+pros::MotorGroup intake{-4};
+pros::MotorGroup conveyor{-3, 2, -9, 8};
+pros::MotorGroup releaser{-10, 1};
 int toggleCount = 0;
 
 void timer(int time){
@@ -862,8 +862,8 @@ void pooksterControls() {
       releaser.move(90);
     } else {
       if(master.get_digital(DIGITAL_R1)){
-        intake.move(-90);
-        conveyor.move(-90);
+        intake.move(90);
+        conveyor.move(90);
         releaser.move(-90);
       } else {
         if(master.get_digital(DIGITAL_R2)){
