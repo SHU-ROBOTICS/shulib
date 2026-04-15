@@ -854,21 +854,23 @@ void autonomous() {
 void pooksterControls() {
 
   if (master.get_digital(DIGITAL_L1)) {
-    intake.move(90);
-    conveyor.move(90);
-    releaser.move(90);
+    intake.move(-90);
+    conveyor.move(-90);
+    releaser.move(0);
   } else {
     if (master.get_digital(DIGITAL_L2)) {
-      releaser.move(90);
+      intake.move(90);
+      conveyor.move(90);
+      releaser.move(-90);
     } else {
       if(master.get_digital(DIGITAL_R1)){
         intake.move(90);
         conveyor.move(90);
-        releaser.move(-90);
+        releaser.move(0);
       } else {
         if(master.get_digital(DIGITAL_R2)){
-          intake.move(-90);
-          conveyor.move(-90);
+          intake.move(90);
+          conveyor.move(90);
           releaser.move(90);
         } else {
           intake.move(0);
