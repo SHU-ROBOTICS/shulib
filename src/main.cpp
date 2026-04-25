@@ -1,158 +1,63 @@
+// src/main.cpp
+//
+// PROS lifecycle entry points (initialize/disabled/competition_initialize/
+// autonomous/opcontrol) + the auton selector + driver-control loop.
+// Everything else is in modules:
+//
+//   include/calibration.hpp     — tuning constants
+//   include/hardware.hpp        — extern decls; defs in src/hardware.cpp
+//   include/drive.hpp           — drive primitives; impl in src/drive.cpp
+//   include/scoring.hpp         — intake/conveyor helpers; impl in src/scoring.cpp
+//   include/legacy_auton.hpp    — time-based auton routes; impl in src/legacy_auton.cpp
+//   proto/                      — staged prototypes, not compiled into binary
+//
+// opcontrol stays here intentionally — known-working driver-control code
+// is too valuable to risk a refactor right before competition.
+
 #include "main.h"
-#include "lemlib/api.hpp"
-#include "lemlib/chassis/chassis.hpp"
-#include "lemlib/chassis/trackingWheel.hpp"
-#include "pros/abstract_motor.hpp"
-#include "pros/adi.hpp"
 #include "pros/misc.h"
 
-pros::MotorGroup left({11, -12, 13, -14}, pros::MotorGearset::blue);
-pros::MotorGroup right({-16, 17, -18, 19}, pros::MotorGearset::blue);
-
-lemlib::Drivetrain tachyon(&left, &right, 15, 3, 450 /*placeholder*/, 2);
-
-pros::Imu imu(6);
-pros::Rotation horizontal(20);
-pros::Rotation vertical(-15);
-
-pros::MotorGroup intake({1, -2});
-pros::MotorGroup conveyor({3, -4});
-
-pros::adi::Pneumatics column('A', false);
-pros::adi::Pneumatics releaser('B', false);
-pros::adi::Pneumatics unloader('C', false);
-pros::adi::Pneumatics descore('D', false);
-
-lemlib::TrackingWheel horizontalTracking(&horizontal, 1.5, -4);
-lemlib::TrackingWheel verticalTracking(&vertical, 1.5, 0);
-
-lemlib::OdomSensors odoms(&verticalTracking, nullptr, &horizontalTracking, nullptr, &imu);
-lemlib::ControllerSettings translational(6, 
-  0, 
-  3, 
-  0, 
-  1, 
-  100, 
-  3, 
-  500, 
-  0);
-
-lemlib::ControllerSettings rotational(1.25, 
-  0, 
-  2, 
-  0, 
-  1, 
-  100, 
-  3, 
-  500, 
-  0);
-
-lemlib::Chassis chassis(tachyon, translational, rotational, odoms);
+#include "hardware.hpp"
+#include "legacy_auton.hpp"
 
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+	pros::delay(50);
+
+	// Brake mode = "brake" (not the default "coast"): motors apply electrical
+	// braking on voltage=0 instead of free-spinning. Asymmetric sides decelerate
+	// together via back-EMF, eliminating the gearbox-tension "hard turn" seen
+	// on sudden stops with mismatched gearing.
+	left.set_brake_mode_all(pros::MotorBrake::brake);
+	right.set_brake_mode_all(pros::MotorBrake::brake);
+
+	pros::lcd::print(0, "Batt: %.2f V (%.0f%%)",
+	                 pros::battery::get_voltage() / 1000.0,
+	                 pros::battery::get_capacity());
+	pros::lcd::set_text(1, "Calypso ready");
 }
 
 void disabled() {}
 
 void competition_initialize() {}
 
-void tempMovement(int time, int backwards){
-  chassis.arcade(100 * backwards, 0);
-  pros::delay(time);
-  chassis.arcade(0,0);
-}
-
-void tempTurn(int time, int backwards){
-  chassis.arcade(0, 100 * backwards);
-  pros::delay(time);
-  chassis.arcade(0,0);
-}
-
-struct intakeParams{
-  int time;
-  int mode;
-  int releasePower;
-};
-
-void limitedIntake(void* params){
-  intakeParams* args = static_cast<intakeParams*>(params);
-
-  int time = args->time;
-  int mode = args->mode;
-  int releasePower = args->releasePower;
-
-  intake.move(-90);
-  conveyor.move(90);
-
-  pros::delay(time);
-
-  intake.move(0);
-  conveyor.move(0);
-}
-
-struct tubeParams{
-  int time;
-  int power;
-};
-
-void tubeFunction(void* params){
-  tubeParams* args = static_cast<tubeParams*>(params);
-
-  int time = args->time;
-  int power = args->power;
-
-  for(int i = 0; i < 8; i++){
-    chassis.arcade(power, 0);
-    
-    pros::delay(time);
-
-    chassis.arcade(-20, 0);
-
-    pros::delay(time);
-  }
-
-  chassis.arcade(0,0);
-
-  pros::delay(100);
-}
-
+// ============================================================================
+// AUTON SELECTION — uncomment exactly ONE line below.
+// New autons (e.g. the future sensor-driven Skills routine) go in their own
+// module and add one new line here.
+// ============================================================================
 void autonomous() {
-
-  tempMovement(640, 1);
-  tempTurn(300, -1);
-  tempMovement(180, 1);
-
-  pros::delay(100);
-  unloader.toggle();
-  pros::delay(100);
-
-  tubeParams tubeParamsOne{127, 200};
-  intakeParams intakeParamsOne{2400, 0, 115};
-  pros::Task unloadTask(tubeFunction, &tubeParamsOne, "troha");
-  limitedIntake(&intakeParamsOne);
-
-  tempMovement(80, -1);
-  pros::delay(100);
-  tempMovement(540, -1);
-  pros::delay(100);
-
-  pros::delay(100);
-  unloader.toggle();
-  pros::delay(100);
-
-  intakeParams* intakeParamsTwo = new intakeParams{2000, 1, 90};
-  limitedIntake(intakeParamsTwo);
-  pros::delay(100);
-
-  tempMovement(350, 1);
-  pros::delay(100);
-  tempTurn(300, -1);
-  pros::delay(100);
-  tempMovement(500, 1);
-  pros::delay(100);
+  autonMatchOriginal();    // Match auton per user's route spec (2026-04-22)
+  // autonTestHelpers();
+  // autonJustDrive12();
+  // autonDriftTune();
+  // autonMotorTest();
+  // autonSafe();
 }
+
+// ============================================================================
+// DRIVER CONTROL — left untouched on purpose. Working today, don't refactor.
+// ============================================================================
 
 pros::Controller c(pros::E_CONTROLLER_MASTER);
 
@@ -196,9 +101,9 @@ void opcontrol() {
 
 		externalControls();
 
-    	pros::lcd::print(1, "x %f", chassis.getPose().x);
-    	pros::lcd::print(2, "y %f", chassis.getPose().y);
-    	pros::lcd::print(3, "theta %f", chassis.getPose().theta);
+    	pros::lcd::print(0, "Batt: %.2f V (%.0f%%)",
+    	                 pros::battery::get_voltage() / 1000.0,
+    	                 pros::battery::get_capacity());
 
 		pros::delay(10);
 	}
