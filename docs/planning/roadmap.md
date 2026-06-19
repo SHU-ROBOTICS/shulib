@@ -248,8 +248,10 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
   (`hal/gps.hpp`, canonical center pose + rmsError + hasFix), and the simple reads `IRotation`
   (cumulative non-wrapping), `IDistance` (inches + confidence), `IOptical` (hue/sat/bri/prox),
   `IBattery` (volts + capacity, for brownout comp), and `ITelemetrySink` + the zero-cost `NullSink`
-  (§18 diagnostics seam; leveled messages now, per-tick `DebugRecord` rides behind it at M2). Remaining:
-  `IVision`/`ITagSource`.*
+  (§18 diagnostics seam; leveled messages now, per-tick `DebugRecord` rides behind it at M2), and
+  `IVision`/`ITagSource` (decision #7: tags as robot-relative poses, objects as bearings; the PnP /
+  bearing reductions are M3/M4 pure functions). **All 10 F4 interfaces + fakes now defined**; the F4
+  freeze awaits the full-set review + `RobotContext`.*
 - [ ] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
   GPS frame → canonical (the conversions happen here, once). *Pure conversion math built+host-tested
   ahead of the adapters, each adversarially **red-teamed** (4-lens workflow, math verified correct):
@@ -263,8 +265,9 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
   `FakeClock` (monotonicity-enforcing), `FakeMotor` (real clamp/validation + injectable encoder),
   `FakeImu` (canonical injectable incl. ±180° seam), `FakeGps` (canonical pose + fix/error, safe no-fix
-  default), the pure-read `FakeRotation`/`FakeDistance`/`FakeOptical`/`FakeBattery`, and the recording
-  `FakeTelemetrySink` — each tested for contract/round-trip (the stateful ones also mutation-checked).*
+  default), the pure-read `FakeRotation`/`FakeDistance`/`FakeOptical`/`FakeBattery`, the recording
+  `FakeTelemetrySink`, and `FakeTagSource`/`FakeVision` — each tested for contract/round-trip (the
+  stateful ones also mutation-checked).*
 - [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
 
 **Kinematics (WS3)** — *complete & host-validated 2026-06-19; F5 host-frozen (on-V5 number-match pending)*
