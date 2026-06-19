@@ -319,7 +319,11 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   `compensateForBattery()` limits a desired voltage to ±battery and flags brownout-saturation (the park
   fires as the battery collapses). Mutation-checked (kS-sign and the battery clamp each go red).*
 - [ ] `MotionProfile` (trapezoid).
-- [ ] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held).
+- [~] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held). *`SettledUtil`
+  done (`control/settled_util.hpp` + `test/settled_util_test.cpp`, 7 cases): settles only when |error| AND
+  |error-rate| are within bounds AND held for `settleTime` (window opens on the first valid-rate tick);
+  break-resets the window; clock-driven. Mutation-checked (dropping the rate condition lets it settle
+  while still moving → red). The composable `ExitGroup` (settled OR timeout OR custom) lands with the watchdog.*
 - [ ] **Motion watchdog** (hard timeout — a motion can never hang).
 - [ ] `tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.
 
