@@ -16,6 +16,6 @@ temp.errors
 *.ini
 .d/
 
-# Build
+# Host-test build dir + agent/editor config
 build/
-
+.claude/
