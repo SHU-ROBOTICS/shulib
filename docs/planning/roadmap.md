@@ -121,7 +121,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F1 | **Coordinate frame** — origin = field center, +X right, +Y away from red, heading 0 along +X / CCW-positive | Every motion, odometry, and transform line | M0 | ✅ **LOCKED 2026-06-08** |
 | F2 | **Accuracy targets** — heading **< 1.0°** (hard); ~1.0″ pose; ~0.25″ docked | All acceptance tests; estimator design | M0 | ✅ **LOCKED 2026-06-08** |
 | F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
-| F4 | **HAL interface signatures** — the 10 runtime HAL interfaces `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`. *(The config-ingestion seam `IRobotConfig`/`IRouteSource` — decision #10 — is authored at M5 with its `RobotConfig`/`Route` schema, F7/F8; not part of this runtime-HAL freeze.)* | All three runtime targets (robot/sim/test) | M1 | 🎯 |
+| F4 | **HAL interface signatures** — the 10 runtime HAL interfaces `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`. *(The config-ingestion seam `IRobotConfig`/`IRouteSource` — decision #10 — is authored at M5 with its `RobotConfig`/`Route` schema, F7/F8; not part of this runtime-HAL freeze.)* | All three runtime targets (robot/sim/test) | M1 | ✅ **LOCKED 2026-06-19** *(freeze-reviewed by a 30-agent full-set pass + exercised by `RobotContext`; on-V5 `hal/pros` adapters pending the toolchain)* |
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
 | F6 | **Public `Chassis` API** — `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)` | Every auton ever written on shulib | M2 | 🎯 |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
@@ -139,11 +139,13 @@ not silently break them. This table is the spine of the no-staleness promise.
 > conversion** (the `< 1°` crux) is built *and* **adversarially red-teamed** by a 4-lens workflow — math
 > verified correct, contract gaps (get_rotation binding, no-post-cal-tare, bootHeading ownership,
 > yaw-rate source) now pinned in §7 + the header, and negative/through-seam/boundary coverage added.
-> **`IGps`** + its conversion is built and **red-teamed** too. **9 of 10 F4 interfaces now done**, with
-> fakes: the conversion-heavy `IImu`/`IGps` (red-teamed), the simple reads
-> `IRotation`/`IDistance`/`IOptical`/`IBattery`, and the `ITelemetrySink` seam (with `NullSink`). **Next:
-> the last interface `IVision`/`ITagSource`** (AprilTag, folds in `ai_vision.hpp`), then `RobotContext`
-> and the F4 freeze (with a full-set review), then `hal/pros` adapters. Host suite: **122 cases**, green.
+> **HAL (WS2) host-side is COMPLETE: F4 LOCKED.** All 10 interfaces + fakes, the IMU/GPS conversions
+> (red-teamed), and `RobotContext` are done; a **30-agent freeze review** closed the breaking-if-deferred
+> gaps (notably `IMotor::current()` plus a 5th units dimension) before the lock. With **F5 also frozen**,
+> **M1 is host-complete** — the only M1 work left is the **`hal/pros` adapters** (the IMU/GPS/AI-Vision
+> glue) and the **on-V5 number-match**, both blocked on the ARM toolchain. **Next milestone: M2** (motion
+> and dead-reckon localizer) once the toolchain is sorted, or start M2's host-testable control/odometry now.
+> Host suite: **130 cases / 521k assertions**, green & mutation-checked.
 > *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
 > *Updated 2026-06-19.*
 
@@ -240,8 +242,8 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 ### M1 — HAL + kinematics foundation 🎯
 *One seam for hardware/sim/test; drivetrains become interchangeable.*
 
-**HAL (WS2)**
-- [~] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
+**HAL (WS2)** — *F4 interfaces frozen 2026-06-19 (30-agent review + RobotContext); `hal/pros` adapters pending the toolchain*
+- [x] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
   `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source. *Done 2026-06-19:
   `IClock` (`hal/clock.hpp`), `IMotor` (`hal/motor.hpp`, ±12 V clamp + non-finite + cumulative-position
   contract), `IImu` (`hal/imu.hpp`, canonical heading/yawRate/calibration/tilt), `IGps`
@@ -250,8 +252,10 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
   `IBattery` (volts + capacity, for brownout comp), and `ITelemetrySink` + the zero-cost `NullSink`
   (§18 diagnostics seam; leveled messages now, per-tick `DebugRecord` rides behind it at M2), and
   `IVision`/`ITagSource` (decision #7: tags as robot-relative poses, objects as bearings; the PnP /
-  bearing reductions are M3/M4 pure functions). **All 10 F4 interfaces + fakes now defined**; the F4
-  freeze awaits the full-set review + `RobotContext`.*
+  bearing reductions are M3/M4 pure functions). **All 10 F4 interfaces frozen** — a 30-agent full-set
+  review closed the breaking-if-deferred gaps (added `IMotor::current()`/`temperature()`/brake-mode,
+  `IBattery::current()` + the 5th units dimension; flipped `isCalibrating()`→`isReady()`), then
+  `RobotContext` exercised the whole set.*
 - [ ] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
   GPS frame → canonical (the conversions happen here, once). *Pure conversion math built+host-tested
   ahead of the adapters, each adversarially **red-teamed** (4-lens workflow, math verified correct):
@@ -268,7 +272,11 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
   default), the pure-read `FakeRotation`/`FakeDistance`/`FakeOptical`/`FakeBattery`, the recording
   `FakeTelemetrySink`, and `FakeTagSource`/`FakeVision` — each tested for contract/round-trip (the
   stateful ones also mutation-checked).*
-- [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
+- [x] `RobotContext` — the DI container; the one object that differs across robot/sim/test. *Done
+  2026-06-19: `include/shulib/chassis/robot_context.hpp` — named-pointer config validated non-null,
+  hands out references to all the HAL handles; `test/robot_context_test.cpp` mutation-checks the
+  null-validation and demonstrates the M1 DoD (field→body→wheels pipeline reading the heading through
+  the context; numbers identical regardless of HAL impl).*
 
 **Kinematics (WS3)** — *complete & host-validated 2026-06-19; F5 host-frozen (on-V5 number-match pending)*
 - [x] `IKinematics` contract: `toWheels`/`forward`/`desaturate`/`strafeAuthority()`/`wheelCount` (F5).
@@ -292,7 +300,7 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
   for non-orthogonal drives (H-drive's off-center strafe wheel). Relaxes a precondition only — F5-safe.
 
 **Definition of Done:** a trivial motion's kinematics produce identical numbers in a host gtest and on
-the V5, swapping only `RobotContext`. **Freezes:** F4, F5 *(F5 host-validated; F4 + on-V5 match still open)*.
+the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-frozen; the on-V5 number-match + `hal/pros` adapters await the toolchain)*.
 
 ---
 
