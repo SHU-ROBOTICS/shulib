@@ -264,6 +264,20 @@ conversion is in `hal/imu_conversion.hpp`, enforced when the `hal/pros` adapter 
 - Yaw **rate** has no CW-positive PROS scalar — source it by differentiating `get_rotation()`, or
   bench-verify the undocumented sign of `get_gyro_rate().z`.
 
+**GPS → canonical binding contract** (set by the 2026-06-19 conversion red-team; pure conversion in
+`hal/gps_conversion.hpp`):
+- **Position axes (VEX +X = East, +Y = North) are ASSUMED, unverified** — PROS does not document them.
+  A wrong axis label MIRRORS the pose, and `northHeadingDeg` (a rotation) cannot fix a reflection.
+  Bench-measure the raw→wall mapping (field-cal oracle test) before a scored run.
+- **`northHeadingDeg`** (canonical heading of VEX-North; default 90° = away from red, else 270/−90°)
+  and the **lever arm** (BODY forward/left inches) each have **one owner = the robot start pose** (same
+  authority as the IMU `bootHeading`), applied **exactly once at the HAL edge**.
+- The adapter constructs `pros::Gps` **port-only** and **never** sets a firmware offset
+  (`set_offset`/`initialize_full`/offset ctors); otherwise `get_position()` reports the center and the
+  lever arm is double-subtracted (inches of silent bias). Boot-check `get_offset() == (0,0)`.
+- The adapter **screens `PROS_ERR_F` (off-strip/failed) → `hasFix()=false` before converting** (§13 #4;
+  Driving Skills has no strip), and scales `get_error()` **meters→inches** for `rmsError()`.
+
 ---
 
 ## 8. Subsystem Designs (summary)

@@ -139,8 +139,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > conversion** (the `< 1°` crux) is built *and* **adversarially red-teamed** by a 4-lens workflow — math
 > verified correct, contract gaps (get_rotation binding, no-post-cal-tare, bootHeading ownership,
 > yaw-rate source) now pinned in §7 + the header, and negative/through-seam/boundary coverage added.
-> **Next: remaining HAL** (`IRotation`/`IGps`/`IVision`+`ITagSource`/`IDistance`/`IOptical`/telemetry/
-> battery), then `hal/pros` adapters + `RobotContext`. Host suite: **95 cases / 521k assertions**, green.
+> **`IGps`** + its conversion (CW-from-North→canonical, frame rotation, lever-arm removal) is built and
+> **red-teamed** too. **Next: remaining HAL** (`IRotation`/`IVision`+`ITagSource`/`IDistance`/`IOptical`/
+> telemetry/battery), then `hal/pros` adapters + `RobotContext`. Host suite: **114 cases / 521k**, green.
 > *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
 > *Updated 2026-06-19.*
 
@@ -241,19 +242,23 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 - [~] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
   `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source. *Done 2026-06-19:
   `IClock` (`hal/clock.hpp`), `IMotor` (`hal/motor.hpp`, ±12 V clamp + non-finite + cumulative-position
-  contract), `IImu` (`hal/imu.hpp`, canonical heading/yawRate/calibration/tilt). Remaining: `IRotation`,
-  `IGps`, `IVision`/`ITagSource`, `IDistance`, `IOptical`, `ITelemetrySink`, battery.*
+  contract), `IImu` (`hal/imu.hpp`, canonical heading/yawRate/calibration/tilt), `IGps`
+  (`hal/gps.hpp`, canonical center pose + rmsError + hasFix). Remaining: `IRotation`,
+  `IVision`/`ITagSource`, `IDistance`, `IOptical`, `ITelemetrySink`, battery.*
 - [ ] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
   GPS frame → canonical (the conversions happen here, once). *Pure conversion math built+host-tested
-  ahead of the adapter: `hal/imu_conversion.hpp` (IMU CW°→canonical heading + yaw rate) — adversarially
-  **red-teamed** (4-lens workflow): math verified correct, and the get_rotation()-binding / no-post-cal-tare
-  / bootHeading-ownership / yaw-rate-source contracts are now pinned (§7 + header). pros glue + on-V5
+  ahead of the adapters, each adversarially **red-teamed** (4-lens workflow, math verified correct):
+  `hal/imu_conversion.hpp` — get_rotation()-binding / no-post-cal-tare / bootHeading-ownership /
+  yaw-rate-source contracts pinned; `hal/gps_conversion.hpp` (CW-from-North→canonical, m→in rotation,
+  lever-arm removal) — axis-assumption (validate-on-field), no-firmware-offset, PROS_ERR_F-screening,
+  North/lever ownership, and a non-finite-lever-arm guard pinned (§7 + headers). pros glue + on-V5
   validation still pending the toolchain.*
 - [ ] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
   adapter (object mode **and** AprilTag mode).
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
   `FakeClock` (monotonicity-enforcing), `FakeMotor` (real clamp/validation + injectable encoder),
-  `FakeImu` (canonical injectable incl. ±180° seam) — each adversarially tested + mutation-checked.*
+  `FakeImu` (canonical injectable incl. ±180° seam), `FakeGps` (canonical pose + fix/error, safe no-fix
+  default) — each adversarially tested + mutation-checked.*
 - [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
 
 **Kinematics (WS3)** — *complete & host-validated 2026-06-19; F5 host-frozen (on-V5 number-match pending)*
