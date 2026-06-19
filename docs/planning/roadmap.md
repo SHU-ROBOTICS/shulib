@@ -120,7 +120,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 |---|---|---|---|---|
 | F1 | **Coordinate frame** — origin = field center, +X right, +Y away from red, heading 0 along +X / CCW-positive | Every motion, odometry, and transform line | M0 | ✅ **LOCKED 2026-06-08** |
 | F2 | **Accuracy targets** — heading **< 1.0°** (hard); ~1.0″ pose; ~0.25″ docked | All acceptance tests; estimator design | M0 | ✅ **LOCKED 2026-06-08** |
-| F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | 🔨 |
+| F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
 | F4 | **HAL interface signatures** — `IMotor`/`IRotation`/`IImu`/`IGps`/`IVision`/`IDistance`/`IOptical`/`IClock`/`ITelemetrySink`/`IRobotConfig`/`IRouteSource` | All three runtime targets (robot/sim/test) | M1 | 🎯 |
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | 🎯 |
 | F6 | **Public `Chassis` API** — `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)` | Every auton ever written on shulib | M2 | 🎯 |
@@ -132,15 +132,18 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M0 — Foundation & scaffolding: COMPLETE & verified.** Math
-> (`Angle`/`units`/geometry/frame, F1/F2/F3), tooling (kernel **4.2.2** + AprilTag, **CI**,
-> `compile_commands.json`), legacy quarantined to `legacy/`, `tracking.md` deleted. Host suite: 26
-> cases / 520k assertions, mutation-checked. *(One follow-up: the on-robot ARM **link** awaits PROS's
-> toolchain — tracked.)* **Next: M1 — HAL + kinematics.** *Updated 2026-06-19.*
+> **You are here:** **M1 — HAL + kinematics: IN PROGRESS.** M0 is complete & verified (math
+> F1/F2/F3 locked, kernel **4.2.2** + AprilTag, **CI**, legacy quarantined). M1 underway: decision
+> **#15 kinematics-backend = HYBRID, locked**; the **`IKinematics` contract (F5)** + `WheelSpeeds`
+> value type are authored and contract-tested (interface is implementable & polymorphic; bounds/
+> invariants mutation-checked). **Next in M1:** `XDriveKinematics` + `TankKinematics` (which validate
+> & freeze F5), uniform-scale desaturation, then the HAL interfaces (F4) + fakes + `RobotContext`.
+> Host suite: 35 cases / 520k assertions, green & mutation-checked. *(Carry-over: on-robot ARM **link**
+> still awaits PROS's toolchain — tracked.)* *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
-| **M0** | Foundation & scaffolding | Frame frozen in a test; host-test harness + CI green; repo clean-room-ready | 🔨 |
+| **M0** | Foundation & scaffolding | Frame frozen in a test; host-test harness + CI green; repo clean-room-ready | ✅ |
 | **M1** | HAL + kinematics | Same kinematics run identically in a host test and on the V5 by swapping only `RobotContext` | 🎯 |
 | **M2** | Holonomic motion + dead-reckon localizer | A hand-written X-drive auton chains profiled motions; same code runs the H-bot | 🎯 |
 | **M3** | Accuracy edge (fusion + docking) | Pose bounded over a 60s run (< 1°); docking nests a 1.6″ Pin repeatably | 🎯 |
@@ -158,7 +161,7 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
 
 ## The milestones (full breakdown)
 
-### M0 — Foundation & scaffolding 🔨
+### M0 — Foundation & scaffolding ✅
 *Make the old bug classes structurally impossible, and stand up the machine that proves it.*
 
 **Conventions & math (WS1)**
@@ -224,7 +227,7 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
 
 **Definition of Done:** the frame transform and `Angle` wrap have passing host tests; CI is green and
 blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
-**Freezes:** F1 ✅, F2 ✅, F3.
+**Freezes:** F1 ✅, F2 ✅, F3 ✅.
 
 ---
 
@@ -242,9 +245,18 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 - [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
 
 **Kinematics (WS3)**
-- [ ] `IKinematics` contract: `toWheels`/forward/inverse/desaturate/`strafeAuthority()` (F5).
+- [~] `IKinematics` contract: `toWheels`/`forward`/`desaturate`/`strafeAuthority()`/`wheelCount` (F5).
+  *Interface + `WheelSpeeds` value type authored 2026-06-19 (`include/shulib/kinematics/{kinematics,wheel_speeds}.hpp`),
+  contract-tested (`test/kinematics_contract_test.cpp`): implementable & polymorphic via a differential
+  double; `WheelSpeeds` bounds/`maxMagnitude`/`approxEqual` invariants green under strict `-Werror` and
+  **mutation-checked** (loosening the index bound and dropping `abs` each go red). **F5 not yet frozen** —
+  it locks once `XDriveKinematics`+`TankKinematics` validate the contract end-to-end.*
 - [ ] `XDriveKinematics`, `TankKinematics` — host-tested with pure numbers.
-- [ ] Uniform-scale wheel desaturation.
+- [~] Uniform-scale wheel desaturation. *Algorithm `desaturateUniform` authored + adversarially tested
+  2026-06-19 (`include/shulib/kinematics/desaturate.hpp`, `test/desaturate_test.cpp`): within-budget
+  unchanged, over-budget peak-onto-limit, uniform ratio/direction preservation, all-zero no-op,
+  non-positive budget rejected — green & **mutation-checked** (inverting the scale factor goes red).
+  Flips to `[x]` once an `IKinematics` impl wires it into `desaturate()` and that path is tested.*
 
 **Definition of Done:** a trivial motion's kinematics produce identical numbers in a host gtest and on
 the V5, swapping only `RobotContext`. **Freezes:** F4, F5.
