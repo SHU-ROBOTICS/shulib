@@ -318,7 +318,11 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   in, Voltage out; bare gains from sysid), kS follows the velocity sign and is zero at rest;
   `compensateForBattery()` limits a desired voltage to ±battery and flags brownout-saturation (the park
   fires as the battery collapses). Mutation-checked (kS-sign and the battery clamp each go red).*
-- [ ] `MotionProfile` (trapezoid).
+- [x] `MotionProfile` (trapezoid). *`control/trapezoid_profile.hpp` + `test/trapezoid_profile_test.cpp`
+  (7 cases): signed move → (pos, vel, accel) over time; accel/cruise/decel phases, triangular
+  degradation when too short to reach maxVelocity, symmetry, clamped endpoints (arrives at rest),
+  zero move, monotonic position. Mutation-checked (dropping the `√` in the triangular peak and the
+  `½` in the accel integral each go red). Bare doubles; per-axis in the motion layer. (S-curve later.)*
 - [~] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held). *`SettledUtil`
   done (`control/settled_util.hpp` + `test/settled_util_test.cpp`, 7 cases): settles only when |error| AND
   |error-rate| are within bounds AND held for `settleTime` (window opens on the first valid-rate tick);
