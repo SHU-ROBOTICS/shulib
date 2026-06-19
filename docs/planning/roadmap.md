@@ -139,9 +139,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > conversion** (the `< 1°` crux) is built *and* **adversarially red-teamed** by a 4-lens workflow — math
 > verified correct, contract gaps (get_rotation binding, no-post-cal-tare, bootHeading ownership,
 > yaw-rate source) now pinned in §7 + the header, and negative/through-seam/boundary coverage added.
-> **`IGps`** + its conversion (CW-from-North→canonical, frame rotation, lever-arm removal) is built and
-> **red-teamed** too. **Next: remaining HAL** (`IRotation`/`IVision`+`ITagSource`/`IDistance`/`IOptical`/
-> telemetry/battery), then `hal/pros` adapters + `RobotContext`. Host suite: **114 cases / 521k**, green.
+> **`IGps`** + its conversion is built and **red-teamed** too. **9 of 10 F4 interfaces now done**, with
+> fakes: the conversion-heavy `IImu`/`IGps` (red-teamed), the simple reads
+> `IRotation`/`IDistance`/`IOptical`/`IBattery`, and the `ITelemetrySink` seam (with `NullSink`). **Next:
+> the last interface `IVision`/`ITagSource`** (AprilTag, folds in `ai_vision.hpp`), then `RobotContext`
+> and the F4 freeze (with a full-set review), then `hal/pros` adapters. Host suite: **122 cases**, green.
 > *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
 > *Updated 2026-06-19.*
 
