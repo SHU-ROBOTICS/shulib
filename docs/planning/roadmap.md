@@ -132,19 +132,20 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 — kinematics done; HAL underway.** M0 complete & verified; **#15 = HYBRID,
-> locked**; **kinematics layer (WS3) complete & host-validated** (`IKinematics` F5 host-frozen,
-> `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation). **HAL (WS2) foundation built:** `IClock`,
-> `IMotor`, `IImu` + their fakes, each adversarially tested + mutation-checked; the **IMU→canonical
-> conversion** (the `< 1°` crux) is built *and* **adversarially red-teamed** by a 4-lens workflow — math
-> verified correct, contract gaps (get_rotation binding, no-post-cal-tare, bootHeading ownership,
-> yaw-rate source) now pinned in §7 + the header, and negative/through-seam/boundary coverage added.
-> **HAL (WS2) host-side is COMPLETE: F4 LOCKED.** All 10 interfaces + fakes, the IMU/GPS conversions
-> (red-teamed), and `RobotContext` are done; a **30-agent freeze review** closed the breaking-if-deferred
-> gaps (notably `IMotor::current()` plus a 5th units dimension) before the lock. With **F5 also frozen**,
-> **M1 is host-complete** — the only M1 work left is the **`hal/pros` adapters** (the IMU/GPS/AI-Vision
-> glue) and the **on-V5 number-match**, both blocked on the ARM toolchain. **Next milestone: M2** (motion
-> and dead-reckon localizer) once the toolchain is sorted, or start M2's host-testable control/odometry now.
+> **You are here:** **M1 complete (host-side); M2 control layer complete; localization next.**
+> **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
+> `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
+> canonical conversions (each **red-teamed**), and `RobotContext`. A **30-agent F4 freeze review** closed
+> the breaking-if-deferred gaps (`IMotor::current()`/`temperature()`/brake-mode, `IBattery::current()`,
+> a 5th units dimension, the `isReady()` polarity flip) before the lock. **M2 control layer (WS4) is
+> done:** `Pid`, `Feedforward`+battery-comp, `SettledUtil`, `TrapezoidProfile`, `Watchdog`, `ExitGroup` —
+> all adversarially tested + mutation-checked. **Host suite: 168 cases / 521k assertions, green.**
+> **NEXT: M2 localization (WS5) — `PilonsOdometry`** (arc-integration dead-reckoning; accuracy-critical
+> for the `< 1°`/sub-inch thesis → gets the careful-derivation + adversarial-test + red-team treatment),
+> then the `Localizer` (odom + IMU-owned heading, correctors stubbed). After that: the motion layer (WS6:
+> `IMotion`/`MoveToPose`/`MotionScheduler`) + the `Chassis` facade (F6), and diagnostics (WS13:
+> `DebugRecord`/`TermSink`). *Carry-overs (all tracked): `hal/pros` adapters + on-V5 number-match (ARM
+> toolchain); `MatrixKinematics` non-orthogonal pseudo-inverse for H-drive (M2); the `sysid` tool (WS4).*
 > Host suite: **130 cases / 521k assertions**, green & mutation-checked.
 > *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
 > *Updated 2026-06-19.*
