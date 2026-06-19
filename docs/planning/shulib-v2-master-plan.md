@@ -251,6 +251,19 @@ not code) + on-robot tuner.
   absolute yaw correction (AprilTag/GPS) load-bearing, not optional** — Phase 3 yaw correction is
   promoted from "nice-to-have" to **required to meet spec**. [[vexu-override-facts]]
 
+**IMU → canonical binding contract** (set by the 2026-06-19 conversion red-team; the pure
+conversion is in `hal/imu_conversion.hpp`, enforced when the `hal/pros` adapter lands):
+- Bind heading to **`pros::Imu::get_rotation()`** (cumulative, unbounded) — **not** `get_heading()`
+  (bounded [0,360), loses revolution continuity). Both are CW-positive per the PROS headers.
+- The adapter performs **no `tare`/`set_*`/`reset` after calibration**; any of those re-zero the
+  sensor independently of `bootHeading` and silently break the offset (the `< 1°` budget can't
+  absorb a static misalignment).
+- **`bootHeading` has one owner:** the robot's canonical start heading (the init `Pose2d` given to
+  the Localizer). The offset is applied **exactly once at the HAL edge**, never re-applied downstream.
+  _(Formally locked with the `hal/pros` adapter at M1 / Localizer at M2.)_
+- Yaw **rate** has no CW-positive PROS scalar — source it by differentiating `get_rotation()`, or
+  bench-verify the undocumented sign of `get_gyro_rate().z`.
+
 ---
 
 ## 8. Subsystem Designs (summary)

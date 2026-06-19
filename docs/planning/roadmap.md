@@ -132,15 +132,17 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 — HAL + kinematics: kinematics done, HAL next.** M0 complete & verified;
-> decision **#15 = HYBRID, locked**. The whole **kinematics layer (WS3) is complete & host-validated**:
-> the **`IKinematics` contract (F5, host-frozen)** + `WheelSpeeds`, the `MatrixKinematics` engine, the
-> `xDrive()` preset, `TankKinematics`, and uniform desaturation — all adversarially tested and
-> mutation-checked. **Next in M1: the HAL (WS2)** — F4 interfaces (`IMotor`/`IImu`/`IGps`/`IVision`+
-> `ITagSource`/…), `hal/pros` adapters, `hal/fake` doubles, and the `RobotContext` DI container. Host
-> suite: **66 cases / 521k assertions**, green. *(Carry-overs: on-V5 kinematics number-match + the ARM
-> **link** both await PROS's toolchain; H-drive's non-orthogonal `forward()` pseudo-inverse is an
-> M2 carry-forward.)* *Updated 2026-06-19.*
+> **You are here:** **M1 — kinematics done; HAL underway.** M0 complete & verified; **#15 = HYBRID,
+> locked**; **kinematics layer (WS3) complete & host-validated** (`IKinematics` F5 host-frozen,
+> `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation). **HAL (WS2) foundation built:** `IClock`,
+> `IMotor`, `IImu` + their fakes, each adversarially tested + mutation-checked; the **IMU→canonical
+> conversion** (the `< 1°` crux) is built *and* **adversarially red-teamed** by a 4-lens workflow — math
+> verified correct, contract gaps (get_rotation binding, no-post-cal-tare, bootHeading ownership,
+> yaw-rate source) now pinned in §7 + the header, and negative/through-seam/boundary coverage added.
+> **Next: remaining HAL** (`IRotation`/`IGps`/`IVision`+`ITagSource`/`IDistance`/`IOptical`/telemetry/
+> battery), then `hal/pros` adapters + `RobotContext`. Host suite: **95 cases / 521k assertions**, green.
+> *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
+> *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -236,13 +238,22 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 *One seam for hardware/sim/test; drivetrains become interchangeable.*
 
 **HAL (WS2)**
-- [ ] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
-  `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source.
+- [~] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
+  `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source. *Done 2026-06-19:
+  `IClock` (`hal/clock.hpp`), `IMotor` (`hal/motor.hpp`, ±12 V clamp + non-finite + cumulative-position
+  contract), `IImu` (`hal/imu.hpp`, canonical heading/yawRate/calibration/tilt). Remaining: `IRotation`,
+  `IGps`, `IVision`/`ITagSource`, `IDistance`, `IOptical`, `ITelemetrySink`, battery.*
 - [ ] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
-  GPS frame → canonical (the conversions happen here, once).
+  GPS frame → canonical (the conversions happen here, once). *Pure conversion math built+host-tested
+  ahead of the adapter: `hal/imu_conversion.hpp` (IMU CW°→canonical heading + yaw rate) — adversarially
+  **red-teamed** (4-lens workflow): math verified correct, and the get_rotation()-binding / no-post-cal-tare
+  / bootHeading-ownership / yaw-rate-source contracts are now pinned (§7 + header). pros glue + on-V5
+  validation still pending the toolchain.*
 - [ ] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
   adapter (object mode **and** AprilTag mode).
-- [ ] `hal/fake/*` deterministic doubles (injectable clock) for host tests.
+- [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
+  `FakeClock` (monotonicity-enforcing), `FakeMotor` (real clamp/validation + injectable encoder),
+  `FakeImu` (canonical injectable incl. ±180° seam) — each adversarially tested + mutation-checked.*
 - [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
 
 **Kinematics (WS3)** — *complete & host-validated 2026-06-19; F5 host-frozen (on-V5 number-match pending)*
