@@ -323,12 +323,16 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   degradation when too short to reach maxVelocity, symmetry, clamped endpoints (arrives at rest),
   zero move, monotonic position. Mutation-checked (dropping the `√` in the triangular peak and the
   `½` in the accel integral each go red). Bare doubles; per-axis in the motion layer. (S-curve later.)*
-- [~] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held). *`SettledUtil`
+- [x] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held). *`SettledUtil`
   done (`control/settled_util.hpp` + `test/settled_util_test.cpp`, 7 cases): settles only when |error| AND
   |error-rate| are within bounds AND held for `settleTime` (window opens on the first valid-rate tick);
   break-resets the window; clock-driven. Mutation-checked (dropping the rate condition lets it settle
-  while still moving → red). The composable `ExitGroup` (settled OR timeout OR custom) lands with the watchdog.*
-- [ ] **Motion watchdog** (hard timeout — a motion can never hang).
+  while still moving → red). `ExitGroup` (`control/exit_group.hpp` + `test/exit_group_test.cpp`) composes
+  `SettledUtil` + `Watchdog` and reports the `ExitReason` (Settled/TimedOut/Running) for §18 exit-codes,
+  Settled taking priority over a simultaneous timeout — mutation-checked (reversing the priority reds).*
+- [x] **Motion watchdog** (hard timeout — a motion can never hang). *`control/watchdog.hpp` +
+  `test/exit_group_test.cpp`: clock-driven, start()/expired()/elapsed()/reset(); expires at/after the
+  timeout, never before start; mutation-checked (the `>=` boundary reds). Consumed by `ExitGroup`.*
 - [ ] `tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.
 
 **Motion (WS6)**
