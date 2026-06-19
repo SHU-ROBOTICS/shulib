@@ -1,0 +1,138 @@
+00:03 What's up guys? My name is Little Will
+and I'm here to do an explanation of our
+00:06 2.0 CAD of the speed CAD. Um so
+obviously we had
+00:11 um the original CAD
+um
+00:15 over here.
+Uh let me open it real quick. Anyway, we
+00:19 had this old CAD. Um I'll just go over
+the quick concept of it real quick and
+00:22 then I'll talk about the new one I made.
+Um so the first thought was that we had
+00:26 these new game objects. Let's imagine
+these are the objects.
+00:29 Um and then with this we had the objects
+when they would come in, they would hit
+00:33 these rollers powered by a motor and
+then these rollers would start to lift
+00:36 up.
+Um
+00:39 and then it would begin to rotate it
+vertically.
+00:43 And then it would just kind of set in
+this little position right here and then
+00:46 this front bar right here would be down
+to keep this from tilting forward or
+00:50 sorry from tilting forward. It's a bad
+example.
+00:53 Tilting forward
+um like this and coming out. And then we
+00:57 can have our double reverse four bar
+back here.
+00:60 Um and then it would have a claw at the
+end of it and it would just kind of lift
+01:03 it up.
+And then obviously we'd have the rollers
+01:05 back here for the rollers and then the
+drive train with the 5.5 watts for 55
+01:09 watts.
+Um and then that's cool and all. Um but
+01:12 I honestly thought there was like a
+bajillion flaws with this design. Mainly
+01:15 just like
+the you can't really it's really hard to
+01:18 possess the objects really cleanly. Um
+so I decided to rebuild it. Um
+01:24 decided as a better version.
+Um
+01:28 and so
+this is how we came up with the 2.0
+01:31 design.
+Um
+01:33 and so this one's a lot more um
+well thought and actually like fully
+01:36 CADed. Um so obviously we have our cones
+here and obviously like this um
+01:41 roller heights aren't like super well
+done right now cuz I know this first
+01:44 one's not quite good yet.
+But we have our objects coming in here
+01:48 and we have funnels obviously.
+Um they'll come in and then it kind of
+01:52 starts hitting these rollers.
+Kind of angling up and going up here.
+01:57 And so the cool part about this design
+is that um
+02:01 again like I said that
+none of the kinks are really thought out
+02:03 yet. But the thought is that we have a
+counter roller somewhere up in here. And
+02:07 so what it does is it'll either be able
+to just go straight through
+02:13 and then it lands into this area
+straight down and we can just grab it
+02:18 with this clamp.
+Um
+02:21 and grab it. Or what we can do to start
+to flip the orientation of it
+02:27 is when it comes through here, we spin
+these flex wheels the other way and it
+02:32 sort of does a a weird maneuver where it
+kind of
+02:36 comes back [snorts] up this way and then
+it sucks itself down
+02:41 flips over and then kind of comes in
+this way if that makes sense in some
+02:45 kind of fashion, which is a concept. And
+like obviously a bunch of the spacing's
+02:49 not done very well, but you can kind of
+get the concept of how to color sort for
+02:53 both of the objects. And then we can
+just stack it on top of the one we
+02:56 previously grabbed. And then um we use
+our obviously our massive double reverse
+03:01 four bar. Um and I did
+figure out the distance for this one and
+03:05 it's um just under 40 in for our reach,
+um which is actually pretty good for
+03:09 early season, I guess.
+Um but again we have the 5.55 watt
+03:14 drive.
+Um oh and also we have the roller
+03:16 mechanism back here. I don't The one
+only thing I'm not happy with this robot
+03:20 is the roller mechanism to be honest
+because with the roller mechanism, it's
+03:24 mounted up here on this four bar, which
+I would much rather prefer it be hard
+03:28 mounted. But basically just with the
+constraints of like when this four bar
+03:32 lifts up, it goes out back compared to
+the last one.
+03:36 Um
+it would hit the the brace tower and
+03:39 just kind of be really in the way. So
+the best way I found was just just bound
+03:43 it straight to the thing just cuz it was
+easy and it was compact. Um but yeah,
+03:46 this is the V2 design and it could be it
+is does have very good potential. Oh and
+03:50 we have funnels here for the goal.
+Um [snorts] but this both of these
+03:54 robots could in theory can technically
+um complete both of the objectives, but
+03:59 this one does the color sort um
+theory a lot more cleanly and and
+04:04 smoothly. Um and then you can obviously
+mess with geometry and stuff to get um
+04:09 get it working properly and like
+mess with the heights of the rollers and
+04:13 everything in programming and sensors
+and all that. But yeah, I just wanted to
+04:16 show off this um second design I have um
+not during the stream, but this is kind
+04:20 of done post stream.
+Um but yeah, so it's a bit more well
+04:23 thought out design.
+Um so thanks for watching. Bye.

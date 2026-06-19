@@ -1,0 +1,1378 @@
+00:01 Today, we're going to be breaking down
+00:02 
+
+00:02 some of the strategies that we really
+00:04 
+
+00:04 determined after really digesting this
+00:06 
+
+00:06 game. [music]
+00:08 
+
+00:08 >> [singing]
+00:13 
+
+00:13 >> Hi, I'm Ian. I'm the captain, driver,
+00:16 
+
+00:16 and notebooker for team 46311A.
+00:19 
+
+00:19 And I'm Seth.
+00:21 
+
+00:21 I'm the lead designer and the lead
+00:23 
+
+00:23 builder for team 46311A Nocturnal. But
+00:26 
+
+00:26 before we do, we'd ask that you like and
+00:28 
+
+00:28 subscribe. That really helps us land the
+00:30 
+
+00:30 algorithm and make these YouTube videos
+00:32 
+
+00:32 even
+00:32 
+
+00:32 >> [music]
+00:32 
+
+00:32 >> better. To start, we'd like to analyze
+00:34 
+
+00:34 autonomous.
+00:35 
+
+00:35 >> Yeah, so um I think
+00:37 
+
+00:37 So, I think that um the auto strategy is
+00:41 
+
+00:41 probably going to be like where you
+00:42 
+
+00:42 start. I think the first thing you're
+00:44 
+
+00:44 going to do is start like there where
+00:46 
+
+00:46 the arrow is, and then I think the first
+00:48 
+
+00:48 thing you're going to do is probably
+00:49 
+
+00:49 flip the roller to your color, right?
+00:50 
+
+00:50 [music]
+00:51 
+
+00:51 I think that'll be good cuz there are a
+00:52 
+
+00:52 couple blocks or a couple pins that are
+00:55 
+
+00:55 like already scored at the start of the
+00:56 
+
+00:56 match like in the starting setup of
+00:58 
+
+00:58 yellow.
+00:59 
+
+00:59 And then I think immediately after that,
+01:01 
+
+01:01 you're going to want to go um probably
+01:03 
+
+01:03 score your preload probably on your
+01:05 
+
+01:05 alliance stick. But then probably like
+01:07 
+
+01:07 as quickly as possible get that one
+01:10 
+
+01:10 pin right there and then score on the
+01:12 
+
+01:12 middle goal because I think getting a
+01:15 
+
+01:15 pin of your color on the middle goal
+01:17 
+
+01:17 should give you a little bit of an
+01:18 
+
+01:18 advantage. But I would say that is the
+01:20 
+
+01:20 probably a little bit risky and you
+01:22 
+
+01:22 probably need [music] a good programming
+01:23 
+
+01:23 for that because the thing is like if
+01:25 
+
+01:25 they beat you to that
+01:27 
+
+01:27 if the other team beats you to that
+01:29 
+
+01:29 middle
+01:29 
+
+01:29 middle
+01:31 
+
+01:31 goal, right? To scoring on it, then like
+01:33 
+
+01:33 it'll be you have to score at a
+01:34 
+
+01:34 different height and you'll need really
+01:36 
+
+01:36 advanced sensors for that. So, it's I
+01:38 
+
+01:38 mean in my opinion it's kind of like the
+01:39 
+
+01:39 high stakes three goal rush, right?
+01:42 
+
+01:42 Where like if you [music] if you get
+01:44 
+
+01:44 there first, you get it. If you don't
+01:45 
+
+01:45 get there first, you don't get it, you
+01:46 
+
+01:46 know? Yeah.
+01:48 
+
+01:48 So, yeah. That's That's my And then
+01:50 
+
+01:50 after that, you'd probably just want to
+01:52 
+
+01:52 get some pins and just score them on
+01:55 
+
+01:55 like the stakes. Yeah, honestly I can
+01:58 
+
+01:58 really see people playing one quadrant.
+01:60 
+
+01:60 I mean, with the one possession limit
+02:01 
+
+02:01 and the toggle and the yellow goals, I
+02:03 
+
+02:03 can see people wanting to score a lot of
+02:05 
+
+02:05 their color for it to be safer,
+02:07 
+
+02:07 especially when we see what happens with
+02:09 
+
+02:09 descoring with the manual.
+02:10 
+
+02:10 >> [music]
+02:10 
+
+02:10 >> I can also see people, if they do go for
+02:12 
+
+02:12 the yellows, really only scoring in one
+02:14 
+
+02:14 quadrant so they can really focus in on
+02:16 
+
+02:16 [music] making sure that toggle stays
+02:18 
+
+02:18 theirs. Yeah. Yeah. Yeah, and I And
+02:21 
+
+02:21 well, obviously a lot of this will
+02:22 
+
+02:22 change when we see what [music] happens
+02:23 
+
+02:23 with descoring in the manual, but we'll
+02:26 
+
+02:26 see We'll see what happens with that.
+02:29 
+
+02:29 Yeah, so I think like end game
+02:32 
+
+02:32 I think it might be a good idea for like
+02:34 
+
+02:34 you to send one robot, like the lesser
+02:37 
+
+02:37 robot, the robot with the worst driver,
+02:40 
+
+02:40 to go probably get the middle control
+02:42 
+
+02:42 like with the end game park. Yeah.
+02:45 
+
+02:45 Especially with cuz it's not really
+02:46 
+
+02:46 worth that many points in the toggle,
+02:48 
+
+02:48 especially if you go for those yellows,
+02:50 
+
+02:50 is really important.
+02:51 
+
+02:51 >> Yeah. And they like I think what's worth
+02:54 
+
+02:54 more than just [music] the eight points
+02:55 
+
+02:55 is the um the yellow pins on the middle
+02:58 
+
+02:58 goal, right? Like that's definitely
+02:60 
+
+02:60 worth more in my opinion cuz I'm [music]
+03:01 
+
+03:01 sure there'll probably end up being more
+03:03 
+
+03:03 than one yellow pin. Like there'll
+03:05 
+
+03:05 probably end up being more pins scored
+03:07 
+
+03:07 on that middle goal, right?
+03:09 
+
+03:09 Yeah, but I mean, with the 55 W drive
+03:11 
+
+03:11 limit, what do we see What do we expect
+03:13 
+
+03:13 to see building-wise? I mean, with
+03:14 
+
+03:14 drivetrain design options?
+03:17 
+
+03:17 Um
+03:18 
+
+03:18 So, my thought is I think probably the
+03:20 
+
+03:20 fastest you could safely go this this
+03:23 
+
+03:23 season is probably 450 2.75, but I think
+03:27 
+
+03:27 that might even be too fast, right? Like
+03:29 
+
+03:29 >> Yeah, I mean, it's definitely a driver's
+03:31 
+
+03:31 game, strategy-intensive. [music]
+03:33 
+
+03:33 Um everything has to be super precise
+03:35 
+
+03:35 and a lot of that's going to come from
+03:35 
+
+03:35 programming. I think 450 2.75 would
+03:38 
+
+03:38 probably be the best like speed cuz like
+03:42 
+
+03:42 if it would've been 66, I would probably
+03:44 
+
+03:44 say 450 3.25 just for speed to like get
+03:46 
+
+03:46 her on the field, but like you can't do
+03:48 
+
+03:48 that with 55. That would like not work
+03:50 
+
+03:50 with the king of the hill thing at all.
+03:52 
+
+03:52 It wouldn't No, but I mean, traction
+03:53 
+
+03:53 versus omnis too. I mean, like omnis are
+03:55 
+
+03:55 best for maneuvering just this crowded
+03:57 
+
+03:57 field. But traction, you need that to
+03:59 
+
+03:59 hold your ground in both the end [music]
+04:00 
+
+04:00 game and with the toggling.
+04:02 
+
+04:02 Yeah, cuz um one thing that I think the
+04:05 
+
+04:05 strategy could be
+04:07 
+
+04:07 is like camping the toggles, right? Like
+04:09 
+
+04:09 if you like score a bunch of uh yellow
+04:12 
+
+04:12 pins in one of the quadrants, right? And
+04:15 
+
+04:15 then like you send like the lesser robot
+04:18 
+
+04:18 to just sit in front of the toggle and
+04:19 
+
+04:19 then just keep the toggle of your color.
+04:22 
+
+04:22 Right? Like if you scored a bunch of
+04:23 
+
+04:23 yellow pins in that quadrant, you could
+04:24 
+
+04:24 probably get quite a few safe points.
+04:27 
+
+04:27 Um
+04:28 
+
+04:28 If like the end game in the end game, I
+04:31 
+
+04:31 think it's like a possibility that the
+04:33 
+
+04:33 toggles might be like protected for the
+04:35 
+
+04:35 last like 10 seconds to encourage the
+04:36 
+
+04:36 end game cuz I think if they don't then
+04:39 
+
+04:39 instead of going for the end game king
+04:41 
+
+04:41 of the hill thing
+04:43 
+
+04:43 Oh, I think the better strategy would be
+04:44 
+
+04:44 to go for go for the toggles that the
+04:46 
+
+04:46 other guys left open by going to the end
+04:48 
+
+04:48 game. Like that would definitely work
+04:50 
+
+04:50 better.
+04:50 
+
+04:50 >> the yellow. I mean, like in high stakes
+04:53 
+
+04:53 we shot saw that with the positive
+04:54 
+
+04:54 corners being protected um to really
+04:56 
+
+04:56 encourage that. I mean, in push back
+04:58 
+
+04:58 though, they didn't protect anything
+04:60 
+
+04:60 because they wanted those split-second
+05:01 
+
+05:01 decisions. They wanted teams to decide,
+05:03 
+
+05:03 do we stay there in front of our long
+05:05 
+
+05:05 goals protecting for the control bonus?
+05:06 
+
+05:06 Do we run together towards the park zone
+05:08 
+
+05:08 and leave that open potentially to the
+05:10 
+
+05:10 other team taking [music] advantage of
+05:12 
+
+05:12 that? So, I mean, I can see the
+05:14 
+
+05:14 designers this year in incorporating a
+05:15 
+
+05:15 similar strategy, [music] a similar
+05:17 
+
+05:17 approach just because of the positive
+05:19 
+
+05:19 feedback they got from that last year.
+05:20 
+
+05:20 >> Yeah.
+05:22 
+
+05:22 So,
+05:24 
+
+05:24 Yeah, I mean, and with all the field
+05:26 
+
+05:26 elements and the one possession limit,
+05:27 
+
+05:28 [music] what what sort of match loading
+05:29 
+
+05:29 strategies do we see?
+05:31 
+
+05:31 Um so, I see like match loading
+05:35 
+
+05:35 I see match loading as something that
+05:37 
+
+05:37 like you might like just do like just to
+05:39 
+
+05:39 get like obviously more possession
+05:41 
+
+05:41 [music] more blocks for your scoring,
+05:43 
+
+05:43 right? I think the only time that it
+05:45 
+
+05:45 would really be necessary is probably
+05:48 
+
+05:48 like mid to late game because early
+05:49 
+
+05:49 game, there seems to be like quite a lot
+05:52 
+
+05:52 of like pins like on the field, you
+05:55 
+
+05:55 know? Yeah. And you see, my hunch is
+05:57 
+
+05:57 these protected zones are probably going
+05:59 
+
+05:59 to be like you can't use this um this
+06:01 
+
+06:01 loader here. You can't operate it unless
+06:03 
+
+06:03 you uh with the robot inside here to
+06:06 
+
+06:06 prevent teams [music] from basically
+06:07 
+
+06:07 directly feeding
+06:08 
+
+06:08 directly feeding the robot, especially
+06:11 
+
+06:11 with claw bots.
+06:12 
+
+06:12 So, I mean, I think we're going to see
+06:14 
+
+06:14 that. Um I think these diagonal
+06:17 
+
+06:17 autonomous lines in the sort of
+06:18 
+
+06:18 free-for-all zone is going to create a
+06:20 
+
+06:20 very interesting dynamic. Yeah, I don't
+06:22 
+
+06:22 know if that middle means like you can't
+06:24 
+
+06:24 score in that goal [music] in auto.
+06:27 
+
+06:27 Which if if that's what that means, then
+06:29 
+
+06:29 yeah, my whole auto strategy of rushing
+06:30 
+
+06:30 that would obviously [music] not work.
+06:32 
+
+06:32 But like Or I don't know if it's like a
+06:34 
+
+06:34 free-for-all zone where like like what
+06:36 
+
+06:36 was in Vex U
+06:37 
+
+06:37 >> Push back last year.
+06:38 
+
+06:38 >> U with the middle goals, yeah. Right?
+06:41 
+
+06:41 Like where everyone can go in at it. It
+06:43 
+
+06:43 was like a free-for-all zone there. I
+06:45 
+
+06:45 think that might be what that is,
+06:47 
+
+06:47 but I'm not sure. Yeah, and I really
+06:48 
+
+06:48 like the free-for-all zone approach. I
+06:50 
+
+06:50 mean, it creates such competitiveness. I
+06:52 
+
+06:52 mean, push back had it too and it was so
+06:53 
+
+06:53 great to see robots at worlds fighting
+06:56 
+
+06:56 over in those middle goals in
+06:57 
+
+06:57 autonomous. [music]
+06:58 
+
+06:58 Yeah. So, that was amazing.
+07:01 
+
+07:01 Yeah.
+07:03 
+
+07:03 So, do you [music] Do you think
+07:04 
+
+07:04 autonomous in autonomous, do you think
+07:06 
+
+07:06 you'll be going more for your um
+07:08 
+
+07:08 alliance goals or do or for the like the
+07:11 
+
+07:11 other goal that's like can be used
+07:12 
+
+07:12 [music] by either alliance? I would
+07:14 
+
+07:14 think you'd want to go more towards your
+07:16 
+
+07:16 alliance goal because they can't really
+07:18 
+
+07:18 [music] I mean, it's your alliance
+07:18 
+
+07:18 specific. It's pretty safe to you. So, I
+07:21 
+
+07:21 would think putting something down there
+07:23 
+
+07:23 right away. I mean, you don't want to
+07:24 
+
+07:24 risk going for this one
+07:25 
+
+07:25 um the neutral [music] one and then it's
+07:27 
+
+07:27 just getting descorred by say blue comes
+07:30 
+
+07:30 over here. So,
+07:32 
+
+07:32 I think we're going to see that
+07:34 
+
+07:34 that too.
+07:36 
+
+07:36 Yeah, my guess is for the autonomous win
+07:38 
+
+07:38 point though, and my guess is for the
+07:39 
+
+07:39 autonomous win point, you're probably
+07:41 
+
+07:41 going to want to score on both, right?
+07:43 
+
+07:43 My guess is that's going to be a
+07:44 
+
+07:44 criteria for the AWP.
+07:46 
+
+07:46 >> [music]
+07:46 
+
+07:46 >> Is it My guess is you're going to need
+07:47 
+
+07:47 to score on three different stakes.
+07:49 
+
+07:49 Probably.
+07:50 
+
+07:50 >> So, if if that is My guess is it would
+07:51 
+
+07:51 be like score like probably like three,
+07:54 
+
+07:54 four, five pins on [music] three
+07:55 
+
+07:55 different probably five pins on three
+07:57 
+
+07:57 different stakes, right? And flip
+07:59 
+
+07:59 probably both rollers. And most likely
+08:01 
+
+08:01 you're not going to be able to use the
+08:02 
+
+08:02 match loaders directly in autonomous
+08:04 
+
+08:04 just to prevent that human interaction.
+08:07 
+
+08:07 Yeah, cuz it it looks like they don't
+08:08 
+
+08:08 start with blocks in them and also you'd
+08:10 
+
+08:10 have to lift it up in order for the
+08:12 
+
+08:12 robot to get the block out and that
+08:15 
+
+08:15 would [music] make human interaction.
+08:17 
+
+08:17 And that's usually like not allowed in
+08:20 
+
+08:20 autonomous, [music]
+08:21 
+
+08:21 so. I mean, from the design standpoint,
+08:23 
+
+08:23 do you think we're going to be see
+08:24 
+
+08:24 seeing a lot of claw bots, S bots? Like
+08:27 
+
+08:27 I mean, it's hard to do an S bot
+08:29 
+
+08:29 obviously with something like that.
+08:30 
+
+08:30 >> don't see S Claw bots are just so
+08:32 
+
+08:32 inefficient. They have to bend down,
+08:34 
+
+08:34 lift it up, move it, drop it.
+08:36 
+
+08:36 I don't see rapid scoring [music]
+08:38 
+
+08:38 happening
+08:39 
+
+08:39 or rapid offense, highly driven offense
+08:41 
+
+08:41 happening with claw bots. Wait. So, So,
+08:44 
+
+08:44 I don't I don't see claw bots, but I do
+08:46 
+
+08:46 see like a bot with a claw. Do you know
+08:49 
+
+08:49 what I mean? Like it like if you have
+08:51 
+
+08:51 like a big old conveyor, maybe
+08:53 
+
+08:53 or like some type of thing where like
+08:55 
+
+08:55 the claw is on like
+08:57 
+
+08:57 like maybe on like a slide of linear
+08:59 
+
+08:59 tracks where like the claw could go up,
+09:01 
+
+09:01 but it like not with a C channel like a
+09:03 
+
+09:03 normal claw bot or like a hero bot. Cuz
+09:05 
+
+09:05 the hero bot's really just like a claw
+09:07 
+
+09:07 bot with a flywheel thing. But I
+09:09 
+
+09:09 definitely see every robot needs the
+09:10 
+
+09:10 [music] flywheel for sure.
+09:12 
+
+09:12 Um
+09:13 
+
+09:13 Yeah, especially for toggling those
+09:15 
+
+09:15 things right there and the start for
+09:17 
+
+09:17 offense.
+09:18 
+
+09:18 But I mean, it's going to be a challenge
+09:20 
+
+09:20 cuz those projectiles are pretty big.
+09:22 
+
+09:22 And maneuvering them around tight
+09:24 
+
+09:24 corners.
+09:26 
+
+09:26 Yeah, honestly I'm not a fan of the
+09:27 
+
+09:27 projectile this year. Like we got
+09:29 
+
+09:29 spoiled a little bit with the push back.
+09:31 
+
+09:31 Yeah. [laughter] Like
+09:32 
+
+09:32 So, So, one thing I think with the
+09:34 
+
+09:34 intakes and like with the scoring
+09:39 
+
+09:39 like you need to make sure that you can
+09:41 
+
+09:41 like collect a pin, right? And then
+09:43 
+
+09:43 later collect like one of the cup
+09:45 
+
+09:45 thingies, right? Yeah.
+09:47 
+
+09:47 >> And like be able to score them both like
+09:49 
+
+09:49 as if you collected them at the same
+09:50 
+
+09:50 time. Right? Because a lot of the time I
+09:52 
+
+09:52 think especially I think descoring is
+09:54 
+
+09:54 going to become a big thing, [music]
+09:55 
+
+09:55 right? And once that happens, like then
+09:57 
+
+09:57 the they're all just going to be
+09:58 
+
+09:58 scattered on the field, right?
+09:59 
+
+09:59 >> and the D scoring meta is
+10:01 
+
+10:01 >> [music]
+10:01 
+
+10:01 >> like the way they have it with the
+10:02 
+
+10:02 translucent side and the opaque side, I
+10:06 
+
+10:06 don't know what what sort of the rules
+10:07 
+
+10:07 will be. I mean about grabbing the
+10:08 
+
+10:08 bottom and like maybe throwing them all
+10:10 
+
+10:10 [music] up at the same time. Um that'll
+10:12 
+
+10:12 certainly be highlighted very
+10:13 
+
+10:13 specifically in the manual. But I don't
+10:15 
+
+10:15 see this as being a big D scoring game.
+10:18 
+
+10:18 Like especially compared to recent games
+10:20 
+
+10:20 [music] like high stakes and push back.
+10:21 
+
+10:21 I kind of do. I think I think D scoring
+10:23 
+
+10:23 is going to become a big part of the
+10:25 
+
+10:25 meta. [music] I think what I think is
+10:27 
+
+10:27 going to become a part of the meta
+10:29 
+
+10:29 on like
+10:31 
+
+10:31 on the um like both alliance goals is I
+10:35 
+
+10:35 think just scoring a bunch of them and
+10:37 
+
+10:37 then maybe like like if you have like a
+10:39 
+
+10:39 little thing that you could put on top
+10:40 
+
+10:40 of it and like rest on top of the blocks
+10:43 
+
+10:43 and like try to like camp them. Cuz my
+10:45 
+
+10:45 guess is somebody Yeah, my guess is some
+10:47 
+
+10:47 like if you have a really high stack to
+10:49 
+
+10:49 protect them from getting D scored cuz
+10:51 
+
+10:51 my guess is somebody is going to figure
+10:52 
+
+10:52 out an efficient and like fast way to
+10:55 
+
+10:55 like D score. My guess is you can only
+10:57 
+
+10:57 grab the one at the top, right?
+10:58 
+
+10:58 >> Like with the flex wheel like a loader
+10:60 
+
+10:60 down just like
+11:02 
+
+11:02 like sort of with something like this
+11:03 
+
+11:03 like flex wheel grabs it, picks it up,
+11:05 
+
+11:05 throws it out, grabs it, picks it up,
+11:08 
+
+11:08 throws it out and then just sort of
+11:09 
+
+11:09 moves it down. The challenge for that
+11:11 
+
+11:11 will be programming. Yes, probably. And
+11:13 
+
+11:13 also that the pins aren't a consistent
+11:16 
+
+11:16 diameter. So like they're not a
+11:17 
+
+11:17 cylinder, Yeah, they're not.
+11:20 
+
+11:20 And that's this is difficult. This is
+11:21 
+
+11:21 definitely a tough game. I mean it's
+11:23 
+
+11:23 definitely not as
+11:25 
+
+11:25 >> to design for. Oh definitely. It's
+11:26 
+
+11:26 definitely not a push back where it's
+11:28 
+
+11:28 like just shove each other around, shove
+11:30 
+
+11:30 blocks in, um get good at wing play.
+11:33 
+
+11:33 I think this is definitely more we have
+11:34 
+
+11:34 to be intentional with how we're
+11:36 
+
+11:36 designing our robot, [music] how we're
+11:37 
+
+11:37 going to flip these blocks, what we're
+11:39 
+
+11:39 going to do with autonomous, what we're
+11:40 
+
+11:40 going to do uh with the AI vision
+11:42 
+
+11:42 sensor, how we're going to navigate the
+11:43 
+
+11:43 challenges of the drive train.
+11:45 
+
+11:45 Yeah.
+11:47 
+
+11:47 So what I see for most robots, I think
+11:51 
+
+11:51 at least something I see is you need to
+11:53 
+
+11:53 um a challenge is you need to be able to
+11:55 
+
+11:55 intake the blocks or the the rings
+11:57 
+
+11:57 [music] or not the rings, the
+11:59 
+
+11:59 the pins if they're both standing
+12:01 
+
+12:01 vertically
+12:03 
+
+12:03 or if they're already scored or if
+12:06 
+
+12:06 they're laying horizontally on the
+12:07 
+
+12:07 field. There's like a lot of
+12:09 
+
+12:09 >> too.
+12:09 
+
+12:09 At three different heights. Well, at
+12:11 
+
+12:11 lots of different heights cuz like you
+12:13 
+
+12:13 if like there's like three stacked up,
+12:14 
+
+12:14 you want to be able to grab the highest
+12:15 
+
+12:15 one and like take it off, right? Like
+12:17 
+
+12:17 >> Yes.
+12:18 
+
+12:18 There's going to be so there's going to
+12:19 
+
+12:19 be like
+12:21 
+
+12:21 you need like a very
+12:23 
+
+12:23 like a very inte- an intake that can
+12:25 
+
+12:25 like intake like in like a lot of
+12:28 
+
+12:28 different ways, right? Like
+12:29 
+
+12:29 >> It has to be able to
+12:30 
+
+12:30 >> Maybe even multiple intakes. Like I
+12:32 
+
+12:32 could actually I would see that like on
+12:34 
+
+12:34 the front of a robot be like the be like
+12:36 
+
+12:36 an intake that collects blocks like
+12:39 
+
+12:39 maybe like on the
+12:41 
+
+12:41 Can I do the annotations? Yeah,
+12:42 
+
+12:42 definitely having a flex wheel Maybe
+12:44 
+
+12:44 like on the front of the robot there'd
+12:46 
+
+12:46 be like something where like the pins
+12:48 
+
+12:48 could be in here like for horizontal.
+12:51 
+
+12:51 And then maybe like here would be your
+12:52 
+
+12:52 scoring like your your
+12:54 
+
+12:54 whatever you're scoring whatever. And
+12:56 
+
+12:56 then on the back maybe [music] here
+12:57 
+
+12:57 could be a place where they could
+12:58 
+
+12:58 collect them like from the match loader
+12:60 
+
+12:60 from the vertical.
+13:01 
+
+13:01 Maybe like if like the scoring thing
+13:03 
+
+13:03 could go like this. That's my thought.
+13:05 
+
+13:05 >> rotating thing here? Yeah, and then this
+13:07 
+
+13:07 would obviously need to be able to go up
+13:09 
+
+13:09 like to 50 inches. That's going to burn
+13:10 
+
+13:10 out the motors so bad though. They're
+13:12 
+
+13:12 going to be done.
+13:14 
+
+13:14 >> I think this is going to be like I think
+13:16 
+
+13:16 when the game manual comes out, I think
+13:18 
+
+13:18 it'll be like a lot.
+13:20 
+
+13:20 >> Yeah, I think I probably like all this
+13:23 
+
+13:23 early speculation for strategy probably
+13:26 
+
+13:26 a lot of it isn't going to work out
+13:27 
+
+13:27 because we don't know what like the
+13:28 
+
+13:28 rules are yet. Yeah. I mean maybe the
+13:31 
+
+13:31 problem with doing a pneumatic thing
+13:32 
+
+13:32 here is it has to be at such different
+13:34 
+
+13:34 heights. [music] Like it has to be this
+13:36 
+
+13:36 tall and this tall.
+13:37 
+
+13:37 Motorized though like that's just going
+13:39 
+
+13:39 to be so heavy on the motors you have.
+13:42 
+
+13:42 So
+13:43 
+
+13:43 So I I I think the best way to do that
+13:45 
+
+13:45 would really be like
+13:47 
+
+13:47 maybe linear slides like the like maybe
+13:50 
+
+13:50 like do like the same concept as what
+13:52 
+
+13:52 Gremlin did for their tier three hang it
+13:54 
+
+13:54 haunted signature event in high stakes.
+13:57 
+
+13:57 >> Yeah.
+13:57 
+
+13:57 >> Like that type of a thing where like
+13:58 
+
+13:58 linear slides and C channels.
+14:01 
+
+14:01 But the problem with that is that could
+14:02 
+
+14:02 probably get you up to 36 inches, but
+14:04 
+
+14:04 that's not 50, right? So you would need
+14:06 
+
+14:06 to do two.
+14:08 
+
+14:08 Thanks for watching this video. We
+14:09 
+
+14:09 really appreciate you guys if you guys
+14:11 
+
+14:11 watched till the end. That really helps
+14:12 
+
+14:12 us um
+14:14 
+
+14:14 um with our watch hours to be able to um
+14:16 
+
+14:16 keep on generating videos like this.
+14:18 
+
+14:18 Please like and subscribe and comment
+14:20 
+
+14:20 and share your feedback on what we hit,
+14:22 
+
+14:22 what we didn't hit just so we can
+14:23 
+
+14:23 perfect our videos and make them better
+14:25 
+
+14:25 in the future. Thank you. You guys are
+14:27 
+
+14:27 really what makes this possible.
+14:29 
+
+14:29 Good luck in override.

@@ -1,0 +1,245 @@
+00:01 Hey guys, Took here and I have a very
+interesting video for you guys today
+00:04 with a lot of prototyping
+um and some very cool lifts. But also, I
+00:09 remember last video, a lot of you guys
+were asking for the actual CAD of this
+00:14 robot here. Well, the creator was
+actually uh kind enough to release it.
+00:18 So, later in the video, I'll also show
+you how to actually get this CAD. All
+00:22 right, let's get into this video though.
+So, first off, we have Axiom from 75409A
+00:30 with an intake prototype using a couple
+drills, it looks like, and Flexo's
+00:34 showing us that we can very nicely
+intake both um
+00:39 the cones and the pins. Looks like it
+these are actually 3D printed
+00:44 from the looks of it.
+Looks I think looks very very very nice.
+00:47 Yeah, by the way, you can 3D print your
+your elements if you can't wait to get
+00:52 your hands on them, but it's better to
+tune your robot with the real ones, of
+00:55 course. But yeah, this does look very
+fast. Of course, they're the torque on
+00:60 these are are much more than actual
+motors. So, usually uh when people do
+01:03 intake tests with drills, it performs
+much more much better than their actual
+01:07 intake would, but still, going to give
+this an eight here. Very nice to see
+01:11 that works nicely. Good design by Milo
+question by Milo's from 2011D.
+01:18 Well, let's see.
+Um I got some plugins in Discord, so
+01:22 it's nice now. First of all, the the pin
+and the cone would come in through the
+01:26 the front frame with a roller, right? A
+banded roller design. And then, kind of
+01:31 comes in here.
+And then, I'm guessing this can tilt
+01:34 down, right? This can tilt downwards, so
+then the
+01:38 the roller would sit one above the
+other. And then, that would be able to
+01:41 grab onto the pin and the cones and then
+score it, which I think is a pretty
+01:45 pretty sweet um
+early season design, definitely. I don't
+01:49 think you really uh yeah, as you can see
+here, this can pivot all the way around,
+01:53 right? So, I'm guessing to load it, it
+would be facing downwards, if you can
+01:56 imagine that, right? You'd be a sprocket
+gear and then sprocket gear and then
+01:60 that would be able to grab the pins and
+the cones directly.
+02:04 Um the reverse reverse four bar that can
+lift all the way up. Pretty pretty far.
+02:08 Uh can't really tell exactly what is the
+the height of this, but pretty fast
+02:13 drive train. Looks like um
+Looks like it's 3.25 on um
+02:19 or sorry, 3.25 inch wheels with 450 RPM,
+which is very very fast. I would highly
+02:25 suggest you go down to
+to 2.75
+02:28 uh inch wheels. I think that's a pretty
+good RPM. It's 2.75 on on uh 450
+02:34 is a good RPM this year.
+If that's
+02:37 if I'm not looking at it wrong, but I I
+think I think that is the um
+02:42 2.75 inch wheels or sorry, 3.75 inch
+wheels on
+02:46 on the 450 RPM, but yeah, pretty nice.
+I'm going to give this a A tier as well.
+02:52 All right, cascade lift with no poly.
+There is little metal uh little metal
+02:56 and metal, but still pretty low
+friction.
+02:59 Okay.
+Nice. Cascade lift Yeah, I really want
+03:02 to see cascade lifts this year cuz I
+think I think they're really good at
+03:05 keeping your your center of gravity
+down. And as you can see here, these two
+03:09 C-channels are are locked within each
+other because of this uh
+03:12 this like um spacer alongside with the
+um What is this like a a flexible
+03:21 insert. So,
+very creative here using the flexible
+03:24 insert and the spacer. So, very nice.
+I'm going to give this an
+03:28 S tier.
+Here. It also has linear slides. Um this
+03:33 is 20 This is two 100 RPMs, right? So,
+this is very very cool. Uh
+03:37 actually I I downloaded the video so we
+can make it bigger, but look here.
+03:43 This is incredibly fast. Look how fast
+that goes up. This is like an insane
+03:47 lift.
+I like this lift so much. Like Look, at
+03:50 this lift.
+Look how so basically it's jointed so
+03:54 then
+um
+03:57 like whenever this whenever you spin
+this uh motor
+04:01 it forces this to go up, right? And then
+there's no space for it to over-center,
+04:06 so then this would force the this piece
+the top piece to go
+04:09 up and that brings the whole lift up
+linearly like so it doesn't um
+04:15 it doesn't like doesn't like move
+around. It stays on one
+04:18 one linear uh
+movement, which is super super cool.
+04:22 Look at that. It moves so fast. So I'm
+I actually really like this design and
+04:27 it I think it has a lot of a lot of
+potential.
+04:30 Right? Uh here they're using two two
+motors, so it's um definitely too much
+04:35 power for for for having no no weight
+being bared on this, but um I think one
+04:39 11 W motor running a little bit slower
+could actually bear some significant
+04:43 weight uh with this design. Could be
+Could be really good. I'm going to give
+04:47 it S tier. The only problem I see from
+it is um
+04:51 the fact that uh
+these these one by ones can bend can
+04:54 bend if there's a lot of weight being
+being put on that, right? Um okay. First
+04:59 year of Vex U looking forward to a good
+start. Mm.
+05:04 Okay, nice.
+Uh a motor drive on Vex U. No 55 W
+05:08 limit. So good for them. The whole thing
+is like all custom-made, which is super
+05:12 cool.
+I like this design. I'm going to give it
+05:15 an A tier.
+Um
+05:17 and yeah, before I move on though,
+um I would like to tell you guys how to
+05:22 download this design for yourself,
+right? It is on GrabCAD. So if you go to
+05:26 the Republic server
+and then you go up to um new uploads,
+05:32 uh
+you can see this design. Also, make sure
+05:36 to join the server so you can get all
+the um
+05:39 notifications with uploads. But yeah,
+you can see his uh
+05:42 his design here
+and then you can
+05:46 uh download it. But of course,
+um only use for inspiration. Otherwise,
+05:50 you will get G forward. So,
+don't don't risk getting DQ'd. Yeah, but
+05:56 back up to this one though, he had to
+share some photos
+05:59 of
+of the actual
+06:02 mechanism here and as you can see here,
+these screws are keeping the
+06:07 the C channel within the other one,
+which is really really close. Like
+06:11 that's super super tight um spacing
+here, which is really nice, right? You
+06:15 can see the whole thing doesn't look to
+be super heavy
+06:18 and is is so incredibly fast, so
+very very nice design once again.
+06:24 All right.
+Intake done.
+06:26 Uh the reverse four-bar coming soon.
+Above it going to
+06:30 going with the design from my video
+or basically the design that I used to
+06:34 make, right? So,
+interesting that you are going with the
+06:39 um
+the cornered like these these like
+06:43 outward or yeah, these outward corners
+um guiders here, right? which doesn't
+06:48 help with intaking pins.
+Um
+06:51 the the reason why why Ace and other
+teams did this in in high stakes is so
+06:57 that they can get closer to the wall,
+right? Which I don't think is something
+07:01 that you need to do this season. So,
+there's no reason I I don't think to do
+07:04 this. I think you instead you should
+even face it the other way, right? So,
+07:08 then you can funnel those those elements
+in. So, I don't think I don't like this
+07:12 particularly.
+Um
+07:15 And this is interesting.
+So,
+07:18 yeah.
+This gets a gets a B tier.
+07:22 And then, vex override first drive
+design. We have a
+07:27 looks like a
+07:30 this is interesting.
+Looks like 360 actually, which is which
+07:35 is nice, right? I think the 360 on 3.25
+is another relatively slower speed
+07:39 compared to the previous years that I
+think would be good for this year,
+07:43 right? So,
+I do like this
+07:47 um
+and side plates are always looking very
+07:51 clean. So,
+yeah.
+07:53 Um this gets an gets an A tier.
+Sally is doing my last year of doing
+07:59 high school back very hard.
+I'll read the message here.
+08:03 Um
+yeah, built some very nice bots.
+08:07 Very cool looking robots.
+You're going to get an S tier. But yeah,
+08:12 uh if you're not in the server yet,
+definitely join the server and send much
+08:14 more
+uh much more
+08:17 up updated progress photos.
+Everyone sends their their stuff here,
+08:22 so
+if you want to to see some some robots
+08:26 and they get inspiration, then this is a
+great place to be.

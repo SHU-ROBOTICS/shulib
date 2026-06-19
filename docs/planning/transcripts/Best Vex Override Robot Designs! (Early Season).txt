@@ -1,0 +1,351 @@
+00:01 Hey guys, it's here and today we have
+two very interesting CADs for you guys
+00:05 to look at for the new override Vex
+2026-2027 season.
+00:11 So, let's get straight into it. So,
+these are both going to be like
+00:17 lift bots. So, let's look at the first
+one. The first one sent by Ayush and
+00:23 let's talk about the
+overall like design of this, right? So,
+00:27 this is a
+um
+00:29 This is a
+double reverse six bar lift bot. As you
+00:34 can see here, you can lift the pins and
+the cones all the way up from the
+00:39 intake, which is a flat like vertical
+two vertical intake style
+00:45 intake, right? Seen from like change up
+and even from push back, right? So,
+00:49 these
+pins and cones gets into from here and
+00:52 then it gets brought up all the way
+and placed at the top I think for a
+00:57 maximum of like
+I think that's 1 2 3 4 5 6 7 8 9 10 11
+01:03 12 like 12 scoring
+objects, which is like
+01:07 six 1 2 3 4 5 6 like six or seven
+um
+01:13 pins. Dang, I'm
+I just said that word, but yeah, like
+01:17 six or seven pins.
+Um huge audience retention
+01:22 right there. But anyways, um looking at
+this, it is going to be a Let's talk
+01:28 about the motor distribution next,
+right? So, of course uh there are four
+01:32 motors on the drive train, so it is a 44
+uh watt uh
+01:37 drive that goes 360 RPM on 2.75s, right?
+So, 2.75 through 60 RPM is is pretty
+01:44 slow, but you can also run 3.25
+uh on those
+01:49 on those 360 RPM, which is pretty fast.
+3.65 is what I think 402B ran
+01:55 on their on their corn bot back in spin
+up and a lot of teams ran that RPM and
+01:59 it was pretty good. So, definitely
+that's good RPM.
+02:02 And then another 11 watts on the intake
+here, 5.5 watts on each, so adds up to
+02:07 55 watts there. And then 11 on the lift,
+right? Um on the And then
+02:13 uh 11 more on the actual like flipping
+mechanism for the clamp. And then from
+02:20 from there, uh there are no There's no
+like roller mech on this yet, so if you
+02:24 want to add a roller mech, then now you
+can have your last 11 be on the roller
+02:29 mech, right?
+Um but yeah, so first of all, the pin
+02:34 and the cone both goes in from the same
+spot, comes in here from the front. And
+02:38 it gets intook here into kind of like a
+chamber, like a a whole holding a
+02:43 chamber that holds the pins and the
+cones. Um
+02:46 the poly chamber. So, as you can see, it
+sits back here and the clamp comes down
+02:52 and the clamp grabs it, right? And then
+um
+02:56 So, here's a kind of a dimen- kind of
+just like a up to up like top down view
+03:01 of how the the cone would come kind of
+come in and sit here in the kind of like
+03:06 the What is this? The Yeah, like the
+chamber, right? And then once you grab
+03:11 it, you would lift it all the way up and
+then you'd score with the pivoting
+03:17 um
+pivoting clamp, right?
+03:20 Here's kind of another photo of that
+uh and you can see here how the clamp
+03:26 pivots.
+Uh you can clamp on and then there is of
+03:31 course two 5.5 watt motors that
+uh
+03:35 would spin with this
+like clamping sections, so then you can
+03:40 turn the cones around or turn the pins
+around. And then also you can actually
+03:43 like place it on,
+right? So, that's pretty cool. Um let's
+03:48 talk about a little bit about gearing
+before we move on to the other stuff
+03:51 here.
+Um
+03:53 Yeah, so 360 rpm drive is 36 teeth to 60
+teeth gears. And as you can see here,
+03:60 they also have pretty nice It says
+pretty nice
+04:03 um
+like cross brace here making it all
+04:06 very, very strong using a high-strength
+axle there. So, that's nice.
+04:11 And then
+uh
+04:13 you can see on the lift here
+it is actually I think these are 72
+04:18 teeth gears cuz this is a 60 teeth. So,
+this could be 30s or 72 teeth gears.
+04:24 Um if not 80 84. All right, these are
+These are pretty
+04:28 pretty pretty big gears here for the
+double reverse six bar. And the reason
+04:31 to use a double reverse six bar
+is that imagine this is double reverse
+04:35 four bar, right? Um double reverse four
+bar would stick out this way, right? So,
+04:40 double reverse six bar actually
+increases the height by quite a bit
+04:44 here, right? While not while like
+keeping the structure pretty much the
+04:48 same, right? Because
+basically, instead of it sticking out
+04:52 here,
+uh
+04:54 you would kind of elevate the the the
+top section here with this six bar
+04:58 joint. And then now it sits
+a couple more inches higher, right?
+05:03 Which is pretty big cuz that
+could be the difference between scoring
+05:07 a six or or five or six or six or seven
+um
+05:11 pin on the top. All right, keep keep
+saying those words, but
+05:15 yeah, and this is of course a 12 teeth
+gear geared to either a 72 or or 84 here
+05:22 um
+from an 11
+05:24 watt motor. Uh
+so, pretty pretty strong here and
+05:29 interesting that he put the the gearing
+here in the sensor, right? Uh putting
+05:33 the gearing there in the sensor would
+mean that like it's it's less likely for
+05:37 for the top to sag uh since you're
+driving it from the sensor, which is
+05:42 pretty nice. And as you can see here,
+here's going to be 18 by 18
+05:47 um box that you drew out. As you can see
+this is 1 2 3 4 5 6 so 30
+05:54 30 about 30 long. Right? And then that's
+the total 18. Right? So also as you know
+06:00 this year the rules say that you can
+extend out 24 I think
+06:04 on either side.
+So so there is that.
+06:07 Um
+We don't I actually don't know how how
+06:10 high this is total. It's probably around
+like close to the max. Looks pretty high
+06:15 so.
+Um
+06:17 But yeah.
+So yeah here is the the the side and the
+06:20 front view. Looks looks very very clean
+actually. Looks super nice.
+06:23 Um one place where you could put the
+roller is like up here.
+06:27 You can put the roller but it definitely
+would add more weight to the to the
+06:30 robot so especially had more weight to
+the lift. Right? So the lift would be
+06:34 slower. And then also had more light
+while like front weight as well. So you
+06:38 definitely need to think about adding
+anti-tips on the robot because um
+06:43 I can see the robots being very very
+tippy this season because of how high
+06:46 you have to reach up. Right?
+And then how how drivers have been super
+06:50 like drivers have pretty much been uh
+trained to drive super super fast. Um
+06:55 and then this year they're going to be
+super super like tippy robots. So yeah.
+06:59 Anyways, the gearing on the actual
+intake looks like this.
+07:02 So on the intake portion
+um it's going to be a
+07:06 a 5.5 watt running at 200 rpm driving
+this 60 tooth gear.
+07:11 Uh and this 60 tooth gear is now is then
+driving 36 tooth gears.
+07:16 Um and then that's driving the 60 tooth.
+Right? So
+07:20 we can go back to the top down view.
+Um it's kind of like a three stage
+07:24 intake. Right? The first stage is this
+really big flex wheel.
+07:27 Um
+And then the second stage is this 2-in I
+07:30 think and then the third stage is these
+flaps. Right? So that um
+07:35 It's pretty nice. So that's running at
+200
+07:39 um and then this is 200 divided by
+Sorry, this is a 200 times
+07:43 uh 60 divided by 36. So, these are
+running a little bit faster, but the
+07:47 overall like I think the overall um
+speed of the surface is running faster
+07:53 on on this one here. So, yeah, that's
+that's the the intake uh and then
+07:60 that's pretty nice. All right. So, on to
+the second robot now sent by Nick from
+08:03 46A.
+Sorry, there's a mosquito that's like
+08:07 really annoying, but it's interesting
+that that there is a no difference
+08:10 between the intake for this robot.
+Overall, these two robots are pretty
+08:13 similar, but
+um
+08:15 there's a difference between the intake
+of this robot than the than the previous
+08:18 one, right? Because this is a vertical
+intake and this is a horizontal one
+08:22 where it's like the the
+shaft of the intakes is horizontal,
+08:25 right? Um so, then these pins and the
+cones would need to come in and they
+08:29 would actually need to kind of orientate
+themselves in the intake uh because if
+08:35 you want to score if if you want to
+score like perpendicular to the actual
+08:39 like um
+drive drive base, then if they when they
+08:44 come in, they need to be reoriented,
+right? So, you need pretty good funnels
+08:47 for this robot is kind of my my thoughts
+on this.
+08:50 Um unfortunately, this robot is fully
+illegal because of the the the the black
+08:54 and teal color theme
+based off of rule 23, so RIP, but still
+08:59 pretty nice. They actually added um the
+roller as well up here.
+09:03 So, I think the one thing about this is
+it's going to be pretty heavy, so I
+09:05 don't know how how powerful of a motor
+is going to be able to be if to to lift
+09:10 all this, right? And if it can, then
+it'll be slow, right? So, those are
+09:14 going to be some um
+some some like
+09:19 what is it called? give and takes that
+you have to kind of consider when
+09:22 building uh a robot this season, right?
+But here's here's his clamp here um for
+09:28 the for the pins, I'm guessing. Looks
+pretty nice.
+09:32 And then lifts up and you can see that
+since um you know, double reverse four
+09:36 bar still goes pretty high, but I don't
+think it's goes as high as a double
+09:38 reverse six bar does.
+But But yeah, this kind of looks like an
+09:41 over under over under shooter.
+You remember
+09:46 those.
+Um but also keeping the center of
+09:50 gravity down is really really important.
+So, I really like how
+09:53 what you used did here putting the air
+tanks all the way down here and also the
+09:60 the brain all the way down here as well
+keeping all the center of gravity all
+10:03 the way down. Right, that's definitely
+something that you need to be watching
+10:07 out for.
+Um once again,
+10:10 uh
+like you might also need anti-tips. So,
+10:13 look at like I think
+um
+10:15 Tower Takeover had some nice flip out
+anti-tips that people were running. So,
+10:19 definitely look at that season. And then
+before before we end the video though,
+10:22 um
+like yesterday I released a game game
+10:25 manual video, but there's a couple
+things I didn't address. Right. So,
+10:28 first of all, the field starts with two
+pins already scored. So, instead of
+10:32 having to score seven pins, you only
+have to score five and like three cones.
+10:35 So, makes solo autonomous points much
+easier, but still it's going to be
+10:38 really really hard to do that. Um but
+yeah, there's that. And then another
+10:42 thing is you can plow many many uh you
+can plow as many um
+10:47 cones and pins as you want. Right. So,
+that makes it so that an intake like
+10:50 this which is super super wide could be
+good if you want to move many pins to
+10:55 your side of the field
+um to score. Right. So, that's
+10:58 definitely within the strategy within
+strategy
+10:60 uh for teams to consider. Right. So,
+that's that's good.
+11:04 And then also for for anything with a
+Vex logo like motors or um even air
+11:10 tanks especially air tanks. Right. Uh
+you are not allowed to cover them with
+11:14 like any type of like any type of uh
+stickers. So, people that have carbon
+11:19 fiber like stickers to wrap their their
+air tanks. A lot of teams do that like
+11:23 my team did that when I was competing as
+well. So, that's now illegal. You can't
+11:27 cover um any of those. So, make sure
+it's remove those. That's a pretty
+11:32 pretty big thing to to have because um
+like
+11:38 a lot a lot of teams are are going to
+have stickers on the robot, right? So,
+11:41 um definitely don't cover any any Vex
+logos. Kind of dumb because like the the
+11:46 logo comes off really easily on the on
+the air tanks. So, like I don't I pretty
+11:51 much never see any team with the Vex
+logo on their air tanks in the first
+11:54 place.
+Right.
+11:56 Uh and finally, uh if you hit an
+opponent's goal like this,
+12:00 it is a if if if even if you touch it,
+it's a minor violation. So,
+12:05 that is another pretty big rule that I
+did not uh mention yesterday. But yeah,
+12:09 that's that's about it. If you want to
+see more about the new season,
+12:12 definitely subscribe if you're new to
+the channel. I make a lot of lot of Vex
+12:15 videos. But yeah.

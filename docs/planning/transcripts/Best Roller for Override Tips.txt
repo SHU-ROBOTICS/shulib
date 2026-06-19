@@ -1,0 +1,1585 @@
+00:01 Hey guys, Luke here and today I have a
+00:03 
+
+00:03 lot of robot ratings to get through
+00:05 
+
+00:05 again and also even some actual bot
+00:09 
+
+00:09 builds through here as well and of
+00:11 
+
+00:11 course some roller roller tech as well.
+00:14 
+
+00:14 As you can see, there's some actual bots
+00:15 
+
+00:15 being built. So, we'll go through all
+00:17 
+
+00:17 these. But before we start though, I
+00:19 
+
+00:19 want to say thank you guys for 15,000
+00:21 
+
+00:21 subscribers. And yeah, the the the merch
+00:25 
+
+00:25 is dropping. It's called the build to
+00:26 
+
+00:26 inspire hoodie. It's pretty tough. If
+00:28 
+
+00:28 you want to check it out, it's on
+00:29 
+
+00:29 robitics.mmyshopify.com.
+00:32 
+
+00:32 I'll have it in the comments and in the
+00:34 
+
+00:34 description as well. Uh there's
+00:36 
+
+00:36 currently these two colors, um black and
+00:38 
+
+00:38 then there's this uh navy dark blue
+00:41 
+
+00:41 color. Um and of course there's also
+00:43 
+
+00:43 this meme hat if you want if you want to
+00:45 
+
+00:45 get it. Um
+00:47 
+
+00:47 uh but yeah, if you want to want to
+00:48 
+
+00:48 support me, it' be super super nice if
+00:50 
+
+00:50 you guys want to if you guys think it's
+00:51 
+
+00:51 cool uh to, you know, get some of these
+00:54 
+
+00:54 hoodies and stuff. about $50. And also
+00:56 
+
+00:56 the shipping will be like 20ish days cuz
+00:59 
+
+00:59 I'm getting it from China. I visited the
+01:01 
+
+01:01 factories recently myself to make sure
+01:04 
+
+01:04 that they're high quality stuff. They're
+01:05 
+
+01:05 high quality stuff. And um yeah,
+01:09 
+
+01:09 basically I mean that's that's pretty
+01:11 
+
+01:11 much it. It's Shopify. You just kind of
+01:13 
+
+01:13 put in your like address and stuff and
+01:16 
+
+01:16 they'll ship it to your door. Um but but
+01:20 
+
+01:20 yeah, that's that that's pretty much it.
+01:21 
+
+01:21 If you if you if you like uh my videos
+01:24 
+
+01:24 and you like the design as well, the the
+01:26 
+
+01:26 design's pretty cool. I think it's it's
+01:28 
+
+01:28 pretty tough. Um go ahead and place an
+01:31 
+
+01:31 order uh for the pre-order or whatever.
+01:33 
+
+01:33 But yeah, let's get straight into it,
+01:35 
+
+01:35 though. I know that the last video um
+01:38 
+
+01:38 somebody pointed out that my um that I
+01:42 
+
+01:42 called a I accidentally called a cas or
+01:45 
+
+01:45 a continuous lift, a cascade lift, and I
+01:47 
+
+01:47 finally uh learned the difference
+01:49 
+
+01:49 between those. A continuous lift uses
+01:52 
+
+01:52 one continuous string or uh mechanism to
+01:56 
+
+01:56 lift the whole thing up as its name
+01:58 
+
+01:58 suggests. And a cascade lift is
+02:02 
+
+02:02 every single like part of the lift is
+02:05 
+
+02:05 connected to the next part using a
+02:06 
+
+02:06 string and they're separate. So there's
+02:09 
+
+02:09 that. Um but as you can see I already
+02:11 
+
+02:11 braided these because I was filmed a
+02:13 
+
+02:13 video earlier and it didn't film. So
+02:15 
+
+02:15 that kind of sucks. But uh that just
+02:17 
+
+02:17 means that I I can talk even more and uh
+02:20 
+
+02:20 better about these bots. So uh rate the
+02:22 
+
+02:22 bot please. I'm bad at raiders. Uh it's
+02:24 
+
+02:24 not a bad you should have provided more
+02:26 
+
+02:26 photos. But immediately [clears throat]
+02:28 
+
+02:28 let's speed run this. So first off this
+02:30 
+
+02:30 is totally going to bend. Uh unless this
+02:33 
+
+02:33 this unless you're um actually whether
+02:36 
+
+02:36 or not this this license plate is is
+02:39 
+
+02:39 support or not, this triangle brace is
+02:40 
+
+02:40 way too low. make it higher because uh
+02:42 
+
+02:42 as we've seen from spin up roller blades
+02:44 
+
+02:44 and whatever, this is going to bend like
+02:46 
+
+02:46 this is going to get hit hit inwards.
+02:47 
+
+02:47 Using one by ones, even if they're half
+02:49 
+
+02:49 cut through wides, they're probably
+02:50 
+
+02:50 still going to bend. Um and and also
+02:53 
+
+02:53 it's not like supported side to side as
+02:55 
+
+02:55 well. That's also kind of an issue. If
+02:57 
+
+02:57 you want, you can try to support it side
+02:59 
+
+02:59 to side. Uh not like 100% necessary, but
+03:02 
+
+03:02 at least at least fix the the triangle
+03:04 
+
+03:04 brace at the very least. Make it at
+03:05 
+
+03:05 least go all all the way up here. Also,
+03:07 
+
+03:07 whenever this roller spins, if it gets
+03:08 
+
+03:08 tight, it will also pull your if this
+03:11 
+
+03:11 part gets tight. If this the the chain
+03:13 
+
+03:13 gets tight, it will pull your roller or
+03:15 
+
+03:15 your whole roller back. So, that won't
+03:17 
+
+03:17 be good either. Apart from that, pretty
+03:19 
+
+03:19 pretty cool. Looks like you have a
+03:20 
+
+03:20 vertical intake going into a clamp.
+03:21 
+
+03:21 Pretty standard stuff. Um, allowing for
+03:24 
+
+03:24 pretty good match load, which is nice as
+03:26 
+
+03:26 well. I do like that. That's why I
+03:28 
+
+03:28 didn't tell you to, you know, connect
+03:29 
+
+03:29 these two together because you probably
+03:30 
+
+03:30 can't because of the match load uh that
+03:32 
+
+03:32 you need to be able to do. So, you might
+03:34 
+
+03:34 have to connect to it. If this is
+03:36 
+
+03:36 supports, it's not supports. You
+03:37 
+
+03:37 probably have to just uh leave that be.
+03:39 
+
+03:39 But at least the very least, this
+03:40 
+
+03:40 triangle brace should be made higher.
+03:43 
+
+03:43 Um, apart from that, make sure the speed
+03:46 
+
+03:46 of your roller is pretty slow. I will
+03:48 
+
+03:48 see a video from an actual robot later
+03:50 
+
+03:50 on. It spins it very very quick. So,
+03:52 
+
+03:52 these uh these 4-in flexes definitely
+03:54 
+
+03:54 have pretty pretty fast pretty fast
+03:57 
+
+03:57 uh sorry, what pretty fast surface
+03:60 
+
+03:60 speeds. So, you might even want to turn
+04:01 
+
+04:01 it down to a a lower like three uh inch
+04:06 
+
+04:06 flexible, but I give it an A tier. You
+04:08 
+
+04:08 already saw at least the my rating. Same
+04:11 
+
+04:11 with this one. Little doodad I've been
+04:12 
+
+04:12 working on. Not finished at all, but
+04:13 
+
+04:13 it's two bar lift with a pneumatic claw
+04:15 
+
+04:15 that can rotate. And uh it's pitch with
+04:17 
+
+04:17 a motor. Rotate it facing backwards to
+04:20 
+
+04:20 pick up intake pins and forward to pick
+04:22 
+
+04:22 up flat cups and match loads. You can uh
+04:25 
+
+04:25 make the claw face up. So, this is this
+04:27 
+
+04:27 is pretty nice, but it's pretty hard to
+04:29 
+
+04:29 keep it uh within the 24 in limit. So,
+04:31 
+
+04:31 it's only 30 in tall, which is still not
+04:33 
+
+04:33 too bad. Um, but yeah, this is very
+04:36 
+
+04:36 interesting. As you can see, you can
+04:38 
+
+04:38 intake from the front. Um, and that kind
+04:40 
+
+04:40 of goes up here into the middle and you
+04:43 
+
+04:43 can also have mattress from the back,
+04:46 
+
+04:46 which is very nice cuz you want
+04:47 
+
+04:47 definitely want to be able to do both
+04:48 
+
+04:48 tasks here, right? As you can see here
+04:50 
+
+04:50 with the sprocket on this 5.5 watt, I
+04:53 
+
+04:53 think it's a six or an eight uh teeth
+04:55 
+
+04:55 sprocket goes up down here gets geared
+04:58 
+
+04:58 down reduced and it's able to spin this
+05:01 
+
+05:01 whole mechanism, this whole clamp uh
+05:04 
+
+05:04 around to either load for from intake or
+05:06 
+
+05:06 load from natural which is really really
+05:08 
+
+05:08 smart. I really like that. Right. And
+05:10 
+
+05:10 these of course these double these uh
+05:13 
+
+05:13 two bars are are very light. Uh so
+05:16 
+
+05:16 that's also good as well. Uh immediately
+05:19 
+
+05:19 one of the big things that uh you need
+05:21 
+
+05:21 to probably do is if you've ever seen a
+05:23 
+
+05:23 captain uh captain from spin up their uh
+05:26 
+
+05:26 the world champions from spin-up their
+05:29 
+
+05:29 robots uh expedition from spin-up for
+05:31 
+
+05:31 their tangent you will know that this
+05:33 
+
+05:33 will probably skip if it's put under
+05:35 
+
+05:35 load. So um how to fix this right
+05:39 
+
+05:39 easiest way to do is just put a zip tie
+05:41 
+
+05:41 between them. But I would suggest either
+05:43 
+
+05:43 having poly that are cut that's cut out
+05:45 
+
+05:45 for this or you can use a one by one and
+05:46 
+
+05:46 they have bearing flats in between them
+05:48 
+
+05:48 because um in captain's tangent it would
+05:50 
+
+05:50 skip uh unless you unless you connected
+05:54 
+
+05:54 these two right so definitely do that
+05:56 
+
+05:56 definitely connect them
+05:58 
+
+05:58 apart from that pretty nice pretty nice
+05:60 
+
+06:00 stuff this part's connect this part as
+06:02 
+
+06:02 well uh just make it look cleaner it's
+06:05 
+
+06:05 kind of ugly besides that but I give it
+06:07 
+
+06:07 an S tier uh it's pretty pretty cool
+06:09 
+
+06:09 still I do like it rip your new
+06:11 
+
+06:11 pneumatic fix. Um, that's a lot of money
+06:13 
+
+06:13 lost. Uh, let's I'll skip that one, come
+06:16 
+
+06:16 back, and then um, yeah, so we're going
+06:19 
+
+06:19 to first go to the roller videos. So,
+06:22 
+
+06:22 uh, this one is a, um, is is a sideways
+06:27 
+
+06:27 roller toggle. Uh, makes me feel like
+06:30 
+
+06:30 snack think of snack cakes back in uh,
+06:33 
+
+06:33 high stakes of their sideways scoring.
+06:35 
+
+06:35 But yeah, uh, it's a cool design
+06:37 
+
+06:37 definitely with the with the rubber
+06:39 
+
+06:39 stops. it's able to spin, do one spin,
+06:42 
+
+06:42 right? Um, but I don't think it's like
+06:44 
+
+06:44 that that crazy. I think you just
+06:46 
+
+06:46 there's many many other ways to do it.
+06:49 
+
+06:49 Um, I give it an A tier. It's pretty
+06:51 
+
+06:51 creative, but definitely don't do this.
+06:53 
+
+06:53 Uh, definitely just go with a either a
+06:55 
+
+06:55 passive one uh where you're driving into
+06:58 
+
+06:58 it and then it it does one or two ticks
+07:01 
+
+07:01 like the one that Gremlin did or just do
+07:03 
+
+07:03 an active one that you're about to see
+07:04 
+
+07:04 like this one right here from Cat
+07:06 
+
+07:06 Muncher.
+07:07 
+
+07:07 Um, it's very very fast. And this is
+07:09 
+
+07:09 kind of like this is this is pretty
+07:11 
+
+07:11 good. Uh, triangle bracing here. Oh, it
+07:13 
+
+07:13 could be better. You could have it go
+07:15 
+
+07:15 higher up, but it's like I don't think
+07:17 
+
+07:17 it's necessary. This necessary in this
+07:19 
+
+07:19 case here is it's pretty well it's
+07:22 
+
+07:22 pretty high up, right? So, you
+07:23 
+
+07:23 definitely need some some some uh good
+07:25 
+
+07:25 triangle racing like so. Looks like
+07:27 
+
+07:27 you're running an X drive on a dual
+07:29 
+
+07:29 versus four bar some something similar
+07:31 
+
+07:31 to that. But yeah, very nice roller.
+07:34 
+
+07:34 Once again, this place S tier. All
+07:36 
+
+07:36 right, let's go up now to see some of
+07:39 
+
+07:39 these. Day one progress by George.
+07:43 
+
+07:43 Nice. This is definitely uh a lot of
+07:47 
+
+07:47 progress for one day. So, looks like
+07:49 
+
+07:49 you're following very very closely with
+07:50 
+
+07:50 your CAD. Not many people do that. At
+07:53 
+
+07:53 least uh I know of. I don't think many
+07:56 
+
+07:56 people did that before. Um but yeah, you
+07:60 
+
+07:60 have this is this is this is super
+08:01 
+
+08:01 tough. You have the the uh actual motors
+08:05 
+
+08:05 are placed are actually like mounted on
+08:09 
+
+08:09 poly which is super nice and the poly is
+08:11 
+
+08:11 mounted on a one by one here. I think it
+08:14 
+
+08:14 this could be this could be mismount
+08:16 
+
+08:16 could be better because it looks like
+08:17 
+
+08:17 it's like connected to the C channel
+08:19 
+
+08:19 back here and then the rest of it is all
+08:21 
+
+08:21 just like floating like kind of high
+08:23 
+
+08:23 above the the drive. I mean like yeah I
+08:26 
+
+08:26 know like there's probably not much else
+08:27 
+
+08:27 you can do but uh yeah a little bit
+08:30 
+
+08:30 little bit strange but it it it does it
+08:32 
+
+08:32 it works. You have a poly poly intake
+08:35 
+
+08:35 which is really nice. It this pretty
+08:38 
+
+08:38 much never breaks. It never like it
+08:40 
+
+08:40 bends but it like bends right back like
+08:43 
+
+08:43 it never snaps. You never have to worry
+08:45 
+
+08:45 about like the friction breaking mid
+08:46 
+
+08:46 game which is super nice. And you have a
+08:48 
+
+08:48 you even have a bear like what's this?
+08:51 
+
+08:51 It's a um
+08:54 
+
+08:54 gosh I'm forgetting the name. It's like
+08:55 
+
+08:55 the ball bearings. You have ball
+08:56 
+
+08:56 bearings right there which is really
+08:58 
+
+08:58 nice as well. Overall pretty pretty
+09:01 
+
+09:01 nice. pretty impressed with this uh with
+09:03 
+
+09:03 this design here. Looks like you're
+09:04 
+
+09:04 going to have the the pins and the cones
+09:07 
+
+09:07 go under the stage here. At least that's
+09:09 
+
+09:09 what I think. Um and yeah, I gave it an
+09:12 
+
+09:12 A tier. All right, further up we have a
+09:16 
+
+09:16 Wow, we have is robot. We have a we have
+09:20 
+
+09:20 a very shiny very shiny and glowy robot
+09:24 
+
+09:24 from from uh with the with the um
+09:28 
+
+09:28 Israeli what do you call it? the the
+09:31 
+
+09:31 symbol. Um, nice, I guess, bro. Uh, once
+09:34 
+
+09:34 again, the the poly it doesn't go high
+09:38 
+
+09:38 enough like for the triangle support.
+09:39 
+
+09:39 You definitely want it to go up up a
+09:40 
+
+09:40 little bit higher. If you've ever tried
+09:42 
+
+09:42 to bend like you can try to go you can
+09:44 
+
+09:44 just go and grab a piece of uh grab a
+09:47 
+
+09:47 piece of of one by one and just try to
+09:50 
+
+09:50 bend it uh by just using five like five
+09:53 
+
+09:53 p like five uh five holes or whatever.
+09:57 
+
+09:57 It's really easy to bend even if you
+09:58 
+
+09:58 have five holes sticking out. like it's
+09:60 
+
+09:60 probably going to bend. Uh but like one
+10:01 
+
+10:01 or two holes sticking out, it's probably
+10:03 
+
+10:03 not going to bend. Um but yeah,
+10:09 
+
+10:09 really interesting placement of the of
+10:10 
+
+10:10 the roller here, or not the roller, but
+10:12 
+
+10:12 the chain. It goes straight into the C
+10:14 
+
+10:14 channel or into the one by one. Um I'm
+10:17 
+
+10:17 guessing it's going to be changed. I'm
+10:18 
+
+10:18 guessing this is literally just uh
+10:20 
+
+10:20 because you don't have the spacing right
+10:22 
+
+10:22 up here. I think it's probably going to
+10:23 
+
+10:23 go further in. Um but yeah, there there
+10:27 
+
+10:27 there's that as well. Um, however, some
+10:30 
+
+10:30 good things are that uh I really liked
+10:33 
+
+10:33 these cutouts uh that these that teams
+10:35 
+
+10:35 have been using for the past year or
+10:38 
+
+10:38 two. I think we saw 698V use them um on
+10:42 
+
+10:42 their intakes where you just have this
+10:44 
+
+10:44 one by one, not one by one, you just
+10:46 
+
+10:46 have this low strength shaft that's able
+10:47 
+
+10:47 to free flow up and down inside of these
+10:50 
+
+10:50 poly cutouts and that makes it really
+10:52 
+
+10:52 low friction and also really uh really
+10:55 
+
+10:55 low work and also like low maintenance
+10:57 
+
+10:57 too. It's all just so nice. Super
+10:60 
+
+11:00 genius. Um and and it's a hor horizontal
+11:04 
+
+11:04 intake with uh bands and these magnum
+11:07 
+
+11:07 wheels on the outside. Why the reason
+11:09 
+
+11:09 you do this is because um theoretically
+11:11 
+
+11:11 they're supposed to pull elements on the
+11:13 
+
+11:13 inwards because of the orientation the
+11:16 
+
+11:16 angle that they have their their rollers
+11:17 
+
+11:17 are at. They're supposed to pull
+11:18 
+
+11:18 elements inwards, but in reality they
+11:20 
+
+11:20 don't really work. Like it's not really
+11:22 
+
+11:22 like that that practical. So that's why
+11:24 
+
+11:24 people never use them. But anyways, I
+11:26 
+
+11:26 like your other triangle braces. They're
+11:27 
+
+11:27 nice. Um, and then you have a a very
+11:32 
+
+11:32 interesting double versus four bar
+11:34 
+
+11:34 because you are using you are using um
+11:38 
+
+11:38 you're using standoffs. Why why are you
+11:40 
+
+11:40 doing this? I don't know. Probably
+11:42 
+
+11:42 probably cuz uh cuz cuz you want to seem
+11:45 
+
+11:45 like you're a skinny legend and you're
+11:47 
+
+11:47 cool, but there's not really a reason to
+11:48 
+
+11:48 do this to be honest. I don't even think
+11:50 
+
+11:50 they're stronger than C channels or
+11:52 
+
+11:52 sorry one by ones. I think one byes are
+11:53 
+
+11:53 honestly stronger than stand out snouts.
+11:56 
+
+11:56 You can just bend it with your hand.
+11:57 
+
+11:57 Like just literally just especially ones
+11:59 
+
+11:59 this long because you need to the
+12:00 
+
+12:00 connector links and the connector links
+12:02 
+
+12:02 makes them so much weaker. So there's no
+12:05 
+
+12:05 reason like people don't ever do this
+12:07 
+
+12:07 for for a reason. You just use one by
+12:09 
+
+12:09 ones. Um
+12:11 
+
+12:11 yeah, on the top here looks like you
+12:13 
+
+12:13 have a basket. That's pretty nice. Uh
+12:15 
+
+12:15 and taking a look at the the other other
+12:16 
+
+12:16 renders, you take it in and then it sits
+12:19 
+
+12:19 into the basket and you lift the basket
+12:20 
+
+12:20 up to score from the front once again
+12:23 
+
+12:23 and takes in. It goes to the basket and
+12:25 
+
+12:25 you double reverse for bar that up to
+12:27 
+
+12:27 score. That's pretty nice. Um
+12:31 
+
+12:31 interesting on odon pod here. Uh it's
+12:35 
+
+12:35 like on a on the on a standoff. Um
+12:39 
+
+12:39 personally I wouldn't do this. It's kind
+12:42 
+
+12:42 of heavy. Um unless there's a leaf
+12:45 
+
+12:45 spring. I don't think that's a leaf
+12:46 
+
+12:46 spring. It's okay. Like I don't I don't
+12:48 
+
+12:48 I don't particularly like it. Um, there
+12:51 
+
+12:51 is one that you should definitely do and
+12:53 
+
+12:53 it's the echo leaf spring. Let's go down
+12:55 
+
+12:55 and find it actually. Um, and and yeah,
+13:00 
+
+13:00 it's down here a little bit. Just wait
+13:05 
+
+13:05 for it. Wait for it. It is
+13:09 
+
+13:09 right here. Yeah. Uh, these are
+13:12 
+
+13:12 incredibly smart. Ekko pioneered this
+13:15 
+
+13:15 back in uh back in high stakes. I know
+13:17 
+
+13:17 Barkbots also does it, but uh yeah, very
+13:20 
+
+13:20 very nice. Super smart use of your poly.
+13:22 
+
+13:22 This thing never like goes off track. Uh
+13:24 
+
+13:24 and it's super easy to make as well. And
+13:26 
+
+13:26 it also uh basically like passively
+13:29 
+
+13:29 holds your holds your pods up if you
+13:31 
+
+13:31 ever go over stuff. So, this is
+13:34 
+
+13:34 definitely an S tier uh design, the the
+13:37 
+
+13:37 pods. All right. Um upwards a little
+13:40 
+
+13:40 bit. Continuous lift here going super
+13:43 
+
+13:43 high. And a lot of teams are kind of
+13:45 
+
+13:45 either deciding between a very high lift
+13:47 
+
+13:47 bot that know kind of goes slower and
+13:49 
+
+13:49 score slower or a low lift bot that can
+13:53 
+
+13:53 know score fast and just be super
+13:55 
+
+13:55 maneuverable and aggressive and play
+13:56 
+
+13:56 fast. Uh and I think I think that
+13:60 
+
+14:00 there's you know definitely tradeoffs
+14:02 
+
+14:02 there but uh the fact that your high
+14:05 
+
+14:05 your high high lift bot can also play uh
+14:08 
+
+14:08 the strategy that a low lift bot can
+14:10 
+
+14:10 play. If you can make that happen, then
+14:12 
+
+14:12 there's no reason not to build a high
+14:14 
+
+14:14 high lift bot at least early early
+14:16 
+
+14:16 season because if your low lift bot
+14:18 
+
+14:18 can't play a high lift bot strategy
+14:20 
+
+14:20 because I mean clearly just if if it
+14:22 
+
+14:22 can't lift that high then it's not going
+14:23 
+
+14:23 to be able to play the strategy and it's
+14:24 
+
+14:24 not going to play the game. If it ends
+14:26 
+
+14:26 up being the high lift like meta then
+14:28 
+
+14:28 your low lift bots's cooked, right? But
+14:30 
+
+14:30 if you have a high lift bot and the meta
+14:32 
+
+14:32 ends up being playing like fast like
+14:34 
+
+14:34 fast scoring um you know low low low
+14:39 
+
+14:39 stacking and just overall like big
+14:41 
+
+14:41 roller plays and uh and stuff like that
+14:45 
+
+14:45 like okay sure you might not be able to
+14:47 
+
+14:47 keep up with the best teams but you're
+14:49 
+
+14:49 still going to beble to play that
+14:50 
+
+14:50 strategy right so that's why I think uh
+14:52 
+
+14:52 it's not too bad to build a high lift
+14:54 
+
+14:54 bot at least early season uh as long as
+14:57 
+
+14:57 you can make it um as long as it can be
+14:60 
+
+14:60 like as long as it's like it's able to
+15:02 
+
+15:02 change around like um and you can be
+15:05 
+
+15:05 flexible then that's really good. So
+15:08 
+
+15:08 yeah, there's that. Um and then besides
+15:11 
+
+15:11 that uh nice interesting interesting
+15:15 
+
+15:15 bracing okay neural network to play
+15:17 
+
+15:17 override this is super cool. I saw this
+15:19 
+
+15:19 earlier as well and it's like okay I can
+15:22 
+
+15:22 imagine like what is it going to look
+15:24 
+
+15:24 like? Um can it like actually simulate
+15:27 
+
+15:27 real strategies? And I think it needs to
+15:30 
+
+15:30 be much better because uh it's
+15:32 
+
+15:32 interesting that because they didn't
+15:33 
+
+15:33 turn a single roller the whole game uh
+15:36 
+
+15:36 was what I saw uh happening here from
+15:38 
+
+15:38 Robotics Enjoyer 1965. Um yeah, red wins
+15:42 
+
+15:42 by by by like a major amount piece. I
+15:45 
+
+15:45 think blue or something got stuck on
+15:47 
+
+15:47 each other for a little bit, but um
+15:49 
+
+15:49 yeah, they didn't spend any rollers
+15:51 
+
+15:51 which is definitely a difference from
+15:53 
+
+15:53 what you would see from an actual game.
+15:55 
+
+15:55 All right, please rate intake and give
+15:57 
+
+15:57 feedback. Okay. So, um, a lot of people
+16:01 
+
+16:01 have been telling me, uh, that it's
+16:04 
+
+16:04 pretty hard to pick up from this
+16:05 
+
+16:05 position, um, because you would when
+16:08 
+
+16:08 your intake steps onto this, uh, it
+16:10 
+
+16:10 would just go down. The front will go
+16:12 
+
+16:12 down and, the back will kick up, and you
+16:14 
+
+16:14 wouldn't be able to intake it, um, as
+16:16 
+
+16:16 easily at least. But here,
+16:19 
+
+16:19 um, if you have a counter roller, it
+16:22 
+
+16:22 might be it may be possible to intake it
+16:24 
+
+16:24 really, really nicely. And that's a
+16:27 
+
+16:27 pretty big argument for counter roller.
+16:29 
+
+16:29 Definitely could be really good. Uh I
+16:30 
+
+16:30 haven't seen counter rollers in in quite
+16:33 
+
+16:33 a long time, I feel. So could be could
+16:36 
+
+16:36 definitely be something to to look out
+16:38 
+
+16:38 for is to have counter rollers for for
+16:40 
+
+16:40 intaking. Um if ever if intaking ever
+16:44 
+
+16:44 becomes a problem this season, which
+16:46 
+
+16:46 which I think I think it I think it
+16:49 
+
+16:49 might be. Um
+16:51 
+
+16:51 but yeah, one one small small minute
+16:54 
+
+16:54 thing is that like the the way you're
+16:56 
+
+16:56 the direction you're placing these uh
+16:58 
+
+16:58 these standoffs is like this way, right?
+17:01 
+
+17:01 So I mean there's a small chance that
+17:02 
+
+17:02 like your pens would get stuck in here
+17:05 
+
+17:05 or like if they kick up, they can get
+17:07 
+
+17:07 stuck in here, but it's pretty low. Like
+17:10 
+
+17:10 I wouldn't really worry about it. But if
+17:12 
+
+17:12 you're like ever designing stuff where
+17:13 
+
+17:13 it's like intaking, you would want your
+17:15 
+
+17:15 your supports to run um like at least
+17:18 
+
+17:18 the supports that are like closest to
+17:19 
+
+17:19 the actual elements to run along the the
+17:22 
+
+17:22 line of intaking right along this line
+17:24 
+
+17:24 like vertically rather than horizontally
+17:26 
+
+17:26 here. Doesn't really matter that much.
+17:28 
+
+17:28 Just a small thing. Uh once again, oh
+17:31 
+
+17:31 very nice for the very nice placement of
+17:33 
+
+17:33 poly too. I like I like a poly ramp. So,
+17:37 
+
+17:37 uh also make it frosted like you just
+17:38 
+
+17:38 sand it with like a low grit and then um
+17:41 
+
+17:41 it will uh it'll be really really smooth
+17:44 
+
+17:44 and and it will be kind of this frosted
+17:46 
+
+17:46 color that looks really clean and you're
+17:48 
+
+17:48 able to intake super quick. So, this is
+17:50 
+
+17:50 getting a tier. All right. Um dear M Mr.
+17:54 
+
+17:54 Nanyahu, donate to my VEX team. This is
+17:57 
+
+17:57 a 462. Nice. You guys have some has some
+18:02 
+
+18:02 real talent. Um, and also writing all
+18:06 
+
+18:06 this and
+18:08 
+
+18:08 wow you guys. Uh, I hope you get the
+18:10 
+
+18:10 $5,200
+18:12 
+
+18:12 American. Um, good luck with that. All
+18:15 
+
+18:15 right. Um, Rayclaw.7 lbs. Definitely
+18:18 
+
+18:18 definitely pretty light. And then, um,
+18:21 
+
+18:21 you have this Gosh, I'm like losing my
+18:23 
+
+18:23 voice because this is my second time or
+18:24 
+
+18:24 third time recording this video. But
+18:26 
+
+18:26 yeah, um you have this [clears throat]
+18:29 
+
+18:29 piston on this poly cutout that's pretty
+18:31 
+
+18:31 clean that goes up and it powers this
+18:35 
+
+18:35 this uh leverage like gear race shield
+18:38 
+
+18:38 mechanism that uh that's able to spin
+18:40 
+
+18:40 this clamp around with the other piston
+18:45 
+
+18:45 on the claw. Oh my gosh, I'm just like
+18:49 
+
+18:49 dying right now. I just yawned. But
+18:50 
+
+18:50 yeah, um I mean of course it's like it's
+18:53 
+
+18:53 all cancer levered, so I wonder how how
+18:56 
+
+18:56 how how reliable it will be. But like it
+18:59 
+
+18:59 probably would be like not too bad since
+19:02 
+
+19:02 since like it's it's like as long as
+19:05 
+
+19:05 you're not getting hit on the clamp,
+19:07 
+
+19:07 then then it uh and you build it
+19:09 
+
+19:09 structurally like well then it should be
+19:11 
+
+19:11 should be good. All right, I give it an
+19:12 
+
+19:12 S tier. It's pretty cool. It's pretty
+19:14 
+
+19:14 nice. Definitely. Right drive 55 watt
+19:17 
+
+19:17 450 RPM on 2.75. That's definitely a
+19:20 
+
+19:20 This is definitely a definitely a really
+19:22 
+
+19:22 good RPM to go for. However, I think
+19:25 
+
+19:25 your drive is a little bit short. Like
+19:26 
+
+19:26 the you can
+19:29 
+
+19:29 I feel like you can even um you can I
+19:31 
+
+19:31 mean Yeah. Okay. So, like I think the
+19:33 
+
+19:33 reason why they why they have six wheel
+19:35 
+
+19:35 drive on an RPM that most people have
+19:37 
+
+19:37 have eight is because they wanted to
+19:39 
+
+19:39 concentrate the motors, right? Which I I
+19:42 
+
+19:42 totally get here, right? why you want to
+19:44 
+
+19:44 have all these uh all these all these
+19:46 
+
+19:46 motors down here. Price nerve gravity
+19:48 
+
+19:48 more space for everything else, right?
+19:50 
+
+19:50 So, this is this is really creative and
+19:51 
+
+19:51 I really like when you get creative with
+19:53 
+
+19:53 uh with these. Um but once again, like
+19:57 
+
+19:57 it's kind of short. Like if you think
+19:58 
+
+19:58 about this, it's like what? One, two,
+19:60 
+
+20:00 three, four, five. I mean 30. You know
+20:03 
+
+20:03 what? One, two, three, four, five, six.
+20:06 
+
+20:06 Okay. No, it's not even 30. It's like
+20:08 
+
+20:08 it's one two three four five. It's 25.
+20:10 
+
+20:10 25 is really short. Um, I remember like
+20:14 
+
+20:14 we had a team in my region where they
+20:16 
+
+20:16 had like 25 uh whole drive and they
+20:18 
+
+20:18 would just tip completely like always
+20:20 
+
+20:20 tip. So, this is really really short. I
+20:22 
+
+20:22 definitely extend it if possible. I'll
+20:25 
+
+20:25 give it a B tier. Actually, I'm not even
+20:27 
+
+20:27 a tier cuz I do like your your
+20:29 
+
+20:29 creativity with the with the motors with
+20:32 
+
+20:32 the stacking motors, but also if you can
+20:35 
+
+20:35 definitely increase the length of the
+20:36 
+
+20:36 drive or at least add some anti anti-
+20:38 
+
+20:38 tips and that'll be it. Uh, yeah. Thank
+20:41 
+
+20:41 you guys. And if you once again, if you
+20:42 
+
+20:42 like uh the hoodies, definitely go
+20:45 
+
+20:45 ahead, place orders on them. And yeah.

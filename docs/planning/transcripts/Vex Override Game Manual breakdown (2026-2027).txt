@@ -1,0 +1,1567 @@
+00:01 Hey guys, Luke here and the new game
+00:03 
+
+00:03 manual for the new Vex V5 season
+00:05 
+
+00:05 Overdrive just dropped and I just
+00:07 
+
+00:07 finished up streaming and looking over
+00:09 
+
+00:09 the manual with all you guys on my
+00:10 
+
+00:10 stream. So, here's a bunch of the rules
+00:12 
+
+00:12 that we
+00:13 
+
+00:13 that was really important and we'll
+00:15 
+
+00:15 break down a lot of the rules and kind
+00:17 
+
+00:17 of go over the manual really really
+00:19 
+
+00:19 quickly. Um but of course
+00:21 
+
+00:21 uh without further ado, let's let's get
+00:23 
+
+00:23 into this. So, uh primarily, the game is
+00:27 
+
+00:27 is pretty similar to what we saw from
+00:28 
+
+00:28 the the actual game video, of course.
+00:32 
+
+00:32 It's not really much of a surprise there
+00:34 
+
+00:34 for a lot of the things. So, let let's
+00:36 
+
+00:36 just first get into some of the some of
+00:37 
+
+00:37 the biggest rule changes, right? So, um
+00:41 
+
+00:41 here rule 20 R23 is a really big one
+00:45 
+
+00:45 that everyone is talking about which uh
+00:47 
+
+00:47 here it says visual decorations are
+00:48 
+
+00:48 allowed, right? But, if you look at R23A
+00:52 
+
+00:52 anodizing, painting, dying, or changing
+00:55 
+
+00:55 the color of any legal Vex part is
+00:57 
+
+00:57 prohibited, which means that um
+01:00 
+
+01:00 from today, uh you are not allowed to
+01:02 
+
+01:02 use uh
+01:04 
+
+01:04 spray painted C-channels, anodized
+01:06 
+
+01:06 C-channels, dyed gears, dyed flex
+01:08 
+
+01:08 wheels, any of that, right? Um and and
+01:11 
+
+01:11 we've seen that literally
+01:13 
+
+01:13 uh throughout Vex
+01:14 
+
+01:14 in in the Vex history in the history of
+01:16 
+
+01:16 Vex, we've seen that in once literally
+01:18 
+
+01:18 every good team's robot, right? For
+01:20 
+
+01:20 example, if you look at Ace, um their
+01:22 
+
+01:22 entire world spot for their last season
+01:24 
+
+01:24 was all anodized. They're all spray
+01:27 
+
+01:27 painted, I think.
+01:29 
+
+01:29 If not anodized and they you know, of
+01:31 
+
+01:31 course, they dye their gears as well to
+01:33 
+
+01:33 make it look so nice. So, I don't
+01:35 
+
+01:35 personally like this change at all. Um
+01:38 
+
+01:38 it really screws up with a lot of the
+01:39 
+
+01:39 teams that that have already, you know,
+01:41 
+
+01:41 pre powder coated their their C-channels
+01:44 
+
+01:44 pre-season anodized had just had their I
+01:47 
+
+01:47 know teams that just had their
+01:48 
+
+01:48 C-channels sent out to be anodized and
+01:51 
+
+01:51 is now illegal. So, you and there's not
+01:55 
+
+01:55 really a way to like remove anodized and
+01:56 
+
+01:56 there's not a way to remove spray paint
+01:58 
+
+01:58 from your C-channels. You kind of just
+01:59 
+
+01:59 wasted time and money. You have to buy
+02:01 
+
+02:01 new parts now, which is not good, right?
+02:04 
+
+02:04 And and there's a reason for this,
+02:05 
+
+02:05 right? And it's cuz
+02:06 
+
+02:06 um first of all, I think across seas,
+02:08 
+
+02:08 there are people um making C-channels
+02:11 
+
+02:11 like Chinese manufacturers are making
+02:13 
+
+02:13 fake C-channels that are uh lighter and
+02:15 
+
+02:15 maybe stronger. I'm not too sure, but
+02:18 
+
+02:18 putting the a lot of the teams there at
+02:19 
+
+02:19 an advantage. So, Vex doesn't like that.
+02:22 
+
+02:22 Um
+02:23 
+
+02:23 and that's why they added the
+02:25 
+
+02:25 the actual like um
+02:28 
+
+02:28 logos in the C-channel a year back. So,
+02:30 
+
+02:30 so that that's a really really big one
+02:32 
+
+02:32 um that a lot of people are just not
+02:36 
+
+02:36 happy about. Okay. And then we have R22.
+02:38 
+
+02:38 So, it's the one before this, right? Um
+02:41 
+
+02:41 cuz a lot of people are wondering about
+02:43 
+
+02:43 about screws, right? So, um because all
+02:46 
+
+02:46 there are color coded screws, right? So,
+02:48 
+
+02:48 people are scared that hey, does this
+02:50 
+
+02:50 mean that color coded screws are also
+02:51 
+
+02:51 not allowed, right? Because you're not
+02:53 
+
+02:53 allowed to use any um painted parts, any
+02:56 
+
+02:56 colored parts that are um that are so
+02:58 
+
+02:58 legal Vex parts that are painted, you're
+03:01 
+
+03:01 not allowed to use any of them that are
+03:02 
+
+03:02 not like Vex colors. So, people are
+03:04 
+
+03:04 like, oh, does that mean that, you know,
+03:05 
+
+03:05 our M3 screws or whatever that are um
+03:08 
+
+03:08 that are color coded are not allowed.
+03:10 
+
+03:10 That's not the case. Color coded screws
+03:12 
+
+03:12 are still allowed. So, um
+03:16 
+
+03:16 don't be don't get those two mixed up.
+03:17 
+
+03:17 So, um that that's that's a kind of the
+03:20 
+
+03:20 the good thing, the very that's the the
+03:22 
+
+03:22 silver lining in this a very bad news
+03:24 
+
+03:24 here.
+03:26 
+
+03:26 All right. Next up, we're looking at
+03:27 
+
+03:27 SG9.
+03:28 
+
+03:28 Um
+03:30 
+
+03:30 So, first of all, we'll we'll look at
+03:30 
+
+03:30 the super, you know, the everything's
+03:32 
+
+03:32 everyone's everyone's talking about and
+03:33 
+
+03:33 then we'll we'll look at the actual, you
+03:35 
+
+03:35 know, the the most of the the game
+03:36 
+
+03:36 stuff, right? So, SG9 here and SG10 are
+03:39 
+
+03:39 both about um defense and and are you
+03:42 
+
+03:42 allowed to knock over and descore,
+03:44 
+
+03:44 right? Cuz clearly, I mean, everyone
+03:46 
+
+03:46 knows that you're not allowed everyone
+03:47 
+
+03:47 it's expected, right? I think it's
+03:49 
+
+03:49 pretty clear that you're not allowed to
+03:50 
+
+03:50 knock over um the goals and and and
+03:53 
+
+03:53 cause a big, you know, goal to fall over
+03:56 
+
+03:56 and then your opponent loses all those
+03:58 
+
+03:58 points, right? That's clear that that's
+03:59 
+
+03:59 a that's a major violation and will
+04:01 
+
+04:01 result in a DQ. Um but, you're also not
+04:04 
+
+04:04 allowed to descore one at a time, right?
+04:06 
+
+04:06 So, it says here, scoring elements are
+04:08 
+
+04:08 cannot be removed from neutral or
+04:09 
+
+04:09 opposing colored goals and alliance
+04:11 
+
+04:11 goals are protected. So, these basically
+04:13 
+
+04:13 say the same thing except SG10 is is is
+04:15 
+
+04:15 more um
+04:17 
+
+04:17 is even more so, right? And what that
+04:19 
+
+04:19 means is that you literally cannot
+04:22 
+
+04:22 descore um
+04:25 
+
+04:25 any goal except for your own, right? So,
+04:28 
+
+04:28 here it says no violations if you're you
+04:30 
+
+04:30 you'll you'll get DQ'd if if you do and
+04:33 
+
+04:33 it it turns out to be match affecting,
+04:34 
+
+04:34 right? Um
+04:36 
+
+04:36 and which is which is interesting cuz
+04:39 
+
+04:39 yeah, you're you're literally um neutral
+04:41 
+
+04:41 goals are all protected as well, right?
+04:43 
+
+04:43 And looking at the field, that that
+04:44 
+
+04:44 really puts it into perspective, right?
+04:46 
+
+04:46 Because if you look at the field what do
+04:48 
+
+04:48 we see? We see
+04:50 
+
+04:50 if you're let's say you're the red
+04:51 
+
+04:51 alliance, right? You have two alliance
+04:53 
+
+04:53 goals and then one, two, three, four,
+04:54 
+
+04:54 five five goals that are neutral and
+04:57 
+
+04:57 then one, two.
+04:59 
+
+04:59 So, there's total seven goals that you
+05:01 
+
+05:01 literally can't touch pretty much. Well,
+05:03 
+
+05:03 I mean, you can place blocks or you can
+05:05 
+
+05:05 place uh pins and cones on these five
+05:08 
+
+05:08 neutral ones, but
+05:10 
+
+05:10 um
+05:11 
+
+05:11 it's it's likely it's it's more it's
+05:13 
+
+05:13 it's likely that they're going to, you
+05:14 
+
+05:14 know, result in points for your for your
+05:16 
+
+05:16 opponents and this really um this really
+05:19 
+
+05:19 changes up the strategy of the game a
+05:21 
+
+05:21 lot. I feel like I feel like if since
+05:23 
+
+05:23 this is the case, major for for a lot of
+05:25 
+
+05:25 people, the strategy will will look like
+05:27 
+
+05:27 you will be going for uh
+05:29 
+
+05:29 in auto, you you might, you know, fill
+05:31 
+
+05:31 fill these up with um either your own
+05:34 
+
+05:34 cones or your your own pins and then uh
+05:38 
+
+05:38 and then you you just stack on on
+05:41 
+
+05:41 alliance throughout the match and make
+05:43 
+
+05:43 these super super high and then just
+05:45 
+
+05:45 fight for uh rollers towards the end and
+05:47 
+
+05:47 don't worry about anything else.
+05:48 
+
+05:48 Um
+05:50 
+
+05:50 So, something like that, right? Really
+05:51 
+
+05:51 really changes uh how the strategy is
+05:53 
+
+05:53 played. So, we just did the SG9 and 10.
+05:56 
+
+05:56 Look at R26 now and R26
+06:00 
+
+06:00 is about the pressure, right?
+06:03 
+
+06:03 So, now everyone is required to have a a
+06:06 
+
+06:06 pressure gauge um
+06:09 
+
+06:09 a a Vex one as well. So, then people
+06:11 
+
+06:11 can't, you know, fake it and and mess
+06:13 
+
+06:13 with it and then uh have a fake I have
+06:15 
+
+06:15 like a pump that that's modified so then
+06:17 
+
+06:17 you're pumping like 150 PSI and then um
+06:21 
+
+06:21 the the refs won't know that because
+06:23 
+
+06:23 they think it's a legit and it's not.
+06:25 
+
+06:25 So, they're requiring everyone to have a
+06:28 
+
+06:28 um
+06:30 
+
+06:30 have a have a Vex pressure gauge to show
+06:33 
+
+06:33 uh what the what the pressure's actually
+06:34 
+
+06:34 at, right? So, um I mean, that that that
+06:37 
+
+06:37 doesn't mean that you aren't allowed to
+06:40 
+
+06:40 uh still use the um
+06:42 
+
+06:42 the custom made like uh switches that
+06:45 
+
+06:45 would switch the the leak of the air,
+06:47 
+
+06:47 right? That that's a big thing a lot of
+06:48 
+
+06:48 people are are have uh have used in the
+06:50 
+
+06:50 past couple years. Um
+06:52 
+
+06:52 Remember, I was we were one of the the
+06:54 
+
+06:54 first teams to implement that. Was
+06:55 
+
+06:55 basically use a a switch um so, you can
+06:60 
+
+06:60 you can instead of you having to to take
+07:02 
+
+07:02 the pump out, you would switch the PSI
+07:04 
+
+07:04 off and then take the pump out so then
+07:05 
+
+07:05 the air wouldn't leak out, right? That's
+07:08 
+
+07:08 that's still allowed, I think.
+07:11 
+
+07:11 On to R11.
+07:13 
+
+07:13 Um this will be
+07:15 
+
+07:15 about This is also a a huge one, right?
+07:19 
+
+07:19 Cuz everyone has been talking about hey,
+07:21 
+
+07:21 um we want to use a PTO in our
+07:24 
+
+07:24 drivetrain, right? Cuz I mean, of
+07:25 
+
+07:25 course, right? Uh 55 W drive is is
+07:29 
+
+07:29 already um
+07:32 
+
+07:32 like everyone knows about that already,
+07:33 
+
+07:33 right? So, so I guess let's talk about
+07:35 
+
+07:35 subsystems first because we want to get
+07:37 
+
+07:37 the Vex definition for subsystems,
+07:39 
+
+07:39 right? Which is really important. Um so,
+07:41 
+
+07:41 let's talk about this. So, uh
+07:43 
+
+07:43 immediately, right? Vex points out three
+07:45 
+
+07:45 main subsystems, right? One is the the
+07:47 
+
+07:47 drivetrain, right? Uh mobile mobile
+07:49 
+
+07:49 robot base, that's the drivetrain,
+07:50 
+
+07:50 right? And sub subsystem two is your
+07:53 
+
+07:53 your power control system, right? Is
+07:54 
+
+07:54 your battery,
+07:55 
+
+07:55 uh brain and motors, right? That's
+07:58 
+
+07:58 that's sub subsystem two and everything
+07:60 
+
+07:60 else
+08:01 
+
+08:01 um is in subsystem three, right?
+08:03 
+
+08:03 So, we know subsystem subsystem one is
+08:06 
+
+08:06 your is your drivetrain, right? So, then
+08:08 
+
+08:08 if we look at the R11
+08:12 
+
+08:12 we should yeah, R11 we can see that
+08:16 
+
+08:16 um
+08:17 
+
+08:17 you are not allowed to have over 55 W in
+08:20 
+
+08:20 subsystem one and also, you're not
+08:22 
+
+08:22 allowed to use any power take off
+08:24 
+
+08:24 mechanisms, which is PTOs um to to
+08:29 
+
+08:29 change the the power of output of
+08:32 
+
+08:32 subsystem one, which means that you are
+08:34 
+
+08:34 not allowed to have a 40 55 W drive and
+08:37 
+
+08:37 then power take off 11 W to power your
+08:39 
+
+08:39 lift, right? Which a lot of people are
+08:42 
+
+08:42 not are really upset about this one as
+08:43 
+
+08:43 well because um
+08:46 
+
+08:46 this means that like you are either
+08:49 
+
+08:49 stuck with a 44 W drive or a 55 W drive
+08:51 
+
+08:51 and there are no in between. You can't
+08:53 
+
+08:53 power take off to power intake or
+08:55 
+
+08:55 anything else, right? Which a lot of
+08:56 
+
+08:56 people are like uh from the start of the
+08:58 
+
+08:58 season already, they they've been
+08:59 
+
+08:59 designing PTOs because they're like, oh,
+09:01 
+
+09:01 you know, Vex is forcing us to use 55 W.
+09:03 
+
+09:03 What does that mean? That must that must
+09:05 
+
+09:05 mean that they want, you know, more
+09:07 
+
+09:07 complex mechanisms, which they do want,
+09:08 
+
+09:08 right? But then they shoot they shoot
+09:10 
+
+09:10 themselves in the foot foot here by
+09:12 
+
+09:12 saying, hey, you can't use uh PTO on the
+09:14 
+
+09:14 drive, right? But, however, this doesn't
+09:17 
+
+09:17 mean that you can't use PTOs entirely,
+09:18 
+
+09:18 right? So, don't get this wrong. Um you
+09:20 
+
+09:20 are allowed to use PTOs still, but PTOs
+09:23 
+
+09:23 are are limited to um parts like the
+09:26 
+
+09:26 lift and intake and scoring elements and
+09:29 
+
+09:29 stuff like that. You can take off
+09:31 
+
+09:31 between those,
+09:32 
+
+09:32 right? Which we definitely expect there
+09:33 
+
+09:33 will be there will be teams doing that.
+09:36 
+
+09:36 Um and that's that's rule 11. And then
+09:38 
+
+09:38 we are looking at SG2
+09:42 
+
+09:42 uh which is horizontal expansion, right?
+09:44 
+
+09:44 This is interesting as well. As as we
+09:46 
+
+09:46 see, um there is a 24 by 24 max
+09:49 
+
+09:49 expansion after the game starts, right?
+09:51 
+
+09:51 And that's horizontal uh and the max we
+09:53 
+
+09:53 know for vertical is 50, right? Until
+09:55 
+
+09:55 the the end game. So,
+09:58 
+
+09:58 here, um that means that you are allowed
+10:01 
+
+10:01 to, you know, have your intake or
+10:02 
+
+10:02 whatever come out um further, whatever
+10:05 
+
+10:05 you want. Um or if you want to score
+10:08 
+
+10:08 from further,
+10:09 
+
+10:09 you that you can do that, too. So,
+10:12 
+
+10:12 that's that's basically about it. This
+10:14 
+
+10:14 is, um not a super
+10:17 
+
+10:17 I guess I mean it's a big one, but it's
+10:18 
+
+10:18 not really that debated.
+10:21 
+
+10:21 So,
+10:22 
+
+10:22 there's that. And then we have, finally,
+10:25 
+
+10:25 SC8,
+10:27 
+
+10:27 which is autonomous win point, right?
+10:29 
+
+10:29 >> [snorts]
+10:29 
+
+10:29 >> People are really wondering, "Hey, how
+10:31 
+
+10:31 hard is autonomous win point going to be
+10:32 
+
+10:32 this season?" Because there are there
+10:35 
+
+10:35 are quite a lot you have to score,
+10:36 
+
+10:36 right? Um
+10:37 
+
+10:37 And also, you you can only score one uh
+10:39 
+
+10:39 one at a time, right? One pin or one
+10:41 
+
+10:41 cone at a time, right? So, SC8 tells you
+10:43 
+
+10:43 that you have to score at least seven
+10:45 
+
+10:45 pins in your uh in your in your area,
+10:48 
+
+10:48 right? In your on your side of the
+10:49 
+
+10:49 autonomous line. And then three um
+10:52 
+
+10:52 goals. You have to score on three goals
+10:53 
+
+10:53 as well. And at least two uh pins scored
+10:56 
+
+10:56 for your lines, right? So, this is
+10:58 
+
+10:58 incredibly hard if you really think
+10:60 
+
+10:60 about it, right? Because look at look
+11:01 
+
+11:01 look at here, right? This is how the
+11:03 
+
+11:03 match starts.
+11:04 
+
+11:04 And then, um
+11:07 
+
+11:07 in if you're winning if you're trying to
+11:08 
+
+11:08 do solo win point, in in 14 second or in
+11:11 
+
+11:11 15 seconds, you have to score
+11:14 
+
+11:14 seven pins, right? So, that's already
+11:17 
+
+11:17 scoring two you're scoring
+11:20 
+
+11:20 every 2 seconds you have to score one
+11:21 
+
+11:21 pin, right? And you can only pick up one
+11:23 
+
+11:23 at one at a time. So, that's incredibly
+11:26 
+
+11:26 hard. And not only that, you have to
+11:27 
+
+11:27 score on three goals, right? And as red,
+11:30 
+
+11:30 you really only have access like four or
+11:33 
+
+11:33 like five including the middle red,
+11:34 
+
+11:34 right? So, you only have access to like
+11:35 
+
+11:35 these ones. Um and and think about this,
+11:40 
+
+11:40 right?
+11:41 
+
+11:41 You if you want to score seven, you have
+11:43 
+
+11:43 to score multiple on a single one, which
+11:45 
+
+11:45 means you also have to score cones as
+11:47 
+
+11:47 well. So, you have to score pins and
+11:49 
+
+11:49 cones. So, to score seven on four of
+11:51 
+
+11:51 these goals,
+11:52 
+
+11:52 what you're looking at is you have to
+11:54 
+
+11:54 score um four on each one, and then
+11:57 
+
+11:57 another three on two of them, which
+11:59 
+
+11:59 means you have to score at least three
+12:01 
+
+12:01 cones as well, right? So, you have to
+12:03 
+
+12:03 score that's 10 objects you have to
+12:05 
+
+12:05 score in a matter of 15 seconds, which I
+12:08 
+
+12:08 don't even think that's necessarily
+12:09 
+
+12:09 possible for a solo autonomous win
+12:11 
+
+12:11 point. Um
+12:14 
+
+12:14 Unless you're just incredibly incredibly
+12:15 
+
+12:15 fast, which
+12:17 
+
+12:17 I highly doubt that. So, those are those
+12:19 
+
+12:19 are the the main rules that we're going
+12:20 
+
+12:20 to go over. Those are the main changes.
+12:22 
+
+12:22 And and they're they're interesting
+12:24 
+
+12:24 changes, right? I I I see that I see
+12:27 
+
+12:27 definitely where some of those changes
+12:28 
+
+12:28 comes in, but also
+12:31 
+
+12:31 it's really interesting that that they
+12:33 
+
+12:33 made some of the other changes, right?
+12:34 
+
+12:34 So, I wanted as we scroll through, I
+12:36 
+
+12:36 want to talk about how
+12:38 
+
+12:38 um
+12:39 
+
+12:39 the license plates aren't changed,
+12:40 
+
+12:40 right? You're still not allowed to 3D
+12:41 
+
+12:41 print them. You're allowed to have
+12:42 
+
+12:42 custom ones, but not 3D printed, right?
+12:44 
+
+12:44 No 3D printed parts at all for high
+12:46 
+
+12:46 school and middle school. And also, um
+12:48 
+
+12:48 you are not allowed
+12:50 
+
+12:50 uh more than the current amount of poly
+12:53 
+
+12:53 as well. Poly changed I don't think
+12:54 
+
+12:54 anything changed with the poly. Uh
+12:58 
+
+12:58 that's
+12:59 
+
+12:59 And like I think that's most of the
+13:00 
+
+13:00 stuff that people are really are
+13:02 
+
+13:02 wondering about, right? So, let's go
+13:03 
+
+13:03 through the field overview now. So,
+13:05 
+
+13:05 there are 56 cups,
+13:07 
+
+13:07 63 pins, right? So, more more more pins
+13:08 
+
+13:08 than cups.
+13:09 
+
+13:09 Um
+13:11 
+
+13:11 And there are a lot of match loads,
+13:13 
+
+13:13 right? Uh four toggles or what we can
+13:15 
+
+13:15 call them rollers. I like to call them
+13:17 
+
+13:17 rollers. So, you know, for the Vex
+13:19 
+
+13:19 community out there, let's just call
+13:20 
+
+13:20 them rollers.
+13:21 
+
+13:21 Um
+13:24 
+
+13:24 All right. So,
+13:25 
+
+13:25 looking at the the field, there are a
+13:27 
+
+13:27 lot of match loads. And that has to play
+13:29 
+
+13:29 it has to play into the game, right? So,
+13:32 
+
+13:32 since we since we know that um
+13:35 
+
+13:35 Okay, let me just break this down first.
+13:37 
+
+13:37 So, here's this how scoring works,
+13:38 
+
+13:38 right? So, we know that from from the
+13:40 
+
+13:40 video already.
+13:42 
+
+13:42 Um the the parts that are in the clear
+13:45 
+
+13:45 area, right? These count as points. So,
+13:49 
+
+13:49 like this one, plus five you know, plus
+13:51 
+
+13:51 five plus five, whatever, right? Um and
+13:53 
+
+13:53 then uh if if the toggle or sorry, if
+13:56 
+
+13:56 the roller is on yellow, then the yellow
+13:58 
+
+13:58 ones don't mean anything, right? So,
+14:01 
+
+14:01 this goes into strategy a lot. Um and
+14:03 
+
+14:03 then if the roller is on blue, then the
+14:05 
+
+14:05 yellow ones are worth blue. So, this is
+14:07 
+
+14:07 worth a lot of points, right? Especially
+14:09 
+
+14:09 since one of these pins can be can be
+14:12 
+
+14:12 worth 20 points or 40 effective points,
+14:15 
+
+14:15 right? Which is huge because think about
+14:17 
+
+14:17 this, that's a 40-point swing, right?
+14:20 
+
+14:20 This one going from from blue to red as
+14:21 
+
+14:21 40 points because it's counted twice
+14:24 
+
+14:24 since this can be in the two clear
+14:26 
+
+14:26 zones, right? So, this is this is pretty
+14:28 
+
+14:28 pretty big because especially um
+14:31 
+
+14:31 with the fact that you're not allowed to
+14:32 
+
+14:32 descore at all on those neutral ones,
+14:35 
+
+14:35 that means that really incentivizes
+14:37 
+
+14:37 people to not score on them because who
+14:40 
+
+14:40 knows, man? If you score on this and
+14:41 
+
+14:41 then it gets it gets uh the color gets
+14:43 
+
+14:43 changed, then you you can lose a ton of
+14:46 
+
+14:46 points and you can immediately lose the
+14:47 
+
+14:47 match, right? So,
+14:50 
+
+14:50 I I think that really incentivizes
+14:52 
+
+14:52 people to play a a really strange
+14:53 
+
+14:53 strategy
+14:55 
+
+14:55 uh of not scoring much on the neutral,
+14:56 
+
+14:56 scoring a lot on your alliances, scoring
+14:58 
+
+14:58 a ton of the may of your alliance ones,
+15:00 
+
+15:00 right? Um So, I and then
+15:04 
+
+15:04 and then playing a ton of rollers at the
+15:05 
+
+15:05 end. So, what I mean by that is uh teams
+15:09 
+
+15:09 will be will be using up a lot of those
+15:10 
+
+15:10 match loads because those are your
+15:12 
+
+15:12 safest bets, right? Uh since those those
+15:15 
+
+15:15 match loads, you have you have like 10
+15:18 
+
+15:18 of them, right? So, you can score
+15:20 
+
+15:20 uh a lot of points already with just
+15:23 
+
+15:23 those.
+15:24 
+
+15:24 Uh and you score them in order where
+15:25 
+
+15:25 it's like uh
+15:27 
+
+15:27 it's like
+15:29 
+
+15:29 clear not clear clear not clear, right?
+15:30 
+
+15:30 Whatever it is. And then you have the
+15:32 
+
+15:32 your color showing. So, then it's always
+15:35 
+
+15:35 for you. And then in an area where
+15:37 
+
+15:37 you're fighting for, uh that's where you
+15:39 
+
+15:39 would fight for the yellow ones, right?
+15:40 
+
+15:40 So, you wouldn't really care about the
+15:42 
+
+15:42 alliance ones. Um
+15:45 
+
+15:45 And and that's pretty much it. Uh
+15:48 
+
+15:48 But but yeah, there will be a ton of
+15:51 
+
+15:51 play over the over the
+15:54 
+
+15:54 Sorry, over the um
+15:57 
+
+15:57 over these like yellow yellow ones. So,
+16:00 
+
+16:00 whatever whatever points are are
+16:02 
+
+16:02 possibly yellow, there's going to be a
+16:03 
+
+16:03 ton of roller play. That's pretty much
+16:05 
+
+16:05 how the season's going to play out uh if
+16:07 
+
+16:07 I really guess. I'm losing my voice a
+16:08 
+
+16:08 little bit talking so much
+16:11 
+
+16:11 uh today.
+16:12 
+
+16:12 >> [clears throat and cough]
+16:13 
+
+16:13 >> But, um onto the auto a little bit. So,
+16:18 
+
+16:18 here is what the auto line looks like.
+16:20 
+
+16:20 You can start your robot up here pretty
+16:21 
+
+16:21 much on the wall. Um there's a photo
+16:23 
+
+16:23 previously about that. And
+16:26 
+
+16:26 uh
+16:27 
+
+16:27 if you get entangled here, it's on you,
+16:29 
+
+16:29 right? So, yes, J8 talks about, you
+16:31 
+
+16:31 know, autonomous line at your own risk.
+16:34 
+
+16:34 So, if you go here and you get entangled
+16:36 
+
+16:36 and you get pulled across the line,
+16:37 
+
+16:37 that's that's on you. So, you lose auto
+16:38 
+
+16:38 there. Um about win point as well, if
+16:41 
+
+16:41 your robot drives across and then
+16:42 
+
+16:42 touches another robot or goal or
+16:44 
+
+16:44 whatever
+16:45 
+
+16:45 um
+16:46 
+
+16:46 or an element, then
+16:48 
+
+16:48 I they don't know about element, but I'm
+16:49 
+
+16:49 pretty sure it's
+16:50 
+
+16:50 uh goal and and robot definitely. If
+16:52 
+
+16:52 you're If someone If your opponent's
+16:53 
+
+16:53 robot drives across the field and
+16:54 
+
+16:54 touches your robot, automatic win point
+16:56 
+
+16:56 for you, right? Just like previous
+16:57 
+
+16:57 seasons. So, that stuff is still still
+16:60 
+
+16:60 relatively consistent with previous
+17:02 
+
+17:02 years.
+17:03 
+
+17:03 Um
+17:04 
+
+17:04 >> [snorts]
+17:05 
+
+17:05 >> And and that's that's pretty much it for
+17:07 
+
+17:07 like a really quick rundown. Let me look
+17:10 
+
+17:10 through this to see if there's anything
+17:12 
+
+17:12 else for us to cover because um for for
+17:16 
+
+17:16 the game itself, that's the biggest
+17:17 
+
+17:17 things. Uh it'll be interesting actually
+17:19 
+
+17:19 We should We should look at skills
+17:21 
+
+17:21 because I have not looked at skills yet.
+17:24 
+
+17:24 And we should look at that. Okay. Well,
+17:27 
+
+17:27 let's skills. Let's see if the field is
+17:29 
+
+17:29 much different. The field doesn't really
+17:30 
+
+17:30 look to be Yeah, I don't think this
+17:31 
+
+17:31 field is different. It's just not many
+17:33 
+
+17:33 match loads for you to do. So, um
+17:35 
+
+17:35 barely any match loads.
+17:37 
+
+17:37 And then
+17:39 
+
+17:39 there really isn't much about how
+17:43 
+
+17:43 Okay, here we go. Each red {slash} blue
+17:46 
+
+17:46 pin placed in match
+17:48 
+
+17:48 matching color. Is this about the game
+17:49 
+
+17:49 or is it about skills?
+17:51 
+
+17:51 Oh, it's about skills. Okay. So, this is
+17:54 
+
+17:54 five points for every pin placed in a
+17:57 
+
+17:57 matching color quadrant, right? Each
+17:59 
+
+17:59 owned yellow pin is worth 10 points. So,
+18:01 
+
+18:01 yellow pins are pretty much uh worth
+18:03 
+
+18:03 points. Um
+18:05 
+
+18:05 But um you still have to you still have
+18:06 
+
+18:06 to I think we'll do the roller. Uh the
+18:09 
+
+18:09 robot in mid field are worth points,
+18:10 
+
+18:10 too. So, it's pretty similar to the
+18:11 
+
+18:11 actual game. Um so, look through that as
+18:14 
+
+18:14 well. And that's that's pretty much it
+18:16 
+
+18:16 for a quick rundown of all the rules.

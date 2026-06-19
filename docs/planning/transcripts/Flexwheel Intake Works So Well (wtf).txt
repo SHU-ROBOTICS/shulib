@@ -1,0 +1,1108 @@
+00:01 What's up guys, Luke here, and today I
+00:03 
+
+00:03 have some interesting robots to show you
+00:05 
+
+00:05 guys and some tech as well for the new
+00:07 
+
+00:07 override season.
+00:09 
+
+00:09 Um, thank you for all of the submissions
+00:12 
+
+00:12 right after I posted this in a this kind
+00:13 
+
+00:13 of like at here message. But before we
+00:16 
+
+00:16 start though, um
+00:18 
+
+00:18 I do want to mention that uh maybe
+00:20 
+
+00:20 dropping merch soon. Um, two two pieces
+00:23 
+
+00:23 that I've been thinking of is uh one is
+00:25 
+
+00:25 a hoodie. I did a announcement and you
+00:27 
+
+00:27 guys seemed to want a hoodie. Of course,
+00:30 
+
+00:30 um comes to realization that the word
+00:31 
+
+00:31 vex, I think, is is trademarked. So,
+00:34 
+
+00:34 this will be changed, but robotics and
+00:37 
+
+00:37 uh the cats on the back would still look
+00:38 
+
+00:38 like this sort of with a pretty popular
+00:41 
+
+00:41 like Stussy font. I'll try to keep this
+00:44 
+
+00:44 one cheap. The the hat will definitely
+00:45 
+
+00:45 be cheap, like 20 bucks or maybe like
+00:47 
+
+00:47 I'll try try to do 15 if possible, but
+00:50 
+
+00:50 um
+00:51 
+
+00:51 a lot of you guys are like, oh, like why
+00:52 
+
+00:52 is the it's red? Nothing political, it's
+00:54 
+
+00:54 just funny because
+00:56 
+
+00:56 um
+00:56 
+
+00:56 robotics also has the banner has has
+00:59 
+
+00:59 always been this banner, so um
+01:03 
+
+01:03 if if you got but like most people that
+01:05 
+
+01:05 I talked to wanted to
+01:06 
+
+01:06 like would buy it if it's red and they
+01:07 
+
+01:07 wouldn't buy it if it's not red just
+01:09 
+
+01:09 because it's like the joke, right? So,
+01:12 
+
+01:12 um but if it does become a problem and
+01:13 
+
+01:13 you guys want me to like to to also make
+01:15 
+
+01:15 a different color one, I'll make
+01:16 
+
+01:16 different color ones too. But yeah, let
+01:18 
+
+01:18 me know what you guys are interested in
+01:20 
+
+01:20 in in buying some merch for
+01:22 
+
+01:22 to support me. Um moving on. Um
+01:27 
+
+01:27 yeah, but just let me know in the
+01:28 
+
+01:28 comments and let's get started. So,
+01:30 
+
+01:30 uh Robbie Chan Glazer 8838D
+01:35 
+
+01:35 um posted this robot and I think this is
+01:37 
+
+01:37 like super cool. I really like the fact
+01:40 
+
+01:40 like they have this
+01:42 
+
+01:42 um
+01:43 
+
+01:43 box kind of structure here that's all
+01:45 
+
+01:45 triangle braced. So, you can see here
+01:47 
+
+01:47 their roller mech sticks out the front
+01:49 
+
+01:49 triangle braced. This makes you think of
+01:50 
+
+01:50 the the 2775V
+01:52 
+
+01:52 uh front-to-back robot back and spin up.
+01:55 
+
+01:55 I don't know if I don't know if you if
+01:57 
+
+01:57 many of you guys would know that, but um
+01:60 
+
+01:60 it does look really similar if if Sammy
+02:03 
+
+02:03 was ever watching then he would think
+02:04 
+
+02:04 that this looks very similar to his
+02:05 
+
+02:05 robot back in Spin Up with the the
+02:07 
+
+02:07 roller being very close together on the
+02:08 
+
+02:08 front. However, I do think that this is
+02:11 
+
+02:11 just going to be a season where the
+02:12 
+
+02:12 roller is actually going to be it's
+02:14 
+
+02:14 going to do you much much more
+02:16 
+
+02:16 uh much more benefit to put the rollers
+02:18 
+
+02:18 on the side on each side, right? And the
+02:19 
+
+02:19 reason for that is it just gives you
+02:21 
+
+02:21 much more control to be able to uh
+02:24 
+
+02:24 instead of having to line up the middle,
+02:27 
+
+02:27 you can line up either side and then
+02:28 
+
+02:28 when you're getting defended, you don't
+02:30 
+
+02:30 [snorts] you don't have to be nearly as
+02:31 
+
+02:31 close to it. Cuz right now with the
+02:33 
+
+02:33 current setup, you have to be pretty
+02:34 
+
+02:34 much dead center and then I mean with
+02:36 
+
+02:36 the robot to hit and then you have to
+02:39 
+
+02:39 hit a part of the roller, right? But if
+02:41 
+
+02:41 you have it offset on the side like 515R
+02:43 
+
+02:43 did back in Spin Up, right? Instead of
+02:45 
+
+02:45 having both of them here, you have one
+02:46 
+
+02:46 on this side and one on this side that's
+02:47 
+
+02:47 far apart, then
+02:50 
+
+02:50 you know, your opponents don't even know
+02:51 
+
+02:51 which one you're going to go and and and
+02:53 
+
+02:53 uh and roll with, right? So that's
+02:55 
+
+02:55 that's definitely something that I think
+02:57 
+
+02:57 is going to be really really good taken
+02:58 
+
+02:58 from from Spin Up is going to be the
+02:60 
+
+02:60 rollers on on both sides.
+03:02 
+
+03:02 Um
+03:03 
+
+03:03 but looking at this
+03:05 
+
+03:05 uh we did see that the intake actually
+03:06 
+
+03:06 works really really well. If we go up a
+03:08 
+
+03:08 little bit, there was a video of um
+03:12 
+
+03:12 of a of a of an intake of someone using
+03:14 
+
+03:14 a intake from from push back. You can
+03:18 
+
+03:18 see here.
+03:21 
+
+03:21 It's a little loud, but like look at
+03:22 
+
+03:22 that. Like look at how well that works
+03:24 
+
+03:24 and it also auto aligns as well. See how
+03:26 
+
+03:26 how how that aligns into the perfect
+03:28 
+
+03:28 orientation as well. So honestly,
+03:29 
+
+03:29 flexure intake is probably the way to
+03:32 
+
+03:32 go. Um seeing that you can literally use
+03:34 
+
+03:34 a robot from from a previous season and
+03:36 
+
+03:36 still pick up these elements like how
+03:38 
+
+03:38 you would want to pick up, right? Uh and
+03:40 
+
+03:40 it looks like on the top here they have
+03:41 
+
+03:41 a
+03:42 
+
+03:42 they have a it's a you know, double
+03:44 
+
+03:44 reverse four bar with a with rollers on
+03:47 
+
+03:47 the top as well and then causing the the
+03:49 
+
+03:49 the pin would and the cone would come in
+03:51 
+
+03:51 and get fed all the way up to the top.
+03:52 
+
+03:52 So, that is that that's really cool. Uh
+03:55 
+
+03:55 and This is definitely like although
+03:57 
+
+03:57 like, you know, I mean clearly like the
+03:58 
+
+03:58 the gears and stuff aren't like high
+03:60 
+
+04:00 quality and I mean it's probably just a
+04:03 
+
+04:03 probably just cuz just to save uh
+04:05 
+
+04:05 RAM and to you know save on performance.
+04:08 
+
+04:08 This is really nice, too. They you're
+04:09 
+
+04:09 using like these little inserts that you
+04:10 
+
+04:10 put into the C-channel to increase the
+04:12 
+
+04:12 structure integrity. So, whatever you're
+04:14 
+
+04:14 building a a
+04:15 
+
+04:15 double reverse four-bar or four-bar,
+04:17 
+
+04:17 100% use these small pieces. I don't I
+04:19 
+
+04:19 don't remember exactly what what it's
+04:20 
+
+04:20 called, but basically it's the pieces
+04:23 
+
+04:23 that it's like the C-channels that are
+04:24 
+
+04:24 that are smaller than the actual like
+04:26 
+
+04:26 you know regular C-channels that can fit
+04:27 
+
+04:27 inside the the regular ones. And that
+04:29 
+
+04:29 provides so much structure and it's
+04:31 
+
+04:31 super super good. So, um definitely
+04:35 
+
+04:35 pretty very nice. What what's this on
+04:36 
+
+04:36 the back? Is this like a wedge?
+04:38 
+
+04:38 I don't know, man. But this is getting
+04:39 
+
+04:39 an S tier. This is
+04:40 
+
+04:40 incredibly incredibly nice. I like this
+04:42 
+
+04:42 one a lot. Okay, drivetrain. Very very
+04:44 
+
+04:44 quickly going through this drivetrain.
+04:46 
+
+04:46 Four-wheel drive. Looks like it's
+04:48 
+
+04:48 uh 30 36 to 60. So, like 360 RPM 3.25.
+04:53 
+
+04:53 Looks pretty decent. Um spacers for the
+04:57 
+
+04:57 the the bracing between them. Maybe I'm
+04:59 
+
+04:59 guessing you don't have um
+05:01 
+
+05:01 a standoff that's that perfect length.
+05:04 
+
+05:04 But in real life you'll you'll be able
+05:05 
+
+05:05 to get that. So, definitely do guiders.
+05:07 
+
+05:07 Um
+05:08 
+
+05:08 your bracing is really bad because it
+05:10 
+
+05:10 doesn't go all the way through. So, this
+05:11 
+
+05:11 bracing is like terrible.
+05:13 
+
+05:13 Um unless it does go through right here.
+05:14 
+
+05:14 I can't see. But um I'm assuming it
+05:17 
+
+05:17 doesn't because this seems like it's
+05:18 
+
+05:18 it's it's it's on the same
+05:21 
+
+05:21 um
+05:22 
+
+05:22 like points as the wheel is. So, I don't
+05:24 
+
+05:24 think it's going to go through, which
+05:25 
+
+05:25 means this is not a good bracing. Make
+05:27 
+
+05:27 your bracing either offset it higher up
+05:29 
+
+05:29 here and then go You you usually want to
+05:32 
+
+05:32 go above the 30-60 gear here cuz that's
+05:34 
+
+05:34 the the the low that's like the lowest
+05:36 
+
+05:36 point that you can go over. So, do that.
+05:38 
+
+05:38 And then on the back here uh three wide
+05:40 
+
+05:40 or whatever you want to do. Actually not
+05:42 
+
+05:42 a three wide cuz you want a liner. So,
+05:44 
+
+05:44 um
+05:45 
+
+05:45 you can do like a a piece like a
+05:47 
+
+05:47 I don't know how strong to add for on
+05:48 
+
+05:48 the bottom and then uh just got to do
+05:51 
+
+05:51 what I think extra people or other teams
+05:53 
+
+05:53 did back in
+05:54 
+
+05:54 back in high stakes with their with
+05:55 
+
+05:55 their back brace
+05:57 
+
+05:57 because you have have a liner back in
+05:59 
+
+05:59 high stakes as well. Right, so this is
+06:02 
+
+06:02 getting a
+06:03 
+
+06:03 it's getting a seat here. It's all
+06:04 
+
+06:04 right. Definitely missing a lot of
+06:05 
+
+06:05 bracing. Reach total of 45 in. Okay,
+06:09 
+
+06:09 nice.
+06:09 
+
+06:09 I like that. How are you going to pick
+06:11 
+
+06:11 this up? I don't think you're picking I
+06:13 
+
+06:13 mean unless you're literally just a
+06:14 
+
+06:14 match up bot. Okay, you know what? Fair.
+06:16 
+
+06:16 Like I think it's totally fair that
+06:18 
+
+06:18 teams are going to build match up bots.
+06:20 
+
+06:20 Okay, that's going to tilt. Okay.
+06:22 
+
+06:22 First of all, really really hard for you
+06:23 
+
+06:23 to pick up things on the ground if
+06:25 
+
+06:25 you're going to have an intake that's
+06:27 
+
+06:27 just passive. It's possible.
+06:30 
+
+06:30 It's definitely possible
+06:31 
+
+06:31 if you're a really good driver, but I
+06:33 
+
+06:33 definitely think this is going to be
+06:34 
+
+06:34 like a really match up heavy bot and if
+06:36 
+
+06:36 you play your strategy right, this could
+06:37 
+
+06:37 be still be really good. I you know
+06:39 
+
+06:39 what? I'm not against this design at
+06:41 
+
+06:41 all. I think this design could work
+06:43 
+
+06:43 because there's so many match ups. So
+06:44 
+
+06:44 this is totally totally doable.
+06:47 
+
+06:47 As you can see there's a piston to to
+06:48 
+
+06:48 tilt this down and there's two motors.
+06:52 
+
+06:52 Okay, it's not it's not passive as I
+06:53 
+
+06:53 like said. It's like more like it's
+06:55 
+
+06:55 it's motorized, but it just kind of
+06:57 
+
+06:57 squeezes the
+06:59 
+
+06:59 the stuff, [clears throat] right? What
+06:60 
+
+06:60 does the motors even do? Do they spin
+07:01 
+
+07:01 the flywheels? Okay, I'm guessing they
+07:03 
+
+07:03 they do. You just don't have the the the
+07:04 
+
+07:04 gears with the sprockets on them. Okay,
+07:06 
+
+07:06 I see.
+07:07 
+
+07:07 My bad. Overlook there. Yeah, I didn't I
+07:09 
+
+07:09 thought the motors were maybe spinning
+07:11 
+
+07:11 the the actual like the clamps, but no
+07:14 
+
+07:14 it's it's piston pulling the clamps and
+07:15 
+
+07:15 then it's motors spinning the the
+07:17 
+
+07:17 flywheels. Either way, it's hard to line
+07:19 
+
+07:19 up since this is such a tight such a
+07:21 
+
+07:21 tight little gap that you have to intake
+07:23 
+
+07:23 through.
+07:24 
+
+07:24 Um but it 45 in lift, so definitely one
+07:28 
+
+07:28 of the one of the highest lifts out
+07:30 
+
+07:30 there. This is like a I think this is a
+07:32 
+
+07:32 six bar double reverse six bar or
+07:33 
+
+07:33 something.
+07:34 
+
+07:34 Something very very tall. Let's see.
+07:36 
+
+07:36 Yeah.
+07:38 
+
+07:38 Um so yeah, it's nice. I'm going to give
+07:40 
+
+07:40 this an A tier. I actually like where
+07:41 
+
+07:41 you're going with this right now. If you
+07:42 
+
+07:42 play strategy right, cuz we don't really
+07:44 
+
+07:44 know what the strategy's going to look
+07:45 
+
+07:45 like. So, if you play the strategy
+07:46 
+
+07:46 right, then very, very could be very,
+07:48 
+
+07:48 very effective, right? A linear accuracy
+07:50 
+
+07:50 of point
+07:52 
+
+07:52 or of plus or minus 0.03.
+07:54 
+
+07:54 0.03 inches.
+07:57 
+
+07:57 Guessing it's 0.03 inches.
+07:59 
+
+07:59 Looks very cool. Like, this is very nice
+08:03 
+
+08:03 a liner a liner structure here, as well,
+08:05 
+
+08:05 cuz
+08:06 
+
+08:06 the it's like a Sorry, I'm like
+08:07 
+
+08:07 stuttering, but um
+08:10 
+
+08:10 it's triangle triangle braced into your
+08:12 
+
+08:12 into your your high strength shaft here.
+08:15 
+
+08:15 However, your high strength shaft
+08:16 
+
+08:16 doesn't go all the way through. So,
+08:17 
+
+08:17 that's the only complaint that I would
+08:19 
+
+08:19 make about this is the high strength
+08:20 
+
+08:20 shaft doesn't go all the way through.
+08:21 
+
+08:21 Um
+08:22 
+
+08:22 but, however, I don't know if that
+08:24 
+
+08:24 matters much because you it technically
+08:26 
+
+08:26 does go all the way through since you're
+08:27 
+
+08:27 connected you have it connected to the
+08:29 
+
+08:29 to the back a liner and that a liner
+08:31 
+
+08:31 goes all the way through, right? So, I
+08:32 
+
+08:32 still think this will be pretty strong.
+08:34 
+
+08:34 Um
+08:35 
+
+08:35 but, I don't think it would hurt to have
+08:38 
+
+08:38 something else that would goes all the
+08:40 
+
+08:40 way through, maybe. Like, the it's fine
+08:44 
+
+08:44 at I don't think it's going to hurt,
+08:45 
+
+08:45 especially with more you having more
+08:46 
+
+08:46 bracing here, as well.
+08:48 
+
+08:48 Um I'm guessing it's connected all the
+08:49 
+
+08:49 way through to to the the piece up here
+08:52 
+
+08:52 the C-channel up here. If it's not, then
+08:54 
+
+08:54 definitely connect it up there if it's
+08:55 
+
+08:55 possible. Um Oh, yeah, it is. Nice.
+08:58 
+
+08:58 Okay, yeah. Right. And they have the
+09:01 
+
+09:01 the the carve outs for the air tank and
+09:03 
+
+09:03 the battery. This is very nice. All the
+09:05 
+
+09:05 placed super, super low. This is an
+09:06 
+
+09:06 amazing drivetrain, by the way. S-tier
+09:08 
+
+09:08 drivetrain, for sure.
+09:11 
+
+09:11 Right, you definitely want to build a
+09:12 
+
+09:12 line automatically with these with these
+09:15 
+
+09:15 goals, right? So, you can uh
+09:17 
+
+09:17 either have your program recalibrate
+09:20 
+
+09:20 position during the during skills or
+09:22 
+
+09:22 whatever or just have a much easier way
+09:25 
+
+09:25 of scoring cuz you there's no way you're
+09:26 
+
+09:26 going to be going around every time a
+09:28 
+
+09:28 manually align manually aligning.
+09:31 
+
+09:31 Another thing that's interesting is that
+09:33 
+
+09:33 I mean, I know there's a lot of teams
+09:34 
+
+09:34 are doing these 30 60
+09:36 
+
+09:36 uh gears for your for your like wall
+09:39 
+
+09:39 gliders, right? But, there is a time
+09:41 
+
+09:41 whenever I think during spin up where
+09:43 
+
+09:43 teams were were trying to do like
+09:46 
+
+09:46 plastic ones.
+09:49 
+
+09:49 Okay, I do know that there is, you know,
+09:51 
+
+09:51 the the the plastic limit, but it's
+09:53 
+
+09:53 pretty cool because they are much
+09:54 
+
+09:54 lighter and they are
+09:56 
+
+09:56 uh way low way less profile and
+10:01 
+
+10:01 they look cleaner as well. It's like a
+10:02 
+
+10:02 little you just make basically you just
+10:04 
+
+10:04 do a little plastic cut out of the same
+10:06 
+
+10:06 like
+10:07 
+
+10:07 size and you just put it on the side and
+10:09 
+
+10:09 you you don't even need to make it free
+10:10 
+
+10:10 spinning to be honest cuz cuz the it
+10:13 
+
+10:13 being pretty thin
+10:15 
+
+10:15 uh it makes it so it's it's really low
+10:17 
+
+10:17 friction.
+10:18 
+
+10:18 Um could snap though.
+10:20 
+
+10:20 Well, we had it snap a couple times in
+10:22 
+
+10:22 spin up, so I don't know. It's just just
+10:23 
+
+10:23 a little little cool niche little idea.
+10:26 
+
+10:26 Let's get into the drive trains. I don't
+10:27 
+
+10:27 think these are super interesting. Um
+10:31 
+
+10:31 okay, another big lift. What is this
+10:33 
+
+10:33 kind of lift?
+10:34 
+
+10:34 Ooh, six bar double reverse six bar.
+10:36 
+
+10:36 Okay, six bar double reverse six bar.
+10:38 
+
+10:38 Very
+10:40 
+
+10:40 very very tall, very very tippy.
+10:42 
+
+10:42 Definitely need anti-tips. Look into the
+10:44 
+
+10:44 Look into the anti-tips from a
+10:46 
+
+10:46 from Where's the tower take over?
+10:48 
+
+10:48 Another one, first photo, 360 RPM drive
+10:51 
+
+10:51 on 3.25s.
+10:53 
+
+10:53 Oh, wow. This is like a 402B kind of
+10:56 
+
+10:56 situation here.
+10:57 
+
+10:57 Um
+10:58 
+
+10:58 it's really funny because I was like
+10:60 
+
+11:00 telling people one time on stream, I was
+11:02 
+
+11:02 like, "Hey, you know what I think is
+11:03 
+
+11:03 really funny is that if somebody built a
+11:07 
+
+11:07 if somebody built a bot
+11:10 
+
+11:10 um like the 402B one with a transmission
+11:13 
+
+11:13 and power take off and stuff,
+11:15 
+
+11:15 uh most refs won't even understand
+11:17 
+
+11:17 understand it. So, you can kind of just
+11:19 
+
+11:19 like
+11:20 
+
+11:20 have an 8-motor drive and then the two
+11:22 
+
+11:22 other ones just clicks in and if nobody
+11:24 
+
+11:24 can find out, then then there you go.
+11:26 
+
+11:26 You have an 8-motor drive. Um
+11:29 
+
+11:29 which is kind of funny, right? But,
+11:30 
+
+11:30 looks like you followed the you followed
+11:31 
+
+11:31 the rules here and you have a five-point
+11:33 
+
+11:33 um or 55-W drive, which makes no sense
+11:36 
+
+11:36 cuz I mean it's really cool. Like I
+11:38 
+
+11:38 really really like this, but but I don't
+11:39 
+
+11:39 think there's a reason to do this
+11:41 
+
+11:41 uh
+11:42 
+
+11:42 at all.
+11:44 
+
+11:44 Right.
+11:46 
+
+11:46 But yeah, I'm I'm guessing this is your
+11:47 
+
+11:47 actual design though.
+11:49 
+
+11:49 Uh it's pretty nice. I like it. So, I'm
+11:52 
+
+11:52 going to give it an A tier because of
+11:54 
+
+11:54 the the drivetrain. And that's about it.
+11:56 
+
+11:56 Once again, if you're interested, leave
+11:58 
+
+11:58 a comment about the
+12:00 
+
+12:00 the the merch. Yeah.
