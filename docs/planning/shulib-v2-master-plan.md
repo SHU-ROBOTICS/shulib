@@ -296,6 +296,25 @@ conversion is in `hal/imu_conversion.hpp`, enforced when the `hal/pros` adapter 
   (`IRobotConfig`/`IRouteSource`, decision #10) is authored at **M5** with its `RobotConfig`/`Route`
   schema (F7/F8), not part of this runtime-HAL freeze.
 
+**Odometry → canonical binding contract** (set 2026-06-19 when WS5 re-derived the Pilons arc math
+from scratch; the integrator is in `localization/arc_step.hpp`):
+- **One integration primitive.** Per tick, `arcStep` is the exact SE(2) constant-twist exponential
+  map: scale the tracking center's BODY travel `(forward, lateral)` by the chord factor
+  `k = 2·sin(Δθ/2)/Δθ` and rotate by the **AVERAGE** heading `θ₀ + Δθ/2`. `k → 1` as `Δθ → 0`
+  (straight-line limit); the only guarded singularity is exactly `Δθ == 0` (0/0).
+- **Rotate by the AVERAGE heading — never the new or the start heading.** The legacy `lodge` odom
+  rotated the chord by the *new* heading (`θ₀ + Δθ`), a systematic `+Δθ/2` per-tick bias: a 90° arc
+  lands a `(10,10)` move at `(0, 14.14)`. That alone would blow the `< 1°`/sub-inch budget. Re-derived
+  clean so the bug is not inherited; pinned by an exact-endpoint test + 6 killed mutations.
+- **Heading is IMU-owned.** `arcStep` takes Δθ from the two IMU heading samples (tick start/end) via
+  `Angle::errorTo` (shortest signed, wrap-correct); it **never** derives heading from the wheel
+  difference (that is the H-bot's cross-check only, decision #3). Per-tick Δθ at ~100 Hz is tiny, so
+  shortest-arc == actual rotation — `arcStep` assumes (and documents) a small per-tick rotation.
+- **Offsets applied once, by the odometry class, before `arcStep`.** Each tracking wheel's reading is
+  converted to tracking-center travel by removing the rotation-induced component (`Δθ × offset`) at the
+  odom edge; `arcStep` itself is offset-agnostic and works in center coordinates, so the geometry stays
+  pure and reusable (a kinematics-integrated holonomic odometry feeds the same primitive).
+
 ---
 
 ## 8. Subsystem Designs (summary)
