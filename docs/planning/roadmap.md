@@ -243,8 +243,9 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
   `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source. *Done 2026-06-19:
   `IClock` (`hal/clock.hpp`), `IMotor` (`hal/motor.hpp`, ±12 V clamp + non-finite + cumulative-position
   contract), `IImu` (`hal/imu.hpp`, canonical heading/yawRate/calibration/tilt), `IGps`
-  (`hal/gps.hpp`, canonical center pose + rmsError + hasFix). Remaining: `IRotation`,
-  `IVision`/`ITagSource`, `IDistance`, `IOptical`, `ITelemetrySink`, battery.*
+  (`hal/gps.hpp`, canonical center pose + rmsError + hasFix), and the simple reads `IRotation`
+  (cumulative non-wrapping), `IDistance` (inches + confidence), `IOptical` (hue/sat/bri/prox),
+  `IBattery` (volts + capacity, for brownout comp). Remaining: `IVision`/`ITagSource`, `ITelemetrySink`.*
 - [ ] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
   GPS frame → canonical (the conversions happen here, once). *Pure conversion math built+host-tested
   ahead of the adapters, each adversarially **red-teamed** (4-lens workflow, math verified correct):
@@ -258,7 +259,8 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
   `FakeClock` (monotonicity-enforcing), `FakeMotor` (real clamp/validation + injectable encoder),
   `FakeImu` (canonical injectable incl. ±180° seam), `FakeGps` (canonical pose + fix/error, safe no-fix
-  default) — each adversarially tested + mutation-checked.*
+  default), and the pure-read `FakeRotation`/`FakeDistance`/`FakeOptical`/`FakeBattery` — each tested for
+  contract/round-trip (the stateful ones also mutation-checked).*
 - [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
 
 **Kinematics (WS3)** — *complete & host-validated 2026-06-19; F5 host-frozen (on-V5 number-match pending)*
