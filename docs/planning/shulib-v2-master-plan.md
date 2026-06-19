@@ -425,6 +425,7 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 12 | Canonical ecosystem formats | shulib **defines** the `robotProfile` + `paths` sub-schemas inside `.vexbot` (+ command-id vocab) and `SHUL/2`; VexBuilder produces them. `.shupaths` + standalone planner **retired** (§16.1) | **Locked** |
 | 13 | Sim seam timing | **Define** the `SHUL/2` schema + `hal/sim` seam at design time (so M6 is a plug-in); **implement** the wire + sim adapter at M6 (F9); wire to Rapier at VexBuilder Phase 7. Scope = `hal/sim` + wire sink only (does **not** move `TermSink` M2 / `SdSink` M3); `hal/sim` is exercisable via `hal/fake` even if Rapier never lands. | **Locked 2026-06-19** |
 | 14 | VexBuilder must add | Explicit drivetrain fields (kind/trackWidth/wheelDia) in `.vexbot` so config isn't geometry-inferred (§16.2 caveat) | **Cross-team ask** |
+| 15 | Kinematics backend | `IKinematics` interface **vs** the `lodge` branch's data-driven coefficient-mixer (drivetrain = per-motor h/v/turn coeff table; tank/X/mecanum = pure data). **Recommend HYBRID:** keep `IKinematics` as the interface (swerve is *nonlinear* — a coeff table can't express it — plus inverse-kinematics for odometry + `strafeAuthority()`), implement the linear holonomic drives via a data-driven coefficient matrix as one impl. | **Open — decide at M1** |
 
 ---
 

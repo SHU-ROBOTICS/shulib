@@ -132,11 +132,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** `M0 — Foundation & scaffolding`. Design **locked** (F1 ✅ + F2 ✅); harness up;
-> **`Angle`, `units::Quantity`, and the `Pose2d`/`Twist2d`/`ChassisSpeeds` geometry types — all ✅
-> done & verified** (each mutation-checked). **Next — the big one:** the single
-> `fieldToRobot`/`robotToField` transform + its regression test, which *locks the coordinate frame*
-> (F1) and closes out the M0 math. *Updated 2026-06-19.*
+> **You are here:** `M0 — Foundation & scaffolding`. **M0 Conventions & math block COMPLETE & verified**
+> (harness, `Angle`, `units`, geometry, frame transform F1, F2 spec — 26 cases / 520k assertions, all
+> mutation-checked/guarded). **Next, in order — M0 Tooling:** kernel **4.1.0→4.2.2** (+ portable
+> `project.pros`), then CI, then the legacy quarantine. *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -162,7 +161,8 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
 *Make the old bug classes structurally impossible, and stand up the machine that proves it.*
 
 **Conventions & math (WS1)**
-- [ ] Freeze the coordinate frame **in a regression unit test** (F1).
+- [x] Freeze the coordinate frame **in a regression unit test** (F1). *Done via the
+  `fieldToRobot`/`robotToField` transform below — `test/frame_test.cpp` pins +X/CCW.*
 - [x] `units::Quantity<Dim>` — **the 6 canonical dims (source of truth):** length=inch, angle=radian,
   time=**second**, velocity=in/s, acceleration=in/s², voltage=volt. Literals (`_in` `_deg` `_tile`
   `_ms` `_s` `_volt`) are **convenience-only** (need not be 1:1 with dims); `_deg` builds an
@@ -178,12 +178,23 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
   `include/shulib/math/{pose2d,twist2d}.hpp` with `test/pose2d_test.cpp` — green under strict
   `-Werror`, mutation-checked (naive heading compare reds the ±180° seam test); compile-time checks
   reject wrong units (a `Time` where a `Length` belongs, a measured `Twist2d` for a `ChassisSpeeds`).*
-- [ ] The one `fieldToRobot()` / `robotToField()` transform + its test.
-- [ ] Encode the accuracy targets (F2) as the first acceptance-test stubs.
+- [x] The one `fieldToRobot()` / `robotToField()` transform + its test. *Verified 2026-06-19:
+  `include/shulib/math/frame.hpp` with `test/frame_test.cpp` — ~520k assertions green under strict
+  `-Werror`, mutation-checked (one rotation sign flip reds the pinned-direction AND round-trip tests).
+  **F1 frozen.***
+- [x] Encode the accuracy targets (F2) as the first acceptance-test stubs. *Verified 2026-06-19:
+  `include/shulib/spec/accuracy.hpp` (single source of truth) with `test/accuracy_spec_test.cpp` —
+  value-guard + consistency invariants green; 3 system-level acceptance stubs registered & skipped
+  (go live M2/M3). **M0 Conventions & math block complete.***
 
 **Tooling, build & CI (WS11)**
-- [ ] Bump PROS kernel **4.1.0 → 4.2.2** (unlocks native AprilTag); make `project.pros` portable
-  (remove the hardcoded `C:\Users\...` kernel path).
+- [x] Bump PROS kernel **4.1.0 → 4.2.2** (unlocks native AprilTag); `project.pros` Windows path fixed.
+  *Done 2026-06-19 via `pros c apply kernel@4.2.2`: version=4.2.2; `pros/ai_vision.hpp` (4 tag families,
+  `enable_detection_types`, `set_tag_family`) now in-tree; **all source compiles under 4.2.2**.*
+- [ ] **On-robot toolchain** (surfaced by the bump, pre-existing): the ARM **link** fails on this Linux
+  box — distro `arm-none-eabi-gcc` 13.2.1 links a **hard-float** `libgcc.a`/`libm.a` against the
+  project's softfp objects (VFP-register-args mismatch). Independent of the bump/our code. Fix = use
+  PROS's bundled toolchain (not Ubuntu's); verify the link on the robot build machine.
 - [x] Stand up the **host-test harness** — CMake + doctest v2.4.11, strict `-Werror -Wconversion …`,
   separate from the PROS ARM Makefile. *Verified 2026-06-19: builds clean, **green on truth (exit 0)
   AND red on falsehood (exit 1)**. Evidence: `test/`, `cmake -S test -B build/test && cmake --build
