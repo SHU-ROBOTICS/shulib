@@ -313,7 +313,11 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   clamp, first-call/dt≤0 P-only (no NaN), reset, config preconditions — mutation-checked (removing the
   anti-windup clamp and loosening the `dt>0` guard each go red). Bare-double by design; the motion layer
   owns unit consistency. `control/` added to the CI PROS-free guard.*
-- [ ] `Feedforward{kS,kV,kA}`; **voltage/brownout compensation** (scale by measured V).
+- [x] `Feedforward{kS,kV,kA}`; **voltage/brownout compensation**. *`control/feedforward.hpp` +
+  `test/feedforward_test.cpp` (7 cases): `V = kS·sign(v) + kV·v + kA·a` (typed Velocity/Acceleration
+  in, Voltage out; bare gains from sysid), kS follows the velocity sign and is zero at rest;
+  `compensateForBattery()` limits a desired voltage to ±battery and flags brownout-saturation (the park
+  fires as the battery collapses). Mutation-checked (kS-sign and the battery clamp each go red).*
 - [ ] `MotionProfile` (trapezoid).
 - [ ] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held).
 - [ ] **Motion watchdog** (hard timeout — a motion can never hang).
