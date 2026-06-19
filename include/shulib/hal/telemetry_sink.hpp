@@ -8,7 +8,9 @@
 //
 // At M1 this is the LEVELED-MESSAGE channel (§18.3): leveled, subsystem-tagged lines.
 // The per-tick DebugRecord emit (§18.2) is added behind this SAME seam at M2, once the
-// DebugRecord schema exists — an additive, F9-versioned extension, never a break.
+// DebugRecord schema exists, as a NON-pure virtual with a default (no-op) body — so every
+// existing sink (NullSink/TermSink/…) keeps compiling. THAT is what makes it additive and
+// F9-versioned, never a break (a pure-virtual addition would break all implementers).
 
 #include <string_view>
 

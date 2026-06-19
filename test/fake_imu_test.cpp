@@ -18,7 +18,7 @@ TEST_CASE("FakeImu: sensible defaults") {
     FakeImu imu;
     CHECK(imu.heading().approxEqual(Angle::degrees(0.0)));
     CHECK(imu.yawRate().value() == doctest::Approx(0.0));
-    CHECK_FALSE(imu.isCalibrating());
+    CHECK(imu.isReady());  // default: calibrated/ready
     CHECK(imu.pitch().approxEqual(Angle::degrees(0.0)));
     CHECK(imu.roll().approxEqual(Angle::degrees(0.0)));
 }
@@ -29,14 +29,14 @@ TEST_CASE("FakeImu: injected canonical values round-trip, including the ±180° 
     imu.setYawRate(AngularVelocity{-1.25});
     imu.setPitch(Angle::degrees(3.0));
     imu.setRoll(Angle::degrees(-2.0));
-    imu.setCalibrating(true);
+    imu.setReady(false);  // simulate still-calibrating (not yet trustworthy)
 
     CHECK(imu.heading().approxEqual(Angle::degrees(180.0)));
     CHECK(imu.heading().radians() > 0.0);    // +π, not -π
     CHECK(imu.yawRate().value() == doctest::Approx(-1.25));
     CHECK(imu.pitch().approxEqual(Angle::degrees(3.0)));
     CHECK(imu.roll().approxEqual(Angle::degrees(-2.0)));
-    CHECK(imu.isCalibrating());
+    CHECK_FALSE(imu.isReady());
 }
 
 TEST_CASE("FakeImu: usable through the IImu interface") {

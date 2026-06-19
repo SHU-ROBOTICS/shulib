@@ -22,6 +22,10 @@ public:
     /// Present battery voltage (canonical volts).
     [[nodiscard]] virtual units::Voltage voltage() const = 0;
 
+    /// Present current draw (canonical amperes) — the I half of the DebugRecord battery V/I
+    /// (§18.2); voltage × current is dimensionally Power.
+    [[nodiscard]] virtual units::Current current() const = 0;
+
     /// Remaining capacity in [0, 1].
     [[nodiscard]] virtual double capacity() const = 0;
 };

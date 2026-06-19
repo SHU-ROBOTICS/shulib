@@ -31,6 +31,12 @@ static_assert(std::same_as<decltype(Velocity{} / Time{}), Acceleration>);
 static_assert(std::same_as<decltype(Velocity{} * Time{}), Length>);
 static_assert(std::same_as<decltype(Length{} / Length{}), Number>);   // ratio is dimensionless
 
+// the 2026-06-19 electric-current dimension (I) composes and is type-distinct
+static_assert(std::same_as<decltype(Voltage{} * Current{}), Power>);  // V·A = W
+static_assert(std::same_as<decltype(Power{} / Voltage{}), Current>);  // W/V = A
+static_assert(!Addable<Current, Voltage>);                            // amps + volts  -> rejected
+static_assert(!Addable<Current, Number>);                             // amps + scalar -> rejected
+
 // a bare double cannot become a Length implicitly (ctor is explicit)
 static_assert(!std::is_convertible_v<double, Length>);
 }  // namespace
@@ -41,6 +47,13 @@ TEST_CASE("literals construct canonical values") {
     CHECK((2_tile).value()   == doctest::Approx(48.0));   // integer literal form
     CHECK((2.0_s).value()    == doctest::Approx(2.0));
     CHECK((12.0_volt).value()== doctest::Approx(12.0));
+}
+
+TEST_CASE("electric-current dimension carries amperes and composes to power") {
+    const Current i{2.5};
+    CHECK(i.value() == doctest::Approx(2.5));
+    const Power p = Voltage{12.0} * i;  // 12 V · 2.5 A = 30 W
+    CHECK(p.value() == doctest::Approx(30.0));
 }
 
 TEST_CASE("_ms converts to seconds at the boundary (the locked time unit)") {

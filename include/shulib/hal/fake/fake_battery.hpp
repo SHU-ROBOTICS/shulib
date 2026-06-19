@@ -12,13 +12,16 @@ namespace shulib::hal::fake {
 class FakeBattery final : public IBattery {
 public:
     [[nodiscard]] units::Voltage voltage() const override { return voltage_; }
+    [[nodiscard]] units::Current current() const override { return current_; }
     [[nodiscard]] double capacity() const override { return capacity_; }
 
     void setVoltage(units::Voltage v) { voltage_ = v; }
+    void setCurrent(units::Current c) { current_ = c; }
     void setCapacity(double c) { capacity_ = c; }
 
 private:
     units::Voltage voltage_{};
+    units::Current current_{};
     double capacity_ = 0.0;
 };
 

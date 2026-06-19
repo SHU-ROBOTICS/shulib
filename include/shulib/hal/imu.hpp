@@ -28,8 +28,10 @@ public:
     /// Canonical yaw rate (CCW-positive).
     [[nodiscard]] virtual units::AngularVelocity yawRate() const = 0;
 
-    /// True while the IMU is performing boot calibration — readings are not yet trustworthy.
-    [[nodiscard]] virtual bool isCalibrating() const = 0;
+    /// True once the IMU is calibrated and its readings are trustworthy (false during boot
+    /// calibration). POSITIVE polarity by convention — every HAL health predicate reads
+    /// true = usable (cf. IGps::hasFix), so `if (imu.isReady())` can never read backwards.
+    [[nodiscard]] virtual bool isReady() const = 0;
 
     /// Chassis pitch and roll (canonical, for tip detection).
     [[nodiscard]] virtual math::Angle pitch() const = 0;

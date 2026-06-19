@@ -13,11 +13,13 @@
 #include "shulib/units/quantity.hpp"
 
 using shulib::PreconditionError;
+using shulib::hal::BrakeMode;
 using shulib::hal::IMotor;
 using shulib::hal::kMaxMotorVoltage;
 using shulib::hal::fake::FakeMotor;
 using shulib::units::AngleDim;
 using shulib::units::AngularVelocity;
+using shulib::units::Current;
 using shulib::units::Voltage;
 
 TEST_CASE("FakeMotor: defaults are all zero") {
@@ -75,4 +77,18 @@ TEST_CASE("FakeMotor: usable through the IMotor interface") {
     IMotor& motor = m;
     motor.setVoltage(Voltage{100.0});  // clamps to 12 through the interface
     CHECK(motor.commandedVoltage().value() == doctest::Approx(12.0));
+}
+
+TEST_CASE("FakeMotor: brake mode / current / temperature default and round-trip") {
+    FakeMotor m;
+    CHECK(m.brakeMode() == BrakeMode::Coast);  // safe default = coast
+    CHECK(m.current().value() == doctest::Approx(0.0));
+    CHECK(m.temperature() == doctest::Approx(0.0));
+
+    m.setBrakeMode(BrakeMode::Hold);  // the park's active hold (≠ setVoltage(0))
+    m.setCurrent(Current{2.5});       // amps draw, for grab/stall confirm + DebugRecord I
+    m.setTemperature(48.0);           // °C, for the thermal monitor
+    CHECK(m.brakeMode() == BrakeMode::Hold);
+    CHECK(m.current().value() == doctest::Approx(2.5));
+    CHECK(m.temperature() == doctest::Approx(48.0));
 }

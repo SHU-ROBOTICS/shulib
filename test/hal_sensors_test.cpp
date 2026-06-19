@@ -26,6 +26,7 @@ using shulib::hal::fake::FakeOptical;
 using shulib::hal::fake::FakeRotation;
 using shulib::units::AngleDim;
 using shulib::units::AngularVelocity;
+using shulib::units::Current;
 using shulib::units::Length;
 using shulib::units::Voltage;
 
@@ -73,15 +74,19 @@ TEST_CASE("FakeOptical: channels round-trip independently") {
     CHECK(view.hue() == doctest::Approx(212.0));
 }
 
-TEST_CASE("FakeBattery: voltage and capacity round-trip (drives brownout sims)") {
+TEST_CASE("FakeBattery: voltage, current, and capacity round-trip (drives brownout sims)") {
     FakeBattery b;
     CHECK(b.voltage().value() == doctest::Approx(0.0));
+    CHECK(b.current().value() == doctest::Approx(0.0));
 
     b.setVoltage(Voltage{11.4});
+    b.setCurrent(Current{3.2});
     b.setCapacity(0.55);
     CHECK(b.voltage().value() == doctest::Approx(11.4));
+    CHECK(b.current().value() == doctest::Approx(3.2));
     CHECK(b.capacity() == doctest::Approx(0.55));
 
     const IBattery& view = b;
     CHECK(view.voltage().value() == doctest::Approx(11.4));
+    CHECK(view.current().value() == doctest::Approx(3.2));
 }

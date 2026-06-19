@@ -184,7 +184,7 @@ L0  HAL INTERFACES (pure abstractions, ZERO pros)
 **Data flow (per ~10ms tick):** HAL sensors → `Localizer.update()` → fused `Pose2d/Twist2d` →
 `ActiveMotion.update(dt, pose, vel)` (profile FF + per-axis x/y/θ PID + ExitGroup) →
 `ChassisSpeeds` (FIELD frame) → Chassis rotates FIELD→BODY (the **one** correct transform) →
-`IKinematics.toWheels()` → desaturate → `IMotor.moveVoltage()` → `Telemetry.emit(...)` → SHUL/2.
+`IKinematics.toWheels()` → desaturate → `IMotor::setVoltage()` → `Telemetry.emit(...)` → SHUL/2.
 
 ---
 
@@ -277,6 +277,24 @@ conversion is in `hal/imu_conversion.hpp`, enforced when the `hal/pros` adapter 
   lever arm is double-subtracted (inches of silent bias). Boot-check `get_offset() == (0,0)`.
 - The adapter **screens `PROS_ERR_F` (off-strip/failed) → `hasFix()=false` before converting** (§13 #4;
   Driving Skills has no strip), and scales `get_error()` **meters→inches** for `rmsError()`.
+
+**HAL interface conventions & F4 scope** (settled by the 2026-06-19 F4 freeze review):
+- **Health/validity signaling, two tiers:** a POSITIVE boolean usable-gate for hard gates
+  (`IGps::hasFix`, `IImu::isReady` — `true` = trustworthy, never inverted), and a `[0,1]` `confidence()`
+  for graded trust (`IDistance`, vision). Sensors with no validity signal (`IClock`/`IBattery`/`IMotor`/
+  `IRotation`/`IOptical`) are always-valid; per-sensor `isConnected()` is a deliberate **M2 additive**
+  (ships with the fault-code enum).
+- **Units:** every physical quantity is `units::Quantity` (now incl. a 5th **electric-current** dimension
+  → `Current` amps, `Power` = V·A); every heading is `math::Angle`; normalized `[0,1]` fractions
+  (confidence/saturation/brightness/proximity/capacity) and the color-hue degrees value are **bare
+  `double` by design** (dimensionless or non-spatial), as is motor temperature (°C, never combined).
+- **Finiteness:** every numeric HAL reader returns a **finite, in-range** value; the `hal/pros` adapter
+  clamps/normalizes vendor sentinels (`PROS_ERR`/`PROS_ERR_F`) at the edge, so no NaN/Inf reaches the core.
+- **F4 scope = sense + drive-motor + clock + telemetry.** Deliberately **deferred additive** extensions
+  (safe post-freeze, "frozen" ≠ "complete"): pneumatic/digital-out actuation + the `Mechanism` abstraction
+  (M4); `isConnected()` (M2); `IImu` linear acceleration (Frontier EKF). The config-ingestion seam
+  (`IRobotConfig`/`IRouteSource`, decision #10) is authored at **M5** with its `RobotConfig`/`Route`
+  schema (F7/F8), not part of this runtime-HAL freeze.
 
 ---
 
