@@ -122,7 +122,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F2 | **Accuracy targets** — heading **< 1.0°** (hard); ~1.0″ pose; ~0.25″ docked | All acceptance tests; estimator design | M0 | ✅ **LOCKED 2026-06-08** |
 | F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
 | F4 | **HAL interface signatures** — `IMotor`/`IRotation`/`IImu`/`IGps`/`IVision`/`IDistance`/`IOptical`/`IClock`/`ITelemetrySink`/`IRobotConfig`/`IRouteSource` | All three runtime targets (robot/sim/test) | M1 | 🎯 |
-| F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | 🎯 |
+| F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
 | F6 | **Public `Chassis` API** — `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)` | Every auton ever written on shulib | M2 | 🎯 |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
@@ -132,14 +132,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 — HAL + kinematics: IN PROGRESS.** M0 is complete & verified (math
-> F1/F2/F3 locked, kernel **4.2.2** + AprilTag, **CI**, legacy quarantined). M1 underway: decision
-> **#15 kinematics-backend = HYBRID, locked**; the **`IKinematics` contract (F5)** + `WheelSpeeds`
-> value type are authored and contract-tested (interface is implementable & polymorphic; bounds/
-> invariants mutation-checked). **Next in M1:** `XDriveKinematics` + `TankKinematics` (which validate
-> & freeze F5), uniform-scale desaturation, then the HAL interfaces (F4) + fakes + `RobotContext`.
-> Host suite: 35 cases / 520k assertions, green & mutation-checked. *(Carry-over: on-robot ARM **link**
-> still awaits PROS's toolchain — tracked.)* *Updated 2026-06-19.*
+> **You are here:** **M1 — HAL + kinematics: kinematics done, HAL next.** M0 complete & verified;
+> decision **#15 = HYBRID, locked**. The whole **kinematics layer (WS3) is complete & host-validated**:
+> the **`IKinematics` contract (F5, host-frozen)** + `WheelSpeeds`, the `MatrixKinematics` engine, the
+> `xDrive()` preset, `TankKinematics`, and uniform desaturation — all adversarially tested and
+> mutation-checked. **Next in M1: the HAL (WS2)** — F4 interfaces (`IMotor`/`IImu`/`IGps`/`IVision`+
+> `ITagSource`/…), `hal/pros` adapters, `hal/fake` doubles, and the `RobotContext` DI container. Host
+> suite: **66 cases / 521k assertions**, green. *(Carry-overs: on-V5 kinematics number-match + the ARM
+> **link** both await PROS's toolchain; H-drive's non-orthogonal `forward()` pseudo-inverse is an
+> M2 carry-forward.)* *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -244,22 +245,29 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 - [ ] `hal/fake/*` deterministic doubles (injectable clock) for host tests.
 - [ ] `RobotContext` — the DI container; the one object that differs across robot/sim/test.
 
-**Kinematics (WS3)**
-- [~] `IKinematics` contract: `toWheels`/`forward`/`desaturate`/`strafeAuthority()`/`wheelCount` (F5).
-  *Interface + `WheelSpeeds` value type authored 2026-06-19 (`include/shulib/kinematics/{kinematics,wheel_speeds}.hpp`),
-  contract-tested (`test/kinematics_contract_test.cpp`): implementable & polymorphic via a differential
-  double; `WheelSpeeds` bounds/`maxMagnitude`/`approxEqual` invariants green under strict `-Werror` and
-  **mutation-checked** (loosening the index bound and dropping `abs` each go red). **F5 not yet frozen** —
-  it locks once `XDriveKinematics`+`TankKinematics` validate the contract end-to-end.*
-- [ ] `XDriveKinematics`, `TankKinematics` — host-tested with pure numbers.
-- [~] Uniform-scale wheel desaturation. *Algorithm `desaturateUniform` authored + adversarially tested
-  2026-06-19 (`include/shulib/kinematics/desaturate.hpp`, `test/desaturate_test.cpp`): within-budget
-  unchanged, over-budget peak-onto-limit, uniform ratio/direction preservation, all-zero no-op,
-  non-positive budget rejected — green & **mutation-checked** (inverting the scale factor goes red).
-  Flips to `[x]` once an `IKinematics` impl wires it into `desaturate()` and that path is tested.*
+**Kinematics (WS3)** — *complete & host-validated 2026-06-19; F5 host-frozen (on-V5 number-match pending)*
+- [x] `IKinematics` contract: `toWheels`/`forward`/`desaturate`/`strafeAuthority()`/`wheelCount` (F5).
+  *`include/shulib/kinematics/{kinematics,wheel_speeds}.hpp`; contract-tested
+  (`test/kinematics_contract_test.cpp`) — implementable & polymorphic; `WheelSpeeds` bounds/`maxMagnitude`/
+  `approxEqual` mutation-checked. **F5 validated end-to-end by the two drives below**, so it is frozen
+  host-side; the on-V5 identical-numbers check rides with the ARM-toolchain item.*
+- [x] `XDriveKinematics`, `TankKinematics` — host-tested with pure numbers. *X-drive is a
+  `MatrixKinematics` coefficient-table preset (`xDrive()`, §13 #15 hybrid): the `matrix_kinematics.hpp`
+  engine (orthogonal-column forward; rank-3 and orthogonality preconditions reject malformed tables), plus
+  the `x_drive.hpp` and `tank.hpp` presets. Tests pin the physical signatures (X-drive √2-forward,
+  all-wheels-equal spin, strafe⊥forward; tank forward=equal / rotation=opposite / strafe-ignored / no
+  phantom vx) and swept round-trips.
+  **Mutation-checked**: forward divisor swap, dropped yaw term, loosened orthogonality guard, an X-drive
+  sign flip (rejected at construction), and the tank ω sign — each proven red, then restored.*
+- [x] Uniform-scale wheel desaturation. *`desaturateUniform` (`desaturate.hpp`) — within-budget unchanged,
+  over-budget peak-onto-limit, uniform ratio/direction preservation, all-zero no-op, non-positive budget
+  rejected; wired into both drives' `desaturate()` and tested via the `MatrixKinematics` delegation path.
+  Mutation-checked (inverting the scale factor goes red).*
+- [ ] *(M2 carry-forward)* generalize `MatrixKinematics::forward()` to the full `(AᵀA)⁻¹Aᵀ` pseudo-inverse
+  for non-orthogonal drives (H-drive's off-center strafe wheel). Relaxes a precondition only — F5-safe.
 
 **Definition of Done:** a trivial motion's kinematics produce identical numbers in a host gtest and on
-the V5, swapping only `RobotContext`. **Freezes:** F4, F5.
+the V5, swapping only `RobotContext`. **Freezes:** F4, F5 *(F5 host-validated; F4 + on-V5 match still open)*.
 
 ---
 
