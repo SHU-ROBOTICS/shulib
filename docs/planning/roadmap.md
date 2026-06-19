@@ -307,8 +307,12 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 ### M2 — Real holonomic motion + dead-reckon localizer 🎯
 *Move like a holonomic robot; know roughly where you are.*
 
-**Control & FF (WS4)**
-- [ ] `Pid` (derivative-on-measurement, integral clamp, output clamp, injected clock).
+**Control & FF (WS4)** — *started 2026-06-19 (host-testable, no robot needed)*
+- [x] `Pid` (derivative-on-measurement, integral clamp, output clamp, injected clock). *`control/pid.hpp`
+  + `test/pid_test.cpp` (9 cases): D-on-measurement (no setpoint kick), anti-windup back-calc, output
+  clamp, first-call/dt≤0 P-only (no NaN), reset, config preconditions — mutation-checked (removing the
+  anti-windup clamp and loosening the `dt>0` guard each go red). Bare-double by design; the motion layer
+  owns unit consistency. `control/` added to the CI PROS-free guard.*
 - [ ] `Feedforward{kS,kV,kA}`; **voltage/brownout compensation** (scale by measured V).
 - [ ] `MotionProfile` (trapezoid).
 - [ ] `ExitCondition`/`ExitGroup` + **`SettledUtil`** (err **and** deriv **and** time-held).
