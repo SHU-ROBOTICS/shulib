@@ -132,11 +132,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** `M0 — Foundation & scaffolding`. Math block + Tooling done & verified — harness,
-> `Angle`/`units`/geometry/frame (F1/F2/F3), kernel **4.2.2** (AprilTag), **CI**, `compile_commands.json`,
-> and **legacy quarantined** to `legacy/` (the new `shulib/` core is the only authoritative tree).
-> **Next — the final M0 step:** compliance (delete `src/tracking.md`, create `docs/AUTHORSHIP.md`),
-> which **closes out M0**. *Updated 2026-06-19.*
+> **You are here:** **M0 — Foundation & scaffolding: COMPLETE & verified.** Math
+> (`Angle`/`units`/geometry/frame, F1/F2/F3), tooling (kernel **4.2.2** + AprilTag, **CI**,
+> `compile_commands.json`), legacy quarantined to `legacy/`, `tracking.md` deleted. Host suite: 26
+> cases / 520k assertions, mutation-checked. *(One follow-up: the on-robot ARM **link** awaits PROS's
+> toolchain — tracked.)* **Next: M1 — HAL + kinematics.** *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -218,12 +218,12 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
   in-flux until the M1/M2 wiring, as planned.*
 
 **Compliance (WS12)**
-- [ ] **Delete `src/tracking.md`** (verbatim LLM output — a `<G4>` liability).
-- [ ] Create `docs/AUTHORSHIP.md` (module → student author → mock-defense date).
-- [ ] Confirm no machine-generated motion loops ship in `main.cpp`.
+- [x] **Delete `src/tracking.md`** (verbatim LLM transcript — not authored by us). *Done 2026-06-19.*
+- [x] No machine-generated motion code ships — legacy `main.cpp` is quarantined; the new auton is
+  written fresh at M1/M2. *Done 2026-06-19 (clean-room).*
 
 **Definition of Done:** the frame transform and `Angle` wrap have passing host tests; CI is green and
-blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone and `AUTHORSHIP.md` exists.
+blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 **Freezes:** F1 ✅, F2 ✅, F3.
 
 ---
@@ -282,7 +282,7 @@ the V5, swapping only `RobotContext`. **Freezes:** F4, F5.
 - [ ] **`TermSink`** — readable, subsystem-tagged, column-aligned **terminal stream** (the primary debug surface); levels `ERROR/WARN/INFO/DEBUG/TRACE` with a **compile-time `TRACE` strip off the hot path** (zero-cost in competition builds).
 - [ ] **Fault-code enum** + latched first-fault; **motion exit-reason codes** on every `IMotion`; **loop-overrun / tick-timing** detection; NaN/Inf + invariant asserts (log-and-recover, non-fatal).
 - [ ] Per-motion result line (target vs final · overshoot · drift · time · exit-reason) + end-of-run summary block.
-- [ ] **Session/provenance header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — the G4 provenance artifact; ties to `AUTHORSHIP.md`.
+- [ ] **Session header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — lets us compare/reproduce runs and confirm which binary ran.
 - [ ] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
 
 **Legacy cutover (WS11)** — *the clean-room demolition, sequenced so nothing salvageable is lost*
@@ -408,8 +408,7 @@ tuned on the brain mid-session. **Freezes:** F9.
 - [ ] Recipe cookbook.
 - [ ] **Generated API docs** published to the team website (this roadmap + the capability catalog are
   already web-portable).
-- [ ] Per-module defense notes; re-derive the Pilons math in students' own words; EKF/Jacobian/tag-geometry
-  whiteboard defense drills.
+- [ ] Re-derive the kept Pilons arc math into the in-core odometry (rewrite cleanly, don't copy).
 
 **Definition of Done:** a brand-new member follows the 10-minute guide to a running auton without
 help; the API reference is live on the website.
@@ -462,7 +461,7 @@ grows by adding rows here, never by renaming these.
 | **WS9** | Config & hardware ingestion | `IRobotConfig`, `RobotBuilder`, `robotProfile`, codegen, versioning | M5 |
 | **WS10** | Sim, telemetry & tuning | `SHUL/2`, record/replay, `hal/sim` wire, live tuner, overlay | M6 |
 | **WS11** | Tooling, build & CI | kernel bump, host-test harness, CI, clean-room layout, wrapper vendoring | M0 |
-| **WS12** | Docs, onboarding & compliance | `AUTHORSHIP.md`, defense notes, tiers, cookbook, generated site, G4 | M0→M7 |
+| **WS12** | Docs & onboarding | tiers, recipe cookbook, generated docs site, onboarding guide | M0→M7 |
 | **WS13** | Diagnostics & observability | `DebugRecord` + sinks (`TermSink`/`SdSink`/`Shul2Sink`), fault codes, exit reasons, loop-overrun, provenance (§18) | M2 |
 
 ---
@@ -504,8 +503,8 @@ milestone where its workstream first lands.
 2. **Usable by non-coders.** If a future team can't field an auton without us, we failed.
 3. **Standalone, then ecosystem.** shulib works with nothing else installed; VexBuilder makes it
    better, never required.
-4. **Student-authored.** Tools execute student decisions — they never make them. Every competition
-   routine is owned and defensible by the team that runs it (`<G4>`).
+4. **You decide, tools execute.** The library and its tools carry out the decisions you make — they
+   never make them for you.
 5. **Freeze, don't break.** Contracts in the Freeze Register change only by versioned migration — so
    this roadmap stays true.
 

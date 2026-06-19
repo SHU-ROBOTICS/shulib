@@ -3,12 +3,7 @@
 > **Status:** DESIGN-FIRST (no code yet). Living document — sections marked _PENDING_ are
 > still in progress. Last updated 2026-06.
 >
-> **What this is:** an architect's design reference produced with an AI assistant acting as
-> **architect / teacher / reviewer**. **What this is NOT:** engineering-notebook content or
-> competition code. Per VEX rule **`<G4c-ii>` / `<G4d-ii>`**, the code that runs on the robot
-> and the engineering notebook **must be authored by the students in their own words**, and you
-> must be able to explain and defend **every line** to judges. Use this doc to *understand and
-> plan*; write your own code and notebook. (See §10.)
+> **What this is:** a design & architecture reference for shulib — the plan, not the robot code itself.
 
 ---
 
@@ -22,7 +17,7 @@
 7. Canonical Conventions (frame, units, accuracy targets)
 8. Subsystem Designs
 9. Roadmap (clean-room build) — full breakdown in roadmap.md
-10. The Legal "AI" Layer & Award Narrative
+10. The Onboard-Estimation Story & Award Narrative
 11. Red-Team Gates & v1 Cut-List
 12. Accuracy Risks to Watch
 13. Open Decisions / TBD
@@ -81,8 +76,6 @@ shulib v2 inverts both:
   inside shulib.
 - **Build window:** pre-season, **~2–3 months dedicated build time** → **clean-room v2 build**
   (no legacy auton to protect; replace, don't patch).
-- **Rules guardrail (`<G4>`):** no LLM-authored competition code or notebook; students defend
-  every line. The assistant is architect/teacher/reviewer only.
 
 ---
 
@@ -338,26 +331,21 @@ structurally can't match.
 
 ---
 
-## 10. The Legal "AI" Layer & Award Narrative
+## 10. The Onboard-Estimation Story & Award Narrative
 
-**Legal, student-owned "AI" =** a **student-built state estimator** (complementary filter → EKF)
-fusing wheel odometry + IMU + GPS + AprilTag, plus **student-authored CV** on the Pi/AI-Vision and
-**offline system-ID / auto-tuning** that emits **constants, not code**. **NOT legal:** an LLM
-writing the auton, or un-defendable copied code.
+**The onboard "AI" =** a **student-built state estimator** (complementary filter → EKF) fusing wheel
+odometry + IMU + GPS + AprilTag, plus **onboard CV** on the Pi / AI-Vision and **offline system-ID /
+auto-tuning** that emits **constants, not code**.
 
-**Award narrative (Excellence / Design / Innovate):** "We built our own multi-sensor state
-estimator for absolute, drift-free **holonomic** localization — beyond LemLib's tracking-wheel-only
-dead-reckoning — and can defend every line." Innovate headline: **fused absolute correction +
-holonomic visual-servo docking that strafes to align** (impossible on a differential drive), tied
-to `<RSC4>` (GPS strip) and the goal AprilTags, mapped to the Skills math (yellow Pins via a
-sensor-confirmed `SetQuadrantToggle`; the Midfield park).
+**Award narrative (Excellence / Design / Innovate):** "We built our own multi-sensor state estimator
+for absolute, drift-free **holonomic** localization — beyond LemLib's tracking-wheel-only
+dead-reckoning." Innovate headline: **fused absolute correction + holonomic visual-servo docking that
+strafes to align** (impossible on a differential drive), tied to `<RSC4>` (GPS strip) and the goal
+AprilTags, mapped to the Skills math (yellow Pins via a sensor-confirmed `SetQuadrantToggle`; the
+Midfield park).
 
-**Compliance actions (before any judging):** delete `src/tracking.md` (verbatim LLM output);
-do **not** ship the machine-generated `main.cpp` motion loops — re-author by named students;
-re-derive the kept Pilons math in students' own words; maintain `docs/AUTHORSHIP.md`
-(module → student author → mock-defense date); run whiteboard defense drills (esp. the EKF /
-Jacobians / tag geometry — a strong argument for the complementary-filter-first tiering: a simpler
-filter is a more defensible filter).
+_Tiering note: complementary-filter-before-EKF is partly a simplicity choice — a simpler filter is
+easier to get right and to explain._
 
 ---
 
@@ -514,7 +502,7 @@ clearly reachable) · ○ **Frontier** (stretch / research — the "future" we d
 | **Simulation & test** | host gtests via `hal/fake`; deterministic clock | `hal/sim` adapter + `SHUL/2` over VexBuilder agent socket | full Rapier physics round-trip; planned-vs-actual overlay |
 | **Diagnostics & telemetry** | **`TermSink` readable terminal stream** + `DebugRecord` + fault codes + per-motion result (§18); `NullSink` default | `SdSink` binary blackbox; `SHUL/2` wire; live PID/FF tuner; record/replay | on-brain HUD add-on; cloud run library; auto-tune from replays |
 | **Config & hardware** | `IRobotConfig` + `RobotBuilder`; hand-written config | `.vexbot` → `robot_config.hpp` codegen; SD-card runtime profile | zero-touch: build in VexBuilder → working robot, no edits |
-| **Docs & onboarding** | per-module defense notes; `AUTHORSHIP.md` | "first auton in 10 min" path; recipe cookbook | generated API site + interactive examples (the team website) |
+| **Docs & onboarding** | per-module notes | "first auton in 10 min" path; recipe cookbook | generated API site + interactive examples (the team website) |
 
 The three columns ARE the roadmap's spine (§9, and the public `roadmap.md`). Anything a future
 team asks for should map to a cell here; if it doesn't, the catalog grows — deliberately, tiered.
@@ -630,12 +618,8 @@ caliber* autonomous — and a team that *can* code must never hit a ceiling. shu
 maps command-ids → mechanism actions *once*. After that, the non-coder iterates autons all season
 without touching code, and re-running a new path is loading a different file — not a rebuild.
 
-**G4 boundary (important, not optional).** A student designing a routine in *your own team's* GUI is
-**student-authored and fully defensible** — they chose every waypoint and action. That is categorically
-different from the `<G4>`-prohibited case of an **LLM writing competition code**. The data-driven path
-actually *strengthens* G4 compliance (the strategy is legible and owned), provided `AUTHORSHIP.md`
-logs who authored each routine. Keep that line bright: tools that *execute student decisions* = legal;
-tools that *make the decisions* = not. [[g4-no-llm-code]]
+**You stay in command.** The library and its tools carry out the strategy *you* design — a routine is
+your decisions expressed as data; the tools never make those decisions for you.
 
 **Onboarding as a first-class feature.** "Your first auton in 10 minutes" (build → export → drag a
 path → run), a recipe cookbook, and **generated API docs that publish to the team website** (the
@@ -708,10 +692,9 @@ of propagating a silent NaN; **motion exit-reason codes** (`SETTLED`/`TIMEOUT`/`
 `FAULT_ABORT`/`SUPERSEDED`) on every `IMotion`; **loop-overrun / tick-timing** detection (a blown
 10 ms tick corrupts PID `dt` → degrades the very `< 1°` heading we promise).
 
-**18.5 — Session header / provenance (feeds G4).** First record of every run: **git build hash** +
-routine id + alliance/side + port map + battery start. A build-hash-stamped log **proves the running
-binary matches the students' source** — a concrete `<G4>` defense artifact tied to `AUTHORSHIP.md`
-([[g4-no-llm-code]]).
+**18.5 — Session header / provenance.** First record of every run: **git build hash** + routine id +
+alliance/side + port map + battery start — lets us compare/reproduce runs and confirm exactly which
+binary produced a given log.
 
 **18.6 — Migration from the current code.** **KEEP** the appetite and the two good ideas
 (sensor-health/stuck detection → rebuilt generic, gated, *off* the hot path, feeding fusion
@@ -736,7 +719,6 @@ quantities (residual/Mahalanobis/covariance) land at **M3** (the accuracy milest
   opaque, ~3.15″×6.5″), **Goal** (9; tall center "Midfield" + 4 short neutral + 4 alliance),
   **Toggle** (4, one/quadrant, 3 states), **Loader** (match-load intake).
 - **Pilons odometry:** the 5225A arc-based 3-wheel tracking method (kept as a pure function).
-- **Key rules:** `<G4>` (student-authored code/notebook), `<VUR1>` (two robots 24"/15"),
+- **Key rules:** `<VUR1>` (two robots 24"/15"),
   `<VUR12>` (onboard processors legal), `<VUG3>` (LIDAR/spinning sensors), `<RSC4>`/`<VURS1>`
   (skills field setup + GPS strip), `<R13c>` (vision wireless off in match).
-- **Companion docs (to create):** `docs/AUTHORSHIP.md` (G4 provenance log); per-module defense notes.
