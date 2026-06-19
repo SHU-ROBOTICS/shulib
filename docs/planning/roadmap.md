@@ -132,11 +132,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** `M0 — Foundation & scaffolding`. **Math block + most Tooling done & verified** —
-> harness, `Angle`/`units`/geometry/frame (F1/F2/F3), kernel **4.2.2** (AprilTag unlocked), **CI**
-> (guard mutation-checked), `compile_commands.json`. **Next, in order:** the **legacy quarantine**
-> (move the lodge-era `src/shulib` + loose files to `legacy/`), then compliance (delete `tracking.md`,
-> create `AUTHORSHIP.md`). *Updated 2026-06-19.*
+> **You are here:** `M0 — Foundation & scaffolding`. Math block + Tooling done & verified — harness,
+> `Angle`/`units`/geometry/frame (F1/F2/F3), kernel **4.2.2** (AprilTag), **CI**, `compile_commands.json`,
+> and **legacy quarantined** to `legacy/` (the new `shulib/` core is the only authoritative tree).
+> **Next — the final M0 step:** compliance (delete `src/tracking.md`, create `docs/AUTHORSHIP.md`),
+> which **closes out M0**. *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -209,11 +209,13 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
 - [x] Regenerate `compile_commands.json` for editor tooling. *Done 2026-06-19:
   `CMAKE_EXPORT_COMPILE_COMMANDS` on; `build/test/compile_commands.json` symlinked at repo root
   (gitignored) so clangd resolves `doctest.h` + the shulib headers (fixes the editor false-positives).*
-- [ ] Create the clean-room `shulib/` directory layout, and **quarantine all legacy to `src/legacy/`
-  + `include/legacy/`** (reference-only) so the new `shulib/` path/namespace is collision-free. Legacy
-  scope: `src/shulib/`, `include/shulib/`, and loose files (`src/main.cpp`, `src/*.ignore`,
-  `src/autonomous_commands.csv`). *(Full deletion happens at the end-of-M2 cutover — not now; the
-  Pilons arc math, `RobotCommands`, and `logger.hpp` are salvaged into the new core first.)*
+- [x] Clean-room `shulib/` layout + **legacy quarantined to `src/legacy/` + `include/legacy/`**
+  (reference-only) so the new `shulib/` path is collision-free. *Done 2026-06-19: moved
+  `include/shulib/{api.hpp,chassis,gui,logger.hpp,pid.hpp,pose.hpp,RobotCommands,util.hpp}` + all of
+  `src/shulib/` + the loose `src/` files to `legacy/`; `include/shulib/` now holds only the verified
+  core (`core/ math/ units/ spec/`); host tests stay green. Full deletion at the M2 cutover (after
+  salvaging the Pilons math + `RobotCommands` + `logger.hpp`). PROS/ARM build has no `main.cpp` now —
+  in-flux until the M1/M2 wiring, as planned.*
 
 **Compliance (WS12)**
 - [ ] **Delete `src/tracking.md`** (verbatim LLM output — a `<G4>` liability).
