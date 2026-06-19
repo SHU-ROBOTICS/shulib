@@ -132,10 +132,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** `M0 — Foundation & scaffolding`. **M0 Conventions & math block COMPLETE & verified**
-> (harness, `Angle`, `units`, geometry, frame transform F1, F2 spec — 26 cases / 520k assertions, all
-> mutation-checked/guarded). **Next, in order — M0 Tooling:** kernel **4.1.0→4.2.2** (+ portable
-> `project.pros`), then CI, then the legacy quarantine. *Updated 2026-06-19.*
+> **You are here:** `M0 — Foundation & scaffolding`. **Math block + most Tooling done & verified** —
+> harness, `Angle`/`units`/geometry/frame (F1/F2/F3), kernel **4.2.2** (AprilTag unlocked), **CI**
+> (guard mutation-checked), `compile_commands.json`. **Next, in order:** the **legacy quarantine**
+> (move the lodge-era `src/shulib` + loose files to `legacy/`), then compliance (delete `tracking.md`,
+> create `AUTHORSHIP.md`). *Updated 2026-06-19.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -199,9 +200,15 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
   separate from the PROS ARM Makefile. *Verified 2026-06-19: builds clean, **green on truth (exit 0)
   AND red on falsehood (exit 1)**. Evidence: `test/`, `cmake -S test -B build/test && cmake --build
   build/test && ./build/test/shulib_tests`.*
-- [ ] **CI** (`.github/workflows`): build the PROS project, run host tests, **enforce "no `#include
-  <pros/>` in core,"** run the markdown/lint checks. *(No CI exists today.)*
-- [ ] Regenerate `compile_commands.json` for editor tooling.
+- [x] **CI** (`.github/workflows/ci.yml`): the **no-`<pros/>`-in-core guard** + strict host build
+  (`-Werror`) + the test suite. *Done 2026-06-19: commands verified locally — the guard is
+  mutation-checked (injecting a `pros/` include into a core header makes it exit 1), build+tests green;
+  Actions runs verify on first push. **Scope:** on-robot ARM build deliberately NOT in CI (needs PROS's
+  toolchain/robot — see the toolchain item) and markdown lint left out (cosmetic-warning noise); both
+  addable later. Guard scope broadens to all of `shulib/` after the M2 cutover.*
+- [x] Regenerate `compile_commands.json` for editor tooling. *Done 2026-06-19:
+  `CMAKE_EXPORT_COMPILE_COMMANDS` on; `build/test/compile_commands.json` symlinked at repo root
+  (gitignored) so clangd resolves `doctest.h` + the shulib headers (fixes the editor false-positives).*
 - [ ] Create the clean-room `shulib/` directory layout, and **quarantine all legacy to `src/legacy/`
   + `include/legacy/`** (reference-only) so the new `shulib/` path/namespace is collision-free. Legacy
   scope: `src/shulib/`, `include/shulib/`, and loose files (`src/main.cpp`, `src/*.ignore`,

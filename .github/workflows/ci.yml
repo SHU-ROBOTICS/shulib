@@ -1,0 +1,41 @@
+name: ci
+
+# Host-side verification of the PROS-free core. Runs the same checks we run
+# locally: the architecture guard, the strict build, and the test suite.
+# (The on-robot ARM build is intentionally NOT in CI — it needs PROS's toolchain
+#  and ultimately the robot; the host core is what CI can verify.)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install host toolchain
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+
+      # ARCHITECTURE GUARD: the dependency-free core (L0-L2) must never include
+      # <pros/*>. That PROS-freeness is exactly what makes it host-testable.
+      # Scope = the rebuilt core dirs; broadens to all of shulib/ after the M2
+      # legacy cutover removes the old PROS-coupled code.
+      - name: No <pros/> in the core
+        run: |
+          if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' \
+               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec; then
+            echo "::error::core must stay PROS-free (no #include <pros/...>)"
+            exit 1
+          fi
+          echo "core is PROS-free"
+
+      - name: Configure (host tests)
+        run: cmake -S test -B build/test
+
+      - name: Build (strict -Werror)
+        run: cmake --build build/test
+
+      - name: Run tests
+        run: ./build/test/shulib_tests
