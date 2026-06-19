@@ -313,7 +313,21 @@ from scratch; the integrator is in `localization/arc_step.hpp`):
 - **Offsets applied once, by the odometry class, before `arcStep`.** Each tracking wheel's reading is
   converted to tracking-center travel by removing the rotation-induced component (`Δθ × offset`) at the
   odom edge; `arcStep` itself is offset-agnostic and works in center coordinates, so the geometry stays
-  pure and reusable (a kinematics-integrated holonomic odometry feeds the same primitive).
+  pure and reusable (a kinematics-integrated holonomic odometry feeds the same primitive). A pure
+  in-place rotation must yield **zero** center translation (the offset signs are opposite — `+Δθ·offset`
+  forward, `−Δθ·offset` lateral — pinned by CW **and** CCW pure-rotation tests).
+- **Tracking-wheel binding (`TrackingWheel`).** Travel = `shaft_rad × (diameter/2)`. The `hal/pros`
+  adapter MUST source `IRotation::position()` from the **cumulative** reading (`pros::Rotation::get_position`),
+  **not** a wrapping 0–360 angle — the same get_rotation-vs-get_heading distinction the IMU has. The int32
+  centidegree range is ~6×10⁴ revolutions (≫ a match), so no wrap is seen in practice. Each wheel is built
+  by a **role-stamped factory** (`forward()` = +left offset, `lateral()` = +forward offset); `PilonsOdometry`
+  checks the roles, so a wrong-axis offset or a swapped pair fails at construction, not silently on the field.
+- **Trust gate + finiteness.** `lastDeltaImplausible()` flags a tick whose `|Δθ| > maxTickRotation` (a
+  magnitude bound on the _wrapped_ Δθ — it catches an alias only in `(bound, π]`; a real `>π` rotation that
+  aliases small is excluded by the loop-rate assumption, not the gate) **or** whose integration is
+  non-finite. A non-finite tick **freezes** the position (never writes NaN into the persistent pose); an
+  oversized-but-finite tick is flagged yet still integrated. Recovery beyond that is the fusion layer's.
+  (Hardened by the 2026-06-19 localization red-team: 5 lenses, every finding adversarially re-verified.)
 
 ---
 

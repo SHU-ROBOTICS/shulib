@@ -132,21 +132,27 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete (host-side); M2 control layer complete; localization next.**
+> **You are here:** **M1 complete; M2 control done; M2 localization odometry done — `Localizer` next.**
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. A **30-agent F4 freeze review** closed
 > the breaking-if-deferred gaps (`IMotor::current()`/`temperature()`/brake-mode, `IBattery::current()`,
 > a 5th units dimension, the `isReady()` polarity flip) before the lock. **M2 control layer (WS4) is
 > done:** `Pid`, `Feedforward`+battery-comp, `SettledUtil`, `TrapezoidProfile`, `Watchdog`, `ExitGroup` —
-> all adversarially tested + mutation-checked. **Host suite: 168 cases / 521k assertions, green.**
-> **NEXT: M2 localization (WS5) — `PilonsOdometry`** (arc-integration dead-reckoning; accuracy-critical
-> for the `< 1°`/sub-inch thesis → gets the careful-derivation + adversarial-test + red-team treatment),
-> then the `Localizer` (odom + IMU-owned heading, correctors stubbed). After that: the motion layer (WS6:
-> `IMotion`/`MoveToPose`/`MotionScheduler`) + the `Chassis` facade (F6), and diagnostics (WS13:
-> `DebugRecord`/`TermSink`). *Carry-overs (all tracked): `hal/pros` adapters + on-V5 number-match (ARM
-> toolchain); `MatrixKinematics` non-orthogonal pseudo-inverse for H-drive (M2); the `sysid` tool (WS4).*
-> Host suite: **130 cases / 521k assertions**, green & mutation-checked.
+> all adversarially tested + mutation-checked. **M2 localization odometry (WS5) is done:** the
+> `localization/` layer — `arcStep` (exact SE(2) constant-twist integrator), `TrackingWheel`
+> (role-stamped sensor→travel adapter), and `PilonsOdometry` (IMU-owned heading + offset correction +
+> arcStep accumulation + trust/finiteness gate). **Re-derived clean from the legacy code — which caught
+> a real legacy bug** (it rotated each tick's chord by the *new* heading, not the *average* → a +Δθ/2
+> per-tick drift). Offset-correction signs verified by an independent forward-sim oracle; every
+> load-bearing term mutation-checked; an `arcStep` red-team **plus** a 5-lens / 29-agent localization
+> red-team (every finding adversarially re-verified) hardened it (BodyTravel + role factories + finiteness
+> freeze + seam/CW/gate tests). **Host suite: 208 cases / 521,787 assertions, green** under strict `-Werror`.
+> **NEXT: M2 localization — the `Localizer`** (fuses `PilonsOdometry` + IMU-owned heading; GPS/AprilTag
+> correctors stubbed → wired at M3). After that: the motion layer (WS6: `IMotion`/`MoveToPose`/
+> `MotionScheduler`) + the `Chassis` facade (F6), and diagnostics (WS13: `DebugRecord`/`TermSink`).
+> *Carry-overs (all tracked): `hal/pros` adapters + on-V5 number-match (ARM toolchain); `MatrixKinematics`
+> non-orthogonal pseudo-inverse for H-drive (M2); the `sysid` tool (WS4).*
 > *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
 > *Updated 2026-06-19.*
 
@@ -344,7 +350,9 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 - [ ] `HDriveKinematics` — capped strafe authority + automatic turn-then-drive fallback (telemetry-visible).
 
 **Localization, tier 1 (WS5)**
-- [ ] `PilonsOdometry` (arc math as a pure function; diagnostics off the hot path).
+- [x] `arcStep` (exact SE(2) constant-twist integrator) + `TrackingWheel` (role-stamped) + `PilonsOdometry`
+  (IMU-owned heading, offset correction, trust/finiteness gate). Re-derived clean (caught a legacy
+  average-vs-new-heading bug); forward-sim-verified, mutation-checked, 5-lens red-teamed.
 - [ ] `Localizer` on odom + **IMU-owned heading**, correctors stubbed; quality flag.
 - [ ] IMU cold-calibrate at boot; per-boot bias characterization; tip detection (pitch/roll).
 
