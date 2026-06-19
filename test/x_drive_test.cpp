@@ -40,27 +40,29 @@ TEST_CASE("xDrive: a positive driveRadius is required") {
     CHECK_THROWS_AS(xDrive(Length{-5.0}), PreconditionError);
 }
 
-TEST_CASE("xDrive: pure forward — wheels spin at V/√2 (body is √2× faster than wheels)") {
+TEST_CASE("xDrive: pure forward (+X=vx) — wheels spin at V/√2 (body is √2× faster than wheels)") {
     const MatrixKinematics k = xDrive(Length{kR});
     const double V = 10.0;
-    const WheelSpeeds w = k.toWheels(ChassisSpeeds{Velocity{0.0}, Velocity{V}, AngularVelocity{0.0}});
-
-    // pattern {+, -, -, +}·(V/√2): each wheel's magnitude is V/√2, not V.
-    CHECK(w[0].value() == doctest::Approx(+V * kInvSqrt2));
-    CHECK(w[1].value() == doctest::Approx(-V * kInvSqrt2));
-    CHECK(w[2].value() == doctest::Approx(-V * kInvSqrt2));
-    CHECK(w[3].value() == doctest::Approx(+V * kInvSqrt2));
-    // the √2 property, stated directly: peak wheel speed × √2 == body speed.
-    CHECK(w.maxMagnitude().value() * std::numbers::sqrt2 == doctest::Approx(V));
-}
-
-TEST_CASE("xDrive: pure strafe — symmetric with forward, pattern {-,-,+,+}") {
-    const MatrixKinematics k = xDrive(Length{kR});
-    const double V = 8.0;
+    // forward is +X = vx (F1).
     const WheelSpeeds w = k.toWheels(ChassisSpeeds{Velocity{V}, Velocity{0.0}, AngularVelocity{0.0}});
+
+    // forward (h-column) pattern {-, -, +, +}·(V/√2): each magnitude is V/√2, not V.
     CHECK(w[0].value() == doctest::Approx(-V * kInvSqrt2));
     CHECK(w[1].value() == doctest::Approx(-V * kInvSqrt2));
     CHECK(w[2].value() == doctest::Approx(+V * kInvSqrt2));
+    CHECK(w[3].value() == doctest::Approx(+V * kInvSqrt2));
+    // the √2 property, stated directly: peak wheel speed × √2 == body forward speed.
+    CHECK(w.maxMagnitude().value() * std::numbers::sqrt2 == doctest::Approx(V));
+}
+
+TEST_CASE("xDrive: pure strafe (+Y=vy) — symmetric with forward, pattern {+,-,-,+}") {
+    const MatrixKinematics k = xDrive(Length{kR});
+    const double V = 8.0;
+    // strafe is +Y = vy (F1: +Y left).
+    const WheelSpeeds w = k.toWheels(ChassisSpeeds{Velocity{0.0}, Velocity{V}, AngularVelocity{0.0}});
+    CHECK(w[0].value() == doctest::Approx(+V * kInvSqrt2));
+    CHECK(w[1].value() == doctest::Approx(-V * kInvSqrt2));
+    CHECK(w[2].value() == doctest::Approx(-V * kInvSqrt2));
     CHECK(w[3].value() == doctest::Approx(+V * kInvSqrt2));
 }
 

@@ -49,9 +49,9 @@ public:
     /// One wheel's contribution row. h, v are dimensionless; turnInches is the
     /// yaw lever arm in inches (signed). See the header formula.
     struct Wheel {
-        double h;
-        double v;
-        double turnInches;
+        double h;           // body +X (forward) coefficient, dimensionless
+        double v;           // body +Y (left/strafe) coefficient, dimensionless
+        double turnInches;  // yaw lever arm (inches)
     };
 
     /// Build from a per-wheel coefficient table + the drive's strafe authority.
