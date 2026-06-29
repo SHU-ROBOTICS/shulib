@@ -135,6 +135,35 @@ TEST_CASE("ComplementaryFusion: the SUM of proposals is clamped so they can't ou
     CHECK(r.clamped);
 }
 
+// confidence > 1 must not amplify the gain beyond maxGain (a corrector can't buy extra pull).
+TEST_CASE("ComplementaryFusion: confidence is clamped to [0,1] (no gain amplification)") {
+    ComplementaryFusion f{ComplementaryFusionConfig{.maxNudgeRate = Velocity{100.0},
+                                                    .innovationGate = Length{12.0}, .maxGain = 0.15}};
+    const std::array<CorrectionProposal, 1> ps{prop(10.0, 0.0, 5.0)};  // confidence 5 ⇒ clamped to 1
+    const FusionResult r = f.fuse(kOrigin, std::span<const CorrectionProposal>{ps}, Time{0.05});
+    CHECK(r.x.value() == doctest::Approx(1.5));  // 0.15·1·10, NOT 0.15·5·10 = 7.5
+}
+
+// A non-finite confidence (finite position) must be rejected, not poison the result with NaN.
+TEST_CASE("ComplementaryFusion: a non-finite confidence is rejected, result stays finite") {
+    ComplementaryFusion f{};
+    const std::array<CorrectionProposal, 1> ps{prop(2.0, 0.0, std::numeric_limits<double>::infinity())};
+    const FusionResult r = f.fuse(kOrigin, std::span<const CorrectionProposal>{ps}, Time{0.05});
+    CHECK(std::isfinite(r.x.value()));
+    CHECK(r.x.value() == doctest::Approx(0.0));
+    CHECK(r.gated);
+    CHECK_FALSE(r.applied);
+}
+
+// dt == 0 ⇒ per-tick budget is 0 ⇒ nothing can be applied, even for an in-gate fix (not "corrected").
+TEST_CASE("ComplementaryFusion: a zero-budget (dt==0) tick applies nothing") {
+    ComplementaryFusion f{};
+    const std::array<CorrectionProposal, 1> ps{prop(2.0, 0.0, 1.0)};
+    const FusionResult r = f.fuse(kOrigin, std::span<const CorrectionProposal>{ps}, Time{0.0});
+    CHECK(r.x.value() == doctest::Approx(0.0));  // no movement
+    CHECK_FALSE(r.applied);                       // and not reported as an applied correction
+}
+
 TEST_CASE("ComplementaryFusion: rejects an out-of-range config") {
     CHECK_THROWS_AS((ComplementaryFusion{ComplementaryFusionConfig{.maxGain = 0.0}}), PreconditionError);
     CHECK_THROWS_AS((ComplementaryFusion{ComplementaryFusionConfig{.maxGain = 1.5}}), PreconditionError);

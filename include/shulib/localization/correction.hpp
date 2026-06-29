@@ -18,7 +18,11 @@ struct CorrectionProposal {
     math::Pose2d fieldPose{};            ///< absolute field pose the source believes the robot is at
     double confidence = 0.0;             ///< [0,1] peak trust; 0 ⇒ no pull even if valid
     units::Length positionStdDev{};      ///< 1σ position noise (R for an EKF / nudge weight); > 0 when valid
-    bool providesHeading = false;        ///< M2: always false (heading is IMU-owned). M3 AprilTag-yaw flips it.
+    bool providesHeading = false;        ///< RESERVED. M2 ignores it entirely (heading is IMU-owned).
+                                         ///< The M3 AprilTag-yaw path is an ADDITIVE extension — a
+                                         ///< headingNudge field on FusionResult + the Localizer applying
+                                         ///< it before the IMU re-stamp — which does NOT change the frozen
+                                         ///< IPoseSource/ICorrector/IFusionPolicy signatures callers depend on.
 };
 
 /// What a fusion policy did to the POSITION this tick. Heading is never here — the Localizer
@@ -26,9 +30,11 @@ struct CorrectionProposal {
 struct FusionResult {
     units::Length x{};                   ///< fused field x (predicted + bounded nudge)
     units::Length y{};                   ///< fused field y
-    bool applied = false;                ///< ≥1 proposal passed the gate and contributed a nudge
+    bool applied = false;                ///< ≥1 proposal passed the gate and was incorporated
     bool gated = false;                  ///< a proposal was rejected by the innovation bound
     bool clamped = false;                ///< the per-tick budget bound the applied nudge
+    double appliedConfidence = 0.0;      ///< [0,1] confidence of the strongest applied fix (0 if none);
+                                         ///< drives how much the drift accumulator is cleared.
 };
 
 /// The per-tick audit record the Localizer exposes via lastCorrection() — maps onto the §18.2

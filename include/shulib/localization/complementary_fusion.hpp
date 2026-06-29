@@ -17,6 +17,7 @@
 // for the M3 EKF's measurement noise R and is unused here. Heading is NEVER touched — the Localizer
 // re-stamps it from the IMU after fusion, so this policy can only move x/y.
 
+#include <algorithm>
 #include <cmath>
 #include <span>
 
@@ -59,7 +60,8 @@ public:
 
         double sumX = 0.0;
         double sumY = 0.0;
-        bool applied = false;
+        double maxConf = 0.0;  // strongest accepted fix → how much to trust the correction
+        bool accepted = false;
         bool gated = false;
         bool clamped = false;
 
@@ -67,12 +69,16 @@ public:
             const double innoX = p.fieldPose.x().value() - px;
             const double innoY = p.fieldPose.y().value() - py;
             const double innoMag = std::hypot(innoX, innoY);
-            if (!std::isfinite(innoMag) || innoMag > gate) {  // wild / non-finite ⇒ reject
+            // Reject a wild fix, OR any non-finite proposal field (innovation OR confidence) — a NaN/Inf
+            // confidence would otherwise sail through (Inf > 0) and poison the nudge with NaN.
+            if (!std::isfinite(innoMag) || !std::isfinite(p.confidence) || innoMag > gate) {
                 gated = true;
                 continue;
             }
-            applied = true;  // this proposal passed the gate and contributes a (possibly tiny) nudge
-            const double weight = config_.maxGain * p.confidence;  // confidence ∈[0,1] ⇒ ≤ maxGain
+            accepted = true;  // this proposal passed the gate (a fix was incorporated)
+            const double conf = std::clamp(p.confidence, 0.0, 1.0);  // a corrector can't amplify the gain
+            maxConf = std::max(maxConf, conf);
+            const double weight = config_.maxGain * conf;
             double nudgeX = weight * innoX;
             double nudgeY = weight * innoY;
             const double nudgeMag = std::hypot(nudgeX, nudgeY);
@@ -94,7 +100,11 @@ public:
             clamped = true;
         }
 
-        return FusionResult{units::Length{px + sumX}, units::Length{py + sumY}, applied, gated, clamped};
+        // "applied" means a fix was actually incorporated this tick: accepted by the gate AND the
+        // per-tick budget allowed motion (maxNudge == 0 on a dt==0 stall ⇒ nothing could be applied).
+        const bool applied = accepted && maxNudge > 0.0;
+        return FusionResult{units::Length{px + sumX}, units::Length{py + sumY},
+                            applied, gated, clamped, applied ? maxConf : 0.0};
     }
 
 private:
