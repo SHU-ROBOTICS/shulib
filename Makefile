@@ -16,6 +16,12 @@ WARNFLAGS+=
 EXTRA_CFLAGS=
 EXTRA_CXXFLAGS=
 
+# Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk
+# defaults to gnu++26 / gnu23 (gcc 14+ spellings); 13.2 wants gnu++20 (matches the host-test build)
+# and gnu2x. Set here (before common.mk's `?=`) so it wins and survives kernel-template updates.
+CXX_STANDARD:=gnu++20
+C_STANDARD:=gnu2x
+
 # Set to 1 to enable hot/cold linking
 USE_PACKAGE:=1
 
