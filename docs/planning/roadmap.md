@@ -132,29 +132,29 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control done; M2 localization odometry done — `Localizer` next.**
+> **You are here:** **M1 complete; M2 control + localization complete — the motion layer is next.**
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
-> canonical conversions (each **red-teamed**), and `RobotContext`. A **30-agent F4 freeze review** closed
-> the breaking-if-deferred gaps (`IMotor::current()`/`temperature()`/brake-mode, `IBattery::current()`,
-> a 5th units dimension, the `isReady()` polarity flip) before the lock. **M2 control layer (WS4) is
-> done:** `Pid`, `Feedforward`+battery-comp, `SettledUtil`, `TrapezoidProfile`, `Watchdog`, `ExitGroup` —
-> all adversarially tested + mutation-checked. **M2 localization odometry (WS5) is done:** the
-> `localization/` layer — `arcStep` (exact SE(2) constant-twist integrator), `TrackingWheel`
-> (role-stamped sensor→travel adapter), and `PilonsOdometry` (IMU-owned heading + offset correction +
-> arcStep accumulation + trust/finiteness gate). **Re-derived clean from the legacy code — which caught
-> a real legacy bug** (it rotated each tick's chord by the *new* heading, not the *average* → a +Δθ/2
-> per-tick drift). Offset-correction signs verified by an independent forward-sim oracle; every
-> load-bearing term mutation-checked; an `arcStep` red-team **plus** a 5-lens / 29-agent localization
-> red-team (every finding adversarially re-verified) hardened it (BodyTravel + role factories + finiteness
-> freeze + seam/CW/gate tests). **Host suite: 208 cases / 521,787 assertions, green** under strict `-Werror`.
-> **NEXT: M2 localization — the `Localizer`** (fuses `PilonsOdometry` + IMU-owned heading; GPS/AprilTag
-> correctors stubbed → wired at M3). After that: the motion layer (WS6: `IMotion`/`MoveToPose`/
-> `MotionScheduler`) + the `Chassis` facade (F6), and diagnostics (WS13: `DebugRecord`/`TermSink`).
-> *Carry-overs (all tracked): `hal/pros` adapters + on-V5 number-match (ARM toolchain); `MatrixKinematics`
-> non-orthogonal pseudo-inverse for H-drive (M2); the `sysid` tool (WS4).*
-> *(Carry-overs: on-V5 number-match + ARM **link** await the toolchain; H-drive pseudo-inverse is M2.)*
-> *Updated 2026-06-19.*
+> canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
+> `Pid`, `Feedforward`+battery-comp, `SettledUtil`, `TrapezoidProfile`, `Watchdog`, `ExitGroup`.
+> **M2 localization (WS5) is done — the full stack:** `arcStep` (exact SE(2) integrator — re-derived
+> clean, which **caught a real legacy bug**: the old odom rotated each tick's chord by the *new* heading
+> instead of the *average*), `TrackingWheel` (role-stamped), `PilonsOdometry` (IMU-owned heading + offset
+> correction + trust/finiteness gate), and the fused **`Localizer`** behind an EKF-ready seam
+> (`IPoseSource`/`ICorrector`/`IFusionPolicy`) with `ComplementaryFusion`'s innovation-bounded **gated
+> nudge (never snaps)**, structural **IMU-owned heading**, a measurable `quality()` + dead-reckon flag,
+> and GPS/AprilTag correctors **stubbed → wired at M3**. Two multi-agent red-teams (29 + 43 agents, every
+> finding adversarially re-verified) hardened it — the localizer pass caught a **CRITICAL**: corrections
+> weren't accumulating (fused = odom + one-tick nudge → couldn't converge to a persistent fix and snapped
+> back when a corrector went quiet); now the fused state accumulates odom deltas + retains nudges, with
+> convergence/persistence tests. **Host suite: 246 cases / 521,908 assertions, green** under strict `-Werror`.
+> **Also fixed: the on-robot ARM build** — root-caused to a stale soft-float `firmware/liblvgl.a` +
+> gcc-14 standard names (NOT the toolchain, as long assumed); the kernel cold-package now links.
+> **NEXT: the motion layer (WS6)** — `IMotion` + `MoveToPose`/`TurnTo`/`StrafeTo` (decoupled per-axis
+> x/y/θ) + `MotionScheduler`, then the `Chassis` facade (F6) and diagnostics (WS13: `DebugRecord`/`TermSink`).
+> *Carry-overs (tracked): the `hal/pros` adapters + a v2 `src/main.cpp` (now unblocked — the bridge to
+> running on a real V5); `MatrixKinematics` non-orthogonal pseudo-inverse for the H-drive; the `sysid` tool.*
+> *Updated 2026-06-29.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -353,7 +353,9 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 - [x] `arcStep` (exact SE(2) constant-twist integrator) + `TrackingWheel` (role-stamped) + `PilonsOdometry`
   (IMU-owned heading, offset correction, trust/finiteness gate). Re-derived clean (caught a legacy
   average-vs-new-heading bug); forward-sim-verified, mutation-checked, 5-lens red-teamed.
-- [ ] `Localizer` on odom + **IMU-owned heading**, correctors stubbed; quality flag.
+- [x] `Localizer` on odom + **IMU-owned heading**, correctors stubbed; quality flag. EKF-ready seam
+  (`IPoseSource`/`ICorrector`/`IFusionPolicy`); `ComplementaryFusion` gated nudge (accumulates + never
+  snaps); fused `Twist2d` + measurable `quality()`. 43-agent red-team (caught + fixed the no-accumulation CRITICAL).
 - [ ] IMU cold-calibrate at boot; per-boot bias characterization; tip detection (pitch/roll).
 
 **Facade (WS — Chassis)**
