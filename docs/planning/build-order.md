@@ -32,6 +32,33 @@ Every chunk closes with all six. This is the process, not a suggestion:
 | 5 | **Decisions recorded** — anything chosen where an alternative was viable, and why | Prevents re-litigating settled questions three chunks later. |
 | 6 | **Freeze Register updated** if the chunk froze a contract | A freeze that isn't registered isn't a freeze. |
 
+### Watching a chunk as it happens
+
+Every chunk keeps a **live progress log** at `docs/planning/chunks/<CHUNK>-PROGRESS.md`, appended to
+as the work happens — not written at the end. Watch it from a second terminal:
+
+```sh
+tail -f docs/planning/chunks/A2-PROGRESS.md      # substitute the current chunk
+```
+
+Each entry is one line, appended immediately when the thing happens:
+
+```
+[HH:MM:SS] START   <what is being attempted>
+[HH:MM:SS] DONE    <what landed, + evidence: file, test name, counts>
+[HH:MM:SS] MUTATE  <mutation> -> RED/GREEN (observed)
+[HH:MM:SS] DECIDE  <choice> over <alternative> because <reason>
+[HH:MM:SS] BLOCKED <what, and what is being tried instead>
+[HH:MM:SS] FOUND   <discovery about existing code>
+```
+
+This is a **required deliverable**, not a courtesy: a log appended in real time cannot be
+retro-narrated, so it is also the honest record of what actually happened in what order. The
+`-COMPLETED.md` record is written from it, not instead of it.
+
+Other live views: `git diff --stat` for the change surface, and re-running the suite at any time —
+chunks leave the tree in a buildable state as often as possible.
+
 ### Rules that hold across every chunk
 
 1. **Freeze only after two independent consumers.** A contract that has been exercised once has been
