@@ -19,3 +19,6 @@ temp.errors
 # Host-test build dir + agent/editor config
 build/
 .claude/
+
+# Tool output
+graphify-out/

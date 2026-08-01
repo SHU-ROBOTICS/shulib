@@ -150,11 +150,17 @@ not silently break them. This table is the spine of the no-staleness promise.
 > convergence/persistence tests. **Host suite: 246 cases / 521,908 assertions, green** under strict `-Werror`.
 > **Also fixed: the on-robot ARM build** — root-caused to a stale soft-float `firmware/liblvgl.a` +
 > gcc-14 standard names (NOT the toolchain, as long assumed); the kernel cold-package now links.
-> **NEXT: the motion layer (WS6)** — `IMotion` + `MoveToPose`/`TurnTo`/`StrafeTo` (decoupled per-axis
-> x/y/θ) + `MotionScheduler`, then the `Chassis` facade (F6) and diagnostics (WS13: `DebugRecord`/`TermSink`).
-> *Carry-overs (tracked): the `hal/pros` adapters + a v2 `src/main.cpp` (now unblocked — the bridge to
-> running on a real V5); `MatrixKinematics` non-orthogonal pseudo-inverse for the H-drive; the `sysid` tool.*
-> *Updated 2026-06-29.*
+> **NEXT: chunk A1 — `DebugRecord` + `TermSink` + fault discipline (WS13).** The *what* is still this
+> page; the **order** now lives in **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks,
+> written against the governing constraint that **there is no robot yet**. Read it before starting any
+> work. It adds three things this page was missing (a **host plant/sim harness** — M2's and M4's DoDs
+> both require a "host sim" no task here builds; **hostile fakes**; a **hardware-assumptions register**)
+> and defers all hardware work to a prepared Phase R.
+> *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
+> non-orthogonal pseudo-inverse → C3; `sysid` → R5.*
+> *Status verified 2026-08-01: host suite 246 cases / 521,908 assertions green; the v2 core also
+> cross-compiles clean for ARM under the same strict flags (not yet CI-guarded — closes at A4).
+> No new subsystems since 2026-06-29; only the plan changed.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
