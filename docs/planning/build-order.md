@@ -56,11 +56,16 @@ the season's routines.
 ## Current position
 
 **Done:** M0 complete · M1 host-side (F4 + F5 frozen host-only) · M2 control layer (WS4) · M2
-localization tier 1 (WS5).
+localization tier 1 (WS5) · **Chunk A1 — `DebugRecord` + `TermSink` + fault discipline (WS13)**,
+closed 2026-08-01 with its documentation contract discharged
+([completion record](chunks/A1-COMPLETED.md)). **Next: chunk A2.**
 
-**Verified 2026-08-01:** host suite 246 cases / 521,908 assertions green under strict `-Werror`; CI
-PROS-free guard passes; `bin/cold.package.elf` links; **the v2 core cross-compiles clean for ARM**
-under the same strict flags as host (verified directly — but not guarded by CI, which builds host only).
+**Verified 2026-08-01 (post-A1):** host suite **301 cases / 522,123 assertions** green under strict
+`-Werror`; CI PROS-free guard passes (scope now includes `include/shulib/diag`);
+`bin/cold.package.elf` links (verified earlier the same day, pre-A1 — A1 is header-only + host
+tests, so the kernel package is unaffected); **the v2 core cross-compiles clean for ARM** — all 63
+v2 headers under the same strict flags as host (verified directly — but not guarded by CI, which
+builds host only).
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 

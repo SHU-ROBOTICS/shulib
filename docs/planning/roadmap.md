@@ -132,7 +132,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control + localization complete — the motion layer is next.**
+> **You are here:** **M1 complete; M2 control + localization complete; build-order chunk A1
+> (WS13 diagnostics: `DebugRecord` + `TermSink` + fault discipline) complete — A2, the host
+> plant + closed-loop sim harness, is next.**
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
@@ -147,20 +149,30 @@ not silently break them. This table is the spine of the no-staleness promise.
 > finding adversarially re-verified) hardened it — the localizer pass caught a **CRITICAL**: corrections
 > weren't accumulating (fused = odom + one-tick nudge → couldn't converge to a persistent fix and snapped
 > back when a corrector went quiet); now the fused state accumulates odom deltas + retains nudges, with
-> convergence/persistence tests. **Host suite: 246 cases / 521,908 assertions, green** under strict `-Werror`.
+> convergence/persistence tests.
 > **Also fixed: the on-robot ARM build** — root-caused to a stale soft-float `firmware/liblvgl.a` +
 > gcc-14 standard names (NOT the toolchain, as long assumed); the kernel cold-package now links.
-> **NEXT: chunk A1 — `DebugRecord` + `TermSink` + fault discipline (WS13).** The *what* is still this
-> page; the **order** now lives in **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks,
-> written against the governing constraint that **there is no robot yet**. Read it before starting any
-> work. It adds three things this page was missing (a **host plant/sim harness** — M2's and M4's DoDs
-> both require a "host sim" no task here builds; **hostile fakes**; a **hardware-assumptions register**)
-> and defers all hardware work to a prepared Phase R.
+> **Chunk A1 (WS13 diagnostics) is done — 2026-08-01:** the complete-§18.2-schema `DebugRecord`
+> (typed units, fields reserved for E2–E4 systems, F9-freeze-aware) behind an **additively extended**
+> `ITelemetrySink` (`emit()` non-pure/no-op default; `wantsRecord()`+`emitRecord()` so a `NullSink`
+> never even populates a record); **`TermSink`** with injected clock + injected char-sink and
+> byte-pinned golden output (NaN/±Inf/1e300/control-byte/UTF-8-truncation ugly cases covered);
+> **compile-time `TRACE` strip** (args provably unevaluated; stripped call = byte-identical ARM `-Os`
+> code to no call); **fault discipline** — wire-pinned `FaultCode`, first-fault-latching
+> crash-proof `FaultLatch`, `LoopMonitor` (inclusive `>=` dt-budget edge pinned), NaN/Inf
+> log-and-recover guards with an unconditional finite-return guarantee — and the **`check.hpp`
+> §18.4 policy seam** (host throws / robot routes to fault-log; call sites unchanged). The three
+> legacy `logger.hpp` defects were designed out structurally (clean-room, not ported). **7 mutations
+> proven red, then restored.** See `docs/planning/chunks/A1-COMPLETED.md` for the full record.
+> **NEXT: chunk A2 — the host plant + closed-loop sim harness** (the missing prerequisite; nothing
+> closed-loop can be validated until it exists). The *what* is still this page; the **order** lives in
+> **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks, written against the governing
+> constraint that **there is no robot yet**. Read it before starting any work.
 > *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
 > non-orthogonal pseudo-inverse → C3; `sysid` → R5.*
-> *Status verified 2026-08-01: host suite 246 cases / 521,908 assertions green; the v2 core also
-> cross-compiles clean for ARM under the same strict flags (not yet CI-guarded — closes at A4).
-> No new subsystems since 2026-06-29; only the plan changed.*
+> *Status verified 2026-08-01 (post-A1): host suite **301 cases / 522,123 assertions green** under
+> strict `-Werror`; CI PROS-free guard green with `diag/` added to its scope; all 63 v2 headers
+> cross-compile clean for ARM under the same strict flags (not yet CI-guarded — closes at A4).*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -368,12 +380,47 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 - [ ] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
 
 **Diagnostics & observability (WS13)** — *pulled forward so M2–M3 are debuggable as built (§18)*
-- [ ] `DebugRecord` per-tick snapshot schema, behind the `ITelemetrySink` seam (already at M1).
-- [ ] **`TermSink`** — readable, subsystem-tagged, column-aligned **terminal stream** (the primary debug surface); levels `ERROR/WARN/INFO/DEBUG/TRACE` with a **compile-time `TRACE` strip off the hot path** (zero-cost in competition builds).
-- [ ] **Fault-code enum** + latched first-fault; **motion exit-reason codes** on every `IMotion`; **loop-overrun / tick-timing** detection; NaN/Inf + invariant asserts (log-and-recover, non-fatal).
-- [ ] Per-motion result line (target vs final · overshoot · drift · time · exit-reason) + end-of-run summary block.
-- [ ] **Session header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — lets us compare/reproduce runs and confirm which binary ran.
-- [ ] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
+- [x] `DebugRecord` per-tick snapshot schema, behind the `ITelemetrySink` seam (already at M1).
+  *Done at chunk A1 (2026-08-01): `diag/debug_record.hpp` carries the **complete §18.2 field set**
+  in typed units — including fields for systems that don't exist yet (gating residuals, covariance
+  trace, `strafeFallbackActive`), since F9 later freezes this exact record. `emit()` added to the
+  seam **additively** (non-pure, default no-op — pinned by the message-only-sink test) with the
+  `wantsRecord()`/`emitRecord()` null-sink cost mechanism (a `NullSink` never even POPULATES a
+  record — pinned by the builder-not-invoked test). Evidence: `test/debug_record_test.cpp` (8 cases,
+  schema/type/wire-value pins) + 2 additivity cases in `test/telemetry_sink_test.cpp`;
+  `FakeTelemetrySink` extended to record the emit channel. Mutation-checked (always-build
+  `emitRecord` goes red).*
+- [x] **`TermSink`** — readable, subsystem-tagged, column-aligned **terminal stream** (the primary debug surface); levels `ERROR/WARN/INFO/DEBUG/TRACE` with a **compile-time `TRACE` strip off the hot path** (zero-cost in competition builds).
+  *Done at chunk A1: `diag/term_sink.hpp` with injected `IClock` + injected `hal::ICharSink`
+  (output is golden-testable, not eyeballed) — exact §18.3-shape lines pinned byte-for-byte incl.
+  the ugly cases (NaN/±Inf tokens, 1e300 compaction, empty tag, control-byte sanitization,
+  UTF-8-safe truncation). `diag/trace.hpp` strips `SHULIB_TRACE` at compile time: argument
+  expressions provably unevaluated (side-effect-counter test) AND the stripped call compiles to
+  byte-identical ARM `-Os` code vs. no call at all (asm-diff verified). Evidence:
+  `test/term_sink_test.cpp` (15 cases), `test/trace_strip_test.cpp` (2) +
+  `test/trace_enabled_test.cpp` (1). Mutation-checked (a stray space in `[WARN]` and an
+  args-evaluating strip each go red).*
+- [~] **Fault-code enum** + latched first-fault; **motion exit-reason codes** on every `IMotion`; **loop-overrun / tick-timing** detection; NaN/Inf + invariant asserts (log-and-recover, non-fatal).
+  *A1 delivered everything that exists to attach to: `diag/fault.hpp` (wire-stable numeric
+  `FaultCode`, values pinned; `FaultLatch` retains the FIRST fault distinctly from the cascade and
+  never crashes — survives even a throwing sink), `diag/loop_monitor.hpp` (dt-budget overrun, the
+  `>= `boundary pinned exactly), `diag/finite_guard.hpp` (NaN/Inf log-and-recover with an
+  unconditional finite-return guarantee), and the `check.hpp` §18.4 policy seam (host throws /
+  robot routes to fault-log, call sites unchanged — `test/check_policy_test.cpp`, 5 cases).
+  Evidence: `test/fault_test.cpp` (7), `test/loop_monitor_test.cpp` (7),
+  `test/finite_guard_test.cpp` (8); first-fault latch, overrun boundary, and NaN guard all
+  mutation-checked red. **Still open in this item:** exit-reason codes *on every `IMotion`* —
+  `IMotion` doesn't exist until C1/C2 (`ExitReason` itself shipped with WS4's `ExitGroup`).*
+- [ ] Per-motion result line (target vs final · overshoot · drift · time · exit-reason) + end-of-run summary block. *→ chunk C5 (needs motion data that doesn't exist yet).*
+- [ ] **Session header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — lets us compare/reproduce runs and confirm which binary ran. *→ chunk C5.*
+- [x] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
+  *Resolved at chunk A1 by **clean-room supersession**, per build-order's "Explicitly rejected"
+  note (re-derive, don't copy): nothing builds on `logger.hpp`, and the replacement designs each
+  defect out **structurally** — sanitization is unavoidable by construction (one sanitizing append
+  is the only path for caller text into a `TermSink` line), there are no dead paths (every shipped
+  path is reached by a test), and the racing flush has no analogue (no background task, no shared
+  mutable buffers; the concurrency contract is explicit in every header). The legacy files stay
+  quarantined, reference-only, until the C7 deletion.*
 
 **Legacy cutover (WS11)** — *the clean-room demolition, sequenced so nothing salvageable is lost*
 - [ ] **Salvage before deleting:** port `RobotCommands`→`sequence/` seed, `logger.hpp`→`io/Telemetry`,

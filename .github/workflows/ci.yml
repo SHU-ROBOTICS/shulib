@@ -25,7 +25,7 @@ jobs:
       - name: No <pros/> in the core
         run: |
           if grep -rnE --exclude-dir=pros '#[[:space:]]*include[[:space:]]*[<"]pros/' \
-               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization; then
+               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/diag; then
             echo "::error::core must stay PROS-free (no #include <pros/...>)"
             exit 1
           fi
