@@ -132,9 +132,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control + localization complete; build-order chunk A1
-> (WS13 diagnostics: `DebugRecord` + `TermSink` + fault discipline) complete — A2, the host
-> plant + closed-loop sim harness, is next.**
+> **You are here:** **M1 complete; M2 control + localization complete; build-order chunks A1
+> (WS13 diagnostics) and A2 (the host plant + closed-loop sim harness — the missing
+> prerequisite, now closed) complete — A3, the hostile fakes, is next.**
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
@@ -164,15 +164,32 @@ not silently break them. This table is the spine of the no-staleness promise.
 > §18.4 policy seam** (host throws / robot routes to fault-log; call sites unchanged). The three
 > legacy `logger.hpp` defects were designed out structurally (clean-room, not ported). **7 mutations
 > proven red, then restored.** See `docs/planning/chunks/A1-COMPLETED.md` for the full record.
-> **NEXT: chunk A2 — the host plant + closed-loop sim harness** (the missing prerequisite; nothing
-> closed-loop can be validated until it exists). The *what* is still this page; the **order** lives in
+> **Chunk A2 (the host plant + closed-loop sim harness) is done — 2026-08-01:** the roadmap's
+> incompleteness bug (M2's and M4's DoDs required a "host sim" no task built) is CLOSED. Six
+> headers under `include/shulib/sim/` deliver: voltage→velocity by **exact inversion of the existing
+> `Feedforward` relation** (kS dead band + τ=kA/kV first-order lag; **kinematic, not dynamic** — no
+> invented mass/friction constants, gains provisional until R5/R6); a ground-truth pose integrator
+> that is **provably independent of `arcStep`** (RK4 on unwrapped θ; a >π-per-tick tripwire test
+> goes red if truth ever reuses arcStep — the trap that would have silently nulled every Phase E
+> measurement); sensor synthesis from truth into the **unmodified F4 fakes** (zero additive setters
+> needed); the **first closed loops in the project** (`Pid` through the sensor path converges and
+> holds; a sign-flipped gain diverges; an overdriven gain chatters at the DERIVED discrete-instability
+> threshold); the **first end-to-end localization proof** (`PilonsOdometry` + `Localizer` track truth
+> ≤1e-6″ over multi-second scripts, and a deliberate 2% mis-calibration is DETECTED at its predicted
+> magnitude); **seeded byte-identical determinism** (SplitMix64, memcmp-pinned); and the **nine A3
+> degradation seams, empty but proven live**. CI gains a layering guard (core may never include
+> `shulib/sim/`). **8 mutations proven red, then restored.** See
+> `docs/planning/chunks/A2-COMPLETED.md` for the full record.
+> **NEXT: chunk A3 — hostile fakes** (populate the degradation seams; today's agreeable fakes certify
+> their own blind spots). The *what* is still this page; the **order** lives in
 > **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks, written against the governing
 > constraint that **there is no robot yet**. Read it before starting any work.
 > *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
 > non-orthogonal pseudo-inverse → C3; `sysid` → R5.*
-> *Status verified 2026-08-01 (post-A1): host suite **301 cases / 522,123 assertions green** under
-> strict `-Werror`; CI PROS-free guard green with `diag/` added to its scope; all 63 v2 headers
-> cross-compile clean for ARM under the same strict flags (not yet CI-guarded — closes at A4).*
+> *Status verified 2026-08-01 (post-A2): host suite **349 cases / 547,443 assertions green** under
+> strict `-Werror`; CI PROS-free guard green with `diag/` + `sim/` in scope plus the new sim-layering
+> guard; all 69 v2 headers cross-compile clean for ARM under the same strict flags (not yet
+> CI-guarded — closes at A4).*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -375,6 +392,32 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   (`IPoseSource`/`ICorrector`/`IFusionPolicy`); `ComplementaryFusion` gated nudge (accumulates + never
   snaps); fused `Twist2d` + measurable `quality()`. 43-agent red-team (caught + fixed the no-accumulation CRITICAL).
 - [ ] IMU cold-calibrate at boot; per-boot bias characterization; tip detection (pitch/roll).
+
+**Host sim plant & closed-loop harness (WS10/WS2)** — *added 2026-08-01 by build-order chunk A2.
+This task was the roadmap's incompleteness bug: this milestone's DoD (and M4's) requires "settles
+within tolerance in **host sim**", and no task on this page built that sim — by this page's own
+rule ("if something needs doing and isn't on this page, that's a bug in the roadmap"). With no
+robot, it is the only means of validating ANY closed-loop behavior; every "settles in host sim"
+DoD in Phases C–F depends on it.*
+- [x] **Host plant + deterministic scenario harness** — voltage → wheel velocity (exact inversion of
+  the existing `Feedforward` relation: kS dead band, τ=kA/kV lag; **kinematic, not dynamic** — no
+  invented constants, gains provisional until R5/R6) → body twist (frozen-F5 `IKinematics::forward`)
+  → TRUE pose (RK4 on unwrapped θ, **provably independent of `arcStep`** — reusing arcStep for truth
+  would let any arcStep error cancel invisibly out of every Phase E measurement; a >π-per-tick
+  tripwire test reds that mutation) → sensors synthesized from truth into the **unmodified F4
+  fakes** (zero additive setters needed) → back into the estimator/controller. Plus: ground truth
+  exposed to assertions only (new CI layering guard: core may never include `shulib/sim/`); seeded
+  SplitMix64 byte-identical replay; the nine A3 degradation seams (empty, documented, proven live);
+  per-tick `DebugRecord` emission honoring A1's `emitRecord` cost contract; `TermSink`-watchable.
+  *Evidence: `include/shulib/sim/` (6 headers) + `test/sim_motor_model_test.cpp` (9 cases),
+  `test/sim_truth_test.cpp` (9 — incl. the 405-point arcStep-vs-truth agreement sweep at 1e-9″ and
+  the independence tripwire), `test/sim_plant_test.cpp` (14 — analytic open-loop, X-drive AND tank),
+  `test/sim_closed_loop_test.cpp` (4 — the first closed loops in the project: converge/hold via the
+  sensor path; sign-flip diverges; overdriven gain chatters at the derived instability threshold),
+  `test/sim_odometry_truth_test.cpp` (5 — odometry/Localizer ≤1e-6″ of truth over multi-second runs;
+  a 2% mis-calibration DETECTED at its predicted 1.0″), `test/sim_scenario_test.cpp` (9 — memcmp
+  determinism, seam liveness, TermSink/NullSink cost). 48 new cases / 25,320 new assertions; suite
+  349/547,443 green; **8 mutations proven red** (see `chunks/A2-COMPLETED.md`).*
 
 **Facade (WS — Chassis)**
 - [ ] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.

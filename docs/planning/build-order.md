@@ -84,25 +84,30 @@ the season's routines.
 
 **Done:** M0 complete · M1 host-side (F4 + F5 frozen host-only) · M2 control layer (WS4) · M2
 localization tier 1 (WS5) · **Chunk A1 — `DebugRecord` + `TermSink` + fault discipline (WS13)**,
-closed 2026-08-01 with its documentation contract discharged
-([completion record](chunks/A1-COMPLETED.md)). **Next: chunk A2.**
+closed 2026-08-01 ([completion record](chunks/A1-COMPLETED.md)) · **Chunk A2 — the host plant +
+closed-loop sim harness**, closed 2026-08-01 with its documentation contract discharged
+([completion record](chunks/A2-COMPLETED.md)) — **the missing prerequisite below is now closed**:
+the first closed loops in the project run and settle against the plant, and the first end-to-end
+localization proof (odometry/Localizer vs. ground truth) exists. **Next: chunk A3.**
 
-**Verified 2026-08-01 (post-A1):** host suite **301 cases / 522,123 assertions** green under strict
-`-Werror`; CI PROS-free guard passes (scope now includes `include/shulib/diag`);
-`bin/cold.package.elf` links (verified earlier the same day, pre-A1 — A1 is header-only + host
-tests, so the kernel package is unaffected); **the v2 core cross-compiles clean for ARM** — all 63
-v2 headers under the same strict flags as host (verified directly — but not guarded by CI, which
-builds host only).
+**Verified 2026-08-01 (post-A2):** host suite **349 cases / 547,443 assertions** green under strict
+`-Werror`; CI PROS-free guard passes (scope now includes `include/shulib/diag` and
+`include/shulib/sim`) plus the new **sim-layering guard** (core may never include `shulib/sim/` —
+ground truth stays structurally unreachable from estimators); `bin/cold.package.elf` links
+(verified pre-A1 the same day — A1/A2 are header-only + host tests, so the kernel package is
+unaffected); **the v2 core cross-compiles clean for ARM** — all 69 v2 headers under the same strict
+flags as host (verified directly — but not guarded by CI, which builds host only).
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 
-**Three things nothing has yet touched:**
-1. **No shulib v2 code has ever run on a V5**, and none can until hardware exists.
-2. **There is no host sim.** `FakeMotor` records a commanded voltage and lets a test inject an
-   encoder value by hand — nothing converts voltage into motion, so **no closed loop exists anywhere
-   in the project.** See "The missing prerequisite" below.
+**Status of the three things nothing had touched:**
+1. **No shulib v2 code has ever run on a V5**, and none can until hardware exists. *(Still true.)*
+2. ~~**There is no host sim.**~~ **Closed at A2.** The plant converts voltage into motion behind the
+   unmodified F4 fakes; closed loops converge, diverge, and are measured against exact ground truth.
+   What remains honest about it: it proves **logic, not constants** (kinematic, no invented
+   dynamics), and its sensors are still *agreeable* until A3 populates the degradation seams.
 3. **`make` fails** — quarantined legacy sources still `#include "shulib/util.hpp"`. Expected, and
-   resolved in Chunk C7.
+   resolved in Chunk C7. *(Still true.)*
 
 ---
 
