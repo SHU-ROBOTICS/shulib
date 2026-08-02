@@ -19,13 +19,30 @@
 //   * the scenario layer — seeded random command schedules for sweep tests
 //     (test/sim_*_test.cpp) and, at Phase E, thousands of seeded trajectories;
 //   * the A3 degradation hooks — noise/dropout draws (the DegradationModel receives
-//     THIS Rng; the A2 identity model draws nothing).
+//     THIS Rng; the A2 identity model draws nothing; the A3 hostile models in
+//     sim/hostile/ draw a DOCUMENTED, fixed number of values per hook call, so the
+//     stream stays a pure function of the scenario);
+//   * JitterSchedule (sim/hostile/composed.hpp) holds its OWN Rng instance — a
+//     deliberately separate stream, so a dt schedule is reproducible independently
+//     of how many degradation draws a model makes.
 // The plant itself is deterministic given its inputs; nothing else in shulib::sim
 // may hold a random source. No wall-clock seeding exists anywhere (constraint 4:
 // a failing run must be re-runnable exactly).
 //
+// nextGaussian() (added at A3, ADDITIVELY — no pre-existing mapping changed): the
+// hostile sensor models need sigma-shaped noise, and <random>'s normal_distribution
+// is implementation-defined for the same reason its uniform mapping is — so the
+// Box-Muller mapping is pinned HERE, like nextUnit()'s 53-bit mapping. It consumes
+// EXACTLY two nextU64() draws per call (no cached spare — a cached second value
+// would make the draw count depend on call history, which is hostile to reasoning
+// about stream alignment). u1 is mapped into (0, 1] so std::log never sees 0.
+// Determinism caveat (same as the plant's, recorded in drive_plant.hpp): values are
+// bit-identical run-to-run and same-toolchain; log/sqrt/cos may differ in the last
+// ulp across libm implementations.
+//
 // Concurrency: single-task by contract, like the rest of the harness.
 
+#include <cmath>
 #include <cstdint>
 
 namespace shulib::sim {
@@ -54,6 +71,16 @@ public:
     /// convenience, not a validated API — this is test scaffolding, not the core).
     [[nodiscard]] constexpr double uniform(double lo, double hi) noexcept {
         return lo + (hi - lo) * nextUnit();
+    }
+
+    /// Standard-normal draw (mean 0, sigma 1) via Box-Muller — the pinned mapping
+    /// (header note). EXACTLY two nextU64() draws per call; u1 ∈ (0, 1] so the log
+    /// is always finite; the second Box-Muller value is deliberately discarded.
+    [[nodiscard]] double nextGaussian() noexcept {
+        constexpr double kTwoPi = 6.28318530717958647692;
+        const double u1 = 1.0 - nextUnit();  // (0, 1] — log(u1) finite
+        const double u2 = nextUnit();        // [0, 1)
+        return std::sqrt(-2.0 * std::log(u1)) * std::cos(kTwoPi * u2);
     }
 
 private:

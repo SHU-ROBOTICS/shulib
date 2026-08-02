@@ -133,8 +133,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 ## Milestones at a glance
 
 > **You are here:** **M1 complete; M2 control + localization complete; build-order chunks A1
-> (WS13 diagnostics) and A2 (the host plant + closed-loop sim harness — the missing
-> prerequisite, now closed) complete — A3, the hostile fakes, is next.**
+> (WS13 diagnostics), A2 (the host plant + closed-loop sim harness) and A3 (the hostile fakes —
+> the degradation seams populated, three real Localizer defects found and fixed, the M2 `<1°`
+> acceptance test live and measured) complete — A4, the Hardware Assumptions Register + ARM CI
+> gate, is next.**
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
@@ -180,16 +182,36 @@ not silently break them. This table is the spine of the no-staleness promise.
 > degradation seams, empty but proven live**. CI gains a layering guard (core may never include
 > `shulib/sim/`). **8 mutations proven red, then restored.** See
 > `docs/planning/chunks/A2-COMPLETED.md` for the full record.
-> **NEXT: chunk A3 — hostile fakes** (populate the degradation seams; today's agreeable fakes certify
-> their own blind spots). The *what* is still this page; the **order** lives in
+> **Chunk A3 (hostile fakes) is done — 2026-08-02:** the nine A2 degradation seams are POPULATED —
+> seven `sim/hostile/` headers model how V5 hardware actually lies (IMU calibration-garbage window +
+> per-boot drift + noise + dropout; GPS decimation/noise/no-fix/off-strip/bad-fix; encoder
+> quantization/freeze/PROS_ERR_F sentinel breach/bump-skid; battery sag→brownout collapse + thermal
+> droop; accel-triggered wheel slip; ring-buffered sensor latency; `ChainedDegradation` +
+> `FullHostility` composition + a seeded `JitterSchedule`), every invented magnitude labelled
+> **PROVISIONAL (A4)** in-header. **It did its job: hostility found three real Localizer defects and
+> they are fixed at the source** — (1) calibration garbage poisoned the fused pose 10.8″ on a
+> stationary robot (boot guard added), (2) `isReady()` outruns a latency-delayed heading stream, so a
+> settle window now holds the fold after a witnessed boot (found ONLY by the composed model — the
+> reducibility design paying off), (3) mid-run IMU loss misreported as `Uninitialized` (now
+> `Degraded`). Fault discipline proven real: `diag::HealthMonitor` (edge-triggered episodes,
+> brownout hysteresis + latched marker) + `FaultCode::MotorOverTemp` appended; every pathology in a
+> 9-attack survival matrix raises its code with a finite pose on every tick. The **M2 `<1°`
+> acceptance test is LIVE and measured**: worst end-of-60s heading error **0.912°** over 10 seeded
+> boots under full hostility (cap 1.0° — passes; worst instantaneous 1.065° transiently over, and
+> the margin at the pessimistic ±1°/min provisional drift bound is ~zero BY CONSTRUCTION: R4's
+> measurement is the ceiling, Phase E's correctors buy margin). **7 mutations proven red, then
+> restored.** See `docs/planning/chunks/A3-COMPLETED.md` for the full record.
+> **NEXT: chunk A4 — Hardware Assumptions Register + ARM CI gate** (A3 queued ~25 provisional
+> magnitudes as falsifiable claims for it). The *what* is still this page; the **order** lives in
 > **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks, written against the governing
 > constraint that **there is no robot yet**. Read it before starting any work.
 > *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
-> non-orthogonal pseudo-inverse → C3; `sysid` → R5.*
-> *Status verified 2026-08-01 (post-A2): host suite **349 cases / 547,443 assertions green** under
-> strict `-Werror`; CI PROS-free guard green with `diag/` + `sim/` in scope plus the new sim-layering
-> guard; all 69 v2 headers cross-compile clean for ARM under the same strict flags (not yet
-> CI-guarded — closes at A4).*
+> non-orthogonal pseudo-inverse → C3; `sysid` → R5; estimator-side frozen-encoder detection → E-phase
+> (the loop-level cross-check shape is tested at A3).*
+> *Status verified 2026-08-02 (post-A3): host suite **429 cases / 681,086 assertions green** under
+> strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle);
+> both CI guards green (PROS-free incl. `sim/hostile/`; core never includes `sim/`); all 77 v2
+> headers cross-compile clean for ARM under the same strict flags (not yet CI-guarded — closes at A4).*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -418,6 +440,26 @@ DoD in Phases C–F depends on it.*
   a 2% mis-calibration DETECTED at its predicted 1.0″), `test/sim_scenario_test.cpp` (9 — memcmp
   determinism, seam liveness, TermSink/NullSink cost). 48 new cases / 25,320 new assertions; suite
   349/547,443 green; **8 mutations proven red** (see `chunks/A2-COMPLETED.md`).*
+- [x] **Hostile fakes (build-order chunk A3)** — the nine seams populated with justified V5
+  misbehaviour, each independently injectable AND composable (`ChainedDegradation`/`FullHostility`),
+  hostility seeded (byte-identical replay pinned UNDER full hostility, closed-loop), every invented
+  magnitude labelled PROVISIONAL for the A4 register. Every pathology raises a `FaultCode` with a
+  safe fallback (`diag::HealthMonitor`, edge-triggered; `MotorOverTemp` appended) — no crash, no NaN
+  in the pose (finiteness REQUIREd on every tick of every attack). **Three Localizer defects found
+  by hostility and fixed at the source** (boot-window poisoning; ready-vs-data-path settle window;
+  mid-run-loss misreport). *Evidence: `include/shulib/sim/hostile/` (7 headers) +
+  `diag/health_monitor.hpp`; `test/sim_hostile_{imu,gps,encoder,power,slip,latency}_test.cpp`
+  (8+9+7+8+7+7 cases), `test/sim_hostile_survival_test.cpp` (10 — the fault-discipline matrix),
+  `test/sim_hostile_composed_test.cpp` (7 — composition/determinism/ablation/catastrophic),
+  `test/health_monitor_test.cpp` (10), +4 boot-guard pins in `localizer_test.cpp`, +Gaussian pins in
+  `sim_scenario_test.cpp`. Suite 429/681,086 green; **7 mutations proven red** (see
+  `chunks/A3-COMPLETED.md`).*
+- [~] **The M2 `<1°` acceptance test** (`accuracy_spec_test.cpp` `[acceptance][M2]`) — **unskipped
+  and live at A3** against modeled IMU drift/noise: worst end-of-60s heading error **0.912°** across
+  10 seeded boots (cap 1.0°). `[~]` not `[x]` because the numbers it runs against are PROVISIONAL:
+  at the pessimistic ±1°/min drift bound the margin is ~zero by construction (worst instantaneous
+  error touched 1.065° mid-run), so the claim "the STACK adds no heading error of its own" is proven,
+  while the field claim waits on R4's measured drift (the ceiling) and Phase E's correctors (the margin).
 
 **Facade (WS — Chassis)**
 - [ ] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.

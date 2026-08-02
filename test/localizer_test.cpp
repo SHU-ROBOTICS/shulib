@@ -416,3 +416,90 @@ TEST_CASE("Localizer: rejects an out-of-range config") {
                                LocalizerConfig{.qFloor = 1.0}}),
                     shulib::PreconditionError);
 }
+
+// ── The A3 boot-guard fixes, pinned where they live (found by the hostile fakes:
+// see docs/planning/chunks/A3-COMPLETED.md flaws section). ──
+
+TEST_CASE("Localizer: never-ready IMU ticks fold NO odometry deltas (boot-poisoning guard)") {
+    Rig r;
+    r.imu.setReady(false);
+    // The odometry is fed real wheel motion + a garbage-swinging heading — the
+    // exact calibration-window attack. The fused position must not move an inch.
+    r.imu.setHeading(Angle::degrees(37.0));
+    r.tick(0.01, 2.0);
+    r.imu.setHeading(Angle::degrees(-140.0));
+    r.tick(0.01, 5.0);
+    r.imu.setHeading(Angle::degrees(80.0));
+    r.tick(0.01, 9.0);
+    CHECK(r.loc.pose().x().value() == doctest::Approx(0.0));
+    CHECK(r.loc.pose().y().value() == doctest::Approx(0.0));
+    CHECK(r.loc.qualityClass() == Localizer::Quality::Uninitialized);
+    CHECK(r.loc.distanceSinceCorrection().value() == doctest::Approx(0.0));  // no phantom drift-tally
+}
+
+TEST_CASE("Localizer: after a witnessed boot, folding resumes only past the settle window") {
+    // The settle-window contract (A3's third finding): a status flag can outrun a
+    // delayed data path, so after a WITNESSED not-ready phase the fold stays closed
+    // for bootSettleTime past the first ready tick — not just the straddling tick.
+    Rig r;
+    r.imu.setReady(false);
+    r.imu.setHeading(Angle::degrees(150.0));  // last garbage sample
+    r.tick(0.01, 3.0);                        // boot tick (not folded)
+
+    r.imu.setReady(true);
+    r.imu.setHeading(Angle::degrees(0.0));
+    r.tick(0.01, 4.0);  // TRANSITION: delta straddles the garbage boundary → folds zero
+    CHECK(r.loc.pose().x().value() == doctest::Approx(0.0));
+
+    r.tick(0.01, 6.0);  // still INSIDE the 0.1 s settle window → folds zero, not live yet
+    CHECK(r.loc.pose().x().value() == doctest::Approx(0.0));
+    CHECK(r.loc.qualityClass() == Localizer::Quality::Uninitialized);
+    CHECK(r.loc.quality() == doctest::Approx(0.0));
+
+    r.tick(0.10, 6.0);  // the window (first-ready + 0.1 s) has elapsed; no travel yet
+    r.tick(0.01, 8.0);  // first LIVE tick: 2.0 in of forward travel at heading 0
+    CHECK(r.loc.pose().x().value() == doctest::Approx(2.0));
+    CHECK(r.loc.qualityClass() == Localizer::Quality::DeadReckon);
+}
+
+TEST_CASE("Localizer: a ready-from-construction boot takes NO settle hold (normal path unchanged)") {
+    // The guard applies only when a boundary was WITNESSED — a clean boot must keep
+    // folding from its very first tick, or every existing consumer would lose data.
+    Rig r;
+    r.tick(0.01, 5.0);  // ready from the first update: folds immediately
+    CHECK(r.loc.pose().x().value() == doctest::Approx(5.0));
+}
+
+TEST_CASE("Localizer: never-ready boot skips corrector proposals entirely") {
+    FakeCorrector fc;
+    fc.setProposal(CorrectionProposal{.valid = true,
+                                      .fieldPose = Pose2d{Length{5.0}, Length{5.0}, Angle{}},
+                                      .confidence = 1.0,
+                                      .positionStdDev = Length{1.0}});
+    std::array<ICorrector*, 1> arr{&fc};
+    Rig r{arr};
+    r.imu.setReady(false);
+    r.tick(0.01, 0.0);
+    r.tick(0.01, 0.0);
+    CHECK(fc.calls() == 0);  // an absolute fix must not move a pose that does not exist yet
+    CHECK(r.loc.pose().x().value() == doctest::Approx(0.0));
+}
+
+TEST_CASE("Localizer: mid-run IMU loss is Degraded (an estimate exists), never Uninitialized") {
+    Rig r;
+    r.tick(0.01, 1.0);  // ready, healthy — an estimate now exists
+    r.tick(0.01, 2.0);
+    CHECK(r.loc.qualityClass() == Localizer::Quality::DeadReckon);
+
+    r.imu.setReady(false);  // the disconnect
+    r.tick(0.01, 3.0);
+    CHECK(r.loc.qualityClass() == Localizer::Quality::Degraded);  // NOT Uninitialized
+    CHECK(r.loc.quality() == doctest::Approx(0.0));               // and zero trust
+    // encoders are still good: deltas KEEP folding on the stale heading (the
+    // documented best-available choice for a mid-run loss)
+    CHECK(r.loc.pose().x().value() == doctest::Approx(3.0));
+
+    r.imu.setReady(true);  // recovery
+    r.tick(0.01, 4.0);
+    CHECK(r.loc.qualityClass() == Localizer::Quality::DeadReckon);
+}

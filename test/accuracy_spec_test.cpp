@@ -1,13 +1,26 @@
 // F2 accuracy-spec encoding (master plan §7 / Freeze F2).
 //
-// Two real checks plus the skipped acceptance STUBS:
-//  * a guard that pins the locked target values (a tripwire — editing a target
-//    reds this test, forcing an explicit acknowledgement that F2 is changing),
-//  * internal-consistency invariants the target set must satisfy,
-//  * skipped placeholders naming the M2/M3 system-level acceptance tests, kept
-//    skipped (no Localizer/motion yet) so the suite stays green and honest.
+// The pinned target values, the internal-consistency invariants, and the
+// acceptance tests. Status per tier:
+//  * [acceptance][M2] went LIVE at chunk A3: the dead-reckon stack now runs against
+//    MODELED IMU drift/noise (sim/hostile/), so the <1° assertion finally claims
+//    something (against perfect sensors it was vacuous — the A2 record explains
+//    why it stayed skipped until hostility existed).
+//  * [acceptance][M3] stubs stay skipped — no correctors/docking exist yet.
 
 #include "doctest.h"
+
+#include <algorithm>
+#include <cmath>
+
+#include "shulib/localization/complementary_fusion.hpp"
+#include "shulib/localization/localizer.hpp"
+#include "shulib/localization/pilons_odometry.hpp"
+#include "shulib/kinematics/x_drive.hpp"
+#include "shulib/math/angle.hpp"
+#include "shulib/math/twist2d.hpp"
+#include "shulib/sim/hostile/composed.hpp"
+#include "shulib/sim/scenario.hpp"
 #include "shulib/spec/accuracy.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -27,12 +40,80 @@ TEST_CASE("F2 spec: internal-consistency invariants the target set must satisfy"
     CHECK(kHeadingErrorMaxDeg  > 0.0);
 }
 
-// ----- Acceptance-test STUBS — go live as the systems land (kept skipped now) -----
+// ----- Acceptance tests — [M2] live since A3; [M3] stubs stay skipped -----
 
-TEST_CASE("[acceptance][M2] dead-reckon heading holds over a 60s straight-line test"
-          * doctest::skip()) {
-    // TODO(M2): with Localizer(odom + IMU-owned heading), run 60s;
-    // assert |heading error| < kHeadingErrorMaxDeg.
+TEST_CASE("[acceptance][M2] dead-reckon heading holds over a 60s straight-line test") {
+    // LIVE SINCE A3, and what it now honestly claims: the full M2 stack
+    // (PilonsOdometry + Localizer, heading IMU-owned) holds |heading error| <
+    // kHeadingErrorMaxDeg over 60 s of straight-line driving UNDER THE MODELED
+    // hostile world (FullHostility defaults: 2 s calibration window, per-boot drift
+    // uniform in ±1°/min, heading noise sigma 0.05°, latency, quantization, sag).
+    //
+    // Scope, stated honestly:
+    //  * The drift bound is PROVISIONAL (A4 register; R4 measures the real rate).
+    //    At exactly the ±1°/min bound the F2 margin is ZERO by construction
+    //    (1°/min × 60 s = 1°) — heading quality on the REAL IMU is the ceiling on
+    //    this target (build-order R4), and Phase E's correctors are what buy
+    //    margin. This test proves the STACK adds no error of its own on top of
+    //    the sensor's, across a fair sweep of boots.
+    //  * Ten seeded boots sweep the per-boot drift distribution, INCLUDING the
+    //    near-bound draw (seed 10 draws −0.93°/min — verified against the pinned
+    //    SplitMix64 first-draw mapping). Seeds are representative, not curated:
+    //    1..10, no gaps.
+    //  * "Straight-line" = alternating straight legs, no commanded rotation (the
+    //    field-honest shape of the bench test the spec names).
+    const auto kin = shulib::kinematics::xDrive(shulib::units::Length{7.0});
+    constexpr double kDt = 0.01;
+    double worstEndErrDeg = 0.0;
+    double worstRunErrDeg = 0.0;
+
+    for (std::uint64_t seed = 1; seed <= 10; ++seed) {
+        shulib::sim::FullHostility full{};
+        shulib::sim::SimHarnessConfig cfg;
+        cfg.plant.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};
+        cfg.plant.seed = seed;
+        shulib::sim::SimHarness h{kin, cfg, nullptr, &full.model()};
+        shulib::localization::PilonsOdometry odom{
+            h.imu(), h.makeForwardTrackingWheel(), h.makeLateralTrackingWheel()};
+        shulib::localization::ComplementaryFusion fusion{};
+        shulib::localization::Localizer loc{h.clock(), h.imu(), odom, fusion};
+
+        double runWorstDeg = 0.0;
+        bool live = false;
+        int liveTicks = 0;
+        // 2.5 s boot hold (calibration + settle: the C1 wait-for-live contract),
+        // then 60.0 s of straight legs, 5 s each, alternating direction.
+        h.runTicks(6250, shulib::units::Time{kDt}, [&](int) {
+            loc.update();
+            live = live || loc.qualityClass()
+                               != shulib::localization::Localizer::Quality::Uninitialized;
+            if (!live) {
+                return;
+            }
+            ++liveTicks;
+            const double errDeg =
+                std::abs(h.truePose().heading().errorTo(loc.pose().heading()))
+                / (shulib::math::Angle::kPi / 180.0);
+            runWorstDeg = std::max(runWorstDeg, errDeg);
+            const double vx = ((liveTicks / 500) % 2 == 0) ? 15.0 : -15.0;
+            h.commandBodyTwist(shulib::math::ChassisSpeeds{shulib::units::Velocity{vx},
+                                                           shulib::units::Velocity{0.0},
+                                                           shulib::units::AngularVelocity{0.0}});
+        });
+        REQUIRE(live);
+        REQUIRE(liveTicks >= 6000);  // the claim really spans 60 s of driving
+        const double endErrDeg =
+            std::abs(h.truePose().heading().errorTo(loc.pose().heading()))
+            / (shulib::math::Angle::kPi / 180.0);
+
+        // THE F2 CLAIM, per boot: end-of-60s heading error under the cap.
+        CHECK(endErrDeg < kHeadingErrorMaxDeg);
+        worstEndErrDeg = std::max(worstEndErrDeg, endErrDeg);
+        worstRunErrDeg = std::max(worstRunErrDeg, runWorstDeg);
+    }
+    MESSAGE("[acceptance][M2] 60s dead-reckon heading: worst end-of-run error ",
+            worstEndErrDeg, " deg, worst instantaneous ", worstRunErrDeg,
+            " deg across 10 boots (cap ", kHeadingErrorMaxDeg, " deg)");
 }
 
 TEST_CASE("[acceptance][M3] end-of-60s fused pose within F2 targets"

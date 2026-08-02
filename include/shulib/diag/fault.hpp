@@ -51,6 +51,9 @@ enum class FaultCode : std::uint16_t {
     GpsGateReject = 6,  ///< a GPS fix was rejected by the fusion gate (E2)
     Brownout = 7,       ///< battery collapsed below the brownout threshold
     MotionTimeout = 8,  ///< a motion hit its watchdog (FAULT_ABORT / TimedOut, C1/C2)
+    MotorOverTemp = 9,  ///< a motor crossed the thermal-throttle threshold (~55 °C) —
+                        ///< the droop corrupts kS/kV/kA, so it must be visible (§8/§18.4;
+                        ///< APPENDED at chunk A3, per the append-only rule above)
 };
 
 /// The §18.4 spelling of each code, for TermSink lines and the run summary.
@@ -66,6 +69,7 @@ enum class FaultCode : std::uint16_t {
         case FaultCode::GpsGateReject: return "GPS_GATE_REJECT";
         case FaultCode::Brownout: return "BROWNOUT";
         case FaultCode::MotionTimeout: return "MOTION_TIMEOUT";
+        case FaultCode::MotorOverTemp: return "MOTOR_OVER_TEMP";
     }
     return "UNKNOWN";
 }

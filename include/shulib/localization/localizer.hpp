@@ -15,6 +15,34 @@
 // Swapping the complementary filter for an EKF later is a one-argument change (IFusionPolicy); the
 // IPoseSource read seam and the ICorrector write seam never move. At M2 the corrector list is empty
 // or holds only NullCorrector, so the default-tested path is dead-reckoning (odom + IMU).
+//
+// ── The IMU-readiness boot guard (added at A3, after the hostile fakes drew blood) ──
+// A calibrating IMU emits GARBAGE THAT MOVES, and the odometry offset correction converts garbage
+// heading swings into phantom translation (Δθ·offset per tick) — observed at A3: a robot sitting
+// STILL through a 2 s calibration window ended 10.8 inches from where it started, permanently
+// (no corrector at M2 can heal it), while quality honestly said 0. The flag was honest; the pose
+// was not. So update() now distinguishes three IMU states:
+//   * NEVER been ready (boot): odometry still consumes its wheel deltas tick-by-tick (so the
+//     transition tick sees one tick's travel, not the whole boot's), but the fused position folds
+//     NOTHING — no odom deltas, no corrector proposals. Quality: Uninitialized, 0.
+//   * THE SETTLE WINDOW (the second A3 finding, caught only by the COMPOSED hostile model):
+//     isReady() is a status flag; the heading STREAM is a data path with its own latency. When
+//     calibration garbage and sensor latency are both live, ready flips true while the stream is
+//     still serving delayed garbage — observed: one post-transition fold differenced against a
+//     delayed-garbage prevHeading leaked 3.65 in. So after a WITNESSED not-ready phase, the fold
+//     stays closed for `bootSettleTime` past the first ready tick (quality stays Uninitialized —
+//     the estimate is not live yet). A boot that was ready from the very first update() has no
+//     boundary in its stream and takes no settle hold, so the normal path is byte-identical to
+//     before. Consequence, stated as the consumer contract: motion commanded before qualityClass
+//     leaves Uninitialized is unaccounted — C1's loop waits for a live estimate (real autons wait
+//     out calibration anyway).
+//   * ready: normal operation.
+//   * WAS ready, lost mid-run (dropout): deltas KEEP folding — the encoders are still good and a
+//     stale-heading estimate beats a frozen one — but quality reports Degraded (NOT Uninitialized:
+//     a robot that had a fix and lost its heading authority must be distinguishable from one still
+//     booting, or a skills gate applies the wrong recovery) with the scalar pinned to 0.
+// PilonsOdometry itself stays readiness-blind on purpose — its header assigns recovery policy to
+// this layer, and a second gate below would hide this one's absence from the tests.
 
 #include <algorithm>
 #include <array>
@@ -49,6 +77,12 @@ struct LocalizerConfig {
     units::Length driftHorizon{12.0};
     /// Quality floor while dead-reckoning far from a fix, in [0,1).
     double qFloor = 0.2;
+    /// How long after a WITNESSED not-ready→ready transition the fold stays closed while the
+    /// delayed sensor data path flushes its boot-boundary garbage (the settle window — header
+    /// note). Applies ONLY when a not-ready phase was observed; a ready-from-construction boot
+    /// takes no hold. Must cover the worst sensor data-path latency; 0.1 s clears the ~50 ms
+    /// GPS-class delay with margin (adequacy vs. REAL latencies: A4 register, R4 measures).
+    double bootSettleTime = 0.1;
 };
 
 class Localizer final : public IPoseSource {
@@ -70,6 +104,8 @@ public:
         SHULIB_PRECONDITION(config.driftHorizon.value() > 0.0, "Localizer: driftHorizon must be > 0");
         SHULIB_PRECONDITION(config.qFloor >= 0.0 && config.qFloor < 1.0,
                             "Localizer: qFloor must be in [0, 1)");
+        SHULIB_PRECONDITION(config.bootSettleTime >= 0.0,
+                            "Localizer: bootSettleTime must be >= 0");
         SHULIB_PRECONDITION(correctors.size() <= kMaxCorrectors, "Localizer: too many correctors");
         for (ICorrector* c : correctors_) {
             SHULIB_PRECONDITION(c != nullptr, "Localizer: a corrector is null");
@@ -92,25 +128,46 @@ public:
         // STEP 2 — predict: advance the PERSISTENT fused position by the per-tick odom field-frame
         // DELTA (NOT a reset to absolute odom). This is what lets a correction accumulate and persist
         // after a corrector goes quiet — the never-snap nudge can now actually converge & bound drift.
+        // BOOT GUARD + SETTLE WINDOW (header note): before the IMU has EVER been ready, the deltas
+        // are built on garbage heading — odometry still consumes its wheels, but the fused position
+        // folds zero. After a WITNESSED not-ready phase, the fold stays closed a further
+        // bootSettleTime past the first ready tick, because the heading data path may still be
+        // serving delayed boot-boundary garbage after the status flag flips (the composed-hostility
+        // finding). A ready-from-first-update boot sets settleUntil = now: no hold, no behavior
+        // change on the normal path.
+        const bool readyNow = imu_.isReady();
+        if (!readyNow && !imuEverReady_) {
+            sawNotReady_ = true;
+        }
+        if (readyNow && !imuEverReady_) {
+            imuEverReady_ = true;
+            settleUntil_ = sawNotReady_ ? now + config_.bootSettleTime : now;
+        }
+        const bool foldDeltas = imuEverReady_ && now >= settleUntil_;
+        settled_ = foldDeltas;
         odom_.update();
         const math::Pose2d odomNow = odom_.pose();
-        const double odx = odomNow.x().value() - lastOdomX_;
-        const double ody = odomNow.y().value() - lastOdomY_;
+        const double odx = foldDeltas ? (odomNow.x().value() - lastOdomX_) : 0.0;
+        const double ody = foldDeltas ? (odomNow.y().value() - lastOdomY_) : 0.0;
         const math::Angle heading = imu_.heading();
         const math::Pose2d predicted{units::Length{fusedX_ + odx}, units::Length{fusedY_ + ody}, heading};
 
-        // STEP 3 — gather VALID proposals (screened, incl. FINITE confidence so an Inf can't sail through).
+        // STEP 3 — gather VALID proposals (screened, incl. FINITE confidence so an Inf can't sail
+        // through). Skipped entirely during boot (header note): an absolute fix folded into a
+        // heading-garbage tick would move a pose the quality flags say does not exist yet.
         std::array<CorrectionProposal, kMaxCorrectors> buf{};
         std::array<const char*, kMaxCorrectors> names{};
         std::size_t n = 0;
-        for (ICorrector* c : correctors_) {
-            const CorrectionProposal p = c->propose(predicted, units::Time{dt});
-            if (p.valid && std::isfinite(p.confidence) && p.confidence > 0.0 &&
-                p.positionStdDev.value() > 0.0 &&
-                std::isfinite(p.fieldPose.x().value()) && std::isfinite(p.fieldPose.y().value()) &&
-                n < buf.size()) {
-                names[n] = c->name();
-                buf[n++] = p;
+        if (foldDeltas) {
+            for (ICorrector* c : correctors_) {
+                const CorrectionProposal p = c->propose(predicted, units::Time{dt});
+                if (p.valid && std::isfinite(p.confidence) && p.confidence > 0.0 &&
+                    p.positionStdDev.value() > 0.0 &&
+                    std::isfinite(p.fieldPose.x().value()) && std::isfinite(p.fieldPose.y().value()) &&
+                    n < buf.size()) {
+                    names[n] = c->name();
+                    buf[n++] = p;
+                }
             }
         }
 
@@ -195,8 +252,12 @@ private:
     void refreshQuality(bool dtHealthy) {
         const bool ready = imu_.isReady();
         const bool implausible = odom_.lastDeltaImplausible();
-        if (!everUpdated_ || !ready) {
-            qualityClass_ = Quality::Uninitialized;
+        if (!everUpdated_ || !settled_) {
+            qualityClass_ = Quality::Uninitialized;  // booting/settling: no live estimate yet
+        } else if (!ready) {
+            // WAS ready, lost it mid-run (header note): the estimate exists and is decaying —
+            // Degraded, not Uninitialized, so a consumer can tell loss from boot.
+            qualityClass_ = Quality::Degraded;
         } else if (implausible || !dtHealthy) {
             qualityClass_ = Quality::Degraded;
         } else if (!deadReckoning_) {
@@ -207,11 +268,12 @@ private:
             qualityClass_ = Quality::DeadReckon;
         }
 
-        // Scalar, kept CONSISTENT with the class: 0 until ready+initialized (no false confidence at
-        // boot), then driftTerm decayed by dt-health and odom implausibility so it can't read 1.0 on
-        // a Degraded tick. (Graded confidence-weighted trust per fix is the M3 EKF's job; M2 resets
-        // the drift term on any accepted in-gate fix.)
-        if (!everUpdated_ || !ready) {
+        // Scalar, kept CONSISTENT with the class: 0 whenever the IMU is not ready (no heading
+        // authority ⇒ no trust — boot AND mid-run loss alike), then driftTerm decayed by dt-health
+        // and odom implausibility so it can't read 1.0 on a Degraded tick. (Graded
+        // confidence-weighted trust per fix is the M3 EKF's job; M2 resets the drift term on any
+        // accepted in-gate fix.)
+        if (!everUpdated_ || !ready || !settled_) {
             quality_ = 0.0;
             return;
         }
@@ -246,6 +308,10 @@ private:
     double lastFusedY_ = 0.0;
     bool hasLast_ = false;
     bool everUpdated_ = false;
+    bool imuEverReady_ = false;  // the boot guard's memory (header note; never resets mid-run)
+    bool sawNotReady_ = false;   // a not-ready phase was witnessed → a boundary exists in the stream
+    bool settled_ = false;       // fold open this tick (imuEverReady_ AND past the settle window)
+    double settleUntil_ = 0.0;   // clock time the settle window ends (== firstReady if no boundary)
 };
 
 }  // namespace shulib::localization

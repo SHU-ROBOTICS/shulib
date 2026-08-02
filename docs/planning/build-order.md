@@ -85,27 +85,31 @@ the season's routines.
 **Done:** M0 complete · M1 host-side (F4 + F5 frozen host-only) · M2 control layer (WS4) · M2
 localization tier 1 (WS5) · **Chunk A1 — `DebugRecord` + `TermSink` + fault discipline (WS13)**,
 closed 2026-08-01 ([completion record](chunks/A1-COMPLETED.md)) · **Chunk A2 — the host plant +
-closed-loop sim harness**, closed 2026-08-01 with its documentation contract discharged
-([completion record](chunks/A2-COMPLETED.md)) — **the missing prerequisite below is now closed**:
-the first closed loops in the project run and settle against the plant, and the first end-to-end
-localization proof (odometry/Localizer vs. ground truth) exists. **Next: chunk A3.**
+closed-loop sim harness**, closed 2026-08-01 ([completion record](chunks/A2-COMPLETED.md)) ·
+**Chunk A3 — hostile fakes**, closed 2026-08-02 with its documentation contract discharged
+([completion record](chunks/A3-COMPLETED.md)) — **the seams are populated and the suite is no
+longer agreeable**: every V5 misbehaviour class is injectable and composable, hostility found and
+fixed three real Localizer defects, and the M2 `<1°` acceptance test is live with a measured
+number. **Next: chunk A4** (A3 queued ~25 provisional magnitudes as the register's seed content).
 
-**Verified 2026-08-01 (post-A2):** host suite **349 cases / 547,443 assertions** green under strict
-`-Werror`; CI PROS-free guard passes (scope now includes `include/shulib/diag` and
-`include/shulib/sim`) plus the new **sim-layering guard** (core may never include `shulib/sim/` —
-ground truth stays structurally unreachable from estimators); `bin/cold.package.elf` links
-(verified pre-A1 the same day — A1/A2 are header-only + host tests, so the kernel package is
-unaffected); **the v2 core cross-compiles clean for ARM** — all 69 v2 headers under the same strict
-flags as host (verified directly — but not guarded by CI, which builds host only).
+**Verified 2026-08-02 (post-A3):** host suite **429 cases / 681,086 assertions** green under strict
+`-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle — the M2
+stub is now LIVE); CI PROS-free guard passes (scope includes `include/shulib/diag` and all of
+`include/shulib/sim` incl. `sim/hostile/`) plus the **sim-layering guard** (core may never include
+`shulib/sim/`); **the v2 core cross-compiles clean for ARM** — all 77 v2 headers under the same
+strict flags as host (verified directly — but not guarded by CI, which builds host only; A4 adds
+the gate).
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 
 **Status of the three things nothing had touched:**
 1. **No shulib v2 code has ever run on a V5**, and none can until hardware exists. *(Still true.)*
-2. ~~**There is no host sim.**~~ **Closed at A2.** The plant converts voltage into motion behind the
-   unmodified F4 fakes; closed loops converge, diverge, and are measured against exact ground truth.
-   What remains honest about it: it proves **logic, not constants** (kinematic, no invented
-   dynamics), and its sensors are still *agreeable* until A3 populates the degradation seams.
+2. ~~**There is no host sim.**~~ **Closed at A2; made HOSTILE at A3.** The plant converts voltage
+   into motion behind the unmodified F4 fakes; closed loops converge, diverge, and are measured
+   against exact ground truth — and since A3 the sensors LIE the way V5 hardware lies (drift,
+   garbage windows, sentinels, sag, slip, latency, jitter), reproducibly from a seed. What remains
+   honest about it: it proves **logic, not constants** — every hostile magnitude is provisional
+   until R4 measures the real sensors (the A4 register tracks each one).
 3. **`make` fails** — quarantined legacy sources still `#include "shulib/util.hpp"`. Expected, and
    resolved in Chunk C7. *(Still true.)*
 

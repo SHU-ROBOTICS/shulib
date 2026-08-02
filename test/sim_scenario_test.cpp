@@ -110,6 +110,45 @@ TEST_CASE("sim Rng: unit and uniform draws stay inside their intervals (sweep)")
     }
 }
 
+// ── A3's nextGaussian(): the pinned Box-Muller mapping. Three properties that
+// each catch a different way to get it wrong: the draw-count contract (exactly two
+// u64s per call — a cached-spare implementation reds the alignment check), finite
+// output over a large sweep (the u1 ∈ (0,1] guard — dropping the 1.0− makes log(0)
+// possible), and honest first/second moments (a broken scale factor reds here). ──
+TEST_CASE("sim Rng: nextGaussian is finite, deterministic, two-draws-per-call, sane moments") {
+    // draw-count contract: interleaving gaussians and u64s must stay aligned with
+    // a reference stream that burns exactly 2 u64s per gaussian.
+    Rng a{99};
+    Rng b{99};
+    (void)a.nextGaussian();  // consumes exactly 2 draws...
+    (void)b.nextU64();       // ...mirrored manually
+    (void)b.nextU64();
+    CHECK(a.nextU64() == b.nextU64());  // streams still aligned
+
+    // determinism: same seed → identical sequence
+    Rng c{7};
+    Rng d{7};
+    for (int i = 0; i < 100; ++i) {
+        CHECK(c.nextGaussian() == d.nextGaussian());
+    }
+
+    // finiteness + moments over a big sweep
+    Rng r{2026};
+    double sum = 0.0;
+    double sumSq = 0.0;
+    constexpr int kN = 100000;
+    for (int i = 0; i < kN; ++i) {
+        const double g = r.nextGaussian();
+        REQUIRE(std::isfinite(g));
+        sum += g;
+        sumSq += g * g;
+    }
+    const double mean = sum / kN;
+    const double var = sumSq / kN - mean * mean;
+    CHECK(std::abs(mean) < 0.02);        // ~6σ/√N headroom
+    CHECK(var == doctest::Approx(1.0).epsilon(0.03));
+}
+
 // ── Constraint 4 / DoD: byte-identical replay from a seed; a different seed
 // genuinely diverges. memcmp on the packed samples — representations, not tolerances. ──
 TEST_CASE("sim scenario: same seed replays byte-identically; different seed diverges") {

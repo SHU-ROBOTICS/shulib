@@ -9,10 +9,10 @@
 // hardware can lie: between the commanded voltage and the wheel, between the wheel
 // and the floor, and between the physical truth and every sensor reading. THIS base
 // class is the identity at every hook — a plant running it is the "perfect robot"
-// A2 needs for logic proofs. Chunk A3 subclasses it to model how hardware actually
-// misbehaves; NOTHING here implements those behaviours (the brief's scope line:
-// seams, not behaviours). If you find yourself adding noise math in this file, you
-// are doing A3's chunk inside A2's — stop.
+// A2 needs for logic proofs. The A3 hostile models live in sim/hostile/ (one class
+// per sensor family + ChainedDegradation/FullHostility for composition); NOTHING
+// here implements those behaviours — this file stays the seam definition, and any
+// noise math belongs in a sim/hostile/ subclass, never in the base.
 //
 // ── The seam map (each hook names the A3 behaviour it exists for) ───────────────────
 //   effectiveVoltage()      battery sag under load, brownout collapse, current
