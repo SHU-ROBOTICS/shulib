@@ -136,6 +136,34 @@ TEST_CASE("FaultLatch: clear() opens a new run — the next fault is a new FIRST
     CHECK(latch.faultCount() == 1);
 }
 
+// Bug caught: the per-code tally (added at C2 for the scheduler's fault
+// policy) miscounting — a re-raise the policy must see would be invisible, or
+// a stale count would abort a healthy motion. Also pins that clear() resets
+// the tallies with the rest of the run state.
+TEST_CASE("FaultLatch: raiseCount tallies per code, survives cascades, resets on clear()") {
+    FakeTelemetrySink sink;
+    FakeClock clock;
+    FaultLatch latch{sink, clock};
+
+    CHECK(latch.raiseCount(FaultCode::OdoStuck) == 0);
+    latch.raise(FaultCode::OdoStuck, "LOC", "first episode");
+    latch.raise(FaultCode::Brownout, "PWR", "");
+    latch.raise(FaultCode::OdoStuck, "LOC", "second episode");  // the re-raise the
+                                                                // C2 policy must see
+    CHECK(latch.raiseCount(FaultCode::OdoStuck) == 2);
+    CHECK(latch.raiseCount(FaultCode::Brownout) == 1);
+    CHECK(latch.raiseCount(FaultCode::ImuLost) == 0);
+    CHECK(latch.raiseCount(FaultCode::None) == 0);  // None is never raisable
+    latch.raise(FaultCode::None, "X", "");          // …and the no-op stays a no-op
+    CHECK(latch.raiseCount(FaultCode::None) == 0);
+    // An out-of-tally-range cast must read 0, never crash or index wild.
+    CHECK(latch.raiseCount(static_cast<FaultCode>(200)) == 0);
+
+    latch.clear();
+    CHECK(latch.raiseCount(FaultCode::OdoStuck) == 0);
+    CHECK(latch.raiseCount(FaultCode::Brownout) == 0);
+}
+
 namespace {
 /// A sink that violates its MUST-NOT-THROW contract — the hostile case raise() must survive.
 class ThrowingSink final : public ITelemetrySink {

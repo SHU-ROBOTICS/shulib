@@ -133,13 +133,18 @@ not silently break them. This table is the spine of the no-staleness promise.
 ## Milestones at a glance
 
 > **You are here:** **M1 complete; M2 control + localization complete; Phase A COMPLETE
-> (2026-08-06); Phase C OPEN — chunk C1 (`IMotion` + the motion primitives) built and verified
-> 2026-08-06, in the working tree pending review.** The library can now be told "go to that
-> spot": `MoveToPose` (decoupled per-axis x/y/θ — the holonomic thesis, mutation-proven),
-> `TurnTo`, `StrafeTo`, `HoldPose`, `DriveBrake`, all watchdog-bounded, hostile-surviving, and
-> honoring A3's two handoffs (wait-for-live-estimate; the ODO_STUCK spin-vs-motion cross-check).
-> **Next: chunk C2 — `MotionScheduler`.** (There is no Phase B: the original hardware phase
-> became Phase R — see build-order's deviations table.)
+> (2026-08-06); Phase C OPEN — C1 closed 2026-08-06; chunk C2 (`MotionScheduler`) built and
+> verified 2026-08-06, in the working tree pending review.** The library now RUNS a routine:
+> one active motion enforced structurally (pre-empt-with-cancel), `async()` /
+> `waitUntilSettled()` / `waitUntil(pred, timeout)` / `cancel()` (safe state = 0 V + Brake,
+> synchronous — HA-53), the C1-deferred fault policy decided (abort-and-brake on a NEW
+> ODO_STUCK — the lying-estimate code — continue-degraded on IMU_LOST/BROWNOUT/etc.,
+> configurable), no wait can hang, `activeCommandId` finally on the wire, and scheduled
+> routines reproduce C1's accuracy baseline BIT-IDENTICALLY (clean 5→40-move chains flat in
+> count at 0.23–0.24 in; hostile worst 4.13 in).
+> **Next: chunk C3 — `HDriveKinematics`** (+ confirm C1's D11 strafe-authority reading).
+> (There is no Phase B: the original hardware phase became Phase R — see build-order's
+> deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
@@ -221,20 +226,22 @@ not silently break them. This table is the spine of the no-staleness promise.
 > the host build is provably blind to (mutation: host GREEN, gate RED, restored). This register
 > is R3's day-one checklist — first hardware contact is a prepared sequence, not an exploration.
 > See `docs/planning/chunks/A4-COMPLETED.md` (incl. the Phase A retrospective).
-> **NEXT: chunk C2 — `MotionScheduler`** (C1 closed 2026-08-06 — see
-> `docs/planning/chunks/C1-COMPLETED.md`). The *what* is still this page; the **order** lives in
+> **NEXT: chunk C3 — `HDriveKinematics`** (C1 closed 2026-08-06 — see
+> `docs/planning/chunks/C1-COMPLETED.md`; C2 built and verified 2026-08-06 — see
+> `docs/planning/chunks/C2-COMPLETED.md`, working tree pending review). The *what* is still this
+> page; the **order** lives in
 > **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks, written against the governing
 > constraint that **there is no robot yet**. Read it before starting any work.
 > *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
 > non-orthogonal pseudo-inverse → C3; `sysid` → R5; estimator-side frozen-encoder detection → E-phase
 > (the loop-level cross-check shape is tested at A3).*
-> *Status verified 2026-08-06 (post-C1): host suite **487 cases / 858,611 assertions green** under
+> *Status verified 2026-08-06 (post-C2): host suite **527 cases / 859,931 assertions green** under
 > strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle
-> = register entry HA-01); both CI guards green with **`include/shulib/motion` added to both
-> scopes**; all **85** v2 headers cross-compile clean for ARM under the CI `arm-compile-gate`
-> job (generated list — the 8 new motion headers are covered automatically). C1 ran **12
-> mutations, all observed red** (two only after the suite was strengthened — the two holes they
-> exposed are closed and recorded in C1-COMPLETED §Mutations).*
+> = register entry HA-01); both CI guards green (scopes unchanged — the scheduler lives in
+> `include/shulib/motion`, already covered); all **86** v2 headers cross-compile clean for ARM
+> under the CI `arm-compile-gate` job (generated list — `motion_scheduler.hpp` is covered
+> automatically). C2 ran **16 mutations, all observed red** (C2-COMPLETED §Mutations); C1's 12
+> stand as recorded.*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -437,7 +444,21 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   + composed settled-vs-truth divergence), `motion_routine_test.cpp` (4 — 5/10/20/40-move
   chains: clean error FLAT in count, hostile worst 4.1 in attributed to drift-vs-time),
   `motion_stall_check_test.cpp` (9). 58 cases; suite 487/858,611; 12 mutations red.*
-- [ ] `MotionScheduler` — one active motion, `async()`/`waitUntilSettled()`/`waitUntil(pred)`/`cancel()`.
+- [x] `MotionScheduler` — one active motion, `async()`/`waitUntilSettled()`/`waitUntil(pred)`/`cancel()`.
+  *Chunk C2, 2026-08-06 (working tree, pending review): the formalized loop (localizer-first,
+  bit-identical to the C1 hand loop — pinned by an equivalence test only the loop-shape mutation
+  can red), ONE active slot with pinned PRE-EMPT semantics, `cancel()` into the defined safe
+  state (0 V + Brake, synchronous — HA-53), the C1-deferred fault policy (abort-and-brake on new
+  ODO_STUCK, continue-degraded elsewhere, configurable mask via the new
+  `FaultLatch::raiseCount`), every wait bounded (explicit `waitUntil` timeouts, watchdog-bounded
+  settle, the stalled-pacer guard), the check.hpp task-boundary catch, `activeCommandId`
+  stamping (`CommandIdStampSink`, pair-rule preserving), idle-gap HealthMonitor + LoopMonitor
+  ownership, `ExitReason::Cancelled`/`MotionState::Cancelled` appended. Routine accuracy through
+  the scheduler REPRODUCES C1's baseline verbatim (bit-identity: clean n=5 finalErr 0.228 in ==
+  C1; hostile worst 4.13 in; settle overhead 1.19 s/motion). Evidence:
+  `include/shulib/motion/motion_scheduler.hpp`; `test/motion_scheduler_test.cpp` (25),
+  `motion_scheduler_routine_test.cpp` (4), `fault_test.cpp` (+1); suite 527/859,931; 16
+  mutations, all observed red.*
 
 **Kinematics (WS3)**
 - [ ] `HDriveKinematics` — capped strafe authority + automatic turn-then-drive fallback (telemetry-visible).

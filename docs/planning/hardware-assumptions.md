@@ -36,9 +36,9 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 52 settled.** No robot exists. Counts: **36 invented · 13 reasoned · 2 measured
-> elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1
-> per the Maintenance convention (the first post-A4 contributor).
+> **Status: 0 of 53 settled.** No robot exists. Counts: **36 invented · 14 reasoned · 2 measured
+> elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
+> HA-53 by chunk C2 (the cancel safe state), per the Maintenance convention.
 
 ---
 
@@ -98,6 +98,7 @@
 | HA-50 | C1 motion gains + speed budget (kP 3.0/4.0, 60 in/s, 6 rad/s, 60 in/s wheels) | **invented** | R5 |
 | HA-51 | C1 settle tolerances (0.5″/1.15° + rate floors; brake 1.2 in/s; 5 s timeout) | **invented** | R4/R5 |
 | HA-52 | Stall cross-check thresholds (0.3 s window, 1.0″ spin, 25% ratio, stand-in radii) | **invented** | R3/R4 |
+| HA-53 | Cancel safe state: 0 V + BrakeMode::Brake stops the drive promptly from speed | reasoned | R3/R5 |
 
 ---
 
@@ -692,10 +693,34 @@ settleable before hardware, and none block any host chunk.
   propulsion is itself a guess).
   *Settle (R3 geometry; R4 slip/noise):* measure real slip ratios and encoder noise; verify a
   hand-held wheel-stall raises ODO_STUCK within one window on the bench.
-  *Blast radius if wrong:* too eager ⇒ spurious ODO_STUCK during aggressive maneuvers (a log
-  smell, not a crash — the fault does not abort at C1); too lax ⇒ a dead encoder is caught by
-  the watchdog instead (slower, still bounded). The E-phase estimator-side detector supersedes
-  this check's load-bearing role.
+  *Blast radius if wrong:* too eager ⇒ spurious ODO_STUCK during aggressive maneuvers — and
+  since C2 that is no longer only a log smell: the scheduler's default fault policy ABORTS the
+  active motion on a new ODO_STUCK (brakes, records the cause, run continues), so a false
+  positive costs one motion, loudly and safely, never a crash; too lax ⇒ a dead encoder is
+  caught by the watchdog instead (slower, still bounded). The E-phase estimator-side detector
+  supersedes this check's load-bearing role.
+
+- [ ] **HA-53 — the C2 cancel safe state: 0 V + `BrakeMode::Brake` brings the drive from full
+  speed to rest promptly (visibly faster than coast), with no adverse firmware interaction from
+  re-commanding it repeatedly.**
+  *Claim:* commanding zero volts under Brake mode on all drive motors is the correct and
+  sufficient "safe state" for every cancel path (user cancel, pre-emption, fault abort, panic
+  stop): the real V5 drivetrain decelerates at least as fast as the passive/back-EMF coast the
+  host plant models, and short-circuit braking does not misbehave when the very next motion
+  immediately commands voltage again.
+  *Source:* `include/shulib/motion/motion.hpp` `applyCancelSafeState()` (PROVISIONAL (A4:
+  HA-53)); consumed by every `IMotion::cancel()` and by `MotionScheduler`'s pre-empt / fault
+  abort / panic paths. Host evidence is deliberately conservative: the A2 plant does not model
+  brake modes, so tests prove the 0 V dynamics reach rest (9.7 in coast from 57 in/s on the
+  lagged plant) and pin the Brake command by state inspection only.
+  *Confidence:* reasoned — Brake mode's short-circuit behaviour is VEX-documented; its stopping
+  distance from competition speeds on our robot's mass/wheels is unmeasured.
+  *Settle (R3 bench, R5 at speed):* command a cancel from cruise on hardware; measure
+  stop distance vs the coast prediction; verify motion-after-cancel resumes cleanly.
+  *Blast radius if wrong:* the robot rolls further than expected after any cancel/abort —
+  bounded by the coast physics either way (never re-energized: the 0 V command is proven by
+  test), so the failure mode is "stops like coast", not "keeps driving". If Brake proves
+  harmful (e.g. brownout interaction), the safe state is ONE function in ONE place.
 
 ---
 

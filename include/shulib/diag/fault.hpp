@@ -28,6 +28,7 @@
 // (after the latch state is already updated) rather than crashing the run over a broken
 // diagnostic channel. The latch always latches, even if logging fails.
 
+#include <array>
 #include <cstdint>
 #include <cstdio>
 #include <string_view>
@@ -94,6 +95,10 @@ public:
         // Latch FIRST, log second — the latch must survive even a throwing sink/clock.
         ++count_;
         last_ = code;
+        const auto idx = static_cast<std::size_t>(code);
+        if (idx < kCodeSlots && perCode_[idx] < UINT16_MAX) {
+            ++perCode_[idx];  // per-code tally (see raiseCount below)
+        }
         const bool isFirst = (count_ == 1);
         if (isFirst) {
             first_ = code;
@@ -114,6 +119,17 @@ public:
     }
 
     [[nodiscard]] bool hasFault() const noexcept { return count_ > 0; }
+    /// How many times `code` has been raised since construction/clear(). ADDED at
+    /// chunk C2 (additive, like the A3 MotorOverTemp append): the scheduler's fault
+    /// policy must distinguish a fault raised DURING the current motion from one
+    /// latched by an earlier motion — a since-clear bitmask cannot see a RE-raise
+    /// (a dead encoder that faulted in motion 1 must still abort motion 2), so the
+    /// latch keeps a per-code tally. Saturates at UINT16_MAX; codes beyond the
+    /// fixed slot capacity (far past today's 10) count only in faultCount().
+    [[nodiscard]] int raiseCount(FaultCode code) const noexcept {
+        const auto idx = static_cast<std::size_t>(code);
+        return idx < kCodeSlots ? static_cast<int>(perCode_[idx]) : 0;
+    }
     /// The ROOT CAUSE: the first fault raised since construction/clear() (None if none).
     [[nodiscard]] FaultCode firstFault() const noexcept { return first_; }
     /// When the first fault was raised (Time{0} if none, or if the clock threw).
@@ -130,15 +146,21 @@ public:
         last_ = FaultCode::None;
         firstTime_ = units::Time{0.0};
         count_ = 0;
+        perCode_.fill(0);
     }
 
 private:
+    /// Per-code tally capacity: covers FaultCode values 0..31 — triple today's
+    /// 10, and the enum is append-only so growth is deliberate and visible.
+    static constexpr std::size_t kCodeSlots = 32;
+
     hal::ITelemetrySink& sink_;
     hal::IClock& clock_;
     FaultCode first_ = FaultCode::None;
     FaultCode last_ = FaultCode::None;
     units::Time firstTime_{0.0};
     int count_ = 0;
+    std::array<std::uint16_t, kCodeSlots> perCode_{};
 };
 
 }  // namespace shulib::diag

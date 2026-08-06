@@ -99,8 +99,8 @@ settling measurement, owning chunk and blast radius, bidirectionally reconciled 
 line (`arm-compile-gate` job: every v2 header, generated list, compile-only by honest scope,
 proven to catch what the host build cannot).
 
-**Phase C is OPEN: chunk C1 — `IMotion` + the motion primitives — built and verified
-2026-08-06** ([completion record](chunks/C1-COMPLETED.md), working tree pending review): the
+**Phase C is OPEN: chunk C1 — `IMotion` + the motion primitives — closed
+2026-08-06** ([completion record](chunks/C1-COMPLETED.md), committed `7e54826`/`b3cbf39`): the
 library can now be told "go to that spot". `MoveToPose` runs three DECOUPLED per-axis loops
 (translate + rotate simultaneously — the holonomic thesis, mutation-proven), plus `TurnTo` /
 `StrafeTo` / `HoldPose` / `DriveBrake`; every motion is watchdog-bounded, reports an
@@ -112,19 +112,36 @@ targeting does not compound); full-hostility worst 4.1 in over ~95 s attributed 
 (err-vs-time 0.028 in/s; Phase E's problem), with a 2%-miscalibration twin proving the
 distance-attribution diagnostic reads exactly 2%.
 
-**Next: chunk C2 — `MotionScheduler`.** Named handoffs to it from C1: fault-reactive
-cancellation policy (C1 raises ODO_STUCK/BROWNOUT etc. during a motion but deliberately does
-not self-abort — the watchdog bounds damage until the scheduler owns cancel()); scheduler-side
-LoopMonitor + HealthMonitor ownership between motions; `activeCommandId` assignment.
-*(Reminder: there is no Phase B — see the note under the phase table.)*
+**Chunk C2 — `MotionScheduler` — built and verified 2026-08-06**
+([completion record](chunks/C2-COMPLETED.md), working tree pending review): the library now
+RUNS a routine. One active motion enforced structurally (single slot + PRE-EMPT: the old motion
+is cancelled inert before the new one exists to command); `async()` / `waitUntilSettled()` /
+`waitUntil(pred, timeout)` / `cancel()`; the cancel safe state is DEFINED (0 V +
+`BrakeMode::Brake`, applied synchronously by the call itself — HA-53) and proven reached; C1's
+deferred fault policy is decided (abort-and-brake on a NEW ODO_STUCK — servoing against a lying
+estimate is worse than stopping; continue-degraded on IMU_LOST / BROWNOUT / GPS_GATE_REJECT /
+MOTOR_OVER_TEMP / LOOP_OVERRUN; configurable mask; A/B-measured: the abort cuts the
+dead-encoder runaway from 42 in @ 6 s to 4.4 in @ 1.5 s); every wait is bounded (explicit
+timeouts, watchdog-bounded settle, a stalled-pacer guard that converts the un-catchable
+frozen-clock hang into a loud precondition); the check.hpp task-boundary catch is real;
+`activeCommandId` is finally assigned (a pair-rule-preserving stamping sink); the scheduler
+owns HealthMonitor/LoopMonitor between motions. Scheduled routines reproduce C1's accuracy
+baseline BIT-IDENTICALLY (equivalence-pinned; clean 5→40-move chains flat in count, hostile
+worst 4.13 in). All three C1 handoffs discharged; `ExitReason::Cancelled` +
+`MotionState::Cancelled` appended via the documented additive paths.
 
-**Verified 2026-08-06 (post-C1):** host suite **487 cases / 858,611 assertions** green under
-strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle
-= HA-01); both CI guards pass with **`include/shulib/motion` added to both scopes**; all **85**
-v2 headers cross-compile clean for ARM (the CI `arm-compile-gate` generated list picks the 8 new
-motion headers up automatically). C1's 12 mutations all observed red — two (strafe-authority
-clamp, battery compensation) only after the suite was strengthened; both holes are closed and
-recorded.
+**Next: chunk C3 — `HDriveKinematics` + the pseudo-inverse.** Named handoff from C1: confirm
+D11's strafe-authority-clamp interpretation against the real H-drive kinematics (the
+fractional-authority sweep test is the ready-made contract pin); `strafeFallbackActive`
+telemetry lands there. *(Reminder: there is no Phase B — see the note under the phase table.)*
+
+**Verified 2026-08-06 (post-C2):** host suite **527 cases / 859,931 assertions** green under
+strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (scopes unchanged —
+the scheduler lives in `include/shulib/motion`, already covered); all **86** v2 headers
+cross-compile clean for ARM (the generated `arm-compile-gate` list picks `motion_scheduler.hpp`
+up automatically). C2's 16 mutations all observed red — zero green survivors; the loop-shape
+mutation (motion ticks before the estimate advances) is detectable ONLY by the two bit-identity
+equivalence tests, which is why they exist.
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 

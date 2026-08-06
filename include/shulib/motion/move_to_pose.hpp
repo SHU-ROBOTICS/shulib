@@ -221,6 +221,34 @@ public:
         return control::ExitReason::Running;
     }
 
+    /// The cancel contract (motion.hpp): safe state whenever started, verdict
+    /// only if still running, Idle untouched, idempotent, never raises.
+    void cancel() override {
+        if (state_ == MotionState::Idle) {
+            return;  // never started: no relationship to the drivetrain yet
+        }
+        applyCancelSafeState(*deps_.ctx);
+        if (reason_ != control::ExitReason::Running) {
+            return;  // already exited: verdict preserved (motion.hpp rationale)
+        }
+        const bool wasWaiting = (state_ == MotionState::WaitingForEstimate);
+        reason_ = control::ExitReason::Cancelled;
+        state_ = MotionState::Cancelled;
+        const units::Time now = deps_.ctx->clock().now();
+        const math::Pose2d pose = deps_.localizer->pose();
+        if (wasWaiting) {
+            // Cancelled during the boot window: there was never a live estimate
+            // and (for capture-at-live siblings) possibly no captured target —
+            // like the waiting record, the exit record must not invent errors.
+            emitExitRecord(now, units::Time{0.0}, pose, 0.0, 0.0, 0.0);
+            return;
+        }
+        const double errX = target_.x().value() - pose.x().value();
+        const double errY = target_.y().value() - pose.y().value();
+        const double errH = pose.heading().errorTo(target_.heading());
+        emitExitRecord(now, units::Time{0.0}, pose, errX, errY, errH);
+    }
+
     [[nodiscard]] control::ExitReason exitReason() const noexcept override { return reason_; }
     [[nodiscard]] MotionState state() const noexcept override { return state_; }
     [[nodiscard]] const char* name() const noexcept override { return "MoveToPose"; }

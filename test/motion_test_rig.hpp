@@ -17,6 +17,7 @@
 // plant, exactly as R5's sysid gains must match the real robot.
 
 #include <cmath>
+#include <stdexcept>
 
 #include "shulib/control/exit_group.hpp"
 #include "shulib/diag/fault.hpp"
@@ -30,6 +31,7 @@
 #include "shulib/math/pose2d.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_config.hpp"
+#include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/sim/scenario.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -118,6 +120,63 @@ struct MotionRig {
             }
         }
         return reason;
+    }
+};
+
+// ── C2 scheduler-side rig pieces ────────────────────────────────────────────────────
+
+/// The host-sim ITickPacer: advancing the world = stepping the A2 plant by one
+/// tick dt (the exact `plant().step(dt)` every C1 hand loop performed). HARD
+/// CAPPED: if a scheduler wait ever fails to terminate, the cap throws and the
+/// test goes RED instead of the suite hanging — the same bounded-loop shape
+/// that let C1's mutation #3 (defeated watchdog) read as red, not as a stuck
+/// build. Also accumulates true path length, replacing the hand loops'
+/// per-tick distance bookkeeping.
+struct PlantPacer final : shulib::motion::ITickPacer {
+    explicit PlantPacer(shulib::sim::SimHarness& harness, Time dt = Time{0.01},
+                        int cap = 200000)
+        : h{&harness}, tickDt{dt}, capPaces{cap}, prev{harness.truePose()} {}
+
+    void pace() override {
+        if (paces >= capPaces) {
+            throw std::runtime_error("PlantPacer: pace cap exceeded — a wait failed to end");
+        }
+        ++paces;
+        h->plant().step(tickDt);
+        const shulib::math::Pose2d now = h->truePose();
+        distance += posErr(now, prev);
+        prev = now;
+    }
+
+    shulib::sim::SimHarness* h;
+    Time tickDt;
+    int capPaces;
+    int paces = 0;
+    double distance = 0.0;  ///< cumulative TRUE path length across all paces (in)
+    shulib::math::Pose2d prev;
+};
+
+/// MotionRig + pacer + MotionScheduler, wired the way a real caller will be at
+/// C4: motions for this scheduler are constructed from `sched.deps()` so their
+/// records ride the command-id stamp.
+struct SchedulerRig {
+    MotionRig rig;
+    PlantPacer pacer;
+    shulib::motion::MotionScheduler sched;
+
+    explicit SchedulerRig(const shulib::kinematics::IKinematics& kinematics,
+                          const shulib::sim::SimHarnessConfig& cfg = plantConfig(),
+                          shulib::hal::ITelemetrySink* harnessSink = nullptr,
+                          shulib::sim::DegradationModel* degradation = nullptr,
+                          const shulib::motion::MotionSchedulerConfig& schedCfg = {})
+        : rig{kinematics, cfg, harnessSink, degradation},
+          pacer{rig.h},
+          sched{rig.deps, pacer, schedCfg} {}
+
+    /// async + waitUntilSettled — the scheduled twin of MotionRig::run().
+    shulib::control::ExitReason run(shulib::motion::IMotion& m) {
+        sched.async(m);
+        return sched.waitUntilSettled();
     }
 };
 

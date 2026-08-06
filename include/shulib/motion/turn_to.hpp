@@ -112,6 +112,8 @@ public:
             }
             case control::ExitReason::TimedOut:
                 return exitTimedOut("target heading not reached");
+            case control::ExitReason::Cancelled:  // unreachable: check() renders only
+                break;                            // Settled/TimedOut/Running (exit_group.hpp)
             case control::ExitReason::Running:
                 break;
         }
@@ -149,6 +151,26 @@ public:
 
         emitRecordFor(now, dt, pose, errH, body);  // body == field for pure ω
         return control::ExitReason::Running;
+    }
+
+    /// The cancel contract (motion.hpp): safe state whenever started, verdict
+    /// only if still running, Idle untouched, idempotent, never raises.
+    void cancel() override {
+        if (state_ == MotionState::Idle) {
+            return;  // never started: no relationship to the drivetrain yet
+        }
+        applyCancelSafeState(*deps_.ctx);
+        if (reason_ != control::ExitReason::Running) {
+            return;  // already exited: verdict preserved (motion.hpp rationale)
+        }
+        const bool wasWaiting = (state_ == MotionState::WaitingForEstimate);
+        reason_ = control::ExitReason::Cancelled;
+        state_ = MotionState::Cancelled;
+        const math::Pose2d pose = deps_.localizer->pose();
+        // A boot-window cancel emits zero error (no live estimate to err against).
+        emitRecordFor(deps_.ctx->clock().now(), units::Time{0.0}, pose,
+                      wasWaiting ? 0.0 : pose.heading().errorTo(target_),
+                      math::ChassisSpeeds{});
     }
 
     [[nodiscard]] control::ExitReason exitReason() const noexcept override { return reason_; }

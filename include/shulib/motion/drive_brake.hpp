@@ -132,6 +132,24 @@ public:
         return verdict;
     }
 
+    /// The cancel contract (motion.hpp). Cancelling a brake changes nothing
+    /// physical — the safe state (0 V + Brake) is exactly what every tick was
+    /// already commanding — but the verdict discipline is identical to every
+    /// other motion: a running brake ends Cancelled (it never CERTIFIED the
+    /// stop), a settled/timed-out one keeps its verdict.
+    void cancel() override {
+        if (state_ == MotionState::Idle) {
+            return;  // never started: no relationship to the drivetrain yet
+        }
+        applyCancelSafeState(*deps_.ctx);
+        if (reason_ != control::ExitReason::Running) {
+            return;  // already exited: verdict preserved (motion.hpp rationale)
+        }
+        reason_ = control::ExitReason::Cancelled;
+        state_ = MotionState::Cancelled;
+        emitRecordFor(deps_.ctx->clock().now(), units::Time{0.0}, 0.0);
+    }
+
     [[nodiscard]] control::ExitReason exitReason() const noexcept override { return reason_; }
     [[nodiscard]] MotionState state() const noexcept override { return state_; }
     [[nodiscard]] const char* name() const noexcept override { return "DriveBrake"; }

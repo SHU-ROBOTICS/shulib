@@ -28,9 +28,47 @@
 //                 FaultCode::MotionTimeout raised. A motion can NEVER hang: the
 //                 watchdog is armed in start() and no code path disarms it.
 //
+//   * Cancelled — stopped from outside via cancel() (added at C2 through the
+//                 documented additive path; see the cancel contract below).
+//
 // After a non-Running verdict the motion is FINISHED: further tick() calls are
 // safe no-ops that return the cached verdict and leave the motors stopped.
 // start() fully re-arms (a motion object is reusable, e.g. retrying a move).
+//
+// ── The cancel contract (chunk C2 — the scheduler's structural guarantee) ───────────
+// cancel() is how a motion is stopped from OUTSIDE its own exit criteria: user
+// abort, scheduler pre-emption (a new motion supersedes this one), or the C2
+// fault policy (e.g. ODO_STUCK — the estimate is lying, and continuing to servo
+// against a lie is worse than stopping). Semantics, identical in every
+// primitive and pinned by test:
+//
+//   * If the motion is RUNNING (incl. WaitingForEstimate — a cancel during the
+//     boot window is legal and common): the drivetrain is put in the CANCEL
+//     SAFE STATE (below) synchronously, the verdict becomes Cancelled, one
+//     final exit record is emitted, and the motion is FINISHED — subsequent
+//     tick() calls are the same safe no-ops as any other exit. This is what
+//     makes one-active-motion STRUCTURAL for the scheduler: a pre-empted
+//     motion object is inert at the object level, not merely unreferenced.
+//   * If the motion already EXITED (Settled / TimedOut / Cancelled): the safe
+//     state is still applied (cancel() means "make the drivetrain safe NOW",
+//     and it must be idempotent), but the verdict is PRESERVED — a motion that
+//     settled really did settle; rewriting history would lie to the C5 result
+//     line. Back-to-back cancels are therefore harmless no-ops after the first.
+//   * If the motion was never started (Idle): complete no-op. An unstarted
+//     motion has no relationship to the drivetrain yet; commanding motors from
+//     it would be the surprise, not the safety.
+//   * cancel() raises NO fault. Cancellation is a commanded, normal act; when
+//     the CAUSE is a fault, that fault is already latched by whoever detected
+//     it (the scheduler records the causal code alongside the boundary).
+//
+// The CANCEL SAFE STATE is defined once, in applyCancelSafeState() below:
+// zero volts + BrakeMode::Brake on every drive motor. Why brake and not the
+// alternatives: COAST lets a robot at speed keep rolling (a cancel that leaves
+// the robot coasting into a wall fails the whole point); a closed-loop HOLD
+// keeps servoing against the estimate — and the highest-priority cancel cause
+// (ODO_STUCK) is precisely "the estimate is lying", so holding would reproduce
+// the failure cancel exists to stop. Brake is estimate-independent (valid
+// during the boot window, valid with dead encoders), passive, and immediate.
 //
 // ── The wait-for-live-estimate contract (A3 handoff #1 — the boot window) ───────────
 // A3 proved (localizer.hpp header) that motion commanded before qualityClass()
@@ -108,7 +146,27 @@ enum class MotionState : std::uint8_t {
     Running = 2,             ///< actively controlling toward the target
     Settled = 3,             ///< exited: arrived within tolerances
     TimedOut = 4,            ///< exited: watchdog fired (MOTION_TIMEOUT raised)
+    Cancelled = 5,           ///< exited: cancel() — stopped from outside (APPENDED at
+                             ///< chunk C2 per the append-only rule; wire-stable)
 };
+
+/// The CANCEL SAFE STATE, defined in ONE place so every cancel path — each
+/// primitive's cancel(), the scheduler's pre-emption, its fault-policy abort,
+/// and its no-active-motion panic stop — commands the identical thing: zero
+/// volts under BrakeMode::Brake on every drive motor (rationale in the cancel
+/// contract above). Brake mode is set BEFORE the zero-volt command so the stop
+/// lands under braking semantics, never a momentary coast.
+///
+/// HARDWARE CLAIM, honest scope: the A2 plant does not model brake modes, so
+/// host tests prove the 0 V dynamics reach rest and pin the Brake command by
+/// state inspection — how hard a real V5 drivetrain brakes from speed is
+/// unverifiable until hardware. PROVISIONAL (A4: HA-53).
+inline void applyCancelSafeState(chassis::RobotContext& ctx) {
+    for (hal::IMotor* m : ctx.driveMotors()) {
+        m->setBrakeMode(hal::BrakeMode::Brake);
+        m->setVoltage(units::Voltage{0.0});
+    }
+}
 
 /// The dependencies every motion shares, as NAMED pointers (designated
 /// initializers at the call site), validated non-null by validate(). All
@@ -155,6 +213,13 @@ public:
     /// One control tick (see the tick contract above). Precondition: start()
     /// has been called. The loop must update the Localizer BEFORE calling this.
     [[nodiscard]] virtual control::ExitReason tick() = 0;
+
+    /// Stop the motion from outside (see the cancel contract above). PURE
+    /// virtual ON PURPOSE — a motion type without a cancellation story is the
+    /// forgettable-safety-step failure mode (A1's emitRecord lesson); every
+    /// implementer must state one. Idempotent; never raises; applies the
+    /// cancel safe state whenever the motion has been started.
+    virtual void cancel() = 0;
 
     /// The verdict of the most recent tick() (Running before the first tick).
     [[nodiscard]] virtual control::ExitReason exitReason() const noexcept = 0;
