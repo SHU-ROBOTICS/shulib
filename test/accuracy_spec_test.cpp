@@ -50,7 +50,7 @@ TEST_CASE("[acceptance][M2] dead-reckon heading holds over a 60s straight-line t
     // uniform in ±1°/min, heading noise sigma 0.05°, latency, quantization, sag).
     //
     // Scope, stated honestly:
-    //  * The drift bound is PROVISIONAL (A4 register; R4 measures the real rate).
+    //  * The drift bound is PROVISIONAL (A4 register HA-20; R4 measures the real rate).
     //    At exactly the ±1°/min bound the F2 margin is ZERO by construction
     //    (1°/min × 60 s = 1°) — heading quality on the REAL IMU is the ceiling on
     //    this target (build-order R4), and Phase E's correctors are what buy

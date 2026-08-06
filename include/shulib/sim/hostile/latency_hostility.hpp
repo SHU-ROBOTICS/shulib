@@ -22,13 +22,14 @@
 // sample (bounded, documented — at 10 ms ticks the 256-slot ring spans 2.56 s).
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
+// Register: docs/planning/hardware-assumptions.md — HA-24, HA-25, HA-30.
 //   * imuLatency = 10 ms — smart-port refresh cadence; the IMU's true end-to-end
-//     delay is unmeasured.
+//     delay is unmeasured. (HA-24)
 //   * gpsLatency = 50 ms — camera capture + solve + transport guess; E2's latency
-//     compensation needs the REAL number from R4.
+//     compensation needs the REAL number from R4. (HA-30)
 //   * encoder latencies default 0 — device refresh (~10 ms, one tick) is real but
 //     defaulted off so the composed model isolates the two latencies with known
-//     downstream consumers; tests exercise non-zero encoder latency explicitly.
+//     downstream consumers; tests exercise non-zero encoder latency explicitly. (HA-25)
 //
 // imuReady is deliberately NOT delayed: readiness is a state flag, not a streamed
 // measurement, and delaying it buys no realism the calibration window doesn't
@@ -50,10 +51,10 @@
 namespace shulib::sim {
 
 struct LatencyHostileConfig {
-    units::Time imuLatency{0.010};   // PROVISIONAL (A4)
-    units::Time gpsLatency{0.050};   // PROVISIONAL (A4)
-    units::Time driveEncoderLatency{0.0};     // PROVISIONAL (A4): ~1 tick on hardware
-    units::Time trackingEncoderLatency{0.0};  // PROVISIONAL (A4): ~1 tick on hardware
+    units::Time imuLatency{0.010};   // PROVISIONAL (A4: HA-24)
+    units::Time gpsLatency{0.050};   // PROVISIONAL (A4: HA-30)
+    units::Time driveEncoderLatency{0.0};     // PROVISIONAL (A4: HA-25): ~1 tick on hardware
+    units::Time trackingEncoderLatency{0.0};  // PROVISIONAL (A4: HA-25): ~1 tick on hardware
 };
 
 class LatencyHostileModel final : public DegradationModel {

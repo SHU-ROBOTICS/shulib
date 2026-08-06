@@ -16,12 +16,14 @@
 //     document the position-axis-to-compass binding. A WRONG axis label silently MIRRORS
 //     the pose, and northHeadingDeg CANNOT recover it (that knob is a rotation; an axis
 //     swap/flip is a reflection). Bench-measure the raw→wall mapping before any scored
-//     run — see the field-cal oracle test in gps_conversion_test.cpp. ***
+//     run — see the field-cal oracle test in gps_conversion_test.cpp.
+//     A4 register HA-01 (docs/planning/hardware-assumptions.md); R3 settles it. ***
 //
 // ONE rotation parameter, northHeadingDeg = the canonical heading VEX-North points
 // toward. Default 90° (VEX-North = canonical +Y = away from red); the other canonical
 // value is 270/−90° (red at the +Y wall). FIELD/ALLIANCE setup fact, ONE owner = the
-// robot's start pose (same authority as the IMU bootHeading), validated on field.
+// robot's start pose (same authority as the IMU bootHeading), validated on field
+// (A4 register HA-09).
 //
 // ADAPTER BINDING CONTRACT (load-bearing, like the IMU's — enforce when hal/pros lands):
 //  * Lever arm removed HERE (gpsRemoveLeverArm), ONE owner = robot config (BODY
@@ -29,12 +31,13 @@
 //    via the PORT-ONLY ctor; the adapter MUST NOT use set_offset(), initialize_full(),
 //    or the offset-taking ctors — any firmware offset makes get_position() report the
 //    CENTER, double-subtracting the arm (inches of silent bias). Boot-check get_offset()==(0,0).
+//    (A4 register HA-06; the lever-arm VALUE itself is HA-10.)
 //  * The adapter MUST screen PROS_ERR_F (== INFINITY: a failed/off-strip/calibrating read)
 //    and report IGps::hasFix() = false BEFORE calling this conversion — off-strip screening
 //    is the adapter's job (§13 #4; Driving Skills has no strip). Feeding a sentinel here
-//    THROWS by design (fail-loud backstop, NOT the off-strip path).
+//    THROWS by design (fail-loud backstop, NOT the off-strip path). (A4 register HA-08.)
 //  * rmsError() at the HAL edge MUST scale get_error() meters→inches (× kMetersToInches),
-//    or the corrector's R is ~39× too small and good fixes get gated out.
+//    or the corrector's R is ~39× too small and good fixes get gated out. (A4 register HA-07.)
 
 #include <cmath>
 

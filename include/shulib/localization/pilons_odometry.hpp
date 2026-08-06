@@ -28,7 +28,8 @@
 //     threshold on the ALREADY-WRAPPED Δθ; it catches an aliased/stalled sample only when the
 //     wrapped magnitude lands in (maxTickRotation, π]. A real rotation > π that aliases to a SMALL
 //     Δθ is invisible here — it is excluded by the ~100 Hz loop-rate assumption (arc_step's
-//     PRECONDITION), NOT by this gate. So `false` means "Δθ is within the per-tick bound," not
+//     PRECONDITION; A4 register HA-32 — the sustained loop rate on a loaded V5 is unmeasured),
+//     NOT by this gate. So `false` means "Δθ is within the per-tick bound," not
 //     "the rotation is certainly real."
 //   * the integration came out non-finite — a breach of the HAL finiteness contract (§7). A
 //     non-finite tick FREEZES the position at its last good value (it never writes NaN into the

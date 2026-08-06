@@ -99,6 +99,8 @@ struct SimHarnessConfig {
     /// Tracking-wheel geometry the PLANT synthesizes with. Non-zero offsets by
     /// default ON PURPOSE: the default harness exercises the offset-correction
     /// math every run instead of hiding it behind zeros (adversarial by default).
+    /// The VALUES are invented stand-ins — the real robot's mounting geometry does
+    /// not exist yet; R3 measures it (A4 register HA-12 offsets/signs, HA-13 diameter).
     units::Length trackingWheelDiameter{2.0};
     units::Length forwardWheelLeftOffset{-3.0};    ///< forward wheel's +LEFT coordinate
     units::Length lateralWheelForwardOffset{-4.5};  ///< lateral wheel's +FORWARD coordinate

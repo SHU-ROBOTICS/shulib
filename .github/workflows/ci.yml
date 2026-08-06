@@ -1,9 +1,13 @@
 name: ci
 
-# Host-side verification of the PROS-free core. Runs the same checks we run
-# locally: the architecture guard, the strict build, and the test suite.
-# (The on-robot ARM build is intentionally NOT in CI — it needs PROS's toolchain
-#  and ultimately the robot; the host core is what CI can verify.)
+# Host-side verification of the PROS-free core, plus the ARM compile gate.
+# Runs the same checks we run locally: the architecture guards, the strict host
+# build, the test suite, and (since chunk A4) a cross-COMPILE of every v2 header
+# for the V5's Cortex-A9.
+# (The on-robot ARM LINK/run is intentionally NOT in CI — it needs PROS's bundled
+#  toolchain, the kernel cold package, and ultimately the robot (chunks R1/R3);
+#  what CI can and does hold is that no host-only assumption ever enters the
+#  headers unnoticed.)
 
 on:
   push:
@@ -52,3 +56,37 @@ jobs:
 
       - name: Run tests
         run: ./build/test/shulib_tests
+
+  # ARM COMPILE GATE (chunk A4). The v2 core was verified to cross-compile clean
+  # for the V5's Cortex-A9 at every chunk since A1 — but only by hand, so nothing
+  # KEPT it that way: a host-only construct (a header, an intrinsic, a hosted-only
+  # std facility) could enter the core unnoticed and surface at R1, where it is
+  # expensive. This job holds the line.
+  #
+  # Scope, stated honestly: this is a COMPILE gate, not a link or run gate. The
+  # real on-robot build still needs PROS's bundled toolchain + the kernel cold
+  # package (R1) and the robot itself (R3). What compiling every header as one TU
+  # under the same strict flags as host DOES guarantee: the headers make no
+  # host-only assumption, at the exact -std/-mcpu/-mfpu/-mfloat-abi the V5 uses.
+  #
+  # The header list is GENERATED (find | sort), never hard-coded — a gate you must
+  # remember to update when adding a file is a gate that rots. A new header under
+  # include/shulib/ is covered the moment it exists.
+  arm-compile-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM cross-compiler
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Cross-compile every v2 header for the V5 (Cortex-A9, softfp)
+        run: |
+          find include/shulib -name '*.hpp' | sed 's|^include/||' | LC_ALL=C sort \
+            | awk '{print "#include \""$0"\""}' > all_headers.cpp
+          echo 'int main() { return 0; }' >> all_headers.cpp
+          echo "TU includes $(grep -c '#include' all_headers.cpp) headers"
+          arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion -Wsign-conversion \
+            -Wshadow -Werror -Os -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=softfp \
+            -c all_headers.cpp -o /dev/null -Iinclude
+          echo "ARM compile gate: CLEAN (all v2 headers)"

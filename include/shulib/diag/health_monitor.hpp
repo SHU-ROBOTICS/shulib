@@ -45,10 +45,11 @@
 //    decay. What IS raised is GPS_GATE_REJECT — a fix that arrived and was rejected
 //    by the fusion gate (the fixGated observable), i.e. a sensor actively lying.
 //  * MOTOR_OVER_TEMP threshold defaults to 55 °C — the V5's documented first
-//    throttle step. PROVISIONAL (A4 register): the exact droop onset on our motors
-//    is unmeasured until R4.
-//  * brownoutVolts default 10.5 V — PROVISIONAL (A4 register): the true V5 cutoff
-//    behaviour under load is unmeasured until R3/R4.
+//    throttle step. PROVISIONAL (A4 register HA-44): the exact droop onset on our
+//    motors is unmeasured until R4.
+//  * brownoutVolts default 10.5 V — PROVISIONAL (A4 register HA-42): the true V5
+//    cutoff behaviour under load is unmeasured until R3/R4.
+//    (Register: docs/planning/hardware-assumptions.md.)
 //
 // Single-task by contract, like the rest of diag/ (see fault.hpp).
 
@@ -62,12 +63,12 @@
 namespace shulib::diag {
 
 struct HealthMonitorConfig {
-    /// Battery voltage at/below which a BROWNOUT episode trips. PROVISIONAL (A4).
+    /// Battery voltage at/below which a BROWNOUT episode trips. PROVISIONAL (A4: HA-42).
     units::Voltage brownoutVolts{10.5};
     /// Voltage the pack must RECOVER above before a new brownout episode can trip
-    /// (hysteresis; must be >= brownoutVolts). PROVISIONAL (A4).
+    /// (hysteresis; must be >= brownoutVolts). PROVISIONAL (A4: HA-42).
     units::Voltage brownoutRecoverVolts{10.8};
-    /// Motor temperature (°C) at/above which MOTOR_OVER_TEMP trips. PROVISIONAL (A4).
+    /// Motor temperature (°C) at/above which MOTOR_OVER_TEMP trips. PROVISIONAL (A4: HA-44).
     double maxMotorTempC = 55.0;
 };
 

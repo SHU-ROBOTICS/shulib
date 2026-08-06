@@ -27,13 +27,14 @@
 //    carry a NaN anyway, by construction).
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
+// Register: docs/planning/hardware-assumptions.md — HA-20..HA-23.
 //   * rateBiasMax = 1°/min       — the pessimistic community bound for a calibrated
 //                                  V5 IMU (typical reports: 0.1–0.5°/min). NOTE: at
 //                                  exactly 1°/min, F2's <1° @ 60 s has ZERO margin —
-//                                  the honest A3 headline; R4's measurement decides.
-//   * headingNoiseSigma = 0.05°  — short-term heading jitter guess.
-//   * yawRateNoiseSigma = 0.5°/s — rate noise guess.
-//   * calibrationEnd = 2 s       — V5 IMU calibrate takes ~2–3 s.
+//                                  the honest A3 headline; R4's measurement decides. (HA-20)
+//   * headingNoiseSigma = 0.05°  — short-term heading jitter guess. (HA-21)
+//   * yawRateNoiseSigma = 0.5°/s — rate noise guess. (HA-22)
+//   * calibrationEnd = 2 s       — V5 IMU calibrate takes ~2–3 s. (HA-23)
 // The SHAPES above are asserted by test; none of these NUMBERS are evidence of
 // anything until R4 replaces them with measurements.
 //
@@ -65,17 +66,17 @@ inline constexpr double kDegToRad = math::Angle::kPi / 180.0;
 
 struct ImuHostileConfig {
     /// isReady() false and garbage readings until this time. 0 disables the window.
-    units::Time calibrationEnd{2.0};  // PROVISIONAL (A4)
+    units::Time calibrationEnd{2.0};  // PROVISIONAL (A4: HA-23)
     /// Per-boot yaw-rate bias drawn uniform in ±this. 0 disables drift.
-    units::AngularVelocity rateBiasMax{hostile_detail::kDegToRad / 60.0};  // 1°/min PROVISIONAL (A4)
+    units::AngularVelocity rateBiasMax{hostile_detail::kDegToRad / 60.0};  // 1°/min PROVISIONAL (A4: HA-20)
     /// White heading noise, 1σ radians. 0 disables.
-    double headingNoiseSigmaRad = 0.05 * hostile_detail::kDegToRad;  // PROVISIONAL (A4)
+    double headingNoiseSigmaRad = 0.05 * hostile_detail::kDegToRad;  // PROVISIONAL (A4: HA-21)
     /// White yaw-rate noise, 1σ rad/s. 0 disables.
-    double yawRateNoiseSigmaRadPerS = 0.5 * hostile_detail::kDegToRad;  // PROVISIONAL (A4)
+    double yawRateNoiseSigmaRadPerS = 0.5 * hostile_detail::kDegToRad;  // PROVISIONAL (A4: HA-22)
     /// EVENT (default off): device disconnects at this time — ready false, values frozen.
     units::Time dropoutAt{1e18};
     /// Garbage yaw-rate magnitude bound during calibration (uniform ±this).
-    units::AngularVelocity calibrationGarbageRate{10.0};  // shape only; PROVISIONAL (A4)
+    units::AngularVelocity calibrationGarbageRate{10.0};  // shape only; PROVISIONAL (A4: HA-23)
 };
 
 class ImuHostileModel final : public DegradationModel {

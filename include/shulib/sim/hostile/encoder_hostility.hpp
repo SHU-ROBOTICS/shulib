@@ -33,10 +33,11 @@
 //    "error grows in the predicted direction", quantitatively.
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
+// Register: docs/planning/hardware-assumptions.md — HA-15, HA-16.
 //   * driveTicksPerRev = 900     — V5 motor integrated encoder, GREEN cartridge, at
 //                                  the output shaft (red 1800 / blue 300). Cartridge-
-//                                  dependent and unverified against our gearing.
-//   * trackingTicksPerRev = 36000 — V5 Rotation Sensor centidegree resolution.
+//                                  dependent and unverified against our gearing. (HA-15)
+//   * trackingTicksPerRev = 36000 — V5 Rotation Sensor centidegree resolution. (HA-16)
 //
 // Order inside each hook (documented, fixed): bump → quantize → freeze → sentinel.
 // Physical reading: the skid moves the real shaft (pre-quantization), the device
@@ -59,8 +60,8 @@
 namespace shulib::sim {
 
 struct EncoderHostileConfig {
-    double driveTicksPerRev = 900.0;      // PROVISIONAL (A4): green cartridge
-    double trackingTicksPerRev = 36000.0;  // PROVISIONAL (A4): centidegree
+    double driveTicksPerRev = 900.0;      // PROVISIONAL (A4: HA-15): green cartridge
+    double trackingTicksPerRev = 36000.0;  // PROVISIONAL (A4: HA-16): centidegree
     /// EVENT: freeze the drive channel(s) at this time; wheel == -1 means all wheels.
     units::Time driveFreezeAt{1e18};
     int driveFreezeWheel = -1;

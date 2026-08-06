@@ -26,6 +26,10 @@
 //
 // The physical motor→index mapping and per-motor polarity live in the HAL/config
 // layer; kinematics only defines this canonical order.
+//
+// That the BUILT robot matches this idealized geometry (true 45° symmetric mounts,
+// equal radii) is an A4-registered assumption until a physical drivetrain exists:
+// A4 register HA-17 (docs/planning/hardware-assumptions.md); R3/R5 settle it.
 
 #include <numbers>
 

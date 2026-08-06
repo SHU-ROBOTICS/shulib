@@ -131,12 +131,14 @@ struct DrivePlantConfig {
     /// Per-wheel surface-speed feedforward gains (see motor_model.hpp). The defaults
     /// are PLACEHOLDERS in the right order of magnitude for a V5 drive (≈70 in/s free
     /// speed at 12 V with a little static offset) — NOT measurements. R5 measures the
-    /// real ones; R6 feeds them back here.
+    /// real ones; R6 feeds them back here. (A4 register HA-45.)
     control::FeedforwardGains wheelFf{.kS = 1.0, .kV = 12.0 / 70.0, .kA = 0.0};
-    units::Length driveWheelDiameter{3.25};  ///< for drive-encoder synthesis (inches)
+    /// For drive-encoder synthesis (inches). Diameter AND the implied 1:1 wheel↔shaft
+    /// gearing are unmeasured guesses until the drivetrain exists (A4 register HA-13/HA-14).
+    units::Length driveWheelDiameter{3.25};
     int truthSubsteps = 32;                  ///< RK4 substeps per tick (see truth_integrator.hpp)
     math::Pose2d initialPose{};              ///< truth starts here; sensors seeded to match
-    units::Voltage batteryVoltage{12.6};     ///< nominal pack voltage (A3 sags it via the seam)
+    units::Voltage batteryVoltage{12.6};     ///< nominal pack voltage (A3 sags it via the seam; A4 register HA-46)
     units::Length gpsRmsError{1.0};          ///< reported GPS rms (A3 inflates via the seam)
     bool gpsHasFix = true;                   ///< A3 drops it via the seam
     std::uint64_t seed = 1;                  ///< the run's ONE random seed (rng.hpp)

@@ -82,23 +82,36 @@ the season's routines.
 
 ## Current position
 
-**Done:** M0 complete · M1 host-side (F4 + F5 frozen host-only) · M2 control layer (WS4) · M2
-localization tier 1 (WS5) · **Chunk A1 — `DebugRecord` + `TermSink` + fault discipline (WS13)**,
-closed 2026-08-01 ([completion record](chunks/A1-COMPLETED.md)) · **Chunk A2 — the host plant +
-closed-loop sim harness**, closed 2026-08-01 ([completion record](chunks/A2-COMPLETED.md)) ·
-**Chunk A3 — hostile fakes**, closed 2026-08-02 with its documentation contract discharged
-([completion record](chunks/A3-COMPLETED.md)) — **the seams are populated and the suite is no
-longer agreeable**: every V5 misbehaviour class is injectable and composable, hostility found and
-fixed three real Localizer defects, and the M2 `<1°` acceptance test is live with a measured
-number. **Next: chunk A4** (A3 queued ~25 provisional magnitudes as the register's seed content).
+**Done: PHASE A IS COMPLETE (A1–A4).** M0 complete · M1 host-side (F4 + F5 frozen host-only) ·
+M2 control layer (WS4) · M2 localization tier 1 (WS5) · **Chunk A1 — `DebugRecord` + `TermSink` +
+fault discipline (WS13)**, closed 2026-08-01 ([completion record](chunks/A1-COMPLETED.md)) ·
+**Chunk A2 — the host plant + closed-loop sim harness**, closed 2026-08-01
+([completion record](chunks/A2-COMPLETED.md)) · **Chunk A3 — hostile fakes**, closed 2026-08-02
+([completion record](chunks/A3-COMPLETED.md)) — every V5 misbehaviour class injectable and
+composable, three real Localizer defects found and fixed, the M2 `<1°` acceptance test live with
+a measured number · **Chunk A4 — the Hardware Assumptions Register + the ARM compile gate**,
+closed 2026-08-06 ([completion record](chunks/A4-COMPLETED.md)) — the debt of building without a
+robot is now **inventoried, not scattered**:
+[`hardware-assumptions.md`](hardware-assumptions.md) carries **49 falsifiable entries**
+(33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed), each with source, confidence,
+settling measurement, owning chunk and blast radius, bidirectionally reconciled with the tree
+(zero orphans, grep-verified) — this is R3's day-one checklist; and CI now **holds** the ARM
+line (`arm-compile-gate` job: every v2 header, generated list, compile-only by honest scope,
+proven to catch what the host build cannot).
 
-**Verified 2026-08-02 (post-A3):** host suite **429 cases / 681,086 assertions** green under strict
-`-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle — the M2
-stub is now LIVE); CI PROS-free guard passes (scope includes `include/shulib/diag` and all of
-`include/shulib/sim` incl. `sim/hostile/`) plus the **sim-layering guard** (core may never include
-`shulib/sim/`); **the v2 core cross-compiles clean for ARM** — all 77 v2 headers under the same
-strict flags as host (verified directly — but not guarded by CI, which builds host only; A4 adds
-the gate).
+**Next: chunk C1 — `IMotion` + the motion primitives.** Phase C opens: fully host-provable
+against the A2 plant, hostile by A3's world, observable through A1's sinks, and honest about
+constants per A4's register. *(Reminder: there is no Phase B — see the note under the phase
+table.)*
+
+**Verified 2026-08-06 (post-A4):** host suite **429 cases / 681,086 assertions** green under strict
+`-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle, now
+register entry HA-01; A4 adds no test surface by design); CI PROS-free guard passes (scope includes
+`include/shulib/diag` and all of `include/shulib/sim` incl. `sim/hostile/`) plus the
+**sim-layering guard** (core may never include `shulib/sim/`); **the v2 core cross-compiles clean
+for ARM and CI now guards it** — all 77 v2 headers under the same strict flags as host, header
+list generated in-job, gate mutation-proven (host build GREEN with an injected x86-only construct,
+gate RED at the offending line, restored).
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 
@@ -161,6 +174,12 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **I** | Second robot | I1–I2 | needs both robots |
 
 **39 chunks.** Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**).
+
+> **There is no Phase B — deliberately.** An earlier draft's Phase B was the hardware bridge
+> (`hal/pros` + on-robot validation, right after Phase A); the reversal recorded in the
+> deviations table moved all of it into **Phase R**, and the lettering keeps the gap rather than
+> renumbering so that early notes, briefs and commit messages citing phase letters stay true.
+> A→C is not a typo; it is the reversal's fossil, kept visible on purpose.
 
 **27 of 39 chunks need no hardware** — and **20 of those (Phases A, C, D, E, F) need nothing external
 at all.** That is the great majority of the library, including its hardest and highest-value parts:

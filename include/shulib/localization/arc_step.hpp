@@ -49,8 +49,10 @@
 // samples is within (-π, π]. arcStep sees only the already-wrapped `Angle`s, so a real per-tick
 // rotation > π is indistinguishable from its shorter alias (270° and −90° are the *same*
 // `Angle`) — the wrap is lossy before arcStep is even called. At ~100 Hz this always holds
-// (even 1000°/s is 10°/tick). The plausibility gate against an aliased/stalled heading sample
-// therefore lives in `PilonsOdometry` (which sees consecutive ticks), not here.
+// (even 1000°/s is 10°/tick) — but the sustained ~100 Hz loop rate on a loaded V5 is itself
+// an unverified assumption (A4 register HA-32). The plausibility gate against an
+// aliased/stalled heading sample therefore lives in `PilonsOdometry` (which sees consecutive
+// ticks), not here.
 
 #include <cmath>
 

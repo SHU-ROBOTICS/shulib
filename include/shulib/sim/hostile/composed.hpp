@@ -45,8 +45,9 @@
 // independently of how many draws the degradation models consume — timing hostility
 // and sensor hostility compose without entangling their streams. Draw discipline:
 // exactly two draws per tick (spike roll, jitter), regardless of outcome.
-//   * jitterFrac = 0.2, spikeProb = 0.02, spikeFactor = 5 — PROVISIONAL (A4):
+//   * jitterFrac = 0.2, spikeProb = 0.02, spikeFactor = 5 — PROVISIONAL (A4: HA-34):
 //     PROS task-contention statistics are unmeasured until R-phase telemetry.
+//     Register: docs/planning/hardware-assumptions.md — HA-34 (jitter), HA-32 (loop rate).
 
 #include <vector>
 
@@ -201,9 +202,9 @@ private:
 
 struct JitterScheduleConfig {
     units::Time nominal{0.01};
-    double jitterFrac = 0.2;   // PROVISIONAL (A4)
-    double spikeProb = 0.02;   // PROVISIONAL (A4)
-    double spikeFactor = 5.0;  // PROVISIONAL (A4)
+    double jitterFrac = 0.2;   // PROVISIONAL (A4: HA-34)
+    double spikeProb = 0.02;   // PROVISIONAL (A4: HA-34)
+    double spikeFactor = 5.0;  // PROVISIONAL (A4: HA-34)
 };
 
 /// The canonical hostile dt schedule for SimHarness::runTicksVariable (header note).

@@ -73,7 +73,8 @@ struct LocalizerConfig {
     /// would otherwise blow up into an unphysical velocity spike).
     double minDt = 1e-4;
     /// distanceSinceCorrection at which the quality scalar decays to qFloor (drift erodes trust as we
-    /// dead-reckon farther — process noise scales with travel). Default ~ one foot.
+    /// dead-reckon farther — process noise scales with travel). Default ~ one foot — an INVENTED
+    /// drift-rate guess until R4 measures real dead-reckon drift (A4 register HA-36).
     units::Length driftHorizon{12.0};
     /// Quality floor while dead-reckoning far from a fix, in [0,1).
     double qFloor = 0.2;
@@ -81,7 +82,7 @@ struct LocalizerConfig {
     /// delayed sensor data path flushes its boot-boundary garbage (the settle window — header
     /// note). Applies ONLY when a not-ready phase was observed; a ready-from-construction boot
     /// takes no hold. Must cover the worst sensor data-path latency; 0.1 s clears the ~50 ms
-    /// GPS-class delay with margin (adequacy vs. REAL latencies: A4 register, R4 measures).
+    /// GPS-class delay with margin (adequacy vs. REAL latencies: A4 register HA-35, R4 measures).
     double bootSettleTime = 0.1;
 };
 

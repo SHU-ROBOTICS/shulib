@@ -25,8 +25,10 @@
 //    scenario fact, not an emergent one.
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-//   * accelThreshold = 80 in/s² — where traction breaks on our wheels/foam, unknown.
-//   * slipRetain = 0.7          — how much of the spin still propels during a slip.
+// Register: docs/planning/hardware-assumptions.md — HA-37..HA-39.
+//   * accelThreshold = 80 in/s² — where traction breaks on our wheels/foam, unknown. (HA-37)
+//   * slipRetain = 0.7          — how much of the spin still propels during a slip. (HA-38)
+//   (Both also assume the field surface is traction-UNIFORM — one pair suffices: HA-39.)
 //
 // Determinism: no rng draws — slip is a pure function of the spin history the plant
 // feeds it. State is per-wheel (lastSpin/lastNow) so wheels slip independently,
@@ -56,8 +58,8 @@ struct SlipWindow {
 };
 
 struct SlipHostileConfig {
-    double accelThresholdInPerS2 = 80.0;  // PROVISIONAL (A4)
-    double slipRetain = 0.7;              // PROVISIONAL (A4)
+    double accelThresholdInPerS2 = 80.0;  // PROVISIONAL (A4: HA-37)
+    double slipRetain = 0.7;              // PROVISIONAL (A4: HA-38)
     std::vector<SlipWindow> windows{};    ///< events, default none
 };
 

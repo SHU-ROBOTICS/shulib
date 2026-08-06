@@ -19,17 +19,19 @@
 //    disconnect, permanent). Before any fix exists the stale pose is the ORIGIN —
 //    deliberately wrong for most scenarios, so any code that trusts a no-fix pose
 //    is dragged toward (0,0) and caught, rather than accidentally handed the truth.
+//    (What the REAL device serves off-strip/no-fix is unknown: A4 register HA-31.)
 // 4. BAD FIX (event, default OFF): during a `badFixWindows` entry, fresh samples are
 //    truth + a constant offset while STILL claiming hasFix = true with the normal
 //    rmsError — a plausible, confident lie (strip misread/reflection). This is the
 //    attack the fusion innovation gate exists for; damage must be bounded by it.
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-//   * noiseSigma = 0.7 in/axis   — field-test folklore for on-strip jitter.
-//   * headingNoiseSigma = 1°     — GPS-derived heading is much worse than the IMU's.
-//   * updatePeriod = 50 ms       — the GPS camera's cadence guess.
-//   * reportedRms = 1.0 in       — what the sensor CLAIMS when healthy.
-//   * noFixRms = 99 in           — the off-strip/no-fix error report.
+// Register: docs/planning/hardware-assumptions.md — HA-26..HA-29 (+HA-31 no-fix pose).
+//   * noiseSigma = 0.7 in/axis   — field-test folklore for on-strip jitter. (HA-26)
+//   * headingNoiseSigma = 1°     — GPS-derived heading is much worse than the IMU's. (HA-27)
+//   * updatePeriod = 50 ms       — the GPS camera's cadence guess. (HA-28)
+//   * reportedRms = 1.0 in       — what the sensor CLAIMS when healthy. (HA-29)
+//   * noFixRms = 99 in           — the off-strip/no-fix error report. (HA-29)
 // (GPS LATENCY is deliberately NOT here — LatencyHostileModel delays any sensor,
 //  including this one's output, and stacking them in the chain is the composition
 //  story. One pathology, one owner.)
@@ -68,11 +70,11 @@ struct GpsBadFixWindow {
 };
 
 struct GpsHostileConfig {
-    double noiseSigmaIn = 0.7;                                  // PROVISIONAL (A4)
-    double headingNoiseSigmaRad = 1.0 * hostile_detail::kDegToRad;  // PROVISIONAL (A4)
-    units::Time updatePeriod{0.05};                             // PROVISIONAL (A4)
-    units::Length reportedRms{1.0};                             // PROVISIONAL (A4)
-    units::Length noFixRms{99.0};                               // PROVISIONAL (A4)
+    double noiseSigmaIn = 0.7;                                  // PROVISIONAL (A4: HA-26)
+    double headingNoiseSigmaRad = 1.0 * hostile_detail::kDegToRad;  // PROVISIONAL (A4: HA-27)
+    units::Time updatePeriod{0.05};                             // PROVISIONAL (A4: HA-28)
+    units::Length reportedRms{1.0};                             // PROVISIONAL (A4: HA-29)
+    units::Length noFixRms{99.0};                               // PROVISIONAL (A4: HA-29)
     bool offStrip = false;              ///< Driving Skills: no strip for the whole run
     std::vector<GpsNoFixWindow> noFixWindows{};   ///< transient occlusions (events)
     std::vector<GpsBadFixWindow> badFixWindows{};  ///< confident lies (events)

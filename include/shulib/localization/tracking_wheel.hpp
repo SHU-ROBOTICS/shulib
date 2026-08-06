@@ -12,7 +12,8 @@
 // (Binding contract: the hal/pros adapter MUST source this from the cumulative reading, e.g.
 // `pros::Rotation::get_position`, NOT a wrapping 0–360 angle — the same get_rotation-vs-get_heading
 // distinction the IMU has. The int32 centidegree range is ~6×10⁴ revolutions ≈ miles of travel,
-// far beyond a match, so no wrap is seen in practice. See master plan §7.)
+// far beyond a match, so no wrap is seen in practice. See master plan §7. A4 register HA-11;
+// the wheel's MEASURED geometry — offset, sign, effective diameter — is HA-12/HA-13.)
 //
 // ROLE + OFFSET. The offset's reference axis DIFFERS by role, so a wheel is built through a named
 // factory that stamps the role and documents the axis — you cannot set the wrong axis or pass the

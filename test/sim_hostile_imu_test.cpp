@@ -96,7 +96,7 @@ TEST_CASE("hostile imu: per-boot rate bias drifts heading EXACTLY as bias*(t-cal
 
 TEST_CASE("hostile imu: the 60 s drift number, measured and reported (worst over 8 boots)") {
     // The quantity F2's <1° budget lives or dies on. Bias is uniform in ±1°/min
-    // (PROVISIONAL), so the worst boot approaches 1° at 60 s — measured here, with
+    // (PROVISIONAL — A4 register HA-20), so the worst boot approaches 1° at 60 s — measured here, with
     // noise live, exactly as the acceptance test will see it.
     ImuHostileConfig cfg;  // FULL defaults: window + drift + noise
     double worstEndErrDeg = 0.0;

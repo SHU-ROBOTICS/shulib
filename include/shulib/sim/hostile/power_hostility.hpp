@@ -17,7 +17,8 @@
 // 3. BROWNOUT COLLAPSE: at/below `cutoffVolts` the brain cuts motor power —
 //    effective = 0 for every wheel while the condition holds. The run itself
 //    CONTINUES (the CPU survives on the supercap; motors die first) — which is
-//    precisely why the guaranteed-park logic (F2 chunk) can exist at all.
+//    precisely why the guaranteed-park logic (F2 chunk) can exist at all. That
+//    motors-die-first/CPU-survives premise is itself unverified: A4 register HA-19.
 // 4. THERMAL DROOP (continuous accumulation, droop only when hot): per-wheel
 //    temperature integrates heatRate·V²·dt and cools toward ambient; at the V5's
 //    documented throttle steps the effective voltage is scaled:
@@ -26,17 +27,20 @@
 //    representing a current limit as a voltage scale is a PROXY — our kinematic
 //    plant has no torque, so "half the current" is modeled as "half the drive".
 //    Recorded honestly: CURRENT LIMITING per se (the 2.5 A cap under stall) is NOT
-//    modeled — it needs the load model the honesty boundary forbids; R6 back-fits.
+//    modeled — it needs the load model the honesty boundary forbids; R6 back-fits
+//    (A4 register HA-49).
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4/R5 measure) ───────
-//   * sagPerCommandedVolt = 0.02 V/V  — ≈1 V sag with 4 motors at full 12 V.
-//   * dischargeRate = 0.005 V/s       — ≈0.3 V over a 60 s run.
+// Register: docs/planning/hardware-assumptions.md — HA-40..HA-44 (+HA-19 brownout
+// survivability, HA-49 unmodeled current limiting).
+//   * sagPerCommandedVolt = 0.02 V/V  — ≈1 V sag with 4 motors at full 12 V. (HA-40)
+//   * dischargeRate = 0.005 V/s       — ≈0.3 V over a 60 s run. (HA-41)
 //   * cutoffVolts = 10.5 V            — where the brain starts cutting motor power
-//                                       (align with HealthMonitorConfig.brownoutVolts).
-//   * heatRatePerV2 = 0.0023 °C/(V²s) — full-drive reaches ~55 °C in ~90 s from 25 °C.
-//   * coolRate = 0.01 /s              — cooling time constant ~100 s.
+//                                       (align with HealthMonitorConfig.brownoutVolts). (HA-42)
+//   * heatRatePerV2 = 0.0023 °C/(V²s) — full-drive reaches ~55 °C in ~90 s from 25 °C. (HA-43)
+//   * coolRate = 0.01 /s              — cooling time constant ~100 s. (HA-43)
 //   * throttle steps 55/60/65 °C      — VEX-documented shape, onset unmeasured on
-//                                       our motors until R4.
+//                                       our motors until R4. (HA-44)
 //
 // The plant does NOT synthesize motor temperature (no seam exists — an A2 decision,
 // kept); tests that want FakeMotor::temperature() to agree with this model push
@@ -64,13 +68,13 @@
 namespace shulib::sim {
 
 struct PowerHostileConfig {
-    double sagPerCommandedVolt = 0.02;  // PROVISIONAL (A4)
-    double dischargeRatePerS = 0.005;   // PROVISIONAL (A4)
-    units::Voltage cutoffVolts{10.5};   // PROVISIONAL (A4)
-    double ambientC = 25.0;             // PROVISIONAL (A4)
-    double heatRatePerV2 = 0.0023;      // PROVISIONAL (A4)
-    double coolRatePerS = 0.01;         // PROVISIONAL (A4)
-    double throttleTempC = 55.0;        // PROVISIONAL (A4): first VEX throttle step
+    double sagPerCommandedVolt = 0.02;  // PROVISIONAL (A4: HA-40)
+    double dischargeRatePerS = 0.005;   // PROVISIONAL (A4: HA-41)
+    units::Voltage cutoffVolts{10.5};   // PROVISIONAL (A4: HA-42)
+    double ambientC = 25.0;             // PROVISIONAL (A4: HA-43)
+    double heatRatePerV2 = 0.0023;      // PROVISIONAL (A4: HA-43)
+    double coolRatePerS = 0.01;         // PROVISIONAL (A4: HA-43)
+    double throttleTempC = 55.0;        // PROVISIONAL (A4: HA-44): first VEX throttle step
     /// Fallback pack nominal if effectiveVoltage is ever consulted before the
     /// plant's construction-time batteryVoltage call captures the real nominal.
     units::Voltage fallbackNominal{12.6};

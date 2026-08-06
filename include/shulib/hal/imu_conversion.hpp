@@ -16,16 +16,19 @@
 //  * imuHeadingDegCw is CUMULATIVE CW degrees from calibration → bind to
 //    pros::Imu::get_rotation() (theoretically unbounded), NOT get_heading() (bounded
 //    [0,360), which loses the revolution continuity this cumulative contract assumes).
+//    (A4 register HA-03.)
 //  * The adapter MUST NOT call tare/tare_rotation/set_rotation/tare_heading/set_heading/
 //    reset after calibration — each re-zeros the sensor independently of bootHeading and
 //    silently invalidates the additive offset (the < 1° budget has no room to absorb it).
+//    (A4 register HA-05.)
 //  * bootHeading has ONE owner: the robot's canonical START heading (the init Pose2d
 //    handed to the Localizer). The offset is applied exactly ONCE, here at the HAL edge;
-//    no downstream consumer (odometry / Localizer / EKF) re-applies it.
+//    no downstream consumer (odometry / Localizer / EKF) re-applies it. (A4 register HA-05.)
 //
 // ON-ROBOT VALIDATION still required: confirm the as-mounted sensor matches its own
 // CW-positive doc strings (bench: a known +90° CW spin must DECREASE canonical heading
 // by 90°). If a bench test ever disagrees, the sign of the subtraction is the line to flip.
+// (A4 register HA-02, docs/planning/hardware-assumptions.md; R3 settles it.)
 
 #include <cmath>
 
@@ -54,6 +57,7 @@ namespace shulib::hal {
 /// a raw body-axis struct whose z sign is UNDOCUMENTED. Prefer deriving yaw rate by
 /// differentiating get_rotation() (documented CW-positive) so this negate is provably
 /// correct; otherwise bench-verify get_gyro_rate().z's sign before trusting it.
+/// (A4 register HA-04; R3 settles it.)
 [[nodiscard]] inline units::AngularVelocity imuYawRateToCanonical(double degPerSecCw) {
     SHULIB_PRECONDITION(std::isfinite(degPerSecCw), "imuYawRateToCanonical: rate must be finite");
     constexpr double kDegToRad = math::Angle::kPi / 180.0;

@@ -132,11 +132,13 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control + localization complete; build-order chunks A1
-> (WS13 diagnostics), A2 (the host plant + closed-loop sim harness) and A3 (the hostile fakes —
-> the degradation seams populated, three real Localizer defects found and fixed, the M2 `<1°`
-> acceptance test live and measured) complete — A4, the Hardware Assumptions Register + ARM CI
-> gate, is next.**
+> **You are here:** **M1 complete; M2 control + localization complete; build-order Phase A
+> COMPLETE (2026-08-06)** — chunks A1 (WS13 diagnostics), A2 (the host plant + closed-loop sim
+> harness), A3 (the hostile fakes — the degradation seams populated, three real Localizer defects
+> found and fixed, the M2 `<1°` acceptance test live and measured) and A4 (the Hardware
+> Assumptions Register + the ARM compile gate in CI) all closed. **Next: Phase C, chunk C1 —
+> `IMotion` + the motion primitives.** (There is no Phase B: the original hardware phase became
+> Phase R — see build-order's deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
@@ -201,17 +203,36 @@ not silently break them. This table is the spine of the no-staleness promise.
 > the margin at the pessimistic ±1°/min provisional drift bound is ~zero BY CONSTRUCTION: R4's
 > measurement is the ceiling, Phase E's correctors buy margin). **7 mutations proven red, then
 > restored.** See `docs/planning/chunks/A3-COMPLETED.md` for the full record.
-> **NEXT: chunk A4 — Hardware Assumptions Register + ARM CI gate** (A3 queued ~25 provisional
-> magnitudes as falsifiable claims for it). The *what* is still this page; the **order** lives in
+> **Chunk A4 (Hardware Assumptions Register + ARM compile gate) is done — 2026-08-06, closing
+> Phase A:** every claim about physical hardware that three no-robot chunks (plus the M1/M2
+> conversion layers) rest on is now **inventoried instead of scattered** —
+> **[`docs/planning/hardware-assumptions.md`](hardware-assumptions.md)**, 49 falsifiable entries
+> (**33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed** — the honest cost of building
+> without hardware), each with source, confidence, the specific settling measurement, its owning
+> chunk (R3 conventions/geometry · R4 noise/drift · R5 gains · R6 back-fit) and its **blast
+> radius if wrong** (most are contained behind the `hal/pros` seam or a single constant BY
+> DESIGN; the exception worth knowing: HA-19, brownout CPU-survival, which the F2 guaranteed-park
+> design presupposes). Reconciliation is bidirectional and grep-verified: every
+> `PROVISIONAL (A4: HA-nn)` label in the tree maps to an entry and every header-sourced entry
+> points back — zero orphans. **CI now holds the ARM line**: a second job cross-compiles every
+> v2 header for the V5's Cortex-A9 from a **generated** header list under the same strict flags
+> as host — a compile gate (link/run stay R1/R3), **proven** to catch a host-only construct that
+> the host build is provably blind to (mutation: host GREEN, gate RED, restored). This register
+> is R3's day-one checklist — first hardware contact is a prepared sequence, not an exploration.
+> See `docs/planning/chunks/A4-COMPLETED.md` (incl. the Phase A retrospective).
+> **NEXT: chunk C1 — `IMotion` + the motion primitives** (Phase C opens; fully host-provable
+> against the A2 plant + A3 hostility). The *what* is still this page; the **order** lives in
 > **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks, written against the governing
 > constraint that **there is no robot yet**. Read it before starting any work.
 > *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
 > non-orthogonal pseudo-inverse → C3; `sysid` → R5; estimator-side frozen-encoder detection → E-phase
 > (the loop-level cross-check shape is tested at A3).*
-> *Status verified 2026-08-02 (post-A3): host suite **429 cases / 681,086 assertions green** under
-> strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle);
-> both CI guards green (PROS-free incl. `sim/hostile/`; core never includes `sim/`); all 77 v2
-> headers cross-compile clean for ARM under the same strict flags (not yet CI-guarded — closes at A4).*
+> *Status verified 2026-08-06 (post-A4): host suite **429 cases / 681,086 assertions green** under
+> strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle —
+> the oracle is now register entry HA-01; A4 deliberately adds no test surface, it is a
+> documentation + CI chunk); both CI guards green (PROS-free incl. `sim/hostile/`; core never
+> includes `sim/`); all 77 v2 headers cross-compile clean for ARM **and CI now guards it** (the
+> `arm-compile-gate` job, generated header list, gate proven to catch a host-only construct).*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -280,7 +301,9 @@ workstream in [§ Workstreams](#workstreams) — two views of one backlog.
   mutation-checked (injecting a `pros/` include into a core header makes it exit 1), build+tests green;
   Actions runs verify on first push. **Scope:** on-robot ARM build deliberately NOT in CI (needs PROS's
   toolchain/robot — see the toolchain item) and markdown lint left out (cosmetic-warning noise); both
-  addable later. Guard scope broadens to all of `shulib/` after the M2 cutover.*
+  addable later. Guard scope broadens to all of `shulib/` after the M2 cutover.
+  **Update (A4, 2026-08-06):** CI now also carries the ARM **compile** gate — every v2 header
+  cross-compiled for Cortex-A9 from a generated list; the on-robot LINK/run remain R1/R3 as scoped.*
 - [x] Regenerate `compile_commands.json` for editor tooling. *Done 2026-06-19:
   `CMAKE_EXPORT_COMPILE_COMMANDS` on; `build/test/compile_commands.json` symlinked at repo root
   (gitignored) so clangd resolves `doctest.h` + the shulib headers (fixes the editor false-positives).*
@@ -460,6 +483,22 @@ DoD in Phases C–F depends on it.*
   at the pessimistic ±1°/min drift bound the margin is ~zero by construction (worst instantaneous
   error touched 1.065° mid-run), so the claim "the STACK adds no heading error of its own" is proven,
   while the field claim waits on R4's measured drift (the ceiling) and Phase E's correctors (the margin).
+  *(That drift bound is now register entry HA-20 — the F2 ceiling has a tracked owner.)*
+- [x] **Hardware Assumptions Register + ARM compile gate (build-order chunk A4, closing Phase A)**
+  — every claim about physical hardware the no-robot build rests on, inventoried:
+  **[`docs/planning/hardware-assumptions.md`](hardware-assumptions.md)**, **49 falsifiable
+  entries** (33 invented / 13 reasoned / 2 measured-elsewhere / 1 mixed), each with source
+  (file:line), confidence, the specific settling measurement, owning chunk (R3/R4/R5/R6), and
+  blast radius if wrong — grouped as Phase R's walk-through checklist. **Bidirectional
+  reconciliation grep-verified, zero orphans**: all 35 `PROVISIONAL (A4…)` label sites carry
+  register IDs; all 46 in-tree IDs have entries (3 entries are exempt non-header sources, stated
+  in-register). **CI now cross-compiles every v2 header for the V5's Cortex-A9** (the
+  `arm-compile-gate` job: GENERATED header list so new headers are auto-covered; compile gate
+  only — link/run stay R1/R3) and the gate is **proven**, not asserted: an injected x86-only
+  construct left the host build GREEN and turned the gate RED (exit 1 at the offending line),
+  then was restored. *Evidence: `hardware-assumptions.md`; `.github/workflows/ci.yml`; suite
+  unchanged at 429/681,086 (no new test surface, by design); `chunks/A4-COMPLETED.md` (incl.
+  the Phase A retrospective).*
 
 **Facade (WS — Chassis)**
 - [ ] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
