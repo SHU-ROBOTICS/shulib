@@ -701,6 +701,23 @@ Each maps to an ○ cell in the [Capability Catalog](shulib-v2-master-plan.md#15
   edit-path → re-sim; binary compiled-path artifact + schema-hash handshake.
 - **Telemetry/diagnostics:** on-brain HUD/summary screen (add-on); cloud run library; auto-tune from replays.
 - **Authoring:** a GUI sequence builder in VexBuilder writing `paths[]` directly.
+- **Follow mode (off-field convenience + demo):** a `FollowTarget` `IMotion` that trails a **carried
+  AprilTag** at a set standoff, so the robot walks itself to and from the field instead of being
+  carried. *Scoped deliberately to a tag, not a person:* detecting a human is easy, but deciding
+  **which** human is you (re-identification) is unreliable in a crowd — a tag is a unique id with a
+  computable bearing **and** range, which makes the crowd case disappear. Reuses M3's `AprilTagCorrector`
+  pipeline pointed at a different target; rides `ITagSource`, so either the V5 AI Vision (native tags
+  since kernel 4.2.2) or the Pi backend serves it. **Holonomic advantage:** an X-drive strafes to keep
+  the camera on the target while sidestepping, where a tank bot must turn away and lose it.
+  *Generic person-following* (no tag) is a further unlock needing a Pi-side person model.
+  *Obstacle avoidance* around people is a separate unlock — Distance-sensor array or LIDAR (`<VUG3>`),
+  and it composes with the **Motion** row's dynamic-replanning cell above rather than duplicating it.
+  **Non-negotiable if built:** a controller **dead-man** (hold-to-follow, release-to-stop) and a check
+  of event rules on autonomous operation outside the field — a robot driving itself through a crowded
+  venue is a real hazard. **Honest framing:** driver control already solves "don't carry the robot";
+  this earns its place as an *Innovate/Design demo* that exercises the same vision + estimator stack
+  the competition code depends on, not as a labor saver. **Earliest sensible slot: after M3**, once the
+  tag pipeline exists.
 
 ---
 
