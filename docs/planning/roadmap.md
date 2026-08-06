@@ -132,13 +132,14 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control + localization complete; build-order Phase A
-> COMPLETE (2026-08-06)** — chunks A1 (WS13 diagnostics), A2 (the host plant + closed-loop sim
-> harness), A3 (the hostile fakes — the degradation seams populated, three real Localizer defects
-> found and fixed, the M2 `<1°` acceptance test live and measured) and A4 (the Hardware
-> Assumptions Register + the ARM compile gate in CI) all closed. **Next: Phase C, chunk C1 —
-> `IMotion` + the motion primitives.** (There is no Phase B: the original hardware phase became
-> Phase R — see build-order's deviations table.)
+> **You are here:** **M1 complete; M2 control + localization complete; Phase A COMPLETE
+> (2026-08-06); Phase C OPEN — chunk C1 (`IMotion` + the motion primitives) built and verified
+> 2026-08-06, in the working tree pending review.** The library can now be told "go to that
+> spot": `MoveToPose` (decoupled per-axis x/y/θ — the holonomic thesis, mutation-proven),
+> `TurnTo`, `StrafeTo`, `HoldPose`, `DriveBrake`, all watchdog-bounded, hostile-surviving, and
+> honoring A3's two handoffs (wait-for-live-estimate; the ODO_STUCK spin-vs-motion cross-check).
+> **Next: chunk C2 — `MotionScheduler`.** (There is no Phase B: the original hardware phase
+> became Phase R — see build-order's deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
 > `MatrixKinematics`/`xDrive()`/`TankKinematics`/desaturation, all 10 interfaces + fakes, the IMU & GPS
 > canonical conversions (each **red-teamed**), and `RobotContext`. **M2 control layer (WS4) is done:**
@@ -220,19 +221,20 @@ not silently break them. This table is the spine of the no-staleness promise.
 > the host build is provably blind to (mutation: host GREEN, gate RED, restored). This register
 > is R3's day-one checklist — first hardware contact is a prepared sequence, not an exploration.
 > See `docs/planning/chunks/A4-COMPLETED.md` (incl. the Phase A retrospective).
-> **NEXT: chunk C1 — `IMotion` + the motion primitives** (Phase C opens; fully host-provable
-> against the A2 plant + A3 hostility). The *what* is still this page; the **order** lives in
+> **NEXT: chunk C2 — `MotionScheduler`** (C1 closed 2026-08-06 — see
+> `docs/planning/chunks/C1-COMPLETED.md`). The *what* is still this page; the **order** lives in
 > **[`build-order.md`](build-order.md)** — 39 dependency-ordered chunks, written against the governing
 > constraint that **there is no robot yet**. Read it before starting any work.
 > *Carry-overs (tracked, now placed): `hal/pros` adapters + v2 `src/main.cpp` → R1/R3; `MatrixKinematics`
 > non-orthogonal pseudo-inverse → C3; `sysid` → R5; estimator-side frozen-encoder detection → E-phase
 > (the loop-level cross-check shape is tested at A3).*
-> *Status verified 2026-08-06 (post-A4): host suite **429 cases / 681,086 assertions green** under
-> strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle —
-> the oracle is now register entry HA-01; A4 deliberately adds no test surface, it is a
-> documentation + CI chunk); both CI guards green (PROS-free incl. `sim/hostile/`; core never
-> includes `sim/`); all 77 v2 headers cross-compile clean for ARM **and CI now guards it** (the
-> `arm-compile-gate` job, generated header list, gate proven to catch a host-only construct).*
+> *Status verified 2026-08-06 (post-C1): host suite **487 cases / 858,611 assertions green** under
+> strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle
+> = register entry HA-01); both CI guards green with **`include/shulib/motion` added to both
+> scopes**; all **85** v2 headers cross-compile clean for ARM under the CI `arm-compile-gate`
+> job (generated list — the 8 new motion headers are covered automatically). C1 ran **12
+> mutations, all observed red** (two only after the suite was strengthened — the two holes they
+> exposed are closed and recorded in C1-COMPLETED §Mutations).*
 
 | Milestone | Theme | DoD headline | Status |
 |---|---|---|---|
@@ -423,7 +425,18 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 - [ ] `tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.
 
 **Motion (WS6)**
-- [ ] `IMotion`; `MoveToPose` (decoupled x/y/θ), `TurnTo`, `StrafeTo`, `driveBrake`, `holdPose`.
+- [x] `IMotion`; `MoveToPose` (decoupled x/y/θ), `TurnTo`, `StrafeTo`, `driveBrake`, `holdPose`.
+  *Chunk C1 (2026-08-06): `include/shulib/motion/` — `IMotion` tick contract + `MotionState`
+  wire vocabulary, the 3-axis decoupled engine (simultaneity mutation-proven), the
+  wait-for-live-estimate contract (A3 handoff #1) and the `OdoStallCheck` spin-vs-motion
+  cross-check → ODO_STUCK (A3 handoff #2), F1/F5 choreography explicit (norm-cap → fieldToRobot
+  → authority clamp → toWheels → desaturate → FF → battery comp). Evidence:
+  `test/motion_primitives_test.cpp` (21), `motion_frames_test.cpp` (7 — rotation/mirror
+  equivariance + the ±180° seam incl. the F3 antipodal-CCW pin), `motion_sweep_test.cpp` (7 —
+  seeded sweeps with per-tick universal invariants), `motion_hostile_test.cpp` (13 — per-family
+  + composed settled-vs-truth divergence), `motion_routine_test.cpp` (4 — 5/10/20/40-move
+  chains: clean error FLAT in count, hostile worst 4.1 in attributed to drift-vs-time),
+  `motion_stall_check_test.cpp` (9). 58 cases; suite 487/858,611; 12 mutations red.*
 - [ ] `MotionScheduler` — one active motion, `async()`/`waitUntilSettled()`/`waitUntil(pred)`/`cancel()`.
 
 **Kinematics (WS3)**
@@ -524,7 +537,7 @@ DoD in Phases C–F depends on it.*
   `test/term_sink_test.cpp` (15 cases), `test/trace_strip_test.cpp` (2) +
   `test/trace_enabled_test.cpp` (1). Mutation-checked (a stray space in `[WARN]` and an
   args-evaluating strip each go red).*
-- [~] **Fault-code enum** + latched first-fault; **motion exit-reason codes** on every `IMotion`; **loop-overrun / tick-timing** detection; NaN/Inf + invariant asserts (log-and-recover, non-fatal).
+- [x] **Fault-code enum** + latched first-fault; **motion exit-reason codes** on every `IMotion`; **loop-overrun / tick-timing** detection; NaN/Inf + invariant asserts (log-and-recover, non-fatal).
   *A1 delivered everything that exists to attach to: `diag/fault.hpp` (wire-stable numeric
   `FaultCode`, values pinned; `FaultLatch` retains the FIRST fault distinctly from the cascade and
   never crashes — survives even a throwing sink), `diag/loop_monitor.hpp` (dt-budget overrun, the
@@ -533,8 +546,10 @@ DoD in Phases C–F depends on it.*
   robot routes to fault-log, call sites unchanged — `test/check_policy_test.cpp`, 5 cases).
   Evidence: `test/fault_test.cpp` (7), `test/loop_monitor_test.cpp` (7),
   `test/finite_guard_test.cpp` (8); first-fault latch, overrun boundary, and NaN guard all
-  mutation-checked red. **Still open in this item:** exit-reason codes *on every `IMotion`* —
-  `IMotion` doesn't exist until C1/C2 (`ExitReason` itself shipped with WS4's `ExitGroup`).*
+  mutation-checked red. **Closed at C1:** every `IMotion` now reports an `ExitReason`
+  (Settled/TimedOut, never Running after exit — pinned), raises `MOTION_TIMEOUT` on its latch,
+  and carries the `MotionState` vocabulary in `DebugRecord.activeCommandState`
+  (`test/motion_primitives_test.cpp` exit-discipline + legibility cases).*
 - [ ] Per-motion result line (target vs final · overshoot · drift · time · exit-reason) + end-of-run summary block. *→ chunk C5 (needs motion data that doesn't exist yet).*
 - [ ] **Session header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — lets us compare/reproduce runs and confirm which binary ran. *→ chunk C5.*
 - [x] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.

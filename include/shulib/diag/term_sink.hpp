@@ -82,7 +82,13 @@ public:
     void emit(const DebugRecord& r) override {
         Line line;
         appendTimestamp(line, r.t.value());
-        if (r.activeCommandId != 0) {
+        // A tick belongs to the MOTION channel when a command id is assigned OR
+        // the motion-layer state is non-idle. The state clause was added at C1,
+        // the first real producer: ids are assigned by the C2 scheduler, so a C1
+        // motion running standalone has id 0 but state != 0 — discriminating on
+        // id alone rendered an ACTIVE motion as "[LOC] idle" (defect found by
+        // the first consumer; a genuinely idle record still has both zero).
+        if (r.activeCommandId != 0 || r.activeCommandState != 0) {
             line.appendLiteral("[MOT] cmd#");
             appendUnsigned(line, r.activeCommandId);
             line.appendLiteral("▸");  // ▸ id/state separator, per the §18.3 sketch

@@ -36,8 +36,9 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 49 settled.** No robot exists. Counts: **33 invented · 13 reasoned · 2 measured
-> elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset).
+> **Status: 0 of 52 settled.** No robot exists. Counts: **36 invented · 13 reasoned · 2 measured
+> elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1
+> per the Maintenance convention (the first post-A4 contributor).
 
 ---
 
@@ -94,6 +95,9 @@
 | HA-47 | `move_voltage` is true voltage control (sag only bites at the ceiling) | reasoned | R5 |
 | HA-48 | FF-inversion + first-order lag is an adequate plant shape | **invented** | R6 |
 | HA-49 | Unmodeled 2.5 A current limiting changes no host-phase conclusion | **invented** | R6 |
+| HA-50 | C1 motion gains + speed budget (kP 3.0/4.0, 60 in/s, 6 rad/s, 60 in/s wheels) | **invented** | R5 |
+| HA-51 | C1 settle tolerances (0.5″/1.15° + rate floors; brake 1.2 in/s; 5 s timeout) | **invented** | R4/R5 |
+| HA-52 | Stall cross-check thresholds (0.3 s window, 1.0″ spin, 25% ratio, stand-in radii) | **invented** | R3/R4 |
 
 ---
 
@@ -644,6 +648,55 @@ settleable before hardware, and none block any host chunk.
   *Blast radius if wrong:* gains tuned at partial throttle would be pack-dependent (R5 would
   discover this in its own data); the plant's power model semantics get adjusted at R6.
 
+- [ ] **HA-50 — the C1 motion defaults: translation kP = 3.0 (1/s), heading kP = 4.0 (1/s),
+  kI = kD = 0; maxLinearSpeed = 60 in/s, maxAngularSpeed = 6 rad/s, maxWheelSpeed = 60 in/s.**
+  *Claim:* gains of this magnitude converge without oscillation on the real drive, and the speed
+  budget keeps `Feedforward(maxWheelSpeed)` inside the 12 V rail with margin.
+  *Source:* `include/shulib/motion/motion_config.hpp` (every field labeled PROVISIONAL (A4:
+  HA-50)); the values converge on the A2 plant across the C1 sweep/routine suites — which by
+  Phase C's own rule proves logic, not constants.
+  *Confidence:* **invented** — tuned against placeholder plant dynamics (HA-45 co-dependency:
+  wrong kV shifts what "60 in/s" costs in volts).
+  *Settle (R5):* re-tune against measured kS/kV/kA; commit real values; R6 re-runs the suite.
+  *Blast radius if wrong:* convergence speed and overshoot on hardware — contained by design:
+  every C1 exit is watchdog-bounded and settle-verified, so a bad gain degrades to slow/TimedOut,
+  never to divergence-with-a-green-light. No frozen contract encodes these numbers.
+
+- [ ] **HA-51 — the C1 settle tolerances: translation 0.5 in / 1.0 in/s / 0.1 s; heading
+  0.02 rad / 0.30 rad/s / 0.1 s; brake 1.2 in/s / 100 in/s² / 0.1 s (on a 5-tick averaged
+  twist); default watchdog 5 s.**
+  *Claim:* these thresholds sit ABOVE the real sensors' noise floors (else motions never settle
+  on hardware) and BELOW competition-useful accuracy (else settling is meaningless). The
+  heading-rate floor (0.30 rad/s) clears the HA-21-noise-differentiation floor (~0.12 rad/s at
+  100 Hz) by ~2.5×; the brake threshold clears the measured M2 fused-twist noise floor at a
+  physical dead stop under composed hostility (0.5–1.5 in/s raw, ~0.3–0.9 averaged — measured
+  at C1, `drive_brake.hpp` header).
+  *Source:* `include/shulib/motion/motion_config.hpp` (PROVISIONAL (A4: HA-51));
+  `drive_brake.hpp` (the averaging + floor note).
+  *Confidence:* **invented** — the floors they must clear are themselves provisional (HA-21/22).
+  *Settle (R4 noise floors, R5 tolerances):* measure real estimator twist noise at a dead stop
+  and real settle behavior; tighten or loosen with data.
+  *Blast radius if wrong:* too tight ⇒ motions time out on a healthy robot (visible, bounded);
+  too loose ⇒ arrival accuracy degrades toward the tolerance (bounded by it). Either failure is
+  loud; neither corrupts state.
+
+- [ ] **HA-52 — the spin-vs-motion cross-check thresholds: 0.3 s window, 1.0 in minimum spin
+  travel, 25% motion ratio, wheel radius 1.625 in, rotation radius 7.0 in.**
+  *Claim:* on real hardware the window/thresholds separate the three regimes they must —
+  honest driving (ratio ≈ 1), A3-class slip (ratio ≈ 0.7, no fault), and a dead encoder or
+  blocked drivetrain (ratio ≈ 0, ODO_STUCK) — with the stand-in radii close enough that the
+  ratio comparison is not distorted.
+  *Source:* `include/shulib/motion/odo_stall_check.hpp` (PROVISIONAL (A4: HA-52)); radii
+  co-depend on HA-14 (wheel/gearing) and HA-17 (built geometry).
+  *Confidence:* **invented** — the margins are provisional-vs-provisional (HA-40's 70% slip
+  propulsion is itself a guess).
+  *Settle (R3 geometry; R4 slip/noise):* measure real slip ratios and encoder noise; verify a
+  hand-held wheel-stall raises ODO_STUCK within one window on the bench.
+  *Blast radius if wrong:* too eager ⇒ spurious ODO_STUCK during aggressive maneuvers (a log
+  smell, not a crash — the fault does not abort at C1); too lax ⇒ a dead encoder is caught by
+  the watchdog instead (slower, still bounded). The E-phase estimator-side detector supersedes
+  this check's load-bearing role.
+
 ---
 
 ## Group R6 — model-shape adequacy (settled by back-fit)
@@ -719,8 +772,8 @@ say so in their Source field.
 
 - **Adding an assumption** (any later chunk that invents a magnitude): label it
   `PROVISIONAL (A4: HA-nn)` in-header and add the entry here — the A3→A4 pipeline is now the
-  standing convention. Phase E (EKF noise priors) and F1 (mechanism fakes) are the known next
-  contributors.
+  standing convention (C1 followed it: HA-50–52). Phase E (EKF noise priors) and F1 (mechanism
+  fakes) are the known next contributors.
 - **Settling an entry** (R3/R4/R5/R6): check the box, record the measured value beside the
   guess, update the in-header constant, cite the measurement log. If the measured value breaks
   a test, the test was resting on the guess — fix forward per the R6 rule (a new failure is a

@@ -29,7 +29,7 @@ jobs:
       - name: No <pros/> in the core
         run: |
           if grep -rnE --exclude-dir=pros '#[[:space:]]*include[[:space:]]*[<"]pros/' \
-               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/diag include/shulib/sim; then
+               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/motion include/shulib/diag include/shulib/sim; then
             echo "::error::core must stay PROS-free (no #include <pros/...>)"
             exit 1
           fi
@@ -42,7 +42,7 @@ jobs:
       - name: Core never includes the sim plant
         run: |
           if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' \
-               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/diag; then
+               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/motion include/shulib/diag; then
             echo "::error::the core must not depend on shulib/sim (ground truth would become reachable from estimators)"
             exit 1
           fi

@@ -231,6 +231,13 @@ public:
     [[nodiscard]] Quality qualityClass() const noexcept { return qualityClass_; }
     [[nodiscard]] units::Length distanceSinceCorrection() const noexcept { return distanceSinceCorrection_; }
     [[nodiscard]] const AppliedCorrection& lastCorrection() const noexcept { return lastCorrection_; }
+    /// Forwarding accessor for PilonsOdometry::lastDeltaImplausible() — added at C1
+    /// (additive) so the motion loop can feed HealthMonitor's odomImplausible
+    /// observable without holding the odometry itself. Raising stays POLICY: this
+    /// only EXPOSES the flag; the Localizer still never raises faults (D3 at A3).
+    [[nodiscard]] bool lastOdomDeltaImplausible() const noexcept {
+        return odom_.lastDeltaImplausible();
+    }
 
     /// Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to PilonsOdometry::setPose so
     /// the predictor and the fused belief never diverge, and re-baselines twist + dt so the teleport

@@ -99,19 +99,32 @@ settling measurement, owning chunk and blast radius, bidirectionally reconciled 
 line (`arm-compile-gate` job: every v2 header, generated list, compile-only by honest scope,
 proven to catch what the host build cannot).
 
-**Next: chunk C1 — `IMotion` + the motion primitives.** Phase C opens: fully host-provable
-against the A2 plant, hostile by A3's world, observable through A1's sinks, and honest about
-constants per A4's register. *(Reminder: there is no Phase B — see the note under the phase
-table.)*
+**Phase C is OPEN: chunk C1 — `IMotion` + the motion primitives — built and verified
+2026-08-06** ([completion record](chunks/C1-COMPLETED.md), working tree pending review): the
+library can now be told "go to that spot". `MoveToPose` runs three DECOUPLED per-axis loops
+(translate + rotate simultaneously — the holonomic thesis, mutation-proven), plus `TurnTo` /
+`StrafeTo` / `HoldPose` / `DriveBrake`; every motion is watchdog-bounded, reports an
+`ExitReason`, emits per-tick records, survives A3's composed hostility, and carries the two A3
+handoffs (the wait-for-live-estimate contract; the `OdoStallCheck` spin-vs-motion cross-check →
+`ODO_STUCK` — the only dead-encoder defence until Phase E). Full-routine accuracy measured:
+clean-plant chain error FLAT in move count (0.24 in worst across 5→40-move routines — absolute
+targeting does not compound); full-hostility worst 4.1 in over ~95 s attributed to M2 drift
+(err-vs-time 0.028 in/s; Phase E's problem), with a 2%-miscalibration twin proving the
+distance-attribution diagnostic reads exactly 2%.
 
-**Verified 2026-08-06 (post-A4):** host suite **429 cases / 681,086 assertions** green under strict
-`-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle, now
-register entry HA-01; A4 adds no test surface by design); CI PROS-free guard passes (scope includes
-`include/shulib/diag` and all of `include/shulib/sim` incl. `sim/hostile/`) plus the
-**sim-layering guard** (core may never include `shulib/sim/`); **the v2 core cross-compiles clean
-for ARM and CI now guards it** — all 77 v2 headers under the same strict flags as host, header
-list generated in-job, gate mutation-proven (host build GREEN with an injected x86-only construct,
-gate RED at the offending line, restored).
+**Next: chunk C2 — `MotionScheduler`.** Named handoffs to it from C1: fault-reactive
+cancellation policy (C1 raises ODO_STUCK/BROWNOUT etc. during a motion but deliberately does
+not self-abort — the watchdog bounds damage until the scheduler owns cancel()); scheduler-side
+LoopMonitor + HealthMonitor ownership between motions; `activeCommandId` assignment.
+*(Reminder: there is no Phase B — see the note under the phase table.)*
+
+**Verified 2026-08-06 (post-C1):** host suite **487 cases / 858,611 assertions** green under
+strict `-Werror` (3 deliberately skipped: two M3 acceptance stubs + the R3 GPS field-cal oracle
+= HA-01); both CI guards pass with **`include/shulib/motion` added to both scopes**; all **85**
+v2 headers cross-compile clean for ARM (the CI `arm-compile-gate` generated list picks the 8 new
+motion headers up automatically). C1's 12 mutations all observed red — two (strafe-authority
+clamp, battery compensation) only after the suite was strengthened; both holes are closed and
+recorded.
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 
