@@ -18,28 +18,6 @@
 
 ---
 
-## ⚠️ Outstanding as of 2026-08-06 — read this first
-
-**C1 is committed as a CHECKPOINT, not as a closed chunk** (`7e54826`). All code, all tests, and five
-of the six documentation-contract parts are complete and independently verified — suite **487 cases /
-858,611 assertions** green, 85 headers ARM-clean, both guards passing, 12 mutations finally red.
-
-**The one missing deliverable is `docs/planning/chunks/C1-COMPLETED.md`.** The chunk agent was a
-single file from finishing when it was stopped to protect the work against a session ending.
-
-**To close C1:** write that record from `docs/planning/chunks/C1-PROGRESS.md` (47 live entries, appended
-in real time, containing every decision and observed mutation result). Match `A2-`/`A3-COMPLETED.md`
-depth. It must include a section titled **"What we now know for certain, and what we do not"** — the
-properties proven across the swept space versus what stays unverified until hardware. Then commit it
-and treat C1 as closed.
-
-**Then C2** — `MotionScheduler` (one active motion, `async()`/`waitUntilSettled()`/`waitUntil(pred)`/
-`cancel()`). The build-order "current position" names the specific handoffs C1 left to it.
-
-Everything else below is the standing protocol.
-
----
-
 ## Where things stand
 
 Check these three, in this order — they are authoritative over anything written here:
