@@ -133,16 +133,18 @@ not silently break them. This table is the spine of the no-staleness promise.
 ## Milestones at a glance
 
 > **You are here:** **M1 complete; M2 control + localization complete; Phase A COMPLETE
-> (2026-08-06); Phase C OPEN — C1 closed 2026-08-06; chunk C2 (`MotionScheduler`) built and
-> verified 2026-08-06, in the working tree pending review.** The library now RUNS a routine:
-> one active motion enforced structurally (pre-empt-with-cancel), `async()` /
-> `waitUntilSettled()` / `waitUntil(pred, timeout)` / `cancel()` (safe state = 0 V + Brake,
-> synchronous — HA-53), the C1-deferred fault policy decided (abort-and-brake on a NEW
-> ODO_STUCK — the lying-estimate code — continue-degraded on IMU_LOST/BROWNOUT/etc.,
-> configurable), no wait can hang, `activeCommandId` finally on the wire, and scheduled
-> routines reproduce C1's accuracy baseline BIT-IDENTICALLY (clean 5→40-move chains flat in
-> count at 0.23–0.24 in; hostile worst 4.13 in).
-> **Next: chunk C3 — `HDriveKinematics`** (+ confirm C1's D11 strafe-authority reading).
+> (2026-08-06); Phase C OPEN — C1 and C2 closed 2026-08-06; chunk C3 (`hDrive()` + the
+> pseudo-inverse) built and verified 2026-08-06, in the working tree pending review.**
+> **Two robots, one motion layer, proven:** the 15″ H-bot (authority 0.35 = derived ceiling ×
+> HA-54 derate) runs C1's primitives and C2's scheduler UNMODIFIED — same-auton routines land
+> at X-bot accuracy (clean n=40: H 0.238 in vs X 0.236 in, flat in move count; hostile worst
+> H 4.03 in vs X 4.13 in) paying only ~1–4% extra time. `MatrixKinematics::forward()` is now
+> the full `(AᵀA)⁻¹Aᵀ` (the M1 deferral discharged, F5-safe): previously-accepted tables
+> BIT-IDENTICAL by checksum, near-degenerate geometry rejected (relDet guard). C1's D11
+> strafe-authority reading CONFIRMED (the |vy|/|vx| phrasing retired in F5's docs); the
+> beyond-authority fallback is turn-WHILE-drive (never sequenced), visible end-to-end via
+> `strafeFallbackActive` → TermSink " SFB" — a silent fallback is a 6-way failing test.
+> **Next: chunk C4 — the `Chassis` facade** (built, NOT frozen; F6 freezes at D2).
 > (There is no Phase B: the original hardware phase became Phase R — see build-order's
 > deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -461,7 +463,24 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   mutations, all observed red.*
 
 **Kinematics (WS3)**
-- [ ] `HDriveKinematics` — capped strafe authority + automatic turn-then-drive fallback (telemetry-visible).
+- [x] `HDriveKinematics` — capped strafe authority + automatic turn-then-drive fallback
+  (telemetry-visible). *Chunk C3, 2026-08-06: shipped as the `hDrive()` MatrixKinematics preset
+  (the §13 #15 hybrid backend, like `xDrive()`), rows derived from rigid-body kinematics with an
+  independent from-scratch test oracle. Authority = derivable speed ratio × HA-54 traction derate
+  (0.35 default — the locked master-plan number, now a registered falsifiable claim). The
+  fallback's shape is turn-WHILE-drive (authority-limited translation, rotation FREE — emergent
+  from C1's clamp + decoupled loops; sequenced turn-then-drive REJECTED at engine level: it would
+  break StrafeTo's held heading, invent unrequested mid-field headings, and is dominated by the
+  simultaneous form — measured: aligned-heading MoveToPose 1.92 s beats the pure 21 in/s crab's
+  2.71 s over the same 40 in). Visible end-to-end: `strafeFallbackActive` populated at the one
+  producer, TermSink renders " SFB"; silent fallback = 6 independent failing tests. Carries the
+  M1 deferral: `forward()` generalized to `(AᵀA)⁻¹Aᵀ` with previously-accepted tables
+  bit-identical (XOR checksums vs the pre-C3 build) and a relDet conditioning guard. C1's D11
+  CONFIRMED. Evidence: `include/shulib/kinematics/h_drive.hpp`, `matrix_kinematics.hpp`;
+  `test/h_drive_test.cpp` (9), `matrix_kinematics_test.cpp` (+6), `motion_hdrive_test.cpp` (11),
+  `motion_hdrive_routine_test.cpp` (3); suite 556/913,561; 13 mutations (12 red, 1
+  explained-green redundancy probe, doc corrected). Same-auton accuracy X vs H: clean flat in
+  count (0.225–0.238 in both), hostile worst 4.13 / 4.03 in.*
 
 **Localization, tier 1 (WS5)**
 - [x] `arcStep` (exact SE(2) constant-twist integrator) + `TrackingWheel` (role-stamped) + `PilonsOdometry`

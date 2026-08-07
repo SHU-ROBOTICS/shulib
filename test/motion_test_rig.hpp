@@ -23,6 +23,7 @@
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/health_monitor.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
+#include "shulib/kinematics/h_drive.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
 #include "shulib/localization/complementary_fusion.hpp"
@@ -53,6 +54,17 @@ inline shulib::motion::MotionConfig motionConfig() {
     shulib::motion::MotionConfig m;
     m.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};
     return m;
+}
+
+/// The 15″ H-bot's stand-in drivetrain for the C3 motion/routine suites: 11 in
+/// track, strafe wheel 4 in AFT of centre (off-centre on purpose — the
+/// non-orthogonal column is the drive's defining trait), same cartridge/wheel
+/// as the drive (ratio 1.0) with the HA-54 provisional traction derate (0.35 ⇒
+/// authority 0.35). GEOMETRY VALUES ARE INVENTED STAND-INS — no 15″ robot
+/// exists; R3 measures the built chassis. PROVISIONAL (A4: HA-55).
+inline shulib::kinematics::MatrixKinematics hBotKinematics() {
+    return shulib::kinematics::hDrive({.trackWidth = shulib::units::Length{11.0},
+                                       .strafeWheelOffset = shulib::units::Length{-4.0}});
 }
 
 /// Euclidean position error between two poses (inches).

@@ -130,18 +130,37 @@ baseline BIT-IDENTICALLY (equivalence-pinned; clean 5→40-move chains flat in c
 worst 4.13 in). All three C1 handoffs discharged; `ExitReason::Cancelled` +
 `MotionState::Cancelled` appended via the documented additive paths.
 
-**Next: chunk C3 — `HDriveKinematics` + the pseudo-inverse.** Named handoff from C1: confirm
-D11's strafe-authority-clamp interpretation against the real H-drive kinematics (the
-fractional-authority sweep test is the ready-made contract pin); `strafeFallbackActive`
-telemetry lands there. *(Reminder: there is no Phase B — see the note under the phase table.)*
+**Chunk C3 — `hDrive()` + the pseudo-inverse — built and verified 2026-08-06**
+([completion record](chunks/C3-COMPLETED.md), working tree pending review): **the 15″ H-bot
+runs the same motion code as the 24″ X-bot, unmodified — the M2 DoD, measured.** The H-drive
+ships as a `MatrixKinematics` preset (§13 #15) with rows derived from rigid-body kinematics
+and pinned by an independent from-scratch oracle (which mutation M4 proved is the ONLY defence
+against geometry sign errors — they cancel end-to-end through the shared plant, exactly as
+drive_plant.hpp warned). `forward()` is the full `(AᵀA)⁻¹Aᵀ` (the M1 deferral discharged,
+F5-safe): every previously-accepted table runs the historical computation VERBATIM and is
+bit-identical by XOR checksum against the pre-C3 build; near-degenerate geometry is REJECTED
+by a relative-Gram-determinant guard (the hole the relaxation would otherwise open). Strafe
+authority = derivable speed ratio × the HA-54 traction derate (0.35 default); C1's D11 reading
+CONFIRMED against the physics (the F5 "|vy|/|vx|" phrasing retired as ill-defined). The
+fallback is turn-WHILE-drive — authority-limited translation with rotation free, never a
+sequenced decomposition — and provably better than the crab it replaces (1.92 s vs 2.71 s over
+the same 40 in lateral); `strafeFallbackActive` is populated at the one producer and renders
+as TermSink " SFB" (a silent fallback fails six independent tests). Same-auton accuracy, X
+next to H: clean 5→40-move chains flat in count on BOTH (X 0.228→0.236 in, H 0.225→0.238 in),
+hostile worst X 4.13 in / H 4.03 in, H paying only ~1–4% extra time (the turn-while-drive
+migration keeps MoveToPose legs near X speed; only explicit StrafeTo legs pay the 21 in/s
+crab).
 
-**Verified 2026-08-06 (post-C2):** host suite **527 cases / 859,931 assertions** green under
-strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (scopes unchanged —
-the scheduler lives in `include/shulib/motion`, already covered); all **86** v2 headers
-cross-compile clean for ARM (the generated `arm-compile-gate` list picks `motion_scheduler.hpp`
-up automatically). C2's 16 mutations all observed red — zero green survivors; the loop-shape
-mutation (motion ticks before the estimate advances) is detectable ONLY by the two bit-identity
-equivalence tests, which is why they exist.
+**Next: chunk C4 — the `Chassis` facade** (built, NOT frozen — F6 freezes at D2). *(Reminder:
+there is no Phase B — see the note under the phase table.)*
+
+**Verified 2026-08-06 (post-C3):** host suite **556 cases / 913,561 assertions** green under
+strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (h_drive.hpp lives
+in `include/shulib/kinematics`, already covered); all **87** v2 headers cross-compile clean
+for ARM (the generated list picked `h_drive.hpp` up automatically). C3's 13 mutations: 12
+observed red; 1 deliberately-probed GREEN (the per-column rank check is behaviour-preserving
+redundancy under the new conditioning guard — analyzed, header doc corrected to say exactly
+that, not silently passed over).
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 

@@ -36,9 +36,10 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 53 settled.** No robot exists. Counts: **36 invented · 14 reasoned · 2 measured
+> **Status: 0 of 55 settled.** No robot exists. Counts: **38 invented · 14 reasoned · 2 measured
 > elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
-> HA-53 by chunk C2 (the cancel safe state), per the Maintenance convention.
+> HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
+> and stand-in geometry), per the Maintenance convention.
 
 ---
 
@@ -99,6 +100,8 @@
 | HA-51 | C1 settle tolerances (0.5″/1.15° + rate floors; brake 1.2 in/s; 5 s timeout) | **invented** | R4/R5 |
 | HA-52 | Stall cross-check thresholds (0.3 s window, 1.0″ spin, 25% ratio, stand-in radii) | **invented** | R3/R4 |
 | HA-53 | Cancel safe state: 0 V + BrakeMode::Brake stops the drive promptly from speed | reasoned | R3/R5 |
+| HA-54 | H-drive strafe traction derate ≈ 0.35 (⇒ authority 0.35 at 1:1 gearing) | **invented** | R5 |
+| HA-55 | 15″ H-bot stand-in geometry (11″ track, strafe wheel 4″ aft, 1:1 strafe gearing) | **invented** | R3 |
 
 ---
 
@@ -721,6 +724,49 @@ settleable before hardware, and none block any host chunk.
   bounded by the coast physics either way (never re-energized: the 0 V command is proven by
   test), so the failure mode is "stops like coast", not "keeps driving". If Brake proves
   harmful (e.g. brownout interaction), the safe state is ONE function in ONE place.
+
+- [ ] **HA-54 — the H-drive's strafe traction derate ≈ 0.35: a single, lightly-loaded strafe
+  omni sustains ≈ 35% of its free surface speed pushing the whole robot laterally on foam.**
+  *Claim:* `strafeAuthority = strafeSpeedRatio × strafeTractionDerate` with derate 0.35 is
+  achievable AND not grossly conservative on the built 15″ H-bot — the robot really can crab at
+  ≈ 0.35 × the linear speed budget sustained, and cannot sustain much more. The RATIO half is
+  derivable geometry (gearing × wheel radius, 1.0 for same hardware — not registered); the
+  DERATE is the part no geometry can supply: normal force on one omni, foam scrub, single-motor
+  torque. C3's motion suites prove the CONTRACT at 0.35 (clamp, fallback, visibility, routine
+  accuracy); nothing on the host can prove the NUMBER.
+  *Source:* `include/shulib/kinematics/h_drive.hpp` `HDriveConfig::strafeTractionDerate`
+  (PROVISIONAL (A4: HA-54)); the master plan §13 #5's locked "HDrive ≈ 0.35 sysid-measured
+  default, not a hardcoded constant" is this entry's ancestor.
+  *Confidence:* **invented** — the 0.35 is the master plan's placeholder; no strafe wheel
+  exists to load.
+  *Settle (R5):* sysid the built H-bot's sustained lateral speed at full strafe command on
+  field foam (loaded, battery-nominal); set derate = measured/ceiling; re-run the C3 suites.
+  *Blast radius if wrong:* too HIGH ⇒ the motion layer commands lateral speed the wheel cannot
+  deliver — the robot crabs slower than commanded, closed-loop still converges (slower, may
+  TimedOut on tight budgets); the fallback flag under-fires. Too LOW ⇒ lateral legs are
+  needlessly slow. Either way ONE config field on ONE preset; no frozen contract carries the
+  number (F5 carries the QUERY, not the value — by design).
+
+- [ ] **HA-55 — the 15″ H-bot stand-in geometry: 11″ track width, strafe wheel 4″ aft of
+  centre, strafe wheel same cartridge/diameter as the drive (ratio 1.0), 3 kinematic wheels
+  (left gang / right gang / strafe).**
+  *Claim:* the built H-bot's geometry is close enough to these stand-ins that the C3 host
+  results (routine accuracy, fallback behaviour, conditioning margin relDet ≈ 0.94) carry over
+  qualitatively. The values are INVENTED — chosen to be plausible for a 15″ chassis and
+  deliberately OFF-CENTRE so the non-orthogonal pseudo-inverse path is what the suites
+  exercise.
+  *Source:* `test/motion_test_rig.hpp` `hBotKinematics()` (PROVISIONAL (A4: HA-55));
+  co-depends on HA-14 (drive wheel/gearing) and HA-17 (built-vs-preset geometry, which now
+  covers the H-bot too).
+  *Confidence:* **invented** — no 15″ robot exists, even on paper.
+  *Settle (R3):* measure the built chassis (track width, strafe wheel position/diameter/
+  gearing); replace the stand-ins; re-run the C3 suites — any newly-failing bound was resting
+  on the guess.
+  *Blast radius if wrong:* geometry constants only — `hDrive()` makes the drivetrain DATA, so a
+  corrected measurement is a config edit, not a redesign. The one structural sensitivity is the
+  strafe wheel drifting NEAR centre (relDet → 1, orthogonal fast path takes over — benign) or
+  absurdly far aft (relDet falls; the conditioning guard would reject long before accuracy
+  degrades silently).
 
 ---
 

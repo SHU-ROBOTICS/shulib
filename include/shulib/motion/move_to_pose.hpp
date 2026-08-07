@@ -23,7 +23,9 @@
 //   5. fieldToRobot(field, heading)          ← THE one F1 rotation [BODY]
 //   6. body |vy| clamped to strafeAuthority()·maxLinearSpeed — the UPSTREAM
 //      clamp §13 #5 assigns to THIS layer; strafeAuthority() is read-only and
-//      toWheels() never clamps (F5).
+//      toWheels() never clamps (F5). When the clamp BINDS meaningfully the tick
+//      is flagged strafeFallbackActive in the record (C3 — the authority-limited
+//      fallback mode is telemetry-visible by contract, never silent).
 //   7. toWheels → desaturate(maxWheelSpeed)   — the DOWNSTREAM uniform scale.
 //   8. Feedforward → compensateForBattery → IMotor::setVoltage    [volts]
 //   9. OdoStallCheck + HealthMonitor::tick — the A3 containment wiring.
@@ -189,6 +191,25 @@ public:
             body.vx(),
             units::Velocity{std::clamp(body.vy().value(), -vyLimit, vyLimit)},
             body.omega()};
+        // ── the C3 strafe FALLBACK flag (A1 reserved the field; this is its one
+        // producer). True iff the clamp BOUND meaningfully this tick: the drive
+        // cannot deliver the demanded lateral velocity, so the motion is running
+        // in its authority-limited fallback mode — translation proceeds at the
+        // achievable |vy| while vx and ω stay at full authority (turn-WHILE-
+        // drive; rotation is never sequenced before translation — that would be
+        // the LemLib behaviour this engine exists to beat, C1's landmine). On
+        // the X-drive this is structurally unreachable (authority 1.0 + the
+        // norm cap above ⇒ |body vy| ≤ maxLin = vyLimit, pinned by test); on
+        // the H-drive it engages exactly when a leg out-demands the strafe
+        // wheel; on tank it marks any real lateral demand as undeliverable.
+        // The noise floor (1% of maxLinearSpeed) exists so sub-perceptible PID
+        // chatter near settle (or on tank, where vyLimit = 0) cannot light the
+        // flag on every tick — a permanently-on flag is as undebuggable as a
+        // silent one. Telemetry-legibility constant, host-decidable — not an A4
+        // register entry (register rule 1). Behaviour is UNCHANGED by all of
+        // this: the flag observes the clamp, it does not alter it.
+        const bool strafeFallback =
+            std::abs(body.vy().value()) - vyLimit > kStrafeFallbackNoiseFraction * maxLin;
 
         // ── wheels: unclamped inverse kinematics, then the uniform desaturate ─
         kinematics::WheelSpeeds wheels = deps_.kinematics->toWheels(bodyClamped);
@@ -211,6 +232,7 @@ public:
         hal::emitRecord(ctx.telemetry(), [&] {
             diag::DebugRecord r = baseRecord(ctx, loc, now, dt, pose, errX, errY, errH);
             r.commanded = math::robotToField(bodyClamped, pose.heading());
+            r.strafeFallbackActive = strafeFallback;  // C3 — never silent (TermSink "SFB")
             for (int i = 0; i < wheels.size(); ++i) {
                 const auto idx = static_cast<std::size_t>(i);
                 r.wheelVoltage[idx] = motors[idx]->commandedVoltage();
@@ -292,6 +314,13 @@ protected:
     /// The hold watchdog only backstops a clock pathology; hold-mode's own
     /// deadline (holdFor) is the real exit.
     static constexpr double kHoldSlack = 1.0;
+
+    /// strafeFallbackActive's legibility floor, as a fraction of maxLinearSpeed:
+    /// the clamp must be removing more than this much lateral speed before the
+    /// tick is flagged as fallback (full reasoning at the flag's computation in
+    /// tick()). At the HA-50 default budget this is 0.6 in/s — far below any
+    /// deliberate strafe, far above near-settle PID chatter.
+    static constexpr double kStrafeFallbackNoiseFraction = 0.01;
 
     [[nodiscard]] static control::PidConfig pidConfig(const AxisGains& g) noexcept {
         // Output saturation deliberately unlimited here: the layer's norm/ω caps

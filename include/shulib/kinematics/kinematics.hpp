@@ -21,10 +21,19 @@
 //    toWheels() itself never limits anything, so odometry's forward() is an exact
 //    inverse of an *unclamped* command.
 //
-//  * strafeAuthority() is a PURE READ-ONLY QUERY: the max sustainable |vy|/|vx|
-//    a drive can hold. XDrive = 1.0 (symmetric), HDrive ≈ 0.35 (sysid-measured
-//    default, not a hardcoded constant), Tank = 0.0 (cannot strafe). It computes
-//    and clamps nothing.
+//  * strafeAuthority() is a PURE READ-ONLY QUERY: the fraction of the drive's
+//    LINEAR SPEED BUDGET that is sustainable as body-frame lateral speed — the
+//    motion layer clamps |body vy| ≤ strafeAuthority()·maxLinearSpeed (C1's D11
+//    reading, CONFIRMED against the real H-drive at C3: the physical limit is
+//    the strafe wheel's own sustainable surface speed, an ABSOLUTE lateral cap
+//    independent of vx. The historical "|vy|/|vx| ratio" phrasing was ill-defined
+//    at vx = 0 — a pure strafe is legal on an H-drive — and would wrongly ADMIT
+//    MORE strafe at high vx than the wheel can deliver; it is retired.
+//    Doc-clarification only: no F5 signature or behaviour changed — both
+//    consumers, C1's clamp and C3's hDrive(), already implement this semantic.)
+//    XDrive = 1.0 (symmetric), HDrive ≈ 0.35 (sysid-measured default, not a
+//    hardcoded constant — h_drive.hpp derives it), Tank = 0.0 (cannot strafe).
+//    It computes and clamps nothing.
 //
 //  * forward() is the inverse map (wheels → body twist) consumed by odometry. For
 //    the linear drives it is the closed-form left-inverse of toWheels(); for an
@@ -67,7 +76,9 @@ public:
     [[nodiscard]] virtual WheelSpeeds desaturate(const WheelSpeeds& wheels,
                                                  units::Velocity maxWheelSpeed) const = 0;
 
-    /// PURE READ-ONLY query: max sustainable |vy|/|vx| (see contract above). Clamps nothing.
+    /// PURE READ-ONLY query: the sustainable |body vy| as a fraction of the linear
+    /// speed budget (see contract above — the C1-D11 semantic, confirmed at C3).
+    /// Clamps nothing.
     [[nodiscard]] virtual double strafeAuthority() const = 0;
 
     /// Number of kinematic wheels this drivetrain exposes (the size() of toWheels()).

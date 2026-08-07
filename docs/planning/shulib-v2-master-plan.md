@@ -481,7 +481,25 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 2 | Accuracy targets (§7) | heading **`< 1.0°`** (hard); ~1.0″ pos; ~0.25″ docked | **LOCKED 2026-06-08** |
 | 3 | Units system | Minimal header-only `Quantity<Dim>` over **6 dims** (length, angle, time, velocity, acceleration, voltage; canonical = inch, radian, **second**, in/s, in/s², volt). `Angle`/`Rotation2d` is the wrapping heading type; `_deg` constructs an auto-wrapped `Angle`, not a bare `Quantity`. Literals are convenience-only (roadmap M0 = source list). | **Locked 2026-06-19** |
 | 4 | GPS/AprilTag aggressiveness | Innovation-bounded, covariance-weighted, per-tick-clamped **gated nudge (never snap)** + hard dead-reckon-only flag. `relocalize()` feeds this corrector — it does not snap. Clamp/gate/gain are M3-tuned (mechanism locked, numbers open); complementary tier realizes the same contract heuristically. | **Locked 2026-06-19** |
-| 5 | H-drive model | `strafeAuthority()` = **pure read-only query** returning max sustainable \|vy\|/\|vx\| (XDrive 1.0, HDrive ~0.35 *sysid-measured default, not a constant*, Tank 0.0); the **motion/Chassis layer** reads it to clamp commanded `vy` + trigger the turn-then-drive fallback — kinematics does **not** clamp inside `toWheels()`. Telemetry-visible (`strafeFallbackActive`). | **Locked 2026-06-19** |
+| 5 | H-drive model | `strafeAuthority()` = **pure read-only query** returning the max sustainable lateral speed as a fraction of `maxLinearSpeed` (XDrive 1.0, HDrive ~0.35 *sysid-measured default, not a constant*, Tank 0.0); the **motion/Chassis layer** reads it to clamp commanded `vy` + trigger the fallback — kinematics does **not** clamp inside `toWheels()`. Telemetry-visible (`strafeFallbackActive`). | **Locked 2026-06-19** · *clarified at C3 (2026-08-06), see note* |
+
+> **C3 clarification to decision #5 — semantics sharpened, decision unchanged.** Two wordings above were
+> imprecise and are corrected here rather than silently in place, because #5 is a locked row.
+> 1. **The cap is absolute, not a ratio.** The original text said max sustainable `|vy|/|vx|`. C3 confirmed
+>    the physical limit is the strafe wheel's own sustainable surface speed — an **absolute lateral cap
+>    independent of `vx`**. The literal ratio reading is wrong in *both* directions: it forbids legal pure
+>    strafe (`vx = 0`), and it over-admits lateral speed at high `vx`. The correct form is
+>    `|body vy| ≤ authority · maxLinearSpeed`. This is what C1's clamp already implemented (its decision
+>    D11, flagged "awaits C3 confirmation" — **confirmed**).
+> 2. **The fallback is turn-*while*-drive, never sequenced.** "Turn-then-drive" names the *outcome*
+>    (heading migrates so the drive can carry the motion), not a sequenced turn followed by a translation.
+>    Sequencing is rejected at engine level: it breaks `StrafeTo`'s held heading, invents mid-field
+>    headings nobody asked for, and is **measurably slower** — an aligned-heading `MoveToPose` covers 40 in
+>    in 1.92 s versus 2.71 s for a pure capped crab. The decoupled per-axis loops produce the migration
+>    naturally; nothing sequences anything.
+>
+> Elsewhere in this document "turn-then-drive decomposition" (§4, §4a) describes *LemLib's* motion model
+> and is unrelated to this fallback.
 | 6 | Estimator depth | Complementary first → EKF Phase 3 | **Locked (tier-it)** |
 | 7 | Vision backend | Pi **and** V5 AI Vision behind `ITagSource` | **Locked (both)** |
 | 8 | Skills routing / robot roles | X = tall scorer, H = Toggle-owner + parker (§14) | **Filled; build-team decisions open** |
