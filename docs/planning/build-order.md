@@ -172,8 +172,8 @@ continue, hostile bounds, SFB visibility. New find: a blocking verb's stack moti
 the scheduler slot if the wait throws — the DetachGuard cancels on unwind (without it the
 suite literally segfaults, observed under mutation M5).
 
-**Chunk C5 — per-motion results + session header + D-1…D-5: BUILT 2026-08-10, in the working
-tree pending review/commit** ([completion record](chunks/C5-COMPLETED.md), live log in
+**Chunk C5 — per-motion results + session header + D-1…D-5: closed 2026-08-10, committed
+`be6d129`** ([completion record](chunks/C5-COMPLETED.md), live log in
 [C5-PROGRESS.md](chunks/C5-PROGRESS.md)). The run is now legible end to end on the terminal —
 §18.5 session header (build hash from `git describe --always --dirty`, MISSING is loud, never
 plausible) → the stamped tick stream → a §18.3 result line at every motion boundary
@@ -191,8 +191,27 @@ invisible to all 915k assertions; then its command-audit half hid behind its vol
 build-gate trip. The ARM gate caught a real portability bug (`uint32_t` is `unsigned long` on
 target — a `%u` that would not compile at R1).
 
-**Next: chunk C6 — legacy salvage** (after C5 review/commit; then C7 cutover, then D1 → D2
-freezes F6). *(Reminder: there is no Phase B — see the note under the phase table.)*
+**Chunk C6 — legacy salvage: DONE 2026-08-10, in the working tree pending review/commit**
+([completion record](chunks/C6-COMPLETED.md), live log in [C6-PROGRESS.md](chunks/C6-PROGRESS.md)).
+The last look before the C7 deletion is complete: **all 34 legacy files classified** (superseded /
+salvaged / discarded, each with its reason), the three roadmap salvage claims **verified in source**
+(the odom new-vs-average-heading bug is at `legacy odometry.cpp:338-355` exactly as the roadmap
+said; the logger's three defects confirmed by grep; `RobotCommands` turned out to have **no
+executor at all** — three data representations, zero consumers, so the salvage is knowledge, not
+code), and the **port list is empty by audit** (11 distinct live legacy bugs catalogued; nothing
+worth carrying). Products: [`legacy-command-vocabulary.md`](legacy-command-vocabulary.md) (7 ids
+mechanically cross-checked from 4 sources, mapped to v2 or gap-flagged — `NONE` boundary markers →
+G2 decision, seat/settle wiggle → F2 candidate; 7 concrete G4 importer requirements incl. the
+unit-instability trap), the legacy-measured reference table in `hardware-assumptions.md` (real odom
+offsets, 36000-tick provenance for HA-16, measured kS ≈ 1.9 V vs HA-45's 1.0 V placeholder), and
+the diagnostics-plan C6 note (per-wheel stuck attribution → E-phase; veer triage → H2/R-phase).
+**The safe-to-delete verdict is unconditional** (C6-COMPLETED §8): nothing in v2 references
+`legacy/`, the irreplaceable knowledge has left the directory, and deletion removes the tree's only
+copied third-party code (LemLib `pose.*`). One non-gating follow-up lodged with G4: lift the CSV
+specimen from git history (`git show 357d3f2:src/legacy/autonomous_commands.csv`).
+
+**Next: chunk C7 — cutover and deletion** (after C6 review/commit; then D1 → D2 freezes F6).
+*(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
 strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (chassis.hpp and

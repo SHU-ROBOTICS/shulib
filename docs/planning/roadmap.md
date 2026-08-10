@@ -148,11 +148,20 @@ not silently break them. This table is the spine of the no-staleness promise.
 > file-free plain-C++ construction path is a test (the §16.2 standalone promise). The mutation
 > campaign (22 run) found and closed two GREEN HOLES: teleop health observables went dark in a
 > `drive()`-only loop, and the yaw-rate budget was invisible to every closed-loop test.
-> **Chunk C5 (per-motion results + session header + diagnostics D-1…D-5) is BUILT, 2026-08-10 —
-> in the working tree pending review/commit** ([completion record](chunks/C5-COMPLETED.md)):
+> **Chunk C5 (per-motion results + session header + diagnostics D-1…D-5) is DONE, 2026-08-10,
+> committed `be6d129`** ([completion record](chunks/C5-COMPLETED.md)):
 > M2's "the run is legible in real time on the terminal" clause closes with it, and the F9
 > schema space (D-2 drop counters + D-3 tick-phase slots) is reserved ahead of H1.
-> **Next: chunk C6 — legacy salvage** (then C7 cutover, then D1 → D2 freezes F6).
+> **Chunk C6 (legacy salvage — the last look before deletion) is DONE, 2026-08-10 — in the
+> working tree pending review/commit** ([completion record](chunks/C6-COMPLETED.md)): all 34
+> legacy files classified, the three salvage claims verified in source (and `RobotCommands`
+> found to have had **no executor at all** — the salvage is knowledge, not code; **port list
+> empty by audit**, 11 live legacy bugs catalogued and left behind). Products:
+> [`legacy-command-vocabulary.md`](legacy-command-vocabulary.md) (7 ids from 4 sources,
+> mechanically cross-checked; gaps: `NONE` → G2, seat/settle wiggle → F2; 7 G4 importer
+> requirements), the legacy-measured reference table in `hardware-assumptions.md`, and
+> diagnostics-plan's C6 note. **Safe-to-delete verdict: unconditional** (C6-COMPLETED §8).
+> **Next: chunk C7 — cutover and deletion** (then D1 → D2 freezes F6).
 > (There is no Phase B: the original hardware phase became Phase R — see build-order's
 > deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -634,8 +643,20 @@ DoD in Phases C–F depends on it.*
   quarantined, reference-only, until the C7 deletion.*
 
 **Legacy cutover (WS11)** — *the clean-room demolition, sequenced so nothing salvageable is lost*
-- [ ] **Salvage before deleting:** port `RobotCommands`→`sequence/` seed, `logger.hpp`→`io/Telemetry`,
+- [x] **Salvage before deleting:** port `RobotCommands`→`sequence/` seed, `logger.hpp`→`io/Telemetry`,
   and re-derive the Pilons arc math into the in-core `PilonsOdometry` — all complete *before* the deletion.
+  *Closed at C6 (2026-08-10), each item in a better form than this 2026-06 wording imagined
+  ([completion record](chunks/C6-COMPLETED.md)): the Pilons math was re-derived clean at M2
+  (`arcStep` — and C6 verified the legacy bug in source, `legacy odometry.cpp:338-355` rotates the
+  chord by the NEW heading; the correct average-heading form is `arc_step.hpp:99`); `logger.hpp`
+  was superseded structurally at A1/C5 (C6 re-verified all three defects by grep — `escapeJSONString`
+  has zero call sites, `sendDebugMessages` is called but never defined, the flush race is real);
+  and `RobotCommands` proved to be UNPORTABLE-BY-VACANCY — C6 found **no executor ever existed**
+  (three data representations, zero consumers, an empty `moveTo()` body), so its salvage is
+  [`legacy-command-vocabulary.md`](legacy-command-vocabulary.md): every id mapped to C1/C2, Phase F′,
+  or G2, the two data specimens characterized for G4's importer, and the port list **empty by
+  audit** (all 34 files classified; 11 live legacy bugs catalogued and left behind). C6-COMPLETED §8
+  carries the unconditional safe-to-delete verdict the next bullet's deletion acts on.*
 - [ ] Rewire `main.cpp` + the PROS build onto the new core → **hardware-validate on the V5** → freeze
   F6 → **delete `src/legacy/` + `include/legacy/`**. After this the new `shulib/` is the only tree.
 

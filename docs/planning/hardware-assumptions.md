@@ -839,6 +839,31 @@ settleable before hardware, and none block any host chunk.
 
 ---
 
+## Legacy-measured reference points (salvaged at C6, before the C7 deletion)
+
+**Scope, stated carefully:** these numbers were measured or configured on the **previous robot**
+("pookster", a 10-motor tank from the pre-v2 era) and are recorded here as **evidence of realistic
+magnitudes and as R-phase measurement provenance — NOT as values for any HA entry.** The Override
+robots are different machines; every HA stand-in stays exactly as it is until R3–R5 measure *those*
+robots. What this table changes is confidence: where a stand-in and the legacy measurement agree in
+order of magnitude, the stand-in is corroborated; where they diverge, R-phase should look first.
+
+| Legacy fact | Value (source) | Bears on | Note |
+|---|---|---|---|
+| Tracking-wheel offsets, as built | L −6.5″ / R +6.5″ / B +2.5″ (`main.cpp:34-36`, corroborated by the stuck-detection log text in `odometry.cpp`) | HA-12 | HA-12's −3.0″/−4.5″ stand-ins are for a *different* (two-wheel + IMU) layout; the legacy numbers show real offsets run ~2–7″ — same order, no change needed |
+| Tracking-wheel diameter, as built | 2.75″ (`main.cpp:34-36`) | HA-13 | The harness's nominal 2.0″ is a stand-in; the last real robot used 2.75″ wheels. R3 measures whichever is actually built |
+| Rotation sensor ticks/rev | 36000 (centidegree) — `odomUnit.cpp:17` computes travel as `position·πd/36000` | HA-16 | **This is the "measured elsewhere" provenance:** the conversion ran on a real robot all season. HA-16 confidence is effectively settled-by-prior-use; R3 still confirms on current sensors |
+| Minimum drive command to move | 20/127 linear, 25/127 rotational (`main.cpp:838-839`, measured by `test_min_output()`'s +1-per-500 ms ramp) | HA-45 (kS) | ≈ 1.9 V equivalent linear kS on that robot vs the 1.0 V placeholder — **R5 should expect kS nearer 2 V** on a comparable drivetrain; the placeholder is likely low, not high |
+| Drive geometry, as built | trackWidth 15″, wheel 3.25″, 400 rpm cartridge-equivalent (`main.cpp:38`) | HA-14/HA-15/HA-17 | Corroborates 3.25″ as this team's habitual wheel size (HA-14's guess); rpm differs from HA-15's GREEN/900-ticks stand-in — cartridge is an R3 read-off either way |
+| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — the C5 session-header port map and G1's RobotBuilder replace hand-kept port lists. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
+| Calibration-routine specimens | `test_min_output()` (kS ramp), `rotation_calibration()` (iterative IMU-vs-wheel θ-scale comparison, ×3 passes) (`main.cpp:101-217`) | M3 calibration routines, R5 | The *procedures* are the salvage: both are legitimate bench routines to re-derive cleanly at M3/R5. The θ-scale factor itself is obsolete (v2 heading is IMU-owned) |
+
+Diagnostic-culture evidence from the same files (stuck-wheel detection, L/R travel-imbalance and
+motor veer/temp diagnosis) is recorded in [`diagnostics-plan.md`](diagnostics-plan.md)'s C6 note
+rather than here — it is backlog input, not a hardware assumption.
+
+---
+
 ## Considered and excluded (with reasons)
 
 Recorded so "exhaustive" is checkable — these were examined and deliberately NOT registered:

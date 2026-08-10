@@ -192,6 +192,32 @@ one-off test; it should be a reusable diagnostic that runs against any recorded 
 fault, battery, elapsed. The no-laptop glance.
 **D-13. Cloud run library / auto-tune from replays** — already on the Frontier list; depends on D-9.
 
+### Legacy evidence, mined at C6 (2026-08-10) — requirements input, not new items
+
+The C6 salvage audit read the legacy diagnostics before C7 deletes them. Two capabilities the old
+code had (in essay form — the exact anti-pattern principle 3 bans) are worth naming as *evidence*
+for items already on this list, plus one genuinely uncovered detector:
+
+- **Per-tracking-wheel stuck identification** (`legacy odometry.cpp`): mutual comparison of the
+  three tracking wheels — zero-delta-while-others-move (500 ms threshold) plus long-run L/R travel
+  ratio (< 50%) — told the team **which** wheel died, not just *that* odometry was implausible.
+  v2 today: `OdoStallCheck` (C1) detects "odometry stuck vs drive spinning" at motion level, and
+  its own header defers the **estimator-side detector to E-phase**. When that E-phase detector is
+  built, the legacy mutual-comparison approach is the proven requirements input: it needs
+  *which-wheel* attribution, structured (`fault=ODO_STUCK wheel=L`), not a banner. **Owner: the
+  E-phase estimator-side detector named in `motion/odo_stall_check.hpp`.**
+- **Drive-side veer/imbalance triage** (`legacy main.cpp` [VEER]/[OPCTL]): L/R average-velocity
+  imbalance % + per-side temperature deltas, with a diagnosis matrix (slower AND hotter ⇒ tight
+  gearbox; balanced motors but veering ⇒ odom-wheel contact). The team lived this failure hard
+  enough to build it twice. v2 today: nothing equivalent — `HealthMonitor` covers sensor/power
+  pathology, not mechanical asymmetry. This is **bench/pit tooling, not per-tick competition
+  diagnostics**: it belongs beside D-11 as a replay-time analysis (H2) or an R-phase bench routine,
+  fed by the per-wheel fields `DebugRecord` already carries. Not scheduled here — recorded so the
+  need isn't rediscovered from scratch on a field day.
+- Corroboration: the legacy logger chunked its output to ~900-byte packets with inter-chunk delays
+  — they hit V5 serial backpressure in practice, which is principle 5's "counted and reported"
+  drop-budget argument made real (E1's byte/tick budget + drop counters).
+
 ---
 
 ## Placement summary
