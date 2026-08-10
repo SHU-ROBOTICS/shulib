@@ -36,10 +36,11 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 55 settled.** No robot exists. Counts: **38 invented · 14 reasoned · 2 measured
+> **Status: 0 of 57 settled.** No robot exists. Counts: **38 invented · 16 reasoned · 2 measured
 > elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
-> and stand-in geometry), per the Maintenance convention.
+> and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
+> controller-screen grid), per the Maintenance convention.
 
 ---
 
@@ -102,6 +103,8 @@
 | HA-53 | Cancel safe state: 0 V + BrakeMode::Brake stops the drive promptly from speed | reasoned | R3/R5 |
 | HA-54 | H-drive strafe traction derate ≈ 0.35 (⇒ authority 0.35 at 1:1 gearing) | **invented** | R5 |
 | HA-55 | 15″ H-bot stand-in geometry (11″ track, strafe wheel 4″ aft, 1:1 strafe gearing) | **invented** | R3 |
+| HA-56 | D-5 plausibility envelope defaults (maxSpeed 150 in/s, maxYawRate 20 rad/s, ×1.5 margin) | reasoned | R3/R5 |
+| HA-57 | V5 controller text grid is 3 rows × 19 columns (`ILineDisplay` geometry) | reasoned | R1 |
 
 ---
 
@@ -767,6 +770,40 @@ settleable before hardware, and none block any host chunk.
   strafe wheel drifting NEAR centre (relDet → 1, orthogonal fast path takes over — benign) or
   absurdly far aft (relDet falls; the conditioning guard would reject long before accuracy
   degrades silently).
+
+- [ ] **HA-56 — the D-5 plausibility envelope defaults: maxSpeed 150 in/s, maxYawRate
+  20 rad/s, margin ×1.5 (per-tick pose-delta invariant).**
+  *Claim:* no build of our robots can move its ESTIMATE faster than these bounds by physics —
+  a 600 rpm 4″ drive tops out near 125 in/s and ~3 rev/s is past any real chassis — so a delta
+  beyond envelope × margin × dt means the estimate is lying, never that the robot is fast.
+  The ×1.5 margin absorbs legitimate non-physical estimate motion (never-snap-clamped fusion
+  nudges, discretization) and is a logic constant, not part of this claim.
+  *Source:* `include/shulib/diag/plausibility_guard.hpp` `PlausibilityConfig` (PROVISIONAL
+  (A4: HA-56)); consumed by the scheduler's per-tick check (`MotionSchedulerConfig.plausibility`).
+  *Confidence:* reasoned — derived from motor/wheel physics with deliberate headroom; the
+  actual drivetrains' top speeds are unmeasured.
+  *Settle (R3/R5):* measure top linear speed and yaw rate during sysid; tighten the envelope
+  toward measured × margin so the invariant gains sensitivity (today it only catches gross
+  lies; a tight envelope catches subtle ones).
+  *Blast radius if wrong (too low):* false IMPLAUSIBLE faults — advisory only (never aborts,
+  never rewrites the pose), and episode-gated, so the damage is log noise; the C5 suites prove
+  zero false positives across every clean AND hostile run at the defaults. *(Too high):* subtle
+  estimate lies pass — exactly today's honest state, which R3/R5 tightening fixes.
+
+- [ ] **HA-57 — the V5 controller text grid is 3 rows × 19 columns.**
+  *Claim:* `pros::Controller::set_text` addresses 3 text lines and ~19 visible columns; a row
+  written longer than 19 columns must be truncated by our adapter (never wrapped into the next
+  row).
+  *Source:* `include/shulib/hal/line_display.hpp` `ILineDisplay::kRows/kCols` (PROVISIONAL
+  (A4: HA-57)); consumed by `diag::ControllerFaultDisplay`, whose row-1 content ("flt " + the
+  longest FaultCode spelling) fits 19 columns exactly, pinned by test.
+  *Confidence:* reasoned — matches PROS documentation of the controller LCD; the visible
+  column count on real hardware/firmware is unverified.
+  *Settle (R1):* display a 25-char test row through the real adapter; count what shows; set
+  kCols to the measured value (and re-check the row-1 exact-fit pin — if kCols measures
+  smaller, the longest fault names truncate, which the seam contract already handles).
+  *Blast radius if wrong:* display cosmetics only — content truncates at the seam by contract,
+  so a smaller real grid clips characters, never corrupts rows or logic.
 
 ---
 

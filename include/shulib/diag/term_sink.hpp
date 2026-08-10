@@ -8,7 +8,7 @@
 // the character sink is where bytes go — which is what makes every line here a golden-
 // testable claim (test/term_sink_test.cpp pins exact output) instead of an eyeballed one.
 //
-// ── Output shape (§18.3 target; per-motion results + run summary are chunk C5's) ────
+// ── Output shape (§18.3 target; result lines + summary added at chunk C5) ───────────
 //   leveled message:  [t=  12.51] [WARN][SEQ] intakeUntilCapture retry 1/3 (optical=none)
 //                     — Info lines carry NO level tag (the common case stays quiet);
 //                       Error/Warn/Debug/Trace carry [LEVEL] butted against [TAG].
@@ -19,6 +19,11 @@
 //                       " DR" (dead-reckoning), " SFB" (strafe fallback), " CLMP"
 //                       (nudge clamped), " flt=NAME" (fault this tick). The line shows
 //                       the HEADLINE fields; the full record belongs to SdSink/SHUL/2.
+//   run summary:      summarize(RunSummary) renders the §18.3 one-screen block (chunk
+//                     C5) — six lines, unstamped, byte-pinned by golden test. The
+//                     per-motion RESULT LINE does not enter here: it rides log() as
+//                     structured Info text (diag/motion_result.hpp formats it), which
+//                     is what gives it the exact "[t=…] [MOT] …" §18.3 shape.
 //
 // Formatting decisions that keep "column-aligned" true (each pinned by a golden test):
 //   * Fixed-width numeric columns ([t=%7.2f], %6.1f coords, …). Deviates from the §18.3
@@ -45,12 +50,11 @@
 // is therefore impossible at this layer; if multiple tasks share one TermSink, ordering
 // is whatever the ICharSink's per-call atomicity provides. Nothing here allocates.
 
-#include <cmath>
-#include <cstdio>
-#include <cstring>
 #include <string_view>
 
 #include "shulib/diag/debug_record.hpp"
+#include "shulib/diag/line_format.hpp"
+#include "shulib/diag/run_summary.hpp"
 #include "shulib/hal/char_sink.hpp"
 #include "shulib/hal/clock.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
@@ -134,55 +138,116 @@ public:
         out_.write(line.view());
     }
 
+    /// Render the §18.3 one-screen run-summary block. UNSTAMPED by design — the
+    /// block is a run artifact, not a timed event (the sketch shows no [t=]); each
+    /// of its six lines is one write() (the framing contract). Field renderings
+    /// (chosen at C5, each pinned by golden test):
+    ///   * heading values render "n/a" when hasHeadingData is false — the block
+    ///     never fabricates a 0.0° it has no data for
+    ///   * an EMPTY buildHash renders the literal token MISSING (never a
+    ///     plausible-looking placeholder — §18.5's loudness rule)
+    ///   * the drop counters are ALWAYS shown, zeros included: "dropped 0 rec 0 ln"
+    ///     is a positive health claim, not noise (D-2: silence is the bug)
+    ///   * first fault carries its latch time ("ODO_STUCK@  4.2s") — the 2am
+    ///     root-cause line
+    void summarize(const RunSummary& s) override {
+        {
+            Line line;
+            line.appendLiteral("── RUN SUMMARY ───────────────────────────────────────────\n");
+            out_.write(line.view());
+        }
+        {
+            Line line;
+            line.appendLiteral(" motions ");
+            appendUnsigned(line, static_cast<unsigned long>(s.motionsStarted));
+            line.appendLiteral(" · settled ");
+            appendUnsigned(line, static_cast<unsigned long>(s.motionsSettled));
+            line.appendLiteral(" · timeout ");
+            appendUnsigned(line, static_cast<unsigned long>(s.motionsTimedOut));
+            line.appendLiteral(" · cancelled ");
+            appendUnsigned(line, static_cast<unsigned long>(s.motionsCancelled));
+            line.appendLiteral(" · aborted ");
+            appendUnsigned(line, static_cast<unsigned long>(s.motionsAborted));
+            line.appendLiteral("\n");
+            out_.write(line.view());
+        }
+        {
+            Line line;
+            line.appendLiteral(" heading max ");
+            if (s.hasHeadingData) {
+                appendNum(line, s.headingMax.value() * kRadToDeg, 4, 1);
+                line.appendLiteral("° final ");
+                appendNum(line, s.headingFinal.value() * kRadToDeg, 4, 1);
+                line.appendLiteral("°");
+            } else {
+                appendPadded(line, "n/a", 4);
+                line.appendLiteral("  final ");
+                appendPadded(line, "n/a", 4);
+                line.appendLiteral(" ");
+            }
+            line.appendLiteral(" · gating rejects ");
+            appendUnsigned(line, static_cast<unsigned long>(s.gatingRejects));
+            line.appendLiteral(" · brownout ");
+            line.appendLiteral(s.brownout ? "YES" : "no");
+            line.appendLiteral("\n");
+            out_.write(line.view());
+        }
+        {
+            Line line;
+            line.appendLiteral(" worst loop dt ");
+            appendNum(line, s.worstLoopDt.value() * 1000.0, 6, 1);
+            line.appendLiteral("ms · first fault ");
+            if (s.firstFault == FaultCode::None) {
+                line.appendLiteral("none");
+            } else {
+                line.appendLiteral(faultCodeName(s.firstFault));
+                line.appendLiteral("@");
+                appendNum(line, s.firstFaultTime.value(), 5, 1);
+                line.appendLiteral("s");
+            }
+            line.appendLiteral(" · dropped ");
+            appendUnsigned(line, s.droppedRecords);
+            line.appendLiteral(" rec ");
+            appendUnsigned(line, s.droppedLines);
+            line.appendLiteral(" ln\n");
+            out_.write(line.view());
+        }
+        {
+            Line line;
+            line.appendLiteral(" build ");
+            if (s.buildHash().empty()) {
+                line.appendLiteral("MISSING");  // loud, never plausible (§18.5)
+            } else {
+                line.appendSanitized(s.buildHash(), kMaxHashBytes);
+            }
+            line.appendLiteral(" · routine \"");
+            line.appendSanitized(s.routineId(), kMaxTagBytes);
+            line.appendLiteral("\" · batt ");
+            appendNum(line, s.batteryStart.value(), 4, 1);
+            line.appendLiteral("→");
+            appendNum(line, s.batteryEnd.value(), 4, 1);
+            line.appendLiteral("V\n");
+            out_.write(line.view());
+        }
+        {
+            Line line;
+            line.appendLiteral(
+                "──────────────────────────────────────────────────────────\n");
+            out_.write(line.view());
+        }
+    }
+
 private:
     static constexpr std::size_t kMaxTagBytes = 16;       ///< subsystem tags are short by design
     static constexpr std::size_t kMaxMessageBytes = 200;  ///< structured fields, not essays (§18)
+    static constexpr std::size_t kMaxHashBytes = 47;      ///< full SHA + "-dirty" (RunSummary)
     static constexpr double kRadToDeg = 180.0 / math::Angle::kPi;
-    /// A plain %f rendering longer than this is pathological → compact %.3g re-render.
-    /// 10 comfortably admits every sane field value (±144.00 coords, ±9999.99 t).
-    static constexpr int kCompactThresholdBytes = 10;
 
-    /// One output line: a bounded stack buffer (no heap, hot-path safe). Appends that
-    /// would overflow truncate silently — unreachable with the fixed widths above, but
-    /// the bound is enforced, not assumed.
-    struct Line {
-        static constexpr std::size_t kCapacity = 384;
-
-        void appendLiteral(const char* s) { appendRaw(s, std::strlen(s)); }
-
-        void appendRaw(const char* s, std::size_t len) {
-            const std::size_t room = kCapacity - n;
-            const std::size_t take = len < room ? len : room;
-            std::memcpy(buf + n, s, take);
-            n += take;
-        }
-
-        /// The ONLY entry point for caller-controlled text (header note): sanitizes
-        /// control bytes to '?', truncates at `cap` with '…' on a UTF-8 boundary.
-        void appendSanitized(std::string_view text, std::size_t cap) {
-            const bool truncated = text.size() > cap;
-            std::size_t take = truncated ? cap : text.size();
-            if (truncated) {
-                // Do not split a multi-byte UTF-8 sequence: back off continuation bytes.
-                while (take > 0
-                       && (static_cast<unsigned char>(text[take]) & 0xC0U) == 0x80U) {
-                    --take;
-                }
-            }
-            for (std::size_t i = 0; i < take && n < kCapacity; ++i) {
-                const unsigned char c = static_cast<unsigned char>(text[i]);
-                buf[n++] = (c < 0x20U || c == 0x7FU) ? '?' : static_cast<char>(c);
-            }
-            if (truncated) {
-                appendLiteral("…");  // …
-            }
-        }
-
-        [[nodiscard]] std::string_view view() const noexcept { return {buf, n}; }
-
-        char buf[kCapacity];
-        std::size_t n = 0;
-    };
+    /// The bounded line + fixed-width numerics moved to diag/line_format.hpp at C5
+    /// (verbatim — the A1 goldens are the bit-identity proof) so the result line and
+    /// the summary block share ONE formatting definition with the tick stream.
+    /// Unqualified appendNum/appendTimestamp/… calls resolve by ADL on lineformat::Line.
+    using Line = lineformat::Line;
 
     static const char* levelTag(hal::LogLevel level) noexcept {
         switch (level) {
@@ -193,51 +258,6 @@ private:
             case hal::LogLevel::Trace: return "[TRACE]";
         }
         return "[?]";
-    }
-
-    static void appendTimestamp(Line& line, double tSeconds) {
-        line.appendLiteral("[t=");
-        appendNum(line, tSeconds, 7, 2);
-        line.appendLiteral("] ");
-    }
-
-    /// Fixed-width numeric column (header note): finite values via %*.*f; non-finite as
-    /// deterministic right-aligned tokens; pathologically wide values compacted to %.3g.
-    static void appendNum(Line& line, double v, int width, int prec) {
-        if (std::isnan(v)) {
-            appendPadded(line, "NaN", width);
-            return;
-        }
-        if (std::isinf(v)) {
-            appendPadded(line, v > 0.0 ? "+Inf" : "-Inf", width);
-            return;
-        }
-        char tmp[40];
-        int len = std::snprintf(tmp, sizeof tmp, "%*.*f", width, prec, v);
-        if (len > kCompactThresholdBytes) {
-            len = std::snprintf(tmp, sizeof tmp, "%.3g", v);
-        }
-        if (len > 0) {
-            line.appendRaw(tmp, static_cast<std::size_t>(len) < sizeof tmp
-                                    ? static_cast<std::size_t>(len)
-                                    : sizeof tmp - 1);
-        }
-    }
-
-    static void appendUnsigned(Line& line, unsigned long v) {
-        char tmp[24];
-        const int len = std::snprintf(tmp, sizeof tmp, "%lu", v);
-        if (len > 0) {
-            line.appendRaw(tmp, static_cast<std::size_t>(len));
-        }
-    }
-
-    static void appendPadded(Line& line, const char* s, int width) {
-        const int len = static_cast<int>(std::strlen(s));
-        for (int i = len; i < width; ++i) {
-            line.appendLiteral(" ");
-        }
-        line.appendRaw(s, static_cast<std::size_t>(len));
     }
 
     hal::IClock& clock_;

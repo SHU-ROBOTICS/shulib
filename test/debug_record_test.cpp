@@ -10,6 +10,7 @@
 
 #include "doctest.h"
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
@@ -61,6 +62,14 @@ static_assert(std::is_same_v<decltype(DebugRecord::activeCommandId), std::uint32
 static_assert(std::is_same_v<decltype(DebugRecord::activeCommandState), std::uint8_t>);
 static_assert(std::is_same_v<decltype(DebugRecord::qualityClass), std::uint8_t>);
 static_assert(std::is_same_v<std::underlying_type_t<GateReason>, std::uint8_t>);
+// C5 schema additions (the diagnostics-plan's one time-sensitive act): the D-2 drop
+// counters and the D-3 attribution slots must be IN the record before the H1 freeze,
+// at these exact widths/types.
+static_assert(std::is_same_v<decltype(DebugRecord::droppedRecords), std::uint32_t>);
+static_assert(std::is_same_v<decltype(DebugRecord::droppedLines), std::uint32_t>);
+static_assert(std::is_same_v<decltype(DebugRecord::tickPhase),
+                             std::array<units::Time, 8>>);
+static_assert(std::is_same_v<std::underlying_type_t<shulib::diag::TickPhase>, std::uint8_t>);
 
 TEST_CASE("DebugRecord: a default record is a valid 'quiet' tick (nothing built yet)") {
     const DebugRecord r{};
@@ -79,6 +88,12 @@ TEST_CASE("DebugRecord: a default record is a valid 'quiet' tick (nothing built 
     CHECK_FALSE(r.strafeFallbackActive);
     CHECK(r.fault == FaultCode::None);
     CHECK(r.batteryVoltage.value() == 0.0);
+    // C5 additions: quiet defaults — nothing dropped, nothing attributed.
+    CHECK(r.droppedRecords == 0);
+    CHECK(r.droppedLines == 0);
+    for (const auto& phase : r.tickPhase) {
+        CHECK(phase.value() == 0.0);
+    }
 }
 
 TEST_CASE("DebugRecord: the complete §18.2 field set is populatable and reads back") {
@@ -117,6 +132,12 @@ TEST_CASE("DebugRecord: the complete §18.2 field set is populatable and reads b
     r.fault = FaultCode::LoopOverrun;
     r.batteryVoltage = units::Voltage{12.4};
     r.batteryCurrent = units::Current{3.1};
+    r.droppedRecords = 3;
+    r.droppedLines = 47;
+    r.tickPhase[static_cast<std::size_t>(shulib::diag::TickPhase::Localization)] =
+        units::Time{0.0042};
+    r.tickPhase[static_cast<std::size_t>(shulib::diag::TickPhase::Motion)] =
+        units::Time{0.0021};
 
     CHECK(r.t.value() == 12.34);
     CHECK(r.targetPose.heading().degrees() == doctest::Approx(90.0));
@@ -124,6 +145,10 @@ TEST_CASE("DebugRecord: the complete §18.2 field set is populatable and reads b
     CHECK(r.wheelVoltage[0].value() == 11.2);
     CHECK(r.gateReason == GateReason::Accepted);
     CHECK(r.fault == FaultCode::LoopOverrun);
+    CHECK(r.droppedRecords == 3);
+    CHECK(r.droppedLines == 47);
+    CHECK(r.tickPhase[0].value() == doctest::Approx(0.0042));
+    CHECK(r.tickPhase[1].value() == doctest::Approx(0.0021));
 }
 
 TEST_CASE("DebugRecord: per-wheel capacity is tied to the kinematics contract") {
@@ -132,6 +157,22 @@ TEST_CASE("DebugRecord: per-wheel capacity is tied to the kinematics contract") 
     CHECK(DebugRecord::kMaxWheels == shulib::kinematics::WheelSpeeds::kMaxWheels);
     CHECK(static_cast<int>(DebugRecord{}.wheelVoltage.size()) == DebugRecord::kMaxWheels);
     CHECK(static_cast<int>(DebugRecord{}.wheelCurrent.size()) == DebugRecord::kMaxWheels);
+}
+
+TEST_CASE("TickPhase: numeric values are wire-stable (F9) and the array reserves spare "
+          "slots — a reorder or a capacity shrink turns this red") {
+    // Bug this catches: someone renumbers the attribution vocabulary (silently
+    // re-labeling every historical trace) or "tidies" the array down to the defined
+    // phases, spending the spare slots the C5 schema reservation exists to keep.
+    using shulib::diag::TickPhase;
+    CHECK(static_cast<std::uint8_t>(TickPhase::Localization) == 0);
+    CHECK(static_cast<std::uint8_t>(TickPhase::Motion) == 1);
+    CHECK(static_cast<std::uint8_t>(TickPhase::Health) == 2);
+    CHECK(static_cast<std::uint8_t>(TickPhase::Telemetry) == 3);
+    CHECK(static_cast<std::uint8_t>(TickPhase::Scheduler) == 4);
+    CHECK(static_cast<std::uint8_t>(TickPhase::User) == 5);
+    CHECK(shulib::diag::kTickPhaseSlots == 8);  // 6 defined + 2 spare, reserved pre-F9
+    CHECK(static_cast<int>(DebugRecord{}.tickPhase.size()) == shulib::diag::kTickPhaseSlots);
 }
 
 TEST_CASE("GateReason: numeric values are wire-stable (F9) — a reorder turns this red") {

@@ -17,6 +17,7 @@
 
 #include "shulib/core/check.hpp"
 #include "shulib/diag/debug_record.hpp"
+#include "shulib/diag/run_summary.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 
 namespace shulib::hal::fake {
@@ -36,6 +37,10 @@ public:
     [[nodiscard]] bool wantsRecord() const noexcept override { return true; }
 
     void emit(const diag::DebugRecord& record) override { records_.push_back(record); }
+
+    /// Records the C5 summary channel too (RunSummary is a value type with bounded
+    /// in-struct strings, so retaining copies is safe by construction).
+    void summarize(const diag::RunSummary& summary) override { summaries_.push_back(summary); }
 
     // --- leveled-message history ---
     [[nodiscard]] int size() const noexcept { return static_cast<int>(entries_.size()); }
@@ -65,15 +70,31 @@ public:
         return records_.back();
     }
 
-    /// Clears BOTH histories.
+    // --- run-summary history (C5) ---
+    [[nodiscard]] int summaryCount() const noexcept { return static_cast<int>(summaries_.size()); }
+
+    [[nodiscard]] const diag::RunSummary& summaryAt(int i) const {
+        SHULIB_PRECONDITION(i >= 0 && i < summaryCount(),
+                            "FakeTelemetrySink::summaryAt: index out of range");
+        return summaries_[static_cast<std::size_t>(i)];
+    }
+
+    [[nodiscard]] const diag::RunSummary& lastSummary() const {
+        SHULIB_PRECONDITION(!summaries_.empty(), "FakeTelemetrySink::lastSummary: no summaries");
+        return summaries_.back();
+    }
+
+    /// Clears ALL histories.
     void clear() noexcept {
         entries_.clear();
         records_.clear();
+        summaries_.clear();
     }
 
 private:
     std::vector<Entry> entries_;
     std::vector<diag::DebugRecord> records_;
+    std::vector<diag::RunSummary> summaries_;
 };
 
 }  // namespace shulib::hal::fake

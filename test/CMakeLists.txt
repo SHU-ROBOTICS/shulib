@@ -21,6 +21,34 @@ add_compile_options(
   -Wall -Wextra -Wpedantic -Werror
   -Wshadow -Wconversion -Wsign-conversion -Wdouble-promotion)
 
+# ── The §18.5 build hash (chunk C5) ─────────────────────────────────────────────────
+# The session header must say WHICH BINARY ran; code cannot know its own commit,
+# so the BUILD defines it (diag/build_info.hpp carries the contract). `git
+# describe --always --dirty`: --dirty is load-bearing — a clean-looking hash from
+# a modified tree is a WRONG hash, and a wrong hash is worse than an absent one.
+# If git is unavailable the macro is NOT defined and the loud MISSING path runs
+# (test/session_header_test.cpp turns that into a visible failure here, where git
+# does exist — never a silently plausible placeholder). Evaluated at CONFIGURE
+# time; the CONFIGURE_DEPENDS on .git/HEAD re-runs it when the checked-out commit
+# moves (a dirty-flag change without a commit can lag until the next reconfigure
+# — an accepted, documented staleness for the HOST suite; the R1 robot Makefile
+# evaluates per build).
+execute_process(
+  COMMAND git describe --always --dirty --abbrev=7
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+  OUTPUT_VARIABLE SHULIB_GIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET)
+if(NOT SHULIB_GIT_HASH STREQUAL "")
+  add_compile_definitions(SHULIB_BUILD_HASH="${SHULIB_GIT_HASH}")
+  message(STATUS "shulib build hash: ${SHULIB_GIT_HASH}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/../.git/HEAD")
+else()
+  message(WARNING "shulib: git hash unavailable — SHULIB_BUILD_HASH not defined; "
+                  "the session header will be LOUDLY missing (by design)")
+endif()
+
 enable_testing()
 
 # Convention: every "*_test.cpp" in this directory is a test translation unit.

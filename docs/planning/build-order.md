@@ -172,8 +172,27 @@ continue, hostile bounds, SFB visibility. New find: a blocking verb's stack moti
 the scheduler slot if the wait throws — the DetachGuard cancels on unwind (without it the
 suite literally segfaults, observed under mutation M5).
 
-**Next: chunk C5 — per-motion results + session header.** *(Reminder: there is no Phase B —
-see the note under the phase table.)*
+**Chunk C5 — per-motion results + session header + D-1…D-5: BUILT 2026-08-10, in the working
+tree pending review/commit** ([completion record](chunks/C5-COMPLETED.md), live log in
+[C5-PROGRESS.md](chunks/C5-PROGRESS.md)). The run is now legible end to end on the terminal —
+§18.5 session header (build hash from `git describe --always --dirty`, MISSING is loud, never
+plausible) → the stamped tick stream → a §18.3 result line at every motion boundary
+(structural, via the scheduler's new observer seam; SETTLED/TIMEOUT/CANCELLED/FAULT_ABORT/
+SUPERSEDED) → the one-screen §18.3 summary block, all byte-goldened. The F9-time-sensitive
+schema space is RESERVED (`droppedRecords`/`droppedLines` + `tickPhase[8]` with 2 spare slots;
+diagnostics-plan.md carries the discharge table), and diagnostics-plan's D-1…D-5 all landed:
+per-subsystem levels, counted-stamped-announced throttling, tick-time attribution that NAMES
+the overrun's consumer, the controller-screen seam (PROS glue → R1, HA-57), and the
+plausibility invariants (`FaultCode::Implausible`, HA-56). Result-line numbers are
+truth-checked on all three drivetrains (clean: reported == truth to ~1e-13 in; a real 3.79 in
+overshoot on an inertial plant reports true to 6 digits; hostile: ≤ 1.76 in believed-vs-true).
+35 mutations: 33 red, **2 green holes found and closed** (the D-5 pipeline wiring was
+invisible to all 915k assertions; then its command-audit half hid behind its volt half), 1
+build-gate trip. The ARM gate caught a real portability bug (`uint32_t` is `unsigned long` on
+target — a `%u` that would not compile at R1).
+
+**Next: chunk C6 — legacy salvage** (after C5 review/commit; then C7 cutover, then D1 → D2
+freezes F6). *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
 strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (chassis.hpp and

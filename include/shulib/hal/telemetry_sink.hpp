@@ -49,10 +49,12 @@
 #include <utility>
 
 namespace shulib::diag {
-// Forward declaration only: the full schema lives in shulib/diag/debug_record.hpp.
-// The seam stays include-light (a reference parameter with a no-op body needs no
-// complete type); implementers that actually READ the record include the schema header.
+// Forward declarations only: the full schemas live in shulib/diag/debug_record.hpp
+// and shulib/diag/run_summary.hpp. The seam stays include-light (a reference
+// parameter with a no-op body needs no complete type); implementers that actually
+// READ a record include the schema header themselves.
 struct DebugRecord;
+struct RunSummary;
 }  // namespace shulib::diag
 
 namespace shulib::hal {
@@ -83,6 +85,15 @@ public:
     /// CONTRACT (header note) — a sink implementing only log() stays valid forever.
     /// Implementations MUST NOT throw.
     virtual void emit(const diag::DebugRecord& /*record*/) {}
+
+    /// Consume the end-of-run summary (§18.3's one-screen block, as data — see
+    /// shulib/diag/run_summary.hpp). Added at chunk C5 by the SAME additive recipe as
+    /// emit(): non-pure, default no-op, so every sink written before it kept
+    /// compiling untouched. Called ONCE per run (cold path — no wants-style query is
+    /// needed; building one struct per run is not a cost). DECORATOR RULE: a sink
+    /// that wraps another MUST forward this, like log()/emit() — a decorator with
+    /// the default body silently eats the summary. Implementations MUST NOT throw.
+    virtual void summarize(const diag::RunSummary& /*summary*/) {}
 };
 
 /// THE record-emission idiom: build the record lazily, ONLY if the sink consumes it.

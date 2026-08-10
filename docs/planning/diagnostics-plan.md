@@ -24,6 +24,32 @@ the *field* should land early. Each item below marks whether it needs schema spa
 
 This is the only part of this document that can't be safely deferred.
 
+### ✅ DISCHARGED at C5 (2026-08-10) — what H1/F9 inherits
+
+The schema space was reserved, and the fields are wire-pinned by test
+(`test/debug_record_test.cpp`). **What F9 is about to freeze, exactly:**
+
+| Field | Type | Producer today | Reserved for later |
+|---|---|---|---|
+| `droppedRecords` | `uint32` | `RateLimitedSink` stamps cumulative drops onto every forwarded record (D-2, LIVE) | — |
+| `droppedLines` | `uint32` | same (D-2, LIVE) | — |
+| `tickPhase[0]` Localization | `Time` | scheduler attribution, when an attribution clock is configured (D-3, LIVE; one-tick lag documented on the field) | — |
+| `tickPhase[1]` Motion | `Time` | same (D-3, LIVE) | — |
+| `tickPhase[2]` Health | `Time` | **0 — RESERVED** | E1+ (separable health timing) |
+| `tickPhase[3]` Telemetry | `Time` | **0 — RESERVED** | E1+ (separable sink timing) |
+| `tickPhase[4]` Scheduler | `Time` | **0 — RESERVED** | E1+ (scheduler bookkeeping) |
+| `tickPhase[5]` User | `Time` | **0 — RESERVED** | G2 markers / mechanisms |
+| `tickPhase[6..7]` | `Time` | **0 — SPARE** | unassigned pre-freeze capacity: a new phase is a vocabulary append, never a wire reshape |
+
+The `TickPhase` index vocabulary (values 0–5 defined, 6–7 spare; `kTickPhaseSlots = 8`) lives in
+`debug_record.hpp` beside `GateReason`, explicit-valued and append-only. `FaultCode` gained
+`Implausible = 10` (append-only) for D-5. **Also on the seam since C5** (not per-tick, but F9's
+neighbours): `ITelemetrySink::summarize(RunSummary)` — a second record type (`RunSummary`, value
+semantics, bounded strings) that E1's SdSink and H1's wire may serialize; and the §18.4 boundary
+vocabulary `diag::MotionOutcome` (0–4, wire-pinned). H1 should freeze `DebugRecord`, `GateReason`,
+`TickPhase`, `FaultCode`, and decide whether SHUL/2 v1 also carries `RunSummary`/`MotionOutcome` or
+defers them to v2 — both are already wire-stable either way.
+
 ---
 
 ## What exists today (A1 + A3 + C1)
@@ -65,33 +91,62 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 
 ## New — added 2026-08-06
 
-### For C5 (with the motion layer, next diagnostics chunk)
+### For C5 (with the motion layer, next diagnostics chunk) — ✅ ALL FIVE DELIVERED at C5 (2026-08-10)
 
-**D-1. Per-subsystem log levels.** Levels are global today. Turning `[MOT]` up to `DEBUG` while holding
-`[LOC]` at `WARN` is the single most-used debugging move in practice, and its absence forces a rebuild
-to chase anything.
+**D-1. ✅ DELIVERED. Per-subsystem log levels.** Levels are global today. Turning `[MOT]` up to
+`DEBUG` while holding `[LOC]` at `WARN` is the single most-used debugging move in practice, and its
+absence forces a rebuild to chase anything.
 *Schema: no.*
+*As built:* `diag::LevelFilterSink` — a decorator with a global level + 16 per-tag overrides;
+filters the log() channel only (records/summaries are data, not chatter; filtering is explicit
+config, NOT counted as a drop — the D-2 distinction, documented in-header). `test/level_filter_test.cpp`.
 
-**D-2. Per-channel rate limiting / throttling.** §18.3 already calls for it; A1 deferred it here. A
-high-rate channel must not drown the terminal or push the loop over budget. Needs a **dropped-count**
-so throttling is visible rather than silent — a silent drop reads as "nothing happened."
-*Schema: yes — a dropped-record counter.*
+**D-2. ✅ DELIVERED. Per-channel rate limiting / throttling.** §18.3 already calls for it; A1
+deferred it here. A high-rate channel must not drown the terminal or push the loop over budget.
+Needs a **dropped-count** so throttling is visible rather than silent — a silent drop reads as
+"nothing happened."
+*Schema: yes — a dropped-record counter.* → **fields `droppedRecords`/`droppedLines` in the record
+(see the discharge table above).**
+*As built:* `diag::RateLimitedSink` — per-tag token buckets for Info/Debug/Trace lines + a record
+bucket; **Error/Warn and summarize() are exempt by contract**; drops are counted (accessors),
+stamped onto every forwarded record, announced with one Warn notice per episode end, and reported in
+the run summary. `test/rate_limit_test.cpp` + the e2e flood case.
 
-**D-3. Tick-time attribution.** `LoopMonitor` detects an overrun but cannot say **who** consumed the
-budget. As C2/C3/C4 add loop work this becomes the question you actually need answered: localization
-4 ms, motion 2 ms, sinks 1 ms. Cheap to add now, and it turns "the loop is slow" into a name.
-*Schema: yes — per-subsystem tick-time slots. **Add the fields at C5 even if attribution lands later.***
+**D-3. ✅ DELIVERED. Tick-time attribution.** `LoopMonitor` detects an overrun but cannot say
+**who** consumed the budget. As C2/C3/C4 add loop work this becomes the question you actually need
+answered: localization 4 ms, motion 2 ms, sinks 1 ms. Cheap to add now, and it turns "the loop is
+slow" into a name.
+*Schema: yes — per-subsystem tick-time slots.* → **`tickPhase[8]` + the `TickPhase` vocabulary (see
+the discharge table above — Localization/Motion live; Health/Telemetry/Scheduler/User reserved).**
+*As built:* `diag::TickAttribution` (RAII phase scopes on a SEPARATE injected attribution clock —
+the sim clock doesn't advance intra-tick; nullptr in `MotionSchedulerConfig` = off = zero cost);
+the scheduler brackets Localization and Motion, stamps the last COMPLETED tick's breakdown onto
+records (one-tick lag, documented on the field), and the LOOP_OVERRUN path logs
+`overrun attribution: loc …ms · mot …ms · other …ms (worst mot)` — the overrun now has a NAME.
+`test/tick_attribution_test.cpp` + the e2e attribution case.
 
-**D-4. Controller-screen fault display.** The V5 controller has a small LCD. Showing the latched fault
-code and a one-word state there means a student at the field, with no laptop, can tell *why* the robot
-stopped. Very cheap; disproportionately useful on a competition day.
+**D-4. ✅ DELIVERED (content + seam; PROS glue → R1, as planned).** Controller-screen fault display.
+The V5 controller has a small LCD. Showing the latched fault code and a one-word state there means a
+student at the field, with no laptop, can tell *why* the robot stopped.
 *Schema: no.*
+*As built:* `hal::ILineDisplay` (3×19, HA-57) + `hal::fake::FakeLineDisplay` +
+`diag::ControllerFaultDisplay` (OK/FAULT + run clock; the FIRST fault by name; battery + count;
+rewrites only changed rows — write discipline pinned by write-count test). The
+`pros::Controller::set_text` adapter is R1's, behind the seam. `test/controller_display_test.cpp`.
 
-**D-5. Physical-plausibility invariants.** Extend `FiniteGuard`'s log-and-recover posture beyond
-finiteness: per-tick pose delta within a physical maximum, commanded velocity within the drivetrain's
-capability, wheel commands consistent with the commanded twist. Each violation is a fault, not a
-crash. A3 proved this class of guard catches real defects.
-*Schema: no (reuses `FaultCode`).*
+**D-5. ✅ DELIVERED. Physical-plausibility invariants.** Extend `FiniteGuard`'s log-and-recover
+posture beyond finiteness: per-tick pose delta within a physical maximum, commanded velocity within
+the drivetrain's capability, wheel commands consistent with the commanded twist. Each violation is a
+fault, not a crash. A3 proved this class of guard catches real defects.
+*Schema: no (reuses `FaultCode`).* → **`FaultCode::Implausible = 10` appended (append-only rule).**
+*As built:* `diag::PoseDeltaGuard` (scheduler-run, episode-gated, dt-scaled, NOT judged during the
+boot window — the estimate isn't a physical trajectory until it exists; envelope HA-56) +
+`commandWithinCapability`/`recoverWheelVoltage` wired into the ONE command pipeline as a
+self-audit (a NaN/over-ceiling volt never reaches a motor). Honest scope: the pose-delta fault is
+ADVISORY (never rewrites the pose — principle 4); "wheel commands consistent with the commanded
+twist" is implemented as finite-and-within-battery-ceiling per wheel, not a full inverse-kinematics
+consistency proof (that needs E-phase estimator introspection). `test/plausibility_test.cpp` incl.
+the hostile-pipeline wiring case (born from a green mutation — C5-COMPLETED §mutations).
 
 ### For E1 (with `SdSink`)
 
@@ -143,15 +198,17 @@ fault, battery, elapsed. The no-laptop glance.
 
 | Chunk | Items |
 |---|---|
-| **C5** | D-1, D-2, D-3, D-4, D-5 — **plus the schema fields for D-2 and D-3** |
+| **C5** | ✅ DONE (2026-08-10): D-1, D-2, D-3, D-4, D-5 — **and the schema fields for D-2 and D-3 are reserved** (discharge table at the top) |
 | **E1** | D-6, D-7, D-8 |
-| **H1** | *(F9 freeze — everything above must have its fields in by here)* |
+| **H1** | *(F9 freeze — everything above HAS its fields in as of C5; the discharge table is the inventory to freeze)* |
 | **H2** | D-9, D-10, D-11 |
 | **Frontier** | D-12, D-13 |
 
-**Nothing here needs building right now.** The only thing that cannot wait is **reserving schema space
-in `DebugRecord` at C5** for D-2's dropped-count and D-3's tick-time slots — because after H1 those
-become a version bump instead of a one-line edit.
+**The time-sensitive constraint is DISCHARGED.** The C5 row above was the only thing that could not
+wait; the reserved fields are wire-pinned by `test/debug_record_test.cpp`, and the "Already planned"
+C5 rows (per-motion result line, session header, end-of-run summary) shipped in the same chunk
+(`diag/motion_result.hpp`, `diag/session_info.hpp`, `diag/run_summary.hpp` + `TermSink::summarize`,
+glued by `motion/run_reporter.hpp`). See `chunks/C5-COMPLETED.md`.
 
 ---
 

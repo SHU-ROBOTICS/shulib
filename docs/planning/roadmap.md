@@ -148,7 +148,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > file-free plain-C++ construction path is a test (the §16.2 standalone promise). The mutation
 > campaign (22 run) found and closed two GREEN HOLES: teleop health observables went dark in a
 > `drive()`-only loop, and the yaw-rate budget was invisible to every closed-loop test.
-> **Next: chunk C5 — per-motion results + session header** (then D1 → D2 freezes F6).
+> **Chunk C5 (per-motion results + session header + diagnostics D-1…D-5) is BUILT, 2026-08-10 —
+> in the working tree pending review/commit** ([completion record](chunks/C5-COMPLETED.md)):
+> M2's "the run is legible in real time on the terminal" clause closes with it, and the F9
+> schema space (D-2 drop counters + D-3 tick-phase slots) is reserved ahead of H1.
+> **Next: chunk C6 — legacy salvage** (then C7 cutover, then D1 → D2 freezes F6).
 > (There is no Phase B: the original hardware phase became Phase R — see build-order's
 > deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -604,8 +608,22 @@ DoD in Phases C–F depends on it.*
   (Settled/TimedOut, never Running after exit — pinned), raises `MOTION_TIMEOUT` on its latch,
   and carries the `MotionState` vocabulary in `DebugRecord.activeCommandState`
   (`test/motion_primitives_test.cpp` exit-discipline + legibility cases).*
-- [ ] Per-motion result line (target vs final · overshoot · drift · time · exit-reason) + end-of-run summary block. *→ chunk C5 (needs motion data that doesn't exist yet).*
-- [ ] **Session header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — lets us compare/reproduce runs and confirm which binary ran. *→ chunk C5.*
+- [x] Per-motion result line (target vs final · overshoot · drift · time · exit-reason) + end-of-run summary block.
+  *Closed at C5 (2026-08-10): `diag/motion_result.hpp` (the §18.4 boundary vocabulary
+  SETTLED/TIMEOUT/CANCELLED/FAULT_ABORT/SUPERSEDED, wire-pinned) + `diag/run_summary.hpp` +
+  `TermSink::summarize` (the §18.3 block, byte-goldened), fed structurally by the scheduler's
+  boundary-observer seam via `motion/run_reporter.hpp` — a routine cannot forget to report a
+  boundary. Numbers cross-checked against plant TRUTH on X/H/tank (clean: reported == truth to
+  ~1e-13 in; an inertial-plant case proves a REAL 3.79 in overshoot reports true to 6 digits;
+  hostile: believed-vs-true ≤ 1.76 in, inside the C2/C3 envelope). D-1…D-5 landed in the same
+  chunk with the F9 schema space reserved (diagnostics-plan.md discharge table);
+  [completion record](chunks/C5-COMPLETED.md).*
+- [x] **Session header** (git build hash + routine id + alliance/side + port map + battery start) as the first record of every run — lets us compare/reproduce runs and confirm which binary ran.
+  *Closed at C5: `diag/session_info.hpp` + `diag/build_info.hpp` — the hash is BUILD-SYSTEM
+  injected (`git describe --always --dirty`; the test CMake does it; the PROS Makefile gains the
+  same line at R1), and a missing hash is LOUD ([ERROR][SES] + the literal token MISSING), never
+  a plausible placeholder — pinned by golden. Port map is caller-authored text at C5 (the core
+  HAL has no port numbers); G1's RobotBuilder generates it. Battery start is READ, not typed.*
 - [x] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
   *Resolved at chunk A1 by **clean-room supersession**, per build-order's "Explicitly rejected"
   note (re-derive, don't copy): nothing builds on `logger.hpp`, and the replacement designs each

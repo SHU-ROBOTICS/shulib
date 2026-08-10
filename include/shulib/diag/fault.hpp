@@ -55,6 +55,12 @@ enum class FaultCode : std::uint16_t {
     MotorOverTemp = 9,  ///< a motor crossed the thermal-throttle threshold (~55 °C) —
                         ///< the droop corrupts kS/kV/kA, so it must be visible (§8/§18.4;
                         ///< APPENDED at chunk A3, per the append-only rule above)
+    Implausible = 10,   ///< a physical-plausibility invariant fired: per-tick pose delta
+                        ///< beyond the drivetrain's physical maximum, a commanded speed
+                        ///< outside its budget, or a wheel volt inconsistent with the
+                        ///< battery ceiling (diagnostics-plan D-5 — FiniteGuard's
+                        ///< log-and-recover posture extended beyond finiteness; APPENDED
+                        ///< at chunk C5, per the append-only rule above)
 };
 
 /// The §18.4 spelling of each code, for TermSink lines and the run summary.
@@ -71,6 +77,7 @@ enum class FaultCode : std::uint16_t {
         case FaultCode::Brownout: return "BROWNOUT";
         case FaultCode::MotionTimeout: return "MOTION_TIMEOUT";
         case FaultCode::MotorOverTemp: return "MOTOR_OVER_TEMP";
+        case FaultCode::Implausible: return "IMPLAUSIBLE";
     }
     return "UNKNOWN";
 }

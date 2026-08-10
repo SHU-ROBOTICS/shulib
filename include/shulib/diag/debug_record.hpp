@@ -54,6 +54,27 @@ enum class GateReason : std::uint8_t {
     RejectedHighYawRate = 5,  ///< spinning too fast to trust the fix (E2)
 };
 
+/// Index vocabulary for DebugRecord::tickPhase — WHO consumed the loop budget this
+/// tick (diagnostics-plan D-3: LoopMonitor detects an overrun but cannot attribute
+/// it; these slots turn "the loop is slow" into a name).
+/// WIRE-STABLE: explicit values, append-only, pinned by test (F9 serializes the
+/// array these index). Defined at C5 — BEFORE the H1 freeze — precisely so the
+/// slots exist even where the producer does not yet (the one genuinely
+/// time-sensitive act in diagnostics-plan.md).
+enum class TickPhase : std::uint8_t {
+    Localization = 0,  ///< Localizer::update() — producer: C5 (MotionScheduler)
+    Motion = 1,        ///< the active motion's tick / the idle work — producer: C5
+    Health = 2,        ///< health observables, where separable — RESERVED (E1+)
+    Telemetry = 3,     ///< sink formatting/IO, where separable — RESERVED (E1+)
+    Scheduler = 4,     ///< scheduler bookkeeping, where separable — RESERVED (E1+)
+    User = 5,          ///< caller-owned work (G2 markers, mechanisms) — RESERVED
+};
+
+/// Capacity of DebugRecord::tickPhase. STRICTLY GREATER than the defined phases on
+/// purpose: slots 6..7 are spare, reserved before the F9 freeze so a new phase is
+/// a vocabulary append, not a wire reshape. Pinned by test.
+inline constexpr int kTickPhaseSlots = 8;
+
 /// The per-tick snapshot (§18.2), captured each control tick and rate-budgeted by the
 /// producer. Plain struct on purpose: it is a snapshot, not an invariant-bearing type —
 /// the invariants live in the systems that populate it.
@@ -121,6 +142,20 @@ struct DebugRecord {
     FaultCode fault = FaultCode::None;  ///< fault raised THIS tick (the latch keeps the first)
     units::Voltage batteryVoltage{};    ///< — C1
     units::Current batteryCurrent{};    ///< — C1
+
+    // ── observability self-diagnostics (appended at C5, BEFORE the F9 freeze) ───────
+    // D-2: throttling must never be silent. CUMULATIVE counts of what rate limiting
+    // dropped since run start, stamped by RateLimitedSink onto every record it
+    // FORWARDS — so a gap in the stream always carries its own explanation, on the
+    // wire itself. 0 = nothing dropped. — C5 (diag/rate_limit_sink.hpp)
+    std::uint32_t droppedRecords = 0;  ///< emit()-channel records dropped so far — C5
+    std::uint32_t droppedLines = 0;    ///< log()-channel lines dropped so far — C5
+    // D-3: per-subsystem tick-time attribution, indexed by TickPhase (top of file).
+    // Slots for phases marked RESERVED hold 0 until their producer exists; slots
+    // 6..7 are spare capacity (kTickPhaseSlots note). The values describe the most
+    // recently COMPLETED tick (the stamping sink cannot know the current tick's
+    // total mid-tick; one-tick lag, documented at the producer). — C5 (scheduler)
+    std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)> tickPhase{};
 };
 
 }  // namespace shulib::diag

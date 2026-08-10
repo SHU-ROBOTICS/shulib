@@ -34,6 +34,17 @@
 //   6. IKinematics::desaturate(maxWheelSpeed) — the downstream uniform scale.
 //   7. Feedforward → compensateForBattery → IMotor::setVoltage, per wheel.
 //
+// ── The D-5 self-audit (chunk C5; diag/plausibility_guard.hpp carries the why) ──────
+// After the clamps, the pipeline AUDITS its own output: the final body command
+// must sit inside the configured budgets (invariant 2) and every wheel volt must
+// be finite and inside the battery ceiling (invariant 3). On a healthy pipeline
+// the audit is a pure pass-through — values are untouched, bit-identically (the
+// C2 equivalence suites re-pin this) — so the audit costs a few compares per
+// tick and changes nothing. It exists for the pipeline REGRESSION no closed-loop
+// test can see (C4's M21: a defeated clamp left every accuracy suite green):
+// in the field, that regression now raises IMPLAUSIBLE and the volts are
+// clamped/zeroed before they reach a motor, instead of quietly over-driving.
+//
 // The function COMMANDS THE MOTORS (step 7) — it is the pipeline, not a
 // planner — and returns what it commanded so the caller can record it (the
 // DebugRecord `commanded` field carries the final achievable command in the
@@ -48,6 +59,7 @@
 #include <cmath>
 
 #include "shulib/control/feedforward.hpp"
+#include "shulib/diag/plausibility_guard.hpp"
 #include "shulib/kinematics/wheel_speeds.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/twist2d.hpp"
@@ -118,17 +130,25 @@ struct CommandOutcome {
     const bool strafeFallback =
         std::abs(body.vy().value()) - vyLimit > kStrafeFallbackNoiseFraction * maxLin;
 
+    // D-5 invariant 2 (self-audit; header note): the clamps above make this a
+    // pass-through — a false here is a pipeline regression, raised as IMPLAUSIBLE.
+    (void)diag::commandWithinCapability(bodyClamped, cfg.maxLinearSpeed,
+                                        cfg.maxAngularSpeed, *deps.faults, "MOT");
+
     // 5–6. wheels: unclamped inverse kinematics, then the uniform desaturate.
     kinematics::WheelSpeeds wheels = deps.kinematics->toWheels(bodyClamped);
     wheels = deps.kinematics->desaturate(wheels, cfg.maxWheelSpeed);
 
-    // 7. volts: feedforward, then the battery ceiling, per wheel.
+    // 7. volts: feedforward, then the battery ceiling, per wheel — each volt
+    // passed through the D-5 invariant-3 recovery (untouched when healthy; a
+    // non-finite/over-ceiling volt is zeroed/clamped and raised, never commanded).
     const units::Voltage vb = deps.ctx->battery().voltage();
     const auto motors = deps.ctx->driveMotors();
     for (int i = 0; i < wheels.size(); ++i) {
         const control::CompensatedVoltage cv =
             control::compensateForBattery(ff.calculate(wheels[i]), vb);
-        motors[static_cast<std::size_t>(i)]->setVoltage(cv.voltage);
+        motors[static_cast<std::size_t>(i)]->setVoltage(
+            diag::recoverWheelVoltage(cv.voltage, vb, *deps.faults, "MOT"));
     }
 
     return CommandOutcome{.body = bodyClamped, .strafeFallback = strafeFallback};

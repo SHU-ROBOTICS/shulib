@@ -142,12 +142,15 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <optional>
 
 #include "shulib/control/exit_group.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/debug_record.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/loop_monitor.hpp"
+#include "shulib/diag/plausibility_guard.hpp"
+#include "shulib/diag/tick_attribution.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/units/quantity.hpp"
@@ -195,6 +198,20 @@ struct MotionSchedulerConfig {
     /// Scheduler-owned loop timing watchdog (LOOP_OVERRUN). The budget must be
     /// strictly greater than the nominal tick period (loop_monitor.hpp).
     diag::LoopMonitorConfig loopMonitor{};
+
+    /// D-3 tick-time attribution clock (chunk C5). nullptr = attribution OFF —
+    /// zero clock calls, zero cost (the A1 contract, structurally). When set, it
+    /// must be a clock that advances DURING a tick (tick_attribution.hpp says
+    /// which: real time on the robot — R1 wires it; a scripted fake in tests —
+    /// the SIM clock only advances between ticks and would attribute all zeros).
+    /// Must outlive the scheduler.
+    hal::IClock* attributionClock = nullptr;
+
+    /// D-5 pose-delta plausibility envelope (chunk C5): per-tick estimate motion
+    /// beyond maxSpeed/maxYawRate × margin × dt raises IMPLAUSIBLE (advisory,
+    /// episode-gated — plausibility_guard.hpp). Defaults are generous physical
+    /// upper bounds (PROVISIONAL, A4: HA-56).
+    diag::PlausibilityConfig plausibility{};
 };
 
 /// ITelemetrySink decorator that stamps DebugRecord.activeCommandId with the
@@ -205,6 +222,12 @@ struct MotionSchedulerConfig {
 /// not information. wantsRecord() forwards to the inner sink — the A1 pair
 /// rule — so record population stays skipped when nothing consumes it; the
 /// one-record copy in emit() is paid only when a real sink is attached.
+///
+/// Since C5 it also stamps the D-3 tickPhase slots: the scheduler sets the LAST
+/// COMPLETED tick's attribution after each tick (records are emitted mid-tick,
+/// before this tick's total is knowable — the one-tick lag documented on the
+/// schema field). With attribution off the stamp is the quiet all-zeros default.
+/// One decorator, one record copy, both stamps.
 class CommandIdStampSink final : public hal::ITelemetrySink {
 public:
     explicit CommandIdStampSink(hal::ITelemetrySink& inner) noexcept : inner_{&inner} {}
@@ -219,19 +242,154 @@ public:
     void emit(const diag::DebugRecord& record) override {
         diag::DebugRecord stamped = record;
         stamped.activeCommandId = id_;
+        stamped.tickPhase = phases_;
         inner_->emit(stamped);
     }
+
+    /// C5 decorator rule (telemetry_sink.hpp): forward, or the summary dies here.
+    void summarize(const diag::RunSummary& summary) override { inner_->summarize(summary); }
 
     void setActiveId(std::uint32_t id) noexcept { id_ = id; }
     [[nodiscard]] std::uint32_t activeId() const noexcept { return id_; }
 
+    void setTickPhases(
+        const std::array<units::Time, static_cast<std::size_t>(diag::kTickPhaseSlots)>&
+            phases) noexcept {
+        phases_ = phases;
+    }
+
 private:
     hal::ITelemetrySink* inner_;
     std::uint32_t id_ = 0;
+    std::array<units::Time, static_cast<std::size_t>(diag::kTickPhaseSlots)> phases_{};
 };
 
-/// One finished motion, as the scheduler saw it — the raw material for C5's
-/// per-motion result line (C5 formats; this chunk only records).
+/// ITelemetrySink decorator that AGGREGATES the active motion's record stream into
+/// the C5 result-line quantities (motion_result.hpp carries their definitions):
+/// start pose, target, worst excursion past the target, final heading error. Sits
+/// AFTER the id stamp in the scheduler's chain (it discriminates on the stamped
+/// id) and forwards everything untouched — a pure observer.
+///
+/// Why derive these from the RECORD STREAM rather than ask the motion: the
+/// boundary (CompletedMotion) must not re-derive what the motion already
+/// published per tick (brief rule 7), overshoot is inherently a per-tick MAX no
+/// boundary snapshot can recover, and the stream is the one place every motion
+/// type — including future Tier-3 ones — already reports target/measured/error
+/// uniformly. Consequence, stated honestly: with NullSink no records flow
+/// (wantsRecord false ⇒ never even built), so hasData() is false and the result
+/// line renders "n/a" for the derived fields — you cannot have free result
+/// numbers AND zero-cost ticks; the always-real fields (final pose, duration,
+/// outcome) come from the boundary itself.
+///
+/// Aggregation rules (each load-bearing, pinned by test):
+///   * only records with a nonzero stamped id (idle/teleop records are not the
+///     motion's story);
+///   * only Running-state ticks and — once Running was seen — the exit-state
+///     record (waiting-for-estimate records carry deliberately-zero errors and,
+///     for capture-at-live motions, a not-yet-real target: aggregating them
+///     would fabricate numbers, the exact lie the brief bans);
+///   * target is re-sampled per record (capture-at-live motions publish it from
+///     the first live tick; TurnTo/DriveBrake publish a here-anchored target).
+class MotionStatsSink final : public hal::ITelemetrySink {
+public:
+    explicit MotionStatsSink(hal::ITelemetrySink& inner) noexcept : inner_{&inner} {}
+
+    void log(hal::LogLevel level, std::string_view subsystem,
+             std::string_view message) override {
+        inner_->log(level, subsystem, message);
+    }
+
+    [[nodiscard]] bool wantsRecord() const noexcept override { return inner_->wantsRecord(); }
+
+    void emit(const diag::DebugRecord& record) override {
+        aggregate(record);
+        inner_->emit(record);
+    }
+
+    void summarize(const diag::RunSummary& summary) override { inner_->summarize(summary); }
+
+    /// New motion armed: forget the previous motion's story.
+    void beginMotion() noexcept {
+        sawRunning_ = false;
+        maxProj_ = 0.0;
+        maxDist_ = 0.0;
+        lastAbsHeadErr_ = 0.0;
+    }
+
+    /// True iff at least one live (Running) record was aggregated.
+    [[nodiscard]] bool hasData() const noexcept { return sawRunning_; }
+    [[nodiscard]] const math::Pose2d& targetPose() const noexcept { return target_; }
+
+    /// Overshoot per motion_result.hpp: projection past the target along the
+    /// start→target direction when the motion HAD a direction; worst wander from
+    /// the point when it did not (|target − start| < kHoldEpsilonIn).
+    [[nodiscard]] units::Length overshoot() const noexcept {
+        const double axx = target_.x().value() - startPose_.x().value();
+        const double axy = target_.y().value() - startPose_.y().value();
+        if (std::hypot(axx, axy) < kHoldEpsilonIn) {
+            return units::Length{maxDist_};
+        }
+        return units::Length{maxProj_ > 0.0 ? maxProj_ : 0.0};
+    }
+
+    /// |final heading error| — the last aggregated record's errorHeading.
+    [[nodiscard]] units::AngleDim drift() const noexcept {
+        return units::AngleDim{lastAbsHeadErr_};
+    }
+
+private:
+    /// Below this start→target distance a motion is "stationary-target" (turn /
+    /// hold / brake) and overshoot degrades to worst-wander (header). Well under
+    /// any deliberate translation, well over settle chatter. Logic constant.
+    static constexpr double kHoldEpsilonIn = 0.1;
+
+    void aggregate(const diag::DebugRecord& r) {
+        if (r.activeCommandId == 0) {
+            return;  // idle/teleop record — not a motion's story
+        }
+        const auto st = static_cast<MotionState>(r.activeCommandState);
+        const bool running = (st == MotionState::Running);
+        const bool exited = (st == MotionState::Settled || st == MotionState::TimedOut
+                             || st == MotionState::Cancelled);
+        if (!running && !(exited && sawRunning_)) {
+            return;  // waiting records, and boot-window exits that never went live
+        }
+        if (!sawRunning_) {
+            sawRunning_ = true;
+            startPose_ = r.measuredPose;
+        }
+        target_ = r.targetPose;
+        const double dx = r.measuredPose.x().value() - target_.x().value();
+        const double dy = r.measuredPose.y().value() - target_.y().value();
+        const double axx = target_.x().value() - startPose_.x().value();
+        const double axy = target_.y().value() - startPose_.y().value();
+        const double alen = std::hypot(axx, axy);
+        if (alen >= kHoldEpsilonIn) {
+            const double proj = (dx * axx + dy * axy) / alen;
+            if (proj > maxProj_) {
+                maxProj_ = proj;
+            }
+        }
+        const double dist = std::hypot(dx, dy);
+        if (dist > maxDist_) {
+            maxDist_ = dist;
+        }
+        lastAbsHeadErr_ = std::abs(r.errorHeading.value());
+    }
+
+    hal::ITelemetrySink* inner_;
+    math::Pose2d startPose_{};
+    math::Pose2d target_{};
+    double maxProj_ = 0.0;
+    double maxDist_ = 0.0;
+    double lastAbsHeadErr_ = 0.0;
+    bool sawRunning_ = false;
+};
+
+/// One finished motion, as the scheduler saw it — the raw material for the C5
+/// per-motion result line (motion/run_reporter.hpp formats it; this type only
+/// records). The C5 fields were ADDED here rather than shadowed in a parallel
+/// struct (brief rule 7: CompletedMotion is the one motion-boundary record).
 struct CompletedMotion {
     std::uint32_t id = 0;         ///< the activeCommandId it ran under
     const char* name = "";        ///< IMotion::name() (stable literal)
@@ -241,6 +399,42 @@ struct CompletedMotion {
     diag::FaultCode abortFault = diag::FaultCode::None;
     units::Time startTime{};      ///< clock at async()
     units::Time endTime{};        ///< clock at the exit/cancel boundary
+
+    // ── C5 additions (result-line data; motion_result.hpp defines the semantics) ────
+    /// True iff this Cancelled boundary was a PRE-EMPTION (a newer motion took
+    /// the slot) — §18.4's SUPERSEDED, distinct from a user cancel.
+    bool preempted = false;
+    /// The estimate at the boundary — ALWAYS real (read from the Localizer at
+    /// finalize, independent of the record stream).
+    math::Pose2d finalPose{};
+    /// True iff the record stream flowed for a live tick of this motion; the
+    /// three fields below are only meaningful when it did (MotionStatsSink's
+    /// honest-scope note — with NullSink they render "n/a", never a lie).
+    bool hasPathData = false;
+    math::Pose2d targetPose{};    ///< the motion's published target (last sampled)
+    units::Length overshoot{};    ///< worst excursion past the target (see semantics)
+    units::AngleDim drift{};      ///< |final heading error|
+};
+
+/// Boundary-observer seam (chunk C5): the scheduler calls this SYNCHRONOUSLY at
+/// every motion boundary — exit, fault abort, user cancel, pre-empt — right
+/// after CompletedMotion is fully recorded. This is what makes the per-motion
+/// result line STRUCTURAL (RunReporter implements it): a routine cannot forget
+/// to report a boundary, the A1 emitRecord lesson one layer up.
+/// Contract: the callback may log through the sinks; it must NOT call any
+/// scheduler verb (async/cancel/tick/waits — enforced by precondition: the
+/// boundary is not a place to re-plan a routine from). It must not throw.
+class IMotionObserver {
+public:
+    virtual ~IMotionObserver() = default;
+    IMotionObserver() = default;
+    IMotionObserver(const IMotionObserver&) = default;
+    IMotionObserver(IMotionObserver&&) = default;
+    IMotionObserver& operator=(const IMotionObserver&) = default;
+    IMotionObserver& operator=(IMotionObserver&&) = default;
+
+    /// One finished motion, observed at its boundary.
+    virtual void onMotionComplete(const CompletedMotion& completed) = 0;
 };
 
 class MotionScheduler {
@@ -251,13 +445,14 @@ public:
                     const MotionSchedulerConfig& config = {})
         : pacer_{pacer},
           cfg_{config},
-          stamper_{deps.validatedClock(), deps.ctx->telemetry()},
+          statsHolder_{deps.validatedClock(), deps.ctx->telemetry()},
+          stamperSink_{statsHolder_.sink},
           shadowCtx_{chassis::RobotContextConfig{.clock = &deps.ctx->clock(),
                                                  .driveMotors = deps.ctx->driveMotors(),
                                                  .imu = &deps.ctx->imu(),
                                                  .gps = &deps.ctx->gps(),
                                                  .battery = &deps.ctx->battery(),
-                                                 .telemetry = &stamper_.sink,
+                                                 .telemetry = &stamperSink_,
                                                  .tags = &deps.ctx->tags(),
                                                  .vision = &deps.ctx->vision()}},
           schedDeps_{MotionDeps{.ctx = &shadowCtx_,
@@ -265,9 +460,14 @@ public:
                                 .kinematics = deps.kinematics,
                                 .faults = deps.faults,
                                 .health = deps.health}},
-          loopMonitor_{deps.ctx->clock(), *deps.faults, config.loopMonitor} {}
+          loopMonitor_{deps.ctx->clock(), *deps.faults, config.loopMonitor},
+          poseGuard_{config.plausibility} {
+        if (cfg_.attributionClock != nullptr) {
+            att_.emplace(*cfg_.attributionClock);  // absent = off = zero cost (D-3)
+        }
+    }
 
-    // Self-referential (shadowCtx_ points at stamper_): pinned in place.
+    // Self-referential (shadowCtx_ points at stamperSink_): pinned in place.
     MotionScheduler(const MotionScheduler&) = delete;
     MotionScheduler(MotionScheduler&&) = delete;
     MotionScheduler& operator=(const MotionScheduler&) = delete;
@@ -291,13 +491,21 @@ public:
     void async(IMotion& motion) {
         SHULIB_PRECONDITION(!inTick_,
                             "MotionScheduler::async: cannot start a motion from inside a tick");
+        SHULIB_PRECONDITION(!inBoundary_,
+                            "MotionScheduler::async: cannot start a motion from a boundary "
+                            "observer");
         if (active_ != nullptr) {
             active_->cancel();  // pre-empt: safe state now, old object inert
-            finalize(control::ExitReason::Cancelled, diag::FaultCode::None);
+            // The C5 boundary vocabulary: a pre-empt is SUPERSEDED, not a user
+            // cancel — the result line must not blame the routine's author for a
+            // stop the scheduler's last-command-wins semantics performed.
+            finalize(control::ExitReason::Cancelled, diag::FaultCode::None,
+                     /*preempted=*/true);
         }
         active_ = &motion;
         currentId_ = ++idCounter_;
-        stamper_.sink.setActiveId(currentId_);
+        stamperSink_.setActiveId(currentId_);
+        statsHolder_.sink.beginMotion();  // fresh result-line aggregates (C5)
         activeStart_ = schedDeps_.ctx->clock().now();
         snapshotFaultCounts();
         // User code may have run since the last tick — a deliberate gap, not a
@@ -316,6 +524,8 @@ public:
         SHULIB_PRECONDITION(!inTick_, "MotionScheduler::tick: re-entrant tick");
         SHULIB_PRECONDITION(!inWait_,
                             "MotionScheduler::tick: a blocking wait already owns the loop");
+        SHULIB_PRECONDITION(!inBoundary_,
+                            "MotionScheduler::tick: cannot tick from a boundary observer");
         tickImpl();
         return active_ != nullptr;
     }
@@ -332,6 +542,9 @@ public:
                             "MotionScheduler::waitUntilSettled: blocking waits are not re-entrant");
         SHULIB_PRECONDITION(!inTick_,
                             "MotionScheduler::waitUntilSettled: cannot block from inside a tick");
+        SHULIB_PRECONDITION(!inBoundary_,
+                            "MotionScheduler::waitUntilSettled: cannot block from a boundary "
+                            "observer");
         FlagScope wait{inWait_};
         loopMonitor_.reset();
         stalledPaces_ = 0;
@@ -358,6 +571,8 @@ public:
                             "MotionScheduler::waitUntil: blocking waits are not re-entrant");
         SHULIB_PRECONDITION(!inTick_,
                             "MotionScheduler::waitUntil: cannot block from inside a tick");
+        SHULIB_PRECONDITION(!inBoundary_,
+                            "MotionScheduler::waitUntil: cannot block from a boundary observer");
         SHULIB_PRECONDITION(std::isfinite(timeoutSeconds) && timeoutSeconds >= 0.0,
                             "MotionScheduler::waitUntil: timeout must be finite and >= 0");
         FlagScope wait{inWait_};
@@ -389,6 +604,8 @@ public:
     void cancel() {
         SHULIB_PRECONDITION(!inTick_,
                             "MotionScheduler::cancel: cannot cancel from inside a tick");
+        SHULIB_PRECONDITION(!inBoundary_,
+                            "MotionScheduler::cancel: cannot cancel from a boundary observer");
         if (active_ != nullptr) {
             active_->cancel();
             finalize(control::ExitReason::Cancelled, diag::FaultCode::None);
@@ -418,6 +635,32 @@ public:
     }
     [[nodiscard]] const diag::LoopMonitor& loopMonitor() const noexcept { return loopMonitor_; }
 
+    // ── C5 observability additions ─────────────────────────────────────────────────
+
+    /// Attach/replace the boundary observer (nullptr detaches). One observer:
+    /// the C5 reporter is the intended consumer; fan-out belongs to a composite
+    /// the caller writes if ever needed. Contract in IMotionObserver.
+    void setBoundaryObserver(IMotionObserver* observer) noexcept { observer_ = observer; }
+    [[nodiscard]] IMotionObserver* boundaryObserver() const noexcept { return observer_; }
+
+    /// The run's heading story for the §18.3 summary: max / final of the
+    /// PER-MOTION BOUNDARY drifts (|final heading error| of each motion that
+    /// produced path data). Deliberately not mid-tick transients: a 90° turn
+    /// passes through 90° of "error" by design, and a summary that reported it
+    /// would bury the real story — how headings LANDED.
+    [[nodiscard]] bool runHasHeadingData() const noexcept { return runHasHeadingData_; }
+    [[nodiscard]] units::AngleDim runMaxHeadingDrift() const noexcept {
+        return units::AngleDim{runMaxDriftRad_};
+    }
+    [[nodiscard]] units::AngleDim runFinalHeadingDrift() const noexcept {
+        return units::AngleDim{runFinalDriftRad_};
+    }
+
+    /// The D-3 attribution instrument, when enabled (nullptr when off).
+    [[nodiscard]] const diag::TickAttribution* attribution() const noexcept {
+        return att_.has_value() ? &*att_ : nullptr;
+    }
+
     /// Consecutive pace() calls that may fail to advance the clock before the
     /// scheduler declares the pacer broken (header: nothing may hang). Pure
     /// logic constant — no hardware claim, hence no register entry.
@@ -437,19 +680,111 @@ private:
         bool& flag_;
     };
 
-    /// Stamper + a validated-before-use hook: validatedClock() runs the deps
-    /// validation before any member construction dereferences deps.ctx.
-    struct StampHolder {
-        StampHolder(hal::IClock& /*validated*/, hal::ITelemetrySink& inner) noexcept
+    /// Brackets one tick for D-3 attribution, exception-safely: complete() closes
+    /// the tick normally; a throw through the body abandons the half-measured
+    /// tick instead (its numbers never completed, so they are discarded, not
+    /// reported — and the instrument is re-armed for the next tick).
+    class AttributionTickGuard {
+    public:
+        explicit AttributionTickGuard(diag::TickAttribution* att) : att_{att} {
+            if (att_ != nullptr) {
+                att_->beginTick();
+            }
+        }
+        ~AttributionTickGuard() {
+            if (att_ != nullptr && !completed_) {
+                att_->abandonTick();
+            }
+        }
+        AttributionTickGuard(const AttributionTickGuard&) = delete;
+        AttributionTickGuard& operator=(const AttributionTickGuard&) = delete;
+
+        void complete() {
+            if (att_ != nullptr) {
+                att_->endTick();
+            }
+            completed_ = true;
+        }
+
+    private:
+        diag::TickAttribution* att_;
+        bool completed_ = false;
+    };
+
+    /// A phase scope when attribution is on; empty (free) when off. Guaranteed
+    /// copy elision constructs the non-movable scope in place.
+    [[nodiscard]] std::optional<diag::TickAttribution::PhaseScope> phase(diag::TickPhase p) {
+        if (att_.has_value()) {
+            return std::optional<diag::TickAttribution::PhaseScope>{std::in_place, *att_, p};
+        }
+        return std::nullopt;
+    }
+
+    /// Stats sink + a validated-before-use hook: validatedClock() runs the deps
+    /// validation before any member construction dereferences deps.ctx. (The
+    /// chain is producer → id stamp → stats → caller sink: the stats sink
+    /// discriminates on the STAMPED id, so it sits after the stamp; this holder
+    /// is merely the innermost link and therefore carries the validation hook.)
+    struct StatsHolder {
+        StatsHolder(hal::IClock& /*validated*/, hal::ITelemetrySink& inner) noexcept
             : sink{inner} {}
-        CommandIdStampSink sink;
+        MotionStatsSink sink;
     };
 
     void tickImpl() {
         FlagScope scope{inTick_};
-        schedDeps_.localizer->update();
+        // D-3: the attribution tick brackets the whole body; a throw through the
+        // body (Localizer precondition — deliberately propagated) abandons the
+        // half-measured tick rather than wedging the instrument.
+        AttributionTickGuard attGuard{att_.has_value() ? &*att_ : nullptr};
+        tickBody();
+        attGuard.complete();
+        if (att_.has_value()) {
+            // Records ride the NEXT emissions with this (completed) breakdown —
+            // the one-tick lag documented on the schema field.
+            stamperSink_.setTickPhases(att_->lastPhases());
+        }
+    }
+
+    void tickBody() {
+        {
+            const auto phaseScope = phase(diag::TickPhase::Localization);
+            schedDeps_.localizer->update();
+        }
         const units::Time dt = loopMonitor_.tick();
+        // D-3 payoff: when this tick's dt says the PREVIOUS tick overran
+        // (LoopMonitor just raised), name who consumed it — the last completed
+        // attribution IS that tick (tick_attribution.hpp's lag note).
+        if (dt.value() >= cfg_.loopMonitor.budget.value() && att_.has_value()
+            && att_->hasCompletedTick()) {
+            char buf[112];
+            std::snprintf(buf, sizeof buf,
+                          "overrun attribution: loc %.1fms · mot %.1fms · other %.1fms "
+                          "(worst %s)",
+                          att_->lastPhases()[0].value() * 1000.0,
+                          att_->lastPhases()[1].value() * 1000.0,
+                          att_->lastOther().value() * 1000.0,
+                          diag::tickPhaseName(att_->lastWorstPhase()));
+            schedDeps_.ctx->telemetry().log(hal::LogLevel::Warn, "SCH", buf);
+        }
+        // D-5 invariant 1: the estimate must move like a robot, not a glitch.
+        // Advisory (never rewrites the pose), episode-gated, dt-scaled. NOT
+        // judged during the boot window: while Uninitialized the published
+        // estimate is definitionally not a physical trajectory (boot garbage is
+        // held out of the fold, heading follows a still-calibrating IMU), and
+        // the moment it GOES live the pose materializes — a legitimate jump.
+        // reset() through boot makes the first live tick a fresh baseline, so
+        // neither the window nor the transition can raise a false IMPLAUSIBLE
+        // (found immediately by the C2/C4 boot suites when the guard first
+        // judged them — boot is normal, not a fault).
+        if (schedDeps_.localizer->qualityClass()
+            == localization::Localizer::Quality::Uninitialized) {
+            poseGuard_.reset();
+        } else {
+            (void)poseGuard_.check(schedDeps_.localizer->pose(), dt, *schedDeps_.faults);
+        }
         if (active_ == nullptr) {
+            const auto phaseScope = phase(diag::TickPhase::Motion);
             tickIdleHealth();
             emitIdleRecord(schedDeps_.ctx->clock().now(), dt);
             return;
@@ -457,6 +792,7 @@ private:
         const int preCount = schedDeps_.faults->faultCount();
         control::ExitReason reason = control::ExitReason::Running;
         try {
+            const auto phaseScope = phase(diag::TickPhase::Motion);
             reason = active_->tick();
         } catch (const PreconditionError& e) {
             // The task-boundary conversion check.hpp promises (header note).
@@ -484,13 +820,24 @@ private:
         }
     }
 
-    void finalize(control::ExitReason exit, diag::FaultCode abortFault) {
+    void finalize(control::ExitReason exit, diag::FaultCode abortFault,
+                  bool preempted = false) {
+        const MotionStatsSink& stats = statsHolder_.sink;
+        const bool hasData = stats.hasData();
         last_ = CompletedMotion{.id = currentId_,
                                 .name = active_->name(),
                                 .exit = exit,
                                 .abortFault = abortFault,
                                 .startTime = activeStart_,
-                                .endTime = schedDeps_.ctx->clock().now()};
+                                .endTime = schedDeps_.ctx->clock().now(),
+                                .preempted = preempted,
+                                // ALWAYS real: read at the boundary, independent
+                                // of whether records flowed (C5).
+                                .finalPose = schedDeps_.localizer->pose(),
+                                .hasPathData = hasData,
+                                .targetPose = hasData ? stats.targetPose() : math::Pose2d{},
+                                .overshoot = hasData ? stats.overshoot() : units::Length{0.0},
+                                .drift = hasData ? stats.drift() : units::AngleDim{0.0}};
         lastExit_ = exit;
         switch (exit) {
             case control::ExitReason::Settled: ++settledCount_; break;
@@ -504,9 +851,23 @@ private:
                 break;
             case control::ExitReason::Running: break;  // unreachable: exits only
         }
+        if (hasData) {
+            runHasHeadingData_ = true;
+            runFinalDriftRad_ = std::abs(last_.drift.value());
+            if (runFinalDriftRad_ > runMaxDriftRad_) {
+                runMaxDriftRad_ = runFinalDriftRad_;
+            }
+        }
         active_ = nullptr;
         currentId_ = 0;
-        stamper_.sink.setActiveId(0);
+        stamperSink_.setActiveId(0);
+        if (observer_ != nullptr) {
+            // The C5 boundary callback: state is fully consistent (slot cleared,
+            // last_ recorded). The observer may log; scheduler verbs are
+            // precondition-blocked while this flag is up (IMotionObserver).
+            FlagScope boundary{inBoundary_};
+            observer_->onMotionComplete(last_);
+        }
     }
 
     void snapshotFaultCounts() noexcept {
@@ -586,12 +947,16 @@ private:
 
     ITickPacer& pacer_;
     MotionSchedulerConfig cfg_;
-    StampHolder stamper_;
+    StatsHolder statsHolder_;          // innermost link (validation hook) — C5 stats
+    CommandIdStampSink stamperSink_;   // outer link: stamps id + tick phases
     chassis::RobotContext shadowCtx_;  // = caller's ctx, telemetry re-routed
     MotionDeps schedDeps_;
     diag::LoopMonitor loopMonitor_;
+    diag::PoseDeltaGuard poseGuard_;             // D-5 invariant 1 (C5)
+    std::optional<diag::TickAttribution> att_{};  // D-3; empty = off = zero cost (C5)
 
     IMotion* active_ = nullptr;
+    IMotionObserver* observer_ = nullptr;  // C5 boundary seam (RunReporter)
     std::uint32_t idCounter_ = 0;
     std::uint32_t currentId_ = 0;
     units::Time activeStart_{};
@@ -604,9 +969,15 @@ private:
     int timedOutCount_ = 0;
     int cancelledCount_ = 0;
     int abortedCount_ = 0;
+    // Run-level heading story for the §18.3 summary (per-motion boundary drift —
+    // the max/final of the drifts, NOT mid-turn transients; run_reporter.hpp).
+    double runMaxDriftRad_ = 0.0;
+    double runFinalDriftRad_ = 0.0;
+    bool runHasHeadingData_ = false;
 
     bool inTick_ = false;
     bool inWait_ = false;
+    bool inBoundary_ = false;  // observer callback in progress (re-entrancy guard)
     int stalledPaces_ = 0;
 };
 
