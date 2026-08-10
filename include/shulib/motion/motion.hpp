@@ -125,6 +125,7 @@
 // heading: radians → rad/s), typed quantities at every boundary, and the only
 // place a frame rotation happens is math::fieldToRobot / robotToField (F1).
 
+#include <algorithm>
 #include <cstdint>
 
 #include "shulib/chassis/robot_context.hpp"
@@ -196,6 +197,29 @@ struct MotionDeps {
         return ctx->clock();
     }
 };
+
+/// Tick the shared HealthMonitor with every observable reachable from the
+/// deps — the A3 containment wiring in ONE place (chunk C4; three copies had
+/// grown by then: MoveToPose, TurnTo, and the scheduler's idle tick, and the
+/// facade's drive() would have been a fourth). `odomStalled` stays a
+/// parameter because it is the one observable with a per-caller story: the
+/// active motion feeds its OdoStallCheck verdict; idle/teleop callers pass
+/// false — nothing (or nothing closed-loop) is commanded, so there is no
+/// spin to cross-check (the DriveBrake-exemption reasoning).
+inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
+    chassis::RobotContext& ctx = *deps.ctx;
+    localization::Localizer& loc = *deps.localizer;
+    double maxTemp = 0.0;
+    for (const hal::IMotor* m : ctx.driveMotors()) {
+        maxTemp = std::max(maxTemp, m->temperature());
+    }
+    deps.health->tick({.imuReady = ctx.imu().isReady(),
+                       .odomImplausible = loc.lastOdomDeltaImplausible(),
+                       .odomStalled = odomStalled,
+                       .fixGated = loc.lastCorrection().gated,
+                       .batteryVolts = ctx.battery().voltage(),
+                       .maxMotorTempC = maxTemp});
+}
 
 class IMotion {
 public:

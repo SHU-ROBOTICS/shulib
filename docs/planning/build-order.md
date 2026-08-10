@@ -151,16 +151,39 @@ hostile worst X 4.13 in / H 4.03 in, H paying only ~1–4% extra time (the turn-
 migration keeps MoveToPose legs near X speed; only explicit StrafeTo legs pay the 21 in/s
 crab).
 
-**Next: chunk C4 — the `Chassis` facade** (built, NOT frozen — F6 freezes at D2). *(Reminder:
-there is no Phase B — see the note under the phase table.)*
+**Chunk C4 — the `Chassis` facade — built and verified 2026-08-10**
+([completion record](chunks/C4-COMPLETED.md), working tree pending review): **the public API
+an auton is written against exists — and F6 is deliberately NOT frozen** (D1 exercises it as a
+second consumer; D2 freezes). `chassis/chassis.hpp` wraps the stack in blocking verbs
+(`moveTo`/`strafeTo`/`turnTo`/`followTrajectory` + candidate `brake`/`hold`) plus the
+frame-explicit manual verb `drive(ChassisSpeeds, Frame)` — `Frame` is a required parameter, so
+silent frame confusion is now a compile error. C2's structural handoff is closed: the facade
+is the ONE composition root (scheduler + every motion from `scheduler.deps()`), making
+command-id stamping structural — mutation-proven (a raw-deps verb fails 138 assertions). The
+saturation choreography was EXTRACTED to `motion/command_pipeline.hpp` (bit-identity-pinned)
+so `drive()` reuses one pipeline instead of re-deriving it; a shared health-observable helper
+replaced three grown copies. The standalone promise is tested as code: a working Chassis built
+in plain C++, no file, no builder. Facade routines are **BIT-IDENTICAL to the scheduler-built
+twin, clean and hostile** — C1/C2/C3's accuracy baselines carry over verbatim — and the clean
+5→40-move sweeps re-run green through facade verbs on X AND H, plus a NEW tank
+turn-then-drive baseline (flat, ≤1.0 in). Every guarantee re-pinned THROUGH the facade:
+ODO_STUCK abort, watchdog bounds, cancel safe state + panic stop, boot-window wait, IMU_LOST
+continue, hostile bounds, SFB visibility. New find: a blocking verb's stack motion DANGLES in
+the scheduler slot if the wait throws — the DetachGuard cancels on unwind (without it the
+suite literally segfaults, observed under mutation M5).
 
-**Verified 2026-08-06 (post-C3):** host suite **556 cases / 913,561 assertions** green under
-strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (h_drive.hpp lives
-in `include/shulib/kinematics`, already covered); all **87** v2 headers cross-compile clean
-for ARM (the generated list picked `h_drive.hpp` up automatically). C3's 13 mutations: 12
-observed red; 1 deliberately-probed GREEN (the per-column rank check is behaviour-preserving
-redundancy under the new conditioning guard — analyzed, header doc corrected to say exactly
-that, not silently passed over).
+**Next: chunk C5 — per-motion results + session header.** *(Reminder: there is no Phase B —
+see the note under the phase table.)*
+
+**Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
+strict `-Werror` (3 deliberately skipped, unchanged); both CI guards pass (chassis.hpp and
+command_pipeline.hpp fall inside existing scopes); all **89** v2 headers cross-compile clean
+for ARM (the generated list picked both new headers up automatically). C4's 22 mutations: 20
+observed red; **2 GREEN HOLES found and closed with new tests** (M20: teleop `drive()` loops
+ran with fault observables dark; M21: the yaw-rate budget is invisible to every closed-loop
+test — desaturate keeps mutated turns convergent — so only a truth yaw-rate pin can see it);
+plus one process catch (a non-compiling mutation nearly misread as green off a stale binary —
+the campaign runner now gates on build success).
 
 **The governing constraint: there is no robot yet, and won't be for a while.**
 

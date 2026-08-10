@@ -19,15 +19,13 @@
 //      heading PID is fed (setpoint 0, measurement −eh): the error the PID
 //      differentiates is CONTINUOUS near the target (no wrap in its input),
 //      and D-on-measurement stays live for a future kD.
-//   4. |ω| clamp; (vx,vy) NORM-capped uniformly (direction preserved).
-//   5. fieldToRobot(field, heading)          ← THE one F1 rotation [BODY]
-//   6. body |vy| clamped to strafeAuthority()·maxLinearSpeed — the UPSTREAM
-//      clamp §13 #5 assigns to THIS layer; strafeAuthority() is read-only and
-//      toWheels() never clamps (F5). When the clamp BINDS meaningfully the tick
-//      is flagged strafeFallbackActive in the record (C3 — the authority-limited
-//      fallback mode is telemetry-visible by contract, never silent).
-//   7. toWheels → desaturate(maxWheelSpeed)   — the DOWNSTREAM uniform scale.
-//   8. Feedforward → compensateForBattery → IMotor::setVoltage    [volts]
+//   4–8. applyCommandPipeline (command_pipeline.hpp — extracted from here at
+//      C4 so the Chassis facade's drive() shares ONE choreography): |ω| clamp;
+//      uniform norm cap; fieldToRobot (THE one F1 rotation); body |vy| clamped
+//      to strafeAuthority()·maxLinearSpeed (the UPSTREAM clamp §13 #5 assigns
+//      to THIS layer — kinematics never clamps, F5; a meaningful bind flags
+//      strafeFallbackActive in the record, C3's never-silent contract);
+//      toWheels → desaturate → Feedforward → compensateForBattery → volts.
 //   9. OdoStallCheck + HealthMonitor::tick — the A3 containment wiring.
 //  10. settle/watchdog verdict; one lazy DebugRecord (A1 contract).
 //
@@ -48,7 +46,6 @@
 //
 // Gains/tolerances: MotionConfig — every default provisional until R5 (HA-50/51/52).
 
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -57,10 +54,10 @@
 #include "shulib/control/settled_util.hpp"
 #include "shulib/control/watchdog.hpp"
 #include "shulib/diag/debug_record.hpp"
-#include "shulib/kinematics/wheel_speeds.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/math/twist2d.hpp"
+#include "shulib/motion/command_pipeline.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/odo_stall_check.hpp"
@@ -166,77 +163,46 @@ public:
         }
 
         // ── the three DECOUPLED per-axis controllers (FIELD frame) ────────────
-        double vxF = pidX_.update(target_.x().value(), pose.x().value());  // in/s
-        double vyF = pidY_.update(target_.y().value(), pose.y().value());  // in/s
-        double w = pidH_.update(0.0, -errH);                               // rad/s
+        const double vxF = pidX_.update(target_.x().value(), pose.x().value());  // in/s
+        const double vyF = pidY_.update(target_.y().value(), pose.y().value());  // in/s
+        const double w = pidH_.update(0.0, -errH);                               // rad/s
 
-        // ── saturation policy (MotionConfig header) ───────────────────────────
-        const double maxLin = cfg_.maxLinearSpeed.value();
-        w = std::clamp(w, -cfg_.maxAngularSpeed.value(), cfg_.maxAngularSpeed.value());
-        const double norm = std::hypot(vxF, vyF);
-        if (norm > maxLin) {
-            const double s = maxLin / norm;  // uniform: direction preserved
-            vxF *= s;
-            vyF *= s;
-        }
-
-        // ── FIELD → BODY: the ONE frame rotation (F1) ─────────────────────────
-        const math::ChassisSpeeds fieldCmd{units::Velocity{vxF}, units::Velocity{vyF},
-                                           units::AngularVelocity{w}};
-        const math::ChassisSpeeds body = math::fieldToRobot(fieldCmd, pose.heading());
-
-        // ── strafe-authority clamp: THIS layer clamps; kinematics never (F5) ──
-        const double vyLimit = deps_.kinematics->strafeAuthority() * maxLin;
-        const math::ChassisSpeeds bodyClamped{
-            body.vx(),
-            units::Velocity{std::clamp(body.vy().value(), -vyLimit, vyLimit)},
-            body.omega()};
-        // ── the C3 strafe FALLBACK flag (A1 reserved the field; this is its one
-        // producer). True iff the clamp BOUND meaningfully this tick: the drive
-        // cannot deliver the demanded lateral velocity, so the motion is running
-        // in its authority-limited fallback mode — translation proceeds at the
-        // achievable |vy| while vx and ω stay at full authority (turn-WHILE-
-        // drive; rotation is never sequenced before translation — that would be
-        // the LemLib behaviour this engine exists to beat, C1's landmine). On
-        // the X-drive this is structurally unreachable (authority 1.0 + the
-        // norm cap above ⇒ |body vy| ≤ maxLin = vyLimit, pinned by test); on
-        // the H-drive it engages exactly when a leg out-demands the strafe
-        // wheel; on tank it marks any real lateral demand as undeliverable.
-        // The noise floor (1% of maxLinearSpeed) exists so sub-perceptible PID
-        // chatter near settle (or on tank, where vyLimit = 0) cannot light the
-        // flag on every tick — a permanently-on flag is as undebuggable as a
-        // silent one. Telemetry-legibility constant, host-decidable — not an A4
-        // register entry (register rule 1). Behaviour is UNCHANGED by all of
-        // this: the flag observes the clamp, it does not alter it.
-        const bool strafeFallback =
-            std::abs(body.vy().value()) - vyLimit > kStrafeFallbackNoiseFraction * maxLin;
-
-        // ── wheels: unclamped inverse kinematics, then the uniform desaturate ─
-        kinematics::WheelSpeeds wheels = deps_.kinematics->toWheels(bodyClamped);
-        wheels = deps_.kinematics->desaturate(wheels, cfg_.maxWheelSpeed);
-
-        // ── volts: feedforward, then the battery ceiling, per wheel ───────────
-        const units::Voltage vb = ctx.battery().voltage();
-        const auto motors = ctx.driveMotors();
-        for (int i = 0; i < wheels.size(); ++i) {
-            const control::CompensatedVoltage cv =
-                control::compensateForBattery(ff_.calculate(wheels[i]), vb);
-            motors[static_cast<std::size_t>(i)]->setVoltage(cv.voltage);
-        }
+        // ── clamps → F1 rotation → authority clamp → wheels → volts: the ONE
+        // shared choreography (command_pipeline.hpp — extracted from this file
+        // at C4, arithmetic and order unchanged, so the Chassis facade's
+        // drive() REUSES the pipeline instead of re-deriving it; the C2
+        // bit-identity suites pin the extraction). The C3 strafe FALLBACK flag
+        // rides back on the outcome: this engine's authority-limited
+        // turn-WHILE-drive mode — translation proceeds at the achievable |vy|
+        // while vx and ω stay at full authority; rotation is NEVER sequenced
+        // before translation (that would be the LemLib behaviour this engine
+        // exists to beat, C1's landmine). On the X-drive the flag is
+        // structurally unreachable (authority 1.0 + the norm cap ⇒ |body vy| ≤
+        // vyLimit, pinned by test); on the H-drive it engages exactly when a
+        // leg out-demands the strafe wheel; on tank it marks any real lateral
+        // demand as undeliverable. The flag observes the clamp; it never
+        // alters it.
+        const CommandOutcome cmd = applyCommandPipeline(
+            deps_, cfg_, ff_,
+            math::ChassisSpeeds{units::Velocity{vxF}, units::Velocity{vyF},
+                                units::AngularVelocity{w}},
+            math::Frame::Field, pose.heading());
 
         // ── A3 containment: stall cross-check + health observables ────────────
+        const auto motors = ctx.driveMotors();
         const bool stalled = stall_.update(now, motors, pose);
-        tickHealth(ctx, loc, stalled, vb);
+        tickHealthObservables(deps_, stalled);
 
         // ── one lazy record (A1): commanded = FINAL achievable cmd, FIELD frame
         hal::emitRecord(ctx.telemetry(), [&] {
             diag::DebugRecord r = baseRecord(ctx, loc, now, dt, pose, errX, errY, errH);
-            r.commanded = math::robotToField(bodyClamped, pose.heading());
-            r.strafeFallbackActive = strafeFallback;  // C3 — never silent (TermSink "SFB")
-            for (int i = 0; i < wheels.size(); ++i) {
-                const auto idx = static_cast<std::size_t>(i);
-                r.wheelVoltage[idx] = motors[idx]->commandedVoltage();
-                r.wheelCurrent[idx] = motors[idx]->current();
+            r.commanded = math::robotToField(cmd.body, pose.heading());
+            r.strafeFallbackActive = cmd.strafeFallback;  // C3 — never silent (TermSink "SFB")
+            for (std::size_t i = 0; i < motors.size()
+                                    && i < static_cast<std::size_t>(diag::DebugRecord::kMaxWheels);
+                 ++i) {
+                r.wheelVoltage[i] = motors[i]->commandedVoltage();
+                r.wheelCurrent[i] = motors[i]->current();
             }
             return r;
         });
@@ -284,6 +250,9 @@ public:
         SHULIB_PRECONDITION(reason_ != control::ExitReason::Running
                                 || state_ == MotionState::Idle,
                             "MoveToPose::setTarget: motion is running");
+        SHULIB_PRECONDITION(std::isfinite(target.x().value())
+                                && std::isfinite(target.y().value()),
+                            "MoveToPose::setTarget: target position must be finite");
         target_ = target;
     }
 
@@ -309,18 +278,20 @@ protected:
         cfg_.validate();
         SHULIB_PRECONDITION(std::isfinite(timeout) && timeout >= 0.0,
                             "MoveToPose: timeout must be finite and >= 0");
+        // A non-finite target would servo NaN volts for a full watchdog window
+        // before the TimedOut exit — nonsense input, rejected loudly at
+        // construction (added at C4; heading is an Angle, finite by its own
+        // contract). Accepts strictly less than before: precondition-safe.
+        SHULIB_PRECONDITION(std::isfinite(target.x().value())
+                                && std::isfinite(target.y().value()),
+                            "MoveToPose: target position must be finite");
     }
 
     /// The hold watchdog only backstops a clock pathology; hold-mode's own
     /// deadline (holdFor) is the real exit.
+    /// (kStrafeFallbackNoiseFraction moved to command_pipeline.hpp at C4,
+    /// unchanged — the flag is computed where the clamp is applied.)
     static constexpr double kHoldSlack = 1.0;
-
-    /// strafeFallbackActive's legibility floor, as a fraction of maxLinearSpeed:
-    /// the clamp must be removing more than this much lateral speed before the
-    /// tick is flagged as fallback (full reasoning at the flag's computation in
-    /// tick()). At the HA-50 default budget this is 0.6 in/s — far below any
-    /// deliberate strafe, far above near-settle PID chatter.
-    static constexpr double kStrafeFallbackNoiseFraction = 0.01;
 
     [[nodiscard]] static control::PidConfig pidConfig(const AxisGains& g) noexcept {
         // Output saturation deliberately unlimited here: the layer's norm/ω caps
@@ -340,20 +311,6 @@ protected:
         for (hal::IMotor* m : deps_.ctx->driveMotors()) {
             m->setVoltage(units::Voltage{0.0});
         }
-    }
-
-    void tickHealth(chassis::RobotContext& ctx, localization::Localizer& loc, bool stalled,
-                    units::Voltage batteryVolts) {
-        double maxTemp = 0.0;
-        for (const hal::IMotor* m : ctx.driveMotors()) {
-            maxTemp = std::max(maxTemp, m->temperature());
-        }
-        deps_.health->tick({.imuReady = ctx.imu().isReady(),
-                            .odomImplausible = loc.lastOdomDeltaImplausible(),
-                            .odomStalled = stalled,
-                            .fixGated = loc.lastCorrection().gated,
-                            .batteryVolts = batteryVolts,
-                            .maxMotorTempC = maxTemp});
     }
 
     [[nodiscard]] diag::DebugRecord baseRecord(chassis::RobotContext& ctx,

@@ -19,6 +19,7 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "shulib/chassis/chassis.hpp"
 #include "shulib/control/exit_group.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/health_monitor.hpp"
@@ -168,6 +169,29 @@ struct PlantPacer final : shulib::motion::ITickPacer {
     shulib::math::Pose2d prev;
 };
 
+/// A pacer that advances normally for `healthyPaces`, then stops advancing the
+/// clock — the mid-motion pacer failure (C4): the scheduler's stalled-pace
+/// guard must trip its precondition WHILE a motion is active, which is exactly
+/// the unwind path the facade's DetachGuard exists for.
+struct StallingPacer final : shulib::motion::ITickPacer {
+    explicit StallingPacer(shulib::sim::SimHarness& harness, int healthy,
+                           Time dt = Time{0.01})
+        : h{&harness}, tickDt{dt}, healthyPaces{healthy} {}
+
+    void pace() override {
+        ++calls;
+        if (calls <= healthyPaces) {
+            h->plant().step(tickDt);
+        }
+        // afterwards: neither plant nor clock advances — a frozen world
+    }
+
+    shulib::sim::SimHarness* h;
+    Time tickDt;
+    int healthyPaces;
+    int calls = 0;
+};
+
 /// MotionRig + pacer + MotionScheduler, wired the way a real caller will be at
 /// C4: motions for this scheduler are constructed from `sched.deps()` so their
 /// records ride the command-id stamp.
@@ -190,6 +214,32 @@ struct SchedulerRig {
         sched.async(m);
         return sched.waitUntilSettled();
     }
+};
+
+// ── C4 facade-side rig pieces ───────────────────────────────────────────────────────
+
+/// ChassisConfig whose motion config matches plantConfig() (the same gain
+/// agreement note as motionConfig()).
+inline shulib::chassis::ChassisConfig chassisConfig() {
+    return shulib::chassis::ChassisConfig{.motion = motionConfig(), .scheduler = {}};
+}
+
+/// MotionRig + pacer + Chassis — the full C4 stack, wired exactly as the
+/// chassis.hpp standalone-construction recipe describes (the facade BORROWS
+/// rig.deps and the pacer; the scheduler inside the facade is the only one).
+struct ChassisRig {
+    MotionRig rig;
+    PlantPacer pacer;
+    shulib::chassis::Chassis chassis;
+
+    explicit ChassisRig(const shulib::kinematics::IKinematics& kinematics,
+                        const shulib::sim::SimHarnessConfig& cfg = plantConfig(),
+                        shulib::hal::ITelemetrySink* harnessSink = nullptr,
+                        shulib::sim::DegradationModel* degradation = nullptr,
+                        const shulib::chassis::ChassisConfig& chassisCfg = chassisConfig())
+        : rig{kinematics, cfg, harnessSink, degradation},
+          pacer{rig.h},
+          chassis{rig.deps, pacer, chassisCfg} {}
 };
 
 }  // namespace motion_rig

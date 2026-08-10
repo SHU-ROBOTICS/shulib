@@ -123,7 +123,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
 | F4 | **HAL interface signatures** — the 10 runtime HAL interfaces `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`. *(The config-ingestion seam `IRobotConfig`/`IRouteSource` — decision #10 — is authored at M5 with its `RobotConfig`/`Route` schema, F7/F8; not part of this runtime-HAL freeze.)* | All three runtime targets (robot/sim/test) | M1 | ✅ **LOCKED 2026-06-19** *(freeze-reviewed by a 30-agent full-set pass + exercised by `RobotContext`; on-V5 `hal/pros` adapters pending the toolchain)* |
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
-| F6 | **Public `Chassis` API** — `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)` | Every auton ever written on shulib | M2 | 🎯 |
+| F6 | **Public `Chassis` API** — `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)` | Every auton ever written on shulib | M2 | 🎯 *(candidate BUILT at C4 2026-08-10 — deliberately NOT frozen; freezes at **D2** after D1's second consumer; candidate surface + additions `brake`/`hold` in `chunks/C4-COMPLETED.md` §8)* |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
@@ -133,18 +133,22 @@ not silently break them. This table is the spine of the no-staleness promise.
 ## Milestones at a glance
 
 > **You are here:** **M1 complete; M2 control + localization complete; Phase A COMPLETE
-> (2026-08-06); Phase C OPEN — C1 and C2 closed 2026-08-06; chunk C3 (`hDrive()` + the
-> pseudo-inverse) built and verified 2026-08-06, in the working tree pending review.**
-> **Two robots, one motion layer, proven:** the 15″ H-bot (authority 0.35 = derived ceiling ×
-> HA-54 derate) runs C1's primitives and C2's scheduler UNMODIFIED — same-auton routines land
-> at X-bot accuracy (clean n=40: H 0.238 in vs X 0.236 in, flat in move count; hostile worst
-> H 4.03 in vs X 4.13 in) paying only ~1–4% extra time. `MatrixKinematics::forward()` is now
-> the full `(AᵀA)⁻¹Aᵀ` (the M1 deferral discharged, F5-safe): previously-accepted tables
-> BIT-IDENTICAL by checksum, near-degenerate geometry rejected (relDet guard). C1's D11
-> strafe-authority reading CONFIRMED (the |vy|/|vx| phrasing retired in F5's docs); the
-> beyond-authority fallback is turn-WHILE-drive (never sequenced), visible end-to-end via
-> `strafeFallbackActive` → TermSink " SFB" — a silent fallback is a 6-way failing test.
-> **Next: chunk C4 — the `Chassis` facade** (built, NOT frozen; F6 freezes at D2).
+> (2026-08-06); Phase C OPEN — C1/C2 closed 2026-08-06, C3 closed 2026-08-06; chunk C4 (the
+> `Chassis` facade) built and verified 2026-08-10, in the working tree pending review.**
+> **The auton API exists — and F6 is deliberately NOT frozen** (D1 stresses it as a second
+> consumer; D2 freezes): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,
+> Frame)` + candidate `brake`/`hold`, blocking (async+waitUntilSettled), watchdog-bounded,
+> `Frame` REQUIRED at the call site (frame confusion is a compile error). One composition root
+> feeds scheduler and every motion, so command-id stamping is STRUCTURAL (C2's convention gap
+> closed, 138-assertion mutation pin). Facade routines are BIT-IDENTICAL to the scheduler-built
+> twin (clean AND hostile) — C1–C3's accuracy numbers carry over verbatim — and every guarantee
+> is re-pinned THROUGH the facade (ODO_STUCK abort, cancel safe state + panic stop, boot wait,
+> hostile bounds, SFB visibility). The saturation choreography now lives in ONE place
+> (`motion/command_pipeline.hpp`, bit-identity-pinned) shared by motions and `drive()`; the
+> file-free plain-C++ construction path is a test (the §16.2 standalone promise). The mutation
+> campaign (22 run) found and closed two GREEN HOLES: teleop health observables went dark in a
+> `drive()`-only loop, and the yaw-rate budget was invisible to every closed-loop test.
+> **Next: chunk C5 — per-motion results + session header** (then D1 → D2 freezes F6).
 > (There is no Phase B: the original hardware phase became Phase R — see build-order's
 > deviations table.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -554,7 +558,17 @@ DoD in Phases C–F depends on it.*
   the Phase A retrospective).*
 
 **Facade (WS — Chassis)**
-- [ ] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
+- [~] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
+  *BUILT at chunk C4 (2026-08-10), deliberately NOT frozen — F6 freezes at D2 after D1's second
+  consumer. `chassis/chassis.hpp`: the five verbs plus candidate `brake()`/`hold()` (an auton must
+  be able to park — D2 decides), `cancel()`/`waitUntil()`, pose/setPose/strafeAuthority, and the
+  Tier-3 seam (`scheduler()`/`deps()`). `drive()`'s `Frame` parameter is REQUIRED (frame confusion
+  is a compile error, static_assert-pinned). One composition root makes id stamping structural
+  (C2's gap closed, mutation-proven); facade routines BIT-IDENTICAL to the scheduler twin (clean +
+  hostile), so C1–C3 baselines carry over verbatim; every lower-layer guarantee re-tested THROUGH
+  the facade; file-free plain-C++ construction tested (the §16.2 standalone promise). Evidence:
+  `chunks/C4-COMPLETED.md`; suite 592/915,157; 22 mutations (20 red, 2 green holes closed).
+  Marked `[~]` not `[x]` because the F6 row's own DoD includes the D2 freeze.*
 
 **Diagnostics & observability (WS13)** — *pulled forward so M2–M3 are debuggable as built (§18)*
 - [x] `DebugRecord` per-tick snapshot schema, behind the `ITelemetrySink` seam (already at M1).

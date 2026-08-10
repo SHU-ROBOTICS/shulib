@@ -16,12 +16,27 @@
 // bug class is structurally impossible.
 
 #include <cmath>
+#include <cstdint>
 
 #include "shulib/math/angle.hpp"
 #include "shulib/math/twist2d.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::math {
+
+/// The two frames a chassis VELOCITY command can be expressed in — F1's
+/// vocabulary, surfaced as a type at the API edge (chunk C4, for
+/// `Chassis::drive(ChassisSpeeds, Frame)`). The caller must SAY which frame a
+/// command is in; the parameter has no default anywhere, so silently assuming
+/// the wrong frame — the classic bug class this rebuild exists to prevent — is
+/// a compile error, not a heading-dependent drift.
+///
+/// ADDITIVE to this locked file: new vocabulary only. The F1 conventions and
+/// the two rotations below are untouched.
+enum class Frame : std::uint8_t {
+    Field,  ///< +X right, +Y away from red, heading-independent (F1's world frame)
+    Body,   ///< +X forward, +Y left — rotates with the robot (F1's robot frame)
+};
 
 /// Express a FIELD-frame chassis velocity in the ROBOT (body) frame. Applies R(-θ).
 [[nodiscard]] inline ChassisSpeeds fieldToRobot(const ChassisSpeeds& field, Angle heading) noexcept {

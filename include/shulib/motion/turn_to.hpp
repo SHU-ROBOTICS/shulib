@@ -20,17 +20,16 @@
 // The stall cross-check's rotation term (odo_stall_check.hpp) makes a pure turn
 // immune to false ODO_STUCK — pinned by test.
 
-#include <algorithm>
 #include <cmath>
 
 #include "shulib/control/exit_group.hpp"
 #include "shulib/control/feedforward.hpp"
 #include "shulib/control/pid.hpp"
 #include "shulib/diag/debug_record.hpp"
-#include "shulib/kinematics/wheel_speeds.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/math/twist2d.hpp"
+#include "shulib/motion/command_pipeline.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/odo_stall_check.hpp"
@@ -118,38 +117,25 @@ public:
                 break;
         }
 
-        // heading PID (same continuous-near-zero encoding as MoveToPose)
-        double w = pidH_.update(0.0, -errH);  // rad/s
-        w = std::clamp(w, -cfg_.maxAngularSpeed.value(), cfg_.maxAngularSpeed.value());
-        const math::ChassisSpeeds body{units::Velocity{0.0}, units::Velocity{0.0},
-                                       units::AngularVelocity{w}};
-
-        // wheels → volts (F5 pipeline; ω is frame-invariant so no F1 rotation
-        // is NEEDED — the zero linear command is identical in both frames)
-        kinematics::WheelSpeeds wheels = deps_.kinematics->toWheels(body);
-        wheels = deps_.kinematics->desaturate(wheels, cfg_.maxWheelSpeed);
-        const units::Voltage vb = ctx.battery().voltage();
-        const auto motors = ctx.driveMotors();
-        for (int i = 0; i < wheels.size(); ++i) {
-            const control::CompensatedVoltage cv =
-                control::compensateForBattery(ff_.calculate(wheels[i]), vb);
-            motors[static_cast<std::size_t>(i)]->setVoltage(cv.voltage);
-        }
+        // heading PID (same continuous-near-zero encoding as MoveToPose), then
+        // the ONE shared choreography (command_pipeline.hpp, since C4 — this
+        // file's previous inline copy was the degenerate ω-only case of it).
+        // Frame::Body: a pure ω command is identical in both frames, so the
+        // pipeline's Body path — no F1 rotation — commands exactly what the
+        // C1 inline code commanded, bit for bit.
+        const double w = pidH_.update(0.0, -errH);  // rad/s
+        const CommandOutcome cmd = applyCommandPipeline(
+            deps_, cfg_, ff_,
+            math::ChassisSpeeds{units::Velocity{0.0}, units::Velocity{0.0},
+                                units::AngularVelocity{w}},
+            math::Frame::Body, pose.heading());
 
         // A3 containment wiring
+        const auto motors = ctx.driveMotors();
         const bool stalled = stall_.update(now, motors, pose);
-        double maxTemp = 0.0;
-        for (const hal::IMotor* m : motors) {
-            maxTemp = std::max(maxTemp, m->temperature());
-        }
-        deps_.health->tick({.imuReady = ctx.imu().isReady(),
-                            .odomImplausible = loc.lastOdomDeltaImplausible(),
-                            .odomStalled = stalled,
-                            .fixGated = loc.lastCorrection().gated,
-                            .batteryVolts = vb,
-                            .maxMotorTempC = maxTemp});
+        tickHealthObservables(deps_, stalled);
 
-        emitRecordFor(now, dt, pose, errH, body);  // body == field for pure ω
+        emitRecordFor(now, dt, pose, errH, cmd.body);  // body == field for pure ω
         return control::ExitReason::Running;
     }
 

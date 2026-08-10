@@ -137,7 +137,6 @@
 // Single-task by contract, like everything it composes. Not copyable/movable:
 // it holds a self-referential context (the stamped telemetry route).
 
-#include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
@@ -537,21 +536,9 @@ private:
     /// Between motions the scheduler owns the HealthMonitor (C1's named
     /// handoff): every observable it can reach, with odomStalled = false —
     /// nothing is commanded, so there is no spin to cross-check (the same
-    /// reasoning as DriveBrake's exemption).
-    void tickIdleHealth() {
-        chassis::RobotContext& ctx = *schedDeps_.ctx;
-        localization::Localizer& loc = *schedDeps_.localizer;
-        double maxTemp = 0.0;
-        for (const hal::IMotor* m : ctx.driveMotors()) {
-            maxTemp = std::max(maxTemp, m->temperature());
-        }
-        schedDeps_.health->tick({.imuReady = ctx.imu().isReady(),
-                                 .odomImplausible = loc.lastOdomDeltaImplausible(),
-                                 .odomStalled = false,
-                                 .fixGated = loc.lastCorrection().gated,
-                                 .batteryVolts = ctx.battery().voltage(),
-                                 .maxMotorTempC = maxTemp});
-    }
+    /// reasoning as DriveBrake's exemption). One shared definition since C4
+    /// (motion.hpp tickHealthObservables).
+    void tickIdleHealth() { tickHealthObservables(schedDeps_, false); }
 
     /// The idle record: pose/quality/power continuity between motions, with NO
     /// invented target or command (fields stay their quiet defaults). Renders
