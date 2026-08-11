@@ -198,15 +198,10 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
 ## Acknowledgments
 
 - **[@n0es](https://github.com/n0es)** — wrote the original shulib: the architecture, the odometry
-  system, and the multi-robot config setup that let the library survive more than one season. v2 is
-  a rebuild, but it was written by people who learned on v1, and a lot of what it gets right it
-  learned there.
+  system, and the multi-robot config setup.
 - **[LemLib](https://github.com/LemLib/LemLib)** — inspired the original library's design.
 - **[PROS](https://pros.cs.purdue.edu/)** — the V5 runtime this library runs on.
 - **Purdue ACM SIGBots** — for building PROS and keeping it open.
-
-v2 doesn't share code with v1 or with LemLib. Everything was re-derived and re-tested from scratch,
-which turned up two real bugs the old version had been carrying.
 
 ---
 
