@@ -175,6 +175,21 @@ not silently break them. This table is the spine of the no-staleness promise.
 > self-contained on the development branch). Suite unchanged: 659 / 915,570 / 3 deliberate
 > skips; ARM gate 102 headers CLEAN. **What C7 did NOT do: run on a robot.** The wired HAL
 > seams are shipped fakes marked TODO(R1); compiling is not running; R3 owns "it works".
+> **Chunk C8 (the manual) is DONE, 2026-08-11 — in the working tree pending review/commit**:
+> `docs/guide/` — a 15-file user guide (orientation → concepts → setup → a full first-routine
+> tutorial → the API as prose → diagnostics line-by-line with every fault code → symptom-first
+> troubleshooting → extending → an honest can't-do-yet → glossary), written for a new member
+> with no robotics background. Every code example compiles and runs in
+> `test/guide_examples_test.cpp` (8 cases / 41 assertions, quoted verbatim by the chapters —
+> the anti-rot rule), all transcripts are captured from real runs, the tutorial was followed
+> start-to-finish as written (including the type-it-yourself path), and chapter slot 09 is
+> reserved so D1's recipe-API chapter is an added file, not a renumbering. Suite
+> 667 / 915,611 / 3 deliberate skips (assertion total varies ±6 with the configure-time build-hash
+> length); both guards + ARM gate (102 headers) clean; guide↔README cross-linked; the
+> public-docs removability property re-verified with the guide in place. **What C8 did NOT
+> produce: the recipe cookbook and generated API reference (D3, needs D1), the
+> VexBuilder-based "first auton in 10 minutes" flow (G4), and a guide validated by an actual
+> new reader — it has not had one yet.**
 > **Next: chunk D1 — the Tier 2 recipe API** (then D2 freezes F6).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
@@ -804,6 +819,13 @@ tuned on the brain mid-session. **Freezes:** F9.
 *Four tiers of use, no cliff; documentation that ships itself.*
 
 **Progressive disclosure (WS12)**
+- [x] **The user guide** *(item added at C8 — pulled ahead of this milestone the same way Phase
+  D pulls the recipe API)*: `docs/guide/`, 15 numbered chapters + maintenance README, written
+  for a reader with no robotics background; every code example compiled and executed by
+  `test/guide_examples_test.cpp` (8 cases / 41 assertions, green 2026-08-11); tutorial verified
+  by following it as written; guide↔README cross-linked. Honest scope: covers the Tier-3 C++
+  API only (Tier 0–2 don't exist yet), and no genuinely-new reader has used it yet — M7's own
+  DoD ("a brand-new member follows the guide without help") stays open.
 - [ ] Tier 2 **recipe API** — `chassis.moveTo(p).then(intake.in)…` (fluent, hard to misuse).
 - [ ] "Your first auton in 10 minutes" guide (build → export → drag a path → run).
 - [ ] Recipe cookbook.

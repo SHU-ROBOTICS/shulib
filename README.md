@@ -185,6 +185,11 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
 
 ## Where to go next
 
+- **[`docs/guide/`](docs/guide/README.md) — the user guide.** Start here if you're new: what
+  the autonomous problem is, every concept from pose to PID in plain language, a full
+  first-routine tutorial (every code example compiles and runs in the test suite), the API as
+  prose, and how to read the diagnostics line by line. Written for a reader with no robotics
+  background.
 - [`docs/roadmap.md`](docs/roadmap.md) — everything remaining, by milestone, with an honest
   "you are here" (including what is deliberately *not* claimed yet).
 - [`docs/shulib-v2-master-plan.md`](docs/shulib-v2-master-plan.md) — the architecture and the
@@ -192,8 +197,9 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
 - [`docs/hardware-assumptions.md`](docs/hardware-assumptions.md) — all 49 hardware claims the
   no-robot build rests on, and the plan for settling each one.
 - [`docs/diagnostics-plan.md`](docs/diagnostics-plan.md) — the observability design.
-- A proper user guide is planned once the API surface freezes; until then the headers are
-  written to be read (each one opens with *why it exists*, not just what it does).
+- The headers themselves are written to be read — each one opens with *why it exists*, not
+  just what it does. The guide points into them; going deeper than the guide means opening
+  them.
 
 ## Acknowledgments
 

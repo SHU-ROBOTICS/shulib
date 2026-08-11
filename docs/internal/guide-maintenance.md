@@ -95,7 +95,9 @@ Before calling a guide change done:
       stay cleanly removable, or the squash-merge to `main` breaks links (C7 established this property)
 - [ ] Any new term appears in the glossary
 - [ ] No jargon introduced without a definition at first use
-- [ ] Chapter numbering is contiguous, and every cross-reference matches the actual filenames
+- [ ] Every cross-reference matches the actual filenames. **Numbering need not be contiguous** —
+      gaps are deliberately reserved slots (chapter 09 is held for D1's recipe API, so it lands as an
+      *added file* with nothing renumbered). Leave reserved gaps alone; don't "fix" them.
 - [ ] Nothing was restated that could have been linked
 - [ ] No sentence sounds like advertising
 
