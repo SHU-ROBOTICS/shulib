@@ -99,7 +99,7 @@ settling measurement, owning chunk and blast radius, bidirectionally reconciled 
 line (`arm-compile-gate` job: every v2 header, generated list, compile-only by honest scope,
 proven to catch what the host build cannot).
 
-**Phase C is COMPLETE (C1–C7, 2026-08-06 → 2026-08-10). Chunk C1 — `IMotion` + the motion
+**Phase C is COMPLETE (C1–C8, 2026-08-06 → 2026-08-11). Chunk C1 — `IMotion` + the motion
 primitives — closed 2026-08-06** ([completion record](chunks/C1-COMPLETED.md), committed `7e54826`/`b3cbf39`): the
 library can now be told "go to that spot". `MoveToPose` runs three DECOUPLED per-axis loops
 (translate + rotate simultaneously — the holonomic thesis, mutation-proven), plus `TurnTo` /
@@ -292,7 +292,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | Phase | Theme | Chunks | Gate |
 |---|---|---|---|
 | **A** | Build the ground to stand on | A1–A4 | — |
-| **C** | Make it move | C1–C7 | — |
+| **C** | Make it move | C1–C8 | — |
 | **D** | Make it usable | D1–D3 | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
@@ -303,7 +303,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**39 chunks.** Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**).
+**40 chunks** (C8, the manual, was added at Phase C). Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**).
 
 > **There is no Phase B — deliberately.** An earlier draft's Phase B was the hardware bridge
 > (`hal/pros` + on-robot validation, right after Phase A); the reversal recorded in the
@@ -311,7 +311,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 > renumbering so that early notes, briefs and commit messages citing phase letters stay true.
 > A→C is not a typo; it is the reversal's fossil, kept visible on purpose.
 
-**27 of 39 chunks need no hardware** — and **20 of those (Phases A, C, D, E, F) need nothing external
+**28 of 40 chunks need no hardware** — and **21 of those (Phases A, C, D, E, F) need nothing external
 at all.** That is the great majority of the library, including its hardest and highest-value parts:
 the motion layer, the estimator, the sequencer's guaranteed-park guarantee, and the accessibility
 layer. Hardware-dependent work is consolidated into Phase R and the tail so that **no host chunk ever
