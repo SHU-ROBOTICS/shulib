@@ -123,7 +123,7 @@ TEST_CASE("C4 standalone: a working Chassis in plain C++ — no file, no builder
     // And it WORKS: seed the start pose, drive a leg, graded on ground truth.
     chassis.setPose(Pose2d{});
     const Pose2d target{Length{20.0}, Length{-8.0}, Angle::degrees(45.0)};
-    CHECK(chassis.moveTo(target, {.timeoutSeconds = 8.0}) == ExitReason::Settled);
+    CHECK(chassis.moveTo(target, {.timeout = Time{8.0}}) == ExitReason::Settled);
     CHECK(posErr(h.truePose(), target) < 1.0);
     CHECK(headErr(h.truePose(), target) < 0.03);
 }
@@ -144,7 +144,7 @@ TEST_CASE("C4 stamping: every record of every facade verb carries its command id
 
     // Verb 1 (moveTo) → id 1 on every motion record.
     REQUIRE(c.chassis.moveTo(Pose2d{Length{15.0}, Length{0.0}, Angle{}},
-                             {.timeoutSeconds = 8.0})
+                             {.timeout = Time{8.0}})
             == ExitReason::Settled);
     const int n1 = sink.recordCount();
     int motionRecords1 = 0;
@@ -169,7 +169,7 @@ TEST_CASE("C4 stamping: every record of every facade verb carries its command id
     }
 
     // Verb 2 (turnTo) → id 2: ids advance per motion, never bleed.
-    REQUIRE(c.chassis.turnTo(Angle::degrees(90.0), {.timeoutSeconds = 8.0})
+    REQUIRE(c.chassis.turnTo(Angle::degrees(90.0), {.timeout = Time{8.0}})
             == ExitReason::Settled);
     int motionRecords2 = 0;
     for (int i = n2; i < sink.recordCount(); ++i) {
@@ -210,7 +210,7 @@ TEST_CASE("C4 options: timeoutSeconds bounds the verb — a laterally-impossible
     ChassisRig c{kin};
     // Laterally offset target on tank: unreachable by physics (authority 0).
     const double t0 = c.rig.h.clock().now().value();
-    CHECK(c.chassis.strafeTo(Length{0.0}, Length{24.0}, {.timeoutSeconds = 0.9})
+    CHECK(c.chassis.strafeTo(Length{0.0}, Length{24.0}, {.timeout = Time{0.9}})
           == ExitReason::TimedOut);
     const double elapsed = c.rig.h.clock().now().value() - t0;
     CHECK(elapsed >= 0.9);
@@ -252,8 +252,8 @@ TEST_CASE("C4 options: maxLinearSpeed caps the leg's true ground speed") {
         return pacer.maxStep;
     };
 
-    const double capped = maxTickStep({.timeoutSeconds = 8.0, .maxLinearSpeed = Velocity{20.0}});
-    const double uncapped = maxTickStep({.timeoutSeconds = 8.0});
+    const double capped = maxTickStep({.timeout = Time{8.0}, .maxLinearSpeed = Velocity{20.0}});
+    const double uncapped = maxTickStep({.timeout = Time{8.0}});
     CHECK(capped < 20.0 * 0.01 * 1.2);   // ≤ cap × dt, with transient margin
     CHECK(uncapped > 20.0 * 0.01 * 1.5); // the default budget genuinely runs faster
 }
@@ -292,9 +292,9 @@ TEST_CASE("C4 options: maxAngularSpeed caps the true yaw rate (closes mutation M
         return pacer.maxYawStep;
     };
 
-    const double capped = maxYawStep({.timeoutSeconds = 8.0,
+    const double capped = maxYawStep({.timeout = Time{8.0},
                                       .maxAngularSpeed = AngularVelocity{1.5}});
-    const double uncapped = maxYawStep({.timeoutSeconds = 8.0});
+    const double uncapped = maxYawStep({.timeout = Time{8.0}});
     CHECK(capped < 1.5 * 0.01 * 1.25);    // ≤ the option's budget × dt, with margin
     CHECK(uncapped > 1.5 * 0.01 * 1.5);   // the 6 rad/s default genuinely turns faster
     CHECK(uncapped < 6.0 * 0.01 * 1.25);  // …and the CONFIG budget also binds (the clamp)
@@ -306,8 +306,8 @@ TEST_CASE("C4 options: non-finite / negative options are rejected loudly") {
     const auto kin = xDrive(Length{7.0});
     ChassisRig c{kin};
     const double nan = std::numeric_limits<double>::quiet_NaN();
-    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeoutSeconds = nan}), PreconditionError);
-    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeoutSeconds = -1.0}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeout = Time{nan}}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeout = Time{-1.0}}), PreconditionError);
     CHECK_THROWS_AS(c.chassis.turnTo(Angle{}, {.maxLinearSpeed = Velocity{nan}}),
                     PreconditionError);
     CHECK_THROWS_AS(
@@ -315,7 +315,7 @@ TEST_CASE("C4 options: non-finite / negative options are rejected loudly") {
         PreconditionError);
     // And the chassis is still usable after each rejection (no half-armed state):
     CHECK(c.chassis.moveTo(Pose2d{Length{5.0}, Length{0.0}, Angle{}},
-                           {.timeoutSeconds = 8.0})
+                           {.timeout = Time{8.0}})
           == ExitReason::Settled);
 }
 
@@ -367,10 +367,10 @@ TEST_CASE("C4 waitUntil: C2's verb re-exported unchanged — entry check, bounde
     ChassisRig c{kin};
     // True on entry: Satisfied without a single pace.
     const double t0 = c.rig.h.clock().now().value();
-    CHECK(c.chassis.waitUntil([] { return true; }, 5.0) == WaitResult::Satisfied);
+    CHECK(c.chassis.waitUntil([] { return true; }, Time{5.0}) == WaitResult::Satisfied);
     CHECK(c.rig.h.clock().now().value() == t0);
     // Never-true: TimedOut at the deadline, no fault raised.
-    CHECK(c.chassis.waitUntil([] { return false; }, 0.3) == WaitResult::TimedOut);
+    CHECK(c.chassis.waitUntil([] { return false; }, Time{0.3}) == WaitResult::TimedOut);
     CHECK(c.rig.h.clock().now().value() >= t0 + 0.3);
     CHECK(c.rig.h.clock().now().value() < t0 + 0.5);
     CHECK_FALSE(c.rig.latch.hasFault());
@@ -394,7 +394,7 @@ TEST_CASE("C4 brake: from speed to certified rest through the facade") {
     c.pacer.pace();
     REQUIRE(posErr(c.rig.h.truePose(), moving1) > 0.15);  // provably moving NOW
 
-    CHECK(c.chassis.brake({.timeoutSeconds = 5.0}) == ExitReason::Settled);
+    CHECK(c.chassis.brake({.timeout = Time{5.0}}) == ExitReason::Settled);
     // TRUE rest, not just an estimator claim: the pose stays put afterwards.
     const Pose2d rest = c.rig.h.truePose();
     for (int i = 0; i < 10; ++i) {
@@ -409,16 +409,16 @@ TEST_CASE("C4 hold: holds position for the requested window and reports honestly
     const auto kin = xDrive(Length{7.0});
     ChassisRig c{kin};
     REQUIRE(c.chassis.moveTo(Pose2d{Length{10.0}, Length{0.0}, Angle{}},
-                             {.timeoutSeconds = 8.0})
+                             {.timeout = Time{8.0}})
             == ExitReason::Settled);
     const Pose2d before = c.rig.h.truePose();
     const double t0 = c.rig.h.clock().now().value();
-    CHECK(c.chassis.hold(0.5) == ExitReason::Settled);
+    CHECK(c.chassis.hold(Time{0.5}) == ExitReason::Settled);
     const double held = c.rig.h.clock().now().value() - t0;
     CHECK(held >= 0.5);
     CHECK(held < 1.0);
     CHECK(posErr(c.rig.h.truePose(), before) < 0.6);  // it held its ground
-    CHECK_THROWS_AS(c.chassis.hold(0.0), PreconditionError);  // nonsense window
+    CHECK_THROWS_AS(c.chassis.hold(Time{0.0}), PreconditionError);  // nonsense window
 }
 
 // ═══ cancel(): the panic stop through the facade ═══════════════════════════════════
@@ -450,7 +450,7 @@ TEST_CASE("C4 unwind: a mid-verb pacer failure throws loudly, detaches the motio
     Chassis chassis{rig.deps, pacer, chassisConfig()};
 
     CHECK_THROWS_AS(chassis.moveTo(Pose2d{Length{40.0}, Length{0.0}, Angle{}},
-                                   {.timeoutSeconds = 8.0}),
+                                   {.timeout = Time{8.0}}),
                     PreconditionError);
     CHECK_FALSE(chassis.scheduler().hasActiveMotion());  // detached, not dangling
     checkSafeState(rig);                                 // and safed on the way out

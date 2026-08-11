@@ -331,7 +331,7 @@ TEST_CASE("C5 truth: reported result-line numbers track ground truth — X and H
                             Angle::radians(wp.uniform(-Angle::kPi, Angle::kPi))};
             const std::size_t mark = pacer.trace.size();
             const Pose2d truthStart = rig.h.truePose();
-            REQUIRE(chassis.moveTo(target, {.timeoutSeconds = timeouts[d]})
+            REQUIRE(chassis.moveTo(target, {.timeout = Time{timeouts[d]}})
                     == ExitReason::Settled);
             const CompletedMotion& c = chassis.lastCompleted();
             REQUIRE(c.hasPathData);
@@ -375,7 +375,7 @@ TEST_CASE("C5 truth: with an inertial plant the robot REALLY overshoots — and 
 
     const Pose2d target{Length{30.0}, Length{0.0}, Angle{}};
     const Pose2d truthStart = rig.h.truePose();
-    REQUIRE(chassis.moveTo(target, {.timeoutSeconds = 10.0}) == ExitReason::Settled);
+    REQUIRE(chassis.moveTo(target, {.timeout = Time{10.0}}) == ExitReason::Settled);
     const CompletedMotion& c = chassis.lastCompleted();
     REQUIRE(c.hasPathData);
     const double trueOver = truthOvershoot(pacer.trace, 0, truthStart, c.targetPose);
@@ -408,7 +408,7 @@ TEST_CASE("C5 truth: reported numbers track ground truth on tank (turn-then-driv
         const double ty = wp.uniform(-30.0, 30.0);
         const Angle bearing = Angle::radians(
             std::atan2(ty - here.y().value(), tx - here.x().value()));
-        REQUIRE(chassis.turnTo(bearing, {.timeoutSeconds = 8.0}) == ExitReason::Settled);
+        REQUIRE(chassis.turnTo(bearing, {.timeout = Time{8.0}}) == ExitReason::Settled);
         {
             const CompletedMotion& turn = chassis.lastCompleted();
             REQUIRE(turn.hasPathData);
@@ -417,7 +417,7 @@ TEST_CASE("C5 truth: reported numbers track ground truth on tank (turn-then-driv
             worstHead = std::max(worstHead, std::abs(trueHeadErr - turn.drift.value()));
         }
         REQUIRE(chassis.moveTo(Pose2d{Length{tx}, Length{ty}, bearing},
-                               {.timeoutSeconds = 10.0})
+                               {.timeout = Time{10.0}})
                 == ExitReason::Settled);
         const CompletedMotion& c = chassis.lastCompleted();
         REQUIRE(c.hasPathData);
@@ -449,9 +449,9 @@ TEST_CASE("C5 e2e: a real two-motion run renders header, ordered result lines, a
                                       .routineId = "e2e", .alliance = "red",
                                       .side = "left", .portMap = "sim"});
     REQUIRE(cr.chassis.moveTo(Pose2d{Length{24.0}, Length{18.0}, Angle::degrees(45.0)},
-                              {.timeoutSeconds = 8.0})
+                              {.timeout = Time{8.0}})
             == ExitReason::Settled);
-    REQUIRE(cr.chassis.turnTo(Angle::degrees(-90.0), {.timeoutSeconds = 8.0})
+    REQUIRE(cr.chassis.turnTo(Angle::degrees(-90.0), {.timeout = Time{8.0}})
             == ExitReason::Settled);
     reporter.finishRun();
 
@@ -571,7 +571,7 @@ TEST_CASE("C5 e2e: summary correctness under injected faults — first is first,
     cr.rig.h.clock().advance(Time{0.022});
     (void)sched.tick();
     REQUIRE(cr.chassis.moveTo(Pose2d{Length{12.0}, Length{0.0}, Angle{}},
-                              {.timeoutSeconds = 8.0})
+                              {.timeout = Time{8.0}})
             == ExitReason::Settled);
     reporter.finishRun();
 
@@ -604,7 +604,7 @@ TEST_CASE("C5 e2e: a flooded record channel drops visibly — counted, stamped o
     RunReporter reporter{inner, cr.chassis.scheduler(), &limiter};
 
     REQUIRE(cr.chassis.moveTo(Pose2d{Length{24.0}, Length{0.0}, Angle{}},
-                              {.timeoutSeconds = 8.0})
+                              {.timeout = Time{8.0}})
             == ExitReason::Settled);
     reporter.finishRun();
 
@@ -855,7 +855,7 @@ TEST_CASE("C5 hostile: a full composed-hostility run produces a coherent, comple
     for (int k = 0; k < 5; ++k) {
         target = Pose2d{Length{wp.uniform(-35.0, 35.0)}, Length{wp.uniform(-35.0, 35.0)},
                         Angle::radians(wp.uniform(-Angle::kPi, Angle::kPi))};
-        const ExitReason r = cr.chassis.moveTo(target, {.timeoutSeconds = 8.0});
+        const ExitReason r = cr.chassis.moveTo(target, {.timeout = Time{8.0}});
         if (r == ExitReason::Settled) {
             ++settled;
             const CompletedMotion& c = cr.chassis.lastCompleted();

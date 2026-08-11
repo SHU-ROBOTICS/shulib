@@ -121,20 +121,20 @@ TwinRun runTwinArm(const shulib::kinematics::IKinematics& kin, int n, std::uint6
         const bool strafeLeg = (k % 7 == 3);
         if (strafeLeg) {
             if (viaRecipe) {
-                r.strafeTo(target.x(), target.y(), {.timeoutSeconds = moveTimeout});
+                r.strafeTo(target.x(), target.y(), {.timeout = Time{moveTimeout}});
                 REQUIRE(r.ok());
             } else {
                 REQUIRE(c.chassis.strafeTo(target.x(), target.y(),
-                                           {.timeoutSeconds = moveTimeout})
+                                           {.timeout = Time{moveTimeout}})
                         == ExitReason::Settled);
             }
             target = Pose2d{target.x(), target.y(), c.rig.h.truePose().heading()};
         } else {
             if (viaRecipe) {
-                r.moveTo(target, {.timeoutSeconds = moveTimeout});
+                r.moveTo(target, {.timeout = Time{moveTimeout}});
                 REQUIRE(r.ok());
             } else {
-                REQUIRE(c.chassis.moveTo(target, {.timeoutSeconds = moveTimeout})
+                REQUIRE(c.chassis.moveTo(target, {.timeout = Time{moveTimeout}})
                         == ExitReason::Settled);
             }
         }
@@ -149,10 +149,10 @@ TwinRun runTwinArm(const shulib::kinematics::IKinematics& kin, int n, std::uint6
         if (k % 3 == 2) {
             const Angle newHeading = Angle::radians(wp.uniform(-Angle::kPi, Angle::kPi));
             if (viaRecipe) {
-                r.turnTo(newHeading, {.timeoutSeconds = moveTimeout});
+                r.turnTo(newHeading, {.timeout = Time{moveTimeout}});
                 REQUIRE(r.ok());
             } else {
-                REQUIRE(c.chassis.turnTo(newHeading, {.timeoutSeconds = moveTimeout})
+                REQUIRE(c.chassis.turnTo(newHeading, {.timeout = Time{moveTimeout}})
                         == ExitReason::Settled);
             }
             target = Pose2d{target.x(), target.y(), newHeading};
@@ -285,12 +285,12 @@ TEST_CASE("D1 routine: a complete recipe auton lands on X, H, and tank") {
         Routine r{c.chassis, useH ? "h-auton" : "x-auton"};
         r.startAt(Pose2d{Length{-48.0}, Length{-24.0}, Angle::degrees(90.0)})
             .moveTo(Pose2d{Length{-24.0}, Length{0.0}, Angle::degrees(45.0)},
-                    {.timeoutSeconds = kMoveTimeoutX})
+                    {.timeout = Time{kMoveTimeoutX}})
             .then([&] { actionRan = true; }, "score")  // mechanism seam placeholder
-            .strafeTo(Length{-24.0}, Length{20.0}, {.timeoutSeconds = strafeBudget})
+            .strafeTo(Length{-24.0}, Length{20.0}, {.timeout = Time{strafeBudget}})
             .face(Length{0.0}, Length{44.0})
-            .driveTo(Length{0.0}, Length{44.0}, {.timeoutSeconds = kMoveTimeoutX})
-            .hold(0.3)
+            .driveTo(Length{0.0}, Length{44.0}, {.timeout = Time{kMoveTimeoutX}})
+            .hold(Time{0.3})
             .brake();
 
         REQUIRE(r.ok());
@@ -318,12 +318,12 @@ TEST_CASE("D1 routine: a complete recipe auton lands on X, H, and tank") {
 
         Routine r{c.chassis, "tank-auton"};
         r.startAt(Pose2d{Length{-48.0}, Length{-24.0}, Angle::degrees(0.0)})
-            .face(Length{-12.0}, Length{0.0}, {.timeoutSeconds = kMoveTimeoutX})
-            .driveTo(Length{-12.0}, Length{0.0}, {.timeoutSeconds = kMoveTimeoutX})
+            .face(Length{-12.0}, Length{0.0}, {.timeout = Time{kMoveTimeoutX}})
+            .driveTo(Length{-12.0}, Length{0.0}, {.timeout = Time{kMoveTimeoutX}})
             .then([&] { actionRan = true; }, "score")
-            .face(Length{24.0}, Length{24.0}, {.timeoutSeconds = kMoveTimeoutX})
-            .driveTo(Length{24.0}, Length{24.0}, {.timeoutSeconds = kMoveTimeoutX})
-            .hold(0.3)
+            .face(Length{24.0}, Length{24.0}, {.timeout = Time{kMoveTimeoutX}})
+            .driveTo(Length{24.0}, Length{24.0}, {.timeout = Time{kMoveTimeoutX}})
+            .hold(Time{0.3})
             .brake();
 
         REQUIRE(r.ok());
@@ -351,7 +351,7 @@ TEST_CASE("D1 sugar: face+driveTo == hand-written turnTo(atan2)+moveTo, bit for 
     auto runSugar = [&] {
         ChassisRig c{kin};
         Routine r{c.chassis, "sugar"};
-        r.face(tx, ty, {.timeoutSeconds = 8.0}).driveTo(tx, ty, {.timeoutSeconds = 8.0});
+        r.face(tx, ty, {.timeout = Time{8.0}}).driveTo(tx, ty, {.timeout = Time{8.0}});
         REQUIRE(r.ok());
         return std::pair{c.rig.h.truePose(), c.rig.h.clock().now().value()};
     };
@@ -362,11 +362,11 @@ TEST_CASE("D1 sugar: face+driveTo == hand-written turnTo(atan2)+moveTo, bit for 
         const Pose2d here = c.chassis.pose();
         const Angle bearing = Angle::radians(
             std::atan2((ty - here.y()).value(), (tx - here.x()).value()));
-        REQUIRE(c.chassis.turnTo(bearing, {.timeoutSeconds = 8.0}) == ExitReason::Settled);
+        REQUIRE(c.chassis.turnTo(bearing, {.timeout = Time{8.0}}) == ExitReason::Settled);
         const Pose2d mid = c.chassis.pose();
         const Angle bearing2 = Angle::radians(
             std::atan2((ty - mid.y()).value(), (tx - mid.x()).value()));
-        REQUIRE(c.chassis.moveTo(Pose2d{tx, ty, bearing2}, {.timeoutSeconds = 8.0})
+        REQUIRE(c.chassis.moveTo(Pose2d{tx, ty, bearing2}, {.timeout = Time{8.0}})
                 == ExitReason::Settled);
         return std::pair{c.rig.h.truePose(), c.rig.h.clock().now().value()};
     };
@@ -396,11 +396,11 @@ TEST_CASE("D1 policy: a timed-out step stops the chain — skips the rest, safes
 
     Routine r{c.chassis, "starved"};
     r.startAt(Pose2d{})
-        .moveTo(Pose2d{Length{12.0}, Length{0.0}, Angle{}}, {.timeoutSeconds = 8.0})
+        .moveTo(Pose2d{Length{12.0}, Length{0.0}, Angle{}}, {.timeout = Time{8.0}})
         .moveTo(Pose2d{Length{60.0}, Length{40.0}, Angle{}},
-                {.timeoutSeconds = 0.5})  // starved: cannot cover 55+ in in 0.5 s
+                {.timeout = Time{0.5}})  // starved: cannot cover 55+ in in 0.5 s
         .then([&] { lateActionRan = true; }, "late-action")
-        .driveTo(Length{-40.0}, Length{-40.0}, {.timeoutSeconds = 8.0})
+        .driveTo(Length{-40.0}, Length{-40.0}, {.timeout = Time{8.0}})
         .brake();
 
     // The verdict names the step, the cause, and the motion's honest exit.
@@ -450,7 +450,7 @@ TEST_CASE("D1 policy: a failing then()-action stops the chain; actions run in or
     bool afterRan = false;
 
     Routine r{c.chassis, "action"};
-    r.moveTo(a, {.timeoutSeconds = 8.0})
+    r.moveTo(a, {.timeout = Time{8.0}})
         .then(
             [&] {
                 // Runs AFTER the move settles: the robot is already at `a`.
@@ -480,17 +480,17 @@ TEST_CASE("D1 policy: an action returning ExitReason has its verdict honored") {
 
     Routine ok{c.chassis, "act-ok"};
     ok.then([&] { return c.chassis.turnTo(Angle::degrees(90.0),
-                                          {.timeoutSeconds = 8.0}); },
+                                          {.timeout = Time{8.0}}); },
             "turn-glue")
-        .hold(0.2);
+        .hold(Time{0.2});
     CHECK(ok.ok());
     CHECK(ok.result().completed == 2);
 
     Routine bad{c.chassis, "act-bad"};
     bad.then([&] { return c.chassis.strafeTo(Length{0.0}, Length{40.0},
-                                             {.timeoutSeconds = 0.4}); },
+                                             {.timeout = Time{0.4}}); },
              "doomed-glue")
-        .hold(0.2);
+        .hold(Time{0.2});
     CHECK_FALSE(bad.ok());
     CHECK(bad.result().cause == RoutineStopCause::ActionFailed);
     CHECK(bad.result().exit == ExitReason::TimedOut);  // the verb's reason, kept
@@ -508,13 +508,13 @@ TEST_CASE("D1 policy: waitFor timeout stops the chain; satisfied-on-entry is fre
     // Satisfied on entry: no time passes, chain continues.
     Routine r{c.chassis, "waits"};
     const double t0 = c.rig.h.clock().now().value();
-    r.waitFor([] { return true; }, 5.0, "already-true");
+    r.waitFor([] { return true; }, Time{5.0}, "already-true");
     CHECK(r.ok());
     CHECK(c.rig.h.clock().now().value() == t0);
 
     // Never-true: bounded, then the chain stops. The wait itself raises no
     // fault (C2's contract, unchanged through two layers).
-    r.waitFor([] { return false; }, 0.4, "ball-seen").hold(0.2);
+    r.waitFor([] { return false; }, Time{0.4}, "ball-seen").hold(Time{0.2});
     CHECK_FALSE(r.ok());
     CHECK(c.rig.h.clock().now().value() >= t0 + 0.4);
     CHECK(c.rig.h.clock().now().value() < t0 + 0.9);
@@ -536,13 +536,13 @@ TEST_CASE("D1 pause: waits the requested time, stays put, stays quiet, continues
     ChassisRig c{kin, plantConfig(), &sink};
 
     Routine r{c.chassis, "pausey"};
-    r.moveTo(Pose2d{Length{10.0}, Length{0.0}, Angle{}}, {.timeoutSeconds = 8.0});
+    r.moveTo(Pose2d{Length{10.0}, Length{0.0}, Angle{}}, {.timeout = Time{8.0}});
     REQUIRE(r.ok());
     const Pose2d before = c.rig.h.truePose();
     const double t0 = c.rig.h.clock().now().value();
     const int logsBefore = sink.size();
 
-    r.pause(0.8);
+    r.pause(Time{0.8});
 
     const double elapsed = c.rig.h.clock().now().value() - t0;
     CHECK(r.ok());                       // a pause is not a failure
@@ -555,7 +555,7 @@ TEST_CASE("D1 pause: waits the requested time, stays put, stays quiet, continues
         CHECK(sink.at(i).level != LogLevel::Warn);
     }
     // And the chain continues normally afterwards.
-    r.turnTo(Angle::degrees(90.0), {.timeoutSeconds = 8.0});
+    r.turnTo(Angle::degrees(90.0), {.timeout = Time{8.0}});
     CHECK(r.ok());
     CHECK(r.result().completed == 3);
 }
@@ -577,7 +577,7 @@ TEST_CASE("D1 guarantee: ODO_STUCK aborts the step and stops the chain — cause
     bool afterRan = false;
 
     Routine r{c.chassis, "stuck"};
-    r.moveTo(Pose2d{Length{40.0}, Length{0.0}, Angle{}}, {.timeoutSeconds = 6.0})
+    r.moveTo(Pose2d{Length{40.0}, Length{0.0}, Angle{}}, {.timeout = Time{6.0}})
         .then([&] { afterRan = true; }, "after")
         .brake();
 
@@ -609,8 +609,8 @@ TEST_CASE("D1 guarantee: never-live boot times out the first step, bounded and "
 
     Routine r{c.chassis, "boot"};
     const double t0 = c.rig.h.clock().now().value();
-    r.moveTo(Pose2d{Length{24.0}, Length{0.0}, Angle{}}, {.timeoutSeconds = 1.5})
-        .turnTo(Angle::degrees(90.0), {.timeoutSeconds = 8.0});
+    r.moveTo(Pose2d{Length{24.0}, Length{0.0}, Angle{}}, {.timeout = Time{1.5}})
+        .turnTo(Angle::degrees(90.0), {.timeout = Time{8.0}});
 
     CHECK_FALSE(r.ok());
     CHECK(r.result().stoppedAt == 1);
@@ -633,17 +633,17 @@ TEST_CASE("D1 interop: recipe steps and direct facade calls interleave in one ro
 
     Routine r{c.chassis, "mixed"};
     r.startAt(Pose2d{}).moveTo(Pose2d{Length{18.0}, Length{0.0}, Angle{}},
-                               {.timeoutSeconds = 8.0});
+                               {.timeout = Time{8.0}});
     REQUIRE(r.ok());
 
     // Drop a tier mid-routine: a direct verb plus a strategy branch on pose.
-    REQUIRE(c.chassis.turnTo(Angle::degrees(90.0), {.timeoutSeconds = 8.0})
+    REQUIRE(c.chassis.turnTo(Angle::degrees(90.0), {.timeout = Time{8.0}})
             == ExitReason::Settled);
     const Pose2d mid = c.chassis.pose();
     CHECK(mid.x().value() > 15.0);  // the chain's motion really happened first
 
     // …and climb back up: the SAME chain object continues, unconfused.
-    r.driveTo(Length{18.0}, Length{24.0}, {.timeoutSeconds = 8.0}).brake();
+    r.driveTo(Length{18.0}, Length{24.0}, {.timeout = Time{8.0}}).brake();
     CHECK(r.ok());
     const RoutineResult res = r.result();
     CHECK(res.steps == 4);       // the chain counted ONLY its own steps
@@ -666,7 +666,7 @@ TEST_CASE("D1 trajectory: the step preserves the full TrajectoryResult") {
         r.followTrajectory({Pose2d{Length{12.0}, Length{0.0}, Angle{}},
                             Pose2d{Length{24.0}, Length{12.0}, Angle::degrees(45.0)},
                             Pose2d{Length{24.0}, Length{24.0}, Angle::degrees(90.0)}},
-                           {.timeoutSeconds = 8.0});
+                           {.timeout = Time{8.0}});
         REQUIRE(r.ok());
         CHECK(r.lastTrajectory().succeeded());
         CHECK(r.lastTrajectory().completedLegs == 3);
@@ -677,8 +677,8 @@ TEST_CASE("D1 trajectory: the step preserves the full TrajectoryResult") {
         Routine r{c.chassis, "traj-broke"};
         r.followTrajectory({Pose2d{Length{36.0}, Length{24.0}, Angle{}},
                             Pose2d{Length{-48.0}, Length{-24.0}, Angle{}}},
-                           {.timeoutSeconds = 0.6})  // starved per-leg budget
-            .hold(0.2);
+                           {.timeout = Time{0.6}})  // starved per-leg budget
+            .hold(Time{0.2});
         CHECK_FALSE(r.ok());
         CHECK(r.result().cause == RoutineStopCause::MotionFailed);
         CHECK(r.result().exit == ExitReason::TimedOut);
@@ -724,7 +724,7 @@ TEST_CASE("D1 startAt: seeds the estimate — the rigs' auto-seed must not hide 
     const Pose2d target{Length{0.0}, Length{20.0}, Angle::degrees(45.0)};
     Routine r{chassis, "seeded"};
     r.startAt(Pose2d{Length{-30.0}, Length{10.0}, Angle{}})  // load-bearing here
-        .moveTo(target, {.timeoutSeconds = 8.0});
+        .moveTo(target, {.timeout = Time{8.0}});
     REQUIRE(r.ok());
     // Without the seed the run lands ~31 in away (the estimate's origin lie
     // becomes a truth offset); with it, on target.
@@ -749,8 +749,8 @@ TEST_CASE("D1 options: the chain forwards the speed budgets, not just the timeou
         return c.rig.h.clock().now().value();
     };
 
-    const double uncapped = legTime({.timeoutSeconds = 8.0});
-    const double capped = legTime({.timeoutSeconds = 8.0,
+    const double uncapped = legTime({.timeout = Time{8.0}});
+    const double capped = legTime({.timeout = Time{8.0},
                                    .maxLinearSpeed = Velocity{15.0}});
     CHECK(capped > uncapped * 1.5);  // 30 in at ≤15 in/s vs the 60 in/s default
 }
@@ -767,17 +767,17 @@ TEST_CASE("D1 misuse: nonsense throws out of the step; the chain is untouched an
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
     Routine r{c.chassis, "misuse"};
-    r.moveTo(Pose2d{Length{8.0}, Length{0.0}, Angle{}}, {.timeoutSeconds = 8.0});
+    r.moveTo(Pose2d{Length{8.0}, Length{0.0}, Angle{}}, {.timeout = Time{8.0}});
     REQUIRE(r.ok());
     const RoutineResult before = r.result();
 
     // The facade's rejections pass through undamped…
     CHECK_THROWS_AS(r.moveTo(Pose2d{Length{nan}, Length{0.0}, Angle{}}), PreconditionError);
     CHECK_THROWS_AS(r.strafeTo(Length{0.0}, Length{nan}), PreconditionError);
-    CHECK_THROWS_AS(r.hold(0.0), PreconditionError);
-    CHECK_THROWS_AS(r.moveTo(Pose2d{}, {.timeoutSeconds = -1.0}), PreconditionError);
+    CHECK_THROWS_AS(r.hold(Time{0.0}), PreconditionError);
+    CHECK_THROWS_AS(r.moveTo(Pose2d{}, {.timeout = Time{-1.0}}), PreconditionError);
     // …and the layer's own: pause of nonsense, bearing to the point we're on.
-    CHECK_THROWS_AS(r.pause(nan), PreconditionError);
+    CHECK_THROWS_AS(r.pause(Time{nan}), PreconditionError);
     const Pose2d here = c.chassis.pose();
     CHECK_THROWS_AS(r.face(here.x(), here.y()), PreconditionError);
 
@@ -789,7 +789,7 @@ TEST_CASE("D1 misuse: nonsense throws out of the step; the chain is untouched an
     CHECK(c.chassis.scheduler().motionsStarted() == 1);
 
     // Still fully usable.
-    r.turnTo(Angle::degrees(45.0), {.timeoutSeconds = 8.0});
+    r.turnTo(Angle::degrees(45.0), {.timeout = Time{8.0}});
     CHECK(r.ok());
     CHECK(r.result().completed == before.completed + 1);
 }

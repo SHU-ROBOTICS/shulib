@@ -14,7 +14,7 @@
 //      .strafeTo(-24_in, 24_in)
 //      .face(0_in, 48_in)
 //      .driveTo(0_in, 48_in)
-//      .hold(0.3)
+//      .hold(300_ms)
 //      .brake();
 //     if (!r.ok()) { /* strategy branch on r.result() */ }
 //
@@ -106,7 +106,6 @@
 #include "shulib/control/exit_group.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/line_format.hpp"
-#include "shulib/hal/clock.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
@@ -245,56 +244,43 @@ public:
         return motionStep("brake", [&] { return chassis_->brake(options); });
     }
 
-    /// Actively hold the current pose for `seconds` (Chassis::hold — also a
-    /// C4 candidate verb).
-    Routine& hold(double seconds, const MotionOptions& options = {}) {
-        return motionStep("hold", [&] { return chassis_->hold(seconds, options); });
+    /// Actively hold the current pose for `duration` (Chassis::hold). Typed
+    /// time (D2): hold(300_ms) — hold(0.3) does not compile.
+    Routine& hold(units::Time duration, const MotionOptions& options = {}) {
+        return motionStep("hold", [&] { return chassis_->hold(duration, options); });
     }
 
-    /// Wait, doing nothing, for `seconds` — the alliance-partner beat every
+    /// Wait, doing nothing, for `duration` — the alliance-partner beat every
     /// real auton has. Motors keep their last state (after a settled motion:
-    /// stopped); the world keeps advancing (Chassis::waitUntil under the
-    /// hood, with a clock-deadline predicate). Distinct from hold(): pause()
-    /// does not energize the drive. Timing out CANNOT happen in practice —
-    /// the predicate is time-monotone — so a pause never logs the facade's
-    /// wait-timeout Warn and never stops the chain (the backstop below is
-    /// belt-and-suspenders, not policy).
-    Routine& pause(double seconds) {
+    /// stopped); the world keeps advancing. Distinct from hold(): pause()
+    /// does not energize the drive. A pure delegation to Chassis::wait (D2 —
+    /// before the wait verb existed, this step carried its own Tier-3
+    /// clock-deadline plumbing; that implementation moved down to the facade
+    /// where both tiers get it). A pause cannot fail, logs nothing, and
+    /// never stops the chain; nonsense input (NaN, <= 0) throws through
+    /// untouched, exactly like every step.
+    Routine& pause(units::Time duration) {
         if (skipIfStopped("pause")) {
             return *this;
         }
-        SHULIB_PRECONDITION(std::isfinite(seconds) && seconds > 0.0,
-                            "Routine::pause: seconds must be finite and > 0");
-        hal::IClock& clock = chassis_->deps().ctx->clock();
-        const units::Time deadline = clock.now() + units::Time{seconds};
-        // The timeout is a pure backstop: the predicate turns true within one
-        // tick of the deadline, so the extra second is unreachable slack (a
-        // stalled pacer trips the scheduler's own loud precondition first).
-        const motion::WaitResult w = chassis_->waitUntil(
-            [&clock, deadline] { return clock.now() >= deadline; },
-            seconds + kPauseBackstopSeconds);
-        if (w == motion::WaitResult::Satisfied) {
-            recordSuccess();
-        } else {
-            recordStop("pause", RoutineStopCause::WaitTimedOut,
-                       control::ExitReason::Running);
-        }
+        chassis_->wait(duration);  // throws on nonsense; counters untouched then
+        recordSuccess();
         return *this;
     }
 
-    /// Wait until `pred()` holds, up to `timeoutSeconds` (required and finite —
+    /// Wait until `pred()` holds, up to `timeout` (required and finite —
     /// C2's no-hang discipline). In a recipe the condition MATTERS: if the
     /// deadline passes with it still false, continuing the script would act
     /// on a state the field never reached, so the chain stops (WaitTimedOut).
     /// A wait whose timeout is a legitimate strategy branch belongs one tier
     /// down: `chassis.waitUntil(...)` directly, branching on the WaitResult.
     template <typename Pred>
-    Routine& waitFor(Pred&& pred, double timeoutSeconds, const char* name = "waitFor") {
+    Routine& waitFor(Pred&& pred, units::Time timeout, const char* name = "waitFor") {
         if (skipIfStopped(name)) {
             return *this;
         }
         const motion::WaitResult w =
-            chassis_->waitUntil(std::forward<Pred>(pred), timeoutSeconds);
+            chassis_->waitUntil(std::forward<Pred>(pred), timeout);
         if (w == motion::WaitResult::Satisfied) {
             recordSuccess();
         } else {
@@ -371,13 +357,6 @@ public:
     [[nodiscard]] Chassis& chassis() noexcept { return *chassis_; }
 
 private:
-    /// pause()'s backstop slack over the deadline (seconds). Pure code-level
-    /// belt-and-suspenders (see pause) — not a hardware constant, so it is
-    /// deliberately NOT in the HA register: no plant, gain, or field property
-    /// depends on it, and no behaviour changes for any value that clears one
-    /// tick.
-    static constexpr double kPauseBackstopSeconds = 1.0;
-
     /// Bearing from the live pose estimate to field point (x, y). The ONLY
     /// arithmetic in this layer: argument computation (author intent → verb
     /// vocabulary), not motion logic. Rejects the degenerate "bearing to the

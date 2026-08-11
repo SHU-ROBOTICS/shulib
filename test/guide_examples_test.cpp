@@ -97,18 +97,18 @@ ExitReason firstRoutine(Chassis& chassis) {
 
     // Drive to a field position AND rotate to a heading, at the same time.
     ExitReason leg1 = chassis.moveTo(Pose2d{-24_in, 0_in, 45_deg},
-                                     {.timeoutSeconds = 5.0});
+                                     {.timeout = 5_s});
 
     // A slow, precise approach: this leg's speed is capped at 20 in/s.
     ExitReason leg2 = chassis.moveTo(Pose2d{-12_in, 12_in, 45_deg},
-                                     {.timeoutSeconds = 4.0,
+                                     {.timeout = 4_s,
                                       .maxLinearSpeed = Velocity{20.0}});
 
     // Slide sideways while actively holding the current heading.
-    ExitReason leg3 = chassis.strafeTo(-12_in, 24_in, {.timeoutSeconds = 3.0});
+    ExitReason leg3 = chassis.strafeTo(-12_in, 24_in, {.timeout = 3_s});
 
     // Face the corner — always the short way around.
-    ExitReason leg4 = chassis.turnTo(135_deg, {.timeoutSeconds = 2.0});
+    ExitReason leg4 = chassis.turnTo(135_deg, {.timeout = 2_s});
 
     // Real routines branch on these; here we just report the worst one.
     if (leg1 != ExitReason::Settled) { return leg1; }
@@ -304,7 +304,7 @@ TEST_CASE("guide-08c: a starved timeout exits TimedOut — and the log says so")
     // the budget (it does NOT hang), the motors stop, and the result line
     // reads ✗TIMEOUT.
     const ExitReason r = c.chassis.moveTo(Pose2d{30_in, 0_in, 0_deg},
-                                          {.timeoutSeconds = 0.5});
+                                          {.timeout = 0.5_s});
     CHECK(r == ExitReason::TimedOut);
     for (int w = 0; w < c.rig.h.motorCount(); ++w) {
         CHECK(c.rig.h.motor(w).commandedVoltage().value() == 0.0);
@@ -326,12 +326,12 @@ TEST_CASE("guide-08c: a starved timeout exits TimedOut — and the log says so")
 RoutineResult firstRecipe(Chassis& chassis) {
     Routine r{chassis, "first-recipe"};
     r.startAt(Pose2d{-48_in, -24_in, 90_deg})
-        .moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 5.0})
+        .moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeout = 5_s})
         .moveTo(Pose2d{-12_in, 12_in, 45_deg},
-                {.timeoutSeconds = 4.0, .maxLinearSpeed = Velocity{20.0}})
-        .strafeTo(-12_in, 24_in, {.timeoutSeconds = 3.0})
-        .turnTo(135_deg, {.timeoutSeconds = 2.0})
-        .hold(0.3)   // stand your ground for 0.3 s…
+                {.timeout = 4_s, .maxLinearSpeed = Velocity{20.0}})
+        .strafeTo(-12_in, 24_in, {.timeout = 3_s})
+        .turnTo(135_deg, {.timeout = 2_s})
+        .hold(300_ms)  // stand your ground for 0.3 s…
         .brake();    // …then park, braked
     return r.result();
 }
@@ -369,9 +369,9 @@ TEST_CASE("guide-09b: when a step fails, the chain stops — and says so") {
     // step 3 is skipped — a routine that kept driving from a position it is
     // not at would compound the miss blindly.
     Routine r{c.chassis, "starved"};
-    r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeoutSeconds = 5.0})
-        .moveTo(Pose2d{60_in, 40_in, 0_deg}, {.timeoutSeconds = 0.5})
-        .turnTo(90_deg, {.timeoutSeconds = 2.0});
+    r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeout = 5_s})
+        .moveTo(Pose2d{60_in, 40_in, 0_deg}, {.timeout = 0.5_s})
+        .turnTo(90_deg, {.timeout = 2_s});
 
     // The result says WHERE it stopped and WHY — a strategy branch, not a mystery.
     CHECK_FALSE(r.ok());
@@ -403,16 +403,16 @@ TEST_CASE("guide-09c: tank recipes — face the point, drive to it; the full API
     // (chapter 4). In a recipe YOU still write the turn — in field words:
     // face the point, then drive to it.
     Routine r{c.chassis, "tank-recipe"};
-    r.face(0_in, 24_in, {.timeoutSeconds = 3.0})
-        .driveTo(0_in, 24_in, {.timeoutSeconds = 8.0});
+    r.face(0_in, 24_in, {.timeout = 3_s})
+        .driveTo(0_in, 24_in, {.timeout = 8_s});
     CHECK(r.ok());
     CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{0_in, 24_in, 90_deg}) < 1.0);
 
     // No cliff between tiers: the full API is the same chassis, mid-routine.
     // Here the direct turnTo IS this leg's "face", done one tier down…
-    REQUIRE(c.chassis.turnTo(0_deg, {.timeoutSeconds = 3.0}) == ExitReason::Settled);
+    REQUIRE(c.chassis.turnTo(0_deg, {.timeout = 3_s}) == ExitReason::Settled);
     // …and the same chain object carries on afterwards, unconfused.
-    r.driveTo(24_in, 24_in, {.timeoutSeconds = 8.0}).brake();
+    r.driveTo(24_in, 24_in, {.timeout = 8_s}).brake();
     CHECK(r.ok());
     CHECK(motion_rig::posErr(c.rig.h.truePose(),
                              Pose2d{24_in, 24_in, c.rig.h.truePose().heading()})
@@ -426,11 +426,11 @@ TEST_CASE("guide-10a: options — a slow precise approach leg") {
     motion_rig::ChassisRig c{kin};
 
     // Config defaults drive this leg…
-    CHECK(c.chassis.moveTo(Pose2d{20_in, 0_in, 0_deg}, {.timeoutSeconds = 8.0})
+    CHECK(c.chassis.moveTo(Pose2d{20_in, 0_in, 0_deg}, {.timeout = 8_s})
           == ExitReason::Settled);
     // …and per-call options slow just this one down (0 = keep the default).
     CHECK(c.chassis.moveTo(Pose2d{28_in, 6_in, 0_deg},
-                           {.timeoutSeconds = 8.0,
+                           {.timeout = 8_s,
                             .maxLinearSpeed = Velocity{15.0},
                             .maxAngularSpeed = AngularVelocity{2.0}})
           == ExitReason::Settled);
@@ -448,9 +448,9 @@ ExitReason tankGoTo(Chassis& chassis, shulib::units::Length x, shulib::units::Le
     const Pose2d here = chassis.pose();
     const Angle bearing = Angle::radians(
         std::atan2((y - here.y()).value(), (x - here.x()).value()));
-    const ExitReason turn = chassis.turnTo(bearing, {.timeoutSeconds = 3.0});
+    const ExitReason turn = chassis.turnTo(bearing, {.timeout = 3_s});
     if (turn != ExitReason::Settled) { return turn; }
-    return chassis.moveTo(Pose2d{x, y, bearing}, {.timeoutSeconds = 8.0});
+    return chassis.moveTo(Pose2d{x, y, bearing}, {.timeout = 8_s});
 }
 
 TEST_CASE("guide-10b: tank cannot strafe — TimedOut, honestly; turn-then-drive works") {
@@ -458,7 +458,7 @@ TEST_CASE("guide-10b: tank cannot strafe — TimedOut, honestly; turn-then-drive
     motion_rig::ChassisRig c{kin};
 
     // Straight sideways: impossible on tank. Honest TimedOut at OUR budget.
-    CHECK(c.chassis.strafeTo(0_in, 24_in, {.timeoutSeconds = 1.0})
+    CHECK(c.chassis.strafeTo(0_in, 24_in, {.timeout = 1_s})
           == ExitReason::TimedOut);
 
     // The idiom reaches the same point.
@@ -475,7 +475,7 @@ TEST_CASE("guide-10c: followTrajectory — success counts legs; failure names th
     const TrajectoryResult ok = c.chassis.followTrajectory(
         {Pose2d{12_in, 0_in, 0_deg}, Pose2d{24_in, 12_in, 45_deg},
          Pose2d{24_in, 24_in, 90_deg}},
-        {.timeoutSeconds = 8.0});
+        {.timeout = 8_s});
     CHECK(ok.succeeded());
     CHECK(ok.completedLegs == 3);
 
@@ -483,7 +483,7 @@ TEST_CASE("guide-10c: followTrajectory — success counts legs; failure names th
     // reports how far it got, instead of chasing later waypoints blind.
     const TrajectoryResult broke = c.chassis.followTrajectory(
         {Pose2d{36_in, 24_in, 0_deg}, Pose2d{-48_in, -24_in, 0_deg}},
-        {.timeoutSeconds = 0.6});
+        {.timeout = 0.6_s});
     CHECK_FALSE(broke.succeeded());
     CHECK(broke.exit == ExitReason::TimedOut);
     CHECK(broke.completedLegs < broke.totalLegs);
@@ -522,7 +522,7 @@ TEST_CASE("guide-10e: waitUntil — an honest, bounded strategy branch") {
     // piece a sensor never sees). The result is a value you must look at —
     // and no fault is raised: a timed-out wait is a strategy branch, not an
     // emergency.
-    const WaitResult seen = c.chassis.waitUntil([] { return false; }, 0.5);
+    const WaitResult seen = c.chassis.waitUntil([] { return false; }, 0.5_s);
     CHECK(seen == WaitResult::TimedOut);
     CHECK_FALSE(c.rig.latch.hasFault());
 }
