@@ -14,7 +14,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 6 | [How things fail](06-how-things-fail.md) | Drift, slip, dead sensors, brownout — and the fault philosophy |
 | 7 | [Getting set up](07-getting-set-up.md) | Build, run the tests, read the output, the repo layout |
 | 8 | [Your first routine](08-your-first-routine.md) | The full tutorial, every line explained |
-| 9 | *(reserved)* | The recipe API's chapter, when it ships (chunk D1) — see below |
+| 9 | [The recipe API](09-the-recipe-api.md) | Tier 2: a routine as a chain of steps, and what happens when one fails |
 | 10 | [The API, as prose](10-the-api.md) | Every verb: what, when, failure behavior, gotchas |
 | 11 | [Reading the diagnostics](11-reading-the-diagnostics.md) | The transcript line by line; every fault code |
 | 12 | [When things go wrong](12-when-things-go-wrong.md) | Symptom-first troubleshooting |
@@ -30,10 +30,11 @@ order — each chapter assumes the ones before it and says so in its header.
 
 Numbered files, one topic each, so updating a topic means editing one file. Chapters 1–6 are
 concepts (no code) and should rot slowly; 7–12 touch the code and rot fast — check them first
-when the API moves. **Chapter number 9 is deliberately vacant**: it's reserved for the Tier-2
-recipe API chapter (chunk D1), so that adding it is *adding a file*, not renumbering eleven.
-Add future chapters either into a reserved slot or at the end (before the glossary stays the
-glossary — renumber only as a last resort, in one commit, updating every cross-link).
+when the API moves. (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
+recipe chapter filled it at chunk D1 as an *added file*, with nothing renumbered — the
+pattern to reuse.) Add future chapters either into a reserved slot or at the end (before the
+glossary stays the glossary — renumber only as a last resort, in one commit, updating every
+cross-link).
 
 ### Where the code examples live — the anti-rot rule
 
@@ -79,9 +80,7 @@ the test suite.
    listings and transcripts, then chapter 11 if any output format moved.
 3. Chapter 14 when a limitation falls (that's the *good* kind of doc rot — celebrate, then
    delete the paragraph and its glossary entries if any).
-4. When F6 freezes (D2): soften the stability warnings in chapters 10 and 14.
-5. When D1 lands: write chapter 9 (the recipe API), add its examples as `guide-09*` cases,
-   update chapter 8's closing pointer and this README's table.
+4. When F6 freezes (D2): soften the stability warnings in chapters 9, 10, and 14.
 
 ### Voice
 

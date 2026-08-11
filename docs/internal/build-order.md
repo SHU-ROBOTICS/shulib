@@ -210,7 +210,7 @@ the diagnostics-plan C6 note (per-wheel stuck attribution → E-phase; veer tria
 copied third-party code (LemLib `pose.*`). One non-gating follow-up lodged with G4: lift the CSV
 specimen from git history (`git show 357d3f2:src/legacy/autonomous_commands.csv`).
 
-**Chunk C7 — cutover and deletion: DONE 2026-08-10, in the working tree pending review/commit**
+**Chunk C7 — cutover and deletion: DONE 2026-08-10, committed `3f15094`**
 ([completion record](chunks/C7-COMPLETED.md), live log in [C7-PROGRESS.md](chunks/C7-PROGRESS.md)).
 **Phase C is COMPLETE; M2's structural clause is closed — the new tree is the only tree.** In
 brief order: `src/main.cpp` rewired onto the v2 core and proven compiling with `legacy/` still
@@ -228,7 +228,43 @@ re-running the link check), `docs/internal/` = the process record (this file, `R
 `chunks/`, `transcripts/`) as a self-contained removable unit for the eventual squash-merge to
 `main`. Suite unchanged 659/915,570/3 skips; ARM gate 102 headers clean.
 
-**Next: chunk D1 — the Tier 2 recipe API** (after C7 review/commit; then D2 freezes F6).
+**Chunk C8 — the manual: DONE 2026-08-11, committed `3437d72`**
+([completion record](chunks/C8-COMPLETED.md), live log in [C8-PROGRESS.md](chunks/C8-PROGRESS.md)).
+15 chapters (~22,200 words) written for someone who is not a robotics expert, with the code
+examples living in `test/guide_examples_test.cpp` and **quoted verbatim** by the prose so CI
+catches rot — the anti-staleness mechanism is the deliverable, not the word count. Chapter slot
+**09 was deliberately left vacant** for D1. The tutorial was followed start to finish as written
+(which found and fixed a wrong instruction: the build auto-discovers new test files, so "re-run
+configure" was false). [`guide-maintenance.md`](guide-maintenance.md) is the companion procedure.
+*(One claim in C8's record — that the broad removability grep was "empty" — was **corrected at
+D1**: it returns 5 pre-existing prose mentions, none of them links. The property holds; the
+stated evidence for it did not. See C8-COMPLETED §3.)*
+
+**Chunk D1 — the Tier 2 recipe API: DONE 2026-08-11**
+([completion record](chunks/D1-COMPLETED.md), live log in [D1-PROGRESS.md](chunks/D1-PROGRESS.md)).
+**The facade held its second consumer with zero changes required — and F6 is still NOT frozen.**
+`chassis/routine.hpp` is an **EAGER** fluent chain (each step runs the moment it is chained, so a
+routine runs in the order it reads); the deferred `.run()` alternative was analyzed and rejected
+because it re-opens the read-order/run-order split the moment recipe and facade calls mix, and it
+adds the built-but-never-run misuse door that eager structurally cannot have. Twelve steps, each
+exactly one delegated facade call; the only arithmetic in the layer is bearing argument-computation
+for `face`/`driveTo`, pinned bit-identical to the hand-written `turnTo(atan2(...))` idiom AND
+backed by absolute ground-truth arrival on tank, where a wrong bearing cannot reach the target.
+**Chain error policy, decided and pinned:** first failure → stop → safe state (`cancel()` ⇒
+0 V + Brake) → skip the rest (counted, logged) → report via `RoutineResult`; preconditions throw
+through untouched, because a programming error must not be laundered into "the chain stopped".
+The recipe twin is **bit-identical to the facade arm, clean and hostile** — three layers, one
+physics. 19 mutations executed, 19 red, **2 green holes found by pre-analysis and closed with
+sole-detector tests** (a no-op `startAt` was invisible because every rig auto-seeds the estimate;
+speed budgets could vanish in delegation because the twin only varied timeouts). Guide chapter 09
+fills C8's reserved slot. **D1's real product is the facade critique** (D1-COMPLETED §2, D2's
+input packet): the headline is that **every duration on the frozen surface is a raw `double`** —
+`hold(500)` compiles and holds pose for 500 seconds inside a 15-second match — while `units::Time`
+and `_s`/`_ms` literals already exist. That is cheap to fix now and a versioned migration after D2.
+
+**Next: chunk D2 — the F6 freeze review.** Its input is D1-COMPLETED §2, item by item; the two
+decisions that cost the most if deferred are retyping time and whether to add a `wait(seconds)`
+verb.
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under

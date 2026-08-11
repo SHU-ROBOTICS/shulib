@@ -364,6 +364,6 @@ and their fine print ([Chapter 10](10-the-api.md)), reading diagnostics like a p
 
 ---
 
-*Next: [Chapter 10 — The API, as prose](10-the-api.md). (Chapter 9 is reserved: when the
-simpler "recipe" API ships — see the [roadmap](../roadmap.md) — its chapter will slot in
-between the tutorial and the full API.)*
+*Next: [Chapter 9 — The recipe API](09-the-recipe-api.md), where this routine becomes a
+chain of steps with failure handling built in — or skip ahead to
+[Chapter 10 — The API, as prose](10-the-api.md) for the full verb set.*

@@ -1,0 +1,231 @@
+# 9 — The recipe API
+
+> **Covers:** `Routine` — the simpler way to write an autonomous routine: a chain of named
+> steps, ~10 readable lines for a complete auton, with a built-in answer to "what happens when
+> a step fails".
+> **Read this if:** you've done the tutorial ([Chapter 8](08-your-first-routine.md)) and want
+> the shortest honest path to a working routine — or you'll be helping newer members write one.
+> **Assumes:** [Chapters 2](02-the-field-and-coordinates.md)–[8](08-your-first-routine.md).
+
+> **⚠ Stability notice.** The recipe layer is new (it landed with chunk D1), and it sits on
+> the `Chassis` API, which is deliberately **not frozen yet** — see
+> [Chapter 10's notice](10-the-api.md) and the
+> [roadmap's Freeze Register](../roadmap.md#freeze-register), row F6. The *ideas* here are
+> stable; hold exact spellings loosely until the freeze (D2).
+
+The code in this chapter is compiled and run in
+[`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
+through `guide-09c`. The fine print lives in the header,
+[`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp), whose
+opening commentary — like `chassis.hpp`'s — is meant to be read.
+
+## What a recipe is
+
+Chapter 8's routine was a sequence of `chassis.` calls with an `ExitReason` to check after
+each one. That is the full API, and it never goes away. A **recipe** is the same routine
+written as a chain of steps on a `Routine` object:
+
+- **Each step runs the moment it is chained.** There is no "build now, run later": the
+  routine executes in exactly the order it reads, top to bottom. You can put a breakpoint
+  between two steps, print the pose between two steps, or call any `chassis.` verb between
+  two steps, and everything happens in program order.
+- **Each step delegates to one `Chassis` verb.** The recipe layer contains no motion logic of
+  its own — same gains, same watchdogs, same guarantees, same accuracy. (The test suite holds
+  this as a bit-for-bit identity: the same routine driven through `Routine` steps and through
+  direct `chassis.` calls produces *identical* runs.)
+- **Failure is handled for you, loudly.** If a step fails, the chain stops, parks the robot,
+  skips everything after it, and tells you what happened. More on this below — it is the main
+  thing the recipe layer adds.
+
+## The first recipe
+
+This is chapter 8's `firstRoutine`, one tier up (from `guide-09a`):
+
+```cpp
+// The same routine as chapter 8's firstRoutine, written as a recipe: each
+// step runs (and blocks) the moment it is chained, so the routine reads in
+// exactly the order the robot acts. If any step fails, the chain stops, parks
+// the robot, and skips the rest — r.ok() tells you which world you are in.
+RoutineResult firstRecipe(Chassis& chassis) {
+    Routine r{chassis, "first-recipe"};
+    r.startAt(Pose2d{-48_in, -24_in, 90_deg})
+        .moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 5.0})
+        .moveTo(Pose2d{-12_in, 12_in, 45_deg},
+                {.timeoutSeconds = 4.0, .maxLinearSpeed = Velocity{20.0}})
+        .strafeTo(-12_in, 24_in, {.timeoutSeconds = 3.0})
+        .turnTo(135_deg, {.timeoutSeconds = 2.0})
+        .hold(0.3)   // stand your ground for 0.3 s…
+        .brake();    // …then park, braked
+    return r.result();
+}
+```
+
+Read it out loud: start here, drive there, approach slowly, slide sideways, face the corner,
+hold, park. The test that compiles this listing also asserts what the prose claims: all seven
+steps succeed, six of them are motions (`startAt` only seeds the pose estimate), and the
+robot genuinely ends within an inch of the last target — measured on the simulator's ground
+truth, which the robot's own estimate never sees.
+
+Everything you learned in chapter 8 still applies underneath: the per-call options struct
+(`{.timeoutSeconds = …}`) is [Chapter 10's](10-the-api.md) `MotionOptions`, unchanged; typed
+units still refuse bare numbers at compile time (`.strafeTo(-12, 24, …)` does not build); and
+the run report reads exactly as before, because the same motions run.
+
+## The steps
+
+Every step delegates to the `Chassis` verb named here — [Chapter 10](10-the-api.md) has each
+verb's full behavior and gotchas, and they all apply verbatim.
+
+| Step | What the robot does | Delegates to |
+|---|---|---|
+| `startAt(pose)` | Seeds the pose estimate with the measured starting pose — every auton's first line | `setPose` |
+| `moveTo(pose, opts)` | Drives to a field pose, translating and rotating at once | `moveTo` |
+| `driveTo(x, y, opts)` | Drives to a field *point*, arriving facing it (heading = the bearing, computed when the step runs) | `moveTo` |
+| `strafeTo(x, y, opts)` | Translates to a field point while holding the current heading | `strafeTo` |
+| `turnTo(heading, opts)` | Rotates in place to a field heading, the short way | `turnTo` |
+| `face(x, y, opts)` | Rotates in place to *face* a field point (the bearing, computed when the step runs) | `turnTo` |
+| `followTrajectory({…}, opts)` | Drives waypoints as chained moves; a leg that fails stops it | `followTrajectory` |
+| `brake(opts)` | Controlled stop: 0 V under brake until the estimate certifies rest | `brake` |
+| `hold(seconds, opts)` | Actively holds the current pose against disturbance | `hold` |
+| `pause(seconds)` | Waits, motors idle — the "wait for your partner" beat | `waitUntil` (a clock deadline) |
+| `waitFor(pred, timeout)` | Waits for a condition; if the deadline passes first, **the chain stops** | `waitUntil` |
+| `then(action, name)` | Runs your code between motions (see the mechanism seam, below) | — |
+
+`face` and `driveTo` deserve one sentence of honesty: they are *argument sugar*, not new
+motion. Each computes a single number — the bearing from the current pose estimate to the
+point you named — and hands it to `turnTo` / `moveTo`. That matters most on a tank drive,
+where [Chapter 4](04-drivetrains.md) explained the drivetrain cannot slide sideways and
+[Chapter 10](10-the-api.md) showed you the turn-then-drive idiom with `atan2`. `face(x, y)`
+**is** that idiom's turn, written in field words — you are still the one deciding to turn,
+which is exactly the honesty rule tank verbs follow everywhere in shulib.
+
+## When a step fails
+
+This is the recipe layer's real contribution. A chain of calls makes it easy to *ignore*
+failures — and a routine that keeps driving after a failed move is acting out a plan from a
+position it is not at, compounding the miss with every step. So the chain's policy, built in
+and tested:
+
+1. **Stop.** The first failed step ends the routine's forward progress.
+2. **Park.** The drive goes to the defined safe state (0 V, brake mode) immediately.
+3. **Skip.** Every later step is counted and logged as skipped, and does not run.
+4. **Report.** One `Warn` line names the routine, the step, and the reason; `r.ok()` goes
+   false; `r.result()` carries the step index, its name, the cause, and the motion's honest
+   exit reason.
+
+A step "fails" when its motion exits non-`Settled`, a trajectory doesn't complete every leg,
+a `waitFor` deadline passes with the condition still false, or a `then` action reports
+failure. From `guide-09b`:
+
+```cpp
+const auto kin = shulib::kinematics::xDrive(7_in);
+shulib::hal::fake::FakeTelemetrySink log;  // on the robot: the terminal
+motion_rig::ChassisRig c{kin, motion_rig::plantConfig(), &log};
+
+// 0.5 s is not enough to cross half the field, so step 2 times out. The
+// chain then STOPS: the drive is put in the safe state (0 V + brake) and
+// step 3 is skipped — a routine that kept driving from a position it is
+// not at would compound the miss blindly.
+Routine r{c.chassis, "starved"};
+r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeoutSeconds = 5.0})
+    .moveTo(Pose2d{60_in, 40_in, 0_deg}, {.timeoutSeconds = 0.5})
+    .turnTo(90_deg, {.timeoutSeconds = 2.0});
+
+// The result says WHERE it stopped and WHY — a strategy branch, not a mystery.
+CHECK_FALSE(r.ok());
+const RoutineResult res = r.result();
+CHECK(res.stoppedAt == 2);                // which step failed…
+CHECK(res.exit == ExitReason::TimedOut);  // …and the motion's honest verdict
+CHECK(res.completed == 1);
+CHECK(res.skipped == 1);                  // the turn never ran
+```
+
+When this happens the routine layer adds two kinds of line to the transcript (subsystem
+`RTN`; captured from this exact run):
+
+```text
+routine 'starved' STOPPED at step 2 (moveTo): motion TIMEOUT — skipping the rest; drive safed
+routine 'starved': step 3 (turnTo) skipped — stopped at step 2
+```
+
+— one `Warn` for the stop, one `Info` per skipped step, so a run that stopped early is
+legible at a glance in the same terminal you learned to read in
+[Chapter 11](11-reading-the-diagnostics.md). The
+layers below behave exactly as chapter 8 showed — the result line still reads `✗TIMEOUT`, the
+`MOTION_TIMEOUT` fault still latches. Nothing is masked; the chain only adds the stopping.
+
+Two deliberate edges of the policy:
+
+- **A nonsense argument is not a "failed step" — it throws.** A NaN pose or a negative
+  timeout is a programming error, and it stays as loud through the recipe layer as through
+  the facade ([Chapter 10](10-the-api.md)'s misuse rules). The chain's counters don't move;
+  the bad call simply never ran.
+- **Wanting to continue past a failure is legitimate — and it is one tier down, not a
+  rewrite.** Call `chassis.moveTo(...)` directly for the legs where you want to branch on the
+  `ExitReason` yourself, and use chain steps for the rest. Mixing is fully supported; that's
+  next.
+
+## Tank drives, and the no-cliff rule
+
+From `guide-09c` — a tank recipe, plus the point this guide keeps making about tiers:
+
+```cpp
+const shulib::kinematics::TankKinematics kin{12_in};
+motion_rig::ChassisRig c{kin};
+
+// A tank drive cannot slide sideways, and shulib never pretends it can
+// (chapter 4). In a recipe YOU still write the turn — in field words:
+// face the point, then drive to it.
+Routine r{c.chassis, "tank-recipe"};
+r.face(0_in, 24_in, {.timeoutSeconds = 3.0})
+    .driveTo(0_in, 24_in, {.timeoutSeconds = 8.0});
+CHECK(r.ok());
+CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{0_in, 24_in, 90_deg}) < 1.0);
+
+// No cliff between tiers: the full API is the same chassis, mid-routine.
+// Here the direct turnTo IS this leg's "face", done one tier down…
+REQUIRE(c.chassis.turnTo(0_deg, {.timeoutSeconds = 3.0}) == ExitReason::Settled);
+// …and the same chain object carries on afterwards, unconfused.
+r.driveTo(24_in, 24_in, {.timeoutSeconds = 8.0}).brake();
+CHECK(r.ok());
+```
+
+Because steps run eagerly, recipe steps and direct `chassis.` calls interleave in plain
+program order — the chain object keeps counting only its own steps, and the scheduler
+underneath sees one honest sequence of motions. Outgrowing recipes never means rewriting a
+routine; it means replacing the steps you want more control over, one at a time.
+
+## `then()` — the mechanism seam, honestly labeled
+
+The plan for Tier 2 ([master plan
+§17](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
+reads `moveTo(p).then(intake.in)`. **Mechanisms do not exist in shulib yet** — no intake, no
+lift, nothing to call ([Chapter 14](14-what-it-cannot-do-yet.md)). What exists now is the
+seam they will plug into: `then(action, name)` runs any callable between motions, strictly
+after the previous step finishes. An action returning `void` always succeeds; returning
+`bool`, `false` stops the chain (`ActionFailed`); returning an `ExitReason` — say, from a
+direct `chassis.` call inside the action — has that verdict honored. When mechanisms land,
+`intake.in` becomes such a callable and chains here without the recipe layer changing shape.
+Until then, `then` is where your own glue code goes.
+
+## What a recipe deliberately can't do
+
+- **`drive(speeds, frame)`** — a recipe is a *sequence*; `drive` is a per-loop-iteration
+  primitive for driver control and experts ([Chapter 10](10-the-api.md)). Call it directly if
+  a routine truly needs it.
+- **`cancel()`** — the panic stop belongs to whatever supervises the routine, not to a step
+  inside it. (The chain does use it internally when it stops on a failure.)
+- **Branching on the pose** — recipes don't look at where the robot is between steps; when
+  your strategy does, read `chassis.pose()` between steps, exactly as `guide-09c` reads the
+  world mid-routine. That's not a workaround; it's the intended shape of mixed-tier code.
+
+## Where you are now
+
+You can write a complete, honest autonomous routine in about ten lines, know exactly what it
+does when a step fails, and drop to the full API mid-routine whenever your strategy outgrows
+a step. The full verb fine print is [Chapter 10](10-the-api.md); reading a stopped run's
+transcript is [Chapter 11](11-reading-the-diagnostics.md).
+
+---
+
+*Next: [Chapter 10 — The API, as prose](10-the-api.md).*

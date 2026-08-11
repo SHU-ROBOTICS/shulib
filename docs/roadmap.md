@@ -190,7 +190,26 @@ not silently break them. This table is the spine of the no-staleness promise.
 > produce: the recipe cookbook and generated API reference (D3, needs D1), the
 > VexBuilder-based "first auton in 10 minutes" flow (G4), and a guide validated by an actual
 > new reader — it has not had one yet.**
-> **Next: chunk D1 — the Tier 2 recipe API** (then D2 freezes F6).
+> **Chunk D1 (the Tier-2 recipe API) is DONE, 2026-08-11 — in the working tree pending
+> review/commit**: `include/shulib/chassis/routine.hpp` — `Routine`, an EAGER fluent chain
+> over the facade (each step runs as it is chained, so a routine reads and runs top-to-bottom
+> — the deferred/`.run()` alternative was analyzed and rejected in the D1 completion record).
+> Twelve step verbs (startAt / moveTo / driveTo / strafeTo / turnTo / face /
+> followTrajectory / brake / hold / pause / waitFor / then), every one a single delegated
+> facade call — the recipe-vs-facade TWIN is bit-identical clean AND hostile, so C1–C4's
+> accuracy numbers carry over verbatim, and the chain's error policy is decided and pinned:
+> first failure → STOP + SAFE (0 V + Brake) + SKIP the rest (logged) + REPORT
+> (`RoutineResult` with step index/name/cause/exit). Guarantees re-verified THROUGH the
+> chain: ODO_STUCK abort (named, prompt, damage-bounded), watchdog + never-live boot, C2's
+> hostile bound, mixed-tier interop (recipe steps and direct verbs interleave — no cliff).
+> Guide chapter 09 written with 3 compiled examples (`guide-09a/b/c`, quoted verbatim);
+> suite 686 / 916,026 green; 19 mutations run, all observed red — two of them verify holes
+> found by pre-analysis and closed with sole-detector tests (a no-op `startAt` masked by
+> every rig's auto-seed; speed budgets silently dropped in delegation), see the D1
+> completion record. **What D1 did NOT do: freeze F6** (that is D2's, informed by D1's
+> facade critique — the completion record's top section), and `.then(intake.in)` remains a
+> labeled placeholder until F1/F3 build mechanisms.
+> **Next: chunk D2 — the F6 freeze review** (D1's facade critique is its input packet).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -826,7 +845,14 @@ tuned on the brain mid-session. **Freezes:** F9.
   by following it as written; guide↔README cross-linked. Honest scope: covers the Tier-3 C++
   API only (Tier 0–2 don't exist yet), and no genuinely-new reader has used it yet — M7's own
   DoD ("a brand-new member follows the guide without help") stays open.
-- [ ] Tier 2 **recipe API** — `chassis.moveTo(p).then(intake.in)…` (fluent, hard to misuse).
+- [~] Tier 2 **recipe API** — `chassis.moveTo(p).then(intake.in)…` (fluent, hard to misuse).
+  *Built at chunk D1 (2026-08-11): `include/shulib/chassis/routine.hpp` — an eager fluent
+  chain (`Routine`) whose every step delegates to one facade verb, with a tested
+  stop/safe/skip/report policy on the first failed step. 14 cases in
+  `test/chassis_recipe_test.cpp` + 3 guide examples (suite 681 / 916,003, green 2026-08-11);
+  the recipe-vs-facade twin is bit-identical clean AND hostile, so C1–C4 baselines carry
+  over verbatim. Marked `[~]`, not `[x]`: `.then(intake.in)` itself cannot exist until
+  mechanisms do — `then()` is the labeled placeholder seam, and F1/F3 own the rest.*
 - [ ] "Your first auton in 10 minutes" guide (build → export → drag a path → run).
 - [ ] Recipe cookbook.
 - [ ] **Generated API docs** published to the team website (this roadmap + the capability catalog are

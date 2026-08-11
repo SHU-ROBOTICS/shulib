@@ -96,8 +96,9 @@ Before calling a guide change done:
 - [ ] Any new term appears in the glossary
 - [ ] No jargon introduced without a definition at first use
 - [ ] Every cross-reference matches the actual filenames. **Numbering need not be contiguous** —
-      gaps are deliberately reserved slots (chapter 09 is held for D1's recipe API, so it lands as an
-      *added file* with nothing renumbered). Leave reserved gaps alone; don't "fix" them.
+      gaps are deliberately reserved slots (chapter 09 was held for D1's recipe API and filled at D1
+      exactly this way: an *added file*, nothing renumbered). Leave reserved gaps alone; don't "fix"
+      them.
 - [ ] Nothing was restated that could have been linked
 - [ ] No sentence sounds like advertising
 

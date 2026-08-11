@@ -4,6 +4,7 @@
 //
 // Mapping (keep in sync with the guide — see docs/guide/README.md):
 //   guide-08a/b/c  -> docs/guide/08-your-first-routine.md   (the tutorial)
+//   guide-09a/b/c  -> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
 //   guide-10a..e   -> docs/guide/10-the-api.md              (API idioms)
 //
 // The guide quotes these bodies VERBATIM. If you change code here, change the
@@ -22,6 +23,7 @@
 
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
+#include "shulib/chassis/routine.hpp"
 #include "shulib/diag/build_info.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/health_monitor.hpp"
@@ -38,6 +40,8 @@
 
 using namespace shulib::units::literals;
 using shulib::chassis::Chassis;
+using shulib::chassis::Routine;
+using shulib::chassis::RoutineResult;
 using shulib::chassis::TrajectoryResult;
 using shulib::control::ExitReason;
 using shulib::hal::fake::FakeCharSink;
@@ -311,6 +315,108 @@ TEST_CASE("guide-08c: a starved timeout exits TimedOut — and the log says so")
     CHECK(capture.text().find("✗TIMEOUT") != std::string::npos);
 
     printIfRequested(capture.text());
+}
+
+// ═══ guide-09a: chapter 8's auton, one tier up — the recipe chain ══════════════════
+
+// The same routine as chapter 8's firstRoutine, written as a recipe: each
+// step runs (and blocks) the moment it is chained, so the routine reads in
+// exactly the order the robot acts. If any step fails, the chain stops, parks
+// the robot, and skips the rest — r.ok() tells you which world you are in.
+RoutineResult firstRecipe(Chassis& chassis) {
+    Routine r{chassis, "first-recipe"};
+    r.startAt(Pose2d{-48_in, -24_in, 90_deg})
+        .moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 5.0})
+        .moveTo(Pose2d{-12_in, 12_in, 45_deg},
+                {.timeoutSeconds = 4.0, .maxLinearSpeed = Velocity{20.0}})
+        .strafeTo(-12_in, 24_in, {.timeoutSeconds = 3.0})
+        .turnTo(135_deg, {.timeoutSeconds = 2.0})
+        .hold(0.3)   // stand your ground for 0.3 s…
+        .brake();    // …then park, braked
+    return r.result();
+}
+
+TEST_CASE("guide-09a: the first recipe — chapter 8's routine in one readable chain") {
+    const auto kin = shulib::kinematics::xDrive(7_in);
+    auto simCfg = motion_rig::plantConfig();
+    simCfg.plant.initialPose = Pose2d{-48_in, -24_in, 90_deg};
+    motion_rig::ChassisRig c{kin, simCfg};  // the suite's standard pre-wired stack
+
+    const RoutineResult res = firstRecipe(c.chassis);
+
+    // What the chapter claims, held as assertions: the whole chain succeeded…
+    CHECK(res.ok);
+    CHECK(res.steps == 7);
+    CHECK(res.completed == 7);
+    CHECK(res.skipped == 0);
+    // …six of the seven steps were motions (startAt only seeds the pose)…
+    CHECK(c.chassis.scheduler().motionsStarted() == 6);
+    // …and the robot is genuinely at the last target, on ground truth.
+    const Pose2d goal{-12_in, 24_in, 135_deg};
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), goal) < 1.0);
+    CHECK(motion_rig::headErr(c.rig.h.truePose(), goal) < 0.035);
+}
+
+// ═══ guide-09b: what a failed step looks like — the chain's error policy ═══════════
+
+TEST_CASE("guide-09b: when a step fails, the chain stops — and says so") {
+    const auto kin = shulib::kinematics::xDrive(7_in);
+    shulib::hal::fake::FakeTelemetrySink log;  // on the robot: the terminal
+    motion_rig::ChassisRig c{kin, motion_rig::plantConfig(), &log};
+
+    // 0.5 s is not enough to cross half the field, so step 2 times out. The
+    // chain then STOPS: the drive is put in the safe state (0 V + brake) and
+    // step 3 is skipped — a routine that kept driving from a position it is
+    // not at would compound the miss blindly.
+    Routine r{c.chassis, "starved"};
+    r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeoutSeconds = 5.0})
+        .moveTo(Pose2d{60_in, 40_in, 0_deg}, {.timeoutSeconds = 0.5})
+        .turnTo(90_deg, {.timeoutSeconds = 2.0});
+
+    // The result says WHERE it stopped and WHY — a strategy branch, not a mystery.
+    CHECK_FALSE(r.ok());
+    const RoutineResult res = r.result();
+    CHECK(res.stoppedAt == 2);                // which step failed…
+    CHECK(res.exit == ExitReason::TimedOut);  // …and the motion's honest verdict
+    CHECK(res.completed == 1);
+    CHECK(res.skipped == 1);                  // the turn never ran
+
+    // The transcript names it too (one Warn from the routine layer).
+    bool sawStop = false;
+    for (int i = 0; i < log.size(); ++i) {
+        if (log.at(i).message.find("'starved' STOPPED at step 2 (moveTo)")
+            != std::string::npos) {
+            sawStop = true;
+        }
+    }
+    CHECK(sawStop);
+}
+
+// ═══ guide-09c: tank recipes and the no-cliff rule ═════════════════════════════════
+
+TEST_CASE("guide-09c: tank recipes — face the point, drive to it; the full API stays "
+          "one line away") {
+    const shulib::kinematics::TankKinematics kin{12_in};
+    motion_rig::ChassisRig c{kin};
+
+    // A tank drive cannot slide sideways, and shulib never pretends it can
+    // (chapter 4). In a recipe YOU still write the turn — in field words:
+    // face the point, then drive to it.
+    Routine r{c.chassis, "tank-recipe"};
+    r.face(0_in, 24_in, {.timeoutSeconds = 3.0})
+        .driveTo(0_in, 24_in, {.timeoutSeconds = 8.0});
+    CHECK(r.ok());
+    CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{0_in, 24_in, 90_deg}) < 1.0);
+
+    // No cliff between tiers: the full API is the same chassis, mid-routine.
+    // Here the direct turnTo IS this leg's "face", done one tier down…
+    REQUIRE(c.chassis.turnTo(0_deg, {.timeoutSeconds = 3.0}) == ExitReason::Settled);
+    // …and the same chain object carries on afterwards, unconfused.
+    r.driveTo(24_in, 24_in, {.timeoutSeconds = 8.0}).brake();
+    CHECK(r.ok());
+    CHECK(motion_rig::posErr(c.rig.h.truePose(),
+                             Pose2d{24_in, 24_in, c.rig.h.truePose().heading()})
+          < 1.0);
 }
 
 // ═══ guide-10a: per-call options override the config for ONE motion ════════════════

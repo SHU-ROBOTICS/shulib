@@ -76,10 +76,19 @@ byte-pinned diagnostics tests, which the chapter names.
 - **Link check, mechanical:** 164 relative links + anchors across the 15 guide files + the
   README's guide links — **all resolve** (script in the progress log; GitHub-style slug
   matching for anchors).
-- **Removability (C7's property):** the grep
+- **Removability (C7's property):** a full mv-`docs/internal`-aside pass shows every public link
+  still resolves with internal absent — which is the property that matters, and it holds.
+  ⚠ **Corrected at D1 (2026-08-11):** this bullet originally claimed the grep
   (`docs/internal|internal/|chunks/|RESUMING|build-order|-COMPLETED|-PROGRESS|guide-maintenance`
-  over README + test/README + docs/*.md + docs/guide/*.md) is **empty**, and a full
-  mv-docs/internal-aside pass shows every public link still resolves with internal absent.
+  over README + test/README + docs/*.md + docs/guide/*.md) was **empty**. It was not, and it was
+  not empty at C8's own commit either (`3437d72`): it returns **5 hits** — two in `roadmap.md`,
+  one each in `hardware-assumptions.md`, `diagnostics-plan.md`, `legacy-command-vocabulary.md`.
+  All five are **prose mentions** of completion-record section names ("C2-COMPLETED §Mutations"),
+  **not markdown links**, so nothing breaks when `docs/internal/` is dropped — the property was
+  always sound; the stated evidence for it was wrong. The narrow four-term check
+  (`internal/|chunks/|RESUMING|build-order`) *is* empty, and `docs/guide/` is clean under both;
+  that is most likely the check actually run. Use the four-term grep as the gate and treat prose
+  mentions as a release-review nit, not a breakage.
 
 ## 4. Decisions recorded (alternatives were viable)
 
