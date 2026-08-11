@@ -26,7 +26,7 @@
 //    attack the fusion innovation gate exists for; damage must be bounded by it.
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-// Register: docs/planning/hardware-assumptions.md — HA-26..HA-29 (+HA-31 no-fix pose).
+// Register: docs/hardware-assumptions.md — HA-26..HA-29 (+HA-31 no-fix pose).
 //   * noiseSigma = 0.7 in/axis   — field-test folklore for on-strip jitter. (HA-26)
 //   * headingNoiseSigma = 1°     — GPS-derived heading is much worse than the IMU's. (HA-27)
 //   * updatePeriod = 50 ms       — the GPS camera's cadence guess. (HA-28)

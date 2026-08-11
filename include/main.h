@@ -1,8 +1,24 @@
 /**
  * \file main.h
  *
- * Contains common definitions and header files used throughout your PROS
- * project.
+ * The PROS project header: competition entry-point prototypes plus the PROS
+ * API. Rewritten at the C7 cutover (2026-08-10) when src/main.cpp was rewired
+ * onto the shulib v2 core.
+ *
+ * Deliberately minimal — three things the February version did are gone:
+ *   * `#include "shulib/api.hpp"` — the old umbrella header, deleted with the
+ *     rest of the pre-rebuild tree at the C7 cutover. v2 policy is
+ *     include-what-you-use: main.cpp includes the exact shulib headers it
+ *     wires, nothing re-exports the library wholesale.
+ *   * `using namespace pros; using namespace shulib;` — namespace pollution
+ *     in a header, inherited by every includer. v2 code qualifies its names.
+ *   * `#include "liblvgl/lvgl.h"` — nothing in the project touches LVGL
+ *     directly (the one legacy GUI idea worth keeping is planned as the
+ *     D-12 BrainHud; it will include what it needs, where it needs it).
+ *
+ * PROS-boundary note: this header and src/main.cpp are the ONLY project files
+ * that may include <pros/...> / "api.h". Everything under include/shulib/ is
+ * PROS-free by contract, and CI enforces that over the whole tree.
  *
  * \copyright Copyright (c) 2017-2023, Purdue University ACM SIGBots.
  * All rights reserved.
@@ -15,41 +31,7 @@
 #ifndef _PROS_MAIN_H_
 #define _PROS_MAIN_H_
 
-/**
- * If defined, some commonly used enums will have preprocessor macros which give
- * a shorter, more convenient naming pattern. If this isn't desired, simply
- * comment the following line out.
- *
- * For instance, E_CONTROLLER_MASTER has a shorter name: CONTROLLER_MASTER.
- * E_CONTROLLER_MASTER is pedantically correct within the PROS styleguide, but
- * not convenient for most student programmers.
- */
-#define PROS_USE_SIMPLE_NAMES
-
-/**
- * If defined, C++ literals will be available for use. All literals are in the
- * pros::literals namespace.
- *
- * For instance, you can do `4_mtr = 50` to set motor 4's target velocity to 50
- */
-#define PROS_USE_LITERALS
-
 #include "api.h"
-#include "liblvgl/lvgl.h"
-#include "shulib/api.hpp"
-
-/**
- * If you find doing pros::Motor() to be tedious and you'd prefer just to do
- * Motor, you can use the namespace with the following commented out line.
- *
- * IMPORTANT: Only the okapi or pros namespace may be used, not both
- * concurrently! The okapi namespace will export all symbols inside the pros
- * namespace.
- */
-using namespace pros;
-using namespace pros::literals;
-using namespace shulib;
-// using namespace okapi;
 
 /**
  * Prototypes for the competition control tasks are redefined here to ensure
@@ -66,13 +48,6 @@ void competition_initialize(void);
 void opcontrol(void);
 #ifdef __cplusplus
 }
-#endif
-
-#ifdef __cplusplus
-/**
- * You can add C++-only headers here
- */
-//#include <iostream>
 #endif
 
 #endif  // _PROS_MAIN_H_

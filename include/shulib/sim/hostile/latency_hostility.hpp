@@ -22,7 +22,7 @@
 // sample (bounded, documented — at 10 ms ticks the 256-slot ring spans 2.56 s).
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-// Register: docs/planning/hardware-assumptions.md — HA-24, HA-25, HA-30.
+// Register: docs/hardware-assumptions.md — HA-24, HA-25, HA-30.
 //   * imuLatency = 10 ms — smart-port refresh cadence; the IMU's true end-to-end
 //     delay is unmeasured. (HA-24)
 //   * gpsLatency = 50 ms — camera capture + solve + transport guess; E2's latency

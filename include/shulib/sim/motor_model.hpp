@@ -14,7 +14,7 @@
 // (sysid on real hardware) and R6 (measured constants fed back into this plant).
 // Whether this MODEL SHAPE (FF inversion + first-order lag) is itself adequate is a
 // registered assumption R6 falsifies by back-fit: A4 register HA-48
-// (docs/planning/hardware-assumptions.md).
+// (docs/hardware-assumptions.md).
 //
 // What IS modeled is exactly the relation the control stack already owns:
 //

@@ -418,7 +418,7 @@ TEST_CASE("Localizer: rejects an out-of-range config") {
 }
 
 // ── The A3 boot-guard fixes, pinned where they live (found by the hostile fakes:
-// see docs/planning/chunks/A3-COMPLETED.md flaws section). ──
+// see docs/internal/chunks/A3-COMPLETED.md (development log, shulib-v2 branch) flaws section). ──
 
 TEST_CASE("Localizer: never-ready IMU ticks fold NO odometry deltas (boot-poisoning guard)") {
     Rig r;

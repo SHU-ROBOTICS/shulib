@@ -33,7 +33,7 @@
 //    "error grows in the predicted direction", quantitatively.
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-// Register: docs/planning/hardware-assumptions.md — HA-15, HA-16.
+// Register: docs/hardware-assumptions.md — HA-15, HA-16.
 //   * driveTicksPerRev = 900     — V5 motor integrated encoder, GREEN cartridge, at
 //                                  the output shaft (red 1800 / blue 300). Cartridge-
 //                                  dependent and unverified against our gearing. (HA-15)

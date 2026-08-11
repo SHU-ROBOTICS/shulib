@@ -28,7 +28,7 @@
 // ON-ROBOT VALIDATION still required: confirm the as-mounted sensor matches its own
 // CW-positive doc strings (bench: a known +90° CW spin must DECREASE canonical heading
 // by 90°). If a bench test ever disagrees, the sign of the subtraction is the line to flip.
-// (A4 register HA-02, docs/planning/hardware-assumptions.md; R3 settles it.)
+// (A4 register HA-02, docs/hardware-assumptions.md; R3 settles it.)
 
 #include <cmath>
 

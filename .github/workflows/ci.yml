@@ -22,27 +22,32 @@ jobs:
       - name: Install host toolchain
         run: sudo apt-get update && sudo apt-get install -y cmake g++
 
-      # ARCHITECTURE GUARD: the dependency-free core (L0-L2) must never include
-      # <pros/*>. That PROS-freeness is exactly what makes it host-testable.
-      # Scope = the rebuilt core dirs; broadens to all of shulib/ after the M2
-      # legacy cutover removes the old PROS-coupled code.
-      - name: No <pros/> in the core
+      # ARCHITECTURE GUARD: the library must never include <pros/*>. That
+      # PROS-freeness is exactly what makes it host-testable. Scope = ALL of
+      # include/shulib/ (broadened at the C7 legacy cutover, 2026-08-10, when
+      # the old PROS-coupled code was deleted — the scope note here used to
+      # promise exactly that). src/main.cpp is the one deliberate exception:
+      # it lives outside include/shulib/ and is the single file that sees both
+      # worlds (the PROS entry point wiring the PROS-free core).
+      - name: No <pros/> in the library
         run: |
-          if grep -rnE --exclude-dir=pros '#[[:space:]]*include[[:space:]]*[<"]pros/' \
-               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/motion include/shulib/diag include/shulib/sim; then
-            echo "::error::core must stay PROS-free (no #include <pros/...>)"
+          if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib; then
+            echo "::error::include/shulib must stay PROS-free (no #include <pros/...>)"
             exit 1
           fi
-          echo "core is PROS-free"
+          echo "library is PROS-free (all of include/shulib)"
 
       # LAYERING GUARD (chunk A2, constraint 3): ground truth must never be reachable
       # from an estimator. shulib/sim/ (the host plant) may include the core; the core
       # may NEVER include shulib/sim/ — so code under test can only ever see the
       # synthesized fakes, and truth stays a harness/assertion-only quantity.
+      # Scope = all of include/shulib/ EXCEPT sim/ itself (--exclude-dir), so a
+      # new core directory is covered the moment it exists — an enumerated list
+      # rots (broadened alongside the PROS guard at the C7 cutover).
       - name: Core never includes the sim plant
         run: |
-          if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' \
-               include/shulib/core include/shulib/math include/shulib/units include/shulib/spec include/shulib/kinematics include/shulib/hal include/shulib/chassis include/shulib/control include/shulib/localization include/shulib/motion include/shulib/diag; then
+          if grep -rnE --exclude-dir=sim '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' \
+               include/shulib; then
             echo "::error::the core must not depend on shulib/sim (ground truth would become reachable from estimators)"
             exit 1
           fi

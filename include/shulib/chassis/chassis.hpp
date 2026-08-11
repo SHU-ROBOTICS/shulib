@@ -7,8 +7,9 @@
 // exercised it as a second independent consumer — a contract exercised once has
 // been exercised only by its author. Until D2, shapes here may still change
 // freely; after D2 they change only by version bump plus migration. The exact
-// candidate signatures and the reasoning for each are recorded in
-// docs/planning/chunks/C4-COMPLETED.md (the section D1 stresses and D2 reads).
+// candidate signatures and the reasoning for each are recorded in the C4
+// completion record (development log: docs/internal/chunks/C4-COMPLETED.md on
+// the shulib-v2 branch — the section D1 stresses and D2 reads).
 //
 // ═══ What this class is ══════════════════════════════════════════════════════════
 // The composition root of the MOTION stack: it owns the MotionScheduler and

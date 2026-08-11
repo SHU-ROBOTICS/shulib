@@ -33,7 +33,7 @@ internals never trip these flags; only our code is held to them.
 ## How we write tests
 
 Tests exist to **find bugs, not confirm the obvious** (see the
-[Testing discipline](../docs/planning/roadmap.md) in the roadmap). Each test targets a specific way the
+[Testing discipline](../docs/roadmap.md) in the roadmap). Each test targets a specific way the
 logic could be wrong (edge case, boundary, sign flip, wrap-around, NaN); we prefer **invariants/
 properties** swept across the input space over hand-picked points; and for load-bearing code we run a
 **mutation check** — deliberately break the implementation and confirm a test goes red. A suite that

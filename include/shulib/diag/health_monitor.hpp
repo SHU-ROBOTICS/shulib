@@ -49,7 +49,7 @@
 //    motors is unmeasured until R4.
 //  * brownoutVolts default 10.5 V — PROVISIONAL (A4 register HA-42): the true V5
 //    cutoff behaviour under load is unmeasured until R3/R4.
-//    (Register: docs/planning/hardware-assumptions.md.)
+//    (Register: docs/hardware-assumptions.md.)
 //
 // Single-task by contract, like the rest of diag/ (see fault.hpp).
 

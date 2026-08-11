@@ -47,7 +47,7 @@
 // exactly two draws per tick (spike roll, jitter), regardless of outcome.
 //   * jitterFrac = 0.2, spikeProb = 0.02, spikeFactor = 5 — PROVISIONAL (A4: HA-34):
 //     PROS task-contention statistics are unmeasured until R-phase telemetry.
-//     Register: docs/planning/hardware-assumptions.md — HA-34 (jitter), HA-32 (loop rate).
+//     Register: docs/hardware-assumptions.md — HA-34 (jitter), HA-32 (loop rate).
 
 #include <vector>
 

@@ -27,7 +27,7 @@
 //    carry a NaN anyway, by construction).
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-// Register: docs/planning/hardware-assumptions.md — HA-20..HA-23.
+// Register: docs/hardware-assumptions.md — HA-20..HA-23.
 //   * rateBiasMax = 1°/min       — the pessimistic community bound for a calibrated
 //                                  V5 IMU (typical reports: 0.1–0.5°/min). NOTE: at
 //                                  exactly 1°/min, F2's <1° @ 60 s has ZERO margin —

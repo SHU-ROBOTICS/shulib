@@ -17,7 +17,7 @@
 //     the pose, and northHeadingDeg CANNOT recover it (that knob is a rotation; an axis
 //     swap/flip is a reflection). Bench-measure the raw→wall mapping before any scored
 //     run — see the field-cal oracle test in gps_conversion_test.cpp.
-//     A4 register HA-01 (docs/planning/hardware-assumptions.md); R3 settles it. ***
+//     A4 register HA-01 (docs/hardware-assumptions.md); R3 settles it. ***
 //
 // ONE rotation parameter, northHeadingDeg = the canonical heading VEX-North points
 // toward. Default 90° (VEX-North = canonical +Y = away from red); the other canonical

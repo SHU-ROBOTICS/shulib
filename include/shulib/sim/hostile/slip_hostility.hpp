@@ -25,7 +25,7 @@
 //    scenario fact, not an emergent one.
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4 measures) ─────────
-// Register: docs/planning/hardware-assumptions.md — HA-37..HA-39.
+// Register: docs/hardware-assumptions.md — HA-37..HA-39.
 //   * accelThreshold = 80 in/s² — where traction breaks on our wheels/foam, unknown. (HA-37)
 //   * slipRetain = 0.7          — how much of the spin still propels during a slip. (HA-38)
 //   (Both also assume the field surface is traction-UNIFORM — one pair suffices: HA-39.)

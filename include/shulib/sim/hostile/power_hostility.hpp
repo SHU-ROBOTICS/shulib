@@ -31,7 +31,7 @@
 //    (A4 register HA-49).
 //
 // ── PROVISIONAL MAGNITUDES (A4 Hardware Assumptions Register; R4/R5 measure) ───────
-// Register: docs/planning/hardware-assumptions.md — HA-40..HA-44 (+HA-19 brownout
+// Register: docs/hardware-assumptions.md — HA-40..HA-44 (+HA-19 brownout
 // survivability, HA-49 unmodeled current limiting).
 //   * sagPerCommandedVolt = 0.02 V/V  — ≈1 V sag with 4 motors at full 12 V. (HA-40)
 //   * dischargeRate = 0.005 V/s       — ≈0.3 V over a 60 s run. (HA-41)

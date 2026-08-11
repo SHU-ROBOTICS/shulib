@@ -157,7 +157,7 @@ TEST_CASE("gpsToRobotPose: a PROS_ERR_F (off-strip/failed) read fails loud, not 
 
 // FIELD-CAL ORACLE (skipped — runs on hardware). The position-axis→compass binding
 // (VEX +X = East, +Y = North) is UNVERIFIED from PROS and a wrong guess MIRRORS the pose.
-// (A4 register HA-01, docs/planning/hardware-assumptions.md — R3 unskips this with measured values.)
+// (A4 register HA-01, docs/hardware-assumptions.md — R3 unskips this with measured values.)
 // Before a scored run: place the GPS at a known +1 m-East / +1 m-North point at a known
 // heading, read raw get_position()/get_heading(), and replace the expected values below
 // with the MEASURED raw→canonical mapping. Until then this records the missing oracle.
