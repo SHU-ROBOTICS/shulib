@@ -195,6 +195,51 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
 - A proper user guide is planned once the API surface freezes; until then the headers are
   written to be read (each one opens with *why it exists*, not just what it does).
 
+## Acknowledgments
+
+shulib v2 is a clean-room rebuild, but it stands on work that came before it.
+
+- **[@n0es](https://github.com/n0es)** — created the original shulib: the architecture, the
+  odometry system, and the multi-robot configuration idea that made the library outlast a single
+  season. v2 re-derives rather than ports, but it was written by people who learned on v1, and
+  several of its design decisions exist because v1 showed what mattered.
+- **[LemLib](https://github.com/LemLib/LemLib)** — shaped the original library's design, and
+  remains the capability benchmark v2 measures itself against. LemLib is tank-only by design;
+  shulib v2 exists because our robots are holonomic and needed a different answer. Credit where
+  it's due: it set the bar.
+- **[PROS](https://pros.cs.purdue.edu/)** — the open-source V5 runtime this library targets.
+- **Purdue ACM SIGBots** — for building and maintaining PROS, and for keeping it open.
+
+*A note on provenance:* v2 shares no code with v1 or with LemLib. The rebuild was deliberately
+clean-room — every algorithm re-derived from first principles and tested against an independent
+oracle rather than copied. That discipline caught two real bugs the original carried (see
+[`docs/roadmap.md`](docs/roadmap.md)), and it means everything here is ours to explain and defend.
+
+---
+
+## Contributing
+
+shulib is open, and we'd rather it be used than admired. If you're on another team and want to
+build on it, fork it — that's what it's for. Bug reports and questions are welcome via
+[Issues](https://github.com/SHU-ROBOTICS/shulib/issues).
+
+If you're contributing code, two things are non-negotiable, and they're the same two we hold
+ourselves to:
+
+1. **Tests that try to break the code**, not confirm it works. Every test should target a
+   specific way the logic could be wrong. If you can't name the bug it would catch, it isn't
+   pulling its weight.
+2. **Honest status.** A checkbox flips when there's evidence — a named test, a real measurement.
+   Half-finished stays half-finished. We under-claim before we over-claim, and the whole
+   repository depends on that being true.
+
 ## License
 
-shulib is released under the [MIT License](LICENSE).
+shulib is released under the [MIT License](LICENSE) — use it, modify it, ship it.
+
+---
+
+<p align="center">
+  <b>Built by Seton Hall University Robotics</b><br>
+  <i>For the next generation of builders</i>
+</p>
