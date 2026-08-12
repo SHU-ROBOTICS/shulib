@@ -7,11 +7,14 @@
 > the shortest honest path to a working routine — or you'll be helping newer members write one.
 > **Assumes:** [Chapters 2](02-the-field-and-coordinates.md)–[8](08-your-first-routine.md).
 
-> **⚠ Stability notice.** The recipe layer is new (it landed with chunk D1), and it sits on
-> the `Chassis` API, which is deliberately **not frozen yet** — see
-> [Chapter 10's notice](10-the-api.md) and the
-> [roadmap's Freeze Register](../roadmap.md#freeze-register), row F6. The *ideas* here are
-> stable; hold exact spellings loosely until the freeze (D2).
+> **⚠ Stability notice.** The `Chassis` API underneath this layer is **frozen** (the
+> [Freeze Register](../roadmap.md#freeze-register), row F6, locked 2026-08-12), so everything
+> a step *does* — the verb it delegates to, its behavior, its failure semantics — now changes
+> only with a major version bump and a migration note. `Routine` itself is a different story:
+> it stays **deliberately unfrozen until D3**, when the recipe cookbook becomes its second
+> independent consumer — the same rule that made the facade wait for this layer before
+> freezing. In practice: what a step does is settled; what a step is *called* is very unlikely
+> to change, but hold that last part loosely until D3.
 
 The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
@@ -49,12 +52,12 @@ This is chapter 8's `firstRoutine`, one tier up (from `guide-09a`):
 RoutineResult firstRecipe(Chassis& chassis) {
     Routine r{chassis, "first-recipe"};
     r.startAt(Pose2d{-48_in, -24_in, 90_deg})
-        .moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 5.0})
+        .moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeout = 5_s})
         .moveTo(Pose2d{-12_in, 12_in, 45_deg},
-                {.timeoutSeconds = 4.0, .maxLinearSpeed = Velocity{20.0}})
-        .strafeTo(-12_in, 24_in, {.timeoutSeconds = 3.0})
-        .turnTo(135_deg, {.timeoutSeconds = 2.0})
-        .hold(0.3)   // stand your ground for 0.3 s…
+                {.timeout = 4_s, .maxLinearSpeed = Velocity{20.0}})
+        .strafeTo(-12_in, 24_in, {.timeout = 3_s})
+        .turnTo(135_deg, {.timeout = 2_s})
+        .hold(300_ms)  // stand your ground for 0.3 s…
         .brake();    // …then park, braked
     return r.result();
 }
@@ -67,8 +70,9 @@ robot genuinely ends within an inch of the last target — measured on the simul
 truth, which the robot's own estimate never sees.
 
 Everything you learned in chapter 8 still applies underneath: the per-call options struct
-(`{.timeoutSeconds = …}`) is [Chapter 10's](10-the-api.md) `MotionOptions`, unchanged; typed
-units still refuse bare numbers at compile time (`.strafeTo(-12, 24, …)` does not build); and
+(`{.timeout = …}`) is [Chapter 10's](10-the-api.md) `MotionOptions`, unchanged; typed
+units still refuse bare numbers at compile time (`.strafeTo(-12, 24, …)` does not build, and
+neither does `.hold(0.3)` — durations are typed, `300_ms`); and
 the run report reads exactly as before, because the same motions run.
 
 ## The steps
@@ -86,8 +90,8 @@ verb's full behavior and gotchas, and they all apply verbatim.
 | `face(x, y, opts)` | Rotates in place to *face* a field point (the bearing, computed when the step runs) | `turnTo` |
 | `followTrajectory({…}, opts)` | Drives waypoints as chained moves; a leg that fails stops it | `followTrajectory` |
 | `brake(opts)` | Controlled stop: 0 V under brake until the estimate certifies rest | `brake` |
-| `hold(seconds, opts)` | Actively holds the current pose against disturbance | `hold` |
-| `pause(seconds)` | Waits, motors idle — the "wait for your partner" beat | `waitUntil` (a clock deadline) |
+| `hold(duration, opts)` | Actively holds the current pose against disturbance | `hold` |
+| `pause(duration)` | Waits, motors idle — the "wait for your partner" beat | `wait` |
 | `waitFor(pred, timeout)` | Waits for a condition; if the deadline passes first, **the chain stops** | `waitUntil` |
 | `then(action, name)` | Runs your code between motions (see the mechanism seam, below) | — |
 
@@ -127,9 +131,9 @@ motion_rig::ChassisRig c{kin, motion_rig::plantConfig(), &log};
 // step 3 is skipped — a routine that kept driving from a position it is
 // not at would compound the miss blindly.
 Routine r{c.chassis, "starved"};
-r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeoutSeconds = 5.0})
-    .moveTo(Pose2d{60_in, 40_in, 0_deg}, {.timeoutSeconds = 0.5})
-    .turnTo(90_deg, {.timeoutSeconds = 2.0});
+r.moveTo(Pose2d{12_in, 0_in, 0_deg}, {.timeout = 5_s})
+    .moveTo(Pose2d{60_in, 40_in, 0_deg}, {.timeout = 0.5_s})
+    .turnTo(90_deg, {.timeout = 2_s});
 
 // The result says WHERE it stopped and WHY — a strategy branch, not a mystery.
 CHECK_FALSE(r.ok());
@@ -177,16 +181,16 @@ motion_rig::ChassisRig c{kin};
 // (chapter 4). In a recipe YOU still write the turn — in field words:
 // face the point, then drive to it.
 Routine r{c.chassis, "tank-recipe"};
-r.face(0_in, 24_in, {.timeoutSeconds = 3.0})
-    .driveTo(0_in, 24_in, {.timeoutSeconds = 8.0});
+r.face(0_in, 24_in, {.timeout = 3_s})
+    .driveTo(0_in, 24_in, {.timeout = 8_s});
 CHECK(r.ok());
 CHECK(motion_rig::posErr(c.rig.h.truePose(), Pose2d{0_in, 24_in, 90_deg}) < 1.0);
 
 // No cliff between tiers: the full API is the same chassis, mid-routine.
 // Here the direct turnTo IS this leg's "face", done one tier down…
-REQUIRE(c.chassis.turnTo(0_deg, {.timeoutSeconds = 3.0}) == ExitReason::Settled);
+REQUIRE(c.chassis.turnTo(0_deg, {.timeout = 3_s}) == ExitReason::Settled);
 // …and the same chain object carries on afterwards, unconfused.
-r.driveTo(24_in, 24_in, {.timeoutSeconds = 8.0}).brake();
+r.driveTo(24_in, 24_in, {.timeout = 8_s}).brake();
 CHECK(r.ok());
 ```
 

@@ -76,11 +76,17 @@ the test suite.
 ### When the API changes, check in this order
 
 1. `test/guide_examples_test.cpp` — does it still compile and pass? (CI answers this for you.)
-2. Chapter 10 (the API chapter — it says of itself which parts are unfrozen), then chapter 8's
-   listings and transcripts, then chapter 11 if any output format moved.
+2. Chapter 10 (the API chapter), then chapter 8's
+   listings and transcripts, then chapter 11 if any output format moved. **The `Chassis` API
+   is frozen (F6, 2026-08-12):** a deliberate change to a frozen signature is a *breaking*
+   change — it rides a major version bump with a migration note
+   ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)) and an update to the
+   signature pin ([`test/f6_signature_pin_test.cpp`](../../test/f6_signature_pin_test.cpp));
+   the chapters follow the change, never lead it.
 3. Chapter 14 when a limitation falls (that's the *good* kind of doc rot — celebrate, then
    delete the paragraph and its glossary entries if any).
-4. When F6 freezes (D2): soften the stability warnings in chapters 9, 10, and 14.
+4. When D3 freezes the recipe spellings: soften chapter 9's remaining stability notice (and
+   chapter 14's "recipe spellings" bullet) the same way D2's freeze retired the API notices.
 
 ### Voice
 

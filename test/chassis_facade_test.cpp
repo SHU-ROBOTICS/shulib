@@ -20,6 +20,7 @@
 #include "shulib/localization/pilons_odometry.hpp"
 #include "shulib/motion/move_to_pose.hpp"
 #include "shulib/sim/scenario.hpp"
+#include "shulib/units/literals.hpp"
 
 using namespace motion_rig;
 using shulib::PreconditionError;
@@ -27,6 +28,7 @@ using shulib::chassis::Chassis;
 using shulib::chassis::MotionOptions;
 using shulib::control::ExitReason;
 using shulib::hal::BrakeMode;
+using shulib::hal::LogLevel;
 using shulib::hal::fake::FakeTelemetrySink;
 using shulib::kinematics::TankKinematics;
 using shulib::kinematics::xDrive;
@@ -69,6 +71,12 @@ template <typename... Args>
 concept TurnToCallable = requires(Chassis& c, Args... a) { c.turnTo(a...); };
 template <typename... Args>
 concept FollowCallable = requires(Chassis& c, Args... a) { c.followTrajectory(a...); };
+template <typename... Args>
+concept HoldCallable = requires(Chassis& c, Args... a) { c.hold(a...); };
+template <typename... Args>
+concept WaitCallable = requires(Chassis& c, Args... a) { c.wait(a...); };
+template <typename... Args>
+concept WaitUntilCallable = requires(Chassis& c, Args... a) { c.waitUntil(a...); };
 
 static_assert(!std::is_copy_constructible_v<Chassis>);   // owns the pinned scheduler
 static_assert(!std::is_move_constructible_v<Chassis>);
@@ -83,6 +91,18 @@ static_assert(StrafeToCallable<Length, Length>);
 static_assert(!TurnToCallable<double>);
 static_assert(TurnToCallable<Angle>);
 static_assert(!FollowCallable<>);  // waypoints are required
+// The D2 time retype: a bare NUMBER is not a duration. hold(500) written by
+// someone thinking in milliseconds would compile and hold pose for 500 s of a
+// 15 s match — the exact misuse class the typed surface exists to reject.
+static_assert(!HoldCallable<double>);
+static_assert(!HoldCallable<int>);
+static_assert(HoldCallable<shulib::units::Time>);
+static_assert(!WaitCallable<double>);
+static_assert(!WaitCallable<int>);
+static_assert(WaitCallable<shulib::units::Time>);
+using PinPred = bool (*)();
+static_assert(!WaitUntilCallable<PinPred, double>);
+static_assert(WaitUntilCallable<PinPred, shulib::units::Time>);
 
 // ═══ The standalone promise: file-free construction, written out longhand ══════════
 
@@ -202,9 +222,9 @@ TEST_CASE("C4 stamping: every record of every facade verb carries its command id
 
 // ═══ Per-call options ══════════════════════════════════════════════════════════════
 
-// Bug caught: options.timeoutSeconds silently ignored (every motion riding the
+// Bug caught: options.timeout silently ignored (every motion riding the
 // 5 s config default) — the per-call budget is how routines bound their legs.
-TEST_CASE("C4 options: timeoutSeconds bounds the verb — a laterally-impossible tank "
+TEST_CASE("C4 options: timeout bounds the verb — a laterally-impossible tank "
           "target exits TimedOut at the OPTION's budget, not the default") {
     const TankKinematics kin{Length{12.0}};
     ChassisRig c{kin};
@@ -419,6 +439,76 @@ TEST_CASE("C4 hold: holds position for the requested window and reports honestly
     CHECK(held < 1.0);
     CHECK(posErr(c.rig.h.truePose(), before) < 0.6);  // it held its ground
     CHECK_THROWS_AS(c.chassis.hold(Time{0.0}), PreconditionError);  // nonsense window
+}
+
+// ═══ wait(): the do-nothing verb (adopted at D2) ═══════════════════════════════════
+
+// Bug caught: wait() energizing the drive (that is hold's job — a wait that
+// fights a defender is commanding motion nobody asked for), failing to advance
+// the world, overrunning into its backstop, logging a spurious Warn (the D1
+// finding that motivated the verb: the naive waitUntil(false-pred) spelling
+// Warn-spams every deliberate pause), or raising a fault for a planned beat.
+TEST_CASE("D2 wait: commands nothing, advances exactly the window, stays silent") {
+    FakeTelemetrySink sink;
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin, plantConfig(), &sink};
+
+    // Settle a motion first so the drive has a known state (stopped, 0 V).
+    REQUIRE(c.chassis.moveTo(Pose2d{Length{10.0}, Length{0.0}, Angle{}},
+                             {.timeout = Time{8.0}})
+            == ExitReason::Settled);
+    const Pose2d before = c.rig.h.truePose();
+    const double t0 = c.rig.h.clock().now().value();
+    const int logsBefore = sink.size();
+
+    c.chassis.wait(Time{0.7});
+
+    const double elapsed = c.rig.h.clock().now().value() - t0;
+    CHECK(elapsed >= 0.7);   // it genuinely waited…
+    CHECK(elapsed < 0.75);   // …to the tick, NOT into the 1 s backstop
+    // Commanded nothing: every motor still at the settled state's 0 V, and
+    // the robot did not move.
+    for (int w = 0; w < c.rig.h.motorCount(); ++w) {
+        CHECK(c.rig.h.motor(w).commandedVoltage().value() == 0.0);
+    }
+    CHECK(posErr(c.rig.h.truePose(), before) < 0.2);
+    // Silent: no Warn from any subsystem, and no fault — a wait is a plan,
+    // not a pathology.
+    for (int i = logsBefore; i < sink.size(); ++i) {
+        CHECK(sink.at(i).level != LogLevel::Warn);
+    }
+    CHECK_FALSE(c.rig.latch.hasFault());
+}
+
+// Bug caught: wait() accepting a nonsense window (zero, negative, NaN) and
+// spinning forever or returning instantly — a programming error must stay
+// loud and early, exactly like hold's precondition one door down.
+TEST_CASE("D2 wait misuse: zero, negative, and NaN durations throw") {
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin};
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    CHECK_THROWS_AS(c.chassis.wait(Time{0.0}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.wait(Time{-1.0}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.wait(Time{nan}), PreconditionError);
+}
+
+// Bug caught (D2 brief constraint 4): a sign/scale slip in the _ms or _s
+// literal conversion — INVISIBLE to any test that uses the same literal on
+// both sides of its assertion. So this pin is one-sided: 2500_ms must be
+// 2.5 SECONDS of *simulated clock*, asserted against the clock and the
+// hand-written absolute 2.5, never against another literal. (2500/1000 and
+// 2.5 are both exact in binary, so the compile-time equality is exact too.)
+TEST_CASE("D2 duration pin: 2500_ms is 2.5 s of simulated clock, absolutely") {
+    using namespace shulib::units::literals;
+    static_assert((2500_ms).value() == 2.5);   // the conversion constant itself
+    static_assert((2.5_s).value() == 2.5);     // and the seconds literal agrees
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin};
+    const double t0 = c.rig.h.clock().now().value();
+    c.chassis.wait(2500_ms);
+    const double elapsed = c.rig.h.clock().now().value() - t0;
+    CHECK(elapsed >= 2.5);    // fired at 2.5 s of clock…
+    CHECK(elapsed < 2.55);    // …within one 10 ms tick, hand-computed bound
 }
 
 // ═══ cancel(): the panic stop through the facade ═══════════════════════════════════

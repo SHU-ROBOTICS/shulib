@@ -4,7 +4,7 @@
 //
 // The register (docs/roadmap.md, "Freeze Register") says a LOCKED contract
 // changes "only with a schemaVersion/API-version bump and a migration path".
-// Until D2 (2026-08-11) no such version existed anywhere in the tree; this
+// Until D2 (2026-08-12) no such version existed anywhere in the tree; this
 // header is that mechanism, made inspectable in code instead of prose.
 //
 // ═══ The policy: what a version bump concretely IS ═══════════════════════════════
@@ -44,7 +44,7 @@ namespace shulib {
 
 /// Bumped ONLY for breaking changes to a frozen public surface, always with
 /// a migration note (policy above). 2 = the shulib v2 rebuild; the surface
-/// frozen at D2 (2026-08-11, register row F6) is API 2.0.
+/// frozen at D2 (2026-08-12, register row F6) is API 2.0.
 inline constexpr int kApiMajor = 2;
 
 /// Bumped for additive extensions of a frozen surface (new verbs, new

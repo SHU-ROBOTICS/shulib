@@ -342,7 +342,16 @@ TEST_CASE("guide-09a: the first recipe — chapter 8's routine in one readable c
     simCfg.plant.initialPose = Pose2d{-48_in, -24_in, 90_deg};
     motion_rig::ChassisRig c{kin, simCfg};  // the suite's standard pre-wired stack
 
+    const double t0 = c.rig.h.clock().now().value();
     const RoutineResult res = firstRecipe(c.chassis);
+
+    // Bug caught (D2 campaign find C1, the chunk's second green hole): a
+    // wrong-magnitude duration at a call site — .hold(300_s) where 300_ms was
+    // meant — kept every outcome assertion below green, because nothing here
+    // watched the CLOCK. A complete first auton must fit a match window with
+    // slack; the honest run takes ~8 s of simulated time, a thousand-fold
+    // hold mistake takes ~308 s. Bound is hand-computed, not another literal.
+    CHECK(c.rig.h.clock().now().value() - t0 < 12.0);
 
     // What the chapter claims, held as assertions: the whole chain succeeded…
     CHECK(res.ok);

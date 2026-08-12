@@ -52,16 +52,22 @@ and the team's < 1° end-of-run heading requirement is, by the master plan's own
 **not reliably achievable on a real robot** — absolute yaw correction is load-bearing for the
 spec, not a nice-to-have.
 
-## The API is not frozen
+## The recipe spellings can still change
 
-The `Chassis` surface you learned in [Chapter 10](10-the-api.md) is a *candidate* — deliberately
-unfrozen until a second, independent consumer had stress-tested its shapes. That consumer now
-exists (the recipe layer, [Chapter 9](09-the-recipe-api.md)), and the freeze review is the
-next chunk of work (D2); until it lands, nothing is frozen.
-Routines you write today may need mechanical updates when F6 freezes at D2. The
-[Freeze Register](../roadmap.md#freeze-register) is the authority on what is and isn't stable
-(the coordinate conventions, units, accuracy targets, hardware interfaces, and kinematics
-contract *are* locked).
+The `Chassis` API ([Chapter 10](10-the-api.md)) froze at D2 (2026-08-12, Freeze Register row
+F6): its signatures and documented behavior now change only with a major version bump and a
+migration note, and a compile-time pin in the test suite fails the build if a frozen signature
+drifts — routines written against it will not need rewriting. What is *still* open:
+
+- **The recipe layer's own spellings** ([Chapter 9](09-the-recipe-api.md)). `Routine` stays
+  deliberately unfrozen until the recipe cookbook (D3) has consumed it — the same
+  second-consumer rule that made the facade wait for the recipe layer before freezing. Every
+  step delegates to a frozen verb, so what a step *does* is stable; what it is *called* could
+  still move.
+
+The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and isn't
+stable (the coordinate conventions, units, accuracy targets, hardware interfaces, kinematics
+contract, and now the chassis API *are* locked).
 
 ## No easier tiers yet
 

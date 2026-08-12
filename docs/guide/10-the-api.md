@@ -7,13 +7,17 @@
 > writing real routines.
 > **Assumes:** Chapters 2–8.
 
-> **⚠ Stability notice.** This API is built and heavily tested, but **deliberately not frozen
-> yet**. The project's rule is that an interface freezes only after a second, independent
-> consumer has used it (the upcoming recipe API — chunk D1 — is that consumer; the freeze
-> happens at D2). Until then, signatures may still change, and this chapter is written to be
-> easy to revise. The current status lives in the
-> [roadmap's Freeze Register](../roadmap.md#freeze-register), row F6. The *concepts* here are
-> stable; hold the exact spellings loosely.
+> **Stability.** This API is **frozen** — the
+> [roadmap's Freeze Register](../roadmap.md#freeze-register), row F6, locked 2026-08-12.
+> Routines you write against it will not need rewriting: every signature and documented
+> behavior in this chapter changes only with a major API-version bump plus a migration note
+> ([`include/shulib/version.hpp`](../../include/shulib/version.hpp) states the policy), and
+> the freeze is enforced by a compile-time signature pin
+> ([`test/f6_signature_pin_test.cpp`](../../test/f6_signature_pin_test.cpp)) that fails the
+> build if a frozen signature drifts. New capability arrives *additively* — new verbs, new
+> options fields — never as reshapes. The freeze waited, deliberately, until a second
+> independent consumer ([Chapter 9](09-the-recipe-api.md)'s recipe layer) had used the
+> surface in anger; that layer's own spellings stay unfrozen until D3.
 
 The code examples in this chapter are compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-10a` through
@@ -38,13 +42,18 @@ compass-style angles, milliseconds from clocks — to canonical units at exactly
 no conversion ever happens twice or never. That discipline is
 [locked as F3 in the Freeze Register](../roadmap.md#freeze-register).)
 
-The one place you'll see plain doubles: genuinely dimensionless things, and `timeoutSeconds`
-in the options struct (a documented, named exception — the field name carries the unit).
+The only plain doubles left are genuinely dimensionless things (a fraction like
+`strafeAuthority()`, feedforward gains). Time is typed like everything else: `{.timeout = 5_s}`,
+`hold(500_ms)`. It wasn't always — the options timeout began life as a plain `timeoutSeconds`
+double, a documented exception where the field name carried the unit. The freeze review (D2)
+retyped it before locking the surface, precisely because `hold(500)` written by someone thinking
+in milliseconds would have *compiled* — and held pose for 500 seconds of a 15-second match.
+Now it doesn't compile.
 
 ## The motion verbs
 
-All five verbs share a contract worth internalizing once (the tutorial demonstrated it; the
-scheduler beneath enforces it):
+All the blocking verbs share a contract worth internalizing once (the tutorial demonstrated it;
+the scheduler beneath enforces it):
 
 - **They block** until the motion ends, and **cannot hang** — the watchdog bounds every path,
   including the wait-for-sensors boot window.
@@ -80,9 +89,9 @@ ExitReason tankGoTo(Chassis& chassis, shulib::units::Length x, shulib::units::Le
     const Pose2d here = chassis.pose();
     const Angle bearing = Angle::radians(
         std::atan2((y - here.y()).value(), (x - here.x()).value()));
-    const ExitReason turn = chassis.turnTo(bearing, {.timeoutSeconds = 3.0});
+    const ExitReason turn = chassis.turnTo(bearing, {.timeout = 3_s});
     if (turn != ExitReason::Settled) { return turn; }
-    return chassis.moveTo(Pose2d{x, y, bearing}, {.timeoutSeconds = 8.0});
+    return chassis.moveTo(Pose2d{x, y, bearing}, {.timeout = 8_s});
 }
 ```
 
@@ -113,7 +122,7 @@ nowhere-in-particular compounds the loss. It returns a `TrajectoryResult`, not a
 const TrajectoryResult ok = c.chassis.followTrajectory(
     {Pose2d{12_in, 0_in, 0_deg}, Pose2d{24_in, 12_in, 45_deg},
      Pose2d{24_in, 24_in, 90_deg}},
-    {.timeoutSeconds = 8.0});
+    {.timeout = 8_s});
 CHECK(ok.succeeded());
 CHECK(ok.completedLegs == 3);
 ```
@@ -152,19 +161,32 @@ field-relative command needs a heading, and the boot estimate doesn't have one y
 (`Frame::Body` works fine during boot). Each call runs exactly one loop iteration — sensor
 update, command, diagnostics record — so your loop's own timing sets the cadence.
 
-### `brake(options)` and `hold(seconds, options)` — stopping, actively
+### `brake(options)` and `hold(duration, options)` — stopping, actively
 
 `brake()` commands a stop and blocks until the estimate *certifies* the robot at rest (settling
 logic on speed instead of position). Use before actions that need a genuinely still robot.
-`hold(seconds)` actively holds the current pose for a duration, driving back anything that
-shoves the robot — the "someone will bump me while I score" verb, holonomic authority as a
-parking brake. These two are marked *candidate* verbs — most likely of anything here to be
-reshaped at the freeze review.
+`hold(duration)` actively holds the current pose for a duration — `hold(500_ms)` — driving back
+anything that shoves the robot: the "someone will bump me while I score" verb, holonomic
+authority as a parking brake. These two began as *candidate* verbs; the freeze review adopted
+them, because every complete routine written against the API used both — an auton surface that
+cannot park would have sent everyday code to the advanced seam.
+
+### `wait(duration)` — do nothing, on purpose
+
+`wait(2_s)` returns after two seconds of robot time, commanding nothing. The world keeps
+advancing (sensors, health checks, any active motion keep ticking), the drive keeps whatever
+state the last verb left it in — after a settled motion, stopped — and nothing is logged.
+This is the "sit still while your alliance partner clears the lane" beat that every real
+routine has. Deliberately distinct from `hold()`: `wait()` never energizes the drive, so it
+cannot fight a defender — it just lets time pass. And unlike `waitUntil`, there is no result
+to check: a wait has no failure mode, so it returns nothing. The duration must be finite and
+greater than zero.
 
 ## Options: per-call knobs
 
-Every verb takes a `MotionOptions` struct: `timeoutSeconds`, `maxLinearSpeed` (in/s),
-`maxAngularSpeed` (rad/s). Unset fields (0) mean "use the chassis-wide config." They affect
+Every verb takes a `MotionOptions` struct: `timeout` (typed time — `5_s`, `500_ms`),
+`maxLinearSpeed` (in/s), `maxAngularSpeed` (rad/s). Unset fields (0) mean "use the
+chassis-wide config." They affect
 **one call** (`guide-10a` pins that the chassis config is untouched afterwards). Nonsense values
 — NaN, negatives — are rejected loudly at the call, before anything moves; so are non-finite
 targets. The library's philosophy is that misuse fails *at the door*, never as a mystery
@@ -183,7 +205,7 @@ measured ([Chapter 14](14-what-it-cannot-do-yet.md)).
 brake mode, synchronously. With no motion active it's the panic stop and still safes the
 drivetrain. This is what you wire to an emergency condition.
 
-**`waitUntil(predicate, timeoutSeconds)`** — block until a condition of your choosing becomes
+**`waitUntil(predicate, timeout)`** — block until a condition of your choosing becomes
 true, or the timeout passes; returns which one happened (`Satisfied` / `TimedOut`, and you must
 look at the answer — the compiler warns if you discard it). The active motion, if any, keeps
 running while you wait. Crucially, a timed-out wait raises **no fault** — waiting for something
@@ -194,7 +216,7 @@ that didn't happen is a *strategy branch*, not an emergency (`guide-10e`):
 // piece a sensor never sees). The result is a value you must look at —
 // and no fault is raised: a timed-out wait is a strategy branch, not an
 // emergency.
-const WaitResult seen = c.chassis.waitUntil([] { return false; }, 0.5);
+const WaitResult seen = c.chassis.waitUntil([] { return false; }, 0.5_s);
 CHECK(seen == WaitResult::TimedOut);
 CHECK_FALSE(c.rig.latch.hasFault());
 ```

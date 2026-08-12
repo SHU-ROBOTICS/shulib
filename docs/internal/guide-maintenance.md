@@ -63,7 +63,7 @@ Some changes touch the guide's *framing*, not one chapter:
 | Event | Sweep |
 |---|---|
 | **D1 — recipe API lands** | **Add a chapter; don't rewrite the API chapter.** The full API stays valid — the recipe layer sits on top of it. Point new readers at the easier tier first. |
-| **D2 — F6 freezes** | Remove the "not frozen yet" notice from the API chapter. Until then it must stay. |
+| **D2 — F6 freezes** | ✅ Executed 2026-08-12: stability notices removed/rewritten in ch. 09, 10, 14, `chassis.hpp`'s banner, and the guide README's check-order list — atomically. Ch. 9 keeps ONE deliberate notice: `Routine`'s spellings stay unfrozen until D3 (they freeze with the cookbook). |
 | **R3 — first real robot run** | **The big one.** "Never run on a robot" appears in the README, the orientation chapter, the setup chapter, and the can't-do-yet chapter. Grep for it and update every instance in the same commit — a half-updated claim is worse than a stale one. |
 | **Phase E — correctors land** | The odometry/drift explanation changes meaningfully: drift becomes bounded rather than unbounded. Concept chapter and can't-do-yet chapter. |
 | **Phase F — mechanisms land** | New concepts, new API surface, new fault codes. Likely a new chapter. |

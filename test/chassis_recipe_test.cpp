@@ -204,6 +204,18 @@ static_assert(!RoutineFaceCallable<double, double>);
 static_assert(RoutineFaceCallable<Length, Length>);
 static_assert(!RoutineDriveToCallable<double, double>);
 static_assert(RoutineDriveToCallable<Length, Length>);
+// The D2 time retype, one tier up: hold(0.3) / pause(0.5) as bare numbers must
+// not compile — a duration is typed (300_ms) at every tier, or the misuse door
+// the facade shut would stand open here.
+template <typename... Args>
+concept RoutineHoldCallable = requires(Routine& r, Args... a) { r.hold(a...); };
+template <typename... Args>
+concept RoutinePauseCallable = requires(Routine& r, Args... a) { r.pause(a...); };
+static_assert(!RoutineHoldCallable<double>);
+static_assert(RoutineHoldCallable<shulib::units::Time>);
+static_assert(!RoutinePauseCallable<double>);
+static_assert(!RoutinePauseCallable<int>);
+static_assert(RoutinePauseCallable<shulib::units::Time>);
 // Two Routine handles over one chain would race the stop state — forbidden.
 static_assert(!std::is_copy_constructible_v<Routine>);
 static_assert(!std::is_move_constructible_v<Routine>);

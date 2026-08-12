@@ -3,6 +3,15 @@
 // Routine — the Tier-2 recipe layer (chunk D1, WS12/M7 pulled forward; master
 // plan §17).
 //
+// ═══ STATUS: DELIBERATELY OUTSIDE F6 — unfrozen until D3 ══════════════════════════
+// The Chassis facade this class delegates to froze at D2 (F6, 2026-08-12;
+// see chassis.hpp's banner), so everything a step DOES is stable. This
+// class's own surface — Routine, RoutineResult, RoutineStopCause, the step
+// spellings — is NOT in F6: D3's recipe cookbook is its second consumer and
+// may still reshape spellings before they freeze. Stated here because this
+// file lives in chassis/, where silence would read as "frozen too" (D2
+// ruling A2; the Freeze Register row F6 names the same exclusion).
+//
 // ═══ What this class is ══════════════════════════════════════════════════════════
 // A fluent, EAGER chain over the Chassis facade, so a complete autonomous
 // routine is ~10 readable lines:
@@ -238,8 +247,7 @@ public:
     }
 
     /// Controlled stop: 0 V under Brake until the estimate certifies rest
-    /// (Chassis::brake — a C4 candidate verb; if D2 removes it, this step
-    /// goes with it).
+    /// (Chassis::brake — a C4 candidate adopted into F6 at D2).
     Routine& brake(const MotionOptions& options = {}) {
         return motionStep("brake", [&] { return chassis_->brake(options); });
     }

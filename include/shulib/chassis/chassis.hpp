@@ -2,14 +2,23 @@
 //
 // Chassis — the public facade every auton is written against (chunk C4, WS6/M2).
 //
-// ═══ STATUS: BUILT, DELIBERATELY NOT FROZEN ═══════════════════════════════════════
-// This surface is the F6 CANDIDATE. It freezes at D2, after D1's recipe API has
-// exercised it as a second independent consumer — a contract exercised once has
-// been exercised only by its author. Until D2, shapes here may still change
-// freely; after D2 they change only by version bump plus migration. The exact
-// candidate signatures and the reasoning for each are recorded in the C4
-// completion record (development log: docs/internal/chunks/C4-COMPLETED.md on
-// the shulib-v2 branch — the section D1 stresses and D2 reads).
+// ═══ STATUS: FROZEN — F6, LOCKED 2026-08-12 (chunk D2, API 2.0) ═══════════════════
+// This surface is FROZEN. Every public member below — and the three public
+// types ChassisConfig / MotionOptions / TrajectoryResult — changes only with
+// a major API-version bump plus a migration note (include/shulib/version.hpp
+// states the policy); additive extension (new verbs, new MotionOptions
+// fields, new overloads) stays legal and is the intended growth path. The
+// freeze is enforced STRUCTURALLY: test/f6_signature_pin_test.cpp asserts
+// every frozen member's exact type at compile time and fails the build,
+// naming F6, if one drifts. NOT inside F6, deliberately: Routine /
+// RoutineResult / RoutineStopCause (routine.hpp — unfrozen until D3's
+// cookbook has consumed them); the scheduler's and deps bundle's OWN member
+// surfaces behind scheduler()/deps() (those belong to C1/C2's layers); and
+// the lower-layer config fields reached through ChassisConfig. The
+// candidate-era reasoning for each shape is in the C4 completion record and
+// the freeze rulings (what joined, what stayed out, and why) in the D2
+// completion record (development log, shulib-v2 branch:
+// docs/internal/chunks/C4-COMPLETED.md / D2-COMPLETED.md).
 //
 // ═══ What this class is ══════════════════════════════════════════════════════════
 // The composition root of the MOTION stack: it owns the MotionScheduler and
@@ -19,7 +28,7 @@
 // here, its test and its fix belong in the layer that owns it.
 //
 //   verbs      moveTo · strafeTo · turnTo · followTrajectory · drive(speeds, Frame)
-//   (candidate additions, D2 decides)        brake · hold
+//              brake · hold · wait  (C4 candidates + the D2 addition, all in F6)
 //   control    cancel (panic stop) · waitUntil(pred, timeout)
 //   state      pose · setPose · strafeAuthority · lastExitReason · lastCompleted
 //   Tier 3     scheduler() · deps() — the no-ceiling seam
@@ -301,7 +310,7 @@ public:
                                 options);
     }
 
-    // ── candidate verbs beyond the roadmap's five (D2 decides; header note) ────────
+    // ── the parking + pacing verbs (C4 candidates; adopted into F6 at D2) ──────────
 
     /// Stop the drivetrain (0 V under Brake) and block until the ESTIMATE
     /// certifies rest (or the watchdog fires). The controlled end-of-motion

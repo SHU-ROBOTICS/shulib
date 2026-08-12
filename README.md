@@ -129,24 +129,25 @@ control::ExitReason firstScore(chassis::Chassis& chassis) {
 
     // Drive to a field position AND rotate to a heading, simultaneously —
     // translation and rotation are independent on a holonomic drive.
-    chassis.moveTo(math::Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 3.0});
+    chassis.moveTo(math::Pose2d{-24_in, 0_in, 45_deg}, {.timeout = 3_s});
 
     // A slow, precise approach: per-call options cap this leg's speed.
     chassis.moveTo(math::Pose2d{-12_in, 12_in, 45_deg},
-                   {.timeoutSeconds = 2.0, .maxLinearSpeed = units::Velocity{20.0}});
+                   {.timeout = 2_s, .maxLinearSpeed = units::Velocity{20.0}});
 
     // Sideways to the goal, actively holding the current heading.
-    chassis.strafeTo(-12_in, 24_in, {.timeoutSeconds = 2.0});
+    chassis.strafeTo(-12_in, 24_in, {.timeout = 2_s});
 
     // Face the corner — always the short way around.
-    const control::ExitReason last = chassis.turnTo(135_deg, {.timeoutSeconds = 1.5});
+    const control::ExitReason last = chassis.turnTo(135_deg, {.timeout = 1.5_s});
     return last;  // Settled, TimedOut, or Cancelled — never a lie, never a hang
 }
 ```
 
-Units are typed (`-48_in`, `90_deg` — a bare `double` will not compile where a length or angle
-belongs), every motion carries its own timeout, and if a fault fires mid-motion (say, the
-odometry catches a wheel lying) the motion aborts into a safe state and the exit reason says so.
+Units are typed (`-48_in`, `90_deg`, `3_s` — a bare `double` will not compile where a length,
+angle, or duration belongs), every motion carries its own timeout, and if a fault fires
+mid-motion (say, the odometry catches a wheel lying) the motion aborts into a safe state and the
+exit reason says so.
 
 Wiring a `Chassis` is ordinary C++ too — construct a kinematics preset, the hardware interfaces,
 the localizer, and hand them over; no config file or code generator is ever required.

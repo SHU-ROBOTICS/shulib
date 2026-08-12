@@ -123,7 +123,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F3 | **Units & `Angle` semantics** — internal inches + radians + **seconds**; degrees only at the API edge; one wrap type normalized to `(-π,π]`; `shortestError(a,b)==wrap(b-a)` with the exact-180° case → **+π** (not −π), pinned by a red-on-failure test | Every numeric API signature | M0 | ✅ **LOCKED 2026-06-19** |
 | F4 | **HAL interface signatures** — the 10 runtime HAL interfaces `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`. *(The config-ingestion seam `IRobotConfig`/`IRouteSource` — decision #10 — is authored at M5 with its `RobotConfig`/`Route` schema, F7/F8; not part of this runtime-HAL freeze.)* | All three runtime targets (robot/sim/test) | M1 | ✅ **LOCKED 2026-06-19** *(freeze-reviewed by a 30-agent full-set pass + exercised by `RobotContext`; on-V5 `hal/pros` adapters pending the toolchain)* |
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
-| F6 | **Public `Chassis` API** — `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)` | Every auton ever written on shulib | M2 | 🎯 *(candidate BUILT at C4 2026-08-10 — deliberately NOT frozen; freezes at **D2** after D1's second consumer; candidate surface + additions `brake`/`hold` recorded in the C4 completion record (development log, `shulib-v2` branch) §8)* |
+| F6 | **Public `Chassis` API** — the whole facade surface, by group: **construction** `Chassis(deps, pacer, config = {})` + non-copyable/non-movable; **blocking verbs** `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `wait(Time)` — the last three adopted at D2; **manual verb** `drive(ChassisSpeeds, Frame)`, `Frame` required; **control** `cancel()` / `waitUntil(pred, Time)`; **state** `pose` / `setPose` / `strafeAuthority` / `lastExitReason` / `lastCompleted` / `motionConfig`; **Tier-3 seam** `deps()` / `scheduler()` (both overloads); **three public types** `ChassisConfig` / `MotionOptions` (existing fields frozen; the field *set* additive-open by design) / `TrajectoryResult` (incl. `succeeded()`); **plus the documented semantics** the header carries (blocking + watchdog, pre-empt, cancel safe state, fault policy, wait-for-live, strafe-fallback visibility). Time is typed `units::Time` across the surface (the D2 retype; `hold(500)` does not compile). **Deliberately OUTSIDE F6:** `Routine` / `RoutineResult` / `RoutineStopCause` — unfrozen until D3's cookbook (its second consumer); the `MotionScheduler` / `MotionDeps` member surfaces reached through `scheduler()`/`deps()` (C1/C2's layers — only the accessors freeze here); the lower-layer config fields reached through `ChassisConfig` (they belong to their layers). Enforced structurally: compile-time signature pin `test/f6_signature_pin_test.cpp` (36 pins, mutation-proven) + the version mechanism `include/shulib/version.hpp` (API 2.0, breaking-vs-additive policy written) | Every auton ever written on shulib | M2 | ✅ **LOCKED 2026-08-12** *(at D2, after D1's second consumer; the nine-item critique rulings + rejected alternatives are the D2 completion record's centrepiece)* |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
@@ -138,9 +138,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3 — the
 > library has NEVER run on a physical robot, and the hal/pros adapters that would let it drive
 > one are R1's deliverable.**
-> **The auton API exists — and F6 is deliberately NOT frozen** (D1 stresses it as a second
-> consumer; D2 freezes): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,
-> Frame)` + candidate `brake`/`hold`, blocking (async+waitUntilSettled), watchdog-bounded,
+> **The auton API exists and is FROZEN — F6 LOCKED at D2 (2026-08-12), API 2.0**
+> (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
+> `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,
+> Frame)` + `brake`/`hold`/`wait` (adopted at D2), blocking (async+waitUntilSettled),
+> watchdog-bounded, typed `units::Time` everywhere,
 > `Frame` REQUIRED at the call site (frame confusion is a compile error). One composition root
 > feeds scheduler and every motion, so command-id stamping is STRUCTURAL (C2's convention gap
 > closed, 138-assertion mutation pin). Facade routines are BIT-IDENTICAL to the scheduler-built
@@ -206,10 +208,26 @@ not silently break them. This table is the spine of the no-staleness promise.
 > suite 686 / 916,026 green; 19 mutations run, all observed red — two of them verify holes
 > found by pre-analysis and closed with sole-detector tests (a no-op `startAt` masked by
 > every rig's auto-seed; speed budgets silently dropped in delegation), see the D1
-> completion record. **What D1 did NOT do: freeze F6** (that is D2's, informed by D1's
+> completion record. **What D1 did NOT do: freeze F6** (that was D2's, informed by D1's
 > facade critique — the completion record's top section), and `.then(intake.in)` remains a
 > labeled placeholder until F1/F3 build mechanisms.
-> **Next: chunk D2 — the F6 freeze review** (D1's facade critique is its input packet).
+> **Chunk D2 (the F6 freeze) is DONE, 2026-08-12** (completion record: development log,
+> `shulib-v2` branch): all nine D1 §2 critique items ruled with rejected alternatives
+> (time RETYPED to `units::Time` with full-suite output byte-identical; `wait(Time)`
+> ADOPTED as an additive void verb; `brake`/`hold` ADOPTED; the runtime-mask deferral
+> CLOSED; the fallback-getter rejection KEPT; sugar stays recipe-layer; three result
+> vocabularies ACCEPTED + flagged for F2; all four §8 tensions confirmed no-change with
+> additive paths named), all 18 C4 §2 ledger rows re-checked, and the freeze made
+> STRUCTURAL: 36 compile-time signature pins that fail the build naming F6
+> (mutation-proven member by member), `include/shulib/version.hpp` (API 2.0, the
+> breaking-vs-additive policy the register had been promising with no machinery), the F6
+> row rewritten to enumerate the real surface with `Routine`'s exclusion explicit, and
+> the not-frozen notices swept atomically. The campaign (44 mutations) found and closed
+> two green holes: the pin was blind to noexcept-dropping on non-overloaded members, and
+> a thousand-fold `hold(300_s)` call-site mistake survived every outcome assertion —
+> `guide-09a` now clock-bounds the whole first recipe (< 12 s simulated).
+> **Next: chunk D3 — the recipe cookbook** (Routine's second consumer; its spellings
+> freeze after it, not before).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -620,18 +638,23 @@ DoD in Phases C–F depends on it.*
   the Phase A retrospective (development log, `shulib-v2` branch).*
 
 **Facade (WS — Chassis)**
-- [~] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
-  *BUILT at chunk C4 (2026-08-10), deliberately NOT frozen — F6 freezes at D2 after D1's second
-  consumer. `chassis/chassis.hpp`: the five verbs plus candidate `brake()`/`hold()` (an auton must
-  be able to park — D2 decides), `cancel()`/`waitUntil()`, pose/setPose/strafeAuthority, and the
-  Tier-3 seam (`scheduler()`/`deps()`). `drive()`'s `Frame` parameter is REQUIRED (frame confusion
-  is a compile error, static_assert-pinned). One composition root makes id stamping structural
-  (C2's gap closed, mutation-proven); facade routines BIT-IDENTICAL to the scheduler twin (clean +
-  hostile), so C1–C3 baselines carry over verbatim; every lower-layer guarantee re-tested THROUGH
-  the facade; file-free plain-C++ construction tested (the §16.2 standalone promise). Evidence:
-  the C4 completion record (development log, `shulib-v2` branch); suite 592/915,157; 22 mutations (20 red, 2 green
-  holes closed).
-  Marked `[~]` not `[x]` because the F6 row's own DoD includes the D2 freeze.*
+- [x] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.
+  *BUILT at chunk C4 (2026-08-10); **FROZEN at chunk D2 (2026-08-12) — F6 LOCKED, API 2.0.**
+  `chassis/chassis.hpp`: the five verbs plus `brake()`/`hold(Time)`/`wait(Time)` (the C4
+  candidates + D2's one sanctioned addition, all adopted into F6), `cancel()`/`waitUntil()`,
+  pose/setPose/strafeAuthority/lastExitReason/lastCompleted/motionConfig, and the Tier-3 seam
+  (`scheduler()`/`deps()`). Time is typed `units::Time` across the surface (the D2 retype —
+  `hold(500)` does not compile; full-suite output proven byte-identical through the change).
+  `drive()`'s `Frame` parameter is REQUIRED (frame confusion is a compile error — now an F6
+  negative pin). One composition root makes id stamping structural (C2's gap closed,
+  mutation-proven); facade routines BIT-IDENTICAL to the scheduler twin (clean + hostile), so
+  C1–C3 baselines carry over verbatim; file-free plain-C++ construction tested (the §16.2
+  standalone promise). The freeze is enforced: `test/f6_signature_pin_test.cpp` (36 compile-time
+  pins, every member mutation-proven to fail the build naming F6) + `include/shulib/version.hpp`
+  (the breaking-vs-additive policy). `Routine` deliberately stays OUTSIDE F6 until D3. Evidence:
+  the C4 + D2 completion records (development log, `shulib-v2` branch); suite 690/916,050;
+  D2's campaign: 44 mutations executed, 2 green holes found and closed (a noexcept-blind pin;
+  a clock-blind call-site case).*
 
 **Diagnostics & observability (WS13)** — *pulled forward so M2–M3 are debuggable as built (§18)*
 - [x] `DebugRecord` per-tick snapshot schema, behind the `ITelemetrySink` seam (already at M1).
@@ -717,9 +740,10 @@ DoD in Phases C–F depends on it.*
   TODO(R1) at each line an adapter replaces; `make` succeeds and produces the uploadable hot/cold
   package (`bin/hot.package.bin` + `bin/cold.package.bin`); `src/legacy/` + `include/legacy/` are
   deleted (34 files); the CI PROS-free guard covers all of `include/shulib/`; the new `shulib/` is
-  the only tree. `[~]` not `[x]` because two of this bullet's clauses are NOT done and are owned
-  elsewhere: **hardware-validation on the V5 is OPEN (R3)** — this package has never run on a
-  robot and cannot drive one until R1's hal/pros adapters exist — and the **F6 freeze is D2's**.*
+  the only tree. The **F6 freeze clause closed at D2 (2026-08-12)** — LOCKED, enumerated,
+  pin-enforced. `[~]` not `[x]` because one clause is NOT done and is owned elsewhere:
+  **hardware-validation on the V5 is OPEN (R3)** — this package has never run on a
+  robot and cannot drive one until R1's hal/pros adapters exist.*
 
 **Definition of Done:** a hand-written X-drive auton chains profiled motions and settles within
 tolerance in host sim; the *same* auton runs the H-bot; **the run is legible in real time on the
@@ -729,7 +753,8 @@ runs entirely on the new core**. **Freezes:** F6.
 *Status at C7 (2026-08-10): every host-sim clause is met and the deletion is done. The final
 clause is true STRUCTURALLY — the new core is the only thing `main.cpp` wires, and the package
 compiles, links, and would boot — but "runs" has never been demonstrated on a V5: that is R3's
-on-robot clause, still open. The F6 freeze is D2's. This milestone does not close until both.*
+on-robot clause, still open. **The F6 freeze closed at D2 (2026-08-12)** — LOCKED in the
+register above, pin-enforced. This milestone does not close until the on-robot clause does.*
 
 ---
 

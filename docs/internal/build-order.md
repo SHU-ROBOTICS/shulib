@@ -262,9 +262,39 @@ input packet): the headline is that **every duration on the frozen surface is a 
 `hold(500)` compiles and holds pose for 500 seconds inside a 15-second match — while `units::Time`
 and `_s`/`_ms` literals already exist. That is cheap to fix now and a versioned migration after D2.
 
-**Next: chunk D2 — the F6 freeze review.** Its input is D1-COMPLETED §2, item by item; the two
-decisions that cost the most if deferred are retyping time and whether to add a `wait(seconds)`
-verb.
+**Chunk D2 — the F6 freeze: DONE 2026-08-12**
+([completion record](chunks/D2-COMPLETED.md), live log in [D2-PROGRESS.md](chunks/D2-PROGRESS.md)).
+**F6 is ✅ LOCKED — and for the first time a freeze in this project means something mechanical.**
+Three things were wrong when the brief was written, and all three are fixed. The register row
+enumerated five verbs while the header exposed twenty; it now lists the whole surface by group and
+**names its exclusions**, `Routine` first and explicitly — silence in `chassis/` would have read as
+"frozen". "Frozen" had no machinery behind it: the register promised changes come only by version
+bump and migration, but no version identifier existed anywhere in the tree, so F1–F5 were locked
+against a promise with nothing under it; `include/shulib/version.hpp` now carries API 2.0 plus a
+written breaking-vs-additive policy that F7/F8/F9 will reuse. And nothing enforced a freeze at all —
+`test/f6_signature_pin_test.cpp` now pins every frozen member's exact type at compile time and fails
+the build **naming F6 and the member**, with remediation instructions in the message.
+
+The docket: all nine D1 §2 items ruled, each with its rejected alternative, plus A1–A4/B1–B3/C1–C6
+and a re-check of all 18 rows of C4's inherited-shape ledger (C4 wrote "anything missed here becomes
+permanent at D2" — that sentence was aimed here). The headline change is **time is now typed**:
+`units::Time` across the whole surface, so `hold(500)` — a match-losing 500-second hold from someone
+thinking in milliseconds — no longer compiles. The retype moved no number, and could not: `Time` is
+canonical seconds under F3, so `.value()` at the motion boundary is the identity; proven by staged
+full-suite output diffs before any new test landed. `wait(units::Time)` was adopted as an additive
+void verb, which also let `Routine::pause` become a pure delegation — restoring "every step is
+exactly one Chassis call".
+
+44 mutations executed, **two green holes found and closed**. The first is a genuine subtlety: a
+`noexcept` drop on a non-overloaded member survived the exact-cast pins, because a cast that *adds*
+`noexcept` is accepted — closed with compound `{ call } noexcept` requirements. The second is the
+one that matters most on a field: `.hold(300_s)` where `300_ms` was meant passed the guide's own
+example untouched, because the case asserted outcomes and never the clock. Closed with a
+hand-computed simulated-clock bound; independently re-verified to fail alone.
+
+**Next: chunk D3 — the recipe cookbook + generated API docs.** `Routine` is deliberately still
+unfrozen; D3 is its second consumer and freezes it afterwards, the same C4→D1→D2 pattern that just
+worked for the facade.
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
