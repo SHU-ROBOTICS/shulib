@@ -1,0 +1,105 @@
+# Static-site configuration for docs.shurobotics.com.
+#
+# The site is built from a PREPARED COPY of docs/, not from docs/ directly:
+# tools/prepare_site.py rewrites the 117 links that point into the source tree
+# (correct when GitHub renders the markdown in-repo, 404 on a rendered site)
+# into absolute GitHub URLs, and refuses to proceed if any internal
+# development doc would be published. See .github/workflows/pages.yml.
+#
+# Published from `main`, which does not contain docs/internal/ at all — the
+# exclusion below is belt-and-braces for the case where someone builds this
+# locally from the working branch.
+
+site_name: shulib
+site_description: >-
+  A holonomic-native autonomous library for VEX U robots, built by the
+  Seton Hall University robotics team.
+site_url: https://docs.shurobotics.com/
+repo_url: https://github.com/SHU-ROBOTICS/shulib
+repo_name: SHU-ROBOTICS/shulib
+edit_uri: ""            # docs are edited in-repo; an "edit" pencil on a
+                        # GENERATED api page would invite editing the wrong file
+
+docs_dir: site_src      # produced by tools/prepare_site.py — never docs/ directly
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: { icon: material/weather-night, name: Switch to dark mode }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: { icon: material/weather-sunny, name: Switch to light mode }
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.highlight
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - tables
+  - attr_list
+
+plugins:
+  - search
+
+# Fail the build on a bad link rather than publishing one. The docs are
+# checked mechanically in CI for exactly this reason; the site must not be
+# the one place where a dead link is tolerated.
+strict: true
+validation:
+  links:
+    absolute_links: ignore      # rewritten source links are absolute by design
+    unrecognized_links: warn
+
+exclude_docs: |
+  internal/
+
+nav:
+  - Home: index.md
+
+  - User guide:
+      - Overview: guide/README.md
+      - 1 — What is this?: guide/01-what-is-this.md
+      - 2 — The field and coordinates: guide/02-the-field-and-coordinates.md
+      - 3 — Knowing where you are: guide/03-knowing-where-you-are.md
+      - 4 — Drivetrains: guide/04-drivetrains.md
+      - 5 — Getting there: guide/05-getting-there.md
+      - 6 — How things fail: guide/06-how-things-fail.md
+      - 7 — Getting set up: guide/07-getting-set-up.md
+      - 8 — Your first routine: guide/08-your-first-routine.md
+      - 9 — The recipe API: guide/09-the-recipe-api.md
+      - 10 — The API, as prose: guide/10-the-api.md
+      - 11 — Reading the diagnostics: guide/11-reading-the-diagnostics.md
+      - 12 — When things go wrong: guide/12-when-things-go-wrong.md
+      - 13 — Extending the library: guide/13-extending-the-library.md
+      - 14 — What it cannot do yet: guide/14-what-it-cannot-do-yet.md
+      - 15 — Glossary: guide/15-glossary.md
+
+  - Cookbook:
+      - Overview: cookbook/README.md
+      - Getting there: cookbook/01-getting-there.md
+      - When a step fails: cookbook/02-when-a-step-fails.md
+      - Timing and partners: cookbook/03-timing-and-partners.md
+      - Drivetrains: cookbook/04-drivetrains.md
+      - Mixing tiers: cookbook/05-mixing-tiers.md
+
+  - API reference:
+      - Overview: api/README.md
+      - Chassis (F6): api/chassis.md
+      - Routine (F10): api/routine.md
+
+  - Project:
+      - Roadmap: roadmap.md
+      - Architecture and decisions: shulib-v2-master-plan.md
+      - Hardware assumptions: hardware-assumptions.md
+      - Diagnostics plan: diagnostics-plan.md
+      - Legacy command vocabulary: legacy-command-vocabulary.md
