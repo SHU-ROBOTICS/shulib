@@ -623,12 +623,24 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R1 — `hal/pros` adapters, with Phase T's `IController` seam folded in** (team lead's
-direction, 2026-08-13: R1 is the PROS-adapter chunk anyway, and driver control needs that seam).
-R1 → R3 → R4 is the recommended run: R3 closes M1 and M2's on-robot clause, open since June, and
-R4 replaces A3's invented sensor-noise magnitudes with measured ones — which is what makes every
-Phase E result mean something. A tank practice bot and a V5 brain are available; T2/T3, G1 and H1
-remain as hardware-free alternatives if the robot is unavailable.**
+**Next: R1a — `hal/pros` adapters for the drivetrain and the driver, with Phase T's `IController`
+seam folded in** ([brief](chunks/R1a-pros-adapters-drivetrain.md)). R1a → R1b → R3 → R4 is the
+recommended run: R3 closes M1 and M2's on-robot clause, open since June, and R4 replaces A3's
+invented sensor-noise magnitudes with measured ones — which is what makes every Phase E result mean
+something. A tank practice bot and a V5 brain are available; T2/T3, G1 and H1 remain as hardware-free
+alternatives if the robot is unavailable.**
+
+**R1 SPLIT INTO R1a + R1b, 2026-08-13** (team lead's direction, recorded in the deviations table).
+R1's scope as written here was nine adapters; reading the tree found it is really **fifteen** — four
+earlier chunks each wrote "R1 owns this" into their own headers (`digital_out.hpp:24` ADI digital out,
+`char_sink.hpp:11` the stdout adapter, `block_sink.hpp:34` the `/usd` adapter, `line_display.hpp:8`
+the controller-LCD adapter) — plus two new seams, a host test shim, `src/main.cpp`, and a bench
+session. That is 3–4× a chunk. The split line is **by consumer, not by convenience**: R1a is
+everything the drivetrain and a driver need and nothing external gates; R1b is everything a
+*mechanism* needs, and mechanisms are F3's, gated on build-team decisions that are not made.
+**R1b must land before R3**, which cannot walk the assumptions register without a distance and an
+optical sensor.
+
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
@@ -705,25 +717,30 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **D** | Make it usable | D1–D3 | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
-| **T** | Driver control | T1–T3 | — |
+| **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
 | **G** | No-code authoring | G1–G4 | needs VexBuilder |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
-| **R** | **Robot arrival** | R1–R6 | **needs hardware** |
+| **R** | **Robot arrival** | R1a, R1b, R2–R6 | **needs hardware** |
 | **F′** | Scoring primitives | F3–F4 | needs hardware + final mechanisms |
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**43 chunks.** C8 (the manual) was added at Phase C; **Phase T (T1–T3, driver control) was added
+**43 chunks.** C8 (the manual) was added at Phase C; **Phase T (driver control) was added
 2026-08-13** — the library's own one-stop-shop thesis (§15) is broken by needing a second library to
 drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only the INPUT half is
 missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
 nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
 
+*The total stayed at 43 across two changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
+now delivered by R1a rather than as its own chunk (−1). Both are recorded in the deviations table.*
+
 **T is placed after F and before G deliberately:** it is host-provable and externally ungated, so it
 belongs with the work that can proceed without VexBuilder, a field, or a second robot. T3 needs F1
-(the mechanism seam), which is done. **T1/T2 have no dependency on F2** and may be reordered ahead of
+(the mechanism seam), which is done. **T2 has no dependency on F2** and may be reordered ahead of
 it if a driver needs the robot sooner than the sequencer does — say so out loud if that happens, in
-the deviations table, rather than silently reshuffling.
+the deviations table, rather than silently reshuffling. T1 no longer appears here at all: the seam it
+was going to build is built by R1a, because R1a is the chunk that writes the PROS adapter behind it
+and a seam authored apart from its first real implementation is a seam shaped by a guess.
 
 > **There is no Phase B — deliberately.** An earlier draft's Phase B was the hardware bridge
 > (`hal/pros` + on-robot validation, right after Phase A); the reversal recorded in the
@@ -731,8 +748,9 @@ the deviations table, rather than silently reshuffling.
 > renumbering so that early notes, briefs and commit messages citing phase letters stay true.
 > A→C is not a typo; it is the reversal's fossil, kept visible on purpose.
 
-**28 of 40 chunks need no hardware** — and **21 of those (Phases A, C, D, E, F) need nothing external
-at all.** That is the great majority of the library, including its hardest and highest-value parts:
+**30 of 43 chunks need no hardware** — and **23 of those (Phases A, C, D, E, F, T) need nothing
+external at all.** That is the great majority of the library, including its hardest and highest-value
+parts:
 the motion layer, the estimator, the sequencer's guaranteed-park guarantee, and the accessibility
 layer. Hardware-dependent work is consolidated into Phase R and the tail so that **no host chunk ever
 waits on a robot**, and so the day hardware arrives there is a prepared checklist to run rather than an
@@ -1125,7 +1143,13 @@ quoted, not paraphrased, wherever the claim appears.
 >
 > Host-provable except for real latency, which is R-phase. No external gate.
 
-### T1 — `IController` seam + fakes
+### T1 — `IController` seam + fakes ⟵ **DELIVERED BY R1a, not as its own chunk**
+> **Re-homed 2026-08-13** (team lead's direction). R1a is the chunk that writes the `pros::Controller`
+> adapter behind this seam, and a seam authored apart from its first real implementation is a seam
+> shaped by a guess. The requirements below are unchanged and are carried verbatim into R1a's brief
+> as ruling T5; this entry stays here so the Phase T narrative reads whole and so anything citing
+> "T1" still resolves.
+
 The controller behind the HAL, as an **F4-additive sibling** — the same shape F1 used for
 `IDigitalOut`, and explicitly **outside** the F4 freeze. Analog axes normalized to `[-1, 1]` and
 digital buttons as bools, **normalized at the adapter edge** like every other F4 reader (the PROS
@@ -1273,14 +1297,64 @@ Live PID/FF tuning on the brain mid-session, no laptop.
 > **R1–R3 close M1's Definition of Done**, open since June: *identical numbers in a host test and on
 > the V5, swapping only `RobotContext`.*
 
-### R1 — `hal/pros/*` adapters
+### R1a — `hal/pros/*` adapters: the drivetrain and the driver ⟵ **[brief](chunks/R1a-pros-adapters-drivetrain.md)**
 The **only** files in the tree permitted to `#include <pros/*>`. Adapters for `IClock`, `IMotor`,
-`IRotation`, `IImu`, `IGps`, `IDistance`, `IOptical`, `IBattery`, `ITelemetrySink`. The already-built
-and red-teamed `imu_conversion.hpp` / `gps_conversion.hpp` pure functions wire in here — the
-conversions happen once, at the boundary.
+`IRotation`, `IImu`, `IGps`, `IBattery`, `ICharSink`, `ILineDisplay`, and `IController` — plus the
+real tick pacer (`pros::Task::delay_until`). The already-built and red-teamed `imu_conversion.hpp` /
+`gps_conversion.hpp` pure functions wire in here — the conversions happen once, at the boundary — and
+new pure conversions are extracted for motor, rotation and controller by the same recipe.
 
-**DoD:** every F4 interface has a PROS-backed implementation; the CI guard still passes; the ARM build
-compiles them.
+**`IController` is Phase T's T1, delivered here** (team lead's direction): axes normalized to
+`[-1, 1]` and buttons as bools at the adapter edge, edge detection above the seam, `isConnected()` as
+a positive validity signal, partner controller from the start. An **F4-additive sibling, outside that
+freeze**, exactly as F1's `IDigitalOut` was. **Phase T's T1 entry is therefore delivered by this
+chunk, not by a separate one.**
+
+**`ITelemetrySink` needs no adapter** — it already has `NullSink` / `TermSink` / `SdSink`, none of
+which touch PROS. What is PROS-backed is one layer below it: `ICharSink` (here) and `IBlockSink`
+(R1b). The old "nine F4 adapters" list double-counted one and hid the other.
+
+Three things this chunk must do that the original entry did not anticipate, each measured before it
+was written into the brief:
+
+- **The PROS SDK headers fail the ARM compile gate's own flags** (`-Wshadow` in `pros/rtos.hpp`,
+  `-Wsign-conversion` in `pros/motors.hpp` and `pros/rotation.hpp`) — third-party source we do not
+  own. A two-flag `#pragma GCC diagnostic` fence around the include block fixes it, and with the
+  fence the **ARM gate needs no exclusion at all**: 124 headers plus a PROS-including adapter compile
+  clean as one TU.
+- **The PROS-free guard must be amended path-anchored**, exempting exactly
+  `include/shulib/hal/pros/`. The cheap `--exclude-dir=pros` form was measured to MISS a violation
+  planted at `include/shulib/localization/pros/`.
+- **A host `pros/` shim makes adapter glue testable**, which the tree had assumed impossible. An
+  adapter was measured compiling, linking and running on the host under full strict flags. It tests
+  the adapter against our belief about PROS, never the belief itself — hardware tests the belief.
+
+**DoD:** every listed interface has a PROS-backed implementation; the amended CI guard passes **and
+is proven still to catch a violation elsewhere**; the ARM gate compiles them; the adapters are
+host-tested through the shim with the §6.2 mutation campaign executed; `src/main.cpp`'s `TODO(R1)`
+markers are resolved; `make` produces a package that uploads and boots; **and a bench smoke session
+is recorded with tank-bot provenance, claiming nothing beyond what it measured.**
+
+### R1b — `hal/pros/*` adapters: the mechanism seams
+`IDistance`, `IOptical`, `IDigitalOut`, `IBlockSink` (the `/usd` blackbox E1 shipped the interface
+for), and a **new `IDigitalIn` seam** + ADI adapter.
+
+**`IDigitalIn` is added on an open question, not a consumer** — whether the lift homes against a limit
+switch or against a stall is *still undecided*, and the seam is built anyway because it is cheap now
+and expensive to discover at R3 with the robot on the bench. That is a deliberate departure from F1's
+"a seam earns itself on a real consumer" standard, and it is defensible only because the shape has one
+degree of freedom and `IDigitalOut`'s header already rules every other question about it. **R1b ships
+the seam, the adapter and the fake — and no homing routine:** homing is F3's, and F3 is season content
+the students author.
+
+**Known trap, found while briefing R1a and owned here:** `pros::Distance::get_distance()` returns
+**9999 when it cannot detect an object** — an in-band magic number, not `PROS_ERR`, that converts to
+393.66 inches. And `get_confidence()` is only meaningful above 200 mm. An adapter that passes 9999
+through hands the dock-confirm logic a wall 33 feet away and calls it a reading.
+
+**R1b must land before R3**, which cannot walk the assumptions register without these sensors.
+
+**DoD:** as R1a, for these seams; the `IDigitalIn` register row says **not frozen** out loud.
 
 ### R2 — AI Vision adapter
 Vendor and extend the existing `ai_vision.hpp` wrapper into the `IVision`/`ITagSource` adapter, in
@@ -1408,6 +1482,9 @@ reorderings.**
 | **Recipe API + F6 freeze** | M7, after M3–M6 | D1–D2, right after the facade | Second consumer validates F6 *before* the freeze; Tier 2 is the surface students author against all season |
 | **Sequence engine before scoring primitives** | Both within M4 | F2 host-side; F3 deferred to F′ | The guaranteed-park guarantee is a scheduling property, provable without hardware or final mechanism designs |
 | **Legacy deleted before on-robot validation** | Delete after hardware-validating | C7 | The "safety net" doesn't compile, C6 salvages first, and git keeps history |
+| **R1 split in two** | *(n/a — this document's own R1)* | **R1a + R1b, split by consumer** | R1's entry said nine adapters; the tree says fifteen — four earlier chunks each wrote "R1 owns this" into their own headers. With two new seams, a host test shim, `main.cpp` and a bench session that is 3–4× a chunk. R1a is what the drivetrain and a driver need (nothing external gates it); R1b is what a *mechanism* needs, and mechanisms are F3's |
+| **T1 delivered by R1a** | *(n/a — Phase T is this document's own addition)* | **R1a** | R1a writes the `pros::Controller` adapter behind the `IController` seam. Authoring a seam in one chunk and its first real implementation in another is how a seam gets shaped by a guess instead of by a consumer — the exact argument F1 used for `IMechanism` |
+| **A digital-input seam built on an open question** | *(absent)* | **R1b** | Whether the lift homes on a limit switch or a stall is *undecided*. The seam is built anyway: cheap now, expensive to discover at R3 with the robot on the bench. A deliberate departure from "a seam earns itself on a real consumer", defensible only because a digital input has one degree of freedom and `IDigitalOut`'s header already rules every other question about it. **If the answer comes back "stall", it is a small unused sibling — stated, not discovered** |
 
 > **Reversal, recorded honestly.** An earlier draft of this document put the hardware bridge *before*
 > the motion layer, arguing that validating the HAL seam early keeps the blast radius of a conversion
