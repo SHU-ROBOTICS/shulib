@@ -87,6 +87,11 @@ target_compile_definitions(shulib_tests PRIVATE
 #                   since C8 — but it lived only in an internal verify script,
 #                   so until D3 a rotted example passed the build AND passed
 #                   CI. Found by mutation; a rule nothing runs is a convention.
+#   briefing-status the PROJECT-BRIEFING's generated block must match the repo,
+#                   AND its durable narrative must have been re-read since the
+#                   last completed chunk. A handoff nobody can trust is worse
+#                   than none: the next session believes it.
+#
 #   check-removability  no public document may reference docs/internal/, which
 #                   is dropped when this branch squash-merges to main. Same
 #                   story: the property was real, the enforcement was manual.
@@ -137,6 +142,7 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-fresh
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-examples
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-removability
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" check
   COMMAND "${CMAKE_COMMAND}" -E touch "${SHULIB_DOC_STAMP}"
   DEPENDS
     "${SHULIB_DOC_TOOL}"

@@ -54,8 +54,109 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
    ./build/test/shulib_tests | tail -3
    ```
 
-**Baseline you should see: 1018 test cases / 1,522,327 assertions / 3 skipped, all passing.** ARM gate
-clean at 124 headers. Tree clean. **25 commits unpushed.**
+### Current status — GENERATED, never hand-typed
+
+<!-- DURABLE-REVIEWED-AT: F2 -->
+
+> **How this document stays true — read this once, it is the whole system.**
+>
+> It has two halves, because staleness has two causes and only one is mechanical.
+>
+> 1. **The generated block below** carries everything derivable from the repo: position, next
+>    chunk, interrupted chunks, suite counts, headers, hardware assumptions, the Freeze Register,
+>    release lag, both CI guards run live, freeze-pin counts, verification harnesses, outstanding
+>    `TODO(chunk)` markers, honest partials, every deliberately-skipped test **by name**, flagged
+>    open defects, and the last ten commits. It is rewritten by
+>    `python3 tools/briefing_status.py generate`, and a **build gate fails if it drifts.**
+> 2. **The durable narrative** (§1 and §3 onward) cannot be derived — no tool can tell whether the
+>    trap list, the standards, the architecture tour or "what each chunk taught" are still *true*.
+>    So the gate does the only honest thing available: the stamp above names the last chunk at
+>    which a person re-read those sections, and **the build fails when work has landed since.**
+>
+> That second half is the point. A generated status block invites the belief that the document
+> cannot go stale, and that belief is more dangerous than the staleness — it is exactly the
+> "nothing looks wrong" failure D3's coverage gate was built to prevent. **The gate cannot check
+> the prose, so it makes a human check it, on a schedule set by the work itself.**
+>
+> **When it fires, ask:** did this chunk add a trap? invalidate a standard? change a layer or a
+> seam? make any sentence here false? Fix what drifted, then move the stamp.
+
+<!-- BEGIN GENERATED STATUS — regenerate with: python3 tools/briefing_status.py generate -->
+
+> **Everything below is DERIVED FROM THE REPO, not typed.** A build gate
+> (`briefing_status.py check`) fails if it drifts, so it cannot go stale
+> silently. Each line names where it comes from — re-check any of it.
+
+**Position:** 21 of 43 chunks complete · HEAD `101a3f1`
+
+- **Next up:** R1 — hal/pros adapters, with Phase T's IController seam folded in  
+  *(source: `build-order.md`'s `Next:` pointer)*
+- **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
+- **Suite:** 1,018 cases / 1,522,327 assertions, 3 skipped — **green**  
+  *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
+- **Public headers:** 124  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 93 registered, **0 settled** — next free is **HA-94**  
+  *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
+
+**Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
+
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2`
+
+**Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
+
+| Row | Contract | Status |
+|---|---|---|
+| **F1** | Coordinate frame — origin = field center, +X right, +Y… | ✅ LOCKED |
+| **F2** | Accuracy targets — heading < 1.0° (hard); ~1.0″ pose; ~… | ✅ LOCKED |
+| **F3** | Units & Angle semantics — internal inches + radians + s… | ✅ LOCKED |
+| **F4** | HAL interface signatures — the 10 runtime HAL interface… | ✅ LOCKED |
+| **F5** | IKinematics contract — twist (vx,vy,ω) ⇄ wheels + desat… | ✅ LOCKED |
+| **F6** | Public Chassis API — the whole facade surface, by group… | ✅ LOCKED |
+| **F7** | robotProfile sub-schema inside .vexbot — drivetrain/odo… | 🎯 pending |
+| **F8** | paths[] sub-schema + command-id vocabulary inside .vexbot | 🎯 pending |
+| **F9** | SHUL/2 telemetry wire protocol (v1) — the wire serializ… | 🎯 pending |
+| **F10** | Public Routine API (the Tier-2 recipe layer) — construc… | ✅ LOCKED |
+| **F11** | Mechanism seam + operation contract — hal::IMechanism /… | 🚧 open by design |
+| **F12** | Sequence engine (sequence/run_guard.hpp) — RunGuard (th… | 🚧 open by design |
+
+⚠️ **Register rows F1–F5 are NOT chunks F1–F5.** Row F2 is the accuracy targets; chunk F2 was the sequence engine. The collision is in shipped code (`spec/accuracy.hpp`). **Never edit rows F1–F5.**
+
+**Unreleased:** `origin/shulib-v2` +26 · `main` +186 · `release/v2` +26 commits ahead *(source: `git rev-list`. The docs site publishes from `main`, so anything ahead of it is not public.)*
+
+**Guards, run just now:** PROS-free PASS · sim-layering PASS · freeze pins: F6 50, F10 52
+
+**Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
+
+**Outstanding `TODO(chunk)` markers in shipped code** *(source: grep over `include/` and `src/`)*:
+
+> **R1**: 14
+
+**Honest partials:** 6 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+
+**Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
+
+- `test/accuracy_spec_test.cpp` — [acceptance][M3] end-of-60s fused pose within the row-F2 targets
+- `test/accuracy_spec_test.cpp` — [acceptance][M3] vision docking nests a 1.6in pin within kDockedPositionError
+- `test/gps_conversion_test.cpp` — gpsSensorPose: FIELD-CAL axis oracle — bench-measure before trusting
+
+**No open defects** are flagged with the 🔴 convention in `docs/internal/`.
+
+**Recent commits** *(the fastest way to see what just happened)*:
+
+```text
+101a3f1 docs(internal): PROJECT-BRIEFING — the complete context transfer
+de5f90b docs(internal): next-session prompt — R1 with the controller seam folded in
+0492176 fix(sequence): the hard floor could fire silently, and the zero-travel claim was plant-shaped
+1b20c56 docs(internal): F2's four independent probes landed — all hold, two items open
+28cb926 docs(internal): handoff after F2 — and the four checks that did not finish
+8223a7c F2 sequence engine (WS8): a guarantee, and the honest edges of it
+9915745 docs(chunks): F2 brief — the guarantee, measured before it was promised
+93f9196 fix(pins): F6 and F10 were blind to a frozen member GAINING noexcept
+cb8e8e8 F1 verification: the reviewer's independent oracle, and a repaired harness
+cb77fbc docs(plan): add Phase T — driver control, because the one-stop-shop claim was false
+```
+
+<!-- END GENERATED STATUS -->
 
 **If `git status` is dirty, a chunk was interrupted.** Read that chunk's `-PROGRESS.md` — appended in
 real time, so it is an honest record of exactly how far the work got — before doing anything else.
@@ -125,7 +226,10 @@ build: undocumented public member, stale generated reference, drifted example, i
 
 ---
 
-## 5. What is done — 22 chunks
+## 5. What each completed chunk actually delivered
+
+*(The authoritative list of which chunks are done is in the generated status block above.
+This section is the durable part: what each one taught or proved, which does not change.)*
 
 **Phase A — the ground to stand on**
 - **A1** `DebugRecord` + `TermSink` + fault discipline. Faults log and recover, never crash.
@@ -175,20 +279,8 @@ build: undocumented public member, stale generated reference, drifted example, i
 
 ## 6. The Freeze Register — what is locked and what is not
 
-| Row | Contract | Status |
-|---|---|---|
-| **F1** | Coordinate frame (origin field-centre, +X right, +Y from red, CCW+) | ✅ LOCKED |
-| **F2** | **Accuracy targets** — heading `< 1.0°` hard, ~1.0″ pose, ~0.25″ docked | ✅ LOCKED |
-| **F3** | Units & `Angle` semantics (inches, radians, seconds) | ✅ LOCKED |
-| **F4** | The 10 runtime HAL interface signatures | ✅ LOCKED |
-| **F5** | `IKinematics` contract | ✅ LOCKED |
-| **F6** | Public `Chassis` API | ✅ LOCKED (D2) |
-| **F7** | `robotProfile` sub-schema in `.vexbot` | 🎯 needs VexBuilder |
-| **F8** | `paths[]` + command-id vocabulary | 🎯 needs VexBuilder |
-| **F9** | `SHUL/2` telemetry wire | 🎯 M6 |
-| **F10** | Public `Routine` API | ✅ LOCKED (D3) — `then()` excluded |
-| **F11** | Mechanism seam + operation contract | 🚧 **NOT frozen, by design** |
-| **F12** | Sequence engine + run guard | 🚧 **NOT frozen, by design** |
+*(The live register — every row and its current status — is in the generated block
+above, parsed from `roadmap.md`, which owns it.)*
 
 **F11 and F12 say "not frozen" out loud** because D2 learned that silence in that register reads as
 "frozen". They freeze after a second real consumer stresses them — the build → second consumer →
@@ -539,7 +631,7 @@ Tick "Enforce HTTPS" once the cert appears. If Cloudflare's proxy is re-enabled,
 
 1. **Which sensors are going on the robots, and does the lift home on a switch or a stall?** (§14 —
    decides whether R1 adds a digital-input seam)
-2. **Whether to push.** 25 commits unpushed; `main`/`release/v2` are a full release behind and carry
+2. **Whether to push.** `main`/`release/v2` are a full release behind and carry
    none of E1–E4, F1, F2 or Phase T. The docs site publishes from `main`, so none of it is public.
 3. **R5 timing.** Building `tools/sysid` on the tank bot gives a validated tool and throwaway numbers,
    since gains never transfer across chassis. It may be worth deferring until a competition robot

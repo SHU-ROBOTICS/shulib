@@ -623,8 +623,12 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: Phase T (driver control, T1–T3) or G1 — hardware-free chunks remain; F3/F4 wait on
-hardware and build-team decisions.**
+**Next: R1 — `hal/pros` adapters, with Phase T's `IController` seam folded in** (team lead's
+direction, 2026-08-13: R1 is the PROS-adapter chunk anyway, and driver control needs that seam).
+R1 → R3 → R4 is the recommended run: R3 closes M1 and M2's on-robot clause, open since June, and
+R4 replaces A3's invented sensor-noise magnitudes with measured ones — which is what makes every
+Phase E result mean something. A tank practice bot and a V5 brain are available; T2/T3, G1 and H1
+remain as hardware-free alternatives if the robot is unavailable.**
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
