@@ -39,7 +39,9 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   autonomous routine drives all three, and drivetrains with limited sideways authority degrade
   predictably instead of silently.
 - **Localization**: arc-based odometry (exact SE(2) integration) with IMU-owned heading, fused
-  behind a correction seam that GPS- and vision-based correctors plug into later.
+  behind a correction seam with two correctors built on it — the V5 GPS (bounded position drift)
+  and AprilTags (the only absolute *heading* source in the library). Both proven against
+  simulated sensors only; see the honesty section below.
 - **Diagnostics**: per-tick structured records, leveled logs, first-fault latching, brownout and
   over-temperature monitoring, per-motion result lines, and an end-of-run summary — all through
   one telemetry seam.
@@ -66,12 +68,15 @@ current state, so here it is, third heading from the top:
 - Every physical constant in the tree (gains, geometry, sensor noise) is a labeled stand-in.
   [`docs/hardware-assumptions.md`](docs/hardware-assumptions.md) inventories them as falsifiable
   claims, each with its blast radius if wrong and the measurement that settles it.
-- No vision-based position correction yet (the seam exists; the correctors are planned work),
-  and no no-code routine authoring — routines are written in C++ today.
+- The vision/AprilTag corrector exists, but **no camera has ever been pointed at a tag by this
+  project**, and the library deliberately ships **no map of where the tags are** — that is your
+  input, and nobody here can cite one. Its accuracy claims are simulation claims
+  ([chapter 14](docs/guide/14-what-it-cannot-do-yet.md) states exactly what was measured and on
+  what). No no-code routine authoring either — routines are written in C++ today.
 
 ## How verified is it, honestly?
 
-**752 test cases, 936,895 assertions, all green, all off-robot** *(as of 2026-08-12; run
+**867 test cases, 1,091,167 assertions, all green, all off-robot** *(as of 2026-08-13; run
 `./build/test/shulib_tests` for the current figure).* That includes: closed-loop
 motion on three drivetrains graded against ground truth the estimator cannot see; a 9-attack
 survival matrix (every simulated hardware pathology must degrade to a fault code, never a
@@ -98,15 +103,17 @@ cmake --build build/test -j
 ./build/test/shulib_tests
 ```
 
-Expected tail of the output:
+The tail of the output looks like this — the counts grow as the library does, so match the
+*shape*, not the numbers:
 
 ```text
-[doctest] test cases:    659 |    659 passed | 0 failed | 3 skipped
-[doctest] assertions: 915570 | 915570 passed | 0 failed |
+[doctest] test cases:    ... |    ... passed | 0 failed | 3 skipped
+[doctest] assertions: ...... | ...... passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
 
-(The 3 skips are deliberate placeholders for on-robot acceptance numbers.)
+What matters is **0 failed** and **3 skipped**. The 3 skips are deliberate placeholders for
+on-robot acceptance numbers, and they stay skipped until there is a robot to measure.
 
 The V5 package (compiles and links the real ARM binary; uploading needs a V5 brain and
 [pros-cli](https://pros.cs.purdue.edu/v5/getting-started/), and remember — it boots, it does

@@ -459,8 +459,65 @@ not by anything in the report** — which is the argument for counting what a ca
 trusting its summary. Harness now traps PIPE and never checks out. Tree integrity re-verified at
 review: the multiply is present at `gps_conversion.hpp:75` and `:101`.
 
-**Next: E3 — `AprilTagCorrector`.** The second corrector — which is also what makes E2's
-substitution guard live rather than dead code.
+**Chunk E3 — `AprilTagCorrector`: DONE 2026-08-13**
+([completion record](chunks/E3-COMPLETED.md), live log in [E3-PROGRESS.md](chunks/E3-PROGRESS.md)).
+**The library can now correct heading — the first absolute yaw source it has ever had.** Three new
+headers (`hal/vision_conversion.hpp` for the corners→pose PnP, `localization/tag_map.hpp`,
+`localization/apriltag_corrector.hpp`), plus the heading path through `correction.hpp`,
+`complementary_fusion.hpp` and `localizer.hpp`. Suite **867 / 1,091,167**; ARM clean at 114 headers;
+44 mutations, 43 red, three holes found and closed. **15 new assumptions, HA-68…HA-82.**
+
+**T1 — yaw landed via the documented additive path, and the structure is the interesting part.**
+`FusionResult::headingNudge` is a bounded *increment*; the Localizer accumulates it into a
+**persistent bias** and publishes `imu.heading() + bias` as the tick's final write. The accumulator
+is not optional: the Localizer re-reads the IMU every tick, so a nudge applied to the published pose
+alone would be discarded on the next one — **the M2 red team's exact failure mode**, rediscovered
+structurally rather than by accident. A consequence nobody had anticipated was ruled the same way:
+the odometry delta must be re-expressed under the learned bias, or the *reported* heading improves
+while position keeps accruing `bias × distance`. With no heading corrector present, both paths are
+**bit-identical to pre-E3 by construction** (`==` on doubles, proven).
+
+**T2 — shulib ships no tag map, deliberately.** Nobody on this project can cite a table of AprilTag
+field poses, so inventing one and shipping it would be presenting a guess as a fact.
+`TagMap::add()` refuses an entry without provenance, or with a duplicate id. **T3** — PnP is a free
+function the corrector does not even include. **T4** — a `poll()`/`propose()` split, with cost
+*pinned* by replacing the global allocator: **0 allocations across 20,000 ticks**, and the counter
+was proved with a positive control before being trusted.
+
+**Three green holes**, the middle one worth keeping: PnP scale derived from a single axis; the
+**singular-system guard**, found by fuzzing 4M corner sets and then searching degenerate families,
+where an unguarded solve cheerfully reports *"a tag 5.99 inches away"* from four collinear pixels;
+and `providesHeading` not being load-bearing.
+
+**Two entries in the record that matter more than the feature.**
+*(1)* The chunk **overclaimed a bug and struck it.** It reported a "12.1013° overshoot" as a headline
+finding, having read `|bias − 12| = 0.101` and **inferred the sign** — it was 11.8987, an
+*undershoot*, and the tolerance was merely too tight. Measured properly, neither version overshoots
+and the difference is ~0.1% in convergence rate. The code change survives on algebra, not on
+evidence, and the associated mutation is recorded as **a GREEN it could not honestly close**,
+because any test tight enough to catch it would pin an invented constant. Retracting a finding is
+harder than reporting one, and the record is better for it.
+*(2)* **A reversed corner winding is catastrophic and completely silent** — 180° of heading error
+with the reprojection residual at machine zero, because a mirrored pose reprojects onto the same
+four pixels. No software self-check can detect it; only a physical tag can (HA-69, R2's).
+
+*Reviewer's independent verification.* I wrote a **from-scratch projection oracle** — the pinhole
+projection derived from the header's stated frames, sharing no code with the solver — and ran the
+PnP against it over **7 geometries / 70 assertions**: camera yawed both directions, off-centre
+mounts, tags raised above the camera (confirming `t_y` is correctly discarded), tag headings both
+ways. Every case recovers the pose I projected. **I also independently confirmed the winding
+finding**: reversed corners give `valid=true`, `reprojectionError=0`, and heading `0°` where `180°`
+is correct. That claim is not a caveat someone wrote defensively — it is real, and it is the single
+most dangerous thing in this chunk.
+
+*Also fixed at review:* the README's "expected output" block still showed **659 / 915,570** while the
+same file claimed 867 / 1,091,167 twenty lines earlier — a beginner following the build instructions
+would have concluded they had broken something. It now shows the *shape* and says the counts grow.
+Fourth instance this session of prose going stale in a way no build gate can see.
+
+**Next: E4 — the 5-state SE(2) EKF.** It inherits three named debts: the 12″ innovation ceiling
+(E2), the empty `gateMahalanobis` field that only a real covariance can fill (E2), and two
+correctors that currently cannot be weighed against each other when they disagree (E3).
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under

@@ -64,8 +64,23 @@ enum class GateReason : std::uint8_t {
     /// measurement five times. (E2)
     RejectedStaleFix = 7,
     /// The source claims a fix but reports a self-error too large to be worth folding —
-    /// a sensor saying "I can see, badly" rather than "I cannot see". (E2)
+    /// a sensor saying "I can see, badly" rather than "I cannot see". (E2) — reused at E3
+    /// for a tag detection below the confidence floor, which is the same statement.
     RejectedSensorQuality = 8,
+    /// A tag was SEEN but the tag map does not know where it is, so no absolute pose can be
+    /// derived from it. Distinct from RejectedNoFix on purpose: this is a CONFIGURATION error
+    /// the team can fix (an id missing from the map, or an empty map), not the field being the
+    /// field, and it is the one worth shouting about. (E3)
+    RejectedNoTagMapEntry = 9,
+    /// Every visible tag was outside the corrector's trusted range band — too close to fit in
+    /// the frame, or far enough that planar-PnP's heading ambiguity makes the orientation
+    /// untrustworthy (localization/apriltag_corrector.hpp). (E3)
+    RejectedTagRange = 10,
+    /// The newest vision frame is older than the corrector's freshness horizon: the vision task
+    /// has stalled, died, or was never started. Distinct from RejectedStaleFix (a frame already
+    /// folded — the normal steady state) and from RejectedNoFix (looked, saw nothing), because
+    /// "the camera stopped talking" calls for a different response than either. (E3)
+    RejectedObservationAge = 11,
 };
 
 /// Index vocabulary for DebugRecord::tickPhase — WHO consumed the loop budget this

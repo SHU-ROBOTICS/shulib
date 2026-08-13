@@ -14,8 +14,33 @@
 // out-vote the per-tick limit. Empty proposals → the position is returned unchanged (dead-reckon).
 //
 // `confidence` (∈[0,1]) is the complementary-tier gain; `positionStdDev` is carried on the proposal
-// for the M3 EKF's measurement noise R and is unused here. Heading is NEVER touched — the Localizer
-// re-stamps it from the IMU after fusion, so this policy can only move x/y.
+// for the M3 EKF's measurement noise R and is unused here.
+//
+// ── HEADING, ADDED AT E3 — AND WHY THIS STILL CANNOT SNAP ──────────────────────────────────
+// Until E3 this policy could not touch heading at all, because there was no absolute heading in
+// the tree to touch. `AprilTagCorrector` produces one, marks it with
+// `CorrectionProposal::providesHeading`, and this policy folds it by exactly the same recipe it
+// has always used for position:
+//   headingInnovation = predicted.heading().errorTo(measured.heading())   (shortest signed)
+//   • REJECT it if |innovation| > headingGate  → a mirrored tag or a wrong map entry can never
+//     yank the robot's idea of which way it faces.
+//   • else nudge = (maxHeadingGain · confidence) · innovation, CLAMPED to maxHeadingNudgeRate·dt.
+// Nudges sum and the sum is clamped once more, so N sources cannot out-vote the budget.
+//
+// THE STRUCTURAL POINT: what leaves here is an INCREMENT (`FusionResult::headingNudge`), never an
+// absolute heading. A policy that could return an absolute heading could snap; a policy that can
+// only return a bounded increment cannot, whatever a corrector claims. The Localizer folds the
+// increment into a persistent bias and composes the published heading from the IMU as the last
+// write of the tick, so the IMU stays the sole source of heading CHANGE (decision #4) and this
+// policy can only ever move a slow bias. The two regimes are both live and both tested: for
+// innovations under about a degree the GAIN binds (so the bias settles smoothly instead of
+// chattering), and above that the RATE CLAMP binds (so a large innovation can never arrive fast).
+//
+// Position and heading are gated INDEPENDENTLY. A fix may pass one and fail the other — they are
+// different measurements with different failure modes — so `applied`/`gated` continue to describe
+// POSITION exactly as they always did, and `headingApplied`/`headingGated` describe heading.
+// `GateAudit::reason` likewise stays position-primary; a heading rejection is read off the record
+// as a large `gateResidualHeading` with a zero `correctionDTheta`.
 
 #include <algorithm>
 #include <cmath>
@@ -24,6 +49,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/localization/correction.hpp"
 #include "shulib/localization/i_fusion_policy.hpp"
+#include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -37,6 +63,23 @@ struct ComplementaryFusionConfig {
     units::Length innovationGate{12.0};
     /// Fraction of the innovation pulled per tick at confidence == 1, in (0,1]. (M3-tuned.)
     double maxGain = 0.15;
+
+    // ── heading (E3) ───────────────────────────────────────────────────────────────────────
+    /// Reject a heading proposal whose |innovation| exceeds this — the never-snap gate for yaw.
+    /// 15 degrees is ~15x the heading drift a 60-second match is expected to accumulate (the
+    /// master plan's ~1 deg/min IMU figure, HA-20), so an innovation this large is far more
+    /// likely to be a mirrored tag winding, a wrong tag-map entry or a misidentified id than
+    /// real drift — and folding it would be worse than folding nothing.
+    /// PROVISIONAL (A4: HA-80).
+    units::AngleDim headingGate{15.0 * math::Angle::kPi / 180.0};
+    /// Fraction of the heading innovation pulled per tick at confidence == 1, in (0,1]. The
+    /// regulator near convergence. PROVISIONAL (A4: HA-81).
+    double maxHeadingGain = 0.15;
+    /// Per-tick heading budget as a RATE: at most `maxHeadingNudgeRate · dt` of bias change in
+    /// one tick, loop-rate-independent, exactly as maxNudgeRate bounds position. This is the
+    /// never-snap bound for yaw — the number that makes "a yaw reset can never happen" a
+    /// property of the code rather than a promise. 10 deg/s. PROVISIONAL (A4: HA-82).
+    units::AngularVelocity maxHeadingNudgeRate{10.0 * math::Angle::kPi / 180.0};
 };
 
 class ComplementaryFusion final : public IFusionPolicy {
@@ -48,6 +91,12 @@ public:
                             "ComplementaryFusion: innovationGate must be > 0");
         SHULIB_PRECONDITION(config.maxGain > 0.0 && config.maxGain <= 1.0,
                             "ComplementaryFusion: maxGain must be in (0, 1]");
+        SHULIB_PRECONDITION(config.headingGate.value() > 0.0,
+                            "ComplementaryFusion: headingGate must be > 0");
+        SHULIB_PRECONDITION(config.maxHeadingGain > 0.0 && config.maxHeadingGain <= 1.0,
+                            "ComplementaryFusion: maxHeadingGain must be in (0, 1]");
+        SHULIB_PRECONDITION(config.maxHeadingNudgeRate.value() >= 0.0,
+                            "ComplementaryFusion: maxHeadingNudgeRate must be >= 0");
     }
 
     [[nodiscard]] FusionResult fuse(const math::Pose2d& predicted,
@@ -71,6 +120,18 @@ public:
         double auditInnoX = 0.0;
         double auditInnoY = 0.0;
         bool haveAudit = false;
+
+        // E3 heading state — kept in its own set of variables, and gated independently of
+        // position, because they are different measurements with different failure modes.
+        const double maxHeadingNudge = config_.maxHeadingNudgeRate.value() * dt.value();
+        const double headingGate = config_.headingGate.value();
+        double headingSum = 0.0;
+        double maxHeadingConf = 0.0;
+        double auditInnoHeading = 0.0;
+        bool headingAccepted = false;
+        bool headingGated = false;
+        bool headingClamped = false;
+        bool haveHeadingAudit = false;
 
         for (const CorrectionProposal& p : valid) {
             const double innoX = p.fieldPose.x().value() - px;
@@ -109,6 +170,51 @@ public:
             sumY += nudgeY;
         }
 
+        // ── HEADING (E3), gated independently of position. Only proposals that CLAIM an
+        // absolute heading are considered; everything else carries a pass-through of the
+        // prediction, whose innovation would be exactly zero and whose inclusion would
+        // therefore be a silent no-op that looked like a decision. ────────────────────────
+        for (const CorrectionProposal& p : valid) {
+            if (!p.providesHeading) {
+                continue;
+            }
+            // Shortest signed rotation from the prediction to the measurement — math::Angle
+            // owns the ±180° seam, so a fix at +179° against a prediction at -179° is 2° away
+            // and not 358°. Getting this wrong would make the estimator spin the long way round
+            // once per revolution.
+            const double innoH = predicted.heading().errorTo(p.fieldPose.heading());
+            if (!std::isfinite(innoH) || !std::isfinite(p.confidence) ||
+                std::abs(innoH) > headingGate) {
+                if (!headingGated && !headingAccepted) {  // the first rejection, none passed yet
+                    auditInnoHeading = innoH;
+                    haveHeadingAudit = true;
+                }
+                headingGated = true;
+                continue;
+            }
+            const double conf = std::clamp(p.confidence, 0.0, 1.0);
+            if (!headingAccepted || conf > maxHeadingConf) {  // strongest accepted wins the audit
+                auditInnoHeading = innoH;
+                haveHeadingAudit = true;
+            }
+            headingAccepted = true;
+            maxHeadingConf = std::max(maxHeadingConf, conf);
+            double nudgeH = config_.maxHeadingGain * conf * innoH;
+            if (std::abs(nudgeH) > maxHeadingNudge) {
+                nudgeH = std::copysign(maxHeadingNudge, nudgeH);
+                headingClamped = true;
+            }
+            headingSum += nudgeH;
+        }
+        if (std::abs(headingSum) > maxHeadingNudge) {  // N sources can't out-vote the budget
+            headingSum = std::copysign(maxHeadingNudge, headingSum);
+            headingClamped = true;
+        }
+        const bool headingApplied = headingAccepted && maxHeadingNudge > 0.0;
+        if (!headingApplied) {
+            headingSum = 0.0;  // a dt==0 stall allows no motion, in heading as in position
+        }
+
         const double sumMag = std::hypot(sumX, sumY);
         if (sumMag > maxNudge) {  // N proposals can't out-vote the per-tick budget
             const double scale = maxNudge / sumMag;
@@ -134,14 +240,29 @@ public:
             audit.residualX = units::Length{auditInnoX};
             audit.residualY = units::Length{auditInnoY};
         }
+        // E3: the heading innovation the heading verdict was rendered on, recorded whether it
+        // was accepted or gated. This is the §18.2 `gateResidualHeading` slot, declared at A1
+        // and empty until now. `reason` stays POSITION-primary (header note): a heading-only
+        // rejection is read off the record as a large residualHeading beside a zero
+        // correctionDTheta, which is unambiguous and needs no thirteenth enum value.
+        if (haveHeadingAudit) {
+            audit.residualHeading = units::AngleDim{auditInnoHeading};
+        }
         if (accepted) {
             audit.reason = diag::GateReason::Accepted;
             audit.covarianceTrace = maxConf;
         } else if (gated) {
             audit.reason = diag::GateReason::RejectedInnovation;
         }
-        return FusionResult{units::Length{px + sumX}, units::Length{py + sumY},
-                            applied, gated, clamped, applied ? maxConf : 0.0, audit};
+        FusionResult result{units::Length{px + sumX}, units::Length{py + sumY},
+                            applied,                 gated,
+                            clamped,                 applied ? maxConf : 0.0,
+                            audit};
+        result.headingNudge = units::AngleDim{headingSum};
+        result.headingApplied = headingApplied;
+        result.headingGated = headingGated;
+        result.headingClamped = headingClamped;
+        return result;
     }
 
 private:

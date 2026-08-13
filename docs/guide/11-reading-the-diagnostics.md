@@ -296,11 +296,11 @@ lands with the rest of the hardware bridge). See [Chapter 14](14-what-it-cannot-
 
 ## Why the estimator trusted (or ignored) a sensor
 
-Every tick, the record carries the fusion layer's verdict on the position fixes it was offered:
-one **reason**, the **residual** it was decided on (how far the fix disagreed with the estimate,
-in x and y), and the scale it was judged against. This is the part of the file you read when a
-routine ended in the wrong place and you need to know whether the estimate was wrong or the
-motion was.
+Every tick, the record carries the fusion layer's verdict on the fixes it was offered: one
+**reason**, the **residual** it was decided on (how far the fix disagreed with the estimate — in
+x, in y, and now in heading), and the scale it was judged against. This is the part of the file
+you read when a routine ended in the wrong place and you need to know whether the estimate was
+wrong or the motion was.
 
 | Reason | What happened |
 |---|---|
@@ -311,7 +311,10 @@ motion was.
 | `RejectedHighYawRate` | The robot was spinning too fast for the fix to be trusted. |
 | `RejectedNormalizedInnovation` | The fix disagreed by more than a few times its own claimed accuracy. This is the everyday gate — it adapts to how confident the sensor says it is and to how long the robot has been navigating blind. |
 | `RejectedStaleFix` | The sensor re-reported a reading already used. Expect a lot of these: the GPS updates about five times slower than the control loop, so most ticks are legitimately stale, and the corrector folds each reading exactly once. |
-| `RejectedSensorQuality` | The sensor claimed a fix but reported so much error that folding it was not worth doing. |
+| `RejectedSensorQuality` | The sensor claimed a fix but reported so much error that folding it was not worth doing. For a tag, this is a detection the camera itself was not confident about. |
+| `RejectedNoTagMapEntry` | A tag was **seen**, and your map does not say where it is. This one is a configuration error you can fix, not the field being the field — check that the tag's id is in your map. An empty map produces this on every tag. |
+| `RejectedTagRange` | Every visible tag was too close or too far to be trusted. Far away, a tag's recovered *angle* goes bad long before its distance does, which is why the band exists. |
+| `RejectedObservationAge` | The vision task has stopped feeding the corrector — it stalled, died, or was never started. Different from `RejectedStaleFix`, which is the normal state between camera frames. |
 | `RejectedMahalanobis` | Reserved for the Kalman-filter tier, which does not exist yet. Nothing writes it today. |
 
 Two habits worth forming:
@@ -321,6 +324,32 @@ Two habits worth forming:
 - **A run full of `RejectedNormalizedInnovation` means the estimate and the GPS have stopped
   agreeing** — either the sensor is lying, or the estimate drifted far enough that truthful
   corrections now look outrageous. The residual in the record tells you how far apart they were.
+- **A run full of `RejectedNoTagMapEntry` means the robot can see tags and you have not told it
+  where they are.** This is the one on this list that is definitely your bug and definitely
+  fixable.
+
+### Reading the heading correction
+
+Two more fields carry the yaw story, and they are read together:
+
+- **`correctionDTheta`** — how far the estimator's idea of its own heading moved on this tick.
+  This is the field that audits *never-snap for heading*: it can never exceed the documented
+  per-tick bound, and if it ever does, that is a library bug, visible after the fact from the
+  file alone.
+- **`gateResidualHeading`** — how far the tag's heading disagreed with the estimate.
+
+The combination is what tells you what happened:
+
+| `gateResidualHeading` | `correctionDTheta` | What it means |
+|---|---|---|
+| small | small and non-zero | Normal. The estimator is trimming a small IMU bias, a fraction of a degree at a time. |
+| **large** | **zero** | A heading fix was **rejected**. A disagreement this size is far more likely to be a misread tag, a wrong map entry, or a mirrored detection than real gyro drift, so it was refused. |
+| anything | zero, every tick | Nothing is correcting heading at all — no tag corrector wired, or none of its fixes are getting through. Read the `reason` column to find out which. |
+
+There is only one `reason` slot and it reports the **position** verdict, so a heading-only
+rejection reads as "a large heading residual beside a zero heading correction" rather than having
+a word of its own. Position and heading are gated separately: a fix can be good enough to move
+your position and not good enough to move your heading, and that is a normal thing to see.
 
 The record also reserves a **Mahalanobis distance** slot for the Kalman-filter tier. It is
 deliberately left at zero today rather than filled with something similar-looking: today's fusion

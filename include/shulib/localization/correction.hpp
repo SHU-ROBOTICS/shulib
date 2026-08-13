@@ -51,11 +51,17 @@ struct CorrectionProposal {
     math::Pose2d fieldPose{};            ///< absolute field pose the source believes the robot is at
     double confidence = 0.0;             ///< [0,1] peak trust; 0 ⇒ no pull even if valid
     units::Length positionStdDev{};      ///< 1σ position noise (R for an EKF / nudge weight); > 0 when valid
-    bool providesHeading = false;        ///< RESERVED. M2 ignores it entirely (heading is IMU-owned).
-                                         ///< The M3 AprilTag-yaw path is an ADDITIVE extension — a
-                                         ///< headingNudge field on FusionResult + the Localizer applying
-                                         ///< it before the IMU re-stamp — which does NOT change the frozen
-                                         ///< IPoseSource/ICorrector/IFusionPolicy signatures callers depend on.
+    /// LIVE SINCE E3 (was RESERVED at M2). `true` means `fieldPose.heading()` is an ABSOLUTE
+    /// measured heading and the fusion policy may nudge toward it; `false` means the heading
+    /// field is a pass-through of the prediction and carries no information (E2's GpsCorrector
+    /// sets it false and passes the PREDICTED heading, deliberately, so that even a policy that
+    /// read it would read the estimator's own answer).
+    ///
+    /// This is the additive path M2 reserved, taken exactly as written: a `headingNudge` on
+    /// FusionResult which the Localizer folds into a persistent heading BIAS before composing
+    /// the final heading from the IMU. The frozen IPoseSource / ICorrector / IFusionPolicy
+    /// signatures did not move, and no existing construction of this struct changed meaning.
+    bool providesHeading = false;
     /// The corrector's OWN account of this tick — APPENDED at E2, trailing and defaulted, so
     /// every existing construction of this struct still compiles and means the same thing
     /// (the same discipline E1 used to add `GateAudit` to `FusionResult`).
@@ -78,8 +84,15 @@ struct CorrectionProposal {
     GateAudit selfAudit{};
 };
 
-/// What a fusion policy did to the POSITION this tick. Heading is never here — the Localizer
-/// re-stamps it from the IMU as the final write, so no policy can own heading at M2.
+/// What a fusion policy did this tick.
+///
+/// x/y are an ABSOLUTE fused position: predicted + a bounded nudge. `headingNudge` is NOT — it is
+/// a bounded INCREMENT, and the difference is the whole safety argument. A policy that returned an
+/// absolute heading could snap; a policy that can only return an increment cannot, no matter what
+/// a corrector proposes or how confident it claims to be. The Localizer accumulates the increment
+/// into a persistent heading bias and composes the published heading from the IMU as the final
+/// write of the tick, so the IMU remains the sole source of heading CHANGE and the corrector can
+/// only ever learn a slowly-moving BIAS (localizer.hpp, STEP 5).
 struct FusionResult {
     units::Length x{};                   ///< fused field x (predicted + bounded nudge)
     units::Length y{};                   ///< fused field y
@@ -91,6 +104,14 @@ struct FusionResult {
     GateAudit audit{};                   ///< WHY this tick decided as it did (E1) — APPENDED, so every
                                          ///< existing positional construction of this struct still
                                          ///< compiles and means the same thing.
+    /// The bounded heading INCREMENT to fold into the estimator's heading bias this tick, in
+    /// radians. APPENDED at E3, trailing and defaulted, on the same discipline E1 and E2 used:
+    /// every existing construction of this struct still compiles and still means exactly what it
+    /// meant, because a policy that does not set these leaves heading untouched.
+    units::AngleDim headingNudge{};
+    bool headingApplied = false;         ///< a proposal supplying an absolute heading was folded
+    bool headingGated = false;            ///< a heading proposal was rejected by the heading bound
+    bool headingClamped = false;          ///< the per-tick heading budget bound the nudge
 };
 
 /// The per-tick audit record the Localizer exposes via lastCorrection() — maps onto the §18.2
@@ -104,6 +125,11 @@ struct AppliedCorrection {
     const char* source = "none";         ///< name() of the corrector applied, or "none"
     GateAudit audit{};                   ///< the gate's own account of this tick (E1) — this is the
                                          ///< value the record producer stamps into the §18.2 slots
+    /// The NET heading change applied this tick, in radians — the §18.2 `correctionDTheta` slot,
+    /// declared at A1 as "heading nudge (0 at M2: heading is IMU-owned) — E3" and filled here.
+    /// APPENDED, trailing and defaulted, so every existing construction still compiles.
+    /// This is what audits never-snap for HEADING the way dx/dy audit it for position.
+    units::AngleDim dtheta{};
 };
 
 }  // namespace shulib::localization

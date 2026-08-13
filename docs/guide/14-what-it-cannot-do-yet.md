@@ -49,36 +49,80 @@ The team's phrase for the plan here is worth quoting: *the first hardware contac
 sequence, not a surprise* — phases R1–R6 on the roadmap are exactly that sequence (adapters,
 day-one validation, sensor characterization, gain measurement, sim back-fit).
 
-## Position correction exists; yaw correction does not
+## Correction now exists for position *and* heading — and what it is worth is unmeasured
 
-**This limitation has partly fallen.** The GPS corrector is finished and tested
-([Chapter 3](03-knowing-where-you-are.md)): with the strip in view, position drift is bounded
-rather than accumulating for the whole run. What is still missing is the half that the accuracy
-spec actually turns on.
+Two correctors are finished and tested ([Chapter 3](03-knowing-where-you-are.md)): the GPS
+corrector bounds position drift when the strip is in view, and the AprilTag corrector adds
+absolute **heading** — a tag whose field position is known tells the robot which way it is
+actually pointing, which no other source in this library can do.
 
-- **No absolute HEADING correction.** Heading comes from the IMU alone and its drift is
-  uncorrected. The GPS reports a heading; the library deliberately does not use it, because it
-  is worse than the IMU's. The team's < 1° end-of-run heading requirement therefore remains, by
-  the master plan's own analysis, **not reliably achievable on a real robot** — absolute yaw
-  correction is load-bearing for that spec, and it needs the vision/AprilTag corrector (roadmap
-  milestone M3), which is planned work.
-- **No vision/AprilTag corrector**, so there is exactly one absolute position source. If the
-  strip is not visible there is no second opinion.
+This section used to say, in plain words, that the team's `< 1°` end-of-run heading requirement
+was **not reliably achievable on a real robot** because nothing in the library could correct
+heading at all. That sentence has to change, and **the honest change is narrow**. Here is what
+was measured, what it was measured on, and what is still unknown — in that order, because the
+order is the point.
+
+**What was measured.** A robot whose IMU is 4° wrong recovers to within 0.5° in about three
+seconds of tag sightings, and to about a ten-thousandth of a degree in fifteen. It moved *toward*
+the truth on every one of 1500 consecutive ticks and never past it. Separately, with a 12° error
+and a maximally confident tag, **no tick ever changed the robot's idea of its heading by more
+than a tenth of a degree** — the documented per-tick bound — across 2000 consecutive ticks, and
+the same bound holds when re-read from a decoded blackbox file rather than from live state. Yaw
+is nudged, never snapped, and the correction accumulates instead of evaporating.
+
+**What it was measured *on*.** Simulated truth. A simulated camera. A tag map invented for the
+test. Noise, latency, detection confidence and range magnitudes that were **made up** and are
+catalogued as guesses in the [Hardware Assumptions Register](../hardware-assumptions.md)
+(HA-68…HA-82). Every one of those numbers could be wrong by a factor of several.
+
+**What remains unmeasured, and is load-bearing for the claim:**
+
+- **No camera has ever been pointed at a tag by this project.** The corners-to-pose maths is
+  proven against synthetic images computed from geometry; it has never seen a lens, a shutter, a
+  gymnasium light, or a printed tag.
+- **shulib ships no tag map, deliberately.** Where the tags are on the field is *your* input, and
+  nobody here has a citable table of tag positions. A map that is two inches off produces a
+  corrector that is *confidently* two inches wrong — and unlike noise, that error does not
+  average out (HA-68).
+- **The detector's corner ordering is unverified, and one way of getting it wrong is silent.** A
+  reversed corner winding mirrors the tag, puts the recovered heading 180° out, and leaves the
+  solver's own error check reading zero. Nothing in software can detect it; only a physical tag
+  can (HA-69).
+- **Real IMU drift is unknown.** The whole reason yaw correction is load-bearing is an assumed
+  drift of about 1°/min, which is community folklore until somebody measures our units (HA-20).
+- **How accurate a real tag fix is, at what range, is unknown.** The library handles this with a
+  trusted-range band — a blunt instrument, chosen because the alternative was inventing a second
+  noise model (HA-73).
+
+**So, precisely:** this page does **not** claim the `< 1°` requirement is met, and does not claim
+it is likely to be met. It claims exactly one thing — *the specific reason this requirement was
+previously listed as unachievable, namely that nothing in the library could correct heading at
+all, no longer applies.* Everything else about the claim is unchanged and unmeasured. If that
+reads as a smaller change than the feature sounds like, that is the honest size of it.
+
+**Still missing, and unrelated to any of the above:**
+
 - **No Kalman filter.** Fusion is a bounded-nudge complementary filter. It has no covariance, so
   it cannot weigh two disagreeing sources against each other properly, and the diagnostics field
   reserved for a Mahalanobis distance is honestly left empty rather than filled with a
-  look-alike.
+  look-alike. With two correctors now running together this is a live limitation rather than a
+  theoretical one: when the GPS and the tags disagree, the library bounds the damage instead of
+  resolving the disagreement.
 - **Correction does not rescue a badly wrong estimate.** Fixes more than a foot from the
-  estimate are rejected outright. If the estimate is grossly wrong, the corrector will not pull
+  estimate are rejected outright. If the estimate is grossly wrong, neither corrector will pull
   it back — bounded drift is a weaker promise than recovery, and the difference matters after a
   hard collision.
-- **None of it has seen a GPS.** The corrector's behaviour was proven against a simulated sensor
-  built from written-down guesses about noise, timing and failure modes
-  ([Hardware Assumptions Register](../hardware-assumptions.md)). How much a real GPS helps
-  depends on how its accuracy compares to real dead-reckoning drift, and neither has been
-  measured.
-- **Driving Skills has no strip at all**, so in that event the estimate is exactly as
-  dead-reckoned as it was before this feature existed.
+- **The heading correction has its own version of that limit.** A heading disagreement larger
+  than 15° is rejected rather than folded, on the reasoning that it is far more likely to be a
+  misread tag than real drift. If a real IMU ever drifts further than that, the correction will
+  refuse to fix it (HA-80).
+- **None of it has seen real hardware.** Both correctors were proven against simulated sensors
+  built from written-down guesses about noise, timing and failure modes. How much either helps
+  depends on how its accuracy compares to real dead-reckoning drift, and none of those numbers
+  has been measured.
+- **Driving Skills has no GPS strip**, so in that event the GPS corrector reports "no fix" for
+  the whole run. The **tag** corrector does not depend on the strip — but it does depend on you
+  having a camera, a tag map, and a task polling it, none of which exist yet either.
 
 ## The mechanism seam is a placeholder
 

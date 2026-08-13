@@ -315,7 +315,45 @@ not silently break them. This table is the spine of the no-staleness promise.
 > The mutation campaign (20 executed) found **one green hole**: the substitution rule's
 > `reason == None` guard is dead code with one corrector and load-bearing with two, so a silent
 > source could stamp `RejectedNoFix` over a tick that actually applied a fix — latent until E3.
-> **Next: E3** (`AprilTagCorrector` — the second corrector, and the first heading nudge).
+> **Chunk E3 (`AprilTagCorrector`) is DONE, 2026-08-13 — the second corrector, and the first
+> ABSOLUTE YAW CORRECTION in the library's history.** A tag observation is different in kind from
+> a GPS fix: it is a relative *pose*, so against a tag whose field pose is known it yields an
+> absolute heading, which no other source in the tree can provide. Three new headers —
+> `hal/vision_conversion.hpp` (the corners→pose PnP, a free pure function that R2's adapter will
+> call and the corrector deliberately does not include), `localization/tag_map.hpp`, and
+> `localization/apriltag_corrector.hpp`. Suite **867 / 1,091,167**; both guards and the ARM gate
+> (114 headers) clean; doc gates all pass; **44 mutations, 43 red**.
+> **The yaw path is the documented additive one and nothing frozen moved.** `FusionResult` gained
+> a trailing `headingNudge` (a bounded INCREMENT, never an absolute heading — a policy that could
+> return an absolute heading could snap, one that can only return an increment cannot), the
+> `Localizer` folds it into a PERSISTENT heading bias and composes the published heading as
+> `imu.heading() + bias` as the last write of the tick. The IMU remains the sole source of heading
+> CHANGE and `PilonsOdometry` is untouched. The accumulator is not optional: the Localizer
+> re-reads the IMU every tick, so a nudge applied only to the published pose would be discarded on
+> the next one — verbatim the M2 red team's *corrections-not-accumulating* failure. `E3` also
+> re-expresses the odometry delta under the learned bias, because otherwise the reported heading
+> improves while the dead-reckoned position keeps accumulating `bias × distance` of cross-track
+> error. With no heading-providing corrector, both paths are **bit-identical to pre-E3 by
+> construction** (an explicit zero-bias early-out, not a floating-point argument).
+> **What E3 did NOT do, stated plainly.** It does **not** claim the `< 1°` requirement is met, or
+> that it is on track. What was measured is: a 4° IMU error closes to 0.5° in ~3 s and to ~1e-4°
+> in 15 s, moving toward truth on every one of 1500 ticks and never past it; and no tick ever
+> moved the heading by more than the documented 0.1° per-tick bound across 2000 ticks, re-read
+> from a decoded blackbox as well as from live state. It was measured against **simulated truth,
+> a simulated camera, an invented tag map and invented noise magnitudes** (HA-68…HA-82, fifteen
+> new register entries). The single honest change to guide chapter 14 is that *the specific reason
+> the requirement was listed as unachievable — nothing could correct heading at all — no longer
+> applies*; everything else about that claim is unchanged and unmeasured.
+> **shulib ships NO tag map, deliberately**, because nobody on this project can cite a table of
+> AprilTag field poses; `TagMap::add()` refuses an entry that does not state its provenance, and
+> an unknown tag id produces `RejectedNoTagMapEntry` rather than a guess. Three findings worth
+> carrying: **a reversed corner winding is catastrophic and SILENT** (heading 180° out with the
+> reprojection error at machine zero — no software self-check can see it, HA-69); the mutation
+> harness itself had a fault that reported two mutations GREEN having never run (multi-line
+> `grep -F` matches any single line), now impossible via a byte-compare; and **one green hole is
+> recorded unclosed with its measurement rather than papered over** (see `E3-COMPLETED.md`).
+> **Next: E4** (the 5-state SE(2) EKF — real covariance, real Mahalanobis gating, and the owner of
+> `ComplementaryFusion`'s fixed 12-inch ceiling that E2 recorded and E3 confirmed still binds).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -881,12 +919,41 @@ register above, pin-enforced. This milestone does not close until the on-robot c
   conversion tests pinned the scale against the constant imported from the header under test —
   so a wrong constant satisfied both sides. Now `gpsRmsErrorToCanonical()`, pinned against the
   definition of the inch.
-- [ ] `AprilTagCorrector` — tags 0–4, PnP; `relocalize()` **feeds the gated-nudge corrector** (low-R,
-  fast, drift-canceling — *never a hard pose reset*, per §13 #4).
+- [x] `AprilTagCorrector` — **DONE at E3 (2026-08-13)**, the second corrector and the first
+  absolute yaw correction. `include/shulib/localization/apriltag_corrector.hpp`,
+  `localization/tag_map.hpp`, `hal/vision_conversion.hpp`; **73 new cases** across
+  `test/vision_conversion_test.cpp` (15), `tag_map_test.cpp` (11), `apriltag_corrector_test.cpp`
+  (23), `apriltag_corrector_heading_test.cpp` (15 — convergence, never-snap, the IMU re-stamp
+  ordering, two correctors), `apriltag_corrector_blackbox_test.cpp` (6) and
+  `apriltag_corrector_cost_test.cpp` (3). Suite 794 → **867 / 1,091,167**. 43/44 mutations red.
+  Delivered: the corners→pose PnP as a **free pure function** (R2's adapter is the caller; the
+  corrector does not include it), a provenance-enforcing tag map, best-of-N tag selection by
+  estimated sigma, latency compensation in **position AND heading**, a trusted-range band, a
+  detector-confidence floor, yaw-rate rejection, a normalized-innovation gate with anti-lockout
+  widening, and yaw correction via the documented additive `headingNudge` path into a persistent
+  bias in the `Localizer`. Three appended `GateReason` values (`RejectedNoTagMapEntry`,
+  `RejectedTagRange`, `RejectedObservationAge`); `correctionDTheta` and `gateResidualHeading`,
+  reserved since A1, are populated for the first time.
+  **Scoped honestly, four ways.** (1) **The `< 1°` requirement is NOT claimed met.** What was
+  measured is convergence and boundedness against **simulated truth, a simulated camera and
+  invented noise** (HA-68…HA-82). (2) **shulib ships no tag map** — nobody here can cite one, and
+  a map 2″ off yields a corrector that is *confidently* 2″ wrong, which no gate or filter can
+  reveal. (3) **A reversed corner winding is silent** — 180° of heading error with the
+  reprojection residual at machine zero; only a physical tag can catch it (HA-69, R2's to settle).
+  (4) Heading gets a trusted-range **band** rather than its own noise model, because a second
+  σ would be an invented number; E4's EKF is where `R_heading` belongs.
+  **`propose()` is allocation-free and PINNED, not asserted:** the cost test replaces the global
+  allocator and counts **zero** allocations across 20,000 ticks (and across 5,000 full
+  `Localizer::update()` ticks with the heading path live), having first proved the counter works
+  by requiring `poll()` — which touches the frozen by-value `tags()` seam — to be non-zero.
 - [ ] Upgrade `Localizer` complementary filter → **5-state SE(2) EKF** `[px,py,θ,vx,vy]`:
   Mahalanobis gating, consecutive-reject re-init, process noise ∝ travel.
-- [ ] Innovation-bounded, covariance-weighted **gated nudge** (never snap); per-tick clamp; log every
-  gating decision.
+- [~] Innovation-bounded, covariance-weighted **gated nudge** (never snap); per-tick clamp; log every
+  gating decision. **Partial: the never-snap mechanism and the logging are done for POSITION (C1,
+  E1, E2) and now for HEADING (E3) — bounded per-tick increments, audited on `correctionDx/Dy`
+  and `correctionDTheta`, every gating decision on the record. What is still missing is
+  "covariance-weighted": the complementary tier weights by an invented confidence, not by a
+  filter-estimated covariance. E4 owns that half.**
 - [ ] **Calibration routines + persistence** (wheel scale/offset, GPS lever-arm, camera mount, IMU
   bias) — saved to SD/config.
 

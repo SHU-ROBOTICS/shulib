@@ -266,6 +266,8 @@ public:
         stamped.tickPhase = phases_;
         stamped.correctionDx = audit_.dx;
         stamped.correctionDy = audit_.dy;
+        stamped.correctionDTheta = audit_.dtheta;  // E3: the §18.2 slot A1 reserved for the
+                                                   // heading nudge, filled now that one exists
         stamped.clampedThisTick = audit_.clamped;
         stamped.gateResidualX = audit_.audit.residualX;
         stamped.gateResidualY = audit_.audit.residualY;

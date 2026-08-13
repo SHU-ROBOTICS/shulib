@@ -36,13 +36,16 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 60 settled.** No robot exists. Counts: **41 invented · 16 reasoned · 2 measured
+> **Status: 0 of 82 settled.** No robot exists. Counts: **41 invented · 16 reasoned · 2 measured
 > elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
 > controller-screen grid), HA-58–60 by chunk E1 (the blackbox's flight-recorder depth, RAM
 > budget and assumed SD write cost — every magnitude in that chunk is a guess until R4),
-> per the Maintenance convention.
+> HA-61–67 by chunk E2 (the GPS corrector's tuning set), and **HA-68–82 by chunk E3** (the
+> AprilTag path — of which three, HA-68/69/70, are about the physical world rather than tuning
+> and are the most dangerous entries in this document: each produces a *confidently* wrong fix
+> rather than a degraded one), per the Maintenance convention.
 
 ---
 
@@ -117,6 +120,21 @@
 | HA-65 | 4σ normalized-innovation gate width | **invented** | R4 |
 | HA-66 | The estimate is ≈1″ uncertain immediately after a fix is folded | **invented** | R4/E4 |
 | HA-67 | Dead-reckon sigma grows ≈0.02″ per inch travelled (the anti-lockout term) | **invented** | R4 |
+| HA-68 | The field's AprilTag layout is knowable and a team's map is right to ≈0.5″ | **invented** | R3 |
+| HA-69 | The tag detector reports its four corners in a consistent, knowable WINDING | reasoned | R2/R3 |
+| HA-70 | The tag camera is mounted level (no pitch/roll) to within ≈1° | **invented** | R3 |
+| HA-71 | Tag pipeline latency ≈ 80 ms (exposure + detect + PnP + transport) | **invented** | R4 |
+| HA-72 | A tag frame older than 0.25 s means the vision task has stalled | **invented** | R4 |
+| HA-73 | A tag fix is trustworthy only between 6″ and 72″ of range | **invented** | R4 |
+| HA-74 | A tag detection below 0.35 confidence is not worth folding | **invented** | R4 |
+| HA-75 | 2 rad/s (≈115°/s) is where motion blur kills a tag fix | **invented** | R4 |
+| HA-76 | Tag position 1σ ≈ 1.0″ + 0.02″ per inch of range | **invented** | R4 |
+| HA-77 | 4σ normalized-innovation gate width for tag fixes | **invented** | R4 |
+| HA-78 | The estimate is ≈1″ uncertain immediately after a tag fix | **invented** | R4/E4 |
+| HA-79 | Dead-reckon sigma grows ≈0.02″ per inch since this source's last fix | **invented** | R4 |
+| HA-80 | A heading innovation above 15° is a fault, not drift | **invented** | R4/E4 |
+| HA-81 | 0.15 of the heading innovation per tick at confidence 1 | **invented** | R4/E4 |
+| HA-82 | 10°/s is a safe upper bound on estimator heading-bias change | **invented** | R4/E4 |
 
 ---
 
@@ -788,6 +806,194 @@ answer changes how these seven should be set.
   after one long dead-reckon and a lie is accepted because the corrector still believes it is
   lost — pinned by the companion test that the widening RESETS on an accepted fix.
 
+### The E3 AprilTag set (HA-68 … HA-82)
+
+Fifteen entries, added when absolute yaw correction landed. They divide into **three that are
+about the physical world and are the dangerous ones** (HA-68, HA-69, HA-70) and **twelve tuning
+constants** that behave exactly like E2's set — proved by shape, never by value, contained in one
+config struct each.
+
+The three structural ones deserve their own warning, because unlike a tuning constant **they do
+not degrade gracefully**. A wrong tag map, a reversed corner winding or a pitched camera each
+produce a fix that is *confidently* wrong with a small residual and a high confidence — i.e. it
+looks exactly like a healthy fix, and no gate, no filter and no amount of averaging can reveal it.
+E2's tuning constants make the corrector work better or worse; these three make it lie.
+
+- [ ] **HA-68 — the field's AprilTag layout is knowable, and a team's map is accurate to ≈0.5 inch.**
+  *Claim:* the tags' field poses can be obtained (from a published specification or by measuring
+  the actual competition field) to within about half an inch and half a degree, and the team will
+  in fact do so.
+  *Source:* `include/shulib/localization/tag_map.hpp` (A4 register HA-68). **shulib deliberately
+  ships NO built-in map** — the header explains why at length — so this is an assumption about the
+  *user's input*, not about a number in the tree, which is unusual for this register and is the
+  point: there is no citable table of AprilTag field poses in this project's sources today.
+  *Confidence:* **invented** — nobody here has measured or cited anything.
+  *Settle (R3):* obtain the published field layout if one exists; otherwise measure every tag's
+  position and facing on the competition field with a tape and a square, and record the method in
+  each `TagPlacement::source`.
+  *Blast radius if wrong:* **the worst in this register.** A map entry two inches off yields a
+  corrector that is confidently two inches wrong every time it sees that tag, with a small
+  residual and a high confidence. Sensor noise averages out; **a wrong map does not**. It will
+  also fight the GPS corrector, and the complementary tier has no way to tell which is lying.
+  Partly contained: `TagMap::add()` refuses an entry with no provenance, and `anyInvented()` lets
+  telemetry say the estimate is anchored to guessed geometry.
+
+- [ ] **HA-69 — the tag detector reports its four corners in a consistent, knowable winding.**
+  *Claim:* whatever order the V5 AI Vision sensor (or a Pi detector) reports corners in, it is
+  stable, and R2 can map it onto the order `hal/vision_conversion.hpp` documents.
+  *Source:* `include/shulib/hal/vision_conversion.hpp`, the corner-order contract (A4: HA-69).
+  *Confidence:* **reasoned** — every AprilTag implementation documents an order; ours is not
+  verified against a physical detector.
+  *Settle (R2/R3):* point the real detector at a real tag at a known pose and check the recovered
+  pose, ONCE. That is the only check that exists (see the blast radius).
+  *Blast radius if wrong:* **measured at E3 and worse than expected.** A CYCLIC ROTATION of the
+  order is harmless — the planar reduction discards that degree of freedom. A **REVERSAL** is
+  catastrophic and completely silent: it mirrors the tag plane, the recovered heading is 180°
+  wrong, and **the reprojection error stays at machine zero**, because a mirrored pose reprojects
+  onto the very same four pixels. No self-check anywhere in the pipeline can detect it; only a
+  physical tag can. Pinned by three subcases in `test/vision_conversion_test.cpp`.
+
+- [ ] **HA-70 — the tag camera is mounted level, to within about a degree.**
+  *Claim:* the camera's optical axis is horizontal (no pitch, no roll), so a tag's height above
+  the camera can be discarded without affecting its horizontal position.
+  *Source:* `hal/vision_conversion.hpp`, the planar-reduction note (A4: HA-70). `CameraMount`
+  carries position and yaw only, which encodes the assumption in the type.
+  *Confidence:* **invented** — no camera is mounted on anything.
+  *Settle (R3):* measure the mounted camera's pitch and roll; if either is significant, the
+  reduction needs the full 3-D transform and `CameraMount` grows two fields.
+  *Blast radius if wrong:* a pitched camera turns a tag's HEIGHT into a RANGE error — a tag
+  mounted 15 inches above a camera pitched 5° reads several inches nearer or further than it is —
+  and nothing downstream can see that it happened. Contained to one function and one struct.
+
+- [ ] **HA-71 — the tag pipeline delivers a fix describing a moment ≈80 ms earlier.**
+  *Claim:* exposure + detection + PnP + transport totals about 80 ms, longer than the GPS's ~50 ms
+  (HA-30) because a tag pipeline does more work per frame.
+  *Source:* `apriltag_corrector.hpp`, `AprilTagCorrectorConfig::latency` (PROVISIONAL (A4: HA-71)).
+  *Confidence:* **invented**.
+  *Settle (R4):* the same measurement HA-30 needs — flash a known event and timestamp when the
+  reduced detection becomes readable.
+  *Blast radius if wrong:* an uncompensated 80 ms drags position backwards along the direction of
+  travel AND, new at E3, drags HEADING backwards along the direction of rotation — at 180°/s that
+  is 14°, fourteen times the entire heading budget. Both compensations are pinned by their own
+  exact-case tests; only the magnitude is at risk.
+
+- [ ] **HA-72 — a tag frame older than 0.25 s means the vision task has stalled.**
+  *Claim:* a healthy vision task at ~20 Hz never leaves a gap this long, so a gap means failure.
+  *Source:* `apriltag_corrector.hpp`, `maxObservationAge` (PROVISIONAL (A4: HA-72)).
+  *Confidence:* **invented**.
+  *Settle (R4):* log inter-frame intervals on a real coprocessor under load; set to a few times
+  the observed 99th percentile.
+  *Blast radius if wrong (too small):* healthy frames declined as `RejectedObservationAge` —
+  visible, and the estimator falls back to dead-reckoning rather than doing anything wrong.
+  (Too large): a dead vision task keeps folding the last frame it saw for a quarter of a second
+  longer than it should. Constant only.
+
+- [ ] **HA-73 — a tag fix is trustworthy only between 6 and 72 inches of range.**
+  *Claim:* nearer than 6 inches the tag overfills the frame and is likely clipped; further than
+  72 inches planar PnP's near-ambiguity makes the ORIENTATION untrustworthy well before the
+  position is.
+  *Source:* `apriltag_corrector.hpp`, `minRange` / `maxRange` (PROVISIONAL (A4: HA-73)).
+  *Confidence:* **invented** — the *shape* of the claim (heading degrades with range faster than
+  position) is real geometry; both numbers are made up.
+  *Settle (R4):* park the robot at a known pose and sweep range; plot recovered position error and
+  recovered heading error against distance. The band is where heading error crosses the budget.
+  *Blast radius if wrong:* this band is E3's substitute for a separate heading noise model, so a
+  band that is too wide folds heading fixes that are worse than the IMU — the one way this chunk
+  could make heading accuracy WORSE. Too narrow and the corrector is simply idle more often.
+  E4's EKF replaces the band with a real R_heading, which is the principled fix.
+
+- [ ] **HA-74 — a tag detection below 0.35 confidence is not worth folding.**
+  *Claim:* the detector's own score below this indicates a detection too poor to trust.
+  *Source:* `apriltag_corrector.hpp`, `minConfidence` (PROVISIONAL (A4: HA-74)).
+  *Confidence:* **invented** — and it assumes the V5 sensor's score is even comparable across
+  detections, which is itself unverified.
+  *Settle (R4):* log the score against measured pose error across a range of lighting and angles.
+  *Blast radius if wrong:* the same shape as E2's D7 — without a floor a 0.05-confidence detection
+  is still folded with a microscopic pull, and the Localizer reports quality class **Corrected** on
+  a run with no usable anchor. That failure mode is pinned by test regardless of the value.
+
+- [ ] **HA-75 — 2 rad/s (≈115°/s) is where motion blur kills a tag fix.**
+  *Claim:* above this yaw rate the tag smears across the frame and a rolling shutter skews it into
+  a different quadrilateral, which PnP solves happily into a confidently wrong pose.
+  *Source:* `apriltag_corrector.hpp`, `maxYawRate` (PROVISIONAL (A4: HA-75)). Tighter than the
+  GPS's HA-64 (3 rad/s) because a camera integrating over an exposure is more motion-sensitive
+  than a strip reader.
+  *Confidence:* **invented**.
+  *Settle (R4):* spin at increasing rates in front of a fixed tag and find where the recovered
+  pose degrades.
+  *Blast radius if wrong (too high):* blurred fixes folded — and unlike a noisy fix, a skewed one
+  is biased, so it does not average out. (Too low): the corrector goes quiet during every turn,
+  which is when the estimate needs it most.
+
+- [ ] **HA-76 — tag position 1σ is about 1.0 inch, growing 0.02 inch per inch of range.**
+  *Claim:* the linear-in-range noise model, at confidence 1.
+  *Source:* `apriltag_corrector.hpp`, `baseStdDev` / `stdDevPerInch` (PROVISIONAL (A4: HA-76)).
+  *Confidence:* **invented** — the linear form is a modelling choice as much as the coefficients.
+  *Settle (R4):* the range sweep from HA-73 gives both.
+  *Blast radius if wrong:* sets both the gate width and the pull strength. Tested by shape only —
+  "farther is worse", "less certain is worse" — never by value.
+
+- [ ] **HA-77 — 4 sigma is the right normalized-innovation gate width for tags.**
+  *Source:* `apriltag_corrector.hpp`, `gateSigma` (PROVISIONAL (A4: HA-77)). Same value and same
+  reasoning as E2's HA-65; kept separate because the sigma it multiplies is a different model.
+  *Confidence:* **invented**.
+  *Settle (R4):* choose from the measured innovation distribution once HA-76 is real.
+  *Blast radius if wrong:* as HA-65 — too tight rejects truthful fixes, too slack admits lies.
+
+- [ ] **HA-78 — the estimate is ≈1 inch uncertain immediately after a tag fix is folded.**
+  *Source:* `apriltag_corrector.hpp`, `postFixStdDev` (PROVISIONAL (A4: HA-78)).
+  *Confidence:* **invented**. Like HA-66 this is **a gain knob wearing the clothes of a
+  covariance**; E4's EKF estimates it instead of asserting it.
+  *Settle (R4/E4):* superseded by the filter's own covariance.
+  *Blast radius if wrong:* sets the floor of σ_dr and therefore the confidence of every fix.
+
+- [ ] **HA-79 — dead-reckon sigma grows ≈0.02 inch per inch since this source's last fix.**
+  *Source:* `apriltag_corrector.hpp`, `driftStdDevPerInch` (PROVISIONAL (A4: HA-79)). The tag
+  corrector's own copy of HA-67, per-source by design: each corrector tracks how long *it* has
+  been blind.
+  *Confidence:* **invented**.
+  *Settle (R4):* as HA-67.
+  *Blast radius if wrong:* **gate lockout**, exactly as HA-67 describes, and pinned by the same
+  pair of tests (a fix a zero-growth build rejects is accepted after a long dead-reckon; the
+  widening RESETS on an accepted fix).
+
+- [ ] **HA-80 — a heading innovation above 15 degrees is a fault, not drift.**
+  *Claim:* a raw V5 IMU drifts ≈1°/min (HA-20), so over a 60-second match the expected heading
+  error is about a degree. An innovation fifteen times that is far more likely to be a mirrored
+  corner winding (HA-69), a wrong map entry (HA-68) or a misidentified tag id than real drift.
+  *Source:* `complementary_fusion.hpp`, `ComplementaryFusionConfig::headingGate`
+  (PROVISIONAL (A4: HA-80)).
+  *Confidence:* **invented**, and it inherits HA-20's uncertainty: if real IMU drift is much worse
+  than 1°/min, this gate becomes the thing that prevents recovery.
+  *Settle (R4/E4):* set from the measured IMU drift distribution (HA-20) once that exists; E4's
+  EKF replaces it with a Mahalanobis test.
+  *Blast radius if wrong (too tight):* a genuinely drifted IMU can never be corrected — the
+  correction locks out exactly when it is needed, the heading analogue of HA-67's failure.
+  (Too slack): a mirrored tag rotates the robot's entire idea of the field, and every
+  field-relative command afterwards inherits it.
+
+- [ ] **HA-81 — 0.15 of the heading innovation is pulled per tick at confidence 1.**
+  *Source:* `complementary_fusion.hpp`, `maxHeadingGain` (PROVISIONAL (A4: HA-81)). Same value as
+  the position gain, which is a convenience, not a derivation.
+  *Confidence:* **invented**.
+  *Settle (R4/E4):* superseded by the EKF's Kalman gain.
+  *Blast radius if wrong:* sets the settling time. Measured in simulation: a 4° error closes to
+  0.5° in about 3 seconds. Too high and the correction fights the turn controller; too low and a
+  60-second match ends before the bias is learned.
+
+- [ ] **HA-82 — 10°/s is a safe upper bound on how fast the estimator's heading bias may change.**
+  *Claim:* the robot's idea of which way it is pointing may be revised at up to 10°/s without
+  disrupting a motion in progress.
+  *Source:* `complementary_fusion.hpp`, `maxHeadingNudgeRate` (PROVISIONAL (A4: HA-82)).
+  *Confidence:* **invented**.
+  *Settle (R4/E4):* drive a heading-holding motion while injecting a bias correction and find the
+  rate at which the controller visibly reacts.
+  *Blast radius if wrong (too high):* a large correction arrives fast enough to fight an active
+  turn — this is the number that stands between "nudge" and "snap" for yaw, and a yaw snap
+  poisons every field-relative command after it. (Too low): a real drift takes longer than a match
+  to correct. **This bound is what makes never-snap structural for heading**, and it is audited
+  on every tick from the blackbox (`correctionDTheta`), so a violation is visible after the fact.
+
 ---
 
 ## Group R5 — gains and actuation constants
@@ -1046,7 +1252,7 @@ Recorded so "exhaustive" is checkable — these were examined and deliberately N
 | Cross-libm bit-identity of sim runs | A documented A2 determinism caveat about *host toolchains*, not about the robot; no hardware measurement settles it. |
 | Stochastic truth-side hostility (random per-tick traction) | A3 D10/§3.8: a possible model extension, not an assumption — nothing at M2 needs it; revisit only if R4's data shows slip is noise-dominated (HA-37..39 will say). |
 | Pneumatics/air budget, mechanism-specific constants | No mechanism exists even on paper (F′-phase, build-team-gated); F1's seam will register its own assumptions when authored. |
-| AprilTag camera intrinsics/mount | R2/E3 territory with no code in-tree yet assuming values; register entries get added when E3 authors the PnP path (this register is living). |
+| ~~AprilTag camera intrinsics/mount~~ | **No longer excluded — E3 authored the PnP path and registered HA-68…HA-82.** Camera INTRINSICS themselves remain out: `CameraIntrinsics` has no defaults to be wrong about, and R2 obtains them by calibration. The MOUNT is now HA-70. |
 
 ---
 

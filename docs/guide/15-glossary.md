@@ -4,6 +4,9 @@
 > Each term is explained properly in the chapter noted.
 > **Read this if:** you hit a word and want the one-line version.
 
+- **AprilTag** — a printed black-and-white square marker, like a chunky QR code, that a camera
+  can find and identify. Because its real size and shape are known, the four corners in the image
+  are enough to work out how far away it is *and which way it is turned*. [Ch. 3]
 - **assertion** — one checked claim inside a test; the suite's counts are assertions passed.
   [Ch. 7]
 - **autonomous** — the phase (or whole run) where the robot acts entirely on its own code and
@@ -23,6 +26,9 @@
   diagnostic lines, tying them together. [Ch. 11]
 - **control loop** — the measure → compare → command cycle, repeated ~100 times a second.
   [Ch. 5]
+- **corrector** — a source of *absolute* fixes that can tell the estimate it is wrong (the GPS
+  corrector, the AprilTag corrector). Correctors only ever *propose*; how far the estimate moves
+  is the fusion layer's decision. [Ch. 3]
 - **dead reckoning** — estimating position purely by accumulating your own measured movement,
   with no external reference (the `DR` flag). [Ch. 3]
 - **desaturation** — uniformly scaling down a command that asks more than the wheels can give,
@@ -59,6 +65,9 @@
   [Ch. 4]
 - **heading** — the direction the robot faces, as a field angle (0° = +X, counterclockwise
   positive). [Ch. 2]
+- **heading bias** — the estimator's learned answer to "how wrong is the IMU today", added to
+  every IMU reading before the pose is published. The IMU still owns every actual rotation; the
+  bias moves only a fraction of a degree per tick, and only when a tag says so. [Ch. 3]
 - **holonomic** — able to move in any direction regardless of facing, while also rotating.
   [Ch. 4]
 - **host-side** — running on an ordinary computer rather than the robot. [Ch. 7]
@@ -84,11 +93,18 @@
   proportionally to error, lean on stubborn leftovers, brake early on fast approaches. [Ch. 5]
 - **plant** — control-engineering jargon for "the thing being controlled"; here, the simulated
   robot's physics. [Ch. 7]
+- **PnP (perspective-n-point)** — the geometry that turns a marker's corners in an image back
+  into its position and orientation relative to the camera. In shulib it is a standalone,
+  testable function, deliberately separate from the corrector that consumes its output. [Ch. 3]
 - **pose** — position plus heading: (x, y, θ). [Ch. 2]
 - **precondition** — a rule about inputs a function checks at its door, rejecting nonsense
   loudly before anything moves. [Ch. 10]
 - **PROS** — the open-source V5 runtime the robot build runs on; the library core never
   touches it directly. [Ch. 7]
+- **provenance** — where a number came from: a published specification, a measurement, or a
+  guess. The tag map refuses an entry that does not say, because a guessed tag position and a
+  specified one are indistinguishable in the arithmetic and completely different in their
+  consequences. [Ch. 3]
 - **rate limiting** — capping diagnostic output volume, with every dropped line counted and
   announced. [Ch. 11]
 - **recipe** — a routine written as a `Routine` chain of steps that runs in exactly the order
@@ -104,11 +120,17 @@
   long enough. [Ch. 5]
 - **sim harness** — the test suite's assembled simulated robot (`SimHarness`): plant, sensors,
   clock, and their wiring. [Ch. 8]
+- **snap (and never-snap)** — jumping the estimate straight to whatever a sensor claims. shulib
+  never does it, in position or in heading: corrections are applied as small bounded steps, so a
+  single bad reading cannot teleport or spin the robot's idea of itself. [Ch. 3]
 - **step (recipe)** — one link in a recipe chain: a single delegated chassis command plus the
   record of whether it ran, succeeded, or was skipped. [Ch. 9]
 - **strafe** — to move sideways without turning. [Ch. 4]
 - **strafe authority** — a drivetrain's sustainable sideways speed as a fraction of its
   forward speed (X: 1.0, tank: 0.0, H: between). [Ch. 4]
+- **tag map** — your table of where each AprilTag sits on the field and which way it faces. It is
+  input, not something the library knows: shulib ships no map, because nobody here can cite one.
+  An error in it does not average out. [Ch. 3]
 - **tank drive** — left wheels/right wheels; drives and turns, cannot strafe. [Ch. 4]
 - **telemetry sink** — anything that accepts the diagnostic stream (terminal formatter, test
   capture, a future SD-card logger). [Ch. 11]

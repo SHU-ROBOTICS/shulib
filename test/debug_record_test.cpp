@@ -188,6 +188,12 @@ TEST_CASE("GateReason: numeric values are wire-stable (F9) — a reorder turns t
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedNormalizedInnovation) == 6);
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedStaleFix) == 7);
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedSensorQuality) == 8);
+    // Appended at E3 (the AprilTag corrector), on the same rule: the next free values, and
+    // nothing above them moved. `RejectedSensorQuality` was REUSED for a below-floor tag
+    // detection rather than duplicated, because it is the same statement about a sensor.
+    CHECK(static_cast<std::uint8_t>(GateReason::RejectedNoTagMapEntry) == 9);
+    CHECK(static_cast<std::uint8_t>(GateReason::RejectedTagRange) == 10);
+    CHECK(static_cast<std::uint8_t>(GateReason::RejectedObservationAge) == 11);
 }
 
 TEST_CASE("DebugRecord.qualityClass: the documented numeric mirror of Localizer::Quality "
