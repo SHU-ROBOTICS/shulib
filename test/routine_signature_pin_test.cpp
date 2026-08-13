@@ -45,6 +45,7 @@
 #include <span>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include "shulib/chassis/routine.hpp"
 #include "shulib/version.hpp"
@@ -164,6 +165,76 @@ concept F10WaitFor = requires {
 };
 SHULIB_F10_PIN(F10WaitFor<Routine>,
                "Routine::waitFor(Pred&&, units::Time, const char*) -> Routine&");
+
+// ── the OTHER half of the noexcept shape (added by the reviewer at F1 verification) ─
+// D2 closed hole #1 — a static_cast that ADDS noexcept is accepted, so the cast
+// alone cannot see noexcept being DROPPED — with compound `{ call } noexcept`
+// requirements on the four observers below. The INVERSE was left open: the eleven
+// STEPS are not noexcept, nothing asserted they stay that way, and the same cast
+// permissiveness makes an ADDED noexcept invisible to their pins.
+//
+// version.hpp calls a change to a frozen signature's "noexcept shape" BREAKING —
+// in EITHER direction. It changes the member's type (a user taking &Routine::pause
+// into a typed pointer breaks), and it converts a precondition throw into
+// std::terminate.
+//
+// MEASURED before this was written, by adding noexcept to Routine::pause: the F10
+// pin never fired. The build did fail — but on the api-doc FRESHNESS gate, naming
+// the wrong problem; and after regenerating the reference exactly as that gate
+// instructs, the only remaining signals were a doc-fidelity test with a hardcoded
+// signature and a SIGABRT (pause calls wait(), which throws on nonsense input, and
+// a throw from a noexcept function terminates). A reader would have debugged a
+// crash in a test about precondition handling and never seen the words F10 FREEZE
+// VIOLATION. For a frozen member that is neither in the generated reference nor
+// calls anything throwing, the change would be entirely SILENT.
+#define SHULIB_F10_NOT_NOEXCEPT(expr, member)                                        \
+    static_assert(!noexcept(expr),                                                   \
+                  "F10 FREEZE VIOLATION: " member " GAINED noexcept. A change to a " \
+                  "frozen signature's noexcept shape is BREAKING IN EITHER "         \
+                  "DIRECTION (include/shulib/version.hpp): it changes the member's " \
+                  "type, and it turns a precondition throw into std::terminate. "    \
+                  "Accidental? Revert. Intended? Bump kApiMajor, write the "         \
+                  "migration note, update Freeze Register row F10, THEN this pin.")
+
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().startAt(std::declval<const Pose2d&>()),
+                        "Routine::startAt");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().moveTo(std::declval<const Pose2d&>(),
+                                                        std::declval<const MotionOptions&>()),
+                        "Routine::moveTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().driveTo(std::declval<Length>(),
+                                                         std::declval<Length>(),
+                                                         std::declval<const MotionOptions&>()),
+                        "Routine::driveTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().strafeTo(std::declval<Length>(),
+                                                          std::declval<Length>(),
+                                                          std::declval<const MotionOptions&>()),
+                        "Routine::strafeTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().turnTo(std::declval<Angle>(),
+                                                        std::declval<const MotionOptions&>()),
+                        "Routine::turnTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().face(std::declval<Length>(),
+                                                      std::declval<Length>(),
+                                                      std::declval<const MotionOptions&>()),
+                        "Routine::face");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().followTrajectory(std::declval<std::span<const Pose2d>>(),
+                                              std::declval<const MotionOptions&>()),
+    "Routine::followTrajectory(span)");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().followTrajectory(std::declval<std::initializer_list<Pose2d>>(),
+                                              std::declval<const MotionOptions&>()),
+    "Routine::followTrajectory(braces)");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().brake(std::declval<const MotionOptions&>()),
+                        "Routine::brake");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().hold(std::declval<Time>(),
+                                                      std::declval<const MotionOptions&>()),
+                        "Routine::hold");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().pause(std::declval<Time>()),
+                        "Routine::pause");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().waitFor(std::declval<PredPtr>(),
+                                                         std::declval<Time>(),
+                                                         std::declval<const char*>()),
+                        "Routine::waitFor");
 
 // ── the whole-chain verdict (every one noexcept — see the header note) ────────────
 template <typename R>
