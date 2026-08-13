@@ -40,8 +40,10 @@
 
 #include "doctest.h"
 
+#include <cstdio>
 #include <initializer_list>
 #include <span>
+#include <string_view>
 #include <type_traits>
 
 #include "shulib/chassis/routine.hpp"
@@ -302,10 +304,24 @@ SHULIB_F10_PIN(!F10ConstStep<Routine>,
 // routine.hpp:145 explicitly anticipates for F1/F3) fail the pin that exists
 // to guard the FROZEN surface. Additive growth bumps kApiMinor and must never
 // fail this pin; a major bump still does, loudly, as intended.
+// SECOND FIX (reviewer, at F1 verification) — the same repair as the F6 twin,
+// and for the same reason: F1's fix traded a too-strict check for a too-weak
+// one. `kApiMinor >= 0` cannot fail (int), and a one-character check on
+// kApiVersionString cannot see the token drifting from the numbers. Measured:
+// kApiMinor = 1 with the string left at "2.0" passed all three former lines.
+//
+// Bug now caught: the printable version and the numeric version disagree.
+// That token is what a session header prints (main.cpp TODO(R1)), so a desync
+// mislabels every on-robot transcript and blackbox file.
+//
+// kApiMinor is deliberately unpinned — additive growth is legal. Saying so is
+// the point; a vacuous assertion says it in a way that looks like a test.
 TEST_CASE("F10 pin: the frozen Routine surface is API major 2 and the mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
-    CHECK(shulib::kApiMinor >= 0);
-    CHECK(shulib::kApiVersionString[0] == '2');
+
+    char expected[16];
+    std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
+    CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
 }
 
 }  // namespace

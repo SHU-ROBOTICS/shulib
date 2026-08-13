@@ -51,8 +51,10 @@
 
 #include "doctest.h"
 
+#include <cstdio>
 #include <initializer_list>
 #include <span>
+#include <string_view>
 #include <type_traits>
 
 #include "shulib/chassis/chassis.hpp"
@@ -351,10 +353,30 @@ SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
 // growth path of every frozen surface") into a red pin. The first legal
 // additive change (F1: appended enumerators + then() growth, 2.0 → 2.1) hit
 // it. A minor bump is additive by definition and must never fail this pin.
+// SECOND FIX (reviewer, at F1 verification): the F1 repair above swapped a
+// too-strict check for a too-weak one. `kApiMinor >= 0` is VACUOUS — an int is
+// always >= 0, so that line could never fail, and a check that cannot fail
+// reads as coverage without being it. And `kApiVersionString[0] == '2'`
+// inspects ONE character, so the printable token could drift from the numbers
+// it claims to print. Measured, not argued: with kApiMinor = 1 and the string
+// left at "2.0", all three former assertions PASSED.
+//
+// Bug now caught: kApiMinor is bumped for an additive change and
+// kApiVersionString is not updated with it (or vice versa). That token is the
+// one printable version — main.cpp carries a TODO(R1) to emit it in the §18.5
+// session header — so a desync would label every on-robot transcript and every
+// blackbox file with an API version the build is not. Provenance that is
+// silently wrong is worse than absent, because it looks authoritative.
+//
+// kApiMinor is deliberately NOT pinned to any value: additive growth is legal
+// and expected (see the HISTORY note above). Its ABSENCE is stated here rather
+// than implied by a check that cannot fail.
 TEST_CASE("F6 pin: the frozen surface is API major 2 and the version mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
-    CHECK(shulib::kApiMinor >= 0);
-    CHECK(shulib::kApiVersionString[0] == '2');
+
+    char expected[16];
+    std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
+    CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
 }
 
 }  // namespace
