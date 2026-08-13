@@ -176,6 +176,17 @@ successful one at the `Routine` layer**, and `RoutineStopCause` grows append-onl
 enumerator (`routine.hpp:145-146` anticipates exactly this). Do **not** unify the vocabularies
 project-wide here — that is F2's call with more evidence; record what you learned for it.
 
+> **ADDED AFTER REVIEW — appending an enumerator currently breaks the build, and that is an earlier
+> chunk's defect.** `version.hpp` calls an appended enumerator **additive**, requiring a `kApiMinor`
+> bump, and calls that *"the intended growth path of every frozen surface"*. But both freeze pins
+> hard-assert the current version: `test/f6_signature_pin_test.cpp:349` and
+> `test/routine_signature_pin_test.cpp:301` each `CHECK(shulib::kApiMinor == 0)`. **The documented,
+> legal, intended additive path turns both pins red.** The pins conflate "the version mechanism
+> exists and the surface is API 2.x" (what D2/D3 meant) with "the version is exactly 2.0" (what they
+> wrote). **Rule 4 applies: fix it in the pins that own it**, pin what was meant, and record it as a
+> D2/D3 defect found at F1. A pin firing on the **version** line is now an understood event with a
+> known fix; a pin firing on any **signature or member** line still means STOP and report.
+
 ### T3 — who ticks a mechanism, and what stops two loops existing?
 
 `IMotion`'s banner is unambiguous: *"A motion does NOT own a loop, a task, or the estimator."* That
@@ -243,6 +254,19 @@ error: invalid use of non-static member function 'void IntakeMemberFn::in()'
    then(bad.in);
         ~~~~^~
 ```
+
+> **ADDED AFTER REVIEW — the line is broken in TWO ways, and D1 already ruled on the larger one.**
+> `D1-COMPLETED.md` §3, first sentence: *"§17's `chassis.moveTo(p).then(intake.in)` cannot chain off
+> `Chassis` directly (verbs return `ExitReason`, and reshaping them was the named trap)."*
+> `Chassis::moveTo` returns an enum; an enum has no `.then()`. So every occurrence written with a
+> **`chassis.` receiver** is unfixable by anything F1 does to mechanisms — making it compile would
+> mean reshaping frozen F6 verbs, rejected at D1 and frozen against at D2.
+>
+> **Therefore:** for `chassis.`-receiver occurrences the ONLY correct action is to **fix the prose**
+> (the honest spelling is a `Routine` chain, `r.moveTo(p).then(...)`); the `intake.in` question below
+> applies only to occurrences on a `Routine` receiver. **Propose no `Chassis` change to accommodate
+> this** — if you want one, that wanting is the finding. Record both breaks: the project has repeated
+> a doubly-impossible flagship example, and one half was documented at D1 and never propagated to §17.
 
 **The two lines of the master plan contradict each other**, and the promise is repeated in
 `docs/guide/09-the-recipe-api.md:232-238`, `docs/cookbook/01-getting-there.md:66`,
@@ -320,9 +344,17 @@ a problem into a chunk that cannot argue back.
 
 **Freeze note (mandatory, D2's lesson).** F1 **freezes nothing** — the seam gets its second consumer
 at F3, on hardware, and this project's proven pattern is build → second consumer → freeze (C4→D1→D2,
-D1→D3). But **silence in a freeze register reads as "frozen"**: state in the F4 row (or a new row
-marked 🎯) that a mechanism seam now exists, that it is **outside** F4, and what will freeze it and
-when. That is exactly the omission D2 found and fixed for `Routine`.
+D1→D3). But **silence in a freeze register reads as "frozen"**: the register must say that a
+mechanism seam now exists, that it is **outside** F4, and what will freeze it and when. That is
+exactly the omission D2 found and fixed for `Routine`.
+
+> **CLARIFIED AFTER REVIEW — this is a NEW row, not an amendment to F4.** An earlier draft of this
+> section said "the F4 row (or a new row)", which contradicts this brief's own instruction not to
+> edit rows F1–F5. Follow the D3 precedent, which is exactly on point: `Routine` became **F10, a new
+> row**, rather than an F6 amendment, because it is a different tier that versions independently, and
+> *"amending F6 would retroactively blur what F6 promised on its own lock date"* (register row F10).
+> The same argument holds here. **Do not amend the locked F4 row.** If a pointer from F4 to the new
+> row is genuinely needed for a reader, propose it and say why — do not make it silently.
 
 ---
 
@@ -476,7 +508,9 @@ as they are.
 - [ ] `then()` integration works; an unconfirmed operation cannot read as success; every existing
       `then()` use unchanged in meaning
 - [ ] The `intake.in` claim is either true and compiled, or corrected everywhere it appears (T5)
-- [ ] No pinned member of `routine.hpp` / `chassis.hpp` changed; F6 and F10 pins green
+- [ ] No pinned **member** of `routine.hpp` / `chassis.hpp` changed; F6 and F10 pins green — and if
+      an additive change required a `kApiMinor` bump, the pins' **version** assertions were fixed at
+      the layer that owns them (T2's added block) rather than worked around
 - [ ] Nothing frozen at F1; the register says so out loud (T7)
 - [ ] Expected timelines hand-written from the contract; the fake can lie
 - [ ] Mutations executed with the runner gated on build success; every green logged and closed
@@ -507,9 +541,37 @@ what F2 may assume.
 
 ---
 
+## Findings added after review (weigh these; they are evidence, not rulings)
+
+An independent red-team of this brief ran while the chunk was in flight. Two of its findings became
+the ADDED-AFTER-REVIEW blocks above. These four are handed over rather than decided:
+
+- **A hostile fake that merely reports "jammed" may prove nothing.** A3 injects pathology **below**
+  the device seam (quantization, freeze, sentinel breach at the encoder), so the detector above has
+  to genuinely detect it. A hostile mechanism that sets a `jammed` flag which the stall detector then
+  reads is the shared-model trap in its purest form — the two agree by construction and the detector
+  is never exercised. Prefer motor-level injection (stalled velocity, rising current). If you inject
+  at the seam, prove the detector still fails when it should.
+- **`then()` is a single synchronous one-shot invoke** (`routine.hpp:341-365` calls the action once
+  and reads its return). A *tickable* operation does not fit that without something looping. Resolve
+  it explicitly — this is the crux of the seam and the brief left it implicit. An operation silently
+  truncated after one tick, and one that blocks in a way that can deadlock, are both failures.
+- **T4 assigns the park guard a duty T7 removes the means for.** T4 says F2's guard must force every
+  mechanism safe at the buzzer; T7 recommends the library not hold the mechanism list. Then what does
+  the guard iterate? Either T7 supplies an answer F2 can own, or T4's promise is unbacked.
+- **T4's safe state is expressed in `BrakeMode` terms, which a pneumatic mechanism cannot express** —
+  and the test bar demands motor-level assertion, which a solenoid-only mechanism has none of. If T1
+  rules air in, both need a form covering both. The pneumatic case must not quietly fall out of the
+  safe-state guarantee: it is the H-drive's primary mechanism.
+
+---
+
 ## Landmines
 
 - **"F1" is also a locked freeze row about the coordinate frame.** Do not touch rows F1–F5.
+- **Don't inherit `motion::IMotion` for the operation type** without structurally preventing what it
+  enables: an `IMotion` is passable to `MotionScheduler::async()`, where it would pre-empt and cancel
+  the active **drive** motion. Prevent it, don't just document it.
 - **Don't let the seam own a loop.** T3, and the standing decision behind every deterministic test in
   this project.
 - **Don't copy the drivetrain's safe state.** T4 — it drops a loaded lift.
@@ -517,7 +579,8 @@ what F2 may assume.
 - **Don't mint a fault code for a strategy outcome.** T6 — it destroys first-fault triage.
 - **Don't let the fake and the operation share a notion of "done".** The trap that has bitten five
   chunks, in its F1 form.
-- **Don't edit `routine.hpp` beyond `then()`.** 37 pins are watching; a pin firing elsewhere is a
-  breaking change to argue, not an edit to make.
+- **Don't edit `routine.hpp` beyond `then()`.** 37 pins are watching; a pin firing on a **signature
+  or member** line is a breaking change to argue, not an edit to make. (A pin firing on the
+  **version** line is the separate, understood case in T2's added block — fix the pin, don't stop.)
 - **Don't claim the library can score.** It can command a fake mechanism on a host. No robot has
   moved.
