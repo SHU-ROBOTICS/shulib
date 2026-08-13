@@ -69,6 +69,17 @@ jobs:
       - name: Build
         run: mkdocs build --strict
 
+      # The custom domain. For an Actions-based Pages deploy the authoritative
+      # setting is Settings > Pages > Custom domain — this file does not
+      # replace it. It is written here, into the ARTIFACT, rather than kept in
+      # docs/, because docs/ is a documentation source tree and a bare hostname
+      # file is not documentation: it would show up when browsing the docs on
+      # GitHub, and prepare_site.py would carry it around as if it were content.
+      # Emitting it at build time keeps the intent recorded in the repo without
+      # putting a non-document in the document directory.
+      - name: Custom domain
+        run: echo 'docs.shurobotics.com' > site/CNAME
+
       # Belt-and-braces after rendering: prove no internal path survived into
       # the built HTML. prepare_site.py checks the markdown; this checks the
       # artifact that actually ships.
