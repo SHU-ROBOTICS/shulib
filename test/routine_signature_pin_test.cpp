@@ -243,6 +243,10 @@ SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::WaitTimedOut) == 2,
                "RoutineStopCause::WaitTimedOut == 2 (append-only enum)");
 SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::ActionFailed) == 3,
                "RoutineStopCause::ActionFailed == 3 (append-only enum)");
+SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismFailed) == 4,
+               "RoutineStopCause::MechanismFailed == 4 (append-only enum; APPENDED at F1 "
+               "via the sanctioned additive path — a re-meaning of it is what this pin "
+               "would catch)");
 
 // ── the defaulted call spellings (default args are not part of a function type) ───
 template <typename R>
@@ -291,10 +295,16 @@ SHULIB_F10_PIN(!F10ConstStep<Routine>,
 // The pins above are the test; this case exists so the file registers in the
 // runner and records what the freeze is hung off.
 // Bug caught: F10 flips to LOCKED while the version mechanism the register
-// promises does not exist or no longer says 2.0.
-TEST_CASE("F10 pin: the frozen Routine surface is API 2.0 and the mechanism exists") {
+// promises does not exist or no longer says major version 2.
+// HISTORY (fixed at F1): originally asserted `kApiMinor == 0` — the same
+// conflation as the F6 twin (see f6_signature_pin_test.cpp): it made the
+// documented ADDITIVE path (appending a RoutineStopCause enumerator, which
+// routine.hpp:145 explicitly anticipates for F1/F3) fail the pin that exists
+// to guard the FROZEN surface. Additive growth bumps kApiMinor and must never
+// fail this pin; a major bump still does, loudly, as intended.
+TEST_CASE("F10 pin: the frozen Routine surface is API major 2 and the mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
-    CHECK(shulib::kApiMinor == 0);
+    CHECK(shulib::kApiMinor >= 0);
     CHECK(shulib::kApiVersionString[0] == '2');
 }
 

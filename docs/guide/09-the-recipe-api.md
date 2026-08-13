@@ -225,18 +225,55 @@ and honors that verdict, so the leg becomes a step in every way that matters. Th
 [cookbook](../cookbook/05-mixing-tiers.md) shows both forms side by side, with a compiled test
 holding each of them true.
 
-## `then()` — the mechanism seam, honestly labeled
+## `then()` — the mechanism seam
 
-The plan for Tier 2 ([master plan
-§17](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
-reads `moveTo(p).then(intake.in)`. **Mechanisms do not exist in shulib yet** — no intake, no
-lift, nothing to call ([Chapter 14](14-what-it-cannot-do-yet.md)). What exists now is the
-seam they will plug into: `then(action, name)` runs any callable between motions, strictly
-after the previous step finishes. An action returning `void` always succeeds; returning
-`bool`, `false` stops the chain (`ActionFailed`); returning an `ExitReason` — say, from a
-direct `chassis.` call inside the action — has that verdict honored. When mechanisms land,
-`intake.in` becomes such a callable and chains here without the recipe layer changing shape.
-Until then, `then` is where your own glue code goes.
+`then(action, name)` runs any callable between motions, strictly after the previous step
+finishes. An action returning `void` always succeeds; returning `bool`, `false` stops the
+chain (`ActionFailed`); returning an `ExitReason` — say, from a direct `chassis.` call
+inside the action — has that verdict honored. And since the mechanism layer landed
+([Chapter 13](13-extending-the-library.md) shows how to build one), an action may return a
+mechanism operation's `MechanismOutcome`: **only `Succeeded` continues the chain.** A grab
+that completed but was never confirmed reports `Unconfirmed`, stops the chain as
+`MechanismFailed`, and the transcript names the exact verdict — a failed grab cannot be
+mistaken for a successful one, and there is no way to spell it that would.
+
+Here is the whole idiom, compiled and run by the test suite. The operation never owns a
+loop: you start it, the chassis's own `waitUntil` ticks it once per control tick (this also
+works *while a motion is driving* — that is how "intake while moving" is written), and its
+verdict goes to `then()`:
+
+```cpp
+RoutineResult scoreOne(Chassis& chassis, shulib::manipulation::IMechanismOp& grab) {
+    Routine r{chassis, "score-one"};
+    r.moveTo(Pose2d{18_in, 0_in, 0_deg}, {.timeout = 5_s})
+        .then(
+            [&] {
+                grab.start();
+                (void)chassis.waitUntil(
+                    [&] {
+                        return grab.tick() !=
+                               shulib::manipulation::MechanismOutcome::Running;
+                    },
+                    2_s);
+                return grab.outcome();  // only Succeeded continues the chain
+            },
+            "grab")
+        .moveTo(Pose2d{0_in, 24_in, 90_deg}, {.timeout = 5_s});
+    return r.result();
+}
+```
+
+**Return the outcome.** A `void` lambda that runs an operation and drops its verdict
+"succeeds" no matter what happened — the same sharp edge as the dropped direct-call
+`ExitReason` above, owned the same way. And if an action returns `Running`, the chain stops
+loudly too: an operation nobody drove to completion is not a success either.
+
+One honest spelling note, because older drafts of the plan wrote it differently: the
+flagship used to be quoted as `chassis.moveTo(p).then(intake.in)`, and that line was never
+real C++ twice over — `Chassis::moveTo` returns an `ExitReason` (which has no `.then()`;
+chains belong to `Routine`), and `intake.in` only names a function, it does not call one.
+The honest spelling is the one above: a `Routine` chain, and a lambda (or the operation
+idiom) inside `then()`.
 
 ## What a recipe deliberately can't do
 

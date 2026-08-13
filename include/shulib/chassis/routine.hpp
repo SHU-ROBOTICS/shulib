@@ -20,10 +20,14 @@
 // stays legal and is the intended path.
 //
 // NOT frozen, deliberately: **then()** — its accepted return types and its
-// `name` default are a placeholder shape chosen before mechanisms existed
-// (F1/F3 build them), so freezing it would commit to a guess; and the exact
-// WORDING of the stop/skip log lines (the behaviour — one Warn naming routine
-// and step, one Info per skipped step — is frozen; the sentence is not).
+// `name` default were left out of F10 because they were chosen before
+// mechanisms existed; chunk F1 then filled the seam (a fourth accepted return
+// type, manipulation::MechanismOutcome, and the MechanismFailed stop cause).
+// then() STAYS unfrozen until the seam has a second real consumer (F2's
+// combinators / F3's primitives) — the same build → second consumer → freeze
+// path every other surface here took. Also unfrozen: the exact WORDING of the
+// stop/skip log lines (the behaviour — one Warn naming routine and step, one
+// Info per skipped step — is frozen; the sentence is not).
 // Stated out loud because silence in a freeze reads as "frozen too" (D2 ruling
 // A2's lesson). The freeze waited for a second independent consumer: D3's
 // recipe cookbook (docs/cookbook/), which wrote fourteen recipes against this
@@ -38,7 +42,7 @@
 //     Routine r{chassis, "left-side"};
 //     r.startAt(Pose2d{-48_in, -24_in, 90_deg})
 //      .moveTo(Pose2d{-24_in, 0_in, 45_deg})
-//      .then([&] { /* intake.in() when mechanisms exist (F1/F3) */ })
+//      .then([&] { intake.in(); }, "intake")  // your mechanism code (ch. 13)
 //      .strafeTo(-24_in, 24_in)
 //      .face(0_in, 48_in)
 //      .driveTo(0_in, 48_in)
@@ -99,14 +103,15 @@
 // supported and tested (steps and direct facade calls interleave freely,
 // because eager execution keeps program order = field order).
 //
-// ═══ then(): the mechanism seam — PLACEHOLDER SHAPE (F1/F3) ══════════════════════
-// §17's vision is `moveTo(p).then(intake.in)`. Mechanisms do not exist yet
-// (F1/F3 build them); then() is the seam they will slot into: it accepts any
-// callable returning void (always succeeds), bool, or ExitReason (failure
-// stops the chain like any step). When F1/F3 land, a mechanism action is such
-// a callable and chains without this class changing shape. Until then it runs
-// whatever glue the author writes — including direct facade calls, whose
-// verdicts it honors.
+// ═══ then(): the mechanism seam (filled at F1; still unfrozen — see above) ═══════
+// then() accepts any callable returning void (always succeeds), bool, or
+// ExitReason (failure stops the chain like any step) — and, since F1, a
+// mechanism operation's MechanismOutcome, where ONLY Succeeded continues and
+// an Unconfirmed grab can never read as success (the T2 guarantee; the member
+// comment carries the idiom). One honest spelling note: the action is a
+// CALLABLE, so a member function is passed as `then([&] { intake.in(); })` —
+// `then(intake.in)` is valid C++ only for a callable data member, and the
+// documentation spells the lambda form everywhere for that reason (T5).
 //
 // ═══ What a recipe deliberately CANNOT do (the documented gaps) ══════════════════
 //   * drive(speeds, Frame) — a recipe is a SEQUENCE; drive() is a per-
@@ -135,6 +140,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/diag/line_format.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
+#include "shulib/manipulation/mechanism_outcome.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
@@ -149,6 +155,11 @@ enum class RoutineStopCause {
     MotionFailed,  ///< a motion step exited non-Settled (see RoutineResult::exit)
     WaitTimedOut,  ///< a waitFor() deadline passed with the condition still false
     ActionFailed,  ///< a then()-action reported failure (bool false / non-Settled)
+    MechanismFailed,  ///< a then()-action returned a mechanism verdict other than
+                      ///< Succeeded — Unconfirmed / Stalled / TimedOut / Cancelled;
+                      ///< the stop log line names which, and the operation object
+                      ///< itself remains the authority on the exact outcome
+                      ///< (APPENDED at chunk F1, per the append-only rule above)
 };
 
 /// What a Routine did — the whole-chain verdict, readable at any point (it is
@@ -328,15 +339,32 @@ public:
         return *this;
     }
 
-    /// Run an action between motions — THE MECHANISM SEAM, placeholder shape
-    /// (header note). `action` is any callable taking nothing and returning
+    /// Run an action between motions — THE MECHANISM SEAM (the one member
+    /// deliberately outside F10, filled in at chunk F1). `action` is any
+    /// callable taking nothing and returning
     ///   * void        — the action always succeeds,
     ///   * bool        — false fails the step and stops the chain,
     ///   * ExitReason  — non-Settled fails the step (so an action may wrap a
-    ///                   facade verb and have its verdict honored).
-    /// When F1/F3 build mechanisms, `intake.in` is such a callable and slots
-    /// in here without this class changing shape. `name` labels the step in
-    /// stop/skip log lines (stable literal).
+    ///                   facade verb and have its verdict honored),
+    ///   * manipulation::MechanismOutcome — a mechanism operation's verdict:
+    ///     ONLY Succeeded continues the chain; Unconfirmed / Stalled /
+    ///     TimedOut / Cancelled stop it as MechanismFailed with the outcome
+    ///     named in the stop line. MechanismOutcome has no bool conversion, so
+    ///     an Unconfirmed can never be truthy by accident — the T2 guarantee
+    ///     that a failed grab cannot read as success at this layer.
+    /// The mechanism idiom (contract in manipulation/mechanism_op.hpp):
+    ///
+    ///     r.then([&] {
+    ///         grab.start();
+    ///         (void)chassis.waitUntil([&] { return grab.tick() != Running; },
+    ///                                 Time{2.0});
+    ///         return grab.outcome();
+    ///     }, "grab");
+    ///
+    /// RETURN THE OUTCOME. A void lambda that runs an operation and drops its
+    /// verdict "succeeds" whatever happened — the same sharp edge as dropping
+    /// a direct facade call's ExitReason (guide chapter 9), owned the same way.
+    /// `name` labels the step in stop/skip log lines (stable literal).
     template <typename Action>
     Routine& then(Action&& action, const char* name = "action") {
         if (skipIfStopped(name)) {
@@ -345,21 +373,28 @@ public:
         using R = std::invoke_result_t<Action&>;
         bool succeeded = true;
         control::ExitReason exit = control::ExitReason::Running;
+        const char* detail = nullptr;
+        RoutineStopCause failCause = RoutineStopCause::ActionFailed;
         if constexpr (std::is_void_v<R>) {
             std::invoke(action);
         } else if constexpr (std::is_same_v<R, control::ExitReason>) {
             exit = std::invoke(action);
             succeeded = (exit == control::ExitReason::Settled);
+        } else if constexpr (std::is_same_v<R, manipulation::MechanismOutcome>) {
+            const manipulation::MechanismOutcome mo = std::invoke(action);
+            succeeded = (mo == manipulation::MechanismOutcome::Succeeded);
+            failCause = RoutineStopCause::MechanismFailed;
+            detail = manipulation::mechanismOutcomeName(mo);
         } else {
             static_assert(std::is_constructible_v<bool, R>,
-                          "Routine::then: the action must return void, bool, or "
-                          "control::ExitReason");
+                          "Routine::then: the action must return void, bool, "
+                          "control::ExitReason, or manipulation::MechanismOutcome");
             succeeded = static_cast<bool>(std::invoke(action));
         }
         if (succeeded) {
             recordSuccess();
         } else {
-            recordStop(name, RoutineStopCause::ActionFailed, exit);
+            recordStop(name, failCause, exit, detail);
         }
         return *this;
     }
@@ -464,7 +499,13 @@ private:
 
     /// The stop half of the error policy: record, SAFE the drive (cancel is
     /// idempotent and defined-safe with or without an active motion), Warn.
-    void recordStop(const char* name, RoutineStopCause cause, control::ExitReason exit) {
+    /// `detail` (optional) names the specific verdict inside the cause — F1's
+    /// mechanism outcomes use it, so a transcript says WHICH way a grab failed.
+    /// Note the layering: a mechanism operation has already safed its OWN
+    /// mechanism on every exit path (mechanism_op.hpp); this stop parks the
+    /// DRIVE on top of that.
+    void recordStop(const char* name, RoutineStopCause cause, control::ExitReason exit,
+                    const char* detail = nullptr) {
         ++steps_;
         stoppedAt_ = steps_;
         stoppedName_ = name;
@@ -480,6 +521,11 @@ private:
         line.appendLiteral(name);
         line.appendLiteral("): ");
         line.appendLiteral(stopCauseText(cause, exit));
+        if (detail != nullptr) {
+            line.appendLiteral(" (");
+            line.appendLiteral(detail);
+            line.appendLiteral(")");
+        }
         line.appendLiteral(" — skipping the rest; drive safed");
         chassis_->deps().ctx->telemetry().log(hal::LogLevel::Warn, "RTN", line.view());
     }
@@ -501,6 +547,8 @@ private:
                 return "wait TIMEOUT";
             case RoutineStopCause::ActionFailed:
                 return "action FAILED";
+            case RoutineStopCause::MechanismFailed:
+                return "mechanism FAILED";
         }
         return "stopped";
     }

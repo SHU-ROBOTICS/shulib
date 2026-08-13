@@ -343,10 +343,17 @@ SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
 // runner and pins the version constants the freeze policy hangs off.
 // Bug caught: the F6 freeze flips to LOCKED while the version mechanism the
 // register promises ("changes only with an API-version bump") doesn't exist
-// or doesn't say 2.0.
-TEST_CASE("F6 pin: the frozen surface is API 2.0 and the version mechanism exists") {
+// or no longer says major version 2.
+// HISTORY (fixed at F1): this pin originally asserted `kApiMinor == 0`, which
+// conflated "F6 is API 2.x and the mechanism exists" (what the freeze means)
+// with "the version is exactly 2.0" (what was written) — and thereby turned
+// version.hpp's OWN documented additive path ("bump kApiMinor ... the intended
+// growth path of every frozen surface") into a red pin. The first legal
+// additive change (F1: appended enumerators + then() growth, 2.0 → 2.1) hit
+// it. A minor bump is additive by definition and must never fail this pin.
+TEST_CASE("F6 pin: the frozen surface is API major 2 and the version mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
-    CHECK(shulib::kApiMinor == 0);
+    CHECK(shulib::kApiMinor >= 0);
     CHECK(shulib::kApiVersionString[0] == '2');
 }
 

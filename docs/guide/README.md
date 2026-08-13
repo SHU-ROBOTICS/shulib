@@ -123,7 +123,15 @@ the test suite.
    mechanisms it exists for. A change to a frozen `Routine` spelling is a *breaking* change and
    rides the same procedure as F6's, updating
    [`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp).
-5. The [generated reference](../api/README.md) needs no step at all — it regenerates from the
+5. ✅ Executed 2026-08-13 (F1): the mechanism layer landed, so chapter 9's `then()` section
+   was rewritten around the compiled operation idiom (`guide-09d` — the example set is now
+   09a/b/c/d), chapter 13 gained "Extension 3: building a mechanism", and chapter 14's
+   placeholder section fell (celebrated, then replaced with the honest host-only status).
+   The old `chassis.moveTo(p).then(intake.in)` spelling was corrected everywhere it was
+   quoted — it was never valid C++ (verbs return `ExitReason`; a member function is passed
+   as a lambda) — and chapter 14's "no cookbook yet" line, stale since D3 shipped one, was
+   fixed. `then()` and the mechanism seam remain unfrozen (register row F11) until F3.
+6. The [generated reference](../api/README.md) needs no step at all — it regenerates from the
    headers and the build fails if the committed copy is stale. If you changed a `///` comment,
    run `python3 tools/api_doc_tool.py generate` and commit what it writes.
 

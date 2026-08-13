@@ -80,6 +80,7 @@ Every public member of shulib's autonomous-routine API, extracted from the heade
 | `RoutineResult::stoppedAt` | `RoutineResult` | [routine.md](routine.md#routineresult-stoppedat) |
 | `RoutineResult::stoppedName` | `RoutineResult` | [routine.md](routine.md#routineresult-stoppedname) |
 | `RoutineStopCause::ActionFailed` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-actionfailed) |
+| `RoutineStopCause::MechanismFailed` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-mechanismfailed) |
 | `RoutineStopCause::MotionFailed` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-waittimedout) |

@@ -550,8 +550,41 @@ many independent things are checked. It now carries an explicit caveat pointing 
 as the measure the project actually trusts, with the reason stated: **a test that cannot fail when
 the code is wrong is worse than no test, because it reads as coverage.**
 
-**Next: F1 — Phase F (sequencing).** Phase E's estimator work is done; F1/F2 build the mechanism
-abstraction and the time-budgeted sequencer on top of it.
+**Chunk F1 — the mechanism seam — is BUILT and verified 2026-08-13, in the working tree
+pending review/commit; Phase F is OPEN.** The first new seam since C1: `hal/mechanism.hpp`
+(+`digital_out.hpp` + fakes) is the device level — `IMechanism` deliberately minimal (the ONE
+uniform verb every mechanism supports is "apply your DECLARED safe state, now"; command/read
+surfaces stay concrete because a voltage on a solenoid would be a lie), `MotorMechanism` /
+`PneumaticMechanism` as portable compositions over `IMotor*`/`IDigitalOut*`, and a claim token
+that makes two-operations-one-mechanism a loud precondition instead of a silent double-drive.
+`manipulation/mechanism_op.hpp` is the operation level — the C1 contract mirrored clause by
+clause with every divergence named in the banner (no loop owned; the blocking idiom is
+`chassis.waitUntil` ticking the op in the predicate, proven bit-identical to a mechanism-free
+twin while a motion drives; cancel idempotent + verdict-preserving into the per-mechanism safe
+state; watchdog armed in start(), proven against a device whose EVERY sensor lies).
+`MechanismOutcome` is the fourth result vocabulary — deliberately, because `ExitReason` cannot
+say **Unconfirmed** (completed, healthy, and the thing did not happen) — and `then()` (the one
+unfrozen member, filled as D3 intended) maps ONLY `Succeeded` to success.
+Suite 961 cases / 1,521,812 assertions; ARM 123 headers; **18/18 mutations red, 0 green, 0
+build-fail, 0 skipped** (the campaign's one hole was found while PLANNING it — the
+confirm-vs-stall tie had no killer — and closed before it ran); HA-92/93 registered; API
+2.0 → 2.1 by the documented additive path.
+**RULED at F1** (full reasoning in `chunks/F1-COMPLETED.md`): the fault/verdict line — ONE code
+minted (`MECHANISM_STALLED = 11`, continue-degraded under the default abort mask, tested), and
+an op timeout raises NO fault (waitUntil's precedent, not MotionTimeout's: a mechanism does not
+control whether the world cooperates); the discrete-actuator safe-state split (success must NOT
+un-actuate a clamp — found by hand-writing the timeline before the code ran); `TickPhase::User`
+stays empty WITH its producer named (F2's sequencer loop / G2's markers — crediting a waitUntil
+predicate would break the pinned D-3 sum contract); T5's flagship line was broken TWICE
+(`ExitReason` has no `.then()`; `intake.in` is not a call) and the prose was corrected in every
+quoted place rather than reshaping anything frozen; and **a D2/D3 defect fixed here (Rule 4)**:
+both version pins hard-asserted `kApiMinor == 0`, fencing off the additive path version.hpp
+documents — they now pin what was meant (major == 2, mechanism exists).
+**What F1 leaves for F2** (read `F1-COMPLETED.md` §"what F2 may assume" before writing F2's
+brief): a park guard takes a caller-supplied `span<hal::IMechanism*>` — the library never owns
+the mechanism list; pre-empt is cancel-then-start; nothing here is frozen (register row F11).
+
+**Next: F2 — the `sequence/` engine and the guaranteed park.**
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
@@ -972,6 +1005,18 @@ mechanism exists is deliberate — the abstraction should be shaped by what sequ
 retrofitted around whatever hardware happens to get built.
 
 **DoD:** a fake mechanism is driven through the seam; failure modes surface as fault codes, not hangs.
+
+**RULED at F1 (2026-08-13), for whoever reads this entry later:** the DoD's "failure modes
+surface as fault codes" was deliberately narrowed — a **jam/stall** surfaces as
+`MECHANISM_STALLED` (a pathology the stall detector can prove); an operation **timing out
+raises no fault** (a healthy intake that never saw a ring is strategy, and latching it would
+flood first-fault triage — waitUntil's no-fault-timeout precedent, argued against the
+MotionTimeout precedent in `mechanism_op.hpp`'s banner), and **Unconfirmed** is a verdict, not
+a fault, carried by a fourth result vocabulary because `ExitReason` cannot express it. "Not
+hangs" is proven against a lying device: every sensor dishonest, the watchdog still exits.
+The seam is two levels (device in `hal/`, bounded operation in `manipulation/`) and is NOT
+frozen — register row F11; F3 is its second consumer and the freeze point. Completion record:
+`chunks/F1-COMPLETED.md`.
 
 ### F2 — `sequence/` engine + time-budgeted sequencer
 `Sequence` / `Parallel` / `Race` / `Deadline`, possession-aware time budgeting, and the

@@ -105,7 +105,14 @@ enum class TickPhase : std::uint8_t {
     Health = 2,        ///< health observables, where separable — RESERVED (E1+)
     Telemetry = 3,     ///< sink formatting/IO, where separable — RESERVED (E1+)
     Scheduler = 4,     ///< scheduler bookkeeping, where separable — RESERVED (E1+)
-    User = 5,          ///< caller-owned work (G2 markers, mechanisms) — RESERVED
+    User = 5,          ///< caller-owned work (G2 markers, mechanisms) — RESERVED, still
+                       ///< no producer. F1 RULED why it stayed empty rather than filling
+                       ///< it: the only place caller work is visible today is a waitUntil
+                       ///< predicate, which runs OUTSIDE the attribution bracket, and
+                       ///< crediting it would break the pinned sum contract (attributed
+                       ///< phases never exceed the tick total — tick_attribution.hpp).
+                       ///< The named producer is F2's sequencer loop / G2's marker
+                       ///< dispatch, which own a loop and can bracket user work properly.
 };
 
 /// Capacity of DebugRecord::tickPhase. STRICTLY GREATER than the defined phases on

@@ -214,6 +214,14 @@ differs across hardware/sim/test).
 `manipulation/` (`IntakeFromLoader`, `PlacePin`, `NestCup`, `SetQuadrantToggle`),
 `sequence/` (Action engine: Sequence/Parallel/Race/Deadline + match-timer park guard).
 _See §14 for the full skills-layer primitive set (synthesized from the strategy digest)._
+_Status note (F1, 2026-08-13): `manipulation/` now exists in the tree, holding the season-free
+layer the primitives above will be built from — the operation contract (`IMechanismOp`), two
+generic bounded operations (`RunUntilConfirmed`, `ActuateAndConfirm`) and the stall detector.
+That contract layer depends only on `hal/` + `control/` + `diag/`, so it sits BESIDE `motion/`
+(L2), not above the facade; the concrete scoring primitives listed above (F3) are what may
+consume facade verbs and sit at skills level. The device seam itself (`IMechanism`,
+`MotorMechanism`, `PneumaticMechanism`, `IDigitalOut`) lives in `hal/` — outside the F4 freeze,
+register row F11._
 
 **IO / Tools** — `io/Trajectory` + `.vexbot` `paths[]` reader (+ legacy `.shupaths` importer); `io/Telemetry` SHUL/2
 (ports/absorbs `logger.hpp` into the new core **before** the end-of-M2 legacy deletion, fixing its 3 known bugs — §18.6); `tools/sysid` (offline kS/kV/kA least-squares → emits **constants**,
@@ -291,10 +299,14 @@ conversion is in `hal/imu_conversion.hpp`, enforced when the `hal/pros` adapter 
 - **Finiteness:** every numeric HAL reader returns a **finite, in-range** value; the `hal/pros` adapter
   clamps/normalizes vendor sentinels (`PROS_ERR`/`PROS_ERR_F`) at the edge, so no NaN/Inf reaches the core.
 - **F4 scope = sense + drive-motor + clock + telemetry.** Deliberately **deferred additive** extensions
-  (safe post-freeze, "frozen" ≠ "complete"): pneumatic/digital-out actuation + the `Mechanism` abstraction
-  (M4); `isConnected()` (M2); `IImu` linear acceleration (Frontier EKF). The config-ingestion seam
-  (`IRobotConfig`/`IRouteSource`, decision #10) is authored at **M5** with its `RobotConfig`/`Route`
-  schema (F7/F8), not part of this runtime-HAL freeze.
+  (safe post-freeze, "frozen" ≠ "complete"): `isConnected()` (M2); `IImu` linear acceleration (Frontier
+  EKF). The config-ingestion seam (`IRobotConfig`/`IRouteSource`, decision #10) is authored at **M5**
+  with its `RobotConfig`/`Route` schema (F7/F8), not part of this runtime-HAL freeze.
+  _The first of the deferred additives has since landed:_ pneumatic/digital-out actuation
+  (`IDigitalOut`) **and** the `Mechanism` seam (`IMechanism` + `MotorMechanism` /
+  `PneumaticMechanism`) shipped at chunk F1 (2026-08-13) — as F4 **siblings, explicitly outside the
+  F4 freeze** (the locked row is untouched); they are register row **F11**, not frozen, freezing
+  after their second consumer (F3).
 
 **Odometry → canonical binding contract** (set 2026-06-19 when WS5 re-derived the Pilons arc math
 from scratch; the integrator is in `localization/arc_step.hpp`):
@@ -710,7 +722,7 @@ caliber* autonomous — and a team that *can* code must never hit a ceiling. shu
 |---|---|---|---|
 | **0 — Zero-code hardware** | Anyone | Build the robot in VexBuilder | `robot_config.hpp` — *no hand port-mapping, no measuring* (§16.2) |
 | **1 — Data-driven auton** | Non-coder | Drag waypoints + pick commands in VexBuilder | saved into `.vexbot` → `PathRunner` runs it. **A full routine with zero C++.** |
-| **2 — Recipe API** | Beginner coder | ~10 readable lines | `chassis.moveTo(p).then(intake.in)…` — fluent, hard to misuse |
+| **2 — Recipe API** | Beginner coder | ~10 readable lines | `r.moveTo(p).then([&]{ intake.in(); })…` — fluent, hard to misuse. *(Corrected at F1: this cell long read `chassis.moveTo(p).then(intake.in)`, which was never valid C++ twice over — verbs return `ExitReason`, which has no `.then()` (chains belong to `Routine`, ruled at D1), and `intake.in` names a member function without calling it. The compiled, gate-checked form is the guide ch. 9 listing.)* |
 | **3 — Full API** | Programmer | Everything in this doc | kinematics, estimator, custom motions, the works |
 
 **The bridge is the command registry (§16.3).** A non-coder designs *strategy as data*; one coder

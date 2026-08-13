@@ -13,11 +13,13 @@ ones below it:
 ```text
 chassis/        the facade (Chassis) — what routines talk to            [Ch. 10]
 motion/         motion primitives + the one-at-a-time scheduler         [Ch. 5]
+manipulation/   bounded mechanism operations (spin-until, actuate)      [Ch. 9]
 control/        PID, feedforward, settling, watchdogs                   [Ch. 5]
 localization/   odometry, fusion, the Localizer                         [Ch. 3]
 kinematics/     drivetrain geometry (X, tank, H)                        [Ch. 4]
 diag/           records, fault latch, monitors, formatters              [Ch. 11]
-hal/            the 10 hardware interfaces (+ in-memory fakes)
+hal/            the hardware interfaces + the mechanism device seam
+                (+ in-memory fakes)
 units/ math/    typed quantities, Angle, Pose2d, the frame transforms   [Ch. 2]
 sim/            the simulated robot (tests only!)
 ```
@@ -114,7 +116,66 @@ You can *use* a custom motion without touching the library at all, via the Tier-
 a command id, like the built-in verbs) and run it through `chassis.scheduler().async(...)` /
 `waitUntilSettled()`. Promote it into the library proper when it's earned its tests.
 
-## Extension 3 and beyond
+## Extension 3: building a mechanism
+
+An intake, a lift, a clamp — the library deliberately does not know any of them by name.
+What it gives you is a grammar with two levels, and your mechanism is a small struct you
+write from it. (Why no `shulib::Intake`? Because mechanism sets change every season, and a
+library that hard-codes this year's robot is wrong next year — a failure mode this project
+found fully formed in its own predecessor.)
+
+**Level 1 — the devices** ([`hal/mechanism.hpp`](../../include/shulib/hal/mechanism.hpp)):
+`MotorMechanism` is a group of motors on one shaft, commanded as one; `PneumaticMechanism`
+is one air circuit behind one or more digital lines. Both are built from the same hardware
+interfaces the rest of the library uses, so they run identically on fakes (tests), the
+simulator, and — when the hardware adapters land — the robot. The one decision you MUST make
+at construction is the **declared safe state**, and it is per-mechanism because no single
+answer is safe for all of them:
+
+- a **loaded lift** at zero volts, coasting, drops its stack — its safe state is `Hold`;
+- a **jammed intake** told to Hold sits at stall current until the motor cooks — its safe
+  state is `Coast` (or `Brake`);
+- a **clamp**'s safe line state is a strategy fact — "stay closed at the buzzer and keep
+  the goal" and "retract inside the expansion limit" are both legitimate declarations.
+
+Everything that ever stops your mechanism — an operation finishing, a cancel, the future
+end-of-match park guard — applies the state *you declared*, so the decision is made once,
+where you know the physics, instead of being re-made (wrongly) by generic code at the worst
+moment. Whether `Hold` truly holds *your* loaded lift is a hardware question nobody can
+answer until there is a robot; the assumptions register tracks it (HA-92).
+
+**Level 2 — the operations** ([`manipulation/mechanism_op.hpp`](../../include/shulib/manipulation/mechanism_op.hpp)
+— read its header contract the way you'd read `motion.hpp`'s): a bounded, tickable,
+cancellable action over a device. Two season-free shapes ship, and every scoring verb is one
+of them with real sensors:
+
+- `RunUntilConfirmed` — spin a motor mechanism until *your* confirmation says the task
+  happened, with a jam detector (high current + stopped shaft) and a watchdog. Verdicts:
+  `Succeeded`, `Stalled` (raises the `MECHANISM_STALLED` fault), `TimedOut` (no fault — a
+  healthy intake that never saw a ring is strategy, not a robot problem), `Cancelled`.
+- `ActuateAndConfirm` — fire a solenoid, wait out the physical actuation time, then require
+  confirmation within a window. This is where `Unconfirmed` lives: the command completed,
+  the mechanism is healthy, and the world says the thing did not happen. A solenoid has no
+  feedback of its own, so confirmation **must** come from a separate sensor — current,
+  distance, color — and *what confirms is a predicate you supply*, because "captured" means
+  something different every season.
+
+The rules an operation lives by are the motion layer's, mirrored: it never owns a loop (the
+chassis's `waitUntil` ticks it — the Chapter 9 listing is the idiom, and it runs happily
+*while a motion drives*); it can never hang (watchdog armed at `start()`, nothing disarms
+it); `cancel()` is idempotent, lands the device in its declared safe state synchronously,
+and never rewrites a finished verdict. One operation per mechanism at a time is enforced
+structurally — a second `start()` on a busy mechanism fails loudly instead of silently
+double-driving it.
+
+Two practical notes. First, keep a list of your mechanisms as `hal::IMechanism*` — the
+end-of-run park guard (the sequencing layer, in progress) will take exactly that list and
+force every one of them safe at the buzzer, which is the whole reason the base interface
+exists. Second, your confirmation predicate is *trusted*: an operation cannot second-guess
+its only eye on the task, so confirm on a real sensor reading, not on hope — the test suite
+demonstrates, deliberately, that a predicate that lies produces a false success.
+
+## Extension 4 and beyond
 
 The seams for bigger work already exist, with their owners named on the
 [roadmap](../roadmap.md): position correctors (GPS/vision) plug into the localizer's correction

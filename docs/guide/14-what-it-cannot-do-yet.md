@@ -164,23 +164,43 @@ stated accuracy, recover from a displacement that used to be permanent, and stat
 uncertainty as a number. It is **not** claimed to be more accurate than what it replaces on an
 ordinary run, and on the evidence available it is very slightly less so.
 
-## The mechanism seam is a placeholder
+## The mechanism layer exists — on a host, against fakes, with no season in it
 
-Both API tiers are now frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
+Both API tiers are frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
 recipe layer ([Chapter 9](09-the-recipe-api.md)) at D3, Freeze Register rows F6 and F10, both
 2026-08-12. Signatures and documented behavior change only with a major version bump and a
 migration note, and compile-time pins fail the build if one drifts — routines written today
-will not need rewriting. One piece is deliberately left open:
+will not need rewriting.
 
-- **`then()`** ([Chapter 9](09-the-recipe-api.md)) is the seam mechanisms will plug into, and
-  **mechanisms do not exist yet** (see the next section). Its accepted return types and its
-  step-name default were chosen before there was anything real to plug in, so freezing them
-  would have committed the library to a guess about code nobody has written. `then()` works and
-  is tested; treat its exact shape as provisional.
+The mechanism seam that used to be a placeholder here is now real code
+([Chapter 13](13-extending-the-library.md) is the how-to). What is proven, and against what:
 
-The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and isn't
-stable (the coordinate conventions, units, accuracy targets, hardware interfaces, kinematics
-contract, and now both API tiers *are* locked).
+- **Proven, on a host, against fakes:** motor groups and pneumatic lines can be commanded
+  through the device seam; a bounded operation runs, is ticked by the chassis's own wait
+  (including *while a motion drives*, with the motion's result proven bit-identical to a run
+  with no mechanism at all), detects a jam from current + shaft speed, times out under an
+  adversarial clock rather than hanging, cancels into a per-mechanism declared safe state,
+  and hands `then()` a verdict where a completed-but-unconfirmed action can never read as
+  success. All of it against in-memory fakes and hostile fakes that jam, stall and lie.
+- **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
+  will be — mechanism sets change every season, so the library ships the grammar and your
+  team writes the nouns (Chapter 13 says how, and why the safe state is declared per
+  mechanism).
+- **Not proven, stated plainly:** anything on hardware. No solenoid has fired, no motor has
+  jammed for real, and whether `Hold` truly holds a *loaded* lift is a registered assumption
+  (HA-92), not a fact. The stall thresholds an operation needs are required parameters
+  precisely because no honest default exists before hardware characterization (phase R4).
+  And the scoring verbs themselves — `intakeUntilCapture`, `liftToLevel`,
+  `setQuadrantToggle` — remain future work (roadmap item F3) that needs both hardware and
+  the build team's final mechanism decisions.
+
+One related piece stays deliberately open: **`then()`** and the mechanism seam are still
+**unfrozen** — the seam gets its second real consumer at F3 (the concrete scoring verbs),
+and this project freezes surfaces after a second consumer has stressed them, not before.
+The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and
+isn't stable (the coordinate conventions, units, accuracy targets, hardware interfaces,
+kinematics contract, and both API tiers *are* locked; the mechanism seam is listed there as
+explicitly not-yet-frozen).
 
 ## No easier tiers yet
 
@@ -191,10 +211,15 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
 - **No zero-code authoring** (Tiers 0–1: build the robot and drag waypoints in the VexBuilder
   app, run the saved file with no C++). The `.vexbot` file formats and the path-runner are
   roadmap milestone M5, coordinated with the separate VexBuilder project.
-- **No mechanisms for recipes to command** — `then()` in a recipe is a labeled placeholder
-  seam until the mechanism layer exists (roadmap items F1/F3); today it runs only code you
-  write yourself.
-- **No recipe cookbook or generated API reference site yet** (D3).
+- **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
+  above) and `then()` runs its operations, but the mechanisms themselves are structs your
+  team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete
+  primitives (`intakeUntilCapture`, `liftToLevel`, …) are roadmap item F3.
+- **No published API reference site.** The [cookbook](../cookbook/README.md) and the
+  generated API reference (`docs/api/`) both exist and are build-checked — but nothing is
+  hosted anywhere yet, so "the reference is live on the team website" remains open.
+  *(This bullet used to say no cookbook existed at all; that was written before D3 shipped
+  it and went stale — corrected at F1.)*
 
 ## Motion-quality boundaries
 

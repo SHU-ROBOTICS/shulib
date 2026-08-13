@@ -128,6 +128,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
 | F10 | **Public `Routine` API (the Tier-2 recipe layer)** — construction `Routine(chassis, name = "routine")` `noexcept` + non-copyable/non-movable; **eleven steps**, each returning `Routine&`: `startAt` / `moveTo` / `driveTo` / `strafeTo` / `turnTo` / `face` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `pause(Time)` / `waitFor(pred, Time, name)`; **four observers** `ok()` / `result()` / `lastTrajectory()` / `chassis()`, all `noexcept`; **two public types** `RoutineResult` (all eight fields) and `RoutineStopCause` (**append-only** — the existing enumerator *values* are pinned, because a re-meaning is invisible at every call site); **plus the documented semantics**: eager execution (a step runs when it is chained), the stop/safe/skip/report error policy, preconditions throwing through with the chain's counters untouched, `lastTrajectory()` reading `exit = Running` until a trajectory has run, and typed time as a SEMANTIC (`hold(0.3)` must not compile). **Deliberately OUTSIDE F10:** `then()` — the mechanism seam, whose accepted return types and `name` default are a placeholder chosen before mechanisms existed (F1/F3 build them), so freezing it would commit to a guess; and the exact WORDING of the stop/skip log lines (the behaviour is frozen, the sentence is not). A **separate row from F6**, not an amendment: the recipe layer is a strict client of the facade, a different tier that can version independently, and amending F6 would retroactively blur what F6 promised on its own lock date. Enforced structurally: compile-time signature pin `test/routine_signature_pin_test.cpp` (37 pins, 16-mutation-proven, every `noexcept` pin using the compound-requirement detector that D2's hole #1 taught) + `include/shulib/version.hpp` | Every Tier-2 auton ever written on shulib | M7 | ✅ **LOCKED 2026-08-12** *(at D3, after the cookbook — its second consumer — wrote fourteen recipes against it and needed zero changes to the surface; the critique and its rulings are the D3 completion record's centrepiece)* |
+| F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(Deliberately NOT gated by the api-doc coverage tool yet, for the same not-frozen reason — the F1 completion record carries that ruling and F3 owns revisiting it.)* | F2's combinators + park guard; F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
 
 ---
 
@@ -211,8 +212,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > found by pre-analysis and closed with sole-detector tests (a no-op `startAt` masked by
 > every rig's auto-seed; speed budgets silently dropped in delegation), see the D1
 > completion record. **What D1 did NOT do: freeze F6** (that was D2's, informed by D1's
-> facade critique — the completion record's top section), and `.then(intake.in)` remains a
-> labeled placeholder until F1/F3 build mechanisms.
+> facade critique — the completion record's top section), and `.then(...)` remained a
+> labeled placeholder until F1 built mechanisms (it has since — see the F1 entry; and the
+> `.then(intake.in)` spelling this line once used was itself corrected at F1: verbs return
+> `ExitReason`, so the chain belongs to `Routine`, and a member function is passed as a
+> lambda).
 > **Chunk D2 (the F6 freeze) is DONE, 2026-08-12** (completion record: development log,
 > `shulib-v2` branch): all nine D1 §2 critique items ruled with rejected alternatives
 > (time RETYPED to `units::Time` with full-suite output byte-identical; `wait(Time)`
@@ -378,7 +382,40 @@ not silently break them. This table is the spine of the no-staleness promise.
 > the same bounded rate. The event is a declared, latched, rate-limited word on the record
 > (`GateReason::CovarianceReinit`). No existing never-snap test changed.
 > **Nine more invented constants** (HA-83…HA-91). The structure is proven; the numbers are R4's.
-> **Next: F1** (Phase F — sequencing).
+> **F1 OPENS PHASE F (2026-08-13; chunk 20 of 40) — in the working tree pending review/commit:
+> the mechanism seam.** The library could drive to a spot and do nothing there; now it has the
+> layer every scoring verb will be built from — and **no robot has scored anything: everything
+> below was proven on a host against fakes.** Two levels: a device seam in `hal/`
+> (`IMechanism` with a minimal force-safe surface + one-operation claim token;
+> `MotorMechanism` / `PneumaticMechanism` over the existing `IMotor`/new `IDigitalOut`
+> interfaces, each with a **per-mechanism DECLARED safe state** — a loaded lift declares Hold,
+> an intake declares Coast, a clamp declares its line state, because no single answer is safe
+> for all, and every stop path applies the declaration), and a bounded-operation layer in
+> `manipulation/` (`IMechanismOp` mirroring the C1 motion contract clause for clause with the
+> divergences named in its banner; `RunUntilConfirmed` + `ActuateAndConfirm`, both tick-only —
+> the blocking idiom is the chassis's own `waitUntil` ticking the op in its predicate, proven
+> to run WHILE a motion drives with the motion's result bit-identical to a mechanism-free
+> twin). A mechanism outcome is its own vocabulary (`MechanismOutcome`, with **Unconfirmed**:
+> completed, healthy, and the world says the task did not happen), `then()` — the one member
+> D3 left unfrozen — accepts it with ONLY `Succeeded` continuing the chain, and
+> `RoutineStopCause` grew `MechanismFailed` by the sanctioned append (API 2.0 → 2.1, the first
+> exercise of the additive path — which exposed and fixed a D2/D3 pin defect that had
+> hard-frozen `kApiMinor == 0`, fencing off the very growth path version.hpp documents).
+> One fault code minted: `MECHANISM_STALLED` (11) — a jam IS a pathology; an operation
+> merely timing out raises NO fault (a healthy intake that saw no ring is strategy, and
+> latching it would flood first-fault triage). Hostile fakes jam, stall and LIE
+> (`JammedMotor`, `LyingSpinMotor`, hostile confirm channels), and the no-hang proof runs
+> against a lying device: with every sensor dishonest the watchdog still exits on time.
+> Suite 961 cases / 1,521,812 assertions; ARM gate 123 headers; **18 mutations executed, 18
+> red, 0 green, 0 build-fail, 0 skipped** (one suite hole found by PLANNING the campaign —
+> the confirm-vs-stall tie had no killer — and closed before it ran).
+> **What F1 did NOT do, stated plainly:** no concrete scoring verb (`intakeUntilCapture`,
+> `liftToLevel` — F3/F′, needing hardware and build-team decisions), no combinators, no
+> match timer, no guaranteed park (F2 — it inherits a caller-supplied `span<IMechanism*>`
+> park-guard shape and the cancel-then-start pre-empt policy), no `hal/pros` (R1), and no
+> claim about physical mechanisms: whether `Hold` holds a LOADED lift is HA-92, a registered
+> guess. The seam itself is **deliberately unfrozen** (register row F11) until F3 consumes it.
+> **Next: F2** (the `sequence/` engine and the guaranteed park).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -1051,7 +1088,15 @@ is required, not optional, to hold < 1°.)*
 *The scoring verbs, and the safety net that never fails to fire.*
 
 **Manipulation (WS7)**
-- [ ] `Mechanism` HAL abstraction.
+- [~] `Mechanism` HAL abstraction — **built and host-proven at F1 (2026-08-13)**:
+  `hal/mechanism.hpp` (+ `digital_out.hpp`, fakes, hostile fakes) and the bounded-operation
+  contract `manipulation/mechanism_op.hpp`; driven end to end through `then()` and the
+  scheduler's `waitUntil` concurrently with a motion; 18/18 mutations red
+  (`test/mechanism_*.cpp`; full working record in the development log, `shulib-v2`
+  branch). Kept `[~]`, not
+  `[x]`, for two honest reasons: the seam is **deliberately unfrozen** until F3 — its second
+  consumer — stresses it (register row F11), and **no mechanism hardware has ever moved** —
+  the per-mechanism safe-state physics is HA-92, a registered guess.
 - [ ] `setQuadrantToggle` (index N clicks on the 3-state Toggle + Optical color confirm) — *highest-value primitive*.
 - [ ] `orientToScoringHalf` (yellow-side-out: color-sense → pass-through vs flip) — *second highest-value*.
 - [ ] `intakeUntilCapture` (counter-roller, retry, sensor-confirm).
@@ -1144,17 +1189,23 @@ tuned on the brain mid-session. **Freezes:** F9.
   publish path is written down — but this repository has one CI workflow and no Pages
   configuration, so "publish to the team website" remains open. Standing up hosting is
   infrastructure, not documentation.
-- [~] Tier 2 **recipe API** — `chassis.moveTo(p).then(intake.in)…` (fluent, hard to misuse).
+- [x] Tier 2 **recipe API** — `r.moveTo(p).then([&]{ intake.in(); })…` (fluent, hard to misuse).
   *Built at chunk D1 (2026-08-11): `include/shulib/chassis/routine.hpp` — an eager fluent
   chain (`Routine`) whose every step delegates to one facade verb, with a tested
   stop/safe/skip/report policy on the first failed step. 14 cases in
-  `test/chassis_recipe_test.cpp` + 3 guide examples (suite 681 / 916,003, green 2026-08-11);
-  the recipe-vs-facade twin is bit-identical clean AND hostile, so C1–C4 baselines carry
-  over verbatim. Marked `[~]`, not `[x]`: `.then(intake.in)` itself cannot exist until
-  mechanisms do — `then()` is the labeled placeholder seam, and F1/F3 own the rest.
+  `test/chassis_recipe_test.cpp` + guide examples; the recipe-vs-facade twin is bit-identical
+  clean AND hostile, so C1–C4 baselines carry over verbatim.
   **FROZEN at D3 (2026-08-12) as Freeze Register row F10**, after the cookbook became its second
-  independent consumer and needed zero changes to the surface; `then()` is explicitly excluded
-  from that freeze for the same reason it keeps the `[~]`.*
+  independent consumer and needed zero changes to the surface.
+  **Completed at F1 (2026-08-13)**, which closed the two things that had kept this `[~]`:
+  mechanisms now exist for `then()` to run (a mechanism operation's verdict is a fourth
+  accepted return type, and only `Succeeded` continues the chain — an unconfirmed grab cannot
+  read as success; compiled end to end as `guide-09d`), and the headline spelling above was
+  CORRECTED — the old `chassis.moveTo(p).then(intake.in)` was never valid C++ (verbs return
+  `ExitReason`, which has no `.then()` — chains belong to `Routine`, ruled at D1 — and
+  `intake.in` names a member function without calling it). `then()` itself stays deliberately
+  unfrozen with the mechanism seam (register row F11) until F3, its second consumer — a
+  stability schedule, not a missing feature.*
 - [ ] "Your first auton in 10 minutes" guide (build → export → drag a path → run).
 - [ ] Re-derive the kept Pilons arc math into the in-core odometry (rewrite cleanly, don't copy).
 

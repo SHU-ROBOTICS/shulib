@@ -144,6 +144,8 @@
 | HA-89 | The EKF's prior when it knows nothing: 24 in, 30°, 24 in/s | **invented** | R4 |
 | HA-90 | 50 consecutive gate rejections with a mean innovation over 6 in means "lost" | **invented** | R4 |
 | HA-91 | 5 s is long enough between re-init declarations to tell recovery from a storm | **invented** | R4 |
+| HA-92 | `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive | **invented** | R3/R5 |
+| HA-93 | A jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command, with ≈ 0.05 rad/s residual creep | **invented** | R4 |
 
 ---
 
@@ -1121,9 +1123,46 @@ E2's tuning constants make the corrector work better or worse; these three make 
   from a filter that is working. (Too long): a second genuine displacement inside the window is
   not recovered from until the window expires.
 
+- [ ] **HA-93 — a jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command (scaling
+  linearly with commanded voltage), with ≈ 0.05 rad/s residual reported creep.**
+  *Claim:* the F1 hostile jam model's device signature is the right order of magnitude for a real
+  V5 motor stalled by a wedged ring or a hard stop — stall current ∝ V/R, a spec-ballpark 2.5 A
+  at full command, and a not-exactly-zero encoder reading from belt chatter and backlash (included
+  deliberately so a detector keyed on EXACT zero is caught by the fake).
+  *Source:* `include/shulib/sim/hostile/mechanism_hostility.hpp` (`JammedMotorConfig` defaults,
+  PROVISIONAL (A4: HA-93)).
+  *Confidence:* **invented** — V5 11 W stall current is commonly cited near this figure; no
+  measurement of ours, and 5.5 W motors differ.
+  *Settle (R4):* jam a real intake against a block at several commanded voltages; log `current()`
+  and `velocity()` through the F4 seam; set per-mechanism `StallConfig` thresholds from the
+  measured separation between spin-up and jam (the library ships NO default thresholds for
+  exactly this reason).
+  *Blast radius if wrong:* hostile-suite realism only — the operation layer's thresholds are
+  required per-mechanism parameters, so no library behavior rests on these numbers; a wrong
+  magnitude here mis-calibrates the *worst day* the suite rehearses, not the robot.
+
 ---
 
 ## Group R5 — gains and actuation constants
+
+- [ ] **HA-92 — `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive.**
+  *Claim:* the V5 firmware's active position hold, commanded through the F1 mechanism seam's
+  declared safe state, keeps a lift carrying game pieces at its height when its operation exits
+  or is cancelled — i.e. "declare Hold and the stack does not come down" is physically true, not
+  just commanded. The whole T4 design (per-mechanism declared safe states) makes the *declaration*
+  reach the motor provably; whether the *motor* then wins against gravity plus a loaded cascade's
+  back-drive torque is this claim.
+  *Source:* `include/shulib/hal/mechanism.hpp` (banner + `MotorMechanism::applySafeState`,
+  PROVISIONAL (A4: HA-92)).
+  *Confidence:* **invented** — no lift exists; V5 Hold is documented as an active position hold,
+  its holding torque under a real cascade's load and friction is not.
+  *Settle (R3/R5):* build-team lift on a stand: raise under load, cancel the operation, watch the
+  stack. Measure sag over 30 s at several loads; if Hold alone is insufficient, F3's `liftToLevel`
+  needs its sag-comp PID hold (already in its spec) and the declared safe state stays Hold as the
+  best-available floor.
+  *Blast radius if wrong:* a cancelled/parked lift descends at the buzzer — scored stack lost and
+  a possible entanglement; F2's park guard inherits the same exposure. The failure is visible the
+  first time hardware exists, which is why this is registered rather than assumed silently.
 
 - [ ] **HA-45 — the plant's wheel feedforward placeholders: kS = 1.0 V, kV = 12/70 V·s/in
   (≈ 70 in/s free speed at 12 V), kA = 0.**
