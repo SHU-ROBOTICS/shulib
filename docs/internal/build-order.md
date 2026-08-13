@@ -31,6 +31,11 @@ Every chunk closes with all six. This is the process, not a suggestion:
 | 4 | **Test evidence recorded** — case count, what each test would catch, which mutations were proven red | A suite that stays green while the code is wrong is theater. |
 | 5 | **Decisions recorded** — anything chosen where an alternative was viable, and why | Prevents re-litigating settled questions three chunks later. |
 | 6 | **Freeze Register updated** if the chunk froze a contract | A freeze that isn't registered isn't a freeze. |
+| 7 | **Changelog entry in `docs/changelog.md`** — what changed, breaking or additive, what a user must do | **Added at R1a.** The library ran to API 2.1 with no changelog at all: the 2.0 → 2.1 reason lived in a *code comment*, so an outside team on 2.0 had no document telling them what changed or whether it affected them. Every other deliverable here is written for us; this one is written for them. |
+
+> **The rule behind the table: EVERY change gets documented, not only the interesting ones.** A chunk
+> that adds fifteen surfaces and documents its headline is how a library becomes usable only by its
+> author. "It's just glue" is not an exemption — glue is where the units live.
 
 ### Watching a chunk as it happens
 

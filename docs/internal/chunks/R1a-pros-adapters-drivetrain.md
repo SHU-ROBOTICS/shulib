@@ -586,15 +586,48 @@ coverage.
 
 Named explicitly, the same way test scope is.
 
+**The standing rule, stated once because R1a is the chunk most likely to break it: EVERY change gets
+documented, not only the interesting ones.** Fifteen adapters is fifteen new surfaces, and a chunk
+that adds that much and documents only its headline is how a library becomes a thing only its author
+can use. "It's just glue" is not an exemption — glue is where the units live.
+
 **Public** (`docs/`, publishes to docs.shurobotics.com):
-- **`docs/faq.md` — NEW, and added to the mkdocs nav.** The code-nuance FAQ. Seed it from this chunk's
-  real questions: what happens when a sensor returns a PROS error mid-run; why `hasFix()` goes false in
-  Driving Skills; why the library reads `get_rotation()` and not `get_heading()`; what "the shim tests
-  the adapter, not the belief" means for anyone porting shulib to non-PROS hardware.
-  **Gate constraint:** every ` ```cpp ` line in a public doc must appear **verbatim** in a compiled
-  `test/*example*_test.cpp` or `check-examples` fails the build. Prose-only entries are free; code
-  samples cost a test file. And no public doc may contain the strings `internal/`, `chunks/`,
-  `RESUMING` or `build-order` — `check-removability` fails the build on them.
+
+- **`docs/changelog.md` — NEW, in the mkdocs nav. This is the gap R1a closes.**
+  The library has **no changelog**. `version.hpp` moved 2.0 → 2.1 at F1 and the reason is recorded in
+  a **code comment** (`version.hpp:52-55`) — so an outside team on 2.0 has no document that tells them
+  what changed, whether it affects them, or whether it was additive. `version.hpp` already carries a
+  written breaking-vs-additive policy and both freeze rows are pinned in the build; the changelog is
+  the reader-facing half that was never written.
+
+  Format: newest first, one section per API version, each entry saying **what changed, whether it is
+  breaking or additive, and what a user must do about it** — nothing else. R1a's own entry covers the
+  new seams (`IController`), the new adapter tree, and the guard amendment.
+  **From R1a on, no chunk closes without its changelog entry.** Add that line to the per-chunk
+  documentation contract in `build-order.md` — it is deliverable #7.
+
+- **`docs/faq.md` — NEW, in the mkdocs nav.** The FAQ is for **nuance the reference cannot carry**:
+  "what happens when a sensor returns a PROS error mid-run?", "why does `hasFix()` go false in Driving
+  Skills?", "why does the library read `get_rotation()` and not `get_heading()`?", "what does 'the shim
+  tests the adapter, not the belief' mean if I am porting shulib to non-PROS hardware?"
+  It is **not** the changelog and **not** the decision log — it answers *how does this actually
+  behave*, which is the question a user has at 11pm before a competition.
+
+- **The adapter surface itself must be documented where a user will look.** Fifteen adapters that
+  exist only as headers are fifteen undiscoverable features. At minimum: guide **ch. 07 "Getting set
+  up"** gains the real wiring (it currently describes a HAL with no implementation) and **ch. 13
+  "Extending the library"** gains the porting story, which is now real rather than hypothetical.
+- **Guide ch. 14 "What it cannot do yet"** — the honesty ledger. R1a changes what belongs in it more
+  than any chunk since C7. Edit it with more care than any other file here.
+- **`docs/hardware-assumptions.md`** — HA-94 onward, one entry per belief about PROS, each with the
+  bench measurement that settles it. This is R3's runbook and it grows here.
+- **`docs/roadmap.md`** — checkboxes with cited evidence, "you are here", register row for the new
+  seams saying **not frozen** out loud.
+
+  **Gate constraints, both of which fail the build:** every ` ```cpp ` line in a public doc must
+  appear **verbatim** in a compiled `test/*example*_test.cpp` (`check-examples`) — prose entries are
+  free, code samples cost a test file. And no public doc may contain the strings `internal/`,
+  `chunks/`, `RESUMING` or `build-order` (`check-removability`).
 - **Guide ch. 07 "Getting set up"** and **ch. 13 "Extending the library"** — the HAL chapter is where a
   team porting to different hardware looks, and it currently describes a HAL with no real
   implementation.
