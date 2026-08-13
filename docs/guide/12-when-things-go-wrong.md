@@ -63,7 +63,7 @@ say. Where a diagnosis depends on an unverified assumption, the
 - **`✗TIMEOUT`** — the watchdog fired. Now, the differential (this is Chapter 11's "a symptom
   with many diseases"):
   - *Budget simply too small:* the `final(…)` pose is well on the way and error was still
-    shrinking. Fix: raise `timeoutSeconds` — and remember every leg pays ~a second of settle
+    shrinking. Fix: raise the `timeout` option — and remember every leg pays ~a second of settle
     time on top of travel; a 2.0 s budget for a 1.9 s leg is a coin flip.
   - *Physically blocked / jammed:* error stopped shrinking at a constant value partway. In sim:
     an unreachable target. On a robot: a wall, a defender, a game piece under the chassis.

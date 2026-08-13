@@ -313,7 +313,7 @@ TEST_CASE("C4 conflict: verb → opposite drive() → verb, back to back, stays 
     const auto kin = xDrive(Length{7.0});
     ChassisRig c{kin};
     REQUIRE(c.chassis.moveTo(Pose2d{Length{15.0}, Length{0.0}, Angle{}},
-                             {.timeoutSeconds = 8.0})
+                             {.timeout = Time{8.0}})
             == ExitReason::Settled);
     // Immediately command the OPPOSITE direction manually for 0.3 s…
     for (int i = 0; i < 30; ++i) {
@@ -324,7 +324,7 @@ TEST_CASE("C4 conflict: verb → opposite drive() → verb, back to back, stays 
     CHECK(c.rig.h.truePose().x().value() < 14.0);  // the manual verb genuinely acted
     // …then a conflicting blocking verb: it must win cleanly.
     const Pose2d target{Length{30.0}, Length{5.0}, Angle::degrees(-90.0)};
-    REQUIRE(c.chassis.moveTo(target, {.timeoutSeconds = 8.0}) == ExitReason::Settled);
+    REQUIRE(c.chassis.moveTo(target, {.timeout = Time{8.0}}) == ExitReason::Settled);
     CHECK(posErr(c.rig.h.truePose(), target) < 1.0);
     CHECK(headErr(c.rig.h.truePose(), target) < 0.03);
     CHECK(c.chassis.scheduler().motionsSettled() == 2);

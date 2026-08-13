@@ -91,6 +91,8 @@
   touches it directly. [Ch. 7]
 - **rate limiting** — capping diagnostic output volume, with every dropped line counted and
   announced. [Ch. 11]
+- **recipe** — a routine written as a `Routine` chain of steps that runs in exactly the order
+  it reads and stops (parking the robot) at the first failed step. [Ch. 9]
 - **result line** — the one-line verdict each motion leaves in the transcript. [Ch. 11]
 - **robot-relative (Body frame)** — directions fixed to the robot ("forward" = wherever its
   front points right now). [Ch. 2]
@@ -102,6 +104,8 @@
   long enough. [Ch. 5]
 - **sim harness** — the test suite's assembled simulated robot (`SimHarness`): plant, sensors,
   clock, and their wiring. [Ch. 8]
+- **step (recipe)** — one link in a recipe chain: a single delegated chassis command plus the
+  record of whether it ran, succeeded, or was skipped. [Ch. 9]
 - **strafe** — to move sideways without turning. [Ch. 4]
 - **strafe authority** — a drivetrain's sustainable sideways speed as a fraction of its
   forward speed (X: 1.0, tank: 0.0, H: between). [Ch. 4]
@@ -109,6 +113,8 @@
 - **telemetry sink** — anything that accepts the diagnostic stream (terminal formatter, test
   capture, a future SD-card logger). [Ch. 11]
 - **tick** — one iteration of the control loop, nominally every 10 ms. [Ch. 5]
+- **tier** — one of the master plan's four levels of using shulib (zero-code hardware,
+  data-driven auton, recipes, full API), each a strict superset of the one below. [Ch. 9]
 - **tolerance** — the "close enough" threshold in settling. [Ch. 5]
 - **tracking center** — the specific point on the robot whose position the estimate tracks.
   [Ch. 2]

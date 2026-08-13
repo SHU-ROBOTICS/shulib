@@ -1,0 +1,106 @@
+# Publishes the documentation to docs.shurobotics.com.
+#
+# Publishes from `main` deliberately. `main` is the squash-merge of the release
+# branch with docs/internal/ dropped, so the development record cannot reach
+# the public site by construction rather than by configuration. The working
+# branch is NOT published: it contains docs/internal/, and a nav-list exclusion
+# is a weaker guarantee than a branch that never had the files.
+#
+# Consequence worth knowing: the site lags the working branch. It updates when
+# a release squashes to main, not when a chunk lands.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'tools/prepare_site.py'
+      - 'tools/api_doc_tool.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Allow one publish at a time; let a newer commit supersede an in-flight run
+# rather than queueing behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # ── THE RULE THAT MUST NOT BE REMOVED ────────────────────────────────
+      # Publishing a stale reference is worse than publishing none, because a
+      # published document looks authoritative. The whole point of generating
+      # the API reference is that it cannot drift from the headers — a publish
+      # step that ships whatever happens to be committed, unchecked, gives
+      # that guarantee away at the last possible moment.
+      #
+      # The host build enforces this too, but the host build does not run here,
+      # and "it was checked somewhere else" is how a gate quietly stops being
+      # a gate.
+      - name: The committed API reference matches the headers
+        run: python3 tools/api_doc_tool.py check-fresh
+
+      # Rewrites the links that point into the source tree (correct in-repo,
+      # 404 on a site), and REFUSES to build if any internal development doc
+      # would be published. See tools/prepare_site.py.
+      - name: Prepare the site source
+        run: python3 tools/prepare_site.py site_src
+
+      - name: Install the renderer
+        run: pip install mkdocs==1.6.1 mkdocs-material==9.5.44
+
+      # strict: true in mkdocs.yml — a dead link fails the build rather than
+      # shipping.
+      - name: Build
+        run: mkdocs build --strict
+
+      # The custom domain. For an Actions-based Pages deploy the authoritative
+      # setting is Settings > Pages > Custom domain — this file does not
+      # replace it. It is written here, into the ARTIFACT, rather than kept in
+      # docs/, because docs/ is a documentation source tree and a bare hostname
+      # file is not documentation: it would show up when browsing the docs on
+      # GitHub, and prepare_site.py would carry it around as if it were content.
+      # Emitting it at build time keeps the intent recorded in the repo without
+      # putting a non-document in the document directory.
+      - name: Custom domain
+        run: echo 'docs.shurobotics.com' > site/CNAME
+
+      # Belt-and-braces after rendering: prove no internal path survived into
+      # the built HTML. prepare_site.py checks the markdown; this checks the
+      # artifact that actually ships.
+      - name: The built site contains no internal documentation
+        run: |
+          if grep -rlE 'docs/internal|-COMPLETED\.md|-PROGRESS\.md|build-order' site/ ; then
+            echo "::error::internal development docs reached the built site"
+            exit 1
+          fi
+          echo "built site is free of internal documentation"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

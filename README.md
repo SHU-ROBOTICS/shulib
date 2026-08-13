@@ -129,24 +129,25 @@ control::ExitReason firstScore(chassis::Chassis& chassis) {
 
     // Drive to a field position AND rotate to a heading, simultaneously —
     // translation and rotation are independent on a holonomic drive.
-    chassis.moveTo(math::Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 3.0});
+    chassis.moveTo(math::Pose2d{-24_in, 0_in, 45_deg}, {.timeout = 3_s});
 
     // A slow, precise approach: per-call options cap this leg's speed.
     chassis.moveTo(math::Pose2d{-12_in, 12_in, 45_deg},
-                   {.timeoutSeconds = 2.0, .maxLinearSpeed = units::Velocity{20.0}});
+                   {.timeout = 2_s, .maxLinearSpeed = units::Velocity{20.0}});
 
     // Sideways to the goal, actively holding the current heading.
-    chassis.strafeTo(-12_in, 24_in, {.timeoutSeconds = 2.0});
+    chassis.strafeTo(-12_in, 24_in, {.timeout = 2_s});
 
     // Face the corner — always the short way around.
-    const control::ExitReason last = chassis.turnTo(135_deg, {.timeoutSeconds = 1.5});
+    const control::ExitReason last = chassis.turnTo(135_deg, {.timeout = 1.5_s});
     return last;  // Settled, TimedOut, or Cancelled — never a lie, never a hang
 }
 ```
 
-Units are typed (`-48_in`, `90_deg` — a bare `double` will not compile where a length or angle
-belongs), every motion carries its own timeout, and if a fault fires mid-motion (say, the
-odometry catches a wheel lying) the motion aborts into a safe state and the exit reason says so.
+Units are typed (`-48_in`, `90_deg`, `3_s` — a bare `double` will not compile where a length,
+angle, or duration belongs), every motion carries its own timeout, and if a fault fires
+mid-motion (say, the odometry catches a wheel lying) the motion aborts into a safe state and the
+exit reason says so.
 
 Wiring a `Chassis` is ordinary C++ too — construct a kinematics preset, the hardware interfaces,
 the localizer, and hand them over; no config file or code generator is ever required.
@@ -190,6 +191,13 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
   first-routine tutorial (every code example compiles and runs in the test suite), the API as
   prose, and how to read the diagnostics line by line. Written for a reader with no robotics
   background.
+- **[`docs/cookbook/`](docs/cookbook/README.md) — the recipe cookbook.** Read out of order, mid-task:
+  complete answers to "how do I write the routine I am writing right now" — a multi-goal side run,
+  a bail-out when a grab fails, an alliance-partner wait, a tank routine, mixing tiers. Every recipe
+  is compiled and run against the simulator on every build.
+- **[`docs/api/`](docs/api/README.md) — the API reference.** Generated from the headers, so it cannot
+  disagree with the code: every public member of the `Chassis` facade and the `Routine` recipe layer,
+  with its exact signature. A public member that ships undocumented fails the build by name.
 - [`docs/roadmap.md`](docs/roadmap.md) — everything remaining, by milestone, with an honest
   "you are here" (including what is deliberately *not* claimed yet).
 - [`docs/shulib-v2-master-plan.md`](docs/shulib-v2-master-plan.md) — the architecture and the

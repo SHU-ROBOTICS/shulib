@@ -66,18 +66,18 @@ ExitReason firstRoutine(Chassis& chassis) {
 
     // Drive to a field position AND rotate to a heading, at the same time.
     ExitReason leg1 = chassis.moveTo(Pose2d{-24_in, 0_in, 45_deg},
-                                     {.timeoutSeconds = 5.0});
+                                     {.timeout = 5_s});
 
     // A slow, precise approach: this leg's speed is capped at 20 in/s.
     ExitReason leg2 = chassis.moveTo(Pose2d{-12_in, 12_in, 45_deg},
-                                     {.timeoutSeconds = 4.0,
+                                     {.timeout = 4_s,
                                       .maxLinearSpeed = Velocity{20.0}});
 
     // Slide sideways while actively holding the current heading.
-    ExitReason leg3 = chassis.strafeTo(-12_in, 24_in, {.timeoutSeconds = 3.0});
+    ExitReason leg3 = chassis.strafeTo(-12_in, 24_in, {.timeout = 3_s});
 
     // Face the corner — always the short way around.
-    ExitReason leg4 = chassis.turnTo(135_deg, {.timeoutSeconds = 2.0});
+    ExitReason leg4 = chassis.turnTo(135_deg, {.timeout = 2_s});
 
     // Real routines branch on these; here we just report the worst one.
     if (leg1 != ExitReason::Settled) { return leg1; }
@@ -101,18 +101,19 @@ running total ([Chapter 3](03-knowing-where-you-are.md)); this is where the tota
 real field, you measure where you place the robot and write *that* here — every inch of
 placement error is error the run begins with.
 
-The `_in` and `_deg` suffixes are shulib's **typed units**: `-48_in` is *a length*, `90_deg` is
-*an angle*, and they are not interchangeable with each other or with bare numbers. If you pass a
+The `_in`, `_deg`, and `_s` suffixes are shulib's **typed units**: `-48_in` is *a length*,
+`90_deg` is *an angle*, `5_s` is *a duration* (there's a `_ms` for milliseconds, too), and they
+are not interchangeable with each other or with bare numbers. If you pass a
 plain `24.0` where a length belongs, the code does not compile. That's deliberate — entire
 seasons have been lost to a degrees-vs-radians mix-up that a type system would have caught (the
 API chapter has more on this).
 
-**`chassis.moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeoutSeconds = 5.0});`** — the workhorse.
+**`chassis.moveTo(Pose2d{-24_in, 0_in, 45_deg}, {.timeout = 5_s});`** — the workhorse.
 "Drive so that the robot ends at field position (−24, 0), facing 45°." Because this robot is
 holonomic ([Chapter 4](04-drivetrains.md)), the translation and the rotation happen *at the same
 time* — it slides toward the target while turning, one smooth motion.
 
-The second argument is the per-motion **options**, and `.timeoutSeconds = 5.0` is the watchdog
+The second argument is the per-motion **options**, and `.timeout = 5_s` is the watchdog
 from [Chapter 5](05-getting-there.md): this leg gets five seconds, then it stops and reports
 `TimedOut`. Two budgeting rules worth learning now: the budget is a *ceiling*, not a target (a
 leg that settles in 1.7 s returns in 1.7 s — generous budgets cost nothing when things go well);
@@ -333,7 +334,7 @@ motion: drive 30 inches with a 0.5-second budget — physically not enough time.
 
 ```cpp
 const ExitReason r = c.chassis.moveTo(Pose2d{30_in, 0_in, 0_deg},
-                                      {.timeoutSeconds = 0.5});
+                                      {.timeout = 0.5_s});
 ```
 
 What comes back: `r == ExitReason::TimedOut`, the motors are stopped (commanded to zero volts —
@@ -364,6 +365,6 @@ and their fine print ([Chapter 10](10-the-api.md)), reading diagnostics like a p
 
 ---
 
-*Next: [Chapter 10 — The API, as prose](10-the-api.md). (Chapter 9 is reserved: when the
-simpler "recipe" API ships — see the [roadmap](../roadmap.md) — its chapter will slot in
-between the tutorial and the full API.)*
+*Next: [Chapter 9 — The recipe API](09-the-recipe-api.md), where this routine becomes a
+chain of steps with failure handling built in — or skip ahead to
+[Chapter 10 — The API, as prose](10-the-api.md) for the full verb set.*

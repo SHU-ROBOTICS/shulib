@@ -666,9 +666,12 @@ fields as the contract.
 `x,y,heading,headingMode,motion,reverse,constraints,markers`); shulib's `PathRunner` executes
 profiled motion per segment with marker callbacks. The legacy planner embedded **C++ snippets**
 (`code_template:"mech.intakeIn();"`) — a data/code coupling we reject. Instead markers carry command
-**ids** (`"intake_in"`) and the student registers handlers **once**:
+**ids** (`"intake_in"`) and the student registers handlers **once**. The intended spelling,
+sketched — `PathRunner` does not exist yet, so this is design, not code you can write today (and
+it is fenced as text for that reason: every `cpp` block in this project's documentation is a
+compiled, verbatim-quoted example, and a sketch of a future API cannot be one):
 
-```cpp
+```text
 runner.on("intake_in", []{ intake.in(); });   // data-driven: the AUTON is data, not code
 ```
 
