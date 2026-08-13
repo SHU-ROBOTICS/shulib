@@ -19,8 +19,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # python3 is REQUIRED by the host test build, not optional: it runs the
+      # documentation gates (tools/api_doc_tool.py) that fail the build when a
+      # public member is undocumented, when the generated reference in docs/api/
+      # is stale, when a documented example has drifted from the compiled test
+      # that proves it, or when a public document links into docs/internal/.
+      # Before chunk D3 the last two lived only in an internal verify script, so
+      # a rotted example passed CI; mutation found that, and this is the fix.
       - name: Install host toolchain
-        run: sudo apt-get update && sudo apt-get install -y cmake g++
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ python3
 
       # ARCHITECTURE GUARD: the library must never include <pros/*>. That
       # PROS-freeness is exactly what makes it host-testable. Scope = ALL of
@@ -52,6 +59,17 @@ jobs:
             exit 1
           fi
           echo "layering holds: core is sim-free"
+
+      # DOCUMENTATION GATES (chunk D3). Run explicitly as well as via the build,
+      # so a failure names itself in the CI log instead of appearing as "build
+      # failed" three hundred lines into a compile.
+      - name: Documentation gates (coverage, freshness, verbatim examples, removability)
+        run: |
+          python3 tools/api_doc_tool.py self-test
+          python3 tools/api_doc_tool.py check-coverage
+          python3 tools/api_doc_tool.py check-fresh
+          python3 tools/api_doc_tool.py check-examples
+          python3 tools/api_doc_tool.py check-removability
 
       - name: Configure (host tests)
         run: cmake -S test -B build/test

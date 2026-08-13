@@ -7,14 +7,23 @@
 > the shortest honest path to a working routine — or you'll be helping newer members write one.
 > **Assumes:** [Chapters 2](02-the-field-and-coordinates.md)–[8](08-your-first-routine.md).
 
-> **⚠ Stability notice.** The `Chassis` API underneath this layer is **frozen** (the
-> [Freeze Register](../roadmap.md#freeze-register), row F6, locked 2026-08-12), so everything
-> a step *does* — the verb it delegates to, its behavior, its failure semantics — now changes
-> only with a major version bump and a migration note. `Routine` itself is a different story:
-> it stays **deliberately unfrozen until D3**, when the recipe cookbook becomes its second
-> independent consumer — the same rule that made the facade wait for this layer before
-> freezing. In practice: what a step does is settled; what a step is *called* is very unlikely
-> to change, but hold that last part loosely until D3.
+> **Stability.** Both tiers are now **frozen**: the `Chassis` API underneath
+> ([Freeze Register](../roadmap.md#freeze-register) row F6) and `Routine` itself (row F10),
+> both locked 2026-08-12. Every step spelling, every observer, `RoutineResult` and
+> `RoutineStopCause` change only with a major API-version bump plus a migration note
+> ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)), and the freeze is enforced
+> by a compile-time signature pin
+> ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
+> fails the build if a spelling drifts. New steps arrive *additively*.
+> **One exception, deliberately:** `then()` is **not** frozen. It is the seam that mechanisms
+> will plug into, and mechanisms do not exist yet — freezing the shape of a placeholder would
+> commit the library to a guess. Expect `then()` to keep working; do not assume its exact
+> spelling is permanent.
+
+Once you can write a routine, the [cookbook](../cookbook/README.md) is where to go next: it
+answers "how do I write the routine I am writing right now" with complete, compiled recipes —
+a two-goal side run, a bail-out on a failed grab, a partner wait, a tank routine. This chapter
+teaches the layer; the cookbook uses it.
 
 The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
@@ -119,7 +128,15 @@ and tested:
 
 A step "fails" when its motion exits non-`Settled`, a trajectory doesn't complete every leg,
 a `waitFor` deadline passes with the condition still false, or a `then` action reports
-failure. From `guide-09b`:
+failure.
+
+**Read `result().cause` before `result().exit`.** `cause` says what *kind* of thing stopped the
+chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`); `exit` carries a motion's verdict and is
+only meaningful when the cause is `MotionFailed`. After a failed wait or a failed action, `exit`
+reads `Running`, which means "no motion verdict here" — not "still going". It is the same
+"nothing yet" convention `lastCompleted()` uses, and it surprises everyone once.
+
+From `guide-09b`:
 
 ```cpp
 const auto kin = shulib::kinematics::xDrive(7_in);
@@ -199,6 +216,15 @@ program order — the chain object keeps counting only its own steps, and the sc
 underneath sees one honest sequence of motions. Outgrowing recipes never means rewriting a
 routine; it means replacing the steps you want more control over, one at a time.
 
+**One sharp edge worth knowing before you use this.** A direct `chassis.` call is *not a step*,
+so the chain never learns how it went. If a direct `moveTo` times out, `r.ok()` stays **true**,
+the step count does not include it, and every following step runs — from a position the robot
+never reached. Everything the recipe layer does about failure applies to steps only. When you
+want a dropped-tier leg to count, wrap it: `then()` accepts an action returning an `ExitReason`
+and honors that verdict, so the leg becomes a step in every way that matters. The
+[cookbook](../cookbook/05-mixing-tiers.md) shows both forms side by side, with a compiled test
+holding each of them true.
+
 ## `then()` — the mechanism seam, honestly labeled
 
 The plan for Tier 2 ([master plan
@@ -227,8 +253,10 @@ Until then, `then` is where your own glue code goes.
 
 You can write a complete, honest autonomous routine in about ten lines, know exactly what it
 does when a step fails, and drop to the full API mid-routine whenever your strategy outgrows
-a step. The full verb fine print is [Chapter 10](10-the-api.md); reading a stopped run's
-transcript is [Chapter 11](11-reading-the-diagnostics.md).
+a step. The full verb fine print is [Chapter 10](10-the-api.md); the exact signature of any
+step is in the [generated API reference](../api/routine.md); reading a stopped run's transcript
+is [Chapter 11](11-reading-the-diagnostics.md); and worked recipes for real situations are in
+the [cookbook](../cookbook/README.md).
 
 ---
 

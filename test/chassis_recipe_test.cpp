@@ -701,6 +701,42 @@ TEST_CASE("D1 trajectory: the step preserves the full TrajectoryResult") {
     }
 }
 
+// Bug caught (FOUND AT D3 by the cookbook, fixed here in the layer that owns
+// it): a routine that has never run a trajectory reporting a SUCCESSFUL one.
+// A value-initialized TrajectoryResult is {Settled, 0 legs of 0}, and
+// succeeded() reads that as success — correct at the facade, whose verb
+// requires at least one waypoint and always returns a populated result, and a
+// lie at the recipe layer, where the member exists from construction. So the
+// member starts at `Running`, the project's "no verdict yet" convention
+// (RoutineResult::exit and CompletedMotion use it for exactly this). Without
+// this case, `if (r.lastTrajectory().succeeded())` on a routine whose
+// trajectory step was SKIPPED after a stop would take the success branch.
+TEST_CASE("D1/D3 trajectory: a routine with no trajectory does not claim a good one") {
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin};
+    Routine r{c.chassis, "no-traj"};
+
+    // Nothing has run at all.
+    CHECK_FALSE(r.lastTrajectory().succeeded());
+    CHECK(r.lastTrajectory().exit == ExitReason::Running);
+    CHECK(r.lastTrajectory().totalLegs == 0);
+
+    // Still false after ordinary steps that are not trajectories…
+    r.startAt(Pose2d{Length{0.0}, Length{0.0}, Angle{}}).pause(Time{0.05});
+    REQUIRE(r.ok());
+    CHECK_FALSE(r.lastTrajectory().succeeded());
+
+    // …and still false when the trajectory step was SKIPPED by an earlier
+    // stop, which is the case that would actually mislead a recovery branch.
+    Routine stopped{c.chassis, "stopped-before-traj"};
+    stopped.moveTo(Pose2d{Length{60.0}, Length{40.0}, Angle{}}, {.timeout = Time{0.3}})
+        .followTrajectory({Pose2d{Length{12.0}, Length{0.0}, Angle{}}},
+                          {.timeout = Time{5.0}});
+    REQUIRE_FALSE(stopped.ok());
+    CHECK(stopped.result().skipped == 1);
+    CHECK_FALSE(stopped.lastTrajectory().succeeded());
+}
+
 // Bug caught: startAt() silently not seeding the estimate. EVERY shared rig
 // auto-seeds the estimate to the plant's pose, so this hole would be GREEN in
 // every other case in this file — here the stack is wired BY HAND with the

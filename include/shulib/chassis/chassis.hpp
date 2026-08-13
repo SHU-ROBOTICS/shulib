@@ -11,14 +11,15 @@
 // freeze is enforced STRUCTURALLY: test/f6_signature_pin_test.cpp asserts
 // every frozen member's exact type at compile time and fails the build,
 // naming F6, if one drifts. NOT inside F6, deliberately: Routine /
-// RoutineResult / RoutineStopCause (routine.hpp — unfrozen until D3's
-// cookbook has consumed them); the scheduler's and deps bundle's OWN member
+// RoutineResult / RoutineStopCause (routine.hpp — they froze at D3 as their
+// OWN register row F10, because the recipe layer is a different tier and can
+// version independently of the facade; see routine.hpp's banner); the
+// scheduler's and deps bundle's OWN member
 // surfaces behind scheduler()/deps() (those belong to C1/C2's layers); and
 // the lower-layer config fields reached through ChassisConfig. The
 // candidate-era reasoning for each shape is in the C4 completion record and
 // the freeze rulings (what joined, what stayed out, and why) in the D2
-// completion record (development log, shulib-v2 branch:
-// docs/internal/chunks/C4-COMPLETED.md / D2-COMPLETED.md).
+// completion record (development log, shulib-v2 branch).
 //
 // ═══ What this class is ══════════════════════════════════════════════════════════
 // The composition root of the MOTION stack: it owns the MotionScheduler and
@@ -194,6 +195,9 @@ struct MotionOptions {
     /// Yaw-rate budget for this motion (rad/s).
     units::AngularVelocity maxAngularSpeed{0.0};
 
+    /// Reject nonsense before anything moves: every field must be finite and
+    /// >= 0. Called by each verb at the door, so a bad option value is a loud
+    /// error at the call site rather than a mystery mid-motion.
     void validate() const {
         SHULIB_PRECONDITION(std::isfinite(timeout.value()) && timeout.value() >= 0.0,
                             "MotionOptions: timeout must be finite and >= 0");
@@ -214,11 +218,22 @@ struct TrajectoryResult {
     control::ExitReason exit = control::ExitReason::Settled; ///< last attempted leg's verdict
     int completedLegs = 0;  ///< legs that SETTLED (== totalLegs on success)
     int totalLegs = 0;      ///< waypoints given
+    /// True only if the last attempted leg SETTLED and every leg was completed.
+    /// Note what this means for a value-initialized TrajectoryResult (0 of 0
+    /// legs, exit Settled): it reads as success. That is correct here — this
+    /// verb requires at least one waypoint, so a result it produces always has
+    /// legs — but any code that holds a TrajectoryResult BEFORE running one
+    /// must initialize `exit` to Running instead (Routine::lastTrajectory does).
     [[nodiscard]] bool succeeded() const noexcept {
         return exit == control::ExitReason::Settled && completedLegs == totalLegs;
     }
 };
 
+/// The public facade every autonomous routine is written against: the blocking
+/// motion verbs, the frame-explicit manual verb, control, state, and the Tier-3
+/// seam — over one owned MotionScheduler. FROZEN (register row F6, locked
+/// 2026-08-12); the file banner above carries the design reasoning behind every
+/// shape here, and is meant to be read before changing anything.
 class Chassis {
 public:
     /// `deps` is the same validated bundle every motion takes; `pacer` is the
@@ -232,7 +247,10 @@ public:
         cfg_.validate();
     }
 
-    // Owns the scheduler (pinned in place by its self-referential stamp).
+    /// Neither copyable nor movable: the Chassis OWNS the scheduler, which is
+    /// pinned in place by its own self-referential command-id stamp, so a copy
+    /// or a move would leave that stamp pointing at the wrong object. Hold a
+    /// `Chassis&`; construct it once, where it will live.
     Chassis(const Chassis&) = delete;
     Chassis(Chassis&&) = delete;
     Chassis& operator=(const Chassis&) = delete;
@@ -466,6 +484,9 @@ public:
     /// here pre-empts a facade verb's motion and vice versa (one-active-
     /// motion is structural, never relaxed).
     [[nodiscard]] motion::MotionScheduler& scheduler() noexcept { return sched_; }
+    /// The same scheduler, read-only — for counters and last-motion state from
+    /// a `const Chassis&`. Identical object and identical semantics to the
+    /// non-const overload; the two differ only in what they let you do.
     [[nodiscard]] const motion::MotionScheduler& scheduler() const noexcept { return sched_; }
 
 private:

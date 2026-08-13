@@ -22,6 +22,22 @@ order — each chapter assumes the ones before it and says so in its header.
 | 14 | [What it can't do yet](14-what-it-cannot-do-yet.md) | The honest limits, each linked to its tracking doc |
 | 15 | [Glossary](15-glossary.md) | Every term, one sentence |
 
+## The other two documents
+
+The guide is one of three, and they answer different questions. Reaching for the wrong one is
+the most common way to waste an afternoon.
+
+| Document | Answers | Read it |
+|---|---|---|
+| **This guide** | *How does any of this work?* | Once, in order, while learning |
+| **[The cookbook](../cookbook/README.md)** | *How do I write the routine I am writing right now?* | Out of order, mid-task |
+| **[The API reference](../api/README.md)** | *What exactly exists, and what is its exact spelling?* | When you need a signature |
+
+The reference is **generated from the headers** by a tool, so it cannot disagree with the code,
+and a public member that ships with no documentation fails the build by name. That means the
+guide and the cookbook never need to restate a signature — and must not: a signature copied by
+hand is a fact that will go stale.
+
 ---
 
 ## Maintenance (read before editing the guide)
@@ -46,6 +62,21 @@ change a listing → update the test. A mismatch is a bug even if both sides wor
 and runs the file on every commit, so an example that stops building turns the suite red — the
 guide cannot silently rot below the compiler's line of sight. Prose *claims* about behavior are
 held as assertions in the same cases wherever practical.
+
+**The verbatim half of that rule is now checked by a machine.** Until 2026-08-12 it was checked
+only by a person running an internal script — so a listing could drift from the test that
+compiles it and pass both the build and CI. (It was found by deliberately introducing the
+drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole suite.) The
+build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
+any public document to appear verbatim in a compiled example test, and the example sources are
+matched by a glob, so a new examples file is covered the moment it exists. The same run also
+checks that no public document links into the development-process notes.
+
+**Where this applies:** `docs/guide/`, `docs/cookbook/`, `docs/*.md`, and the repo `README.md`.
+It deliberately does *not* apply to `docs/api/`, which is generated in full and checked by a
+stronger rule instead — its whole directory must be byte-identical to a fresh generation, so a
+hand-written file dropped there fails too. Every public document is covered by exactly one of
+the two mechanisms.
 
 Transcript excerpts (chapters 8 and 11) come from real runs:
 
@@ -85,8 +116,16 @@ the test suite.
    the chapters follow the change, never lead it.
 3. Chapter 14 when a limitation falls (that's the *good* kind of doc rot — celebrate, then
    delete the paragraph and its glossary entries if any).
-4. When D3 freezes the recipe spellings: soften chapter 9's remaining stability notice (and
-   chapter 14's "recipe spellings" bullet) the same way D2's freeze retired the API notices.
+4. ✅ Executed 2026-08-12 (D3): the recipe spellings froze as register row **F10**, so chapter
+   9's stability notice and chapter 14's "recipe spellings" bullet were rewritten the way D2's
+   freeze retired the API notices. Both now say *frozen*, and both name the one deliberate
+   exception — `then()`, the mechanism seam, which stays unfrozen until F1/F3 build the
+   mechanisms it exists for. A change to a frozen `Routine` spelling is a *breaking* change and
+   rides the same procedure as F6's, updating
+   [`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp).
+5. The [generated reference](../api/README.md) needs no step at all — it regenerates from the
+   headers and the build fails if the committed copy is stale. If you changed a `///` comment,
+   run `python3 tools/api_doc_tool.py generate` and commit what it writes.
 
 ### Voice
 

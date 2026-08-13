@@ -191,6 +191,13 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
   first-routine tutorial (every code example compiles and runs in the test suite), the API as
   prose, and how to read the diagnostics line by line. Written for a reader with no robotics
   background.
+- **[`docs/cookbook/`](docs/cookbook/README.md) — the recipe cookbook.** Read out of order, mid-task:
+  complete answers to "how do I write the routine I am writing right now" — a multi-goal side run,
+  a bail-out when a grab fails, an alliance-partner wait, a tank routine, mixing tiers. Every recipe
+  is compiled and run against the simulator on every build.
+- **[`docs/api/`](docs/api/README.md) — the API reference.** Generated from the headers, so it cannot
+  disagree with the code: every public member of the `Chassis` facade and the `Routine` recipe layer,
+  with its exact signature. A public member that ships undocumented fails the build by name.
 - [`docs/roadmap.md`](docs/roadmap.md) — everything remaining, by milestone, with an honest
   "you are here" (including what is deliberately *not* claimed yet).
 - [`docs/shulib-v2-master-plan.md`](docs/shulib-v2-master-plan.md) — the architecture and the

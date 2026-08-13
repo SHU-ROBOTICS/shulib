@@ -3,14 +3,33 @@
 // Routine — the Tier-2 recipe layer (chunk D1, WS12/M7 pulled forward; master
 // plan §17).
 //
-// ═══ STATUS: DELIBERATELY OUTSIDE F6 — unfrozen until D3 ══════════════════════════
-// The Chassis facade this class delegates to froze at D2 (F6, 2026-08-12;
-// see chassis.hpp's banner), so everything a step DOES is stable. This
-// class's own surface — Routine, RoutineResult, RoutineStopCause, the step
-// spellings — is NOT in F6: D3's recipe cookbook is its second consumer and
-// may still reshape spellings before they freeze. Stated here because this
-// file lives in chassis/, where silence would read as "frozen too" (D2
-// ruling A2; the Freeze Register row F6 names the same exclusion).
+// ═══ STATUS: FROZEN — F10, LOCKED 2026-08-12 (chunk D3, API 2.0) ══════════════════
+// This surface is FROZEN, as its own register row (F10) rather than as part of
+// F6: the facade it delegates to is a different tier and can version
+// independently. Frozen: the constructor (both spellings, noexcept),
+// non-copyable/non-movable, ELEVEN steps — startAt / moveTo / driveTo /
+// strafeTo / turnTo / face / followTrajectory (span + brace) / brake / hold /
+// pause / waitFor — the four observers ok / result / lastTrajectory / chassis,
+// the types RoutineResult (all eight fields) and RoutineStopCause (append-only,
+// existing values fixed), the documented error policy below, and typed time as
+// a SEMANTIC (hold(0.3) must not compile). Enforced structurally:
+// test/routine_signature_pin_test.cpp fails the build, naming F10, if any of
+// those drifts. Changes only with a major API-version bump plus a migration
+// note (include/shulib/version.hpp); ADDITIVE growth — new steps, new
+// observers, new RoutineResult fields, appended RoutineStopCause enumerators —
+// stays legal and is the intended path.
+//
+// NOT frozen, deliberately: **then()** — its accepted return types and its
+// `name` default are a placeholder shape chosen before mechanisms existed
+// (F1/F3 build them), so freezing it would commit to a guess; and the exact
+// WORDING of the stop/skip log lines (the behaviour — one Warn naming routine
+// and step, one Info per skipped step — is frozen; the sentence is not).
+// Stated out loud because silence in a freeze reads as "frozen too" (D2 ruling
+// A2's lesson). The freeze waited for a second independent consumer: D3's
+// recipe cookbook (docs/cookbook/), which wrote fourteen recipes against this
+// surface and needed zero changes to it. Its critique — every awkwardness
+// found, with a recommendation — is the D3 completion record's centrepiece
+// (development log, shulib-v2 branch).
 //
 // ═══ What this class is ══════════════════════════════════════════════════════════
 // A fluent, EAGER chain over the Chassis facade, so a complete autonomous
@@ -143,6 +162,8 @@ struct RoutineResult {
     int skipped = 0;        ///< steps skipped after the stop
     int stoppedAt = 0;      ///< 1-based index of the failing step; 0 = none
     const char* stoppedName = "";  ///< the failing step's verb/name ("" = none)
+    /// WHAT kind of thing stopped the chain — read this BEFORE `exit`, because
+    /// only `MotionFailed` puts a real motion verdict in `exit`.
     RoutineStopCause cause = RoutineStopCause::None;
     /// The failing MOTION step's verdict (TimedOut / Cancelled). `Running`
     /// means "no motion verdict here" — the stop was a wait or an action, or
@@ -150,6 +171,11 @@ struct RoutineResult {
     control::ExitReason exit = control::ExitReason::Running;
 };
 
+/// The Tier-2 recipe chain: a complete autonomous routine as a sequence of
+/// named steps, each delegating to exactly one Chassis verb, executed EAGERLY
+/// (a step runs the moment it is chained) with one built-in failure policy —
+/// stop, safe the drive, skip the rest, report. The file banner above explains
+/// every one of those choices and is meant to be read.
 class Routine {
 public:
     /// Borrows `chassis` (must outlive the Routine). `name` appears in the
@@ -158,6 +184,11 @@ public:
     explicit Routine(Chassis& chassis, const char* name = "routine") noexcept
         : chassis_{&chassis}, name_{name} {}
 
+    /// Neither copyable nor movable, and there is no reset(): one chain is one
+    /// run. Two handles sharing the stop-state counters would let a stopped
+    /// chain's twin keep driving — the failure the whole error policy exists to
+    /// prevent. Pass a `Routine&` to helpers (that is how you factor a routine
+    /// into reusable steps); construct a new one for a new run.
     Routine(const Routine&) = delete;
     Routine& operator=(const Routine&) = delete;
     Routine(Routine&&) = delete;
@@ -352,9 +383,15 @@ public:
         return r;
     }
 
-    /// The most recent followTrajectory step's full result (default-constructed
-    /// until one runs) — completedLegs is strategy-relevant and must not be
-    /// flattened away by the chain.
+    /// The most recent followTrajectory step's full result — completedLegs is
+    /// strategy-relevant and must not be flattened away by the chain. Before
+    /// any trajectory has run it reads `exit = Running`, the project's "no
+    /// verdict here yet" convention (RoutineResult::exit, CompletedMotion), so
+    /// succeeded() is honestly FALSE on a virgin routine. (D3: a plain
+    /// value-initialized TrajectoryResult reports `Settled` with 0 of 0 legs,
+    /// which succeeded() calls SUCCESS — correct for the facade, whose verb
+    /// requires at least one waypoint, and a lie here, where the member exists
+    /// before any trajectory does.)
     [[nodiscard]] const TrajectoryResult& lastTrajectory() const noexcept {
         return lastTrajectory_;
     }
@@ -470,7 +507,9 @@ private:
 
     Chassis* chassis_;
     const char* name_;
-    TrajectoryResult lastTrajectory_{};
+    /// `Running` = "no trajectory has run yet" (see lastTrajectory()). NOT a
+    /// value-initialized TrajectoryResult: that one claims success.
+    TrajectoryResult lastTrajectory_{.exit = control::ExitReason::Running};
     int steps_ = 0;
     int completed_ = 0;
     int skipped_ = 0;

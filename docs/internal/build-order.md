@@ -292,9 +292,58 @@ one that matters most on a field: `.hold(300_s)` where `300_ms` was meant passed
 example untouched, because the case asserted outcomes and never the clock. Closed with a
 hand-computed simulated-clock bound; independently re-verified to fail alone.
 
-**Next: chunk D3 — the recipe cookbook + generated API docs.** `Routine` is deliberately still
-unfrozen; D3 is its second consumer and freezes it afterwards, the same C4→D1→D2 pattern that just
-worked for the facade.
+**Chunk D3 — the cookbook, the generated reference, and the `Routine` freeze: DONE 2026-08-12**
+([completion record](chunks/D3-COMPLETED.md), live log in [D3-PROGRESS.md](chunks/D3-PROGRESS.md)).
+**Phase D is COMPLETE. `Routine` is frozen as its own register row F10**, and the documentation is
+now self-maintaining in a way it has never been.
+
+The architecture is three artifacts with three different staleness strategies, because generation
+alone does not solve staleness. `tools/api_doc_tool.py` **generates** `docs/api/` from the headers —
+that part cannot drift, because it *is* the headers. `docs/cookbook/` (5 chapters, 14 recipes) is
+**hand-written**, because "how do I write a left-side auton that scores twice and parks" is not
+derivable from signatures; its examples are compiled, run against the plant, graded on ground truth,
+and quoted verbatim. And the third piece is the one that makes the promise real: a **doc-coverage
+gate** that fails the build, naming the member, when a public member ships undocumented — because a
+generator extracts whatever comments exist, so an undocumented member is silently absent while the
+reference still *looks* complete. That is worse than a stale document: nothing looks wrong.
+
+All four doc gates (coverage, freshness, verbatim, removability) now run at **build time**, not in a
+script someone remembers to run. That distinction is the chunk's biggest find: **two of these
+properties were never mechanized at all.** The verbatim rule existed only inside an internal verify
+script, so a chapter's `.hold(300_ms)` → `.hold(300_s)` built clean and passed the entire suite; the
+same gap meant `README.md`'s front-page example had never been compiled. Removability was equally
+unenforced — a planted link into `docs/internal/` passed everything. Four green holes total, each
+closed and proven red, including two of the most instructive kinds: the coverage gate initially
+**accepted an empty `///`**, reproducing inside itself the exact "nothing looks wrong" failure it
+exists to prevent; and the generated reference **leaked an internal path into public docs**, because
+it extracts header comments and a header comment named `docs/internal/`. The lesson worth keeping:
+**a gate's exclusion list is where its holes live.**
+
+The cookbook did its job as `Routine`'s critical second consumer: **zero changes to `Routine` were
+required**, an 8-item critique came out of it, and it found one real **bug** — `lastTrajectory()` on
+a routine that had never run a trajectory reported a *successful* one, because a value-initialized
+`TrajectoryResult` reads as Settled with 0 of 0 legs. Fixed at the layer that owns it, no surface
+change, pinned. Rulings: `Routine` freezes (every critique item is additive under `version.hpp`, so
+freezing forecloses nothing) as **F10, a new row** rather than an F6 amendment (different tier,
+versions independently), enforced by **37 pins** including five `noexcept` drops on non-overloaded
+members — D2's hole #1, deliberately not re-opened. `then()` is excluded entirely: its callable
+contract is a placeholder until F1/F3 build mechanisms.
+
+**Honest partials, both `[~]` with the remainder named:** nothing is **published** — there is no site
+and no Pages config, so the output is web-portable and the publish path is written up
+([docs-publishing.md](docs-publishing.md)), which is not the same as published; and **no new reader
+has read the cookbook cold**, which cannot be closed without a person. An owner is named rather than
+left hanging as C8 left the same clause.
+
+*Found during verification and fixed at D3:* the freshness gate runs before any C++ compiles, so a
+changed frozen signature trips "API REFERENCE IS STALE — run this command" **before** the F6/F10 pin
+that names the actual problem. The pin still fires on the next build (verified), so nothing is
+papered over — but a reader who obeyed only the first message would make a breaking change look
+official on the way there. The freshness message now says so.
+
+**Next: Phase E — bound the drift.** E1 (`SdSink` + estimator introspection) is ordered first for the
+same reason A1 was ordered first overall: fusion is the hardest thing in the project to debug, and the
+no-laptop field record is what makes a field run legible.
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under

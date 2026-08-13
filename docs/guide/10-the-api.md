@@ -17,13 +17,23 @@
 > build if a frozen signature drifts. New capability arrives *additively* — new verbs, new
 > options fields — never as reshapes. The freeze waited, deliberately, until a second
 > independent consumer ([Chapter 9](09-the-recipe-api.md)'s recipe layer) had used the
-> surface in anger; that layer's own spellings stay unfrozen until D3.
+> surface in anger. The [recipe layer](09-the-recipe-api.md) froze the same way one chunk later
+> (row F10, after the cookbook became *its* second consumer), so both tiers are now stable.
 
 The code examples in this chapter are compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-10a` through
 `guide-10e`. The authoritative fine print for everything here is the header itself —
 [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chassis/chassis.hpp) opens with a
 long design commentary that is meant to be read, not skipped.
+
+> **This chapter and the [generated API reference](../api/chassis.md) are different documents,
+> on purpose.** This one is *how to think about the API* — when to reach for a verb, what it
+> does when things go wrong, the gotchas, worked idioms. The reference is *exactly what exists*:
+> every member, its precise signature, its documentation, extracted from the header by a tool.
+> **The division is a rule, not a habit:** this chapter names verbs and their arguments
+> conversationally and never restates a signature, because a signature copied by hand is a fact
+> that will go stale. When you need the exact type of an argument, a return, or a default, go to
+> the reference — and if the two ever disagree, the reference is right, because nobody typed it.
 
 ## Typed units — why the API won't take a plain number
 
@@ -224,6 +234,10 @@ CHECK_FALSE(c.rig.latch.hasFault());
 The timeout is required and must be finite — an unbounded wait is a hang wearing a costume, and
 this library doesn't sell costumes.
 
+(Every member named in this chapter, and several that are not — the reference is complete and
+this chapter is selective — is listed with its exact signature in
+[the generated reference](../api/chassis.md).)
+
 **Reading state:** `pose()` — the current estimate (an estimate! [Chapter 3](03-knowing-where-you-are.md));
 `setPose(p)` — seed/teleport the estimated *position* (heading stays IMU-owned);
 `strafeAuthority()` — the drivetrain's sideways-speed fraction ([Chapter 4](04-drivetrains.md)),
@@ -261,4 +275,6 @@ show `cmd#0`). Until you need it, you don't need it.
 
 ---
 
-*Next: [Chapter 11 — Reading the diagnostics](11-reading-the-diagnostics.md)*
+*Next: [Chapter 11 — Reading the diagnostics](11-reading-the-diagnostics.md). For exact
+signatures: [the generated API reference](../api/README.md). For "how do I write the routine I
+am writing right now": [the cookbook](../cookbook/README.md).*

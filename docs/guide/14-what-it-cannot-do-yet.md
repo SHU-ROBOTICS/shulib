@@ -52,22 +52,23 @@ and the team's < 1° end-of-run heading requirement is, by the master plan's own
 **not reliably achievable on a real robot** — absolute yaw correction is load-bearing for the
 spec, not a nice-to-have.
 
-## The recipe spellings can still change
+## The mechanism seam is a placeholder
 
-The `Chassis` API ([Chapter 10](10-the-api.md)) froze at D2 (2026-08-12, Freeze Register row
-F6): its signatures and documented behavior now change only with a major version bump and a
-migration note, and a compile-time pin in the test suite fails the build if a frozen signature
-drifts — routines written against it will not need rewriting. What is *still* open:
+Both API tiers are now frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
+recipe layer ([Chapter 9](09-the-recipe-api.md)) at D3, Freeze Register rows F6 and F10, both
+2026-08-12. Signatures and documented behavior change only with a major version bump and a
+migration note, and compile-time pins fail the build if one drifts — routines written today
+will not need rewriting. One piece is deliberately left open:
 
-- **The recipe layer's own spellings** ([Chapter 9](09-the-recipe-api.md)). `Routine` stays
-  deliberately unfrozen until the recipe cookbook (D3) has consumed it — the same
-  second-consumer rule that made the facade wait for the recipe layer before freezing. Every
-  step delegates to a frozen verb, so what a step *does* is stable; what it is *called* could
-  still move.
+- **`then()`** ([Chapter 9](09-the-recipe-api.md)) is the seam mechanisms will plug into, and
+  **mechanisms do not exist yet** (see the next section). Its accepted return types and its
+  step-name default were chosen before there was anything real to plug in, so freezing them
+  would have committed the library to a guess about code nobody has written. `then()` works and
+  is tested; treat its exact shape as provisional.
 
 The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and isn't
 stable (the coordinate conventions, units, accuracy targets, hardware interfaces, kinematics
-contract, and now the chassis API *are* locked).
+contract, and now both API tiers *are* locked).
 
 ## No easier tiers yet
 
