@@ -661,6 +661,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **D** | Make it usable | D1–D3 | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
+| **T** | Driver control | T1–T3 | — |
 | **G** | No-code authoring | G1–G4 | needs VexBuilder |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
 | **R** | **Robot arrival** | R1–R6 | **needs hardware** |
@@ -668,7 +669,17 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**40 chunks** (C8, the manual, was added at Phase C). Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**).
+**43 chunks.** C8 (the manual) was added at Phase C; **Phase T (T1–T3, driver control) was added
+2026-08-13** — the library's own one-stop-shop thesis (§15) is broken by needing a second library to
+drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only the INPUT half is
+missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
+nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
+
+**T is placed after F and before G deliberately:** it is host-provable and externally ungated, so it
+belongs with the work that can proceed without VexBuilder, a field, or a second robot. T3 needs F1
+(the mechanism seam), which is done. **T1/T2 have no dependency on F2** and may be reordered ahead of
+it if a driver needs the robot sooner than the sequencer does — say so out loud if that happens, in
+the deviations table, rather than silently reshuffling.
 
 > **There is no Phase B — deliberately.** An earlier draft's Phase B was the hardware bridge
 > (`hal/pros` + on-robot validation, right after Phase A); the reversal recorded in the
@@ -1030,6 +1041,83 @@ not a hardware one.
 
 **DoD:** a deliberately stalled scoring loop still ends parked, verified against the plant with the
 clock driven to the match limit. **This test is the entire point of the chunk.**
+
+---
+
+# Phase T — Driver control
+
+> **Added 2026-08-13**, at the team lead's direction, and it is a genuine gap rather than a nice-to-have.
+> §15's thesis is that shulib is "not a chassis class — it is the **complete autonomy stack**". A team
+> that must reach for a second library to drive the robot breaks that promise, and breaks it in the
+> most expensive way: **two libraries mean two notions of the drivetrain** — two desaturation policies,
+> two brake conventions, two ideas of what a "speed" is. C6 catalogued exactly that failure in the
+> legacy tree (three data representations of one command vocabulary, zero executors).
+>
+> **Half of this already exists and is FROZEN.** `Chassis::drive(ChassisSpeeds, Frame)` is the manual
+> verb, `Frame` is a required parameter (so field-centric versus robot-centric is a compile error to
+> get wrong, not a silent bug), and it routes through the same `command_pipeline` as autonomous —
+> desaturation, brownout compensation, strafe-authority clamp. A driver gets the protections the auton
+> gets. What is missing is the **input** half: nothing in the tree can read a stick.
+>
+> **The governing requirement is FEEL, and feel is mostly latency and continuity.** A driver who cannot
+> predict the robot's response stops trusting it, and an untrusted robot is driven slowly. That makes
+> most of this measurable rather than aesthetic — see T2.
+>
+> Host-provable except for real latency, which is R-phase. No external gate.
+
+### T1 — `IController` seam + fakes
+The controller behind the HAL, as an **F4-additive sibling** — the same shape F1 used for
+`IDigitalOut`, and explicitly **outside** the F4 freeze. Analog axes normalized to `[-1, 1]` and
+digital buttons as bools, **normalized at the adapter edge** like every other F4 reader (the PROS
+`-127..127` never reaches the core); edge detection (new-press) so a macro fires once; `isConnected()`
+as a positive validity signal, because a controller really does drop mid-match and the core must be
+able to see it. Deterministic fakes drive scripted stick/button streams for host tests.
+
+Partner controller included from the start — VEX U runs two drivers, and retrofitting a second
+controller through a single-controller seam is exactly the kind of reshape a seam exists to avoid.
+
+**DoD:** a scripted stick stream drives the plant through `Chassis::drive` with no PROS in the loop;
+a mid-run disconnect is visible to the core rather than reading as "sticks centred".
+
+### T2 — Input shaping, drive modes, and the feel properties
+The chunk that decides whether the robot feels controllable. Every property below is **host-testable**,
+and each is a real defect if absent:
+
+- **Deadband must be CONTINUOUS.** The naive implementation (`|x| < d ? 0 : x`) jumps from 0 to `d` the
+  instant the stick crosses the threshold. Rescale the surviving range so output leaves zero smoothly.
+  A discontinuity here is precisely the "twitchy, I can't place it" complaint.
+- **Response curves monotonic**, through `(0,0)` and `(±1,±1)`, expo configurable. A non-monotonic
+  curve means pushing further can slow the robot down.
+- **Slew limiting configurable and OFF by default.** It protects the drivetrain and it *adds lag*, and
+  lag is the enemy of feel. Make the trade explicit rather than choosing silently for the driver.
+- **One-tick latency, pinned.** Input read → motor command inside the same tick: no buffering, no
+  queue, no allocation. Pin it the way C1 pinned the motion path.
+- **Field-centric needs an honest failure mode.** Field-centric rotates the driver's stick frame by the
+  ESTIMATED heading — so when heading quality degrades, the driver's controls silently rotate away from
+  reality while everything still "works". A3 proved heading drifts. This needs a documented fallback to
+  robot-centric, a driver-accessible re-zero, and a visible indication. **Do not ship field-centric
+  without it.**
+- Modes: field-centric holonomic, robot-centric holonomic, arcade and tank (the tank practice bot is
+  the first hardware this will meet).
+
+**DoD:** each property above has a test that fails when it is removed; the deadband continuity and
+curve monotonicity tests are the load-bearing pair. **Perceived latency is NOT claimed** — real
+input-to-motion latency is PROS call cost plus loop rate, both unmeasured (R4).
+
+### T3 — Button bindings and driver macros
+Bind a button to a mechanism operation (F1's seam) or a chassis action — the "hold A to intake until
+capture" pattern that makes F1 pay off in teleop as well as auton.
+
+**The binding mechanism is the library's; which button does what is the team's** (the standing
+guardrail — this delivers the primitive, not the season's control scheme).
+
+**Non-negotiable:** a macro must never take the robot away from its driver. Any binding is
+interruptible by stick input, and releasing the button stops the operation and safes the mechanism —
+the F1 rule that `applySafeState()` without `cancel()` is undone one tick later applies directly here.
+
+**DoD:** a macro runs a mechanism operation to completion; stick input during the macro takes control
+back within one tick; releasing the button cancels the operation and the mechanism ends in its
+declared safe state, asserted at the motors.
 
 ---
 

@@ -1115,8 +1115,37 @@ is required, not optional, to hold < 1°.)*
 **Skills motion (WS6)**
 - [ ] `fieldCentricStrafe`/`strafeTrim` (H-bot), `moveToPoseProfiled` (lift-state-aware accel).
 
+**Driver control (WS14)** — *added 2026-08-13. Scope the roadmap was missing: §15 claims shulib is the
+complete stack, and a team that needs a second library to DRIVE the robot does not have one. Two
+libraries would also mean two notions of the drivetrain — two desaturation policies, two brake
+conventions — which is the exact failure C6 catalogued in the legacy tree. The output half already
+exists and is frozen (`Chassis::drive(ChassisSpeeds, Frame)`, sharing the autonomous command pipeline);
+only the INPUT half is missing.*
+- [ ] **`IController` seam + fakes** — analog axes normalized to `[-1, 1]` and buttons as bools at the
+  adapter edge (PROS `-127..127` never reaches the core), new-press edge detection, `isConnected()` as
+  a positive validity signal (a controller really does drop mid-match), partner controller included
+  from the start (VEX U runs two drivers). An **F4-additive sibling, outside that freeze**, exactly as
+  `IDigitalOut` was.
+- [ ] **Input shaping + drive modes** — the chunk that decides whether the robot feels controllable.
+  **Continuous** deadband (the naive form jumps 0 → threshold and is what "twitchy" actually means),
+  monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
+  (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
+  pinned, and field-centric / robot-centric / arcade / tank modes.
+- [ ] **Field-centric's honest failure mode** — field-centric rotates the driver's stick frame by the
+  *estimated* heading, so degraded heading silently rotates the controls away from reality while
+  everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
+  re-zero, and a visible indication. Not shippable without it.
+- [ ] **Button bindings / driver macros** — bind a button to a mechanism operation (the F1 seam) or a
+  chassis action. The binding mechanism is the library's; which button does what is the team's.
+  **A macro must never take the robot away from its driver**: interruptible by stick input within one
+  tick, and releasing the button cancels the operation and safes the mechanism.
+
 **Definition of Done:** the two reference routines (X tall-tower, H Toggle-own + park) run end-to-end
-in host sim; a deliberately stalled scoring loop still ends with the robot parked in the Midfield.
+in host sim; a deliberately stalled scoring loop still ends with the robot parked in the Midfield; and
+a scripted stick stream drives the plant through the frozen `drive` verb with the feel properties above
+each pinned by a test that fails when the property is removed. *(Perceived latency is explicitly NOT
+claimed here — real input-to-motion latency is PROS call cost plus loop rate, both unmeasured until
+R4.)*
 
 ---
 
