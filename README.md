@@ -40,8 +40,12 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   predictably instead of silently.
 - **Localization**: arc-based odometry (exact SE(2) integration) with IMU-owned heading, fused
   behind a correction seam with two correctors built on it — the V5 GPS (bounded position drift)
-  and AprilTags (the only absolute *heading* source in the library). Both proven against
-  simulated sensors only; see the honesty section below.
+  and AprilTags (the only absolute *heading* source in the library) — and **two fusion tiers**
+  behind that same seam: a bounded-nudge complementary filter (the default) and a 5-state SE(2)
+  extended Kalman filter that can weigh two disagreeing correctors against each other by their
+  stated accuracy, recover from a displacement the simpler filter refuses, and state how
+  uncertain it is. All of it proven against simulated sensors only, and the EKF's noise
+  parameters are guesses until a robot exists; see the honesty section below.
 - **Diagnostics**: per-tick structured records, leveled logs, first-fault latching, brownout and
   over-temperature monitoring, per-motion result lines, and an end-of-run summary — all through
   one telemetry seam.
@@ -76,8 +80,17 @@ current state, so here it is, third heading from the top:
 
 ## How verified is it, honestly?
 
-**867 test cases, 1,091,167 assertions, all green, all off-robot** *(as of 2026-08-13; run
-`./build/test/shulib_tests` for the current figure).* That includes: closed-loop
+**915 test cases, 1,521,419 assertions, all green, all off-robot** *(as of 2026-08-13; run
+`./build/test/shulib_tests` for the current figure).*
+
+A caveat about that second number, because it flatters: most of those assertions come from
+parameter sweeps — one test case running thousands of seeds — so the count says more about how
+many scenarios were swept than about how many independent things are checked. **The measure we
+actually trust is mutation testing** (below): break the code deliberately and see whether a test
+notices. A test that cannot fail when the code is wrong is worse than no test, because it reads
+as coverage. Every chunk in this project has found at least one.
+
+What the suite includes: closed-loop
 motion on three drivetrains graded against ground truth the estimator cannot see; a 9-attack
 survival matrix (every simulated hardware pathology must degrade to a fault code, never a
 crash or a NaN pose); byte-pinned diagnostic output; and a measured heading-accuracy test

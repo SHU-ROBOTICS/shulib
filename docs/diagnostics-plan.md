@@ -81,7 +81,7 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 | Session header (git hash, routine id, alliance, port map, battery start) | C5 |
 | End-of-run summary block | C5 |
 | `SdSink` — binary blackbox to `/usd/` | E1 ✅ (the sink, the format and the decoder; the `/usd/` adapter itself is R1's — E1 ships `hal::IBlockSink` and a host fake) |
-| Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 ~ (the PATH is built and proven end to end with a synthetic corrector; real gate numbers arrive with E2/E3/E4) |
+| Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 → **E4 ✅** (E1 built and proved the PATH with a synthetic corrector; E2/E3 filled the residuals and the corrector-side reasons; **E4 filled the last two slots from a real filter covariance** — `gateMahalanobis` from `S = H P Hᵀ + R` and `covarianceTrace` as the position block in in². Both are re-read from decoded blackbox bytes. Zero on complementary-tier records by design, so old files keep their meaning) |
 | Latched brownout marker + graceful-end contract | E1 ✅ |
 | `SHUL/2` wire protocol (**F9 freeze**) | H1 |
 | Run record/replay | H2 |

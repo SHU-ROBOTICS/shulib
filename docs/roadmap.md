@@ -271,7 +271,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **What E1 did NOT do, stated plainly:** it did not certify the `< 1°` claim and it did not
 > build a real gate. The introspection PATH is complete and proven end to end, but with a
 > **synthetic** corrector — E2/E3/E4 supply the real numbers, and `gateMahalanobis` stays 0
-> until the EKF exists. There is also no `/usd/` adapter (R1's) and no D-8 routine watchdog
+> until the EKF exists (it does now: E4). There is also no `/usd/` adapter (R1's) and no D-8 routine watchdog
 > (re-homed to F2, with the reasoning recorded rather than the work half-done). Two findings
 > came out of it that predate the chunk: **`DebugRecord::fault` had no producer anywhere in the
 > tree** — the guide has documented ` flt=CODE` since C8 and it could never have appeared on a
@@ -352,8 +352,33 @@ not silently break them. This table is the spine of the no-staleness promise.
 > harness itself had a fault that reported two mutations GREEN having never run (multi-line
 > `grep -F` matches any single line), now impossible via a byte-compare; and **one green hole is
 > recorded unclosed with its measurement rather than papered over** (see `E3-COMPLETED.md`).
-> **Next: E4** (the 5-state SE(2) EKF — real covariance, real Mahalanobis gating, and the owner of
-> `ComplementaryFusion`'s fixed 12-inch ceiling that E2 recorded and E3 confirmed still binds).
+> **E4 CLOSES PHASE E** (2026-08-13; chunk 19 of 40). `EkfFusion` — a 5-state SE(2) extended
+> Kalman filter — drops in behind the unchanged `IFusionPolicy` seam. Suite **915 cases /
+> 1,521,419 assertions**; ARM gate 115 headers; **36 mutations executed, 34 red, 2 recorded green
+> with their measurements, 0 build-fail, 0 skipped**; 1 line of dead code removed.
+> **What it can now do that nothing could before.** Weigh two disagreeing correctors against each
+> other by their stated σ (measured against the inverse-variance weighted mean computed
+> independently, to better than 0.2%); recover from a displacement the fixed 12-inch gate made
+> permanent (E2's finding 2 — 20-inch wound, EKF back under 2″ on 6/6 seeds, complementary still
+> 20″ out on 6/6); and state its own uncertainty as a number, which finally fills `covarianceTrace`
+> and `gateMahalanobis` from a real `S = H P Hᵀ + R`.
+> **What it does NOT do, stated plainly, because F1/F2 and Phase R will be read against this.**
+> It does **not** beat the complementary filter on accuracy — 0.351″ vs 0.225″ mean final error
+> over 8 seeded 60 s runs, losing 7 of 8 — and it is therefore **NOT the shipped default**. That
+> is not a defect: in this simulation dead-reckoning is already sub-inch and the modelled GPS is
+> noisier than the drift it corrects, so the right move is mostly to ignore the sensor, which a
+> blunt fixed gain does slightly harder. Both tiers ship, both are tested, and the choice is one
+> constructor argument.
+> **Two rulings the roadmap needed and did not have.** *T1:* the EKF tracks θ because its motion
+> model needs it, re-bases θ to the handed IMU heading every tick, and emits only a bounded
+> `headingNudge` — `IFusionPolicy`'s position-only sentence and E3's accumulator are unedited.
+> *T2:* **"consecutive-reject re-init" means re-initialising the COVARIANCE, never the state.** The
+> conflict between that requirement and §13 #4 was real as written and dissolves under that
+> reading: the estimate never moves, the gate opens instead, and the robot walks home at
+> the same bounded rate. The event is a declared, latched, rate-limited word on the record
+> (`GateReason::CovarianceReinit`). No existing never-snap test changed.
+> **Nine more invented constants** (HA-83…HA-91). The structure is proven; the numbers are R4's.
+> **Next: F1** (Phase F — sequencing).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -946,14 +971,38 @@ register above, pin-enforced. This milestone does not close until the on-robot c
   allocator and counts **zero** allocations across 20,000 ticks (and across 5,000 full
   `Localizer::update()` ticks with the heading path live), having first proved the counter works
   by requiring `poll()` — which touches the frozen by-value `tags()` seam — to be non-zero.
-- [ ] Upgrade `Localizer` complementary filter → **5-state SE(2) EKF** `[px,py,θ,vx,vy]`:
-  Mahalanobis gating, consecutive-reject re-init, process noise ∝ travel.
-- [~] Innovation-bounded, covariance-weighted **gated nudge** (never snap); per-tick clamp; log every
-  gating decision. **Partial: the never-snap mechanism and the logging are done for POSITION (C1,
-  E1, E2) and now for HEADING (E3) — bounded per-tick increments, audited on `correctionDx/Dy`
-  and `correctionDTheta`, every gating decision on the record. What is still missing is
-  "covariance-weighted": the complementary tier weights by an invented confidence, not by a
-  filter-estimated covariance. E4 owns that half.**
+- [x] Upgrade `Localizer` complementary filter → **5-state SE(2) EKF** `[px,py,θ,vx,vy]`:
+  Mahalanobis gating, consecutive-reject re-init, process noise ∝ travel — **E4**
+  (`include/shulib/localization/ekf_fusion.hpp`; `test/ekf_fusion_test.cpp` 33 cases,
+  `ekf_fusion_seam_test.cpp` 8, `ekf_fusion_accuracy_test.cpp` 4, `ekf_fusion_cost_test.cpp` 3;
+  suite 867 → 915 cases / 1,091,167 → 1,521,419 assertions). **Four caveats attached to this
+  checkbox.** (1) **It is NOT the shipped default** and does not beat the complementary tier on
+  accuracy: over 8 seeded 60 s runs the means are 0.351″ vs 0.225″ final and 0.749″ vs 0.587″
+  worst — the simpler filter wins on 7 of 8 seeds. The planned acceptance criterion asked for the
+  opposite; the measurement is reported rather than tuned toward, and the per-seed table lives in
+  `test/ekf_fusion_accuracy_test.cpp`'s own header so nobody has to find a document to read it.
+  (2) **The noise parameters are entirely invented** (HA-83…HA-91, nine new entries) — the
+  STRUCTURE is proven, the NUMBERS are R4's. (3) **"consecutive-reject re-init" was ruled to mean
+  re-initialising the COVARIANCE, never the state** — §13 #4's never-snap holds bit-for-bit and no
+  existing never-snap test changed. (4) Nothing here has seen hardware.
+- [x] **`gateMahalanobis` and `covarianceTrace` are real** — E4, populated from `S = H P Hᵀ + R`
+  with `P` estimated by the filter, `RejectedMahalanobis` raisable for the first time since A1
+  reserved it, and a new append-only `GateReason::CovarianceReinit = 12`. Both re-read from
+  decoded blackbox bytes. `covarianceTrace` is the POSITION block only, in in² — a full 5-state
+  trace would add inches to radians to inches-per-second. **Zero on every complementary-tier
+  record still, deliberately** (E2's T1), so old blackboxes keep their meaning.
+- [x] Innovation-bounded, covariance-weighted **gated nudge** (never snap); per-tick clamp; log every
+  gating decision. **Complete as a mechanism, with its scope stated.** Never-snap and the logging
+  are done for POSITION (C1, E1, E2) and HEADING (E3); "covariance-weighted" is done at E4, where
+  proposals are weighted by their stated σ and by nothing else — the confidence gain knob is
+  deliberately not a fusion weight, because E2 derives its confidence FROM σ and using both would
+  count the same information twice. **Scope:** covariance weighting exists only on the EKF tier,
+  which is not the default; the complementary tier still weights by confidence, as documented.
+  E4 enforces never-snap as a GAIN REDUCTION rather than a clip on the state, so the covariance
+  stays consistent with what was actually applied (Joseph form). One measured caveat: under the
+  EKF tier `correctionDx/Dy` also carries the filter's velocity-smoothing residual and was
+  measured up to 9% over the per-tick budget during hard direction changes — the CORRECTION
+  itself never exceeds it.
 - [ ] **Calibration routines + persistence** (wheel scale/offset, GPS lever-arm, camera mount, IMU
   bias) — saved to SD/config.
 

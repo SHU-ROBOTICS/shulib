@@ -135,6 +135,15 @@
 | HA-80 | A heading innovation above 15° is a fault, not drift | **invented** | R4/E4 |
 | HA-81 | 0.15 of the heading innovation per tick at confidence 1 | **invented** | R4/E4 |
 | HA-82 | 10°/s is a safe upper bound on estimator heading-bias change | **invented** | R4/E4 |
+| HA-83 | EKF position process noise: σ grows 2% of distance travelled, + a 0.5 in/s floor | **invented** | R4 |
+| HA-84 | EKF heading process noise: σ grows 1% of rotation, + HA-20's 1°/min drift | **invented** | R4 |
+| HA-85 | The drive can change body velocity by 200 in/s² (the EKF's velocity process noise) | **invented** | R4/R5 |
+| HA-86 | One tick's odometry displacement is 1σ ≈ 0.01 in + 2% of the tick's travel | **invented** | R4 |
+| HA-87 | 3σ is the right Mahalanobis gate width for the EKF tier | **invented** | R4 |
+| HA-88 | An absolute heading measurement is 1σ ≈ 2°, flat | **invented** | R4 |
+| HA-89 | The EKF's prior when it knows nothing: 24 in, 30°, 24 in/s | **invented** | R4 |
+| HA-90 | 50 consecutive gate rejections with a mean innovation over 6 in means "lost" | **invented** | R4 |
+| HA-91 | 5 s is long enough between re-init declarations to tell recovery from a storm | **invented** | R4 |
 
 ---
 
@@ -993,6 +1002,124 @@ E2's tuning constants make the corrector work better or worse; these three make 
   poisons every field-relative command after it. (Too low): a real drift takes longer than a match
   to correct. **This bound is what makes never-snap structural for heading**, and it is audited
   on every tick from the blackbox (`correctionDTheta`), so a violation is visible after the fact.
+
+- [ ] **HA-83 — the EKF's position process noise: 1σ grows by 2% of the distance travelled since
+  the last accepted fix, plus a 0.5 in/s floor while standing still.**
+  *Claim:* dead-reckoning error is dominated by a SYSTEMATIC scale and alignment error, so σ grows
+  LINEARLY with distance rather than as its square root, and something small but non-zero
+  accumulates even at rest.
+  *Source:* `ekf_fusion.hpp`, `posNoisePerInch` / `posNoiseRate` (PROVISIONAL (A4: HA-83)).
+  *Confidence:* **invented**. The 2% figure is E2's `driftStdDevPerInch` (HA-67) reused so the two
+  layers model the same physics with the same number; the floor is a numerical-health term.
+  *Settle (R4):* drive a known distance with no correction, repeatedly, and plot the error
+  distribution against distance — the SHAPE of that plot (linear vs √d) settles the model, and its
+  slope settles the constant.
+  *Blast radius if wrong (too small):* **gate lockout.** Measured during E4 with a random-walk
+  form in place: after 360 inches of dead-reckoning the filter believed it was within half an inch
+  and rejected a truthful fix 20 inches away. (Too large): the gate never closes and a lie walks
+  in.
+
+- [ ] **HA-84 — the EKF's heading process noise: 1σ grows by 1% of the rotation actually
+  performed, plus HA-20's ≈1°/min of raw IMU drift.**
+  *Source:* `ekf_fusion.hpp`, `headingNoisePerRad` / `headingDriftRate` (PROVISIONAL (A4: HA-84)).
+  *Confidence:* **invented**, and it INHERITS HA-20 entirely — the drift term is HA-20 restated as
+  a variance, so if HA-20 is wrong this is wrong by the same factor.
+  *Settle (R4):* the same boot-drift experiment HA-20 needs; the scale-factor term needs a
+  known-rotation test (spin exactly ten turns, compare).
+  *Blast radius if wrong (too small):* a genuinely drifted heading is never corrected, because the
+  filter is certain about a heading that is wrong. (Too large): a mirrored tag moves the bias fast.
+
+- [ ] **HA-85 — the drivetrain can change its body velocity by about 200 in/s².**
+  *Claim:* this is roughly a hard V5 drive launch, and it is the EKF's process noise on the
+  velocity states — i.e. how far the constant-velocity model is allowed to be wrong in one tick.
+  *Source:* `ekf_fusion.hpp`, `velNoise` (PROVISIONAL (A4: HA-85)).
+  *Confidence:* **invented**; co-depends on HA-45's feedforward constants.
+  *Settle (R5):* falls straight out of the sysid ramp — the measured peak acceleration IS this
+  number.
+  *Blast radius if wrong (too small):* the filter lags the wheels through every acceleration, and
+  the position estimate lags with it. (Too large): encoder noise passes straight through, which is
+  mostly harmless.
+
+- [ ] **HA-86 — one tick's odometry displacement is 1σ ≈ 0.01 inch plus 2% of that tick's travel.**
+  *Claim:* the constant term is encoder quantization and tracking-wheel jitter; the proportional
+  term is slip.
+  *Source:* `ekf_fusion.hpp`, `odomStdDev` / `odomStdDevPerInch` (PROVISIONAL (A4: HA-86)).
+  *Confidence:* **invented**. The quantization half is checkable on paper from HA-16 and HA-13 and
+  is the more trustworthy of the two.
+  *Settle (R4):* push the robot a measured distance by hand with the motors off and compare
+  odometry to a tape measure, repeatedly.
+  *Blast radius if wrong:* sets how much the filter smooths the wheels. Too small and it follows
+  encoder noise; too large and it lags. Measured at the default: the filter's dead-reckoning
+  differs from raw odometry by under 0.7 inch over two minutes of stop-start driving, and does not
+  accumulate.
+
+- [ ] **HA-87 — 3σ is the right Mahalanobis gate width for the EKF tier.**
+  *Claim:* on a 2-degree-of-freedom position innovation, ν > 3 means a fix is an outlier rather
+  than noise — about a 1.1% false-reject rate IF the noise model is right, which is the caveat
+  that matters.
+  *Source:* `ekf_fusion.hpp`, `gateSigma` (PROVISIONAL (A4: HA-87)).
+  *Confidence:* **invented**, and note it is a DIFFERENT number from E2's `gateSigma` = 4 (HA-65)
+  and E3's = 4 (HA-77) on purpose: those normalise by an assumed constant and must be slacker to
+  survive being wrong; this one normalises by an estimated covariance and can afford to be tighter.
+  *Settle (R4):* plot the measured innovation distribution once HA-83…HA-86 are real, and choose
+  the width from it rather than from a table.
+  *Blast radius if wrong (too tight):* honest fixes are refused and the filter re-inits more often
+  than it should. (Too slack): the outlier protection stops working, which is the whole reason the
+  gate exists.
+
+- [ ] **HA-88 — an absolute heading measurement is 1σ ≈ 2°, flat.**
+  *Claim:* a tag-derived heading is about two degrees uncertain, and using one number for every
+  such measurement is better than inventing a per-proposal relationship.
+  *Source:* `ekf_fusion.hpp`, `headingStdDev` (PROVISIONAL (A4: HA-88)).
+  *Confidence:* **invented**, and it is the WEAKEST entry in this group: `CorrectionProposal`
+  carries no heading σ, so this one constant stands in for every heading-providing source at every
+  range. E3 handled the same gap with a trusted-range BAND (HA-73) instead.
+  *Settle (R4):* the range sweep HA-73 already needs — park at a known pose, sweep range, and plot
+  recovered heading error separately from position error. That sweep produces σ(range), and a
+  corrector that can state it makes this constant unnecessary.
+  *Blast radius if wrong (too small):* heading fixes are trusted more than they deserve, and a bad
+  tag moves the bias faster. (Too large): the heading correction converges too slowly to matter
+  inside a match.
+
+- [ ] **HA-89 — when the EKF knows nothing, it is 24 inches, 30° and 24 in/s uncertain.**
+  *Claim:* "somewhere within a tile, facing roughly the right way" is the right ignorance to start
+  from, and to return to after a discontinuity or a re-init.
+  *Source:* `ekf_fusion.hpp`, `initialPosStdDev` / `initialHeadingStdDev` / `initialVelStdDev`
+  (PROVISIONAL (A4: HA-89)).
+  *Confidence:* **invented**; the 24 inches is one VEX tile, which is a convenient scale and not a
+  measurement.
+  *Settle (R4):* it is a prior, so it is not measurable in the way the others are — what R4 can
+  settle is whether it is large enough that a first fix is always accepted, and small enough that
+  the first few ticks after a re-init are not dominated by it.
+  *Blast radius if wrong (too small):* the first fix after a re-init is rejected and the estimator
+  cannot recover at all. (Too large): the tick after a re-init accepts almost anything — bounded
+  in practice by the per-tick nudge budget, which is why this errs large.
+
+- [ ] **HA-90 — 50 consecutive gate rejections with a mean innovation above 6 inches means the
+  estimator is lost.**
+  *Claim:* at the ~20 Hz cadence a real corrector achieves, that is about 2.5 seconds of a sensor
+  insisting the estimate is wrong — long enough that noise cannot produce it and short enough to
+  recover inside a match.
+  *Source:* `ekf_fusion.hpp`, `reinitRejectCount` / `reinitInnovation` (PROVISIONAL (A4: HA-90)).
+  *Confidence:* **invented**.
+  *Settle (R4):* count how often a healthy run produces consecutive rejections at all, and set the
+  bar above the observed maximum.
+  *Blast radius if wrong (too low):* the filter throws away good confidence on ordinary noise —
+  measured as zero occurrences across 8 seeds of a 60-second hostile run at this setting.
+  (Too high): a shoved robot takes longer to recover, bounded below by the 12 in/s nudge rate
+  anyway.
+
+- [ ] **HA-91 — 5 seconds is long enough between re-init declarations to tell recovery from a
+  storm.**
+  *Source:* `ekf_fusion.hpp`, `reinitCooldown` (PROVISIONAL (A4: HA-91)).
+  *Confidence:* **invented**. It is bounded below by the time a rate-limited recovery actually
+  takes: 30 inches at 12 in/s is 2.5 seconds, so a cooldown shorter than that could re-declare
+  while the previous recovery is still in progress.
+  *Settle (R4):* measure the real recovery time once the nudge rate is settled, and set this to a
+  comfortable multiple of it.
+  *Blast radius if wrong (too short):* a re-init storm, which in the record is indistinguishable
+  from a filter that is working. (Too long): a second genuine displacement inside the window is
+  not recovered from until the window expires.
 
 ---
 

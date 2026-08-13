@@ -281,7 +281,8 @@ TEST_CASE("blackbox: every GateReason and a spread of faults survive the trip") 
                                   GateReason::RejectedSensorQuality,
                                   GateReason::RejectedNoTagMapEntry,
                                   GateReason::RejectedTagRange,
-                                  GateReason::RejectedObservationAge};
+                                  GateReason::RejectedObservationAge,
+                                  GateReason::CovarianceReinit};
     const FaultCode faults[] = {FaultCode::None,      FaultCode::NanPose,   FaultCode::OdoStuck,
                                 FaultCode::Brownout,  FaultCode::Implausible};
 

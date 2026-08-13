@@ -81,6 +81,15 @@ enum class GateReason : std::uint8_t {
     /// folded — the normal steady state) and from RejectedNoFix (looked, saw nothing), because
     /// "the camera stopped talking" calls for a different response than either. (E3)
     RejectedObservationAge = 11,
+    /// The EKF tier gave up on its own confidence and re-initialised its covariance: N
+    /// consecutive Mahalanobis rejections with a persistently large innovation means the
+    /// filter's belief about how wrong it might be is itself wrong. **The estimate is NOT
+    /// moved** — only the uncertainty is reset — so §13 #4's never-snap bound still holds on
+    /// this tick and every tick after it (E4's T2 ruling, localization/ekf_fusion.hpp).
+    /// It is a WORD in the record rather than an inference because an estimator that quietly
+    /// changes its mind about how much to trust the world is the hardest kind of run to debug;
+    /// `covarianceTrace` jumping on the same tick is the independent numeric witness. (E4)
+    CovarianceReinit = 12,
 };
 
 /// Index vocabulary for DebugRecord::tickPhase — WHO consumed the loop budget this

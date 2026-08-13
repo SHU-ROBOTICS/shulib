@@ -29,6 +29,12 @@
 - **corrector** — a source of *absolute* fixes that can tell the estimate it is wrong (the GPS
   corrector, the AprilTag corrector). Correctors only ever *propose*; how far the estimate moves
   is the fusion layer's decision. [Ch. 3]
+- **covariance** — the estimator's written-down answer to "how sure am I?". At its simplest a
+  give-or-take distance on the position estimate; properly, a small table covering every pair of
+  quantities the estimator tracks, so it can also say things like *"half an inch along my
+  direction of travel, three inches sideways"* and record how the errors are linked. It grows
+  while dead reckoning and shrinks when a fix is folded. Only the Kalman fusion tier has one.
+  [Ch. 3]
 - **dead reckoning** — estimating position purely by accumulating your own measured movement,
   with no external reference (the `DR` flag). [Ch. 3]
 - **desaturation** — uniformly scaling down a command that asks more than the wheels can give,
@@ -73,9 +79,17 @@
 - **host-side** — running on an ordinary computer rather than the robot. [Ch. 7]
 - **IMU (inertial measurement unit)** — the sensor that measures rotation directly; the owner
   of the heading estimate. [Ch. 3]
+- **Kalman filter** — a fusion method that carries a covariance and uses it to decide how much to
+  trust each new measurement. shulib ships one (an *extended* Kalman filter, meaning it copes with
+  the fact that the robot's motion is not a straight line) as the optional second fusion tier.
+  [Ch. 3]
 - **kinematics** — the geometry converting a desired chassis velocity into per-wheel speeds
   and back. [Ch. 4]
 - **localization** — the whole problem (and code layer) of knowing where the robot is. [Ch. 3]
+- **Mahalanobis distance** — how far a measurement disagrees with the estimate, measured in units
+  of *how wrong the estimate could plausibly be* rather than in inches. Two inches is a lot when
+  the estimator is sure of itself and nothing at all when it has been driving blind. The Kalman
+  tier refuses anything past three. [Ch. 3, Ch. 11]
 - **mutation check** — deliberately breaking code to confirm a test actually notices; the
   antidote to tests that pass no matter what. [Ch. 13]
 - **NaN ("not a number")** — the poison value floating-point math produces from impossible
@@ -97,6 +111,10 @@
   into its position and orientation relative to the camera. In shulib it is a standalone,
   testable function, deliberately separate from the corrector that consumes its output. [Ch. 3]
 - **pose** — position plus heading: (x, y, θ). [Ch. 2]
+- **process noise** — how much confidence the estimator gives up per tick simply from time
+  passing and distance covered — the thing that makes a covariance grow while dead reckoning.
+  Scaling it with distance travelled rather than with time is what lets a truthful correction
+  through after a long blind stretch. [Ch. 3]
 - **precondition** — a rule about inputs a function checks at its door, rejecting nonsense
   loudly before anything moves. [Ch. 10]
 - **PROS** — the open-source V5 runtime the robot build runs on; the library core never

@@ -515,9 +515,43 @@ same file claimed 867 / 1,091,167 twenty lines earlier — a beginner following 
 would have concluded they had broken something. It now shows the *shape* and says the counts grow.
 Fourth instance this session of prose going stale in a way no build gate can see.
 
-**Next: E4 — the 5-state SE(2) EKF.** It inherits three named debts: the 12″ innovation ceiling
-(E2), the empty `gateMahalanobis` field that only a real covariance can fill (E2), and two
-correctors that currently cannot be weighed against each other when they disagree (E3).
+**Chunk E4 — the 5-state SE(2) EKF: DONE 2026-08-13. PHASE E IS COMPLETE.**
+([completion record](chunks/E4-COMPLETED.md), live log in [E4-PROGRESS.md](chunks/E4-PROGRESS.md)).
+`EkfFusion` implements the unchanged `IFusionPolicy`; no caller moved. All three of E4's inherited
+debts are paid or precisely scoped: the 12″ ceiling is **replaced on the EKF tier** by a
+Mahalanobis gate that scales with the filter's own covariance (the same 20″ fix is refused when
+fresh, ν = 19.7, and accepted after 360″ blind, ν = 2.70); `gateMahalanobis` and `covarianceTrace`
+are filled from a real `S = H P Hᵀ + R` and re-read from decoded blackbox bytes; and two
+disagreeing correctors are now **resolved by their stated σ** rather than merely bounded, matched
+against the inverse-variance weighted mean computed independently in the test.
+**The DoD line "the EKF beats the complementary filter" was NOT met and was not tuned toward** —
+0.351″ vs 0.225″ mean final error over 8 seeded 60 s runs, losing 7 of 8 — so the complementary
+tier stays the shipped default and both tiers stay selectable and tested. See the ruling block
+under the E4 entry below.
+Suite **915 cases / 1,521,419 assertions**; ARM gate 115 headers; **36 mutations, 34 red, 2
+recorded GREEN with their measurements, 0 build-fail, 0 skipped**; 1 line of dead code removed;
+nine new register entries
+(HA-83…HA-91), all invented, all labelled.
+
+*Reviewer's independent verification.* The covariance invariants were re-checked against a
+**Cholesky decomposition written for the review** — sharing no code with the filter — over
+**6 seeds × 3,000 ticks, 54,000 assertions**, driving an adversarial path of hard turns, reversals,
+standstills and deliberate 40″ outliers. `P` stayed symmetric and positive-definite throughout, with
+minimum Cholesky pivots between 0.09 and 1.33: comfortably positive, not marginal. Separately
+confirmed by `git status`: `include/shulib/localization/` contains **one new untracked file and no
+modified seam header** — the swap point was filled, not reshaped, exactly as `IFusionPolicy`'s
+header promised at M2. And the `< 1°` sentence in chapter 14 has **zero diff lines**, which is the
+check that mattered most: a Kalman filter arriving is precisely the moment an accuracy claim
+inflates on its own.
+
+*Also fixed at review:* the README led with "1,521,419 assertions" in bold, which flatters. 48 new
+test cases produced 430,252 new assertions — the number reflects how many seeds were swept, not how
+many independent things are checked. It now carries an explicit caveat pointing at mutation testing
+as the measure the project actually trusts, with the reason stated: **a test that cannot fail when
+the code is wrong is worse than no test, because it reads as coverage.**
+
+**Next: F1 — Phase F (sequencing).** Phase E's estimator work is done; F1/F2 build the mechanism
+abstraction and the time-budgeted sequencer on top of it.
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
@@ -899,6 +933,29 @@ recovers from a hijacked estimate.
 
 **DoD:** the EKF beats the complementary filter on identical seeded runs; the swap changes nothing
 above the seam; the structural invariants above hold across a parameter sweep.
+
+> **RULED AT E4, and written here so nobody re-derives it.**
+>
+> **(1) "Consecutive-reject re-init" vs §13 #4 "never snap".** This entry and decision #4 could not
+> both hold as written, and the conflict sat here unnoticed from the day the roadmap was drafted.
+> The resolution is to read "re-init" as re-initialising the belief's **uncertainty**, not its
+> **value**: on the trigger the filter resets its covariance and does not move the estimate at all.
+> Never-snap then holds bit-for-bit, and the estimator still recovers — a large `P` opens the gate,
+> and the following fixes walk the estimate home at the ordinary bounded rate. The event is
+> declared (`GateReason::CovarianceReinit`), latched, rate-limited, and requires N consecutive
+> rejections *and* a persistently large innovation. Rejected: teleporting onto the rejected fix,
+> which is the snap #4 forbids and which trusts a fix the filter has just spent fifty ticks
+> distrusting.
+>
+> **(2) "The EKF beats the complementary filter on identical seeded runs" was NOT achieved, and
+> was not tuned toward.** Measured over 8 seeded 60-second hostile runs: mean final error 0.351″
+> (EKF) against 0.225″ (complementary), losing on 7 of 8 seeds. The reason is E2's, one layer up —
+> dead-reckoning in this simulation is already sub-inch, so the modelled GPS is noisier than the
+> drift it corrects and the best move is mostly to ignore it. **The DoD line was written before
+> anyone knew that**, and the honest response is to record it rather than fit the filter to the
+> test. What the EKF does deliver is capability the other tier does not have at all: σ-weighted
+> arbitration, recovery from a displacement past the 12-inch ceiling, and a stated uncertainty.
+> The complementary tier therefore stays the shipped default. See `chunks/E4-COMPLETED.md` §T2/§T3.
 
 ---
 

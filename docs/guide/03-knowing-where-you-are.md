@@ -254,13 +254,127 @@ The checks it runs before it will move anything, each one a way tag data can be 
   wrong every time it sees that tag, with a small residual and a high confidence — which is to
   say, it looks exactly like a healthy fix. Measure your tags, and record how you measured them:
   the library makes you state where each number came from and refuses an entry that does not.
-- **Two correctors that disagree are bounded, not resolved.** With the GPS and the tags both
-  running, the library limits how far either can pull per tick and lets the estimate settle
-  between them. Deciding *which one is right* needs a Kalman filter, which does not exist yet.
+- **Two correctors that disagree used to be bounded, not resolved** — the library limited how
+  far either could pull and let the estimate settle between them. There is now a filter that can
+  actually weigh them against each other; the next section is about it, and about what it costs.
 - **But it works where the GPS cannot.** The field's tags do not depend on the GPS strip, so in
   **Driving Skills** — where there is no strip at all — the tag corrector is the only absolute
   source of anything. That is the event where this feature is worth the most, and also the one
   where nothing else can catch its mistakes.
+
+## Knowing how wrong you might be
+
+Everything above shares one blind spot, and it is worth seeing clearly before reading about the
+thing that fixes it.
+
+When a sensor says "you are eight inches from where you think you are", there are two completely
+different situations behind that sentence. Maybe the estimate is fresh and trustworthy, and the
+sensor glitched — in which case you should ignore it. Or maybe the robot has been dead-reckoning
+across the field for twenty seconds and really *is* eight inches out — in which case that reading
+is the most valuable thing that has happened all match. **The two look identical from the
+outside.** Everything described so far answers with the same fixed rule either way: reject
+anything past a set distance, and pull gently on anything closer.
+
+To tell them apart, the estimator has to know something it has never known: **how wrong it might
+be right now.**
+
+### What a covariance is, in plain words
+
+Suppose you are asked where the robot is and you answer "(24, 36)". A **covariance** is the
+answer to the follow-up question: *how sure are you?* — written as a number rather than a
+feeling.
+
+At its simplest it is a distance: "I am at (24, 36), give or take about half an inch." That
+"give or take" is a standard deviation, usually written σ. A covariance is the same idea done
+properly for more than one number at once, so it can also express things a single distance
+cannot — for example *"give or take half an inch along the direction I am driving, but three
+inches sideways"*, which is exactly what happens to a robot that has been driving straight for a
+while with a slightly uncertain heading. It is stored as a small table of numbers, one for each
+pair of quantities the estimator tracks, and the entries off the diagonal say how the errors are
+*linked*: if the estimator is wrong about its heading, it is probably wrong about its sideways
+position too, and in a predictable way.
+
+The two things that happen to it are the whole story:
+
+- **It grows while you dead-reckon**, in proportion to how far you have actually driven. Sitting
+  still barely costs anything; crossing the field blind costs a lot.
+- **It shrinks whenever a fix is folded in**, in proportion to how good that fix claimed to be.
+
+That is all a covariance is: a running answer to "how sure am I?", inflated by driving and
+deflated by looking.
+
+### What having one buys
+
+Four things, and they are the reason the filter exists.
+
+**The gate stops being a fixed distance.** Instead of "reject anything more than twelve inches
+away", the test becomes "reject anything more than three times as far away as I could plausibly
+be wrong". The same fix, twenty inches out, is now *rejected* when the estimate is fresh — no
+sensor is that trustworthy against a good estimate — and *accepted* after a long blind stretch,
+because by then twenty inches is well within what the estimator admits it might be off by. The
+old fixed gate had a real consequence recorded during development: an estimate twenty-nine inches
+from truth **never recovered**, with a perfectly good GPS in view the entire time, because
+twenty-nine is more than twelve. That specific failure is gone.
+
+**Two disagreeing sources can finally be resolved.** If the GPS says one thing with a σ of two
+inches and the tags say another with a σ of half an inch, the filter does not pick one and does
+not split the difference — it lands about sixteen times closer to the tags, because a σ four
+times smaller is sixteen times more informative. That weighting is not a preference anyone typed
+in; it falls out of the arithmetic.
+
+**"How sure am I?" becomes something you can read.** The blackbox now carries the estimator's own
+uncertainty on every tick, which turns "the robot ended up in the wrong place" into a question
+with an answer in the file.
+
+**The estimator can notice that it is lost.** Which brings up the one behaviour worth
+understanding before you see it in a log.
+
+### When the estimator gives up on itself — and why it still does not teleport
+
+A confident filter that is *wrong* is a trap, and it has a very real cause in VEX: an opponent
+shoves your robot. The wheels do not turn, so the odometry reports no travel and the estimate
+stays exactly where it was — and stays **certain**, because as far as the wheels are concerned
+nothing happened. The robot is now thirty inches from where it believes it is, and every honest
+GPS fix looks like an outrageous lie. The gate does what it is built to do and rejects all of
+them. Forever.
+
+So there is an escape hatch, and its design is the interesting part. After a long run of
+consecutive rejections *and* a persistently large disagreement, the estimator declares that it is
+lost — and what it does then is **throw away its confidence, not its position.** The covariance
+is reset to "I could be anywhere within a tile". The estimate itself does not move by so much as
+a thousandth of an inch.
+
+That distinction is the whole design. With the confidence gone the gate is wide open, so the next
+fixes are accepted and the estimate walks home at the usual bounded rate — about two and a half
+seconds to cover thirty inches. **It never jumps.** An estimator that quietly teleports is worse
+than one that stays wrong: a wrong-but-continuous estimate still produces sane motion, while a
+teleport hands the motion controller a target that moved eight feet between ticks, and the robot
+lurches. The event is also written into the log as its own word, because an estimator that
+changes its mind about how much to trust the world without saying so is the hardest kind of run
+to debug.
+
+### Two filters, and why the simpler one is still the default
+
+The library ships **both**, behind the same seam, and choosing between them is one argument where
+you build the estimator.
+
+- The **complementary filter** is the default. It has no covariance. It rejects anything past a
+  fixed distance and pulls a fixed fraction of the way toward whatever it accepts.
+- The **extended Kalman filter** is the one this section has been describing.
+
+Keeping the simpler one as the default is a deliberate choice, and the honest reasons are worth
+stating. Measured over eight seeded sixty-second runs against the simulated robot, the two finish
+within about an eighth of an inch of each other — and the *complementary* filter is very slightly
+ahead. That is not a defect in the Kalman filter; it is what happens when the simulated GPS is
+noisier than the drift it is correcting, so the best available move is mostly to ignore it, and a
+blunt fixed gain ignores it slightly harder. On top of that, **every noise number the Kalman
+filter uses is currently a guess**, because no part of this project has met a real robot, and a
+filter whose behaviour a team member can explain out loud is worth something real on competition
+day.
+
+So: use the Kalman tier when you need what only it can do — recovering from a large displacement,
+or resolving two sources that disagree — and expect the accuracy difference between them to be
+smaller than the things you have not measured yet.
 
 ## What this means for your routines
 

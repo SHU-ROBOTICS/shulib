@@ -102,16 +102,6 @@ reads as a smaller change than the feature sounds like, that is the honest size 
 
 **Still missing, and unrelated to any of the above:**
 
-- **No Kalman filter.** Fusion is a bounded-nudge complementary filter. It has no covariance, so
-  it cannot weigh two disagreeing sources against each other properly, and the diagnostics field
-  reserved for a Mahalanobis distance is honestly left empty rather than filled with a
-  look-alike. With two correctors now running together this is a live limitation rather than a
-  theoretical one: when the GPS and the tags disagree, the library bounds the damage instead of
-  resolving the disagreement.
-- **Correction does not rescue a badly wrong estimate.** Fixes more than a foot from the
-  estimate are rejected outright. If the estimate is grossly wrong, neither corrector will pull
-  it back — bounded drift is a weaker promise than recovery, and the difference matters after a
-  hard collision.
 - **The heading correction has its own version of that limit.** A heading disagreement larger
   than 15° is rejected rather than folded, on the reasoning that it is far more likely to be a
   misread tag than real drift. If a real IMU ever drifts further than that, the correction will
@@ -123,6 +113,56 @@ reads as a smaller change than the feature sounds like, that is the honest size 
 - **Driving Skills has no GPS strip**, so in that event the GPS corrector reports "no fix" for
   the whole run. The **tag** corrector does not depend on the strip — but it does depend on you
   having a camera, a tag map, and a task polling it, none of which exist yet either.
+
+## A Kalman filter now exists — and it is not the default
+
+This page used to carry two limitations together: *no Kalman filter*, and *two disagreeing
+correctors are bounded rather than resolved*. Both have changed, and as with the heading section
+above the honest change is narrower than it sounds. Same order: what was measured, what it was
+measured on, what is still unknown.
+
+**What was measured.** A 5-state extended Kalman filter now exists behind the same fusion seam
+([Chapter 3](03-knowing-where-you-are.md)), and three things it can do were measured directly.
+*One:* handed two disagreeing fixes with stated accuracies of 1 inch and 5 inches, it settles on
+the inverse-variance weighted point between them — the number a person computes from the two σ
+values on paper, matched to better than a fifth of a percent. It does not pick one, does not
+average blindly, and is not swayed by which source claims to be more confident. *Two:* an
+estimate wounded by 20 inches — further than the default filter's fixed gate will ever accept —
+returns to within 2 inches on all six seeds tested, while the default filter's estimate is still
+20 inches out at the end of every one of them. *Three:* 2000 consecutive confident lies, each 50
+inches from the truth, moved the estimate by **zero inches**, and no tick under any of these
+conditions moved the estimate further than the documented per-tick bound.
+
+**What it was measured *on*.** The same simulated robot everything else in this library was
+measured on, and — new here — **noise parameters that are entirely invented**. A Kalman filter is
+only as good as its description of how wrong its sensors are, and every one of those numbers
+(HA-83…HA-91 in the [Hardware Assumptions Register](../hardware-assumptions.md)) is a guess
+written down by somebody who has not measured a robot. The filter's *structure* is what was
+proven here; its *numbers* are fitted on hardware that does not exist yet.
+
+**What remains unmeasured, and what did not change:**
+
+- **The Kalman tier is not the shipped default, and the measurement is why.** Over eight seeded
+  60-second runs, the two filters finish within about an eighth of an inch of each other and the
+  **simpler one is slightly ahead**. In this simulation dead-reckoning is already sub-inch over a
+  minute, so the modelled GPS is noisier than the drift it corrects, and against a sensor like
+  that the best move is mostly to ignore it — which a blunt fixed gain does slightly harder. The
+  Kalman filter is not there for accuracy on a clean run; it is there for recovery, arbitration,
+  and knowing how wrong it might be.
+- **Recovery from a large displacement needs both gates to agree, and only one of them was
+  fixed.** The fusion layer's fixed 12-inch ceiling is gone under the Kalman tier. Each corrector
+  *also* has its own gate, which E4 did not touch — so a real recovery from a 20-inch error
+  depends on the corrector's own widening rule as well, and that rule's constant (HA-67) is
+  another guess.
+- **The uncertainty the filter reports is only as honest as its noise model.** `covarianceTrace`
+  is a real number computed from a real filter, and it is computed from invented inputs. Treat it
+  as a *relative* signal — it grew, it shrank — rather than as a calibrated distance, until R4.
+- **Nothing here has seen a robot.** Same as everything else on this page.
+
+**So, precisely:** the library can now weigh two disagreeing sources against each other by their
+stated accuracy, recover from a displacement that used to be permanent, and state its own
+uncertainty as a number. It is **not** claimed to be more accurate than what it replaces on an
+ordinary run, and on the evidence available it is very slightly less so.
 
 ## The mechanism seam is a placeholder
 

@@ -315,7 +315,8 @@ wrong or the motion was.
 | `RejectedNoTagMapEntry` | A tag was **seen**, and your map does not say where it is. This one is a configuration error you can fix, not the field being the field — check that the tag's id is in your map. An empty map produces this on every tag. |
 | `RejectedTagRange` | Every visible tag was too close or too far to be trusted. Far away, a tag's recovered *angle* goes bad long before its distance does, which is why the band exists. |
 | `RejectedObservationAge` | The vision task has stopped feeding the corrector — it stalled, died, or was never started. Different from `RejectedStaleFix`, which is the normal state between camera frames. |
-| `RejectedMahalanobis` | Reserved for the Kalman-filter tier, which does not exist yet. Nothing writes it today. |
+| `RejectedMahalanobis` | The **Kalman tier** refused a fix: it disagreed by more than three times what the estimator admits it could plausibly be wrong by. Unlike `RejectedInnovation` this threshold is not a fixed distance — the same fix can be refused when the estimate is fresh and accepted after a long blind stretch. Only the Kalman tier writes this. |
+| `CovarianceReinit` | The **Kalman tier declared itself lost** and reset its own confidence — after a long run of consecutive rejections with a persistently large disagreement. **The estimate was not moved**; only the uncertainty was thrown away, so the next fixes can get through. See "Reading a re-init" below. Only the Kalman tier writes this. |
 
 Two habits worth forming:
 
@@ -327,6 +328,10 @@ Two habits worth forming:
 - **A run full of `RejectedNoTagMapEntry` means the robot can see tags and you have not told it
   where they are.** This is the one on this list that is definitely your bug and definitely
   fixable.
+- **Even one `CovarianceReinit` in a match is worth reading the surrounding ticks for.** The
+  estimator only says that after it has been arguing with a sensor for seconds. Something
+  displaced the robot without the wheels turning — a shove, a wall, a pinned drivetrain — or a
+  sensor started lying convincingly.
 
 ### Reading the heading correction
 
@@ -351,10 +356,49 @@ rejection reads as "a large heading residual beside a zero heading correction" r
 a word of its own. Position and heading are gated separately: a fix can be good enough to move
 your position and not good enough to move your heading, and that is a normal thing to see.
 
-The record also reserves a **Mahalanobis distance** slot for the Kalman-filter tier. It is
-deliberately left at zero today rather than filled with something similar-looking: today's fusion
-layer has no covariance to compute one from, and a plausible number in that field would be
-impossible to distinguish from a real one later.
+### The two fields that only mean something under the Kalman tier
+
+For most of this library's life two slots in the record sat deliberately empty, because the
+default fusion layer has no covariance and a plausible-looking number in either would have been
+impossible to tell from a real one later. Under the **Kalman tier** they are real, and they are
+the two most informative numbers in the file when an estimate goes wrong.
+
+- **`covarianceTrace`** — how uncertain the estimator currently is about its own position, in
+  **square inches**. It is not a distance: to get one, take `sqrt(trace / 2)`, which is roughly
+  the 1σ radius. So a trace of 0.5 means "give or take about half an inch"; a trace of 1152 means
+  "I could be anywhere within a tile". Watch it **grow** while the robot dead-reckons and **drop**
+  each time a fix lands. Under the default complementary tier this same slot carries that tier's
+  scalar trust weight instead — the `reason` column tells you which filter wrote it.
+- **`gateMahalanobis`** — how far the fix disagreed, measured in units of *how wrong the estimator
+  thought it might be*. Under three, it was accepted; over three, refused. A value of 20 does not
+  mean twenty inches — it means the fix was twenty times further out than the estimator's own
+  uncertainty could account for. Zero on every record written by the default tier, which has no
+  covariance to normalise by.
+
+### Reading a re-init
+
+A `CovarianceReinit` tick is worth knowing how to read, because the interesting part is what
+*didn't* happen.
+
+1. `gateReason` reads `CovarianceReinit`.
+2. `covarianceTrace` **jumps** on that same tick, typically by a factor of hundreds — that is the
+   estimator throwing away its confidence, and it is the independent numeric witness that the
+   word is telling the truth.
+3. `correctionDx` / `correctionDy` on that tick are **inside the normal per-tick bound**, exactly
+   like every other tick. Nothing teleported.
+4. Over the following second or two, `covarianceTrace` falls again while `correctionDx`/`Dy` run
+   at the per-tick limit — that is the estimate walking back to where the sensors say it is.
+
+If you ever see step 3 broken — a correction larger than the documented bound — that is a library
+bug and the file is the proof.
+
+**One caveat specific to the Kalman tier.** Under the default complementary tier,
+`correctionDx/Dy` is exactly the correction and nothing else. Under the Kalman tier it also
+carries a small amount of the filter's own smoothing of the wheel readings, which is not a
+correction at all — it is the estimate tracking real motion through a filter. Measured against
+the simulated robot, that pushes the number up to about 9% over the per-tick budget during the
+hardest direction changes. Read the bound with that allowance under this tier; the correction
+itself never exceeds it.
 
 For the deeper design — what's planned beyond the terminal (live telemetry, replay) — see the
 [diagnostics plan](../diagnostics-plan.md).

@@ -194,6 +194,12 @@ TEST_CASE("GateReason: numeric values are wire-stable (F9) — a reorder turns t
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedNoTagMapEntry) == 9);
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedTagRange) == 10);
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedObservationAge) == 11);
+    // Appended at E4 (the EKF tier), same rule again. This one is not a REJECTION: it is the
+    // estimator declaring that its own confidence was wrong and re-initialising its covariance
+    // (never its state — E4's T2). It lives in this vocabulary because the record has one
+    // gating slot and that is where a reader looks to find out why the estimator did what it
+    // did on a tick.
+    CHECK(static_cast<std::uint8_t>(GateReason::CovarianceReinit) == 12);
 }
 
 TEST_CASE("DebugRecord.qualityClass: the documented numeric mirror of Localizer::Quality "
