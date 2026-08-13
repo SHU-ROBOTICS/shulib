@@ -25,3 +25,7 @@ graphify-out/
 # Python bytecode from tools/
 __pycache__/
 *.pyc
+
+# Documentation site build artifacts (tools/prepare_site.py + mkdocs)
+site/
+site_src/
