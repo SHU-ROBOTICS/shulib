@@ -16,6 +16,19 @@ WARNFLAGS+=
 EXTRA_CFLAGS=
 EXTRA_CXXFLAGS=
 
+# ── The §18.5 build hash (chunk R1a — the robot half of what test/CMakeLists.txt
+# does for the host suite). The session header must say WHICH BINARY ran; code
+# cannot know its own commit, so the BUILD defines it. `--dirty` is load-bearing:
+# a clean-looking hash from a modified tree is a WRONG hash, worse than an absent
+# one. Evaluated per `make` run (a plain := $(shell ...) at parse time), so the
+# robot package can never carry a stale hash the way a configure-time value
+# could. If git is unavailable the macro is NOT defined and diag/build_info.hpp's
+# loud MISSING path runs — never a silently plausible placeholder.
+SHULIB_GIT_HASH:=$(shell git describe --always --dirty --abbrev=7 2>/dev/null)
+ifneq ($(SHULIB_GIT_HASH),)
+EXTRA_CXXFLAGS+=-DSHULIB_BUILD_HASH=\"$(SHULIB_GIT_HASH)\"
+endif
+
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk
 # defaults to gnu++26 / gnu23 (gcc 14+ spellings); 13.2 wants gnu++20 (matches the host-test build)
 # and gnu2x. Set here (before common.mk's `?=`) so it wins and survives kernel-template updates.

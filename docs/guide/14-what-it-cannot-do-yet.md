@@ -27,10 +27,20 @@ The headline limitation, stated as many times as it takes:
   and nothing in the library depends on being on a laptop. But every motor and sensor in that
   run was a fake, and the robot said so itself in the second line it printed. Booting is not
   driving, and nothing about motion or accuracy was tested that day.
-- **The hardware adapters don't exist.** The library defines the interfaces real V5 motors and
-  sensors will plug into; the implementations are phase R1 on the [roadmap](../roadmap.md).
-  `make` produces a real V5 package that boots, prints a banner — and drives nothing
-  (`src/main.cpp`'s seams are marked `TODO(R1)`).
+- **The hardware adapters now exist — and that closes less of the gap than it sounds like.**
+  The `hal/pros/` adapters implement every drivetrain-and-driver interface over the real PROS
+  SDK, and `make` now produces a package wired to real devices, including a first
+  driver-control loop. Three limits, in decreasing order of comfort. *First*, the adapters are
+  host-tested — compiled, run, and mutation-attacked on a laptop — against a hand-written
+  stand-in for PROS, which proves the glue faithfully implements **our beliefs about PROS**
+  and cannot prove the beliefs: if we are wrong about a unit or a sign, the stand-in and the
+  adapter are wrong together and every test stays green ([FAQ](../faq.md) has the full
+  version). Every such belief is a labelled register entry (HA-94 onward). *Second*, the
+  wiring's port map is an invented placeholder — a labelled guess that fails loudly at boot
+  on a robot that doesn't match it. *Third*, and the headline unchanged: **no adapter has
+  ever touched a physical device.** The first bench session — a prepared checklist, not an
+  exploration — is the hardware phase's opening move, and until it runs, "the adapters work"
+  means exactly "the adapters agree with our model of PROS," no more.
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
@@ -282,8 +292,10 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   segments. Measured cost: about 1.2 s per motion.
 - **No motion profiles on the main verbs yet** (trapezoidal velocity planning exists in
   `control/` but isn't wired into `moveTo`).
-- **`drive()` is a primitive, not a driver-control product** — no joystick shaping, slew-rate
-  limits, or driver-preference curves yet.
+- **`drive()` is a primitive, not a driver-control product** — the shipped teleop loop maps
+  sticks to it raw (a small deadband and nothing else, itself a registered guess, HA-112);
+  joystick shaping, slew-rate limits, and driver-preference curves are still future work
+  (phase T on the roadmap).
 - **No mechanism/scoring layer** — lifts, intakes, pneumatics, match-load sequences (roadmap
   M4). shulib moves the chassis; mechanisms are hand-rolled today.
 - **Braking physics are unverified**: brake mode is commanded correctly, but what a real V5

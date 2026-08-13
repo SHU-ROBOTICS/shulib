@@ -109,6 +109,9 @@ nav:
       - Chassis (F6): api/chassis.md
       - Routine (F10): api/routine.md
 
+  - FAQ: faq.md
+  - Changelog: changelog.md
+
   - Project:
       - Roadmap: roadmap.md
       - Architecture and decisions: shulib-v2-master-plan.md

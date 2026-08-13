@@ -21,7 +21,9 @@
 
 ### The per-chunk documentation contract
 
-Every chunk closes with all six. This is the process, not a suggestion:
+Every chunk closes with all seven. This is the process, not a suggestion (the line above said
+"all six" from the table's creation until R1a — deliverable #7 was added without updating it,
+which is this document's own demonstration of why prose that restates a table goes stale):
 
 | # | Deliverable | Why it exists |
 |---|---|---|

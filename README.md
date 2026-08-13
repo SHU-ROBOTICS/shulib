@@ -61,8 +61,14 @@ current state, so here it is, third heading from the top:
 
 - Everything verified so far is verified **off-robot**, against a simulated plant and simulated
   sensors. The simulation was built to be hostile, not flattering — but it is still simulation.
-- The hardware adapters that would connect the library's motor/sensor interfaces to real V5
-  devices **do not exist yet** (the seams they fill are marked `TODO(R1)` in `src/main.cpp`).
+- The hardware adapters now exist (`include/shulib/hal/pros/` — motors, IMU, GPS, battery,
+  encoders, controller, real time) and `src/main.cpp` wires them, **and no adapter has ever
+  touched a physical device.** They are host-tested against a hand-written stand-in for PROS,
+  which proves the glue is faithful to *our beliefs* about PROS — units, signs, error values —
+  and cannot prove the beliefs themselves; every such belief is a labelled entry in the
+  assumptions register (HA-94 onward), and the first bench session is still ahead. The shipped
+  port map is an explicitly labelled guess that fails loudly at boot on a robot that doesn't
+  match it.
 - **What has been confirmed on hardware — and only this.** On 2026-08-12 the package was built,
   uploaded, and booted on a V5 brain, where it constructed its whole object graph and printed
   its diagnostics banner over USB serial. Every motor and sensor it spoke to was still a fake.
@@ -80,15 +86,21 @@ current state, so here it is, third heading from the top:
 
 ## How verified is it, honestly?
 
-**915 test cases, 1,521,419 assertions, all green, all off-robot** *(as of 2026-08-13; run
-`./build/test/shulib_tests` for the current figure).*
+**Over a thousand test cases and more than a million assertions, all green, all off-robot.** For the
+exact figures, run them — `./build/test/shulib_tests` prints the count as the last thing it does.
 
-A caveat about that second number, because it flatters: most of those assertions come from
-parameter sweeps — one test case running thousands of seeds — so the count says more about how
-many scenarios were swept than about how many independent things are checked. **The measure we
-actually trust is mutation testing** (below): break the code deliberately and see whether a test
-notices. A test that cannot fail when the code is wrong is worse than no test, because it reads
-as coverage. Every chunk in this project has found at least one.
+That is deliberately not a number on this page. It used to be, and it went stale twice in a single
+day: once when a chunk added tests, and once when the reviewer of that chunk added eight more. A
+count written by hand is wrong the moment anyone does the work the count is supposed to describe,
+and a stale figure carrying a fresh date reads as freshly verified — which is worse than no figure
+at all. Anything this page can only keep true by hand belongs in a command instead.
+
+A caveat about the assertion count wherever you read it, because it flatters: most of those
+assertions come from parameter sweeps — one test case running thousands of seeds — so the count says
+more about how many scenarios were swept than about how many independent things are checked. **The
+measure we actually trust is mutation testing** (below): break the code deliberately and see whether
+a test notices. A test that cannot fail when the code is wrong is worse than no test, because it
+reads as coverage. Every chunk in this project has found at least one.
 
 What the suite includes: closed-loop
 motion on three drivetrains graded against ground truth the estimator cannot see; a 9-attack
@@ -100,8 +112,11 @@ measured on real sensors). Load-bearing logic is mutation-tested: break the code
 watch the test go red, restore it. CI additionally cross-compiles every library header for the
 V5's Cortex-A9 at strict warning levels, so no host-only assumption can enter the tree
 unnoticed. Since 2026-08-12 that is no longer only a compile-time claim: the package has been
-observed booting on a real V5 brain and constructing its full object graph there. *Driving* one
-remains unverified, and will be until the R1 adapters exist.
+observed booting on a real V5 brain and constructing its full object graph there. Since the
+adapters landed, the suite also compiles and RUNS the hardware glue itself, against a
+programmable stand-in for PROS — with the honest limit that a stand-in can only check the glue
+against our beliefs about PROS, never the beliefs. *Driving* a robot remains unverified, and
+will be until the hardware-validation phase walks its prepared bench checklist.
 
 ## Build and test
 
@@ -178,9 +193,10 @@ exit reason says so.
 
 Wiring a `Chassis` is ordinary C++ too — construct a kinematics preset, the hardware interfaces,
 the localizer, and hand them over; no config file or code generator is ever required.
-`src/main.cpp` is the complete, commented wiring example (with its hardware seams honestly
-marked `TODO(R1)`), and the test suite builds the same stack in one place against simulated
-hardware (`test/chassis_facade_test.cpp`, the "standalone" case).
+`src/main.cpp` is the complete, commented wiring example (real `hal/pros` adapters, with the
+port map honestly labelled as a stand-in until a robot is measured), and the test suite builds
+the same stack in one place against simulated hardware (`test/chassis_facade_test.cpp`, the
+"standalone" case).
 
 ## How the tree is laid out
 
@@ -189,6 +205,7 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   units/ math/      typed quantities (inches/radians/seconds), Pose2d, frames, wrapped angles
   spec/             frozen accuracy targets
   hal/              the 10 hardware interfaces (motor, IMU, GPS, clock, …) + in-memory fakes
+    pros/           the real V5 adapters over the PROS SDK — the ONE exempted path (see rule 1)
   kinematics/       drivetrain math: X-drive, tank, H-drive behind one contract
   control/          PID, feedforward, motion profiles, settling, watchdogs
   localization/     odometry, tracking wheels, the fused localizer + correction seam
@@ -196,17 +213,21 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   chassis/          the public facade (Chassis) + the composition root (RobotContext)
   diag/             structured records, sinks, fault latch, health/loop monitors
   sim/              the host plant + hostile sensor models (tests only — see rule 2)
-src/main.cpp        the PROS entry point — the ONLY file that sees both PROS and shulib
-test/               the host suite (doctest): 659 cases against plant + hostile sims
+src/main.cpp        the PROS entry point — wires the core to the hal/pros adapters
+test/               the host suite (doctest) against plant + hostile sims + a PROS shim
+                    (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
+                    its headers refuse to compile outside the host test build, on purpose)
 docs/               documentation (roadmap, architecture, hardware assumptions)
 firmware/, include/pros|liblvgl, Makefile, common.mk    vendored PROS kernel + V5 build
 ```
 
 Two structural rules, both enforced by CI grep-guards, keep the design honest:
 
-1. **The library never includes PROS.** Everything under `include/shulib/` compiles on any
-   C++20 compiler — which is exactly what makes the 915k-assertion host suite possible. Only
-   `src/main.cpp` touches the PROS runtime.
+1. **The library never includes PROS** — except `include/shulib/hal/pros/`, the adapter
+   directory built to, which the guard exempts by exact path and nothing else. Everything else
+   under `include/shulib/` compiles on any C++20 compiler — which is exactly what makes the
+   1.5-million-assertion host suite possible. `src/main.cpp` is the other deliberate PROS
+   toucher, outside the library tree.
 2. **The core never includes the simulator.** Code under test can only see sensor interfaces,
    never the simulated ground truth — so a test can grade the estimator against a truth the
    estimator provably cannot peek at.

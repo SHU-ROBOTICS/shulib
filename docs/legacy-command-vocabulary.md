@@ -21,6 +21,18 @@
 
 ## 1. The four sources, and the headline finding
 
+<!-- staleness-audit: historical-paths — this document's SUBJECT is the deleted legacy
+     tree, so it necessarily names files that no longer exist. See the note below. -->
+
+> **Every path in the table below was deleted at the cutover** and none of them exists in
+> the tree today. They are named because this document exists to record what was there
+> before it went, and the audit that normally flags a dead path is told so explicitly at
+> the top of this section rather than being quietly weakened for everyone.
+>
+> To read any of them, ask git for the commit before the deletion:
+> `git log --diff-filter=D -- '*/legacy/*'` finds it, and
+> `git show <commit>^:<path>` prints the file.
+
 | Source | Kind | Rows | Distinct ids used |
 |---|---|---|---|
 | `include/legacy/shulib/RobotCommands/autonomous_commands.h` | C enum (declaration) | — | 6 declared |

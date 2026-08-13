@@ -45,8 +45,8 @@ Three parts, and keeping them separate in your head is most of the learning:
 
 1. **The wiring** — build a `Chassis` out of parts: a drivetrain description, hardware,
    localization, diagnostics. Done once, at startup. (On a real robot this lives in
-   `src/main.cpp`; go look at it later — it's the same shape with `TODO(R1)` where real
-   hardware will plug in.)
+   `src/main.cpp`; go look at it later — it's the same shape with the real `hal/pros`
+   adapters plugged into the slots your test wiring fills with fakes.)
 2. **The routine** — a plain function that tells the chassis what to do. This is the part
    you'll write many of.
 3. **The report** — reading what actually happened.

@@ -130,6 +130,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F10 | **Public `Routine` API (the Tier-2 recipe layer)** — construction `Routine(chassis, name = "routine")` `noexcept` + non-copyable/non-movable; **eleven steps**, each returning `Routine&`: `startAt` / `moveTo` / `driveTo` / `strafeTo` / `turnTo` / `face` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `pause(Time)` / `waitFor(pred, Time, name)`; **four observers** `ok()` / `result()` / `lastTrajectory()` / `chassis()`, all `noexcept`; **two public types** `RoutineResult` (all eight fields) and `RoutineStopCause` (**append-only** — the existing enumerator *values* are pinned, because a re-meaning is invisible at every call site); **plus the documented semantics**: eager execution (a step runs when it is chained), the stop/safe/skip/report error policy, preconditions throwing through with the chain's counters untouched, `lastTrajectory()` reading `exit = Running` until a trajectory has run, and typed time as a SEMANTIC (`hold(0.3)` must not compile). **Deliberately OUTSIDE F10:** `then()` — the mechanism seam, whose accepted return types and `name` default are a placeholder chosen before mechanisms existed (F1/F3 build them), so freezing it would commit to a guess; and the exact WORDING of the stop/skip log lines (the behaviour is frozen, the sentence is not). A **separate row from F6**, not an amendment: the recipe layer is a strict client of the facade, a different tier that can version independently, and amending F6 would retroactively blur what F6 promised on its own lock date. Enforced structurally: compile-time signature pin `test/routine_signature_pin_test.cpp` (37 pins, 16-mutation-proven, every `noexcept` pin using the compound-requirement detector that D2's hole #1 taught) + `include/shulib/version.hpp` | Every Tier-2 auton ever written on shulib | M7 | ✅ **LOCKED 2026-08-12** *(at D3, after the cookbook — its second consumer — wrote fourteen recipes against it and needed zero changes to the surface; the critique and its rulings are the D3 completion record's centrepiece)* |
 | F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(Deliberately NOT gated by the api-doc coverage tool yet, for the same not-frozen reason — the F1 completion record carries that ruling and F3 owns revisiting it.)* | chunk F2's end-of-run guard (the claimant hook + cancel-all reach operations through this seam); F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
 | F12 | **Sequence engine (`sequence/run_guard.hpp`)** — `RunGuard` (the run-scoped deadline owner + guaranteed end-of-run action), `RunGuardConfig`/`RunGuardReport`/`GuardedWaitResult`. **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at chunk F2 (2026-08-13) with **one consumer** — F4's student-authored routines are hardware-gated (Phase F′) and D1 ruled G2 does not consume the recipe chain — and nothing freezes on one consumer's evidence. Both instants are caller-supplied with no defaults; the library holds no field coordinate, no park pose, no match length. *(Deliberately not in the api-doc coverage TARGETS until it freezes — the F11 precedent.)* | F4's routines (the second consumer and the freeze trigger) | — (candidate: F4) | 🚧 **open by design** |
+| F13 | **Driver-input seam (`hal/controller.hpp`)** — `IController` (axes normalized [-1,1], button LEVELS, positive `isConnected()`, master/partner by construction), `ControllerAxis`/`ControllerButton`, `ButtonEdge` (per-consumer edge detection — PROS's consuming `get_digital_new_press()` is banned by contract, HA-104), `hal::fake::FakeController`, and the `hal/pros` adapter tree it rode in with (`ProsController` + the other R1a adapters — adapters are implementations, not contracts, and no adapter surface freezes here either). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at R1a (2026-08-13) absorbing Phase T's T1, an F4-additive sibling exactly as F1's `IDigitalOut` was — F4's locked row is untouched. Freeze trigger: a second real consumer — **T2's driver-control layer** is the first; T2/T3 stress it, then it freezes on the F6/F10 path. *(Deliberately not in the api-doc coverage TARGETS until it freezes — the F11/F12 precedent.)* | T2's teleop layer (first consumer: `src/main.cpp`'s R1a drive loop); T3's mechanism bindings | — (candidate: T3) | 🚧 **open by design** |
 
 ---
 
@@ -139,8 +140,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > (2026-08-06); Phase C COMPLETE (2026-08-10) — C1–C7 all closed. M2's STRUCTURAL clause closed
 > at C7: the pre-rebuild tree is deleted, `make` produces an uploadable V5 package again, and
 > `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3 — the
-> library has NEVER run on a physical robot, and the hal/pros adapters that would let it drive
-> one are R1's deliverable.**
+> library has NEVER DRIVEN a physical robot. The drivetrain-and-driver hal/pros adapters
+> landed at R1a (2026-08-13, host-tested against a shim of PROS — see the R1a entry below);
+> the mechanism-sensor adapters are R1b's, and first motion is R3's.**
 > **The auton API exists and is FROZEN at BOTH tiers — F6 (`Chassis`) LOCKED at D2 and F10
 > (`Routine`, the recipe layer) LOCKED at D3, both 2026-08-12, API 2.0**
 > (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
@@ -447,7 +449,51 @@ not silently break them. This table is the spine of the no-staleness promise.
 > safe at a limit driven by an INDEPENDENT pace-tally script and asserted against plant
 > ground truth. Suite 1013 cases / 1,522,291 assertions; ARM gate 124 headers; the mutation
 > tally is in the F2 completion record (development log, `shulib-v2` branch).
-> **Next: Phase T (driver control), per the build order.**
+> **Chunk R1a (the `hal/pros` adapters — the drivetrain, the driver, and the shim that makes
+> adapter glue testable) is DONE, 2026-08-13 — in the working tree pending review/commit; the
+> first hardware-binding code in the library's history. What R1a did NOT do, first, because
+> this is the single easiest chunk in the project to over-claim:** it did NOT put the library
+> on a robot — no adapter has ever touched a physical device, and every claim below is a
+> host claim. The adapters are proven against `test/pros_shim/`, a hand-written programmable
+> stand-in for PROS whose every semantic was transcribed from the vendored SDK's own doc
+> comments and registered (HA-94…112) — **the shim tests the adapters against our beliefs
+> about PROS; it cannot test the beliefs. Hardware tests the beliefs**, and the bench session
+> is deliberately unrun (it needs the team lead at a table with the tank bot; the runbook that
+> replaces it walks every belief in dependency order, battery scale before anything drives).
+> It also did not build R1b's mechanism-sensor adapters, did not tune anything, and did not
+> touch a frozen surface. What it DID: nine PROS-backed adapters + the real tick pacer
+> (`include/shulib/hal/pros/`: clock over `micros()`, motor with explicit
+> units/gearset-and-read-back against the leave-device-as-is trap, rotation, IMU binding
+> `get_rotation()` with BOTH yaw-rate sources behind a flag, GPS with the port-only ctor +
+> `get_offset()==(0,0)` boot check, battery — whose mV unit is the register's weakest belief,
+> flagged in its header — char sink, 3×19 line display, controller, and
+> `Task::delay_until`-anchored pacing), every PROS include behind the measured two-flag
+> diagnostic fence (`-Wshadow` + `-Wsign-conversion`, pop before any shulib code, guard-test
+> pinned); THREE new pure conversions (`motor_`/`rotation_`/`controller_conversion.hpp`,
+> hand-computed-literal tested); the NEW `IController` seam + `ButtonEdge` + `FakeController`
+> (F4-additive sibling, register row F13, NOT frozen); the shim itself, `#error`-gated so it
+> is structurally unable to reach a robot build, with ADVERSARIAL defaults (fake motors boot
+> in the wrong encoder units on purpose — a shared model must not cancel its own errors
+> quietly); `src/main.cpp` rewired onto the adapters (all fourteen R1 markers resolved: real
+> devices, the on-robot precondition policy installed first in `initialize()`, the §18.5
+> session header with the hash the Makefile now injects per-build, a deadband-only teleop
+> loop — T2 owns driver feel, HA-112); the PROS-free CI guard amended PATH-ANCHORED and
+> proven live (planted violation caught; the `--exclude-dir` form demonstrated missing a
+> smuggled `localization/pros/` include — the measured hole, not repeated); the ARM gate
+> UNAMENDED and green at 139 headers. Suite **1083 cases / 1,523,069 assertions** green.
+> **The campaign: all 14 brief mutations executed and observed** (13 red via the
+> build-gated runner, M13 demonstrated live in the guard proof) **plus one self-added: the
+> `heading()`-site `get_heading()` swap stayed GREEN honestly** — observationally equivalent
+> through the wrapping `Angle`; recorded with its measurement, then closed with a textual
+> pin (HA-03 bans the binding in writing), re-run, observed red. Two build-system findings
+> fixed in the layer that owns them: PROS's `common.mk` resolves includes with `-iquote`
+> only, so angle-bracket `<pros/*>` includes can never build on the robot (adapters use the
+> quoted form, PROS's own internal convention); and the assumptions register's status line
+> had been stale since E4 ("0 of 82" over 93 entries) — corrected, now 0 of 112.
+> **Next: R1b (the mechanism-sensor adapters), then R3 — first motion, walked from the R1a
+> bench runbook.** (Phase T's T1 was delivered here, per the recorded split ruling; this
+> line previously said Phase T and went stale the day the split was ruled — corrected at
+> R1a.)**
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -644,7 +690,9 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 ### M1 — HAL + kinematics foundation 🎯
 *One seam for hardware/sim/test; drivetrains become interchangeable.*
 
-**HAL (WS2)** — *F4 interfaces frozen 2026-06-19 (30-agent review + RobotContext); `hal/pros` adapters pending the toolchain*
+**HAL (WS2)** — *F4 interfaces frozen 2026-06-19 (30-agent review + RobotContext); the
+drivetrain-and-driver `hal/pros` adapters landed at R1a (2026-08-13), host-tested against the
+shim; the mechanism-sensor adapters are R1b's; on-V5 validation is R3's*
 - [x] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
   `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source. *Done 2026-06-19:
   `IClock` (`hal/clock.hpp`), `IMotor` (`hal/motor.hpp`, ±12 V clamp + non-finite + cumulative-position
@@ -658,14 +706,24 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
   review closed the breaking-if-deferred gaps (added `IMotor::current()`/`temperature()`/brake-mode,
   `IBattery::current()` + the 5th units dimension; flipped `isCalibrating()`→`isReady()`), then
   `RobotContext` exercised the whole set.*
-- [ ] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
+- [~] `hal/pros/*` adapters — the **only** files that include `<pros/*>`. IMU compass/CW → canonical;
   GPS frame → canonical (the conversions happen here, once). *Pure conversion math built+host-tested
   ahead of the adapters, each adversarially **red-teamed** (4-lens workflow, math verified correct):
   `hal/imu_conversion.hpp` — get_rotation()-binding / no-post-cal-tare / bootHeading-ownership /
   yaw-rate-source contracts pinned; `hal/gps_conversion.hpp` (CW-from-North→canonical, m→in rotation,
   lever-arm removal) — axis-assumption (validate-on-field), no-firmware-offset, PROS_ERR_F-screening,
-  North/lever ownership, and a non-finite-lever-arm guard pinned (§7 + headers). pros glue + on-V5
-  validation still pending the toolchain.*
+  North/lever ownership, and a non-finite-lever-arm guard pinned (§7 + headers).*
+  *`[~]` at R1a (2026-08-13): the DRIVETRAIN-AND-DRIVER nine are BUILT and host-tested —
+  `ProsClock`/`ProsMotor`/`ProsRotation`/`ProsImu`/`ProsGps`/`ProsBattery`/`ProsCharSink`/
+  `ProsLineDisplay`/`ProsController` + `ProsTickPacer` (`include/shulib/hal/pros/`), each behind
+  the two-flag diagnostic fence, with new pure conversions (`motor_`/`rotation_`/
+  `controller_conversion.hpp`) and adapter tests through the `test/pros_shim/` host shim
+  (suite 1083 cases / 1,523,069 assertions; the R1a campaign: 14 brief mutations + 1
+  self-added, every one executed and observed red — the one honest green closed with a
+  structural pin). NOT done, named: `IDistance`/`IOptical`/`IDigitalOut`/`IDigitalIn`/
+  `IBlockSink` adapters (R1b's), the vision adapter (R2's, next row), and EVERYTHING on-robot —
+  the adapters have never touched a physical device; the shim tests them against our beliefs
+  about PROS (HA-94…112), and only R3's bench tests the beliefs.*
 - [ ] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
   adapter (object mode **and** AprilTag mode).
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
@@ -962,8 +1020,10 @@ DoD in Phases C–F depends on it.*
   deleted (34 files); the CI PROS-free guard covers all of `include/shulib/`; the new `shulib/` is
   the only tree. The **F6 freeze clause closed at D2 (2026-08-12)** — LOCKED, enumerated,
   pin-enforced. `[~]` not `[x]` because one clause is NOT done and is owned elsewhere:
-  **hardware-validation on the V5 is OPEN (R3)** — this package has never driven a robot and
-  cannot until R1's hal/pros adapters exist. (It has been **booted** on a V5 brain, 2026-08-12:
+  **hardware-validation on the V5 is OPEN (R3)** — this package has never driven a robot.
+  (The "cannot until R1's adapters exist" this line carried closed at R1a — the adapters
+  exist and main.cpp wires them; what remains open is R3's bench-and-drive clause itself.)
+  (It has been **booted** on a V5 brain, 2026-08-12:
   upload → boot → full object graph constructed → diagnostics banner over USB, with every
   motor and sensor still fake. That closes the "has never executed on a V5" unknown and closes
   nothing else — R3's clause is about a robot that moves.)*

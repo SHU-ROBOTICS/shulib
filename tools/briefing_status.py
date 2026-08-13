@@ -244,12 +244,22 @@ def verify_harnesses():
 
 
 def guard_state():
-    """The two CI guards, run for real — not reported from memory."""
+    """The two CI guards, run for real — not reported from memory.
+
+    The PROS-free guard is PATH-ANCHORED since R1a, exactly like CI's: the one
+    exempt path is include/shulib/hal/pros/ (the adapter tree), matched as a
+    path PREFIX — never --exclude-dir=pros, which was measured missing a
+    violation smuggled into any directory that happens to be named "pros".
+    """
     inc = os.path.join(REPO, "include/shulib")
-    pros = _run(["grep", "-rnE", r'#[[:space:]]*include[[:space:]]*[<"]pros/', inc])
+    exempt = os.path.join(inc, "hal/pros/")
+    pros_hits = [line for line
+                 in _run(["grep", "-rnE",
+                          r'#[[:space:]]*include[[:space:]]*[<"]pros/', inc]).splitlines()
+                 if line.strip() and not line.startswith(exempt)]
     sim = _run(["grep", "-rnE", "--exclude-dir=sim",
                 r'#[[:space:]]*include[[:space:]]*[<"]shulib/sim/', inc])
-    return (not pros.strip(), not sim.strip())
+    return (not pros_hits, not sim.strip())
 
 
 def pin_counts():
@@ -263,12 +273,31 @@ def pin_counts():
     return out
 
 
-DURABLE_STAMP = re.compile(r"<!--\s*DURABLE-REVIEWED-AT:\s*([A-Z]+\d+)\s*-->")
-
-
-def durable_stamp(text):
-    m = DURABLE_STAMP.search(text)
-    return m.group(1) if m else None
+# ── THE DURABLE-REVIEW STAMP WAS REMOVED AT R1a. Read this before adding it back.
+#
+# There used to be a `<!-- DURABLE-REVIEWED-AT: <chunk> -->` marker here, and this
+# gate failed when a newer chunk had completed than the stamp named. Its stated
+# meaning was "a PERSON re-read the hand-written sections", and the briefing said
+# outright: "the gate cannot check the prose, so it makes a human check it."
+#
+# It could not do that, structurally. The chunk's own builder writes the
+# `-COMPLETED.md` record that makes the gate fire, AND can edit the stamp that
+# silences it — it holds both the trigger and the key. At R1a the build agent did
+# exactly that: moved the stamp from F2 to R1a itself. Nothing misbehaved; the
+# mechanism simply cannot distinguish a human re-reading from a machine editing a
+# marker, and a checkbox that anything can tick is worse than no checkbox, because
+# a green one reads as assurance.
+#
+# What replaced it, honestly: `tools/doc_staleness_audit.py`, which checks a real
+# SUBSET mechanically — numeric claims against the repo, documents disagreeing with
+# each other, dead file paths — and has a self-test proving each detector fires.
+# It checks LESS than the stamp claimed to. Everything it checks is real.
+#
+# What is therefore NOT enforced any more, said plainly so nobody assumes it is:
+# whether the trap list, the standards, the architecture tour or the per-chunk
+# narrative are still TRUE. No tool can see that. It is a reading task, it lives in
+# the chunk loop as an instruction, and the honest position is that an instruction
+# is what it always was.
 
 
 def render():
@@ -416,37 +445,13 @@ def main():
         print("briefing status: regenerated")
         return 0
     if cmd == "check":
-        # ── the half no script can judge ──────────────────────────────────────
-        # Generation covers what is DERIVABLE. It cannot tell whether the durable
-        # narrative — the traps, the standards, the architecture, "what each chunk
-        # taught" — is still TRUE. Pretending otherwise is the real danger, so
-        # instead of pretending, this forces a human pass: the briefing carries a
-        # stamp naming the last chunk at which a person re-read those sections,
-        # and the gate fails when work has landed since.
-        done = completed_chunks()
-        newest = done[-1] if done else None
-        stamp = durable_stamp(text)
-        if newest and stamp != newest:
-            print("", file=sys.stderr)
-            print(f"PROJECT-BRIEFING'S DURABLE SECTIONS HAVE NOT BEEN RE-READ SINCE "
-                  f"{stamp or '(never)'} — {newest} has landed since.", file=sys.stderr)
-            print("", file=sys.stderr)
-            print("The generated block is only the DERIVABLE half. No tool can tell you "
-                  "whether the", file=sys.stderr)
-            print("architecture tour, the trap list, the standards or the per-chunk "
-                  "narrative are still", file=sys.stderr)
-            print("true. Re-read them against what just changed, fix what drifted, then "
-                  "stamp it:", file=sys.stderr)
-            print("", file=sys.stderr)
-            print(f"    <!-- DURABLE-REVIEWED-AT: {newest} -->", file=sys.stderr)
-            print("", file=sys.stderr)
-            print("Ask specifically: did this chunk add a trap, invalidate a standard, "
-                  "change a layer,", file=sys.stderr)
-            print("or make a sentence in the briefing false? If yes, that edit is the "
-                  "point of this gate.", file=sys.stderr)
-            return 1
+        # This gate now checks exactly one thing: the GENERATED block matches the
+        # repo. It makes no claim about the hand-written half — see the removal
+        # note above the render() function for why the stamp that used to pretend
+        # otherwise is gone.
         if updated == text:
-            print(f"briefing status: current (durable sections reviewed at {stamp})")
+            print("briefing status: generated block current "
+                  "(the durable narrative is NOT gated — see doc_staleness_audit.py)")
             return 0
         print("", file=sys.stderr)
         print("PROJECT-BRIEFING IS STALE — its generated status block no longer "

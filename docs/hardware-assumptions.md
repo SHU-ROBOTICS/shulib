@@ -36,16 +36,24 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 82 settled.** No robot exists. Counts: **41 invented · 16 reasoned · 2 measured
-> elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
+> **Status: 0 of 112 settled.** No robot exists (a brain has booted the code; nothing has
+> driven). Counts: **77 invented · 32 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
+> documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
 > controller-screen grid), HA-58–60 by chunk E1 (the blackbox's flight-recorder depth, RAM
 > budget and assumed SD write cost — every magnitude in that chunk is a guess until R4),
-> HA-61–67 by chunk E2 (the GPS corrector's tuning set), and **HA-68–82 by chunk E3** (the
+> HA-61–67 by chunk E2 (the GPS corrector's tuning set), **HA-68–82 by chunk E3** (the
 > AprilTag path — of which three, HA-68/69/70, are about the physical world rather than tuning
 > and are the most dangerous entries in this document: each produces a *confidently* wrong fix
-> rather than a degraded one), per the Maintenance convention.
+> rather than a degraded one), HA-83–91 by chunk E4 (the EKF's noise model — every number
+> invented), HA-92–93 by chunk F1 (the mechanism layer's physics), and **HA-94–112 by chunk
+> R1a** (the beliefs about PROS itself that the `hal/pros` adapters and their host shim are
+> built on — the shim tests the adapters against these beliefs; ONLY a bench tests the
+> beliefs), per the Maintenance convention.
+> *(This status line was found stale at R1a — it read "0 of 82" while the register held 93
+> entries: E4's and F1's additions never updated it. Corrected here; the per-chunk narrative
+> above is the part a tool cannot regenerate, so it is the part that must be tended.)*
 
 ---
 
@@ -146,6 +154,25 @@
 | HA-91 | 5 s is long enough between re-init declarations to tell recovery from a storm | **invented** | R4 |
 | HA-92 | `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive | **invented** | R3/R5 |
 | HA-93 | A jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command, with ≈ 0.05 rad/s residual creep | **invented** | R4 |
+| HA-94 | Motor `move_voltage()` takes millivolts, ±12000 | reasoned | R3 |
+| HA-95 | Motor `get_position()` with `MotorUnits::degrees` reports output-shaft degrees | reasoned | R3 |
+| HA-96 | Motor `get_actual_velocity()` returns output-shaft RPM | reasoned | R3 |
+| HA-97 | Motor `get_current_draw()` returns mA | reasoned | R3 |
+| HA-98 | Motor units/gearing live in the DEVICE and persist across programs; explicit set + read-back holds | reasoned | R3 |
+| HA-99 | Battery voltage/current are mV/mA — units NOT in the vendored source (website only) | reasoned | R3 |
+| HA-100 | `battery_get_capacity()` returns percent 0–100 | reasoned | R3 |
+| HA-101 | `micros()` is µs since program start, monotonic, uint64 | reasoned | R3 |
+| HA-102 | `Task::delay_until(prev, 10)` yields an anchored 100 Hz cadence | reasoned | R3 |
+| HA-103 | Controller axes are [-127, 127]; disconnected reads 0, not a sentinel | reasoned | R3 |
+| HA-104 | `get_digital()` is a level; `get_digital_new_press()` CONSUMES the press | reasoned | R3 |
+| HA-105 | Rotation `get_velocity()` returns centidegrees/second | reasoned | R3 |
+| HA-106 | `gps_status_s_t.yaw` is the CW-from-North heading in degrees | reasoned | R3 |
+| HA-107 | Controller LCD columns: 19 (HA-57) vs the vendored doc's [0-14] ⇒ 15 — CONFLICT | **invented** | R3 |
+| HA-108 | `Imu::reset(false)` starts calibration; one boot-time call is not a post-cal tare | reasoned | R3 |
+| HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
+| HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
+| HA-111 | main.cpp's port map and motor direction signs match the practice bot | **invented** | R3 |
+| HA-112 | Teleop stick mapping signs + 0.05 deadband are drivable | **invented** | T2/R3 |
 
 ---
 
@@ -413,6 +440,224 @@ a config constant **by design** — a correction here never touches the core.
   the brain instead resets, the park guard cannot exist as designed and F2's scheduling approach
   needs a rethink (e.g., park earlier on a voltage trend, not at collapse). NOT contained by a
   constant — this is why it must be settled at R3, before F2's design is trusted on a field.
+
+### R1a's additions — the beliefs about PROS the adapters are built on
+
+Every row of the `hal/pros` unit table and every semantic in the host shim
+(`test` tree, PROS stand-ins) is one of these. The shim can only prove the adapters agree
+with these beliefs — it can never prove the beliefs. The R1a bench runbook walks them in
+dependency order (battery scale before anything drives, signs before any closed loop).
+
+- [ ] **HA-94 — `move_voltage()` takes MILLIVOLTS in [-12000, 12000].**
+  *Claim:* the argument is mV; 6 V of command is `move_voltage(6000)`.
+  *Source:* vendored `include/pros/motors.hpp:234` ("from -12000 to 12000 in millivolts");
+  `include/shulib/hal/motor_conversion.hpp` (`motorVoltageToMillivolts`, the one ×1000).
+  *Confidence:* reasoned — documented in the vendored source; unverified against firmware.
+  *Settle (R3, runbook step 4):* open-loop: a small commanded voltage produces proportional,
+  plausible wheel speed.
+  *Blast radius if wrong:* every command 1000× off — the robot either hums in place or
+  saturates instantly. **Contained:** one conversion function; caught in the first minute of
+  the bench.
+
+- [ ] **HA-95 — `get_position()` with `MotorUnits::degrees` reports OUTPUT-SHAFT degrees.**
+  *Claim:* after the adapter sets degrees, position is the output shaft's cumulative degrees
+  (gearset already accounted for by firmware).
+  *Source:* vendored `motors.hpp:628` ("absolute position in its encoder units");
+  `hal/pros/motor.hpp` (the degree→radian binding).
+  *Confidence:* reasoned — "degrees" is documented; *output-shaft* (vs internal rotor) is the
+  weaker half of the belief.
+  *Settle (R3, runbook step 4):* rotate a wheel one marked revolution by hand → position moves
+  2π rad.
+  *Blast radius if wrong:* odometry scaled by the cartridge ratio (6:1/18:1/36:1) — silently,
+  nothing crashes. **Contained:** adapter-only.
+
+- [ ] **HA-96 — `get_actual_velocity()` returns output-shaft RPM.**
+  *Claim:* the double is RPM at the output shaft (gearset-corrected by firmware).
+  *Source:* vendored `motors.hpp:404`; `motor_conversion.hpp` (`motorRpmToCanonical`, ×2π/60).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 4):* full-stick free spin ≈ the cartridge's rated RPM (green ≈ 200
+  → ≈ 20.9 rad/s canonical).
+  *Blast radius if wrong:* feedforward and the stall cross-check read speeds ~9.5× off.
+  **Contained:** one conversion.
+
+- [ ] **HA-97 — `get_current_draw()` returns milliamps.**
+  *Claim:* the int32 is mA; a stalled 11 W motor reads ~2500.
+  *Source:* vendored `motors.hpp:426` ("in mA"); `motor_conversion.hpp`
+  (`motorMilliampsToCanonical`).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 5):* pinch a wheel at ≤3 V; current climbs into the amp range.
+  *Blast radius if wrong:* stall/capture detection fires always or never — every
+  sensor-confirm operation lies. **Contained:** one conversion.
+
+- [ ] **HA-98 — motor units/gearing are DEVICE state, persist across programs, and an explicit
+  set + read-back holds.**
+  *Claim:* the ctor-default `invalid` means "leave as is"; a previous program's configuration
+  survives; setting degrees+gearset then reading both back proves the device accepted them.
+  *Source:* vendored `motors.hpp:74-75`; `hal/pros/motor.hpp` (ctor read-back preconditions);
+  the shim's adversarial rotations/red defaults model exactly this hazard.
+  *Confidence:* reasoned — the leave-as-is semantics are documented; persistence-across-boots
+  is community knowledge.
+  *Settle (R3, runbook steps 0/1/4):* boot with a correct map (read-backs pass); boot with one
+  wrong port (read-back faults loudly).
+  *Blast radius if wrong (adapter skips the discipline):* a motor left in rotations reads 1/360
+  — odometry wrong by 360× with nothing crashing. **Contained:** ctor discipline + mutation-
+  proven test (campaign M5).
+
+- [ ] **HA-99 — battery voltage/current are mV/mA. THE WEAKEST UNIT BELIEF IN THIS REGISTER.**
+  *Claim:* `battery_get_voltage()` ≈ 12600 on a fresh pack (mV); `battery_get_current()` is mA.
+  *Source:* vendored `misc.h:718-750` — which documents **NO UNIT AT ALL** ("the current
+  voltage of the battery"); the mV/mA belief is from PROS's website documentation only.
+  `hal/pros/battery.hpp` carries the warning in its header.
+  *Confidence:* reasoned, and flagged: the only load-bearing unit in R1a that the vendored
+  source does not state.
+  *Settle (R3, runbook step 2 — BEFORE anything drives):* the session header's battery line
+  reads ~12.x V against the brain's own battery screen.
+  *Blast radius if wrong:* a 1000× error silently destroys brownout compensation, which scales
+  EVERY motor command. **Contained:** one adapter, but only if checked before driving — hence
+  the runbook ordering.
+
+- [ ] **HA-100 — `battery_get_capacity()` returns percent 0–100.**
+  *Claim:* the double is a percentage; the adapter's ÷100 lands `IBattery::capacity()` in [0,1].
+  *Source:* vendored `misc.h:771-787` (unit again undocumented; "Battery Level" example);
+  `hal/pros/battery.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 2):* compare against the brain's battery percent.
+  *Blast radius if wrong:* capacity() pegged at 1.0 by the clamp (a fraction read as percent)
+  — misleading telemetry, no control impact today. **Contained.**
+
+- [ ] **HA-101 — `micros()` is microseconds since program start, monotonic, uint64.**
+  *Claim:* `IClock::now()` = micros()×1e-6 is a monotonic seconds stream; uint64 µs cannot wrap
+  in a robot's lifetime (~584 000 years).
+  *Source:* vendored `rtos.h:241`; `hal/pros/clock.hpp` (which also records WHY not millis():
+  1 ms quantization is 10% of the 10 ms tick — a 10% error in every PID derivative).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 3):* the telemetry time column tracks a stopwatch 1:1 for 60 s.
+  *Blast radius if wrong:* every dt in every controller — global, but impossible to miss on
+  the bench. **Contained:** one adapter.
+
+- [ ] **HA-102 — `Task::delay_until(prev, 10)` yields an anchored 100 Hz cadence.**
+  *Claim:* wake at `*prev + delta` with `*prev` updated to the wake instant, so tick processing
+  time does not stretch the period (unlike `delay(10)`, which drifts by the work done).
+  *Source:* vendored `rtos.hpp:742-747`; `hal/pros/tick_pacer.hpp`.
+  *Confidence:* reasoned — documented semantics; unmeasured under our stack's load (that half
+  is HA-32/HA-34's).
+  *Settle (R3, runbook step 12):* LoopMonitor dt stats over 60 s idle ≈ 10 ms mean.
+  *Blast radius if wrong:* the loop runs slow by the tick body's cost and every profile
+  integrates the error. **Contained:** one adapter.
+
+- [ ] **HA-103 — controller axes are [-127, 127]; a DISCONNECTED controller reads 0, not a
+  sentinel.**
+  *Claim:* full deflection is ±127 (÷127 → exactly ±1), and disconnection is reported ONLY by
+  `is_connected()` — the channels just read 0.
+  *Source:* vendored `misc.hpp:85-86` (both halves documented); `controller_conversion.hpp`;
+  `hal/pros/controller.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 10):* full stick = ±1.00 in telemetry; pull the controller
+  mid-stick — the robot must stop via isConnected(), not keep driving on a stale value.
+  *Blast radius if wrong:* the range half is cosmetic (clamped); the zero-on-disconnect half is
+  the dangerous one — without the validity signal a dropped controller looks like centred
+  sticks. **Contained:** the seam carries isConnected() precisely for this.
+
+- [ ] **HA-104 — `get_digital()` is a level; `get_digital_new_press()` CONSUMES the press.**
+  *Claim:* the new-press read clears per-device edge state, so with two consumers one silently
+  loses; binding levels + per-consumer `ButtonEdge` gives every consumer the press.
+  *Source:* vendored `misc.hpp:173-212`; `hal/controller.hpp` (ButtonEdge);
+  `hal/pros/controller.hpp` (the ban, guard-tested).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 10):* hold a button — pressed() stays true (a level).
+  *Blast radius if wrong (adapter binds new_press):* the second consumer of any button misses
+  every press — an auton selector and a mechanism toggle fighting invisibly. **Contained:**
+  mutation-proven (campaign M10) + a textual guard.
+
+- [ ] **HA-105 — rotation `get_velocity()` returns centidegrees per second.**
+  *Claim:* same centidegree scale as position; π/18000 converts both.
+  *Source:* vendored `rotation.hpp:219-242`; `rotation_conversion.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 6):* hand-roll at a counted rate; velocity matches.
+  *Blast radius if wrong:* the odometry stall cross-check compares spin to travel with a wrong
+  scale on one side. **Contained:** one conversion.
+
+- [ ] **HA-106 — `gps_status_s_t.yaw` is the CW-from-North heading in degrees.**
+  *Claim:* the atomic status read's yaw field is the same quantity `get_heading()` documents
+  ([0,360) CW from North), so one status read gives position AND heading from one sample.
+  *Source:* vendored `gps.h:53-64` (field named "yaw", convention undocumented) +
+  `gps.hpp:598-608` (get_heading's convention); `hal/pros/gps.hpp` binds the status read.
+  *Confidence:* reasoned — the WEAKER half is that yaw ≡ heading's convention; the wrap range
+  is immaterial (the conversion wraps).
+  *Settle (R3, runbook step 13, strip required):* compare status.yaw against get_heading() and
+  against a physically known orientation.
+  *Blast radius if wrong:* every GPS pose's heading component wrong the same way — the E2
+  corrector's heading channel poisoned. **Contained:** one binding choice in one adapter.
+
+- [ ] **HA-107 — the controller LCD's real column count: HA-57 says 19, the vendored doc
+  implies 15. A CONFLICT, found at R1a, that only a screen can settle.**
+  *Claim (as shipped):* 19 columns (ILineDisplay::kCols, HA-57) is right and the vendored
+  `misc.hpp:322` col-parameter range "[0-14]" is a stale doc comment.
+  *Source:* `hal/line_display.hpp:18-21` (HA-57); vendored `misc.hpp:322`;
+  `hal/pros/line_display.hpp` (which truncates at kCols and records the conflict).
+  *Confidence:* **invented** — two written sources disagree and neither is a measurement.
+  *Settle (R3, runbook step 11):* display the 19-char ruler `0123456789ABCDEFGHI`; count
+  what shows. 15 visible → shrink kCols (one constant; the content layer already truncates
+  through the seam) and mark HA-57 settled-false.
+  *Blast radius if wrong:* the last 4 characters of every status row silently never display —
+  degraded, not dangerous (the same rows ride the serial log in full). **Contained:** one
+  constant.
+
+- [ ] **HA-108 — `Imu::reset(false)` starts calibration; a single boot-time call is the
+  calibration itself, not a post-cal tare.**
+  *Claim:* reset() begins the ~2 s calibration (HA-23), `is_calibrating()` covers it, and one
+  boot-time reset does not fall under HA-05's tare ban (which is about POST-calibration
+  re-zeroing under a live bootHeading).
+  *Source:* vendored `imu.hpp:141-145`; `hal/pros/imu.hpp` (calibrate(), single-call
+  precondition).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 7):* time isReady() false→true from boot.
+  *Blast radius if wrong (e.g., reset() is itself a tare-after-autocal):* a constant heading
+  offset from boot — caught by step 7's protractor check. **Contained:** one call site.
+
+- [ ] **HA-109 — `imu_gyro_s_t` is in deg/s and z is the yaw axis.**
+  *Claim:* the raw gyro struct's units are deg/s and its z component is rotation about
+  vertical. (The SIGN is HA-04's entry — undocumented, assumed CW-positive.)
+  *Source:* vendored `imu.hpp:438-468` + `imu.h:84-87` (neither documents units);
+  `hal/pros/imu.hpp` (the GyroRateZ branch).
+  *Confidence:* **invented** — units asserted from community usage, not from the source.
+  *Settle (R3, runbook step 8):* steady ~90°/s CW spin → |z| ≈ 90 raw and canonical ≈
+  −1.57 rad/s.
+  *Blast radius if wrong:* the alternate yaw-rate branch is garbage — but it is OFF by default
+  (differentiation is the default source) and the bench measures before anyone flips it.
+  **Contained by the default.**
+
+- [ ] **HA-110 — the IMU's as-mounted pitch/roll sign conventions.**
+  *Claim:* none yet, honestly: the adapter passes `get_pitch()`/`get_roll()` through unnegated
+  BECAUSE the convention is unmeasured; whatever the bench records becomes the convention the
+  tip detector is written against.
+  *Source:* `hal/pros/imu.hpp` (pitch()/roll(), the unnegated pass-through note).
+  *Confidence:* **invented** (a deliberate placeholder convention).
+  *Settle (R3, runbook step 9):* nose-up 10° on a book → record pitch's sign; left side up →
+  record roll's.
+  *Blast radius if wrong:* tip detection reads a climb as a dive — but no tip detector ships
+  yet, so today the radius is zero. Settle it before one does.
+
+- [ ] **HA-111 — `src/main.cpp`'s port map and motor direction signs match the practice bot.**
+  *Claim:* FL1 BL2 BR−3 FR−4 ROTF5 ROTL6 GPS9 IMU10, green cartridges — ALL INVENTED; no
+  robot has been measured.
+  *Source:* `src/main.cpp` (the `k*Port` block, labelled).
+  *Confidence:* **invented** — and defended: the ProsMotor read-backs make a wrong port a LOUD
+  boot fault instead of a silent no-op.
+  *Settle (R3, runbook steps 0 and 4):* device inventory, then per-wheel spin direction.
+  *Blast radius if wrong:* ports: loud at boot (by design). Signs: a mirrored wheel fights the
+  other three — caught in the first open-loop spin, BEFORE any closed loop (runbook order).
+  **Contained:** constants + boot checks.
+
+- [ ] **HA-112 — the teleop mapping (stick signs, 0.05 deadband) is drivable.**
+  *Claim:* left-stick-up = +X forward, left-stick-left = +Y left, right-stick-right = CW
+  (−ω), and a 0.05 deadband kills centred-stick creep without killing fine control.
+  *Source:* `src/main.cpp` (opcontrol(), labelled; chunk T2 owns the real driver-feel layer).
+  *Confidence:* **invented**.
+  *Settle (T2/R3, runbook step 10):* a human drives it; signs that feel backwards get flipped
+  at the mapping, deadband tuned by feel.
+  *Blast radius if wrong:* annoying, visible, and shallow — exactly the kind of wrong that is
+  fine to ship provisionally. **Contained:** one function in main.cpp.
 
 ---
 

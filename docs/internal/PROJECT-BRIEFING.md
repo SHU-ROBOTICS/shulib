@@ -56,30 +56,38 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 ### Current status — GENERATED, never hand-typed
 
-<!-- DURABLE-REVIEWED-AT: F2 -->
 
-> **How this document stays true — read this once, it is the whole system.**
+> **How this document stays true — read this once, and read the last paragraph twice.**
 >
-> It has two halves, because staleness has two causes and only one is mechanical.
+> Staleness here has two causes and **only one of them is mechanical.**
 >
 > 1. **The generated block below** carries everything derivable from the repo: position, next
 >    chunk, interrupted chunks, suite counts, headers, hardware assumptions, the Freeze Register,
->    release lag, both CI guards run live, freeze-pin counts, verification harnesses, outstanding
->    `TODO(chunk)` markers, honest partials, every deliberately-skipped test **by name**, flagged
->    open defects, and the last ten commits. It is rewritten by
->    `python3 tools/briefing_status.py generate`, and a **build gate fails if it drifts.**
-> 2. **The durable narrative** (§1 and §3 onward) cannot be derived — no tool can tell whether the
->    trap list, the standards, the architecture tour or "what each chunk taught" are still *true*.
->    So the gate does the only honest thing available: the stamp above names the last chunk at
->    which a person re-read those sections, and **the build fails when work has landed since.**
+>    both CI guards run live, freeze-pin counts, verification harnesses, outstanding
+>    `TODO(chunk)` markers, honest partials, every deliberately-skipped test **by name**, and
+>    flagged open defects. It is rewritten by `python3 tools/briefing_status.py generate`, and a
+>    **build gate fails if it drifts.**
+> 2. **Three narrower classes are checked by `tools/doc_staleness_audit.py`**, also at build time:
+>    a document stating a figure the repo contradicts, two documents disagreeing with each other,
+>    and a document naming a file that does not exist. It has a self-test proving each detector
+>    can fire.
 >
-> That second half is the point. A generated status block invites the belief that the document
-> cannot go stale, and that belief is more dangerous than the staleness — it is exactly the
-> "nothing looks wrong" failure D3's coverage gate was built to prevent. **The gate cannot check
-> the prose, so it makes a human check it, on a schedule set by the work itself.**
+> **Everything else in this document is UNGATED, and that is now stated rather than disguised.**
+> Whether the trap list, the standards, the architecture tour or "what each chunk taught" are
+> still *true* is not checked by anything, because nothing can check it.
 >
-> **When it fires, ask:** did this chunk add a trap? invalidate a standard? change a layer or a
-> seam? make any sentence here false? Fix what drifted, then move the stamp.
+> There used to be a `DURABLE-REVIEWED-AT` stamp here claiming to force a human re-read.
+> **It was removed at R1a, because a build agent moved it by itself** — which is not misbehaviour
+> but the design: the chunk that triggers the gate (by writing its own completion record) is the
+> same actor that can silence it, so it holds the trigger and the key, and no gate can tell a
+> person re-reading from a machine editing a marker. A checkbox anything can tick is worse than
+> no checkbox: a green one reads as assurance. The audit that replaced it checks **less** than the
+> stamp claimed to, and everything it checks is real.
+>
+> **So this is a reading task, and it is yours.** After each chunk, ask: did it add a trap?
+> invalidate a standard? change a layer or a seam? make any sentence here false? Nothing will
+> remind you. Four of this project's staleness incidents were found exactly this way and by
+> nothing else.
 
 <!-- BEGIN GENERATED STATUS — regenerate with: python3 tools/briefing_status.py generate -->
 
@@ -94,20 +102,20 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 21 of 43 chunks complete
+**Position:** 22 of 43 chunks complete
 
 - **Next up:** R1a — hal/pros adapters for the drivetrain and the driver, with Phase T's IController seam folded in  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
-- **Suite:** 1,018 cases / 1,522,327 assertions, 3 skipped — **green**  
+- **Suite:** 1,083 cases / 1,523,069 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 124  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 93 registered, **0 settled** — next free is **HA-94**  
+- **Public headers:** 139  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 112 registered, **0 settled** — next free is **HA-113**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -125,6 +133,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 | **F10** | Public Routine API (the Tier-2 recipe layer) — construc… | ✅ LOCKED |
 | **F11** | Mechanism seam + operation contract — hal::IMechanism /… | 🚧 open by design |
 | **F12** | Sequence engine (sequence/run_guard.hpp) — RunGuard (th… | 🚧 open by design |
+| **F13** | Driver-input seam (hal/controller.hpp) — IController (a… | 🚧 open by design |
 
 ⚠️ **Register rows F1–F5 are NOT chunks F1–F5.** Row F2 is the accuracy targets; chunk F2 was the sequence engine. The collision is in shipped code (`spec/accuracy.hpp`). **Never edit rows F1–F5.**
 
@@ -132,11 +141,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Outstanding `TODO(chunk)` markers in shipped code** *(source: grep over `include/` and `src/`)*:
-
-> **R1**: 14
-
-**Honest partials:** 6 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 7 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 
@@ -162,11 +167,18 @@ real time, so it is an honest record of exactly how far the work got — before 
 
 On 2026-08-12 the package was built, uploaded and booted on a V5 brain. It constructed its whole
 object graph on ARM and printed its diagnostics banner over USB, including a live `strafeAuthority`
-query through the frozen facade. **It drove nothing, because it cannot** — every motor and sensor was
-a fake, and the `hal/pros` adapters are R1, unwritten.
+query through the frozen facade. **It drove nothing, because it could not** — every motor and sensor
+in that binary was a fake.
 
-That run proves the build/upload/boot path works and that no host-only assumption breaks on ARM. It
-proves **nothing** about motion, accuracy or control.
+Since R1a (2026-08-13) the `hal/pros` adapters EXIST and `src/main.cpp` wires them — and the
+constraint stands unchanged: **no adapter has ever touched a physical device.** The adapters are
+host-proven against `test/pros_shim/`, which tests them against our *beliefs* about PROS
+(HA-94…112) and can never test the beliefs; the R1a bench runbook is the prepared first contact,
+and it has not been run. "The adapters exist" must not drift into "it works on a robot" any more
+than "it booted" was allowed to.
+
+The 2026-08-12 run proves the build/upload/boot path works and that no host-only assumption breaks
+on ARM. It proves **nothing** about motion, accuracy or control — and it predates the adapters.
 
 **Do not let "it booted" drift upward into "it works on a robot."** That distinction is currently
 defended in six places across the README and the guide. Keep it defended — it is the single easiest
@@ -174,8 +186,9 @@ way for this project to start lying.
 
 Everything is validated against the **A2 host plant**: a simulator that converts voltage into motion
 behind the unmodified HAL fakes, made hostile at A3 (drift, garbage windows, sentinels, sag, slip,
-latency, jitter — reproducible from a seed). It proves **logic, not constants**. **93 registered
-hardware assumptions, none settled.**
+latency, jitter — reproducible from a seed). It proves **logic, not constants**. **112 registered
+hardware assumptions, none settled** (the count is derived live in the generated block above —
+trust that over this sentence if they ever disagree).
 
 ---
 
@@ -217,11 +230,15 @@ nothing outside `sim/` may include `shulib/sim/`. **Four build-time doc gates** 
 build: undocumented public member, stale generated reference, drifted example, internal link leak.
 Plus the briefing gate (generated block + durable-review stamp).
 
-**R1a amends the PROS-free guard for the first time** — `include/shulib/hal/pros/` becomes the one
-exempt path, **anchored to that exact path**. The cheap `--exclude-dir=pros` spelling was measured
-missing a violation planted at `include/shulib/localization/pros/`. The ARM compile gate is
-**not** amended: its generated glob picks the adapters up and they compile clean behind a two-flag
-diagnostic fence. Amend deliberately, and prove the amended guard still bites.
+**R1a amended the PROS-free guard for the first time** — `include/shulib/hal/pros/` is the one
+exempt path, **anchored to that exact path** (in CI *and* in this tool's own guard_state, which
+had to learn the same amendment). The cheap `--exclude-dir=pros` spelling was measured missing a
+violation planted at `include/shulib/localization/pros/`, and the miss was re-demonstrated live
+during R1a's guard proof. The ARM compile gate is **not** amended: its generated glob picked the
+adapters up (124 → 139 headers) and they compile clean behind the two-flag diagnostic fence.
+One R1a trap for every future adapter: **PROS's `common.mk` resolves includes with `-iquote`
+only**, so an adapter's PROS includes must use the QUOTED form — angle brackets compile
+everywhere except the one build that matters.
 
 ---
 
@@ -273,6 +290,15 @@ This section is the durable part: what each one taught or proved, which does not
   cancel — *a clamp whose safe state is "open" would fling its game piece the instant a grab
   succeeded.*
 - **F2** The `sequence/` engine + guaranteed end-of-run action. See §11.
+
+**Phase R — the robot (opened at R1a)**
+- **R1a** The `hal/pros` adapters (drivetrain + driver + the shim). What it taught: adapter glue IS
+  host-testable — against beliefs, never past them (the shim's honest limit, its defaults made
+  ADVERSARIAL so a shared model cannot quietly cancel its own errors); PROS's build resolves
+  includes `-iquote`-only (quoted includes are mandatory in adapters); a device keeps another
+  program's configuration, so configure-and-read-back is the idiom; and an observationally
+  equivalent mutant (M4b, get_heading at the heading() seam) is closed with a textual contract
+  pin, not a theater test. `IController` landed as row F13 (NOT frozen); T1 was delivered here.
 
 ---
 
@@ -501,22 +527,26 @@ read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — R1a: `hal/pros` adapters for the drivetrain and the driver
+## 13. THE IMMEDIATE TASK — R1b: `hal/pros` adapters for the mechanism sensors
 
-**The brief is written** (`chunks/R1a-pros-adapters-drivetrain.md`) and carries nine executable
-measurements. R1a is the chunk that puts the library on a robot, and nothing blocks it.
+**R1a is DONE** (2026-08-13, in the working tree pending review/commit — `R1a-COMPLETED.md` is the
+record, `R1a-PROGRESS.md` the live log, `R1a-BENCH-RUNBOOK.md` the unrun bench session's
+replacement). The next chunk is **R1b**, and its brief is not yet written.
 
 **R1 split into R1a + R1b on 2026-08-13**, split by consumer. R1's old scope line said "the 9 F4
 adapters"; reading the tree found **fifteen** — four earlier chunks each wrote "R1 owns this" into
 their own headers (`digital_out.hpp:24`, `char_sink.hpp:11`, `block_sink.hpp:34`,
 `line_display.hpp:8`) — plus two new seams, a host test shim, `main.cpp` and a bench session.
 
-- **R1a** — `IClock`, `IMotor`, `IRotation`, `IImu`, `IGps`, `IBattery`, `ICharSink`, `ILineDisplay`,
-  `IController` (new seam, Phase T's T1 delivered here), plus the real tick pacer. Everything the
-  drivetrain and a driver need; nothing external gates it.
-- **R1b** — `IDistance`, `IOptical`, `IDigitalOut`, `IBlockSink`, and a new `IDigitalIn` seam.
+- **R1a — delivered:** `IClock`, `IMotor`, `IRotation`, `IImu`, `IGps`, `IBattery`, `ICharSink`,
+  `ILineDisplay`, `IController` (new seam, Phase T's T1 delivered here), plus the real tick pacer,
+  the shim, both guard changes, `main.cpp`. Host-proven only; the bench runbook is R3's opening.
+- **R1b — next:** `IDistance`, `IOptical`, `IDigitalOut`, `IBlockSink`, and a new `IDigitalIn` seam.
   Everything a *mechanism* needs. **Must land before R3**, which cannot walk the assumptions register
-  without these sensors.
+  without these sensors. R1b inherits R1a's fence pattern, shim framework, adapter idiom
+  (screen → hold-last-good → expose a faultedReads counter), the QUOTED-include rule, and **trap B**:
+  `pros::Distance::get_distance()` returns an IN-BAND 9999 for "no object" (not PROS_ERR — 393.66
+  inches of phantom wall), and `get_confidence()` is only meaningful above 200 mm.
 
 **One correction to a list that has been quoted repeatedly:** `ITelemetrySink` needs **no** PROS
 adapter — it already has `NullSink`/`TermSink`/`SdSink`. What is PROS-backed is one layer below it,
@@ -549,11 +579,11 @@ E4's headline result rests on invented numbers).
 
 **Seams that exist:** `motor` (encoder + velocity + current + temperature), `rotation`, `imu`, `gps`,
 `distance`, `optical`, `vision` (AI Vision: objects *and* AprilTags), `battery`, `clock`,
-`digital_out`, `line_display`.
+`digital_out`, `line_display`, and — since R1a — `controller` (axes/buttons/isConnected, row F13,
+not frozen; PROS adapters exist for the R1a nine, R1b's still pending).
 
-**Seams that DO NOT exist:** **digital input** (limit switches, bumpers), analog input
-(potentiometers, line trackers), legacy 3-wire (ultrasonic, optical shaft encoders) — and controller
-input until R1.
+**Seams that DO NOT exist:** **digital input** (limit switches, bumpers — R1b's), analog input
+(potentiometers, line trackers), legacy 3-wire (ultrasonic, optical shaft encoders).
 
 **For the new competition bots, ranked by accuracy-per-port:**
 

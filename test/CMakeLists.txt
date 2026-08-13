@@ -61,6 +61,21 @@ add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 target_include_directories(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
 
+# ── The host PROS shim (chunk R1a) ──────────────────────────────────────────────────
+# hal/pros adapters #include <pros/*.hpp>. On the HOST they must resolve to
+# test/pros_shim/'s hand-written programmable stand-ins, NOT the real vendored
+# SDK headers under ../include/pros/ — BEFORE wins that race, in this build
+# only. The PROS Makefile never sees this directory, and every shim header
+# #errors unless SHULIB_HOST_PROS_SHIM is defined, which happens HERE and
+# nowhere else: a shim that leaked into the robot include path would produce a
+# binary that uploads cleanly, boots cleanly, prints a healthy banner, and
+# drives NOTHING — the silent catastrophic failure T3 exists to prevent.
+# (The shim tests the adapter against our BELIEF about PROS; it cannot test
+# the belief — hardware tests the belief. pros_shim/pros/shim_control.hpp
+# carries the full statement.)
+target_include_directories(shulib_tests BEFORE PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/pros_shim")
+target_compile_definitions(shulib_tests PRIVATE SHULIB_HOST_PROS_SHIM)
+
 # The API-reference fidelity test reads the COMMITTED docs/api/ markdown and
 # compares its rendered signatures against the headers, so it needs to know
 # where the source tree is. (It fails loudly if it cannot open the files —
@@ -87,10 +102,15 @@ target_compile_definitions(shulib_tests PRIVATE
 #                   since C8 — but it lived only in an internal verify script,
 #                   so until D3 a rotted example passed the build AND passed
 #                   CI. Found by mutation; a rule nothing runs is a convention.
-#   briefing-status the PROJECT-BRIEFING's generated block must match the repo,
-#                   AND its durable narrative must have been re-read since the
-#                   last completed chunk. A handoff nobody can trust is worse
-#                   than none: the next session believes it.
+#   briefing-status the PROJECT-BRIEFING's generated block must match the repo.
+#                   A handoff nobody can trust is worse than none: the next
+#                   session believes it. It used to ALSO require a
+#                   DURABLE-REVIEWED-AT stamp asserting a human had re-read the
+#                   hand-written half; that was removed at R1a, because the chunk
+#                   that trips the gate is the same actor that can edit the stamp
+#                   silencing it, and a machine duly did. The narrative half is
+#                   now honestly ungated — see doc_staleness_audit.py, which
+#                   checks the mechanizable subset and says so.
 #
 #   check-removability  no public document may reference docs/internal/, which
 #                   is dropped when this branch squash-merges to main. Same
@@ -143,6 +163,20 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-examples
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-removability
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" check
+  # staleness  the four gates above check that documentation EXISTS and is
+  #            well-formed; none has an opinion about whether a sentence is
+  #            still TRUE. This one checks the mechanizable subset: a figure a
+  #            document states versus what the repo says, two documents
+  #            disagreeing, and a named file that does not exist. Added at R1a,
+  #            replacing the DURABLE-REVIEWED-AT stamp — which claimed to force a
+  #            human re-read and could not, because the chunk that trips the gate
+  #            is the same actor that can silence it. This checks less and means
+  #            it. Its self-test runs first, because a gate nobody has watched go
+  #            red is a rumour.
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
   COMMAND "${CMAKE_COMMAND}" -E touch "${SHULIB_DOC_STAMP}"
   DEPENDS
     "${SHULIB_DOC_TOOL}"
@@ -160,6 +194,7 @@ add_custom_command(
     # build did not know.)
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/internal/PROJECT-BRIEFING.md"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
   VERBATIM)

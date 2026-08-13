@@ -41,7 +41,9 @@ above is the path of least resistance.
 That's all for library work. Two more tools exist that you do **not** need yet:
 `arm-none-eabi-g++` (the cross-compiler that builds for the V5's processor) and
 [pros-cli](https://pros.cs.purdue.edu/v5/getting-started/) (the tool that uploads to a V5
-brain). They only matter for robot-package work — and remember, there is no robot yet.
+brain). They only matter for robot-package work — and remember, the library still runs on no
+robot: a practice bot exists for the hardware phase's bench work, but everything you will do
+from this guide is host-side.
 
 ## Clone and build
 
@@ -104,9 +106,21 @@ mental model, which matters more:
 - **`test/`** — the host test suite, including the simulated robot it runs against
   (`include/shulib/sim/` holds the simulation; a second automated check ensures the library
   never peeks at the simulator's ground truth — code under test can't cheat).
-- **`src/main.cpp`** — the one and only file that touches both worlds: the program that runs on
-  a real V5 brain and wires the library to real hardware. Today its hardware connections are
-  explicitly marked `TODO(R1)` — stand-ins awaiting the hardware-adapter phase.
+- **`include/shulib/hal/pros/`** — the one deliberate exception to the zero-dependency rule,
+  and the newest part of the tree: the adapters that implement the library's hardware
+  interfaces over the real PROS SDK (`ProsMotor`, `ProsImu`, `ProsGps`, …). The automated
+  check exempts exactly this directory and nothing else. Each adapter is thin glue: it reads
+  the raw device, applies the unit conversion **exactly once**, and hands the core a canonical
+  value — every unit belief it rests on is catalogued in the
+  [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
+- **`src/main.cpp`** — the program that runs on a real V5 brain: it wires the library to the
+  adapters above and is the worked example of constructing a whole robot in plain C++. Its
+  port map is an explicitly labelled guess until a robot is measured.
+- **`test/pros_shim/`** — a hand-written, programmable stand-in for the PROS SDK, used only by
+  the host test build so the adapters can be compiled and *run* on your laptop. It is
+  structurally unable to reach a robot build (its headers refuse to compile outside the test
+  suite), and its limit is stated in its own headers: it tests the adapters against our
+  beliefs about PROS — only hardware tests the beliefs.
 - **`docs/`** — you are here. Plans, the assumptions register, and this guide.
 - **`firmware/`, `Makefile`, …** — the vendored V5 build machinery (used by `make`, which
   builds the robot package; not needed for library work).
@@ -114,14 +128,21 @@ mental model, which matters more:
 ## What about putting code on a robot?
 
 For completeness, the path that exists today: `make` at the repo root cross-compiles a real,
-uploadable V5 package, and `pros upload` puts it on a brain. This has been done — on 2026-08-12
-the package was uploaded to a V5 brain, booted, and printed its diagnostics banner over USB, so
-the commands above are a path that has been walked rather than one we believe should work. It
-**drives nothing**, because the adapters connecting the library's motor/sensor interfaces to
-real V5 devices don't exist yet. The
-[roadmap](../roadmap.md#milestones-at-a-glance) tracks exactly what stands between here and a
-driving robot (the "you are here" note is kept current). Until then, everything in this guide
-runs host-side, and nothing you'll learn is wasted — the code you write against the simulator is
+uploadable V5 package, and `pros upload` puts it on a brain. Booting has been done (2026-08-12:
+uploaded, booted, printed its banner over USB), and since the hardware-adapter work landed the
+package wires **real device adapters** — motors, IMU, GPS, battery, rotation sensors, the
+controller — rather than in-memory fakes, including a first driver-control loop.
+
+What that does *not* yet mean, stated as plainly as the robot itself states it over serial:
+**the library has still never driven a robot.** The adapters are host-tested against a
+programmable stand-in for PROS, which proves the glue is faithful to our *beliefs* about PROS
+— units, signs, error values — and cannot prove the beliefs themselves
+(the [FAQ](../faq.md) unpacks that sentence). The shipped port map is a labelled guess, and a
+brain whose devices are on different ports will refuse loudly at boot rather than pretend.
+First motion, sign checks, and validation are the hardware phase's, walked as a prepared
+checklist. The [roadmap](../roadmap.md#milestones-at-a-glance) tracks exactly where that
+stands (the "you are here" note is kept current). Until then, everything in this guide runs
+host-side, and nothing you'll learn is wasted — the code you write against the simulator is
 the same code that will run on the robot.
 
 ---

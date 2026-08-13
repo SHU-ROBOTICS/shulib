@@ -20,6 +20,8 @@ kinematics/     drivetrain geometry (X, tank, H)                        [Ch. 4]
 diag/           records, fault latch, monitors, formatters              [Ch. 11]
 hal/            the hardware interfaces + the mechanism device seam
                 (+ in-memory fakes)
+hal/pros/       the real-hardware adapters over the PROS SDK — the ONE
+                place the library touches VEX's software
 units/ math/    typed quantities, Angle, Pose2d, the frame transforms   [Ch. 2]
 sim/            the simulated robot (tests only!)
 ```
@@ -27,11 +29,13 @@ sim/            the simulated robot (tests only!)
 Two structural rules are enforced by CI (automated checks that run on every commit — see
 `.github/workflows/ci.yml`), and understanding *why* tells you most of what matters here:
 
-1. **The library never includes PROS** (the V5 runtime). Everything under `include/shulib/`
-   compiles on any C++20 compiler — which is precisely what makes the massive host-side test
-   suite possible. Exactly one file in the repo sees both worlds: `src/main.cpp`. If your
-   change needs something from PROS inside the library, the design is wrong — the need belongs
-   behind a `hal/` interface.
+1. **The library never includes PROS** (the V5 runtime) — except the adapter directory built
+   to, `include/shulib/hal/pros/`, which the check exempts by exact path and nothing else.
+   Everything else under `include/shulib/` compiles on any C++20 compiler — which is precisely
+   what makes the massive host-side test suite possible (`src/main.cpp`, outside the library
+   tree, is the other deliberate PROS toucher). If your change needs something from PROS
+   anywhere else in the library, the design is wrong — the need belongs behind a `hal/`
+   interface, with the PROS call living in a `hal/pros/` adapter.
 2. **The core never includes the simulator.** Code under test can only see sensor interfaces —
    never the sim's ground truth — so a test can grade the estimator against a truth the
    estimator *provably cannot peek at*. Don't "just include" something from `sim/` in library
@@ -128,7 +132,7 @@ found fully formed in its own predecessor.)
 `MotorMechanism` is a group of motors on one shaft, commanded as one; `PneumaticMechanism`
 is one air circuit behind one or more digital lines. Both are built from the same hardware
 interfaces the rest of the library uses, so they run identically on fakes (tests), the
-simulator, and — when the hardware adapters land — the robot. The one decision you MUST make
+simulator, and — through the `hal/pros/` adapters — the robot. The one decision you MUST make
 at construction is the **declared safe state**, and it is per-mechanism because no single
 answer is safe for all of them:
 
@@ -182,14 +186,42 @@ confirmation predicate is *trusted*: an operation cannot second-guess its only e
 task, so confirm on a real sensor reading, not on hope — the test suite demonstrates,
 deliberately, that a predicate that lies produces a false success.
 
-## Extension 4 and beyond
+## Extension 4 — porting to different hardware: the adapter pattern
 
-The seams for bigger work already exist, with their owners named on the
+The `hal/pros/` tree is now the worked example of the library's biggest promise: the core
+never knew what hardware it was on, so putting it on hardware meant writing thin adapters —
+zero core changes. If you are porting shulib to a different SDK (VEXcode, a custom firmware,
+a different robot platform entirely), copy the pattern, which has four parts:
+
+1. **One adapter class per HAL interface**, thin glue only: read the raw device, convert,
+   return canonical. Every adapter's header states which SDK call it binds and *why that
+   one*, which conversion it applies, and what it deliberately does not do. Read
+   `hal/pros/motor.hpp` first — it carries the pattern's hardest lessons (device state that
+   survives across programs, and error sentinels on interfaces that have no validity
+   channel: screen to the last good value, never zero, never a NaN).
+2. **Pure conversion functions, SDK-free**, one per unit belief
+   (`hal/motor_conversion.hpp` and friends). The adapter *calls* them; it never re-derives
+   the arithmetic inline. This is what lets the unit math be tested and mutation-attacked on
+   a laptop with no SDK anywhere in sight — and reused verbatim by your port if your SDK
+   speaks the same units.
+3. **A register of beliefs.** Every claim about your SDK — units, sign conventions, error
+   values, device-state semantics — written down as a falsifiable entry with the bench
+   measurement that settles it. Ours is the
+   [Hardware Assumptions Register](../hardware-assumptions.md) (the PROS set is HA-94
+   onward); the [FAQ](../faq.md) explains why no host test can substitute for that bench.
+4. **A programmable SDK stand-in for the host tests** (ours is `test/pros_shim/`), so the
+   adapter *glue* is testable: that the conversion is actually called, that error values are
+   screened, that configuration is written and read back. Make its defaults adversarial —
+   ours boots every fake motor in the wrong encoder units on purpose, because that is what a
+   real motor a previous program touched looks like. And make it structurally unable to
+   reach a robot build: every header of ours refuses to compile unless the host test build
+   says so.
+
+The other seams for bigger work also exist, with their owners named on the
 [roadmap](../roadmap.md): position correctors (GPS/vision) plug into the localizer's correction
-seam; real-hardware adapters implement the `hal/` interfaces (phase R1); new telemetry sinks
-implement `ITelemetrySink`. Before starting anything sized like these, read the roadmap entry
-and the relevant header — and talk to the team. Big pieces here get designed in writing first;
-that's how the library got this far without a robot.
+seam; new telemetry sinks implement `ITelemetrySink`. Before starting anything sized like
+these, read the roadmap entry and the relevant header — and talk to the team. Big pieces here
+get designed in writing first; that's how the library got this far without a robot.
 
 ---
 
