@@ -40,8 +40,20 @@ theme:
 
 markdown_extensions:
   - admonition
+  # GitHub-compatible heading slugs. The docs are read in two places, and every
+  # hand-written cross-document anchor was authored against GitHub's algorithm
+  # (`## 17. Accessibility & Progressive…` -> `#17-accessibility--progressive…`,
+  # with the doubled dash where the ampersand was). mkdocs' default slugifier
+  # produces a different string, which silently turns six existing links into
+  # jumps to the top of the page — the degraded-but-not-obviously-broken failure
+  # that is worst in documentation. This is the same problem D3 solved for the
+  # generated reference by emitting explicit anchors; here the fix is to make
+  # the renderer agree with the links that already exist.
   - toc:
       permalink: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.superfences
