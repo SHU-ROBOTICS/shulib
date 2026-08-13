@@ -281,7 +281,41 @@ not silently break them. This table is the spine of the no-staleness promise.
 > class: the suite checked that the FORMAT could carry the sink's self-description and never
 > that the SINK filled it in — the end frame's counts and the header's epoch/ring/budget could
 > all be zeroed with the suite green.
-> **Next: E2** (`GpsCorrector` — the first real corrector, and the first real gate decisions).
+> **Chunk E2 (`GpsCorrector`) is DONE, 2026-08-12 — the first REAL corrector.** Everything before
+> it dead-reckoned; this is the first code in the library that can tell the estimator it is wrong,
+> and the first chunk in which the §18.2 gating slots carry decisions a real gate actually made.
+> `GpsCorrector` implements `ICorrector` behind the unchanged M2 signature — adaptive R from
+> `rmsError()`, latency compensation from an odometry history ring, a stale-sample guard so one
+> measurement is folded once rather than five times, high-yaw-rate rejection, a sensor-quality
+> ceiling, and a normalized-innovation gate that WIDENS with dead-reckoned travel (without which
+> a truthful fix is rejected exactly when the estimate needs it most). Suite 794 / 1,081,382;
+> both guards and the ARM gate (111 headers) clean; 20/20 mutations red.
+> **The chunk closes the other half of E1's T3.** A declined proposal never reaches a fusion
+> policy, so a corrector-side verdict had no channel to the record at all: an off-strip GPS and
+> an empty corrector list both produced `GateReason::None`. Since **Driving Skills has no strip**,
+> that was the difference between a diagnosable Skills run and a mystery. `CorrectionProposal`
+> gained one appended `selfAudit` field, the `Localizer` substitutes it only when the policy has
+> no verdict of its own, and every corrector-side rejection is now re-derivable from the decoded
+> file — residual, the sigma it was normalized by, and the verdict.
+> **What E2 did NOT do, stated plainly.** It did not build a Mahalanobis gate (T1: the
+> complementary tier has no filter-estimated covariance, so `gateMahalanobis` stays 0 and the
+> honest `RejectedNormalizedInnovation` was appended instead); it did not touch heading (T3 — the
+> GPS's heading never leaves the corrector, so the `< 1°` claim is exactly where A3 left it); and
+> it did not take ownership of frame or lever-arm reduction (T4 — `hal/gps.hpp` and
+> `gps_conversion.hpp` own those by written contract, so E2 pinned them with independent oracles
+> rather than becoming a second subtractor). The accuracy claim is an **aggregate** across 8 seeds,
+> not a per-seed sweep, and the record says so: in simulation the modeled GPS noise and the modeled
+> dead-reckon drift are the same order of magnitude, both invented (HA-26, HA-20), so the measured
+> gain is real but modest. Two findings came out of it that predate the chunk: **HA-07's
+> metres→inches conversion had no code and no test** — prose only since A4, with the existing
+> conversion tests pinning the scale against the constant imported from the header under test —
+> and **`ComplementaryFusion`'s fixed 12-inch innovation gate caps what any corrector can repair**,
+> observed live when an estimate 29 inches out never recovered with a good GPS in view. The first
+> is fixed in the layer that owns it; the second is recorded for E4, which replaces that policy.
+> The mutation campaign (20 executed) found **one green hole**: the substitution rule's
+> `reason == None` guard is dead code with one corrector and load-bearing with two, so a silent
+> source could stamp `RejectedNoFix` over a tick that actually applied a fix — latent until E3.
+> **Next: E3** (`AprilTagCorrector` — the second corrector, and the first heading nudge).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -819,8 +853,34 @@ register above, pin-enforced. This milestone does not close until the on-robot c
 *Bound drift across the whole minute; score sub-inch.*
 
 **Localization, tier 2 (WS5)**
-- [ ] `GpsCorrector` — adaptive R from `get_error()`, lever-arm + latency comp, Mahalanobis gate,
-  high-yaw-rate rejection, **off-strip dead-reckon-only flag** (Driving Skills has no strip).
+- [x] `GpsCorrector` — **DONE at E2 (2026-08-12)**, the first real corrector.
+  `include/shulib/localization/gps_corrector.hpp`; 30 cases across
+  `test/gps_corrector_test.cpp` (22), `gps_corrector_blackbox_test.cpp` (8 incl. the
+  two-corrector case found by mutation) plus 7 in `gps_corrector_accuracy_test.cpp` and 7 new
+  `[oracle]` cases in `test/gps_conversion_test.cpp`. Suite 794 / 1,081,382. Delivered: adaptive
+  R from `rmsError()`, latency compensation via an odometry history ring, a stale-sample guard
+  (one measurement folded once, against the ~50 ms camera cadence), high-yaw-rate rejection, a
+  sensor-quality ceiling, and the **off-strip dead-reckon-only path proven bit-identical to
+  having no corrector at all**, with `RejectedNoFix` and the source's name reaching the
+  blackbox. 20/20 mutations red.
+  **Scoped honestly, three ways.** (1) The gate is a **normalized innovation**, NOT a
+  Mahalanobis distance — the complementary tier has no filter-estimated covariance, so
+  `gateMahalanobis` stays 0 and `GateReason` gained `RejectedNormalizedInnovation` (+
+  `RejectedStaleFix`, `RejectedSensorQuality`, all append-only). E4's EKF earns the real one.
+  (2) **Lever-arm and frame reduction stayed at the HAL edge**, which `hal/gps.hpp` and
+  `gps_conversion.hpp` already own by written contract — E2 pinned both with independent
+  from-scratch oracles at seven headings instead of becoming a second owner. (3) The accuracy
+  claim is an **aggregate** one: over 8 seeds of a 60 s hostile run, mean final and worst-case
+  error are lower with the corrector (per-seed: 7/8 and 6/8, not 8/8), because in simulation the
+  modeled GPS noise (HA-26) and the modeled dead-reckon drift (HA-20) are the same order — both
+  invented, both R4's to settle. The claim that does not depend on any magnitude: a known 6-inch
+  position error is **healed** on all 8 seeds while dead-reckoning carries it to the end of the
+  run.
+  **Also fixed there, per Rule 4:** HA-07's metres→inches obligation had lived in
+  `gps_conversion.hpp` as prose with **no function and no test** since A4, and the pre-existing
+  conversion tests pinned the scale against the constant imported from the header under test —
+  so a wrong constant satisfied both sides. Now `gpsRmsErrorToCanonical()`, pinned against the
+  definition of the inch.
 - [ ] `AprilTagCorrector` — tags 0–4, PnP; `relocalize()` **feeds the gated-nudge corrector** (low-R,
   fast, drift-canceling — *never a hard pose reset*, per §13 #4).
 - [ ] Upgrade `Localizer` complementary filter → **5-state SE(2) EKF** `[px,py,θ,vx,vy]`:

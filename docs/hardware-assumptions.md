@@ -110,6 +110,13 @@
 | HA-58 | Flight-recorder depth: 200 ticks (~2 s) reaches back past a fault's cause | **invented** | R4 |
 | HA-59 | 64 KiB of RAM is spendable on the blackbox staging buffer | **invented** | R4 |
 | HA-60 | An SD flush of tens of KB costs single-digit ms (fine at a boundary, not in a tick) | **invented** | R4 |
+| HA-61 | GPS `rmsError()` must be inflated ×2 to be used as sigma (claim ≠ truth) | **invented** | R4 |
+| HA-62 | 0.5″ floor on the GPS measurement sigma | **invented** | R4 |
+| HA-63 | A fix claiming > 6″ of error is not worth folding | **invented** | R4 |
+| HA-64 | 3 rad/s (≈172°/s) is where a GPS fix stops being trustworthy | **invented** | R4 |
+| HA-65 | 4σ normalized-innovation gate width | **invented** | R4 |
+| HA-66 | The estimate is ≈1″ uncertain immediately after a fix is folded | **invented** | R4/E4 |
+| HA-67 | Dead-reckon sigma grows ≈0.02″ per inch travelled (the anti-lockout term) | **invented** | R4 |
 
 ---
 
@@ -208,7 +215,15 @@ a config constant **by design** — a correction here never touches the core.
 - [ ] **HA-07 — `pros::Gps::get_error()` returns METERS.**
   *Claim:* the device's self-reported rms error is in meters and must scale ×39.37 to inches at
   the HAL edge.
-  *Source:* `include/shulib/hal/gps_conversion.hpp:39–40`.
+  *Source:* `include/shulib/hal/gps_conversion.hpp` — `gpsRmsErrorToCanonical()`.
+  **Changed at E2:** from A4 until E2 this obligation existed only as PROSE in that header, with
+  no function performing it and no test pinning it — an instruction addressed to a future adapter
+  author, guarding the most dangerous silent factor in the GPS path. E2 gave it a function and an
+  independent test. The test asserts against the DEFINITION of the inch (0.0254 m ≡ 1 inch)
+  rather than against `kMetersToInches`, because the pre-E2 conversion tests imported that
+  constant from the header under test — so a wrong constant would have satisfied both sides of
+  the comparison. That hole is closed; the ASSUMPTION (that PROS really returns metres) is not,
+  and still needs R3.
   *Confidence:* reasoned — PROS documents meters; unverified against a live device.
   *Settle (R3):* read `get_error()` on-strip; a healthy fix should report ~0.01–0.05 (meters), not
   ~1–2 (inches already).
@@ -669,6 +684,109 @@ settleable before hardware, and none block any host chunk.
   LoopMonitor would report it as an overrun, so it is at least VISIBLE. The fix is a policy
   change — flush less often, or only at auton end — not a format change. R1 should re-check
   this the first time the adapter runs on hardware.
+
+### The E2 `GpsCorrector` tuning set (HA-61 … HA-67)
+
+Seven constants, added when the first real corrector landed. They share one property worth
+stating once instead of seven times: **E2 proved the corrector's LOGIC, and every one of these
+numbers is a guess about a device nobody has plugged in.** Each is tested by an assertion about
+*shape* — "a worse claim widens sigma", "the gate widens with dead-reckoned travel", "a spin
+rejects the fix" — never by an assertion that the constant is right. Contained the same way as
+the rest of Phase E's tuning: one config struct, one owner, no core impact.
+
+They also share one settle: **HA-26 (the real on-strip noise) and HA-20 (the real dead-reckon
+drift) decide whether folding GPS is worth doing at all.** E2's own measurements found the two
+within the same order of magnitude in simulation, which is why the accuracy gain there is real
+but modest (see `test/gps_corrector_accuracy_test.cpp`'s header). R4 settles both, and the
+answer changes how these seven should be set.
+
+- [ ] **HA-61 — the GPS's self-reported rms must be inflated ×2 before it is used as sigma.**
+  *Claim:* the device's `get_error()` understates its true 1σ by roughly a factor of two, so
+  trusting the claim raw makes the gate too tight and the pull too strong.
+  *Source:* `include/shulib/localization/gps_corrector.hpp`, `GpsCorrectorConfig::rmsTrustFactor`
+  (PROVISIONAL (A4: HA-61)). Follows from HA-29, which records that the claim and the truth are
+  different numbers without saying by how much.
+  *Confidence:* **invented** — the factor 2 is a placeholder for "more than one".
+  *Settle (R4):* the same joint log HA-29 needs — `get_error()` against measured error, on
+  strip, at several positions. The factor is the ratio of their standard deviations.
+  *Blast radius if wrong (too small):* gate too tight, good fixes rejected, GPS quietly useless
+  — visible as `RejectedNormalizedInnovation` filling the blackbox. (Too large): weak pull and
+  a slack gate, so lies do more damage before the innovation bound catches them. Constant only.
+
+- [ ] **HA-62 — 0.5 inch is a sane floor on the measurement sigma.**
+  *Claim:* no GPS fix should ever be treated as better than half an inch, whatever the device
+  claims.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::minPositionStdDev` (PROVISIONAL (A4: HA-62)).
+  *Confidence:* **invented**.
+  *Settle (R4):* set to the best measured per-axis sigma observed on strip.
+  *Blast radius if wrong:* the floor exists to stop a device reporting ~0 from producing an
+  arbitrarily tight gate that rejects every fix including truthful ones — that failure mode is
+  pinned by test regardless of the value. Constant only.
+
+- [ ] **HA-63 — a fix claiming more than 6 inches of error is not worth folding.**
+  *Claim:* a device asserting `hasFix()` while reporting a large self-error should be declined
+  rather than folded weakly.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::maxReportedRms` (PROVISIONAL (A4: HA-63)).
+  *Confidence:* **invented**.
+  *Settle (R4):* from the on-strip `get_error()` distribution — set above the healthy tail and
+  below whatever the device reports when it is struggling.
+  *Blast radius if wrong (too high):* a barely-usable fix is folded, contributing almost nothing
+  while making the Localizer report quality class "Corrected" — a run that looks anchored and is
+  not. That is the specific failure the ceiling exists for, and it is pinned by test. (Too low):
+  usable fixes declined in poor conditions; visible as `RejectedSensorQuality`.
+
+- [ ] **HA-64 — 3 rad/s (≈172°/s) is where a GPS fix stops being trustworthy.**
+  *Claim:* above this yaw rate the fix's lever-arm reduction and its heading/position sampling
+  skew make it worse than dead-reckoning for the tick.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::maxYawRate` (PROVISIONAL (A4: HA-64)).
+  *Confidence:* **invented** — chosen as "clearly a fast spin, not a normal arc"; it is not
+  derived from any measurement of how the camera behaves under rotation.
+  *Settle (R4):* spin in place on the strip at increasing rates and log reported vs. true
+  position; the knee is the threshold. Re-check at E5 whenever the lever arm is re-measured
+  (HA-10).
+  *Blast radius if wrong (too high):* fixes folded during spins carry a heading-dependent bias —
+  exactly the error HA-10 warns about, at its worst. (Too low): the corrector goes quiet during
+  every turn, which is a loss of information, not a corruption. The asymmetry is why the default
+  errs low.
+
+- [ ] **HA-65 — 4 sigma is the right normalized-innovation gate width.**
+  *Claim:* a residual beyond 4× the fix's own 1σ is more likely a lie than a truth.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::gateSigma` (PROVISIONAL (A4: HA-65)).
+  *Confidence:* **invented** — 4σ is the conventional engineering choice, not a measured one,
+  and it is only as meaningful as the sigma it multiplies (HA-61, HA-66, HA-67).
+  *Settle (R4):* from the measured residual distribution on a run with known truth.
+  *Blast radius if wrong:* the classic gate trade — too tight rejects truthful corrections
+  (stubbornness), too loose accepts lies (corruption). Both are VISIBLE in the blackbox as
+  `RejectedNormalizedInnovation` counts, which is why E2 put the residual and the sigma on the
+  wire. **Note the ceiling:** `ComplementaryFusion::innovationGate` (12 inches, fixed) applies
+  after this gate, so widening `gateSigma` past ~5 with these sigmas changes nothing.
+
+- [ ] **HA-66 — the estimate is ~1 inch uncertain immediately after a fix is folded.**
+  *Claim:* the floor of the dead-reckoning sigma, which sets how hard a fresh fix pulls.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::postFixStdDev` (PROVISIONAL (A4: HA-66)).
+  *Confidence:* **invented**. It is the closest thing the complementary tier has to a prior,
+  and the honest description is "a gain knob wearing the clothes of a covariance".
+  *Settle (R4):* properly, this is E4's job — an EKF estimates it instead of asserting it. Until
+  then, set from measured post-correction error.
+  *Blast radius if wrong:* it and HA-61 together set the confidence
+  `σ_dr²/(σ_dr² + σ_meas²)`, i.e. how fast the estimate chases the GPS and therefore how much
+  sensor noise it inherits. Must stay > 0: a zero would make confidence zero, the Localizer
+  screens a zero-confidence proposal out, and the corrector would look absent rather than weak.
+  Guarded by precondition.
+
+- [ ] **HA-67 — dead-reckoning uncertainty grows ≈0.02 inch of sigma per inch travelled.**
+  *Claim:* 2% of distance travelled, as a 1σ position uncertainty, since this source's last fix.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::driftStdDevPerInch` (PROVISIONAL (A4: HA-67)).
+  *Confidence:* **invented**, and related to but not the same as HA-36 (the Localizer's
+  `driftHorizon`, which decays a quality SCALAR rather than widening a gate).
+  *Settle (R4):* the same measurement as HA-36 — drive a known path with the GPS covered and
+  measure how error grows with distance.
+  *Blast radius if wrong (too small):* GATE LOCKOUT — after a long blind stretch, a truthful fix
+  looks outrageous and is rejected, and since nothing else can repair the estimate, so is every
+  fix after it. The GPS dies exactly when it is worth the most. This is the failure the term
+  exists to prevent and it is pinned by a dedicated test. (Too large): the gate stays wide open
+  after one long dead-reckon and a lie is accepted because the corrector still believes it is
+  lost — pinned by the companion test that the widening RESETS on an accepted fix.
 
 ---
 

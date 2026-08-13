@@ -52,6 +52,20 @@ enum class GateReason : std::uint8_t {
     RejectedMahalanobis = 3,  ///< failed the Mahalanobis gate (EKF tier, E4)
     RejectedNoFix = 4,        ///< source had no usable fix (off-strip GPS / no tag, E2/E3)
     RejectedHighYawRate = 5,  ///< spinning too fast to trust the fix (E2)
+    /// Failed the complementary tier's NORMALIZED-INNOVATION gate: |residual| exceeded
+    /// `gateSigma` times the fix's own 1σ (measurement σ from the device's reported error,
+    /// widened by how far the estimate has dead-reckoned since its last fix). Appended at
+    /// E2 rather than reusing `RejectedMahalanobis`, which needs a filter-estimated
+    /// covariance the complementary tier does not have — see gps_corrector.hpp. (E2)
+    RejectedNormalizedInnovation = 6,
+    /// The source re-reported a sample it has already folded, so there is no new
+    /// information this tick. The V5 GPS camera produces a fix every ~50 ms while the
+    /// control loop runs at ~100 Hz, so a corrector that folds every read counts one
+    /// measurement five times. (E2)
+    RejectedStaleFix = 7,
+    /// The source claims a fix but reports a self-error too large to be worth folding —
+    /// a sensor saying "I can see, badly" rather than "I cannot see". (E2)
+    RejectedSensorQuality = 8,
 };
 
 /// Index vocabulary for DebugRecord::tickPhase — WHO consumed the loop budget this

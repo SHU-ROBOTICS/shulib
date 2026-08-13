@@ -182,6 +182,12 @@ TEST_CASE("GateReason: numeric values are wire-stable (F9) — a reorder turns t
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedMahalanobis) == 3);
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedNoFix) == 4);
     CHECK(static_cast<std::uint8_t>(GateReason::RejectedHighYawRate) == 5);
+    // Appended at E2 (the first real corrector). APPEND-ONLY: these three took the next
+    // free values and none of the five above moved, so a blackbox written before E2 still
+    // decodes to the same meanings.
+    CHECK(static_cast<std::uint8_t>(GateReason::RejectedNormalizedInnovation) == 6);
+    CHECK(static_cast<std::uint8_t>(GateReason::RejectedStaleFix) == 7);
+    CHECK(static_cast<std::uint8_t>(GateReason::RejectedSensorQuality) == 8);
 }
 
 TEST_CASE("DebugRecord.qualityClass: the documented numeric mirror of Localizer::Quality "

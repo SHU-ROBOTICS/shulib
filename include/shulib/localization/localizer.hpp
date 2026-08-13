@@ -159,6 +159,14 @@ public:
         std::array<CorrectionProposal, kMaxCorrectors> buf{};
         std::array<const char*, kMaxCorrectors> names{};
         std::size_t n = 0;
+        // E2: the verdict of the FIRST corrector that declined to propose and said why. A
+        // declined proposal never reaches the fusion policy, so without this the record could
+        // not tell "the GPS is off the strip" from "no corrector is registered" — see
+        // CorrectionProposal::selfAudit. Kept as a plain pair, not a list: the record has ONE
+        // gating slot, so a second silent source would have nowhere to go anyway (E3 revisits
+        // this when a second corrector exists).
+        GateAudit selfAudit{};
+        const char* selfAuditSource = nullptr;
         if (foldDeltas) {
             for (ICorrector* c : correctors_) {
                 const CorrectionProposal p = c->propose(predicted, units::Time{dt});
@@ -168,6 +176,10 @@ public:
                     n < buf.size()) {
                     names[n] = c->name();
                     buf[n++] = p;
+                } else if (selfAuditSource == nullptr &&
+                           p.selfAudit.reason != diag::GateReason::None) {
+                    selfAudit = p.selfAudit;
+                    selfAuditSource = c->name();
                 }
             }
         }
@@ -210,10 +222,25 @@ public:
         // record producer can stamp the §18.2 gating slots without knowing which fusion
         // policy is installed — the same value flows whether the policy is today's
         // complementary tier or E4's EKF.
+        //
+        // E2 SUBSTITUTION RULE: the policy's verdict wins whenever it HAS one. It reports
+        // `None` only when nothing reached it, and that is exactly the tick whose story lives
+        // upstream in a corrector — an off-strip GPS, a fix rejected mid-spin, a re-reported
+        // stale sample. Then, and only then, the corrector's own verdict is what the record
+        // carries, and `source` names who declined rather than reading "none". A policy that
+        // saw proposals always returns Accepted or a Rejected*, so this can never overwrite a
+        // real fusion verdict — the `reason == None` guard is what makes that true, and it is
+        // dead code with one corrector and load-bearing with two (found by mutation at E2;
+        // pinned by test/gps_corrector_blackbox_test.cpp's two-corrector case).
+        GateAudit tickAudit = fr.audit;
+        const char* source = (fr.applied && n > 0) ? names[0] : "none";
+        if (tickAudit.reason == diag::GateReason::None && selfAuditSource != nullptr) {
+            tickAudit = selfAudit;
+            source = selfAuditSource;
+        }
         lastCorrection_ = AppliedCorrection{units::Length{fusedX_ - predicted.x().value()},
                                             units::Length{fusedY_ - predicted.y().value()},
-                                            fr.gated, fr.clamped, (fr.applied && n > 0) ? names[0] : "none",
-                                            fr.audit};
+                                            fr.gated, fr.clamped, source, tickAudit};
         refreshQuality(dtHealthy);
 
         pose_ = newPose;

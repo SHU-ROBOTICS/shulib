@@ -292,10 +292,40 @@ which is exactly the file you are most likely to be holding.
 
 **Honest status:** the format, the sink and the decoder exist and are tested; the piece that
 actually writes to `/usd/` on a real brain does not (it is deliberately kept out of the core, and
-lands with the rest of the hardware bridge). The gating numbers the record reserves —
-per-correction residual, Mahalanobis distance, accept/reject reason — are carried end to end, but
-until the correctors exist there is nothing real to put in them. See
-[Chapter 14](14-what-it-cannot-do-yet.md).
+lands with the rest of the hardware bridge). See [Chapter 14](14-what-it-cannot-do-yet.md).
+
+## Why the estimator trusted (or ignored) a sensor
+
+Every tick, the record carries the fusion layer's verdict on the position fixes it was offered:
+one **reason**, the **residual** it was decided on (how far the fix disagreed with the estimate,
+in x and y), and the scale it was judged against. This is the part of the file you read when a
+routine ended in the wrong place and you need to know whether the estimate was wrong or the
+motion was.
+
+| Reason | What happened |
+|---|---|
+| `None` | Nobody offered a fix this tick. With no correctors wired up, this is every tick. |
+| `Accepted` | A fix passed the gate and was folded in as a bounded nudge. |
+| `RejectedInnovation` | The fix disagreed with the estimate by more than the fusion layer's hard limit (a foot). The last line of defence — a fix this far out is treated as a misread whatever the sensor claims. |
+| `RejectedNoFix` | The source had nothing usable: the GPS is off the strip, covered, or disconnected. **In Driving Skills this is the whole run**, and seeing it is how you tell "no strip, as expected" from "the GPS was never wired up". |
+| `RejectedHighYawRate` | The robot was spinning too fast for the fix to be trusted. |
+| `RejectedNormalizedInnovation` | The fix disagreed by more than a few times its own claimed accuracy. This is the everyday gate — it adapts to how confident the sensor says it is and to how long the robot has been navigating blind. |
+| `RejectedStaleFix` | The sensor re-reported a reading already used. Expect a lot of these: the GPS updates about five times slower than the control loop, so most ticks are legitimately stale, and the corrector folds each reading exactly once. |
+| `RejectedSensorQuality` | The sensor claimed a fix but reported so much error that folding it was not worth doing. |
+| `RejectedMahalanobis` | Reserved for the Kalman-filter tier, which does not exist yet. Nothing writes it today. |
+
+Two habits worth forming:
+
+- **A run full of `RejectedNoFix` in Autonomous means the strip is not being seen.** Check
+  mounting height and line of sight before you touch any gains.
+- **A run full of `RejectedNormalizedInnovation` means the estimate and the GPS have stopped
+  agreeing** — either the sensor is lying, or the estimate drifted far enough that truthful
+  corrections now look outrageous. The residual in the record tells you how far apart they were.
+
+The record also reserves a **Mahalanobis distance** slot for the Kalman-filter tier. It is
+deliberately left at zero today rather than filled with something similar-looking: today's fusion
+layer has no covariance to compute one from, and a plausible number in that field would be
+impossible to distinguish from a real one later.
 
 For the deeper design — what's planned beyond the terminal (live telemetry, replay) — see the
 [diagnostics plan](../diagnostics-plan.md).

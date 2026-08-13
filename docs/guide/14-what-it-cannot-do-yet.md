@@ -34,8 +34,9 @@ The headline limitation, stated as many times as it takes:
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
-  (57 of them as of 2026-08-10, zero settled; each names its blast radius if wrong and the
-  measurement that settles it). Two examples to convey the range: the H-drive's sideways
+  (every one still unsettled; each names its blast radius if wrong and the measurement that
+  settles it — the register itself is the count, so this page does not carry a number that
+  would go stale). Two examples to convey the range: the H-drive's sideways
   authority (0.35) is pure invention that could plausibly be anywhere from ~0.15 to ~0.8
   (HA-54); and the entire heading-accuracy story leans on an assumed IMU drift bound (HA-20)
   that is community folklore until measured.
@@ -48,15 +49,36 @@ The team's phrase for the plan here is worth quoting: *the first hardware contac
 sequence, not a surprise* — phases R1–R6 on the roadmap are exactly that sequence (adapters,
 day-one validation, sensor characterization, gain measurement, sim back-fit).
 
-## No absolute position correction yet
+## Position correction exists; yaw correction does not
 
-The estimate is pure dead reckoning today (odometry + IMU,
-[Chapter 3](03-knowing-where-you-are.md)). The correction *seam* exists and is tested — but the
-GPS corrector and the vision/AprilTag corrector that would plug into it are planned work
-(roadmap milestone M3). Until at least one exists, drift over a 60-second run is uncorrected,
-and the team's < 1° end-of-run heading requirement is, by the master plan's own analysis,
-**not reliably achievable on a real robot** — absolute yaw correction is load-bearing for the
-spec, not a nice-to-have.
+**This limitation has partly fallen.** The GPS corrector is finished and tested
+([Chapter 3](03-knowing-where-you-are.md)): with the strip in view, position drift is bounded
+rather than accumulating for the whole run. What is still missing is the half that the accuracy
+spec actually turns on.
+
+- **No absolute HEADING correction.** Heading comes from the IMU alone and its drift is
+  uncorrected. The GPS reports a heading; the library deliberately does not use it, because it
+  is worse than the IMU's. The team's < 1° end-of-run heading requirement therefore remains, by
+  the master plan's own analysis, **not reliably achievable on a real robot** — absolute yaw
+  correction is load-bearing for that spec, and it needs the vision/AprilTag corrector (roadmap
+  milestone M3), which is planned work.
+- **No vision/AprilTag corrector**, so there is exactly one absolute position source. If the
+  strip is not visible there is no second opinion.
+- **No Kalman filter.** Fusion is a bounded-nudge complementary filter. It has no covariance, so
+  it cannot weigh two disagreeing sources against each other properly, and the diagnostics field
+  reserved for a Mahalanobis distance is honestly left empty rather than filled with a
+  look-alike.
+- **Correction does not rescue a badly wrong estimate.** Fixes more than a foot from the
+  estimate are rejected outright. If the estimate is grossly wrong, the corrector will not pull
+  it back — bounded drift is a weaker promise than recovery, and the difference matters after a
+  hard collision.
+- **None of it has seen a GPS.** The corrector's behaviour was proven against a simulated sensor
+  built from written-down guesses about noise, timing and failure modes
+  ([Hardware Assumptions Register](../hardware-assumptions.md)). How much a real GPS helps
+  depends on how its accuracy compares to real dead-reckoning drift, and neither has been
+  measured.
+- **Driving Skills has no strip at all**, so in that event the estimate is exactly as
+  dead-reckoned as it was before this feature existed.
 
 ## The mechanism seam is a placeholder
 

@@ -56,6 +56,26 @@ struct CorrectionProposal {
                                          ///< headingNudge field on FusionResult + the Localizer applying
                                          ///< it before the IMU re-stamp — which does NOT change the frozen
                                          ///< IPoseSource/ICorrector/IFusionPolicy signatures callers depend on.
+    /// The corrector's OWN account of this tick — APPENDED at E2, trailing and defaulted, so
+    /// every existing construction of this struct still compiles and means the same thing
+    /// (the same discipline E1 used to add `GateAudit` to `FusionResult`).
+    ///
+    /// WHY IT EXISTS. A corrector that returns `valid == false` is dropped by the Localizer
+    /// and never reaches a fusion policy, so before E2 a corrector-side verdict had NO channel
+    /// to the record: an off-strip GPS and an empty corrector list produced the same
+    /// `GateReason::None`, and "the estimator is dead-reckoning because the strip is missing"
+    /// was indistinguishable from "nobody asked". Driving Skills has no GPS strip, which makes
+    /// that the difference between a diagnosable run and a mystery. `RejectedNoFix` and
+    /// `RejectedHighYawRate` were reserved at A1 as corrector-side verdicts; this is the wire
+    /// that carries them.
+    ///
+    /// CONTRACT. Set `selfAudit.reason` on every tick the corrector declines to propose, and
+    /// leave it `None` when it does propose — the fusion policy owns the audit for proposals
+    /// that reach it, and a corrector claiming `Accepted` here could otherwise be substituted
+    /// into the record on a tick where the Localizer screened the proposal out and nothing was
+    /// applied. The Localizer substitutes this audit ONLY when the policy returned no verdict
+    /// of its own (see localizer.hpp, STEP 4).
+    GateAudit selfAudit{};
 };
 
 /// What a fusion policy did to the POSITION this tick. Heading is never here — the Localizer

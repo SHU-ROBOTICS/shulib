@@ -387,8 +387,80 @@ Honest gaps: nothing has touched an SD card (the `/usd/` adapter is R1's), ring 
 flush cost are guesses registered as **HA-58/59/60**, and **D-8 was not delivered** — it did not fall
 out for free and is re-homed to F2 with the reasoning recorded. E1 freezes nothing.
 
-**Next: E2 — `GpsCorrector`.** The first real corrector, and the first thing that will put genuine
-numbers into the introspection path E1 just built.
+**Chunk E2 — `GpsCorrector`, the first REAL corrector: DONE 2026-08-12**
+([completion record](chunks/E2-COMPLETED.md), live log in [E2-PROGRESS.md](chunks/E2-PROGRESS.md)).
+The introspection path E1 built now carries decisions a real gate actually made.
+`localization/gps_corrector.hpp` implements `ICorrector` behind the unchanged M2 signature, with
+adaptive R from `rmsError()`, latency compensation out of an odometry history ring, a
+stale-sample guard (one measurement folded once against the ~50 ms camera cadence, so correction
+strength no longer depends on loop rate), high-yaw-rate rejection, a sensor-quality ceiling, and
+a normalized-innovation gate whose bound WIDENS with dead-reckoned travel. Suite **794 /
+1,081,382**, both guards and the ARM gate (111 headers) clean, **20/20 mutations red**.
+
+**Three rulings, each with its rejected alternative.** **T1 — the gate is a normalized
+innovation, and is named that.** A Mahalanobis distance normalises by a filter-ESTIMATED
+covariance; the complementary tier has none, so `gateMahalanobis` stays 0, `RejectedMahalanobis`
+is never raised, and `GateReason` gained `RejectedNormalizedInnovation` / `RejectedStaleFix` /
+`RejectedSensorQuality` (append-only, wire-pinned). Rejected: calling it Mahalanobis anyway on
+the grounds that an assumed isotropic S makes the scalar ratio one — rejected because the
+assumption is the entire content, and one field holding both an earned and an asserted quantity
+makes the difference invisible. **T2 — the accuracy claim is an aggregate, and says so.** Over 8
+seeds of a 60 s hostile run, MEAN final and worst-case error are lower with the corrector
+(per-seed 7/8 and 6/8). The magnitude-free claim is stronger and is asserted per seed: a known
+6-inch position error is HEALED, while dead-reckoning carries it to the end of the run — which is
+the actual mental-model change. Rejected: shopping for the friendlier 30 s closed-loop scenario
+that does pass 8/8. **T3 — heading stays IMU-owned, provably.** The proposal carries the
+PREDICTED heading, so the GPS's never leaves the corrector even if a future policy read
+`fieldPose.heading()`.
+
+**T4, a ruling the brief did not anticipate: the corrector does NOT own frame or lever arm.**
+The brief assigned it "frame/lever-arm reduction"; `hal/gps.hpp`, `hal/gps_conversion.hpp` and
+`fake_gps.hpp` all assign it to the HAL edge in writing, with `gps_conversion.hpp` saying **ONE
+owner** and naming double-subtraction as the failure. A corrector that re-did either would be
+right against `FakeGps` and silently wrong against the R1 adapter — invisible to host tests. So
+E2 owed those two traps PROOF, not code: seven `[oracle]` cases pinning the conversions from the
+geometry by hand, at seven headings with both lever-arm components non-zero.
+
+**Two findings that predate the chunk.** (1) **HA-07 had no code and no test.** The metres→inches
+obligation lived in `gps_conversion.hpp` as prose addressed to a future adapter author, and the
+existing conversion tests pinned the scale against `kMetersToInches` imported from the header
+under test — a wrong constant satisfied both sides of the `==`. Fixed where it belongs
+(`gpsRmsErrorToCanonical()`), pinned against the definition of the inch. (2) **A hard 12-inch
+ceiling on what any corrector can repair**, owned by `ComplementaryFusion::innovationGate` and
+observed live: an estimate 29 inches out never recovered with a good GPS in view. Recorded for
+E4, not patched from inside a corrector.
+
+**The mutation hole (one green of twenty):** the Localizer substitution rule's `reason == None`
+guard is dead code with ONE corrector and load-bearing with two — a silent source could stamp
+`RejectedNoFix` over a tick that actually applied a fix. Latent until E3. Closed with a
+two-corrector case that fails alone.
+
+Honest gaps: nothing has seen a GPS; seven new invented constants (**HA-61…HA-67**); the accuracy
+gain is modest because the modeled sensor noise and the modeled drift are the same order, both
+invented; E2 bounds drift but does not recover a grossly wrong estimate. E2 freezes nothing.
+
+*Reviewer's independent verification.* The frame and lever-arm math was re-checked against a
+**from-scratch geometric oracle written for the review** — 23 assertions with hand-computed
+literals: the East/North transform at two different North orientations, pure-East and negative-North
+cases that catch an axis swap or a sign flip, the metres→inches scale written as `1.0 / 0.0254`
+(the definition of the inch) rather than imported, and lever-arm removal at four headings with both
+components non-zero, since a lever-arm sign error is invisible at heading 0. All 23 pass. That check
+exists because a conversion shared between code and test cancels its own sign errors — the failure
+that bit C1, C3 and C4.
+
+That is also exactly what E2's HA-07 finding was: the pre-existing test did
+`using shulib::hal::kMetersToInches;` and then asserted against `kMetersToInches`, so a wrong
+constant satisfied both sides of the `==`. Confirmed by reading the test at `73b8e7f`.
+
+*Process failure, self-reported by the chunk and worth keeping.* A `git checkout` on a file holding
+uncommitted work (the brief forbids it) plus a `head`-induced SIGPIPE left `gps_conversion.hpp` with
+the metres→inches multiply **deleted** mid-campaign. It was **caught by the mutation count dropping,
+not by anything in the report** — which is the argument for counting what a campaign ran rather than
+trusting its summary. Harness now traps PIPE and never checks out. Tree integrity re-verified at
+review: the multiply is present at `gps_conversion.hpp:75` and `:101`.
+
+**Next: E3 — `AprilTagCorrector`.** The second corrector — which is also what makes E2's
+substitution guard live rather than dead code.
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
