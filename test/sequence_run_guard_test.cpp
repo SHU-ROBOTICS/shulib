@@ -771,3 +771,53 @@ TEST_CASE("F2 waitFor: a predicate in flight is never called at or after the dea
         },
         [] { return true; });
 }
+
+// Bug caught: THE FLOOR SILENTLY NOT FIRING. Found by an independent reviewer
+// probe after the chunk's own 14-mutation campaign came back all-red, which is
+// the point of running one. C2's waitUntil evaluates `pred` BEFORE pace(), so
+// an end action that ticks an operation through guard.waitFor lets the guard's
+// own predicate observe the floor and return — correctly ending the wait —
+// while pace() never runs fireFloor(). Measured before the fix: the mechanism
+// sat at 9.000 V past the floor, report.floorFired read FALSE, and the "all
+// devices safed unconditionally" Warn was never logged.
+//
+// The devices were still safed when run() returned, so this was never a
+// runaway. It was worse in a subtler way: a run where the hard floor MATTERED
+// was indistinguishable from one where it never came up — no flag, no line, no
+// trace. That is exactly the observability failure E1 spent a chunk closing
+// (DebugRecord::fault had no producer for seventeen chunks while TermSink
+// rendered it).
+//
+// Without the fix in expiredNow(), the first two CHECKs below fail alone.
+TEST_CASE("F2 floor: fires when a WAIT reaches it first, not only when pace() does") {
+    GuardRig g;
+    GuardMech m{g};
+    std::array<IMechanism*, 1> mechs{&m.mech};
+    g.chassis.setPose(Pose2d{});
+
+    bool floorSeenInsideEndAction = false;
+
+    const RunGuardReport rep = g.guard.run(
+        g.chassis,
+        RunGuardConfig{.endActionAt = Time{0.5}, .hardStopAt = Time{1.5},
+                       .mechanisms = mechs},
+        [] { /* scoring ends at once — the end action owns the rest */ },
+        [&] {
+            // The end action ticks an operation through the guard's OWN wait.
+            // Nothing here ever becomes true, so the wait can only end at the
+            // floor — and it ends via the PREDICATE, before any pace() sees it.
+            const GuardedWaitResult w =
+                g.guard.waitFor([&] { return false; }, Time{30.0});
+            floorSeenInsideEndAction = (w == GuardedWaitResult::RunExpired);
+            return true;
+        });
+
+    // The floor must have FIRED, not merely been observed.
+    CHECK(rep.floorFired);
+    CHECK(g.seqLineContains("hard stop"));
+
+    CHECK(floorSeenInsideEndAction);
+    g.checkDriveSafe();
+    CHECK(m.motor.commandedVoltage().value() == 0.0);
+    CHECK(m.motor.brakeMode() == BrakeMode::Hold);
+}

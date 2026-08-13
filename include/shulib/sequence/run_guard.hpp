@@ -437,11 +437,33 @@ private:
         return inEndAction_ ? floorDeadline_ : actDeadline_;
     }
 
+    /// True once the CURRENT phase's deadline has passed — and, like pace(),
+    /// this FIRES the floor rather than merely reporting it.
+    ///
+    /// REVIEWER FIX (independent probe, after the chunk's own campaign): the
+    /// floor could silently not fire. C2's waitUntil evaluates `pred` BEFORE
+    /// pace(), so when the end action ticked an operation through waitFor, this
+    /// predicate observed the floor and returned — ending the wait correctly —
+    /// while pace() never ran fireFloor(). Measured at the time: the intake sat
+    /// at 9.000 V past the floor, `report.floorFired` read false, and the
+    /// "all devices safed unconditionally" Warn was never logged. Devices were
+    /// still safed when run() returned, so it was never a runaway — but a run
+    /// where the floor MATTERED was indistinguishable from one where it never
+    /// came up, which is the observability failure E1 spent a chunk on.
+    ///
+    /// The floor is checked FIRST and unconditionally, mirroring pace() exactly
+    /// (that ordering is why the floor outranks the scoring deadline in both
+    /// entry points). Calling fireFloor() from a predicate is legal: C2 permits
+    /// cancel() from a waitUntil predicate, and fireFloor() is idempotent.
     [[nodiscard]] bool expiredNow() {
         if (floorFired_) {
             return true;
         }
         const double now = clock_->now().value();
+        if (now >= floorDeadline_) {
+            fireFloor(now);  // a wait can reach the floor before any pace does
+            return true;
+        }
         if (!inEndAction_ && now >= actDeadline_) {
             noteExpired(now);  // a wait can see expiry before any pace does
             return true;

@@ -233,6 +233,20 @@ Unpacked, that is three separate limits:
 - **Frozen waits pay their remainder.** `pause`/`waitFor`/`waitUntil` on the frozen
   surfaces cannot see the deadline ([Chapter 9](09-the-recipe-api.md) has the exact
   formula and the deadline-aware alternative).
+- **"Zero travel after the deadline" is a simulator result, not a robot one.** The host
+  measurement is exactly 0.0 inches, and it is real — but it holds because the guard
+  refuses the next command *before* the world advances **and** because the simulated
+  drivetrain is memoryless: it stops the instant the voltage does. A real robot has mass.
+  The honest on-robot claim is **"no new commanded motion after the deadline"** — the
+  coasting and braking distance already in the wheels is physics, and this plant cannot
+  produce it. Budget your lead time for a robot that is still moving when the command
+  stops.
+  There is a second difference that matters more on a field than it does here: **on a real
+  brain, time passes whether or not your code calls into shulib.** In the simulator the
+  clock only advances when the pacer steps it, so the deadline is never "missed" while
+  something else runs. On hardware, both the cut and the hard floor can only fire when your
+  code next re-enters the library — which is the same limit as the bullet above, seen from
+  the other side.
 
 And its deliberate refusals, which are design, not gaps: no default match length, no
 default lead time, no park pose, no field coordinate — a guard with a built-in notion of
