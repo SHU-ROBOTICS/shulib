@@ -111,13 +111,21 @@ def main() -> int:
             shutil.copy2(src, dst)
         copied += 1
 
-    # mkdocs wants a homepage; the repo wants a README (GitHub shows README.md
-    # when you browse a directory, and ignores index.md). One file, both jobs.
+    # mkdocs wants a homepage (index.md); the repo wants a README (GitHub shows
+    # README.md when you browse a directory, and ignores index.md). One file
+    # does both jobs — but it must be RENAMED here, not copied: mkdocs treats a
+    # README.md and an index.md in the same directory as a conflict, warns, and
+    # under `strict: true` that warning fails the build. Renaming in the copy
+    # leaves docs/README.md untouched in the repository.
+    #
+    # Only the docs ROOT README is renamed. guide/README.md, cookbook/README.md
+    # and api/README.md are section landing pages that the nav and 4 in-tree
+    # links point at by name; they have no sibling index.md, so they neither
+    # conflict nor move.
     readme = out / "README.md"
-    if readme.exists():
-        shutil.copy2(readme, out / "index.md")
-    else:
+    if not readme.exists():
         raise SystemExit("ERROR: docs/README.md is missing — the site has no homepage")
+    readme.rename(out / "index.md")
 
     # ── safety property 1: no internal documentation reached the site ─────────
     leaks = []
