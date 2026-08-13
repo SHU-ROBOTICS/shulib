@@ -86,8 +86,15 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > **Everything below is DERIVED FROM THE REPO, not typed.** A build gate
 > (`briefing_status.py check`) fails if it drifts, so it cannot go stale
 > silently. Each line names where it comes from — re-check any of it.
+>
+> **Nothing here is derived from the commit graph** — no HEAD SHA, no
+> commits-ahead count, no commit list. Those three cannot be written into a
+> committed file without lying, because each is a function of the commit
+> being made; they made this gate unsatisfiable and are deliberately gone.
+> Run `git log --oneline -20` and `git status` for them — §2 says so already,
+> and a command cannot go stale.
 
-**Position:** 21 of 43 chunks complete · HEAD `101a3f1`
+**Position:** 21 of 43 chunks complete
 
 - **Next up:** R1 — hal/pros adapters, with Phase T's IController seam folded in  
   *(source: `build-order.md`'s `Next:` pointer)*
@@ -121,8 +128,6 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 ⚠️ **Register rows F1–F5 are NOT chunks F1–F5.** Row F2 is the accuracy targets; chunk F2 was the sequence engine. The collision is in shipped code (`spec/accuracy.hpp`). **Never edit rows F1–F5.**
 
-**Unreleased:** `origin/shulib-v2` +26 · `main` +186 · `release/v2` +26 commits ahead *(source: `git rev-list`. The docs site publishes from `main`, so anything ahead of it is not public.)*
-
 **Guards, run just now:** PROS-free PASS · sim-layering PASS · freeze pins: F6 50, F10 52
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
@@ -141,20 +146,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **No open defects** are flagged with the 🔴 convention in `docs/internal/`.
 
-**Recent commits** *(the fastest way to see what just happened)*:
-
-```text
-101a3f1 docs(internal): PROJECT-BRIEFING — the complete context transfer
-de5f90b docs(internal): next-session prompt — R1 with the controller seam folded in
-0492176 fix(sequence): the hard floor could fire silently, and the zero-travel claim was plant-shaped
-1b20c56 docs(internal): F2's four independent probes landed — all hold, two items open
-28cb926 docs(internal): handoff after F2 — and the four checks that did not finish
-8223a7c F2 sequence engine (WS8): a guarantee, and the honest edges of it
-9915745 docs(chunks): F2 brief — the guarantee, measured before it was promised
-93f9196 fix(pins): F6 and F10 were blind to a frozen member GAINING noexcept
-cb8e8e8 F1 verification: the reviewer's independent oracle, and a repaired harness
-cb77fbc docs(plan): add Phase T — driver control, because the one-stop-shop claim was false
-```
+**What just happened:** run `git log --oneline -20`. It is deliberately not reproduced here — see the note at the top of this block.
 
 <!-- END GENERATED STATUS -->
 

@@ -164,19 +164,24 @@ def total_planned():
 # ── screwed" — the answer is to derive MUCH more, and to gate the part that
 # ── cannot be derived at all; see durable_stamp below)
 
-def release_state():
-    """How far ahead of the published branches we are. Repo-local, no network."""
-    out = {}
-    for ref in ("origin/shulib-v2", "main", "release/v2"):
-        n = _run(["git", "rev-list", "--count", f"{ref}..HEAD"]).strip()
-        if n.isdigit():
-            out[ref] = int(n)
-    return out
-
-
-def recent_commits(n=10):
-    raw = _run(["git", "log", f"-{n}", "--format=%h %s"]).strip()
-    return [l for l in raw.splitlines() if l]
+# ── WHY THERE IS NO HEAD SHA, NO COMMITS-AHEAD COUNT AND NO COMMIT LIST HERE ──────
+# All three used to be generated into the block, and all three made this gate
+# STRUCTURALLY UNSATISFIABLE: each is a function of the commit you are in the act
+# of making. Regenerate, stage, commit — and the new commit's SHA, the new
+# ahead-count and the new log entry are all instantly wrong, so `check` fails on
+# the very commit that just fixed it. There is no fixed point. Every commit from
+# the one that introduced this gate left the build red, and nobody noticed only
+# because the gate's CMake DEPENDS list did not include this file or .git/HEAD,
+# so it re-ran solely when some unrelated document changed.
+#
+# The cut is not a compromise: the block's job is to describe THE WORK (chunks
+# done, suite counts, guards, assumptions, skips, open defects), which changes
+# when work lands. The commit graph is not work, and §2 of the briefing already
+# instructs the reader to run `git log --oneline -20` and `git status` — which
+# answers those three questions live, and cannot go stale at all.
+#
+# DO NOT ADD THEM BACK. A field this block cannot hold without lying is a field
+# that belongs in a command the reader runs.
 
 
 def skipped_tests():
@@ -272,15 +277,20 @@ def render():
     total = total_planned()
     ha_n, ha_next, ha_settled = ha_entries()
     suite = suite_counts()
-    head = _run(["git", "rev-parse", "--short", "HEAD"]).strip() or "?"
 
     L = [BEGIN, ""]
     L.append("> **Everything below is DERIVED FROM THE REPO, not typed.** A build gate")
     L.append("> (`briefing_status.py check`) fails if it drifts, so it cannot go stale")
     L.append("> silently. Each line names where it comes from — re-check any of it.")
+    L.append(">")
+    L.append("> **Nothing here is derived from the commit graph** — no HEAD SHA, no")
+    L.append("> commits-ahead count, no commit list. Those three cannot be written into a")
+    L.append("> committed file without lying, because each is a function of the commit")
+    L.append("> being made; they made this gate unsatisfiable and are deliberately gone.")
+    L.append("> Run `git log --oneline -20` and `git status` for them — §2 says so already,")
+    L.append("> and a command cannot go stale.")
     L.append("")
-    L.append(f"**Position:** {len(done)} of {total if total else '?'} chunks complete "
-             f"· HEAD `{head}`")
+    L.append(f"**Position:** {len(done)} of {total if total else '?'} chunks complete")
     L.append("")
     L.append(f"- **Next up:** {next_chunk()}  \n  *(source: `build-order.md`'s `Next:` pointer)*")
     if flight:
@@ -326,14 +336,6 @@ def render():
                  "targets; chunk F2 was the sequence engine. The collision is in shipped "
                  "code (`spec/accuracy.hpp`). **Never edit rows F1–F5.**")
     L.append("")
-
-    rel = release_state()
-    if rel:
-        parts = [f"`{k}` +{v}" for k, v in rel.items()]
-        L.append(f"**Unreleased:** {' · '.join(parts)} commits ahead "
-                 "*(source: `git rev-list`. The docs site publishes from `main`, so anything "
-                 "ahead of it is not public.)*")
-        L.append("")
 
     g1, g2 = guard_state()
     pins = pin_counts()
@@ -382,14 +384,9 @@ def render():
                  "`docs/internal/`.")
         L.append("")
 
-    commits = recent_commits()
-    if commits:
-        L.append("**Recent commits** *(the fastest way to see what just happened)*:")
-        L.append("")
-        L.append("```text")
-        L.extend(commits)
-        L.append("```")
-        L.append("")
+    L.append("**What just happened:** run `git log --oneline -20`. It is deliberately not "
+             "reproduced here — see the note at the top of this block.")
+    L.append("")
 
     L.append(END)
     return "\n".join(L)

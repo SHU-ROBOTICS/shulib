@@ -151,6 +151,15 @@ add_custom_command(
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/chassis.md"
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/routine.md"
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/README.md"
+    # The briefing gate's own subject and tool. Without these two the gate
+    # re-ran ONLY when some unrelated document changed — so the briefing could
+    # be edited into a lie, or drift as chunks completed, and the build stayed
+    # green until something else happened to touch a chapter. A gate that does
+    # not re-run when the thing it checks changes is not a gate. (Found while
+    # briefing R1a: `briefing_status.py check` was failing at HEAD and the
+    # build did not know.)
+    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/internal/PROJECT-BRIEFING.md"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
   VERBATIM)
