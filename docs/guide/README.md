@@ -132,5 +132,5 @@ the test suite.
 Written the way a patient senior member explains things sitting next to someone. Plain
 sentences; no marketing. Define every term at first use (and mirror it in the glossary). Prefer
 a concrete number to an abstraction, and a reason to a rule. Admit what's hard and what's
-unverified — this library has never run on a robot, and the guide says so wherever it matters.
+unverified — this library has never driven a robot, and the guide says so wherever it matters.
 If a sentence sounds like a tagline, delete it.

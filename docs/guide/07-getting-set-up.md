@@ -114,9 +114,11 @@ mental model, which matters more:
 ## What about putting code on a robot?
 
 For completeness, the path that exists today: `make` at the repo root cross-compiles a real,
-uploadable V5 package, and `pros upload` would put it on a brain. It boots and prints a
-diagnostics banner — **and drives nothing**, because the adapters connecting the library's
-motor/sensor interfaces to real V5 devices don't exist yet. The
+uploadable V5 package, and `pros upload` puts it on a brain. This has been done — on 2026-08-12
+the package was uploaded to a V5 brain, booted, and printed its diagnostics banner over USB, so
+the commands above are a path that has been walked rather than one we believe should work. It
+**drives nothing**, because the adapters connecting the library's motor/sensor interfaces to
+real V5 devices don't exist yet. The
 [roadmap](../roadmap.md#milestones-at-a-glance) tracks exactly what stands between here and a
 driving robot (the "you are here" note is kept current). Until then, everything in this guide
 runs host-side, and nothing you'll learn is wasted — the code you write against the simulator is

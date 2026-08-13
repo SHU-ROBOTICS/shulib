@@ -50,24 +50,29 @@ core never touches PROS directly (that separation is load-bearing; see the layou
 
 ## What it is NOT yet
 
-**This library has never run on a physical robot.** That is the single most important fact
-about its current state, so here it is, third heading from the top:
+**This library has never driven a robot.** That is the single most important fact about its
+current state, so here it is, third heading from the top:
 
 - Everything verified so far is verified **off-robot**, against a simulated plant and simulated
   sensors. The simulation was built to be hostile, not flattering — but it is still simulation.
 - The hardware adapters that would connect the library's motor/sensor interfaces to real V5
-  devices **do not exist yet** (they are the next phase of work; the seams they fill are marked
-  `TODO(R1)` in `src/main.cpp`). `make` produces a real, uploadable V5 package that boots and
-  prints a diagnostics banner — and drives nothing.
+  devices **do not exist yet** (the seams they fill are marked `TODO(R1)` in `src/main.cpp`).
+- **What has been confirmed on hardware — and only this.** On 2026-08-12 the package was built,
+  uploaded, and booted on a V5 brain, where it constructed its whole object graph and printed
+  its diagnostics banner over USB serial. Every motor and sensor it spoke to was still a fake.
+  It drove nothing, because it cannot. What that run *does* establish is narrow and real: the
+  build-and-upload path works, and the library makes no host-only assumption that breaks on ARM.
+  It establishes nothing whatsoever about motion, accuracy, or control.
 - Every physical constant in the tree (gains, geometry, sensor noise) is a labeled stand-in.
-  [`docs/hardware-assumptions.md`](docs/hardware-assumptions.md) inventories all 49 of them as
-  falsifiable claims, each with its blast radius if wrong and the measurement that settles it.
+  [`docs/hardware-assumptions.md`](docs/hardware-assumptions.md) inventories them as falsifiable
+  claims, each with its blast radius if wrong and the measurement that settles it.
 - No vision-based position correction yet (the seam exists; the correctors are planned work),
   and no no-code routine authoring — routines are written in C++ today.
 
 ## How verified is it, honestly?
 
-**659 test cases, 915,570 assertions, all green, all off-robot.** That includes: closed-loop
+**752 test cases, 936,895 assertions, all green, all off-robot** *(as of 2026-08-12; run
+`./build/test/shulib_tests` for the current figure).* That includes: closed-loop
 motion on three drivetrains graded against ground truth the estimator cannot see; a 9-attack
 survival matrix (every simulated hardware pathology must degrade to a fault code, never a
 crash or a NaN pose); byte-pinned diagnostic output; and a measured heading-accuracy test
@@ -76,7 +81,9 @@ against a 1.0° requirement — with the caveat that the drift magnitudes are pr
 measured on real sensors). Load-bearing logic is mutation-tested: break the code deliberately,
 watch the test go red, restore it. CI additionally cross-compiles every library header for the
 V5's Cortex-A9 at strict warning levels, so no host-only assumption can enter the tree
-unnoticed — compiling for the target is verified; *running* on it is not.
+unnoticed. Since 2026-08-12 that is no longer only a compile-time claim: the package has been
+observed booting on a real V5 brain and constructing its full object graph there. *Driving* one
+remains unverified, and will be until the R1 adapters exist.
 
 ## Build and test
 

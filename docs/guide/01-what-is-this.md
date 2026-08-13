@@ -71,12 +71,17 @@ with current test counts and build instructions.
 
 ## The honest part
 
-**This library has never run on a physical robot.** Everything it does has been verified on a
+**This library has never driven a robot.** Everything it does has been verified on a
 simulated robot — a software model of motors, sensors, and physics that was deliberately built to
 misbehave the way real hardware misbehaves (sensors that lie during startup, wheels that slip,
 batteries that sag). That is real verification and we trust it, but simulation is not a robot,
 and we do not pretend otherwise. The pieces of software that would connect the library to real
-motors and sensors are the next phase of work. [Chapter 14](14-what-it-cannot-do-yet.md) lists
+motors and sensors are the next phase of work.
+
+It has been *started* on a real V5 brain once (2026-08-12) — it ran, built everything it needed,
+and printed its status over the cable. That is genuinely useful to know, because it means the
+code gets onto a brain and runs there. It is also much less than it sounds like: every motor and
+sensor in that run was imaginary, so nothing about *driving* was tested. [Chapter 14](14-what-it-cannot-do-yet.md) lists
 everything the library cannot do yet, with links to the plans for each.
 
 Why build it this way? Because the robot doesn't exist yet either — the team builds robots during

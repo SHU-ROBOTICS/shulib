@@ -13,14 +13,20 @@ is that rule applied to itself. The links matter more than the prose: statuses c
 linked documents are maintained as the truth. Where this page and the roadmap disagree, the
 roadmap is right.
 
-## It has never run on a robot
+## It has never driven a robot
 
 The headline limitation, stated as many times as it takes:
 
-- **No shulib code has ever executed on a physical robot.** All verification is host-side,
-  against a simulated plant and deliberately hostile simulated sensors
+- **No shulib code has ever controlled a motor or read a real sensor.** All verification is
+  host-side, against a simulated plant and deliberately hostile simulated sensors
   ([Chapter 7](07-getting-set-up.md) explains the approach;
   the [README](../../README.md#what-it-is-not-yet) states it third-heading-from-the-top).
+- **It has booted on a brain, and that proves less than it sounds like.** On 2026-08-12 the
+  package was uploaded to a V5 brain, where it started, built its entire object graph, and
+  printed its diagnostics banner over USB. Worth knowing, because it means the build path works
+  and nothing in the library depends on being on a laptop. But every motor and sensor in that
+  run was a fake, and the robot said so itself in the second line it printed. Booting is not
+  driving, and nothing about motion or accuracy was tested that day.
 - **The hardware adapters don't exist.** The library defines the interfaces real V5 motors and
   sensors will plug into; the implementations are phase R1 on the [roadmap](../roadmap.md).
   `make` produces a real V5 package that boots, prints a banner — and drives nothing

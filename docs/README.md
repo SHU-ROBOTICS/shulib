@@ -3,9 +3,11 @@
 shulib is a holonomic-native autonomous library for VEX U robots, built by the Seton Hall
 University robotics team. This is everything written about it.
 
-> **Honest status.** shulib has **never run on a physical robot.** Everything here is verified
-> against a host simulator with deliberately hostile sensor models — the logic is proven, the
-> physical constants are still estimates. [What it cannot do yet](guide/14-what-it-cannot-do-yet.md)
+> **Honest status.** shulib has **never driven a robot.** It has been booted on a V5 brain
+> (2026-08-12) and constructs its whole object graph there, but every motor and sensor it talks
+> to is still a fake — the adapters that would reach real hardware are unwritten. Everything
+> here is verified against a host simulator with deliberately hostile sensor models: the logic
+> is proven, the physical constants are still estimates. [What it cannot do yet](guide/14-what-it-cannot-do-yet.md)
 > is specific about which is which, and the [hardware assumptions register](hardware-assumptions.md)
 > lists every number waiting on a measurement.
 

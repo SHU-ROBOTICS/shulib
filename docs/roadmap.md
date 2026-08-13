@@ -796,8 +796,11 @@ DoD in Phases C–F depends on it.*
   deleted (34 files); the CI PROS-free guard covers all of `include/shulib/`; the new `shulib/` is
   the only tree. The **F6 freeze clause closed at D2 (2026-08-12)** — LOCKED, enumerated,
   pin-enforced. `[~]` not `[x]` because one clause is NOT done and is owned elsewhere:
-  **hardware-validation on the V5 is OPEN (R3)** — this package has never run on a
-  robot and cannot drive one until R1's hal/pros adapters exist.*
+  **hardware-validation on the V5 is OPEN (R3)** — this package has never driven a robot and
+  cannot until R1's hal/pros adapters exist. (It has been **booted** on a V5 brain, 2026-08-12:
+  upload → boot → full object graph constructed → diagnostics banner over USB, with every
+  motor and sensor still fake. That closes the "has never executed on a V5" unknown and closes
+  nothing else — R3's clause is about a robot that moves.)*
 
 **Definition of Done:** a hand-written X-drive auton chains profiled motions and settles within
 tolerance in host sim; the *same* auton runs the H-bot; **the run is legible in real time on the

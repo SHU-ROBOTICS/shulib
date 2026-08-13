@@ -404,7 +404,16 @@ the campaign runner now gates on build success).
 **The governing constraint: there is no robot yet, and won't be for a while.**
 
 **Status of the three things nothing had touched:**
-1. **No shulib v2 code has ever run on a V5**, and none can until hardware exists. *(Still true.)*
+1. ~~**No shulib v2 code has ever run on a V5.**~~ **Closed 2026-08-12** — a brain and a battery
+   were plugged in, and the package built from `main` (`d4fac9c`) uploaded, booted, constructed
+   its whole object graph on ARM, and printed its banner over USB serial, including a live
+   `strafeAuthority=1.00` query through the frozen facade. Evidence: the transcript plus the
+   sha256 of the exact binary. Both suspected blockers (soft-float firmware/`liblvgl.a`,
+   `CXX_STANDARD`) turned out to be already resolved. **What remains honest about it:** the HAL
+   was fake-backed, so it drove nothing and could not — the run proves the build/upload/boot path
+   and the absence of host-only assumptions, and proves *nothing* about motion, accuracy or
+   control. **This is not R3.** R3's clause is a robot that moves, and it is still open, behind
+   R1's adapters.
 2. ~~**There is no host sim.**~~ **Closed at A2; made HOSTILE at A3.** The plant converts voltage
    into motion behind the unmodified F4 fakes; closed loops converge, diverge, and are measured
    against exact ground truth — and since A3 the sensors LIE the way V5 hardware lies (drift,
