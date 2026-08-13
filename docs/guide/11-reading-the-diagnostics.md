@@ -124,6 +124,9 @@ The one-screen verdict, printed when the run reporter is told the run is over:
   post-mortem here.
 - **`dropped 3 rec 47 ln`** — output-throttling losses (see "rate limiting" below). `dropped 0
   rec 0 ln` is a positive claim — nothing was lost — which is why it prints even when zero.
+  A run with a blackbox attached can add `· blackbox dropped 12` here; that one appears **only**
+  when it is non-zero, because most runs have no blackbox and "blackbox dropped 0" would be a
+  claim about something that never ran (see "The blackbox" below).
 - **`batt 12.4→11.6V`** — battery start → end. A big drop means hard motor work (or a tired
   battery).
 
@@ -239,8 +242,63 @@ There's also a three-line **controller LCD display** (first fault, fault count, 
 deliberately ticking clock — so a frozen screen is distinguishable from a crashed program) for
 reading health at the field without a laptop; see `diag/controller_display.hpp`.
 
-For the deeper design — what's planned beyond the terminal (SD-card blackbox, live telemetry) —
-see the [diagnostics plan](../diagnostics-plan.md).
+## The blackbox: what you read when there was no laptop
+
+Everything above assumes somebody was watching a terminal. At a competition nobody is, and that
+is the whole problem the **blackbox** solves: a binary record of the run, written to the brain's
+SD card, that you open afterwards.
+
+It does **not** write continuously. A competition build cannot afford to, so the default posture
+is a **flight recorder**: every per-tick record goes into a fixed ring in RAM (200 ticks, about
+two seconds), the ring quietly overwrites its oldest entry, and *nothing at all reaches the card*
+— not one byte — until a fault fires. Then it writes:
+
+```text
+[ 256-byte header ]   which build, which routine, alliance/side, port map, when the run started
+[ triage frame    ]   which fault, at what time, on which tick, and the FULL record of that tick
+[ tick ][ tick ]…     the ticks that came BEFORE the fault, oldest first
+[ summary frame   ]   the same numbers as the RUN SUMMARY block
+[ end frame       ]   the run closed cleanly
+```
+
+The order is deliberate. The fault that triggers a dump might be a brownout, which is the worst
+possible moment to start a long write, so the most valuable thing — *what broke, when, and in
+what state* — goes first. If the write is cut short, everything already written still decodes,
+and the reader tells you the file stops there. **A file with no end frame ended abruptly**; that
+absence is information, not corruption.
+
+Two things follow from that design that are worth knowing before you go looking for data:
+
+- **A clean run leaves almost nothing.** No fault, no history: you get the header, the summary
+  and the end frame, a few hundred bytes. That is not a bug — if you want a full trace, turn
+  streaming on for a bench session.
+- **Nothing is lost silently.** The RAM budget is fixed, so if a run generates more than fits
+  before you flush, whole frames are dropped and *counted* — never half-written, and never at
+  the cost of stalling the control loop. The count is written into the file and, when it is
+  non-zero, appears on the run summary line as `· blackbox dropped 12`.
+
+When a dump happens, the same triage information also prints at the end of the run, after the
+summary — so the last thing on the screen is why it broke:
+
+```text
+[t=   4.25] [ERROR][TRI] fault ODO_STUCK @  4.25 tick 421 preceding 200 brownout no
+[t=   4.25] [ERROR][TRI] state pos(  24.0,  36.0) hdg  90.0° q=0.91 DR cmd#7▸1 batt 11.9V
+```
+
+**Reading a blackbox file** needs the decoder that ships with it (`diag/blackbox_reader.hpp`).
+It refuses a file whose format version it does not recognise rather than guessing at it — a
+wrong number read confidently is worse than no number — and it will not crash on a damaged file,
+which is exactly the file you are most likely to be holding.
+
+**Honest status:** the format, the sink and the decoder exist and are tested; the piece that
+actually writes to `/usd/` on a real brain does not (it is deliberately kept out of the core, and
+lands with the rest of the hardware bridge). The gating numbers the record reserves —
+per-correction residual, Mahalanobis distance, accept/reject reason — are carried end to end, but
+until the correctors exist there is nothing real to put in them. See
+[Chapter 14](14-what-it-cannot-do-yet.md).
+
+For the deeper design — what's planned beyond the terminal (live telemetry, replay) — see the
+[diagnostics plan](../diagnostics-plan.md).
 
 ---
 

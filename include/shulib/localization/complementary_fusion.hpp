@@ -64,6 +64,13 @@ public:
         bool accepted = false;
         bool gated = false;
         bool clamped = false;
+        // E1 introspection (GateAudit): the innovation this tick's verdict was rendered
+        // ON — the strongest ACCEPTED proposal's if one passed, else the FIRST rejected
+        // one's (the fix that actually triggered the rejection). Recorded whether or not
+        // the nudge moved anything, because the audit is about the GATE's decision.
+        double auditInnoX = 0.0;
+        double auditInnoY = 0.0;
+        bool haveAudit = false;
 
         for (const CorrectionProposal& p : valid) {
             const double innoX = p.fieldPose.x().value() - px;
@@ -72,8 +79,18 @@ public:
             // Reject a wild fix, OR any non-finite proposal field (innovation OR confidence) — a NaN/Inf
             // confidence would otherwise sail through (Inf > 0) and poison the nudge with NaN.
             if (!std::isfinite(innoMag) || !std::isfinite(p.confidence) || innoMag > gate) {
+                if (!gated && !accepted) {  // the first rejection, and nothing has passed yet
+                    auditInnoX = innoX;
+                    auditInnoY = innoY;
+                    haveAudit = true;
+                }
                 gated = true;
                 continue;
+            }
+            if (!accepted || p.confidence > maxConf) {  // the strongest accepted fix wins the audit
+                auditInnoX = innoX;
+                auditInnoY = innoY;
+                haveAudit = true;
             }
             accepted = true;  // this proposal passed the gate (a fix was incorporated)
             const double conf = std::clamp(p.confidence, 0.0, 1.0);  // a corrector can't amplify the gain
@@ -103,8 +120,28 @@ public:
         // "applied" means a fix was actually incorporated this tick: accepted by the gate AND the
         // per-tick budget allowed motion (maxNudge == 0 on a dt==0 stall ⇒ nothing could be applied).
         const bool applied = accepted && maxNudge > 0.0;
+
+        // The E1 audit. `reason` reports the GATE's verdict (that is what the §18.2
+        // field audits), so a proposal that passed the gate on a dt==0 tick — where the
+        // per-tick budget allowed no motion at all — still reads Accepted with a zero
+        // applied correction, rather than pretending no proposal arrived.
+        // `covarianceTrace` carries the complementary tier's scalar TRUST WEIGHT, which
+        // is exactly what debug_record.hpp reserves that slot for until E4's EKF exists;
+        // `mahalanobis` stays 0 because this tier has no covariance to normalise by, and
+        // a fabricated distance would be worse than an absent one.
+        GateAudit audit;
+        if (haveAudit) {
+            audit.residualX = units::Length{auditInnoX};
+            audit.residualY = units::Length{auditInnoY};
+        }
+        if (accepted) {
+            audit.reason = diag::GateReason::Accepted;
+            audit.covarianceTrace = maxConf;
+        } else if (gated) {
+            audit.reason = diag::GateReason::RejectedInnovation;
+        }
         return FusionResult{units::Length{px + sumX}, units::Length{py + sumY},
-                            applied, gated, clamped, applied ? maxConf : 0.0};
+                            applied, gated, clamped, applied ? maxConf : 0.0, audit};
     }
 
 private:

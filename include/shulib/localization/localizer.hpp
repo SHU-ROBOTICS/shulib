@@ -206,9 +206,14 @@ public:
         }
 
         deadReckoning_ = !fr.applied;
+        // The gate's own account of this tick (E1) travels out on the audit record, so a
+        // record producer can stamp the §18.2 gating slots without knowing which fusion
+        // policy is installed — the same value flows whether the policy is today's
+        // complementary tier or E4's EKF.
         lastCorrection_ = AppliedCorrection{units::Length{fusedX_ - predicted.x().value()},
                                             units::Length{fusedY_ - predicted.y().value()},
-                                            fr.gated, fr.clamped, (fr.applied && n > 0) ? names[0] : "none"};
+                                            fr.gated, fr.clamped, (fr.applied && n > 0) ? names[0] : "none",
+                                            fr.audit};
         refreshQuality(dtHealthy);
 
         pose_ = newPose;
@@ -230,6 +235,8 @@ public:
     // --- extra observability (telemetry / motion gating) ---
     [[nodiscard]] Quality qualityClass() const noexcept { return qualityClass_; }
     [[nodiscard]] units::Length distanceSinceCorrection() const noexcept { return distanceSinceCorrection_; }
+    /// The last tick's applied correction AND the gate's account of why (`audit`, added
+    /// at E1) — the values a record producer stamps into the §18.2 gating slots.
     [[nodiscard]] const AppliedCorrection& lastCorrection() const noexcept { return lastCorrection_; }
     /// Forwarding accessor for PilonsOdometry::lastDeltaImplausible() — added at C1
     /// (additive) so the motion loop can feed HealthMonitor's odomImplausible

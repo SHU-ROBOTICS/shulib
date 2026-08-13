@@ -74,6 +74,7 @@ Find your change on the left; update everything on the right.
 | Added or changed a motion primitive | The API chapter · the "getting there" concept chapter if the *idea* changed |
 | Added a `FaultCode` | The diagnostics chapter (what it means, what to do) · the troubleshooting chapter (the symptom it produces) |
 | Changed the terminal output format | The diagnostics chapter — **re-capture a real transcript, don't hand-edit the old one** |
+| Changed the blackbox format, the flight recorder, or the triage block | The diagnostics chapter's "The blackbox" section · `test/blackbox_format_test.cpp`'s byte-exact goldens (the layout is a PERSISTENCE contract — a change that is not a version bump breaks every file already on a card) · `docs/diagnostics-plan.md`'s D-6/D-7 rows |
 | Added a drivetrain | The drivetrains chapter · the extending chapter |
 | Changed units, types, or a convention | The coordinates chapter · the API chapter · the examples |
 | Changed the build, layout, or commands | The setup chapter · `README.md` — **and run the commands as written to confirm** |

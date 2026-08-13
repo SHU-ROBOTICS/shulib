@@ -341,9 +341,54 @@ that names the actual problem. The pin still fires on the next build (verified),
 papered over — but a reader who obeyed only the first message would make a breaking change look
 official on the way there. The freshness message now says so.
 
-**Next: Phase E — bound the drift.** E1 (`SdSink` + estimator introspection) is ordered first for the
-same reason A1 was ordered first overall: fusion is the hardest thing in the project to debug, and the
-no-laptop field record is what makes a field run legible.
+**Chunk E1 — `SdSink`, the flight recorder, and estimator introspection: DONE 2026-08-12**
+([completion record](chunks/E1-COMPLETED.md), live log in [E1-PROGRESS.md](chunks/E1-PROGRESS.md)).
+**Phase E opens: a run is now recoverable after the fact, with no laptop.** `diag/sd_sink.hpp` writes
+a versioned, session-stamped, fixed-width binary blackbox through a new `hal::IBlockSink` seam;
+`diag/blackbox_reader.hpp` reads it back. The decoder ships with the encoder because **a format
+nothing can read is not a record** — and a cut file decodes up to the cut and says so, which is
+exactly what a brownout leaves behind. D-6's flight recorder (RAM ring, always on, dumped only when a
+fault fires) and D-7's triage block both landed.
+
+The three tensions the brief named are ruled. **T1:** the standing no-background-task decision beat
+`build-order.md`'s "off-task writes" — host determinism is what makes every closed-loop test here
+reproducible from a seed, and a caller who under-flushes loses frames *visibly* via drop-and-count,
+where a task's cost would have been invisible and intermittent. **T2:** a new sibling seam rather
+than redefining `ICharSink`'s line contract, which is load-bearing for TermSink's goldens and would
+have been invalidated silently. **T3:** half-closed and reported `[~]` — the introspection path is
+complete and proven with a synthetic corrector emitting every `GateReason`, but **no real gate
+exists, `gateMahalanobis` is 0 until E4, and nothing here certifies `< 1°`.**
+
+**Two pre-existing defects, fixed in the layers that own them.** `DebugRecord::fault` **had no
+producer anywhere in the tree** — TermSink has rendered ` flt=NAME` since A1 and chapter 11 has
+documented it since C8, and it could never once have appeared on a real run; D-6's entire trigger
+depended on it. Now stamped by the scheduler from the FaultLatch, proven with a real `LoopMonitor`
+overrun rather than an injected fault. Separately, only `MoveToPose` stamped the applied-correction
+fields, so the fusion story was blank for every other motion.
+
+27 mutations, **two green holes** — both the same class, and worth naming because it generalizes:
+*the suite tested that the FORMAT could carry the sink's self-description, never that the SINK filled
+it in.* The end frame's counts and the header's epoch/ring/budget could each be zeroed with the whole
+suite green. The single most instructive result is **mutation 1b**: moving a field in the encoder
+*and* the decoder together left the round trip **perfectly green**, and only the byte-exact per-field
+golden caught it — the brief predicted that class of blindness, and E1 demonstrated it rather than
+arguing it. One green mutation was correctly ruled *not* a hole (an unreachable half-frame guard);
+saying so beats inventing a test for dead code.
+
+*Found during independent review and documented at E1:* "refuse, never misread" is about
+**interpretation, not integrity**. Magic, version, layout, truncation and implausible values are all
+caught — I corrupted a real blackbox four ways to confirm it — but there is deliberately **no
+per-frame checksum**, so a bit flip landing on a merely-wrong value decodes silently. A considered
+trade (a CRC costs bytes and cycles on every tick, and the card carries hardware ECC), now stated in
+the reader's header so **H1's SHUL/2 cannot inherit a guarantee that was never made** — a wire over a
+lossy link is exactly the consumer that would need its own frame check.
+
+Honest gaps: nothing has touched an SD card (the `/usd/` adapter is R1's), ring depth / RAM budget /
+flush cost are guesses registered as **HA-58/59/60**, and **D-8 was not delivered** — it did not fall
+out for free and is re-homed to F2 with the reasoning recorded. E1 freezes nothing.
+
+**Next: E2 — `GpsCorrector`.** The first real corrector, and the first thing that will put genuine
+numbers into the introspection path E1 just built.
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under

@@ -255,7 +255,33 @@ not silently break them. This table is the spine of the no-staleness promise.
 > reader has read the cookbook cold, so M7's human DoD clause stays open (owner: the programming
 > chair, at the next new-member onboarding — the first clause with a named owner rather than a
 > hope).
-> **Next: Phase E** (the correctors — the next phase in the execution order).
+> **Chunk E1 (the `SdSink` blackbox + estimator introspection) is DONE, 2026-08-12 — opens
+> Phase E**: the run is now recordable without a laptop. `diag/blackbox_format.hpp` defines a
+> versioned, session-stamped, fixed-width binary format (v1: 256-byte header, typed frames,
+> 428-byte tick record, IEEE-754 binary64 throughout — no narrowing, so a decoded record equals
+> the encoded one field for field), and **the decoder ships in the same chunk**
+> (`blackbox_reader.hpp`): an encoder without a decoder is not a record. `diag::SdSink`
+> implements diagnostics-plan **D-6** (a RAM flight recorder, always on, that writes NOTHING
+> until a fault fires and then dumps the preceding ticks) and **D-7** (a triage block, in the
+> file and on the terminal, from one shared struct). Writes are **caller-paced**: the build
+> order's "off-task writes" was ruled against in favour of C2/C4's standing no-background-task
+> decision, because host determinism is what makes every closed-loop test here reproducible.
+> The binary seam is a NEW sibling (`hal::IBlockSink`), not a redefinition of `ICharSink`.
+> Suite 752 / 936,895; both guards and the ARM gate (110 headers) clean.
+> **What E1 did NOT do, stated plainly:** it did not certify the `< 1°` claim and it did not
+> build a real gate. The introspection PATH is complete and proven end to end, but with a
+> **synthetic** corrector — E2/E3/E4 supply the real numbers, and `gateMahalanobis` stays 0
+> until the EKF exists. There is also no `/usd/` adapter (R1's) and no D-8 routine watchdog
+> (re-homed to F2, with the reasoning recorded rather than the work half-done). Two findings
+> came out of it that predate the chunk: **`DebugRecord::fault` had no producer anywhere in the
+> tree** — the guide has documented ` flt=CODE` since C8 and it could never have appeared on a
+> real run — and only `MoveToPose` stamped the applied-correction fields, so the fusion story
+> was blank for every other motion. Both are now stamped in the one layer that owns record
+> population. The mutation campaign (27 executed) found **two green holes**, both the same
+> class: the suite checked that the FORMAT could carry the sink's self-description and never
+> that the SINK filled it in — the end frame's counts and the header's epoch/ring/budget could
+> all be zeroed with the suite green.
+> **Next: E2** (`GpsCorrector` — the first real corrector, and the first real gate decisions).
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -806,12 +832,35 @@ register above, pin-enforced. This milestone does not close until the on-robot c
   height-adaptive fallback; **Distance-sensor fallback** path for no-tag.
 
 **Diagnostics & observability (WS13)**
-- [ ] **`SdSink`** binary blackbox to `/usd/` (versioned header + session/provenance record incl. **git
-  build hash**; fixed-width per-tick; double-buffered off-task writes; byte/tick budget + drop-to-counter
-  back-pressure; flush on auton-end) — the **no-laptop field record**.
-- [ ] **Estimator introspection** in the fusion DoD: per-correction residual + Mahalanobis distance +
+- [x] **`SdSink`** binary blackbox (versioned header + session/provenance record incl. **git
+  build hash**; fixed-width per-tick; byte budget + drop-to-counter back-pressure; flush on
+  auton-end) — the **no-laptop field record**. **DONE at E1 (2026-08-12)**:
+  `include/shulib/diag/blackbox_format.hpp` (v1 layout: 256-byte header, typed frames, 428-byte
+  tick record, all IEEE-754 binary64 — no narrowing), `blackbox_reader.hpp` (**the decoder ships
+  with the encoder**: a format nothing can read is not a record), `sd_sink.hpp`, and the new
+  binary seam `hal/block_sink.hpp` + `hal/fake/fake_block_sink.hpp`. Evidence:
+  `test/blackbox_format_test.cpp` + `test/sd_sink_test.cpp` (round trip on ground truth,
+  byte-exact per-field goldens, unknown version REFUSED, budget exhaustion drops-and-counts,
+  truncated file decodes up to the cut and says so). **Deviation from this line, ruled
+  explicitly:** "double-buffered **off-task** writes" was NOT built — C2/C4's standing "no
+  background task" decision was kept, and writes are caller-paced (E1 completion record, T1).
+  **The on-robot `/usd/` adapter is R1's**: E1 ships the seam and a host fake, nothing PROS.
+- [~] **Estimator introspection** in the fusion DoD: per-correction residual + Mahalanobis distance +
   accept/reject reason; per-tick covariance trace (or trust weights) — the quantities that *certify* < 1°.
-- [ ] Latched **brownout** marker + graceful-end contract (the scheduled park still fires as the battery collapses).
+  **HALF at E1:** the PATH exists and is proven end to end (corrector → `GateAudit` on the fusion
+  seam → `Localizer::lastCorrection().audit` → the record's §18.2 gating slots → the file → the
+  decoder), with `ComplementaryFusion` filling what it genuinely knows (verdict, innovation,
+  trust weight) and a **synthetic** corrector exercising every `GateReason`
+  (`test/blackbox_introspection_test.cpp`). **The other half is E2/E3/E4's**: there are no real
+  correctors yet, `gateMahalanobis` stays 0 until the EKF, and nothing here certifies < 1°.
+- [x] Latched **brownout** marker + graceful-end contract — **DONE at E1**: the marker latches from
+  the record stream or `markBrownout()` and reaches both the triage frame and the end frame; the
+  graceful-end contract is defined concretely (what is written, in what order, and what a cut file
+  looks like to the reader) and the truncated case is tested, because that is the case that will
+  actually occur. *(The park-still-fires half of that sentence belongs to F2's guaranteed park.)*
+- [x] **Flight recorder + fault triage** (diagnostics-plan D-6/D-7) — **DONE at E1**: a RAM ring,
+  always on, dumped only on the FIRST fault, triage-first so a dump cut short by the brownout that
+  caused it still says what broke; the same triage data prints at run end (`diag/triage.hpp`).
 
 **Definition of Done:** pose error stays within F2 (notably **< 1°**) across a full 60s run with
 contact and spins; docking nests a 1.6″ Pin repeatably. *(Recall F2's consequence: yaw correction here

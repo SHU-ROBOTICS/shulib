@@ -36,11 +36,13 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 57 settled.** No robot exists. Counts: **38 invented · 16 reasoned · 2 measured
+> **Status: 0 of 60 settled.** No robot exists. Counts: **41 invented · 16 reasoned · 2 measured
 > elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
-> controller-screen grid), per the Maintenance convention.
+> controller-screen grid), HA-58–60 by chunk E1 (the blackbox's flight-recorder depth, RAM
+> budget and assumed SD write cost — every magnitude in that chunk is a guess until R4),
+> per the Maintenance convention.
 
 ---
 
@@ -105,6 +107,9 @@
 | HA-55 | 15″ H-bot stand-in geometry (11″ track, strafe wheel 4″ aft, 1:1 strafe gearing) | **invented** | R3 |
 | HA-56 | D-5 plausibility envelope defaults (maxSpeed 150 in/s, maxYawRate 20 rad/s, ×1.5 margin) | reasoned | R3/R5 |
 | HA-57 | V5 controller text grid is 3 rows × 19 columns (`ILineDisplay` geometry) | reasoned | R1 |
+| HA-58 | Flight-recorder depth: 200 ticks (~2 s) reaches back past a fault's cause | **invented** | R4 |
+| HA-59 | 64 KiB of RAM is spendable on the blackbox staging buffer | **invented** | R4 |
+| HA-60 | An SD flush of tens of KB costs single-digit ms (fine at a boundary, not in a tick) | **invented** | R4 |
 
 ---
 
@@ -621,6 +626,52 @@ settleable before hardware, and none block any host chunk.
 
 ---
 
+- [ ] **HA-58 — 200 ticks (~2 s at 100 Hz) of flight recorder reaches back past the CAUSE of a
+  fault.**
+  *Claim:* when a fault fires, whatever caused it is visible within the preceding ~2 seconds of
+  per-tick records, so a 200-tick ring is deep enough to diagnose from.
+  *Source:* `include/shulib/diag/sd_sink.hpp` `kDefaultFlightRingTicks` (PROVISIONAL
+  (A4: HA-58)); consumed by every caller that sizes `SdSinkBuffers`.
+  *Confidence:* **invented** — it is diagnostics-plan D-6's own figure, chosen before any real
+  failure had been recorded. Nobody has yet measured how far before a fault its cause sits.
+  *Settle (R4):* once real runs exist, take the dumps that actually diagnosed something and
+  measure how far back the useful evidence started. If the answer is "further", the ring grows
+  (a template/argument change and more RAM); if "much less", the ring shrinks and the dump gets
+  cheaper.
+  *Blast radius if wrong (too small):* a dump that starts after the cause — the fault is
+  recorded, its origin is not, and the run has to be reproduced to learn anything. *(Too
+  large):* RAM spent and a slower dump, both harmless.
+
+- [ ] **HA-59 — 64 KiB of RAM is spendable on the blackbox staging buffer.**
+  *Claim:* a V5 program running the full stack can permanently give 64 KiB to a diagnostics
+  buffer (plus ~88 KB for a 200-tick ring of records) without pressuring anything else.
+  *Source:* `include/shulib/diag/sd_sink.hpp` `kRecommendedBufferBytes` (PROVISIONAL
+  (A4: HA-59)); the storage is caller-owned, so this is a recommendation, not a hard size.
+  *Confidence:* **invented** — no memory budget for the real program exists yet.
+  *Settle (R4):* measure free heap/static space with the competition build loaded, then set the
+  recommendation to something the real program can actually afford.
+  *Blast radius if wrong:* the number is a caller-chosen span, so being wrong costs a
+  one-line change — and being wrong SMALL is visible rather than silent (frames are dropped and
+  counted, and the count is reported in the run summary and written into the file).
+
+- [ ] **HA-60 — an SD flush of tens of kilobytes costs single-digit milliseconds.**
+  *Claim:* writing ~64 KiB to `/usd/` on the V5 brain takes a few ms — affordable at a motion
+  boundary or at auton end, and NOT affordable inside a 10 ms control tick.
+  *Source:* `include/shulib/diag/sd_sink.hpp`, on `SdSink::flush()` (PROVISIONAL (A4: HA-60));
+  it is the reason writes are caller-paced at all, and the reason the fault dump is the one
+  exception that may write immediately.
+  *Confidence:* **invented** — the V5's SD write path has never been timed by this team. The
+  legacy code's experience with V5 SERIAL backpressure (~900-byte chunks with delays) is
+  suggestive of the same class of problem, but it is a different device.
+  *Settle (R4):* time `fwrite` + `fflush` of 4/16/64/256 KiB on a real brain, cold and warm,
+  and put the numbers here.
+  *Blast radius if wrong (much slower):* a flush at a motion boundary steals loop time; the
+  LoopMonitor would report it as an overrun, so it is at least VISIBLE. The fix is a policy
+  change — flush less often, or only at auton end — not a format change. R1 should re-check
+  this the first time the adapter runs on hardware.
+
+---
+
 ## Group R5 — gains and actuation constants
 
 - [ ] **HA-45 — the plant's wheel feedforward placeholders: kS = 1.0 V, kV = 12/70 V·s/in
@@ -905,8 +956,8 @@ respectively) are exempt from direction 2 and say so in their Source field.
 
 - **Adding an assumption** (any later chunk that invents a magnitude): label it
   `PROVISIONAL (A4: HA-nn)` in-header and add the entry here — the A3→A4 pipeline is now the
-  standing convention (C1 followed it: HA-50–52). Phase E (EKF noise priors) and F1 (mechanism
-  fakes) are the known next contributors.
+  standing convention (C1 followed it: HA-50–52; E1 followed it: HA-58–60). Phase E's remaining
+  chunks (EKF noise priors) and F1 (mechanism fakes) are the known next contributors.
 - **Settling an entry** (R3/R4/R5/R6): check the box, record the measured value beside the
   guess, update the in-header constant, cite the measurement log. If the measured value breaks
   a test, the test was resting on the guess — fix forward per the R6 rule (a new failure is a

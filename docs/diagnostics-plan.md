@@ -80,9 +80,9 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 | Per-motion result line (target vs final · overshoot · drift · time · exit-reason) | C5 |
 | Session header (git hash, routine id, alliance, port map, battery start) | C5 |
 | End-of-run summary block | C5 |
-| `SdSink` — binary blackbox to `/usd/` | E1 |
-| Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 |
-| Latched brownout marker + graceful-end contract | E1 |
+| `SdSink` — binary blackbox to `/usd/` | E1 ✅ (the sink, the format and the decoder; the `/usd/` adapter itself is R1's — E1 ships `hal::IBlockSink` and a host fake) |
+| Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 ~ (the PATH is built and proven end to end with a synthetic corrector; real gate numbers arrive with E2/E3/E4) |
+| Latched brownout marker + graceful-end contract | E1 ✅ |
 | `SHUL/2` wire protocol (**F9 freeze**) | H1 |
 | Run record/replay | H2 |
 | On-brain live PID/FF tuner | H3 |
@@ -150,22 +150,38 @@ the hostile-pipeline wiring case (born from a green mutation — C5-COMPLETED §
 
 ### For E1 (with `SdSink`)
 
-**D-6. Flight recorder — the highest-value item in this document.** Keep the last N ticks in a RAM ring
-buffer at all times, and **dump only when a fault fires**. Competition builds cannot afford
-always-on logging, but when something breaks, the 200 ticks *before* the fault are exactly what you
-need and exactly what you don't have. Pairs naturally with `SdSink` (it becomes the dump target) and
-with `FaultLatch` (the first fault becomes the trigger).
+**D-6. ✅ DELIVERED at E1 (2026-08-12). Flight recorder — the highest-value item in this document.**
+Keep the last N ticks in a RAM ring buffer at all times, and **dump only when a fault fires**.
+Competition builds cannot afford always-on logging, but when something breaks, the 200 ticks
+*before* the fault are exactly what you need and exactly what you don't have.
 *Schema: no — it stores existing records.*
+*As built:* `diag::SdSink` — a caller-owned ring (default depth 200, HA-58) that records every
+record and writes NOTHING until a fault arrives; the dump is triage-first, then the preceding
+ticks oldest-first. The trigger is `DebugRecord::fault`, which E1 also had to give a producer:
+that field had **none** anywhere in the tree, so the trigger this item assumed would exist did
+not (`motion/motion_scheduler.hpp`, `CommandIdStampSink`). `test/sd_sink_test.cpp`.
 
-**D-7. Fault-triggered dump + post-run auto-triage.** On fault, flush the flight recorder and emit a
-short triage block: which fault, at what tick, what the state was, what preceded it. The end-of-run
-summary answers "how did it go"; this answers "why did it break."
+**D-7. ✅ DELIVERED at E1 (2026-08-12). Fault-triggered dump + post-run auto-triage.** On fault,
+flush the flight recorder and emit a short triage block: which fault, at what tick, what the state
+was, what preceded it. The end-of-run summary answers "how did it go"; this answers "why did it
+break."
 *Schema: no.*
+*As built:* one `blackbox::TriageInfo` value, rendered TWICE from the same data — into the
+blackbox file (a Triage frame carrying the fault, its time, its tick index, the preceding-tick
+count, the latched brownout marker, and the complete record of the fault tick) and onto the
+terminal as two `[ERROR][TRI]` lines (`diag/triage.hpp`), printed by `RunReporter::finishRun()`
+after the summary and only when a dump actually happened. `test/blackbox_introspection_test.cpp`.
 
-**D-8. Routine-level watchdog.** C1/C2 bound each *motion*. Nothing yet bounds a whole *routine*.
-Composes with F2's guaranteed-park guard — the park must fire even if the routine as a whole wedges,
-not merely if one motion does.
+**D-8. NOT delivered at E1 — still open, and it did not fall out for free.** Routine-level
+watchdog. C1/C2 bound each *motion*. Nothing yet bounds a whole *routine*. Composes with F2's
+guaranteed-park guard — the park must fire even if the routine as a whole wedges, not merely if
+one motion does.
 *Schema: no.*
+*Why E1 left it:* it shares nothing with the blackbox but the word "diagnostics". A whole-routine
+deadline needs an owner that outlives a motion and a policy for what to do when it expires (park?
+abort? report?), which is F2's guaranteed-park question, not a recording question. Building half
+of it here would have put the deadline in the wrong layer. **Owner: F2**, or the D2 completion
+record's "no whole-chain deadline" item at the `Routine` layer — both are named, neither is E1.
 
 ### For H2 (with record/replay)
 
@@ -225,7 +241,7 @@ for items already on this list, plus one genuinely uncovered detector:
 | Chunk | Items |
 |---|---|
 | **C5** | ✅ DONE (2026-08-10): D-1, D-2, D-3, D-4, D-5 — **and the schema fields for D-2 and D-3 are reserved** (discharge table at the top) |
-| **E1** | D-6, D-7, D-8 |
+| **E1** | ✅ DONE (2026-08-12): D-6, D-7 — plus the `SdSink` blackbox, its decoder, and the estimator-introspection path. **D-8 NOT done** and re-homed to F2 (reason in its entry above) |
 | **H1** | *(F9 freeze — everything above HAS its fields in as of C5; the discharge table is the inventory to freeze)* |
 | **H2** | D-9, D-10, D-11 |
 | **Frontier** | D-12, D-13 |

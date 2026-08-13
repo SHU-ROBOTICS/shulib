@@ -228,9 +228,30 @@ struct MotionSchedulerConfig {
 /// before this tick's total is knowable — the one-tick lag documented on the
 /// schema field). With attribution off the stamp is the quiet all-zeros default.
 /// One decorator, one record copy, both stamps.
+///
+/// ── Since E1 it also stamps the ESTIMATOR fields, and the tick's fault ──────────
+/// Two holes were found while wiring the blackbox, and both are fixed HERE because
+/// this is the layer that owns record population:
+///   * Only MoveToPose stamped `correctionDx/Dy/clampedThisTick`; TurnTo, StrafeTo,
+///     DriveBrake, HoldPose and the idle record left them at zero, so what the fusion
+///     gate did was invisible for most of a run. The §18.2 gating slots
+///     (`gateResidual*`, `gateMahalanobis`, `gateReason`, `covarianceTrace`) had no
+///     producer at all.
+///   * `DebugRecord::fault` — "the fault raised THIS tick" — had NO producer anywhere
+///     in the tree. TermSink has rendered ` flt=NAME` since A1 and it could never
+///     appear on a real run; the SdSink flight recorder's whole trigger is that field.
+/// Both are now stamped from the ONE place every record already passes through, which
+/// is the same reasoning that put the command id here. The fault stamp is deliberately
+/// CONDITIONAL (unlike the id): a producer that already knows its own fault keeps it.
+/// Honest scope: the stamped fault is the most recent fault raised during this tick
+/// BEFORE this record was emitted — a fault raised later in the same tick lands on the
+/// next record. The FaultLatch remains the authority on the first-fault root cause.
 class CommandIdStampSink final : public hal::ITelemetrySink {
 public:
-    explicit CommandIdStampSink(hal::ITelemetrySink& inner) noexcept : inner_{&inner} {}
+    /// `faults` (optional) supplies the per-tick fault stamp; nullptr disables it.
+    explicit CommandIdStampSink(hal::ITelemetrySink& inner,
+                                const diag::FaultLatch* faults = nullptr) noexcept
+        : inner_{&inner}, faults_{faults} {}
 
     void log(hal::LogLevel level, std::string_view subsystem,
              std::string_view message) override {
@@ -243,6 +264,18 @@ public:
         diag::DebugRecord stamped = record;
         stamped.activeCommandId = id_;
         stamped.tickPhase = phases_;
+        stamped.correctionDx = audit_.dx;
+        stamped.correctionDy = audit_.dy;
+        stamped.clampedThisTick = audit_.clamped;
+        stamped.gateResidualX = audit_.audit.residualX;
+        stamped.gateResidualY = audit_.audit.residualY;
+        stamped.gateResidualHeading = audit_.audit.residualHeading;
+        stamped.gateMahalanobis = audit_.audit.mahalanobis;
+        stamped.covarianceTrace = audit_.audit.covarianceTrace;
+        stamped.gateReason = audit_.audit.reason;
+        if (stamped.fault == diag::FaultCode::None) {
+            stamped.fault = tickFault();
+        }
         inner_->emit(stamped);
     }
 
@@ -258,10 +291,34 @@ public:
         phases_ = phases;
     }
 
+    /// The estimator's account of the tick just localized (E1). The scheduler calls
+    /// this right after Localizer::update(), so every record emitted during the tick —
+    /// motion or idle — carries the same, consistent gate audit.
+    void setEstimatorAudit(const localization::AppliedCorrection& audit) noexcept {
+        audit_ = audit;
+    }
+
+    /// Open a new tick for the fault stamp: everything raised from here on belongs to
+    /// this tick. Cheap (one counter read) and a no-op without a latch.
+    void beginTick() noexcept {
+        faultsAtTickStart_ = faults_ != nullptr ? faults_->faultCount() : 0;
+    }
+
 private:
+    /// The fault raised during this tick so far, or None (header note).
+    [[nodiscard]] diag::FaultCode tickFault() const noexcept {
+        if (faults_ == nullptr || faults_->faultCount() <= faultsAtTickStart_) {
+            return diag::FaultCode::None;
+        }
+        return faults_->lastFault();
+    }
+
     hal::ITelemetrySink* inner_;
+    const diag::FaultLatch* faults_;
     std::uint32_t id_ = 0;
     std::array<units::Time, static_cast<std::size_t>(diag::kTickPhaseSlots)> phases_{};
+    localization::AppliedCorrection audit_{};
+    int faultsAtTickStart_ = 0;
 };
 
 /// ITelemetrySink decorator that AGGREGATES the active motion's record stream into
@@ -446,7 +503,7 @@ public:
         : pacer_{pacer},
           cfg_{config},
           statsHolder_{deps.validatedClock(), deps.ctx->telemetry()},
-          stamperSink_{statsHolder_.sink},
+          stamperSink_{statsHolder_.sink, deps.faults},
           shadowCtx_{chassis::RobotContextConfig{.clock = &deps.ctx->clock(),
                                                  .driveMotors = deps.ctx->driveMotors(),
                                                  .imu = &deps.ctx->imu(),
@@ -747,10 +804,16 @@ private:
     }
 
     void tickBody() {
+        // E1: open the tick for the fault stamp BEFORE anything can raise, so a fault
+        // raised by localization itself still lands on this tick's records.
+        stamperSink_.beginTick();
         {
             const auto phaseScope = phase(diag::TickPhase::Localization);
             schedDeps_.localizer->update();
         }
+        // E1: the estimator's account of the tick just localized, stamped onto every
+        // record this tick emits (motion or idle) — see CommandIdStampSink's header.
+        stamperSink_.setEstimatorAudit(schedDeps_.localizer->lastCorrection());
         const units::Time dt = loopMonitor_.tick();
         // D-3 payoff: when this tick's dt says the PREVIOUS tick overran
         // (LoopMonitor just raised), name who consumed it — the last completed
