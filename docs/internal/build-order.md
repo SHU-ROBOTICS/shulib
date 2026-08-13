@@ -584,7 +584,47 @@ documents — they now pin what was meant (major == 2, mechanism exists).
 brief): a park guard takes a caller-supplied `span<hal::IMechanism*>` — the library never owns
 the mechanism list; pre-empt is cancel-then-start; nothing here is frozen (register row F11).
 
-**Next: F2 — the `sequence/` engine and the guaranteed park.**
+**Chunk F2 — the sequence engine + the guaranteed END-OF-RUN ACTION — is BUILT and verified
+2026-08-13, in the working tree pending review/commit; Phase F's host-provable half is CLOSED.**
+`sequence/run_guard.hpp`: `RunGuard`, the run-scoped deadline owner — an `ITickPacer` decorator
+(the pacer is the only seam that regains control mid-motion), **inert until `run()`** (the D3
+§2.1 opt-in instruction, pinned by a bit-identical unguarded-twin test), cutting the active
+motion AT the caller's `endActionAt` (cancel-from-pace, measured zero-latency, now pinned in
+C2's re-entrancy list), REFUSING every motion after it (the latch — cancel-only expiry was
+measured inert), cancel-all strictly before a caller-supplied composable end action (four
+return conventions, then()'s), and an unconditional `hardStopAt` floor that fires even
+mid-end-action. Deadline-aware `waitFor`/`pause` in a minted sequence-tier verdict
+(`RunExpired` beats `Satisfied` on a tie — the measured predicate-folding trap). **The DoD
+test passes, stalled four ways** (never-settling motion / never-confirming mechanism /
+never-true wait / fault-abort cascade), each ending parked and safe at a match limit driven by
+an INDEPENDENT pace-tally script and graded on plant ground truth.
+**RULED at F2** (full reasoning in `chunks/F2-COMPLETED.md`, T1/T4/T7 first — they are the
+three the measurements overturned): ONE control seam, no supervisory tick() loop (the composite
+predicate gives zero-latency deadline awareness inside C2's own wait; async-from-pace REJECTED
+as the measured silent hijack); TWO caller instants, no defaults of any kind; the end action is
+a callable, never a pose (`parkAt()` REJECTED — the library never learns the field); the v1
+combinator cut RULED EXPLICITLY: **no `Sequence`/`Parallel`/`Race` types** — the wall-clock
+guard + deadline-aware waits + the existing async handle, exactly the smaller v1 both public
+documents sanctioned (this entry's own headline demanded four combinators; the demand is
+retired, not silently ignored). The frozen-wait hole is DOCUMENTED, not papered over: F10/F6
+waits pay their unexpired remainder (formula in guide ch. 9, pinned by regression tests that go
+red if a legal cut ever appears). **Rule 4 fixes in earlier layers:** the F1 claim token now
+carries a claimant hook (a stalled operation was UNREACHABLE from the guard's span; measured:
+`applySafeState` alone survives one tick, and the half-safe `brake=Hold, V=9.0` passes any
+mode-only assertion); F1's operations cancel-on-destruction (a mid-flight-destroyed op left its
+mechanism claimed forever AND energized — found while building cancel-all); C2's blocking waits
+gained unwind guards (measurement 15's 11.4 V-under-Coast; the facade DetachGuard was the
+symptom patch and stays); master plan §14's "extend `RobotCommands`" sentence retired (C6: no
+executor; C7: deleted). Suite 1017 cases / 1,522,313+ assertions; ARM 124 headers; **mutations:
+14 run, 13 red first pass, 1 GREEN HOLE (M10 — the composite-predicate order was masked by the
+pre-check for waits started post-expiry; a wait IN FLIGHT ticked its predicate one extra time
+past the deadline) closed with a test that fails alone, re-run observed RED — final 14/14.**
+NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is the second
+consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
+`strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
+
+**Next: Phase T (driver control, T1–T3) or G1 — hardware-free chunks remain; F3/F4 wait on
+hardware and build-team decisions.**
 *(Reminder: there is no Phase B — see the note under the phase table.)*
 
 **Verified 2026-08-10 (post-C4):** host suite **592 cases / 915,157 assertions** green under
@@ -1041,6 +1081,22 @@ not a hardware one.
 
 **DoD:** a deliberately stalled scoring loop still ends parked, verified against the plant with the
 clock driven to the match limit. **This test is the entire point of the chunk.**
+
+**RULED at F2 (2026-08-13), for whoever reads this entry later:** the DoD is met, four stall
+shapes deep (`test/sequence_end_of_run_test.cpp`), and TWO of this entry's demands were
+deliberately retired rather than built. (1) The four combinators: the master plan's cut-list and
+the roadmap both sanctioned a smaller v1 ("hand-written blocking calls + one async handle + a
+wall-clock guard") — F2 ruled FOR the smaller cut and recorded why (`Sequence` is the eager
+chain; parallel motion+mechanism already exists structurally via the waitUntil-predicate idiom
+F1 pinned; a race is a disjunction predicate; `Deadline` shipped as the guard itself, which is
+the only part with no existing spelling). Combinator TYPES return only if F4's authors hit a
+wall three idioms cannot express. (2) The name "guaranteed park" / "still ends parked": the
+master plan's own §14 words it correctly — guaranteed END-OF-RUN ACTION. The library ships no
+park, no pose, no default lead or match length; the DoD's "parked" is a caller-supplied fixture
+in the test. "Possession-aware time budgeting" is likewise retired as game content (C6's exact
+legacy failure). The completion record (`chunks/F2-COMPLETED.md`) carries T1–T8 with the
+rejected alternatives; the honest boundary of the word "guaranteed" is in guide ch. 14 and is
+quoted, not paraphrased, wherever the claim appears.
 
 ---
 

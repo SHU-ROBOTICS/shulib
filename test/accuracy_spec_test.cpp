@@ -1,4 +1,5 @@
-// F2 accuracy-spec encoding (master plan §7 / Freeze F2).
+// Accuracy-spec encoding for Freeze Register ROW F2 (master plan §7) — the
+// register row, NOT chunk F2 (the sequence engine); see spec/accuracy.hpp.
 //
 // The pinned target values, the internal-consistency invariants, and the
 // acceptance tests. Status per tier:
@@ -26,14 +27,14 @@
 
 using namespace shulib::spec;
 
-TEST_CASE("F2 spec guard: the locked target values (a tripwire on the Freeze)") {
+TEST_CASE("Accuracy spec (register row F2, not chunk F2) guard: the locked target values (a tripwire on the Freeze)") {
     CHECK(kHeadingErrorMaxDeg            == doctest::Approx(1.0));
     CHECK(kPositionErrorEndOfRun.value() == doctest::Approx(1.0));
     CHECK(kRepeatability.value()         == doctest::Approx(0.75));
     CHECK(kDockedPositionError.value()   == doctest::Approx(0.25));
 }
 
-TEST_CASE("F2 spec: internal-consistency invariants the target set must satisfy") {
+TEST_CASE("Accuracy spec (register row F2, not chunk F2): internal-consistency invariants the target set must satisfy") {
     CHECK(kDockedPositionError < kPositionErrorEndOfRun);   // docking is tighter than dead-reckon
     CHECK(kRepeatability       < kPositionErrorEndOfRun);   // repeatability tighter than absolute
     CHECK(kDockedHeadingTypicalDeg < kHeadingErrorMaxDeg);  // the aspiration beats the hard cap
@@ -116,7 +117,7 @@ TEST_CASE("[acceptance][M2] dead-reckon heading holds over a 60s straight-line t
             " deg across 10 boots (cap ", kHeadingErrorMaxDeg, " deg)");
 }
 
-TEST_CASE("[acceptance][M3] end-of-60s fused pose within F2 targets"
+TEST_CASE("[acceptance][M3] end-of-60s fused pose within the row-F2 targets"
           * doctest::skip()) {
     // TODO(M3): full fused run (GPS + AprilTag) with contact + spins;
     // assert position <= kPositionErrorEndOfRun AND |heading| < kHeadingErrorMaxDeg.

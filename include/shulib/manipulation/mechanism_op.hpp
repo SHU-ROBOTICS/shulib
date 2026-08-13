@@ -172,9 +172,16 @@ struct MechanismDeps {
 /// The operation contract (file banner). Pure-virtual cancel() ON PURPOSE,
 /// exactly as IMotion rules: an operation type without a cancellation story is
 /// the forgettable-safety-step failure mode; every implementer must state one.
-class IMechanismOp {
+///
+/// Since F2 the contract IS a hal::ICancellable: an operation registers itself
+/// on the mechanism's claim at start() (tryClaim(*this)), which is how the
+/// end-of-run guard — holding only span<hal::IMechanism*> — reaches a live
+/// operation and renders it inert at the deadline (mechanism.hpp's claimant-
+/// hook banner carries the measured failure this closes). cancel()'s meaning
+/// is unchanged; the base only makes it reachable from the hal tier.
+class IMechanismOp : public hal::ICancellable {
 public:
-    virtual ~IMechanismOp() = default;
+    ~IMechanismOp() override = default;
     IMechanismOp() = default;
     IMechanismOp(const IMechanismOp&) = default;
     IMechanismOp(IMechanismOp&&) = default;
@@ -190,8 +197,9 @@ public:
     [[nodiscard]] virtual MechanismOutcome tick() = 0;
 
     /// Stop from outside (see the cancel contract). Idempotent; never raises;
-    /// applies the mechanism's declared safe state whenever started.
-    virtual void cancel() = 0;
+    /// applies the mechanism's declared safe state whenever started. Overrides
+    /// hal::ICancellable — this is the member the claimant hook exposes.
+    void cancel() override = 0;
 
     /// The verdict of the most recent tick (Running before the first, and
     /// before start()).
@@ -268,9 +276,34 @@ public:
         SHULIB_PRECONDITION(opName != nullptr, "RunUntilConfirmed: name is null");
     }
 
+    /// F2 (rule-of-three, found building the end-of-run guard): an operation
+    /// destroyed MID-FLIGHT — the timeout-mismatch idiom, where the caller's
+    /// wait gives up before the op's own watchdog — previously left its
+    /// mechanism CLAIMED FOREVER and ENERGIZED at the last commanded voltage:
+    /// no code path stopped it, and the stuck claim made the end action's own
+    /// operation throw at start(). Destruction now cancels a still-running
+    /// operation (declared safe state, claim + claimant released). A FINISHED
+    /// operation is deliberately untouched: cancel() would re-apply the safe
+    /// state, and on a discrete actuator that un-does the completed action
+    /// (the T4 persist rule).
+    ~RunUntilConfirmed() override {
+        if (started_ && !finished_) {
+            cancel();
+        }
+    }
+
+    /// Non-copyable/non-movable (F2): the claim is a resource and the
+    /// mechanism's registered claimant points at THIS object — a copy would
+    /// double-release the claim and a move would leave the registration
+    /// dangling. Construct where it will live; start() re-arms for retries.
+    RunUntilConfirmed(const RunUntilConfirmed&) = delete;
+    RunUntilConfirmed(RunUntilConfirmed&&) = delete;
+    RunUntilConfirmed& operator=(const RunUntilConfirmed&) = delete;
+    RunUntilConfirmed& operator=(RunUntilConfirmed&&) = delete;
+
     void start() override {
         if (!holdsClaim_) {
-            SHULIB_PRECONDITION(mech_->tryClaim(),
+            SHULIB_PRECONDITION(mech_->tryClaim(*this),
                                 "RunUntilConfirmed::start: mechanism already driven by "
                                 "another operation (cancel it first — F2's pre-empt policy)");
             holdsClaim_ = true;
@@ -435,9 +468,27 @@ public:
         SHULIB_PRECONDITION(opName != nullptr, "ActuateAndConfirm: name is null");
     }
 
+    /// Cancel-on-destruction for a MID-FLIGHT operation; a finished one is
+    /// untouched (RunUntilConfirmed's destructor note — the T4 persist rule
+    /// is the reason the guard is conditional, and it matters MOST here: an
+    /// unconditional cancel would force the declared safe state onto every
+    /// successfully-grabbed clamp the moment its operation went out of scope).
+    ~ActuateAndConfirm() override {
+        if (started_ && !finished_) {
+            cancel();
+        }
+    }
+
+    /// Non-copyable/non-movable (F2): same claim-resource reasoning as
+    /// RunUntilConfirmed.
+    ActuateAndConfirm(const ActuateAndConfirm&) = delete;
+    ActuateAndConfirm(ActuateAndConfirm&&) = delete;
+    ActuateAndConfirm& operator=(const ActuateAndConfirm&) = delete;
+    ActuateAndConfirm& operator=(ActuateAndConfirm&&) = delete;
+
     void start() override {
         if (!holdsClaim_) {
-            SHULIB_PRECONDITION(mech_->tryClaim(),
+            SHULIB_PRECONDITION(mech_->tryClaim(*this),
                                 "ActuateAndConfirm::start: mechanism already driven by "
                                 "another operation (cancel it first — F2's pre-empt policy)");
             holdsClaim_ = true;

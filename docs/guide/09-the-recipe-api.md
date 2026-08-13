@@ -275,6 +275,43 @@ chains belong to `Routine`), and `intake.in` only names a function, it does not 
 The honest spelling is the one above: a `Routine` chain, and a lambda (or the operation
 idiom) inside `then()`.
 
+## The match clock, and what a chain honestly cannot see
+
+A `Routine` has per-step timeouts and **no whole-run deadline** — that is a frozen fact of this
+API, not an oversight, and pretending otherwise would be worse than saying it plainly. When a
+run-scoped deadline (the sequence layer's guard, [Chapter 6](06-how-things-fail.md)) fires
+while a chain is executing:
+
+- **A motion step is cut immediately.** The verb returns `Cancelled` — its honest verdict —
+  the chain stops on it like any failed motion, and every later step is skipped. Skips are
+  instant, so a chain in a motion pays essentially nothing past the deadline.
+- **`pause()` and `waitFor()` cannot be cut.** A wait checks its condition and its *own*
+  timeout, and nothing else — the deadline is invisible to it. The lateness bound is exact:
+  **the unexpired remainder of the wait's own timeout at the instant the deadline fires,
+  summed over every wait step that runs after that instant.** In practice a chain pays one
+  term — the wait it was standing in — because its next motion step is refused and stops the
+  chain. Consecutive `pause()` steps each pay in full (a pause never fails, so it never stops
+  the chain). Budget waits tightly.
+
+When the wait itself is the thing that must respect the deadline — "wait for the partner, but
+never past our budget" — use the guard's own wait through `then()`. Only `Satisfied` continues
+the chain; both the wait's own timeout *and* the run expiring stop it:
+
+```cpp
+Routine r{chassis, "with-partner"};
+r.startAt(Pose2d{0_in, 0_in, 0_deg})
+    .then([&] { return guard.waitFor([&] { return partnerSignal; }, 30_s)
+                    == GuardedWaitResult::Satisfied; },
+          "wait-partner")
+    .then([&] { ++stepsAfterWait; }, "score");
+```
+
+One trap this spelling exists to prevent, because it was measured: folding a deadline into an
+ordinary `waitFor` predicate makes the deadline *look* like the condition arriving — the wait
+returns satisfied, the chain records success, **and keeps scoring past the buzzer.** The
+guard's wait returns its own verdict (`RunExpired`) precisely so time running out can never
+read as the thing you were waiting for.
+
 ## What a recipe deliberately can't do
 
 - **`drive(speeds, frame)`** — a recipe is a *sequence*; `drive` is a per-loop-iteration

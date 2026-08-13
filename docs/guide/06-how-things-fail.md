@@ -97,6 +97,27 @@ decides what's next. When you read a log, remember that **`TIMEOUT` is a symptom
 diseases** — jammed, blocked, unreachable, undertuned, or just an over-tight time budget.
 [Chapter 12](12-when-things-go-wrong.md) walks the differential diagnosis.
 
+## Running out of match — the failure the clock causes
+
+Every bound above is scoped to one motion, one wait, one mechanism operation. There is a whole
+class of failure none of them can see: the *run* going long. Every step behaves exactly as
+designed — and the sum doesn't fit the match. A leg that fights a defender for six seconds
+steals those seconds from every leg after it; a mechanism that waits its full budget for a ring
+that never comes spends time no later step gets back. The measured worst case is instructive:
+a stalled routine keeps the motors safe the whole time (each motion's own watchdog stops it) —
+**safe and parked are different things, and only one of them scores.** A run that ends
+mid-field with the motors politely braked is a *lost-points* failure, not a runaway, and it is
+invisible to every per-step bound because no step misbehaved.
+
+Since the sequence layer landed, that failure has an owner: a **run-scoped guard** you wrap
+your whole auton in. You give it two instants — when to stop scoring and go do your final act,
+and when everything must simply be *safe* — and the action to perform. Both numbers and the
+action are yours: the library has no idea how long your match is or what your endgame is worth,
+and it refuses to guess. [Chapter 14](14-what-it-cannot-do-yet.md) states exactly what the
+guard's guarantee covers and what it cannot; [Chapter 9](09-the-recipe-api.md) covers how it
+interacts with a recipe chain; the [cookbook's match-window recipe](../cookbook/03-timing-and-partners.md)
+is the worked example.
+
 ## Software's own failures — contained, not trusted
 
 The library doesn't exempt itself from suspicion. Two more fault families exist to catch *its

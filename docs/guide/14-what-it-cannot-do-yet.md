@@ -202,6 +202,43 @@ isn't stable (the coordinate conventions, units, accuracy targets, hardware inte
 kinematics contract, and both API tiers *are* locked; the mechanism seam is listed there as
 explicitly not-yet-frozen).
 
+## A run-scoped deadline now exists — and "guaranteed" is a narrower word than it sounds
+
+The sequence layer's guard ([Chapter 6](06-how-things-fail.md)) is the library's
+highest-stakes claim, so its boundary is stated here in full, exactly as the project's own
+records word it:
+
+> F2 proves a **scheduling property** — a stalled loop still ends with the end action,
+> against the plant, with the clock driven to the limit. It **cannot** claim the timing
+> margin is right on a real brain: real loop rate under load and PROS call latency are
+> invented register entries until R4. **And nothing preempts pure user code that never calls
+> into shulib** — there are no background tasks.
+
+Unpacked, that is three separate limits:
+
+- **Proven on the host plant, four ways:** a motion that never settles, a mechanism that
+  never confirms, a wait whose condition never comes true, and a fault-abort cascade each
+  end with the caller's end action performed, judged against the simulator's ground truth
+  with the match limit driven by a clock the guard never touches. That is a real property
+  of the *scheduling* — it is not a claim that a real robot's 6-second park fits a
+  6-second runway. Until phase R4 measures real loop rates and call latencies, your lead
+  time is your own engineering margin. Budget generously and measure at the field.
+- **Nothing preempts your code.** There are no background tasks anywhere in this library —
+  a deliberate, standing decision. The guard works by making every shulib call after the
+  deadline finish quickly (cut) and stay finished (refused). Code that never lets a
+  finished call end its loop — `while (true) { chassis.moveTo(goal); }` with no exit —
+  keeps the CPU forever, and the end action runs only when that loop returns. The
+  transcript will show the refusals; the guard cannot show you the way out. Write retry
+  loops against `guard.expired()`.
+- **Frozen waits pay their remainder.** `pause`/`waitFor`/`waitUntil` on the frozen
+  surfaces cannot see the deadline ([Chapter 9](09-the-recipe-api.md) has the exact
+  formula and the deadline-aware alternative).
+
+And its deliberate refusals, which are design, not gaps: no default match length, no
+default lead time, no park pose, no field coordinate — a guard with a built-in notion of
+"the endgame" would be one team's strategy frozen into everyone's library. Both instants
+and the action are yours.
+
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)

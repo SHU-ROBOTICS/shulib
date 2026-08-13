@@ -50,6 +50,23 @@
 // (cancel releases the claim), which keeps the policy where the policy-owner
 // lives (F2) and keeps a silent double-drive impossible everywhere.
 //
+// ── The claimant hook (chunk F2 — the gap its measurements exposed) ─────────────────
+// F1 promised the end-of-run guard a span<IMechanism*> it could force safe.
+// Building that guard found the promise short by one capability: the claim
+// said THAT a mechanism was driven but not BY WHAT, so a stalled operation
+// was unreachable from the guard — and applySafeState() alone lasts exactly
+// until the live operation's next tick re-commands its voltage (measured:
+// the re-command restores voltage but not brake mode, leaving the half-safe
+// `brake=Hold, V=9.0` that passes any mode-only assertion). Worse, the
+// unreleased claim makes the END ACTION's own operation throw at start().
+// So the claim now carries an optional ICancellable: an operation that
+// registers itself is reachable — the guard cancels it (inert + safe +
+// claim released) instead of merely repainting the device state it will
+// overwrite. tryClaim() without a claimant stays legal (F1 tests, third-party
+// ops) but is INVISIBLE to the guard's cancel-all, which can then only
+// force-release the claim and warn; register a claimant if an end-of-run
+// guard must be able to stop your operation.
+//
 // ── Portability ─────────────────────────────────────────────────────────────────────
 // The concrete compositions are written over the L0 seams (IMotor*/IDigitalOut*),
 // so they run unchanged on hal/fake (host tests), hal/pros (R1 implements the
@@ -69,6 +86,28 @@
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::hal {
+
+/// The hal-level face of "whatever is currently driving a mechanism" — exactly
+/// the ONE capability an end-of-run guard needs from a claimant it knows
+/// nothing about: stop, synchronously, into the mechanism's declared safe
+/// state, and become inert (further ticks are no-ops). Declared HERE, below
+/// the manipulation layer, so IMechanism's claim token can carry it without
+/// an upward include; manipulation::IMechanismOp implements it (its cancel()
+/// contract is already exactly this). See the file banner's claimant-hook
+/// section for the measured failure this closes.
+class ICancellable {
+public:
+    virtual ~ICancellable() = default;
+    ICancellable() = default;
+    ICancellable(const ICancellable&) = default;
+    ICancellable(ICancellable&&) = default;
+    ICancellable& operator=(const ICancellable&) = default;
+    ICancellable& operator=(ICancellable&&) = default;
+
+    /// Render the claimant inert and its mechanism safe, now. Idempotent;
+    /// never raises (the IMechanismOp cancel contract).
+    virtual void cancel() = 0;
+};
 
 /// The minimal common surface of every mechanism: a declared safe state that
 /// can be forced from outside, a stable name for logs, and the one-operation
@@ -97,7 +136,9 @@ public:
     // ── the operation claim (banner: one operation per mechanism, structural) ──────
     // Non-virtual on purpose: no implementation can get the token wrong.
 
-    /// Take the claim. False if another operation already holds it.
+    /// Take the claim ANONYMOUSLY. False if another operation already holds
+    /// it. An anonymous claim is invisible to F2's end-of-run cancel-all
+    /// (banner: the claimant hook) — prefer the registering overload.
     [[nodiscard]] bool tryClaim() noexcept {
         if (claimed_) {
             return false;
@@ -106,14 +147,35 @@ public:
         return true;
     }
 
+    /// Take the claim AND register the claimant, so an end-of-run guard
+    /// holding only IMechanism* can reach the operation and cancel it (chunk
+    /// F2). `claimant` must stay valid until the claim is released — every
+    /// operation exit path releases, and since F2 the library operations also
+    /// cancel-on-destruction, so a registered pointer cannot dangle.
+    [[nodiscard]] bool tryClaim(ICancellable& claimant) noexcept {
+        if (!tryClaim()) {
+            return false;
+        }
+        claimant_ = &claimant;
+        return true;
+    }
+
     /// Release the claim (no-op if not held — release is always safe).
-    void releaseClaim() noexcept { claimed_ = false; }
+    void releaseClaim() noexcept {
+        claimed_ = false;
+        claimant_ = nullptr;
+    }
 
     /// True while an operation holds the claim.
     [[nodiscard]] bool claimed() const noexcept { return claimed_; }
 
+    /// The registered claimant, or nullptr (unclaimed, or claimed anonymously
+    /// via the parameterless tryClaim). The end-of-run guard's reach.
+    [[nodiscard]] ICancellable* claimant() const noexcept { return claimant_; }
+
 private:
     bool claimed_ = false;
+    ICancellable* claimant_ = nullptr;
 };
 
 /// N motors on one mechanically coupled shaft (an intake's two motors, a lift's

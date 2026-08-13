@@ -172,16 +172,21 @@ count, the latched brownout marker, and the complete record of the fault tick) a
 terminal as two `[ERROR][TRI]` lines (`diag/triage.hpp`), printed by `RunReporter::finishRun()`
 after the summary and only when a dump actually happened. `test/blackbox_introspection_test.cpp`.
 
-**D-8. NOT delivered at E1 — still open, and it did not fall out for free.** Routine-level
-watchdog. C1/C2 bound each *motion*. Nothing yet bounds a whole *routine*. Composes with F2's
-guaranteed-park guard — the park must fire even if the routine as a whole wedges, not merely if
-one motion does.
+**D-8. DELIVERED at F2 (2026-08-13).** Routine-level watchdog. C1/C2 bound each *motion*;
+nothing bounded a whole *routine* until `sequence/run_guard.hpp`: a run-scoped deadline owner
+that is ALSO the guaranteed end-of-run action — one primitive, two policies (report/latch, and
+act), exactly the composition this entry predicted. The guard cuts the active motion at the
+caller's deadline, refuses motions after it, reports through its own `RunGuardReport` + `SEQ`
+log lines, and force-safes everything at a second, unconditional instant.
 *Schema: no.*
-*Why E1 left it:* it shares nothing with the blackbox but the word "diagnostics". A whole-routine
-deadline needs an owner that outlives a motion and a policy for what to do when it expires (park?
-abort? report?), which is F2's guaranteed-park question, not a recording question. Building half
-of it here would have put the deadline in the wrong layer. **Owner: F2**, or the D2 completion
-record's "no whole-chain deadline" item at the `Routine` layer — both are named, neither is E1.
+*The remainder, named with owners:* the FROZEN F10/F6 waits cannot be cut (they pay their own
+remaining budget — guide ch. 9 documents the bound; revisiting needs an F10 major bump, owner:
+whoever next reopens F10), and nothing preempts pure user code (no background tasks — a standing
+decision, not a gap with an owner). *Why E1 left it* (kept for the record): it shares nothing
+with the blackbox but the word "diagnostics"; the deadline needed an owner that outlives a
+motion, which was F2's question — per the D3 completion record's §2.1 ruling (the opt-in,
+inert-by-default instruction the guard now obeys; an earlier revision of this entry mis-cited
+that ruling to the D2 record).
 
 ### For H2 (with record/replay)
 

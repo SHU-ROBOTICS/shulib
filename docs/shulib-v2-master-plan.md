@@ -572,8 +572,12 @@ for denial value.
 
 ### Non-negotiable: time-budgeted sequencer with a guaranteed end-of-run action
 No driver recovers a stall. The **+8 Midfield park** and the final Toggle re-verify **must fire on a
-hard schedule** regardless of where the scoring loop stalled — a scheduled-action sequencer
-(extending the existing `RobotCommands`/`Command` queue) is required, not optional.
+hard schedule** regardless of where the scoring loop stalled — a run-scoped deadline owner is
+required, not optional. *(An earlier draft of this sentence said "extending the existing
+`RobotCommands`/`Command` queue"; the C6 audit found that queue never had an executor and C7
+deleted it. The requirement is DELIVERED as `sequence/run_guard.hpp` — chunk F2, 2026-08-13:
+caller-supplied instants and end action, no field knowledge in the library; the park pose and the
+Toggle re-verify themselves are F4/Phase F′ strategy the students author.)*
 
 ### Build-team decisions to settle (mostly hardware, not software)
 1. **Robot roles** — X = tall floor scorer / H = Toggle-owner + parker (recommended). _Drives the auton split._

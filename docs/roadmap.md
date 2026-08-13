@@ -128,7 +128,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
 | F10 | **Public `Routine` API (the Tier-2 recipe layer)** — construction `Routine(chassis, name = "routine")` `noexcept` + non-copyable/non-movable; **eleven steps**, each returning `Routine&`: `startAt` / `moveTo` / `driveTo` / `strafeTo` / `turnTo` / `face` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `pause(Time)` / `waitFor(pred, Time, name)`; **four observers** `ok()` / `result()` / `lastTrajectory()` / `chassis()`, all `noexcept`; **two public types** `RoutineResult` (all eight fields) and `RoutineStopCause` (**append-only** — the existing enumerator *values* are pinned, because a re-meaning is invisible at every call site); **plus the documented semantics**: eager execution (a step runs when it is chained), the stop/safe/skip/report error policy, preconditions throwing through with the chain's counters untouched, `lastTrajectory()` reading `exit = Running` until a trajectory has run, and typed time as a SEMANTIC (`hold(0.3)` must not compile). **Deliberately OUTSIDE F10:** `then()` — the mechanism seam, whose accepted return types and `name` default are a placeholder chosen before mechanisms existed (F1/F3 build them), so freezing it would commit to a guess; and the exact WORDING of the stop/skip log lines (the behaviour is frozen, the sentence is not). A **separate row from F6**, not an amendment: the recipe layer is a strict client of the facade, a different tier that can version independently, and amending F6 would retroactively blur what F6 promised on its own lock date. Enforced structurally: compile-time signature pin `test/routine_signature_pin_test.cpp` (37 pins, 16-mutation-proven, every `noexcept` pin using the compound-requirement detector that D2's hole #1 taught) + `include/shulib/version.hpp` | Every Tier-2 auton ever written on shulib | M7 | ✅ **LOCKED 2026-08-12** *(at D3, after the cookbook — its second consumer — wrote fourteen recipes against it and needed zero changes to the surface; the critique and its rulings are the D3 completion record's centrepiece)* |
-| F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(Deliberately NOT gated by the api-doc coverage tool yet, for the same not-frozen reason — the F1 completion record carries that ruling and F3 owns revisiting it.)* | F2's combinators + park guard; F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
+| F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(Deliberately NOT gated by the api-doc coverage tool yet, for the same not-frozen reason — the F1 completion record carries that ruling and F3 owns revisiting it.)* | chunk F2's end-of-run guard (the claimant hook + cancel-all reach operations through this seam); F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
+| F12 | **Sequence engine (`sequence/run_guard.hpp`)** — `RunGuard` (the run-scoped deadline owner + guaranteed end-of-run action), `RunGuardConfig`/`RunGuardReport`/`GuardedWaitResult`. **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at chunk F2 (2026-08-13) with **one consumer** — F4's student-authored routines are hardware-gated (Phase F′) and D1 ruled G2 does not consume the recipe chain — and nothing freezes on one consumer's evidence. Both instants are caller-supplied with no defaults; the library holds no field coordinate, no park pose, no match length. *(Deliberately not in the api-doc coverage TARGETS until it freezes — the F11 precedent.)* | F4's routines (the second consumer and the freeze trigger) | — (candidate: F4) | 🚧 **open by design** |
 
 ---
 
@@ -166,7 +167,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > found to have had **no executor at all** — the salvage is knowledge, not code; **port list
 > empty by audit**, 11 live legacy bugs catalogued and left behind). Products:
 > [`legacy-command-vocabulary.md`](legacy-command-vocabulary.md) (7 ids from 4 sources,
-> mechanically cross-checked; gaps: `NONE` → G2, seat/settle wiggle → F2; 7 G4 importer
+> mechanically cross-checked; gaps: `NONE` → G2, seat/settle wiggle → F′ (recorded at C6 as "F2"); 7 G4 importer
 > requirements), the legacy-measured reference table in `hardware-assumptions.md`, and
 > diagnostics-plan's C6 note. **Safe-to-delete verdict: unconditional** (C6 completion record §8, development log, `shulib-v2` branch).
 > **Chunk C7 (cutover and deletion — the only irreversible chunk) is DONE, 2026-08-10 — in
@@ -415,7 +416,38 @@ not silently break them. This table is the spine of the no-staleness promise.
 > park-guard shape and the cancel-then-start pre-empt policy), no `hal/pros` (R1), and no
 > claim about physical mechanisms: whether `Hold` holds a LOADED lift is HA-92, a registered
 > guess. The seam itself is **deliberately unfrozen** (register row F11) until F3 consumes it.
-> **Next: F2** (the `sequence/` engine and the guaranteed park).
+> **Chunk F2 (the sequence engine + the guaranteed END-OF-RUN ACTION) is DONE, 2026-08-13 —
+> in the working tree pending review/commit. What F2 did NOT do, first:** it did not build
+> `Sequence`/`Parallel`/`Race` combinator types (the explicit v1 ruling — see the WS8 block:
+> the smaller cut both public documents sanctioned, ruled rather than drifted into); it did
+> not give the library a park pose, a field coordinate, a default lead time or a default
+> match length (both instants and the action are caller-supplied, validated, no defaults);
+> it cannot cut the FROZEN F6/F10 waits (a scheduler-level wait checks only its predicate
+> and its own timeout — the measured 28-second hole; the documented lateness bound is the
+> unexpired remainder per crossed wait, guide ch. 9); and **nothing preempts pure user
+> code** — no background task exists, so "guaranteed" means every shulib call after the
+> deadline finishes quickly and is refused thereafter, never that the CPU can be taken from
+> an unconditional retry loop. What it DID: `sequence/run_guard.hpp` (`RunGuard`, register
+> row F12, NOT frozen) — a run-scoped deadline owner that is an `ITickPacer` decorator
+> (the only seam that regains control mid-motion), inert until `run()` (D3 §2.1's opt-in
+> instruction, pinned by a bit-identical-twin test), cutting the active motion AT the
+> deadline (cancel-from-pace, now pinned in C2's re-entrancy list), REFUSING post-deadline
+> motions (a latch — cancel-only expiry measured inert), cancel-all strictly before a
+> caller-supplied composable end action, and an unconditional hard floor that fires even
+> mid-end-action. Deadline-aware `waitFor`/`pause` return a new sequence-tier verdict
+> (`RunExpired` wins ties with `Satisfied` — the measured predicate-folding trap). D-8 is
+> discharged by the same primitive (one owner, two policies). Rule-4 fixes landed in
+> earlier layers: the F1 claim now carries a claimant hook (a stalled operation was
+> UNREACHABLE from the guard's span; `applySafeState` alone measured surviving exactly one
+> tick), operations cancel-on-destruction (a mid-flight-destroyed op left its mechanism
+> claimed forever AND energized — found while building the guard), and C2's blocking waits
+> gained unwind guards (the measured 11.4 V-under-Coast state; the facade's DetachGuard was
+> the symptom patch and stays). **The DoD test passes four ways** — never-settling motion,
+> never-confirming mechanism, never-true wait, fault-abort cascade — each ending parked and
+> safe at a limit driven by an INDEPENDENT pace-tally script and asserted against plant
+> ground truth. Suite 1013 cases / 1,522,291 assertions; ARM gate 124 headers; the mutation
+> tally is in the F2 completion record (development log, `shulib-v2` branch).
+> **Next: Phase T (driver control), per the build order.**
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -1105,12 +1137,30 @@ is required, not optional, to hold < 1°.)*
 - [ ] Task-sensor confirmation on **every** grab/place (Optical/Distance/current) — never advance on failure.
 
 **Sequencing (WS8)**
-- [ ] `sequence/` Action engine: `Sequence`/`Parallel`/`Race`/`Deadline` + match-timer park guard.
-  *(v1 may ship as hand-written blocking calls + one async handle + a wall-clock guard before the full
-  combinator engine.)*
-- [ ] **Time-budgeted Sequencer** — possession-aware; **guaranteed end-of-run action** (the +8 Midfield
-  park and final Toggle re-verify fire on a hard schedule regardless of where the loop stalled).
-- [ ] `buildStack`, `matchLoadCycle`, `endInMidfield` (18″ height lockout), `strategyMode(tallTower|fastCycle)`.
+- [x] **Guaranteed end-of-run action + run-scoped deadline** — **built and host-proven at chunk F2
+  (2026-08-13)**: `sequence/run_guard.hpp` (`RunGuard`, register row F12, NOT frozen). The DoD test
+  passes four ways: a motion that never settles, a mechanism that never confirms, a wait whose
+  condition never holds, and a fault-abort cascade each end with the caller-supplied end action
+  performed, verified against the plant with the clock driven to the limit by an independent script
+  (`test/sequence_end_of_run_test.cpp`). **The honest boundary:** this is a *scheduling* property on
+  the host plant — real-brain timing is R4's, nothing preempts pure user code (no background tasks
+  exist), and the frozen F6/F10 waits pay their documented lateness (guide ch. 9). The name is
+  deliberately not "park guard": the library never learns what parking is — both instants and the
+  action are caller-supplied with no defaults.
+- [x] **The v1 combinator ruling (chunk F2, explicit):** the engine ships as **the wall-clock guard +
+  deadline-aware waits + the existing async handle (`scheduler()`)** — exactly the smaller v1 this
+  document and the master plan's cut-list sanctioned. `Sequence`/`Parallel`/`Race` types are **not
+  built**: sequencing is the eager chain, parallelism already exists structurally (the scheduler
+  ticks a live motion through `waitUntil` while the predicate ticks a mechanism op — pinned at F1),
+  a race is a disjunction predicate, and `Deadline` shipped as the guard itself. Combinator TYPES
+  return to the table only if F4's student-authored routines demonstrate a need three idioms cannot
+  express. *(The earlier "possession-aware time budgeting" phrasing is retired: possession is game
+  content — implementing it as a library concept repeats the exact legacy failure C6 catalogued.)*
+- [ ] `buildStack`, `matchLoadCycle`, `endInMidfield` (18″ height lockout),
+  `strategyMode(tallTower|fastCycle)` — **→ chunk F4, hardware-gated Phase F′, and the routines are
+  the students' to author** (the guardrail). These lines lived in this WS8 block beside the engine
+  and a top-to-bottom reader would have built season content at F2; the split is now explicit:
+  **F2 owns *that* a caller-supplied end action fires on a hard schedule; F4 owns *what it is*.**
 
 **Skills motion (WS6)**
 - [ ] `fieldCentricStrafe`/`strafeTrim` (H-bot), `moveToPoseProfiled` (lift-state-aware accel).
@@ -1309,7 +1359,7 @@ grows by adding rows here, never by renaming these.
 | **WS5** | Localization & fusion | Pilons odom, `Localizer`, GPS/AprilTag correctors, complementary→EKF, calibration | M2→M3 |
 | **WS6** | Motion & scheduling | `IMotion`, MoveToPose/TurnTo/StrafeTo/Follow, `MotionScheduler`, skills motion | M2 |
 | **WS7** | Manipulation & skills | `Mechanism` HAL, alignment/docking, the scoring primitives | M3→M4 |
-| **WS8** | Autonomy authoring | `paths[]` reader + importer, `PathRunner`, command registry, Sequencer/park guard | M4→M5 |
+| **WS8** | Autonomy authoring | `paths[]` reader + importer, `PathRunner`, command registry, the sequence engine + guaranteed end-of-run action (engine done at F2; season content is F4's) | M4→M5 |
 | **WS9** | Config & hardware ingestion | `IRobotConfig`, `RobotBuilder`, `robotProfile`, codegen, versioning | M5 |
 | **WS10** | Sim, telemetry & tuning | `SHUL/2`, record/replay, `hal/sim` wire, live tuner, overlay | M6 |
 | **WS11** | Tooling, build & CI | kernel bump, host-test harness, CI, clean-room layout, wrapper vendoring | M0 |

@@ -114,12 +114,38 @@
 //   * async()/cancel() from inside a waitUntil predicate: ALLOWED. Pre-emption
 //     applies normally; the swap happens between ticks, so the single-command
 //     invariant holds, and the wait simply continues over the new state.
+//   * cancel() from inside the pacer's pace(): ALLOWED, and pinned since F2 —
+//     pace() runs between ticks (inTick_/inBoundary_ both false), so the
+//     precondition set always admitted it; it was undocumented and untested
+//     until F2's end-of-run guard came to RELY on it (the deadline cut: a
+//     cancel from pace() unwinds waitUntilSettled on the same iteration, with
+//     zero latency — measured). Pinned by test so a later chunk cannot break
+//     the guard by tightening this precondition. async() from pace() is
+//     equally precondition-legal and measured to WORK — and is REJECTED as a
+//     pattern: the hijacked wait keeps looping over the new motion and returns
+//     ITS verdict as the original caller's (a moveTo that was cut reports
+//     Settled describing a motion the caller never issued, with zero log
+//     lines). The guard never uses it; nothing should.
 //   * A BLOCKING verb (waitUntil / waitUntilSettled / tick) from inside a
-//     predicate: REJECTED by precondition — disguised recursion whose depth is
-//     user-data-dependent. Nothing in the G2 marker use case needs it; relaxing
-//     later is additive, un-forbidding is not.
+//     predicate — or from pace(): REJECTED by precondition — disguised
+//     recursion whose depth is user-data-dependent. Nothing in the G2 marker
+//     use case needs it; relaxing later is additive, un-forbidding is not.
 //   * async()/cancel() from inside a motion's tick(): REJECTED by precondition
 //     — mutating the active slot while active->tick() is on the stack.
+//
+// ── Unwind safety of the blocking waits (F2, closing C4's known gap at its root) ───
+// A throw through a blocking wait (stalled-pace precondition, a Localizer
+// breach, a throwing predicate) used to leave the active motion ARMED and the
+// motors at their last command: C4 documented the consequence for
+// waitUntilSettled (a verb's stack-owned motion dangling in the slot) and
+// patched it in the FACADE with runBlocking's DetachGuard — but the same hole
+// was open for direct Tier-3 waits and for waitUntil, where F2 measured the
+// worst state in the campaign: 11.4 V under Coast with the slot pointing at a
+// dying stack object (Chassis::waitUntil is a bare pass-through). The fix now
+// lives HERE, in the loop owner: both waits cancel on unwind (safe state +
+// boundary recorded + slot cleared) before the exception propagates. The
+// facade's DetachGuard stays — redundant cancels are idempotent, and belt
+// plus braces is the right dress code for the panic path.
 //
 // ── Observability (what C5 will need; A1's cost contract respected) ─────────────────
 // The scheduler assigns activeCommandId (debug_record.hpp: "ids are assigned by
@@ -605,6 +631,7 @@ public:
                             "MotionScheduler::waitUntilSettled: cannot block from a boundary "
                             "observer");
         FlagScope wait{inWait_};
+        WaitUnwindGuard unwind{*this};  // F2: a throw must not strand an armed motion
         loopMonitor_.reset();
         stalledPaces_ = 0;
         while (active_ != nullptr) {
@@ -613,6 +640,7 @@ public:
                 pace();  // no trailing pace after the exit tick (the C1 rig shape)
             }
         }
+        unwind.disarm();
         return lastExit_;
     }
 
@@ -635,11 +663,13 @@ public:
         SHULIB_PRECONDITION(std::isfinite(timeoutSeconds) && timeoutSeconds >= 0.0,
                             "MotionScheduler::waitUntil: timeout must be finite and >= 0");
         FlagScope wait{inWait_};
+        WaitUnwindGuard unwind{*this};  // F2: a throw must not strand an armed motion
         loopMonitor_.reset();
         stalledPaces_ = 0;
         const double deadline = schedDeps_.ctx->clock().now().value() + timeoutSeconds;
         while (true) {
             if (pred()) {
+                unwind.disarm();
                 return WaitResult::Satisfied;
             }
             if (schedDeps_.ctx->clock().now().value() >= deadline) {
@@ -647,6 +677,7 @@ public:
                 std::snprintf(buf, sizeof buf, "waitUntil timed out after %.2fs",
                               timeoutSeconds);
                 schedDeps_.ctx->telemetry().log(hal::LogLevel::Warn, "SCH", buf);
+                unwind.disarm();
                 return WaitResult::TimedOut;
             }
             tickImpl();
@@ -659,7 +690,8 @@ public:
     /// With NO active motion this is the PANIC STOP: the safe state is applied
     /// to the drive anyway (a cancel that can be "too late" to do anything is
     /// a cancel nobody can rely on). Idempotent; callable from a waitUntil
-    /// predicate; NOT from inside a motion tick.
+    /// predicate AND from a pacer's pace() (the F2 deadline cut — pinned in
+    /// the re-entrancy banner); NOT from inside a motion tick.
     void cancel() {
         SHULIB_PRECONDITION(!inTick_,
                             "MotionScheduler::cancel: cannot cancel from inside a tick");
@@ -726,6 +758,32 @@ public:
     static constexpr int kMaxStalledPaces = 100;
 
 private:
+    /// F2 (banner: unwind safety): cancels the active motion when an exception
+    /// unwinds a blocking wait — safe state applied, boundary recorded, slot
+    /// cleared, all BEFORE a stack-owned motion object can die under the
+    /// scheduler. Mirrors the facade's DetachGuard shape (disarm() on the
+    /// normal path); calls the full cancel() so the boundary accounting stays
+    /// truthful — with no active motion it is the panic stop, which is the
+    /// right response to an exception mid-wait either way. Declared before the
+    /// wait loops use it; constructed AFTER FlagScope so it destructs while
+    /// inWait_ is still up (cancel() does not check inWait_ — the same window
+    /// the F2 pacer cut uses, pinned in the re-entrancy list).
+    class WaitUnwindGuard {
+    public:
+        explicit WaitUnwindGuard(MotionScheduler& sched) noexcept : sched_{&sched} {}
+        ~WaitUnwindGuard() {
+            if (sched_ != nullptr) {
+                sched_->cancel();
+            }
+        }
+        WaitUnwindGuard(const WaitUnwindGuard&) = delete;
+        WaitUnwindGuard& operator=(const WaitUnwindGuard&) = delete;
+        void disarm() noexcept { sched_ = nullptr; }
+
+    private:
+        MotionScheduler* sched_;
+    };
+
     /// Sets a flag for a scope, exception-safely (the tick body can throw
     /// through — e.g. a Localizer precondition — and the flag must not stick).
     class FlagScope {

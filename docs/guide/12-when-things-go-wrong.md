@@ -138,6 +138,34 @@ This is [Chapter 5](05-getting-there.md)'s control-tuning material made audible:
   rejected nonsense input loudly (NaN target, negative timeout, empty waypoint list). The
   message names the rule; fix the caller.
 
+## "It ran past the buzzer / the end action never fired"
+
+The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail under the
+`SEQ` tag. Read it in this order:
+
+- **No `SEQ` lines at all:** the guard was never armed (your auton didn't run inside
+  `guard.run(...)`) — or, the wiring mistake the guard cannot prevent: the `Chassis` was
+  constructed with the raw pacer instead of the guard. The guard detects that after the fact
+  and warns `guard pacer never ran` (its report's `pacesSeen` reads 0). The guarantee never
+  applied to that run.
+- **`run budget expired … scoring latched off`, then nothing moved:** working as designed —
+  from that instant scoring motions are cut and refused. If the *end action* also didn't
+  move, check the next line.
+- **`end-of-run action FAILED`:** the action ran and reported failure — usually its own leg's
+  timeout was too tight for where the robot actually was, or the runway between your two
+  instants was too short for the drive. The action's failure is *reported*, never silent, and
+  never rewrites what your scoring code returned.
+- **`hard stop … all devices safed unconditionally`:** the floor fired mid-action. Whatever
+  was still running was cut and every listed device forced safe. If this happens every run,
+  your end action does not fit its runway.
+- **The run went long anyway, in a wait:** a frozen-surface wait (`pause`, `waitFor`,
+  `chassis.waitUntil`) cannot be cut and pays its own remaining budget —
+  [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative.
+- **`anonymous claim force-released`:** a mechanism was claimed by something the guard cannot
+  see into (a hand-rolled operation using the bare claim). The guard freed the claim so the
+  end action could run, but it could not make the unknown operation inert — register a
+  claimant ([Chapter 13](13-extending-the-library.md)).
+
 ## "The transcript itself looks wrong"
 
 - **Result lines say `n/a`:** record stream not connected — expected in competition builds and

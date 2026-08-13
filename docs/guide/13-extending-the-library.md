@@ -138,8 +138,9 @@ answer is safe for all of them:
 - a **clamp**'s safe line state is a strategy fact — "stay closed at the buzzer and keep
   the goal" and "retract inside the expansion limit" are both legitimate declarations.
 
-Everything that ever stops your mechanism — an operation finishing, a cancel, the future
-end-of-match park guard — applies the state *you declared*, so the decision is made once,
+Everything that ever stops your mechanism — an operation finishing, a cancel, the run
+guard's end-of-match cancel-all ([Chapter 6](06-how-things-fail.md)) — applies the state
+*you declared*, so the decision is made once,
 where you know the physics, instead of being re-made (wrongly) by generic code at the worst
 moment. Whether `Hold` truly holds *your* loaded lift is a hardware question nobody can
 answer until there is a robot; the assumptions register tracks it (HA-92).
@@ -168,12 +169,18 @@ and never rewrites a finished verdict. One operation per mechanism at a time is 
 structurally — a second `start()` on a busy mechanism fails loudly instead of silently
 double-driving it.
 
-Two practical notes. First, keep a list of your mechanisms as `hal::IMechanism*` — the
-end-of-run park guard (the sequencing layer, in progress) will take exactly that list and
-force every one of them safe at the buzzer, which is the whole reason the base interface
-exists. Second, your confirmation predicate is *trusted*: an operation cannot second-guess
-its only eye on the task, so confirm on a real sensor reading, not on hope — the test suite
-demonstrates, deliberately, that a predicate that lies produces a false success.
+Three practical notes. First, keep a list of your mechanisms as `hal::IMechanism*` — the
+run guard's cancel-all ([Chapter 6](06-how-things-fail.md)) takes exactly that list and
+forces every one of them safe at the buzzer, which is the whole reason the base interface
+exists. Second, if you write your OWN operation type (not the two shipped shapes), claim
+the mechanism with the **registering** overload — `tryClaim(*this)`, implementing
+`hal::ICancellable`, exactly as the shipped operations do — or the guard cannot reach your
+operation at the deadline: it can repaint the device safe, but a live operation re-commands
+its voltage on its very next tick, and the guard will only be able to force-release your
+claim and warn (`anonymous claim force-released` in the transcript is this). Third, your
+confirmation predicate is *trusted*: an operation cannot second-guess its only eye on the
+task, so confirm on a real sensor reading, not on hope — the test suite demonstrates,
+deliberately, that a predicate that lies produces a false success.
 
 ## Extension 4 and beyond
 

@@ -2,7 +2,9 @@
 
 > **What this is:** the complete record of every command id the team ever declared or authored
 > routines with in the legacy tree, what each did (or was meant to do), and where each maps in
-> shulib v2 today. This is a **requirements input for F2 (mechanism primitives) and G2 (the
+> shulib v2 today. This is a **requirements input for F3 (the concrete mechanism/scoring
+> primitives — an earlier revision said "F2 (mechanism primitives)", which is two mistakes:
+> chunk F2 is the sequence engine, and the mechanism seam was F1) and G2 (the
 > canonical command-id registry)**, and the two data specimens characterized here are the real
 > inputs **G4's `.shupaths` importer** must be able to read.
 >
@@ -87,11 +89,11 @@ equally a G2/F2 requirements input — it is what the team reached for when auth
 | `chassis.setPose(0,0,θ)` after **every** turn | Manual odometry re-anchor — they trusted heading so little they re-zeroed constantly | Superseded by IMU-owned heading (M2) + M3 correctors; a routine should never need mid-run `setPose` |
 | `lever.extend()` / `lever.retract()`, `arm` pneumatics | Mechanism actuation | F′ `deployActuator` / `clampActuate` → G2 ids |
 | `intake`/`conveyor`/`releaser` `.move(±127)` + timed `limitedCombo`/`limitedComboFull` | Timed open-loop mechanism combos | F′ `intakeUntilCapture` etc. — sensor-confirmed, not timed; G2 typed-args markers |
-| `oscillation(n)` | Wiggle forward/back ×n to seat a piece | **Not in any v2 plan by name** — a candidate F′ micro-primitive (seat/settle wiggle); noted as a gap-adjacent observation for F2 |
+| `oscillation(n)` | Wiggle forward/back ×n to seat a piece | **Not in any v2 plan by name** — a candidate F′ micro-primitive (seat/settle wiggle); noted as a gap-adjacent observation for F3/F′ (recorded at C6 as "F2", the pre-split chunk name) |
 | `timer(ms)` / `pros::delay` between steps | Sequencing by wall-clock delay | C2 `waitUntilSettled` / D1 recipe chaining / M4 Sequencer |
 | `test_min_output()`, `rotation_calibration()` | Calibration routines (see hardware-assumptions addendum) | M3 "calibration routines + persistence" — specimens captured at C6 |
 
-Gap summary for F2: everything maps onto planned §14 primitives except the **seat/settle wiggle**
+Gap summary for the sequencing/primitives chunks (recorded at C6 under the pre-split name "F2"): everything maps onto planned §14 primitives except the **seat/settle wiggle**
 (`oscillation`), which is worth a line in F2's brief as a candidate micro-primitive (cheap, and
 they used it twice in one routine, under a dedicated task, mid-drive).
 
