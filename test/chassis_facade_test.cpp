@@ -20,6 +20,7 @@
 #include "shulib/localization/pilons_odometry.hpp"
 #include "shulib/motion/move_to_pose.hpp"
 #include "shulib/sim/scenario.hpp"
+#include "shulib/units/literals.hpp"
 
 using namespace motion_rig;
 using shulib::PreconditionError;
@@ -27,6 +28,7 @@ using shulib::chassis::Chassis;
 using shulib::chassis::MotionOptions;
 using shulib::control::ExitReason;
 using shulib::hal::BrakeMode;
+using shulib::hal::LogLevel;
 using shulib::hal::fake::FakeTelemetrySink;
 using shulib::kinematics::TankKinematics;
 using shulib::kinematics::xDrive;
@@ -69,6 +71,12 @@ template <typename... Args>
 concept TurnToCallable = requires(Chassis& c, Args... a) { c.turnTo(a...); };
 template <typename... Args>
 concept FollowCallable = requires(Chassis& c, Args... a) { c.followTrajectory(a...); };
+template <typename... Args>
+concept HoldCallable = requires(Chassis& c, Args... a) { c.hold(a...); };
+template <typename... Args>
+concept WaitCallable = requires(Chassis& c, Args... a) { c.wait(a...); };
+template <typename... Args>
+concept WaitUntilCallable = requires(Chassis& c, Args... a) { c.waitUntil(a...); };
 
 static_assert(!std::is_copy_constructible_v<Chassis>);   // owns the pinned scheduler
 static_assert(!std::is_move_constructible_v<Chassis>);
@@ -83,6 +91,18 @@ static_assert(StrafeToCallable<Length, Length>);
 static_assert(!TurnToCallable<double>);
 static_assert(TurnToCallable<Angle>);
 static_assert(!FollowCallable<>);  // waypoints are required
+// The D2 time retype: a bare NUMBER is not a duration. hold(500) written by
+// someone thinking in milliseconds would compile and hold pose for 500 s of a
+// 15 s match — the exact misuse class the typed surface exists to reject.
+static_assert(!HoldCallable<double>);
+static_assert(!HoldCallable<int>);
+static_assert(HoldCallable<shulib::units::Time>);
+static_assert(!WaitCallable<double>);
+static_assert(!WaitCallable<int>);
+static_assert(WaitCallable<shulib::units::Time>);
+using PinPred = bool (*)();
+static_assert(!WaitUntilCallable<PinPred, double>);
+static_assert(WaitUntilCallable<PinPred, shulib::units::Time>);
 
 // ═══ The standalone promise: file-free construction, written out longhand ══════════
 
@@ -123,7 +143,7 @@ TEST_CASE("C4 standalone: a working Chassis in plain C++ — no file, no builder
     // And it WORKS: seed the start pose, drive a leg, graded on ground truth.
     chassis.setPose(Pose2d{});
     const Pose2d target{Length{20.0}, Length{-8.0}, Angle::degrees(45.0)};
-    CHECK(chassis.moveTo(target, {.timeoutSeconds = 8.0}) == ExitReason::Settled);
+    CHECK(chassis.moveTo(target, {.timeout = Time{8.0}}) == ExitReason::Settled);
     CHECK(posErr(h.truePose(), target) < 1.0);
     CHECK(headErr(h.truePose(), target) < 0.03);
 }
@@ -144,7 +164,7 @@ TEST_CASE("C4 stamping: every record of every facade verb carries its command id
 
     // Verb 1 (moveTo) → id 1 on every motion record.
     REQUIRE(c.chassis.moveTo(Pose2d{Length{15.0}, Length{0.0}, Angle{}},
-                             {.timeoutSeconds = 8.0})
+                             {.timeout = Time{8.0}})
             == ExitReason::Settled);
     const int n1 = sink.recordCount();
     int motionRecords1 = 0;
@@ -169,7 +189,7 @@ TEST_CASE("C4 stamping: every record of every facade verb carries its command id
     }
 
     // Verb 2 (turnTo) → id 2: ids advance per motion, never bleed.
-    REQUIRE(c.chassis.turnTo(Angle::degrees(90.0), {.timeoutSeconds = 8.0})
+    REQUIRE(c.chassis.turnTo(Angle::degrees(90.0), {.timeout = Time{8.0}})
             == ExitReason::Settled);
     int motionRecords2 = 0;
     for (int i = n2; i < sink.recordCount(); ++i) {
@@ -202,15 +222,15 @@ TEST_CASE("C4 stamping: every record of every facade verb carries its command id
 
 // ═══ Per-call options ══════════════════════════════════════════════════════════════
 
-// Bug caught: options.timeoutSeconds silently ignored (every motion riding the
+// Bug caught: options.timeout silently ignored (every motion riding the
 // 5 s config default) — the per-call budget is how routines bound their legs.
-TEST_CASE("C4 options: timeoutSeconds bounds the verb — a laterally-impossible tank "
+TEST_CASE("C4 options: timeout bounds the verb — a laterally-impossible tank "
           "target exits TimedOut at the OPTION's budget, not the default") {
     const TankKinematics kin{Length{12.0}};
     ChassisRig c{kin};
     // Laterally offset target on tank: unreachable by physics (authority 0).
     const double t0 = c.rig.h.clock().now().value();
-    CHECK(c.chassis.strafeTo(Length{0.0}, Length{24.0}, {.timeoutSeconds = 0.9})
+    CHECK(c.chassis.strafeTo(Length{0.0}, Length{24.0}, {.timeout = Time{0.9}})
           == ExitReason::TimedOut);
     const double elapsed = c.rig.h.clock().now().value() - t0;
     CHECK(elapsed >= 0.9);
@@ -252,8 +272,8 @@ TEST_CASE("C4 options: maxLinearSpeed caps the leg's true ground speed") {
         return pacer.maxStep;
     };
 
-    const double capped = maxTickStep({.timeoutSeconds = 8.0, .maxLinearSpeed = Velocity{20.0}});
-    const double uncapped = maxTickStep({.timeoutSeconds = 8.0});
+    const double capped = maxTickStep({.timeout = Time{8.0}, .maxLinearSpeed = Velocity{20.0}});
+    const double uncapped = maxTickStep({.timeout = Time{8.0}});
     CHECK(capped < 20.0 * 0.01 * 1.2);   // ≤ cap × dt, with transient margin
     CHECK(uncapped > 20.0 * 0.01 * 1.5); // the default budget genuinely runs faster
 }
@@ -292,9 +312,9 @@ TEST_CASE("C4 options: maxAngularSpeed caps the true yaw rate (closes mutation M
         return pacer.maxYawStep;
     };
 
-    const double capped = maxYawStep({.timeoutSeconds = 8.0,
+    const double capped = maxYawStep({.timeout = Time{8.0},
                                       .maxAngularSpeed = AngularVelocity{1.5}});
-    const double uncapped = maxYawStep({.timeoutSeconds = 8.0});
+    const double uncapped = maxYawStep({.timeout = Time{8.0}});
     CHECK(capped < 1.5 * 0.01 * 1.25);    // ≤ the option's budget × dt, with margin
     CHECK(uncapped > 1.5 * 0.01 * 1.5);   // the 6 rad/s default genuinely turns faster
     CHECK(uncapped < 6.0 * 0.01 * 1.25);  // …and the CONFIG budget also binds (the clamp)
@@ -306,8 +326,8 @@ TEST_CASE("C4 options: non-finite / negative options are rejected loudly") {
     const auto kin = xDrive(Length{7.0});
     ChassisRig c{kin};
     const double nan = std::numeric_limits<double>::quiet_NaN();
-    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeoutSeconds = nan}), PreconditionError);
-    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeoutSeconds = -1.0}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeout = Time{nan}}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.moveTo(Pose2d{}, {.timeout = Time{-1.0}}), PreconditionError);
     CHECK_THROWS_AS(c.chassis.turnTo(Angle{}, {.maxLinearSpeed = Velocity{nan}}),
                     PreconditionError);
     CHECK_THROWS_AS(
@@ -315,7 +335,7 @@ TEST_CASE("C4 options: non-finite / negative options are rejected loudly") {
         PreconditionError);
     // And the chassis is still usable after each rejection (no half-armed state):
     CHECK(c.chassis.moveTo(Pose2d{Length{5.0}, Length{0.0}, Angle{}},
-                           {.timeoutSeconds = 8.0})
+                           {.timeout = Time{8.0}})
           == ExitReason::Settled);
 }
 
@@ -367,10 +387,10 @@ TEST_CASE("C4 waitUntil: C2's verb re-exported unchanged — entry check, bounde
     ChassisRig c{kin};
     // True on entry: Satisfied without a single pace.
     const double t0 = c.rig.h.clock().now().value();
-    CHECK(c.chassis.waitUntil([] { return true; }, 5.0) == WaitResult::Satisfied);
+    CHECK(c.chassis.waitUntil([] { return true; }, Time{5.0}) == WaitResult::Satisfied);
     CHECK(c.rig.h.clock().now().value() == t0);
     // Never-true: TimedOut at the deadline, no fault raised.
-    CHECK(c.chassis.waitUntil([] { return false; }, 0.3) == WaitResult::TimedOut);
+    CHECK(c.chassis.waitUntil([] { return false; }, Time{0.3}) == WaitResult::TimedOut);
     CHECK(c.rig.h.clock().now().value() >= t0 + 0.3);
     CHECK(c.rig.h.clock().now().value() < t0 + 0.5);
     CHECK_FALSE(c.rig.latch.hasFault());
@@ -394,7 +414,7 @@ TEST_CASE("C4 brake: from speed to certified rest through the facade") {
     c.pacer.pace();
     REQUIRE(posErr(c.rig.h.truePose(), moving1) > 0.15);  // provably moving NOW
 
-    CHECK(c.chassis.brake({.timeoutSeconds = 5.0}) == ExitReason::Settled);
+    CHECK(c.chassis.brake({.timeout = Time{5.0}}) == ExitReason::Settled);
     // TRUE rest, not just an estimator claim: the pose stays put afterwards.
     const Pose2d rest = c.rig.h.truePose();
     for (int i = 0; i < 10; ++i) {
@@ -409,16 +429,86 @@ TEST_CASE("C4 hold: holds position for the requested window and reports honestly
     const auto kin = xDrive(Length{7.0});
     ChassisRig c{kin};
     REQUIRE(c.chassis.moveTo(Pose2d{Length{10.0}, Length{0.0}, Angle{}},
-                             {.timeoutSeconds = 8.0})
+                             {.timeout = Time{8.0}})
             == ExitReason::Settled);
     const Pose2d before = c.rig.h.truePose();
     const double t0 = c.rig.h.clock().now().value();
-    CHECK(c.chassis.hold(0.5) == ExitReason::Settled);
+    CHECK(c.chassis.hold(Time{0.5}) == ExitReason::Settled);
     const double held = c.rig.h.clock().now().value() - t0;
     CHECK(held >= 0.5);
     CHECK(held < 1.0);
     CHECK(posErr(c.rig.h.truePose(), before) < 0.6);  // it held its ground
-    CHECK_THROWS_AS(c.chassis.hold(0.0), PreconditionError);  // nonsense window
+    CHECK_THROWS_AS(c.chassis.hold(Time{0.0}), PreconditionError);  // nonsense window
+}
+
+// ═══ wait(): the do-nothing verb (adopted at D2) ═══════════════════════════════════
+
+// Bug caught: wait() energizing the drive (that is hold's job — a wait that
+// fights a defender is commanding motion nobody asked for), failing to advance
+// the world, overrunning into its backstop, logging a spurious Warn (the D1
+// finding that motivated the verb: the naive waitUntil(false-pred) spelling
+// Warn-spams every deliberate pause), or raising a fault for a planned beat.
+TEST_CASE("D2 wait: commands nothing, advances exactly the window, stays silent") {
+    FakeTelemetrySink sink;
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin, plantConfig(), &sink};
+
+    // Settle a motion first so the drive has a known state (stopped, 0 V).
+    REQUIRE(c.chassis.moveTo(Pose2d{Length{10.0}, Length{0.0}, Angle{}},
+                             {.timeout = Time{8.0}})
+            == ExitReason::Settled);
+    const Pose2d before = c.rig.h.truePose();
+    const double t0 = c.rig.h.clock().now().value();
+    const int logsBefore = sink.size();
+
+    c.chassis.wait(Time{0.7});
+
+    const double elapsed = c.rig.h.clock().now().value() - t0;
+    CHECK(elapsed >= 0.7);   // it genuinely waited…
+    CHECK(elapsed < 0.75);   // …to the tick, NOT into the 1 s backstop
+    // Commanded nothing: every motor still at the settled state's 0 V, and
+    // the robot did not move.
+    for (int w = 0; w < c.rig.h.motorCount(); ++w) {
+        CHECK(c.rig.h.motor(w).commandedVoltage().value() == 0.0);
+    }
+    CHECK(posErr(c.rig.h.truePose(), before) < 0.2);
+    // Silent: no Warn from any subsystem, and no fault — a wait is a plan,
+    // not a pathology.
+    for (int i = logsBefore; i < sink.size(); ++i) {
+        CHECK(sink.at(i).level != LogLevel::Warn);
+    }
+    CHECK_FALSE(c.rig.latch.hasFault());
+}
+
+// Bug caught: wait() accepting a nonsense window (zero, negative, NaN) and
+// spinning forever or returning instantly — a programming error must stay
+// loud and early, exactly like hold's precondition one door down.
+TEST_CASE("D2 wait misuse: zero, negative, and NaN durations throw") {
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin};
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    CHECK_THROWS_AS(c.chassis.wait(Time{0.0}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.wait(Time{-1.0}), PreconditionError);
+    CHECK_THROWS_AS(c.chassis.wait(Time{nan}), PreconditionError);
+}
+
+// Bug caught (D2 brief constraint 4): a sign/scale slip in the _ms or _s
+// literal conversion — INVISIBLE to any test that uses the same literal on
+// both sides of its assertion. So this pin is one-sided: 2500_ms must be
+// 2.5 SECONDS of *simulated clock*, asserted against the clock and the
+// hand-written absolute 2.5, never against another literal. (2500/1000 and
+// 2.5 are both exact in binary, so the compile-time equality is exact too.)
+TEST_CASE("D2 duration pin: 2500_ms is 2.5 s of simulated clock, absolutely") {
+    using namespace shulib::units::literals;
+    static_assert((2500_ms).value() == 2.5);   // the conversion constant itself
+    static_assert((2.5_s).value() == 2.5);     // and the seconds literal agrees
+    const auto kin = xDrive(Length{7.0});
+    ChassisRig c{kin};
+    const double t0 = c.rig.h.clock().now().value();
+    c.chassis.wait(2500_ms);
+    const double elapsed = c.rig.h.clock().now().value() - t0;
+    CHECK(elapsed >= 2.5);    // fired at 2.5 s of clock…
+    CHECK(elapsed < 2.55);    // …within one 10 ms tick, hand-computed bound
 }
 
 // ═══ cancel(): the panic stop through the facade ═══════════════════════════════════
@@ -450,7 +540,7 @@ TEST_CASE("C4 unwind: a mid-verb pacer failure throws loudly, detaches the motio
     Chassis chassis{rig.deps, pacer, chassisConfig()};
 
     CHECK_THROWS_AS(chassis.moveTo(Pose2d{Length{40.0}, Length{0.0}, Angle{}},
-                                   {.timeoutSeconds = 8.0}),
+                                   {.timeout = Time{8.0}}),
                     PreconditionError);
     CHECK_FALSE(chassis.scheduler().hasActiveMotion());  // detached, not dangling
     checkSafeState(rig);                                 // and safed on the way out

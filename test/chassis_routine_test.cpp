@@ -119,7 +119,7 @@ RoutineResult runRoutine(const shulib::kinematics::IKinematics& kin, int n,
         if (strafeLeg) {
             if (viaFacade) {
                 r = cr.chassis.strafeTo(target.x(), target.y(),
-                                        {.timeoutSeconds = moveTimeout});
+                                        {.timeout = Time{moveTimeout}});
             } else {
                 StrafeTo m{sr.sched.deps(), target.x(), target.y(), motionConfig(),
                            moveTimeout};
@@ -128,7 +128,7 @@ RoutineResult runRoutine(const shulib::kinematics::IKinematics& kin, int n,
             target = Pose2d{target.x(), target.y(), truePose().heading()};
         } else {
             if (viaFacade) {
-                r = cr.chassis.moveTo(target, {.timeoutSeconds = moveTimeout});
+                r = cr.chassis.moveTo(target, {.timeout = Time{moveTimeout}});
             } else {
                 MoveToPose m{sr.sched.deps(), target, motionConfig(), moveTimeout};
                 r = sr.run(m);
@@ -148,7 +148,7 @@ RoutineResult runRoutine(const shulib::kinematics::IKinematics& kin, int n,
         if (k % 3 == 2) {
             const Angle newHeading = Angle::radians(wp.uniform(-Angle::kPi, Angle::kPi));
             if (viaFacade) {
-                REQUIRE(cr.chassis.turnTo(newHeading, {.timeoutSeconds = moveTimeout})
+                REQUIRE(cr.chassis.turnTo(newHeading, {.timeout = Time{moveTimeout}})
                         == ExitReason::Settled);
             } else {
                 TurnTo t{sr.sched.deps(), newHeading, motionConfig(), moveTimeout};
@@ -281,11 +281,11 @@ TEST_CASE("C4 routine: TANK — turn-then-drive auton, error flat in move count 
             const Pose2d here = c.chassis.pose();
             const Angle bearing = Angle::radians(
                 std::atan2((next.y() - here.y()).value(), (next.x() - here.x()).value()));
-            REQUIRE(c.chassis.turnTo(bearing, {.timeoutSeconds = kMoveTimeoutX})
+            REQUIRE(c.chassis.turnTo(bearing, {.timeout = Time{kMoveTimeoutX}})
                     == ExitReason::Settled);
             // …then drive the line, holding that bearing.
             target = Pose2d{next.x(), next.y(), bearing};
-            REQUIRE(c.chassis.moveTo(target, {.timeoutSeconds = kMoveTimeoutH})
+            REQUIRE(c.chassis.moveTo(target, {.timeout = Time{kMoveTimeoutH}})
                     == ExitReason::Settled);
             worst = std::max(worst, posErr(c.rig.h.truePose(), target));
         }
@@ -328,7 +328,7 @@ TEST_CASE("C4 auton: a complete hand-written routine through the facade on X, H,
         auto& ch = c.chassis;
         ch.setPose(start);  // the auton's first line: seed the measured start
 
-        const shulib::chassis::MotionOptions o{.timeoutSeconds = d.timeout};
+        const shulib::chassis::MotionOptions o{.timeout = Time{d.timeout}};
         int expectedMotions = 0;
         // Leg 1: drive out. The tank AUTHOR plans a bearing turn first (the
         // library never sequences one silently — D12's honesty, the author's
@@ -369,9 +369,9 @@ TEST_CASE("C4 auton: a complete hand-written routine through the facade on X, H,
         CHECK(traj.completedLegs == 2);
         expectedMotions += 2;
         // A deliberate strategy wait (e.g. "let the ring drop"): bounded poll.
-        CHECK(ch.waitUntil([] { return false; }, 0.2) == WaitResult::TimedOut);
+        CHECK(ch.waitUntil([] { return false; }, Time{0.2}) == WaitResult::TimedOut);
         // Hold the scoring spot briefly against contact, then park.
-        REQUIRE(ch.hold(0.3, o) == ExitReason::Settled);
+        REQUIRE(ch.hold(Time{0.3}, o) == ExitReason::Settled);
         REQUIRE(ch.brake(o) == ExitReason::Settled);
         expectedMotions += 2;
 
@@ -402,7 +402,7 @@ TEST_CASE("C4 trajectory: waypoints chain as settled legs — the corner is real
     const Pose2d corner{Length{20.0}, Length{0.0}, Angle{}};
     const Pose2d goal{Length{20.0}, Length{20.0}, Angle{}};
     const TrajectoryResult r =
-        c.chassis.followTrajectory({corner, goal}, {.timeoutSeconds = 8.0});
+        c.chassis.followTrajectory({corner, goal}, {.timeout = Time{8.0}});
     REQUIRE(r.succeeded());
     CHECK(r.completedLegs == 2);
     CHECK(r.totalLegs == 2);
@@ -425,7 +425,7 @@ TEST_CASE("C4 trajectory: a failing leg STOPS the chain and reports honestly") {
         {Pose2d{Length{6.0}, Length{0.0}, Angle{}},
          Pose2d{Length{55.0}, Length{40.0}, Angle{}},
          Pose2d{Length{0.0}, Length{40.0}, Angle{}}},
-        {.timeoutSeconds = 1.5});
+        {.timeout = Time{1.5}});
     CHECK_FALSE(r.succeeded());
     CHECK(r.exit == ExitReason::TimedOut);
     CHECK(r.completedLegs == 1);
@@ -448,7 +448,7 @@ TEST_CASE("C4 trajectory: H-drive lateral leg runs authority-limited and VISIBLY
     ChassisRig c{kin, plantConfig(), &sink};
     // Pure +Y leg with heading held at 0: body vy dominates → the clamp binds.
     const TrajectoryResult r = c.chassis.followTrajectory(
-        {Pose2d{Length{0.0}, Length{24.0}, Angle{}}}, {.timeoutSeconds = kMoveTimeoutH});
+        {Pose2d{Length{0.0}, Length{24.0}, Angle{}}}, {.timeout = Time{kMoveTimeoutH}});
     REQUIRE(r.succeeded());
     int sfbStamped = 0;
     for (int i = 0; i < sink.recordCount(); ++i) {
@@ -476,7 +476,7 @@ TEST_CASE("C4 guarantee: ODO_STUCK aborts a facade moveTo promptly into the safe
     ChassisRig c{kin, plantConfig(), nullptr, &model};
 
     const ExitReason r = c.chassis.moveTo(Pose2d{Length{40.0}, Length{0.0}, Angle{}},
-                                          {.timeoutSeconds = 6.0});
+                                          {.timeout = Time{6.0}});
     CHECK(r == ExitReason::Cancelled);
     CHECK(c.chassis.lastCompleted().abortFault == FaultCode::OdoStuck);
     CHECK(c.chassis.scheduler().motionsAborted() == 1);
@@ -499,7 +499,7 @@ TEST_CASE("C4 guarantee: IMU_LOST mid-verb does NOT abort — the verb still set
     const auto kin = xDrive(Length{7.0});
     ChassisRig c{kin, plantConfig(), nullptr, &imu};
     REQUIRE(c.chassis.moveTo(Pose2d{Length{30.0}, Length{8.0}, Angle::degrees(30.0)},
-                             {.timeoutSeconds = 8.0})
+                             {.timeout = Time{8.0}})
             == ExitReason::Settled);
     CHECK(c.rig.latch.raiseCount(FaultCode::ImuLost) == 1);  // seen, once — not fatal
     CHECK(c.chassis.scheduler().motionsAborted() == 0);
@@ -518,7 +518,7 @@ TEST_CASE("C4 guarantee: boot window through the facade — waits motionless the
         ImuHostileModel imu{ImuHostileConfig{}};
         ChassisRig c{kin, plantConfig(), nullptr, &imu};
         const Pose2d target{Length{24.0}, Length{0.0}, Angle{}};
-        REQUIRE(c.chassis.moveTo(target, {.timeoutSeconds = 8.0}) == ExitReason::Settled);
+        REQUIRE(c.chassis.moveTo(target, {.timeout = Time{8.0}}) == ExitReason::Settled);
         CHECK(c.rig.h.clock().now().value() > 1.9);  // it genuinely waited out boot
         CHECK(posErr(c.rig.h.truePose(), target) < 1.5);
         CHECK_FALSE(c.rig.latch.hasFault());  // boot is normal, not a fault
@@ -531,7 +531,7 @@ TEST_CASE("C4 guarantee: boot window through the facade — waits motionless the
         ChassisRig c{kin, plantConfig(), nullptr, &imu};
         const double t0 = c.rig.h.clock().now().value();
         CHECK(c.chassis.moveTo(Pose2d{Length{24.0}, Length{0.0}, Angle{}},
-                               {.timeoutSeconds = 1.5})
+                               {.timeout = Time{1.5}})
               == ExitReason::TimedOut);
         CHECK(c.rig.h.clock().now().value() - t0 >= 1.5);
         CHECK(c.rig.h.clock().now().value() - t0 < 2.0);   // bounded, not hung

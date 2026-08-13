@@ -52,27 +52,37 @@ and the team's < 1° end-of-run heading requirement is, by the master plan's own
 **not reliably achievable on a real robot** — absolute yaw correction is load-bearing for the
 spec, not a nice-to-have.
 
-## The API is not frozen
+## The mechanism seam is a placeholder
 
-The `Chassis` surface you learned in [Chapter 10](10-the-api.md) is a *candidate* — deliberately
-unfrozen until a second consumer (the recipe API, next item) has stress-tested its shapes.
-Routines you write today may need mechanical updates when F6 freezes at D2. The
-[Freeze Register](../roadmap.md#freeze-register) is the authority on what is and isn't stable
-(the coordinate conventions, units, accuracy targets, hardware interfaces, and kinematics
-contract *are* locked).
+Both API tiers are now frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
+recipe layer ([Chapter 9](09-the-recipe-api.md)) at D3, Freeze Register rows F6 and F10, both
+2026-08-12. Signatures and documented behavior change only with a major version bump and a
+migration note, and compile-time pins fail the build if one drifts — routines written today
+will not need rewriting. One piece is deliberately left open:
+
+- **`then()`** ([Chapter 9](09-the-recipe-api.md)) is the seam mechanisms will plug into, and
+  **mechanisms do not exist yet** (see the next section). Its accepted return types and its
+  step-name default were chosen before there was anything real to plug in, so freezing them
+  would have committed the library to a guess about code nobody has written. `then()` works and
+  is tested; treat its exact shape as provisional.
+
+The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and isn't
+stable (the coordinate conventions, units, accuracy targets, hardware interfaces, kinematics
+contract, and now both API tiers *are* locked).
 
 ## No easier tiers yet
 
 The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet)
-promises four tiers of use. Today only Tier 3 — the full C++ API you've been reading about —
-exists:
+promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
+([Chapter 9](09-the-recipe-api.md)) and the full C++ API — but the easier tiers don't:
 
-- **No recipe API yet** (Tier 2: a complete routine in ~10 fluent lines). It is the next chunk
-  of work (D1), and [Chapter 9's slot](README.md) in this guide is reserved for it.
 - **No zero-code authoring** (Tiers 0–1: build the robot and drag waypoints in the VexBuilder
   app, run the saved file with no C++). The `.vexbot` file formats and the path-runner are
   roadmap milestone M5, coordinated with the separate VexBuilder project.
-- **No recipe cookbook or generated API reference site yet** (D3, after D1).
+- **No mechanisms for recipes to command** — `then()` in a recipe is a labeled placeholder
+  seam until the mechanism layer exists (roadmap items F1/F3); today it runs only code you
+  write yourself.
+- **No recipe cookbook or generated API reference site yet** (D3).
 
 ## Motion-quality boundaries
 

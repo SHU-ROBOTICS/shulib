@@ -20,13 +20,19 @@ practice field.
 You need three tools. On Ubuntu/Debian Linux:
 
 ```sh
-sudo apt-get install git cmake g++
+sudo apt-get install git cmake g++ python3
 ```
 
 - **git** — version control; how you get and contribute code.
 - **cmake** (version 3.20 or newer) — the build configurator: it works out how to compile the
   project on your machine.
 - **g++** — the C++ compiler itself (any compiler with C++20 support works; clang is fine too).
+- **python3** — not for the library, which is pure C++ and depends on nothing. The test build
+  runs the documentation gates with it: a public member that ships with no documentation fails
+  the build by name, the generated [API reference](../api/README.md) is checked up to date, and
+  every code example in the documentation is checked against the compiled test that proves it.
+  There is deliberately no way to switch those off, so python3 is required rather than optional.
+  Ubuntu, macOS and WSL all ship it; `python3 --version` tells you.
 
 macOS: install the Xcode command-line tools (`xcode-select --install`) and cmake
 (`brew install cmake`). Windows: WSL (Windows Subsystem for Linux) with the Ubuntu instructions

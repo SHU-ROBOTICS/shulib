@@ -22,3 +22,6 @@ build/
 
 # Tool output
 graphify-out/
+# Python bytecode from tools/
+__pycache__/
+*.pyc

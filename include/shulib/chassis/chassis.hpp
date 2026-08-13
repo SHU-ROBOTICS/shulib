@@ -2,14 +2,24 @@
 //
 // Chassis — the public facade every auton is written against (chunk C4, WS6/M2).
 //
-// ═══ STATUS: BUILT, DELIBERATELY NOT FROZEN ═══════════════════════════════════════
-// This surface is the F6 CANDIDATE. It freezes at D2, after D1's recipe API has
-// exercised it as a second independent consumer — a contract exercised once has
-// been exercised only by its author. Until D2, shapes here may still change
-// freely; after D2 they change only by version bump plus migration. The exact
-// candidate signatures and the reasoning for each are recorded in the C4
-// completion record (development log: docs/internal/chunks/C4-COMPLETED.md on
-// the shulib-v2 branch — the section D1 stresses and D2 reads).
+// ═══ STATUS: FROZEN — F6, LOCKED 2026-08-12 (chunk D2, API 2.0) ═══════════════════
+// This surface is FROZEN. Every public member below — and the three public
+// types ChassisConfig / MotionOptions / TrajectoryResult — changes only with
+// a major API-version bump plus a migration note (include/shulib/version.hpp
+// states the policy); additive extension (new verbs, new MotionOptions
+// fields, new overloads) stays legal and is the intended growth path. The
+// freeze is enforced STRUCTURALLY: test/f6_signature_pin_test.cpp asserts
+// every frozen member's exact type at compile time and fails the build,
+// naming F6, if one drifts. NOT inside F6, deliberately: Routine /
+// RoutineResult / RoutineStopCause (routine.hpp — they froze at D3 as their
+// OWN register row F10, because the recipe layer is a different tier and can
+// version independently of the facade; see routine.hpp's banner); the
+// scheduler's and deps bundle's OWN member
+// surfaces behind scheduler()/deps() (those belong to C1/C2's layers); and
+// the lower-layer config fields reached through ChassisConfig. The
+// candidate-era reasoning for each shape is in the C4 completion record and
+// the freeze rulings (what joined, what stayed out, and why) in the D2
+// completion record (development log, shulib-v2 branch).
 //
 // ═══ What this class is ══════════════════════════════════════════════════════════
 // The composition root of the MOTION stack: it owns the MotionScheduler and
@@ -19,7 +29,7 @@
 // here, its test and its fix belong in the layer that owns it.
 //
 //   verbs      moveTo · strafeTo · turnTo · followTrajectory · drive(speeds, Frame)
-//   (candidate additions, D2 decides)        brake · hold
+//              brake · hold · wait  (C4 candidates + the D2 addition, all in F6)
 //   control    cancel (panic stop) · waitUntil(pred, timeout)
 //   state      pose · setPose · strafeAuthority · lastExitReason · lastCompleted
 //   Tier 3     scheduler() · deps() — the no-ceiling seam
@@ -138,6 +148,7 @@
 #include "shulib/control/exit_group.hpp"
 #include "shulib/control/feedforward.hpp"
 #include "shulib/core/check.hpp"
+#include "shulib/hal/clock.hpp"
 #include "shulib/diag/debug_record.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/pose2d.hpp"
@@ -166,9 +177,16 @@ struct ChassisConfig {
 
 /// Per-call knobs for the blocking verbs. 0 (the default) = "use the
 /// ChassisConfig value". Validated finite and >= 0 at each call.
+///
+/// FROZEN F6 NOTE (D2): the fields BELOW are frozen (name/type/meaning);
+/// the field SET is deliberately additive-open — a future knob is a new
+/// field with a 0/"config default" meaning, never a reshape of these.
 struct MotionOptions {
-    /// Watchdog bound for this motion, seconds, INCLUDING any boot wait.
-    double timeoutSeconds = 0.0;
+    /// Watchdog bound for this motion, INCLUDING any boot wait. Typed time
+    /// (D2): `{.timeout = 5_s}` / `{.timeout = 500_ms}` — a bare double does
+    /// not compile, so "500 meaning milliseconds" cannot silently become
+    /// 500 seconds of match time.
+    units::Time timeout{0.0};
     /// Field-frame linear speed budget for this motion (in/s) — the norm cap
     /// AND the base of the strafe-authority clamp, exactly as in MotionConfig.
     /// The per-wheel budget (maxWheelSpeed) is deliberately NOT scaled with
@@ -177,9 +195,12 @@ struct MotionOptions {
     /// Yaw-rate budget for this motion (rad/s).
     units::AngularVelocity maxAngularSpeed{0.0};
 
+    /// Reject nonsense before anything moves: every field must be finite and
+    /// >= 0. Called by each verb at the door, so a bad option value is a loud
+    /// error at the call site rather than a mystery mid-motion.
     void validate() const {
-        SHULIB_PRECONDITION(std::isfinite(timeoutSeconds) && timeoutSeconds >= 0.0,
-                            "MotionOptions: timeoutSeconds must be finite and >= 0");
+        SHULIB_PRECONDITION(std::isfinite(timeout.value()) && timeout.value() >= 0.0,
+                            "MotionOptions: timeout must be finite and >= 0");
         SHULIB_PRECONDITION(std::isfinite(maxLinearSpeed.value())
                                 && maxLinearSpeed.value() >= 0.0,
                             "MotionOptions: maxLinearSpeed must be finite and >= 0");
@@ -197,11 +218,22 @@ struct TrajectoryResult {
     control::ExitReason exit = control::ExitReason::Settled; ///< last attempted leg's verdict
     int completedLegs = 0;  ///< legs that SETTLED (== totalLegs on success)
     int totalLegs = 0;      ///< waypoints given
+    /// True only if the last attempted leg SETTLED and every leg was completed.
+    /// Note what this means for a value-initialized TrajectoryResult (0 of 0
+    /// legs, exit Settled): it reads as success. That is correct here — this
+    /// verb requires at least one waypoint, so a result it produces always has
+    /// legs — but any code that holds a TrajectoryResult BEFORE running one
+    /// must initialize `exit` to Running instead (Routine::lastTrajectory does).
     [[nodiscard]] bool succeeded() const noexcept {
         return exit == control::ExitReason::Settled && completedLegs == totalLegs;
     }
 };
 
+/// The public facade every autonomous routine is written against: the blocking
+/// motion verbs, the frame-explicit manual verb, control, state, and the Tier-3
+/// seam — over one owned MotionScheduler. FROZEN (register row F6, locked
+/// 2026-08-12); the file banner above carries the design reasoning behind every
+/// shape here, and is meant to be read before changing anything.
 class Chassis {
 public:
     /// `deps` is the same validated bundle every motion takes; `pacer` is the
@@ -215,7 +247,10 @@ public:
         cfg_.validate();
     }
 
-    // Owns the scheduler (pinned in place by its self-referential stamp).
+    /// Neither copyable nor movable: the Chassis OWNS the scheduler, which is
+    /// pinned in place by its own self-referential command-id stamp, so a copy
+    /// or a move would leave that stamp pointing at the wrong object. Hold a
+    /// `Chassis&`; construct it once, where it will live.
     Chassis(const Chassis&) = delete;
     Chassis(Chassis&&) = delete;
     Chassis& operator=(const Chassis&) = delete;
@@ -229,7 +264,7 @@ public:
     control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options = {}) {
         options.validate();
         motion::MoveToPose m{sched_.deps(), target, effectiveConfig(options),
-                             options.timeoutSeconds};
+                             options.timeout.value()};
         return runBlocking(m);
     }
 
@@ -240,7 +275,7 @@ public:
                                  const MotionOptions& options = {}) {
         options.validate();
         motion::StrafeTo m{sched_.deps(), x, y, effectiveConfig(options),
-                           options.timeoutSeconds};
+                           options.timeout.value()};
         return runBlocking(m);
     }
 
@@ -249,7 +284,7 @@ public:
     control::ExitReason turnTo(math::Angle heading, const MotionOptions& options = {}) {
         options.validate();
         motion::TurnTo m{sched_.deps(), heading, effectiveConfig(options),
-                         options.timeoutSeconds};
+                         options.timeout.value()};
         return runBlocking(m);
     }
 
@@ -275,7 +310,7 @@ public:
                                 .completedLegs = 0,
                                 .totalLegs = static_cast<int>(waypoints.size())};
         for (const math::Pose2d& wp : waypoints) {
-            motion::MoveToPose leg{sched_.deps(), wp, legCfg, options.timeoutSeconds};
+            motion::MoveToPose leg{sched_.deps(), wp, legCfg, options.timeout.value()};
             result.exit = runBlocking(leg);
             if (result.exit != control::ExitReason::Settled) {
                 return result;  // lost mid-chain: do not chase later waypoints blind
@@ -293,25 +328,52 @@ public:
                                 options);
     }
 
-    // ── candidate verbs beyond the roadmap's five (D2 decides; header note) ────────
+    // ── the parking + pacing verbs (C4 candidates; adopted into F6 at D2) ──────────
 
     /// Stop the drivetrain (0 V under Brake) and block until the ESTIMATE
     /// certifies rest (or the watchdog fires). The controlled end-of-motion
     /// stop; cancel() is the uncontrolled one.
     control::ExitReason brake(const MotionOptions& options = {}) {
         options.validate();
-        motion::DriveBrake m{sched_.deps(), effectiveConfig(options), options.timeoutSeconds};
+        motion::DriveBrake m{sched_.deps(), effectiveConfig(options), options.timeout.value()};
         return runBlocking(m);
     }
 
     /// Actively hold the pose the robot has at its first live tick for
-    /// `seconds`, driving back any disturbance with full holonomic authority;
-    /// Settled iff still within tolerance when the window ends. `seconds`
-    /// must be finite and > 0 (HoldPose's precondition).
-    control::ExitReason hold(double seconds, const MotionOptions& options = {}) {
+    /// `duration`, driving back any disturbance with full holonomic authority;
+    /// Settled iff still within tolerance when the window ends. `duration`
+    /// must be finite and > 0 (HoldPose's precondition). Typed time (D2):
+    /// hold(500_ms) — hold(500) does not compile, so "500 meaning
+    /// milliseconds" cannot hold pose for 500 s of a 15 s auton.
+    control::ExitReason hold(units::Time duration, const MotionOptions& options = {}) {
         options.validate();
-        motion::HoldPose m{sched_.deps(), seconds, effectiveConfig(options)};
+        motion::HoldPose m{sched_.deps(), duration.value(), effectiveConfig(options)};
         return runBlocking(m);
+    }
+
+    /// Wait, commanding nothing, for `duration` — then return. The world
+    /// keeps advancing and the active motion (if any) keeps ticking — the
+    /// same contract as waitUntil; the drive keeps whatever state the last
+    /// verb left it in (after a settled motion: stopped). Deliberately
+    /// DISTINCT from hold(): wait() never energizes the drive — this is the
+    /// "sit still for the alliance partner" beat (D2; adopted from D1's
+    /// finding that the naive waitUntil(false-pred, t) spelling logs a
+    /// spurious Warn on every deliberate pause, and the Warn-free spelling
+    /// needed Tier-3 plumbing). Returns void: a wait has no failure mode —
+    /// a pacer that stops advancing the clock trips the scheduler's loud
+    /// precondition, a programming error rather than a verdict. Warn-free
+    /// and bounded by construction: the deadline predicate is time-monotone,
+    /// so the internal timeout backstop is unreachable slack.
+    /// `duration` must be finite and > 0 (typed: wait(2_s) / wait(500_ms)).
+    void wait(units::Time duration) {
+        SHULIB_PRECONDITION(std::isfinite(duration.value()) && duration.value() > 0.0,
+                            "Chassis::wait: duration must be finite and > 0");
+        hal::IClock& clock = sched_.deps().ctx->clock();
+        const units::Time deadline = clock.now() + duration;
+        // Satisfied by construction — the predicate is time-monotone, so the
+        // backstop below is unreachable slack, never a reachable timeout.
+        (void)sched_.waitUntil([&clock, deadline] { return clock.now() >= deadline; },
+                               duration.value() + kWaitBackstopSeconds);
     }
 
     // ── the manual verb ────────────────────────────────────────────────────────────
@@ -366,14 +428,16 @@ public:
     /// no active motion this is the PANIC STOP and still safes the drive.
     void cancel() { sched_.cancel(); }
 
-    /// Block until `pred()` holds or `timeoutSeconds` elapses (required,
-    /// finite, >= 0; 0 = an honest poll) — the return says which. The active
+    /// Block until `pred()` holds or `timeout` elapses (required, finite,
+    /// >= 0; 0 = an honest poll) — the return says which. The active
     /// motion (if any) keeps ticking throughout; the world keeps advancing.
     /// Timing out logs one Warn and raises NO fault (a timed-out wait is a
-    /// strategy branch, not a pathology). C2's verb, re-exported unchanged.
+    /// strategy branch, not a pathology). C2's verb, re-exported with typed
+    /// time at the public edge (D2); the scheduler's own seconds-double
+    /// signature is interior, per F3's internal-seconds convention.
     template <typename Pred>
-    [[nodiscard]] motion::WaitResult waitUntil(Pred&& pred, double timeoutSeconds) {
-        return sched_.waitUntil(std::forward<Pred>(pred), timeoutSeconds);
+    [[nodiscard]] motion::WaitResult waitUntil(Pred&& pred, units::Time timeout) {
+        return sched_.waitUntil(std::forward<Pred>(pred), timeout.value());
     }
 
     // ── state / observability ──────────────────────────────────────────────────────
@@ -420,9 +484,19 @@ public:
     /// here pre-empts a facade verb's motion and vice versa (one-active-
     /// motion is structural, never relaxed).
     [[nodiscard]] motion::MotionScheduler& scheduler() noexcept { return sched_; }
+    /// The same scheduler, read-only — for counters and last-motion state from
+    /// a `const Chassis&`. Identical object and identical semantics to the
+    /// non-const overload; the two differ only in what they let you do.
     [[nodiscard]] const motion::MotionScheduler& scheduler() const noexcept { return sched_; }
 
 private:
+    /// wait()'s backstop slack over its deadline (seconds). Pure code-level
+    /// belt-and-suspenders (see wait) — deliberately NOT an HA register
+    /// entry: no plant, gain, or field property depends on it, and any value
+    /// that clears one tick behaves identically. (Moved here from Routine at
+    /// D2, when pause() became a pure delegation to wait().)
+    static constexpr double kWaitBackstopSeconds = 1.0;
+
     /// If a blocking wait throws (stalled pacer, an estimator precondition
     /// with no motion boundary to convert it), the stack-owned motion in
     /// runBlocking would otherwise DANGLE in the scheduler's active slot —
