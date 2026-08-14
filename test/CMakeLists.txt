@@ -155,6 +155,35 @@ file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp")
+# ── docs/internal/ is DROPPED on the published branch, and this file used to
+# forget that ────────────────────────────────────────────────────────────────
+# DOCS1 found `main` unable to build its own test suite:
+#
+#   No rule to make target '.../docs/internal/PROJECT-BRIEFING.md',
+#   needed by 'doc_gates.stamp'.  Stop.
+#
+# The briefing was listed as a hard DEPENDS so the gate would re-run when its
+# own subject changed — correct on the working branch, fatal on the released
+# one, where `docs/internal/` does not exist at all. C7's removability rule says
+# nothing outside that directory may reference into it; `check-removability`
+# never caught this because it scans public *.md and this is a build file.
+#
+# So the dependency is now conditional, and the CHECK is too. `briefing_status.py
+# check` already exits 0 when the briefing is absent, but relying on that would
+# leave the build silently running a gate against nothing; skipping it out loud
+# is the honest form. On the working branch nothing changes — the briefing is
+# there, the dependency is real, and the gate still re-runs when it is edited.
+set(SHULIB_BRIEFING "${CMAKE_CURRENT_SOURCE_DIR}/../docs/internal/PROJECT-BRIEFING.md")
+if(EXISTS "${SHULIB_BRIEFING}")
+  set(SHULIB_BRIEFING_DEP "${SHULIB_BRIEFING}")
+  set(SHULIB_BRIEFING_CMD COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" check)
+else()
+  set(SHULIB_BRIEFING_DEP "")
+  set(SHULIB_BRIEFING_CMD COMMAND "${CMAKE_COMMAND}" -E echo
+      "briefing gate: SKIPPED — docs/internal/ is absent (this is the published tree)")
+endif()
+
 add_custom_command(
   OUTPUT "${SHULIB_DOC_STAMP}"
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" self-test
@@ -162,7 +191,7 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-fresh
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-examples
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-removability
-  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" check
+  ${SHULIB_BRIEFING_CMD}
   # staleness  the four gates above check that documentation EXISTS and is
   #            well-formed; none has an opinion about whether a sentence is
   #            still TRUE. This one checks the mechanizable subset: a figure a
@@ -192,7 +221,7 @@ add_custom_command(
     # not re-run when the thing it checks changes is not a gate. (Found while
     # briefing R1a: `briefing_status.py check` was failing at HEAD and the
     # build did not know.)
-    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/internal/PROJECT-BRIEFING.md"
+    ${SHULIB_BRIEFING_DEP}
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
     ${SHULIB_DOC_INPUTS}
