@@ -496,6 +496,21 @@ def main():
               "(the traps, the", file=sys.stderr)
         print("standards, the architecture) is what went stale, fix that by hand — no "
               "tool can see it.", file=sys.stderr)
+        # DOCS1: say WHAT drifted, not just THAT something did. This gate failed in
+        # CI for two pushes running and the message named nothing, so the only way
+        # to see the cause was to reproduce the environment. A gate that reports a
+        # failure you cannot act on costs more than it saves.
+        import difflib
+        diff = list(difflib.unified_diff(
+            text.splitlines(), updated.splitlines(),
+            fromfile="committed", tofile="regenerated", lineterm="", n=1))
+        if diff:
+            print("", file=sys.stderr)
+            print("The exact drift (committed → regenerated):", file=sys.stderr)
+            for line in diff[:60]:
+                print(f"  {line}", file=sys.stderr)
+            if len(diff) > 60:
+                print(f"  … {len(diff) - 60} more diff lines", file=sys.stderr)
         return 1
     print(f"briefing status: unknown command '{cmd}'", file=sys.stderr)
     return 2
