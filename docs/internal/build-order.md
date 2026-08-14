@@ -630,12 +630,14 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R1a — `hal/pros` adapters for the drivetrain and the driver, with Phase T's `IController`
+**Next: R1b — `hal/pros` adapters for the mechanism seams** ([brief](chunks/R1b-pros-adapters-mechanisms.md)). R1a is DONE (built, verified, committed, and validated on hardware — see the bench session record). R1b unblocks BOTH R3 and F3, and needs no robot to author.**
+
+*(superseded)* ~~Next: R1a — `hal/pros` adapters for the drivetrain and the driver, with Phase T's `IController`
 seam folded in** ([brief](chunks/R1a-pros-adapters-drivetrain.md)). R1a → R1b → R3 → R4 is the
 recommended run: R3 closes M1 and M2's on-robot clause, open since June, and R4 replaces A3's
 invented sensor-noise magnitudes with measured ones — which is what makes every Phase E result mean
 something. The team's OLD COMPETITION BOT and a V5 brain are available (measured 2026-08-13: 12 motors, IMU on 4, tank drive LEFT 15/16/17/18 RIGHT 11/12/14, **no rotation sensors, no GPS**); T2/T3, G1 and H1 remain as hardware-free
-alternatives if the robot is unavailable.**
+alternatives if the robot is unavailable.~~
 
 **R1 SPLIT INTO R1a + R1b, 2026-08-13** (team lead's direction, recorded in the deviations table).
 R1's scope as written here was nine adapters; reading the tree found it is really **fifteen** — four

@@ -104,7 +104,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 22 of 43 chunks complete
 
-- **Next up:** R1a — hal/pros adapters for the drivetrain and the driver, with Phase T's IController seam folded in  
+- **Next up:** R1b — hal/pros adapters for the mechanism seams  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
 - **Suite:** 1,083 cases / 1,523,069 assertions, 3 skipped — **green**  
