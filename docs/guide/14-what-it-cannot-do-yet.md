@@ -17,8 +17,11 @@ roadmap is right.
 
 The headline limitation, stated as many times as it takes:
 
-- **No shulib code has ever controlled a motor or read a real sensor.** All verification is
-  host-side, against a simulated plant and deliberately hostile simulated sensors
+- **No shulib code has ever closed a control loop or followed a path on a robot.** One bench
+  session (2026-08-13) commanded real motors open-loop and read real sensors through the
+  adapters — that validated the *platform layer*, nothing more: no loop closed, no wheel
+  turned under motion control. Everything above the platform layer is verified host-side
+  only, against a simulated plant and deliberately hostile simulated sensors
   ([Chapter 7](07-getting-set-up.md) explains the approach;
   the [README](../../README.md#what-it-is-not-yet) states it third-heading-from-the-top).
 - **It has booted on a brain, and that proves less than it sounds like.** On 2026-08-12 the
@@ -28,19 +31,24 @@ The headline limitation, stated as many times as it takes:
   run was a fake, and the robot said so itself in the second line it printed. Booting is not
   driving, and nothing about motion or accuracy was tested that day.
 - **The hardware adapters now exist — and that closes less of the gap than it sounds like.**
-  The `hal/pros/` adapters implement every drivetrain-and-driver interface over the real PROS
-  SDK, and `make` now produces a package wired to real devices, including a first
-  driver-control loop. Three limits, in decreasing order of comfort. *First*, the adapters are
-  host-tested — compiled, run, and mutation-attacked on a laptop — against a hand-written
-  stand-in for PROS, which proves the glue faithfully implements **our beliefs about PROS**
-  and cannot prove the beliefs: if we are wrong about a unit or a sign, the stand-in and the
-  adapter are wrong together and every test stays green ([FAQ](../faq.md) has the full
-  version). Every such belief is a labelled register entry (HA-94 onward). *Second*, the
-  wiring's port map is an invented placeholder — a labelled guess that fails loudly at boot
-  on a robot that doesn't match it. *Third*, and the headline unchanged: **no adapter has
-  ever touched a physical device.** The first bench session — a prepared checklist, not an
-  exploration — is the hardware phase's opening move, and until it runs, "the adapters work"
-  means exactly "the adapters agree with our model of PROS," no more.
+  The `hal/pros/` adapters implement every hardware interface over the real PROS SDK — the
+  drivetrain-and-driver set and, as of 2026-08-14, the mechanism-sensor set (distance,
+  optical, digital lines, the SD-card blackbox device) — and `make` produces a package wired
+  to real devices, including a first driver-control loop. Three limits, in decreasing order
+  of comfort. *First*, the adapters are host-tested — compiled, run, and mutation-attacked on
+  a laptop — against a hand-written stand-in for PROS, which proves the glue faithfully
+  implements **our beliefs about PROS** and cannot prove the beliefs: if we are wrong about a
+  unit or a sign, the stand-in and the adapter are wrong together and every test stays green
+  ([FAQ](../faq.md) has the full version). Every such belief is a labelled register entry
+  (HA-94 onward). *Second*, what the one bench session (2026-08-13) actually settled is
+  narrow: seven unit-scale beliefs on the drivetrain set, measured on one robot, once. Every
+  heading and sign convention remains open, the wiring's port map is still a labelled guess
+  that fails loudly on a robot that doesn't match it — and **the mechanism-sensor adapters
+  have never touched a physical device at all**: their beliefs (HA-113 onward, including two
+  the vendored SDK sources do not state) wait on the extended bench checklist. *Third*, the
+  headline unchanged: a bench reading sensors is not a robot driving. Until a loop closes on
+  hardware, "the adapters work" means "the adapters agree with our model of PROS, and that
+  model has been spot-checked once."
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
@@ -196,9 +204,17 @@ The mechanism seam that used to be a placeholder here is now real code
   will be — mechanism sets change every season, so the library ships the grammar and your
   team writes the nouns (Chapter 13 says how, and why the safe state is declared per
   mechanism).
+- **Now real at the device edge, still host-proven only:** the sensors that *confirm* a
+  mechanism action — distance, color/proximity, limit switches — and the solenoid lines that
+  act, all have PROS adapters as of 2026-08-14, each converting exactly once at the edge and
+  each documenting the trap it defuses (a distance sensor reports "no object" as an in-band
+  plausible-looking number; constructing a digital-out physically drives the line — the FAQ
+  covers both). Proven against the programmable PROS stand-in; never against a physical
+  sensor.
 - **Not proven, stated plainly:** anything on hardware. No solenoid has fired, no motor has
-  jammed for real, and whether `Hold` truly holds a *loaded* lift is a registered assumption
-  (HA-92), not a fact. The stall thresholds an operation needs are required parameters
+  jammed for real, no distance sensor has seen a real game piece, and whether `Hold` truly
+  holds a *loaded* lift is a registered assumption (HA-92), not a fact. The stall thresholds
+  an operation needs are required parameters
   precisely because no honest default exists before hardware characterization (phase R4).
   And the scoring verbs themselves — `intakeUntilCapture`, `liftToLevel`,
   `setQuadrantToggle` — remain future work (roadmap item F3) that needs both hardware and

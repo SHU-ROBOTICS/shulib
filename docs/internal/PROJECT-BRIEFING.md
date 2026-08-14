@@ -102,20 +102,20 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 22 of 43 chunks complete
+**Position:** 23 of 43 chunks complete
 
 - **Next up:** R1b — hal/pros adapters for the mechanism seams  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
-- **Suite:** 1,083 cases / 1,523,069 assertions, 3 skipped — **green**  
+- **Suite:** 1,120 cases / 1,523,324 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 139  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 112 registered, **7 settled** — next free is **HA-113**  
+- **Public headers:** 148  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 122 registered, **7 settled** — next free is **HA-123**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -134,6 +134,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 | **F11** | Mechanism seam + operation contract — hal::IMechanism /… | 🚧 open by design |
 | **F12** | Sequence engine (sequence/run_guard.hpp) — RunGuard (th… | 🚧 open by design |
 | **F13** | Driver-input seam (hal/controller.hpp) — IController (a… | 🚧 open by design |
+| **F14** | Digital-input seam (hal/digital_in.hpp) — IDigitalIn (o… | 🚧 open by design |
 
 ⚠️ **Register rows F1–F5 are NOT chunks F1–F5.** Row F2 is the accuracy targets; chunk F2 was the sequence engine. The collision is in shipped code (`spec/accuracy.hpp`). **Never edit rows F1–F5.**
 

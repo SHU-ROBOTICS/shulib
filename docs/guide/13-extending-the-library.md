@@ -149,6 +149,18 @@ where you know the physics, instead of being re-made (wrongly) by generic code a
 moment. Whether `Hold` truly holds *your* loaded lift is a hardware question nobody can
 answer until there is a robot; the assumptions register tracks it (HA-92).
 
+On the robot, one construction fact matters enough to state here: **building the pneumatic
+line adapter actuates the port** — the V5 drives a digital output the moment the object is
+constructed, so `ProsDigitalOut` makes its initial state a *required* argument with no
+default. Pass it the same value you declare as the mechanism's safe state and boot drives
+the line straight to safe, once, with no glitch through the wrong state; mismatch them and
+the cylinder physically moves at power-on (the [FAQ](../faq.md) entry "Why did my pneumatic
+fire the moment the robot booted?" is this exact story). The confirm sensors have their
+adapters too — `ProsDistance` and `ProsOptical` — and each carries a trap note worth reading
+before your predicate thresholds on it (a distance sensor with nothing in view reports a
+plausible-looking 393-inch reading, which the adapter maps to zero confidence; threshold
+`confidence()` first, always).
+
 **Level 2 — the operations** ([`manipulation/mechanism_op.hpp`](../../include/shulib/manipulation/mechanism_op.hpp)
 — read its header contract the way you'd read `motion.hpp`'s): a bounded, tickable,
 cancellable action over a device. Two season-free shapes ship, and every scoring verb is one

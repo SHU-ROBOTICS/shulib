@@ -65,6 +65,60 @@ cartridge color, sets degrees + gearset explicitly, **reads both back**, and ref
 construct (loudly, at boot) if the device disagrees (HA-95/HA-98). If you see the 1/360
 signature, some code path is constructing a raw `pros::Motor` beside the adapter.
 
+## Why does my distance sensor read 393 inches?
+
+Because there is **nothing in front of it** — and PROS reports that as a plain number, not an
+error. `get_distance()` returns **9999** (millimeters) when it cannot detect an object; the
+vendored header says so in one sentence, and 9999 mm converts to 393.66 inches — a value that
+looks exactly like a far wall (HA-114). It is not `PROS_ERR`, it does not set a special state,
+and nothing about it looks wrong downstream.
+
+shulib's `ProsDistance` handles it for you: when the raw reading is 9999, `confidence()`
+reports **0.0** — the seam's documented "no usable return" channel — while `distance()` stays
+finite. So the rule for every consumer is: **threshold `confidence()` before trusting
+`distance()`**, which is what the seam's header has said since the interface was written. A
+dock-confirm that checks distance alone is reading the 393-inch phantom; a dock-confirm that
+checks confidence first sees "no object", which is the truth.
+
+One more nuance in the same sensor: PROS documents confidence as *"only available when
+distance is > 200mm"*. At or below 200 mm the adapter reports confidence **1.0** — an object
+close enough to return a real distance IS detected; the raw confidence channel simply does not
+exist down there, and shulib refuses to report a number PROS says is not available (HA-115).
+
+## Why did my pneumatic fire the moment the robot booted?
+
+Because **constructing the PROS digital-out object actuates the port**. `pros::adi::DigitalOut`
+takes an initial state in its constructor, drives the line immediately, and **defaults the
+state to LOW** — so a bare construction physically moves any cylinder whose "safe" position is
+the high state, at boot, before any of your code runs (HA-119).
+
+shulib's `ProsDigitalOut` makes the default impossible: the initial state is a **required**
+constructor argument. State it, and make it the same value as the owning
+`PneumaticMechanism`'s declared safe state — then boot drives the line straight to safe, once,
+with no glitch through the wrong state. If your robot moves at power-on, look for a digital
+line whose constructor argument disagrees with its mechanism's safe state (or for a raw
+`pros::adi::DigitalOut` constructed beside the adapter, riding the LOW default).
+
+## The code said the SD-card writes succeeded — where did my log go?
+
+Two different traps share this symptom.
+
+**The path prefix.** PROS's SD API has two conventions in one surface: `usd_list_files()`
+documents *"DO NOT PREPEND YOUR PATHS WITH /usd/"* — while `fopen` reaches the card **only**
+through paths that start with `/usd/` (HA-122). Get it backwards and you either list nothing
+or write nowhere. shulib's `ProsBlockSink` owns the prefix in exactly one place: you hand it a
+bare file name (a leading `/` is rejected loudly at construction), and it builds the real
+path itself.
+
+**The missing card.** A sink with no card behind it must not stop the robot — so
+`ProsBlockSink` constructs successfully either way and simply **refuses**: `write()` returns
+false from the very first call, and `isOpen()` says why. The composition root reports that
+once at boot. If your log "succeeded" with no file to show for it, check whether anything read
+those return values — the seam makes them `[[nodiscard]]` for exactly this reason. And note
+one honest limit even with a card: small writes sit in a buffer and can report accepted while
+the card is already refusing — the failure then lands on `flush()`, which is why its result is
+a `bool` too.
+
 ## Why does `ProsGps` refuse to construct on my robot?
 
 Because your GPS has a **firmware offset configured** (`get_offset() != (0,0)`), probably by a

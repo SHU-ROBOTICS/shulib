@@ -157,6 +157,31 @@ TEST_CASE("forbidden calls are textually absent from the adapters (the contract 
     const std::string controller =
         withoutLineComments(readFile(kAdapterDir / "controller.hpp"));
     CHECK(controller.find("get_digital_new_press") == std::string::npos);
+
+    // (R1b) The ADI sibling of trap C: adi::DigitalIn::get_new_press()
+    // CONSUMES the press (HA-121), so ProsDigitalIn must bind get_value()
+    // levels only — the two-consumer test proves the behaviour, this pins
+    // the binding textually so it cannot quietly return.
+    const std::string digitalIn =
+        withoutLineComments(readFile(kAdapterDir / "digital_in.hpp"));
+    CHECK(digitalIn.find("get_new_press") == std::string::npos);
+}
+
+TEST_CASE("adapters: PROS includes are QUOTED, never angle-bracketed (the -iquote lesson)") {
+    // BUG CAUGHT (R1a finding 1, pinned in-suite at R1b): PROS's common.mk
+    // resolves includes with -iquote ONLY, so `#include <pros/...>` can
+    // NEVER compile in the robot build — and host -I probes cannot see the
+    // difference, so the mistake ships green and dies only under `make`.
+    // R1b's adapters are not compiled by main.cpp at all, so for them even
+    // `make` would not catch it: this scan is the only guard that fires
+    // before a robot build tries to use one.
+    for (const auto& f : filesIn(kAdapterDir, ".hpp")) {
+        const std::string src = readFile(f);
+        CHECK_MESSAGE(src.find("#include <pros/") == std::string::npos,
+                      f.filename().string(),
+                      ": angle-bracket <pros/> include — cannot compile under the robot "
+                      "build's -iquote-only lookup (use #include \"pros/...\")");
+    }
 }
 
 TEST_CASE("shim: every header #errors without SHULIB_HOST_PROS_SHIM (structurally robot-proof)") {

@@ -131,6 +131,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(Deliberately NOT gated by the api-doc coverage tool yet, for the same not-frozen reason — the F1 completion record carries that ruling and F3 owns revisiting it.)* | chunk F2's end-of-run guard (the claimant hook + cancel-all reach operations through this seam); F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
 | F12 | **Sequence engine (`sequence/run_guard.hpp`)** — `RunGuard` (the run-scoped deadline owner + guaranteed end-of-run action), `RunGuardConfig`/`RunGuardReport`/`GuardedWaitResult`. **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at chunk F2 (2026-08-13) with **one consumer** — F4's student-authored routines are hardware-gated (Phase F′) and D1 ruled G2 does not consume the recipe chain — and nothing freezes on one consumer's evidence. Both instants are caller-supplied with no defaults; the library holds no field coordinate, no park pose, no match length. *(Deliberately not in the api-doc coverage TARGETS until it freezes — the F11 precedent.)* | F4's routines (the second consumer and the freeze trigger) | — (candidate: F4) | 🚧 **open by design** |
 | F13 | **Driver-input seam (`hal/controller.hpp`)** — `IController` (axes normalized [-1,1], button LEVELS, positive `isConnected()`, master/partner by construction), `ControllerAxis`/`ControllerButton`, `ButtonEdge` (per-consumer edge detection — PROS's consuming `get_digital_new_press()` is banned by contract, HA-104), `hal::fake::FakeController`, and the `hal/pros` adapter tree it rode in with (`ProsController` + the other R1a adapters — adapters are implementations, not contracts, and no adapter surface freezes here either). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at R1a (2026-08-13) absorbing Phase T's T1, an F4-additive sibling exactly as F1's `IDigitalOut` was — F4's locked row is untouched. Freeze trigger: a second real consumer — **T2's driver-control layer** is the first; T2/T3 stress it, then it freezes on the F6/F10 path. *(Deliberately not in the api-doc coverage TARGETS until it freezes — the F11/F12 precedent.)* | T2's teleop layer (first consumer: `src/main.cpp`'s R1a drive loop); T3's mechanism bindings | — (candidate: T3) | 🚧 **open by design** |
+| F14 | **Digital-input seam (`hal/digital_in.hpp`)** — `IDigitalIn` (one member: the raw level of a digital input line; no debounce, no edge state, no validity channel — each a documented ruling in the header), `hal::fake::FakeDigitalIn`, and the `hal/pros` `ProsDigitalIn` adapter (an implementation, not a contract — nothing about it freezes). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at R1b (2026-08-14) as an F4-additive sibling exactly as `IDigitalOut` (F11) and `IController` (F13) were — F4's locked row is untouched. **And stated more loudly than its siblings: this seam was built on an OPEN QUESTION, not a consumer** — the lift-homing switch-or-stall decision (asked 2026-08-13) is still unanswered; the seam exists on the "cheap now, expensive to discover at R3" ruling, and if the answer comes back "stall" it is a small unused sibling, a cost accepted in writing when it was ruled in. Freeze trigger: a real consumer — F3's homing routine, if the answer is "switch" — then a second, on the F6/F10 path. *(Deliberately not in the api-doc coverage TARGETS until it freezes — the F11/F12/F13 precedent.)* | F3's homing (conditional on the open decision); any bumper/limit-switch consumer | — (candidate: post-F3) | 🚧 **open by design** |
 
 ---
 
@@ -141,8 +142,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > at C7: the pre-rebuild tree is deleted, `make` produces an uploadable V5 package again, and
 > `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3 — the
 > library has NEVER DRIVEN a physical robot. The drivetrain-and-driver hal/pros adapters
-> landed at R1a (2026-08-13, host-tested against a shim of PROS — see the R1a entry below);
-> the mechanism-sensor adapters are R1b's, and first motion is R3's.**
+> landed at R1a (2026-08-13, host-tested against a shim of PROS — see the R1a entry below),
+> and the mechanism-sensor adapters at R1b (2026-08-14, in the working tree pending
+> review/commit — see the R1b entry below); first motion is R3's.**
 > **The auton API exists and is FROZEN at BOTH tiers — F6 (`Chassis`) LOCKED at D2 and F10
 > (`Routine`, the recipe layer) LOCKED at D3, both 2026-08-12, API 2.0**
 > (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
@@ -490,10 +492,42 @@ not silently break them. This table is the spine of the no-staleness promise.
 > only, so angle-bracket `<pros/*>` includes can never build on the robot (adapters use the
 > quoted form, PROS's own internal convention); and the assumptions register's status line
 > had been stale since E4 ("0 of 82" over 93 entries) — corrected, now 0 of 112.
-> **Next: R1b (the mechanism-sensor adapters), then R3 — first motion, walked from the R1a
-> bench runbook.** (Phase T's T1 was delivered here, per the recorded split ruling; this
-> line previously said Phase T and went stale the day the split was ruled — corrected at
-> R1a.)**
+> **Chunk R1b (the `hal/pros` mechanism-sensor adapters — R1's second half) is DONE,
+> 2026-08-14 — in the working tree pending review/commit. What it did NOT do, first:** it did
+> not put any of the five new adapters on a physical sensor (none has ever touched one); it
+> did not wire `src/main.cpp` (deliberately — it still carries an invented X-drive config
+> matching no robot the team owns, and re-wiring it is its own chunk); it did not build the
+> vision adapter (R2's) or any homing/capture/scoring routine (F3's, student-authored). What
+> it DID: five PROS-backed adapters (`include/shulib/hal/pros/`: distance — carrying the
+> chunk's most important rule, PROS's in-band "no object" 9999 mapped to `confidence()==0`
+> with distance kept finite-far, plus a close-range rule refusing to report the confidence
+> PROS documents as unavailable at ≤200 mm; optical — per-channel sentinel screens on a seam
+> with no validity channel; digital-out — initial state a REQUIRED ctor argument because PROS
+> actuates the line AT CONSTRUCTION, with a test pinning agreement with the mechanism's
+> declared safe state; digital-in — level reads only, the consuming `get_new_press` banned by
+> guard test, PROS_ERR screened so a dead port can never read "pressed"; block-sink — the
+> blackbox's SD device, `usd_is_installed()`-gated, refusing-not-throwing with no card, the
+> `/usd/` prefix owned in one place); TWO new pure conversions with hand-computed-literal
+> tests; the NEW `IDigitalIn` seam + fake (F4-additive sibling, register row F14, NOT frozen
+> — built ahead of the still-open lift-homing switch-or-stall answer, and the row says so);
+> the shim extended with adversarial defaults (9999+high-confidence empty intake, no SD
+> card, a get_new_press that really consumes); the fence guard test extended with an
+> in-suite angle-bracket ban (R1a's -iquote lesson — the new adapters are invisible to
+> `make`, so the scan is what fires first). Suite **1120 cases / 1,523,324 assertions**
+> green; ARM gate 148 headers, unamended; both CI guards proven still live. **The campaign:
+> all 14 brief mutations executed and observed** (13 red via the build-gated runner; the
+> guard-widening mutation demonstrated live — the `--exclude-dir` form missed the planted
+> `localization/pros/` smuggle, the shipped path-anchored form caught it, and the in-suite
+> mirror went red on the same plant), zero unexplained greens. Beliefs registered
+> HA-113…122, each with a bench-runbook step (16–20), two flagged as absent from the
+> vendored source: the optical proximity POLARITY (larger=closer is community belief,
+> HA-117) and fopen's `/usd/` prefix (HA-122). A stale claim found by reading and fixed in
+> its own layer: guide ch. 14 still said "no shulib code has ever read a real sensor" and
+> "no adapter has ever touched a physical device" — both false since R1a's bench session;
+> corrected to the platform-layer-only truth.
+> **Next: R3 — first motion, walked from the bench runbook (now 20 steps).** (Phase T's T1
+> was delivered at R1a, per the recorded split ruling; that line previously said Phase T and
+> went stale the day the split was ruled — corrected at R1a.)**
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
 > execution order was planned — the lettering keeps the gap rather than papering over it.)
 > **M1:** F4 (10 HAL interfaces) + F5 (kinematics) both **LOCKED & host-validated** — math/units/frame,
@@ -691,8 +725,8 @@ blocks `<pros/>` in core; the kernel is on 4.2.2; `tracking.md` is gone.
 *One seam for hardware/sim/test; drivetrains become interchangeable.*
 
 **HAL (WS2)** — *F4 interfaces frozen 2026-06-19 (30-agent review + RobotContext); the
-drivetrain-and-driver `hal/pros` adapters landed at R1a (2026-08-13), host-tested against the
-shim; the mechanism-sensor adapters are R1b's; on-V5 validation is R3's*
+drivetrain-and-driver `hal/pros` adapters landed at R1a (2026-08-13) and the mechanism-sensor
+adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation is R3's*
 - [x] Define all HAL interfaces (F4): `IMotor`, `IRotation`, `IImu`, `IGps`, `IVision`/`ITagSource`,
   `IDistance`, `IOptical`, `IClock`, `ITelemetrySink`, plus a battery-voltage source. *Done 2026-06-19:
   `IClock` (`hal/clock.hpp`), `IMotor` (`hal/motor.hpp`, ±12 V clamp + non-finite + cumulative-position
@@ -724,6 +758,22 @@ shim; the mechanism-sensor adapters are R1b's; on-V5 validation is R3's*
   `IBlockSink` adapters (R1b's), the vision adapter (R2's, next row), and EVERYTHING on-robot —
   the adapters have never touched a physical device; the shim tests them against our beliefs
   about PROS (HA-94…112), and only R3's bench tests the beliefs.*
+  *At R1b (2026-08-14) the MECHANISM-SENSOR five landed the same way:
+  `ProsDistance`/`ProsOptical`/`ProsDigitalOut`/`ProsDigitalIn`/`ProsBlockSink`
+  (`include/shulib/hal/pros/`), with two new pure conversions (`distance_conversion.hpp` —
+  carrying the named 9999 no-object rule — and `optical_conversion.hpp`), the NEW `IDigitalIn`
+  seam + `FakeDigitalIn` (register row F14, NOT frozen), and the shim extended
+  (`pros/distance.hpp`/`optical.hpp`/`adi.hpp`/usd — adversarial defaults: an empty-intake
+  9999 with high raw confidence, construction-actuating digital-outs, a consuming
+  `get_new_press`, no SD card). Suite 1120 cases / 1,523,324 assertions; ARM gate 148 headers
+  unamended; the R1b campaign: all 14 brief mutations executed and observed at the mandated
+  outcome (13 red via the build-gated runner; the guard-widening one demonstrated live —
+  `--exclude-dir` missed the planted smuggle, the shipped path-anchored form caught it), zero
+  unexplained greens. Beliefs registered HA-113…122 with bench runbook steps 16–20 — two
+  flagged as NOT stated by the vendored source (proximity's polarity, HA-117; fopen's `/usd/`
+  prefix, HA-122). STILL not done: the vision adapter (R2's), `src/main.cpp` wiring for the
+  new five (deliberately untouched — it carries an invented X-drive config no robot matches),
+  and everything on-robot: none of the five has ever touched a physical sensor.*
 - [ ] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
   adapter (object mode **and** AprilTag mode).
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:

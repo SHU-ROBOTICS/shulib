@@ -22,6 +22,11 @@
 //    claim; the shim records the exact payload and lets the test pin the
 //    adapter's 19-column truncation, while HA-107 records the conflict for
 //    the bench to settle
+//  * (chunk R1b) pros::usd::is_installed() returns 1 with a card, 0 without
+//    (vendored misc.hpp:555-568; HA-122). ADVERSARIAL DEFAULT: NO CARD —
+//    the trap is a blackbox that reports success with nowhere to write, so a
+//    test must opt IN to having a card, and an adapter that skips the check
+//    fails the no-card test on real behaviour.
 //
 // HONEST LIMIT: this shim tests the adapter against OUR BELIEF about PROS; it
 // cannot test the belief. Hardware tests the belief (bench runbook).
@@ -97,6 +102,16 @@ inline BatteryState& batteryState() {
     return s;
 }
 inline void resetBattery() { batteryState() = BatteryState{}; }
+
+struct UsdState {
+    /// ADVERSARIAL DEFAULT: no card (HA-122) — a test must opt in to one.
+    bool installed = false;
+};
+inline UsdState& usdState() {
+    static UsdState s;
+    return s;
+}
+inline void resetUsd() { usdState() = UsdState{}; }
 }  // namespace shim
 
 inline namespace v5 {
@@ -174,4 +189,12 @@ inline double get_capacity() {
 }  // namespace battery
 
 }  // namespace v5
+
+namespace usd {
+
+/// 1 if the SD card is installed, 0 otherwise (vendored misc.hpp:555-568;
+/// HA-122).
+inline std::int32_t is_installed() { return shim::usdState().installed ? 1 : 0; }
+
+}  // namespace usd
 }  // namespace pros

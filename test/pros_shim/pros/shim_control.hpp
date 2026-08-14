@@ -29,10 +29,13 @@
 Only test/CMakeLists.txt defines SHULIB_HOST_PROS_SHIM."
 #endif
 
+#include "pros/adi.hpp"
+#include "pros/distance.hpp"
 #include "pros/gps.hpp"
 #include "pros/imu.hpp"
 #include "pros/misc.hpp"
 #include "pros/motors.hpp"
+#include "pros/optical.hpp"
 #include "pros/rotation.hpp"
 #include "pros/rtos.hpp"
 
@@ -48,6 +51,10 @@ inline void resetAll() {
     resetGps();
     resetControllers();
     resetBattery();
+    resetDistances();
+    resetOpticals();
+    resetAdi();
+    resetUsd();
 }
 
 }  // namespace pros::shim

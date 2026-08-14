@@ -36,9 +36,9 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 112 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 122 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. No robot exists (a brain has booted the code; nothing has
-> driven). Counts: **77 invented · 32 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
+> driven). Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
 > documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
@@ -51,7 +51,10 @@
 > invented), HA-92–93 by chunk F1 (the mechanism layer's physics), and **HA-94–112 by chunk
 > R1a** (the beliefs about PROS itself that the `hal/pros` adapters and their host shim are
 > built on — the shim tests the adapters against these beliefs; ONLY a bench tests the
-> beliefs), per the Maintenance convention.
+> beliefs), and **HA-113–122 by chunk R1b** (the same class of belief for the mechanism-sensor
+> adapters: distance, optical, ADI digital lines, and the SD card — including two flagged-weak
+> halves the vendored source does not state: proximity's polarity, HA-117, and fopen's `/usd/`
+> prefix, HA-122), per the Maintenance convention.
 > *(This status line was found stale at R1a — it read "0 of 82" while the register held 93
 > entries: E4's and F1's additions never updated it. Corrected here; the per-chunk narrative
 > above is the part a tool cannot regenerate, so it is the part that must be tended.)*
@@ -174,6 +177,16 @@
 | HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
 | HA-111 | main.cpp's port map and motor direction signs match the robot | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. main.cpp still carries the invented map | R3 |
 | HA-112 | Teleop stick mapping signs + 0.05 deadband are drivable | **invented** | T2/R3 |
+| HA-113 | Distance `get_distance()` returns millimeters | reasoned | R3 |
+| HA-114 | Distance "no object" is the IN-BAND integer 9999, not PROS_ERR | reasoned | R3 |
+| HA-115 | Distance `get_confidence()` is 0–63, only available above 200 mm; its value at/below 200 mm is UNKNOWN | reasoned | R3 |
+| HA-116 | Optical hue is 0–359.999°, saturation/brightness are 0–1.0 | reasoned | R3 |
+| HA-117 | Optical `get_proximity()` 0–255, LARGER = CLOSER — polarity NOT in the vendored doc | **invented** | R3 |
+| HA-118 | Optical sentinels: PROS_ERR_F on the double channels, PROS_ERR on proximity | reasoned | R3 |
+| HA-119 | ADI `DigitalOut` DRIVES THE LINE AT CONSTRUCTION (init_state, PROS default LOW); `set_value` is 1/0, PROS_ERR on refusal | reasoned | R3 |
+| HA-120 | ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H'; expander via {smart, adi} pairs; whether OUR robot has an expander is UNKNOWN | reasoned | R3 |
+| HA-121 | ADI `DigitalIn::get_value()` is a level (PROS_ERR on refusal); `get_new_press()` CONSUMES the press | reasoned | R3 |
+| HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | reasoned | R3 |
 
 ---
 
@@ -668,6 +681,168 @@ dependency order (battery scale before anything drives, signs before any closed 
   at the mapping, deadband tuned by feel.
   *Blast radius if wrong:* annoying, visible, and shallow — exactly the kind of wrong that is
   fine to ship provisionally. **Contained:** one function in main.cpp.
+
+### R1b's additions — the beliefs about PROS the mechanism-sensor adapters are built on
+
+Same rule as R1a's block: every semantic in the extended host shim (distance, optical, ADI,
+usd) is one of these; the shim proves the adapters agree with the beliefs, never the beliefs.
+Bench runbook steps 16–20 walk them. None of these sensors is known to be ON the available
+robot — the steps say what can be done with a sensor on a loose cable at the table.
+
+- [ ] **HA-113 — `Distance::get_distance()` returns MILLIMETERS.**
+  *Claim:* the int32 is mm; a game piece 10 in away reads 254.
+  *Source:* vendored `include/pros/distance.hpp:63,89` ("measured distance from the sensor in
+  mm"); `include/shulib/hal/distance_conversion.hpp` (`distanceMmToCanonical`, the one ÷25.4).
+  *Confidence:* reasoned — documented in the vendored source; unverified against firmware.
+  *Settle (R3, runbook step 18):* an object at a tape-measured 500 mm reads ~19.7 in canonical.
+  *Blast radius if wrong:* every capture/dock-confirm threshold off by 25.4× — confirm never
+  fires (or always does). **Contained:** one conversion function.
+
+- [ ] **HA-114 — the distance sensor's "no object" is the IN-BAND integer 9999, not a sentinel.**
+  *Claim:* with nothing in range, `get_distance()` returns exactly 9999 (mm) — a plain value
+  that converts to a plausible-looking 393.66 in — and NOT `PROS_ERR`, and not an errno state.
+  *Source:* vendored `distance.hpp:71,98` ("Will return 9999 if the sensor can not detect an
+  object"); `hal/pros/distance.hpp` (the T4 rule: raw 9999 → `confidence() == 0`).
+  *Confidence:* reasoned — documented twice in the vendored source; the EXACTNESS of the value
+  (is it always precisely 9999, never 9998 or a range?) is the unverified half.
+  *Settle (R3, runbook step 18):* empty intake, raw value logged over ~30 s — confirm it is
+  constant 9999; through the adapter, confirm confidence() reads 0.0 the whole time.
+  *Blast radius if wrong (value differs on firmware):* the screen misses and dock-confirm gets
+  a wall 33 feet away that thresholds as "no object anyway" (far), so the practical damage is
+  a confidence that flickers non-zero on an empty intake — visible in step 18's log.
+  **Contained:** one named constant + the adapter rule, mutation-proven (campaign M2).
+
+- [ ] **HA-115 — `get_confidence()` is 0–63, "only available when distance is > 200mm"; its
+  value at or below 200 mm is UNKNOWN.**
+  *Claim:* above 200 mm the int32 is 0–63 (63 = high); at or below 200 mm the vendored doc
+  says the channel does not exist, and we have NO belief about what it returns there — the
+  adapter refuses to consult it in that range (a valid close reading reports confidence 1.0:
+  the returned distance IS the detection).
+  *Source:* vendored `distance.hpp:133-135`; `hal/pros/distance.hpp` (the close-range rule);
+  `distance_conversion.hpp` (`distanceConfidenceToCanonical`, the ÷63).
+  *Confidence:* reasoned — both documented halves; the below-200 behaviour is a stated unknown,
+  not a guess.
+  *Settle (R3, runbook step 18):* log raw `get_confidence()` with an object walked from 400 mm
+  to 50 mm — record what the channel actually does below 200 (settles the unknown either way),
+  and confirm the adapter's confidence() stays 1.0 through the close range.
+  *Blast radius if wrong (0–63 wrong):* thresholds shift but stay monotone. If the adapter had
+  instead passed the below-200 raw through and it reads 0 there: capture-confirm REFUSES the
+  grab it most needs — the exact failure the close-range rule exists to prevent.
+  **Contained:** adapter-only, mutation-proven (campaign M3).
+
+- [ ] **HA-116 — optical hue is 0–359.999°, saturation/brightness are 0–1.0 doubles.**
+  *Claim:* the three double channels are already in shulib's canonical ranges — the adapter
+  applies NO scale, only the defensive clamp.
+  *Source:* vendored `optical.hpp:79-80,103-104,127-128`; `optical_conversion.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 19):* a known-red object reads hue ≈ 0–20°, a known-blue one
+  ≈ 210–230°, saturation well above 0.5 under room light.
+  *Blast radius if wrong:* color windows match nothing (or everything) — loud at the first
+  bench read. **Contained:** one conversion header.
+
+- [ ] **HA-117 — optical `get_proximity()` is 0–255 and LARGER means CLOSER. THE POLARITY IS
+  NOT IN THE VENDORED SOURCE.**
+  *Claim:* the int32 range is 0–255 (documented) and 255 is "object at the lens" (NOT
+  documented — the vendored comment states only the range; larger-is-closer is what community
+  usage assumes).
+  *Source:* vendored `optical.hpp:151-152` (range only); `optical_conversion.hpp`
+  (`opticalProximityToCanonical`); `hal/optical.hpp` ("proximity ≈ 1 means an object is
+  close").
+  *Confidence:* **invented** — the polarity half has no written source; flagged the way HA-99
+  was, and like HA-99 it must be measured before anything thresholds on it.
+  *Settle (R3, runbook step 19 — BEFORE any capture threshold uses proximity()):* raw value
+  with the sensor covered vs. facing open air. Covered ≫ open confirms the polarity; the
+  reverse means the adapter needs a documented 1−x flip IN THE CONVERSION with this entry
+  corrected.
+  *Blast radius if wrong:* proximity-based capture-confirm fires on an EMPTY intake and never
+  on a full one — inverted, silently plausible in any single reading. **Contained:** one
+  conversion function; caught by one covered/uncovered pair at the bench.
+
+- [ ] **HA-118 — optical failure sentinels: PROS_ERR_F on the double channels, PROS_ERR on
+  proximity.**
+  *Claim:* a dead/misconfigured optical port returns INFINITY from hue/saturation/brightness
+  and INT32_MAX from proximity — screenable, and IN-BAND for nothing physical.
+  *Source:* vendored `optical.hpp:87-88,111-112,135-136,159-160`; `hal/pros/optical.hpp`
+  (per-channel screen → hold-last-good + faultedReads()).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 19 + step 14's unplug matrix):* unplug the optical mid-read —
+  values hold, faultedReads climbs, nothing propagates an infinity.
+  *Blast radius if wrong:* an unscreened INFINITY in hue() breaks the F4 finiteness contract
+  the estimator layer trusts; unscreened proximity clamps to 1.0 = "object present" from a
+  DEAD sensor. **Contained:** adapter screens, tested against the shim's sentinel model.
+
+- [ ] **HA-119 — ADI `DigitalOut` DRIVES THE LINE AT CONSTRUCTION; `set_value` is 1/0 with
+  PROS_ERR on refusal.**
+  *Claim:* constructing `pros::adi::DigitalOut(port, init_state)` physically drives the line
+  to `init_state` immediately (PROS defaults it to LOW — on a pneumatic, the cylinder MOVES at
+  object construction); `set_value(1/0)` drives it thereafter and returns PROS_ERR if the port
+  is not configured as a digital output.
+  *Source:* vendored `adi.hpp:546-547,564,596` ("The initial state for the port"),
+  `adi.hpp:598-610`; `hal/pros/digital_out.hpp` (initial state REQUIRED, no default — the T3
+  ruling).
+  *Confidence:* reasoned — the ctor parameter is documented; "drives immediately at
+  construction" (vs. at the first scheduler tick) is the unverified half, and it is exactly
+  the half that decides whether a mismatched boot state physically moves a cylinder.
+  *Settle (R3, runbook step 20 — AIR DISCONNECTED first):* construct with each initial state
+  and watch the solenoid LED / listen for the click; then with air, confirm a matched
+  declared-safe construction produces NO motion at boot.
+  *Blast radius if wrong:* a clamp that flings its game piece (or opens on the goal) at every
+  boot — physical, repeated, and blamed on "flaky pneumatics". **Contained:** the required
+  ctor argument + the PneumaticMechanism agreement test.
+
+- [ ] **HA-120 — ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H' on the brain; {smart, adi} pairs on
+  an expander. Whether OUR robot HAS an expander is UNKNOWN.**
+  *Claim:* the three spellings name the same 8 built-in ports; the pair form addresses an
+  expander's bank identically; and — separately — the ADI expander R1a's session reported is
+  UNVERIFIED (it was read from registry index 21, outside the documented 0–20 range, and never
+  re-checked).
+  *Source:* vendored `adi.hpp:59,62,91-93`; `hal/pros/digital_out.hpp` / `digital_in.hpp`
+  (T6: one class, two ctors). The expander question: the R1a bench session record.
+  *Confidence:* reasoned (addressing); the expander's existence is an open QUESTION, not a
+  belief — recorded here so it cannot silently become one.
+  *Settle (R3, runbook step 17):* the brain's Devices screen + a corrected 0–20 registry scan.
+  A switch on port 'a' vs 1 vs 'A' reads identically (addressing); the expander question gets
+  a yes/no with a photo.
+  *Blast radius if wrong:* a mechanism wired to a bank that does not exist — loud at the first
+  actuation test, not on the field. **Contained:** construction-time facts.
+
+- [ ] **HA-121 — ADI `DigitalIn::get_value()` is a plain level (PROS_ERR on refusal);
+  `get_new_press()` CONSUMES the press.**
+  *Claim:* `get_value()` returns 1/0 for the line's level and PROS_ERR when the port is not a
+  digital input — and PROS_ERR ≠ 0, so an unscreened read maps a DEAD port to "pressed";
+  `get_new_press()` clears per-line edge state on read, so with two consumers one silently
+  starves (the ADI sibling of HA-104).
+  *Source:* vendored `adi.hpp:697-712,732-757`; `hal/pros/digital_in.hpp` (binds get_value
+  ONLY — guard-pinned; PROS_ERR screened to last-good).
+  *Confidence:* reasoned — the consume semantics are documented; the exact refusal value of
+  get_value (PROS_ERR vs 0) is the weaker half.
+  *Settle (R3, runbook step 20):* hold a switch — state() stays true (a level); unplug the
+  wire mid-run and log the RAW get_value — settles the refusal value either way.
+  *Blast radius if wrong (refusal is 0, not PROS_ERR):* the screen never fires and a dead port
+  reads "released" instead of holding — safer than the pressed direction the screen exists
+  for, but the faultedReads() observability goes blind. **Contained:** adapter-only,
+  mutation-proven (campaign M6, M9).
+
+- [ ] **HA-122 — SD card: `usd_is_installed()` returns 1/0; `fopen` NEEDS the `/usd/` prefix
+  while `usd_list_files` FORBIDS it; `fflush` is the strongest persist available.**
+  *Claim:* three beliefs about one subsystem: (1) `pros::usd::is_installed()` is a reliable
+  1/0 card probe; (2) newlib file IO on the brain reaches the card only through paths
+  prefixed `/usd/` — while `usd_list_files()` documents "DO NOT PREPEND YOUR PATHS WITH
+  /usd/" (two conventions in ONE API, the registry-indexing shape R1a met); (3) there is no
+  fsync in PROS's exposed surface, so a flushed write is only as durable as FatFS makes it.
+  *Source:* vendored `misc.h:790-844` / `misc.hpp:555-612` (the is_installed contract and the
+  list_files warning are vendored text; the fopen-needs-/usd/ half is PROS's file-IO
+  documentation, NOT in the vendored headers — the weaker half, flagged);
+  `hal/pros/block_sink.hpp` (owns the prefix in one place; bare-name precondition).
+  *Confidence:* reasoned, flagged — belief (2)'s fopen half and belief (3) are not in the
+  vendored source.
+  *Settle (R3, runbook step 16):* boot with a card, write a blackbox, pull the card and read
+  the file on a laptop (settles the prefix and the write path); boot WITHOUT a card and
+  confirm the robot drives with isOpen()==false reported once (settles the probe); yank the
+  card after a flushed write and count surviving bytes (bounds belief 3).
+  *Blast radius if wrong:* a blackbox that never exists while everything reports healthy —
+  the exact silent failure E1's bool-returning seam was built to surface. **Contained:** one
+  adapter; the no-card path is mutation-proven (campaign M11).
 
 ---
 

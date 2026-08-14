@@ -16,6 +16,47 @@
 
 ## API 2.1
 
+### 2026-08-14 — the mechanism-sensor adapters land (`hal/pros/`, second half) — additive
+
+The other half of the hardware binding: PROS-backed adapters for the mechanism seams —
+`ProsDistance`, `ProsOptical`, `ProsDigitalOut`, `ProsDigitalIn`, and `ProsBlockSink` (the
+SD-card device behind the blackbox). Each applies its unit conversion exactly once at the
+edge, through two new pure conversion headers (`distance_conversion.hpp`,
+`optical_conversion.hpp`).
+
+New HAL seam, **not frozen**: `IDigitalIn` (one member — the raw level of a digital input
+line; no debouncing, no edge state, no validity channel, each by documented ruling) with
+`hal::fake::FakeDigitalIn`. It is an additive sibling outside the F4 freeze, exactly as
+`IDigitalOut` and `IController` were; the Freeze Register records the non-freeze out loud
+(row F14). It was built ahead of its consumer — the lift-homing switch-or-stall question is
+still open — and the register row says that too.
+
+Three behaviours worth knowing before you use these:
+
+- **The distance sensor's "no object" is 9999 mm, in-band.** PROS reports an empty field of
+  view as a plain reading that converts to a plausible-looking 393.66 inches — not an error.
+  `ProsDistance` maps it to `confidence() == 0.0` (the seam's documented "no usable return"
+  channel) and keeps `distance()` finite and far. Threshold `confidence()`, always — the FAQ
+  entry "Why does my distance sensor read 393 inches?" walks it.
+- **Constructing a `ProsDigitalOut` PHYSICALLY DRIVES the line.** PROS actuates the port at
+  construction and defaults it LOW; on a pneumatic that moves the cylinder at boot. The
+  adapter refuses the default — the initial state is a required constructor argument, and it
+  must agree with the owning `PneumaticMechanism`'s declared safe state (a test pins the
+  pattern).
+- **A missing SD card does not stop the robot.** `ProsBlockSink` constructs successfully with
+  no card, refuses every write (`write()` returns false from the first call — the blackbox's
+  drop-and-count design absorbs it), and reports the fact once through `isOpen()`.
+
+**Breaking:** nothing. Every frozen surface (F3/F4/F6/F10) is untouched; the adapters are new
+files implementing existing interfaces, and `IDigitalIn` is additive.
+
+**What you must do:** nothing, unless a mechanism uses these sensors — then construct the
+`Pros*` adapters and read the seam headers' design notes (each names which PROS call it
+binds, which conversion it applies, and which Hardware-Assumptions entries its beliefs rest
+on — HA-113 onward, none yet measured on hardware). Honest scope, unchanged from R1a: these
+are host-tested against the programmable PROS stand-in, and **the library has still never
+driven a robot.**
+
 ### 2026-08-13 — first hardware validation of the adapters — no API change
 
 No code changed. Recorded here because it changes what the library's claims are worth.

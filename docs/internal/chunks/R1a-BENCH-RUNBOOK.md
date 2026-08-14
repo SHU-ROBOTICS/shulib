@@ -205,4 +205,92 @@ versions, the transcript file, and for each step above: the measured value, the 
 settles, and settled-true / settled-false / still-open. Update
 `docs/hardware-assumptions.md` per its own rules (measured value recorded next to the guess
 it replaces). Do NOT flip anything the tank bot cannot see — the holonomic entries stay open
-and the record says so.
+and the record says so. *(Steps 16–20 below were added by R1b — fold their results into the
+same record; this step applies after whichever steps a session actually ran.)*
+
+---
+
+## Steps 16–20 — the mechanism-sensor beliefs (added by chunk R1b, HA-113…122)
+
+> None of these sensors is known to be ON the available robot. Every step below works with
+> the sensor on a loose cable at the table — say in the record which port it was plugged
+> into. Step 17 comes first if session time is short: it is the one that un-blocks planning.
+
+## Step 16 — SD card: the blackbox's device
+
+**Measures:** the card probe, the `/usd/` write path end to end, and what a flush is worth.
+**Settles:** HA-122 (all three halves).
+**Do:** (a) NO card: boot — the robot must run normally; log `ProsBlockSink::isOpen()` =
+false, reported once. (b) Card in: boot, let the blackbox write, power off, read the file on
+a laptop (its existence at the expected name settles the prefix belief; its bytes should
+decode with the blackbox reader up to the cut). (c) Yank-after-flush: write, flush, wait 2 s,
+pull the card mid-run; count surviving bytes against the write log.
+**A wrong answer looks like:** (a) a boot hang or throw with no card — the T5 ruling failed,
+STOP, that is an adapter bug; (b) no file — the fopen prefix belief is wrong: log errno,
+record HA-122 settled-false, fix the ONE join in the adapter; (c) heavy loss after a clean
+flush — record the measured loss window; E1's format tolerates it but R4's write-budget
+numbers must then absorb it.
+
+## Step 17 — ADI inventory: does this robot actually have an expander?
+
+**Measures:** the real 3-wire capacity of this robot; the truth behind R1a's unverified
+expander report (it came from registry index 21 — OUTSIDE the documented 0–20 range — and
+was never re-checked).
+**Settles:** HA-120's open question; informs every mechanism port plan.
+**Do:** brain screen → Devices, photograph it; then run a registry scan over the CORRECT
+0-indexed 0–20 range and compare. Plug a switch into brain ADI 'a' and read it via port
+spellings 'a', 1, and 'A' — all three must read the same line (the addressing half).
+**A wrong answer looks like:** the three spellings reading different lines (adapter or
+belief bug — STOP); an expander appearing only in the out-of-range read (it does not exist;
+correct the R1a session's inventory in place, with a note).
+
+## Step 18 — Distance sensor: mm, the 9999 no-object value, confidence's two ranges
+
+**Measures:** the raw mm scale; whether "no object" is exactly the constant 9999; what
+`get_confidence()` actually returns at and below 200 mm (currently a stated UNKNOWN).
+**Settles:** HA-113, HA-114, HA-115.
+**Do:** sensor on a cable, facing across the table. (a) Tape-measure an object at 500 mm —
+raw ≈ 500, canonical ≈ 19.7 in. (b) Point it at open air ≥ 30 s, log raw + adapter values
+every tick: raw must sit at 9999 with adapter confidence() 0.0 throughout. (c) Walk an
+object from 400 mm to 50 mm, logging raw distance AND raw confidence: record the raw
+confidence behaviour below 200 mm — whatever it does, write it into HA-115 (that settles the
+unknown), and confirm the ADAPTER's confidence() reads 1.0 through the close range.
+**A wrong answer looks like:** (a) raw ≈ 19.7 (it is already inches?! HA-113 false — fix the
+conversion, not the adapter); (b) raw flickering 9998/10000 — the EXACT-9999 belief is too
+narrow: widen the screen to the measured band, register the correction; (c) adapter
+confidence dipping to 0 with an object at 100 mm — the close-range rule is not being reached
+(adapter bug, STOP).
+
+## Step 19 — Optical sensor: ranges, and proximity's UNMEASURED polarity
+
+**Measures:** hue/saturation ranges on known colors; proximity's direction — the belief the
+vendored doc does not state (larger = closer is currently INVENTED, HA-117).
+**Settles:** HA-116, HA-117, HA-118 (with step 14's unplug matrix).
+**Do:** (a) hold a known-red and a known-blue game piece at ~30 mm: hue ≈ 0–20° / 210–230°,
+saturation > 0.5. (b) THE POLARITY PAIR, before anything thresholds on proximity(): log raw
+`get_proximity()` with the lens covered by a hand, then facing open air. (c) unplug mid-read:
+adapter values hold, faultedReads climbs, no infinity anywhere.
+**A wrong answer looks like:** (b) covered ≪ open — the polarity is INVERTED: put the
+documented 1−x flip in `opticalProximityToCanonical` (the conversion, never the adapter),
+correct HA-117, re-run the conversion tests; (a) hue off by a constant offset — record it;
+color WINDOWS are a consumer decision and the window author needs the measured centers.
+
+## Step 20 — ADI digital lines: construction actuation, levels, and the dead-port value
+
+**Measures:** whether constructing a DigitalOut really drives the line AT construction (vs at
+the first tick); level semantics of DigitalIn; what `get_value()` actually returns from a
+dead/misconfigured port (PROS_ERR is the belief; 0 would blind the screen).
+**Settles:** HA-119, HA-121.
+**Do:** **AIR DISCONNECTED FIRST.** (a) Construct a ProsDigitalOut with initialState=false,
+then =true (two boots): watch/listen for the solenoid click at program start — record WHEN it
+fires. (b) With air, construct with the mechanism's declared safe state: there must be NO
+motion at boot. (c) Wire a limit switch: held closed, `state()` must read a steady level (not
+a one-shot); release/press ten times and confirm ten clean edges through ButtonEdge. (d)
+Unplug the switch's wire mid-run and log the RAW `get_value()` — that number settles
+HA-121's refusal-value half.
+**A wrong answer looks like:** (a) the click at the first loop tick rather than construction
+— HA-119's timing half is wrong: the boot-glitch window is different, re-reason the T3 note
+(the required-argument design still stands); (b) ANY motion at boot with matched safe states
+— STOP, that is the exact defect the agreement test exists to prevent; (d) raw 0 — the
+screen never fires on a dead port: record it, and note that faultedReads() cannot see this
+failure mode on this firmware.
