@@ -63,8 +63,20 @@ def completed_chunks():
              if f.endswith("-COMPLETED.md")]
 
     def key(n):
-        m = re.match(r"([A-Z]+)(\d+)", n)
-        return (m.group(1), int(m.group(2))) if m else (n, 0)
+        # The suffix is part of the key, and that is load-bearing — DOCS1.
+        #
+        # This used to be (prefix, number) only, which is not a TOTAL order: R1a
+        # and R1b both key to ("R", 1). Python's sort is stable, so ties keep
+        # their input order — and the input is os.listdir(), which is
+        # filesystem-dependent. The block therefore generated "R1a · R1b" on one
+        # machine and "R1b · R1a" on another, and the gate failed in CI while
+        # passing locally on the identical commit. Two pushes were spent on that.
+        #
+        # The bug was unreachable until R1a/R1b became the first two chunks to
+        # share a prefix and a number, which is why it shipped quietly at R1a and
+        # only fired the first time CI ever ran this gate.
+        m = re.match(r"([A-Z]+)(\d+)(.*)$", n)
+        return (m.group(1), int(m.group(2)), m.group(3)) if m else (n, 0, "")
 
     return sorted(names, key=key)
 
@@ -496,6 +508,21 @@ def main():
               "(the traps, the", file=sys.stderr)
         print("standards, the architecture) is what went stale, fix that by hand — no "
               "tool can see it.", file=sys.stderr)
+        # DOCS1: say WHAT drifted, not just THAT something did. This gate failed in
+        # CI for two pushes running and the message named nothing, so the only way
+        # to see the cause was to reproduce the environment. A gate that reports a
+        # failure you cannot act on costs more than it saves.
+        import difflib
+        diff = list(difflib.unified_diff(
+            text.splitlines(), updated.splitlines(),
+            fromfile="committed", tofile="regenerated", lineterm="", n=1))
+        if diff:
+            print("", file=sys.stderr)
+            print("The exact drift (committed → regenerated):", file=sys.stderr)
+            for line in diff[:60]:
+                print(f"  {line}", file=sys.stderr)
+            if len(diff) > 60:
+                print(f"  … {len(diff) - 60} more diff lines", file=sys.stderr)
         return 1
     print(f"briefing status: unknown command '{cmd}'", file=sys.stderr)
     return 2
