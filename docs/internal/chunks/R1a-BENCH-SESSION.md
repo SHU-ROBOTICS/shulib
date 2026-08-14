@@ -50,7 +50,13 @@ spin, ports 15/16/17/18 moved and 11/12/14 read *exactly zero*; during the right
 No inference, no ambiguity.
 
 Full device inventory: motors on **1, 2, 3, 5, 11, 12, 13, 14, 15, 16, 17, 18**; **IMU on port 4**;
-radio; ADI expander. Twelve motors, seven of them drive.
+radio. Twelve motors, seven of them drive.
+
+**An ADI expander was also reported — UNVERIFIED, do not build on it.** That reading came from
+registry index 21, which is *outside* the documented 0–20 range, so it may be garbage; it was never
+re-checked with the corrected scan. Re-verify before R1b assumes expander hardware exists. The V5
+brain has 8 built-in ADI ports regardless, so R1b is not blocked either way — but the number of
+available 3-wire ports is currently unknown.
 
 ## 3. Two mechanical faults found — one proven twice
 
@@ -116,8 +122,8 @@ register entries stay open and this record says so rather than implying coverage
 ## 6. Documents that are wrong about this hardware
 
 - The project briefing describes the available robot as *"an old tank/differential practice bot"*
-  with *"I'm told there isn't much on it."* It is the **old competition bot**, with twelve motors, an
-  IMU, and an ADI expander.
+  with *"I'm told there isn't much on it."* It is the **old competition bot**, with twelve motors and
+  an IMU (plus a possible ADI expander, unverified — see §2).
 - It also lists what the tank bot can validate, including **GPS noise/latency, the GPS field-cal axis
   oracle, encoder refresh via tracking wheels, and the odometry push test.** This robot has **no GPS
   and no rotation sensors**, so none of those are settleable on it.

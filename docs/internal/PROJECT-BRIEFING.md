@@ -627,7 +627,7 @@ correction is the reason the section now leads with measurements.
 - **Twelve motors** on ports 1, 2, 3, 5, 11, 12, 13, 14, 15, 16, 17, 18 — all green (18:1) cartridges
 - **Drive: LEFT 15/16/17/18, RIGHT 11/12/14**, established by spinning one side at a time by hand
 - **IMU on port 4**, alive and calibrating
-- A radio and an **ADI expander** (3-wire ports — relevant to R1b)
+- A radio, and **possibly an ADI expander — UNVERIFIED** (read from an out-of-range port index; re-check before relying on it). The brain's 8 built-in ADI ports exist regardless.
 - **NO rotation sensors. NO GPS.**
 
 **Two mechanical faults found, one proven twice:** port 13 spins free (18 mA against its
