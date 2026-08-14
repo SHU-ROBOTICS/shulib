@@ -16,6 +16,30 @@
 
 ## API 2.1
 
+### 2026-08-13 — first hardware validation of the adapters — no API change
+
+No code changed. Recorded here because it changes what the library's claims are worth.
+
+The `hal/pros/` adapters were run against a physical V5 brain and a real robot for the first time.
+Every unit conversion they perform was checked against a turning wheel:
+
+| Conversion | Expected | Measured |
+|---|---|---|
+| motor degrees → radians | 57.2958 | 57.296 |
+| motor RPM → rad/s | 9.5493 | 9.549 |
+| motor mA → amps | 1000 | 1000.0 |
+| battery raw → volts | — | 13039 → 13.04 V |
+| battery capacity → [0,1] | — | 91.0 → 0.91 |
+| `micros()` per 1000 ms | 1000000 | 999784 |
+
+Seven previously-guessed hardware assumptions are now measured observations rather than reasoning.
+The battery unit was the weakest of them — PROS's vendored headers document no unit for
+`battery_get_voltage()` at all.
+
+**What this does not mean:** the library still has never driven a robot. Nothing closed a control
+loop, nothing followed a path, and no wheel turned under motion control. These measurements
+establish that the platform layer reads and commands real hardware correctly, and nothing more.
+
 ### 2026-08-13 — the PROS hardware adapters land (`hal/pros/`) — additive
 
 The library's first hardware binding: header-only adapters under

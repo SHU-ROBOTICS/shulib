@@ -83,6 +83,25 @@ consumer owns its own tiny `ButtonEdge` — every consumer sees every press. If 
 driver code that used `get_digital_new_press()`, replace each call site with a `ButtonEdge`
 member and feed it `pressed(...)` once per loop.
 
+## Why doesn't shulib use PROS's `registry_get_plugged_type()` to find devices?
+
+Because it has a different port convention from the rest of the SDK, and mixing them fails
+*silently*.
+
+`registry_get_plugged_type()` is **zero-indexed** — its own documentation says "the device plugged
+into the zero-indexed port", range 0–20. Every device API — `motor_get_position()`,
+`imu_get_rotation()`, `gps_get_status()` — is **one-indexed**, range 1–21. Both conventions live in
+the same SDK, stated only in each function's own comment.
+
+Get it wrong and nothing errors. You get a device list that is off by one, and then reads through
+the device APIs land on the wrong hardware. A bench probe written this way once reported "a dead
+motor and a dead IMU" on a robot where both were perfectly healthy: it was asking the motor API
+about the port where the IMU actually lived, and `ENODEV` looks exactly like a dead motor.
+
+No shulib adapter calls the registry. Each adapter takes the port you give it and passes it
+straight to the one-indexed device API, so there is only ever one convention in play. If you write
+your own port-scanning diagnostic, that is where the trap is waiting — add one, not zero.
+
 ## I'm porting shulib to non-PROS hardware. What does "the shim tests the adapter, not the belief" mean for me?
 
 It is the honest limit of host-testing a hardware binding, and it transfers to your port

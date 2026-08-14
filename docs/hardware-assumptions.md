@@ -36,7 +36,8 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 112 settled.** No robot exists (a brain has booted the code; nothing has
+> **Status: 7 of 112 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. No robot exists (a brain has booted the code; nothing has
 > driven). Counts: **77 invented · 32 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
 > documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
@@ -154,14 +155,14 @@
 | HA-91 | 5 s is long enough between re-init declarations to tell recovery from a storm | **invented** | R4 |
 | HA-92 | `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive | **invented** | R3/R5 |
 | HA-93 | A jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command, with ≈ 0.05 rad/s residual creep | **invented** | R4 |
-| HA-94 | Motor `move_voltage()` takes millivolts, ±12000 | reasoned | R3 |
-| HA-95 | Motor `get_position()` with `MotorUnits::degrees` reports output-shaft degrees | reasoned | R3 |
-| HA-96 | Motor `get_actual_velocity()` returns output-shaft RPM | reasoned | R3 |
-| HA-97 | Motor `get_current_draw()` returns mA | reasoned | R3 |
-| HA-98 | Motor units/gearing live in the DEVICE and persist across programs; explicit set + read-back holds | reasoned | R3 |
-| HA-99 | Battery voltage/current are mV/mA — units NOT in the vendored source (website only) | reasoned | R3 |
-| HA-100 | `battery_get_capacity()` returns percent 0–100 | reasoned | R3 |
-| HA-101 | `micros()` is µs since program start, monotonic, uint64 | reasoned | R3 |
+| HA-94 | Motor `move_voltage()` takes millivolts, ±12000 | **settled** measured-on-comp-bot 2026-08-13: 2.0 V commanded → device reported 1823–1990 mV under load | R3 |
+| HA-95 | Motor `get_position()` with `MotorUnits::degrees` reports output-shaft degrees | **settled** measured 2026-08-13: deg/rad = 57.296 on all 8 motors (57.2958 exact) | R3 |
+| HA-96 | Motor `get_actual_velocity()` returns output-shaft RPM | **settled** measured 2026-08-13: rpm/(rad/s) = 9.549 (9.5493 exact) | R3 |
+| HA-97 | Motor `get_current_draw()` returns mA | **settled** measured 2026-08-13: mA/A = 1000.0 exactly, 8 motors | R3 |
+| HA-98 | Motor units/gearing live in the DEVICE and persist across programs; explicit set + read-back holds | **partial** 2026-08-13: set+read-back accepted on 8 motors (no precondition fired); PERSISTENCE across programs NOT tested, so this stays open | R3 |
+| HA-99 | Battery voltage/current are mV/mA — units NOT in the vendored source (website only) | **settled** measured 2026-08-13: raw 13039 → 13.04 V, raw 919 → 0.92 A. R1a's weakest belief, now observed | R3 |
+| HA-100 | `battery_get_capacity()` returns percent 0–100 | **settled** measured 2026-08-13: raw 91.0 → 0.91 | R3 |
+| HA-101 | `micros()` is µs since program start, monotonic, uint64 | **settled** measured 2026-08-13: 999784 µs over a nominal 1000 ms delay (0.02% low) | R3 |
 | HA-102 | `Task::delay_until(prev, 10)` yields an anchored 100 Hz cadence | reasoned | R3 |
 | HA-103 | Controller axes are [-127, 127]; disconnected reads 0, not a sentinel | reasoned | R3 |
 | HA-104 | `get_digital()` is a level; `get_digital_new_press()` CONSUMES the press | reasoned | R3 |
@@ -171,7 +172,7 @@
 | HA-108 | `Imu::reset(false)` starts calibration; one boot-time call is not a post-cal tare | reasoned | R3 |
 | HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
 | HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
-| HA-111 | main.cpp's port map and motor direction signs match the practice bot | **invented** | R3 |
+| HA-111 | main.cpp's port map and motor direction signs match the robot | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. main.cpp still carries the invented map | R3 |
 | HA-112 | Teleop stick mapping signs + 0.05 deadband are drivable | **invented** | T2/R3 |
 
 ---
@@ -638,13 +639,22 @@ dependency order (battery scale before anything drives, signs before any closed 
   *Blast radius if wrong:* tip detection reads a climb as a dive — but no tip detector ships
   yet, so today the radius is zero. Settle it before one does.
 
-- [ ] **HA-111 — `src/main.cpp`'s port map and motor direction signs match the practice bot.**
-  *Claim:* FL1 BL2 BR−3 FR−4 ROTF5 ROTL6 GPS9 IMU10, green cartridges — ALL INVENTED; no
-  robot has been measured.
+- [ ] **HA-111 — `src/main.cpp`'s port map and motor direction signs match the robot.**
+  *Claim:* FL1 BL2 BR−3 FR−4 ROTF5 ROTL6 GPS9 IMU10, green cartridges — ALL INVENTED.
   *Source:* `src/main.cpp` (the `k*Port` block, labelled).
-  *Confidence:* **invented** — and defended: the ProsMotor read-backs make a wrong port a LOUD
-  boot fault instead of a silent no-op.
-  *Settle (R3, runbook steps 0 and 4):* device inventory, then per-wheel spin direction.
+  *Confidence:* **invented — and MEASURED WRONG on 2026-08-13.** The real map on the old
+  competition bot is: drive **LEFT 15/16/17/18, RIGHT 11/12/14** (green cartridges), **IMU on
+  port 4**, and **no rotation sensors and no GPS at all**. Only "there are motors on low ports"
+  survived. `src/main.cpp` still carries the invented map, deliberately — it also assumes an
+  X-drive with two tracking wheels, which this robot is not and does not have, so fixing the
+  ports alone would not make it correct. The wiring belongs to whichever chunk runs the shipped
+  stack on this robot.
+  *Also measured:* port 13 spins FREE (18 mA vs its neighbours' 500–950 mA, and it does not move
+  when its wheels are turned by hand) — a mechanical disconnect, not a software matter. Port 16
+  under-reports its side-mates by ~20% at an inconsistent ratio — probable slip, undiagnosed.
+  *Settle (R3, runbook steps 0 and 4):* device inventory, then per-wheel spin direction —
+  inventory and side-split DONE 2026-08-13; per-wheel DIRECTION SIGNS still open (the 2 V bursts
+  moved several motors too little to read a sign).
   *Blast radius if wrong:* ports: loud at boot (by design). Signs: a mirrored wheel fights the
   other three — caught in the first open-loop spin, BEFORE any closed loop (runbook order).
   **Contained:** constants + boot checks.

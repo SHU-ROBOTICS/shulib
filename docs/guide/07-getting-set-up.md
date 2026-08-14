@@ -42,8 +42,9 @@ That's all for library work. Two more tools exist that you do **not** need yet:
 `arm-none-eabi-g++` (the cross-compiler that builds for the V5's processor) and
 [pros-cli](https://pros.cs.purdue.edu/v5/getting-started/) (the tool that uploads to a V5
 brain). They only matter for robot-package work — and remember, the library still runs on no
-robot: a practice bot exists for the hardware phase's bench work, but everything you will do
-from this guide is host-side.
+robot: a robot exists for the hardware phase's bench work — its adapters have been checked
+against real motors and sensors — but nothing has yet driven under motion control, and everything
+you will do from this guide is host-side.
 
 ## Clone and build
 

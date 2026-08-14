@@ -1,6 +1,7 @@
 # R1a Bench Runbook — first contact between shulib and a V5, step by step
 
-> **Who this is for:** the team lead, standing at a table with the tank practice bot, a V5
+> **Who this is for:** the team lead, standing at a table with the robot (the OLD COMPETITION BOT —
+> see `R1a-BENCH-SESSION.md` for its measured device map), a V5
 > brain, a charged battery, a USB cable, and a laptop with `pros terminal`.
 > **What it is:** the ordered checklist R1a's brief demanded instead of an unrun bench session.
 > Each step names **what it measures**, **which `HA-nn` it settles**, and **what a wrong answer
@@ -199,7 +200,7 @@ climbing), GPS (hasFix false), one drive motor (position/velocity/current held).
 
 ## Step 15 — Write the session record
 
-Into `docs/internal/chunks/R1a-BENCH-SESSION.md`: date, robot (tank practice bot), firmware
+Into `docs/internal/chunks/R1a-BENCH-SESSION.md`: date, robot (name the ACTUAL robot — the first session found it was the old competition bot, not the practice bot these documents assumed), firmware
 versions, the transcript file, and for each step above: the measured value, the HA-nn it
 settles, and settled-true / settled-false / still-open. Update
 `docs/hardware-assumptions.md` per its own rules (measured value recorded next to the guess

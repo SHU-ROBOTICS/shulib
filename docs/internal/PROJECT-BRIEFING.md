@@ -110,7 +110,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - **Suite:** 1,083 cases / 1,523,069 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 139  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 112 registered, **0 settled** — next free is **HA-113**  
+- **Hardware assumptions:** 112 registered, **7 settled** — next free is **HA-113**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
@@ -614,28 +614,48 @@ homing is F3's, which is season content the students author (§16).
 
 **The question is still open and still owed an answer before F3.**
 
-**For the old tank practice bot: read the device list off the brain** (`pros` terminal) rather than
-assuming — I'm told there isn't much on it.
-
 ---
 
-## 15. Hardware reality
+## 15. Hardware reality — MEASURED 2026-08-13, not assumed
 
-Available now: a **V5 brain** (boots this code), an **old tank/differential practice bot**, and
-sensors.
+The robot available is the **old COMPETITION bot**, not the "tank practice bot with not much on it"
+this section described until the first bench session read the device list off the brain. That
+correction is the reason the section now leads with measurements.
 
-**What the tank bot validates:** the platform layer — the 9 adapters, IMU drift and calibration
-window, GPS noise and latency, encoder refresh, brownout threshold, real loop rate under load, PROS
-call latency, the odometry push test, the GPS field-cal axis oracle (`gps_conversion_test.cpp:186`,
-currently skipped) — and the **tank** kinematics path.
+**What is actually on it** (`R1a-BENCH-SESSION.md` has the full record):
 
-**What it does NOT validate:** any of the holonomic thesis. No strafe authority, no pseudo-inverse, no
-per-axis decoupling, no H-drive geometry. Those register entries stay open until a competition robot
-exists, and the register should **say so** rather than imply coverage.
+- **Twelve motors** on ports 1, 2, 3, 5, 11, 12, 13, 14, 15, 16, 17, 18 — all green (18:1) cartridges
+- **Drive: LEFT 15/16/17/18, RIGHT 11/12/14**, established by spinning one side at a time by hand
+- **IMU on port 4**, alive and calibrating
+- A radio and an **ADI expander** (3-wire ports — relevant to R1b)
+- **NO rotation sensors. NO GPS.**
+
+**Two mechanical faults found, one proven twice:** port 13 spins free (18 mA against its
+neighbours' 500–950 mA, and it never moved when its wheels were turned by hand) — a chain or gear is
+off. Port 16 under-reports its side-mates by ~20% at an inconsistent ratio — probable slip,
+undiagnosed. A drive motor that under-reports travel biases odometry quietly.
+
+**What this robot CAN settle:** the platform layer — the adapters, unit conversions, brownout
+threshold, real loop rate under load, PROS call latency, IMU drift and calibration window, and the
+**tank** kinematics path.
+
+**What it CANNOT settle, contrary to what this section used to claim:** anything needing a **GPS**
+(noise, latency, the field-cal axis oracle in `gps_conversion_test.cpp` — still skipped) or
+**tracking wheels** (encoder refresh, the odometry push test). It has neither.
+
+**And it validates none of the holonomic thesis** — no strafe authority, no pseudo-inverse, no
+per-axis decoupling, no H-drive geometry. Those entries stay open until a competition-season robot
+exists, and the register **says so** rather than implying coverage.
 
 **Two traps:** **never carry gains across chassis** — kS/kV/kA and PID gains are mass-, friction- and
 geometry-dependent, and a measured-looking wrong number is worse than an honest placeholder. And
-**record anything measured on the practice bot with that provenance**, not as "measured".
+**record anything measured on this robot with that provenance** — one robot, once, is an observation,
+not proof of portability.
+
+**A third trap, learned the hard way at the first session:** `registry_get_plugged_type()` is
+**ZERO-indexed** (0–20) while every PROS device API is **ONE-indexed** (1–21). Mixing them yields
+plausible wrong answers, never an error — it produced a confident report of two dead devices that
+were both healthy. No shipped adapter uses the registry; keep it that way.
 
 **Bench notes:** I'm in `dialout`; the brain enumerates as `/dev/ttyACM0` (system) and `/dev/ttyACM1`
 (user). `pros terminal` needs a real TTY, so under automation wrap it

@@ -634,7 +634,7 @@ consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`
 seam folded in** ([brief](chunks/R1a-pros-adapters-drivetrain.md)). R1a → R1b → R3 → R4 is the
 recommended run: R3 closes M1 and M2's on-robot clause, open since June, and R4 replaces A3's
 invented sensor-noise magnitudes with measured ones — which is what makes every Phase E result mean
-something. A tank practice bot and a V5 brain are available; T2/T3, G1 and H1 remain as hardware-free
+something. The team's OLD COMPETITION BOT and a V5 brain are available (measured 2026-08-13: 12 motors, IMU on 4, tank drive LEFT 15/16/17/18 RIGHT 11/12/14, **no rotation sensors, no GPS**); T2/T3, G1 and H1 remain as hardware-free
 alternatives if the robot is unavailable.**
 
 **R1 SPLIT INTO R1a + R1b, 2026-08-13** (team lead's direction, recorded in the deviations table).
@@ -1188,7 +1188,7 @@ and each is a real defect if absent:
   reality while everything still "works". A3 proved heading drifts. This needs a documented fallback to
   robot-centric, a driver-accessible re-zero, and a visible indication. **Do not ship field-centric
   without it.**
-- Modes: field-centric holonomic, robot-centric holonomic, arcade and tank (the tank practice bot is
+- Modes: field-centric holonomic, robot-centric holonomic, arcade and tank (the old competition bot is
   the first hardware this will meet).
 
 **DoD:** each property above has a test that fails when it is removed; the deadband continuity and
