@@ -630,7 +630,9 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R1b — `hal/pros` adapters for the mechanism seams** ([brief](chunks/R1b-pros-adapters-mechanisms.md)). R1a is DONE (built, verified, committed, and validated on hardware — see the bench session record). R1b unblocks BOTH R3 and F3, and needs no robot to author.**
+**Next: DOCS1 — the full documentation pass, then the release to `main`** ([brief](chunks/DOCS1-full-documentation-pass.md)). Called 2026-08-14: 23 chunks have landed, `main` is 195 commits behind, and merging to `main` is what PUBLISHES to docs.shurobotics.com — so the documentation pass is the release gate, not tidying before it. R1a and R1b are DONE.**
+
+*(superseded)* ~~Next: R1b — `hal/pros` adapters for the mechanism seams~~ ([brief](chunks/R1b-pros-adapters-mechanisms.md)). R1a is DONE (built, verified, committed, and validated on hardware — see the bench session record). R1b unblocks BOTH R3 and F3, and needs no robot to author.**
 
 *(superseded)* ~~Next: R1a — `hal/pros` adapters for the drivetrain and the driver, with Phase T's `IController`
 seam folded in** ([brief](chunks/R1a-pros-adapters-drivetrain.md)). R1a → R1b → R3 → R4 is the

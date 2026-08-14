@@ -44,10 +44,11 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 ## 2. Read this first, in this order
 
 1. **[`RESUMING.md`](RESUMING.md)** — the working protocol, canonical.
-2. **[`HANDOFF-2026-08-13-F2.md`](HANDOFF-2026-08-13-F2.md)** — the most recent chunk handoff.
-3. **[`build-order.md`](build-order.md)** — "Current position" (long, worth it), then "The order at a
+2. **[`ORIENTATION.md`](ORIENTATION.md)** — plain-English, no jargon: what this is and where it stands. Start here if the chunk letters mean nothing to you yet.
+3. **[`chunks/R1b-COMPLETED.md`](chunks/R1b-COMPLETED.md)** and **[`chunks/R1a-BENCH-SESSION.md`](chunks/R1a-BENCH-SESSION.md)** — the most recent chunk record, and the first time this library met real hardware. *(The `HANDOFF-*.md` files are older and now historical — R1a and R1b landed after them.)*
+4. **[`build-order.md`](build-order.md)** — "Current position" (long, worth it), then "The order at a
    glance".
-4. Run these and read the output:
+5. Run these and read the output:
    ```sh
    git log --oneline -20
    git status
@@ -104,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 23 of 43 chunks complete
 
-- **Next up:** R1b — hal/pros adapters for the mechanism seams  
+- **Next up:** DOCS1 — the full documentation pass, then the release to main  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
 - **Suite:** 1,120 cases / 1,523,324 assertions, 3 skipped — **green**  
