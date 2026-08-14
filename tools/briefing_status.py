@@ -448,6 +448,20 @@ def main():
         print(block)
         return 0
     if not os.path.exists(BRIEFING):
+        # A MISSING BRIEFING IS EXPECTED ON THE PUBLISHED TREE — DOCS1.
+        #
+        # `main` is the release branch with docs/internal/ dropped, so the
+        # briefing genuinely is not there and never will be. Returning 1 made CI
+        # red on main for a condition that is the design working, and no edit to
+        # any document could ever have fixed it.
+        #
+        # `check` therefore succeeds and says why. `generate` still fails, because
+        # being asked to rewrite a file that does not exist IS a real error — you
+        # are on the wrong branch, and silently doing nothing would hide that.
+        if cmd == "check":
+            print("briefing status: SKIPPED — docs/internal/ is absent, so there is no "
+                  "briefing to check. This is the published tree, and that is correct.")
+            return 0
         print(f"briefing status: {BRIEFING} not found", file=sys.stderr)
         return 1
     text = open(BRIEFING, encoding="utf-8").read()
