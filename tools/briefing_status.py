@@ -449,6 +449,37 @@ def main():
         # repo. It makes no claim about the hand-written half — see the removal
         # note above the render() function for why the stamp that used to pretend
         # otherwise is gone.
+        #
+        # ── THE SUITE LINE IS EXEMPT WHEN THERE IS NO BINARY (DOCS1) ──────────
+        # This gate went red in CI the first time it ever ran there, and would
+        # have stayed red forever, because CI runs the documentation gates BEFORE
+        # it builds. With no `build/test/shulib_tests` on disk, suite_counts()
+        # returns None, render() writes "Suite: not built", and that differs from
+        # the committed block — which carries real numbers, correctly, because a
+        # developer generated it against a real build.
+        #
+        # So the gate was failing on the ABSENCE OF A BUILD ARTIFACT and calling
+        # it documentation drift. Those are different things, and conflating them
+        # makes the gate unsatisfiable: no committed value can be right both with
+        # and without a binary present.
+        #
+        # The fix is narrow on purpose. Only the one line that cannot be derived
+        # is excluded, and only when it genuinely cannot be derived. Everything
+        # else in the block — position, next chunk, interrupted chunks, headers,
+        # assumptions, the Freeze Register, the guards, the skipped tests — is
+        # still compared byte for byte. When a binary IS present the suite line is
+        # compared like everything else, so a developer cannot commit a stale
+        # count.
+        if suite_counts() is None:
+            drop = lambda b: "\n".join(
+                ln for ln in b.splitlines()
+                if not ln.startswith("- **Suite:**")
+                and "source: `./build/test/shulib_tests`" not in ln)
+            if drop(updated) == drop(text):
+                print("briefing status: generated block current, EXCEPT the suite line, "
+                      "which was not compared — no test binary is built, so the count "
+                      "cannot be derived here. Build the suite to check it.")
+                return 0
         if updated == text:
             print("briefing status: generated block current "
                   "(the durable narrative is NOT gated — see doc_staleness_audit.py)")
