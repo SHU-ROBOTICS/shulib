@@ -56,6 +56,62 @@ EXCLUDED = {"internal"}
 LINK = re.compile(r"\]\((?!https?://|#|mailto:)([^)#\s]+)(#[^)\s]*)?\)")
 
 
+def build_stamp() -> str:
+    """The 'last updated' footer, derived from the commit being published.
+
+    WHY THIS IS GENERATED AND NOT WRITTEN DOWN
+    ------------------------------------------
+    A hand-maintained date is wrong the moment anyone publishes without touching
+    it, and a stale date carrying a confident tone is worse than none — the exact
+    failure this project has hit repeatedly with test counts and register sizes.
+    So the stamp is derived here, at the only moment it can be correct: the
+    publish that produces the artifact.
+
+    WHY IT SAYS WHICH BRANCH
+    ------------------------
+    The site publishes from the release branch, not from the working branch, so
+    it lags the repository ON PURPOSE — that is what keeps the development log
+    off the public site by construction. A reader seeing a date two weeks old
+    should be told that is the design and not rot, and told where the current
+    tree is. Saying only "last updated" would invite exactly the wrong inference.
+
+    `git log -1` works under actions/checkout's default shallow clone, which is
+    what CI uses. If git is unavailable the stamp degrades to naming the branch
+    and omits what it cannot know, rather than inventing a date.
+    """
+    import subprocess
+
+    def git(*args: str) -> str:
+        try:
+            return subprocess.run(("git", *args), cwd=REPO, capture_output=True,
+                                  text=True, timeout=30).stdout.strip()
+        except Exception:
+            return ""
+
+    sha = git("log", "-1", "--format=%h")
+    date = git("log", "-1", "--format=%cd", "--date=format:%Y-%m-%d")
+    repo_url = "https://github.com/SHU-ROBOTICS/shulib"
+
+    # The date is the COMMIT date of what is being published, not the time the
+    # renderer happened to run. That is the honest reading of "last updated": it
+    # is when this content last changed. A rebuild with no content change must
+    # not advance it, or the stamp starts meaning "a machine ran", which is not
+    # what anyone reads it as.
+    if sha and date:
+        what = (f"**Last updated {date}** — published from the `main` release branch, "
+                f"commit [`{sha}`]({repo_url}/commit/{sha}).")
+    else:
+        what = "Published from the `main` release branch."
+
+    return (
+        "\n\n---\n\n"
+        f"<small>{what} This site tracks **releases**, so between them it can lag the "
+        "repository — that lag is deliberate, and it is what keeps the development log off "
+        f"the public site. For the current state of the code, see "
+        f"[the repository]({repo_url}).</small>\n"
+    )
+
+
 def rewrite(text: str, md_path: Path) -> tuple[str, int]:
     """Rewrite links that escape the docs root into absolute GitHub URLs."""
     rewrites = 0
@@ -93,7 +149,11 @@ def main() -> int:
         shutil.rmtree(out)
     out.mkdir(parents=True)
 
-    copied = rewritten = 0
+    # Derived once, so every page carries the SAME stamp — a site whose pages
+    # disagree about when it was published is worse than one with no stamp.
+    stamp = build_stamp()
+
+    copied = rewritten = stamped = 0
     for src in sorted(DOCS.rglob("*")):
         rel = src.relative_to(DOCS)
         if rel.parts and rel.parts[0] in EXCLUDED:
@@ -105,8 +165,13 @@ def main() -> int:
         dst.parent.mkdir(parents=True, exist_ok=True)
         if src.suffix == ".md":
             text, n = rewrite(src.read_text(encoding="utf-8"), src)
+            # Appended AFTER the rewrite, deliberately: the stamp's links are
+            # already absolute, and running them through the escape-check would
+            # be checking this function's own output rather than the documents.
+            text += stamp
             dst.write_text(text, encoding="utf-8")
             rewritten += n
+            stamped += 1
         else:
             shutil.copy2(src, dst)
         copied += 1
@@ -161,6 +226,7 @@ def main() -> int:
 
     print(f"site source prepared: {copied} files, {rewritten} source links "
           f"rewritten to {BLOB}")
+    print(f"  publish stamp: added to {stamped} pages")
     print("  internal docs: absent (verified)")
     print("  escaping links: none (verified)")
     return 0
