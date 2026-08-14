@@ -15,9 +15,19 @@
 
 ## 1. Why now
 
-Twenty-three chunks have landed. **35 commits** are unpushed; **`main` is 195 commits behind.** The
-last four chunks (F2, R1a, R1a's bench session, R1b) changed what is *true* about this library more
-than any stretch since Phase C:
+Twenty-three chunks have landed. **35 commits are unpushed.**
+
+**Do NOT measure `main` by commit distance.** `main` is a *squash* of `release/v2` with
+`docs/internal/` dropped, so its history is deliberately disjoint and `git rev-list --count main..HEAD`
+returns a meaningless 195. Ask what `main` **contains** instead (`git cat-file -e main:<path>`).
+
+Measured that way: **`main` is current through Phase D** — it was updated 2026-08-12 and has the
+recipe API, the frozen contracts and the docs site. **Eight chunks are missing from it:** E1
+(blackbox), E2 (GPS correction), E3 (AprilTag heading), E4 (the EKF), F1 (mechanism seam), F2 (the
+guaranteed safe stop), R1a and R1b (the entire hardware layer). That is the whole drift-correction
+and hardware story — roughly three weeks of the highest-value work in the project.
+
+The last four chunks changed what is *true* about this library more than any stretch since Phase C:
 
 - The library **has hardware adapters** now — fourteen of them. Many chapters were written when it
   had none and say so.
@@ -112,8 +122,9 @@ The path is `shulib-v2` → merge into `release/v2` → drop `docs/internal/` �
 
 **Two things to confirm with the team lead before pushing**, both open decisions:
 
-- **Pushing at all.** `main` and `release/v2` carry none of E1–E4, F1, F2, R1a or R1b. Nothing from
-  the last three weeks is public. This publishes all of it at once.
+- **Pushing at all.** `main` is current only through Phase D; the eight chunks listed in §1 are
+  absent from it, so none of the drift-correction or hardware work is public. This publishes all of
+  it at once.
 - **HTTPS.** GitHub had not issued the TLS certificate; the site serves over HTTP. Tick "Enforce
   HTTPS" once the cert appears. If Cloudflare's proxy is re-enabled, SSL mode must be **Full
   (strict)**, never Flexible.
