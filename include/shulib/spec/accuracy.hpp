@@ -1,7 +1,10 @@
 #pragma once
 //
-// accuracy.hpp — the F2 accuracy targets, the LOCKED spec the autonomous is
-// measured against (master plan §7 / Freeze F2, ratified 2026-06-08).
+// accuracy.hpp — the accuracy targets of Freeze Register ROW F2, the LOCKED
+// spec the autonomous is measured against (master plan §7, ratified
+// 2026-06-08). "F2" here is the REGISTER ROW, not chunk F2 (the sequence
+// engine, 2026-08-13) — the name collision is real and this line is the
+// disambiguation.
 //
 // This is the SINGLE SOURCE OF TRUTH for the numbers. The system-level
 // acceptance tests at M2/M3 assert against these constants, and a guard test

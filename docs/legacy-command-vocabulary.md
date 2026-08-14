@@ -2,7 +2,9 @@
 
 > **What this is:** the complete record of every command id the team ever declared or authored
 > routines with in the legacy tree, what each did (or was meant to do), and where each maps in
-> shulib v2 today. This is a **requirements input for F2 (mechanism primitives) and G2 (the
+> shulib v2 today. This is a **requirements input for F3 (the concrete mechanism/scoring
+> primitives — an earlier revision said "F2 (mechanism primitives)", which is two mistakes:
+> chunk F2 is the sequence engine, and the mechanism seam was F1) and G2 (the
 > canonical command-id registry)**, and the two data specimens characterized here are the real
 > inputs **G4's `.shupaths` importer** must be able to read.
 >
@@ -18,6 +20,18 @@
 ---
 
 ## 1. The four sources, and the headline finding
+
+<!-- staleness-audit: historical-paths — this document's SUBJECT is the deleted legacy
+     tree, so it necessarily names files that no longer exist. See the note below. -->
+
+> **Every path in the table below was deleted at the cutover** and none of them exists in
+> the tree today. They are named because this document exists to record what was there
+> before it went, and the audit that normally flags a dead path is told so explicitly at
+> the top of this section rather than being quietly weakened for everyone.
+>
+> To read any of them, ask git for the commit before the deletion:
+> `git log --diff-filter=D -- '*/legacy/*'` finds it, and
+> `git show <commit>^:<path>` prints the file.
 
 | Source | Kind | Rows | Distinct ids used |
 |---|---|---|---|
@@ -77,7 +91,7 @@ design. None of it is salvageable as code; the *vocabulary* above is the salvage
 
 Because the data path never ran, the *real* command vocabulary is in `main.cpp`'s hand-written
 routine (the active one and the large commented-out competition routine, lines 836–1045). This is
-equally a G2/F2 requirements input — it is what the team reached for when authoring for real:
+equally a G2/F′ requirements input — it is what the team reached for when authoring for real:
 
 | Hand-written verb | What it did | v2 home |
 |---|---|---|
@@ -87,12 +101,13 @@ equally a G2/F2 requirements input — it is what the team reached for when auth
 | `chassis.setPose(0,0,θ)` after **every** turn | Manual odometry re-anchor — they trusted heading so little they re-zeroed constantly | Superseded by IMU-owned heading (M2) + M3 correctors; a routine should never need mid-run `setPose` |
 | `lever.extend()` / `lever.retract()`, `arm` pneumatics | Mechanism actuation | F′ `deployActuator` / `clampActuate` → G2 ids |
 | `intake`/`conveyor`/`releaser` `.move(±127)` + timed `limitedCombo`/`limitedComboFull` | Timed open-loop mechanism combos | F′ `intakeUntilCapture` etc. — sensor-confirmed, not timed; G2 typed-args markers |
-| `oscillation(n)` | Wiggle forward/back ×n to seat a piece | **Not in any v2 plan by name** — a candidate F′ micro-primitive (seat/settle wiggle); noted as a gap-adjacent observation for F2 |
-| `timer(ms)` / `pros::delay` between steps | Sequencing by wall-clock delay | C2 `waitUntilSettled` / D1 recipe chaining / M4 Sequencer |
+| `oscillation(n)` | Wiggle forward/back ×n to seat a piece | **Not in any v2 plan by name** — a candidate F′ micro-primitive (seat/settle wiggle); noted as a gap-adjacent observation for F3/F′ (recorded at C6 as "F2", the pre-split chunk name) |
+| `timer(ms)` / `pros::delay` between steps | Sequencing by wall-clock delay | C2 `waitUntilSettled` / D1 recipe chaining / the run guard's whole-run deadline |
 | `test_min_output()`, `rotation_calibration()` | Calibration routines (see hardware-assumptions addendum) | M3 "calibration routines + persistence" — specimens captured at C6 |
 
-Gap summary for F2: everything maps onto planned §14 primitives except the **seat/settle wiggle**
-(`oscillation`), which is worth a line in F2's brief as a candidate micro-primitive (cheap, and
+Gap summary for the sequencing/primitives chunks (recorded at C6 under the pre-split name "F2"): everything maps onto planned §14 primitives except the **seat/settle wiggle**
+(`oscillation`), which is worth a line in the scoring-primitives brief (Phase F′) as a candidate
+micro-primitive (cheap, and
 they used it twice in one routine, under a dedicated task, mid-drive).
 
 ---
@@ -133,7 +148,11 @@ about everything else**. G4 must treat these as two dialects of one format:
    ever authored; a `code_template`-era file may equally carry ids no registry knows. G4 already
    specifies WARN+skip for unknown ids (§16.3) — these specimens confirm it will fire in practice.
 7. The 845-row CSV is committed in-tree until C7. **G4 should lift a copy into its own test
-   fixtures before/at C7** (flagged in C6-COMPLETED; the git history retains it regardless).
+   fixtures before/at C7** (flagged in C6's completion record, in the development log). **That
+   window has closed:** C7 ran on 2026-08-10 and the CSV is no longer in the tree, and no fixture
+   copy was lifted. It is recoverable from git history, which is why this was recorded as a
+   flagged risk rather than a blocker — but recovering it is now G4's job, not a matter of
+   copying a file that is sitting there.
 
 **For G2's manifest:** nothing in the legacy vocabulary demands a new *canonical* id beyond what
 §14/§16.3 already plan. The legacy-derived additions to G2's requirements are exactly two:
@@ -148,7 +167,9 @@ an explicit **waypoint-only/boundary marker** semantics decision (`NONE`'s succe
   `.vexbot` `paths[]` segments can absorb it structurally — but G2 must make the call and G4 must
   implement the mapping. **Owner: G2 (decision), G4 (mapping).**
 - **Seat/settle wiggle (`oscillation`):** used in real routines, in no plan by name.
-  **Owner: F2 brief, as a candidate micro-primitive.** Low stakes, cheap to add or reject.
+  **Owner: the scoring-primitives brief (Phase F′), as a candidate micro-primitive.** *(Recorded
+  at C6 under the pre-split name "F2"; chunk F2 became the sequence engine and never carried
+  this item.)* Low stakes, cheap to add or reject.
 - Everything else declared or authored in `legacy/` has a named v2 home in the tables above —
   built (C1–C4) or planned with an owner (F′ §14, G2/G4, M3/M4).
 

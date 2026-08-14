@@ -124,6 +124,9 @@ The one-screen verdict, printed when the run reporter is told the run is over:
   post-mortem here.
 - **`dropped 3 rec 47 ln`** — output-throttling losses (see "rate limiting" below). `dropped 0
   rec 0 ln` is a positive claim — nothing was lost — which is why it prints even when zero.
+  A run with a blackbox attached can add `· blackbox dropped 12` here; that one appears **only**
+  when it is non-zero, because most runs have no blackbox and "blackbox dropped 0" would be a
+  claim about something that never ran (see "The blackbox" below).
 - **`batt 12.4→11.6V`** — battery start → end. A big drop means hard motor work (or a tired
   battery).
 
@@ -149,7 +152,9 @@ motion:
 - **`q=0.91`** — the estimate's 0-to-1 quality/trust scalar.
 - **Flags**, appended only when true, in this order:
   - `DR` — dead reckoning: no absolute correction active; error is accumulating silently
-    ([Ch. 3](03-knowing-where-you-are.md)). Today (no correctors built yet) this is always on.
+    ([Ch. 3](03-knowing-where-you-are.md)). It is on for every tick of a run with no corrector
+    wired in; with a GPS or AprilTag corrector attached it clears on the ticks where a fix is
+    actually applied.
   - `SFB` — strafe fallback: the H-drive is running a sideways-limited leg at reduced lateral
     speed ([Ch. 4](04-drivetrains.md)).
   - `CLMP` — a fusion correction was clamped this tick (the never-snap rule at work).
@@ -192,8 +197,10 @@ worth recognizing on sight:
 
 ## Every fault code
 
-The complete vocabulary ([Chapter 6](06-how-things-fail.md) gives each one's story; the
-authoritative list is [`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault.hpp)).
+The complete vocabulary. [Chapter 6](06-how-things-fail.md) tells the story behind most of
+them — not all; `MECHANISM_STALLED`, `GPS_GATE_REJECT` and `PRECONDITION` are catalogued here
+but not narrated there. The authoritative list is always
+[`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault.hpp).
 "Aborts?" = does it cancel the active motion under the default fault policy.
 
 | Code | Meaning | Typical cause | Aborts? | What to do |
@@ -208,6 +215,7 @@ authoritative list is [`include/shulib/diag/fault.hpp`](../../include/shulib/dia
 | `MOTION_TIMEOUT` | a motion's watchdog fired | blocked, jammed, unreachable, or under-budgeted ([Ch. 12](12-when-things-go-wrong.md) has the differential) | n/a (already ended) | informational — the result line's `✗TIMEOUT` is the same event |
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
 | `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
+| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* ends with a stalled verdict; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one |
 
 Notes on the machinery: fault raising is **edge-triggered** (a problem persisting 500 ticks is
 *one* fault episode, not 500 lines), the **first** fault of a run is latched immutably (that's
@@ -239,8 +247,169 @@ There's also a three-line **controller LCD display** (first fault, fault count, 
 deliberately ticking clock — so a frozen screen is distinguishable from a crashed program) for
 reading health at the field without a laptop; see `diag/controller_display.hpp`.
 
-For the deeper design — what's planned beyond the terminal (SD-card blackbox, live telemetry) —
-see the [diagnostics plan](../diagnostics-plan.md).
+## The blackbox: what you read when there was no laptop
+
+Everything above assumes somebody was watching a terminal. At a competition nobody is, and that
+is the whole problem the **blackbox** solves: a binary record of the run, written to the brain's
+SD card, that you open afterwards.
+
+It does **not** write continuously. A competition build cannot afford to, so the default posture
+is a **flight recorder**: every per-tick record goes into a fixed ring in RAM (200 ticks, about
+two seconds), the ring quietly overwrites its oldest entry, and *nothing at all reaches the card*
+— not one byte — until a fault fires. Then it writes:
+
+```text
+[ 256-byte header ]   which build, which routine, alliance/side, port map, when the run started
+[ triage frame    ]   which fault, at what time, on which tick, and the FULL record of that tick
+[ tick ][ tick ]…     the ticks that came BEFORE the fault, oldest first
+[ summary frame   ]   the same numbers as the RUN SUMMARY block
+[ end frame       ]   the run closed cleanly
+```
+
+The order is deliberate. The fault that triggers a dump might be a brownout, which is the worst
+possible moment to start a long write, so the most valuable thing — *what broke, when, and in
+what state* — goes first. If the write is cut short, everything already written still decodes,
+and the reader tells you the file stops there. **A file with no end frame ended abruptly**; that
+absence is information, not corruption.
+
+Two things follow from that design that are worth knowing before you go looking for data:
+
+- **A clean run leaves almost nothing.** No fault, no history: you get the header, the summary
+  and the end frame, a few hundred bytes. That is not a bug — if you want a full trace, turn
+  streaming on for a bench session.
+- **Nothing is lost silently.** The RAM budget is fixed, so if a run generates more than fits
+  before you flush, whole frames are dropped and *counted* — never half-written, and never at
+  the cost of stalling the control loop. The count is written into the file and, when it is
+  non-zero, appears on the run summary line as `· blackbox dropped 12`.
+
+When a dump happens, the same triage information also prints at the end of the run, after the
+summary — so the last thing on the screen is why it broke:
+
+```text
+[t=   4.25] [ERROR][TRI] fault ODO_STUCK @  4.25 tick 421 preceding 200 brownout no
+[t=   4.25] [ERROR][TRI] state pos(  24.0,  36.0) hdg  90.0° q=0.91 DR cmd#7▸1 batt 11.9V
+```
+
+**Reading a blackbox file** needs the decoder that ships with it (`diag/blackbox_reader.hpp`).
+It refuses a file whose format version it does not recognise rather than guessing at it — a
+wrong number read confidently is worse than no number — and it will not crash on a damaged file,
+which is exactly the file you are most likely to be holding.
+
+**Honest status:** the format, the sink and the decoder exist and are tested — **and so does the
+piece that writes to `/usd/` on a real brain** (`ProsBlockSink`, which arrived with the hardware
+bridge; it is deliberately kept out of the core). What is still true is the limit that matters:
+none of it has ever written to a physical SD card. A missing card is handled rather than fatal —
+the sink constructs, refuses every write, and says so. See
+[Chapter 14](14-what-it-cannot-do-yet.md).
+
+## Why the estimator trusted (or ignored) a sensor
+
+Every tick, the record carries the fusion layer's verdict on the fixes it was offered: one
+**reason**, the **residual** it was decided on (how far the fix disagreed with the estimate — in
+x, in y, and now in heading), and the scale it was judged against. This is the part of the file
+you read when a routine ended in the wrong place and you need to know whether the estimate was
+wrong or the motion was.
+
+| Reason | What happened |
+|---|---|
+| `None` | Nobody offered a fix this tick. With no correctors wired up, this is every tick. |
+| `Accepted` | A fix passed the gate and was folded in as a bounded nudge. |
+| `RejectedInnovation` | The fix disagreed with the estimate by more than the fusion layer's hard limit (a foot). The last line of defence — a fix this far out is treated as a misread whatever the sensor claims. |
+| `RejectedNoFix` | The source had nothing usable: the GPS is off the strip, covered, or disconnected. **In Driving Skills this is the whole run**, and seeing it is how you tell "no strip, as expected" from "the GPS was never wired up". |
+| `RejectedHighYawRate` | The robot was spinning too fast for the fix to be trusted. |
+| `RejectedNormalizedInnovation` | The fix disagreed by more than a few times its own claimed accuracy. This is the everyday gate — it adapts to how confident the sensor says it is and to how long the robot has been navigating blind. |
+| `RejectedStaleFix` | The sensor re-reported a reading already used. Expect a lot of these: the GPS updates about five times slower than the control loop, so most ticks are legitimately stale, and the corrector folds each reading exactly once. |
+| `RejectedSensorQuality` | The sensor claimed a fix but reported so much error that folding it was not worth doing. For a tag, this is a detection the camera itself was not confident about. |
+| `RejectedNoTagMapEntry` | A tag was **seen**, and your map does not say where it is. This one is a configuration error you can fix, not the field being the field — check that the tag's id is in your map. An empty map produces this on every tag. |
+| `RejectedTagRange` | Every visible tag was too close or too far to be trusted. Far away, a tag's recovered *angle* goes bad long before its distance does, which is why the band exists. |
+| `RejectedObservationAge` | The vision task has stopped feeding the corrector — it stalled, died, or was never started. Different from `RejectedStaleFix`, which is the normal state between camera frames. |
+| `RejectedMahalanobis` | The **Kalman tier** refused a fix: it disagreed by more than three times what the estimator admits it could plausibly be wrong by. Unlike `RejectedInnovation` this threshold is not a fixed distance — the same fix can be refused when the estimate is fresh and accepted after a long blind stretch. Only the Kalman tier writes this. |
+| `CovarianceReinit` | The **Kalman tier declared itself lost** and reset its own confidence — after a long run of consecutive rejections with a persistently large disagreement. **The estimate was not moved**; only the uncertainty was thrown away, so the next fixes can get through. See "Reading a re-init" below. Only the Kalman tier writes this. |
+
+Two habits worth forming:
+
+- **A run full of `RejectedNoFix` in Autonomous means the strip is not being seen.** Check
+  mounting height and line of sight before you touch any gains.
+- **A run full of `RejectedNormalizedInnovation` means the estimate and the GPS have stopped
+  agreeing** — either the sensor is lying, or the estimate drifted far enough that truthful
+  corrections now look outrageous. The residual in the record tells you how far apart they were.
+- **A run full of `RejectedNoTagMapEntry` means the robot can see tags and you have not told it
+  where they are.** This is the one on this list that is definitely your bug and definitely
+  fixable.
+- **Even one `CovarianceReinit` in a match is worth reading the surrounding ticks for.** The
+  estimator only says that after it has been arguing with a sensor for seconds. Something
+  displaced the robot without the wheels turning — a shove, a wall, a pinned drivetrain — or a
+  sensor started lying convincingly.
+
+### Reading the heading correction
+
+Two more fields carry the yaw story, and they are read together:
+
+- **`correctionDTheta`** — how far the estimator's idea of its own heading moved on this tick.
+  This is the field that audits *never-snap for heading*: it can never exceed the documented
+  per-tick bound, and if it ever does, that is a library bug, visible after the fact from the
+  file alone.
+- **`gateResidualHeading`** — how far the tag's heading disagreed with the estimate.
+
+The combination is what tells you what happened:
+
+| `gateResidualHeading` | `correctionDTheta` | What it means |
+|---|---|---|
+| small | small and non-zero | Normal. The estimator is trimming a small IMU bias, a fraction of a degree at a time. |
+| **large** | **zero** | A heading fix was **rejected**. A disagreement this size is far more likely to be a misread tag, a wrong map entry, or a mirrored detection than real gyro drift, so it was refused. |
+| anything | zero, every tick | Nothing is correcting heading at all — no tag corrector wired, or none of its fixes are getting through. Read the `reason` column to find out which. |
+
+There is only one `reason` slot and it reports the **position** verdict, so a heading-only
+rejection reads as "a large heading residual beside a zero heading correction" rather than having
+a word of its own. Position and heading are gated separately: a fix can be good enough to move
+your position and not good enough to move your heading, and that is a normal thing to see.
+
+### The two fields that only mean something under the Kalman tier
+
+For most of this library's life two slots in the record sat deliberately empty, because the
+default fusion layer has no covariance and a plausible-looking number in either would have been
+impossible to tell from a real one later. Under the **Kalman tier** they are real, and they are
+the two most informative numbers in the file when an estimate goes wrong.
+
+- **`covarianceTrace`** — how uncertain the estimator currently is about its own position, in
+  **square inches**. It is not a distance: to get one, take `sqrt(trace / 2)`, which is roughly
+  the 1σ radius. So a trace of 0.5 means "give or take about half an inch"; a trace of 1152 means
+  "I could be anywhere within a tile". Watch it **grow** while the robot dead-reckons and **drop**
+  each time a fix lands. Under the default complementary tier this same slot carries that tier's
+  scalar trust weight instead — the `reason` column tells you which filter wrote it.
+- **`gateMahalanobis`** — how far the fix disagreed, measured in units of *how wrong the estimator
+  thought it might be*. Under three, it was accepted; over three, refused. A value of 20 does not
+  mean twenty inches — it means the fix was twenty times further out than the estimator's own
+  uncertainty could account for. Zero on every record written by the default tier, which has no
+  covariance to normalise by.
+
+### Reading a re-init
+
+A `CovarianceReinit` tick is worth knowing how to read, because the interesting part is what
+*didn't* happen.
+
+1. `gateReason` reads `CovarianceReinit`.
+2. `covarianceTrace` **jumps** on that same tick, typically by a factor of hundreds — that is the
+   estimator throwing away its confidence, and it is the independent numeric witness that the
+   word is telling the truth.
+3. `correctionDx` / `correctionDy` on that tick are **inside the normal per-tick bound**, exactly
+   like every other tick. Nothing teleported.
+4. Over the following second or two, `covarianceTrace` falls again while `correctionDx`/`Dy` run
+   at the per-tick limit — that is the estimate walking back to where the sensors say it is.
+
+If you ever see step 3 broken — a correction larger than the documented bound — that is a library
+bug and the file is the proof.
+
+**One caveat specific to the Kalman tier.** Under the default complementary tier,
+`correctionDx/Dy` is exactly the correction and nothing else. Under the Kalman tier it also
+carries a small amount of the filter's own smoothing of the wheel readings, which is not a
+correction at all — it is the estimate tracking real motion through a filter. Measured against
+the simulated robot, that pushes the number up to about 9% over the per-tick budget during the
+hardest direction changes. Read the bound with that allowance under this tier; the correction
+itself never exceeds it.
+
+For the deeper design — what's planned beyond the terminal (live telemetry, replay) — see the
+[diagnostics plan](../diagnostics-plan.md).
 
 ---
 

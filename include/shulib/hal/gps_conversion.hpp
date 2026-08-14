@@ -36,8 +36,12 @@
 //    and report IGps::hasFix() = false BEFORE calling this conversion — off-strip screening
 //    is the adapter's job (§13 #4; Driving Skills has no strip). Feeding a sentinel here
 //    THROWS by design (fail-loud backstop, NOT the off-strip path). (A4 register HA-08.)
-//  * rmsError() at the HAL edge MUST scale get_error() meters→inches (× kMetersToInches),
-//    or the corrector's R is ~39× too small and good fixes get gated out. (A4 register HA-07.)
+//  * rmsError() at the HAL edge MUST scale get_error() meters→inches — call
+//    gpsRmsErrorToCanonical() below, which exists so this is a function the adapter CALLS
+//    rather than a paragraph the adapter author must remember. (Until E2 this obligation
+//    was prose only: no code performed it and no test pinned it, which is a poor way to
+//    guard a silent factor of 39.37.) Skip it and the corrector's R is ~39× too small and
+//    good fixes get gated out; double-apply it and lies get accepted. (A4 register HA-07.)
 
 #include <cmath>
 
@@ -50,6 +54,26 @@ namespace shulib::hal {
 
 inline constexpr double kGpsDefaultNorthHeadingDeg = 90.0;       // VEX-North = canonical +Y
 inline constexpr double kMetersToInches = 39.3700787401574803;   // 1 / 0.0254, exact-ish
+
+/// The device's self-reported rms position error (`pros::Gps::get_error()`, **METERS**)
+/// as a canonical Length (**INCHES**) — the one conversion behind `IGps::rmsError()`.
+///
+/// This is the whole of A4 register HA-07, and it is a function rather than a comment for
+/// a reason: the scale factor is 39.37, the failure is silent in both directions, and the
+/// obligation sat in this header as prose from A4 until E2 with nothing executing it. Too
+/// small an R and every good fix is gated out (the GPS goes quietly dead); too large and
+/// the corrector accepts lies. Neither looks like a crash.
+///
+/// Fail-loud on a sentinel, exactly like `gpsSensorPose`: `PROS_ERR_F` (== INFINITY) is a
+/// failed/off-strip read the adapter must have screened to `hasFix() == false` BEFORE
+/// asking for an error value (A4 register HA-08), and a negative rms is not a thing a
+/// device can mean. Both throw rather than propagate into the corrector's R.
+[[nodiscard]] inline units::Length gpsRmsErrorToCanonical(double errorMeters) {
+    SHULIB_PRECONDITION(std::isfinite(errorMeters),
+                        "gpsRmsErrorToCanonical: rms error must be finite (screen PROS_ERR_F first)");
+    SHULIB_PRECONDITION(errorMeters >= 0.0, "gpsRmsErrorToCanonical: rms error must be >= 0");
+    return units::Length{errorMeters * kMetersToInches};
+}
 
 /// VEX GPS heading (deg, CW from North, [0,360)) → canonical Angle (CCW from +X).
 /// canonical = (canonical heading of North) − (CW degrees turned from North), wrapped.

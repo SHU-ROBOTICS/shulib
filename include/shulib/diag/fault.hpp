@@ -61,6 +61,15 @@ enum class FaultCode : std::uint16_t {
                         ///< battery ceiling (diagnostics-plan D-5 — FiniteGuard's
                         ///< log-and-recover posture extended beyond finiteness; APPENDED
                         ///< at chunk C5, per the append-only rule above)
+    MechanismStalled = 11,  ///< a mechanism's stall detector tripped: stall-grade current
+                            ///< with the shaft not turning, held past the persistence
+                            ///< window — a jam or mechanical bind (manipulation layer,
+                            ///< T6: the one mechanism failure that IS a pathology; an
+                            ///< operation merely timing out raises nothing — see
+                            ///< manipulation/mechanism_op.hpp. Lands on the CONTINUE
+                            ///< side of the C2 abort mask by default: a jammed intake
+                            ///< must not abort a drive. APPENDED at chunk F1, per the
+                            ///< append-only rule above)
 };
 
 /// The §18.4 spelling of each code, for TermSink lines and the run summary.
@@ -78,6 +87,7 @@ enum class FaultCode : std::uint16_t {
         case FaultCode::MotionTimeout: return "MOTION_TIMEOUT";
         case FaultCode::MotorOverTemp: return "MOTOR_OVER_TEMP";
         case FaultCode::Implausible: return "IMPLAUSIBLE";
+        case FaultCode::MechanismStalled: return "MECHANISM_STALLED";
     }
     return "UNKNOWN";
 }
@@ -132,7 +142,7 @@ public:
     /// latched by an earlier motion — a since-clear bitmask cannot see a RE-raise
     /// (a dead encoder that faulted in motion 1 must still abort motion 2), so the
     /// latch keeps a per-code tally. Saturates at UINT16_MAX; codes beyond the
-    /// fixed slot capacity (far past today's 10) count only in faultCount().
+    /// fixed slot capacity (far past today's 11) count only in faultCount().
     [[nodiscard]] int raiseCount(FaultCode code) const noexcept {
         const auto idx = static_cast<std::size_t>(code);
         return idx < kCodeSlots ? static_cast<int>(perCode_[idx]) : 0;
@@ -157,8 +167,9 @@ public:
     }
 
 private:
-    /// Per-code tally capacity: covers FaultCode values 0..31 — triple today's
-    /// 10, and the enum is append-only so growth is deliberate and visible.
+    /// Per-code tally capacity: covers FaultCode values 0..31 — nearly triple
+    /// today's 11, and the enum is append-only so growth is deliberate and
+    /// visible.
     static constexpr std::size_t kCodeSlots = 32;
 
     hal::ITelemetrySink& sink_;

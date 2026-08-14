@@ -61,6 +61,21 @@ add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 target_include_directories(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
 
+# ── The host PROS shim (chunk R1a) ──────────────────────────────────────────────────
+# hal/pros adapters #include <pros/*.hpp>. On the HOST they must resolve to
+# test/pros_shim/'s hand-written programmable stand-ins, NOT the real vendored
+# SDK headers under ../include/pros/ — BEFORE wins that race, in this build
+# only. The PROS Makefile never sees this directory, and every shim header
+# #errors unless SHULIB_HOST_PROS_SHIM is defined, which happens HERE and
+# nowhere else: a shim that leaked into the robot include path would produce a
+# binary that uploads cleanly, boots cleanly, prints a healthy banner, and
+# drives NOTHING — the silent catastrophic failure T3 exists to prevent.
+# (The shim tests the adapter against our BELIEF about PROS; it cannot test
+# the belief — hardware tests the belief. pros_shim/pros/shim_control.hpp
+# carries the full statement.)
+target_include_directories(shulib_tests BEFORE PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/pros_shim")
+target_compile_definitions(shulib_tests PRIVATE SHULIB_HOST_PROS_SHIM)
+
 # The API-reference fidelity test reads the COMMITTED docs/api/ markdown and
 # compares its rendered signatures against the headers, so it needs to know
 # where the source tree is. (It fails loudly if it cannot open the files —
@@ -87,6 +102,16 @@ target_compile_definitions(shulib_tests PRIVATE
 #                   since C8 — but it lived only in an internal verify script,
 #                   so until D3 a rotted example passed the build AND passed
 #                   CI. Found by mutation; a rule nothing runs is a convention.
+#   briefing-status the PROJECT-BRIEFING's generated block must match the repo.
+#                   A handoff nobody can trust is worse than none: the next
+#                   session believes it. It used to ALSO require a
+#                   DURABLE-REVIEWED-AT stamp asserting a human had re-read the
+#                   hand-written half; that was removed at R1a, because the chunk
+#                   that trips the gate is the same actor that can edit the stamp
+#                   silencing it, and a machine duly did. The narrative half is
+#                   now honestly ungated — see doc_staleness_audit.py, which
+#                   checks the mechanizable subset and says so.
+#
 #   check-removability  no public document may reference docs/internal/, which
 #                   is dropped when this branch squash-merges to main. Same
 #                   story: the property was real, the enforcement was manual.
@@ -130,6 +155,35 @@ file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp")
+# ── docs/internal/ is DROPPED on the published branch, and this file used to
+# forget that ────────────────────────────────────────────────────────────────
+# DOCS1 found `main` unable to build its own test suite:
+#
+#   No rule to make target '.../docs/internal/PROJECT-BRIEFING.md',
+#   needed by 'doc_gates.stamp'.  Stop.
+#
+# The briefing was listed as a hard DEPENDS so the gate would re-run when its
+# own subject changed — correct on the working branch, fatal on the released
+# one, where `docs/internal/` does not exist at all. C7's removability rule says
+# nothing outside that directory may reference into it; `check-removability`
+# never caught this because it scans public *.md and this is a build file.
+#
+# So the dependency is now conditional, and the CHECK is too. `briefing_status.py
+# check` already exits 0 when the briefing is absent, but relying on that would
+# leave the build silently running a gate against nothing; skipping it out loud
+# is the honest form. On the working branch nothing changes — the briefing is
+# there, the dependency is real, and the gate still re-runs when it is edited.
+set(SHULIB_BRIEFING "${CMAKE_CURRENT_SOURCE_DIR}/../docs/internal/PROJECT-BRIEFING.md")
+if(EXISTS "${SHULIB_BRIEFING}")
+  set(SHULIB_BRIEFING_DEP "${SHULIB_BRIEFING}")
+  set(SHULIB_BRIEFING_CMD COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" check)
+else()
+  set(SHULIB_BRIEFING_DEP "")
+  set(SHULIB_BRIEFING_CMD COMMAND "${CMAKE_COMMAND}" -E echo
+      "briefing gate: SKIPPED — docs/internal/ is absent (this is the published tree)")
+endif()
+
 add_custom_command(
   OUTPUT "${SHULIB_DOC_STAMP}"
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" self-test
@@ -137,6 +191,21 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-fresh
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-examples
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-removability
+  ${SHULIB_BRIEFING_CMD}
+  # staleness  the four gates above check that documentation EXISTS and is
+  #            well-formed; none has an opinion about whether a sentence is
+  #            still TRUE. This one checks the mechanizable subset: a figure a
+  #            document states versus what the repo says, two documents
+  #            disagreeing, and a named file that does not exist. Added at R1a,
+  #            replacing the DURABLE-REVIEWED-AT stamp — which claimed to force a
+  #            human re-read and could not, because the chunk that trips the gate
+  #            is the same actor that can silence it. This checks less and means
+  #            it. Its self-test runs first, because a gate nobody has watched go
+  #            red is a rumour.
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py" self-test
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
   COMMAND "${CMAKE_COMMAND}" -E touch "${SHULIB_DOC_STAMP}"
   DEPENDS
     "${SHULIB_DOC_TOOL}"
@@ -145,6 +214,16 @@ add_custom_command(
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/chassis.md"
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/routine.md"
     "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/README.md"
+    # The briefing gate's own subject and tool. Without these two the gate
+    # re-ran ONLY when some unrelated document changed — so the briefing could
+    # be edited into a lie, or drift as chunks completed, and the build stayed
+    # green until something else happened to touch a chapter. A gate that does
+    # not re-run when the thing it checks changes is not a gate. (Found while
+    # briefing R1a: `briefing_status.py check` was failing at HEAD and the
+    # build did not know.)
+    ${SHULIB_BRIEFING_DEP}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
   VERBATIM)

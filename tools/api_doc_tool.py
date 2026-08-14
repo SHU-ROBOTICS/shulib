@@ -547,13 +547,74 @@ def render_index(pages):
         "<!-- GENERATED FILE — DO NOT EDIT BY HAND.\n"
         "     Regenerate: python3 tools/api_doc_tool.py generate -->\n",
         "# API reference\n",
-        "Every public member of shulib's autonomous-routine API, extracted from the "
-        "headers. This page is generated, so it cannot fall behind the code: a member "
-        "added to a documented header appears here the next time the tool runs, and "
-        "the host test build fails if it has not.\n",
-        "**A member with no documentation comment fails the build**, naming itself. "
-        "That gate is what makes \"generated\" mean \"complete\" rather than "
-        "\"generated from whatever someone remembered to write\".\n",
+        "Every public member of the two **routine-authoring** surfaces — `Chassis` "
+        "and `Routine`, both frozen contracts — extracted from the headers. This "
+        "page is generated, so it cannot fall behind the code: a member added to "
+        "one of those headers appears here the next time the tool runs, and the "
+        "host test build fails if it has not. **It is not the whole API** — see "
+        "\"What is not here\" below.\n",
+        "**A member of those surfaces with no documentation comment fails the "
+        "build**, naming itself. That gate is what makes \"generated\" mean "
+        "\"complete\" rather than \"generated from whatever someone remembered to "
+        "write\".\n",
+        # DOCS1: the page used to open "Every public member of shulib's
+        # autonomous-routine API" with no statement of scope, so a reader landed
+        # on a generated, build-gated page and reasonably concluded it was the
+        # whole library. It is not: RunGuard, SdSink, the two correctors, the EKF
+        # tier and the mechanism/controller/digital-input seams are all public,
+        # all shipped, and all absent — because this tool's TARGETS list is
+        # deliberately the FROZEN surfaces only. That is a real decision (an
+        # unfrozen seam pinned by a doc gate is a seam that cannot move), but it
+        # was an undocumented one, which is the shape that reads as a lie.
+        "**What is not here, and why.** This page covers the two surfaces you write "
+        "an autonomous *routine* against. shulib's public surface is far larger — "
+        "roughly 160 public types across a dozen subsystems — and almost none of it "
+        "is generated here.\n",
+        # DOCS1, second correction: the first attempt at this paragraph said the
+        # page "covers the surfaces that are frozen". That is NOT true and was
+        # caught the same day. SEVEN contracts are LOCKED in the Freeze Register
+        # (F1 frame, F2 accuracy, F3 units, F4 HAL interfaces, F5 kinematics, F6
+        # Chassis, F10 Routine) and only TWO of them are on this page. Writing a
+        # tidy rationale that the repo contradicts is the exact failure this
+        # documentation pass exists to catch, so the honest version is below: the
+        # selection is about AUDIENCE (routine authors), not about freezing, and
+        # the gap is named as a gap rather than dressed as a policy.
+        "Being frozen is *not* the selector, and it is worth saying so plainly: "
+        "the coordinate frame, the units and angle semantics, the HAL interface "
+        "signatures and the kinematics contract are all locked contracts too, and "
+        "none of them is generated here either. The honest reason is narrower — "
+        "the generator was pointed at the two types a routine author touches, and "
+        "has not been pointed anywhere else yet.\n",
+        "Shipped, public, and absent:\n",
+        "- **The diagnostics and logging API** — `ITelemetrySink` and `LogLevel`; "
+        "the sinks (`TermSink`, `SdSink`, `NullSink`, `LevelFilterSink`, "
+        "`RateLimitedSink`); the records (`DebugRecord`, `MotionResult`, "
+        "`RunSummary`, `SessionInfo`); the monitors (`FaultLatch`, `FaultCode`, "
+        "`HealthMonitor`, `LoopMonitor`, `PoseDeltaGuard`); and the blackbox "
+        "(`BlackboxReader` and its format). This is the largest omission by far, "
+        "and [guide chapter 11](../guide/11-reading-the-diagnostics.md) is its "
+        "real documentation — it teaches the transcript line by line, which is how "
+        "you actually use this layer.\n"
+        "- **Localization** — `GpsCorrector`, `AprilTagCorrector`, `TagMap`, "
+        "`EkfFusion`, `ComplementaryFusion`, `Localizer` "
+        "([chapter 3](../guide/03-knowing-where-you-are.md)).\n"
+        "- **The run guard** — `RunGuard` and its config/report types "
+        "([chapter 14](../guide/14-what-it-cannot-do-yet.md) states what "
+        "\"guaranteed\" does and does not cover).\n"
+        "- **The seams** — mechanism, controller and digital-input "
+        "([chapter 13](../guide/13-extending-the-library.md)), plus the whole "
+        "`hal/` interface set and its `hal/pros` adapters.\n",
+        "Each of those is documented **in its own header**, and the headers are "
+        "written to be read — every one opens with why it exists, not just what it "
+        "does. Until this page grows, that is where the rest of the API lives, and "
+        "the [user guide](../guide/README.md) is the map to it.\n",
+        "Two real constraints shape when that changes. Adding a header here also "
+        "puts it under the coverage gate, so **an undocumented public member starts "
+        "failing the build** — that is the point of the gate, and it is also why "
+        "expanding is a piece of work rather than a switch. And gating a seam that "
+        "is deliberately *not* frozen would pin it in place, which is a way of "
+        "freezing it by accident; the Freeze Register records which seams those are "
+        "and why they are still open.\n",
         "## Pages\n",
     ]
     for target, _banner, types in pages:
@@ -737,7 +798,36 @@ EXAMPLE_SOURCE_GLOB = "test/*example*_test.cpp"
 
 # The C7 removability property: docs/internal/ must be droppable without
 # breaking a single public link.
-REMOVABILITY_TERMS = re.compile(r"internal/|chunks/|RESUMING|build-order")
+#
+# DOCS1 FIND: this pattern and prepare_site.py's screen had DRIFTED APART. That
+# script (the publish-time gate) also refuses `-COMPLETED.md` and `-PROGRESS.md`;
+# this one — the BUILD-time gate — did not. So `docs/roadmap.md` carried a bare
+# `E3-COMPLETED.md` through a green build and would have failed the release at
+# the last step, which is the one place a failure is most expensive and least
+# expected. Two gates screening for "the same" property with two different lists
+# is D3's "a gate's exclusion list is where its holes live", in its other form:
+# the hole is not in one list, it is in the GAP between two. The terms are
+# unified here; the self-test below pins that this gate catches every term
+# prepare_site.py does, so they cannot drift apart again silently.
+#
+# The self-test found a SECOND gap the moment it was written, which is the
+# argument for writing it: prepare_site.py screens the bare string
+# `docs/internal` with no trailing slash, and `internal/` does not match it. A
+# public sentence reading "docs/internal is dropped at release" passed here and
+# failed there. Both spellings are covered now.
+#
+# THIRD gap, found the same session by reading rather than by either gate: five
+# public documents cited completion records WITHOUT the extension —
+# "C2-COMPLETED §Mutations", "A3-COMPLETED §3.7". Requiring `\.md` missed every
+# one, and so does prepare_site.py, so those would have published as citations
+# to documents that do not exist on the site. The property being protected is
+# "no public document sends a reader into the development log", and a bare
+# `C2-COMPLETED` does exactly that. The extension is dropped from the pattern:
+# this gate is deliberately STRICTER than the publish-time screen, which the
+# self-test permits (it proves coverage of that screen, not equality with it).
+REMOVABILITY_TERMS = re.compile(
+    r"docs/internal|internal/|chunks/|RESUMING|build-order"
+    r"|-COMPLETED|-PROGRESS")
 
 
 def _public_docs():
@@ -1019,6 +1109,29 @@ def do_self_test():
             a = open(os.path.join(tmp, "a", rel), encoding="utf-8").read()
             b = open(os.path.join(tmp, "b", rel), encoding="utf-8").read()
             check(a == b, f"{rel} is byte-identical across runs")
+
+        # ── the two removability screens must not drift apart again (DOCS1) ──
+        # This gate runs at BUILD time; prepare_site.py's runs at PUBLISH time.
+        # They screen the same property, so a term one refuses and the other
+        # allows is a document that builds green and fails the release — which
+        # is exactly what `E3-COMPLETED.md` in docs/roadmap.md did. Rather than
+        # trust two hand-maintained lists to stay equal, read the publish-time
+        # list out of its source and prove this pattern matches every term in
+        # it. A term added there and forgotten here now fails the build.
+        site_src = open(os.path.join(REPO, "tools/prepare_site.py"),
+                        encoding="utf-8").read()
+        block = re.search(r'for pat in \((.*?)\):', site_src, re.S)
+        check(block is not None,
+              "prepare_site.py's screen list is still findable by this test")
+        if block:
+            publish_terms = re.findall(r'"([^"]+)"', block.group(1))
+            check(len(publish_terms) >= 7,
+                  f"found {len(publish_terms)} publish-time screen terms (expected >= 7)")
+            for term in publish_terms:
+                # "](internal/" and friends embed the bare term this gate uses;
+                # matching the term anywhere in the string is the property.
+                check(REMOVABILITY_TERMS.search(term) is not None,
+                      f"build-time removability screens the publish-time term {term!r}")
 
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

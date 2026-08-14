@@ -19,7 +19,9 @@ struggling honestly. Estimate problems: Chapters [2](02-the-field-and-coordinate
 territory. Motion problems: [Chapter 5](05-getting-there.md) territory. Route yourself first;
 half of all debugging time is wasted on the wrong half of this fork.
 
-A scoping note, honestly: nobody has field-debugged this library yet — there is no robot. The
+A scoping note, honestly: nobody has field-debugged this library yet. A robot has been on the
+bench since 2026-08-13, but no control loop has ever closed on it, so nothing below has been
+tested against a robot that was actually driving. The
 simulation symptoms below are exercised constantly by the test suite; the hardware symptoms are
 *designed for* and reasoned, but the specific advice will get sharper once reality has had its
 say. Where a diagnosis depends on an unverified assumption, the
@@ -46,9 +48,11 @@ say. Where a diagnosis depends on an unverified assumption, the
 3. **The estimate drifted or was knocked** ([Chapter 3](03-knowing-where-you-are.md)).
    *Confirm:* early legs land true, later legs miss progressively (drift); or the story is fine
    until one violent moment — look for a collision around a specific timestamp, `flt=` flags,
-   or an `ODO_STUCK`/`IMU_LOST` in the ledger. *Fix (today, without correctors):* shorten the
+   or an `ODO_STUCK`/`IMU_LOST` in the ledger. *Fix:* shorten the
    error chain — put accuracy-critical actions earlier; recheck tracking-wheel hardware
-   (spinning freely? spring-loaded against the floor? cable seated?).
+   (spinning freely? spring-loaded against the floor? cable seated?). If you have a GPS or a
+   camera, a corrector bounds this drift rather than letting it accumulate
+   ([Chapter 3](03-knowing-where-you-are.md)) — but neither has been used on a real field yet.
 4. **You and the robot disagree about which point "position" means** — the tracking center vs.
    the intake ([Chapter 2](02-the-field-and-coordinates.md)'s last section). *Confirm:* misses
    are consistent and roughly half a robot in size. *Fix:* adjust targets to be tracking-center
@@ -113,8 +117,10 @@ This is [Chapter 5](05-getting-there.md)'s control-tuning material made audible:
 - **Position right-ish, heading wrong:** the IMU path — and heading error *becomes* position
   error as you drive ([Chapter 2](02-the-field-and-coordinates.md)), so catch it early. Look
   for `IMU_LOST`, or on hardware suspect drift/calibration
-  (the register's HA-20 is the relevant open assumption — a raw V5 IMU is expected to drift
-  toward the spec limit over a 60 s run until correction exists).
+  (the register's HA-20 is the relevant open assumption — an *uncorrected* V5 IMU is expected to
+  drift toward the spec limit over a 60 s run. Heading correction now exists — AprilTags are the
+  one absolute heading source in the library — but it needs a camera and a tag map you supply,
+  and it has never seen a real tag).
 - **The estimate jumps:** a fusion correction landed (look for `CLMP`) — or something worse
   (`flt=NAN_POSE`, `IMPLAUSIBLE`). The never-snap rule means visible teleports should not
   happen; a real jump with no flags is a bug — capture the transcript and report it.
@@ -138,12 +144,46 @@ This is [Chapter 5](05-getting-there.md)'s control-tuning material made audible:
   rejected nonsense input loudly (NaN target, negative timeout, empty waypoint list). The
   message names the rule; fix the caller.
 
+## "It ran past the buzzer / the end action never fired"
+
+The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail under the
+`SEQ` tag. Read it in this order:
+
+- **No `SEQ` lines at all:** the guard was never armed (your auton didn't run inside
+  `guard.run(...)`) — or, the wiring mistake the guard cannot prevent: the `Chassis` was
+  constructed with the raw pacer instead of the guard. The guard detects that after the fact
+  and warns `guard pacer never ran` (its report's `pacesSeen` reads 0). The guarantee never
+  applied to that run.
+- **`run budget expired … scoring latched off`, then nothing moved:** working as designed —
+  from that instant scoring motions are cut and refused. If the *end action* also didn't
+  move, check the next line.
+- **`end-of-run action FAILED`:** the action ran and reported failure — usually its own leg's
+  timeout was too tight for where the robot actually was, or the runway between your two
+  instants was too short for the drive. The action's failure is *reported*, never silent, and
+  never rewrites what your scoring code returned.
+- **`hard stop … all devices safed unconditionally`:** the floor fired mid-action. Whatever
+  was still running was cut and every listed device forced safe. If this happens every run,
+  your end action does not fit its runway.
+- **The run went long anyway, in a wait:** a frozen-surface wait (`pause`, `waitFor`,
+  `chassis.waitUntil`) cannot be cut and pays its own remaining budget —
+  [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative.
+- **`anonymous claim force-released`:** a mechanism was claimed by something the guard cannot
+  see into (a hand-rolled operation using the bare claim). The guard freed the claim so the
+  end action could run, but it could not make the unknown operation inert — register a
+  claimant ([Chapter 13](13-extending-the-library.md)).
+
 ## "The transcript itself looks wrong"
 
 - **Result lines say `n/a`:** record stream not connected — expected in competition builds and
   in the tutorial's first wiring ([Chapter 8](08-your-first-routine.md)).
 - **Lines missing:** check for `throttled …: dropped N lines` notices and the summary's
   `dropped` field (rate limiting), or a level filter you configured and forgot.
+- **No lines at all, and the upload said it worked:** suspect the *cable* before the code. When
+  USB drops, the program keeps running on the brain, uploads can still report success, and the
+  terminal simply goes quiet. Run `ls /dev/ttyACM*`; look at the brain screen (program name on
+  black = running fine). This cost most of a bench session once, and every theory formed before
+  checking the cable was wrong — including a confident "linking the library breaks the binary"
+  that a control test disproved. The [FAQ](../faq.md) has the full version.
 - **`build MISSING`:** the binary lost its identity stamp — Chapter 11's session-header note.
 
 ## When you're stuck

@@ -62,9 +62,13 @@ Routine& scoreAt(Routine& r, Length x, Length y, Intake& intake) {
 - It **takes and returns `Routine&`**, so it chains exactly like a built-in step. This is the
   supported way to add vocabulary to the recipe layer: you never subclass `Routine`, you write
   free functions that take it.
-- `Intake` here is a struct written by hand, not a shulib type — the library has no mechanisms
-  yet. `then()` accepts any callable, so when mechanisms do arrive, `intake.release` slots into
-  exactly this position:
+- `Intake` here is a struct written by hand, not a shulib type — deliberately, and
+  permanently: the library ships the mechanism *grammar* (device groups, bounded operations —
+  [guide Chapter 13](../guide/13-extending-the-library.md)), and your team writes the named
+  mechanisms, because those change every season. `then()` accepts any callable, so a real
+  device-backed version drops into exactly this position, spelled exactly this way —
+  `then([&intake] { intake.release(); }, "release")` — or returns its operation's verdict so
+  a failed grab stops the chain (the guide's Chapter 9 listing):
 
 ```cpp
 struct Intake {
@@ -109,7 +113,7 @@ RoutineResult twoGoalSideRun(Chassis& chassis, Intake& intake) {
 The test that compiles this listing also holds what the prose claims: eleven steps, six of them
 motions, two releases, the robot genuinely within an inch and a half of the parking pose on the
 simulator's ground truth — and the whole run finishing in about 7.5 seconds of simulated time,
-inside a fifteen-second autonomous window with room to spare.
+inside a short autonomous window with room to spare.
 
 **Why it is written this way.**
 

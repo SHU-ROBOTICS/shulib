@@ -57,7 +57,9 @@
 #include "shulib/diag/motion_result.hpp"
 #include "shulib/diag/rate_limit_sink.hpp"
 #include "shulib/diag/run_summary.hpp"
+#include "shulib/diag/sd_sink.hpp"
 #include "shulib/diag/session_info.hpp"
+#include "shulib/diag/triage.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 
 namespace shulib::motion {
@@ -67,11 +69,15 @@ public:
     /// `out` is where the report goes (see header: the UNTHROTTLED head);
     /// `sched` is the run's scheduler — the reporter self-attaches as its
     /// boundary observer. `limiter`, when given, contributes the D-2 drop
-    /// totals to the summary (nullptr = no limiter in the chain = zeros).
-    /// All three must outlive the reporter.
+    /// totals to the summary (nullptr = no limiter in the chain = zeros);
+    /// `blackbox`, when given, contributes the E1 blackbox's own drop count so
+    /// a file with gaps in it says so on the terminal too (nullptr = no
+    /// blackbox = the summary stays silent about one, rather than claiming a
+    /// healthy zero for something that never ran). All must outlive the reporter.
     RunReporter(hal::ITelemetrySink& out, MotionScheduler& sched,
-                const diag::RateLimitedSink* limiter = nullptr) noexcept
-        : out_{&out}, sched_{&sched}, limiter_{limiter} {
+                const diag::RateLimitedSink* limiter = nullptr,
+                const diag::SdSink* blackbox = nullptr) noexcept
+        : out_{&out}, sched_{&sched}, limiter_{limiter}, blackbox_{blackbox} {
         sched_->setBoundaryObserver(this);
     }
 
@@ -137,9 +143,20 @@ public:
             s.droppedRecords = limiter_->droppedRecords();
             s.droppedLines = limiter_->droppedLines();
         }
+        if (blackbox_ != nullptr) {
+            s.blackboxDropped = blackbox_->droppedFrames();
+        }
         s.batteryStart = batteryStart_;
         s.batteryEnd = sched_->deps().ctx->battery().voltage();
         out_->summarize(s);
+        // D-7's post-run auto-triage: when the blackbox actually dumped, the run has a
+        // "why did it break" story as well as a "how did it go" one, and it prints
+        // LAST — the final thing on the screen is the root cause. Structural, like the
+        // result lines: a routine cannot forget to ask for it. Nothing is printed when
+        // no fault fired, so a clean run gains no noise.
+        if (blackbox_ != nullptr && blackbox_->dumped()) {
+            diag::emitTriageBlock(*out_, blackbox_->triage(), blackbox_->triageTick());
+        }
     }
 
 private:
@@ -162,6 +179,7 @@ private:
     hal::ITelemetrySink* out_;
     MotionScheduler* sched_;
     const diag::RateLimitedSink* limiter_;
+    const diag::SdSink* blackbox_;
     units::Voltage batteryStart_{};
     diag::RunSummary summarySeed_{};  ///< provenance copies (bounded, no views)
 };

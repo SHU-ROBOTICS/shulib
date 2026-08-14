@@ -51,6 +51,38 @@ aborts the current motion by default (into a safe stop), precisely because conti
 a lying estimate at full power is the worst available option. In simulation, the abort turns a
 42-inch runaway into a 4-inch one.
 
+## Sensors that fail by lying, not by erroring
+
+Boot is not the only time a sensor tells you something false with a straight face. This is the
+single most important thing to know about V5 hardware, and it is why the adapter layer exists at
+all: **a failed V5 sensor read does not come back as an error. It comes back as a plausible
+number.**
+
+Three shapes of it, all of which the adapters now defuse before the value reaches anything:
+
+- **The sentinel.** PROS reports a failed read by returning a special value — a huge integer, or
+  literally infinity. Convert one of those without checking and you get a pose in the next
+  galaxy. Every adapter screens the raw value *before* converting it, and on a bad read **holds
+  its last good value** rather than substituting zero. Zero is the dangerous choice: a zeroed
+  encoder reads as "the robot stopped", which is exactly the lie that makes a dead-encoder
+  runaway invisible. A frozen value, by contrast, is what the wheels-spin-but-nothing-moves
+  cross-check is built to catch. The screened reads are counted, so the log can show you a sensor
+  that is quietly failing.
+- **The in-band impostor.** The distance sensor's way of saying "nothing in view" is to report
+  **9999 mm** — not an error, just a number, which converts to a perfectly believable 393 inches
+  of wall. A capture-confirm that thresholds on distance alone reads that phantom wall as a real
+  object. The adapter maps it to **zero confidence** instead, which is why the rule for that
+  sensor is *always threshold `confidence()` before trusting `distance()`*.
+- **The dead port that reads "pressed".** A digital input on a dead ADI port returns the error
+  sentinel, and that sentinel is not zero — so an unscreened limit switch on a broken port reads
+  as **permanently pressed**. On a homing routine that is a lift driving into its own hard stop
+  and staying there.
+
+The through-line: **the adapters convert exactly once, at the edge, after screening.** Everything
+above them gets a value that is either good or visibly held, never a sentinel wearing a unit.
+None of this has been exercised on a robot that was actually driving, so treat the *thresholds*
+as provisional — but the shapes are real, and they are what a V5 log will show you.
+
 ## Sensors that boot up lying
 
 Real V5 sensors are at their least trustworthy right after power-on. The IMU runs a calibration
@@ -78,8 +110,11 @@ system voltage low enough that everything droops — motors lose torque and, if 
 enough, electronics reset. That's a **brownout**. Before the cliff, there's a milder constant
 version: as battery voltage sags over a match, the same commanded voltage produces less speed.
 
-The library monitors battery voltage continuously, raises **`BROWNOUT`** when it crosses the
-danger line, and compensates command voltages for the measured sag before that. The
+The library monitors battery voltage continuously and raises **`BROWNOUT`** when it crosses the
+danger line. It does **not** try to cancel the sag, and that is deliberate: because it commands
+*actual volts* rather than a percentage of the pack, the only battery correction it makes is a
+**ceiling** — each wheel command is clamped to what the pack can still deliver, and a clamped
+command is flagged so the motion layer knows it is voltage-starved. The
 run continues (the estimate isn't compromised — the robot is just weaker), but the log records
 it: a run full of timeouts *plus* a brownout flag usually means "battery," not "code."
 Prevention is operational, and it's on you: fresh batteries for scored runs.
@@ -96,6 +131,27 @@ motors, and returns `TimedOut` (Chapter 5). The failure is contained to one leg,
 decides what's next. When you read a log, remember that **`TIMEOUT` is a symptom with many
 diseases** — jammed, blocked, unreachable, undertuned, or just an over-tight time budget.
 [Chapter 12](12-when-things-go-wrong.md) walks the differential diagnosis.
+
+## Running out of match — the failure the clock causes
+
+Every bound above is scoped to one motion, one wait, one mechanism operation. There is a whole
+class of failure none of them can see: the *run* going long. Every step behaves exactly as
+designed — and the sum doesn't fit the match. A leg that fights a defender for six seconds
+steals those seconds from every leg after it; a mechanism that waits its full budget for a ring
+that never comes spends time no later step gets back. The measured worst case is instructive:
+a stalled routine keeps the motors safe the whole time (each motion's own watchdog stops it) —
+**safe and parked are different things, and only one of them scores.** A run that ends
+mid-field with the motors politely braked is a *lost-points* failure, not a runaway, and it is
+invisible to every per-step bound because no step misbehaved.
+
+Since the sequence layer landed, that failure has an owner: a **run-scoped guard** you wrap
+your whole auton in. You give it two instants — when to stop scoring and go do your final act,
+and when everything must simply be *safe* — and the action to perform. Both numbers and the
+action are yours: the library has no idea how long your match is or what your endgame is worth,
+and it refuses to guess. [Chapter 14](14-what-it-cannot-do-yet.md) states exactly what the
+guard's guarantee covers and what it cannot; [Chapter 9](09-the-recipe-api.md) covers how it
+interacts with a recipe chain; the [cookbook's match-window recipe](../cookbook/03-timing-and-partners.md)
+is the worked example.
 
 ## Software's own failures — contained, not trusted
 

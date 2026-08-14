@@ -49,9 +49,16 @@ inline constexpr int kApiMajor = 2;
 
 /// Bumped for additive extensions of a frozen surface (new verbs, new
 /// options fields, appended enumerators). Reset to 0 on a major bump.
-inline constexpr int kApiMinor = 0;
+/// 1 = chunk F1's additive growth (2026-08-13): RoutineStopCause gains the
+/// appended MechanismFailed enumerator, then() accepts a fourth return type
+/// (manipulation::MechanismOutcome), and FaultCode appends MechanismStalled —
+/// every one the documented additive path, no frozen member changed shape.
+/// (F1 is also the change that PROVED this path works: the D2/D3 pin tests
+/// had hard-asserted `kApiMinor == 0`, fencing off the growth this header
+/// calls "the intended path" — a conflation fixed in those pins at F1.)
+inline constexpr int kApiMinor = 1;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.0";
+inline constexpr const char* kApiVersionString = "2.1";
 
 }  // namespace shulib

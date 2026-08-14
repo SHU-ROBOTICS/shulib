@@ -62,6 +62,13 @@ struct RunSummary {
     // ── D-2: silent degradation is a bug — drops are REPORTED here too ──────────────
     std::uint32_t droppedRecords = 0;  ///< RateLimitedSink::droppedRecords()
     std::uint32_t droppedLines = 0;    ///< RateLimitedSink::droppedLines()
+    /// Frames the E1 blackbox (diag::SdSink) dropped because its RAM byte budget was
+    /// exhausted, or because a device write failed. A SEPARATE counter from the two
+    /// above on purpose: those are rate-limiter drops on the terminal channel, and
+    /// merging two different failures into one number is how a diagnostic starts
+    /// lying. 0 also means "no blackbox was attached", which is why renderers show
+    /// this one only when it is non-zero (TermSink's summarize note). — E1
+    std::uint32_t blackboxDropped = 0;
 
     // ── provenance (§18.5, mirrored from the session header) ────────────────────────
     units::Voltage batteryStart{};

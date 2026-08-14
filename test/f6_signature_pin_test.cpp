@@ -51,9 +51,12 @@
 
 #include "doctest.h"
 
+#include <cstdio>
 #include <initializer_list>
 #include <span>
+#include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/version.hpp"
@@ -236,6 +239,57 @@ concept F6MotionConfig = requires(const C& c) {
 SHULIB_F6_PIN(F6MotionConfig<Chassis>,
               "Chassis::motionConfig() const noexcept -> const MotionConfig&");
 
+// ── the OTHER half of the noexcept shape (added by the reviewer at F1 verification) ─
+// D2 closed hole #1 (a static_cast that ADDS noexcept is accepted, so the cast alone
+// cannot see noexcept being DROPPED) with compound `{ call } noexcept` requirements
+// on the five members that ARE noexcept. The INVERSE was left open: the verbs below
+// are not noexcept, nothing asserted they stay that way, and the same cast
+// permissiveness makes an ADDED noexcept invisible to their pins.
+//
+// version.hpp calls a change to a frozen signature's "noexcept shape" BREAKING in
+// EITHER direction: it changes the member's type, and it converts a precondition
+// throw into std::terminate. MEASURED on the F10 twin before this was written —
+// adding noexcept to a frozen member left its pin silent while the build failed on
+// the api-doc freshness gate, naming the wrong problem entirely.
+#define SHULIB_F6_NOT_NOEXCEPT(expr, member)                                         \
+    static_assert(!noexcept(expr),                                                   \
+                  "F6 FREEZE VIOLATION: " member " GAINED noexcept. A change to a "  \
+                  "frozen signature's noexcept shape is BREAKING IN EITHER "         \
+                  "DIRECTION (include/shulib/version.hpp): it changes the member's " \
+                  "type, and it turns a precondition throw into std::terminate. "    \
+                  "Accidental? Revert. Intended? Bump kApiMajor, write the "         \
+                  "migration note, update the Freeze Register row, THEN this pin.")
+
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().moveTo(std::declval<const Pose2d&>(),
+                                                       std::declval<const MotionOptions&>()),
+                       "Chassis::moveTo");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().strafeTo(std::declval<Length>(),
+                                                         std::declval<Length>(),
+                                                         std::declval<const MotionOptions&>()),
+                       "Chassis::strafeTo");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().turnTo(std::declval<Angle>(),
+                                                       std::declval<const MotionOptions&>()),
+                       "Chassis::turnTo");
+SHULIB_F6_NOT_NOEXCEPT(
+    std::declval<Chassis&>().followTrajectory(std::declval<std::span<const Pose2d>>(),
+                                              std::declval<const MotionOptions&>()),
+    "Chassis::followTrajectory(span)");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().brake(std::declval<const MotionOptions&>()),
+                       "Chassis::brake");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().hold(std::declval<Time>(),
+                                                     std::declval<const MotionOptions&>()),
+                       "Chassis::hold");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().wait(std::declval<Time>()), "Chassis::wait");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().drive(std::declval<const ChassisSpeeds&>(),
+                                                      std::declval<Frame>()),
+                       "Chassis::drive");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().cancel(), "Chassis::cancel");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<const Chassis&>().pose(), "Chassis::pose");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<Chassis&>().setPose(std::declval<const Pose2d&>()),
+                       "Chassis::setPose");
+SHULIB_F6_NOT_NOEXCEPT(std::declval<const Chassis&>().strafeAuthority(),
+                       "Chassis::strafeAuthority");
+
 // ── the Tier-3 seam (the no-ceiling guarantee is itself frozen) ───────────────────
 template <typename C>
 concept F6Deps = requires(const C& c) {
@@ -343,11 +397,38 @@ SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
 // runner and pins the version constants the freeze policy hangs off.
 // Bug caught: the F6 freeze flips to LOCKED while the version mechanism the
 // register promises ("changes only with an API-version bump") doesn't exist
-// or doesn't say 2.0.
-TEST_CASE("F6 pin: the frozen surface is API 2.0 and the version mechanism exists") {
+// or no longer says major version 2.
+// HISTORY (fixed at F1): this pin originally asserted `kApiMinor == 0`, which
+// conflated "F6 is API 2.x and the mechanism exists" (what the freeze means)
+// with "the version is exactly 2.0" (what was written) — and thereby turned
+// version.hpp's OWN documented additive path ("bump kApiMinor ... the intended
+// growth path of every frozen surface") into a red pin. The first legal
+// additive change (F1: appended enumerators + then() growth, 2.0 → 2.1) hit
+// it. A minor bump is additive by definition and must never fail this pin.
+// SECOND FIX (reviewer, at F1 verification): the F1 repair above swapped a
+// too-strict check for a too-weak one. `kApiMinor >= 0` is VACUOUS — an int is
+// always >= 0, so that line could never fail, and a check that cannot fail
+// reads as coverage without being it. And `kApiVersionString[0] == '2'`
+// inspects ONE character, so the printable token could drift from the numbers
+// it claims to print. Measured, not argued: with kApiMinor = 1 and the string
+// left at "2.0", all three former assertions PASSED.
+//
+// Bug now caught: kApiMinor is bumped for an additive change and
+// kApiVersionString is not updated with it (or vice versa). That token is the
+// one printable version — main.cpp carries a TODO(R1) to emit it in the §18.5
+// session header — so a desync would label every on-robot transcript and every
+// blackbox file with an API version the build is not. Provenance that is
+// silently wrong is worse than absent, because it looks authoritative.
+//
+// kApiMinor is deliberately NOT pinned to any value: additive growth is legal
+// and expected (see the HISTORY note above). Its ABSENCE is stated here rather
+// than implied by a check that cannot fail.
+TEST_CASE("F6 pin: the frozen surface is API major 2 and the version mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
-    CHECK(shulib::kApiMinor == 0);
-    CHECK(shulib::kApiVersionString[0] == '2');
+
+    char expected[16];
+    std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
+    CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
 }
 
 }  // namespace

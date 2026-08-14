@@ -17,6 +17,7 @@ Extracted from [`include/shulib/chassis/routine.hpp`](../../include/shulib/chass
   - [`MotionFailed`](#routinestopcause-motionfailed)
   - [`WaitTimedOut`](#routinestopcause-waittimedout)
   - [`ActionFailed`](#routinestopcause-actionfailed)
+  - [`MechanismFailed`](#routinestopcause-mechanismfailed)
 - [`struct RoutineResult`](#struct-routineresult)
   - [`ok`](#routineresult-ok)
   - [`steps`](#routineresult-steps)
@@ -57,7 +58,7 @@ Extracted from [`include/shulib/chassis/routine.hpp`](../../include/shulib/chass
 
 Why a Routine stopped early. `None` = it never stopped. Append-only: F1/F3 mechanism failures arrive as new enumerators, never as re-meanings.
 
-*Declared at [`include/shulib/chassis/routine.hpp:147`](../../include/shulib/chassis/routine.hpp#L147).*
+*Declared at [`include/shulib/chassis/routine.hpp:153`](../../include/shulib/chassis/routine.hpp#L153).*
 
 <a id="routinestopcause-none"></a>
 
@@ -69,7 +70,7 @@ None
 
 every executed step succeeded (chain still running or finished)
 
-*enumerator, declared at [`include/shulib/chassis/routine.hpp:148`](../../include/shulib/chassis/routine.hpp#L148).*
+*enumerator, declared at [`include/shulib/chassis/routine.hpp:154`](../../include/shulib/chassis/routine.hpp#L154).*
 
 <a id="routinestopcause-motionfailed"></a>
 
@@ -81,7 +82,7 @@ MotionFailed
 
 a motion step exited non-Settled (see RoutineResult::exit)
 
-*enumerator, declared at [`include/shulib/chassis/routine.hpp:149`](../../include/shulib/chassis/routine.hpp#L149).*
+*enumerator, declared at [`include/shulib/chassis/routine.hpp:155`](../../include/shulib/chassis/routine.hpp#L155).*
 
 <a id="routinestopcause-waittimedout"></a>
 
@@ -93,7 +94,7 @@ WaitTimedOut
 
 a waitFor() deadline passed with the condition still false
 
-*enumerator, declared at [`include/shulib/chassis/routine.hpp:150`](../../include/shulib/chassis/routine.hpp#L150).*
+*enumerator, declared at [`include/shulib/chassis/routine.hpp:156`](../../include/shulib/chassis/routine.hpp#L156).*
 
 <a id="routinestopcause-actionfailed"></a>
 
@@ -105,7 +106,19 @@ ActionFailed
 
 a then()-action reported failure (bool false / non-Settled)
 
-*enumerator, declared at [`include/shulib/chassis/routine.hpp:151`](../../include/shulib/chassis/routine.hpp#L151).*
+*enumerator, declared at [`include/shulib/chassis/routine.hpp:157`](../../include/shulib/chassis/routine.hpp#L157).*
+
+<a id="routinestopcause-mechanismfailed"></a>
+
+### `RoutineStopCause::MechanismFailed`
+
+```cpp
+MechanismFailed
+```
+
+a then()-action returned a mechanism verdict other than
+
+*enumerator, declared at [`include/shulib/chassis/routine.hpp:158`](../../include/shulib/chassis/routine.hpp#L158).*
 
 <a id="struct-routineresult"></a>
 
@@ -113,7 +126,7 @@ a then()-action reported failure (bool false / non-Settled)
 
 What a Routine did — the whole-chain verdict, readable at any point (it is a snapshot; ask again after more steps). ExitReason alone would lose WHERE the routine broke and WHY (a wait and a watchdog are different strategy facts), exactly TrajectoryResult's argument one layer up.
 
-*Declared at [`include/shulib/chassis/routine.hpp:158`](../../include/shulib/chassis/routine.hpp#L158).*
+*Declared at [`include/shulib/chassis/routine.hpp:169`](../../include/shulib/chassis/routine.hpp#L169).*
 
 <a id="routineresult-ok"></a>
 
@@ -125,7 +138,7 @@ bool ok = true
 
 no step has failed (and none skipped)
 
-*field, declared at [`include/shulib/chassis/routine.hpp:159`](../../include/shulib/chassis/routine.hpp#L159).*
+*field, declared at [`include/shulib/chassis/routine.hpp:170`](../../include/shulib/chassis/routine.hpp#L170).*
 
 <a id="routineresult-steps"></a>
 
@@ -137,7 +150,7 @@ int steps = 0
 
 steps encountered so far, including skipped ones
 
-*field, declared at [`include/shulib/chassis/routine.hpp:160`](../../include/shulib/chassis/routine.hpp#L160).*
+*field, declared at [`include/shulib/chassis/routine.hpp:171`](../../include/shulib/chassis/routine.hpp#L171).*
 
 <a id="routineresult-completed"></a>
 
@@ -149,7 +162,7 @@ int completed = 0
 
 steps that ran and succeeded
 
-*field, declared at [`include/shulib/chassis/routine.hpp:161`](../../include/shulib/chassis/routine.hpp#L161).*
+*field, declared at [`include/shulib/chassis/routine.hpp:172`](../../include/shulib/chassis/routine.hpp#L172).*
 
 <a id="routineresult-skipped"></a>
 
@@ -161,7 +174,7 @@ int skipped = 0
 
 steps skipped after the stop
 
-*field, declared at [`include/shulib/chassis/routine.hpp:162`](../../include/shulib/chassis/routine.hpp#L162).*
+*field, declared at [`include/shulib/chassis/routine.hpp:173`](../../include/shulib/chassis/routine.hpp#L173).*
 
 <a id="routineresult-stoppedat"></a>
 
@@ -173,7 +186,7 @@ int stoppedAt = 0
 
 1-based index of the failing step; 0 = none
 
-*field, declared at [`include/shulib/chassis/routine.hpp:163`](../../include/shulib/chassis/routine.hpp#L163).*
+*field, declared at [`include/shulib/chassis/routine.hpp:174`](../../include/shulib/chassis/routine.hpp#L174).*
 
 <a id="routineresult-stoppedname"></a>
 
@@ -185,7 +198,7 @@ const char* stoppedName = ""
 
 the failing step's verb/name ("" = none)
 
-*field, declared at [`include/shulib/chassis/routine.hpp:164`](../../include/shulib/chassis/routine.hpp#L164).*
+*field, declared at [`include/shulib/chassis/routine.hpp:175`](../../include/shulib/chassis/routine.hpp#L175).*
 
 <a id="routineresult-cause"></a>
 
@@ -197,7 +210,7 @@ RoutineStopCause cause = RoutineStopCause::None
 
 WHAT kind of thing stopped the chain — read this BEFORE `exit`, because only `MotionFailed` puts a real motion verdict in `exit`.
 
-*field, declared at [`include/shulib/chassis/routine.hpp:167`](../../include/shulib/chassis/routine.hpp#L167).*
+*field, declared at [`include/shulib/chassis/routine.hpp:178`](../../include/shulib/chassis/routine.hpp#L178).*
 
 <a id="routineresult-exit"></a>
 
@@ -209,7 +222,7 @@ control::ExitReason exit = control::ExitReason::Running
 
 The failing MOTION step's verdict (TimedOut / Cancelled). `Running` means "no motion verdict here" — the stop was a wait or an action, or nothing stopped (the same "none yet" convention as CompletedMotion).
 
-*field, declared at [`include/shulib/chassis/routine.hpp:171`](../../include/shulib/chassis/routine.hpp#L171).*
+*field, declared at [`include/shulib/chassis/routine.hpp:182`](../../include/shulib/chassis/routine.hpp#L182).*
 
 <a id="class-routine"></a>
 
@@ -217,7 +230,7 @@ The failing MOTION step's verdict (TimedOut / Cancelled). `Running` means "no mo
 
 The Tier-2 recipe chain: a complete autonomous routine as a sequence of named steps, each delegating to exactly one Chassis verb, executed EAGERLY (a step runs the moment it is chained) with one built-in failure policy — stop, safe the drive, skip the rest, report. The file banner above explains every one of those choices and is meant to be read.
 
-*Declared at [`include/shulib/chassis/routine.hpp:179`](../../include/shulib/chassis/routine.hpp#L179).*
+*Declared at [`include/shulib/chassis/routine.hpp:190`](../../include/shulib/chassis/routine.hpp#L190).*
 
 <a id="routine-routine"></a>
 
@@ -229,7 +242,7 @@ explicit Routine(Chassis& chassis, const char* name = "routine") noexcept
 
 Borrows `chassis` (must outlive the Routine). `name` appears in the stop/skip log lines so a transcript names WHICH routine stopped; it must be a stable literal (it is stored, not copied).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:184`](../../include/shulib/chassis/routine.hpp#L184).*
+*function, declared at [`include/shulib/chassis/routine.hpp:195`](../../include/shulib/chassis/routine.hpp#L195).*
 
 <a id="routine-routine-2"></a>
 
@@ -241,7 +254,7 @@ Routine(const Routine&) = delete
 
 Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:192`](../../include/shulib/chassis/routine.hpp#L192).*
+*function, declared at [`include/shulib/chassis/routine.hpp:203`](../../include/shulib/chassis/routine.hpp#L203).*
 
 <a id="routine-operator-assign"></a>
 
@@ -253,7 +266,7 @@ Routine& operator=(const Routine&) = delete
 
 Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:193`](../../include/shulib/chassis/routine.hpp#L193).*
+*function, declared at [`include/shulib/chassis/routine.hpp:204`](../../include/shulib/chassis/routine.hpp#L204).*
 
 <a id="routine-routine-3"></a>
 
@@ -265,7 +278,7 @@ Routine(Routine&&) = delete
 
 Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:194`](../../include/shulib/chassis/routine.hpp#L194).*
+*function, declared at [`include/shulib/chassis/routine.hpp:205`](../../include/shulib/chassis/routine.hpp#L205).*
 
 <a id="routine-operator-assign-2"></a>
 
@@ -277,7 +290,7 @@ Routine& operator=(Routine&&) = delete
 
 Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:195`](../../include/shulib/chassis/routine.hpp#L195).*
+*function, declared at [`include/shulib/chassis/routine.hpp:206`](../../include/shulib/chassis/routine.hpp#L206).*
 
 <a id="routine-destructor-routine"></a>
 
@@ -289,7 +302,7 @@ Neither copyable nor movable, and there is no reset(): one chain is one run. Two
 
 Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:196`](../../include/shulib/chassis/routine.hpp#L196).*
+*function, declared at [`include/shulib/chassis/routine.hpp:207`](../../include/shulib/chassis/routine.hpp#L207).*
 
 <a id="routine-startat"></a>
 
@@ -301,7 +314,7 @@ Routine& startAt(const math::Pose2d& pose)
 
 Seed the pose estimate with the measured starting pose — every auton's first line (heading stays IMU-owned, exactly Chassis::setPose).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:202`](../../include/shulib/chassis/routine.hpp#L202).*
+*function, declared at [`include/shulib/chassis/routine.hpp:213`](../../include/shulib/chassis/routine.hpp#L213).*
 
 <a id="routine-moveto"></a>
 
@@ -313,7 +326,7 @@ Routine& moveTo(const math::Pose2d& target, const MotionOptions& options = {})
 
 Drive to a FIELD pose — translation and rotation simultaneous (C1).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:212`](../../include/shulib/chassis/routine.hpp#L212).*
+*function, declared at [`include/shulib/chassis/routine.hpp:223`](../../include/shulib/chassis/routine.hpp#L223).*
 
 <a id="routine-driveto"></a>
 
@@ -325,7 +338,7 @@ Routine& driveTo(units::Length x, units::Length y, const MotionOptions& options 
 
 Drive to the FIELD point (x, y), arriving FACING it: one moveTo whose target heading is the bearing from the live pose estimate to (x, y), computed when this step RUNS (after the steps before it). On tank, face(x, y) first so the approach is a line the drivetrain can follow (C1's honesty: tank verbs never plan turns — face() is YOUR turn).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:221`](../../include/shulib/chassis/routine.hpp#L221).*
+*function, declared at [`include/shulib/chassis/routine.hpp:232`](../../include/shulib/chassis/routine.hpp#L232).*
 
 <a id="routine-strafeto"></a>
 
@@ -337,7 +350,7 @@ Routine& strafeTo(units::Length x, units::Length y, const MotionOptions& options
 
 Translate to FIELD (x, y) holding the current heading (Chassis::strafeTo; on tank an off-line target honestly exits TimedOut).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:232`](../../include/shulib/chassis/routine.hpp#L232).*
+*function, declared at [`include/shulib/chassis/routine.hpp:243`](../../include/shulib/chassis/routine.hpp#L243).*
 
 <a id="routine-turnto"></a>
 
@@ -349,7 +362,7 @@ Routine& turnTo(math::Angle heading, const MotionOptions& options = {})
 
 Rotate in place to a FIELD heading, always the short way (Chassis::turnTo).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:238`](../../include/shulib/chassis/routine.hpp#L238).*
+*function, declared at [`include/shulib/chassis/routine.hpp:249`](../../include/shulib/chassis/routine.hpp#L249).*
 
 <a id="routine-face"></a>
 
@@ -361,7 +374,7 @@ Routine& face(units::Length x, units::Length y, const MotionOptions& options = {
 
 Rotate in place to FACE the field point (x, y): one turnTo whose target is the bearing from the live pose estimate to (x, y), computed when this step runs. "Face the goal" in field words; turnTo(atan2(...)) by hand is bit-identical.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:246`](../../include/shulib/chassis/routine.hpp#L246).*
+*function, declared at [`include/shulib/chassis/routine.hpp:257`](../../include/shulib/chassis/routine.hpp#L257).*
 
 <a id="routine-followtrajectory"></a>
 
@@ -373,7 +386,7 @@ Routine& followTrajectory(std::span<const math::Pose2d> waypoints, const MotionO
 
 Chain waypoints as sequential moveTo legs (Chassis::followTrajectory — options apply PER LEG). The full TrajectoryResult stays readable via lastTrajectory(); an incomplete trajectory fails the step.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:257`](../../include/shulib/chassis/routine.hpp#L257).*
+*function, declared at [`include/shulib/chassis/routine.hpp:268`](../../include/shulib/chassis/routine.hpp#L268).*
 
 <a id="routine-followtrajectory-2"></a>
 
@@ -385,7 +398,7 @@ Routine& followTrajectory(std::initializer_list<math::Pose2d> waypoints, const M
 
 Brace-list convenience: followTrajectory({a, b, c}).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:273`](../../include/shulib/chassis/routine.hpp#L273).*
+*function, declared at [`include/shulib/chassis/routine.hpp:284`](../../include/shulib/chassis/routine.hpp#L284).*
 
 <a id="routine-brake"></a>
 
@@ -397,7 +410,7 @@ Routine& brake(const MotionOptions& options = {})
 
 Controlled stop: 0 V under Brake until the estimate certifies rest (Chassis::brake — a C4 candidate adopted into F6 at D2).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:282`](../../include/shulib/chassis/routine.hpp#L282).*
+*function, declared at [`include/shulib/chassis/routine.hpp:293`](../../include/shulib/chassis/routine.hpp#L293).*
 
 <a id="routine-hold"></a>
 
@@ -409,7 +422,7 @@ Routine& hold(units::Time duration, const MotionOptions& options = {})
 
 Actively hold the current pose for `duration` (Chassis::hold). Typed time (D2): hold(300_ms) — hold(0.3) does not compile.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:288`](../../include/shulib/chassis/routine.hpp#L288).*
+*function, declared at [`include/shulib/chassis/routine.hpp:299`](../../include/shulib/chassis/routine.hpp#L299).*
 
 <a id="routine-pause"></a>
 
@@ -421,7 +434,7 @@ Routine& pause(units::Time duration)
 
 Wait, doing nothing, for `duration` — the alliance-partner beat every real auton has. Motors keep their last state (after a settled motion: stopped); the world keeps advancing. Distinct from hold(): pause() does not energize the drive. A pure delegation to Chassis::wait (D2 — before the wait verb existed, this step carried its own Tier-3 clock-deadline plumbing; that implementation moved down to the facade where both tiers get it). A pause cannot fail, logs nothing, and never stops the chain; nonsense input (NaN, <= 0) throws through untouched, exactly like every step.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:301`](../../include/shulib/chassis/routine.hpp#L301).*
+*function, declared at [`include/shulib/chassis/routine.hpp:312`](../../include/shulib/chassis/routine.hpp#L312).*
 
 <a id="routine-waitfor"></a>
 
@@ -433,7 +446,7 @@ template <typename Pred> Routine& waitFor(Pred&& pred, units::Time timeout, cons
 
 Wait until `pred()` holds, up to `timeout` (required and finite — C2's no-hang discipline). In a recipe the condition MATTERS: if the deadline passes with it still false, continuing the script would act on a state the field never reached, so the chain stops (WaitTimedOut). A wait whose timeout is a legitimate strategy branch belongs one tier down: `chassis.waitUntil(...)` directly, branching on the WaitResult.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:316`](../../include/shulib/chassis/routine.hpp#L316).*
+*function, declared at [`include/shulib/chassis/routine.hpp:327`](../../include/shulib/chassis/routine.hpp#L327).*
 
 <a id="routine-then"></a>
 
@@ -443,9 +456,9 @@ Wait until `pred()` holds, up to `timeout` (required and finite — C2's no-hang
 template <typename Action> Routine& then(Action&& action, const char* name = "action")
 ```
 
-Run an action between motions — THE MECHANISM SEAM, placeholder shape (header note). `action` is any callable taking nothing and returning * void        — the action always succeeds, * bool        — false fails the step and stops the chain, * ExitReason  — non-Settled fails the step (so an action may wrap a facade verb and have its verdict honored). When F1/F3 build mechanisms, `intake.in` is such a callable and slots in here without this class changing shape. `name` labels the step in stop/skip log lines (stable literal).
+Run an action between motions — THE MECHANISM SEAM (the one member deliberately outside F10, filled in at chunk F1). `action` is any callable taking nothing and returning * void        — the action always succeeds, * bool        — false fails the step and stops the chain, * ExitReason  — non-Settled fails the step (so an action may wrap a facade verb and have its verdict honored), * manipulation::MechanismOutcome — a mechanism operation's verdict: ONLY Succeeded continues the chain; Unconfirmed / Stalled / TimedOut / Cancelled stop it as MechanismFailed with the outcome named in the stop line. MechanismOutcome has no bool conversion, so an Unconfirmed can never be truthy by accident — the T2 guarantee that a failed grab cannot read as success at this layer. The mechanism idiom (contract in manipulation/mechanism_op.hpp):  r.then([&] { grab.start(); (void)chassis.waitUntil([&] { return grab.tick() != Running; }, Time{2.0}); return grab.outcome(); }, "grab");  RETURN THE OUTCOME. A void lambda that runs an operation and drops its verdict "succeeds" whatever happened — the same sharp edge as dropping a direct facade call's ExitReason (guide chapter 9), owned the same way. `name` labels the step in stop/skip log lines (stable literal).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:340`](../../include/shulib/chassis/routine.hpp#L340).*
+*function, declared at [`include/shulib/chassis/routine.hpp:368`](../../include/shulib/chassis/routine.hpp#L368).*
 
 <a id="routine-ok"></a>
 
@@ -457,7 +470,7 @@ Run an action between motions — THE MECHANISM SEAM, placeholder shape (header 
 
 True while no step has failed (and none was skipped).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:370`](../../include/shulib/chassis/routine.hpp#L370).*
+*function, declared at [`include/shulib/chassis/routine.hpp:405`](../../include/shulib/chassis/routine.hpp#L405).*
 
 <a id="routine-result"></a>
 
@@ -469,7 +482,7 @@ True while no step has failed (and none was skipped).
 
 The chain verdict so far (a snapshot — see RoutineResult).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:373`](../../include/shulib/chassis/routine.hpp#L373).*
+*function, declared at [`include/shulib/chassis/routine.hpp:408`](../../include/shulib/chassis/routine.hpp#L408).*
 
 <a id="routine-lasttrajectory"></a>
 
@@ -481,7 +494,7 @@ The chain verdict so far (a snapshot — see RoutineResult).
 
 The most recent followTrajectory step's full result — completedLegs is strategy-relevant and must not be flattened away by the chain. Before any trajectory has run it reads `exit = Running`, the project's "no verdict here yet" convention (RoutineResult::exit, CompletedMotion), so succeeded() is honestly FALSE on a virgin routine. (D3: a plain value-initialized TrajectoryResult reports `Settled` with 0 of 0 legs, which succeeded() calls SUCCESS — correct for the facade, whose verb requires at least one waypoint, and a lie here, where the member exists before any trajectory does.)
 
-*function, declared at [`include/shulib/chassis/routine.hpp:395`](../../include/shulib/chassis/routine.hpp#L395).*
+*function, declared at [`include/shulib/chassis/routine.hpp:430`](../../include/shulib/chassis/routine.hpp#L430).*
 
 <a id="routine-chassis"></a>
 
@@ -493,7 +506,7 @@ The most recent followTrajectory step's full result — completedLegs is strateg
 
 The chassis this routine drives — the mixed-tier seam, spelled out. (You can equally keep your own reference; this exists so a routine passed across a function boundary still reaches Tier 3.)
 
-*function, declared at [`include/shulib/chassis/routine.hpp:402`](../../include/shulib/chassis/routine.hpp#L402).*
+*function, declared at [`include/shulib/chassis/routine.hpp:437`](../../include/shulib/chassis/routine.hpp#L437).*
 
 ## Design commentary, from the header
 
@@ -521,10 +534,14 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  stays legal and is the intended path.
 
  NOT frozen, deliberately: **then()** — its accepted return types and its
- `name` default are a placeholder shape chosen before mechanisms existed
- (F1/F3 build them), so freezing it would commit to a guess; and the exact
- WORDING of the stop/skip log lines (the behaviour — one Warn naming routine
- and step, one Info per skipped step — is frozen; the sentence is not).
+ `name` default were left out of F10 because they were chosen before
+ mechanisms existed; chunk F1 then filled the seam (a fourth accepted return
+ type, manipulation::MechanismOutcome, and the MechanismFailed stop cause).
+ then() STAYS unfrozen until the seam has a second real consumer (F2's
+ combinators / F3's primitives) — the same build → second consumer → freeze
+ path every other surface here took. Also unfrozen: the exact WORDING of the
+ stop/skip log lines (the behaviour — one Warn naming routine and step, one
+ Info per skipped step — is frozen; the sentence is not).
  Stated out loud because silence in a freeze reads as "frozen too" (D2 ruling
  A2's lesson). The freeze waited for a second independent consumer: D3's
  recipe cookbook (docs/cookbook/), which wrote fourteen recipes against this
@@ -539,7 +556,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      Routine r{chassis, "left-side"};
      r.startAt(Pose2d{-48_in, -24_in, 90_deg})
       .moveTo(Pose2d{-24_in, 0_in, 45_deg})
-      .then([&] { /* intake.in() when mechanisms exist (F1/F3) */ })
+      .then([&] { intake.in(); }, "intake")  // your mechanism code (ch. 13)
       .strafeTo(-24_in, 24_in)
       .face(0_in, 48_in)
       .driveTo(0_in, 48_in)
@@ -600,14 +617,15 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  supported and tested (steps and direct facade calls interleave freely,
  because eager execution keeps program order = field order).
 
- ═══ then(): the mechanism seam — PLACEHOLDER SHAPE (F1/F3) ══════════════════════
- §17's vision is `moveTo(p).then(intake.in)`. Mechanisms do not exist yet
- (F1/F3 build them); then() is the seam they will slot into: it accepts any
- callable returning void (always succeeds), bool, or ExitReason (failure
- stops the chain like any step). When F1/F3 land, a mechanism action is such
- a callable and chains without this class changing shape. Until then it runs
- whatever glue the author writes — including direct facade calls, whose
- verdicts it honors.
+ ═══ then(): the mechanism seam (filled at F1; still unfrozen — see above) ═══════
+ then() accepts any callable returning void (always succeeds), bool, or
+ ExitReason (failure stops the chain like any step) — and, since F1, a
+ mechanism operation's MechanismOutcome, where ONLY Succeeded continues and
+ an Unconfirmed grab can never read as success (the T2 guarantee; the member
+ comment carries the idiom). One honest spelling note: the action is a
+ CALLABLE, so a member function is passed as `then([&] { intake.in(); })` —
+ `then(intake.in)` is valid C++ only for a callable data member, and the
+ documentation spells the lambda form everywhere for that reason (T5).
 
  ═══ What a recipe deliberately CANNOT do (the documented gaps) ══════════════════
    * drive(speeds, Frame) — a recipe is a SEQUENCE; drive() is a per-

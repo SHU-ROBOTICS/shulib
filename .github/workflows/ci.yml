@@ -32,17 +32,23 @@ jobs:
       # ARCHITECTURE GUARD: the library must never include <pros/*>. That
       # PROS-freeness is exactly what makes it host-testable. Scope = ALL of
       # include/shulib/ (broadened at the C7 legacy cutover, 2026-08-10, when
-      # the old PROS-coupled code was deleted — the scope note here used to
-      # promise exactly that). src/main.cpp is the one deliberate exception:
-      # it lives outside include/shulib/ and is the single file that sees both
-      # worlds (the PROS entry point wiring the PROS-free core).
-      - name: No <pros/> in the library
+      # the old PROS-coupled code was deleted), EXCEPT the one path that exists
+      # to include PROS: include/shulib/hal/pros/, the adapter tree (chunk
+      # R1a). The exemption is PATH-ANCHORED (a prefix match on the exact
+      # directory), NOT --exclude-dir=pros: the name-based form was MEASURED
+      # missing a violation planted at include/shulib/localization/pros/ —
+      # any directory named "pros", anywhere, would have been exempt (D3: "a
+      # gate's exclusion list is where its holes live"; brief M8/M9).
+      # src/main.cpp remains the other deliberate exception: it lives outside
+      # include/shulib/ and is the PROS entry point wiring the PROS-free core.
+      - name: No <pros/> in the library (except hal/pros, path-anchored)
         run: |
-          if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib; then
-            echo "::error::include/shulib must stay PROS-free (no #include <pros/...>)"
+          if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib \
+               | grep -v '^include/shulib/hal/pros/'; then
+            echo "::error::include/shulib must stay PROS-free outside hal/pros/ (no #include <pros/...> / \"pros/...\")"
             exit 1
           fi
-          echo "library is PROS-free (all of include/shulib)"
+          echo "library is PROS-free (all of include/shulib except hal/pros/)"
 
       # LAYERING GUARD (chunk A2, constraint 3): ground truth must never be reachable
       # from an estimator. shulib/sim/ (the host plant) may include the core; the core
@@ -63,13 +69,16 @@ jobs:
       # DOCUMENTATION GATES (chunk D3). Run explicitly as well as via the build,
       # so a failure names itself in the CI log instead of appearing as "build
       # failed" three hundred lines into a compile.
-      - name: Documentation gates (coverage, freshness, verbatim examples, removability)
+      - name: Documentation gates (coverage, freshness, examples, removability, briefing, staleness)
         run: |
           python3 tools/api_doc_tool.py self-test
           python3 tools/api_doc_tool.py check-coverage
           python3 tools/api_doc_tool.py check-fresh
           python3 tools/api_doc_tool.py check-examples
           python3 tools/api_doc_tool.py check-removability
+          python3 tools/briefing_status.py check
+          python3 tools/doc_staleness_audit.py self-test
+          python3 tools/doc_staleness_audit.py
 
       - name: Configure (host tests)
         run: cmake -S test -B build/test

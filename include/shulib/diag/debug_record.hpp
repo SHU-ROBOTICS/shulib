@@ -52,6 +52,44 @@ enum class GateReason : std::uint8_t {
     RejectedMahalanobis = 3,  ///< failed the Mahalanobis gate (EKF tier, E4)
     RejectedNoFix = 4,        ///< source had no usable fix (off-strip GPS / no tag, E2/E3)
     RejectedHighYawRate = 5,  ///< spinning too fast to trust the fix (E2)
+    /// Failed the complementary tier's NORMALIZED-INNOVATION gate: |residual| exceeded
+    /// `gateSigma` times the fix's own 1σ (measurement σ from the device's reported error,
+    /// widened by how far the estimate has dead-reckoned since its last fix). Appended at
+    /// E2 rather than reusing `RejectedMahalanobis`, which needs a filter-estimated
+    /// covariance the complementary tier does not have — see gps_corrector.hpp. (E2)
+    RejectedNormalizedInnovation = 6,
+    /// The source re-reported a sample it has already folded, so there is no new
+    /// information this tick. The V5 GPS camera produces a fix every ~50 ms while the
+    /// control loop runs at ~100 Hz, so a corrector that folds every read counts one
+    /// measurement five times. (E2)
+    RejectedStaleFix = 7,
+    /// The source claims a fix but reports a self-error too large to be worth folding —
+    /// a sensor saying "I can see, badly" rather than "I cannot see". (E2) — reused at E3
+    /// for a tag detection below the confidence floor, which is the same statement.
+    RejectedSensorQuality = 8,
+    /// A tag was SEEN but the tag map does not know where it is, so no absolute pose can be
+    /// derived from it. Distinct from RejectedNoFix on purpose: this is a CONFIGURATION error
+    /// the team can fix (an id missing from the map, or an empty map), not the field being the
+    /// field, and it is the one worth shouting about. (E3)
+    RejectedNoTagMapEntry = 9,
+    /// Every visible tag was outside the corrector's trusted range band — too close to fit in
+    /// the frame, or far enough that planar-PnP's heading ambiguity makes the orientation
+    /// untrustworthy (localization/apriltag_corrector.hpp). (E3)
+    RejectedTagRange = 10,
+    /// The newest vision frame is older than the corrector's freshness horizon: the vision task
+    /// has stalled, died, or was never started. Distinct from RejectedStaleFix (a frame already
+    /// folded — the normal steady state) and from RejectedNoFix (looked, saw nothing), because
+    /// "the camera stopped talking" calls for a different response than either. (E3)
+    RejectedObservationAge = 11,
+    /// The EKF tier gave up on its own confidence and re-initialised its covariance: N
+    /// consecutive Mahalanobis rejections with a persistently large innovation means the
+    /// filter's belief about how wrong it might be is itself wrong. **The estimate is NOT
+    /// moved** — only the uncertainty is reset — so §13 #4's never-snap bound still holds on
+    /// this tick and every tick after it (E4's T2 ruling, localization/ekf_fusion.hpp).
+    /// It is a WORD in the record rather than an inference because an estimator that quietly
+    /// changes its mind about how much to trust the world is the hardest kind of run to debug;
+    /// `covarianceTrace` jumping on the same tick is the independent numeric witness. (E4)
+    CovarianceReinit = 12,
 };
 
 /// Index vocabulary for DebugRecord::tickPhase — WHO consumed the loop budget this
@@ -67,7 +105,14 @@ enum class TickPhase : std::uint8_t {
     Health = 2,        ///< health observables, where separable — RESERVED (E1+)
     Telemetry = 3,     ///< sink formatting/IO, where separable — RESERVED (E1+)
     Scheduler = 4,     ///< scheduler bookkeeping, where separable — RESERVED (E1+)
-    User = 5,          ///< caller-owned work (G2 markers, mechanisms) — RESERVED
+    User = 5,          ///< caller-owned work (G2 markers, mechanisms) — RESERVED, still
+                       ///< no producer. F1 RULED why it stayed empty rather than filling
+                       ///< it: the only place caller work is visible today is a waitUntil
+                       ///< predicate, which runs OUTSIDE the attribution bracket, and
+                       ///< crediting it would break the pinned sum contract (attributed
+                       ///< phases never exceed the tick total — tick_attribution.hpp).
+                       ///< The named producer is F2's sequencer loop / G2's marker
+                       ///< dispatch, which own a loop and can bracket user work properly.
 };
 
 /// Capacity of DebugRecord::tickPhase. STRICTLY GREATER than the defined phases on

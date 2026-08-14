@@ -13,23 +13,49 @@ is that rule applied to itself. The links matter more than the prose: statuses c
 linked documents are maintained as the truth. Where this page and the roadmap disagree, the
 roadmap is right.
 
-## It has never run on a robot
+## It has never driven a robot
 
 The headline limitation, stated as many times as it takes:
 
-- **No shulib code has ever executed on a physical robot.** All verification is host-side,
-  against a simulated plant and deliberately hostile simulated sensors
+- **No shulib code has ever closed a control loop or followed a path on a robot.** One bench
+  session (2026-08-13) commanded real motors open-loop and read real sensors through the
+  adapters — that validated the *platform layer*, nothing more: no loop closed, no wheel
+  turned under motion control. Everything above the platform layer is verified host-side
+  only, against a simulated plant and deliberately hostile simulated sensors
   ([Chapter 7](07-getting-set-up.md) explains the approach;
   the [README](../../README.md#what-it-is-not-yet) states it third-heading-from-the-top).
-- **The hardware adapters don't exist.** The library defines the interfaces real V5 motors and
-  sensors will plug into; the implementations are phase R1 on the [roadmap](../roadmap.md).
-  `make` produces a real V5 package that boots, prints a banner — and drives nothing
-  (`src/main.cpp`'s seams are marked `TODO(R1)`).
+- **It has booted on a brain, and that proves less than it sounds like.** On 2026-08-12 the
+  package was uploaded to a V5 brain, where it started, built its entire object graph, and
+  printed its diagnostics banner over USB. Worth knowing, because it means the build path works
+  and nothing in the library depends on being on a laptop. But every motor and sensor in that
+  run was a fake, and the robot said so itself in the second line it printed. Booting is not
+  driving, and nothing about motion or accuracy was tested that day.
+- **The hardware adapters now exist — and that closes less of the gap than it sounds like.**
+  The `hal/pros/` adapters implement every hardware interface over the real PROS SDK — the
+  drivetrain-and-driver set and, as of 2026-08-14, the mechanism-sensor set (distance,
+  optical, digital lines, the SD-card blackbox device) — and `make` produces a package wired
+  to real devices, including a first driver-control loop. Three limits, in decreasing order
+  of comfort. *First*, the adapters are host-tested — compiled, run, and mutation-attacked on
+  a laptop — against a hand-written stand-in for PROS, which proves the glue faithfully
+  implements **our beliefs about PROS** and cannot prove the beliefs: if we are wrong about a
+  unit or a sign, the stand-in and the adapter are wrong together and every test stays green
+  ([FAQ](../faq.md) has the full version). Every such belief is a labelled register entry
+  (HA-94 onward). *Second*, what the one bench session (2026-08-13) actually settled is
+  narrow: seven unit-scale beliefs on the drivetrain set, measured on one robot, once. Every
+  heading and sign convention remains open, the wiring's port map is still a labelled guess
+  that fails loudly on a robot that doesn't match it — and **the mechanism-sensor adapters
+  have never touched a physical device at all**: their beliefs (HA-113 onward, including two
+  the vendored SDK sources do not state) wait on the extended bench checklist. *Third*, the
+  headline unchanged: a bench reading sensors is not a robot driving. Until a loop closes on
+  hardware, "the adapters work" means "the adapters agree with our model of PROS, and that
+  model has been spot-checked once."
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
-  (57 of them as of 2026-08-10, zero settled; each names its blast radius if wrong and the
-  measurement that settles it). Two examples to convey the range: the H-drive's sideways
+  (all but the handful the bench settled on 2026-08-13 are still open; each names its blast
+  radius if wrong and the measurement that settles it — the register itself is the count, so
+  this page does not carry a number that would go stale). Two examples to convey the range:
+  the H-drive's sideways
   authority (0.35) is pure invention that could plausibly be anywhere from ~0.15 to ~0.8
   (HA-54); and the entire heading-accuracy story leans on an assumed IMU drift bound (HA-20)
   that is community folklore until measured.
@@ -42,33 +68,217 @@ The team's phrase for the plan here is worth quoting: *the first hardware contac
 sequence, not a surprise* — phases R1–R6 on the roadmap are exactly that sequence (adapters,
 day-one validation, sensor characterization, gain measurement, sim back-fit).
 
-## No absolute position correction yet
+## Correction now exists for position *and* heading — and what it is worth is unmeasured
 
-The estimate is pure dead reckoning today (odometry + IMU,
-[Chapter 3](03-knowing-where-you-are.md)). The correction *seam* exists and is tested — but the
-GPS corrector and the vision/AprilTag corrector that would plug into it are planned work
-(roadmap milestone M3). Until at least one exists, drift over a 60-second run is uncorrected,
-and the team's < 1° end-of-run heading requirement is, by the master plan's own analysis,
-**not reliably achievable on a real robot** — absolute yaw correction is load-bearing for the
-spec, not a nice-to-have.
+Two correctors are finished and tested ([Chapter 3](03-knowing-where-you-are.md)): the GPS
+corrector bounds position drift when the strip is in view, and the AprilTag corrector adds
+absolute **heading** — a tag whose field position is known tells the robot which way it is
+actually pointing, which no other source in this library can do.
 
-## The mechanism seam is a placeholder
+This section used to say, in plain words, that the team's `< 1°` end-of-run heading requirement
+was **not reliably achievable on a real robot** because nothing in the library could correct
+heading at all. That sentence has to change, and **the honest change is narrow**. Here is what
+was measured, what it was measured on, and what is still unknown — in that order, because the
+order is the point.
 
-Both API tiers are now frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
+**What was measured.** A robot whose IMU is 4° wrong recovers to within 0.5° in about three
+seconds of tag sightings, and to about a ten-thousandth of a degree in fifteen. It moved *toward*
+the truth on every one of 1500 consecutive ticks and never past it. Separately, with a 12° error
+and a maximally confident tag, **no tick ever changed the robot's idea of its heading by more
+than a tenth of a degree** — the documented per-tick bound — across 2000 consecutive ticks, and
+the same bound holds when re-read from a decoded blackbox file rather than from live state. Yaw
+is nudged, never snapped, and the correction accumulates instead of evaporating.
+
+**What it was measured *on*.** Simulated truth. A simulated camera. A tag map invented for the
+test. Noise, latency, detection confidence and range magnitudes that were **made up** and are
+catalogued as guesses in the [Hardware Assumptions Register](../hardware-assumptions.md)
+(HA-68…HA-82). Every one of those numbers could be wrong by a factor of several.
+
+**What remains unmeasured, and is load-bearing for the claim:**
+
+- **No camera has ever been pointed at a tag by this project.** The corners-to-pose maths is
+  proven against synthetic images computed from geometry; it has never seen a lens, a shutter, a
+  gymnasium light, or a printed tag.
+- **shulib ships no tag map, deliberately.** Where the tags are on the field is *your* input, and
+  nobody here has a citable table of tag positions. A map that is two inches off produces a
+  corrector that is *confidently* two inches wrong — and unlike noise, that error does not
+  average out (HA-68).
+- **The detector's corner ordering is unverified, and one way of getting it wrong is silent.** A
+  reversed corner winding mirrors the tag, puts the recovered heading 180° out, and leaves the
+  solver's own error check reading zero. Nothing in software can detect it; only a physical tag
+  can (HA-69).
+- **Real IMU drift is unknown.** The whole reason yaw correction is load-bearing is an assumed
+  drift of about 1°/min, which is community folklore until somebody measures our units (HA-20).
+- **How accurate a real tag fix is, at what range, is unknown.** The library handles this with a
+  trusted-range band — a blunt instrument, chosen because the alternative was inventing a second
+  noise model (HA-73).
+
+**So, precisely:** this page does **not** claim the `< 1°` requirement is met, and does not claim
+it is likely to be met. It claims exactly one thing — *the specific reason this requirement was
+previously listed as unachievable, namely that nothing in the library could correct heading at
+all, no longer applies.* Everything else about the claim is unchanged and unmeasured. If that
+reads as a smaller change than the feature sounds like, that is the honest size of it.
+
+**Still missing, and unrelated to any of the above:**
+
+- **The heading correction has its own version of that limit.** A heading disagreement larger
+  than 15° is rejected rather than folded, on the reasoning that it is far more likely to be a
+  misread tag than real drift. If a real IMU ever drifts further than that, the correction will
+  refuse to fix it (HA-80).
+- **None of it has seen real hardware.** Both correctors were proven against simulated sensors
+  built from written-down guesses about noise, timing and failure modes. How much either helps
+  depends on how its accuracy compares to real dead-reckoning drift, and none of those numbers
+  has been measured.
+- **Driving Skills has no GPS strip**, so in that event the GPS corrector reports "no fix" for
+  the whole run. The **tag** corrector does not depend on the strip — but it does depend on you
+  having a camera, a tag map, and a task polling it, none of which exist yet either.
+
+## A Kalman filter now exists — and it is not the default
+
+This page used to carry two limitations together: *no Kalman filter*, and *two disagreeing
+correctors are bounded rather than resolved*. Both have changed, and as with the heading section
+above the honest change is narrower than it sounds. Same order: what was measured, what it was
+measured on, what is still unknown.
+
+**What was measured.** A 5-state extended Kalman filter now exists behind the same fusion seam
+([Chapter 3](03-knowing-where-you-are.md)), and three things it can do were measured directly.
+*One:* handed two disagreeing fixes with stated accuracies of 1 inch and 5 inches, it settles on
+the inverse-variance weighted point between them — the number a person computes from the two σ
+values on paper, matched to better than a fifth of a percent. It does not pick one, does not
+average blindly, and is not swayed by which source claims to be more confident. *Two:* an
+estimate wounded by 20 inches — further than the default filter's fixed gate will ever accept —
+returns to within 2 inches on all six seeds tested, while the default filter's estimate is still
+20 inches out at the end of every one of them. *Three:* 2000 consecutive confident lies, each 50
+inches from the truth, moved the estimate by **zero inches**, and no tick under any of these
+conditions moved the estimate further than the documented per-tick bound.
+
+**What it was measured *on*.** The same simulated robot everything else in this library was
+measured on, and — new here — **noise parameters that are entirely invented**. A Kalman filter is
+only as good as its description of how wrong its sensors are, and every one of those numbers
+(HA-83…HA-91 in the [Hardware Assumptions Register](../hardware-assumptions.md)) is a guess
+written down by somebody who has not measured a robot. The filter's *structure* is what was
+proven here; its *numbers* are fitted on hardware that does not exist yet.
+
+**What remains unmeasured, and what did not change:**
+
+- **The Kalman tier is not the shipped default, and the measurement is why.** Over eight seeded
+  60-second runs, the two filters finish within about an eighth of an inch of each other and the
+  **simpler one is slightly ahead**. In this simulation dead-reckoning is already sub-inch over a
+  minute, so the modelled GPS is noisier than the drift it corrects, and against a sensor like
+  that the best move is mostly to ignore it — which a blunt fixed gain does slightly harder. The
+  Kalman filter is not there for accuracy on a clean run; it is there for recovery, arbitration,
+  and knowing how wrong it might be.
+- **Recovery from a large displacement needs both gates to agree, and only one of them was
+  fixed.** The fusion layer's fixed 12-inch ceiling is gone under the Kalman tier. Each corrector
+  *also* has its own gate, which E4 did not touch — so a real recovery from a 20-inch error
+  depends on the corrector's own widening rule as well, and that rule's constant (HA-67) is
+  another guess.
+- **The uncertainty the filter reports is only as honest as its noise model.** `covarianceTrace`
+  is a real number computed from a real filter, and it is computed from invented inputs. Treat it
+  as a *relative* signal — it grew, it shrank — rather than as a calibrated distance, until R4.
+- **Nothing here has seen a robot.** Same as everything else on this page.
+
+**So, precisely:** the library can now weigh two disagreeing sources against each other by their
+stated accuracy, recover from a displacement that used to be permanent, and state its own
+uncertainty as a number. It is **not** claimed to be more accurate than what it replaces on an
+ordinary run, and on the evidence available it is very slightly less so.
+
+## The mechanism layer exists — on a host, against fakes, with no season in it
+
+Both API tiers are frozen: the `Chassis` API ([Chapter 10](10-the-api.md)) at D2 and the
 recipe layer ([Chapter 9](09-the-recipe-api.md)) at D3, Freeze Register rows F6 and F10, both
 2026-08-12. Signatures and documented behavior change only with a major version bump and a
 migration note, and compile-time pins fail the build if one drifts — routines written today
-will not need rewriting. One piece is deliberately left open:
+will not need rewriting.
 
-- **`then()`** ([Chapter 9](09-the-recipe-api.md)) is the seam mechanisms will plug into, and
-  **mechanisms do not exist yet** (see the next section). Its accepted return types and its
-  step-name default were chosen before there was anything real to plug in, so freezing them
-  would have committed the library to a guess about code nobody has written. `then()` works and
-  is tested; treat its exact shape as provisional.
+The mechanism seam that used to be a placeholder here is now real code
+([Chapter 13](13-extending-the-library.md) is the how-to). What is proven, and against what:
 
-The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and isn't
-stable (the coordinate conventions, units, accuracy targets, hardware interfaces, kinematics
-contract, and now both API tiers *are* locked).
+- **Proven, on a host, against fakes:** motor groups and pneumatic lines can be commanded
+  through the device seam; a bounded operation runs, is ticked by the chassis's own wait
+  (including *while a motion drives*, with the motion's result proven bit-identical to a run
+  with no mechanism at all), detects a jam from current + shaft speed, times out under an
+  adversarial clock rather than hanging, cancels into a per-mechanism declared safe state,
+  and hands `then()` a verdict where a completed-but-unconfirmed action can never read as
+  success. All of it against in-memory fakes and hostile fakes that jam, stall and lie.
+- **Deliberately absent:** any concrete mechanism. There is no `shulib::Intake` and never
+  will be — mechanism sets change every season, so the library ships the grammar and your
+  team writes the nouns (Chapter 13 says how, and why the safe state is declared per
+  mechanism).
+- **Now real at the device edge, still host-proven only:** the sensors that *confirm* a
+  mechanism action — distance, color/proximity, limit switches — and the solenoid lines that
+  act, all have PROS adapters as of 2026-08-14, each converting exactly once at the edge and
+  each documenting the trap it defuses (a distance sensor reports "no object" as an in-band
+  plausible-looking number; constructing a digital-out physically drives the line — the FAQ
+  covers both). Proven against the programmable PROS stand-in; never against a physical
+  sensor.
+- **Not proven, stated plainly:** anything on hardware. No solenoid has fired, no motor has
+  jammed for real, no distance sensor has seen a real game piece, and whether `Hold` truly
+  holds a *loaded* lift is a registered assumption (HA-92), not a fact. The stall thresholds
+  an operation needs are required parameters
+  precisely because no honest default exists before hardware characterization (phase R4).
+  And the scoring verbs themselves — `intakeUntilCapture`, `liftToLevel`,
+  `setQuadrantToggle` — remain future work (roadmap item F3) that needs both hardware and
+  the build team's final mechanism decisions.
+
+One related piece stays deliberately open: **`then()`** and the mechanism seam are still
+**unfrozen** — the seam gets its second real consumer at F3 (the concrete scoring verbs),
+and this project freezes surfaces after a second consumer has stressed them, not before.
+The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and
+isn't stable (the coordinate conventions, units, accuracy targets, hardware interfaces,
+kinematics contract, and both API tiers *are* locked; the mechanism seam is listed there as
+explicitly not-yet-frozen).
+
+## A run-scoped deadline now exists — and "guaranteed" is a narrower word than it sounds
+
+The sequence layer's guard ([Chapter 6](06-how-things-fail.md)) is the library's
+highest-stakes claim, so its boundary is stated here in full, exactly as the project's own
+records word it:
+
+> F2 proves a **scheduling property** — a stalled loop still ends with the end action,
+> against the plant, with the clock driven to the limit. It **cannot** claim the timing
+> margin is right on a real brain: real loop rate under load and PROS call latency are
+> invented register entries until R4. **And nothing preempts pure user code that never calls
+> into shulib** — there are no background tasks.
+
+Unpacked, that is three separate limits:
+
+- **Proven on the host plant, four ways:** a motion that never settles, a mechanism that
+  never confirms, a wait whose condition never comes true, and a fault-abort cascade each
+  end with the caller's end action performed, judged against the simulator's ground truth
+  with the match limit driven by a clock the guard never touches. That is a real property
+  of the *scheduling* — it is not a claim that a real robot's 6-second park fits a
+  6-second runway. Until phase R4 measures real loop rates and call latencies, your lead
+  time is your own engineering margin. Budget generously and measure at the field.
+- **Nothing preempts your code.** There are no background tasks anywhere in this library —
+  a deliberate, standing decision. The guard works by making every shulib call after the
+  deadline finish quickly (cut) and stay finished (refused). Code that never lets a
+  finished call end its loop — `while (true) { chassis.moveTo(goal); }` with no exit —
+  keeps the CPU forever, and the end action runs only when that loop returns. The
+  transcript will show the refusals; the guard cannot show you the way out. Write retry
+  loops against `guard.expired()`.
+- **Frozen waits pay their remainder.** `pause`/`waitFor`/`waitUntil` on the frozen
+  surfaces cannot see the deadline ([Chapter 9](09-the-recipe-api.md) has the exact
+  formula and the deadline-aware alternative).
+- **"Zero travel after the deadline" is a simulator result, not a robot one.** The host
+  measurement is exactly 0.0 inches, and it is real — but it holds because the guard
+  refuses the next command *before* the world advances **and** because the simulated
+  drivetrain is memoryless: it stops the instant the voltage does. A real robot has mass.
+  The honest on-robot claim is **"no new commanded motion after the deadline"** — the
+  coasting and braking distance already in the wheels is physics, and this plant cannot
+  produce it. Budget your lead time for a robot that is still moving when the command
+  stops.
+  There is a second difference that matters more on a field than it does here: **on a real
+  brain, time passes whether or not your code calls into shulib.** In the simulator the
+  clock only advances when the pacer steps it, so the deadline is never "missed" while
+  something else runs. On hardware, both the cut and the hard floor can only fire when your
+  code next re-enters the library — which is the same limit as the bullet above, seen from
+  the other side.
+
+And its deliberate refusals, which are design, not gaps: no default match length, no
+default lead time, no park pose, no field coordinate — a guard with a built-in notion of
+"the endgame" would be one team's strategy frozen into everyone's library. Both instants
+and the action are yours.
 
 ## No easier tiers yet
 
@@ -79,10 +289,19 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
 - **No zero-code authoring** (Tiers 0–1: build the robot and drag waypoints in the VexBuilder
   app, run the saved file with no C++). The `.vexbot` file formats and the path-runner are
   roadmap milestone M5, coordinated with the separate VexBuilder project.
-- **No mechanisms for recipes to command** — `then()` in a recipe is a labeled placeholder
-  seam until the mechanism layer exists (roadmap items F1/F3); today it runs only code you
-  write yourself.
-- **No recipe cookbook or generated API reference site yet** (D3).
+- **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
+  above) and `then()` runs its operations, but the mechanisms themselves are structs your
+  team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete
+  primitives (`intakeUntilCapture`, `liftToLevel`, …) are roadmap item F3.
+- **The published reference lags the code, by construction.** The
+  [cookbook](../cookbook/README.md) and the generated API reference (`docs/api/`) both exist,
+  are build-checked, and *are* now published to the team site. But the site publishes from the
+  release branch, not the working one, so it shows the last release rather than the current
+  tree — deliberately, because that is what keeps the development log off the public site. Read
+  the in-repo copies if you need today's truth. HTTPS is also still pending a certificate.
+  *(This bullet used to say no cookbook existed at all; that was written before D3 shipped
+  it and went stale — corrected at F1. It then said nothing was hosted anywhere, which went
+  stale when the site went up — corrected here.)*
 
 ## Motion-quality boundaries
 
@@ -94,10 +313,15 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   segments. Measured cost: about 1.2 s per motion.
 - **No motion profiles on the main verbs yet** (trapezoidal velocity planning exists in
   `control/` but isn't wired into `moveTo`).
-- **`drive()` is a primitive, not a driver-control product** — no joystick shaping, slew-rate
-  limits, or driver-preference curves yet.
-- **No mechanism/scoring layer** — lifts, intakes, pneumatics, match-load sequences (roadmap
-  M4). shulib moves the chassis; mechanisms are hand-rolled today.
+- **`drive()` is a primitive, not a driver-control product** — the shipped teleop loop maps
+  sticks to it raw (a small deadband and nothing else, itself a registered guess, HA-112);
+  joystick shaping, slew-rate limits, and driver-preference curves are still future work
+  (phase T on the roadmap).
+- **No *scoring* layer** — the concrete season verbs (`intakeUntilCapture`, `liftToLevel`,
+  match-load sequences) are roadmap item F3/M4 and do not exist. The mechanism *seam* they would
+  be written against does exist and is described above; what you write today is your own
+  mechanism structs against a real seam, not from nothing. (This bullet used to say the
+  mechanism layer itself was missing, which contradicted the section three headings up.)
 - **Braking physics are unverified**: brake mode is commanded correctly, but what a real V5
   brake does to a moving robot is a registered assumption (HA-53). Plan conservatively around
   stopping distances.
@@ -105,9 +329,21 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
 ## Diagnostics boundaries
 
 The terminal transcript ([Chapter 11](11-reading-the-diagnostics.md)) is real and byte-pinned.
-Not built yet, per the [diagnostics plan](../diagnostics-plan.md): the SD-card blackbox (logs
-without a laptop), the live telemetry wire to VexBuilder, record/replay, and the on-brain HUD.
-Today's transcript needs a USB tether (or the simulator).
+
+**The SD-card blackbox is built** — this bullet used to list it as missing and was wrong. A run
+records to the card without a laptop: a RAM flight recorder that costs the card nothing until a
+fault fires, then writes the triage block first and the preceding ticks after it (in that order,
+because the fault may be the brownout that cuts the write short), and a decoder that ships in the
+same chunk and is held to the format by byte-exact goldens rather than by agreeing with the
+encoder. The controller-screen fault display is built too. **Both are host-proven only:** the
+blackbox writes through a device seam whose V5 adapter exists but has never touched a physical SD
+card, so "it records without a laptop" is a property of the design and the host tests, not
+something any robot has yet demonstrated.
+
+Still genuinely not built, per the [diagnostics plan](../diagnostics-plan.md): the live telemetry
+wire to VexBuilder, record/replay-as-regression-test, and the on-brain status screen (the
+*brain's* screen — distinct from the controller screen, which exists). Live watching still needs
+a USB tether or the simulator.
 
 ## And the meta-limitation
 

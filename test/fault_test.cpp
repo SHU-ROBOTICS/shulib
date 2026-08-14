@@ -39,8 +39,9 @@ TEST_CASE("FaultCode: numeric values are wire-stable (F9) — a reorder turns th
     CHECK(static_cast<std::uint16_t>(FaultCode::GpsGateReject) == 6);
     CHECK(static_cast<std::uint16_t>(FaultCode::Brownout) == 7);
     CHECK(static_cast<std::uint16_t>(FaultCode::MotionTimeout) == 8);
-    CHECK(static_cast<std::uint16_t>(FaultCode::MotorOverTemp) == 9);  // appended at A3
-    CHECK(static_cast<std::uint16_t>(FaultCode::Implausible) == 10);   // appended at C5
+    CHECK(static_cast<std::uint16_t>(FaultCode::MotorOverTemp) == 9);      // appended at A3
+    CHECK(static_cast<std::uint16_t>(FaultCode::Implausible) == 10);       // appended at C5
+    CHECK(static_cast<std::uint16_t>(FaultCode::MechanismStalled) == 11);  // appended at F1
     // Wire width is part of the freeze: one uint16 slot.
     static_assert(std::is_same_v<std::underlying_type_t<FaultCode>, std::uint16_t>);
 }
@@ -57,6 +58,7 @@ TEST_CASE("faultCodeName: §18.4 spellings; out-of-range renders, never crashes"
     CHECK(std::string_view{faultCodeName(FaultCode::MotionTimeout)} == "MOTION_TIMEOUT");
     CHECK(std::string_view{faultCodeName(FaultCode::MotorOverTemp)} == "MOTOR_OVER_TEMP");
     CHECK(std::string_view{faultCodeName(FaultCode::Implausible)} == "IMPLAUSIBLE");
+    CHECK(std::string_view{faultCodeName(FaultCode::MechanismStalled)} == "MECHANISM_STALLED");
     // A corrupted/future code must render as a token, not read off the end of anything.
     CHECK(std::string_view{faultCodeName(static_cast<FaultCode>(999))} == "UNKNOWN");
 }
