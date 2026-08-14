@@ -8,9 +8,44 @@
 //   2. predict — advance PilonsOdometry; its pose is the dead-reckon prediction.
 //   3. fuse — ask each corrector for an absolute proposal and fold the valid ones in as an
 //      innovation-bounded, per-tick-clamped GATED NUDGE (position only), via the IFusionPolicy.
-//   4. heading — re-stamp the fused heading from the IMU as the LAST write, so heading is provably
-//      IMU-owned through fusion: no corrector or policy can ever rotate the robot (decision #4).
+//   4. heading — compose the fused heading from the IMU as the LAST write of the tick, so no
+//      corrector or policy can ever assign the robot a heading (decision #4). Since E3 the
+//      composition is `imu.heading() + headingBias_`, where the bias moves by at most a bounded
+//      nudge per tick — see the heading-bias note below.
 //   5. publish — recompute the quality scalar + categorical flags from observable inputs.
+//
+// ── THE HEADING BIAS (added at E3, the absolute-yaw path M2 reserved) ──
+// Until E3 nothing in the tree could tell the estimator its heading was wrong, so STEP 4 stamped
+// the raw IMU reading and heading was IMU-owned in the strongest possible sense. That was correct
+// while it lasted and is NOT what the accuracy spec needs: the master plan records that a raw V5
+// IMU drifts ≈1°/min, so dead-reckoned heading alone will not hold the team's `< 1°` requirement
+// across a 60-second run, and makes "IMU-owned heading + absolute yaw correction" load-bearing.
+// AprilTagCorrector supplies the absolute heading; this is where it lands.
+//
+// The published heading is `imu.heading() + headingBias_`. The IMU remains the SOLE source of
+// heading CHANGE — every rotation the robot makes still enters through imu.heading(), tick for
+// tick, and PilonsOdometry is untouched — while the bias is a slowly-learned constant offset that
+// moves by at most `maxHeadingNudgeRate · dt` per tick (ComplementaryFusion). There is no code
+// path, here or anywhere below, that ASSIGNS a heading: the policy can only return an increment.
+// That is what makes never-snap (§13 #4) structural for yaw rather than a promise.
+//
+// WHY THE BIAS MUST PERSIST, which is the whole design. The Localizer re-reads the IMU every tick,
+// so a heading correction that only decorated THIS tick's published heading would be discarded on
+// the next one — individually sane nudges, collectively useless. That is verbatim the M2 red
+// team's "corrections not accumulating" failure mode. The accumulator is exactly the structure
+// STEP 2 already uses for position (fusedX_ persists and is advanced by odom DELTAS, never reset
+// to absolute odom). It is deliberately NOT capped: the nudge is always toward an absolute
+// measurement, so the loop is closed and cannot run away, whereas a cap would silently lock out
+// recovery from precisely the large real drift that makes the correction worth having — the same
+// gate-lockout failure E2's D2 identified for position.
+//
+// AND THE CONSEQUENCE FOR POSITION. PilonsOdometry rotates its per-tick field delta by the RAW
+// IMU heading. Left alone, a learned bias `b` would fix the reported heading while the position
+// prediction kept accumulating a cross-track error of roughly `b × distance` — which is most of
+// what heading drift actually costs over a run. So STEP 2 rotates the odometry delta by `b` before
+// folding it. At `b == 0` this is skipped by an explicit early-out, so a tree with no
+// heading-providing corrector is BIT-IDENTICAL to before E3 by construction, not by a
+// floating-point argument.
 //
 // Swapping the complementary filter for an EKF later is a one-argument change (IFusionPolicy); the
 // IPoseSource read seam and the ICorrector write seam never move. At M2 the corrector list is empty
@@ -148,9 +183,21 @@ public:
         settled_ = foldDeltas;
         odom_.update();
         const math::Pose2d odomNow = odom_.pose();
-        const double odx = foldDeltas ? (odomNow.x().value() - lastOdomX_) : 0.0;
-        const double ody = foldDeltas ? (odomNow.y().value() - lastOdomY_) : 0.0;
-        const math::Angle heading = imu_.heading();
+        double odx = foldDeltas ? (odomNow.x().value() - lastOdomX_) : 0.0;
+        double ody = foldDeltas ? (odomNow.y().value() - lastOdomY_) : 0.0;
+        // E3: the odometry rotated this delta by the RAW IMU heading; re-express it under the
+        // corrected one (header note). The early-out is not an optimisation — it is what makes a
+        // no-heading-corrector tree bit-identical to pre-E3 by construction.
+        if (headingBias_ != 0.0) {
+            const double cb = std::cos(headingBias_);
+            const double sb = std::sin(headingBias_);
+            const double rx = odx * cb - ody * sb;
+            const double ry = odx * sb + ody * cb;
+            odx = rx;
+            ody = ry;
+        }
+        const math::Angle rawHeading = imu_.heading();
+        const math::Angle heading = biasedHeading(rawHeading);
         const math::Pose2d predicted{units::Length{fusedX_ + odx}, units::Length{fusedY_ + ody}, heading};
 
         // STEP 3 — gather VALID proposals (screened, incl. FINITE confidence so an Inf can't sail
@@ -159,6 +206,26 @@ public:
         std::array<CorrectionProposal, kMaxCorrectors> buf{};
         std::array<const char*, kMaxCorrectors> names{};
         std::size_t n = 0;
+        // E2: the verdict of a corrector that declined to propose and said why. A declined
+        // proposal never reaches the fusion policy, so without this the record could not tell
+        // "the GPS is off the strip" from "no corrector is registered" — see
+        // CorrectionProposal::selfAudit. Kept as a plain pair, not a list: the record has ONE
+        // gating slot.
+        //
+        // E3 — WHICH silent source wins that one slot, now that there are two. E2 left this as
+        // "the first to decline", which was fine with one corrector and is a real choice with
+        // two. Taken deliberately: an EXCEPTIONAL verdict outranks a ROUTINE one, where routine
+        // means RejectedStaleFix. The reasoning is E2's own measurement — a healthy source
+        // spends the large majority of its ticks stale (2520 stale against ~570 fresh in 30 s,
+        // the ~20 Hz sensor cadence against the ~100 Hz loop), so under a plain first-wins rule
+        // the first-registered corrector's ordinary staleness would mask a SECOND corrector's
+        // genuine failure — an unmapped tag id, a dead vision task — for essentially the whole
+        // run. Among equals, the first still wins, so the rule stays deterministic. Either way
+        // AppliedCorrection::source names whose verdict it is, so the reason is never ambiguous
+        // about which source it belongs to.
+        GateAudit selfAudit{};
+        const char* selfAuditSource = nullptr;
+        bool selfAuditRoutine = false;
         if (foldDeltas) {
             for (ICorrector* c : correctors_) {
                 const CorrectionProposal p = c->propose(predicted, units::Time{dt});
@@ -168,19 +235,47 @@ public:
                     n < buf.size()) {
                     names[n] = c->name();
                     buf[n++] = p;
+                } else if (p.selfAudit.reason != diag::GateReason::None) {
+                    const bool routine = p.selfAudit.reason == diag::GateReason::RejectedStaleFix;
+                    if (selfAuditSource == nullptr || (selfAuditRoutine && !routine)) {
+                        selfAudit = p.selfAudit;
+                        selfAuditSource = c->name();
+                        selfAuditRoutine = routine;
+                    }
                 }
             }
         }
 
-        // STEP 4 — fuse (position only): gated nudge against the PREDICTED fused pose (so the
-        // innovation shrinks as the fused state converges).
+        // STEP 4 — fuse: an innovation-bounded, per-tick-clamped nudge on position against the
+        // PREDICTED fused pose (so the innovation shrinks as the fused state converges), plus,
+        // since E3, a bounded heading INCREMENT from any proposal that supplies an absolute
+        // heading.
         const FusionResult fr =
             fusion_.fuse(predicted, std::span<const CorrectionProposal>{buf.data(), n}, units::Time{dt});
 
-        // STEP 5 — heading re-stamp (IMU-owned, the LAST write) + publish.
+        // STEP 5 — heading composed from the IMU as the LAST write + publish.
+        //
+        // E3: fold this tick's bounded heading INCREMENT into the persistent bias FIRST, then
+        // compose the published heading from the freshly-read IMU. That ordering is the whole
+        // point — the correction lands in a state that survives the tick, and the IMU reading is
+        // still the last thing applied, so no policy can assign a heading. A non-finite nudge is
+        // dropped rather than allowed to poison the bias (the estimate must degrade, not die).
+        const double nudgeH = fr.headingNudge.value();
+        if (fr.headingApplied && std::isfinite(nudgeH)) {
+            const double next = headingBias_ + nudgeH;
+            if (std::isfinite(next)) {
+                headingBias_ = next;
+                appliedHeadingNudge_ = nudgeH;
+            } else {
+                appliedHeadingNudge_ = 0.0;
+            }
+        } else {
+            appliedHeadingNudge_ = 0.0;
+        }
         fusedX_ = fr.x.value();
         fusedY_ = fr.y.value();
-        const math::Pose2d newPose{units::Length{fusedX_}, units::Length{fusedY_}, heading};
+        const math::Angle fusedHeading = biasedHeading(rawHeading);
+        const math::Pose2d newPose{units::Length{fusedX_}, units::Length{fusedY_}, fusedHeading};
 
         // twist: linear from the fused-pose finite-difference (dt-guarded), omega from the IMU (finite).
         const double rawOmega = imu_.yawRate().value();
@@ -206,9 +301,33 @@ public:
         }
 
         deadReckoning_ = !fr.applied;
+        // The gate's own account of this tick (E1) travels out on the audit record, so a
+        // record producer can stamp the §18.2 gating slots without knowing which fusion
+        // policy is installed — the same value flows whether the policy is today's
+        // complementary tier or E4's EKF.
+        //
+        // E2 SUBSTITUTION RULE: the policy's verdict wins whenever it HAS one. It reports
+        // `None` only when nothing reached it, and that is exactly the tick whose story lives
+        // upstream in a corrector — an off-strip GPS, a fix rejected mid-spin, a re-reported
+        // stale sample. Then, and only then, the corrector's own verdict is what the record
+        // carries, and `source` names who declined rather than reading "none". A policy that
+        // saw proposals always returns Accepted or a Rejected*, so this can never overwrite a
+        // real fusion verdict — the `reason == None` guard is what makes that true, and it is
+        // dead code with one corrector and load-bearing with two (found by mutation at E2;
+        // pinned by test/gps_corrector_blackbox_test.cpp's two-corrector case).
+        GateAudit tickAudit = fr.audit;
+        const char* source = (fr.applied && n > 0) ? names[0] : "none";
+        if (tickAudit.reason == diag::GateReason::None && selfAuditSource != nullptr) {
+            tickAudit = selfAudit;
+            source = selfAuditSource;
+        }
         lastCorrection_ = AppliedCorrection{units::Length{fusedX_ - predicted.x().value()},
                                             units::Length{fusedY_ - predicted.y().value()},
-                                            fr.gated, fr.clamped, (fr.applied && n > 0) ? names[0] : "none"};
+                                            fr.gated || fr.headingGated,
+                                            fr.clamped || fr.headingClamped,
+                                            source,
+                                            tickAudit,
+                                            units::AngleDim{appliedHeadingNudge_}};
         refreshQuality(dtHealthy);
 
         pose_ = newPose;
@@ -230,6 +349,8 @@ public:
     // --- extra observability (telemetry / motion gating) ---
     [[nodiscard]] Quality qualityClass() const noexcept { return qualityClass_; }
     [[nodiscard]] units::Length distanceSinceCorrection() const noexcept { return distanceSinceCorrection_; }
+    /// The last tick's applied correction AND the gate's account of why (`audit`, added
+    /// at E1) — the values a record producer stamps into the §18.2 gating slots.
     [[nodiscard]] const AppliedCorrection& lastCorrection() const noexcept { return lastCorrection_; }
     /// Forwarding accessor for PilonsOdometry::lastDeltaImplausible() — added at C1
     /// (additive) so the motion loop can feed HealthMonitor's odomImplausible
@@ -239,14 +360,28 @@ public:
         return odom_.lastDeltaImplausible();
     }
 
+    /// The learned heading bias, in radians: how far the published heading sits from the raw IMU
+    /// reading (E3). Exposed so a test can prove the correction ACCUMULATES rather than
+    /// evaporating each tick — the M2 red team's failure mode — and so telemetry can say how far
+    /// the IMU has been found to have drifted. Zero on any tree with no heading-providing
+    /// corrector, exactly.
+    [[nodiscard]] units::AngleDim headingBias() const noexcept {
+        return units::AngleDim{headingBias_};
+    }
+
     /// Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to PilonsOdometry::setPose so
     /// the predictor and the fused belief never diverge, and re-baselines twist + dt so the teleport
     /// injects no phantom velocity next tick.
+    ///
+    /// E3: the learned heading bias is KEPT, deliberately. A teleport says where the robot IS, not
+    /// which way the IMU is wrong; discarding a bias that took a second of tag sightings to learn,
+    /// every time a routine re-seeds its position, would throw away the correction at exactly the
+    /// moments a routine cares most. `p.heading()` is still ignored, as it always was.
     void setPose(const math::Pose2d& p) {
         odom_.setPose(p);
         fusedX_ = p.x().value();
         fusedY_ = p.y().value();
-        pose_ = math::Pose2d{p.x(), p.y(), imu_.heading()};
+        pose_ = math::Pose2d{p.x(), p.y(), biasedHeading(imu_.heading())};
         lastFusedX_ = fusedX_;
         lastFusedY_ = fusedY_;
         lastOdomX_ = odom_.pose().x().value();  // re-baseline the odom delta so the jump isn't counted
@@ -257,6 +392,17 @@ public:
     }
 
 private:
+    /// The published heading: the raw IMU reading plus the learned bias (E3, header note). The
+    /// zero-bias early-out makes a tree with no heading-providing corrector bit-identical to
+    /// pre-E3 by construction rather than by an argument about floating point, and it also keeps
+    /// Angle::radians' finiteness precondition off the hot path in the common case.
+    [[nodiscard]] math::Angle biasedHeading(math::Angle raw) const noexcept {
+        if (headingBias_ == 0.0 || !std::isfinite(headingBias_)) {
+            return raw;
+        }
+        return raw + math::Angle::radians(headingBias_);
+    }
+
     void refreshQuality(bool dtHealthy) {
         const bool ready = imu_.isReady();
         const bool implausible = odom_.lastDeltaImplausible();
@@ -320,6 +466,11 @@ private:
     bool sawNotReady_ = false;   // a not-ready phase was witnessed → a boundary exists in the stream
     bool settled_ = false;       // fold open this tick (imuEverReady_ AND past the settle window)
     double settleUntil_ = 0.0;   // clock time the settle window ends (== firstReady if no boundary)
+
+    // E3 — the persistent heading bias (header note). EXACTLY 0.0 on any tree with no
+    // heading-providing corrector, which is what the bit-identity early-outs key on.
+    double headingBias_ = 0.0;
+    double appliedHeadingNudge_ = 0.0;  // this tick's net bias change, for AppliedCorrection::dtheta
 };
 
 }  // namespace shulib::localization

@@ -1,0 +1,51 @@
+#pragma once
+//
+// ProsCharSink — ICharSink over the V5's USB serial (chunk R1a): where
+// TermSink's diagnostic bytes physically go on the robot (`pros terminal`
+// displays them).
+//
+// BINDS: newlib stdout via std::fwrite + std::fflush. The PROS kernel wires
+// stdout to the USB serial, so this adapter deliberately includes NO <pros/*>
+// header at all — it lives under hal/pros/ because it is the ON-ROBOT sink
+// (and so the PROS-free guard's one exemption covers it if it ever needs the
+// direct serial API), but its only dependency is <cstdio>. This is the same
+// sink main.cpp carried privately as StdoutCharSink since C7, promoted to the
+// adapter tree so tests and future consumers share one implementation.
+//
+// CONTRACT (char_sink.hpp:31-32): bytes verbatim, synchronous on the caller's
+// task, MUST NOT throw — fwrite/fflush cannot throw. One write() call carries
+// one complete line (the FORMATTER's framing), and fwrite is atomic per call
+// at this layer, so lines never interleave.
+//
+// FLUSH PER WRITE, deliberately: boot-banner visibility is worth more than
+// buffered throughput here, and the diagnostics layer already rate-limits
+// (the C7 ruling, carried forward unchanged).
+//
+// The FILE* is injectable (default stdout) so a host test can hand it a
+// tmpfile() and assert exact bytes — the same injected-device pattern that
+// made TermSink's output a testable claim in the first place (char_sink.hpp
+// header).
+
+#include <cstdio>
+#include <string_view>
+
+#include "shulib/hal/char_sink.hpp"
+
+namespace shulib::hal::pros {
+
+class ProsCharSink final : public ICharSink {
+public:
+    /// `out` must outlive the sink; defaults to the V5 USB serial (stdout).
+    explicit ProsCharSink(std::FILE* out = stdout) : out_{out} {}
+
+    /// Verbatim bytes + flush. MUST NOT throw (contract) — and cannot.
+    void write(std::string_view text) override {
+        std::fwrite(text.data(), 1, text.size(), out_);
+        std::fflush(out_);
+    }
+
+private:
+    std::FILE* out_;
+};
+
+}  // namespace shulib::hal::pros

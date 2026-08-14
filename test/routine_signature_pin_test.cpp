@@ -40,9 +40,12 @@
 
 #include "doctest.h"
 
+#include <cstdio>
 #include <initializer_list>
 #include <span>
+#include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include "shulib/chassis/routine.hpp"
 #include "shulib/version.hpp"
@@ -163,6 +166,76 @@ concept F10WaitFor = requires {
 SHULIB_F10_PIN(F10WaitFor<Routine>,
                "Routine::waitFor(Pred&&, units::Time, const char*) -> Routine&");
 
+// ── the OTHER half of the noexcept shape (added by the reviewer at F1 verification) ─
+// D2 closed hole #1 — a static_cast that ADDS noexcept is accepted, so the cast
+// alone cannot see noexcept being DROPPED — with compound `{ call } noexcept`
+// requirements on the four observers below. The INVERSE was left open: the eleven
+// STEPS are not noexcept, nothing asserted they stay that way, and the same cast
+// permissiveness makes an ADDED noexcept invisible to their pins.
+//
+// version.hpp calls a change to a frozen signature's "noexcept shape" BREAKING —
+// in EITHER direction. It changes the member's type (a user taking &Routine::pause
+// into a typed pointer breaks), and it converts a precondition throw into
+// std::terminate.
+//
+// MEASURED before this was written, by adding noexcept to Routine::pause: the F10
+// pin never fired. The build did fail — but on the api-doc FRESHNESS gate, naming
+// the wrong problem; and after regenerating the reference exactly as that gate
+// instructs, the only remaining signals were a doc-fidelity test with a hardcoded
+// signature and a SIGABRT (pause calls wait(), which throws on nonsense input, and
+// a throw from a noexcept function terminates). A reader would have debugged a
+// crash in a test about precondition handling and never seen the words F10 FREEZE
+// VIOLATION. For a frozen member that is neither in the generated reference nor
+// calls anything throwing, the change would be entirely SILENT.
+#define SHULIB_F10_NOT_NOEXCEPT(expr, member)                                        \
+    static_assert(!noexcept(expr),                                                   \
+                  "F10 FREEZE VIOLATION: " member " GAINED noexcept. A change to a " \
+                  "frozen signature's noexcept shape is BREAKING IN EITHER "         \
+                  "DIRECTION (include/shulib/version.hpp): it changes the member's " \
+                  "type, and it turns a precondition throw into std::terminate. "    \
+                  "Accidental? Revert. Intended? Bump kApiMajor, write the "         \
+                  "migration note, update Freeze Register row F10, THEN this pin.")
+
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().startAt(std::declval<const Pose2d&>()),
+                        "Routine::startAt");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().moveTo(std::declval<const Pose2d&>(),
+                                                        std::declval<const MotionOptions&>()),
+                        "Routine::moveTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().driveTo(std::declval<Length>(),
+                                                         std::declval<Length>(),
+                                                         std::declval<const MotionOptions&>()),
+                        "Routine::driveTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().strafeTo(std::declval<Length>(),
+                                                          std::declval<Length>(),
+                                                          std::declval<const MotionOptions&>()),
+                        "Routine::strafeTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().turnTo(std::declval<Angle>(),
+                                                        std::declval<const MotionOptions&>()),
+                        "Routine::turnTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().face(std::declval<Length>(),
+                                                      std::declval<Length>(),
+                                                      std::declval<const MotionOptions&>()),
+                        "Routine::face");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().followTrajectory(std::declval<std::span<const Pose2d>>(),
+                                              std::declval<const MotionOptions&>()),
+    "Routine::followTrajectory(span)");
+SHULIB_F10_NOT_NOEXCEPT(
+    std::declval<Routine&>().followTrajectory(std::declval<std::initializer_list<Pose2d>>(),
+                                              std::declval<const MotionOptions&>()),
+    "Routine::followTrajectory(braces)");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().brake(std::declval<const MotionOptions&>()),
+                        "Routine::brake");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().hold(std::declval<Time>(),
+                                                      std::declval<const MotionOptions&>()),
+                        "Routine::hold");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().pause(std::declval<Time>()),
+                        "Routine::pause");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().waitFor(std::declval<PredPtr>(),
+                                                         std::declval<Time>(),
+                                                         std::declval<const char*>()),
+                        "Routine::waitFor");
+
 // ── the whole-chain verdict (every one noexcept — see the header note) ────────────
 template <typename R>
 concept F10Ok = requires(const R& r) {
@@ -243,6 +316,10 @@ SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::WaitTimedOut) == 2,
                "RoutineStopCause::WaitTimedOut == 2 (append-only enum)");
 SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::ActionFailed) == 3,
                "RoutineStopCause::ActionFailed == 3 (append-only enum)");
+SHULIB_F10_PIN(static_cast<int>(RoutineStopCause::MechanismFailed) == 4,
+               "RoutineStopCause::MechanismFailed == 4 (append-only enum; APPENDED at F1 "
+               "via the sanctioned additive path — a re-meaning of it is what this pin "
+               "would catch)");
 
 // ── the defaulted call spellings (default args are not part of a function type) ───
 template <typename R>
@@ -291,11 +368,31 @@ SHULIB_F10_PIN(!F10ConstStep<Routine>,
 // The pins above are the test; this case exists so the file registers in the
 // runner and records what the freeze is hung off.
 // Bug caught: F10 flips to LOCKED while the version mechanism the register
-// promises does not exist or no longer says 2.0.
-TEST_CASE("F10 pin: the frozen Routine surface is API 2.0 and the mechanism exists") {
+// promises does not exist or no longer says major version 2.
+// HISTORY (fixed at F1): originally asserted `kApiMinor == 0` — the same
+// conflation as the F6 twin (see f6_signature_pin_test.cpp): it made the
+// documented ADDITIVE path (appending a RoutineStopCause enumerator, which
+// routine.hpp:145 explicitly anticipates for F1/F3) fail the pin that exists
+// to guard the FROZEN surface. Additive growth bumps kApiMinor and must never
+// fail this pin; a major bump still does, loudly, as intended.
+// SECOND FIX (reviewer, at F1 verification) — the same repair as the F6 twin,
+// and for the same reason: F1's fix traded a too-strict check for a too-weak
+// one. `kApiMinor >= 0` cannot fail (int), and a one-character check on
+// kApiVersionString cannot see the token drifting from the numbers. Measured:
+// kApiMinor = 1 with the string left at "2.0" passed all three former lines.
+//
+// Bug now caught: the printable version and the numeric version disagree.
+// That token is what a session header prints (main.cpp TODO(R1)), so a desync
+// mislabels every on-robot transcript and blackbox file.
+//
+// kApiMinor is deliberately unpinned — additive growth is legal. Saying so is
+// the point; a vacuous assertion says it in a way that looks like a test.
+TEST_CASE("F10 pin: the frozen Routine surface is API major 2 and the mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
-    CHECK(shulib::kApiMinor == 0);
-    CHECK(shulib::kApiVersionString[0] == '2');
+
+    char expected[16];
+    std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
+    CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
 }
 
 }  // namespace

@@ -85,9 +85,16 @@ r.turnTo(0_deg, {.timeout = 3_s}).strafeTo(0_in, 18_in, {.timeout = budget});
 
 - **`strafeAuthority()` is the fraction of the linear speed budget the drivetrain can sustain
   sideways** — 1.0 on an X-drive, about 0.35 on the H-bot in these examples, 0 on a tank. It is a
-  read-only property of the drivetrain, exactly the number you need at authoring time.
+  read-only query, available at authoring time. **But read what it is honest about:** on an
+  H-drive it returns `strafeSpeedRatio × strafeTractionDerate`, and both are values *you*
+  configured. The library is not measuring your robot's real sideways grip — the shipped derate
+  (0.35) is an invented placeholder, registered as such, and nobody has measured one on a
+  physical H-drive. Treat the budget it produces as an estimate built on your own number.
 - **`motionConfig().maxLinearSpeed` is the speed the leg will actually run at**, so the two
-  together give the achievable sideways speed. Multiplying by the distance gives travel time.
+  together give the achievable sideways speed — and **dividing the distance by it** gives travel
+  time, which is what the helper above does. (This bullet said *multiplying* until DOCS1. Speed
+  times distance is in²/s, not seconds, and a reader who followed the prose instead of the code
+  would compute a budget wrong by a factor of the speed squared.)
 - **`safety` covers what the arithmetic does not model**: acceleration, deceleration, and the
   settle at the end. A factor of 3 is generous on purpose — a timeout is a bound, not a schedule,
   and a leg that finishes early costs nothing.

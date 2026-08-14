@@ -80,9 +80,9 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 | Per-motion result line (target vs final · overshoot · drift · time · exit-reason) | C5 |
 | Session header (git hash, routine id, alliance, port map, battery start) | C5 |
 | End-of-run summary block | C5 |
-| `SdSink` — binary blackbox to `/usd/` | E1 |
-| Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 |
-| Latched brownout marker + graceful-end contract | E1 |
+| `SdSink` — binary blackbox to `/usd/` | E1 ✅ (the sink, the format and the decoder; the `/usd/` adapter itself is R1's — E1 ships `hal::IBlockSink` and a host fake) |
+| Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 → **E4 ✅** (E1 built and proved the PATH with a synthetic corrector; E2/E3 filled the residuals and the corrector-side reasons; **E4 filled the last two slots from a real filter covariance** — `gateMahalanobis` from `S = H P Hᵀ + R` and `covarianceTrace` as the position block in in². Both are re-read from decoded blackbox bytes. Zero on complementary-tier records by design, so old files keep their meaning) |
+| Latched brownout marker + graceful-end contract | E1 ✅ |
 | `SHUL/2` wire protocol (**F9 freeze**) | H1 |
 | Run record/replay | H2 |
 | On-brain live PID/FF tuner | H3 |
@@ -146,26 +146,48 @@ self-audit (a NaN/over-ceiling volt never reaches a motor). Honest scope: the po
 ADVISORY (never rewrites the pose — principle 4); "wheel commands consistent with the commanded
 twist" is implemented as finite-and-within-battery-ceiling per wheel, not a full inverse-kinematics
 consistency proof (that needs E-phase estimator introspection). `test/plausibility_test.cpp` incl.
-the hostile-pipeline wiring case (born from a green mutation — C5-COMPLETED §mutations).
+the hostile-pipeline wiring case (born from a green mutation — C5's completion record,
+mutations section, in the development log).
 
 ### For E1 (with `SdSink`)
 
-**D-6. Flight recorder — the highest-value item in this document.** Keep the last N ticks in a RAM ring
-buffer at all times, and **dump only when a fault fires**. Competition builds cannot afford
-always-on logging, but when something breaks, the 200 ticks *before* the fault are exactly what you
-need and exactly what you don't have. Pairs naturally with `SdSink` (it becomes the dump target) and
-with `FaultLatch` (the first fault becomes the trigger).
+**D-6. ✅ DELIVERED at E1 (2026-08-12). Flight recorder — the highest-value item in this document.**
+Keep the last N ticks in a RAM ring buffer at all times, and **dump only when a fault fires**.
+Competition builds cannot afford always-on logging, but when something breaks, the 200 ticks
+*before* the fault are exactly what you need and exactly what you don't have.
 *Schema: no — it stores existing records.*
+*As built:* `diag::SdSink` — a caller-owned ring (default depth 200, HA-58) that records every
+record and writes NOTHING until a fault arrives; the dump is triage-first, then the preceding
+ticks oldest-first. The trigger is `DebugRecord::fault`, which E1 also had to give a producer:
+that field had **none** anywhere in the tree, so the trigger this item assumed would exist did
+not (`motion/motion_scheduler.hpp`, `CommandIdStampSink`). `test/sd_sink_test.cpp`.
 
-**D-7. Fault-triggered dump + post-run auto-triage.** On fault, flush the flight recorder and emit a
-short triage block: which fault, at what tick, what the state was, what preceded it. The end-of-run
-summary answers "how did it go"; this answers "why did it break."
+**D-7. ✅ DELIVERED at E1 (2026-08-12). Fault-triggered dump + post-run auto-triage.** On fault,
+flush the flight recorder and emit a short triage block: which fault, at what tick, what the state
+was, what preceded it. The end-of-run summary answers "how did it go"; this answers "why did it
+break."
 *Schema: no.*
+*As built:* one `blackbox::TriageInfo` value, rendered TWICE from the same data — into the
+blackbox file (a Triage frame carrying the fault, its time, its tick index, the preceding-tick
+count, the latched brownout marker, and the complete record of the fault tick) and onto the
+terminal as two `[ERROR][TRI]` lines (`diag/triage.hpp`), printed by `RunReporter::finishRun()`
+after the summary and only when a dump actually happened. `test/blackbox_introspection_test.cpp`.
 
-**D-8. Routine-level watchdog.** C1/C2 bound each *motion*. Nothing yet bounds a whole *routine*.
-Composes with F2's guaranteed-park guard — the park must fire even if the routine as a whole wedges,
-not merely if one motion does.
+**D-8. DELIVERED at F2 (2026-08-13).** Routine-level watchdog. C1/C2 bound each *motion*;
+nothing bounded a whole *routine* until `sequence/run_guard.hpp`: a run-scoped deadline owner
+that is ALSO the guaranteed end-of-run action — one primitive, two policies (report/latch, and
+act), exactly the composition this entry predicted. The guard cuts the active motion at the
+caller's deadline, refuses motions after it, reports through its own `RunGuardReport` + `SEQ`
+log lines, and force-safes everything at a second, unconditional instant.
 *Schema: no.*
+*The remainder, named with owners:* the FROZEN F10/F6 waits cannot be cut (they pay their own
+remaining budget — guide ch. 9 documents the bound; revisiting needs an F10 major bump, owner:
+whoever next reopens F10), and nothing preempts pure user code (no background tasks — a standing
+decision, not a gap with an owner). *Why E1 left it* (kept for the record): it shares nothing
+with the blackbox but the word "diagnostics"; the deadline needed an owner that outlives a
+motion, which was F2's question — per the D3 completion record's §2.1 ruling (the opt-in,
+inert-by-default instruction the guard now obeys; an earlier revision of this entry mis-cited
+that ruling to the D2 record).
 
 ### For H2 (with record/replay)
 
@@ -225,7 +247,7 @@ for items already on this list, plus one genuinely uncovered detector:
 | Chunk | Items |
 |---|---|
 | **C5** | ✅ DONE (2026-08-10): D-1, D-2, D-3, D-4, D-5 — **and the schema fields for D-2 and D-3 are reserved** (discharge table at the top) |
-| **E1** | D-6, D-7, D-8 |
+| **E1** | ✅ DONE (2026-08-12): D-6, D-7 — plus the `SdSink` blackbox, its decoder, and the estimator-introspection path. **D-8 NOT done** and re-homed to F2 (reason in its entry above) |
 | **H1** | *(F9 freeze — everything above HAS its fields in as of C5; the discharge table is the inventory to freeze)* |
 | **H2** | D-9, D-10, D-11 |
 | **Frontier** | D-12, D-13 |

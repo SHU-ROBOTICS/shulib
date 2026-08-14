@@ -69,11 +69,17 @@ CHECK(std::string{r.result().stoppedName} == "long-approach");
 CHECK(r.result().skipped == 2);
 ```
 
-**Why it is written this way.** `then()` accepts actions returning `void`, `bool`, or
-`ExitReason`. The `ExitReason` form exists for exactly this: gluing a full-API call into a chain
-without translating its verdict into something coarser. The cause is reported as `ActionFailed`
-rather than `MotionFailed` — the chain is telling the truth about *what it ran*, which was your
-action — but the motion's own `TimedOut` survives in `exit`.
+**Why it is written this way.** `then()` accepts actions returning `void`, `bool`, `ExitReason`,
+or — since the mechanism seam landed — a `MechanismOutcome`. The `ExitReason` form exists for
+exactly this: gluing a full-API call into a chain without translating its verdict into something
+coarser. The cause is reported as `ActionFailed` rather than `MotionFailed` — the chain is telling
+the truth about *what it ran*, which was your action — but the motion's own `TimedOut` survives in
+`exit`.
+
+The fourth form is worth knowing even if you are not using mechanisms yet: for a
+`MechanismOutcome`, **only `Succeeded` continues the chain**, so an *unconfirmed* grab can never
+read as success. That distinction is the whole reason the mechanism layer reports an outcome
+rather than a bool ([guide Chapter 13](../guide/13-extending-the-library.md)).
 
 **When you want the unguarded form instead:** when the whole point is to branch yourself. "Try
 the fast route; if it times out, take the slow one" is a decision the chain cannot make, so make

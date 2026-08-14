@@ -36,11 +36,30 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 0 of 57 settled.** No robot exists. Counts: **38 invented · 16 reasoned · 2 measured
-> elsewhere · 1 mixed** (HA-44: documented shape, unmeasured onset). HA-50–52 added by chunk C1,
+> **Status: 7 of 122 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. **No *v2* robot exists**, and
+> the platform layer has now been validated on the team's old competition bot — real adapters
+> commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
+> closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
+> documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
-> controller-screen grid), per the Maintenance convention.
+> controller-screen grid), HA-58–60 by chunk E1 (the blackbox's flight-recorder depth, RAM
+> budget and assumed SD write cost — every magnitude in that chunk is a guess until R4),
+> HA-61–67 by chunk E2 (the GPS corrector's tuning set), **HA-68–82 by chunk E3** (the
+> AprilTag path — of which three, HA-68/69/70, are about the physical world rather than tuning
+> and are the most dangerous entries in this document: each produces a *confidently* wrong fix
+> rather than a degraded one), HA-83–91 by chunk E4 (the EKF's noise model — every number
+> invented), HA-92–93 by chunk F1 (the mechanism layer's physics), and **HA-94–112 by chunk
+> R1a** (the beliefs about PROS itself that the `hal/pros` adapters and their host shim are
+> built on — the shim tests the adapters against these beliefs; ONLY a bench tests the
+> beliefs), and **HA-113–122 by chunk R1b** (the same class of belief for the mechanism-sensor
+> adapters: distance, optical, ADI digital lines, and the SD card — including two flagged-weak
+> halves the vendored source does not state: proximity's polarity, HA-117, and fopen's `/usd/`
+> prefix, HA-122), per the Maintenance convention.
+> *(This status line was found stale at R1a — it read "0 of 82" while the register held 93
+> entries: E4's and F1's additions never updated it. Corrected here; the per-chunk narrative
+> above is the part a tool cannot regenerate, so it is the part that must be tended.)*
 
 ---
 
@@ -105,6 +124,71 @@
 | HA-55 | 15″ H-bot stand-in geometry (11″ track, strafe wheel 4″ aft, 1:1 strafe gearing) | **invented** | R3 |
 | HA-56 | D-5 plausibility envelope defaults (maxSpeed 150 in/s, maxYawRate 20 rad/s, ×1.5 margin) | reasoned | R3/R5 |
 | HA-57 | V5 controller text grid is 3 rows × 19 columns (`ILineDisplay` geometry) | reasoned | R1 |
+| HA-58 | Flight-recorder depth: 200 ticks (~2 s) reaches back past a fault's cause | **invented** | R4 |
+| HA-59 | 64 KiB of RAM is spendable on the blackbox staging buffer | **invented** | R4 |
+| HA-60 | An SD flush of tens of KB costs single-digit ms (fine at a boundary, not in a tick) | **invented** | R4 |
+| HA-61 | GPS `rmsError()` must be inflated ×2 to be used as sigma (claim ≠ truth) | **invented** | R4 |
+| HA-62 | 0.5″ floor on the GPS measurement sigma | **invented** | R4 |
+| HA-63 | A fix claiming > 6″ of error is not worth folding | **invented** | R4 |
+| HA-64 | 3 rad/s (≈172°/s) is where a GPS fix stops being trustworthy | **invented** | R4 |
+| HA-65 | 4σ normalized-innovation gate width | **invented** | R4 |
+| HA-66 | The estimate is ≈1″ uncertain immediately after a fix is folded | **invented** | R4/E4 |
+| HA-67 | Dead-reckon sigma grows ≈0.02″ per inch travelled (the anti-lockout term) | **invented** | R4 |
+| HA-68 | The field's AprilTag layout is knowable and a team's map is right to ≈0.5″ | **invented** | R3 |
+| HA-69 | The tag detector reports its four corners in a consistent, knowable WINDING | reasoned | R2/R3 |
+| HA-70 | The tag camera is mounted level (no pitch/roll) to within ≈1° | **invented** | R3 |
+| HA-71 | Tag pipeline latency ≈ 80 ms (exposure + detect + PnP + transport) | **invented** | R4 |
+| HA-72 | A tag frame older than 0.25 s means the vision task has stalled | **invented** | R4 |
+| HA-73 | A tag fix is trustworthy only between 6″ and 72″ of range | **invented** | R4 |
+| HA-74 | A tag detection below 0.35 confidence is not worth folding | **invented** | R4 |
+| HA-75 | 2 rad/s (≈115°/s) is where motion blur kills a tag fix | **invented** | R4 |
+| HA-76 | Tag position 1σ ≈ 1.0″ + 0.02″ per inch of range | **invented** | R4 |
+| HA-77 | 4σ normalized-innovation gate width for tag fixes | **invented** | R4 |
+| HA-78 | The estimate is ≈1″ uncertain immediately after a tag fix | **invented** | R4/E4 |
+| HA-79 | Dead-reckon sigma grows ≈0.02″ per inch since this source's last fix | **invented** | R4 |
+| HA-80 | A heading innovation above 15° is a fault, not drift | **invented** | R4/E4 |
+| HA-81 | 0.15 of the heading innovation per tick at confidence 1 | **invented** | R4/E4 |
+| HA-82 | 10°/s is a safe upper bound on estimator heading-bias change | **invented** | R4/E4 |
+| HA-83 | EKF position process noise: σ grows 2% of distance travelled, + a 0.5 in/s floor | **invented** | R4 |
+| HA-84 | EKF heading process noise: σ grows 1% of rotation, + HA-20's 1°/min drift | **invented** | R4 |
+| HA-85 | The drive can change body velocity by 200 in/s² (the EKF's velocity process noise) | **invented** | R4/R5 |
+| HA-86 | One tick's odometry displacement is 1σ ≈ 0.01 in + 2% of the tick's travel | **invented** | R4 |
+| HA-87 | 3σ is the right Mahalanobis gate width for the EKF tier | **invented** | R4 |
+| HA-88 | An absolute heading measurement is 1σ ≈ 2°, flat | **invented** | R4 |
+| HA-89 | The EKF's prior when it knows nothing: 24 in, 30°, 24 in/s | **invented** | R4 |
+| HA-90 | 50 consecutive gate rejections with a mean innovation over 6 in means "lost" | **invented** | R4 |
+| HA-91 | 5 s is long enough between re-init declarations to tell recovery from a storm | **invented** | R4 |
+| HA-92 | `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive | **invented** | R3/R5 |
+| HA-93 | A jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command, with ≈ 0.05 rad/s residual creep | **invented** | R4 |
+| HA-94 | Motor `move_voltage()` takes millivolts, ±12000 | **settled** measured-on-comp-bot 2026-08-13: 2.0 V commanded → device reported 1823–1990 mV under load | R3 |
+| HA-95 | Motor `get_position()` with `MotorUnits::degrees` reports output-shaft degrees | **settled** measured 2026-08-13: deg/rad = 57.296 on all 8 motors (57.2958 exact) | R3 |
+| HA-96 | Motor `get_actual_velocity()` returns output-shaft RPM | **settled** measured 2026-08-13: rpm/(rad/s) = 9.549 (9.5493 exact) | R3 |
+| HA-97 | Motor `get_current_draw()` returns mA | **settled** measured 2026-08-13: mA/A = 1000.0 exactly, 8 motors | R3 |
+| HA-98 | Motor units/gearing live in the DEVICE and persist across programs; explicit set + read-back holds | **partial** 2026-08-13: set+read-back accepted on 8 motors (no precondition fired); PERSISTENCE across programs NOT tested, so this stays open | R3 |
+| HA-99 | Battery voltage/current are mV/mA — units NOT in the vendored source (website only) | **settled** measured 2026-08-13: raw 13039 → 13.04 V, raw 919 → 0.92 A. R1a's weakest belief, now observed | R3 |
+| HA-100 | `battery_get_capacity()` returns percent 0–100 | **settled** measured 2026-08-13: raw 91.0 → 0.91 | R3 |
+| HA-101 | `micros()` is µs since program start, monotonic, uint64 | **settled** measured 2026-08-13: 999784 µs over a nominal 1000 ms delay (0.02% low) | R3 |
+| HA-102 | `Task::delay_until(prev, 10)` yields an anchored 100 Hz cadence | reasoned | R3 |
+| HA-103 | Controller axes are [-127, 127]; disconnected reads 0, not a sentinel | reasoned | R3 |
+| HA-104 | `get_digital()` is a level; `get_digital_new_press()` CONSUMES the press | reasoned | R3 |
+| HA-105 | Rotation `get_velocity()` returns centidegrees/second | reasoned | R3 |
+| HA-106 | `gps_status_s_t.yaw` is the CW-from-North heading in degrees | reasoned | R3 |
+| HA-107 | Controller LCD columns: 19 (HA-57) vs the vendored doc's [0-14] ⇒ 15 — CONFLICT | **invented** | R3 |
+| HA-108 | `Imu::reset(false)` starts calibration; one boot-time call is not a post-cal tare | reasoned | R3 |
+| HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
+| HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
+| HA-111 | main.cpp's port map and motor direction signs match the robot | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. main.cpp still carries the invented map | R3 |
+| HA-112 | Teleop stick mapping signs + 0.05 deadband are drivable | **invented** | T2/R3 |
+| HA-113 | Distance `get_distance()` returns millimeters | reasoned | R3 |
+| HA-114 | Distance "no object" is the IN-BAND integer 9999, not PROS_ERR | reasoned | R3 |
+| HA-115 | Distance `get_confidence()` is 0–63, only available above 200 mm; its value at/below 200 mm is UNKNOWN | reasoned | R3 |
+| HA-116 | Optical hue is 0–359.999°, saturation/brightness are 0–1.0 | reasoned | R3 |
+| HA-117 | Optical `get_proximity()` 0–255, LARGER = CLOSER — polarity NOT in the vendored doc | **invented** | R3 |
+| HA-118 | Optical sentinels: PROS_ERR_F on the double channels, PROS_ERR on proximity | reasoned | R3 |
+| HA-119 | ADI `DigitalOut` DRIVES THE LINE AT CONSTRUCTION (init_state, PROS default LOW); `set_value` is 1/0, PROS_ERR on refusal | reasoned | R3 |
+| HA-120 | ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H'; expander via {smart, adi} pairs; whether OUR robot has an expander is UNKNOWN | reasoned | R3 |
+| HA-121 | ADI `DigitalIn::get_value()` is a level (PROS_ERR on refusal); `get_new_press()` CONSUMES the press | reasoned | R3 |
+| HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | reasoned | R3 |
 
 ---
 
@@ -203,7 +287,15 @@ a config constant **by design** — a correction here never touches the core.
 - [ ] **HA-07 — `pros::Gps::get_error()` returns METERS.**
   *Claim:* the device's self-reported rms error is in meters and must scale ×39.37 to inches at
   the HAL edge.
-  *Source:* `include/shulib/hal/gps_conversion.hpp:39–40`.
+  *Source:* `include/shulib/hal/gps_conversion.hpp` — `gpsRmsErrorToCanonical()`.
+  **Changed at E2:** from A4 until E2 this obligation existed only as PROSE in that header, with
+  no function performing it and no test pinning it — an instruction addressed to a future adapter
+  author, guarding the most dangerous silent factor in the GPS path. E2 gave it a function and an
+  independent test. The test asserts against the DEFINITION of the inch (0.0254 m ≡ 1 inch)
+  rather than against `kMetersToInches`, because the pre-E2 conversion tests imported that
+  constant from the header under test — so a wrong constant would have satisfied both sides of
+  the comparison. That hole is closed; the ASSUMPTION (that PROS really returns metres) is not,
+  and still needs R3.
   *Confidence:* reasoned — PROS documents meters; unverified against a live device.
   *Settle (R3):* read `get_error()` on-strip; a healthy fix should report ~0.01–0.05 (meters), not
   ~1–2 (inches already).
@@ -364,6 +456,405 @@ a config constant **by design** — a correction here never touches the core.
   the brain instead resets, the park guard cannot exist as designed and F2's scheduling approach
   needs a rethink (e.g., park earlier on a voltage trend, not at collapse). NOT contained by a
   constant — this is why it must be settled at R3, before F2's design is trusted on a field.
+
+### R1a's additions — the beliefs about PROS the adapters are built on
+
+Every row of the `hal/pros` unit table and every semantic in the host shim
+(`test` tree, PROS stand-ins) is one of these. The shim can only prove the adapters agree
+with these beliefs — it can never prove the beliefs. The R1a bench runbook walks them in
+dependency order (battery scale before anything drives, signs before any closed loop).
+
+- [x] **HA-94 — `move_voltage()` takes MILLIVOLTS in [-12000, 12000]. SETTLED.**
+  *Claim:* the argument is mV; 6 V of command is `move_voltage(6000)`.
+  *Source:* vendored `include/pros/motors.hpp:234` ("from -12000 to 12000 in millivolts");
+  `include/shulib/hal/motor_conversion.hpp` (`motorVoltageToMillivolts`, the one ×1000).
+  *Confidence:* **settled** — was: reasoned, documented in the vendored source, unverified.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* 2.0 V commanded through the real `ProsMotor`; the
+  device reported 1823–1990 mV under load across eight motors. The shortfall is not an error —
+  `commandedVoltage()` reports what was *applied*, and a motor under load on a sagging battery
+  applies less.
+  *(Settled by R3 runbook step 4.)*
+  *Blast radius if wrong:* every command 1000× off — the robot either hums in place or
+  saturates instantly. **Contained:** one conversion function; caught in the first minute of
+  the bench.
+
+- [x] **HA-95 — `get_position()` with `MotorUnits::degrees` reports OUTPUT-SHAFT degrees. SETTLED.**
+  *Claim:* after the adapter sets degrees, position is the output shaft's cumulative degrees
+  (gearset already accounted for by firmware).
+  *Source:* vendored `motors.hpp:628` ("absolute position in its encoder units");
+  `hal/pros/motor.hpp` (the degree→radian binding).
+  *Confidence:* **settled** — was: reasoned, with *output-shaft* the weaker half.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* deg/rad = **57.296** on all eight motors (57.2958 exact).
+  The output-shaft half is confirmed: the ratio carries no cartridge factor.
+  *(Settled by R3 runbook step 4.)*
+  *Blast radius if wrong:* odometry scaled by the cartridge ratio (6:1/18:1/36:1) — silently,
+  nothing crashes. **Contained:** adapter-only.
+
+- [x] **HA-96 — `get_actual_velocity()` returns output-shaft RPM. SETTLED.**
+  *Claim:* the double is RPM at the output shaft (gearset-corrected by firmware).
+  *Source:* vendored `motors.hpp:404`; `motor_conversion.hpp` (`motorRpmToCanonical`, ×2π/60).
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* rpm/(rad/s) = **9.549** (9.5493 exact).
+  *(Settled by R3 runbook step 4.)*
+  *Blast radius if wrong:* feedforward and the stall cross-check read speeds ~9.5× off.
+  **Contained:** one conversion.
+
+- [x] **HA-97 — `get_current_draw()` returns milliamps. SETTLED.**
+  *Claim:* the int32 is mA; a stalled 11 W motor reads ~2500.
+  *Source:* vendored `motors.hpp:426` ("in mA"); `motor_conversion.hpp`
+  (`motorMilliampsToCanonical`).
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* mA/A = **1000.0** exactly, across eight motors.
+  *(Settled by R3 runbook step 5.)*
+  *Blast radius if wrong:* stall/capture detection fires always or never — every
+  sensor-confirm operation lies. **Contained:** one conversion.
+
+- [ ] **HA-98 — motor units/gearing are DEVICE state, persist across programs, and an explicit
+  set + read-back holds. PARTIALLY SETTLED — the persistence half is still open.**
+  *Claim:* the ctor-default `invalid` means "leave as is"; a previous program's configuration
+  survives; setting degrees+gearset then reading both back proves the device accepted them.
+  *Source:* vendored `motors.hpp:74-75`; `hal/pros/motor.hpp` (ctor read-back preconditions);
+  the shim's adversarial rotations/red defaults model exactly this hazard.
+  *Confidence:* **partially settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* the explicit set + read-back was accepted on all
+  eight motors with no precondition firing, so that half holds. **Persistence across programs
+  was NOT tested** and stays open — which is the half the adapter's whole ctor discipline
+  exists for, so it is the half that matters. Do not read this row as closed.
+  *Settle (R3, runbook steps 0/1/4):* boot with a correct map (read-backs pass); boot with one
+  wrong port (read-back faults loudly).
+  *Blast radius if wrong (adapter skips the discipline):* a motor left in rotations reads 1/360
+  — odometry wrong by 360× with nothing crashing. **Contained:** ctor discipline + mutation-
+  proven test (campaign M5).
+
+- [x] **HA-99 — battery voltage/current are mV/mA. SETTLED — and it was R1a's weakest belief.**
+  *Claim:* `battery_get_voltage()` ≈ 12600 on a fresh pack (mV); `battery_get_current()` is mA.
+  *Source:* vendored `misc.h:718-750` — which documents **NO UNIT AT ALL** ("the current
+  voltage of the battery"); the mV/mA belief is from PROS's website documentation only.
+  `hal/pros/battery.hpp` carries the warning in its header.
+  *Confidence:* **settled** — was: reasoned and flagged as the only load-bearing unit in R1a
+  that the vendored source does not state at all.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* raw **13039 → 13.04 V**, and raw 919 → 0.92 A.
+  The website-only belief was right. *(Settled by R3 runbook step 2, before anything drove.)*
+  *Blast radius if wrong:* a 1000× error silently destroys brownout compensation, which scales
+  EVERY motor command. **Contained:** one adapter, but only if checked before driving — hence
+  the runbook ordering.
+
+- [x] **HA-100 — `battery_get_capacity()` returns percent 0–100. SETTLED.**
+  *Claim:* the double is a percentage; the adapter's ÷100 lands `IBattery::capacity()` in [0,1].
+  *Source:* vendored `misc.h:771-787` (unit again undocumented; "Battery Level" example);
+  `hal/pros/battery.hpp`.
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* raw **91.0 → 0.91**.
+  *(Settled by R3 runbook step 2.)*
+  *Blast radius if wrong:* capacity() pegged at 1.0 by the clamp (a fraction read as percent)
+  — misleading telemetry, no control impact today. **Contained.**
+
+- [x] **HA-101 — `micros()` is microseconds since program start, monotonic, uint64. SETTLED.**
+  *Claim:* `IClock::now()` = micros()×1e-6 is a monotonic seconds stream; uint64 µs cannot wrap
+  in a robot's lifetime (~584 000 years).
+  *Source:* vendored `rtos.h:241`; `hal/pros/clock.hpp` (which also records WHY not millis():
+  1 ms quantization is 10% of the 10 ms tick — a 10% error in every PID derivative).
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* **999 784 µs** over a nominal 1000 ms delay — 0.02% low.
+  Monotonicity and the uint64 width were not separately exercised.
+  *(Settled by R3 runbook step 3.)*
+  *Blast radius if wrong:* every dt in every controller — global, but impossible to miss on
+  the bench. **Contained:** one adapter.
+
+- [ ] **HA-102 — `Task::delay_until(prev, 10)` yields an anchored 100 Hz cadence.**
+  *Claim:* wake at `*prev + delta` with `*prev` updated to the wake instant, so tick processing
+  time does not stretch the period (unlike `delay(10)`, which drifts by the work done).
+  *Source:* vendored `rtos.hpp:742-747`; `hal/pros/tick_pacer.hpp`.
+  *Confidence:* reasoned — documented semantics; unmeasured under our stack's load (that half
+  is HA-32/HA-34's).
+  *Settle (R3, runbook step 12):* LoopMonitor dt stats over 60 s idle ≈ 10 ms mean.
+  *Blast radius if wrong:* the loop runs slow by the tick body's cost and every profile
+  integrates the error. **Contained:** one adapter.
+
+- [ ] **HA-103 — controller axes are [-127, 127]; a DISCONNECTED controller reads 0, not a
+  sentinel.**
+  *Claim:* full deflection is ±127 (÷127 → exactly ±1), and disconnection is reported ONLY by
+  `is_connected()` — the channels just read 0.
+  *Source:* vendored `misc.hpp:85-86` (both halves documented); `controller_conversion.hpp`;
+  `hal/pros/controller.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 10):* full stick = ±1.00 in telemetry; pull the controller
+  mid-stick — the robot must stop via isConnected(), not keep driving on a stale value.
+  *Blast radius if wrong:* the range half is cosmetic (clamped); the zero-on-disconnect half is
+  the dangerous one — without the validity signal a dropped controller looks like centred
+  sticks. **Contained:** the seam carries isConnected() precisely for this.
+
+- [ ] **HA-104 — `get_digital()` is a level; `get_digital_new_press()` CONSUMES the press.**
+  *Claim:* the new-press read clears per-device edge state, so with two consumers one silently
+  loses; binding levels + per-consumer `ButtonEdge` gives every consumer the press.
+  *Source:* vendored `misc.hpp:173-212`; `hal/controller.hpp` (ButtonEdge);
+  `hal/pros/controller.hpp` (the ban, guard-tested).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 10):* hold a button — pressed() stays true (a level).
+  *Blast radius if wrong (adapter binds new_press):* the second consumer of any button misses
+  every press — an auton selector and a mechanism toggle fighting invisibly. **Contained:**
+  mutation-proven (campaign M10) + a textual guard.
+
+- [ ] **HA-105 — rotation `get_velocity()` returns centidegrees per second.**
+  *Claim:* same centidegree scale as position; π/18000 converts both.
+  *Source:* vendored `rotation.hpp:219-242`; `rotation_conversion.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 6):* hand-roll at a counted rate; velocity matches.
+  *Blast radius if wrong:* the odometry stall cross-check compares spin to travel with a wrong
+  scale on one side. **Contained:** one conversion.
+
+- [ ] **HA-106 — `gps_status_s_t.yaw` is the CW-from-North heading in degrees.**
+  *Claim:* the atomic status read's yaw field is the same quantity `get_heading()` documents
+  ([0,360) CW from North), so one status read gives position AND heading from one sample.
+  *Source:* vendored `gps.h:53-64` (field named "yaw", convention undocumented) +
+  `gps.hpp:598-608` (get_heading's convention); `hal/pros/gps.hpp` binds the status read.
+  *Confidence:* reasoned — the WEAKER half is that yaw ≡ heading's convention; the wrap range
+  is immaterial (the conversion wraps).
+  *Settle (R3, runbook step 13, strip required):* compare status.yaw against get_heading() and
+  against a physically known orientation.
+  *Blast radius if wrong:* every GPS pose's heading component wrong the same way — the E2
+  corrector's heading channel poisoned. **Contained:** one binding choice in one adapter.
+
+- [ ] **HA-107 — the controller LCD's real column count: HA-57 says 19, the vendored doc
+  implies 15. A CONFLICT, found at R1a, that only a screen can settle.**
+  *Claim (as shipped):* 19 columns (ILineDisplay::kCols, HA-57) is right and the vendored
+  `misc.hpp:322` col-parameter range "[0-14]" is a stale doc comment.
+  *Source:* `hal/line_display.hpp:18-21` (HA-57); vendored `misc.hpp:322`;
+  `hal/pros/line_display.hpp` (which truncates at kCols and records the conflict).
+  *Confidence:* **invented** — two written sources disagree and neither is a measurement.
+  *Settle (R3, runbook step 11):* display the 19-char ruler `0123456789ABCDEFGHI`; count
+  what shows. 15 visible → shrink kCols (one constant; the content layer already truncates
+  through the seam) and mark HA-57 settled-false.
+  *Blast radius if wrong:* the last 4 characters of every status row silently never display —
+  degraded, not dangerous (the same rows ride the serial log in full). **Contained:** one
+  constant.
+
+- [ ] **HA-108 — `Imu::reset(false)` starts calibration; a single boot-time call is the
+  calibration itself, not a post-cal tare.**
+  *Claim:* reset() begins the ~2 s calibration (HA-23), `is_calibrating()` covers it, and one
+  boot-time reset does not fall under HA-05's tare ban (which is about POST-calibration
+  re-zeroing under a live bootHeading).
+  *Source:* vendored `imu.hpp:141-145`; `hal/pros/imu.hpp` (calibrate(), single-call
+  precondition).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 7):* time isReady() false→true from boot.
+  *Blast radius if wrong (e.g., reset() is itself a tare-after-autocal):* a constant heading
+  offset from boot — caught by step 7's protractor check. **Contained:** one call site.
+
+- [ ] **HA-109 — `imu_gyro_s_t` is in deg/s and z is the yaw axis.**
+  *Claim:* the raw gyro struct's units are deg/s and its z component is rotation about
+  vertical. (The SIGN is HA-04's entry — undocumented, assumed CW-positive.)
+  *Source:* vendored `imu.hpp:438-468` + `imu.h:84-87` (neither documents units);
+  `hal/pros/imu.hpp` (the GyroRateZ branch).
+  *Confidence:* **invented** — units asserted from community usage, not from the source.
+  *Settle (R3, runbook step 8):* steady ~90°/s CW spin → |z| ≈ 90 raw and canonical ≈
+  −1.57 rad/s.
+  *Blast radius if wrong:* the alternate yaw-rate branch is garbage — but it is OFF by default
+  (differentiation is the default source) and the bench measures before anyone flips it.
+  **Contained by the default.**
+
+- [ ] **HA-110 — the IMU's as-mounted pitch/roll sign conventions.**
+  *Claim:* none yet, honestly: the adapter passes `get_pitch()`/`get_roll()` through unnegated
+  BECAUSE the convention is unmeasured; whatever the bench records becomes the convention the
+  tip detector is written against.
+  *Source:* `hal/pros/imu.hpp` (pitch()/roll(), the unnegated pass-through note).
+  *Confidence:* **invented** (a deliberate placeholder convention).
+  *Settle (R3, runbook step 9):* nose-up 10° on a book → record pitch's sign; left side up →
+  record roll's.
+  *Blast radius if wrong:* tip detection reads a climb as a dive — but no tip detector ships
+  yet, so today the radius is zero. Settle it before one does.
+
+- [ ] **HA-111 — `src/main.cpp`'s port map and motor direction signs match the robot.**
+  *Claim:* FL1 BL2 BR−3 FR−4 ROTF5 ROTL6 GPS9 IMU10, green cartridges — ALL INVENTED.
+  *Source:* `src/main.cpp` (the `k*Port` block, labelled).
+  *Confidence:* **invented — and MEASURED WRONG on 2026-08-13.** The real map on the old
+  competition bot is: drive **LEFT 15/16/17/18, RIGHT 11/12/14** (green cartridges), **IMU on
+  port 4**, and **no rotation sensors and no GPS at all**. Only "there are motors on low ports"
+  survived. `src/main.cpp` still carries the invented map, deliberately — it also assumes an
+  X-drive with two tracking wheels, which this robot is not and does not have, so fixing the
+  ports alone would not make it correct. The wiring belongs to whichever chunk runs the shipped
+  stack on this robot.
+  *Also measured:* port 13 spins FREE (18 mA vs its neighbours' 500–950 mA, and it does not move
+  when its wheels are turned by hand) — a mechanical disconnect, not a software matter. Port 16
+  under-reports its side-mates by ~20% at an inconsistent ratio — probable slip, undiagnosed.
+  *Settle (R3, runbook steps 0 and 4):* device inventory, then per-wheel spin direction —
+  inventory and side-split DONE 2026-08-13; per-wheel DIRECTION SIGNS still open (the 2 V bursts
+  moved several motors too little to read a sign).
+  *Blast radius if wrong:* ports: loud at boot (by design). Signs: a mirrored wheel fights the
+  other three — caught in the first open-loop spin, BEFORE any closed loop (runbook order).
+  **Contained:** constants + boot checks.
+
+- [ ] **HA-112 — the teleop mapping (stick signs, 0.05 deadband) is drivable.**
+  *Claim:* left-stick-up = +X forward, left-stick-left = +Y left, right-stick-right = CW
+  (−ω), and a 0.05 deadband kills centred-stick creep without killing fine control.
+  *Source:* `src/main.cpp` (opcontrol(), labelled; chunk T2 owns the real driver-feel layer).
+  *Confidence:* **invented**.
+  *Settle (T2/R3, runbook step 10):* a human drives it; signs that feel backwards get flipped
+  at the mapping, deadband tuned by feel.
+  *Blast radius if wrong:* annoying, visible, and shallow — exactly the kind of wrong that is
+  fine to ship provisionally. **Contained:** one function in main.cpp.
+
+### R1b's additions — the beliefs about PROS the mechanism-sensor adapters are built on
+
+Same rule as R1a's block: every semantic in the extended host shim (distance, optical, ADI,
+usd) is one of these; the shim proves the adapters agree with the beliefs, never the beliefs.
+Bench runbook steps 16–20 walk them. None of these sensors is known to be ON the available
+robot — the steps say what can be done with a sensor on a loose cable at the table.
+
+- [ ] **HA-113 — `Distance::get_distance()` returns MILLIMETERS.**
+  *Claim:* the int32 is mm; a game piece 10 in away reads 254.
+  *Source:* vendored `include/pros/distance.hpp:63,89` ("measured distance from the sensor in
+  mm"); `include/shulib/hal/distance_conversion.hpp` (`distanceMmToCanonical`, the one ÷25.4).
+  *Confidence:* reasoned — documented in the vendored source; unverified against firmware.
+  *Settle (R3, runbook step 18):* an object at a tape-measured 500 mm reads ~19.7 in canonical.
+  *Blast radius if wrong:* every capture/dock-confirm threshold off by 25.4× — confirm never
+  fires (or always does). **Contained:** one conversion function.
+
+- [ ] **HA-114 — the distance sensor's "no object" is the IN-BAND integer 9999, not a sentinel.**
+  *Claim:* with nothing in range, `get_distance()` returns exactly 9999 (mm) — a plain value
+  that converts to a plausible-looking 393.66 in — and NOT `PROS_ERR`, and not an errno state.
+  *Source:* vendored `distance.hpp:71,98` ("Will return 9999 if the sensor can not detect an
+  object"); `hal/pros/distance.hpp` (the T4 rule: raw 9999 → `confidence() == 0`).
+  *Confidence:* reasoned — documented twice in the vendored source; the EXACTNESS of the value
+  (is it always precisely 9999, never 9998 or a range?) is the unverified half.
+  *Settle (R3, runbook step 18):* empty intake, raw value logged over ~30 s — confirm it is
+  constant 9999; through the adapter, confirm confidence() reads 0.0 the whole time.
+  *Blast radius if wrong (value differs on firmware):* the screen misses and dock-confirm gets
+  a wall 33 feet away that thresholds as "no object anyway" (far), so the practical damage is
+  a confidence that flickers non-zero on an empty intake — visible in step 18's log.
+  **Contained:** one named constant + the adapter rule, mutation-proven (campaign M2).
+
+- [ ] **HA-115 — `get_confidence()` is 0–63, "only available when distance is > 200mm"; its
+  value at or below 200 mm is UNKNOWN.**
+  *Claim:* above 200 mm the int32 is 0–63 (63 = high); at or below 200 mm the vendored doc
+  says the channel does not exist, and we have NO belief about what it returns there — the
+  adapter refuses to consult it in that range (a valid close reading reports confidence 1.0:
+  the returned distance IS the detection).
+  *Source:* vendored `distance.hpp:133-135`; `hal/pros/distance.hpp` (the close-range rule);
+  `distance_conversion.hpp` (`distanceConfidenceToCanonical`, the ÷63).
+  *Confidence:* reasoned — both documented halves; the below-200 behaviour is a stated unknown,
+  not a guess.
+  *Settle (R3, runbook step 18):* log raw `get_confidence()` with an object walked from 400 mm
+  to 50 mm — record what the channel actually does below 200 (settles the unknown either way),
+  and confirm the adapter's confidence() stays 1.0 through the close range.
+  *Blast radius if wrong (0–63 wrong):* thresholds shift but stay monotone. If the adapter had
+  instead passed the below-200 raw through and it reads 0 there: capture-confirm REFUSES the
+  grab it most needs — the exact failure the close-range rule exists to prevent.
+  **Contained:** adapter-only, mutation-proven (campaign M3).
+
+- [ ] **HA-116 — optical hue is 0–359.999°, saturation/brightness are 0–1.0 doubles.**
+  *Claim:* the three double channels are already in shulib's canonical ranges — the adapter
+  applies NO scale, only the defensive clamp.
+  *Source:* vendored `optical.hpp:79-80,103-104,127-128`; `optical_conversion.hpp`.
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 19):* a known-red object reads hue ≈ 0–20°, a known-blue one
+  ≈ 210–230°, saturation well above 0.5 under room light.
+  *Blast radius if wrong:* color windows match nothing (or everything) — loud at the first
+  bench read. **Contained:** one conversion header.
+
+- [ ] **HA-117 — optical `get_proximity()` is 0–255 and LARGER means CLOSER. THE POLARITY IS
+  NOT IN THE VENDORED SOURCE.**
+  *Claim:* the int32 range is 0–255 (documented) and 255 is "object at the lens" (NOT
+  documented — the vendored comment states only the range; larger-is-closer is what community
+  usage assumes).
+  *Source:* vendored `optical.hpp:151-152` (range only); `optical_conversion.hpp`
+  (`opticalProximityToCanonical`); `hal/optical.hpp` ("proximity ≈ 1 means an object is
+  close").
+  *Confidence:* **invented** — the polarity half has no written source; flagged the way HA-99
+  was, and like HA-99 it must be measured before anything thresholds on it.
+  *Settle (R3, runbook step 19 — BEFORE any capture threshold uses proximity()):* raw value
+  with the sensor covered vs. facing open air. Covered ≫ open confirms the polarity; the
+  reverse means the adapter needs a documented 1−x flip IN THE CONVERSION with this entry
+  corrected.
+  *Blast radius if wrong:* proximity-based capture-confirm fires on an EMPTY intake and never
+  on a full one — inverted, silently plausible in any single reading. **Contained:** one
+  conversion function; caught by one covered/uncovered pair at the bench.
+
+- [ ] **HA-118 — optical failure sentinels: PROS_ERR_F on the double channels, PROS_ERR on
+  proximity.**
+  *Claim:* a dead/misconfigured optical port returns INFINITY from hue/saturation/brightness
+  and INT32_MAX from proximity — screenable, and IN-BAND for nothing physical.
+  *Source:* vendored `optical.hpp:87-88,111-112,135-136,159-160`; `hal/pros/optical.hpp`
+  (per-channel screen → hold-last-good + faultedReads()).
+  *Confidence:* reasoned.
+  *Settle (R3, runbook step 19 + step 14's unplug matrix):* unplug the optical mid-read —
+  values hold, faultedReads climbs, nothing propagates an infinity.
+  *Blast radius if wrong:* an unscreened INFINITY in hue() breaks the F4 finiteness contract
+  the estimator layer trusts; unscreened proximity clamps to 1.0 = "object present" from a
+  DEAD sensor. **Contained:** adapter screens, tested against the shim's sentinel model.
+
+- [ ] **HA-119 — ADI `DigitalOut` DRIVES THE LINE AT CONSTRUCTION; `set_value` is 1/0 with
+  PROS_ERR on refusal.**
+  *Claim:* constructing `pros::adi::DigitalOut(port, init_state)` physically drives the line
+  to `init_state` immediately (PROS defaults it to LOW — on a pneumatic, the cylinder MOVES at
+  object construction); `set_value(1/0)` drives it thereafter and returns PROS_ERR if the port
+  is not configured as a digital output.
+  *Source:* vendored `adi.hpp:546-547,564,596` ("The initial state for the port"),
+  `adi.hpp:598-610`; `hal/pros/digital_out.hpp` (initial state REQUIRED, no default — the T3
+  ruling).
+  *Confidence:* reasoned — the ctor parameter is documented; "drives immediately at
+  construction" (vs. at the first scheduler tick) is the unverified half, and it is exactly
+  the half that decides whether a mismatched boot state physically moves a cylinder.
+  *Settle (R3, runbook step 20 — AIR DISCONNECTED first):* construct with each initial state
+  and watch the solenoid LED / listen for the click; then with air, confirm a matched
+  declared-safe construction produces NO motion at boot.
+  *Blast radius if wrong:* a clamp that flings its game piece (or opens on the goal) at every
+  boot — physical, repeated, and blamed on "flaky pneumatics". **Contained:** the required
+  ctor argument + the PneumaticMechanism agreement test.
+
+- [ ] **HA-120 — ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H' on the brain; {smart, adi} pairs on
+  an expander. Whether OUR robot HAS an expander is UNKNOWN.**
+  *Claim:* the three spellings name the same 8 built-in ports; the pair form addresses an
+  expander's bank identically; and — separately — the ADI expander R1a's session reported is
+  UNVERIFIED (it was read from registry index 21, outside the documented 0–20 range, and never
+  re-checked).
+  *Source:* vendored `adi.hpp:59,62,91-93`; `hal/pros/digital_out.hpp` / `digital_in.hpp`
+  (T6: one class, two ctors). The expander question: the R1a bench session record.
+  *Confidence:* reasoned (addressing); the expander's existence is an open QUESTION, not a
+  belief — recorded here so it cannot silently become one.
+  *Settle (R3, runbook step 17):* the brain's Devices screen + a corrected 0–20 registry scan.
+  A switch on port 'a' vs 1 vs 'A' reads identically (addressing); the expander question gets
+  a yes/no with a photo.
+  *Blast radius if wrong:* a mechanism wired to a bank that does not exist — loud at the first
+  actuation test, not on the field. **Contained:** construction-time facts.
+
+- [ ] **HA-121 — ADI `DigitalIn::get_value()` is a plain level (PROS_ERR on refusal);
+  `get_new_press()` CONSUMES the press.**
+  *Claim:* `get_value()` returns 1/0 for the line's level and PROS_ERR when the port is not a
+  digital input — and PROS_ERR ≠ 0, so an unscreened read maps a DEAD port to "pressed";
+  `get_new_press()` clears per-line edge state on read, so with two consumers one silently
+  starves (the ADI sibling of HA-104).
+  *Source:* vendored `adi.hpp:697-712,732-757`; `hal/pros/digital_in.hpp` (binds get_value
+  ONLY — guard-pinned; PROS_ERR screened to last-good).
+  *Confidence:* reasoned — the consume semantics are documented; the exact refusal value of
+  get_value (PROS_ERR vs 0) is the weaker half.
+  *Settle (R3, runbook step 20):* hold a switch — state() stays true (a level); unplug the
+  wire mid-run and log the RAW get_value — settles the refusal value either way.
+  *Blast radius if wrong (refusal is 0, not PROS_ERR):* the screen never fires and a dead port
+  reads "released" instead of holding — safer than the pressed direction the screen exists
+  for, but the faultedReads() observability goes blind. **Contained:** adapter-only,
+  mutation-proven (campaign M6, M9).
+
+- [ ] **HA-122 — SD card: `usd_is_installed()` returns 1/0; `fopen` NEEDS the `/usd/` prefix
+  while `usd_list_files` FORBIDS it; `fflush` is the strongest persist available.**
+  *Claim:* three beliefs about one subsystem: (1) `pros::usd::is_installed()` is a reliable
+  1/0 card probe; (2) newlib file IO on the brain reaches the card only through paths
+  prefixed `/usd/` — while `usd_list_files()` documents "DO NOT PREPEND YOUR PATHS WITH
+  /usd/" (two conventions in ONE API, the registry-indexing shape R1a met); (3) there is no
+  fsync in PROS's exposed surface, so a flushed write is only as durable as FatFS makes it.
+  *Source:* vendored `misc.h:790-844` / `misc.hpp:555-612` (the is_installed contract and the
+  list_files warning are vendored text; the fopen-needs-/usd/ half is PROS's file-IO
+  documentation, NOT in the vendored headers — the weaker half, flagged);
+  `hal/pros/block_sink.hpp` (owns the prefix in one place; bare-name precondition).
+  *Confidence:* reasoned, flagged — belief (2)'s fopen half and belief (3) are not in the
+  vendored source.
+  *Settle (R3, runbook step 16):* boot with a card, write a blackbox, pull the card and read
+  the file on a laptop (settles the prefix and the write path); boot WITHOUT a card and
+  confirm the robot drives with isOpen()==false reported once (settles the probe); yank the
+  card after a flushed write and count surviving bytes (bounds belief 3).
+  *Blast radius if wrong:* a blackbox that never exists while everything reports healthy —
+  the exact silent failure E1's bool-returning seam was built to surface. **Contained:** one
+  adapter; the no-card path is mutation-proven (campaign M11).
 
 ---
 
@@ -621,7 +1112,499 @@ settleable before hardware, and none block any host chunk.
 
 ---
 
+- [ ] **HA-58 — 200 ticks (~2 s at 100 Hz) of flight recorder reaches back past the CAUSE of a
+  fault.**
+  *Claim:* when a fault fires, whatever caused it is visible within the preceding ~2 seconds of
+  per-tick records, so a 200-tick ring is deep enough to diagnose from.
+  *Source:* `include/shulib/diag/sd_sink.hpp` `kDefaultFlightRingTicks` (PROVISIONAL
+  (A4: HA-58)); consumed by every caller that sizes `SdSinkBuffers`.
+  *Confidence:* **invented** — it is diagnostics-plan D-6's own figure, chosen before any real
+  failure had been recorded. Nobody has yet measured how far before a fault its cause sits.
+  *Settle (R4):* once real runs exist, take the dumps that actually diagnosed something and
+  measure how far back the useful evidence started. If the answer is "further", the ring grows
+  (a template/argument change and more RAM); if "much less", the ring shrinks and the dump gets
+  cheaper.
+  *Blast radius if wrong (too small):* a dump that starts after the cause — the fault is
+  recorded, its origin is not, and the run has to be reproduced to learn anything. *(Too
+  large):* RAM spent and a slower dump, both harmless.
+
+- [ ] **HA-59 — 64 KiB of RAM is spendable on the blackbox staging buffer.**
+  *Claim:* a V5 program running the full stack can permanently give 64 KiB to a diagnostics
+  buffer (plus ~88 KB for a 200-tick ring of records) without pressuring anything else.
+  *Source:* `include/shulib/diag/sd_sink.hpp` `kRecommendedBufferBytes` (PROVISIONAL
+  (A4: HA-59)); the storage is caller-owned, so this is a recommendation, not a hard size.
+  *Confidence:* **invented** — no memory budget for the real program exists yet.
+  *Settle (R4):* measure free heap/static space with the competition build loaded, then set the
+  recommendation to something the real program can actually afford.
+  *Blast radius if wrong:* the number is a caller-chosen span, so being wrong costs a
+  one-line change — and being wrong SMALL is visible rather than silent (frames are dropped and
+  counted, and the count is reported in the run summary and written into the file).
+
+- [ ] **HA-60 — an SD flush of tens of kilobytes costs single-digit milliseconds.**
+  *Claim:* writing ~64 KiB to `/usd/` on the V5 brain takes a few ms — affordable at a motion
+  boundary or at auton end, and NOT affordable inside a 10 ms control tick.
+  *Source:* `include/shulib/diag/sd_sink.hpp`, on `SdSink::flush()` (PROVISIONAL (A4: HA-60));
+  it is the reason writes are caller-paced at all, and the reason the fault dump is the one
+  exception that may write immediately.
+  *Confidence:* **invented** — the V5's SD write path has never been timed by this team. The
+  legacy code's experience with V5 SERIAL backpressure (~900-byte chunks with delays) is
+  suggestive of the same class of problem, but it is a different device.
+  *Settle (R4):* time `fwrite` + `fflush` of 4/16/64/256 KiB on a real brain, cold and warm,
+  and put the numbers here.
+  *Blast radius if wrong (much slower):* a flush at a motion boundary steals loop time; the
+  LoopMonitor would report it as an overrun, so it is at least VISIBLE. The fix is a policy
+  change — flush less often, or only at auton end — not a format change. R1 should re-check
+  this the first time the adapter runs on hardware.
+
+### The E2 `GpsCorrector` tuning set (HA-61 … HA-67)
+
+Seven constants, added when the first real corrector landed. They share one property worth
+stating once instead of seven times: **E2 proved the corrector's LOGIC, and every one of these
+numbers is a guess about a device nobody has plugged in.** Each is tested by an assertion about
+*shape* — "a worse claim widens sigma", "the gate widens with dead-reckoned travel", "a spin
+rejects the fix" — never by an assertion that the constant is right. Contained the same way as
+the rest of Phase E's tuning: one config struct, one owner, no core impact.
+
+They also share one settle: **HA-26 (the real on-strip noise) and HA-20 (the real dead-reckon
+drift) decide whether folding GPS is worth doing at all.** E2's own measurements found the two
+within the same order of magnitude in simulation, which is why the accuracy gain there is real
+but modest (see `test/gps_corrector_accuracy_test.cpp`'s header). R4 settles both, and the
+answer changes how these seven should be set.
+
+- [ ] **HA-61 — the GPS's self-reported rms must be inflated ×2 before it is used as sigma.**
+  *Claim:* the device's `get_error()` understates its true 1σ by roughly a factor of two, so
+  trusting the claim raw makes the gate too tight and the pull too strong.
+  *Source:* `include/shulib/localization/gps_corrector.hpp`, `GpsCorrectorConfig::rmsTrustFactor`
+  (PROVISIONAL (A4: HA-61)). Follows from HA-29, which records that the claim and the truth are
+  different numbers without saying by how much.
+  *Confidence:* **invented** — the factor 2 is a placeholder for "more than one".
+  *Settle (R4):* the same joint log HA-29 needs — `get_error()` against measured error, on
+  strip, at several positions. The factor is the ratio of their standard deviations.
+  *Blast radius if wrong (too small):* gate too tight, good fixes rejected, GPS quietly useless
+  — visible as `RejectedNormalizedInnovation` filling the blackbox. (Too large): weak pull and
+  a slack gate, so lies do more damage before the innovation bound catches them. Constant only.
+
+- [ ] **HA-62 — 0.5 inch is a sane floor on the measurement sigma.**
+  *Claim:* no GPS fix should ever be treated as better than half an inch, whatever the device
+  claims.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::minPositionStdDev` (PROVISIONAL (A4: HA-62)).
+  *Confidence:* **invented**.
+  *Settle (R4):* set to the best measured per-axis sigma observed on strip.
+  *Blast radius if wrong:* the floor exists to stop a device reporting ~0 from producing an
+  arbitrarily tight gate that rejects every fix including truthful ones — that failure mode is
+  pinned by test regardless of the value. Constant only.
+
+- [ ] **HA-63 — a fix claiming more than 6 inches of error is not worth folding.**
+  *Claim:* a device asserting `hasFix()` while reporting a large self-error should be declined
+  rather than folded weakly.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::maxReportedRms` (PROVISIONAL (A4: HA-63)).
+  *Confidence:* **invented**.
+  *Settle (R4):* from the on-strip `get_error()` distribution — set above the healthy tail and
+  below whatever the device reports when it is struggling.
+  *Blast radius if wrong (too high):* a barely-usable fix is folded, contributing almost nothing
+  while making the Localizer report quality class "Corrected" — a run that looks anchored and is
+  not. That is the specific failure the ceiling exists for, and it is pinned by test. (Too low):
+  usable fixes declined in poor conditions; visible as `RejectedSensorQuality`.
+
+- [ ] **HA-64 — 3 rad/s (≈172°/s) is where a GPS fix stops being trustworthy.**
+  *Claim:* above this yaw rate the fix's lever-arm reduction and its heading/position sampling
+  skew make it worse than dead-reckoning for the tick.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::maxYawRate` (PROVISIONAL (A4: HA-64)).
+  *Confidence:* **invented** — chosen as "clearly a fast spin, not a normal arc"; it is not
+  derived from any measurement of how the camera behaves under rotation.
+  *Settle (R4):* spin in place on the strip at increasing rates and log reported vs. true
+  position; the knee is the threshold. Re-check at E5 whenever the lever arm is re-measured
+  (HA-10).
+  *Blast radius if wrong (too high):* fixes folded during spins carry a heading-dependent bias —
+  exactly the error HA-10 warns about, at its worst. (Too low): the corrector goes quiet during
+  every turn, which is a loss of information, not a corruption. The asymmetry is why the default
+  errs low.
+
+- [ ] **HA-65 — 4 sigma is the right normalized-innovation gate width.**
+  *Claim:* a residual beyond 4× the fix's own 1σ is more likely a lie than a truth.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::gateSigma` (PROVISIONAL (A4: HA-65)).
+  *Confidence:* **invented** — 4σ is the conventional engineering choice, not a measured one,
+  and it is only as meaningful as the sigma it multiplies (HA-61, HA-66, HA-67).
+  *Settle (R4):* from the measured residual distribution on a run with known truth.
+  *Blast radius if wrong:* the classic gate trade — too tight rejects truthful corrections
+  (stubbornness), too loose accepts lies (corruption). Both are VISIBLE in the blackbox as
+  `RejectedNormalizedInnovation` counts, which is why E2 put the residual and the sigma on the
+  wire. **Note the ceiling:** `ComplementaryFusion::innovationGate` (12 inches, fixed) applies
+  after this gate, so widening `gateSigma` past ~5 with these sigmas changes nothing.
+
+- [ ] **HA-66 — the estimate is ~1 inch uncertain immediately after a fix is folded.**
+  *Claim:* the floor of the dead-reckoning sigma, which sets how hard a fresh fix pulls.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::postFixStdDev` (PROVISIONAL (A4: HA-66)).
+  *Confidence:* **invented**. It is the closest thing the complementary tier has to a prior,
+  and the honest description is "a gain knob wearing the clothes of a covariance".
+  *Settle (R4):* properly, this is E4's job — an EKF estimates it instead of asserting it. Until
+  then, set from measured post-correction error.
+  *Blast radius if wrong:* it and HA-61 together set the confidence
+  `σ_dr²/(σ_dr² + σ_meas²)`, i.e. how fast the estimate chases the GPS and therefore how much
+  sensor noise it inherits. Must stay > 0: a zero would make confidence zero, the Localizer
+  screens a zero-confidence proposal out, and the corrector would look absent rather than weak.
+  Guarded by precondition.
+
+- [ ] **HA-67 — dead-reckoning uncertainty grows ≈0.02 inch of sigma per inch travelled.**
+  *Claim:* 2% of distance travelled, as a 1σ position uncertainty, since this source's last fix.
+  *Source:* `gps_corrector.hpp`, `GpsCorrectorConfig::driftStdDevPerInch` (PROVISIONAL (A4: HA-67)).
+  *Confidence:* **invented**, and related to but not the same as HA-36 (the Localizer's
+  `driftHorizon`, which decays a quality SCALAR rather than widening a gate).
+  *Settle (R4):* the same measurement as HA-36 — drive a known path with the GPS covered and
+  measure how error grows with distance.
+  *Blast radius if wrong (too small):* GATE LOCKOUT — after a long blind stretch, a truthful fix
+  looks outrageous and is rejected, and since nothing else can repair the estimate, so is every
+  fix after it. The GPS dies exactly when it is worth the most. This is the failure the term
+  exists to prevent and it is pinned by a dedicated test. (Too large): the gate stays wide open
+  after one long dead-reckon and a lie is accepted because the corrector still believes it is
+  lost — pinned by the companion test that the widening RESETS on an accepted fix.
+
+### The E3 AprilTag set (HA-68 … HA-82)
+
+Fifteen entries, added when absolute yaw correction landed. They divide into **three that are
+about the physical world and are the dangerous ones** (HA-68, HA-69, HA-70) and **twelve tuning
+constants** that behave exactly like E2's set — proved by shape, never by value, contained in one
+config struct each.
+
+The three structural ones deserve their own warning, because unlike a tuning constant **they do
+not degrade gracefully**. A wrong tag map, a reversed corner winding or a pitched camera each
+produce a fix that is *confidently* wrong with a small residual and a high confidence — i.e. it
+looks exactly like a healthy fix, and no gate, no filter and no amount of averaging can reveal it.
+E2's tuning constants make the corrector work better or worse; these three make it lie.
+
+- [ ] **HA-68 — the field's AprilTag layout is knowable, and a team's map is accurate to ≈0.5 inch.**
+  *Claim:* the tags' field poses can be obtained (from a published specification or by measuring
+  the actual competition field) to within about half an inch and half a degree, and the team will
+  in fact do so.
+  *Source:* `include/shulib/localization/tag_map.hpp` (A4 register HA-68). **shulib deliberately
+  ships NO built-in map** — the header explains why at length — so this is an assumption about the
+  *user's input*, not about a number in the tree, which is unusual for this register and is the
+  point: there is no citable table of AprilTag field poses in this project's sources today.
+  *Confidence:* **invented** — nobody here has measured or cited anything.
+  *Settle (R3):* obtain the published field layout if one exists; otherwise measure every tag's
+  position and facing on the competition field with a tape and a square, and record the method in
+  each `TagPlacement::source`.
+  *Blast radius if wrong:* **the worst in this register.** A map entry two inches off yields a
+  corrector that is confidently two inches wrong every time it sees that tag, with a small
+  residual and a high confidence. Sensor noise averages out; **a wrong map does not**. It will
+  also fight the GPS corrector, and the complementary tier has no way to tell which is lying.
+  Partly contained: `TagMap::add()` refuses an entry with no provenance, and `anyInvented()` lets
+  telemetry say the estimate is anchored to guessed geometry.
+
+- [ ] **HA-69 — the tag detector reports its four corners in a consistent, knowable winding.**
+  *Claim:* whatever order the V5 AI Vision sensor (or a Pi detector) reports corners in, it is
+  stable, and R2 can map it onto the order `hal/vision_conversion.hpp` documents.
+  *Source:* `include/shulib/hal/vision_conversion.hpp`, the corner-order contract (A4: HA-69).
+  *Confidence:* **reasoned** — every AprilTag implementation documents an order; ours is not
+  verified against a physical detector.
+  *Settle (R2/R3):* point the real detector at a real tag at a known pose and check the recovered
+  pose, ONCE. That is the only check that exists (see the blast radius).
+  *Blast radius if wrong:* **measured at E3 and worse than expected.** A CYCLIC ROTATION of the
+  order is harmless — the planar reduction discards that degree of freedom. A **REVERSAL** is
+  catastrophic and completely silent: it mirrors the tag plane, the recovered heading is 180°
+  wrong, and **the reprojection error stays at machine zero**, because a mirrored pose reprojects
+  onto the very same four pixels. No self-check anywhere in the pipeline can detect it; only a
+  physical tag can. Pinned by three subcases in `test/vision_conversion_test.cpp`.
+
+- [ ] **HA-70 — the tag camera is mounted level, to within about a degree.**
+  *Claim:* the camera's optical axis is horizontal (no pitch, no roll), so a tag's height above
+  the camera can be discarded without affecting its horizontal position.
+  *Source:* `hal/vision_conversion.hpp`, the planar-reduction note (A4: HA-70). `CameraMount`
+  carries position and yaw only, which encodes the assumption in the type.
+  *Confidence:* **invented** — no camera is mounted on anything.
+  *Settle (R3):* measure the mounted camera's pitch and roll; if either is significant, the
+  reduction needs the full 3-D transform and `CameraMount` grows two fields.
+  *Blast radius if wrong:* a pitched camera turns a tag's HEIGHT into a RANGE error — a tag
+  mounted 15 inches above a camera pitched 5° reads several inches nearer or further than it is —
+  and nothing downstream can see that it happened. Contained to one function and one struct.
+
+- [ ] **HA-71 — the tag pipeline delivers a fix describing a moment ≈80 ms earlier.**
+  *Claim:* exposure + detection + PnP + transport totals about 80 ms, longer than the GPS's ~50 ms
+  (HA-30) because a tag pipeline does more work per frame.
+  *Source:* `apriltag_corrector.hpp`, `AprilTagCorrectorConfig::latency` (PROVISIONAL (A4: HA-71)).
+  *Confidence:* **invented**.
+  *Settle (R4):* the same measurement HA-30 needs — flash a known event and timestamp when the
+  reduced detection becomes readable.
+  *Blast radius if wrong:* an uncompensated 80 ms drags position backwards along the direction of
+  travel AND, new at E3, drags HEADING backwards along the direction of rotation — at 180°/s that
+  is 14°, fourteen times the entire heading budget. Both compensations are pinned by their own
+  exact-case tests; only the magnitude is at risk.
+
+- [ ] **HA-72 — a tag frame older than 0.25 s means the vision task has stalled.**
+  *Claim:* a healthy vision task at ~20 Hz never leaves a gap this long, so a gap means failure.
+  *Source:* `apriltag_corrector.hpp`, `maxObservationAge` (PROVISIONAL (A4: HA-72)).
+  *Confidence:* **invented**.
+  *Settle (R4):* log inter-frame intervals on a real coprocessor under load; set to a few times
+  the observed 99th percentile.
+  *Blast radius if wrong (too small):* healthy frames declined as `RejectedObservationAge` —
+  visible, and the estimator falls back to dead-reckoning rather than doing anything wrong.
+  (Too large): a dead vision task keeps folding the last frame it saw for a quarter of a second
+  longer than it should. Constant only.
+
+- [ ] **HA-73 — a tag fix is trustworthy only between 6 and 72 inches of range.**
+  *Claim:* nearer than 6 inches the tag overfills the frame and is likely clipped; further than
+  72 inches planar PnP's near-ambiguity makes the ORIENTATION untrustworthy well before the
+  position is.
+  *Source:* `apriltag_corrector.hpp`, `minRange` / `maxRange` (PROVISIONAL (A4: HA-73)).
+  *Confidence:* **invented** — the *shape* of the claim (heading degrades with range faster than
+  position) is real geometry; both numbers are made up.
+  *Settle (R4):* park the robot at a known pose and sweep range; plot recovered position error and
+  recovered heading error against distance. The band is where heading error crosses the budget.
+  *Blast radius if wrong:* this band is E3's substitute for a separate heading noise model, so a
+  band that is too wide folds heading fixes that are worse than the IMU — the one way this chunk
+  could make heading accuracy WORSE. Too narrow and the corrector is simply idle more often.
+  E4's EKF replaces the band with a real R_heading, which is the principled fix.
+
+- [ ] **HA-74 — a tag detection below 0.35 confidence is not worth folding.**
+  *Claim:* the detector's own score below this indicates a detection too poor to trust.
+  *Source:* `apriltag_corrector.hpp`, `minConfidence` (PROVISIONAL (A4: HA-74)).
+  *Confidence:* **invented** — and it assumes the V5 sensor's score is even comparable across
+  detections, which is itself unverified.
+  *Settle (R4):* log the score against measured pose error across a range of lighting and angles.
+  *Blast radius if wrong:* the same shape as E2's D7 — without a floor a 0.05-confidence detection
+  is still folded with a microscopic pull, and the Localizer reports quality class **Corrected** on
+  a run with no usable anchor. That failure mode is pinned by test regardless of the value.
+
+- [ ] **HA-75 — 2 rad/s (≈115°/s) is where motion blur kills a tag fix.**
+  *Claim:* above this yaw rate the tag smears across the frame and a rolling shutter skews it into
+  a different quadrilateral, which PnP solves happily into a confidently wrong pose.
+  *Source:* `apriltag_corrector.hpp`, `maxYawRate` (PROVISIONAL (A4: HA-75)). Tighter than the
+  GPS's HA-64 (3 rad/s) because a camera integrating over an exposure is more motion-sensitive
+  than a strip reader.
+  *Confidence:* **invented**.
+  *Settle (R4):* spin at increasing rates in front of a fixed tag and find where the recovered
+  pose degrades.
+  *Blast radius if wrong (too high):* blurred fixes folded — and unlike a noisy fix, a skewed one
+  is biased, so it does not average out. (Too low): the corrector goes quiet during every turn,
+  which is when the estimate needs it most.
+
+- [ ] **HA-76 — tag position 1σ is about 1.0 inch, growing 0.02 inch per inch of range.**
+  *Claim:* the linear-in-range noise model, at confidence 1.
+  *Source:* `apriltag_corrector.hpp`, `baseStdDev` / `stdDevPerInch` (PROVISIONAL (A4: HA-76)).
+  *Confidence:* **invented** — the linear form is a modelling choice as much as the coefficients.
+  *Settle (R4):* the range sweep from HA-73 gives both.
+  *Blast radius if wrong:* sets both the gate width and the pull strength. Tested by shape only —
+  "farther is worse", "less certain is worse" — never by value.
+
+- [ ] **HA-77 — 4 sigma is the right normalized-innovation gate width for tags.**
+  *Source:* `apriltag_corrector.hpp`, `gateSigma` (PROVISIONAL (A4: HA-77)). Same value and same
+  reasoning as E2's HA-65; kept separate because the sigma it multiplies is a different model.
+  *Confidence:* **invented**.
+  *Settle (R4):* choose from the measured innovation distribution once HA-76 is real.
+  *Blast radius if wrong:* as HA-65 — too tight rejects truthful fixes, too slack admits lies.
+
+- [ ] **HA-78 — the estimate is ≈1 inch uncertain immediately after a tag fix is folded.**
+  *Source:* `apriltag_corrector.hpp`, `postFixStdDev` (PROVISIONAL (A4: HA-78)).
+  *Confidence:* **invented**. Like HA-66 this is **a gain knob wearing the clothes of a
+  covariance**; E4's EKF estimates it instead of asserting it.
+  *Settle (R4/E4):* superseded by the filter's own covariance.
+  *Blast radius if wrong:* sets the floor of σ_dr and therefore the confidence of every fix.
+
+- [ ] **HA-79 — dead-reckon sigma grows ≈0.02 inch per inch since this source's last fix.**
+  *Source:* `apriltag_corrector.hpp`, `driftStdDevPerInch` (PROVISIONAL (A4: HA-79)). The tag
+  corrector's own copy of HA-67, per-source by design: each corrector tracks how long *it* has
+  been blind.
+  *Confidence:* **invented**.
+  *Settle (R4):* as HA-67.
+  *Blast radius if wrong:* **gate lockout**, exactly as HA-67 describes, and pinned by the same
+  pair of tests (a fix a zero-growth build rejects is accepted after a long dead-reckon; the
+  widening RESETS on an accepted fix).
+
+- [ ] **HA-80 — a heading innovation above 15 degrees is a fault, not drift.**
+  *Claim:* a raw V5 IMU drifts ≈1°/min (HA-20), so over a 60-second match the expected heading
+  error is about a degree. An innovation fifteen times that is far more likely to be a mirrored
+  corner winding (HA-69), a wrong map entry (HA-68) or a misidentified tag id than real drift.
+  *Source:* `complementary_fusion.hpp`, `ComplementaryFusionConfig::headingGate`
+  (PROVISIONAL (A4: HA-80)).
+  *Confidence:* **invented**, and it inherits HA-20's uncertainty: if real IMU drift is much worse
+  than 1°/min, this gate becomes the thing that prevents recovery.
+  *Settle (R4/E4):* set from the measured IMU drift distribution (HA-20) once that exists; E4's
+  EKF replaces it with a Mahalanobis test.
+  *Blast radius if wrong (too tight):* a genuinely drifted IMU can never be corrected — the
+  correction locks out exactly when it is needed, the heading analogue of HA-67's failure.
+  (Too slack): a mirrored tag rotates the robot's entire idea of the field, and every
+  field-relative command afterwards inherits it.
+
+- [ ] **HA-81 — 0.15 of the heading innovation is pulled per tick at confidence 1.**
+  *Source:* `complementary_fusion.hpp`, `maxHeadingGain` (PROVISIONAL (A4: HA-81)). Same value as
+  the position gain, which is a convenience, not a derivation.
+  *Confidence:* **invented**.
+  *Settle (R4/E4):* superseded by the EKF's Kalman gain.
+  *Blast radius if wrong:* sets the settling time. Measured in simulation: a 4° error closes to
+  0.5° in about 3 seconds. Too high and the correction fights the turn controller; too low and a
+  60-second match ends before the bias is learned.
+
+- [ ] **HA-82 — 10°/s is a safe upper bound on how fast the estimator's heading bias may change.**
+  *Claim:* the robot's idea of which way it is pointing may be revised at up to 10°/s without
+  disrupting a motion in progress.
+  *Source:* `complementary_fusion.hpp`, `maxHeadingNudgeRate` (PROVISIONAL (A4: HA-82)).
+  *Confidence:* **invented**.
+  *Settle (R4/E4):* drive a heading-holding motion while injecting a bias correction and find the
+  rate at which the controller visibly reacts.
+  *Blast radius if wrong (too high):* a large correction arrives fast enough to fight an active
+  turn — this is the number that stands between "nudge" and "snap" for yaw, and a yaw snap
+  poisons every field-relative command after it. (Too low): a real drift takes longer than a match
+  to correct. **This bound is what makes never-snap structural for heading**, and it is audited
+  on every tick from the blackbox (`correctionDTheta`), so a violation is visible after the fact.
+
+- [ ] **HA-83 — the EKF's position process noise: 1σ grows by 2% of the distance travelled since
+  the last accepted fix, plus a 0.5 in/s floor while standing still.**
+  *Claim:* dead-reckoning error is dominated by a SYSTEMATIC scale and alignment error, so σ grows
+  LINEARLY with distance rather than as its square root, and something small but non-zero
+  accumulates even at rest.
+  *Source:* `ekf_fusion.hpp`, `posNoisePerInch` / `posNoiseRate` (PROVISIONAL (A4: HA-83)).
+  *Confidence:* **invented**. The 2% figure is E2's `driftStdDevPerInch` (HA-67) reused so the two
+  layers model the same physics with the same number; the floor is a numerical-health term.
+  *Settle (R4):* drive a known distance with no correction, repeatedly, and plot the error
+  distribution against distance — the SHAPE of that plot (linear vs √d) settles the model, and its
+  slope settles the constant.
+  *Blast radius if wrong (too small):* **gate lockout.** Measured during E4 with a random-walk
+  form in place: after 360 inches of dead-reckoning the filter believed it was within half an inch
+  and rejected a truthful fix 20 inches away. (Too large): the gate never closes and a lie walks
+  in.
+
+- [ ] **HA-84 — the EKF's heading process noise: 1σ grows by 1% of the rotation actually
+  performed, plus HA-20's ≈1°/min of raw IMU drift.**
+  *Source:* `ekf_fusion.hpp`, `headingNoisePerRad` / `headingDriftRate` (PROVISIONAL (A4: HA-84)).
+  *Confidence:* **invented**, and it INHERITS HA-20 entirely — the drift term is HA-20 restated as
+  a variance, so if HA-20 is wrong this is wrong by the same factor.
+  *Settle (R4):* the same boot-drift experiment HA-20 needs; the scale-factor term needs a
+  known-rotation test (spin exactly ten turns, compare).
+  *Blast radius if wrong (too small):* a genuinely drifted heading is never corrected, because the
+  filter is certain about a heading that is wrong. (Too large): a mirrored tag moves the bias fast.
+
+- [ ] **HA-85 — the drivetrain can change its body velocity by about 200 in/s².**
+  *Claim:* this is roughly a hard V5 drive launch, and it is the EKF's process noise on the
+  velocity states — i.e. how far the constant-velocity model is allowed to be wrong in one tick.
+  *Source:* `ekf_fusion.hpp`, `velNoise` (PROVISIONAL (A4: HA-85)).
+  *Confidence:* **invented**; co-depends on HA-45's feedforward constants.
+  *Settle (R5):* falls straight out of the sysid ramp — the measured peak acceleration IS this
+  number.
+  *Blast radius if wrong (too small):* the filter lags the wheels through every acceleration, and
+  the position estimate lags with it. (Too large): encoder noise passes straight through, which is
+  mostly harmless.
+
+- [ ] **HA-86 — one tick's odometry displacement is 1σ ≈ 0.01 inch plus 2% of that tick's travel.**
+  *Claim:* the constant term is encoder quantization and tracking-wheel jitter; the proportional
+  term is slip.
+  *Source:* `ekf_fusion.hpp`, `odomStdDev` / `odomStdDevPerInch` (PROVISIONAL (A4: HA-86)).
+  *Confidence:* **invented**. The quantization half is checkable on paper from HA-16 and HA-13 and
+  is the more trustworthy of the two.
+  *Settle (R4):* push the robot a measured distance by hand with the motors off and compare
+  odometry to a tape measure, repeatedly.
+  *Blast radius if wrong:* sets how much the filter smooths the wheels. Too small and it follows
+  encoder noise; too large and it lags. Measured at the default: the filter's dead-reckoning
+  differs from raw odometry by under 0.7 inch over two minutes of stop-start driving, and does not
+  accumulate.
+
+- [ ] **HA-87 — 3σ is the right Mahalanobis gate width for the EKF tier.**
+  *Claim:* on a 2-degree-of-freedom position innovation, ν > 3 means a fix is an outlier rather
+  than noise — about a 1.1% false-reject rate IF the noise model is right, which is the caveat
+  that matters.
+  *Source:* `ekf_fusion.hpp`, `gateSigma` (PROVISIONAL (A4: HA-87)).
+  *Confidence:* **invented**, and note it is a DIFFERENT number from E2's `gateSigma` = 4 (HA-65)
+  and E3's = 4 (HA-77) on purpose: those normalise by an assumed constant and must be slacker to
+  survive being wrong; this one normalises by an estimated covariance and can afford to be tighter.
+  *Settle (R4):* plot the measured innovation distribution once HA-83…HA-86 are real, and choose
+  the width from it rather than from a table.
+  *Blast radius if wrong (too tight):* honest fixes are refused and the filter re-inits more often
+  than it should. (Too slack): the outlier protection stops working, which is the whole reason the
+  gate exists.
+
+- [ ] **HA-88 — an absolute heading measurement is 1σ ≈ 2°, flat.**
+  *Claim:* a tag-derived heading is about two degrees uncertain, and using one number for every
+  such measurement is better than inventing a per-proposal relationship.
+  *Source:* `ekf_fusion.hpp`, `headingStdDev` (PROVISIONAL (A4: HA-88)).
+  *Confidence:* **invented**, and it is the WEAKEST entry in this group: `CorrectionProposal`
+  carries no heading σ, so this one constant stands in for every heading-providing source at every
+  range. E3 handled the same gap with a trusted-range BAND (HA-73) instead.
+  *Settle (R4):* the range sweep HA-73 already needs — park at a known pose, sweep range, and plot
+  recovered heading error separately from position error. That sweep produces σ(range), and a
+  corrector that can state it makes this constant unnecessary.
+  *Blast radius if wrong (too small):* heading fixes are trusted more than they deserve, and a bad
+  tag moves the bias faster. (Too large): the heading correction converges too slowly to matter
+  inside a match.
+
+- [ ] **HA-89 — when the EKF knows nothing, it is 24 inches, 30° and 24 in/s uncertain.**
+  *Claim:* "somewhere within a tile, facing roughly the right way" is the right ignorance to start
+  from, and to return to after a discontinuity or a re-init.
+  *Source:* `ekf_fusion.hpp`, `initialPosStdDev` / `initialHeadingStdDev` / `initialVelStdDev`
+  (PROVISIONAL (A4: HA-89)).
+  *Confidence:* **invented**; the 24 inches is one VEX tile, which is a convenient scale and not a
+  measurement.
+  *Settle (R4):* it is a prior, so it is not measurable in the way the others are — what R4 can
+  settle is whether it is large enough that a first fix is always accepted, and small enough that
+  the first few ticks after a re-init are not dominated by it.
+  *Blast radius if wrong (too small):* the first fix after a re-init is rejected and the estimator
+  cannot recover at all. (Too large): the tick after a re-init accepts almost anything — bounded
+  in practice by the per-tick nudge budget, which is why this errs large.
+
+- [ ] **HA-90 — 50 consecutive gate rejections with a mean innovation above 6 inches means the
+  estimator is lost.**
+  *Claim:* at the ~20 Hz cadence a real corrector achieves, that is about 2.5 seconds of a sensor
+  insisting the estimate is wrong — long enough that noise cannot produce it and short enough to
+  recover inside a match.
+  *Source:* `ekf_fusion.hpp`, `reinitRejectCount` / `reinitInnovation` (PROVISIONAL (A4: HA-90)).
+  *Confidence:* **invented**.
+  *Settle (R4):* count how often a healthy run produces consecutive rejections at all, and set the
+  bar above the observed maximum.
+  *Blast radius if wrong (too low):* the filter throws away good confidence on ordinary noise —
+  measured as zero occurrences across 8 seeds of a 60-second hostile run at this setting.
+  (Too high): a shoved robot takes longer to recover, bounded below by the 12 in/s nudge rate
+  anyway.
+
+- [ ] **HA-91 — 5 seconds is long enough between re-init declarations to tell recovery from a
+  storm.**
+  *Source:* `ekf_fusion.hpp`, `reinitCooldown` (PROVISIONAL (A4: HA-91)).
+  *Confidence:* **invented**. It is bounded below by the time a rate-limited recovery actually
+  takes: 30 inches at 12 in/s is 2.5 seconds, so a cooldown shorter than that could re-declare
+  while the previous recovery is still in progress.
+  *Settle (R4):* measure the real recovery time once the nudge rate is settled, and set this to a
+  comfortable multiple of it.
+  *Blast radius if wrong (too short):* a re-init storm, which in the record is indistinguishable
+  from a filter that is working. (Too long): a second genuine displacement inside the window is
+  not recovered from until the window expires.
+
+- [ ] **HA-93 — a jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command (scaling
+  linearly with commanded voltage), with ≈ 0.05 rad/s residual reported creep.**
+  *Claim:* the F1 hostile jam model's device signature is the right order of magnitude for a real
+  V5 motor stalled by a wedged ring or a hard stop — stall current ∝ V/R, a spec-ballpark 2.5 A
+  at full command, and a not-exactly-zero encoder reading from belt chatter and backlash (included
+  deliberately so a detector keyed on EXACT zero is caught by the fake).
+  *Source:* `include/shulib/sim/hostile/mechanism_hostility.hpp` (`JammedMotorConfig` defaults,
+  PROVISIONAL (A4: HA-93)).
+  *Confidence:* **invented** — V5 11 W stall current is commonly cited near this figure; no
+  measurement of ours, and 5.5 W motors differ.
+  *Settle (R4):* jam a real intake against a block at several commanded voltages; log `current()`
+  and `velocity()` through the F4 seam; set per-mechanism `StallConfig` thresholds from the
+  measured separation between spin-up and jam (the library ships NO default thresholds for
+  exactly this reason).
+  *Blast radius if wrong:* hostile-suite realism only — the operation layer's thresholds are
+  required per-mechanism parameters, so no library behavior rests on these numbers; a wrong
+  magnitude here mis-calibrates the *worst day* the suite rehearses, not the robot.
+
+---
+
 ## Group R5 — gains and actuation constants
+
+- [ ] **HA-92 — `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive.**
+  *Claim:* the V5 firmware's active position hold, commanded through the F1 mechanism seam's
+  declared safe state, keeps a lift carrying game pieces at its height when its operation exits
+  or is cancelled — i.e. "declare Hold and the stack does not come down" is physically true, not
+  just commanded. The whole T4 design (per-mechanism declared safe states) makes the *declaration*
+  reach the motor provably; whether the *motor* then wins against gravity plus a loaded cascade's
+  back-drive torque is this claim.
+  *Source:* `include/shulib/hal/mechanism.hpp` (banner + `MotorMechanism::applySafeState`,
+  PROVISIONAL (A4: HA-92)).
+  *Confidence:* **invented** — no lift exists; V5 Hold is documented as an active position hold,
+  its holding torque under a real cascade's load and friction is not.
+  *Settle (R3/R5):* build-team lift on a stand: raise under load, cancel the operation, watch the
+  stack. Measure sag over 30 s at several loads; if Hold alone is insufficient, F3's `liftToLevel`
+  needs its sag-comp PID hold (already in its spec) and the declared safe state stays Hold as the
+  best-available floor.
+  *Blast radius if wrong:* a cancelled/parked lift descends at the buzzer — scored stack lost and
+  a possible entanglement; F2's park guard inherits the same exposure. The failure is visible the
+  first time hardware exists, which is why this is registered rather than assumed silently.
 
 - [ ] **HA-45 — the plant's wheel feedforward placeholders: kS = 1.0 V, kV = 12/70 V·s/in
   (≈ 70 in/s free speed at 12 V), kA = 0.**
@@ -648,7 +1631,8 @@ settleable before hardware, and none block any host chunk.
   *Claim:* V5 firmware applies commanded voltage without a hidden internal compensation loop, so
   partial-throttle behavior is pack-independent until demand exceeds the sagged ceiling (A3's
   §3.7 modeling insight, promoted to a testable claim).
-  *Source:* `power_hostility.hpp` shape 2 (pack ceiling); A3-COMPLETED §3.7.
+  *Source:* `power_hostility.hpp` shape 2 (pack ceiling); A3's completion record §3.7, in the
+  development log.
   *Confidence:* reasoned — matches PROS documentation of `move_voltage` semantics; PWM-level
   firmware behavior unverified.
   *Settle (R5):* measure velocity at fixed partial commands across pack states during sysid.
@@ -877,7 +1861,7 @@ Recorded so "exhaustive" is checkable — these were examined and deliberately N
 | Cross-libm bit-identity of sim runs | A documented A2 determinism caveat about *host toolchains*, not about the robot; no hardware measurement settles it. |
 | Stochastic truth-side hostility (random per-tick traction) | A3 D10/§3.8: a possible model extension, not an assumption — nothing at M2 needs it; revisit only if R4's data shows slip is noise-dominated (HA-37..39 will say). |
 | Pneumatics/air budget, mechanism-specific constants | No mechanism exists even on paper (F′-phase, build-team-gated); F1's seam will register its own assumptions when authored. |
-| AprilTag camera intrinsics/mount | R2/E3 territory with no code in-tree yet assuming values; register entries get added when E3 authors the PnP path (this register is living). |
+| ~~AprilTag camera intrinsics/mount~~ | **No longer excluded — E3 authored the PnP path and registered HA-68…HA-82.** Camera INTRINSICS themselves remain out: `CameraIntrinsics` has no defaults to be wrong about, and R2 obtains them by calibration. The MOUNT is now HA-70. |
 
 ---
 
@@ -905,8 +1889,8 @@ respectively) are exempt from direction 2 and say so in their Source field.
 
 - **Adding an assumption** (any later chunk that invents a magnitude): label it
   `PROVISIONAL (A4: HA-nn)` in-header and add the entry here — the A3→A4 pipeline is now the
-  standing convention (C1 followed it: HA-50–52). Phase E (EKF noise priors) and F1 (mechanism
-  fakes) are the known next contributors.
+  standing convention (C1 followed it: HA-50–52; E1 followed it: HA-58–60). Phase E's remaining
+  chunks (EKF noise priors) and F1 (mechanism fakes) are the known next contributors.
 - **Settling an entry** (R3/R4/R5/R6): check the box, record the measured value beside the
   guess, update the in-header constant, cite the measurement log. If the measured value breaks
   a test, the test was resting on the guess — fix forward per the R6 rule (a new failure is a

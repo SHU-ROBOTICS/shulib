@@ -1,7 +1,12 @@
 # 3 — Timing and teammates
 
-Autonomous is fifteen seconds long and there is another robot on your alliance. These recipes are
+Your autonomous period is short and there is another robot on your alliance. These recipes are
 about both facts.
+
+**This page deliberately names no period length.** A match's autonomous phase and an Autonomous
+Coding Skills run are different lengths, and the library holds no default match length by design
+— the run guard makes you supply both instants yourself. Substitute your own number wherever a
+budget appears below.
 
 Listings are compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), cases `cookbook-03a`
@@ -27,8 +32,8 @@ r.pause(750_ms);
   when a defender is about to lean on you; do not use it to let time pass.
 
 **Watch out for:** typing the duration. `pause(750)` does not compile — durations are typed, so
-"750, meaning milliseconds" cannot silently become 750 seconds of a fifteen-second match. Write
-`750_ms` or `0.75_s`.
+"750, meaning milliseconds" cannot silently become 750 seconds inside a period measured in
+tens of them. Write `750_ms` or `0.75_s`.
 
 ---
 
@@ -56,8 +61,8 @@ struct LaneSensor {
 On a real robot that becomes a distance sensor reading, a line sensor, or a button your driver
 presses.
 
-**Why the deadline is required.** An unbounded wait is a hang in a costume. Fifteen seconds is
-the whole autonomous period; a wait with no deadline can consume all of it and produce nothing.
+**Why the deadline is required.** An unbounded wait is a hang in a costume. The autonomous period
+is the entire budget; a wait with no deadline can consume all of it and produce nothing.
 
 **Why timing out *stops the chain*.** `waitFor` means "the step after this one assumes the
 condition holds". If the deadline passes with the condition still false, running that next step
@@ -98,11 +103,53 @@ when one leg goes slowly.
 
 **The problem, stated plainly: a `Routine` has no whole-chain deadline.** Every step has its own
 timeout, and they are independent. If an early leg burns six seconds fighting a defender, every
-later leg still gets its full budget, and the routine can run well past the buzzer. The library
-cannot fix this for you, because "what to drop when time is short" is strategy.
+later leg still gets its full budget, and the routine can run well past the buzzer.
 
-What you can do is read the clock between phases and keep the parking leg out of the chain that
-might stop:
+**Since the sequence layer landed, the unconditional part of this has an owner.** Wrap the whole
+auton in the run guard: you supply two instants and the final act, the guard cuts scoring at the
+first instant, refuses anything started after it, runs your act, and forces everything safe at
+the second instant no matter what. The stalled-loop case — the one the phased recipe below never
+solved — is exactly what it is for:
+
+```cpp
+shulib::sequence::RunGuard guard{pacer};   // wraps YOUR tick pacer
+Chassis chassis{deps, guard, config};      // the guard IS the pacer
+
+const Pose2d endPose{90_in, -24_in, 0_deg};     // YOUR end position (a fixture here)
+
+const RunGuardReport report = guard.run(
+    chassis,
+    {.endActionAt = 12_s, .hardStopAt = 14.5_s},  // YOUR schedule — no defaults exist
+    [&] {
+        Routine r{chassis, "skills"};
+        r.startAt(Pose2d{0_in, 0_in, 0_deg})
+            .moveTo(Pose2d{300_in, 0_in, 0_deg},
+                    {.timeout = 60_s, .maxLinearSpeed = Velocity{10.0}})
+            .moveTo(Pose2d{0_in, 24_in, 90_deg}, {.timeout = 6_s});
+    },
+    [&] {
+        Routine end{chassis, "skills/end"};
+        end.moveTo(endPose, {.timeout = 4_s}).brake({.timeout = 1_s});
+        return end.ok();
+    });
+
+if (!report.endActionSucceeded) { /* transcript already says why (SEQ lines) */ }
+```
+
+Both instants are measured from `guard.run()`'s start, both are **required** (the library has no
+default match length and no default lead time to offer — those are your measurements), and the
+guard must be the pacer your `Chassis` was constructed with, or it is not in the loop at all
+(it warns loudly after the fact if so). What "guaranteed" does and does not cover is stated in
+full in [guide chapter 14](../guide/14-what-it-cannot-do-yet.md) — read it before trusting the
+word; the two limits that matter daily are that frozen waits (`pause`/`waitFor`) still pay their
+own remaining budget past the deadline ([guide chapter 9](../guide/09-the-recipe-api.md)), and
+that nothing can preempt a loop that refuses to return — write retries against `guard.expired()`.
+
+**What remains yours — and remains this recipe's:** *what to drop when time is short* is
+strategy, and the guard has no opinion about it. The phased pattern below still earns its place
+for the CONDITIONAL parts of a routine (skip the optional goal if the first one went long); run
+it INSIDE `guard.run()`, use `guard.remaining()` instead of the hand-rolled clock helper, and
+let the guard own the unconditional ending:
 
 ```cpp
 RoutineResult budgetedAuton(Chassis& chassis, Intake& intake, Time budget,
@@ -146,15 +193,18 @@ Time clockNow(Chassis& chassis) { return chassis.deps().ctx->clock().now(); }
 - The comparison uses `.value()` on both sides. Both are typed times; comparing the underlying
   seconds is explicit about the fact that this is arithmetic on durations.
 
-**The honest note.** `clockNow` reaches through `deps()`, which is the advanced seam
-([Chapter 10](../guide/10-the-api.md)) — it is documented, supported, and stable, but it is one
-tier below where a recipe should have to go for something this ordinary. This is a known gap in
-the recipe layer, not a clever trick, and it is written up as such in the library's development
-record. If you are reading this and a `Routine`-level deadline exists by now, prefer it.
+**The honest note, updated.** `clockNow` reaches through `deps()`, the advanced seam
+([Chapter 10](../guide/10-the-api.md)) — one tier below where a recipe should have to go for
+something this ordinary. The gap it papered over is now half-closed, and here is exactly which
+half: **the unconditional ending no longer needs any of this** — the run guard owns it, and
+`guard.remaining()`/`guard.expired()` replace the clock helper inside a guarded run. The
+CONDITIONAL budgeting above (measuring a phase, deciding what to drop) is still yours and still
+legitimately reads the clock; inside `guard.run()` prefer `guard.remaining()` for it. The
+standalone helper remains the honest answer only for code running outside a guard.
 
 **Watch out for:** trusting per-step timeouts as a budget. They are worst-case bounds on
 individual motions, not a plan. Six steps with 5-second timeouts is a thirty-second routine in
-the worst case, in a fifteen-second period.
+the worst case — which is longer than any autonomous period you will run it in.
 
 ---
 

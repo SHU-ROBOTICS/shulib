@@ -99,9 +99,13 @@ defeat. [Chapter 10](../guide/10-the-api.md) is that API in prose.
 
 ## What is not in here
 
-- **Mechanisms.** shulib has no intake, lift, or pneumatics yet. Recipes that need one use a
-  small struct written by hand, and say so — that is exactly the shape a real mechanism will
-  have when the library grows one ([Chapter 14](../guide/14-what-it-cannot-do-yet.md)).
+- **Named mechanisms.** shulib now ships the mechanism *grammar* — device groups, pneumatic
+  lines, bounded operations ([guide Chapter 13](../guide/13-extending-the-library.md)) — but
+  deliberately no `Intake` or `Lift` type, ever: those are structs your team writes, because
+  the mechanism set changes every season. The recipes here use small hand-written structs,
+  and that remains exactly the right recipe shape — `then()` takes any callable, so a
+  device-backed mechanism drops into the same position
+  ([Chapter 14](../guide/14-what-it-cannot-do-yet.md) has the honest status).
 - **Strategy.** Which goals to score, in which order, is your team's to decide and defend. The
   recipes use plausible field points as scaffolding; none of them is an argument about what a
   good auton does.

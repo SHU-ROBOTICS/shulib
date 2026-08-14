@@ -3,9 +3,24 @@
 
 # API reference
 
-Every public member of shulib's autonomous-routine API, extracted from the headers. This page is generated, so it cannot fall behind the code: a member added to a documented header appears here the next time the tool runs, and the host test build fails if it has not.
+Every public member of the two **routine-authoring** surfaces — `Chassis` and `Routine`, both frozen contracts — extracted from the headers. This page is generated, so it cannot fall behind the code: a member added to one of those headers appears here the next time the tool runs, and the host test build fails if it has not. **It is not the whole API** — see "What is not here" below.
 
-**A member with no documentation comment fails the build**, naming itself. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
+**A member of those surfaces with no documentation comment fails the build**, naming itself. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
+
+**What is not here, and why.** This page covers the two surfaces you write an autonomous *routine* against. shulib's public surface is far larger — roughly 160 public types across a dozen subsystems — and almost none of it is generated here.
+
+Being frozen is *not* the selector, and it is worth saying so plainly: the coordinate frame, the units and angle semantics, the HAL interface signatures and the kinematics contract are all locked contracts too, and none of them is generated here either. The honest reason is narrower — the generator was pointed at the two types a routine author touches, and has not been pointed anywhere else yet.
+
+Shipped, public, and absent:
+
+- **The diagnostics and logging API** — `ITelemetrySink` and `LogLevel`; the sinks (`TermSink`, `SdSink`, `NullSink`, `LevelFilterSink`, `RateLimitedSink`); the records (`DebugRecord`, `MotionResult`, `RunSummary`, `SessionInfo`); the monitors (`FaultLatch`, `FaultCode`, `HealthMonitor`, `LoopMonitor`, `PoseDeltaGuard`); and the blackbox (`BlackboxReader` and its format). This is the largest omission by far, and [guide chapter 11](../guide/11-reading-the-diagnostics.md) is its real documentation — it teaches the transcript line by line, which is how you actually use this layer.
+- **Localization** — `GpsCorrector`, `AprilTagCorrector`, `TagMap`, `EkfFusion`, `ComplementaryFusion`, `Localizer` ([chapter 3](../guide/03-knowing-where-you-are.md)).
+- **The run guard** — `RunGuard` and its config/report types ([chapter 14](../guide/14-what-it-cannot-do-yet.md) states what "guaranteed" does and does not cover).
+- **The seams** — mechanism, controller and digital-input ([chapter 13](../guide/13-extending-the-library.md)), plus the whole `hal/` interface set and its `hal/pros` adapters.
+
+Each of those is documented **in its own header**, and the headers are written to be read — every one opens with why it exists, not just what it does. Until this page grows, that is where the rest of the API lives, and the [user guide](../guide/README.md) is the map to it.
+
+Two real constraints shape when that changes. Adding a header here also puts it under the coverage gate, so **an undocumented public member starts failing the build** — that is the point of the gate, and it is also why expanding is a piece of work rather than a switch. And gating a seam that is deliberately *not* frozen would pin it in place, which is a way of freezing it by accident; the Freeze Register records which seams those are and why they are still open.
 
 ## Pages
 
@@ -80,6 +95,7 @@ Every public member of shulib's autonomous-routine API, extracted from the heade
 | `RoutineResult::stoppedAt` | `RoutineResult` | [routine.md](routine.md#routineresult-stoppedat) |
 | `RoutineResult::stoppedName` | `RoutineResult` | [routine.md](routine.md#routineresult-stoppedname) |
 | `RoutineStopCause::ActionFailed` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-actionfailed) |
+| `RoutineStopCause::MechanismFailed` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-mechanismfailed) |
 | `RoutineStopCause::MotionFailed` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | `RoutineStopCause` | [routine.md](routine.md#routinestopcause-waittimedout) |

@@ -1,0 +1,62 @@
+#pragma once
+//
+// ProsTickPacer — motion::ITickPacer over pros::Task::delay_until (chunk R1a):
+// the ONLY seam that regains control mid-motion on the robot, replacing
+// main.cpp's V5DelayPacer (which had to hand-advance a FakeClock).
+//
+// BINDS: pros::Task::delay_until(&prev, kTickMs) — NOT pros::delay(kTickMs).
+// The difference is drift: delay(10) sleeps 10 ms from NOW, so each tick's
+// processing time ADDS to the period (a 2 ms tick body makes a 12 ms loop —
+// 20% slow, and the motion profiles integrate that error forever).
+// delay_until wakes at prev + delta and updates prev to the WAKE instant
+// (vendored rtos.hpp:742-747, HA-102), so the cadence is anchored to the
+// timeline, not to the work: processing time is absorbed, and the loop runs
+// at the true 100 Hz the motion layer assumes (HA-32).
+//
+// FIRST CALL: prev is initialized from millis() lazily on the first pace() —
+// the pacer anchors to the moment pacing STARTS, not the moment the object
+// was constructed (a Robot constructed at t=0 but first paced at t=3000 must
+// not "catch up" 300 phantom ticks; FreeRTOS's catch-up semantics would run
+// them back-to-back and the motion layer would see 300 zero-dt ticks).
+//
+// CADENCE: kTickMs = 10 (the 100 Hz motion tick, HA-32) — the same constant
+// V5DelayPacer carried; one owner, here, until a config plumbs it.
+//
+// The real IClock (ProsClock) reads real time and needs no help — the
+// fake-clock advance that V5DelayPacer had to do is gone, which is exactly
+// the R1 note that pacer carried in main.cpp since C7.
+//
+// HA register: HA-102, HA-32.
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#include "pros/rtos.hpp"
+#pragma GCC diagnostic pop
+
+#include <cstdint>
+
+#include "shulib/motion/motion_scheduler.hpp"
+
+namespace shulib::hal::pros {
+
+class ProsTickPacer final : public motion::ITickPacer {
+public:
+    static constexpr std::uint32_t kTickMs = 10;  ///< the motion tick (HA-32's 100 Hz)
+
+    /// Block until the next tick boundary (header: anchored cadence, lazy
+    /// first-call anchor).
+    void pace() override {
+        if (!anchored_) {
+            prevWakeMs_ = ::pros::millis();
+            anchored_ = true;
+        }
+        ::pros::Task::delay_until(&prevWakeMs_, kTickMs);
+    }
+
+private:
+    std::uint32_t prevWakeMs_ = 0;
+    bool anchored_ = false;
+};
+
+}  // namespace shulib::hal::pros

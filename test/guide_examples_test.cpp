@@ -4,7 +4,7 @@
 //
 // Mapping (keep in sync with the guide — see docs/guide/README.md):
 //   guide-08a/b/c  -> docs/guide/08-your-first-routine.md   (the tutorial)
-//   guide-09a/b/c  -> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
+//   guide-09a/b/c/d-> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
 //   guide-10a..e   -> docs/guide/10-the-api.md              (API idioms)
 //
 // The guide quotes these bodies VERBATIM. If you change code here, change the
@@ -21,9 +21,14 @@
 #include <cstdlib>
 #include <string>
 
+#include <array>
+
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
+#include "shulib/hal/fake/fake_motor.hpp"
+#include "shulib/hal/mechanism.hpp"
+#include "shulib/manipulation/mechanism_op.hpp"
 #include "shulib/diag/build_info.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/health_monitor.hpp"
@@ -154,10 +159,11 @@ TEST_CASE("guide-08a: your first routine — wiring, running, and the report") {
     // from the center).
     const k::MatrixKinematics kin = k::xDrive(7_in);
 
-    // Step 2 — the robot. On a real V5 this is where hardware adapters will
-    // go (phase R1); today it is the simulated robot the whole library is
-    // tested against. The feedforward constants describe the robot being
-    // driven — they MUST match between plant and controller (chapter 5).
+    // Step 2 — the robot. On a real V5 the hal/pros adapters go here (they
+    // exist; src/main.cpp wires them); here it is the simulated robot the
+    // whole library is tested against. The feedforward constants describe
+    // the robot being driven — they MUST match between plant and
+    // controller (chapter 5).
     shulib::sim::SimHarnessConfig simCfg;
     simCfg.plant.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};
     simCfg.plant.initialPose = Pose2d{-48_in, -24_in, 90_deg};  // where it's placed
@@ -426,6 +432,78 @@ TEST_CASE("guide-09c: tank recipes — face the point, drive to it; the full API
     CHECK(motion_rig::posErr(c.rig.h.truePose(),
                              Pose2d{24_in, 24_in, c.rig.h.truePose().heading()})
           < 1.0);
+}
+
+// ═══ guide-09d: a mechanism action in a recipe (chunk F1) ══════════════════════════
+
+// The mechanism seam is no longer a placeholder: a bounded operation
+// (manipulation/mechanism_op.hpp) starts, is TICKED by the chassis's own wait
+// (the operation owns no loop), and hands its verdict to then() — where only
+// Succeeded continues the chain. An unconfirmed grab can never read as
+// success. The listing is quoted in chapter 9 verbatim.
+RoutineResult scoreOne(Chassis& chassis, shulib::manipulation::IMechanismOp& grab) {
+    Routine r{chassis, "score-one"};
+    r.moveTo(Pose2d{18_in, 0_in, 0_deg}, {.timeout = 5_s})
+        .then(
+            [&] {
+                grab.start();
+                (void)chassis.waitUntil(
+                    [&] {
+                        return grab.tick() !=
+                               shulib::manipulation::MechanismOutcome::Running;
+                    },
+                    2_s);
+                return grab.outcome();  // only Succeeded continues the chain
+            },
+            "grab")
+        .moveTo(Pose2d{0_in, 24_in, 90_deg}, {.timeout = 5_s});
+    return r.result();
+}
+
+TEST_CASE("guide-09d: a mechanism action — confirmed continues, unconfirmed stops") {
+    const auto kin = shulib::kinematics::xDrive(7_in);
+    motion_rig::ChassisRig c{kin};
+
+    // The intake: two fake motors behind the F1 device seam. Its declared
+    // safe state is Coast (an intake must never HOLD into a jam — ch. 13).
+    shulib::hal::fake::FakeMotor ma;
+    shulib::hal::fake::FakeMotor mb;
+    std::array<shulib::hal::IMotor*, 2> motors{&ma, &mb};
+    shulib::hal::MotorMechanism intake{motors, shulib::hal::BrakeMode::Coast, "intake"};
+    const shulib::manipulation::MechanismDeps deps{.clock = &c.rig.h.clock(),
+                                                   .faults = &c.rig.latch,
+                                                   .telemetry = &c.rig.faultSink};
+    const shulib::manipulation::RunUntilConfirmedConfig cfg{
+        .voltage = shulib::units::Voltage{6.0},
+        .timeout = 1.5_s,
+        .stall = {.currentAtLeast = shulib::units::Current{2.0},
+                  .speedAtMost = AngularVelocity{0.1},
+                  .persistence = 50_ms}};
+
+    // World 1: the capture confirms 0.25 s in — the whole chain succeeds.
+    {
+        int ticks = 0;
+        shulib::manipulation::RunUntilConfirmed grab{
+            intake, deps, cfg, [&] { return ++ticks > 25; }, "capture"};
+        const RoutineResult res = scoreOne(c.chassis, grab);
+        CHECK(res.ok);
+        CHECK(res.completed == 3);
+        CHECK(grab.outcome() == shulib::manipulation::MechanismOutcome::Succeeded);
+    }
+    // World 2: nothing ever confirms — the grab times out, the chain STOPS,
+    // the later move is skipped, and ok() is false. Silent success is
+    // structurally impossible: only Succeeded maps to success.
+    {
+        shulib::manipulation::RunUntilConfirmed grab{
+            intake, deps, cfg, [] { return false; }, "capture"};
+        const RoutineResult res = scoreOne(c.chassis, grab);
+        CHECK_FALSE(res.ok);
+        CHECK(res.cause == shulib::chassis::RoutineStopCause::MechanismFailed);
+        CHECK(res.skipped == 1);
+        CHECK(grab.outcome() == shulib::manipulation::MechanismOutcome::TimedOut);
+        // And the intake ended SAFE — 0 V at the motor — without anyone asking.
+        CHECK(ma.commandedVoltage().value() == 0.0);
+    }
 }
 
 // ═══ guide-10a: per-call options override the config for ONE motion ════════════════

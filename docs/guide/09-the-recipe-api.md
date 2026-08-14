@@ -14,11 +14,15 @@
 > ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)), and the freeze is enforced
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
-> fails the build if a spelling drifts. New steps arrive *additively*.
-> **One exception, deliberately:** `then()` is **not** frozen. It is the seam that mechanisms
-> will plug into, and mechanisms do not exist yet — freezing the shape of a placeholder would
-> commit the library to a guess. Expect `then()` to keep working; do not assume its exact
-> spelling is permanent.
+> fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
+> been used for real: `RoutineStopCause` gained an **appended** `MechanismFailed`, which is a
+> minor version bump (2.0 → 2.1), not a breaking change. Existing enumerator *values* are
+> pinned; only the end of the list grows. If you `switch` exhaustively, add the new case.
+> **One exception, deliberately:** `then()` is **not** frozen. It is the seam mechanisms plug
+> into. Mechanisms now *exist* — the seam was filled, and `then()` accepts a mechanism
+> operation's `MechanismOutcome` as a fourth return type — but the surface stays unfrozen until
+> a second real consumer has stressed it, which is this project's standing rule for freezing.
+> Expect `then()` to keep working; do not assume its exact spelling is permanent.
 
 Once you can write a routine, the [cookbook](../cookbook/README.md) is where to go next: it
 answers "how do I write the routine I am writing right now" with complete, compiled recipes —
@@ -27,7 +31,7 @@ teaches the layer; the cookbook uses it.
 
 The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
-through `guide-09c`. The fine print lives in the header,
+through `guide-09d`. The fine print lives in the header,
 [`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp), whose
 opening commentary — like `chassis.hpp`'s — is meant to be read.
 
@@ -131,7 +135,8 @@ a `waitFor` deadline passes with the condition still false, or a `then` action r
 failure.
 
 **Read `result().cause` before `result().exit`.** `cause` says what *kind* of thing stopped the
-chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`); `exit` carries a motion's verdict and is
+chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`, or `MechanismFailed` when a mechanism
+operation returned any verdict other than `Succeeded`); `exit` carries a motion's verdict and is
 only meaningful when the cause is `MotionFailed`. After a failed wait or a failed action, `exit`
 reads `Running`, which means "no motion verdict here" — not "still going". It is the same
 "nothing yet" convention `lastCompleted()` uses, and it surprises everyone once.
@@ -225,18 +230,92 @@ and honors that verdict, so the leg becomes a step in every way that matters. Th
 [cookbook](../cookbook/05-mixing-tiers.md) shows both forms side by side, with a compiled test
 holding each of them true.
 
-## `then()` — the mechanism seam, honestly labeled
+## `then()` — the mechanism seam
 
-The plan for Tier 2 ([master plan
-§17](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
-reads `moveTo(p).then(intake.in)`. **Mechanisms do not exist in shulib yet** — no intake, no
-lift, nothing to call ([Chapter 14](14-what-it-cannot-do-yet.md)). What exists now is the
-seam they will plug into: `then(action, name)` runs any callable between motions, strictly
-after the previous step finishes. An action returning `void` always succeeds; returning
-`bool`, `false` stops the chain (`ActionFailed`); returning an `ExitReason` — say, from a
-direct `chassis.` call inside the action — has that verdict honored. When mechanisms land,
-`intake.in` becomes such a callable and chains here without the recipe layer changing shape.
-Until then, `then` is where your own glue code goes.
+`then(action, name)` runs any callable between motions, strictly after the previous step
+finishes. An action returning `void` always succeeds; returning `bool`, `false` stops the
+chain (`ActionFailed`); returning an `ExitReason` — say, from a direct `chassis.` call
+inside the action — has that verdict honored. And since the mechanism layer landed
+([Chapter 13](13-extending-the-library.md) shows how to build one), an action may return a
+mechanism operation's `MechanismOutcome`: **only `Succeeded` continues the chain.** A grab
+that completed but was never confirmed reports `Unconfirmed`, stops the chain as
+`MechanismFailed`, and the transcript names the exact verdict — a failed grab cannot be
+mistaken for a successful one, and there is no way to spell it that would.
+
+Here is the whole idiom, compiled and run by the test suite. The operation never owns a
+loop: you start it, the chassis's own `waitUntil` ticks it once per control tick (this also
+works *while a motion is driving* — that is how "intake while moving" is written), and its
+verdict goes to `then()`:
+
+```cpp
+RoutineResult scoreOne(Chassis& chassis, shulib::manipulation::IMechanismOp& grab) {
+    Routine r{chassis, "score-one"};
+    r.moveTo(Pose2d{18_in, 0_in, 0_deg}, {.timeout = 5_s})
+        .then(
+            [&] {
+                grab.start();
+                (void)chassis.waitUntil(
+                    [&] {
+                        return grab.tick() !=
+                               shulib::manipulation::MechanismOutcome::Running;
+                    },
+                    2_s);
+                return grab.outcome();  // only Succeeded continues the chain
+            },
+            "grab")
+        .moveTo(Pose2d{0_in, 24_in, 90_deg}, {.timeout = 5_s});
+    return r.result();
+}
+```
+
+**Return the outcome.** A `void` lambda that runs an operation and drops its verdict
+"succeeds" no matter what happened — the same sharp edge as the dropped direct-call
+`ExitReason` above, owned the same way. And if an action returns `Running`, the chain stops
+loudly too: an operation nobody drove to completion is not a success either.
+
+One honest spelling note, because older drafts of the plan wrote it differently: the
+flagship used to be quoted as `chassis.moveTo(p).then(intake.in)`, and that line was never
+real C++ twice over — `Chassis::moveTo` returns an `ExitReason` (which has no `.then()`;
+chains belong to `Routine`), and `intake.in` only names a function, it does not call one.
+The honest spelling is the one above: a `Routine` chain, and a lambda (or the operation
+idiom) inside `then()`.
+
+## The match clock, and what a chain honestly cannot see
+
+A `Routine` has per-step timeouts and **no whole-run deadline** — that is a frozen fact of this
+API, not an oversight, and pretending otherwise would be worse than saying it plainly. When a
+run-scoped deadline (the sequence layer's guard, [Chapter 6](06-how-things-fail.md)) fires
+while a chain is executing:
+
+- **A motion step is cut immediately.** The verb returns `Cancelled` — its honest verdict —
+  the chain stops on it like any failed motion, and every later step is skipped. Skips are
+  instant, so a chain in a motion pays essentially nothing past the deadline.
+- **`pause()` and `waitFor()` cannot be cut.** A wait checks its condition and its *own*
+  timeout, and nothing else — the deadline is invisible to it. The lateness bound is exact:
+  **the unexpired remainder of the wait's own timeout at the instant the deadline fires,
+  summed over every wait step that runs after that instant.** In practice a chain pays one
+  term — the wait it was standing in — because its next motion step is refused and stops the
+  chain. Consecutive `pause()` steps each pay in full (a pause never fails, so it never stops
+  the chain). Budget waits tightly.
+
+When the wait itself is the thing that must respect the deadline — "wait for the partner, but
+never past our budget" — use the guard's own wait through `then()`. Only `Satisfied` continues
+the chain; both the wait's own timeout *and* the run expiring stop it:
+
+```cpp
+Routine r{chassis, "with-partner"};
+r.startAt(Pose2d{0_in, 0_in, 0_deg})
+    .then([&] { return guard.waitFor([&] { return partnerSignal; }, 30_s)
+                    == GuardedWaitResult::Satisfied; },
+          "wait-partner")
+    .then([&] { ++stepsAfterWait; }, "score");
+```
+
+One trap this spelling exists to prevent, because it was measured: folding a deadline into an
+ordinary `waitFor` predicate makes the deadline *look* like the condition arriving — the wait
+returns satisfied, the chain records success, **and keeps scoring past the buzzer.** The
+guard's wait returns its own verdict (`RunExpired`) precisely so time running out can never
+read as the thing you were waiting for.
 
 ## What a recipe deliberately can't do
 

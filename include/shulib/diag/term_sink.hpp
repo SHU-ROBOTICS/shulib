@@ -209,7 +209,17 @@ public:
             appendUnsigned(line, s.droppedRecords);
             line.appendLiteral(" rec ");
             appendUnsigned(line, s.droppedLines);
-            line.appendLiteral(" ln\n");
+            line.appendLiteral(" ln");
+            // E1: the blackbox's own drops, shown ONLY when non-zero. The D-2 counters
+            // above are always shown because those channels always exist, so "0" is a
+            // positive health claim about them. A blackbox may not be attached at all,
+            // and "blackbox dropped 0" on a run with no blackbox would be a claim about
+            // something that never ran — the opposite of the honesty the block exists for.
+            if (s.blackboxDropped != 0) {
+                line.appendLiteral(" · blackbox dropped ");
+                appendUnsigned(line, s.blackboxDropped);
+            }
+            line.appendLiteral("\n");
             out_.write(line.view());
         }
         {
