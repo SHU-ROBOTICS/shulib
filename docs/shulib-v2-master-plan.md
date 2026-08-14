@@ -1,9 +1,22 @@
 # shulib v2 — Master Plan & Architecture Reference
 
-> **Status:** DESIGN-FIRST (no code yet). Living document — sections marked _PENDING_ are
-> still in progress. Last updated 2026-06.
+> **Status:** the library is **built and host-verified**; this document is its architecture
+> reference, not a forward plan. Most of what follows is now shipped code — where a section still
+> describes something unbuilt, it says so in place. Living document.
 >
-> **What this is:** a design & architecture reference for shulib — the plan, not the robot code itself.
+> **The one status line that governs everything:** shulib **has never driven a robot.** No
+> control loop has ever closed on hardware, no wheel has ever turned under the library's own
+> steering. What *has* happened: the code boots on a V5 brain, and the hardware adapters have
+> commanded real motors and read real sensors at a bench, proving their unit conversions correct
+> on one robot, once. Everything above that seam is verified against a simulator only.
+>
+> **What this is:** a design & architecture reference for shulib — the reasoning behind the
+> shape, including the alternatives that were rejected.
+>
+> *(This header read "DESIGN-FIRST (no code yet) … sections marked _PENDING_ … Last updated
+> 2026-06" until 2026-08-14. All three clauses were false: the library was built, no `_PENDING_`
+> marker existed anywhere in the file, and the file already carried notes dated two months later.
+> It is the first thing a public reader sees, which is what made it worth this much correction.)*
 
 ---
 
@@ -103,7 +116,7 @@ must beat both. The table below is vs LemLib; §4a is the OkapiLib pass.
 | **Drivetrain** | Tank/differential ONLY; cannot strafe ("not going to change until other drivetrains are competitive"). | `IKinematics` twist `(vx,vy,ω)` → per-wheel cmds + inverse. `XDrive` / `HDrive` (capped strafe) / `Tank` subclasses. New drivetrain = new subclass, zero controller edits. |
 | **Localization** | Tracking wheels + IMU dead-reckoning. No GPS/vision/fusion. Drift unbounded over a run. | Fused `Localizer`: Pilons odom + IMU-owned heading + `GpsCorrector` + `AprilTagCorrector` behind `IPoseSource`; complementary→EKF on SE(2) with Mahalanobis gating. Bounded over 60s; degrades gracefully. |
 | **Motion** | Boomerang `moveToPose`, pure-pursuit `follow` — heading coupled to travel direction. | Decoupled per-axis (x,y,θ): profiled `vx/vy` to target while independently servoing θ. `MoveToPose` / `TurnTo` / `StrafeTo` / `FollowTrajectory` (independent per-waypoint heading). |
-| **Architecture** | PROS objects embedded throughout; global namespaces; not unit-testable or sim-able. | 5-layer dependency-inverted; core depends ONLY on a PROS-free HAL. Host gtests + sim adapters. CI forbids `#include <pros/` in core. |
+| **Architecture** | PROS objects embedded throughout; global namespaces; not unit-testable or sim-able. | 5-layer dependency-inverted; core depends ONLY on a PROS-free HAL. Host **doctest** suite + sim adapters. CI forbids PROS includes in the core in **both** spellings (`<pros/…>` and `"pros/…"`), exempting the adapter tree by exact path. |
 | **Units** | Migrating mid-library to a heavy type-safe lib; API churn. | Lightweight header-only `Quantity<Dim>` (~6 dims) + `_in`/`_deg`/`_tile` literals + built-in angle wrap. Kills the deg-into-cos/sin bug class at compile time. |
 | **Async** | Global `MotionHandler`; single motion. | `MotionScheduler` object (injected clock/HAL): one active `IMotion`, `.async()`/`waitUntilSettled()`/`waitUntil(pred)`/`cancel()`; min-velocity handoff chaining. |
 | **Accuracy** | PID-only (derivative-on-error, no FF), degrades with speed. | Bounded error via absolute correction; profiled + kS/kV/kA FF + derivative-on-measurement PID w/ integral clamp; vision-servo docking decouples sub-inch scoring from drift. |
@@ -177,8 +190,11 @@ L1  KINEMATICS + MATH (pure C++20)
 L0  HAL INTERFACES (pure abstractions, ZERO pros)
     hal/ IMotor IRotation IImu IGps IVision IDistance IOptical IClock ITelemetrySink
       | implemented by (NOT depended on by core)
-    hal/pros/* (real V5 — the ONLY files that include <pros/*>)
-    hal/sim/*  (VexBuilder)        hal/fake/* (host gtest doubles)
+    hal/pros/* (real V5 — the ONLY files that may include PROS, and they must
+                use the QUOTED form "pros/…": the robot build resolves includes
+                with -iquote only, so <pros/…> compiles everywhere except the
+                one build that matters)
+    hal/sim/*  (VexBuilder)        hal/fake/* (host doctest doubles)
 ```
 
 **Data flow (per ~10ms tick):** HAL sensors → `Localizer.update()` → fused `Pose2d/Twist2d` →
@@ -405,7 +421,7 @@ structurally can't match.
   `IKinematics` + `XDriveKinematics` (+ Tank) host-tested with pure numbers; CI forbids `<pros/>`
   in core; freeze v1 `.vexbot` `paths[]` schema (the `DebugRecord`/`SHUL/2` schema freezes later — at
   M2 and M6 respectively, §18). _Milestone: kinematics + a trivial motion run
-  identically in a host gtest and on the V5 by swapping only `RobotContext`._
+  identically in a host doctest case and on the V5 by swapping only `RobotContext`._
 - **Phase 2 — Real holonomic motion.** `control/` (trapezoid profile + FF + ExitGroup); `motion/`
   (`MoveToPose`/`TurnTo`/`StrafeTo` + `MotionScheduler`); `Localizer` on odom + IMU (correctors
   stubbed); `HDriveKinematics` w/ capped strafe; `tools/sysid` kV/kA characterization.
@@ -445,7 +461,7 @@ easier to get right and to explain._
 1. **Freeze ONE coordinate frame**, unit-tested, before any code (§7).
 2. **AI Vision AprilTag SDK — RESOLVED (2026-06).** Native AprilTag detection ships in **PROS 4.2.2**
    (`pros::AIVision`: 4 tag families `tag_21H7/16H5/25H9/61H11`, `enable_detection_types(tags)`,
-   `set_tag_family`, returns tag ID + corners). This repo is just pinned to the **stale kernel 4.1.0**
+   `set_tag_family`, returns tag ID + corners). This repo was pinned to the **stale kernel 4.1.0**
    (calypso is on 4.2.2) — fix is a one-time `pros` kernel bump. The team already has a working
    `pros::AIVision` wrapper (`calypso`/`Downloads/ai_vision.hpp`, object-mode); it becomes the
    `hal/pros` `IVision`/`ITagSource` adapter, extended to read tag detections. The **V5 AI Vision Sensor
@@ -522,6 +538,18 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 13 | Sim seam timing | **Define** the `SHUL/2` schema + `hal/sim` seam at design time (so M6 is a plug-in); **implement** the wire + sim adapter at M6 (F9); wire to Rapier at VexBuilder Phase 7. Scope = `hal/sim` + wire sink only (does **not** move `TermSink` M2 / `SdSink` M3); `hal/sim` is exercisable via `hal/fake` even if Rapier never lands. | **Locked 2026-06-19** |
 | 14 | VexBuilder must add | Explicit drivetrain fields (kind/trackWidth/wheelDia) in `.vexbot` so config isn't geometry-inferred (§16.2 caveat) | **Cross-team ask** |
 | 15 | Kinematics backend | **HYBRID:** `IKinematics` is the interface (swerve is *nonlinear* — a coeff table can't express it — and the interface is the home for `forward()` inverse-kinematics used by odometry + the `strafeAuthority()` query). The **linear** holonomic drives (X/H/tank/mecanum) are one impl, `MatrixKinematics`, driven by a per-wheel `[h, v, turn]` coefficient matrix (salvages `lodge`'s data-table idea). `toWheels()` is clamp-free (§13 #5); `desaturate()` is a virtual with a uniform-scale default. Wheel outputs are dimensioned `Velocity`, not bare doubles (F3). Frozen as **F5** at M1. | **Locked 2026-06-19** |
+| 16 | Adapter failure idiom (settled at R1a) | **screen → hold-last-good → expose.** Every `hal/pros` adapter screens the SDK's error sentinel *before* converting, then holds its last good value (never zero — a zeroed encoder reads as "stopped", the lie that hides a runaway) and exposes a `faultedReads()` counter. The RAISE stays in the loop layer, because `hal/` sits below `diag/` and raising is policy. Rejected: adapters taking a fault latch (layering inversion); silent zero. **Note this supersedes the earlier prediction** that validity-free sensors would gain an `isConnected()` — they did not; `isConnected()` exists only on `IController`. | **Locked 2026-08-13** |
+| 17 | PROS include spelling in adapters | **QUOTED (`#include "pros/…"`), always.** Measured at R1a: PROS's `common.mk` resolves includes with `-iquote` only, so the angle-bracket form compiles in the host build and every editor and fails the one build that ships. Pinned by a textual guard test. | **Locked 2026-08-13** |
+| 18 | Digital-input seam, built ahead of its consumer | **Build `IDigitalIn` anyway** (done at R1b, register row F14, not frozen). A deliberate departure from F1's standard of earning a seam on a real consumer's verb: the lift-homing question below is unanswered, and discovering the need at hardware-validation time with the robot on the bench is far more expensive than a small unused sibling now. The cost is accepted in writing rather than discovered. | **Locked 2026-08-14** |
+
+**Still open — these are decisions, not tasks:**
+
+| # | Open question | Why it is still open | Who consumes the answer |
+|---|---|---|---|
+| A | **Lift homing: limit switch or motor stall?** | Asked 2026-08-13, undecided. The seam exists either way (decision 18); if the answer is "stall", `IDigitalIn` is a small unused sibling and the stall detector already shipped at F1. | The scoring-primitives chunk (Phase F′), which writes the homing routine |
+| B | **Which sensors actually go on the competition robots?** | The ranked recommendation is in the project briefing; the build team has not committed. Ports are finite and the ranking is accuracy-per-port. | Hardware validation, and every register entry that depends on a sensor existing |
+| C | **When to characterize the drivetrain.** | Doing it on the only robot that exists produces a validated *tool* and throwaway *numbers* — gains never transfer across chassis, so a measured-looking wrong number is worse than an honest placeholder. Deferring it until a competition robot exists trades schedule for reusable results. | The gain-measurement chunk, and the order of the remaining phases |
+| D | **Does the available robot have an ADI expander?** | Reported at the first bench session from an out-of-range registry index, so the reading may be garbage; never re-checked. The brain's 8 built-in ADI ports exist regardless, so nothing is blocked — but the number of available 3-wire ports is unknown. | Anything that budgets 3-wire ports (limit switches, pneumatics) |
 
 ---
 
@@ -611,7 +639,7 @@ clearly reachable) · ○ **Frontier** (stretch / research — the "future" we d
 | **Control & FF** | derivative-on-measurement PID + integral clamp; `SettledUtil` exits; kS/kV/kA FF | brownout/voltage comp; motion watchdog; per-axis decoupled servo | adaptive gains; learned feedforward from logged runs |
 | **Manipulation** | `Mechanism` HAL, `intakeUntilCapture`, `liftToLevel`, profiled rotators | `buildStack`, `matchLoadCycle`, air-budget-aware actuation | vision-servo grasp; closed-loop stack verification |
 | **Autonomy authoring** | data-driven `PathRunner` + command registry (no C++ needed) | fluent recipe API; time-budgeted Sequencer w/ guaranteed end action | GUI sequence builder in VexBuilder writing `paths[]` into `.vexbot` |
-| **Simulation & test** | host gtests via `hal/fake`; deterministic clock | `hal/sim` adapter + `SHUL/2` over VexBuilder agent socket | full Rapier physics round-trip; planned-vs-actual overlay |
+| **Simulation & test** | host doctest suite via `hal/fake`; deterministic clock | `hal/sim` adapter + `SHUL/2` over VexBuilder agent socket | full Rapier physics round-trip; planned-vs-actual overlay |
 | **Diagnostics & telemetry** | **`TermSink` readable terminal stream** + `DebugRecord` + fault codes + per-motion result (§18); `NullSink` default | `SdSink` binary blackbox; `SHUL/2` wire; live PID/FF tuner; record/replay | on-brain HUD add-on; cloud run library; auto-tune from replays |
 | **Config & hardware** | `IRobotConfig` + `RobotBuilder`; hand-written config | `.vexbot` → `robot_config.hpp` codegen; SD-card runtime profile | zero-touch: build in VexBuilder → working robot, no edits |
 | **Docs & onboarding** | per-module notes | "first auton in 10 min" path; recipe cookbook | generated API site + interactive examples (the team website) |

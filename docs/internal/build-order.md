@@ -557,8 +557,7 @@ many independent things are checked. It now carries an explicit caveat pointing 
 as the measure the project actually trusts, with the reason stated: **a test that cannot fail when
 the code is wrong is worse than no test, because it reads as coverage.**
 
-**Chunk F1 — the mechanism seam — is BUILT and verified 2026-08-13, in the working tree
-pending review/commit; Phase F is OPEN.** The first new seam since C1: `hal/mechanism.hpp`
+**Chunk F1 — the mechanism seam — is BUILT, verified and COMMITTED (`8dfd904`, 2026-08-13); Phase F is OPEN.** The first new seam since C1: `hal/mechanism.hpp`
 (+`digital_out.hpp` + fakes) is the device level — `IMechanism` deliberately minimal (the ONE
 uniform verb every mechanism supports is "apply your DECLARED safe state, now"; command/read
 surfaces stay concrete because a voltage on a solenoid would be a lie), `MotorMechanism` /
@@ -592,7 +591,7 @@ brief): a park guard takes a caller-supplied `span<hal::IMechanism*>` — the li
 the mechanism list; pre-empt is cancel-then-start; nothing here is frozen (register row F11).
 
 **Chunk F2 — the sequence engine + the guaranteed END-OF-RUN ACTION — is BUILT and verified
-2026-08-13, in the working tree pending review/commit; Phase F's host-provable half is CLOSED.**
+2026-08-13, COMMITTED (`8223a7c`); Phase F's host-provable half is CLOSED.**
 `sequence/run_guard.hpp`: `RunGuard`, the run-scoped deadline owner — an `ITickPacer` decorator
 (the pacer is the only seam that regains control mid-motion), **inert until `run()`** (the D3
 §2.1 opt-in instruction, pinned by a bit-identical unguarded-twin test), cutting the active
@@ -630,7 +629,16 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: DOCS1 — the full documentation pass, then the release to `main`** ([brief](chunks/DOCS1-full-documentation-pass.md)). Called 2026-08-14: 23 chunks have landed, `main` is 195 commits behind, and merging to `main` is what PUBLISHES to docs.shurobotics.com — so the documentation pass is the release gate, not tidying before it. R1a and R1b are DONE.**
+**Next: the RELEASE to `main`, then R3 — first motion.** DOCS1 is COMPLETE
+([brief](chunks/DOCS1-full-documentation-pass.md), [record](chunks/DOCS1-COMPLETED.md)): the
+whole documentation surface was read end to end, the release gate that was red is green, and
+every gate passes. The release is a two-step tree operation, not a `merge --squash` — the
+completion record carries the verified mechanic. **Two open questions ride with the push**:
+whether to push at all, and HTTPS. **DOCS2** (the generated reference over the whole public
+API, ~400 doc comments plus a parser extension) is briefed and deliberately deferred until
+after the release. Originally called 2026-08-14: 23 chunks have landed, and merging to `main` is what PUBLISHES to docs.shurobotics.com — so the documentation pass is the release gate, not tidying before it. R1a and R1b are DONE.
+
+**Do NOT measure `main` by commit distance.** `main` is a *squash* of `release/v2` with `docs/internal/` dropped, so its history is deliberately disjoint and `git rev-list --count main..HEAD` returns a meaningless number (this line said "195 commits behind" until DOCS1, which is the number that correction was written to kill — it just never reached this file). Ask what `main` **contains**: `git cat-file -e main:<path>`. Measured that way, `main` is current through Phase D and is missing E1–E4, F1, F2, R1a and R1b.**
 
 *(superseded)* ~~Next: R1b — `hal/pros` adapters for the mechanism seams~~ ([brief](chunks/R1b-pros-adapters-mechanisms.md)). R1a is DONE (built, verified, committed, and validated on hardware — see the bench session record). R1b unblocks BOTH R3 and F3, and needs no robot to author.**
 
@@ -664,7 +672,10 @@ test — desaturate keeps mutated turns convergent — so only a truth yaw-rate 
 plus one process catch (a non-compiling mutation nearly misread as green off a stale binary —
 the campaign runner now gates on build success).
 
-**The governing constraint: there is no robot yet, and won't be for a while.**
+**The governing constraint, restated for what it is now: a robot arrived on 2026-08-13 — the
+team's old competition bot — and the platform layer was validated on it. The constraint that
+still governs is the narrower and harder one: THE LIBRARY HAS NEVER DRIVEN A ROBOT. No control
+loop has ever closed.**
 
 **Status of the three things nothing had touched:**
 1. ~~**No shulib v2 code has ever run on a V5.**~~ **Closed 2026-08-12** — a brain and a battery
@@ -849,7 +860,7 @@ for every sensor pathology.
 **The register** — a living document listing every claim about physical hardware that cannot yet be
 checked, each written as a falsifiable statement paired with the exact test that will check it. Seeds
 include: the GPS position-axis→compass binding (already flagged "validate-on-field" in
-`gps_conversion.hpp`, with a skipped oracle at `test/gps_conversion_test.cpp:163`), IMU sign and wrap
+`gps_conversion.hpp`, with a skipped oracle at `test/gps_conversion_test.cpp`, the skipped case named "gpsSensorPose: FIELD-CAL axis oracle"), IMU sign and wrap
 conventions, tracking-wheel offsets and directions, motor cartridge and gearing ratios, and PROS call
 latency.
 
@@ -1377,7 +1388,7 @@ both object mode and AprilTag mode (kernel 4.2.2 provides the 4 tag families nat
 A minimal validation entry point — no auton, no motion. Read every sensor, command open-loop voltages,
 stream `TermSink`. Then walk the **A4 Hardware Assumptions Register top to bottom**:
 
-- **The GPS field-cal axis oracle** (`test/gps_conversion_test.cpp:163`) — bench-measure the
+- **The GPS field-cal axis oracle** (`test/gps_conversion_test.cpp`, the skipped case named "gpsSensorPose: FIELD-CAL axis oracle") — bench-measure the
   position-axis→compass binding rather than assuming it. Unskip it.
 - **The F5 on-V5 number-match** — the same twist produces identical wheel commands on host and robot.
 - **IMU conversion truth** — canonical heading, sign, and wrap against physical rotation.
@@ -1479,8 +1490,9 @@ independent instances, and *that* is already core — this chunk is only the opt
 
 ## Deviations from the roadmap's milestone order
 
-Recorded so the reordering is auditable. **Three are additions the roadmap was missing; five are
-reorderings.**
+Recorded so the reordering is auditable. *(This line used to count the rows below it — "three
+additions, five reorderings" — and went stale the moment R1a added three more rows. The table
+is the record; a count of a table you can see is a second thing to maintain.)*
 
 | Change | Roadmap says | Build order says | Why |
 |---|---|---|---|
@@ -1511,7 +1523,9 @@ the five reorderings each buy a correctness guarantee.
 
 ## Open external dependencies
 
-Tracked here so they are never invisible. **None block Phases A, C, D, E, or F — 20 chunks.**
+Tracked here so they are never invisible. **None block Phases A, C, D, E, or F** — the chunk
+count for those phases is derivable from the order above and is deliberately not restated here
+(it read "20 chunks" from before Phase C grew C8, and nothing updated it).
 
 | # | Dependency | Owner | Blocks |
 |---|---|---|---|

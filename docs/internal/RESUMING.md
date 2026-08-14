@@ -31,7 +31,7 @@ ones are fine. Before closing any chunk that touches docs, re-run the C7 removab
 |---|---|
 | [`shulib-v2-master-plan.md`](../shulib-v2-master-plan.md) | **Why** — architecture, locked decisions, conventions, the capability catalog |
 | [`roadmap.md`](../roadmap.md) | **What** — every remaining task by milestone + the Freeze Register. Its "you are here" is the status pointer |
-| [`build-order.md`](build-order.md) | **In what order, and why that order** — 39 dependency-ordered chunks |
+| [`build-order.md`](build-order.md) | **In what order, and why that order** — the dependency-ordered chunk list. *(It states its own count; this row used to carry one and it went stale.)* |
 
 `build-order.md` is the working document. Start there.
 
@@ -93,11 +93,21 @@ Then the CI PROS-free guard (exact command in `.github/workflows/ci.yml`, scope 
 the ARM cross-compile of all v2 headers:
 
 ```sh
-find include/shulib -name '*.hpp' | sed 's|.*/include/||' | sort | awk '{print "#include \""$0"\""}' > /tmp/all.cpp
+find include/shulib -name '*.hpp' | sed 's|^include/||' | LC_ALL=C sort | awk '{print "#include \""$0"\""}' > /tmp/all.cpp
 echo "int main(){return 0;}" >> /tmp/all.cpp
 arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror \
   -Os -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=softfp -c /tmp/all.cpp -o /dev/null -Iinclude
 ```
+
+> **This command was BROKEN here until DOCS1 (2026-08-14), and the failure was silent-ish in the
+> worst way.** The `sed` read `s|.*/include/||`, which needs a `/` *before* `include` — so run from
+> the repo root as every instruction says, it matched nothing, emitted
+> `#include "include/shulib/…"`, and the compiler stopped at the first line with
+> `fatal error: No such file or directory`. A session following the canonical protocol would meet a
+> fatal error on the project's own verification step and have to guess whether the tree or the
+> command was at fault. Fixed to the anchored form (`s|^include/||`), which is what
+> `PROJECT-BRIEFING.md` has carried all along — the two documents had drifted, and the working one
+> was not this one. `LC_ALL=C` pins the sort so the generated TU is reproducible across locales.
 
 Also confirm: nothing was committed, the DoD items are actually met, the roadmap checkboxes
 under-claim honestly (`[~]` for partial), and spot-check the chunk's single most load-bearing
@@ -131,9 +141,12 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 
 ## Context on decisions already made
 
-- **There is no robot yet**, and won't be for a while. That constraint drives the whole order: all
-  hardware work is consolidated into Phase R, and A2's plant exists because it is the only way to
-  validate closed-loop behavior without one.
+- **This was written when there was no robot at all**, and that constraint drove the whole order:
+  hardware work is consolidated into Phase R, and A2's plant exists because it was the only way to
+  validate closed-loop behaviour without one. **Since 2026-08-13 a robot has been on the bench**
+  (the team's old competition bot — tank, no GPS, no tracking wheels), so the order's premise has
+  softened, but the constraint that still governs has not: **the library has never driven one.**
+  A2's plant is still the only place closed-loop behaviour has ever been validated.
 - **An earlier draft put the hardware bridge before the motion layer** and was reversed — that
   argument needed a robot to validate against. The reversal is recorded in `build-order.md`'s
   deviations table. Don't re-litigate it.

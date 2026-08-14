@@ -152,7 +152,9 @@ motion:
 - **`q=0.91`** — the estimate's 0-to-1 quality/trust scalar.
 - **Flags**, appended only when true, in this order:
   - `DR` — dead reckoning: no absolute correction active; error is accumulating silently
-    ([Ch. 3](03-knowing-where-you-are.md)). Today (no correctors built yet) this is always on.
+    ([Ch. 3](03-knowing-where-you-are.md)). It is on for every tick of a run with no corrector
+    wired in; with a GPS or AprilTag corrector attached it clears on the ticks where a fix is
+    actually applied.
   - `SFB` — strafe fallback: the H-drive is running a sideways-limited leg at reduced lateral
     speed ([Ch. 4](04-drivetrains.md)).
   - `CLMP` — a fusion correction was clamped this tick (the never-snap rule at work).
@@ -195,8 +197,10 @@ worth recognizing on sight:
 
 ## Every fault code
 
-The complete vocabulary ([Chapter 6](06-how-things-fail.md) gives each one's story; the
-authoritative list is [`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault.hpp)).
+The complete vocabulary. [Chapter 6](06-how-things-fail.md) tells the story behind most of
+them — not all; `MECHANISM_STALLED`, `GPS_GATE_REJECT` and `PRECONDITION` are catalogued here
+but not narrated there. The authoritative list is always
+[`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault.hpp).
 "Aborts?" = does it cancel the active motion under the default fault policy.
 
 | Code | Meaning | Typical cause | Aborts? | What to do |
@@ -211,6 +215,7 @@ authoritative list is [`include/shulib/diag/fault.hpp`](../../include/shulib/dia
 | `MOTION_TIMEOUT` | a motion's watchdog fired | blocked, jammed, unreachable, or under-budgeted ([Ch. 12](12-when-things-go-wrong.md) has the differential) | n/a (already ended) | informational — the result line's `✗TIMEOUT` is the same event |
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
 | `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
+| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* ends with a stalled verdict; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one |
 
 Notes on the machinery: fault raising is **edge-triggered** (a problem persisting 500 ticks is
 *one* fault episode, not 500 lines), the **first** fault of a run is latched immutably (that's
@@ -290,9 +295,12 @@ It refuses a file whose format version it does not recognise rather than guessin
 wrong number read confidently is worse than no number — and it will not crash on a damaged file,
 which is exactly the file you are most likely to be holding.
 
-**Honest status:** the format, the sink and the decoder exist and are tested; the piece that
-actually writes to `/usd/` on a real brain does not (it is deliberately kept out of the core, and
-lands with the rest of the hardware bridge). See [Chapter 14](14-what-it-cannot-do-yet.md).
+**Honest status:** the format, the sink and the decoder exist and are tested — **and so does the
+piece that writes to `/usd/` on a real brain** (`ProsBlockSink`, which arrived with the hardware
+bridge; it is deliberately kept out of the core). What is still true is the limit that matters:
+none of it has ever written to a physical SD card. A missing card is handled rather than fatal —
+the sink constructs, refuses every write, and says so. See
+[Chapter 14](14-what-it-cannot-do-yet.md).
 
 ## Why the estimator trusted (or ignored) a sensor
 

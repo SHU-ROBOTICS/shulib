@@ -91,7 +91,7 @@ design. None of it is salvageable as code; the *vocabulary* above is the salvage
 
 Because the data path never ran, the *real* command vocabulary is in `main.cpp`'s hand-written
 routine (the active one and the large commented-out competition routine, lines 836–1045). This is
-equally a G2/F2 requirements input — it is what the team reached for when authoring for real:
+equally a G2/F′ requirements input — it is what the team reached for when authoring for real:
 
 | Hand-written verb | What it did | v2 home |
 |---|---|---|
@@ -102,11 +102,12 @@ equally a G2/F2 requirements input — it is what the team reached for when auth
 | `lever.extend()` / `lever.retract()`, `arm` pneumatics | Mechanism actuation | F′ `deployActuator` / `clampActuate` → G2 ids |
 | `intake`/`conveyor`/`releaser` `.move(±127)` + timed `limitedCombo`/`limitedComboFull` | Timed open-loop mechanism combos | F′ `intakeUntilCapture` etc. — sensor-confirmed, not timed; G2 typed-args markers |
 | `oscillation(n)` | Wiggle forward/back ×n to seat a piece | **Not in any v2 plan by name** — a candidate F′ micro-primitive (seat/settle wiggle); noted as a gap-adjacent observation for F3/F′ (recorded at C6 as "F2", the pre-split chunk name) |
-| `timer(ms)` / `pros::delay` between steps | Sequencing by wall-clock delay | C2 `waitUntilSettled` / D1 recipe chaining / M4 Sequencer |
+| `timer(ms)` / `pros::delay` between steps | Sequencing by wall-clock delay | C2 `waitUntilSettled` / D1 recipe chaining / the run guard's whole-run deadline |
 | `test_min_output()`, `rotation_calibration()` | Calibration routines (see hardware-assumptions addendum) | M3 "calibration routines + persistence" — specimens captured at C6 |
 
 Gap summary for the sequencing/primitives chunks (recorded at C6 under the pre-split name "F2"): everything maps onto planned §14 primitives except the **seat/settle wiggle**
-(`oscillation`), which is worth a line in F2's brief as a candidate micro-primitive (cheap, and
+(`oscillation`), which is worth a line in the scoring-primitives brief (Phase F′) as a candidate
+micro-primitive (cheap, and
 they used it twice in one routine, under a dedicated task, mid-drive).
 
 ---
@@ -147,7 +148,11 @@ about everything else**. G4 must treat these as two dialects of one format:
    ever authored; a `code_template`-era file may equally carry ids no registry knows. G4 already
    specifies WARN+skip for unknown ids (§16.3) — these specimens confirm it will fire in practice.
 7. The 845-row CSV is committed in-tree until C7. **G4 should lift a copy into its own test
-   fixtures before/at C7** (flagged in C6-COMPLETED; the git history retains it regardless).
+   fixtures before/at C7** (flagged in C6's completion record, in the development log). **That
+   window has closed:** C7 ran on 2026-08-10 and the CSV is no longer in the tree, and no fixture
+   copy was lifted. It is recoverable from git history, which is why this was recorded as a
+   flagged risk rather than a blocker — but recovering it is now G4's job, not a matter of
+   copying a file that is sitting there.
 
 **For G2's manifest:** nothing in the legacy vocabulary demands a new *canonical* id beyond what
 §14/§16.3 already plan. The legacy-derived additions to G2's requirements are exactly two:
@@ -162,7 +167,9 @@ an explicit **waypoint-only/boundary marker** semantics decision (`NONE`'s succe
   `.vexbot` `paths[]` segments can absorb it structurally — but G2 must make the call and G4 must
   implement the mapping. **Owner: G2 (decision), G4 (mapping).**
 - **Seat/settle wiggle (`oscillation`):** used in real routines, in no plan by name.
-  **Owner: F2 brief, as a candidate micro-primitive.** Low stakes, cheap to add or reject.
+  **Owner: the scoring-primitives brief (Phase F′), as a candidate micro-primitive.** *(Recorded
+  at C6 under the pre-split name "F2"; chunk F2 became the sequence engine and never carried
+  this item.)* Low stakes, cheap to add or reject.
 - Everything else declared or authored in `legacy/` has a named v2 home in the tables above —
   built (C1–C4) or planned with an owner (F′ §14, G2/G4, M3/M4).
 

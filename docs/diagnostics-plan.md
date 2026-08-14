@@ -146,7 +146,8 @@ self-audit (a NaN/over-ceiling volt never reaches a motor). Honest scope: the po
 ADVISORY (never rewrites the pose — principle 4); "wheel commands consistent with the commanded
 twist" is implemented as finite-and-within-battery-ceiling per wheel, not a full inverse-kinematics
 consistency proof (that needs E-phase estimator introspection). `test/plausibility_test.cpp` incl.
-the hostile-pipeline wiring case (born from a green mutation — C5-COMPLETED §mutations).
+the hostile-pipeline wiring case (born from a green mutation — C5's completion record,
+mutations section, in the development log).
 
 ### For E1 (with `SdSink`)
 

@@ -108,6 +108,36 @@ driven a robot** — the beliefs behind every conversion are catalogued in the
 [Hardware Assumptions Register](hardware-assumptions.md) (HA-94 onward) and get their
 first reality check on a bench, not in a test suite.
 
+### 2026-08-13 — a guaranteed end of run *(reconstructed)* — additive
+
+`sequence/run_guard.hpp` is new: `RunGuard`, plus `RunGuardConfig`, `RunGuardReport` and
+`GuardedWaitResult`. It is an `ITickPacer` **decorator** — construct it around the real pacer
+and hand it to the chassis — and it is completely **inert until `run()`**.
+
+At the instant you name, it cuts the active motion with zero latency, then **refuses every
+later motion**. The refusal is a *latch*, not a pause: cancel-only expiry was measured inert
+and marginally counterproductive, so once the deadline passes nothing new starts. Cancel-all
+runs strictly before your end action, and an unconditional `hardStopAt` floor fires regardless.
+
+**The library refuses to know your strategy.** No field coordinate, no park pose, no default
+lead time, no default match length — both instants and the end action are yours. A team that
+ends somewhere else, or does not park at all, is not fighting the library.
+
+**Four limits, stated because they bind:** it proves a *scheduling* property, not a timing
+margin on a real brain (loop rate and PROS call latency are still invented register entries);
+**nothing preempts pure user code** — there are no background tasks anywhere in this library, so
+a `while (true)` loop that never lets a call return keeps the CPU and your end action waits;
+the frozen `pause`/`waitFor`/`waitUntil` surfaces cannot see the deadline and pay their full
+remainder (a tested limit, not a hidden one); and **"zero travel after the deadline" is a
+simulator result** — the host plant is memoryless, so on a robot with mass the honest claim is
+*"no new commanded motion"*. Budget lead time for a robot that is still moving when the command
+stops.
+
+**Breaking:** nothing. New header, new types; no frozen surface touched.
+
+**What you must do:** nothing, unless you want the guarantee — then wrap your pacer. Note that
+the routine-level watchdog (diagnostics item D-8) is the same primitive under a second policy.
+
 ### 2026-08-13 — mechanism seam growth *(reconstructed from `version.hpp`)* — additive, 2.0 → 2.1
 
 The mechanism layer grew through the documented additive paths: `RoutineStopCause`
@@ -119,6 +149,91 @@ return type (`manipulation::MechanismOutcome`), and `FaultCode` appended
 `FaultCode`, add the new cases.
 
 ## API 2.0
+
+> The four entries below all landed **after** the 2.0 freeze and **before** F1 opened 2.1. None
+> of them moved the version number, and that is the policy working rather than an oversight:
+> `version.hpp` tracks the growth of *frozen* surfaces, and these four added entirely new
+> headers and types outside `Chassis` and `Routine`. Nothing previously compiling changed
+> meaning. They are reconstructed here because they are user-visible surface an outside team
+> would otherwise meet only by reading the source.
+
+### 2026-08-13 — a Kalman tier, which is **not** the default *(reconstructed)* — additive
+
+`localization/ekf_fusion.hpp` adds `EkfFusion` and `EkfFusionConfig` — a 5-state SE(2) extended
+Kalman filter behind the unchanged `IFusionPolicy` seam. It can do three things the simpler
+filter cannot: weigh two disagreeing correctors against each other by their stated accuracy
+(matched against the inverse-variance weighted mean to better than 0.2%), recover from a
+displacement the fixed gate makes permanent, and state its own uncertainty as a number.
+
+**`ComplementaryFusion` remains the shipped default, and the measurement is why.** Raced over
+eight seeded 60-second runs the EKF finished *less* accurate — 0.351″ vs 0.225″ mean final
+error, losing on 7 of 8 seeds. It lost the comparison its own definition-of-done asked it to
+win, and that result was kept rather than tuned away. In this simulation dead-reckoning is
+already sub-inch and the modelled GPS is noisier than the drift it corrects, so the right move
+is mostly to ignore the sensor — which a blunt fixed gain does slightly harder. **Anyone
+quoting this as an accuracy improvement is quoting it wrong.** Every noise parameter in it
+(HA-83…HA-91) is invented, so real sensor characterization could flip the result either way.
+
+**Breaking:** nothing. **What you must do:** nothing — you get the complementary filter unless
+you ask for the EKF.
+
+### 2026-08-13 — absolute heading from AprilTags *(reconstructed)* — additive
+
+`localization/apriltag_corrector.hpp` adds `AprilTagCorrector` and `AprilTagCorrectorConfig`;
+`localization/tag_map.hpp` adds `TagMap`, `TagPlacement` and `TagProvenance`. This is the only
+source of **absolute heading** in the library — a tag whose field position is known tells the
+robot which way it is actually pointing, and it proposes with `providesHeading = true`.
+
+**shulib ships no tag map, deliberately.** Nobody on the project can cite a table of AprilTag
+field poses, so inventing one would be a confidently wrong answer rather than a missing one.
+`TagMap::add()` refuses a placement whose provenance is `Unspecified` — `Invented` is a
+perfectly legitimate answer, *unstated* is not — and an unknown tag id makes the corrector
+decline with `RejectedNoTagMapEntry` rather than guess.
+
+**Two things worth knowing before you trust it:** a map that is two inches off produces a
+corrector that is *confidently* two inches wrong, and unlike noise that error does not average
+out (HA-68). And a **reversed corner winding is catastrophic and silent** — it mirrors the tag,
+puts the recovered heading 180° out, and leaves the solver's own reprojection error reading
+machine zero. No software self-check can see it; only a physical tag can (HA-69).
+
+**Breaking:** nothing. **What you must do:** nothing, unless you add a camera — then you must
+supply the tag map, with provenance.
+
+### 2026-08-12 — GPS position correction *(reconstructed)* — additive
+
+`localization/gps_corrector.hpp` adds `GpsCorrector` and `GpsCorrectorConfig`, the first real
+`ICorrector`: it bounds position drift while the field strip is in view. It corrects **position
+only** — `providesHeading` stays false, so the IMU keeps owning heading.
+
+The accuracy claim is sized to the evidence rather than rounded up: over eight seeded 60-second
+runs the corrected estimate was better on 7 of 8 on final error and 6 of 8 on worst-case. A
+shorter scenario that passed 8 of 8 was found and **deliberately not adopted**, as scenario
+shopping.
+
+**Driving Skills has no GPS strip**, so `hasFix()` is false for that entire event and the
+estimator dead-reckons — a normal operating state, not a fault. The FAQ entry
+"Why does `hasFix()` go false in Driving Skills?" is the full version.
+
+**Breaking:** nothing. **What you must do:** nothing, unless you have a GPS.
+
+### 2026-08-12 — the SD-card blackbox *(reconstructed)* — additive
+
+`diag/sd_sink.hpp` adds `SdSink` (an `ITelemetrySink` writing through the `IBlockSink` device
+seam) with `SdSinkConfig`, `SdSinkStorage` and `SdSinkBuffers`; `diag/blackbox_format.hpp` adds
+the versioned, session-stamped, fixed-width binary format; `diag/blackbox_reader.hpp` adds
+`BlackboxReader` and `ReadStatus`. **A run becomes recoverable after the fact, with no laptop.**
+
+Two design points that are the whole value: the **decoder ships in the same chunk as the
+encoder** — a format nothing can read is not a record — and it is held to the format by
+byte-exact goldens rather than by agreeing with the encoder, so the two cannot drift into
+agreeing on something wrong. And the default posture is a **RAM flight recorder** that costs the
+card nothing until a fault fires, at which point it writes the triage block **first** and the
+preceding ticks after it — in that order, because the fault may be the brownout that cuts the
+write short.
+
+**Breaking:** nothing. **What you must do:** nothing. If you want it, give `SdSink` a block
+device; the V5 adapter for that arrived later (see the 2026-08-14 entry) and a missing card is
+handled rather than fatal.
 
 ### 2026-08-12 — the v2 facade freezes *(reconstructed)* — the 2.0 baseline
 

@@ -1,7 +1,12 @@
 # 3 — Timing and teammates
 
-Autonomous is fifteen seconds long and there is another robot on your alliance. These recipes are
+Your autonomous period is short and there is another robot on your alliance. These recipes are
 about both facts.
+
+**This page deliberately names no period length.** A match's autonomous phase and an Autonomous
+Coding Skills run are different lengths, and the library holds no default match length by design
+— the run guard makes you supply both instants yourself. Substitute your own number wherever a
+budget appears below.
 
 Listings are compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), cases `cookbook-03a`
@@ -27,8 +32,8 @@ r.pause(750_ms);
   when a defender is about to lean on you; do not use it to let time pass.
 
 **Watch out for:** typing the duration. `pause(750)` does not compile — durations are typed, so
-"750, meaning milliseconds" cannot silently become 750 seconds of a fifteen-second match. Write
-`750_ms` or `0.75_s`.
+"750, meaning milliseconds" cannot silently become 750 seconds inside a period measured in
+tens of them. Write `750_ms` or `0.75_s`.
 
 ---
 
@@ -56,8 +61,8 @@ struct LaneSensor {
 On a real robot that becomes a distance sensor reading, a line sensor, or a button your driver
 presses.
 
-**Why the deadline is required.** An unbounded wait is a hang in a costume. Fifteen seconds is
-the whole autonomous period; a wait with no deadline can consume all of it and produce nothing.
+**Why the deadline is required.** An unbounded wait is a hang in a costume. The autonomous period
+is the entire budget; a wait with no deadline can consume all of it and produce nothing.
 
 **Why timing out *stops the chain*.** `waitFor` means "the step after this one assumes the
 condition holds". If the deadline passes with the condition still false, running that next step
@@ -199,7 +204,7 @@ standalone helper remains the honest answer only for code running outside a guar
 
 **Watch out for:** trusting per-step timeouts as a budget. They are worst-case bounds on
 individual motions, not a plan. Six steps with 5-second timeouts is a thirty-second routine in
-the worst case, in a fifteen-second period.
+the worst case — which is longer than any autonomous period you will run it in.
 
 ---
 

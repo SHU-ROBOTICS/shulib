@@ -159,10 +159,11 @@ TEST_CASE("guide-08a: your first routine — wiring, running, and the report") {
     // from the center).
     const k::MatrixKinematics kin = k::xDrive(7_in);
 
-    // Step 2 — the robot. On a real V5 this is where hardware adapters will
-    // go (phase R1); today it is the simulated robot the whole library is
-    // tested against. The feedforward constants describe the robot being
-    // driven — they MUST match between plant and controller (chapter 5).
+    // Step 2 — the robot. On a real V5 the hal/pros adapters go here (they
+    // exist; src/main.cpp wires them); here it is the simulated robot the
+    // whole library is tested against. The feedforward constants describe
+    // the robot being driven — they MUST match between plant and
+    // controller (chapter 5).
     shulib::sim::SimHarnessConfig simCfg;
     simCfg.plant.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};
     simCfg.plant.initialPose = Pose2d{-48_in, -24_in, 90_deg};  // where it's placed

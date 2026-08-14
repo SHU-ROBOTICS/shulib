@@ -2,9 +2,19 @@
 //
 // IBattery — the V5 battery (pros::battery) behind the HAL. voltage() in canonical
 // volts; capacity() in [0, 1]. Feeds voltage / brownout compensation (master plan
-// §M2): the control layer scales motor commands by the measured battery voltage so a
-// routine behaves the same on a full or a sagging battery, and the guaranteed
-// end-of-run park still fires as the battery collapses.
+// §M2).
+//
+// WHAT THAT COMPENSATION IS, EXACTLY — this comment said the wrong thing until DOCS1
+// (2026-08-14), and it was the ancestor of the same wrong claim in guide ch. 6. It read
+// "the control layer SCALES motor commands by the measured battery voltage so a routine
+// behaves the same on a full or a sagging battery." Nothing scales. shulib commands
+// ACTUAL VOLTS (IMotor::setVoltage), so the only battery effect is a CEILING:
+// control::compensateForBattery() clamps a desired voltage to +/-battery and flags the
+// saturation, and the kS/kV/kA gains are battery-independent by construction
+// (control/feedforward.hpp:13-17, which has been right all along — the two headers
+// disagreed). The percent-output mental model this comment implied is precisely the one
+// the design rejects. What survives unchanged: the guaranteed end-of-run park still
+// fires as the battery collapses.
 
 #include "shulib/units/quantity.hpp"
 

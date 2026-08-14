@@ -1,7 +1,10 @@
 # 10 — The API, as prose
 
-> **Covers:** every public operation on `Chassis` — what it does, when to use it, what it does
-> when things go wrong, and the gotchas. Plus typed units, per-call options, and the escape
+> **Covers:** the public operations on `Chassis` you write routines with — what each does, when
+> to use it, what it does when things go wrong, and the gotchas. It is deliberately selective
+> rather than exhaustive: construction and the advanced accessors are covered where they matter
+> and skipped where they do not. The [generated API reference](../api/README.md) is the
+> exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
 > hatch for advanced use.
 > **Read this if:** you've done the tutorial ([Chapter 8](08-your-first-routine.md)) and are
 > writing real routines.
@@ -194,8 +197,10 @@ greater than zero.
 
 ## Options: per-call knobs
 
-Every verb takes a `MotionOptions` struct: `timeout` (typed time — `5_s`, `500_ms`),
-`maxLinearSpeed` (in/s), `maxAngularSpeed` (rad/s). Unset fields (0) mean "use the
+Every **blocking** verb takes a `MotionOptions` struct: `timeout` (typed time — `5_s`,
+`500_ms`), `maxLinearSpeed` (in/s), `maxAngularSpeed` (rad/s). The two non-blocking verbs do
+not — `drive(speeds, frame)` commands velocities directly and returns immediately, and
+`wait(duration)` has nothing to bound but the duration you already gave it. Unset fields (0) mean "use the
 chassis-wide config." They affect
 **one call** (`guide-10a` pins that the chassis config is untouched afterwards). Nonsense values
 — NaN, negatives — are rejected loudly at the call, before anything moves; so are non-finite

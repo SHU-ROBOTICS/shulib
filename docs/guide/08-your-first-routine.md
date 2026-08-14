@@ -33,7 +33,10 @@ You have two ways to follow along:
    `guide_examples_test.cpp`.)
 
 One honest note before we start: this routine runs against the **simulated** robot, because
-that's where all shulib code runs today ([Chapter 7](07-getting-set-up.md) explains why). The
+that is where all *motion* code still runs ([Chapter 7](07-getting-set-up.md) explains why).
+The hardware adapters underneath do now exist and have read and commanded real devices at a
+bench — but no control loop has ever closed on a robot, so a routine like this one has never
+driven anything physical. The
 punchline of the design is that the routine itself — the `firstRoutine` function below — doesn't
 know that. It talks to a `Chassis`, and whether the chassis is simulated or real is decided
 entirely by the wiring around it. This exact function is the kind that will run on the real
@@ -159,10 +162,11 @@ namespace loc = shulib::localization;
 // from the center).
 const k::MatrixKinematics kin = k::xDrive(7_in);
 
-// Step 2 — the robot. On a real V5 this is where hardware adapters will
-// go (phase R1); today it is the simulated robot the whole library is
-// tested against. The feedforward constants describe the robot being
-// driven — they MUST match between plant and controller (chapter 5).
+// Step 2 — the robot. On a real V5 the hal/pros adapters go here (they
+// exist; src/main.cpp wires them); here it is the simulated robot the
+// whole library is tested against. The feedforward constants describe
+// the robot being driven — they MUST match between plant and
+// controller (chapter 5).
 shulib::sim::SimHarnessConfig simCfg;
 simCfg.plant.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};
 simCfg.plant.initialPose = Pose2d{-48_in, -24_in, 90_deg};  // where it's placed
@@ -208,8 +212,10 @@ tracking-wheel sensors, battery, clock, and the physics connecting them. We tell
 robot is physically placed (`initialPose`) — the simulation's equivalent of putting the robot on
 the field — and we give it feedforward constants (`kS`, `kV`, `kA`,
 [Chapter 5](05-getting-there.md)) describing its motors. On a real robot, this step becomes
-"construct the objects that talk to real hardware." Those adapters don't exist yet (phase R1 on
-the [roadmap](../roadmap.md)); this harness implements the *same interfaces* they will.
+"construct the objects that talk to real hardware" — and **those adapters now exist**
+(`include/shulib/hal/pros/`, built in the R1 chunks; `src/main.cpp` is the worked example). This
+harness implements the *same interfaces* they do, which is exactly why the routine below does
+not change between them.
 
 **Step 3: localization.** Reads exactly as [Chapter 3](03-knowing-where-you-are.md) described:
 `PilonsOdometry` does the per-tick geometry from the two tracking wheels, with heading from the
@@ -236,9 +242,9 @@ struct SimPacer final : shulib::motion::ITickPacer {
 };
 ```
 
-On the real robot, `pace()` will simply be "sleep until the next 10 ms boundary." This one
-little seam is precisely where "simulated time" and "real time" swap — and it's why the routine
-can't tell the difference.
+On the real robot, `pace()` is simply "sleep until the next 10 ms boundary" — and that adapter
+is built (`ProsTickPacer`). This one little seam is precisely where "simulated time" and "real
+time" swap, and it's why the routine can't tell the difference.
 
 Finally `Chassis chassis{deps, pacer, cfg};` — the object the routine drives.
 
@@ -319,7 +325,8 @@ Squint and you can *watch the control loop think*: motion `cmd#1` in state `▸2
 target (−24, 0, 45°), error shrinking tick by tick — 24.00" to 23.69" to 23.37" — while it
 commands velocity `v(42.4, 42.4, −3.14)` (field-frame vx, vy in in/s; rotation in rad/s). The
 `DR` flag says the estimate is dead-reckoning (no absolute correction — [Chapter 3](03-knowing-where-you-are.md)),
-which in today's library is always true. And with the stream connected, the result lines now
+which is true on every tick of *this* run because it has no corrector wired in. The library does
+ship correctors now, and with one attached the flag clears on the ticks where a fix is applied. And with the stream connected, the result lines now
 carry real measurements — `over 0.00" drift 0.0°` — instead of `n/a`. (You'll also see
 interleaved unstamped `[LOC] idle` lines: the *simulator's* own ground-truth records riding the
 same channel. Only the sim produces those.)

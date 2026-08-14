@@ -14,11 +14,15 @@
 > ([`include/shulib/version.hpp`](../../include/shulib/version.hpp)), and the freeze is enforced
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
-> fails the build if a spelling drifts. New steps arrive *additively*.
-> **One exception, deliberately:** `then()` is **not** frozen. It is the seam that mechanisms
-> will plug into, and mechanisms do not exist yet — freezing the shape of a placeholder would
-> commit the library to a guess. Expect `then()` to keep working; do not assume its exact
-> spelling is permanent.
+> fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
+> been used for real: `RoutineStopCause` gained an **appended** `MechanismFailed`, which is a
+> minor version bump (2.0 → 2.1), not a breaking change. Existing enumerator *values* are
+> pinned; only the end of the list grows. If you `switch` exhaustively, add the new case.
+> **One exception, deliberately:** `then()` is **not** frozen. It is the seam mechanisms plug
+> into. Mechanisms now *exist* — the seam was filled, and `then()` accepts a mechanism
+> operation's `MechanismOutcome` as a fourth return type — but the surface stays unfrozen until
+> a second real consumer has stressed it, which is this project's standing rule for freezing.
+> Expect `then()` to keep working; do not assume its exact spelling is permanent.
 
 Once you can write a routine, the [cookbook](../cookbook/README.md) is where to go next: it
 answers "how do I write the routine I am writing right now" with complete, compiled recipes —
@@ -27,7 +31,7 @@ teaches the layer; the cookbook uses it.
 
 The code in this chapter is compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-09a`
-through `guide-09c`. The fine print lives in the header,
+through `guide-09d`. The fine print lives in the header,
 [`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp), whose
 opening commentary — like `chassis.hpp`'s — is meant to be read.
 
@@ -131,7 +135,8 @@ a `waitFor` deadline passes with the condition still false, or a `then` action r
 failure.
 
 **Read `result().cause` before `result().exit`.** `cause` says what *kind* of thing stopped the
-chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`); `exit` carries a motion's verdict and is
+chain (`MotionFailed`, `WaitTimedOut`, `ActionFailed`, or `MechanismFailed` when a mechanism
+operation returned any verdict other than `Succeeded`); `exit` carries a motion's verdict and is
 only meaningful when the cause is `MotionFailed`. After a failed wait or a failed action, `exit`
 reads `Running`, which means "no motion verdict here" — not "still going". It is the same
 "nothing yet" convention `lastCompleted()` uses, and it surprises everyone once.

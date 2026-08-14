@@ -103,9 +103,9 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 23 of 43 chunks complete
+**Position:** 24 of 43 chunks complete
 
-- **Next up:** DOCS1 — the full documentation pass, then the release to main  
+- **Next up:** the RELEASE to main, then R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
 - **Suite:** 1,120 cases / 1,523,324 assertions, 3 skipped — **green**  
@@ -116,7 +116,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DOCS1` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -172,12 +172,16 @@ object graph on ARM and printed its diagnostics banner over USB, including a liv
 query through the frozen facade. **It drove nothing, because it could not** — every motor and sensor
 in that binary was a fake.
 
-Since R1a (2026-08-13) the `hal/pros` adapters EXIST and `src/main.cpp` wires them — and the
-constraint stands unchanged: **no adapter has ever touched a physical device.** The adapters are
-host-proven against `test/pros_shim/`, which tests them against our *beliefs* about PROS
-(HA-94…112) and can never test the beliefs; the R1a bench runbook is the prepared first contact,
-and it has not been run. "The adapters exist" must not drift into "it works on a robot" any more
-than "it booted" was allowed to.
+Since R1a (2026-08-13) the `hal/pros` adapters EXIST — **fourteen** after R1b — and
+`src/main.cpp` wires the R1a ten. On 2026-08-13 the bench runbook **was run**: eight physical
+motors commanded at +2.0 V through the real `ProsMotor`, physical sensors read, and seven
+unit-scale beliefs settled — on ONE robot, ONCE. **And the constraint stands unchanged: no
+control loop has ever closed, no wheel has ever turned under the library's own steering, no
+path has ever been followed.** The adapters are host-proven against `test/pros_shim/`, which
+tests them against our *beliefs* about PROS (HA-94…122) and can never test the beliefs;
+R1b's five mechanism-sensor adapters have not touched a physical device at all.
+"The adapters exist", and now "a bench session ran", must not drift into "it works on a
+robot" any more than "it booted" was allowed to.
 
 The 2026-08-12 run proves the build/upload/boot path works and that no host-only assumption breaks
 on ARM. It proves **nothing** about motion, accuracy or control — and it predates the adapters.
@@ -188,9 +192,10 @@ way for this project to start lying.
 
 Everything is validated against the **A2 host plant**: a simulator that converts voltage into motion
 behind the unmodified HAL fakes, made hostile at A3 (drift, garbage windows, sentinels, sag, slip,
-latency, jitter — reproducible from a seed). It proves **logic, not constants**. **112 registered
-hardware assumptions, none settled** (the count is derived live in the generated block above —
-trust that over this sentence if they ever disagree).
+latency, jitter — reproducible from a seed). It proves **logic, not constants**. The hardware-assumptions register is the
+inventory of everything it cannot prove; **its size and settled count are derived live in the
+generated block above and in the register's own status line — this sentence deliberately
+carries neither, because it has gone stale here twice.**
 
 ---
 
@@ -413,7 +418,8 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 - **`docs/internal/` must stay cleanly removable** — no public doc may link into it. `main` is a squash
   of `release/v2` with that directory dropped, and the docs site publishes from `main`.
 - **Constants are provisional.** Anything invented gets an `HA-nn` entry with blast radius and the
-  measurement that would settle it. **Next free: HA-94.** Don't tune parameters until a sweep passes —
+  measurement that would settle it. **The next free number is in the generated block above** —
+  it is not restated here, because it was wrong here for two chunks. Don't tune parameters until a sweep passes —
   that is fitting the test, not the code.
 
 ---
@@ -511,12 +517,16 @@ field and got agreement to 9.1e-12 in, and the C2 fix regressed nothing.
 
 ---
 
-## 12. What is left — 21 chunks
+## 12. What is left
+
+*(The completed list and the position are in the generated block above; this table is the
+shape of the remainder, not a count — a count here goes stale every chunk.)*
 
 | Phase | Chunks | Gate |
 |---|---|---|
-| **R — Robot arrival** | R1a, R1b, R2–R6 | **hardware (available now)** |
-| **T — Driver control** | T1–T3 | none (T1 folding into R1) |
+| **DOCS1** | in flight | none — the documentation pass, then the release to `main` |
+| **R — Robot arrival** | R2–R6 *(R1a, R1b done)* | **hardware (available now)** |
+| **T — Driver control** | T2–T3 *(T1 delivered at R1a)* | none |
 | **G — No-code authoring** | G1–G4 | G1 ungated; G2–G4 need VexBuilder |
 | **H — Ecosystem** | H1–H3 | H2 needs VexBuilder's sim |
 | **F′ — Scoring primitives** | F3–F4 | hardware + final mechanism decisions |
@@ -529,11 +539,27 @@ read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — R1b: `hal/pros` adapters for the mechanism sensors
+## 13. THE IMMEDIATE TASK — DOCS1: the full documentation pass, then the release to `main`
 
-**R1a is DONE** (2026-08-13, in the working tree pending review/commit — `R1a-COMPLETED.md` is the
-record, `R1a-PROGRESS.md` the live log, `R1a-BENCH-RUNBOOK.md` the unrun bench session's
-replacement). The next chunk is **R1b**, and its brief is not yet written.
+> *This section is the one a pasted-in session acts on first, so it is the one most worth
+> distrusting. It said "THE IMMEDIATE TASK — R1b" for a day after R1b shipped.*
+
+**R1a and R1b are DONE and COMMITTED** (`b225fb3`, `77fb079`), and so is the first bench session
+(`5b073de`). The chunk in flight is **DOCS1** — read every public document end to end, fix what is
+no longer true, then merge to `main`.
+
+**Why it is a whole chunk that ships no code:** merging to `main` is what publishes
+docs.shurobotics.com. Anything wrong in the documentation becomes *publicly* wrong at that moment,
+under the project's own name. The documentation pass is not tidying before a release — **it is the
+release gate.** Its brief is `chunks/DOCS1-full-documentation-pass.md`; the live log is
+`DOCS1-PROGRESS.md`.
+
+**After DOCS1: R3** (day-one validation — walks the assumptions register top to bottom; **closes M1
+and M2's on-robot clause, open since June**), **then R4** (sensor characterization — replaces A3's
+invented noise magnitudes with measured ones; **the highest-information work available**, because
+E4's headline result rests on invented numbers).
+
+### The R1 record — kept because its lessons are still live
 
 **R1 split into R1a + R1b on 2026-08-13**, split by consumer. R1's old scope line said "the 9 F4
 adapters"; reading the tree found **fifteen** — four earlier chunks each wrote "R1 owns this" into
@@ -543,9 +569,9 @@ their own headers (`digital_out.hpp:24`, `char_sink.hpp:11`, `block_sink.hpp:34`
 - **R1a — delivered:** `IClock`, `IMotor`, `IRotation`, `IImu`, `IGps`, `IBattery`, `ICharSink`,
   `ILineDisplay`, `IController` (new seam, Phase T's T1 delivered here), plus the real tick pacer,
   the shim, both guard changes, `main.cpp`. Host-proven only; the bench runbook is R3's opening.
-- **R1b — next:** `IDistance`, `IOptical`, `IDigitalOut`, `IBlockSink`, and a new `IDigitalIn` seam.
-  Everything a *mechanism* needs. **Must land before R3**, which cannot walk the assumptions register
-  without these sensors. R1b inherits R1a's fence pattern, shim framework, adapter idiom
+- **R1b — delivered (2026-08-14):** `IDistance`, `IOptical`, `IDigitalOut`, `IBlockSink`, and a new
+  `IDigitalIn` seam. Everything a *mechanism* needs. Host-proven only — **none of the five has ever
+  touched a physical sensor**; runbook steps 16–20 exist to settle HA-113…122. R1b inherited R1a's fence pattern, shim framework, adapter idiom
   (screen → hold-last-good → expose a faultedReads counter), the QUOTED-include rule, and **trap B**:
   `pros::Distance::get_distance()` returns an IN-BAND 9999 for "no object" (not PROS_ERR — 393.66
   inches of phantom wall), and `get_confidence()` is only meaningful above 200 mm.
@@ -570,10 +596,8 @@ adapter — it already has `NullSink`/`TermSink`/`SdSink`. What is PROS-backed i
    compiling, linking and *running* on the host against a hand-written `pros/` shim under full strict
    flags. Without it the adapters are the only code 1.5M assertions cannot reach.
 
-**Then R1b, then R3** (day-one validation — walks the assumptions register top to bottom; **closes M1
-and M2's on-robot clause, open since June**), **then R4** (sensor characterization — replaces A3's
-invented noise magnitudes with measured ones; **the highest-information work available**, because
-E4's headline result rests on invented numbers).
+*(The "what comes next" sentence that used to close this section has moved to the top, where a
+resuming session reads it first.)*
 
 ---
 
@@ -582,7 +606,8 @@ E4's headline result rests on invented numbers).
 **Seams that exist:** `motor` (encoder + velocity + current + temperature), `rotation`, `imu`, `gps`,
 `distance`, `optical`, `vision` (AI Vision: objects *and* AprilTags), `battery`, `clock`,
 `digital_out`, `line_display`, and — since R1a — `controller` (axes/buttons/isConnected, row F13,
-not frozen; PROS adapters exist for the R1a nine, R1b's still pending).
+not frozen; PROS adapters now exist for **all fourteen** — the R1a nine at R1a and the mechanism
+five at R1b).
 
 **Seams that DO NOT exist:** **digital input** (limit switches, bumpers — R1b's), analog input
 (potentiometers, line trackers), legacy 3-wire (ultrasonic, optical shaft encoders).
@@ -700,10 +725,15 @@ Tick "Enforce HTTPS" once the cert appears. If Cloudflare's proxy is re-enabled,
 ## 18. Open decisions for me
 
 1. **Which sensors are going on the robots?** Still open. The lift-homing half is **answered** (§14):
-   undecided, so R1b builds the digital-input seam anyway — but **the real answer is still owed
+   undecided, so R1b built the digital-input seam anyway — but **the real answer is still owed
    before F3**, which is the chunk that would consume it.
-2. **Whether to push.** `main`/`release/v2` are a full release behind and carry
-   none of E1–E4, F1, F2 or Phase T. The docs site publishes from `main`, so none of it is public.
+2. **Whether to push.** THIS IS DOCS1's question and it is live right now. `main` is current only
+   through Phase D — verified by content, never by commit distance — so E1, E2, E3, E4, F1, F2,
+   R1a and R1b are all absent from it, and none of that work is public. Merging publishes all of
+   it at once, including the documentation this chunk is fixing. Two sub-questions ride with it:
+   whether to push at all, and **HTTPS** — GitHub has still not issued the certificate (verified
+   2026-08-14: the site answers over HTTP and fails TLS on a name mismatch), so "Enforce HTTPS"
+   stays un-tickable until it appears.
 3. **R5 timing.** Building `tools/sysid` on the tank bot gives a validated tool and throwaway numbers,
    since gains never transfer across chassis. It may be worth deferring until a competition robot
    exists and slotting G1 or H1 in instead. **This is the one place in the order I want your judgment

@@ -37,8 +37,10 @@
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
 > **Status: 7 of 122 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
-> 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. No robot exists (a brain has booted the code; nothing has
-> driven). Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
+> 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. **No *v2* robot exists**, and
+> the platform layer has now been validated on the team's old competition bot — real adapters
+> commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
+> closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
 > documented shape, unmeasured onset). HA-50–52 added by chunk C1,
 > HA-53 by chunk C2 (the cancel safe state), HA-54–55 by chunk C3 (the H-drive's strafe derate
 > and stand-in geometry), HA-56–57 by chunk C5 (the D-5 plausibility envelope and the D-4
@@ -462,90 +464,100 @@ Every row of the `hal/pros` unit table and every semantic in the host shim
 with these beliefs — it can never prove the beliefs. The R1a bench runbook walks them in
 dependency order (battery scale before anything drives, signs before any closed loop).
 
-- [ ] **HA-94 — `move_voltage()` takes MILLIVOLTS in [-12000, 12000].**
+- [x] **HA-94 — `move_voltage()` takes MILLIVOLTS in [-12000, 12000]. SETTLED.**
   *Claim:* the argument is mV; 6 V of command is `move_voltage(6000)`.
   *Source:* vendored `include/pros/motors.hpp:234` ("from -12000 to 12000 in millivolts");
   `include/shulib/hal/motor_conversion.hpp` (`motorVoltageToMillivolts`, the one ×1000).
-  *Confidence:* reasoned — documented in the vendored source; unverified against firmware.
-  *Settle (R3, runbook step 4):* open-loop: a small commanded voltage produces proportional,
-  plausible wheel speed.
+  *Confidence:* **settled** — was: reasoned, documented in the vendored source, unverified.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* 2.0 V commanded through the real `ProsMotor`; the
+  device reported 1823–1990 mV under load across eight motors. The shortfall is not an error —
+  `commandedVoltage()` reports what was *applied*, and a motor under load on a sagging battery
+  applies less.
+  *(Settled by R3 runbook step 4.)*
   *Blast radius if wrong:* every command 1000× off — the robot either hums in place or
   saturates instantly. **Contained:** one conversion function; caught in the first minute of
   the bench.
 
-- [ ] **HA-95 — `get_position()` with `MotorUnits::degrees` reports OUTPUT-SHAFT degrees.**
+- [x] **HA-95 — `get_position()` with `MotorUnits::degrees` reports OUTPUT-SHAFT degrees. SETTLED.**
   *Claim:* after the adapter sets degrees, position is the output shaft's cumulative degrees
   (gearset already accounted for by firmware).
   *Source:* vendored `motors.hpp:628` ("absolute position in its encoder units");
   `hal/pros/motor.hpp` (the degree→radian binding).
-  *Confidence:* reasoned — "degrees" is documented; *output-shaft* (vs internal rotor) is the
-  weaker half of the belief.
-  *Settle (R3, runbook step 4):* rotate a wheel one marked revolution by hand → position moves
-  2π rad.
+  *Confidence:* **settled** — was: reasoned, with *output-shaft* the weaker half.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* deg/rad = **57.296** on all eight motors (57.2958 exact).
+  The output-shaft half is confirmed: the ratio carries no cartridge factor.
+  *(Settled by R3 runbook step 4.)*
   *Blast radius if wrong:* odometry scaled by the cartridge ratio (6:1/18:1/36:1) — silently,
   nothing crashes. **Contained:** adapter-only.
 
-- [ ] **HA-96 — `get_actual_velocity()` returns output-shaft RPM.**
+- [x] **HA-96 — `get_actual_velocity()` returns output-shaft RPM. SETTLED.**
   *Claim:* the double is RPM at the output shaft (gearset-corrected by firmware).
   *Source:* vendored `motors.hpp:404`; `motor_conversion.hpp` (`motorRpmToCanonical`, ×2π/60).
-  *Confidence:* reasoned.
-  *Settle (R3, runbook step 4):* full-stick free spin ≈ the cartridge's rated RPM (green ≈ 200
-  → ≈ 20.9 rad/s canonical).
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* rpm/(rad/s) = **9.549** (9.5493 exact).
+  *(Settled by R3 runbook step 4.)*
   *Blast radius if wrong:* feedforward and the stall cross-check read speeds ~9.5× off.
   **Contained:** one conversion.
 
-- [ ] **HA-97 — `get_current_draw()` returns milliamps.**
+- [x] **HA-97 — `get_current_draw()` returns milliamps. SETTLED.**
   *Claim:* the int32 is mA; a stalled 11 W motor reads ~2500.
   *Source:* vendored `motors.hpp:426` ("in mA"); `motor_conversion.hpp`
   (`motorMilliampsToCanonical`).
-  *Confidence:* reasoned.
-  *Settle (R3, runbook step 5):* pinch a wheel at ≤3 V; current climbs into the amp range.
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* mA/A = **1000.0** exactly, across eight motors.
+  *(Settled by R3 runbook step 5.)*
   *Blast radius if wrong:* stall/capture detection fires always or never — every
   sensor-confirm operation lies. **Contained:** one conversion.
 
 - [ ] **HA-98 — motor units/gearing are DEVICE state, persist across programs, and an explicit
-  set + read-back holds.**
+  set + read-back holds. PARTIALLY SETTLED — the persistence half is still open.**
   *Claim:* the ctor-default `invalid` means "leave as is"; a previous program's configuration
   survives; setting degrees+gearset then reading both back proves the device accepted them.
   *Source:* vendored `motors.hpp:74-75`; `hal/pros/motor.hpp` (ctor read-back preconditions);
   the shim's adversarial rotations/red defaults model exactly this hazard.
-  *Confidence:* reasoned — the leave-as-is semantics are documented; persistence-across-boots
-  is community knowledge.
+  *Confidence:* **partially settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* the explicit set + read-back was accepted on all
+  eight motors with no precondition firing, so that half holds. **Persistence across programs
+  was NOT tested** and stays open — which is the half the adapter's whole ctor discipline
+  exists for, so it is the half that matters. Do not read this row as closed.
   *Settle (R3, runbook steps 0/1/4):* boot with a correct map (read-backs pass); boot with one
   wrong port (read-back faults loudly).
   *Blast radius if wrong (adapter skips the discipline):* a motor left in rotations reads 1/360
   — odometry wrong by 360× with nothing crashing. **Contained:** ctor discipline + mutation-
   proven test (campaign M5).
 
-- [ ] **HA-99 — battery voltage/current are mV/mA. THE WEAKEST UNIT BELIEF IN THIS REGISTER.**
+- [x] **HA-99 — battery voltage/current are mV/mA. SETTLED — and it was R1a's weakest belief.**
   *Claim:* `battery_get_voltage()` ≈ 12600 on a fresh pack (mV); `battery_get_current()` is mA.
   *Source:* vendored `misc.h:718-750` — which documents **NO UNIT AT ALL** ("the current
   voltage of the battery"); the mV/mA belief is from PROS's website documentation only.
   `hal/pros/battery.hpp` carries the warning in its header.
-  *Confidence:* reasoned, and flagged: the only load-bearing unit in R1a that the vendored
-  source does not state.
-  *Settle (R3, runbook step 2 — BEFORE anything drives):* the session header's battery line
-  reads ~12.x V against the brain's own battery screen.
+  *Confidence:* **settled** — was: reasoned and flagged as the only load-bearing unit in R1a
+  that the vendored source does not state at all.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* raw **13039 → 13.04 V**, and raw 919 → 0.92 A.
+  The website-only belief was right. *(Settled by R3 runbook step 2, before anything drove.)*
   *Blast radius if wrong:* a 1000× error silently destroys brownout compensation, which scales
   EVERY motor command. **Contained:** one adapter, but only if checked before driving — hence
   the runbook ordering.
 
-- [ ] **HA-100 — `battery_get_capacity()` returns percent 0–100.**
+- [x] **HA-100 — `battery_get_capacity()` returns percent 0–100. SETTLED.**
   *Claim:* the double is a percentage; the adapter's ÷100 lands `IBattery::capacity()` in [0,1].
   *Source:* vendored `misc.h:771-787` (unit again undocumented; "Battery Level" example);
   `hal/pros/battery.hpp`.
-  *Confidence:* reasoned.
-  *Settle (R3, runbook step 2):* compare against the brain's battery percent.
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* raw **91.0 → 0.91**.
+  *(Settled by R3 runbook step 2.)*
   *Blast radius if wrong:* capacity() pegged at 1.0 by the clamp (a fraction read as percent)
   — misleading telemetry, no control impact today. **Contained.**
 
-- [ ] **HA-101 — `micros()` is microseconds since program start, monotonic, uint64.**
+- [x] **HA-101 — `micros()` is microseconds since program start, monotonic, uint64. SETTLED.**
   *Claim:* `IClock::now()` = micros()×1e-6 is a monotonic seconds stream; uint64 µs cannot wrap
   in a robot's lifetime (~584 000 years).
   *Source:* vendored `rtos.h:241`; `hal/pros/clock.hpp` (which also records WHY not millis():
   1 ms quantization is 10% of the 10 ms tick — a 10% error in every PID derivative).
-  *Confidence:* reasoned.
-  *Settle (R3, runbook step 3):* the telemetry time column tracks a stopwatch 1:1 for 60 s.
+  *Confidence:* **settled** — was: reasoned.
+  *Measured (bench, old competition bot, 2026-08-13 — ONE robot, ONCE; not proof of portability):* **999 784 µs** over a nominal 1000 ms delay — 0.02% low.
+  Monotonicity and the uint64 width were not separately exercised.
+  *(Settled by R3 runbook step 3.)*
   *Blast radius if wrong:* every dt in every controller — global, but impossible to miss on
   the bench. **Contained:** one adapter.
 
@@ -1619,7 +1631,8 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Claim:* V5 firmware applies commanded voltage without a hidden internal compensation loop, so
   partial-throttle behavior is pack-independent until demand exceeds the sagged ceiling (A3's
   §3.7 modeling insight, promoted to a testable claim).
-  *Source:* `power_hostility.hpp` shape 2 (pack ceiling); A3-COMPLETED §3.7.
+  *Source:* `power_hostility.hpp` shape 2 (pack ceiling); A3's completion record §3.7, in the
+  development log.
   *Confidence:* reasoned — matches PROS documentation of `move_voltage` semantics; PWM-level
   firmware behavior unverified.
   *Settle (R5):* measure velocity at fixed partial commands across pack states during sysid.

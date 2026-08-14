@@ -52,9 +52,10 @@ The headline limitation, stated as many times as it takes:
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
-  (every one still unsettled; each names its blast radius if wrong and the measurement that
-  settles it — the register itself is the count, so this page does not carry a number that
-  would go stale). Two examples to convey the range: the H-drive's sideways
+  (all but the handful the bench settled on 2026-08-13 are still open; each names its blast
+  radius if wrong and the measurement that settles it — the register itself is the count, so
+  this page does not carry a number that would go stale). Two examples to convey the range:
+  the H-drive's sideways
   authority (0.35) is pure invention that could plausibly be anywhere from ~0.15 to ~0.8
   (HA-54); and the entire heading-accuracy story leans on an assumed IMU drift bound (HA-20)
   that is community folklore until measured.
@@ -292,11 +293,15 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   above) and `then()` runs its operations, but the mechanisms themselves are structs your
   team writes ([Chapter 13](13-extending-the-library.md)), and the season's concrete
   primitives (`intakeUntilCapture`, `liftToLevel`, …) are roadmap item F3.
-- **No published API reference site.** The [cookbook](../cookbook/README.md) and the
-  generated API reference (`docs/api/`) both exist and are build-checked — but nothing is
-  hosted anywhere yet, so "the reference is live on the team website" remains open.
+- **The published reference lags the code, by construction.** The
+  [cookbook](../cookbook/README.md) and the generated API reference (`docs/api/`) both exist,
+  are build-checked, and *are* now published to the team site. But the site publishes from the
+  release branch, not the working one, so it shows the last release rather than the current
+  tree — deliberately, because that is what keeps the development log off the public site. Read
+  the in-repo copies if you need today's truth. HTTPS is also still pending a certificate.
   *(This bullet used to say no cookbook existed at all; that was written before D3 shipped
-  it and went stale — corrected at F1.)*
+  it and went stale — corrected at F1. It then said nothing was hosted anywhere, which went
+  stale when the site went up — corrected here.)*
 
 ## Motion-quality boundaries
 
@@ -312,8 +317,11 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   sticks to it raw (a small deadband and nothing else, itself a registered guess, HA-112);
   joystick shaping, slew-rate limits, and driver-preference curves are still future work
   (phase T on the roadmap).
-- **No mechanism/scoring layer** — lifts, intakes, pneumatics, match-load sequences (roadmap
-  M4). shulib moves the chassis; mechanisms are hand-rolled today.
+- **No *scoring* layer** — the concrete season verbs (`intakeUntilCapture`, `liftToLevel`,
+  match-load sequences) are roadmap item F3/M4 and do not exist. The mechanism *seam* they would
+  be written against does exist and is described above; what you write today is your own
+  mechanism structs against a real seam, not from nothing. (This bullet used to say the
+  mechanism layer itself was missing, which contradicted the section three headings up.)
 - **Braking physics are unverified**: brake mode is commanded correctly, but what a real V5
   brake does to a moving robot is a registered assumption (HA-53). Plan conservatively around
   stopping distances.
@@ -321,9 +329,21 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
 ## Diagnostics boundaries
 
 The terminal transcript ([Chapter 11](11-reading-the-diagnostics.md)) is real and byte-pinned.
-Not built yet, per the [diagnostics plan](../diagnostics-plan.md): the SD-card blackbox (logs
-without a laptop), the live telemetry wire to VexBuilder, record/replay, and the on-brain HUD.
-Today's transcript needs a USB tether (or the simulator).
+
+**The SD-card blackbox is built** — this bullet used to list it as missing and was wrong. A run
+records to the card without a laptop: a RAM flight recorder that costs the card nothing until a
+fault fires, then writes the triage block first and the preceding ticks after it (in that order,
+because the fault may be the brownout that cuts the write short), and a decoder that ships in the
+same chunk and is held to the format by byte-exact goldens rather than by agreeing with the
+encoder. The controller-screen fault display is built too. **Both are host-proven only:** the
+blackbox writes through a device seam whose V5 adapter exists but has never touched a physical SD
+card, so "it records without a laptop" is a property of the design and the host tests, not
+something any robot has yet demonstrated.
+
+Still genuinely not built, per the [diagnostics plan](../diagnostics-plan.md): the live telemetry
+wire to VexBuilder, record/replay-as-regression-test, and the on-brain status screen (the
+*brain's* screen — distinct from the controller screen, which exists). Live watching still needs
+a USB tether or the simulator.
 
 ## And the meta-limitation
 

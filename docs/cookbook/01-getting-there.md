@@ -113,7 +113,7 @@ RoutineResult twoGoalSideRun(Chassis& chassis, Intake& intake) {
 The test that compiles this listing also holds what the prose claims: eleven steps, six of them
 motions, two releases, the robot genuinely within an inch and a half of the parking pose on the
 simulator's ground truth — and the whole run finishing in about 7.5 seconds of simulated time,
-inside a fifteen-second autonomous window with room to spare.
+inside a short autonomous window with room to spare.
 
 **Why it is written this way.**
 

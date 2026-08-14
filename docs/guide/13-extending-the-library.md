@@ -1,7 +1,8 @@
 # 13 — Extending the library
 
-> **Covers:** how the layers fit together, the testing discipline and why it's strict, and the
-> two most likely extensions — adding a drivetrain and adding a motion.
+> **Covers:** how the layers fit together, the testing discipline and why it's strict, and four
+> extensions — adding a drivetrain, adding a motion, building a mechanism, and porting to
+> different hardware behind the adapter seam.
 > **Read this if:** you're comfortable using the library and want to change or grow it.
 > **Assumes:** all previous chapters, and working C++ (classes, virtual functions).
 
@@ -12,14 +13,16 @@ ones below it:
 
 ```text
 chassis/        the facade (Chassis) — what routines talk to            [Ch. 10]
+sequence/       the run guard — a whole-run deadline + guaranteed end   [Ch. 6]
 motion/         motion primitives + the one-at-a-time scheduler         [Ch. 5]
 manipulation/   bounded mechanism operations (spin-until, actuate)      [Ch. 9]
 control/        PID, feedforward, settling, watchdogs                   [Ch. 5]
 localization/   odometry, fusion, the Localizer                         [Ch. 3]
 kinematics/     drivetrain geometry (X, tank, H)                        [Ch. 4]
 diag/           records, fault latch, monitors, formatters              [Ch. 11]
-hal/            the hardware interfaces + the mechanism device seam
-                (+ in-memory fakes)
+hal/            the hardware interfaces — motors, sensors, the mechanism
+                device seam, the controller, digital in/out, byte sinks
+                (+ in-memory fakes for every one)
 hal/pros/       the real-hardware adapters over the PROS SDK — the ONE
                 place the library touches VEX's software
 units/ math/    typed quantities, Angle, Pose2d, the frame transforms   [Ch. 2]
@@ -63,8 +66,9 @@ The short version of the rules you'll be held to (the long version:
 - **Evidence, not vibes.** A thing is done when a passing test proves it. Status claims cite
   the test.
 
-Why so strict? Because there is no robot. Off-robot verification is the *only* verification
-this project has, so its standard has to be brutal or it's nothing. This is also why the
+Why so strict? Because off-robot verification is still the *only* verification this project has
+for anything above the hardware seam — a robot has been on a bench, but no control loop has ever
+closed on it — so the standard has to be brutal or it's nothing. This is also why the
 simulated sensors are hostile (they lie during boot, freeze, drop out, sag) — the suite's job
 is to be a worse day than the field will be, within the limits of what simulation can honestly
 claim.
@@ -156,10 +160,13 @@ default. Pass it the same value you declare as the mechanism's safe state and bo
 the line straight to safe, once, with no glitch through the wrong state; mismatch them and
 the cylinder physically moves at power-on (the [FAQ](../faq.md) entry "Why did my pneumatic
 fire the moment the robot booted?" is this exact story). The confirm sensors have their
-adapters too — `ProsDistance` and `ProsOptical` — and each carries a trap note worth reading
-before your predicate thresholds on it (a distance sensor with nothing in view reports a
-plausible-looking 393-inch reading, which the adapter maps to zero confidence; threshold
-`confidence()` first, always).
+adapters too — `ProsDistance`, `ProsOptical`, and `ProsDigitalIn` for a limit switch or bumper,
+which is the obvious confirmation for a clamp or a homed lift — and each carries a trap note
+worth reading before your predicate thresholds on it. A distance sensor with nothing in view
+reports a plausible-looking 393-inch reading, which the adapter maps to zero confidence, so
+threshold `confidence()` first, always. And a digital input is screened for the same reason in
+the other direction: an unscreened dead ADI port reads as **permanently pressed**, which on a
+homing routine is a lift climbing into its own hard stop.
 
 **Level 2 — the operations** ([`manipulation/mechanism_op.hpp`](../../include/shulib/manipulation/mechanism_op.hpp)
 — read its header contract the way you'd read `motion.hpp`'s): a bounded, tickable,

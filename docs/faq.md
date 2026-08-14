@@ -119,6 +119,38 @@ one honest limit even with a card: small writes sit in a buffer and can report a
 the card is already refusing — the failure then lands on `flush()`, which is why its result is
 a `bool` too.
 
+## My program uploaded fine and prints nothing. Is the code broken?
+
+**Check that the brain is still plugged in before you suspect a single line of code.** This one
+cost us most of a bench session, and every theory formed during that stretch was wrong.
+
+The failure looks exactly like a code bug and is not one. When the USB cable drops, or the
+connection is lost mid-session:
+
+- the program **keeps running on the brain** — it does not need the laptop;
+- `pros upload` can still **report success**;
+- and the serial terminal simply goes **silent**.
+
+Nothing anywhere says "the cable is gone." So you start bisecting: comment out a subsystem,
+change the link order, suspect hot/cold linking. We got as far as concluding *"linking shulib
+breaks the binary"* — a serious false finding, which only a control test disproved.
+
+The fact that actually resolved it came from **looking at the brain**: a black screen showing the
+program name means the program is running fine, and the problem is the pipe, not the program.
+
+So, in order:
+
+1. `ls /dev/ttyACM*` — if the device is not enumerated, nothing you change in the code will
+   produce output. On Linux the brain appears as two ports: `ttyACM0` (system) and `ttyACM1`
+   (user). Re-seat the cable and re-check before doing anything else.
+2. Look at the brain screen. Program name on a black screen = running.
+3. Only then suspect the code.
+
+Two related snags on the same path. `pros terminal` wants a **real TTY**, so under any automation
+or captured shell it needs wrapping — `script -qec "pros terminal" /dev/null` works. And reading
+`/dev/ttyACM1` raw yields nothing useful: the user port is **framed**, not plain serial, so it
+needs the tool that understands the framing rather than `cat`.
+
 ## Why does `ProsGps` refuse to construct on my robot?
 
 Because your GPS has a **firmware offset configured** (`get_offset() != (0,0)`), probably by a

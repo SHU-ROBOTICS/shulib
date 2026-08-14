@@ -56,21 +56,25 @@ cmake --build build/test -j        # compile everything
 ./build/test/shulib_tests          # run the whole test suite
 ```
 
-The first build takes a few minutes (it's compiling several hundred test cases); later builds
+The first build takes a few minutes (it is compiling the whole suite); later builds
 only recompile what changed. The [README](../../README.md) carries the same commands and is the
 canonical copy if these ever drift.
 
 ## Reading the test output
 
-The suite prints a burst of text and ends with something shaped like this (the exact counts grow
-over time — the [README](../../README.md#how-verified-is-it-honestly) tracks the current
-numbers):
+The suite prints a burst of text and ends with something shaped like this. **Match the shape, not
+the numbers** — the counts grow every time anyone adds a test, and the only current figures are
+the ones your own run just printed:
 
 ```text
-[doctest] test cases:    659 |    659 passed | 0 failed | 3 skipped
-[doctest] assertions: 915570 | 915570 passed | 0 failed |
+[doctest] test cases:    ... |    ... passed | 0 failed | 3 skipped
+[doctest] assertions: ...... | ...... passed | 0 failed |
 [doctest] Status: SUCCESS!
 ```
+
+*(This block used to carry real counts. They went stale — by hundreds of cases and hundreds of
+thousands of assertions — and no gate noticed, because a `text` block is checked by none of
+them. That is why the shape is shown here and the numbers are not.)*
 
 How to read it:
 
@@ -79,9 +83,10 @@ How to read it:
 - A **test case** is one named scenario ("a stuck encoder raises ODO_STUCK within 0.3 s"); an
   **assertion** is one checked claim inside a case. The assertion count is huge because many
   tests sweep hundreds of situations in a loop, asserting at each step.
-- The **3 skipped** are deliberate: placeholder cases for measurements that can only be made on
-  a real robot. They're marked skipped rather than deleted so the suite itself remembers what's
-  owed.
+- The **3 skipped** are deliberate placeholders, and they are not all the same kind. Two are
+  acceptance stubs for accuracy targets whose features do not exist yet; the third needs a GPS
+  in front of a field strip. They are marked skipped rather than deleted so the suite itself
+  remembers what is owed.
 - **Status: SUCCESS!** with `0 failed` is the only acceptable end state. If you see failures on
   a fresh clone, something is wrong with the environment, not (probably) the code — ask before
   digging alone.
@@ -116,7 +121,10 @@ mental model, which matters more:
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
 - **`src/main.cpp`** — the program that runs on a real V5 brain: it wires the library to the
   adapters above and is the worked example of constructing a whole robot in plain C++. Its
-  port map is an explicitly labelled guess until a robot is measured.
+  port map is an explicitly labelled guess — and a robot *has* now been measured, which the map
+  has not caught up with: the one machine the team has is a tank drive with no tracking wheels
+  and no GPS, and `main.cpp` still describes an X-drive with both. Re-wiring it is
+  hardware-validation work, not a build step.
 - **`test/pros_shim/`** — a hand-written, programmable stand-in for the PROS SDK, used only by
   the host test build so the adapters can be compiled and *run* on your laptop. It is
   structurally unable to reach a robot build (its headers refuse to compile outside the test
@@ -135,11 +143,19 @@ package wires **real device adapters** — motors, IMU, GPS, battery, rotation s
 controller — rather than in-memory fakes, including a first driver-control loop.
 
 What that does *not* yet mean, stated as plainly as the robot itself states it over serial:
-**the library has still never driven a robot.** The adapters are host-tested against a
+**the library has still never driven a robot** — no control loop has ever closed, and no wheel
+has ever turned under the library's own steering. The adapters are host-tested against a
 programmable stand-in for PROS, which proves the glue is faithful to our *beliefs* about PROS
 — units, signs, error values — and cannot prove the beliefs themselves
-(the [FAQ](../faq.md) unpacks that sentence). The shipped port map is a labelled guess, and a
-brain whose devices are on different ports will refuse loudly at boot rather than pretend.
+(the [FAQ](../faq.md) unpacks that sentence). One bench session (2026-08-13) has since checked a
+handful of those beliefs against real devices and found them right, which is a real result and a
+narrow one: it validated the *platform layer* on one robot, once.
+
+The shipped port map is a labelled guess, and it does **not** match the robot that was measured.
+A wrong **motor** port does refuse loudly at boot — `ProsMotor` configures the device and reads
+the configuration back — but do not generalise that to every device: the sensor adapters screen
+bad reads and hold their last good value rather than refusing, so a mis-mapped sensor degrades
+quietly instead of stopping you.
 First motion, sign checks, and validation are the hardware phase's, walked as a prepared
 checklist. The [roadmap](../roadmap.md#milestones-at-a-glance) tracks exactly where that
 stands (the "you are here" note is kept current). Until then, everything in this guide runs
