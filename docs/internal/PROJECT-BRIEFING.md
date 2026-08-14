@@ -716,8 +716,16 @@ configuration. `tools/prepare_site.py` refuses to build if an internal doc would
 before rendering. Publishing a stale reference is worse than publishing none, because a published
 document looks authoritative.
 
-**Pending:** GitHub has not issued the TLS certificate; DNS is correct and the site serves over HTTP.
-Tick "Enforce HTTPS" once the cert appears. If Cloudflare's proxy is re-enabled, SSL mode must be
+**RESOLVED 2026-08-14 — the site is HTTPS-only.** Let's Encrypt certificate for
+`docs.shurobotics.com` issued, "Enforce HTTPS" on, and HTTP now 301-redirects to HTTPS
+(verified from outside with full certificate validation, not `curl -k`).
+
+**The cause is worth keeping, because the fix is not obvious.** DNS was correct and the custom
+domain was set, but `https_certificate` was **null** — GitHub had never requested a certificate
+at all. It validates DNS when the domain is *set*, and the domain had been set before DNS
+resolved; nothing retries on a schedule, so it would have sat on plain HTTP indefinitely.
+Re-saving the same value is a no-op. **Removing the custom domain and re-adding it** forces
+revalidation, and the certificate was approved within seconds. If Cloudflare's proxy is re-enabled, SSL mode must be
 **Full (strict)**, never Flexible.
 
 ---
@@ -732,8 +740,7 @@ Tick "Enforce HTTPS" once the cert appears. If Cloudflare's proxy is re-enabled,
    R1a and R1b are all absent from it, and none of that work is public. Merging publishes all of
    it at once, including the documentation this chunk is fixing. Two sub-questions ride with it:
    whether to push at all, and **HTTPS** — GitHub has still not issued the certificate (verified
-   2026-08-14: the site answers over HTTP and fails TLS on a name mismatch), so "Enforce HTTPS"
-   stays un-tickable until it appears.
+   2026-08-14: certificate issued and HTTPS enforced — see §17).
 3. **R5 timing.** Building `tools/sysid` on the tank bot gives a validated tool and throwaway numbers,
    since gains never transfer across chassis. It may be worth deferring until a competition robot
    exists and slotting G1 or H1 in instead. **This is the one place in the order I want your judgment
