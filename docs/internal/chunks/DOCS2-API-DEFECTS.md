@@ -18,16 +18,21 @@
 further 10 (section E) found while CORRECTING it, when a reviewer's objection sent someone back
 to the code and the code turned out to be the thing at fault.
 
-| Shape | Count | What it means |
-|---|---:|---|
-| **doc-contradicts-code** | 18 | a shipped comment states a behaviour the implementation does not have |
-| **api-smell** | 32 | the code is self-consistent, but the surface invites a caller to get it wrong |
-| **inconsistency** | 22 | two parts of the library are each defensible and disagree with each other |
-| **other** | 1 | does not fit the three shapes above |
+Every item has a stable ID (`D3`, `A17`, `I8`, `E5`) — **cite the ID, not the line number**,
+because line numbers move the moment anyone edits a header.
+
+| Section | IDs | Count | What it means |
+|---|---|---:|---|
+| **D** — doc-contradicts-code | `D1`–`D18` | 18 | a shipped comment states a behaviour the implementation does not have |
+| **A** — api-smell | `A1`–`A32` | 32 | the code is self-consistent, but the surface invites a caller to get it wrong |
+| **I** — inconsistency | `I1`–`I22` | 22 | two parts of the library are each defensible and disagree with each other |
+| **O** — other | `O1` | 1 | does not fit the three shapes above |
 
 ---
 
-## A — the documentation and the code disagree
+## D — the documentation and the code disagree
+
+*(items `D1`–`D18`)*
 
 ### D1. `include/shulib/control/feedforward.hpp:13`
 
@@ -441,7 +446,9 @@ agent into thinking a /// above the line closes Error.
 
 ---
 
-## B — the API itself has a sharp edge
+## A — the API itself has a sharp edge
+
+*(items `A1`–`A32`)*
 
 ### A1. `include/shulib/chassis/robot_context.hpp:63`
 
@@ -1085,7 +1092,9 @@ Worth flagging because this repo demonstrably treats message specificity as load
 
 ---
 
-## C — two parts of the library disagree with each other
+## I — two parts of the library disagree with each other
+
+*(items `I1`–`I22`)*
 
 ### I1. `include/shulib/control/exit_group.hpp:31`
 
@@ -1554,7 +1563,9 @@ There is no `operator/(double, Quantity)` and no namespace-scope equivalent, so 
 
 ---
 
-## D — everything else
+## O — everything else
+
+*(item `O1`)*
 
 ### O1. `include/shulib/localization/localizer.hpp:138`
 
@@ -1588,6 +1599,8 @@ The tool's own docstring names this and calls it intended pressure: "on a one-li
 ---
 
 ## E — found during the correction pass, after the adversarial review
+
+*(items `E1`–`E10`)*
 
 These ten were not found while writing the documentation. They were found while **fixing** it:
 a reviewer flagged a sentence as wrong, the fixer went to the code to check, and the code turned
