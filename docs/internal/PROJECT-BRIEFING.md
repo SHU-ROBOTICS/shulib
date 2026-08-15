@@ -108,7 +108,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - **Next up:** the RELEASE to main, then R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
-- **Suite:** 1,151 cases / 1,523,877 assertions, 3 skipped — **green**  
+- **Suite:** 1,151 cases / 1,523,871 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 148  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  

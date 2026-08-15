@@ -553,7 +553,7 @@ corrector[1]'s CONFIDENCE. A faithful per-source split is an API change and is w
 
 **Mutations 2/2 RED** (M19 E7, M20b N1). M20's first spelling failed to build on
 `-Werror=unused-variable`, which is the mutation runner catching itself.
-**1,151 / 1,523,877 / 3 — green.**
+**1,151 / 1,523,871 / 3 — green.**
 
 ## Commit 8 — the remaining code fixes + the doc sweep, and TWO HONEST RETRACTIONS
 
@@ -584,7 +584,7 @@ own conclusion *stronger* than the wrong figure implied.
 # CHUNK CLOSE — all gates green
 
 ```
-suite               1,151 cases / 1,523,877 assertions / 3 skipped — SUCCESS
+suite               1,151 cases / 1,523,871 assertions / 3 skipped — SUCCESS
 self-test           PASS      check-coverage      PASS
 check-fresh         PASS      check-examples      PASS
 check-removability  PASS      briefing            PASS

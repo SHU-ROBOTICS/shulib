@@ -190,7 +190,7 @@ feasibility.
 | Measure | Result |
 |---|---|
 | Items triaged | **84** — 59 FIX · 15 REJECT · 6 ARGUE · 4 DEFER |
-| Suite | **1,151 cases / 1,523,877 assertions / 3 skipped** — green (was 1,121) |
+| Suite | **1,151 cases / 1,523,871 assertions / 3 skipped** — green (was 1,121) |
 | New test cases | **30**, including a new file for `diag/line_format.hpp`, which had none |
 | Mutations | **21 run, 19 red and observed, 2 green** — both green ones were my own tests, both closed or reported |
 | Fixes retracted after the suite disagreed | **1** (`I13`), plus one fix reworked after a SIGABRT (`A28`) |
@@ -257,7 +257,19 @@ cheapest version: the reviewer picks two or three of the chunk's claimed fixes, 
 a scratch copy, and checks the suite goes red. It is minutes, and it is the only check that
 distinguishes "there is a test" from "there is a test that works".
 
-**5. A smaller one: `MotionRig` seeds its localizer live in the constructor.** That is right for
+**5. The suite's ASSERTION COUNT is not a function of the committed tree.**
+`test/pros_adapter_fence_test.cpp` walks `include/shulib/` with a
+`recursive_directory_iterator` and asserts once per `.hpp` **on disk** — which is right for what
+it checks (a smuggled `<pros/>` include anywhere under the tree, untracked files included), and
+it means a stray header changes the total. This chunk's number moved by 6 with no code change
+after an unrelated stash briefly dropped six headers into `include/shulib/seasons/`, and the
+figure quoted in an earlier draft of this record was taken during that window. Corrected to the
+clean-tree value, verified stable across repeated runs. **Anyone chasing a briefing-gate
+assertion drift should check `git status` for untracked headers before suspecting the code** —
+and it is one more reason the project already says assertion counts flatter and mutation results
+are what it trusts.
+
+**6. A smaller one: `MotionRig` seeds its localizer live in the constructor.** That is right for
 almost every test and it makes boot-window behaviour untestable — which is why `D12`/`D14` ship
 unpinned. A `MotionRig` variant that boots cold would have closed that, and would probably pay
 for itself: the wait-for-live contract is load-bearing in five motions and is currently only
