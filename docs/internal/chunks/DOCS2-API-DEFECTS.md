@@ -1,4 +1,19 @@
-# DOCS2 — API defects found while documenting, REPORTED AND NOT FIXED
+# DOCS2 — API defects found while documenting
+
+> **RESOLVED AT DEFECTS1 (2026-08-15).** Every item below now carries a
+> `> **DEFECTS1 → …**` line directly under its headline giving its outcome, so this list is
+> self-describing and no reader has to cross-reference it against a chunk record to know what
+> happened. The triage that produced those outcomes is in
+> [`DEFECTS1-api-defect-triage.md`](DEFECTS1-api-defect-triage.md); the execution record,
+> including the honest partials, is in [`DEFECTS1-COMPLETED.md`](DEFECTS1-COMPLETED.md).
+>
+> **84 items: the 83 below, plus `N1`, which DEFECTS1's own triage found.** Outcomes:
+> **59 FIX · 15 REJECT · 6 ARGUE · 4 DEFER.** The REJECTs matter as much as the fixes — six
+> items were already fixed at DOCS2 itself, and several more do not hold: `A9`'s two asserted
+> consequences are both refuted by a two-line probe, and `I12`'s load-bearing premise is false.
+> **The original text of every item is UNCHANGED below.** A finding that turned out to be wrong
+> is left standing with its evidence, because editing it would destroy the record of what a
+> careful reader believed and why.
 
 > **This chunk's landmine L3 is "do not fix code."** Documenting 1,625 public entities means
 > reading every one of them against its implementation, which is a wide net for real defects —
@@ -13,6 +28,8 @@
 > **Severity is not assigned.** These were found by reading, not by measuring, and a confident
 > severity ranking would be the same kind of unearned claim the list exists to catch. They are
 > grouped by shape and left for a person to triage.
+>
+> *(That triage happened at DEFECTS1. The paragraph above is DOCS2's, kept as written.)*
 
 **83 findings**, across 58 headers — 73 found while writing the documentation, and a
 further 10 (section E) found while CORRECTING it, when a reviewer's objection sent someone back
@@ -38,6 +55,8 @@ because line numbers move the moment anyone edits a header.
 
 **The banner attributes a behaviour to CompensatedVoltage::brownoutLimited that no code implements — nothing in the library reads the flag.**
 
+> **DEFECTS1 → FIX.** Banner corrected. Nothing reads brownoutLimited: the pipeline uses only `voltage`, and the park is driven by F2's deadlines.
+
 <details>
 <summary>Evidence (9 lines)</summary>
 
@@ -59,6 +78,8 @@ Repo-wide, `brownoutLimited` appears only in its own declaration and in test/fee
 
 **The banner claims the fault-name column width is "checked by static math here", but the file contains no static_assert of any kind.**
 
+> **DEFECTS1 → FIX.** And the arithmetic was already WRONG — MECHANISM_STALLED is 17 chars against a 15-char budget, stale since F1. The static math now exists and asserts the property that matters (a truncated row still names one code), self-extending via a second assert.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -71,6 +92,8 @@ Banner line 20-22: "The longest fault spellings (GPS_GATE_REJECT, MOTOR_OVER_TEM
 ### D3. `include/shulib/diag/loop_monitor.hpp:87`
 
 **worstDt()'s comment claimed the value resets, four lines above reset()'s comment saying it does not. REWROTE (rule 5) — this is the one existing /// I changed.**
+
+> **DEFECTS1 → REJECT.** Already fixed at DOCS2; worstDt() reads "since construction" at HEAD and the generated page carries it.
 
 <details>
 <summary>Evidence (12 lines)</summary>
@@ -96,6 +119,8 @@ After: "Largest dt observed since construction (the §18.3 …" — the word "/r
 
 **The existing /// on pitch() calls pitch and roll 'canonical', but the PROS adapter that produces them records the as-mounted sign convention as UNMEASURED and passes it through unnegated — so the published page promises a fixed sign convention the implementation explicitly does not yet provide. Not rewritten (it is not wrong about anything in this header).**
 
+> **DEFECTS1 → FIX.** pitch() no longer calls the sign "canonical" and now states HA-110's open sign convention; fixed together with I6.
+
 <details>
 <summary>Evidence (5 lines)</summary>
 
@@ -112,6 +137,8 @@ Everywhere else in this library 'canonical' names a settled convention (heading(
 ### D5. `include/shulib/hal/pros/gps.hpp:163`
 
 **faultedReads() is documented as counting reads screened to no-fix, but the offset-unverified / offset-rejected path screens a read to no-fix WITHOUT incrementing the counter — so the one failure the class treats as permanent is the one it reports zero times.**
+
+> **DEFECTS1 → FIX.** The offset-unverified screen now counts. Test note: the ONLY route to offsetRejected_ is unreadable-at-boot then readable-and-nonzero — verifyOffset short-circuits once the boot check passes.
 
 <details>
 <summary>Evidence (19 lines)</summary>
@@ -144,6 +171,8 @@ Once verifyOffset() sets offsetRejected_ = true (the deferred discovery of a con
 
 **The banner promises a faulted rotation sensor is "never zero", but the last-good caches are initialized to 0.0, so a pod that faults from boot reports exactly zero forever.**
 
+> **DEFECTS1 → FIX.** REJECTED by triage, OVERRULED by verification and by me. The harm story is refuted (OdoStallCheck reads IMotor and works in deltas; IRotation::velocity() has no consumer at all) — but the refuted story WAS the shipped text, and the F4 interface header still carried the unqualified claim its sibling hal/motor.hpp already caveats. Fixed as documentation.
+
 <details>
 <summary>Evidence (10 lines)</summary>
 
@@ -165,6 +194,8 @@ If the sensor is unplugged or dead at construction, NO read ever succeeds, so th
 ### D7. `include/shulib/localization/correction.hpp:103`
 
 **Multi-line trailing ///< notes are mis-attributed by the generator: every continuation line becomes the NEXT member's documentation, so three published members carry another member's sentence and two lose their own. FusionResult::audit is currently documented with a sentence about appliedConfidence. Pre-existing; I did not touch these comments (my two additions are deliberately single-line for this reason).**
+
+> **DEFECTS1 → REJECT.** Already fixed at DOCS2 — _strip_doc excludes ///< at HEAD; verified on the published page.
 
 <details>
 <summary>Evidence (20 lines)</summary>
@@ -198,6 +229,8 @@ So the published reference tells a reader that FusionResult::audit 'drives how m
 
 **The banner and fuse()'s own /// both say a fusion policy returns POSITION only; since E3 it also returns a bounded heading increment that the Localizer folds into a persistent heading bias.**
 
+> **DEFECTS1 → FIX.** Banner and fuse() now describe the post-E3 contract (position AND a bounded heading increment).
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -210,6 +243,8 @@ Banner, line 5-6: "Given the predicted pose and the valid proposals, it returns 
 ### D9. `include/shulib/localization/localizer.hpp:9`
 
 **The banner's five-step numbering is off by one against the STEP labels in update() from step 3 onward, and the generator reproduces that banner verbatim onto the published page.**
+
+> **DEFECTS1 → FIX.** Banner renumbered to match update()'s STEP labels, and the downstream self-inconsistency ("STEP 4 stamped") corrected with it.
 
 <details>
 <summary>Evidence (13 lines)</summary>
@@ -235,6 +270,8 @@ The banner is also inconsistent with itself downstream: line 18 says "so STEP 4 
 ### D10. `include/shulib/manipulation/mechanism_outcome.hpp:54`
 
 **Multi-line `///<` enumerator continuations are attributed to the NEXT enumerator, so the published page states confident wrong sentences about Unconfirmed and TimedOut. The coverage gate scores them as documented, making this a HIDDEN gap of exactly the class the tool exists to prevent.**
+
+> **DEFECTS1 → REJECT.** Already fixed at DOCS2 — the published mechanism_outcome page carries each enumerator's own complete sentence.
 
 <details>
 <summary>Evidence (23 lines)</summary>
@@ -271,6 +308,8 @@ NOT FIXED, deliberately: the root cause is in tools/api_doc_tool.py, outside my 
 
 **The file banner states ChassisSpeeds is FIELD frame, but the type has been frame-agnostic since the explicit math::Frame parameter was introduced, and the kinematics seam accepts only a BODY-frame one.**
 
+> **DEFECTS1 → FIX.** ChassisSpeeds is frame-agnostic; the pre-C4 "FIELD frame" line is gone.
+
 <details>
 <summary>Evidence (11 lines)</summary>
 
@@ -294,6 +333,8 @@ A reader who trusts the banner will assume any ChassisSpeeds they are handed is 
 
 **HoldPose's only deadline is holdFor + 1.0 s from start(), and that same watchdog is what bounds the wait-for-live boot window — so a short hold started during IMU calibration exits TimedOut before its hold window ever begins, and the caller has no timeout parameter with which to budget for boot.**
 
+> **DEFECTS1 → FIX.** Watchdog now armed with max(holdFor + slack, effective timeout). HONEST PARTIAL: no test pins it and mutation M21 stayed GREEN — MotionRig's localizer is seeded live, so the boot-window scenario needs a cold-boot rig this chunk did not build.
+
 <details>
 <summary>Evidence (8 lines)</summary>
 
@@ -313,6 +354,8 @@ Contradicted claim, move_to_pose.hpp:290-291: '/// The hold watchdog only backst
 ### D13. `include/shulib/motion/motion_config.hpp:141`
 
 **validate() checks defaultTimeout > 0 but not finiteness, so an infinite defaultTimeout produces a watchdog that never expires — a motion that can hang, which is the one thing the watchdog exists to prevent. REPORTED, NOT FIXED.**
+
+> **DEFECTS1 → FIX.** Finiteness added at BOTH layers — MotionConfig::validate()'s five scalars and Watchdog's own ctor, which is where the "a motion can never hang" claim lives.
 
 <details>
 <summary>Evidence (13 lines)</summary>
@@ -338,6 +381,8 @@ A MoveToPose/StrafeTo/TurnTo built with `timeout = 0` on that config runs foreve
 ### D14. `include/shulib/motion/move_to_pose.hpp:327`
 
 **In hold mode the watchdog is never consulted after the first live tick, so the kHoldSlack watchdog documented as a "backstop" is armed but never read on the running path.**
+
+> **DEFECTS1 → FIX.** Fixed with D12; the comment now says what the hold watchdog actually is (the boot bound plus a floor under holdFor), not the live backstop the code never read.
 
 <details>
 <summary>Evidence (15 lines)</summary>
@@ -366,6 +411,8 @@ grep confirms watchdog_.expired() appears at only two sites: line 142 (the wait-
 
 **The banner's "a single dead DRIVE encoder halves the mean" is exact only for a 2-motor drive; for the 4-wheel drive named in the same sentence it is 3/4, not 1/2.**
 
+> **DEFECTS1 → FIX.** (n-1)/n, not "halves" — 1/2 at n=2, 3/4 on the X-drive named in the same sentence, 2/3 on the H-bot. The conclusion is stronger than the wrong figure implied.
+
 <details>
 <summary>Evidence (9 lines)</summary>
 
@@ -387,6 +434,8 @@ With n wheels, one dead encoder leaves (n-1)/n of the mean. The same bullet name
 
 **The banner says the end action is 'refused' once hardStopAt passes, but run() invokes the end-action callable unconditionally and reports endActionRan = true even when the hard floor already fired during scoring.**
 
+> **DEFECTS1 → FIX.** Banner corrected: what the hard floor refuses is the end action's MOTIONS and WAITS, not its invocation — the guard cannot preempt caller code.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -399,6 +448,8 @@ Banner (T2): 'hardStopAt — BE SAFE, unconditionally: every device is forced sa
 ### D17. `include/shulib/units/quantity.hpp:14`
 
 **The design banner's canonical-unit list omits amperes, though the header itself declares the current dimension and the Current alias. The banner is reproduced verbatim onto the generated page, so the published contract is wrong.**
+
+> **DEFECTS1 → FIX.** The ampere is in the canonical-unit list.
 
 <details>
 <summary>Evidence (8 lines)</summary>
@@ -419,6 +470,8 @@ but the header goes on to declare `using Current = Quantity<0, 0, 0, 0, 1>;   //
 ### D18. `tools/api_doc_tool.py:988`
 
 **_parse_enum_body's docstring says a `///` run above a line documents the FIRST enumerator on it; for a one-line enum DECLARATION that is false — the run is consumed as the enum type's own doc and reaches no enumerator. This is exactly the case the docstring says the DOCS2 rewrite exists to handle.**
+
+> **DEFECTS1 → FIX.** Docstring corrected, and it understated the damage: a /// run above an enum's declaration reaches NO enumerator, not just "the rest".
 
 <details>
 <summary>Evidence (16 lines)</summary>
@@ -454,6 +507,8 @@ agent into thinking a /// above the line closes Error.
 
 **Nothing anywhere validates that driveMotors has at least as many motors as the installed IKinematics has wheels, and the commanding path indexes the span by wheel index with no bound check — a short motor list is silent out-of-bounds UB on every tick, not a precondition failure.**
 
+> **DEFECTS1 → FIX.** Cross-check added to MotionDeps::validate(), the one bundle holding both the context and the kinematics. Mutation-proven.
+
 <details>
 <summary>Evidence (11 lines)</summary>
 
@@ -477,6 +532,8 @@ The mismatch was clearly anticipated elsewhere — every RECORD-producing loop g
 
 **compensateForBattery() has no finiteness precondition on `desired`: a NaN passes straight through, unclamped AND unflagged, from the one function whose job is to bound the commanded voltage.**
 
+> **DEFECTS1 → FIX.** The FLAG was the lie, not the value: `!(|d| <= b)` lands NaN on the true side. The NaN still passes through deliberately — recovery belongs at the motor edge, and a throw here would abort a motion an A3 hostile sensor should only degrade.
+
 <details>
 <summary>Evidence (7 lines)</summary>
 
@@ -496,6 +553,8 @@ Inconsistent with its own file: Feedforward's constructor (line 65) does check s
 
 **HealthMonitor's constructor is not explicit, so a FaultLatch implicitly converts to a HealthMonitor.**
 
+> **DEFECTS1 → FIX.** explicit added.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -508,6 +567,8 @@ HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})  — t
 ### A4. `include/shulib/diag/level_filter_sink.hpp:115`
 
 **Override::tag() rebuilds a string_view from a NUL-terminated buffer, so a subsystem tag containing an embedded NUL is silently truncated and can collide with — or be made unreachable by — another tag.**
+
+> **DEFECTS1 → FIX.** Tags matched by length, so an embedded NUL no longer makes a tag's own dial unreachable by its own name.
 
 <details>
 <summary>Evidence (8 lines)</summary>
@@ -529,6 +590,8 @@ Given `setLevel("A\0B"sv, Debug)`, tag() reports "A". A later `setLevel("A"sv, W
 
 **appendSanitized is documented as truncating at `cap`, but a truncated string emits cap+3 bytes, and the 3-byte ellipsis itself can be split mid-UTF-8 by appendRaw — the exact breakage the UTF-8 back-off exists to prevent.**
 
+> **DEFECTS1 → FIX.** The 3-byte marker is emitted only when it fits. The first test for this MISSED it (mutation M13 stayed green): filling to kCapacity-2 leaves zero room, and appendRaw with zero room writes nothing. Needs 1-2 bytes free.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -542,6 +605,8 @@ Contract in the banner: "truncation backs off UTF-8 continuation bytes and marks
 
 **appendNum's compaction trigger compares the rendered byte count against an absolute constant instead of against the requested `width`, so any column wider than 10 is unconditionally compacted away.**
 
+> **DEFECTS1 → FIX.** Compaction now compares against the caller's width as well as the constant.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -554,6 +619,8 @@ int len = std::snprintf(tmp, sizeof tmp, "%*.*f", width, prec, v);  if (len > kC
 ### A7. `include/shulib/diag/motion_result.hpp:85`
 
 **MotionResult::outcome defaults to the SUCCESS value and MotionOutcome has no unknown/unset enumerator, so an unpopulated result line reports a settled motion.**
+
+> **DEFECTS1 → FIX.** MotionOutcome::Unset = 5, append-only and value-pinned, and it is the new default.
 
 <details>
 <summary>Evidence (3 lines)</summary>
@@ -570,6 +637,8 @@ emitResultLine then renders: line.appendLiteral(r.outcome == MotionOutcome::Sett
 
 **PhaseScope's constructor is public, so the tick-open precondition that phase() enforces is trivially bypassable.**
 
+> **DEFECTS1 → FIX.** Passkey idiom — a private ctor plus friend does NOT work, because std::optional does the in-place constructing and cannot be a friend. The scheduler was the bypass's only user and now goes through a checked phaseInPlace().
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -582,6 +651,8 @@ phase() guards the invariant: `SHULIB_PRECONDITION(tickOpen_, "TickAttribution::
 ### A9. `include/shulib/hal/clock.hpp:30`
 
 **IClock declares public copy/move construction and assignment on a polymorphic base, so slicing an implementation compiles silently.**
+
+> **DEFECTS1 → REJECT.** Both asserted consequences are false, by probe: `IClock c = someProsClock;` does not compile (abstract type), and the assignment that does discards nothing (sizeof(IClock) is 8 — the vptr; a.now() and b.now() are unchanged). The header already carries the ruling with its reasons.
 
 <details>
 <summary>Evidence (10 lines)</summary>
@@ -604,6 +675,8 @@ public:
 ### A10. `include/shulib/hal/mechanism.hpp:132`
 
 **IMechanism's defaulted copy/move duplicate the claim token and the claimant registration, so a copied mechanism arrives already claimed and pointing at an operation bound to the original. REPORTED, NOT FIXED.**
+
+> **DEFECTS1 → FIX.** copy/move deleted on IMechanism — the seam matching a rule mechanism_op.hpp had already written down for the operations. Nothing in the tree copied one.
 
 <details>
 <summary>Evidence (13 lines)</summary>
@@ -630,6 +703,8 @@ Consequences, both in the F2 guard's path: (a) a legitimate operation's tryClaim
 
 **~ProsBlockSink discards std::fclose's return value, so a final flush failure on a full or dying card is silent — the exact invisible-drop failure this class's own banner says the blackbox exists to avoid.**
 
+> **DEFECTS1 → FIX.** Documented rather than changed: flush() is bool for exactly this reason, so the honest close names the unreportable failure and points at the member that reports it.
+
 <details>
 <summary>Evidence (9 lines)</summary>
 
@@ -651,6 +726,8 @@ fclose flushes before closing and returns EOF if that write fails, which is prec
 
 **ProsCharSink's constructor accepts a std::FILE* with no null check, unlike every other pointer-taking constructor in the tree; a null (e.g. a failed fopen/tmpfile passed by a test) is undefined behaviour on the first write() rather than a loud precondition.**
 
+> **DEFECTS1 → FIX.** Null check added, in the one class whose banner advertises injection so a test can pass tmpfile().
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -664,6 +741,8 @@ fclose flushes before closing and returns EOF if that write fails, which is prec
 
 **axis()/pressed()/isConnected() are const but mutate a `mutable` device object, so const-ness here carries no thread-safety guarantee and the header never says so.**
 
+> **DEFECTS1 → REJECT.** pros::v5::Controller's only data member is the id fixed at construction; the const readers mutate nothing. `mutable` is there because PROS declared its getters non-const.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -676,6 +755,8 @@ mutable ::pros::v5::Controller controller_;  // PROS's readers are non-const  �
 ### A14. `include/shulib/hal/pros/digital_out.hpp:73`
 
 **The "initialState cannot be forgotten" safety property — the header's central claim — is defeatable: a caller who writes the EXPANDER form and omits initialState silently gets the brain-ADI form with the line driven HIGH at boot.**
+
+> **DEFECTS1 → FIX.** Deleted poison overload. Sharpened by verification: it compiled only through PARENTHESES — brace init already rejected it as a narrowing int -> bool.
 
 <details>
 <summary>Evidence (13 lines)</summary>
@@ -702,6 +783,8 @@ Zero warnings. Because construction is a physical action (line 64: `line_{adiPor
 
 **confidence() issues its own second get_distance() call, so the documented `confidence() then distance()` idiom mixes two different device samples, and one logical read cycle can increment faultedReads_ twice.**
 
+> **DEFECTS1 → ARGUE.** An atomic confidence()+distance() pair needs either a method on F4-LOCKED IDistance or an adapter-side sample window, which invents an unmeasured constant. See the ARGUE section of DEFECTS1-COMPLETED.md.
+
 <details>
 <summary>Evidence (11 lines)</summary>
 
@@ -724,6 +807,8 @@ IDistance's own header prescribes the paired usage: "Callers threshold confidenc
 ### A16. `include/shulib/hal/pros/gps.hpp:126`
 
 **Every IGps reader takes its own fresh device sample, so the contract-mandated hasFix()-then-pose() sequence spans TWO samples. A caller can be told "fix" and then handed a stale pose — which is exactly the straddled-read failure the class's single-atomic-read design exists to prevent.**
+
+> **DEFECTS1 → ARGUE.** Same shape as A15 on F4-LOCKED IGps, and six device reads per corrector tick. Written up, not applied.
 
 <details>
 <summary>Evidence (14 lines)</summary>
@@ -751,6 +836,8 @@ Sequence: hasFix() reads sample N -> true. pose() then reads sample N+1; if N+1 
 
 **ProsImu::yawRate() in the DEFAULT DifferentiateRotation mode is a CONSUMING read that rebases the differentiation sample, but IImu::yawRate() is a plain const accessor called 2-4x per tick by independent consumers — so the value each caller gets depends on who read it first, and attaching a telemetry sink changes the yaw rate the Localizer sees.**
 
+> **DEFECTS1 → DEFER.** R4. The consuming-read rebase needs measured call patterns and a real loop rate before a design can be chosen.
+
 <details>
 <summary>Evidence (7 lines)</summary>
 
@@ -770,6 +857,8 @@ This is the same shape the header itself forbids two lines up: 'PROS's get_digit
 
 **faultedReads() counts screened READS, not failed ticks, and one dead sensor produces up to four counts per tick — so any threshold set on it is off by an unknown call-count factor.**
 
+> **DEFECTS1 → REJECT.** The doc says "reads" and the code counts reads. HealthMonitor raises ImuLost from isReady(), never from this counter, and NOTHING in the library reads faultedReads() at all — so the asserted 4x-early IMU_LOST cannot happen.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -782,6 +871,8 @@ faultedReads_ is incremented independently in heading() (imu.hpp:122), different
 ### A19. `include/shulib/hal/pros/motor.hpp:231`
 
 **temperature()'s hold-last-good cache seeds at 20.0 C while the other three seed at 0, so a port that has never answered reports a plausible room-temperature motor forever — the same 'substitute a plausible value' failure mode the header's own T7 note rejects for encoders.**
+
+> **DEFECTS1 → REJECT.** 0 degC reads exactly as healthy as 20 degC to the only consumer (a >= 55 degC threshold), so the symmetry fix changes no observable. A port dead at construction cannot produce a ProsMotor — the ctor read-back throws.
 
 <details>
 <summary>Evidence (17 lines)</summary>
@@ -812,6 +903,8 @@ flagging the asymmetry, not asserting the fix.
 
 **TagObservation and ObjectObservation are the only sensor value structs in the tree with no default member initializers, so id/classId/confidence are indeterminate on default construction.**
 
+> **DEFECTS1 → FIX.** Default member initializers added; aggregate initialisation is unaffected.
+
 <details>
 <summary>Evidence (12 lines)</summary>
 
@@ -835,6 +928,8 @@ Evaluating isfinite() on an indeterminate double is already UB, so the guard run
 ### A21. `include/shulib/kinematics/desaturate.hpp:29`
 
 **A NaN wheel speed is invisible to WheelSpeeds::maxMagnitude() and passes straight through desaturateUniform unchanged, so the header's "last-line guarantee that no wheel is ever asked for more than it can give" does not hold for non-finite input.**
+
+> **DEFECTS1 → FIX.** The CODE is right and the BANNER was over-claimed. desaturate is not the last line — recoverWheelVoltage at the motor edge is. Enforcing finiteness here would narrow LOCKED row F5 and turn an A3 pathology into an aborted motion.
 
 <details>
 <summary>Evidence (22 lines)</summary>
@@ -870,6 +965,8 @@ edge, not as the desaturation contract the banner advertises.
 
 **poll() truncates an over-full frame by ARRIVAL ORDER, so the best-sigma tag can be discarded before the "pick the single best tag" selection ever sees it — and unlike every other rejection in this class, the discard has no counter and no GateReason.**
 
+> **DEFECTS1 → FIX.** The drop is counted and exposed. The selection is deliberately still not sigma-ranked: ranking in poll() would duplicate the estimator's own model, which is the shared-model trap.
+
 <details>
 <summary>Evidence (7 lines)</summary>
 
@@ -888,6 +985,8 @@ That undercuts the header's stated design — "This class picks the tag with the
 ### A23. `include/shulib/localization/ekf_fusion.hpp:494`
 
 **state(i) and covariance(i, j) are public, noexcept, and index the fixed arrays with no bounds check, so an out-of-range index is silent UB — against the house precondition discipline used for every other public indexing accessor.**
+
+> **DEFECTS1 → FIX.** Bounds-checked, and therefore no longer noexcept.
 
 <details>
 <summary>Evidence (13 lines)</summary>
@@ -914,6 +1013,8 @@ Mitigating: the file header says these are "observability (telemetry and tests; 
 
 **cancel() on an ALREADY-FINISHED RunUntilConfirmed commands the mechanism unconditionally, with no check that this operation still holds the claim — so a stale operation object can safe a mechanism a DIFFERENT live operation now owns, defeating the one-operation-per-mechanism guarantee the claim token exists to provide.**
 
+> **DEFECTS1 → FIX.** Guarded on `holdsClaim_ || !claimed()`, NOT on holdsClaim_ alone — an existing test asserts that a finished cancel() re-safes a mechanism nobody owns, and it is right. The disjunction closes the hole without overturning it.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -927,6 +1028,8 @@ RunUntilConfirmed::cancel(): `if (!started_) { return; } mech_->applySafeState()
 
 **Same unclaimed-command hole in ActuateAndConfirm::cancel(), and worse here: it drives a discrete actuator to the declared safe value, which UN-DOES an actuation a different, currently-claiming operation just performed.**
 
+> **DEFECTS1 → FIX.** Same guard on the discrete-actuator side, where a stale cancel un-did a live operation's actuation.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -939,6 +1042,8 @@ ActuateAndConfirm::cancel(): `if (!started_) { return; } mech_->applySafeState()
 ### A26. `include/shulib/math/twist2d.hpp:8`
 
 **Twist2d is used for both FIELD-frame and BODY-frame velocities with nothing in the type or the signature saying which, while the command-side type got an explicit Frame parameter for exactly that reason — the frame-confusion guard is one-sided.**
+
+> **DEFECTS1 → ARGUE.** A frame discriminator on Twist2d; every type-level cure is a wide breaking change. Written up.
 
 <details>
 <summary>Evidence (8 lines)</summary>
@@ -959,6 +1064,8 @@ Compare the command path, where the library made the opposite choice on purpose 
 ### A27. `include/shulib/motion/motion_scheduler.hpp:434`
 
 **MotionStatsSink::beginMotion() clears every aggregate except target_ and startPose_, so the public targetPose() accessor returns the PREVIOUS motion's target between motions. Only the scheduler's own hasData() guard hides it.**
+
+> **DEFECTS1 → FIX.** beginMotion() clears the poses with the scalars. Mutation-proven.
 
 <details>
 <summary>Evidence (16 lines)</summary>
@@ -988,6 +1095,8 @@ This one bit me while writing: my first draft of the targetPose() comment claime
 
 **`~MotionScheduler() = default` reopens the exact hole F2 closed for the blocking waits: destroying a scheduler with a motion still armed leaves the drive motors at their last commanded voltage, silently.**
 
+> **DEFECTS1 → FIX.** The destructor forces the drive safe — but does NOT call cancel(): the motion may already be destroyed (they are declared after the scheduler and die first), which the test caught as a SIGABRT. Mutation-proven; measured 8.4 V held before the fix.
+
 <details>
 <summary>Evidence (11 lines)</summary>
 
@@ -1011,6 +1120,8 @@ I documented the behaviour honestly at the special-member run rather than leave 
 
 **There is no gear-ratio knob, so on any externally geared drivetrain `wheelRadius` must silently absorb the ratio — at which point the field's name and its own doc comment are both wrong.**
 
+> **DEFECTS1 → DEFER.** R3/R4. There is no gear-ratio concept anywhere in the library and the A2 sim plant bakes 1:1 in too — larger than this chunk.
+
 <details>
 <summary>Evidence (10 lines)</summary>
 
@@ -1032,6 +1143,8 @@ Grep confirms the library has no gear-ratio concept to borrow (`grep -rn "gearRa
 ### A30. `include/shulib/motion/odo_stall_check.hpp:118`
 
 **update() dereferences every element of `motors` with no non-null and no non-empty precondition, unlike every sibling fan-out in the tree; an empty span makes the check silently un-trippable.**
+
+> **DEFECTS1 → FIX.** Non-empty and non-null preconditions. The empty case was the dangerous half: it made the stall check report healthy forever.
 
 <details>
 <summary>Evidence (14 lines)</summary>
@@ -1059,6 +1172,8 @@ Mitigation, stated honestly: the in-tree path (motion.hpp:166 `ctx.driveMotors()
 
 **StrafeTo inherits MoveToPose::setTarget(Pose2d) publicly, but the heading component of the pose the caller passes is silently discarded at the first live tick. REPORTED, NOT FIXED.**
 
+> **DEFECTS1 → ARGUE.** Narrowing StrafeTo's inherited setTarget changes a public inherited signature. Written up.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -1071,6 +1186,8 @@ strafe_to.hpp:41-42 constructs the base with `PoseMotionOptions{.captureHeadingA
 ### A32. `include/shulib/motion/turn_to.hpp:63`
 
 **cfg_.validate() and the timeout precondition run in the constructor BODY, after the member-initializer list has already built pidH_, exit_ and stall_ from those same unvalidated fields — so a bad MotionConfig is reported by the wrong component's error message.**
+
+> **DEFECTS1 → FIX.** A validatedConfig() helper mirroring validatedClock(), with cfg_ declared first so it runs before the PIDs and watchdog are built.
 
 <details>
 <summary>Evidence (10 lines)</summary>
@@ -1100,6 +1217,8 @@ Worth flagging because this repo demonstrably treats message specificity as load
 
 **ExitReason::Cancelled's documentation is TRUNCATED mid-clause in the generated reference: the second ///< continuation line is parsed as a doc run for the next enumerator (there is none) and discarded.**
 
+> **DEFECTS1 → REJECT.** Already fixed at DOCS2 — the published page carries the full clause including "never returned by ExitGroup::check()".
+
 <details>
 <summary>Evidence (10 lines)</summary>
 
@@ -1122,6 +1241,8 @@ The identical shape exists outside my assignment at include/shulib/motion/motion
 
 **CompensatedVoltage::brownoutLimited has no default member initializer while its sibling self-initializes, so a default-constructed CompensatedVoltage holds an indeterminate bool.**
 
+> **DEFECTS1 → FIX.** brownoutLimited defaults to false.
+
 <details>
 <summary>Evidence (6 lines)</summary>
 
@@ -1139,6 +1260,8 @@ Every comparable struct in the tree defaults every field (PidConfig, GpsCorrecto
 ### I3. `include/shulib/control/trapezoid_profile.hpp:51`
 
 **TrapezoidProfile screens `distance` for finiteness but screens the two constraints only for `> 0`, so an infinite maxAcceleration is accepted and leaks a non-finite acceleration out of sample() — in a library whose F4 pillar is finiteness.**
+
+> **DEFECTS1 → FIX.** Both constraints screened for finiteness. Mutation-proven.
 
 <details>
 <summary>Evidence (16 lines)</summary>
@@ -1168,6 +1291,8 @@ A Feedforward consumer receives inf as its acceleration target on the first tick
 
 **Watchdog takes and returns bare doubles for seconds, bypassing units::Time in the one place a duration crosses an API — the exact "milliseconds into a seconds-based gain" bug class the units system exists to make impossible, and callers strip the typed value to feed it.**
 
+> **DEFECTS1 → REJECT.** D2 ruled the typed/untyped boundary explicitly — typed at the facade, seconds-double inside the motion stack — and Watchdog sits inside the motion stack with three siblings shaped the same way. Not an outlier.
+
 <details>
 <summary>Evidence (13 lines)</summary>
 
@@ -1193,6 +1318,8 @@ StallDetector, by contrast, takes units::Time persistence. Watchdog is the outli
 
 **The IGps seam spells out pose()'s behaviour when hasFix() is false (finite, non-throwing, unspecified value) but says nothing about rmsError() or hasFix(), so implementers invent a contract and the consumer adds a backstop for a case the seam never forbade. REPORTED, NOT FIXED.**
 
+> **DEFECTS1 → FIX.** rmsError() now states the finiteness, non-negativity and non-throwing rules pose() always had.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -1205,6 +1332,8 @@ gps.hpp:36-39 for pose(): "When hasFix()==false the value is UNSPECIFIED but MUS
 ### I6. `include/shulib/hal/imu.hpp:45`
 
 **One /// comment above pitch() is written to cover two declarations, but the generator attaches it to pitch() alone — so pitch()'s reference entry reads 'Chassis pitch and roll' while roll() had no entry text at all. Minor, and now half-closed by roll() getting its own comment.**
+
+> **DEFECTS1 → FIX.** pitch() has its own sentence; fixed with D4.
 
 <details>
 <summary>Evidence (6 lines)</summary>
@@ -1223,6 +1352,8 @@ api_doc_tool.py only propagates one comment across a run when every declaration 
 ### I7. `include/shulib/hal/line_display.hpp:26`
 
 **The seam says setLine() MUST NOT throw, but the shipped fake throws on an out-of-range row while the shipped PROS adapter silently returns — the same input, two behaviours, and one of them is the forbidden one.**
+
+> **DEFECTS1 → FIX.** Neither implementation is wrong — the CONTRACT was. It now separates a device condition (never throw) from a caller precondition breach (each target answers in its own way, and both are right for their target).
 
 <details>
 <summary>Evidence (13 lines)</summary>
@@ -1249,6 +1380,8 @@ So a bad row is a red test on the host and a silent no-op on the robot. Both imp
 
 **The T7 initial hold hardcodes 9999 and the mm-to-inch factor by hand instead of using kDistanceNoObjectMm and distanceMmToCanonical(), the named constant and converter this file already includes and uses two lines earlier.**
 
+> **DEFECTS1 → FIX.** Through the named constant and the shared converter.
+
 <details>
 <summary>Evidence (5 lines)</summary>
 
@@ -1265,6 +1398,8 @@ But the same class screens the sentinel through the named constant at line 90 (`
 ### I9. `include/shulib/hal/pros/motor.hpp:127`
 
 **brakeMode() screens a device read failure by holding the last commanded mode but, unlike every other reader in this class, does NOT increment faultedReads_ — so a port that fails only its brake-mode read is invisible to the very counter documented as the way to see a flaky port.**
+
+> **DEFECTS1 → FIX.** brakeMode() counts its screen like the other four. Mutation-proven.
 
 <details>
 <summary>Evidence (20 lines)</summary>
@@ -1298,6 +1433,8 @@ sites is uncounted.
 
 **The lazy first-call anchor prevents phantom catch-up ticks only at construction; an overrunning tick body reproduces exactly the same catch-up mid-run and nothing re-anchors.**
 
+> **DEFECTS1 → FIX.** The pacer re-anchors after a tick body that overran a whole period, for the same reason the first call anchors lazily.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -1310,6 +1447,8 @@ Banner lines 16-20: "prev is initialized from millis() lazily on the first pace(
 ### I11. `include/shulib/hal/telemetry_sink.hpp:64`
 
 **LogLevel is a one-line enum, so 4 of its 5 enumerators cannot be documented at all under the house comment-placement rules — this header can never pass check-coverage without a one-enumerator-per-line reformat, which this chunk forbids. NOT FIXED: reformatting is a code change and the decision belongs to whoever owns the enum.**
+
+> **DEFECTS1 → REJECT.** Already fixed at HEAD — LogLevel is one enumerator per line with a /// on each, and check-coverage passes tree-wide, which it could not otherwise.
 
 <details>
 <summary>Evidence (21 lines)</summary>
@@ -1344,6 +1483,8 @@ BrakeMode (hal/motor.hpp:28), TrackingWheel::Role, Localizer::Quality.
 
 **A zero gain is a loud precondition failure but a zero nudge RATE — which disables correction identically — constructs silently, and then reports Accepted-but-never-applied on every tick forever.**
 
+> **DEFECTS1 → REJECT.** The premise is false. maxNudgeRate == 0 is a USEFUL configuration (a heading-only corrector) reporting applied=0/conf=0; a near-zero GAIN reports applied=1/conf=0.9 for a fix that moved 1.8 attoinches. The ctor bans the one that lies and permits the one that works.
+
 <details>
 <summary>Evidence (14 lines)</summary>
 
@@ -1369,6 +1510,8 @@ The blackbox therefore reads "gate Accepted, correction (0,0)" forever. The in-c
 ### I13. `include/shulib/localization/ekf_fusion.hpp:837`
 
 **With maxNudgeRate == 0 (which EkfFusion's own precondition explicitly allows), a zero-gain correction is still reported as applied with full appliedConfidence, so the Localizer clears its drift accumulator and the filter resets its process-noise accumulators for a fix that moved the estimate zero inches. ComplementaryFusion guards this exact case; EkfFusion does not.**
+
+> **DEFECTS1 → DEFER.** R4, and this is a RETRACTION: I applied the obvious fix (gate `applied` on dPos > 0) and it reddened two E4 tests, which were right — an accepted zero-innovation fix moves no position while still shrinking P. The honest fix needs a `moved` flag where the clamp computes its scale. Defect, failed proxy and reason are now written into the branch.
 
 <details>
 <summary>Evidence (24 lines)</summary>
@@ -1406,6 +1549,8 @@ The consequence is not local: localizer.hpp consumes appliedConfidence as retain
 
 **The non-finite-input decline sets lastVerdict_ but increments no counter, so a tick it rejects is invisible in the per-source accounting this class exists to provide.**
 
+> **DEFECTS1 → FIX.** The non-finite decline counts, so the per-source tally sums to the number of propose() calls again.
+
 <details>
 <summary>Evidence (5 lines)</summary>
 
@@ -1422,6 +1567,8 @@ Both other RejectedNoFix paths do count themselves (line 224 `++noFixTicks_;` fo
 ### I15. `include/shulib/localization/localizer.hpp:330`
 
 **With two correctors proposing on the same tick, AppliedCorrection::source always names the FIRST-REGISTERED one regardless of which fix actually moved the estimate, and pairs that name with a confidence that may belong to the other corrector.**
+
+> **DEFECTS1 → FIX.** FusionResult identifies no winner, so the fix is not a better guess: one proposer is attributed, several report "multiple". A faithful per-source split is an API change and is written up.
 
 <details>
 <summary>Evidence (7 lines)</summary>
@@ -1442,6 +1589,8 @@ This is invisible with one corrector, and E3 is precisely the chunk that makes t
 
 **PilonsOdometryConfig::maxTickRotation is a bare `double` in radians in a header that types every other physical quantity it touches, so the unit survives only in the doc comment and a caller can pass degrees without any diagnostic.**
 
+> **DEFECTS1 → FIX.** Typed as units::AngleDim — and the retype broke two call sites at compile time, which is the point.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -1454,6 +1603,8 @@ This is invisible with one corrector, and E3 is precisely the chunk that makes t
 ### I17. `include/shulib/motion/drive_brake.hpp:5`
 
 **The design banner says the brake 'Commands ZERO volts to every drive motor each tick', but tick() stops commanding entirely once a verdict is reached — and the banner is reproduced verbatim onto the published reference page.**
+
+> **DEFECTS1 → FIX.** "each ACTIVE tick".
 
 <details>
 <summary>Evidence (7 lines)</summary>
@@ -1474,6 +1625,8 @@ tick(), drive_brake.hpp:101-104:
 
 **The same physical quantity — center-to-wheel distance — exists as two independently settable fields (MotionConfig::rotationRadius and MotionConfig::stall.rotationRadius), both defaulting to 7.0 and both citing HA-17, so setting one silently leaves the other stale. REPORTED, NOT FIXED.**
 
+> **DEFECTS1 → FIX.** Documented as one quantity in two fields with the cross-check named; see DEFECTS1-COMPLETED.md for why validate() still does not descend into `stall`.
+
 <details>
 <summary>Evidence (3 lines)</summary>
 
@@ -1488,6 +1641,8 @@ Same registered hardware claim (HA-17), same default (7.0), same meaning, two fi
 ### I19. `include/shulib/motion/motion_scheduler.hpp:785`
 
 **lastExitReason() and lastCompleted().exit answer the same question with two different values on a scheduler that has never run a motion: Settled vs Running.**
+
+> **DEFECTS1 → REJECT.** Both values are recorded rulings and every available change relocates the disagreement rather than removing it — setting lastExit_ = Running would make waitUntilSettled() return a value its own contract says it never returns, on an F6-frozen facade. The discriminator is already named in lastCompleted()'s and completedCount()'s comments.
 
 <details>
 <summary>Evidence (9 lines)</summary>
@@ -1510,6 +1665,8 @@ FAILURE SCENARIO: on a virgin scheduler (or one whose caller checks status befor
 
 **The heading targets are bare `double` values in DEGREES while the position targets in the same file are typed `units::Length` and the library's canonical angle unit is radians — the one file that is the single source of truth for the accuracy spec is also the one place the units discipline is not applied.**
 
+> **DEFECTS1 → ARGUE.** spec/accuracy.hpp IS Freeze Register row F2, LOCKED. Written up.
+
 <details>
 <summary>Evidence (1 lines)</summary>
 
@@ -1522,6 +1679,8 @@ FAILURE SCENARIO: on a virgin scheduler (or one whose caller checks status befor
 ### I21. `include/shulib/units/literals.hpp:59`
 
 **The angle literals are the only ones in the header that are not constexpr, so `90_deg` cannot initialize a constexpr variable while `24_in` can — and the blocking check can never fail on a literal.**
+
+> **DEFECTS1 → ARGUE.** MEASURED, not argued. An identity-interval early-out makes std::remainder unreachable during constant evaluation and clang then accepts degrees(90.0) — 0 mismatches over 1,028,583 samples. But it buys a CLIFF (90_deg constexpr, 315_deg not, with no rule a caller can see) for ~6 lines inside LOCKED row F3. A decision, not an edit.
 
 <details>
 <summary>Evidence (11 lines)</summary>
@@ -1545,6 +1704,8 @@ while `constexpr auto k = 24_in;` compiles. The cause is math/angle.hpp:33-42, w
 ### I22. `include/shulib/units/quantity.hpp:85`
 
 **Scalar operators are asymmetric: `double * Quantity` is provided but `double / Quantity` is not, so `2.0 * dt` compiles and `2.0 / dt` does not — even though the latter has a well-defined derived dimension.**
+
+> **DEFECTS1 → FIX.** The header now says WHY there is no double / Quantity: this block is dimension-preserving scaling, and an inverse belongs with the Quantity-by-Quantity operators.
 
 <details>
 <summary>Evidence (7 lines)</summary>
@@ -1570,6 +1731,8 @@ There is no `operator/(double, Quantity)` and no namespace-scope equivalent, so 
 ### O1. `include/shulib/localization/localizer.hpp:138`
 
 **The coverage gate demands docs for 4 enumerators the parser CANNOT attach a doc to, because Localizer::Quality is declared on one line. Closing it requires reflowing the declaration, which this chunk forbids. This is the one item in batch 13 I could not close.**
+
+> **DEFECTS1 → REJECT.** Already fixed at HEAD — Localizer::Quality is one enumerator per line with its own ///.
 
 <details>
 <summary>Evidence (15 lines)</summary>
@@ -1598,6 +1761,45 @@ The tool's own docstring names this and calls it intended pressure: "on a one-li
 
 ---
 
+## N — found by DEFECTS1's triage, not by DOCS2
+
+*(item `N1`)*
+
+> Added 2026-08-15 by DEFECTS1. Not one of the 83: this one surfaced while an adversarial
+> reader was checking D6's mechanism, and it is filed here so the list stays the one place a
+> reader looks. The 83 count above is deliberately unchanged — collapsing or inflating it would
+> put this document at odds with DOCS2's completion record for no gain.
+
+### N1. `include/shulib/localization/pilons_odometry.hpp:111`
+
+**A tracking pod that enumerates LATE injects a one-tick phantom translation, and the odometry's own plausibility gate cannot see it: the gate checks |Δθ| and never |Δtravel|.**
+
+> **DEFECTS1 → FIX.** NEW — not on DOCS2's list. Found by this chunk's triage, probe-verified at 28.4 in of phantom translation when a cold pod enumerates. Landed as a VISIBILITY fix and labelled as one: the bound is dt-blind (this class has no clock), so the delta is reported rather than withheld. HA-123.
+
+<details>
+<summary>Evidence (12 lines)</summary>
+
+```text
+A pod that is dead or not yet enumerated at construction reads 0, so TrackingWheel baselines
+lastShaft_ at 0 (tracking_wheel.hpp:95). On the tick the pod finally answers, travelDelta()
+differences its TRUE cumulative position against that 0.
+
+Probe (g++ -std=gnu++20 -I include, FakeRotation + the real TrackingWheel):
+  N1 baseline at construction: travelDelta=0.000000000
+  N1 pod wakes at 1000 deg: NEXT travelDelta=28.361600 in  <-- phantom
+  N1 following tick (steady): travelDelta=0.000000000
+
+pilons_odometry.hpp:111 gates only rotation:
+    implausible_ = !finite || std::abs(dTheta) > maxTickRotation_;
+so a finite 28-inch translation passes the plausibility check unflagged and is integrated
+straight into the pose. The scheduler's PoseDeltaGuard may notice the resulting jump, but that
+guard is advisory by design and does not correct the estimate.
+```
+
+</details>
+
+---
+
 ## E — found during the correction pass, after the adversarial review
 
 *(items `E1`–`E10`)*
@@ -1611,6 +1813,8 @@ surface finds bugs in it.
 ### E1. `include/shulib/hal/pros/motor.hpp:82`
 
 **OBSERVABILITY GAP (reported, not fixed): brakeMode()'s sentinel screening is invisible to telemetry.**
+
+> **DEFECTS1 → FIX.** Same defect as I9; landed with it.
 
 <details>
 <summary>Full finding (93 words)</summary>
@@ -1630,6 +1834,8 @@ signal, that is now documented as such.
 ### E2. `include/shulib/hal/pros/motor.hpp:118`
 
 **REPORTED, NOT FIXED: the ProsMotor constructor guards the persistent-device-state trap for encoder units and gearing (it sets both explicitly and SHULIB_PRECONDITIONs on the read-back, per the banner's trap A / HA-98 reasoning) but leaves brake mode entirely inherited from whatever program last configured that port.**
+
+> **DEFECTS1 → FIX.** Sharper than reported: brakeMode_ is ALSO the T7 fallback, so a port left in Hold and dying before any command reported Coast forever. Seeded from the device now. Mutation-proven.
 
 <details>
 <summary>Full finding (124 words)</summary>
@@ -1652,6 +1858,8 @@ changes and out of scope here.
 
 **Cold-start hole in ProsOptical, not fixed per this chunk's standing rule: the last-good caches (optical.hpp:116-119) initialise to 0.0 and there is no first-successful-read flag, so a device that fails every read from construction serves hue()==0.0 (red), saturation()/brightness()/proximity()==0.0 indefinitely — indistinguishable at the seam from genuine readings.**
 
+> **DEFECTS1 → DEFER.** F3. IOptical has zero consumers outside hal/, there is no honest finite seed for hue (NaN is forbidden at this seam by F4), and the chunk that writes the first consumer owns the validity decision.
+
 <details>
 <summary>Full finding (122 words)</summary>
 
@@ -1673,6 +1881,8 @@ forbids at this seam) would close it; the comment now documents the real behavio
 
 **Reported, not fixed (standing rule for this chunk): the §M2 guarantee 'a motion can never hang' is not achievable with the current design against a control task that stops running.**
 
+> **DEFECTS1 → DEFER.** R4/T2. A polled watchdog cannot beat a stopped task without a supervisory task, and nothing in the library owns one.
+
 <details>
 <summary>Full finding (102 words)</summary>
 
@@ -1692,6 +1902,8 @@ only documented the real boundary honestly.
 ### E5. `include/shulib/hal/pros/rotation.hpp:75`
 
 **include/shulib/hal/pros/rotation.hpp:95-96 — ProsRotation's hold-last-good sentinel screen has no valid-yet flag and seeds both caches to zero (`mutable units::AngleDim lastPosition_{0.0}`, `mutable units::AngularVelocity lastVelocity_{0.0}`).**
+
+> **DEFECTS1 → REJECT.** Duplicate report of D6, closed by its fix. E5's additional motor-half claim is separately refuted: ProsMotor's ctor read-back THROWS on a port that did not answer.
 
 <details>
 <summary>Full finding (210 words)</summary>
@@ -1721,6 +1933,8 @@ identical there and only its temperature() seed (20.0) is currently documented.
 
 **Same defect as finding 4 — include/shulib/hal/pros/rotation.hpp:95-96, zero-seeded last-good caches with no valid-yet flag, so the 'never zero' guarantee the class doc and the design banner both assert holds only after the first successful read.**
 
+> **DEFECTS1 → REJECT.** Self-declared duplicate of E5, itself a duplicate of D6. Closed there.
+
 <details>
 <summary>Full finding (59 words)</summary>
 
@@ -1737,6 +1951,8 @@ full on the generated page.
 ### E7. `include/shulib/localization/localizer.hpp:105`
 
 **LocalizerConfig::minDt is the only config field with no constructor precondition, and there is no cross-field check that minDt <= maxDt.**
+
+> **DEFECTS1 → FIX.** minDt > 0 and minDt < maxDt. Mutation-proven.
 
 <details>
 <summary>Full finding (107 words)</summary>
@@ -1758,6 +1974,8 @@ Documented honestly in the comment instead.
 
 **AppliedCorrection::source cannot attribute a fix once more than one corrector is registered — the exact configuration E3 exists to enable.**
 
+> **DEFECTS1 → FIX.** Same defect as I15; landed with it.
+
 <details>
 <summary>Full finding (97 words)</summary>
 
@@ -1777,6 +1995,8 @@ Documented as a limitation on name() instead.
 ### E9. `include/shulib/diag/health_monitor.hpp:109`
 
 **HealthMonitor's constructor (include/shulib/diag/health_monitor.hpp:111-120) validates finiteness for brownoutVolts and maxMotorTempC but NOT for brownoutRecoverVolts, which is only ordered against brownoutVolts.**
+
+> **DEFECTS1 → FIX.** isfinite added to brownoutRecoverVolts. Mutation-proven, with a second test pinning the payoff: two collapses are now two episodes.
 
 <details>
 <summary>Full finding (121 words)</summary>
@@ -1800,6 +2020,8 @@ behaviour.
 ### E10. `include/shulib/control/trapezoid_profile.hpp:91`
 
 **REPORTED, NOT FIXED (no code was touched).**
+
+> **DEFECTS1 → FIX.** sample() and isDone() reject a non-finite t. NOTE a signature change: isDone() drops noexcept, because the precondition handler throws and a noexcept frame would make a caller bug std::terminate. In the changelog.
 
 <details>
 <summary>Full finding (144 words)</summary>

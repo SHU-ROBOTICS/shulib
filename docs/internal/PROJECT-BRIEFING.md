@@ -103,12 +103,12 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 25 of 44 chunks complete
+**Position:** 26 of 44 chunks complete
 
 - **Next up:** DEFECTS1 — triage and resolve the 83 API defects DOCS2 reported, then the RELEASE to main, then R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): DEFECTS1** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,151 cases / 1,505,874 assertions, 3 skipped — **RED — 2 case(s) failing**  
+- **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
+- **Suite:** 1,151 cases / 1,523,877 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 148  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  
@@ -116,7 +116,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -151,7 +151,20 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - `test/accuracy_spec_test.cpp` — [acceptance][M3] vision docking nests a 1.6in pin within kDockedPositionError
 - `test/gps_conversion_test.cpp` — gpsSensorPose: FIELD-CAL axis oracle — bench-measure before trusting
 
-**No open defects** are flagged with the 🔴 convention in `docs/internal/`.
+**🔴 OPEN DEFECTS flagged in the internal record:**
+
+- **ARGUE — six real defects NOT fixed, each needing a decision**  
+  *(recorded in `docs/internal/chunks/DEFECTS1-COMPLETED.md`)*
+- **A15 / A16 — an atomic sensor read needs an F4 signature change**  
+  *(recorded in `docs/internal/chunks/DEFECTS1-COMPLETED.md`)*
+- **A26 — `Twist2d` carries no frame while `ChassisSpeeds` demands one**  
+  *(recorded in `docs/internal/chunks/DEFECTS1-COMPLETED.md`)*
+- **A31 — `StrafeTo` inherits a setter that discards half its argument**  
+  *(recorded in `docs/internal/chunks/DEFECTS1-COMPLETED.md`)*
+- **I20 — the accuracy spec's heading targets are bare degrees**  
+  *(recorded in `docs/internal/chunks/DEFECTS1-COMPLETED.md`)*
+- **I21 — the angle literals cannot be `constexpr` without a cliff**  
+  *(recorded in `docs/internal/chunks/DEFECTS1-COMPLETED.md`)*
 
 **What just happened:** run `git log --oneline -20`. It is deliberately not reproduced here — see the note at the top of this block.
 

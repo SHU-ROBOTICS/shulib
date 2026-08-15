@@ -578,3 +578,26 @@ The doc sweep closed the sixteen items where the sentence IS the defect: `D1` `D
 `D6` finally caveats the **F4 interface header**, which DOCS2 never touched while caveating both
 adapter sites; and `D15`'s "halves the mean" is corrected to `(n-1)/n`, which makes the bullet's
 own conclusion *stronger* than the wrong figure implied.
+
+---
+
+# CHUNK CLOSE — all gates green
+
+```
+suite               1,151 cases / 1,523,877 assertions / 3 skipped — SUCCESS
+self-test           PASS      check-coverage      PASS
+check-fresh         PASS      check-examples      PASS
+check-removability  PASS      briefing            PASS
+staleness self-test PASS      staleness           PASS
+GUARD1 PASS (PROS-free outside hal/pros/)   GUARD2 PASS (core is sim-free)
+ARM GATE PASS (148 headers, one TU, -Werror)
+RELEASE GATE PASS (prepare_site.py)
+```
+
+All 84 items annotated in `DOCS2-API-DEFECTS.md`. Six ARGUE write-ups carry the 🔴 convention so
+the briefing block reports them as open defects. HA-123 registered. Changelog updated with the
+five visible surface changes, one of them breaking.
+
+**Final tally: 59 FIX · 15 REJECT · 6 ARGUE · 4 DEFER. 21 mutations, 19 red and observed.
+Two green mutations, both my own tests — one closed, one reported. One fix retracted (I13).
+One honest gap (D12/D14, applied but unpinned).**
