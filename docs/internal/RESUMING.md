@@ -31,6 +31,7 @@ ones are fine. Before closing any chunk that touches docs, re-run the C7 removab
 |---|---|
 | [`shulib-v2-master-plan.md`](../shulib-v2-master-plan.md) | **Why** — architecture, locked decisions, conventions, the capability catalog |
 | [`roadmap.md`](../roadmap.md) | **What** — every remaining task by milestone + the Freeze Register. Its "you are here" is the status pointer |
+| [`RELEASING.md`](RELEASING.md) | **How a release happens** — `shulib-v2` → `release/v2` → `main`, the four invariants, and the three things that used to go wrong. Encoded in `tools/release.py`; read the doc before running it |
 | [`build-order.md`](build-order.md) | **In what order, and why that order** — the dependency-ordered chunk list. *(It states its own count; this row used to carry one and it went stale.)* |
 
 `build-order.md` is the working document. Start there.

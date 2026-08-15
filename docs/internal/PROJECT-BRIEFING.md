@@ -796,8 +796,18 @@ This is why F2 ships no park pose and why `buildStack` / `matchLoadCycle` / `end
 
 ## 17. Release and the docs site
 
-`shulib-v2` → merge into `release/v2` → drop `docs/internal/` → squash that tree onto `main`. The
+`shulib-v2` → merge into `release/v2` → drop `docs/internal/` → snapshot that tree onto `main`. The
 history shows it: `git log --first-parent main`.
+
+**Since DEFECTS1 this is a script and a protocol document, not folklore:**
+[`RELEASING.md`](RELEASING.md) owns the procedure and `tools/release.py` enforces it —
+`check` / `stage` / `push`, with `stage` never pushing and `push` never building. It verifies
+four invariants (main's tree identical to release/v2's, exactly one parent, no `docs/internal/`
+in the published tree, every push a fast-forward) and it **never touches your local `main`**:
+it builds the snapshot with `commit-tree` and pushes it by sha, because `main` is routinely
+checked out in a scratch worktree and one held 157 uncommitted files at DEFECTS1. Note the word
+**snapshot**: `git merge --squash` onto `main` is WRONG and DOCS1 measured why (49 add/add
+conflicts — `main` is deliberately disjoint).
 
 The site publishes from `main` to **docs.shurobotics.com** via GitHub Pages. Publishing from `main` is
 deliberate: the development record cannot reach the public site **by construction** rather than by
