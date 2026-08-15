@@ -513,7 +513,7 @@ Make the mechanism safe NOW: the declared safe state is applied on every call ma
 
 The verdict of the most recent tick, cached: Running before the first tick and before start(), then frozen at whichever of Succeeded / Stalled / TimedOut / Cancelled ended the operation, until the next start() re-arms.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:395`](../../include/shulib/manipulation/mechanism_op.hpp#L395).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:406`](../../include/shulib/manipulation/mechanism_op.hpp#L406).*
 
 <a id="rununtilconfirmed-started"></a>
 
@@ -525,7 +525,7 @@ The verdict of the most recent tick, cached: Running before the first tick and b
 
 True from the first start() onward — including after an exit, and after a cancel(). Nothing clears it, so it answers "has this ever run?", not "is it running?" (pair it with outcome() != Running, or just call finished()).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:399`](../../include/shulib/manipulation/mechanism_op.hpp#L399).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:410`](../../include/shulib/manipulation/mechanism_op.hpp#L410).*
 
 <a id="rununtilconfirmed-name"></a>
 
@@ -537,7 +537,7 @@ True from the first start() onward — including after an exit, and after a canc
 
 The `opName` handed to the constructor, returned unchanged and not copied. It is what the MechanismStalled fault detail and the timeout Warn line quote, so it is the string you grep a transcript for.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:403`](../../include/shulib/manipulation/mechanism_op.hpp#L403).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:414`](../../include/shulib/manipulation/mechanism_op.hpp#L414).*
 
 <a id="struct-actuateandconfirmconfig"></a>
 
@@ -549,7 +549,7 @@ struct ActuateAndConfirmConfig
 
 ActuateAndConfirm's schedule: WHAT to command, how long the hardware needs to do it, and how long afterwards proof may take to arrive. Both times are validated finite and >= 0 at construction and become ABSOLUTE instants at start() — they are this operation's watchdog, so no later path can extend them. The physical actuation time is a measured property of the cylinder, not a number the library can supply.
 
-*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:471`](../../include/shulib/manipulation/mechanism_op.hpp#L471).*
+*struct, declared at [`include/shulib/manipulation/mechanism_op.hpp:482`](../../include/shulib/manipulation/mechanism_op.hpp#L482).*
 
 <a id="actuateandconfirmconfig-target"></a>
 
@@ -561,7 +561,7 @@ bool target = true
 
 The commanded line state (what it means physically is the mechanism's).
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:473`](../../include/shulib/manipulation/mechanism_op.hpp#L473).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:484`](../../include/shulib/manipulation/mechanism_op.hpp#L484).*
 
 <a id="actuateandconfirmconfig-actuationtime"></a>
 
@@ -573,7 +573,7 @@ units::Time actuationTime
 
 How long the actuation physically takes before the world can honestly be asked about it (finite, >= 0). The confirmation is NOT consulted before this deadline: a clamp's "closed" sensor may still be reporting the PREVIOUS grab, and confirming on the pre-actuation state is the silent- success door. Invented values are R4's to measure; register them (HA).
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:479`](../../include/shulib/manipulation/mechanism_op.hpp#L479).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:490`](../../include/shulib/manipulation/mechanism_op.hpp#L490).*
 
 <a id="actuateandconfirmconfig-confirmwindow"></a>
 
@@ -585,7 +585,7 @@ units::Time confirmWindow
 
 How long after actuation the confirmation may take to arrive (finite, >= 0; 0 = one check exactly at the actuation deadline). Expiring with the confirmation still false is the Unconfirmed verdict.
 
-*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:483`](../../include/shulib/manipulation/mechanism_op.hpp#L483).*
+*field, declared at [`include/shulib/manipulation/mechanism_op.hpp:494`](../../include/shulib/manipulation/mechanism_op.hpp#L494).*
 
 <a id="class-actuateandconfirm"></a>
 
@@ -597,7 +597,7 @@ template <typename Confirm> class ActuateAndConfirm final : public IMechanismOp
 
 Fire a discrete actuator, wait out its physical actuation time, then require a caller-supplied confirmation within a bounded window. The season-free skeleton of clampActuate+clampConfirm and deployActuator — and the operation that makes `Unconfirmed` REAL: the command completed (time passed, the solenoid was told), the mechanism is healthy, and the world reports the thing did not happen. Possible verdicts: Succeeded / Unconfirmed / Cancelled. `Stalled` is unreachable (no current channel exists on a solenoid — digital_out.hpp) and `TimedOut` is unreachable because the deadline pair IS the watchdog (file banner): both instants are fixed at start() and a monotonic clock reaches them. With AlwaysConfirmed, completion is the confirmation (deploy — visibly unverified by declaration).  ON EXIT (the T4 split, banner): Succeeded and Unconfirmed LEAVE THE COMMANDED STATE IN PLACE — the completed actuation persists (a successful grab must not be un-grabbed by its own success); only cancel() applies the declared safe state.
 
-*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:504`](../../include/shulib/manipulation/mechanism_op.hpp#L504).*
+*class, declared at [`include/shulib/manipulation/mechanism_op.hpp:515`](../../include/shulib/manipulation/mechanism_op.hpp#L515).*
 
 <a id="actuateandconfirm-actuateandconfirm"></a>
 
@@ -609,7 +609,7 @@ ActuateAndConfirm(hal::PneumaticMechanism& mech, const MechanismDeps& deps, cons
 
 `mech` must outlive the operation; `opName` must be a stable literal.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:510`](../../include/shulib/manipulation/mechanism_op.hpp#L510).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:521`](../../include/shulib/manipulation/mechanism_op.hpp#L521).*
 
 <a id="actuateandconfirm-destructor-actuateandconfirm"></a>
 
@@ -621,7 +621,7 @@ ActuateAndConfirm(hal::PneumaticMechanism& mech, const MechanismDeps& deps, cons
 
 Cancel-on-destruction for a MID-FLIGHT operation; a finished one is untouched (RunUntilConfirmed's destructor note — the T4 persist rule is the reason the guard is conditional, and it matters MOST here: an unconditional cancel would force the declared safe state onto every successfully-grabbed clamp the moment its operation went out of scope).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:529`](../../include/shulib/manipulation/mechanism_op.hpp#L529).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:540`](../../include/shulib/manipulation/mechanism_op.hpp#L540).*
 
 <a id="actuateandconfirm-actuateandconfirm-2"></a>
 
@@ -633,7 +633,7 @@ ActuateAndConfirm(const ActuateAndConfirm&) = delete
 
 Non-copyable/non-movable (F2): same claim-resource reasoning as RunUntilConfirmed.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:537`](../../include/shulib/manipulation/mechanism_op.hpp#L537).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:548`](../../include/shulib/manipulation/mechanism_op.hpp#L548).*
 
 <a id="actuateandconfirm-actuateandconfirm-3"></a>
 
@@ -645,7 +645,7 @@ ActuateAndConfirm(ActuateAndConfirm&&) = delete
 
 *Covered by the comment on [`ActuateAndConfirm (overload 2)`](#actuateandconfirm-actuateandconfirm-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:538`](../../include/shulib/manipulation/mechanism_op.hpp#L538).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:549`](../../include/shulib/manipulation/mechanism_op.hpp#L549).*
 
 <a id="actuateandconfirm-operator-eq"></a>
 
@@ -657,7 +657,7 @@ ActuateAndConfirm& operator=(const ActuateAndConfirm&) = delete
 
 *Covered by the comment on [`ActuateAndConfirm (overload 2)`](#actuateandconfirm-actuateandconfirm-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:539`](../../include/shulib/manipulation/mechanism_op.hpp#L539).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:550`](../../include/shulib/manipulation/mechanism_op.hpp#L550).*
 
 <a id="actuateandconfirm-operator-eq-2"></a>
 
@@ -669,7 +669,7 @@ ActuateAndConfirm& operator=(ActuateAndConfirm&&) = delete
 
 *Covered by the comment on [`ActuateAndConfirm (overload 2)`](#actuateandconfirm-actuateandconfirm-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:540`](../../include/shulib/manipulation/mechanism_op.hpp#L540).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:551`](../../include/shulib/manipulation/mechanism_op.hpp#L551).*
 
 <a id="actuateandconfirm-start"></a>
 
@@ -681,7 +681,7 @@ void start() override
 
 Claim the mechanism and register this object as its claimant (loud precondition if another operation already holds it), then compute the deadline pair ONCE from the clock — actuation, then confirm. Those two absolute instants ARE this operation's bound: no later path extends them, so an erratic dt cannot stretch the budget and a clock jump cannot skip it. Re-callable; a finished operation re-arms for a retry. Commands nothing by itself — the first tick() is what fires the actuator.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:549`](../../include/shulib/manipulation/mechanism_op.hpp#L549).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:560`](../../include/shulib/manipulation/mechanism_op.hpp#L560).*
 
 <a id="actuateandconfirm-tick"></a>
 
@@ -693,7 +693,7 @@ Claim the mechanism and register this object as its claimant (loud precondition 
 
 One step: re-command the target line state (idempotent — the solenoid holds it), then ask the confirmation ONLY past the actuation deadline. Before that instant the operation stays Running WITHOUT consulting the world, because a clamp's "closed" sensor may still be reporting the previous grab and confirming on the pre-actuation state is the silent-success door. On exit the COMMANDED STATE STAYS PUT for both Succeeded and Unconfirmed — a successful grab must not be un-grabbed by its own success, and an unconfirmed one is left where it is for the caller's retry/undo decision. The claim is released on every exit. Once finished it commands nothing. Precondition: start().
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:575`](../../include/shulib/manipulation/mechanism_op.hpp#L575).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:586`](../../include/shulib/manipulation/mechanism_op.hpp#L586).*
 
 <a id="actuateandconfirm-cancel"></a>
 
@@ -705,7 +705,7 @@ void cancel() override
 
 The ONLY path that forces the declared safe state onto this actuator — every other exit leaves the commanded state in place. Applied on every call made after start(), idempotently, so it can and does un-do a completed actuation: that is deliberate, and it is how a team says "the clamp stays closed at the buzzer" or "the cylinder retracts inside the expansion limit" through the mechanism's declared safe value. The verdict of an already-finished operation is preserved; before start() it is a complete no-op; it raises no fault.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:605`](../../include/shulib/manipulation/mechanism_op.hpp#L605).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:616`](../../include/shulib/manipulation/mechanism_op.hpp#L616).*
 
 <a id="actuateandconfirm-outcome"></a>
 
@@ -717,7 +717,7 @@ The ONLY path that forces the declared safe state onto this actuator — every o
 
 The verdict of the most recent tick, cached: Running before the first tick and before start(), then frozen at Succeeded, Unconfirmed or Cancelled — Stalled and TimedOut are unreachable for this operation (no current channel on a solenoid; the deadline pair is the watchdog).
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:622`](../../include/shulib/manipulation/mechanism_op.hpp#L622).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:641`](../../include/shulib/manipulation/mechanism_op.hpp#L641).*
 
 <a id="actuateandconfirm-started"></a>
 
@@ -729,7 +729,7 @@ The verdict of the most recent tick, cached: Running before the first tick and b
 
 True from the first start() onward — including after an exit. Nothing clears it, so it answers "has this ever run?", not "is it running?".
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:625`](../../include/shulib/manipulation/mechanism_op.hpp#L625).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:644`](../../include/shulib/manipulation/mechanism_op.hpp#L644).*
 
 <a id="actuateandconfirm-name"></a>
 
@@ -741,7 +741,7 @@ True from the first start() onward — including after an exit. Nothing clears i
 
 The `opName` handed to the constructor, returned unchanged and not copied. The Unconfirmed Warn line quotes it, so it is the string that identifies this actuation in a transcript.
 
-*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:629`](../../include/shulib/manipulation/mechanism_op.hpp#L629).*
+*function, declared at [`include/shulib/manipulation/mechanism_op.hpp:648`](../../include/shulib/manipulation/mechanism_op.hpp#L648).*
 
 ## Design commentary, from the header
 

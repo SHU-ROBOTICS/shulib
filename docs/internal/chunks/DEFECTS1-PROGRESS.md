@@ -439,3 +439,21 @@ motors); that is exactly why it was missing.
 
 **Mutations 2/2 RED:** M8 (the wheel-count cross-check made vacuous) and M9 (the empty-span
 precondition removed) each redden exactly one case. Restored green at **1,133 / 1,523,412 / 3**.
+
+## Commit 4 — the claim token becomes an ownership token (A24, A25, A10)
+
+**L4 was live here and the fix had to respect it.** `test/mechanism_op_test.cpp` already
+contains SUBCASE *"completed verdict is PRESERVED — cancel still re-safes"*, which asserts
+exactly the behaviour A24 calls a defect. That test is not wrong: in its scenario **nobody
+else holds the claim**, and re-safing is right. So the guard is `holdsClaim_ || !claimed()`
+rather than `holdsClaim_` — it closes the hole (a live owner is never disturbed) and leaves
+the tested decision standing. Both pass, and a third new case pins the preserved half
+explicitly so the fix can never be read as "cancel stopped re-safing".
+
+`A10` deleted copy/move on `IMechanism`. Nothing in the tree copied one, so the change is
+free — and `manipulation/mechanism_op.hpp` already deletes copy/move on both operations for
+the mirror-image reason, so this is the seam finally matching a rule it had already written
+down for its other half.
+
+**Mutations 2/2 RED:** reverting either guard to unconditional reddens exactly one case.
+**1,137 / 1,523,433 / 3 — green.**

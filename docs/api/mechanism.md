@@ -171,9 +171,9 @@ The minimal common surface of every mechanism: a declared safe state that can be
 virtual ~IMechanism() = default
 ```
 
-Re-declared only because the virtual destructor suppresses the implicit copy/move members; defaulted, which leaves the concrete mechanisms below copyable. Mind what a copy carries: unlike the other HAL seams this base holds STATE — the claim token. A copied mechanism therefore arrives already claimed(), with claimant() aimed at an operation registered against the ORIGINAL, and releasing one does not release the other. Construct a mechanism once where it lives and hand out IMechanism&/*.
+NON-COPYABLE AND NON-MOVABLE, and unlike the other HAL seams that is about state rather than style: this base HOLDS the claim token. While copy/move were defaulted, a copied mechanism arrived already claimed(), with claimant() aimed at an operation registered against the ORIGINAL — so a legitimate tryClaim(copy) failed for no reason the caller could see, and F2's end-of-run guard walking a span containing the copy reached claimant() and cancelled an operation driving the original, whose own claim was never released. That is exactly the unreleased-claim failure the claimant hook exists to close, reintroduced by a defaulted special member.  manipulation/mechanism_op.hpp already deletes copy/move on both operations for the mirror-image reason ("the claim is a resource and the mechanism's registered claimant points at THIS object"); the mechanism side simply never got the same treatment. Construct a mechanism once where it lives and hand out IMechanism&/IMechanism*.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:130`](../../include/shulib/hal/mechanism.hpp#L130).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:137`](../../include/shulib/hal/mechanism.hpp#L137).*
 
 <a id="imechanism-imechanism"></a>
 
@@ -185,55 +185,55 @@ IMechanism() = default
 
 *Covered by the comment on [`~IMechanism`](#imechanism-destructor-imechanism) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:131`](../../include/shulib/hal/mechanism.hpp#L131).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:138`](../../include/shulib/hal/mechanism.hpp#L138).*
 
 <a id="imechanism-imechanism-2"></a>
 
 ### `IMechanism::IMechanism (overload 2)`
 
 ```cpp
-IMechanism(const IMechanism&) = default
+IMechanism(const IMechanism&) = delete
 ```
 
 *Covered by the comment on [`~IMechanism`](#imechanism-destructor-imechanism) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:132`](../../include/shulib/hal/mechanism.hpp#L132).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:139`](../../include/shulib/hal/mechanism.hpp#L139).*
 
 <a id="imechanism-imechanism-3"></a>
 
 ### `IMechanism::IMechanism (overload 3)`
 
 ```cpp
-IMechanism(IMechanism&&) = default
+IMechanism(IMechanism&&) = delete
 ```
 
 *Covered by the comment on [`~IMechanism`](#imechanism-destructor-imechanism) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:133`](../../include/shulib/hal/mechanism.hpp#L133).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:140`](../../include/shulib/hal/mechanism.hpp#L140).*
 
 <a id="imechanism-operator-eq"></a>
 
 ### `IMechanism::operator=`
 
 ```cpp
-IMechanism& operator=(const IMechanism&) = default
+IMechanism& operator=(const IMechanism&) = delete
 ```
 
 *Covered by the comment on [`~IMechanism`](#imechanism-destructor-imechanism) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:134`](../../include/shulib/hal/mechanism.hpp#L134).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:141`](../../include/shulib/hal/mechanism.hpp#L141).*
 
 <a id="imechanism-operator-eq-2"></a>
 
 ### `IMechanism::operator= (overload 2)`
 
 ```cpp
-IMechanism& operator=(IMechanism&&) = default
+IMechanism& operator=(IMechanism&&) = delete
 ```
 
 *Covered by the comment on [`~IMechanism`](#imechanism-destructor-imechanism) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:135`](../../include/shulib/hal/mechanism.hpp#L135).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:142`](../../include/shulib/hal/mechanism.hpp#L142).*
 
 <a id="imechanism-applysafestate"></a>
 
@@ -245,7 +245,7 @@ virtual void applySafeState() = 0
 
 Command the DECLARED safe state, synchronously — safe when the call returns, no further tick required (the same synchronous rule as the scheduler's cancel path: a safe state that depends on someone continuing to tick can leave things energized). Idempotent; callable at any time, including while an operation is running (F2's park guard does exactly that — it does not ask permission at the buzzer).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:143`](../../include/shulib/hal/mechanism.hpp#L143).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:150`](../../include/shulib/hal/mechanism.hpp#L150).*
 
 <a id="imechanism-name"></a>
 
@@ -257,7 +257,7 @@ Command the DECLARED safe state, synchronously — safe when the call returns, n
 
 Stable short name for logs / fault details (a stable literal — stored, not copied, like Routine's name).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:147`](../../include/shulib/hal/mechanism.hpp#L147).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:154`](../../include/shulib/hal/mechanism.hpp#L154).*
 
 <a id="imechanism-tryclaim"></a>
 
@@ -269,7 +269,7 @@ Stable short name for logs / fault details (a stable literal — stored, not cop
 
 Take the claim ANONYMOUSLY. False if another operation already holds it. An anonymous claim is invisible to F2's end-of-run cancel-all (banner: the claimant hook) — prefer the registering overload.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:155`](../../include/shulib/hal/mechanism.hpp#L155).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:162`](../../include/shulib/hal/mechanism.hpp#L162).*
 
 <a id="imechanism-tryclaim-2"></a>
 
@@ -281,7 +281,7 @@ Take the claim ANONYMOUSLY. False if another operation already holds it. An anon
 
 Take the claim AND register the claimant, so an end-of-run guard holding only IMechanism* can reach the operation and cancel it (chunk F2). `claimant` must stay valid until the claim is released — every operation exit path releases, and since F2 the library operations also cancel-on-destruction, so a registered pointer cannot dangle.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:168`](../../include/shulib/hal/mechanism.hpp#L168).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:175`](../../include/shulib/hal/mechanism.hpp#L175).*
 
 <a id="imechanism-releaseclaim"></a>
 
@@ -293,7 +293,7 @@ void releaseClaim() noexcept
 
 Release the claim (no-op if not held — release is always safe).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:177`](../../include/shulib/hal/mechanism.hpp#L177).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:184`](../../include/shulib/hal/mechanism.hpp#L184).*
 
 <a id="imechanism-claimed"></a>
 
@@ -305,7 +305,7 @@ Release the claim (no-op if not held — release is always safe).
 
 True while an operation holds the claim.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:183`](../../include/shulib/hal/mechanism.hpp#L183).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:190`](../../include/shulib/hal/mechanism.hpp#L190).*
 
 <a id="imechanism-claimant"></a>
 
@@ -317,7 +317,7 @@ True while an operation holds the claim.
 
 The registered claimant, or nullptr (unclaimed, or claimed anonymously via the parameterless tryClaim). The end-of-run guard's reach.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:187`](../../include/shulib/hal/mechanism.hpp#L187).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:194`](../../include/shulib/hal/mechanism.hpp#L194).*
 
 <a id="class-motormechanism"></a>
 
@@ -329,7 +329,7 @@ class MotorMechanism : public IMechanism
 
 N motors on one mechanically coupled shaft (an intake's two motors, a lift's pair), commanded as one. The SAME voltage goes to every motor: direction reversal is a device-level fact (the pros adapter owns it, exactly as it owns mA→A), so by the time a motor reaches this seam "+V" already means "forward" for that motor.
 
-*class, declared at [`include/shulib/hal/mechanism.hpp:199`](../../include/shulib/hal/mechanism.hpp#L199).*
+*class, declared at [`include/shulib/hal/mechanism.hpp:206`](../../include/shulib/hal/mechanism.hpp#L206).*
 
 <a id="motormechanism-motormechanism"></a>
 
@@ -341,7 +341,7 @@ MotorMechanism(std::span<IMotor* const> motors, BrakeMode safe, const char* mech
 
 `motors` (non-empty, all non-null) must outlive the mechanism; `safe` is the DECLARED safe brake mode (banner: Hold for a loaded lift, Coast or Brake for an intake — there is no correct default, so there is no default). `mechName` must be a stable literal.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:205`](../../include/shulib/hal/mechanism.hpp#L205).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:212`](../../include/shulib/hal/mechanism.hpp#L212).*
 
 <a id="motormechanism-setvoltage"></a>
 
@@ -353,7 +353,7 @@ void setVoltage(units::Voltage volts)
 
 Command every motor (clamped/validated by the IMotor contract).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:215`](../../include/shulib/hal/mechanism.hpp#L215).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:222`](../../include/shulib/hal/mechanism.hpp#L222).*
 
 <a id="motormechanism-commandedvoltage"></a>
 
@@ -365,7 +365,7 @@ Command every motor (clamped/validated by the IMotor contract).
 
 The voltage the DEVICE actually got, read back from the first motor — never this object's own record of what it thinks it commanded (the bottom-of-the-stack rule every F1 test also follows). All motors are commanded identically through this seam, so one readback speaks for the group.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:226`](../../include/shulib/hal/mechanism.hpp#L226).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:233`](../../include/shulib/hal/mechanism.hpp#L233).*
 
 <a id="motormechanism-applysafestate"></a>
 
@@ -377,7 +377,7 @@ void applySafeState() override
 
 The declared safe state: safe brake mode on every motor, THEN zero volts, so the stop lands under the declared semantics and never a momentary coast — the same ordering applyCancelSafeState() documents.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:233`](../../include/shulib/hal/mechanism.hpp#L233).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:240`](../../include/shulib/hal/mechanism.hpp#L240).*
 
 <a id="motormechanism-name"></a>
 
@@ -389,7 +389,7 @@ The declared safe state: safe brake mode on every motor, THEN zero volts, so the
 
 The `mechName` pointer given at construction, returned verbatim — this class BORROWS the string and never copies it, so the literal must outlive the mechanism.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:242`](../../include/shulib/hal/mechanism.hpp#L242).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:249`](../../include/shulib/hal/mechanism.hpp#L249).*
 
 <a id="motormechanism-safebrakemode"></a>
 
@@ -401,7 +401,7 @@ The `mechName` pointer given at construction, returned verbatim — this class B
 
 The declared safe brake mode (construction-time fact, for tests/logs).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:245`](../../include/shulib/hal/mechanism.hpp#L245).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:252`](../../include/shulib/hal/mechanism.hpp#L252).*
 
 <a id="motormechanism-maxcurrent"></a>
 
@@ -413,7 +413,7 @@ The declared safe brake mode (construction-time fact, for tests/logs).
 
 Highest per-motor current draw — the jam/stall signal (motor.hpp calls current() "the PRIMARY capture/stall signal for manipulation sensor-confirm"). Max, not mean: a jam shows on the most loaded motor.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:250`](../../include/shulib/hal/mechanism.hpp#L250).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:257`](../../include/shulib/hal/mechanism.hpp#L257).*
 
 <a id="motormechanism-meanvelocity"></a>
 
@@ -425,7 +425,7 @@ Highest per-motor current draw — the jam/stall signal (motor.hpp calls current
 
 Mean output-shaft angular velocity across the group (one coupled shaft, so the mean IS the shaft; signed, so a direction fact survives).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:260`](../../include/shulib/hal/mechanism.hpp#L260).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:267`](../../include/shulib/hal/mechanism.hpp#L267).*
 
 <a id="motormechanism-motors"></a>
 
@@ -437,7 +437,7 @@ Mean output-shaft angular velocity across the group (one coupled shaft, so the m
 
 The devices themselves — for readers this grammar does not cover (per-motor position for F3's liftToLevel homing, temperatures). Handing out the seam rather than wrapping every reader keeps this class honest about what it is: a command fan-out with a declared safe state.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:272`](../../include/shulib/hal/mechanism.hpp#L272).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:279`](../../include/shulib/hal/mechanism.hpp#L279).*
 
 <a id="class-pneumaticmechanism"></a>
 
@@ -449,7 +449,7 @@ class PneumaticMechanism : public IMechanism
 
 One pneumatic circuit behind N digital lines (a clamp's solenoid, a pair of deploy cylinders fired together), commanded as one. The declared safe value is per-mechanism for the same reason the brake mode is (T4): whether "safe at the buzzer" means clamp-closed (keep the goal) or cylinder-retracted (inside expansion limits) is a fact about the robot, not about the library.
 
-*class, declared at [`include/shulib/hal/mechanism.hpp:285`](../../include/shulib/hal/mechanism.hpp#L285).*
+*class, declared at [`include/shulib/hal/mechanism.hpp:292`](../../include/shulib/hal/mechanism.hpp#L292).*
 
 <a id="pneumaticmechanism-pneumaticmechanism"></a>
 
@@ -461,7 +461,7 @@ PneumaticMechanism(std::span<IDigitalOut* const> lines, bool safe, const char* m
 
 `lines` (non-empty, all non-null) must outlive the mechanism; `safe` is the DECLARED safe command. `mechName` must be a stable literal.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:289`](../../include/shulib/hal/mechanism.hpp#L289).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:296`](../../include/shulib/hal/mechanism.hpp#L296).*
 
 <a id="pneumaticmechanism-set"></a>
 
@@ -473,7 +473,7 @@ void set(bool value)
 
 Command every line.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:299`](../../include/shulib/hal/mechanism.hpp#L299).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:306`](../../include/shulib/hal/mechanism.hpp#L306).*
 
 <a id="pneumaticmechanism-commanded"></a>
 
@@ -485,7 +485,7 @@ Command every line.
 
 The command the DEVICE actually got (first line's readback — the same bottom-of-stack rule as MotorMechanism::commandedVoltage). Remember what this is NOT (digital_out.hpp): evidence that anything moved.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:308`](../../include/shulib/hal/mechanism.hpp#L308).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:315`](../../include/shulib/hal/mechanism.hpp#L315).*
 
 <a id="pneumaticmechanism-applysafestate"></a>
 
@@ -497,7 +497,7 @@ void applySafeState() override
 
 The declared safe state: every line driven to `safe`. ONE command, not the motor version's brake-then-zero two-step — a solenoid has no coast phase to slip through. Still only a command: nothing here is evidence the air actually moved.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:313`](../../include/shulib/hal/mechanism.hpp#L313).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:320`](../../include/shulib/hal/mechanism.hpp#L320).*
 
 <a id="pneumaticmechanism-name"></a>
 
@@ -509,7 +509,7 @@ The declared safe state: every line driven to `safe`. ONE command, not the motor
 
 The `mechName` pointer given at construction, returned verbatim — BORROWED, never copied, so the literal must outlive the mechanism.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:317`](../../include/shulib/hal/mechanism.hpp#L317).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:324`](../../include/shulib/hal/mechanism.hpp#L324).*
 
 <a id="pneumaticmechanism-safecommand"></a>
 
@@ -521,7 +521,7 @@ The `mechName` pointer given at construction, returned verbatim — BORROWED, ne
 
 The declared safe command (construction-time fact, for tests/logs).
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:320`](../../include/shulib/hal/mechanism.hpp#L320).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:327`](../../include/shulib/hal/mechanism.hpp#L327).*
 
 <a id="pneumaticmechanism-lines"></a>
 
@@ -533,7 +533,7 @@ The declared safe command (construction-time fact, for tests/logs).
 
 The lines themselves, in the construction order — for anything this fan-out grammar does not cover (driving one cylinder of a pair alone on a bench check). NON-OWNING, like the span it was built from: the caller still owns every line.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:325`](../../include/shulib/hal/mechanism.hpp#L325).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:332`](../../include/shulib/hal/mechanism.hpp#L332).*
 
 ## Design commentary, from the header
 

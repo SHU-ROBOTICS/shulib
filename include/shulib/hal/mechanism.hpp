@@ -121,18 +121,25 @@ public:
 /// claim token. See the file banner for why nothing else is unified.
 class IMechanism {
 public:
-    /// Re-declared only because the virtual destructor suppresses the implicit copy/move
-    /// members; defaulted, which leaves the concrete mechanisms below copyable. Mind what
-    /// a copy carries: unlike the other HAL seams this base holds STATE — the claim token.
-    /// A copied mechanism therefore arrives already claimed(), with claimant() aimed at an
-    /// operation registered against the ORIGINAL, and releasing one does not release the
-    /// other. Construct a mechanism once where it lives and hand out IMechanism&/*.
+    /// NON-COPYABLE AND NON-MOVABLE, and unlike the other HAL seams that is about state
+    /// rather than style: this base HOLDS the claim token. While copy/move were defaulted, a
+    /// copied mechanism arrived already claimed(), with claimant() aimed at an operation
+    /// registered against the ORIGINAL — so a legitimate tryClaim(copy) failed for no reason
+    /// the caller could see, and F2's end-of-run guard walking a span containing the copy
+    /// reached claimant() and cancelled an operation driving the original, whose own claim
+    /// was never released. That is exactly the unreleased-claim failure the claimant hook
+    /// exists to close, reintroduced by a defaulted special member.
+    ///
+    /// manipulation/mechanism_op.hpp already deletes copy/move on both operations for the
+    /// mirror-image reason ("the claim is a resource and the mechanism's registered claimant
+    /// points at THIS object"); the mechanism side simply never got the same treatment.
+    /// Construct a mechanism once where it lives and hand out IMechanism&/IMechanism*.
     virtual ~IMechanism() = default;
     IMechanism() = default;
-    IMechanism(const IMechanism&) = default;
-    IMechanism(IMechanism&&) = default;
-    IMechanism& operator=(const IMechanism&) = default;
-    IMechanism& operator=(IMechanism&&) = default;
+    IMechanism(const IMechanism&) = delete;
+    IMechanism(IMechanism&&) = delete;
+    IMechanism& operator=(const IMechanism&) = delete;
+    IMechanism& operator=(IMechanism&&) = delete;
 
     /// Command the DECLARED safe state, synchronously — safe when the call
     /// returns, no further tick required (the same synchronous rule as the

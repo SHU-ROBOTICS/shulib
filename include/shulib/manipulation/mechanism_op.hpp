@@ -380,7 +380,18 @@ public:
         if (!started_) {
             return;  // never started: complete no-op (the mirror's third clause)
         }
-        mech_->applySafeState();  // always — "make it safe NOW", idempotent
+        // "Make it safe NOW", idempotent — but ONLY on a mechanism this operation still owns,
+        // or one nobody owns. A finished operation has already released its claim, so an
+        // unguarded call here let a RETAINED, EXITED object safe a mechanism a DIFFERENT live
+        // operation had since claimed: op2 running at 12 V dropped to brake + 0 V, silently,
+        // no fault, no Warn — and op2 re-commands its voltage next tick but NOT its brake
+        // mode, which is the half-safe state run_guard's T6 note names as the reason
+        // applySafeState() alone is never trusted. The `!claimed()` arm keeps the documented
+        // idempotence for the ordinary case (nobody else took it), which is what the existing
+        // "completed verdict is PRESERVED — cancel still re-safes" test pins.
+        if (holdsClaim_ || !mech_->claimed()) {
+            mech_->applySafeState();
+        }
         if (!finished_) {
             releaseClaim();
             outcome_ = MechanismOutcome::Cancelled;
@@ -606,7 +617,15 @@ public:
         if (!started_) {
             return;  // never started: complete no-op
         }
-        mech_->applySafeState();  // always — idempotent
+        // Idempotent — but ONLY on a mechanism this operation still owns, or one nobody owns.
+        // Worse here than on the motor side: a finished ActuateAndConfirm deliberately does
+        // NOT apply the safe state (finish() leaves a successful actuation standing — the
+        // clamp that would FLING its goal), so an unguarded cancel() on a retained, exited
+        // object drove the line to the declared safe value and UN-DID an actuation a second,
+        // currently-claiming operation had just performed.
+        if (holdsClaim_ || !mech_->claimed()) {
+            mech_->applySafeState();
+        }
         if (!finished_) {
             releaseClaim();
             outcome_ = MechanismOutcome::Cancelled;
