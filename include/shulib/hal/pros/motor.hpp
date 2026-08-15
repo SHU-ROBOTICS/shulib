@@ -103,6 +103,18 @@ public:
         SHULIB_PRECONDITION(motor_.get_gearing() == toProsGears(gearset),
                             "ProsMotor: gearing read-back disagrees (device did not accept "
                             "the configured gearset — wrong port, or not a motor?)");
+        // SEED THE T7 FALLBACK FROM THE DEVICE. The ctor deliberately does NOT command a
+        // brake mode — unlike ProsDigitalOut, construction here is not a physical action, and
+        // choosing a mode for a mechanism the adapter knows nothing about is not its call. But
+        // brakeMode_ is also what brakeMode() serves when the device read comes back invalid,
+        // and seeding it to a GUESS meant the fallback could contradict the device from boot:
+        // a port left in Hold by the previous program, dying before any setBrakeMode(), used
+        // to report Coast forever. The device's own answer is the only honest starting value;
+        // if the port cannot answer even now, the guess is all there is and Coast stands.
+        const auto bootMode = motor_.get_brake_mode();
+        if (bootMode != ::pros::v5::MotorBrake::invalid) {
+            brakeMode_ = fromProsBrake(bootMode);
+        }
     }
 
     /// Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send
@@ -137,7 +149,8 @@ public:
     [[nodiscard]] BrakeMode brakeMode() const override {
         const auto raw = motor_.get_brake_mode();
         if (raw == ::pros::v5::MotorBrake::invalid) {
-            return brakeMode_;  // screened: hold last commanded
+            faultedReads_ += 1;  // COUNTED, like the other four screens
+            return brakeMode_;   // screened: hold last commanded
         }
         return fromProsBrake(raw);
     }

@@ -53,9 +53,20 @@ public:
     /// Block until the next tick boundary (header: anchored cadence, lazy
     /// first-call anchor).
     void pace() override {
+        const std::uint32_t now = ::pros::millis();
         if (!anchored_) {
-            prevWakeMs_ = ::pros::millis();
+            prevWakeMs_ = now;
             anchored_ = true;
+        } else if (now - prevWakeMs_ > kTickMs) {
+            // RE-ANCHOR after a tick body that overran a whole period. The lazy first-call
+            // anchor above exists to stop FreeRTOS replaying missed ticks back-to-back, and
+            // that hazard is not confined to construction: after a 50 ms body on a 10 ms
+            // period the setpoint is already 40 ms in the past, so the next four pace() calls
+            // return instantly and the motion layer sees four near-zero-dt ticks — arriving
+            // precisely when the loop is already in trouble. anchored_ is set once and never
+            // cleared, so nothing re-anchored mid-run. Unsigned arithmetic is deliberate: the
+            // millis() wrap is modular, so `now - prevWakeMs_` stays correct across it.
+            prevWakeMs_ = now;
         }
         ::pros::Task::delay_until(&prevWakeMs_, kTickMs);
     }

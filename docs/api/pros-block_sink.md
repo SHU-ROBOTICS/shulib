@@ -58,9 +58,9 @@ Open `<mountRoot><fileName>` for binary writing (truncating — one blackbox fil
 ~ProsBlockSink() override
 ```
 
-fclose the file, which also pushes newlib's remaining buffer out. Nothing else holds this FILE*, so anything still writing through this sink — an SdSink, most likely — must be destroyed first. No-op on a refusing sink.
+fclose the file, which also pushes newlib's remaining buffer out. Nothing else holds this FILE*, so anything still writing through this sink — an SdSink, most likely — must be destroyed first. No-op on a refusing sink.  THE ONE UNREPORTABLE FAILURE, stated rather than left implicit. fclose FLUSHES before it closes and returns EOF if that write fails — the card-full, card-yanked, dying-card case — and a destructor has no channel to say so. Every other path in this class is bool-valued for exactly that reason (write() is even [[nodiscard]], and block_sink.hpp justifies it: "a caller that ignores the result cannot notice a truncated file"). The last buffered block is both the most likely to be lost and the only one whose loss nothing here can report. A caller that needs the final bytes CONFIRMED must call flush(), which is bool for this reason, before letting the sink die.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:98`](../../include/shulib/hal/pros/block_sink.hpp#L98).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:107`](../../include/shulib/hal/pros/block_sink.hpp#L107).*
 
 <a id="prosblocksink-prosblocksink-2"></a>
 
@@ -72,7 +72,7 @@ ProsBlockSink(const ProsBlockSink&) = delete
 
 Non-copyable and non-movable: this adapter OWNS the FILE*, and a second handle to it would fclose the same file twice. (ProsCharSink merely borrows stdout, which is why it carries no such restriction — the difference is ownership, not policy.)
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:107`](../../include/shulib/hal/pros/block_sink.hpp#L107).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:116`](../../include/shulib/hal/pros/block_sink.hpp#L116).*
 
 <a id="prosblocksink-operator-eq"></a>
 
@@ -84,7 +84,7 @@ ProsBlockSink& operator=(const ProsBlockSink&) = delete
 
 *Covered by the comment on [`ProsBlockSink (overload 2)`](#prosblocksink-prosblocksink-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:108`](../../include/shulib/hal/pros/block_sink.hpp#L108).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:117`](../../include/shulib/hal/pros/block_sink.hpp#L117).*
 
 <a id="prosblocksink-prosblocksink-3"></a>
 
@@ -96,7 +96,7 @@ ProsBlockSink(ProsBlockSink&&) = delete
 
 *Covered by the comment on [`ProsBlockSink (overload 2)`](#prosblocksink-prosblocksink-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:109`](../../include/shulib/hal/pros/block_sink.hpp#L109).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:118`](../../include/shulib/hal/pros/block_sink.hpp#L118).*
 
 <a id="prosblocksink-operator-eq-2"></a>
 
@@ -108,7 +108,7 @@ ProsBlockSink& operator=(ProsBlockSink&&) = delete
 
 *Covered by the comment on [`ProsBlockSink (overload 2)`](#prosblocksink-prosblocksink-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:110`](../../include/shulib/hal/pros/block_sink.hpp#L110).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:119`](../../include/shulib/hal/pros/block_sink.hpp#L119).*
 
 <a id="prosblocksink-write"></a>
 
@@ -120,7 +120,7 @@ ProsBlockSink& operator=(ProsBlockSink&&) = delete
 
 Verbatim bytes; false unless EVERY byte was accepted (a short write leaves a prefix — the format decodes up to the cut). False always while refusing (no card / failed open).
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:115`](../../include/shulib/hal/pros/block_sink.hpp#L115).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:124`](../../include/shulib/hal/pros/block_sink.hpp#L124).*
 
 <a id="prosblocksink-flush"></a>
 
@@ -132,7 +132,7 @@ bool flush() noexcept override
 
 fflush to the FatFS driver (the platform's strongest "on the medium" — header note). False on device failure or while refusing.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:127`](../../include/shulib/hal/pros/block_sink.hpp#L127).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:136`](../../include/shulib/hal/pros/block_sink.hpp#L136).*
 
 <a id="prosblocksink-isopen"></a>
 
@@ -144,7 +144,7 @@ fflush to the FatFS driver (the platform's strongest "on the medium" — header 
 
 False = the sink is refusing (no card at boot, or the open failed). The composition root checks this ONCE and reports through the diagnostics layer — the T5 visibility rule.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:137`](../../include/shulib/hal/pros/block_sink.hpp#L137).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:146`](../../include/shulib/hal/pros/block_sink.hpp#L146).*
 
 <a id="prosblocksink-path"></a>
 
@@ -156,7 +156,7 @@ False = the sink is refusing (no card at boot, or the open failed). The composit
 
 The full path this sink writes (for the one-time diagnostics line).
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:140`](../../include/shulib/hal/pros/block_sink.hpp#L140).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:149`](../../include/shulib/hal/pros/block_sink.hpp#L149).*
 
 ## Design commentary, from the header
 

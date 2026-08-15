@@ -161,6 +161,12 @@ private:
     void refresh() const {
         verifyOffset(/*bootPhase=*/false);  // a deferred boot check retries here
         if (!offsetVerified_) {
+            // COUNTED. This path used not to be, and it is the one failure the class treats as
+            // PERMANENT: once verifyOffset() sets offsetRejected_, the device is no-fix for the
+            // whole run, so faultedReads() stayed at 0 forever — the least informative possible
+            // answer to "why is the GPS dead?", in precisely the case the header's HA-06
+            // discussion cares most about.
+            faultedReads_ += 1;
             hasFix_ = false;
             return;
         }

@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <string_view>
 
+#include "shulib/core/check.hpp"
 #include "shulib/hal/char_sink.hpp"
 
 namespace shulib::hal::pros {
@@ -41,8 +42,16 @@ namespace shulib::hal::pros {
 /// ICharSink contract requires.
 class ProsCharSink final : public ICharSink {
 public:
-    /// `out` must outlive the sink; defaults to the V5 USB serial (stdout).
-    explicit ProsCharSink(std::FILE* out = stdout) : out_{out} {}
+    /// `out` must be NON-NULL and must outlive the sink; defaults to the V5 USB serial
+    /// (stdout). The null check is not decoration: the banner advertises the FILE* as
+    /// injectable precisely so a host test can hand it a `tmpfile()`, and that is the one
+    /// call site most likely to hand over a null on failure — after which write()'s
+    /// std::fwrite is undefined behaviour rather than a loud contract breach. Every other
+    /// pointer-taking constructor in the tree already checks (MotorMechanism,
+    /// PneumaticMechanism, MechanismDeps, RunGuardConfig); this one did not.
+    explicit ProsCharSink(std::FILE* out = stdout) : out_{out} {
+        SHULIB_PRECONDITION(out != nullptr, "ProsCharSink: out is null");
+    }
 
     /// Verbatim bytes + flush. MUST NOT throw (contract) — and cannot.
     void write(std::string_view text) override {

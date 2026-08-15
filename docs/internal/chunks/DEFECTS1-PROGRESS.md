@@ -492,3 +492,29 @@ alongside it, because changing a default member initializer changes a *rendered 
 `check-fresh` blocks the build otherwise.
 
 **1,144 / 1,523,852 / 3 — green.**
+
+## Commit 6 — hal/pros (A11, A12, A14, D5, E1/I9, E2, I8, I10)
+
+`A14` is the one worth reading twice. The verifier sharpened it: `ProsDigitalOut d(1, 2)`
+compiles clean **only through parentheses** — brace initialisation already rejected it as a
+narrowing `int → bool`. So the hole was a punctuation choice. Closed with a deleted template
+overload, which is a compile-time fact and therefore asserted as one (`static_assert`), with a
+negative control asserting both real constructors still work.
+
+`D5`'s test took two attempts and the first one taught me the class. Setting an offset after
+construction does nothing, because `verifyOffset` short-circuits once `offsetVerified_` is set
+at boot. The *only* route to `offsetRejected_` is: unreadable at construction (so the boot
+check defers rather than throwing), then readable and non-zero afterwards — a device another
+program configured, discovered late. That is the scenario the header's HA-06 discussion is
+about, and now the scenario the test uses.
+
+`E2` turned out sharper than reported. The finding said the ctor leaves brake mode inherited;
+the consequence nobody had stated is that `brakeMode_` is **also** the T7 fallback, so a port
+left in Hold by a previous session and dying before any `setBrakeMode()` reported **Coast
+forever** — the fallback contradicting the device from boot. Seeded from the device now.
+
+`A11` is FIX-as-documentation: `flush()` already returns the answer a destructor cannot, so the
+honest close is to say which failure is unreportable and point at the member that reports it.
+
+**Mutations 3/3 RED** (M16 I9, M17 E2, M18 D5). A14 is compile-time; A12/I8/I10 are covered by
+the tests above and by existing adapter tests. **1,149 / 1,523,868 / 3 — green.**

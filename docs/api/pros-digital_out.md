@@ -8,7 +8,7 @@
 
 ProsDigitalOut — IDigitalOut over pros::adi::DigitalOut (chunk R1b): the pneumatic solenoid line behind the HAL (F1's seam, finally on hardware).
 
-This header declares **1** type (5 members).
+This header declares **1** type (6 members).
 
 Extracted from [`include/shulib/hal/pros/digital_out.hpp`](../../include/shulib/hal/pros/digital_out.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -17,6 +17,7 @@ Extracted from [`include/shulib/hal/pros/digital_out.hpp`](../../include/shulib/
 - [`class ProsDigitalOut`](#class-prosdigitalout)
   - [`ProsDigitalOut`](#prosdigitalout-prosdigitalout)
   - [`ProsDigitalOut (overload 2)`](#prosdigitalout-prosdigitalout-2)
+  - [`ProsDigitalOut (overload 3)`](#prosdigitalout-prosdigitalout-3)
   - [`set`](#prosdigitalout-set)
   - [`commanded`](#prosdigitalout-commanded)
   - [`faultedWrites`](#prosdigitalout-faultedwrites)
@@ -31,7 +32,7 @@ class ProsDigitalOut final : public IDigitalOut
 
 IDigitalOut over `pros::adi::DigitalOut` — the pneumatic solenoid line, on real hardware. CONSTRUCTING ONE IS A PHYSICAL ACTION: PROS drives the line from its own constructor, so on a pneumatic clamp the cylinder moves the moment this object is built. That is why `initialState` is a required argument with NO default — the author must state the boot level, and must state one that agrees with the owning PneumaticMechanism's declared safe state, or there is a window at boot where the line is wrong and "wrong" means physically moving. A write the port refuses is COUNTED (faultedWrites), never raised: the seam has no validity channel by design, and commanded() goes on reporting the caller's intent, which is exactly what makes a refused write visible as a divergence instead of a device that silently agrees with itself.
 
-*class, declared at [`include/shulib/hal/pros/digital_out.hpp:67`](../../include/shulib/hal/pros/digital_out.hpp#L67).*
+*class, declared at [`include/shulib/hal/pros/digital_out.hpp:68`](../../include/shulib/hal/pros/digital_out.hpp#L68).*
 
 <a id="prosdigitalout-prosdigitalout"></a>
 
@@ -43,11 +44,23 @@ ProsDigitalOut(std::uint8_t adiPort, bool initialState)
 
 Brain ADI port ('a'–'h', 'A'–'H', or 1–8). CONSTRUCTION DRIVES THE LINE to `initialState` — a physical action (header). `initialState` is required, no default: state what the boot level must be, and make it agree with the owning mechanism's declared safe state.
 
-*function, declared at [`include/shulib/hal/pros/digital_out.hpp:73`](../../include/shulib/hal/pros/digital_out.hpp#L73).*
+*function, declared at [`include/shulib/hal/pros/digital_out.hpp:74`](../../include/shulib/hal/pros/digital_out.hpp#L74).*
 
 <a id="prosdigitalout-prosdigitalout-2"></a>
 
 ### `ProsDigitalOut::ProsDigitalOut (overload 2)`
+
+```cpp
+template <typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, bool>>> ProsDigitalOut(std::uint8_t adiPort, T initialState) = delete
+```
+
+POISON OVERLOAD, deliberately deleted: the EXPANDER form written with the boot state forgotten. `ProsDigitalOut d(1, 2);` — a caller meaning {smartPort 1, adiPort 2} — used to compile CLEAN under every one of this project's strict flags, silently selecting the brain-ADI constructor above with adiPort = 1 and initialState = (bool)2 = true. Construction is a PHYSICAL ACTION, so that typo fires the solenoid HIGH at boot, on the wrong port: exactly the failure the required argument exists to prevent, defeating the header's central claim that this safety step "cannot be skipped, only stated". Brace initialisation already rejected it (narrowing int → bool), but parentheses did not. Now neither does.
+
+*function, declared at [`include/shulib/hal/pros/digital_out.hpp:87`](../../include/shulib/hal/pros/digital_out.hpp#L87).*
+
+<a id="prosdigitalout-prosdigitalout-3"></a>
+
+### `ProsDigitalOut::ProsDigitalOut (overload 3)`
 
 ```cpp
 ProsDigitalOut(std::uint8_t smartPort, std::uint8_t adiPort, bool initialState)
@@ -55,7 +68,7 @@ ProsDigitalOut(std::uint8_t smartPort, std::uint8_t adiPort, bool initialState)
 
 Expander form: {smartPort 1–21, adiPort as above}. Same actuating construction, same required initial state (T6: one class — where the wire lands is a construction fact, not a type).
 
-*function, declared at [`include/shulib/hal/pros/digital_out.hpp:79`](../../include/shulib/hal/pros/digital_out.hpp#L79).*
+*function, declared at [`include/shulib/hal/pros/digital_out.hpp:92`](../../include/shulib/hal/pros/digital_out.hpp#L92).*
 
 <a id="prosdigitalout-set"></a>
 
@@ -67,7 +80,7 @@ void set(bool value) override
 
 Command the line (bool → 1/0, HA-119). A refused write is counted in faultedWrites(); commanded() reports the command regardless (header).
 
-*function, declared at [`include/shulib/hal/pros/digital_out.hpp:85`](../../include/shulib/hal/pros/digital_out.hpp#L85).*
+*function, declared at [`include/shulib/hal/pros/digital_out.hpp:98`](../../include/shulib/hal/pros/digital_out.hpp#L98).*
 
 <a id="prosdigitalout-commanded"></a>
 
@@ -79,7 +92,7 @@ Command the line (bool → 1/0, HA-119). A refused write is counted in faultedWr
 
 The value last COMMANDED (the ctor's initial state until set() runs) — a readback of the command, NEVER of the world (digital_out.hpp:44).
 
-*function, declared at [`include/shulib/hal/pros/digital_out.hpp:94`](../../include/shulib/hal/pros/digital_out.hpp#L94).*
+*function, declared at [`include/shulib/hal/pros/digital_out.hpp:107`](../../include/shulib/hal/pros/digital_out.hpp#L107).*
 
 <a id="prosdigitalout-faultedwrites"></a>
 
@@ -91,7 +104,7 @@ The value last COMMANDED (the ctor's initial state until set() runs) — a readb
 
 How many set() calls (ctor excluded) the device refused with PROS_ERR — exposure, not policy (raising stays with the loop layer).
 
-*function, declared at [`include/shulib/hal/pros/digital_out.hpp:98`](../../include/shulib/hal/pros/digital_out.hpp#L98).*
+*function, declared at [`include/shulib/hal/pros/digital_out.hpp:111`](../../include/shulib/hal/pros/digital_out.hpp#L111).*
 
 ## Design commentary, from the header
 

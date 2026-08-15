@@ -49,6 +49,7 @@
 #pragma GCC diagnostic pop
 
 #include <cstdint>
+#include <type_traits>
 #include <utility>
 
 #include "shulib/hal/digital_out.hpp"
@@ -72,6 +73,18 @@ public:
     /// it agree with the owning mechanism's declared safe state.
     ProsDigitalOut(std::uint8_t adiPort, bool initialState)
         : line_{adiPort, initialState}, commanded_{initialState} {}
+
+    /// POISON OVERLOAD, deliberately deleted: the EXPANDER form written with the boot state
+    /// forgotten. `ProsDigitalOut d(1, 2);` — a caller meaning {smartPort 1, adiPort 2} —
+    /// used to compile CLEAN under every one of this project's strict flags, silently
+    /// selecting the brain-ADI constructor above with adiPort = 1 and
+    /// initialState = (bool)2 = true. Construction is a PHYSICAL ACTION, so that typo fires
+    /// the solenoid HIGH at boot, on the wrong port: exactly the failure the required
+    /// argument exists to prevent, defeating the header's central claim that this safety step
+    /// "cannot be skipped, only stated". Brace initialisation already rejected it (narrowing
+    /// int → bool), but parentheses did not. Now neither does.
+    template <typename T, typename = std::enable_if_t<!std::is_same_v<std::decay_t<T>, bool>>>
+    ProsDigitalOut(std::uint8_t adiPort, T initialState) = delete;
 
     /// Expander form: {smartPort 1–21, adiPort as above}. Same actuating
     /// construction, same required initial state (T6: one class — where the

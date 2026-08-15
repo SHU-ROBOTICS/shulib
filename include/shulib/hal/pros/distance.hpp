@@ -122,7 +122,12 @@ private:
     mutable ::pros::v5::Distance sensor_;  // PROS's readers are non-const
     // `mutable`: readers are const but the T7 hold-last-good screen remembers
     // state. Initial hold = the far no-object value, NEVER 0.0 (header note).
-    mutable units::Length lastDistance_{9999.0 / 25.4};
+    // Through the NAMED constant and the SHARED converter, not a hand-spelled 9999 and a
+    // hand-spelled 1/25.4. Both already live in the header this file includes and uses two
+    // accessors above; spelling them again here put the sentinel and the scale in two places,
+    // so a change to either would have moved the screen and left the initial hold behind.
+    mutable units::Length lastDistance_{
+        distanceMmToCanonical(static_cast<double>(kDistanceNoObjectMm))};
     mutable int faultedReads_ = 0;
 };
 

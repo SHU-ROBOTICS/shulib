@@ -95,6 +95,15 @@ public:
     /// fclose the file, which also pushes newlib's remaining buffer out. Nothing else
     /// holds this FILE*, so anything still writing through this sink — an SdSink, most
     /// likely — must be destroyed first. No-op on a refusing sink.
+    ///
+    /// THE ONE UNREPORTABLE FAILURE, stated rather than left implicit. fclose FLUSHES before
+    /// it closes and returns EOF if that write fails — the card-full, card-yanked, dying-card
+    /// case — and a destructor has no channel to say so. Every other path in this class is
+    /// bool-valued for exactly that reason (write() is even [[nodiscard]], and block_sink.hpp
+    /// justifies it: "a caller that ignores the result cannot notice a truncated file"). The
+    /// last buffered block is both the most likely to be lost and the only one whose loss
+    /// nothing here can report. A caller that needs the final bytes CONFIRMED must call
+    /// flush(), which is bool for this reason, before letting the sink die.
     ~ProsBlockSink() override {
         if (file_ != nullptr) {
             std::fclose(file_);

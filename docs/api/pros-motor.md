@@ -112,7 +112,7 @@ void setVoltage(units::Voltage volts) override
 
 Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send as millivolts (HA-94). commandedVoltage() reflects the value APPLIED.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:110`](../../include/shulib/hal/pros/motor.hpp#L110).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:122`](../../include/shulib/hal/pros/motor.hpp#L122).*
 
 <a id="prosmotor-commandedvoltage"></a>
 
@@ -124,7 +124,7 @@ Clamp to ±kMaxMotorVoltage, REJECT non-finite (never coerce — L4), send as mi
 
 The voltage this adapter last APPLIED, after the ±kMaxMotorVoltage clamp. A locally mirrored value computed by the same clamp as the millivolt command, NOT a read-back from the device — so it can never disagree with what went on the wire, and it never faults. 0 V until the first setVoltage().
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:121`](../../include/shulib/hal/pros/motor.hpp#L121).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:133`](../../include/shulib/hal/pros/motor.hpp#L133).*
 
 <a id="prosmotor-setbrakemode"></a>
 
@@ -136,7 +136,7 @@ void setBrakeMode(BrakeMode mode) override
 
 Send the brake mode to the device AND remember it: the remembered value is what brakeMode() falls back to when the device's own read comes back invalid (T7). Only that FALLBACK starts at Coast: the ctor configures encoder units and gearing but never a brake mode, and brakeMode() reads the DEVICE first — so until this is called at least once, the value you observe is whatever mode the motor is still holding from an earlier program, which is the persistent-device-state trap the header describes for encoder units. Call this during setup if the mode has to be known rather than inherited.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:130`](../../include/shulib/hal/pros/motor.hpp#L130).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:142`](../../include/shulib/hal/pros/motor.hpp#L142).*
 
 <a id="prosmotor-brakemode"></a>
 
@@ -148,7 +148,7 @@ Send the brake mode to the device AND remember it: the remembered value is what 
 
 Reads the DEVICE back and maps to the canonical enum; an unreadable device (MotorBrake::invalid) holds the last commanded mode (T7).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:137`](../../include/shulib/hal/pros/motor.hpp#L137).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:149`](../../include/shulib/hal/pros/motor.hpp#L149).*
 
 <a id="prosmotor-position"></a>
 
@@ -160,7 +160,7 @@ Reads the DEVICE back and maps to the canonical enum; an unreadable device (Moto
 
 Cumulative output-shaft radians (never wrapped). Sentinel-screened: PROS_ERR_F holds the last good value (header, T7).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:147`](../../include/shulib/hal/pros/motor.hpp#L147).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:160`](../../include/shulib/hal/pros/motor.hpp#L160).*
 
 <a id="prosmotor-velocity"></a>
 
@@ -172,7 +172,7 @@ Cumulative output-shaft radians (never wrapped). Sentinel-screened: PROS_ERR_F h
 
 Measured output-shaft angular velocity, canonical rad/s, converted from the device's RPM (HA-96). This is the DEVICE's reported velocity — this adapter never differentiates position() to get it. Sentinel-screened like position(): PROS_ERR_F holds the last good value and counts a faulted read; 0 rad/s before the first successful read.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:161`](../../include/shulib/hal/pros/motor.hpp#L161).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:174`](../../include/shulib/hal/pros/motor.hpp#L174).*
 
 <a id="prosmotor-current"></a>
 
@@ -184,7 +184,7 @@ Measured output-shaft angular velocity, canonical rad/s, converted from the devi
 
 Canonical amperes. PROS_ERR (INT32_MAX) is IN-BAND for the int32 mA read — only this adapter can screen it (motor_conversion.hpp note).
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:173`](../../include/shulib/hal/pros/motor.hpp#L173).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:186`](../../include/shulib/hal/pros/motor.hpp#L186).*
 
 <a id="prosmotor-temperature"></a>
 
@@ -196,7 +196,7 @@ Canonical amperes. PROS_ERR (INT32_MAX) is IN-BAND for the int32 mA read — onl
 
 Motor temperature in degrees Celsius — already canonical, so this is the one reader that applies no conversion. Sentinel-screened like the others (non-finite holds the last good value and counts a faulted read), but note the seed: before ANY successful read this returns 20 °C, not 0, so a port that has never answered reports a room-temperature motor. Check faultedReads() before trusting it as a thermal signal.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:188`](../../include/shulib/hal/pros/motor.hpp#L188).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:201`](../../include/shulib/hal/pros/motor.hpp#L201).*
 
 <a id="prosmotor-faultedreads"></a>
 
@@ -208,7 +208,7 @@ Motor temperature in degrees Celsius — already canonical, so this is the one r
 
 How many of the four MEASUREMENT reads (position/velocity/current/temperature) were screened to last-good — cumulative for the life of the object, never reset. T7 observability: telemetry and the loop's health policy can see a flaky port without this seam growing a validity channel F4 does not have. brakeMode()'s own screening is deliberately NOT tallied here, so 0 does not mean the port is healthy.
 
-*function, declared at [`include/shulib/hal/pros/motor.hpp:203`](../../include/shulib/hal/pros/motor.hpp#L203).*
+*function, declared at [`include/shulib/hal/pros/motor.hpp:216`](../../include/shulib/hal/pros/motor.hpp#L216).*
 
 ## Design commentary, from the header
 
