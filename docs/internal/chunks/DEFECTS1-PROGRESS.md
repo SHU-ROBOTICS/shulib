@@ -518,3 +518,39 @@ honest close is to say which failure is unreportable and point at the member tha
 
 **Mutations 3/3 RED** (M16 I9, M17 E2, M18 D5). A14 is compile-time; A12/I8/I10 are covered by
 the tests above and by existing adapter tests. **1,149 / 1,523,868 / 3 — green.**
+
+## Commit 7 — localization (E7, I14, I15/E8, I16, A22, A23, N1)
+
+**Two of my own fixes were wrong before the tests corrected them, and both are worth recording.**
+
+**(1) `travelDelta()` is a CONSUMING read.** My first N1 gate called it a second time to test
+the delta it had just integrated — and a second call returns 0, so the gate was reading zeros
+and could never fire. Caught by reading the header, not by the compiler. The deltas are now
+hoisted and read exactly once, with a comment saying why.
+
+**(2) The first N1 bound was too tight AND the wrong policy.** 12 in rejected a legitimate E3
+fixture that moves 20 in in one tick, and freezing the pose broke it outright. The deeper
+problem the test surfaced: `PilonsOdometry` **has no clock**, so a per-tick travel bound is
+**dt-blind** — 12 in is 100 ft/s on a 10 ms tick and 5 ft/s on a 200 ms one. A gate that can
+silently stop odometry accumulating on a slow loop is a worse failure than the jump it
+prevents, and `plausibility_guard.hpp` already rules on exactly this: *"a diagnostic that
+mutates the data path is worse than the bug it hunts."*
+
+So N1 lands as a **visibility fix, and it is labelled as one**: the bound is generous (36 in,
+unreachable at any plausible loop rate), the delta is **reported, not withheld** — the same
+policy `maxTickRotation` has always had — and the phantom jump goes from *completely silent* to
+raising `lastDeltaImplausible()`, which `HealthMonitor` turns into a fault. Preventing it needs
+a validity channel the F4 seam does not have. Registered as **HA-123**, invented, with the
+dt-blindness and the settling measurement written into the entry.
+
+`I16`'s retype did what a retype should: it **broke two call sites at compile time**, both
+passing bare doubles into a radian field.
+
+`I15`/`E8` could not be fixed by picking a better name — `FusionResult` returns no index
+identifying which proposal won. So a single proposer is attributed and several report
+`"multiple"`, which is honest, where it used to print corrector[0]'s NAME beside
+corrector[1]'s CONFIDENCE. A faithful per-source split is an API change and is written up.
+
+**Mutations 2/2 RED** (M19 E7, M20b N1). M20's first spelling failed to build on
+`-Werror=unused-variable`, which is the mutation runner catching itself.
+**1,151 / 1,523,877 / 3 — green.**

@@ -206,6 +206,12 @@ public:
         const double px = predicted.x().value();
         const double py = predicted.y().value();
         if (!std::isfinite(now) || !std::isfinite(px) || !std::isfinite(py)) {
+            // COUNTED, like the other two RejectedNoFix paths. Without this the per-source
+            // tally stopped summing to the number of propose() calls, so a run whose odometry
+            // went non-finite read in the blackbox as a run in which this corrector was never
+            // asked — the exact confusion noFixTicks() is documented to prevent ("the number
+            // that says Driving Skills out loud").
+            ++noFixTicks_;
             return decline(diag::GateReason::RejectedNoFix);  // nothing sane to reason from
         }
 

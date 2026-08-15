@@ -503,3 +503,38 @@ TEST_CASE("Localizer: mid-run IMU loss is Degraded (an estimate exists), never U
     r.tick(0.01, 4.0);
     CHECK(r.loc.qualityClass() == Localizer::Quality::DeadReckon);
 }
+
+// Bug caught (DEFECTS1 item E7): minDt was the ONE LocalizerConfig field the constructor never
+// range-checked, and nothing coupled it to maxDt. Two misconfigurations constructed silently
+// and neither was red-on-failure: minDt > maxDt empties the trusted dt band, so every tick
+// reports zero linear velocity and Degraded quality for the LIFE OF THE RUN; minDt <= 0
+// disables the low-dt guard entirely, letting a near-zero interval produce an unbounded
+// velocity spike.
+TEST_CASE("E7: an unusable dt band is refused at construction") {
+    FakeClock clock;
+    FakeImu imu;
+    FakeRotation fwd, lat;
+    PilonsOdometry odom{imu, TrackingWheel::forward(fwd, Length{2.75}, Length{5.0}),
+                        TrackingWheel::lateral(lat, Length{2.75}, Length{5.0})};
+    ComplementaryFusion fusion;
+
+    LocalizerConfig inverted;
+    inverted.minDt = 0.5;
+    inverted.maxDt = 0.1;   // band is empty: nothing is ever a trusted tick
+    CHECK_THROWS_AS((Localizer{clock, imu, odom, fusion, {}, inverted}),
+                    shulib::PreconditionError);
+
+    LocalizerConfig unguarded;
+    unguarded.minDt = 0.0;  // the low-dt guard disabled entirely
+    CHECK_THROWS_AS((Localizer{clock, imu, odom, fusion, {}, unguarded}),
+                    shulib::PreconditionError);
+
+    LocalizerConfig negative;
+    negative.minDt = -1e-4;
+    CHECK_THROWS_AS((Localizer{clock, imu, odom, fusion, {}, negative}),
+                    shulib::PreconditionError);
+
+    // NEGATIVE CONTROL: the default band still constructs, so the throws above are about the
+    // relation and not about having broken the constructor.
+    CHECK_NOTHROW((Localizer{clock, imu, odom, fusion, {}, LocalizerConfig{}}));
+}

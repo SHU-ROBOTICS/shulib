@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,629 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,631 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -66,6 +66,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AprilTagCorrector` | class | [apriltag_corrector.md](apriltag_corrector.md#class-apriltagcorrector) |
 | `AprilTagCorrector::acceptedFixes` | function | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrector-acceptedfixes) |
 | `AprilTagCorrector::AprilTagCorrector` | function | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrector-apriltagcorrector) |
+| `AprilTagCorrector::droppedTags` | function | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrector-droppedtags) |
 | `AprilTagCorrector::innovationRejects` | function | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrector-innovationrejects) |
 | `AprilTagCorrector::kHistory` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrector-khistory) |
 | `AprilTagCorrector::kMaxTagsPerFrame` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrector-kmaxtagsperframe) |
@@ -1202,6 +1203,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PilonsOdometry::update` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-update) |
 | `PilonsOdometryConfig` | struct | [pilons_odometry.md](pilons_odometry.md#struct-pilonsodometryconfig) |
 | `PilonsOdometryConfig::maxTickRotation` | field | [pilons_odometry.md](pilons_odometry.md#pilonsodometryconfig-maxtickrotation) |
+| `PilonsOdometryConfig::maxTickTravel` | field | [pilons_odometry.md](pilons_odometry.md#pilonsodometryconfig-maxticktravel) |
 | `PlausibilityConfig` | struct | [plausibility_guard.md](plausibility_guard.md#struct-plausibilityconfig) |
 | `PlausibilityConfig::margin` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-margin) |
 | `PlausibilityConfig::maxSpeed` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxspeed) |

@@ -218,6 +218,11 @@ public:
         SHULIB_PRECONDITION(name != nullptr, "AprilTagCorrector: name must not be null");
     }
 
+    /// Observations discarded because a frame carried more than kMaxTagsPerFrame tags. Kept by
+    /// ARRIVAL ORDER, so a dropped tag may have been the best one available: a nonzero count
+    /// means the best-sigma pick was made over an arbitrary prefix rather than the whole frame.
+    [[nodiscard]] int droppedTags() const noexcept { return droppedTags_; }
+
     /// Take one frame from the tag source. **Call this from a vision-rate task, NEVER from the
     /// control loop** (header note, tension T4): this is the method that allocates.
     ///
@@ -230,6 +235,17 @@ public:
         for (std::size_t k = 0; k < n; ++k) {
             frame_[k] = seen[k];
         }
+        // COUNT WHAT WAS DROPPED. The kept prefix is ITagSource::tags()' vector order — the
+        // detector's order, which carries no quality meaning — so on a 9+-tag frame the
+        // smallest-sigma tag can be discarded before step (7)'s selection ever sees it, and
+        // the class then anchors to a worse tag than it had available. Every other rejection
+        // here (unmapped, out-of-range, low-confidence, high-yaw-rate, innovation) has its own
+        // counter AND its own GateReason precisely so silence is diagnosable; this one had
+        // neither and was invisible from the blackbox. Counting it does not make the SELECTION
+        // quality-aware — ranking by sigma in poll() would duplicate the estimator's own
+        // model, which is the shared-model trap — but it makes the loss visible, which is what
+        // the class's stated design requires.
+        droppedTags_ += static_cast<int>(seen.size() - n);
         frameCount_ = n;
         frameTime_ = clock_.now().value();
         ++frameSeq_;
@@ -556,6 +572,7 @@ private:
 
     std::array<hal::TagObservation, kMaxTagsPerFrame> frame_{};
     std::size_t frameCount_ = 0;
+    int droppedTags_ = 0;
     double frameTime_ = 0.0;
     std::uint32_t frameSeq_ = 0;
     std::uint32_t foldedSeq_ = 0;

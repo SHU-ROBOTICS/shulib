@@ -171,6 +171,15 @@ public:
         : clock_{clock}, imu_{imu}, odom_{odom}, fusion_{fusion}, correctors_{correctors},
           config_{config}, pose_{odom.pose()} {
         SHULIB_PRECONDITION(config.maxDt > 0.0, "Localizer: maxDt must be > 0");
+        // minDt was the ONE config field with no check, and nothing coupled it to maxDt. Two
+        // misconfigurations constructed silently and neither was red-on-failure: minDt > maxDt
+        // empties the trusted band, so every tick reports zero linear velocity and Degraded
+        // quality for the life of the run; minDt <= 0 disables the low-dt guard entirely,
+        // letting a near-zero interval produce an unbounded velocity spike.
+        SHULIB_PRECONDITION(config.minDt > 0.0, "Localizer: minDt must be > 0");
+        SHULIB_PRECONDITION(config.minDt < config.maxDt,
+                            "Localizer: minDt must be < maxDt (an empty trusted dt band pins "
+                            "velocity at zero and quality at Degraded for the whole run)");
         SHULIB_PRECONDITION(config.driftHorizon.value() > 0.0, "Localizer: driftHorizon must be > 0");
         SHULIB_PRECONDITION(config.qFloor >= 0.0 && config.qFloor < 1.0,
                             "Localizer: qFloor must be in [0, 1)");
@@ -350,7 +359,22 @@ public:
         // dead code with one corrector and load-bearing with two (found by mutation at E2;
         // pinned by test/gps_corrector_blackbox_test.cpp's two-corrector case).
         GateAudit tickAudit = fr.audit;
-        const char* source = (fr.applied && n > 0) ? names[0] : "none";
+        // ATTRIBUTION, honestly. names[0] is simply the first corrector that produced a valid
+        // proposal this tick — it is not "the one that moved the estimate", and the fusion
+        // policies fold EVERY in-gate proposal while reporting appliedConfidence from the
+        // STRONGEST. With two correctors registered (the configuration E3 exists to enable) a
+        // landed tag fix was therefore telemetered under the GPS's name, beside the tag's
+        // confidence: one record carrying corrector[0]'s NAME and corrector[1]'s NUMBER.
+        // FusionResult returns no index identifying the winner, so the honest answer is not to
+        // name one: a single proposer is attributed, several are reported as "multiple". A
+        // faithful per-source split needs the contribution back from the policy, which is an
+        // API change and is written up rather than guessed at here.
+        const char* source = "none";
+        if (fr.applied && n == 1) {
+            source = names[0];
+        } else if (fr.applied && n > 1) {
+            source = "multiple";
+        }
         if (tickAudit.reason == diag::GateReason::None && selfAuditSource != nullptr) {
             tickAudit = selfAudit;
             source = selfAuditSource;

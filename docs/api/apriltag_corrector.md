@@ -8,7 +8,7 @@
 
 AprilTagCorrector — the SECOND real corrector, and the FIRST source in the tree that can tell the estimator which way it is actually pointing.
 
-This header declares **2** types (32 members).
+This header declares **2** types (33 members).
 
 Extracted from [`include/shulib/localization/apriltag_corrector.hpp`](../../include/shulib/localization/apriltag_corrector.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -31,6 +31,7 @@ Extracted from [`include/shulib/localization/apriltag_corrector.hpp`](../../incl
   - [`kMaxTagsPerFrame`](#apriltagcorrector-kmaxtagsperframe)
   - [`kMinConfidenceFloor`](#apriltagcorrector-kminconfidencefloor)
   - [`AprilTagCorrector`](#apriltagcorrector-apriltagcorrector)
+  - [`droppedTags`](#apriltagcorrector-droppedtags)
   - [`poll`](#apriltagcorrector-poll)
   - [`propose`](#apriltagcorrector-propose)
   - [`name`](#apriltagcorrector-name)
@@ -253,6 +254,18 @@ AprilTagCorrector(hal::IClock& clock, hal::ITagSource& tags, hal::IImu& imu, con
 
 *function, declared at [`include/shulib/localization/apriltag_corrector.hpp:194`](../../include/shulib/localization/apriltag_corrector.hpp#L194).*
 
+<a id="apriltagcorrector-droppedtags"></a>
+
+### `AprilTagCorrector::droppedTags`
+
+```cpp
+[[nodiscard]] int droppedTags() const noexcept
+```
+
+Observations discarded because a frame carried more than kMaxTagsPerFrame tags. Kept by ARRIVAL ORDER, so a dropped tag may have been the best one available: a nonzero count means the best-sigma pick was made over an arbitrary prefix rather than the whole frame.
+
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:224`](../../include/shulib/localization/apriltag_corrector.hpp#L224).*
+
 <a id="apriltagcorrector-poll"></a>
 
 ### `AprilTagCorrector::poll`
@@ -263,7 +276,7 @@ void poll()
 
 Take one frame from the tag source. **Call this from a vision-rate task, NEVER from the control loop** (header note, tension T4): this is the method that allocates.  A poll that sees NOTHING is still information — "we looked, the camera is alive, there was no tag" — and is recorded as such, which is how the off-camera path stays distinguishable from a dead vision task.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:227`](../../include/shulib/localization/apriltag_corrector.hpp#L227).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:232`](../../include/shulib/localization/apriltag_corrector.hpp#L232).*
 
 <a id="apriltagcorrector-propose"></a>
 
@@ -275,7 +288,7 @@ Take one frame from the tag source. **Call this from a vision-rate task, NEVER f
 
 One tick of the sequence in the header note. Never throws, never allocates; `dt` is unused because this corrector timestamps from the injected clock (E2's D5).
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:242`](../../include/shulib/localization/apriltag_corrector.hpp#L242).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:258`](../../include/shulib/localization/apriltag_corrector.hpp#L258).*
 
 <a id="apriltagcorrector-name"></a>
 
@@ -287,7 +300,7 @@ One tick of the sequence in the header note. Never throws, never allocates; `dt`
 
 The stable telemetry id given at construction ("tags" unless overridden). Read it as an IDENTITY, not as attribution: the Localizer stamps AppliedCorrection::source with the FIRST corrector in registration order that returned a VALID proposal that tick, while the complementary policy folds the sum of every accepted proposal — so with two correctors registered the name tells you who was asked first, not whose fix moved the estimate. It also carries this name on the other path: when nothing reached the policy, source names the corrector whose DECLINE the record is reporting. Exact with one corrector only. The pointer is stored, NOT copied, so the caller's string must outlive this corrector.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:446`](../../include/shulib/localization/apriltag_corrector.hpp#L446).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:462`](../../include/shulib/localization/apriltag_corrector.hpp#L462).*
 
 <a id="apriltagcorrector-lastverdict"></a>
 
@@ -299,7 +312,7 @@ The stable telemetry id given at construction ("tags" unless overridden). Read i
 
 What this corrector decided on the most recent propose() call.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:451`](../../include/shulib/localization/apriltag_corrector.hpp#L451).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:467`](../../include/shulib/localization/apriltag_corrector.hpp#L467).*
 
 <a id="apriltagcorrector-lasttagid"></a>
 
@@ -311,7 +324,7 @@ What this corrector decided on the most recent propose() call.
 
 The id of the tag most recently PROPOSED from, or -1 if none ever was. Names WHICH tag the estimate is anchored to, which is the first question when a fix looks wrong.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:454`](../../include/shulib/localization/apriltag_corrector.hpp#L454).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:470`](../../include/shulib/localization/apriltag_corrector.hpp#L470).*
 
 <a id="apriltagcorrector-pollcount"></a>
 
@@ -323,7 +336,7 @@ The id of the tag most recently PROPOSED from, or -1 if none ever was. Names WHI
 
 Frames taken from the tag source since construction. Zero means nobody is polling.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:456`](../../include/shulib/localization/apriltag_corrector.hpp#L456).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:472`](../../include/shulib/localization/apriltag_corrector.hpp#L472).*
 
 <a id="apriltagcorrector-acceptedfixes"></a>
 
@@ -335,7 +348,7 @@ Frames taken from the tag source since construction. Zero means nobody is pollin
 
 Valid proposals returned since construction (the Localizer screens them again, and the fusion policy may still gate one, so this is not a count of estimate moves). At most ONE per polled frame — a frame is folded once — so it can never exceed pollCount().
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:460`](../../include/shulib/localization/apriltag_corrector.hpp#L460).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:476`](../../include/shulib/localization/apriltag_corrector.hpp#L476).*
 
 <a id="apriltagcorrector-noframeticks"></a>
 
@@ -347,7 +360,7 @@ Valid proposals returned since construction (the Localizer screens them again, a
 
 Ticks before the very first poll — the "nobody wired the vision task" number.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:462`](../../include/shulib/localization/apriltag_corrector.hpp#L462).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:478`](../../include/shulib/localization/apriltag_corrector.hpp#L478).*
 
 <a id="apriltagcorrector-staleframeticks"></a>
 
@@ -359,7 +372,7 @@ Ticks before the very first poll — the "nobody wired the vision task" number.
 
 Ticks whose newest frame was older than maxObservationAge — the poller stopped.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:464`](../../include/shulib/localization/apriltag_corrector.hpp#L464).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:480`](../../include/shulib/localization/apriltag_corrector.hpp#L480).*
 
 <a id="apriltagcorrector-staleticks"></a>
 
@@ -371,7 +384,7 @@ Ticks whose newest frame was older than maxObservationAge — the poller stopped
 
 Ticks that re-read a frame already folded (the normal steady state at 20 Hz vs 100 Hz).
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:466`](../../include/shulib/localization/apriltag_corrector.hpp#L466).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:482`](../../include/shulib/localization/apriltag_corrector.hpp#L482).*
 
 <a id="apriltagcorrector-notagticks"></a>
 
@@ -383,7 +396,7 @@ Ticks that re-read a frame already folded (the normal steady state at 20 Hz vs 1
 
 Fresh frames with no tag in view at all — the off-camera path.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:468`](../../include/shulib/localization/apriltag_corrector.hpp#L468).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:484`](../../include/shulib/localization/apriltag_corrector.hpp#L484).*
 
 <a id="apriltagcorrector-unmappedrejects"></a>
 
@@ -395,7 +408,7 @@ Fresh frames with no tag in view at all — the off-camera path.
 
 Fresh frames whose every tag was absent from the map. A configuration error, counted separately because it is the one the team can actually fix.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:471`](../../include/shulib/localization/apriltag_corrector.hpp#L471).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:487`](../../include/shulib/localization/apriltag_corrector.hpp#L487).*
 
 <a id="apriltagcorrector-rangerejects"></a>
 
@@ -407,7 +420,7 @@ Fresh frames whose every tag was absent from the map. A configuration error, cou
 
 Fresh frames whose every tag was outside the trusted range band.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:473`](../../include/shulib/localization/apriltag_corrector.hpp#L473).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:489`](../../include/shulib/localization/apriltag_corrector.hpp#L489).*
 
 <a id="apriltagcorrector-qualityrejects"></a>
 
@@ -419,7 +432,7 @@ Fresh frames whose every tag was outside the trusted range band.
 
 Fresh frames whose every tag was below the confidence floor (or non-finite).
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:475`](../../include/shulib/localization/apriltag_corrector.hpp#L475).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:491`](../../include/shulib/localization/apriltag_corrector.hpp#L491).*
 
 <a id="apriltagcorrector-yawraterejects"></a>
 
@@ -431,7 +444,7 @@ Fresh frames whose every tag was below the confidence floor (or non-finite).
 
 Fresh frames declined because the robot was spinning too fast.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:477`](../../include/shulib/localization/apriltag_corrector.hpp#L477).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:493`](../../include/shulib/localization/apriltag_corrector.hpp#L493).*
 
 <a id="apriltagcorrector-innovationrejects"></a>
 
@@ -443,7 +456,7 @@ Fresh frames declined because the robot was spinning too fast.
 
 Fresh fixes declined by the normalized-innovation gate.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:479`](../../include/shulib/localization/apriltag_corrector.hpp#L479).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:495`](../../include/shulib/localization/apriltag_corrector.hpp#L495).*
 
 <a id="apriltagcorrector-travelsincefix"></a>
 
@@ -455,7 +468,7 @@ Fresh fixes declined by the normalized-innovation gate.
 
 Distance the prediction has travelled since this source last proposed — the anti-lockout input, exposed so a test can prove the widening is real rather than asserted.
 
-*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:482`](../../include/shulib/localization/apriltag_corrector.hpp#L482).*
+*function, declared at [`include/shulib/localization/apriltag_corrector.hpp:498`](../../include/shulib/localization/apriltag_corrector.hpp#L498).*
 
 ## Design commentary, from the header
 

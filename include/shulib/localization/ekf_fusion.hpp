@@ -487,11 +487,22 @@ public:
         return at(P_, kPx, kPx) + at(P_, kPy, kPy);
     }
     /// One covariance entry, for the invariant tests (symmetry, positive-definiteness).
-    [[nodiscard]] double covariance(std::size_t i, std::size_t j) const noexcept {
+    /// Both indices must be < kN. BOUNDS-CHECKED and therefore no longer noexcept: these are
+    /// public, and the documented contract was only a naming convention ("indexed by the
+    /// kPx…kVy constants"), not a guard — nothing stopped covariance(9, 0) from reading past
+    /// a std::array<double, 25>. Every other public indexing accessor in the tree checks
+    /// (wheel_speeds.hpp is the house pattern); these two did not, and "observability only,
+    /// never on the control path" does not make out-of-range reads defined.
+    [[nodiscard]] double covariance(std::size_t i, std::size_t j) const {
+        SHULIB_PRECONDITION(i < kN && j < kN, "EkfFusion::covariance: index out of range");
         return at(P_, i, j);
     }
-    /// One state entry, indexed by the `kPx`…`kVy` constants.
-    [[nodiscard]] double state(std::size_t i) const noexcept { return x_[i]; }
+    /// One state entry, indexed by the `kPx`…`kVy` constants; the index must be < kN.
+    /// Bounds-checked, and not noexcept, for the reason above.
+    [[nodiscard]] double state(std::size_t i) const {
+        SHULIB_PRECONDITION(i < kN, "EkfFusion::state: index out of range");
+        return x_[i];
+    }
     /// Body-frame velocity estimate, in/s.
     [[nodiscard]] units::Velocity velocityX() const noexcept { return units::Velocity{x_[kVx]}; }
     /// The body-frame LEFT (+Y) component, in/s — the `kVy` state. Both velocity getters report

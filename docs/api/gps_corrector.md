@@ -203,7 +203,7 @@ One tick of the sequence in the header note. Never throws, never allocates; `dt`
 
 Stable telemetry id — also what AppliedCorrection::source reports when this corrector is the reason the tick dead-reckoned.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:318`](../../include/shulib/localization/gps_corrector.hpp#L318).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:324`](../../include/shulib/localization/gps_corrector.hpp#L324).*
 
 <a id="gpscorrector-lastverdict"></a>
 
@@ -215,7 +215,7 @@ Stable telemetry id — also what AppliedCorrection::source reports when this co
 
 What this corrector decided on the most recent propose() call.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:323`](../../include/shulib/localization/gps_corrector.hpp#L323).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:329`](../../include/shulib/localization/gps_corrector.hpp#L329).*
 
 <a id="gpscorrector-acceptedfixes"></a>
 
@@ -227,7 +227,7 @@ What this corrector decided on the most recent propose() call.
 
 Fixes proposed to the fusion policy since construction.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:325`](../../include/shulib/localization/gps_corrector.hpp#L325).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:331`](../../include/shulib/localization/gps_corrector.hpp#L331).*
 
 <a id="gpscorrector-nofixticks"></a>
 
@@ -239,7 +239,7 @@ Fixes proposed to the fusion policy since construction.
 
 Ticks the source had no usable fix at all — off the strip, disconnected, or serving a non-finite read. This is the number that says "Driving Skills" out loud.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:328`](../../include/shulib/localization/gps_corrector.hpp#L328).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:334`](../../include/shulib/localization/gps_corrector.hpp#L334).*
 
 <a id="gpscorrector-staleticks"></a>
 
@@ -251,7 +251,7 @@ Ticks the source had no usable fix at all — off the strip, disconnected, or se
 
 Ticks that re-read a sample already folded (the ~50 ms camera cadence against a ~100 Hz loop, so a healthy run spends MOST of its ticks here).
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:331`](../../include/shulib/localization/gps_corrector.hpp#L331).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:337`](../../include/shulib/localization/gps_corrector.hpp#L337).*
 
 <a id="gpscorrector-qualityrejects"></a>
 
@@ -263,7 +263,7 @@ Ticks that re-read a sample already folded (the ~50 ms camera cadence against a 
 
 Fresh fixes declined because the device's own reported error was too large.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:333`](../../include/shulib/localization/gps_corrector.hpp#L333).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:339`](../../include/shulib/localization/gps_corrector.hpp#L339).*
 
 <a id="gpscorrector-yawraterejects"></a>
 
@@ -275,7 +275,7 @@ Fresh fixes declined because the device's own reported error was too large.
 
 Fresh fixes declined because the robot was spinning too fast to trust them.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:335`](../../include/shulib/localization/gps_corrector.hpp#L335).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:341`](../../include/shulib/localization/gps_corrector.hpp#L341).*
 
 <a id="gpscorrector-innovationrejects"></a>
 
@@ -287,7 +287,7 @@ Fresh fixes declined because the robot was spinning too fast to trust them.
 
 Fresh fixes declined by the normalized-innovation gate.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:337`](../../include/shulib/localization/gps_corrector.hpp#L337).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:343`](../../include/shulib/localization/gps_corrector.hpp#L343).*
 
 <a id="gpscorrector-travelsincefix"></a>
 
@@ -299,7 +299,7 @@ Fresh fixes declined by the normalized-innovation gate.
 
 Distance the prediction has travelled since this source last proposed a fix — the input to the anti-lockout term, exposed so a test can prove the widening is real.
 
-*function, declared at [`include/shulib/localization/gps_corrector.hpp:340`](../../include/shulib/localization/gps_corrector.hpp#L340).*
+*function, declared at [`include/shulib/localization/gps_corrector.hpp:346`](../../include/shulib/localization/gps_corrector.hpp#L346).*
 
 ## Design commentary, from the header
 

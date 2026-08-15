@@ -189,6 +189,7 @@
 | HA-120 | ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H'; expander via {smart, adi} pairs; whether OUR robot has an expander is UNKNOWN | reasoned | R3 |
 | HA-121 | ADI `DigitalIn::get_value()` is a level (PROS_ERR on refusal); `get_new_press()` CONSUMES the press | reasoned | R3 |
 | HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | reasoned | R3 |
+| HA-123 | A per-tick tracking-wheel travel above 36 in is corruption, not motion | **invented** | R3 |
 
 ---
 
@@ -865,6 +866,31 @@ test-pinned; the **magnitudes** are these entries. R4 replaces each with a measu
 the suite (the models take the measured values by config — zero code motion). None of these are
 settleable before hardware, and none block any host chunk.
 
+
+- [ ] **HA-123 — a single tracking-wheel travel delta above 36 in in one tick is corruption,
+  not motion.**
+  *Claim:* `PilonsOdometry` treats |Δtravel| > `maxTickTravel` (default 36 in) from either pod
+  in one `update()` as implausible. The number is a SANITY bound, not a measurement: it is
+  chosen to be unreachable by a real drivetrain at any plausible loop rate, so it can only
+  catch corruption that is orders of magnitude out.
+  *Source:* introduced at DEFECTS1 (item N1) — a tracking pod that is dead or not yet
+  enumerated at construction reads 0, so `TrackingWheel` baselines at 0 and, on the tick the
+  pod finally answers, differences its TRUE cumulative position against that 0. Measured at
+  **28.4 in** of phantom translation for a pod waking at 1000°, and unbounded in general.
+  Before this, `PilonsOdometry` gated |Δθ| and never |Δtravel|, so the jump passed in silence.
+  *Confidence:* **invented.** Nobody has measured a real loop rate under load, and this class
+  holds no clock, so the bound is **dt-BLIND** — the same 36 in is 300 ft/s on a 10 ms tick and
+  15 ft/s on a 200 ms one. That is why it is generous rather than tight, and why the gate
+  REPORTS rather than withholds: a dt-blind bound that could stop odometry accumulating on a
+  slow loop would be a worse failure than the jump it prevents.
+  *Settle (R3/R4):* measure the real control-loop period under load, then re-express this as a
+  velocity bound (`maxTickTravel = vMax × dt`) using the same clock the loop reads. R4 owns the
+  loop-rate measurement; until then this stays a magnitude check.
+  *Blast radius if wrong (too tight):* legitimate fast motion on a slow loop is flagged
+  implausible, which HealthMonitor turns into a spurious fault — noisy, not dangerous, because
+  the delta is still integrated. **If too loose:** a smaller phantom jump stays invisible, which
+  is the pre-DEFECTS1 behaviour. **Contained:** one config field, one comparison, and the pose
+  is unaffected either way.
 - [ ] **HA-20 — IMU per-boot rate bias is ≤ 1°/min (typical 0.1–0.5°/min).**
   *Claim:* a calibrated V5 IMU's per-boot yaw-rate bias magnitude does not exceed 1°/min.
   *Source:* `include/shulib/sim/hostile/imu_hostility.hpp:71` (`rateBiasMax`); consumed by the

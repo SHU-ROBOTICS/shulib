@@ -410,24 +410,24 @@ One fusion tick. The file header walks the five steps; the CONTRACT is here.  `p
 ### `EkfFusion::covariance`
 
 ```cpp
-[[nodiscard]] double covariance(std::size_t i, std::size_t j) const noexcept
+[[nodiscard]] double covariance(std::size_t i, std::size_t j) const
 ```
 
-One covariance entry, for the invariant tests (symmetry, positive-definiteness).
+One covariance entry, for the invariant tests (symmetry, positive-definiteness). Both indices must be < kN. BOUNDS-CHECKED and therefore no longer noexcept: these are public, and the documented contract was only a naming convention ("indexed by the kPx…kVy constants"), not a guard — nothing stopped covariance(9, 0) from reading past a std::array<double, 25>. Every other public indexing accessor in the tree checks (wheel_speeds.hpp is the house pattern); these two did not, and "observability only, never on the control path" does not make out-of-range reads defined.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:490`](../../include/shulib/localization/ekf_fusion.hpp#L490).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:496`](../../include/shulib/localization/ekf_fusion.hpp#L496).*
 
 <a id="ekffusion-state"></a>
 
 ### `EkfFusion::state`
 
 ```cpp
-[[nodiscard]] double state(std::size_t i) const noexcept
+[[nodiscard]] double state(std::size_t i) const
 ```
 
-One state entry, indexed by the `kPx`…`kVy` constants.
+One state entry, indexed by the `kPx`…`kVy` constants; the index must be < kN. Bounds-checked, and not noexcept, for the reason above.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:494`](../../include/shulib/localization/ekf_fusion.hpp#L494).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:502`](../../include/shulib/localization/ekf_fusion.hpp#L502).*
 
 <a id="ekffusion-velocityx"></a>
 
@@ -439,7 +439,7 @@ One state entry, indexed by the `kPx`…`kVy` constants.
 
 Body-frame velocity estimate, in/s.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:496`](../../include/shulib/localization/ekf_fusion.hpp#L496).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:507`](../../include/shulib/localization/ekf_fusion.hpp#L507).*
 
 <a id="ekffusion-velocityy"></a>
 
@@ -451,7 +451,7 @@ Body-frame velocity estimate, in/s.
 
 The body-frame LEFT (+Y) component, in/s — the `kVy` state. Both velocity getters report the filter's own smoothed velocity STATE, which is not `IPoseSource::twist()`: that one is a FIELD-frame finite difference of the published pose.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:500`](../../include/shulib/localization/ekf_fusion.hpp#L500).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:511`](../../include/shulib/localization/ekf_fusion.hpp#L511).*
 
 <a id="ekffusion-reinitcount"></a>
 
@@ -463,7 +463,7 @@ The body-frame LEFT (+Y) component, in/s — the `kVy` state. Both velocity gett
 
 How many times the covariance has been re-initialised (T2). Latched for the run.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:503`](../../include/shulib/localization/ekf_fusion.hpp#L503).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:514`](../../include/shulib/localization/ekf_fusion.hpp#L514).*
 
 <a id="ekffusion-everreinit"></a>
 
@@ -475,7 +475,7 @@ How many times the covariance has been re-initialised (T2). Latched for the run.
 
 Latched: has this filter ever declared itself lost? Never clears — a run in which the estimator gave up once is a different run from one in which it did not, forever.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:506`](../../include/shulib/localization/ekf_fusion.hpp#L506).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:517`](../../include/shulib/localization/ekf_fusion.hpp#L517).*
 
 <a id="ekffusion-consecutiverejects"></a>
 
@@ -487,7 +487,7 @@ Latched: has this filter ever declared itself lost? Never clears — a run in wh
 
 Consecutive gate rejections right now (resets on any accepted fix).
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:508`](../../include/shulib/localization/ekf_fusion.hpp#L508).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:519`](../../include/shulib/localization/ekf_fusion.hpp#L519).*
 
 <a id="ekffusion-resynccount"></a>
 
@@ -499,7 +499,7 @@ Consecutive gate rejections right now (resets on any accepted fix).
 
 Ticks on which the filter re-based onto the handed prediction instead of predicting: `dt <= 0` (the tick after a `setPose` teleport) and `dt > maxDt` (a loop stall). The FIRST tick is NOT counted here — it initialises and returns before this test — so a 0 does not rule out the filter having adopted `predicted` wholesale on tick one. Latched for the run.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:513`](../../include/shulib/localization/ekf_fusion.hpp#L513).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:524`](../../include/shulib/localization/ekf_fusion.hpp#L524).*
 
 <a id="ekffusion-numericguardtrips"></a>
 
@@ -511,7 +511,7 @@ Ticks on which the filter re-based onto the handed prediction instead of predict
 
 Times a non-finite intermediate was caught and the update abandoned. Should be 0.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:515`](../../include/shulib/localization/ekf_fusion.hpp#L515).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:526`](../../include/shulib/localization/ekf_fusion.hpp#L526).*
 
 <a id="ekffusion-acceptedfixes"></a>
 
@@ -523,7 +523,7 @@ Times a non-finite intermediate was caught and the update abandoned. Should be 0
 
 Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:517`](../../include/shulib/localization/ekf_fusion.hpp#L517).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:528`](../../include/shulib/localization/ekf_fusion.hpp#L528).*
 
 <a id="ekffusion-rejectedfixes"></a>
 
@@ -535,7 +535,7 @@ Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
 
 …counted per PROPOSAL rather than per tick, and cumulative for the run (neither clears). A MALFORMED proposal — non-finite pose, or σ <= 0 — is counted here too, because it fails the same test: the gate accepts only a finite distance at or under `gateSigma`, and a NaN satisfies no inequality.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:522`](../../include/shulib/localization/ekf_fusion.hpp#L522).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:533`](../../include/shulib/localization/ekf_fusion.hpp#L533).*
 
 <a id="ekffusion-lastcorrectionmagnitude"></a>
 
@@ -547,7 +547,7 @@ Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
 
 How far the last tick's CORRECTIONS moved the position, summed over the proposals folded (so it upper-bounds the net move). This — not `AppliedCorrection::dx`, which under this tier also carries the small velocity-filtering residual from steps B/C — is the quantity `maxNudgeRate · dt` bounds, and it is what a never-snap test should assert on.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:528`](../../include/shulib/localization/ekf_fusion.hpp#L528).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:539`](../../include/shulib/localization/ekf_fusion.hpp#L539).*
 
 <a id="ekffusion-lastheadingcorrectionmagnitude"></a>
 
@@ -559,7 +559,7 @@ How far the last tick's CORRECTIONS moved the position, summed over the proposal
 
 …and the same for heading: |the increment emitted last tick|, bounded by `maxHeadingNudgeRate · dt`.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:533`](../../include/shulib/localization/ekf_fusion.hpp#L533).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:544`](../../include/shulib/localization/ekf_fusion.hpp#L544).*
 
 ## Design commentary, from the header
 

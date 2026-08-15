@@ -56,7 +56,28 @@ struct PilonsOdometryConfig {
     /// |Δθ| (radians) above which a tick's heading change is treated as implausible. Default π/2
     /// sits far above any real ~100 Hz tick (≪ 1 rad) yet below the π wrap cliff. Tighten it for a
     /// known loop rate / max yaw rate. (See the trust-gate note in the header for what it can detect.)
-    double maxTickRotation = 0.5 * math::Angle::kPi;
+    /// TYPED (units::AngleDim, radians). It was a bare `double` — the only untyped physical
+    /// quantity in a file where travel, offsets and the pose are all typed — so the unit
+    /// survived only in this comment, and passing 90.0 meaning DEGREES compiled, disabled the
+    /// trust gate entirely (nothing is ever implausible below 90 radians) and tripped no
+    /// check, because the constructor only bounded it from below.
+    units::AngleDim maxTickRotation{0.5 * math::Angle::kPi};
+
+    /// Largest believable |Δtravel| from ONE tracking wheel in one tick, before the delta is
+    /// called implausible. The rotation half of this gate existed from the start and the
+    /// translation half did not, which left a real hole: a pod that is dead or not yet
+    /// enumerated at construction baselines at 0, and on the tick it finally answers,
+    /// TrackingWheel differences its true cumulative position against that 0 and injects a
+    /// one-tick phantom translation — measured at 28.4 in for a pod waking at 1000°, and
+    /// unbounded in general. Nothing gated it: this class checked |Δθ| and never |Δtravel|.
+    /// PROVISIONAL (A4: HA-123), and deliberately GENEROUS. This class has no clock, so the
+    /// bound is dt-BLIND: the same 12 in is 100 ft/s on a 10 ms tick and 5 ft/s on a 200 ms
+    /// one, and a bound tight enough to be interesting on a fast loop would reject real motion
+    /// on a slow one. 36 in exceeds a full field length per tick at any plausible loop rate, so
+    /// it cannot fire on a real drivetrain; it catches the CLASS of corruption that is orders
+    /// of magnitude out, which is what a late-enumerating pod produces. A dt-aware bound needs
+    /// a measured loop rate and belongs to R3/R4.
+    units::Length maxTickTravel{36.0};
 };
 
 /// Tracking-wheel dead reckoning: every update() folds the two perpendicular
@@ -84,13 +105,17 @@ public:
           lateral_{lateral},
           pose_{initial.x(), initial.y(), imu.heading()},  // heading is IMU-owned from t=0
           prevHeading_{imu.heading()},
-          maxTickRotation_{config.maxTickRotation} {
+          maxTickRotation_{config.maxTickRotation.value()},
+          maxTickTravel_{config.maxTickTravel.value()} {
         SHULIB_PRECONDITION(forward.role() == TrackingWheel::Role::Forward,
                             "PilonsOdometry: first wheel must be TrackingWheel::forward()");
         SHULIB_PRECONDITION(lateral.role() == TrackingWheel::Role::Lateral,
                             "PilonsOdometry: second wheel must be TrackingWheel::lateral()");
-        SHULIB_PRECONDITION(config.maxTickRotation > 0.0,
+        SHULIB_PRECONDITION(config.maxTickRotation.value() > 0.0,
                             "PilonsOdometry: maxTickRotation must be > 0");
+        SHULIB_PRECONDITION(std::isfinite(config.maxTickTravel.value())
+                                && config.maxTickTravel.value() > 0.0,
+                            "PilonsOdometry: maxTickTravel must be finite and > 0");
         forward_.reset();  // baseline the wheels to NOW, so a pre-existing shaft total isn't
         lateral_.reset();  // counted as travel on the first update()
     }
@@ -101,17 +126,39 @@ public:
         const math::Angle h1 = imu_.heading();
         const double dTheta = h0.errorTo(h1);  // shortest signed (wrap-correct)
 
-        // wheel travel → tracking-center travel (remove the rotation-induced component)
-        const double centerFwd = forward_.travelDelta().value() + dTheta * forward_.offset().value();
-        const double centerLat = lateral_.travelDelta().value() - dTheta * lateral_.offset().value();
+        // wheel travel → tracking-center travel (remove the rotation-induced component).
+        // travelDelta() is a CONSUMING read — it re-baselines — so each wheel is read EXACTLY
+        // ONCE per tick and the value is reused. Reading it twice returns 0 the second time,
+        // which would silently blind the travel gate below.
+        const double fwdDelta = forward_.travelDelta().value();
+        const double latDelta = lateral_.travelDelta().value();
+        const double centerFwd = fwdDelta + dTheta * forward_.offset().value();
+        const double centerLat = latDelta - dTheta * lateral_.offset().value();
         const FieldDelta d =
             arcStep({units::Length{centerFwd}, units::Length{centerLat}}, h0, h1);
 
         const bool finite = std::isfinite(d.dx.value()) && std::isfinite(d.dy.value());
-        implausible_ = !finite || std::abs(dTheta) > maxTickRotation_;
+        // Both halves of the gate. The travel half was missing, and its absence is what let a
+        // late-enumerating tracking pod inject a one-tick phantom translation (see
+        // maxTickTravel): the wheel deltas are what a dead-then-alive pod corrupts, so they
+        // are what is bounded, before arcStep spreads the error across x and y.
+        const bool travelSane =
+            std::abs(fwdDelta) <= maxTickTravel_ && std::abs(latDelta) <= maxTickTravel_;
+        implausible_ = !finite || std::abs(dTheta) > maxTickRotation_ || !travelSane;
 
         // Heading is IMU-owned and always advances. Position only accumulates a FINITE delta, so a
         // non-finite tick freezes position at its last good value instead of poisoning the pose.
+        //
+        // An IMPLAUSIBLE-but-finite delta is REPORTED, NOT WITHHELD — the same policy
+        // maxTickRotation has always had, and the diagnostics rule it comes from: "a
+        // diagnostic that mutates the data path is worse than the bug it hunts; the guard does
+        // not rewrite the estimate" (plausibility_guard.hpp, principle 4). Freezing was tried
+        // and rejected here: this class has no clock, so the travel bound is dt-blind, and a
+        // gate that can silently STOP accumulating odometry when a loop runs slow is a worse
+        // failure than the jump it would prevent. So the honest scope of the travel half of
+        // this gate is VISIBILITY: a late-enumerating pod's phantom translation now raises
+        // lastDeltaImplausible() — which HealthMonitor turns into a fault — where it used to
+        // pass silently. Preventing it needs a validity channel the F4 seam does not have.
         pose_ = finite ? math::Pose2d{pose_.x() + d.dx, pose_.y() + d.dy, h1}
                        : math::Pose2d{pose_.x(), pose_.y(), h1};
         prevHeading_ = h1;
@@ -142,6 +189,7 @@ private:
     math::Pose2d pose_;
     math::Angle prevHeading_;
     double maxTickRotation_;
+    double maxTickTravel_;
     bool implausible_ = false;
 };
 
