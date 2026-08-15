@@ -14,8 +14,18 @@
 
 namespace shulib::hal {
 
+/// The VEX GPS behind the HAL, already converted to shulib's canonical frame and units by
+/// the adapter — nothing above this seam ever sees VEX metres or clockwise-from-North.
+/// Read it as one three-part answer in a fixed order: hasFix() decides whether this tick's
+/// reading exists at all, pose() is the robot-CENTER estimate, and rmsError() is the
+/// sensor's confidence in itself, which the fuser turns into a measurement noise R rather
+/// than a reason to snap. A permanently false hasFix() is a SUPPORTED mode, not a fault:
+/// Driving Skills runs on a field with no GPS strip and the estimator dead-reckons.
 class IGps {
 public:
+    /// Re-declared only because the virtual destructor suppresses the implicit copy/move
+    /// members; this seam holds no state of its own, so defaulting them is harmless. The
+    /// virtual destructor is what lets an owner delete an implementation through IGps*.
     virtual ~IGps() = default;
     IGps() = default;
     IGps(const IGps&) = default;

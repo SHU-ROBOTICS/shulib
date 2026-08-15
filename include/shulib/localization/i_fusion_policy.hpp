@@ -15,8 +15,28 @@
 
 namespace shulib::localization {
 
+/// The seam a fusion MECHANISM plugs into: how hard to move the estimate toward the absolute
+/// fixes that arrived this tick. TWO tiers ship behind it: ComplementaryFusion (the gated,
+/// rate-limited nudge, still the default) and EkfFusion (a 5-state SE(2) Kalman update with
+/// Mahalanobis gating). Picking one is a single constructor argument to the Localizer, with
+/// ICorrector, the Localizer API and every caller unchanged across the swap — which is the only
+/// reason this is an interface and not a function.
+/// An implementation MAY be stateful and may equally be pure, so callers must assume the worse
+/// of the two: EkfFusion carries the filter state (x, P) across ticks, while ComplementaryFusion
+/// holds nothing but its config and that tier's cross-tick memory lives in the Localizer instead
+/// (fusedX_/fusedY_ and the heading bias). So fuse() is not guaranteed to be a function of its
+/// arguments alone, and one policy object must not be shared between two Localizers. The
+/// Localizer calls fuse() exactly once per update(), UNCONDITIONALLY — during the boot/settle
+/// window it is still called, with an empty span of proposals.
 class IFusionPolicy {
 public:
+    /// Virtual so an owner holding a policy polymorphically can destroy it — the Localizer is not
+    /// that owner: it takes `IFusionPolicy&` and never deletes it, so the policy must outlive the
+    /// Localizer that was handed it. The copy/move members are re-defaulted (a user-declared
+    /// destructor suppresses the implicit MOVEs and deprecates the implicit copies) only so this
+    /// base imposes no policy of its own. Copying a real one is tier-dependent and rarely what
+    /// you want: ComplementaryFusion is pure config, but an EkfFusion copy clones a live BELIEF
+    /// (state and covariance), which then ages independently of the original.
     virtual ~IFusionPolicy() = default;
     IFusionPolicy() = default;
     IFusionPolicy(const IFusionPolicy&) = default;

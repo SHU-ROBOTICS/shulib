@@ -6,8 +6,9 @@
 // A frozen tracking encoder is INVISIBLE to the M2 estimator: zero travel is a
 // perfectly plausible reading, so PilonsOdometry::lastDeltaImplausible() never
 // fires and the fused estimate walks away from truth at exactly the truth's
-// speed (A3-COMPLETED §3.4, asserted by test). fault.hpp assigns OdoStuck to
-// "the C/E layers"; the estimator-side detector is E-phase work. Until then,
+// speed (measured during the hostile-fakes campaign, and asserted by test).
+// fault.hpp assigns OdoStuck to "the C/E layers"; the estimator-side detector
+// is E-phase work. Until then,
 // THIS windowed cross-check — owned by every C1 motion's tick — is the only
 // defence against a dead encoder: the drive encoders say the wheels are rolling,
 // the fused estimate says the robot is not moving. Sustained disagreement ⇒ the
@@ -60,6 +61,11 @@
 
 namespace shulib::motion {
 
+/// The five knobs of the spin-vs-motion cross-check, taken BY VALUE at construction (editing the
+/// struct afterwards does nothing to a live check) and every one of them validated by that
+/// constructor. Every default is PROVISIONAL: the two radii are stand-in geometry and the three
+/// thresholds are invented numbers — none has yet been measured against a real drivetrain or a
+/// real noise floor, so treat a default as a placeholder that compiles, not as a tuning.
 struct OdoStallCheckConfig {
     /// Evaluation window (seconds). PROVISIONAL (A4: HA-52).
     double window = 0.3;
@@ -76,10 +82,24 @@ struct OdoStallCheckConfig {
     units::Length rotationRadius{7.0};
 };
 
+/// The windowed spin-vs-motion cross-check: the drive encoders say the wheels rolled, the fused
+/// estimate says the robot did not move, and sustained disagreement means the odometry is stuck.
+/// It is the only defence against a FROZEN tracking encoder, which the estimator itself cannot
+/// see — zero travel is a perfectly plausible reading, so no plausibility guard fires while the
+/// fused pose walks away from truth at exactly truth's speed. Owned per-motion and reset() at
+/// start(), because a window straddling a motion boundary would read a setPose as motion. The
+/// verdict HOLDS between window closes, so a consumer sees one sustained episode, not chatter.
 class OdoStallCheck {
 public:
+    /// Fixed capacity of the per-wheel shaft baseline, mirroring kinematics::WheelSpeeds so the
+    /// hot path never allocates. update() rejects a larger span outright rather than truncating.
     static constexpr int kMaxWheels = 8;  // mirrors kinematics::WheelSpeeds::kMaxWheels
 
+    /// Copies `config` and validates every field: window finite and > 0, minSpinTravel > 0, both
+    /// radii > 0, and motionRatio strictly inside (0, 1) — at 0 nothing could ever trip, at 1 any
+    /// slip at all would read as a stall. A violation trips the precondition handler; nothing is
+    /// clamped. The check starts with no baseline, so the first update() only baselines and no
+    /// verdict can be true until a full `window` has elapsed.
     explicit OdoStallCheck(const OdoStallCheckConfig& config = {}) : cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.window) && cfg_.window > 0.0,
                             "OdoStallCheck: window must be finite and > 0");

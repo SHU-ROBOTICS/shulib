@@ -103,12 +103,12 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 24 of 43 chunks complete
+**Position:** 25 of 43 chunks complete
 
 - **Next up:** the RELEASE to main, then R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
-- **Suite:** 1,120 cases / 1,523,324 assertions, 3 skipped — **green**  
+- **Suite:** 1,121 cases / 1,523,344 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 148  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 122 registered, **7 settled** — next free is **HA-123**  
@@ -116,7 +116,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DOCS1` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -143,7 +143,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 7 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 6 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 
@@ -232,10 +232,18 @@ L3  chassis/      Chassis facade (frozen F6) + Routine recipe layer (frozen F10)
 | `version.hpp` | API version + the breaking-vs-additive policy. The mechanism behind every freeze |
 | `spec/accuracy.hpp` | The **F2 register row** targets (NOT chunk F2 — see §8) |
 
-**Two CI guards, both mutation-proven:** nothing in `include/shulib/` may include `<pros/*>`, and
-nothing outside `sim/` may include `shulib/sim/`. **Four build-time doc gates** run at 1% of the
-build: undocumented public member, stale generated reference, drifted example, internal link leak.
-Plus the briefing gate (generated block + durable-review stamp).
+**Two CI guards, both mutation-proven:** nothing in `include/shulib/` may include `<pros/*>` (except
+`hal/pros/`, path-anchored since R1a), and nothing outside `sim/` may include `shulib/sim/`.
+**Four build-time doc gates** run at 1% of the build: undocumented public entity, stale generated
+reference, drifted example, internal link leak. Plus the briefing gate and the staleness audit.
+
+**Since DOCS2 the coverage gate covers the WHOLE tree** — every public entity under
+`include/shulib/` (minus `sim/` and `**/fake/`), not just `Chassis` and `Routine`. The target list
+is a glob, so a header added later is covered because it exists rather than because someone
+remembered; `docs/api/` is a page per header; and the `mkdocs.yml` API nav is generated between
+markers and byte-checked, because a page absent from the nav was measured to publish *unreachable*
+with exit code 0. **Being gated is not being frozen** — that distinction is stated on the
+reference's own front page and in the amended register rows F11–F14.
 
 **R1a amended the PROS-free guard for the first time** — `include/shulib/hal/pros/` is the one
 exempt path, **anchored to that exact path** (in CI *and* in this tool's own guard_state, which
@@ -306,6 +314,21 @@ This section is the durable part: what each one taught or proved, which does not
   program's configuration, so configure-and-read-back is the idiom; and an observationally
   equivalent mutant (M4b, get_heading at the heading() seam) is closed with a textual contract
   pin, not a theater test. `IController` landed as row F13 (NOT frozen); T1 was delivered here.
+- **R1b** The five mechanism-sensor adapters + the `IDigitalIn` seam (row F14). Trap B:
+  `pros::Distance::get_distance()` returns an **in-band 9999** for "no object" — 393.66 inches of
+  phantom wall, not an error.
+
+**The documentation chunks — they ship no behaviour and both changed what the project can claim**
+- **DOCS1** Read every public and internal document end to end; 60-odd stale claims corrected,
+  including a **red release gate** found before a single document was read. Its lesson, and the
+  one worth carrying: *the hole was not in either list — it was in the GAP between two lists that
+  were maintained by hand and believed to agree.*
+- **DOCS2** The reference over the whole public API: **2 documented types → 1,625 public entities
+  across 115 headers**, all gated, with the target list a glob and the site nav generated. What it
+  taught is in §9 trap 6, and it is the most transferable thing in this file: **the brief's own
+  measurement was wrong because the instrument was blind, not because anyone miscounted.** It also
+  produced 83 API defects, reported and unfixed, in `chunks/DOCS2-API-DEFECTS.md` — several worth
+  a bench session's attention.
 
 ---
 
@@ -369,8 +392,18 @@ have bitten before, phrased for this chunk specifically**.
 ```sh
 cmake --build build/test -j"$(nproc)" && ./build/test/shulib_tests | tail -6
 
-grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib && echo GUARD1-FAIL || echo "GUARD1 PASS"
-grep -rnE --exclude-dir=sim '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' include/shulib && echo GUARD2-FAIL || echo "GUARD2 PASS"
+# GUARD 1 is PATH-ANCHORED — the amendment R1a made and this file did not carry.
+# The unanchored form printed here until DOCS2 (2026-08-14) reports 21 hits on a
+# CLEAN tree, because hal/pros/ exists to include PROS. A verification command
+# that fails when nothing is wrong is worse than none: the next session has to
+# guess whether the tree or the instruction is at fault, which is exactly what
+# the broken ARM `sed` did to DOCS1. §4 described the amendment correctly all
+# along; this command had not been re-run since.
+if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib \
+     | grep -v '^include/shulib/hal/pros/'; then echo "GUARD1 FAIL"; else
+  echo "GUARD1 PASS — PROS-free outside hal/pros/"; fi
+if grep -rnE --exclude-dir=sim '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' \
+     include/shulib; then echo "GUARD2 FAIL"; else echo "GUARD2 PASS — core is sim-free"; fi
 
 find include/shulib -name '*.hpp' | sed 's|^include/||' | LC_ALL=C sort | awk '{print "#include \""$0"\""}' > /tmp/all.cpp
 echo 'int main(){return 0;}' >> /tmp/all.cpp
@@ -461,6 +494,37 @@ Chunk F1/F2/F3/F4 vs **Freeze Register rows F1–F5** (frame, accuracy, units, H
 LOCKED). **The collision is in shipped code**: `spec/accuracy.hpp` is titled "the F2 accuracy
 targets". **Never edit rows F1–F5.** The verify harnesses gate on this.
 
+### 6. An instrument's silence read as a zero (DOCS2)
+
+DOCS2's brief carried a careful measurement of its own scope — 971 public items, 399
+undocumented — taken by running the generator's own parser over the tree rather than estimating.
+Every number reproduced exactly. **Every number was also 60% low**, because that parser's opener
+regex required `{` immediately after an optional `final`, so it could not see a type with a
+base-class list, an enum with an explicit underlying type, or *anything* declared at namespace
+scope. It did not warn, or skip, or count wrong: it never saw them. **Three LOCKED contracts —
+the coordinate frame, the accuracy targets, the units vocabulary — produced no output at all**,
+and had produced none since D3.
+
+The blindness never fired because the two headers it was ever pointed at happen to have no base
+class. *A gate that has only ever run on the easy case has not been tested; it has been lucky.*
+
+**The counter, and it is now this project's standard for any parser-shaped tool:** check it
+against a *different* implementation. Diffing the parse against clang's real AST — a front end
+sharing no code, no regex and no assumption with it — found four more bugs the tool's own
+self-test could not, all of them fields mislabelled as functions and then named after part of
+their own initializer. A hand-rolled parser validated against its author's expectations is
+trap 1 wearing a different coat.
+
+Two smaller forms of the same lesson, from the same chunk:
+- **A mutation that stays GREEN is the campaign's real output.** Three of sixteen survived the
+  first pass, and all three survived because the *fixture* lacked the shape, not because the code
+  was right. One survived because three character literals happened to *balance*, so a blind
+  parser landed in the right place by luck.
+- **The tool reproduced its own headline failure inside itself.** A `///<` continuation line also
+  starts with `///`, so it became the *next* member's documentation — three enumerators on a
+  published page each carried a confident sentence about a different value, and the coverage gate
+  scored all three as documented. No gate could see it. A reader did.
+
 ### Process failures that actually happened
 - A mutation runner **piped into `head`** took a SIGPIPE mid-campaign and left a header with a line
   deleted. Trap `PIPE`, count what you ran, and **never** `git checkout` a file holding uncommitted
@@ -524,7 +588,7 @@ shape of the remainder, not a count — a count here goes stale every chunk.)*
 
 | Phase | Chunks | Gate |
 |---|---|---|
-| **DOCS1** | in flight | none — the documentation pass, then the release to `main` |
+| **The release to `main`** | next | none — DOCS1 and DOCS2 are both done; one open question, whether to push |
 | **R — Robot arrival** | R2–R6 *(R1a, R1b done)* | **hardware (available now)** |
 | **T — Driver control** | T2–T3 *(T1 delivered at R1a)* | none |
 | **G — No-code authoring** | G1–G4 | G1 ungated; G2–G4 need VexBuilder |
@@ -539,25 +603,39 @@ read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — DOCS1: the full documentation pass, then the release to `main`
+## 13. THE IMMEDIATE TASK — the release to `main`
 
 > *This section is the one a pasted-in session acts on first, so it is the one most worth
-> distrusting. It said "THE IMMEDIATE TASK — R1b" for a day after R1b shipped.*
+> distrusting. It said "THE IMMEDIATE TASK — R1b" for a day after R1b shipped, and
+> "— DOCS1" for a day after that.*
 
-**R1a and R1b are DONE and COMMITTED** (`b225fb3`, `77fb079`), and so is the first bench session
-(`5b073de`). The chunk in flight is **DOCS1** — read every public document end to end, fix what is
-no longer true, then merge to `main`.
+**DOCS1 and DOCS2 are both DONE.** The immediate task is **the release to `main`** — the merge
+that publishes docs.shurobotics.com — and after it **R3** (day-one validation, which walks the
+assumptions register top to bottom and **closes M1 and M2's on-robot clause, open since June**),
+then **R4** (sensor characterization — replaces A3's invented noise magnitudes with measured ones;
+**the highest-information work available**, because E4's headline result rests on invented
+numbers).
 
-**Why it is a whole chunk that ships no code:** merging to `main` is what publishes
-docs.shurobotics.com. Anything wrong in the documentation becomes *publicly* wrong at that moment,
-under the project's own name. The documentation pass is not tidying before a release — **it is the
-release gate.** Its brief is `chunks/DOCS1-full-documentation-pass.md`; the live log is
-`DOCS1-PROGRESS.md`.
+**Why the two documentation chunks came first:** merging to `main` is what publishes. Anything
+wrong in the documentation becomes *publicly* wrong at that moment, under the project's own name.
+The documentation pass is not tidying before a release — **it is the release gate.**
 
-**After DOCS1: R3** (day-one validation — walks the assumptions register top to bottom; **closes M1
-and M2's on-robot clause, open since June**), **then R4** (sensor characterization — replaces A3's
-invented noise magnitudes with measured ones; **the highest-information work available**, because
-E4's headline result rests on invented numbers).
+**DOCS1 (2026-08-14)** read every public and internal document end to end and corrected 60-odd
+stale claims, including a release gate that was already red. **DOCS2 (2026-08-14)** took the
+generated reference from 2 documented types to **1,625 public entities across 115 headers**, all
+gated. Both records are in `chunks/`.
+
+**One DOCS2 result belongs in this section rather than only in its record**, because it changes
+what a measurement here is worth: the brief's own scope numbers were taken with the generator's
+parser, and that parser was **structurally blind** — it could not see a type with a base-class
+list, an enum with an underlying type, or anything at namespace scope, so three LOCKED contracts
+produced no output at all and the real debt was 60% larger than measured. Nothing was wrong; the
+instrument reported silence and silence read as zero. When a number here comes from a tool, ask
+what that tool cannot see. (See trap 6 in §9.)
+
+**The two open questions that ride with the push are down to one**: whether to push at all.
+HTTPS was settled on 2026-08-14 — certificate issued, enforced, verified from outside with full
+certificate validation.
 
 ### The R1 record — kept because its lessons are still live
 
@@ -735,12 +813,12 @@ revalidation, and the certificate was approved within seconds. If Cloudflare's p
 1. **Which sensors are going on the robots?** Still open. The lift-homing half is **answered** (§14):
    undecided, so R1b built the digital-input seam anyway — but **the real answer is still owed
    before F3**, which is the chunk that would consume it.
-2. **Whether to push.** THIS IS DOCS1's question and it is live right now. `main` is current only
+2. **Whether to push.** Still live, and now the ONLY question riding with the release — HTTPS was
+   settled on 2026-08-14 (certificate issued, enforced, verified from outside with full
+   certificate validation; §17 has the cause, which is not obvious). `main` is current only
    through Phase D — verified by content, never by commit distance — so E1, E2, E3, E4, F1, F2,
    R1a and R1b are all absent from it, and none of that work is public. Merging publishes all of
-   it at once, including the documentation this chunk is fixing. Two sub-questions ride with it:
-   whether to push at all, and **HTTPS** — GitHub has still not issued the certificate (verified
-   2026-08-14: certificate issued and HTTPS enforced — see §17).
+   it at once, including both documentation passes and **117 new API pages**.
 3. **R5 timing.** Building `tools/sysid` on the tank bot gives a validated tool and throwaway numbers,
    since gains never transfer across chassis. It may be worth deferring until a competition robot
    exists and slotting G1 or H1 in instead. **This is the one place in the order I want your judgment

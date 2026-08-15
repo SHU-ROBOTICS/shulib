@@ -27,15 +27,42 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: indigo
+      accent: indigo
       toggle: { icon: material/weather-night, name: Switch to dark mode }
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: indigo
+      accent: indigo
       toggle: { icon: material/weather-sunny, name: Switch to light mode }
+  # NAVIGATION, and why it is shaped this way (chunk DOCS2).
+  #
+  # The API reference grew from 2 pages to 117 in one chunk. With the previous
+  # settings that whole tree rendered into one always-expanded sidebar, which is
+  # the failure mode a big reference has: a reader who wants `moveTo` meets a
+  # wall of 117 links and concludes the library is complicated. The three
+  # settings below are the fix, in order of how much they do:
+  #
+  #   navigation.tabs    — top-level areas (Guide / Cookbook / API / Project)
+  #                        become tabs, so the sidebar only ever shows ONE of
+  #                        them. The API tree is invisible until you want it.
+  #   navigation.indexes — a section's own overview page IS the section, so
+  #                        clicking "API reference" lands on the page that
+  #                        explains the reference instead of doing nothing.
+  #   (no navigation.sections) — subsystem groups collapse, and only the group
+  #                        you are reading is open. Removed deliberately: with
+  #                        it, every one of the fifteen subsystem groups is
+  #                        expanded at all times.
   features:
-    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
     - navigation.top
+    - navigation.footer
     - content.code.copy
     - search.highlight
+    - search.suggest
+    - search.share
     - toc.follow
 
 markdown_extensions:
@@ -59,6 +86,14 @@ markdown_extensions:
   - pymdownx.superfences
   - tables
   - attr_list
+  # A generated API page ends with the header's full design commentary — the
+  # "why", which is the most valuable prose in this project and also, on the
+  # longest headers, two hundred lines of it. It is wrapped in a plain
+  # <details> element so it folds: long ones start closed, short ones start
+  # open. Plain HTML rather than a Material admonition on purpose — these
+  # documents are read on GitHub as well as on the site, and `??? note`
+  # renders as literal question marks there.
+  - md_in_html
 
 plugins:
   - search
@@ -78,8 +113,11 @@ exclude_docs: |
 nav:
   - Home: index.md
 
+  # `navigation.indexes`: the first entry of a section, given as a bare path,
+  # becomes the section's own landing page. Clicking the tab lands on the
+  # overview instead of doing nothing.
   - User guide:
-      - Overview: guide/README.md
+      - guide/README.md
       - 1 — What is this?: guide/01-what-is-this.md
       - 2 — The field and coordinates: guide/02-the-field-and-coordinates.md
       - 3 — Knowing where you are: guide/03-knowing-where-you-are.md
@@ -97,17 +135,148 @@ nav:
       - 15 — Glossary: guide/15-glossary.md
 
   - Cookbook:
-      - Overview: cookbook/README.md
+      - cookbook/README.md
       - Getting there: cookbook/01-getting-there.md
       - When a step fails: cookbook/02-when-a-step-fails.md
       - Timing and partners: cookbook/03-timing-and-partners.md
       - Drivetrains: cookbook/04-drivetrains.md
       - Mixing tiers: cookbook/05-mixing-tiers.md
 
+# BEGIN GENERATED API NAV — regenerate with: python3 tools/api_doc_tool.py generate
   - API reference:
-      - Overview: api/README.md
-      - Chassis (F6): api/chassis.md
-      - Routine (F10): api/routine.md
+      - api/README.md
+      - All entities (A–Z): api/all-entities.md
+      - Chassis and routines:
+          - Chassis: api/chassis.md
+          - Robot context: api/robot_context.md
+          - Routine: api/routine.md
+      - Motion:
+          - Command pipeline: api/command_pipeline.md
+          - Drive brake: api/drive_brake.md
+          - Hold pose: api/hold_pose.md
+          - Motion: api/motion.md
+          - Motion config: api/motion_config.md
+          - Motion scheduler: api/motion_scheduler.md
+          - Move to pose: api/move_to_pose.md
+          - Odometry stall check: api/odo_stall_check.md
+          - Run reporter: api/run_reporter.md
+          - Strafe to: api/strafe_to.md
+          - Turn to: api/turn_to.md
+      - Control:
+          - Exit group: api/exit_group.md
+          - Feedforward: api/feedforward.md
+          - PID: api/pid.md
+          - Settled util: api/settled_util.md
+          - Trapezoid profile: api/trapezoid_profile.md
+          - Watchdog: api/watchdog.md
+      - Kinematics:
+          - Desaturate: api/desaturate.md
+          - H drive: api/h_drive.md
+          - Kinematics: api/kinematics.md
+          - Matrix kinematics: api/matrix_kinematics.md
+          - Tank: api/tank.md
+          - Wheel speeds: api/wheel_speeds.md
+          - X drive: api/x_drive.md
+      - Localization:
+          - AprilTag corrector: api/apriltag_corrector.md
+          - Arc step: api/arc_step.md
+          - Complementary fusion: api/complementary_fusion.md
+          - Correction: api/correction.md
+          - EKF fusion: api/ekf_fusion.md
+          - GPS corrector: api/gps_corrector.md
+          - ICorrector: api/i_corrector.md
+          - IFusionPolicy: api/i_fusion_policy.md
+          - IPoseSource: api/i_pose_source.md
+          - Localizer: api/localizer.md
+          - Pilons odometry: api/pilons_odometry.md
+          - Tag map: api/tag_map.md
+          - Tracking wheel: api/tracking_wheel.md
+      - Manipulation:
+          - Mechanism op: api/mechanism_op.md
+          - Mechanism outcome: api/mechanism_outcome.md
+          - Stall detector: api/stall_detector.md
+      - Sequencing:
+          - Run guard: api/run_guard.md
+      - Diagnostics:
+          - Blackbox format: api/blackbox_format.md
+          - Blackbox reader: api/blackbox_reader.md
+          - Build info: api/build_info.md
+          - Controller display: api/controller_display.md
+          - Debug record: api/debug_record.md
+          - Fault: api/fault.md
+          - Finite guard: api/finite_guard.md
+          - Health monitor: api/health_monitor.md
+          - Level filter sink: api/level_filter_sink.md
+          - Line format: api/line_format.md
+          - Loop monitor: api/loop_monitor.md
+          - Motion result: api/motion_result.md
+          - Plausibility guard: api/plausibility_guard.md
+          - Rate limit sink: api/rate_limit_sink.md
+          - Run summary: api/run_summary.md
+          - SD sink: api/sd_sink.md
+          - Session info: api/session_info.md
+          - Term sink: api/term_sink.md
+          - Tick attribution: api/tick_attribution.md
+          - Trace: api/trace.md
+          - Triage: api/triage.md
+      - Math and frames:
+          - Angle: api/angle.md
+          - Frame: api/frame.md
+          - Pose2d: api/pose2d.md
+          - Twist2d: api/twist2d.md
+      - Units:
+          - Literals: api/literals.md
+          - Quantity: api/quantity.md
+      - HAL — the hardware seams:
+          - Battery: api/battery.md
+          - Block sink: api/block_sink.md
+          - Char sink: api/char_sink.md
+          - Clock: api/clock.md
+          - Controller: api/controller.md
+          - Controller conversion: api/controller_conversion.md
+          - Digital in: api/digital_in.md
+          - Digital out: api/digital_out.md
+          - Distance: api/distance.md
+          - Distance conversion: api/distance_conversion.md
+          - GPS: api/gps.md
+          - GPS conversion: api/gps_conversion.md
+          - IMU: api/imu.md
+          - IMU conversion: api/imu_conversion.md
+          - Line display: api/line_display.md
+          - Mechanism: api/mechanism.md
+          - Motor: api/motor.md
+          - Motor conversion: api/motor_conversion.md
+          - Null sink: api/null_sink.md
+          - Optical: api/optical.md
+          - Optical conversion: api/optical_conversion.md
+          - Rotation: api/rotation.md
+          - Rotation conversion: api/rotation_conversion.md
+          - Telemetry sink: api/telemetry_sink.md
+          - Vision: api/vision.md
+          - Vision conversion: api/vision_conversion.md
+      - HAL — the PROS adapters:
+          - Battery (PROS): api/pros-battery.md
+          - Block sink (PROS): api/pros-block_sink.md
+          - Char sink (PROS): api/pros-char_sink.md
+          - Clock (PROS): api/pros-clock.md
+          - Controller (PROS): api/pros-controller.md
+          - Digital in (PROS): api/pros-digital_in.md
+          - Digital out (PROS): api/pros-digital_out.md
+          - Distance (PROS): api/pros-distance.md
+          - GPS (PROS): api/pros-gps.md
+          - IMU (PROS): api/pros-imu.md
+          - Line display (PROS): api/pros-line_display.md
+          - Motor (PROS): api/pros-motor.md
+          - Optical (PROS): api/pros-optical.md
+          - Rotation (PROS): api/pros-rotation.md
+          - Tick pacer (PROS): api/pros-tick_pacer.md
+      - Core:
+          - Check: api/check.md
+      - Spec:
+          - Accuracy: api/accuracy.md
+      - Top level:
+          - Version: api/version.md
+# END GENERATED API NAV
 
   - FAQ: faq.md
   - Changelog: changelog.md

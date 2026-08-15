@@ -48,6 +48,10 @@
 
 namespace shulib::localization {
 
+/// The trust gate's one tuning knob, and deliberately nothing else: the geometry
+/// (wheel diameter, offset, role) rides on the TrackingWheels, and the heading
+/// source is the IMU handed to the constructor. Default-constructible, so
+/// `PilonsOdometry{imu, fwd, lat}` is the ordinary call.
 struct PilonsOdometryConfig {
     /// |Δθ| (radians) above which a tick's heading change is treated as implausible. Default π/2
     /// sits far above any real ~100 Hz tick (≪ 1 rad) yet below the π wrap cliff. Tighten it for a
@@ -55,6 +59,19 @@ struct PilonsOdometryConfig {
     double maxTickRotation = 0.5 * math::Angle::kPi;
 };
 
+/// Tracking-wheel dead reckoning: every update() folds the two perpendicular
+/// wheels and the IMU heading into one constant-curvature arc and accumulates a
+/// field-frame Pose2d (canonical inches; F1's FIELD axes — +X right, +Y away
+/// from the red driver station, heading 0 along +X, CCW positive). The wheels
+/// measure BODY travel (+X forward, +Y left); arcStep rotates it by the tick's
+/// average heading, so the two frames coincide only at heading 0.
+/// The ~100 Hz prediction backbone the fused Localizer corrects with absolute
+/// fixes. Two facts govern everything else: HEADING IS IMU-OWNED — set equal to
+/// the IMU reading every tick, never integrated from the wheels — and wheel
+/// travel is offset-corrected to the tracking CENTER here, so a turn in place
+/// accumulates zero position. Holds the IMU by reference and copies the two
+/// wheels; the IMU and the wheels' rotation sensors must outlive this object.
+/// Owns no loop: the caller calls update() at its own cadence.
 class PilonsOdometry {
 public:
     /// `forward` must be a TrackingWheel::forward(), `lateral` a TrackingWheel::lateral() — the
@@ -100,6 +117,11 @@ public:
         prevHeading_ = h1;
     }
 
+    /// The accumulated field-frame estimate: x, y in canonical inches, heading as
+    /// of the last update() or setPose() (the IMU's, never wheel-derived). A pure
+    /// read — it advances only when update() runs, so repeated calls between ticks
+    /// return the same pose. Before the first update() it is the seeded position
+    /// with the IMU's construction-time heading.
     [[nodiscard]] math::Pose2d pose() const noexcept { return pose_; }
 
     /// Teleport the POSITION (x, y); heading stays IMU-owned. Re-baselines the heading reference

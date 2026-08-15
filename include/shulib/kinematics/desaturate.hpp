@@ -19,6 +19,13 @@
 
 namespace shulib::kinematics {
 
+/// Scale EVERY wheel by ONE common factor so the largest just reaches `maxWheelSpeed`.
+/// Uniform scaling preserves the ratios between wheels — and therefore the DIRECTION of the
+/// commanded motion — trading only speed for feasibility. A set already inside the budget
+/// (the all-zero set included) is returned unchanged: this never scales UP, so it cannot be
+/// used to reach a speed floor. The result has the same size() as the input, and both the
+/// input and the limit are canonical velocity. Precondition: maxWheelSpeed > 0 — a zero or
+/// negative limit is a caller bug, not a request to hold still.
 [[nodiscard]] inline WheelSpeeds desaturateUniform(const WheelSpeeds& wheels,
                                                    units::Velocity maxWheelSpeed) {
     SHULIB_PRECONDITION(maxWheelSpeed.value() > 0.0,

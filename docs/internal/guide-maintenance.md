@@ -68,7 +68,7 @@ Find your change on the left; update everything on the right.
 | You changed… | Update |
 |---|---|
 | A `Chassis` verb — name, arguments, behaviour | The API chapter · `test/guide_examples_test.cpp` · the tutorial if it uses that verb · **regenerate `docs/api/`** (the build fails until you do) |
-| A `///` comment in `chassis.hpp` / `routine.hpp` | **Nothing by hand** — run `python3 tools/api_doc_tool.py generate` and commit what it writes |
+| A `///` comment in **any** header under `include/shulib/` | **Nothing by hand** — run `python3 tools/api_doc_tool.py generate` and commit what it writes. Since DOCS2 that is every shipped header, not just the two frozen ones, and the run also rewrites `mkdocs.yml`'s generated nav block |
 | Added a public member to a documented header | **Write its `///` comment.** The build fails naming the member otherwise, and an empty `///` does not count |
 | A `Routine` step — name, arguments, behaviour | The recipe chapter · the cookbook recipes that use it · `test/cookbook_examples_test.cpp` · **and read the freeze procedure: `Routine` is locked (F10)** |
 | Added or changed a motion primitive | The API chapter · the "getting there" concept chapter if the *idea* changed |

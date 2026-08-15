@@ -37,6 +37,12 @@
 
 namespace shulib::motion {
 
+/// Rotate IN PLACE to a FIELD heading: ω from the heading PID, body vx = vy = 0. Both the
+/// controller and the exit test are fed math::Angle::errorTo — the shortest signed rotation in
+/// (-π, π], with an exact antipode resolving to +π every time — so a target 350° "away" is a 10°
+/// error the other way and no raw θ difference ever reaches a gain. The one translation-free
+/// primitive with NO drivetrain-authority caveat: every supported drive can rotate, tank included,
+/// and the stall cross-check's rotation term keeps a pure turn from reading as ODO_STUCK.
 class TurnTo final : public IMotion {
 public:
     /// Rotate to `target` (FIELD heading). `timeout` (s) bounds the whole
@@ -59,6 +65,10 @@ public:
                             "TurnTo: timeout must be finite and >= 0");
     }
 
+    /// Arm, or fully re-arm, the turn: PID, stall detector, settle state and watchdog all reset,
+    /// and the motion re-enters the boot wait. A finished TurnTo is reusable this way — but it is
+    /// never re-AIMED, since target() is fixed at construction and start() reads nothing from the
+    /// estimator.
     void start() override {
         pidH_.reset();
         stall_.reset();
@@ -70,6 +80,13 @@ public:
         lastTickTime_ = 0.0;
     }
 
+    /// One control tick, emitting one DebugRecord. Precondition: start() was called, and the
+    /// caller must have updated the Localizer FIRST — this reads the estimate, it does not advance
+    /// it. While quality is still Uninitialized it commands zero volts and makes no settle
+    /// progress, but the WATCHDOG RUNS THROUGH THAT WAIT, so a never-live estimate exits TimedOut
+    /// (raising MOTION_TIMEOUT) rather than hanging. Settled beats a simultaneous timeout. Once a
+    /// non-Running verdict is returned the motion is finished: further calls are no-ops that
+    /// return the cached verdict and leave the motors stopped.
     [[nodiscard]] control::ExitReason tick() override {
         SHULIB_PRECONDITION(state_ != MotionState::Idle, "TurnTo::tick: start() not called");
         if (reason_ != control::ExitReason::Running) {
@@ -159,9 +176,19 @@ public:
                       math::ChassisSpeeds{});
     }
 
+    /// The latched verdict: Running until an exit, then Settled, TimedOut or Cancelled. Once set
+    /// it is never rewritten — a later cancel() still applies the safe state but preserves this,
+    /// because a turn that settled really did settle.
     [[nodiscard]] control::ExitReason exitReason() const noexcept override { return reason_; }
+    /// The motion-layer state, and the value stamped into DebugRecord.activeCommandState: Idle
+    /// before start(), WaitingForEstimate through the boot wait, Running once an estimate is live,
+    /// then whichever exit state matches exitReason().
     [[nodiscard]] MotionState state() const noexcept override { return state_; }
+    /// The stable telemetry and result-line id — always the literal "TurnTo", a static string with
+    /// no lifetime for the caller to manage.
     [[nodiscard]] const char* name() const noexcept override { return "TurnTo"; }
+    /// The FIELD heading this instance was built to reach. Fixed for the object's lifetime: a
+    /// TurnTo is re-armed by start(), never re-aimed, so a new heading means a new TurnTo.
     [[nodiscard]] math::Angle target() const noexcept { return target_; }
 
 private:

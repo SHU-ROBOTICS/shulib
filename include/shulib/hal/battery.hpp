@@ -20,8 +20,18 @@
 
 namespace shulib::hal {
 
+/// The V5 battery behind the HAL. Its ONLY effect on control is a CEILING, never a scale
+/// factor: shulib commands actual volts, so control::compensateForBattery() clamps a desired
+/// voltage to ±the measured battery and reports whether it saturated, while the kS/kV/kA gains
+/// stay battery-independent by construction. Nothing anywhere multiplies a command by a
+/// fraction of pack voltage — the percent-output mental model is the one this design rejects.
 class IBattery {
 public:
+    /// Abstract base, held and destroyed through IBattery*. RobotContext keeps a NON-OWNING
+    /// pointer (validated non-null at construction) that the caller must keep alive for the
+    /// context's whole life. Copy/move are defaulted because the interface itself carries no
+    /// state, but copying THROUGH this base slices an implementation down to nothing — pass
+    /// implementations by reference or pointer, never by value.
     virtual ~IBattery() = default;
     IBattery() = default;
     IBattery(const IBattery&) = default;

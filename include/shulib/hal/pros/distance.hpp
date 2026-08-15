@@ -60,6 +60,19 @@
 
 namespace shulib::hal::pros {
 
+/// IDistance over pros::Distance: millimetres become canonical inches and the raw 0–63
+/// confidence becomes [0, 1], each converted exactly once. The value of this adapter is
+/// the three screens it puts in front of PROS's sentinels. (1) A raw 9999 — PROS's plain
+/// IN-BAND "cannot detect an object", which converts to a perfectly plausible 393.66 in —
+/// reports confidence 0.0 and raises nothing: an empty intake is a normal state, and a
+/// fault every tick would cry wolf. (2) At or below 200 mm, where get_confidence() is
+/// documented as unavailable and its value undefined, confidence is 1.0, because there the
+/// returned distance IS the detection. (3) PROS_ERR is a DEVICE failure — unplugged, wrong
+/// port — and is different: distance() holds the last good finite value (initially the far
+/// no-object distance, never 0.0, so a sensor dead from boot cannot read "object touching
+/// the sensor"), confidence() is 0.0, and faultedReads() counts it. Raising a fault is the
+/// loop layer's job, not this one's. Reads are LIVE: each accessor hits the device, so
+/// distance() and confidence() are two samples, not one atomic snapshot.
 class ProsDistance final : public IDistance {
 public:
     /// `port`: 1..21.

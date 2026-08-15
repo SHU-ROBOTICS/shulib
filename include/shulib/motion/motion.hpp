@@ -181,6 +181,10 @@ struct MotionDeps {
     diag::FaultLatch* faults = nullptr;               ///< run-scoped latch (MotionTimeout, …)
     diag::HealthMonitor* health = nullptr;            ///< the A3 pathology→fault policy
 
+    /// Trip SHULIB_PRECONDITION on the FIRST null pointer, naming which one. Every motion
+    /// calls this from its constructor (through validatedClock()), so a dependency the
+    /// designated-initializer call site forgot is a loud contract breach at construction
+    /// rather than a null dereference three ticks into an auton.
     void validate() const {
         SHULIB_PRECONDITION(ctx != nullptr, "MotionDeps: ctx is null");
         SHULIB_PRECONDITION(localizer != nullptr, "MotionDeps: localizer is null");
@@ -221,8 +225,20 @@ inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
                        .maxMotorTempC = maxTemp});
 }
 
+/// The contract every motion primitive implements: one target, one tick() that reads the
+/// world and issues ONE drivetrain command, one verdict. A motion owns no loop, no task
+/// and no estimator — the loop owner advances the Localizer first, then calls tick() (the
+/// tick contract above). Implementers owe the whole of it, not just the signatures: an
+/// exit leaves the motors stopped and every later tick() is a no-op returning the cached
+/// verdict, start() fully re-arms a finished object, and cancel() works at any time and
+/// is idempotent. No motion may hang — the watchdog runs even while waiting for a live
+/// estimate.
 class IMotion {
 public:
+    /// Interface plumbing, spelled out because declaring the destructor demands all six:
+    /// motions are held and destroyed through this base, and copy/move are defaulted
+    /// because IMotion itself holds no state — every motion's state is in the concrete
+    /// type, which is also why the scheduler passes motions by pointer, not by value.
     virtual ~IMotion() = default;
     IMotion() = default;
     IMotion(const IMotion&) = default;

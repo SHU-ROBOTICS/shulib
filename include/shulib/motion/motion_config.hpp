@@ -53,12 +53,24 @@ namespace shulib::motion {
 /// Per-axis PID gains (units documented at each use site). Output saturation is
 /// deliberately NOT here — the motion layer's norm/ω caps own it (header note).
 struct AxisGains {
-    double kP = 0.0;
-    double kI = 0.0;
-    double kD = 0.0;
+    double kP = 0.0;  ///< Proportional gain, 1/s on both axes: in→in/s, rad→rad/s.
+    double kI = 0.0;  ///< Integral gain, 1/s². 0 (the default) makes the axis pure-P.
+    double kD = 0.0;  ///< Derivative gain (dimensionless), on the MEASUREMENT — no setpoint kick.
+    /// Symmetric ± clamp on the I-TERM (kI·∫e dt) in command units, with the accumulator
+    /// back-calculated so it cannot wind up past the clamp. Infinity means unclamped,
+    /// which is only safe while kI is 0 — the default pairing. Must be ≥ 0.
     double integralLimit = std::numeric_limits<double>::infinity();
 };
 
+/// Every knob the C1 motion primitives share. A motion COPIES it at construction and
+/// validate()s the copy, so later edits to the object you built from never reach a live
+/// motion — build a fresh config, then a fresh motion. Units are canonical throughout
+/// (inches, radians, seconds), but only the speed and geometry budgets carry theirs in the
+/// TYPE (units::Velocity / AngularVelocity / Length); the gains, defaultTimeout and every
+/// SettleConfig / OdoStallCheckConfig field are bare doubles whose units live only in the
+/// comment beside them. Nor are the gains dimensionless — kP is 1/s and kI 1/s², kD alone
+/// is dimensionless — what the axis they are handed to supplies is WHICH quantity they act
+/// on (inches for translation, radians for heading), not their dimension.
 struct MotionConfig {
     /// Wheel feedforward — MUST match the drivetrain's characterization (R5).
     /// Default mirrors the plant's placeholder (≈70 in/s free speed at 12 V).
@@ -106,6 +118,16 @@ struct MotionConfig {
     /// The spin-vs-motion cross-check thresholds (A4: HA-52).
     OdoStallCheckConfig stall{};
 
+    /// Re-check the invariants the motions rely on and RAISE on the first violation:
+    /// feedforward and PID gains finite, integral limits non-negative, and all FIVE speed /
+    /// timeout / geometry scalars strictly positive (maxLinearSpeed, maxAngularSpeed,
+    /// maxWheelSpeed, defaultTimeout, rotationRadius — 0 is rejected, never read as
+    /// "unset"). Every C1 motion calls this from its own constructor, so it is a backstop
+    /// rather than a step you can forget — call it yourself only when validating a config
+    /// you have not yet handed to a motion.
+    /// It deliberately does NOT descend into the SettleConfig or OdoStallCheckConfig
+    /// members: those are checked by SettledUtil and OdoStallCheck when the motion builds
+    /// them, which is the only place their own invariants are known.
     void validate() const {
         auto finiteGains = [](const AxisGains& g) {
             return std::isfinite(g.kP) && std::isfinite(g.kI) && std::isfinite(g.kD)

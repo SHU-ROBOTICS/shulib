@@ -42,8 +42,18 @@
 
 namespace shulib::diag {
 
+/// Measures where one tick's time went, phase by phase, on an INJECTED clock — the "who" that
+/// LoopMonitor's "this tick blew its budget" cannot answer on its own. Only the LAST COMPLETED
+/// tick's breakdown is kept, so a record stamped mid-tick necessarily carries the previous tick's
+/// numbers; for the overrun path that lag is exactly right, because an overrun is detected on the
+/// tick AFTER the one that caused it. Needs a clock that advances DURING a tick, which is why it
+/// takes its own: the host sim clock only moves between ticks and would report every phase as
+/// zero. Single-task by contract, like the rest of diag/.
 class TickAttribution {
 public:
+    /// Per-phase durations for one tick, indexed by TickPhase. Sized by kTickPhaseSlots rather
+    /// than by the phases that exist today — the spare slots are what make a new phase an append
+    /// to the vocabulary instead of a reshape of the telemetry wire.
     using Phases = std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)>;
 
     /// `clock` must outlive the instance (see header for WHICH clock).
@@ -63,12 +73,23 @@ public:
     /// overlap the same phase (the second-open would double-charge the overlap).
     class PhaseScope {
     public:
+        /// Stamps the start instant on the attribution clock. Prefer TickAttribution::phase(),
+        /// which additionally checks that a tick is actually open; constructing one directly
+        /// skips that check and will credit its interval to whatever tick is open when it closes.
         PhaseScope(TickAttribution& att, TickPhase phase) noexcept
             : att_{att}, phase_{phase}, start_{att.clock_.now()} {}
+        /// Credits (now − start) to the phase on scope exit, and only then: a scope still alive
+        /// when endTick() runs contributes nothing to the tick it was opened in — its interval
+        /// lands on whatever tick is open when it finally closes, or is discarded outright if the
+        /// next beginTick() zeroes the working phases first. Repeated scopes on the same phase
+        /// within one tick ACCUMULATE rather than replace.
         ~PhaseScope() {
             const std::size_t idx = static_cast<std::size_t>(phase_);
             att_.current_[idx] = att_.current_[idx] + (att_.clock_.now() - start_);
         }
+        /// Non-copyable, and therefore non-movable: a scope charges exactly one interval, and a
+        /// copy would charge it twice. phase() still returns one by value — that is guaranteed
+        /// elision, not a move.
         PhaseScope(const PhaseScope&) = delete;
         PhaseScope& operator=(const PhaseScope&) = delete;
 
@@ -78,6 +99,9 @@ public:
         units::Time start_;
     };
 
+    /// Open a scope that charges its own lifetime to `p`. Requires a tick to be open. The result
+    /// MUST be bound to a named variable — an unnamed temporary dies at the semicolon and charges
+    /// nothing, which is the whole reason this is [[nodiscard]].
     [[nodiscard]] PhaseScope phase(TickPhase p) {
         SHULIB_PRECONDITION(tickOpen_, "TickAttribution::phase: no tick open");
         return PhaseScope{*this, p};
@@ -98,9 +122,15 @@ public:
     /// the instrument re-arms. The last COMPLETED tick's story is untouched.
     void abandonTick() noexcept { tickOpen_ = false; }
 
+    /// False until the first endTick(), and again after reset(). Worth asking first: before any
+    /// tick completes every lastX() accessor reads zero, which is indistinguishable from a tick
+    /// that genuinely cost nothing.
     [[nodiscard]] bool hasCompletedTick() const noexcept { return hasCompleted_; }
     /// The last completed tick's per-phase durations (zeros before any tick).
     [[nodiscard]] const Phases& lastPhases() const noexcept { return last_; }
+    /// Seconds from beginTick() to endTick() of the last completed tick, on the attribution
+    /// clock. It spans the whole tick, including work no phase scope wrapped — that remainder is
+    /// what lastOther() reports rather than smearing it into a named phase.
     [[nodiscard]] units::Time lastTotal() const noexcept { return lastTotal_; }
 
     /// Sum of the attributed phases of the last completed tick.

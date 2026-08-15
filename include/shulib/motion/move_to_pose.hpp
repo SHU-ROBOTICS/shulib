@@ -73,6 +73,15 @@ struct PoseMotionOptions {
     double holdFor = 0.0;               ///< > 0 ⇒ hold-mode exit (HoldPose)
 };
 
+/// Drive to a FIELD-frame pose with three INDEPENDENT controllers — field-x, field-y and
+/// heading — each closing its own loop every tick and combining into one ChassisSpeeds. The
+/// robot therefore translates and rotates simultaneously; nothing in this class sequences a
+/// turn before a drive. Arrival needs BOTH criteria at once (translation distance AND heading
+/// error), so it composes two SettledUtils and one Watchdog rather than one scalar exit.
+/// StrafeTo and HoldPose are this same engine with different capture/exit options.
+///
+/// A MoveToPose owns no loop and no thread: the caller ticks it, having updated the
+/// Localizer first, until tick() returns something other than Running.
 class MoveToPose : public IMotion {
 public:
     /// Drive to `target` (FIELD frame). `timeout` seconds bounds the whole
@@ -81,6 +90,11 @@ public:
                const MotionConfig& config = {}, double timeout = 0.0)
         : MoveToPose(deps, target, config, timeout, PoseMotionOptions{}) {}
 
+    /// Arm, or fully re-arm: the three PIDs, both settle detectors and the stall check are
+    /// reset, the watchdog clock restarts, and the state drops back to WaitingForEstimate.
+    /// Commands no motors. A capture-at-first-live target (StrafeTo's heading, HoldPose's
+    /// pose) is re-armed too, so a re-started motion captures again from the CURRENT estimate
+    /// rather than reusing the previous run's. A plain MoveToPose keeps its explicit target.
     void start() override {
         pidX_.reset();
         pidY_.reset();
@@ -98,6 +112,22 @@ public:
         lastTickTime_ = 0.0;
     }
 
+    /// One control tick, and the only member here that commands a DRIVING voltage — cancel()
+    /// commands the motors too, into the shared safe state, and is in fact the only member that
+    /// ever changes a brake mode (this one's stops just write 0 V). Precondition:
+    /// start() has been called; the loop owner must have advanced the Localizer FIRST, since
+    /// this reads the estimate as the world at time t. While the estimate is still
+    /// Uninitialized it commands zero volts and makes no settle progress — but the watchdog
+    /// keeps running through that wait, so a never-live estimate exits TimedOut instead of
+    /// hanging. Returns Running until both criteria settle (Settled) or the watchdog fires
+    /// (TimedOut, MotionTimeout raised); motors are stopped BEFORE the exit record is emitted,
+    /// so the record stream ends on the true final state. After any non-Running verdict this
+    /// is a no-op that returns the cached verdict. Emits AT MOST one DebugRecord per call: that
+    /// cached-verdict path emits nothing, and no path emits unless the sink answers
+    /// wantsRecord() — the record is built inside hal::emitRecord's lambda, so against a
+    /// NullSink or any log-only sink it is never populated at all. When one is emitted its
+    /// `commanded` field is the FINAL achievable command in the FIELD frame — post-clamp, so
+    /// this layer's clamping is auditable from the stream.
     [[nodiscard]] control::ExitReason tick() override {
         SHULIB_PRECONDITION(state_ != MotionState::Idle, "MoveToPose::tick: start() not called");
         if (reason_ != control::ExitReason::Running) {
@@ -237,8 +267,20 @@ public:
         emitExitRecord(now, units::Time{0.0}, pose, errX, errY, errH);
     }
 
+    /// The verdict cached by the last tick() or cancel() — Running until the first exit, then
+    /// that exit reason for good. Reading it never recomputes anything and never advances the
+    /// motion; only start() clears it back to Running.
     [[nodiscard]] control::ExitReason exitReason() const noexcept override { return reason_; }
+
+    /// The motion-layer state, which is also written into DebugRecord.activeCommandState every
+    /// tick: Idle before start(), WaitingForEstimate through the boot window, Running while
+    /// controlling, then the state matching the verdict. Finer-grained than exitReason(),
+    /// which cannot tell Idle from Running.
     [[nodiscard]] MotionState state() const noexcept override { return state_; }
+
+    /// Always the literal "MoveToPose" — the string that identifies this motion in
+    /// MotionTimeout fault text and in run result lines. The siblings override it with their
+    /// own names, so a StrafeTo never reports as its base class.
     [[nodiscard]] const char* name() const noexcept override { return "MoveToPose"; }
 
     /// The FIELD-frame target (after any first-live-tick capture).

@@ -52,6 +52,14 @@
 
 namespace shulib::motion {
 
+/// The OPEN-LOOP stop: 0 V under BrakeMode::Brake on every drive motor, every tick, plus a
+/// verdict that the drivetrain actually came to rest. The ONE primitive exempt from the
+/// wait-for-live-estimate gate (motion.hpp) — zero output is the safe action in every state,
+/// boot window included — so the command lands immediately and only the SETTLE verdict
+/// depends on the estimator. Settled therefore means "the estimate can certify rest", which
+/// during the boot window can read stopped for a robot being pushed (header). Nothing is
+/// commanded, so no stall/health cross-check runs here. HoldPose is the closed-loop
+/// counterpart: it recovers a pose, this one only stops.
 class DriveBrake final : public IMotion {
 public:
     /// Twist-averaging window, ticks (header note). At 100 Hz: 50 ms.
@@ -67,6 +75,10 @@ public:
                             "DriveBrake: timeout must be finite and >= 0");
     }
 
+    /// Arm: reset the settle window, restart the watchdog, and empty the twist-averaging
+    /// ring so a re-run never averages across the previous stop. Goes straight to
+    /// MotionState::Running — this is the one primitive that never reports
+    /// WaitingForEstimate. Re-callable: a finished brake re-arms completely.
     void start() override {
         exit_.start();
         reason_ = control::ExitReason::Running;
@@ -77,6 +89,14 @@ public:
         ringNext_ = 0;
     }
 
+    /// One tick. Re-commands Brake + 0 V (idempotent), then judges the estimated speed norm
+    /// |v| + rotationRadius·|ω| — in/s, folding rotation into linear currency so a spinning
+    /// robot is not "stopped" — against config.brakeSettle. The norm is built from the
+    /// kTwistAvgTicks-tick VECTOR average of the localizer's twist, not the raw one, so the
+    /// first few ticks after start() average over fewer samples. TimedOut also raises
+    /// FaultCode::MotionTimeout. Precondition: start() was called. Once a verdict is
+    /// reached, later calls return it and command nothing further, and emit no record —
+    /// the motors were already left at 0 V.
     [[nodiscard]] control::ExitReason tick() override {
         SHULIB_PRECONDITION(state_ != MotionState::Idle, "DriveBrake::tick: start() not called");
         if (reason_ != control::ExitReason::Running) {
@@ -150,8 +170,19 @@ public:
         emitRecordFor(deps_.ctx->clock().now(), units::Time{0.0}, 0.0);
     }
 
+    /// The verdict of the last tick(): Running until the AVERAGED speed norm settles, then
+    /// Settled / TimedOut / Cancelled, held unchanged from then on. Running before the first
+    /// tick(). Settled is a claim about what the estimate can certify, not about ground-truth
+    /// stillness (header).
     [[nodiscard]] control::ExitReason exitReason() const noexcept override { return reason_; }
+
+    /// Idle before start(); Running from start() onward — WaitingForEstimate is the one
+    /// MotionState this primitive never reports — then Settled / TimedOut / Cancelled. This
+    /// is the value the record stream carries in DebugRecord.activeCommandState.
     [[nodiscard]] MotionState state() const noexcept override { return state_; }
+
+    /// The literal "DriveBrake" — what result lines and the MOTION_TIMEOUT fault name this
+    /// motion, so a stop that never certified is distinguishable from a move that failed.
     [[nodiscard]] const char* name() const noexcept override { return "DriveBrake"; }
 
 private:

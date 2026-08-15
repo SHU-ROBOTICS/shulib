@@ -46,6 +46,17 @@
 
 namespace shulib::hal::pros {
 
+/// IOptical over pros::Optical — the game-object colour/proximity confirm sensor behind the HAL.
+/// Every reader SCREENS the device's failure sentinel and returns the last good value instead of
+/// the failure: never INFINITY, which would break the F4 finiteness contract downstream, and never
+/// a 0 written OVER a good reading, because hue 0.0 IS a colour (red) — a zeroed failure would
+/// answer "what colour is this game piece" confidently and wrongly. The cache itself STARTS at
+/// 0.0, so a sensor that has never once read successfully (unplugged at boot) does serve
+/// hue() == 0.0 on every call; faultedReads(), which counts every screen, is the only channel that
+/// separates that from a sensor staring at a steady red object, because this seam has no
+/// confidence() to say so (T7).
+/// The readers are const but update that held-value cache, so const here does not mean safe to
+/// poll from two tasks at once. Raising a fault is the loop layer's job, not this seam's.
 class ProsOptical final : public IOptical {
 public:
     /// `port`: 1..21.
@@ -62,6 +73,9 @@ public:
         return lastHue_;
     }
 
+    /// Colour purity in [0, 1]: how strongly coloured the reading is, independent of how bright.
+    /// A low saturation means hue() is describing something near grey and is not a colour call
+    /// worth acting on. Sentinel-screened to last good (T7); 0.0 until the first successful read.
     [[nodiscard]] double saturation() const override {
         const double raw = sensor_.get_saturation();
         if (!std::isfinite(raw)) {
@@ -72,6 +86,8 @@ public:
         return lastSaturation_;
     }
 
+    /// The light level the sensor sees, in [0, 1] — a brightness, not a distance; proximity() is
+    /// the distance channel. Sentinel-screened to last good (T7); 0.0 until the first good read.
     [[nodiscard]] double brightness() const override {
         const double raw = sensor_.get_brightness();
         if (!std::isfinite(raw)) {

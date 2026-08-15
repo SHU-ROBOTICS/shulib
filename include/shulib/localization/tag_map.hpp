@@ -66,15 +66,22 @@ enum class TagProvenance : std::uint8_t {
 
 /// One tag's placement on the field, with its provenance attached inseparably.
 struct TagPlacement {
-    int id = -1;
+    int id = -1;  ///< the detector's AprilTag id; must be ≥ 0, so the -1 default is unaddable
     /// Field pose; heading = the direction the tag's outward normal points (header note).
     math::Pose2d fieldPose{};
+    /// Where `fieldPose` came from. Unspecified — the default — is the one value add() refuses:
+    /// "nobody said" is exactly the answer this type exists to make impossible.
     TagProvenance provenance = TagProvenance::Unspecified;
     /// The citation, the measurement method, or the reason this is a guess. Must be non-empty.
     /// A static string literal: this type stores the pointer, it does not own the text.
     const char* source = nullptr;
 };
 
+/// A fixed-capacity id → field-pose table, plus the one rigid-body inversion that turns a tag
+/// sighting into a robot pose. It starts EMPTY and ships empty deliberately — no published VEX
+/// AprilTag layout exists to seed it with, and an invented default would localize every team that
+/// forgot to override it against fiction (header note). Add-only, allocation-free, clock-free and
+/// HAL-free: build it once at setup, then only read it.
 class TagMap {
 public:
     /// Enough for a VEX field's worth of tags with room to spare. Fixed so the lookup on the
@@ -110,7 +117,13 @@ public:
         return nullptr;
     }
 
+    /// How many placements are registered, 0..kMaxTags. There is no remove and no clear, so this
+    /// only ever grows.
     [[nodiscard]] std::size_t size() const noexcept { return count_; }
+
+    /// True until the first add() — and the state a build given no field layout stays in for the
+    /// whole match, which is why an empty map makes the tag corrector decline every sighting
+    /// instead of quietly correcting against a guess.
     [[nodiscard]] bool empty() const noexcept { return count_ == 0; }
 
     /// True if ANY registered tag pose is an invented number. A run anchored to invented field

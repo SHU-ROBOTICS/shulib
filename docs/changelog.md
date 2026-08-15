@@ -16,6 +16,46 @@
 
 ## API 2.1
 
+### 2026-08-14 — the API reference now covers the whole public API — no API change
+
+No library code changed: not a signature, not a default, not a behaviour. This entry is here
+because what the documentation *promises* changed, and because one of those promises is
+enforced by a build gate you will meet if you contribute.
+
+**The reference went from 2 documented types to every public entity in every shipped header** —
+117 pages covering **1,625** types, members, nested types, free functions, namespace-scope
+constants and type aliases, plus an [A–Z index](api/all-entities.md) of all of them. The
+generator's target list is now a glob over `include/shulib/`, so a header added later is covered
+the moment it exists rather than when someone remembers to list it.
+
+**The coverage gate grew with it.** A public entity anywhere under `include/shulib/` with no
+`///` documentation now fails the build, naming the entity, its file and its line. If you are
+adding to a shipped header, that is the one new obligation: say what it is *for*.
+
+**Being documented does not freeze anything.** The distinction matters and is easy to
+mis-read: a change to a *frozen* signature (`Chassis` = F6, `Routine` = F10) fails a
+compile-time pin that names the register row, and costs a major version bump plus a migration
+note. A change to a documented-but-unfrozen seam costs one comment edit and a regeneration.
+Freeze Register rows F11–F14 previously said those seams were deliberately ungated for exactly
+this fear; all four are **amended** rather than silently overridden, and their freeze triggers
+are unchanged.
+
+**Three locked contracts were not in the reference at all**, and nobody could have known from
+reading it: the generator was structurally blind to types with a base-class list, enums with an
+explicit underlying type, and everything declared at namespace scope — so the coordinate frame
+(`math::Frame` and its two conversions), the accuracy targets (`spec/accuracy.hpp`) and the
+units vocabulary (`units::Length`, `Time`, `Voltage`, …) produced no output whatsoever. They are
+there now.
+
+**The site is easier to move around**, which matters more at 117 pages than at 2: the top-level
+areas are tabs, subsystem groups collapse, each section's overview is its own landing page, and
+each header's design commentary folds when it runs long. The nav is generated from the same list
+as the pages and byte-checked, because a page missing from the nav was measured to publish
+*unreachable*, with exit code 0 and an INFO line.
+
+**Breaking:** nothing. **What you must do:** nothing, unless you contribute to a header — then
+write a `///` on anything public you add.
+
 ### 2026-08-14 — the mechanism-sensor adapters land (`hal/pros/`, second half) — additive
 
 The other half of the hardware binding: PROS-backed adapters for the mechanism seams —

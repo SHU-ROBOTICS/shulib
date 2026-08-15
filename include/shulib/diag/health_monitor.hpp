@@ -62,6 +62,10 @@
 
 namespace shulib::diag {
 
+/// The trip points HealthMonitor compares each tick's observables against. Every number here is
+/// PROVISIONAL hardware guesswork rather than measurement — the V5's real cutoff under load and
+/// the real thermal droop onset on our motors are both unmeasured until the on-robot phase
+/// (register HA-42, HA-44) — so treat the defaults as a starting point to tune, not calibration.
 struct HealthMonitorConfig {
     /// Battery voltage at/below which a BROWNOUT episode trips. PROVISIONAL (A4: HA-42).
     units::Voltage brownoutVolts{10.5};
@@ -72,6 +76,13 @@ struct HealthMonitorConfig {
     double maxMotorTempC = 55.0;
 };
 
+/// Turns per-tick sensor and power observables into FaultCode raises. EDGE-TRIGGERED per EPISODE:
+/// a pathology that persists for 500 ticks is ONE fault, not 500, and each condition re-arms only
+/// once it clears — brownout with hysteresis on top, so a pack sagging around the threshold under
+/// a pulsing load cannot chatter episodes. It takes plain VALUES rather than component
+/// references, because diag/ is a dependency leaf and may not name estimator types; the caller
+/// reads them from the components it already owns. Timing is deliberately not here — LoopMonitor
+/// owns overruns. Single-task by contract, like the rest of diag/.
 class HealthMonitor {
 public:
     /// The per-tick observables. The caller reads these from the components it
@@ -93,6 +104,15 @@ public:
     // observable; building the windowed cross-check into the estimator is E-phase
     // work (fault.hpp: OdoStuck is "raised by the C/E layers").
 
+    /// `faults` is borrowed, not owned, and must outlive the monitor — which only ever raises
+    /// into it and never clears it. `config` is COPIED, and checked here rather than at the first
+    /// trip, but the three thresholds are NOT checked alike. brownoutVolts and maxMotorTempC must
+    /// each be finite and > 0; brownoutRecoverVolts is only ordered — `>= brownoutVolts`, so
+    /// hysteresis running backwards is a precondition failure, and a NaN is caught only as a side
+    /// effect of failing that comparison. A recover level of +Inf therefore CONSTRUCTS: the
+    /// re-arm test in tick() (`v >= brownoutRecoverVolts`) can then never be true, brownoutActive_
+    /// never clears, and the whole run reports at most one brownout episode however many times
+    /// the pack collapses. Pass a finite recover level.
     HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
         : faults_{faults}, cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.brownoutVolts.value())

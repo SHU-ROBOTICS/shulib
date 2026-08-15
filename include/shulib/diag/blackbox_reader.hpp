@@ -87,6 +87,20 @@ enum class ReadStatus : std::uint8_t {
     return "UNKNOWN";
 }
 
+/// The decoder for a blackbox file: point it at bytes the caller already holds — it
+/// BORROWS the span, copies nothing and allocates nothing — and pull frames with next()
+/// until that returns false. Three rules it will not bend. A file this build cannot
+/// interpret is REFUSED WHOLE: status() says why and not one frame is delivered, because a
+/// number read wrongly but confidently sends an investigation somewhere false. It never
+/// throws and never reads past the end, which matters most for the damaged files that
+/// matter most. And truncation is a RESULT, not an error: every frame before the cut is
+/// delivered, truncated() is true, sawEnd() is false — the exact signature a brownout
+/// leaves. Frame kinds this build does not know are skipped by their declared length and
+/// counted in skippedFrames(), which is what lets a v1 reader survive a later writer.
+/// There is deliberately NO per-frame checksum, so a bit flip landing on a merely-wrong
+/// value inside a known frame decodes silently as that value (measured, not assumed — the
+/// header states the boundary in full). A consumer needing end-to-end integrity must add
+/// its own check rather than inherit one from here that does not exist.
 class BlackboxReader {
 public:
     /// One frame as delivered by next(): its type and a view of its payload, valid for

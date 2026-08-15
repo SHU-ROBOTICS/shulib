@@ -15,7 +15,8 @@
 //
 // ── THE TWO-METHOD SHAPE, AND WHY IT IS NOT NEGOTIABLE (chunk tension T4) ───────────────────
 //   poll()     — call at VISION cadence, OFF the control loop. Reads ITagSource::tags().
-//   propose()  — call every control tick. Reads the snapshot poll() left. NEVER touches the HAL.
+//   propose()  — call every control tick. Reads the snapshot poll() left, plus the clock and the
+//                IMU live. It NEVER touches ITagSource — that is what keeps it allocation-free.
 //
 // `ITagSource::tags()` returns `std::vector<TagObservation>` BY VALUE and is FROZEN (F4) — it
 // cannot be changed, and it heap-allocates on every call. hal/vision.hpp is explicit that vision
@@ -133,6 +134,9 @@ struct AprilTagCorrectorConfig {
     /// (hal/vision_conversion.hpp) makes the orientation untrustworthy well before the position
     /// is. PROVISIONAL (A4: HA-73).
     units::Length minRange{6.0};
+    /// Upper edge of that band (inches, from the robot centre). An observation outside
+    /// [minRange, maxRange] is DISCARDED, not down-weighted — the blunt instrument E3 chose over
+    /// inventing a second noise number for heading. Precondition: maxRange > minRange.
     units::Length maxRange{72.0};
     /// Detector confidence below this is not worth folding — the tag analogue of E2's
     /// sensor-quality ceiling (D7): without it, a 0.05-confidence detection is still folded with
@@ -146,6 +150,8 @@ struct AprilTagCorrectorConfig {
     /// Position 1σ of a tag fix at zero range and confidence 1, and its growth per inch of
     /// range. PROVISIONAL (A4: HA-76).
     units::Length baseStdDev{1.0};
+    /// Growth of that 1σ per inch of RANGE — inches of σ per inch, so 0 makes a fix's σ
+    /// range-independent. Must be >= 0.
     double stdDevPerInch = 0.02;
     /// Gate width in units of σ_eff, same meaning as E2's. PROVISIONAL (A4: HA-77).
     double gateSigma = 4.0;
@@ -157,6 +163,18 @@ struct AprilTagCorrectorConfig {
     double driftStdDevPerInch = 0.02;
 };
 
+/// The corrector that turns one tag sighting into an ABSOLUTE field pose — position AND heading,
+/// making it the first source in the tree that can tell the estimator which way it is actually
+/// pointing. THE TWO-METHOD SHAPE IS THE CONTRACT, and getting it wrong fails silently: poll() is
+/// the ONLY method that touches ITagSource, whose tags() returns a std::vector by value and so
+/// heap-allocates, which is why poll() belongs on a VISION-rate task and propose() can run every
+/// control tick allocating nothing. propose() is not sensor-free, though — it reads the injected
+/// clock and the IMU (heading AND yaw rate) on every call, so both must be live and wired before
+/// the control loop starts. A corrector nobody polls proposes nothing, forever — pollCount() and
+/// a RejectedNoFix verdict every tick are what make that diagnosable. It picks the single best-σ
+/// tag rather than averaging several, it computes no PnP (the seam hands it an already-reduced
+/// pose), it owns no tag map, and it never writes a pose or a heading: it only ever PROPOSES, and
+/// how far the estimate moves is the fusion policy's bounded nudge.
 class AprilTagCorrector final : public ICorrector {
 public:
     /// Ticks of predicted-pose history kept for latency compensation. 64 ticks is ~0.64 s at
@@ -417,6 +435,14 @@ public:
         return p;
     }
 
+    /// The stable telemetry id given at construction ("tags" unless overridden). Read it as an
+    /// IDENTITY, not as attribution: the Localizer stamps AppliedCorrection::source with the
+    /// FIRST corrector in registration order that returned a VALID proposal that tick, while the
+    /// complementary policy folds the sum of every accepted proposal — so with two correctors
+    /// registered the name tells you who was asked first, not whose fix moved the estimate. It
+    /// also carries this name on the other path: when nothing reached the policy, source names
+    /// the corrector whose DECLINE the record is reporting. Exact with one corrector only. The
+    /// pointer is stored, NOT copied, so the caller's string must outlive this corrector.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
     // ── per-source accounting (the "visible when vision is not helping" requirement) ────────
@@ -428,6 +454,9 @@ public:
     [[nodiscard]] int lastTagId() const noexcept { return lastTagId_; }
     /// Frames taken from the tag source since construction. Zero means nobody is polling.
     [[nodiscard]] std::uint32_t pollCount() const noexcept { return pollCount_; }
+    /// Valid proposals returned since construction (the Localizer screens them again, and the
+    /// fusion policy may still gate one, so this is not a count of estimate moves). At most ONE
+    /// per polled frame — a frame is folded once — so it can never exceed pollCount().
     [[nodiscard]] std::uint32_t acceptedFixes() const noexcept { return accepted_; }
     /// Ticks before the very first poll — the "nobody wired the vision task" number.
     [[nodiscard]] std::uint32_t noFrameTicks() const noexcept { return noFrameTicks_; }

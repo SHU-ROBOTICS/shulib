@@ -40,6 +40,12 @@
 
 namespace shulib::hal::pros {
 
+/// ITickPacer on the robot: blocks until the next tick boundary via pros::Task::delay_until, so
+/// the tick body's own duration is ABSORBED by the wait instead of added to it. That is the whole
+/// reason it is not pros::delay(kTickMs), which sleeps from NOW and would turn a 2 ms tick body
+/// into a 12 ms loop — 20% slow, forever, with the motion profiles integrating the error.
+/// The cadence anchors on the FIRST pace(), not at construction, so an object built long before
+/// it is used does not try to catch up the ticks it "missed" while nothing was pacing.
 class ProsTickPacer final : public motion::ITickPacer {
 public:
     static constexpr std::uint32_t kTickMs = 10;  ///< the motion tick (HA-32's 100 Hz)

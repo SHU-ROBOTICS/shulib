@@ -24,6 +24,13 @@
 
 namespace shulib::kinematics {
 
+/// A drivetrain's per-wheel linear SURFACE speeds in in/s (units::Velocity, never a bare
+/// double — the units wall reaches the motor edge), indexed in that drivetrain's own
+/// wheel order. Each IKinematics implementation documents its order; this type does not
+/// know which one it is holding, so a set from one drivetrain means nothing to another.
+/// A plain value type with fixed inline capacity and no heap, because one of these is
+/// produced every control tick. The wheel COUNT is fixed at construction — there is no
+/// push or resize, so you build a set of size n and set() into it.
 class WheelSpeeds {
 public:
     /// Hard upper bound on wheel count (see header note). Generous on purpose.
@@ -38,6 +45,9 @@ public:
                             "WheelSpeeds: count must be in [0, kMaxWheels]");
     }
 
+    /// Wheels in the set, fixed at construction: this IS the valid index range for
+    /// operator[] and set(), and 0 for a default-constructed set. For anything
+    /// IKinematics::toWheels() produced it equals that drivetrain's wheelCount().
     [[nodiscard]] int size() const noexcept { return n_; }
 
     /// The i-th wheel speed. Precondition: 0 <= i < size().
@@ -62,6 +72,12 @@ public:
         return units::Velocity{m};
     }
 
+    /// Element-wise comparison within `tol`, which is an ABSOLUTE tolerance in in/s —
+    /// not relative, and not a norm over the set: every wheel must agree on its own.
+    /// Differing sizes compare UNEQUAL rather than tripping a precondition, so it is
+    /// safe to call across drivetrains. Signs matter: a reversed wheel is not
+    /// approximately the forward one. A comparison for tests and assertions, not an
+    /// equivalence relation — tolerance comparison is not transitive.
     [[nodiscard]] bool approxEqual(const WheelSpeeds& o, double tol = 1e-9) const noexcept {
         if (n_ != o.n_) {
             return false;

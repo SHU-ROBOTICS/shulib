@@ -79,6 +79,9 @@ enum class MotionOutcome : std::uint8_t {
 struct MotionResult {
     std::uint32_t id = 0;            ///< the command id it ran under
     std::string_view name{};         ///< IMotion::name() (stable literal)
+    /// How the motion ended. Drives the glanceable pass/fail column — only Settled renders ✓ —
+    /// and decides whether `abortFault` is meaningful (it is rendered iff this is FaultAbort).
+    /// NOTE the default: an unpopulated record reads as a success.
     MotionOutcome outcome = MotionOutcome::Settled;
     FaultCode abortFault = FaultCode::None;  ///< causal code iff FaultAbort
     units::Time duration{};          ///< end − start

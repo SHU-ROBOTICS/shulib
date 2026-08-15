@@ -7,8 +7,8 @@
 // thing that carries an explicit statement of HOW WRONG IT MIGHT BE.
 //
 // `ComplementaryFusion` is NOT replaced. It stays as the shipped default and the fallback tier
-// (build-order: "the simpler filter is easier to get right and to explain"). Both tiers are
-// selectable, both are tested, and the choice is one constructor argument at the call site.
+// (the development plan's reason: "the simpler filter is easier to get right and to explain").
+// Both tiers are selectable, both are tested, and the choice is one constructor argument.
 //
 // ── WHAT A COVARIANCE BUYS, IN ONE PARAGRAPH ───────────────────────────────────────────────
 // The complementary tier answers "how far should I move toward this fix?" with a constant times
@@ -161,8 +161,9 @@
 // is a number with no unit and no meaning. A reader wanting a 1σ radius takes `√(trace/2)`.
 //
 // ── T2 — "CONSECUTIVE-REJECT RE-INIT" vs §13 #4 "NEVER SNAP" ───────────────────────────────
-// build-order.md asks for a consecutive-reject re-init; §13 #4 forbids snapping; a re-init that
-// teleports the estimate is a snap. The conflict is real as written, and it dissolves the moment
+// The development plan asks for a consecutive-reject re-init; §13 #4 forbids snapping; and a
+// re-init that teleports the estimate IS a snap. The conflict is real as written, and it
+// dissolves the moment
 // "re-init" is read as re-initialising the belief's UNCERTAINTY rather than its VALUE.
 //
 // RULING: on the trigger, this filter does not move the estimate by so much as a thousandth of
@@ -328,12 +329,27 @@ class EkfFusion final : public IFusionPolicy {
 public:
     /// State dimension. Indices are named below so no bare 0..4 appears in the algebra.
     static constexpr std::size_t kN = 5;
-    static constexpr std::size_t kPx = 0;
-    static constexpr std::size_t kPy = 1;
+    static constexpr std::size_t kPx = 0;  ///< field-frame x position, inches
+    static constexpr std::size_t kPy = 1;  ///< field-frame y position, inches
+    /// Heading θ, radians. Re-based to the IMU's answer at the top of every tick rather than
+    /// integrated here: what this filter estimates is the ERROR in that heading, and it leaves as
+    /// a bounded increment. There is no rival heading in the state.
     static constexpr std::size_t kTh = 2;
-    static constexpr std::size_t kVx = 3;
-    static constexpr std::size_t kVy = 4;
+    static constexpr std::size_t kVx = 3;  ///< BODY-frame forward velocity, in/s
+    static constexpr std::size_t kVy = 4;  ///< BODY-frame left velocity, in/s
 
+    /// Validates every tuning value — each has its own precondition message — and COPIES the
+    /// config, so mutating the caller's struct afterward changes nothing here. ALL preconditions
+    /// live in this constructor deliberately: `fuse()` then has none left to raise, which is what
+    /// lets it be non-throwing on the control path.
+    ///
+    /// Construction does NOT initialize the filter. The first `fuse()` adopts the pose it is
+    /// handed as the prior mean and the configured initial std devs as the prior covariance, so an
+    /// EkfFusion never has to be told where the robot starts.
+    ///
+    /// The default config is usable and deliberately conservative — wide priors, a modest gate, so
+    /// the failure mode is "slow to trust" rather than "confidently wrong" — but every number in
+    /// it is a guess until the hardware is measured.
     explicit EkfFusion(const EkfFusionConfig& config = {}) : cfg_{config} {
         SHULIB_PRECONDITION(config.posNoisePerInch >= 0.0, "EkfFusion: posNoisePerInch must be >= 0");
         SHULIB_PRECONDITION(config.posNoiseRate.value() > 0.0, "EkfFusion: posNoiseRate must be > 0");
@@ -366,6 +382,31 @@ public:
         SHULIB_PRECONDITION(config.maxDt > 0.0, "EkfFusion: maxDt must be > 0");
     }
 
+    /// One fusion tick. The file header walks the five steps; the CONTRACT is here.
+    ///
+    /// `predicted` is the Localizer's already-INTEGRATED dead-reckoned pose (field frame, inches
+    /// and radians), never a raw control input — and it must be the pose built on THIS policy's
+    /// own previous answer, because the tick's odometry increment is recovered as
+    /// `predicted.position` minus the position last returned. `valid` holds only proposals the
+    /// Localizer has already screened, folded most-trusted (smallest `positionStdDev`) first.
+    /// `dt` is the tick duration in seconds.
+    ///
+    /// STATEFUL. It advances the state, the covariance and every counter, so calling it twice with
+    /// identical arguments does not give the same answer twice, and a skipped tick loses the
+    /// increment that tick carried. One instance belongs to one Localizer, on one task.
+    ///
+    /// Returns the corrected field position, a bounded heading INCREMENT (never an absolute
+    /// heading — the Localizer folds it into a persistent bias), and the gate audit. It never
+    /// allocates and never throws: every runtime pathology is screened and counted instead.
+    ///
+    /// Degenerate ticks, all of which apply no correction: the first call adopts `predicted` as
+    /// the prior; `dt <= 0` (startup, or the tick after a `setPose` teleport) and `dt > maxDt` (a
+    /// loop stall) re-base onto `predicted` and widen the covariance, counted in `resyncCount()`;
+    /// a non-finite input returns `predicted` untouched, counted in `numericGuardTrips()`.
+    ///
+    /// With NO proposals the answer is not bit-identical to `predicted` the way the complementary
+    /// tier's is — it differs by one tick of velocity filtering, bounded by a fraction of one
+    /// tick's travel and measured to be non-cumulative.
     [[nodiscard]] FusionResult fuse(const math::Pose2d& predicted,
                                     std::span<const CorrectionProposal> valid,
                                     units::Time dt) override {
@@ -453,6 +494,9 @@ public:
     [[nodiscard]] double state(std::size_t i) const noexcept { return x_[i]; }
     /// Body-frame velocity estimate, in/s.
     [[nodiscard]] units::Velocity velocityX() const noexcept { return units::Velocity{x_[kVx]}; }
+    /// The body-frame LEFT (+Y) component, in/s — the `kVy` state. Both velocity getters report
+    /// the filter's own smoothed velocity STATE, which is not `IPoseSource::twist()`: that one is
+    /// a FIELD-frame finite difference of the published pose.
     [[nodiscard]] units::Velocity velocityY() const noexcept { return units::Velocity{x_[kVy]}; }
 
     /// How many times the covariance has been re-initialised (T2). Latched for the run.
@@ -462,12 +506,19 @@ public:
     [[nodiscard]] bool everReinit() const noexcept { return reinitCount_ > 0; }
     /// Consecutive gate rejections right now (resets on any accepted fix).
     [[nodiscard]] int consecutiveRejects() const noexcept { return consecutiveRejects_; }
-    /// Ticks on which the filter re-based instead of predicting (first tick, teleport, stall).
+    /// Ticks on which the filter re-based onto the handed prediction instead of predicting:
+    /// `dt <= 0` (the tick after a `setPose` teleport) and `dt > maxDt` (a loop stall). The FIRST
+    /// tick is NOT counted here — it initialises and returns before this test — so a 0 does not
+    /// rule out the filter having adopted `predicted` wholesale on tick one. Latched for the run.
     [[nodiscard]] std::uint32_t resyncCount() const noexcept { return resyncCount_; }
     /// Times a non-finite intermediate was caught and the update abandoned. Should be 0.
     [[nodiscard]] std::uint32_t numericGuardTrips() const noexcept { return numericGuardTrips_; }
     /// Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
     [[nodiscard]] std::uint32_t acceptedFixes() const noexcept { return acceptedFixes_; }
+    /// …counted per PROPOSAL rather than per tick, and cumulative for the run (neither clears).
+    /// A MALFORMED proposal — non-finite pose, or σ <= 0 — is counted here too, because it fails
+    /// the same test: the gate accepts only a finite distance at or under `gateSigma`, and a NaN
+    /// satisfies no inequality.
     [[nodiscard]] std::uint32_t rejectedFixes() const noexcept { return rejectedFixes_; }
 
     /// How far the last tick's CORRECTIONS moved the position, summed over the proposals folded

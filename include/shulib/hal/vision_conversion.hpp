@@ -96,10 +96,15 @@ namespace shulib::hal {
 /// Pinhole intrinsics, in pixels. Focal lengths must be non-zero; no distortion model — the
 /// adapter is expected to hand over UNDISTORTED corners (R2 owns that, and owns proving it).
 struct CameraIntrinsics {
+    /// Horizontal focal length in PIXELS (the projection is u = fx * X/Z + cx). The 0.0
+    /// default is deliberately unusable: tagCornersToRobotPose rejects |fx| < 1e-9, so an
+    /// intrinsics block nobody filled in fails closed rather than returning a plausible pose.
     double fx = 0.0;
+    /// Vertical focal length in PIXELS (v = fy * Y/Z + cy). Rejected at 0 exactly like fx.
+    /// Equal to fx only for square pixels, which is why the two are carried separately.
     double fy = 0.0;
-    double cx = 0.0;
-    double cy = 0.0;
+    double cx = 0.0;  ///< principal point, PIXELS right from the image origin
+    double cy = 0.0;  ///< principal point, PIXELS DOWN from the image origin (+v is down)
 };
 
 /// Where the camera sits on the robot, in the canonical body frame (F1: +X forward, +Y left).
@@ -107,14 +112,24 @@ struct CameraIntrinsics {
 /// level (A4 register HA-70). One owner for this offset, exactly as gps_conversion.hpp insists for the GPS
 /// lever arm: applying it twice is inches of silent bias.
 struct CameraMount {
-    units::Length x{};
-    units::Length y{};
+    units::Length x{};  ///< camera position FORWARD of the robot origin (body +X)
+    units::Length y{};  ///< camera position LEFT of the robot origin (body +Y is LEFT, F1)
+    /// Direction the OPTICAL AXIS points, CCW-positive from body +X; 0 means the camera looks
+    /// straight forward. This one rotation is ALL that is modelled — the camera is assumed
+    /// level, so there is no mount pitch or roll, and a pitched camera silently becomes a
+    /// range error that nothing downstream can detect.
     math::Angle yaw{};
 };
 
 /// Four image corners in pixels, in the order documented at the top of this file.
 struct TagCorners {
+    /// Pixel column (image RIGHT) of each corner. u[k] and v[k] are the SAME corner — these
+    /// are parallel arrays, not two independent lists. The index order is the one documented
+    /// at the top of this file, and the pixels must already be UNDISTORTED: a cyclic rotation
+    /// of the order changes nothing, but a REVERSED winding is silently catastrophic.
     double u[4] = {0.0, 0.0, 0.0, 0.0};
+    /// Pixel row of each corner, measured DOWN from the image origin (+v is down, the camera
+    /// convention at the top of this file). Paired with u by index.
     double v[4] = {0.0, 0.0, 0.0, 0.0};
 };
 

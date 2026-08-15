@@ -64,6 +64,21 @@
 
 namespace shulib::motion {
 
+/// The glue that makes one run legible end to end: a session header first, a result line at every
+/// motion boundary, a summary at the end. It formats nothing itself — diag/ owns the vocabulary
+/// and the formatters — and it remembers almost nothing: apart from the provenance strings and
+/// the starting battery voltage, everything the summary reports is read LIVE off the scheduler
+/// and its deps at finishRun().
+///
+/// Result lines are STRUCTURAL rather than remembered: construction attaches the reporter as the
+/// scheduler's boundary observer and destruction detaches it, so settle, timeout, cancel, fault
+/// abort and pre-empt each emit their line with no per-verb call a routine could forget.
+///
+/// ONE reporter and ONE scheduler per run — the ordinary auton shape. The scheduler's counters
+/// are lifetime-cumulative and the fault latch clears only at explicit run boundaries, so driving
+/// a second run through the same pair reports the first run's totals over again. Single-task by
+/// contract, and it never throws into the scheduler: an observer that threw would abort the very
+/// motion it exists to describe.
 class RunReporter final : public IMotionObserver {
 public:
     /// `out` is where the report goes (see header: the UNTHROTTLED head);
@@ -81,12 +96,23 @@ public:
         sched_->setBoundaryObserver(this);
     }
 
+    /// Detaches from the scheduler, but only while the scheduler still points at THIS reporter:
+    /// if something else took the observer slot in the meantime, that one is left attached rather
+    /// than silently unhooked. The scheduler must outlive the reporter: this destructor reads it,
+    /// so tearing the scheduler down first is a use-after-free rather than a quiet no-op.
     ~RunReporter() override {
         if (sched_->boundaryObserver() == this) {
             sched_->setBoundaryObserver(nullptr);
         }
     }
 
+    /// Neither copyable nor movable: the scheduler holds a raw back-pointer to this exact object,
+    /// installed by the constructor and by nothing else. A copy would therefore never register —
+    /// the one observer slot would still hold the ORIGINAL, and the copy would be a silent second
+    /// reporter that emits a header and a summary but never a single result line (its destructor's
+    /// identity check correctly declines to unhook the original on the way out). A move is worse:
+    /// the members are raw pointers, so the scheduler would be left aimed at the husk that was
+    /// moved out of. Construct it where it will live.
     RunReporter(const RunReporter&) = delete;
     RunReporter(RunReporter&&) = delete;
     RunReporter& operator=(const RunReporter&) = delete;

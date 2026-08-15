@@ -24,19 +24,44 @@
 
 namespace shulib::control {
 
+/// The three constants of V = kS·sign(v) + kV·v + kA·a, characterized OFFLINE by sysid — nothing
+/// in this library tunes them. They describe ONE wheel, against that wheel's surface speed in
+/// in/s. All-zero (the default) is legal and yields 0 V for every request, so an uncharacterized
+/// drivetrain goes dead rather than wrong.
 struct FeedforwardGains {
-    double kS = 0.0;  // volts        (static friction)
-    double kV = 0.0;  // volt·s/in    (velocity)
-    double kA = 0.0;  // volt·s²/in   (acceleration)
+    /// Volts to break static friction. Applied at FULL magnitude with the sign of the commanded
+    /// velocity and not at all at exactly v == 0, so the law steps by ±kS across zero.
+    double kS = 0.0;
+    /// Volt·s/in — volts per in/s of wheel surface speed (the back-EMF term; roughly the rail
+    /// voltage divided by free speed).
+    double kV = 0.0;
+    /// Volt·s²/in — the inertia term. 0 (the default) leaves a steady-state-only feedforward:
+    /// correct while cruising, and behind by the whole acceleration term on every ramp.
+    double kA = 0.0;
 };
 
+/// The open-loop half of the control law: the voltage that should ALREADY hold a wheel at the
+/// requested speed, so the PID beside it only has to correct the residual. Stateless and
+/// clock-free — the same arguments always give the same volts, and nothing accumulates between
+/// calls. One instance serves a whole drivetrain: the command pipeline applies it in turn to each
+/// wheel's desaturated speed, because the gains describe a wheel, not a particular motor.
 class Feedforward {
 public:
+    /// Copies `gains`; there is no setter, so re-characterizing means constructing a new
+    /// Feedforward. Rejects a non-finite gain here, at setup, rather than letting a NaN reach a
+    /// motor command later.
     explicit Feedforward(const FeedforwardGains& gains) : g_{gains} {
         SHULIB_PRECONDITION(std::isfinite(g_.kS) && std::isfinite(g_.kV) && std::isfinite(g_.kA),
                             "Feedforward: gains must be finite");
     }
 
+    /// V = kS·sign(v) + kV·v + kA·a for ONE wheel: `velocity` is that wheel's surface speed
+    /// (in/s), `acceleration` its surface acceleration (in/s²), and the result is volts. Only the
+    /// kS term follows sign(v) — the SUM need not, and is not meant to: on a hard deceleration
+    /// kA·a outweighs kS + kV·v and the law asks for voltage AGAINST the direction of travel,
+    /// which is the braking authority kA exists to supply (kS = 1, kV = 0.5, kA = 0.1 at
+    /// v = +10 in/s, a = −100 in/s² gives −4 V). Deliberately UNBOUNDED — the result routinely
+    /// exceeds the rail on an aggressive request, and compensateForBattery() makes it commandable.
     [[nodiscard]] units::Voltage calculate(units::Velocity velocity,
                                            units::Acceleration acceleration) const {
         const double v = velocity.value();
@@ -45,6 +70,9 @@ public:
         return units::Voltage{s + g_.kV * v + g_.kA * a};
     }
 
+    /// Cruise form: the same law with acceleration = 0, i.e. the steady-state voltage that HOLDS
+    /// the wheel at `velocity`. This is the overload the command pipeline uses, because
+    /// WheelSpeeds carries speeds only — there is no per-wheel acceleration channel to pass.
     [[nodiscard]] units::Voltage calculate(units::Velocity velocity) const {
         return calculate(velocity, units::Acceleration{0.0});
     }
@@ -53,9 +81,16 @@ private:
     FeedforwardGains g_;
 };
 
+/// What compensateForBattery() returns: the voltage that may actually be commanded, plus whether
+/// getting it there cost anything. The pair travels together on purpose — a clamped voltage that
+/// arrives without its flag is indistinguishable from a request that simply was not very big.
 struct CompensatedVoltage {
-    units::Voltage voltage;
-    bool brownoutLimited;  // true when |desired| exceeded the battery and was clamped
+    units::Voltage voltage;  ///< `desired` clamped into ±battery; safe to hand to IMotor
+    /// True when |desired| exceeded the battery and was cut down — the drive asked for more than
+    /// the rail could give and is now voltage-starved, not merely slow. Nothing in the library
+    /// acts on this today (the command pipeline reads only `voltage`); it is the channel a caller
+    /// reads to tell those two apart.
+    bool brownoutLimited;
 };
 
 /// Limit `desired` to what `battery` can deliver (±battery), flagging saturation.

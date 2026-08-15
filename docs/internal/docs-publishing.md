@@ -7,12 +7,23 @@
 
 ## The honest status, first
 
-**Nothing is published.** There is no website, no GitHub Pages configuration, and one CI
-workflow (`.github/workflows/ci.yml`) that builds and tests. The roadmap's M7 line — *"generated
-API docs published to the team website"* — is therefore `[~]`, not `[x]`, and the remaining half
-is named there.
+**UPDATED 2026-08-14 — this section said "Nothing is published" until DOCS2 read it back.**
 
-What D3 *did* deliver is the half that is documentation work rather than infrastructure work:
+The site is live: **docs.shurobotics.com**, over enforced HTTPS, published from `main` by
+`.github/workflows/pages.yml`, which runs `check-fresh` before it renders anything. The roadmap's
+M7 line is `[x]`. The paragraph below describes what D3 delivered and is kept because the
+reasoning still holds; it is history, not status.
+
+Two things have changed since it was written, and both matter to anyone editing the reference:
+
+- **DOCS2 pointed the generator at the whole tree.** `docs/api/` is a page per shipped header —
+  117 of them plus an A–Z index, covering 1,625 public entities — and the target list is a GLOB,
+  not a list. See the regeneration table at the bottom of this file.
+- **The site nav is generated too**, into `mkdocs.yml` between markers, and byte-checked by
+  `check-fresh`. A page absent from the nav was measured to publish *unreachable* with exit
+  code 0, which is not a failure any gate would have reported.
+
+What D3 delivered is the half that is documentation work rather than infrastructure work:
 
 - the reference is **generated** from the headers (`tools/api_doc_tool.py`),
 - its output is **web-portable**: plain CommonMark with relative links and explicit `<a id>`
@@ -111,10 +122,13 @@ the one moment where it is most authoritative-looking.
 
 | You changed | Do |
 |---|---|
-| A `///` comment in `chassis.hpp` or `routine.hpp` | `python3 tools/api_doc_tool.py generate`, commit the result |
-| A signature in either header | The same — and read the freeze procedure first; both surfaces are locked (F6, F10) |
+| A `///` comment in **any** header under `include/shulib/` | `python3 tools/api_doc_tool.py generate`, commit the result |
+| A signature on a FROZEN surface (`Chassis` = F6, `Routine` = F10) | Read the freeze procedure FIRST. The freshness gate fires before the signature pins and names the wrong problem; regenerating would only make the break look intentional |
+| A signature anywhere else | `generate`, commit. Being documented is not being frozen |
 | A code example in a chapter | Change `test/*example*_test.cpp` first, re-quote the listing from it |
-| Added a header that should be documented | Add it to `TARGETS` in `tools/api_doc_tool.py`, then generate |
+| **Added a header** | **Nothing.** The target list is a glob over `include/shulib/` — the header is covered because it exists. Write a `///` on everything public in it, run `generate`, and commit the new page *and* the `mkdocs.yml` nav line the tool writes |
+| Added a public member to any shipped header | Write its `///`. The build fails naming it, its file and its line; an empty `///` does not count |
+| Deleted or renamed a header | `generate`, then delete the orphaned page — `check-fresh` fails on a page the generator no longer produces |
 
 The build runs `check-coverage`, `check-fresh`, `check-examples` and `check-removability` before
 it compiles anything, so forgetting any of the above fails locally, not in review.

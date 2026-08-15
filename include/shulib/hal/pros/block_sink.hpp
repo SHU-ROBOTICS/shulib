@@ -61,6 +61,13 @@
 
 namespace shulib::hal::pros {
 
+/// IBlockSink over a PROS FILE* on the V5's SD card — where the blackbox's binary blocks
+/// physically land. It OWNS the file: opened truncating at construction and closed at
+/// destruction, so one instance is one file per boot and it must outlive every SdSink
+/// writing through it. A MISSING CARD IS NOT AN ERROR — construction still succeeds and
+/// the sink simply refuses (isOpen() false, every write()/flush() false), because a robot
+/// must still drive without a card, and E1's drop-and-count design already handles a sink
+/// that says no. It also owns the /usd/ prefix: pass a BARE file name.
 class ProsBlockSink final : public IBlockSink {
 public:
     /// Open `<mountRoot><fileName>` for binary writing (truncating — one
@@ -85,13 +92,18 @@ public:
         }
     }
 
+    /// fclose the file, which also pushes newlib's remaining buffer out. Nothing else
+    /// holds this FILE*, so anything still writing through this sink — an SdSink, most
+    /// likely — must be destroyed first. No-op on a refusing sink.
     ~ProsBlockSink() override {
         if (file_ != nullptr) {
             std::fclose(file_);
         }
     }
 
-    // Owns the FILE* — copying would double-close it (header note).
+    /// Non-copyable and non-movable: this adapter OWNS the FILE*, and a second handle to
+    /// it would fclose the same file twice. (ProsCharSink merely borrows stdout, which is
+    /// why it carries no such restriction — the difference is ownership, not policy.)
     ProsBlockSink(const ProsBlockSink&) = delete;
     ProsBlockSink& operator=(const ProsBlockSink&) = delete;
     ProsBlockSink(ProsBlockSink&&) = delete;

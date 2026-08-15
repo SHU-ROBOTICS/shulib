@@ -33,6 +33,12 @@
 
 namespace shulib::hal::pros {
 
+/// The on-robot ICharSink: TermSink's diagnostic bytes onto the V5's USB serial,
+/// where `pros terminal` displays them. Writes through newlib stdout with
+/// fwrite, so it pulls in <cstdio> and no PROS header at all. FLUSHES ON EVERY
+/// write — boot-banner visibility is worth more here than buffered throughput,
+/// and the diagnostics layer above already rate-limits. Cannot throw, as the
+/// ICharSink contract requires.
 class ProsCharSink final : public ICharSink {
 public:
     /// `out` must outlive the sink; defaults to the V5 USB serial (stdout).

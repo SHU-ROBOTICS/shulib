@@ -44,6 +44,14 @@
 
 namespace shulib::diag {
 
+/// The three rows the V5 controller's LCD shows when a run stops: a one-word state plus the run
+/// clock, the FIRST latched fault BY NAME, then battery and total fault count. Built for the
+/// student standing at the field with no laptop and a robot that just stopped — it converts "it
+/// died" into a fault name someone can act on. update() DIFFS: only rows whose text changed reach
+/// the device, because V5 text writes are slow and firmware-rate-limited, and the clock and
+/// battery quantize (0.1 s, 0.1 V) so jitter alone cannot force a repaint. The clock still ticks
+/// visibly, on purpose — a frozen screen and a crashed program must not look identical.
+/// Reads the latch and battery it is given; owns nothing, raises nothing, never throws.
 class ControllerFaultDisplay {
 public:
     /// All three must outlive the display.

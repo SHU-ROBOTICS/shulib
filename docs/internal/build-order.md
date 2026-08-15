@@ -629,14 +629,24 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: the RELEASE to `main`, then R3 — first motion.** DOCS1 is COMPLETE
-([brief](chunks/DOCS1-full-documentation-pass.md), [record](chunks/DOCS1-COMPLETED.md)): the
-whole documentation surface was read end to end, the release gate that was red is green, and
+**Next: the RELEASE to `main`, then R3 — first motion.** DOCS1 and DOCS2 are both COMPLETE.
+
+DOCS1 ([brief](chunks/DOCS1-full-documentation-pass.md), [record](chunks/DOCS1-COMPLETED.md)):
+the whole documentation surface was read end to end, the release gate that was red is green, and
 every gate passes. The release is a two-step tree operation, not a `merge --squash` — the
-completion record carries the verified mechanic. **Two open questions ride with the push**:
-whether to push at all, and HTTPS. **DOCS2** (the generated reference over the whole public
-API, ~400 doc comments plus a parser extension) is briefed and deliberately deferred until
-after the release. Originally called 2026-08-14: 23 chunks have landed, and merging to `main` is what PUBLISHES to docs.shurobotics.com — so the documentation pass is the release gate, not tidying before it. R1a and R1b are DONE.
+completion record carries the verified mechanic. **One open question still rides with the push**
+— whether to push at all; HTTPS was settled on 2026-08-14 (certificate issued, enforced,
+verified from outside).
+
+DOCS2 ([brief](chunks/DOCS2-full-api-reference.md), [record](chunks/DOCS2-COMPLETED.md)) ran
+AFTER DOCS1 rather than after the release, on the team lead's call. It took the generated
+reference from 2 documented types to **1,625 public entities across 115 headers**. The brief
+sized the work at 971 items / 399 undocumented; that was the visible fraction, because the
+parser was structurally blind to types with a base-class list, enums with an underlying type,
+and everything at namespace scope — **three LOCKED contracts produced no output at all**. The
+real work was 631 comments plus a parser rebuild, validated against clang's AST (0 divergences
+over 115 headers) and a 16-mutation campaign (16/16 red, after the first pass found three holes
+in the self-test). Freeze Register rows F11–F14 are **amended**, not silently overridden.
 
 **Do NOT measure `main` by commit distance.** `main` is a *squash* of `release/v2` with `docs/internal/` dropped, so its history is deliberately disjoint and `git rev-list --count main..HEAD` returns a meaningless number (this line said "195 commits behind" until DOCS1, which is the number that correction was written to kill — it just never reached this file). Ask what `main` **contains**: `git cat-file -e main:<path>`. Measured that way, `main` is current through Phase D and is missing E1–E4, F1, F2, R1a and R1b.**
 

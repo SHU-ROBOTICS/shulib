@@ -4,9 +4,11 @@
      The host test build fails if this file is out of date, so an edit here
      is reverted by the next build rather than reviewed. Edit the header. -->
 
-# `Chassis` — the frozen facade
+# `chassis.hpp`
 
-The public surface every autonomous routine is written against. Frozen as register row F6 on 2026-08-12: every member below changes only with a major API-version bump plus a migration note.
+Chassis — the public facade every auton is written against.
+
+This header declares **4** types (36 members).
 
 Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chassis/chassis.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -29,8 +31,8 @@ Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chass
   - [`Chassis`](#chassis-chassis)
   - [`Chassis (overload 2)`](#chassis-chassis-2)
   - [`Chassis (overload 3)`](#chassis-chassis-3)
-  - [`operator=`](#chassis-operator-assign)
-  - [`operator= (overload 2)`](#chassis-operator-assign-2)
+  - [`operator=`](#chassis-operator-eq)
+  - [`operator= (overload 2)`](#chassis-operator-eq-2)
   - [`~Chassis`](#chassis-destructor-chassis)
   - [`moveTo`](#chassis-moveto)
   - [`strafeTo`](#chassis-strafeto)
@@ -57,9 +59,13 @@ Extracted from [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chass
 
 ## `struct ChassisConfig`
 
+```cpp
+struct ChassisConfig
+```
+
 Everything configurable about a Chassis, in one place. Both members are the lower layers' own config types passed through WHOLE — so an additive field there (e.g. a future per-wheel speed budget in MotionConfig, the C3 §11 flag) flows through this surface with no reshape.
 
-*Declared at [`include/shulib/chassis/chassis.hpp:173`](../../include/shulib/chassis/chassis.hpp#L173).*
+*struct, declared at [`include/shulib/chassis/chassis.hpp:173`](../../include/shulib/chassis/chassis.hpp#L173).*
 
 <a id="chassisconfig-motion"></a>
 
@@ -89,9 +95,13 @@ fault policy mask + loop monitor
 
 ## `struct MotionOptions`
 
+```cpp
+struct MotionOptions
+```
+
 Per-call knobs for the blocking verbs. 0 (the default) = "use the ChassisConfig value". Validated finite and >= 0 at each call.  FROZEN F6 NOTE (D2): the fields BELOW are frozen (name/type/meaning); the field SET is deliberately additive-open — a future knob is a new field with a 0/"config default" meaning, never a reshape of these.
 
-*Declared at [`include/shulib/chassis/chassis.hpp:184`](../../include/shulib/chassis/chassis.hpp#L184).*
+*struct, declared at [`include/shulib/chassis/chassis.hpp:184`](../../include/shulib/chassis/chassis.hpp#L184).*
 
 <a id="motionoptions-timeout"></a>
 
@@ -145,9 +155,13 @@ Reject nonsense before anything moves: every field must be finite and >= 0. Call
 
 ## `struct TrajectoryResult`
 
+```cpp
+struct TrajectoryResult
+```
+
 What followTrajectory did — which leg count it completed and how the last attempted leg exited. (ExitReason alone would lose WHERE the chain broke; the next thing a routine does after a failed trajectory legitimately depends on how far it got.)
 
-*Declared at [`include/shulib/chassis/chassis.hpp:217`](../../include/shulib/chassis/chassis.hpp#L217).*
+*struct, declared at [`include/shulib/chassis/chassis.hpp:217`](../../include/shulib/chassis/chassis.hpp#L217).*
 
 <a id="trajectoryresult-exit"></a>
 
@@ -201,9 +215,13 @@ True only if the last attempted leg SETTLED and every leg was completed. Note wh
 
 ## `class Chassis`
 
+```cpp
+class Chassis
+```
+
 The public facade every autonomous routine is written against: the blocking motion verbs, the frame-explicit manual verb, control, state, and the Tier-3 seam — over one owned MotionScheduler. FROZEN (register row F6, locked 2026-08-12); the file banner above carries the design reasoning behind every shape here, and is meant to be read before changing anything.
 
-*Declared at [`include/shulib/chassis/chassis.hpp:237`](../../include/shulib/chassis/chassis.hpp#L237).*
+*class, declared at [`include/shulib/chassis/chassis.hpp:237`](../../include/shulib/chassis/chassis.hpp#L237).*
 
 <a id="chassis-chassis"></a>
 
@@ -237,11 +255,11 @@ Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in
 Chassis(Chassis&&) = delete
 ```
 
-Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in place by its own self-referential command-id stamp, so a copy or a move would leave that stamp pointing at the wrong object. Hold a `Chassis&`; construct it once, where it will live.
+*Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/chassis.hpp:255`](../../include/shulib/chassis/chassis.hpp#L255).*
 
-<a id="chassis-operator-assign"></a>
+<a id="chassis-operator-eq"></a>
 
 ### `Chassis::operator=`
 
@@ -249,11 +267,11 @@ Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in
 Chassis& operator=(const Chassis&) = delete
 ```
 
-Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in place by its own self-referential command-id stamp, so a copy or a move would leave that stamp pointing at the wrong object. Hold a `Chassis&`; construct it once, where it will live.
+*Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/chassis.hpp:256`](../../include/shulib/chassis/chassis.hpp#L256).*
 
-<a id="chassis-operator-assign-2"></a>
+<a id="chassis-operator-eq-2"></a>
 
 ### `Chassis::operator= (overload 2)`
 
@@ -261,7 +279,7 @@ Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in
 Chassis& operator=(Chassis&&) = delete
 ```
 
-Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in place by its own self-referential command-id stamp, so a copy or a move would leave that stamp pointing at the wrong object. Hold a `Chassis&`; construct it once, where it will live.
+*Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/chassis.hpp:257`](../../include/shulib/chassis/chassis.hpp#L257).*
 
@@ -273,7 +291,7 @@ Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in
 ~Chassis() = default
 ```
 
-Neither copyable nor movable: the Chassis OWNS the scheduler, which is pinned in place by its own self-referential command-id stamp, so a copy or a move would leave that stamp pointing at the wrong object. Hold a `Chassis&`; construct it once, where it will live.
+*Covered by the comment on [`Chassis (overload 2)`](#chassis-chassis-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/chassis.hpp:258`](../../include/shulib/chassis/chassis.hpp#L258).*
 
@@ -407,7 +425,7 @@ template <typename Pred> [[nodiscard]] motion::WaitResult waitUntil(Pred&& pred,
 
 Block until `pred()` holds or `timeout` elapses (required, finite, >= 0; 0 = an honest poll) — the return says which. The active motion (if any) keeps ticking throughout; the world keeps advancing. Timing out logs one Warn and raises NO fault (a timed-out wait is a strategy branch, not a pathology). C2's verb, re-exported with typed time at the public edge (D2); the scheduler's own seconds-double signature is interior, per F3's internal-seconds convention.
 
-*function, declared at [`include/shulib/chassis/chassis.hpp:438`](../../include/shulib/chassis/chassis.hpp#L438).*
+*function, declared at [`include/shulib/chassis/chassis.hpp:439`](../../include/shulib/chassis/chassis.hpp#L439).*
 
 <a id="chassis-pose"></a>
 
@@ -520,6 +538,9 @@ The same scheduler, read-only — for counters and last-motion state from a `con
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
+
+<details markdown="1">
+<summary>The header’s own reasoning — 140 lines, click to expand</summary>
 
 ```text
 
@@ -663,3 +684,5 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  Single-task by contract, like everything it composes. Not copyable/movable
  (it owns the scheduler, which is pinned by its self-referential stamp).
 ```
+
+</details>

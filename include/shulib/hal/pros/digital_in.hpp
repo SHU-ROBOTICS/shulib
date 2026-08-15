@@ -50,6 +50,24 @@
 
 namespace shulib::hal::pros {
 
+/// `IDigitalIn` over `pros::adi::DigitalIn` — a limit switch or bumper line behind the HAL.
+///
+/// Binds `get_value()` and NEVER `get_new_press()`: PROS's ADI edge detection CONSUMES the press
+/// as it reads it, so with two consumers one silently misses every press. Edge detection belongs
+/// above the seam in `hal::ButtonEdge`, one instance per consumer. A guard test greps this file to
+/// keep the forbidden binding structurally absent.
+///
+/// A REFUSED READ IS SCREENED, not passed through. `get_value()` answers PROS_ERR on a dead port,
+/// and PROS_ERR is not 0, so an unscreened binding would report a dead port as PRESSED — a homing
+/// switch permanently "pressed" is a lift that believes it is home while it climbs into the hard
+/// stop. This adapter holds the last good level instead and counts the read in `faultedReads()`.
+/// Mapping to `false` would be no better: a hard "released" is as much a lie as a hard "pressed",
+/// and the consumer's cross-checks (homing travel limits) are designed around last-good.
+///
+/// Two constructors, one class: a brain ADI port, or an expander's {smart port, ADI port}. Where
+/// the wire lands is a construction fact, never a type.
+///
+/// `state()` is const but caches, so one instance must not be read concurrently from two tasks.
 class ProsDigitalIn final : public IDigitalIn {
 public:
     /// Brain ADI port ('a'–'h', 'A'–'H', or 1–8).

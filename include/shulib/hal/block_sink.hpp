@@ -39,8 +39,19 @@
 
 namespace shulib::hal {
 
+/// The seam BINARY BLOCKS leave through — an SD-card file on the brain, a captured buffer in a
+/// test — so "the file has these exact bytes" is a claim a host test can assert instead of one
+/// somebody eyeballs. Deliberately a SIBLING of ICharSink rather than a widening of it: ICharSink
+/// promises TEXT, one complete LINE per call, and that promise is what makes TermSink's framing
+/// provable; a blackbox is fixed-width binary carrying every byte value, 0x00 and 0x0A included.
+/// Framing, escaping and structure belong to the FORMAT, never to this interface. Additive, not
+/// one of the frozen F4 ten.
 class IBlockSink {
 public:
+    /// The polymorphic-base special members: a virtual destructor so a sink may be owned and
+    /// destroyed through this interface, and defaulted copy/move because the interface itself
+    /// holds no state. The shipped sinks are held BY REFERENCE and must outlive their user —
+    /// nothing here owns, opens or closes the underlying device.
     virtual ~IBlockSink() = default;
     IBlockSink() = default;
     IBlockSink(const IBlockSink&) = default;

@@ -191,6 +191,12 @@ namespace shulib::motion {
 /// precondition (loudly) rather than hanging.
 class ITickPacer {
 public:
+    /// Interface boilerplate: a public virtual destructor, with the copy/move set
+    /// defaulted back in because declaring a destructor suppresses the implicit MOVE
+    /// constructor and move assignment (the implicit copies survive, merely deprecated —
+    /// spelling all five keeps the intent explicit rather than inherited). The scheduler
+    /// holds a pacer by REFERENCE and never copies, moves or destroys one — the pacer is
+    /// caller-owned and must outlive the scheduler.
     virtual ~ITickPacer() = default;
     ITickPacer() = default;
     ITickPacer(const ITickPacer&) = default;
@@ -215,6 +221,11 @@ enum class WaitResult {
     return 1U << static_cast<unsigned>(code);
 }
 
+/// Scheduler policy, COPIED at construction — mutating the caller's struct afterwards
+/// changes nothing about a live scheduler. The defaults are the competition posture:
+/// abort a motion only when the estimate is lying (ODO_STUCK), tick-time attribution
+/// OFF (nullptr = zero clock calls, zero cost), and a generous advisory plausibility
+/// envelope that never rewrites a pose. Every pointer here must outlive the scheduler.
 struct MotionSchedulerConfig {
     /// Faults that ABORT the active motion when raised during it (header:
     /// "the fault policy"). Default: ODO_STUCK only — the one code that means
@@ -279,13 +290,22 @@ public:
                                 const diag::FaultLatch* faults = nullptr) noexcept
         : inner_{&inner}, faults_{faults} {}
 
+    /// Pass-through, unstamped: every stamp this decorator applies rides the RECORD
+    /// channel, so a log line never carries a command id.
     void log(hal::LogLevel level, std::string_view subsystem,
              std::string_view message) override {
         inner_->log(level, subsystem, message);
     }
 
+    /// Forwards the inner sink's answer — the A1 pair rule. A NullSink run therefore
+    /// still skips record population entirely, and this decorator costs one bool query.
     [[nodiscard]] bool wantsRecord() const noexcept override { return inner_->wantsRecord(); }
 
+    /// Stamp one record and forward it: the command id (UNCONDITIONALLY — this scheduler
+    /// is the id assigner, so an incoming nonzero id is a bug, not information), the last
+    /// completed tick's phase breakdown, the estimator's gate audit, and — only if the
+    /// producer left it None — the fault raised so far this tick. Costs one DebugRecord
+    /// copy, paid only when a sink downstream actually wants records.
     void emit(const diag::DebugRecord& record) override {
         diag::DebugRecord stamped = record;
         stamped.activeCommandId = id_;
@@ -310,9 +330,17 @@ public:
     /// C5 decorator rule (telemetry_sink.hpp): forward, or the summary dies here.
     void summarize(const diag::RunSummary& summary) override { inner_->summarize(summary); }
 
+    /// The id every subsequent record is stamped with; 0 means "between motions". The
+    /// scheduler calls this when it arms a motion and again at its boundary — nothing
+    /// else should, or records will be attributed to a motion that never emitted them.
     void setActiveId(std::uint32_t id) noexcept { id_ = id; }
+    /// Whatever setActiveId() last received; 0 between motions.
     [[nodiscard]] std::uint32_t activeId() const noexcept { return id_; }
 
+    /// Install the per-TickPhase time breakdown stamped onto subsequent records. The
+    /// scheduler passes the LAST COMPLETED tick's numbers, because a record emitted
+    /// mid-tick cannot know its own tick's total — that is the one-tick lag documented
+    /// on DebugRecord::tickPhase. All zeros while attribution is off.
     void setTickPhases(
         const std::array<units::Time, static_cast<std::size_t>(diag::kTickPhaseSlots)>&
             phases) noexcept {
@@ -377,20 +405,31 @@ private:
 ///     the first live tick; TurnTo/DriveBrake publish a here-anchored target).
 class MotionStatsSink final : public hal::ITelemetrySink {
 public:
+    /// `inner` is NON-OWNING and must outlive this sink; every call is forwarded to it.
+    /// One of these serves a whole scheduler, not one motion — beginMotion() is what
+    /// clears the aggregates between motions.
     explicit MotionStatsSink(hal::ITelemetrySink& inner) noexcept : inner_{&inner} {}
 
+    /// Pass-through: only the record channel carries the quantities this sink derives.
     void log(hal::LogLevel level, std::string_view subsystem,
              std::string_view message) override {
         inner_->log(level, subsystem, message);
     }
 
+    /// Forwards the inner sink's answer, which is also the honest limit of this sink:
+    /// behind a sink that wants no records, nothing is ever aggregated, hasData() stays
+    /// false, and the derived result-line fields render "n/a" rather than a made-up 0.
     [[nodiscard]] bool wantsRecord() const noexcept override { return inner_->wantsRecord(); }
 
+    /// Aggregate, then forward the record UNMODIFIED — a pure observer that stamps
+    /// nothing, so it may sit anywhere after the id stamp it discriminates on.
     void emit(const diag::DebugRecord& record) override {
         aggregate(record);
         inner_->emit(record);
     }
 
+    /// Pass-through, per the decorator rule (telemetry_sink.hpp): a decorator that keeps
+    /// the default no-op body silently eats the run summary.
     void summarize(const diag::RunSummary& summary) override { inner_->summarize(summary); }
 
     /// New motion armed: forget the previous motion's story.
@@ -403,6 +442,11 @@ public:
 
     /// True iff at least one live (Running) record was aggregated.
     [[nodiscard]] bool hasData() const noexcept { return sawRunning_; }
+    /// The motion's published target, RE-SAMPLED from the most recent aggregated record:
+    /// a capture-at-live motion has no real target until its first live tick, so this is
+    /// the last target it published, not the one it was constructed with. Read it ONLY
+    /// when hasData(): beginMotion() does NOT clear it, so between motions it still holds
+    /// the PREVIOUS motion's target — the scheduler substitutes a default Pose2d itself.
     [[nodiscard]] const math::Pose2d& targetPose() const noexcept { return target_; }
 
     /// Overshoot per motion_result.hpp: projection past the target along the
@@ -511,6 +555,12 @@ struct CompletedMotion {
 /// boundary is not a place to re-plan a routine from). It must not throw.
 class IMotionObserver {
 public:
+    /// Interface boilerplate: a public virtual destructor, with the copy/move set
+    /// defaulted back in because declaring a destructor suppresses the implicit MOVE
+    /// constructor and move assignment (the implicit copies survive, merely deprecated —
+    /// spelling all five keeps the intent explicit rather than inherited).
+    /// Observers attach by RAW POINTER through setBoundaryObserver(); the scheduler
+    /// never owns one, so an observer must outlive it or be detached first.
     virtual ~IMotionObserver() = default;
     IMotionObserver() = default;
     IMotionObserver(const IMotionObserver&) = default;
@@ -522,6 +572,17 @@ public:
     virtual void onMotionComplete(const CompletedMotion& completed) = 0;
 };
 
+/// The loop that actually runs a routine. Exactly ONE active motion and no queue:
+/// starting another PRE-EMPTS the first into the cancel safe state (0 V + Brake, applied
+/// synchronously), so there is no tick on which two motions command. It never owns time —
+/// the injected ITickPacer advances the world, which is what lets the same scheduler be
+/// deterministic in host sim and real on the robot. The verbs are async() to arm, tick()
+/// or a blocking wait to make progress, cancel() to stop; cancel() with nothing active is
+/// still the panic stop, because a cancel that can be too late is one nobody can rely on.
+/// Nothing here can hang: waitUntilSettled() is bounded by the motion's own watchdog,
+/// waitUntil() by a required explicit timeout, and a pacer that stops advancing the clock
+/// fails loudly rather than spinning. Faults in abortFaultMask abort the MOTION, never
+/// the run. Single-task by contract, like everything it composes.
 class MotionScheduler {
 public:
     /// `deps` is the same bundle every motion takes (validated non-null); all
@@ -552,7 +613,12 @@ public:
         }
     }
 
-    // Self-referential (shadowCtx_ points at stamperSink_): pinned in place.
+    /// Neither copyable nor movable, and not by taste: the context this scheduler hands
+    /// to motions points at the scheduler's OWN telemetry decorator, so a copy or a move
+    /// would leave that route aimed at the original object. Construct one where it will
+    /// live and pass it by reference. Destruction is DEFAULTED and does not cancel — a
+    /// scheduler destroyed with a motion still armed leaves the drive at its last
+    /// command, so call cancel() before letting one go out of scope.
     MotionScheduler(const MotionScheduler&) = delete;
     MotionScheduler(MotionScheduler&&) = delete;
     MotionScheduler& operator=(const MotionScheduler&) = delete;
@@ -706,6 +772,9 @@ public:
     }
 
     // ── observability (C5's raw material; header note) ─────────────────────────────
+    /// True between async() and that motion's boundary — equivalently activeCommandId()
+    /// != 0. False again the instant a motion settles, times out, is cancelled or is
+    /// pre-empted, on the same tick, before any wait returns.
     [[nodiscard]] bool hasActiveMotion() const noexcept { return active_ != nullptr; }
     /// The active motion's command id; 0 when none. Ids are 1-based and
     /// monotonically increasing for the scheduler's lifetime.
@@ -713,17 +782,42 @@ public:
     /// Exit reason of the most recently finished motion. Settled before any
     /// motion has finished (the vacuous-wait default — see waitUntilSettled).
     [[nodiscard]] control::ExitReason lastExitReason() const noexcept { return lastExit_; }
+    /// The most recent motion boundary in full, overwritten at each one. Default-
+    /// constructed until a motion finishes, and IN THAT VIRGIN STATE ONLY it disagrees
+    /// with lastExitReason(): this reads Running ("none yet") where that reads Settled
+    /// (the vacuous-wait default). Once any motion has reached a boundary the two always
+    /// agree — finalize() writes both from the same exit reason. completedCount() is what
+    /// actually says whether anything ran.
     [[nodiscard]] const CompletedMotion& lastCompleted() const noexcept { return last_; }
+    /// async() calls over the scheduler's lifetime — restarts and pre-empting starts
+    /// included, so this counts STARTS, not distinct motion objects. It equals
+    /// completedCount() plus one while a motion is active, and equals it exactly when idle.
     [[nodiscard]] int motionsStarted() const noexcept { return startedCount_; }
+    /// Motions that reached their exit group and stopped there — the only success
+    /// verdict of the four; the counters around it are all the ways a motion did not
+    /// finish the job it was given.
     [[nodiscard]] int motionsSettled() const noexcept { return settledCount_; }
+    /// Motions the MOTION's own watchdog ended. A waitUntil() timeout is not counted
+    /// here and raises no fault — that is a wait giving up, not a motion failing.
     [[nodiscard]] int motionsTimedOut() const noexcept { return timedOutCount_; }
     /// User/pre-empt cancellations (abortFault == None).
     [[nodiscard]] int motionsCancelled() const noexcept { return cancelledCount_; }
     /// Fault-policy + task-boundary aborts (abortFault != None).
     [[nodiscard]] int motionsAborted() const noexcept { return abortedCount_; }
+    /// Every motion that reached a boundary: settled + timed out + cancelled + aborted,
+    /// a partition with no double counting. This is the number that tells a caller
+    /// whether anything actually ran, which lastExitReason() cannot — it reads Settled
+    /// on a scheduler that has never been given a motion.
     [[nodiscard]] int completedCount() const noexcept {
         return settledCount_ + timedOutCount_ + cancelledCount_ + abortedCount_;
     }
+    /// The scheduler's own tick-timing watchdog, for worstDt() / overrunCount() after a
+    /// run. The scheduler ticks it once per tick and RE-BASELINES it at every async() and
+    /// at the top of each blocking wait — that drops only the previous tick's timestamp,
+    /// so a deliberate gap in which the caller's own code ran between motions is not
+    /// reported as an overrun. Nothing here ever clears the statistics: worstDt() and
+    /// overrunCount() are WHOLE-RUN totals, not per-motion ones. A gap between two of the
+    /// caller's own tick() calls is NOT re-baselined and does count as an overrun.
     [[nodiscard]] const diag::LoopMonitor& loopMonitor() const noexcept { return loopMonitor_; }
 
     // ── C5 observability additions ─────────────────────────────────────────────────
@@ -732,6 +826,8 @@ public:
     /// the C5 reporter is the intended consumer; fan-out belongs to a composite
     /// the caller writes if ever needed. Contract in IMotionObserver.
     void setBoundaryObserver(IMotionObserver* observer) noexcept { observer_ = observer; }
+    /// The attached observer, or nullptr. NON-OWNING: the scheduler neither deletes it
+    /// nor extends its lifetime, so detach before the observer dies.
     [[nodiscard]] IMotionObserver* boundaryObserver() const noexcept { return observer_; }
 
     /// The run's heading story for the §18.3 summary: max / final of the
@@ -740,9 +836,16 @@ public:
     /// passes through 90° of "error" by design, and a summary that reported it
     /// would bury the real story — how headings LANDED.
     [[nodiscard]] bool runHasHeadingData() const noexcept { return runHasHeadingData_; }
+    /// The largest |final heading error|, in RADIANS, over every motion boundary that
+    /// produced path data; 0 while runHasHeadingData() is false. BOUNDARY values only —
+    /// a 90° turn passes through 90° of error by design, and counting that would bury
+    /// the story this reports. Never reset: one scheduler is one run.
     [[nodiscard]] units::AngleDim runMaxHeadingDrift() const noexcept {
         return units::AngleDim{runMaxDriftRad_};
     }
+    /// |final heading error|, in RADIANS, at the LAST boundary that produced path data —
+    /// where the run's heading actually LANDED, as opposed to its worst moment. 0 while
+    /// runHasHeadingData() is false, which is not the same as a run that landed square.
     [[nodiscard]] units::AngleDim runFinalHeadingDrift() const noexcept {
         return units::AngleDim{runFinalDriftRad_};
     }

@@ -16,8 +16,20 @@
 
 namespace shulib::localization {
 
+/// One source of ABSOLUTE field-pose fixes — V5 GPS, AprilTag PnP, LIDAR scan-match. PULL, not
+/// push: the Localizer calls propose() once per tick with its odom-predicted pose, and nothing
+/// here ever writes into the estimator. An implementation owns ALL of its own mess — HAL access,
+/// frame/lever-arm/PnP reduction, latency, staleness, gating — so the Localizer stays
+/// geometry-free and the trust math stays in one place. Pure with respect to its injected HAL
+/// handle, which is what makes a corrector host-testable against a fake.
 class ICorrector {
 public:
+    /// Polymorphic-base boilerplate: the destructor is virtual so a concrete corrector held as
+    /// `ICorrector&`/`ICorrector*` destroys correctly, and DECLARING it is what suppresses the
+    /// implicit copy/move, which are re-defaulted below. The base carries no state of its own.
+    /// Ownership stays with the CALLER either way: the Localizer takes a NON-OWNING
+    /// `span<ICorrector* const>` (at most kMaxCorrectors, each checked non-null at construction),
+    /// so every corrector must outlive the Localizer it was handed to.
     virtual ~ICorrector() = default;
     ICorrector() = default;
     ICorrector(const ICorrector&) = default;
@@ -40,10 +52,15 @@ public:
 /// the seam visibly wired for telemetry. M3 replaces it with GpsCorrector/AprilTagCorrector.
 class NullCorrector final : public ICorrector {
 public:
+    /// Always declines — a default-constructed proposal, so `valid == false` and
+    /// `selfAudit.reason == None`. Both arguments are ignored, and the estimator dead-reckons
+    /// this tick exactly as it would with no corrector registered at all.
     [[nodiscard]] CorrectionProposal propose(const math::Pose2d& /*predicted*/,
                                              units::Time /*dt*/) override {
         return CorrectionProposal{};  // valid == false
     }
+    /// `"null"`. Because this corrector never proposes and never self-audits, the Localizer
+    /// never reads it — the id exists so the seam is visibly wired, not to label a record.
     [[nodiscard]] const char* name() const noexcept override { return "null"; }
 };
 

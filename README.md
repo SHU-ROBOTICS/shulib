@@ -278,8 +278,12 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
   a bail-out when a grab fails, an alliance-partner wait, a tank routine, mixing tiers. Every recipe
   is compiled and run against the simulator on every build.
 - **[`docs/api/`](docs/api/README.md) — the API reference.** Generated from the headers, so it cannot
-  disagree with the code: every public member of the `Chassis` facade and the `Routine` recipe layer,
-  with its exact signature. A public member that ships undocumented fails the build by name.
+  disagree with the code: one page per shipped header, plus an
+  [A–Z index](docs/api/all-entities.md) of every public type, member, nested type, free function,
+  constant and type alias. A public entity that ships undocumented fails the build, by name and
+  line. If you are writing a routine you need two of those pages —
+  [`Chassis`](docs/api/chassis.md) and [`Routine`](docs/api/routine.md); the rest is the machinery
+  underneath.
 - [`docs/roadmap.md`](docs/roadmap.md) — everything remaining, by milestone, with an honest
   "you are here" (including what is deliberately *not* claimed yet).
 - [`docs/shulib-v2-master-plan.md`](docs/shulib-v2-master-plan.md) — the architecture and the

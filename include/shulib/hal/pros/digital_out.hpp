@@ -55,6 +55,15 @@
 
 namespace shulib::hal::pros {
 
+/// IDigitalOut over `pros::adi::DigitalOut` — the pneumatic solenoid line, on real hardware.
+/// CONSTRUCTING ONE IS A PHYSICAL ACTION: PROS drives the line from its own constructor, so on a
+/// pneumatic clamp the cylinder moves the moment this object is built. That is why `initialState`
+/// is a required argument with NO default — the author must state the boot level, and must state
+/// one that agrees with the owning PneumaticMechanism's declared safe state, or there is a window
+/// at boot where the line is wrong and "wrong" means physically moving. A write the port refuses
+/// is COUNTED (faultedWrites), never raised: the seam has no validity channel by design, and
+/// commanded() goes on reporting the caller's intent, which is exactly what makes a refused write
+/// visible as a divergence instead of a device that silently agrees with itself.
 class ProsDigitalOut final : public IDigitalOut {
 public:
     /// Brain ADI port ('a'–'h', 'A'–'H', or 1–8). CONSTRUCTION DRIVES THE

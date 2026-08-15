@@ -36,11 +36,20 @@
 
 namespace shulib::diag {
 
+/// The end-of-run summary as DATA, never as an assembled essay: structured fields that one
+/// producer fills and any number of renderers format — the boxed terminal block, an
+/// appended blackbox frame, a wire message. A VALUE TYPE that owns its provenance strings
+/// in bounded in-struct arrays and allocates nothing, so a sink may RETAIN a copy without
+/// holding a dangling view into some caller's stack. Assembled once per run and delivered
+/// through hal::ITelemetrySink::summarize().
 struct RunSummary {
     // ── the motion ledger (the C5 stand-in for "scored/failed"; header note) ────────
+    /// Motions the scheduler handed a start(). It EXCEEDS the four outcome counts below
+    /// whenever a motion was still running when the summary was taken — they partition
+    /// the FINISHED motions only, so started minus their sum is what was still in flight.
     int motionsStarted = 0;
-    int motionsSettled = 0;
-    int motionsTimedOut = 0;
+    int motionsSettled = 0;   ///< Exited inside its tolerances — the only outcome that means success
+    int motionsTimedOut = 0;  ///< Exited on the watchdog; each one also raised MOTION_TIMEOUT
     int motionsCancelled = 0;  ///< user/pre-empt cancels (no causal fault)
     int motionsAborted = 0;    ///< fault-policy / task-boundary aborts
 
@@ -71,14 +80,29 @@ struct RunSummary {
     std::uint32_t blackboxDropped = 0;
 
     // ── provenance (§18.5, mirrored from the session header) ────────────────────────
+    /// Pack volts READ at session start, never caller-typed: a typed 12.6 that was really
+    /// 11.9 is exactly the lying number this record exists to avoid.
     units::Voltage batteryStart{};
+    /// Pack volts read when the summary was assembled; with batteryStart, the run's sag.
+    /// Both are 0 V on a summary nobody filled in — there is no "unset" sentinel here.
     units::Voltage batteryEnd{};
 
     /// Empty ⇒ MISSING (rendered loudly; header note). 47 bytes admits a full
     /// 40-char git SHA plus a "-dirty" suffix.
     void setBuildHash(std::string_view hash) noexcept { copyBounded(buildHash_, sizeof buildHash_, hash); }
+    /// Copy the auton routine's name (e.g. "redLeftTall") in, TRUNCATED at 31 characters.
+    /// Empty is ordinary here — only buildHash treats empty as the loud MISSING case.
     void setRoutineId(std::string_view id) noexcept { copyBounded(routineId_, sizeof routineId_, id); }
+
+    /// The stored hash; EMPTY means the build system provided none, which renderers must
+    /// print as MISSING rather than anything plausible-looking. LIFETIME: the view points
+    /// into THIS object — it dies with the summary, the next setBuildHash() invalidates
+    /// it, and a copied summary hands back views into the COPY. That is the whole reason
+    /// this is a value type rather than a struct of string_views.
     [[nodiscard]] std::string_view buildHash() const noexcept { return buildHash_; }
+
+    /// The stored routine name; empty if never set. Same lifetime rule as buildHash():
+    /// the view is into this object, never into what the caller passed setRoutineId().
     [[nodiscard]] std::string_view routineId() const noexcept { return routineId_; }
 
 private:

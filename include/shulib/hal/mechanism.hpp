@@ -97,6 +97,13 @@ namespace shulib::hal {
 /// section for the measured failure this closes.
 class ICancellable {
 public:
+    /// Re-declared only because the virtual destructor suppresses the implicit copy/move
+    /// members; this seam holds no state of its own. The virtual destructor is what makes
+    /// deleting through a stored ICancellable* well-defined. Note that a claimant is
+    /// registered BY ADDRESS (IMechanism::tryClaim below), so an implementer that holds a
+    /// claim should DELETE its own copy/move instead of inheriting these defaults — a copy
+    /// would leave the mechanism's registration aimed at the original. Manipulation's
+    /// operations do exactly that.
     virtual ~ICancellable() = default;
     ICancellable() = default;
     ICancellable(const ICancellable&) = default;
@@ -114,6 +121,12 @@ public:
 /// claim token. See the file banner for why nothing else is unified.
 class IMechanism {
 public:
+    /// Re-declared only because the virtual destructor suppresses the implicit copy/move
+    /// members; defaulted, which leaves the concrete mechanisms below copyable. Mind what
+    /// a copy carries: unlike the other HAL seams this base holds STATE — the claim token.
+    /// A copied mechanism therefore arrives already claimed(), with claimant() aimed at an
+    /// operation registered against the ORIGINAL, and releasing one does not release the
+    /// other. Construct a mechanism once where it lives and hand out IMechanism&/*.
     virtual ~IMechanism() = default;
     IMechanism() = default;
     IMechanism(const IMechanism&) = default;
@@ -224,6 +237,8 @@ public:
         }
     }
 
+    /// The `mechName` pointer given at construction, returned verbatim — this class
+    /// BORROWS the string and never copies it, so the literal must outlive the mechanism.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
     /// The declared safe brake mode (construction-time fact, for tests/logs).
@@ -292,13 +307,21 @@ public:
     /// this is NOT (digital_out.hpp): evidence that anything moved.
     [[nodiscard]] bool commanded() const { return lines_.front()->commanded(); }
 
+    /// The declared safe state: every line driven to `safe`. ONE command, not the motor
+    /// version's brake-then-zero two-step — a solenoid has no coast phase to slip through.
+    /// Still only a command: nothing here is evidence the air actually moved.
     void applySafeState() override { set(safe_); }
 
+    /// The `mechName` pointer given at construction, returned verbatim — BORROWED, never
+    /// copied, so the literal must outlive the mechanism.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
     /// The declared safe command (construction-time fact, for tests/logs).
     [[nodiscard]] bool safeCommand() const noexcept { return safe_; }
 
+    /// The lines themselves, in the construction order — for anything this fan-out
+    /// grammar does not cover (driving one cylinder of a pair alone on a bench check).
+    /// NON-OWNING, like the span it was built from: the caller still owns every line.
     [[nodiscard]] std::span<IDigitalOut* const> lines() const noexcept { return lines_; }
 
 private:

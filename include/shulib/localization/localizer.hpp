@@ -100,6 +100,14 @@
 
 namespace shulib::localization {
 
+/// Tuning for the fused estimate: the dt window the twist finite-difference is trusted over, how
+/// fast the quality scalar decays while dead-reckoning, and how long the boot settle window holds
+/// the fold closed. The Localizer constructor range-checks maxDt, driftHorizon, qFloor and
+/// bootSettleTime (red-on-failure); `minDt` is NOT checked, and nothing checks `minDt <= maxDt`,
+/// so the dt BAND is the caller's to keep sane: a floor above the ceiling empties it and every
+/// tick then silently reports zero linear velocity and Degraded quality, while a floor <= 0
+/// disables the velocity-spike guard minDt exists to be. The drift-rate numbers are invented
+/// guesses until a real drivetrain is measured.
 struct LocalizerConfig {
     /// Above this tick dt (s), the linear-velocity finite-difference is not trusted (first tick after
     /// construction/teleport, or a loop stall) → zero linear velocity for that tick + a flagged tick.
@@ -121,10 +129,36 @@ struct LocalizerConfig {
     double bootSettleTime = 0.1;
 };
 
+/// The fused field-frame estimate, and the IPoseSource every consumer above it reads: a
+/// deterministic five-step tick over an injected clock, IMU, PilonsOdometry and a non-owning list
+/// of correctors. Position is a PERSISTENT accumulator advanced by odometry DELTAS and nudged —
+/// never snapped — toward corrector proposals; heading is composed from the IMU as the LAST write
+/// of every tick, so nothing below can ASSIGN a heading, only move a bounded, persistent bias.
+/// It owns no loop and raises no faults: the caller calls update() once per control tick, and
+/// pose()/twist()/quality() then describe THAT tick until the next one.
 class Localizer final : public IPoseSource {
 public:
     /// Categorical health for motion/skills gating (distinct from the [0,1] scalar).
-    enum class Quality { Uninitialized, DeadReckon, Corrected, Degraded };
+    /// The order below is declaration order, NOT a ranking — `Degraded` is worse than
+    /// `DeadReckon` despite sorting after it, so compare by enumerator and never by value.
+    enum class Quality {
+        /// No live estimate yet: update() has never run, or the boot settle window is
+        /// still open. Distinct from Degraded on purpose — a consumer can tell "not
+        /// started" from "started and lost it".
+        Uninitialized,
+        /// Running on odometry alone, within the configured drift horizon. Healthy: no
+        /// corrector has proposed recently, and the estimate has not yet dead-reckoned far
+        /// enough for that to matter.
+        DeadReckon,
+        /// The best state: a corrector proposal was folded in this tick and every health
+        /// check passed. This is the only class that means an absolute reference is live.
+        Corrected,
+        /// Trust the pose less. Reached four different ways, all of which mean the same
+        /// thing to a caller: the IMU was ready and stopped being ready, the odometry
+        /// reported an implausible delta, the tick's dt was outside the trusted band, or
+        /// dead reckoning has run past `driftHorizon`.
+        Degraded
+    };
 
     /// At most this many correctors (GPS + AI-Vision tag + Pi tag + LIDAR today) — the valid-proposal
     /// buffer is fixed-capacity so the hot path never heap-allocates.
@@ -341,13 +375,41 @@ public:
     }
 
     // --- IPoseSource ---
+    /// The fused field-frame pose as of the last update(): x/y in INCHES from the persistent
+    /// accumulator, heading in RADIANS as `imu.heading() + headingBias()`. While the IMU is still
+    /// booting or settling the POSITION is frozen at its seed value (the fold is closed) while the
+    /// heading keeps tracking the raw IMU, calibration garbage included — so check qualityClass()
+    /// before believing this, rather than reading a plausible-looking pose that does not exist yet.
     [[nodiscard]] math::Pose2d pose() const noexcept override { return pose_; }
+    /// Field-frame velocity: vx/vy in in/s, finite-differenced from the FUSED pose, and ω in rad/s
+    /// taken straight from the IMU (0 when the IMU reads non-finite). A tick whose dt lands outside
+    /// [minDt, maxDt] — a loop stall, or the tick after a teleport — reports ZERO linear velocity
+    /// rather than a spike; the first tick, and any dt <= 0, keeps the previous linear velocity and
+    /// refreshes only ω.
     [[nodiscard]] math::Twist2d twist() const noexcept override { return twist_; }
+    /// Graded trust in [0,1], kept consistent with qualityClass(): EXACTLY 0 whenever the IMU has
+    /// no heading authority (booting, settling, or lost mid-run), otherwise a drift term decaying
+    /// linearly to qFloor over driftHorizon of dead-reckoned travel, halved for an unhealthy dt and
+    /// halved again for an implausible odometry delta. An applied fix clears the drift term in
+    /// PROPORTION to that fix's confidence, so a microscopic fix cannot spring this to 1.0.
     [[nodiscard]] double quality() const noexcept override { return quality_; }
+    /// True when no corrector proposal was applied on the most recent update(). A per-TICK answer,
+    /// not a summary: it returns to true the moment a source goes quiet, and says nothing about how
+    /// far the robot has dead-reckoned since (that is distanceSinceCorrection()). True before the
+    /// first update().
     [[nodiscard]] bool isDeadReckoning() const noexcept override { return deadReckoning_; }
 
     // --- extra observability (telemetry / motion gating) ---
+    /// The categorical health a motion or skills gate branches on, carrying the distinction the
+    /// [0,1] scalar cannot: Uninitialized means there is no live estimate YET and is what the
+    /// motion layer's wait-for-live gate blocks on, while Degraded means an estimate exists and is
+    /// decaying. Keeping those two apart is deliberate — a robot that had a fix and lost heading
+    /// authority needs different recovery from one that is still booting.
     [[nodiscard]] Quality qualityClass() const noexcept { return qualityClass_; }
+    /// Inches of odometry travel accumulated since a fix was last applied — the input the quality
+    /// decay is computed from. An applied fix does not zero it but SCALES it by (1 − the fix's
+    /// confidence), so a weak fix barely dents it; setPose() clears it outright, and travel made
+    /// while the boot fold is closed never enters it.
     [[nodiscard]] units::Length distanceSinceCorrection() const noexcept { return distanceSinceCorrection_; }
     /// The last tick's applied correction AND the gate's account of why (`audit`, added
     /// at E1) — the values a record producer stamps into the §18.2 gating slots.

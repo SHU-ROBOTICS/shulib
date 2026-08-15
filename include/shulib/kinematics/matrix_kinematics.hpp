@@ -69,14 +69,24 @@
 
 namespace shulib::kinematics {
 
+/// Every FULLY-HOLONOMIC LINEAR drive — X, H, mecanum — as ONE implementation: the geometry is
+/// pure data, one [h, v, turnInches] row per wheel, so a new drivetrain is a table and not a
+/// subclass. toWheels() is that table applied row by row; forward() is the full least-squares
+/// pseudo-inverse (AᵀA)⁻¹Aᵀ, inverted once at construction so a call costs two small multiplies.
+/// Rank-3 is REQUIRED and checked: tank cannot strafe, so one of its columns is all-zero and
+/// construction rejects it by design (tank belongs in TankKinematics), as does any table whose
+/// columns are near-dependent. Immutable once built — every method is const, and nothing here
+/// allocates. Capping is ONE method's job: toWheels() deliberately returns over-budget wheel
+/// speeds (§13 #5), which is what keeps forward() its exact inverse, and desaturate() is the
+/// only place a commanded speed is reduced.
 class MatrixKinematics final : public IKinematics {
 public:
     /// One wheel's contribution row. h, v are dimensionless; turnInches is the
     /// yaw lever arm in inches (signed). See the header formula.
     struct Wheel {
-        double h;           // body +X (forward) coefficient, dimensionless
-        double v;           // body +Y (left/strafe) coefficient, dimensionless
-        double turnInches;  // yaw lever arm (inches)
+        double h;           ///< multiplies vx (body +X, forward); a dimensionless projection factor
+        double v;           ///< multiplies vy (body +Y, left/strafe); dimensionless, like h
+        double turnInches;  ///< yaw lever arm in INCHES, signed; multiplies ω (rad/s → in/s)
     };
 
     /// Build from a per-wheel coefficient table + the drive's strafe authority.
@@ -160,6 +170,11 @@ public:
         strafeAuthority_ = strafeAuthority;
     }
 
+    /// Inverse kinematics, one row at a time: wheel_i = h_i·vx + v_i·vy + turnInches_i·ω, in in/s.
+    /// `body` is a BODY-frame command — the single field→body rotation belongs to Chassis, never
+    /// here. The result has wheelCount() entries, in the table's row order. It CLAMPS NOTHING: ask
+    /// for more than the drive can deliver and you get wheel speeds that say so, which is exactly
+    /// what keeps forward() an exact inverse of the command. desaturate() is the downstream cap.
     [[nodiscard]] WheelSpeeds toWheels(const math::ChassisSpeeds& body) const override {
         const double vx = body.vx().value();
         const double vy = body.vy().value();
@@ -172,6 +187,12 @@ public:
         return out;  // NO clamping here (§13 #5)
     }
 
+    /// Forward kinematics for odometry: per-wheel surface speeds (in/s) → BODY-frame twist, as the
+    /// least-squares solution t = (AᵀA)⁻¹Aᵀw. For a square full-rank table (the 3-wheel H-drive)
+    /// that is exactly A⁻¹w; for a redundant one it is the unique minimizer of ‖A·t − w‖, so wheels
+    /// that disagree are averaged rather than one being believed. Orthogonal tables take the
+    /// historical per-column projection instead, bit for bit, so no previously-accepted drive's
+    /// numbers moved. Precondition: wheels.size() == wheelCount().
     [[nodiscard]] math::Twist2d forward(const WheelSpeeds& wheels) const override {
         SHULIB_PRECONDITION(wheels.size() == n_, "MatrixKinematics::forward: wheel-count mismatch");
         double gh = 0.0, gv = 0.0, gt = 0.0;  // Aᵀ·w, common to both paths
@@ -201,12 +222,23 @@ public:
                              units::AngularVelocity{g02_ * gh + g12_ * gv + g22_ * gt}};
     }
 
+    /// Scale EVERY wheel by one common factor until the largest magnitude just reaches
+    /// `maxWheelSpeed`, so the commanded direction survives and only speed is traded away. A
+    /// command already within budget (all-zero included) is returned unchanged — this never scales
+    /// UP. Uniform scaling is the right answer for a linear drive precisely because the table is
+    /// linear; swerve overrides this to preserve module angles. Precondition: maxWheelSpeed > 0.
     [[nodiscard]] WheelSpeeds desaturate(const WheelSpeeds& wheels,
                                          units::Velocity maxWheelSpeed) const override {
         return desaturateUniform(wheels, maxWheelSpeed);
     }
 
+    /// The constructor's `strafeAuthority` argument, returned verbatim: the sustainable |body vy|
+    /// as a fraction of the linear speed budget, for the MOTION layer to clamp against. This class
+    /// neither derives it from the coefficient table nor clamps anything with it — it is a
+    /// read-only query. 1.0 for the symmetric X-drive; ≈0.35 for the H-drive, which measures it.
     [[nodiscard]] double strafeAuthority() const override { return strafeAuthority_; }
+    /// Rows in the coefficient table: the number of entries every WheelSpeeds this object produces
+    /// will have, and the number forward() requires. Fixed at construction, in [1, kMaxWheels].
     [[nodiscard]] int wheelCount() const override { return n_; }
 
 private:

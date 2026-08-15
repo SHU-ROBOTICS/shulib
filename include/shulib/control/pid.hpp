@@ -25,17 +25,48 @@
 
 namespace shulib::control {
 
+/// Gains and the two bounds, every one of them in the CALLER's units (header note): kP multiplies
+/// whatever error unit is fed in, and the three terms must sum to the unit the caller wants back.
+/// All-default is a controller that returns 0 for every error, with no clamping anywhere.
 struct PidConfig {
+    /// Output per unit of error. The only term that ever applies on the first tick.
     double kP = 0.0;
+    /// Output per unit of accumulated error·seconds. Exactly 0 skips integration entirely — the
+    /// accumulator is not even advanced, so integralAccumulator() stays 0 for a P/PD controller.
     double kI = 0.0;
+    /// Output per unit of error rate, realized as MINUS kD times the measurement's rate of change:
+    /// a measurement climbing at 1 unit/s with kD = 2 SUBTRACTS 2 from the output. Differentiating
+    /// the measurement instead of the error is what keeps a setpoint step from kicking D; while
+    /// the setpoint is held the two agree, because then d(error)/dt = −d(measurement)/dt.
     double kD = 0.0;
-    double integralLimit = std::numeric_limits<double>::infinity();  // symmetric ± clamp on the I-term
+    /// Symmetric ± clamp on the I-TERM (kI·∫e·dt), not on the raw accumulator — the accumulator is
+    /// then back-calculated to match, which is what makes windup past this bound impossible rather
+    /// than merely invisible. Must be ≥ 0; the default, infinity, is no anti-windup limit at all.
+    double integralLimit = std::numeric_limits<double>::infinity();
+    /// Lower clamp on the returned output, applied after P + I + D are summed. Must be ≤ outputMax
+    /// (checked at construction). Default −infinity: unclamped.
     double outputMin = -std::numeric_limits<double>::infinity();
+    /// Upper clamp on the returned output. Default +infinity: unclamped.
     double outputMax = std::numeric_limits<double>::infinity();
 };
 
+/// One axis of PID, distinguished from the textbook loop by three properties the header argues
+/// for and the suite pins: derivative on measurement, back-calculated anti-windup, and dt taken
+/// from an INJECTED clock instead of read from the OS.
+///
+/// STATEFUL: every update() overwrites the dt baseline and the remembered measurement, and (only
+/// when kI != 0) advances the integral, so the output depends on the call history and not on this
+/// tick's arguments alone. The first update() after construction or reset() has no baseline and
+/// applies P only. A repeat call is NOT automatically a different number, though: with kI == 0 and
+/// an unchanged measurement both I and D contribute nothing, so a P or PD controller returns the
+/// same output twice. Use one instance per axis, and reset() between motions — otherwise the
+/// previous motion's integral rides into the next one.
 class Pid {
 public:
+    /// `config` is copied (later edits to the caller's struct do nothing); `clock` is a NON-OWNING
+    /// reference that must outlive this controller and is the sole source of dt. Rejects non-finite
+    /// gains, a negative integralLimit and outputMin > outputMax — all at construction, so a
+    /// controller that cannot be trusted never reaches a match.
     Pid(const PidConfig& config, hal::IClock& clock) : cfg_{config}, clock_{clock} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.kP) && std::isfinite(cfg_.kI) && std::isfinite(cfg_.kD),
                             "Pid: gains must be finite");
@@ -79,7 +110,15 @@ public:
         hasPrev_ = false;
     }
 
+    /// setpoint − measurement as of the most recent update(), for telemetry — the law never reads
+    /// it back. 0 before the first update() and after reset(); recorded on every tick, including
+    /// the dt ≤ 0 ticks that contribute only P.
     [[nodiscard]] double lastError() const noexcept { return lastError_; }
+
+    /// The raw ∫e·dt in error·seconds, AFTER the anti-windup back-calculation — multiply by kI to
+    /// recover the I-term that was actually added. Stays exactly 0 when kI == 0 (nothing
+    /// accumulates) and is zeroed by reset(). Exposed so a test can prove the clamp bounds the
+    /// accumulator itself and not just the output.
     [[nodiscard]] double integralAccumulator() const noexcept { return integral_; }
 
 private:
