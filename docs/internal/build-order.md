@@ -629,8 +629,15 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: the RELEASE to `main`, then R3 — first motion.** DOCS1, DOCS2 and DEFECTS1 are all
-COMPLETE.
+**Next: R3 — first motion.** DOCS1, DOCS2 and DEFECTS1 are all COMPLETE, and **the RELEASE
+HAPPENED on 2026-08-15**: `origin/main` is `c778c11`, its tree byte-identical to
+`origin/release/v2`, and docs.shurobotics.com now publishes everything through DEFECTS1 —
+Phase E, F1, F2, R1a, R1b, both documentation passes and the 117-page API reference. The
+procedure is no longer folklore: [`RELEASING.md`](RELEASING.md) owns it and `tools/release.py`
+enforces it.
+
+**M2's on-robot clause is still open, and R3 is the chunk that closes it.** Nothing published
+changes the governing constraint: the library has never driven a robot.
 
 DEFECTS1 ([brief](chunks/DEFECTS1-api-defect-triage.md),
 [record](chunks/DEFECTS1-COMPLETED.md)) closed the 84 API defects — 59 fixed, 15 rejected with

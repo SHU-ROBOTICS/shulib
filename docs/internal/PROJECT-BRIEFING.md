@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 26 of 44 chunks complete
 
-- **Next up:** the RELEASE to main, then R3 — first motion.  
+- **Next up:** R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
 - **Suite:** 1,151 cases / 1,523,871 assertions, 3 skipped — **green**  
@@ -601,7 +601,7 @@ shape of the remainder, not a count — a count here goes stale every chunk.)*
 
 | Phase | Chunks | Gate |
 |---|---|---|
-| **The release to `main`** | next | none — DOCS1 and DOCS2 are both done; one open question, whether to push |
+| ~~The release to `main`~~ | **DONE 2026-08-15** | published at `c778c11`; procedure now in `RELEASING.md` + `tools/release.py` |
 | **R — Robot arrival** | R2–R6 *(R1a, R1b done)* | **hardware (available now)** |
 | **T — Driver control** | T2–T3 *(T1 delivered at R1a)* | none |
 | **G — No-code authoring** | G1–G4 | G1 ungated; G2–G4 need VexBuilder |
@@ -616,18 +616,25 @@ read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — the release to `main`
+## 13. THE IMMEDIATE TASK — R3, first motion
 
 > *This section is the one a pasted-in session acts on first, so it is the one most worth
 > distrusting. It said "THE IMMEDIATE TASK — R1b" for a day after R1b shipped, and
 > "— DOCS1" for a day after that.*
 
-**DOCS1 and DOCS2 are both DONE.** The immediate task is **the release to `main`** — the merge
-that publishes docs.shurobotics.com — and after it **R3** (day-one validation, which walks the
-assumptions register top to bottom and **closes M1 and M2's on-robot clause, open since June**),
-then **R4** (sensor characterization — replaces A3's invented noise magnitudes with measured ones;
-**the highest-information work available**, because E4's headline result rests on invented
-numbers).
+**DOCS1, DOCS2 and DEFECTS1 are done, AND THE RELEASE HAPPENED (2026-08-15).**
+docs.shurobotics.com publishes `origin/main` at `c778c11` — everything through DEFECTS1,
+including Phase E, F1, F2, R1a, R1b and the 117-page API reference. It is no longer a task and
+no longer an open question; `RELEASING.md` and `tools/release.py` own the procedure now.
+
+**The immediate task is R3** — day-one validation, which walks the assumptions register top to
+bottom and **closes M1 and M2's on-robot clause, open since June** — then **R4** (sensor
+characterization; replaces A3's invented noise magnitudes with measured ones, and is **the
+highest-information work available**, because E4's headline result rests on invented numbers).
+
+**The governing constraint in §3 is untouched by the release: the library has never driven a
+robot.** Publishing a reference to it changes nothing about that, and the six places that
+defend the distinction still need defending.
 
 **Why the two documentation chunks came first:** merging to `main` is what publishes. Anything
 wrong in the documentation becomes *publicly* wrong at that moment, under the project's own name.
@@ -646,7 +653,7 @@ produced no output at all and the real debt was 60% larger than measured. Nothin
 instrument reported silence and silence read as zero. When a number here comes from a tool, ask
 what that tool cannot see. (See trap 6 in §9.)
 
-**The two open questions that ride with the push are down to one**: whether to push at all.
+**Both questions that rode with the push are now closed.** It was pushed on 2026-08-15.
 HTTPS was settled on 2026-08-14 — certificate issued, enforced, verified from outside with full
 certificate validation.
 
@@ -836,13 +843,55 @@ revalidation, and the certificate was approved within seconds. If Cloudflare's p
 1. **Which sensors are going on the robots?** Still open. The lift-homing half is **answered** (§14):
    undecided, so R1b built the digital-input seam anyway — but **the real answer is still owed
    before F3**, which is the chunk that would consume it.
-2. **Whether to push.** Still live, and now the ONLY question riding with the release — HTTPS was
-   settled on 2026-08-14 (certificate issued, enforced, verified from outside with full
-   certificate validation; §17 has the cause, which is not obvious). `main` is current only
-   through Phase D — verified by content, never by commit distance — so E1, E2, E3, E4, F1, F2,
-   R1a and R1b are all absent from it, and none of that work is public. Merging publishes all of
-   it at once, including both documentation passes and **117 new API pages**.
+2. ~~**Whether to push.**~~ **ANSWERED 2026-08-15: pushed.** `origin/main` is `c778c11` and
+   everything through DEFECTS1 is public — Phase E, F1, F2, R1a, R1b, both documentation passes
+   and the 117-page API reference. HTTPS was settled 2026-08-14 (§17 has the non-obvious cause).
+   **The access audit that rode with it is in §19.**
 3. **R5 timing.** Building `tools/sysid` on the tank bot gives a validated tool and throwaway numbers,
    since gains never transfer across chassis. It may be worth deferring until a competition robot
    exists and slotting G1 or H1 in instead. **This is the one place in the order I want your judgment
    rather than mine.**
+
+---
+
+## 19. Repository access — audited 2026-08-15, one gap closed, one still open
+
+The model is what it should be: **public to read and fork, push restricted to the four
+write/admin accounts.** Outsiders can open pull requests; they cannot write. Two settings that
+are usually the ones people get wrong are already right, and they are the ones that matter most:
+
+- **`default_workflow_permissions: read`** — a fork PR running CI gets a READ-ONLY token. It
+  cannot push, tag, or edit anything.
+- **`ci.yml` triggers on `pull_request`, not `pull_request_target`** — fork code runs sandboxed
+  with no repository secrets. That distinction is the difference between a safe CI and a
+  credential-handout.
+
+**CLOSED 2026-08-15 — the one real gap.** `main` and `release/v2` had **no branch protection and
+no rulesets**, so any write account could force-push or delete the branch that publishes the
+site. That is worse here than in an ordinary repo: `main`'s history is deliberately disjoint
+single-parent snapshots, so a force-push breaks the shape every release depends on rather than
+losing one commit. Ruleset **20887795** now blocks `deletion` and `non_fast_forward` on both
+refs — verified through GitHub's own enforcement endpoint
+(`GET /repos/…/rules/branches/main`), **not** through `git push --dry-run`, which does not
+evaluate rulesets and reported the force-push as succeeding.
+
+**It deliberately does NOT require pull requests**, and that is load-bearing: the release pushes
+a snapshot **directly** to `main` with no branch to PR from, so a PR requirement would break
+`tools/release.py` outright. `shulib-v2` is deliberately left unruled — it is the working branch.
+
+**STILL OPEN — a people question, not a technical one.** `shuroboticsold` holds **write**. The
+account was created 2024-10-25, last updated seven minutes later, and has never authored a
+commit in this repository. It is almost certainly a legacy or shared credential, and a shared
+account with push rights is the classic way a members-only model quietly stops being one.
+**Confirm who holds it, then remove or downgrade.** (`510c` and `StephanNaderi` hold read, which
+is harmless. There are no team-based grants — access is collaborator-only, so this list is the
+whole list.)
+
+**A correction to my own earlier finding, recorded because it was overstated.** I flagged
+unpinned **third-party** actions as a risk. There are **no third-party actions in this repo** —
+every `uses:` in both workflows is a first-party `actions/*` (checkout, setup-python,
+upload-pages-artifact, deploy-pages). They are referenced by mutable tag, and SHA-pinning
+remains good practice for `pages.yml` specifically, because that is the workflow holding
+`pages: write` and `id-token: write`. But the threat is "GitHub's own action repositories are
+compromised", not "an unvetted third party can move a tag under us". Worth doing; not urgent,
+and it needs a release cycle to reach `main`, which is why it was not done in the same sitting.
