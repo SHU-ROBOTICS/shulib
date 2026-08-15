@@ -45,13 +45,35 @@ enum class ControllerAxis {
 /// The twelve driver-usable buttons. The power button is deliberately absent:
 /// pressing it turns the controller off, so no routine may ever bind it.
 enum class ControllerButton {
-    L1, L2, R1, R2,             ///< shoulder triggers
-    Up, Down, Left, Right,      ///< left arrow pad
-    X, B, Y, A,                 ///< right button pad
+    L1,     ///< left shoulder, upper trigger (PROS's "first" left trigger)
+    L2,     ///< left shoulder, lower trigger (PROS's "second" left trigger)
+    R1,     ///< right shoulder, upper trigger
+    R2,     ///< right shoulder, lower trigger
+    Up,     ///< left arrow pad, up
+    Down,   ///< left arrow pad, down
+    Left,   ///< left arrow pad, left
+    Right,  ///< left arrow pad, right
+    /// Right button pad, TOP of the diamond. These four are declared X, B, Y, A —
+    /// PROS's own order, which is neither alphabetical nor a walk around the pad, so
+    /// take each button's position from these notes and never from the order.
+    X,
+    B,      ///< right button pad, RIGHT of the diamond
+    Y,      ///< right button pad, LEFT of the diamond
+    A,      ///< right button pad, BOTTOM of the diamond
 };
 
+/// The INPUT half of driver control behind the HAL: normalized sticks, LEVEL buttons,
+/// and a positive connected/not signal. Canonical at the seam — the V5's raw −127…127
+/// is scaled away in the adapter, and edge detection is refused here on purpose (see
+/// ButtonEdge below). One instance per PHYSICAL controller: VEX U's two drivers are a
+/// CONSTRUCTION fact (the PROS adapter takes a ControllerId), never an argument here.
 class IController {
 public:
+    /// Public defaulted special members on a polymorphic base: the virtual destructor
+    /// makes `delete` through an `IController*` well-defined, and copy/move stay
+    /// available so an adapter deriving from this is free to be value-like. This base
+    /// carries no state, so copying one copies nothing — hold implementations by
+    /// reference or pointer, never by value.
     virtual ~IController() = default;
     IController() = default;
     IController(const IController&) = default;

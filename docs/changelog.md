@@ -16,6 +16,91 @@
 
 ## API 2.1
 
+### 2026-08-15 — 59 defect fixes, mostly additive, with five surface changes to know about
+
+An audit chunk (DEFECTS1) triaged the 84 API defects the documentation pass had reported and
+left in place, and fixed 59 of them. **Most are invisible to a caller doing nothing wrong** —
+added preconditions, corrected counters, corrected comments. Five change something a compiler
+or a caller can see, and one of those is breaking under the version policy.
+
+**BREAKING (unfrozen surfaces, no consumer in the tree):**
+
+- **`control::TrapezoidProfile::isDone()` is no longer `noexcept`**, and both it and `sample()`
+  now REJECT a non-finite `t`. `sample(NaN)` used to return a *partially* finite state —
+  position and velocity NaN, acceleration a perfectly finite `-aMax` — so a caller screening
+  only `acceleration` passed it and forwarded a plausible-looking down-ramp; `isDone(NaN)`
+  returned false, so a follower loop terminating on it spun forever. The `noexcept` drop is
+  required because the precondition handler throws and a `noexcept` frame would turn a caller
+  bug into `std::terminate`. **Migration:** screen your clock, or catch `PreconditionError`.
+  This class has no consumer in the library but its own test.
+- **`hal::IMechanism` is now non-copyable and non-movable.** It holds the claim token as value
+  state, so a copied mechanism arrived already `claimed()`, with `claimant()` pointing at an
+  operation registered against the original. **Migration:** construct a mechanism where it lives
+  and hand out `IMechanism&` / `IMechanism*` — which is what the header already told you to do.
+- **`localization::EkfFusion::state()` and `covariance()` are no longer `noexcept`**; both now
+  bounds-check. They are observability accessors, and an out-of-range index was silent UB.
+
+**ADDITIVE, but you may notice:**
+
+- **`diag::MotionOutcome::Unset = 5`**, appended and value-pinned, is the new default for
+  `MotionResult::outcome`. An unpopulated result line used to render `✓ SETTLED` — the one
+  value meaning success — for a motion that never happened; it now renders `✗ UNSET`.
+- **`ProsDigitalOut(smartPort, adiPort)` with the boot state forgotten no longer compiles.**
+  It used to select the brain-ADI constructor with `initialState = (bool)2 = true` and fire a
+  solenoid HIGH at boot on the wrong port. **Migration:** state the boot level, which the
+  required third argument always intended.
+
+**Behaviour you should know changed, without a signature moving:** a `MotionScheduler` destroyed
+with a motion still armed now forces the drive to its safe state instead of leaving the motors
+at their last command; `MotionConfig` and `Watchdog` reject an *infinite* timeout (`> 0.0` is
+satisfied by infinity, and an infinite watchdog can never expire); `Localizer` rejects a `minDt`
+that is non-positive or not below `maxDt`; and a stale, finished mechanism operation can no
+longer `cancel()` a mechanism a different live operation now owns.
+
+Full triage with evidence for every item, including the 15 findings that did **not** hold and
+the 6 that need a decision before they can be fixed, is in the development record.
+
+
+### 2026-08-14 — the API reference now covers the whole public API — no API change
+
+No library code changed: not a signature, not a default, not a behaviour. This entry is here
+because what the documentation *promises* changed, and because one of those promises is
+enforced by a build gate you will meet if you contribute.
+
+**The reference went from 2 documented types to every public entity in every shipped header** —
+117 pages covering **1,625** types, members, nested types, free functions, namespace-scope
+constants and type aliases, plus an [A–Z index](api/all-entities.md) of all of them. The
+generator's target list is now a glob over `include/shulib/`, so a header added later is covered
+the moment it exists rather than when someone remembers to list it.
+
+**The coverage gate grew with it.** A public entity anywhere under `include/shulib/` with no
+`///` documentation now fails the build, naming the entity, its file and its line. If you are
+adding to a shipped header, that is the one new obligation: say what it is *for*.
+
+**Being documented does not freeze anything.** The distinction matters and is easy to
+mis-read: a change to a *frozen* signature (`Chassis` = F6, `Routine` = F10) fails a
+compile-time pin that names the register row, and costs a major version bump plus a migration
+note. A change to a documented-but-unfrozen seam costs one comment edit and a regeneration.
+Freeze Register rows F11–F14 previously said those seams were deliberately ungated for exactly
+this fear; all four are **amended** rather than silently overridden, and their freeze triggers
+are unchanged.
+
+**Three locked contracts were not in the reference at all**, and nobody could have known from
+reading it: the generator was structurally blind to types with a base-class list, enums with an
+explicit underlying type, and everything declared at namespace scope — so the coordinate frame
+(`math::Frame` and its two conversions), the accuracy targets (`spec/accuracy.hpp`) and the
+units vocabulary (`units::Length`, `Time`, `Voltage`, …) produced no output whatsoever. They are
+there now.
+
+**The site is easier to move around**, which matters more at 117 pages than at 2: the top-level
+areas are tabs, subsystem groups collapse, each section's overview is its own landing page, and
+each header's design commentary folds when it runs long. The nav is generated from the same list
+as the pages and byte-checked, because a page missing from the nav was measured to publish
+*unreachable*, with exit code 0 and an INFO line.
+
+**Breaking:** nothing. **What you must do:** nothing, unless you contribute to a header — then
+write a `///` on anything public you add.
+
 ### 2026-08-14 — the mechanism-sensor adapters land (`hal/pros/`, second half) — additive
 
 The other half of the hardware binding: PROS-backed adapters for the mechanism seams —

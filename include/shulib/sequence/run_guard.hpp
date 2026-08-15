@@ -43,8 +43,15 @@
 //     precedes act: a stalled operation's unreleased claim would otherwise
 //     make the end action's own operation throw at start() — measured), and
 //     the end action runs with the remaining runway.
-//   * hardStopAt — BE SAFE, unconditionally: every device is forced safe and
-//     everything, the end action included, is refused from here on. Fires
+//   * hardStopAt — BE SAFE, unconditionally: every device is forced safe, and
+//     every MOTION and every WAIT is refused from here on — including the end
+//     action's own. What is NOT refused is the end action's INVOCATION: run()
+//     has no floor-fired guard and reports endActionRan = true even when the
+//     floor already fired during scoring, which is reachable exactly in the
+//     case this banner's own honesty section describes (scoring code that keeps
+//     the CPU past both deadlines). The guard cannot preempt caller code, so
+//     what it can refuse is what the action ASKS FOR, not that it runs; the
+//     field doc on endActionRan states the same thing. Fires
 //     even if the end action is still running — safety is not negotiable,
 //     going somewhere is. Safing is the library's to own once a deadline
 //     exists at all; where to GO is strategy and stays the caller's.
@@ -170,6 +177,10 @@ struct RunGuardConfig {
     /// list a mechanism here or the guard cannot see it at the deadline.
     std::span<hal::IMechanism* const> mechanisms{};
 
+    /// Reject a schedule that could not mean anything, before a run arms: both
+    /// instants finite, endActionAt > 0, hardStopAt >= endActionAt, and no null in
+    /// `mechanisms`. run() calls it at the door, so a bad number is a loud error at
+    /// the call site instead of a deadline that silently never arrives.
     void validate() const {
         SHULIB_PRECONDITION(std::isfinite(endActionAt.value()) && endActionAt.value() > 0.0,
                             "RunGuardConfig: endActionAt must be finite and > 0");
@@ -228,6 +239,11 @@ public:
     /// the tick boundary) and must outlive the guard.
     explicit RunGuard(motion::ITickPacer& inner) noexcept : inner_{&inner} {}
 
+    /// Pinned where it is constructed: the Chassis holds this object BY REFERENCE
+    /// as its pacer, so a copy would be paced by nobody and a move would leave the
+    /// Chassis pacing a corpse. The destructor releases nothing — the guard owns no
+    /// device and holds only non-owning pointers to the inner pacer and, while a
+    /// run is live, the chassis's scheduler, clock and telemetry.
     RunGuard(const RunGuard&) = delete;
     RunGuard(RunGuard&&) = delete;
     RunGuard& operator=(const RunGuard&) = delete;
@@ -272,6 +288,11 @@ public:
         return units::Time{left > 0.0 ? left : 0.0};
     }
 
+    /// True only while run() is executing — scoring OR the end action. That window
+    /// is exactly when expired(), remaining(), waitFor() and pause() may be called
+    /// at all (outside it they trip a precondition) and exactly when pace() checks
+    /// deadlines rather than passing straight through. False before the first run
+    /// and again the moment run() returns: the robot belongs to the caller then.
     [[nodiscard]] bool running() const noexcept { return running_; }
 
     // ── the deadline-aware waits (banner: T4) ──────────────────────────────────────

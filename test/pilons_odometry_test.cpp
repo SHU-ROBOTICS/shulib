@@ -231,7 +231,7 @@ TEST_CASE("PilonsOdometry: Δθ exactly at the gate threshold is not flagged") {
     imu.setHeading(Angle::degrees(0.0));
     const double thresh = Angle::degrees(0.0).errorTo(Angle::degrees(30.0));  // exact Δθ this tick makes
     PilonsOdometry odom{imu, fwdWheel(fwdRot, 0.0), latWheel(latRot, 0.0), Pose2d{},
-                        PilonsOdometryConfig{.maxTickRotation = thresh}};
+                        PilonsOdometryConfig{.maxTickRotation = shulib::units::AngleDim{thresh}}};
 
     imu.setHeading(Angle::degrees(30.0));
     odom.update();
@@ -328,6 +328,45 @@ TEST_CASE("PilonsOdometry: rejects a non-positive plausibility bound") {
     FakeImu imu;
     FakeRotation fwdRot, latRot;
     CHECK_THROWS_AS((PilonsOdometry{imu, fwdWheel(fwdRot, 0.0), latWheel(latRot, 0.0), Pose2d{},
-                                    PilonsOdometryConfig{.maxTickRotation = 0.0}}),
+                                    PilonsOdometryConfig{.maxTickRotation = shulib::units::AngleDim{0.0}}}),
                     shulib::PreconditionError);
+}
+
+// Bug caught (DEFECTS1 item N1 — found by this chunk's triage, NOT on DOCS2's list): this
+// class gated |Δθ| and never |Δtravel|, and the asymmetry was not cosmetic. A tracking pod
+// that is dead or not yet enumerated at construction reads 0, so TrackingWheel baselines at 0;
+// on the tick it finally answers, it differences the pod's TRUE cumulative position against
+// that 0 and injects a one-tick phantom translation. Measured at 28.4 in for a pod waking at
+// 1000 degrees, and unbounded in general — a pod enumerating after several seconds of
+// powered-down shaft movement reports far more — a pose teleport that the odometry's own plausibility check
+// waved through, because the only thing it checked was heading.
+TEST_CASE("N1: a pod that enumerates late cannot teleport the pose") {
+    FakeImu imu;
+    FakeRotation fwdRot, latRot;
+    imu.setHeading(Angle::degrees(0.0));
+    fwdRot.setPosition(shulib::units::AngleDim{0.0});   // dead/unenumerated at construction
+    PilonsOdometry odom{imu, fwdWheel(fwdRot, 0.0), latWheel(latRot, 0.0), Pose2d{}};
+
+    odom.update();
+    REQUIRE_FALSE(odom.lastDeltaImplausible());
+    const double xBefore = odom.pose().x().value();
+
+    // The pod enumerates and reports its true cumulative position: 1000 degrees.
+    fwdRot.setPosition(shulib::units::AngleDim{5000.0 * Angle::kPi / 180.0});
+    odom.update();
+
+    // FLAGGED, where it used to pass in complete silence. Note the honest scope: the delta is
+    // reported, not withheld — this class has no clock, so the bound is dt-blind, and a gate
+    // that can silently stop accumulating odometry on a slow loop is worse than the jump it
+    // would prevent. HealthMonitor is what turns this flag into a fault.
+    CHECK(odom.lastDeltaImplausible());
+    CHECK(odom.pose().x().value() != doctest::Approx(xBefore));  // still integrated, by design
+
+    // NEGATIVE CONTROL: an ordinary tick of real motion is NOT flagged, so the gate marks the
+    // teleport rather than marking everything.
+    const double xAfterJump = odom.pose().x().value();
+    fwdRot.setPosition(shulib::units::AngleDim{5000.0 * Angle::kPi / 180.0 + 0.2});
+    odom.update();
+    CHECK_FALSE(odom.lastDeltaImplausible());
+    CHECK(odom.pose().x().value() > xAfterJump);
 }

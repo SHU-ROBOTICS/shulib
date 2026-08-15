@@ -36,14 +36,27 @@
 
 namespace shulib::diag {
 
+/// LoopMonitor's one tuning knob, taken BY VALUE at construction — editing the struct afterwards
+/// has no effect on a live monitor. The 15 ms default leaves 5 ms of margin on the nominal 10 ms
+/// control loop; see `budget` for why it must not simply equal the tick period.
 struct LoopMonitorConfig {
     /// The dt at which a tick counts as an overrun (INCLUSIVE — see header). Must be > 0
     /// and strictly greater than the nominal tick period.
     units::Time budget{0.015};
 };
 
+/// Loop-overrun detection: it measures the real dt between consecutive tick() calls on the
+/// INJECTED clock and raises FaultCode::LoopOverrun through the latch when a tick reaches its
+/// budget. It exists because a blown control tick silently corrupts every dt-dependent
+/// computation downstream — PID derivative and integral, profile sampling, the odometry twist —
+/// which is how a promised sub-degree heading quietly decays into drift nobody can explain.
+/// Single-task by contract, like the rest of the diagnostics layer.
 class LoopMonitor {
 public:
+    /// `clock` and `faults` are held BY REFERENCE and must outlive the monitor; `config` is
+    /// copied. `config.budget` must be > 0 (precondition) and, to be usable at all, strictly
+    /// greater than the nominal tick period — a tick exactly AT the budget is an overrun, so a
+    /// 10 ms budget on a 10 ms loop faults on every tick.
     LoopMonitor(hal::IClock& clock, FaultLatch& faults, const LoopMonitorConfig& config = {})
         : clock_{clock}, faults_{faults}, config_{config} {
         SHULIB_PRECONDITION(config.budget.value() > 0.0, "LoopMonitor: budget must be > 0");
@@ -71,9 +84,12 @@ public:
         return dt;
     }
 
-    /// Largest dt observed since construction/reset (the §18.3 "worst loop dt" summary
+    /// Largest dt observed since construction (the §18.3 "worst loop dt" summary
     /// quantity, consumed at C5). Time{0} until two ticks have happened.
     [[nodiscard]] units::Time worstDt() const noexcept { return worstDt_; }
+    /// How many ticks have reached the budget since construction. It counts TICKS, not
+    /// episodes — a loop that stays slow increments (and raises, and logs) once per tick —
+    /// and reset() does not clear it, so this is a whole-run total. Baseline ticks never count.
     [[nodiscard]] int overrunCount() const noexcept { return overrunCount_; }
 
     /// Re-baseline after a DELIBERATE gap (run boundary, pause): the next tick() only

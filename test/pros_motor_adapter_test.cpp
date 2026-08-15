@@ -165,3 +165,47 @@ TEST_CASE("ProsMotor: a NEGATIVE port reverses through PROS — exactly once") {
     pros::shim::motorState(7).positionOutputDeg = 90.0;
     CHECK(m.position().value() == doctest::Approx(-1.5707963267948966));
 }
+
+// Bug caught (DEFECTS1 items I9 + E1, reported twice from two passes): brakeMode() is the
+// FIFTH screening site in this class and was the only one that did not increment
+// faultedReads_. The counter's own doc says "how many reads were screened to last-good (T7
+// observability): telemetry and the loop's health policy can see a flaky port" — false as
+// written while one of five screens was silent, so a port failing only its brake-mode read
+// looked perfectly healthy to the one channel that exists to notice.
+TEST_CASE("I9/E1: a screened brake-mode read is COUNTED like the other four") {
+    pros::shim::resetAll();
+    ProsMotor m{5, MotorGearset::Green};
+    REQUIRE(m.faultedReads() == 0);
+
+    pros::shim::motorState(5).disconnected = true;
+    const BrakeMode held = m.brakeMode();
+    CHECK(held == BrakeMode::Coast);      // still holds the last commanded value
+    CHECK(m.faultedReads() == 1);         // was 0 — the defect
+
+    // NEGATIVE CONTROL: a healthy read neither screens nor counts.
+    pros::shim::motorState(5).disconnected = false;
+    m.setBrakeMode(BrakeMode::Hold);
+    CHECK(m.brakeMode() == BrakeMode::Hold);
+    CHECK(m.faultedReads() == 1);
+}
+
+// Bug caught (item E2): the ctor guarded the persistent-device-state trap for encoder units
+// and gearing (set both, then SHULIB_PRECONDITION on the read-back, per trap A / HA-98) but
+// left brake mode entirely inherited from whatever program last configured the port — and
+// brakeMode_ is also the value brakeMode() falls back to when the device read is invalid. So
+// a port left in Hold by a previous session, dying before any setBrakeMode(), reported Coast
+// forever: the T7 fallback contradicting the device from boot.
+TEST_CASE("E2: the T7 brake-mode fallback is seeded from the device, not from a guess") {
+    pros::shim::resetAll();
+    pros::shim::motorState(6).brake = ::pros::v5::MotorBrake::hold;  // left by another program
+
+    ProsMotor m{6, MotorGearset::Green};
+    pros::shim::motorState(6).disconnected = true;   // port dies before any command
+    CHECK(m.brakeMode() == BrakeMode::Hold);             // was Coast — the guess
+
+    // NEGATIVE CONTROL: with nothing inherited, the fallback is still Coast.
+    pros::shim::resetAll();
+    ProsMotor fresh{7, MotorGearset::Green};
+    pros::shim::motorState(7).disconnected = true;
+    CHECK(fresh.brakeMode() == BrakeMode::Coast);
+}

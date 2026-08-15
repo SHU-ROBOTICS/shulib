@@ -33,6 +33,8 @@
 // Single-task by contract, like the rest of diag/.
 
 #include <array>
+#include <optional>
+#include <utility>
 #include <cstddef>
 
 #include "shulib/core/check.hpp"
@@ -42,8 +44,18 @@
 
 namespace shulib::diag {
 
+/// Measures where one tick's time went, phase by phase, on an INJECTED clock — the "who" that
+/// LoopMonitor's "this tick blew its budget" cannot answer on its own. Only the LAST COMPLETED
+/// tick's breakdown is kept, so a record stamped mid-tick necessarily carries the previous tick's
+/// numbers; for the overrun path that lag is exactly right, because an overrun is detected on the
+/// tick AFTER the one that caused it. Needs a clock that advances DURING a tick, which is why it
+/// takes its own: the host sim clock only moves between ticks and would report every phase as
+/// zero. Single-task by contract, like the rest of diag/.
 class TickAttribution {
 public:
+    /// Per-phase durations for one tick, indexed by TickPhase. Sized by kTickPhaseSlots rather
+    /// than by the phases that exist today — the spare slots are what make a new phase an append
+    /// to the vocabulary instead of a reshape of the telemetry wire.
     using Phases = std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)>;
 
     /// `clock` must outlive the instance (see header for WHICH clock).
@@ -63,12 +75,39 @@ public:
     /// overlap the same phase (the second-open would double-charge the overlap).
     class PhaseScope {
     public:
-        PhaseScope(TickAttribution& att, TickPhase phase) noexcept
+        /// Passkey. The TYPE is public so TickAttribution can name it; its CONSTRUCTOR is
+        /// private with TickAttribution as the only friend, so nobody else can produce one.
+        /// PhaseScope's own constructor therefore stays public — which std::optional's
+        /// in-place construction requires, because optional does the constructing and cannot
+        /// be made a friend — while remaining unreachable without a Key. A simple private
+        /// constructor plus `friend` looks tidier and does not work here for exactly that
+        /// reason.
+        class Key {
+            friend class TickAttribution;
+            Key() = default;
+        };
+
+        /// Stamps the start instant. Reachable only through TickAttribution::phase() or
+        /// ::phaseInPlace(), both of which check that a tick is actually open — the `Key`
+        /// parameter is what makes that structural. It was a plain public constructor, which
+        /// made the tick-open precondition advisory: a direct `PhaseScope s{att, p}` compiled
+        /// with no tick open and its destructor still wrote into current_, crediting the
+        /// interval to whatever tick happened to be open when it closed.
+        PhaseScope(Key /*unused*/, TickAttribution& att, TickPhase phase) noexcept
             : att_{att}, phase_{phase}, start_{att.clock_.now()} {}
+
+        /// Credits (now − start) to the phase on scope exit, and only then: a scope still alive
+        /// when endTick() runs contributes nothing to the tick it was opened in — its interval
+        /// lands on whatever tick is open when it finally closes, or is discarded outright if the
+        /// next beginTick() zeroes the working phases first. Repeated scopes on the same phase
+        /// within one tick ACCUMULATE rather than replace.
         ~PhaseScope() {
             const std::size_t idx = static_cast<std::size_t>(phase_);
             att_.current_[idx] = att_.current_[idx] + (att_.clock_.now() - start_);
         }
+        /// Non-copyable, and therefore non-movable: a scope charges exactly one interval, and a
+        /// copy would charge it twice. phase() still returns one by value — that is guaranteed
+        /// elision, not a move.
         PhaseScope(const PhaseScope&) = delete;
         PhaseScope& operator=(const PhaseScope&) = delete;
 
@@ -78,9 +117,24 @@ public:
         units::Time start_;
     };
 
+    /// Open a scope that charges its own lifetime to `p`. Requires a tick to be open. The result
+    /// MUST be bound to a named variable — an unnamed temporary dies at the semicolon and charges
+    /// nothing, which is the whole reason this is [[nodiscard]].
     [[nodiscard]] PhaseScope phase(TickPhase p) {
         SHULIB_PRECONDITION(tickOpen_, "TickAttribution::phase: no tick open");
-        return PhaseScope{*this, p};
+        return PhaseScope{PhaseScope::Key{}, *this, p};
+    }
+
+    /// The same scope, in an optional. Exists because PhaseScope is deliberately non-movable,
+    /// so phase()'s by-value return cannot be stored in one — and a caller that needs the
+    /// optional shape (attribution is switchable, and must cost nothing when off) previously
+    /// had to construct a PhaseScope directly with `std::in_place`, walking around the
+    /// tick-open check. MotionScheduler was that caller, and was the only user of the bypass;
+    /// with this it goes through the same precondition as everyone else. Same requirement
+    /// as phase(): bind the result to a named variable, or it charges nothing.
+    [[nodiscard]] std::optional<PhaseScope> phaseInPlace(TickPhase p) {
+        SHULIB_PRECONDITION(tickOpen_, "TickAttribution::phaseInPlace: no tick open");
+        return std::optional<PhaseScope>{std::in_place, PhaseScope::Key{}, *this, p};
     }
 
     /// Close the tick: snapshot the working phases + total as the LAST COMPLETED
@@ -98,9 +152,15 @@ public:
     /// the instrument re-arms. The last COMPLETED tick's story is untouched.
     void abandonTick() noexcept { tickOpen_ = false; }
 
+    /// False until the first endTick(), and again after reset(). Worth asking first: before any
+    /// tick completes every lastX() accessor reads zero, which is indistinguishable from a tick
+    /// that genuinely cost nothing.
     [[nodiscard]] bool hasCompletedTick() const noexcept { return hasCompleted_; }
     /// The last completed tick's per-phase durations (zeros before any tick).
     [[nodiscard]] const Phases& lastPhases() const noexcept { return last_; }
+    /// Seconds from beginTick() to endTick() of the last completed tick, on the attribution
+    /// clock. It spans the whole tick, including work no phase scope wrapped — that remainder is
+    /// what lastOther() reports rather than smearing it into a named phase.
     [[nodiscard]] units::Time lastTotal() const noexcept { return lastTotal_; }
 
     /// Sum of the attributed phases of the last completed tick.

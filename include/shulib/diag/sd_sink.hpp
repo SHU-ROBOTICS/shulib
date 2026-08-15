@@ -148,6 +148,16 @@ struct SdSinkBuffers {
     }
 };
 
+/// The blackbox: a binary, versioned, session-stamped record of a run on the brain's SD
+/// card, behind the same ITelemetrySink seam TermSink sits on — one record, two
+/// renderings. Its DEFAULT posture writes nothing at all: every record lands in the
+/// caller's RAM ring, and bytes reach the device only on the first faulted record, on an
+/// explicit flush(), or at close(). Lifecycle: open() once before the run, flush()
+/// wherever a few milliseconds of IO is affordable, close() at the end; a clean run that
+/// never had anything to say costs zero bytes. It never allocates, never throws, and —
+/// outside the fault dump — never writes behind your back: a frame that does not fit the
+/// buffer is dropped WHOLE and counted, so the file always explains its own gaps.
+/// Single-task, like every sink here.
 class SdSink final : public hal::ITelemetrySink {
 public:
     /// `out` is the block device (R1's /usd/ adapter on the robot, FakeBlockSink in

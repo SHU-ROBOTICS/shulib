@@ -7,18 +7,28 @@
 
 #include "doctest.h"
 
+#include <array>
 #include <cmath>
+#include <limits>
+#include <span>
 #include <string>
+#include <string_view>
 
 #include "motion_test_rig.hpp"
+#include "shulib/control/watchdog.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/finite_guard.hpp"
 #include "shulib/diag/term_sink.hpp"
 #include "shulib/hal/fake/fake_char_sink.hpp"
+#include "shulib/hal/fake/fake_clock.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
 #include "shulib/math/frame.hpp"
+#include "shulib/motion/odo_stall_check.hpp"
+#include "shulib/hal/fake/fake_motor.hpp"
+#include "shulib/chassis/robot_context.hpp"
 #include "shulib/motion/drive_brake.hpp"
+#include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/hold_pose.hpp"
 #include "shulib/motion/move_to_pose.hpp"
 #include "shulib/motion/strafe_to.hpp"
@@ -563,3 +573,125 @@ TEST_CASE("C1 legibility: a motion's record stream renders as framed TermSink li
     }
     CHECK(lines >= static_cast<std::size_t>(motionRecords));  // one framed line each
 }
+
+// Bug caught (DEFECTS1 item D13): MotionConfig::validate() guarded its scalars with a bare
+// `> 0.0`, which infinity satisfies. An infinite defaultTimeout therefore validated, and
+// because `timeout = 0` at a motion's constructor SELECTS config.defaultTimeout, it built a
+// Watchdog that can never expire — a motion that runs forever with no TimedOut exit and no
+// end-of-run park, defeating the single guarantee watchdog.hpp exists to make. The
+// caller-supplied timeout was already screened for finiteness; this field was the way in.
+TEST_CASE("MotionConfig: an infinite budget is rejected, at both layers (D13)") {
+    const double inf = std::numeric_limits<double>::infinity();
+
+    shulib::motion::MotionConfig cfg;
+    cfg.defaultTimeout = inf;
+    CHECK_THROWS_AS(cfg.validate(), shulib::PreconditionError);
+
+    for (const char* which : {"lin", "ang", "wheel", "radius"}) {
+        shulib::motion::MotionConfig c;
+        if (std::string_view{which} == "lin") { c.maxLinearSpeed = shulib::units::Velocity{inf}; }
+        if (std::string_view{which} == "ang") {
+            c.maxAngularSpeed = shulib::units::AngularVelocity{inf};
+        }
+        if (std::string_view{which} == "wheel") { c.maxWheelSpeed = shulib::units::Velocity{inf}; }
+        if (std::string_view{which} == "radius") { c.rotationRadius = shulib::units::Length{inf}; }
+        CHECK_THROWS_AS(c.validate(), shulib::PreconditionError);
+    }
+
+    // The second layer: even handed an infinite budget directly, the Watchdog refuses it.
+    shulib::hal::fake::FakeClock clk;
+    CHECK_THROWS_AS((shulib::control::Watchdog{inf, clk}), shulib::PreconditionError);
+
+    // NEGATIVE CONTROL: the default config still validates and a finite watchdog still
+    // constructs — so the throws above are about finiteness, not about a broken validate().
+    shulib::motion::MotionConfig good;
+    CHECK_NOTHROW(good.validate());
+    CHECK_NOTHROW((shulib::control::Watchdog{1.0, clk}));
+}
+
+// Bug caught (DEFECTS1 item A1): nothing anywhere compared the drive-motor count to the
+// installed kinematics' wheel count, while applyCommandPipeline indexes the motor span by
+// WHEEL index with std::span::operator[], which is unchecked. Three motors and an XDrive
+// read one past the end of the span on EVERY tick — undefined behaviour, no diagnostic, on
+// the hot path. Every RECORD-producing loop already guarded it (`i < motors.size() && ...`);
+// only the path that actually drives the robot did not. MotionDeps is the one bundle holding
+// both the context and the kinematics, so the cross-check lives there.
+TEST_CASE("A1: fewer drive motors than wheels is a loud breach, not silent out-of-bounds") {
+    const auto kin = shulib::kinematics::xDrive(shulib::units::Length{7.0});
+    REQUIRE(kin.wheelCount() == 4);
+    motion_rig::MotionRig rig{kin};
+
+    const auto full = rig.h.context().driveMotors();
+    REQUIRE(full.size() == 4);
+    const auto three = full.subspan(0, 3);   // one short of the wheel count
+
+    auto makeCtx = [&](std::span<shulib::hal::IMotor* const> motors) {
+        return shulib::chassis::RobotContextConfig{.clock = &rig.h.context().clock(),
+                                                   .driveMotors = motors,
+                                                   .imu = &rig.h.context().imu(),
+                                                   .gps = &rig.h.context().gps(),
+                                                   .battery = &rig.h.context().battery(),
+                                                   .telemetry = &rig.h.context().telemetry(),
+                                                   .tags = &rig.h.context().tags(),
+                                                   .vision = &rig.h.context().vision()};
+    };
+
+    shulib::chassis::RobotContext shortCtx{makeCtx(three)};  // legal on its own
+    shulib::motion::MotionDeps shortDeps{.ctx = &shortCtx,
+                                         .localizer = &rig.loc,
+                                         .kinematics = &kin,
+                                         .faults = &rig.latch,
+                                         .health = &rig.health};
+    CHECK_THROWS_AS(shortDeps.validate(), shulib::PreconditionError);
+    // And it must be loud where a caller meets it — at a motion's construction.
+    CHECK_THROWS_AS((shulib::motion::TurnTo{shortDeps, shulib::math::Angle::degrees(90.0)}),
+                    shulib::PreconditionError);
+
+    // NEGATIVE CONTROL: the identical wiring with a matching count validates, so the throws
+    // above are about the count and not about any of the five null checks beside it.
+    shulib::chassis::RobotContext fullCtx{makeCtx(full)};
+    shulib::motion::MotionDeps okDeps{.ctx = &fullCtx,
+                                      .localizer = &rig.loc,
+                                      .kinematics = &kin,
+                                      .faults = &rig.latch,
+                                      .health = &rig.health};
+    CHECK_NOTHROW(okDeps.validate());
+}
+
+// Bug caught (DEFECTS1 item A30): OdoStallCheck::update() checked only the size CEILING. An
+// empty span made the check permanently un-trippable — mean shaft delta 0, so spinTravel 0,
+// so `spinTravel >= minSpinTravel` never true — a misconfiguration that silently disables a
+// safety cross-check and reports "healthy" forever. A null element was a raw dereference.
+// Every sibling fan-out in the tree already checked both.
+TEST_CASE("A30: an empty or null-bearing motor span is refused, not silently un-trippable") {
+    shulib::motion::OdoStallCheck check;
+    const shulib::math::Pose2d origin{};
+    const shulib::units::Time t{0.0};
+
+    CHECK_THROWS_AS((void)check.update(t, std::span<shulib::hal::IMotor* const>{}, origin),
+                    shulib::PreconditionError);
+
+    shulib::hal::fake::FakeMotor m;
+    std::array<shulib::hal::IMotor*, 2> withNull{&m, nullptr};
+    CHECK_THROWS_AS((void)check.update(t, std::span<shulib::hal::IMotor* const>{withNull},
+                                       origin),
+                    shulib::PreconditionError);
+
+    // NEGATIVE CONTROL: a well-formed span is still accepted and still baselines.
+    std::array<shulib::hal::IMotor*, 1> ok{&m};
+    CHECK_NOTHROW((void)check.update(t, std::span<shulib::hal::IMotor* const>{ok}, origin));
+}
+
+// DEFECTS1 items D12 + D14 — FIXED IN THE HEADER, NOT COVERED HERE, and that is recorded
+// rather than papered over. HoldPose's only deadline was holdFor + 1.0 s, and that same
+// watchdog bounds the wait-for-live boot window, so HoldPose(deps, 0.5) had a 1.5 s total
+// budget against a ~2 s V5 IMU calibration and exited TimedOut before its hold began. The
+// watchdog is now armed with max(holdFor + slack, the effective timeout).
+//
+// NO TEST PINS IT, and mutation M21 (reverting to holdFor + kHoldSlack) stayed GREEN. Two
+// attempts failed for the same reason: MotionRig's localizer is seeded live in its
+// constructor, so neither a long bootSettleTime nor holding the IMU un-ready keeps
+// qualityClass() at Uninitialized long enough to reach the old budget. Pinning this needs a
+// rig that boots cold, which this chunk did not build. The gap is real and is named in
+// DEFECTS1-COMPLETED.md rather than hidden behind a test that passes for the wrong reason —
+// an earlier draft of exactly that test is what M21 exposed.

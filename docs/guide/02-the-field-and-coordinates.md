@@ -131,6 +131,11 @@ robot to (24, 36), that point goes to (24, 36); the arm, the intake, and the bum
 the robot's geometry puts them. When a target "isn't quite where the game piece is," check
 whether you're thinking about the tracking center or the front of the intake.
 
+
+## The exact signatures
+
+Everything in this chapter has an exact spelling in the reference: [`Frame`](../api/frame.md) (and the two conversions between field and body), [`Pose2d`](../api/pose2d.md), [`Angle`](../api/angle.md), [`Twist2d` and `ChassisSpeeds`](../api/twist2d.md), and the typed quantities themselves — [`Quantity`](../api/quantity.md) with its aliases (`Length`, `Time`, `Voltage`, …) and the [unit literals](../api/literals.md) that let you write `24_in` and `300_ms`.
+
 ---
 
 *Next: [Chapter 3 — Knowing where you are](03-knowing-where-you-are.md)*

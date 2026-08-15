@@ -154,6 +154,9 @@ struct MechanismDeps {
     diag::FaultLatch* faults = nullptr;      ///< run-scoped latch (MechanismStalled)
     hal::ITelemetrySink* telemetry = nullptr;  ///< the Warn lines (TimedOut/Unconfirmed)
 
+    /// Every dependency non-null, or a loud precondition naming the one that is
+    /// not. Each operation calls it at CONSTRUCTION, so a forgotten pointer is an
+    /// error at the wiring site rather than a null dereference on the first tick.
     void validate() const {
         SHULIB_PRECONDITION(clock != nullptr, "MechanismDeps: clock is null");
         SHULIB_PRECONDITION(faults != nullptr, "MechanismDeps: faults is null");
@@ -181,6 +184,12 @@ struct MechanismDeps {
 /// is unchanged; the base only makes it reachable from the hal tier.
 class IMechanismOp : public hal::ICancellable {
 public:
+    /// Interface plumbing: the destructor is virtual through hal::ICancellable, so
+    /// an operation may be owned and destroyed through either base, and the rest
+    /// are restated because declaring a destructor suppresses the implicit moves.
+    /// Defaulting them here is base-class boilerplate, NOT permission to copy an
+    /// operation — a concrete operation holds a mechanism claim and a claimant
+    /// registration pointing at itself, so both library operations delete all four.
     ~IMechanismOp() override = default;
     IMechanismOp() = default;
     IMechanismOp(const IMechanismOp&) = default;
@@ -223,9 +232,18 @@ public:
 /// sensor exists to ask. Using it is a visible, greppable declaration that an
 /// action is unverified, which is exactly what an invisible default would hide.
 struct AlwaysConfirmed {
+    /// Always true, on every call. In ActuateAndConfirm that means "confirmed the
+    /// instant the actuation deadline passes"; in RunUntilConfirmed it means the
+    /// FIRST tick Succeeds with zero volts ever commanded — which is why this
+    /// belongs on discrete actuators and is a mistake on a motor operation.
     [[nodiscard]] bool operator()() const noexcept { return true; }
 };
 
+/// RunUntilConfirmed's three numbers, all REQUIRED and all validated at
+/// construction — there is no library default for a voltage, a budget or a jam
+/// threshold, because every one of them is a fact about one mechanism on one
+/// robot. Zero-initializing this struct does not get you a working operation; it
+/// gets you a loud precondition.
 struct RunUntilConfirmedConfig {
     /// Commanded while running (finite, non-zero — a 0 V "run" is a nonsense
     /// request, refused loudly at construction).
@@ -301,6 +319,12 @@ public:
     RunUntilConfirmed& operator=(const RunUntilConfirmed&) = delete;
     RunUntilConfirmed& operator=(RunUntilConfirmed&&) = delete;
 
+    /// Claim the mechanism and register this object as its claimant (loud
+    /// precondition if another operation already holds it — cancel that one
+    /// first), forget any partial stall window, and arm the watchdog HERE; no code
+    /// path disarms it, so a world that never confirms still exits. Re-callable: a
+    /// finished operation re-arms completely for a retry, and a claim this object
+    /// already holds is kept rather than re-taken. Commands nothing by itself.
     void start() override {
         if (!holdsClaim_) {
             SHULIB_PRECONDITION(mech_->tryClaim(*this),
@@ -315,6 +339,13 @@ public:
         finished_ = false;
     }
 
+    /// One step, in an order pinned by test: confirmation FIRST (success outranks a
+    /// simultaneous stall or timeout), then the stall detector, then the watchdog;
+    /// the configured voltage is commanded only when none of the three fired — so a
+    /// confirmation already true on entry Succeeds with zero volts ever reaching the
+    /// motors. EVERY exit applies the mechanism's declared safe state and releases
+    /// the claim, so a caller can never be left owing a stop. Once finished it is a
+    /// no-op returning the cached verdict. Precondition: start() has been called.
     [[nodiscard]] MechanismOutcome tick() override {
         SHULIB_PRECONDITION(started_, "RunUntilConfirmed::tick: start() not called");
         if (finished_) {
@@ -338,11 +369,29 @@ public:
         return MechanismOutcome::Running;
     }
 
+    /// Make the mechanism safe NOW: the declared safe state is applied on every
+    /// call made after start(), idempotently, but the VERDICT is written only if
+    /// the operation was still running — an operation that Succeeded stays
+    /// Succeeded, because rewriting history would lie to whoever reads outcome()
+    /// later. Before start() it is a complete no-op. Raises no fault: cancellation
+    /// is a commanded, normal act. This is also what the end-of-run guard reaches
+    /// through the mechanism's registered claimant.
     void cancel() override {
         if (!started_) {
             return;  // never started: complete no-op (the mirror's third clause)
         }
-        mech_->applySafeState();  // always — "make it safe NOW", idempotent
+        // "Make it safe NOW", idempotent — but ONLY on a mechanism this operation still owns,
+        // or one nobody owns. A finished operation has already released its claim, so an
+        // unguarded call here let a RETAINED, EXITED object safe a mechanism a DIFFERENT live
+        // operation had since claimed: op2 running at 12 V dropped to brake + 0 V, silently,
+        // no fault, no Warn — and op2 re-commands its voltage next tick but NOT its brake
+        // mode, which is the half-safe state run_guard's T6 note names as the reason
+        // applySafeState() alone is never trusted. The `!claimed()` arm keeps the documented
+        // idempotence for the ordinary case (nobody else took it), which is what the existing
+        // "completed verdict is PRESERVED — cancel still re-safes" test pins.
+        if (holdsClaim_ || !mech_->claimed()) {
+            mech_->applySafeState();
+        }
         if (!finished_) {
             releaseClaim();
             outcome_ = MechanismOutcome::Cancelled;
@@ -351,8 +400,17 @@ public:
         // already finished: verdict PRESERVED (the mirror's second clause)
     }
 
+    /// The verdict of the most recent tick, cached: Running before the first tick
+    /// and before start(), then frozen at whichever of Succeeded / Stalled /
+    /// TimedOut / Cancelled ended the operation, until the next start() re-arms.
     [[nodiscard]] MechanismOutcome outcome() const noexcept override { return outcome_; }
+    /// True from the first start() onward — including after an exit, and after a
+    /// cancel(). Nothing clears it, so it answers "has this ever run?", not "is it
+    /// running?" (pair it with outcome() != Running, or just call finished()).
     [[nodiscard]] bool started() const noexcept override { return started_; }
+    /// The `opName` handed to the constructor, returned unchanged and not copied.
+    /// It is what the MechanismStalled fault detail and the timeout Warn line
+    /// quote, so it is the string you grep a transcript for.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
 private:
@@ -415,6 +473,12 @@ private:
     bool holdsClaim_ = false;
 };
 
+/// ActuateAndConfirm's schedule: WHAT to command, how long the hardware needs to
+/// do it, and how long afterwards proof may take to arrive. Both times are
+/// validated finite and >= 0 at construction and become ABSOLUTE instants at
+/// start() — they are this operation's watchdog, so no later path can extend
+/// them. The physical actuation time is a measured property of the cylinder, not
+/// a number the library can supply.
 struct ActuateAndConfirmConfig {
     /// The commanded line state (what it means physically is the mechanism's).
     bool target = true;
@@ -486,6 +550,13 @@ public:
     ActuateAndConfirm& operator=(const ActuateAndConfirm&) = delete;
     ActuateAndConfirm& operator=(ActuateAndConfirm&&) = delete;
 
+    /// Claim the mechanism and register this object as its claimant (loud
+    /// precondition if another operation already holds it), then compute the
+    /// deadline pair ONCE from the clock — actuation, then confirm. Those two
+    /// absolute instants ARE this operation's bound: no later path extends them, so
+    /// an erratic dt cannot stretch the budget and a clock jump cannot skip it.
+    /// Re-callable; a finished operation re-arms for a retry. Commands nothing by
+    /// itself — the first tick() is what fires the actuator.
     void start() override {
         if (!holdsClaim_) {
             SHULIB_PRECONDITION(mech_->tryClaim(*this),
@@ -503,6 +574,15 @@ public:
         finished_ = false;
     }
 
+    /// One step: re-command the target line state (idempotent — the solenoid holds
+    /// it), then ask the confirmation ONLY past the actuation deadline. Before that
+    /// instant the operation stays Running WITHOUT consulting the world, because a
+    /// clamp's "closed" sensor may still be reporting the previous grab and
+    /// confirming on the pre-actuation state is the silent-success door. On exit the
+    /// COMMANDED STATE STAYS PUT for both Succeeded and Unconfirmed — a successful
+    /// grab must not be un-grabbed by its own success, and an unconfirmed one is
+    /// left where it is for the caller's retry/undo decision. The claim is released
+    /// on every exit. Once finished it commands nothing. Precondition: start().
     [[nodiscard]] MechanismOutcome tick() override {
         SHULIB_PRECONDITION(started_, "ActuateAndConfirm::tick: start() not called");
         if (finished_) {
@@ -526,11 +606,26 @@ public:
         return MechanismOutcome::Running;  // inside the confirm window
     }
 
+    /// The ONLY path that forces the declared safe state onto this actuator — every
+    /// other exit leaves the commanded state in place. Applied on every call made
+    /// after start(), idempotently, so it can and does un-do a completed actuation:
+    /// that is deliberate, and it is how a team says "the clamp stays closed at the
+    /// buzzer" or "the cylinder retracts inside the expansion limit" through the
+    /// mechanism's declared safe value. The verdict of an already-finished operation
+    /// is preserved; before start() it is a complete no-op; it raises no fault.
     void cancel() override {
         if (!started_) {
             return;  // never started: complete no-op
         }
-        mech_->applySafeState();  // always — idempotent
+        // Idempotent — but ONLY on a mechanism this operation still owns, or one nobody owns.
+        // Worse here than on the motor side: a finished ActuateAndConfirm deliberately does
+        // NOT apply the safe state (finish() leaves a successful actuation standing — the
+        // clamp that would FLING its goal), so an unguarded cancel() on a retained, exited
+        // object drove the line to the declared safe value and UN-DID an actuation a second,
+        // currently-claiming operation had just performed.
+        if (holdsClaim_ || !mech_->claimed()) {
+            mech_->applySafeState();
+        }
         if (!finished_) {
             releaseClaim();
             outcome_ = MechanismOutcome::Cancelled;
@@ -539,8 +634,17 @@ public:
         // already finished: verdict PRESERVED
     }
 
+    /// The verdict of the most recent tick, cached: Running before the first tick
+    /// and before start(), then frozen at Succeeded, Unconfirmed or Cancelled —
+    /// Stalled and TimedOut are unreachable for this operation (no current channel
+    /// on a solenoid; the deadline pair is the watchdog).
     [[nodiscard]] MechanismOutcome outcome() const noexcept override { return outcome_; }
+    /// True from the first start() onward — including after an exit. Nothing clears
+    /// it, so it answers "has this ever run?", not "is it running?".
     [[nodiscard]] bool started() const noexcept override { return started_; }
+    /// The `opName` handed to the constructor, returned unchanged and not copied.
+    /// The Unconfirmed Warn line quotes it, so it is the string that identifies this
+    /// actuation in a transcript.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
 private:

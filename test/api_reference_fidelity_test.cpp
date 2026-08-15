@@ -174,8 +174,14 @@ TEST_CASE("D3 doc fidelity: docs/api/routine.md renders the header's real signat
 // Bug caught: the index losing a member, which is how a reference stops being
 // a reference. The index is generated from the same parse as the pages, so a
 // member missing here is a member missing everywhere.
+//
+// DOCS2 moved the index off the overview and onto its own page: as one table it
+// was 180 KB of the overview's 190 KB and buried the scope paragraph under
+// sixteen hundred rows. The assertions are unchanged in intent — the index must
+// still enumerate what the pages render — and the overview must still lead a
+// reader to it, which is checked below.
 TEST_CASE("D3 doc fidelity: the index lists every member of both surfaces") {
-    const std::string index = readDoc("docs/api/README.md");
+    const std::string index = readDoc("docs/api/all-entities.md");
 
     for (const char* name : {"Chassis::moveTo", "Chassis::strafeTo", "Chassis::turnTo",
                              "Chassis::brake", "Chassis::hold", "Chassis::wait",
@@ -189,12 +195,64 @@ TEST_CASE("D3 doc fidelity: the index lists every member of both surfaces") {
                              "Routine::ok", "Routine::result", "Routine::lastTrajectory",
                              "Routine::chassis", "MotionOptions::timeout",
                              "TrajectoryResult::succeeded", "RoutineResult::cause"}) {
+        // `<< name` on a const char* streams the POINTER through doctest's
+        // stringifier, so this message used to read "missing from the generated
+        // index: 0x6139ff1d4136" — a failure that names nothing is a failure you
+        // debug twice. Wrapped so it names the member.
         CHECK_MESSAGE(contains(index, std::string{"`"} + name + "`"),
-                      "missing from the generated index: " << name);
+                      "missing from the generated index: " << std::string{name});
     }
 
     // Both overloads reach the index with distinguishable labels; an index that
     // silently merges them undercounts the surface it claims to enumerate.
     CHECK(contains(index, "`Chassis::scheduler`"));
     CHECK(contains(index, "`Chassis::scheduler (overload 2)`"));
+
+    // The overview must still be the way in.
+    CHECK(contains(readDoc("docs/api/README.md"), "all-entities.md"));
+}
+
+// Bug caught: the four SHAPES chunk DOCS2 taught the parser silently regressing.
+// Each of these was invisible to the generator before that chunk — not dropped
+// with a warning, never seen at all — so each is pinned here against the
+// rendered markdown, where a regression shows up as a missing row rather than
+// as a smaller number nobody is watching.
+//
+// The pairing with tools/api_doc_tool.py's own self-test is deliberate and not
+// redundant: that one proves the PARSER finds these shapes in a fixture, this
+// one proves the shipped REFERENCE actually renders them for the real headers.
+TEST_CASE("DOCS2 doc fidelity: the shapes the old parser could not see") {
+    const std::string index = readDoc("docs/api/all-entities.md");
+
+    // 1. A type with a base-class list. Fifty-nine definitions were in this
+    //    hole, including nearly every concrete implementation class.
+    CHECK(rendersSignature(readDoc("docs/api/localizer.md"),
+                           "class Localizer final : public IPoseSource"));
+    CHECK(contains(index, "`Localizer::pose`"));
+
+    // 2. An enum with an explicit underlying type, and its enumerators.
+    CHECK(rendersSignature(readDoc("docs/api/fault.md"),
+                           "enum class FaultCode : std::uint16_t"));
+    CHECK(contains(index, "`FaultCode::OdoStuck`"));
+
+    // 3. A public NESTED type, indexed under its qualified name — the shape the
+    //    tool used to refuse outright rather than flatten.
+    CHECK(contains(readDoc("docs/api/blackbox_reader.md"),
+                   "`struct BlackboxReader::Frame`"));
+    CHECK(contains(index, "`BlackboxReader::Frame::payload`"));
+    CHECK(contains(index, "`TrackingWheel::Role::Forward`"));
+
+    // 4. Namespace scope: free functions, constants and type aliases. This hole
+    //    swallowed three LOCKED contracts whole — the coordinate frame, the
+    //    accuracy targets and the units vocabulary.
+    CHECK(contains(index, "`arcStep`"));
+    CHECK(contains(index, "`kPositionErrorEndOfRun`"));
+    CHECK(contains(index, "`Length`"));
+    CHECK(rendersSignature(readDoc("docs/api/quantity.md"),
+                           "using Length = Quantity<1, 0, 0, 0, 0>"));
+    // A class template keeps its template head, or the reference shows a
+    // declaration nobody can spell.
+    CHECK(rendersSignature(
+        readDoc("docs/api/quantity.md"),
+        "template <int L, int A, int T, int E, int I> class Quantity"));
 }

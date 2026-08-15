@@ -52,7 +52,18 @@
 
 namespace shulib::hal {
 
+/// Default `northHeadingDeg`: 90° — VEX-North points along canonical +Y, away from red.
+/// The only other value a legal field setup produces is 270 (≡ −90°), red at the +Y wall.
+/// It has ONE owner, the robot's start pose — the same authority as the IMU's bootHeading,
+/// and it must be validated on the field (HA-09). Note what it CANNOT do: it is a ROTATION,
+/// so it can never repair a mirrored pose from a wrong position-axis binding (HA-01).
 inline constexpr double kGpsDefaultNorthHeadingDeg = 90.0;       // VEX-North = canonical +Y
+/// Metres → inches (1 / 0.0254), the single scale behind every GPS quantity: position in
+/// gpsSensorPose() and the device's rms error in gpsRmsErrorToCanonical(). Misapplying it is
+/// silent in both directions — omit it and the corrector's R is ~39× too small, so every good
+/// fix is gated out and the GPS goes quietly dead; apply it twice and the corrector accepts
+/// lies (HA-07). Neither looks like a crash, which is why the scaling is a callable function
+/// and not a paragraph an adapter author has to remember.
 inline constexpr double kMetersToInches = 39.3700787401574803;   // 1 / 0.0254, exact-ish
 
 /// The device's self-reported rms position error (`pros::Gps::get_error()`, **METERS**)

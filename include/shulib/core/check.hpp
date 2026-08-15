@@ -40,7 +40,15 @@
 
 namespace shulib {
 
+/// What a violated precondition throws under BOTH shipped policies. A logic_error because
+/// a breach is a CALLER bug, not a runtime condition to retry: nothing catches it at the
+/// call site, because the call sites guard invariants (bounds, non-null, finite) past
+/// which continuing is undefined behavior. The motion scheduler catches it at the task
+/// boundary and turns it into a FAULT_ABORT exit plus a safe drivetrain, so one bad
+/// reading costs one motion — never the auton.
 struct PreconditionError : std::logic_error {
+    /// Inherits logic_error's constructors: the message is the literal handed to
+    /// SHULIB_PRECONDITION, readable through what().
     using std::logic_error::logic_error;
 };
 
@@ -74,6 +82,12 @@ inline PreconditionHandler setPreconditionHandler(PreconditionHandler handler) n
     return detail::preconditionHandlerSlot();
 }
 
+/// Report a violated precondition through whichever policy is installed. Reach it through
+/// SHULIB_PRECONDITION rather than calling it directly — the macro is what keeps the call
+/// sites identical on every target. [[noreturn]] is load-bearing: a handler must not
+/// return, and if a broken one does, this calls std::terminate() rather than let execution
+/// continue past a violated invariant. That terminate is unreachable through either
+/// shipped policy; only a handler that breaks the seam's contract can get there.
 [[noreturn]] inline void precondition_failed(const char* message) {
     detail::preconditionHandlerSlot()(message);
     // Only reachable through a handler that violated its must-not-return contract:

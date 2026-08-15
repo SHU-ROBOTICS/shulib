@@ -97,6 +97,13 @@ namespace shulib::hal {
 /// section for the measured failure this closes.
 class ICancellable {
 public:
+    /// Re-declared only because the virtual destructor suppresses the implicit copy/move
+    /// members; this seam holds no state of its own. The virtual destructor is what makes
+    /// deleting through a stored ICancellable* well-defined. Note that a claimant is
+    /// registered BY ADDRESS (IMechanism::tryClaim below), so an implementer that holds a
+    /// claim should DELETE its own copy/move instead of inheriting these defaults — a copy
+    /// would leave the mechanism's registration aimed at the original. Manipulation's
+    /// operations do exactly that.
     virtual ~ICancellable() = default;
     ICancellable() = default;
     ICancellable(const ICancellable&) = default;
@@ -114,12 +121,25 @@ public:
 /// claim token. See the file banner for why nothing else is unified.
 class IMechanism {
 public:
+    /// NON-COPYABLE AND NON-MOVABLE, and unlike the other HAL seams that is about state
+    /// rather than style: this base HOLDS the claim token. While copy/move were defaulted, a
+    /// copied mechanism arrived already claimed(), with claimant() aimed at an operation
+    /// registered against the ORIGINAL — so a legitimate tryClaim(copy) failed for no reason
+    /// the caller could see, and F2's end-of-run guard walking a span containing the copy
+    /// reached claimant() and cancelled an operation driving the original, whose own claim
+    /// was never released. That is exactly the unreleased-claim failure the claimant hook
+    /// exists to close, reintroduced by a defaulted special member.
+    ///
+    /// manipulation/mechanism_op.hpp already deletes copy/move on both operations for the
+    /// mirror-image reason ("the claim is a resource and the mechanism's registered claimant
+    /// points at THIS object"); the mechanism side simply never got the same treatment.
+    /// Construct a mechanism once where it lives and hand out IMechanism&/IMechanism*.
     virtual ~IMechanism() = default;
     IMechanism() = default;
-    IMechanism(const IMechanism&) = default;
-    IMechanism(IMechanism&&) = default;
-    IMechanism& operator=(const IMechanism&) = default;
-    IMechanism& operator=(IMechanism&&) = default;
+    IMechanism(const IMechanism&) = delete;
+    IMechanism(IMechanism&&) = delete;
+    IMechanism& operator=(const IMechanism&) = delete;
+    IMechanism& operator=(IMechanism&&) = delete;
 
     /// Command the DECLARED safe state, synchronously — safe when the call
     /// returns, no further tick required (the same synchronous rule as the
@@ -224,6 +244,8 @@ public:
         }
     }
 
+    /// The `mechName` pointer given at construction, returned verbatim — this class
+    /// BORROWS the string and never copies it, so the literal must outlive the mechanism.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
     /// The declared safe brake mode (construction-time fact, for tests/logs).
@@ -292,13 +314,21 @@ public:
     /// this is NOT (digital_out.hpp): evidence that anything moved.
     [[nodiscard]] bool commanded() const { return lines_.front()->commanded(); }
 
+    /// The declared safe state: every line driven to `safe`. ONE command, not the motor
+    /// version's brake-then-zero two-step — a solenoid has no coast phase to slip through.
+    /// Still only a command: nothing here is evidence the air actually moved.
     void applySafeState() override { set(safe_); }
 
+    /// The `mechName` pointer given at construction, returned verbatim — BORROWED, never
+    /// copied, so the literal must outlive the mechanism.
     [[nodiscard]] const char* name() const noexcept override { return name_; }
 
     /// The declared safe command (construction-time fact, for tests/logs).
     [[nodiscard]] bool safeCommand() const noexcept { return safe_; }
 
+    /// The lines themselves, in the construction order — for anything this fan-out
+    /// grammar does not cover (driving one cylinder of a pair alone on a bench check).
+    /// NON-OWNING, like the span it was built from: the caller still owns every line.
     [[nodiscard]] std::span<IDigitalOut* const> lines() const noexcept { return lines_; }
 
 private:

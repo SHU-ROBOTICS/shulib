@@ -195,6 +195,11 @@ uncovers a library bug: it gets a test that would have caught it, then the fix â
 That's the house discipline ([Chapter 13](13-extending-the-library.md)), and it's why the bug
 count stays down.
 
+
+## The exact signatures
+
+When you need the exact spelling of something a transcript printed: the [fault codes](../api/fault.md), [`MotionResult`](../api/motion_result.md) and its outcomes, [`RunSummary`](../api/run_summary.md), and the [`Chassis`](../api/chassis.md) and [`Routine`](../api/routine.md) verbs themselves.
+
 ---
 
 *Next: [Chapter 13 â€” Extending the library](13-extending-the-library.md)*

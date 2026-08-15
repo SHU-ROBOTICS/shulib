@@ -20,6 +20,17 @@
 
 namespace shulib::motion {
 
+/// Translate to a FIELD (x, y) while actively HOLDING heading. The heading loop is not
+/// switched off — it is given a target: the heading the robot actually has at the FIRST
+/// LIVE tick, captured then rather than at start() so it can never lock onto a boot-window
+/// estimate. So "hold" here means a closed loop that fights disturbance, not an absence of
+/// rotation command, and a heading that wanders during the translation is a test failure.
+/// The target heading is therefore NOT knowable before the motion runs: read target()
+/// after the first live tick, and note that the heading component of the inherited
+/// setTarget() is discarded by the same capture. On a drivetrain with no strafe authority
+/// (tank) the body-lateral command is clamped to zero, so a laterally-offset target is
+/// physically unreachable and the motion exits TimedOut rather than hanging or claiming a
+/// success it never had.
 class StrafeTo final : public MoveToPose {
 public:
     /// Translate to FIELD (x, y), holding the first-live heading. `timeout` (s)
@@ -30,6 +41,12 @@ public:
         : MoveToPose(deps, math::Pose2d{x, y, math::Angle{}}, config, timeout,
                      PoseMotionOptions{.captureHeadingAtLive = true}) {}
 
+    /// "StrafeTo". Overridden so the two places this string surfaces name THIS motion
+    /// rather than the MoveToPose it is built from: the detail of the MotionTimeout fault
+    /// the base raises, and the scheduler's CompletedMotion / run result line. Without it a
+    /// strafe failure would be reported under the wrong primitive. It does NOT reach the
+    /// DebugRecord stream — a record identifies its motion only by the scheduler-assigned
+    /// activeCommandId, so filtering a blackbox for "StrafeTo" finds nothing.
     [[nodiscard]] const char* name() const noexcept override { return "StrafeTo"; }
 };
 

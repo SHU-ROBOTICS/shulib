@@ -52,6 +52,11 @@
 
 namespace shulib::diag {
 
+/// The physical envelope PoseDeltaGuard judges a tick's pose delta against. The defaults are
+/// deliberately GENEROUS hardware claims, not a tuned trip point: they sit far above anything a
+/// VEX drivetrain reaches, so a false positive requires the estimate to be wrong by
+/// construction. That makes this a bug detector, not a performance limit — tightening it toward
+/// the real envelope trades that guarantee for sensitivity. Nothing here bounds a COMMAND.
 struct PlausibilityConfig {
     /// Physical maximum linear speed the robot could conceivably reach.
     /// PROVISIONAL (A4: HA-56) — a 600 rpm 4" drive tops out near 125 in/s.
@@ -63,6 +68,18 @@ struct PlausibilityConfig {
     /// — header note). Logic constant. Must be >= 1.
     double margin = 1.5;
 
+    /// Raise a LOUD precondition if any field is unusable (non-finite or non-positive maxima,
+    /// margin < 1). Note the polarity — and note what it is NOT: SHULIB_PRECONDITION does not
+    /// crash. It throws a catchable PreconditionError, and the on-robot policy raises
+    /// FaultCode::Precondition on the latch BEFORE throwing (core/check.hpp). What separates
+    /// this from the header's three invariants is RECOVERY, not loudness: they raise
+    /// Implausible mid-tick and the run continues on a safe value, while this runs at
+    /// CONSTRUCTION — PoseDeltaGuard's ctor, so in practice while the scheduler is being built
+    /// at setup — when no motion is in flight for the scheduler's task boundary to convert the
+    /// throw into a FAULT_ABORT. It therefore leaves the constructor rather than costing one
+    /// motion, which is the intent: a nonsense envelope is a programming error in the setup,
+    /// not a runtime anomaly the guard is here to survive. PoseDeltaGuard's constructor already
+    /// calls it; call it yourself only when you build a config without one.
     void validate() const {
         SHULIB_PRECONDITION(std::isfinite(maxSpeed.value()) && maxSpeed.value() > 0.0,
                             "PlausibilityConfig: maxSpeed must be finite and > 0");
@@ -76,6 +93,9 @@ struct PlausibilityConfig {
 /// Invariant 1 (header): per-tick pose delta within the physical envelope.
 class PoseDeltaGuard {
 public:
+    /// COPIES `config` and validates it (loud on a nonsense envelope), so later edits to the
+    /// caller's config never reach this guard. Starts with NO baseline: the first check() only
+    /// records a pose and returns false, because one sample is not yet a delta.
     explicit PoseDeltaGuard(const PlausibilityConfig& config = {}) : cfg_{config} {
         cfg_.validate();
     }

@@ -40,8 +40,32 @@
 
 namespace shulib::hal {
 
+/// One digital input line behind the HAL — a limit switch, a bumper, a jumper: any two-state
+/// sensor on an ADI port. The input sibling of IDigitalOut, and a seam with exactly one degree of
+/// freedom, which is why three things are deliberately absent and belong to the CONSUMER instead:
+///   * NO debouncing. A homing switch and a collision bumper want different filters, and this
+///     layer cannot know which it is serving — a time constant here would be an unmeasured
+///     constant chosen by the one layer with no idea what the switch is for.
+///   * NO edge detection. "Was it JUST pressed" is per-consumer state; put a `hal::ButtonEdge`
+///     above the seam, one per consumer, exactly as driver buttons do.
+///   * NO validity channel. A dead ADI port is indistinguishable from a working one at this
+///     level; catching a dead switch is a cross-check's job (homing travel limits), not this
+///     seam's.
+///
+/// It is deliberately OUTSIDE the F4 runtime-interface freeze, and said out loud rather than left
+/// to be inferred: it was added ahead of any consumer, while the lift-homing question (switch or
+/// stall?) is still open, so it may still move. A real consumer is what would freeze it.
 class IDigitalIn {
 public:
+    /// The rule-of-five set plus the default constructor — six `= default`s, none of which add
+    /// behaviour, because this seam holds no state of its own. Spelled out in full because the
+    /// suppression chain is easy to get wrong: a user-declared destructor suppresses only the
+    /// implicit MOVE members (the copies survive it, their generation merely deprecated),
+    /// re-declaring the moves is what would DELETE those copies, and declaring any constructor at
+    /// all is what costs you the implicit default one. Writing only `virtual ~IFoo() = default;`
+    /// therefore leaves a new interface still copyable, with every "move" of it quietly resolving
+    /// to that copy. What copying a concrete IMPLEMENTATION means is that implementation's
+    /// business — the interface makes no claim.
     virtual ~IDigitalIn() = default;
     IDigitalIn() = default;
     IDigitalIn(const IDigitalIn&) = default;

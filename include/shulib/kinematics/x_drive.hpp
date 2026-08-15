@@ -39,6 +39,16 @@
 
 namespace shulib::kinematics {
 
+/// The symmetric 45° X-drive as a MatrixKinematics coefficient table: four omnis in the canonical
+/// order front-left, back-left, back-right, front-right (body angles 45°, 135°, 225°, 315° CCW
+/// from +X forward). `driveRadius` is the centre-to-wheel distance in INCHES and must be > 0; it
+/// is the only geometry input, because every row is [±√2/2, ±√2/2, driveRadius]. Using the SAME
+/// √2/2 magnitude on all four wheels makes the coefficient columns exactly orthogonal, so
+/// forward() is an exact inverse rather than a least-squares fit. Consequences worth knowing at
+/// the call site: strafeAuthority is 1.0 (strafe is symmetric with forward), and a forward command
+/// at V asks each wheel for only V/√2. Returned BY VALUE — the caller owns it, and it must outlive
+/// every IKinematics reference taken to it. Motor→index mapping and per-motor polarity are the
+/// HAL/config layer's; this fixes only the canonical order.
 [[nodiscard]] inline MatrixKinematics xDrive(units::Length driveRadius) {
     const double r = driveRadius.value();
     SHULIB_PRECONDITION(r > 0.0, "xDrive: driveRadius must be > 0");

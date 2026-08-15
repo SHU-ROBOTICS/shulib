@@ -18,8 +18,8 @@ ctest --test-dir build/test --output-on-failure
 `build/` is gitignored, so this never pollutes the repo. A non-zero exit code means a test failed.
 
 **The build needs `python3`.** Before compiling anything it runs the documentation gates
-(`tools/api_doc_tool.py`): a public member of the frozen `Chassis` or `Routine` surface with no
-documentation comment fails the build *naming that member*; the generated reference in
+(`tools/api_doc_tool.py`): a public entity anywhere under `include/shulib/` with no
+documentation comment fails the build *naming that entity, its file and its line*; the generated reference in
 `docs/api/` must match a fresh generation; every ```` ```cpp ```` line in the public
 documentation must appear verbatim in a compiled example test; and no public document may link
 into the development-process notes. The library itself is header-only C++ and depends on none of

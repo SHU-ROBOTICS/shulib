@@ -6,8 +6,9 @@
 // A frozen tracking encoder is INVISIBLE to the M2 estimator: zero travel is a
 // perfectly plausible reading, so PilonsOdometry::lastDeltaImplausible() never
 // fires and the fused estimate walks away from truth at exactly the truth's
-// speed (A3-COMPLETED §3.4, asserted by test). fault.hpp assigns OdoStuck to
-// "the C/E layers"; the estimator-side detector is E-phase work. Until then,
+// speed (measured during the hostile-fakes campaign, and asserted by test).
+// fault.hpp assigns OdoStuck to "the C/E layers"; the estimator-side detector
+// is E-phase work. Until then,
 // THIS windowed cross-check — owned by every C1 motion's tick — is the only
 // defence against a dead encoder: the drive encoders say the wheels are rolling,
 // the fused estimate says the robot is not moving. Sustained disagreement ⇒ the
@@ -33,9 +34,14 @@
 //     25% default — slip degrades, a stuck estimate STOPS. A physically blocked
 //     robot with spinning wheels also trips; that is the same fault family
 //     (fault.hpp: "odometry implausible / WHEEL STUCK"), and on purpose.
-//   * MEAN |Δshaft| over all drive wheels: a single dead DRIVE encoder halves
-//     the mean rather than zeroing it (still trips), while an X-drive strafe
-//     (all four wheels spinning) reads full spin travel.
+//   * MEAN |Δshaft| over all drive wheels: a single dead DRIVE encoder leaves
+//     (n-1)/n of the mean rather than zeroing it (still trips) — 1/2 on a
+//     2-wheel tank, 3/4 on the X-drive named below, 2/3 on the C3 H-bot. This
+//     bullet used to say "halves", which is the n=2 answer stated as if it were
+//     general, in the header of a check whose flagship consumers have 3 and 4
+//     wheels. The conclusion ("still trips") holds and is in fact STRONGER than
+//     the wrong figure implied. An X-drive strafe (all four wheels spinning)
+//     reads full spin travel.
 //   * WINDOWED (default 0.3 s), not per-tick: per-tick deltas are quantization-
 //     noise-dominated; a window integrates real travel. The verdict HOLDS until
 //     the next window closes, so HealthMonitor's edge-per-episode logic sees one
@@ -60,6 +66,11 @@
 
 namespace shulib::motion {
 
+/// The five knobs of the spin-vs-motion cross-check, taken BY VALUE at construction (editing the
+/// struct afterwards does nothing to a live check) and every one of them validated by that
+/// constructor. Every default is PROVISIONAL: the two radii are stand-in geometry and the three
+/// thresholds are invented numbers — none has yet been measured against a real drivetrain or a
+/// real noise floor, so treat a default as a placeholder that compiles, not as a tuning.
 struct OdoStallCheckConfig {
     /// Evaluation window (seconds). PROVISIONAL (A4: HA-52).
     double window = 0.3;
@@ -76,10 +87,24 @@ struct OdoStallCheckConfig {
     units::Length rotationRadius{7.0};
 };
 
+/// The windowed spin-vs-motion cross-check: the drive encoders say the wheels rolled, the fused
+/// estimate says the robot did not move, and sustained disagreement means the odometry is stuck.
+/// It is the only defence against a FROZEN tracking encoder, which the estimator itself cannot
+/// see — zero travel is a perfectly plausible reading, so no plausibility guard fires while the
+/// fused pose walks away from truth at exactly truth's speed. Owned per-motion and reset() at
+/// start(), because a window straddling a motion boundary would read a setPose as motion. The
+/// verdict HOLDS between window closes, so a consumer sees one sustained episode, not chatter.
 class OdoStallCheck {
 public:
+    /// Fixed capacity of the per-wheel shaft baseline, mirroring kinematics::WheelSpeeds so the
+    /// hot path never allocates. update() rejects a larger span outright rather than truncating.
     static constexpr int kMaxWheels = 8;  // mirrors kinematics::WheelSpeeds::kMaxWheels
 
+    /// Copies `config` and validates every field: window finite and > 0, minSpinTravel > 0, both
+    /// radii > 0, and motionRatio strictly inside (0, 1) — at 0 nothing could ever trip, at 1 any
+    /// slip at all would read as a stall. A violation trips the precondition handler; nothing is
+    /// clamped. The check starts with no baseline, so the first update() only baselines and no
+    /// verdict can be true until a full `window` has elapsed.
     explicit OdoStallCheck(const OdoStallCheckConfig& config = {}) : cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.window) && cfg_.window > 0.0,
                             "OdoStallCheck: window must be finite and > 0");
@@ -94,11 +119,23 @@ public:
     }
 
     /// Feed one tick's observables; returns the current (window-held) verdict.
-    /// `motors` are the drive motors in kinematic order (size constant per run).
+    /// `motors` are the drive motors in kinematic order (size constant per run), NON-EMPTY
+    /// and all non-null — the same discipline every other span-taking fan-out in the tree
+    /// keeps (MotorMechanism, PneumaticMechanism, RobotContext, Localizer). Both checks were
+    /// missing, and the empty case was the dangerous one: with no motors the mean shaft
+    /// delta is 0, so spinTravel is 0, so `spinTravel >= minSpinTravel` is never true and
+    /// the check reports "healthy" forever. A misconfiguration that silently disables a
+    /// safety cross-check is exactly what this library's precondition discipline exists to
+    /// turn into a loud failure. The in-tree path (ctx.driveMotors()) was already safe; a
+    /// direct caller — which the generated reference invites — was not.
     [[nodiscard]] bool update(units::Time now, std::span<hal::IMotor* const> motors,
                               const math::Pose2d& fusedPose) {
         SHULIB_PRECONDITION(motors.size() <= static_cast<std::size_t>(kMaxWheels),
                             "OdoStallCheck: too many motors");
+        SHULIB_PRECONDITION(!motors.empty(), "OdoStallCheck: motors is empty");
+        for (const hal::IMotor* m : motors) {
+            SHULIB_PRECONDITION(m != nullptr, "OdoStallCheck: a motor is null");
+        }
         if (!hasBaseline_) {
             baseline(now, motors, fusedPose);
             return stalled_;

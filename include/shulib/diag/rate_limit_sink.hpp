@@ -55,6 +55,10 @@
 
 namespace shulib::diag {
 
+/// The two per-second budgets. Both are TERMINAL-BANDWIDTH choices rather than hardware
+/// limits — a 115200-baud console renders roughly 120 of these lines a second — so
+/// retuning them per session is expected, not exceptional. Each bucket holds one second's
+/// worth and STARTS FULL, so a burst at t=0 passes before throttling bites.
 struct RateLimitConfig {
     /// emit()-channel budget, records/second. Must be > 0 and finite.
     double recordsPerSecond = 50.0;
@@ -63,6 +67,12 @@ struct RateLimitConfig {
     double linesPerSecondPerChannel = 20.0;
 };
 
+/// A pass-through ITelemetrySink decorator that caps what each channel may forward per
+/// second — and COUNTS, STAMPS and ANNOUNCES everything it drops, because a silent drop
+/// reads as "nothing happened", which is how an afternoon is lost to a problem that was
+/// never there. Error and Warn lines and summarize() are never throttled. Holds `inner`
+/// and `clock` by NON-OWNING reference; both must outlive the sink. Single-task by
+/// contract, like every sink in this tree, and it allocates nothing.
 class RateLimitedSink final : public hal::ITelemetrySink {
 public:
     /// `inner` and `clock` must outlive the sink.
@@ -77,6 +87,13 @@ public:
         recordBucket_.tokens = cfg_.recordsPerSecond;  // buckets start FULL (burst-friendly)
     }
 
+    /// Forward one line unless this subsystem's bucket is empty. Error and Warn ALWAYS
+    /// pass — a throttled fault is a lost root cause. Budgets are PER TAG, in a bounded
+    /// table of 16; a 17th tag, a tag over 16 bytes, and the empty tag all share ONE
+    /// overflow bucket (bounded memory beats fairness for a hypothetical tag, and the
+    /// sharing is documented rather than silent). When a throttled tag resumes, ONE Warn
+    /// "throttled TAG: dropped N lines" goes out under the "DIA" tag BEFORE the resuming
+    /// line, so the gap is explained exactly where it sits.
     void log(hal::LogLevel level, std::string_view subsystem,
              std::string_view message) override {
         // The error path is never throttled (header contract).
@@ -112,6 +129,11 @@ public:
     /// drops must be seen to be counted) — the pair rule, one level up.
     [[nodiscard]] bool wantsRecord() const noexcept override { return inner_->wantsRecord(); }
 
+    /// Forward one record unless the record bucket is empty, STAMPING the running drop
+    /// totals onto the copy that survives — so a gap in the stream carries its own
+    /// explanation in the records around it, with no second channel to correlate. The
+    /// caller has ALREADY paid to populate `record` (see wantsRecord()): throttling here
+    /// buys bandwidth, not the cost of building it.
     void emit(const DebugRecord& record) override {
         refill(recordBucket_, cfg_.recordsPerSecond);
         if (recordBucket_.tokens < 1.0) {
@@ -132,6 +154,9 @@ public:
 
     /// Cumulative counts since construction — the summary's "dropped N rec M ln".
     [[nodiscard]] std::uint32_t droppedRecords() const noexcept { return droppedRecords_; }
+    /// Info/Debug/Trace lines dropped since construction, summed over ALL tags including
+    /// the shared overflow bucket. Error and Warn are never throttled, so they can never
+    /// appear in this number — a non-zero count is always lost detail, never a lost fault.
     [[nodiscard]] std::uint32_t droppedLines() const noexcept { return droppedLines_; }
 
 private:

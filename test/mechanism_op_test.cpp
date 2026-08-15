@@ -666,3 +666,96 @@ TEST_CASE("ActuateAndConfirm: construction preconditions") {
         (ActuateAndConfirm{x.mech, x.r.deps, cfgWith(0.3, std::nan("")), AlwaysConfirmed{}}),
         PreconditionError);
 }
+
+// ── the claim token as an OWNERSHIP token, not just a collision detector (DEFECTS1) ──
+
+// Bug caught (item A24): cancel() commanded applySafeState() whenever started_ was true,
+// with no check that this operation still HOLDS the claim. finish() has already released it,
+// so a retained, exited operation could safe a mechanism a DIFFERENT live operation now
+// owned — defeating the one-operation-per-mechanism guarantee the token exists to provide.
+// op2 running at 12 V drops to brake + 0 V silently, no fault, no Warn; and op2 re-commands
+// its VOLTAGE next tick but not its BRAKE MODE, which is the half-safe state run_guard's T6
+// note names as the reason applySafeState() alone is never trusted.
+TEST_CASE("A24: a finished operation cannot safe a mechanism another operation now holds") {
+    MotorOpRig x;
+    RunUntilConfirmed op1{x.mech, x.r.deps, x.cfg, [] { return true; }, "op1"};
+    op1.start();
+    REQUIRE(op1.tick() == MechanismOutcome::Succeeded);   // finished: claim released
+    REQUIRE_FALSE(x.mech.claimed());
+
+    RunUntilConfirmed op2{x.mech, x.r.deps, x.cfg, [] { return false; }, "op2"};
+    op2.start();
+    REQUIRE(op2.tick() == MechanismOutcome::Running);
+    // NEGATIVE CONTROL: op2 really is driving, or the check below proves nothing.
+    REQUIRE(x.a.commandedVoltage().value() == doctest::Approx(6.0));
+    REQUIRE(x.mech.claimed());
+
+    op1.cancel();  // the stale call
+
+    CHECK(x.a.commandedVoltage().value() == doctest::Approx(6.0));  // op2 undisturbed
+    CHECK(x.mech.claimed());                                        // op2 still owns it
+    CHECK(op2.outcome() == MechanismOutcome::Running);
+    CHECK(op1.outcome() == MechanismOutcome::Succeeded);            // history not rewritten
+    CHECK(x.r.latch.faultCount() == 0);
+}
+
+// Bug caught (item A25): the same hole on a DISCRETE actuator, where it is worse. finish()
+// deliberately does NOT apply the safe state for a successful ActuateAndConfirm — a clamp
+// whose safe state is "open" would fling its game piece the instant a grab succeeded (the T4
+// split). So a stale cancel() on an exited object drove the line to the declared safe value
+// and UN-DID an actuation a second, currently-claiming operation had just performed.
+TEST_CASE("A25: a stale cancel cannot un-do a live operation's actuation") {
+    AirOpRig x;
+    ActuateAndConfirm op1{x.mech, x.r.deps, x.cfg, AlwaysConfirmed{}, "grab1"};
+    op1.start();
+    for (int i = 0; i < 100 && op1.outcome() == MechanismOutcome::Running; ++i) {
+        (void)op1.tick();
+        x.r.clock.advance(Time{0.01});
+    }
+    REQUIRE(op1.outcome() == MechanismOutcome::Succeeded);
+    REQUIRE(x.line.commanded() == true);      // the actuation stands (T4)
+    REQUIRE_FALSE(x.mech.claimed());
+
+    ActuateAndConfirm op2{x.mech, x.r.deps, x.cfg, AlwaysConfirmed{}, "grab2"};
+    op2.start();
+    (void)op2.tick();
+    REQUIRE(x.mech.claimed());
+    REQUIRE(x.line.commanded() == true);
+
+    op1.cancel();  // the stale call
+
+    CHECK(x.line.commanded() == true);   // was FALSE — op2's grab silently opened
+    CHECK(x.mech.claimed());
+}
+
+// The other half of the same rule, pinned so the fix cannot be read as "cancel stopped
+// re-safing": with NOBODY else holding the claim, a finished operation's cancel() still
+// applies the safe state, exactly as the cancel contract has always said.
+TEST_CASE("A24/A25: with no other claimant, a finished cancel() still re-safes") {
+    MotorOpRig x;
+    RunUntilConfirmed op{x.mech, x.r.deps, x.cfg, [] { return true; }, "grab"};
+    op.start();
+    REQUIRE(op.tick() == MechanismOutcome::Succeeded);
+    x.mech.setVoltage(Voltage{4.0});     // someone energized it afterwards
+    op.cancel();
+    CHECK(x.a.commandedVoltage().value() == 0.0);
+    CHECK(op.outcome() == MechanismOutcome::Succeeded);
+}
+
+// Bug caught (item A10): IMechanism holds the claim as VALUE state and defaulted its
+// copy/move members, so a copied mechanism arrived already claimed(), with claimant() aimed
+// at an operation registered against the ORIGINAL. A legitimate tryClaim(copy) then failed
+// for no visible reason, and F2's end-of-run guard walking a span containing the copy
+// reached claimant() and cancelled an operation driving the original — whose own claim was
+// never released. The operations already delete copy/move for the mirror reason.
+TEST_CASE("A10: a mechanism cannot be copied or moved out of its claim") {
+    static_assert(!std::is_copy_constructible_v<shulib::hal::MotorMechanism>);
+    static_assert(!std::is_move_constructible_v<shulib::hal::MotorMechanism>);
+    static_assert(!std::is_copy_assignable_v<shulib::hal::MotorMechanism>);
+    static_assert(!std::is_copy_constructible_v<PneumaticMechanism>);
+    static_assert(!std::is_move_constructible_v<PneumaticMechanism>);
+    static_assert(!std::is_copy_constructible_v<shulib::hal::IMechanism>);
+    // NEGATIVE CONTROL: it is still ordinarily constructible where it lives.
+    MotorOpRig x;
+    CHECK_FALSE(x.mech.claimed());
+}

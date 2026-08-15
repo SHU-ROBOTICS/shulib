@@ -135,6 +135,10 @@ public:
         }
     }
 
+    /// True once ANY fault has been raised since construction/clear(), and true for the rest of
+    /// the run thereafter — this is a LATCH, not a live "is something wrong right now" query, and
+    /// nothing but clear() lowers it. Raising FaultCode::None is a no-op and never sets it. For
+    /// triage read firstFault(): the root cause is the first fault, not the last or the loudest.
     [[nodiscard]] bool hasFault() const noexcept { return count_ > 0; }
     /// How many times `code` has been raised since construction/clear(). ADDED at
     /// chunk C2 (additive, like the A3 MotorOverTemp append): the scheduler's fault

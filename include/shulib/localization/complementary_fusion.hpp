@@ -55,6 +55,14 @@
 
 namespace shulib::localization {
 
+/// The six numbers that bound how hard an absolute fix may pull the estimate. Position and
+/// heading each get three of the same kind: a GATE (reject an innovation larger than this
+/// outright), a GAIN (the fraction of a surviving innovation taken per tick at confidence 1),
+/// and a per-tick budget expressed as a RATE, so the never-snap bound does not move when the
+/// loop rate does. Position and heading are configured separately because they are different
+/// measurements with different failure modes — a mirrored tag ruins the heading while leaving
+/// the position plausible. Every default is a conservative PROVISIONAL placeholder awaiting
+/// M3 tuning; the ctor rejects an out-of-range one loudly rather than clamping it.
 struct ComplementaryFusionConfig {
     /// Per-tick nudge budget as a RATE: the max position correction applied in a tick is
     /// `maxNudgeRate · dt`. Loop-rate-independent. (M3-tuned; conservative placeholder.)
@@ -82,8 +90,21 @@ struct ComplementaryFusionConfig {
     units::AngularVelocity maxHeadingNudgeRate{10.0 * math::Angle::kPi / 180.0};
 };
 
+/// The M2 fusion policy: a gated, rate-limited NUDGE toward absolute fixes, never a snap.
+/// It is structurally incapable of snapping, and that is the point rather than a tuning
+/// achievement — position moves by at most `maxNudgeRate · dt` in a tick, and heading leaves
+/// as a bounded INCREMENT instead of an absolute value, so no corrector can reset the estimate
+/// however confident it claims to be. Proposals sum and the sum is clamped again, so N
+/// correctors cannot out-vote one tick's budget either. Holds no state between calls: the same
+/// prediction, proposals and dt always give the same answer. EkfFusion replaces it behind
+/// IFusionPolicy at M3 without touching a caller.
 class ComplementaryFusion final : public IFusionPolicy {
 public:
+    /// Copies `config`; nothing is referenced after construction, so the argument may be a
+    /// temporary. Each field is a LOUD precondition rather than a silent clamp: rates ≥ 0,
+    /// gates > 0, gains in (0, 1]. A zero gain is excluded on purpose — it is a policy that
+    /// accepts every fix and then corrects by nothing, which looks like working fusion in every
+    /// audit flag while the estimate dead-reckons.
     explicit ComplementaryFusion(const ComplementaryFusionConfig& config = {}) : config_{config} {
         SHULIB_PRECONDITION(config.maxNudgeRate.value() >= 0.0,
                             "ComplementaryFusion: maxNudgeRate must be >= 0");
@@ -99,6 +120,24 @@ public:
                             "ComplementaryFusion: maxHeadingNudgeRate must be >= 0");
     }
 
+    /// Fold `valid` into `predicted` and return the corrected absolute POSITION together with a
+    /// bounded heading INCREMENT — never an absolute heading, which is what makes snapping
+    /// impossible rather than merely unlikely.
+    ///
+    /// Position and heading are gated INDEPENDENTLY, so a fix may pass one and fail the other.
+    /// Position: reject |measured − predicted| > innovationGate, else pull maxGain·confidence of
+    /// it, clamped per proposal and once more on the sum to maxNudgeRate·dt. Heading: the same
+    /// recipe over `predicted.heading().errorTo(measured)` (shortest signed, so the ±π seam
+    /// costs nothing), but ONLY for proposals with `providesHeading` — everything else carries a
+    /// pass-through of the prediction whose innovation is zero by construction. A non-finite
+    /// innovation or confidence is rejected exactly like an out-of-gate one, and a confidence
+    /// outside [0, 1] is clamped, so a corrector cannot amplify its own gain.
+    ///
+    /// Empty `valid` returns the predicted position unchanged (dead-reckoning). dt == 0 makes
+    /// both per-tick budgets zero: the position comes back unchanged and `applied` /
+    /// `headingApplied` are false, but the audit still reports the GATE's verdict rather than
+    /// pretending no proposal arrived. `positionStdDev` is not read here — it is carried for the
+    /// M3 EKF's measurement noise. Holds no state, so this is safe to call out of order.
     [[nodiscard]] FusionResult fuse(const math::Pose2d& predicted,
                                     std::span<const CorrectionProposal> valid,
                                     units::Time dt) override {

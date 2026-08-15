@@ -97,6 +97,11 @@ If you're budgeting time for a routine on the H-drive, the `strafeAuthority()` q
 chassis tells you the number the library is using, so you can decide whether a leg should strafe
 or turn-and-drive.
 
+
+## The exact signatures
+
+The kinematics surface: the [`IKinematics` contract](../api/kinematics.md), the presets [`xDrive`](../api/x_drive.md), [`hDrive`](../api/h_drive.md) and [`TankKinematics`](../api/tank.md), the general [`MatrixKinematics`](../api/matrix_kinematics.md) behind them, [`WheelSpeeds`](../api/wheel_speeds.md), and [`desaturateUniform`](../api/desaturate.md).
+
 ---
 
 *Next: [Chapter 5 — Getting there: control](05-getting-there.md)*

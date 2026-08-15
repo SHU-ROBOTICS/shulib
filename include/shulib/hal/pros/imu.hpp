@@ -48,8 +48,10 @@
 // boot-window rule already handles the calibration phase).
 //
 // PITCH/ROLL: get_pitch()/get_roll() degrees (-180,180) → math::Angle,
-// UNNEGATED — the as-mounted sign convention is unmeasured (HA-110); the tip
-// detector consumes magnitudes first, and the bench settles the signs.
+// UNNEGATED — the as-mounted sign convention is unmeasured (HA-110). No
+// consumer exists yet (the tip detection these exist for is a master-plan M2
+// item); whoever writes the first one consumes MAGNITUDES until the bench
+// settles the signs.
 //
 // HA register: HA-02..HA-05, HA-23, HA-108..HA-110.
 
@@ -78,6 +80,12 @@ enum class YawRateSource {
     GyroRateZ,              ///< get_gyro_rate().z — real rate, UNDOCUMENTED sign (HA-04)
 };
 
+/// IImu over pros::Imu — the load-bearing heading source. Binds get_rotation() (cumulative
+/// CW degrees) and never get_heading(); applies bootHeading exactly ONCE, here at the edge;
+/// never tares, because a tare re-zeros the sensor underneath a live bootHeading offset.
+/// STATEFUL despite the const readers: each reader screens a non-finite value and returns
+/// the last good one, and the default yaw-rate path caches a sample to differentiate — which
+/// is why construction takes an IClock. One owner, the loop; not safe to read concurrently.
 class ProsImu final : public IImu {
 public:
     /// `bootHeading`: the robot's canonical field heading AT calibration — ONE
@@ -116,6 +124,13 @@ public:
         return lastHeading_;
     }
 
+    /// Canonical yaw rate (CCW-positive rad/s) from the YawRateSource fixed at construction.
+    /// DifferentiateRotation (the default) differentiates get_rotation() BETWEEN SUCCESSIVE
+    /// CALLS, so the interval is however long since you last asked rather than a fixed dt:
+    /// the first call after construction returns 0 (one sample is not a derivative), and a
+    /// second call at the same clock instant repeats the previous answer instead of dividing
+    /// by zero. Call it once per tick. GyroRateZ instead reads the hardware rate, converted
+    /// on an UNMEASURED sign assumption (HA-04). Either way a screened read holds last-good.
     [[nodiscard]] units::AngularVelocity yawRate() const override {
         return yawSource_ == YawRateSource::DifferentiateRotation ? differentiatedRate()
                                                                   : gyroRate();
@@ -127,6 +142,12 @@ public:
         return calibrateStarted_ && !sensor_.is_calibrating();
     }
 
+    /// Chassis pitch from get_pitch() (degrees, (-180, 180)) as a canonical Angle,
+    /// UNNEGATED: the as-mounted sign convention is unmeasured (HA-110), so consume the
+    /// MAGNITUDE until the bench settles it. Nothing reads this yet — the tip detection it
+    /// exists for is a master-plan M2 item — so the first consumer is also the first chance
+    /// to bake in a wrong sign. A non-finite read holds the last good value and counts in
+    /// faultedReads(); before any good read, 0.
     [[nodiscard]] math::Angle pitch() const override {
         const double deg = sensor_.get_pitch();
         if (!std::isfinite(deg)) {
@@ -137,6 +158,10 @@ public:
         return lastPitch_;
     }
 
+    /// Chassis roll from get_roll() (degrees, (-180, 180)) as a canonical Angle, on the same
+    /// terms as pitch(): UNNEGATED because the mounting sign is unmeasured (HA-110), a
+    /// non-finite read holds last-good and counts in faultedReads(), and 0 before any good
+    /// read. Note that roll and pitch each hold their own last-good value, independently.
     [[nodiscard]] math::Angle roll() const override {
         const double deg = sensor_.get_roll();
         if (!std::isfinite(deg)) {

@@ -4,9 +4,11 @@
      The host test build fails if this file is out of date, so an edit here
      is reverted by the next build rather than reviewed. Edit the header. -->
 
-# `Routine` — the recipe layer
+# `routine.hpp`
 
-The Tier-2 chain: a complete autonomous routine as a sequence of named steps, each delegating to exactly one `Chassis` verb.
+Routine — the Tier-2 recipe layer.
+
+This header declares **3** types (36 members).
 
 Extracted from [`include/shulib/chassis/routine.hpp`](../../include/shulib/chassis/routine.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -30,9 +32,9 @@ Extracted from [`include/shulib/chassis/routine.hpp`](../../include/shulib/chass
 - [`class Routine`](#class-routine)
   - [`Routine`](#routine-routine)
   - [`Routine (overload 2)`](#routine-routine-2)
-  - [`operator=`](#routine-operator-assign)
+  - [`operator=`](#routine-operator-eq)
   - [`Routine (overload 3)`](#routine-routine-3)
-  - [`operator= (overload 2)`](#routine-operator-assign-2)
+  - [`operator= (overload 2)`](#routine-operator-eq-2)
   - [`~Routine`](#routine-destructor-routine)
   - [`startAt`](#routine-startat)
   - [`moveTo`](#routine-moveto)
@@ -56,9 +58,13 @@ Extracted from [`include/shulib/chassis/routine.hpp`](../../include/shulib/chass
 
 ## `enum class RoutineStopCause`
 
+```cpp
+enum class RoutineStopCause
+```
+
 Why a Routine stopped early. `None` = it never stopped. Append-only: F1/F3 mechanism failures arrive as new enumerators, never as re-meanings.
 
-*Declared at [`include/shulib/chassis/routine.hpp:153`](../../include/shulib/chassis/routine.hpp#L153).*
+*enum class, declared at [`include/shulib/chassis/routine.hpp:153`](../../include/shulib/chassis/routine.hpp#L153).*
 
 <a id="routinestopcause-none"></a>
 
@@ -116,7 +122,7 @@ a then()-action reported failure (bool false / non-Settled)
 MechanismFailed
 ```
 
-a then()-action returned a mechanism verdict other than
+a then()-action returned a mechanism verdict other than Succeeded — Unconfirmed / Stalled / TimedOut / Cancelled; the stop log line names which, and the operation object itself remains the authority on the exact outcome (APPENDED at chunk F1, per the append-only rule above)
 
 *enumerator, declared at [`include/shulib/chassis/routine.hpp:158`](../../include/shulib/chassis/routine.hpp#L158).*
 
@@ -124,9 +130,13 @@ a then()-action returned a mechanism verdict other than
 
 ## `struct RoutineResult`
 
+```cpp
+struct RoutineResult
+```
+
 What a Routine did — the whole-chain verdict, readable at any point (it is a snapshot; ask again after more steps). ExitReason alone would lose WHERE the routine broke and WHY (a wait and a watchdog are different strategy facts), exactly TrajectoryResult's argument one layer up.
 
-*Declared at [`include/shulib/chassis/routine.hpp:169`](../../include/shulib/chassis/routine.hpp#L169).*
+*struct, declared at [`include/shulib/chassis/routine.hpp:169`](../../include/shulib/chassis/routine.hpp#L169).*
 
 <a id="routineresult-ok"></a>
 
@@ -228,9 +238,13 @@ The failing MOTION step's verdict (TimedOut / Cancelled). `Running` means "no mo
 
 ## `class Routine`
 
+```cpp
+class Routine
+```
+
 The Tier-2 recipe chain: a complete autonomous routine as a sequence of named steps, each delegating to exactly one Chassis verb, executed EAGERLY (a step runs the moment it is chained) with one built-in failure policy — stop, safe the drive, skip the rest, report. The file banner above explains every one of those choices and is meant to be read.
 
-*Declared at [`include/shulib/chassis/routine.hpp:190`](../../include/shulib/chassis/routine.hpp#L190).*
+*class, declared at [`include/shulib/chassis/routine.hpp:190`](../../include/shulib/chassis/routine.hpp#L190).*
 
 <a id="routine-routine"></a>
 
@@ -256,7 +270,7 @@ Neither copyable nor movable, and there is no reset(): one chain is one run. Two
 
 *function, declared at [`include/shulib/chassis/routine.hpp:203`](../../include/shulib/chassis/routine.hpp#L203).*
 
-<a id="routine-operator-assign"></a>
+<a id="routine-operator-eq"></a>
 
 ### `Routine::operator=`
 
@@ -264,7 +278,7 @@ Neither copyable nor movable, and there is no reset(): one chain is one run. Two
 Routine& operator=(const Routine&) = delete
 ```
 
-Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
+*Covered by the comment on [`Routine (overload 2)`](#routine-routine-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/routine.hpp:204`](../../include/shulib/chassis/routine.hpp#L204).*
 
@@ -276,11 +290,11 @@ Neither copyable nor movable, and there is no reset(): one chain is one run. Two
 Routine(Routine&&) = delete
 ```
 
-Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
+*Covered by the comment on [`Routine (overload 2)`](#routine-routine-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/routine.hpp:205`](../../include/shulib/chassis/routine.hpp#L205).*
 
-<a id="routine-operator-assign-2"></a>
+<a id="routine-operator-eq-2"></a>
 
 ### `Routine::operator= (overload 2)`
 
@@ -288,7 +302,7 @@ Neither copyable nor movable, and there is no reset(): one chain is one run. Two
 Routine& operator=(Routine&&) = delete
 ```
 
-Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
+*Covered by the comment on [`Routine (overload 2)`](#routine-routine-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/routine.hpp:206`](../../include/shulib/chassis/routine.hpp#L206).*
 
@@ -300,7 +314,7 @@ Neither copyable nor movable, and there is no reset(): one chain is one run. Two
 ~Routine() = default
 ```
 
-Neither copyable nor movable, and there is no reset(): one chain is one run. Two handles sharing the stop-state counters would let a stopped chain's twin keep driving — the failure the whole error policy exists to prevent. Pass a `Routine&` to helpers (that is how you factor a routine into reusable steps); construct a new one for a new run.
+*Covered by the comment on [`Routine (overload 2)`](#routine-routine-2) — one comment documents this run of special members.*
 
 *function, declared at [`include/shulib/chassis/routine.hpp:207`](../../include/shulib/chassis/routine.hpp#L207).*
 
@@ -446,7 +460,7 @@ template <typename Pred> Routine& waitFor(Pred&& pred, units::Time timeout, cons
 
 Wait until `pred()` holds, up to `timeout` (required and finite — C2's no-hang discipline). In a recipe the condition MATTERS: if the deadline passes with it still false, continuing the script would act on a state the field never reached, so the chain stops (WaitTimedOut). A wait whose timeout is a legitimate strategy branch belongs one tier down: `chassis.waitUntil(...)` directly, branching on the WaitResult.
 
-*function, declared at [`include/shulib/chassis/routine.hpp:327`](../../include/shulib/chassis/routine.hpp#L327).*
+*function, declared at [`include/shulib/chassis/routine.hpp:328`](../../include/shulib/chassis/routine.hpp#L328).*
 
 <a id="routine-then"></a>
 
@@ -458,7 +472,7 @@ template <typename Action> Routine& then(Action&& action, const char* name = "ac
 
 Run an action between motions — THE MECHANISM SEAM (the one member deliberately outside F10, filled in at chunk F1). `action` is any callable taking nothing and returning * void        — the action always succeeds, * bool        — false fails the step and stops the chain, * ExitReason  — non-Settled fails the step (so an action may wrap a facade verb and have its verdict honored), * manipulation::MechanismOutcome — a mechanism operation's verdict: ONLY Succeeded continues the chain; Unconfirmed / Stalled / TimedOut / Cancelled stop it as MechanismFailed with the outcome named in the stop line. MechanismOutcome has no bool conversion, so an Unconfirmed can never be truthy by accident — the T2 guarantee that a failed grab cannot read as success at this layer. The mechanism idiom (contract in manipulation/mechanism_op.hpp):  r.then([&] { grab.start(); (void)chassis.waitUntil([&] { return grab.tick() != Running; }, Time{2.0}); return grab.outcome(); }, "grab");  RETURN THE OUTCOME. A void lambda that runs an operation and drops its verdict "succeeds" whatever happened — the same sharp edge as dropping a direct facade call's ExitReason (guide chapter 9), owned the same way. `name` labels the step in stop/skip log lines (stable literal).
 
-*function, declared at [`include/shulib/chassis/routine.hpp:368`](../../include/shulib/chassis/routine.hpp#L368).*
+*function, declared at [`include/shulib/chassis/routine.hpp:369`](../../include/shulib/chassis/routine.hpp#L369).*
 
 <a id="routine-ok"></a>
 
@@ -511,6 +525,9 @@ The chassis this routine drives — the mixed-tier seam, spelled out. (You can e
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
+
+<details markdown="1">
+<summary>The header’s own reasoning — 127 lines, click to expand</summary>
 
 ```text
 
@@ -641,3 +658,5 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  this object). Copying is disabled: two handles sharing stop-state counters
  would let a stopped chain's twin keep driving.
 ```
+
+</details>

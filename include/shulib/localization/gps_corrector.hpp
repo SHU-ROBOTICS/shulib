@@ -149,6 +149,22 @@ struct GpsCorrectorConfig {
     double driftStdDevPerInch = 0.02;
 };
 
+/// The V5 GPS as an ICorrector — the first thing in the library that can tell the estimate it is
+/// wrong. Each propose() either offers an ABSOLUTE field POSITION with a confidence, or declines
+/// and says why on CorrectionProposal::selfAudit, so a run with no strip under it (Driving Skills)
+/// reads as a diagnosable state rather than an idle estimator. Three boundaries it holds to:
+/// it never returns a heading (the PREDICTED IMU heading rides back out unchanged and
+/// providesHeading stays false); it never snaps, because it only ever proposes and the fusion
+/// policy owns how far the estimate actually moves; and it does no frame conversion and no
+/// lever-arm removal, both of which the HAL edge has already done.
+///
+/// STATEFUL, and on EVERY tick: the predicted-position history ring and the dead-reckon distance
+/// that widens the gate advance even on ticks with no fix — that is precisely when they must.
+/// A given fix is folded exactly once; re-reading it declines as stale. PROPOSE() never throws and
+/// never allocates — the history ring is fixed-capacity and the tick path carries no checks. The
+/// CONSTRUCTOR is the opposite: it validates every GpsCorrectorConfig field with
+/// SHULIB_PRECONDITION, which throws PreconditionError under both shipped policies, so a config
+/// assembled from tuning input has to be guarded where it is built, not on the tick.
 class GpsCorrector final : public ICorrector {
 public:
     /// Ticks of predicted-position history kept for latency compensation. 64 ticks is ~0.64 s at
@@ -190,6 +206,12 @@ public:
         const double px = predicted.x().value();
         const double py = predicted.y().value();
         if (!std::isfinite(now) || !std::isfinite(px) || !std::isfinite(py)) {
+            // COUNTED, like the other two RejectedNoFix paths. Without this the per-source
+            // tally stopped summing to the number of propose() calls, so a run whose odometry
+            // went non-finite read in the blackbox as a run in which this corrector was never
+            // asked — the exact confusion noFixTicks() is documented to prevent ("the number
+            // that says Driving Skills out loud").
+            ++noFixTicks_;
             return decline(diag::GateReason::RejectedNoFix);  // nothing sane to reason from
         }
 

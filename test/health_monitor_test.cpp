@@ -9,6 +9,7 @@
 
 #include "doctest.h"
 
+#include <limits>
 #include <string>
 
 #include "shulib/diag/fault.hpp"
@@ -212,4 +213,46 @@ TEST_CASE("HealthMonitor: rejects an out-of-range config") {
                     PreconditionError);
     CHECK_THROWS_AS((HealthMonitor{latch, HealthMonitorConfig{.maxMotorTempC = 0.0}}),
                     PreconditionError);
+}
+
+// Bug caught (DEFECTS1 item E9): brownoutRecoverVolts was ordered against brownoutVolts but
+// never checked for finiteness, and +Inf passes the ordering. The re-arm branch
+// (`v >= brownoutRecoverVolts`) could then never be true, so brownoutActive_ latched on the
+// first trip and every later collapse was silently swallowed — the E1 anti-spam edge trigger
+// turned into a permanent mute on the one signal it exists to report. At most one brownout
+// episode per run, however many times the pack died.
+TEST_CASE("HealthMonitor: a non-finite brownoutRecoverVolts is rejected at construction (E9)") {
+    Rig r;
+    const double inf = std::numeric_limits<double>::infinity();
+    HealthMonitorConfig bad;
+    bad.brownoutRecoverVolts = Voltage{inf};
+    CHECK_THROWS_AS((HealthMonitor{r.latch, bad}), PreconditionError);
+
+    // NEGATIVE CONTROL: the ordering rule still holds on its own, and a finite recover level
+    // above the trip level still constructs — so the throw above is about finiteness, not
+    // about having changed the ordering check.
+    HealthMonitorConfig backwards;
+    backwards.brownoutVolts = Voltage{7.0};
+    backwards.brownoutRecoverVolts = Voltage{6.0};
+    CHECK_THROWS_AS((HealthMonitor{r.latch, backwards}), PreconditionError);
+    HealthMonitorConfig good;
+    good.brownoutVolts = Voltage{7.0};
+    good.brownoutRecoverVolts = Voltage{8.0};
+    CHECK_NOTHROW((HealthMonitor{r.latch, good}));
+}
+
+// The behaviour the E9 precondition protects, pinned end to end: with a FINITE recover level
+// a pack that collapses, recovers and collapses again raises TWO episodes. This is what
+// +Inf silently reduced to one.
+TEST_CASE("HealthMonitor: two brownout episodes are two faults, not one (E9's payoff)") {
+    Rig r;
+    HealthMonitor::Observations o;
+    o.batteryVolts = Voltage{6.0};
+    r.monitor.tick(o);                       // episode 1
+    CHECK(r.latch.raiseCount(FaultCode::Brownout) == 1);
+    o.batteryVolts = Voltage{12.0};
+    r.monitor.tick(o);                       // genuine recovery re-arms
+    o.batteryVolts = Voltage{6.0};
+    r.monitor.tick(o);                       // episode 2
+    CHECK(r.latch.raiseCount(FaultCode::Brownout) == 2);
 }

@@ -25,8 +25,21 @@
 
 namespace shulib::hal {
 
+/// A single two-state output line — a pneumatic solenoid on the ADI ports, or any other on/off
+/// actuator. It is the first actuation seam here that is not a motor, because the H-drive's
+/// primary mechanism is a pneumatic clamp. There is NO feedback channel and no validity signal,
+/// both deliberate: a V5 solenoid cannot report whether the cylinder actually moved (air can be
+/// exhausted, a linkage can bind) and a dead ADI port reads exactly like a working one.
+/// Confirmation must come from a SEPARATE sensor — current, distance, optical — which is why the
+/// manipulation layer carries an Unconfirmed verdict rather than letting this seam pretend to know.
 class IDigitalOut {
 public:
+    /// Polymorphic-base boilerplate: the destructor is virtual so a concrete solenoid held as
+    /// `IDigitalOut&`/`IDigitalOut*` destroys correctly, and DECLARING it is what suppresses the
+    /// implicit copy/move, which are re-defaulted below. The base holds no state of its own.
+    /// Ownership stays with the caller either way: PneumaticMechanism takes a NON-OWNING
+    /// `span<IDigitalOut* const>` (non-empty, every line checked non-null at construction), so
+    /// each line must outlive the mechanism that fans commands out to it.
     virtual ~IDigitalOut() = default;
     IDigitalOut() = default;
     IDigitalOut(const IDigitalOut&) = default;

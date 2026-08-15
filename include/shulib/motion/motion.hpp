@@ -181,12 +181,26 @@ struct MotionDeps {
     diag::FaultLatch* faults = nullptr;               ///< run-scoped latch (MotionTimeout, …)
     diag::HealthMonitor* health = nullptr;            ///< the A3 pathology→fault policy
 
+    /// Trip SHULIB_PRECONDITION on the FIRST null pointer, naming which one. Every motion
+    /// calls this from its constructor (through validatedClock()), so a dependency the
+    /// designated-initializer call site forgot is a loud contract breach at construction
+    /// rather than a null dereference three ticks into an auton.
     void validate() const {
         SHULIB_PRECONDITION(ctx != nullptr, "MotionDeps: ctx is null");
         SHULIB_PRECONDITION(localizer != nullptr, "MotionDeps: localizer is null");
         SHULIB_PRECONDITION(kinematics != nullptr, "MotionDeps: kinematics is null");
         SHULIB_PRECONDITION(faults != nullptr, "MotionDeps: faults is null");
         SHULIB_PRECONDITION(health != nullptr, "MotionDeps: health is null");
+        // The one cross-check no single component can make. RobotContext validates that
+        // driveMotors is non-empty and all-non-null; IKinematics knows how many wheels it
+        // has; NOTHING compared them, and applyCommandPipeline indexes the motor span by
+        // WHEEL index with std::span::operator[], which is unchecked. A context built with
+        // three motors and an XDrive installed therefore read one past the end of the span
+        // on EVERY tick — undefined behaviour with no diagnostic, on the hot path. This
+        // bundle is the one place that holds both, so the check lives here.
+        SHULIB_PRECONDITION(
+            ctx->driveMotors().size() >= static_cast<std::size_t>(kinematics->wheelCount()),
+            "MotionDeps: fewer drive motors than the kinematics has wheels");
     }
 
     /// validate(), then hand out the clock — for a member-initializer list's
@@ -221,8 +235,20 @@ inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
                        .maxMotorTempC = maxTemp});
 }
 
+/// The contract every motion primitive implements: one target, one tick() that reads the
+/// world and issues ONE drivetrain command, one verdict. A motion owns no loop, no task
+/// and no estimator — the loop owner advances the Localizer first, then calls tick() (the
+/// tick contract above). Implementers owe the whole of it, not just the signatures: an
+/// exit leaves the motors stopped and every later tick() is a no-op returning the cached
+/// verdict, start() fully re-arms a finished object, and cancel() works at any time and
+/// is idempotent. No motion may hang — the watchdog runs even while waiting for a live
+/// estimate.
 class IMotion {
 public:
+    /// Interface plumbing, spelled out because declaring the destructor demands all six:
+    /// motions are held and destroyed through this base, and copy/move are defaulted
+    /// because IMotion itself holds no state — every motion's state is in the concrete
+    /// type, which is also why the scheduler passes motions by pointer, not by value.
     virtual ~IMotion() = default;
     IMotion() = default;
     IMotion(const IMotion&) = default;

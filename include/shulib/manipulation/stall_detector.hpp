@@ -29,6 +29,11 @@
 
 namespace shulib::manipulation {
 
+/// The three numbers that define "stalled" for ONE mechanism. There are NO defaults, deliberately:
+/// a 5.5 W and an 11 W motor stall at different currents, and a lift and an intake tolerate
+/// different windows, so any library-chosen value would be silently wrong for half of them.
+/// Concrete mechanisms pick their own and register them; hardware measurement replaces the
+/// estimates later. Validation of all three happens in `StallDetector`'s constructor, not here.
 struct StallConfig {
     /// Current at or above this (amps, > 0) counts as stall-grade.
     units::Current currentAtLeast;
@@ -40,8 +45,31 @@ struct StallConfig {
     units::Time persistence;
 };
 
+/// The jam/stall decision for a motor mechanism: HIGH CURRENT with the shaft NOT TURNING, held
+/// continuously for a persistence window. That window is the whole difference between a jam and a
+/// spin-up — accelerating from rest draws stall-grade current for the first few ticks with the
+/// shaft still nearly stopped, and without a window every start reads as a jam.
+///
+/// Both signals are compared by MAGNITUDE, so direction is irrelevant: a mechanism jammed while
+/// running in reverse trips exactly the same way.
+///
+/// STATEFUL — it remembers when the current window opened, so what update() answers depends on
+/// the samples that came before it and not on this one alone. Re-feeding an IDENTICAL sample is
+/// harmless: `windowStart_` moves only when a CLOSED window opens, so a duplicate read within one
+/// tick returns the same answer and leaves the window where it was. What the sequence does buy is
+/// the other direction — one healthy sample in the middle closes the window, and the persistence
+/// count starts over from the next qualifying sample. It holds NO clock: the caller supplies
+/// `now`, which is what makes it loop-rate independent and testable without one.
+///
+/// HONEST LIMIT, stated rather than discovered: it knows only what the sensors say. A motor whose
+/// encoder reports "spinning" under a true stall passes straight through it. That is why the
+/// operation layer's watchdog is the backstop — the watchdog needs no sensor honesty at all.
 class StallDetector {
 public:
+    /// Thresholds are required and CHECKED, not clamped: `currentAtLeast` must be finite and > 0,
+    /// `speedAtMost` and `persistence` finite and >= 0; anything else is a precondition failure.
+    /// The config is COPIED here, so mutating the caller's StallConfig afterward changes nothing.
+    /// No window is open yet — the first update() carrying the signature is what starts the clock.
     explicit StallDetector(const StallConfig& config) : cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.currentAtLeast.value()) &&
                                 cfg_.currentAtLeast.value() > 0.0,
@@ -76,6 +104,9 @@ public:
         return (now - windowStart_).value() >= cfg_.persistence.value();
     }
 
+    /// The thresholds this detector is using — the constructor's copy, so it is the authority on
+    /// what was actually accepted. Read-only: there is no setter, and re-tuning means constructing
+    /// a new detector. Useful for telemetry that wants to report the threshold a trip fired at.
     [[nodiscard]] const StallConfig& config() const noexcept { return cfg_; }
 
 private:

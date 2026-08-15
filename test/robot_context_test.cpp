@@ -137,3 +137,4 @@ TEST_CASE("RobotContext: M1 DoD — the kinematics pipeline runs through the con
     CHECK(w[2].value() == doctest::Approx(+c));
     CHECK(w[3].value() == doctest::Approx(+c));
 }
+

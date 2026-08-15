@@ -12,9 +12,12 @@
 // mV / mA belief below comes from PROS's WEBSITE, not from the source this
 // tree vendors — a strictly weaker provenance than every other conversion in
 // this chunk, and it is registered as such (HA-99). The stakes: a 1000× error
-// here silently destroys brownout compensation, which scales EVERY motor
-// command — so the bench runbook's battery step runs before any driving step,
-// and checks the raw integer is ~12600, not ~12.6.
+// here silently destroys brownout compensation, which BOUNDS every DRIVE
+// command and scales nothing — control::compensateForBattery() clamps each
+// wheel's desired volts to ±the measured pack, in the per-wheel drive pipeline
+// only. Mechanism motors never reach it: their volts are bounded by IMotor's
+// fixed ±12 V clamp alone. So the bench runbook's battery step runs before any
+// driving step, and checks the raw integer is ~12600, not ~12.6.
 //
 // CONVERTS: mV→V and mA→A (÷1000, once, here); capacity percent→[0,1]
 // (÷100, HA-100), clamped so a device quirk can never hand the core 1.02.
@@ -43,6 +46,22 @@
 
 namespace shulib::hal::pros {
 
+/// IBattery over the pros::battery free functions: millivolts and milliamps divided by 1000
+/// here, once, and capacity percent scaled to [0, 1] and clamped so a device quirk cannot hand
+/// the core a 1.02.
+///
+/// READ THE HEADER BANNER BEFORE TRUSTING A NUMBER FROM THIS CLASS. The mV/mA belief is the
+/// weakest conversion provenance in the PROS adapter set — it comes from PROS's website, while
+/// the misc.h this tree vendors documents these as int32 with no unit at all. A 1000x error
+/// would silently destroy brownout compensation, which bounds every DRIVE command — the ±battery
+/// clamp lives in the per-wheel drive pipeline, and mechanism motors bypass it entirely, keeping
+/// only IMotor's fixed ±12 V clamp. So the bench procedure checks the raw integer reads ~12600
+/// rather than ~12.6 before anything drives.
+///
+/// IBattery has no validity channel, so a sentinel read HOLDS the last good value and is
+/// counted in faultedReads() — never zero, because 0 V would read as the deepest possible
+/// brownout and floor every command. Pre-first-read defaults are a healthy fresh pack for the
+/// same reason: this class is never silent, but it is also never alarming by accident.
 class ProsBattery final : public IBattery {
 public:
     /// Canonical volts (mV ÷ 1000 — HA-99, the website-only belief).

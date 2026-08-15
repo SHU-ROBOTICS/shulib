@@ -8,11 +8,15 @@
 
 #include "doctest.h"
 
+#include <cmath>
+#include <cstdint>
 #include <stdexcept>
 
 #include "motion_test_rig.hpp"
 #include "shulib/control/exit_group.hpp"
 #include "shulib/core/check.hpp"
+#include "shulib/diag/debug_record.hpp"
+#include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
@@ -174,4 +178,102 @@ TEST_CASE("F2 unwind: normal waitUntil exits leave the active motion running") {
     CHECK(w == WaitResult::Satisfied);
     CHECK(sched.hasActiveMotion());  // still alive: the wait did not murder it
     sched.cancel();                  // cleanup (the stack motion dies at scope end)
+}
+
+// ── the remaining unwind path: the DESTRUCTOR (DEFECTS1, item A28) ──────────────────
+
+// Bug caught: `~MotionScheduler() = default`. F2 closed the throw-through-a-wait hole
+// with WaitUnwindGuard, but the destructor was the SAME hole reached by a path that
+// guard cannot see — `sched.async(m);` and then simply returning, or a throw out of a
+// hand-rolled non-blocking loop. The scheduler died with active_ != nullptr, the safe
+// state was never commanded, and the drive held its last voltage with nothing logged,
+// no boundary recorded, and completedCount() never accounting for the motion.
+//
+// The negative control is what makes the zero mean anything: this case FIRST measures
+// that the motors really are energized at the moment of destruction, so a passing
+// assertion cannot come from a scenario that never commanded anything.
+TEST_CASE("A28: destroying a scheduler with a motion ARMED leaves the drive safe") {
+    const auto kin = xDrive(Length{7.0});
+    MotionRig rig{kin};
+    PlantPacer plant{rig.h};
+
+    double energizedVolts = 0.0;
+    {
+        MotionScheduler sched{rig.deps, plant};
+        MoveToPose far{sched.deps(), Pose2d{Length{300.0}, Length{0.0}, Angle{}},
+                       motionConfig(), /*timeout=*/60.0};
+        sched.async(far);
+        for (int i = 0; i < 20; ++i) {  // let the pipeline actually command volts
+            (void)sched.tick();
+            plant.pace();
+        }
+
+        // NEGATIVE CONTROL: the drive must be genuinely energized right now, or the
+        // post-destruction check below proves nothing.
+        energizedVolts = std::abs(rig.h.context().driveMotors()[0]->commandedVoltage().value());
+        REQUIRE(energizedVolts > 1.0);
+        REQUIRE(sched.hasActiveMotion());
+        CHECK(sched.completedCount() == 0);
+    }  // <-- destroyed with the motion still armed
+
+    checkDriveSafe(rig);  // 0 V AND Brake, on every motor
+}
+
+// Bug caught: a destructor that cancels UNCONDITIONALLY. cancel() with no active motion
+// is the documented PANIC STOP — it commands the safe state anyway — which is right for
+// an explicit call and wrong for destruction: tearing down an idle scheduler must not
+// reach out and brake a drivetrain the caller may still be driving through another
+// object. This pins that an idle scheduler's destructor touches no motor at all.
+TEST_CASE("A28: destroying an IDLE scheduler commands nothing") {
+    const auto kin = xDrive(Length{7.0});
+    MotionRig rig{kin};
+    PlantPacer plant{rig.h};
+
+    // Park the drive somewhere recognisable that the safe state would overwrite.
+    for (IMotor* m : rig.h.context().driveMotors()) {
+        m->setBrakeMode(BrakeMode::Coast);
+        m->setVoltage(shulib::units::Voltage{3.0});
+    }
+    {
+        MotionScheduler sched{rig.deps, plant};
+        CHECK_FALSE(sched.hasActiveMotion());
+    }  // <-- destroyed idle
+
+    for (const IMotor* m : rig.h.context().driveMotors()) {
+        CHECK(m->commandedVoltage().value() == 3.0);   // untouched
+        CHECK(m->brakeMode() == BrakeMode::Coast);     // untouched
+    }
+}
+
+// Bug caught (DEFECTS1 item A27): MotionStatsSink::beginMotion() reset the scalar
+// aggregates but not target_/startPose_, so the PUBLIC targetPose() served the previous
+// motion's target between motions — not a default Pose2d, and not detectable as stale
+// from the value. Only the scheduler's own hasData() guard hid it from the run summary;
+// a direct reader of the sink — which the generated reference documents and invites —
+// got motion 1's target presented as motion 2's. Driven against the public class rather
+// than through the scheduler, because the scheduler's guard is exactly what hides it.
+TEST_CASE("A27: beginMotion() clears the target — a new motion cannot inherit the old one") {
+    shulib::hal::fake::FakeTelemetrySink inner;
+    shulib::motion::MotionStatsSink stats{inner};
+
+    shulib::diag::DebugRecord r{};
+    r.activeCommandId = 1;
+    r.activeCommandState = static_cast<std::uint8_t>(shulib::motion::MotionState::Running);
+    r.measuredPose = Pose2d{Length{0.0}, Length{0.0}, Angle{}};
+    r.targetPose = Pose2d{Length{48.0}, Length{24.0}, Angle{}};
+
+    stats.beginMotion();
+    stats.emit(r);
+    // NEGATIVE CONTROL: motion 1 really did publish a target, or the check below is vacuous.
+    REQUIRE(stats.hasData());
+    REQUIRE(stats.targetPose().x().value() == doctest::Approx(48.0));
+    REQUIRE(stats.targetPose().y().value() == doctest::Approx(24.0));
+
+    stats.beginMotion();  // motion 2 armed; no live tick yet
+
+    CHECK_FALSE(stats.hasData());
+    CHECK(stats.targetPose().x().value() == 0.0);  // was 48.0 — motion 1's target
+    CHECK(stats.targetPose().y().value() == 0.0);  // was 24.0
+    CHECK(stats.overshoot().value() == 0.0);       // these always reset; pinned as the
+    CHECK(stats.drift().value() == 0.0);           // invariant the poses now share
 }

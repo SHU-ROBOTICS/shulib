@@ -40,6 +40,12 @@
 
 namespace shulib::hal::pros {
 
+/// ITickPacer on the robot: blocks until the next tick boundary via pros::Task::delay_until, so
+/// the tick body's own duration is ABSORBED by the wait instead of added to it. That is the whole
+/// reason it is not pros::delay(kTickMs), which sleeps from NOW and would turn a 2 ms tick body
+/// into a 12 ms loop — 20% slow, forever, with the motion profiles integrating the error.
+/// The cadence anchors on the FIRST pace(), not at construction, so an object built long before
+/// it is used does not try to catch up the ticks it "missed" while nothing was pacing.
 class ProsTickPacer final : public motion::ITickPacer {
 public:
     static constexpr std::uint32_t kTickMs = 10;  ///< the motion tick (HA-32's 100 Hz)
@@ -47,9 +53,20 @@ public:
     /// Block until the next tick boundary (header: anchored cadence, lazy
     /// first-call anchor).
     void pace() override {
+        const std::uint32_t now = ::pros::millis();
         if (!anchored_) {
-            prevWakeMs_ = ::pros::millis();
+            prevWakeMs_ = now;
             anchored_ = true;
+        } else if (now - prevWakeMs_ > kTickMs) {
+            // RE-ANCHOR after a tick body that overran a whole period. The lazy first-call
+            // anchor above exists to stop FreeRTOS replaying missed ticks back-to-back, and
+            // that hazard is not confined to construction: after a 50 ms body on a 10 ms
+            // period the setpoint is already 40 ms in the past, so the next four pace() calls
+            // return instantly and the motion layer sees four near-zero-dt ticks — arriving
+            // precisely when the loop is already in trouble. anchored_ is set once and never
+            // cleared, so nothing re-anchored mid-run. Unsigned arithmetic is deliberate: the
+            // millis() wrap is modular, so `now - prevWakeMs_` stays correct across it.
+            prevWakeMs_ = now;
         }
         ::pros::Task::delay_until(&prevWakeMs_, kTickMs);
     }

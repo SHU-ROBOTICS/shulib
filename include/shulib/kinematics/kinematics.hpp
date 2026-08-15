@@ -41,9 +41,11 @@
 //
 // THE HYBRID BACKEND (§13 #15, LOCKED 2026-06-19): this interface is the home for
 // the nonlinear case (swerve — module angles a coefficient table can't express)
-// and for the queries above. The *linear* holonomic drives (X / H / tank /
+// and for the queries above. The FULLY-HOLONOMIC *linear* drives (X / H /
 // mecanum) are a single implementation, MatrixKinematics, driven by a per-wheel
-// [h, v, turn] coefficient matrix.
+// [h, v, turn] coefficient matrix. Tank is NOT among them: it is rank-2 (its
+// strafe column is all-zero), so MatrixKinematics's full-rank precondition
+// rejects it at construction and tank gets its own TankKinematics.
 
 #include "shulib/kinematics/wheel_speeds.hpp"
 #include "shulib/math/twist2d.hpp"
@@ -51,10 +53,30 @@
 
 namespace shulib::kinematics {
 
+/// The drivetrain math contract (Freeze F5): body-frame twist ⇄ per-wheel surface speeds, plus
+/// the desaturation hook and the strafeAuthority() query. This is the ONLY thing the motion
+/// layer knows about a drivetrain's geometry — it is frame-agnostic pure math, because the one
+/// FIELD→BODY rotation lives in Chassis (F1), and it limits nothing outside desaturate().
+/// Speeds are in/s and twists in/s + rad/s throughout. The WHEEL ORDER is each implementation's
+/// to define and to document; toWheels() and forward() must agree on it. Two implementations
+/// ship: MatrixKinematics (the FULLY-HOLONOMIC linear drives — X, H, mecanum — from a per-wheel
+/// coefficient matrix) and TankKinematics, which is hand-written precisely BECAUSE tank cannot
+/// be a coefficient table: its strafe column is all-zero, so MatrixKinematics's full-rank
+/// precondition refuses it at construction. Swerve is the nonlinear case this interface exists
+/// to leave room for.
 class IKinematics {
 public:
+    /// Virtual destructor, so deleting a drivetrain through an `IKinematics*` would be
+    /// well-defined — but nothing in this tree does that. Every consumer BORROWS a concrete
+    /// implementation the caller keeps alive: motion holds `const IKinematics*`, sim's
+    /// DrivePlant and SimHarness hold `const IKinematics&`. Declaring the destructor is also
+    /// what suppresses the implicit copy/move re-defaulted just below.
     virtual ~IKinematics() = default;
 
+    /// Default construction plus copy/move, re-defaulted because declaring the destructor above
+    /// suppresses the implicit ones. The interface carries no state: an implementation owns its
+    /// own geometry and is held by non-owning pointer or const reference, never copied into the
+    /// motion layer.
     IKinematics() = default;
     IKinematics(const IKinematics&) = default;
     IKinematics(IKinematics&&) = default;
