@@ -438,15 +438,23 @@ public:
         maxProj_ = 0.0;
         maxDist_ = 0.0;
         lastAbsHeadErr_ = 0.0;
+        // The poses reset with the scalars. They used not to, which made targetPose() serve
+        // the PREVIOUS motion's target between motions — not a default Pose2d, and not
+        // detectable as stale from the returned value. Now the invariant is uniform:
+        // !hasData() ⇒ every aggregate reads its default.
+        startPose_ = math::Pose2d{};
+        target_ = math::Pose2d{};
     }
 
     /// True iff at least one live (Running) record was aggregated.
     [[nodiscard]] bool hasData() const noexcept { return sawRunning_; }
     /// The motion's published target, RE-SAMPLED from the most recent aggregated record:
     /// a capture-at-live motion has no real target until its first live tick, so this is
-    /// the last target it published, not the one it was constructed with. Read it ONLY
-    /// when hasData(): beginMotion() does NOT clear it, so between motions it still holds
-    /// the PREVIOUS motion's target — the scheduler substitutes a default Pose2d itself.
+    /// the last target it published, not the one it was constructed with. A default Pose2d
+    /// before the current motion's first live tick — beginMotion() clears it with the rest
+    /// of the aggregates, so it can never serve the PREVIOUS motion's target. Still pair it
+    /// with hasData(): a default Pose2d is also a legal target, so "origin" and "nothing
+    /// yet" are indistinguishable from the value alone.
     [[nodiscard]] const math::Pose2d& targetPose() const noexcept { return target_; }
 
     /// Overshoot per motion_result.hpp: projection past the target along the
@@ -616,14 +624,42 @@ public:
     /// Neither copyable nor movable, and not by taste: the context this scheduler hands
     /// to motions points at the scheduler's OWN telemetry decorator, so a copy or a move
     /// would leave that route aimed at the original object. Construct one where it will
-    /// live and pass it by reference. Destruction is DEFAULTED and does not cancel — a
-    /// scheduler destroyed with a motion still armed leaves the drive at its last
-    /// command, so call cancel() before letting one go out of scope.
+    /// live and pass it by reference.
+    ///
+    /// DESTRUCTION WITH A MOTION ARMED FORCES THE DRIVE SAFE. F2 closed this hole for the
+    /// blocking waits with WaitUnwindGuard — a throw through waitUntilSettled()/waitUntil()
+    /// used to leave the motors at their last command — and the destructor was the
+    /// remaining path with identical consequences: `sched.async(m);` followed by a return,
+    /// or a throw out of a hand-rolled non-blocking loop, dropped the scheduler with
+    /// `active_ != nullptr` and left the drive energized, silently.
+    ///
+    /// It commands applyCancelSafeState() DIRECTLY and deliberately does NOT call cancel().
+    /// **The armed motion may already be destroyed by the time this runs**: motions live on
+    /// the caller's stack for exactly the scheduled window, and the idiom that creates this
+    /// hole — construct the scheduler, then construct a motion, then leave the scope —
+    /// destroys them in reverse, so `active_` dangles here. cancel() would call
+    /// `active_->cancel()` through that dangling pointer; the test for this case caught
+    /// precisely that, as a SIGABRT. So the destructor does the half that needs no motion:
+    /// the drivetrain is made safe, and the Cancelled boundary is NOT recorded, because
+    /// recording it honestly requires reading an object that may no longer exist. A caller
+    /// that wants the accounting calls cancel() itself, which is what the rest of this
+    /// header tells it to do.
+    ///
+    /// With NO motion armed it does nothing at all — unlike cancel()'s panic stop, because
+    /// destroying an idle scheduler is not a panic and must not reach out and brake a
+    /// drivetrain the caller may still be driving through another object.
     MotionScheduler(const MotionScheduler&) = delete;
     MotionScheduler(MotionScheduler&&) = delete;
     MotionScheduler& operator=(const MotionScheduler&) = delete;
     MotionScheduler& operator=(MotionScheduler&&) = delete;
-    ~MotionScheduler() = default;
+    ~MotionScheduler() {
+        if (active_ != nullptr) {
+            // Reaches only IMotor::setBrakeMode/setVoltage with a finite 0 V, which neither
+            // shipped adapter can throw from — load-bearing, because a destructor is
+            // implicitly noexcept and an escaping exception here would be std::terminate.
+            applyCancelSafeState(*schedDeps_.ctx);
+        }
+    }
 
     /// The MotionDeps to construct scheduled motions FROM: identical to the
     /// caller's deps except telemetry routes through the id stamp (header:

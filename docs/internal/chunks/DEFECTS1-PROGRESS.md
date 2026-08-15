@@ -340,3 +340,47 @@ doc gates: self-test / check-coverage / check-fresh / check-examples / check-rem
 suite: 1,121 cases · 1,523,344 assertions · 3 skipped — green
 ```
 Anything red after this point is mine.
+
+---
+
+# EXECUTION
+
+## Commit 1 — A28 + A27 (the scheduler)
+
+**The test caught a real flaw in my own fix, which is the whole point of writing it.**
+My first `~MotionScheduler()` called the full `cancel()`, mirroring F2's `WaitUnwindGuard`.
+It **SIGABRTed**:
+
+```
+test/motion_scheduler_unwind_test.cpp:195: FATAL ERROR: test case CRASHED: SIGABRT
+```
+
+Motions live on the caller's stack for exactly the scheduled window, and the idiom that
+*creates* A28 — construct scheduler, construct motion, leave the scope — destroys them in
+**reverse**, so `active_` dangles by the time the destructor runs. `cancel()` calls
+`active_->cancel()` through it. The correct destructor commands `applyCancelSafeState()`
+directly and records **no** boundary, because recording one honestly requires reading an
+object that may no longer exist. That constraint is now written into the header.
+
+Two traps hit while proving it, both already on the list:
+
+- **L2 / D3's ordering hazard fired immediately.** The first build after a `///` edit failed
+  at `check-fresh`, not at the compiler — the doc gate runs first and names the wrong problem.
+- **C4's stale-binary trap tried to hand me a green mutation.** My first mutation added a line,
+  which moved every declaration line number, so `check-fresh` failed, the binary was never
+  relinked, and running it reported the OLD green result. Gating on build success is what
+  caught it. Every mutation after that was made **line-count-neutral** so the generated
+  reference stays byte-identical and only the behaviour changes.
+
+**Mutation campaign — 2/2 RED, both observed.**
+
+| # | Mutation | Result |
+|---|---|---|
+| M1 | destructor's `applyCancelSafeState` made unreachable (`if (false)`) | **RED** — 1 case, 8 assertions |
+| M2 | `beginMotion()`'s two pose resets removed | **RED** — 1 case, 2 assertions, and it is the A27 case by name |
+
+Restored, rebuilt, **1,124 cases / 1,523,372 assertions / 3 skipped — green** (1,121 + 3 new).
+
+The A28 test carries its negative control inside it: it `REQUIRE`s the drive is genuinely
+energized (`> 1.0 V`) at the moment of destruction, so the post-destruction zero cannot come
+from a scenario that never commanded anything.
