@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 26 of 44 chunks complete
 
-- **Next up:** DEFECTS1 — triage and resolve the 83 API defects DOCS2 reported, then the RELEASE to main, then R3 — first motion.  
+- **Next up:** the RELEASE to main, then R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - **No interrupted chunks** — every `-PROGRESS.md` has a matching `-COMPLETED.md`.
 - **Suite:** 1,151 cases / 1,523,877 assertions, 3 skipped — **green**  

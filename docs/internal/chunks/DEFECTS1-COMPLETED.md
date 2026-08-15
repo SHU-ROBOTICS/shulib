@@ -210,3 +210,55 @@ minutes with the brain on the desk. `HA-123`'s bound wants a real loop rate.
 
 **To F3:** `E3`. The seam is documented and its cold-start window is stated; the first consumer
 owns the validity decision.
+
+---
+
+## Process observations — things that cost me time, and one opinion
+
+Recorded because the team lead asked for them, and because three of these are protocol gaps
+rather than mistakes anyone made.
+
+**1. The doc-gate deadlock is worse than `RESUMING.md` says, and it bites hardest during a
+mutation campaign.** `shulib_tests` DEPENDS on `shulib_doc_gates`, and one of those gates
+(`briefing_status.py check`) derives the suite state by running the **existing binary**. So the
+moment a mutation makes the suite red, the briefing is stale, the gate fails, and **nothing can
+be recompiled** — including the restore. Every mutation in this chunk needed a
+`briefing_status.py generate` *before* its build, and the briefing carried RED counts through
+the middle of the campaign. The briefing's own note calls this "a from-scratch build deadlocks
+once"; it is not once, it is once per mutation. **Suggested protocol line:** a mutation
+campaign should `generate` before every build, and the chunk must re-`generate` at the end —
+which is easy to forget when the last thing you did was restore a file.
+
+**2. Mutations must be LINE-COUNT-NEUTRAL, and that is a new trap.** `docs/api/` records the
+declaration line of every entity, so a mutation that adds or removes a line fails `check-fresh`,
+the binary is never relinked, and running it reports the **old** result. My first mutation did
+exactly this and reported GREEN off a stale binary — C4's trap with a new trigger that did not
+exist before DOCS2 generated the reference. A mutation that changes a *rendered declaration*
+(a default member initializer, a signature) additionally needs `api_doc_tool generate`, or the
+same thing happens. **Neither is written down anywhere.**
+
+**3. "Report, don't fix" created a second debt that nobody costed.** DOCS2's landmine L3 was the
+right call — a chunk that both documents and changes behaviour cannot tell you which of the two
+broke the suite. But it meant writing careful descriptions of defects into **published**
+headers, and two consequences followed. The small one: every fix here paid a doc-rewrite cost,
+which is fine and was budgeted. The large one: **some of those descriptions were wrong about
+the mechanism.** `D6`'s caveat said a zeroed pod is what the ODO_STUCK cross-check cannot see;
+the cross-check reads `IMotor` and works in deltas, so it never sees this seam at all, and the
+same over-claim propagated into `DOCS2-COMPLETED.md`. A defect description needs the *same
+evidence bar as a fix*, because it ships to the same readers — and it is harder to hold to,
+because nothing compiles a sentence.
+
+**4. My opinion, offered for review rather than applied: the reviewer's independent pass should
+re-run the MUTATION CAMPAIGN, not just the suite.** `RESUMING.md` step 3 says re-run the build,
+the guards and the ARM gate, then write your own oracle. That is good and it would not have
+caught this chunk's worst moment. Two of my three green mutations were **my own tests failing
+to test** — a reviewer re-running a green suite would have seen green and learned nothing. The
+cheapest version: the reviewer picks two or three of the chunk's claimed fixes, reverts each in
+a scratch copy, and checks the suite goes red. It is minutes, and it is the only check that
+distinguishes "there is a test" from "there is a test that works".
+
+**5. A smaller one: `MotionRig` seeds its localizer live in the constructor.** That is right for
+almost every test and it makes boot-window behaviour untestable — which is why `D12`/`D14` ship
+unpinned. A `MotionRig` variant that boots cold would have closed that, and would probably pay
+for itself: the wait-for-live contract is load-bearing in five motions and is currently only
+exercised incidentally.
