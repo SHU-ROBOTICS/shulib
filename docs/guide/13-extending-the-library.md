@@ -242,6 +242,11 @@ seam; new telemetry sinks implement `ITelemetrySink`. Before starting anything s
 these, read the roadmap entry and the relevant header — and talk to the team. Big pieces here
 get designed in writing first; that's how the library got this far without a robot.
 
+
+## The exact signatures
+
+Every seam named in this chapter is documented member by member. The mechanism seam is [`IMechanism` and its two concrete kinds](../api/mechanism.md), driven through [bounded operations](../api/mechanism_op.md) that report a [`MechanismOutcome`](../api/mechanism_outcome.md); the telemetry seam is [`ITelemetrySink`](../api/telemetry_sink.md); the driver seam is [`IController`](../api/controller.md); the digital lines are [in](../api/digital_in.md) and [out](../api/digital_out.md). The correction seam is [`ICorrector`](../api/i_corrector.md) and the filter seam is [`IFusionPolicy`](../api/i_fusion_policy.md). The whole `hal/` interface set and its [PROS adapters](../api/README.md) are on the site as well — and remember that being documented does not mean frozen; the [roadmap](../roadmap.md)'s Freeze Register is the only thing that locks a contract.
+
 ---
 
 *Next: [Chapter 14 — What it can't do yet](14-what-it-cannot-do-yet.md)*

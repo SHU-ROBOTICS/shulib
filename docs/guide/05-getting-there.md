@@ -126,6 +126,11 @@ with. You'll see them as return values in code and as `SETTLED` / `TIMEOUT` / `C
 diagnostics, and the first skill of reading a run log is scanning for the leg that stopped
 settling.
 
+
+## The exact signatures
+
+The motion layer's exact surface: the [`IMotion` contract](../api/motion.md), the primitives [`MoveToPose`](../api/move_to_pose.md), [`TurnTo`](../api/turn_to.md), [`StrafeTo`](../api/strafe_to.md), [`HoldPose`](../api/hold_pose.md) and [`DriveBrake`](../api/drive_brake.md), the knobs in [`MotionConfig`](../api/motion_config.md), the [`MotionScheduler`](../api/motion_scheduler.md) that runs them, and the one command path they all share, [`applyCommandPipeline`](../api/command_pipeline.md).
+
 ---
 
 *Next: [Chapter 6 — How things fail](06-how-things-fail.md)*

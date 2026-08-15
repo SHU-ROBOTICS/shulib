@@ -749,3 +749,48 @@ destroyed the independence of that audit — the briefing says so explicitly. Ve
 a stale probe, not a red gate, and it is recorded here so the next reviewer knows why rather than
 discovering it as a surprise.
 
+---
+
+## Step 11 — the gap the completeness audit found: a reference nobody is routed into
+
+Asked directly whether the documentation was missing anything, and audited rather than answered.
+Four checks:
+
+| Check | Result |
+|---|---|
+| Every header either targeted or covered by a **stated** exclusion | 148 total · 115 targeted · 33 excluded (19 `**/fake/`, 14 `sim/`) — **0 unaccounted** |
+| Every generated page reachable from the nav | 117 of 117; **0 nav entries with no file** |
+| Stale scope claims in public docs | none (the two roadmap hits are the D3 record and its own superseded note) |
+| Public docs linking to a `docs/api/` page that does not exist | none |
+
+**The fifth check found a real gap, and it is the kind a green gate cannot see.** The reference
+grew from 2 pages to 117 — and the *guide*, which is how a reader arrives at any of it, routes
+into it from essentially one chapter:
+
+```
+chapter                                        api-links
+02-the-field-and-coordinates.md                0
+03-knowing-where-you-are.md                    0
+04-drivetrains.md                              0
+05-getting-there.md                            0
+06-how-things-fail.md                          0
+10-the-api.md                                  4      <- Chassis only
+11-reading-the-diagnostics.md                  0      <- 21 diag pages now exist
+13-extending-the-library.md                    0      <- every seam now has a page
+```
+
+Chapter 11 is the worst case and the most telling: the old `api/README.md` said, correctly at the
+time, that *"guide chapter 11 is [the diagnostics layer's] real documentation"* — because there
+were no diag pages. There are now 21, and chapter 11 pointed at none of them. The reference was
+complete and **disconnected**, which is a way of being incomplete that every gate in this repo
+reports as green: coverage passes, freshness passes, links pass, the nav is full.
+
+**Fixed:** a short `## The exact signatures` section at the end of eight chapters — 02, 03, 04,
+05, 06, 11, 12, 13 — each naming the pages for the subsystem that chapter teaches, in the guide's
+own voice, placed before the trailing `*Next:*` pointer so the house rhythm is kept. Chapters 01,
+08, 14 and 15 deliberately get none: they are orientation, tutorial, limitations and glossary,
+and a wall of signature links would work against what each is for. Chapters 07, 09 and 10 already
+linked.
+
+Every link verified to resolve to a page that exists; `mkdocs build --strict` still green.
+
