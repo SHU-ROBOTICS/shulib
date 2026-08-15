@@ -11,7 +11,10 @@
 //   * adding/subtracting different dimensions FAILS TO COMPILE,
 //   * multiply/divide compute the resulting dimension automatically
 //     (Length / Time -> Velocity, Velocity / Time -> Acceleration, ...),
-//   * the stored value is ALWAYS canonical: inch, radian, second, volt.
+//   * the stored value is ALWAYS canonical: inch, radian, second, volt, AMPERE. The ampere
+//     was missing from this list while the same header declared the current dimension and
+//     the Current alias, and hal/pros/battery.hpp stores units::Current{ma / 1000.0} — a
+//     canonical ampere, not a derived combination of the other four.
 //
 // This kills two bug classes at compile time: "degrees into cos/sin" and
 // "milliseconds into a seconds-based gain". (master plan §7, §13 #3; Freeze F3.)
@@ -83,8 +86,12 @@ public:
     /// are both spellable and identical.
     [[nodiscard]] friend constexpr Quantity operator*(double s, Quantity a) noexcept { return Quantity{s * a.v_}; }
     /// Divide by a dimensionless factor; dimension unchanged. `s == 0` yields infinity by
-    /// IEEE rules, not an error. There is no `double / Quantity` overload — write
-    /// `Number{1.0} / dt` when you want the inverse dimension.
+    /// IEEE rules, not an error. There is deliberately no `double / Quantity` overload, and the
+    /// asymmetry with the DOUBLED multiply above is the point rather than an oversight: this
+    /// block is scalar SCALING, which leaves the dimension alone, while a scalar divided by a
+    /// quantity always INVERTS it — a different operation, belonging with the
+    /// Quantity-by-Quantity operators. Write `Number{1.0} / dt`, which produces the inverse
+    /// dimension through exactly those.
     [[nodiscard]] friend constexpr Quantity operator/(Quantity a, double s) noexcept { return Quantity{a.v_ / s}; }
 
     // --- comparison (same dimension only) ---

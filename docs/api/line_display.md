@@ -35,7 +35,7 @@ class ILineDisplay
 
 Where short status LINES physically go — the V5 controller's LCD, or a capturing fake in tests. A ROW device, not a byte stream: three fixed rows overwritten in place, no scrollback, so the verb is "set row i to text" rather than "append bytes". That shape is what lets content code rewrite only the rows that CHANGED, which matters because V5 controller writes are slow and firmware-rate-limited — a per-tick full repaint is how the display starves. Not one of the frozen F4 ten; an additive diagnostics-output seam, like ICharSink.
 
-*class, declared at [`include/shulib/hal/line_display.hpp:39`](../../include/shulib/hal/line_display.hpp#L39).*
+*class, declared at [`include/shulib/hal/line_display.hpp:49`](../../include/shulib/hal/line_display.hpp#L49).*
 
 <a id="ilinedisplay-krows"></a>
 
@@ -47,7 +47,7 @@ static constexpr int kRows = 3
 
 The V5 controller text grid. PROVISIONAL (A4: HA-57) — see header.
 
-*field, declared at [`include/shulib/hal/line_display.hpp:42`](../../include/shulib/hal/line_display.hpp#L42).*
+*field, declared at [`include/shulib/hal/line_display.hpp:52`](../../include/shulib/hal/line_display.hpp#L52).*
 
 <a id="ilinedisplay-kcols"></a>
 
@@ -59,7 +59,7 @@ static constexpr int kCols = 19
 
 Columns per row. Text beyond it is TRUNCATED by implementations and never wrapped — a wrapped status row would overwrite the row below it. Also unverified against real firmware: the vendored PROS header implies 15 columns, community practice says 19, and neither is a measurement (A4: HA-57, HA-107).
 
-*field, declared at [`include/shulib/hal/line_display.hpp:47`](../../include/shulib/hal/line_display.hpp#L47).*
+*field, declared at [`include/shulib/hal/line_display.hpp:57`](../../include/shulib/hal/line_display.hpp#L57).*
 
 <a id="ilinedisplay-destructor-ilinedisplay"></a>
 
@@ -71,7 +71,7 @@ virtual ~ILineDisplay() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so deleting through an `ILineDisplay*` is well-defined, and declaring it suppresses the implicit copy/move, which are re-defaulted here. Nothing in this tree deletes one that way, though — the seam is stateless (the rows live in the implementation) and a display is REFERENCED, never owned: ControllerFaultDisplay holds a non-owning `ILineDisplay&`, so the implementation must outlive every display bound to it.
 
-*function, declared at [`include/shulib/hal/line_display.hpp:55`](../../include/shulib/hal/line_display.hpp#L55).*
+*function, declared at [`include/shulib/hal/line_display.hpp:65`](../../include/shulib/hal/line_display.hpp#L65).*
 
 <a id="ilinedisplay-ilinedisplay"></a>
 
@@ -83,7 +83,7 @@ ILineDisplay() = default
 
 *Covered by the comment on [`~ILineDisplay`](#ilinedisplay-destructor-ilinedisplay) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/line_display.hpp:56`](../../include/shulib/hal/line_display.hpp#L56).*
+*function, declared at [`include/shulib/hal/line_display.hpp:66`](../../include/shulib/hal/line_display.hpp#L66).*
 
 <a id="ilinedisplay-ilinedisplay-2"></a>
 
@@ -95,7 +95,7 @@ ILineDisplay(const ILineDisplay&) = default
 
 *Covered by the comment on [`~ILineDisplay`](#ilinedisplay-destructor-ilinedisplay) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/line_display.hpp:57`](../../include/shulib/hal/line_display.hpp#L57).*
+*function, declared at [`include/shulib/hal/line_display.hpp:67`](../../include/shulib/hal/line_display.hpp#L67).*
 
 <a id="ilinedisplay-ilinedisplay-3"></a>
 
@@ -107,7 +107,7 @@ ILineDisplay(ILineDisplay&&) = default
 
 *Covered by the comment on [`~ILineDisplay`](#ilinedisplay-destructor-ilinedisplay) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/line_display.hpp:58`](../../include/shulib/hal/line_display.hpp#L58).*
+*function, declared at [`include/shulib/hal/line_display.hpp:68`](../../include/shulib/hal/line_display.hpp#L68).*
 
 <a id="ilinedisplay-operator-eq"></a>
 
@@ -119,7 +119,7 @@ ILineDisplay& operator=(const ILineDisplay&) = default
 
 *Covered by the comment on [`~ILineDisplay`](#ilinedisplay-destructor-ilinedisplay) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/line_display.hpp:59`](../../include/shulib/hal/line_display.hpp#L59).*
+*function, declared at [`include/shulib/hal/line_display.hpp:69`](../../include/shulib/hal/line_display.hpp#L69).*
 
 <a id="ilinedisplay-operator-eq-2"></a>
 
@@ -131,7 +131,7 @@ ILineDisplay& operator=(ILineDisplay&&) = default
 
 *Covered by the comment on [`~ILineDisplay`](#ilinedisplay-destructor-ilinedisplay) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/line_display.hpp:60`](../../include/shulib/hal/line_display.hpp#L60).*
+*function, declared at [`include/shulib/hal/line_display.hpp:70`](../../include/shulib/hal/line_display.hpp#L70).*
 
 <a id="ilinedisplay-setline"></a>
 
@@ -143,14 +143,14 @@ virtual void setLine(int row, std::string_view text) = 0
 
 Overwrite row `row` (0-based, caller keeps row < kRows) with `text`, truncated at kCols. MUST NOT throw.
 
-*function, declared at [`include/shulib/hal/line_display.hpp:64`](../../include/shulib/hal/line_display.hpp#L64).*
+*function, declared at [`include/shulib/hal/line_display.hpp:74`](../../include/shulib/hal/line_display.hpp#L74).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 26 lines</summary>
+<summary>The header’s own reasoning — 36 lines</summary>
 
 ```text
 
@@ -177,8 +177,18 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  NOT part of the frozen F4 ten (that freeze covers the 10 runtime robot-HAL
  interfaces); an ADDITIVE diagnostics-output seam, like ICharSink before it.
 
- Contract: setLine() is synchronous on the caller's task, MUST NOT throw, and
- row is in [0, kRows) — a bad row is the CALLER's precondition to keep.
+ Contract: setLine() is synchronous on the caller's task and MUST NOT THROW FOR ANY DEVICE
+ CONDITION — an unplugged controller, a refused write, a firmware error code is DROPPED, never
+ raised: a status row has no fallback channel and the telemetry log carries the same text.
+
+ A row outside [0, kRows) is a DIFFERENT thing — a caller precondition breach, not a device
+ condition — and the two shipped implementations answer it differently ON PURPOSE, which the
+ old one-line wording made look like a contradiction. The host FAKE trips
+ SHULIB_PRECONDITION, so a test that addresses a row that does not exist turns red where a
+ person is watching. The PROS adapter returns silently, because on a robot mid-match the
+ precondition handler's throw would unwind a motion over a cosmetic write. Same breach, two
+ policies, each right for its target: the seam's rule is that a bad row is the caller's to
+ keep, and neither implementation is obliged to make it survivable.
 ```
 
 </details>

@@ -155,9 +155,9 @@ True once the IMU is calibrated and its readings are trustworthy (false during b
 [[nodiscard]] virtual math::Angle pitch() const = 0
 ```
 
-Chassis pitch and roll (canonical, for tip detection).
+Chassis pitch, as a wrapped math::Angle, for tip detection. The word this library uses for a settled convention is deliberately NOT used here: unlike heading() (CCW-positive, +X = 0, and the adapter negates to get there), pitch's SIGN is unsettled — the PROS adapter passes the sensor's as-mounted sign through unnegated (open hardware assumption HA-110), so consume the MAGNITUDE until a bench measurement fixes it. This comment also used to be written to cover roll() as well, which the generator cannot do: it attached the text to pitch() alone and left roll() undocumented until roll() got its own.
 
-*function, declared at [`include/shulib/hal/imu.hpp:48`](../../include/shulib/hal/imu.hpp#L48).*
+*function, declared at [`include/shulib/hal/imu.hpp:54`](../../include/shulib/hal/imu.hpp#L54).*
 
 <a id="iimu-roll"></a>
 
@@ -169,7 +169,7 @@ Chassis pitch and roll (canonical, for tip detection).
 
 Chassis roll, as a wrapped math::Angle. Unlike heading(), the SIGN is NOT yet a settled convention: the PROS adapter passes the sensor's as-mounted sign through unnegated (open hardware assumption HA-110), so consume the MAGNITUDE until a bench measurement fixes it. That is enough for the tip detection this exists for.
 
-*function, declared at [`include/shulib/hal/imu.hpp:53`](../../include/shulib/hal/imu.hpp#L53).*
+*function, declared at [`include/shulib/hal/imu.hpp:59`](../../include/shulib/hal/imu.hpp#L59).*
 
 ## Design commentary, from the header
 

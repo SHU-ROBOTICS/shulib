@@ -40,6 +40,13 @@ public:
     [[nodiscard]] virtual math::Pose2d pose() const = 0;
 
     /// RMS position error (canonical Length) — drives the corrector's R; large when off-strip.
+    /// CONTRACT, stated because pose() states its own and this one was left to convention: the
+    /// value MUST be finite (no NaN/Inf), MUST NOT be negative, and MUST NOT throw. When
+    /// hasFix() is false it is UNSPECIFIED but still bound by both rules — holding the last good
+    /// reading (what the PROS adapter does) and reporting a large "no information" figure are
+    /// both conforming. Two places had already had to invent this rule independently, and
+    /// GpsCorrector keeps its own finiteness-and-sign backstop anyway, because a backstop exists
+    /// for the implementation that gets it wrong.
     [[nodiscard]] virtual units::Length rmsError() const = 0;
 
     /// True when the GPS currently has a usable fix (on the strip, error bounded, connected).

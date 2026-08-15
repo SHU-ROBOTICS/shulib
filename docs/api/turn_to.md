@@ -58,7 +58,7 @@ void start() override
 
 Arm, or fully re-arm, the turn: PID, stall detector, settle state and watchdog all reset, and the motion re-enters the boot wait. A finished TurnTo is reusable this way — but it is never re-AIMED, since target() is fixed at construction and start() reads nothing from the estimator.
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:72`](../../include/shulib/motion/turn_to.hpp#L72).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:77`](../../include/shulib/motion/turn_to.hpp#L77).*
 
 <a id="turnto-tick"></a>
 
@@ -70,7 +70,7 @@ Arm, or fully re-arm, the turn: PID, stall detector, settle state and watchdog a
 
 One control tick, emitting one DebugRecord. Precondition: start() was called, and the caller must have updated the Localizer FIRST — this reads the estimate, it does not advance it. While quality is still Uninitialized it commands zero volts and makes no settle progress, but the WATCHDOG RUNS THROUGH THAT WAIT, so a never-live estimate exits TimedOut (raising MOTION_TIMEOUT) rather than hanging. Settled beats a simultaneous timeout. Once a non-Running verdict is returned the motion is finished: further calls are no-ops that return the cached verdict and leave the motors stopped.
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:90`](../../include/shulib/motion/turn_to.hpp#L90).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:95`](../../include/shulib/motion/turn_to.hpp#L95).*
 
 <a id="turnto-cancel"></a>
 
@@ -82,7 +82,7 @@ void cancel() override
 
 The cancel contract (motion.hpp): safe state whenever started, verdict only if still running, Idle untouched, idempotent, never raises.
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:161`](../../include/shulib/motion/turn_to.hpp#L161).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:166`](../../include/shulib/motion/turn_to.hpp#L166).*
 
 <a id="turnto-exitreason"></a>
 
@@ -94,7 +94,7 @@ The cancel contract (motion.hpp): safe state whenever started, verdict only if s
 
 The latched verdict: Running until an exit, then Settled, TimedOut or Cancelled. Once set it is never rewritten — a later cancel() still applies the safe state but preserves this, because a turn that settled really did settle.
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:182`](../../include/shulib/motion/turn_to.hpp#L182).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:187`](../../include/shulib/motion/turn_to.hpp#L187).*
 
 <a id="turnto-state"></a>
 
@@ -106,7 +106,7 @@ The latched verdict: Running until an exit, then Settled, TimedOut or Cancelled.
 
 The motion-layer state, and the value stamped into DebugRecord.activeCommandState: Idle before start(), WaitingForEstimate through the boot wait, Running once an estimate is live, then whichever exit state matches exitReason().
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:186`](../../include/shulib/motion/turn_to.hpp#L186).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:191`](../../include/shulib/motion/turn_to.hpp#L191).*
 
 <a id="turnto-name"></a>
 
@@ -118,7 +118,7 @@ The motion-layer state, and the value stamped into DebugRecord.activeCommandStat
 
 The stable telemetry and result-line id — always the literal "TurnTo", a static string with no lifetime for the caller to manage.
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:189`](../../include/shulib/motion/turn_to.hpp#L189).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:194`](../../include/shulib/motion/turn_to.hpp#L194).*
 
 <a id="turnto-target"></a>
 
@@ -130,7 +130,7 @@ The stable telemetry and result-line id — always the literal "TurnTo", a stati
 
 The FIELD heading this instance was built to reach. Fixed for the object's lifetime: a TurnTo is re-armed by start(), never re-aimed, so a new heading means a new TurnTo.
 
-*function, declared at [`include/shulib/motion/turn_to.hpp:192`](../../include/shulib/motion/turn_to.hpp#L192).*
+*function, declared at [`include/shulib/motion/turn_to.hpp:197`](../../include/shulib/motion/turn_to.hpp#L197).*
 
 ## Design commentary, from the header
 

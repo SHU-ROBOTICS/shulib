@@ -848,6 +848,22 @@ private:
             // reported as a Mahalanobis rejection because that is literally the test it failed.
             if (o.accepted) {
                 ++acceptedFixes_;
+                // KNOWN DEFECT, DEFERRED TO R4 — DEFECTS1 item I13, recorded here rather than
+                // half-fixed. With maxNudgeRate == 0 (which this class's own precondition
+                // permits) the never-snap clamp can scale an update's gain to exactly zero, and
+                // this branch still reports applied = true with full appliedConfidence: the
+                // Localizer then clears ~90% of its drift accumulator for a fix that moved
+                // nothing. ComplementaryFusion guards the same case (`accepted && maxNudge > 0`),
+                // so the file banner's claim that the two tiers agree about a stalled tick holds
+                // for dt <= 0 and not for a zero budget.
+                //
+                // The obvious proxy — `o.dPos > 0` — was tried at DEFECTS1 and is WRONG: an
+                // accepted fix with zero innovation legitimately moves no position while still
+                // shrinking P, and gating on dPos reddened two E4 tests that assert exactly
+                // that. The honest fix needs a `moved` flag set where the clamp computes its
+                // scale, which is EkfFusion internals E4 sized against invented noise and R4
+                // re-measures. Left as-is, deliberately, over a fix that reports a real update
+                // as nothing.
                 out.applied = true;
                 out.appliedConfidence = std::max(out.appliedConfidence,
                                                  std::clamp(p.confidence, 0.0, 1.0));

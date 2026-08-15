@@ -34,9 +34,14 @@
 //     25% default — slip degrades, a stuck estimate STOPS. A physically blocked
 //     robot with spinning wheels also trips; that is the same fault family
 //     (fault.hpp: "odometry implausible / WHEEL STUCK"), and on purpose.
-//   * MEAN |Δshaft| over all drive wheels: a single dead DRIVE encoder halves
-//     the mean rather than zeroing it (still trips), while an X-drive strafe
-//     (all four wheels spinning) reads full spin travel.
+//   * MEAN |Δshaft| over all drive wheels: a single dead DRIVE encoder leaves
+//     (n-1)/n of the mean rather than zeroing it (still trips) — 1/2 on a
+//     2-wheel tank, 3/4 on the X-drive named below, 2/3 on the C3 H-bot. This
+//     bullet used to say "halves", which is the n=2 answer stated as if it were
+//     general, in the header of a check whose flagship consumers have 3 and 4
+//     wheels. The conclusion ("still trips") holds and is in fact STRONGER than
+//     the wrong figure implied. An X-drive strafe (all four wheels spinning)
+//     reads full spin travel.
 //   * WINDOWED (default 0.3 s), not per-tick: per-tick deltas are quantization-
 //     noise-dominated; a window integrates real travel. The verdict HOLDS until
 //     the next window closes, so HealthMonitor's edge-per-episode logic sees one

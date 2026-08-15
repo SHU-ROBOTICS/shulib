@@ -43,8 +43,15 @@
 //     precedes act: a stalled operation's unreleased claim would otherwise
 //     make the end action's own operation throw at start() — measured), and
 //     the end action runs with the remaining runway.
-//   * hardStopAt — BE SAFE, unconditionally: every device is forced safe and
-//     everything, the end action included, is refused from here on. Fires
+//   * hardStopAt — BE SAFE, unconditionally: every device is forced safe, and
+//     every MOTION and every WAIT is refused from here on — including the end
+//     action's own. What is NOT refused is the end action's INVOCATION: run()
+//     has no floor-fired guard and reports endActionRan = true even when the
+//     floor already fired during scoring, which is reachable exactly in the
+//     case this banner's own honesty section describes (scoring code that keeps
+//     the CPU past both deadlines). The guard cannot preempt caller code, so
+//     what it can refuse is what the action ASKS FOR, not that it runs; the
+//     field doc on endActionRan states the same thing. Fires
 //     even if the end action is still running — safety is not negotiable,
 //     going somewhere is. Safing is the library's to own once a deadline
 //     exists at all; where to GO is strategy and stays the caller's.

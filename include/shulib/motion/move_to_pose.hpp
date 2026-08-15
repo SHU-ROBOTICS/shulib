@@ -46,6 +46,7 @@
 //
 // Gains/tolerances: MotionConfig — every default provisional until R5 (HA-50/51/52).
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -313,7 +314,8 @@ protected:
           settledTrans_{config.translationSettle, deps.ctx->clock()},
           settledHead_{config.headingSettle, deps.ctx->clock()},
           watchdog_{options.holdFor > 0.0
-                        ? options.holdFor + kHoldSlack
+                        ? std::max(options.holdFor + kHoldSlack,
+                                   timeout > 0.0 ? timeout : config.defaultTimeout)
                         : (timeout > 0.0 ? timeout : config.defaultTimeout),
                     deps.ctx->clock()},
           stall_{config.stall} {
@@ -329,8 +331,19 @@ protected:
                             "MoveToPose: target position must be finite");
     }
 
-    /// The hold watchdog only backstops a clock pathology; hold-mode's own
-    /// deadline (holdFor) is the real exit.
+    /// Slack added to holdFor so a hold cannot be cut short by clock granularity. It is NOT
+    /// the whole hold-mode budget: the watchdog is armed with max(holdFor + kHoldSlack, the
+    /// effective timeout), because that same watchdog is the ONLY bound on the wait-for-live
+    /// boot window, and holdFor + 1 s is not a boot budget. HoldPose(deps, holdFor = 0.5) used
+    /// to have a total budget of 1.5 s against a ~2 s V5 IMU calibration, so it exited
+    /// TimedOut before its hold window ever began — and HoldPose exposes no timeout knob, so
+    /// motion.hpp's "callers budget timeouts to cover boot" was not something this caller
+    /// could do.
+    ///
+    /// On the LIVE path in hold mode the watchdog is deliberately not consulted: holdStart_ +
+    /// holdFor is the exit, and it is reached by the same clock. So the honest description is
+    /// "the boot bound, plus a floor under holdFor" — not the clock-pathology backstop this
+    /// comment used to claim, which was a live backstop the code never read.
     /// (kStrafeFallbackNoiseFraction moved to command_pipeline.hpp at C4,
     /// unchanged — the flag is computed where the clamp is applied.)
     static constexpr double kHoldSlack = 1.0;

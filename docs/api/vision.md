@@ -56,36 +56,36 @@ One visible AprilTag, reduced to a robot-relative planar pose.
 ### `TagObservation::id`
 
 ```cpp
-int id
+int id = 0
 ```
 
-AprilTag id within the configured family. A corrector looks this up in its map of known field placements; an id with no map entry is discarded, never guessed at.
+AprilTag id within the configured family. DEFAULTED, like every other value struct in the tree: these two were the only sensor observations with no default member initializers, so `TagObservation t; t.poseInRobot = …;` left `id` and `confidence` INDETERMINATE — and the corrector's screen cannot save it, because the screen IS the read (`!std::isfinite(obs.confidence)` on an indeterminate double is already UB), while an indeterminate id that happens to hit a real map entry yields a confident fix against the wrong tag. Aggregate initialisation is unaffected. A corrector looks this up in its map of known field placements; an id with no map entry is discarded, never guessed at.
 
-*field, declared at [`include/shulib/hal/vision.hpp:35`](../../include/shulib/hal/vision.hpp#L35).*
+*field, declared at [`include/shulib/hal/vision.hpp:41`](../../include/shulib/hal/vision.hpp#L41).*
 
 <a id="tagobservation-poseinrobot"></a>
 
 ### `TagObservation::poseInRobot`
 
 ```cpp
-math::Pose2d poseInRobot
+math::Pose2d poseInRobot{}
 ```
 
 Tag pose RELATIVE to the robot, canonical body frame (F1: +X forward, +Y left, heading CCW-positive), inches and radians. Already the PLANAR reduction: the tag's height above the camera, its pitch and its roll were discarded at the edge and are not recoverable.
 
-*field, declared at [`include/shulib/hal/vision.hpp:39`](../../include/shulib/hal/vision.hpp#L39).*
+*field, declared at [`include/shulib/hal/vision.hpp:45`](../../include/shulib/hal/vision.hpp#L45).*
 
 <a id="tagobservation-confidence"></a>
 
 ### `TagObservation::confidence`
 
 ```cpp
-double confidence
+double confidence = 0.0
 ```
 
 Detector confidence, [0, 1]. Not a probability that the pose is right — a corrector DIVIDES its measurement sigma by it, so larger means a tighter fix, and 0 means unusable.
 
-*field, declared at [`include/shulib/hal/vision.hpp:42`](../../include/shulib/hal/vision.hpp#L42).*
+*field, declared at [`include/shulib/hal/vision.hpp:48`](../../include/shulib/hal/vision.hpp#L48).*
 
 <a id="struct-objectobservation"></a>
 
@@ -97,43 +97,43 @@ struct ObjectObservation
 
 One visible classified object / color, reduced to a robot-relative bearing.
 
-*struct, declared at [`include/shulib/hal/vision.hpp:46`](../../include/shulib/hal/vision.hpp#L46).*
+*struct, declared at [`include/shulib/hal/vision.hpp:52`](../../include/shulib/hal/vision.hpp#L52).*
 
 <a id="objectobservation-classid"></a>
 
 ### `ObjectObservation::classId`
 
 ```cpp
-int classId
+int classId = 0
 ```
 
 Detected class / color descriptor id, as configured on the detector. Opaque to shulib: nothing here maps an id to a meaning — the manipulation code that asked for it owns that.
 
-*field, declared at [`include/shulib/hal/vision.hpp:49`](../../include/shulib/hal/vision.hpp#L49).*
+*field, declared at [`include/shulib/hal/vision.hpp:55`](../../include/shulib/hal/vision.hpp#L55).*
 
 <a id="objectobservation-bearing"></a>
 
 ### `ObjectObservation::bearing`
 
 ```cpp
-math::Angle bearing
+math::Angle bearing{}
 ```
 
 Horizontal angle to the object measured from robot +X (forward), CCW-positive, wrapped to (-π, π]. A BEARING only: a bounding box carries no range, so this says which way to turn and never how far to drive.
 
-*field, declared at [`include/shulib/hal/vision.hpp:53`](../../include/shulib/hal/vision.hpp#L53).*
+*field, declared at [`include/shulib/hal/vision.hpp:59`](../../include/shulib/hal/vision.hpp#L59).*
 
 <a id="objectobservation-confidence"></a>
 
 ### `ObjectObservation::confidence`
 
 ```cpp
-double confidence
+double confidence = 0.0
 ```
 
 Detector confidence, [0, 1]. Carried for M4 targeting to rank candidates with; no consumer in the tree reads it yet, so nothing currently gates on a low value.
 
-*field, declared at [`include/shulib/hal/vision.hpp:56`](../../include/shulib/hal/vision.hpp#L56).*
+*field, declared at [`include/shulib/hal/vision.hpp:62`](../../include/shulib/hal/vision.hpp#L62).*
 
 <a id="class-itagsource"></a>
 
@@ -145,7 +145,7 @@ class ITagSource
 
 AprilTag source (decision #7: V5 AI Vision OR a coprocessor, behind this one seam).
 
-*class, declared at [`include/shulib/hal/vision.hpp:60`](../../include/shulib/hal/vision.hpp#L60).*
+*class, declared at [`include/shulib/hal/vision.hpp:66`](../../include/shulib/hal/vision.hpp#L66).*
 
 <a id="itagsource-destructor-itagsource"></a>
 
@@ -157,7 +157,7 @@ virtual ~ITagSource() = default
 
 The polymorphic-base boilerplate, and why it is spelled out: the destructor is virtual so deleting through `ITagSource*` is well-defined, and declaring it suppresses the implicit copy/move, which are therefore re-defaulted. The seam holds no state, so all five are trivial — an implementation is REFERENCED and never owned (RobotContext keeps a non-owning pointer, and the adapter must outlive the context).
 
-*function, declared at [`include/shulib/hal/vision.hpp:67`](../../include/shulib/hal/vision.hpp#L67).*
+*function, declared at [`include/shulib/hal/vision.hpp:73`](../../include/shulib/hal/vision.hpp#L73).*
 
 <a id="itagsource-itagsource"></a>
 
@@ -169,7 +169,7 @@ ITagSource() = default
 
 *Covered by the comment on [`~ITagSource`](#itagsource-destructor-itagsource) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:68`](../../include/shulib/hal/vision.hpp#L68).*
+*function, declared at [`include/shulib/hal/vision.hpp:74`](../../include/shulib/hal/vision.hpp#L74).*
 
 <a id="itagsource-itagsource-2"></a>
 
@@ -181,7 +181,7 @@ ITagSource(const ITagSource&) = default
 
 *Covered by the comment on [`~ITagSource`](#itagsource-destructor-itagsource) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:69`](../../include/shulib/hal/vision.hpp#L69).*
+*function, declared at [`include/shulib/hal/vision.hpp:75`](../../include/shulib/hal/vision.hpp#L75).*
 
 <a id="itagsource-itagsource-3"></a>
 
@@ -193,7 +193,7 @@ ITagSource(ITagSource&&) = default
 
 *Covered by the comment on [`~ITagSource`](#itagsource-destructor-itagsource) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:70`](../../include/shulib/hal/vision.hpp#L70).*
+*function, declared at [`include/shulib/hal/vision.hpp:76`](../../include/shulib/hal/vision.hpp#L76).*
 
 <a id="itagsource-operator-eq"></a>
 
@@ -205,7 +205,7 @@ ITagSource& operator=(const ITagSource&) = default
 
 *Covered by the comment on [`~ITagSource`](#itagsource-destructor-itagsource) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:71`](../../include/shulib/hal/vision.hpp#L71).*
+*function, declared at [`include/shulib/hal/vision.hpp:77`](../../include/shulib/hal/vision.hpp#L77).*
 
 <a id="itagsource-operator-eq-2"></a>
 
@@ -217,7 +217,7 @@ ITagSource& operator=(ITagSource&&) = default
 
 *Covered by the comment on [`~ITagSource`](#itagsource-destructor-itagsource) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:72`](../../include/shulib/hal/vision.hpp#L72).*
+*function, declared at [`include/shulib/hal/vision.hpp:78`](../../include/shulib/hal/vision.hpp#L78).*
 
 <a id="itagsource-tags"></a>
 
@@ -229,7 +229,7 @@ ITagSource& operator=(ITagSource&&) = default
 
 AprilTags currently visible, each as a relative pose in the robot frame.
 
-*function, declared at [`include/shulib/hal/vision.hpp:75`](../../include/shulib/hal/vision.hpp#L75).*
+*function, declared at [`include/shulib/hal/vision.hpp:81`](../../include/shulib/hal/vision.hpp#L81).*
 
 <a id="class-ivision"></a>
 
@@ -241,7 +241,7 @@ class IVision
 
 Object / color detection source (manipulation targeting, M4).
 
-*class, declared at [`include/shulib/hal/vision.hpp:79`](../../include/shulib/hal/vision.hpp#L79).*
+*class, declared at [`include/shulib/hal/vision.hpp:85`](../../include/shulib/hal/vision.hpp#L85).*
 
 <a id="ivision-destructor-ivision"></a>
 
@@ -253,7 +253,7 @@ virtual ~IVision() = default
 
 Same polymorphic-base boilerplate as ITagSource, and for the same reason: a virtual destructor for delete-through-base, with copy/move re-defaulted after declaring it. It matters here that this base is stateless — decision #7 expects ONE adapter to inherit both this and ITagSource off a single V5 AI Vision sensor, and two empty bases cost that adapter nothing.
 
-*function, declared at [`include/shulib/hal/vision.hpp:86`](../../include/shulib/hal/vision.hpp#L86).*
+*function, declared at [`include/shulib/hal/vision.hpp:92`](../../include/shulib/hal/vision.hpp#L92).*
 
 <a id="ivision-ivision"></a>
 
@@ -265,7 +265,7 @@ IVision() = default
 
 *Covered by the comment on [`~IVision`](#ivision-destructor-ivision) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:87`](../../include/shulib/hal/vision.hpp#L87).*
+*function, declared at [`include/shulib/hal/vision.hpp:93`](../../include/shulib/hal/vision.hpp#L93).*
 
 <a id="ivision-ivision-2"></a>
 
@@ -277,7 +277,7 @@ IVision(const IVision&) = default
 
 *Covered by the comment on [`~IVision`](#ivision-destructor-ivision) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:88`](../../include/shulib/hal/vision.hpp#L88).*
+*function, declared at [`include/shulib/hal/vision.hpp:94`](../../include/shulib/hal/vision.hpp#L94).*
 
 <a id="ivision-ivision-3"></a>
 
@@ -289,7 +289,7 @@ IVision(IVision&&) = default
 
 *Covered by the comment on [`~IVision`](#ivision-destructor-ivision) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:89`](../../include/shulib/hal/vision.hpp#L89).*
+*function, declared at [`include/shulib/hal/vision.hpp:95`](../../include/shulib/hal/vision.hpp#L95).*
 
 <a id="ivision-operator-eq"></a>
 
@@ -301,7 +301,7 @@ IVision& operator=(const IVision&) = default
 
 *Covered by the comment on [`~IVision`](#ivision-destructor-ivision) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:90`](../../include/shulib/hal/vision.hpp#L90).*
+*function, declared at [`include/shulib/hal/vision.hpp:96`](../../include/shulib/hal/vision.hpp#L96).*
 
 <a id="ivision-operator-eq-2"></a>
 
@@ -313,7 +313,7 @@ IVision& operator=(IVision&&) = default
 
 *Covered by the comment on [`~IVision`](#ivision-destructor-ivision) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/vision.hpp:91`](../../include/shulib/hal/vision.hpp#L91).*
+*function, declared at [`include/shulib/hal/vision.hpp:97`](../../include/shulib/hal/vision.hpp#L97).*
 
 <a id="ivision-objects"></a>
 
@@ -325,7 +325,7 @@ IVision& operator=(IVision&&) = default
 
 Classified objects / colors currently visible.
 
-*function, declared at [`include/shulib/hal/vision.hpp:94`](../../include/shulib/hal/vision.hpp#L94).*
+*function, declared at [`include/shulib/hal/vision.hpp:100`](../../include/shulib/hal/vision.hpp#L100).*
 
 ## Design commentary, from the header
 

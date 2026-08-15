@@ -108,7 +108,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - **Next up:** DEFECTS1 — triage and resolve the 83 API defects DOCS2 reported, then the RELEASE to main, then R3 — first motion.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): DEFECTS1** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,151 cases / 1,523,877 assertions, 3 skipped — **RED — 1 case(s) failing**  
+- **Suite:** 1,151 cases / 1,505,874 assertions, 3 skipped — **RED — 2 case(s) failing**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 148  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  

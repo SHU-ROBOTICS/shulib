@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,631 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,632 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -1716,6 +1716,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
 | `Voltage` | type alias | [quantity.md](quantity.md#voltage) |
 

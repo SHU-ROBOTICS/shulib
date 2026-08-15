@@ -12,7 +12,10 @@
 //
 // Voltage / brownout compensation: compensateForBattery() limits a desired voltage to what
 // the battery can actually deliver (±battery) and flags when it saturated — so the motion
-// layer knows it is voltage-starved and the guaranteed end-of-run park still fires as the
+// layer WOULD know it is voltage-starved. NOTHING READS THE FLAG TODAY: the command pipeline
+// binds the struct and uses only `voltage`, and the guaranteed end-of-run park is driven by the
+// F2 run guard's deadlines, not by this. It is a channel a caller MAY read, not a wire into the
+// park. The rest of this sentence described the park firing as the
 // battery collapses (§M2, §18). We command actual voltage (IMotor::setVoltage), so the only
 // battery effect is this ceiling; the kV/kS/kA themselves are battery-independent.
 

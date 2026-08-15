@@ -20,7 +20,18 @@ namespace shulib::hal {
 /// distance: turning it into travel needs a wheel diameter, localization::TrackingWheel's job.
 /// There is NO validity channel here: an implementation must always return a finite, plausible
 /// value, so the PROS adapter screens the in-band PROS_ERR sentinel by holding the last good
-/// reading rather than propagating it or zeroing. A frozen reading, not a zeroed one, is what
+/// reading rather than propagating it or zeroing.
+///
+/// TWO CORRECTIONS TO THE NEXT SENTENCE, both measured at DEFECTS1 and both left standing here
+/// because the sentence is published. (1) The stuck-odometry cross-check reads IMotor, never
+/// this seam, and it works in DELTAS — so a pod frozen at 0 and one frozen at 12345 are
+/// indistinguishable to it, and the zero is not what hides a dead pod. (2) The screen's
+/// "never zero" holds only AFTER a first good read: the PROS adapter's last-good caches start
+/// at 0, so a pod that faults from the very first tick publishes 0 rad and 0 rad/s for the
+/// whole run, with faultedReads() > 0 beside a zero output as the only tell. The sibling seam
+/// (hal/motor.hpp) already carries its cold-start caveat; this one did not.
+///
+/// A frozen reading, not a zeroed one, is what
 /// the loop's stuck-odometry cross-check is built to notice.
 class IRotation {
 public:

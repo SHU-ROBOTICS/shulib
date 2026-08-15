@@ -6,16 +6,24 @@
 // the four jobs the pieces below cannot, in a fixed five-step update():
 //   1. dt — source it from the injected IClock and turn the per-tick position change into a Twist2d.
 //   2. predict — advance PilonsOdometry; its pose is the dead-reckon prediction.
-//   3. fuse — ask each corrector for an absolute proposal and fold the valid ones in as an
-//      innovation-bounded, per-tick-clamped GATED NUDGE (position only), via the IFusionPolicy.
-//   4. heading — compose the fused heading from the IMU as the LAST write of the tick, so no
+//   3. gather — ask each corrector for an absolute proposal and keep the VALID ones.
+//   4. fuse — fold them in as an innovation-bounded, per-tick-clamped GATED NUDGE, via the
+//      IFusionPolicy.
+//   5. heading + publish — compose the fused heading from the IMU as the LAST write of the tick, so no
 //      corrector or policy can ever assign the robot a heading (decision #4). Since E3 the
 //      composition is `imu.heading() + headingBias_`, where the bias moves by at most a bounded
 //      nudge per tick — see the heading-bias note below.
-//   5. publish — recompute the quality scalar + categorical flags from observable inputs.
+//      …then recompute the quality scalar + categorical flags from observable inputs.
+//
+// The numbering above matches the STEP labels in update() exactly. It used to be off by one
+// from step 3 onward — the banner's "fuse" was the code's STEP 4, the banner's "heading" was
+// STEP 5, and the banner's separate step 5 had no label at all — so a reader arriving from the
+// generated page and jumping to the source landed on the wrong step every time. The banner was
+// also inconsistent with itself downstream, where the heading-bias note cites "STEP 4" using
+// the old numbering for what the code calls STEP 5.
 //
 // ── THE HEADING BIAS (added at E3, the absolute-yaw path M2 reserved) ──
-// Until E3 nothing in the tree could tell the estimator its heading was wrong, so STEP 4 stamped
+// Until E3 nothing in the tree could tell the estimator its heading was wrong, so STEP 5 stamped
 // the raw IMU reading and heading was IMU-owned in the strongest possible sense. That was correct
 // while it lasted and is NOT what the accuracy spec needs: the master plan records that a raw V5
 // IMU drifts ≈1°/min, so dead-reckoned heading alone will not hold the team's `< 1°` requirement

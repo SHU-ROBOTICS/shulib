@@ -50,7 +50,7 @@ public:
     TurnTo(const MotionDeps& deps, math::Angle target, const MotionConfig& config = {},
            double timeout = 0.0)
         : deps_{deps},
-          cfg_{config},
+          cfg_{validatedConfig(config, timeout, "TurnTo")},
           target_{target},
           pidH_{control::PidConfig{.kP = config.heading.kP, .kI = config.heading.kI,
                                    .kD = config.heading.kD,
@@ -60,9 +60,14 @@ public:
           exit_{config.headingSettle, timeout > 0.0 ? timeout : config.defaultTimeout,
                 deps.ctx->clock()},
           stall_{config.stall} {
-        cfg_.validate();
-        SHULIB_PRECONDITION(std::isfinite(timeout) && timeout >= 0.0,
-                            "TurnTo: timeout must be finite and >= 0");
+        // cfg_ is declared FIRST, so validatedConfig() above has already run by the time the
+        // PIDs, the settle detector and the watchdog are built from these same fields. It used
+        // to run here, in the BODY, after the member-initializer list had already constructed
+        // all three — so a MotionConfig with a non-positive defaultTimeout was reported by
+        // watchdog.hpp's message and a non-finite heading gain by pid.hpp's, naming components
+        // the user never touched. Not a safety hole (both shipped handlers throw either way),
+        // but this repo treats message specificity as load-bearing: MatrixKinematics keeps a
+        // precondition it documents as fully subsumed, "for its message, not the rejection".
     }
 
     /// Arm, or fully re-arm, the turn: PID, stall detector, settle state and watchdog all reset,

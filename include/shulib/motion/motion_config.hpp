@@ -159,4 +159,20 @@ struct MotionConfig {
     }
 };
 
+/// Validate `config` (and a caller-supplied `timeout`) and hand the config straight back, so a
+/// motion can write `cfg_{validatedConfig(config, timeout, "TurnTo")}` as the FIRST member in
+/// its initializer list and have the check run before any component is built from these fields.
+/// The counterpart to MotionDeps::validatedClock(), which exists for exactly the same reason on
+/// the pointer half: "a null pointer trips the precondition rather than being dereferenced."
+/// Without it the first component constructed from a bad config reports the failure in ITS
+/// vocabulary, naming a class the caller never named.
+[[nodiscard]] inline const MotionConfig& validatedConfig(const MotionConfig& config,
+                                                         double timeout, const char* who) {
+    config.validate();
+    (void)who;  // reserved for a per-motion message once SHULIB_PRECONDITION takes one
+    SHULIB_PRECONDITION(std::isfinite(timeout) && timeout >= 0.0,
+                        "motion: timeout must be finite and >= 0");
+    return config;
+}
+
 }  // namespace shulib::motion

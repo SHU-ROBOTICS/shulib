@@ -2,7 +2,7 @@
 //
 // DriveBrake — stop the drivetrain and confirm it stopped (chunk C1).
 //
-// Commands ZERO volts to every drive motor each tick (with BrakeMode::Brake so
+// Commands ZERO volts to every drive motor each ACTIVE tick (with BrakeMode::Brake so
 // real hardware resists rather than coasts — the A2 plant does not model brake
 // modes, documented limitation) and exits Settled once the ESTIMATED speed
 // norm |v| + rotationRadius·|ω| has stayed inside brakeSettle for its held

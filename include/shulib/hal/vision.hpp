@@ -30,30 +30,36 @@ namespace shulib::hal {
 
 /// One visible AprilTag, reduced to a robot-relative planar pose.
 struct TagObservation {
-    /// AprilTag id within the configured family. A corrector looks this up in its map of known
+    /// AprilTag id within the configured family. DEFAULTED, like every other value struct in
+    /// the tree: these two were the only sensor observations with no default member
+    /// initializers, so `TagObservation t; t.poseInRobot = …;` left `id` and `confidence`
+    /// INDETERMINATE — and the corrector's screen cannot save it, because the screen IS the
+    /// read (`!std::isfinite(obs.confidence)` on an indeterminate double is already UB), while
+    /// an indeterminate id that happens to hit a real map entry yields a confident fix against
+    /// the wrong tag. Aggregate initialisation is unaffected. A corrector looks this up in its map of known
     /// field placements; an id with no map entry is discarded, never guessed at.
-    int id;
+    int id = 0;
     /// Tag pose RELATIVE to the robot, canonical body frame (F1: +X forward, +Y left, heading
     /// CCW-positive), inches and radians. Already the PLANAR reduction: the tag's height above
     /// the camera, its pitch and its roll were discarded at the edge and are not recoverable.
-    math::Pose2d poseInRobot;
+    math::Pose2d poseInRobot{};
     /// Detector confidence, [0, 1]. Not a probability that the pose is right — a corrector
     /// DIVIDES its measurement sigma by it, so larger means a tighter fix, and 0 means unusable.
-    double confidence;
+    double confidence = 0.0;
 };
 
 /// One visible classified object / color, reduced to a robot-relative bearing.
 struct ObjectObservation {
     /// Detected class / color descriptor id, as configured on the detector. Opaque to shulib:
     /// nothing here maps an id to a meaning — the manipulation code that asked for it owns that.
-    int classId;
+    int classId = 0;
     /// Horizontal angle to the object measured from robot +X (forward), CCW-positive, wrapped to
     /// (-π, π]. A BEARING only: a bounding box carries no range, so this says which way to
     /// turn and never how far to drive.
-    math::Angle bearing;
+    math::Angle bearing{};
     /// Detector confidence, [0, 1]. Carried for M4 targeting to rank candidates with; no
     /// consumer in the tree reads it yet, so nothing currently gates on a low value.
-    double confidence;
+    double confidence = 0.0;
 };
 
 /// AprilTag source (decision #7: V5 AI Vision OR a coprocessor, behind this one seam).

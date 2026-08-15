@@ -23,8 +23,18 @@
 // NOT part of the frozen F4 ten (that freeze covers the 10 runtime robot-HAL
 // interfaces); an ADDITIVE diagnostics-output seam, like ICharSink before it.
 //
-// Contract: setLine() is synchronous on the caller's task, MUST NOT throw, and
-// row is in [0, kRows) — a bad row is the CALLER's precondition to keep.
+// Contract: setLine() is synchronous on the caller's task and MUST NOT THROW FOR ANY DEVICE
+// CONDITION — an unplugged controller, a refused write, a firmware error code is DROPPED, never
+// raised: a status row has no fallback channel and the telemetry log carries the same text.
+//
+// A row outside [0, kRows) is a DIFFERENT thing — a caller precondition breach, not a device
+// condition — and the two shipped implementations answer it differently ON PURPOSE, which the
+// old one-line wording made look like a contradiction. The host FAKE trips
+// SHULIB_PRECONDITION, so a test that addresses a row that does not exist turns red where a
+// person is watching. The PROS adapter returns silently, because on a robot mid-match the
+// precondition handler's throw would unwind a motion over a cosmetic write. Same breach, two
+// policies, each right for its target: the seam's rule is that a bad row is the caller's to
+// keep, and neither implementation is obliged to make it survivable.
 
 #include <string_view>
 

@@ -26,14 +26,14 @@ Extracted from [`include/shulib/kinematics/desaturate.hpp`](../../include/shulib
 
 Scale EVERY wheel by ONE common factor so the largest just reaches `maxWheelSpeed`. Uniform scaling preserves the ratios between wheels — and therefore the DIRECTION of the commanded motion — trading only speed for feasibility. A set already inside the budget (the all-zero set included) is returned unchanged: this never scales UP, so it cannot be used to reach a speed floor. The result has the same size() as the input, and both the input and the limit are canonical velocity. Precondition: maxWheelSpeed > 0 — a zero or negative limit is a caller bug, not a request to hold still.
 
-*free function, declared at [`include/shulib/kinematics/desaturate.hpp:29`](../../include/shulib/kinematics/desaturate.hpp#L29).*
+*free function, declared at [`include/shulib/kinematics/desaturate.hpp:38`](../../include/shulib/kinematics/desaturate.hpp#L38).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 13 lines</summary>
+<summary>The header’s own reasoning — 22 lines</summary>
 
 ```text
 
@@ -47,8 +47,17 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  budget it is returned unchanged (never scaled UP).
 
  This is deliberately separate from strafeAuthority() clamping (§13 #5): that
- shapes the command upstream; this is the last-line guarantee that no wheel is
- ever asked for more than it can give. toWheels() itself stays clamp-free.
+ shapes the command upstream; this bounds the MAGNITUDE of a finite wheel set.
+ It is NOT the last line, and used to claim it was. Non-finite input passes
+ straight through: WheelSpeeds::maxMagnitude() uses std::max, which ignores NaN,
+ so a NaN never wins the peak and the early return treats the set as within
+ budget — and in the scaling branch NaN * scale is NaN either way. The actual
+ last line is diag::recoverWheelVoltage at the motor edge (plausibility_guard.hpp
+ invariant 3), which zeroes a non-finite volt and raises Implausible. Enforcing
+ finiteness HERE was considered and rejected twice over: it would narrow the
+ contract of LOCKED register row F5, and it would turn an A3 hostile-sensor
+ pathology into a thrown precondition — an aborted motion where the design says
+ log and recover. toWheels() itself stays clamp-free.
 ```
 
 </details>

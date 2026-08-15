@@ -7,7 +7,13 @@
 // a rate does not wrap. They are distinct TYPES on purpose:
 //   * Twist2d       — an instantaneous pose derivative (e.g. from odometry).
 //   * ChassisSpeeds  — a commanded chassis velocity (what motion asks the
-//                      drivetrain to do; FIELD frame until Chassis rotates it).
+//                      drivetrain to do). FRAME-AGNOSTIC: the type carries no frame, and the
+//                      caller states one at every boundary that needs it — Chassis::drive
+//                      takes an explicit math::Frame with no default, IKinematics::toWheels
+//                      accepts a BODY-frame twist only, and frame.hpp's fieldToRobot /
+//                      robotToField convert between them. This line used to say "FIELD frame
+//                      until Chassis rotates it", which was true before the explicit Frame
+//                      parameter and is now false of roughly half the ChassisSpeeds in the tree.
 // Keeping them separate stops a measured twist being fed where a command is
 // expected, and vice-versa. (master plan §5 data-flow, §6.)
 

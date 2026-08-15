@@ -8,7 +8,7 @@
 
 MotionConfig — the shared knobs of the C1 motion primitives.
 
-This header declares **2** types (17 members).
+This header declares **2** types (17 members) and **1** free function.
 
 Extracted from [`include/shulib/motion/motion_config.hpp`](../../include/shulib/motion/motion_config.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -33,6 +33,7 @@ Extracted from [`include/shulib/motion/motion_config.hpp`](../../include/shulib/
   - [`rotationRadius`](#motionconfig-rotationradius)
   - [`stall`](#motionconfig-stall)
   - [`validate`](#motionconfig-validate)
+- [`validatedConfig`](#validatedconfig) — *free function*
 
 <a id="struct-axisgains"></a>
 
@@ -261,6 +262,18 @@ void validate() const
 Re-check the invariants the motions rely on and RAISE on the first violation: feedforward and PID gains finite, integral limits non-negative, and all FIVE speed / timeout / geometry scalars strictly positive (maxLinearSpeed, maxAngularSpeed, maxWheelSpeed, defaultTimeout, rotationRadius — 0 is rejected, never read as "unset"). Every C1 motion calls this from its own constructor, so it is a backstop rather than a step you can forget — call it yourself only when validating a config you have not yet handed to a motion. It deliberately does NOT descend into the SettleConfig or OdoStallCheckConfig members: those are checked by SettledUtil and OdoStallCheck when the motion builds them, which is the only place their own invariants are known.
 
 *function, declared at [`include/shulib/motion/motion_config.hpp:131`](../../include/shulib/motion/motion_config.hpp#L131).*
+
+<a id="validatedconfig"></a>
+
+## `validatedConfig`
+
+```cpp
+[[nodiscard]] inline const MotionConfig& validatedConfig(const MotionConfig& config, double timeout, const char* who)
+```
+
+Validate `config` (and a caller-supplied `timeout`) and hand the config straight back, so a motion can write `cfg_{validatedConfig(config, timeout, "TurnTo")}` as the FIRST member in its initializer list and have the check run before any component is built from these fields. The counterpart to MotionDeps::validatedClock(), which exists for exactly the same reason on the pointer half: "a null pointer trips the precondition rather than being dereferenced." Without it the first component constructed from a bad config reports the failure in ITS vocabulary, naming a class the caller never named.
+
+*free function, declared at [`include/shulib/motion/motion_config.hpp:169`](../../include/shulib/motion/motion_config.hpp#L169).*
 
 ## Design commentary, from the header
 

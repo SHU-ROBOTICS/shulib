@@ -37,7 +37,7 @@ struct OdoStallCheckConfig
 
 The five knobs of the spin-vs-motion cross-check, taken BY VALUE at construction (editing the struct afterwards does nothing to a live check) and every one of them validated by that constructor. Every default is PROVISIONAL: the two radii are stand-in geometry and the three thresholds are invented numbers — none has yet been measured against a real drivetrain or a real noise floor, so treat a default as a placeholder that compiles, not as a tuning.
 
-*struct, declared at [`include/shulib/motion/odo_stall_check.hpp:69`](../../include/shulib/motion/odo_stall_check.hpp#L69).*
+*struct, declared at [`include/shulib/motion/odo_stall_check.hpp:74`](../../include/shulib/motion/odo_stall_check.hpp#L74).*
 
 <a id="odostallcheckconfig-window"></a>
 
@@ -49,7 +49,7 @@ double window = 0.3
 
 Evaluation window (seconds). PROVISIONAL (A4: HA-52).
 
-*field, declared at [`include/shulib/motion/odo_stall_check.hpp:71`](../../include/shulib/motion/odo_stall_check.hpp#L71).*
+*field, declared at [`include/shulib/motion/odo_stall_check.hpp:76`](../../include/shulib/motion/odo_stall_check.hpp#L76).*
 
 <a id="odostallcheckconfig-minspintravel"></a>
 
@@ -61,7 +61,7 @@ units::Length minSpinTravel{1.0}
 
 Mean wheel-implied travel that counts as "the wheels are spinning" (inches per window). PROVISIONAL (A4: HA-52).
 
-*field, declared at [`include/shulib/motion/odo_stall_check.hpp:74`](../../include/shulib/motion/odo_stall_check.hpp#L74).*
+*field, declared at [`include/shulib/motion/odo_stall_check.hpp:79`](../../include/shulib/motion/odo_stall_check.hpp#L79).*
 
 <a id="odostallcheckconfig-motionratio"></a>
 
@@ -73,7 +73,7 @@ double motionRatio = 0.25
 
 observedMotion / spinTravel below this ⇒ stalled. PROVISIONAL (A4: HA-52).
 
-*field, declared at [`include/shulib/motion/odo_stall_check.hpp:76`](../../include/shulib/motion/odo_stall_check.hpp#L76).*
+*field, declared at [`include/shulib/motion/odo_stall_check.hpp:81`](../../include/shulib/motion/odo_stall_check.hpp#L81).*
 
 <a id="odostallcheckconfig-wheelradius"></a>
 
@@ -85,7 +85,7 @@ units::Length wheelRadius{3.25 / 2.0}
 
 Drive wheel RADIUS (inches) — converts shaft radians to surface travel. Stand-in geometry (3.25″ wheel, 1:1 gearing — A4: HA-14).
 
-*field, declared at [`include/shulib/motion/odo_stall_check.hpp:79`](../../include/shulib/motion/odo_stall_check.hpp#L79).*
+*field, declared at [`include/shulib/motion/odo_stall_check.hpp:84`](../../include/shulib/motion/odo_stall_check.hpp#L84).*
 
 <a id="odostallcheckconfig-rotationradius"></a>
 
@@ -97,7 +97,7 @@ units::Length rotationRadius{7.0}
 
 Converts |Δheading| to equivalent wheel travel (≈ center-to-wheel distance). Stand-in geometry (A4: HA-17/HA-52).
 
-*field, declared at [`include/shulib/motion/odo_stall_check.hpp:82`](../../include/shulib/motion/odo_stall_check.hpp#L82).*
+*field, declared at [`include/shulib/motion/odo_stall_check.hpp:87`](../../include/shulib/motion/odo_stall_check.hpp#L87).*
 
 <a id="class-odostallcheck"></a>
 
@@ -109,7 +109,7 @@ class OdoStallCheck
 
 The windowed spin-vs-motion cross-check: the drive encoders say the wheels rolled, the fused estimate says the robot did not move, and sustained disagreement means the odometry is stuck. It is the only defence against a FROZEN tracking encoder, which the estimator itself cannot see — zero travel is a perfectly plausible reading, so no plausibility guard fires while the fused pose walks away from truth at exactly truth's speed. Owned per-motion and reset() at start(), because a window straddling a motion boundary would read a setPose as motion. The verdict HOLDS between window closes, so a consumer sees one sustained episode, not chatter.
 
-*class, declared at [`include/shulib/motion/odo_stall_check.hpp:92`](../../include/shulib/motion/odo_stall_check.hpp#L92).*
+*class, declared at [`include/shulib/motion/odo_stall_check.hpp:97`](../../include/shulib/motion/odo_stall_check.hpp#L97).*
 
 <a id="odostallcheck-kmaxwheels"></a>
 
@@ -121,7 +121,7 @@ static constexpr int kMaxWheels = 8
 
 Fixed capacity of the per-wheel shaft baseline, mirroring kinematics::WheelSpeeds so the hot path never allocates. update() rejects a larger span outright rather than truncating.
 
-*field, declared at [`include/shulib/motion/odo_stall_check.hpp:96`](../../include/shulib/motion/odo_stall_check.hpp#L96).*
+*field, declared at [`include/shulib/motion/odo_stall_check.hpp:101`](../../include/shulib/motion/odo_stall_check.hpp#L101).*
 
 <a id="odostallcheck-odostallcheck"></a>
 
@@ -133,7 +133,7 @@ explicit OdoStallCheck(const OdoStallCheckConfig& config = {})
 
 Copies `config` and validates every field: window finite and > 0, minSpinTravel > 0, both radii > 0, and motionRatio strictly inside (0, 1) — at 0 nothing could ever trip, at 1 any slip at all would read as a stall. A violation trips the precondition handler; nothing is clamped. The check starts with no baseline, so the first update() only baselines and no verdict can be true until a full `window` has elapsed.
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:103`](../../include/shulib/motion/odo_stall_check.hpp#L103).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:108`](../../include/shulib/motion/odo_stall_check.hpp#L108).*
 
 <a id="odostallcheck-update"></a>
 
@@ -145,7 +145,7 @@ Copies `config` and validates every field: window finite and > 0, minSpinTravel 
 
 Feed one tick's observables; returns the current (window-held) verdict. `motors` are the drive motors in kinematic order (size constant per run), NON-EMPTY and all non-null — the same discipline every other span-taking fan-out in the tree keeps (MotorMechanism, PneumaticMechanism, RobotContext, Localizer). Both checks were missing, and the empty case was the dangerous one: with no motors the mean shaft delta is 0, so spinTravel is 0, so `spinTravel >= minSpinTravel` is never true and the check reports "healthy" forever. A misconfiguration that silently disables a safety cross-check is exactly what this library's precondition discipline exists to turn into a loud failure. The in-tree path (ctx.driveMotors()) was already safe; a direct caller — which the generated reference invites — was not.
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:126`](../../include/shulib/motion/odo_stall_check.hpp#L126).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:131`](../../include/shulib/motion/odo_stall_check.hpp#L131).*
 
 <a id="odostallcheck-stalled"></a>
 
@@ -157,7 +157,7 @@ Feed one tick's observables; returns the current (window-held) verdict. `motors`
 
 The latest window verdict (held between window closes).
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:162`](../../include/shulib/motion/odo_stall_check.hpp#L162).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:167`](../../include/shulib/motion/odo_stall_check.hpp#L167).*
 
 <a id="odostallcheck-reset"></a>
 
@@ -169,14 +169,14 @@ void reset() noexcept
 
 Forget the window baseline AND the verdict (motion start / after setPose).
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:165`](../../include/shulib/motion/odo_stall_check.hpp#L165).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:170`](../../include/shulib/motion/odo_stall_check.hpp#L170).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 49 lines, click to expand</summary>
+<summary>The header’s own reasoning — 54 lines, click to expand</summary>
 
 ```text
 
@@ -214,9 +214,14 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      25% default — slip degrades, a stuck estimate STOPS. A physically blocked
      robot with spinning wheels also trips; that is the same fault family
      (fault.hpp: "odometry implausible / WHEEL STUCK"), and on purpose.
-   * MEAN |Δshaft| over all drive wheels: a single dead DRIVE encoder halves
-     the mean rather than zeroing it (still trips), while an X-drive strafe
-     (all four wheels spinning) reads full spin travel.
+   * MEAN |Δshaft| over all drive wheels: a single dead DRIVE encoder leaves
+     (n-1)/n of the mean rather than zeroing it (still trips) — 1/2 on a
+     2-wheel tank, 3/4 on the X-drive named below, 2/3 on the C3 H-bot. This
+     bullet used to say "halves", which is the n=2 answer stated as if it were
+     general, in the header of a check whose flagship consumers have 3 and 4
+     wheels. The conclusion ("still trips") holds and is in fact STRONGER than
+     the wrong figure implied. An X-drive strafe (all four wheels spinning)
+     reads full spin travel.
    * WINDOWED (default 0.3 s), not per-tick: per-tick deltas are quantization-
      noise-dominated; a window integrates real travel. The verdict HOLDS until
      the next window closes, so HealthMonitor's edge-per-episode logic sees one

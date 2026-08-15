@@ -681,3 +681,17 @@ TEST_CASE("A30: an empty or null-bearing motor span is refused, not silently un-
     std::array<shulib::hal::IMotor*, 1> ok{&m};
     CHECK_NOTHROW((void)check.update(t, std::span<shulib::hal::IMotor* const>{ok}, origin));
 }
+
+// DEFECTS1 items D12 + D14 — FIXED IN THE HEADER, NOT COVERED HERE, and that is recorded
+// rather than papered over. HoldPose's only deadline was holdFor + 1.0 s, and that same
+// watchdog bounds the wait-for-live boot window, so HoldPose(deps, 0.5) had a 1.5 s total
+// budget against a ~2 s V5 IMU calibration and exited TimedOut before its hold began. The
+// watchdog is now armed with max(holdFor + slack, the effective timeout).
+//
+// NO TEST PINS IT, and mutation M21 (reverting to holdFor + kHoldSlack) stayed GREEN. Two
+// attempts failed for the same reason: MotionRig's localizer is seeded live in its
+// constructor, so neither a long bootSettleTime nor holding the IMU un-ready keeps
+// qualityClass() at Uninitialized long enough to reach the old budget. Pinning this needs a
+// rig that boots cold, which this chunk did not build. The gap is real and is named in
+// DEFECTS1-COMPLETED.md rather than hidden behind a test that passes for the wrong reason —
+// an earlier draft of exactly that test is what M21 exposed.

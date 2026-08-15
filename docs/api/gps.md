@@ -129,9 +129,9 @@ Canonical robot-CENTER pose (position + heading), lever-arm and frame corrected.
 [[nodiscard]] virtual units::Length rmsError() const = 0
 ```
 
-RMS position error (canonical Length) — drives the corrector's R; large when off-strip.
+RMS position error (canonical Length) — drives the corrector's R; large when off-strip. CONTRACT, stated because pose() states its own and this one was left to convention: the value MUST be finite (no NaN/Inf), MUST NOT be negative, and MUST NOT throw. When hasFix() is false it is UNSPECIFIED but still bound by both rules — holding the last good reading (what the PROS adapter does) and reporting a large "no information" figure are both conforming. Two places had already had to invent this rule independently, and GpsCorrector keeps its own finiteness-and-sign backstop anyway, because a backstop exists for the implementation that gets it wrong.
 
-*function, declared at [`include/shulib/hal/gps.hpp:43`](../../include/shulib/hal/gps.hpp#L43).*
+*function, declared at [`include/shulib/hal/gps.hpp:50`](../../include/shulib/hal/gps.hpp#L50).*
 
 <a id="igps-hasfix"></a>
 
@@ -143,7 +143,7 @@ RMS position error (canonical Length) — drives the corrector's R; large when o
 
 True when the GPS currently has a usable fix (on the strip, error bounded, connected). False → the estimator must dead-reckon (ignore the GPS this tick).
 
-*function, declared at [`include/shulib/hal/gps.hpp:47`](../../include/shulib/hal/gps.hpp#L47).*
+*function, declared at [`include/shulib/hal/gps.hpp:54`](../../include/shulib/hal/gps.hpp#L54).*
 
 ## Design commentary, from the header
 

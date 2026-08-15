@@ -1015,10 +1015,19 @@ def _parse_enum_body(lines, start, decl, path):
     exists to prevent, reproduced inside it.
 
     Documentation placement, stated because it constrains how enums are written:
-    a `///` run above a line documents the FIRST enumerator on it and a `///<`
-    documents the LAST. On the house one-enumerator-per-line form those are the
-    same enumerator; on a one-liner with several, the rest are undocumented and
-    the gate says so — which is the pressure to expand it, and is intended.
+    a `///<` documents the LAST enumerator on its line. On the house
+    one-enumerator-per-line form that is the only enumerator, which is why the
+    house form is the house form.
+
+    NOTE WHAT A `///` RUN ABOVE THE ENUM'S OWN DECLARATION LINE DOES, because
+    this docstring used to get it wrong: _parse_namespace_scope collects that
+    run into `pending`, hands it to TypeDecl as the ENUM TYPE's documentation,
+    and only THEN calls _parse_type_body -> _parse_enum_body starting at the
+    declaration line with a fresh, empty `pending`. So the run never reaches an
+    enumerator at all — not just "the rest are undocumented", as this text
+    claimed, but ALL of them, including the first. On a one-liner with several
+    enumerators only the LAST is reachable, and only through a trailing `///<`.
+    The gate says so, which is the pressure to expand the line — which is the pressure to expand it, and is intended.
     """
     i = start
     bal = 0

@@ -554,3 +554,27 @@ corrector[1]'s CONFIDENCE. A faithful per-source split is an API change and is w
 **Mutations 2/2 RED** (M19 E7, M20b N1). M20's first spelling failed to build on
 `-Werror=unused-variable`, which is the mutation runner catching itself.
 **1,151 / 1,523,877 / 3 — green.**
+
+## Commit 8 — the remaining code fixes + the doc sweep, and TWO HONEST RETRACTIONS
+
+**`I13` is retracted and re-triaged FIX → DEFER (R4).** I applied the obvious fix — gate
+`applied` on `o.dPos > 0` — and it reddened two E4 tests. They were right and I was wrong: an
+accepted fix with **zero innovation** legitimately moves no position while still shrinking the
+covariance, so `dPos` is not a proxy for "the update did something". The honest fix needs a
+`moved` flag set where the clamp computes its scale, inside EKF internals that E4 sized against
+invented noise and R4 re-measures. The defect is now written into the branch where it lives,
+with the failed proxy and its reason, rather than left as a confident wrong fix.
+
+**`D12`/`D14` are fixed but NOT test-proven, and mutation M21 stayed GREEN.** Two attempts to
+build the boot-window scenario failed the same way: `MotionRig`'s localizer is seeded live in
+its constructor, so neither a long `bootSettleTime` nor holding the IMU un-ready keeps
+`qualityClass()` at `Uninitialized` past the old 1.5 s budget. My first test there checked that
+a freshly constructed `HoldPose` had not exited — true of every `HoldPose` — and M21 is what
+told me so. The test is removed and replaced by a comment naming the gap, because a test that
+passes for the wrong reason is worse than none.
+
+The doc sweep closed the sixteen items where the sentence IS the defect: `D1` `D4` `D6` `D8`
+`D9` `D11` `D15` `D16` `D17` `D18` `I5` `I6` `I7` `I17` `I22` `A21`. Two are worth naming:
+`D6` finally caveats the **F4 interface header**, which DOCS2 never touched while caveating both
+adapter sites; and `D15`'s "halves the mean" is corrected to `(n-1)/n`, which makes the bullet's
+own conclusion *stronger* than the wrong figure implied.
