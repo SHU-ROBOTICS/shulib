@@ -43,10 +43,17 @@ inline constexpr int kCompactThresholdBytes = 10;
 /// would overflow truncate silently — unreachable with the fixed widths the §18.3
 /// renderers use, but the bound is enforced, not assumed.
 struct Line {
+    /// Bytes of stack storage per line. Sized far above what the fixed-width renderers can
+    /// produce, so truncation is a backstop rather than a working mode — and there is no heap
+    /// anywhere on this path, which is why a line can be built inside the control loop.
     static constexpr std::size_t kCapacity = 384;
 
+    /// Append a NUL-terminated literal verbatim. Renderer-owned text only: nothing here
+    /// sanitizes, so anything a caller supplied must go through appendSanitized() instead.
     void appendLiteral(const char* s) { appendRaw(s, std::strlen(s)); }
 
+    /// Append exactly `len` bytes verbatim, stopping at kCapacity — an overflowing append is
+    /// truncated silently rather than reported. Does not sanitize; same rule as appendLiteral.
     void appendRaw(const char* s, std::size_t len) {
         const std::size_t room = kCapacity - n;
         const std::size_t take = len < room ? len : room;
@@ -70,14 +77,30 @@ struct Line {
             const unsigned char c = static_cast<unsigned char>(text[i]);
             buf[n++] = (c < 0x20U || c == 0x7FU) ? '?' : static_cast<char>(c);
         }
-        if (truncated) {
+        // Only when the WHOLE 3-byte marker fits. appendRaw truncates to the room left, so
+        // with 1 or 2 bytes free it memcpy'd a PARTIAL "…" (0xE2, or 0xE2 0x80) — leaving an
+        // invalid multi-byte tail, which is precisely what the continuation back-off above
+        // exists to prevent. Unreachable at today's kCapacity with today's renderers; it was
+        // still the one path in this file that could emit invalid UTF-8.
+        if (truncated && (kCapacity - n) >= 3) {
             appendLiteral("…");  // …
         }
     }
 
+    /// The bytes written so far, as a view INTO this Line's own buffer — a SNAPSHOT of `n` taken
+    /// at the call. Every append writes at or after the cursor, so the bytes an already-returned
+    /// view spans are never rewritten: it stays readable for the whole life of the Line and only
+    /// goes STALE, missing what was appended after it. No flush-before-append discipline and no
+    /// defensive copy is needed; the one real hazard is LIFETIME, since it dangles the moment the
+    /// Line leaves scope. Not NUL-terminated — nothing here ever writes a terminator.
     [[nodiscard]] std::string_view view() const noexcept { return {buf, n}; }
 
+    /// Raw storage, deliberately left UNINITIALIZED (a Line costs nothing to declare). Only the
+    /// first `n` bytes have ever been written; read them through view(), never directly.
     char buf[kCapacity];
+    /// Bytes written so far, and the append cursor. Public because Line is a plain aggregate on
+    /// the caller's stack, not an encapsulated type; there is no clear(), so reuse means
+    /// declaring a fresh Line.
     std::size_t n = 0;
 };
 
@@ -104,7 +127,12 @@ inline void appendNum(Line& line, double v, int width, int prec) {
     }
     char tmp[40];
     int len = std::snprintf(tmp, sizeof tmp, "%*.*f", width, prec, v);
-    if (len > kCompactThresholdBytes) {
+    // "Pathological" means LONGER THAN THE CALLER ASKED FOR, not longer than a fixed 10. A
+    // %*.*f rendering is at least `width` bytes, so comparing against the constant alone
+    // compacted away every column wider than 10 for perfectly ordinary values —
+    // appendNum(line, 1.0, 12, 2) rendered "        1.00" and then emitted "1", destroying
+    // the column the caller reserved. Latent only because the widest live caller is 7.
+    if (len > width && len > kCompactThresholdBytes) {
         len = std::snprintf(tmp, sizeof tmp, "%.3g", v);
     }
     if (len > 0) {
@@ -114,6 +142,9 @@ inline void appendNum(Line& line, double v, int width, int prec) {
     }
 }
 
+/// Plain decimal, UNPADDED — no column width and no compaction path, unlike appendNum. For the
+/// counted quantities in a line (tick numbers, fault counts) whose width is unbounded in
+/// principle but never pathological in practice, so no column can be reserved for them anyway.
 inline void appendUnsigned(Line& line, unsigned long v) {
     char tmp[24];
     const int len = std::snprintf(tmp, sizeof tmp, "%lu", v);

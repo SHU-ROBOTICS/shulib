@@ -53,12 +53,29 @@ namespace shulib::hal::pros {
 /// Which physical controller's LCD this display writes (mirrors the
 /// IController adapter's id — see controller.hpp).
 enum class DisplayController {
-    Master,
-    Partner,
+    Master,   ///< The driver's own controller (::pros::E_CONTROLLER_MASTER).
+    Partner,  ///< The second controller tethered to it (::pros::E_CONTROLLER_PARTNER).
 };
 
+/// Where the status rows actually land: ILineDisplay driven by pros::Controller::set_text.
+/// One setLine() is exactly one device write — the adapter does no pacing, no batching and
+/// no change-detection, because the firmware's write rate limit is a CONTENT-layer problem
+/// (ControllerFaultDisplay repaints only rows that changed) and a device adapter that
+/// silently withheld writes would be unfalsifiable. What it does add is the two things the
+/// seam promises and set_text does not give for free: truncation at ILineDisplay::kCols
+/// (never a wrap, which would corrupt the row below) and space-padding out to kCols, so a
+/// short line is a true overwrite instead of leaving the previous row's tail visible. A
+/// failed write — controller unplugged — is dropped, never thrown; the telemetry log
+/// already carries the same text. kCols itself is still unverified against real firmware
+/// (see the header: the vendored SDK doc and community practice disagree, 15 vs 19).
 class ProsLineDisplay final : public ILineDisplay {
 public:
+    /// Opens this adapter's OWN pros::Controller handle on `which` (master by default).
+    /// That handle is a thin wrapper keyed by controller id, so holding one here while the
+    /// IController adapter holds another on the same id is two views of ONE device, not a
+    /// second device — no coordination is required and none is performed. Constructing
+    /// touches no hardware and cannot fail: an absent controller shows up as dropped
+    /// writes in setLine(), not as an error here.
     explicit ProsLineDisplay(DisplayController which = DisplayController::Master)
         : controller_{which == DisplayController::Master ? ::pros::E_CONTROLLER_MASTER
                                                          : ::pros::E_CONTROLLER_PARTNER} {}

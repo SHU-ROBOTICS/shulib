@@ -118,8 +118,8 @@ struct FusionResult {
 /// DebugRecord "applied-correction (dx,dy) + clamped + gating reason" so the never-snap guarantee
 /// is observable in telemetry. dx/dy are the NET position change applied this tick.
 struct AppliedCorrection {
-    units::Length dx{};
-    units::Length dy{};
+    units::Length dx{};                  ///< inches the estimate moved in field +X (fused − predicted)
+    units::Length dy{};                  ///< inches in field +Y; both zero when nothing was applied
     bool gated = false;                  ///< any proposal rejected as too far (innovation gate)
     bool clamped = false;                ///< the per-tick nudge budget was hit
     const char* source = "none";         ///< name() of the corrector applied, or "none"

@@ -44,12 +44,26 @@ namespace shulib::hal::pros {
 
 /// Which physical controller this adapter reads.
 enum class ControllerId {
+    /// The controller paired to the brain — the only one present in a one-driver setup.
     Master,
+    /// The second controller, tethered to the master for VEX U's two-driver case. With no partner
+    /// attached it is simply a disconnected controller: zeros on every channel and
+    /// isConnected() == false, which is the case that signal exists to make visible.
     Partner,
 };
 
+/// IController over pros::Controller — one adapter per physical controller, the id fixed at
+/// construction. Reports what the driver's hands are doing, normalized, and nothing else: no
+/// deadband, curve, slew or rumble, because driver-feel is policy and belongs above this seam.
+/// Buttons are read as LEVELS via get_digital(); this adapter never calls
+/// get_digital_new_press(), whose edge state is consumed on read, so edge detection is each
+/// consumer's own hal::ButtonEdge and N consumers all see the same press.
 class ProsController final : public IController {
 public:
+    /// Binds this adapter to one physical controller. `id` is a construction fact, not a per-call
+    /// argument — two drivers means two instances. Touches no hardware: nothing is queried here,
+    /// so construction succeeds with the controller switched off or unpaired, and isConnected()
+    /// is what tells you afterwards.
     explicit ProsController(ControllerId id)
         : controller_{id == ControllerId::Master ? ::pros::E_CONTROLLER_MASTER
                                                  : ::pros::E_CONTROLLER_PARTNER} {}
@@ -65,6 +79,9 @@ public:
         return controller_.get_digital(toProsButton(button)) != 0;
     }
 
+    /// True while the controller is actually linked. Load-bearing rather than informational: a
+    /// disconnected controller reads 0.0 on every axis and false on every button, so without this
+    /// signal "the driver was unplugged" and "sticks centred, nothing pressed" are one number.
     [[nodiscard]] bool isConnected() const override { return controller_.is_connected() != 0; }
 
 private:

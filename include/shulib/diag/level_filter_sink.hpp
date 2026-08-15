@@ -41,6 +41,15 @@
 
 namespace shulib::diag {
 
+/// A RUNTIME per-subsystem log-level dial, as a decorator wrapped around any other sink: turn
+/// [MOT] up to Debug while holding [LOC] at Warn, with no rebuild. A line passes iff its level
+/// is at least as severe as its channel's threshold, which is the TAG's override if one is set
+/// and otherwise the global level — default Trace, so a freshly constructed filter is
+/// transparent. Only the leveled-message channel is filtered; records, summaries and
+/// wantsRecord() forward untouched. A blocked line is NOT a drop and is never tallied as one:
+/// the operator asked not to see it, which is configuration, not the involuntary degradation
+/// RateLimitedSink counts. Fixed capacity, no heap; single-task by contract, like the rest of
+/// diag/.
 class LevelFilterSink final : public hal::ITelemetrySink {
 public:
     /// `inner` must outlive the filter. Transparent until configured (global
@@ -67,6 +76,7 @@ public:
         Override& slot = overrides_[static_cast<std::size_t>(count_)];
         std::memcpy(slot.tagBuf, subsystem.data(), subsystem.size());
         slot.tagBuf[subsystem.size()] = '\0';
+        slot.tagLen = subsystem.size();
         slot.level = level;
         ++count_;
     }
@@ -74,6 +84,10 @@ public:
     /// Drop every override (the global level stays).
     void clearLevels() noexcept { count_ = 0; }
 
+    /// Pass the line to the inner sink iff `level` is at least as severe as `subsystem`'s
+    /// threshold — an unrecognised tag simply has no override and gets the global level, so
+    /// there is nothing to register in advance. A blocked line is discarded here and counted
+    /// nowhere (see the class note). Throws nothing the inner sink does not: the seam forbids it.
     void log(hal::LogLevel level, std::string_view subsystem,
              std::string_view message) override {
         if (passes(level, subsystem)) {
@@ -81,10 +95,15 @@ public:
         }
     }
 
-    // Records/summaries are data, not chatter (header note): forward untouched,
-    // wantsRecord as a PAIR with emit per the seam contract.
+    /// Whatever the inner sink answers — this decorator never suppresses record POPULATION.
+    /// Answered as a PAIR with emit(), which is the seam's rule: overriding one without the
+    /// other is how a sink ends up paying to build records it then throws away.
     [[nodiscard]] bool wantsRecord() const noexcept override { return inner_->wantsRecord(); }
+    /// Forwarded untouched. Per-tick records are DATA, not chatter, so no level threshold
+    /// applies to them; the record stream's own dial is RateLimitedSink.
     void emit(const DebugRecord& record) override { inner_->emit(record); }
+    /// Forwarded untouched, and forwarded deliberately: the base's summarize() is a no-op body,
+    /// so a decorator that failed to override it would silently EAT the end-of-run summary.
     void summarize(const RunSummary& summary) override { inner_->summarize(summary); }
 
 private:
@@ -93,8 +112,20 @@ private:
 
     struct Override {
         char tagBuf[kMaxTagBytes + 1] = "";
+        std::size_t tagLen = 0;
         hal::LogLevel level = hal::LogLevel::Trace;
-        [[nodiscard]] std::string_view tag() const noexcept { return tagBuf; }
+        /// BY LENGTH, not by NUL. Reading the buffer back through the implicit
+        /// `const char*` → string_view conversion stopped at the first NUL, so a tag
+        /// containing an embedded NUL was stored in full but matched only by its truncated
+        /// prefix: setLevel("A\0B") then setLevel("A") overwrote the first entry, while
+        /// passes("A\0B") compared "A\0B" against "A" and failed — the original tag's own
+        /// dial unreachable by its own name, and silently steering a different channel. The
+        /// class doc promises this table is LOUD about every failure mode; that one was
+        /// silent. Practically unreachable (tags are literals like "MOT"), fixed anyway
+        /// because the promise is the thing being kept.
+        [[nodiscard]] std::string_view tag() const noexcept {
+            return std::string_view{tagBuf, tagLen};
+        }
     };
 
     [[nodiscard]] bool passes(hal::LogLevel level, std::string_view subsystem) const noexcept {

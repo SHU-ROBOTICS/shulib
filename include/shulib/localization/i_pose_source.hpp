@@ -11,8 +11,19 @@
 
 namespace shulib::localization {
 
+/// The READ seam every pose consumer (motion, alignment, telemetry, skills) depends on.
+/// `Localizer` implements it today; a future EKF-backed localizer, a log-replay source or a
+/// test fake implement the SAME four accessors, so swapping the fusion tier never touches a
+/// caller. All four are `const noexcept` BY CONTRACT, which makes them pure reads of a
+/// published snapshot: an implementation must have folded its sensors in its own update step,
+/// so calling these repeatedly within one tick costs nothing and cannot change the answer.
+/// Heading is IMU-owned; twist() is the matching field-frame derivative. PROS-free (L2).
 class IPoseSource {
 public:
+    /// Abstract base, held and destroyed through IPoseSource*; the implementation must outlive
+    /// every consumer holding it. Copy/move are defaulted because the interface carries no
+    /// state of its own, but copying THROUGH this base slices a concrete localizer — and its
+    /// odometry, correctors and fused belief — away, so consumers take a reference.
     virtual ~IPoseSource() = default;
     IPoseSource() = default;
     IPoseSource(const IPoseSource&) = default;

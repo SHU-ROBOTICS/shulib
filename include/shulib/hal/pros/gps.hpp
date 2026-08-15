@@ -69,6 +69,21 @@
 
 namespace shulib::hal::pros {
 
+/// IGps over pros::Gps — the absolute-position corrector's sensor, converted to canonical
+/// robot-CENTER inches at this seam.
+///
+/// Construction is PORT-ONLY on purpose, and the constructor VERIFIES it: this adapter owns
+/// the lever-arm removal, so a firmware offset configured on the device would make the arm be
+/// subtracted twice — inches of silent, heading-dependent bias. A nonzero `get_offset()` at
+/// construction is a precondition failure; an unreadable one (device absent or calibrating)
+/// defers the check and leaves hasFix() false until a later read can settle it, and if THAT
+/// read finds an offset the device is marked no-fix for the whole run rather than throwing
+/// from a read path.
+///
+/// Each reader takes ONE atomic device sample (position and heading from the same status), and
+/// screens PROS_ERR_F sentinels to no-fix BEFORE any conversion runs — feeding a sentinel into
+/// the conversion helpers throws by design, and keeping that path unreachable is this class's
+/// job. While fix-less, pose() and rmsError() hold their last good values.
 class ProsGps final : public IGps {
 public:
     /// PORT-ONLY device construction (header). `leverArmForward`/`leverArmLeft`:
@@ -103,6 +118,11 @@ public:
         return lastRmsError_;
     }
 
+    /// Device-level validity ONLY: this read's fields were all finite and the firmware offset
+    /// is verified (0,0). It says nothing about whether the fix is ACCURATE enough to fold —
+    /// that threshold belongs to the fusion corrector, which already owns it; two layers
+    /// gating on rmsError() with two thresholds would fight invisibly. Like pose() and
+    /// rmsError(), calling this takes a FRESH device sample, so it is not a free predicate.
     [[nodiscard]] bool hasFix() const override {
         refresh();
         return hasFix_;
@@ -141,6 +161,12 @@ private:
     void refresh() const {
         verifyOffset(/*bootPhase=*/false);  // a deferred boot check retries here
         if (!offsetVerified_) {
+            // COUNTED. This path used not to be, and it is the one failure the class treats as
+            // PERMANENT: once verifyOffset() sets offsetRejected_, the device is no-fix for the
+            // whole run, so faultedReads() stayed at 0 forever — the least informative possible
+            // answer to "why is the GPS dead?", in precisely the case the header's HA-06
+            // discussion cares most about.
+            faultedReads_ += 1;
             hasFix_ = false;
             return;
         }

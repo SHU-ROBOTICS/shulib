@@ -40,6 +40,13 @@
 
 namespace shulib::manipulation {
 
+/// The verdict of a bounded mechanism operation, and deliberately NOT
+/// control::ExitReason: a mechanism can finish healthy and still fail its task
+/// (`Unconfirmed`), which no motion can do. Where the two vocabularies meet —
+/// Routine::then() — only `Succeeded` maps to success. Scoped with no conversion
+/// to bool on purpose: `if (outcome)` does not compile, so a failed grab can
+/// never read as truthy. Explicit values, append-only; log lines carry the
+/// spellings below, so re-meaning one breaks a grep of an old transcript.
 enum class MechanismOutcome : std::uint8_t {
     Running = 0,      ///< still working; tick again next loop iteration
     Succeeded = 1,    ///< completed AND confirmed (where the operation defines a

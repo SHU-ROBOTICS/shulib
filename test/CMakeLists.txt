@@ -155,6 +155,23 @@ file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp")
+
+# ── EVERY header and EVERY generated page is an input (chunk DOCS2) ──────────
+# Until DOCS2 the gate depended on two headers and three pages, because those
+# were the whole reference. It now covers 115 headers and 117 pages, and a
+# DEPENDS list naming two of them would mean editing any OTHER header left the
+# coverage and freshness gates un-run until something unrelated forced a
+# rebuild — a member added with no `///` sitting green for a whole session.
+# That is this very file's own lesson, three comments down: "a gate that does
+# not re-run when the thing it checks changes is not a gate."
+#
+# Globbed with CONFIGURE_DEPENDS rather than listed, for the same reason the
+# tool's own target list is a glob: a header added later must be covered
+# because it exists, not because someone remembered.
+file(GLOB_RECURSE SHULIB_DOC_HEADERS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include/shulib/*.hpp")
+file(GLOB SHULIB_DOC_PAGES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/*.md")
 # ── docs/internal/ is DROPPED on the published branch, and this file used to
 # forget that ────────────────────────────────────────────────────────────────
 # DOCS1 found `main` unable to build its own test suite:
@@ -209,11 +226,9 @@ add_custom_command(
   COMMAND "${CMAKE_COMMAND}" -E touch "${SHULIB_DOC_STAMP}"
   DEPENDS
     "${SHULIB_DOC_TOOL}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../include/shulib/chassis/chassis.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../include/shulib/chassis/routine.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/chassis.md"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/routine.md"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../docs/api/README.md"
+    ${SHULIB_DOC_HEADERS}
+    ${SHULIB_DOC_PAGES}
+    "${CMAKE_CURRENT_SOURCE_DIR}/../mkdocs.yml"
     # The briefing gate's own subject and tool. Without these two the gate
     # re-ran ONLY when some unrelated document changed — so the briefing could
     # be edited into a lie, or drift as chunks completed, and the build stayed

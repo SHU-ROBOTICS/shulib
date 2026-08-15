@@ -61,6 +61,13 @@
 
 namespace shulib::hal::pros {
 
+/// IBlockSink over a PROS FILE* on the V5's SD card — where the blackbox's binary blocks
+/// physically land. It OWNS the file: opened truncating at construction and closed at
+/// destruction, so one instance is one file per boot and it must outlive every SdSink
+/// writing through it. A MISSING CARD IS NOT AN ERROR — construction still succeeds and
+/// the sink simply refuses (isOpen() false, every write()/flush() false), because a robot
+/// must still drive without a card, and E1's drop-and-count design already handles a sink
+/// that says no. It also owns the /usd/ prefix: pass a BARE file name.
 class ProsBlockSink final : public IBlockSink {
 public:
     /// Open `<mountRoot><fileName>` for binary writing (truncating — one
@@ -85,13 +92,27 @@ public:
         }
     }
 
+    /// fclose the file, which also pushes newlib's remaining buffer out. Nothing else
+    /// holds this FILE*, so anything still writing through this sink — an SdSink, most
+    /// likely — must be destroyed first. No-op on a refusing sink.
+    ///
+    /// THE ONE UNREPORTABLE FAILURE, stated rather than left implicit. fclose FLUSHES before
+    /// it closes and returns EOF if that write fails — the card-full, card-yanked, dying-card
+    /// case — and a destructor has no channel to say so. Every other path in this class is
+    /// bool-valued for exactly that reason (write() is even [[nodiscard]], and block_sink.hpp
+    /// justifies it: "a caller that ignores the result cannot notice a truncated file"). The
+    /// last buffered block is both the most likely to be lost and the only one whose loss
+    /// nothing here can report. A caller that needs the final bytes CONFIRMED must call
+    /// flush(), which is bool for this reason, before letting the sink die.
     ~ProsBlockSink() override {
         if (file_ != nullptr) {
             std::fclose(file_);
         }
     }
 
-    // Owns the FILE* — copying would double-close it (header note).
+    /// Non-copyable and non-movable: this adapter OWNS the FILE*, and a second handle to
+    /// it would fclose the same file twice. (ProsCharSink merely borrows stdout, which is
+    /// why it carries no such restriction — the difference is ownership, not policy.)
     ProsBlockSink(const ProsBlockSink&) = delete;
     ProsBlockSink& operator=(const ProsBlockSink&) = delete;
     ProsBlockSink(ProsBlockSink&&) = delete;

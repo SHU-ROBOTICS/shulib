@@ -12,8 +12,17 @@
 
 namespace shulib::hal {
 
+/// A time-of-flight rangefinder behind the HAL, canonical at the seam: inches out of
+/// distance(), a [0, 1] confidence out of confidence(). Read confidence() FIRST — "nothing
+/// in range" arrives there as ~0 while distance() stays finite and reports a plausible-
+/// looking far wall, so a caller that trusts distance() alone acts on empty air. Consumers
+/// are the manipulation sensor-confirm and the docking distance-fallback.
 class IDistance {
 public:
+    /// Public defaulted special members on a polymorphic base: the virtual destructor makes
+    /// `delete` through an `IDistance*` well-defined, and copy/move stay available so an
+    /// adapter deriving from this is free to be value-like. This base carries no state of
+    /// its own — hold implementations by reference or pointer, never by value.
     virtual ~IDistance() = default;
     IDistance() = default;
     IDistance(const IDistance&) = default;

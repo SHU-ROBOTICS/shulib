@@ -47,7 +47,10 @@ coordinates, odometry, and drivetrains before any code appears.
 out of order, mid-task: find the thing you are trying to do, take the recipe, adapt it.
 
 **Need the exact signature?** The [API reference](api/README.md) is generated from the headers, so
-it cannot disagree with the code.
+it cannot disagree with the code — one page per header, plus an
+[A–Z index of every public entity](api/all-entities.md). If you are writing a routine you need two
+of those pages, [`Chassis`](api/chassis.md) and [`Routine`](api/routine.md); the rest is the
+machinery underneath.
 
 **Hit something surprising?** The [FAQ](faq.md) covers the behaviour the reference cannot carry —
 why a distance sensor reads 393 inches, why a pneumatic fired at boot, why `hasFix()` is false all
@@ -80,10 +83,12 @@ are enforced by the build itself, not by anyone remembering:
   them verbatim; a build fails if a listing drifts from the code that compiles it.
 - **The API reference is regenerated from the headers**, and the build fails if the committed copy
   is out of date.
-- **Every public member of the two frozen surfaces is documented**, or the build fails naming the
-  member. (The coverage gate parses `Chassis` and `Routine` — the surfaces the reference is
-  generated from. Seams that are deliberately not frozen yet are deliberately not gated yet
-  either; the Freeze Register says which is which.)
+- **Every public entity in every shipped header is documented**, or the build fails naming it,
+  with its file and line. All 1,625 of them — types, members, nested types, free functions,
+  constants and type aliases — across every header under `include/shulib/`. Being gated is not
+  the same as being frozen: it costs one comment edit and a regeneration to change a documented
+  seam, whereas changing a *frozen* signature fails a compile-time pin naming the Freeze Register
+  row. The reference says so on its own front page rather than leaving you to infer it.
 - **The frozen surfaces are pinned at compile time** — a changed signature on `Chassis` or
   `Routine` fails the build with the register row it violates.
 

@@ -200,3 +200,29 @@ TEST_CASE("FakeDigitalIn: level round-trips and reads are counted") {
     CHECK(in.state() == true);   // a level, not an edge
     CHECK(in.readCount() == 3);
 }
+
+// Bug caught (DEFECTS1 item A14): `ProsDigitalOut oops(1, 2);` — the EXPANDER form written
+// with the boot state forgotten — used to compile CLEAN under every one of this project's
+// strict flags, silently selecting the brain-ADI constructor with adiPort = 1 and
+// initialState = (bool)2 = true. Construction is a PHYSICAL ACTION, so that typo fires the
+// solenoid HIGH at boot on the WRONG port — the exact failure the required argument exists to
+// prevent, defeating the header's central claim that the step "cannot be skipped, only
+// stated". Brace initialisation already rejected it (narrowing int → bool); parentheses did
+// not. A compile-time fact, so it is asserted as one.
+TEST_CASE("A14: the expander form with the boot state forgotten no longer compiles") {
+    static_assert(!std::is_constructible_v<ProsDigitalOut, int, int>,
+                  "ProsDigitalOut(smartPort, adiPort) with no initialState must be rejected, "
+                  "not silently read as the brain-ADI form with initialState = true");
+    static_assert(!std::is_constructible_v<ProsDigitalOut, std::uint8_t, std::uint8_t>,
+                  "same, spelled with the exact parameter type of the expander form");
+
+    // NEGATIVE CONTROL: both REAL constructors are untouched — the deleted overload must not
+    // have swallowed the legitimate two- and three-argument forms.
+    static_assert(std::is_constructible_v<ProsDigitalOut, std::uint8_t, bool>);
+    static_assert(std::is_constructible_v<ProsDigitalOut, char, bool>);
+    static_assert(std::is_constructible_v<ProsDigitalOut, std::uint8_t, std::uint8_t, bool>);
+
+    pros::shim::resetAll();
+    ProsDigitalOut ok{'a', true};
+    CHECK(ok.commanded());
+}

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 #include "shulib/control/trapezoid_profile.hpp"
 #include "shulib/core/check.hpp"
@@ -92,4 +93,45 @@ TEST_CASE("TrapezoidProfile: construction rejects non-positive limits") {
                     PreconditionError);
     CHECK_THROWS_AS((TrapezoidProfile{10.0, {.maxVelocity = 2.0, .maxAcceleration = -1.0}}),
                     PreconditionError);
+}
+
+// Bug caught (DEFECTS1 items I3 + E10): the finiteness holes at both ends of this class.
+//
+// I3 — the constructor screened `distance` for finiteness but the two constraints only for
+// `> 0.0`, which infinity satisfies. maxAcceleration = inf was stored raw as aMax_ and
+// handed straight back out of sample() as a non-finite acceleration target, in a library
+// whose whole numeric contract is finiteness.
+//
+// E10 — sample(NaN) fell through every clamp (each comparison is false against NaN) into
+// the decelerate branch and returned a PARTIALLY finite state: position and velocity NaN,
+// acceleration a perfectly finite -aMax. A caller screening only `acceleration` passed it.
+// And isDone(NaN) returned false, so a follower loop terminating on isDone() would spin
+// forever on a NaN clock rather than failing fast.
+TEST_CASE("TrapezoidProfile: non-finite constraints are rejected (I3)") {
+    const double inf = std::numeric_limits<double>::infinity();
+    CHECK_THROWS_AS((TrapezoidProfile{10.0, {.maxVelocity = 2.0, .maxAcceleration = inf}}),
+                    PreconditionError);
+    CHECK_THROWS_AS((TrapezoidProfile{10.0, {.maxVelocity = inf, .maxAcceleration = 1.0}}),
+                    PreconditionError);
+    // NEGATIVE CONTROL: the same call with finite constraints must still construct, or the
+    // two CHECK_THROWS above would pass for a reason that has nothing to do with finiteness.
+    const TrapezoidProfile ok{10.0, {.maxVelocity = 2.0, .maxAcceleration = 1.0}};
+    CHECK(ok.duration() > 0.0);
+    CHECK(std::isfinite(ok.sample(0.0).acceleration));
+}
+
+TEST_CASE("TrapezoidProfile: a non-finite t is rejected by sample() AND isDone() (E10)") {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double inf = std::numeric_limits<double>::infinity();
+    const TrapezoidProfile p{10.0, {.maxVelocity = 2.0, .maxAcceleration = 1.0}};
+
+    CHECK_THROWS_AS((void)p.sample(nan), PreconditionError);
+    CHECK_THROWS_AS((void)p.sample(inf), PreconditionError);
+    CHECK_THROWS_AS((void)p.isDone(nan), PreconditionError);
+    CHECK_THROWS_AS((void)p.isDone(inf), PreconditionError);
+
+    // NEGATIVE CONTROL: finite t on both, still working, still clamped at the ends.
+    CHECK(p.sample(0.0).velocity == doctest::Approx(0.0));
+    CHECK_FALSE(p.isDone(0.0));
+    CHECK(p.isDone(p.duration()));
 }

@@ -107,3 +107,32 @@ TEST_CASE("ProsDistance: dead from boot reads FAR, never 'object touching the se
     CHECK(d.distance().value() == doctest::Approx(393.66141732283464));
     CHECK(d.confidence() == doctest::Approx(0.0));
 }
+
+// Bug caught (DEFECTS1 item I8): the T7 initial hold spelled HA-114's sentinel and the mm→inch
+// scale BY HAND (`9999.0 / 25.4`) while the file's own named constant and shared converter —
+// kDistanceNoObjectMm and distanceMmToCanonical(), from an already-included header — were used
+// two accessors above. The magic number and the scale lived in two places, so a change to
+// either would have moved the screen and left the initial hold behind. This pins that they
+// agree, which is the property the duplication put at risk.
+TEST_CASE("I8: the boot hold is the SAME no-object value the screen recognises") {
+    pros::shim::resetAll();
+    pros::shim::distanceState(11).disconnected = true;   // dead from boot: never a good read
+    ProsDistance dead{11};
+    const double heldInches = dead.distance().value();
+
+    // Derived from the named constant through the shared converter — NOT re-spelled here.
+    const double expected =
+        shulib::hal::distanceMmToCanonical(
+            static_cast<double>(shulib::hal::kDistanceNoObjectMm)).value();
+    CHECK(heldInches == doctest::Approx(expected));
+    CHECK(heldInches > 300.0);        // far, not 0.0: never "object touching the lens"
+    CHECK(dead.faultedReads() == 1);
+
+    // NEGATIVE CONTROL: a live sensor REPORTING the sentinel converts to the same value, which
+    // is what makes "the boot hold is the no-object reading" true rather than coincidental.
+    pros::shim::resetAll();
+    pros::shim::distanceState(12).distanceMm = shulib::hal::kDistanceNoObjectMm;
+    ProsDistance live{12};
+    CHECK(live.distance().value() == doctest::Approx(expected));
+    CHECK(live.confidence() == doctest::Approx(0.0));
+}

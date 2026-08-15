@@ -62,6 +62,10 @@
 
 namespace shulib::diag {
 
+/// The trip points HealthMonitor compares each tick's observables against. Every number here is
+/// PROVISIONAL hardware guesswork rather than measurement — the V5's real cutoff under load and
+/// the real thermal droop onset on our motors are both unmeasured until the on-robot phase
+/// (register HA-42, HA-44) — so treat the defaults as a starting point to tune, not calibration.
 struct HealthMonitorConfig {
     /// Battery voltage at/below which a BROWNOUT episode trips. PROVISIONAL (A4: HA-42).
     units::Voltage brownoutVolts{10.5};
@@ -72,6 +76,13 @@ struct HealthMonitorConfig {
     double maxMotorTempC = 55.0;
 };
 
+/// Turns per-tick sensor and power observables into FaultCode raises. EDGE-TRIGGERED per EPISODE:
+/// a pathology that persists for 500 ticks is ONE fault, not 500, and each condition re-arms only
+/// once it clears — brownout with hysteresis on top, so a pack sagging around the threshold under
+/// a pulsing load cannot chatter episodes. It takes plain VALUES rather than component
+/// references, because diag/ is a dependency leaf and may not name estimator types; the caller
+/// reads them from the components it already owns. Timing is deliberately not here — LoopMonitor
+/// owns overruns. Single-task by contract, like the rest of diag/.
 class HealthMonitor {
 public:
     /// The per-tick observables. The caller reads these from the components it
@@ -93,13 +104,32 @@ public:
     // observable; building the windowed cross-check into the estimator is E-phase
     // work (fault.hpp: OdoStuck is "raised by the C/E layers").
 
-    HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
+    /// EXPLICIT: the defaulted second parameter makes this a one-argument converting
+    /// constructor, so without it `HealthMonitor m = someLatch;` compiled and a FaultLatch&
+    /// silently converted at any call site taking a HealthMonitor by value or const&. Its
+    /// diag/ siblings mark their single-argument constructors explicit (tick_attribution.hpp),
+    /// which is what made this read as an oversight rather than a decision.
+    ///
+    /// `faults` is borrowed, not owned, and must outlive the monitor — which only ever raises
+    /// into it and never clears it. `config` is COPIED and checked here rather than at the first
+    /// trip: all three thresholds must be finite, brownoutVolts and maxMotorTempC must be > 0,
+    /// and brownoutRecoverVolts must be >= brownoutVolts so hysteresis cannot run backwards.
+    ///
+    /// The finiteness of the recover level is load-bearing rather than tidiness. It used to be
+    /// ORDERED but not checked for finiteness, so `+Inf` constructed — and `+Inf` passes the
+    /// ordering. The re-arm test in tick() (`v >= brownoutRecoverVolts`) could then never be
+    /// true, brownoutActive_ never cleared, and the whole run reported at most ONE brownout
+    /// episode however many times the pack collapsed: the E1 anti-spam edge trigger silently
+    /// became a permanent mute on the one signal it exists to report.
+    explicit HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
         : faults_{faults}, cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.brownoutVolts.value())
                                 && cfg_.brownoutVolts.value() > 0.0,
                             "HealthMonitor: brownoutVolts must be finite and > 0");
-        SHULIB_PRECONDITION(cfg_.brownoutRecoverVolts.value() >= cfg_.brownoutVolts.value(),
-                            "HealthMonitor: brownoutRecoverVolts must be >= brownoutVolts");
+        SHULIB_PRECONDITION(std::isfinite(cfg_.brownoutRecoverVolts.value())
+                                && cfg_.brownoutRecoverVolts.value() >= cfg_.brownoutVolts.value(),
+                            "HealthMonitor: brownoutRecoverVolts must be finite and >= "
+                            "brownoutVolts");
         SHULIB_PRECONDITION(std::isfinite(cfg_.maxMotorTempC) && cfg_.maxMotorTempC > 0.0,
                             "HealthMonitor: maxMotorTempC must be finite and > 0");
     }

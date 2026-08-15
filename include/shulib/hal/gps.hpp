@@ -14,8 +14,18 @@
 
 namespace shulib::hal {
 
+/// The VEX GPS behind the HAL, already converted to shulib's canonical frame and units by
+/// the adapter — nothing above this seam ever sees VEX metres or clockwise-from-North.
+/// Read it as one three-part answer in a fixed order: hasFix() decides whether this tick's
+/// reading exists at all, pose() is the robot-CENTER estimate, and rmsError() is the
+/// sensor's confidence in itself, which the fuser turns into a measurement noise R rather
+/// than a reason to snap. A permanently false hasFix() is a SUPPORTED mode, not a fault:
+/// Driving Skills runs on a field with no GPS strip and the estimator dead-reckons.
 class IGps {
 public:
+    /// Re-declared only because the virtual destructor suppresses the implicit copy/move
+    /// members; this seam holds no state of its own, so defaulting them is harmless. The
+    /// virtual destructor is what lets an owner delete an implementation through IGps*.
     virtual ~IGps() = default;
     IGps() = default;
     IGps(const IGps&) = default;
@@ -30,6 +40,13 @@ public:
     [[nodiscard]] virtual math::Pose2d pose() const = 0;
 
     /// RMS position error (canonical Length) — drives the corrector's R; large when off-strip.
+    /// CONTRACT, stated because pose() states its own and this one was left to convention: the
+    /// value MUST be finite (no NaN/Inf), MUST NOT be negative, and MUST NOT throw. When
+    /// hasFix() is false it is UNSPECIFIED but still bound by both rules — holding the last good
+    /// reading (what the PROS adapter does) and reporting a large "no information" figure are
+    /// both conforming. Two places had already had to invent this rule independently, and
+    /// GpsCorrector keeps its own finiteness-and-sign backstop anyway, because a backstop exists
+    /// for the implementation that gets it wrong.
     [[nodiscard]] virtual units::Length rmsError() const = 0;
 
     /// True when the GPS currently has a usable fix (on the strip, error bounded, connected).

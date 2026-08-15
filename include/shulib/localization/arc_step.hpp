@@ -63,16 +63,16 @@ namespace shulib::localization {
 
 /// One field-frame displacement from one integration step (canonical inches).
 struct FieldDelta {
-    units::Length dx{};
-    units::Length dy{};
+    units::Length dx{};  ///< travel along field +X this tick — a delta to ADD, not a position
+    units::Length dy{};  ///< travel along field +Y this tick (F1: +Y away from the red station)
 };
 
 /// The tracking center's BODY-frame travel over one tick (+forward = +X body; +lateral = +Y
 /// body / left). A named pair so a call site can never silently swap the two same-typed
 /// `Length`s — the most likely integration foot-gun for an accuracy-critical primitive.
 struct BodyTravel {
-    units::Length forward{};
-    units::Length lateral{};
+    units::Length forward{};  ///< +X body: distance travelled forward this tick (negative = back)
+    units::Length lateral{};  ///< +Y body: distance travelled LEFT this tick (negative = right)
 };
 
 /// Below this |Δθ| (radians) the step is treated as straight (k = 1). Only guards the exact

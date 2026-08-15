@@ -22,16 +22,27 @@
 
 namespace shulib::control {
 
+/// Why a motion stopped — the ONE vocabulary shared by IMotion::exitReason(), the
+/// scheduler, the fault path and every logged result line (§18.4 exit-reason codes).
 enum class ExitReason {
-    Running,
-    Settled,
-    TimedOut,
+    Running,   ///< no exit condition has fired yet: tick() again next loop iteration
+    Settled,   ///< the settle criteria (error AND its rate) held for their full settle time
+    TimedOut,  ///< the watchdog deadline passed first — the hang guard, not a tuning knob
     Cancelled,  ///< stopped from outside via IMotion::cancel() (chunk C2; never
                 ///< returned by ExitGroup::check() — see header note)
 };
 
+/// Settling (success) and the watchdog (hang guard) as ONE verdict per tick. Settled WINS
+/// a tie — a motion that settles on the very tick the deadline passes is a success, not a
+/// timeout. The group can only ever return Running / Settled / TimedOut; Cancelled is
+/// imposed from outside and never originates here. STATEFUL: check() advances the settle
+/// window from the injected clock, so call it exactly once per tick, in order.
 class ExitGroup {
 public:
+    /// `settle` is applied to whatever error check() is later fed — the motion owns the
+    /// units. `timeout` is the watchdog deadline in SECONDS and must be > 0 (Watchdog's
+    /// precondition). `clock` is held BY REFERENCE by both halves and must outlive the
+    /// group; it is the only time source either uses. Construction arms nothing — start() does.
     ExitGroup(const SettleConfig& settle, double timeout, hal::IClock& clock)
         : settled_{settle, clock}, watchdog_{timeout, clock} {}
 
@@ -52,7 +63,17 @@ public:
         return ExitReason::Running;
     }
 
+    /// The settle half, exposed for telemetry only. isSettled() here is a pure read of the
+    /// verdict the last check() computed, so it is true EXACTLY when that check() returned
+    /// Settled — it is not a separate "was it close?" measure, and after a TimedOut exit it
+    /// reads false by construction (settling is tested first, and losing that test is what
+    /// let the watchdog branch run at all). Const on purpose: check() is the one way to feed
+    /// it, so a caller cannot advance the settle window behind the group's back.
     [[nodiscard]] const SettledUtil& settled() const noexcept { return settled_; }
+
+    /// The timer half, for inspection only — elapsed() is seconds since start(), which is
+    /// how long the motion has been running. Const on purpose: start() is the only legal
+    /// way to (re)arm it.
     [[nodiscard]] const Watchdog& watchdog() const noexcept { return watchdog_; }
 
 private:

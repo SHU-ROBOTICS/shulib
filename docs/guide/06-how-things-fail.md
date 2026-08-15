@@ -189,6 +189,11 @@ provisional number verified against simulated hardware, and the whole detect-nam
 machinery has yet to meet a real robot. The machinery is real and tested; the calibration awaits
 hardware.
 
+
+## The exact signatures
+
+The exact surface behind this chapter: the [fault vocabulary](../api/fault.md) (every raisable code and the latch), [`HealthMonitor`](../api/health_monitor.md), [`LoopMonitor`](../api/loop_monitor.md), the [plausibility guard](../api/plausibility_guard.md), [`Watchdog`](../api/watchdog.md), [`ExitGroup`](../api/exit_group.md) and [`SettledUtil`](../api/settled_util.md), and the [odometry stall cross-check](../api/odo_stall_check.md).
+
 ---
 
 *Next: [Chapter 7 — Getting set up](07-getting-set-up.md)*

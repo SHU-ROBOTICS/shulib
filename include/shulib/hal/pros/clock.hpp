@@ -40,6 +40,14 @@
 
 namespace shulib::hal::pros {
 
+/// IClock over the V5's real time: `pros::micros()` scaled to canonical SECONDS, ×1e-6, exactly
+/// once, here. Deliberately not `millis()` — 1 ms of quantization is 10% of the 10 ms control
+/// tick, and every PID derivative term and profile timing divides by dt, so a millisecond clock
+/// injects a 10% error into each of them that the host plant can never reproduce because
+/// FakeClock is exact. Monotonic within a run (an unsigned counter from boot; uint64 microseconds
+/// do not wrap in any run, whereas millis()'s uint32 would at ~49.7 days). The epoch is program
+/// start, which satisfies IClock's "a fixed per-run epoch" without being any particular zero.
+/// Stateless and free of pacing — tick_pacer.hpp owns waiting.
 class ProsClock final : public IClock {
 public:
     /// Seconds since program start. Monotonic non-decreasing (header note).

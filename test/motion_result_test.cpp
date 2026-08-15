@@ -153,3 +153,24 @@ TEST_CASE("result line: an over-long or hostile name is truncated/sanitized, fra
     CHECK(line.find("…") != std::string::npos);
     CHECK(line.find("WithNewline") == std::string::npos);
 }
+
+// Bug caught (DEFECTS1 item A7): MotionResult::outcome defaulted to Settled — the one value
+// meaning success — and MotionOutcome had no unknown/unset enumerator to default to instead.
+// A result line whose producer forgot the field rendered the checkmark and "SETTLED" for a
+// motion that never happened. That is the opposite polarity to this same struct's hasPathData,
+// which defaults false precisely so over/drift render "n/a" rather than a fabricated 0.00.
+TEST_CASE("A7: an unpopulated result line reports UNSET, not a success") {
+    const MotionResult fresh{};
+    CHECK(fresh.outcome == MotionOutcome::Unset);
+    CHECK(std::string_view{motionOutcomeName(MotionOutcome::Unset)} == "UNSET");
+    CHECK(static_cast<std::uint8_t>(MotionOutcome::Unset) == 5);  // APPEND-ONLY: value pinned
+
+    const std::string rendered = render(fresh);
+    CHECK(rendered.find("UNSET") != std::string::npos);
+    CHECK(rendered.find("✗") != std::string::npos);   // the pessimistic marker
+    CHECK(rendered.find("✓") == std::string::npos);   // was the checkmark — the defect
+
+    // NEGATIVE CONTROL: a genuinely settled motion still renders the checkmark, so the change
+    // is about the DEFAULT and not about having broken the success rendering.
+    CHECK(render(settledResult()).find("✓") != std::string::npos);
+}

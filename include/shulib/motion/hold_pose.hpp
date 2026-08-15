@@ -25,6 +25,14 @@
 
 namespace shulib::motion {
 
+/// Actively hold a FIELD pose against disturbance — a shove, a defender, field contact — by
+/// running MoveToPose's three decoupled loops in HOLD mode. It NEVER exits early: the hold
+/// window always runs to the end, and only then does being inside the settle tolerances
+/// decide the verdict — Settled if the robot is on target AT THAT MOMENT, TimedOut (with
+/// MOTION_TIMEOUT raised) if it was pushed away and never recovered, because holding the
+/// clock out while 10 inches off is not success. The window is measured from the FIRST LIVE
+/// tick, not from start(). Distinct from IMotor BrakeMode::Hold, a per-motor firmware hold
+/// with no pose in it; DriveBrake is the open-loop stop.
 class HoldPose final : public MoveToPose {
 public:
     /// Hold the pose the robot has at the first live tick, for `holdFor` seconds.
@@ -43,6 +51,8 @@ public:
                             "HoldPose: holdFor must be finite and > 0");
     }
 
+    /// The literal "HoldPose" — overriding the inherited "MoveToPose" so a result line or a
+    /// MOTION_TIMEOUT fault names the hold that failed, not the engine it borrows.
     [[nodiscard]] const char* name() const noexcept override { return "HoldPose"; }
 };
 

@@ -411,6 +411,11 @@ itself never exceeds it.
 For the deeper design — what's planned beyond the terminal (live telemetry, replay) — see the
 [diagnostics plan](../diagnostics-plan.md).
 
+
+## The exact signatures
+
+Every field of every record in this chapter has an exact spelling in the reference: [`DebugRecord`](../api/debug_record.md), [`MotionResult`](../api/motion_result.md), [`RunSummary`](../api/run_summary.md), [`SessionInfo`](../api/session_info.md) and the [fault codes](../api/fault.md). The sinks are there too — [`TermSink`](../api/term_sink.md), [`SdSink`](../api/sd_sink.md), [`NullSink`](../api/null_sink.md), [`LevelFilterSink`](../api/level_filter_sink.md), [`RateLimitedSink`](../api/rate_limit_sink.md) — along with the [blackbox format](../api/blackbox_format.md) and its [reader](../api/blackbox_reader.md), and [`TickAttribution`](../api/tick_attribution.md), which answers *which phase* spent the tick.
+
 ---
 
 *Next: [Chapter 12 — When things go wrong](12-when-things-go-wrong.md)*

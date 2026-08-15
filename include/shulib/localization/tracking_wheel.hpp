@@ -34,9 +34,27 @@
 
 namespace shulib::localization {
 
+/// One unpowered odometry wheel: a rotation sensor, the wheel's diameter, and its mounting offset
+/// from the tracking center. It turns cumulative SHAFT rotation into LINEAR travel — arc length
+/// = Δθ · r, in inches — and hands PilonsOdometry the two things it needs each tick: the travel
+/// since the last read, and the wheel's signed offset.
+///
+/// Build one only through forward() or lateral(). The factory stamps the ROLE, and the role is
+/// what fixes which axis the offset is measured along and lets PilonsOdometry reject wheels
+/// handed over in the wrong order; the constructor is private so that cannot be bypassed.
+///
+/// The sensor is held by NON-OWNING reference and must outlive the wheel. Nothing here screens
+/// readings: the HAL finiteness contract is trusted, and PilonsOdometry keeps the last-resort
+/// guard so a breach of that contract cannot poison the persistent pose.
 class TrackingWheel {
 public:
-    enum class Role { Forward, Lateral };
+    /// Which body axis a wheel rolls along, and therefore which axis its offset is measured on.
+    /// Stamped by the factory, never chosen by the caller; PilonsOdometry preconditions on it so
+    /// the forward and the lateral wheel cannot be passed in the wrong order.
+    enum class Role {
+        Forward,  ///< rolls along body +X; its offset is the +Y (LEFT) coordinate of the wheel
+        Lateral   ///< rolls along body +Y; its offset is the +X (FORWARD) coordinate
+    };
 
     /// A FORWARD-rolling wheel (+X body). `leftOffset` is its +Y (LEFT) coordinate from center.
     [[nodiscard]] static TrackingWheel forward(hal::IRotation& sensor, units::Length wheelDiameter,

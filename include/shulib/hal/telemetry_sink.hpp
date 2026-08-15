@@ -61,10 +61,43 @@ namespace shulib::hal {
 
 /// Severity, high → low. TRACE is compile-time strippable off the hot path (§18.3;
 /// see shulib/diag/trace.hpp for the strip mechanism).
-enum class LogLevel { Error, Warn, Info, Debug, Trace };
+enum class LogLevel {
+    /// Something went wrong that a person must know about — a fault raised, a
+    /// device refusing, a precondition the library could not honour. The one
+    /// level nothing filters away by default.
+    Error,
+    /// Degraded but still running: a fallback taken, a reading rejected, a limit
+    /// clamped. The run continues and the outcome may still be correct.
+    Warn,
+    /// The run's narrative — motions starting and finishing, the session header,
+    /// the end-of-run summary. What you read to follow what happened.
+    Info,
+    /// Per-subsystem detail useful while working on that subsystem, and noise
+    /// otherwise. `LevelFilterSink` exists so one tag can be raised to this
+    /// without drowning the rest.
+    Debug,
+    /// Per-tick firehose. Distinct from the four above in that it is
+    /// COMPILE-TIME strippable: `SHULIB_TRACE` compiles to nothing unless tracing
+    /// is enabled, so a stripped build pays no argument evaluation, not merely no
+    /// output (see `shulib/diag/trace.hpp`).
+    Trace
+};
 
+/// The ONE diagnostics output seam — NullSink, TermSink, SdSink, Shul2Sink and every decorator
+/// sit behind it, so the same trace reaches the terminal, an SD blackbox or the wire without the
+/// core knowing which. THREE channels ride it: log() (leveled messages, pure virtual), emit()
+/// (per-tick DebugRecord) and summarize() (once per run). Only log() is pure — emit() and
+/// summarize() default to no-ops so a sink written against an older version of this seam keeps
+/// compiling when a channel is added. Everything runs SYNCHRONOUSLY on the caller's task: there
+/// is no background thread and no queue here, implementations MUST NOT throw, and each one
+/// documents its own thread-safety (the shipped sinks are single-task by contract).
 class ITelemetrySink {
 public:
+    /// Abstract base, held and destroyed through ITelemetrySink*. Sinks are referenced, never
+    /// owned, by everything that logs (FaultLatch, RobotContext, every decorator's `inner_`),
+    /// so a sink must outlive the whole chain that points at it — and decorators must be
+    /// destroyed before the sink they wrap. Copy/move are defaulted because this base carries
+    /// no state, but copying through it slices away a concrete sink's buffers and file handles.
     virtual ~ITelemetrySink() = default;
     ITelemetrySink() = default;
     ITelemetrySink(const ITelemetrySink&) = default;

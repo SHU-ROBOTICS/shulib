@@ -398,6 +398,11 @@ smaller than the things you have not measured yet.
   motion problem, or an estimate problem?" [Chapter 12](12-when-things-go-wrong.md) is organized
   around exactly that question.
 
+
+## The exact signatures
+
+The estimator's exact surface: [`Localizer`](../api/localizer.md) (including its `Quality` classes), [`PilonsOdometry`](../api/pilons_odometry.md), [`TrackingWheel`](../api/tracking_wheel.md), the corrector seam [`ICorrector`](../api/i_corrector.md) with [`GpsCorrector`](../api/gps_corrector.md) and [`AprilTagCorrector`](../api/apriltag_corrector.md), and the swappable filter behind [`IFusionPolicy`](../api/i_fusion_policy.md) — [complementary](../api/complementary_fusion.md) (the default) or [EKF](../api/ekf_fusion.md).
+
 ---
 
 *Next: [Chapter 4 — Drivetrains](04-drivetrains.md)*

@@ -195,11 +195,20 @@ struct DebugRecord {
     // wire itself. 0 = nothing dropped. — C5 (diag/rate_limit_sink.hpp)
     std::uint32_t droppedRecords = 0;  ///< emit()-channel records dropped so far — C5
     std::uint32_t droppedLines = 0;    ///< log()-channel lines dropped so far — C5
-    // D-3: per-subsystem tick-time attribution, indexed by TickPhase (top of file).
-    // Slots for phases marked RESERVED hold 0 until their producer exists; slots
-    // 6..7 are spare capacity (kTickPhaseSlots note). The values describe the most
-    // recently COMPLETED tick (the stamping sink cannot know the current tick's
-    // total mid-tick; one-tick lag, documented at the producer). — C5 (scheduler)
+    /// D-3: per-subsystem tick-time attribution in canonical seconds, indexed by TickPhase
+    /// (top of file). Slots for phases marked RESERVED hold 0 until their producer exists;
+    /// slots 6..7 are spare capacity (kTickPhaseSlots note). The values describe the most
+    /// recently COMPLETED tick (the stamping sink cannot know the current tick's total
+    /// mid-tick; one-tick lag, documented at the producer). All-zero when attribution is off,
+    /// which is indistinguishable here from a tick that spent no time anywhere — read it with
+    /// that in mind. Do NOT audit the sum against `dt`: tick_attribution.hpp's "attributed
+    /// never exceeds the total" contract is qualified ON THE SAME CLOCK, and the attribution
+    /// clock is injected separately from the loop clock `dt` is measured on — this record
+    /// carries no attribution total of its own to compare against. Even on that one clock the
+    /// relation is soft enough that TickAttribution floors its own remainder at 0, because a
+    /// clock that jumps mid-phase can push the phases past the total. So read a shortfall as
+    /// un-instrumented work rather than a missing phase, and read a sum above `dt` as a
+    /// statement about two clocks rather than a broken record. — C5 (scheduler)
     std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)> tickPhase{};
 };
 

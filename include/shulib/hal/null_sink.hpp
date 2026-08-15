@@ -16,8 +16,20 @@
 
 namespace shulib::hal {
 
+/// The competition-build default sink: every channel is dropped. What matters is what it
+/// does NOT override — wantsRecord() stays false and emit()/summarize() stay the seam's
+/// no-ops, which is what makes it ≈free rather than merely fast. A tick loop going through
+/// hal::emitRecord() never even POPULATES a DebugRecord, because the builder callable is
+/// not invoked at all; the whole per-tick cost is one bool query the compiler can
+/// devirtualize. The ONE load-bearing omission is wantsRecord(): overriding it is what would
+/// reintroduce the per-tick population cost this class exists to remove. Overriding emit()
+/// alone would not — emitRecord() gates solely on wantsRecord(), so the builder would still
+/// never run, which is precisely why the seam says override the two as a PAIR — and
+/// summarize() is a once-per-run cold path that costs nothing per tick either way.
 class NullSink final : public ITelemetrySink {
 public:
+    /// Discards the message. The parameters are unnamed on purpose — nothing is read, so
+    /// nothing is formatted or copied, and the body inlines to nothing.
     void log(LogLevel /*level*/, std::string_view /*subsystem*/, std::string_view /*message*/) override {}
 };
 

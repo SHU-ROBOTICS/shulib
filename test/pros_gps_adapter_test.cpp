@@ -122,3 +122,33 @@ TEST_CASE("ProsGps: unreadable-at-boot defers the check; a bad offset found late
     CHECK_FALSE(gps.hasFix());  // bad offset discovered → permanently no-fix, honestly dead
     CHECK_NOTHROW((void)gps.pose());
 }
+
+// Bug caught (DEFECTS1 item D5): refresh() has two screen-to-no-fix paths and only one
+// counted. Once verifyOffset() sets offsetRejected_ — the deferred discovery of a configured
+// firmware offset — the device is no-fix for the ENTIRE run, and faultedReads() stayed at 0
+// forever. An operator using the counter to answer "why is the GPS dead?" got the least
+// informative possible answer in exactly the case the header's HA-06 discussion cares most
+// about: the one failure this class treats as permanent was the one it reported zero times.
+TEST_CASE("D5: a permanently offset-rejected GPS is VISIBLE in faultedReads()") {
+    pros::shim::resetAll();
+    // The deferred path, which is the only way to reach offsetRejected_: the offset is
+    // UNREADABLE at construction (so the boot check defers instead of throwing), and readable
+    // and NON-ZERO afterwards — a device another program configured, discovered late.
+    pros::shim::gpsState(9).noFix = true;
+    ProsGps gps{9, Length{0.0}, Length{0.0}};
+    pros::shim::gpsState(9).noFix = false;
+    pros::shim::gpsState(9).offsetX = 3.0;
+
+    (void)gps.hasFix();
+    (void)gps.pose();
+    CHECK_FALSE(gps.hasFix());       // permanently untrusted, for the whole run
+    CHECK(gps.faultedReads() > 0);   // was 0 FOREVER — the defect
+
+    // NEGATIVE CONTROL: a healthy GPS with no configured offset counts nothing at all, so the
+    // count above is the screen firing and not merely "this class counts everything".
+    pros::shim::resetAll();
+    ProsGps clean{10, Length{0.0}, Length{0.0}};
+    (void)clean.hasFix();
+    (void)clean.pose();
+    CHECK(clean.faultedReads() == 0);
+}
