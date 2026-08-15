@@ -184,7 +184,13 @@ def stage(message):
         release_sha = head_of(RELEASE)
         print(f"  built  {RELEASE} → {release_sha[:7]}")
 
-        snapshot = git("commit-tree", f"{RELEASE}^{{tree}}", "-p", PUBLISH,
+        # PARENT OFF origin/main, NOT the local branch. The local `main` is routinely stale —
+        # it is a publishing target nobody works on, and it may be pinned by a worktree — so
+        # parenting off it produces a snapshot that origin/main is NOT an ancestor of, i.e. a
+        # push that is not a fast-forward. Invariant 4 caught exactly that on this script's
+        # first real run, which is the argument for checking invariants instead of trusting the
+        # code that builds them.
+        snapshot = git("commit-tree", f"{RELEASE}^{{tree}}", "-p", f"origin/{PUBLISH}",
                        "-m", f"shulib v2 — {message}",
                        "-m", "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>")
         print(f"  built  {PUBLISH} snapshot → {snapshot[:7]}")
@@ -201,6 +207,10 @@ def stage(message):
                   if p.startswith("docs/internal")]
         print(f"  {'PASS' if not leaked else 'FAIL'}  3. no development record in the snapshot")
         okay &= not leaked
+        parent_ok = git("rev-list", "--parents", "-n", "1", snapshot).split()[1] == \
+            git("rev-parse", f"origin/{PUBLISH}")
+        print(f"  {'PASS' if parent_ok else 'FAIL'}  3b. snapshot's parent IS origin/{PUBLISH}")
+        okay &= parent_ok
         for ref, sha in ((SOURCE, source_sha), (RELEASE, release_sha), (PUBLISH, snapshot)):
             ff = subprocess.run(["git", "-C", REPO, "merge-base", "--is-ancestor",
                                  f"origin/{ref}", sha], capture_output=True).returncode == 0
