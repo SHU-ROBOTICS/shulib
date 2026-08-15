@@ -1,0 +1,342 @@
+# DEFECTS1 — live progress log
+
+> Appended continuously, in real time. Watched with `tail -f`. If this chunk is interrupted,
+> this file is the honest record of exactly how far it got.
+>
+> **Task:** triage and resolve the 83 API defects DOCS2 reported and deliberately left in place
+> (`DOCS2-API-DEFECTS.md`). Triage first — FIX / ARGUE / REJECT / DEFER — then execute.
+
+---
+
+## 2026-08-15 — session start
+
+- Read `RESUMING.md`, `PROJECT-BRIEFING.md` (full), `DOCS2-COMPLETED.md`, `DOCS2-API-DEFECTS.md`
+  (all 1,822 lines, all 83 items).
+- `git log --oneline -5` → HEAD `d400257`, tree **clean** (0 modified files). Matches the brief's
+  expected starting state.
+- Position per the generated briefing block: 25 of 43 chunks complete; suite 1,121 cases /
+  1,523,344 assertions / 3 skipped, green; 148 public headers; HA next free = **HA-123**.
+
+**Plan, in order:**
+1. Context gathering: Freeze Register rows, prior chunk records that may have already RULED on
+   items in the list (the brief warns some of these are decisions, not defects), build state.
+2. **Triage all 83 before touching code.** Each lands in exactly one of FIX / ARGUE / REJECT /
+   DEFER, cited by ID, each with evidence.
+3. Write the brief (`DEFECTS1-<slug>.md`) carrying the triage. Commit it.
+4. Execute: small commits, one defect or one tight cluster each; every FIX gets a test that would
+   have caught it; load-bearing ones mutation-proven with observed red.
+5. Every behaviour change updates its `///` in the SAME commit, then regenerate `docs/api/`.
+6. Annotate `DOCS2-API-DEFECTS.md` in place with each outcome.
+7. All gates, both guards, ARM, release gate. Nothing pushed.
+
+---
+
+## Baseline verified before touching anything
+
+```
+[doctest] test cases:    1121 |    1121 passed | 0 failed | 3 skipped
+[doctest] assertions: 1523344 | 1523344 passed | 0 failed |
+[doctest] Status: SUCCESS!
+```
+
+Freeze Register read from `docs/roadmap.md`. Rows **F1–F5 LOCKED** (frame, accuracy, units,
+**the ten HAL interface signatures**, IKinematics), **F6 LOCKED** (Chassis), **F10 LOCKED**
+(Routine). F11–F14 open by design and AMENDED at DOCS2 to say documented ≠ frozen.
+
+Note for triage: **F4's locked ten are `IClock`/`IMotor`/`IRotation`/`IImu`/`IGps`/`IDistance`/
+`IOptical`/`IBattery`/`ITelemetrySink`/`IVision`+`ITagSource`.** `ILineDisplay`, `ICharSink`,
+`IBlockSink`, `IDigitalOut`, `IController`, `IDigitalIn`, `IMechanism` are OUTSIDE it. That line
+decides several items on its own (A9 touches `IClock` — frozen; I7 touches `ILineDisplay` — not).
+
+## Triage fan-out launched
+
+83 items split into 12 clusters by header/subsystem, each read against the actual code with
+probes where cheap, then adversarially verified. Agents are READ-ONLY — no repo edits.
+Every ruling is mine; the agents supply evidence.
+
+| Cluster | Items |
+|---|---|
+| C1 hal/pros cold-start caches | D6 E5 E6 E3 A19 I9 E1 E2 |
+| C2 hal/pros read semantics | D5 A16 A15 I8 A17 A18 I10 |
+| C3 hal seams | A9 A11 A12 A13 A14 I7 A20 I5 D4 I6 |
+| C4 diag | D2 A3 A4 A5 A6 A7 A8 E9 D3 |
+| C5 control | D1 A2 I2 I3 E10 I4 E4 I1 |
+| C6 scheduler | A27 A28 I19 |
+| C7 motion (config/primitives) | D12 D13 D14 A31 A32 I17 |
+| C8 motion (stall/geometry/context) | D15 A29 A30 I18 A1 |
+| C9 localization (contracts) | D7 D8 D9 E7 I16 I14 |
+| C10 localization (fusion/attribution) | A22 A23 I12 I13 I15 E8 |
+| C11 math/units/kinematics/spec | D11 A26 A21 D17 I20 I21 I22 |
+| C12 manipulation/sequence/tooling | A10 A24 A25 D16 D10 D18 I11 O1 |
+
+Already suspected duplicates to confirm, not assume: **D6 ≡ E5 ≡ E6** (rotation zero-seed) and
+**I9 ≡ E1** (brakeMode uncounted). And two items say in their own text that DOCS2 already fixed
+them (**D3** rewrote the comment; **D10**'s root cause is the parser bug DOCS2-COMPLETED says was
+fixed and pinned) — those are REJECT-as-already-resolved candidates that must be checked, not
+believed.
+
+## My own probes, run before any agent reported (so the fan-out has an independent check)
+
+Three flagship items reproduce EXACTLY as reported, verified from scratch:
+
+```
+E9:  HealthMonitor ctor ACCEPTED brownoutRecoverVolts=+Inf
+I3:  TrapezoidProfile ctor ACCEPTED maxAcceleration=inf; sample(0).accel=inf finite=0
+E10: sample(NaN) pos=nan vel=nan accel=-20.000000 accelFinite=1 isDone(NaN)=0
+```
+
+`A14` also reproduces and is nastier than it reads: `ProsDigitalOut oops(1, 2);` compiles
+**clean under every one of the project's strict flags** (`-Wall -Wextra -Wpedantic -Wshadow
+-Wconversion -Wsign-conversion -Wdouble-promotion`), selecting the brain-ADI 2-arg constructor
+with `adiPort=1, initialState=(bool)2=true`. Construction is a physical action, so that fires a
+solenoid HIGH at boot on the wrong port. Every existing call site passes a real `bool`, so a
+deleted non-bool overload would break none of them.
+
+**And the first REJECT, found by probe rather than by argument — `A9`.** Its evidence makes two
+claims about `IClock` and the code refutes both:
+
+```
+A9: after `ra = rb` : a.now()=5.000000 b.now()=9.000000  (sizeof IClock = 8, the vptr alone)
+$ g++ -fsyntax-only  'IClock c = f;'
+error: cannot allocate an object of abstract type 'shulib::hal::IClock'
+```
+
+`IClock c = someProsClock;` does **not** compile — the class is abstract. And the assignment that
+does compile discards **nothing**, because the `IClock` subobject is stateless. On top of that the
+header already carries the deliberate ruling: *"the defaulted copy/move set restores the move
+operations that declaring a destructor suppresses, so a concrete clock stays movable. The
+interface is abstract and stateless — there is no IClock value to copy."*
+
+## Gate state at HEAD, before any edit
+
+`self-test` `check-coverage` `check-fresh` `check-examples` `check-removability` — all **PASS**.
+`briefing_status.py check` — **FAIL**, and correctly: creating `DEFECTS1-PROGRESS.md` with no
+matching `-COMPLETED.md` makes the block report an interrupted chunk. That stays red for the
+length of this chunk by design and closes when the completion record lands.
+
+## I21 measured rather than argued — and the measurement kills the obvious fix
+
+`I21` says the angle literals are the only ones in `units/literals.hpp` that are not `constexpr`.
+True. The obvious fix is to make `Angle::radians`/`degrees`/`wrapRad` constexpr. Two things had
+to be checked before that could be called safe, and I checked both:
+
+1. **Does a `SHULIB_PRECONDITION` block constexpr?** No. The macro is a ternary, and the
+   handler-slot call sits in the untaken branch, so a valid literal never reaches it. A probe
+   with a constexpr factory guarded by `SHULIB_PRECONDITION(std::isfinite(v), …)` compiles and
+   constant-evaluates. So the check would NOT have to be dropped.
+2. **Does `wrapRad` survive constant evaluation?** It calls `std::remainder`, which is not
+   constexpr in C++20. GCC accepts it as a builtin extension — **both** host `g++` and
+   `arm-none-eabi-g++` compiled a constexpr `wrapRad` clean. **clang does not:**
+
+   ```
+   error: constexpr variable 'k' must be initialized by a constant expression
+   note: non-constexpr function 'remainder' cannot be used in a constant expression
+   ```
+
+So the cheap fix makes constant evaluation of the angle vocabulary **GCC-only**, in a public
+repo whose stated point is that teams outside SHU can use it — and clang is installed here and
+was DOCS2's independent parser oracle. The only non-GCC-only route is re-deriving the wrap
+arithmetic by hand, inside **LOCKED register row F3**, whose exact-180° → +π case is pinned by a
+red-on-failure test. That is a decision, not an edit. **I21 → ARGUE**, with this measurement as
+the reason.
+
+## More independent verification, while the fan-out runs
+
+Everything below is mine, run against HEAD, before reading any agent's report.
+
+**A2 / A21 reproduce, and they are the SAME NaN path seen at two points:**
+```
+A2:  compensateForBattery(NaN,12) -> voltage=nan isnan=1 brownoutLimited=0
+A21: maxMagnitude of {NaN,10,10,10} = 10.000000
+A21: desaturateUniform -> out[0]=nan isnan=1 out[1]=10.000000
+```
+Reading the pipeline end to end changes what the right fix is. `plausibility_guard.hpp` states
+the design out loud: the volt path is **FiniteGuard-shaped** — *"non-finite → Implausible + 0 V"*
+— and recovery happens at the **motor edge** (`recoverWheelVoltage`, invariant 3), never at the
+math helpers, on the principle that *"a diagnostic that mutates the data path is worse than the
+bug it hunts"*. So the obvious fix (a throwing `SHULIB_PRECONDITION` on `desired`) is **wrong
+twice over**: it contradicts that layering, and it would convert an A3-recoverable hostile-sensor
+pathology into a thrown `PreconditionError` → `FAULT_ABORT`, which is the opposite of A1's
+"faults log and recover, never crash".
+
+That rules out the loud fix and leaves a much better one for **A2**. The flag is the actual lie:
+`std::abs(d) > b` is **false** for NaN, so the struct reports "this value is inside the battery
+envelope" about a value that is not a value. Changing it to `!(std::abs(d) <= b)` makes it true
+for NaN, leaves **every finite path bit-identical**, and — importantly — does *not* swallow the
+NaN, so the Implausible fault still fires downstream where it is supposed to. All four existing
+assertions in `test/feedforward_test.cpp` keep passing by construction; none of them passes NaN.
+
+For **A21** the same reasoning says the code is right and the *banner* is over-claimed:
+desaturate is not "the last-line guarantee" — `recoverWheelVoltage` is. Enforcing finiteness
+inside desaturate would touch **LOCKED register row F5** (whose contract names desaturate) *and*
+break the recover-don't-abort rule.
+
+**A24 / A25 collide with a deliberate, TESTED decision — and there is a fix that keeps it.**
+`test/mechanism_op_test.cpp` SUBCASE *"completed verdict is PRESERVED — cancel still re-safes"*
+asserts exactly the behaviour A24 calls a defect. But that test's scenario has **nobody else
+holding the claim**. Guarding on `holdsClaim_ || !mech_->claimed()` closes A24/A25's hole (a
+stale operation can no longer safe a mechanism a live operation owns) while leaving that test
+passing unchanged. `claimed()` is already public on `IMechanism`.
+
+**I8** confirmed by eye: `mutable units::Length lastDistance_{9999.0 / 25.4};` hardcodes both the
+sentinel and the mm→inch factor, fifteen lines under `kDistanceNoObjectMm` and
+`distanceMmToCanonical()` in the same class. One-line FIX.
+
+**A1, A10, A27, A28, E7, A15 confirmed — and every one of them is already documented as a
+defect in its own `///`.** That is the trap the brief named, and it is now measured rather than
+anticipated: `robot_context.hpp` says *"checked only for emptiness, never against the kinematics'
+wheel count"*; `mechanism.hpp` says *"A copied mechanism therefore arrives already claimed()"*;
+`motion_scheduler.hpp` says *"Destruction is DEFAULTED and does not cancel"* and *"beginMotion()
+does NOT clear it, so between motions it still holds the PREVIOUS motion's target"*;
+`localizer.hpp` says *"`minDt` is NOT checked, and nothing checks `minDt <= maxDt`"*;
+`distance.hpp` says *"Reads are LIVE … two samples, not one atomic snapshot"*. Every one of those
+sentences has to be rewritten in the same commit as its fix.
+
+**I19 is already three-quarters closed by DOCS2.** `lastCompleted()` and `completedCount()` both
+carry the disagreement in writing; only `lastExitReason()` fails to name `completedCount()` as
+the discriminator. And a *code* fix is not available: `lastExit_ = Settled` is what makes
+`waitUntilSettled()` vacuously correct with nothing active, which is F6-documented semantics.
+
+## A finding the list does not contain, found by checking D2's arithmetic instead of reading it
+
+`D2` says `diag/controller_display.hpp`'s banner claims the fault-name column width is *"checked
+by static math here"* while the file contains no `static_assert`, and warns that *"a 16-char
+future code would silently truncate"*.
+
+The check does not exist. **And if it did, it would be red today.** Measured against the real
+`faultCodeName()` and the real `kCols`:
+
+```
+kCols=19, budget for the name after "flt " = 15
+  GPS_GATE_REJECT      15
+  MOTOR_OVER_TEMP      15
+  MECHANISM_STALLED    17   <-- OVERFLOWS row 1
+```
+
+`MECHANISM_STALLED` was **appended at F1** and is 17 characters. The banner's "the longest fault
+spellings … 15 chars" has been false since that day, and on a real robot a jammed intake paints
+`flt MECHANISM_STALL` on the driver's controller — the seam truncates rather than wraps, which is
+its documented behaviour, so nothing is broken except the sentence that says it cannot happen.
+
+D2's hypothetical future 16-char code already arrived, at 17, and nobody noticed because the
+promised check was never written. That is the same shape as DOCS2's own trap 6: *a gate that has
+only ever run on the easy case has not been tested; it has been lucky* — except here the gate was
+never written at all and the banner asserted its result.
+
+## Already RESOLVED at HEAD — verified in the generated pages, not assumed
+
+Four items say in their own text that they were fixed or handed over during DOCS2. All four
+check out, so all four are REJECT-as-resolved:
+
+- **D3** — `loop_monitor.hpp` now reads *"Largest dt observed since construction"*; the false
+  "/reset" is gone.
+- **D7 / D10 / I1** — the `///<`-continuation mis-attribution. `_strip_doc` at HEAD explicitly
+  refuses a `///<` line and there is a `_continuation()` helper. The published pages are correct:
+  `MechanismOutcome::Unconfirmed` and `::TimedOut` each carry their own full sentence,
+  `ExitReason::Cancelled` keeps the *"never returned by ExitGroup::check()"* clause, and
+  `FusionResult::audit` / `appliedConfidence` / `headingNudge` each carry their own.
+- **I11 / O1** — `LogLevel`, `Localizer::Quality` and `BrakeMode` are all reflowed at HEAD to one
+  enumerator per line with a `///` block each. `check-coverage` passes over the whole tree, which
+  it could not if these were still one-liners. `TrackingWheel::Role` is two enumerators on two
+  lines with one `///<` each, which the parser handles correctly.
+
+## A8's obvious fix would have broken the scheduler — the bypass has an in-tree user
+
+`A8` says `TickAttribution::PhaseScope`'s public constructor makes `phase()`'s tick-open
+precondition "advisory", and proposes making the constructor private with a `friend`. Grepping
+for the type before believing that:
+
+```
+include/shulib/motion/motion_scheduler.hpp:938:
+    return std::optional<diag::TickAttribution::PhaseScope>{std::in_place, *att_, p};
+```
+
+**The scheduler is the bypass's only user, and it is deliberate**: `PhaseScope` is non-movable, so
+the checked factory's by-value return cannot be stored in the `std::optional` the scheduler needs
+(attribution is optional and must cost nothing when off). Privatising the constructor with only
+`TickAttribution` as a friend would fail to compile at that line; friending `MotionScheduler`
+from `diag/` would both invert the layering and hand the one real bypasser a permanent exemption.
+
+The fix that actually closes it: give `TickAttribution` a **checked in-place factory** returning
+`std::optional<PhaseScope>`, point the scheduler at that, and *then* privatise the constructor
+with `TickAttribution` as the only friend. The three scheduler call sites (:974, :1013, :1021)
+all sit inside `tickImpl()` under `AttributionTickGuard`, so a tick is always open there and the
+added check cannot fire spuriously. `phase()` stays as it is for the ten test call sites.
+
+## The cold-start family (D6/E5/E6) is REAL, and its stated failure scenario is NOT
+
+This is the family the brief calls out first, so I checked its mechanism rather than its
+conclusion. Two of its load-bearing claims do not survive the grep.
+
+**Claim 1 — *"`velocity()` is the sharp one: a constant 0.0 rad/s is literally the 'the robot
+stopped' reading."*** `IRotation`'s only consumer in the entire library is
+`localization/tracking_wheel.hpp`, and it reads `position()` at three sites and `velocity()` at
+none:
+
+```
+include/shulib/localization/tracking_wheel.hpp:74:  const double shaft = sensor_.position().value();
+include/shulib/localization/tracking_wheel.hpp:88:  lastShaft_ = sensor_.position().value();
+include/shulib/localization/tracking_wheel.hpp:95:  lastShaft_ = sensor_.position().value();
+```
+A repo-wide search for `IRotation` returns five files: the seam, the conversion helper, the PROS
+adapter, the fake, and `TrackingWheel`. **`IRotation::velocity()` has no consumer at all.** The
+sharpest sentence in the finding is about a value nothing reads.
+
+**Claim 2 — *"ODO_STUCK is built to notice a FROZEN NON-ZERO value, and a frozen ZERO makes a
+dead pod look like a stationary robot instead of a visible fault."*** `OdoStallCheck::update()`
+compares **drive-motor** shaft deltas against **fused-pose** deltas:
+`sumAbsShaftDelta += std::abs(motors[i]->position().value() - shaftBase_[i])` against
+`fusedPose - base`. It never reads the rotation pod, and it works in **deltas** — so a pod frozen
+at 0 and a pod frozen at 2000 rad produce the *identical* observable: zero pose travel while the
+drive shafts turn. The check trips in both cases. The zero is not the thing that hides it.
+
+**So the disposition is FIX, but for the reason the header itself gives rather than the reason
+the finding gives.** The banner states a T7 policy — *"hold the last good value, never propagate,
+never zero"* — and the implementation misses it in the cold-start window. A promise a class
+makes about itself and does not keep is a defect whether or not the consequence is the dramatic
+one. **What must NOT happen is the new comment repeating the over-claim**, which would be DOCS1's
+`hal/battery.hpp` failure again: a banner teaching a model the code does not implement.
+
+## Ruling the cold-start family — and why I do NOT follow the triage agent to REJECT
+
+The C1 agent reached the same two refutations I did, independently, and rejected D6/E5/E6 on
+them. I am overruling that to **FIX**, and the reason matters.
+
+The finding's *headline* is a contradiction between two things in the tree, and the contradiction
+is real: the banner says *"never zero"*, the caches say `{0.0}`. What the probes refute is the
+finding's *explanation of the harm*. Those are different claims, and only one of them is wrong.
+
+Worse, **the wrong explanation is in the shipped header**, in the SEED CAVEAT DOCS2 added:
+
+> *"…publishes 0 rad / 0 rad/s — the precise reading the screen above claims to prevent, and the
+> one the ODO_STUCK cross-check reads as a stopped robot."*
+
+That last clause is false, and it is republished verbatim on `docs/api/rotation.md`. The same
+over-claim is repeated in `DOCS2-COMPLETED.md`. So REJECT would close the item while leaving a
+factually wrong published sentence in place — the exact `hal/battery.hpp` failure DOCS1 caught:
+**a banner teaching a model the code does not implement.**
+
+The right fix is therefore to the *promise*, not the seed: no seed value is distinguishable
+downstream (TrackingWheel reads deltas; `velocity()` has no consumer), so changing `{0.0}` to
+anything else changes no observable in the library. Saying so honestly is worth more than a
+change that moves a number nothing reads.
+
+**`E3` (optical) is the same shape with a real harm, and it separates cleanly.** `IOptical` has
+**zero consumers outside `hal/`** — nothing in motion, localization or manipulation reads it —
+but unlike rotation its channels are ABSOLUTE, not deltas, and its banner's reasoning is sound
+on its own terms: *"hue 0.0 IS a color — red — so a zeroed failure would read as a confident
+wrong answer."* There is no honest finite seed (NaN is forbidden by F4 at this seam), so the
+promise has to be scoped rather than implemented, and the validity decision belongs to **F3**,
+the chunk that writes the first consumer.
+
+## Full baseline at HEAD, before a single edit
+
+```
+GUARD1 PASS   (PROS-free outside hal/pros/, path-anchored)
+GUARD2 PASS   (core is sim-free)
+ARM GATE PASS (148 headers, one TU, -Werror)
+RELEASE GATE PASS  (prepare_site.py)
+doc gates: self-test / check-coverage / check-fresh / check-examples / check-removability — PASS
+suite: 1,121 cases · 1,523,344 assertions · 3 skipped — green
+```
+Anything red after this point is mine.

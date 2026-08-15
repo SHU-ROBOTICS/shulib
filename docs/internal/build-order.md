@@ -629,7 +629,18 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: the RELEASE to `main`, then R3 — first motion.** DOCS1 and DOCS2 are both COMPLETE.
+**Next: DEFECTS1 — triage and resolve the 83 API defects DOCS2 reported, then the RELEASE to
+`main`, then R3 — first motion.** DOCS1 and DOCS2 are both COMPLETE.
+
+DEFECTS1 ([brief](chunks/DEFECTS1-api-defect-triage.md)) is inserted **before** the release, and
+for the same reason the two documentation chunks were: merging to `main` is what publishes.
+DOCS2 read 1,625 public entities against their implementations and filed 83 defects under its own
+landmine "report, do not fix" — so the published reference currently carries careful, accurate
+sentences describing behaviour we know is wrong (`hal/pros/rotation.hpp` on a faulted first read,
+`motion/motion_scheduler.hpp` on a destructor that leaves the drive energized). Rule 4 applies to
+this chunk where it did not to DOCS2: a flaw gets fixed where it lives. **Triage comes first** —
+the list is 83 *claims*, and DOCS2's own correction pass rejected 2 of 62 findings with evidence,
+both correctly.
 
 DOCS1 ([brief](chunks/DOCS1-full-documentation-pass.md), [record](chunks/DOCS1-COMPLETED.md)):
 the whole documentation surface was read end to end, the release gate that was red is green, and
@@ -747,6 +758,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **A** | Build the ground to stand on | A1–A4 | — |
 | **C** | Make it move | C1–C8 | — |
 | **D** | Make it usable | D1–D3 | — |
+| **DOCS/DEFECTS** | Documentation + the defects it found | DOCS1, DOCS2, DEFECTS1 | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
@@ -757,13 +769,15 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**43 chunks.** C8 (the manual) was added at Phase C; **Phase T (driver control) was added
+**44 chunks.** DEFECTS1 was added 2026-08-15 — DOCS2 filed 83 API defects under a
+report-don't-fix landmine, and Rule 4 says a flaw gets fixed where it lives, so resolving them is
+a chunk rather than a footnote on the release. C8 (the manual) was added at Phase C; **Phase T (driver control) was added
 2026-08-13** — the library's own one-stop-shop thesis (§15) is broken by needing a second library to
 drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only the INPUT half is
 missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
 nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
 
-*The total stayed at 43 across two changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
+*The total was 43 until DEFECTS1 (+1). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
 now delivered by R1a rather than as its own chunk (−1). Both are recorded in the deviations table.*
 
 **T is placed after F and before G deliberately:** it is host-provable and externally ungated, so it
