@@ -384,3 +384,38 @@ Restored, rebuilt, **1,124 cases / 1,523,372 assertions / 3 skipped — green** 
 The A28 test carries its negative control inside it: it `REQUIRE`s the drive is genuinely
 energized (`> 1.0 V`) at the moment of destruction, so the post-destruction zero cannot come
 from a scenario that never commanded anything.
+
+## Commit 2 — the finiteness family (E9, I3, E10, D13, A2, I2)
+
+Six items, one shape: a non-finite value that constructs or flows where `> 0.0` was mistaken
+for a check. **`> 0.0` is satisfied by infinity**, and that single fact is behind four of them.
+
+The interesting ruling here is the one I did **not** make. `A2`/`A21` both look like they want
+a throwing `SHULIB_PRECONDITION`, and `plausibility_guard.hpp` says why that would be wrong:
+the volt path is FiniteGuard-shaped, recovery lives at the **motor edge**
+(`recoverWheelVoltage`, invariant 3), and *"a diagnostic that mutates the data path is worse
+than the bug it hunts."* A throw there converts an A3 hostile-sensor pathology into an aborted
+motion. So A2's fix is the **flag**, not the value: `!(|d| <= b)` instead of `|d| > b`, which
+lands NaN on the true side, leaves every finite path bit-identical, and still lets the NaN
+reach the guard that is supposed to raise on it.
+
+`E10` needed a signature change and it is recorded rather than slipped in: **`isDone()` drops
+`noexcept`**, because the precondition handler throws and a noexcept frame turns a caller bug
+into `std::terminate`. version.hpp calls a noexcept change breaking; taken here because the
+class has no consumer in the tree but its own test, and a follower loop spinning forever on a
+NaN clock is the worse failure. Goes in the changelog.
+
+`D13` is fixed at **both** layers — `MotionConfig::validate()` and `Watchdog`'s own constructor
+— because the second is the one that makes the "a motion can never hang" claim.
+
+**Mutation campaign — 5/5 RED, every one observed:**
+
+| # | Mutation | Result |
+|---|---|---|
+| M3 | `isfinite` dropped from `brownoutRecoverVolts` | **RED** 1 case |
+| M4 | `isfinite` dropped from `maxAcceleration` | **RED** 1 case |
+| M5 | `sample()`'s finiteness precondition removed | **RED** 1 case |
+| M6 | flag reverted to the NaN-blind `\|d\| > b` | **RED** 1 case |
+| M7 | `isfinite` dropped from `defaultTimeout` | **RED** 1 case |
+
+Restored: **1,131 cases / 1,523,404 assertions / 3 skipped — green.**

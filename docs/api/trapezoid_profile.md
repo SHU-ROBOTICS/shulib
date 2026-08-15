@@ -131,9 +131,9 @@ A one-axis motion plan: ramp up at maxAcceleration, cruise, ramp down to rest ex
 TrapezoidProfile(double distance, const ProfileConstraints& c)
 ```
 
-Plan a move of SIGNED `distance` under `c`. `distance` must be finite and both constraints strictly positive; a violation trips SHULIB_PRECONDITION rather than being clamped, because a silently corrected limit is a plan nobody asked for. If the move is too short to reach c.maxVelocity the plan degrades to a TRIANGLE (peak speed sqrt(|distance| * maxAcceleration), no cruise phase). A zero distance is legal and yields duration() == 0 — an already-finished plan, not an error.
+Plan a move of SIGNED `distance` under `c`. `distance` and both constraints must be FINITE, and the constraints strictly positive; a violation trips SHULIB_PRECONDITION being clamped, because a silently corrected limit is a plan nobody asked for. The finiteness of the constraints used to be unchecked, and `> 0.0` is satisfied by infinity: `maxAcceleration = inf` was stored raw as aMax_ and handed straight back out of sample() as a non-finite acceleration target. If the move is too short to reach c.maxVelocity the plan degrades to a TRIANGLE (peak speed sqrt(|distance| * maxAcceleration), no cruise phase). A zero distance is legal and yields duration() == 0 — an already-finished plan, not an error.
 
-*function, declared at [`include/shulib/control/trapezoid_profile.hpp:62`](../../include/shulib/control/trapezoid_profile.hpp#L62).*
+*function, declared at [`include/shulib/control/trapezoid_profile.hpp:65`](../../include/shulib/control/trapezoid_profile.hpp#L65).*
 
 <a id="trapezoidprofile-sample"></a>
 
@@ -143,9 +143,9 @@ Plan a move of SIGNED `distance` under `c`. `distance` must be finite and both c
 [[nodiscard]] ProfileState sample(double t) const
 ```
 
-The target state at `t` SECONDS AFTER THE MOVE STARTED — the caller owns the clock and the elapsed-time subtraction. `t` is CLAMPED, never rejected: t <= 0 returns rest at the start with acceleration already at ±aMax (the next instant is the up-ramp; 0 for a zero-distance move), and t >= duration() returns rest exactly on target, forever. Const and side-effect-free. **A NaN `t` is the one input that is neither clamped nor rejected**: every comparison against NaN is false, so it falls through to the decelerate branch, which yields position and velocity NaN but acceleration a FINITE -aMax (mirrored for a negative move) — the down-ramp constant. A caller that screens only `acceleration` for finiteness will miss it. The constructor guards its own inputs with SHULIB_PRECONDITION; this one does not guard the clock, so a caller whose elapsed time can go non-finite must screen it before the call.
+The target state at `t` SECONDS AFTER THE MOVE STARTED — the caller owns the clock and the elapsed-time subtraction. `t` is CLAMPED, never rejected: t <= 0 returns rest at the start with acceleration already at ±aMax (the next instant is the up-ramp; 0 for a zero-distance move), and t >= duration() returns rest exactly on target, forever. Const and side-effect-free. A NON-FINITE `t` is REJECTED, not clamped — the one input that is a caller bug rather than a position on the plan's timeline. It used to fall through every comparison (each is false against NaN) into the decelerate branch and return a PARTIALLY finite state: position and velocity NaN, but acceleration a perfectly finite -aMax. A caller screening only `acceleration` passed it and forwarded a plausible-looking down-ramp downstream, which is the "plausible instead of visible" failure this library rejects everywhere else.
 
-*function, declared at [`include/shulib/control/trapezoid_profile.hpp:98`](../../include/shulib/control/trapezoid_profile.hpp#L98).*
+*function, declared at [`include/shulib/control/trapezoid_profile.hpp:103`](../../include/shulib/control/trapezoid_profile.hpp#L103).*
 
 <a id="trapezoidprofile-duration"></a>
 
@@ -157,19 +157,19 @@ The target state at `t` SECONDS AFTER THE MOVE STARTED — the caller owns the c
 
 Total planned time in seconds, both ramps included (0 for a zero-distance move). This is the PLAN's time, not a promise the drivetrain tracks it — a follower's timeout must allow slack beyond this, not equal it.
 
-*function, declared at [`include/shulib/control/trapezoid_profile.hpp:121`](../../include/shulib/control/trapezoid_profile.hpp#L121).*
+*function, declared at [`include/shulib/control/trapezoid_profile.hpp:127`](../../include/shulib/control/trapezoid_profile.hpp#L127).*
 
 <a id="trapezoidprofile-isdone"></a>
 
 ### `TrapezoidProfile::isDone`
 
 ```cpp
-[[nodiscard]] bool isDone(double t) const noexcept
+[[nodiscard]] bool isDone(double t) const
 ```
 
-True once `t` has reached duration(), inclusive — i.e. sample(t) has stopped changing. True at t == 0 for a zero-distance move. A statement about the PLAN's clock only: it says nothing about whether the robot actually arrived, which is SettledUtil's question, measured against the real estimate.
+True once `t` has reached duration(), inclusive — i.e. sample(t) has stopped changing. True at t == 0 for a zero-distance move. A statement about the PLAN's clock only: it says nothing about whether the robot actually arrived, which is SettledUtil's question, measured against the real estimate.  A non-finite `t` is rejected here too, on the same rule as sample(). It used to return FALSE (every NaN comparison is false), so a follower loop terminating on isDone() would spin forever on a NaN clock instead of failing fast. **This member is deliberately NOT noexcept**, because the precondition handler throws and a noexcept frame would turn a caller bug into std::terminate; the drop is a breaking signature change by version.hpp's rule, taken because this class has no consumer in the tree but its own test and a hang is the worse failure.
 
-*function, declared at [`include/shulib/control/trapezoid_profile.hpp:127`](../../include/shulib/control/trapezoid_profile.hpp#L127).*
+*function, declared at [`include/shulib/control/trapezoid_profile.hpp:141`](../../include/shulib/control/trapezoid_profile.hpp#L141).*
 
 ## Design commentary, from the header
 

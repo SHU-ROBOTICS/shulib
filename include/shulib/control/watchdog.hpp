@@ -5,6 +5,8 @@
 // elapsed. The motion layer arms one per motion, so even a stalled control loop still exits
 // (→ TimedOut) and the guaranteed end-of-run park can fire. Reusable for any bounded wait.
 
+#include <cmath>
+
 #include "shulib/core/check.hpp"
 #include "shulib/hal/clock.hpp"
 
@@ -28,12 +30,17 @@ namespace shulib::control {
 /// start(). The clock is held by non-owning reference and must outlive the Watchdog.
 class Watchdog {
 public:
-    /// `timeout` is in SECONDS and must be > 0; a zero or negative deadline is a caller bug, not
-    /// a request to fire immediately. `clock` is stored by reference, never copied — pass the
-    /// same IClock the surrounding loop reads, so the deadline lives on one timeline (and in a
-    /// test, on the fake clock the test advances). Does NOT begin counting: call start().
+    /// `timeout` is in SECONDS and must be FINITE and > 0; a zero or negative deadline is a
+    /// caller bug, not a request to fire immediately, and an infinite one is a watchdog that
+    /// can never expire — the single thing this class exists to make impossible. Finiteness
+    /// was unchecked until DEFECTS1: `> 0.0` is satisfied by infinity, so `cfg.defaultTimeout
+    /// = inf` built a motion that ran forever with no TimedOut exit. `clock` is stored by
+    /// reference, never copied — pass the same IClock the surrounding loop reads, so the
+    /// deadline lives on one timeline (and in a test, on the fake clock the test advances).
+    /// Does NOT begin counting: call start().
     Watchdog(double timeout, hal::IClock& clock) : timeout_{timeout}, clock_{clock} {
-        SHULIB_PRECONDITION(timeout > 0.0, "Watchdog: timeout must be > 0");
+        SHULIB_PRECONDITION(std::isfinite(timeout) && timeout > 0.0,
+                            "Watchdog: timeout must be finite and > 0");
     }
 
     /// (Re)arm: start counting from now.

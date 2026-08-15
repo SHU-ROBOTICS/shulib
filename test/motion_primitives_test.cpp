@@ -8,17 +8,22 @@
 #include "doctest.h"
 
 #include <cmath>
+#include <limits>
 #include <string>
+#include <string_view>
 
 #include "motion_test_rig.hpp"
+#include "shulib/control/watchdog.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/finite_guard.hpp"
 #include "shulib/diag/term_sink.hpp"
 #include "shulib/hal/fake/fake_char_sink.hpp"
+#include "shulib/hal/fake/fake_clock.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/motion/drive_brake.hpp"
+#include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/hold_pose.hpp"
 #include "shulib/motion/move_to_pose.hpp"
 #include "shulib/motion/strafe_to.hpp"
@@ -562,4 +567,39 @@ TEST_CASE("C1 legibility: a motion's record stream renders as framed TermSink li
         }
     }
     CHECK(lines >= static_cast<std::size_t>(motionRecords));  // one framed line each
+}
+
+// Bug caught (DEFECTS1 item D13): MotionConfig::validate() guarded its scalars with a bare
+// `> 0.0`, which infinity satisfies. An infinite defaultTimeout therefore validated, and
+// because `timeout = 0` at a motion's constructor SELECTS config.defaultTimeout, it built a
+// Watchdog that can never expire — a motion that runs forever with no TimedOut exit and no
+// end-of-run park, defeating the single guarantee watchdog.hpp exists to make. The
+// caller-supplied timeout was already screened for finiteness; this field was the way in.
+TEST_CASE("MotionConfig: an infinite budget is rejected, at both layers (D13)") {
+    const double inf = std::numeric_limits<double>::infinity();
+
+    shulib::motion::MotionConfig cfg;
+    cfg.defaultTimeout = inf;
+    CHECK_THROWS_AS(cfg.validate(), shulib::PreconditionError);
+
+    for (const char* which : {"lin", "ang", "wheel", "radius"}) {
+        shulib::motion::MotionConfig c;
+        if (std::string_view{which} == "lin") { c.maxLinearSpeed = shulib::units::Velocity{inf}; }
+        if (std::string_view{which} == "ang") {
+            c.maxAngularSpeed = shulib::units::AngularVelocity{inf};
+        }
+        if (std::string_view{which} == "wheel") { c.maxWheelSpeed = shulib::units::Velocity{inf}; }
+        if (std::string_view{which} == "radius") { c.rotationRadius = shulib::units::Length{inf}; }
+        CHECK_THROWS_AS(c.validate(), shulib::PreconditionError);
+    }
+
+    // The second layer: even handed an infinite budget directly, the Watchdog refuses it.
+    shulib::hal::fake::FakeClock clk;
+    CHECK_THROWS_AS((shulib::control::Watchdog{inf, clk}), shulib::PreconditionError);
+
+    // NEGATIVE CONTROL: the default config still validates and a finite watchdog still
+    // constructs — so the throws above are about finiteness, not about a broken validate().
+    shulib::motion::MotionConfig good;
+    CHECK_NOTHROW(good.validate());
+    CHECK_NOTHROW((shulib::control::Watchdog{1.0, clk}));
 }

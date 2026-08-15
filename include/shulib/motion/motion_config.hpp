@@ -138,15 +138,22 @@ struct MotionConfig {
                             "MotionConfig: wheelFf gains must be finite");
         SHULIB_PRECONDITION(finiteGains(translation), "MotionConfig: translation gains invalid");
         SHULIB_PRECONDITION(finiteGains(heading), "MotionConfig: heading gains invalid");
-        SHULIB_PRECONDITION(maxLinearSpeed.value() > 0.0,
-                            "MotionConfig: maxLinearSpeed must be > 0");
-        SHULIB_PRECONDITION(maxAngularSpeed.value() > 0.0,
-                            "MotionConfig: maxAngularSpeed must be > 0");
-        SHULIB_PRECONDITION(maxWheelSpeed.value() > 0.0,
-                            "MotionConfig: maxWheelSpeed must be > 0");
-        SHULIB_PRECONDITION(defaultTimeout > 0.0, "MotionConfig: defaultTimeout must be > 0");
-        SHULIB_PRECONDITION(rotationRadius.value() > 0.0,
-                            "MotionConfig: rotationRadius must be > 0");
+        // FINITE and > 0, not merely > 0: infinity satisfies `> 0.0`, and an infinite
+        // defaultTimeout builds a Watchdog that can never expire — which defeats the one
+        // guarantee the watchdog exists to provide ("a motion can never hang", watchdog.hpp).
+        // The caller-supplied timeout was already screened for finiteness at every motion's
+        // constructor; `timeout = 0` selects THIS field, which was the unscreened way in.
+        SHULIB_PRECONDITION(std::isfinite(maxLinearSpeed.value()) && maxLinearSpeed.value() > 0.0,
+                            "MotionConfig: maxLinearSpeed must be finite and > 0");
+        SHULIB_PRECONDITION(std::isfinite(maxAngularSpeed.value())
+                                && maxAngularSpeed.value() > 0.0,
+                            "MotionConfig: maxAngularSpeed must be finite and > 0");
+        SHULIB_PRECONDITION(std::isfinite(maxWheelSpeed.value()) && maxWheelSpeed.value() > 0.0,
+                            "MotionConfig: maxWheelSpeed must be finite and > 0");
+        SHULIB_PRECONDITION(std::isfinite(defaultTimeout) && defaultTimeout > 0.0,
+                            "MotionConfig: defaultTimeout must be finite and > 0");
+        SHULIB_PRECONDITION(std::isfinite(rotationRadius.value()) && rotationRadius.value() > 0.0,
+                            "MotionConfig: rotationRadius must be finite and > 0");
         // SettleConfig / OdoStallCheckConfig fields are validated by their owners
         // (SettledUtil / OdoStallCheck) at construction.
     }

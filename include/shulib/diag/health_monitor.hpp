@@ -105,21 +105,25 @@ public:
     // work (fault.hpp: OdoStuck is "raised by the C/E layers").
 
     /// `faults` is borrowed, not owned, and must outlive the monitor — which only ever raises
-    /// into it and never clears it. `config` is COPIED, and checked here rather than at the first
-    /// trip, but the three thresholds are NOT checked alike. brownoutVolts and maxMotorTempC must
-    /// each be finite and > 0; brownoutRecoverVolts is only ordered — `>= brownoutVolts`, so
-    /// hysteresis running backwards is a precondition failure, and a NaN is caught only as a side
-    /// effect of failing that comparison. A recover level of +Inf therefore CONSTRUCTS: the
-    /// re-arm test in tick() (`v >= brownoutRecoverVolts`) can then never be true, brownoutActive_
-    /// never clears, and the whole run reports at most one brownout episode however many times
-    /// the pack collapses. Pass a finite recover level.
+    /// into it and never clears it. `config` is COPIED and checked here rather than at the first
+    /// trip: all three thresholds must be finite, brownoutVolts and maxMotorTempC must be > 0,
+    /// and brownoutRecoverVolts must be >= brownoutVolts so hysteresis cannot run backwards.
+    ///
+    /// The finiteness of the recover level is load-bearing rather than tidiness. It used to be
+    /// ORDERED but not checked for finiteness, so `+Inf` constructed — and `+Inf` passes the
+    /// ordering. The re-arm test in tick() (`v >= brownoutRecoverVolts`) could then never be
+    /// true, brownoutActive_ never cleared, and the whole run reported at most ONE brownout
+    /// episode however many times the pack collapsed: the E1 anti-spam edge trigger silently
+    /// became a permanent mute on the one signal it exists to report.
     HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
         : faults_{faults}, cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.brownoutVolts.value())
                                 && cfg_.brownoutVolts.value() > 0.0,
                             "HealthMonitor: brownoutVolts must be finite and > 0");
-        SHULIB_PRECONDITION(cfg_.brownoutRecoverVolts.value() >= cfg_.brownoutVolts.value(),
-                            "HealthMonitor: brownoutRecoverVolts must be >= brownoutVolts");
+        SHULIB_PRECONDITION(std::isfinite(cfg_.brownoutRecoverVolts.value())
+                                && cfg_.brownoutRecoverVolts.value() >= cfg_.brownoutVolts.value(),
+                            "HealthMonitor: brownoutRecoverVolts must be finite and >= "
+                            "brownoutVolts");
         SHULIB_PRECONDITION(std::isfinite(cfg_.maxMotorTempC) && cfg_.maxMotorTempC > 0.0,
                             "HealthMonitor: maxMotorTempC must be finite and > 0");
     }

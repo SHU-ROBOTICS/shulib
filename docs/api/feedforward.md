@@ -152,12 +152,12 @@ units::Voltage voltage
 ### `CompensatedVoltage::brownoutLimited`
 
 ```cpp
-bool brownoutLimited
+bool brownoutLimited = false
 ```
 
-True when |desired| exceeded the battery and was cut down — the drive asked for more than the rail could give and is now voltage-starved, not merely slow. Nothing in the library acts on this today (the command pipeline reads only `voltage`); it is the channel a caller reads to tell those two apart.
+True when the request could NOT be delivered as asked: |desired| exceeded the battery and was cut down — the drive is voltage-starved, not merely slow — or `desired` was non-finite, in which case `voltage` is non-finite too and nothing about it is trustworthy. The test is written `!(|d| <= b)` rather than `|d| > b` precisely so NaN lands on the true side: it used to read CLEAN for a NaN, which is this struct claiming a value is inside the battery envelope when it is not a value at all. Nothing in the library acts on this today (the command pipeline reads only `voltage`, and screens it at the motor edge through diag::recoverWheelVoltage); it is the channel a caller reads to tell those cases apart. Defaulted false, so a default-constructed CompensatedVoltage does not hold an indeterminate safety flag.
 
-*field, declared at [`include/shulib/control/feedforward.hpp:93`](../../include/shulib/control/feedforward.hpp#L93).*
+*field, declared at [`include/shulib/control/feedforward.hpp:99`](../../include/shulib/control/feedforward.hpp#L99).*
 
 <a id="compensateforbattery"></a>
 
@@ -169,7 +169,7 @@ True when |desired| exceeded the battery and was cut down — the drive asked fo
 
 Limit `desired` to what `battery` can deliver (±battery), flagging saturation.
 
-*free function, declared at [`include/shulib/control/feedforward.hpp:97`](../../include/shulib/control/feedforward.hpp#L97).*
+*free function, declared at [`include/shulib/control/feedforward.hpp:103`](../../include/shulib/control/feedforward.hpp#L103).*
 
 ## Design commentary, from the header
 

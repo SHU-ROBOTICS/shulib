@@ -53,15 +53,20 @@ struct ProfileState {
 /// profiled-motion work; the header note says why that is written down rather than implied.
 class TrapezoidProfile {
 public:
-    /// Plan a move of SIGNED `distance` under `c`. `distance` must be finite and both
-    /// constraints strictly positive; a violation trips SHULIB_PRECONDITION rather than
-    /// being clamped, because a silently corrected limit is a plan nobody asked for. If
+    /// Plan a move of SIGNED `distance` under `c`. `distance` and both constraints must be
+    /// FINITE, and the constraints strictly positive; a violation trips SHULIB_PRECONDITION
+    /// being clamped, because a silently corrected limit is a plan nobody asked for. The
+    /// finiteness of the constraints used to be unchecked, and `> 0.0` is satisfied by
+    /// infinity: `maxAcceleration = inf` was stored raw as aMax_ and handed straight back out
+    /// of sample() as a non-finite acceleration target. If
     /// the move is too short to reach c.maxVelocity the plan degrades to a TRIANGLE (peak
     /// speed sqrt(|distance| * maxAcceleration), no cruise phase). A zero distance is legal
     /// and yields duration() == 0 — an already-finished plan, not an error.
     TrapezoidProfile(double distance, const ProfileConstraints& c) {
-        SHULIB_PRECONDITION(c.maxVelocity > 0.0, "TrapezoidProfile: maxVelocity must be > 0");
-        SHULIB_PRECONDITION(c.maxAcceleration > 0.0, "TrapezoidProfile: maxAcceleration must be > 0");
+        SHULIB_PRECONDITION(std::isfinite(c.maxVelocity) && c.maxVelocity > 0.0,
+                            "TrapezoidProfile: maxVelocity must be finite and > 0");
+        SHULIB_PRECONDITION(std::isfinite(c.maxAcceleration) && c.maxAcceleration > 0.0,
+                            "TrapezoidProfile: maxAcceleration must be finite and > 0");
         SHULIB_PRECONDITION(std::isfinite(distance), "TrapezoidProfile: distance must be finite");
 
         sign_ = (distance < 0.0) ? -1.0 : 1.0;
@@ -88,14 +93,15 @@ public:
     /// rest at the start with acceleration already at ±aMax (the next instant is the
     /// up-ramp; 0 for a zero-distance move), and t >= duration() returns rest exactly on
     /// target, forever. Const and side-effect-free.
-    /// **A NaN `t` is the one input that is neither clamped nor rejected**: every
-    /// comparison against NaN is false, so it falls through to the decelerate branch,
-    /// which yields position and velocity NaN but acceleration a FINITE -aMax (mirrored
-    /// for a negative move) — the down-ramp constant. A caller that screens only
-    /// `acceleration` for finiteness will miss it. The constructor guards its own inputs
-    /// with SHULIB_PRECONDITION; this one does not guard the clock, so a caller whose
-    /// elapsed time can go non-finite must screen it before the call.
+    /// A NON-FINITE `t` is REJECTED, not clamped — the one input that is a caller bug rather
+    /// than a position on the plan's timeline. It used to fall through every comparison (each
+    /// is false against NaN) into the decelerate branch and return a PARTIALLY finite state:
+    /// position and velocity NaN, but acceleration a perfectly finite -aMax. A caller
+    /// screening only `acceleration` passed it and forwarded a plausible-looking down-ramp
+    /// downstream, which is the "plausible instead of visible" failure this library rejects
+    /// everywhere else.
     [[nodiscard]] ProfileState sample(double t) const {
+        SHULIB_PRECONDITION(std::isfinite(t), "TrapezoidProfile::sample: t must be finite");
         if (t <= 0.0) {
             return scaled(0.0, 0.0, (duration_ > 0.0) ? aMax_ : 0.0);  // about to accelerate
         }
@@ -124,7 +130,18 @@ public:
     /// changing. True at t == 0 for a zero-distance move. A statement about the PLAN's
     /// clock only: it says nothing about whether the robot actually arrived, which is
     /// SettledUtil's question, measured against the real estimate.
-    [[nodiscard]] bool isDone(double t) const noexcept { return t >= duration_; }
+    ///
+    /// A non-finite `t` is rejected here too, on the same rule as sample(). It used to
+    /// return FALSE (every NaN comparison is false), so a follower loop terminating on
+    /// isDone() would spin forever on a NaN clock instead of failing fast. **This member
+    /// is deliberately NOT noexcept**, because the precondition handler throws and a
+    /// noexcept frame would turn a caller bug into std::terminate; the drop is a breaking
+    /// signature change by version.hpp's rule, taken because this class has no consumer in
+    /// the tree but its own test and a hang is the worse failure.
+    [[nodiscard]] bool isDone(double t) const {
+        SHULIB_PRECONDITION(std::isfinite(t), "TrapezoidProfile::isDone: t must be finite");
+        return t >= duration_;
+    }
 
 private:
     [[nodiscard]] ProfileState scaled(double p, double v, double a) const noexcept {

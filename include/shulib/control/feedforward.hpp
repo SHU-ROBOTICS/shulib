@@ -86,11 +86,17 @@ private:
 /// arrives without its flag is indistinguishable from a request that simply was not very big.
 struct CompensatedVoltage {
     units::Voltage voltage;  ///< `desired` clamped into ±battery; safe to hand to IMotor
-    /// True when |desired| exceeded the battery and was cut down — the drive asked for more than
-    /// the rail could give and is now voltage-starved, not merely slow. Nothing in the library
-    /// acts on this today (the command pipeline reads only `voltage`); it is the channel a caller
-    /// reads to tell those two apart.
-    bool brownoutLimited;
+    /// True when the request could NOT be delivered as asked: |desired| exceeded the battery and
+    /// was cut down — the drive is voltage-starved, not merely slow — or `desired` was non-finite,
+    /// in which case `voltage` is non-finite too and nothing about it is trustworthy. The test is
+    /// written `!(|d| <= b)` rather than `|d| > b` precisely so NaN lands on the true side: it
+    /// used to read CLEAN for a NaN, which is this struct claiming a value is inside the battery
+    /// envelope when it is not a value at all. Nothing in the library acts on this today (the
+    /// command pipeline reads only `voltage`, and screens it at the motor edge through
+    /// diag::recoverWheelVoltage); it is the channel a caller reads to tell those cases apart.
+    /// Defaulted false, so a default-constructed CompensatedVoltage does not hold an
+    /// indeterminate safety flag.
+    bool brownoutLimited = false;
 };
 
 /// Limit `desired` to what `battery` can deliver (±battery), flagging saturation.
@@ -99,7 +105,12 @@ struct CompensatedVoltage {
     SHULIB_PRECONDITION(battery.value() >= 0.0, "compensateForBattery: battery voltage must be >= 0");
     const double b = battery.value();
     const double d = desired.value();
-    return CompensatedVoltage{units::Voltage{std::clamp(d, -b, b)}, std::abs(d) > b};
+    // `!(|d| <= b)`, NOT `|d| > b`: both comparisons are false for NaN, so the second spelling
+    // reports a NaN as unsaturated. std::clamp likewise returns NaN unchanged, and that is
+    // deliberate — the non-finite value must reach diag::recoverWheelVoltage at the motor edge,
+    // which is where this library recovers (zero it, raise Implausible) rather than here. A
+    // throwing precondition would convert a hostile-sensor pathology into an aborted motion.
+    return CompensatedVoltage{units::Voltage{std::clamp(d, -b, b)}, !(std::abs(d) <= b)};
 }
 
 }  // namespace shulib::control

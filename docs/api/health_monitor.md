@@ -100,9 +100,9 @@ Turns per-tick sensor and power observables into FaultCode raises. EDGE-TRIGGERE
 HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
 ```
 
-`faults` is borrowed, not owned, and must outlive the monitor — which only ever raises into it and never clears it. `config` is COPIED, and checked here rather than at the first trip, but the three thresholds are NOT checked alike. brownoutVolts and maxMotorTempC must each be finite and > 0; brownoutRecoverVolts is only ordered — `>= brownoutVolts`, so hysteresis running backwards is a precondition failure, and a NaN is caught only as a side effect of failing that comparison. A recover level of +Inf therefore CONSTRUCTS: the re-arm test in tick() (`v >= brownoutRecoverVolts`) can then never be true, brownoutActive_ never clears, and the whole run reports at most one brownout episode however many times the pack collapses. Pass a finite recover level.
+`faults` is borrowed, not owned, and must outlive the monitor — which only ever raises into it and never clears it. `config` is COPIED and checked here rather than at the first trip: all three thresholds must be finite, brownoutVolts and maxMotorTempC must be > 0, and brownoutRecoverVolts must be >= brownoutVolts so hysteresis cannot run backwards.  The finiteness of the recover level is load-bearing rather than tidiness. It used to be ORDERED but not checked for finiteness, so `+Inf` constructed — and `+Inf` passes the ordering. The re-arm test in tick() (`v >= brownoutRecoverVolts`) could then never be true, brownoutActive_ never cleared, and the whole run reported at most ONE brownout episode however many times the pack collapsed: the E1 anti-spam edge trigger silently became a permanent mute on the one signal it exists to report.
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:116`](../../include/shulib/diag/health_monitor.hpp#L116).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:118`](../../include/shulib/diag/health_monitor.hpp#L118).*
 
 <a id="healthmonitor-tick"></a>
 
@@ -114,7 +114,7 @@ void tick(const Observations& o)
 
 Evaluate one tick's observables; raise one fault per NEW episode (header).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:128`](../../include/shulib/diag/health_monitor.hpp#L128).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:132`](../../include/shulib/diag/health_monitor.hpp#L132).*
 
 <a id="healthmonitor-brownedout"></a>
 
@@ -126,7 +126,7 @@ Evaluate one tick's observables; raise one fault per NEW episode (header).
 
 True once ANY brownout episode has occurred this run (latched; header note).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:185`](../../include/shulib/diag/health_monitor.hpp#L185).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:189`](../../include/shulib/diag/health_monitor.hpp#L189).*
 
 <a id="healthmonitor-imulost"></a>
 
@@ -138,7 +138,7 @@ True once ANY brownout episode has occurred this run (latched; header note).
 
 True while the IMU is in a lost episode (seen ready, currently not).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:187`](../../include/shulib/diag/health_monitor.hpp#L187).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:191`](../../include/shulib/diag/health_monitor.hpp#L191).*
 
 <a id="healthmonitor-reset"></a>
 
@@ -150,7 +150,7 @@ void reset() noexcept
 
 New-run boundary (mirrors FaultLatch::clear()): forget episodes AND the brownout marker; the boot-window rule starts over (imuSeenReady resets).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:191`](../../include/shulib/diag/health_monitor.hpp#L191).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:195`](../../include/shulib/diag/health_monitor.hpp#L195).*
 
 <a id="struct-healthmonitor-observations"></a>
 
