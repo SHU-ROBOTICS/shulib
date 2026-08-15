@@ -8,7 +8,7 @@
 
 MotionResult — the per-motion result line, as data + one formatter.
 
-This header declares **2** types (14 members) and **2** free functions.
+This header declares **2** types (15 members) and **2** free functions.
 
 Extracted from [`include/shulib/diag/motion_result.hpp`](../../include/shulib/diag/motion_result.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -20,6 +20,7 @@ Extracted from [`include/shulib/diag/motion_result.hpp`](../../include/shulib/di
   - [`Cancelled`](#motionoutcome-cancelled)
   - [`FaultAbort`](#motionoutcome-faultabort)
   - [`Superseded`](#motionoutcome-superseded)
+  - [`Unset`](#motionoutcome-unset)
 - [`motionOutcomeName`](#motionoutcomename) — *free function*
 - [`struct MotionResult`](#struct-motionresult)
   - [`id`](#motionresult-id)
@@ -105,6 +106,18 @@ pre-empted: a newer motion took the slot
 
 *enumerator, declared at [`include/shulib/diag/motion_result.hpp:62`](../../include/shulib/diag/motion_result.hpp#L62).*
 
+<a id="motionoutcome-unset"></a>
+
+### `MotionOutcome::Unset`
+
+```cpp
+Unset = 5
+```
+
+No producer has written this field yet. APPENDED (value 5, append-only per the enum rule above) and made the DEFAULT, because the previous default was `Settled` — the one value meaning success — so a result line whose producer forgot the field rendered "✓ SETTLED" for a motion that never happened. That is the opposite polarity to this same struct's `hasPathData`, which defaults false precisely so over/drift render "n/a" rather than a fabricated 0.00. There was no value to give the field until this one.
+
+*enumerator, declared at [`include/shulib/diag/motion_result.hpp:69`](../../include/shulib/diag/motion_result.hpp#L69).*
+
 <a id="motionoutcomename"></a>
 
 ## `motionOutcomeName`
@@ -115,7 +128,7 @@ pre-empted: a newer motion took the slot
 
 §18.4 spelling for the line. Never null; out-of-range renders, never crashes.
 
-*free function, declared at [`include/shulib/diag/motion_result.hpp:66`](../../include/shulib/diag/motion_result.hpp#L66).*
+*free function, declared at [`include/shulib/diag/motion_result.hpp:73`](../../include/shulib/diag/motion_result.hpp#L73).*
 
 <a id="struct-motionresult"></a>
 
@@ -127,7 +140,7 @@ struct MotionResult
 
 One finished motion's result, as the boundary saw it (a value type; the motion-layer glue builds it from CompletedMotion — motion/run_reporter.hpp).
 
-*struct, declared at [`include/shulib/diag/motion_result.hpp:79`](../../include/shulib/diag/motion_result.hpp#L79).*
+*struct, declared at [`include/shulib/diag/motion_result.hpp:87`](../../include/shulib/diag/motion_result.hpp#L87).*
 
 <a id="motionresult-id"></a>
 
@@ -139,7 +152,7 @@ std::uint32_t id = 0
 
 the command id it ran under
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:80`](../../include/shulib/diag/motion_result.hpp#L80).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:88`](../../include/shulib/diag/motion_result.hpp#L88).*
 
 <a id="motionresult-name"></a>
 
@@ -151,19 +164,19 @@ std::string_view name{}
 
 IMotion::name() (stable literal)
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:81`](../../include/shulib/diag/motion_result.hpp#L81).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:89`](../../include/shulib/diag/motion_result.hpp#L89).*
 
 <a id="motionresult-outcome"></a>
 
 ### `MotionResult::outcome`
 
 ```cpp
-MotionOutcome outcome = MotionOutcome::Settled
+MotionOutcome outcome = MotionOutcome::Unset
 ```
 
-How the motion ended. Drives the glanceable pass/fail column — only Settled renders ✓ — and decides whether `abortFault` is meaningful (it is rendered iff this is FaultAbort). NOTE the default: an unpopulated record reads as a success.
+How the motion ended. Drives the glanceable pass/fail column — only Settled renders ✓ — and decides whether `abortFault` is meaningful (it is rendered iff this is FaultAbort). Defaults to Unset, the pessimistic value: a record whose producer forgot this field renders "✗ UNSET" rather than the checkmark and SETTLED it used to claim.
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:85`](../../include/shulib/diag/motion_result.hpp#L85).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:94`](../../include/shulib/diag/motion_result.hpp#L94).*
 
 <a id="motionresult-abortfault"></a>
 
@@ -175,7 +188,7 @@ FaultCode abortFault = FaultCode::None
 
 causal code iff FaultAbort
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:86`](../../include/shulib/diag/motion_result.hpp#L86).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:95`](../../include/shulib/diag/motion_result.hpp#L95).*
 
 <a id="motionresult-duration"></a>
 
@@ -187,7 +200,7 @@ units::Time duration{}
 
 end − start
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:87`](../../include/shulib/diag/motion_result.hpp#L87).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:96`](../../include/shulib/diag/motion_result.hpp#L96).*
 
 <a id="motionresult-haspathdata"></a>
 
@@ -199,7 +212,7 @@ bool hasPathData = false
 
 record stream flowed (header note)
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:88`](../../include/shulib/diag/motion_result.hpp#L88).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:97`](../../include/shulib/diag/motion_result.hpp#L97).*
 
 <a id="motionresult-finalpose"></a>
 
@@ -211,7 +224,7 @@ math::Pose2d finalPose{}
 
 estimate at the boundary (always real)
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:89`](../../include/shulib/diag/motion_result.hpp#L89).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:98`](../../include/shulib/diag/motion_result.hpp#L98).*
 
 <a id="motionresult-overshoot"></a>
 
@@ -223,7 +236,7 @@ units::Length overshoot{}
 
 see header; valid iff hasPathData
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:90`](../../include/shulib/diag/motion_result.hpp#L90).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:99`](../../include/shulib/diag/motion_result.hpp#L99).*
 
 <a id="motionresult-drift"></a>
 
@@ -235,7 +248,7 @@ units::AngleDim drift{}
 
 |final heading error|; valid iff hasPathData
 
-*field, declared at [`include/shulib/diag/motion_result.hpp:91`](../../include/shulib/diag/motion_result.hpp#L91).*
+*field, declared at [`include/shulib/diag/motion_result.hpp:100`](../../include/shulib/diag/motion_result.hpp#L100).*
 
 <a id="emitresultline"></a>
 
@@ -247,7 +260,7 @@ inline void emitResultLine(hal::ITelemetrySink& sink, const MotionResult& r)
 
 Format + log the §18.3 result line (one [MOT] Info line; byte shape pinned by test). ✓ marks SETTLED; every other outcome is ✗ — a glanceable pass/fail column. FAULT_ABORT carries its causal code: "✗FAULT_ABORT=ODO_STUCK".
 
-*free function, declared at [`include/shulib/diag/motion_result.hpp:97`](../../include/shulib/diag/motion_result.hpp#L97).*
+*free function, declared at [`include/shulib/diag/motion_result.hpp:106`](../../include/shulib/diag/motion_result.hpp#L106).*
 
 ## Design commentary, from the header
 

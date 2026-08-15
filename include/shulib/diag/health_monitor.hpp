@@ -104,6 +104,12 @@ public:
     // observable; building the windowed cross-check into the estimator is E-phase
     // work (fault.hpp: OdoStuck is "raised by the C/E layers").
 
+    /// EXPLICIT: the defaulted second parameter makes this a one-argument converting
+    /// constructor, so without it `HealthMonitor m = someLatch;` compiled and a FaultLatch&
+    /// silently converted at any call site taking a HealthMonitor by value or const&. Its
+    /// diag/ siblings mark their single-argument constructors explicit (tick_attribution.hpp),
+    /// which is what made this read as an oversight rather than a decision.
+    ///
     /// `faults` is borrowed, not owned, and must outlive the monitor — which only ever raises
     /// into it and never clears it. `config` is COPIED and checked here rather than at the first
     /// trip: all three thresholds must be finite, brownoutVolts and maxMotorTempC must be > 0,
@@ -115,7 +121,7 @@ public:
     /// true, brownoutActive_ never cleared, and the whole run reported at most ONE brownout
     /// episode however many times the pack collapsed: the E1 anti-spam edge trigger silently
     /// became a permanent mute on the one signal it exists to report.
-    HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
+    explicit HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {})
         : faults_{faults}, cfg_{config} {
         SHULIB_PRECONDITION(std::isfinite(cfg_.brownoutVolts.value())
                                 && cfg_.brownoutVolts.value() > 0.0,

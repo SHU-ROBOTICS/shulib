@@ -10,6 +10,8 @@
 
 #include "doctest.h"
 
+#include <type_traits>
+
 #include "shulib/diag/debug_record.hpp"
 #include "shulib/diag/tick_attribution.hpp"
 #include "shulib/hal/fake/fake_clock.hpp"
@@ -177,4 +179,41 @@ TEST_CASE("D-3: tickPhaseName covers every defined phase; spares render as reser
     CHECK(tickPhaseName(TickPhase::User) == std::string_view{"usr"});
     CHECK(tickPhaseName(static_cast<TickPhase>(6)) == std::string_view{"rsv"});
     CHECK(tickPhaseName(static_cast<TickPhase>(7)) == std::string_view{"rsv"});
+}
+
+// Bug caught (DEFECTS1 item A8): PhaseScope's constructor was public, so phase()'s tick-open
+// precondition was advisory — `TickAttribution::PhaseScope s{att, p};` compiled with no tick
+// open and its destructor still wrote into current_, crediting the interval to whatever tick
+// happened to be open when it finally closed. The constructor now needs a passkey only
+// TickAttribution can produce, so the checked factories are the only way in. Compile-time
+// facts, asserted as such: a runtime test cannot check that something does NOT compile.
+TEST_CASE("A8: a phase scope cannot be opened around the tick-open check") {
+    static_assert(!std::is_constructible_v<TickAttribution::PhaseScope, TickAttribution&,
+                                           TickPhase>,
+                  "PhaseScope must not be constructible without a passkey");
+    static_assert(!std::is_default_constructible_v<TickAttribution::PhaseScope::Key>,
+                  "the passkey must not be forgeable by a caller");
+
+    // And the checked path enforces what the bypass skipped, at run time.
+    FakeClock clock;
+    TickAttribution att{clock};
+    CHECK_THROWS_AS((void)att.phase(TickPhase::Motion), PreconditionError);
+    CHECK_THROWS_AS((void)att.phaseInPlace(TickPhase::Motion), PreconditionError);
+
+    // NEGATIVE CONTROL: with a tick open, both factories work and both charge the phase.
+    att.beginTick();
+    {
+        const auto scope = att.phase(TickPhase::Motion);
+        clock.advance(Time{0.004});
+    }
+    {
+        const auto scope = att.phaseInPlace(TickPhase::Localization);
+        clock.advance(Time{0.002});
+    }
+    att.endTick();
+    const auto& phases = att.lastPhases();
+    CHECK(phases[static_cast<std::size_t>(TickPhase::Motion)].value()
+          == doctest::Approx(0.004));
+    CHECK(phases[static_cast<std::size_t>(TickPhase::Localization)].value()
+          == doctest::Approx(0.002));
 }

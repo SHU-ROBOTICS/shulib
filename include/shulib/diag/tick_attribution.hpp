@@ -33,6 +33,8 @@
 // Single-task by contract, like the rest of diag/.
 
 #include <array>
+#include <optional>
+#include <utility>
 #include <cstddef>
 
 #include "shulib/core/check.hpp"
@@ -73,11 +75,27 @@ public:
     /// overlap the same phase (the second-open would double-charge the overlap).
     class PhaseScope {
     public:
-        /// Stamps the start instant on the attribution clock. Prefer TickAttribution::phase(),
-        /// which additionally checks that a tick is actually open; constructing one directly
-        /// skips that check and will credit its interval to whatever tick is open when it closes.
-        PhaseScope(TickAttribution& att, TickPhase phase) noexcept
+        /// Passkey. The TYPE is public so TickAttribution can name it; its CONSTRUCTOR is
+        /// private with TickAttribution as the only friend, so nobody else can produce one.
+        /// PhaseScope's own constructor therefore stays public — which std::optional's
+        /// in-place construction requires, because optional does the constructing and cannot
+        /// be made a friend — while remaining unreachable without a Key. A simple private
+        /// constructor plus `friend` looks tidier and does not work here for exactly that
+        /// reason.
+        class Key {
+            friend class TickAttribution;
+            Key() = default;
+        };
+
+        /// Stamps the start instant. Reachable only through TickAttribution::phase() or
+        /// ::phaseInPlace(), both of which check that a tick is actually open — the `Key`
+        /// parameter is what makes that structural. It was a plain public constructor, which
+        /// made the tick-open precondition advisory: a direct `PhaseScope s{att, p}` compiled
+        /// with no tick open and its destructor still wrote into current_, crediting the
+        /// interval to whatever tick happened to be open when it closed.
+        PhaseScope(Key /*unused*/, TickAttribution& att, TickPhase phase) noexcept
             : att_{att}, phase_{phase}, start_{att.clock_.now()} {}
+
         /// Credits (now − start) to the phase on scope exit, and only then: a scope still alive
         /// when endTick() runs contributes nothing to the tick it was opened in — its interval
         /// lands on whatever tick is open when it finally closes, or is discarded outright if the
@@ -104,7 +122,19 @@ public:
     /// nothing, which is the whole reason this is [[nodiscard]].
     [[nodiscard]] PhaseScope phase(TickPhase p) {
         SHULIB_PRECONDITION(tickOpen_, "TickAttribution::phase: no tick open");
-        return PhaseScope{*this, p};
+        return PhaseScope{PhaseScope::Key{}, *this, p};
+    }
+
+    /// The same scope, in an optional. Exists because PhaseScope is deliberately non-movable,
+    /// so phase()'s by-value return cannot be stored in one — and a caller that needs the
+    /// optional shape (attribution is switchable, and must cost nothing when off) previously
+    /// had to construct a PhaseScope directly with `std::in_place`, walking around the
+    /// tick-open check. MotionScheduler was that caller, and was the only user of the bypass;
+    /// with this it goes through the same precondition as everyone else. Same requirement
+    /// as phase(): bind the result to a named variable, or it charges nothing.
+    [[nodiscard]] std::optional<PhaseScope> phaseInPlace(TickPhase p) {
+        SHULIB_PRECONDITION(tickOpen_, "TickAttribution::phaseInPlace: no tick open");
+        return std::optional<PhaseScope>{std::in_place, PhaseScope::Key{}, *this, p};
     }
 
     /// Close the tick: snapshot the working phases + total as the LAST COMPLETED

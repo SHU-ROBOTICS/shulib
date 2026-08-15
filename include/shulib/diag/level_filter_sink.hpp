@@ -76,6 +76,7 @@ public:
         Override& slot = overrides_[static_cast<std::size_t>(count_)];
         std::memcpy(slot.tagBuf, subsystem.data(), subsystem.size());
         slot.tagBuf[subsystem.size()] = '\0';
+        slot.tagLen = subsystem.size();
         slot.level = level;
         ++count_;
     }
@@ -111,8 +112,20 @@ private:
 
     struct Override {
         char tagBuf[kMaxTagBytes + 1] = "";
+        std::size_t tagLen = 0;
         hal::LogLevel level = hal::LogLevel::Trace;
-        [[nodiscard]] std::string_view tag() const noexcept { return tagBuf; }
+        /// BY LENGTH, not by NUL. Reading the buffer back through the implicit
+        /// `const char*` → string_view conversion stopped at the first NUL, so a tag
+        /// containing an embedded NUL was stored in full but matched only by its truncated
+        /// prefix: setLevel("A\0B") then setLevel("A") overwrote the first entry, while
+        /// passes("A\0B") compared "A\0B" against "A" and failed — the original tag's own
+        /// dial unreachable by its own name, and silently steering a different channel. The
+        /// class doc promises this table is LOUD about every failure mode; that one was
+        /// silent. Practically unreachable (tags are literals like "MOT"), fixed anyway
+        /// because the promise is the thing being kept.
+        [[nodiscard]] std::string_view tag() const noexcept {
+            return std::string_view{tagBuf, tagLen};
+        }
     };
 
     [[nodiscard]] bool passes(hal::LogLevel level, std::string_view subsystem) const noexcept {

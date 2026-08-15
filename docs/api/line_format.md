@@ -110,7 +110,7 @@ The ONLY entry point for caller-controlled text (header note): sanitizes control
 
 The bytes written so far, as a view INTO this Line's own buffer — a SNAPSHOT of `n` taken at the call. Every append writes at or after the cursor, so the bytes an already-returned view spans are never rewritten: it stays readable for the whole life of the Line and only goes STALE, missing what was appended after it. No flush-before-append discipline and no defensive copy is needed; the one real hazard is LIFETIME, since it dangles the moment the Line leaves scope. Not NUL-terminated — nothing here ever writes a terminator.
 
-*function, declared at [`include/shulib/diag/line_format.hpp:91`](../../include/shulib/diag/line_format.hpp#L91).*
+*function, declared at [`include/shulib/diag/line_format.hpp:96`](../../include/shulib/diag/line_format.hpp#L96).*
 
 <a id="line-buf"></a>
 
@@ -122,7 +122,7 @@ char buf[kCapacity]
 
 Raw storage, deliberately left UNINITIALIZED (a Line costs nothing to declare). Only the first `n` bytes have ever been written; read them through view(), never directly.
 
-*field, declared at [`include/shulib/diag/line_format.hpp:95`](../../include/shulib/diag/line_format.hpp#L95).*
+*field, declared at [`include/shulib/diag/line_format.hpp:100`](../../include/shulib/diag/line_format.hpp#L100).*
 
 <a id="line-n"></a>
 
@@ -134,7 +134,7 @@ std::size_t n = 0
 
 Bytes written so far, and the append cursor. Public because Line is a plain aggregate on the caller's stack, not an encapsulated type; there is no clear(), so reuse means declaring a fresh Line.
 
-*field, declared at [`include/shulib/diag/line_format.hpp:99`](../../include/shulib/diag/line_format.hpp#L99).*
+*field, declared at [`include/shulib/diag/line_format.hpp:104`](../../include/shulib/diag/line_format.hpp#L104).*
 
 <a id="appendpadded"></a>
 
@@ -146,7 +146,7 @@ inline void appendPadded(Line& line, const char* s, int width)
 
 Right-pad-to-width helper for the non-finite tokens (and any literal that must occupy a numeric column).
 
-*free function, declared at [`include/shulib/diag/line_format.hpp:104`](../../include/shulib/diag/line_format.hpp#L104).*
+*free function, declared at [`include/shulib/diag/line_format.hpp:109`](../../include/shulib/diag/line_format.hpp#L109).*
 
 <a id="appendnum"></a>
 
@@ -158,7 +158,7 @@ inline void appendNum(Line& line, double v, int width, int prec)
 
 Fixed-width numeric column (header contract): finite values via %*.*f; non-finite as deterministic right-aligned tokens; pathologically wide values compacted to %.3g.
 
-*free function, declared at [`include/shulib/diag/line_format.hpp:114`](../../include/shulib/diag/line_format.hpp#L114).*
+*free function, declared at [`include/shulib/diag/line_format.hpp:119`](../../include/shulib/diag/line_format.hpp#L119).*
 
 <a id="appendunsigned"></a>
 
@@ -170,7 +170,7 @@ inline void appendUnsigned(Line& line, unsigned long v)
 
 Plain decimal, UNPADDED — no column width and no compaction path, unlike appendNum. For the counted quantities in a line (tick numbers, fault counts) whose width is unbounded in principle but never pathological in practice, so no column can be reserved for them anyway.
 
-*free function, declared at [`include/shulib/diag/line_format.hpp:138`](../../include/shulib/diag/line_format.hpp#L138).*
+*free function, declared at [`include/shulib/diag/line_format.hpp:148`](../../include/shulib/diag/line_format.hpp#L148).*
 
 <a id="appendtimestamp"></a>
 
@@ -182,7 +182,7 @@ inline void appendTimestamp(Line& line, double tSeconds)
 
 The §18.3 "[t=%7.2f] " stamp every timestamped line opens with.
 
-*free function, declared at [`include/shulib/diag/line_format.hpp:147`](../../include/shulib/diag/line_format.hpp#L147).*
+*free function, declared at [`include/shulib/diag/line_format.hpp:157`](../../include/shulib/diag/line_format.hpp#L157).*
 
 ## Design commentary, from the header
 

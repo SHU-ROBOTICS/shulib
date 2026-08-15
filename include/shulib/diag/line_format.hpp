@@ -77,7 +77,12 @@ struct Line {
             const unsigned char c = static_cast<unsigned char>(text[i]);
             buf[n++] = (c < 0x20U || c == 0x7FU) ? '?' : static_cast<char>(c);
         }
-        if (truncated) {
+        // Only when the WHOLE 3-byte marker fits. appendRaw truncates to the room left, so
+        // with 1 or 2 bytes free it memcpy'd a PARTIAL "…" (0xE2, or 0xE2 0x80) — leaving an
+        // invalid multi-byte tail, which is precisely what the continuation back-off above
+        // exists to prevent. Unreachable at today's kCapacity with today's renderers; it was
+        // still the one path in this file that could emit invalid UTF-8.
+        if (truncated && (kCapacity - n) >= 3) {
             appendLiteral("…");  // …
         }
     }
@@ -122,7 +127,12 @@ inline void appendNum(Line& line, double v, int width, int prec) {
     }
     char tmp[40];
     int len = std::snprintf(tmp, sizeof tmp, "%*.*f", width, prec, v);
-    if (len > kCompactThresholdBytes) {
+    // "Pathological" means LONGER THAN THE CALLER ASKED FOR, not longer than a fixed 10. A
+    // %*.*f rendering is at least `width` bytes, so comparing against the constant alone
+    // compacted away every column wider than 10 for perfectly ordinary values —
+    // appendNum(line, 1.0, 12, 2) rendered "        1.00" and then emitted "1", destroying
+    // the column the caller reserved. Latent only because the widest live caller is 7.
+    if (len > width && len > kCompactThresholdBytes) {
         len = std::snprintf(tmp, sizeof tmp, "%.3g", v);
     }
     if (len > 0) {

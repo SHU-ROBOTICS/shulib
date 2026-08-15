@@ -457,3 +457,38 @@ down for its other half.
 
 **Mutations 2/2 RED:** reverting either guard to unconditional reddens exactly one case.
 **1,137 / 1,523,433 / 3 — green.**
+
+## Commit 5 — diag (A3, A4, A5, A6, A7, A8, D2)
+
+**`line_format.hpp` had no test file at all.** That is how A5 and A6 survived: the header was
+covered only incidentally, through renderers that call it with the shapes they happen to use —
+and both defects live exactly where no shipped renderer goes yet (a column wider than 10, a
+line within two bytes of capacity). `test/line_format_test.cpp` is new.
+
+**A MUTATION STAYED GREEN, and it was the most useful result in this commit.** M13 removed the
+partial-ellipsis guard and my first A5 test did not notice. The reason is worth recording: I
+had filled the line to `kCapacity - 2`, which leaves **zero** bytes free after the sanitized
+text lands, and `appendRaw` with zero room writes nothing at all — so no partial marker ever
+appeared. The bug needs **1 or 2** bytes free *after* the copy. Refilled to `kCapacity - 4`
+with a 2-character window, and M13b is **RED**. A test that passes against the unfixed code is
+not a test, and only the mutation could tell me which one I had written.
+
+`D2` is the item that grew. The banner promised static math that did not exist; writing it
+showed the arithmetic had been **wrong since chunk F1** appended `MECHANISM_STALLED` (17 chars
+against a 15-char budget). Shortening a §18.4 spelling would change every TermSink line and run
+summary that carries it, so the check asserts the property the display actually needs — that a
+**truncated** row still names exactly one code — and it is self-extending: a second
+`static_assert` proves the scan reaches past the last named enumerator, so appending a code
+beyond the bound is itself a compile error.
+
+`A8` needed the **passkey idiom**, twice over. A private constructor plus `friend` does not
+work, because `std::optional`'s in-place construction does the constructing and cannot be a
+friend; and the passkey TYPE has to be public (only its constructor private) or
+`TickAttribution` cannot name it. The scheduler — the bypass's only user — now goes through
+`phaseInPlace()` and gets the tick-open check it was skipping.
+
+**Mutations 4/4 RED** (M12 A6, M13b A5, M14 A4, M15b A7). M15 needed `docs/api` regenerated
+alongside it, because changing a default member initializer changes a *rendered signature* and
+`check-fresh` blocks the build otherwise.
+
+**1,144 / 1,523,852 / 3 — green.**

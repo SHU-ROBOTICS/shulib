@@ -60,6 +60,13 @@ enum class MotionOutcome : std::uint8_t {
     Cancelled = 2,   ///< stopped by the caller (user cancel / panic stop)
     FaultAbort = 3,  ///< the scheduler's fault policy forced the stop (causal code attached)
     Superseded = 4,  ///< pre-empted: a newer motion took the slot
+    /// No producer has written this field yet. APPENDED (value 5, append-only per the enum
+    /// rule above) and made the DEFAULT, because the previous default was `Settled` — the one
+    /// value meaning success — so a result line whose producer forgot the field rendered "✓
+    /// SETTLED" for a motion that never happened. That is the opposite polarity to this same
+    /// struct's `hasPathData`, which defaults false precisely so over/drift render "n/a"
+    /// rather than a fabricated 0.00. There was no value to give the field until this one.
+    Unset = 5,
 };
 
 /// §18.4 spelling for the line. Never null; out-of-range renders, never crashes.
@@ -70,6 +77,7 @@ enum class MotionOutcome : std::uint8_t {
         case MotionOutcome::Cancelled: return "CANCELLED";
         case MotionOutcome::FaultAbort: return "FAULT_ABORT";
         case MotionOutcome::Superseded: return "SUPERSEDED";
+        case MotionOutcome::Unset: return "UNSET";
     }
     return "UNKNOWN";
 }
@@ -81,8 +89,9 @@ struct MotionResult {
     std::string_view name{};         ///< IMotion::name() (stable literal)
     /// How the motion ended. Drives the glanceable pass/fail column — only Settled renders ✓ —
     /// and decides whether `abortFault` is meaningful (it is rendered iff this is FaultAbort).
-    /// NOTE the default: an unpopulated record reads as a success.
-    MotionOutcome outcome = MotionOutcome::Settled;
+    /// Defaults to Unset, the pessimistic value: a record whose producer forgot this field
+    /// renders "✗ UNSET" rather than the checkmark and SETTLED it used to claim.
+    MotionOutcome outcome = MotionOutcome::Unset;
     FaultCode abortFault = FaultCode::None;  ///< causal code iff FaultAbort
     units::Time duration{};          ///< end − start
     bool hasPathData = false;        ///< record stream flowed (header note)

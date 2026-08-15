@@ -17,9 +17,16 @@
 //     row 1:  "flt none"             …or the FIRST fault: "flt ODO_STUCK"
 //     row 2:  "batt 12.4V n 0"      battery + total fault count
 //
-// The longest fault spellings (GPS_GATE_REJECT, MOTOR_OVER_TEMP: 15 chars) fit
-// row 1's 19 columns beside "flt " exactly — checked by static math here, pinned
-// by test, and the seam truncates (never wraps) if a future code outgrows it.
+// Row 1's budget for a fault name is kCols - 4 ("flt ") = 15 characters, and the
+// longest spelling does NOT fit: MECHANISM_STALLED is 17, so it renders as
+// "flt MECHANISM_STALL" — the seam truncates rather than wraps, which is defined
+// behaviour, not a bug. This banner used to claim the longest were the two 15-char
+// codes and that the fit was "checked by static math here". There was no such
+// check, and the arithmetic went stale the day chunk F1 appended MECHANISM_STALLED.
+// The static math now EXISTS (kNameBudget below) and asserts the property that
+// actually matters: every fault name must stay DISTINGUISHABLE inside the budget,
+// so a truncated row still names exactly one code. A future code that collides in
+// its first 15 characters is a compile error here, at the line that renders it.
 //
 // ── The write discipline (why update() diffs) ──────────────────────────────────────
 // V5 controller text writes are SLOW and firmware-rate-limited (~50 ms per line
@@ -34,7 +41,9 @@
 // Reads the FaultLatch and battery it is given; owns nothing; raises nothing;
 // never throws. Single-task by contract, like the rest of diag/.
 
+#include <algorithm>
 #include <cstdio>
+#include <string_view>
 #include <cstring>
 
 #include "shulib/diag/fault.hpp"
@@ -43,6 +52,52 @@
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::diag {
+
+namespace detail {
+
+/// Characters row 1 leaves for a fault name after the "flt " prefix. The static math the
+/// banner promises, finally written: not "every name fits" — MECHANISM_STALLED does not,
+/// and shortening a §18.4 spelling to make it fit would change the text of every TermSink
+/// line and run summary that carries it — but the property the display actually needs,
+/// which is that a TRUNCATED row still identifies exactly one code. Iterating the code
+/// slots rather than a hand-written list is what keeps this true for a code appended
+/// later: unused slots render "UNKNOWN", which is 7 characters and collides with nothing.
+inline constexpr int kNameBudget = hal::ILineDisplay::kCols - 4;
+
+/// How many enumerator values the check below scans. Not a hand-maintained count of the
+/// enum — the assert underneath proves the scan REACHES PAST the last named code, so
+/// appending a code beyond this bound is itself a compile error rather than a silent
+/// hole. That is the D3 lesson ("a gate's exclusion list is where its holes live") applied
+/// to a loop bound.
+inline constexpr std::size_t kScannedCodes = 32;
+static_assert(std::string_view{faultCodeName(static_cast<FaultCode>(kScannedCodes))}
+                  == "UNKNOWN",
+              "FaultCode now has a named enumerator at or beyond kScannedCodes, so the "
+              "distinctness scan below no longer covers the whole enum. Raise it.");
+
+constexpr bool faultNamesDistinctWithin(int budget) noexcept {
+    for (std::size_t i = 0; i < kScannedCodes; ++i) {
+        for (std::size_t j = i + 1; j < kScannedCodes; ++j) {
+            const std::string_view a{faultCodeName(static_cast<FaultCode>(i))};
+            const std::string_view b{faultCodeName(static_cast<FaultCode>(j))};
+            if (a == b) {
+                continue;  // both are the "UNKNOWN" filler for unused slots
+            }
+            const std::size_t cap = static_cast<std::size_t>(budget);
+            if (a.substr(0, std::min(cap, a.size()))
+                == b.substr(0, std::min(cap, b.size()))) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+static_assert(detail::faultNamesDistinctWithin(detail::kNameBudget),
+              "Two FaultCode spellings share their first kCols-4 characters, so row 1 of "
+              "the controller display would truncate them to the same text and name the "
+              "wrong fault. Shorten one, or widen the row.");
+
+}  // namespace detail
 
 /// The three rows the V5 controller's LCD shows when a run stops: a one-word state plus the run
 /// clock, the FIRST latched fault BY NAME, then battery and total fault count. Built for the
@@ -82,6 +137,7 @@ public:
 
 private:
     static constexpr std::size_t kBuf = 40;  ///< pre-truncation scratch (seam truncates at kCols)
+
 
     [[nodiscard]] static double quantize(double v, double quantum) noexcept {
         // Truncate toward zero: 12.49 V displays 12.4 stably rather than

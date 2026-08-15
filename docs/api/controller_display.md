@@ -28,7 +28,7 @@ class ControllerFaultDisplay
 
 The three rows the V5 controller's LCD shows when a run stops: a one-word state plus the run clock, the FIRST latched fault BY NAME, then battery and total fault count. Built for the student standing at the field with no laptop and a robot that just stopped — it converts "it died" into a fault name someone can act on. update() DIFFS: only rows whose text changed reach the device, because V5 text writes are slow and firmware-rate-limited, and the clock and battery quantize (0.1 s, 0.1 V) so jitter alone cannot force a repaint. The clock still ticks visibly, on purpose — a frozen screen and a crashed program must not look identical. Reads the latch and battery it is given; owns nothing, raises nothing, never throws.
 
-*class, declared at [`include/shulib/diag/controller_display.hpp:55`](../../include/shulib/diag/controller_display.hpp#L55).*
+*class, declared at [`include/shulib/diag/controller_display.hpp:110`](../../include/shulib/diag/controller_display.hpp#L110).*
 
 <a id="controllerfaultdisplay-controllerfaultdisplay"></a>
 
@@ -40,7 +40,7 @@ ControllerFaultDisplay(hal::ILineDisplay& display, const FaultLatch& faults, con
 
 All three must outlive the display.
 
-*function, declared at [`include/shulib/diag/controller_display.hpp:58`](../../include/shulib/diag/controller_display.hpp#L58).*
+*function, declared at [`include/shulib/diag/controller_display.hpp:113`](../../include/shulib/diag/controller_display.hpp#L113).*
 
 <a id="controllerfaultdisplay-update"></a>
 
@@ -52,14 +52,14 @@ void update(units::Time now)
 
 Refresh the screen from current state; call at any convenient cadence (every loop tick is fine — unchanged rows cost no device writes).
 
-*function, declared at [`include/shulib/diag/controller_display.hpp:64`](../../include/shulib/diag/controller_display.hpp#L64).*
+*function, declared at [`include/shulib/diag/controller_display.hpp:119`](../../include/shulib/diag/controller_display.hpp#L119).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 34 lines</summary>
+<summary>The header’s own reasoning — 41 lines</summary>
 
 ```text
 
@@ -80,9 +80,16 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      row 1:  "flt none"             …or the FIRST fault: "flt ODO_STUCK"
      row 2:  "batt 12.4V n 0"      battery + total fault count
 
- The longest fault spellings (GPS_GATE_REJECT, MOTOR_OVER_TEMP: 15 chars) fit
- row 1's 19 columns beside "flt " exactly — checked by static math here, pinned
- by test, and the seam truncates (never wraps) if a future code outgrows it.
+ Row 1's budget for a fault name is kCols - 4 ("flt ") = 15 characters, and the
+ longest spelling does NOT fit: MECHANISM_STALLED is 17, so it renders as
+ "flt MECHANISM_STALL" — the seam truncates rather than wraps, which is defined
+ behaviour, not a bug. This banner used to claim the longest were the two 15-char
+ codes and that the fit was "checked by static math here". There was no such
+ check, and the arithmetic went stale the day chunk F1 appended MECHANISM_STALLED.
+ The static math now EXISTS (kNameBudget below) and asserts the property that
+ actually matters: every fault name must stay DISTINGUISHABLE inside the budget,
+ so a truncated row still names exactly one code. A future code that collides in
+ its first 15 characters is a compile error here, at the line that renders it.
 
  ── The write discipline (why update() diffs) ──────────────────────────────────────
  V5 controller text writes are SLOW and firmware-rate-limited (~50 ms per line

@@ -8,6 +8,10 @@
 
 #include "doctest.h"
 
+#include <string_view>
+
+#include <algorithm>
+
 #include "shulib/diag/controller_display.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/hal/fake/fake_battery.hpp"
@@ -127,4 +131,30 @@ TEST_CASE("D-4: FakeLineDisplay bounds its rows loudly") {
     CHECK_THROWS_AS(screen.setLine(3, "x"), PreconditionError);
     CHECK_THROWS_AS((void)screen.row(3), PreconditionError);
     CHECK_THROWS_AS((void)screen.writeCount(-1), PreconditionError);
+}
+
+// Bug caught (DEFECTS1 item D2): the banner claimed row 1's fault-name column was "checked
+// by static math here" and there was no static_assert in the file at all — and the
+// arithmetic it asserted went stale the day chunk F1 appended MECHANISM_STALLED (17 chars
+// against a 15-char budget). The compile-time check now exists in the header; this pins the
+// runtime half so the two cannot drift: the longest name is genuinely over budget, the seam
+// truncates rather than wraps, and the truncation still names exactly one code.
+TEST_CASE("D2: the longest fault name overruns row 1 and still identifies one code") {
+    const int budget = shulib::hal::ILineDisplay::kCols - 4;  // "flt "
+    CHECK(budget == 15);
+
+    const std::string_view longest{shulib::diag::faultCodeName(FaultCode::MechanismStalled)};
+    CHECK(longest.size() == 17);           // over budget — the banner said 15 was the max
+    const std::string_view truncated = longest.substr(0, static_cast<std::size_t>(budget));
+    CHECK(truncated == "MECHANISM_STALL");
+
+    // No OTHER code shares that prefix, which is the property the static_assert enforces and
+    // the only one that makes a truncated row trustworthy.
+    for (int i = 0; i <= 11; ++i) {
+        const auto code = static_cast<FaultCode>(i);
+        if (code == FaultCode::MechanismStalled) { continue; }
+        const std::string_view other{shulib::diag::faultCodeName(code)};
+        CHECK(other.substr(0, std::min(static_cast<std::size_t>(budget), other.size()))
+              != truncated);
+    }
 }

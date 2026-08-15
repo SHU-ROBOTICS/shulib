@@ -971,7 +971,7 @@ private:
     /// copy elision constructs the non-movable scope in place.
     [[nodiscard]] std::optional<diag::TickAttribution::PhaseScope> phase(diag::TickPhase p) {
         if (att_.has_value()) {
-            return std::optional<diag::TickAttribution::PhaseScope>{std::in_place, *att_, p};
+            return att_->phaseInPlace(p);  // checked: the tick-open precondition applies here
         }
         return std::nullopt;
     }

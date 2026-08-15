@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,625 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,628 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -1030,6 +1030,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionOutcome::Settled` | enumerator | [motion_result.md](motion_result.md#motionoutcome-settled) |
 | `MotionOutcome::Superseded` | enumerator | [motion_result.md](motion_result.md#motionoutcome-superseded) |
 | `MotionOutcome::TimedOut` | enumerator | [motion_result.md](motion_result.md#motionoutcome-timedout) |
+| `MotionOutcome::Unset` | enumerator | [motion_result.md](motion_result.md#motionoutcome-unset) |
 | `motionOutcomeName` | free function | [motion_result.md](motion_result.md#motionoutcomename) |
 | `MotionResult` | struct | [motion_result.md](motion_result.md#struct-motionresult) |
 | `MotionResult::abortFault` | field | [motion_result.md](motion_result.md#motionresult-abortfault) |
@@ -1645,8 +1646,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TickAttribution::lastTotal` | function | [tick_attribution.md](tick_attribution.md#tickattribution-lasttotal) |
 | `TickAttribution::lastWorstPhase` | function | [tick_attribution.md](tick_attribution.md#tickattribution-lastworstphase) |
 | `TickAttribution::phase` | function | [tick_attribution.md](tick_attribution.md#tickattribution-phase) |
+| `TickAttribution::phaseInPlace` | function | [tick_attribution.md](tick_attribution.md#tickattribution-phaseinplace) |
 | `TickAttribution::Phases` | alias | [tick_attribution.md](tick_attribution.md#tickattribution-phases) |
 | `TickAttribution::PhaseScope` | class | [tick_attribution.md](tick_attribution.md#class-tickattribution-phasescope) |
+| `TickAttribution::PhaseScope::Key` | class | [tick_attribution.md](tick_attribution.md#class-tickattribution-phasescope-key) |
 | `TickAttribution::PhaseScope::operator=` | function | [tick_attribution.md](tick_attribution.md#tickattribution-phasescope-operator-eq) |
 | `TickAttribution::PhaseScope::PhaseScope` | function | [tick_attribution.md](tick_attribution.md#tickattribution-phasescope-phasescope) |
 | `TickAttribution::PhaseScope::PhaseScope (overload 2)` | function | [tick_attribution.md](tick_attribution.md#tickattribution-phasescope-phasescope-2) |

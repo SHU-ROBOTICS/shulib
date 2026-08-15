@@ -8,7 +8,7 @@
 
 TickAttribution — WHO consumed the loop budget.
 
-This header declares **2** types (17 members) and **1** free function.
+This header declares **3** types (18 members) and **1** free function.
 
 Extracted from [`include/shulib/diag/tick_attribution.hpp`](../../include/shulib/diag/tick_attribution.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -19,6 +19,7 @@ Extracted from [`include/shulib/diag/tick_attribution.hpp`](../../include/shulib
   - [`TickAttribution`](#tickattribution-tickattribution)
   - [`beginTick`](#tickattribution-begintick)
   - [`phase`](#tickattribution-phase)
+  - [`phaseInPlace`](#tickattribution-phaseinplace)
   - [`endTick`](#tickattribution-endtick)
   - [`abandonTick`](#tickattribution-abandontick)
   - [`hasCompletedTick`](#tickattribution-hascompletedtick)
@@ -33,6 +34,7 @@ Extracted from [`include/shulib/diag/tick_attribution.hpp`](../../include/shulib
     - [`~PhaseScope`](#tickattribution-phasescope-destructor-phasescope)
     - [`PhaseScope (overload 2)`](#tickattribution-phasescope-phasescope-2)
     - [`operator=`](#tickattribution-phasescope-operator-eq)
+    - [`class TickAttribution::PhaseScope::Key`](#class-tickattribution-phasescope-key)
 - [`tickPhaseName`](#tickphasename) — *free function*
 
 <a id="class-tickattribution"></a>
@@ -45,7 +47,7 @@ class TickAttribution
 
 Measures where one tick's time went, phase by phase, on an INJECTED clock — the "who" that LoopMonitor's "this tick blew its budget" cannot answer on its own. Only the LAST COMPLETED tick's breakdown is kept, so a record stamped mid-tick necessarily carries the previous tick's numbers; for the overrun path that lag is exactly right, because an overrun is detected on the tick AFTER the one that caused it. Needs a clock that advances DURING a tick, which is why it takes its own: the host sim clock only moves between ticks and would report every phase as zero. Single-task by contract, like the rest of diag/.
 
-*class, declared at [`include/shulib/diag/tick_attribution.hpp:52`](../../include/shulib/diag/tick_attribution.hpp#L52).*
+*class, declared at [`include/shulib/diag/tick_attribution.hpp:54`](../../include/shulib/diag/tick_attribution.hpp#L54).*
 
 <a id="tickattribution-phases"></a>
 
@@ -57,7 +59,7 @@ using Phases = std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)
 
 Per-phase durations for one tick, indexed by TickPhase. Sized by kTickPhaseSlots rather than by the phases that exist today — the spare slots are what make a new phase an append to the vocabulary instead of a reshape of the telemetry wire.
 
-*alias, declared at [`include/shulib/diag/tick_attribution.hpp:57`](../../include/shulib/diag/tick_attribution.hpp#L57).*
+*alias, declared at [`include/shulib/diag/tick_attribution.hpp:59`](../../include/shulib/diag/tick_attribution.hpp#L59).*
 
 <a id="tickattribution-tickattribution"></a>
 
@@ -69,7 +71,7 @@ explicit TickAttribution(hal::IClock& clock) noexcept
 
 `clock` must outlive the instance (see header for WHICH clock).
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:60`](../../include/shulib/diag/tick_attribution.hpp#L60).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:62`](../../include/shulib/diag/tick_attribution.hpp#L62).*
 
 <a id="tickattribution-begintick"></a>
 
@@ -81,7 +83,7 @@ void beginTick()
 
 Open a tick: zero the working phases, mark the start instant.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:63`](../../include/shulib/diag/tick_attribution.hpp#L63).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:65`](../../include/shulib/diag/tick_attribution.hpp#L65).*
 
 <a id="tickattribution-phase"></a>
 
@@ -93,7 +95,19 @@ Open a tick: zero the working phases, mark the start instant.
 
 Open a scope that charges its own lifetime to `p`. Requires a tick to be open. The result MUST be bound to a named variable — an unnamed temporary dies at the semicolon and charges nothing, which is the whole reason this is [[nodiscard]].
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:105`](../../include/shulib/diag/tick_attribution.hpp#L105).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:123`](../../include/shulib/diag/tick_attribution.hpp#L123).*
+
+<a id="tickattribution-phaseinplace"></a>
+
+### `TickAttribution::phaseInPlace`
+
+```cpp
+[[nodiscard]] std::optional<PhaseScope> phaseInPlace(TickPhase p)
+```
+
+The same scope, in an optional. Exists because PhaseScope is deliberately non-movable, so phase()'s by-value return cannot be stored in one — and a caller that needs the optional shape (attribution is switchable, and must cost nothing when off) previously had to construct a PhaseScope directly with `std::in_place`, walking around the tick-open check. MotionScheduler was that caller, and was the only user of the bypass; with this it goes through the same precondition as everyone else. Same requirement as phase(): bind the result to a named variable, or it charges nothing.
+
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:135`](../../include/shulib/diag/tick_attribution.hpp#L135).*
 
 <a id="tickattribution-endtick"></a>
 
@@ -105,7 +119,7 @@ void endTick()
 
 Close the tick: snapshot the working phases + total as the LAST COMPLETED tick (what records and overrun lines read).
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:112`](../../include/shulib/diag/tick_attribution.hpp#L112).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:142`](../../include/shulib/diag/tick_attribution.hpp#L142).*
 
 <a id="tickattribution-abandontick"></a>
 
@@ -117,7 +131,7 @@ void abandonTick() noexcept
 
 Discard a half-measured tick (an exception unwound through the tick body): its numbers never completed, so they are dropped rather than reported, and the instrument re-arms. The last COMPLETED tick's story is untouched.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:123`](../../include/shulib/diag/tick_attribution.hpp#L123).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:153`](../../include/shulib/diag/tick_attribution.hpp#L153).*
 
 <a id="tickattribution-hascompletedtick"></a>
 
@@ -129,7 +143,7 @@ Discard a half-measured tick (an exception unwound through the tick body): its n
 
 False until the first endTick(), and again after reset(). Worth asking first: before any tick completes every lastX() accessor reads zero, which is indistinguishable from a tick that genuinely cost nothing.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:128`](../../include/shulib/diag/tick_attribution.hpp#L128).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:158`](../../include/shulib/diag/tick_attribution.hpp#L158).*
 
 <a id="tickattribution-lastphases"></a>
 
@@ -141,7 +155,7 @@ False until the first endTick(), and again after reset(). Worth asking first: be
 
 The last completed tick's per-phase durations (zeros before any tick).
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:130`](../../include/shulib/diag/tick_attribution.hpp#L130).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:160`](../../include/shulib/diag/tick_attribution.hpp#L160).*
 
 <a id="tickattribution-lasttotal"></a>
 
@@ -153,7 +167,7 @@ The last completed tick's per-phase durations (zeros before any tick).
 
 Seconds from beginTick() to endTick() of the last completed tick, on the attribution clock. It spans the whole tick, including work no phase scope wrapped — that remainder is what lastOther() reports rather than smearing it into a named phase.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:134`](../../include/shulib/diag/tick_attribution.hpp#L134).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:164`](../../include/shulib/diag/tick_attribution.hpp#L164).*
 
 <a id="tickattribution-lastattributed"></a>
 
@@ -165,7 +179,7 @@ Seconds from beginTick() to endTick() of the last completed tick, on the attribu
 
 Sum of the attributed phases of the last completed tick.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:137`](../../include/shulib/diag/tick_attribution.hpp#L137).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:167`](../../include/shulib/diag/tick_attribution.hpp#L167).*
 
 <a id="tickattribution-lastother"></a>
 
@@ -177,7 +191,7 @@ Sum of the attributed phases of the last completed tick.
 
 total − attributed: un-instrumented work. Floored at 0 (a clock that jumped mid-phase can make phases overshoot the total; the floor keeps the report coherent rather than printing a negative time).
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:148`](../../include/shulib/diag/tick_attribution.hpp#L148).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:178`](../../include/shulib/diag/tick_attribution.hpp#L178).*
 
 <a id="tickattribution-lastworstphase"></a>
 
@@ -189,7 +203,7 @@ total − attributed: un-instrumented work. Floored at 0 (a clock that jumped mi
 
 The phase that consumed the most of the last completed tick — the NAME the overrun line prints. Ties resolve to the lower index (deterministic).
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:155`](../../include/shulib/diag/tick_attribution.hpp#L155).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:185`](../../include/shulib/diag/tick_attribution.hpp#L185).*
 
 <a id="tickattribution-reset"></a>
 
@@ -201,7 +215,7 @@ void reset() noexcept
 
 Forget everything (run boundary). The next tick starts a fresh story.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:166`](../../include/shulib/diag/tick_attribution.hpp#L166).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:196`](../../include/shulib/diag/tick_attribution.hpp#L196).*
 
 <a id="class-tickattribution-phasescope"></a>
 
@@ -213,19 +227,19 @@ class PhaseScope
 
 Time one phase, RAII-style: the duration is credited when the scope closes. { auto scope = att.phase(TickPhase::Localization); localizer.update(); } Phases may repeat within a tick (durations accumulate); scopes must not overlap the same phase (the second-open would double-charge the overlap).
 
-*class, declared at [`include/shulib/diag/tick_attribution.hpp:74`](../../include/shulib/diag/tick_attribution.hpp#L74).*
+*class, declared at [`include/shulib/diag/tick_attribution.hpp:76`](../../include/shulib/diag/tick_attribution.hpp#L76).*
 
 <a id="tickattribution-phasescope-phasescope"></a>
 
 ### `TickAttribution::PhaseScope::PhaseScope`
 
 ```cpp
-PhaseScope(TickAttribution& att, TickPhase phase) noexcept
+PhaseScope(Key /*unused*/, TickAttribution& att, TickPhase phase) noexcept
 ```
 
-Stamps the start instant on the attribution clock. Prefer TickAttribution::phase(), which additionally checks that a tick is actually open; constructing one directly skips that check and will credit its interval to whatever tick is open when it closes.
+Stamps the start instant. Reachable only through TickAttribution::phase() or ::phaseInPlace(), both of which check that a tick is actually open — the `Key` parameter is what makes that structural. It was a plain public constructor, which made the tick-open precondition advisory: a direct `PhaseScope s{att, p}` compiled with no tick open and its destructor still wrote into current_, crediting the interval to whatever tick happened to be open when it closed.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:79`](../../include/shulib/diag/tick_attribution.hpp#L79).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:96`](../../include/shulib/diag/tick_attribution.hpp#L96).*
 
 <a id="tickattribution-phasescope-destructor-phasescope"></a>
 
@@ -237,7 +251,7 @@ Stamps the start instant on the attribution clock. Prefer TickAttribution::phase
 
 Credits (now − start) to the phase on scope exit, and only then: a scope still alive when endTick() runs contributes nothing to the tick it was opened in — its interval lands on whatever tick is open when it finally closes, or is discarded outright if the next beginTick() zeroes the working phases first. Repeated scopes on the same phase within one tick ACCUMULATE rather than replace.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:86`](../../include/shulib/diag/tick_attribution.hpp#L86).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:104`](../../include/shulib/diag/tick_attribution.hpp#L104).*
 
 <a id="tickattribution-phasescope-phasescope-2"></a>
 
@@ -249,7 +263,7 @@ PhaseScope(const PhaseScope&) = delete
 
 Non-copyable, and therefore non-movable: a scope charges exactly one interval, and a copy would charge it twice. phase() still returns one by value — that is guaranteed elision, not a move.
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:93`](../../include/shulib/diag/tick_attribution.hpp#L93).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:111`](../../include/shulib/diag/tick_attribution.hpp#L111).*
 
 <a id="tickattribution-phasescope-operator-eq"></a>
 
@@ -261,7 +275,21 @@ PhaseScope& operator=(const PhaseScope&) = delete
 
 *Covered by the comment on [`PhaseScope (overload 2)`](#tickattribution-phasescope-phasescope-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/diag/tick_attribution.hpp:94`](../../include/shulib/diag/tick_attribution.hpp#L94).*
+*function, declared at [`include/shulib/diag/tick_attribution.hpp:112`](../../include/shulib/diag/tick_attribution.hpp#L112).*
+
+<a id="class-tickattribution-phasescope-key"></a>
+
+## `class TickAttribution::PhaseScope::Key`
+
+```cpp
+class Key
+```
+
+Passkey. The TYPE is public so TickAttribution can name it; its CONSTRUCTOR is private with TickAttribution as the only friend, so nobody else can produce one. PhaseScope's own constructor therefore stays public — which std::optional's in-place construction requires, because optional does the constructing and cannot be made a friend — while remaining unreachable without a Key. A simple private constructor plus `friend` looks tidier and does not work here for exactly that reason.
+
+*class, declared at [`include/shulib/diag/tick_attribution.hpp:85`](../../include/shulib/diag/tick_attribution.hpp#L85).*
+
+_No public members._
 
 <a id="tickphasename"></a>
 
@@ -273,7 +301,7 @@ PhaseScope& operator=(const PhaseScope&) = delete
 
 Short display token per phase for the overrun-attribution line ("loc"/"mot"/…).
 
-*free function, declared at [`include/shulib/diag/tick_attribution.hpp:185`](../../include/shulib/diag/tick_attribution.hpp#L185).*
+*free function, declared at [`include/shulib/diag/tick_attribution.hpp:215`](../../include/shulib/diag/tick_attribution.hpp#L215).*
 
 ## Design commentary, from the header
 

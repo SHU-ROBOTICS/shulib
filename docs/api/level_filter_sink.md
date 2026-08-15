@@ -82,7 +82,7 @@ void clearLevels() noexcept
 
 Drop every override (the global level stays).
 
-*function, declared at [`include/shulib/diag/level_filter_sink.hpp:84`](../../include/shulib/diag/level_filter_sink.hpp#L84).*
+*function, declared at [`include/shulib/diag/level_filter_sink.hpp:85`](../../include/shulib/diag/level_filter_sink.hpp#L85).*
 
 <a id="levelfiltersink-log"></a>
 
@@ -94,7 +94,7 @@ void log(hal::LogLevel level, std::string_view subsystem, std::string_view messa
 
 Pass the line to the inner sink iff `level` is at least as severe as `subsystem`'s threshold — an unrecognised tag simply has no override and gets the global level, so there is nothing to register in advance. A blocked line is discarded here and counted nowhere (see the class note). Throws nothing the inner sink does not: the seam forbids it.
 
-*function, declared at [`include/shulib/diag/level_filter_sink.hpp:90`](../../include/shulib/diag/level_filter_sink.hpp#L90).*
+*function, declared at [`include/shulib/diag/level_filter_sink.hpp:91`](../../include/shulib/diag/level_filter_sink.hpp#L91).*
 
 <a id="levelfiltersink-wantsrecord"></a>
 
@@ -106,7 +106,7 @@ Pass the line to the inner sink iff `level` is at least as severe as `subsystem`
 
 Whatever the inner sink answers — this decorator never suppresses record POPULATION. Answered as a PAIR with emit(), which is the seam's rule: overriding one without the other is how a sink ends up paying to build records it then throws away.
 
-*function, declared at [`include/shulib/diag/level_filter_sink.hpp:100`](../../include/shulib/diag/level_filter_sink.hpp#L100).*
+*function, declared at [`include/shulib/diag/level_filter_sink.hpp:101`](../../include/shulib/diag/level_filter_sink.hpp#L101).*
 
 <a id="levelfiltersink-emit"></a>
 
@@ -118,7 +118,7 @@ void emit(const DebugRecord& record) override
 
 Forwarded untouched. Per-tick records are DATA, not chatter, so no level threshold applies to them; the record stream's own dial is RateLimitedSink.
 
-*function, declared at [`include/shulib/diag/level_filter_sink.hpp:103`](../../include/shulib/diag/level_filter_sink.hpp#L103).*
+*function, declared at [`include/shulib/diag/level_filter_sink.hpp:104`](../../include/shulib/diag/level_filter_sink.hpp#L104).*
 
 <a id="levelfiltersink-summarize"></a>
 
@@ -130,7 +130,7 @@ void summarize(const RunSummary& summary) override
 
 Forwarded untouched, and forwarded deliberately: the base's summarize() is a no-op body, so a decorator that failed to override it would silently EAT the end-of-run summary.
 
-*function, declared at [`include/shulib/diag/level_filter_sink.hpp:106`](../../include/shulib/diag/level_filter_sink.hpp#L106).*
+*function, declared at [`include/shulib/diag/level_filter_sink.hpp:107`](../../include/shulib/diag/level_filter_sink.hpp#L107).*
 
 ## Design commentary, from the header
 

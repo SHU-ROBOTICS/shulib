@@ -119,3 +119,30 @@ TEST_CASE("D-1: misuse is loud — bad tags and a full table are preconditions")
     filter.setLevel("T3", LogLevel::Error);  // updating an existing tag still fine
     CHECK_THROWS_AS(filter.setLevel("T16", LogLevel::Warn), PreconditionError);
 }
+
+// Bug caught (DEFECTS1 item A4): Override::tag() rebuilt a string_view from the NUL-terminated
+// buffer, so it stopped at the first NUL. A tag containing an embedded NUL was STORED in full
+// but MATCHED only by its truncated prefix: setLevel("A\0B") then setLevel("A") found the
+// first slot by its truncated name and overwrote it, while passes("A\0B") compared "A\0B"
+// against "A" and failed — the original tag's own dial unreachable by its own name, and
+// silently steering a different channel. The class doc promises this table is LOUD about
+// every failure mode; that one was silent.
+TEST_CASE("A4: a tag with an embedded NUL keeps its own dial (matched by length)") {
+    using namespace std::string_view_literals;
+    FakeTelemetrySink inner;
+    LevelFilterSink filter{inner};
+
+    const auto embedded = "A\0B"sv;
+    REQUIRE(embedded.size() == 3);
+    filter.setLevel(embedded, LogLevel::Error);   // this tag: errors only
+    filter.setLevel("A"sv, LogLevel::Debug);      // a DIFFERENT tag: chatty
+
+    // Two distinct slots, not one overwritten slot: each tag steers only itself.
+    filter.log(LogLevel::Info, embedded, "blocked");   // below Error for THIS tag
+    filter.log(LogLevel::Debug, "A"sv, "kept-1");      // Debug allowed for "A"
+    filter.log(LogLevel::Error, embedded, "kept-2");   // at threshold for the NUL tag
+
+    REQUIRE(inner.size() == 2);
+    CHECK(inner.at(0).message == "kept-1");
+    CHECK(inner.at(1).message == "kept-2");
+}
