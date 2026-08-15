@@ -114,11 +114,23 @@ public:
     }
 
     /// Feed one tick's observables; returns the current (window-held) verdict.
-    /// `motors` are the drive motors in kinematic order (size constant per run).
+    /// `motors` are the drive motors in kinematic order (size constant per run), NON-EMPTY
+    /// and all non-null — the same discipline every other span-taking fan-out in the tree
+    /// keeps (MotorMechanism, PneumaticMechanism, RobotContext, Localizer). Both checks were
+    /// missing, and the empty case was the dangerous one: with no motors the mean shaft
+    /// delta is 0, so spinTravel is 0, so `spinTravel >= minSpinTravel` is never true and
+    /// the check reports "healthy" forever. A misconfiguration that silently disables a
+    /// safety cross-check is exactly what this library's precondition discipline exists to
+    /// turn into a loud failure. The in-tree path (ctx.driveMotors()) was already safe; a
+    /// direct caller — which the generated reference invites — was not.
     [[nodiscard]] bool update(units::Time now, std::span<hal::IMotor* const> motors,
                               const math::Pose2d& fusedPose) {
         SHULIB_PRECONDITION(motors.size() <= static_cast<std::size_t>(kMaxWheels),
                             "OdoStallCheck: too many motors");
+        SHULIB_PRECONDITION(!motors.empty(), "OdoStallCheck: motors is empty");
+        for (const hal::IMotor* m : motors) {
+            SHULIB_PRECONDITION(m != nullptr, "OdoStallCheck: a motor is null");
+        }
         if (!hasBaseline_) {
             baseline(now, motors, fusedPose);
             return stalled_;

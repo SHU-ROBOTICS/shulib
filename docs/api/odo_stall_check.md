@@ -143,9 +143,9 @@ Copies `config` and validates every field: window finite and > 0, minSpinTravel 
 [[nodiscard]] bool update(units::Time now, std::span<hal::IMotor* const> motors, const math::Pose2d& fusedPose)
 ```
 
-Feed one tick's observables; returns the current (window-held) verdict. `motors` are the drive motors in kinematic order (size constant per run).
+Feed one tick's observables; returns the current (window-held) verdict. `motors` are the drive motors in kinematic order (size constant per run), NON-EMPTY and all non-null — the same discipline every other span-taking fan-out in the tree keeps (MotorMechanism, PneumaticMechanism, RobotContext, Localizer). Both checks were missing, and the empty case was the dangerous one: with no motors the mean shaft delta is 0, so spinTravel is 0, so `spinTravel >= minSpinTravel` is never true and the check reports "healthy" forever. A misconfiguration that silently disables a safety cross-check is exactly what this library's precondition discipline exists to turn into a loud failure. The in-tree path (ctx.driveMotors()) was already safe; a direct caller — which the generated reference invites — was not.
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:118`](../../include/shulib/motion/odo_stall_check.hpp#L118).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:126`](../../include/shulib/motion/odo_stall_check.hpp#L126).*
 
 <a id="odostallcheck-stalled"></a>
 
@@ -157,7 +157,7 @@ Feed one tick's observables; returns the current (window-held) verdict. `motors`
 
 The latest window verdict (held between window closes).
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:150`](../../include/shulib/motion/odo_stall_check.hpp#L150).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:162`](../../include/shulib/motion/odo_stall_check.hpp#L162).*
 
 <a id="odostallcheck-reset"></a>
 
@@ -169,7 +169,7 @@ void reset() noexcept
 
 Forget the window baseline AND the verdict (motion start / after setPose).
 
-*function, declared at [`include/shulib/motion/odo_stall_check.hpp:153`](../../include/shulib/motion/odo_stall_check.hpp#L153).*
+*function, declared at [`include/shulib/motion/odo_stall_check.hpp:165`](../../include/shulib/motion/odo_stall_check.hpp#L165).*
 
 ## Design commentary, from the header
 

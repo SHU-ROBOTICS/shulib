@@ -419,3 +419,23 @@ NaN clock is the worse failure. Goes in the changelog.
 | M7 | `isfinite` dropped from `defaultTimeout` | **RED** 1 case |
 
 Restored: **1,131 cases / 1,523,404 assertions / 3 skipped — green.**
+
+## Commit 3 — A1 + A30 (unguarded spans on the commanding path)
+
+`A1` is the sharpest thing on the whole list: `applyCommandPipeline` indexes the drive-motor
+span by **wheel** index with `std::span::operator[]`, which is unchecked, and nothing anywhere
+compared the motor count to `IKinematics::wheelCount()`. Three motors with an XDrive installed
+read one past the end **every tick**. What makes it a real defect rather than a hypothetical is
+the asymmetry the finder spotted: every RECORD-producing loop in the tree already guards it
+(`i < motors.size() && …`) — only the path that actually drives the robot did not.
+
+The check goes in `MotionDeps::validate()`, which is the one bundle holding both the context
+and the kinematics, so it fires at a motion's construction rather than three ticks into an
+auton. `RobotContext` cannot make it (it has no kinematics) and `IKinematics` cannot (it has no
+motors); that is exactly why it was missing.
+
+`A30`'s empty-span half is the same family: with no motors the mean shaft delta is 0, so
+`spinTravel >= minSpinTravel` is never true and the stall check reports **healthy forever**.
+
+**Mutations 2/2 RED:** M8 (the wheel-count cross-check made vacuous) and M9 (the empty-span
+precondition removed) each redden exactly one case. Restored green at **1,133 / 1,523,412 / 3**.

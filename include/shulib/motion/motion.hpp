@@ -191,6 +191,16 @@ struct MotionDeps {
         SHULIB_PRECONDITION(kinematics != nullptr, "MotionDeps: kinematics is null");
         SHULIB_PRECONDITION(faults != nullptr, "MotionDeps: faults is null");
         SHULIB_PRECONDITION(health != nullptr, "MotionDeps: health is null");
+        // The one cross-check no single component can make. RobotContext validates that
+        // driveMotors is non-empty and all-non-null; IKinematics knows how many wheels it
+        // has; NOTHING compared them, and applyCommandPipeline indexes the motor span by
+        // WHEEL index with std::span::operator[], which is unchecked. A context built with
+        // three motors and an XDrive installed therefore read one past the end of the span
+        // on EVERY tick — undefined behaviour with no diagnostic, on the hot path. This
+        // bundle is the one place that holds both, so the check lives here.
+        SHULIB_PRECONDITION(
+            ctx->driveMotors().size() >= static_cast<std::size_t>(kinematics->wheelCount()),
+            "MotionDeps: fewer drive motors than the kinematics has wheels");
     }
 
     /// validate(), then hand out the clock — for a member-initializer list's
