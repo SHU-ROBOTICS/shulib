@@ -62,16 +62,36 @@ if wrong and the measurement that settles it.
 **Freeze rows** (`F1`…`F14`) are contracts promised not to change without a version bump. Confusingly
 they share letters with chunk names and are *not* the same thing.
 
-## Where it stands (2026-08-14)
+## Three different kinds of "proven" — read this before anything else
 
-- **Done:** the thinking half, completely — three drivetrain types, sensor fusion, motion,
-  sequencing, two ways to write a routine, and the documentation.
-- **Just finished:** the hardware layer — fourteen adapters translating between the library and real
-  V5 devices.
-- **Proven on a real robot:** it commanded a physical motor and every conversion it performed was
-  correct. Seven guesses became measurements.
+**Almost every confusing sentence in this project is one of these three being mistaken for another.**
+"The library is nearly finished" and "the library has never driven a robot" are both true, and they
+are true at different tiers.
+
+| Tier | What it proves | How much we have |
+|---|---|---|
+| **1. Host simulation** | the **logic** is right — the maths, the control loops, the decisions | **Enormous.** 1,151 tests / 1.5M assertions, graded against exact ground truth |
+| **2. ARM compile + boot** | it will **build and run** on a V5 brain | **Complete.** All 149 headers cross-compile; it booted on a brain 2026-08-12 |
+| **3. Physical hardware** | the **numbers** are right — what a millivolt is, which way is clockwise | **Almost nothing.** 8 motors spun at 2 V once; 7 conversions confirmed; one robot, one day |
+
+The library is roughly **95% done at tier 1 and 5% done at tier 3.** That single sentence explains
+more of this repo's apparent contradictions than anything else here.
+
+## Where it stands (2026-08-17)
+
+- **Done, and proven at tier 1:** the thinking half, completely — three drivetrain types, sensor
+  fusion, motion, sequencing, two ways to write a routine, diagnostics, and the documentation.
+- **Done, and proven at tier 3 in part:** the hardware layer — fourteen adapters. Motors, battery
+  and clock have met real devices. The other eleven have not.
+- **Published:** everything through 2026-08-15 is live at docs.shurobotics.com.
 - **Not built:** the no-code authoring tool (the entire "usable without C++" promise), driver-control
-  feel, real tuning constants, and the students' own scoring routines.
+  feel, real tuning constants, the students' own scoring routines — **and three small pieces of the
+  drivetrain layer nobody knew were missing until a real robot was held up against the code** (see
+  below).
+
+**An auton already works in simulation.** A six-step routine — move, move, strafe, turn, hold, brake
+— settles **0.228 in** from its target in 9.56 s. That is a measured result from a passing test, not
+a goal.
 
 ## The sentence that governs everything
 
@@ -85,12 +105,41 @@ is the easiest thing in this project to start quietly lying about.
 
 ## What stands between here and a robot that drives
 
-1. **Tell it what the robot is.** It currently believes it has four sliding wheels and two measuring
-   wheels. The available robot has seven drive motors, no measuring wheels and no GPS. Small fix, no
-   hardware needed.
-2. **Check the compass.** The gyro works, but nobody has confirmed which direction it calls positive.
-   Needs a person, the robot and a protractor.
-3. **Drive it**, measure how far off it is, and fix that.
+> **CORRECTED 2026-08-17, and the correction is the point.** This list previously said the first item
+> was a *"small fix, no hardware needed"* — telling the library which ports the motors are on. That
+> was wrong, and it was wrong in the most expensive way a document can be: it was the one actionable
+> list in the one document written to orient a confused reader, and it sent them in the wrong
+> direction. **Measured, not argued:** the port map is the easy part; the library is missing two
+> capabilities underneath it. Written up in `build-order.md`'s R3b entry with the measurements.
 
-Everything else — the camera, the no-code tool, driver controls — is real work, and **none of it is
-on that path.**
+**Step 1 — measure the robot.** Wheel diameter, gear ratio, track width, and which direction the
+gyro calls positive. Mostly a ruler and a protractor; half a morning. **Nothing later is correct
+until this is done**, because two of the pieces below take these numbers as inputs.
+
+**Step 2 — build three small missing pieces.** Roughly 150 lines of library code between them:
+
+1. **Command more than one motor per wheel.** The library sends one voltage to one motor per wheel.
+   A real VEX drivetrain has 2–4 motors per side; the available robot has seven. Handing it seven is
+   *accepted* today and **two get driven while five sit dead, silently.** The kinematics file says
+   this aggregation is "the HAL's business" — and that facility was never built.
+2. **Read distance from a drive motor's encoder.** Odometry (knowing where you are) currently
+   requires two dedicated *Rotation Sensors* on unpowered tracking wheels. The available robot has
+   none. Reading the drive motors instead is how most teams do it — LemLib does — and shulib cannot
+   yet. This is also the only honest home for a **gear ratio**, a concept the library does not have
+   anywhere.
+3. **Say "this chassis cannot see sideways."** A tank robot cannot measure lateral movement, and
+   odometry currently insists on a sensor for it. The kinematics layer already states exactly this in
+   shipped code; the localization layer has not caught up.
+
+**Step 3 — drive it**, measure how far off it is, and fix that.
+
+### Two different autons, two different distances away
+
+| Goal | What it needs | Realistic distance |
+|---|---|---|
+| **Heading-based auton** — turn to a heading under control, drive forward for a measured time | steps 1–3 above. **No odometry at all**: turning reads only the gyro | days |
+| **Position-based auton** — "drive to that spot on the field" | the above, **plus two Rotation Sensors** to buy and mount, plus measured sensor noise and real tuning constants | weeks, and gated on parts |
+| **The sideways-motion thesis** that justifies the whole project | a competition robot with an X or H drive, a GPS and a camera | gated on a robot that does not exist yet |
+
+Everything else — the camera, the no-code tool, driver-control feel — is real work, and **none of it
+is on that path.**

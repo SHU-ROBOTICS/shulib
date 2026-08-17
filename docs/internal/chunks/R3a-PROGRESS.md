@@ -342,4 +342,53 @@ Confirmed on hand: **brain, IMU, controller.** Sensors "can get some" — uncert
 
 ---
 
+## Phase 6 — the upload path, verified before asking for the robot
+
+Checked so that a bench session does not begin by debugging the build (the 2026-08-13 session lost a
+long stretch to exactly that, and to a dropped USB cable):
+
+| Known blocker (briefing L8) | State | Evidence |
+|---|---|---|
+| `CXX_STANDARD=gnu++26` | **already fixed** | `Makefile:35` pins `CXX_STANDARD:=gnu++20`, overriding `common.mk:24`'s `?=gnu++26` |
+| stale soft-float firmware / `liblvgl.a` | **already fixed** | `firmware/` holds `libc.a`, `libm.a`, `libpros.a` and the linker scripts — **no `liblvgl.a`** |
+| PROS CLI + toolchain | present | `pros 3.5.6`, `/usr/bin/arm-none-eabi-g++`, user in `dialout` |
+
+`make` run from a clean tree:
+
+```
+Linking hot project with ./bin/cold.package.elf and libc,libm,libpros [OK]
+Section sizes:
+   text	   data	    bss	  total	    hex	filename
+27.40KB   4.00B  46.01MB  46.03MB 2e07a2c bin/hot.package.elf
+Creating bin/hot.package.bin for VEX EDR V5 [DONE]
+```
+
+**Observation, not investigated, recorded so it is not lost: `bss` is 46.01 MB.** The 2026-08-12 run
+booted this same path so it evidently fits, but no document anywhere records the binary's RAM
+footprint, and HA-59 asserts "64 KiB of RAM is spendable on the blackbox staging buffer" as though
+the budget were tight and known. **46 MB of BSS is three orders of magnitude above that entry's frame
+of reference.** Not chased in this chunk; flagged as a candidate register entry for whoever needs a
+RAM budget (R4 owns HA-58/59/60).
+
+**The brain is not plugged in yet** — `ls /dev/ttyACM*` → no such file. That is the first bench step.
+
+---
+
+## Phase 7 — bench session, batch 1: the measurements that need no code
+
+Asked of the team lead while the validation binary is being written, because these are the highest
+value-per-minute items in the chunk and **none of them requires a program on the brain.**
+
+*(Raw answers to be pasted in below as they come back, before any interpretation.)*
+
+| # | Measurement | Settles | What a wrong answer looks like |
+|---|---|---|---|
+| B1.1 | Drive wheel outside diameter, tread to tread | `HA-14` (first half) | anything not near 2.75 / 3.25 / 4.0 in — the three VEX sizes. A number between them means the tread is worn or it was measured across a hub |
+| B1.2 | **External gear ratio** — teeth on the motor's gear : teeth on the wheel's gear (or "direct drive") | `HA-14` (second half), **and DEFECTS1's `A29`** | 1:1 *would* mean the library's stand-in is right; anything else means `OdoStallCheckConfig::wheelRadius`'s name and comment are wrong on this robot, exactly as A29 predicted |
+| B1.3 | Track width — left wheel contact line to right, centre to centre | `HA-17` (tank half), `HA-52` (`rotationRadius`) | a number far from the frame width; a 15–18 in chassis should read close to its frame |
+| B1.4 | Photograph the brain screen → **Devices** | `HA-120`'s open expander question, and re-confirms `HA-111` | an ADI expander appearing here would confirm the 2026-08-13 report; its **absence** corrects that report, which was read from registry index 21 — outside the documented 0–20 range |
+| B1.5 | What do the motors on ports **1, 2, 3, 5** drive? | scopes `HA-92`, and tells R3b what mechanisms exist | — |
+
+---
+
 *(Appended below as the session proceeds. Raw readings first, interpretation after.)*

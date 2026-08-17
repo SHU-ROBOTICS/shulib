@@ -762,7 +762,27 @@ undiagnosed. A drive motor that under-reports travel biases odometry quietly.
 
 **What this robot CAN settle:** the platform layer — the adapters, unit conversions, brownout
 threshold, real loop rate under load, PROS call latency, IMU drift and calibration window, and the
-**tank** kinematics path.
+**tank kinematics ARITHMETIC** (the same twist must produce the same wheel numbers on ARM and on the
+host — HA-18).
+
+**CORRECTED 2026-08-17 — this line said "the tank kinematics *path*", and that is false.** The
+command pipeline maps one kinematic wheel to exactly one motor
+(`motion/command_pipeline.hpp:146-152`, guarded with `>=` at `motion/motion.hpp:201-203`), and this
+robot has **seven** drive motors on two sides. Handing it seven is *accepted* and **two are commanded
+while five get no voltage and no brake mode, silently, with no fault raised** — measured with a
+negative control (R3a, `chunks/R3a-PROGRESS.md` §4.1). `kinematics/tank.hpp:80` delegates the
+aggregation to "the HAL's business" and **no such facility was ever built.** Two further gaps of the
+same kind were found in the same pass: no odometry is constructible without two dedicated rotation
+sensors (`Localizer` takes a **concrete** `PilonsOdometry&`; there is no `IOdometry` seam), and
+`RobotContext` precondition-requires a `gps`/`tags`/`vision` most robots do not have. All three are
+**R3b's**, all three are ~150 lines between them, and all three are reachable on this bench once
+built.
+
+**The lesson, and it generalizes past this section:** the A4 register inventoried every unproven
+**constant** and none of the unproven **shapes**. Three capability gaps sat in the tree for months
+behind a register that was doing its job perfectly — it was simply not the kind of thing the register
+was built to hold. A "what does the library assume about the *structure* of a robot" list would have
+caught all three, and does not exist.
 
 **What it CANNOT settle, contrary to what this section used to claim:** anything needing a **GPS**
 (noise, latency, the field-cal axis oracle in `gps_conversion_test.cpp` — still skipped) or

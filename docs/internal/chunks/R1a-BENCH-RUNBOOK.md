@@ -13,7 +13,13 @@
 > - **This is a smoke session, NOT validation.** R3 owns validation. Do not tune a gain, do
 >   not claim an accuracy number, do not mark a register entry settled without the logged
 >   evidence.
-> - **The tank bot validates the platform layer and the tank kinematics path only.** It
+> - **The tank bot validates the platform layer only** — *not*, as this line said until 2026-08-17,
+>   "the platform layer and the tank kinematics **path**". The tank kinematics **arithmetic** is
+>   checkable here (the same twist must produce the same wheel numbers on ARM and on the host, HA-18).
+>   The **path** — command in, seven wheels turning — is **not**, because the command pipeline maps one
+>   kinematic wheel to exactly one motor (`command_pipeline.hpp:146-152`) and this robot has seven
+>   drive motors on two sides: five are never commanded, silently. Measured with a negative control at
+>   R3a (`chunks/R3a-PROGRESS.md` §4.1); owned by **R3b**. It
 >   validates NONE of the holonomic thesis — no strafe authority, no pseudo-inverse, no
 >   per-axis decoupling, no H-drive geometry. Those register entries STAY OPEN, and the
 >   session record must say so out loud.

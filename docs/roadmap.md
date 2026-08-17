@@ -159,9 +159,20 @@ not silently break them. This table is the spine of the no-staleness promise.
 > and the mechanism-sensor adapters at R1b (2026-08-14 — see the R1b entry below). All of
 > Phase E, F1, F2, R1a and R1b are committed on `shulib-v2`. **DOCS1** (the full documentation
 > pass) and **DOCS2** (the generated reference over the whole public API — 1,625 public entities
-> across 115 headers, all gated) are both done; what remains before R3 is **the release to
-> `main`**, and the only question riding with it is whether to push at all. First motion is
-> still R3's.**
+> across 115 headers, all gated) are both done. **THE RELEASE HAPPENED on 2026-08-15** —
+> `origin/main` is `c778c11`, docs.shurobotics.com publishes everything through DEFECTS1, and
+> the procedure is now `RELEASING.md` + `tools/release.py` rather than folklore. *(This sentence
+> read "what remains before R3 is the release to `main`, and the only question riding with it is
+> whether to push at all" for two days after the push — the status pointer is the one line in
+> this file that must never be stale, and it was.)* First motion is still open.
+>
+> **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
+> held against the one that arrived, four of its six scope items are impossible on it and its DoD
+> clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to
+> R3b**: M1's DoD is *"identical numbers in a host test and on the V5, swapping only
+> `RobotContext`"*, and `RobotContext` precondition-requires a `gps`/`tags`/`vision` this robot
+> does not have. Three capability gaps were measured at the seam and are R3b's — see M2's
+> "what R3b must build" block below.**
 > **The auton API exists and is FROZEN at BOTH tiers — F6 (`Chassis`) LOCKED at D2 and F10
 > (`Routine`, the recipe layer) LOCKED at D3, both 2026-08-12, API 2.0**
 > (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
@@ -1131,6 +1142,42 @@ clause is true STRUCTURALLY — the new core is the only thing `main.cpp` wires,
 compiles, links, and would boot — but "runs" has never been demonstrated on a V5: that is R3's
 on-robot clause, still open. **The F6 freeze closed at D2 (2026-08-12)** — LOCKED in the
 register above, pin-enforced. This milestone does not close until the on-robot clause does.*
+
+#### What R3b must BUILD before the on-robot clause can close — a roadmap incompleteness bug, found 2026-08-17
+
+> **By this roadmap's own rule** — *"if something needs doing and isn't on this page, that's a bug in
+> the roadmap"* — these three are a bug, and they are the second one of this class the project has
+> found (the first was the missing host plant, which became A2 and the critical path). All three were
+> **measured at the seam**, not inferred, while scoping first motion against the robot that actually
+> arrived; each row below cites the source file and line that carries the gap, so the claim is
+> checkable from the shipped tree. Roughly 150 lines of library code between them, all host-provable
+> against the A2 plant, and **all three are then validatable on the available tank bot** — none needs a
+> competition robot.
+
+- [ ] **Multi-motor-per-side aggregation.** `motion/command_pipeline.hpp:146-152` maps one kinematic
+      wheel to exactly one motor, and `motion/motion.hpp:201-203` guards it with `>=` — so a real
+      drivetrain with 2–4 motors per side is **accepted**, and the surplus motors are **never given a
+      voltage and never given a brake mode, with no fault raised.** Measured on the bench bot's real
+      7-motor drive with a negative control: 2 commanded at +4.4286 V, 5 silent.
+      `kinematics/tank.hpp:80` delegates this to "the HAL's business"; that facility was never built.
+- [ ] **An odometry path that does not require two dedicated rotation sensors.** The chain
+      motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` is hard: `Localizer`
+      takes a **concrete** `PilonsOdometry&`, there is no `IOdometry` seam, `PilonsOdometry`
+      precondition-requires both a Forward and a Lateral wheel, and no `IRotation`-over-`IMotor`
+      adapter exists. **LemLib does drive-encoder odometry and shulib cannot** — a competitive gap
+      against the library this project exists to beat. This is also the only honest home for a
+      **gear ratio**, a concept the library has nowhere (DEFECTS1 `A29`).
+- [ ] **An absent-device ruling.** `chassis/robot_context.hpp:62-73` precondition-requires
+      `gps`, `tags` and `vision` non-null; most robots have none of the three. `src/main.cpp` already
+      ships `FakeTagSource`/`FakeVision` as stubs — a *test fake* and an *absent-device null object*
+      are different things and only one belongs in a competition binary. **This is what blocks M1's
+      "swapping only `RobotContext`" clause on the bench bot, and why M1's badge slips to R3b.**
+
+*What this class of miss teaches, recorded because it generalizes: the A4 register inventoried every
+unproven **constant** and none of the unproven **shapes**. Three capability gaps sat in the tree for
+months behind a register that was working exactly as designed — they were simply not the kind of
+thing it holds. A "what does the library assume about the STRUCTURE of a robot" list would have caught
+all three and does not exist.*
 
 ---
 

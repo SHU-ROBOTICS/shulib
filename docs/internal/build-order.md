@@ -790,6 +790,113 @@ nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigital
 *The total was 43 until DEFECTS1 (+1), and 44 until R3 split three ways (+2). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
 now delivered by R1a rather than as its own chunk (−1). All are recorded in the deviations table.*
 
+---
+
+## The remaining path, in order — from right now to the end
+
+> **Added 2026-08-17, because the phase table above answers "what exists" and nobody could get "what
+> do we do next, and then what" out of it without reading 1,500 lines.** This section is the ordered
+> answer. It is deliberately opinionated about ORDER — the per-chunk entries below own the detail, and
+> this section owns the sequence and the reasoning for it.
+>
+> **Read the three tiers of "proven" first** ([`ORIENTATION.md`](ORIENTATION.md)) or half of this will
+> read as contradictory. The library is ~95% proven in simulation and ~5% proven on hardware. Every
+> row below is really a row about closing that gap.
+
+### The one-screen version
+
+```
+NOW  ──► R3a ──► R3b ──► R4 ──► R5 ──► R6
+         measure  MOVES   noise   gains  back-fit
+                  M1 ✅          (per chassis!)
+                  M2 ✅
+                    │
+                    ├──► R2 ──► R3c ──► E5 ──► E6            needs a camera / a competition robot
+                    │                          M3 ✅
+                    ├──► F3 ──► F4                            needs the build team's mechanism decisions
+                    │           M4 ✅
+                    ├──► T2 ──► T3                            ungated — do any time
+                    ├──► G1 ──► G2 ──► G3 ──► G4              G2+ need VexBuilder
+                    │                         M5 ✅
+                    ├──► H1 ──► H2 ──► H3                     H2 needs VexBuilder's sim
+                    │                         M6 ✅
+                    └──► I1 ──► I2                            needs both robots · M8 ✅
+```
+
+### Stage 1 — the critical path. Nothing else matters until this is done.
+
+| # | Chunk | What it buys | Gate | Honest size |
+|---|---|---|---|---|
+| 1 | **R3a** | every measurable belief about this hardware becomes a measurement; the port map becomes real; the gear ratio finally exists | **the robot in the room** — available now | one bench session |
+| 2 | **R3b** | **the robot moves under the library's own steering.** Closes **M1** and **M2's on-robot clause**, open since June | R3a's numbers (they are constructor arguments, not context) | ~150 lines + tests; one to two sessions |
+
+**Why these two and nothing else first:** every chunk after this is written against constants that are
+currently guesses, and R3b is the first moment anything in this project has ever been *true* rather
+than *consistent*. Until a wheel turns under the library's steering, every accuracy number in the
+repo is a simulation result — including E4's EKF comparison, which decided the default fusion policy.
+
+**Why R3a strictly before R3b, and this is not negotiable:** the gear ratio is a constructor argument
+to one of R3b's three classes. Building first means guessing at the exact number DEFECTS1's `A29` is
+about, and then validating a guess with a guess — trap 1, which has bitten six chunks.
+
+### Stage 2 — make the numbers real. This is where the library stops being a simulation.
+
+| # | Chunk | What it buys | Gate | Note |
+|---|---|---|---|---|
+| 3 | **R4** | measured sensor noise, drift, latency — replaces **every invented magnitude** in Phase E | a robot + time | **the highest-information work in the project.** E4's headline result (the EKF LOST, 0.351″ vs 0.225″) was measured against invented noise. R4 can flip it |
+| 4 | **R5** | real kS/kV/kA and re-tuned PID gains | a robot, per chassis | see the ruling below |
+| 5 | **R6** | the A2 plant recalibrated to a real robot, then the whole host suite re-run against it | R4 + R5 | **this is what makes the no-robot strategy compound** — every later chunk develops against a plant that matches reality, and any newly-failing test is a real defect the invented parameters were hiding |
+
+**RULING on R5's timing — briefing §18 open decision #3, answered.** The concern was that building
+`tools/sysid` on the bench bot yields a validated tool and throwaway numbers, since gains never
+transfer across chassis. **Do it anyway, now, and label the output bench-bot-only from the first
+commit.** The reasoning: the *numbers* are disposable but the *tool and the procedure* are not, and a
+ramp routine you have never run is the worst possible thing to be debugging in October with a
+competition robot half-built. Budget one sysid re-run **per chassis** as a standing cost, not a
+surprise. What would change this ruling: if the competition robots are within ~2 weeks, skip to G1 and
+run R5 once, on the real thing.
+
+### Stage 3 — four independent tracks. Order among them is a scheduling call, not a dependency.
+
+Once stage 1 is done these unblock in parallel. **Pick by what is available**, and the fourth row is
+the answer to "the robot is unavailable today, what do I do?"
+
+| Track | Chunks | Closes | Gated on | Do it when |
+|---|---|---|---|---|
+| **Absolute reference** | R2 → R3c → E5 → E6 | **M3** | a camera; then a competition robot with pods + a GPS + a field | parts arrive. R3c is where **the holonomic thesis finally gets validated** — a tank bot can say nothing about it |
+| **Scoring** | F3 → F4 | **M4** | **the build team's final mechanism / lift / role decisions** — a hardware call, not a software one | those decisions land. F3 also needs the lift-homing answer (limit switch vs stall) still owed since 2026-08-13 |
+| **Driver control** | T2 → T3 | — | **nothing** | any time. T1 already shipped at R1a; only the *feel* layer (curves, slew, per-driver tuning) is missing, and the frozen `drive(ChassisSpeeds, Frame)` verb means only the INPUT half is left |
+| **No-code authoring** | G1 → G2 → G3 → G4 | **M5** | G1 **nothing**; G2–G4 need VexBuilder's `paths[]` schema | **G1 any time.** This is the whole *"usable by people who cannot write C++"* third of the thesis and it is **entirely unbuilt** — the largest gap between what this project promises and what it has |
+
+### Stage 4 — the tail
+
+| Chunks | Closes | Gated on |
+|---|---|---|
+| H1 → H2 → H3 | **M6** | H1 nothing (freezes **F9**); H2 needs VexBuilder's Rapier sim |
+| I1 → I2 | **M8** | both robots existing. I1 is validation, not new core — the H-bot rides the same stack |
+
+### What is actually on the critical path to a competition-usable auton
+
+Strip everything else away and the season path is:
+
+**R3a → R3b → R4 → (F3 + F4, gated on mechanism decisions) → students author the routines.**
+
+R5 rides along per chassis, R6 pays for itself in every later chunk, and **R3c is what lets the
+project claim its own thesis.** T/G/H are the product; none of them is on the season path.
+
+### The three things most likely to bite, ranked
+
+1. **F3/F4 are gated on decisions that are not made** — final mechanisms, lift design, robot roles.
+   That gate has been open since June and it is the only one nothing in software can clear. Two
+   milestones (M4, and M3's docking) sit behind it.
+2. **G1–G4 is a third of the thesis and is not started.** M5 and M7's accessibility promise both
+   depend on it, and G2–G4 additionally depend on a tool outside this team's control.
+3. **Gains and noise do not transfer between robots.** R4 and R5 will need re-running on every
+   chassis. Anything that reads like a settled number after this session is stamped
+   `measured-on-comp-bot`, one robot, once, and that stamp is load-bearing.
+
+---
+
 **T is placed after F and before G deliberately:** it is host-provable and externally ungated, so it
 belongs with the work that can proceed without VexBuilder, a field, or a second robot. T3 needs F1
 (the mechanism seam), which is done. **T2 has no dependency on F2** and may be reordered ahead of
