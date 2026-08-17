@@ -644,17 +644,9 @@ DEFECTS1 ([brief](chunks/DEFECTS1-api-defect-triage.md),
 evidence, 6 written up as breaking changes to argue, 4 deferred with their owning chunk named.
 It ran before the release for the same reason the documentation chunks did: merging to `main`
 is what publishes, and the reference was carrying accurate sentences describing behaviour we
-knew was wrong.
-
-DEFECTS1 ([brief](chunks/DEFECTS1-api-defect-triage.md)) is inserted **before** the release, and
-for the same reason the two documentation chunks were: merging to `main` is what publishes.
-DOCS2 read 1,625 public entities against their implementations and filed 83 defects under its own
-landmine "report, do not fix" — so the published reference currently carries careful, accurate
-sentences describing behaviour we know is wrong (`hal/pros/rotation.hpp` on a faulted first read,
-`motion/motion_scheduler.hpp` on a destructor that leaves the drive energized). Rule 4 applies to
-this chunk where it did not to DOCS2: a flaw gets fixed where it lives. **Triage comes first** —
-the list is 83 *claims*, and DOCS2's own correction pass rejected 2 of 62 findings with evidence,
-both correctly.
+knew was wrong. **What it hands R3:** `A29` (no gear-ratio concept exists anywhere) and
+`A15`/`A16` (atomic sensor reads) are bench-resolvable in minutes with a brain on the desk, and
+`HA-123`'s per-tick travel bound is dt-blind until someone measures a real loop rate.
 
 DOCS1 ([brief](chunks/DOCS1-full-documentation-pass.md), [record](chunks/DOCS1-COMPLETED.md)):
 the whole documentation surface was read end to end, the release gate that was red is green, and
