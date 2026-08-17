@@ -629,7 +629,10 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R3 — first motion.** DOCS1, DOCS2 and DEFECTS1 are all COMPLETE, and **the RELEASE
+**Next: R3a — platform validation on the tank bench bot** ([brief](chunks/R3a-tank-bench-validation.md),
+live log [R3a-PROGRESS.md](chunks/R3a-PROGRESS.md)). **R3 split into R3a + R3b + R3c on 2026-08-17** —
+the ruling, its reasoning and its rejected alternative are in the brief's §3 and the deviations table.
+DOCS1, DOCS2 and DEFECTS1 are all COMPLETE, and **the RELEASE
 HAPPENED on 2026-08-15**: `origin/main` is `c778c11`, its tree byte-identical to
 `origin/release/v2`, and docs.shurobotics.com now publishes everything through DEFECTS1 —
 Phase E, F1, F2, R1a, R1b, both documentation passes and the 117-page API reference. The
@@ -770,12 +773,13 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
 | **G** | No-code authoring | G1–G4 | needs VexBuilder |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
-| **R** | **Robot arrival** | R1a, R1b, R2–R6 | **needs hardware** |
+| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R4–R6 | **needs hardware** — R3a/R3b need only the bench bot; R3c needs a competition robot |
 | **F′** | Scoring primitives | F3–F4 | needs hardware + final mechanisms |
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**44 chunks.** DEFECTS1 was added 2026-08-15 — DOCS2 filed 83 API defects under a
+**46 chunks.** R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
+DEFECTS1 was added 2026-08-15 — DOCS2 filed 83 API defects under a
 report-don't-fix landmine, and Rule 4 says a flaw gets fixed where it lives, so resolving them is
 a chunk rather than a footnote on the release. C8 (the manual) was added at Phase C; **Phase T (driver control) was added
 2026-08-13** — the library's own one-stop-shop thesis (§15) is broken by needing a second library to
@@ -783,8 +787,8 @@ drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only th
 missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
 nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
 
-*The total was 43 until DEFECTS1 (+1). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
-now delivered by R1a rather than as its own chunk (−1). Both are recorded in the deviations table.*
+*The total was 43 until DEFECTS1 (+1), and 44 until R3 split three ways (+2). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
+now delivered by R1a rather than as its own chunk (−1). All are recorded in the deviations table.*
 
 **T is placed after F and before G deliberately:** it is host-provable and externally ungated, so it
 belongs with the work that can proceed without VexBuilder, a field, or a second robot. T3 needs F1
@@ -1346,8 +1350,20 @@ Live PID/FF tuning on the brain mid-session, no laptop.
 > **Write R1–R3's code before the robot arrives** — they need hardware to *run*, not to *author*. Slot
 > the authoring in whenever convenient during Phases C–H; only the validation sessions block.
 >
-> **R1–R3 close M1's Definition of Done**, open since June: *identical numbers in a host test and on
-> the V5, swapping only `RobotContext`.*
+> **~~R1–R3 close M1's Definition of Done~~ — M1 closes at R3b**, not R3. Its DoD is *identical
+> numbers in a host test and on the V5, swapping only `RobotContext`*, and `RobotContext`
+> precondition-requires a `gps`, a `tags` and a `vision` this robot does not have
+> (`chassis/robot_context.hpp:62-73`). R3a measures below the facade and says so; R3b builds the
+> three additive pieces that make the swap legal and closes the clause. Recorded in the deviations
+> table — **this paragraph was not achievable as written, and that was found by reading the code R3
+> had to run.**
+>
+> **The other sentence above is now half wrong too, and usefully so.** "They need hardware to *run*,
+> not to *author*" held for R1a and R1b. It does **not** hold for R3b: two of its three deliverables
+> are library capabilities nobody knew were missing until a real 7-motor drivetrain and a
+> pod-less chassis were held up against the code. **The register inventoried the unproven
+> *constants*; it did not inventory the unproven *shapes*.** That is the most transferable thing
+> Phase R has taught so far.
 
 ### R1a — `hal/pros/*` adapters: the drivetrain and the driver ⟵ **[brief](chunks/R1a-pros-adapters-drivetrain.md)**
 The **only** files in the tree permitted to `#include <pros/*>`. Adapters for `IClock`, `IMotor`,
@@ -1414,24 +1430,97 @@ both object mode and AprilTag mode (kernel 4.2.2 provides the 4 tag families nat
 
 **DoD:** tags surface as robot-relative poses and objects as bearings, per F4 decision #7.
 
-### R3 — Day-one validation ⟵ **closes M1 and M2's on-robot clause**
-A minimal validation entry point — no auton, no motion. Read every sensor, command open-loop voltages,
-stream `TermSink`. Then walk the **A4 Hardware Assumptions Register top to bottom**:
+### ~~R3 — Day-one validation~~ ⟶ **SPLIT INTO R3a + R3b + R3c, 2026-08-17**
 
-- **The GPS field-cal axis oracle** (`test/gps_conversion_test.cpp`, the skipped case named "gpsSensorPose: FIELD-CAL axis oracle") — bench-measure the
-  position-axis→compass binding rather than assuming it. Unskip it.
-- **The F5 on-V5 number-match** — the same twist produces identical wheel commands on host and robot.
-- **IMU conversion truth** — canonical heading, sign, and wrap against physical rotation.
-- **Tracking-wheel geometry** — measured offsets and direction signs against `PilonsOdometry`.
-- **A push test** — shove the robot a measured distance; confirm odometry agrees.
-- **Every remaining register entry**, marked confirmed or corrected.
+R3's entry was written in June, when no robot existed and the planning documents believed the
+available hardware would be *"an old tank practice bot with not much on it"*. Measured against the
+robot that actually arrived (briefing §15), **four of its six scope items are impossible on it and
+its DoD clause is not blocked on hardware at all.** The ruling, its reasoning and its rejected
+alternative are in [`chunks/R3a-tank-bench-validation.md`](chunks/R3a-tank-bench-validation.md) §3;
+the deviations table carries the row. Nothing is renumbered.
 
-**Expect corrections here, and treat them as the system working.** Each one is a defect the register
-predicted and localized to the HAL seam, rather than a mystery surfacing mid-season. A correction
-behind `hal/pros` does not touch the core.
+**The split axis is *what is missing*, not *which robot*** — which is what makes it three chunks
+rather than the obvious two:
 
-**DoD:** M1's DoD met and its badge flips to ✅; every skipped hardware oracle unskipped and green;
-the register fully resolved; a v2 auton runs on the robot.
+- **R3a** — nothing is missing but the measurements.
+- **R3b** — a **library capability** is missing. Reachable on the robot in the room.
+- **R3c** — **hardware** is missing. No amount of code helps.
+
+### R3a — Platform validation on the tank bench bot ⟵ **[brief](chunks/R3a-tank-bench-validation.md)**
+A minimal validation entry point for the **measured** robot — no auton, no motion, no closed loop.
+Read every device printing **raw PROS value beside canonical value**, command open-loop voltages,
+stream `TermSink`, then walk the register's R3 group.
+
+The shipped `src/main.cpp` **cannot boot on this robot**: motors on 1/2/−3/−4 (port 4 is the IMU),
+rotation sensors on 5/6 (5 is a motor, 6 is empty), a GPS on 9 and an IMU on 10 (both empty), and
+X-drive kinematics on a tank chassis. R3a adds a **compile-time-selected** tank wiring and preserves
+the X-drive one verbatim — it is the only artifact of the 2026-08-12 whole-object-graph boot.
+
+Settles: the port map (HA-111), IMU convention truth (HA-02/03/04/05/23/108/109/110), the controller
+and LCD group that no session has ever reached because no controller was ever paired
+(HA-57/103/104/107), the anchored tick (HA-102), real loop rate under the load this build carries
+(HA-32, partial), the F5 kinematics number match (HA-18, partial), drivetrain geometry and **the A29
+gear ratio** with a ruler and a tooth count (HA-14/15/17), and HA-98's untested cross-program
+persistence. Re-expresses **HA-123** as `vMax × dt` once a real loop rate exists.
+
+**DoD:** the register's group-(a) entries settled or corrected; group-(b) settled in part with the
+unsettled half named; group-(c)/(d) left open **naming the sensor or hardware each needs**, and
+counted; the GPS field-cal oracle **still skipped, with why**; findings 1–3 registered.
+**M1's badge does NOT flip here** — see R3b.
+
+### R3b — First closed loop on a tank drive ⟵ **closes M1's DoD and M2's on-robot clause**
+Three additive pieces of library code, each host-provable against the A2 plant and the existing fakes
+long before it meets a robot — then validated on **the same bench robot**, which is why this chunk is
+*not* gated on a competition robot:
+
+1. **Multi-motor-per-side aggregation.** `command_pipeline.hpp:146-152` maps kinematic wheel → motor
+   **1:1**, and `motion.hpp:201-203` guards it with `>=`, so a 7-motor tank drive is *accepted* and
+   **two motors are commanded while five are never given a voltage or a brake mode, silently**
+   (measured, with a negative control, in `chunks/R3a-PROGRESS.md` §4.1). `tank.hpp:80` delegates this
+   to "the HAL's business" and **no such HAL facility exists.** Every real VEX drivetrain has 2–4
+   motors per side.
+2. **An odometry path that does not require two dedicated rotation sensors.** The chain
+   motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` is hard: `Localizer`
+   takes a **concrete** `PilonsOdometry&`, there is no `IOdometry` seam, and `PilonsOdometry`
+   precondition-requires both a Forward and a Lateral wheel. **LemLib does drive-encoder odometry and
+   shulib currently cannot** — which is a competitive gap, not only a bench inconvenience. Note that
+   `TankKinematics::forward()` already documents "vy ALWAYS exactly 0 — this drivetrain cannot observe
+   lateral motion", so a lateral-less odometry is the odometry counterpart of a decision the
+   kinematics layer has already made explicitly and in writing.
+3. **The absent-device ruling.** `RobotContext` precondition-requires `gps`, `tags` and `vision`
+   non-null; most robots have none of the three. `main.cpp` already ships `FakeTagSource`/`FakeVision`
+   as stubs — a *test fake* and an *absent-device null object* are different things and only one
+   belongs in a competition binary.
+
+**Depends on R3a's numbers, not merely on its completion:** the gear ratio decides whether the motor
+group needs a ratio parameter, the measured loop rate decides HA-123 and the stall window, and the
+IMU sign decides which way the odometry integrates. Building before measuring is guessing first.
+
+**DoD:** M1's DoD met — *identical numbers in a host test and on the V5, swapping only
+`RobotContext`* — and its badge flips; a v2 tank auton runs on the robot under the library's own
+steering; HA-18 and HA-52's threshold half settled; HA-112's "drivable" half settled.
+
+### R3c — Holonomic and absolute-reference validation ⟵ **gated on a competition robot**
+The 13 register entries no code can reach on the bench bot, each named with what it needs:
+
+| Entries | Needs |
+|---|---|
+| HA-01, HA-06, HA-07, HA-09, HA-10, HA-31, HA-106 | a **GPS** (plus the field strip for HA-01/HA-09) |
+| HA-11 (the in-match half), HA-12, HA-13 | **rotation sensors mounted as tracking wheels** |
+| HA-68, HA-69, HA-70 | an **AI Vision camera** and a field with tags |
+| HA-55 | the **15″ H-bot** |
+
+Plus R3's original scope items that need them: the **GPS field-cal axis oracle**
+(`test/gps_conversion_test.cpp`, the skipped case "gpsSensorPose: FIELD-CAL axis oracle") unskipped
+against a *measurement*, **tracking-wheel geometry** against `PilonsOdometry`, and **the push test**.
+**And it validates the holonomic thesis** — strafe authority, the pseudo-inverse, per-axis decoupling,
+H-drive geometry — none of which a tank bot can speak to.
+
+**Expect corrections across all three, and treat them as the system working.** Each one is a defect
+the register predicted and localized to the HAL seam, rather than a mystery surfacing mid-season. A
+correction behind `hal/pros` does not touch the core.
+
+**DoD:** every skipped hardware oracle unskipped and green; the register fully resolved.
 
 ### R4 — Sensor characterization → real noise parameters
 Measure what only hardware can tell you: IMU per-boot bias and 60s drift rate, GPS update latency and
@@ -1537,6 +1626,8 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 | **Legacy deleted before on-robot validation** | Delete after hardware-validating | C7 | The "safety net" doesn't compile, C6 salvages first, and git keeps history |
 | **R1 split in two** | *(n/a — this document's own R1)* | **R1a + R1b, split by consumer** | R1's entry said nine adapters; the tree says fifteen — four earlier chunks each wrote "R1 owns this" into their own headers. With two new seams, a host test shim, `main.cpp` and a bench session that is 3–4× a chunk. R1a is what the drivetrain and a driver need (nothing external gates it); R1b is what a *mechanism* needs, and mechanisms are F3's |
 | **T1 delivered by R1a** | *(n/a — Phase T is this document's own addition)* | **R1a** | R1a writes the `pros::Controller` adapter behind the `IController` seam. Authoring a seam in one chunk and its first real implementation in another is how a seam gets shaped by a guess instead of by a consumer — the exact argument F1 used for `IMechanism` |
+| **R3 split in three** | *(n/a — this document's own R3)* | **R3a + R3b + R3c, split by *what is missing*** | R3's entry was written when no robot existed. Measured against the one that arrived, **four of its six scope items are impossible on it** (GPS field-cal, tracking-wheel geometry, the push test, the holonomic entries) **and its DoD clause — "a v2 auton runs on the robot" — is not blocked on hardware at all**: it is blocked on two missing library capabilities (no multi-motor-per-side aggregation; no odometry path that does not require two dedicated rotation sensors), both measured at the seam before the brief was written. The obvious two-way split — *this bot vs a competition bot* — was **REJECTED** because it would file M2's on-robot clause behind a robot that does not exist yet, when it is in fact reachable on the bench with two additive pieces of code. So the axis is *what is missing*: **R3a** nothing but measurements · **R3b** a capability · **R3c** hardware. Full reasoning and rejected alternative in [`chunks/R3a-tank-bench-validation.md`](chunks/R3a-tank-bench-validation.md) §3 |
+| **M1's badge slips from R3 to R3b** | *(n/a)* | **R3b** | M1's DoD is *"identical numbers in a host test and on the V5, swapping only `RobotContext`"*. `RobotContext` precondition-requires a non-null `gps`, `tags` and `vision` (`robot_context.hpp:62-73`) and this robot has none of the three, so R3a cannot build one without shipping a test fake — which it declines to do. Line 1349's "R1–R3 close M1's Definition of Done" is therefore **not achievable as written**; recorded rather than absorbed |
 | **A digital-input seam built on an open question** | *(absent)* | **R1b** | Whether the lift homes on a limit switch or a stall is *undecided*. The seam is built anyway: cheap now, expensive to discover at R3 with the robot on the bench. A deliberate departure from "a seam earns itself on a real consumer", defensible only because a digital input has one degree of freedom and `IDigitalOut`'s header already rules every other question about it. **If the answer comes back "stall", it is a small unused sibling — stated, not discovered** |
 
 > **Reversal, recorded honestly.** An earlier draft of this document put the hardware bridge *before*
