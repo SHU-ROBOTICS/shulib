@@ -607,4 +607,158 @@ matching manipulator pairs, and a single self-consistent explanation for the onl
 
 ---
 
+## Phase 10 — bench batch 1, first two answers (team lead, 2026-08-17)
+
+### 10.1 RAW answers
+
+> **1.** *"we didnt add odom aka rotation sensors to calypso but we have some somewhere"*
+> **6.** *"the left side is ports 15-18"*
+
+### 10.2 SETTLED — the drive side labels. **LEFT = 15/16/17/18. RIGHT = 11/12/13/14.**
+
+Confirmed by a **second independent physical determination**, five days after the first
+(2026-08-13 hand-spin with a read-only monitor; 2026-08-17 direct re-check with the front end named).
+Two observations, two methods, same answer. **This is the strongest-evidenced fact about this robot.**
+
+### 10.3 FINDING — Calypso's code has LEFT and RIGHT **SWAPPED**, and its one measured
+### asymmetry constant is therefore attached to the wrong side
+
+```cpp
+// origin/calypso, src/hardware.cpp — the labels, against measured reality:
+pros::MotorGroup left ({11, -12, 13, -14}, ...);   // ← these are physically the RIGHT side
+pros::MotorGroup right({-16, 17, -18, 15}, ...);   // ← these are physically the LEFT side
+```
+
+**Consequences, and the third one is the reason this matters to us:**
+
+1. **`RIGHT_DRIVE_BIAS = 1.08` was applied to the physically-LEFT side.** Whatever it compensated for,
+   it did not compensate for it on the side its name claims.
+2. **The comment *"the right side is mechanically geared down a touch for traction"* is now ambiguous**
+   — it may mean the code's `right` (physically LEFT) or the author's mental "right" (physically
+   RIGHT). **Nothing in that branch can resolve it**, which promotes batch-1 step 3 (tooth counts on
+   BOTH sides, labelled by physical side) from "high value" to **the measurement that resolves an
+   otherwise unresolvable ambiguity.**
+3. **A swapped pair survives empirical tuning invisibly.** Calypso's auton was tuned by driving it and
+   adjusting until it did the right thing — so the tuning silently absorbed the swap and the robot
+   behaved. Nothing would ever have surfaced it. **This is trap 1 in its purest form: the calibration
+   and the error cancelled, and the result was a robot that worked and a codebase that was wrong.**
+
+**Discipline this imposes on R3a and R3b:** shulib's `TankKinematics` fixes canonical wheel order as
+**0 = LEFT, 1 = RIGHT** (`kinematics/tank.hpp:16`). Wiring the port groups from Calypso's *names*
+would mirror every turn. **The port map is taken from the physical measurement, never from that
+branch**, and the bench binary prints the side label beside the port list so a mirror is visible on
+screen rather than inferred from a robot turning the wrong way.
+
+### 10.4 The rotation sensors EXIST — position-based odometry is not gated on a purchase
+
+*"we didnt add odom … but we have some somewhere."* They were never fitted to Calypso (its
+`Rotation horizontal(21)` / `vertical(-20)` are declarations against unwired ports, exactly as its own
+comment says), **but the team owns some.**
+
+**This materially improves R3b's ceiling.** The earlier reading — that a position-based auton is gated
+on buying parts — is **withdrawn**. It is gated on *finding and mounting* parts the team already has.
+Two consequences for R3b's design, both to be ruled when the sensors are in hand:
+
+- The drive-encoder odometry path (`EncoderRotation`) stays worth building regardless — it is what
+  makes shulib usable by teams *without* pods, which is a capability LemLib has and shulib does not,
+  and it is the only honest home for a gear ratio. It does **not** become dead work.
+- But if two real pods get mounted, `PilonsOdometry` runs **as shipped and as designed**, with no
+  lateral-observability compromise at all — which is a strictly better first closed loop than a
+  forward-only one, and it makes the R3c "tracking-wheel geometry" and "push test" entries reachable
+  on *this* robot rather than on a competition robot.
+
+**Open, and now worth asking:** how many, and is there room to mount two perpendicular unpowered
+wheels (one forward-rolling, one lateral-rolling) near the tracking centre?
+
+### 10.5 Still pending from batch 1
+
+Steps **2** (cartridge colour — the 3× BLUE/GREEN conflict), **3** (tooth counts, per side),
+**4** (wheel diameter), **5** (track width), **7** (port 16 play), **8** (Devices photo + what
+ports 1/2/3/5 drive).
+
+---
+
+## Phase 11 — the v1 autonomous code review, mapped against v2 finding by finding
+
+Team lead supplied a two-part code review titled *"Forward Movement Inconsistency Investigation —
+shulib Chassis Library + Autonomous Routines"*. **It is a review of shulib v1**, not v2: it names
+`main.cpp`, `odometry.cpp`, `pid.cpp`, `odomUnit.cpp`, `chassis.cpp`, `drivetrain.cpp`,
+`tankdrive.hpp`, `logger.cpp` (v2 is header-only and has none of these) and calls
+`move_vertical` / `rotate_to` / `move_to_pose` over `pooksterLeft` / `pooksterRight` — the
+`origin/pookster*` branch family. This is the code C6 audited and C7 deleted.
+
+**It is the most valuable document handed to this project in weeks**, because it is an *independent*
+account of how a real robot actually failed, written without reference to v2's design — and it is
+therefore a fair test of whether v2's structural choices were the right ones.
+
+### 11.1 Every finding, checked in v2's source. 10 of 10 are structurally absent.
+
+| v1 finding | v2 status | Verified at |
+|---|---|---|
+| **5.1 accumulated distance** — each tick adds the magnitude of the step, so noise only ever *adds* | **absent by design.** Error is recomputed absolutely every tick: `errX = target_.x() − pose.x()` | `move_to_pose.hpp:171-173` |
+| **5.2 the `kC` term** — constant power 25 at any error, and **NaN when error is exactly 0** (it divides by the error) | **absent by design.** kS keys off the *velocity setpoint*, not error, and the zero case is an explicit branch — no division, no NaN: `(v>0)? kS : (v<0)? −kS : 0.0` | `feedforward.hpp` `calculate()` |
+| **5.3 heading PID all zeros, rotation hardcoded 0** | **absent by design.** `MoveToPose` runs **three decoupled per-axis loops**; heading is one of them, mutation-proven at C1 | `move_to_pose.hpp:15,197-198` |
+| **5.4 odometry uses FINAL heading, not average** | **absent — and this is the exact legacy bug re-deriving `arcStep` caught.** `thAvg = headingStart + 0.5·dTheta` | `arc_step.hpp:93,99` |
+| **5.5 PID `time` passed as a literal** (0.001 or 5 against a 5 ms loop) | **absent by design.** dt comes from an **injected clock**, measured; `dt ≤ 0` applies P only | `pid.hpp:10-11,85-88` |
+| **5.6 no mutex on `odomPose`** | **not applicable.** v2 has no concurrent writer — one loop, no shared mutable pose | see 5.7 |
+| **5.7 a new `pros::Task` every 20 ms in opcontrol** | **not applicable.** `grep -rn "pros::Task" include/ src/` finds **one** hit, `Task::delay_until` — a static sleep, not a task creation. **v2 creates zero tasks** | `hal/pros/tick_pacer.hpp:71` |
+| **5.8 `new` without `delete`** | **not applicable.** No owning `new` in the library | — |
+| **5.9 NO TIMEOUT on any movement loop** — *"a single stuck move kills the entire autonomous"* | **absent by design, and it is one of v2's headline guarantees.** Every motion is `Watchdog`-bounded, takes a `timeout`, and reports an `ExitReason`; `defaultTimeout = 5.0 s` | `move_to_pose.hpp:88-92`, `motion_config.hpp:112` |
+| **5.10 a background task commands the drive motors while a movement is running** | **absent by design.** `MotionScheduler` enforces **exactly one active motion** structurally — a new one PRE-EMPTS, cancelling the old inert before the new exists. F1's **claim token** does the same for mechanisms | `motion_scheduler.hpp:6,29`, `hal/mechanism.hpp:41-50` |
+
+### 11.2 The honest caveat, and it is the whole point of §3
+
+**Every "absent by design" above is TIER-1 evidence** (host simulation) — see `ORIENTATION.md`'s three
+tiers. v1's failures were observed **on a robot that actually drove**. v2's fixes have **never met
+one.** So the correct claim is *"v2's design does not contain these ten failure modes"*, **not**
+*"v2 would not have these problems"* — and the difference is exactly the gap R3a and R3b exist to
+close. A structural absence is a strong claim about logic and says nothing about constants.
+
+**And v2 fixes none of the review's own §1.3 "not ruled out" list**, which is entirely physical:
+tracking-wheel diameter wrong, pods bouncing or under-sprung, mount play, surface friction, battery
+sag between runs, motor thermal droop. Those are **precisely the hardware-assumptions register's
+territory** — HA-13, HA-25, HA-37/38/39, HA-40/41, HA-43/44 — and every one of them is still
+`invented`. **v1's review and v2's register are describing the same unknowns from opposite ends.**
+
+One narrower honesty note: v2's *stopping* behaviour is structurally right (profiled decel, settle
+tolerance + rate floors, watchdog) but its **constants are guesses** — `SettleConfig`'s tolerances and
+rate floors are **HA-51, invented**. v2 does not have v1's `kC` failure *mechanism*; whether v2 stops
+cleanly on a real robot is unmeasured.
+
+### 11.3 NEW information this document gives R3 — three things, all load-bearing
+
+1. **The team has previously run a robot with THREE tracking wheels, mounted and working.**
+   *"Left wheel Port 10, 1.5in diameter, offset −6.5in · Right wheel Port −8, 1.5in, offset +6.5in ·
+   Back wheel Port 9, 1.5in, offset −4.0in."* This is much stronger than §10.4's *"we have some
+   somewhere"*: pods **exist, have been mounted, and have been driven.** R3b's odometry blocker is
+   not a purchase and not a novel fabrication problem — it is a re-mount of a configuration this team
+   has already built once.
+2. **`Theta correction = 1.275` — raw tracking-wheel heading scaled by 27.5% to match reality.**
+   A 27.5% fudge factor on heading is not a calibration, it is a **symptom of badly wrong geometry**
+   (wrong offsets, wrong effective diameter, or slip). It is also the single best argument for v2's
+   *heading is IMU-owned* rule, which exists precisely so wheel geometry can never corrupt heading.
+   **This factor must NOT be carried across under any circumstances** — v2 does not derive heading
+   from wheels at all, so there is nowhere for it to go, and re-introducing it would mean re-creating
+   the bug it was papering over. Note also that v1 **had an IMU on port 6 and passed `nullptr` to
+   `OdomSensors`** — the sensor that would have fixed heading was plugged in and unused.
+3. **1.5″ tracking-wheel diameter appears in BOTH this review AND the Calypso branch** — two
+   independent sources agree. shulib's `HA-13` stand-in is **2.0″**. If the team's pods really are
+   1.5″, **HA-13 is wrong by 33%**, and that is a direct multiplier on every odometry distance. It
+   goes on the caliper list beside the drive wheels.
+
+### 11.4 What to do with the review itself
+
+Its §8 testing plan is sound and **its §8.3 physical checks are R3a's worklist almost verbatim**
+(caliper the tracking wheels, check ground contact, check mount play, check sensor seating). Its §8.5
+fix order is for v1 and is moot — C7 deleted that code, and v2 already implements fixes (1), (3), (4),
+(5) and (6) structurally. **The one item worth acting on regardless is §8.4** (the opcontrol task
+spam), and only if any v1 branch is still being driven by students; v2 cannot inherit it.
+
+*(Filed for the record rather than actioned: this review reached findings C6's audit did not,
+because C6 classified files for salvage and this traced a live failure. Both were right about the
+port list being empty — nothing here is code worth carrying, and the value is entirely in the
+failure modes and the three physical facts in §11.3.)*
+
+---
+
 *(Appended below as the session proceeds. Raw readings first, interpretation after.)*
