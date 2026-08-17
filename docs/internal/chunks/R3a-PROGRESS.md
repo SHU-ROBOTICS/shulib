@@ -391,4 +391,220 @@ value-per-minute items in the chunk and **none of them requires a program on the
 
 ---
 
+## Phase 8 — `origin/calypso`: a prior robot's MEASURED drivetrain, found on an old branch
+
+Team lead's suggestion, and it was a good one. `origin/calypso` — 2 commits (`dea557e` "wip ah",
+`6306651` "Initial commit for calypso robot") — is a **LemLib** project for a robot called Calypso,
+with drivetrain constants **measured on hardware 2026-04-21/22**. This is the closest thing to a prior
+measurement of a real team robot that exists anywhere in this repository's history.
+
+**Provenance warning applied throughout: none of this is adopted. It is a set of falsifiable
+PREDICTIONS for tonight's bench session.** Every number below was measured on *a* robot in April with
+a tape measure and a phone compass, by a different codebase, with no IMU and no encoders.
+
+### 8.1 RAW — `src/hardware.cpp` (the port map and geometry)
+
+```cpp
+// Left side: ports 11, 12, 13, 14 (12 and 14 reversed via the negative sign).
+// Right side: ports 15, 16, 17, 18 (16 and 18 reversed). Port 15 was added
+// after the 19 -> 15 shuffle done by the builder.
+// All motors use the BLUE cartridge [...] but the right side is mechanically
+// geared down a touch for traction (intentional; see RIGHT_DRIVE_BIAS).
+pros::MotorGroup left({11, -12, 13, -14}, pros::MotorGearset::blue);
+pros::MotorGroup right({-16, 17, -18, 15}, pros::MotorGearset::blue);
+
+// Track width 15", wheel diameter 3", placeholder RPM 450, drift radius 2.
+lemlib::Drivetrain tachyon(&left, &right, 15, 3, 450 /*placeholder*/, 2);
+
+pros::MotorGroup intake({1, -2});
+pros::MotorGroup conveyor({3, -4});
+
+// NOTE (2026-04-21): smart port scan confirmed NO sensors are actually wired.
+pros::Imu imu(6);                // NOT WIRED
+pros::Rotation horizontal(21);   // NOT WIRED
+pros::Rotation vertical(-20);    // NOT WIRED
+
+pros::adi::Pneumatics column('A', false);    // the CRANE
+pros::adi::Pneumatics releaser('B', false);  // flap at the end of the crane
+pros::adi::Pneumatics unloader('C', false);  // the "tongue"
+pros::adi::Pneumatics descore('D', false);   // defensive stick
+
+lemlib::TrackingWheel horizontalTracking(&horizontal, 1.5, -4);
+lemlib::TrackingWheel verticalTracking(&vertical, 1.5, 0);
+lemlib::ControllerSettings translational(6, 0, 3, 0, 1, 100, 3, 500, 0);  // never tuned
+lemlib::ControllerSettings rotational  (1.25, 0, 2, 0, 1, 100, 3, 500, 0);  // never tuned
+```
+
+### 8.2 RAW — `include/calibration.hpp` (measured 2026-04-21/22, Phase 0 + Phase C)
+
+| Constant | Value | Note as written |
+|---|---|---|
+| `TURN_VOLTAGE` | 60 | of PROS's ±127 scale. *"Measured: 253°/s at 60V (Phase 0.4)"* |
+| `CRUISE_SPEED_FORWARD` | 0.0584 in/ms | = **58.4 in/s** at cruise |
+| `CRUISE_SPEED_REVERSE` | 0.0572 in/ms | forward × 0.9795 — **not independently re-measured** |
+| `STARTUP_LOSS_FORWARD` | 0.8 in | net of ramp-up loss ~3.58″ minus ramp-down gain ~2.78″ |
+| `CRUISE_RATE_TURN` | 0.410 deg/ms | = **410 °/s** cruise (consistent with the 253 °/s average once the 53° ramp loss is applied) |
+| `STARTUP_LOSS_TURN` | 53.0 deg | |
+| **`RIGHT_DRIVE_BIAS`** | **1.08** | *"Right-side drivetrain has intentionally different (slightly larger) gearing for traction, so at identical voltage the right wheels travel slightly less distance than the left."* Tuned to <0.25″ spread over a 48″ drive |
+
+**How the turn numbers were obtained, and it caps their worth:** *"we have no IMU to count them"* and
+*"We hit a phone-compass measurement noise floor around ±3°."* The **distance** numbers were
+tape-measured and are worth more than the **angle** numbers, which were phone-compass measured.
+
+### 8.3 The conflicts with the 2026-08-13 bench session — four of them, all checkable in minutes
+
+| | Calypso (April, from code) | Bench bot (August, measured) |
+|---|---|---|
+| drive port **sets** | {11,12,13,14} and {15,16,17,18} | {15,16,17,18} and {11,12,14} — **same two sets** |
+| which set is **LEFT** | **11,12,13,14** | **15,16,17,18** — **OPPOSITE** |
+| cartridges | **BLUE** (600 rpm) | **GREEN** (200 rpm) — **3× disagreement** |
+| port 4 | conveyor motor | **IMU**, alive and calibrating |
+| port 5 | AI Vision sensor | a motor |
+| IMU | port 6, **NOT WIRED** | port 4, **working** |
+| sensors wired | **none** (port scan 4/21) | IMU working |
+
+**Two readings of this, and I am not choosing between them without a measurement:**
+
+- **(a) Same robot, rewired between April and August**, with one of the two side labels wrong. The
+  drive port sets matching exactly is a strong coincidence otherwise, and "the team's old competition
+  bot" fits Calypso's description (Push Back was the 2025-26 game).
+- **(b) Two different robots** that happen to group drive motors as 11–14 and 15–18, which is a
+  natural grouping.
+
+**On the side-label conflict specifically:** August's determination was a *direct physical
+observation* — one side spun by hand while a read-only monitor showed the other side reading exactly
+zero — which is much stronger than a code comment. **But "left" depends on which end of the robot the
+observer called the front**, and nothing in the August record says how that was fixed. A mirrored
+left/right is exactly the class of error that produces a robot that turns the wrong way, and it is
+free to re-check.
+
+### 8.4 THE FINDING — A29 is worse than "no gear-ratio concept". It needs a PER-SIDE ratio.
+
+*"the right side is mechanically geared down a touch for traction"* + `RIGHT_DRIVE_BIAS = 1.08`
+means, if this drivetrain is the bench bot's, that **the two sides have different gear ratios.**
+
+shulib cannot represent that at all:
+
+- `motion/odo_stall_check.hpp:84` — `wheelRadius` is **one scalar for every drive motor**.
+- `kinematics/tank.hpp:47-51` — `toWheels()` is `left = vx − ω·halfTrack`, `right = vx + ω·halfTrack`:
+  **the same scale on both sides, by construction.** An asymmetric drivetrain is outside the model,
+  not merely unparameterized.
+- `hal/pros/motor.hpp:96` — `ProsMotor(port, gearset)`: no ratio parameter of any kind.
+
+So DEFECTS1's `A29` ("no gear-ratio concept exists anywhere") understates it. The fix R3b needs is a
+**per-side** ratio, not a single library-wide one — and that is a design change to how a drivetrain is
+described, not a new constant. **Checkable tonight by counting teeth on BOTH sides**, which is now the
+single highest-value measurement in the chunk.
+
+### 8.5 Two opportunities this opens
+
+1. **Two rotation sensors were specified** — `pros::Rotation horizontal(21)` and `vertical(-20)`, with
+   1.5″ tracking wheels at offsets −4 and 0. Declared, never wired. **If those sensors physically
+   exist in a parts bin, R3b's odometry problem largely evaporates and a POSITION-based auton becomes
+   reachable** rather than being gated on a purchase. Worth asking before anything else.
+2. **Sanity check on shulib's invented motion budget.** Calypso measured ~58.4 in/s forward and
+   ~410 °/s (7.15 rad/s) turn. shulib's `HA-50` stand-ins are **60 in/s** and **6 rad/s** — the same
+   order, and closer than an invented number has any right to be. Not a confirmation (different
+   robot, different cartridges, unrelated derivation), but the guess is not absurd, and that is worth
+   knowing.
+
+### 8.6 What must NOT be carried across, and why
+
+- **`RIGHT_DRIVE_BIAS = 1.08` must not be ported.** It is a voltage bias on PROS's ±127 `move()`
+  scale, tuned against a specific brake mode, battery and floor, for a *time-based open-loop* auton.
+  shulib is voltage-based and closed-loop-heading; the bias's whole job is done by heading feedback
+  instead — Calypso's own `config.hpp` says exactly this: *"The static RIGHT_DRIVE_BIAS used by the
+  time-based driveStraight() is NOT applied here — heading feedback subsumes it."*
+- **The LemLib PID gains must not be ported.** Calypso's own comment: *"Numbers are placeholders
+  pending real tuning."* Briefing trap: never carry gains across chassis.
+- **The turn constants are phone-compass grade (±3°).** shulib's hard target is **< 1.0°**. These
+  cannot inform it.
+- **`calibration.hpp`'s own re-calibration rule applies to us too:** *"Re-calibrate after any of
+  these change: battery model swap, drivetrain mechanical change (gears, wheels, weight, tire wear),
+  floor / mat surface change, brake mode setting change."* Between April and August at least the
+  cartridges and the sensor wiring changed, and a drive motor's chain came off.
+
+### 8.7 Also on that branch, not pursued here
+
+`include/ai_vision.hpp` — the working `pros::AIVision` wrapper the master plan §462-469 already
+names as R2's starting point ("the team already has a working `pros::AIVision` wrapper"). Confirmed
+present. **R2's input exists**; it is object-mode only and needs tag-mode extension, exactly as the
+master plan says. Also present: `docs/00_PROJECT_CONTEXT.md` … `05_STATUS.md`, a `skills_auton_24hr_plan.md`,
+and `legacy_auton.cpp` (the time-based routes). The doc set is internally stale — `05_STATUS.md` lists
+the config module as "Not Started" while `config.hpp` exists — so **the code on that branch outranks
+its own documentation.**
+
+*(Other branches noted, not read: `origin/test-bot` — "Wasnt able to get a working config without
+changing x drive motor group coefficients" — is an **X-drive with motor groups**, which is a third
+independent sighting of the capability shulib lacks. `origin/lodge` is the earlier v2 attempt.)*
+
+---
+
+## Phase 9 — PORT 13 IS FIXED (team lead, 2026-08-17), and it strengthens the Calypso match to near-certainty
+
+> *"the builder found the problem with the one motor so he fixed it you can expect now all similar
+> readings"*
+
+### 9.1 §6.4's ruling is SUPERSEDED — port 13 is back in the drive map
+
+The earlier ruling (exclude port 13, carry a 4-left-vs-3-right asymmetry caveat on every number) is
+**withdrawn, because its premise no longer holds.** Recorded rather than quietly overwritten: the
+ruling was correct when it was made, and mechanical repair is the outcome it was hedging against.
+
+**Consequences, all of them improvements:**
+
+- The drivetrain is **8 motors, 4 per side** — symmetric.
+- **The "will not drive straight under an open-loop symmetric command" caveat is retracted.** It was
+  a consequence of the 4-vs-3 force imbalance and that imbalance is gone. *(A residual asymmetry may
+  still exist from the per-side gearing in §8.4 — a different cause, and one this repair does not
+  address.)*
+- The multi-motor gap (Finding 1) gets **worse, not better**: with 8 drive motors on 2 kinematic
+  wheels, the shipped pipeline would command **2 and leave 6 dead**, not 5. The measured probe number
+  in §4.1 was taken at 7 motors and should be re-stated at 8.
+
+### 9.2 The port inventory now matches Calypso almost exactly
+
+With port 13 live, the bench bot's twelve motors line up against Calypso's twelve like this:
+
+| Group | Calypso (April, code) | Bench bot (August, measured) | Match |
+|---|---|---|---|
+| drive group A | `left {11, -12, 13, -14}` | 11, 12, 13, 14 — **13 now live** | ✅ **exact set** |
+| drive group B | `right {-16, 17, -18, 15}` | 15, 16, 17, 18 | ✅ **exact set** |
+| intake | `{1, -2}` | motors on 1, 2 | ✅ |
+| conveyor | `{3, -4}` | motors on 3, **5** | ⚠️ second motor on **5, not 4** |
+| IMU | port 6, **not wired** | port **4**, working | ⚠️ moved |
+| AI Vision | port 5 | — | ⚠️ port 5 now holds a motor |
+| **total motors** | **12** | **12** | ✅ |
+
+**Every remaining discrepancy is explained by one natural rewire:** the IMU was wired to **port 4**,
+which the conveyor's second motor had been using, so that motor moved to **port 5** — which is where
+the AI Vision sensor had been declared. One sensor arriving displaces one motor by one port, and the
+inventory reconciles completely.
+
+**Ruling: Calypso and the bench bot are the same physical robot, rewired between April and August.**
+This is now the working hypothesis rather than a possibility — 12 motors, two exact drive sets of four,
+matching manipulator pairs, and a single self-consistent explanation for the only three differences.
+**It is still a hypothesis, and two of tonight's checks falsify it if wrong** (§9.3).
+
+### 9.3 Three conflicts remain, and each is a cheap check with a large blast radius
+
+1. **BLUE vs GREEN cartridges — 3× disagreement, ~10 seconds to settle.** Calypso's code says
+   `pros::MotorGearset::blue` (600 rpm) for all eight; the August session recorded "all green (18:1,
+   200 RPM)". These cannot both be true of one robot at one time. **A 3× error in the gearset makes
+   every velocity, every feedforward and every distance-per-tick wrong by 3×.** Look at a cap.
+2. **LEFT and RIGHT are labelled OPPOSITE.** Calypso: 11–14 = left. August: 15–18 = left, established
+   by a hand-spin with a read-only monitor — a direct physical observation, and the stronger evidence.
+   **But "left" is defined relative to whichever end the observer called the front**, and nothing in
+   the August record fixes that. A mirrored left/right makes the robot turn the wrong way. Re-check
+   with the front end named explicitly.
+3. **Port 16's ~20% under-report is NOT addressed by this repair.** The team lead fixed *one* motor
+   (13). Port 16 was compared against its own side-mates, so a per-side gearing difference cannot
+   explain it, and 13 and 16 are on opposite sides under either mapping — so **fixing 13 cannot fix
+   16.** With the drivetrain now otherwise symmetric, port 16 is the sole remaining anomaly and it is
+   the one that biases odometry quietly. **Do not assume "all similar readings" includes it — measure
+   it.** The discriminator is unchanged: spin one side by hand and compare all four encoders
+   individually, never averaged.
+
+---
+
 *(Appended below as the session proceeds. Raw readings first, interpretation after.)*

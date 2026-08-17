@@ -377,15 +377,61 @@ The *kinematics* half (the same twist produces the same wheel numbers on ARM and
 settleable and gets settled. The *"swapping only `RobotContext`"* half is M1's DoD wording and is
 blocked by Finding 3. HA-18 goes to **`[~]` partial with R3b named**, not to settled.
 
-### 6.4 Port 13 — excluded, and the asymmetry is stated on every number (team lead's ruling)
+### 6.4 Port 13 — ~~excluded~~ **REPAIRED 2026-08-17; this ruling is SUPERSEDED**
 
-Port 13 stays mechanically dead. It is **dropped from the drive map entirely**, so the drivetrain
-R3a measures is **LEFT 15/16/17/18 (4 motors) against RIGHT 11/12/14 (3 motors)**. That asymmetry
-is not cosmetic: at equal commanded voltage the left side produces roughly a third more force, so
-**this robot will not drive straight under an open-loop symmetric command, and that is expected, not
-a defect to chase.** Every number measured tonight carries the caveat. It also means R3a must not be
-read as evidence about straight-line behaviour at all — R3b, on a repaired or re-derated drivetrain,
-owns that.
+> **The original ruling is struck, not edited away, because it was right when it was made.** It read:
+> *"Port 13 stays mechanically dead. It is dropped from the drive map entirely, so the drivetrain R3a
+> measures is LEFT 15/16/17/18 (4 motors) against RIGHT 11/12/14 (3 motors) […] this robot will not
+> drive straight under an open-loop symmetric command."* The team lead's builder found and fixed the
+> fault the same day, so its premise is gone.
+
+**The drivetrain is now 8 motors, 4 per side, symmetric.** Consequences:
+
+- **The "will not drive straight open-loop" caveat is RETRACTED** — it followed from the 4-vs-3 force
+  imbalance and that imbalance no longer exists. *(A residual asymmetry may remain from the per-side
+  **gearing** in the Calypso record — a different cause, which this repair does not address, and which
+  §6.6 makes tonight's highest-value measurement.)*
+- **Finding 1 gets worse:** 8 drive motors on 2 kinematic wheels means the shipped pipeline commands
+  **2 and leaves 6 dead**. The §2.3 probe number was taken at 7 motors and understates it by one.
+- **Port 16 is NOT covered by this repair** and is now the sole remaining drivetrain anomaly. 13 and
+  16 sit on opposite sides under either mapping, and 16's ~20% under-report was measured against its
+  *own* side-mates, so neither the repair nor a per-side gearing difference can explain it. §6.5's
+  discriminators stand unchanged, and "expect all similar readings" must be **verified, not assumed** —
+  a drive motor that under-reports travel biases odometry quietly and silently.
+
+### 6.6 The Calypso branch supplies PREDICTIONS, not measurements (added 2026-08-17)
+
+`origin/calypso` holds a LemLib project for a robot called Calypso with drivetrain constants
+**measured on hardware 2026-04-21/22** — the only prior measurement of a team robot anywhere in this
+repository's history. Full raw extract in [`R3a-PROGRESS.md`](R3a-PROGRESS.md) §8, and the port-inventory
+reconciliation in §9.2 concludes **Calypso and the bench bot are the same physical robot, rewired**
+(12 motors, two exact drive sets of four, matching manipulator pairs, and one self-consistent rewire —
+the IMU taking port 4 and displacing the conveyor's second motor to port 5 — explaining every
+difference).
+
+**Nothing from it is adopted.** It was measured by a different codebase, open-loop, with **no IMU and
+no encoders**, using a tape measure for distance and a **phone compass (±3° noise floor)** for angle.
+It is used here in exactly one way: to turn tonight's blank ruler measurements into **falsifiable
+predictions**, which is a strictly better instrument — a prediction that fails is informative, and a
+blank measurement cannot disagree with anything.
+
+| Prediction from Calypso | shulib's current stand-in | If Calypso is right |
+|---|---|---|
+| wheel diameter **3.0″** | 3.25″ (HA-14) | **HA-14 is wrong**, and so is `OdoStallCheckConfig::wheelRadius` |
+| track width **15″** | 7.0″ X-drive radius (HA-17) | tank geometry replaces it wholesale |
+| **BLUE** cartridges (600 rpm) | GREEN per the August session | **the two records contradict by 3×** — see §6.4's sibling check |
+| **per-side gearing difference**, right geared taller, `RIGHT_DRIVE_BIAS = 1.08` | no gear ratio exists anywhere | **A29 needs a PER-SIDE ratio**, which is a change to how a drivetrain is *described*, not a new constant |
+| ~58.4 in/s forward, ~410 °/s turn | 60 in/s, 6 rad/s (HA-50) | the invented budget is the right order — worth knowing, not a confirmation |
+
+**Three things must not cross over, and the reasons are in `R3a-PROGRESS.md` §8.6:**
+`RIGHT_DRIVE_BIAS` (a ±127-scale voltage bias whose job heading feedback subsumes — Calypso's own
+`config.hpp` says so), the LemLib PID gains (its own comment calls them placeholders), and the turn
+constants (phone-compass grade against a **< 1.0°** hard target).
+
+**One opportunity worth chasing before anything else:** Calypso declares
+`pros::Rotation horizontal(21)` and `vertical(-20)` with 1.5″ tracking wheels — specified, never
+wired. **If those two sensors physically exist, R3b's odometry blocker largely evaporates and a
+position-based auton becomes reachable without a purchase.**
 
 ### 6.5 Port 16 gets a diagnosis attempt, not a repair
 
