@@ -1260,3 +1260,56 @@ Two things that would have caught it without that:
 
 The census now prints **PORT and idx side by side** so the mapping is visible in the output itself,
 and stops at index 20 with a comment naming this incident.
+
+---
+
+## Phase 16 — the SD card works. `HA-122` is two-thirds settled, and a worry is retired.
+
+Card reformatted **exFAT → FAT32** and re-run. Build `Aug 18 2026 19:01:03`, hash
+`v0.1.1-256-g7a35529-dirty`:
+
+```
+sd logging : ON -> /usd/r3a_log.txt (overwritten each boot)
+
+== SD CARD PROBE (HA-122) ==
+1. usd_is_installed()        : 1
+   >> card IS detected.
+2. fopen(/usd/probe.txt,wb) : OK
+3. fwrite/fflush            : 17 bytes, fflush=0
+   >> CARD IS FULLY WORKING.
+```
+
+### 16.1 Root cause was the FILESYSTEM, and the laptop confirmed it independently
+
+`lsblk` reported the card as **`exfat`** before formatting — which is what modern OSes choose by
+default at this capacity — and PROS documents `errno 6 / ENXIO` for this subsystem as *"not a FAT32
+drive"*. Two independent sources, same answer. `mkfs.vfat -F 32` fixed it.
+
+### 16.2 `HA-122`: beliefs (1) and (2) CONFIRMED
+
+| Belief | Status |
+|---|---|
+| (1) `usd_is_installed()` is a reliable 1/0 card probe | **CONFIRMED** — 1 with a card, 0 without, both observed today |
+| (2) newlib file IO reaches the card only via the `/usd/` prefix (while `usd_list_files` FORBIDS it) | **CONFIRMED** — `fopen("/usd/probe.txt","wb")` succeeded WITH the prefix |
+| (3) `fflush` is the strongest persist available (no fsync) | **PARTIAL** — `fflush` returned 0, but the DURABILITY half (yank the card after a flush, count what survived) is untested |
+
+Register updated. Belief (3)'s durability test stays open and still belongs on the bench.
+
+### 16.3 RETRACTED: the "V5 tops out at 32 GB" worry
+
+It was flagged twice that a **116.5 GB** card might be rejected regardless of filesystem, and that a
+smaller card was the higher-percentage move. **That was wrong, and measured wrong today:** a 116.5 GB
+microSD formatted FAT32 is detected, opened, written and flushed without complaint.
+
+Recorded because the advice was given twice and would otherwise have sent somebody to buy a card they
+do not need. **The capacity was never the problem; the filesystem always was.**
+
+### 16.4 Where R3a now stands
+
+Settled by measurement: the port map (`HA-111` CONFIRMED — IMU on 4, drive 11–18, mechanisms on
+1/2/3/5, 12 motors), the expander question (`HA-120` → **NO expander**), and `HA-122` (1) and (2).
+
+Still open and needing hands on the robot, not code: the IMU sign convention (test 2 — nobody has
+rotated the robot yet), per-side tooth counts (`B1.2`, still the highest-value measurement in the
+chunk), wheel diameter and track width, what the mechanism motors on 1/2/3/5 actually drive
+(`B1.5`), controller pairing, and the loop rate under load.

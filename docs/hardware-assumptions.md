@@ -188,7 +188,7 @@
 | HA-119 | ADI `DigitalOut` DRIVES THE LINE AT CONSTRUCTION (init_state, PROS default LOW); `set_value` is 1/0, PROS_ERR on refusal | reasoned | R3 |
 | HA-120 | ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H'; expander via {smart, adi} pairs; whether OUR robot has an expander is UNKNOWN | reasoned | R3 |
 | HA-121 | ADI `DigitalIn::get_value()` is a level (PROS_ERR on refusal); `get_new_press()` CONSUMES the press | reasoned | R3 |
-| HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | reasoned | R3 |
+| HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | **partial** 2026-08-18: beliefs (1) and (2) CONFIRMED on hardware — `usd_is_installed()` returned 1 with a card and 0 without, and `fopen("/usd/probe.txt","wb")` succeeded WITH the prefix; a 17-byte fwrite + `fflush`==0 landed. Belief (3)'s DURABILITY half (yank the card after a flush, count what survived) NOT tested, so this stays open | R3 |
 | HA-123 | A per-tick tracking-wheel travel above 36 in is corruption, not motion | **invented** | R3 |
 
 ---
