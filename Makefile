@@ -12,7 +12,19 @@ BINDIR=$(ROOT)/bin
 SRCDIR=$(ROOT)/src
 INCDIR=$(ROOT)/include
 
-WARNFLAGS+=
+# src/ compiled with NO warning flags until 2026-08-18 -- common.mk sets only
+# -Wno-psabi. The library headers get the full strict set in CI's ARM gate, but
+# src/main.cpp and src/bench_r3a.cpp got nothing, and a data abort shipped to the
+# robot as a result. Enabled here, deliberately WITHOUT -Werror: in the bench
+# build the X-drive helpers (robot(), portMapString(), shaped()) are legitimately
+# unused, and three -Wunused-function warnings are the correct, informative
+# output -- they are how you can see that the invented wiring really is dead code.
+#
+# Honest limit, stated so nobody trusts this further than it goes: -Wformat=2 did
+# NOT catch the bug that motivated it. std::string_view is trivially copyable, so
+# passing one to a printf %s compiles silently. That hazard is guarded by a comment
+# at the call site, not by the compiler.
+WARNFLAGS+=-Wall -Wextra -Wformat=2
 EXTRA_CFLAGS=
 EXTRA_CXXFLAGS=
 

@@ -119,18 +119,31 @@ void emitf(const char* fmt, ...) {
 // therefore mirrors its lines to the screen; the SD file keeps the full-width
 // detail (screen lines truncate at 54 chars) for reading afterwards.
 
-constexpr int kScreenLines = 19;      // small font, 480x272 panel
+constexpr int kScreenLines = 14;      // small font on a 480x272 panel, chosen low on
+                                      // purpose: the SD file is the complete record and
+                                      // an unreadable overflow is worse than a extra tap.
 constexpr int kScreenCols = 54;
 int g_screenLine = 0;
 bool g_screenActive = false;
 
-/// Blocks until the panel is touched and released. The release edge is what is
-/// waited on, not the press: a held finger would otherwise fire every poll.
+/// Blocks until a NEW release event arrives.
+///
+/// EDGE ON THE COUNTER, NOT THE STATUS VALUE -- this is the whole bug of
+/// 2026-08-18. `screen.h` states the status "will be released by default if no
+/// action was taken", so `touch_status == E_TOUCH_RELEASED` is ALSO the at-rest
+/// value, and waiting for it returns instantly without anyone touching anything.
+/// Worse, the x/y that come with it are STALE from the previous touch, so a menu
+/// polling on the status value re-selects the last button forever.
+/// `release_count` is monotonic, so an edge on it is an unambiguous "a new tap
+/// happened" regardless of how the enum is meant to read. (The vendored docs name
+/// the values E_TOUCH_EVENT_RELEASE/PRESS while the enum spells them
+/// E_TOUCH_RELEASED/PRESSED, and their comments are transposed -- another reason
+/// not to build behaviour on that value.)
 void waitForTouch() {
-    while (pros::c::screen_touch_status().touch_status != pros::E_TOUCH_RELEASED) {
+    const std::int32_t start = pros::c::screen_touch_status().release_count;
+    while (pros::c::screen_touch_status().release_count == start) {
         pros::delay(20);
     }
-    pros::delay(150);  // debounce so one tap is not read as two
 }
 
 void screenClear() {
@@ -141,8 +154,10 @@ void screenClear() {
 void screenEmit(const char* line) {
     if (!g_screenActive) return;
     if (g_screenLine >= kScreenLines) {
-        pros::c::screen_print(pros::E_TEXT_SMALL, static_cast<std::int16_t>(kScreenLines),
-                              "-- screen full: TOUCH for more (SD has it all) --");
+        // Explicit pixel position, not a line index: a line index past the font's
+        // last visible row draws off-screen and the prompt silently disappears.
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 250,
+                                 "-- screen full: TOUCH for more (SD has it all) --");
         waitForTouch();
         screenClear();
     }
@@ -233,7 +248,14 @@ void reportImu(bool present) {
     hal::pros::ProsClock clock{};
     try {
         hal::pros::ProsImu imu{kImuPort, math::Angle{}, clock};
+        // A FRESH adapter each run, so `calibrateStarted_` is false and the
+        // HA-05 second-calibrate precondition does not fire -- the physical IMU
+        // is genuinely re-zeroed on every run of this test. That is DELIBERATE
+        // here (a repeatable rotate test wants a fresh zero) and is exactly the
+        // opposite of what a competition binary must do, where re-zeroing under a
+        // live bootHeading is HA-05's hazard. Announced rather than silent.
         imu.calibrate();
+        emit("re-zeroing the IMU: every run of this test starts from a fresh zero.");
         emit("calibrating (HA-23 says ~2 s) -- timing it:");
         const std::uint32_t t0 = pros::millis();
         while (!imu.isReady() && (pros::millis() - t0) < 8000U) {
@@ -282,6 +304,10 @@ void reportImu(bool present) {
         emitf("VERDICT INPUT: heading moved %+.2f deg over the window. CCW must be POSITIVE.",
               imu.heading().degrees() - startDeg);
     } catch (const PreconditionError& e) {
+        // The rotate test suspends the scrolling log; restore it or this report
+        // would land on serial and the SD card but never on the panel the
+        // bencher is actually looking at.
+        g_screenActive = true;
         emitf("IMU ADAPTER REFUSED THE DEVICE: %s", e.what());
         emit("(that refusal IS the measurement -- record it verbatim)");
     }
@@ -449,8 +475,12 @@ void drawMenu() {
         pros::c::screen_fill_rect(x0, y0, x1, y1);
         pros::c::screen_set_pen(0xFFFFFF);
         pros::c::screen_draw_rect(x0, y0, x1, y1);
+        // Text is drawn pen-on-eraser, so match the eraser to the button fill or
+        // every label gets a black box behind it.
+        pros::c::screen_set_eraser(0x1E5AA8);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
                                  static_cast<std::int16_t>(y0 + 20), "%s", kMenu[i].label);
+        pros::c::screen_set_eraser(0x000000);
     }
 }
 
@@ -505,11 +535,12 @@ void runR3a() {
     for (;;) {
         drawMenu();
         int choice = -1;
+        std::int32_t seen = pros::c::screen_touch_status().release_count;
         while (choice < 0) {
             const pros::screen_touch_status_s_t t = pros::c::screen_touch_status();
-            if (t.touch_status == pros::E_TOUCH_RELEASED) {
-                choice = hitTest(t.x, t.y);
-                if (choice >= 0) pros::delay(150);  // debounce
+            if (t.release_count != seen) {   // a NEW tap, not the at-rest state
+                seen = t.release_count;
+                choice = hitTest(t.x, t.y);  // -1 when it landed off any button: keep waiting
             }
             pros::delay(20);
         }
@@ -522,7 +553,7 @@ void runR3a() {
         card.flush();
 
         g_screenActive = false;
-        pros::c::screen_print(pros::E_TEXT_MEDIUM, kScreenLines, "TOUCH TO RETURN TO MENU");
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 6, 246, "TOUCH TO RETURN TO MENU");
         waitForTouch();
     }
 }

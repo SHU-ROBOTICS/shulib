@@ -989,3 +989,60 @@ class type) to a `printf`-family `%s`. In this tree that is a live hazard becaus
 **Also observed:** after the abort the brain dropped off USB entirely (`no /dev/ttyACM*`), so the
 fixed build could not be pushed until it was power-cycled. Worth knowing before a bench session —
 a crash costs a reboot, not just a re-run.
+
+### 13.12 Pre-upload audit — a second crash-class bug found BEFORE it reached the robot
+
+Team lead's call: re-check everything before recompiling. It paid.
+
+**FOUND: the touch menu was unusable, and it would have looked like a hang.**
+`screen.h` states the touch status "will be **released by default if no action was taken**" — so
+`touch_status == E_TOUCH_RELEASED` is *also the at-rest value*. Consequences of building on it:
+
+- `waitForTouch()` returned **immediately, with nothing touched**. "TOUCH TO RETURN TO MENU" and the
+  screen-full pause would both flash past, so results scrolled away unreadably.
+- The menu polled the same value and hit-tested the **stale x/y that ride with it**, so after the
+  first tap it would re-launch that same test forever.
+
+Fixed by edge-detecting on **`release_count`**, a monotonic counter — an unambiguous "a new tap
+happened" regardless of how the enum reads. *(Worth recording: the vendored docs name the values
+`E_TOUCH_EVENT_RELEASE/PRESS` while the enum spells them `E_TOUCH_RELEASED/PRESSED`, and their
+doc-comments are transposed. Not a value to build behaviour on.)*
+
+**Verified on the host rather than reasoned about.** Button geometry was compiled and asserted
+off-robot: all six boxes inside 480×272, no overlaps, every box centre hit-tests to its own button,
+and `(0,0)` and the title strip hit nothing — the last two mattering because a stale coordinate must
+not land on a button. **PASS, 0 problems.**
+
+**Four more, each small, none of which the compiler would say:**
+
+1. `kScreenLines` 19 → **14**, and both prompts moved to explicit **pixel** positions. A line index
+   past the font's last visible row draws off-screen and the prompt vanishes silently.
+2. Button labels are drawn pen-on-eraser, so the eraser is now set to the button fill — otherwise
+   every label carries a black box.
+3. The IMU catch path restores `g_screenActive`; the rotate test suspends the scrolling log, so a
+   refusal would have reached serial and the SD card but **never the panel**.
+4. Re-running test 2 constructs a fresh `ProsImu`, so `calibrateStarted_` is false and HA-05's
+   second-calibrate precondition does not fire — the physical IMU **is** re-zeroed every run. That is
+   right for a repeatable rotate test and is the exact opposite of what a competition binary must do.
+   Now announced on screen instead of happening silently.
+
+**Audited every `%s` in the file.** All arguments are `const char*`, `char[]`, or literals; the one
+`string_view` goes through `%.*s`. Clean under
+`-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Wformat=2`.
+
+### 13.13 ROOT CAUSE OF BOTH: `src/` had no warning flags at all
+
+`common.mk` sets only `-Wno-psabi`, and `Makefile:15` was a bare `WARNFLAGS+=`. So while every
+library header is compiled `-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror` by CI's
+ARM gate, **`src/main.cpp` and `src/bench_r3a.cpp` were compiled with essentially nothing** — and
+`src/` is not in the host test build either. Two gates, neither covering the one file that runs.
+
+Now `WARNFLAGS+=-Wall -Wextra -Wformat=2`, deliberately **without** `-Werror`: in the bench build the
+X-drive helpers are legitimately unused, and those three `-Wunused-function` warnings are correct and
+useful — they are how you can *see* that the invented wiring is genuinely dead code.
+
+**Stated so nobody trusts it further than it goes: `-Wformat=2` did NOT catch the `string_view` bug.**
+It is trivially copyable, so it passes through varargs silently. That hazard is held by a comment at
+the call site, not by the compiler. **The real structural gap remains open: no gate executes
+`src/`.** The button geometry is now host-checkable in principle; wiring it into `test/` is
+unclaimed work.
