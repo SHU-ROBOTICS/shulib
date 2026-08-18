@@ -410,7 +410,7 @@ constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 
 // Two columns x three rows of touch targets. Deliberately large (232x62): this is
 // operated by someone crouched over a robot, not with a mouse.
-constexpr std::int16_t kBtnW = 232, kBtnH = 62, kBtnX0 = 6, kBtnY0 = 46, kGap = 6;
+constexpr std::int16_t kBtnW = 232, kBtnH = 58, kBtnX0 = 6, kBtnY0 = 62, kGap = 5;
 
 void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std::int16_t& y1) {
     const std::int16_t col = static_cast<std::int16_t>(i % 2);
@@ -427,7 +427,20 @@ void drawMenu() {
     pros::c::screen_erase();
     pros::c::screen_set_pen(0xFFFFFF);
     pros::c::screen_print(pros::E_TEXT_MEDIUM, 0, "shulib R3a bench  -  READ-ONLY, no motion");
-    pros::c::screen_print(pros::E_TEXT_SMALL, 2, "tap a test.  everything also saved to /usd/r3a_bench.txt");
+    // SD logging state, ON THE MENU rather than buried inside test 4. The sink opens
+    // its file at construction, so a card inserted after the program started is NOT
+    // picked up -- and an unattended bencher would otherwise run a whole session
+    // believing it was being logged. Silent degradation is a bug (E1 principle 5).
+    const bool logging = (g_card != nullptr) && g_card->isOpen();
+    if (logging) {
+        pros::c::screen_set_pen(0x30C030);
+        pros::c::screen_print(pros::E_TEXT_SMALL, 2, "SD LOGGING ON  ->  /usd/r3a_bench.txt");
+    } else {
+        pros::c::screen_set_pen(0xFF4040);
+        pros::c::screen_print(pros::E_TEXT_SMALL, 2, "SD LOGGING OFF - screen only! insert card,");
+        pros::c::screen_print(pros::E_TEXT_SMALL, 3, "then POWER-CYCLE and restart this program.");
+    }
+    pros::c::screen_set_pen(0xFFFFFF);
     for (int i = 0; i < kMenuCount; ++i) {
         std::int16_t x0, y0, x1, y1;
         buttonBox(i, x0, y0, x1, y1);
@@ -468,6 +481,8 @@ void runR3a() {
           kLeftPorts[0], kLeftPorts[1], kLeftPorts[2], kLeftPorts[3], kRightPorts[0],
           kRightPorts[1], kRightPorts[2], kRightPorts[3], static_cast<unsigned>(kImuPort));
     emit("!! SIDE LABELS ARE A HYPOTHESIS, NOT A CONFIGURATION (R3a-PROGRESS S10.3).");
+    emitf("sd logging : %s", card.isOpen() ? "ON -> /usd/r3a_bench.txt (overwritten each boot)"
+                                           : "OFF -- no card at boot; screen output only");
 
     // The census runs once up front so every other test knows what exists; it is
     // also re-runnable from the menu.

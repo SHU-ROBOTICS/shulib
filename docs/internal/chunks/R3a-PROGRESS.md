@@ -919,3 +919,23 @@ the low slots stay free for competition programs.
 `QueensRevenge` upload, and **the PROS CLI has no remove-program command** — a slot can only be
 cleared from the brain's own Programs menu. Until somebody deletes it, a bencher can pick a build
 whose port map is invented and watch it fault at boot. The worksheet now warns about it in Station A.
+
+### 13.10 SD logging state is now ON THE MENU, not buried in a test
+
+Team lead inserted the card **after** the program had already started, which exposed a real silent
+failure: `ProsBlockSink` opens its `FILE*` **at construction**, and the sink is a function-local
+static built on the first `runR3a()` call. A card inserted mid-run is therefore **never picked up** —
+`write()` returns false from the first call and keeps returning false, exactly as
+`hal/pros/block_sink.hpp`'s T5 ruling says it should. Nothing was wrong with the sink; the problem
+was that **an unattended bencher could run an entire session believing it was being logged.**
+
+Fix: the menu now carries a permanent SD status line — **green "SD LOGGING ON"** or **red "SD LOGGING
+OFF — insert card, then POWER-CYCLE and restart"** — drawn every time the menu is painted, and the
+same fact goes into the serial/SD banner. Buttons moved down 16 px so the two-line warning cannot
+collide with them.
+
+This is E1's principle 5 applied at the operator level rather than the API level: the sink already
+degraded honestly and reported through `isOpen()`; what was missing was **somebody being told**.
+
+*(Also recorded for the runbook: the log is one file per boot and is OVERWRITTEN on each power
+cycle. Copy the card off before rebooting if a session's output matters.)*
