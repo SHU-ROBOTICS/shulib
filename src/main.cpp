@@ -46,6 +46,25 @@
 
 #include "main.h"
 
+// ═══ WHICH ROBOT IS THIS BINARY FOR? (chunk R3a §4.2 item 1) ════════════════════════
+// The X-drive wiring below is PRESERVED VERBATIM and relabelled -- it is the only
+// artifact of the 2026-08-12 whole-object-graph boot, and its ports are invented
+// (HA-111). It CANNOT boot on the measured bench robot: it puts motors on 1/2/-3/-4
+// (port 4 is the IMU), rotation sensors on 5/6, and a GPS on 9 -- every one of those
+// throws an adapter read-back precondition at boot.
+//
+// Default = the tank bench bot, because that is the only robot that exists.
+// Build the X-drive path with:  make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED
+#ifdef SHULIB_ROBOT_XDRIVE_INVENTED
+#define SHULIB_BENCH_TANK 0
+#else
+#define SHULIB_BENCH_TANK 1
+#endif
+
+#if SHULIB_BENCH_TANK
+#include "bench_r3a.hpp"
+#endif
+
 #include <cstdio>
 #include <cstdint>
 
@@ -251,6 +270,15 @@ const char* portMapString() {
 void initialize() {
     shulib::setPreconditionHandler(&robotPreconditionHandler);
 
+#if SHULIB_BENCH_TANK
+    // R3a: the bench robot. The X-drive graph below is NOT constructed -- its
+    // ports are invented and every adapter ctor would throw here. The session
+    // runs from opcontrol(); this only proves the binary booted.
+    std::printf("\n[R3A] booted: bench validation build (tank bench bot, READ-ONLY).\n"
+                "[R3A] the X-drive object graph is deliberately NOT constructed.\n");
+    std::fflush(stdout);
+    return;
+#else
     Robot& r = robot();
     g_faults = &r.faults;
 
@@ -282,6 +310,7 @@ void initialize() {
     std::snprintf(line, sizeof line, "facade alive: strafeAuthority=%.2f (X-drive: 1.00)",
                   r.chassis.strafeAuthority());
     r.telemetry.log(shulib::hal::LogLevel::Info, "R1A", line);
+#endif  // SHULIB_BENCH_TANK
 }
 
 /**
@@ -308,10 +337,16 @@ void competition_initialize() {}
  * wires them here after the bench runbook settles the R3 register group.
  */
 void autonomous() {
+#if SHULIB_BENCH_TANK
+    std::printf("[R3A] autonomous(): no motion -- this is a read-only measuring build.\n");
+    std::fflush(stdout);
+    return;
+#else
     Robot& r = robot();
     r.telemetry.log(shulib::hal::LogLevel::Warn, "R1A",
                     "autonomous(): no motion until R3 validates the stack on hardware "
                     "(adapters landed at R1a; the register's R3 group is unsettled)");
+#endif  // SHULIB_BENCH_TANK
 }
 
 /**
@@ -326,6 +361,10 @@ void autonomous() {
  * sticks (HA-103).
  */
 void opcontrol() {
+#if SHULIB_BENCH_TANK
+    shulib::bench::runR3a();  // never returns; commands no motion
+    return;
+#else
     Robot& r = robot();
     r.telemetry.log(shulib::hal::LogLevel::Info, "R1A",
                     "opcontrol(): teleop drive loop live (deadband-only mapping, HA-112; "
@@ -345,4 +384,5 @@ void opcontrol() {
         r.faultDisplay.update(r.clock.now());
         r.pacer.pace();
     }
+#endif  // SHULIB_BENCH_TANK
 }

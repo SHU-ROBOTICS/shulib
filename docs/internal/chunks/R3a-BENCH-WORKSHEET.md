@@ -8,6 +8,41 @@
 
 ---
 
+## Station A — RUN THE PROGRAM (no laptop needed)
+
+**The program is already on the brain, in slot 1.** It is **read-only and commands no motion** — it
+cannot drive the robot.
+
+1. Power the brain on. Open **Programs** and run **slot 1 (QueensRevenge)**.
+2. A **touch menu** appears. Tap any test:
+
+   | Button | What it does |
+   |---|---|
+   | **1 DEVICE CENSUS** | every occupied port and what is in it |
+   | **2 IMU + ROTATE** | big live heading — **rotate the robot CCW, it must go UP** |
+   | **3 MOTORS (by hand)** | per-motor raw + converted values; **turn a wheel by hand** and re-run |
+   | **4 BATT/CTRL/SD** | battery, controller pairing, SD card presence |
+   | **5 LOOP RATE** | the tick cadence this build sustains |
+   | **6 RUN ALL** | all five, in order |
+
+3. Results print on the screen. When it fills, tap to continue. When a test ends, tap
+   **TOUCH TO RETURN TO MENU**.
+4. **Everything is also written to `/usd/r3a_bench.txt` on the SD card.** That file has the full
+   detail — the screen truncates long lines. **Do not lose the card.**
+
+> Re-running a test is free. Run anything as many times as you like — especially **3 MOTORS** after
+> turning each wheel, which is how the port→wheel map gets built.
+>
+> One catch: the log file opens once per boot, so **power-cycling starts a fresh file**. Copy the
+> card off before rebooting if a session matters.
+
+---
+
+> **The validation binary does Stations 1, 2 and 4 better than hands can — but run BOTH.** It
+> prints a full device census, raw-vs-canonical values, and live IMU heading, and it writes a copy to
+> `/usd/r3a_bench.txt`. The hand measurements below are then an **independent second method**, and
+> two methods agreeing is worth far more than either alone. Where they disagree, that is the finding.
+
 ## Station 0 — setup (2 min)
 
 - [ ] Charged battery in, brain powered on.
@@ -122,6 +157,26 @@ it live, so this needs no code.
 
 ---
 
+## Station 5.5 — PAIR THE CONTROLLER  *(2 minutes, unblocks four register entries)*
+
+**Do this even if nothing else gets done.** No controller has been paired in either previous bench
+session (`master=0 partner=0`), and that one fact has kept **HA-57, HA-103, HA-104 and HA-107**
+unreachable both times. It also enables **wireless program upload and a wireless terminal**, which
+moves the whole develop-upload-read loop off the robot and onto a desk.
+
+- [ ] **5.5.1** Pair a **master** controller to the brain, using VEX's documented pairing procedure
+      (tether it to the brain, then it holds the pairing). *Confirm the OUTCOME rather than the
+      steps:* the brain should report a **connected master controller**.
+      → paired? **YES / NO**
+- [ ] **5.5.2** Battery level on the controller: ________ %  *(a flat controller looks like a
+      pairing failure)*
+- [ ] **5.5.3** If a **partner** controller is available, pair it too — VEX U runs two drivers.
+      → partner paired? **YES / NO / none available**
+- [ ] **5.5.4** With the controller paired, does the brain's Devices/status list show it? Photograph.
+
+> If pairing does not take: note **exactly what the screen said** and move on. A failure here is a
+> finding — it has silently blocked two sessions already.
+
 ## Station 6 — SD card prep  *(HA-122 — physical half only)*
 
 - [ ] **6.1** Format the microSD card **FAT32**. *(exFAT is NOT read by the brain.)*
@@ -138,7 +193,10 @@ it live, so this needs no code.
 
 ## DO NOT
 
-- ❌ **Do not upload the shipped program.** Its port map is invented and wrong; it will fault at boot.
+- ❌ **Do not upload an old build.** The default build is now the **R3a bench validation binary**
+      (`src/bench_r3a.cpp`) — read-only, commands no motion, safe to run. The invented X-drive
+      wiring is behind a build flag and would fault at boot on this robot.
+      *(Brain's programming port is **micro-USB**, not USB-C.)*
 - ❌ **Do not disassemble anything** to read a gear — photograph it in place.
 - ❌ **Do not "correct" a reading to what this sheet expects.** A contradiction is the most valuable
       output of the session.
@@ -152,5 +210,6 @@ it live, so this needs no code.
 - [ ] Every photo transferred off the phone.
 - [ ] Station 2's table filled in completely — it is the one that cannot be reconstructed later.
 - [ ] **3.2 answered PER SIDE**, not once.
+- [ ] **Station 5.5 done** — it is the cheapest item here and the one that has been missed twice.
 - [ ] Anything surprising written down **as observed**, before anyone interprets it.
 

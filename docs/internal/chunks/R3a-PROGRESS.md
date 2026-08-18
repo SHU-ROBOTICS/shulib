@@ -811,3 +811,99 @@ session's earlier baselines read clean while an untracked progress log existed.
 reproduces. Recorded in the briefing's process-failures list with the escape sequence.
 
 *(No hardware measurement in this phase. Batch 1 steps 2, 3, 4, 5, 7, 8 remain open.)*
+
+---
+
+## Phase 13 — the validation binary exists, and one scope item was narrowed on purpose
+
+### 13.1 Deliverable
+
+`src/bench_r3a.{hpp,cpp}` + a compile-time robot selector in `src/main.cpp`. Default build is now
+the **tank bench bot**; the invented X-drive wiring is **preserved verbatim** behind
+`-DSHULIB_ROBOT_XDRIVE_INVENTED` and **was re-compiled to prove it still builds** — it is the only
+artifact of the 2026-08-12 whole-object-graph boot and losing it silently was the risk.
+
+### 13.2 RULING — the binary is READ-ONLY. §4.2's "commands open-loop voltages" is NOT built.
+
+§4.2 item 1 specifies an entry point that "commands open-loop voltages on request." **This build
+commands no motion at all**, and that is a decision rather than an omission:
+
+- The only thing open-loop voltage buys is **which port drives which wheel, and in which
+  direction**. That is obtainable at **zero risk** by turning a wheel BY HAND and watching the
+  encoder — worksheet Station 2, and stage 3 of the binary prints exactly the numbers to watch.
+- Powering eight motors whose **signs are unmeasured**, on a robot whose **port map is the thing
+  under test**, can lurch a robot off a bench and buys nothing the hand method does not.
+- If open-loop commands are wanted later they belong behind an explicit opt-in **with the wheels off
+  the ground**, as a separate change.
+
+### 13.3 Design: it probes BEFORE it constructs
+
+Every `hal/pros` adapter ctor does a device read-back and raises a precondition on disagreement —
+correct for a competition binary, **wrong for a discovery binary**, because one wrong port would kill
+the session before it printed anything. So stage 1 is a **raw registry census of all 21 ports**
+constructing nothing and unable to fail; stages 2+ construct adapters only for what stage 1 found,
+each inside a `try/catch`, so **an adapter refusing a device is captured as a measurement** rather
+than ending the run.
+
+### 13.4 §10.3's mirror check is built in
+
+The port groups are labelled **`LEFT(hyp)` / `RIGHT(hyp)`** and the banner states in three lines that
+they are a **hypothesis to be falsified, not a configuration** — because a prior robot's code had the
+sides swapped and its tuning absorbed the swap invisibly. Ports 1–21 are all scanned, **21
+deliberately included**: that is the index the 2026-08-13 expander report was read from.
+
+### 13.5 Output goes two places — and NOT through the blackbox
+
+USB serial plus, when a card is present, a plain-text file at **`/usd/r3a_bench.txt`** written
+through `ProsBlockSink`.
+
+**Recorded because it corrects an assumption made earlier this session:** the E1 **blackbox cannot
+carry this**. `blackbox_format.hpp` v1 deliberately omits the `log()` message channel — it carries
+per-tick `DebugRecord`s, a run summary and a fault triage block, and counts text lines without
+storing them. A text census is therefore written as **raw bytes through the device seam**, which is
+what that seam is for. The blackbox becomes useful at R3b, when a control loop produces real
+per-tick records.
+
+### 13.6 Verification (tree dirty at time of writing; hash carried from the last clean configure)
+
+| Check | Result |
+|---|---|
+| `make` (tank, default) | **PASS** — `bin/hot.package.bin`, 12,208 bytes, text 11.92 KB |
+| `make -DSHULIB_ROBOT_XDRIVE_INVENTED` | **PASS** — the preserved path still builds |
+| Non-`liblvgl` compiler warnings | **0** |
+| Host suite | **1151 cases / 1,523,871 assertions, 0 failed** |
+| ARM header gate | **PASS, 148 headers** |
+| Doc gates (6) | **ALL PASS** |
+| Brain detected | `pros lsusb` → `/dev/ttyACM0` + `/dev/ttyACM1`, brain **2F007C00** |
+
+*(The assertion count reads the CLEAN-tree number because the hash is captured at CMake configure
+time and no reconfigure happened — §12.2's trap, observed working as documented.)*
+
+### 13.7 What it does NOT settle
+
+`bss` is still **46.01 MB** and still unexplained (§6). No hardware number is measured until the
+binary is actually run — this phase delivers the instrument, not the readings.
+
+### 13.8 The brain-screen menu — the bencher runs this unattended
+
+Team lead's ask, and it changes what the binary is for: the bencher operates it **alone, with no
+laptop**, so the serial stream is invisible to them and the panel is the only live output.
+
+- A **touch menu** (`pros/screen.h`, no LVGL) with six large targets — census / IMU+rotate / motors /
+  batt+ctrl+SD / loop rate / run-all. Buttons are 232x62 deliberately: this is operated by somebody
+  crouched over a robot.
+- **Every emitted line now mirrors to the panel**, truncated to 54 columns, with a
+  *touch-for-more* pause when it fills. The SD file keeps full width.
+- The **IMU rotate test suspends the scrolling log** and becomes a large fixed readout with a running
+  delta, because that number is watched while turning the robot with both hands — a scrolling log is
+  unreadable in that posture. Window widened 8 s → 20 s for the same reason.
+- Each test returns to the menu on touch, so **re-running is free**. That matters most for the motor
+  test: turn a wheel by hand, re-run, read which port moved and which way.
+
+**Known limitation, stated rather than discovered later:** `ProsBlockSink` owns its `FILE*` for the
+whole boot (one file per boot, by its own header contract), so a power cycle starts a **fresh**
+`/usd/r3a_bench.txt` rather than appending. The worksheet says to copy the card off before rebooting.
+
+**Uploaded to slot 1, brain `2F007C00`.** Verification re-run after the menu landed: host suite
+1151 / 1,523,871 green, ARM gate PASS, six doc gates PASS, zero non-`liblvgl` warnings, and the
+preserved X-drive path still compiles.
