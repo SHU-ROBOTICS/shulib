@@ -10,10 +10,14 @@
 
 ## Station A — RUN THE PROGRAM (no laptop needed)
 
-**The program is already on the brain, in slot 1.** It is **read-only and commands no motion** — it
-cannot drive the robot.
+**The program is already on the brain: slot 3, named "Bench Tests".** It is **read-only and commands
+no motion** — it cannot drive the robot.
 
-1. Power the brain on. Open **Programs** and run **slot 1 (QueensRevenge)**.
+1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"**.
+
+> ⚠ **Slot 1 holds an OLD build called "QueensRevenge". Do not run it.** Its port map is invented and
+> it will fault at boot on this robot. It can only be deleted from the brain's own Programs menu —
+> the PROS CLI has no remove command. Deleting it is the safest move so nobody picks it by mistake.
 2. A **touch menu** appears. Tap any test:
 
    | Button | What it does |

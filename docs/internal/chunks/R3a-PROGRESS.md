@@ -907,3 +907,15 @@ whole boot (one file per boot, by its own header contract), so a power cycle sta
 **Uploaded to slot 1, brain `2F007C00`.** Verification re-run after the menu landed: host suite
 1151 / 1,523,871 green, ARM gate PASS, six doc gates PASS, zero non-`liblvgl` warnings, and the
 preserved X-drive path still compiles.
+
+### 13.9 Program renamed and re-slotted (team lead's direction)
+
+`project.pros`'s `project_name` was still **`QueensRevenge`** — inherited from the pre-rebuild
+project and meaningless to anyone reading the brain's Programs list. Renamed to **`Bench Tests`**,
+which is what a helper at the robot needs to see, and uploaded to **slot 3** rather than slot 1 so
+the low slots stay free for competition programs.
+
+**Open hazard, recorded because nothing in the toolchain closes it:** slot 1 still holds the earlier
+`QueensRevenge` upload, and **the PROS CLI has no remove-program command** — a slot can only be
+cleared from the brain's own Programs menu. Until somebody deletes it, a bencher can pick a build
+whose port map is invented and watch it fault at boot. The worksheet now warns about it in Station A.
