@@ -545,6 +545,19 @@ Two smaller forms of the same lesson, from the same chunk:
 - A **non-compiling mutation nearly read as green** off a stale binary (C4). Gate on build success.
 - A **results table was nearly fabricated** before the measurement existed (E4). Write
   `PENDING MEASUREMENT`, measure, then write the number.
+- **The suite's ASSERTION COUNT depends on whether the WORKING TREE WAS DIRTY at CMake *configure*
+  time** — a second trigger for a trap DEFECTS1 recorded with a different one (a stray untracked
+  header). `test/CMakeLists.txt` injects `git describe --always --dirty` as `SHULIB_BUILD_HASH`, a
+  test asserts through that string, and `-dirty` is **exactly 6 characters** — so the total moves
+  1,523,871 ⇄ 1,523,877 with no code change at all. **Measured, not inferred:** the same binary run
+  with and against the doc edits gave the identical count, which ruled the docs out; reconfiguring on
+  a clean tree moved the hash to `v0.1.1-246-g0b86ee7` and the count to 1,523,871 exactly.
+  Two consequences worth knowing before you chase one: the hash is captured at **configure** time, so
+  a plain `cmake --build` can carry a stale one for a long time; and **committing changes the answer**,
+  which makes the briefing gate look broken at precisely the moment you are trying to commit. The
+  committed briefing must carry the CLEAN-tree number, because that is what a fresh clone reproduces.
+  Escape, in order: `briefing_status.py generate` (transient, unblocks the gate) → build → confirm the
+  binary's hash has no `-dirty` → `generate` again → commit.
 
 ---
 

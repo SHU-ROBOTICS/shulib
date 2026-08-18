@@ -762,3 +762,52 @@ failure modes and the three physical facts in §11.3.)*
 ---
 
 *(Appended below as the session proceeds. Raw readings first, interpretation after.)*
+
+---
+
+## Phase 12 — VexBuilder handover, and an assertion-count trap measured to ground
+
+### 12.1 Deliverable
+
+`docs/vexbuilder-integration.md` (366 lines) — the complete contract, written FOR the VP who is
+finishing VexBuilder rather than for us. Three seams, every field, both sides' ordered work lists,
+the versioning promise, and a "what can still move under you" risk table.
+
+`roadmap.md`'s Cross-team asks section rewritten: it listed only **VexBuilder's** four obligations,
+which is how a two-sided dependency becomes a stall with each side believing it is blocked. Now
+carries both lists plus three asks that were missing entirely — the `robotProfile` block (implied by
+#2, never stated, so it had no owner), **the electrical UI** (VexBuilder's true critical path:
+`.vexbot` v2.0.0 ships `electrical{}` as EMPTY ARRAYS because the UI was never built, and that is the
+source data for `robotProfile`), and a **per-motor `gearRatio`** (shulib has no gear-ratio concept at
+all, and this robot may be geared differently left vs right — §8.4).
+
+Added to `mkdocs.yml`'s nav, not just to `docs/` — DOCS2 measured that a page absent from the nav
+publishes **unreachable with exit code 0**. Verified present in `prepare_site`'s output.
+
+### 12.2 MEASURED — the assertion count is a function of a DIRTY WORKING TREE
+
+The count moved 1,523,871 → **1,523,877** with **no C++ change**. Chased to ground rather than waved
+at, because the count is a build-gate input:
+
+| Step | Observation |
+|---|---|
+| ran the **same binary** with and without the doc edits | **1,523,877 both times** → the docs are not the cause |
+| checked `include/shulib/` | **148 headers, unchanged** → not the DEFECTS1 stray-header trigger |
+| read the baked-in hash | `v0.1.1-245-g3b1266d-**dirty**` |
+| reconfigured on a genuinely clean tree | hash `v0.1.1-246-g0b86ee7`, count **1,523,871 exactly** |
+
+**Cause:** `test/CMakeLists.txt` injects `git describe --always --dirty` as `SHULIB_BUILD_HASH`; a test
+asserts through that string; **`-dirty` is exactly 6 characters.**
+
+**This is a second trigger for the trap DEFECTS1 recorded with a different one** (a stray untracked
+header moving the count by 6 — coincidentally the same delta, which is its own small trap). Two
+further facts that make it hard to diagnose: the hash is captured at CMake **configure** time, so a
+plain `cmake --build` can carry a stale one indefinitely; and **committing changes the answer**, so
+the gate looks broken at exactly the moment you are trying to commit. Note also that **untracked files
+do not make `git describe` report dirty** — only modified *tracked* files do, which is why this
+session's earlier baselines read clean while an untracked progress log existed.
+
+**The committed briefing must carry the CLEAN-tree number**, because that is what a fresh clone
+reproduces. Recorded in the briefing's process-failures list with the escape sequence.
+
+*(No hardware measurement in this phase. Batch 1 steps 2, 3, 4, 5, 7, 8 remain open.)*
