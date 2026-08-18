@@ -128,7 +128,13 @@ void emitf(const char* fmt, ...) {
 // therefore mirrors its lines to the screen; the SD file keeps the full-width
 // detail (screen lines truncate at 54 chars) for reading afterwards.
 
-constexpr int kScreenLines = 14;      // small font on a 480x272 panel, chosen low on
+/// The panel is 480x272, but VEXos reserves the top strip for its status bar, so
+/// the usable drawing height is ~240. Anything placed near 272 lands OFF-SCREEN --
+/// observed on hardware 2026-08-18, after a host geometry check that passed
+/// against the wrong constant. Everything stays inside this with margin.
+constexpr std::int16_t kUsableH = 236;
+
+constexpr int kScreenLines = 13;      // small font on a 480x272 panel, chosen low on
                                       // purpose: the SD file is the complete record and
                                       // an unreadable overflow is worse than a extra tap.
 constexpr int kScreenCols = 54;
@@ -165,8 +171,8 @@ void screenEmit(const char* line) {
     if (g_screenLine >= kScreenLines) {
         // Explicit pixel position, not a line index: a line index past the font's
         // last visible row draws off-screen and the prompt silently disappears.
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 250,
-                                 "-- screen full: TOUCH for more (SD has it all) --");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, kUsableH - 14,
+                                 "-- screen full: TOUCH for more --");
         waitForTouch();
         screenClear();
     }
@@ -488,8 +494,13 @@ constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 
 // Two columns x three rows of touch targets. Deliberately large (232x62): this is
 // operated by someone crouched over a robot, not with a mouse.
-// 7 items => 4 rows. Height chosen so row 3 ends inside 272px: 62 + 4*48 + 3*5 = 269.
-constexpr std::int16_t kBtnW = 232, kBtnH = 48, kBtnX0 = 6, kBtnY0 = 62, kGap = 5;
+// USABLE HEIGHT IS ~240, NOT 272. The panel is 480x272 but VEXos reserves the top
+// strip for its own status bar, so anything drawn near y=272 is off-screen. The
+// first layout was verified against 272 and PASSED -- the check was right, the
+// constant was wrong, and the bottom row landed off the panel on real hardware
+// (observed 2026-08-18). Everything now stays inside y < 236 for margin:
+// row 3 spans 184..226.
+constexpr std::int16_t kBtnW = 232, kBtnH = 42, kBtnX0 = 6, kBtnY0 = 46, kGap = 4;
 
 void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std::int16_t& y1) {
     const std::int16_t col = static_cast<std::int16_t>(i % 2);
@@ -513,11 +524,11 @@ void drawMenu() {
     const bool logging = (g_card != nullptr) && g_card->isOpen();
     if (logging) {
         pros::c::screen_set_pen(0x30C030);
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 40, "SD LOGGING ON  ->  /usd/r3a_log.txt");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 31, "SD LOGGING ON -> /usd/r3a_log.txt");
     } else {
         pros::c::screen_set_pen(0xFF4040);
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 40,
-                                 "SD LOGGING OFF - screen only (insert card + reboot)");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 31,
+                                 "SD LOGGING OFF - screen only (see test 5)");
     }
     pros::c::screen_set_pen(0xFFFFFF);
     for (int i = 0; i < kMenuCount; ++i) {
@@ -531,7 +542,7 @@ void drawMenu() {
         // every label gets a black box behind it.
         pros::c::screen_set_eraser(0x1E5AA8);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
-                                 static_cast<std::int16_t>(y0 + 16), "%s", kMenu[i].label);
+                                 static_cast<std::int16_t>(y0 + 13), "%s", kMenu[i].label);
         pros::c::screen_set_eraser(0x000000);
     }
 }
@@ -567,7 +578,7 @@ void runR3a() {
     pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 10, 92, "BUILD %s", kBuildStamp);
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 130, "if this stamp is not the one you just built,");
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 146, "the upload did NOT land -- re-upload.");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 178, "READ-ONLY build: commands no motion.");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 172, "READ-ONLY build: commands no motion.");
     pros::delay(2000);
 
     emit("");
@@ -623,7 +634,7 @@ void runR3a() {
         card.flush();
 
         g_screenActive = false;
-        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 6, 246, "TOUCH TO RETURN TO MENU");
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 6, kUsableH - 20, "TOUCH TO RETURN TO MENU");
         waitForTouch();
     }
 }

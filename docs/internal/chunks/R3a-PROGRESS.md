@@ -1078,3 +1078,97 @@ headers document FAT32 as a requirement but say nothing about name length, and r
 y=269 inside a 272 px panel; all seven boxes in bounds, no overlaps, every centre hit-tests to its
 own button. **PASS, 0 problems.** Catching that off-screen row on the host rather than on the robot
 is the second time the host geometry check has paid for itself.
+
+---
+
+## Phase 14 — FIRST REAL READINGS. The instrument ran, and the register is wrong.
+
+Captured over USB serial, 2026-08-18, build stamp `Aug 18 2026 18:49:31`, hash
+`v0.1.1-254-g78673bd-dirty`. **RAW, uninterpreted, pasted before analysis** — per the Phase 4 rule.
+
+```
+1. usd_is_installed()        : 1
+   >> card IS detected.
+2. fopen(/usd/probe.txt,wb) : FAILED
+   >> errno=6.
+
+port  type            our hypothesis
+   1  MOTOR             (code 2)
+   2  MOTOR             (code 2)
+   3  IMU               (code 6)
+   4  MOTOR           IMU(hyp)  (code 2)
+   9  RADIO             (code 8)
+  10  MOTOR             (code 2)
+  11  MOTOR           RIGHT(hyp)  (code 2)
+  12  MOTOR           RIGHT(hyp)  (code 2)
+  13  MOTOR           RIGHT(hyp)  (code 2)
+  14  MOTOR           RIGHT(hyp)  (code 2)
+  15  MOTOR           LEFT(hyp)  (code 2)
+  16  MOTOR           LEFT(hyp)  (code 2)
+  17  MOTOR           LEFT(hyp)  (code 2)
+  21  ADI-EXPANDER      (code 12)
+motors found: 11   (hypothesis expects 8: 4 left + 4 right)
+```
+
+### 14.1 FINDING — the IMU is on port **3**, not port 4. `HA-111` is WRONG.
+
+The register records `IMU 4` from 2026-08-13 and **that is not what is on this robot**: port 3 reports
+`E_DEVICE_IMU`, port 4 reports `E_DEVICE_MOTOR`. Every IMU entry (HA-02/03/04/05/23/108/109/110) was
+therefore unreachable by the shipped hypothesis, and `reportImu()` would have refused port 4 as
+not-an-IMU. **The staged design paid for itself**: the census constructs nothing, so a wrong port map
+produced a readable table instead of a boot fault.
+
+### 14.2 FINDING — port **18 is EMPTY**. The 8-motor symmetric drivetrain does not exist.
+
+`§9.1` recorded port 13 as mechanically repaired and concluded **"8 motors, 4 per side — symmetric"**,
+retracting §5.3's asymmetry caveat. The measurement says **13 IS live and 18 IS NOT**:
+
+| Group | §9.1 expected | MEASURED |
+|---|---|---|
+| 11/12/13/14 | 4 motors | **4 motors ✓** |
+| 15/16/17/18 | 4 motors | **3 motors — 18 absent** |
+
+So **the 4-vs-3 asymmetry never went away; it moved sides.** §9.1's symmetric conclusion and its
+retraction of the "will not drive straight under an open-loop symmetric command" caveat are both
+**withdrawn** — recorded rather than overwritten, exactly as §9.1 itself withdrew §6.4.
+
+**This lands directly on R3b piece 1:** the motor group must handle **unequal counts per side**, not
+merely N-per-side. And §8.4's per-side ratio question now has a per-side *count* question beside it.
+
+### 14.3 FINDING — the ADI expander on port **21 is CONFIRMED**. `HA-120` closes.
+
+The 2026-08-13 report claimed an expander read from registry index 21 — outside PROS's documented
+0–20 range — and §5 flagged that its **absence** would correct that report. It is **present**:
+`E_DEVICE_ADI (code 12)`. The earlier report stands, and scanning port 21 deliberately is what
+proved it.
+
+### 14.4 FINDING — 11 motors, not 8. Four are unaccounted for.
+
+Motors on **1, 2, 4, 10** are outside both drive groups. These are the mechanism motors batch-1 item
+**B1.5** asks about, and they now have measured ports rather than a question. Port 9 is `RADIO`,
+which is expected.
+
+### 14.5 SD CARD — detected, but **not a FAT32 filesystem**. `errno 6 = ENXIO`.
+
+Step 1 passed (`usd_is_installed() = 1`) and step 2 failed with **`errno=6`**. PROS's own header
+documents that value for this subsystem as **`ENXIO — drive number is invalid or not a FAT32 drive`**
+(`include/pros/misc.h:818`). So the hardware is fine and the **filesystem is not** — almost certainly
+**exFAT**, which is what modern OSes choose by default for cards ≥64 GB.
+
+**Fix: reformat the card as FAT32.** HA-122's first belief (`usd_is_installed()` is a reliable 1/0
+probe) is **CONFIRMED**; its second and third (the `/usd/` prefix, `fflush` durability) remain
+untested because no file has opened yet.
+
+*(The staged probe is the reason this took one run. `isOpen()` alone said "off" and would have sent
+somebody to check the card was seated — which it was.)*
+
+### 14.6 The panel layout was wrong, and the host check passed against the wrong constant
+
+The bottom menu row rendered off-screen. The panel is 480x272, but **VEXos reserves the top strip for
+its status bar, so usable height is ~240** — the host geometry check asserted against 272 and
+returned PASS. **The check was right; its constant was wrong.** Re-verified at `kUsableH = 236`: all
+seven buttons span y=46..226, no overlaps, every centre hit-tests to its own button. Both touch
+prompts were also at y≥246 and therefore invisible; they are now positioned relative to `kUsableH`.
+
+**Lesson worth keeping: a host check of a hardware-facing constant is only as good as the constant,
+and it will report PASS with total confidence either way.**
