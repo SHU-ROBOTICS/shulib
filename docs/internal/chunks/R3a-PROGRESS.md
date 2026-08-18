@@ -939,3 +939,53 @@ degraded honestly and reported through `isOpen()`; what was missing was **somebo
 
 *(Also recorded for the runbook: the log is one file per boot and is OVERWRITTEN on each power
 cycle. Copy the card off before rebooting if a session's output matters.)*
+
+### 13.11 FIRST RUN: data abort in `strlen` — `std::string_view` through varargs
+
+**The first real execution crashed**, and it found a bug that four green gates could not:
+
+```
+data abort exception   PC: 0x38006ea   Current task: User Operator Control (PROS)
+```
+
+`arm-none-eabi-addr2line -e bin/cold.package.elf 0x38006ea` → **`strlen`**. (0x38006ea is
+`cold_addr` 0x3800000 + 0x6ea, i.e. inside the cold package's libc, reached from hot code.)
+
+**Cause:**
+
+```cpp
+emitf("build hash : %s", diag::compiledBuildHash());   // WRONG
+```
+
+`compiledBuildHash()` returns **`std::string_view`**, not `const char*`. Passed through varargs,
+`vsnprintf` reads the view's raw bytes (pointer + size) as a `char*`, gets a garbage pointer, and
+faults inside `strlen`.
+
+**Why nothing caught it — the part worth keeping:**
+
+- **The compiler was silent.** `std::string_view` *is* trivially copyable, so the usual
+  "cannot pass non-trivially-copyable type through `...`" error does not fire, and
+  `__attribute__((format(printf, …)))` did not flag the class type either. Compiled clean at
+  `-Wall -Wextra`.
+- **Every gate stayed green** — host suite (1,523,871 assertions), ARM header gate, six doc gates,
+  zero non-`liblvgl` warnings. **None of them execute this translation unit.** `src/` is not in the
+  host build and the ARM gate compiles *headers only*. This binary's first execution WAS its first
+  test, exactly as flagged when it was handed over.
+
+**Fix** — `%.*s` with the explicit size, and it now also honours `build_info.hpp`'s **loudness
+contract**, which the original line silently broke: empty means MISSING and must render as an error,
+never as a plausible-looking placeholder.
+
+```cpp
+const std::string_view hash = diag::compiledBuildHash();
+if (hash.empty()) emit("build hash : [ERROR] MISSING ...");
+else              emitf("build hash : %.*s", static_cast<int>(hash.size()), hash.data());
+```
+
+**Generalisable landmine, added as a comment at the site:** never pass a `std::string_view` (or any
+class type) to a `printf`-family `%s`. In this tree that is a live hazard because
+`compiledBuildHash()` is the natural thing to print in any session header, and it returns a view.
+
+**Also observed:** after the abort the brain dropped off USB entirely (`no /dev/ttyACM*`), so the
+fixed build could not be pushed until it was power-cycled. Worth knowing before a bench session —
+a crash costs a reboot, not just a re-run.

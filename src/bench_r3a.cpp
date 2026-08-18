@@ -50,6 +50,7 @@
 #include <cstdint>
 #include <cstring>
 #include <span>
+#include <string_view>
 
 #include "pros/apix.h"
 #include "pros/imu.h"
@@ -475,7 +476,18 @@ void runR3a() {
     emit("################################################################");
     emit("#  shulib R3a  BENCH VALIDATION  --  READ-ONLY, COMMANDS NO MOTION");
     emit("################################################################");
-    emitf("build hash : %s", diag::compiledBuildHash());
+    // NEVER pass compiledBuildHash() straight to a %s: it returns std::string_view,
+    // which is trivially copyable, so it goes through varargs WITHOUT A COMPILER
+    // WARNING and vsnprintf reads its raw bytes as a char* -- a garbage pointer that
+    // faults inside strlen. That was a real data-abort on the bench, 2026-08-18.
+    // Also honours build_info.hpp's LOUDNESS CONTRACT: empty means MISSING, rendered
+    // as an error, never as a plausible-looking placeholder.
+    const std::string_view hash = diag::compiledBuildHash();
+    if (hash.empty()) {
+        emit("build hash : [ERROR] MISSING -- the build injected no hash (S18.5)");
+    } else {
+        emitf("build hash : %.*s", static_cast<int>(hash.size()), hash.data());
+    }
     emit("robot      : TANK BENCH BOT (the measured one) -- NOT the invented X-drive");
     emitf("hypothesis : LEFT %d/%d/%d/%d   RIGHT %d/%d/%d/%d   IMU %u   no GPS, no pods",
           kLeftPorts[0], kLeftPorts[1], kLeftPorts[2], kLeftPorts[3], kRightPorts[0],
