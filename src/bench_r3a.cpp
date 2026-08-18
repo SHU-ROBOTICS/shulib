@@ -91,7 +91,20 @@ constexpr std::size_t kRightCount = sizeof kRightPorts / sizeof kRightPorts[0];
 /// because nothing on screen distinguished the two.
 constexpr const char* kBuildStamp = __DATE__ " " __TIME__;
 
-constexpr int kMaxPort = 21;      // the brain's smart ports; 21 is deliberate (see census note)
+constexpr int kMaxPort = 21;   // PHYSICAL smart ports, 1..21 -- how humans and every
+                               // other PROS API name them. found[] is indexed this way.
+
+/// THE REGISTRY IS ZERO-INDEXED AND NOTHING ELSE IN PROS IS.
+/// `apix.h`: "Returns the type of the device plugged into the ZERO-INDEXED port …
+/// The V5 port number from 0-20". So registry index i is PHYSICAL PORT i+1.
+///
+/// Scanning 1..21 as if it were physical -- which this file did on 2026-08-18 --
+/// shifts every reading by one port and invents a device at index 21 (physical 22,
+/// which does not exist). It produced a confident, completely wrong port map, and
+/// HA-120 had already predicted exactly this: it calls for "a CORRECTED 0-20
+/// registry scan" precisely because the 2026-08-13 expander sighting came from
+/// index 21. Do not re-derive this; the mapping is index -> index + 1.
+constexpr int kMaxRegistryIndex = 20;
 constexpr int kLoopSamples = 200; // 200 × 10 ms ≈ 2 s of cadence measurement
 
 // ── Output: USB serial always, SD card when one is installed. ─────────────────
@@ -269,26 +282,27 @@ void probeSdCard() {
 // ═══ STAGE 1 — the census. Raw registry only; constructs nothing. ═════════════
 void census(pros::c::v5_device_e_t* found) {
     rule("STAGE 1  DEVICE CENSUS (raw registry, no adapters)");
-    emit("port  type            our hypothesis");
+    emit("registry index is ZERO-based; PORT below is the physical 1-21 number.");
+    emit("PORT  idx  type            our hypothesis");
     int motors = 0;
-    for (int p = 1; p <= kMaxPort; ++p) {
+    for (int idx = 0; idx <= kMaxRegistryIndex; ++idx) {
         const pros::c::v5_device_e_t t =
-            pros::c::registry_get_plugged_type(static_cast<std::uint8_t>(p));
-        found[p] = t;
+            pros::c::registry_get_plugged_type(static_cast<std::uint8_t>(idx));
+        const int port = idx + 1;   // <- the whole correction
+        found[port] = t;
         if (t == pros::c::E_DEVICE_MOTOR) ++motors;
         if (t != pros::c::E_DEVICE_NONE) {
-            emitf("  %2d  %-14s  %s  (code %d)", p, deviceName(t), hypothesisedSide(p),
-                  static_cast<int>(t));
+            emitf("  %2d   %2d  %-14s  %s  (code %d)", port, idx, deviceName(t),
+                  hypothesisedSide(port), static_cast<int>(t));
         }
     }
     emit("");
     emitf("motors found: %d   (hypothesis expects %u: %u left + %u right)", motors,
           static_cast<unsigned>(kLeftCount + kRightCount), static_cast<unsigned>(kLeftCount),
           static_cast<unsigned>(kRightCount));
-    emit("EMPTY PORTS ARE OMITTED ABOVE. If a hypothesised port is missing from this");
-    emit("list, the hypothesis is wrong -- that is a FINDING, record it and continue.");
-    emit("NOTE port 21: scanned deliberately. A device here is outside PROS's own");
-    emit("documented 1-20 range and is exactly what the 2026-08-13 expander report read.");
+    emit("EMPTY PORTS ARE OMITTED. A hypothesised port missing here is a FINDING.");
+    emit("Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is");
+    emit("what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).");
 }
 
 // ═══ STAGE 2 — IMU: raw PROS beside our canonical conversion. ════════════════

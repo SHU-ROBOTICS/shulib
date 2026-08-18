@@ -1172,3 +1172,91 @@ prompts were also at y≥246 and therefore invisible; they are now positioned re
 
 **Lesson worth keeping: a host check of a hardware-facing constant is only as good as the constant,
 and it will report PASS with total confidence either way.**
+
+---
+
+## Phase 15 — PHASE 14 IS RETRACTED. It was an off-by-one, and HA-120 had predicted it.
+
+Team lead: *"no there definitely is a number 18."* Correct — and chasing that falsified **every
+device finding in Phase 14**.
+
+### 15.1 The error
+
+`apix.h` on `registry_get_plugged_type`:
+
+> *"Returns the type of the device plugged into the **ZERO-INDEXED** port … \param port The V5 port
+> number from **0-20**"*
+
+The Phase 13 census looped `1..21` as though those were physical ports. **Registry index i is
+physical port i+1**, so every reading was shifted one port, physical port 1 was never scanned at all,
+and index 21 — outside the documented range — returned a garbage device.
+
+**HA-120 had already called for exactly the scan that was not written:** *"Settle (R3, runbook step
+17): the brain's Devices screen **and a corrected 0–20 registry scan**"* — the entry exists BECAUSE
+the 2026-08-13 expander sighting came from index 21. The register named the trap and the trap was
+walked into anyway.
+
+### 15.2 Corrected reading (build `Aug 18 2026 19:01:03`)
+
+```
+PORT  idx  type            our hypothesis
+   1    0  MOTOR             (code 2)
+   2    1  MOTOR             (code 2)
+   3    2  MOTOR             (code 2)
+   4    3  IMU             IMU(hyp)  (code 6)
+   5    4  MOTOR             (code 2)
+  10    9  RADIO             (code 8)
+  11   10  MOTOR           RIGHT(hyp)  (code 2)
+  12   11  MOTOR           RIGHT(hyp)  (code 2)
+  13   12  MOTOR           RIGHT(hyp)  (code 2)
+  14   13  MOTOR           RIGHT(hyp)  (code 2)
+  15   14  MOTOR           LEFT(hyp)  (code 2)
+  16   15  MOTOR           LEFT(hyp)  (code 2)
+  17   16  MOTOR           LEFT(hyp)  (code 2)
+  18   17  MOTOR           LEFT(hyp)  (code 2)
+motors found: 12
+```
+
+### 15.3 Every Phase 14 device finding is withdrawn
+
+| Phase 14 claim | Truth | Status |
+|---|---|---|
+| 14.1 IMU on port 3; `HA-111` wrong | **IMU is on port 4.** `HA-111` was RIGHT | **WITHDRAWN** |
+| 14.2 Port 18 empty; drivetrain is 4-vs-3 | **Port 18 has a motor. 8 motors, 4 per side** | **WITHDRAWN** |
+| 14.3 ADI expander on 21 CONFIRMED | **No expander anywhere in 1–21.** Index 21 is out of range | **WITHDRAWN** |
+| 14.4 11 motors; mechanisms on 1/2/4/10 | **12 motors; mechanisms on 1, 2, 3, 5** | **WITHDRAWN** |
+| 14.5 SD `errno 6` | unaffected — different API | **STANDS** |
+| 14.6 panel usable height ~240 | unaffected — observed directly | **STANDS** |
+
+**Consequences, all of them restorations:**
+
+- **`HA-111`'s IMU port is CONFIRMED, not corrected.** The IMU is on 4, as recorded.
+- **`§9.1` STANDS.** Port 13 is live, port 18 is live, the drivetrain is **8 motors, 4 per side,
+  symmetric**, and §14.2's withdrawal of §9.1 is itself withdrawn. R3b piece 1 needs **N-per-side**,
+  not unequal counts — §14.2's extra requirement is dropped.
+- **`HA-120` resolves to NO EXPANDER.** §5's stated criterion — *its absence corrects the 2026-08-13
+  report* — is met. **The R1a expander sighting was an out-of-range read, and this is the second
+  time that index has produced a phantom.**
+- **`B1.5` is answered by measurement.** It asks what the motors on *"ports 1, 2, 3, 5"* drive, and
+  the corrected census finds motors on exactly **1, 2, 3, 5**. The question was well-posed; only what
+  they *drive* is still open, and that needs eyes on the robot.
+
+### 15.4 The lesson, which is not "read the docs more carefully"
+
+Phase 14 was **confident, specific, internally consistent, and wrong** — it produced a clean table,
+three named register corrections, and a downstream design requirement for R3b. Nothing in the output
+looked suspicious. It was caught by **one person who knew the robot saying "there is definitely an
+18."**
+
+Two things that would have caught it without that:
+
+1. **The hypothesis was a falsification tool and its failure was not treated as one.** Phase 14
+   showed `IMU(hyp)` beside a MOTOR and `LEFT(hyp)` against a missing port — the hypothesis
+   disagreeing with reality on *four* counts at once. That pattern is far more likely to mean the
+   *reader* is wrong than that four independent facts changed. **A wholesale disagreement should
+   raise suspicion of the instrument first.**
+2. **The register already held the answer.** HA-120 named the exact failure and prescribed the exact
+   fix. It was read while writing the brief and not applied while writing the code.
+
+The census now prints **PORT and idx side by side** so the mapping is visible in the output itself,
+and stops at index 20 with a comment naming this incident.
