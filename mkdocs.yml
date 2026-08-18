@@ -286,4 +286,5 @@ nav:
       - Architecture and decisions: shulib-v2-master-plan.md
       - Hardware assumptions: hardware-assumptions.md
       - Diagnostics plan: diagnostics-plan.md
+      - VexBuilder integration: vexbuilder-integration.md
       - Legacy command vocabulary: legacy-command-vocabulary.md

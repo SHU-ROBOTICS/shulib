@@ -1591,14 +1591,70 @@ grows by adding rows here, never by renaming these.
 shulib *defines* the contracts; VexBuilder *produces* them. These are the things the VexBuilder side
 must add for the integration to close. They are tracked here so the dependency is never invisible.
 
+> **The full operational detail — every field, every schema, both sides' ordered work lists, and an
+> honest list of what can still move — is in [`vexbuilder-integration.md`](vexbuilder-integration.md).**
+> That document is written FOR the person finishing VexBuilder and is the one to hand over. This
+> section is the index.
+>
+> **Ownership, 2026-08-17:** finishing VexBuilder is owned by the former programming chair (now VP);
+> the **agent-socket work (#3a) is taken by the programming chair.**
+>
+> **The reciprocal half is the part this section used to hide.** These asks read as though shulib were
+> waiting on VexBuilder. It is not — or rather, it is not *only* that: **shulib has built none of the
+> code that consumes any of these contracts.** `IRobotConfig`, `IRouteSource`, `RobotBuilder`,
+> `PathRunner`, the id manifest, the `.vexbot` codegen and the `SHUL/2` wire are all unbuilt (G1–G4,
+> H1). Listing only one side's obligations is how a two-sided dependency turns into a stall with each
+> side believing it is blocked. Both lists are below.
+
+### What VexBuilder must add
+
 1. **Add `project.paths[]`** to the `.vexbot` schema (routines now live in the project file, not the
    retired `.shupaths`). → unblocks F8, M5.
 2. **Add explicit drivetrain fields** (`kind` / `trackWidth` / `wheelDiameter`) to the robot config so
    shulib doesn't have to *infer* them from part geometry (brittle). → firms up F7, M5.
 3. **Expose the agent socket for `SHUL/2`** (already discoverable via `server.json`) and, when the
    Rapier sim lands, feed simulated sensors in / render pose out. → M6.
+   **(3a — the socket itself, taken by the programming chair. Independent of everything else and
+   startable now; H1 defines the wire unilaterally and needs no sim to be built or tested.)**
 4. **Consume the shulib command-id manifest** to populate VexBuilder's command picker, so authored
    `paths[]` only reference ids shulib actually handles. → unblocks F8, M5.
+5. **Add the `project.robotProfile` block** shulib specifies (drivetrain / odometry / sensors /
+   mechanisms / corrections). → F7. *Added 2026-08-17: it was implied by #2 and never stated as its
+   own ask, so it had no owner.*
+6. **Build the electrical UI.** ⚠️ **This is VexBuilder's true critical path and it was missing from
+   this list entirely.** `.vexbot` v2.0.0 ships `electrical{motors,sensors,pneumatics}` as **empty
+   arrays because the UI was never built** — and that is the *source data* for `robotProfile`. Asks #2
+   and #5 cannot be satisfied without it. → gates F7, M5.
+7. **Emit a per-motor `gearRatio`** (`{motorTeeth, wheelTeeth}`) in the drivetrain block. *Added
+   2026-08-17.* shulib currently has **no gear-ratio concept anywhere** — a known defect — and at
+   least one team robot is believed to be geared **differently on the left and right sides**, so this
+   must be per-motor and must not be hoisted to a single drivetrain-level field.
+
+### What shulib owes VexBuilder — the reciprocal list
+
+| # | shulib must ship | Unblocks | Chunk | Gated on VexBuilder? |
+|---|---|---|---|---|
+| A | `IRobotConfig` / `IRouteSource` / `RobotBuilder` | everything downstream | **G1** | **no — startable today** |
+| B | `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) | **G2** | no |
+| C | `.vexbot` ingestion + `robot_config.hpp` codegen + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
+| D | The `.shupaths` one-way importer | migrating existing routines | **G4** | yes — G3 |
+| E | The `SHUL/2` wire protocol | **VexBuilder ask #3** | **H1** | **no — the wire is defined unilaterally** |
+| F | The `hal/sim` adapter + record/replay | the sim seam closing | **H2** | yes — Rapier |
+
+**The two that unblock each other soonest, and neither waits on the other:** shulib's **G2 manifest**
+unblocks VexBuilder's picker, and VexBuilder's **electrical UI + drivetrain fields** unblock shulib's
+G3 ingestion. Those are the right two to run in parallel first.
+
+### Joint decisions neither side can make alone
+
+- **Boundary-marker representation.** The legacy vocabulary's `NONE` id appears 18 times as a
+  path-segment boundary marker and is **absent from both legacy enums**. `.vexbot` already carries
+  real segment structure, so it may need no id at all. **Decide before the picker ships**, or the
+  importer will emit ids the UI cannot render.
+- **How much of the id vocabulary to mint up front.** Only ONE motion id was ever actually emitted by
+  the legacy planner (`MOVE_WITH_HEADING`); the five manipulation ids were declared and never used,
+  and the primitives behind them are gated on the build team's final mechanism decisions. The picker
+  should be built for a manifest that **grows**, with nothing hardcoded.
 
 ---
 
