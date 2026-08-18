@@ -1580,12 +1580,17 @@ Three additive pieces of library code, each host-provable against the A2 plant a
 long before it meets a robot — then validated on **the same bench robot**, which is why this chunk is
 *not* gated on a competition robot:
 
-1. **Multi-motor-per-side aggregation.** `command_pipeline.hpp:146-152` maps kinematic wheel → motor
-   **1:1**, and `motion.hpp:201-203` guards it with `>=`, so a 7-motor tank drive is *accepted* and
-   **two motors are commanded while five are never given a voltage or a brake mode, silently**
-   (measured, with a negative control, in `chunks/R3a-PROGRESS.md` §4.1). `tank.hpp:80` delegates this
-   to "the HAL's business" and **no such HAL facility exists.** Every real VEX drivetrain has 2–4
-   motors per side.
+1. **Multi-motor-per-side aggregation.** `command_pipeline.hpp:147-152` maps kinematic wheel → motor
+   **1:1**, and `motion.hpp:201-203` guards it with `>=`, so an over-provisioned tank drive is
+   *accepted* and **two motors are commanded while the rest are never given a voltage or a brake
+   mode, silently** (measured, with a negative control, in `chunks/R3a-PROGRESS.md` §4.1).
+   `kinematics/tank.hpp:80` delegates this to "the HAL's business" and **no such HAL facility
+   exists.** Every real VEX drivetrain has 2–4 motors per side.
+   *(**Corrected 2026-08-18.** This read "a 7-motor tank drive … five never given a voltage", written
+   before port 13 was repaired. `chunks/R3a-PROGRESS.md` §9.1 records the repair: the bench
+   drivetrain is **8 motors, 4 per side, symmetric**, so the shipped pipeline would command **2 and
+   leave 6 dead, not 5**, and §4.1's probe — taken at 7 — is to be re-stated at 8 rather than edited.
+   The path `tank.hpp` was also wrong: it is `kinematics/tank.hpp`, not `chassis/`.)*
 2. **An odometry path that does not require two dedicated rotation sensors.** The chain
    motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` is hard: `Localizer`
    takes a **concrete** `PilonsOdometry&`, there is no `IOdometry` seam, and `PilonsOdometry`
