@@ -49,6 +49,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
+#include <cerrno>
 #include <span>
 #include <string_view>
 
@@ -81,6 +82,14 @@ constexpr std::int8_t kLeftPorts[] = {15, 16, 17, 18};
 constexpr std::int8_t kRightPorts[] = {11, 12, 13, 14};
 constexpr std::size_t kLeftCount = sizeof kLeftPorts / sizeof kLeftPorts[0];
 constexpr std::size_t kRightCount = sizeof kRightPorts / sizeof kRightPorts[0];
+
+/// Compiled-in build stamp. __DATE__/__TIME__ are evaluated when THIS translation
+/// unit is compiled, so the value changes on every rebuild -- which is the point.
+/// The git hash (build_info.hpp) identifies the COMMIT; this identifies the BUILD,
+/// and only the second one answers "did my upload actually land?" A silent upload
+/// failure on 2026-08-18 left an old binary running and cost a debugging cycle
+/// because nothing on screen distinguished the two.
+constexpr const char* kBuildStamp = __DATE__ " " __TIME__;
 
 constexpr int kMaxPort = 21;      // the brain's smart ports; 21 is deliberate (see census note)
 constexpr int kLoopSamples = 200; // 200 × 10 ms ≈ 2 s of cadence measurement
@@ -210,6 +219,45 @@ const char* hypothesisedSide(int port) {
     }
     if (port == static_cast<int>(kImuPort)) return "IMU(hyp)";
     return "";
+}
+
+/// Probe the card in stages, because "SD LOGGING OFF" alone is not actionable:
+/// ProsBlockSink only calls fopen() when usd_is_installed() is nonzero, and
+/// isOpen() reads false in BOTH cases -- card-not-detected and file-open-failed
+/// are different problems with different fixes. Uses its OWN probe file so it
+/// cannot interfere with the real log.
+void probeSdCard() {
+    rule("SD CARD PROBE (HA-122)");
+    const std::int32_t installed = pros::c::usd_is_installed();
+    emitf("1. usd_is_installed()        : %ld", static_cast<long>(installed));
+    if (installed == 0) {
+        emit("   >> NO CARD DETECTED by VEXos. The card is not readable at all.");
+        emit("   >> Card must be FAT32 (NOT exFAT -- that is the usual cause).");
+        emit("   >> Also: reseat it, and POWER-CYCLE -- VEXos mounts at boot, so a");
+        emit("   >> card inserted while running is never picked up.");
+        return;
+    }
+    emit("   >> card IS detected.");
+
+    errno = 0;
+    std::FILE* probe = std::fopen("/usd/probe.txt", "wb");
+    emitf("2. fopen(/usd/probe.txt,wb) : %s", probe != nullptr ? "OK" : "FAILED");
+    if (probe == nullptr) {
+        emitf("   >> errno=%d. Card is detected but not writable. Check write-protect,", errno);
+        emit("   >> free space, and that the card really is FAT32.");
+        return;
+    }
+    const char* payload = "shulib r3a probe\n";
+    const std::size_t wrote = std::fwrite(payload, 1, std::strlen(payload), probe);
+    const int flushed = std::fflush(probe);
+    std::fclose(probe);
+    emitf("3. fwrite/fflush            : %u bytes, fflush=%d", static_cast<unsigned>(wrote),
+          flushed);
+    if (wrote == std::strlen(payload) && flushed == 0) {
+        emit("   >> CARD IS FULLY WORKING. /usd/probe.txt was written and flushed.");
+    } else {
+        emit("   >> partial write -- card may be full or failing.");
+    }
 }
 
 // ═══ STAGE 1 — the census. Raw registry only; constructs nothing. ═════════════
@@ -373,7 +421,7 @@ void reportPlatform() {
     emitf("sd card: usd_is_installed()=%d  -> %s", static_cast<int>(pros::c::usd_is_installed()),
           card ? "PRESENT (HA-122 first half CONFIRMED)" : "ABSENT");
     if (g_card != nullptr) {
-        emitf("  text log file open: %s", g_card->isOpen() ? "YES (/usd/r3a_bench.txt)" : "NO");
+        emitf("  text log file open: %s", g_card->isOpen() ? "YES (/usd/r3a_log.txt)" : "NO");
     }
 }
 
@@ -417,7 +465,9 @@ void tImu(pros::c::v5_device_e_t* f)      { reportImu(f[kImuPort] == pros::c::E_
 void tMotors(pros::c::v5_device_e_t* f)   { reportMotors(f); }
 void tPlatform(pros::c::v5_device_e_t*)   { reportPlatform(); }
 void tLoopRate(pros::c::v5_device_e_t*)   { measureLoopRate(); }
+void tSdProbe(pros::c::v5_device_e_t*)    { probeSdCard(); }
 void tAll(pros::c::v5_device_e_t* f) {
+    tSdProbe(f);
     tCensus(f);
     tImu(f);
     tMotors(f);
@@ -429,15 +479,17 @@ constexpr MenuItem kMenu[] = {
     {"1  DEVICE CENSUS",    &tCensus},
     {"2  IMU + ROTATE",     &tImu},
     {"3  MOTORS (by hand)", &tMotors},
-    {"4  BATT/CTRL/SD",     &tPlatform},
-    {"5  LOOP RATE",        &tLoopRate},
-    {"6  RUN ALL",          &tAll},
+    {"4  BATT/CTRL",        &tPlatform},
+    {"5  SD CARD PROBE",    &tSdProbe},
+    {"6  LOOP RATE",        &tLoopRate},
+    {"7  RUN ALL",          &tAll},
 };
 constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 
 // Two columns x three rows of touch targets. Deliberately large (232x62): this is
 // operated by someone crouched over a robot, not with a mouse.
-constexpr std::int16_t kBtnW = 232, kBtnH = 58, kBtnX0 = 6, kBtnY0 = 62, kGap = 5;
+// 7 items => 4 rows. Height chosen so row 3 ends inside 272px: 62 + 4*48 + 3*5 = 269.
+constexpr std::int16_t kBtnW = 232, kBtnH = 48, kBtnX0 = 6, kBtnY0 = 62, kGap = 5;
 
 void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std::int16_t& y1) {
     const std::int16_t col = static_cast<std::int16_t>(i % 2);
@@ -461,11 +513,11 @@ void drawMenu() {
     const bool logging = (g_card != nullptr) && g_card->isOpen();
     if (logging) {
         pros::c::screen_set_pen(0x30C030);
-        pros::c::screen_print(pros::E_TEXT_SMALL, 2, "SD LOGGING ON  ->  /usd/r3a_bench.txt");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 40, "SD LOGGING ON  ->  /usd/r3a_log.txt");
     } else {
         pros::c::screen_set_pen(0xFF4040);
-        pros::c::screen_print(pros::E_TEXT_SMALL, 2, "SD LOGGING OFF - screen only! insert card,");
-        pros::c::screen_print(pros::E_TEXT_SMALL, 3, "then POWER-CYCLE and restart this program.");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 40,
+                                 "SD LOGGING OFF - screen only (insert card + reboot)");
     }
     pros::c::screen_set_pen(0xFFFFFF);
     for (int i = 0; i < kMenuCount; ++i) {
@@ -479,7 +531,7 @@ void drawMenu() {
         // every label gets a black box behind it.
         pros::c::screen_set_eraser(0x1E5AA8);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
-                                 static_cast<std::int16_t>(y0 + 20), "%s", kMenu[i].label);
+                                 static_cast<std::int16_t>(y0 + 16), "%s", kMenu[i].label);
         pros::c::screen_set_eraser(0x000000);
     }
 }
@@ -499,8 +551,24 @@ int hitTest(std::int16_t tx, std::int16_t ty) {
 void runR3a() {
     // The SD text log, opened first so the banner itself is captured. One file per
     // boot (ProsBlockSink owns its FILE*), so a re-run means a power cycle.
-    static hal::pros::ProsBlockSink card{"r3a_bench.txt"};
+    // 8.3-safe name on purpose: the vendored PROS headers document FAT32 as a
+    // requirement but say nothing about name length, and a long name is a free
+    // thing to rule out.
+    static hal::pros::ProsBlockSink card{"r3a_log.txt"};
     g_card = &card;
+
+    // Boot splash. Held for 2 s so the build stamp is seen even if a later stage
+    // faults -- "which binary is actually running" must be answerable at a glance.
+    pros::c::screen_set_eraser(0x000000);
+    pros::c::screen_erase();
+    pros::c::screen_set_pen(0x30C030);
+    pros::c::screen_print_at(pros::E_TEXT_LARGE, 10, 40, "Bench Tests");
+    pros::c::screen_set_pen(0xFFFFFF);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 10, 92, "BUILD %s", kBuildStamp);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 130, "if this stamp is not the one you just built,");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 146, "the upload did NOT land -- re-upload.");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 178, "READ-ONLY build: commands no motion.");
+    pros::delay(2000);
 
     emit("");
     emit("################################################################");
@@ -512,6 +580,7 @@ void runR3a() {
     // faults inside strlen. That was a real data-abort on the bench, 2026-08-18.
     // Also honours build_info.hpp's LOUDNESS CONTRACT: empty means MISSING, rendered
     // as an error, never as a plausible-looking placeholder.
+    emitf("BUILD STAMP: %s   <-- must match the build you just uploaded", kBuildStamp);
     const std::string_view hash = diag::compiledBuildHash();
     if (hash.empty()) {
         emit("build hash : [ERROR] MISSING -- the build injected no hash (S18.5)");
@@ -523,11 +592,12 @@ void runR3a() {
           kLeftPorts[0], kLeftPorts[1], kLeftPorts[2], kLeftPorts[3], kRightPorts[0],
           kRightPorts[1], kRightPorts[2], kRightPorts[3], static_cast<unsigned>(kImuPort));
     emit("!! SIDE LABELS ARE A HYPOTHESIS, NOT A CONFIGURATION (R3a-PROGRESS S10.3).");
-    emitf("sd logging : %s", card.isOpen() ? "ON -> /usd/r3a_bench.txt (overwritten each boot)"
+    emitf("sd logging : %s", card.isOpen() ? "ON -> /usd/r3a_log.txt (overwritten each boot)"
                                            : "OFF -- no card at boot; screen output only");
 
     // The census runs once up front so every other test knows what exists; it is
     // also re-runnable from the menu.
+    probeSdCard();   // BEFORE the census, so a card problem is the first thing seen
     census(g_found);
     card.flush();
 

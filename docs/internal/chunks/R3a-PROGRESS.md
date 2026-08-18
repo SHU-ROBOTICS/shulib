@@ -1046,3 +1046,35 @@ It is trivially copyable, so it passes through varargs silently. That hazard is 
 the call site, not by the compiler. **The real structural gap remains open: no gate executes
 `src/`.** The button geometry is now host-checkable in principle; wiring it into `test/` is
 unclaimed work.
+
+### 13.14 Two usability findings from the first real session, both from the team lead
+
+**(a) "Make it clear that it updated."** A silent `pros upload` failure (the brain had dropped off
+USB) left the OLD binary in slot 3, so the same crash reproduced after a "fix" that was never
+actually on the robot. Nothing on screen distinguished the two builds. Added `kBuildStamp` =
+`__DATE__ " " __TIME__`, evaluated when this TU compiles, shown **three** places: a 2-second boot
+splash, a permanent yellow line on the menu, and the serial/SD banner. The git hash identifies the
+COMMIT; this identifies the BUILD, and only the second answers *"did my upload land?"*
+
+**(b) "SD logging says off but the card is in."** The message was **true but useless**, and that is
+the real defect: `ProsBlockSink` calls `fopen` ONLY when `usd_is_installed()` is nonzero, and
+`isOpen()` reads false in **both** cases — card-not-detected and file-open-failed — which are
+different problems with different fixes.
+
+Added `probeSdCard()`, staged so each step names its own failure:
+
+1. `usd_is_installed()` — if 0, VEXos cannot see the card at all: **FAT32 (not exFAT)**, reseat, and
+   **power-cycle**, since VEXos mounts at boot and a card inserted mid-run is never picked up.
+2. `fopen("/usd/probe.txt","wb")` — reports **`errno`** on failure. Card visible but not writable.
+3. `fwrite` + `fflush` — proves an actual byte reached the medium.
+
+It runs at startup **before the census**, so a card problem is the first thing seen, and it is also
+menu item 5 for re-running after a fix.
+
+Log filename shortened `r3a_bench.txt` → **`r3a_log.txt`** (8.3-safe). Defensive only: the vendored
+headers document FAT32 as a requirement but say nothing about name length, and ruling it out is free.
+
+**Menu grew to 7 items, so the button grid was re-verified on the host** — 4 rows at 48 px ends at
+y=269 inside a 272 px panel; all seven boxes in bounds, no overlaps, every centre hit-tests to its
+own button. **PASS, 0 problems.** Catching that off-screen row on the host rather than on the robot
+is the second time the host geometry check has paid for itself.

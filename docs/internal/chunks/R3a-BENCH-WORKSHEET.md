@@ -18,7 +18,10 @@ no motion** — it cannot drive the robot.
 > ⚠ **Slot 1 holds an OLD build called "QueensRevenge". Do not run it.** Its port map is invented and
 > it will fault at boot on this robot. It can only be deleted from the brain's own Programs menu —
 > the PROS CLI has no remove command. Deleting it is the safest move so nobody picks it by mistake.
-2. A **touch menu** appears. Tap any test:
+2. A **boot splash** shows a **BUILD** stamp for two seconds, and the same stamp sits on the menu.
+   **If that stamp is not the build you just uploaded, the upload did not land** — re-upload before
+   trusting anything on screen. (A silent upload failure cost a debugging cycle on 2026-08-18.)
+3. A **touch menu** appears. Tap any test:
 
    | Button | What it does |
    |---|---|
@@ -26,12 +29,13 @@ no motion** — it cannot drive the robot.
    | **2 IMU + ROTATE** | big live heading — **rotate the robot CCW, it must go UP** |
    | **3 MOTORS (by hand)** | per-motor raw + converted values; **turn a wheel by hand** and re-run |
    | **4 BATT/CTRL/SD** | battery, controller pairing, SD card presence |
-   | **5 LOOP RATE** | the tick cadence this build sustains |
-   | **6 RUN ALL** | all five, in order |
+   | **5 SD CARD PROBE** | is the card detected, and is it writable — staged, says which step failed |
+   | **6 LOOP RATE** | the tick cadence this build sustains |
+   | **7 RUN ALL** | all six, in order |
 
-3. Results print on the screen. When it fills, tap to continue. When a test ends, tap
+4. Results print on the screen. When it fills, tap to continue. When a test ends, tap
    **TOUCH TO RETURN TO MENU**.
-4. **Everything is also written to `/usd/r3a_bench.txt` on the SD card.** That file has the full
+5. **Everything is also written to `/usd/r3a_log.txt` on the SD card.** That file has the full
    detail — the screen truncates long lines. **Do not lose the card.**
 
 > Re-running a test is free. Run anything as many times as you like — especially **3 MOTORS** after
@@ -44,7 +48,7 @@ no motion** — it cannot drive the robot.
 
 > **The validation binary does Stations 1, 2 and 4 better than hands can — but run BOTH.** It
 > prints a full device census, raw-vs-canonical values, and live IMU heading, and it writes a copy to
-> `/usd/r3a_bench.txt`. The hand measurements below are then an **independent second method**, and
+> `/usd/r3a_log.txt`. The hand measurements below are then an **independent second method**, and
 > two methods agreeing is worth far more than either alone. Where they disagree, that is the finding.
 
 ## Station 0 — setup (2 min)
