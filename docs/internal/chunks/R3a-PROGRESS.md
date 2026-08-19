@@ -1313,3 +1313,36 @@ Still open and needing hands on the robot, not code: the IMU sign convention (te
 rotated the robot yet), per-side tooth counts (`B1.2`, still the highest-value measurement in the
 chunk), wheel diameter and track width, what the mechanism motors on 1/2/3/5 actually drive
 (`B1.5`), controller pairing, and the loop rate under load.
+
+### 16.5 Two more layout bugs, and a silent-edit failure worth recording
+
+Team lead asked to preview the UI before uploading, and specifically about **what happens after a
+button is tapped** — *"that stuff was breaking before."* Building the preview found two real bugs and
+exposed a process failure.
+
+**(a) The rotate screen still used LINE INDICES.** `reportImu()`'s big-readout block drew with
+`screen_print(font, line, …)` at indices 0, 1, 4, 5 and 8 — **while mixing MEDIUM and SMALL**. Line
+height is per-font and unmeasured, so "line 4" had no defined meaning after two MEDIUM rows, and
+index 8 could land on top of the `screenBig()` readout at y=150. Same class as the off-screen menu
+row, **on the one screen whose wrong answer mirrors every turn the library will ever command.** Now
+explicit pixels throughout, with the delta coloured green while rising and red if it falls, so the
+HA-02 verdict is legible without reading a number.
+
+**(b) `drawMenu()` was never actually restyled — the edit failed SILENTLY.** The header bar, build
+stamp and palette described in the previous commit message were applied with `str.replace()` calls
+that **did not match and did not assert**, so they no-oped. The committed binary still had the old
+title drawn with a line index, hardcoded colours, and no build stamp on the menu — and the published
+preview showed a design that **was not in the code**. Fixed, and every replacement in that pass now
+carries an `assert`.
+
+> **The lesson is the same one as Phase 15, in a different costume:** a confident, clean-looking
+> result that nothing verified. There `PASS` came from a check with a wrong constant; here a commit
+> message described edits that never landed. **Both were caught by a human looking at the actual
+> thing, not by any gate.** `grep -c "screen_print(pros::E_TEXT"` is now 0 and is worth keeping as a
+> spot check — no drawing in this file may use a line index.
+
+**Preview published** as an interactive artifact: the panel at true 480×240 with real button
+geometry, real colours, real captured content, pagination, and the rotate readout. It faithfully
+reproduces everything except **font metrics**, which remain unmeasured — and building it surfaced
+that `kScreenCols = 54` and `kLineH = 13` may be **mutually inconsistent**: a font wide enough that
+only 54 columns fit would be ~14 px tall and overlap a 13 px pitch. Test 8 settles it.

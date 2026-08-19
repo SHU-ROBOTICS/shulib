@@ -161,7 +161,7 @@ constexpr int kScreenLines = (kFooterY - kContentY) / kLineH;
 // glance from arm's length over a robot, and no more.
 constexpr std::uint32_t kColBg = 0x101418, kColBar = 0x1E5AA8, kColText = 0xF0F0F0,
                         kColDim = 0x9AA4AE, kColGood = 0x39C36E, kColWarn = 0xE8B23A,
-                        kColBad = 0xE2564A;      // small font on a 480x272 panel, chosen low on
+                        kColBad = 0xE2564A, kColSub = 0xC8D8F0, kColEdge = 0x6E9AD8;      // small font on a 480x272 panel, chosen low on
                                       // purpose: the SD file is the complete record and
                                       // an unreadable overflow is worse than a extra tap.
 constexpr int kScreenCols = 54;
@@ -244,10 +244,11 @@ void screenEmit(const char* line) {
 /// A big fixed-position readout -- for a number somebody watches while physically
 /// moving the robot, where a scrolling log would be unreadable.
 void screenBig(int y, const char* text) {
-    pros::c::screen_set_eraser(0x000000);
-    pros::c::screen_erase_rect(0, static_cast<std::int16_t>(y), 480,
-                               static_cast<std::int16_t>(y + 34));
-    pros::c::screen_print_at(pros::E_TEXT_LARGE, 6, static_cast<std::int16_t>(y), "%s", text);
+    pros::c::screen_set_eraser(kColBg);
+    pros::c::screen_erase_rect(0, static_cast<std::int16_t>(y), kUsableW,
+                               static_cast<std::int16_t>(y + 36));
+    pros::c::screen_set_pen(kColText);
+    pros::c::screen_print_at(pros::E_TEXT_LARGE, 8, static_cast<std::int16_t>(y), "%s", text);
 }
 
 void drawHeader(const char* title);  // fwd
@@ -474,17 +475,32 @@ void reportImu(bool present) {
         const double startDeg = imu.heading().degrees();
         screenClear();
         g_screenActive = false;  // suspend the scroll; the panel is the instrument now
-        pros::c::screen_print(pros::E_TEXT_MEDIUM, 0, "ROTATE THE ROBOT");
-        pros::c::screen_print(pros::E_TEXT_MEDIUM, 1, "COUNTER-CLOCKWISE (to its LEFT)");
-        pros::c::screen_print(pros::E_TEXT_SMALL, 4, "heading MUST INCREASE. If it falls,");
-        pros::c::screen_print(pros::E_TEXT_SMALL, 5, "HA-02's sign is wrong (mirrored turns).");
+
+        // EXPLICIT PIXEL POSITIONS, like every other draw in this file. This block
+        // used screen_print with LINE INDICES (0,1,4,5,8) and mixed MEDIUM with
+        // SMALL while doing it -- so "line 4" depended on a per-font row height
+        // nobody has measured, and index 8 could land on top of the big readout.
+        // It is the same class of bug as the off-screen menu row, on the ONE screen
+        // whose answer mirrors every turn the library will ever command.
+        pros::c::screen_set_pen(kColText);
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 44, "ROTATE THE ROBOT");
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 66, "COUNTER-CLOCKWISE (its LEFT)");
+        pros::c::screen_set_pen(kColDim);
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 96, "heading MUST INCREASE as you turn.");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 110, "If it FALLS, HA-02's sign is wrong");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 124, "and every turn would be mirrored.");
+        pros::c::screen_set_pen(kColWarn);
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, kFooterY, "reading for ~20 s ...");
         char big[64];
         for (int i = 0; i < 100; ++i) {  // ~20 s to rotate under
             const double deg = imu.heading().degrees();
             std::snprintf(big, sizeof big, "%+8.2f deg", deg);
-            screenBig(150, big);
+            screenBig(146, big);
             std::snprintf(big, sizeof big, "delta %+.2f", deg - startDeg);
-            pros::c::screen_print(pros::E_TEXT_MEDIUM, 8, "%-28s", big);
+            pros::c::screen_set_eraser(kColBg);
+            pros::c::screen_erase_rect(0, 188, kUsableW, 210);
+            pros::c::screen_set_pen((deg - startDeg) >= 0.0 ? kColGood : kColBad);
+            pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 190, "%-28s", big);
             emitf("   raw=%9.3f deg   canonical=%9.4f rad = %8.3f deg",
                   pros::c::imu_get_rotation(kImuPort), imu.heading().radians(), deg);
             pros::delay(200);
@@ -650,34 +666,41 @@ void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std:
 
 void drawMenu() {
     g_screenActive = false;
-    pros::c::screen_set_eraser(0x000000);
+    pros::c::screen_set_eraser(kColBg);
     pros::c::screen_erase();
-    pros::c::screen_set_pen(0xFFFFFF);
-    pros::c::screen_print(pros::E_TEXT_MEDIUM, 0, "shulib R3a bench  -  READ-ONLY, no motion");
-    // SD logging state, ON THE MENU rather than buried inside test 4. The sink opens
-    // its file at construction, so a card inserted after the program started is NOT
-    // picked up -- and an unattended bencher would otherwise run a whole session
-    // believing it was being logged. Silent degradation is a bug (E1 principle 5).
+
+    // ── header bar. Identity on the left, build stamp and SD state on the right,
+    //    so "which build is this" and "am I being logged" are both answered
+    //    without spending a row each on a 240px panel.
+    pros::c::screen_set_pen(kColBar);
+    pros::c::screen_fill_rect(0, 0, kUsableW, 32);
+    pros::c::screen_set_eraser(kColBar);
+    pros::c::screen_set_pen(kColText);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 2, "Bench Tests");
+    pros::c::screen_set_pen(kColSub);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 20, "READ-ONLY - commands no motion");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 250, 20, "BUILD %s", kBuildStamp);
+
+    // The sink opens its file at CONSTRUCTION, so a card inserted after the program
+    // started is never picked up. An unattended bencher would otherwise run a whole
+    // session believing it was logged (E1 principle 5: silent degradation is a bug).
     const bool logging = (g_card != nullptr) && g_card->isOpen();
-    if (logging) {
-        pros::c::screen_set_pen(0x30C030);
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 31, "SD LOGGING ON -> /usd/r3a_log.txt");
-    } else {
-        pros::c::screen_set_pen(0xFF4040);
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, 31,
-                                 "SD LOGGING OFF - screen only (see test 5)");
-    }
-    pros::c::screen_set_pen(0xFFFFFF);
+    pros::c::screen_set_pen(logging ? kColGood : kColBad);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 250, 2,
+                             logging ? "SD: logging" : "SD: OFF (test 5)");
+    pros::c::screen_set_eraser(kColBg);
+
     for (int i = 0; i < kMenuCount; ++i) {
         std::int16_t x0, y0, x1, y1;
         buttonBox(i, x0, y0, x1, y1);
-        pros::c::screen_set_pen(0x1E5AA8);
+        pros::c::screen_set_pen(kColBar);
         pros::c::screen_fill_rect(x0, y0, x1, y1);
-        pros::c::screen_set_pen(0xFFFFFF);
+        pros::c::screen_set_pen(kColEdge);
         pros::c::screen_draw_rect(x0, y0, x1, y1);
-        // Text is drawn pen-on-eraser, so match the eraser to the button fill or
-        // every label gets a black box behind it.
-        pros::c::screen_set_eraser(0x1E5AA8);
+        // Text draws pen-on-eraser, so the eraser must match the button fill or
+        // every label carries a black box behind it.
+        pros::c::screen_set_eraser(kColBar);
+        pros::c::screen_set_pen(kColText);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
                                  static_cast<std::int16_t>(y0 + 15), "%s", kMenu[i].label);
         pros::c::screen_set_eraser(kColBg);
