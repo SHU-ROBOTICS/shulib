@@ -161,12 +161,41 @@ constexpr int kScreenLines = (kFooterY - kContentY) / kLineH;
 // glance from arm's length over a robot, and no more.
 constexpr std::uint32_t kColBg = 0x101418, kColBar = 0x1E5AA8, kColText = 0xF0F0F0,
                         kColDim = 0x9AA4AE, kColGood = 0x39C36E, kColWarn = 0xE8B23A,
-                        kColBad = 0xE2564A, kColSub = 0xC8D8F0, kColEdge = 0x6E9AD8;      // small font on a 480x272 panel, chosen low on
-                                      // purpose: the SD file is the complete record and
-                                      // an unreadable overflow is worse than a extra tap.
+                        kColBad = 0xE2564A, kColSub = 0xC8D8F0, kColEdge = 0x6E9AD8;
+
+/// Truncation width for the panel. The SD file keeps full width, so an over-long
+/// line loses nothing that matters; an unreadable overflow would.
 constexpr int kScreenCols = 54;
+
+/// Severity, so a result can be READ rather than parsed. The bencher is crouched
+/// over a robot at arm's length -- colour and position carry the verdict, and the
+/// words are there for the log afterwards.
+enum class Sev { Info, Good, Warn, Bad };
+
 int g_screenLine = 0;
 bool g_screenActive = false;
+Sev g_lineSev = Sev::Info;      // severity of the line currently being emitted
+Sev g_lastVerdict = Sev::Info;  // what the running test concluded
+
+/// What each menu entry concluded last time it ran; -1 = never run. "Passed" and
+/// "not tried yet" must look different, or a bencher cannot tell what is left.
+constexpr int kMaxMenu = 8;
+int g_verdict[kMaxMenu] = {-1, -1, -1, -1, -1, -1, -1, -1};
+
+std::uint32_t sevColour(Sev s) {
+    switch (s) {
+        case Sev::Good: return kColGood;
+        case Sev::Warn: return kColWarn;
+        case Sev::Bad:  return kColBad;
+        default:        return kColText;
+    }
+}
+
+/// A test's overall conclusion. Escalates only -- one failed stage makes the whole
+/// test failed, and a later Info line must not quietly clear it.
+void setVerdict(Sev s) {
+    if (static_cast<int>(s) > static_cast<int>(g_lastVerdict)) g_lastVerdict = s;
+}
 
 /// Blocks until a NEW release event arrives.
 ///
@@ -234,7 +263,9 @@ void screenEmit(const char* line) {
     std::snprintf(t, sizeof t, "%.*s", kScreenCols, line);
     // Indented/continuation lines are supporting detail: dim them so the eye finds
     // the headline values first.
-    pros::c::screen_set_pen((line[0] == ' ') ? kColDim : kColText);
+    pros::c::screen_set_pen(g_lineSev != Sev::Info ? sevColour(g_lineSev)
+                            : (line[0] == ' ') ? kColDim
+                                               : kColText);
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 8,
                              static_cast<std::int16_t>(kContentY + g_screenLine * kLineH),
                              "%s", t);
@@ -256,6 +287,37 @@ void drawHeader(const char* title);  // fwd
 /// A section boundary. The SERIAL/SD form is a full-width bar; the SCREEN form is a
 /// painted header, because a 50-character rule arrives on the panel as a row of
 /// truncated dashes and reads as damage rather than structure.
+/// Emit one line AND record what it means. Using this instead of emitf() at the
+/// handful of lines that carry a verdict is what lets the menu show per-test
+/// status and the header show a PASS/FAIL chip.
+void emitS(Sev sev, const char* fmt, ...) __attribute__((format(printf, 2, 3)));
+void emitS(Sev sev, const char* fmt, ...) {
+    char buf[220];
+    va_list args;
+    va_start(args, fmt);
+    std::vsnprintf(buf, sizeof buf, fmt, args);
+    va_end(args);
+    g_lineSev = sev;
+    setVerdict(sev);
+    emit(buf);
+    g_lineSev = Sev::Info;
+}
+
+/// A PASS / CHECK / FAIL chip in the header bar. Position is fixed and the colour
+/// carries the meaning, so the answer is legible across a workbench without
+/// reading a word of it.
+void drawVerdictChip(Sev sev) {
+    const char* word = sev == Sev::Good ? " PASS " : sev == Sev::Warn ? " CHECK "
+                     : sev == Sev::Bad  ? " FAIL " : " DONE ";
+    pros::c::screen_set_pen(sevColour(sev));
+    pros::c::screen_fill_rect(388, 6, 472, 28);
+    pros::c::screen_set_eraser(sevColour(sev));
+    pros::c::screen_set_pen(kColBg);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 396, 9, "%s", word);
+    pros::c::screen_set_eraser(kColBg);
+    pros::c::screen_set_pen(kColText);
+}
+
 void rule(const char* title) {
     const bool wasActive = g_screenActive;
     g_screenActive = false;                       // keep the bar off the panel
@@ -310,19 +372,20 @@ void probeSdCard() {
     const std::int32_t installed = pros::c::usd_is_installed();
     emitf("1. usd_is_installed()        : %ld", static_cast<long>(installed));
     if (installed == 0) {
-        emit("   >> NO CARD DETECTED by VEXos. The card is not readable at all.");
+        emitS(Sev::Bad, "   >> NO CARD DETECTED by VEXos. Not readable at all.");
         emit("   >> Card must be FAT32 (NOT exFAT -- that is the usual cause).");
         emit("   >> Also: reseat it, and POWER-CYCLE -- VEXos mounts at boot, so a");
         emit("   >> card inserted while running is never picked up.");
         return;
     }
-    emit("   >> card IS detected.");
+    emitS(Sev::Good, "   >> card IS detected.");
 
     errno = 0;
     std::FILE* probe = std::fopen("/usd/probe.txt", "wb");
     emitf("2. fopen(/usd/probe.txt,wb) : %s", probe != nullptr ? "OK" : "FAILED");
     if (probe == nullptr) {
-        emitf("   >> errno=%d. Card is detected but not writable. Check write-protect,", errno);
+        emitS(Sev::Bad, "   >> errno=%d -- detected but NOT WRITABLE.", errno);
+        emit("   >> errno 6 (ENXIO) = not a FAT32 drive. Reformat FAT32.");
         emit("   >> free space, and that the card really is FAT32.");
         return;
     }
@@ -333,9 +396,9 @@ void probeSdCard() {
     emitf("3. fwrite/fflush            : %u bytes, fflush=%d", static_cast<unsigned>(wrote),
           flushed);
     if (wrote == std::strlen(payload) && flushed == 0) {
-        emit("   >> CARD IS FULLY WORKING. /usd/probe.txt was written and flushed.");
+        emitS(Sev::Good, "   >> CARD IS FULLY WORKING. probe.txt written and flushed.");
     } else {
-        emit("   >> partial write -- card may be full or failing.");
+        emitS(Sev::Warn, "   >> partial write -- card may be full or failing.");
     }
 }
 
@@ -420,9 +483,10 @@ void census(pros::c::v5_device_e_t* found) {
         }
     }
     emit("");
-    emitf("motors found: %d   (hypothesis expects %u: %u left + %u right)", motors,
-          static_cast<unsigned>(kLeftCount + kRightCount), static_cast<unsigned>(kLeftCount),
-          static_cast<unsigned>(kRightCount));
+    const unsigned expect = static_cast<unsigned>(kLeftCount + kRightCount);
+    emitS(motors >= static_cast<int>(expect) ? Sev::Good : Sev::Bad,
+          "motors found: %d   (hypothesis expects %u: %u left + %u right)", motors, expect,
+          static_cast<unsigned>(kLeftCount), static_cast<unsigned>(kRightCount));
     emit("EMPTY PORTS ARE OMITTED. A hypothesised port missing here is a FINDING.");
     emit("Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is");
     emit("what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).");
@@ -432,7 +496,7 @@ void census(pros::c::v5_device_e_t* found) {
 void reportImu(bool present) {
     rule("STAGE 2  IMU (HA-02/03/04/05/23/108/109/110)");
     if (!present) {
-        emitf("no IMU on port %u -- hypothesis WRONG. Find it in the census above.",
+        emitS(Sev::Bad, "no IMU on port %u -- hypothesis WRONG. See the census.",
               static_cast<unsigned>(kImuPort));
         return;
     }
@@ -514,7 +578,7 @@ void reportImu(bool present) {
         // would land on serial and the SD card but never on the panel the
         // bencher is actually looking at.
         g_screenActive = true;
-        emitf("IMU ADAPTER REFUSED THE DEVICE: %s", e.what());
+        emitS(Sev::Bad, "IMU ADAPTER REFUSED THE DEVICE: %s", e.what());
         emit("(that refusal IS the measurement -- record it verbatim)");
     }
 }
@@ -526,8 +590,7 @@ void reportMotorGroup(const char* label, const std::int8_t* ports, std::size_t n
     for (std::size_t i = 0; i < n; ++i) {
         const int p = static_cast<int>(ports[i]);
         if (found[p] != pros::c::E_DEVICE_MOTOR) {
-            emitf("  port %2d: NOT A MOTOR (census says %s) -- hypothesis wrong", p,
-                  deviceName(found[p]));
+            emitS(Sev::Bad, "  port %2d: NOT A MOTOR (census says %s)", p, deviceName(found[p]));
             continue;
         }
         try {
@@ -538,7 +601,7 @@ void reportMotorGroup(const char* label, const std::int8_t* ports, std::size_t n
                   static_cast<int>(pros::c::motor_get_current_draw(ports[i])),
                   m.position().value());
         } catch (const PreconditionError& e) {
-            emitf("  port %2d: ADAPTER REFUSED: %s", p, e.what());
+            emitS(Sev::Bad, "  port %2d: ADAPTER REFUSED: %s", p, e.what());
         }
     }
 }
@@ -565,7 +628,8 @@ void reportPlatform() {
 
     hal::pros::ProsController master{hal::pros::ControllerId::Master};
     const bool connected = master.isConnected();
-    emitf("controller master: %s", connected ? "CONNECTED" : "NOT CONNECTED");
+    emitS(connected ? Sev::Good : Sev::Warn, "controller master: %s",
+          connected ? "CONNECTED" : "NOT CONNECTED");
     if (!connected) {
         emit("  ** PAIR THE CONTROLLER. ** master=0 blocked HA-57/103/104/107 on BOTH");
         emit("  previous bench sessions, and it also enables wireless upload + terminal.");
@@ -704,6 +768,19 @@ void drawMenu() {
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
                                  static_cast<std::int16_t>(y0 + 15), "%s", kMenu[i].label);
         pros::c::screen_set_eraser(kColBg);
+
+        // Status dot: hollow until the test has run, then filled with its verdict.
+        // This is the only thing on the menu that changes during a session, and it
+        // answers "what have I already done" without a word of text.
+        const std::int16_t cx = static_cast<std::int16_t>(x1 - 16);
+        const std::int16_t cy = static_cast<std::int16_t>(y0 + kBtnH / 2);
+        if (g_verdict[i] < 0) {
+            pros::c::screen_set_pen(kColEdge);
+            pros::c::screen_draw_circle(cx, cy, 6);
+        } else {
+            pros::c::screen_set_pen(sevColour(static_cast<Sev>(g_verdict[i])));
+            pros::c::screen_fill_circle(cx, cy, 6);
+        }
     }
 }
 
@@ -788,12 +865,15 @@ void runR3a() {
 
         screenClear();
         g_screenActive = true;
+        g_lastVerdict = Sev::Info;          // each run judged on its own evidence
         emit("");
         emitf(">>>>>> %s", kMenu[choice].label);
         kMenu[choice].run(g_found);
         card.flush();
+        if (choice < kMaxMenu) g_verdict[choice] = static_cast<int>(g_lastVerdict);
 
         g_screenActive = false;
+        drawVerdictChip(g_lastVerdict);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 6, kUsableH - 20, "TOUCH TO RETURN TO MENU");
         waitForTouch();
     }

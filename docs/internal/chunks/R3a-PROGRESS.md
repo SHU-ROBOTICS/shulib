@@ -1346,3 +1346,29 @@ geometry, real colours, real captured content, pagination, and the rotate readou
 reproduces everything except **font metrics**, which remain unmeasured — and building it surfaced
 that `kScreenCols = 54` and `kLineH = 13` may be **mutually inconsistent**: a font wide enough that
 only 54 columns fit would be ~14 px tall and overlap a 13 px pitch. Test 8 settles it.
+
+### 16.6 Information design: severity on results, memory on the menu
+
+Team lead: *"I think we can make it all look even better."* Two real gaps, both about **information
+rather than decoration** — every line was the same weight, and every button looked identical.
+
+**Severity on results.** A `Sev {Info, Good, Warn, Bad}` runs through a new `emitS()`, used at the
+handful of lines that actually carry a verdict: the SD probe's three stages, the census's
+motors-found count against the hypothesis, an IMU or motor adapter refusing a device, the controller
+pairing state. Those lines paint green / amber / red; continuation lines stay dim. **The verdict
+escalates only** — one failed stage cannot be cleared by a later clean line, which is the same
+first-fault discipline `FaultLatch` already applies to faults.
+
+**A PASS / CHECK / FAIL chip** lands in the header when a test finishes, at a fixed position, so the
+answer is legible across a workbench without reading a word.
+
+**The menu remembers.** `g_verdict[]` keeps each entry's last conclusion; buttons carry a status dot
+— **hollow until run**, then filled with that verdict. `-1` for never-run is deliberate: *passed* and
+*not tried yet* must not look the same, or a bencher working alone cannot tell what is left. It is
+the only thing on the menu that changes during a session.
+
+Preview updated to match, and **kept in step with the code on purpose** after §16.5, where a
+published preview showed a design that was not in the binary.
+
+Still unmeasured, and still the ceiling on all of this: **font metrics.** Test 8 remains the thing
+that turns every layout constant here from an estimate into a number.
