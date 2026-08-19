@@ -38,7 +38,32 @@ EXTRA_CXXFLAGS=
 # loud MISSING path runs — never a silently plausible placeholder.
 SHULIB_GIT_HASH:=$(shell git describe --always --dirty --abbrev=7 2>/dev/null)
 ifneq ($(SHULIB_GIT_HASH),)
-EXTRA_CXXFLAGS+=-DSHULIB_BUILD_HASH=\"$(SHULIB_GIT_HASH)\"
+override EXTRA_CXXFLAGS+=-DSHULIB_BUILD_HASH=\"$(SHULIB_GIT_HASH)\"
+endif
+
+# ── WHICH ROBOT IS THIS BINARY FOR? (chunk GATE1) ──────────────────────────────
+# ROBOT selects the variant src/main.cpp builds:
+#     make                → ROBOT=bench  — the tank bench bot (the only robot that exists)
+#     make ROBOT=xdrive   → the invented X-drive wiring (HA-111; cannot boot on the bench bot)
+# Any other value is an $(error), NOT a silent default: the previous mechanism was
+# "make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED" as documented in src/main.cpp —
+# but common.mk consumes EXTRA_CXXFLAGS, the names were transposed, and the documented
+# command silently built the BENCH variant (measured 2026-08-19, GATE1 §4.1). A variant
+# switch must be a named, validated variable of its own so a typo fails loudly and the
+# selection can never collide with the flag list carrying the build hash.
+#
+# Both `override ... +=` appends (here and the hash above) are deliberate: a plain `+=`
+# is silently DISCARDED when EXTRA_CXXFLAGS is set on the make command line — that is
+# exactly how `make EXTRA_CXXFLAGS=...` used to ship a binary with NO build hash
+# (GATE1 §4.1, second half). With `override`, the hash and the variant define land on
+# top of any command-line value instead of vanishing.
+ROBOT?=bench
+ifeq ($(ROBOT),bench)
+# src/main.cpp defaults to the bench tank when SHULIB_ROBOT_XDRIVE_INVENTED is undefined.
+else ifeq ($(ROBOT),xdrive)
+override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_XDRIVE_INVENTED
+else
+$(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

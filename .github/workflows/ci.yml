@@ -1,13 +1,16 @@
 name: ci
 
-# Host-side verification of the PROS-free core, plus the ARM compile gate.
+# Host-side verification of the PROS-free core, plus the ARM gate.
 # Runs the same checks we run locally: the architecture guards, the strict host
-# build, the test suite, and (since chunk A4) a cross-COMPILE of every v2 header
-# for the V5's Cortex-A9.
-# (The on-robot ARM LINK/run is intentionally NOT in CI — it needs PROS's bundled
-#  toolchain, the kernel cold package, and ultimately the robot (chunks R1/R3);
-#  what CI can and does hold is that no host-only assumption ever enters the
-#  headers unnoticed.)
+# build, the test suite, (since chunk A4) a cross-COMPILE of every v2 header for
+# the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
+# AND link, both robot variants — of src/ under a warning policy.
+# (This file said the ARM link was impossible in CI until 2026-08-19 — "needs
+#  PROS's bundled toolchain". MEASURED FALSE at GATE1: the firmware archives are
+#  vendored in-tree and `make` links end to end at apt's arm-none-eabi-g++ 13.2.1
+#  with the Makefile's CXX_STANDARD:=gnu++20 pin. Do not re-derive the old
+#  blocker. What remains intentionally NOT in CI is only the on-robot RUN —
+#  uploading and executing needs the robot itself, chunks R3a/R3b/R3c.)
 
 on:
   push:
@@ -89,21 +92,28 @@ jobs:
       - name: Run tests
         run: ./build/test/shulib_tests
 
-  # ARM COMPILE GATE (chunk A4). The v2 core was verified to cross-compile clean
-  # for the V5's Cortex-A9 at every chunk since A1 — but only by hand, so nothing
-  # KEPT it that way: a host-only construct (a header, an intrinsic, a hosted-only
-  # std facility) could enter the core unnoticed and surface at R1, where it is
-  # expensive. This job holds the line.
+  # ARM GATE (chunk A4: every v2 header; widened at chunk GATE1: the real src/
+  # build). The v2 core was verified to cross-compile clean for the V5's Cortex-A9
+  # at every chunk since A1 — but only by hand, so nothing KEPT it that way: a
+  # host-only construct (a header, an intrinsic, a hosted-only std facility) could
+  # enter the core unnoticed and surface on the robot, where it is expensive. This
+  # job holds the line. (The job NAME predates GATE1 and is kept stable.)
   #
-  # Scope, stated honestly: this is a COMPILE gate, not a link or run gate. The
-  # real on-robot build still needs PROS's bundled toolchain + the kernel cold
-  # package (R1) and the robot itself (R3). What compiling every header as one TU
-  # under the same strict flags as host DOES guarantee: the headers make no
-  # host-only assumption, at the exact -std/-mcpu/-mfpu/-mfloat-abi the V5 uses.
-  #
-  # The header list is GENERATED (find | sort), never hard-coded — a gate you must
-  # remember to update when adding a file is a gate that rots. A new header under
-  # include/shulib/ is covered the moment it exists.
+  # Scope, stated honestly, in two layers:
+  #  * The HEADER step below is a COMPILE gate: every header under include/shulib/
+  #    as one TU, strict flags + -Werror, at the exact -std/-mcpu/-mfpu/-mfloat-abi
+  #    the V5 uses. The header list is GENERATED (find | sort), never hard-coded —
+  #    a gate you must remember to update when adding a file is a gate that rots.
+  #  * The SRC BUILD GATE steps (GATE1) run the REAL `make` — compile AND LINK,
+  #    producing bin/hot.package.bin — for BOTH robot variants (ROBOT=bench and
+  #    ROBOT=xdrive), because until GATE1 src/ was in NO gate at all and the
+  #    Makefile records that this blind spot shipped a data abort to the robot.
+  #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's
+  #    bundled toolchain; measured false — firmware/*.a are vendored in-tree and
+  #    apt's gcc-arm-none-eabi (13.2.1) links it, with Makefile's gnu++20 pin.
+  #    Warning policy, self-test, and the stated residual hole live in
+  #    tools/src_build_gate.py's header. A missing toolchain FAILS; never skips.
+  #  What is still NOT here: uploading to or running on a brain (chunks R3a/R3b/R3c).
   arm-compile-gate:
     runs-on: ubuntu-latest
     steps:
@@ -122,3 +132,16 @@ jobs:
             -Wshadow -Werror -Os -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=softfp \
             -c all_headers.cpp -o /dev/null -Iinclude
           echo "ARM compile gate: CLEAN (all v2 headers)"
+
+      # SRC BUILD GATE (chunk GATE1) — one command, identical to what is run
+      # locally. The self-test runs FIRST and proves the detectors can fire by
+      # planting real faults (a syntax error, a disallowed warning, an allowed
+      # warning, a vendor-path warning) and building each; then check runs the
+      # gate itself. Both builds are forced fresh (bin/ and .d/ deleted) and the
+      # compiled-TU count is printed and verified, so an incremental no-op can
+      # never report green silently.
+      - name: src build gate self-test (prove the detectors fire)
+        run: python3 tools/src_build_gate.py self-test
+
+      - name: Build src/ for the V5 (real link, both variants, warning policy)
+        run: python3 tools/src_build_gate.py check

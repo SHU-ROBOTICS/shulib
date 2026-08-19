@@ -639,6 +639,28 @@ live log [R3b-PROGRESS.md](chunks/R3b-PROGRESS.md)): `AbsentGps`/`AbsentTagSourc
 5/5 mutations red-then-green. **R3b's pieces 1 (motor group) and 2 (`IOdometry`) remain gated on
 R3a's Batch 1 exactly as the "not negotiable" paragraph below says — building them before B1
 returns would be validating a guess with a guess.** M1's badge has NOT flipped.
+
+**GATE1 — the `src/` build gate — executed 2026-08-19, reactive and out of order, in the
+DOCS1/DOCS2/DEFECTS1 family** ([brief](chunks/GATE1-src-build-gate.md), live log
+[GATE1-PROGRESS.md](chunks/GATE1-PROGRESS.md)): it exists because R3b piece 3 had to edit
+`src/main.cpp` and nothing in CI could tell whether the edit compiled — `src/` was in NO gate,
+and the `Makefile` records that this exact blind spot already shipped a data abort to the robot.
+Delivered: `tools/src_build_gate.py` (`check` + `self-test`), wired into CI's `arm-compile-gate`
+job — the REAL `make`, compile AND link, BOTH robot variants, forced-fresh with the compiled-TU
+count printed, warning policy = errors fail / vendor warnings ignored by path / `-Wunused-function`
+allowed by category with the residual hole stated / all else fails; missing toolchain FAILS, never
+skips. All five planted-fault self-test cases pass and all five required mutations were observed
+RED then restored. **Two standing records were corrected on measurement:** (1) the on-robot build
+is NOT blocked — `make` compiles and links end to end at `arm-none-eabi-g++ 13.2.1` under the
+`Makefile`'s `CXX_STANDARD:=gnu++20` pin, so the gate is the real build, not a compile-only proxy;
+(2) §4.1's variant-selection defect is FOUND AND FIXED: the documented
+`make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED` was a measured silent no-op (`common.mk`
+consumes `EXTRA_CXXFLAGS`; the transposed flag built the BENCH variant, 3 tell-tale
+`-Wunused-function` warnings), and the one working spelling silently dropped the build hash
+(command-line make variables override file `+=`). Now: `make ROBOT=bench` (default) /
+`make ROBOT=xdrive`, unknown values are a loud `$(error)`, and both `override EXTRA_CXXFLAGS +=`
+appends make the hash structurally undroppable — verified by warning counts and by `strings` on
+the ELF in both variants.
 DOCS1, DOCS2 and DEFECTS1 are all COMPLETE, and **the RELEASE
 HAPPENED on 2026-08-15**: `origin/main` is `c778c11`, its tree byte-identical to
 `origin/release/v2`, and docs.shurobotics.com now publishes everything through DEFECTS1 —
@@ -774,7 +796,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **A** | Build the ground to stand on | A1–A4 | — |
 | **C** | Make it move | C1–C8 | — |
 | **D** | Make it usable | D1–D3 | — |
-| **DOCS/DEFECTS** | Documentation + the defects it found | DOCS1, DOCS2, DEFECTS1 | — |
+| **DOCS/DEFECTS** | Reactive: documentation, the defects it found, the gate a defect exposed | DOCS1, DOCS2, DEFECTS1, GATE1 | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
@@ -785,7 +807,9 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**46 chunks.** R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
+**47 chunks.** R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
+GATE1 was added 2026-08-19 (+1, reactive — `src/` was in no gate and CI could not see whether an
+edit to it compiled; the deviations table carries the row).
 DEFECTS1 was added 2026-08-15 — DOCS2 filed 83 API defects under a
 report-don't-fix landmine, and Rule 4 says a flaw gets fixed where it lives, so resolving them is
 a chunk rather than a footnote on the release. C8 (the manual) was added at Phase C; **Phase T (driver control) was added
@@ -794,7 +818,7 @@ drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only th
 missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
 nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
 
-*The total was 43 until DEFECTS1 (+1), and 44 until R3 split three ways (+2). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
+*The total was 43 until DEFECTS1 (+1), 44 until R3 split three ways (+2), and 46 until GATE1 (+1). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
 now delivered by R1a rather than as its own chunk (−1). All are recorded in the deviations table.*
 
 ---
@@ -1748,6 +1772,7 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 | **R3 split in three** | *(n/a — this document's own R3)* | **R3a + R3b + R3c, split by *what is missing*** | R3's entry was written when no robot existed. Measured against the one that arrived, **four of its six scope items are impossible on it** (GPS field-cal, tracking-wheel geometry, the push test, the holonomic entries) **and its DoD clause — "a v2 auton runs on the robot" — is not blocked on hardware at all**: it is blocked on two missing library capabilities (no multi-motor-per-side aggregation; no odometry path that does not require two dedicated rotation sensors), both measured at the seam before the brief was written. The obvious two-way split — *this bot vs a competition bot* — was **REJECTED** because it would file M2's on-robot clause behind a robot that does not exist yet, when it is in fact reachable on the bench with two additive pieces of code. So the axis is *what is missing*: **R3a** nothing but measurements · **R3b** a capability · **R3c** hardware. Full reasoning and rejected alternative in [`chunks/R3a-tank-bench-validation.md`](chunks/R3a-tank-bench-validation.md) §3 |
 | **M1's badge slips from R3 to R3b** | *(n/a)* | **R3b** | M1's DoD is *"identical numbers in a host test and on the V5, swapping only `RobotContext`"*. `RobotContext` precondition-requires a non-null `gps`, `tags` and `vision` (`robot_context.hpp:62-73`) and this robot has none of the three, so R3a cannot build one without shipping a test fake — which it declines to do. Line 1349's "R1–R3 close M1's Definition of Done" is therefore **not achievable as written**; recorded rather than absorbed |
 | **A digital-input seam built on an open question** | *(absent)* | **R1b** | Whether the lift homes on a limit switch or a stall is *undecided*. The seam is built anyway: cheap now, expensive to discover at R3 with the robot on the bench. A deliberate departure from "a seam earns itself on a real consumer", defensible only because a digital input has one degree of freedom and `IDigitalOut`'s header already rules every other question about it. **If the answer comes back "stall", it is a small unused sibling — stated, not discovered** |
+| **+ src/ build gate** | *(absent)* | **GATE1, reactive, out of order (2026-08-19)** | R3b piece 3 had to edit `src/main.cpp` and nothing in CI could tell whether the edit compiled: CI gates every header under `include/shulib/` but never compiled `src/` itself, and the `Makefile` records a data abort shipping from exactly this blind spot. Executing it also retired a standing belief (the on-robot link is NOT blocked — measured: `make` links at arm gcc 13.2.1 under the gnu++20 pin, so the gate is the real build) and fixed the §4.1 variant-selection defect (the documented flag was a measured silent no-op; the working spelling silently dropped the build hash) |
 
 > **Reversal, recorded honestly.** An earlier draft of this document put the hardware bridge *before*
 > the motion layer, arguing that validating the HAL seam early keeps the blast radius of a conversion

@@ -103,11 +103,11 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 26 of 46 chunks complete
+**Position:** 26 of 47 chunks complete
 
 - **Next up:** R3a — platform validation on the tank bench bot  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- ⚠️ **INTERRUPTED CHUNK(S): GATE1, R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
 - **Suite:** 1,157 cases / 1,538,101 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 151  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*

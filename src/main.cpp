@@ -61,7 +61,11 @@
 // throws an adapter read-back precondition at boot.
 //
 // Default = the tank bench bot, because that is the only robot that exists.
-// Build the X-drive path with:  make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED
+// Build the X-drive path with:  make ROBOT=xdrive     (default `make` = ROBOT=bench)
+// (The instruction here used to say `make CXXFLAGS_EXTRA=-D...` — common.mk consumes
+//  EXTRA_CXXFLAGS, the names were transposed, and the documented command silently built
+//  the BENCH variant. GATE1 replaced it with the validated ROBOT switch in the Makefile,
+//  and tools/src_build_gate.py now asserts per-variant that the define really lands.)
 #ifdef SHULIB_ROBOT_XDRIVE_INVENTED
 #define SHULIB_BENCH_TANK 0
 #else
