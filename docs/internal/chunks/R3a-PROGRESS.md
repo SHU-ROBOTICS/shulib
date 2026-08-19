@@ -1740,3 +1740,73 @@ the table so the boundary is pinned rather than assumed.
 > `drawMenu` no-op, the wrapped-past-180° sign, and now the net-vs-path collapse. None were visible
 > in the source at a glance, and every one was surfaced by a question about what would happen in a
 > specific case.
+
+---
+
+## Phase 20 — the fixed build ran. `HA-02` re-confirmed by the instrument, and a reproducible anomaly.
+
+Build stamp `Aug 19 2026 13:28:57`, hash `v0.1.1-269-g9f70d3c` — **first clean-tree hash of the
+session** (no `-dirty`). Capture archived at
+[`evidence/r3a-session-2026-08-19b.log`](../evidence/r3a-session-2026-08-19b.log).
+
+### 20.1 `HA-02` CONFIRMED a second time — this time BY THE BINARY
+
+```
+PATH: turned CCW 99.1 deg total, CW 9.2 deg total, 7 reversal(s)
+NET : +89.53 deg (unwrapped, from cumulative raw)
+  wrapped canonical difference would have read +89.53 deg
+operator says they turned LEFT / CCW
+HA-02 CONFIRMED: canonical heading is CCW-POSITIVE.
+  (dominant travel was CCW, matching what you declared.)
+```
+
+§18.5 settled this by a human reading a number out of a log. **This is the instrument settling it
+itself**, with the operator's declared direction captured and the path judged rather than the
+endpoints — two independent routes to the same answer.
+
+**The 20 % wobble threshold is now validated against real hand motion, not a guess.** Holding a robot
+and turning it produced **9.2° of counter-travel across 7 reversals** — 9.3 % of the dominant 99.1°,
+comfortably inside the tolerance, so the verdict proceeded exactly as the host case-table predicted
+for "left 90 with a 5° wobble back". A stricter threshold would have refused a perfectly good run;
+the §19.4 mixed case (90 vs 145) is 62 %, far outside. **The boundary has real data on both sides
+of it now.**
+
+Wrapped and unwrapped agreed here (+89.53 both), which is expected under 180° — the disagreement
+path stays untested until someone turns further.
+
+### 20.2 FINDING — `p16` and `p13` are short, REPRODUCIBLY
+
+Two independent whole-robot pushes, normalised against the lead motor on each side:
+
+| Port | run 1 | run 2 | ratio r1 | ratio r2 |
+|---|---|---|---|---|
+| L15 | +321 | +375 | 1.000 | 1.000 |
+| **L16** | **−257** | **−290** | **0.801** | **0.773** |
+| L17 | +319 | +375 | 0.994 | 1.000 |
+| L18 | −319 | −374 | 0.994 | 0.997 |
+| R11 | +315 | +358 | 1.000 | 1.000 |
+| **R13** | **+236** | **+258** | **0.749** | **0.721** |
+
+Every other motor tracks its side's lead to within **0.6 %**. `L16` reads ~78 % and `R13` ~73 %,
+**and both reproduce across two separate pushes**. That rules out slip and noise — a slipping wheel
+would not return the same fraction twice.
+
+**It is not a cartridge difference.** VEX cartridge ratios differ by factors of 2, 3 and 6; these are
+~0.77 and ~0.72. **Not explained**, and candidates worth checking on the robot: different external
+gearing at those two positions, a different wheel diameter, or those motors driving through
+something the others do not.
+
+**This is what re-running bought.** One measurement would have been dismissed as slip; two identical
+ones make it a finding.
+
+### 20.3 Still unanswered
+
+**Test 9 ran again and its four questions are still unanswered** — they need eyes on the panel, and
+until then every layout constant remains an estimate. **The cartridge fix is also still owed**: the
+brain is configured GREEN against BLUE hardware, so all magnitudes above are ratio-correct but
+absolutely wrong.
+
+*(Process note: I told the team lead to expect stamp `13:28:59` and the panel showed `13:28:57` —
+`__DATE__`/`__TIME__` is evaluated PER TRANSLATION UNIT, and I read `main.cpp`'s rather than
+`bench_r3a.cpp`'s. Harmless here, but it is precisely the confusion the stamp exists to prevent, so:
+read the stamp from the bench TU.)*

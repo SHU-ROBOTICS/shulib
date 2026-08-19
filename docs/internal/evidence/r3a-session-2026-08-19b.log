@@ -1,0 +1,235 @@
+Script started on 2026-08-19 13:29:09-04:00 [COMMAND="timeout 1200 pros terminal --no-banner" <not executed on terminal>]
+Established terminal connection
+
+
+
+         _+=+_
+      .-`  .  `-.          8888888b.  8888888b.   .d88888b.   .d8888b.
+   _+`     "     `+_       888   Y88b 888   Y88b d88P" "Y88b d88P  Y88b
+  \\\sssssssssssss///      888    888 888    888 888     888 Y88b.
+     .ss\  *  /ss.         888   d88P 888   d88P 888     888  "Y888b.
+ .+bm  .s  *  s.  md+.     8888888P"  8888888P"  888     888     "Y88b.
+.hMMMMs .  *  . sMMMMh.    888        888 T88b   888     888       "888
+ `\hMMMb \ | / dMMMh:      888        888  T88b  Y88b. .d88P Y88b  d88P
+   -SNMNo  -  oNMNs-       888        888   T88b  "Y88888P"   "Y8888P"
+     `+dMh\./dMd/
+        `:yNy:`                      Powered by PROS for VEX V5
+           "                Copyright (c) Purdue University ACM SIGBots
+Version:        4.2.2     Platform:  V1.1.5 (b18)     Uptime:    0.000 s
+Compiled:   Aug 19 2026 13:28:59     Directory:                        
+
+
+
+[R3A] booted: bench validation build (tank bench bot, READ-ONLY).
+[R3A] the X-drive object graph is deliberately NOT constructed.
+
+################################################################
+#  shulib R3a  BENCH VALIDATION  --  READ-ONLY, COMMANDS NO MOTION
+################################################################
+BUILD STAMP: Aug 19 2026 13:28:57   <-- must match the build you just uploaded
+build hash : v0.1.1-269-g9f70d3c
+robot      : TANK BENCH BOT (the measured one) -- NOT the invented X-drive
+hypothesis : LEFT 15/16/17/18   RIGHT 11/12/13/14   IMU 4   no GPS, no pods
+!! SIDE LABELS ARE A HYPOTHESIS, NOT A CONFIGURATION (R3a-PROGRESS S10.3).
+sd logging : OFF -- no card at boot; screen output only
+
+== SD CARD PROBE (HA-122) ==========================================
+1. usd_is_installed()        : 0
+   >> NO CARD DETECTED by VEXos. Not readable at all.
+   >> Card must be FAT32 (NOT exFAT -- that is the usual cause).
+   >> Also: reseat it, and POWER-CYCLE -- VEXos mounts at boot, so a
+   >> card inserted while running is never picked up.
+
+== STAGE 1  DEVICE CENSUS (raw registry, no adapters) ==========================================
+registry index is ZERO-based; PORT below is the physical 1-21 number.
+PORT  idx  type            our hypothesis
+   1    0  MOTOR             (code 2)
+   2    1  MOTOR             (code 2)
+   3    2  MOTOR             (code 2)
+   4    3  IMU             IMU(hyp)  (code 6)
+   5    4  MOTOR             (code 2)
+  10    9  RADIO             (code 8)
+  11   10  MOTOR           RIGHT(hyp)  (code 2)
+  12   11  MOTOR           RIGHT(hyp)  (code 2)
+  13   12  MOTOR           RIGHT(hyp)  (code 2)
+  14   13  MOTOR           RIGHT(hyp)  (code 2)
+  15   14  MOTOR           LEFT(hyp)  (code 2)
+  16   15  MOTOR           LEFT(hyp)  (code 2)
+  17   16  MOTOR           LEFT(hyp)  (code 2)
+  18   17  MOTOR           LEFT(hyp)  (code 2)
+
+motors found: 12   (hypothesis expects 8: 4 left + 4 right)
+EMPTY PORTS ARE OMITTED. A hypothesised port missing here is a FINDING.
+Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is
+what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).
+
+>>>>>> 3  MOTOR WATCH (live)
+DO NOW  : push the robot forward, OR spin one wheel - it records itself
+DONE IF : the table showed UP/DOWN per port and you touched to save it
+
+
+== MOTOR WATCH (live) ==========================================
+Baseline taken. Now do ONE of these:
+  * PUSH THE WHOLE ROBOT FORWARD  -> every port moves; the SIGNS
+    are the answer to 'which way is positive'.
+  * SPIN ONE WHEEL (any direction) -> only that port moves; that
+    is the port->wheel map.
+Watch the panel. TOUCH when you are done and it records the table.
+
+RECORDED -- net movement per port since baseline:
+side port      delta deg   verdict
+  L  15         375   UP
+  L  16        -290   DOWN
+  L  17         375   UP
+  L  18        -374   DOWN
+  R  11         358   UP
+  R  12        -358   DOWN
+  R  13         258   UP
+  R  14        -356   DOWN
+
+SEVERAL moved -> this was a whole-robot push. The UP/DOWN
+column IS the sign convention, relative to the front you chose.
+Ports disagreeing with their side-mates are wired reversed.
+This table is in /usd/r3a_log.txt. Re-run per wheel to build the map.
+
+>>>>>> 9  SCREEN RULER
+DO NOW  : read the four numbered questions off the panel and report them
+DONE IF : you have answered all four - they fix the layout constants
+
+SCREEN RULER drawn. READ THESE OFF THE PANEL and report them:
+  claimed usable area : 480x240 (from liblvgl/lv_conf.h)
+  row pitch in use    : 13 px
+  truncation width    : 54 chars
+  1. is the WHOLE yellow frame visible, all four edges?
+  2. last readable digit on each of rows S / M / L?
+  3. do the grey 'row N' lines sit evenly, without touching?
+  4. highest green tick number still on screen?
+
+>>>>>> 2  IMU + ROTATE
+DO NOW  : turn the WHOLE ROBOT counter-clockwise (to its left)
+DONE IF : the big number ROSE while you turned. If it fell, say so
+
+
+== STAGE 2  IMU (HA-02/03/04/05/23/108/109/110) ==========================================
+re-zeroing the IMU: every run of this test starts from a fresh zero.
+calibrating (HA-23 says ~2 s) -- timing it:
+  isReady() after 2021 ms  (HA-23 claims ~2000 ms)
+
+RAW PROS                     |  CANONICAL (shulib)
+  rotation=   -0.000 deg        |  heading=   0.0000 rad =    0.000 deg
+  rotation=   -0.021 deg        |  heading=   0.0004 rad =    0.021 deg
+  rotation=   -0.054 deg        |  heading=   0.0009 rad =    0.054 deg
+  rotation=   -0.055 deg        |  heading=   0.0010 rad =    0.055 deg
+  rotation=   -0.063 deg        |  heading=   0.0011 rad =    0.063 deg
+  heading(raw)= 359.946 deg      |  pitch=  0.066  roll= -0.029 (canonical rad)
+  screened reads (held last-good): 0
+
+** NOW ROTATE THE ROBOT COUNTER-CLOCKWISE (to its left, seen from above). **
+   Canonical heading MUST INCREASE. If it decreases, HA-02's sign is wrong
+   and every turn this library ever commands would be mirrored.
+   raw=   -0.074 deg   canonical=   0.0013 rad =    0.074 deg
+   raw=   -0.067 deg   canonical=   0.0012 rad =    0.067 deg
+   raw=   -0.072 deg   canonical=   0.0013 rad =    0.072 deg
+   raw=   -0.073 deg   canonical=   0.0013 rad =    0.073 deg
+   raw=   -0.070 deg   canonical=   0.0012 rad =    0.070 deg
+   raw=   -0.072 deg   canonical=   0.0013 rad =    0.072 deg
+   raw=   -0.071 deg   canonical=   0.0012 rad =    0.071 deg
+   raw=   -0.078 deg   canonical=   0.0014 rad =    0.078 deg
+   raw=   -0.111 deg   canonical=   0.0019 rad =    0.111 deg
+   raw=   -0.113 deg   canonical=   0.0020 rad =    0.113 deg
+   raw=   -0.097 deg   canonical=   0.0017 rad =    0.097 deg
+   raw=   -0.106 deg   canonical=   0.0019 rad =    0.106 deg
+   raw=   -0.138 deg   canonical=   0.0024 rad =    0.138 deg
+   raw=   -0.433 deg   canonical=   0.0076 rad =    0.433 deg
+   raw=   -4.402 deg   canonical=   0.0768 rad =    4.402 deg
+   raw=   -8.173 deg   canonical=   0.1426 rad =    8.173 deg
+   raw=  -11.578 deg   canonical=   0.2021 rad =   11.578 deg
+   raw=  -15.243 deg   canonical=   0.2660 rad =   15.243 deg
+   raw=  -19.125 deg   canonical=   0.3338 rad =   19.125 deg
+   raw=  -22.936 deg   canonical=   0.4003 rad =   22.936 deg
+   raw=  -26.861 deg   canonical=   0.4688 rad =   26.861 deg
+   raw=  -29.671 deg   canonical=   0.5178 rad =   29.671 deg
+   raw=  -30.364 deg   canonical=   0.5300 rad =   30.364 deg
+   raw=  -31.634 deg   canonical=   0.5521 rad =   31.634 deg
+   raw=  -31.538 deg   canonical=   0.5504 rad =   31.538 deg
+   raw=  -31.558 deg   canonical=   0.5508 rad =   31.558 deg
+   raw=  -31.508 deg   canonical=   0.5499 rad =   31.508 deg
+   raw=  -31.553 deg   canonical=   0.5507 rad =   31.553 deg
+   raw=  -31.553 deg   canonical=   0.5507 rad =   31.553 deg
+   raw=  -31.681 deg   canonical=   0.5529 rad =   31.681 deg
+   raw=  -31.896 deg   canonical=   0.5567 rad =   31.896 deg
+   raw=  -31.820 deg   canonical=   0.5554 rad =   31.820 deg
+   raw=  -31.715 deg   canonical=   0.5535 rad =   31.715 deg
+   raw=  -31.425 deg   canonical=   0.5485 rad =   31.425 deg
+   raw=  -31.407 deg   canonical=   0.5482 rad =   31.407 deg
+   raw=  -31.400 deg   canonical=   0.5480 rad =   31.400 deg
+   raw=  -31.350 deg   canonical=   0.5472 rad =   31.350 deg
+   raw=  -31.215 deg   canonical=   0.5448 rad =   31.215 deg
+   raw=  -31.161 deg   canonical=   0.5439 rad =   31.161 deg
+   raw=  -31.086 deg   canonical=   0.5426 rad =   31.086 deg
+   raw=  -30.834 deg   canonical=   0.5381 rad =   30.834 deg
+   raw=  -30.881 deg   canonical=   0.5390 rad =   30.881 deg
+   raw=  -32.835 deg   canonical=   0.5731 rad =   32.835 deg
+   raw=  -35.813 deg   canonical=   0.6251 rad =   35.813 deg
+   raw=  -43.017 deg   canonical=   0.7508 rad =   43.017 deg
+   raw=  -52.396 deg   canonical=   0.9145 rad =   52.396 deg
+   raw=  -60.479 deg   canonical=   1.0556 rad =   60.479 deg
+   raw=  -64.561 deg   canonical=   1.1268 rad =   64.561 deg
+   raw=  -69.761 deg   canonical=   1.2176 rad =   69.761 deg
+   raw=  -72.378 deg   canonical=   1.2632 rad =   72.378 deg
+   raw=  -75.583 deg   canonical=   1.3192 rad =   75.583 deg
+   raw=  -79.617 deg   canonical=   1.3896 rad =   79.617 deg
+   raw=  -80.924 deg   canonical=   1.4124 rad =   80.924 deg
+   raw=  -83.523 deg   canonical=   1.4578 rad =   83.523 deg
+   raw=  -84.287 deg   canonical=   1.4711 rad =   84.287 deg
+   raw=  -89.181 deg   canonical=   1.5565 rad =   89.181 deg
+   raw=  -88.518 deg   canonical=   1.5449 rad =   88.518 deg
+   raw=  -88.434 deg   canonical=   1.5435 rad =   88.434 deg
+   raw=  -88.369 deg   canonical=   1.5423 rad =   88.369 deg
+   raw=  -88.377 deg   canonical=   1.5425 rad =   88.377 deg
+   raw=  -87.626 deg   canonical=   1.5294 rad =   87.626 deg
+   raw=  -84.030 deg   canonical=   1.4666 rad =   84.030 deg
+   raw=  -83.709 deg   canonical=   1.4610 rad =   83.709 deg
+   raw=  -85.832 deg   canonical=   1.4980 rad =   85.832 deg
+   raw=  -88.112 deg   canonical=   1.5378 rad =   88.112 deg
+   raw=  -89.255 deg   canonical=   1.5578 rad =   89.255 deg
+   raw=  -90.958 deg   canonical=   1.5875 rad =   90.958 deg
+   raw=  -92.041 deg   canonical=   1.6064 rad =   92.041 deg
+   raw=  -91.778 deg   canonical=   1.6018 rad =   91.778 deg
+   raw=  -91.193 deg   canonical=   1.5916 rad =   91.193 deg
+   raw=  -91.147 deg   canonical=   1.5908 rad =   91.147 deg
+   raw=  -91.141 deg   canonical=   1.5907 rad =   91.141 deg
+   raw=  -91.139 deg   canonical=   1.5907 rad =   91.139 deg
+   raw=  -91.140 deg   canonical=   1.5907 rad =   91.140 deg
+   raw=  -91.142 deg   canonical=   1.5907 rad =   91.142 deg
+   raw=  -91.145 deg   canonical=   1.5908 rad =   91.145 deg
+   raw=  -91.132 deg   canonical=   1.5906 rad =   91.132 deg
+   raw=  -91.135 deg   canonical=   1.5906 rad =   91.135 deg
+   raw=  -91.136 deg   canonical=   1.5906 rad =   91.136 deg
+   raw=  -91.132 deg   canonical=   1.5906 rad =   91.132 deg
+   raw=  -91.141 deg   canonical=   1.5907 rad =   91.141 deg
+   raw=  -91.137 deg   canonical=   1.5906 rad =   91.137 deg
+   raw=  -91.137 deg   canonical=   1.5906 rad =   91.137 deg
+   raw=  -91.138 deg   canonical=   1.5907 rad =   91.138 deg
+   raw=  -91.136 deg   canonical=   1.5906 rad =   91.136 deg
+   raw=  -91.140 deg   canonical=   1.5907 rad =   91.140 deg
+   raw=  -91.137 deg   canonical=   1.5906 rad =   91.137 deg
+   raw=  -91.137 deg   canonical=   1.5906 rad =   91.137 deg
+   raw=  -91.132 deg   canonical=   1.5906 rad =   91.132 deg
+   raw=  -90.519 deg   canonical=   1.5798 rad =   90.519 deg
+   raw=  -88.975 deg   canonical=   1.5529 rad =   88.975 deg
+   raw=  -89.037 deg   canonical=   1.5540 rad =   89.037 deg
+   raw=  -89.128 deg   canonical=   1.5556 rad =   89.128 deg
+   raw=  -89.138 deg   canonical=   1.5558 rad =   89.138 deg
+   raw=  -89.133 deg   canonical=   1.5557 rad =   89.133 deg
+   raw=  -89.130 deg   canonical=   1.5556 rad =   89.130 deg
+   raw=  -89.338 deg   canonical=   1.5592 rad =   89.338 deg
+   raw=  -89.744 deg   canonical=   1.5663 rad =   89.744 deg
+   raw=  -89.632 deg   canonical=   1.5644 rad =   89.632 deg
+   raw=  -89.601 deg   canonical=   1.5638 rad =   89.601 deg
+PATH: turned CCW 99.1 deg total, CW 9.2 deg total, 7 reversal(s)
+NET : +89.53 deg (unwrapped, from cumulative raw)
+  wrapped canonical difference would have read +89.53 deg
+operator says they turned LEFT / CCW
+HA-02 CONFIRMED: canonical heading is CCW-POSITIVE.
+  (dominant travel was CCW, matching what you declared.)
