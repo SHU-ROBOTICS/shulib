@@ -675,9 +675,20 @@ void measureLoopRate() {
 
 namespace {
 
+/// A menu entry carries its INSTRUCTIONS, not just its code.
+///
+/// Every test here reported findings and none of them said what the BENCHER has to
+/// do -- and several are worthless without a physical action. Test 3 tells you
+/// nothing unless somebody turns a wheel and runs it again; test 2 needs the robot
+/// rotated while it watches. A person working alone at a bench cannot infer that
+/// from a table of numbers, so each entry now states the action and the finish
+/// condition, and both are printed into the SD log as part of the record.
 struct MenuItem {
     const char* label;
     void (*run)(pros::c::v5_device_e_t*);
+    bool handsOn;          ///< needs the bencher to physically do something
+    const char* doThis;    ///< the action, imperative, one line
+    const char* doneWhen;  ///< how they know it is finished
 };
 
 pros::c::v5_device_e_t g_found[kMaxPort + 1] = {};
@@ -698,14 +709,37 @@ void tAll(pros::c::v5_device_e_t* f) {
 }
 
 constexpr MenuItem kMenu[] = {
-    {"1  DEVICE CENSUS",    &tCensus},
-    {"2  IMU + ROTATE",     &tImu},
-    {"3  MOTORS (by hand)", &tMotors},
-    {"4  BATT/CTRL",        &tPlatform},
-    {"5  SD CARD PROBE",    &tSdProbe},
-    {"6  LOOP RATE",        &tLoopRate},
-    {"7  RUN ALL",          &tAll},
-    {"8  SCREEN RULER",     &screenRuler},
+    {"1  DEVICE CENSUS", &tCensus, false,
+     "nothing - just read it",
+     "you have noted every port and what is in it"},
+
+    {"2  IMU + ROTATE", &tImu, true,
+     "turn the WHOLE ROBOT counter-clockwise (to its left)",
+     "the big number ROSE while you turned. If it fell, say so"},
+
+    {"3  MOTORS (by hand)", &tMotors, true,
+     "spin each drive wheel forward BY HAND, one at a time",
+     "you re-ran this and saw which port moved, and which way"},
+
+    {"4  BATT/CTRL", &tPlatform, true,
+     "pair a controller to the brain if it says NOT CONNECTED",
+     "controller reads CONNECTED (it unblocks 4 register entries)"},
+
+    {"5  SD CARD PROBE", &tSdProbe, false,
+     "nothing - unless it fails, then reformat the card FAT32",
+     "all three steps pass and the header chip reads PASS"},
+
+    {"6  LOOP RATE", &tLoopRate, false,
+     "nothing - leave the robot still",
+     "min/max/mean are printed"},
+
+    {"7  RUN ALL", &tAll, true,
+     "be ready to rotate the robot when test 2's readout appears",
+     "every test above has run once"},
+
+    {"8  SCREEN RULER", &screenRuler, true,
+     "read the four numbered questions off the panel and report them",
+     "you have answered all four - they fix the layout constants"},
 };
 constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 
@@ -761,6 +795,12 @@ void drawMenu() {
         pros::c::screen_fill_rect(x0, y0, x1, y1);
         pros::c::screen_set_pen(kColEdge);
         pros::c::screen_draw_rect(x0, y0, x1, y1);
+        // An amber stripe means THIS ONE NEEDS YOUR HANDS. Encoded as form rather
+        // than words: the labels are already at the width the button allows.
+        if (kMenu[i].handsOn) {
+            pros::c::screen_set_pen(kColWarn);
+            pros::c::screen_fill_rect(x0, y0, static_cast<std::int16_t>(x0 + 5), y1);
+        }
         // Text draws pen-on-eraser, so the eraser must match the button fill or
         // every label carries a black box behind it.
         pros::c::screen_set_eraser(kColBar);
@@ -868,6 +908,11 @@ void runR3a() {
         g_lastVerdict = Sev::Info;          // each run judged on its own evidence
         emit("");
         emitf(">>>>>> %s", kMenu[choice].label);
+        // The brief comes FIRST, before any data, and rides into the SD log with it.
+        emitS(Sev::Warn, "DO NOW  : %s", kMenu[choice].doThis);
+        emitS(Sev::Warn, "DONE IF : %s", kMenu[choice].doneWhen);
+        g_lastVerdict = Sev::Info;          // the brief is instruction, not a verdict
+        emit("");
         kMenu[choice].run(g_found);
         card.flush();
         if (choice < kMaxMenu) g_verdict[choice] = static_cast<int>(g_lastVerdict);

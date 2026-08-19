@@ -1372,3 +1372,27 @@ published preview showed a design that was not in the binary.
 
 Still unmeasured, and still the ceiling on all of this: **font metrics.** Test 8 remains the thing
 that turns every layout constant here from an estimate into a number.
+
+### 16.7 Tests now say what the BENCHER does, not just what they found
+
+Team lead: *"I wish it was more clear how tests should be completed."* A real gap, and a
+consequential one — **several of these tests are worthless without a physical action, and nothing
+said so.** Test 3 prints motor positions that are all zero and meaningless unless somebody spins a
+wheel and runs it again; test 2 needs the robot rotated *while it watches*. A person working alone
+cannot infer either from a table of numbers.
+
+`MenuItem` now carries its **instructions** alongside its code: a `handsOn` flag, a `doThis`
+imperative, and a `doneWhen` finish condition. Every run prints the brief **before any data** —
+`DO NOW` / `DONE IF`, in amber — and both lines ride into the SD log as part of the record. Five of
+the eight tests are hands-on; their buttons carry an **amber stripe down the left edge**, encoded as
+form rather than words because the labels are already at the width the button allows.
+
+The brief is deliberately excluded from the verdict: it is emitted at `Sev::Warn` for colour, then
+`g_lastVerdict` is reset before the test body runs, so instructions never turn a passing test amber.
+
+Worksheet's Station A table rewritten to the same four columns — **Hands? / What YOU do / Finished
+when** — so paper, panel and preview all say the same thing.
+
+**This is the piece that makes an unattended session possible.** Everything before it assumed
+somebody already knew the procedure; the register, the runbook and this log all live on a laptop the
+bencher does not have in front of them.

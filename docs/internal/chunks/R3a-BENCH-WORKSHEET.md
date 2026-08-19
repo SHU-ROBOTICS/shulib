@@ -23,15 +23,23 @@ no motion** — it cannot drive the robot.
    trusting anything on screen. (A silent upload failure cost a debugging cycle on 2026-08-18.)
 3. A **touch menu** appears. Tap any test:
 
-   | Button | What it does |
-   |---|---|
-   | **1 DEVICE CENSUS** | every occupied port and what is in it |
-   | **2 IMU + ROTATE** | big live heading — **rotate the robot CCW, it must go UP** |
-   | **3 MOTORS (by hand)** | per-motor raw + converted values; **turn a wheel by hand** and re-run |
-   | **4 BATT/CTRL/SD** | battery, controller pairing, SD card presence |
-   | **5 SD CARD PROBE** | is the card detected, and is it writable — staged, says which step failed |
-   | **6 LOOP RATE** | the tick cadence this build sustains |
-   | **7 RUN ALL** | all six, in order |
+   **An amber stripe down a button's left edge means that test needs your hands.**
+   Each test also opens with two amber lines — `DO NOW` and `DONE IF` — so you never
+   have to guess what you are supposed to do or when you are finished.
+
+   | Button | Hands? | What YOU do | Finished when |
+   |---|---|---|---|
+   | **1 DEVICE CENSUS** | — | nothing, just read it | you have noted every port and what is in it |
+   | **2 IMU + ROTATE** | **yes** | turn the whole robot counter-clockwise | the big number **ROSE** while you turned — if it fell, say so |
+   | **3 MOTORS** | **yes** | spin each drive wheel forward by hand, one at a time | you re-ran it and saw which port moved, and which way |
+   | **4 BATT/CTRL** | **yes** | pair a controller if it reads NOT CONNECTED | it reads CONNECTED (unblocks 4 register entries) |
+   | **5 SD CARD PROBE** | — | nothing, unless it fails — then reformat FAT32 | all three steps pass, header chip reads PASS |
+   | **6 LOOP RATE** | — | nothing, leave the robot still | min/max/mean are printed |
+   | **7 RUN ALL** | **yes** | be ready to rotate when test 2's readout appears | every test above has run once |
+   | **8 SCREEN RULER** | **yes** | answer the four numbered questions on screen | all four answered — they fix the layout constants |
+
+   Each button carries a **status dot**: hollow until run, then filled — green PASS,
+   amber CHECK, red FAIL. That is how you tell what is left without keeping a list.
 
 4. Results print on the screen. When it fills, tap to continue. When a test ends, tap
    **TOUCH TO RETURN TO MENU**.
