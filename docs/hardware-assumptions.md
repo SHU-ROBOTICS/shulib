@@ -68,7 +68,7 @@
 | ID | Claim (short) | Confidence | Owner |
 |---|---|---|---|
 | HA-01 | GPS position axes: +X = East, +Y = North | **invented** | R3 |
-| HA-02 | IMU as-mounted heading is CW-positive | reasoned | R3 |
+| HA-02 | IMU as-mounted heading is CW-positive | **CONFIRMED** 2026-08-19 on the bench bot: operator turned the robot LEFT/CCW and RAW `get_rotation()` went NEGATIVE (-0.073 -> -87.241 deg) while CANONICAL rose (+0.073 -> +87.241 deg). Raw decreasing on a CCW turn IS raw being CW-positive, exactly as claimed; and the adapter's negation therefore yields the CCW-positive canonical F1 requires. Evidence: `evidence/r3a-session-2026-08-19.log` run 2 | R3 |
 | HA-03 | `get_rotation()` is cumulative/unbounded (the required binding) | reasoned | R1/R3 |
 | HA-04 | IMU yaw-rate source sign (`get_gyro_rate().z` undocumented) | **invented** | R3 |
 | HA-05 | Post-cal tare invalidates bootHeading; offset applied once | reasoned | R1/R3 |

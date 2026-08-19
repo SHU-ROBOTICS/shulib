@@ -1612,3 +1612,35 @@ as-mounted convention is the one HA-02 claims.)*
 
 Test 9 drew and printed its four questions; **they need a human looking at the panel.** Font metrics
 stay unmeasured, and every layout constant stays an estimate until someone answers them.
+
+### 18.5 `HA-02` IS CONFIRMED — the sign that mirrors everything
+
+Team lead, asked which way the big number went when the robot was turned LEFT: **"80 plus."**
+
+That identifies **run 2** of the two logged rotations, and it closes the chain:
+
+| | |
+|---|---|
+| Operator turned | **LEFT / CCW** (front sweeping to the robot's own left) |
+| RAW `get_rotation()` | `-0.073` → **`-87.241`** deg — went **more negative** |
+| CANONICAL heading | `+0.073` → **`+87.241`** deg — went **up** |
+
+**Both halves settle at once:**
+
+1. **`HA-02` CONFIRMED.** Raw going *negative* on a *counter-clockwise* turn is precisely raw being
+   **CW-positive**, which is what the entry claims and what the adapter is written against.
+2. **The conversion is correct.** `canonical = −raw` therefore yields a **CCW-positive** heading,
+   which is what F1 (locked) requires. The frame the whole library is built on matches the hardware
+   as mounted.
+
+**This is the entry whose wrong answer mirrors every turn shulib would ever command** — it has been
+`reasoned` since June and is now measured. Register updated with the evidence path.
+
+By elimination, **run 1's −170.66° was a RIGHT/CW turn**, which is consistent rather than anomalous
+— and is exactly why §18.3's fix (asking the operator which way they turned) is the right shape:
+both runs were correct readings of different actions.
+
+**Still open in the IMU group:** `HA-03` (cumulative/unbounded past 360° — the largest sweep logged
+was ~170°, which does not test it), `HA-04`/`HA-109` (gyro-rate sign, never read), `HA-110`
+(pitch/roll signs — only at-rest values recorded, `pitch=0.063 roll=-0.030`, which is not a sign
+test), and `HA-05`'s post-cal tare behaviour.
