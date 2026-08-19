@@ -67,7 +67,7 @@
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/controller.hpp"
 #include "shulib/hal/pros/imu.hpp"
-#include "shulib/hal/pros/motor.hpp"
+#include "shulib/hal/motor_conversion.hpp"
 #include "shulib/math/angle.hpp"
 
 namespace shulib::bench {
@@ -179,8 +179,8 @@ Sev g_lastVerdict = Sev::Info;  // what the running test concluded
 
 /// What each menu entry concluded last time it ran; -1 = never run. "Passed" and
 /// "not tried yet" must look different, or a bencher cannot tell what is left.
-constexpr int kMaxMenu = 8;
-int g_verdict[kMaxMenu] = {-1, -1, -1, -1, -1, -1, -1, -1};
+constexpr int kMaxMenu = 9;
+int g_verdict[kMaxMenu] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 std::uint32_t sevColour(Sev s) {
     switch (s) {
@@ -584,6 +584,29 @@ void reportImu(bool present) {
 }
 
 // ═══ STAGE 3 — motors: raw beside canonical, one line each. ══════════════════
+/// The cartridge each DEVICE reports. Read, never imposed.
+const char* gearName(pros::motor_gearset_e_t g) {
+    switch (g) {
+        case pros::E_MOTOR_GEAR_RED:   return "RED 100";
+        case pros::E_MOTOR_GEAR_GREEN: return "GRN 200";
+        case pros::E_MOTOR_GEAR_BLUE:  return "BLU 600";
+        default:                       return "UNKNOWN";
+    }
+}
+
+/// NO MOTOR ADAPTER IS CONSTRUCTED HERE, AND THAT IS THE POINT.
+///
+/// The hal/pros motor adapter's constructor SETS the gearset on the device
+/// (`motor_{port, toProsGears(gearset), degrees}`), and HA-98 records that motor
+/// gearing lives IN THE DEVICE and PERSISTS ACROSS PROGRAMS. This file used to
+/// construct it with an invented GREEN -- so a binary documented as READ-ONLY
+/// would have silently rewritten every drive motor's cartridge configuration and
+/// left it that way for every other program on the brain. If the fitted cartridges
+/// are blue (600 rpm) and we stamp green (200 rpm), that is a 3x scaling error
+/// handed to the next program to run, caused by the tool sent to MEASURE the robot.
+///
+/// So: raw values straight from the PROS C API, canonical values through the PURE
+/// conversion function, and the cartridge READ BACK rather than asserted.
 void reportMotorGroup(const char* label, const std::int8_t* ports, std::size_t n,
                       const pros::c::v5_device_e_t* found) {
     emitf("-- %s --", label);
@@ -593,23 +616,21 @@ void reportMotorGroup(const char* label, const std::int8_t* ports, std::size_t n
             emitS(Sev::Bad, "  port %2d: NOT A MOTOR (census says %s)", p, deviceName(found[p]));
             continue;
         }
-        try {
-            hal::pros::ProsMotor m{ports[i], hal::pros::MotorGearset::Green};
-            emitf("  port %2d | RAW pos=%10.2f deg temp=%5.1fC cur=%5dmA | CANON pos=%9.4f rad",
-                  p, pros::c::motor_get_position(ports[i]),
-                  pros::c::motor_get_temperature(ports[i]),
-                  static_cast<int>(pros::c::motor_get_current_draw(ports[i])),
-                  m.position().value());
-        } catch (const PreconditionError& e) {
-            emitS(Sev::Bad, "  port %2d: ADAPTER REFUSED: %s", p, e.what());
-        }
+        const double rawDeg = pros::c::motor_get_position(ports[i]);
+        emitf("  p%-2d %s raw=%8.1fd canon=%7.3fr %4.1fC %4dmA", p,
+              gearName(pros::c::motor_get_gearing(ports[i])), rawDeg,
+              hal::motorPositionDegToCanonical(rawDeg).value(),
+              pros::c::motor_get_temperature(ports[i]),
+              static_cast<int>(pros::c::motor_get_current_draw(ports[i])));
     }
 }
 
 void reportMotors(const pros::c::v5_device_e_t* found) {
-    rule("STAGE 3  DRIVE MOTORS (HA-14/15/17/111 -- cartridge is a GUESS: Green)");
-    emit("The gearset below is HA-15's INVENTED stand-in. If a ctor refuses, the real");
-    emit("cartridge differs -- that refusal is the measurement.");
+    rule("STAGE 3  DRIVE MOTORS (HA-14/15/17/111)");
+    emit("CARTRIDGE is READ FROM EACH DEVICE -- a measurement, not our guess.");
+    emit("HA-15's invented stand-in was GREEN; whatever prints below is what is");
+    emit("actually fitted. Nothing here writes to a motor: this build never");
+    emit("constructs the adapter that would.");
     emit("");
     reportMotorGroup("HYPOTHESISED LEFT", kLeftPorts, kLeftCount, found);
     reportMotorGroup("HYPOTHESISED RIGHT", kRightPorts, kRightCount, found);
@@ -638,6 +659,102 @@ void reportMotors(const pros::c::v5_device_e_t* found) {
     emit("");
     emit("No motor is ever powered. Both steps are safe with the robot on a");
     emit("bench, and re-running this test is free.");
+}
+
+/// MOTOR WATCH -- live capture, so nobody has to remember numbers.
+///
+/// The read-remember-re-run loop it replaces asked a person to note eight values,
+/// perform a physical action, run the test again, and diff two tables in their
+/// head. That is a transcription task handed to the one participant who cannot be
+/// re-run. This zeroes a baseline, then displays every drive port's DELTA live
+/// while the robot is pushed or a wheel is spun, and writes the finished table to
+/// serial and the SD card on exit.
+///
+/// Still READ-ONLY: positions are read straight from PROS, no adapter is
+/// constructed, and no motor is ever powered.
+void motorWatch(pros::c::v5_device_e_t* found) {
+    rule("MOTOR WATCH (live)");
+
+    // Collect the drive ports that really are motors, in hypothesis order.
+    std::int8_t ports[kLeftCount + kRightCount];
+    const char* side[kLeftCount + kRightCount];
+    std::size_t n = 0;
+    for (std::size_t i = 0; i < kLeftCount; ++i) {
+        if (found[kLeftPorts[i]] == pros::c::E_DEVICE_MOTOR) {
+            ports[n] = kLeftPorts[i]; side[n] = "L"; ++n;
+        }
+    }
+    for (std::size_t i = 0; i < kRightCount; ++i) {
+        if (found[kRightPorts[i]] == pros::c::E_DEVICE_MOTOR) {
+            ports[n] = kRightPorts[i]; side[n] = "R"; ++n;
+        }
+    }
+    if (n == 0) {
+        emitS(Sev::Bad, "no drive motors found -- run the census first.");
+        return;
+    }
+
+    double base[kLeftCount + kRightCount];
+    for (std::size_t i = 0; i < n; ++i) base[i] = pros::c::motor_get_position(ports[i]);
+
+    emit("Baseline taken. Now do ONE of these:");
+    emit("  * PUSH THE WHOLE ROBOT FORWARD  -> every port moves; the SIGNS");
+    emit("    are the answer to 'which way is positive'.");
+    emit("  * SPIN ONE WHEEL (any direction) -> only that port moves; that");
+    emit("    is the port->wheel map.");
+    emit("Watch the panel. TOUCH when you are done and it records the table.");
+
+    g_screenActive = false;
+    screenClear();
+    pros::c::screen_set_pen(kColText);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 40, "push the robot, or spin one wheel");
+    pros::c::screen_set_pen(kColWarn);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, kFooterY, "TOUCH when done - it records itself");
+
+    // Live table: two columns of four, updated in place until a touch arrives.
+    const std::int32_t startTouch = pros::c::screen_touch_status().release_count;
+    char cell[40];
+    while (pros::c::screen_touch_status().release_count == startTouch) {
+        for (std::size_t i = 0; i < n; ++i) {
+            const double d = pros::c::motor_get_position(ports[i]) - base[i];
+            const std::int16_t cx = static_cast<std::int16_t>(i < 4 ? 8 : 248);
+            const std::int16_t cy = static_cast<std::int16_t>(60 + (i % 4) * 34);
+            pros::c::screen_set_eraser(kColBg);
+            pros::c::screen_erase_rect(cx, cy, static_cast<std::int16_t>(cx + 224),
+                                       static_cast<std::int16_t>(cy + 30));
+            // Colour IS the reading: green rose, red fell, dim did not move.
+            pros::c::screen_set_pen(d > 5.0 ? kColGood : d < -5.0 ? kColBad : kColDim);
+            std::snprintf(cell, sizeof cell, "%s%-2d %s%8.0f", side[i], static_cast<int>(ports[i]),
+                          d > 5.0 ? "UP  " : d < -5.0 ? "DOWN" : "--  ", d);
+            pros::c::screen_print_at(pros::E_TEXT_MEDIUM, cx, cy, "%s", cell);
+        }
+        pros::delay(80);
+    }
+
+    g_screenActive = true;
+    screenClear();
+    emit("");
+    emit("RECORDED -- net movement per port since baseline:");
+    emit("side port      delta deg   verdict");
+    int moved = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        const double d = pros::c::motor_get_position(ports[i]) - base[i];
+        const bool did = (d > 5.0 || d < -5.0);
+        if (did) ++moved;
+        emitS(did ? Sev::Good : Sev::Info, "  %s  %2d  %10.0f   %s", side[i],
+              static_cast<int>(ports[i]), d, d > 5.0 ? "UP" : d < -5.0 ? "DOWN" : "did not move");
+    }
+    emit("");
+    if (moved == 0) {
+        emitS(Sev::Warn, "nothing moved. Push harder, or check the census.");
+    } else if (moved == 1) {
+        emit("ONE port moved -> that port drives the wheel you spun.");
+    } else {
+        emit("SEVERAL moved -> this was a whole-robot push. The UP/DOWN");
+        emit("column IS the sign convention, relative to the front you chose.");
+        emit("Ports disagreeing with their side-mates are wired reversed.");
+    }
+    emit("This table is in /usd/r3a_log.txt. Re-run per wheel to build the map.");
 }
 
 // ═══ STAGE 4 — battery, controller, SD card. ═════════════════════════════════
@@ -738,9 +855,9 @@ constexpr MenuItem kMenu[] = {
      "turn the WHOLE ROBOT counter-clockwise (to its left)",
      "the big number ROSE while you turned. If it fell, say so"},
 
-    {"3  MOTORS (by hand)", &tMotors, true,
-     "STEP 1 push the whole robot forward. STEP 2 spin one wheel",
-     "you have a sign for every port AND a port->wheel map"},
+    {"3  MOTOR WATCH (live)", &motorWatch, true,
+     "push the robot forward, OR spin one wheel - it records itself",
+     "the table showed UP/DOWN per port and you touched to save it"},
 
     {"4  BATT/CTRL", &tPlatform, true,
      "pair a controller to the brain if it says NOT CONNECTED",
@@ -758,7 +875,11 @@ constexpr MenuItem kMenu[] = {
      "be ready to rotate the robot when test 2's readout appears",
      "every test above has run once"},
 
-    {"8  SCREEN RULER", &screenRuler, true,
+    {"8  MOTORS (static)", &tMotors, false,
+     "nothing - a one-shot snapshot. Use test 3 to capture movement",
+     "you have seen each motor's raw and canonical position"},
+
+    {"9  SCREEN RULER", &screenRuler, true,
      "read the four numbered questions off the panel and report them",
      "you have answered all four - they fix the layout constants"},
 };
@@ -772,7 +893,9 @@ constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 // constant was wrong, and the bottom row landed off the panel on real hardware
 // (observed 2026-08-18). Everything now stays inside y < 236 for margin:
 // row 3 spans 184..226.
-constexpr std::int16_t kBtnW = 232, kBtnH = 46, kBtnX0 = 6, kBtnY0 = 38, kGap = 4;
+// 9 items => 5 rows on a 240px panel. 38 + 5*36 + 4*4 = 234, inside the bound
+// with margin. Verified on the host before upload, against the CORRECT height.
+constexpr std::int16_t kBtnW = 232, kBtnH = 36, kBtnX0 = 6, kBtnY0 = 38, kGap = 4;
 
 void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std::int16_t& y1) {
     const std::int16_t col = static_cast<std::int16_t>(i % 2);
@@ -827,7 +950,7 @@ void drawMenu() {
         pros::c::screen_set_eraser(kColBar);
         pros::c::screen_set_pen(kColText);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
-                                 static_cast<std::int16_t>(y0 + 15), "%s", kMenu[i].label);
+                                 static_cast<std::int16_t>(y0 + 10), "%s", kMenu[i].label);
         pros::c::screen_set_eraser(kColBg);
 
         // Status dot: hollow until the test has run, then filled with its verdict.

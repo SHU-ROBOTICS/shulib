@@ -1429,3 +1429,54 @@ worse than any one of them being terse.
 > that *sounded* specific — "spin the wheel forward", `kScreenCols = 54`, a 272-pixel panel, a
 > 1-indexed registry. None of them were caught by a gate. All were caught by somebody asking what a
 > word actually referred to.
+
+### 16.9 A bencher's recollection exposed a WRITE hiding in the "read-only" binary
+
+Team lead relayed: *"he said the wheels for calypso were 2.75 and he used the blue cartridges."*
+
+**Recorded as a REPORT, not a measurement** (Phase 8's provenance rule): it is one person's
+recollection about **Calypso**, and although §9.2 found the bench bot's port inventory matches
+Calypso's almost exactly, "almost exactly" is not "is". It is a falsifiable prediction:
+
+| Register entry | Invented stand-in | Reported | Status |
+|---|---|---|---|
+| `HA-14` wheel diameter | **3.25 in** | **2.75 in** | prediction — B1.1 settles it with a ruler |
+| `HA-15` drive cartridge | **GREEN** (200 rpm) | **BLUE** (600 rpm) | prediction — now settled by the binary itself |
+
+**And chasing it found a real defect.** The motors test constructed the `hal/pros` motor adapter, and
+that adapter's constructor **SETS the gearset on the device**
+(`motor_{port, toProsGears(gearset), degrees}`). `HA-98` records that motor gearing **lives in the
+device and persists across programs.**
+
+So a binary this log has called READ-ONLY in three separate commit messages **was writing an invented
+GREEN cartridge into all eight drive motors and leaving it there for every other program on the
+brain.** If the fitted cartridges are blue, that is a **3× velocity-scaling error** handed to the
+next program to run — introduced by the tool sent to *measure* the robot. Nobody would have suspected
+the measuring instrument.
+
+**Fixed by removing the adapter entirely from this file.** Raw values come from the PROS C API,
+canonical values from the **pure** `motorPositionDegToCanonical()`, and the cartridge is now **read
+back per motor** with `motor_get_gearing()` and printed as `RED 100 / GRN 200 / BLU 600`. That both
+removes the write **and settles `HA-15` by measurement** on the next run — which is strictly better
+than the assertion it replaces.
+
+*(Two asserts in the edit script fired during this change and stopped a partial write both times.
+One was over-broad — it matched the word `ProsMotor` inside the new comment — but §16.5's silent
+no-op is the failure mode being guarded against, and a noisy false positive is the cheaper error.)*
+
+### 16.10 Live capture: the bencher pushes, the binary records
+
+Team lead: *"could i not just push the bot forward and have you record?"* — yes, and the previous
+design was worse than it needed to be. It asked a person to note eight numbers, perform a physical
+action, re-run, and diff two tables in their head: **a transcription task handed to the one
+participant who cannot be re-run.**
+
+New **test 3, MOTOR WATCH (live)**: takes a baseline, then shows every drive port's **delta** live
+while the robot is pushed or a wheel is spun — green rose, red fell, dim did not move — and writes
+the finished table to serial and the SD card when touched. One push answers *which way is positive*
+for all eight ports at once; one spun wheel answers *which port is that wheel*. The old one-shot
+snapshot survives as test 8 for the raw-vs-canonical print §4.2 asks for.
+
+Menu is now 9 entries, so the grid moved to 5 rows at 36 px — **re-verified on the host against the
+correct 240 px height** before building: all nine boxes in bounds (last ends y=234), no overlaps,
+every centre hit-tests to its own button.
