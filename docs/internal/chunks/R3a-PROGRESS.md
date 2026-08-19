@@ -1396,3 +1396,36 @@ when** — so paper, panel and preview all say the same thing.
 **This is the piece that makes an unattended session possible.** Everything before it assumed
 somebody already knew the procedure; the register, the runbook and this log all live on a laptop the
 bencher does not have in front of them.
+
+### 16.8 "Spin the wheel forward" was ambiguous, and the ambiguity was load-bearing
+
+Team lead, on the instruction written one commit earlier: *"when you mean drive the wheel forward
+what does that mean? which direction and in what context of the bot"* — and the honest answer is
+**it did not mean anything definite.** Forward for the *wheel* or for the *robot*? A wheel viewed
+from the robot's left turns the opposite way to the same wheel viewed from its right. The
+instruction had no referent, and **a wrong reading mirrors every turn the library will ever
+command** — the same failure §10.3 recorded when a prior robot's LEFT and RIGHT were swapped and its
+tuning silently absorbed it.
+
+The fix is to stop asking one ambiguous question and ask **two unambiguous ones, in order**:
+
+**STEP 1 — which way is positive.** Decide which end is the **FRONT** and **photograph it** (the
+library's frame is +X forward, so that choice is *part of the measurement*, not an obvious fact),
+then **push the WHOLE ROBOT forward** and record UP or DOWN per port. A robot has exactly one
+forward and no near-or-far side to argue about, so the referent is fixed by the object itself.
+
+**STEP 2 — which port is which wheel.** Lift the robot, spin **one** wheel, **any direction — it
+does not matter for this step**, and see which single port responds.
+
+Separating them also removes a second hidden assumption: step 1's answer does not depend on knowing
+the port map, and step 2's does not depend on knowing the sign. Previously one action was expected
+to settle both at once.
+
+Applied to all three surfaces — the on-panel guidance, the worksheet's Station 2, and the preview —
+because they are read by different people at different times and a disagreement between them is
+worse than any one of them being terse.
+
+> **The pattern worth keeping:** every ambiguity found today came from an instruction or constant
+> that *sounded* specific — "spin the wheel forward", `kScreenCols = 54`, a 272-pixel panel, a
+> 1-indexed registry. None of them were caught by a gate. All were caught by somebody asking what a
+> word actually referred to.

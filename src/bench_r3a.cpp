@@ -614,9 +614,30 @@ void reportMotors(const pros::c::v5_device_e_t* found) {
     reportMotorGroup("HYPOTHESISED LEFT", kLeftPorts, kLeftCount, found);
     reportMotorGroup("HYPOTHESISED RIGHT", kRightPorts, kRightCount, found);
     emit("");
-    emit("** TURN ONE WHEEL BY HAND, FORWARD. ** Re-run shows which port's position");
-    emit("moved and WHICH WAY. That is the port->wheel map AND the direction sign,");
-    emit("with no motor ever powered. Worksheet Station 2.");
+    emit("TWO SEPARATE QUESTIONS. Do them in this order -- 'spin a wheel");
+    emit("forward' is AMBIGUOUS on its own (forward for the wheel, or for");
+    emit("the robot? seen from which side?), and a wrong reading here");
+    emit("mirrors every turn the library will ever command.");
+    emit("");
+    emitS(Sev::Warn, "STEP 1 - WHICH WAY IS POSITIVE");
+    emit("  a. Decide which end of the robot is its FRONT, and PHOTOGRAPH");
+    emit("     it. The library's frame is +X forward, so this choice is");
+    emit("     part of the measurement -- not an obvious fact.");
+    emit("  b. Note every port's position above, then PUSH THE WHOLE ROBOT");
+    emit("     FORWARD a foot or so, along the floor, front end leading.");
+    emit("  c. Re-run this test. Every drive port moved. For EACH one write");
+    emit("     down whether it went UP or DOWN.");
+    emit("  Pushing the ROBOT removes the ambiguity: there is only one");
+    emit("  forward for a robot, and no left/right or near/far side to it.");
+    emit("");
+    emitS(Sev::Warn, "STEP 2 - WHICH PORT IS WHICH WHEEL");
+    emit("  a. Lift the robot so the wheels are off the ground.");
+    emit("  b. Spin ONE wheel. Any direction -- it does not matter here.");
+    emit("  c. Re-run. Exactly one port's number changed: that port drives");
+    emit("     that wheel. Repeat per wheel.");
+    emit("");
+    emit("No motor is ever powered. Both steps are safe with the robot on a");
+    emit("bench, and re-running this test is free.");
 }
 
 // ═══ STAGE 4 — battery, controller, SD card. ═════════════════════════════════
@@ -718,8 +739,8 @@ constexpr MenuItem kMenu[] = {
      "the big number ROSE while you turned. If it fell, say so"},
 
     {"3  MOTORS (by hand)", &tMotors, true,
-     "spin each drive wheel forward BY HAND, one at a time",
-     "you re-ran this and saw which port moved, and which way"},
+     "STEP 1 push the whole robot forward. STEP 2 spin one wheel",
+     "you have a sign for every port AND a port->wheel map"},
 
     {"4  BATT/CTRL", &tPlatform, true,
      "pair a controller to the brain if it says NOT CONNECTED",

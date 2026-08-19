@@ -87,13 +87,28 @@ no motion** — it cannot drive the robot.
 
 Program-free port identification, done from the Devices screen:
 
-- [ ] **2.1** Tap a drive motor port in **Devices** so its live values show.
-- [ ] **2.2** **Turn that wheel by hand** and watch the position/rotation number.
-      - Which port's number moved? → that port drives that wheel.
-      - Push the robot **FORWARD**: does the number go **UP or DOWN**?
-- [ ] **2.3** Repeat for every drive motor. Fill in the table below.
+> **"Spin the wheel forward" is ambiguous and we are not going to say it.** Forward for the
+> *wheel*, or for the *robot*? Seen from which side? A wrong reading here **mirrors every turn the
+> library will ever command**, so these are two separate steps, in this order.
 
-| Port | Which wheel (front-left / back-right / …) | Pushing robot FORWARD → number goes |
+**STEP 1 — which way is positive**
+
+- [ ] **2.1** Decide which end of the robot is its **FRONT**, and **photograph it**. The library's
+      frame is +X forward, so this choice is part of the measurement, not an obvious fact.
+- [ ] **2.2** Note each drive port's position, then **push the WHOLE ROBOT forward** about a foot
+      along the floor, front end leading.
+- [ ] **2.3** Read the ports again. For **each** one, write down **UP or DOWN**.
+      *(Pushing the robot removes the ambiguity: a robot has exactly one forward, and no near side
+      or far side to argue about.)*
+
+**STEP 2 — which port is which wheel**
+
+- [ ] **2.4** Lift the robot so the wheels are off the ground.
+- [ ] **2.5** Spin **ONE** wheel — **any direction, it does not matter for this step**.
+- [ ] **2.6** Read the ports. Exactly one changed: that port drives that wheel. Repeat per wheel and
+      fill in the table below.
+
+| Port | Which wheel (front-left / back-right / …) | STEP 1: pushing robot FORWARD → |
 |---|---|---|
 | 11 | | UP / DOWN |
 | 12 | | UP / DOWN |
