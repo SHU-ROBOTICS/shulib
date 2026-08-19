@@ -537,6 +537,14 @@ void reportImu(bool present) {
         // A big fixed readout rather than a scrolling log: this is a number somebody
         // watches WHILE turning the robot with both hands.
         const double startDeg = imu.heading().degrees();
+        // CUMULATIVE raw, because canonical heading is WRAPPED to (-180,180] and a
+        // turn past half a revolution then reports the WRONG SIGN: rotate 200 deg
+        // CCW and canonical runs 0 -> 180 -> wraps to -180 -> -160, so a wrapped
+        // difference reads -160 on a counter-clockwise turn. The 2026-08-19 run
+        // swept 170.66 deg and passed only because it stayed under the boundary.
+        // get_rotation() is cumulative and unbounded (HA-03, still unconfirmed past
+        // 360 deg -- flagged where the verdict is printed).
+        const double startRaw = pros::c::imu_get_rotation(kImuPort);
         screenClear();
         g_screenActive = false;  // suspend the scroll; the panel is the instrument now
 
@@ -569,7 +577,10 @@ void reportImu(bool present) {
                   pros::c::imu_get_rotation(kImuPort), imu.heading().radians(), deg);
             pros::delay(200);
         }
-        const double moved = imu.heading().degrees() - startDeg;
+        // canonical = -raw (HA-02, confirmed 2026-08-19), so negating the raw
+        // cumulative delta gives an UNWRAPPED canonical delta, valid past 180 deg.
+        const double moved = -(pros::c::imu_get_rotation(kImuPort) - startRaw);
+        const double wrapped = imu.heading().degrees() - startDeg;
 
         // ── ASK WHICH WAY THEY ACTUALLY TURNED. ────────────────────────────────
         // The first version asked for a CCW turn and reported the delta, which
@@ -612,8 +623,17 @@ void reportImu(bool present) {
 
         g_screenActive = true;
         screenClear();
-        emitf("heading moved %+.2f deg; operator says they turned %s", moved,
-              turnedCcw ? "LEFT / CCW" : "RIGHT / CW");
+        emitf("heading moved %+.2f deg (unwrapped, from cumulative raw)", moved);
+        emitf("  wrapped canonical difference would have read %+.2f deg", wrapped);
+        if ((moved > 0.0) != (wrapped > 0.0)) {
+            emitS(Sev::Warn, "  ^ THE TWO DISAGREE: the turn passed 180 deg. The");
+            emit("    unwrapped value is the correct one.");
+        }
+        if (moved > 360.0 || moved < -360.0) {
+            emit("  (turn exceeded a full revolution -- also evidence for HA-03,");
+            emit("   that get_rotation() is cumulative and unbounded.)");
+        }
+        emitf("operator says they turned %s", turnedCcw ? "LEFT / CCW" : "RIGHT / CW");
         // Canonical is CCW-positive by F1. So a CCW turn must raise it.
         const bool agrees = turnedCcw ? (moved > 0.0) : (moved < 0.0);
         if (moved > -5.0 && moved < 5.0) {

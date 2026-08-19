@@ -80,8 +80,8 @@
 | HA-11 | Rotation `get_position()` cumulative; int32 centidegree never wraps in a match | reasoned | R1/R3 |
 | HA-12 | Tracking-wheel offsets/signs as configured (−3.0″/−4.5″ are stand-ins) | **invented** | R3 |
 | HA-13 | Tracking-wheel effective diameter = nominal 2.0″ | **invented** | R3 |
-| HA-14 | Drive wheel 3.25″, wheel↔shaft gearing 1:1 | **invented** | R3 |
-| HA-15 | Drive cartridge GREEN → 900 ticks/rev at output | **invented** | R3 |
+| HA-14 | Drive wheel 3.25″, wheel↔shaft gearing 1:1 | **CORRECTED** 2026-08-19: wheels measured **2.75″**, not 3.25″ — build team, read off the robot. The 3.25″ stand-in is WRONG and every distance derived from it is short by 15.4%. Gearing half still open (B1.2, per side) | R3 |
+| HA-15 | Drive cartridge GREEN → 900 ticks/rev at output | **CORRECTED** 2026-08-19: cartridges are **BLUE** (6:1, 600 rpm), read visually off the motors — the only way this is knowable, since a V5 motor cannot sense its own cartridge. GREEN was invented and is WRONG. **The brain is currently CONFIGURED green while the hardware is blue** (`motor_get_gearing()` returned GRN 200 on all eight), so position and velocity are mis-scaled by the 18:1-vs-6:1 ratio until something sets it correctly | R3 |
 | HA-16 | Rotation sensor 36000 ticks/rev (centidegree) | measured elsewhere | R3 |
 | HA-17 | Built drivetrain matches the frozen preset geometry | **invented** | R3 |
 | HA-18 | F5 numbers match on-V5 (host ≡ robot, swapping `RobotContext`) | reasoned | R3 |

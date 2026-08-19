@@ -1644,3 +1644,57 @@ both runs were correct readings of different actions.
 was ~170°, which does not test it), `HA-04`/`HA-109` (gyro-rate sign, never read), `HA-110`
 (pitch/roll signs — only at-rest values recorded, `pitch=0.063 roll=-0.030`, which is not a sign
 test), and `HA-05`'s post-cal tare behaviour.
+
+---
+
+## Phase 19 — the cartridge and wheel are MEASURED, and they were both wrong
+
+Build team, having looked at the robot: **blue cartridges, 2.75″ wheels.**
+
+### 19.1 Both register entries CORRECTED, not confirmed
+
+| Entry | Invented | **Measured** | Error |
+|---|---|---|---|
+| `HA-14` wheel diameter | 3.25″ | **2.75″** | every derived distance short by **15.4 %** |
+| `HA-15` drive cartridge | GREEN (18:1, 200 rpm) | **BLUE (6:1, 600 rpm)** | a **3×** ratio |
+
+§16.9 recorded these as a *report* pending measurement; they are now measurements. **Both stand-ins
+were wrong**, which is the register working exactly as designed — the entries existed precisely
+because nobody had looked.
+
+### 19.2 THE BRAIN IS CONFIGURED GREEN WHILE THE HARDWARE IS BLUE
+
+`motor_get_gearing()` returned **`GRN 200` on all eight** drive motors, and the physical cartridges
+are **blue**. Since gearing is a software setting a V5 motor cannot sense (§17.2), the brain is
+right now scaling position and velocity against **18:1 when the mechanism is 6:1**.
+
+**Consequences, stated separately because they are not equally affected:**
+
+- **The alternating-sign finding (§18.2) STANDS.** A scale factor cannot flip a sign, so per-motor
+  polarity is unaffected and R3b piece 1's requirement holds.
+- **Every magnitude recorded today is unreliable.** The MOTOR WATCH deltas (~320 deg) are scaled by
+  the ratio mismatch and must be re-taken once the setting matches the hardware.
+- **The ~20 % `p16`/`p13` shortfall survives as an open question**, since a uniform mis-scale cannot
+  produce a *relative* difference between motors — but it is far too small to be a cartridge
+  mismatch on those two, so it is something else.
+
+**Whose problem it is:** this binary is read-only and deliberately will not fix it. **R3b must
+declare `Blue`** wherever it constructs a motor adapter — `src/main.cpp`'s `kDriveGearset` is still
+the invented `Green`, and that constructor WRITES the setting, so R3b is both the fix and the thing
+that would entrench the error if it ships unchanged.
+
+### 19.3 Verifying the IMU direction-capture found it was only half-fixed
+
+Team lead asked for the fix to be verified before upload — reasonably, after §16.5's silent no-op.
+The code was present and its logic correct, **and the check found a second defect**: `moved` was
+computed from `imu.heading().degrees()`, which is **wrapped to (−180, 180]**. A turn past half a
+revolution reports the WRONG SIGN — 200° CCW runs `0 → 180 → −180 → −160`, so the difference reads
+−160 on a counter-clockwise turn. **The 2026-08-19 run swept 170.66° and passed only because it
+stayed under the boundary.**
+
+Now computed from **cumulative raw** (`canonical = −raw`, confirmed §18.5), which is unbounded. The
+wrapped value is still printed beside it, and a disagreement between them is called out explicitly
+as "the turn passed 180°". A sweep past 360° additionally reports itself as evidence for `HA-03`.
+
+**Verified into the BINARY, not just the source** — all six new strings confirmed present in
+`hot.package.elf`. That is the check §16.5 lacked.
