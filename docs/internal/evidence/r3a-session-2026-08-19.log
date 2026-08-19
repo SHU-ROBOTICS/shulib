@@ -1,0 +1,443 @@
+
+################################################################
+#  shulib R3a  BENCH VALIDATION  --  READ-ONLY, COMMANDS NO MOTION
+################################################################
+BUILD STAMP: Aug 19 2026 09:56:12   <-- must match the build you just uploaded
+build hash : v0.1.1-263-gb600e91-dirty
+robot      : TANK BENCH BOT (the measured one) -- NOT the invented X-drive
+hypothesis : LEFT 15/16/17/18   RIGHT 11/12/13/14   IMU 4   no GPS, no pods
+!! SIDE LABELS ARE A HYPOTHESIS, NOT A CONFIGURATION (R3a-PROGRESS S10.3).
+sd logging : ON -> /usd/r3a_log.txt (overwritten each boot)
+
+== SD CARD PROBE (HA-122) ==========================================
+1. usd_is_installed()        : 1
+   >> card IS detected.
+2. fopen(/usd/probe.txt,wb) : OK
+3. fwrite/fflush            : 17 bytes, fflush=0
+   >> CARD IS FULLY WORKING. probe.txt written and flushed.
+
+== STAGE 1  DEVICE CENSUS (raw registry, no adapters) ==========================================
+registry index is ZERO-based; PORT below is the physical 1-21 number.
+PORT  idx  type            our hypothesis
+   1    0  MOTOR             (code 2)
+   2    1  MOTOR             (code 2)
+   3    2  MOTOR             (code 2)
+   4    3  IMU             IMU(hyp)  (code 6)
+   5    4  MOTOR             (code 2)
+  10    9  RADIO             (code 8)
+  11   10  MOTOR           RIGHT(hyp)  (code 2)
+  12   11  MOTOR           RIGHT(hyp)  (code 2)
+  13   12  MOTOR           RIGHT(hyp)  (code 2)
+  14   13  MOTOR           RIGHT(hyp)  (code 2)
+  15   14  MOTOR           LEFT(hyp)  (code 2)
+  16   15  MOTOR           LEFT(hyp)  (code 2)
+  17   16  MOTOR           LEFT(hyp)  (code 2)
+  18   17  MOTOR           LEFT(hyp)  (code 2)
+
+motors found: 12   (hypothesis expects 8: 4 left + 4 right)
+EMPTY PORTS ARE OMITTED. A hypothesised port missing here is a FINDING.
+Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is
+what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).
+
+>>>>>> 2  IMU + ROTATE
+DO NOW  : turn the WHOLE ROBOT counter-clockwise (to its left)
+DONE IF : the big number ROSE while you turned. If it fell, say so
+
+
+== STAGE 2  IMU (HA-02/03/04/05/23/108/109/110) ==========================================
+re-zeroing the IMU: every run of this test starts from a fresh zero.
+calibrating (HA-23 says ~2 s) -- timing it:
+  isReady() after 2020 ms  (HA-23 claims ~2000 ms)
+
+RAW PROS                     |  CANONICAL (shulib)
+  rotation=   -0.000 deg        |  heading=   0.0000 rad =    0.000 deg
+  rotation=   -0.022 deg        |  heading=   0.0004 rad =    0.022 deg
+  rotation=   -0.058 deg        |  heading=   0.0010 rad =    0.058 deg
+  rotation=   -0.052 deg        |  heading=   0.0009 rad =    0.052 deg
+  rotation=   -0.055 deg        |  heading=   0.0010 rad =    0.055 deg
+  heading(raw)= 359.949 deg      |  pitch=  0.063  roll= -0.030 (canonical rad)
+  screened reads (held last-good): 0
+
+** NOW ROTATE THE ROBOT COUNTER-CLOCKWISE (to its left, seen from above). **
+   Canonical heading MUST INCREASE. If it decreases, HA-02's sign is wrong
+   and every turn this library ever commands would be mirrored.
+   raw=  -82.622 deg   canonical=   1.4420 rad =   82.622 deg
+   raw=  -82.622 deg   canonical=   1.4420 rad =   82.622 deg
+   raw=  -82.609 deg   canonical=   1.4418 rad =   82.609 deg
+   raw=  -82.615 deg   canonical=   1.4419 rad =   82.615 deg
+   raw=  -82.623 deg   canonical=   1.4420 rad =   82.623 deg
+   raw=  -82.623 deg   canonical=   1.4420 rad =   82.623 deg
+   raw=  -82.615 deg   canonical=   1.4419 rad =   82.615 deg
+   raw=  -82.621 deg   canonical=   1.4420 rad =   82.621 deg
+   raw=  -82.617 deg   canonical=   1.4419 rad =   82.617 deg
+   raw=  -82.618 deg   canonical=   1.4420 rad =   82.618 deg
+   raw=  -82.623 deg   canonical=   1.4420 rad =   82.623 deg
+   raw=  -82.614 deg   canonical=   1.4419 rad =   82.614 deg
+   raw=  -82.620 deg   canonical=   1.4420 rad =   82.620 deg
+   raw=  -82.624 deg   canonical=   1.4421 rad =   82.624 deg
+   raw=  -82.612 deg   canonical=   1.4418 rad =   82.612 deg
+   raw=  -82.616 deg   canonical=   1.4419 rad =   82.616 deg
+   raw=  -82.613 deg   canonical=   1.4419 rad =   82.613 deg
+   raw=  -82.593 deg   canonical=   1.4415 rad =   82.593 deg
+   raw=  -82.228 deg   canonical=   1.4351 rad =   82.228 deg
+   raw=  -81.416 deg   canonical=   1.4210 rad =   81.416 deg
+   raw=  -80.194 deg   canonical=   1.3996 rad =   80.194 deg
+   raw=  -79.527 deg   canonical=   1.3880 rad =   79.527 deg
+   raw=  -78.260 deg   canonical=   1.3659 rad =   78.260 deg
+   raw=  -77.385 deg   canonical=   1.3506 rad =   77.385 deg
+   raw=  -73.973 deg   canonical=   1.2911 rad =   73.973 deg
+   raw=  -69.247 deg   canonical=   1.2086 rad =   69.247 deg
+   raw=  -64.397 deg   canonical=   1.1239 rad =   64.397 deg
+   raw=  -59.808 deg   canonical=   1.0439 rad =   59.808 deg
+   raw=  -56.392 deg   canonical=   0.9842 rad =   56.392 deg
+   raw=  -53.428 deg   canonical=   0.9325 rad =   53.428 deg
+   raw=  -50.481 deg   canonical=   0.8811 rad =   50.481 deg
+   raw=  -50.454 deg   canonical=   0.8806 rad =   50.454 deg
+   raw=  -50.372 deg   canonical=   0.8792 rad =   50.372 deg
+   raw=  -50.516 deg   canonical=   0.8817 rad =   50.516 deg
+   raw=  -50.589 deg   canonical=   0.8829 rad =   50.589 deg
+   raw=  -50.581 deg   canonical=   0.8828 rad =   50.581 deg
+   raw=  -50.658 deg   canonical=   0.8841 rad =   50.658 deg
+   raw=  -50.753 deg   canonical=   0.8858 rad =   50.753 deg
+   raw=  -50.730 deg   canonical=   0.8854 rad =   50.730 deg
+   raw=  -50.775 deg   canonical=   0.8862 rad =   50.775 deg
+   raw=  -50.522 deg   canonical=   0.8818 rad =   50.522 deg
+   raw=  -49.461 deg   canonical=   0.8633 rad =   49.461 deg
+   raw=  -45.814 deg   canonical=   0.7996 rad =   45.814 deg
+   raw=  -42.110 deg   canonical=   0.7350 rad =   42.110 deg
+   raw=  -36.538 deg   canonical=   0.6377 rad =   36.538 deg
+   raw=  -27.271 deg   canonical=   0.4760 rad =   27.271 deg
+   raw=  -21.340 deg   canonical=   0.3724 rad =   21.340 deg
+   raw=  -15.118 deg   canonical=   0.2639 rad =   15.118 deg
+   raw=   -8.684 deg   canonical=   0.1516 rad =    8.684 deg
+   raw=   -4.596 deg   canonical=   0.0802 rad =    4.596 deg
+   raw=   -4.116 deg   canonical=   0.0718 rad =    4.116 deg
+   raw=   -1.238 deg   canonical=   0.0216 rad =    1.238 deg
+   raw=   -1.289 deg   canonical=   0.0225 rad =    1.289 deg
+   raw=   -1.331 deg   canonical=   0.0232 rad =    1.331 deg
+   raw=   -1.303 deg   canonical=   0.0227 rad =    1.303 deg
+   raw=   -0.967 deg   canonical=   0.0169 rad =    0.967 deg
+   raw=    1.349 deg   canonical=  -0.0236 rad =   -1.349 deg
+   raw=    2.096 deg   canonical=  -0.0366 rad =   -2.096 deg
+   raw=    1.896 deg   canonical=  -0.0331 rad =   -1.896 deg
+   raw=    1.841 deg   canonical=  -0.0321 rad =   -1.841 deg
+   raw=    1.854 deg   canonical=  -0.0324 rad =   -1.854 deg
+   raw=    1.853 deg   canonical=  -0.0323 rad =   -1.853 deg
+   raw=    1.857 deg   canonical=  -0.0324 rad =   -1.857 deg
+   raw=    1.853 deg   canonical=  -0.0323 rad =   -1.853 deg
+   raw=    1.904 deg   canonical=  -0.0332 rad =   -1.904 deg
+   raw=    1.905 deg   canonical=  -0.0333 rad =   -1.905 deg
+   raw=    1.908 deg   canonical=  -0.0333 rad =   -1.908 deg
+   raw=    1.902 deg   canonical=  -0.0332 rad =   -1.902 deg
+   raw=    1.905 deg   canonical=  -0.0333 rad =   -1.905 deg
+   raw=    1.908 deg   canonical=  -0.0333 rad =   -1.908 deg
+   raw=    2.009 deg   canonical=  -0.0351 rad =   -2.009 deg
+   raw=    3.535 deg   canonical=  -0.0617 rad =   -3.535 deg
+   raw=    8.978 deg   canonical=  -0.1567 rad =   -8.978 deg
+   raw=   14.545 deg   canonical=  -0.2539 rad =  -14.545 deg
+   raw=   18.200 deg   canonical=  -0.3176 rad =  -18.200 deg
+   raw=   22.222 deg   canonical=  -0.3879 rad =  -22.222 deg
+   raw=   25.713 deg   canonical=  -0.4488 rad =  -25.713 deg
+   raw=   31.023 deg   canonical=  -0.5415 rad =  -31.023 deg
+   raw=   38.915 deg   canonical=  -0.6792 rad =  -38.915 deg
+   raw=   41.611 deg   canonical=  -0.7262 rad =  -41.611 deg
+   raw=   44.334 deg   canonical=  -0.7738 rad =  -44.334 deg
+   raw=   45.782 deg   canonical=  -0.7990 rad =  -45.782 deg
+   raw=   45.475 deg   canonical=  -0.7937 rad =  -45.475 deg
+   raw=   45.476 deg   canonical=  -0.7937 rad =  -45.476 deg
+   raw=   45.445 deg   canonical=  -0.7932 rad =  -45.445 deg
+   raw=   45.345 deg   canonical=  -0.7914 rad =  -45.345 deg
+   raw=   45.770 deg   canonical=  -0.7988 rad =  -45.770 deg
+   raw=   45.947 deg   canonical=  -0.8019 rad =  -45.947 deg
+   raw=   47.520 deg   canonical=  -0.8294 rad =  -47.520 deg
+   raw=   52.084 deg   canonical=  -0.9090 rad =  -52.084 deg
+   raw=   57.774 deg   canonical=  -1.0084 rad =  -57.774 deg
+   raw=   61.993 deg   canonical=  -1.0820 rad =  -61.993 deg
+   raw=   64.382 deg   canonical=  -1.1237 rad =  -64.382 deg
+   raw=   67.032 deg   canonical=  -1.1699 rad =  -67.032 deg
+   raw=   69.985 deg   canonical=  -1.2215 rad =  -69.985 deg
+   raw=   73.273 deg   canonical=  -1.2789 rad =  -73.273 deg
+   raw=   77.576 deg   canonical=  -1.3540 rad =  -77.576 deg
+   raw=   85.386 deg   canonical=  -1.4903 rad =  -85.386 deg
+   raw=   88.321 deg   canonical=  -1.5415 rad =  -88.321 deg
+   raw=   88.046 deg   canonical=  -1.5367 rad =  -88.046 deg
+VERDICT INPUT: heading moved -170.66 deg over the window. CCW must be POSITIVE.
+
+>>>>>> 3  MOTOR WATCH (live)
+DO NOW  : push the robot forward, OR spin one wheel - it records itself
+DONE IF : the table showed UP/DOWN per port and you touched to save it
+
+
+== MOTOR WATCH (live) ==========================================
+Baseline taken. Now do ONE of these:
+  * PUSH THE WHOLE ROBOT FORWARD  -> every port moves; the SIGNS
+    are the answer to 'which way is positive'.
+  * SPIN ONE WHEEL (any direction) -> only that port moves; that
+    is the port->wheel map.
+Watch the panel. TOUCH when you are done and it records the table.
+
+RECORDED -- net movement per port since baseline:
+side port      delta deg   verdict
+  L  15         321   UP
+  L  16        -257   DOWN
+  L  17         319   UP
+  L  18        -319   DOWN
+  R  11         315   UP
+  R  12        -314   DOWN
+  R  13         236   UP
+  R  14        -314   DOWN
+
+SEVERAL moved -> this was a whole-robot push. The UP/DOWN
+column IS the sign convention, relative to the front you chose.
+Ports disagreeing with their side-mates are wired reversed.
+This table is in /usd/r3a_log.txt. Re-run per wheel to build the map.
+
+>>>>>> 4  BATT/CTRL
+DO NOW  : pair a controller to the brain if it says NOT CONNECTED
+DONE IF : controller reads CONNECTED (it unblocks 4 register entries)
+
+
+== STAGE 4  BATTERY / CONTROLLER / SD (HA-57/103/104/107/122) ==========================================
+battery | RAW 13023 mV  85.0% | CANON 13.023 V
+controller master: NOT CONNECTED
+  ** PAIR THE CONTROLLER. ** master=0 blocked HA-57/103/104/107 on BOTH
+  previous bench sessions, and it also enables wireless upload + terminal.
+sd card: usd_is_installed()=1  -> PRESENT (HA-122 first half CONFIRMED)
+  text log file open: YES (/usd/r3a_log.txt)
+
+>>>>>> 5  SD CARD PROBE
+DO NOW  : nothing - unless it fails, then reformat the card FAT32
+DONE IF : all three steps pass and the header chip reads PASS
+
+
+== SD CARD PROBE (HA-122) ==========================================
+1. usd_is_installed()        : 1
+   >> card IS detected.
+2. fopen(/usd/probe.txt,wb) : OK
+3. fwrite/fflush            : 17 bytes, fflush=0
+   >> CARD IS FULLY WORKING. probe.txt written and flushed.
+
+>>>>>> 1  DEVICE CENSUS
+DO NOW  : nothing - just read it
+DONE IF : you have noted every port and what is in it
+
+
+== STAGE 1  DEVICE CENSUS (raw registry, no adapters) ==========================================
+registry index is ZERO-based; PORT below is the physical 1-21 number.
+PORT  idx  type            our hypothesis
+   1    0  MOTOR             (code 2)
+   2    1  MOTOR             (code 2)
+   3    2  MOTOR             (code 2)
+   4    3  IMU             IMU(hyp)  (code 6)
+   5    4  MOTOR             (code 2)
+  10    9  RADIO             (code 8)
+  11   10  MOTOR           RIGHT(hyp)  (code 2)
+  12   11  MOTOR           RIGHT(hyp)  (code 2)
+  13   12  MOTOR           RIGHT(hyp)  (code 2)
+  14   13  MOTOR           RIGHT(hyp)  (code 2)
+  15   14  MOTOR           LEFT(hyp)  (code 2)
+  16   15  MOTOR           LEFT(hyp)  (code 2)
+  17   16  MOTOR           LEFT(hyp)  (code 2)
+  18   17  MOTOR           LEFT(hyp)  (code 2)
+
+motors found: 12   (hypothesis expects 8: 4 left + 4 right)
+EMPTY PORTS ARE OMITTED. A hypothesised port missing here is a FINDING.
+Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is
+what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).
+
+>>>>>> 9  SCREEN RULER
+DO NOW  : read the four numbered questions off the panel and report them
+DONE IF : you have answered all four - they fix the layout constants
+
+SCREEN RULER drawn. READ THESE OFF THE PANEL and report them:
+  claimed usable area : 480x240 (from liblvgl/lv_conf.h)
+  row pitch in use    : 13 px
+  truncation width    : 54 chars
+  1. is the WHOLE yellow frame visible, all four edges?
+  2. last readable digit on each of rows S / M / L?
+  3. do the grey 'row N' lines sit evenly, without touching?
+  4. highest green tick number still on screen?
+
+>>>>>> 8  MOTORS (static)
+DO NOW  : nothing - a one-shot snapshot. Use test 3 to capture movement
+DONE IF : you have seen each motor's raw and canonical position
+
+
+== STAGE 3  DRIVE MOTORS (HA-14/15/17/111) ==========================================
+CARTRIDGE is READ FROM EACH DEVICE -- a measurement, not our guess.
+HA-15's invented stand-in was GREEN; whatever prints below is what is
+actually fitted. Nothing here writes to a motor: this build never
+constructs the adapter that would.
+
+-- HYPOTHESISED LEFT --
+  p15 GRN 200 raw=   500.0d canon=  8.727r 30.0C   27mA
+  p16 GRN 200 raw=  -340.0d canon= -5.934r 30.0C    0mA
+  p17 GRN 200 raw=   499.0d canon=  8.709r 30.0C    0mA
+  p18 GRN 200 raw=  -503.0d canon= -8.779r 30.0C    0mA
+-- HYPOTHESISED RIGHT --
+  p11 GRN 200 raw=   418.0d canon=  7.295r 30.0C    0mA
+  p12 GRN 200 raw=  -423.0d canon= -7.383r 30.0C    0mA
+  p13 GRN 200 raw=   351.0d canon=  6.126r 30.0C    0mA
+  p14 GRN 200 raw=  -426.0d canon= -7.435r 30.0C   30mA
+
+TWO SEPARATE QUESTIONS. Do them in this order -- 'spin a wheel
+forward' is AMBIGUOUS on its own (forward for the wheel, or for
+the robot? seen from which side?), and a wrong reading here
+mirrors every turn the library will ever command.
+
+STEP 1 - WHICH WAY IS POSITIVE
+  a. Decide which end of the robot is its FRONT, and PHOTOGRAPH
+     it. The library's frame is +X forward, so this choice is
+     part of the measurement -- not an obvious fact.
+  b. Note every port's position above, then PUSH THE WHOLE ROBOT
+     FORWARD a foot or so, along the floor, front end leading.
+  c. Re-run this test. Every drive port moved. For EACH one write
+     down whether it went UP or DOWN.
+  Pushing the ROBOT removes the ambiguity: there is only one
+  forward for a robot, and no left/right or near/far side to it.
+
+STEP 2 - WHICH PORT IS WHICH WHEEL
+  a. Lift the robot so the wheels are off the ground.
+  b. Spin ONE wheel. Any direction -- it does not matter here.
+  c. Re-run. Exactly one port's number changed: that port drives
+     that wheel. Repeat per wheel.
+
+No motor is ever powered. Both steps are safe with the robot on a
+bench, and re-running this test is free.
+
+>>>>>> 4  BATT/CTRL
+DO NOW  : pair a controller to the brain if it says NOT CONNECTED
+DONE IF : controller reads CONNECTED (it unblocks 4 register entries)
+
+
+== STAGE 4  BATTERY / CONTROLLER / SD (HA-57/103/104/107/122) ==========================================
+battery | RAW 13019 mV  84.0% | CANON 13.019 V
+controller master: NOT CONNECTED
+  ** PAIR THE CONTROLLER. ** master=0 blocked HA-57/103/104/107 on BOTH
+  previous bench sessions, and it also enables wireless upload + terminal.
+sd card: usd_is_installed()=1  -> PRESENT (HA-122 first half CONFIRMED)
+  text log file open: YES (/usd/r3a_log.txt)
+
+>>>>>> 2  IMU + ROTATE
+DO NOW  : turn the WHOLE ROBOT counter-clockwise (to its left)
+DONE IF : the big number ROSE while you turned. If it fell, say so
+
+
+== STAGE 2  IMU (HA-02/03/04/05/23/108/109/110) ==========================================
+re-zeroing the IMU: every run of this test starts from a fresh zero.
+calibrating (HA-23 says ~2 s) -- timing it:
+  isReady() after 2020 ms  (HA-23 claims ~2000 ms)
+
+RAW PROS                     |  CANONICAL (shulib)
+  rotation=   -0.000 deg        |  heading=   0.0000 rad =    0.000 deg
+  rotation=   -0.021 deg        |  heading=   0.0004 rad =    0.021 deg
+  rotation=   -0.059 deg        |  heading=   0.0010 rad =    0.059 deg
+  rotation=   -0.055 deg        |  heading=   0.0010 rad =    0.055 deg
+  rotation=   -0.052 deg        |  heading=   0.0009 rad =    0.052 deg
+  heading(raw)= 359.939 deg      |  pitch=  0.066  roll= -0.032 (canonical rad)
+  screened reads (held last-good): 0
+
+** NOW ROTATE THE ROBOT COUNTER-CLOCKWISE (to its left, seen from above). **
+   Canonical heading MUST INCREASE. If it decreases, HA-02's sign is wrong
+   and every turn this library ever commands would be mirrored.
+   raw=   -0.073 deg   canonical=   0.0013 rad =    0.073 deg
+   raw=   -0.071 deg   canonical=   0.0012 rad =    0.071 deg
+   raw=   -0.074 deg   canonical=   0.0013 rad =    0.074 deg
+   raw=   -0.068 deg   canonical=   0.0012 rad =    0.068 deg
+   raw=   -0.018 deg   canonical=   0.0003 rad =    0.018 deg
+   raw=   -0.130 deg   canonical=   0.0023 rad =    0.130 deg
+   raw=   -0.450 deg   canonical=   0.0079 rad =    0.450 deg
+   raw=   -3.527 deg   canonical=   0.0616 rad =    3.527 deg
+   raw=   -8.045 deg   canonical=   0.1404 rad =    8.045 deg
+   raw=  -14.182 deg   canonical=   0.2475 rad =   14.182 deg
+   raw=  -21.512 deg   canonical=   0.3755 rad =   21.512 deg
+   raw=  -30.495 deg   canonical=   0.5322 rad =   30.495 deg
+   raw=  -37.992 deg   canonical=   0.6631 rad =   37.992 deg
+   raw=  -43.769 deg   canonical=   0.7639 rad =   43.769 deg
+   raw=  -47.751 deg   canonical=   0.8334 rad =   47.751 deg
+   raw=  -50.023 deg   canonical=   0.8731 rad =   50.023 deg
+   raw=  -52.993 deg   canonical=   0.9249 rad =   52.993 deg
+   raw=  -57.469 deg   canonical=   1.0030 rad =   57.469 deg
+   raw=  -62.133 deg   canonical=   1.0844 rad =   62.133 deg
+   raw=  -67.046 deg   canonical=   1.1702 rad =   67.046 deg
+   raw=  -71.587 deg   canonical=   1.2494 rad =   71.587 deg
+   raw=  -78.695 deg   canonical=   1.3735 rad =   78.695 deg
+   raw=  -84.377 deg   canonical=   1.4726 rad =   84.377 deg
+   raw=  -87.488 deg   canonical=   1.5270 rad =   87.488 deg
+   raw=  -87.374 deg   canonical=   1.5250 rad =   87.374 deg
+   raw=  -87.279 deg   canonical=   1.5233 rad =   87.279 deg
+   raw=  -87.259 deg   canonical=   1.5230 rad =   87.259 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.253 deg   canonical=   1.5228 rad =   87.253 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.247 deg   canonical=   1.5227 rad =   87.247 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.254 deg   canonical=   1.5229 rad =   87.254 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.251 deg   canonical=   1.5228 rad =   87.251 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.253 deg   canonical=   1.5229 rad =   87.253 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.251 deg   canonical=   1.5228 rad =   87.251 deg
+   raw=  -87.251 deg   canonical=   1.5228 rad =   87.251 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.251 deg   canonical=   1.5228 rad =   87.251 deg
+   raw=  -87.243 deg   canonical=   1.5227 rad =   87.243 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.253 deg   canonical=   1.5228 rad =   87.253 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.244 deg   canonical=   1.5227 rad =   87.244 deg
+   raw=  -87.243 deg   canonical=   1.5227 rad =   87.243 deg
+   raw=  -87.243 deg   canonical=   1.5227 rad =   87.243 deg
+   raw=  -87.244 deg   canonical=   1.5227 rad =   87.244 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.252 deg   canonical=   1.5228 rad =   87.252 deg
+   raw=  -87.251 deg   canonical=   1.5228 rad =   87.251 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.245 deg   canonical=   1.5227 rad =   87.245 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.247 deg   canonical=   1.5227 rad =   87.247 deg
+   raw=  -87.247 deg   canonical=   1.5227 rad =   87.247 deg
+   raw=  -87.248 deg   canonical=   1.5228 rad =   87.248 deg
+   raw=  -87.246 deg   canonical=   1.5227 rad =   87.246 deg
+   raw=  -87.247 deg   canonical=   1.5228 rad =   87.247 deg
+   raw=  -87.238 deg   canonical=   1.5226 rad =   87.238 deg
+   raw=  -87.249 deg   canonical=   1.5228 rad =   87.249 deg
+   raw=  -87.250 deg   canonical=   1.5228 rad =   87.250 deg
+   raw=  -87.239 deg   canonical=   1.5226 rad =   87.239 deg
+   raw=  -87.244 deg   canonical=   1.5227 rad =   87.244 deg
+   raw=  -87.241 deg   canonical=   1.5226 rad =   87.241 deg
+   raw=  -87.242 deg   canonical=   1.5227 rad =   87.242 deg
+   raw=  -87.233 deg   canonical=   1.5225 rad =   87.233 deg
+   raw=  -87.242 deg   canonical=   1.5227 rad =   87.242 deg
+   raw=  -87.239 deg   canonical=   1.5226 rad =   87.239 deg
+   raw=  -87.235 deg   canonical=   1.5225 rad =   87.235 deg
+   raw=  -87.233 deg   canonical=   1.5225 rad =   87.233 deg
+   raw=  -87.237 deg   canonical=   1.5226 rad =   87.237 deg
+   raw=  -87.232 deg   canonical=   1.5225 rad =   87.232 deg
+   raw=  -87.239 deg   canonical=   1.5226 rad =   87.239 deg
+   raw=  -87.243 deg   canonical=   1.5227 rad =   87.243 deg
+   raw=  -87.232 deg   canonical=   1.5225 rad =   87.232 deg
+   raw=  -87.232 deg   canonical=   1.5225 rad =   87.232 deg
+   raw=  -87.223 deg   canonical=   1.5223 rad =   87.223 deg
+   raw=  -87.241 deg   canonical=   1.5226 rad =   87.241 deg
+VERDICT INPUT: heading moved +87.14 deg over the window. CCW must be POSITIVE.

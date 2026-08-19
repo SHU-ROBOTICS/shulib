@@ -569,10 +569,60 @@ void reportImu(bool present) {
                   pros::c::imu_get_rotation(kImuPort), imu.heading().radians(), deg);
             pros::delay(200);
         }
+        const double moved = imu.heading().degrees() - startDeg;
+
+        // ── ASK WHICH WAY THEY ACTUALLY TURNED. ────────────────────────────────
+        // The first version asked for a CCW turn and reported the delta, which
+        // silently ASSUMED the operator turned the direction requested. Two runs on
+        // 2026-08-19 moved -170.66 and +87.14 -- opposite directions, both valid
+        // readings, and NOTHING in the log said which way the robot was actually
+        // rotated. The verdict was therefore unusable from either run. An operator
+        // who does not know CCW from CW (or simply spins it back) is not a mistake
+        // to design against; it is the normal case. So record the action instead of
+        // assuming it.
+        pros::c::screen_set_eraser(kColBg);
+        pros::c::screen_erase();
+        pros::c::screen_set_pen(kColText);
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 8, "WHICH WAY DID YOU TURN IT?");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 32, "looking DOWN at the robot from above");
+        pros::c::screen_set_pen(kColBar);
+        pros::c::screen_fill_rect(6, 60, 234, 150);
+        pros::c::screen_fill_rect(246, 60, 474, 150);
+        pros::c::screen_set_pen(kColText);
+        pros::c::screen_set_eraser(kColBar);
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 20, 82, "LEFT / CCW");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 20, 112, "anti-clockwise");
+        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 262, 82, "RIGHT / CW");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 262, 112, "clockwise");
+        pros::c::screen_set_eraser(kColBg);
+        pros::c::screen_set_pen(kColDim);
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 170, "if you turned BOTH ways, or are not");
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 184, "sure, re-run the test.");
+
+        bool turnedCcw = true;
+        std::int32_t seen = pros::c::screen_touch_status().release_count;
+        for (;;) {
+            const pros::screen_touch_status_s_t t = pros::c::screen_touch_status();
+            if (t.release_count != seen && t.y >= 60 && t.y <= 150) {
+                turnedCcw = (t.x < 240);
+                break;
+            }
+            pros::delay(20);
+        }
+
         g_screenActive = true;
         screenClear();
-        emitf("VERDICT INPUT: heading moved %+.2f deg over the window. CCW must be POSITIVE.",
-              imu.heading().degrees() - startDeg);
+        emitf("heading moved %+.2f deg; operator says they turned %s", moved,
+              turnedCcw ? "LEFT / CCW" : "RIGHT / CW");
+        // Canonical is CCW-positive by F1. So a CCW turn must raise it.
+        const bool agrees = turnedCcw ? (moved > 0.0) : (moved < 0.0);
+        if (moved > -5.0 && moved < 5.0) {
+            emitS(Sev::Warn, "barely moved -- turn it further and re-run.");
+        } else if (agrees) {
+            emitS(Sev::Good, "HA-02 CONFIRMED: canonical heading is CCW-POSITIVE.");
+        } else {
+            emitS(Sev::Bad, "HA-02 WRONG: the sign is INVERTED. Every turn would mirror.");
+        }
     } catch (const PreconditionError& e) {
         // The rotate test suspends the scrolling log; restore it or this report
         // would land on serial and the SD card but never on the panel the

@@ -1545,3 +1545,70 @@ each side was turned by hand.)*
 and 2026-08-19.** It is the cheapest item on the worksheet, it unblocks four register entries
 including the 15-vs-19 LCD column conflict where two documents disagree and neither is a
 measurement, and it would end the USB-dropout cycle by enabling wireless upload and terminal.
+
+---
+
+## Phase 18 — the SD log read back. Real measurements, and my IMU test cannot answer its own question.
+
+Card pulled and read on the laptop: `probe.txt` is exactly the 17 bytes written, and
+`r3a_log.txt` is **443 lines covering nine test runs** — including three the serial capture missed
+entirely, because the terminal kept dropping. **The card caught what the wire did not**, which is
+the whole argument for the blackbox seam. Archived verbatim at
+[`evidence/r3a-session-2026-08-19.log`](../evidence/r3a-session-2026-08-19.log).
+
+### 18.1 CONFIRMED — `HA-23`, IMU calibration time
+
+`isReady() after 2020 ms`, on **both** runs, against a claim of "≈ 2 s". Settled.
+
+### 18.2 CONFIRMED BY MEASUREMENT — drive motors alternate sign, and it is now proven
+
+The whole-robot push (`MOTOR WATCH`) recorded:
+
+```
+  L 15  +321 UP     L 16  -257 DOWN    L 17  +319 UP     L 18  -319 DOWN
+  R 11  +315 UP     R 12  -314 DOWN    R 13  +236 UP     R 14  -314 DOWN
+```
+
+**Pushing a tank drive forward rolls every wheel the same physical way**, so consistently-oriented
+encoders would all share one sign. They alternate **+ − + −** on both sides. The static snapshot
+suggested this; the push **proves** it.
+
+**R3b piece 1 therefore needs a PER-MOTOR sign, not a per-side one.** A group fanning one voltage to
+four alternating-polarity motors drives two forward and two backward — and the §14.2 requirement for
+unequal counts is still withdrawn, but this one replaces it.
+
+**Open, not concluded:** `p16` (−257) and `p13` (+236) are ~20 % short of their side-mates (~319,
+~315). All eight deltas are sampled in one pass, so it is not timing. Slip, a different local
+gearing, or a mechanical difference — worth an explanation before those numbers are trusted.
+
+### 18.3 MY IMU TEST CANNOT ANSWER ITS OWN QUESTION — fixed
+
+Two runs, both clean, both useless:
+
+| Run | canonical delta |
+|---|---|
+| 1 | **−170.66°** |
+| 2 | **+87.14°** |
+
+The arithmetic is right in both — run 1's canonical trace falls smoothly `+82.6 → +50.5 → −1.9 →
+−88.0` with no wrap. **The two runs simply turned the robot in opposite directions.**
+
+**And nothing in the log says which way it was actually turned**, because the test *asked* for CCW
+and then **assumed it got CCW**. That assumption is the defect: an operator who does not know CCW
+from CW, or who simply spins the robot back between runs, is the **normal case**, not a mistake to
+design against. So `HA-02` remains **OPEN** — and the old test could never have closed it except by
+luck.
+
+Fixed: after the rotate window the panel now shows two large targets — **LEFT / CCW** and
+**RIGHT / CW** — and the verdict is computed from **what the operator declares they did**, printing
+`HA-02 CONFIRMED: CCW-POSITIVE` or `HA-02 WRONG: the sign is INVERTED`. A near-zero move asks for a
+bigger turn instead of guessing.
+
+*(The raw↔canonical relationship IS confirmed regardless: canonical is exactly `−raw`
+(`−82.622 ↔ +82.622`), so the adapter's negation works. What is unproven is whether the underlying
+as-mounted convention is the one HA-02 claims.)*
+
+### 18.4 Screen ruler ran but is unanswered
+
+Test 9 drew and printed its four questions; **they need a human looking at the panel.** Font metrics
+stay unmeasured, and every layout constant stays an estimate until someone answers them.
