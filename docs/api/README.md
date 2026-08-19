@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 1,632 of them across 115 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 1,645 of them across 118 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -150,6 +150,9 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 | Page | Header | What it is |
 |---|---|---|
+| [Absent GPS](absent_gps.md) | [`hal/absent_gps.hpp`](../../include/shulib/hal/absent_gps.hpp) | AbsentGps — the explicit statement that THIS ROBOT HAS NO GPS, as an IGps. |
+| [Absent tag source](absent_tag_source.md) | [`hal/absent_tag_source.hpp`](../../include/shulib/hal/absent_tag_source.hpp) | AbsentTagSource — the explicit statement that THIS ROBOT HAS NO APRILTAG SOURCE (no AI Vision sensor, no coprocessor), as an ITagSource. |
+| [Absent vision](absent_vision.md) | [`hal/absent_vision.hpp`](../../include/shulib/hal/absent_vision.hpp) | AbsentVision — the explicit statement that THIS ROBOT HAS NO OBJECT/COLOR DETECTION SOURCE, as an IVision. |
 | [Battery](battery.md) | [`hal/battery.hpp`](../../include/shulib/hal/battery.hpp) | IBattery — the V5 battery (pros::battery) behind the HAL. |
 | [Block sink](block_sink.md) | [`hal/block_sink.hpp`](../../include/shulib/hal/block_sink.hpp) | IBlockSink — where BINARY BLOCKS physically go (an SD-card file on the brain, a captured buffer in a test). |
 | [Char sink](char_sink.md) | [`hal/char_sink.hpp`](../../include/shulib/hal/char_sink.hpp) | ICharSink — where formatted diagnostic BYTES physically go (a terminal, a captured string in a test, later a serial port). |
@@ -217,7 +220,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 1,632 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 1,645 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

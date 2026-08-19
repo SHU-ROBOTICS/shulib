@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,632 of them, across 115 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,645 of them, across 118 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -15,6 +15,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `AbsentGps` | class | [absent_gps.md](absent_gps.md#class-absentgps) |
+| `AbsentGps::hasFix` | function | [absent_gps.md](absent_gps.md#absentgps-hasfix) |
+| `AbsentGps::kNoInformationRmsInches` | field | [absent_gps.md](absent_gps.md#absentgps-knoinformationrmsinches) |
+| `AbsentGps::pose` | function | [absent_gps.md](absent_gps.md#absentgps-pose) |
+| `AbsentGps::rmsError` | function | [absent_gps.md](absent_gps.md#absentgps-rmserror) |
+| `AbsentTagSource` | class | [absent_tag_source.md](absent_tag_source.md#class-absenttagsource) |
+| `AbsentTagSource::tags` | function | [absent_tag_source.md](absent_tag_source.md#absenttagsource-tags) |
+| `AbsentVision` | class | [absent_vision.md](absent_vision.md#class-absentvision) |
+| `AbsentVision::objects` | function | [absent_vision.md](absent_vision.md#absentvision-objects) |
 | `Acceleration` | type alias | [quantity.md](quantity.md#acceleration) |
 | `ActuateAndConfirm` | class | [mechanism_op.md](mechanism_op.md#class-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm) |
@@ -892,6 +901,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
 | `kHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kheaderbytes) |
 | `kHeadingErrorMaxDeg` | constant | [accuracy.md](accuracy.md#kheadingerrormaxdeg) |
+| `kInstallTagCorrector` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrector) |
+| `kInstallTagCorrector<AbsentTagSource>` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrectorabsenttagsource) |
+| `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
+| `kInstallVisionPoller<AbsentVision>` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpollerabsentvision) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |

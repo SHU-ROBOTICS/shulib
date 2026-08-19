@@ -228,6 +228,9 @@ nav:
           - Literals: api/literals.md
           - Quantity: api/quantity.md
       - HAL — the hardware seams:
+          - Absent GPS: api/absent_gps.md
+          - Absent tag source: api/absent_tag_source.md
+          - Absent vision: api/absent_vision.md
           - Battery: api/battery.md
           - Block sink: api/block_sink.md
           - Char sink: api/char_sink.md

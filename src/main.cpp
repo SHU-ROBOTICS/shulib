@@ -5,7 +5,8 @@
 // Since R1a every HAL seam below is a REAL hal/pros adapter over a physical V5
 // device: motors, IMU, GPS, battery, rotation sensors, controller, USB serial,
 // controller LCD, real time, and the tick-boundary pacer. The fakes are gone
-// from this file (vision/tags excepted — R2's).
+// from this file ENTIRELY — since R3b even vision/tags, which are now explicit
+// ABSENT devices (hal/absent_*.hpp), not test doubles.
 //
 // WHAT THAT DOES **NOT** MEAN — the governing constraint, unchanged:
 //   * THE LIBRARY HAS STILL NEVER DRIVEN A ROBOT. The adapters are host-tested
@@ -41,8 +42,14 @@
 //     controller at the tick cadence. Deadband/curves/slew are chunk T2's
 //     (HA-112 records the raw mapping as invented).
 //
-// ═══ Still fake, deliberately ═══════════════════════════════════════════════════════
-//   * FakeTagSource / FakeVision — the M3 vision pipeline is R2's (camera).
+// ═══ Absent, deliberately (chunk R3b §6) ════════════════════════════════════════════
+//   * AbsentTagSource / AbsentVision — NO camera is installed on any current robot.
+//     These replaced the FakeTagSource/FakeVision stubs: a test fake in a competition
+//     binary is test scaffolding, and it erases the difference between "this robot has
+//     no such device" and "a test will inject readings here". An absent source is never
+//     polled (§6.5) — no corrector, no vision task, no false "camera alive" record —
+//     and the boot log announces the absence once. R2 (camera) swaps in the real
+//     adapter, visibly, on this exact line.
 
 #include "main.h"
 
@@ -77,9 +84,9 @@
 #include "shulib/diag/health_monitor.hpp"
 #include "shulib/diag/session_info.hpp"
 #include "shulib/diag/term_sink.hpp"
+#include "shulib/hal/absent_tag_source.hpp"
+#include "shulib/hal/absent_vision.hpp"
 #include "shulib/hal/controller.hpp"
-#include "shulib/hal/fake/fake_tag_source.hpp"
-#include "shulib/hal/fake/fake_vision.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/pros/battery.hpp"
 #include "shulib/hal/pros/char_sink.hpp"
@@ -182,8 +189,17 @@ struct Robot {
     shulib::hal::pros::ProsController master{shulib::hal::pros::ControllerId::Master};
     //    (VEX U's partner controller is one more line when T2 wires the second
     //    driver: ProsController partner{ControllerId::Partner};)
-    shulib::hal::fake::FakeTagSource tags{};   // stub until the M3 vision pipeline (R2 camera)
-    shulib::hal::fake::FakeVision vision{};    // stub until the M3 vision pipeline (R2 camera)
+    //    ABSENT, deliberately (R3b §6): no camera is installed on any current robot, and a
+    //    test fake in a competition binary erases "no device" vs "a test injects here". No
+    //    corrector or vision task is wired over these — kInstallTagCorrector<AbsentTagSource>
+    //    is false, so polling one would manufacture a false "camera alive, no tags" record
+    //    (§6.5). The boot log announces the absence once; R2 (camera) swaps in the real
+    //    adapter here. (The BENCH robot also has no GPS — its context wiring, which lands
+    //    with R3b pieces 1–2, spells that as `.gps = &absentGps`. THIS invented X-drive
+    //    graph keeps its ProsGps: HA-111's port map defines it WITH a GPS on port 9, and
+    //    portMapString() below says so.)
+    shulib::hal::AbsentTagSource tags{};
+    shulib::hal::AbsentVision vision{};
 
     // ── diagnostics: REAL on-target — TermSink writes the V5 USB serial via
     //    the promoted ProsCharSink (formerly this file's private StdoutCharSink),
@@ -302,6 +318,13 @@ void initialize() {
     r.telemetry.log(shulib::hal::LogLevel::Warn, "R1A",
                     "HARDWARE-UNVALIDATED: adapters are host-tested against a PROS shim "
                     "only; port map is invented (HA-111); R3 owns first motion");
+
+    // The absent-device announcement (R3b §6.4, T5's no-SD-card precedent): construction
+    // succeeded and the degradation is honest, so the composition root owns saying it out
+    // loud, ONCE — an absent camera otherwise reads exactly like one that never sees a tag.
+    r.telemetry.log(shulib::hal::LogLevel::Info, "R3B",
+                    "absent devices (deliberate): tags=ABSENT vision=ABSENT -- no camera is "
+                    "installed; no corrector or vision task is wired over an absent source");
 
     // One live query THROUGH the facade, so the banner is evidence of a working
     // object graph rather than prose: strafeAuthority() reads Chassis →

@@ -159,7 +159,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > and the mechanism-sensor adapters at R1b (2026-08-14 — see the R1b entry below). All of
 > Phase E, F1, F2, R1a and R1b are committed on `shulib-v2`. **DOCS1** (the full documentation
 > pass) and **DOCS2** (the generated reference over the whole public API — 1,625 public entities
-> across 115 headers, all gated) are both done. **THE RELEASE HAPPENED on 2026-08-15** —
+> across 115 headers at the time; 1,645 across 118 since R3b piece 3, all gated) are both done. **THE RELEASE HAPPENED on 2026-08-15** —
 > `origin/main` is `c778c11`, docs.shurobotics.com publishes everything through DEFECTS1, and
 > the procedure is now `RELEASING.md` + `tools/release.py` rather than folklore. *(This sentence
 > read "what remains before R3 is the release to `main`, and the only question riding with it is
@@ -173,6 +173,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > `RobotContext`"*, and `RobotContext` precondition-requires a `gps`/`tags`/`vision` this robot
 > does not have. Three capability gaps were measured at the seam and are R3b's — see M2's
 > "what R3b must build" block below.**
+>
+> **R3b piece 3 — the absent-device ruling — landed 2026-08-19** (R3b is `[~]`, NOT closed):
+> `AbsentGps`/`AbsentTagSource`/`AbsentVision` live in `hal/` beside `NullSink`, the
+> `RobotContext` preconditions are UNCHANGED (absence is explicit — `.gps = &absentGps` — and
+> omission still throws), an absent source is never polled (the `kInstallTagCorrector` /
+> `kInstallVisionPoller` wiring rule), and `src/main.cpp` ships no `hal/fake/` type. Five of
+> five mutation checks observed red then restored green. **Pieces 1 (multi-motor aggregation)
+> and 2 (`IOdometry` / drive-encoder odometry) remain open, gated on R3a Batch-1 measurements
+> — M1's badge stays with them.**
 > **The auton API exists and is FROZEN at BOTH tiers — F6 (`Chassis`) LOCKED at D2 and F10
 > (`Routine`, the recipe layer) LOCKED at D3, both 2026-08-12, API 2.0**
 > (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
@@ -1157,8 +1166,10 @@ register above, pin-enforced. This milestone does not close until the on-robot c
 - [ ] **Multi-motor-per-side aggregation.** `motion/command_pipeline.hpp:146-152` maps one kinematic
       wheel to exactly one motor, and `motion/motion.hpp:201-203` guards it with `>=` — so a real
       drivetrain with 2–4 motors per side is **accepted**, and the surplus motors are **never given a
-      voltage and never given a brake mode, with no fault raised.** Measured on the bench bot's real
-      7-motor drive with a negative control: 2 commanded at +4.4286 V, 5 silent.
+      voltage and never given a brake mode, with no fault raised.** Measured on the bench bot's
+      then-7-motor drive with a negative control: 2 commanded at +4.4286 V, 5 silent. *(The drive
+      has since been mechanically repaired to 8 motors, 4 per side — the probe is to be re-stated
+      at 8, where the shipped pipeline would leave 6 silent.)*
       `kinematics/tank.hpp:80` delegates this to "the HAL's business"; that facility was never built.
 - [ ] **An odometry path that does not require two dedicated rotation sensors.** The chain
       motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` is hard: `Localizer`
@@ -1167,11 +1178,22 @@ register above, pin-enforced. This milestone does not close until the on-robot c
       adapter exists. **LemLib does drive-encoder odometry and shulib cannot** — a competitive gap
       against the library this project exists to beat. This is also the only honest home for a
       **gear ratio**, a concept the library has nowhere (DEFECTS1 `A29`).
-- [ ] **An absent-device ruling.** `chassis/robot_context.hpp:62-73` precondition-requires
-      `gps`, `tags` and `vision` non-null; most robots have none of the three. `src/main.cpp` already
-      ships `FakeTagSource`/`FakeVision` as stubs — a *test fake* and an *absent-device null object*
-      are different things and only one belongs in a competition binary. **This is what blocks M1's
-      "swapping only `RobotContext`" clause on the bench bot, and why M1's badge slips to R3b.**
+- [x] **An absent-device ruling — DONE at R3b piece 3 (2026-08-19).** The gap as measured:
+      `chassis/robot_context.hpp:62-73` precondition-requires `gps`, `tags` and `vision` non-null;
+      most robots have none of the three, and `src/main.cpp` shipped `FakeTagSource`/`FakeVision`
+      as stubs — a *test fake* and an *absent-device null object* are different things and only one
+      belongs in a competition binary. **This was what blocked M1's "swapping only `RobotContext`"
+      clause on the bench bot.** Delivered: `hal/absent_gps.hpp` / `hal/absent_tag_source.hpp` /
+      `hal/absent_vision.hpp` (beside `NullSink`, NOT in `hal/fake/`), preconditions UNCHANGED
+      (omission still throws; absence is spelled `.gps = &absentGps`), the never-poll wiring rule
+      `kInstallTagCorrector`/`kInstallVisionPoller` (an absent source polled would fabricate the
+      corrector's "camera alive, no tags" liveness record), `src/main.cpp` free of `hal/fake/`
+      with the absence announced once at boot. Evidence: `test/absent_device_test.cpp` (5 cases —
+      incl. a `Localizer`+`GpsCorrector`-over-`AbsentGps` run proven **bit-identical** to no
+      corrector at all) + `test/robot_context_test.cpp` extended (omission-throws for all three,
+      fully-absent context constructs); suite 1157 / 1,538,101; 5/5 mutations red-then-green.
+      **M1's badge still does not flip** — its DoD needs pieces 1–2 and an actual V5 number-match,
+      which remain R3b's open half.
 
 *What this class of miss teaches, recorded because it generalizes: the A4 register inventoried every
 unproven **constant** and none of the unproven **shapes**. Three capability gaps sat in the tree for

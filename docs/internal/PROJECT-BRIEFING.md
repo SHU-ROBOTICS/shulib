@@ -107,10 +107,10 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 - **Next up:** R3a — platform validation on the tank bench bot  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): R3a** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,151 cases / 1,523,871 assertions, 3 skipped — **green**  
+- ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- **Suite:** 1,157 cases / 1,538,101 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 148  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Public headers:** 151  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 

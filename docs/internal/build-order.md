@@ -632,6 +632,13 @@ consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`
 **Next: R3a — platform validation on the tank bench bot** ([brief](chunks/R3a-tank-bench-validation.md),
 live log [R3a-PROGRESS.md](chunks/R3a-PROGRESS.md)). **R3 split into R3a + R3b + R3c on 2026-08-17** —
 the ruling, its reasoning and its rejected alternative are in the brief's §3 and the deviations table.
+**R3b is `[~]` IN FLIGHT, deliberately out of order: its §6 piece — the absent-device ruling, the one
+piece with zero measurement dependencies — landed 2026-08-19** ([brief](chunks/R3b-first-closed-loop.md),
+live log [R3b-PROGRESS.md](chunks/R3b-PROGRESS.md)): `AbsentGps`/`AbsentTagSource`/`AbsentVision` in
+`hal/`, preconditions unchanged, the never-poll wiring rule, `src/main.cpp` free of `hal/fake/`,
+5/5 mutations red-then-green. **R3b's pieces 1 (motor group) and 2 (`IOdometry`) remain gated on
+R3a's Batch 1 exactly as the "not negotiable" paragraph below says — building them before B1
+returns would be validating a guess with a guess.** M1's badge has NOT flipped.
 DOCS1, DOCS2 and DEFECTS1 are all COMPLETE, and **the RELEASE
 HAPPENED on 2026-08-15**: `origin/main` is `c778c11`, its tree byte-identical to
 `origin/release/v2`, and docs.shurobotics.com now publishes everything through DEFECTS1 —
