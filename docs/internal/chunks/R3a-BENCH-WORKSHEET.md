@@ -142,9 +142,16 @@ Program-free port identification, done from the Devices screen:
       → **RIGHT side: ______ (motor gear teeth) : ______ (wheel gear teeth)**
       → **Do the two sides differ? YES / NO**
 
-- [ ] **3.3 Motor cartridge colour** — visible through the motor housing: **RED / GREEN / BLUE**.
-      Check **at least one motor per side**; note it if they are not all the same.
+- [ ] **3.3 Motor cartridge colour — YOU MUST LOOK. Software cannot answer this.**
+      The colour insert is visible through the motor housing: **RED / GREEN / BLUE**.
+      Check **every drive motor**, or at minimum two per side, and note any that differ.
       → LEFT: ________  RIGHT: ________
+
+      > The brain reports a cartridge, but that is a **software setting** a program wrote
+      > (`motor_set_gearing`), not a reading of the hardware — a V5 motor cannot sense its own
+      > cartridge. On 2026-08-19 the brain said GREEN while the build team recalled BLUE.
+      > **Your eyes are the only authority here**, and a mismatch is a real finding: it means
+      > velocity and position are scaled wrong by up to 3x.
 
 - [ ] **3.4 Track width.** Measure **outside face of left wheel → outside face of right wheel**,
       then **subtract one wheel's width**. That is centre-to-centre of the contact patches without

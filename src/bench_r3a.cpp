@@ -627,10 +627,20 @@ void reportMotorGroup(const char* label, const std::int8_t* ports, std::size_t n
 
 void reportMotors(const pros::c::v5_device_e_t* found) {
     rule("STAGE 3  DRIVE MOTORS (HA-14/15/17/111)");
-    emit("CARTRIDGE is READ FROM EACH DEVICE -- a measurement, not our guess.");
-    emit("HA-15's invented stand-in was GREEN; whatever prints below is what is");
-    emit("actually fitted. Nothing here writes to a motor: this build never");
-    emit("constructs the adapter that would.");
+    emitS(Sev::Warn, "THE CARTRIDGE COLUMN IS NOT A MEASUREMENT OF THE HARDWARE.");
+    emit("PROS exposes motor_SET_gearing(), so gearing is a SOFTWARE SETTING and");
+    emit("motor_get_gearing() returns whatever a program last WROTE. A V5 motor");
+    emit("cannot sense which cartridge is physically fitted. This column therefore");
+    emit("says what the brain currently BELIEVES, which is a different fact and may");
+    emit("even be a fact some earlier program invented.");
+    emit("");
+    emit("HA-15 CAN ONLY BE SETTLED BY LOOKING: the cartridge insert is visible");
+    emit("through the motor housing. Read the colour off the motors themselves.");
+    emit("A disagreement between the colour you see and the column below is a");
+    emit("REAL FINDING -- it means the software is scaled wrong for the hardware.");
+    emit("");
+    emit("Nothing here writes to a motor: this build never constructs the adapter");
+    emit("that would (see the header note above reportMotorGroup).");
     emit("");
     reportMotorGroup("HYPOTHESISED LEFT", kLeftPorts, kLeftCount, found);
     reportMotorGroup("HYPOTHESISED RIGHT", kRightPorts, kRightCount, found);

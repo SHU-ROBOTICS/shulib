@@ -1480,3 +1480,68 @@ snapshot survives as test 8 for the raw-vs-canonical print §4.2 asks for.
 Menu is now 9 entries, so the grid moved to 5 rows at 36 px — **re-verified on the host against the
 correct 240 px height** before building: all nine boxes in bounds (last ends y=234), no overlaps,
 every centre hit-tests to its own button.
+
+---
+
+## Phase 17 — first menu-driven session. Real numbers, and one claim retracted.
+
+Build `Aug 19 2026 09:56:12`, hash `v0.1.1-263-gb600e91-dirty`, SD logging ON.
+
+### 17.1 CONFIRMED — the raw→canonical bindings hold on hardware
+
+Two conversions verified against raw device values, which is R3a §4.2's central deliverable:
+
+| Reading | Raw | Canonical | Check |
+|---|---|---|---|
+| Battery | `13023 mV` | `13.023 V` | exact ÷1000 ✅ |
+| Motor position | `500.0 deg` | `8.727 rad` | 500·π/180 = 8.727 ✅ |
+
+**These are the first raw-beside-canonical pairs this project has ever checked on a physical device.**
+The conversion layer is doing what it claims.
+
+### 17.2 RETRACTED — "the cartridge column settles HA-15". It cannot.
+
+The motors test printed **`GRN 200` on all eight** drive motors, against the build team's recollection
+of **BLUE**. It was claimed one commit earlier that reading `motor_get_gearing()` "settles HA-15 by
+measurement". **That is wrong and is withdrawn.**
+
+PROS exposes **`motor_set_gearing()`** (`motors.h:1198`). Gearing is a **software configuration**, and
+`motor_get_gearing()` returns *whatever a program last wrote*. **A V5 motor cannot sense which
+cartridge is physically fitted.** So the column reports what the brain currently BELIEVES — a
+different fact, and possibly one an earlier program invented.
+
+**And this project may be the program that invented it.** Until `d29c660`, this very binary
+constructed the motor adapter with an invented `Green`, and that constructor SETS the gearset on a
+device where HA-98 says the setting persists. No log proves the motors test ran before the fix, so
+contamination is **unproven and unexcludable** — which is precisely trap 1's shape: the instrument
+and the error agreeing.
+
+**HA-15 can only be settled by LOOKING.** The cartridge insert is visible through the housing. Both
+the on-panel text and the worksheet now say so, and both flag a colour-vs-column disagreement as a
+real finding: it means velocity and position are scaled wrong by up to **3×**.
+
+### 17.3 FINDING — drive motors alternate sign within each side
+
+```
+-- LEFT --                        -- RIGHT --
+p15 raw= +500.0d                  p11 raw= +418.0d
+p16 raw= -340.0d                  p12 raw= -423.0d
+p17 raw= +499.0d                  p13 raw= +351.0d
+p18 raw= -503.0d                  p14 raw= -426.0d
+```
+
+Alternating **+ − + −** on *both* sides, with matched magnitudes within each side (≈500 left, ≈420
+right). That is the signature of motors mounted in **opposing orientations** across a gearbox — which
+is ordinary construction, and which means **R3b piece 1 needs a PER-MOTOR sign, not merely a
+per-side one.** A group that fans one voltage to four motors of alternating polarity drives two
+forward and two backward.
+
+*(The differing left/right magnitudes are not evidence of anything yet — nothing constrains how far
+each side was turned by hand.)*
+
+### 17.4 Controller STILL not paired — third session
+
+`master=0` again. **HA-57, HA-103, HA-104 and HA-107 have now been blocked on 2026-08-13, 2026-08-18
+and 2026-08-19.** It is the cheapest item on the worksheet, it unblocks four register entries
+including the 15-vs-19 LCD column conflict where two documents disagree and neither is a
+measurement, and it would end the USB-dropout cycle by enabling wireless upload and terminal.
