@@ -1698,3 +1698,45 @@ as "the turn passed 180°". A sweep past 360° additionally reports itself as ev
 
 **Verified into the BINARY, not just the source** — all six new strings confirmed present in
 `hot.package.elf`. That is the check §16.5 lacked.
+
+### 19.4 "Left 90 then right 145" — it could NOT differentiate. Now it can.
+
+Team lead: *"so how would it record if i turned it left 90 then right 145? could it differentiate?"*
+**No — and the failure was worse than the one it replaced.**
+
+`moved` was a **net displacement**: +90 then −145 nets **−55**. Declare LEFT, and the test would have
+printed **`HA-02 WRONG: the sign is INVERTED`** — a confident false failure on a perfectly good IMU.
+The on-panel *"if you turned BOTH ways, re-run"* note relies on operator discipline, which §18.3
+already established is the exact thing not to design against.
+
+**The path was already being sampled and thrown away.** The rotate loop reads every 200 ms, so it now
+accumulates **CCW travel and CW travel separately** and counts direction reversals, using a 0.1°
+per-sample floor (the 2026-08-19 log put at-rest noise at 0.02–0.06°). The verdict then judges the
+**dominant** direction, and **refuses to judge at all** when the minor direction exceeds 20 % of it:
+
+```
+PATH: turned CCW 90.0 deg total, CW 145.0 deg total, 1 reversal(s)
+NET : -55.00 deg (unwrapped, from cumulative raw)
+MIXED TURN -- you went BOTH ways (90 CCW vs 145 CW).
+  No verdict: a net figure cannot tell 'left 90' from 'left 90
+  then right 145'. Re-run and turn ONE way only.
+```
+
+**Verified on the host before upload**, against a table of cases rather than by inspection:
+
+| Case | Result |
+|---|---|
+| left 90 then right 145, declared either way | **MIXED — no verdict** ✅ |
+| left 90 declared CCW · right 145 declared CW | CONFIRMED ✅ |
+| left 90 declared CW | WRONG ✅ |
+| left 90 with a 5° wobble back | CONFIRMED — small wobble tolerated, not blocked ✅ |
+| left 200 (past the old wrap boundary) | CONFIRMED ✅ |
+| barely moved | TOO SMALL ✅ |
+
+The 20 % threshold is what separates *a wobble* from *a genuinely mixed turn*; both extremes are in
+the table so the boundary is pinned rather than assumed.
+
+> **Third time in two commits that "verify before upload" found a live defect** — the silent
+> `drawMenu` no-op, the wrapped-past-180° sign, and now the net-vs-path collapse. None were visible
+> in the source at a glance, and every one was surfaced by a question about what would happen in a
+> specific case.

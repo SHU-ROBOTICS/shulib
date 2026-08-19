@@ -563,8 +563,29 @@ void reportImu(bool present) {
         pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 124, "and every turn would be mirrored.");
         pros::c::screen_set_pen(kColWarn);
         pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, kFooterY, "reading for ~20 s ...");
+        // PATH, not just endpoints. Net displacement alone cannot tell "turned
+        // left 90" from "left 90 then right 145" -- the second nets -55 and would
+        // print HA-02 WRONG on a perfectly good IMU. The loop already samples every
+        // 200 ms, so accumulate travel in each direction and count reversals; a
+        // mixed turn is then DETECTED rather than silently mis-judged.
+        double ccwTravel = 0.0, cwTravel = 0.0, prevRaw = startRaw;
+        int reversals = 0, lastDir = 0;
         char big[64];
         for (int i = 0; i < 100; ++i) {  // ~20 s to rotate under
+            const double rawNow = pros::c::imu_get_rotation(kImuPort);
+            const double dCanon = -(rawNow - prevRaw);  // canonical delta, unwrapped
+            prevRaw = rawNow;
+            // 0.1 deg per 200 ms sample clears the at-rest noise floor, which the
+            // 2026-08-19 log showed sitting around 0.02-0.06 deg.
+            if (dCanon > 0.1) {
+                ccwTravel += dCanon;
+                if (lastDir == -1) ++reversals;
+                lastDir = 1;
+            } else if (dCanon < -0.1) {
+                cwTravel += -dCanon;
+                if (lastDir == 1) ++reversals;
+                lastDir = -1;
+            }
             const double deg = imu.heading().degrees();
             std::snprintf(big, sizeof big, "%+8.2f deg", deg);
             screenBig(146, big);
@@ -623,7 +644,9 @@ void reportImu(bool present) {
 
         g_screenActive = true;
         screenClear();
-        emitf("heading moved %+.2f deg (unwrapped, from cumulative raw)", moved);
+        emitf("PATH: turned CCW %.1f deg total, CW %.1f deg total, %d reversal(s)",
+          ccwTravel, cwTravel, reversals);
+        emitf("NET : %+.2f deg (unwrapped, from cumulative raw)", moved);
         emitf("  wrapped canonical difference would have read %+.2f deg", wrapped);
         if ((moved > 0.0) != (wrapped > 0.0)) {
             emitS(Sev::Warn, "  ^ THE TWO DISAGREE: the turn passed 180 deg. The");
@@ -634,14 +657,28 @@ void reportImu(bool present) {
             emit("   that get_rotation() is cumulative and unbounded.)");
         }
         emitf("operator says they turned %s", turnedCcw ? "LEFT / CCW" : "RIGHT / CW");
-        // Canonical is CCW-positive by F1. So a CCW turn must raise it.
-        const bool agrees = turnedCcw ? (moved > 0.0) : (moved < 0.0);
-        if (moved > -5.0 && moved < 5.0) {
+        // Judge on the DOMINANT direction of travel, and refuse to judge at all
+        // when the turn went meaningfully both ways -- a net figure cannot separate
+        // "left 90" from "left 90 then right 145".
+        const double dominant = ccwTravel > cwTravel ? ccwTravel : cwTravel;
+        const double minor    = ccwTravel > cwTravel ? cwTravel : ccwTravel;
+        const bool dominantCcw = ccwTravel > cwTravel;
+
+        if (dominant < 5.0) {
             emitS(Sev::Warn, "barely moved -- turn it further and re-run.");
-        } else if (agrees) {
+        } else if (minor > 0.2 * dominant) {
+            emitS(Sev::Warn, "MIXED TURN -- you went BOTH ways (%.0f CCW vs %.0f CW).",
+                  ccwTravel, cwTravel);
+            emit("  No verdict: a net figure cannot tell 'left 90' from 'left 90");
+            emit("  then right 145'. Re-run and turn ONE way only.");
+        } else if (dominantCcw == turnedCcw) {
             emitS(Sev::Good, "HA-02 CONFIRMED: canonical heading is CCW-POSITIVE.");
+            emitf("  (dominant travel was %s, matching what you declared.)",
+                  dominantCcw ? "CCW" : "CW");
         } else {
             emitS(Sev::Bad, "HA-02 WRONG: the sign is INVERTED. Every turn would mirror.");
+            emitf("  You declared %s but the heading's dominant travel was %s.",
+                  turnedCcw ? "CCW" : "CW", dominantCcw ? "CCW" : "CW");
         }
     } catch (const PreconditionError& e) {
         // The rotate test suspends the scrolling log; restore it or this report
