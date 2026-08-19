@@ -141,13 +141,27 @@ void emitf(const char* fmt, ...) {
 // therefore mirrors its lines to the screen; the SD file keeps the full-width
 // detail (screen lines truncate at 54 chars) for reading afterwards.
 
-/// The panel is 480x272, but VEXos reserves the top strip for its status bar, so
-/// the usable drawing height is ~240. Anything placed near 272 lands OFF-SCREEN --
-/// observed on hardware 2026-08-18, after a host geometry check that passed
-/// against the wrong constant. Everything stays inside this with margin.
-constexpr std::int16_t kUsableH = 236;
+/// MEASURED, not guessed: `liblvgl/lv_conf.h` sets LV_HOR_RES_MAX 480 and
+/// LV_VER_RES_MAX **240**. The physical panel is 480x272; VEXos keeps the top strip
+/// for its own status bar, and 240 is what a user program actually gets. An earlier
+/// layout was verified on the host against 272, PASSED, and rendered its bottom row
+/// off the panel -- the check was right and its constant was wrong.
+constexpr std::int16_t kUsableW = 480;
+constexpr std::int16_t kUsableH = 240;
 
-constexpr int kScreenLines = 13;      // small font on a 480x272 panel, chosen low on
+// ── the screen's own layout. Content sits BELOW a fixed header so a section title
+//    is always visible while results scroll under it.
+constexpr std::int16_t kHeaderH = 34;
+constexpr std::int16_t kFooterY = 222;
+constexpr std::int16_t kContentY = kHeaderH + 6;
+constexpr std::int16_t kLineH = 13;   // small-font row pitch; test 0 measures the truth
+constexpr int kScreenLines = (kFooterY - kContentY) / kLineH;
+
+// Palette. Dark ground, one accent, one warn, one good -- enough to read at a
+// glance from arm's length over a robot, and no more.
+constexpr std::uint32_t kColBg = 0x101418, kColBar = 0x1E5AA8, kColText = 0xF0F0F0,
+                        kColDim = 0x9AA4AE, kColGood = 0x39C36E, kColWarn = 0xE8B23A,
+                        kColBad = 0xE2564A;      // small font on a 480x272 panel, chosen low on
                                       // purpose: the SD file is the complete record and
                                       // an unreadable overflow is worse than a extra tap.
 constexpr int kScreenCols = 54;
@@ -174,24 +188,57 @@ void waitForTouch() {
     }
 }
 
+/// Clears only the CONTENT region, leaving the header bar painted -- so the
+/// section title stays on screen while its results scroll underneath.
 void screenClear() {
-    pros::c::screen_erase();
+    pros::c::screen_set_eraser(kColBg);
+    pros::c::screen_erase_rect(0, static_cast<std::int16_t>(kHeaderH), kUsableW, kUsableH);
     g_screenLine = 0;
+}
+
+/// The persistent header: coloured bar, section title, build stamp on the right.
+void drawHeader(const char* title) {
+    pros::c::screen_set_pen(kColBar);
+    pros::c::screen_fill_rect(0, 0, kUsableW, kHeaderH);
+    pros::c::screen_set_eraser(kColBar);
+    pros::c::screen_set_pen(kColText);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 6, "%.30s", title);
+    pros::c::screen_set_eraser(kColBg);
+}
+
+/// True for lines that exist only to shape an 80-column TERMINAL -- rule bars,
+/// banner hashes, separators. They are correct on serial and in the SD file, and
+/// they are noise on a ~54-column panel, where they arrive truncated mid-dashes.
+/// THIS IS THE ACTUAL REASON THE UI LOOKED BAD: one string was being written for
+/// two very different displays.
+bool isTerminalDecoration(const char* line) {
+    if (line[0] == '\0') return false;            // blank lines are real spacing
+    const char c = line[0];
+    if (c != '#' && c != '=') return false;       // only banner hashes and rule bars
+    for (const char* p = line; *p != '\0'; ++p) {
+        if (*p != c && *p != ' ') return false;   // has real content -> keep it
+    }
+    return true;                                   // nothing but the rule character
 }
 
 void screenEmit(const char* line) {
     if (!g_screenActive) return;
+    if (isTerminalDecoration(line)) return;
     if (g_screenLine >= kScreenLines) {
-        // Explicit pixel position, not a line index: a line index past the font's
-        // last visible row draws off-screen and the prompt silently disappears.
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 6, kUsableH - 14,
-                                 "-- screen full: TOUCH for more --");
+        pros::c::screen_set_pen(kColWarn);
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, kFooterY, "more below - TOUCH to continue");
         waitForTouch();
         screenClear();
     }
     char t[kScreenCols + 2];
     std::snprintf(t, sizeof t, "%.*s", kScreenCols, line);
-    pros::c::screen_print(pros::E_TEXT_SMALL, static_cast<std::int16_t>(g_screenLine++), "%s", t);
+    // Indented/continuation lines are supporting detail: dim them so the eye finds
+    // the headline values first.
+    pros::c::screen_set_pen((line[0] == ' ') ? kColDim : kColText);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8,
+                             static_cast<std::int16_t>(kContentY + g_screenLine * kLineH),
+                             "%s", t);
+    ++g_screenLine;
 }
 
 /// A big fixed-position readout -- for a number somebody watches while physically
@@ -203,9 +250,21 @@ void screenBig(int y, const char* text) {
     pros::c::screen_print_at(pros::E_TEXT_LARGE, 6, static_cast<std::int16_t>(y), "%s", text);
 }
 
+void drawHeader(const char* title);  // fwd
+
+/// A section boundary. The SERIAL/SD form is a full-width bar; the SCREEN form is a
+/// painted header, because a 50-character rule arrives on the panel as a row of
+/// truncated dashes and reads as damage rather than structure.
 void rule(const char* title) {
+    const bool wasActive = g_screenActive;
+    g_screenActive = false;                       // keep the bar off the panel
     emit("");
     emitf("== %s ==========================================", title);
+    g_screenActive = wasActive;
+    if (wasActive) {
+        drawHeader(title);
+        screenClear();
+    }
 }
 
 /// v5_device_e_t → a short human name. `default` is deliberate: an unknown code
@@ -277,6 +336,69 @@ void probeSdCard() {
     } else {
         emit("   >> partial write -- card may be full or failing.");
     }
+}
+
+/// SCREEN RULER -- the calibration display.
+///
+/// Three layout bugs shipped to this robot because font metrics and panel bounds
+/// were REASONED rather than measured (a host check even passed against the wrong
+/// height). PROS documents font *names* and no dimensions anywhere, so this draws
+/// a ruler and lets a human read the numbers off, exactly as HA-107 prescribes for
+/// the controller LCD's disputed column count. Read it once, write the numbers into
+/// the constants, stop guessing.
+void screenRuler(pros::c::v5_device_e_t*) {
+    g_screenActive = false;
+    pros::c::screen_set_eraser(kColBg);
+    pros::c::screen_erase();
+
+    // A frame at the EXACT claimed bounds. If any edge is missing, the usable area
+    // is not what lv_conf.h says and every layout constant is suspect.
+    pros::c::screen_set_pen(kColWarn);
+    pros::c::screen_draw_rect(0, 0, static_cast<std::int16_t>(kUsableW - 1),
+                              static_cast<std::int16_t>(kUsableH - 1));
+
+    // Column ruler: every 10th character is its tens digit, so the last VISIBLE
+    // digit tells you how many columns that font actually fits.
+    static char ruler[81];
+    for (int i = 0; i < 80; ++i) ruler[i] = static_cast<char>('0' + ((i / 10) % 10));
+    ruler[80] = '\0';
+
+    pros::c::screen_set_pen(kColText);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 4, 4, "S %s", ruler);
+    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 4, 22, "M %s", ruler);
+    pros::c::screen_print_at(pros::E_TEXT_LARGE, 4, 48, "L %s", ruler);
+
+    // Row pitch: consecutive SMALL lines at the constant this file uses. If they
+    // touch or overlap, kLineH is too small; if they gap badly, it is too large.
+    pros::c::screen_set_pen(kColDim);
+    for (int i = 0; i < 8; ++i) {
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 4,
+                                 static_cast<std::int16_t>(90 + i * kLineH),
+                                 "row %d at y=%d (pitch %d)", i, 90 + i * kLineH,
+                                 static_cast<int>(kLineH));
+    }
+
+    // Vertical scale: ticks every 20px down the right edge. The last LABEL you can
+    // read is the true bottom of the usable area.
+    pros::c::screen_set_pen(kColGood);
+    for (int y = 0; y < kUsableH; y += 20) {
+        pros::c::screen_draw_line(static_cast<std::int16_t>(kUsableW - 40),
+                                  static_cast<std::int16_t>(y),
+                                  static_cast<std::int16_t>(kUsableW - 22),
+                                  static_cast<std::int16_t>(y));
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, static_cast<std::int16_t>(kUsableW - 20),
+                                 static_cast<std::int16_t>(y), "%d", y);
+    }
+
+    emit("SCREEN RULER drawn. READ THESE OFF THE PANEL and report them:");
+    emitf("  claimed usable area : %dx%d (from liblvgl/lv_conf.h)", static_cast<int>(kUsableW),
+          static_cast<int>(kUsableH));
+    emitf("  row pitch in use    : %d px", static_cast<int>(kLineH));
+    emitf("  truncation width    : %d chars", kScreenCols);
+    emit("  1. is the WHOLE yellow frame visible, all four edges?");
+    emit("  2. last readable digit on each of rows S / M / L?");
+    emit("  3. do the grey 'row N' lines sit evenly, without touching?");
+    emit("  4. highest green tick number still on screen?");
 }
 
 // ═══ STAGE 1 — the census. Raw registry only; constructs nothing. ═════════════
@@ -503,6 +625,7 @@ constexpr MenuItem kMenu[] = {
     {"5  SD CARD PROBE",    &tSdProbe},
     {"6  LOOP RATE",        &tLoopRate},
     {"7  RUN ALL",          &tAll},
+    {"8  SCREEN RULER",     &screenRuler},
 };
 constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 
@@ -514,7 +637,7 @@ constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 // constant was wrong, and the bottom row landed off the panel on real hardware
 // (observed 2026-08-18). Everything now stays inside y < 236 for margin:
 // row 3 spans 184..226.
-constexpr std::int16_t kBtnW = 232, kBtnH = 42, kBtnX0 = 6, kBtnY0 = 46, kGap = 4;
+constexpr std::int16_t kBtnW = 232, kBtnH = 46, kBtnX0 = 6, kBtnY0 = 38, kGap = 4;
 
 void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std::int16_t& y1) {
     const std::int16_t col = static_cast<std::int16_t>(i % 2);
@@ -556,8 +679,8 @@ void drawMenu() {
         // every label gets a black box behind it.
         pros::c::screen_set_eraser(0x1E5AA8);
         pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
-                                 static_cast<std::int16_t>(y0 + 13), "%s", kMenu[i].label);
-        pros::c::screen_set_eraser(0x000000);
+                                 static_cast<std::int16_t>(y0 + 15), "%s", kMenu[i].label);
+        pros::c::screen_set_eraser(kColBg);
     }
 }
 
