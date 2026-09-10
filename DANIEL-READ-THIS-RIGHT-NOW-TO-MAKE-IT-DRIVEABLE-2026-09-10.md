@@ -26,10 +26,14 @@ reversed and drives them correctly, and it refuses to power anything until it ha
 
 ## Step 1 — build and upload the program (lab computer)
 
+**Everything is on the `shulib-v2` branch.** `main` is the August release and has none of this, so
+if you clone the repo fresh or are on another machine, switch branches first.
+
 On the lab computer, open a terminal:
 
-```
+```sh
 cd ~/projects/shulib
+git checkout shulib-v2
 git pull
 make ROBOT=tank
 pros upload --slot 3 --after run
