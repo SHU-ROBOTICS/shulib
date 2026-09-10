@@ -7,6 +7,15 @@
 > measurement. §4 and §5 (pieces 1 and 2) are specified as far as they honestly can be; every
 > decision that waits on a number names the R3a Batch-1 item that settles it, rather than guessing.
 > **Do not close those two sections' open decisions by inference.**
+>
+> **Session 2 (2026-09-10): pieces 1 and 2 are now built for a SECOND robot — the season's tank
+> chassis (5 coupled motors per side, no sensors yet) — in a teleop-first order, with a tester
+> DRIVE station done first so the build team can drive it. The execution order, the new-chassis
+> facts, the added rulings (median aggregation, the coupled-member detector, the single drive
+> geometry, the `ROBOT=tank` variant) and the R3d decision live in
+> [`R3b-session2-tank-chassis.md`](R3b-session2-tank-chassis.md), which supersedes this brief
+> wherever the two disagree.** The bench bot's B1 gating below is superseded by that file's §1:
+> the build team supplies the numbers, and an unknown is refused at boot, never invented.
 
 ---
 
