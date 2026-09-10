@@ -40,7 +40,10 @@
 //     hash (same contract as test/CMakeLists.txt); a missing hash is LOUD.
 //   * The teleop loop — chassis.drive(speeds, Frame::Body) from the master
 //     controller at the tick cadence. Deadband/curves/slew are chunk T2's
-//     (HA-112 records the raw mapping as invented).
+//     (HA-112 records the raw mapping as invented). Since R3b Session 2 the
+//     stick → ChassisSpeeds mapping itself lives in the PROS-free
+//     shulib/teleop/stick_mapping.hpp (host-tested, bit-identical to what this
+//     file carried), so the bench tester's DRIVE station and this loop share it.
 //
 // ═══ Absent, deliberately (chunk R3b §6) ════════════════════════════════════════════
 //   * AbsentTagSource / AbsentVision — NO camera is installed on any current robot.
@@ -53,26 +56,35 @@
 
 #include "main.h"
 
-// ═══ WHICH ROBOT IS THIS BINARY FOR? (chunk R3a §4.2 item 1) ════════════════════════
+// ═══ WHICH ROBOT IS THIS BINARY FOR? (chunk R3a §4.2 item 1; third variant at R3b S2) ═══
 // The X-drive wiring below is PRESERVED VERBATIM and relabelled -- it is the only
 // artifact of the 2026-08-12 whole-object-graph boot, and its ports are invented
 // (HA-111). It CANNOT boot on the measured bench robot: it puts motors on 1/2/-3/-4
 // (port 4 is the IMU), rotation sensors on 5/6, and a GPS on 9 -- every one of those
 // throws an adapter read-back precondition at boot.
 //
-// Default = the tank bench bot, because that is the only robot that exists.
-// Build the X-drive path with:  make ROBOT=xdrive     (default `make` = ROBOT=bench)
+// THREE variants, one validated Makefile switch (any other value is an $(error)):
+//   make                 → ROBOT=bench   the measured tank BENCH bot: runs the bench tester
+//   make ROBOT=tank      → the 2026 tank chassis, ROBOT TWO (R3b Session 2): ALSO runs the
+//                          bench tester in Part 0 -- its chassis table ships UNSET until the
+//                          build team reports ports (src/bench_r3a.cpp), and no library graph
+//                          is built for it yet (Part 3 changes that)
+//   make ROBOT=xdrive    → the invented X-drive wiring below (HA-111)
 // (The instruction here used to say `make CXXFLAGS_EXTRA=-D...` — common.mk consumes
 //  EXTRA_CXXFLAGS, the names were transposed, and the documented command silently built
 //  the BENCH variant. GATE1 replaced it with the validated ROBOT switch in the Makefile,
-//  and tools/src_build_gate.py now asserts per-variant that the define really lands.)
-#ifdef SHULIB_ROBOT_XDRIVE_INVENTED
-#define SHULIB_BENCH_TANK 0
+//  and tools/src_build_gate.py now asserts per-variant that the define really lands --
+//  as a whole command-line TOKEN, and end-to-end via the beacon string below.)
+#if defined(SHULIB_ROBOT_XDRIVE_INVENTED) && defined(SHULIB_ROBOT_TANK_2026)
+#error "two robot variant defines are set at once -- select exactly one with make ROBOT=..."
+#endif
+#if defined(SHULIB_ROBOT_XDRIVE_INVENTED)
+#define SHULIB_RUNS_BENCH_TESTER 0
 #else
-#define SHULIB_BENCH_TANK 1
+#define SHULIB_RUNS_BENCH_TESTER 1  // bench AND tank both boot into the tester (Part 0)
 #endif
 
-#if SHULIB_BENCH_TANK
+#if SHULIB_RUNS_BENCH_TESTER
 #include "bench_r3a.hpp"
 #endif
 
@@ -113,9 +125,26 @@
 #include "shulib/math/twist2d.hpp"
 #include "shulib/motion/motion.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
+#include "shulib/teleop/stick_mapping.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace {
+
+// ═══ THE VARIANT IDENTITY BEACON (R3b Session 2; asserted by tools/src_build_gate.py) ═══
+// One string per variant, selected by the SAME preprocessor facts that select the wiring,
+// and printed at boot so it is referenced and survives into the linked package. The src
+// build gate asserts the expected beacon IS in bin/hot.package.elf and the other two are
+// NOT. That is the end-to-end proof that the #if chain in THIS file took the branch the
+// Makefile asked for: the gate's compile-line check can see a define that never landed,
+// but not a macro renamed here -- and a tank build that silently carried the bench bot's
+// chassis table onto robot two is exactly HA-111's defect class again.
+#if defined(SHULIB_ROBOT_XDRIVE_INVENTED)
+constexpr const char kVariantBeacon[] = "shulib-robot-variant=xdrive";
+#elif defined(SHULIB_ROBOT_TANK_2026)
+constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank";
+#else
+constexpr const char kVariantBeacon[] = "shulib-robot-variant=bench";
+#endif
 
 // ── PROVISIONAL PORT MAP — INVENTED (A4: HA-111). No robot has been measured;
 //    bench runbook step 0 reads the real device list off the brain and fixes
@@ -138,10 +167,9 @@ constexpr std::uint8_t kImuPort = 10;
 constexpr shulib::hal::pros::MotorGearset kDriveGearset =
     shulib::hal::pros::MotorGearset::Green;
 
-// Teleop mapping constants — INVENTED (A4: HA-112); chunk T2 owns the real
-// driver-feel layer (curves, slew, per-driver tuning). The deadband exists
-// only so a centred stick's ±2-count noise cannot creep the robot.
-constexpr double kTeleopDeadband = 0.05;
+// (The teleop deadband constant and shaped() that lived here moved, unchanged, to
+//  shulib/teleop/stick_mapping.hpp at R3b Session 2 -- HA-112 still invented, T2 still
+//  the owner of real driver feel.)
 
 /// The on-robot precondition policy (check.hpp §18.4): raise the fault code on
 /// the latch (visible in telemetry + the run summary), then throw the same
@@ -271,11 +299,6 @@ const char* portMapString() {
     return buf;
 }
 
-/// Teleop stick shaping: deadband only (HA-112 — T2 owns real driver feel).
-[[nodiscard]] double shaped(double axis) {
-    return (axis > -kTeleopDeadband && axis < kTeleopDeadband) ? 0.0 : axis;
-}
-
 }  // namespace
 
 /**
@@ -290,17 +313,23 @@ const char* portMapString() {
 void initialize() {
     shulib::setPreconditionHandler(&robotPreconditionHandler);
 
-#if SHULIB_BENCH_TANK
-    // R3a: the bench robot. The X-drive graph below is NOT constructed -- its
-    // ports are invented and every adapter ctor would throw here. The session
-    // runs from opcontrol(); this only proves the binary booted.
-    std::printf("\n[R3A] booted: bench validation build (tank bench bot, READ-ONLY).\n"
-                "[R3A] the X-drive object graph is deliberately NOT constructed.\n");
+#if SHULIB_RUNS_BENCH_TESTER
+    // R3a/R3b: a tester build (bench bot, or the 2026 tank chassis in Part 0). The X-drive
+    // graph below is NOT constructed -- its ports are invented and every adapter ctor
+    // would throw here. The session runs from opcontrol(); this only proves the binary
+    // booted, and says WHICH variant it is (the beacon the src build gate asserts).
+    std::printf("\n[R3A] booted: bench-tester build [%s].\n"
+                "[R3A] read-only EXCEPT the tester's DRIVE station (R3b Session 2), which powers\n"
+                "[R3A] the drive motors through the hal/pros adapters behind six safety gates --\n"
+                "[R3A] never through the motion stack. The library has still not driven a robot.\n"
+                "[R3A] the X-drive object graph is deliberately NOT constructed.\n",
+                kVariantBeacon);
     std::fflush(stdout);
     return;
 #else
     Robot& r = robot();
     g_faults = &r.faults;
+    r.telemetry.log(shulib::hal::LogLevel::Info, "R3B", kVariantBeacon);
 
     // Start IMU calibration now (non-blocking); readings are garbage until
     // isReady() (HA-23) and the motion layer's wait-for-live already gates on
@@ -337,7 +366,7 @@ void initialize() {
     std::snprintf(line, sizeof line, "facade alive: strafeAuthority=%.2f (X-drive: 1.00)",
                   r.chassis.strafeAuthority());
     r.telemetry.log(shulib::hal::LogLevel::Info, "R1A", line);
-#endif  // SHULIB_BENCH_TANK
+#endif  // SHULIB_RUNS_BENCH_TESTER
 }
 
 /**
@@ -364,8 +393,9 @@ void competition_initialize() {}
  * wires them here after the bench runbook settles the R3 register group.
  */
 void autonomous() {
-#if SHULIB_BENCH_TANK
-    std::printf("[R3A] autonomous(): no motion -- this is a read-only measuring build.\n");
+#if SHULIB_RUNS_BENCH_TESTER
+    std::printf("[R3A] autonomous(): no motion -- a measuring build (only the tester's DRIVE "
+                "station, under opcontrol, ever powers a motor).\n");
     std::fflush(stdout);
     return;
 #else
@@ -373,7 +403,7 @@ void autonomous() {
     r.telemetry.log(shulib::hal::LogLevel::Warn, "R1A",
                     "autonomous(): no motion until R3 validates the stack on hardware "
                     "(adapters landed at R1a; the register's R3 group is unsettled)");
-#endif  // SHULIB_BENCH_TANK
+#endif  // SHULIB_RUNS_BENCH_TESTER
 }
 
 /**
@@ -381,35 +411,39 @@ void autonomous() {
  *
  * The R1a teleop loop: master-controller sticks → body-frame
  * chassis.drive() at the tick cadence. Mapping (HA-112, invented, T2 owns
- * refinement): left stick = translation (up = +X forward, LEFT-pushed stick =
- * +Y left), right stick X = yaw (right-pushed = clockwise = −ω). A
- * disconnected controller commands zero twist — isConnected() is the positive
- * validity signal that distinguishes a dropped controller from centred
- * sticks (HA-103).
+ * refinement) is shulib::teleop::mapSticksToChassisSpeeds — the PROS-free,
+ * host-tested function this loop used to carry inline, bit-identical
+ * (test/stick_mapping_test.cpp pins it against the old code): left stick =
+ * translation (up = +X forward, LEFT-pushed stick = +Y left), right stick X =
+ * yaw (right-pushed = clockwise = −ω). A disconnected controller commands zero
+ * twist — isConnected() is the positive validity signal that distinguishes a
+ * dropped controller from centred sticks (HA-103).
  */
 void opcontrol() {
-#if SHULIB_BENCH_TANK
-    shulib::bench::runR3a();  // never returns; commands no motion
+#if SHULIB_RUNS_BENCH_TESTER
+    shulib::bench::runR3a();  // never returns; powers motors ONLY in its DRIVE station
     return;
 #else
     Robot& r = robot();
     r.telemetry.log(shulib::hal::LogLevel::Info, "R1A",
-                    "opcontrol(): teleop drive loop live (deadband-only mapping, HA-112; "
-                    "driver-feel shaping is chunk T2)");
+                    "opcontrol(): teleop drive loop live (deadband-only mapping, HA-112, "
+                    "shulib/teleop/stick_mapping.hpp; driver-feel shaping is chunk T2)");
     const shulib::motion::MotionConfig& cfg = r.chassis.motionConfig();
     while (true) {
-        shulib::math::ChassisSpeeds command{};  // zero twist unless the driver says otherwise
-        if (r.master.isConnected()) {
-            const double fwd = shaped(r.master.axis(shulib::hal::ControllerAxis::LeftY));
-            const double left = shaped(-r.master.axis(shulib::hal::ControllerAxis::LeftX));
-            const double yaw = shaped(-r.master.axis(shulib::hal::ControllerAxis::RightX));
-            command = shulib::math::ChassisSpeeds{fwd * cfg.maxLinearSpeed,
-                                                  left * cfg.maxLinearSpeed,
-                                                  yaw * cfg.maxAngularSpeed};
+        // The axes are read only while connected -- the exact call pattern of the loop
+        // before the extraction (a disconnected controller's channels are never polled),
+        // so nothing about this loop's device traffic changed either.
+        shulib::teleop::StickInput sticks{.connected = r.master.isConnected()};
+        if (sticks.connected) {
+            sticks.leftY = r.master.axis(shulib::hal::ControllerAxis::LeftY);
+            sticks.leftX = r.master.axis(shulib::hal::ControllerAxis::LeftX);
+            sticks.rightX = r.master.axis(shulib::hal::ControllerAxis::RightX);
         }
+        const shulib::math::ChassisSpeeds command = shulib::teleop::mapSticksToChassisSpeeds(
+            sticks, cfg.maxLinearSpeed, cfg.maxAngularSpeed);
         r.chassis.drive(command, shulib::math::Frame::Body);
         r.faultDisplay.update(r.clock.now());
         r.pacer.pace();
     }
-#endif  // SHULIB_BENCH_TANK
+#endif  // SHULIB_RUNS_BENCH_TESTER
 }

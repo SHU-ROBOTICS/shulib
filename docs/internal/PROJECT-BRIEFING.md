@@ -103,20 +103,20 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 26 of 47 chunks complete
+**Position:** 27 of 48 chunks complete
 
-- **Next up:** R3a — platform validation on the tank bench bot  
+- **Next up:** R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10; the build team's ports fill the tester's chassis table, worksheet Station D runs on the chassis, then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): GATE1, R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,157 cases / 1,538,101 assertions, 3 skipped — **green**  
+- ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- **Suite:** 1,163 cases / 1,538,453 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 151  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Public headers:** 152  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `R1a` · `R1b`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `GATE1` · `R1a` · `R1b`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 

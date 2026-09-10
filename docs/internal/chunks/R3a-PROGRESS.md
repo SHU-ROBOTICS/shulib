@@ -1810,3 +1810,5 @@ absolutely wrong.
 `__DATE__`/`__TIME__` is evaluated PER TRANSLATION UNIT, and I read `main.cpp`'s rather than
 `bench_r3a.cpp`'s. Harmless here, but it is precisely the confusion the stamp exists to prevent, so:
 read the stamp from the bench TU.)*
+
+*(Cross-reference, appended 2026-09-10: the tester `src/bench_r3a.cpp` changed at **R3b Session 2** — a per-variant chassis table replaces the hypothesis arrays, MOTOR WATCH watches every census motor and captures signs, and a DRIVE station powers the motors behind six gates for the 2026 tank chassis. See `R3b-PROGRESS.md` "Session 2" and the brief `R3b-session2-tank-chassis.md` §3. Everything above records the tester as it was when those measurements were taken.)*

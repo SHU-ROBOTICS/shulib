@@ -629,7 +629,7 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R3a — platform validation on the tank bench bot** ([brief](chunks/R3a-tank-bench-validation.md),
+**Next: R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10; the build team's ports fill the tester's chassis table, worksheet Station D runs on the chassis, then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
 live log [R3a-PROGRESS.md](chunks/R3a-PROGRESS.md)). **R3 split into R3a + R3b + R3c on 2026-08-17** —
 the ruling, its reasoning and its rejected alternative are in the brief's §3 and the deviations table.
 **R3b is `[~]` IN FLIGHT, deliberately out of order: its §6 piece — the absent-device ruling, the one
@@ -639,6 +639,24 @@ live log [R3b-PROGRESS.md](chunks/R3b-PROGRESS.md)): `AbsentGps`/`AbsentTagSourc
 5/5 mutations red-then-green. **R3b's pieces 1 (motor group) and 2 (`IOdometry`) remain gated on
 R3a's Batch 1 exactly as the "not negotiable" paragraph below says — building them before B1
 returns would be validating a guess with a guess.** M1's badge has NOT flipped.
+
+**R3b SESSION 2 (2026-09-10) — a SECOND ROBOT, and a teleop-first order.** The build team has built
+the season's tank chassis (five coupled motors per side driving four wheels per side; no sensors
+mounted yet; cartridges read blue off a motor; 2.75 in wheels; ports, front, track width and IMU
+still unreported) and needs driver control to test it. Pieces 1 and 2 are therefore built for
+THAT robot, in the order recorded in [`chunks/R3b-session2-tank-chassis.md`](chunks/R3b-session2-tank-chassis.md)
+(which supersedes the B1 gating above: the build team supplies the numbers; an unknown is refused
+at boot, never invented). **Part 0 landed 2026-09-10:** the bench tester's per-variant chassis
+table (robot two's ports UNSET on purpose), MOTOR WATCH over every census motor with a per-port
+sign capture, station 10 DRIVE — the ONE station that powers motors, through the `hal/pros`
+adapters behind six safety gates incl. a coupled-motor fighting cut-out and a ground mode unlocked
+only by a clean wheels-up run — the stick mapping extracted to the PROS-free
+`shulib/teleop/stick_mapping.hpp` (bit-identity-pinned), and `make ROBOT=tank` gated by define and
+by an in-package beacon. Nothing has run on hardware. **Next: the build team's ports and front go
+into the table (one edit), the tester is uploaded, and Station D of the worksheet runs; then Parts
+1–3 (motor group, odometry seam, the tank composition root) on the team lead's go.** The decision
+that runs alongside: **R3d** (drivetrain self-calibration + persistence + boot verification) is
+pulled forward from E5 to follow R3b — see the deviations table and the R3d entry.
 
 **GATE1 — the `src/` build gate — executed 2026-08-19, reactive and out of order, in the
 DOCS1/DOCS2/DEFECTS1 family** ([brief](chunks/GATE1-src-build-gate.md), live log
@@ -697,7 +715,7 @@ real work was 631 comments plus a parser rebuild, validated against clang's AST 
 over 115 headers) and a 16-mutation campaign (16/16 red, after the first pass found three holes
 in the self-test). Freeze Register rows F11–F14 are **amended**, not silently overridden.
 
-**Do NOT measure `main` by commit distance.** `main` is a *squash* of `release/v2` with `docs/internal/` dropped, so its history is deliberately disjoint and `git rev-list --count main..HEAD` returns a meaningless number (this line said "195 commits behind" until DOCS1, which is the number that correction was written to kill — it just never reached this file). Ask what `main` **contains**: `git cat-file -e main:<path>`. Measured that way, `main` is current through Phase D and is missing E1–E4, F1, F2, R1a and R1b.**
+**Do NOT measure `main` by commit distance.** `main` is a *squash* of `release/v2` with `docs/internal/` dropped, so its history is deliberately disjoint and `git rev-list --count main..HEAD` returns a meaningless number (this line said "195 commits behind" until DOCS1, which is the number that correction was written to kill — it just never reached this file). Ask what `main` **contains**: `git cat-file -e origin/main:<path>` — `origin/main`, not the local `main`, which lags behind a release made by `tools/release.py` until someone fast-forwards it (on 2026-09-10 it was a day behind). Measured that way on 2026-09-10: `origin/main` is `c778c11`, its tree byte-identical to `release/v2`, and it CONTAINS E1–E4, F1, F2, R1a, R1b and the generated reference — everything through DEFECTS1 — and is MISSING everything since the 2026-08-15 release: R3a's bench binary, R3b piece 3, GATE1 and the R3b session-2 brief. *(This sentence read "current through Phase D and missing E1–E4, F1, F2, R1a and R1b" from before the release until 2026-09-10 — a second instance of exactly the staleness the paragraph above warns about, in the paragraph that warns about it.)***
 
 *(superseded)* ~~Next: R1b — `hal/pros` adapters for the mechanism seams~~ ([brief](chunks/R1b-pros-adapters-mechanisms.md)). R1a is DONE (built, verified, committed, and validated on hardware — see the bench session record). R1b unblocks BOTH R3 and F3, and needs no robot to author.**
 
@@ -802,14 +820,16 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
 | **G** | No-code authoring | G1–G4 | needs VexBuilder |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
-| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R4–R6 | **needs hardware** — R3a/R3b need only the bench bot; R3c needs a competition robot |
+| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6 | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c needs a competition robot with a holonomic drive |
 | **F′** | Scoring primitives | F3–F4 | needs hardware + final mechanisms |
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**47 chunks.** R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
+**48 chunks.** R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
 GATE1 was added 2026-08-19 (+1, reactive — `src/` was in no gate and CI could not see whether an
-edit to it compiled; the deviations table carries the row).
+edit to it compiled; the deviations table carries the row). **R3d was added 2026-09-10** (+1 —
+drivetrain self-calibration + persistence, pulled forward from E5 on the team lead's argument that
+a drivetrain's facts should be discovered on the robot, not typed; the deviations table carries the row).
 DEFECTS1 was added 2026-08-15 — DOCS2 filed 83 API defects under a
 report-don't-fix landmine, and Rule 4 says a flaw gets fixed where it lives, so resolving them is
 a chunk rather than a footnote on the release. C8 (the manual) was added at Phase C; **Phase T (driver control) was added
@@ -818,7 +838,7 @@ drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only th
 missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
 nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
 
-*The total was 43 until DEFECTS1 (+1), 44 until R3 split three ways (+2), and 46 until GATE1 (+1). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
+*The total was 43 until DEFECTS1 (+1), 44 until R3 split three ways (+2), 46 until GATE1 (+1), and 47 until R3d (+1, 2026-09-10). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
 now delivered by R1a rather than as its own chunk (−1). All are recorded in the deviations table.*
 
 ---
@@ -837,9 +857,9 @@ now delivered by R1a rather than as its own chunk (−1). All are recorded in th
 ### The one-screen version
 
 ```
-NOW  ──► R3a ──► R3b ──► R4 ──► R5 ──► R6
-         measure  MOVES   noise   gains  back-fit
-                  M1 ✅          (per chassis!)
+NOW  ──► R3a ──► R3b ──► R3d ──► R4 ──► R5 ──► R6
+         measure  MOVES   self-cal noise   gains  back-fit
+                  M1 ✅   persist         (per chassis!)
                   M2 ✅
                     │
                     ├──► R2 ──► R3c ──► E5 ──► E6            needs a camera / a competition robot
@@ -859,7 +879,8 @@ NOW  ──► R3a ──► R3b ──► R4 ──► R5 ──► R6
 | # | Chunk | What it buys | Gate | Honest size |
 |---|---|---|---|---|
 | 1 | **R3a** | every measurable belief about this hardware becomes a measurement; the port map becomes real; the gear ratio finally exists | **the robot in the room** — available now | one bench session |
-| 2 | **R3b** | **the robot moves under the library's own steering.** Closes **M1** and **M2's on-robot clause**, open since June | R3a's numbers (they are constructor arguments, not context) | ~150 lines + tests; one to two sessions |
+| 2 | **R3b** | **the robot moves under the library's own steering.** Closes **M1** and **M2's on-robot clause**, open since June. *(Since 2026-09-10: built for the season's tank chassis, robot two, teleop-first — Part 0, the tester's DRIVE station, landed; pieces 1–2 next)* | the build team's reported numbers for robot two (ports, front, cartridge, track width) and an IMU on it | ~150 lines + tests; one to two sessions |
+| 3 | **R3d** | **the robot describes itself:** sides, polarity, per-side scale and track width measured by the robot, saved to SD, verified at boot — the human states only the cartridge, the drivetrain kind and the front | R3b's group + odometry seam, and an IMU | one to two sessions |
 
 **Why these two and nothing else first:** every chunk after this is written against constants that are
 currently guesses, and R3b is the first moment anything in this project has ever been *true* rather
@@ -1665,6 +1686,26 @@ correction behind `hal/pros` does not touch the core.
 
 **DoD:** every skipped hardware oracle unskipped and green; the register fully resolved.
 
+### R3d — Drivetrain self-calibration + persistence + boot verification ⟵ **pulled forward from E5, 2026-09-10**
+The drivetrain-identity half of E5, moved to follow R3b because R3b's motor group and odometry
+consume exactly the numbers this chunk produces. A guided, once-per-robot calibration mode a person
+starts and stands clear of: ports from the device registry; per-motor polarity from a hand push (the
+tester's MOTOR WATCH, promoted into the library); side assignment and which end is the front from
+short low-voltage pulses with the IMU watching yaw; inches-per-revolution per side from one push
+along a tape; track width from an in-place spin comparing IMU yaw rate to encoder yaw rate. Results
+persist to the SD card and are **verified against the registry at every boot** — a swapped port
+refuses loudly — and are never re-discovered at boot: the routines move the robot, and a robot
+must not calibrate itself before a match. What stays human-stated, because physics or a decision
+hides it: the cartridge, the drivetrain kind, the front. Output feeds the same constructor
+arguments G1's `RobotBuilder` will read from a `.vexbot` profile — one representation, two sources.
+
+**Gated on:** R3b pieces 1–2 (the group and the odometry seam it fills) and an IMU on the robot.
+
+**DoD:** a new robot goes from "ports plugged in" to a correct, persisted drivetrain description with
+no number typed except the three above; a deliberately swapped port is refused at boot naming the
+port; the bench bot and robot two both calibrate with the same routine; every persisted number is
+reproduced by a second run within a stated tolerance.
+
 ### R4 — Sensor characterization → real noise parameters
 Measure what only hardware can tell you: IMU per-boot bias and 60s drift rate, GPS update latency and
 error distribution on and off the strip, encoder noise, and tracking-wheel slip under acceleration.
@@ -1773,6 +1814,9 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 | **M1's badge slips from R3 to R3b** | *(n/a)* | **R3b** | M1's DoD is *"identical numbers in a host test and on the V5, swapping only `RobotContext`"*. `RobotContext` precondition-requires a non-null `gps`, `tags` and `vision` (`robot_context.hpp:62-73`) and this robot has none of the three, so R3a cannot build one without shipping a test fake — which it declines to do. Line 1349's "R1–R3 close M1's Definition of Done" is therefore **not achievable as written**; recorded rather than absorbed |
 | **A digital-input seam built on an open question** | *(absent)* | **R1b** | Whether the lift homes on a limit switch or a stall is *undecided*. The seam is built anyway: cheap now, expensive to discover at R3 with the robot on the bench. A deliberate departure from "a seam earns itself on a real consumer", defensible only because a digital input has one degree of freedom and `IDigitalOut`'s header already rules every other question about it. **If the answer comes back "stall", it is a small unused sibling — stated, not discovered** |
 | **+ src/ build gate** | *(absent)* | **GATE1, reactive, out of order (2026-08-19)** | R3b piece 3 had to edit `src/main.cpp` and nothing in CI could tell whether the edit compiled: CI gates every header under `include/shulib/` but never compiled `src/` itself, and the `Makefile` records a data abort shipping from exactly this blind spot. Executing it also retired a standing belief (the on-robot link is NOT blocked — measured: `make` links at arm gcc 13.2.1 under the gnu++20 pin, so the gate is the real build) and fixed the §4.1 variant-selection defect (the documented flag was a measured silent no-op; the working spelling silently dropped the build hash) |
+| **Teleop-first order inside R3b** | *(n/a — R3b's own brief ordered pieces 1 → 2, gated on the bench bot's B1 measurements)* | **R3b session 2 (2026-09-10): tester DRIVE station first (Part 0, its own commit), then motor group, odometry seam, composition root** | A second robot arrived — the season's tank chassis — and the build team needs driver control to test it. The R1a runbook already planned an open-loop stick drive (steps 4 and 10); doing it first in the tester, through the adapters and behind six safety gates, gives the build team a drivable chassis this week and the project its first hardware run of `ProsMotor`/`ProsController`, while the library pieces are built for that robot with reported numbers instead of the bench bot's. Nothing about pieces 1–2 changed; only the order, and the robot they are built for |
+| **+ R3d: drivetrain self-calibration, pulled forward from E5** | E5 (Phase E′, after R4/R5, alongside GPS lever-arm / camera-mount / IMU-bias calibration) | **R3d, immediately after R3b** | The team lead's argument (2026-09-10), accepted: almost everything a human is asked to type about a drivetrain is discoverable on the robot — ports from the registry, polarity from a hand push, sides and track width from the IMU, the distance scale from one push along a tape — and only the cartridge (physically unobservable: the rotor speed is the same for every cartridge and the firmware divides by whatever it was told), the drivetrain kind and the front must be stated. LemLib makes you type all of it; a robot that calibrates itself serves the accessibility pillar and removes the invented-constant defect class (HA-111) at its source. The tester's MOTOR WATCH capture is the seed. E5 keeps the field-accuracy items |
+| **+ a third build variant** | *(n/a)* | **`make ROBOT=tank`** (R3b session 2, Part 0) | Robot two has its own port map, and a tester built for the bench bot would mislabel its sides. The variant is validated by the Makefile's `$(error)` enumeration, asserted by the `src/` build gate as a whole compile-line token, and proven end-to-end by a per-variant beacon string the gate finds in the linked package (a tank build silently carrying the bench bot's table onto robot two is HA-111's defect class again; the beacon is the only detector that can see it) |
 
 > **Reversal, recorded honestly.** An earlier draft of this document put the hardware bridge *before*
 > the motion layer, arguing that validating the HAL seam early keeps the blast radius of a conversion

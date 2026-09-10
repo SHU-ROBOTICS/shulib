@@ -166,6 +166,35 @@ not silently break them. This table is the spine of the no-staleness promise.
 > whether to push at all" for two days after the push — the status pointer is the one line in
 > this file that must never be stale, and it was.)* First motion is still open.
 >
+> **GATE1 — the `src/` build gate — landed 2026-08-19** (committed `7d3e7ce`; completion record in
+> the development log, `shulib-v2` branch): CI now runs the REAL `make` for every robot variant,
+> compile AND link, through `tools/src_build_gate.py` (`self-test`, then `check`), so `src/main.cpp`
+> is no longer the one file no gate could see. Two records were corrected by measurement — the
+> on-robot link is NOT blocked (`make` links at `arm-none-eabi-g++ 13.2.1`), and `make ROBOT=xdrive`
+> replaces a documented flag that silently built the wrong robot. *Its close-out — this paragraph
+> and the record — was written 2026-09-10, three weeks late: the gap this pointer exists to prevent.
+> Still unproven: the CI job on a GitHub runner, because nothing has been pushed since 2026-08-17.*
+>
+> **A SECOND ROBOT exists (2026-09-10): the season's tank chassis** — five coupled motors per side
+> driving four wheels per side, no sensors mounted yet, cartridges read blue off a motor, 2.75 in
+> wheels. **R3b session 2** (briefed and committed `d92a9fe`) builds pieces 1 and 2 for it in a
+> teleop-first order, with a bench-tester DRIVE station first so the build team can drive it under
+> the library's *adapters* (not its motion stack — the library has still never driven a robot), and
+> pulls a new chunk **R3d** (drivetrain self-calibration + persistence + boot verification) forward
+> from E5. **Session 2's Part 0 LANDED 2026-09-10:** the bench tester carries a per-variant
+> chassis table (robot two's ports deliberately UNSET until the build team reports them — nothing is
+> guessed; the cartridge is set because it was read off a motor), MOTOR WATCH watches every motor
+> the census finds and captures each port's sign from a whole-robot push, and a new station 10
+> DRIVE powers the drive motors through the library's `ProsMotor`/`ProsController` adapters behind
+> six safety gates (refuse-unless-captured, wheels-up first with a ground mode unlocked only by a
+> clean wheels-up run, a held dead-man button, a 3 V ceiling stepped by button, a coupled-motor
+> fighting cut-out, and 0 V on every exit path). The stick → `ChassisSpeeds` mapping moved out of
+> `src/main.cpp` into the PROS-free `shulib/teleop/stick_mapping.hpp` (chunk T2's seam), pinned
+> bit-for-bit against the old loop's code; `make ROBOT=tank` is the third validated variant and the
+> `src/` build gate asserts all three by define AND by a beacon string in the linked package.
+> **Not yet run on hardware — not the tester's DRIVE station, not any adapter.** Pieces 1 and 2
+> (the motor group; the odometry seam) are next and unstarted; M1's badge has not moved.
+>
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
 > clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to
@@ -1026,6 +1055,20 @@ DoD in Phases C–F depends on it.*
   then was restored. *Evidence: `hardware-assumptions.md`; `.github/workflows/ci.yml`; suite
   unchanged at 429/681,086 (no new test surface, by design); the A4 completion record, incl.
   the Phase A retrospective (development log, `shulib-v2` branch).*
+- [x] **The `src/` build gate (chunk GATE1, reactive, 2026-08-19)** — the ARM job above compiled
+  every HEADER and never `src/` itself, and the `Makefile` records a data abort that shipped from
+  exactly that blind spot. `tools/src_build_gate.py check` now drives the REAL `make` for every
+  robot variant (`ROBOT=bench` and `ROBOT=xdrive` at GATE1; `ROBOT=tank` since R3b session 2,
+  2026-09-10), compile AND link, forced-fresh with the compiled
+  TU count printed; errors fail, vendored warnings are ignored by path, `-Wunused-function` is
+  allowed by category (the residual hole is stated in the tool), everything else fails, and a
+  missing toolchain FAILS rather than skips. `self-test` plants five faults against real builds
+  first. Two records were corrected by measurement: the on-robot link is NOT blocked (the gate IS
+  the build), and `make ROBOT=xdrive` replaces a documented flag that silently built the wrong
+  robot. *Evidence: `tools/src_build_gate.py`; `.github/workflows/ci.yml` (`arm-compile-gate`, two
+  added steps); 10 self-test cases; 5 mutations observed red then restored; re-verified PASS on
+  2026-09-10 at `7d3e7ce`; the GATE1 completion record (development log, `shulib-v2` branch). Not
+  yet proven: the CI job on a GitHub runner — nothing has been pushed since 2026-08-17.*
 
 **Facade (WS — Chassis)**
 - [x] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.

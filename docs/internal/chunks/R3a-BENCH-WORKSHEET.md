@@ -11,7 +11,8 @@
 ## Station A — RUN THE PROGRAM (no laptop needed)
 
 **The program is already on the brain: slot 3, named "Bench Tests".** It is **read-only and commands
-no motion** — it cannot drive the robot.
+no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has its own station (D)
+below. Nothing else on the menu can move the robot.
 
 1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"**.
 
@@ -31,15 +32,20 @@ no motion** — it cannot drive the robot.
    |---|---|---|---|
    | **1 DEVICE CENSUS** | — | nothing, just read it | you have noted every port and what is in it |
    | **2 IMU + ROTATE** | **yes** | turn the whole robot counter-clockwise | the big number **ROSE** while you turned — if it fell, say so |
-   | **3 MOTORS** | **yes** | spin each drive wheel forward by hand, one at a time | you re-ran it and saw which port moved, and which way |
+   | **3 MOTOR WATCH (live)** | **yes** | push the robot forward, OR spin one wheel — it records itself | the table showed UP/DOWN per port and you touched to save it |
    | **4 BATT/CTRL** | **yes** | pair a controller if it reads NOT CONNECTED | it reads CONNECTED (unblocks 4 register entries) |
    | **5 SD CARD PROBE** | — | nothing, unless it fails — then reformat FAT32 | all three steps pass, header chip reads PASS |
    | **6 LOOP RATE** | — | nothing, leave the robot still | min/max/mean are printed |
    | **7 RUN ALL** | **yes** | be ready to rotate when test 2's readout appears | every test above has run once |
-   | **8 SCREEN RULER** | **yes** | answer the four numbered questions on screen | all four answered — they fix the layout constants |
+   | **8 MOTORS (static)** | — | nothing — a one-shot snapshot; use 3 to capture movement | you have seen each motor's raw and canonical position |
+   | **9 SCREEN RULER** | **yes** | answer the four numbered questions on screen | all four answered — they fix the layout constants |
+   | **10 DRIVE (POWERS)** | **yes — RED stripe** | **POWERS THE MOTORS.** Wheels off the ground; hold **L1** to drive | you drove at 3 V wheels-up, raised the ceiling with **R1**, touched to stop — see **Station D** |
 
    Each button carries a **status dot**: hollow until run, then filled — green PASS,
    amber CHECK, red FAIL. That is how you tell what is left without keeping a list.
+   **Button 10 has a RED stripe and a red edge instead of amber: it is the only one that
+   powers motors.** *(This table was corrected at R3b Session 2 — it had listed the menu as it
+   was before MOTOR WATCH existed.)*
 
 4. Results print on the screen. When it fills, tap to continue. When a test ends, tap
    **TOUCH TO RETURN TO MENU**.
@@ -229,12 +235,121 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 
 ---
 
+## Station D — DRIVE  *(the 2026 tank chassis, robot two — added R3b Session 2, 2026-09-10)*
+
+> ⚠ **This is the ONE station that powers motors.** Button **10 DRIVE** has a **RED** stripe. It
+> drives the robot through the library's motor and controller *adapters* with open-loop volts — it
+> is **not** the library's motion stack, and it commands nothing unless a button is **held**.
+> Everything else on the menu is still read-only.
+>
+> **Six things must be true before it will drive, and the program checks each one and refuses
+> loudly if it is not.** The refusal text names what is missing. A refusal is a finding — write
+> down what it said.
+
+**D.0 — before any code runs (the build team, at the robot)**
+
+- [ ] **D.0.1 Mount an IMU** on any smart port. Note the port: → **________**
+      *(The tester's IMU button and the library both need one; until it is mounted, the IMU
+      station refuses and says so. No other sensor is needed for this station.)*
+- [ ] **D.0.2 Pair the controller** (Station 5.5). Button 4 must read **CONNECTED**.
+- [ ] **D.0.3 Read the cartridge colour off a drive motor** — the insert is visible through the
+      housing. → **RED / GREEN / BLUE** *(reported BLUE on 2026-09-10; confirm with your own eyes,
+      on at least two motors per side. Software cannot answer this.)*
+- [ ] **D.0.4 Ruler the wheel**: floor → axle centre, doubled. → **________ in** *(reported 2.75)*
+- [ ] **D.0.5 Tape the track width**: outside face of a left wheel → outside face of the right,
+      minus one wheel width. → **________ in**
+- [ ] **D.0.6 Decide which end is the FRONT and photograph it.** Every sign below is relative to
+      this choice. → front = **________** (describe it: "the intake end", "the battery end", …)
+- [ ] **D.0.7 Report the drive ports, PER SIDE**, from the Devices screen or button 1:
+      → **LEFT:  ____ ____ ____ ____ ____**  **RIGHT: ____ ____ ____ ____ ____**
+      *(Left and right as seen from behind the robot, looking toward the front you chose.)*
+- [ ] **D.0.8 External gearing motor → wheel**: tooth counts, or "direct". → **________**
+      *("600 rpm" was reported, which reads as direct drive; the count settles it.)*
+
+> **STOP here and send D.0.3–D.0.8 in.** The chassis table in `src/bench_r3a.cpp` ships with
+> the ports **UNSET** on purpose — nothing is guessed — and until they are typed in, button 10
+> refuses with `chassis table UNSET — missing: LEFT ports, RIGHT ports`. A rebuilt program with
+> the ports filled in is what the rest of this station runs on.
+
+**D.1 — census → push → drive (with the rebuilt program on the brain)**
+
+- [ ] **D.1.1** Run **1 DEVICE CENSUS**. Every reported port shows **MOTOR** with its side from the
+      table beside it (`LEFT(table)` / `RIGHT(table)`). A port with **`?`** or a missing port is a
+      finding — write it down, do not continue to D.1.3.
+- [ ] **D.1.2** Put the robot on the floor, wheels down. Run **3 MOTOR WATCH**. **Push the WHOLE
+      robot, FRONT END LEADING, about a foot.** Watch the panel: every drive port should show
+      **UP** or **DOWN**. *(UP and DOWN mixed **within** a side is normal — adjacent motors on one
+      gear train spin opposite ways. It is not a wiring fault.)* Touch the screen.
+      → It asks **WHICH WAY DID YOU PUSH IT?** — answer honestly (**FRONT FIRST** if the end you
+      chose as the front led). If you are not sure, re-run and push again, one way only.
+      **DONE IF** it prints **`WHOLE-ROBOT PUSH … SIGNS CAPTURED`** and a line like
+      `signed ports for DRIVE: LEFT +1 -2 +3 … | RIGHT …`. Copy that line here:
+      → **LEFT: ______________________  RIGHT: ______________________**
+      If it says **PARTIAL** (a port did not move) or **single-wheel spin**, push again, firmer,
+      all wheels on the floor. A port that never moves is a finding.
+- [ ] **D.1.3** **Lift the robot onto blocks so NO wheel touches anything.** Check it cannot rock
+      off. Have a second person ready at the battery.
+- [ ] **D.1.4** Tap **10 DRIVE (POWERS)**. Read what it prints — it states the **cartridge belief**
+      it is about to write to every motor and the **signed ports** from D.1.2. **If the cartridge
+      it names is not the colour you read in D.0.3, STOP** and report it; do not tap YES.
+      Then it asks **ARE THE WHEELS OFF THE GROUND?** — tap **YES, WHEELS UP** only if D.1.3 is true.
+- [ ] **D.1.5 Drive at 3 V, wheels up.** Hold **L1** (left index finger — the button on the
+      controller's top edge, not the sticks) and push the **left stick forward** a little. All
+      wheels on both sides should turn the **same way, toward the front**. Release L1: everything
+      stops. Try the **right stick** left and right: the sides should turn opposite ways.
+      **DONE IF** the panel's footer says **DRIVING (L1 held)**, every port row reads green with a
+      velocity of the same sign on a side, and nothing reads red.
+      → Did all wheels turn toward the front on "forward"? **YES / NO** — if NO, which side/wheel?
+      → Any port shown **RED** or a **CUT** message? Copy it **word for word**: ______________________
+      *(A CUT names the port and the reason. It is the program protecting the drivetrain: five
+      motors on one gear train, and a wrong sign on one fights the other four. The drive stays cut
+      until you touch to exit and re-enter. A cut is a finding, not a failure of yours.)*
+- [ ] **D.1.6 Raise the ceiling.** Tap **R1** once: the panel and the controller LCD both read
+      **6 V**. Drive again as in D.1.5. Repeat for **9 V** and **12 V** only if 6 V was clean.
+      → highest ceiling driven clean, wheels up: **3 / 6 / 9 / 12 V**
+      → highest current shown on any port (the `A` column): **________ A** on port **____**
+      → highest temperature shown (the `C` column): **________ °C**
+- [ ] **D.1.7 Touch the screen to exit.** Every motor goes to 0 V and coasts. The summary prints
+      per-port max current and temperature and whether a cut happened. It is all in
+      `/usd/r3a_log.txt`.
+- [ ] **D.1.8 The ground run — only after a CLEAN wheels-up run at 6 V** (D.1.5–D.1.6 with no
+      CUT, the motors actually driven for at least 3 s, and the ceiling raised to 6 V; the exit
+      summary prints **`ground mode is UNLOCKED`** when that is true). Then:
+      1. Put the robot **on the ground**. **Clear 3 m in every direction.** A **second person at
+         the battery**, ready to pull it.
+      2. Re-enter **10 DRIVE**. It asks "wheels off the ground?" — tap **NO**. It then asks
+         **ON THE GROUND? clear 3 m all round, a second person at the battery** — tap
+         **YES, GROUND MODE** only if both are true. *(If instead it says
+         `REFUSED: ground driving needs a clean wheels-up run at >= 6 V this power cycle first`,
+         go back to D.1.5–D.1.6 and make one clean run at 6 V; that message is the program, not
+         you.)* The panel header and the controller LCD now say **GROUND**; the ceiling is back
+         at **3 V**.
+      3. **3 V first.** Hold **L1**, push the left stick forward a little, **release** — it should
+         roll forward a short way and stop. Then the right stick a little: it should turn on the
+         spot. → forward on "forward"? **YES / NO**   turned the expected way? **YES / NO**
+      4. **Then 6 V.** Tap **R1** once (panel and LCD read **6 V**); repeat step 3.
+      5. **Then stop:** touch the screen. **Do not go above 6 V on the ground unless the team lead
+         is present** — R1 will step to 9 and 12 V, and the program will not stop you.
+      → any CUT text, word for word: ______________________
+      → does the robot pull to one side on "forward"? **NO / pulls LEFT / pulls RIGHT**
+
+> **What to send back:** D.0.3–D.0.8, the signed-ports line from D.1.2, the YES/NO and any
+> CUT text from D.1.5, the numbers from D.1.6, the ground-run answers from D.1.8, and the SD
+> card's `/usd/r3a_log.txt` (the exit summary of every run names its mode — WHEELS UP or
+> GROUND — and whether it was clean). Results go into `R3a-PROGRESS.md` as a new phase, by the
+> coordinator, from the log.
+
+---
+
 ## DO NOT
 
-- ❌ **Do not upload an old build.** The default build is now the **R3a bench validation binary**
-      (`src/bench_r3a.cpp`) — read-only, commands no motion, safe to run. The invented X-drive
-      wiring is behind a build flag and would fault at boot on this robot.
+- ❌ **Do not upload an old build.** The default build is the **bench tester**
+      (`src/bench_r3a.cpp`) — read-only except button 10 DRIVE, which powers nothing unless L1 is
+      held and its six checks pass. For the 2026 tank chassis the build is `make ROBOT=tank`. The
+      invented X-drive wiring is behind a build flag and would fault at boot on either robot.
       *(Brain's programming port is **micro-USB**, not USB-C.)*
+- ❌ **Do not run 10 DRIVE with a wheel touching anything** until Station D says to, and never
+      without a second person at the battery.
 - ❌ **Do not disassemble anything** to read a gear — photograph it in place.
 - ❌ **Do not "correct" a reading to what this sheet expects.** A contradiction is the most valuable
       output of the session.

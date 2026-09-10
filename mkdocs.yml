@@ -279,6 +279,8 @@ nav:
           - Accuracy: api/accuracy.md
       - Top level:
           - Version: api/version.md
+      - Teleop:
+          - Stick mapping: api/stick_mapping.md
 # END GENERATED API NAV
 
   - FAQ: faq.md

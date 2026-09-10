@@ -16,9 +16,11 @@ INCDIR=$(ROOT)/include
 # -Wno-psabi. The library headers get the full strict set in CI's ARM gate, but
 # src/main.cpp and src/bench_r3a.cpp got nothing, and a data abort shipped to the
 # robot as a result. Enabled here, deliberately WITHOUT -Werror: in the bench
-# build the X-drive helpers (robot(), portMapString(), shaped()) are legitimately
-# unused, and three -Wunused-function warnings are the correct, informative
+# and tank builds the X-drive helpers (robot(), portMapString()) are legitimately
+# unused, and two -Wunused-function warnings are the correct, informative
 # output -- they are how you can see that the invented wiring really is dead code.
+# (There were three until R3b Session 2 moved shaped() into the PROS-free
+# shulib/teleop/stick_mapping.hpp; tools/src_build_gate.py asserts >= 1, not 3.)
 #
 # Honest limit, stated so nobody trusts this further than it goes: -Wformat=2 did
 # NOT catch the bug that motivated it. std::string_view is trivially copyable, so
@@ -41,9 +43,12 @@ ifneq ($(SHULIB_GIT_HASH),)
 override EXTRA_CXXFLAGS+=-DSHULIB_BUILD_HASH=\"$(SHULIB_GIT_HASH)\"
 endif
 
-# ── WHICH ROBOT IS THIS BINARY FOR? (chunk GATE1) ──────────────────────────────
+# ── WHICH ROBOT IS THIS BINARY FOR? (chunk GATE1; third variant at R3b Session 2) ──
 # ROBOT selects the variant src/main.cpp builds:
-#     make                → ROBOT=bench  — the tank bench bot (the only robot that exists)
+#     make                → ROBOT=bench  — the measured tank BENCH bot: boots the bench tester
+#     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too (its
+#                            chassis table in src/bench_r3a.cpp ships UNSET until the build
+#                            team reports ports; no library graph is built for it yet)
 #     make ROBOT=xdrive   → the invented X-drive wiring (HA-111; cannot boot on the bench bot)
 # Any other value is an $(error), NOT a silent default: the previous mechanism was
 # "make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED" as documented in src/main.cpp —
@@ -59,11 +64,13 @@ endif
 # top of any command-line value instead of vanishing.
 ROBOT?=bench
 ifeq ($(ROBOT),bench)
-# src/main.cpp defaults to the bench tank when SHULIB_ROBOT_XDRIVE_INVENTED is undefined.
+# src/main.cpp defaults to the bench tank when neither variant define is set.
 else ifeq ($(ROBOT),xdrive)
 override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_XDRIVE_INVENTED
+else ifeq ($(ROBOT),tank)
+override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_TANK_2026
 else
-$(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive)
+$(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive, tank)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

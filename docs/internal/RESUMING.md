@@ -100,9 +100,10 @@ arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion -Wsign-conversion -Wsh
   -Os -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=softfp -c /tmp/all.cpp -o /dev/null -Iinclude
 ```
 
-And the src/ BUILD gate (chunk GATE1, 2026-08-19) — the REAL `make`, compile AND link, both
-robot variants, warning policy in the tool's header. It deletes and rebuilds `bin/`/`.d/`
-(both gitignored), so it does not dirty the tree:
+And the src/ BUILD gate (chunk GATE1, 2026-08-19) — the REAL `make`, compile AND link, every
+robot variant (three since R3b Session 2: `bench`, `xdrive`, `tank`), warning policy in the
+tool's header. It deletes and rebuilds `bin/`/`.d/` (both gitignored), so it does not dirty
+the tree:
 
 ```sh
 python3 tools/src_build_gate.py self-test
@@ -116,9 +117,9 @@ python3 tools/src_build_gate.py check
 > in-tree, and `make` COMPILES AND LINKS end to end (exit 0, `bin/hot.package.bin`) at
 > apt's `arm-none-eabi-g++ 13.2.1` — locally and in CI. If a session doubts this,
 > re-measure with `make`; do not resurrect the old blocker from memory or old notes.
-> Variant selection is `make ROBOT=bench` (default) / `make ROBOT=xdrive` — the old
-> documented `CXXFLAGS_EXTRA` flag was a measured silent no-op (transposed name;
-> GATE1-PROGRESS §3–4) and no longer appears anywhere.
+> Variant selection is `make ROBOT=bench` (default) / `make ROBOT=xdrive` / `make ROBOT=tank`
+> (the 2026 chassis, since R3b Session 2) — the old documented `CXXFLAGS_EXTRA` flag was a
+> measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and no longer appears anywhere.
 
 > **This command was BROKEN here until DOCS1 (2026-08-14), and the failure was silent-ish in the
 > worst way.** The `sed` read `s|.*/include/||`, which needs a `/` *before* `include` — so run from

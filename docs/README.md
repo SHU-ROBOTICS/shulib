@@ -84,7 +84,7 @@ are enforced by the build itself, not by anyone remembering:
 - **The API reference is regenerated from the headers**, and the build fails if the committed copy
   is out of date.
 - **Every public entity in every shipped header is documented**, or the build fails naming it,
-  with its file and line. All 1,645 of them — types, members, nested types, free functions,
+  with its file and line. All 1,659 of them — types, members, nested types, free functions,
   constants and type aliases — across every header under `include/shulib/`. Being gated is not
   the same as being frozen: it costs one comment edit and a regeneration to change a documented
   seam, whereas changing a *frozen* signature fails a compile-time pin naming the Freeze Register

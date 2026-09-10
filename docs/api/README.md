@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 1,645 of them across 118 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 1,659 of them across 119 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -218,9 +218,15 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [Version](version.md) | [`version.hpp`](../../include/shulib/version.hpp) | The shulib API version — the mechanism behind the Freeze Register's promise. |
 
+### Teleop
+
+| Page | Header | What it is |
+|---|---|---|
+| [Stick mapping](stick_mapping.md) | [`teleop/stick_mapping.hpp`](../../include/shulib/teleop/stick_mapping.hpp) | Teleop stick mapping — the ONE place a driver's sticks become a body-frame drive request. |
+
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 1,645 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 1,659 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

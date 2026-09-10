@@ -4,7 +4,8 @@ name: ci
 # Runs the same checks we run locally: the architecture guards, the strict host
 # build, the test suite, (since chunk A4) a cross-COMPILE of every v2 header for
 # the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
-# AND link, both robot variants — of src/ under a warning policy.
+# AND link, every robot variant (three since R3b Session 2) — of src/ under a
+# warning policy.
 # (This file said the ARM link was impossible in CI until 2026-08-19 — "needs
 #  PROS's bundled toolchain". MEASURED FALSE at GATE1: the firmware archives are
 #  vendored in-tree and `make` links end to end at apt's arm-none-eabi-g++ 13.2.1
@@ -105,8 +106,9 @@ jobs:
   #    the V5 uses. The header list is GENERATED (find | sort), never hard-coded —
   #    a gate you must remember to update when adding a file is a gate that rots.
   #  * The SRC BUILD GATE steps (GATE1) run the REAL `make` — compile AND LINK,
-  #    producing bin/hot.package.bin — for BOTH robot variants (ROBOT=bench and
-  #    ROBOT=xdrive), because until GATE1 src/ was in NO gate at all and the
+  #    producing bin/hot.package.bin — for EVERY robot variant (ROBOT=bench,
+  #    ROBOT=xdrive, and since R3b Session 2 ROBOT=tank; the tool owns the list),
+  #    because until GATE1 src/ was in NO gate at all and the
   #    Makefile records that this blind spot shipped a data abort to the robot.
   #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's
   #    bundled toolchain; measured false — firmware/*.a are vendored in-tree and
@@ -143,5 +145,5 @@ jobs:
       - name: src build gate self-test (prove the detectors fire)
         run: python3 tools/src_build_gate.py self-test
 
-      - name: Build src/ for the V5 (real link, both variants, warning policy)
+      - name: Build src/ for the V5 (real link, every variant, warning policy)
         run: python3 tools/src_build_gate.py check

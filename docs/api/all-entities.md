@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,645 of them, across 118 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,659 of them, across 119 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -316,6 +316,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `deadbanded` | free function | [stick_mapping.md](stick_mapping.md#deadbanded) |
 | `DebugRecord` | struct | [debug_record.md](debug_record.md#struct-debugrecord) |
 | `DebugRecord::activeCommandId` | field | [debug_record.md](debug_record.md#debugrecord-activecommandid) |
 | `DebugRecord::activeCommandState` | field | [debug_record.md](debug_record.md#debugrecord-activecommandstate) |
@@ -373,6 +374,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveBrake::start` | function | [drive_brake.md](drive_brake.md#drivebrake-start) |
 | `DriveBrake::state` | function | [drive_brake.md](drive_brake.md#drivebrake-state) |
 | `DriveBrake::tick` | function | [drive_brake.md](drive_brake.md#drivebrake-tick) |
+| `DriveRequest` | struct | [stick_mapping.md](stick_mapping.md#struct-driverequest) |
+| `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
+| `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
+| `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
 
 ## E
 
@@ -914,6 +919,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
+| `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
@@ -986,6 +992,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `mapSticks` | free function | [stick_mapping.md](stick_mapping.md#mapsticks) |
+| `mapSticksToChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#mapstickstochassisspeeds) |
 | `MatrixKinematics` | class | [matrix_kinematics.md](matrix_kinematics.md#class-matrixkinematics) |
 | `MatrixKinematics::desaturate` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-desaturate) |
 | `MatrixKinematics::forward` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-forward) |
@@ -1598,6 +1606,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallDetector::reset` | function | [stall_detector.md](stall_detector.md#stalldetector-reset) |
 | `StallDetector::StallDetector` | function | [stall_detector.md](stall_detector.md#stalldetector-stalldetector) |
 | `StallDetector::update` | function | [stall_detector.md](stall_detector.md#stalldetector-update) |
+| `StickInput` | struct | [stick_mapping.md](stick_mapping.md#struct-stickinput) |
+| `StickInput::connected` | field | [stick_mapping.md](stick_mapping.md#stickinput-connected) |
+| `StickInput::leftX` | field | [stick_mapping.md](stick_mapping.md#stickinput-leftx) |
+| `StickInput::leftY` | field | [stick_mapping.md](stick_mapping.md#stickinput-lefty) |
+| `StickInput::rightX` | field | [stick_mapping.md](stick_mapping.md#stickinput-rightx) |
 | `StrafeTo` | class | [strafe_to.md](strafe_to.md#class-strafeto) |
 | `StrafeTo::name` | function | [strafe_to.md](strafe_to.md#strafeto-name) |
 | `StrafeTo::StrafeTo` | function | [strafe_to.md](strafe_to.md#strafeto-strafeto) |
@@ -1682,6 +1695,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TickPhase::User` | enumerator | [debug_record.md](debug_record.md#tickphase-user) |
 | `tickPhaseName` | free function | [tick_attribution.md](tick_attribution.md#tickphasename) |
 | `Time` | type alias | [quantity.md](quantity.md#time) |
+| `toChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#tochassisspeeds) |
 | `TrackingWheel` | class | [tracking_wheel.md](tracking_wheel.md#class-trackingwheel) |
 | `TrackingWheel::forward` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-forward) |
 | `TrackingWheel::lateral` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-lateral) |
