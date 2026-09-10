@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 27 of 48 chunks complete
 
-- **Next up:** R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10; the build team's ports fill the tester's chassis table, worksheet Station D runs on the chassis, then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.  
+- **Next up:** R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10 and the chassis table was filled the same day from the build team's port report; upload make ROBOT=tank to the chassis and run worksheet Station D (census, hand push, DRIVE on blocks), then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
 - **Suite:** 1,163 cases / 1,538,453 assertions, 3 skipped — **green**  

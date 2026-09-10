@@ -814,3 +814,34 @@ program's "no" from their own mistake. The D12 revoke-on-cut rule is one line if
 prefers the literal "a clean run exists" reading.
 
 PART 0 READY FOR VERIFICATION
+
+---
+
+### 8. Coordinator's close of Part 0, and the port report (2026-09-10)
+
+**Verified independently and committed as `e16f336`** (amended once so the briefing carries the
+CLEAN-tree suite number, **1163 / 1,538,453 / 0 failed / 3 skipped**, measured after a fresh
+configure on the committed tree — the dirty-tree 1,538,459 above is the same suite plus the six
+`-dirty` characters, per Session 1 §6). Re-run by the coordinator, not taken from §5/§7.2: the
+suite, the five `api_doc_tool` gates, both staleness runs, the PROS-free and layering guards, the
+ARM header gate (152), `src_build_gate.py` self-test (18) and check (three variants, beacons), and
+the six DRIVE gates plus the two-stage gate 2 read against the code. D12 (a cut re-locks ground
+mode) ACCEPTED as written. The pace rules that this session's speed earned went into
+`RESUMING.md` as `1a15ec0`.
+
+**The port report arrived after the commit** (team lead, from the robot, standing behind it with
+its back against him, looking toward the front): **LEFT 11 12 13 14 15, RIGHT 20 19 18 17 16, each
+back → front** (11 and 20 rearmost; 15 and 16 frontmost). **The front is therefore the 15/16
+end** — implied by the way the report was read rather than declared, so worksheet D.0.6 asks for a
+description or photograph of that end. Typed into the tank table (`src/bench_r3a.cpp`, the ONE
+place), `.measured` left **false** with a provenance line saying so: the ports were read from the
+robot by a person, and station 1's census is what confirms them; flipping the flag before that
+would be the over-claim the table's own rule forbids. The IMU stays UNSET (none mounted). Gate
+check on the filled table: **PASS, all three variants link**, hash `v0.1.1-276-g1a15ec0-dirty`.
+`tableConsistent()` holds by inspection: ten distinct ports in 1..21, no side overlap, no IMU
+overlap. Worksheet D.0.6/D.0.7, the roadmap pointer and `build-order.md`'s Next block record the
+same facts in the same commit.
+
+**What the next hand at the robot does:** upload `make ROBOT=tank` to slot 3, then Station D —
+census (flips `measured` when it shows MOTOR on all ten), the whole-robot push front-first,
+DRIVE on blocks at 3 V. Nothing in Part 0 has yet run on hardware.

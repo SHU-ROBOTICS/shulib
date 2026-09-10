@@ -148,23 +148,32 @@ struct ChassisTable {
 
 #if defined(SHULIB_ROBOT_TANK_2026)
 // ROBOT TWO -- the 2026 tank chassis (build team, stated 2026-09-10): five COUPLED motors
-// per side driving four wheels per side. PORTS: NOT YET REPORTED -> UNSET, both sides.
+// per side driving four wheels per side.
+// PORTS: reported by the team lead 2026-09-10, read off the robot while standing BEHIND
+// it (the back of the robot against him, looking toward the front): LEFT 11 12 13 14 15
+// and RIGHT 20 19 18 17 16, each listed BACK -> FRONT (11 and 20 are the rearmost motors,
+// 15 and 16 the frontmost). THE FRONT is therefore the end where ports 15 and 16 sit --
+// the end away from a person who reads the left side as 11..15. Order within a side is
+// informational: the table is a set, and MOTOR WATCH captures each port's own sign.
 // CARTRIDGE: BLUE, read off a motor by the build team 2026-09-10 -- a reported
 // measurement, so it may be set; it is still printed as a BELIEF wherever the adapter is
 // about to WRITE it. IMU: none mounted -> UNSET. Also reported, and deliberately NOT here
 // because the tester uses neither: wheels 2.75 in, and "600 rpm" (reads as direct drive
 // 1:1, UNCONFIRMED until tooth counts arrive -- that belongs to odometry, R3b Part 2).
+// `measured` stays FALSE until station 1's census has shown MOTOR on all ten ports; flip
+// it then, with the date, not before (under-claim before over-claim).
 constexpr ChassisTable kChassis = {
-    .robot = "2026 TANK CHASSIS (robot two) -- PORTS UNSET",
-    .left = {},
-    .leftCount = 0,
-    .right = {},
-    .rightCount = 0,
+    .robot = "2026 TANK CHASSIS (robot two)",
+    .left = {11, 12, 13, 14, 15},
+    .leftCount = 5,
+    .right = {20, 19, 18, 17, 16},
+    .rightCount = 5,
     .cartridge = Cartridge::Blue,
     .imuPort = 0,
     .measured = false,
-    .provenance = "cartridge BLUE read off a motor by the build team 2026-09-10; "
-                  "ports and IMU NOT reported -- UNSET, never guessed",
+    .provenance = "ports: team lead 2026-09-10, from the robot, back->front, from behind "
+                  "(front = the 15/16 end); cartridge BLUE off a motor; IMU none; "
+                  "census pending",
 };
 #else
 // THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13

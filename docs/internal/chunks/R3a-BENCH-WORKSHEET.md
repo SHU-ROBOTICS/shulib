@@ -259,9 +259,13 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 - [ ] **D.0.5 Tape the track width**: outside face of a left wheel → outside face of the right,
       minus one wheel width. → **________ in**
 - [ ] **D.0.6 Decide which end is the FRONT and photograph it.** Every sign below is relative to
-      this choice. → front = **________** (describe it: "the intake end", "the battery end", …)
+      this choice. → front = **the end where ports 15 (left) and 16 (right) sit** *(implied by
+      the 2026-09-10 port report, which was read standing behind the robot; describe or photograph
+      that end here so nobody has to re-derive it: ________)*
 - [ ] **D.0.7 Report the drive ports, PER SIDE**, from the Devices screen or button 1:
-      → **LEFT:  ____ ____ ____ ____ ____**  **RIGHT: ____ ____ ____ ____ ____**
+      → **LEFT: 11 12 13 14 15**  **RIGHT: 20 19 18 17 16** *(each back → front; reported by the
+      team lead 2026-09-10 from the robot and typed into the table the same day — D.1.1's census
+      confirms them and is what flips the table's `measured` flag)*
       *(Left and right as seen from behind the robot, looking toward the front you chose.)*
 - [ ] **D.0.8 External gearing motor → wheel**: tooth counts, or "direct". → **________**
       *("600 rpm" was reported, which reads as direct drive; the count settles it.)*

@@ -182,8 +182,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > the library's *adapters* (not its motion stack — the library has still never driven a robot), and
 > pulls a new chunk **R3d** (drivetrain self-calibration + persistence + boot verification) forward
 > from E5. **Session 2's Part 0 LANDED 2026-09-10:** the bench tester carries a per-variant
-> chassis table (robot two's ports deliberately UNSET until the build team reports them — nothing is
-> guessed; the cartridge is set because it was read off a motor), MOTOR WATCH watches every motor
+> chassis table (robot two's ports stayed UNSET until the build team reported them later the same
+> day — nothing was guessed; now LEFT 11–15 / RIGHT 20–16 back-to-front, front = the 15/16 end,
+> cartridge blue read off a motor, IMU still none; the census confirms the ports), MOTOR WATCH watches every motor
 > the census finds and captures each port's sign from a whole-robot push, and a new station 10
 > DRIVE powers the drive motors through the library's `ProsMotor`/`ProsController` adapters behind
 > six safety gates (refuse-unless-captured, wheels-up first with a ground mode unlocked only by a

@@ -629,7 +629,7 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10; the build team's ports fill the tester's chassis table, worksheet Station D runs on the chassis, then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
+**Next: R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10 and the chassis table was filled the same day from the build team's port report; upload `make ROBOT=tank` to the chassis and run worksheet Station D (census, hand push, DRIVE on blocks), then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
 live log [R3a-PROGRESS.md](chunks/R3a-PROGRESS.md)). **R3 split into R3a + R3b + R3c on 2026-08-17** —
 the ruling, its reasoning and its rejected alternative are in the brief's §3 and the deviations table.
 **R3b is `[~]` IN FLIGHT, deliberately out of order: its §6 piece — the absent-device ruling, the one
@@ -652,9 +652,11 @@ sign capture, station 10 DRIVE — the ONE station that powers motors, through t
 adapters behind six safety gates incl. a coupled-motor fighting cut-out and a ground mode unlocked
 only by a clean wheels-up run — the stick mapping extracted to the PROS-free
 `shulib/teleop/stick_mapping.hpp` (bit-identity-pinned), and `make ROBOT=tank` gated by define and
-by an in-package beacon. Nothing has run on hardware. **Next: the build team's ports and front go
-into the table (one edit), the tester is uploaded, and Station D of the worksheet runs; then Parts
-1–3 (motor group, odometry seam, the tank composition root) on the team lead's go.** The decision
+by an in-package beacon. Nothing has run on hardware. **The ports and front went into the table
+later the same day (LEFT 11–15 / RIGHT 20–16, each back → front, read from behind the robot; the
+front is the 15/16 end; `measured` stays false until the census confirms). What follows: the
+tester is uploaded and Station D of the worksheet runs; then Parts 1–3 (motor group, odometry
+seam, the tank composition root) on the team lead's go.** The decision
 that runs alongside: **R3d** (drivetrain self-calibration + persistence + boot verification) is
 pulled forward from E5 to follow R3b — see the deviations table and the R3d entry.
 
