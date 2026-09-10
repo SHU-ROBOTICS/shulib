@@ -140,8 +140,11 @@ Only after verifying. Conventional-commit style matching the existing log; the b
 *reasoning* and names honest partials. Trailer:
 
 ```
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
 ```
+
+*(The trailer names the model that coordinated the session. It read `Claude Opus 5 (1M context)`
+from 2026-08-01 to 2026-09-10; commits since then carry the line above.)*
 
 **Do not push** unless asked.
 
@@ -160,6 +163,40 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 - **A chunk that finds a flaw in an earlier chunk fixes it there**, not around it.
 
 ---
+
+## Pace and documentation rules (jal, 2026-09-10)
+
+> *"I want to work a lot slower so that we can more accurately update docs to stay up to date with
+> changes being made. I want to actually make this library good."* These rules slow the chunk loop
+> down on purpose. The build gates catch what they can see — an undocumented member, a stale generated
+> page, a drifted example, a link into `docs/internal/`. Everything else (stale prose that still parses,
+> a "you are here" that lags by a chunk, a completion record never written) only stays true if the
+> pace leaves room to look. GATE1 landed 2026-08-19 without its completion record or a roadmap
+> pointer move, and a `build-order.md` sentence contradicted the paragraph above it for three weeks.
+> Speed caused both.
+
+1. **One thing in flight.** One chunk, one executor, no parallel tracks. Verify, update the docs,
+   commit — THEN start anything new. Never write a brief and launch it in the same turn.
+2. **A brief waits for the team lead's go.** Write it, commit it, show its scope and its
+   documentation impact list, and stop. The same for any change to the plan (this file's companions:
+   `build-order.md`, `roadmap.md`, the Freeze Register): propose, wait.
+3. **Docs move in the same commit as the code, or the commit waits.** No "docs follow-up" commits.
+   The commit body lists the documents touched AND the ones deliberately not touched, with why.
+4. **Prose review is a logged step, not a hope.** For every changed source file, grep `docs/` and
+   `README.md` for its name and its concepts, read the hits, fix what is stale. Record what was
+   checked in the PROGRESS log or the commit body. This is the part the gates cannot see.
+5. **Status pointers are checked before every commit.** Re-read `roadmap.md`'s "You are here" and
+   `build-order.md`'s `**Next:**` block (the briefing tool derives its pointer from the FIRST bold
+   `Next:` in that file) and confirm both are true for the tree AFTER the commit. A chunk without its
+   `-COMPLETED.md` and its pointer move is not closed.
+6. **Report, then wait.** After each step, say what changed and which docs moved, and stop. Do not
+   chain the next step into the same turn. "ASAP" means first in line — never skipped verification
+   or skipped docs.
+7. **Size chunks so the doc pass fits.** If a chunk's documentation impact runs past about five
+   documents, split it into parts with their own verification and commit — R3b session 2's Part 0
+   is the model.
+8. **Session close-out.** Before a session ends: the tree is clean, or the PROGRESS log says exactly
+   where work stopped; the four "Where things stand" commands above give a true answer.
 
 ## Context on decisions already made
 
