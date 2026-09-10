@@ -193,8 +193,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > `src/main.cpp` into the PROS-free `shulib/teleop/stick_mapping.hpp` (chunk T2's seam), pinned
 > bit-for-bit against the old loop's code; `make ROBOT=tank` is the third validated variant and the
 > `src/` build gate asserts all three by define AND by a beacon string in the linked package.
-> **Not yet run on hardware — not the tester's DRIVE station, not any adapter.** Pieces 1 and 2
-> (the motor group; the odometry seam) are next and unstarted; M1's badge has not moved.
+> **First hardware session on robot two, later on 2026-09-10:** the tester uploaded and ran on its
+> brain (VEXos 1.1.5, PROS 4.2.2); the census found nine of the ten table motors (port 19 silent —
+> a cable to re-seat, so the table stays "not measured"); `ProsBattery` and `ProsController` made
+> their first hardware reads; the touch menu was proven working by a touch readout after "the
+> screen does not work" turned out to be a pretend match imposed when the program was launched
+> from the controller's own menu (the tester lives in driver control, and VEXos was reporting a
+> field). **DRIVE has not run; no motor has been powered; the library's motion stack has still
+> never driven a robot.** Pieces 1 and 2 (the motor group; the odometry seam) are next and
+> unstarted; M1's badge has not moved.
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD

@@ -14,7 +14,18 @@
 no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has its own station (D)
 below. Nothing else on the menu can move the robot.
 
-1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"**.
+1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"** with **Run** — not
+   Timed Run, not Match. **Start it from the BRAIN's screen or from the laptop, NEVER from the
+   controller's own menu.** On 2026-09-10 (robot two's first session) launching it from the
+   controller put the brain into a pretend match — the program restarted, then showed a yellow
+   **FIELD CONTROL CONNECTED / DISABLED / AUTONOMOUS** screen and no menu, because the tester
+   lives in driver control and VEXos was reporting a field. If you ever see that yellow screen:
+   turn the controller off, wait ten seconds while the menu comes back on its own, turn the
+   controller on again and leave it on its home screen. A linked controller sitting on its home
+   screen is fine; the same session proved the program boots straight into driver control that way.
+   The header bar also shows **`T x,y r# h#`** — the last touch the program saw, the release count,
+   and which button it hit (`h-1` = none). If a tap seems to do nothing, read that line to whoever
+   is helping: it says whether the program saw the tap and where it thinks it landed.
 
 > ⚠ **Slot 1 holds an OLD build called "QueensRevenge". Do not run it.** Its port map is invented and
 > it will fault at boot on this robot. It can only be deleted from the brain's own Programs menu —
@@ -280,6 +291,9 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 - [ ] **D.1.1** Run **1 DEVICE CENSUS**. Every reported port shows **MOTOR** with its side from the
       table beside it (`LEFT(table)` / `RIGHT(table)`). A port with **`?`** or a missing port is a
       finding — write it down, do not continue to D.1.3.
+      *(2026-09-10, first census on robot two: **9 motors, not 10** — 11 12 13 14 15 and 16 17 18 20
+      answered, **port 19 did not**; the RADIO is on port 1. Re-seat the port 19 cable at both ends
+      and re-run the census. The table's `measured` flag stays false until it shows all ten.)*
 - [ ] **D.1.2** Put the robot on the floor, wheels down. Run **3 MOTOR WATCH**. **Push the WHOLE
       robot, FRONT END LEADING, about a foot.** Watch the panel: every drive port should show
       **UP** or **DOWN**. *(UP and DOWN mixed **within** a side is normal — adjacent motors on one

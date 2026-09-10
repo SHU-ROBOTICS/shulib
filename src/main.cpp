@@ -146,6 +146,47 @@ constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank";
 constexpr const char kVariantBeacon[] = "shulib-robot-variant=bench";
 #endif
 
+#if SHULIB_RUNS_BENCH_TESTER
+// ═══ COMPETITION-STATE VISIBILITY (2026-09-10, robot two's brain) ══════════════════════
+// The tester runs inside opcontrol(), so it exists only while VEXos reports DRIVER
+// CONTROL, ENABLED. The first time a controller was linked to a brain running it, the
+// program restarted and then showed a BLACK screen for as long as the controller stayed
+// linked: PROS never started the driver task, and nothing on the brain said why. Every
+// non-driver entry point below now paints the screen with the state VEXos reports and what
+// to do about it, and the raw status bits print at boot -- so "the touchscreen does not
+// work" cannot be the diagnosis again. Guarded, so the xdrive variant (which the src build
+// gate expects to emit no unused-function warning) never sees an unused helper.
+const char* competitionBits(std::uint8_t s, char* buf, std::size_t n) {
+    std::snprintf(buf, n, "0x%02x field=%s disabled=%s auton=%s", static_cast<unsigned>(s),
+                  (s & COMPETITION_CONNECTED) ? "yes" : "no",
+                  (s & COMPETITION_DISABLED) ? "yes" : "no",
+                  (s & COMPETITION_AUTONOMOUS) ? "yes" : "no");
+    return buf;
+}
+
+void benchStateScreen(const char* state, const char* why) {
+    char bits[64];
+    competitionBits(pros::c::competition_get_status(), bits, sizeof bits);
+    std::printf("[R3A] competition state: %s (%s) -- %s\n", state, bits, why);
+    std::fflush(stdout);
+    pros::c::screen_set_eraser(0x000000);
+    pros::c::screen_erase();
+    pros::c::screen_set_pen(0xF0C000);
+    pros::c::screen_print_at(pros::E_TEXT_LARGE, 10, 30, "%s", state);
+    pros::c::screen_set_pen(0xFFFFFF);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 80,
+                             "The bench tester runs ONLY in DRIVER CONTROL, enabled.");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 100, "%s", why);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 130, "status bits %s", bits);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 160,
+                             "Look at the CONTROLLER's screen: it names this state.");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 176,
+                             "Unplug any competition switch or field cable from the");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 192,
+                             "controller's smart port. This screen clears by itself.");
+}
+#endif  // SHULIB_RUNS_BENCH_TESTER
+
 // ── PROVISIONAL PORT MAP — INVENTED (A4: HA-111). No robot has been measured;
 //    bench runbook step 0 reads the real device list off the brain and fixes
 //    these. Motor SIGNS (which side reverses) are part of the same guess and
@@ -324,6 +365,12 @@ void initialize() {
                 "[R3A] never through the motion stack. The library has still not driven a robot.\n"
                 "[R3A] the X-drive object graph is deliberately NOT constructed.\n",
                 kVariantBeacon);
+    {
+        char bits[64];
+        std::printf("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
+                    "CONTROL, enabled; any other state paints the screen with the reason.\n",
+                    competitionBits(pros::c::competition_get_status(), bits, sizeof bits));
+    }
     std::fflush(stdout);
     return;
 #else
@@ -373,13 +420,23 @@ void initialize() {
  * Runs while the robot is in the disabled state of Field Management System or
  * the VEX Competition Switch, following either autonomous or opcontrol.
  */
-void disabled() {}
+void disabled() {
+#if SHULIB_RUNS_BENCH_TESTER
+    benchStateScreen("DISABLED",
+                     "VEXos reports the robot DISABLED, so the driver task is not running.");
+#endif
+}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
  * Management System or the VEX Competition Switch.
  */
-void competition_initialize() {}
+void competition_initialize() {
+#if SHULIB_RUNS_BENCH_TESTER
+    benchStateScreen("FIELD CONTROL CONNECTED",
+                     "A competition switch or field is connected through the controller.");
+#endif
+}
 
 /**
  * Runs the user autonomous code.
@@ -394,9 +451,8 @@ void competition_initialize() {}
  */
 void autonomous() {
 #if SHULIB_RUNS_BENCH_TESTER
-    std::printf("[R3A] autonomous(): no motion -- a measuring build (only the tester's DRIVE "
-                "station, under opcontrol, ever powers a motor).\n");
-    std::fflush(stdout);
+    benchStateScreen("AUTONOMOUS",
+                     "No motion here, ever: the tester's DRIVE station lives under driver control.");
     return;
 #else
     Robot& r = robot();

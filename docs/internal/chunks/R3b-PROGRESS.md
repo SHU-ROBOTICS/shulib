@@ -845,3 +845,76 @@ same facts in the same commit.
 **What the next hand at the robot does:** upload `make ROBOT=tank` to slot 3, then Station D —
 census (flips `measured` when it shows MOTOR on all ten), the whole-robot push front-first,
 DRIVE on blocks at 3 V. Nothing in Part 0 has yet run on hardware.
+
+---
+
+### 9. First hardware session on robot two (2026-09-10, coordinator at the laptop, team lead at the robot)
+
+**The tester ran on robot two's brain. Nothing was DRIVEN.** What follows is measured, with the
+evidence quoted; the serial captures themselves live in the session scratchpad, not the repo.
+
+**9.1 Platform, as the kernel banner printed it:** PROS `4.2.2` on VEXos **`1.1.5 (b18)`**;
+`arm-none-eabi-g++ 13.2.1` builds. Upload over the brain's USB with `pros upload --slot 3
+--after run`; the first upload replaced the brain's onboard PROS library (`Library onboard
+doesn't match`, two orphaned slots removed). **`pros terminal` cannot run from the coordinator's
+non-interactive shell** (`termios` on stdin); raw reads of the brain's USER CDC port work instead —
+the stream is COBS-framed with a `sout` channel tag, and `strings` recovers the text lines whole.
+**The port numbers move:** the brain enumerated as `ttyACM0/1` alone and as `ttyACM1/2` beside the
+controller; every read must re-resolve them from `pros lsusb`. The brain dropped off USB three
+times in the session; the last time was the battery (`12.97 V / 53 %` at station 4 about an hour
+earlier) — "the brain died".
+
+**9.2 "The touchscreen isn't working" — measured, and it was not the screen.** With a touch
+readout added to the menu loop (every change of `screen_touch_status()` → serial and the header
+bar; commit below), the program recorded:
+```
+touch: status=1 x=364 y=117 press=1 release=0 hit=-1
+touch: status=0 x=361 y=117 press=1 release=1 hit=-1
+touch: status=1 x=355 y=101 press=2 release=1 hit=3
+touch: status=0 x=354 y=101 press=2 release=2 hit=3
+>>>>>> 4  BATT/CTRL
+battery | RAW 12970 mV  53.0% | CANON 12.970 V
+controller master: NOT CONNECTED
+```
+Taps register and the hit-test works. The first tap released at `y=117` — **in the 4 px gap
+between rows 2 and 3** (78–114 / 118–154) — and did nothing; the second hit button 4. **Fixed:**
+`hitTest()` now assigns the gaps to the button above/left (integer division of the pitch), so
+no point inside the grid is dead, while the header strip and the margin still hit nothing. Also
+fixed: the readout's at-rest print passed `hit=-1` unconditionally, which made a tap that landed
+during the boot census read as a miss (`T 194,110 r1 h-1` on screen); it now hit-tests too.
+
+**9.3 The program went black when the controller linked — competition state, not touch.** Right
+after station 4 the log carries a second PROS boot banner: the program RESTARTED when the
+controller linked, and afterwards the screen stayed black. State screens were added to
+`disabled()` / `competition_initialize()` / `autonomous()` and the status bits print at boot;
+the next run showed, on screen and on serial:
+```
+[R3A] competition status at boot: 0x0f field=yes disabled=yes auton=yes
+[R3A] competition state: FIELD CONTROL CONNECTED (0x0f ...)
+```
+`0x0f` = CONNECTED | DISABLED | AUTONOMOUS | **SYSTEM** — VEXos reporting a field control
+*system* — and it persisted across `pros v5 stop` / `run`. No cable was in the controller's smart
+port. **Turning the controller OFF cleared it within seconds**: the tester booted into driver
+control, ran its census, and the menu came up. **Then the decisive test:** controller linked,
+team lead's hands off it, program started from the laptop → driver control, menu up, stable for
+several minutes. **The pretend match came from launching / handling the program from the
+controller's own menu** (which can start a program as Run / Timed Run / Match), not from the link
+itself. Rule recorded in the worksheet: start the program from the brain or the laptop, never
+from the controller; a linked controller on its home screen is fine. (The `0x0f` at boot after a
+plain CLI `run` says VEXos keeps the controller-driven mode armed until the controller leaves it.)
+
+**9.4 The census, twice, on robot two:** `RADIO` on port 1; motors on **11 12 13 14 15** (LEFT,
+table) and **16 17 18 20** (RIGHT, table) — **`motors found: 9`, port 19 absent**. A finding, not
+a table error: the cable is to be re-seated and the census re-run. The table's `measured` flag
+therefore stays false, correctly.
+
+**9.5 Not done today:** station 4 with the controller linked in driver control (it read NOT
+CONNECTED once, before the link); MOTOR WATCH's push; DRIVE. Ten motors have not yet answered.
+Battery dead at session end.
+
+**9.6 Code that rode with this session (commit below, docs in the same commit):** the touch
+readout (`touchReadout()`, menu loop), the gap-absorbing `hitTest()`, the competition-state
+screens in `src/main.cpp` (`benchStateScreen()`, `competitionBits()`, tester variants only), and
+the boot-time status line. Verified: src build gate PASS for all three variants after each
+change; no host input changed. Register entries for VEXos 1.1.5, the controller-launch trap and
+the coupled-USB port renumbering are owed to `hardware-assumptions.md` with robot two's section.

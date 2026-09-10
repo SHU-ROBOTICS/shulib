@@ -2006,14 +2006,47 @@ void drawMenu() {
     }
 }
 
-/// -1 when the touch landed outside every button.
+/// -1 when the touch landed outside the button grid. INSIDE the grid, the 4 px gaps between
+/// buttons belong to the button above / to the left of them (integer division of the
+/// pitch), so no point inside the grid is dead: on robot two's brain the very first recorded tap
+/// (2026-09-10, `touch: x=364 y=117`) released one pixel into the gap between rows 2 and 3
+/// and did nothing, on a resistive screen where a fingernail's release point wanders a few
+/// pixels. A gap that swallows taps is a trap, not a feature; the header strip above the
+/// grid and the margin below it still hit nothing, so a stale coordinate at (0,0) cannot
+/// launch a station (the earlier touch-fix's invariant, kept).
 int hitTest(std::int16_t tx, std::int16_t ty) {
-    for (int i = 0; i < kMenuCount; ++i) {
-        std::int16_t x0, y0, x1, y1;
-        buttonBox(i, x0, y0, x1, y1);
-        if (tx >= x0 && tx <= x1 && ty >= y0 && ty <= y1) return i;
-    }
-    return -1;
+    std::int16_t x0, y0, x1, y1;
+    buttonBox(0, x0, y0, x1, y1);
+    const std::int16_t gridX0 = x0, gridY0 = y0;
+    buttonBox(kMenuCount - 1, x0, y0, x1, y1);
+    const std::int16_t gridX1 = x1, gridY1 = y1;
+    if (tx < gridX0 || tx > gridX1 || ty < gridY0 || ty > gridY1) return -1;
+    const int col = std::min(1, static_cast<int>((tx - gridX0) / (kBtnW + kGap)));
+    const int row = std::min(kMenuCount / 2 - 1 + kMenuCount % 2,
+                             static_cast<int>((ty - gridY0) / (kBtnH + kGap)));
+    const int i = row * 2 + col;
+    return i < kMenuCount ? i : -1;
+}
+
+/// TOUCH READOUT (2026-09-10, robot two's brain). The menu registered no tap on a brain
+/// whose own VEXos dialogs took taps fine, so the program now SAYS what it sees: every
+/// change in the touch status -- state, x, y, press and release counts, and whether the
+/// point hit a button -- goes to serial (and the SD log) and into the header bar, so
+/// "the touchscreen does not work" becomes numbers instead of an argument. The two
+/// failure modes this separates: the counters never move (the API is not delivering
+/// taps to the program on this firmware) versus the counters move but x/y land outside
+/// every button (a coordinate offset or a calibration problem). Diagnostic by design
+/// and cheap to keep: the menu is idle whenever this prints.
+void touchReadout(const pros::screen_touch_status_s_t& t, int hit) {
+    emitf("touch: status=%d x=%d y=%d press=%ld release=%ld hit=%d",
+          static_cast<int>(t.touch_status), static_cast<int>(t.x), static_cast<int>(t.y),
+          static_cast<long>(t.press_count), static_cast<long>(t.release_count), hit);
+    pros::c::screen_set_eraser(kColBar);
+    pros::c::screen_set_pen(hit >= 0 ? kColGood : kColWarn);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 128, 4, "T %d,%d r%ld h%d   ",
+                             static_cast<int>(t.x), static_cast<int>(t.y),
+                             static_cast<long>(t.release_count), hit);
+    pros::c::screen_set_eraser(kColBg);
 }
 
 }  // namespace
@@ -2098,9 +2131,19 @@ void runR3a() {
     for (;;) {
         drawMenu();
         int choice = -1;
-        std::int32_t seen = pros::c::screen_touch_status().release_count;
+        pros::screen_touch_status_s_t last = pros::c::screen_touch_status();
+        std::int32_t seen = last.release_count;
+        // The at-rest values, once per menu draw -- hit-tested like any other reading, so a
+        // tap that landed while a station was still printing shows where it WOULD have hit
+        // rather than a false "h-1" (the first robot-two session read one exactly that way).
+        touchReadout(last, hitTest(last.x, last.y));
         while (choice < 0) {
             const pros::screen_touch_status_s_t t = pros::c::screen_touch_status();
+            if (t.touch_status != last.touch_status || t.x != last.x || t.y != last.y
+                || t.press_count != last.press_count || t.release_count != last.release_count) {
+                touchReadout(t, hitTest(t.x, t.y));  // what the program SEES, every change
+                last = t;
+            }
             if (t.release_count != seen) {   // a NEW tap, not the at-rest state
                 seen = t.release_count;
                 choice = hitTest(t.x, t.y);  // -1 when it landed off any button: keep waiting
