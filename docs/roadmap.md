@@ -173,7 +173,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > on-robot link is NOT blocked (`make` links at `arm-none-eabi-g++ 13.2.1`), and `make ROBOT=xdrive`
 > replaces a documented flag that silently built the wrong robot. *Its close-out — this paragraph
 > and the record — was written 2026-09-10, three weeks late: the gap this pointer exists to prevent.
-> Still unproven: the CI job on a GitHub runner, because nothing has been pushed since 2026-08-17.*
+> Proven on a GitHub runner on 2026-09-10: the first push since 2026-08-17 (39 commits) ran both CI
+> jobs green at `89b00f2`, the build gate included, for all three robot variants.*
 >
 > **A SECOND ROBOT exists (2026-09-10): the season's tank chassis** — five coupled motors per side
 > driving four wheels per side, no sensors mounted yet, cartridges read blue off a motor, 2.75 in
@@ -1075,8 +1076,9 @@ DoD in Phases C–F depends on it.*
   the build), and `make ROBOT=xdrive` replaces a documented flag that silently built the wrong
   robot. *Evidence: `tools/src_build_gate.py`; `.github/workflows/ci.yml` (`arm-compile-gate`, two
   added steps); 10 self-test cases; 5 mutations observed red then restored; re-verified PASS on
-  2026-09-10 at `7d3e7ce`; the GATE1 completion record (development log, `shulib-v2` branch). Not
-  yet proven: the CI job on a GitHub runner — nothing has been pushed since 2026-08-17.*
+  2026-09-10 at `7d3e7ce`; the GATE1 completion record (development log, `shulib-v2` branch);
+  and the job itself green on a GitHub runner on 2026-09-10 at `89b00f2`, first push since
+  2026-08-17, three variants.*
 
 **Facade (WS — Chassis)**
 - [x] `Chassis` public verbs (F6): `moveTo`/`strafeTo`/`turnTo`/`followTrajectory`/`drive(ChassisSpeeds,Frame)`.

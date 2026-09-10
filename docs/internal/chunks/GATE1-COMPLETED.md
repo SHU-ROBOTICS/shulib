@@ -88,6 +88,11 @@ variants link, hash `v0.1.1-273-g7d3e7ce` asserted in both ELFs; `arm-none-eabi-
 - **The residual policy hole stands by design:** a new dead function in `src/` passes.
 - **The gate proves the package BUILDS, never that it works.** Upload and run remain R3a/R3b/R3c.
 
+**Update, 2026-09-10, appended:** the branch was pushed (39 commits, `14128c0..89b00f2`) and GitHub
+Actions run `34529274402` completed with **both jobs green** — `arm-compile-gate` (the 152-header
+compile gate plus `src_build_gate.py self-test` and `check`, now three variants) and `host-tests`.
+The first bullet above is closed; the other three stand as written.
+
 ## Successor
 
 R3b session 2 extends the switch and the gate to `ROBOT=tank` (the season's chassis) — see
