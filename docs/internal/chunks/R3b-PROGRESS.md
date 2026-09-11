@@ -974,3 +974,336 @@ read on hardware — YES; a motor powered by the library's adapters — NOT YET.
 **10.5 Not done:** the decisive stick check; any powered motion; the ground run; the tester's
 IMU station (needs the rebuild with `imuPort = 2`, which this commit carries — the next upload
 has it).
+
+---
+
+## Part 0b — 2026-09-10 (late) — THE DRIVE PROGRAM (brief `R3b-part0b-drive-program.md`)
+
+**Scope declaration, written before any code (Session 1's precedent, so an interrupted log cannot
+over-claim):** this section covers ONLY the brief's §1–§5 — the chassis table moved into
+`src/chassis_table.hpp` and SIGNED for robot two with the measured signs; MOTOR WATCH's
+AGREES/DISAGREES cross-check and `driveStation()` honouring §2; `src/drive_program.cpp` +
+`.hpp` (`bench::runDrive()`); the two PROS-free teleop headers `drivetrain_degradation.hpp`
+and `coupled_side_monitor.hpp` with host tests and every §4 mutation run; the 3 s brain
+chooser in `opcontrol()`; `project.pros` renamed; the documentation pass. **Nothing here has run
+on hardware** — the coordinator uploads. Nothing is committed by the executor. Tree at start:
+`db20c34` (clean). Baseline claimed by the brief: suite 1163 / 1,538,453 clean-tree
+(1,538,459 dirty), 152 headers, gate PASS ×3 — re-measured below before being trusted.
+
+### 1. Baseline re-established (clean tree, `db20c34`)
+
+(appended when the build finishes)
+
+### 2. Brief checks — what the reading found before writing
+
+- **CHANGE OF RULING, received from the coordinator mid-task (team lead, 2026-09-10 late;
+  overrides the brief's §1 and the DoD lines that depend on it).** The drive program is a
+  SEPARATE PROGRAM in its own slot, not a chooser inside Bench Tests. **Reason, verbatim in
+  substance:** the operator picks a program by name from the brain's slot list, and a program
+  called Drive that contains the tester behind a timeout is one more thing to explain at a
+  field. Consequences, all implemented in this pass: a second build axis
+  `make ROBOT=tank PROGRAM=drive` adds `-DSHULIB_PROGRAM_DRIVE` (`PROGRAM ?= tester`, validated
+  values `tester` / `drive`, anything else an `$(error)`; `drive` with `ROBOT=bench` or
+  `ROBOT=xdrive` is an `$(error)` too — only a signed table can drive); `src/main.cpp`'s
+  `opcontrol()` runs `bench::runDrive()` under `SHULIB_PROGRAM_DRIVE` with NO chooser and the
+  tester exactly as today otherwise; a fourth beacon `shulib-robot-variant=tank-drive`;
+  `tools/src_build_gate.py` builds FOUR entries (bench, xdrive, tank, tank-drive) with
+  token-exact define sets, per-build beacons, the behavioural detector (tank-drive like tank),
+  and a self-test case for a non-landing `PROGRAM` define, run as a mutation; uploads are
+  `pros upload --slot 1 --name "shulib Drive"` for the drive program and `pros upload --slot 3`
+  for the tester, both documented in the worksheet's Station E and Daniel's note;
+  `project.pros` keeps `"Bench Tests"` (the brief's rename is withdrawn). Everything else in
+  the brief stands. The chooser code had not yet been written when the ruling arrived, so
+  nothing was thrown away.
+- **Beacon substring hazard, found while planning the fourth beacon:** `shulib-robot-variant=tank`
+  is a prefix of `shulib-robot-variant=tank-drive`, so the gate's "the other beacons must NOT be
+  in the ELF" assertion would have false-failed every tank-drive build. Fixed in the gate by
+  matching each beacon WITH its string terminator (`beacon + b"\0"`, which is how a C string
+  literal sits in the ELF); documented in the tool header.
+- **The old `tableConsistent()` cross-side check was DEAD code:** it asked `tableSideOf()` of a
+  left-side port and tested `!= -1`, which can never be true because the left side is searched
+  first. A port typed on both sides was never caught. The check is rewritten in
+  `src/chassis_table.hpp` (judged by |port|, both directions) and test 4 pins it, including the
+  signed case `+13` left / `-13` right.
+- **`reportMotorGroup()` indexed `found[]` by the raw table entry.** With a signed table a `-11`
+  entry would have indexed the array off its front and asked PROS for a REVERSED reading in a
+  station that promises RAW values. It now uses `absPort()`. (Latent until the signs moved into
+  the table; fixed in the same pass that made it live.)
+- **The brief's §3 "the RAII all-stop guard … runs on that exit too" (a field-disable killing the
+  task) is NOT how a task kill works:** PROS deletes the opcontrol task; a deleted FreeRTOS task
+  does not unwind its stack, so no destructor runs. VEXos itself disables motor output when the
+  field says DISABLED, which is what actually stops the robot. The drive program therefore polls
+  `competition_is_disabled()` every tick and EXITS its loop cleanly on it, so the guard does run
+  on that path too — and the code comment says which mechanism covers which case rather than
+  claiming the guard covers a kill.
+
+### 3. Decisions taken (with the rejected alternatives)
+
+**D0b-1 — The table's signs are the port entries themselves (`{-11, 12, -13, 14, -15}`) plus a
+`signsMeasured` flag, not a parallel sign array.** The signed entry is exactly the value
+`ProsMotor` takes, so "the one place a sign lives" is a value that is handed on unchanged
+(`tableSignedPort()`), never composed. Consequences: every table helper matches by `|port|`
+(`absPort()`); a raw PROS read in the tester uses `|port|` too (a negative port would ask PROS
+for a REVERSED reading). "Half-signed" is representable only as a `-` entry in a table whose flag
+is false, and `tableConsistent()` refuses that; a signed table with an "unmeasured" port is
+unrepresentable by construction, which is the point.
+- Rejected: a parallel `sign[]` array with 0 = unknown — the drive program would compose
+  `sign × port`, a second place where a sign is applied, and the exact thing landmine 1 forbids.
+
+**D0b-2 — `src/chassis_table.hpp` is PROS-free and host-tested by relative include.** The table
+is plain data plus pure helpers, so `test/chassis_table_test.cpp` includes `"../src/chassis_table.hpp"`
+and breaks the consistency checks with hand-built tables (brief test 4). It stays in `src/` because
+it is a per-robot composition fact, not library API (it is not a doc-tool target and not in the ARM
+header gate; the src build gate compiles it in every build).
+- Rejected: a third header under `include/shulib/` — landmine 4 allows exactly two.
+- Rejected: leaving the checks untestable in `src/` — test 4's mutation would have had nowhere to go.
+
+**D0b-3 — The per-side arcade arithmetic (`tankSideVolts`) and the runtime dead-port detector
+(`MemberAbsenceDetector`) live in `coupled_side_monitor.hpp`.** The side command IS the monitor's
+input and absence IS what the monitor's `present` flag consumes, so both sit with it; the brief's
+test 3 needed the arithmetic host-visible, and landmine 4 forbids touching `stick_mapping.hpp`
+(the frozen surfaces stay frozen; only the two new headers are added).
+- Rejected: `tankSideVolts` in `stick_mapping.hpp` — touching an existing public header.
+- Rejected: leaving the absence detection as ad-hoc counters in the PROS-bound loop — untested
+  logic in the one place a wrong threshold marks a live port dead.
+
+**D0b-4 — The tester's gate 5 now RUNS THROUGH the shared monitor** (not just "was extracted
+from"): `driveStation()` builds a `CoupledSideMonitor` per side and mirrors its per-member ticks
+into the panel's colouring; five `static_assert`s pin the monitor's defaults to the station's
+documented numbers. One detector, one set of numbers, host-tested; the station's over-current cut
+and its permanent-cut policy are unchanged (landmine 6: its gates stay).
+- Rejected: keeping the station's inline copy — two copies of a detector that must agree.
+
+**D0b-5 — The degradation policy is applied LITERALLY (`< 3` per side, `> 2` total) and its domain
+is stated.** A drivetrain with fewer than three motors per side would be refused on every boot;
+the header says so and says why generalising silently would be an invented answer. Nonsense counts
+(a side empty, negative, more answering than listed) REFUSE with a reason — the safe direction.
+
+**D0b-6 — A REFUSE at runtime is a permanent 0 V until the field disables, painted; a boot REFUSE
+paints and returns.** The brief says "cut to 0 V and paint why"; the panel keeps updating so the
+operator sees the reason and the counts, and the loop's disable-poll still exits it cleanly.
+
+**D0b-7 — The drive program polls `competition_is_disabled()` and exits its loop on it** (§2's
+finding: a task kill runs no destructors). `opcontrol()` returns; PROS calls it again on re-enable;
+the SD sink is a function-local static so re-entry does not truncate the log (the entry count is
+logged).
+
+**D0b-8 — Cuts are logged per port only for the first 50** (`kMaxCutsLogged`); after that they are
+counted on the panel and LCD but no longer written per tick-of-cut. A permanent fight would
+otherwise fill the card at one block per second. The count itself is never capped.
+
+**D0b-9 — The drive program's screen helpers are its own** (a fixed status page, ~60 lines), not a
+shared screen library extracted from `bench_r3a.cpp`. The tester's scrolling-log helpers are the
+wrong shape for a status page, and extracting them would have refactored hardware-proven code for
+no consumer. The palette constants are duplicated and say so.
+
+**D0b-10 — The gate matches beacons WITH their NUL terminator** (§2's prefix hazard), and a build
+is a SET of defines (`VARIANT_DEFINES` tuples, `ALL_DEFINES` the universe): every define of the
+build present as a whole token, every other define absent. `BUILD_ARGS` carries the make
+arguments so `run_build()` never re-implements the Makefile's switches.
+
+### 4. Work log (appended as it happens)
+
+- Baseline re-measured before anything: suite **1163 / 1,538,453 / 0 failed / 3 skipped** on the
+  clean tree (`build/test/shulib_tests` md5 `87b6a9e5…`, saved as the green baseline); matches the
+  brief's number exactly.
+- Two headers written (`drivetrain_degradation.hpp`, `coupled_side_monitor.hpp`) and smoke-compiled
+  clean on host g++ and arm-none-eabi-g++ at the CI flag set (`-Wall -Wextra -Wconversion
+  -Wsign-conversion -Wshadow -Werror`). `std::abs(double)` avoided in constexpr code (only
+  guaranteed constexpr from C++23) — a local `magnitudeOf()`.
+- Three tests written (`drivetrain_degradation_test.cpp`, `coupled_side_monitor_test.cpp`,
+  `chassis_table_test.cpp`); `<initializer_list>` added after the IDE flagged the range-for over a
+  braced list.
+- `src/chassis_table.hpp` written; `src/bench_r3a.cpp` rebound to it (table block removed, every
+  helper call gains `kChassis`, `reportMotorGroup()` reads by `|port|`, the four "src/bench_r3a.cpp's
+  table" strings now name `chassis_table.hpp`); MOTOR WATCH's AGREES/DISAGREES cross-check;
+  `driveStation()` gate 1 takes signs from the table when signed (no capture needed), refuses on a
+  capture that disagrees naming the port, prints the sign source; construction hands the table entry
+  to `ProsMotor` as typed; the arithmetic is `tankSideVolts`; gate 5 runs through the monitor.
+  `make ROBOT=tank` exit 0.
+- **The Session 1 §4.2 trap, met twice and caught by the md5 check:** the first two host builds
+  after the tests were added exited 2 at the doc-gate target (first `check-removability` — the
+  monitor header's banner named `R3b-PROGRESS`, a public API page must not; reworded — then the
+  briefing gate, dirty-tree drift) and the test binary was NEVER RELINKED (md5 unchanged), so a
+  "4 passed" under my filter was four pre-existing cases. Regenerated `docs/api` and the briefing
+  transiently; the third build relinked (md5 `5079a29a…`): **1188 cases / 1,540,950 assertions /
+  0 failed / 3 skipped** (dirty tree). Saved as the green binary for the mutation cycle.
+- Ruling change received (§2); `drive_program.hpp/.cpp` written to it; Makefile `PROGRAM` axis;
+  `main.cpp` fourth beacon + `opcontrol()` switch + `#error` on `PROGRAM=drive` without tank;
+  `project.pros` left as `"Bench Tests"`. `make ROBOT=tank PROGRAM=drive` exit 0, the two expected
+  `-Wunused-function`s from `main.cpp`, `strings` on the hot ELF shows ONLY
+  `shulib-robot-variant=tank-drive`. The three Makefile `$(error)` paths exercised with `make -n`:
+  `ROBOT=bench PROGRAM=drive`, `ROBOT=xdrive PROGRAM=drive`, `PROGRAM=foo` all stop with the
+  intended message; `ROBOT=tank PROGRAM=tester` builds.
+- `tools/src_build_gate.py`: four builds, define SETS, `BUILD_ARGS`, NUL-terminated beacons,
+  self-test cases 10 (PROGRAM append dropped → structural + both beacon detectors) and 11 (the
+  real tank-drive build passes, i.e. the prefix hazard is closed). **`self-test`: OK, 23 detector
+  cases (was 18). `check`: PASS, four builds, 3/3 TUs each, xdrive 0 `-Wunused-function` from
+  `main.cpp`, bench/tank/tank-drive 2 each, hash asserted, beacons asserted.** Case 10 IS the
+  coordinator's "run that mutation": the Makefile's `override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE`
+  line replaced by a comment, a REAL `make ROBOT=tank PROGRAM=drive`, and the verdict named the
+  missing whole token `-DSHULIB_PROGRAM_DRIVE`, the tank-drive beacon NOT in the ELF, and the tank
+  beacon present ("a tank build wearing a tank-drive label"); restored byte-exact by the plant
+  class's own assertion. (Two vendor-ignored warnings per build, both
+  `include/liblvgl/core/lv_obj_style.h:94` via the TUs that include the PROS API headers —
+  path-ignored by policy, unchanged by this pass.)
+- Docs: roadmap "You are here" gained the Part 0b paragraph; build-order's `**Next:**` block
+  rewritten (robot two can be driven through the adapters; the motion stack still has not driven a
+  robot; nothing of Part 0b has run on hardware); worksheet Station A (two programs, slot 1 note),
+  D (table location, AGREES/DISAGREES rows), **Station E — DRIVE PROGRAM** (the two upload
+  commands, the panel row by row, what a WARNING and a CUT mean, the ground-run rule), DO NOT;
+  Daniel's note (two programs, both uploads, signed table in `chassis_table.hpp`, IMU port 2,
+  step 3 for "shulib Drive"); `docs/README.md` 1,710 entities; `docs-publishing.md` 121 headers /
+  123 files / 1,710; `ci.yml` and `RESUMING.md` say four builds; the Makefile's ROBOT comment no
+  longer says the tank table "ships UNSET".
+- **Prose review (pace rule 4):** grepped `docs/`, `README.md`, the Makefile and the tool header
+  for `bench_r3a.cpp`'s table, "ships UNSET", "slot 3", "chooser", "dead-man", "Bench Tests";
+  every hit outside the historical logs (R3a/R3b-PROGRESS, the Session 2 brief) was read and either
+  fixed (listed above) or is a true statement about the tester, which still has its dead-man and
+  its six gates. `hardware-assumptions.md` deliberately untouched: Part 0b settles no HA entry by
+  measurement (nothing ran on hardware); the register entries Session 2 §9.6 owes are still owed.
+  `docs/guide/14` untouched: still true.
+
+#### 4.1 The drive loop, walked through (brief §4: PROS-bound, so its verification is the ARM build through the gate plus this)
+
+Each guarding condition, quoted from `src/drive_program.cpp` as written:
+
+- **Boot refusals, nothing powered:** `if (!kChassis.signsMeasured) { paintRefusal(...); return; }`
+  — an unsigned table cannot drive (the bench variant compiles this TU and would refuse here);
+  `if (describeMissing(kChassis, why, sizeof why, true))` and `if (!tableConsistent(kChassis, why,
+  sizeof why))` likewise. All three come BEFORE `Member members[kMaxPort]` exists, so there is
+  nothing to stop.
+- **Construction inside a try per motor:** `try { m.motor.emplace(m.signedPort, gearset); ... }
+  catch (const PreconditionError& e) { m.absent = true; m.absentWhy = "refused at boot ..."; emitf("WARNING:
+  port %2d (%s, signed %+3d) DEAD AT BOOT -- adapter refused: %s", ...); }` — the loop continues
+  (`++n` after the try either way), so a dead port is a member that is present in the table and
+  absent on the robot, and the WARNING carries port + side. `m.signedPort = tableSignedPort(kChassis,
+  p);  // AS TYPED; never negated here`.
+- **The all-stop guard is declared before the first construction:** `AllStopGuard guard{members,
+  &n};` immediately after `Member members[kMaxPort]; std::size_t n = 0;`, so a throw out of any later
+  line (a controller adapter, an emplace that throws something other than `PreconditionError`)
+  still runs `stopAll()` on every motor constructed so far.
+- **The degradation call, at boot and again on a runtime absence:** `teleop::DegradationVerdict
+  policy = evaluate(members, n);` → `if (policy.verdict == teleop::DriveVerdict::Refuse) {
+  paintRefusal(headline, policy.reason, dead); return; }` (the guard stops what was constructed);
+  later `if (newlyAbsent) { policy = evaluate(members, n); ... if (policy.verdict ==
+  teleop::DriveVerdict::Refuse && !refused) { refused = true; stopAll(members, n); ... } }` and
+  every subsequent tick `if (refused) vL = vR = 0.0;`.
+- **The 10 ms loop through the shared mapping, no dead-man:** `const teleop::DriveRequest req =
+  teleop::mapSticks(sticks);  // all-zero when disconnected` → `const teleop::SideVolts sv =
+  teleop::tankSideVolts(req, kMaxDriveV);` with `constexpr double kMaxDriveV = 12.0;` and
+  `pros::delay(kTickMs)` at `constexpr int kTickMs = 10;`. There is no button read in the loop.
+- **Runtime absence:** `if (m.absence.update(m.motor->faultedReads(), m.v, cmd, matesFastest)) {
+  m.absent = true; ... emitf("WARNING: port %2d (%s) went ABSENT at runtime: %s -- dropped from the
+  fight detector, still commanded (harmless)", ...); }` — logged once because the detector latches
+  and the branch runs only on the transition; `matesFastest` is the fastest of the OTHER present
+  members; the member is still in the `setVoltage` loop (`if (members[i].motor)`), which is the
+  brief's "its voltage still commanded (harmless)".
+- **The fight cut and the over-current cut, 1 s, non-fatal, counted:** both live under `if
+  (cutTicksLeft == 0 && !refused)`; the monitor's `verdict.persistedCount > 0` or a member's
+  `m.overTicks >= kPersistTicks` sets `cutNow`; then `stopAll(members, n); cutTicksLeft =
+  kCutTicks; ++cutCount;` with `constexpr int kCutTicks = 100;` (1 s at 10 ms) and the reason logged
+  with a per-port snapshot. Absent members feed the monitor as `present = !m.absent &&
+  m.motor.has_value()` and are skipped by the over-current loop.
+- **The re-arm:** `if (cutTicksLeft > 0) { --cutTicksLeft; vL = vR = 0.0; if (cutTicksLeft == 0) {
+  monitor[0].reset(); monitor[1].reset(); for (...) members[i].overTicks = 0; emitf("re-armed after
+  cut #%d (1 s at 0 V)", cutCount); } }` — the streaks start over, so the same fight must persist
+  the full 250 ms again before it cuts again.
+- **The LCD writes only on change, at most 5 Hz:** `if (tick % kLcdEveryTicks == 0)` with
+  `constexpr int kLcdEveryTicks = 20;` (200 ms) and `if (std::strcmp(want[row], lcdRow[row]) != 0)
+  { lcd.setLine(row, want[row]); ... }`.
+- **Logging with the no-card rule:** `static hal::pros::ProsBlockSink card{"drive_log.txt"};` then
+  `emitf("sd logging : %s", card.isOpen() ? "ON -> /usd/drive_log.txt ..." : "OFF -- no card at
+  boot; serial only (T5: never stop for a missing card)");` — said once at boot, and `emit()` writes
+  to the card only `if (g_card != nullptr && g_card->isOpen())`.
+- **Every exit leaves 0 V, coast:** the field-disable poll `if (pros::c::competition_is_disabled())
+  break;` is the first statement of the loop body; after the loop `stopAll(members, n);` runs
+  explicitly and the guard's destructor runs it again on scope exit. The header states plainly
+  that a task KILL runs no destructor and that VEXos's own motor disable is what covers that case.
+
+### 5. Mutations — each run, red OBSERVED verbatim, restored byte-exact, suite re-run green
+
+Protocol (Session 1 §4.2, made mechanical in a scratchpad driver): pristine copies of the three
+mutable files saved with their md5s; per mutation — plant (asserting the target occurs exactly
+once), regenerate `docs/api` transiently (the API pages render the constexpr bodies, so
+`check-fresh` would otherwise block the relink), put the saved GREEN binary back so the briefing
+gate sees green, `cmake --build`, **assert exit 0 AND a changed binary md5**, run the target
+cases, record the red; restore by copying the pristine file back and **assert the md5 equals the
+pristine's**, regenerate, rebuild, re-run the cases green. Green binary at the start of every
+cycle: md5 `5079a29a…`. Every mutant below BUILT (a new md5 each time) and every restore was
+byte-exact (`1460672…` / `b39abd8…` / `68d3a7a…` after each).
+
+| # | Mutation (file) | Mutant md5 | Observed red (verbatim doctest lines, first few) | After restore |
+|---|---|---|---|---|
+| M1 | degradation floor `< kMinAnsweringPerSide` → `< kMinAnsweringPerSide - 1` (the brief's `< 3` → `< 2`), both sides | `9472f7a1` | `degradation:*` 4 passed / **1 failed**, 49 assertions / **2 failed**: `drivetrain_degradation_test.cpp:84: CHECK( eval(4, 2, 4, 4).verdict == DriveVerdict::Refuse ) is NOT correct!`, `:86: CHECK( eval(4, 4, 4, 2).verdict == DriveVerdict::Refuse ) is NOT correct!` | 5/5, 49/49 green |
+| M2 | degradation cap `> kMaxDeadTotal` → `> kMaxDeadTotal + 1` (`> 2` → `> 3`) | `6ee611d1` | 3 passed / **2 failed**, 49 / **5 failed**: `:65: CHECK( threeTotal.verdict == DriveVerdict::Refuse )`, `:71: CHECK( threeTotalMirror.verdict == … )`, `:99: CHECK( eval(5, 3, 5, 4).verdict == … )`, `:100: CHECK( eval(5, 4, 5, 3).verdict == … )`, `:103: CHECK( eval(6, 3, 6, 6).verdict == … )` all `is NOT correct!` | 5/5, 49/49 green |
+| M3 | monitor: drop the persistence (`ticks_[i] >= cfg_.persistTicks` → `>= 1`) | `e397846a` | `side monitor:*` 5 passed / **4 failed**, 82 / **7 failed**: `coupled_side_monitor_test.cpp:91: CHECK( at24.persistedMask == 0 )`, `:92: CHECK( at24.persistedCount == 0 )`, `:110`, `:141`, `:200`, `:205: CHECK( run(mon, 6.0, m, 24).persistedMask == 0 )`, `:257: CHECK( worstPersisted == 0 )` (the stick-reversal case) all `is NOT correct!` | 9/9, 82/82 green |
+| M4 | monitor: drop the present-flag check (`if (!v.evaluated \|\| !m.present)` → `if (!v.evaluated)`) | `b1e25fa7` | 8 passed / **1 failed**, 82 / **4 failed**: `:220: CHECK( v.disagreeingMask == 0 )`, `:221: CHECK( v.persistedMask == 0 )`, `:222: CHECK( mon.disagreeTicks(1) == 0 )`, `:223: CHECK( mon.disagreeTicks(4) == 0 )` — the ABSENT-member case: a dead port flagged | 9/9, 82/82 green |
+| M5 | monitor: flip the sign test (`(m.velocityRadS * expected) < 0.0` → `> 0.0`) | `fde47886` | **0 passed / 9 failed**, 82 / **46 failed**: from `:69: CHECK( v.disagreeingMask == 0 )` (the all-agree case flags every member) onward | 9/9, 82/82 green |
+| M6 | `tankSideVolts`: swap ∓ | `0ac55231` | `side volts:*` **0 passed / 1 failed**, 20 / **14 failed**: `:301: CHECK( ccw.left == 12.0 * (0.5 - 0.25) )`, `:302`, `:303: CHECK( ccw.left == 3.0 )`, `:304: CHECK( ccw.right == 9.0 )`, `:307: CHECK( cw.left == 9.0 )`, `:308`, `:311: CHECK( spin.left == -12.0 )`, `:312: CHECK( spin.right == 12.0 )` all `is NOT correct!` | 1/1, 20/20 green |
+| M7 | chassis table: remove the cross-side duplicate check | `6b1c7da4` | `chassis table:*` 7 passed / **1 failed**, 81 / **5 failed**: `chassis_table_test.cpp:145: CHECK_FALSE( consistent(t, why, sizeof why) )`, `:146: CHECK( std::strstr(why, "BOTH sides") != nullptr )`, `:147`, `:150: CHECK_FALSE( consistent(same, …) )`, `:151` all `is NOT correct!` | 8/8, 81/81 green |
+| M8 (extra) | absence detector: `faultStreak_ >= persistTicks` → `>` | `5903fb18` | `absence detector:*` 1 passed / **1 failed**, 2253 / **53 failed**: `:341: CHECK( d.update(++faulted, 8.0, 6.0, 8.0) )` (the 25th tick), `:342: CHECK( d.absent() )`, `:343`, `:345 ×50` all `is NOT correct!` | 2/2, 2253/2253 green |
+| M-gate | Makefile `override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE` replaced by a comment, real `make ROBOT=tank PROGRAM=drive` (self-test case 10) | (ELF) | verdict FAIL naming `whole token -DSHULIB_PROGRAM_DRIVE … silent no-op`, `beacon 'shulib-robot-variant=tank-drive' is NOT in bin/hot.package.elf`, and `carries the tank beacon … a tank build wearing a tank-drive label` — all three asserted by the self-test, which passed (23 cases) | restored by the plant class's byte-exact assertion; `check` PASS ×4 |
+
+**D5-standard notes (a red for the wrong reason is a fake red):**
+- **M1's red is real but narrower than the brief's row list suggests.** On a FIVE-per-side train,
+  "2 answering" is 3 dead, and the total cap (`> 2`) refuses that row on its own — so the
+  `2/5+5/5 REFUSE` row stayed green under M1, correctly, and only the bench bot's four-per-side
+  rows (`2/4`) exposed the floor. The per-side floor is independently load-bearing only where
+  `expected − 2 < 3`, i.e. four motors or fewer per side; on robot two the cap alone yields the
+  same verdicts. The test file's four-per-side rows are therefore not decoration — they are the
+  only thing that pins the floor — and this is recorded so nobody later "simplifies" them away.
+- M5 red on every case because the flipped test flags AGREEING members; that is the intended
+  reason (the sign test), not a compile artefact — the mutant built and the disagree masks are
+  what failed.
+- Every mutant's red came from the TEST's assertions, never from a doc gate: the transient
+  regenerate + green-binary steps kept the gates out of the way, as Session 1 §4.2 prescribes.
+
+### 6. Final verification (all from the repo root, on the finished working tree, HEAD `b8b63f9`)
+
+| Check | Result |
+|---|---|
+| Host build (all doc gates in-build) | exit 0, binary md5 `5079a29a…` |
+| Host suite | **1188 cases / 1,540,950 assertions / 0 failed / 3 skipped** — DIRTY-tree count (`-dirty` in the hash string; the committed briefing must carry the CLEAN-tree number, measured by the coordinator after the commit — Session 1 §6) |
+| `api_doc_tool.py` self-test / check-coverage / check-fresh / check-examples / check-removability | **5 × PASS**; coverage **1,710 entities / 121 headers**, all documented; 387 quoted example lines verbatim; removability clean |
+| `briefing_status.py check` | PASS — but against a briefing regenerated on the dirty tree (suite line 1,540,950; headers 154). Will read as drift after the commit until regenerated clean: the known caveat |
+| `doc_staleness_audit.py` self-test + audit | **2 × PASS** (10 detector cases; 26 live docs, 0 numeric claims) |
+| PROS-free guard (ci.yml, verbatim) | CLEAN — `include/shulib` PROS-free outside `hal/pros/`; the two new headers included |
+| Sim-layering guard (ci.yml, verbatim) | CLEAN |
+| ARM header cross-compile (anchored sed, repo root, `-Werror`) | **CLEAN, 154 headers** (was 152) |
+| `src_build_gate.py self-test` | **OK, 23 detector cases** (was 18), each a real build, incl. the PROGRAM-define-dropped mutation |
+| `src_build_gate.py check` | **PASS ×4** — bench / xdrive / tank / tank-drive, **3/3 TUs** each (the gate globs `src/`; no change was needed to count three), xdrive **0** `-Wunused-function` from `src/main.cpp`, the others 2, hash asserted, beacons asserted NUL-terminated |
+| Makefile validation | `ROBOT=bench PROGRAM=drive`, `ROBOT=xdrive PROGRAM=drive`, `PROGRAM=foo` all `$(error)` with the intended text |
+| C7 removability grep of public docs | empty |
+| git | nothing staged, nothing committed by the executor; 18 modified + 10 new files (listed by `git status` in the scratchpad log) |
+
+### 7. WHAT IS NOT DONE — read this before believing any checkbox
+
+- **NOTHING HERE HAS RUN ON HARDWARE.** Neither program has been uploaded since this pass; no
+  motor has yet turned under the library's adapters; the drive program's panel, LCD, cuts,
+  degradation and absence detection have been exercised only on the host (the pure parts) and
+  by the ARM build (the loop). The coordinator uploads: `make ROBOT=tank PROGRAM=drive && pros
+  upload --slot 1 --name "shulib Drive"`, then `make ROBOT=tank && pros upload --slot 3`.
+- **The motion stack has still not driven a robot.** The drive program is adapters and open-loop
+  volts; `docs/guide/14` stays as it is; M1's badge has not moved; HA-18/52/112 unsettled.
+- **The brief's DoD items that the ruling change withdrew** — the 3 s chooser and the
+  `project.pros` rename — are deliberately NOT done; a separate program in slot 1 replaces them
+  (§2, and the amended brief at `b8b63f9`).
+- **The clean-tree suite number is not known yet** (dirty-tree 1,540,950; the six `-dirty`
+  characters shift the hash-derived assertions). The coordinator re-measures after the commit and
+  regenerates `PROJECT-BRIEFING.md` (Session 1 §6's rule).
+- **`hardware-assumptions.md` untouched** — no measurement happened; the register rows Session 2
+  §9.6 owes (VEXos 1.1.5, the controller-launch trap, USB renumbering, the coupled-member
+  thresholds as invented) are still owed. The thresholds are now stated once in
+  `SideMonitorConfig` and pinned by tests, which is where a register row can point.
+- **Robot two's committed table is checked for consistency only at boot** (`tableConsistent()` in
+  both programs) and by the src build gate compiling it; the host test re-types the measured
+  values rather than including the tank variant (D0b-2). A drift between the header and the
+  test's copy would show as a test failure only if someone edits the test, or on the brain at
+  boot. Acceptable tonight; R3d replaces typed signs with discovered ones.
+- **The degradation policy's domain** (D0b-5): a drivetrain with fewer than three motors per side
+  is refused on every boot. Not this robot's problem; stated in the header.
+- Parts 1–3 (motor group, odometry seam, composition root) are not started.
+
+**PART 0B READY FOR VERIFICATION**
+

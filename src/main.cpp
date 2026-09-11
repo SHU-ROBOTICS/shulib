@@ -63,13 +63,18 @@
 // (port 4 is the IMU), rotation sensors on 5/6, and a GPS on 9 -- every one of those
 // throws an adapter read-back precondition at boot.
 //
-// THREE variants, one validated Makefile switch (any other value is an $(error)):
-//   make                 → ROBOT=bench   the measured tank BENCH bot: runs the bench tester
-//   make ROBOT=tank      → the 2026 tank chassis, ROBOT TWO (R3b Session 2): ALSO runs the
-//                          bench tester in Part 0 -- its chassis table ships UNSET until the
-//                          build team reports ports (src/bench_r3a.cpp), and no library graph
-//                          is built for it yet (Part 3 changes that)
-//   make ROBOT=xdrive    → the invented X-drive wiring below (HA-111)
+// THREE robot variants on one validated Makefile switch, and a SECOND AXIS for the program
+// (R3b Part 0b) -- any other value of either is an $(error):
+//   make                            → ROBOT=bench  the measured tank BENCH bot: runs the bench
+//                                     tester ("Bench Tests")
+//   make ROBOT=tank                 → the 2026 tank chassis, ROBOT TWO: runs the bench tester
+//                                     over robot two's SIGNED chassis table
+//                                     (src/chassis_table.hpp); no library graph yet (Part 3)
+//   make ROBOT=tank PROGRAM=drive   → "shulib Drive": robot two DRIVES from the sticks through
+//                                     the hal/pros adapters with dead-port tolerance
+//                                     (src/drive_program.cpp) -- its own program in its own
+//                                     slot, by the team lead's ruling; NOT the motion stack
+//   make ROBOT=xdrive               → the invented X-drive wiring below (HA-111)
 // (The instruction here used to say `make CXXFLAGS_EXTRA=-D...` — common.mk consumes
 //  EXTRA_CXXFLAGS, the names were transposed, and the documented command silently built
 //  the BENCH variant. GATE1 replaced it with the validated ROBOT switch in the Makefile,
@@ -78,14 +83,21 @@
 #if defined(SHULIB_ROBOT_XDRIVE_INVENTED) && defined(SHULIB_ROBOT_TANK_2026)
 #error "two robot variant defines are set at once -- select exactly one with make ROBOT=..."
 #endif
+#if defined(SHULIB_PROGRAM_DRIVE) && !defined(SHULIB_ROBOT_TANK_2026)
+#error "PROGRAM=drive needs ROBOT=tank -- only robot two's chassis table carries measured signs"
+#endif
 #if defined(SHULIB_ROBOT_XDRIVE_INVENTED)
 #define SHULIB_RUNS_BENCH_TESTER 0
 #else
-#define SHULIB_RUNS_BENCH_TESTER 1  // bench AND tank both boot into the tester (Part 0)
+#define SHULIB_RUNS_BENCH_TESTER 1  // bench AND tank: a tester-variant robot (no library graph);
+                                    // which PROGRAM runs in opcontrol() is the second axis
 #endif
 
 #if SHULIB_RUNS_BENCH_TESTER
 #include "bench_r3a.hpp"
+#if defined(SHULIB_PROGRAM_DRIVE)
+#include "drive_program.hpp"
+#endif
 #endif
 
 #include <cstdio>
@@ -131,15 +143,19 @@
 namespace {
 
 // ═══ THE VARIANT IDENTITY BEACON (R3b Session 2; asserted by tools/src_build_gate.py) ═══
-// One string per variant, selected by the SAME preprocessor facts that select the wiring,
-// and printed at boot so it is referenced and survives into the linked package. The src
-// build gate asserts the expected beacon IS in bin/hot.package.elf and the other two are
-// NOT. That is the end-to-end proof that the #if chain in THIS file took the branch the
-// Makefile asked for: the gate's compile-line check can see a define that never landed,
-// but not a macro renamed here -- and a tank build that silently carried the bench bot's
-// chassis table onto robot two is exactly HA-111's defect class again.
+// One string per BUILD, selected by the SAME preprocessor facts that select the wiring and
+// the program, and printed at boot so it is referenced and survives into the linked package.
+// The src build gate asserts the expected beacon IS in bin/hot.package.elf and the other
+// three are NOT (matched WITH the string's NUL terminator, because `…=tank` is a prefix of
+// `…=tank-drive`). That is the end-to-end proof that the #if chain in THIS file took the
+// branch the Makefile asked for: the gate's compile-line check can see a define that never
+// landed, but not a macro renamed here -- and a tank build that silently carried the bench
+// bot's chassis table onto robot two is exactly HA-111's defect class again; a "shulib
+// Drive" upload that was silently the tester is the same class on the second axis.
 #if defined(SHULIB_ROBOT_XDRIVE_INVENTED)
 constexpr const char kVariantBeacon[] = "shulib-robot-variant=xdrive";
+#elif defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_DRIVE)
+constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank-drive";
 #elif defined(SHULIB_ROBOT_TANK_2026)
 constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank";
 #else
@@ -175,7 +191,7 @@ void benchStateScreen(const char* state, const char* why) {
     pros::c::screen_print_at(pros::E_TEXT_LARGE, 10, 30, "%s", state);
     pros::c::screen_set_pen(0xFFFFFF);
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 80,
-                             "The bench tester runs ONLY in DRIVER CONTROL, enabled.");
+                             "This program runs ONLY in DRIVER CONTROL, enabled.");
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 100, "%s", why);
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 130, "status bits %s", bits);
     pros::c::screen_print_at(pros::E_TEXT_SMALL, 10, 160,
@@ -355,16 +371,25 @@ void initialize() {
     shulib::setPreconditionHandler(&robotPreconditionHandler);
 
 #if SHULIB_RUNS_BENCH_TESTER
-    // R3a/R3b: a tester build (bench bot, or the 2026 tank chassis in Part 0). The X-drive
+    // R3a/R3b: a tester-variant robot (bench bot, or the 2026 tank chassis). The X-drive
     // graph below is NOT constructed -- its ports are invented and every adapter ctor
-    // would throw here. The session runs from opcontrol(); this only proves the binary
-    // booted, and says WHICH variant it is (the beacon the src build gate asserts).
+    // would throw here. The program runs from opcontrol(); this only proves the binary
+    // booted, and says WHICH build it is (the beacon the src build gate asserts).
+#if defined(SHULIB_PROGRAM_DRIVE)
+    std::printf("\n[R3B] booted: shulib DRIVE build [%s].\n"
+                "[R3B] robot two drives from the sticks through the hal/pros adapters (open-loop\n"
+                "[R3B] volts, dead-port tolerance, 1 s non-fatal cuts) -- never through the motion\n"
+                "[R3B] stack. The library has still not driven a robot.\n"
+                "[R3B] the X-drive object graph is deliberately NOT constructed.\n",
+                kVariantBeacon);
+#else
     std::printf("\n[R3A] booted: bench-tester build [%s].\n"
                 "[R3A] read-only EXCEPT the tester's DRIVE station (R3b Session 2), which powers\n"
                 "[R3A] the drive motors through the hal/pros adapters behind six safety gates --\n"
                 "[R3A] never through the motion stack. The library has still not driven a robot.\n"
                 "[R3A] the X-drive object graph is deliberately NOT constructed.\n",
                 kVariantBeacon);
+#endif
     {
         char bits[64];
         std::printf("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
@@ -477,8 +502,17 @@ void autonomous() {
  */
 void opcontrol() {
 #if SHULIB_RUNS_BENCH_TESTER
+#if defined(SHULIB_PROGRAM_DRIVE)
+    // "shulib Drive" (R3b Part 0b): NO chooser -- this build IS the drive program, by the team
+    // lead's ruling (a program picked by name from the slot list must do what its name says).
+    // Returns on a field DISABLE (its loop polls for it, so its all-stop guard runs before
+    // PROS tears the task down); PROS calls opcontrol() again when driver control resumes.
+    shulib::bench::runDrive();
+    return;
+#else
     shulib::bench::runR3a();  // never returns; powers motors ONLY in its DRIVE station
     return;
+#endif
 #else
     Robot& r = robot();
     r.telemetry.log(shulib::hal::LogLevel::Info, "R1A",

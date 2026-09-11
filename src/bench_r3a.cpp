@@ -24,9 +24,10 @@
 //     ProsController), never its motion stack -- the library has still not
 //     driven a robot, and this station is labelled that way on every screen.
 //   * The drivetrain it was written for is a SECOND robot: the season's tank
-//     chassis, five COUPLED motors per side. Its chassis table below ships UNSET
-//     (no port is ever invented -- HA-111 was that defect); the bench bot keeps
-//     its measured table.
+//     chassis, five COUPLED motors per side. Its chassis table (src/chassis_table.hpp
+//     since R3b Part 0b, shared with the drive program) shipped UNSET until measured
+//     (no port is ever invented -- HA-111 was that defect) and now carries the
+//     measured ports AND signs; the bench bot keeps its measured, unsigned table.
 //
 // ═══ WHY IT PROBES BEFORE IT CONSTRUCTS ════════════════════════════════════════════
 // Every hal/pros adapter ctor does a device read-back and raises a precondition
@@ -54,6 +55,7 @@
 // ProsBlockSink device seam instead, which is exactly what that seam is for.
 
 #include "bench_r3a.hpp"
+#include "chassis_table.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -86,6 +88,7 @@
 #include "shulib/hal/pros/motor.hpp"
 #include "shulib/hal/motor_conversion.hpp"
 #include "shulib/math/angle.hpp"
+#include "shulib/teleop/coupled_side_monitor.hpp"
 #include "shulib/teleop/stick_mapping.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -104,8 +107,8 @@ namespace {
 /// because nothing on screen distinguished the two.
 constexpr const char* kBuildStamp = __DATE__ " " __TIME__;
 
-constexpr int kMaxPort = 21;   // PHYSICAL smart ports, 1..21 -- how humans and every
-                               // other PROS API name them. found[] is indexed this way.
+// (kMaxPort -- physical smart ports 1..21, how found[] is indexed -- now comes from
+//  chassis_table.hpp with the table.)
 
 /// THE REGISTRY IS ZERO-INDEXED AND NOTHING ELSE IN PROS IS.
 /// `apix.h`: "Returns the type of the device plugged into the ZERO-INDEXED port …
@@ -121,113 +124,15 @@ constexpr int kMaxRegistryIndex = 20;
 constexpr int kLoopSamples = 200; // 200 × 10 ms ≈ 2 s of cadence measurement
 
 // ═══ THE CHASSIS TABLE — the ONE typed input (R3b Session 2, brief §3.1) ═══════════
-// Per variant: which ports drive which side, the cartridge, the IMU port, and whether
-// any of it was MEASURED. It holds what the tester needs about a drivetrain and cannot
-// discover for itself -- polarity is discovered (MOTOR WATCH's hand push), and R3d will
-// discover sides and scale too. Selected by the SAME define the Makefile's ROBOT switch
-// sets, so `make ROBOT=tank` and this table cannot disagree about which robot it is.
-//
-// RULE: A VALUE IS NEVER INVENTED. An unset field is 0 / Unset, describeMissing() names
-// it on screen, and the DRIVE station refuses until it is filled. HA-111's invented port
-// map was exactly this defect class -- every adapter constructor threw at boot -- and it
-// is not repeated for robot two. When the build team reports ports, THIS is the one
-// place to edit (the tank table), with the date and the source beside the numbers.
-enum class Cartridge { Unset, Red, Green, Blue };
-
-struct ChassisTable {
-    const char* robot;            // the banner's name for this robot
-    std::int8_t left[kMaxPort];   // LEFT-side drive ports (physical 1..21), any order
-    std::size_t leftCount;        // 0 = UNSET
-    std::int8_t right[kMaxPort];  // RIGHT-side drive ports
-    std::size_t rightCount;       // 0 = UNSET
-    Cartridge cartridge;          // Unset = nobody has READ one off a motor yet
-    std::uint8_t imuPort;         // 0 = UNSET (none mounted, or not reported)
-    bool measured;                // true only when every SET field was read off the robot
-    const char* provenance;       // who measured what, and when -- printed in the banner
-};
-
-#if defined(SHULIB_ROBOT_TANK_2026)
-// ROBOT TWO -- the 2026 tank chassis (build team, stated 2026-09-10): five COUPLED motors
-// per side driving four wheels per side.
-// PORTS: reported by the team lead 2026-09-10, read off the robot while standing BEHIND
-// it (the back of the robot against him, looking toward the front): LEFT 11 12 13 14 15
-// and RIGHT 20 19 18 17 16, each listed BACK -> FRONT (11 and 20 are the rearmost motors,
-// 15 and 16 the frontmost). THE FRONT is therefore the end where ports 15 and 16 sit --
-// the end away from a person who reads the left side as 11..15. Order within a side is
-// informational: the table is a set, and MOTOR WATCH captures each port's own sign.
-// CARTRIDGE: BLUE, read off a motor by the build team 2026-09-10 -- a reported
-// measurement, so it may be set; it is still printed as a BELIEF wherever the adapter is
-// about to WRITE it. IMU: none mounted -> UNSET. Also reported, and deliberately NOT here
-// because the tester uses neither: wheels 2.75 in, and "600 rpm" (reads as direct drive
-// 1:1, UNCONFIRMED until tooth counts arrive -- that belongs to odometry, R3b Part 2).
-// `measured` flipped TRUE on the evening of 2026-09-10: station 1's census showed MOTOR on
-// all ten table ports (after cables on 11, 15 and 19 were re-seated), the IMU on port 2 and
-// the radio on port 1, and two whole-robot pushes captured every port's sign
-// (LEFT -11 +12 -13 +14 -15 | RIGHT +16 -17 +18 -19 +20, port 18 travelling ~20 % short
-// both times). The cartridge is still a belief read off a motor, not a measurement.
-constexpr ChassisTable kChassis = {
-    .robot = "2026 TANK CHASSIS (robot two)",
-    .left = {11, 12, 13, 14, 15},
-    .leftCount = 5,
-    .right = {20, 19, 18, 17, 16},
-    .rightCount = 5,
-    .cartridge = Cartridge::Blue,
-    .imuPort = 2,
-    .measured = true,
-    .provenance = "ports + IMU 2 + radio 1: census 2026-09-10 evening, all ten motors; "
-                  "front = the 15/16 end (team lead); cartridge BLUE off a motor",
-};
-#else
-// THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13
-// mechanically repaired => 8 motors, 4 per side, symmetric; §5.3's asymmetry ruling
-// withdrawn) and the sides confirmed by the §15-§19 whole-robot pushes. IMU on port 4.
-// Cartridge BLUE per the team, while the brain was found configured GREEN against it
-// (§20.3, "the cartridge fix is still owed") -- so the value here is the team's, and the
-// DRIVE station prints it as a belief before writing it; reading the insert colour off a
-// motor is worksheet 3.3 and is what settles HA-15.
-constexpr ChassisTable kChassis = {
-    .robot = "TANK BENCH BOT (measured) -- NOT the invented X-drive",
-    .left = {15, 16, 17, 18},
-    .leftCount = 4,
-    .right = {11, 12, 13, 14},
-    .rightCount = 4,
-    .cartridge = Cartridge::Blue,
-    .imuPort = 4,
-    .measured = true,
-    .provenance = "ports+IMU: 2026-08-13 census, sides by R3a-PROGRESS S15-S19 pushes; "
-                  "cartridge BLUE per the team (brain was GREEN, S20.3) -- read the insert",
-};
-#endif
-
-/// Both sides have ports. (The IMU and the cartridge are checked separately, because the
-/// stations that need them differ: DRIVE needs ports + cartridge, the IMU test needs the
-/// IMU port, the census needs nothing.)
-constexpr bool tableHasPorts() { return kChassis.leftCount > 0 && kChassis.rightCount > 0; }
-constexpr std::size_t tableCount() { return kChassis.leftCount + kChassis.rightCount; }
-
-const char* cartridgeWord(Cartridge c) {
-    switch (c) {
-        case Cartridge::Red:   return "RED 100 rpm";
-        case Cartridge::Green: return "GREEN 200 rpm";
-        case Cartridge::Blue:  return "BLUE 600 rpm";
-        default:               return "UNSET";
-    }
-}
-
-/// -1 LEFT, +1 RIGHT, 0 not a drive port in the table (or the table has no ports).
-int tableSideOf(int port) {
-    for (std::size_t i = 0; i < kChassis.leftCount; ++i) {
-        if (kChassis.left[i] == static_cast<std::int8_t>(port)) return -1;
-    }
-    for (std::size_t i = 0; i < kChassis.rightCount; ++i) {
-        if (kChassis.right[i] == static_cast<std::int8_t>(port)) return +1;
-    }
-    return 0;
-}
+// Lives in src/chassis_table.hpp since R3b Part 0b, shared with src/drive_program.cpp so
+// the tester and the drive program cannot disagree about which robot they are on. It
+// carries robot two's MEASURED SIGNS (signsMeasured = true); the bench bot's stays
+// unsigned. The helpers below are this file's thin bindings of the header's pure
+// functions to kChassis.
 
 /// The side label printed beside a port -- §10.3's mirror check, now from the table.
 const char* tableSide(int port) {
-    const int s = tableSideOf(port);
+    const int s = tableSideOf(kChassis, port);
     if (s < 0) return "LEFT(table)";
     if (s > 0) return "RIGHT(table)";
     if (kChassis.imuPort != 0 && port == static_cast<int>(kChassis.imuPort)) return "IMU(table)";
@@ -236,69 +141,8 @@ const char* tableSide(int port) {
 
 /// One letter for a live panel cell: L / R / ? (the table has no claim on this port).
 const char* sideLetter(int port) {
-    const int s = tableSideOf(port);
+    const int s = tableSideOf(kChassis, port);
     return s < 0 ? "L" : s > 0 ? "R" : "?";
-}
-
-/// Names every field a caller needs that is UNSET, comma-separated, into `buf`.
-/// Returns true when something is missing. `forDrive` = ports + cartridge; otherwise
-/// every field, IMU included -- the banner uses the full list.
-bool describeMissing(char* buf, std::size_t n, bool forDrive) {
-    buf[0] = '\0';
-    bool any = false;
-    auto add = [&](const char* what) {
-        if (any) std::strncat(buf, ", ", n - std::strlen(buf) - 1);
-        std::strncat(buf, what, n - std::strlen(buf) - 1);
-        any = true;
-    };
-    if (kChassis.leftCount == 0) add("LEFT ports");
-    if (kChassis.rightCount == 0) add("RIGHT ports");
-    if (kChassis.cartridge == Cartridge::Unset) add("cartridge");
-    if (!forDrive && kChassis.imuPort == 0) add("IMU port");
-    return any;
-}
-
-/// "15 16 17 18" or "UNSET".
-void portsToString(const std::int8_t* ports, std::size_t n, char* buf, std::size_t cap) {
-    buf[0] = '\0';
-    if (n == 0) {
-        std::snprintf(buf, cap, "UNSET");
-        return;
-    }
-    for (std::size_t i = 0; i < n; ++i) {
-        char one[8];
-        std::snprintf(one, sizeof one, "%s%d", i ? " " : "", static_cast<int>(ports[i]));
-        std::strncat(buf, one, cap - std::strlen(buf) - 1);
-    }
-}
-
-/// A table that contradicts itself is worse than an unset one: a port on both sides, a
-/// port out of 1..21, or the IMU port listed as a drive port. Printed at boot, refused by
-/// DRIVE. Returns true when the table is internally consistent.
-bool tableConsistent(char* why, std::size_t cap) {
-    why[0] = '\0';
-    auto inRange = [](std::int8_t p) { return p >= 1 && p <= kMaxPort; };
-    for (std::size_t i = 0; i < kChassis.leftCount; ++i) {
-        if (!inRange(kChassis.left[i])) { std::snprintf(why, cap, "LEFT port %d is not 1..21", kChassis.left[i]); return false; }
-        if (tableSideOf(kChassis.left[i]) != -1 || (kChassis.imuPort != 0 && kChassis.left[i] == static_cast<std::int8_t>(kChassis.imuPort))) {
-            std::snprintf(why, cap, "port %d appears on both sides or is the IMU port", kChassis.left[i]);
-            return false;
-        }
-        for (std::size_t j = i + 1; j < kChassis.leftCount; ++j) {
-            if (kChassis.left[i] == kChassis.left[j]) { std::snprintf(why, cap, "LEFT lists port %d twice", kChassis.left[i]); return false; }
-        }
-    }
-    for (std::size_t i = 0; i < kChassis.rightCount; ++i) {
-        if (!inRange(kChassis.right[i])) { std::snprintf(why, cap, "RIGHT port %d is not 1..21", kChassis.right[i]); return false; }
-        if (kChassis.imuPort != 0 && kChassis.right[i] == static_cast<std::int8_t>(kChassis.imuPort)) {
-            std::snprintf(why, cap, "port %d is both RIGHT and the IMU port", kChassis.right[i]);
-            return false;
-        }
-        for (std::size_t j = i + 1; j < kChassis.rightCount; ++j) {
-            if (kChassis.right[i] == kChassis.right[j]) { std::snprintf(why, cap, "RIGHT lists port %d twice", kChassis.right[i]); return false; }
-        }
-    }
-    return true;
 }
 
 // ── Output: USB serial always, SD card when one is installed. ─────────────────
@@ -744,8 +588,8 @@ void census(pros::c::v5_device_e_t* found) {
         }
     }
     emit("");
-    if (tableHasPorts()) {
-        const unsigned expect = static_cast<unsigned>(tableCount());
+    if (tableHasPorts(kChassis)) {
+        const unsigned expect = static_cast<unsigned>(tableCount(kChassis));
         emitS(motors >= static_cast<int>(expect) ? Sev::Good : Sev::Bad,
               "motors found: %d   (chassis table expects %u: %u left + %u right)", motors,
               expect, static_cast<unsigned>(kChassis.leftCount),
@@ -755,7 +599,7 @@ void census(pros::c::v5_device_e_t* found) {
         emitS(Sev::Warn, "motors found: %d   (chassis table has NO PORTS yet -- side '?')",
               motors);
         emit("Report these port numbers, per side, and which end is the FRONT; they go");
-        emit("into src/bench_r3a.cpp's chassis table. Nothing is guessed in the meantime.");
+        emit("into src/chassis_table.hpp. Nothing is guessed in the meantime.");
     }
     emit("Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is");
     emit("what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).");
@@ -992,17 +836,21 @@ void reportMotorGroup(const char* label, const std::int8_t* ports, std::size_t n
                       const pros::c::v5_device_e_t* found) {
     emitf("-- %s --", label);
     for (std::size_t i = 0; i < n; ++i) {
-        const int p = static_cast<int>(ports[i]);
+        // |port|: the table's entries are SIGNED on a signed table, and this station reads
+        // the raw device -- a negative port here would index found[] off the front and ask
+        // PROS for a REVERSED reading, which is not what "raw" means.
+        const int p = absPort(ports[i]);
+        const std::int8_t raw = static_cast<std::int8_t>(p);
         if (found[p] != pros::c::E_DEVICE_MOTOR) {
             emitS(Sev::Bad, "  port %2d: NOT A MOTOR (census says %s)", p, deviceName(found[p]));
             continue;
         }
-        const double rawDeg = pros::c::motor_get_position(ports[i]);
+        const double rawDeg = pros::c::motor_get_position(raw);
         emitf("  p%-2d %s raw=%8.1fd canon=%7.3fr %4.1fC %4dmA", p,
-              gearName(pros::c::motor_get_gearing(ports[i])), rawDeg,
+              gearName(pros::c::motor_get_gearing(raw)), rawDeg,
               hal::motorPositionDegToCanonical(rawDeg).value(),
-              pros::c::motor_get_temperature(ports[i]),
-              static_cast<int>(pros::c::motor_get_current_draw(ports[i])));
+              pros::c::motor_get_temperature(raw),
+              static_cast<int>(pros::c::motor_get_current_draw(raw)));
     }
 }
 
@@ -1023,7 +871,7 @@ void reportMotors(const pros::c::v5_device_e_t* found) {
     emit("Nothing here writes to a motor: this STATION never constructs the adapter");
     emit("that would (header note above reportMotorGroup). Only station 10 DRIVE does.");
     emit("");
-    if (tableHasPorts()) {
+    if (tableHasPorts(kChassis)) {
         reportMotorGroup("TABLE: LEFT", kChassis.left, kChassis.leftCount, found);
         reportMotorGroup("TABLE: RIGHT", kChassis.right, kChassis.rightCount, found);
     } else {
@@ -1079,6 +927,7 @@ struct WatchCapture {
     bool signsValid = false;                 // a qualifying whole-robot push has happened
     bool signsFromBackwardPush = false;      // the operator said BACK first: readings inverted
     std::int8_t sign[kMaxPort + 1] = {};     // +1 positive port / -1 NEGATIVE port, for DRIVE
+    int tableDisagreements = -1;             // vs a SIGNED table: -1 not compared, else the count
     char lastSummary[192] = "no MOTOR WATCH run yet this power cycle";
 };
 WatchCapture g_watch;
@@ -1209,7 +1058,7 @@ void motorWatch(pros::c::v5_device_e_t* found) {
         const std::int8_t v = delta[i] > 5.0 ? 1 : delta[i] < -5.0 ? -1 : 0;
         g_watch.verdict[ports[i]] = v;
         if (v != 0) ++g_watch.moved;
-        if (tableSideOf(ports[i]) != 0) {
+        if (tableSideOf(kChassis, ports[i]) != 0) {
             if (v != 0) ++tableMoved; else noteSilent(ports[i]);
         } else if (v != 0) {
             ++nonTableMoved;
@@ -1217,13 +1066,13 @@ void motorWatch(pros::c::v5_device_e_t* found) {
     }
     // A table port that is not a census motor cannot have moved: silent by definition.
     for (std::size_t i = 0; i < kChassis.leftCount; ++i) {
-        if (found[kChassis.left[i]] != pros::c::E_DEVICE_MOTOR) noteSilent(kChassis.left[i]);
+        if (found[absPort(kChassis.left[i])] != pros::c::E_DEVICE_MOTOR) noteSilent(absPort(kChassis.left[i]));
     }
     for (std::size_t i = 0; i < kChassis.rightCount; ++i) {
-        if (found[kChassis.right[i]] != pros::c::E_DEVICE_MOTOR) noteSilent(kChassis.right[i]);
+        if (found[absPort(kChassis.right[i])] != pros::c::E_DEVICE_MOTOR) noteSilent(absPort(kChassis.right[i]));
     }
-    const bool qualifies = tableHasPorts() && tableSilent == 0
-                           && tableMoved == static_cast<int>(tableCount());
+    const bool qualifies = tableHasPorts(kChassis) && tableSilent == 0
+                           && tableMoved == static_cast<int>(tableCount(kChassis));
 
     bool backFirst = false;
     if (qualifies) {
@@ -1240,7 +1089,7 @@ void motorWatch(pros::c::v5_device_e_t* found) {
         g_watch.signsFromBackwardPush = backFirst;
         for (int p = 1; p <= kMaxPort; ++p) {
             g_watch.sign[p] = 0;
-            if (tableSideOf(p) != 0) {
+            if (tableSideOf(kChassis, p) != 0) {
                 const std::int8_t v = g_watch.verdict[p];
                 g_watch.sign[p] = backFirst ? static_cast<std::int8_t>(-v) : v;
             }
@@ -1284,24 +1133,53 @@ void motorWatch(pros::c::v5_device_e_t* found) {
         if (nonTableMoved > 0) {
             emitf("  also moved, NOT in the table (no sign taken): %d port(s)", nonTableMoved);
         }
+        // ── THE CROSS-CHECK against a SIGNED table (R3b Part 0b, brief §2): the table's signs
+        //    are typed, measured values with a date; this push is a fresh measurement. Per port,
+        //    AGREES or DISAGREES. Any DISAGREES is a finding -- a motor re-wired, a cable moved to
+        //    another port, or a wrong entry -- and DRIVE refuses on it, naming the port.
+        g_watch.tableDisagreements = -1;
+        if (kChassis.signsMeasured) {
+            int disagree = 0;
+            emit("  vs the table's MEASURED signs (chassis_table.hpp):");
+            for (int p = 1; p <= kMaxPort; ++p) {
+                const int ts = tableSignOf(kChassis, p);
+                if (ts == 0) continue;
+                const bool agrees = ts == g_watch.sign[p];
+                if (!agrees) ++disagree;
+                emitS(agrees ? Sev::Good : Sev::Bad, "    port %2d  table %c  push %c  %s", p,
+                      ts > 0 ? '+' : '-', g_watch.sign[p] > 0 ? '+' : '-',
+                      agrees ? "AGREES" : "DISAGREES");
+            }
+            g_watch.tableDisagreements = disagree;
+            if (disagree == 0) {
+                emitS(Sev::Good, "  every table port AGREES with this push.");
+            } else {
+                emitS(Sev::Bad, "  %d port(s) DISAGREE with the table. DRIVE will refuse. A finding:",
+                      disagree);
+                emit("  a re-wired motor, a moved cable, or a wrong table entry. Do not drive it");
+                emit("  until the table and the robot agree.");
+            }
+        }
         std::snprintf(g_watch.lastSummary, sizeof g_watch.lastSummary,
-                      "whole-robot push (%s-first): signs captured for all %u table ports",
-                      backFirst ? "back" : "front", static_cast<unsigned>(tableCount()));
-    } else if (!tableHasPorts()) {
+                      "whole-robot push (%s-first): signs captured for all %u table ports%s",
+                      backFirst ? "back" : "front", static_cast<unsigned>(tableCount(kChassis)),
+                      g_watch.tableDisagreements > 0 ? " -- DISAGREES with the table"
+                      : g_watch.tableDisagreements == 0 ? " -- agrees with the table" : "");
+    } else if (!tableHasPorts(kChassis)) {
         emitS(Sev::Warn, "SEVERAL moved, but the chassis table has NO PORTS -- signs cannot be");
         emit("captured (there is nothing to attach them to). The UP/DOWN column above IS");
         emit("the sign convention for the front you pushed toward: report it WITH the port");
-        emit("numbers per side, and it goes into src/bench_r3a.cpp's table.");
+        emit("numbers per side, and it goes into src/chassis_table.hpp.");
         std::snprintf(g_watch.lastSummary, sizeof g_watch.lastSummary,
                       "several moved; table has no ports -- no signs");
     } else {
         emitS(Sev::Warn, "PARTIAL: %d of %u table ports moved; silent:%s", tableMoved,
-              static_cast<unsigned>(tableCount()), silent);
+              static_cast<unsigned>(tableCount(kChassis)), silent);
         emit("No sign capture: DRIVE needs EVERY table port to move in ONE push. Push again,");
         emit("all wheels on the floor, firmer. A port that never moves is a finding.");
         std::snprintf(g_watch.lastSummary, sizeof g_watch.lastSummary,
                       "partial push: %d/%u table ports moved (silent:%s) -- no signs", tableMoved,
-                      static_cast<unsigned>(tableCount()), silent);
+                      static_cast<unsigned>(tableCount(kChassis)), silent);
     }
     emit("This table is in /usd/r3a_log.txt. Re-run per wheel to build the map.");
 }
@@ -1315,8 +1193,10 @@ void motorWatch(pros::c::v5_device_e_t* found) {
 //
 // SIX SAFETY GATES, in this order -- a station that skips one is the defect:
 //   1. REFUSE unless the chassis table has ports and a cartridge and is consistent,
-//      every table port is a census motor, and MOTOR WATCH captured a sign for every
-//      table port from a WHOLE-ROBOT push this power cycle. Names what is missing.
+//      every table port is a census motor, and the SIGNS are known: from the TABLE when it
+//      carries measured signs (robot two, since R3b Part 0b), otherwise from MOTOR WATCH's
+//      capture of a WHOLE-ROBOT push this power cycle (the bench bot). When both exist and
+//      disagree on any port, refuse and name the port. Names what is missing.
 //   2. WHEELS OFF THE GROUND confirmed on the panel before the first volt -- TWO-STAGE
 //      (the coordinator's correction, Session 2 log): the FIRST run in a power cycle must
 //      be wheels-up. Answering NO opens GROUND mode only if a wheels-up run this power
@@ -1360,9 +1240,8 @@ namespace drive {
 constexpr double kCeilingStartV = 3.0;
 constexpr double kCeilingStepV = 3.0;
 constexpr double kCeilingMaxV = 12.0;
-constexpr double kFightCommandFloorV = 1.0;  // gate 5 evaluates only above this |command|
-constexpr double kMovingFloorRadS = 1.0;     // ... and only when the side's fastest is above this
-constexpr double kNearZeroFraction = 0.25;   // under this fraction of the side's fastest = frozen
+constexpr double kMovingFloorRadS = 1.0;     // the panel's "moving" colour threshold; gate 5's own
+                                             // thresholds live in teleop::SideMonitorConfig (below)
 constexpr double kCurrentLimitA = 2.4;
 constexpr double kCleanDrivenSeconds = 3.0;  // a wheels-up run must drive this long...
 constexpr double kCleanCeilingV = 6.0;       // ...and reach this ceiling to unlock GROUND mode
@@ -1372,6 +1251,15 @@ constexpr int kPanelEveryTicks = 10;
 constexpr int kLcdEveryTicks = 20;  // the firmware rate-limits LCD writes; 200 ms, on change
 constexpr hal::ControllerButton kDeadMan = hal::ControllerButton::L1;
 constexpr hal::ControllerButton kCeilingUp = hal::ControllerButton::R1;
+
+// Gate 5's numbers are the shared evaluator's DEFAULTS (R3b Part 0b): pinned here so the
+// station's documented thresholds (header comment above) and the header cannot drift apart
+// without this file failing to compile.
+static_assert(teleop::SideMonitorConfig{}.commandFloorV == 1.0);
+static_assert(teleop::SideMonitorConfig{}.movingFloorRadS == kMovingFloorRadS);
+static_assert(teleop::SideMonitorConfig{}.oppositeFloorRadS == 0.5);
+static_assert(teleop::SideMonitorConfig{}.nearZeroFraction == 0.25);
+static_assert(teleop::SideMonitorConfig{}.persistTicks == kPersistTicks);
 
 hal::pros::MotorGearset gearsetFor(Cartridge c) {
     switch (c) {
@@ -1420,36 +1308,56 @@ void driveStation(pros::c::v5_device_e_t* found) {
 
     // ── GATE 1: the table, the census, and the sign capture ──────────────────────
     char missing[96];
-    if (describeMissing(missing, sizeof missing, true)) {
+    if (describeMissing(kChassis, missing, sizeof missing, true)) {
         emitS(Sev::Bad, "REFUSED: chassis table UNSET -- missing: %s.", missing);
-        emit("  Nothing is guessed. Fill kChassis in src/bench_r3a.cpp from the build team's");
+        emit("  Nothing is guessed. Fill kChassis in src/chassis_table.hpp from the build team's");
         emit("  report (ports per side + the front they chose), rebuild, upload, re-run.");
         return;
     }
     char why[96];
-    if (!tableConsistent(why, sizeof why)) {
+    if (!tableConsistent(kChassis, why, sizeof why)) {
         emitS(Sev::Bad, "REFUSED: the chassis table contradicts itself -- %s.", why);
         return;
     }
     for (int p = 1; p <= kMaxPort; ++p) {
-        if (tableSideOf(p) != 0 && found[p] != pros::c::E_DEVICE_MOTOR) {
+        if (tableSideOf(kChassis, p) != 0 && found[p] != pros::c::E_DEVICE_MOTOR) {
             emitS(Sev::Bad, "REFUSED: table port %d is not a motor in the census (%s).", p,
                   deviceName(found[p]));
             emit("  Re-run 1 DEVICE CENSUS; a table port absent from it is a finding.");
             return;
         }
     }
-    if (!g_watch.signsValid) {
-        emitS(Sev::Bad, "REFUSED: no sign capture from a WHOLE-ROBOT push this power cycle.");
-        emitf("  MOTOR WATCH says: %s", g_watch.lastSummary);
-        emit("  Run 3 MOTOR WATCH: push the whole robot front-first so EVERY table port");
-        emit("  moves, answer FRONT FIRST, then come back here.");
-        return;
-    }
-    for (int p = 1; p <= kMaxPort; ++p) {
-        if (tableSideOf(p) != 0 && g_watch.sign[p] == 0) {
-            emitS(Sev::Bad, "REFUSED: no sign captured for table port %d.", p);
+    // Where the signs come from (R3b Part 0b, brief §2): the TABLE when it carries measured
+    // signs, MOTOR WATCH's capture otherwise. When both exist they must agree on every port,
+    // or this station refuses and names the port -- a table that lies about a sign is exactly
+    // the fight the cut-out exists for, and it is cheaper to refuse than to cut.
+    const bool signsFromTable = kChassis.signsMeasured;
+    if (!signsFromTable) {
+        if (!g_watch.signsValid) {
+            emitS(Sev::Bad, "REFUSED: no sign capture from a WHOLE-ROBOT push this power cycle.");
+            emitf("  MOTOR WATCH says: %s", g_watch.lastSummary);
+            emit("  Run 3 MOTOR WATCH: push the whole robot front-first so EVERY table port");
+            emit("  moves, answer FRONT FIRST, then come back here. (This robot's table carries");
+            emit("  no signs; robot two's does, and its DRIVE needs no capture.)");
             return;
+        }
+        for (int p = 1; p <= kMaxPort; ++p) {
+            if (tableSideOf(kChassis, p) != 0 && g_watch.sign[p] == 0) {
+                emitS(Sev::Bad, "REFUSED: no sign captured for table port %d.", p);
+                return;
+            }
+        }
+    } else if (g_watch.signsValid) {
+        for (int p = 1; p <= kMaxPort; ++p) {
+            const int ts = tableSignOf(kChassis, p);
+            if (ts != 0 && g_watch.sign[p] != 0 && g_watch.sign[p] != ts) {
+                emitS(Sev::Bad, "REFUSED: port %d -- the table says %c, this power cycle's push "
+                                "said %c.", p, ts > 0 ? '+' : '-', g_watch.sign[p] > 0 ? '+' : '-');
+                emit("  The table's sign is a typed measurement with a date; the push is a fresh");
+                emit("  one. They disagree, so one of them is wrong about THIS robot today: a");
+                emit("  re-wired motor, a moved cable, or a bad entry. Fix the table or the robot.");
+                return;
+            }
         }
     }
 
@@ -1460,11 +1368,19 @@ void driveStation(pros::c::v5_device_e_t* found) {
     emit("  back; a WRONG belief passes that read-back. Volts are unaffected; the rad/s");
     emit("  shown scale by it. If the insert colour is not this: STOP, fix the table.");
     char l[80], r[80];
-    signedPortsString(kChassis.left, kChassis.leftCount, l, sizeof l);
-    signedPortsString(kChassis.right, kChassis.rightCount, r, sizeof r);
-    emitf("signed ports: LEFT %s | RIGHT %s", l, r);
-    emitf("  (- = reversed by PROS, from MOTOR WATCH%s)",
-          g_watch.signsFromBackwardPush ? "; back-first push, readings inverted" : "");
+    if (signsFromTable) {
+        portsToString(kChassis.left, kChassis.leftCount, true, l, sizeof l);
+        portsToString(kChassis.right, kChassis.rightCount, true, r, sizeof r);
+        emitf("signed ports: LEFT %s | RIGHT %s", l, r);
+        emitf("  (- = reversed by PROS, from the TABLE's measured signs%s)",
+              g_watch.signsValid ? "; this power cycle's push AGREES" : "; no push this power cycle");
+    } else {
+        signedPortsString(kChassis.left, kChassis.leftCount, l, sizeof l);
+        signedPortsString(kChassis.right, kChassis.rightCount, r, sizeof r);
+        emitf("signed ports: LEFT %s | RIGHT %s", l, r);
+        emitf("  (- = reversed by PROS, from MOTOR WATCH%s)",
+              g_watch.signsFromBackwardPush ? "; back-first push, readings inverted" : "");
+    }
     emit("thresholds (INVENTED, first run): fight = >1V cmd and >1rad/s, opposite sign or");
     emit("  <25% of side max for 250ms; over-current 2.4A for 250ms; ceiling 3/6/9/12V.");
 
@@ -1510,12 +1426,16 @@ void driveStation(pros::c::v5_device_e_t* found) {
     AllStopGuard guard{members, &n};  // gate 6 on every exit path from here on
     const hal::pros::MotorGearset gearset = gearsetFor(kChassis.cartridge);
     for (int p = 1; p <= kMaxPort; ++p) {
-        const int side = tableSideOf(p);
+        const int side = tableSideOf(kChassis, p);
         if (side == 0) continue;
         Member& m = members[n];
         m.port = p;
         m.side = side;
-        m.signedPort = static_cast<std::int8_t>(g_watch.sign[p] > 0 ? p : -p);
+        // THE one place a sign lives: the table's entry AS TYPED when the table is signed;
+        // otherwise the capture's verdict applied to the port number. Nothing after this
+        // line negates anything.
+        m.signedPort = signsFromTable ? tableSignedPort(kChassis, p)
+                                      : static_cast<std::int8_t>(g_watch.sign[p] > 0 ? p : -p);
         try {
             m.motor.emplace(m.signedPort, gearset);
         } catch (const PreconditionError& e) {
@@ -1554,6 +1474,16 @@ void driveStation(pros::c::v5_device_e_t* found) {
     const char* const lcdMode = mode == DriveMode::Ground ? "GROUND" : "DRIVE";
     const Grid g = gridFor(n, 84, true);
 
+    // Gate 5's evaluators, one per side, over the members of that side in port order (the
+    // bit positions in each verdict index sideIdx[s]).
+    teleop::CoupledSideMonitor monitor[2];
+    std::size_t sideIdx[2][kMaxPort];
+    std::size_t sideN[2] = {0, 0};
+    for (std::size_t i = 0; i < n; ++i) {
+        const int s = members[i].side < 0 ? 0 : 1;
+        sideIdx[s][sideN[s]++] = i;
+    }
+
     hal::ButtonEdge ceilingEdge;
     double ceiling = kCeilingStartV;
     bool cut = false;
@@ -1585,8 +1515,11 @@ void driveStation(pros::c::v5_device_e_t* found) {
         const bool deadMan = connected && master.pressed(kDeadMan);
         double vL = 0.0, vR = 0.0;
         if (deadMan && !cut) {
-            vL = std::clamp(ceiling * (req.forward - req.yawCcw), -ceiling, ceiling);
-            vR = std::clamp(ceiling * (req.forward + req.yawCcw), -ceiling, ceiling);
+            // The ONE arcade arithmetic, shared with the drive program (host-pinned):
+            // ceiling x (forward -/+ yawCcw), clamped to the ceiling.
+            const teleop::SideVolts sv = teleop::tankSideVolts(req, ceiling);
+            vL = sv.left;
+            vR = sv.right;
         }
         for (std::size_t i = 0; i < n; ++i) {
             members[i].motor->setVoltage(units::Voltage{members[i].side < 0 ? vL : vR});
@@ -1603,35 +1536,26 @@ void driveStation(pros::c::v5_device_e_t* found) {
             m.maxTemp = std::max(m.maxTemp, m.temp);
         }
 
-        // GATE 5: the fighting-motor cut-out, then the over-current cut.
+        // GATE 5: the fighting-motor cut-out -- through the SHARED pure evaluator
+        // (shulib/teleop/coupled_side_monitor.hpp, host-tested; R3b Part 0b extracted this
+        // block into it, same thresholds, same 250 ms persistence) -- then the over-current cut.
         if (!cut) {
-            for (int side = -1; side <= 1; side += 2) {
+            for (int s = 0; s < 2; ++s) {
+                const int side = s == 0 ? -1 : +1;
                 const double cmd = side < 0 ? vL : vR;
-                double vmax = 0.0;
-                int count = 0;
-                for (std::size_t i = 0; i < n; ++i) {
-                    if (members[i].side == side) {
-                        ++count;
-                        vmax = std::max(vmax, std::abs(members[i].v));
-                    }
+                teleop::MemberSample samples[kMaxPort];
+                for (std::size_t j = 0; j < sideN[s]; ++j) {
+                    samples[j] = teleop::MemberSample{members[sideIdx[s][j]].v, true};
                 }
-                const bool evaluate = std::abs(cmd) > kFightCommandFloorV && vmax > kMovingFloorRadS;
-                const double expected = cmd > 0.0 ? 1.0 : -1.0;
-                int persisted = 0;
+                const teleop::SideVerdict verdict = monitor[s].update(
+                    cmd, std::span<const teleop::MemberSample>{samples, sideN[s]});
+                const int count = static_cast<int>(sideN[s]);
+                const int persisted = verdict.persistedCount;
                 char names[48] = "";
-                for (std::size_t i = 0; i < n; ++i) {
-                    Member& m = members[i];
-                    if (m.side != side) continue;
-                    if (!evaluate) {
-                        m.disagreeTicks = 0;
-                        continue;
-                    }
-                    const bool oppositeSign =
-                        (m.v * expected) < 0.0 && std::abs(m.v) > 0.5 * kMovingFloorRadS;
-                    const bool nearZero = std::abs(m.v) < kNearZeroFraction * vmax;
-                    m.disagreeTicks = (oppositeSign || nearZero) ? m.disagreeTicks + 1 : 0;
-                    if (m.disagreeTicks >= kPersistTicks) {
-                        ++persisted;
+                for (std::size_t j = 0; j < sideN[s]; ++j) {
+                    Member& m = members[sideIdx[s][j]];
+                    m.disagreeTicks = monitor[s].disagreeTicks(j);  // mirrored for the panel
+                    if (verdict.persistedMask & (std::uint32_t{1} << j)) {
                         char one[8];
                         std::snprintf(one, sizeof one, " %d", m.port);
                         std::strncat(names, one, sizeof names - std::strlen(names) - 1);
@@ -1861,7 +1785,7 @@ void tImu(pros::c::v5_device_e_t* f) {
         rule("STAGE 2  IMU");
         emitS(Sev::Bad, "IMU port UNSET in the chassis table (%s).", kChassis.robot);
         emit("Mount an IMU on any smart port, report the port number, and it goes into");
-        emit("src/bench_r3a.cpp's table. Nothing is guessed in the meantime.");
+        emit("src/chassis_table.hpp. Nothing is guessed in the meantime.");
         return;
     }
     reportImu(f[kChassis.imuPort] == pros::c::E_DEVICE_IMU);
@@ -2096,8 +2020,8 @@ void runR3a() {
     emitf("robot      : %s", kChassis.robot);
     {
         char l[80], r[80], imu[16];
-        portsToString(kChassis.left, kChassis.leftCount, l, sizeof l);
-        portsToString(kChassis.right, kChassis.rightCount, r, sizeof r);
+        portsToString(kChassis.left, kChassis.leftCount, kChassis.signsMeasured, l, sizeof l);
+        portsToString(kChassis.right, kChassis.rightCount, kChassis.signsMeasured, r, sizeof r);
         if (kChassis.imuPort != 0) {
             std::snprintf(imu, sizeof imu, "%u", static_cast<unsigned>(kChassis.imuPort));
         } else {
@@ -2108,14 +2032,14 @@ void runR3a() {
               kChassis.measured ? "MEASURED" : "NOT measured");
         emitf("provenance : %s", kChassis.provenance);
         char missing[96];
-        if (describeMissing(missing, sizeof missing, false)) {
+        if (describeMissing(kChassis, missing, sizeof missing, false)) {
             emitS(Sev::Warn, "UNSET in the table: %s -- never guessed; the stations that need",
                   missing);
             emit("           them refuse until the build team reports and the table is filled.");
         }
         char why[96];
-        if (!tableConsistent(why, sizeof why)) {
-            emitS(Sev::Bad, "TABLE CONTRADICTS ITSELF: %s -- fix src/bench_r3a.cpp first.", why);
+        if (!tableConsistent(kChassis, why, sizeof why)) {
+            emitS(Sev::Bad, "TABLE CONTRADICTS ITSELF: %s -- fix src/chassis_table.hpp first.", why);
         }
     }
     emit("!! SIDE LABELS ARE THE TABLE'S CLAIM, NOT A MEASUREMENT (R3a-PROGRESS S10.3);");

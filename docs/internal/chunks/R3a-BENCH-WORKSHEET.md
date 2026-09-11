@@ -12,7 +12,10 @@
 
 **The program is already on the brain: slot 3, named "Bench Tests".** It is **read-only and commands
 no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has its own station (D)
-below. Nothing else on the menu can move the robot.
+below. Nothing else on the menu can move the robot. *(Since R3b Part 0b there is a SECOND program
+for robot two, **"shulib Drive"** in **slot 1**, which just drives — Station E. It is not a menu;
+it drives from the moment it starts. Do not confuse the two: "Bench Tests" measures, "shulib Drive"
+drives.)*
 
 1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"** with **Run** — not
    Timed Run, not Match. **Start it from the BRAIN's screen or from the laptop, NEVER from the
@@ -27,9 +30,11 @@ below. Nothing else on the menu can move the robot.
    and which button it hit (`h-1` = none). If a tap seems to do nothing, read that line to whoever
    is helping: it says whether the program saw the tap and where it thinks it landed.
 
-> ⚠ **Slot 1 holds an OLD build called "QueensRevenge". Do not run it.** Its port map is invented and
+> ⚠ **Slot 1 held an OLD build called "QueensRevenge". Do not run it.** Its port map is invented and
 > it will fault at boot on this robot. It can only be deleted from the brain's own Programs menu —
-> the PROS CLI has no remove command. Deleting it is the safest move so nobody picks it by mistake.
+> the PROS CLI has no remove command. *(Since R3b Part 0b, slot 1 is where **"shulib Drive"** goes
+> — Station E's upload command overwrites it. Until that upload has been done on this brain, the
+> warning stands: if slot 1 still says "QueensRevenge", do not run it.)*
 2. A **boot splash** shows a **BUILD** stamp for two seconds, and the same stamp sits on the menu.
    **If that stamp is not the build you just uploaded, the upload did not land** — re-upload before
    trusting anything on screen. (A silent upload failure cost a debugging cycle on 2026-08-18.)
@@ -281,10 +286,12 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 - [ ] **D.0.8 External gearing motor → wheel**: tooth counts, or "direct". → **________**
       *("600 rpm" was reported, which reads as direct drive; the count settles it.)*
 
-> **STOP here and send D.0.3–D.0.8 in.** The chassis table in `src/bench_r3a.cpp` ships with
-> the ports **UNSET** on purpose — nothing is guessed — and until they are typed in, button 10
-> refuses with `chassis table UNSET — missing: LEFT ports, RIGHT ports`. A rebuilt program with
-> the ports filled in is what the rest of this station runs on.
+> **STOP here and send D.0.3–D.0.8 in.** The chassis table (`src/chassis_table.hpp` since R3b
+> Part 0b — it used to sit at the top of `src/bench_r3a.cpp`) shipped with the ports **UNSET** on
+> purpose — nothing is guessed — and until they were typed in, button 10 refused with
+> `chassis table UNSET — missing: LEFT ports, RIGHT ports`. A rebuilt program with the ports filled
+> in is what the rest of this station runs on. *(Robot two's table is filled and MEASURED as of
+> 2026-09-10 evening, signs included; the steps below are kept for the next chassis.)*
 
 **D.1 — census → push → drive (with the rebuilt program on the brain)**
 
@@ -305,6 +312,12 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
       **DONE IF** it prints **`WHOLE-ROBOT PUSH … SIGNS CAPTURED`** and a line like
       `signed ports for DRIVE: LEFT +1 -2 +3 … | RIGHT …`. Copy that line here:
       → **LEFT: ______________________  RIGHT: ______________________**
+      *(Since R3b Part 0b robot two's table CARRIES its measured signs, so after this line the
+      program prints one row per port — **`table + push + AGREES`** or **`DISAGREES`** — and a
+      summary. Every row AGREES = the robot still matches what was measured on 2026-09-10. Any
+      **DISAGREES** is a finding — a motor re-wired, a cable moved, or a wrong table entry — and
+      both DRIVE here and "shulib Drive" will refuse to power that robot until the table and the
+      robot agree. Copy the DISAGREES rows word for word.)*
       If it says **PARTIAL** (a port did not move) or **single-wheel spin**, push again, firmer,
       all wheels on the floor. A port that never moves is a finding.
 - [ ] **D.1.3** **Lift the robot onto blocks so NO wheel touches anything.** Check it cannot rock
@@ -367,15 +380,107 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 
 ---
 
+## Station E — DRIVE PROGRAM  *("shulib Drive", robot two — added R3b Part 0b, 2026-09-10)*
+
+> ⚠ **This program POWERS THE MOTORS from the moment it starts.** There is no menu, no button to
+> hold, no 3 V ceiling: the sticks command up to 12 V. It drives robot two through the library's
+> motor and controller *adapters* with open-loop volts — it is **not** the library's motion stack
+> (no odometry, no heading; the banner says so). It exists because the build team needs a program
+> that just drives, and because a port can die in a match: **one or two dead motors are a WARNING
+> it shows and logs, not a reason to stop.** Bench Tests (slot 3) stays the diagnosis tool.
+
+**E.0 — two programs, two slots (lab computer, brain on micro-USB)**
+
+```sh
+cd ~/projects/shulib && git checkout shulib-v2 && git pull
+make ROBOT=tank PROGRAM=drive && pros upload --slot 1 --name "shulib Drive"   # the drive program
+make ROBOT=tank               && pros upload --slot 3                          # Bench Tests
+```
+
+The operator picks a program **by name** from the brain's Programs list — that is why they are two
+programs and not one program with a chooser. Build each one right before uploading it: both
+uploads overwrite what was in the slot, and the **BUILD stamp** on each program's screen must be
+the one you just built, or the upload did not land. Start either program from the **brain** or the
+laptop, never from the controller's own menu (Station A's pretend-match trap applies to both).
+
+- [ ] **E.0.1** Bench Tests first, once per session: **1 DEVICE CENSUS** shows all ten motors and
+      the IMU on port 2; **3 MOTOR WATCH** front-first push shows **every port AGREES** with the
+      table (D.1.2). If any port **DISAGREES**, stop: "shulib Drive" would refuse it, and the
+      robot has changed since 2026-09-10. Send the rows.
+- [ ] **E.0.2** Controller paired and **on its home screen**; charged battery; **3 m clear all
+      round**; a **second person at the battery**, ready to pull it.
+
+**E.1 — what the screen shows when "shulib Drive" starts**
+
+The brain panel is a fixed status page, not a log:
+
+| Row | What it says | What it means |
+|---|---|---|
+| header | `shulib DRIVE` · `adapters, NOT the motion stack` · `BUILD <stamp>` · `SD: logging` / `SD: OFF` | which build; whether `/usd/drive_log.txt` is being written (no card = no log, never a stop) |
+| status | `DRIVE 12.0V  B12.9V  L +0.0V  R +0.0V` | mode · full-stick volts · battery · the volts each side is being sent right now. Mode reads **DRIVE**, **DEGRADED** (a dead port; still driving), **CUT** (a 1 s cut in force), or **REFUSED** |
+| ten rows | `L-11  +12.3r/s 1.20A 35C` (left column = LEFT ports, right column = RIGHT ports) | the **signed** port, its speed, current and temperature. **Green** = moving · **dim** = idle · **amber** = disagreeing with its side-mates right now · **red** = the one that caused a cut · **grey `ABSENT`** = dead (at boot or since) |
+| WARNINGS | `all 10 ok` or `dead: 18` | the dead ports. A dead port is shown here, on the controller LCD, and in the log — never hidden |
+| cuts | `cuts: 0` or `cuts: 3  last: CUT: FIGHT on LEFT -- port(s) 13` | how many times the drive cut itself, and why the last time |
+
+The controller LCD shows the same three facts: row 0 `DRIVE 12V B12.9V`, row 1 the WARNINGS line,
+row 2 the last cut or `ok`.
+
+**What a WARNING means.** A port whose motor adapter refused at start-up (nothing plugged in, or
+not a motor), or a port that stopped answering while driving, is marked **ABSENT**: it is logged
+once with the port and the side, dropped from the fight detector so it cannot cut the drive every
+second, and the program **drives on without it** — unless a side is down to **fewer than three**
+answering motors, or **more than two** are dead in total, in which case the program **REFUSES**
+(0 V, the reason on screen) because two motors of five cannot pull a side straight at speed. A
+warning is a **finding**: write down which port, and re-seat its cable before the next run.
+
+**What a CUT means.** Two protections cut **both sides to 0 V for one second**, log the port(s)
+and the reason, count it, and **re-arm**: a member turning **against** its side-mates or **not
+turning** while they do (a fight on the coupled gear train — a wrong sign, a stripped gear, a
+frozen encoder), and any motor **above 2.4 A for 250 ms**. The drive comes back by itself after
+the second. A cut is not fatal and not your fault — but **a cut that repeats is damage in
+progress: STOP, read the `last:` line, and send it word for word.**
+
+**E.2 — the first run: WHEELS UP, then the ground**
+
+- [ ] **E.2.1** Robot on blocks, no wheel touching anything. Start **"shulib Drive"** (slot 1)
+      from the brain. Read the status row: **DRIVE**, `all 10 ok`, `cuts: 0`. If it says
+      **REFUSED** or **DEGRADED**, read WARNINGS and write it down before anything else.
+- [ ] **E.2.2** Ease the **left stick forward**. `L` and `R` rise together, every row turns green
+      with the **same sign on a side**, all wheels turn **toward the front**. Release: everything
+      stops. **Right stick** left/right: the sides turn opposite ways.
+      → all wheels toward the front on "forward"? **YES / NO** — if NO, which side/wheel:
+      → any amber/red row or a cut? copy the `last:` line word for word: ______________________
+- [ ] **E.2.3** Full stick for a few seconds, wheels up: read the highest **A** and **C** shown.
+      → **________ A** on port **____** · **________ °C**
+- [ ] **E.2.4 The ground run — the rule:** **3 m clear in every direction, a second person at
+      the battery, stop on ANY red.** Robot on the floor, start the program again, **small stick
+      inputs first** — forward a short way, stop; turn on the spot, stop — then more. Do not go to
+      full stick on the ground until the small moves were clean and the team lead says so.
+      → forward on "forward"? **YES / NO** · turned the expected way? **YES / NO**
+      → pulls to one side? **NO / LEFT / RIGHT** · any cut, word for word: ______________________
+- [ ] **E.2.5** Turn the program off from the brain (or the field disables it): every motor goes
+      to 0 V and coasts. The summary — per-port max current/temperature, dead ports, cuts — is
+      in `/usd/drive_log.txt` (one file per boot; copy the card off before power-cycling).
+
+> **What to send back:** the census and the AGREES/DISAGREES rows from E.0.1, the YES/NO answers
+> from E.2.2 and E.2.4, the numbers from E.2.3, every WARNING and every `last:` cut line word for
+> word, and the card's `/usd/drive_log.txt`. Results go into `R3b-PROGRESS.md` by the
+> coordinator, from the log.
+
+---
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
       (`src/bench_r3a.cpp`) — read-only except button 10 DRIVE, which powers nothing unless L1 is
-      held and its six checks pass. For the 2026 tank chassis the build is `make ROBOT=tank`. The
-      invented X-drive wiring is behind a build flag and would fault at boot on either robot.
+      held and its six checks pass. For the 2026 tank chassis the build is `make ROBOT=tank`, and
+      its drive program is `make ROBOT=tank PROGRAM=drive` (Station E). The invented X-drive
+      wiring is behind a build flag and would fault at boot on either robot.
       *(Brain's programming port is **micro-USB**, not USB-C.)*
 - ❌ **Do not run 10 DRIVE with a wheel touching anything** until Station D says to, and never
       without a second person at the battery.
+- ❌ **Do not start "shulib Drive" with the robot on the ground** until Station E's wheels-up run
+      was clean; it powers the motors from the moment it starts, with no button to hold.
 - ❌ **Do not disassemble anything** to read a gear — photograph it in place.
 - ❌ **Do not "correct" a reading to what this sheet expects.** A contradiction is the most valuable
       output of the session.

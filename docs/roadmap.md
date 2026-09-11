@@ -210,6 +210,23 @@ not silently break them. This table is the spine of the no-staleness promise.
 > library's motion stack has still never driven a robot.** Pieces 1 and 2 (the motor group; the
 > odometry seam) are next and unstarted; M1's badge has not moved.
 >
+> **R3b Part 0b — the DRIVE PROGRAM (written, verified and committed 2026-09-10 late; the upload
+> and the first drive are next, and nothing of it has run on hardware yet):** robot two can be
+> driven **through the library's adapters** by a
+> program that just drives — `make ROBOT=tank PROGRAM=drive`, "shulib Drive" in its own slot (the
+> team lead's ruling: a program picked by name from the brain's slot list, not a chooser inside
+> Bench Tests). The measured signs (`LEFT −11 +12 −13 +14 −15 | RIGHT +20 −19 +18 −17 +16`) and the
+> IMU on port 2 live in ONE chassis table (`src/chassis_table.hpp`) shared by the tester and the
+> drive program; MOTOR WATCH cross-checks a push against them per port. The program tolerates dead
+> ports under a pure, host-tested policy (`shulib/teleop/drivetrain_degradation.hpp`: drive degraded
+> unless a side has fewer than three answering motors or more than two are dead in total), detects a
+> port dying at runtime, and turns the tester's fighting-motor and over-current cut-outs into
+> one-second non-fatal cuts through a pure, host-tested evaluator
+> (`shulib/teleop/coupled_side_monitor.hpp`) — every mutation the brief lists observed red. The
+> build gate now proves four builds. **Nothing of it has run on hardware yet, and the motion stack
+> has still not driven a robot** — the drive program is adapters and open-loop volts, and says so at
+> boot.
+>
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
 > clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to

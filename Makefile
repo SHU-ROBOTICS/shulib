@@ -46,9 +46,10 @@ endif
 # ── WHICH ROBOT IS THIS BINARY FOR? (chunk GATE1; third variant at R3b Session 2) ──
 # ROBOT selects the variant src/main.cpp builds:
 #     make                → ROBOT=bench  — the measured tank BENCH bot: boots the bench tester
-#     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too (its
-#                            chassis table in src/bench_r3a.cpp ships UNSET until the build
-#                            team reports ports; no library graph is built for it yet)
+#     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too, over
+#                            its MEASURED, SIGNED chassis table (src/chassis_table.hpp, shared
+#                            with the drive program; no library graph is built for it yet).
+#                            Add PROGRAM=drive (below) for the program that just drives it.
 #     make ROBOT=xdrive   → the invented X-drive wiring (HA-111; cannot boot on the bench bot)
 # Any other value is an $(error), NOT a silent default: the previous mechanism was
 # "make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED" as documented in src/main.cpp —
@@ -71,6 +72,34 @@ else ifeq ($(ROBOT),tank)
 override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_TANK_2026
 else
 $(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive, tank)
+endif
+
+# ── WHICH PROGRAM? (R3b Part 0b, 2026-09-10 — the second build axis) ──
+# PROGRAM selects what opcontrol() runs on a tester-variant robot:
+#     make ROBOT=tank                 → PROGRAM=tester — "Bench Tests": the read-only tester with its
+#                                       gated DRIVE station (slot 3, `pros upload --slot 3`)
+#     make ROBOT=tank PROGRAM=drive   → "shulib Drive": the program that JUST DRIVES robot two from
+#                                       the sticks through the hal/pros adapters, with dead-port
+#                                       tolerance (src/drive_program.cpp; slot 1,
+#                                       `pros upload --slot 1 --name "shulib Drive"`)
+# Two programs in two slots rather than one program with a chooser (team lead's ruling): the
+# operator picks a program by NAME from the brain's slot list, and a program called Drive that
+# hides the tester behind a timeout is one more thing to explain at a field.
+# `drive` is only meaningful with a SIGNED chassis table, and only robot two's is (its signs
+# were measured 2026-09-10); so `PROGRAM=drive` with any other ROBOT is an $(error), not a
+# program that refuses at boot. Any other PROGRAM value is an $(error) too — the same silent-
+# no-op class GATE1 closed for ROBOT. tools/src_build_gate.py builds this axis as its fourth
+# entry (tank-drive) and asserts the define lands token-exact and the beacon is in the ELF.
+PROGRAM?=tester
+ifeq ($(PROGRAM),tester)
+# the default: no define; src/main.cpp runs the bench tester on bench and tank
+else ifeq ($(PROGRAM),drive)
+ifneq ($(ROBOT),tank)
+$(error PROGRAM=drive needs ROBOT=tank — only robot two's chassis table carries measured signs; '$(ROBOT)' cannot drive)
+endif
+override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE
+else
+$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

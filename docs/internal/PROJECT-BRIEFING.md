@@ -105,12 +105,12 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 27 of 48 chunks complete
 
-- **Next up:** R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10, the chassis table was filled from the build team's port report, and the tester was uploaded and run on robot two's brain the same day (census: 9 of 10 motors, port 19 silent; the controller-launch pretend-match trap found, fixed in procedure, and documented). The same evening: all ten motors and an IMU on port 2 in the census (table measured), signs captured twice, and DRIVE ran with ten motors constructed on hardware but zero commanded volts — nothing has turned yet. Next at the robot: the L1-plus-left-stick check with the panel photographed, then powered motion wheels-up, then the ground run; then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.  
+- **Next up:** R3b Part 0b — the DRIVE PROGRAM — is written, verified and committed (2026-09-10 late); next comes the upload of both programs to robot two's brain and the first drive. Robot two can be driven through the library's adapters by its own program (make ROBOT=tank PROGRAM=drive, "shulib Drive", slot 1) with the measured signs and the IMU port in one shared chassis table (src/chassis_table.hpp), dead-port tolerance under a pure host-tested policy, and one-second non-fatal fight/over-current cuts through a pure host-tested evaluator; the build gate proves four builds. The motion stack has still not driven a robot, and nothing of Part 0b has run on hardware. Before that: Part 0 (the tester's DRIVE station) landed 2026-09-10, the table was filled, and two sessions on robot two's brain the same day found all ten motors and an IMU on port 2, captured the signs twice, and ran DRIVE with ten adapters constructed but zero commanded volts — nothing has turned yet. Next at the robot: upload both programs, drive wheels-up under "shulib Drive", then the ground run; then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,163 cases / 1,538,453 assertions, 3 skipped — **green**  
+- **Suite:** 1,188 cases / 1,540,950 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 152  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Public headers:** 154  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 

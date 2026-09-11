@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,659 of them, across 119 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,710 of them, across 121 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -310,6 +310,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CorrectionProposal::providesHeading` | field | [correction.md](correction.md#correctionproposal-providesheading) |
 | `CorrectionProposal::selfAudit` | field | [correction.md](correction.md#correctionproposal-selfaudit) |
 | `CorrectionProposal::valid` | field | [correction.md](correction.md#correctionproposal-valid) |
+| `CoupledSideMonitor` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-coupledsidemonitor) |
+| `CoupledSideMonitor::config` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-config) |
+| `CoupledSideMonitor::CoupledSideMonitor` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-coupledsidemonitor) |
+| `CoupledSideMonitor::CoupledSideMonitor (overload 2)` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-coupledsidemonitor-2) |
+| `CoupledSideMonitor::disagreeTicks` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-disagreeticks) |
+| `CoupledSideMonitor::reset` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-reset) |
+| `CoupledSideMonitor::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-update) |
 | `Current` | type alias | [quantity.md](quantity.md#current) |
 
 ## D
@@ -359,6 +366,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `decodeSummary` | free function | [blackbox_format.md](blackbox_format.md#decodesummary) |
 | `decodeTick` | free function | [blackbox_format.md](blackbox_format.md#decodetick) |
 | `decodeTriage` | free function | [blackbox_format.md](blackbox_format.md#decodetriage) |
+| `DegradationVerdict` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-degradationverdict) |
+| `DegradationVerdict::leftDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-leftdead) |
+| `DegradationVerdict::reason` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-reason) |
+| `DegradationVerdict::rightDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-rightdead) |
+| `DegradationVerdict::totalDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-totaldead) |
+| `DegradationVerdict::verdict` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-verdict) |
 | `desaturateUniform` | free function | [desaturate.md](desaturate.md#desaturateuniform) |
 | `DisplayController` | enum class | [pros-line_display.md](pros-line_display.md#enum-class-displaycontroller) |
 | `DisplayController::Master` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-master) |
@@ -378,6 +391,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
 | `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
+| `DriveVerdict` | enum class | [drivetrain_degradation.md](drivetrain_degradation.md#enum-class-driveverdict) |
+| `DriveVerdict::Drive` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drive) |
+| `DriveVerdict::DriveDegraded` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drivedegraded) |
+| `DriveVerdict::Refuse` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-refuse) |
 
 ## E
 
@@ -443,6 +460,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `EndInfo::endTime` | field | [blackbox_format.md](blackbox_format.md#endinfo-endtime) |
 | `EndInfo::messagesSeen` | field | [blackbox_format.md](blackbox_format.md#endinfo-messagesseen) |
 | `EndInfo::tickFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-tickframes) |
+| `evaluateDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluatedegradation) |
 | `ExitGroup` | class | [exit_group.md](exit_group.md#class-exitgroup) |
 | `ExitGroup::check` | function | [exit_group.md](exit_group.md#exitgroup-check) |
 | `ExitGroup::ExitGroup` | function | [exit_group.md](exit_group.md#exitgroup-exitgroup) |
@@ -911,11 +929,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
 | `kInstallVisionPoller<AbsentVision>` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpollerabsentvision) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
+| `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
+| `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
+| `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
@@ -992,6 +1013,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `magnitudeOf` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#magnitudeof) |
 | `mapSticks` | free function | [stick_mapping.md](stick_mapping.md#mapsticks) |
 | `mapSticksToChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#mapstickstochassisspeeds) |
 | `MatrixKinematics` | class | [matrix_kinematics.md](matrix_kinematics.md#class-matrixkinematics) |
@@ -1019,6 +1041,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismOutcome::TimedOut` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-timedout) |
 | `MechanismOutcome::Unconfirmed` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-unconfirmed) |
 | `mechanismOutcomeName` | free function | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcomename) |
+| `MemberAbsenceDetector` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-memberabsencedetector) |
+| `MemberAbsenceDetector::absent` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-absent) |
+| `MemberAbsenceDetector::MemberAbsenceDetector` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-memberabsencedetector) |
+| `MemberAbsenceDetector::MemberAbsenceDetector (overload 2)` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-memberabsencedetector-2) |
+| `MemberAbsenceDetector::reason` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-reason) |
+| `MemberAbsenceDetector::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-update) |
+| `MemberSample` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-membersample) |
+| `MemberSample::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-present) |
+| `MemberSample::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-velocityrads) |
 | `MotionConfig` | struct | [motion_config.md](motion_config.md#struct-motionconfig) |
 | `MotionConfig::brakeSettle` | field | [motion_config.md](motion_config.md#motionconfig-brakesettle) |
 | `MotionConfig::defaultTimeout` | field | [motion_config.md](motion_config.md#motionconfig-defaulttimeout) |
@@ -1597,6 +1628,25 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SettledUtil::reset` | function | [settled_util.md](settled_util.md#settledutil-reset) |
 | `SettledUtil::SettledUtil` | function | [settled_util.md](settled_util.md#settledutil-settledutil) |
 | `SettledUtil::update` | function | [settled_util.md](settled_util.md#settledutil-update) |
+| `SideCount` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-sidecount) |
+| `SideCount::answering` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-answering) |
+| `SideCount::expected` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-expected) |
+| `SideMonitorConfig` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidemonitorconfig) |
+| `SideMonitorConfig::commandFloorV` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-commandfloorv) |
+| `SideMonitorConfig::movingFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-movingfloorrads) |
+| `SideMonitorConfig::nearZeroFraction` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-nearzerofraction) |
+| `SideMonitorConfig::oppositeFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-oppositefloorrads) |
+| `SideMonitorConfig::persistTicks` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-persistticks) |
+| `SideVerdict` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sideverdict) |
+| `SideVerdict::disagreeingMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-disagreeingmask) |
+| `SideVerdict::evaluated` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-evaluated) |
+| `SideVerdict::fastestRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-fastestrads) |
+| `SideVerdict::persistedCount` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-persistedcount) |
+| `SideVerdict::persistedMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-persistedmask) |
+| `SideVerdict::presentCount` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-presentcount) |
+| `SideVolts` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidevolts) |
+| `SideVolts::left` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-left) |
+| `SideVolts::right` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-right) |
 | `StallConfig` | struct | [stall_detector.md](stall_detector.md#struct-stallconfig) |
 | `StallConfig::currentAtLeast` | field | [stall_detector.md](stall_detector.md#stallconfig-currentatleast) |
 | `StallConfig::persistence` | field | [stall_detector.md](stall_detector.md#stallconfig-persistence) |
@@ -1657,6 +1707,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TankKinematics::TankKinematics` | function | [tank.md](tank.md#tankkinematics-tankkinematics) |
 | `TankKinematics::toWheels` | function | [tank.md](tank.md#tankkinematics-towheels) |
 | `TankKinematics::wheelCount` | function | [tank.md](tank.md#tankkinematics-wheelcount) |
+| `tankSideVolts` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#tanksidevolts) |
 | `TermSink` | class | [term_sink.md](term_sink.md#class-termsink) |
 | `TermSink::emit` | function | [term_sink.md](term_sink.md#termsink-emit) |
 | `TermSink::log` | function | [term_sink.md](term_sink.md#termsink-log) |

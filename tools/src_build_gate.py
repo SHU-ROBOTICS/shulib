@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """src build gate — src/ compiles AND links for the V5, every robot variant (GATE1; third
-variant at R3b Session 2).
+variant at R3b Session 2; a second axis, the PROGRAM, at R3b Part 0b).
 
 WHY THIS EXISTS
 ---------------
@@ -16,15 +16,23 @@ a second source of truth drifting from common.mk — and it is the real BUILD, l
 included: measured 2026-08-19, the old soft-float firmware/liblvgl ABI blocker is gone
 and `make` links end to end at arm-none-eabi-g++ 13.2.1 with CXX_STANDARD:=gnu++20.
 
-THE VARIANTS (the Makefile's validated ROBOT switch; anything else is an $(error))
+THE BUILDS (the Makefile's validated ROBOT switch and PROGRAM switch; anything else is an
+$(error))
 -----------------------------------------------------------------------------------
-  ROBOT=bench   (default)  the measured tank bench bot — boots the bench tester
-  ROBOT=xdrive             the invented X-drive wiring (HA-111)      -DSHULIB_ROBOT_XDRIVE_INVENTED
-  ROBOT=tank               the 2026 tank chassis, robot two          -DSHULIB_ROBOT_TANK_2026
-                           (R3b Session 2: boots the bench tester like bench; its chassis
-                           table ships UNSET; no library graph is built for it yet)
+  bench       ROBOT=bench (default)      the measured tank bench bot — boots the bench tester
+  xdrive      ROBOT=xdrive               the invented X-drive wiring (HA-111)
+                                                              -DSHULIB_ROBOT_XDRIVE_INVENTED
+  tank        ROBOT=tank                 the 2026 tank chassis, robot two — boots the bench
+                                         tester over its SIGNED chassis table
+                                                              -DSHULIB_ROBOT_TANK_2026
+  tank-drive  ROBOT=tank PROGRAM=drive   "shulib Drive" (R3b Part 0b): robot two drives from
+                                         the sticks through the hal/pros adapters — its own
+                                         program in its own slot
+                                                              -DSHULIB_ROBOT_TANK_2026
+                                                              -DSHULIB_PROGRAM_DRIVE
+  (PROGRAM=drive with any other ROBOT is a Makefile $(error): only a signed table drives.)
 
-WHAT `check` DOES, per variant (bench, then xdrive, then tank)
+WHAT `check` DOES, per build (bench, then xdrive, then tank, then tank-drive)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -44,16 +52,20 @@ WHAT `check` DOES, per variant (bench, then xdrive, then tank)
     the documented variant flag used to be a silent no-op, and the one working
     invocation silently shipped a hash-less binary.
     THE DEFINE CHECK IS TOKEN-EXACT (R3b Session 2): the compile line is split on
-    whitespace and the variant's define must be a WHOLE token, and every OTHER variant's
-    define must be absent as a token. A substring check was defeated by GATE1's own
+    whitespace and every define in the build's SET must be a WHOLE token, and every define
+    that belongs to some other build and not to this one must be absent as a token (since
+    Part 0b a build carries a SET of defines: tank-drive carries two). A substring check was defeated by GATE1's own
     mutation 5b (a look-alike `-DSHULIB_ROBOT_XDRIVE_INVENTED_BROKEN`), which the
     warning-count detector then caught for xdrive — but for tank that detector cannot
     fire (see the differential below), so the structural check has to be exact on its own.
  6. Asserts the VARIANT IDENTITY BEACON (R3b Session 2): src/main.cpp defines one
-    string per variant — `shulib-robot-variant=bench|xdrive|tank` — under the SAME
-    preprocessor facts that select the wiring, and prints it at boot so it is linked in.
-    The expected beacon must be in the bytes of bin/hot.package.elf and the other two
-    must NOT be. This is the end-to-end proof that the `#if` in the SOURCE took the
+    string per build — `shulib-robot-variant=bench|xdrive|tank|tank-drive` — under the SAME
+    preprocessor facts that select the wiring and the program, and prints it at boot so it
+    is linked in. The expected beacon must be in the bytes of bin/hot.package.elf and the
+    other three must NOT be. MATCHED WITH THE NUL TERMINATOR (Part 0b): `…=tank` is a prefix
+    of `…=tank-drive`, so a plain substring search would false-fail every tank-drive build;
+    a C string literal sits in the ELF with its terminating zero byte, and that is what is
+    searched for. This is the end-to-end proof that the `#if` in the SOURCE took the
     branch the Makefile asked for — the one case no command-line check can see is a
     macro renamed in main.cpp, and a tank build that silently carried the bench bot's
     chassis table onto robot two is HA-111's defect class again.
@@ -71,11 +83,12 @@ passed on the command line but the #ifdef in main.cpp renamed or broken.
   how you see the wiring is dead" rationale and should change only when that does.
   (The documented count is TWO since R3b Session 2 — robot() and portMapString();
   shaped() moved into include/shulib/teleop/stick_mapping.hpp. The assertion is >= 1.)
-  TANK BEHAVES LIKE BENCH here (R3b Session 2): the X-drive wiring is dead code in the
-  tank build too, so tank must also emit >= 1 -Wunused-function from src/main.cpp. That
-  means the warning-count detector CANNOT tell a tank build from a bench build — which
-  is exactly why the beacon (step 6) exists: it is the only detector that can see a tank
-  build that silently became a bench build.
+  TANK BEHAVES LIKE BENCH here (R3b Session 2), AND SO DOES TANK-DRIVE (Part 0b): the
+  X-drive wiring is dead code in both, so each must also emit >= 1 -Wunused-function from
+  src/main.cpp. That means the warning-count detector CANNOT tell a tank build from a bench
+  build, nor a tank-drive build from a tank build — which is exactly why the beacon
+  (step 6) exists: it is the only detector that can see a tank build that silently became
+  a bench build, or a "shulib Drive" upload that was silently the tester.
 
 THE WARNING POLICY (GATE1 §4.3)
 -------------------------------
@@ -128,25 +141,41 @@ import tempfile
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARM_GXX = "arm-none-eabi-g++"
 
-# The variants, in the order the gate builds them, with the define each one must carry as
-# a whole compile-line token (None = must carry NONE of the others) and the identity beacon
-# each one's linked package must contain (and the others must not). Both tables mirror
-# the Makefile's ROBOT block and src/main.cpp's #if chain; a variant added to one place and
-# not the others fails here, which is the point of having the table.
-VARIANTS = ("bench", "xdrive", "tank")
-VARIANT_DEFINES = {
-    "bench": None,
-    "xdrive": "-DSHULIB_ROBOT_XDRIVE_INVENTED",
-    "tank": "-DSHULIB_ROBOT_TANK_2026",
+# The builds, in the order the gate runs them, with the make arguments each one takes, the
+# SET of defines each one must carry as whole compile-line tokens (every define belonging to
+# another build and not to this one must be absent as a token), and the identity beacon each
+# one's linked package must contain (and the others must not). The tables mirror the
+# Makefile's ROBOT and PROGRAM blocks and src/main.cpp's #if chain; a build added to one place
+# and not the others fails here, which is the point of having the tables.
+VARIANTS = ("bench", "xdrive", "tank", "tank-drive")
+BUILD_ARGS = {
+    "bench": ("ROBOT=bench",),
+    "xdrive": ("ROBOT=xdrive",),
+    "tank": ("ROBOT=tank",),
+    "tank-drive": ("ROBOT=tank", "PROGRAM=drive"),
 }
+VARIANT_DEFINES = {
+    "bench": (),
+    "xdrive": ("-DSHULIB_ROBOT_XDRIVE_INVENTED",),
+    "tank": ("-DSHULIB_ROBOT_TANK_2026",),
+    "tank-drive": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_DRIVE"),
+}
+ALL_DEFINES = sorted({d for ds in VARIANT_DEFINES.values() for d in ds})
 VARIANT_BEACONS = {
     "bench": b"shulib-robot-variant=bench",
     "xdrive": b"shulib-robot-variant=xdrive",
     "tank": b"shulib-robot-variant=tank",
+    "tank-drive": b"shulib-robot-variant=tank-drive",
 }
-# Which variants leave the invented X-drive wiring DEAD (>= 1 -Wunused-function from
+# Which builds leave the invented X-drive wiring DEAD (>= 1 -Wunused-function from
 # src/main.cpp) versus LIVE (exactly 0). See the header's VARIANT DIFFERENTIAL.
-XDRIVE_WIRING_DEAD_IN = ("bench", "tank")
+XDRIVE_WIRING_DEAD_IN = ("bench", "tank", "tank-drive")
+
+
+def _beacon_bytes(beacon):
+    """A beacon as it sits in the ELF: the literal PLUS its NUL terminator, so that
+    `…=tank` cannot match inside `…=tank-drive` (header, step 6)."""
+    return beacon + b"\0"
 
 # Vendored third-party trees: warnings here are ignored BY PATH (never by category).
 VENDOR_PREFIXES = ("include/liblvgl/", "include/pros/")
@@ -214,7 +243,7 @@ class BuildResult:
 
 
 def run_build(robot, path_env=None):
-    """One structurally fresh `make ROBOT=<robot> V=1`, parsed."""
+    """One structurally fresh `make <BUILD_ARGS[robot]> V=1`, parsed."""
     for d in ("bin", ".d"):  # what `make clean` removes; both gitignored (landmine 3/8)
         shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
 
@@ -224,7 +253,7 @@ def run_build(robot, path_env=None):
     env = dict(os.environ)
     if path_env is not None:
         env["PATH"] = path_env
-    p = subprocess.run(["make", f"ROBOT={robot}", "V=1"],
+    p = subprocess.run(["make", *BUILD_ARGS[robot], "V=1"],
                        cwd=REPO, capture_output=True, text=True, env=env, timeout=600)
     b.exit = p.returncode
     b.text = ANSI.sub("", p.stdout + p.stderr)
@@ -288,8 +317,8 @@ def verdict(robot, b):
 
     # Structural §4.1 assertions, read off the real V=1 compile command lines. TOKEN-EXACT:
     # a look-alike define (GATE1 mutation 5b) is not the define.
-    want_define = VARIANT_DEFINES[robot]
-    other_defines = [d for v, d in VARIANT_DEFINES.items() if v != robot and d is not None]
+    want_defines = VARIANT_DEFINES[robot]
+    other_defines = [d for d in ALL_DEFINES if d not in want_defines]
     for tu in exp:
         if not tu.endswith(CXX_EXTS):
             continue
@@ -302,13 +331,14 @@ def verdict(robot, b):
         if b.hash_expected and "-DSHULIB_BUILD_HASH=" not in cmd:
             problems.append(f"{tu} compiled WITHOUT -DSHULIB_BUILD_HASH — "
                             f"the §4.1 hash-drop defect is back")
-        if want_define is not None and want_define not in tokens:
-            problems.append(f"ROBOT={robot} but {tu} compiled without the whole token "
-                            f"{want_define} — the variant switch is a silent no-op "
-                            f"again (§4.1)")
+        for want_define in want_defines:
+            if want_define not in tokens:
+                problems.append(f"build {robot} but {tu} compiled without the whole token "
+                                f"{want_define} — the variant switch is a silent no-op "
+                                f"again (§4.1)")
         for other in other_defines:
             if other in tokens:
-                problems.append(f"ROBOT={robot} but {tu} carries another variant's "
+                problems.append(f"build {robot} but {tu} carries another build's "
                                 f"define {other}")
 
     # End-to-end, from the bytes of the linked ELF: the hash string must survive into it
@@ -327,16 +357,16 @@ def verdict(robot, b):
         problems.append("git describe yielded nothing — build-hash identity cannot be "
                         "asserted (a skip is not a pass; fix git, do not silence this)")
     if os.path.exists(elf):
-        if VARIANT_BEACONS[robot] not in elf_bytes:
+        if _beacon_bytes(VARIANT_BEACONS[robot]) not in elf_bytes:
             problems.append(
-                f"ROBOT={robot} but the beacon {VARIANT_BEACONS[robot].decode()!r} is NOT "
+                f"build {robot} but the beacon {VARIANT_BEACONS[robot].decode()!r} is NOT "
                 f"in bin/hot.package.elf — src/main.cpp's #if chain did not take the "
                 f"{robot} branch (a renamed macro? the define landed but the source "
                 f"never saw it)")
         for v, beacon in VARIANT_BEACONS.items():
-            if v != robot and beacon in elf_bytes:
+            if v != robot and _beacon_bytes(beacon) in elf_bytes:
                 problems.append(
-                    f"ROBOT={robot} but bin/hot.package.elf carries the {v} beacon "
+                    f"build {robot} but bin/hot.package.elf carries the {v} beacon "
                     f"{beacon.decode()!r} — this is a {v} build wearing a {robot} label")
 
     return not problems, problems
@@ -348,7 +378,7 @@ def _main_cpp_unused_function_count(b):
 
 
 def _summary(robot, b):
-    return (f"  [{robot:6}] exit {b.exit}, {len(b.compiled)}/{len(expected_tus())} TUs "
+    return (f"  [{robot:10}] exit {b.exit}, {len(b.compiled)}/{len(expected_tus())} TUs "
             f"compiled, warnings: {len(b.allowed)} allowed "
             f"({', '.join(sorted(ALLOWED_CATEGORIES))}), {len(b.vendor)} vendor-ignored, "
             f"{len(b.disallowed)} disallowed, hash "
@@ -403,7 +433,7 @@ def cmd_check(path_env=None, quiet=False):
             print(f"  {p}", file=sys.stderr)
         return 1
 
-    say(f"src build gate: PASS (all {len(VARIANTS)} variants link; policy: errors fail, "
+    say(f"src build gate: PASS (all {len(VARIANTS)} builds link; policy: errors fail, "
         f"vendor warnings path-ignored, {'/'.join(sorted(ALLOWED_CATEGORIES))} allowed by "
         f"category, all else fails; defines token-exact; beacons asserted)")
     return 0
@@ -559,6 +589,31 @@ def do_self_test():
         expect(not ok, "9: ROBOT=xdrive with its Makefile append dropped PASSED")
         expect(any("-DSHULIB_ROBOT_XDRIVE_INVENTED" in p for p in problems),
                "9: the failure did not name the missing xdrive define")
+
+    # 10: the Makefile's PROGRAM=drive append DROPPED (R3b Part 0b: `make ROBOT=tank
+    #     PROGRAM=drive` silently builds the tester) -> FAIL on the token-exact structural
+    #     check naming the define AND on the beacon (a tank build wearing the tank-drive
+    #     label). The warning-count detector cannot see this one either (tank-drive behaves
+    #     like tank), so both other detectors must fire on their own.
+    drive_line = "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE\n"
+    with _replace(MAKEFILE, drive_line, "# (self-test plant: drive append dropped)\n"):
+        b = run_build("tank-drive")
+        ok, problems = verdict("tank-drive", b)
+        expect(not ok, "10: PROGRAM=drive with its Makefile append dropped PASSED — the "
+                       "silent-no-op class is back on the second axis")
+        expect(any("whole token -DSHULIB_PROGRAM_DRIVE" in p for p in problems),
+               "10: the failure did not name the missing PROGRAM define")
+        expect(any("beacon" in p and "NOT in" in p for p in problems),
+               "10: the tank-drive beacon's absence was not caught")
+        expect(any("tank build wearing a tank-drive label" in p for p in problems),
+               "10: the tank beacon's presence (NUL-terminated match) was not caught")
+
+    # 11: the real tank-drive build, alone -> PASS, and the tank beacon must NOT be reported
+    #     (the prefix hazard: `…=tank` inside `…=tank-drive` would false-fail without the
+    #     NUL-terminated match).
+    b = run_build("tank-drive")
+    ok, problems = verdict("tank-drive", b)
+    expect(ok, f"11: the real tank-drive build FAILED the gate: {problems}")
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

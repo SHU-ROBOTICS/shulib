@@ -8,7 +8,9 @@
 // constructed — that graph's ports are invented (HA-111) and every adapter
 // ctor read-back would throw at boot on the bench robot. Both tester variants
 // (ROBOT=bench, the measured bench bot; ROBOT=tank, the 2026 chassis whose
-// table ships UNSET) boot into this.
+// table carries MEASURED SIGNS since R3b Part 0b) boot into this as "Bench
+// Tests" -- unless built with PROGRAM=drive, which boots src/drive_program.cpp
+// ("shulib Drive") instead. The chassis table both share is src/chassis_table.hpp.
 //
 // This lives in src/, not include/shulib/, deliberately: it makes raw
 // <pros/*> calls to print RAW value beside CANONICAL value, which is the

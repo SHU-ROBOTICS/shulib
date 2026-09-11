@@ -106,8 +106,9 @@ jobs:
   #    the V5 uses. The header list is GENERATED (find | sort), never hard-coded —
   #    a gate you must remember to update when adding a file is a gate that rots.
   #  * The SRC BUILD GATE steps (GATE1) run the REAL `make` — compile AND LINK,
-  #    producing bin/hot.package.bin — for EVERY robot variant (ROBOT=bench,
-  #    ROBOT=xdrive, and since R3b Session 2 ROBOT=tank; the tool owns the list),
+  #    producing bin/hot.package.bin — for EVERY build (ROBOT=bench, ROBOT=xdrive,
+  #    since R3b Session 2 ROBOT=tank, and since R3b Part 0b the second axis
+  #    ROBOT=tank PROGRAM=drive — four builds; the tool owns the list),
   #    because until GATE1 src/ was in NO gate at all and the
   #    Makefile records that this blind spot shipped a data abort to the robot.
   #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's

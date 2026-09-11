@@ -280,6 +280,8 @@ nav:
       - Top level:
           - Version: api/version.md
       - Teleop:
+          - Coupled side monitor: api/coupled_side_monitor.md
+          - Drivetrain degradation: api/drivetrain_degradation.md
           - Stick mapping: api/stick_mapping.md
 # END GENERATED API NAV
 
