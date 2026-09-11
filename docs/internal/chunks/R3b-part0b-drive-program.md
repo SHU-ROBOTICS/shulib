@@ -38,6 +38,19 @@ chooser gives them "a program that just drives", keeps Bench Tests byte-for-byte
 diagnosis at the field, and was the shape session 2's brief already planned (§6.3). Rename the
 program in `project.pros` to **"shulib Drive"**; the tester is inside it.
 
+> **§1 AMENDED the same night, on the team lead's call: a SEPARATE program in its own slot, no
+> chooser.** *"It'll be a separate program just for driver controls, right?"* — yes. The operator
+> picks a program by name from the brain's slot list, and a program called Drive that hides the
+> tester behind a timeout is one more thing to explain at a field. Shape: a second build axis,
+> `make ROBOT=tank PROGRAM=drive` (`-DSHULIB_PROGRAM_DRIVE`; `PROGRAM ?= tester`, validated;
+> `drive` is an `$(error)` for `bench` and `xdrive`, which have no signed table), uploaded as
+> **slot 1 "shulib Drive"** (`pros upload --slot 1 --name "shulib Drive"`); the tester stays
+> **slot 3 "Bench Tests"** (`pros upload --slot 3`), `project.pros` unchanged. A fourth beacon
+> (`shulib-robot-variant=tank-drive`) and the `src/` build gate learns the second axis: four
+> builds, each with an expected define SET, its beacon, and the behavioural expectation
+> (tank-drive like tank); the self-test gains the non-landing-`PROGRAM`-define case. The
+> rejected alternative above stays recorded as what was first ruled and why it lost.
+
 ## 2. RULING — the signs live in the table now; MOTOR WATCH becomes the cross-check
 
 The chassis table's port lists become **signed** for robot two (the measured signs above), with the
