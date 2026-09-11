@@ -629,7 +629,7 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10, the chassis table was filled from the build team's port report, and the tester was uploaded and run on robot two's brain the same day (census: 9 of 10 motors, port 19 silent; the controller-launch pretend-match trap found, fixed in procedure, and documented). Still to do at the robot: re-seat port 19, the hand push, DRIVE on blocks; then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
+**Next: R3b session 2 on robot two — Part 0 (the tester's DRIVE station) landed 2026-09-10, the chassis table was filled from the build team's port report, and the tester was uploaded and run on robot two's brain the same day (census: 9 of 10 motors, port 19 silent; the controller-launch pretend-match trap found, fixed in procedure, and documented). The same evening: all ten motors and an IMU on port 2 in the census (table `measured`), signs captured twice, and DRIVE ran with ten motors constructed on hardware but zero commanded volts — nothing has turned yet. Next at the robot: the L1-plus-left-stick check with the panel photographed, then powered motion wheels-up, then the ground run; then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
 live log [R3a-PROGRESS.md](chunks/R3a-PROGRESS.md)). **R3 split into R3a + R3b + R3c on 2026-08-17** —
 the ruling, its reasoning and its rejected alternative are in the brief's §3 and the deviations table.
 **R3b is `[~]` IN FLIGHT, deliberately out of order: its §6 piece — the absent-device ruling, the one
@@ -657,9 +657,13 @@ later the same day (LEFT 11–15 / RIGHT 20–16, each back → front, read from
 front is the 15/16 end; `measured` stays false until the census confirms). The tester then ran
 on robot two's brain the same evening (R3b-PROGRESS Session 2 §9): census 9 of 10 motors (port
 19 silent), the battery and controller adapters' first hardware reads, the touch menu proven by a
-readout, and the controller-launch pretend-match trap found and written into the worksheet. DRIVE
-has not run and no motor has been powered. What follows: port 19, the hand push, DRIVE on blocks;
-then Parts 1–3 (motor group, odometry seam, the tank composition root) on the team lead's go.**
+readout, and the controller-launch pretend-match trap found and written into the worksheet. A
+second session the same evening (§10 of the log) got all ten motors and an IMU (port 2) in the
+census, the controller CONNECTED, two sign captures, and DRIVE running with ten `ProsMotor`s
+constructed on hardware — but zero commanded volts: no motor has been powered yet, and whether
+the stick was deflected or its read is wrong on hardware is the next session's first check.
+What follows: that check, powered motion wheels-up, the ground run; then Parts 1–3 (motor group,
+odometry seam, the tank composition root) on the team lead's go.**
 The decision
 that runs alongside: **R3d** (drivetrain self-calibration + persistence + boot verification) is
 pulled forward from E5 to follow R3b — see the deviations table and the R3d entry.

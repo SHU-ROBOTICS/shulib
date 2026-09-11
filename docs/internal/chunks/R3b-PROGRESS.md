@@ -918,3 +918,59 @@ screens in `src/main.cpp` (`benchStateScreen()`, `competitionBits()`, tester var
 the boot-time status line. Verified: src build gate PASS for all three variants after each
 change; no host input changed. Register entries for VEXos 1.1.5, the controller-launch trap and
 the coupled-USB port renumbering are owed to `hardware-assumptions.md` with robot two's section.
+
+---
+
+### 10. Second session on robot two, the same evening (2026-09-10, team lead back in the lab)
+
+Fresh battery, the latest build (`v0.1.1-282-g140b9c8`, stamp `Sep 10 2026 22:06:49`) uploaded
+over USB and started from the laptop. Boot status **`0x00`** — driver control — with the
+controller linked and left on its home screen, exactly as §9.3 predicted.
+
+**10.1 Station 4, first read with the controller linked:**
+```
+battery | RAW 13161 mV  96.0% | CANON 13.161 V
+controller master: CONNECTED
+  LeftY=+0.000 LeftX=+0.000 RightX=+0.000 (canonical [-1,1]; PROS raw is +-127)
+```
+`ProsController::isConnected()` true on hardware for the first time; the axes read 0 at rest.
+
+**10.2 The census, three times.** First `7` motors (11, 15, 19 silent — two more than the
+morning's 9, disturbed by the battery swap or the cable work); after re-seating, **`motors
+found: 10`**, every table port, plus **`IMU` on port 2** (mounted since the morning) and `RADIO`
+on port 1. `measured` flipped true in the table on this evidence; `imuPort = 2`.
+
+**10.3 Two sign captures, identical:** `signed ports for DRIVE: LEFT -11 +12 -13 +14 -15 |
+RIGHT +20 -19 +18 -17 +16` — alternating on both sides, the coupled-train signature (bench bot
+§17.3/§18.2 again). **Port 18 travelled short on both pushes:** 137 vs ~175 deg, then 171 vs
+~210 deg — about 20 % under its side-mates, reproducibly, the same class of anomaly as the bench
+bot's p16/p13 (R3a-PROGRESS §20.2). Not slip: it reproduces. Unexplained; watch it under power.
+The second capture was needed because the program had been stopped in between — the VEXos
+built-in **"Drive"** launcher was on the brain's screen ("nothing moving"): the program that made
+the motors fight in the morning. Restarted Bench Tests from the laptop; the capture lives per run.
+
+**10.4 Station 10 DRIVE entered — the first time ten `ProsMotor`s were constructed on hardware.**
+```
+CARTRIDGE BELIEF: BLUE 600 rpm
+signed ports: LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19 +18 -17 +16
+mode: WHEELS UP
+10 motors constructed through ProsMotor, gearset written and read back OK.
+driving, WHEELS UP. Hold L1; R1 raises the ceiling; TOUCH the panel to stop.
+ceiling -> 6 V / 9 V / 12 V
+```
+All six gates passed on hardware; the gearset write/read-back succeeded on all ten; every motor
+read `0.0 rad/s`, `0.00–0.07 A`, `30–35 C` at rest; `R1` stepped the ceiling (button reads work);
+`L1` held showed `DRIVING (L1 held)` in the footer (dead-man works). **But the commanded volts
+stayed `L +0.0 V  R +0.0 V` with L1 held** — no stick deflection reached the mapping at any
+screenshot, so **no motor was ever commanded a non-zero voltage and nothing turned.** Two
+readings of that fact are possible and the session ended (brain off USB, no "now") before the
+decisive check — L1 held AND the left stick pushed fully up, panel photographed — separated
+them: (a) the operator was not deflecting the LEFT stick at the instants sampled (the ceiling had
+been raised to 12 V before any motion, suggesting R1 was being pressed instead), or (b) the
+axis read is wrong on this hardware despite the correct channel mapping (HA-103's untested half).
+**The first thing the next session does is that check.** Until then: adapters constructed and
+read on hardware — YES; a motor powered by the library's adapters — NOT YET.
+
+**10.5 Not done:** the decisive stick check; any powered motion; the ground run; the tester's
+IMU station (needs the rebuild with `imuPort = 2`, which this commit carries — the next upload
+has it).

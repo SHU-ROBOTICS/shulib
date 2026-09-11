@@ -160,8 +160,11 @@ struct ChassisTable {
 // about to WRITE it. IMU: none mounted -> UNSET. Also reported, and deliberately NOT here
 // because the tester uses neither: wheels 2.75 in, and "600 rpm" (reads as direct drive
 // 1:1, UNCONFIRMED until tooth counts arrive -- that belongs to odometry, R3b Part 2).
-// `measured` stays FALSE until station 1's census has shown MOTOR on all ten ports; flip
-// it then, with the date, not before (under-claim before over-claim).
+// `measured` flipped TRUE on the evening of 2026-09-10: station 1's census showed MOTOR on
+// all ten table ports (after cables on 11, 15 and 19 were re-seated), the IMU on port 2 and
+// the radio on port 1, and two whole-robot pushes captured every port's sign
+// (LEFT -11 +12 -13 +14 -15 | RIGHT +16 -17 +18 -19 +20, port 18 travelling ~20 % short
+// both times). The cartridge is still a belief read off a motor, not a measurement.
 constexpr ChassisTable kChassis = {
     .robot = "2026 TANK CHASSIS (robot two)",
     .left = {11, 12, 13, 14, 15},
@@ -169,11 +172,10 @@ constexpr ChassisTable kChassis = {
     .right = {20, 19, 18, 17, 16},
     .rightCount = 5,
     .cartridge = Cartridge::Blue,
-    .imuPort = 0,
-    .measured = false,
-    .provenance = "ports: team lead 2026-09-10, from the robot, back->front, from behind "
-                  "(front = the 15/16 end); cartridge BLUE off a motor; IMU none; "
-                  "census pending",
+    .imuPort = 2,
+    .measured = true,
+    .provenance = "ports + IMU 2 + radio 1: census 2026-09-10 evening, all ten motors; "
+                  "front = the 15/16 end (team lead); cartridge BLUE off a motor",
 };
 #else
 // THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13

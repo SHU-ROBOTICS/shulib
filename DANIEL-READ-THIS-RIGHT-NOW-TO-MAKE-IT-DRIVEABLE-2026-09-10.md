@@ -113,8 +113,9 @@ guessed. Until this week no real robot had run any of it. Your chassis is the fi
 **The one place you might need to edit.** Near the top of `src/bench_r3a.cpp`, the block that starts
 `#if defined(SHULIB_ROBOT_TANK_2026)` is the chassis table for this robot: the left ports
 `{11, 12, 13, 14, 15}`, the right ports `{20, 19, 18, 17, 16}`, the cartridge `Blue`, and
-`imuPort = 0` (none mounted yet). If a motor is moved to a different port, change the number there,
-rebuild, upload. **If you mount an IMU, put its port number in `imuPort`.** Nothing else in that file
+**`imuPort = 2` — the IMU is on port 2, the radio on port 1** (both confirmed by the brain's census
+on the evening of 2026-09-10, when all ten motors answered). If a motor or the IMU is moved to a
+different port, change the number there, rebuild, upload. Nothing else in that file
 needs touching to drive. Do not type motor signs into the table: MOTOR WATCH measures them every
 power cycle, and the permanent version saves them to the SD card automatically (that is the next
 chunk of work, called R3d).

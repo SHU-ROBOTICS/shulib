@@ -200,9 +200,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > their first hardware reads; the touch menu was proven working by a touch readout after "the
 > screen does not work" turned out to be a pretend match imposed when the program was launched
 > from the controller's own menu (the tester lives in driver control, and VEXos was reporting a
-> field). **DRIVE has not run; no motor has been powered; the library's motion stack has still
-> never driven a robot.** Pieces 1 and 2 (the motor group; the odometry seam) are next and
-> unstarted; M1's badge has not moved.
+> field). **Same evening, second session:** all ten motors answered the census after three cables
+> were re-seated, an IMU appeared on port 2 (now in the table, `measured` true), the controller
+> read CONNECTED, two hand pushes captured every motor's sign (port 18 ~20 % short both times),
+> and station 10 DRIVE ran on hardware with **ten `ProsMotor`s constructed, gearset written and
+> read back, all six gates passed** — but the commanded volts stayed at zero with the dead-man
+> held, so **no motor has yet been powered and nothing has turned**; whether the left stick was
+> deflected or the axis read is wrong on hardware is the first check of the next session. **The
+> library's motion stack has still never driven a robot.** Pieces 1 and 2 (the motor group; the
+> odometry seam) are next and unstarted; M1's badge has not moved.
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD

@@ -292,8 +292,10 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
       table beside it (`LEFT(table)` / `RIGHT(table)`). A port with **`?`** or a missing port is a
       finding — write it down, do not continue to D.1.3.
       *(2026-09-10, first census on robot two: **9 motors, not 10** — 11 12 13 14 15 and 16 17 18 20
-      answered, **port 19 did not**; the RADIO is on port 1. Re-seat the port 19 cable at both ends
-      and re-run the census. The table's `measured` flag stays false until it shows all ten.)*
+      answered, **port 19 did not**; the RADIO is on port 1. That evening, after re-seating cables on
+      11, 15 and 19, the census showed **all ten**, plus an **IMU on port 2** — the table's
+      `measured` flag was flipped on that and `imuPort = 2` typed in. If the count ever drops below
+      ten again, it is a cable: re-seat and re-run before anything else.)*
 - [ ] **D.1.2** Put the robot on the floor, wheels down. Run **3 MOTOR WATCH**. **Push the WHOLE
       robot, FRONT END LEADING, about a foot.** Watch the panel: every drive port should show
       **UP** or **DOWN**. *(UP and DOWN mixed **within** a side is normal — adjacent motors on one
@@ -311,8 +313,14 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
       it is about to write to every motor and the **signed ports** from D.1.2. **If the cartridge
       it names is not the colour you read in D.0.3, STOP** and report it; do not tap YES.
       Then it asks **ARE THE WHEELS OFF THE GROUND?** — tap **YES, WHEELS UP** only if D.1.3 is true.
-- [ ] **D.1.5 Drive at 3 V, wheels up.** Hold **L1** (left index finger — the button on the
-      controller's top edge, not the sticks) and push the **left stick forward** a little. All
+- [ ] **D.1.5 Drive at 3 V, wheels up.** Hold **L1** (left index finger — the UPPER button on the
+      controller's top-left edge, not L2 below it) and, **while still holding it**, push the
+      **LEFT stick straight up** with your left thumb. Two things at once. Watch the panel's second
+      line: **L and R must read above 0.0 V** while the stick is pushed — if the footer says
+      DRIVING but L and R stay at 0.0 V, the stick is not being deflected (or not being read),
+      and no motor has been commanded; say so. *(2026-09-10 evening: the station ran with ten
+      motors constructed, L1 registered, R1 stepped the ceiling, and L/R stayed 0.0 V — no stick
+      input ever reached the mapping, so nothing turned.)* Do not press R1 until wheels turn. All
       wheels on both sides should turn the **same way, toward the front**. Release L1: everything
       stops. Try the **right stick** left and right: the sides should turn opposite ways.
       **DONE IF** the panel's footer says **DRIVING (L1 held)**, every port row reads green with a
