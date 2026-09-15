@@ -86,9 +86,19 @@ shulib v2 inverts both:
 - **Sensors (full stack, both robots):** V5 IMU, V5 Rotation sensors w/ dedicated tracking
   wheels, **V5 GPS**, **AI Vision**, Optical, Distance. VEX U also legalizes **onboard compute**
   (Raspberry Pi / Coral, `<VUR12>`) and **LIDAR/spinning sensors** (`<VUG3>`).
-  *(2026-09-14: robot two carries an IMU only so far; the planned finished sensor set is IMU +
-  AI Vision + Distance, with GPS/tracking wheels as the accuracy work requires. No tracking wheels
-  are fitted, which is why the fall odometry runs from the drive motors' encoders.)*
+  *(2026-09-14: robot two carries an IMU only so far. **DECISION, team lead, 2026-09-14: the
+  fall tank robots get NO tracking wheels / rotation sensors** — the finished sensor set is IMU +
+  GPS + AI Vision + Distance, and odometry runs from the drive motors' own encoders
+  (`DriveEncoderOdometry`), corrected by GPS and AprilTags. Consequences, recorded so they are not
+  rediscovered: (1) between fixes the estimate is exposed to wheel slip and to contact, which the
+  encoders cannot see — so the GPS is the priority purchase and the routines are tuned brisk in
+  the open and careful at the goals; (2) R3d's calibration must measure the drive-encoder distance
+  scale per side (a push along a tape) and R4 must measure this chassis's encoder-odometry drift
+  with and without GPS correction, so the decision can be revisited with a number rather than an
+  argument; (3) `PilonsOdometry` and the tracking-wheel plant channels stay as built for the
+  spring X-drive and for any robot that fits pods later. The estimate of the cost, given in
+  September as a judgment and not a measurement: a controlled skills run keeps most of the
+  achievable accuracy; a match autonomous with contact gives up more.)*
 - **Game / Skills scoring (Override):** red/blue Pin = **5**; yellow Pin = **10** _if Owned_
   (quadrant Toggle set to your color, or robot ends in the Midfield for Midfield yellows);
   Robot in the **Midfield** at end = **8**. Objects: **Pins** (two colored halves) and **Cups**
