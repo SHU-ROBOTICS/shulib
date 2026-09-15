@@ -182,12 +182,14 @@ nav:
           - Arc step: api/arc_step.md
           - Complementary fusion: api/complementary_fusion.md
           - Correction: api/correction.md
+          - Drive encoder odometry: api/drive_encoder_odometry.md
           - EKF fusion: api/ekf_fusion.md
           - GPS corrector: api/gps_corrector.md
           - ICorrector: api/i_corrector.md
           - IFusionPolicy: api/i_fusion_policy.md
           - IPoseSource: api/i_pose_source.md
           - Localizer: api/localizer.md
+          - Odometry: api/odometry.md
           - Pilons odometry: api/pilons_odometry.md
           - Tag map: api/tag_map.md
           - Tracking wheel: api/tracking_wheel.md
@@ -241,6 +243,7 @@ nav:
           - Digital out: api/digital_out.md
           - Distance: api/distance.md
           - Distance conversion: api/distance_conversion.md
+          - Drive geometry: api/drive_geometry.md
           - GPS: api/gps.md
           - GPS conversion: api/gps_conversion.md
           - IMU: api/imu.md
@@ -249,6 +252,7 @@ nav:
           - Mechanism: api/mechanism.md
           - Motor: api/motor.md
           - Motor conversion: api/motor_conversion.md
+          - Motor group: api/motor_group.md
           - Null sink: api/null_sink.md
           - Optical: api/optical.md
           - Optical conversion: api/optical_conversion.md

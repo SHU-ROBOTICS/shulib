@@ -4,6 +4,15 @@ From jal, who is not in the lab. Everything you need is pushed on branch `shulib
 temporary and gets deleted once the chassis has driven; the permanent procedure is Stations D and E
 of `docs/internal/chunks/R3a-BENCH-WORKSHEET.md`.
 
+> **UPDATED 2026-09-14 — there is now a THIRD program, "shulib Teleop" (slot 2), in which the
+> LIBRARY itself drives the chassis (`make ROBOT=tank PROGRAM=library && pros upload --slot 2
+> --name "shulib Teleop"`). It has NEVER run, and it REFUSES to start — on purpose, with a red
+> screen — until two numbers are measured and typed in by jal: the **track width** (tape, centre
+> of the left wheels' contact line to the right's) and the **motor→wheel gearing** (direct drive,
+> or the tooth counts). Measure both and send them; do not type them yourself. Its first run is
+> wheels-up with jal present; Station F of the worksheet is the procedure. Everything below about
+> the first two programs still holds.**
+>
 > **UPDATED LATE 2026-09-10 — there are now TWO programs, and the second one just drives.**
 > The evening session put all ten motors, the IMU (port 2) and the measured motor signs into the
 > code, so a program called **"shulib Drive"** (slot 1) now boots straight into driving from the
@@ -142,10 +151,13 @@ guessed. Until this week no real robot had run any of it. Your chassis is the fi
   and the checks that need your hands, plus tolerance for a dead motor cable. **This is the thing
   that drives the chassis.** It is still not the library's driving code.
 - **The real driver code** — the library's own teleop loop in `src/main.cpp`, which drives through
-  the library's `Chassis` object. It cannot run on your chassis yet, on purpose: the library still
-  needs two pieces for a tank drive with five motors per side and no tracking wheels (a "motor
-  group" that fans one command to five motors with the right signs, and odometry from the drive
-  motors' own encoders). jal is building those next.
+  the library's `Chassis` object: the THIRD program, "shulib Teleop" (slot 2, built with
+  `make ROBOT=tank PROGRAM=library`). Since 2026-09-14 it BUILDS for your chassis — the two
+  pieces it needed exist (a "motor group" that fans one command to five motors, reading them
+  back as one; and odometry from the drive motors' own encoders plus the IMU) — but it has not
+  run, and it refuses to start until the track width and the gearing are measured and typed in
+  (see the note at the top). It will FEEL different from "shulib Drive": the stick asks for a
+  speed and the library guesses the volts, with placeholder numbers. That is expected.
 
 **The one place you might need to edit.** `src/chassis_table.hpp`, the block that starts
 `#if defined(SHULIB_ROBOT_TANK_2026)`, is the chassis table for this robot — shared by both

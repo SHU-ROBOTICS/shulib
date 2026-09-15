@@ -73,9 +73,22 @@ shulib v2 inverts both:
 - **Division:** VEX U (VURC). **Two robots per team**, used together (incl. Skills, `<VURS2>`):
   - **24" robot — X-drive** (4 omni @ 45°, full holonomic).
   - **15" robot — H-drive** (tank + transverse strafe wheel; limited strafe authority).
+
+  > **AMENDED 2026-09-14 (team lead):** the plan above was the June intent. **Both fall-2026
+  > competition robots are TANK drives** — robot two's chassis was built in September (five
+  > coupled motors per side, four wheels per side) and robot one follows the same pattern. **The
+  > X-drive is built in the spring semester** and the holonomic work is finished then. Nothing
+  > holonomic in this plan is withdrawn: the kinematics, the pseudo-inverse and the decoupled
+  > motion verbs are built and proven in simulation and wait for a chassis. What it changes is
+  > *order*: the fall runs on tank — the library's own drive of robot two, self-calibration,
+  > measured gains, no-code authoring, driver feel, scoring — and the holonomic validation (R3c)
+  > moves to spring. The build order's deviations table carries the row.
 - **Sensors (full stack, both robots):** V5 IMU, V5 Rotation sensors w/ dedicated tracking
   wheels, **V5 GPS**, **AI Vision**, Optical, Distance. VEX U also legalizes **onboard compute**
   (Raspberry Pi / Coral, `<VUR12>`) and **LIDAR/spinning sensors** (`<VUG3>`).
+  *(2026-09-14: robot two carries an IMU only so far; the planned finished sensor set is IMU +
+  AI Vision + Distance, with GPS/tracking wheels as the accuracy work requires. No tracking wheels
+  are fitted, which is why the fall odometry runs from the drive motors' encoders.)*
 - **Game / Skills scoring (Override):** red/blue Pin = **5**; yellow Pin = **10** _if Owned_
   (quadrant Toggle set to your color, or robot ends in the Midfield for Midfield yellows);
   Robot in the **Midfield** at end = **8**. Objects: **Pins** (two colored halves) and **Cups**

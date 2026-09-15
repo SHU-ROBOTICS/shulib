@@ -96,6 +96,11 @@ public:
         bool fixGated = false;         ///< Localizer::lastCorrection().gated
         units::Voltage batteryVolts{12.6};  ///< IBattery::voltage()
         double maxMotorTempC = 0.0;    ///< max IMotor::temperature() over the drive
+        int groupMembersDisagreeing = 0;  ///< members of any hal::MotorGroup PERSISTENTLY
+                                          ///< disagreeing with their coupled group this tick
+                                          ///< (motion::tickHealthObservables sums every
+                                          ///< group's disagreeingMembers()); 0 = healthy, and
+                                          ///< the default for a robot with no groups
     };
     // On odomStalled: a frozen/disconnected encoder is INVISIBLE to the M2 estimator
     // (zero travel is a perfectly plausible reading — found and recorded at A3), so
@@ -189,7 +194,27 @@ public:
         } else {
             overTempActive_ = false;
         }
+
+        // Coupled motor groups: a member persistently fighting or frozen against its group
+        // (R3b Part 1). The persistence window is the group's own monitor's; this is the
+        // per-EPISODE edge on top of it, so a member that stays wrong for a whole match is
+        // ONE fault line, and a member that recovers re-arms it.
+        if (o.groupMembersDisagreeing > 0) {
+            if (!groupDisagreeActive_) {
+                groupDisagreeActive_ = true;
+                char buf[64];
+                std::snprintf(buf, sizeof buf, "%d member(s) disagree with their coupled group",
+                              o.groupMembersDisagreeing);
+                faults_.raise(FaultCode::MotorGroupDisagree, "MOT", buf);
+            }
+        } else {
+            groupDisagreeActive_ = false;
+        }
     }
+
+    /// True while at least one coupled-group member is in a persisted-disagreement episode
+    /// (as of the last tick) — for a panel that shows the live state beside the latched fault.
+    [[nodiscard]] bool motorGroupDisagreeing() const noexcept { return groupDisagreeActive_; }
 
     /// True once ANY brownout episode has occurred this run (latched; header note).
     [[nodiscard]] bool brownedOut() const noexcept { return brownedOut_; }
@@ -206,6 +231,7 @@ public:
         brownoutActive_ = false;
         brownedOut_ = false;
         overTempActive_ = false;
+        groupDisagreeActive_ = false;
     }
 
 private:
@@ -218,6 +244,7 @@ private:
     bool brownoutActive_ = false;
     bool brownedOut_ = false;
     bool overTempActive_ = false;
+    bool groupDisagreeActive_ = false;
 };
 
 }  // namespace shulib::diag

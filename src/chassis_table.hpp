@@ -30,10 +30,14 @@
 // (test/chassis_table_test.cpp) can include it and break the consistency checks. It lives in
 // src/, not include/shulib/, because it is a per-robot composition fact, not library API.
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+
+#include "shulib/hal/drive_geometry.hpp"
+#include "shulib/units/quantity.hpp"
 
 namespace shulib::bench {
 
@@ -55,6 +59,16 @@ struct ChassisTable {
     bool measured;                // true only when every SET field was read off the robot
     bool signsMeasured;           // true = every port entry above carries its MEASURED sign
     const char* provenance;       // who measured what, and when -- printed in every banner
+    // ── DRIVE GEOMETRY (R3b Parts 1-3, 2026-09-14): what the LIBRARY graph needs and the
+    //    tester/drive program do not. 0 = UNSET, and UNSET REFUSES the library program at boot
+    //    (describeMissingForLibrary); a value is typed here only from a measurement, with its
+    //    provenance beside it. NEVER guessed: TankKinematics needs the track width and the
+    //    odometry needs the scale, and a guess in either drives the robot wrong in silence.
+    double wheelDiameterIn;       // wheel diameter, inches (ruler across the tread); 0 = UNSET
+    double trackWidthIn;          // contact line to contact line, inches (tape); 0 = UNSET
+    double externalRatio;         // motor output shaft -> wheel: wheel revs per motor rev
+                                  // (1.0 = direct drive; tooth counts otherwise); 0 = UNSET
+    const char* geometryProvenance;  // who measured the three numbers above, how, and when
 };
 
 #if defined(SHULIB_ROBOT_TANK_2026)
@@ -71,7 +85,8 @@ struct ChassisTable {
 //     LEFT -11 +12 -13 +14 -15  |  RIGHT +20 -19 +18 -17 +16
 // A '-' entry is a port PROS reverses (negative port number in ProsMotor); the alternation
 // within a side is the coupled-gear-train signature, not a wiring fault. Port 18 travelled
-// ~20 % short of its side-mates on both pushes -- unexplained; watch it under power.
+// ~20 % short of its side-mates on both pushes -- unexplained; watch it under power (A4
+// register HA-130; the group's disagreement floor tolerates it, HA-133).
 // CARTRIDGE: BLUE, read off a motor by the build team 2026-09-10 -- a reported measurement,
 // so it may be set; it is still printed as a BELIEF wherever the adapter is about to WRITE
 // it (the read-back cannot detect a wrong belief). IMU: PORT 2, mounted 2026-09-10 and seen
@@ -81,6 +96,13 @@ struct ChassisTable {
 // `measured` flipped TRUE 2026-09-10 evening: station 1's census showed MOTOR on all ten
 // table ports (after cables on 11, 15 and 19 were re-seated), the IMU on port 2 and the
 // radio on port 1. The cartridge is still a belief read off a motor, not a measurement.
+// GEOMETRY (R3b Parts 1-3, 2026-09-14; A4 register HA-124 wheel, HA-125 track width, HA-126
+// ratio): wheel diameter 2.75 in REPORTED by the team lead
+// ("standard wheels", the bench bot's measured size) -- a report, not yet a ruler on THIS
+// robot; track width UNSET (tape measure, contact line to contact line, owed by the team
+// lead); external ratio UNSET ("600 rpm" was reported, which reads as direct drive 1:1 but is
+// a cartridge speed, not a tooth count -- the coordinator types 1.0 only when "direct drive"
+// or the counts are stated). The library program REFUSES at boot while either is 0.
 inline constexpr ChassisTable kChassis = {
     .robot = "2026 TANK CHASSIS (robot two)",
     .left = {-11, 12, -13, 14, -15},
@@ -94,6 +116,12 @@ inline constexpr ChassisTable kChassis = {
     .provenance = "ports + IMU 2 + radio 1: census 2026-09-10 evening, all ten motors; "
                   "SIGNS: MOTOR WATCH, two front-first pushes 2026-09-10 evening, identical; "
                   "front = the 15/16 end (team lead); cartridge BLUE off a motor",
+    .wheelDiameterIn = 2.75,
+    .trackWidthIn = 0.0,
+    .externalRatio = 0.0,
+    .geometryProvenance = "wheel 2.75 in REPORTED by the team lead 2026-09-14 (standard wheels; "
+                          "not yet rulered on this robot); track width UNSET (tape owed); ratio "
+                          "UNSET (\"600 rpm\" reported = a cartridge, not a tooth count)",
 };
 #else
 // THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13
@@ -120,6 +148,11 @@ inline constexpr ChassisTable kChassis = {
     .provenance = "ports+IMU: 2026-08-13 census, sides by R3a-PROGRESS S15-S19 pushes; "
                   "cartridge BLUE per the team (brain was GREEN, S20.3) -- read the insert; "
                   "signs NOT in the table (captured per power cycle by MOTOR WATCH)",
+    .wheelDiameterIn = 2.75,
+    .trackWidthIn = 0.0,
+    .externalRatio = 0.0,
+    .geometryProvenance = "wheel 2.75 in measured on the bench bot (R3a); track width and ratio "
+                          "UNSET -- no library graph is built for this robot",
 };
 #endif
 
@@ -194,6 +227,42 @@ inline bool describeMissing(const ChassisTable& t, char* buf, std::size_t n, boo
     return any;
 }
 
+/// True when all three geometry numbers are SET (> 0). The library graph needs all three.
+constexpr bool tableGeometrySet(const ChassisTable& t) {
+    return t.wheelDiameterIn > 0.0 && t.trackWidthIn > 0.0 && t.externalRatio > 0.0;
+}
+
+/// The ONE drive-geometry object the library graph hands to BOTH the drive-encoder odometry
+/// and the stall check (hal::DriveGeometry: wheel radius x motor->wheel ratio -> inches per
+/// radian), built from the table's measured diameter and ratio. Precondition: geometry set
+/// (tableGeometrySet) -- the composition root refuses before calling this. Robot two is
+/// believed symmetric, so one object serves both sides; the type represents asymmetry the
+/// day a per-side measurement says otherwise.
+inline hal::DriveGeometry tableDriveGeometry(const ChassisTable& t) {
+    return hal::DriveGeometry::fromDiameter(units::Length{t.wheelDiameterIn}, t.externalRatio);
+}
+
+/// The table's track width as the typed Length TankKinematics and the odometry take.
+inline units::Length tableTrackWidth(const ChassisTable& t) {
+    return units::Length{t.trackWidthIn};
+}
+
+/// Names every field the LIBRARY graph needs that is UNSET: everything describeMissing()
+/// checks with the IMU included, PLUS the three geometry numbers. Returns true when
+/// something is missing; the composition root paints `buf` on the state screen and refuses.
+inline bool describeMissingForLibrary(const ChassisTable& t, char* buf, std::size_t n) {
+    const bool any = describeMissing(t, buf, n, false);
+    auto add = [&](const char* what) {
+        if (buf[0] != '\0') std::strncat(buf, ", ", n - std::strlen(buf) - 1);
+        std::strncat(buf, what, n - std::strlen(buf) - 1);
+    };
+    bool geometryMissing = false;
+    if (t.wheelDiameterIn <= 0.0) { add("wheel diameter"); geometryMissing = true; }
+    if (t.trackWidthIn <= 0.0) { add("track width"); geometryMissing = true; }
+    if (t.externalRatio <= 0.0) { add("external ratio (motor->wheel)"); geometryMissing = true; }
+    return any || geometryMissing;
+}
+
 /// "15 16 17 18", or "-11 +12 -13 +14 -15" when `withSigns`, or "UNSET".
 inline void portsToString(const std::int8_t* ports, std::size_t n, bool withSigns, char* buf,
                           std::size_t cap) {
@@ -227,8 +296,20 @@ inline void portsToString(const std::int8_t* ports, std::size_t n, bool withSign
 ///   5. an UNSIGNED table carries only POSITIVE entries -- a '-' typed without flipping
 ///      signsMeasured is a half-signed table: nobody can tell whether the other entries'
 ///      '+' is measured or default
+///   6. (R3b Parts 1-3) every geometry number is FINITE and >= 0 -- 0 is UNSET and legal; a
+///      negative or non-finite value is a typo, not a measurement, and is refused here rather
+///      than reaching TankKinematics or the odometry as a precondition mid-boot
 inline bool tableConsistent(const ChassisTable& t, char* why, std::size_t cap) {
     why[0] = '\0';
+    const double geometry[3] = {t.wheelDiameterIn, t.trackWidthIn, t.externalRatio};
+    const char* geometryNames[3] = {"wheel diameter", "track width", "external ratio"};
+    for (int g = 0; g < 3; ++g) {
+        if (!std::isfinite(geometry[g]) || geometry[g] < 0.0) {
+            std::snprintf(why, cap, "%s is %g -- a geometry value must be >= 0 (0 = UNSET)",
+                          geometryNames[g], geometry[g]);
+            return false;
+        }
+    }
     const std::int8_t* sides[2] = {t.left, t.right};
     const std::size_t counts[2] = {t.leftCount, t.rightCount};
     const char* names[2] = {"LEFT", "RIGHT"};

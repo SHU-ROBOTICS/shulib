@@ -66,9 +66,9 @@ the single source of now; seconds, monotonic
 std::span<hal::IMotor* const> driveMotors
 ```
 
-The drive motors, in kinematic wheel order: element i is commanded with wheel speed i of the installed IKinematics, so a wrong order drives the robot the wrong way in silence. The caller must supply at least as many motors as that kinematics has wheels — nothing checks the count. This is a non-owning VIEW: the pointer ARRAY must outlive the context.
+The drive motors, in kinematic wheel order: element i is commanded with wheel speed i of the installed IKinematics, so a wrong order drives the robot the wrong way in silence. ONE entry per kinematic wheel — N physical motors on a side go behind one hal::MotorGroup (R3b Part 1). This context checks only that the span is non-empty and all-non-null; motion::MotionDeps::validate() is where the count is checked, and it demands EQUALITY with the kinematics' wheel count. This is a non-owning VIEW: the pointer ARRAY must outlive the context.
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:38`](../../include/shulib/chassis/robot_context.hpp#L38).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:41`](../../include/shulib/chassis/robot_context.hpp#L41).*
 
 <a id="robotcontextconfig-imu"></a>
 
@@ -80,7 +80,7 @@ hal::IImu* imu = nullptr
 
 heading and yaw rate, canonical CCW radians
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:39`](../../include/shulib/chassis/robot_context.hpp#L39).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:42`](../../include/shulib/chassis/robot_context.hpp#L42).*
 
 <a id="robotcontextconfig-gps"></a>
 
@@ -92,7 +92,7 @@ hal::IGps* gps = nullptr
 
 absolute fix; off-strip its hasFix() reads false
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:40`](../../include/shulib/chassis/robot_context.hpp#L40).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:43`](../../include/shulib/chassis/robot_context.hpp#L43).*
 
 <a id="robotcontextconfig-battery"></a>
 
@@ -104,7 +104,7 @@ hal::IBattery* battery = nullptr
 
 volts: the pipeline's ceiling, and the run bookends
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:41`](../../include/shulib/chassis/robot_context.hpp#L41).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:44`](../../include/shulib/chassis/robot_context.hpp#L44).*
 
 <a id="robotcontextconfig-telemetry"></a>
 
@@ -116,7 +116,7 @@ hal::ITelemetrySink* telemetry = nullptr
 
 every log line and DebugRecord; NullSink = off
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:42`](../../include/shulib/chassis/robot_context.hpp#L42).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:45`](../../include/shulib/chassis/robot_context.hpp#L45).*
 
 <a id="robotcontextconfig-tags"></a>
 
@@ -128,7 +128,7 @@ hal::ITagSource* tags = nullptr
 
 AprilTags as body-frame poses (the M3 corrector)
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:43`](../../include/shulib/chassis/robot_context.hpp#L43).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:46`](../../include/shulib/chassis/robot_context.hpp#L46).*
 
 <a id="robotcontextconfig-vision"></a>
 
@@ -140,7 +140,7 @@ hal::IVision* vision = nullptr
 
 object bearings for M4 manipulation targeting
 
-*field, declared at [`include/shulib/chassis/robot_context.hpp:44`](../../include/shulib/chassis/robot_context.hpp#L44).*
+*field, declared at [`include/shulib/chassis/robot_context.hpp:47`](../../include/shulib/chassis/robot_context.hpp#L47).*
 
 <a id="class-robotcontext"></a>
 
@@ -152,7 +152,7 @@ class RobotContext
 
 The composition root: the ONE object that differs between the real robot, the simulator and a host test. Every layer above the HAL reaches hardware only through it, so exchanging the HAL implementations exchanges the whole robot without touching a line of motion code.  NON-OWNING throughout. It copies the config's pointers and span; it never adopts, allocates or destroys anything, so every pointee — and the array the driveMotors span views — must outlive the context. It also caches nothing: each accessor hands back the live handle, so a reading is only ever as fresh as the caller's own call.
 
-*class, declared at [`include/shulib/chassis/robot_context.hpp:55`](../../include/shulib/chassis/robot_context.hpp#L55).*
+*class, declared at [`include/shulib/chassis/robot_context.hpp:58`](../../include/shulib/chassis/robot_context.hpp#L58).*
 
 <a id="robotcontext-robotcontext"></a>
 
@@ -162,9 +162,9 @@ The composition root: the ONE object that differs between the real robot, the si
 explicit RobotContext(const RobotContextConfig& cfg)
 ```
 
-Validates the whole config up front — every handle non-null and driveMotors non-empty — through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle it is missing, instead of dereferencing null halfway through an auton. The count of drive motors is checked only for emptiness, never against the kinematics' wheel count.
+Validates the whole config up front — every handle non-null and driveMotors non-empty — through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle it is missing, instead of dereferencing null halfway through an auton. The count of drive motors is checked here only for emptiness; motion::MotionDeps::validate() checks it for EQUALITY against the kinematics' wheel count (the context never sees the kinematics).
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:61`](../../include/shulib/chassis/robot_context.hpp#L61).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:65`](../../include/shulib/chassis/robot_context.hpp#L65).*
 
 <a id="robotcontext-clock"></a>
 
@@ -176,7 +176,7 @@ Validates the whole config up front — every handle non-null and driveMotors no
 
 The run's clock. A reference, never null — the constructor already proved that, which is why consumers write `ctx.clock().now()` and never test a pointer.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:77`](../../include/shulib/chassis/robot_context.hpp#L77).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:81`](../../include/shulib/chassis/robot_context.hpp#L81).*
 
 <a id="robotcontext-drivemotors"></a>
 
@@ -186,9 +186,9 @@ The run's clock. A reference, never null — the constructor already proved that
 [[nodiscard]] std::span<hal::IMotor* const> driveMotors() const
 ```
 
-The drive motors, in kinematic wheel order. A VIEW of the caller's array, so it is only as alive as that array; guaranteed non-empty, but NOT guaranteed to match the wheel count of the installed kinematics — that pairing is the caller's to get right.
+The drive motors, in kinematic wheel order. A VIEW of the caller's array, so it is only as alive as that array; guaranteed non-empty here, and guaranteed to EQUAL the wheel count of the installed kinematics once a motion::MotionDeps has validated the pairing.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:81`](../../include/shulib/chassis/robot_context.hpp#L81).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:85`](../../include/shulib/chassis/robot_context.hpp#L85).*
 
 <a id="robotcontext-imu"></a>
 
@@ -200,7 +200,7 @@ The drive motors, in kinematic wheel order. A VIEW of the caller's array, so it 
 
 The IMU, already canonical: CCW-positive radians, +X = 0. Nothing above this call converts an angle. Gate trust on isReady() at boot — a calibrating IMU reports garbage that moves.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:84`](../../include/shulib/chassis/robot_context.hpp#L84).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:88`](../../include/shulib/chassis/robot_context.hpp#L88).*
 
 <a id="robotcontext-gps"></a>
 
@@ -212,7 +212,7 @@ The IMU, already canonical: CCW-positive radians, +X = 0. Nothing above this cal
 
 The GPS. Check hasFix() before believing pose(): off-strip the pose is unspecified (still finite), and Driving Skills has no strip at all, so this seam is silent for a whole run.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:87`](../../include/shulib/chassis/robot_context.hpp#L87).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:91`](../../include/shulib/chassis/robot_context.hpp#L91).*
 
 <a id="robotcontext-battery"></a>
 
@@ -224,7 +224,7 @@ The GPS. Check hasFix() before believing pose(): off-strip the pose is unspecifi
 
 The battery. Read live at each use — the command pipeline takes its voltage ceiling from it every tick and the run summary samples it at both ends; nothing here caches a volt.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:90`](../../include/shulib/chassis/robot_context.hpp#L90).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:94`](../../include/shulib/chassis/robot_context.hpp#L94).*
 
 <a id="robotcontext-telemetry"></a>
 
@@ -236,7 +236,7 @@ The battery. Read live at each use — the command pipeline takes its voltage ce
 
 The one diagnostics sink for this robot. Which sink is installed is what decides whether tracing costs anything: with NullSink the per-tick record is never even populated.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:93`](../../include/shulib/chassis/robot_context.hpp#L93).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:97`](../../include/shulib/chassis/robot_context.hpp#L97).*
 
 <a id="robotcontext-tags"></a>
 
@@ -248,7 +248,7 @@ The one diagnostics sink for this robot. Which sink is installed is what decides
 
 The AprilTag source — V5 AI Vision or a coprocessor, indistinguishable from here. Tags arrive as body-frame poses with no timestamp; staleness is the corrector's problem.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:96`](../../include/shulib/chassis/robot_context.hpp#L96).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:100`](../../include/shulib/chassis/robot_context.hpp#L100).*
 
 <a id="robotcontext-vision"></a>
 
@@ -260,7 +260,7 @@ The AprilTag source — V5 AI Vision or a coprocessor, indistinguishable from he
 
 The object/colour detection source. A separate seam from tags() so one adapter can serve both, or either alone, without a consumer of one depending on the other.
 
-*function, declared at [`include/shulib/chassis/robot_context.hpp:99`](../../include/shulib/chassis/robot_context.hpp#L99).*
+*function, declared at [`include/shulib/chassis/robot_context.hpp:103`](../../include/shulib/chassis/robot_context.hpp#L103).*
 
 ## Design commentary, from the header
 

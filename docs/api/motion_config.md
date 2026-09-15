@@ -247,9 +247,9 @@ Center-to-wheel distance (in) — converts |ω| to an equivalent linear speed in
 OdoStallCheckConfig stall{}
 ```
 
-The spin-vs-motion cross-check thresholds (A4: HA-52).
+The spin-vs-motion cross-check thresholds (A4: HA-52) and, since R3b Part 2, its per-wheel drive geometry (`stall.wheels`, hal::DriveGeometry — the same objects the drive-encoder odometry converts with; `stall.setAllWheels()` for a symmetric drive) and `stall.independentMotionSource` (false on a drivetrain whose odometry IS the drive encoders: the check then never reports a verdict — odo_stall_check.hpp's §2 ruling).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:119`](../../include/shulib/motion/motion_config.hpp#L119).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:123`](../../include/shulib/motion/motion_config.hpp#L123).*
 
 <a id="motionconfig-validate"></a>
 
@@ -261,7 +261,7 @@ void validate() const
 
 Re-check the invariants the motions rely on and RAISE on the first violation: feedforward and PID gains finite, integral limits non-negative, and all FIVE speed / timeout / geometry scalars strictly positive (maxLinearSpeed, maxAngularSpeed, maxWheelSpeed, defaultTimeout, rotationRadius — 0 is rejected, never read as "unset"). Every C1 motion calls this from its own constructor, so it is a backstop rather than a step you can forget — call it yourself only when validating a config you have not yet handed to a motion. It deliberately does NOT descend into the SettleConfig or OdoStallCheckConfig members: those are checked by SettledUtil and OdoStallCheck when the motion builds them, which is the only place their own invariants are known.
 
-*function, declared at [`include/shulib/motion/motion_config.hpp:131`](../../include/shulib/motion/motion_config.hpp#L131).*
+*function, declared at [`include/shulib/motion/motion_config.hpp:135`](../../include/shulib/motion/motion_config.hpp#L135).*
 
 <a id="validatedconfig"></a>
 
@@ -273,7 +273,7 @@ Re-check the invariants the motions rely on and RAISE on the first violation: fe
 
 Validate `config` (and a caller-supplied `timeout`) and hand the config straight back, so a motion can write `cfg_{validatedConfig(config, timeout, "TurnTo")}` as the FIRST member in its initializer list and have the check run before any component is built from these fields. The counterpart to MotionDeps::validatedClock(), which exists for exactly the same reason on the pointer half: "a null pointer trips the precondition rather than being dereferenced." Without it the first component constructed from a bad config reports the failure in ITS vocabulary, naming a class the caller never named.
 
-*free function, declared at [`include/shulib/motion/motion_config.hpp:169`](../../include/shulib/motion/motion_config.hpp#L169).*
+*free function, declared at [`include/shulib/motion/motion_config.hpp:173`](../../include/shulib/motion/motion_config.hpp#L173).*
 
 ## Design commentary, from the header
 

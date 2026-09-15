@@ -33,8 +33,11 @@ struct RobotContextConfig {
     hal::IClock* clock = nullptr;             ///< the single source of now; seconds, monotonic
     /// The drive motors, in kinematic wheel order: element i is commanded with wheel speed i of
     /// the installed IKinematics, so a wrong order drives the robot the wrong way in silence.
-    /// The caller must supply at least as many motors as that kinematics has wheels — nothing
-    /// checks the count. This is a non-owning VIEW: the pointer ARRAY must outlive the context.
+    /// ONE entry per kinematic wheel — N physical motors on a side go behind one
+    /// hal::MotorGroup (R3b Part 1). This context checks only that the span is non-empty and
+    /// all-non-null; motion::MotionDeps::validate() is where the count is checked, and it
+    /// demands EQUALITY with the kinematics' wheel count. This is a non-owning VIEW: the
+    /// pointer ARRAY must outlive the context.
     std::span<hal::IMotor* const> driveMotors;
     hal::IImu* imu = nullptr;                 ///< heading and yaw rate, canonical CCW radians
     hal::IGps* gps = nullptr;                 ///< absolute fix; off-strip its hasFix() reads false
@@ -57,7 +60,8 @@ public:
     /// Validates the whole config up front — every handle non-null and driveMotors non-empty —
     /// through SHULIB_PRECONDITION, so a mis-wired robot fails at construction naming the handle
     /// it is missing, instead of dereferencing null halfway through an auton. The count of drive
-    /// motors is checked only for emptiness, never against the kinematics' wheel count.
+    /// motors is checked here only for emptiness; motion::MotionDeps::validate() checks it for
+    /// EQUALITY against the kinematics' wheel count (the context never sees the kinematics).
     explicit RobotContext(const RobotContextConfig& cfg) : cfg_{cfg} {
         SHULIB_PRECONDITION(cfg_.clock != nullptr, "RobotContext: clock is null");
         SHULIB_PRECONDITION(!cfg_.driveMotors.empty(), "RobotContext: driveMotors is empty");
@@ -76,8 +80,8 @@ public:
     /// why consumers write `ctx.clock().now()` and never test a pointer.
     [[nodiscard]] hal::IClock& clock() const { return *cfg_.clock; }
     /// The drive motors, in kinematic wheel order. A VIEW of the caller's array, so it is only
-    /// as alive as that array; guaranteed non-empty, but NOT guaranteed to match the wheel count
-    /// of the installed kinematics — that pairing is the caller's to get right.
+    /// as alive as that array; guaranteed non-empty here, and guaranteed to EQUAL the wheel
+    /// count of the installed kinematics once a motion::MotionDeps has validated the pairing.
     [[nodiscard]] std::span<hal::IMotor* const> driveMotors() const { return cfg_.driveMotors; }
     /// The IMU, already canonical: CCW-positive radians, +X = 0. Nothing above this call converts
     /// an angle. Gate trust on isReady() at boot — a calibrating IMU reports garbage that moves.

@@ -1,11 +1,13 @@
 #pragma once
 //
 // Localizer — the fused field-frame estimate (master plan §5/§6/§8; WS5). It is a thin, deterministic
-// orchestrator over three already-tested pieces: PilonsOdometry (high-rate prediction), the IMU
+// orchestrator over three already-tested pieces: an IOdometry (PilonsOdometry over tracking
+// wheels, or DriveEncoderOdometry over the drive motors — high-rate prediction; the seam
+// landed at R3b Part 2 and this class depends on nothing past its four members), the IMU
 // (heading authority), and a list of correctors (absolute fixes) behind an IFusionPolicy. It owns
 // the four jobs the pieces below cannot, in a fixed five-step update():
 //   1. dt — source it from the injected IClock and turn the per-tick position change into a Twist2d.
-//   2. predict — advance PilonsOdometry; its pose is the dead-reckon prediction.
+//   2. predict — advance the IOdometry; its pose is the dead-reckon prediction.
 //   3. gather — ask each corrector for an absolute proposal and keep the VALID ones.
 //   4. fuse — fold them in as an innovation-bounded, per-tick-clamped GATED NUDGE, via the
 //      IFusionPolicy.
@@ -100,7 +102,7 @@
 #include "shulib/localization/i_corrector.hpp"
 #include "shulib/localization/i_fusion_policy.hpp"
 #include "shulib/localization/i_pose_source.hpp"
-#include "shulib/localization/pilons_odometry.hpp"
+#include "shulib/localization/odometry.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
 #include "shulib/math/twist2d.hpp"
@@ -138,7 +140,8 @@ struct LocalizerConfig {
 };
 
 /// The fused field-frame estimate, and the IPoseSource every consumer above it reads: a
-/// deterministic five-step tick over an injected clock, IMU, PilonsOdometry and a non-owning list
+/// deterministic five-step tick over an injected clock, IMU, IOdometry (PilonsOdometry or
+/// DriveEncoderOdometry — the R3b Part 2 seam) and a non-owning list
 /// of correctors. Position is a PERSISTENT accumulator advanced by odometry DELTAS and nudged —
 /// never snapped — toward corrector proposals; heading is composed from the IMU as the LAST write
 /// of every tick, so nothing below can ASSIGN a heading, only move a bounded, persistent bias.
@@ -174,7 +177,7 @@ public:
 
     /// `correctors` is a NON-OWNING view: the backing array (and the correctors it points to) must
     /// outlive the Localizer. Empty at M2 (dead-reckon). All references are validated non-null.
-    Localizer(hal::IClock& clock, hal::IImu& imu, PilonsOdometry& odom, IFusionPolicy& fusion,
+    Localizer(hal::IClock& clock, hal::IImu& imu, IOdometry& odom, IFusionPolicy& fusion,
               std::span<ICorrector* const> correctors = {}, const LocalizerConfig& config = {})
         : clock_{clock}, imu_{imu}, odom_{odom}, fusion_{fusion}, correctors_{correctors},
           config_{config}, pose_{odom.pose()} {
@@ -446,7 +449,7 @@ public:
     /// The last tick's applied correction AND the gate's account of why (`audit`, added
     /// at E1) — the values a record producer stamps into the §18.2 gating slots.
     [[nodiscard]] const AppliedCorrection& lastCorrection() const noexcept { return lastCorrection_; }
-    /// Forwarding accessor for PilonsOdometry::lastDeltaImplausible() — added at C1
+    /// Forwarding accessor for IOdometry::lastDeltaImplausible() — added at C1
     /// (additive) so the motion loop can feed HealthMonitor's odomImplausible
     /// observable without holding the odometry itself. Raising stays POLICY: this
     /// only EXPOSES the flag; the Localizer still never raises faults (D3 at A3).
@@ -463,7 +466,7 @@ public:
         return units::AngleDim{headingBias_};
     }
 
-    /// Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to PilonsOdometry::setPose so
+    /// Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to IOdometry::setPose so
     /// the predictor and the fused belief never diverge, and re-baselines twist + dt so the teleport
     /// injects no phantom velocity next tick.
     ///
@@ -534,7 +537,7 @@ private:
 
     hal::IClock& clock_;
     hal::IImu& imu_;
-    PilonsOdometry& odom_;
+    IOdometry& odom_;
     IFusionPolicy& fusion_;
     std::span<ICorrector* const> correctors_;
     LocalizerConfig config_;

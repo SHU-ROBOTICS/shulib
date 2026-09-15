@@ -860,7 +860,7 @@ MotionScheduler(const MotionScheduler&) = delete
 
 Neither copyable nor movable, and not by taste: the context this scheduler hands to motions points at the scheduler's OWN telemetry decorator, so a copy or a move would leave that route aimed at the original object. Construct one where it will live and pass it by reference.  DESTRUCTION WITH A MOTION ARMED FORCES THE DRIVE SAFE. F2 closed this hole for the blocking waits with WaitUnwindGuard — a throw through waitUntilSettled()/waitUntil() used to leave the motors at their last command — and the destructor was the remaining path with identical consequences: `sched.async(m);` followed by a return, or a throw out of a hand-rolled non-blocking loop, dropped the scheduler with `active_ != nullptr` and left the drive energized, silently.  It commands applyCancelSafeState() DIRECTLY and deliberately does NOT call cancel(). **The armed motion may already be destroyed by the time this runs**: motions live on the caller's stack for exactly the scheduled window, and the idiom that creates this hole — construct the scheduler, then construct a motion, then leave the scope — destroys them in reverse, so `active_` dangles here. cancel() would call `active_->cancel()` through that dangling pointer; the test for this case caught precisely that, as a SIGABRT. So the destructor does the half that needs no motion: the drivetrain is made safe, and the Cancelled boundary is NOT recorded, because recording it honestly requires reading an object that may no longer exist. A caller that wants the accounting calls cancel() itself, which is what the rest of this header tells it to do.  With NO motion armed it does nothing at all — unlike cancel()'s panic stop, because destroying an idle scheduler is not a panic and must not reach out and brake a drivetrain the caller may still be driving through another object.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:651`](../../include/shulib/motion/motion_scheduler.hpp#L651).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:656`](../../include/shulib/motion/motion_scheduler.hpp#L656).*
 
 <a id="motionscheduler-motionscheduler-3"></a>
 
@@ -872,7 +872,7 @@ MotionScheduler(MotionScheduler&&) = delete
 
 *Covered by the comment on [`MotionScheduler (overload 2)`](#motionscheduler-motionscheduler-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:652`](../../include/shulib/motion/motion_scheduler.hpp#L652).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:657`](../../include/shulib/motion/motion_scheduler.hpp#L657).*
 
 <a id="motionscheduler-operator-eq"></a>
 
@@ -884,7 +884,7 @@ MotionScheduler& operator=(const MotionScheduler&) = delete
 
 *Covered by the comment on [`MotionScheduler (overload 2)`](#motionscheduler-motionscheduler-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:653`](../../include/shulib/motion/motion_scheduler.hpp#L653).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:658`](../../include/shulib/motion/motion_scheduler.hpp#L658).*
 
 <a id="motionscheduler-operator-eq-2"></a>
 
@@ -896,7 +896,7 @@ MotionScheduler& operator=(MotionScheduler&&) = delete
 
 *Covered by the comment on [`MotionScheduler (overload 2)`](#motionscheduler-motionscheduler-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:654`](../../include/shulib/motion/motion_scheduler.hpp#L654).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:659`](../../include/shulib/motion/motion_scheduler.hpp#L659).*
 
 <a id="motionscheduler-destructor-motionscheduler"></a>
 
@@ -908,7 +908,7 @@ MotionScheduler& operator=(MotionScheduler&&) = delete
 
 Neither copyable nor movable, and not by taste: the context this scheduler hands to motions points at the scheduler's OWN telemetry decorator, so a copy or a move would leave that route aimed at the original object. Construct one where it will live and pass it by reference.  DESTRUCTION WITH A MOTION ARMED FORCES THE DRIVE SAFE. F2 closed this hole for the blocking waits with WaitUnwindGuard — a throw through waitUntilSettled()/waitUntil() used to leave the motors at their last command — and the destructor was the remaining path with identical consequences: `sched.async(m);` followed by a return, or a throw out of a hand-rolled non-blocking loop, dropped the scheduler with `active_ != nullptr` and left the drive energized, silently.  It commands applyCancelSafeState() DIRECTLY and deliberately does NOT call cancel(). **The armed motion may already be destroyed by the time this runs**: motions live on the caller's stack for exactly the scheduled window, and the idiom that creates this hole — construct the scheduler, then construct a motion, then leave the scope — destroys them in reverse, so `active_` dangles here. cancel() would call `active_->cancel()` through that dangling pointer; the test for this case caught precisely that, as a SIGABRT. So the destructor does the half that needs no motion: the drivetrain is made safe, and the Cancelled boundary is NOT recorded, because recording it honestly requires reading an object that may no longer exist. A caller that wants the accounting calls cancel() itself, which is what the rest of this header tells it to do.  With NO motion armed it does nothing at all — unlike cancel()'s panic stop, because destroying an idle scheduler is not a panic and must not reach out and brake a drivetrain the caller may still be driving through another object.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:655`](../../include/shulib/motion/motion_scheduler.hpp#L655).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:660`](../../include/shulib/motion/motion_scheduler.hpp#L660).*
 
 <a id="motionscheduler-deps"></a>
 
@@ -920,7 +920,7 @@ Neither copyable nor movable, and not by taste: the context this scheduler hands
 
 The MotionDeps to construct scheduled motions FROM: identical to the caller's deps except telemetry routes through the id stamp (header: observability). A motion built with raw deps still schedules correctly — its records merely carry id 0. Flagged for F6: the C4 facade must build motions from THIS so the stamping is structural, not remembered.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:669`](../../include/shulib/motion/motion_scheduler.hpp#L669).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:674`](../../include/shulib/motion/motion_scheduler.hpp#L674).*
 
 <a id="motionscheduler-async"></a>
 
@@ -932,7 +932,7 @@ void async(IMotion& motion)
 
 Start `motion` without blocking: arm it and return — it progresses on subsequent ticks (tick() / the blocking waits). If a motion is active, PRE-EMPT per the pinned semantics (header): the old motion is cancelled into the safe state first; there is no tick on which both command. async(active motion) is a well-defined RESTART (cancel + re-arm). `motion` must outlive its scheduled run. Callable from a waitUntil predicate; NOT from inside a motion tick.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:678`](../../include/shulib/motion/motion_scheduler.hpp#L678).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:683`](../../include/shulib/motion/motion_scheduler.hpp#L683).*
 
 <a id="motionscheduler-tick"></a>
 
@@ -944,7 +944,7 @@ bool tick()
 
 One scheduler tick (header: "who owns the loop") — for callers running their own paced loop (the facade's non-blocking mode; teleop polling). Does NOT pace: the caller owns cadence here. Returns whether a motion is still active after the tick. Not callable re-entrantly or from a blocking wait (the wait already owns the loop).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:710`](../../include/shulib/motion/motion_scheduler.hpp#L710).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:715`](../../include/shulib/motion/motion_scheduler.hpp#L715).*
 
 <a id="motionscheduler-waituntilsettled"></a>
 
@@ -956,7 +956,7 @@ One scheduler tick (header: "who owns the loop") — for callers running their o
 
 Block until the active motion exits; returns its ExitReason (Settled / TimedOut / Cancelled — never Running). Bounded WITHOUT a parameter: the motion's own watchdog guarantees exit (C1, mutation-proven), and the stalled-pace guard converts a broken pacer into a loud failure. With no active motion the wait is VACUOUSLY over and returns lastExitReason() immediately (Settled on a virgin scheduler — completedCount() tells a caller nothing actually ran).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:727`](../../include/shulib/motion/motion_scheduler.hpp#L727).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:732`](../../include/shulib/motion/motion_scheduler.hpp#L732).*
 
 <a id="motionscheduler-waituntil"></a>
 
@@ -968,7 +968,7 @@ template <typename Pred> [[nodiscard]] WaitResult waitUntil(Pred&& pred, double 
 
 Block until `pred()` holds (checked BEFORE the first tick — true on entry returns immediately) or `timeoutSeconds` elapses, whichever is first; the return says which. The active motion (if any) keeps ticking throughout — this is the marker/callback primitive (G2's PathRunner). timeout is REQUIRED, finite and >= 0 (0 = an honest poll); a timeout logs one Warn line and raises NO fault (header: nothing may hang). `pred` may call async()/cancel() (pre-emption applies); it must not call a blocking verb (precondition).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:758`](../../include/shulib/motion/motion_scheduler.hpp#L758).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:763`](../../include/shulib/motion/motion_scheduler.hpp#L763).*
 
 <a id="motionscheduler-cancel"></a>
 
@@ -980,7 +980,7 @@ void cancel()
 
 Stop the active motion into the defined safe state (0 V + Brake — motion.hpp), record the Cancelled boundary, and idle the scheduler. With NO active motion this is the PANIC STOP: the safe state is applied to the drive anyway (a cancel that can be "too late" to do anything is a cancel nobody can rely on). Idempotent; callable from a waitUntil predicate AND from a pacer's pace() (the F2 deadline cut — pinned in the re-entrancy banner); NOT from inside a motion tick.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:797`](../../include/shulib/motion/motion_scheduler.hpp#L797).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:802`](../../include/shulib/motion/motion_scheduler.hpp#L802).*
 
 <a id="motionscheduler-hasactivemotion"></a>
 
@@ -992,7 +992,7 @@ Stop the active motion into the defined safe state (0 V + Brake — motion.hpp),
 
 True between async() and that motion's boundary — equivalently activeCommandId() != 0. False again the instant a motion settles, times out, is cancelled or is pre-empted, on the same tick, before any wait returns.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:814`](../../include/shulib/motion/motion_scheduler.hpp#L814).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:819`](../../include/shulib/motion/motion_scheduler.hpp#L819).*
 
 <a id="motionscheduler-activecommandid"></a>
 
@@ -1004,7 +1004,7 @@ True between async() and that motion's boundary — equivalently activeCommandId
 
 The active motion's command id; 0 when none. Ids are 1-based and monotonically increasing for the scheduler's lifetime.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:817`](../../include/shulib/motion/motion_scheduler.hpp#L817).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:822`](../../include/shulib/motion/motion_scheduler.hpp#L822).*
 
 <a id="motionscheduler-lastexitreason"></a>
 
@@ -1016,7 +1016,7 @@ The active motion's command id; 0 when none. Ids are 1-based and monotonically i
 
 Exit reason of the most recently finished motion. Settled before any motion has finished (the vacuous-wait default — see waitUntilSettled).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:820`](../../include/shulib/motion/motion_scheduler.hpp#L820).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:825`](../../include/shulib/motion/motion_scheduler.hpp#L825).*
 
 <a id="motionscheduler-lastcompleted"></a>
 
@@ -1028,7 +1028,7 @@ Exit reason of the most recently finished motion. Settled before any motion has 
 
 The most recent motion boundary in full, overwritten at each one. Default- constructed until a motion finishes, and IN THAT VIRGIN STATE ONLY it disagrees with lastExitReason(): this reads Running ("none yet") where that reads Settled (the vacuous-wait default). Once any motion has reached a boundary the two always agree — finalize() writes both from the same exit reason. completedCount() is what actually says whether anything ran.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:827`](../../include/shulib/motion/motion_scheduler.hpp#L827).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:832`](../../include/shulib/motion/motion_scheduler.hpp#L832).*
 
 <a id="motionscheduler-motionsstarted"></a>
 
@@ -1040,7 +1040,7 @@ The most recent motion boundary in full, overwritten at each one. Default- const
 
 async() calls over the scheduler's lifetime — restarts and pre-empting starts included, so this counts STARTS, not distinct motion objects. It equals completedCount() plus one while a motion is active, and equals it exactly when idle.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:831`](../../include/shulib/motion/motion_scheduler.hpp#L831).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:836`](../../include/shulib/motion/motion_scheduler.hpp#L836).*
 
 <a id="motionscheduler-motionssettled"></a>
 
@@ -1052,7 +1052,7 @@ async() calls over the scheduler's lifetime — restarts and pre-empting starts 
 
 Motions that reached their exit group and stopped there — the only success verdict of the four; the counters around it are all the ways a motion did not finish the job it was given.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:835`](../../include/shulib/motion/motion_scheduler.hpp#L835).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:840`](../../include/shulib/motion/motion_scheduler.hpp#L840).*
 
 <a id="motionscheduler-motionstimedout"></a>
 
@@ -1064,7 +1064,7 @@ Motions that reached their exit group and stopped there — the only success ver
 
 Motions the MOTION's own watchdog ended. A waitUntil() timeout is not counted here and raises no fault — that is a wait giving up, not a motion failing.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:838`](../../include/shulib/motion/motion_scheduler.hpp#L838).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:843`](../../include/shulib/motion/motion_scheduler.hpp#L843).*
 
 <a id="motionscheduler-motionscancelled"></a>
 
@@ -1076,7 +1076,7 @@ Motions the MOTION's own watchdog ended. A waitUntil() timeout is not counted he
 
 User/pre-empt cancellations (abortFault == None).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:840`](../../include/shulib/motion/motion_scheduler.hpp#L840).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:845`](../../include/shulib/motion/motion_scheduler.hpp#L845).*
 
 <a id="motionscheduler-motionsaborted"></a>
 
@@ -1088,7 +1088,7 @@ User/pre-empt cancellations (abortFault == None).
 
 Fault-policy + task-boundary aborts (abortFault != None).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:842`](../../include/shulib/motion/motion_scheduler.hpp#L842).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:847`](../../include/shulib/motion/motion_scheduler.hpp#L847).*
 
 <a id="motionscheduler-completedcount"></a>
 
@@ -1100,7 +1100,7 @@ Fault-policy + task-boundary aborts (abortFault != None).
 
 Every motion that reached a boundary: settled + timed out + cancelled + aborted, a partition with no double counting. This is the number that tells a caller whether anything actually ran, which lastExitReason() cannot — it reads Settled on a scheduler that has never been given a motion.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:847`](../../include/shulib/motion/motion_scheduler.hpp#L847).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:852`](../../include/shulib/motion/motion_scheduler.hpp#L852).*
 
 <a id="motionscheduler-loopmonitor"></a>
 
@@ -1112,7 +1112,7 @@ Every motion that reached a boundary: settled + timed out + cancelled + aborted,
 
 The scheduler's own tick-timing watchdog, for worstDt() / overrunCount() after a run. The scheduler ticks it once per tick and RE-BASELINES it at every async() and at the top of each blocking wait — that drops only the previous tick's timestamp, so a deliberate gap in which the caller's own code ran between motions is not reported as an overrun. Nothing here ever clears the statistics: worstDt() and overrunCount() are WHOLE-RUN totals, not per-motion ones. A gap between two of the caller's own tick() calls is NOT re-baselined and does count as an overrun.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:857`](../../include/shulib/motion/motion_scheduler.hpp#L857).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:862`](../../include/shulib/motion/motion_scheduler.hpp#L862).*
 
 <a id="motionscheduler-setboundaryobserver"></a>
 
@@ -1124,7 +1124,7 @@ void setBoundaryObserver(IMotionObserver* observer) noexcept
 
 Attach/replace the boundary observer (nullptr detaches). One observer: the C5 reporter is the intended consumer; fan-out belongs to a composite the caller writes if ever needed. Contract in IMotionObserver.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:864`](../../include/shulib/motion/motion_scheduler.hpp#L864).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:869`](../../include/shulib/motion/motion_scheduler.hpp#L869).*
 
 <a id="motionscheduler-boundaryobserver"></a>
 
@@ -1136,7 +1136,7 @@ Attach/replace the boundary observer (nullptr detaches). One observer: the C5 re
 
 The attached observer, or nullptr. NON-OWNING: the scheduler neither deletes it nor extends its lifetime, so detach before the observer dies.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:867`](../../include/shulib/motion/motion_scheduler.hpp#L867).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:872`](../../include/shulib/motion/motion_scheduler.hpp#L872).*
 
 <a id="motionscheduler-runhasheadingdata"></a>
 
@@ -1148,7 +1148,7 @@ The attached observer, or nullptr. NON-OWNING: the scheduler neither deletes it 
 
 The run's heading story for the §18.3 summary: max / final of the PER-MOTION BOUNDARY drifts (|final heading error| of each motion that produced path data). Deliberately not mid-tick transients: a 90° turn passes through 90° of "error" by design, and a summary that reported it would bury the real story — how headings LANDED.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:874`](../../include/shulib/motion/motion_scheduler.hpp#L874).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:879`](../../include/shulib/motion/motion_scheduler.hpp#L879).*
 
 <a id="motionscheduler-runmaxheadingdrift"></a>
 
@@ -1160,7 +1160,7 @@ The run's heading story for the §18.3 summary: max / final of the PER-MOTION BO
 
 The largest |final heading error|, in RADIANS, over every motion boundary that produced path data; 0 while runHasHeadingData() is false. BOUNDARY values only — a 90° turn passes through 90° of error by design, and counting that would bury the story this reports. Never reset: one scheduler is one run.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:879`](../../include/shulib/motion/motion_scheduler.hpp#L879).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:884`](../../include/shulib/motion/motion_scheduler.hpp#L884).*
 
 <a id="motionscheduler-runfinalheadingdrift"></a>
 
@@ -1172,7 +1172,7 @@ The largest |final heading error|, in RADIANS, over every motion boundary that p
 
 |final heading error|, in RADIANS, at the LAST boundary that produced path data — where the run's heading actually LANDED, as opposed to its worst moment. 0 while runHasHeadingData() is false, which is not the same as a run that landed square.
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:885`](../../include/shulib/motion/motion_scheduler.hpp#L885).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:890`](../../include/shulib/motion/motion_scheduler.hpp#L890).*
 
 <a id="motionscheduler-attribution"></a>
 
@@ -1184,7 +1184,7 @@ The largest |final heading error|, in RADIANS, over every motion boundary that p
 
 The D-3 attribution instrument, when enabled (nullptr when off).
 
-*function, declared at [`include/shulib/motion/motion_scheduler.hpp:890`](../../include/shulib/motion/motion_scheduler.hpp#L890).*
+*function, declared at [`include/shulib/motion/motion_scheduler.hpp:895`](../../include/shulib/motion/motion_scheduler.hpp#L895).*
 
 <a id="motionscheduler-kmaxstalledpaces"></a>
 
@@ -1196,7 +1196,7 @@ static constexpr int kMaxStalledPaces = 100
 
 Consecutive pace() calls that may fail to advance the clock before the scheduler declares the pacer broken (header: nothing may hang). Pure logic constant — no hardware claim, hence no register entry.
 
-*field, declared at [`include/shulib/motion/motion_scheduler.hpp:897`](../../include/shulib/motion/motion_scheduler.hpp#L897).*
+*field, declared at [`include/shulib/motion/motion_scheduler.hpp:902`](../../include/shulib/motion/motion_scheduler.hpp#L902).*
 
 ## Design commentary, from the header
 

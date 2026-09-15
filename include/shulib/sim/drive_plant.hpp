@@ -144,9 +144,23 @@ struct DrivePlantConfig {
     std::uint64_t seed = 1;                  ///< the run's ONE random seed (rng.hpp)
 };
 
+/// How one COUPLED member of a wheel misbehaves (R3b Part 1 — the hal::MotorGroup
+/// detector tests). The plant writes the same synthesized shaft state into every member
+/// of a wheel; a faulted member is what that state looks like through a broken port.
+enum class MemberFault {
+    None,         ///< healthy: the wheel's true shaft position and spin, like every mate
+    Frozen,       ///< a dead port: HOLDS whatever it last reported (position AND velocity —
+                  ///< ProsMotor's last-good screen), from the tick the fault is set on
+    SignFlipped,  ///< a member wired the wrong way round: reports the NEGATED shaft
+                  ///< position and spin of its mates (what a fight looks like)
+};
+
 class DrivePlant {
 public:
     static constexpr int kMaxTrackingWheels = 4;
+    /// Extra coupled members a wheel may carry beyond its primary FakeMotor (robot two has
+    /// five per side; a V5 brain has 21 ports).
+    static constexpr int kMaxExtraMembersPerWheel = 20;
 
     /// All references/pointees must outlive the plant. `motors` must match
     /// kinematics.wheelCount() and be in the drivetrain's canonical wheel order.
@@ -269,7 +283,74 @@ public:
     /// The run's one seeded random source (scenario generation + A3 degradation draws).
     [[nodiscard]] Rng& rng() noexcept { return rng_; }
 
+    // ── Coupled members (R3b Part 1) ──────────────────────────────────────────────
+    /// Attach EXTRA FakeMotors to wheel `wheel`: from now on every sensor synthesis writes the
+    /// SAME shaft position and spin into each of them as into the wheel's primary motor —
+    /// N motors on one gear train, which is physical truth for a coupled side. The plant
+    /// still reads its command from the PRIMARY (a hal::MotorGroup fans one voltage to all
+    /// members, so the primary carries it). One member per wheel — no call — is the default
+    /// and is bit-identical to a plant that never had this method (the whole suite is the
+    /// pin). Non-owning: the fakes and the array must outlive the plant. Precondition:
+    /// wheel in range, count <= kMaxExtraMembersPerWheel, all non-null; may be called once
+    /// per wheel.
+    void attachCoupledMembers(int wheel, std::span<hal::fake::FakeMotor* const> extra) {
+        SHULIB_PRECONDITION(wheel >= 0 && wheel < n_,
+                            "DrivePlant::attachCoupledMembers: wheel out of range");
+        SHULIB_PRECONDITION(extra.size() <= static_cast<std::size_t>(kMaxExtraMembersPerWheel),
+                            "DrivePlant::attachCoupledMembers: too many members");
+        const auto w = static_cast<std::size_t>(wheel);
+        SHULIB_PRECONDITION(extraCount_[w] == 0,
+                            "DrivePlant::attachCoupledMembers: wheel already has members");
+        for (std::size_t i = 0; i < extra.size(); ++i) {
+            SHULIB_PRECONDITION(extra[i] != nullptr,
+                                "DrivePlant::attachCoupledMembers: a member is null");
+            extra_[w][i] = extra[i];
+        }
+        extraCount_[w] = static_cast<int>(extra.size());
+        // Seed the new members from the CURRENT truth, exactly as the constructor seeds the
+        // primary, so a group formed after construction reads one consistent shaft.
+        writeCoupledMembers(w, lastPosition_[w], lastVelocity_[w]);
+    }
+
+    /// Degrade one member of `wheel` from the NEXT synthesis on: `member` 0 is the primary
+    /// FakeMotor handed to the constructor, 1.. are the attached members in order. A Frozen
+    /// member keeps the values it holds NOW (freeze it at rest and it reports 0 rad/s while
+    /// its mates turn — the frozen-encoder signature the group's median must ignore and its
+    /// monitor must count); a SignFlipped member reports its mates' state negated.
+    void setMemberFault(int wheel, int member, MemberFault fault) {
+        SHULIB_PRECONDITION(wheel >= 0 && wheel < n_, "DrivePlant::setMemberFault: wheel out of range");
+        const auto w = static_cast<std::size_t>(wheel);
+        SHULIB_PRECONDITION(member >= 0 && member <= extraCount_[w],
+                            "DrivePlant::setMemberFault: member out of range");
+        memberFault_[w][static_cast<std::size_t>(member)] = fault;
+    }
+
 private:
+    /// Write one member's reading under its fault (header of MemberFault).
+    static void writeMember(hal::fake::FakeMotor& m, MemberFault fault, units::AngleDim pos,
+                            units::AngularVelocity vel) {
+        switch (fault) {
+            case MemberFault::None:
+                m.setPosition(pos);
+                m.setVelocity(vel);
+                return;
+            case MemberFault::Frozen:
+                return;  // holds its last reading, like a dead port through ProsMotor
+            case MemberFault::SignFlipped:
+                m.setPosition(units::AngleDim{-pos.value()});
+                m.setVelocity(units::AngularVelocity{-vel.value()});
+                return;
+        }
+    }
+
+    /// The attached members of wheel `w` (never the primary — its write is the original
+    /// synthesis line, kept as it was for bit-identity).
+    void writeCoupledMembers(std::size_t w, units::AngleDim pos, units::AngularVelocity vel) {
+        for (int i = 0; i < extraCount_[w]; ++i) {
+            const auto idx = static_cast<std::size_t>(i);
+            writeMember(*extra_[w][idx], memberFault_[w][idx + 1], pos, vel);
+        }
+    }
     /// Advance the cumulative encoder shafts by this tick's travel (constant twist
     /// over the tick ⇒ travel = velocity·dt exactly; no quadrature needed because
     /// BODY-frame rates are constant even when the field path curves).
@@ -306,9 +387,20 @@ private:
         const double r = 0.5 * cfg_.driveWheelDiameter.value();
         for (int i = 0; i < n_; ++i) {
             const auto idx = static_cast<std::size_t>(i);
-            motors_[idx]->setPosition(degradation_.driveEncoderPosition(
-                i, units::AngleDim{driveShaft_[idx]}, now, rng_));
-            motors_[idx]->setVelocity(units::AngularVelocity{wheelSpin_[idx].value() / r});
+            const units::AngleDim pos = degradation_.driveEncoderPosition(
+                i, units::AngleDim{driveShaft_[idx]}, now, rng_);
+            const units::AngularVelocity vel{wheelSpin_[idx].value() / r};
+            // The primary: the ORIGINAL two writes (bit-identical when unfaulted), then the
+            // coupled members, each under its own fault (R3b Part 1).
+            if (memberFault_[idx][0] == MemberFault::None) {
+                motors_[idx]->setPosition(pos);
+                motors_[idx]->setVelocity(vel);
+            } else {
+                writeMember(*motors_[idx], memberFault_[idx][0], pos, vel);
+            }
+            lastPosition_[idx] = pos;
+            lastVelocity_[idx] = vel;
+            writeCoupledMembers(idx, pos, vel);
         }
         for (int i = 0; i < nTracking_; ++i) {
             const auto idx = static_cast<std::size_t>(i);
@@ -349,6 +441,21 @@ private:
     std::array<double, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
         driveShaft_{};  // cumulative radians
     std::array<double, static_cast<std::size_t>(kMaxTrackingWheels)> trackingShaft_{};  // radians
+
+    // Coupled members per wheel (R3b Part 1): the attached fakes, how many, each member's
+    // fault (index 0 = the primary), and the last synthesized reading so a late attach seeds
+    // its members consistently.
+    std::array<std::array<hal::fake::FakeMotor*, static_cast<std::size_t>(kMaxExtraMembersPerWheel)>,
+               static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        extra_{};
+    std::array<int, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)> extraCount_{};
+    std::array<std::array<MemberFault, static_cast<std::size_t>(kMaxExtraMembersPerWheel) + 1>,
+               static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        memberFault_{};
+    std::array<units::AngleDim, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        lastPosition_{};
+    std::array<units::AngularVelocity, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        lastVelocity_{};
 };
 
 }  // namespace shulib::sim

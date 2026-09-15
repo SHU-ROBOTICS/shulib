@@ -133,6 +133,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/diag/health_monitor.hpp"
+#include "shulib/hal/motor_group.hpp"
 #include "shulib/kinematics/kinematics.hpp"
 #include "shulib/localization/localizer.hpp"
 
@@ -180,6 +181,12 @@ struct MotionDeps {
     const kinematics::IKinematics* kinematics = nullptr;  ///< the F5 drivetrain contract
     diag::FaultLatch* faults = nullptr;               ///< run-scoped latch (MotionTimeout, …)
     diag::HealthMonitor* health = nullptr;            ///< the A3 pathology→fault policy
+    /// The hal::MotorGroups among the drive motors, if any (R3b Part 1) — NON-OWNING, the
+    /// array must outlive the bundle. tickHealthObservables() evaluates each group's
+    /// disagreement observable once per tick and feeds the persisted count to the
+    /// HealthMonitor, so MOTOR_GROUP_DISAGREE fires in drive() and in every motion. Empty
+    /// (the default) for a robot whose drive motors are bare adapters: nothing is evaluated.
+    std::span<hal::MotorGroup* const> motorGroups = {};
 
     /// Trip SHULIB_PRECONDITION on the FIRST null pointer, naming which one. Every motion
     /// calls this from its constructor (through validatedClock()), so a dependency the
@@ -198,9 +205,22 @@ struct MotionDeps {
         // three motors and an XDrive installed therefore read one past the end of the span
         // on EVERY tick — undefined behaviour with no diagnostic, on the hot path. This
         // bundle is the one place that holds both, so the check lives here.
+        //
+        // EQUALITY, not `>=` (R3b Part 1). The guard used to accept MORE motors than
+        // wheels, which is how eight raw motors on a two-wheel kinematics left six of them
+        // silent: the pipeline commands motor i for wheel i and nothing else, so a surplus
+        // motor is never given a voltage or a brake mode, with no fault raised. N motors on
+        // one side belong behind ONE hal::MotorGroup, presented as the one IMotor that
+        // wheel commands.
         SHULIB_PRECONDITION(
-            ctx->driveMotors().size() >= static_cast<std::size_t>(kinematics->wheelCount()),
-            "MotionDeps: fewer drive motors than the kinematics has wheels");
+            ctx->driveMotors().size() == static_cast<std::size_t>(kinematics->wheelCount()),
+            "MotionDeps: the drive motor count must EQUAL the kinematics' wheel count — "
+            "N physical motors on one wheel/side go behind ONE hal::MotorGroup, which is "
+            "then the motor for that wheel (more motors than wheels leaves the surplus "
+            "silently uncommanded; fewer indexes past the span)");
+        for (const hal::MotorGroup* g : motorGroups) {
+            SHULIB_PRECONDITION(g != nullptr, "MotionDeps: a motorGroups entry is null");
+        }
     }
 
     /// validate(), then hand out the clock — for a member-initializer list's
@@ -219,7 +239,12 @@ struct MotionDeps {
 /// parameter because it is the one observable with a per-caller story: the
 /// active motion feeds its OdoStallCheck verdict; idle/teleop callers pass
 /// false — nothing (or nothing closed-loop) is commanded, so there is no
-/// spin to cross-check (the DriveBrake-exemption reasoning).
+/// spin to cross-check (the DriveBrake-exemption reasoning). Since R3b Part 1
+/// this is ALSO the one tick of every hal::MotorGroup's disagreement
+/// observable (deps.motorGroups): each group's coupled-side monitor advances
+/// exactly once here, and the persisted count reaches the monitor as
+/// groupMembersDisagreeing — so MOTOR_GROUP_DISAGREE fires in drive() and in
+/// every motion with no extra caller wiring.
 inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
     chassis::RobotContext& ctx = *deps.ctx;
     localization::Localizer& loc = *deps.localizer;
@@ -227,12 +252,17 @@ inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
     for (const hal::IMotor* m : ctx.driveMotors()) {
         maxTemp = std::max(maxTemp, m->temperature());
     }
+    int disagreeing = 0;
+    for (hal::MotorGroup* g : deps.motorGroups) {
+        disagreeing += g->evaluateDisagreement().persistedCount;
+    }
     deps.health->tick({.imuReady = ctx.imu().isReady(),
                        .odomImplausible = loc.lastOdomDeltaImplausible(),
                        .odomStalled = odomStalled,
                        .fixGated = loc.lastCorrection().gated,
                        .batteryVolts = ctx.battery().voltage(),
-                       .maxMotorTempC = maxTemp});
+                       .maxMotorTempC = maxTemp,
+                       .groupMembersDisagreeing = disagreeing});
 }
 
 /// The contract every motion primitive implements: one target, one tick() that reads the

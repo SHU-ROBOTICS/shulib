@@ -4,8 +4,8 @@ name: ci
 # Runs the same checks we run locally: the architecture guards, the strict host
 # build, the test suite, (since chunk A4) a cross-COMPILE of every v2 header for
 # the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
-# AND link, every robot variant (three since R3b Session 2) — of src/ under a
-# warning policy.
+# AND link, every build (five since R3b Parts 1–3: three robot variants and the
+# tank drive/library programs) — of src/ under a warning policy.
 # (This file said the ARM link was impossible in CI until 2026-08-19 — "needs
 #  PROS's bundled toolchain". MEASURED FALSE at GATE1: the firmware archives are
 #  vendored in-tree and `make` links end to end at apt's arm-none-eabi-g++ 13.2.1
@@ -108,7 +108,8 @@ jobs:
   #  * The SRC BUILD GATE steps (GATE1) run the REAL `make` — compile AND LINK,
   #    producing bin/hot.package.bin — for EVERY build (ROBOT=bench, ROBOT=xdrive,
   #    since R3b Session 2 ROBOT=tank, and since R3b Part 0b the second axis
-  #    ROBOT=tank PROGRAM=drive — four builds; the tool owns the list),
+  #    ROBOT=tank PROGRAM=drive, ROBOT=tank PROGRAM=library — five builds; the tool
+  #    owns the list),
   #    because until GATE1 src/ was in NO gate at all and the
   #    Makefile records that this blind spot shipped a data abort to the robot.
   #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's

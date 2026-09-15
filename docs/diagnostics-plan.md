@@ -224,7 +224,12 @@ for items already on this list, plus one genuinely uncovered detector:
   three tracking wheels — zero-delta-while-others-move (500 ms threshold) plus long-run L/R travel
   ratio (< 50%) — told the team **which** wheel died, not just *that* odometry was implausible.
   v2 today: `OdoStallCheck` (C1) detects "odometry stuck vs drive spinning" at motion level, and
-  its own header defers the **estimator-side detector to E-phase**. When that E-phase detector is
+  its own header defers the **estimator-side detector to E-phase**. *(Since R3b Parts 1–3,
+  2026-09-14: on a drivetrain whose odometry IS the drive encoders — robot two, no tracking
+  wheels — that comparison is a tautology, and the check is configured with
+  `independentMotionSource = false` so it never reports a verdict; the encoder-vs-IMU heading
+  cross-check `DriveEncoderOdometry::lastHeadingDisagreement()` is the observable the future
+  detector for such a chassis will use — hardware register HA-131.)* When that E-phase detector is
   built, the legacy mutual-comparison approach is the proven requirements input: it needs
   *which-wheel* attribution, structured (`fault=ODO_STUCK wheel=L`), not a banner. **Owner: the
   E-phase estimator-side detector named in `motion/odo_stall_check.hpp`.**

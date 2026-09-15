@@ -70,6 +70,16 @@ enum class FaultCode : std::uint16_t {
                             ///< side of the C2 abort mask by default: a jammed intake
                             ///< must not abort a drive. APPENDED at chunk F1, per the
                             ///< append-only rule above)
+    MotorGroupDisagree = 12,  ///< a member of a hal::MotorGroup has PERSISTENTLY disagreed
+                              ///< with its coupled group — turning against the command or
+                              ///< not turning while its mates do (a wrong sign, a stripped
+                              ///< gear, a frozen encoder on one of N coupled motors). Raised
+                              ///< by HealthMonitor from the group's shared coupled-side
+                              ///< monitor (teleop/coupled_side_monitor.hpp); lands on the
+                              ///< CONTINUE side of the scheduler's default abort mask — the
+                              ///< drive still works with one bad member and the driver must
+                              ///< be told, not stopped (hal/motor_group.hpp header). APPENDED
+                              ///< at chunk R3b Part 1, per the append-only rule above.
 };
 
 /// The §18.4 spelling of each code, for TermSink lines and the run summary.
@@ -88,6 +98,7 @@ enum class FaultCode : std::uint16_t {
         case FaultCode::MotorOverTemp: return "MOTOR_OVER_TEMP";
         case FaultCode::Implausible: return "IMPLAUSIBLE";
         case FaultCode::MechanismStalled: return "MECHANISM_STALLED";
+        case FaultCode::MotorGroupDisagree: return "MOTOR_GROUP_DISAGREE";
     }
     return "UNKNOWN";
 }
@@ -146,7 +157,7 @@ public:
     /// latched by an earlier motion — a since-clear bitmask cannot see a RE-raise
     /// (a dead encoder that faulted in motion 1 must still abort motion 2), so the
     /// latch keeps a per-code tally. Saturates at UINT16_MAX; codes beyond the
-    /// fixed slot capacity (far past today's 11) count only in faultCount().
+    /// fixed slot capacity (far past today's 12) count only in faultCount().
     [[nodiscard]] int raiseCount(FaultCode code) const noexcept {
         const auto idx = static_cast<std::size_t>(code);
         return idx < kCodeSlots ? static_cast<int>(perCode_[idx]) : 0;
@@ -171,8 +182,8 @@ public:
     }
 
 private:
-    /// Per-code tally capacity: covers FaultCode values 0..31 — nearly triple
-    /// today's 11, and the enum is append-only so growth is deliberate and
+    /// Per-code tally capacity: covers FaultCode values 0..31 — well over double
+    /// today's 12, and the enum is append-only so growth is deliberate and
     /// visible.
     static constexpr std::size_t kCodeSlots = 32;
 

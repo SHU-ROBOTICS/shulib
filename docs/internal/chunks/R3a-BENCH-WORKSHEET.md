@@ -14,8 +14,10 @@
 no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has its own station (D)
 below. Nothing else on the menu can move the robot. *(Since R3b Part 0b there is a SECOND program
 for robot two, **"shulib Drive"** in **slot 1**, which just drives — Station E. It is not a menu;
-it drives from the moment it starts. Do not confuse the two: "Bench Tests" measures, "shulib Drive"
-drives.)*
+it drives from the moment it starts. Since R3b Parts 1–3 there is a THIRD, **"shulib Teleop"** in
+**slot 2**, in which THE LIBRARY drives — Station F; it refuses to start until the geometry is
+measured. Do not confuse the three: "Bench Tests" measures, "shulib Drive" drives through the
+adapters, "shulib Teleop" drives through the library.)*
 
 1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"** with **Run** — not
    Timed Run, not Match. **Start it from the BRAIN's screen or from the laptop, NEVER from the
@@ -466,6 +468,126 @@ progress: STOP, read the `last:` line, and send it word for word.**
 > from E.2.2 and E.2.4, the numbers from E.2.3, every WARNING and every `last:` cut line word for
 > word, and the card's `/usd/drive_log.txt`. Results go into `R3b-PROGRESS.md` by the
 > coordinator, from the log.
+
+---
+
+## Station F — LIBRARY TELEOP  *("shulib Teleop", robot two — added R3b Parts 1–3, 2026-09-14)*
+
+> ⚠ **This is the first program in which THE LIBRARY drives a robot.** "shulib Drive" (Station E)
+> sends plain volts through the adapters; "shulib Teleop" drives through `Chassis::drive()`: two
+> motor groups (five motors each, the table's signs), the drive motors' own encoders as odometry,
+> the IMU for heading, the whole motion stack in between. **It has never run.** The first run is
+> WHEELS UP, then the ground, with the coordinator and the team lead present. It POWERS THE MOTORS
+> from the moment driver control starts, up to 12 V. Bench Tests (slot 3) stays the diagnosis tool
+> and "shulib Drive" (slot 1) stays the program that tolerates a dead port — this one does not.
+
+**F.0 — it refuses until two numbers are measured (lab computer, brain on micro-USB)**
+
+```sh
+cd ~/projects/shulib && git checkout shulib-v2 && git pull
+make ROBOT=tank PROGRAM=library && pros upload --slot 2 --name "shulib Teleop"   # the library program
+```
+
+Start it from the **brain** or the laptop, never from the controller's own menu (Station A's
+pretend-match trap). **As committed it REFUSES at boot**, on purpose, with a red screen
+`shulib TELEOP -- REFUSED AT BOOT · chassis table UNSET for the library: track width, external
+ratio (motor->wheel)`. Nothing is powered. That is the program working: the library needs the
+**track width** (for the turn geometry) and the **motor→wheel ratio** (for the odometry scale),
+and neither has been measured — they are typed only from a measurement, never guessed.
+
+- [ ] **F.0.1 Tape-measure the track width:** wheels on the floor, measure from the **centre of
+      the left wheels' contact line to the centre of the right wheels' contact line**, in inches,
+      to a tenth. Do it at the front pair and the back pair; they should agree.
+      → front **________ in** · back **________ in**
+- [ ] **F.0.2 The gearing, motor to wheel:** is each wheel driven **directly** by its motor's
+      output shaft (a direct-drive train) or through gears/sprockets? If through gears, **count
+      the teeth** on the motor-side gear and on the wheel-side gear (both sides of the robot).
+      → direct drive **YES / NO** · motor gear **____ T** · wheel gear **____ T** (left) ·
+        **____ T / ____ T** (right)
+- [ ] **F.0.3 Ruler the wheel diameter** on THIS robot (the 2.75 in in the table is REPORTED,
+      "standard wheels", not yet measured here). → **________ in**
+- [ ] **F.0.4** Send all three to the coordinator. The coordinator types them into
+      `src/chassis_table.hpp` (robot two's block: `.trackWidthIn`, `.externalRatio` = wheel revs
+      per motor rev, e.g. `1.0` for direct drive; `.wheelDiameterIn`) with the provenance beside
+      them, rebuilds, uploads, and the program boots its graph. **Nobody else edits those lines.**
+
+**F.1 — what the screen shows when it boots (after F.0)**
+
+| Row | What it says | What it means |
+|---|---|---|
+| header | `shulib TELEOP` · `THE LIBRARY drives: Chassis::drive()` · `BUILD <stamp>` | which build (the stamp must be the one you just built) |
+| cmd | `cmd vx +20.0 in/s  w +0.50 rad/s` | what the sticks are asking for, in SPEEDS (not volts): forward in inches per second, yaw in radians per second. `NO CONTROLLER -> 0` if the controller is not linked |
+| est | `est x +12.3  y -0.4  hdg +45.2 deg  DEADRECKON` | the library's own **estimate of where the robot is**, from the drive encoders and the IMU, in inches and degrees from where it booted; the word is the estimate's quality: `UNINIT` (IMU still calibrating, ~2 s after boot), `DEADRECKON` (normal: encoders + IMU, no absolute reference on this robot), `DEGRADED` (the IMU dropped out or the odometry saw an implausible tick — read the fault row) |
+| L / R | `L +6.2V 5 members 0 disagree \| R +6.2V 5 members 0 disagree` | the volts each side's group is sending, how many motors it commands, and how many are **disagreeing** with their side-mates (turning against them, or not turning while they do). Green = none; **red = a member is fighting or frozen** |
+| xcheck | `hdg xcheck +0.0003 rad/tick (enc-IMU)  battery 12.9 V  L/R travel +0.20 +0.20` | the heading the wheels imply vs the heading the IMU measured, per tick — near 0 when rolling cleanly; a steady bias while driving straight means a side is slipping or the track width is wrong; then the battery, and each side's travel this tick in inches |
+| fault | `faults: none` or `FAULT latched: first MOTOR_GROUP_DISAGREE, last …, n=1` | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the drive CONTINUES; the driver is told); `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
+| budgets | `budgets lin 60 ang 3.0 wheel 70 \| ff kS 1.00 kV 0.171 PROVISIONAL HA-45` | the speed caps and the feedforward gains in use — **placeholders**, not measurements (R5 measures them) |
+| notes | `FEEL differs from shulib Drive…` · `stall check: NO independent source…` · `dead ports: NOT tolerated here…` | three honest facts about this program, explained below |
+| table | `table L -11 +12 -13 +14 -15 R +20 -19 +18 -17 +16 IMU2 W2.75 TW13.25 G1.000` | the ports and signs, the IMU port, the geometry — straight from the chassis table |
+
+The controller LCD: row 0 `LIB 12V B12.9V` (the program and the battery), row 1 `hdg +45.2 deg`
+(the estimate's heading), row 2 the last fault by name or `ok`.
+
+**What "feels slower than shulib Drive" means.** "shulib Drive" puts the stick straight on the
+motors as volts. This program turns the stick into a **speed request**, sends it through the
+library's pipeline (speed caps → wheel speeds → a feedforward that guesses the volts a speed
+needs → the battery ceiling), and the guesses are placeholders. So full stick may not be full
+volts, and a turn may feel capped. **That is expected and is not a defect** — it is the
+measurement R5 exists to make. Write down what it felt like; do not retune anything on the spot.
+
+**What the estimate on screen means.** Nothing on this robot tells the library where it is on the
+field: no GPS, no camera, no tracking wheels. The `est` row is dead reckoning from the drive
+encoders and the IMU — it starts at (0, 0) facing +X wherever the robot booted, and it drifts
+as the wheels slip. It is shown so a human can judge it: drive one tile forward and back and see
+whether it returns near 0; spin once and see whether `hdg` comes back. Those observations are
+the first evidence anyone will have about this odometry on a real chassis.
+
+**What "stall check: NO independent source" means.** The library normally raises `ODO_STUCK` when
+the wheels spin but the robot does not move. On this robot the odometry IS the wheels, so that
+check cannot see a stuck robot and is deliberately not wired to pretend it can. **If the robot
+is pushing against something and the wheels are spinning, the library will not know — you
+will.** Let go of the stick.
+
+**What "dead ports: NOT tolerated" means.** If any of the ten motor cables is dead at boot, this
+program refuses (`an adapter REFUSED at construction`) instead of driving on nine. Re-seat the
+cable, or use "shulib Drive" for the session and report the port.
+
+**F.2 — the first run: WHEELS UP, then the ground**
+
+- [ ] **F.2.1** Bench Tests first, once: **1 DEVICE CENSUS** shows ten motors and the IMU on
+      port 2; **3 MOTOR WATCH** front-first push shows every port **AGREES**. Then "shulib
+      Drive" (Station E) wheels-up for thirty seconds, so the signs are known good TODAY before
+      the library is trusted with them.
+- [ ] **F.2.2** Robot on blocks, no wheel touching anything, 3 m clear, second person at the
+      battery. Start **"shulib Teleop"** (slot 2) from the brain. Wait for `est` to leave
+      `UNINIT` (the IMU calibrates for ~2 s; the sticks work during it — body-frame driving does
+      not need the estimate). Read the L/R row: `5 members 0 disagree` on both sides.
+- [ ] **F.2.3** Ease the **left stick forward**. `L` and `R` volts rise together, all wheels turn
+      **toward the front**, `L/R travel` both positive, `hdg xcheck` near 0, `est x` climbing.
+      Release: 0 V. **Right stick** left/right: the sides turn opposite ways and `hdg` moves the
+      way the robot would turn (push RIGHT = clockwise = `hdg` going DOWN).
+      → all wheels toward the front on "forward"? **YES / NO** — if NO, which side:
+      → `hdg` goes DOWN on a right-stick RIGHT push? **YES / NO**
+      → any `disagree` count above 0, or a fault by name — copy it word for word: ______________
+- [ ] **F.2.4** Full stick for a few seconds, wheels up: read the highest `L`/`R` volts and the
+      battery. → **L ______ V  R ______ V  at B ______ V** (this is the feedforward's guess of
+      what "full speed" needs — write it down, it is R5's first data point)
+- [ ] **F.2.5 The ground run — the rule:** 3 m clear in every direction, a second person at the
+      battery, stop on ANY red. Robot on the floor, start the program again, **small stick inputs
+      first**. Forward one tile, stop: read `est x` (about 24 for one tile). Back to the start:
+      `est x` near 0? Spin once around: `hdg` back near where it started?
+      → forward on "forward"? **YES / NO** · turned the expected way? **YES / NO**
+      → `est x` after one tile forward **______** · after returning **______** · `hdg` after one
+        full spin **______ deg** · pulls to one side? **NO / LEFT / RIGHT**
+      → slower/faster than "shulib Drive"? **SLOWER / SAME / FASTER** — describe: ______________
+- [ ] **F.2.6** Turn the program off from the brain (or the field disables it: the loop exits
+      cleanly and brakes the drive). Everything printed to serial is the session's record.
+
+> **What to send back:** the three geometry numbers from F.0, the YES/NO answers and the numbers
+> from F.2.3–F.2.5, every fault name and every `disagree` count above 0 word for word, and how it
+> felt against "shulib Drive". The coordinator records them in the development log; they are the
+> first hardware evidence for the motor group, the drive-encoder odometry and the library's teleop
+> loop, and they decide whether M1's badge moves.
 
 ---
 

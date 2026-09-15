@@ -76,8 +76,11 @@ or [`A2-host-plant.md`](chunks/A2-host-plant.md) as the template. A good brief c
 lines in both briefs so far came from noticing something specific in an existing header.
 
 ### 2. Commit the brief, then run it
-Fable executes the chunk (`Agent` tool, `model: fable`, `subagent_type: general-purpose`,
-`run_in_background: true` so the user can watch and the session stays responsive).
+An executor subagent runs the chunk (`Agent` tool, `subagent_type: general-purpose`,
+`run_in_background: true` so the user can watch and the session stays responsive). **Executor
+model: `opus`, since 2026-09-14** — the team lead's call, to conserve credits ("swap from fable
+to opus so that we don't run out out of nowhere"); Fable only when he asks for it on a specific
+chunk. Chunks A1 through R3b Parts 1–3 were executed by Fable.
 
 The prompt must include: required reading, the non-negotiable constraints restated inline (do not rely
 on the brief alone for the critical ones), the test bar, the verification commands, the documentation
@@ -101,9 +104,9 @@ arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion -Wsign-conversion -Wsh
 ```
 
 And the src/ BUILD gate (chunk GATE1, 2026-08-19) — the REAL `make`, compile AND link, every
-build (three robot variants since R3b Session 2: `bench`, `xdrive`, `tank`; plus, since R3b
-Part 0b, the second axis `ROBOT=tank PROGRAM=drive` — four builds), warning policy in the
-tool's header. It deletes and rebuilds `bin/`/`.d/` (both gitignored), so it does not dirty
+build (three robot variants since R3b Session 2: `bench`, `xdrive`, `tank`; plus the second
+axis: `ROBOT=tank PROGRAM=drive` since R3b Part 0b and `ROBOT=tank PROGRAM=library` since R3b
+Parts 1–3 — five builds), warning policy in the tool's header. It deletes and rebuilds `bin/`/`.d/` (both gitignored), so it does not dirty
 the tree:
 
 ```sh
@@ -119,7 +122,8 @@ python3 tools/src_build_gate.py check
 > apt's `arm-none-eabi-g++ 13.2.1` — locally and in CI. If a session doubts this,
 > re-measure with `make`; do not resurrect the old blocker from memory or old notes.
 > Variant selection is `make ROBOT=bench` (default) / `make ROBOT=xdrive` / `make ROBOT=tank`
-> (the 2026 chassis, since R3b Session 2) — the old documented `CXXFLAGS_EXTRA` flag was a
+> (the 2026 chassis, since R3b Session 2), with `PROGRAM=drive` / `PROGRAM=library` on tank for
+> the drive program and the library program — the old documented `CXXFLAGS_EXTRA` flag was a
 > measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and no longer appears anywhere.
 
 > **This command was BROKEN here until DOCS1 (2026-08-14), and the failure was silent-ish in the

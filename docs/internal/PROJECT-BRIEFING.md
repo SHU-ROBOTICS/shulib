@@ -105,13 +105,13 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 27 of 48 chunks complete
 
-- **Next up:** R3b Part 0b — the DRIVE PROGRAM — is written, verified and committed (2026-09-10 late); next comes the upload of both programs to robot two's brain and the first drive. Robot two can be driven through the library's adapters by its own program (make ROBOT=tank PROGRAM=drive, "shulib Drive", slot 1) with the measured signs and the IMU port in one shared chassis table (src/chassis_table.hpp), dead-port tolerance under a pure host-tested policy, and one-second non-fatal fight/over-current cuts through a pure host-tested evaluator; the build gate proves four builds. The motion stack has still not driven a robot, and nothing of Part 0b has run on hardware. Before that: Part 0 (the tester's DRIVE station) landed 2026-09-10, the table was filled, and two sessions on robot two's brain the same day found all ten motors and an IMU on port 2, captured the signs twice, and ran DRIVE with ten adapters constructed but zero commanded volts — nothing has turned yet. Next at the robot: upload both programs, drive wheels-up under "shulib Drive", then the ground run; then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.  
+- **Next up:** R3b Parts 1–3 — THE LIBRARY DRIVES ROBOT TWO — are written, independently verified and committed (2026-09-14); what follows is the team lead's two measurements (track width, motor→wheel gearing) typed into the table, then the first bench run of "shulib Teleop", wheels-up then ground, before the coders arrive Thursday 2026-09-17. make ROBOT=tank PROGRAM=library builds "shulib Teleop" (slot 2): robot two's object graph — two hal::MotorGroups over the ten ProsMotors from the signed chassis table, ProsImu, explicit absent GPS/tags/vision, DriveEncoderOdometry over the groups through the new IOdometry seam with one hal::DriveGeometry shared by the odometry and the (now per-wheel, honestly unwired) stall check, fusion, Localizer, RobotContext, MotionDeps, Chassis — driven by the R1a teleop loop, now one function both graphs share, through Chassis::drive(Body). The build gate proves five builds; 21 mutations observed red then restored (one of them observed twice).  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,188 cases / 1,540,944 assertions, 3 skipped — **green**  
+- **Suite:** 1,208 cases / 1,563,162 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 154  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 123 registered, **7 settled** — next free is **HA-124**  
+- **Public headers:** 158  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 133 registered, **7 settled** — next free is **HA-134**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:

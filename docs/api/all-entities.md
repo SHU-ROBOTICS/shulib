@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,710 of them, across 121 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,775 of them, across 125 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -387,6 +387,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveBrake::start` | function | [drive_brake.md](drive_brake.md#drivebrake-start) |
 | `DriveBrake::state` | function | [drive_brake.md](drive_brake.md#drivebrake-state) |
 | `DriveBrake::tick` | function | [drive_brake.md](drive_brake.md#drivebrake-tick) |
+| `DriveEncoderOdometry` | class | [drive_encoder_odometry.md](drive_encoder_odometry.md#class-driveencoderodometry) |
+| `DriveEncoderOdometry::DriveEncoderOdometry` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-driveencoderodometry) |
+| `DriveEncoderOdometry::lastDeltaImplausible` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastdeltaimplausible) |
+| `DriveEncoderOdometry::lastHeadingDisagreement` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastheadingdisagreement) |
+| `DriveEncoderOdometry::lastSideTravel` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastsidetravel) |
+| `DriveEncoderOdometry::leftInchesPerRadian` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-leftinchesperradian) |
+| `DriveEncoderOdometry::pose` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-pose) |
+| `DriveEncoderOdometry::rightInchesPerRadian` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-rightinchesperradian) |
+| `DriveEncoderOdometry::setPose` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-setpose) |
+| `DriveEncoderOdometry::trackWidth` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-trackwidth) |
+| `DriveEncoderOdometry::update` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-update) |
+| `DriveEncoderOdometryConfig` | struct | [drive_encoder_odometry.md](drive_encoder_odometry.md#struct-driveencoderodometryconfig) |
+| `DriveEncoderOdometryConfig::maxTickRotation` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometryconfig-maxtickrotation) |
+| `DriveEncoderOdometryConfig::maxTickTravel` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometryconfig-maxticktravel) |
+| `DriveGeometry` | struct | [drive_geometry.md](drive_geometry.md#struct-drivegeometry) |
+| `DriveGeometry::fromDiameter` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-fromdiameter) |
+| `DriveGeometry::inchesPerRadian` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-inchesperradian) |
+| `DriveGeometry::motorToWheelRatio` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-motortowheelratio) |
+| `DriveGeometry::valid` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-valid) |
+| `DriveGeometry::wheelRadius` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-wheelradius) |
 | `DriveRequest` | struct | [stick_mapping.md](stick_mapping.md#struct-driverequest) |
 | `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
@@ -486,6 +506,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FaultCode::LoopOverrun` | enumerator | [fault.md](fault.md#faultcode-loopoverrun) |
 | `FaultCode::MechanismStalled` | enumerator | [fault.md](fault.md#faultcode-mechanismstalled) |
 | `FaultCode::MotionTimeout` | enumerator | [fault.md](fault.md#faultcode-motiontimeout) |
+| `FaultCode::MotorGroupDisagree` | enumerator | [fault.md](fault.md#faultcode-motorgroupdisagree) |
 | `FaultCode::MotorOverTemp` | enumerator | [fault.md](fault.md#faultcode-motorovertemp) |
 | `FaultCode::NanPose` | enumerator | [fault.md](fault.md#faultcode-nanpose) |
 | `FaultCode::None` | enumerator | [fault.md](fault.md#faultcode-none) |
@@ -606,9 +627,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitor::brownedOut` | function | [health_monitor.md](health_monitor.md#healthmonitor-brownedout) |
 | `HealthMonitor::HealthMonitor` | function | [health_monitor.md](health_monitor.md#healthmonitor-healthmonitor) |
 | `HealthMonitor::imuLost` | function | [health_monitor.md](health_monitor.md#healthmonitor-imulost) |
+| `HealthMonitor::motorGroupDisagreeing` | function | [health_monitor.md](health_monitor.md#healthmonitor-motorgroupdisagreeing) |
 | `HealthMonitor::Observations` | struct | [health_monitor.md](health_monitor.md#struct-healthmonitor-observations) |
 | `HealthMonitor::Observations::batteryVolts` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-batteryvolts) |
 | `HealthMonitor::Observations::fixGated` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-fixgated) |
+| `HealthMonitor::Observations::groupMembersDisagreeing` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-groupmembersdisagreeing) |
 | `HealthMonitor::Observations::imuReady` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-imuready) |
 | `HealthMonitor::Observations::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-maxmotortempc) |
 | `HealthMonitor::Observations::odomImplausible` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomimplausible) |
@@ -834,6 +857,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IMotor::~IMotor` | function | [motor.md](motor.md#imotor-destructor-imotor) |
 | `imuHeadingToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuheadingtocanonical) |
 | `imuYawRateToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuyawratetocanonical) |
+| `IOdometry` | class | [odometry.md](odometry.md#class-iodometry) |
+| `IOdometry::IOdometry` | function | [odometry.md](odometry.md#iodometry-iodometry) |
+| `IOdometry::IOdometry (overload 2)` | function | [odometry.md](odometry.md#iodometry-iodometry-2) |
+| `IOdometry::IOdometry (overload 3)` | function | [odometry.md](odometry.md#iodometry-iodometry-3) |
+| `IOdometry::lastDeltaImplausible` | function | [odometry.md](odometry.md#iodometry-lastdeltaimplausible) |
+| `IOdometry::operator=` | function | [odometry.md](odometry.md#iodometry-operator-eq) |
+| `IOdometry::operator= (overload 2)` | function | [odometry.md](odometry.md#iodometry-operator-eq-2) |
+| `IOdometry::pose` | function | [odometry.md](odometry.md#iodometry-pose) |
+| `IOdometry::setPose` | function | [odometry.md](odometry.md#iodometry-setpose) |
+| `IOdometry::update` | function | [odometry.md](odometry.md#iodometry-update) |
+| `IOdometry::~IOdometry` | function | [odometry.md](odometry.md#iodometry-destructor-iodometry) |
 | `IOptical` | class | [optical.md](optical.md#class-ioptical) |
 | `IOptical::brightness` | function | [optical.md](optical.md#ioptical-brightness) |
 | `IOptical::hue` | function | [optical.md](optical.md#ioptical-hue) |
@@ -937,6 +971,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
+| `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
+| `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
@@ -1070,6 +1106,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionDeps::health` | field | [motion.md](motion.md#motiondeps-health) |
 | `MotionDeps::kinematics` | field | [motion.md](motion.md#motiondeps-kinematics) |
 | `MotionDeps::localizer` | field | [motion.md](motion.md#motiondeps-localizer) |
+| `MotionDeps::motorGroups` | field | [motion.md](motion.md#motiondeps-motorgroups) |
 | `MotionDeps::validate` | function | [motion.md](motion.md#motiondeps-validate) |
 | `MotionDeps::validatedClock` | function | [motion.md](motion.md#motiondeps-validatedclock) |
 | `MotionOptions` | struct | [chassis.md](chassis.md#struct-motionoptions) |
@@ -1153,6 +1190,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorGearset::Blue` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-blue) |
 | `MotorGearset::Green` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-green) |
 | `MotorGearset::Red` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-red) |
+| `MotorGroup` | class | [motor_group.md](motor_group.md#class-motorgroup) |
+| `MotorGroup::brakeMode` | function | [motor_group.md](motor_group.md#motorgroup-brakemode) |
+| `MotorGroup::commandedVoltage` | function | [motor_group.md](motor_group.md#motorgroup-commandedvoltage) |
+| `MotorGroup::current` | function | [motor_group.md](motor_group.md#motorgroup-current) |
+| `MotorGroup::disagreeingMask` | function | [motor_group.md](motor_group.md#motorgroup-disagreeingmask) |
+| `MotorGroup::disagreeingMembers` | function | [motor_group.md](motor_group.md#motorgroup-disagreeingmembers) |
+| `MotorGroup::evaluateDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-evaluatedisagreement) |
+| `MotorGroup::kMaxMembers` | field | [motor_group.md](motor_group.md#motorgroup-kmaxmembers) |
+| `MotorGroup::lastVerdict` | function | [motor_group.md](motor_group.md#motorgroup-lastverdict) |
+| `MotorGroup::member` | function | [motor_group.md](motor_group.md#motorgroup-member) |
+| `MotorGroup::memberCount` | function | [motor_group.md](motor_group.md#motorgroup-membercount) |
+| `MotorGroup::MotorGroup` | function | [motor_group.md](motor_group.md#motorgroup-motorgroup) |
+| `MotorGroup::position` | function | [motor_group.md](motor_group.md#motorgroup-position) |
+| `MotorGroup::resetDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-resetdisagreement) |
+| `MotorGroup::setBrakeMode` | function | [motor_group.md](motor_group.md#motorgroup-setbrakemode) |
+| `MotorGroup::setVoltage` | function | [motor_group.md](motor_group.md#motorgroup-setvoltage) |
+| `MotorGroup::temperature` | function | [motor_group.md](motor_group.md#motorgroup-temperature) |
+| `MotorGroup::thresholds` | function | [motor_group.md](motor_group.md#motorgroup-thresholds) |
+| `MotorGroup::totalCurrent` | function | [motor_group.md](motor_group.md#motorgroup-totalcurrent) |
+| `MotorGroup::velocity` | function | [motor_group.md](motor_group.md#motorgroup-velocity) |
 | `MotorMechanism` | class | [mechanism.md](mechanism.md#class-motormechanism) |
 | `MotorMechanism::applySafeState` | function | [mechanism.md](mechanism.md#motormechanism-applysafestate) |
 | `MotorMechanism::commandedVoltage` | function | [mechanism.md](mechanism.md#motormechanism-commandedvoltage) |
@@ -1199,16 +1256,21 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ObjectObservation::classId` | field | [vision.md](vision.md#objectobservation-classid) |
 | `ObjectObservation::confidence` | field | [vision.md](vision.md#objectobservation-confidence) |
 | `OdoStallCheck` | class | [odo_stall_check.md](odo_stall_check.md#class-odostallcheck) |
+| `OdoStallCheck::canDetectStall` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-candetectstall) |
 | `OdoStallCheck::kMaxWheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheck-kmaxwheels) |
+| `OdoStallCheck::lastObservedMotion` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-lastobservedmotion) |
+| `OdoStallCheck::lastSpinTravel` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-lastspintravel) |
 | `OdoStallCheck::OdoStallCheck` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-odostallcheck) |
 | `OdoStallCheck::reset` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-reset) |
 | `OdoStallCheck::stalled` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-stalled) |
 | `OdoStallCheck::update` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-update) |
 | `OdoStallCheckConfig` | struct | [odo_stall_check.md](odo_stall_check.md#struct-odostallcheckconfig) |
+| `OdoStallCheckConfig::independentMotionSource` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-independentmotionsource) |
 | `OdoStallCheckConfig::minSpinTravel` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-minspintravel) |
 | `OdoStallCheckConfig::motionRatio` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-motionratio) |
 | `OdoStallCheckConfig::rotationRadius` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-rotationradius) |
-| `OdoStallCheckConfig::wheelRadius` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheelradius) |
+| `OdoStallCheckConfig::setAllWheels` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-setallwheels) |
+| `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
 | `operator""_deg` | free function | [literals.md](literals.md#operator-quote-quote-_deg) |
 | `operator""_deg (overload 2)` | free function | [literals.md](literals.md#operator-quote-quote-_deg-2) |
@@ -1637,6 +1699,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SideMonitorConfig::nearZeroFraction` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-nearzerofraction) |
 | `SideMonitorConfig::oppositeFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-oppositefloorrads) |
 | `SideMonitorConfig::persistTicks` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-persistticks) |
+| `SideTravel` | struct | [drive_encoder_odometry.md](drive_encoder_odometry.md#struct-sidetravel) |
+| `SideTravel::left` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#sidetravel-left) |
+| `SideTravel::right` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#sidetravel-right) |
 | `SideVerdict` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sideverdict) |
 | `SideVerdict::disagreeingMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-disagreeingmask) |
 | `SideVerdict::evaluated` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sideverdict-evaluated) |

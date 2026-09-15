@@ -36,8 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 122 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
-> 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. **No *v2* robot exists**, and
+> **Status: 7 of 133 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
+> "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
+> HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
+> one is reported (HA-124), two are UNSET and refuse at boot (HA-125/126), one reasoned (HA-131),
+> two invented (HA-132/133). The per-confidence counts below predate them.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -190,6 +194,16 @@
 | HA-121 | ADI `DigitalIn::get_value()` is a level (PROS_ERR on refusal); `get_new_press()` CONSUMES the press | reasoned | R3 |
 | HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | **partial** 2026-08-18: beliefs (1) and (2) CONFIRMED on hardware — `usd_is_installed()` returned 1 with a card and 0 without, and `fopen("/usd/probe.txt","wb")` succeeded WITH the prefix; a 17-byte fwrite + `fflush`==0 landed. Belief (3)'s DURABILITY half (yank the card after a flush, count what survived) NOT tested, so this stays open | R3 |
 | HA-123 | A per-tick tracking-wheel travel above 36 in is corruption, not motion | **invented** | R3 |
+| HA-124 | Robot two's drive wheels are 2.75 in in diameter | **reported** (team lead, 2026-09-14; "standard wheels") — not yet rulered on this robot | R3b/R3d |
+| HA-125 | Robot two's track width (contact line to contact line) | **UNSET** — no value exists in the tree; the library program refuses to boot until a tape measurement is typed in | R3b/R3d |
+| HA-126 | Robot two's motor→wheel external ratio | **UNSET** — "600 rpm" was reported, which is a cartridge, not a tooth count; the library program refuses until direct drive or the counts are stated | R3b/R3d |
+| HA-127 | Robot two's brain runs VEXos 1.1.5 (b18) under PROS kernel 4.2.2 | **measured** 2026-09-10 (the kernel banner over USB) | — |
+| HA-128 | Starting a program from the controller's own menu arms a pretend field-control MATCH on the brain (status 0x0f) that persists until the controller leaves that mode; a linked controller on its home screen does not | **measured** 2026-09-10 (two sessions, the decisive test with hands off the controller) | — |
+| HA-129 | The brain's USB CDC ports renumber between plug-ins (ttyACM0/1 alone, ttyACM1/2 beside the controller) and must be re-resolved from `pros lsusb` for every read | **measured** 2026-09-10 | — |
+| HA-130 | Robot two's port 18 travels ~20 % short of its side-mates on a hand push, reproducibly (137 vs ~175 deg, then 171 vs ~210 deg) — a member SLOW, not a fight | **measured** 2026-09-10 (twice); cause UNKNOWN — watch it under power | R3b/R3d |
+| HA-131 | On robot two, ODO_STUCK cannot be detected by the wheels-vs-odometry cross-check: the odometry IS the drive encoders, so the check is a tautology and is deliberately not wired to report a verdict | reasoned (structural) | R3d/R4 |
+| HA-132 | The coupled-side agreement thresholds — evaluate above 1 V and 1 rad/s; opposite sign above 0.5 rad/s; under 25 % of the side's fastest; 25 consecutive 10 ms ticks — separate a real fight from a transient | **invented** | R3d/R4 |
+| HA-133 | A coupled member under 25 % of its side's fastest is disagreeing, and one at 80 % (port 18's signature) is NOT — the disagreement FLOOR tolerates a slow member and catches a frozen one | **invented** | R3d/R4 |
 
 ---
 
@@ -394,6 +408,12 @@ a config constant **by design** — a correction here never touches the core.
   *Blast radius if wrong:* drive-encoder-derived speeds/distances scale wrong. **Limited by
   design at M2:** odometry reads *tracking* wheels, not drive encoders, so pose is untouched;
   affects R5 sysid bookkeeping and any future drive-encoder fallback odometry. Config constants.
+  *Amended 2026-09-14 (R3b Parts 1–3):* that containment no longer holds for ROBOT TWO, whose
+  odometry IS the drive encoders (`localization/drive_encoder_odometry.hpp`). There the scale
+  comes from `hal::DriveGeometry`, instantiated from the chassis table's measured values
+  (HA-124/125/126), never from this stand-in; the plant still bakes 1:1 (the team lead has
+  reported no other ratio), so a host test and the V5 model the same gearing only while that
+  stays true.
 
 - [ ] **HA-15 — drive motors carry the GREEN cartridge: 900 ticks/rev at the output shaft.**
   *Claim:* our drive uses green (200 RPM) cartridges — red is 1800, blue 300.
@@ -856,6 +876,161 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   *Blast radius if wrong:* a blackbox that never exists while everything reports healthy —
   the exact silent failure E1's bool-returning seam was built to surface. **Contained:** one
   adapter; the no-card path is mutation-proven (campaign M11).
+
+---
+
+## Robot 2 — the 2026 tank chassis (added 2026-09-14, R3b Parts 1–3)
+
+The register was written for one robot. Robot two — the season's tank chassis, five coupled
+motors per side driving four wheels per side, an IMU on port 2 and nothing else — is described
+by `src/chassis_table.hpp` (ports, signs, cartridge, IMU port, geometry) and the entries below
+carry the facts about it as they are MEASURED, REPORTED or UNSET, each with its source and date.
+Nothing here is invented for the robot itself; the two invented entries (HA-132/133) are the
+library's thresholds, not the robot's dimensions. The bench bot's rows above are not rewritten.
+
+- [ ] **HA-124 — robot two's drive wheels are 2.75 in in diameter.**
+  *Claim:* a ruler across the tread of any of robot two's eight drive wheels reads 2.75 in.
+  *Source:* `src/chassis_table.hpp` (`.wheelDiameterIn = 2.75`, tagged `A4 register HA-124`);
+  consumed through `tableDriveGeometry()` by `localization/drive_encoder_odometry.hpp` and
+  `motion/odo_stall_check.hpp` (one `hal::DriveGeometry` object, both consumers).
+  *Confidence:* **reported** — the team lead, 2026-09-14: "standard wheels", the bench bot's
+  measured size. Not yet rulered on THIS robot (worksheet Station F.0.3).
+  *Settle (R3b/R3d):* the ruler; then R3d's one-push-along-a-tape scale calibration replaces the
+  typed number with a measured inches-per-radian.
+  *Blast radius if wrong:* every odometry distance scales by the error (a 2 % diameter error is
+  a 2 % distance error, pinned quantitatively by the drive-encoder odometry's test 10); the
+  stall check's spin travel scales identically, so the two never disagree with each other, only
+  with the world. **Contained:** one table field.
+
+- [ ] **HA-125 — robot two's track width, contact line to contact line.**
+  *Claim:* NONE YET. There is no value in the tree. `src/chassis_table.hpp` carries
+  `.trackWidthIn = 0.0` (UNSET, tagged `A4 register HA-125`) and the library program refuses to
+  construct its graph while it is 0, painting "track width" on the state screen.
+  *Source:* `src/chassis_table.hpp`; `src/main.cpp` (`describeMissingForLibrary` at boot).
+  *Confidence:* **UNSET** — deliberately. A guessed track width turns every commanded yaw into
+  the wrong wheel-speed difference (`kinematics/tank.hpp`) and every encoder-implied heading
+  into the wrong number, silently; the drivetrain kind was stated, the width was not.
+  *Settle (R3b):* tape measure, centre of the left contact line to centre of the right, front
+  and back pairs (Station F.0.1); typed with provenance. R3d then measures it from the IMU
+  (spin in place: Δθ_enc vs Δθ_imu — the cross-check `lastHeadingDisagreement()` exposes).
+  *Blast radius if wrong:* turns under-/over-rotate by the ratio of the error; the heading
+  cross-check reads a steady bias on every turn (that is how a wrong width will be SEEN).
+  **Contained:** one table field.
+
+- [ ] **HA-126 — robot two's motor→wheel external ratio.**
+  *Claim:* NONE YET. `.externalRatio = 0.0` (UNSET, tagged `A4 register HA-126`); the library
+  program refuses while it is 0. "600 rpm" was reported, which names the blue cartridge and
+  says nothing about the gears between the output shaft and the wheel.
+  *Source:* `src/chassis_table.hpp`; `hal/drive_geometry.hpp` (the ratio's one home).
+  *Confidence:* **UNSET** — deliberately.
+  *Settle (R3b/R3d):* "direct drive" (→ 1.0) or the tooth counts on BOTH sides (the R3a B1.2
+  amendment: ask per side — an asymmetric drivetrain is representable, two `DriveGeometry`
+  objects); then R3d's push-along-a-tape calibration.
+  *Blast radius if wrong:* the whole odometry scale (a 5:3 reduction typed as direct drive is a
+  67 % distance error). **Contained:** one table field; the plant stays at 1:1 until a ratio
+  other than 1:1 is reported (R3b Parts 1–3 D2-7).
+
+- [x] **HA-127 — robot two's brain runs VEXos 1.1.5 (b18) under PROS kernel 4.2.2.**
+  *Claim:* the kernel banner printed over USB at boot reads PROS 4.2.2, VEXos 1.1.5 (b18).
+  *Source:* no in-tree source (exempt from direction 2) — measured from the serial capture,
+  recorded in the development log on the `shulib-v2` branch (R3b Session 2 §9.1).
+  *Confidence:* **measured** 2026-09-10.
+  *Settle:* settled. Re-read the banner after any VEXos update.
+  *Blast radius if wrong:* n/a — a fact about the brain, recorded so a future "it worked on
+  1.1.5" has a number beside it. `arm-none-eabi-g++ 13.2.1` builds for it.
+
+- [x] **HA-128 — starting a program from the CONTROLLER's menu arms a pretend field-control
+  match on the brain.**
+  *Claim:* launching (Run / Timed Run / Match) from the controller's own program menu puts
+  VEXos into a competition-system mode (status `0x0f`: CONNECTED | DISABLED | AUTONOMOUS |
+  SYSTEM) that persists across `pros v5 stop` / `run` until the controller leaves that mode;
+  a controller linked and left on its home screen does not, and the program then runs in
+  driver control normally.
+  *Source:* `src/main.cpp` (the competition-state screens and the boot-time status print,
+  `A4 register HA-128`); the worksheet's Station A rule.
+  *Confidence:* **measured** 2026-09-10 — the program restarted and went black when the
+  controller linked; turning the controller OFF cleared it within seconds; the decisive test
+  (controller linked, hands off, program started from the laptop) ran driver control for
+  minutes.
+  *Settle:* settled; the rule is in the worksheet and Daniel's note.
+  *Blast radius if wrong:* n/a — the screen now names the state, so the diagnosis cannot again
+  be "the touchscreen does not work".
+
+- [x] **HA-129 — the brain's USB CDC ports renumber between plug-ins.**
+  *Claim:* the brain enumerates as `ttyACM0/1` alone and `ttyACM1/2` beside the controller;
+  a serial read must re-resolve the port from `pros lsusb` every time. `pros terminal` cannot
+  run from a non-interactive shell (`termios` on stdin); raw reads of the USER CDC port work,
+  COBS-framed with a `sout` channel tag (`strings` recovers the text lines whole).
+  *Source:* no in-tree source (exempt) — the development log, R3b Session 2 §9.1.
+  *Confidence:* **measured** 2026-09-10.
+  *Settle:* settled. *Blast radius if wrong:* a capture from the wrong device, nothing more.
+
+- [x] **HA-130 — robot two's port 18 travels ~20 % short of its side-mates on a push.**
+  *Claim:* on a whole-robot hand push, port 18's encoder advances about 20 % less than the
+  other four motors on its side (137 vs ~175 deg on the first push, 171 vs ~210 deg on the
+  second), reproducibly — a member that is SLOW, not one that opposes. Cause UNKNOWN.
+  *Source:* `src/chassis_table.hpp` (the table comment, `A4 register HA-130`);
+  `hal/motor_group.hpp` (the header cites it as the reason the disagreement floor must
+  tolerate a slow member); `test/motor_group_test.cpp` test 16 (a member at 80 % of its mates
+  is NOT flagged at rest or under command; the same member opposite in sign IS — pinned, with
+  the threshold mutation observed red).
+  *Confidence:* **measured** 2026-09-10, twice. What it means mechanically is not.
+  *Settle (R3b/R3d):* watch it under power (the panel's `disagree` counts and the group's
+  median); if it persists, swap the motor and re-measure.
+  *Blast radius if wrong:* if it turned out to be a fight rather than a shortfall, the group's
+  median would still ignore it (one of five) and the monitor would count it; if the shortfall
+  grew past 75 %, the floor (HA-133) would report it as frozen. Either way it is visible.
+
+- [ ] **HA-131 — on robot two, ODO_STUCK cannot be detected by the wheels-vs-odometry
+  cross-check.**
+  *Claim:* with the drive encoders as the only odometry source (no tracking wheels), the
+  `OdoStallCheck` comparison "wheels rolled but the estimate did not move" is a tautology — the
+  estimate IS the wheels — and would report "not stalled" forever; so the check is configured
+  with `independentMotionSource = false` on this robot, never reports a verdict, and a stuck
+  robot is INVISIBLE to the health monitor until a detector built on the encoder-vs-IMU heading
+  cross-check exists.
+  *Source:* `include/shulib/motion/odo_stall_check.hpp` (the §2 ruling; `A4 register HA-131`);
+  `src/main.cpp` (`kNoIndependentStallSourceNote` logged once at boot); `localization/
+  drive_encoder_odometry.hpp` (`lastHeadingDisagreement()`, the future detector's input).
+  *Confidence:* reasoned (structural — a fact about the sources, not a measurement).
+  *Settle (R3d/R4):* a stuck/slip detector on the heading cross-check plus current, measured
+  against real pushes; or tracking wheels, which restore the independent source.
+  *Blast radius if wrong:* n/a in the honest direction — the alternative was a monitor that
+  lies. The cost is the missing detection itself: the driver is the supervisor (the panel says
+  so), and an auton that pushes a wall will not fault; its watchdog bounds the damage.
+
+- [ ] **HA-132 — the coupled-side agreement thresholds separate a fight from a transient.**
+  *Claim:* evaluating only while a side is commanded above 1 V and its fastest member turns
+  above 1 rad/s; flagging a member opposite the command above 0.5 rad/s or under 25 % of the
+  side's fastest; and requiring 25 consecutive 10 ms ticks (250 ms) — together catch a real
+  fight (a wrong sign, a stripped gear, a frozen encoder) and ignore a stick reversal's coast.
+  *Source:* `include/shulib/teleop/coupled_side_monitor.hpp` (`SideMonitorConfig`,
+  `PROVISIONAL (A4: HA-132)`); consumed by "shulib Drive", the tester's DRIVE station, and
+  `hal::MotorGroup` — one evaluator, one set of numbers.
+  *Confidence:* **invented** for a first run (R3b Session 2's own words). No fight has yet been
+  observed under power; the 250 ms window equals the over-current window by choice.
+  *Settle (R3d/R4):* the drive logs' cut lines and the library's MOTOR_GROUP_DISAGREE episodes
+  over a season of practice; a real fight (one motor deliberately reversed, wheels up, 3 V)
+  must persist; a stick reversal at full speed must not.
+  *Blast radius if wrong:* too tight = a healthy drive cut every second (the drive program) or
+  a fault line every run (the library); too loose = a fight stalls five motors against four
+  until something strips. **Contained:** one config struct, five fields.
+
+- [ ] **HA-133 — the disagreement FLOOR: under 25 % of the side's fastest is disagreeing; 80 %
+  is not.**
+  *Claim:* robot two's port 18 at ~80 % of its mates (HA-130) must NOT be reported as a fight,
+  while a member at 0 rad/s (a frozen encoder) or turning backwards must; 25 % of the fastest
+  is the line, and it holds on every real drivetrain.
+  *Source:* `include/shulib/hal/motor_group.hpp` (the header's policy note, `A4 register
+  HA-133`); `test/motor_group_test.cpp` test 16 (the 20 % case tolerated, the opposite case
+  flagged; the threshold mutation 0.25 → 0.85 observed red).
+  *Confidence:* **invented**; the 80 %/25 % gap is wide by design.
+  *Settle (R3d/R4):* the distribution of member velocities on a healthy side under power (the
+  panel shows every member); if a healthy member ever sits below 50 % of its mates, the floor
+  moves.
+  *Blast radius if wrong:* a slow-but-healthy member reported as a fight on every run (and a
+  fault line per run), or a nearly-frozen member (25–50 %) missed. **Contained:** one field
+  of HA-132's struct.
 
 ---
 

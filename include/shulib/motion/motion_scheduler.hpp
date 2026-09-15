@@ -609,11 +609,16 @@ public:
                                                  .telemetry = &stamperSink_,
                                                  .tags = &deps.ctx->tags(),
                                                  .vision = &deps.ctx->vision()}},
+          // The stamped bundle is assembled FIELD BY FIELD (the ctx must be the shadow), so
+          // every additive MotionDeps field has to be carried here by hand — motorGroups
+          // (R3b Part 1) was found dropped by exactly this line: a fight on a coupled group
+          // went unraised under the scheduler while the same motion, hand-ticked, raised it.
           schedDeps_{MotionDeps{.ctx = &shadowCtx_,
                                 .localizer = deps.localizer,
                                 .kinematics = deps.kinematics,
                                 .faults = deps.faults,
-                                .health = deps.health}},
+                                .health = deps.health,
+                                .motorGroups = deps.motorGroups}},
           loopMonitor_{deps.ctx->clock(), *deps.faults, config.loopMonitor},
           poseGuard_{config.plausibility} {
         if (cfg_.attributionClock != nullptr) {

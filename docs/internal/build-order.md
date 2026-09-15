@@ -629,7 +629,7 @@ NOTHING FROZEN — register row F12 says so out loud; F4 (students, hardware) is
 consumer and the freeze trigger. Season content (`buildStack`/`matchLoadCycle`/`endInMidfield`/
 `strategyMode`) stayed OUT — the roadmap's WS8 block no longer lists it beside the engine.
 
-**Next: R3b Part 0b — the DRIVE PROGRAM — is written, verified and committed (2026-09-10 late); next comes the upload of both programs to robot two's brain and the first drive. Robot two can be driven through the library's adapters by its own program (`make ROBOT=tank PROGRAM=drive`, "shulib Drive", slot 1) with the measured signs and the IMU port in one shared chassis table (`src/chassis_table.hpp`), dead-port tolerance under a pure host-tested policy, and one-second non-fatal fight/over-current cuts through a pure host-tested evaluator; the build gate proves four builds. The motion stack has still not driven a robot, and nothing of Part 0b has run on hardware. Before that: Part 0 (the tester's DRIVE station) landed 2026-09-10, the table was filled, and two sessions on robot two's brain the same day found all ten motors and an IMU on port 2, captured the signs twice, and ran DRIVE with ten adapters constructed but zero commanded volts — nothing has turned yet. Next at the robot: upload both programs, drive wheels-up under "shulib Drive", then the ground run; then Parts 1–3 (motor group, odometry seam, composition root) on the team lead's go. R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
+**Next: R3b Parts 1–3 — THE LIBRARY DRIVES ROBOT TWO — are written, independently verified and committed (2026-09-14); what follows is the team lead's two measurements (track width, motor→wheel gearing) typed into the table, then the first bench run of "shulib Teleop", wheels-up then ground, before the coders arrive Thursday 2026-09-17. `make ROBOT=tank PROGRAM=library` builds "shulib Teleop" (slot 2): robot two's object graph — two `hal::MotorGroup`s over the ten `ProsMotor`s from the signed chassis table, `ProsImu`, explicit absent GPS/tags/vision, `DriveEncoderOdometry` over the groups through the new `IOdometry` seam with one `hal::DriveGeometry` shared by the odometry and the (now per-wheel, honestly unwired) stall check, fusion, `Localizer`, `RobotContext`, `MotionDeps`, `Chassis` — driven by the R1a teleop loop, now one function both graphs share, through `Chassis::drive(Body)`. The build gate proves five builds; 21 mutations observed red then restored (one of them observed twice). **NOTHING OF PARTS 1–3 HAS RUN ON HARDWARE, and it cannot until the team lead measures the track width and states the motor→wheel ratio (tape and tooth counts, worksheet Station F.0): the table carries both UNSET and the program refuses at boot with the missing fields on screen — never guessed.** Next at the robot: type the measured geometry into `src/chassis_table.hpp`, upload, wheels-up under "shulib Teleop", then the ground run; M1's badge moves only from that evidence. Before that: Part 0b ("shulib Drive", adapters and open-loop volts) landed 2026-09-10 and both programs were uploaded to robot two's brain the same day. **Plan ruling 2026-09-14 (team lead): both fall robots are TANK; the X-drive and R3c's holonomic half move to spring 2027 (deviations table).** R3a's remaining bench measurements ride along on both robots.** R3a — platform validation on the tank bench bot ([brief](chunks/R3a-tank-bench-validation.md),
 live log [R3a-PROGRESS.md](chunks/R3a-PROGRESS.md)). **R3 split into R3a + R3b + R3c on 2026-08-17** —
 the ruling, its reasoning and its rejected alternative are in the brief's §3 and the deviations table.
 **R3b is `[~]` IN FLIGHT, deliberately out of order: its §6 piece — the absent-device ruling, the one
@@ -830,7 +830,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
 | **G** | No-code authoring | G1–G4 | needs VexBuilder |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
-| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6 | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c needs a competition robot with a holonomic drive |
+| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6 | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c's absolute-reference half needs a GPS/camera on a tank robot (fall); its holonomic half needs the X-drive, built in spring 2027 |
 | **F′** | Scoring primitives | F3–F4 | needs hardware + final mechanisms |
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
@@ -1638,6 +1638,8 @@ counted; the GPS field-cal oracle **still skipped, with why**; findings 1–3 re
 **M1's badge does NOT flip here** — see R3b.
 
 ### R3b — First closed loop on a tank drive ⟵ **closes M1's DoD and M2's on-robot clause**
+> **Status 2026-09-14:** all three pieces are BUILT — piece 3 (absent devices) 2026-08-19, pieces 1 and 2 (`hal::MotorGroup`; `IOdometry` + `DriveEncoderOdometry` + `hal::DriveGeometry`) 2026-09-14 as R3b Parts 1–3, together with the third program `make ROBOT=tank PROGRAM=library` ("shulib Teleop") that wires them into robot two's graph. **The DoD below is OPEN:** nothing of Parts 1–3 has run on hardware, the table's geometry is UNSET until measured, and M1's badge has not moved. The numbered list that follows is the chunk's original scope statement, kept as written.
+
 Three additive pieces of library code, each host-provable against the A2 plant and the existing fakes
 long before it meets a robot — then validated on **the same bench robot**, which is why this chunk is
 *not* gated on a competition robot:
@@ -1675,6 +1677,8 @@ IMU sign decides which way the odometry integrates. Building before measuring is
 steering; HA-18 and HA-52's threshold half settled; HA-112's "drivable" half settled.
 
 ### R3c — Holonomic and absolute-reference validation ⟵ **gated on a competition robot**
+> **2026-09-14 (team lead):** both fall robots are TANK; the HOLONOMIC half of this chunk moves to spring 2027 with the X-drive build. The ABSOLUTE-reference half (GPS / AprilTag on a field: HA-01/06/07/09/10/31/106 and HA-68/69/70) needs no holonomic chassis and proceeds on a tank robot once a GPS or camera is mounted — see the deviations table.
+
 The 13 register entries no code can reach on the bench bot, each named with what it needs:
 
 | Entries | Needs |
@@ -1809,6 +1813,7 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 
 | Change | Roadmap says | Build order says | Why |
 |---|---|---|---|
+| **Both fall robots are tank; X-drive in spring 2027** *(2026-09-14, team lead)* | Two robots: a 24" X-drive and a 15" H-drive (master plan §Robots) | **Both of this season's competition robots are TANK drives for the fall semester; the X-drive is built in the spring semester and the holonomic work is finished then** | Robot two's chassis was built in September as a five-motor-per-side tank, and robot one follows the same pattern. Consequences: **R3c (holonomic and absolute-reference validation) and I2's holonomic half slip to spring**; R3c's ABSOLUTE-reference half — GPS/AprilTag correctors on a field (R2, E5, E6) — does NOT need a holonomic chassis and proceeds on a tank robot the day a GPS or camera is mounted; **I1 (the second robot) is now "robot one, also tank": a second chassis table plus R3d's calibration, not new core.** The holonomic code (C3, `x_drive.hpp`, the pseudo-inverse, the decoupled verbs) stays exactly as built — proven in sim, unvalidated on hardware until spring. The master plan's Robots section is amended by the coordinator. |
 | **+ Host plant & sim harness** | *(absent — the incompleteness bug)* | **A2, before all closed-loop work** | M2/M4 DoDs both require a "host sim" nothing builds. With no robot it is the only way to validate any closed loop |
 | **+ Hostile fakes** | *(absent)* | **A3** | Today's fakes encode the same assumptions as the code, so tests certify their own blind spots |
 | **+ Hardware Assumptions Register & ARM CI gate** | *(absent)* | **A4** | Makes integration debt inventoried instead of silent; becomes R3's checklist |

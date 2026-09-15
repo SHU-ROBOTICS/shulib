@@ -8,7 +8,7 @@
 
 HealthMonitor — sensor/power pathology → FaultCode, edge-triggered.
 
-This header declares **3** types (14 members).
+This header declares **3** types (16 members).
 
 Extracted from [`include/shulib/diag/health_monitor.hpp`](../../include/shulib/diag/health_monitor.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -21,6 +21,7 @@ Extracted from [`include/shulib/diag/health_monitor.hpp`](../../include/shulib/d
 - [`class HealthMonitor`](#class-healthmonitor)
   - [`HealthMonitor`](#healthmonitor-healthmonitor)
   - [`tick`](#healthmonitor-tick)
+  - [`motorGroupDisagreeing`](#healthmonitor-motorgroupdisagreeing)
   - [`brownedOut`](#healthmonitor-brownedout)
   - [`imuLost`](#healthmonitor-imulost)
   - [`reset`](#healthmonitor-reset)
@@ -31,6 +32,7 @@ Extracted from [`include/shulib/diag/health_monitor.hpp`](../../include/shulib/d
     - [`fixGated`](#healthmonitor-observations-fixgated)
     - [`batteryVolts`](#healthmonitor-observations-batteryvolts)
     - [`maxMotorTempC`](#healthmonitor-observations-maxmotortempc)
+    - [`groupMembersDisagreeing`](#healthmonitor-observations-groupmembersdisagreeing)
 
 <a id="struct-healthmonitorconfig"></a>
 
@@ -102,7 +104,7 @@ explicit HealthMonitor(FaultLatch& faults, const HealthMonitorConfig& config = {
 
 EXPLICIT: the defaulted second parameter makes this a one-argument converting constructor, so without it `HealthMonitor m = someLatch;` compiled and a FaultLatch& silently converted at any call site taking a HealthMonitor by value or const&. Its diag/ siblings mark their single-argument constructors explicit (tick_attribution.hpp), which is what made this read as an oversight rather than a decision.  `faults` is borrowed, not owned, and must outlive the monitor — which only ever raises into it and never clears it. `config` is COPIED and checked here rather than at the first trip: all three thresholds must be finite, brownoutVolts and maxMotorTempC must be > 0, and brownoutRecoverVolts must be >= brownoutVolts so hysteresis cannot run backwards.  The finiteness of the recover level is load-bearing rather than tidiness. It used to be ORDERED but not checked for finiteness, so `+Inf` constructed — and `+Inf` passes the ordering. The re-arm test in tick() (`v >= brownoutRecoverVolts`) could then never be true, brownoutActive_ never cleared, and the whole run reported at most ONE brownout episode however many times the pack collapsed: the E1 anti-spam edge trigger silently became a permanent mute on the one signal it exists to report.
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:124`](../../include/shulib/diag/health_monitor.hpp#L124).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:129`](../../include/shulib/diag/health_monitor.hpp#L129).*
 
 <a id="healthmonitor-tick"></a>
 
@@ -114,7 +116,19 @@ void tick(const Observations& o)
 
 Evaluate one tick's observables; raise one fault per NEW episode (header).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:138`](../../include/shulib/diag/health_monitor.hpp#L138).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:143`](../../include/shulib/diag/health_monitor.hpp#L143).*
+
+<a id="healthmonitor-motorgroupdisagreeing"></a>
+
+### `HealthMonitor::motorGroupDisagreeing`
+
+```cpp
+[[nodiscard]] bool motorGroupDisagreeing() const noexcept
+```
+
+True while at least one coupled-group member is in a persisted-disagreement episode (as of the last tick) — for a panel that shows the live state beside the latched fault.
+
+*function, declared at [`include/shulib/diag/health_monitor.hpp:217`](../../include/shulib/diag/health_monitor.hpp#L217).*
 
 <a id="healthmonitor-brownedout"></a>
 
@@ -126,7 +140,7 @@ Evaluate one tick's observables; raise one fault per NEW episode (header).
 
 True once ANY brownout episode has occurred this run (latched; header note).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:195`](../../include/shulib/diag/health_monitor.hpp#L195).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:220`](../../include/shulib/diag/health_monitor.hpp#L220).*
 
 <a id="healthmonitor-imulost"></a>
 
@@ -138,7 +152,7 @@ True once ANY brownout episode has occurred this run (latched; header note).
 
 True while the IMU is in a lost episode (seen ready, currently not).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:197`](../../include/shulib/diag/health_monitor.hpp#L197).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:222`](../../include/shulib/diag/health_monitor.hpp#L222).*
 
 <a id="healthmonitor-reset"></a>
 
@@ -150,7 +164,7 @@ void reset() noexcept
 
 New-run boundary (mirrors FaultLatch::clear()): forget episodes AND the brownout marker; the boot-window rule starts over (imuSeenReady resets).
 
-*function, declared at [`include/shulib/diag/health_monitor.hpp:201`](../../include/shulib/diag/health_monitor.hpp#L201).*
+*function, declared at [`include/shulib/diag/health_monitor.hpp:226`](../../include/shulib/diag/health_monitor.hpp#L226).*
 
 <a id="struct-healthmonitor-observations"></a>
 
@@ -235,6 +249,18 @@ double maxMotorTempC = 0.0
 max IMotor::temperature() over the drive
 
 *field, declared at [`include/shulib/diag/health_monitor.hpp:98`](../../include/shulib/diag/health_monitor.hpp#L98).*
+
+<a id="healthmonitor-observations-groupmembersdisagreeing"></a>
+
+### `HealthMonitor::Observations::groupMembersDisagreeing`
+
+```cpp
+int groupMembersDisagreeing = 0
+```
+
+members of any hal::MotorGroup PERSISTENTLY disagreeing with their coupled group this tick (motion::tickHealthObservables sums every group's disagreeingMembers()); 0 = healthy, and the default for a robot with no groups
+
+*field, declared at [`include/shulib/diag/health_monitor.hpp:99`](../../include/shulib/diag/health_monitor.hpp#L99).*
 
 ## Design commentary, from the header
 

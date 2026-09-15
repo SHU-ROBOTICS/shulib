@@ -62,7 +62,8 @@ namespace shulib::teleop {
 inline constexpr std::size_t kMaxSideMembers = 21;
 
 /// The thresholds, every one of them INVENTED for a first hardware run (R3b Session 2 gate 5)
-/// and carried here unchanged so the drive program and the tester agree; R4 measures.
+/// and carried here unchanged so the drive program, the tester and hal::MotorGroup agree;
+/// R3d/R4 measure. PROVISIONAL (A4: HA-132); the near-zero fraction is also HA-133.
 struct SideMonitorConfig {
     double commandFloorV = 1.0;        ///< Evaluate only while |side command| exceeds this.
     double movingFloorRadS = 1.0;      ///< ... and only while the side's fastest present member exceeds this.

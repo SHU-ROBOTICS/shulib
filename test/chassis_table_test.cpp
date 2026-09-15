@@ -17,6 +17,7 @@
 
 #include <cstring>
 #include <initializer_list>
+#include <limits>
 
 #include "../src/chassis_table.hpp"
 
@@ -48,6 +49,10 @@ namespace {
         .measured = true,
         .signsMeasured = true,
         .provenance = "test",
+        .wheelDiameterIn = 2.75,  // as committed: reported, the rest UNSET (R3b Parts 1-3)
+        .trackWidthIn = 0.0,
+        .externalRatio = 0.0,
+        .geometryProvenance = "test",
     };
 }
 
@@ -224,4 +229,106 @@ TEST_CASE("chassis table: a SIGNED table must have BOTH sides non-empty") {
     unset.provenance = "";
     CHECK(consistent(unset, why, sizeof why));
     CHECK_FALSE(tableHasPorts(unset));
+}
+
+// ═══ Test 18 (R3b Parts 1–3): the table's GEOMETRY — UNSET refuses; set values reach the
+// kinematics and the odometry scale unchanged (bit-identical to a hand-built rig) ═══════
+// Bug caught: a guessed track width or ratio driving the robot wrong in silence (the library
+// graph must refuse while either is UNSET), or a helper that swaps two same-typed inches
+// (wheel diameter for track width) between the table and its consumers.
+#include "shulib/hal/drive_geometry.hpp"
+#include "shulib/kinematics/tank.hpp"
+#include "shulib/math/twist2d.hpp"
+#include "shulib/units/quantity.hpp"
+
+TEST_CASE("chassis table 18: geometry UNSET refuses the library graph, naming what is missing") {
+    using shulib::bench::describeMissingForLibrary;
+    using shulib::bench::tableGeometrySet;
+    char why[160];
+    // Robot two as committed today: wheel reported, track width and ratio UNSET.
+    ChassisTable t = robotTwo();
+    t.wheelDiameterIn = 2.75;
+    t.trackWidthIn = 0.0;
+    t.externalRatio = 0.0;
+    CHECK_FALSE(tableGeometrySet(t));
+    CHECK(describeMissingForLibrary(t, why, sizeof why));
+    CHECK(std::strstr(why, "track width") != nullptr);
+    CHECK(std::strstr(why, "external ratio") != nullptr);
+    CHECK(std::strstr(why, "wheel diameter") == nullptr);  // that one IS set
+    CHECK(std::strstr(why, "IMU") == nullptr);             // and so is the IMU
+    CHECK(consistent(t, why, sizeof why));                 // UNSET is legal; only the library refuses
+    // Each number alone still refuses.
+    t.trackWidthIn = 13.0;
+    CHECK(describeMissingForLibrary(t, why, sizeof why));
+    CHECK(std::strstr(why, "external ratio") != nullptr);
+    CHECK(std::strstr(why, "track width") == nullptr);
+    t.externalRatio = 1.0;
+    CHECK_FALSE(describeMissingForLibrary(t, why, sizeof why));
+    CHECK(tableGeometrySet(t));
+    CHECK(why[0] == '\0');
+    // The IMU is part of what the library needs (the tester's forDrive list excludes it).
+    t.imuPort = 0;
+    CHECK(describeMissingForLibrary(t, why, sizeof why));
+    CHECK(std::strstr(why, "IMU port") != nullptr);
+    // A negative or non-finite geometry number is a CONTRADICTION, refused by tableConsistent.
+    ChassisTable bad = robotTwo();
+    bad.trackWidthIn = -13.0;
+    CHECK_FALSE(consistent(bad, why, sizeof why));
+    CHECK(std::strstr(why, "track width") != nullptr);
+    bad = robotTwo();
+    bad.externalRatio = -1.0;
+    CHECK_FALSE(consistent(bad, why, sizeof why));
+    bad = robotTwo();
+    bad.wheelDiameterIn = std::numeric_limits<double>::quiet_NaN();
+    CHECK_FALSE(consistent(bad, why, sizeof why));
+    // The committed table (this TU compiles the bench bot's) has legal geometry fields.
+    CHECK(consistent(kChassis, why, sizeof why));
+    CHECK(kChassis.wheelDiameterIn == 2.75);
+    CHECK(kChassis.trackWidthIn == 0.0);   // UNSET, on purpose: never guessed
+    CHECK(kChassis.externalRatio == 0.0);  // UNSET, on purpose: never guessed
+    CHECK(std::strlen(kChassis.geometryProvenance) > 10);
+}
+
+TEST_CASE("chassis table 18: set geometry reaches TankKinematics and the odometry scale "
+          "bit-identically to a hand-built rig") {
+    using shulib::bench::tableDriveGeometry;
+    using shulib::bench::tableTrackWidth;
+    using shulib::hal::DriveGeometry;
+    using shulib::kinematics::TankKinematics;
+    using shulib::math::ChassisSpeeds;
+    using shulib::units::AngularVelocity;
+    using shulib::units::Length;
+    using shulib::units::Velocity;
+    ChassisTable t = robotTwo();
+    t.wheelDiameterIn = 2.75;
+    t.trackWidthIn = 13.25;   // a measured-looking, non-round value so a swap cannot hide
+    t.externalRatio = 0.6;
+    // Kinematics: the table's track width, bit for bit, on every wheel output.
+    const TankKinematics fromTable{tableTrackWidth(t)};
+    const TankKinematics byHand{Length{13.25}};
+    const ChassisSpeeds cmds[] = {
+        {Velocity{20.0}, Velocity{0.0}, AngularVelocity{0.0}},
+        {Velocity{15.0}, Velocity{0.0}, AngularVelocity{1.2}},
+        {Velocity{0.0}, Velocity{0.0}, AngularVelocity{-1.5}},
+        {Velocity{-18.5}, Velocity{3.0}, AngularVelocity{0.7}},
+    };
+    for (const ChassisSpeeds& c : cmds) {
+        const auto a = fromTable.toWheels(c);
+        const auto b = byHand.toWheels(c);
+        REQUIRE(a.size() == 2);
+        CHECK(a[0].value() == b[0].value());
+        CHECK(a[1].value() == b[1].value());
+    }
+    // Odometry / stall-check scale: the table's geometry, bit for bit.
+    const DriveGeometry g = tableDriveGeometry(t);
+    const DriveGeometry h = DriveGeometry::fromDiameter(Length{2.75}, 0.6);
+    CHECK(g.wheelRadius.value() == h.wheelRadius.value());
+    CHECK(g.motorToWheelRatio == h.motorToWheelRatio);
+    CHECK(g.inchesPerRadian().value() == h.inchesPerRadian().value());
+    CHECK(g.inchesPerRadian().value() == 1.375 * 0.6);
+    CHECK(g.valid());
+    // A swap of the two inch values would be visible on every line above: the track width
+    // is not the wheel diameter, and the helpers must never confuse them.
+    CHECK(tableTrackWidth(t).value() == 13.25);
+    CHECK(tableTrackWidth(t).value() != 2.0 * g.wheelRadius.value());
 }

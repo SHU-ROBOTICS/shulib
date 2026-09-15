@@ -115,7 +115,11 @@ struct MotionConfig {
     /// speed in DriveBrake's norm. Stand-in geometry (A4: HA-17/HA-52).
     units::Length rotationRadius{7.0};
 
-    /// The spin-vs-motion cross-check thresholds (A4: HA-52).
+    /// The spin-vs-motion cross-check thresholds (A4: HA-52) and, since R3b Part 2, its
+    /// per-wheel drive geometry (`stall.wheels`, hal::DriveGeometry — the same objects the
+    /// drive-encoder odometry converts with; `stall.setAllWheels()` for a symmetric drive) and
+    /// `stall.independentMotionSource` (false on a drivetrain whose odometry IS the drive
+    /// encoders: the check then never reports a verdict — odo_stall_check.hpp's §2 ruling).
     OdoStallCheckConfig stall{};
 
     /// Re-check the invariants the motions rely on and RAISE on the first violation:

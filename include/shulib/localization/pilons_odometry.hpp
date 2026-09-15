@@ -41,6 +41,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/imu.hpp"
 #include "shulib/localization/arc_step.hpp"
+#include "shulib/localization/odometry.hpp"
 #include "shulib/localization/tracking_wheel.hpp"
 #include "shulib/math/angle.hpp"
 #include "shulib/math/pose2d.hpp"
@@ -92,8 +93,10 @@ struct PilonsOdometryConfig {
 /// travel is offset-corrected to the tracking CENTER here, so a turn in place
 /// accumulates zero position. Holds the IMU by reference and copies the two
 /// wheels; the IMU and the wheels' rotation sensors must outlive this object.
-/// Owns no loop: the caller calls update() at its own cadence.
-class PilonsOdometry {
+/// Owns no loop: the caller calls update() at its own cadence. Implements the IOdometry
+/// seam (R3b Part 2) with no behavioural change — the four members were already exactly
+/// what the Localizer used; DriveEncoderOdometry is the seam's other implementation.
+class PilonsOdometry final : public IOdometry {
 public:
     /// `forward` must be a TrackingWheel::forward(), `lateral` a TrackingWheel::lateral() — the
     /// roles are checked so a swapped pair throws at construction. `initial` seeds the position;
@@ -121,7 +124,7 @@ public:
     }
 
     /// One integration tick: read the IMU + wheels, offset-correct, arcStep, accumulate.
-    void update() {
+    void update() override {
         const math::Angle h0 = prevHeading_;
         const math::Angle h1 = imu_.heading();
         const double dTheta = h0.errorTo(h1);  // shortest signed (wrap-correct)
@@ -169,18 +172,18 @@ public:
     /// read — it advances only when update() runs, so repeated calls between ticks
     /// return the same pose. Before the first update() it is the seeded position
     /// with the IMU's construction-time heading.
-    [[nodiscard]] math::Pose2d pose() const noexcept { return pose_; }
+    [[nodiscard]] math::Pose2d pose() const noexcept override { return pose_; }
 
     /// Teleport the POSITION (x, y); heading stays IMU-owned. Re-baselines the heading reference
     /// so the teleport itself injects no phantom rotation on the next tick. Wheel baselines are
     /// left intact (a teleport doesn't change what the wheels have rolled).
-    void setPose(const math::Pose2d& p) {
+    void setPose(const math::Pose2d& p) override {
         pose_ = math::Pose2d{p.x(), p.y(), imu_.heading()};
         prevHeading_ = imu_.heading();
     }
 
     /// True iff the last update() was untrustworthy (oversized Δθ OR non-finite integration).
-    [[nodiscard]] bool lastDeltaImplausible() const noexcept { return implausible_; }
+    [[nodiscard]] bool lastDeltaImplausible() const noexcept override { return implausible_; }
 
 private:
     hal::IImu& imu_;

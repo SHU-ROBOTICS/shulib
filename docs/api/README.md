@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 1,710 of them across 121 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 1,775 of them across 125 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -80,12 +80,14 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Arc step](arc_step.md) | [`localization/arc_step.hpp`](../../include/shulib/localization/arc_step.hpp) | arc_step.hpp — the one constant-curvature integration step. |
 | [Complementary fusion](complementary_fusion.md) | [`localization/complementary_fusion.hpp`](../../include/shulib/localization/complementary_fusion.hpp) | ComplementaryFusion — the M2 fusion policy. |
 | [Correction](correction.md) | [`localization/correction.hpp`](../../include/shulib/localization/correction.hpp) | correction.hpp — the value types the localization fusion seam exchanges. |
+| [Drive encoder odometry](drive_encoder_odometry.md) | [`localization/drive_encoder_odometry.hpp`](../../include/shulib/localization/drive_encoder_odometry.hpp) | DriveEncoderOdometry — dead reckoning from the DRIVE motors' own encoders and the IMU, for a tank drive with no tracking wheels. |
 | [EKF fusion](ekf_fusion.md) | [`localization/ekf_fusion.hpp`](../../include/shulib/localization/ekf_fusion.hpp) | EkfFusion — the M3 fusion policy: a 5-state SE(2) extended Kalman filter behind the SAME `IFusionPolicy` seam `ComplementaryFusion` has occupied since M2. |
 | [GPS corrector](gps_corrector.md) | [`localization/gps_corrector.hpp`](../../include/shulib/localization/gps_corrector.hpp) | GpsCorrector — the FIRST REAL corrector. |
 | [ICorrector](i_corrector.md) | [`localization/i_corrector.hpp`](../../include/shulib/localization/i_corrector.hpp) | ICorrector — the WRITE seam: one source of ABSOLUTE position fixes (V5 GPS, AprilTag PnP, LIDAR scan-match). |
 | [IFusionPolicy](i_fusion_policy.md) | [`localization/i_fusion_policy.hpp`](../../include/shulib/localization/i_fusion_policy.hpp) | IFusionPolicy — the swap point that lets a complementary filter ship NOW and a 5-state SE(2) EKF drop in LATER behind the same seam. |
 | [IPoseSource](i_pose_source.md) | [`localization/i_pose_source.hpp`](../../include/shulib/localization/i_pose_source.hpp) | IPoseSource — the READ seam every pose consumer (motion, alignment, telemetry, skills) depends on. |
 | [Localizer](localizer.md) | [`localization/localizer.hpp`](../../include/shulib/localization/localizer.hpp) | Localizer — the fused field-frame estimate. |
+| [Odometry](odometry.md) | [`localization/odometry.hpp`](../../include/shulib/localization/odometry.hpp) | IOdometry — the dead-reckoning seam the Localizer predicts from. |
 | [Pilons odometry](pilons_odometry.md) | [`localization/pilons_odometry.hpp`](../../include/shulib/localization/pilons_odometry.hpp) | PilonsOdometry — tracking-wheel dead-reckoning. |
 | [Tag map](tag_map.md) | [`localization/tag_map.hpp`](../../include/shulib/localization/tag_map.hpp) | TagMap — where the AprilTags are on the field, and where each of those numbers CAME FROM. |
 | [Tracking wheel](tracking_wheel.md) | [`localization/tracking_wheel.hpp`](../../include/shulib/localization/tracking_wheel.hpp) | TrackingWheel — one unpowered odometry wheel: an `IRotation` sensor + the wheel's diameter + its mounting offset from the tracking center. |
@@ -163,6 +165,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Digital out](digital_out.md) | [`hal/digital_out.hpp`](../../include/shulib/hal/digital_out.hpp) | IDigitalOut — a single digital output line behind the HAL (chunk F1, WS7/M4): a pneumatic solenoid on the ADI ports, or any other two-state actuator. |
 | [Distance](distance.md) | [`hal/distance.hpp`](../../include/shulib/hal/distance.hpp) | IDistance — a distance / time-of-flight sensor (pros::Distance) behind the HAL. |
 | [Distance conversion](distance_conversion.md) | [`hal/distance_conversion.hpp`](../../include/shulib/hal/distance_conversion.hpp) | Distance-sensor canonical conversions — the ONE place the V5 distance sensor's millimeters become shulib's canonical inches and its raw 0–63 confidence becomes [0, 1] (§7: "convert exactly once, at the edge"). |
+| [Drive geometry](drive_geometry.md) | [`hal/drive_geometry.hpp`](../../include/shulib/hal/drive_geometry.hpp) | DriveGeometry — ONE description of a drive side's geometry, consumed by BOTH the drive-encoder odometry and the stall cross-check. |
 | [GPS](gps.md) | [`hal/gps.hpp`](../../include/shulib/hal/gps.hpp) | IGps — the VEX GPS behind the HAL, reporting in shulib's CANONICAL frame (the VEX meters / clockwise-from-North convention is converted away in the hal/pros adapter via gps_conversion.hpp). |
 | [GPS conversion](gps_conversion.md) | [`hal/gps_conversion.hpp`](../../include/shulib/hal/gps_conversion.hpp) | GPS canonical conversions — the ONE place the VEX GPS frame becomes shulib's canonical frame (§7: "convert exactly once, at the edge"). |
 | [IMU](imu.md) | [`hal/imu.hpp`](../../include/shulib/hal/imu.hpp) | IImu — the inertial sensor behind the HAL, reporting in shulib's CANONICAL frame (the V5's clockwise/degrees convention is converted away in the hal/pros adapter via imu_conversion.hpp, so everything above this line is CCW-positive radians). |
@@ -171,6 +174,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Mechanism](mechanism.md) | [`hal/mechanism.hpp`](../../include/shulib/hal/mechanism.hpp) | The mechanism device seam (chunk F1, WS7/M4): IMechanism + the two concrete compositions every VEX mechanism reduces to at the device level — a group of motors on one shaft (MotorMechanism) and a set of digital lines switching one pneumatic circuit (Pneumat… |
 | [Motor](motor.md) | [`hal/motor.hpp`](../../include/shulib/hal/motor.hpp) | IMotor — a single V5 smart motor behind the HAL. |
 | [Motor conversion](motor_conversion.md) | [`hal/motor_conversion.hpp`](../../include/shulib/hal/motor_conversion.hpp) | Motor canonical conversions — the ONE place the V5 smart motor's units become shulib's canonical units (§7: "convert exactly once, at the edge"). |
+| [Motor group](motor_group.md) | [`hal/motor_group.hpp`](../../include/shulib/hal/motor_group.hpp) | MotorGroup — N physically COUPLED motors behind ONE IMotor. |
 | [Null sink](null_sink.md) | [`hal/null_sink.hpp`](../../include/shulib/hal/null_sink.hpp) | NullSink — the zero-cost default ITelemetrySink (§18.1). |
 | [Optical](optical.md) | [`hal/optical.hpp`](../../include/shulib/hal/optical.hpp) | IOptical — a color / optical sensor (pros::Optical) behind the HAL. |
 | [Optical conversion](optical_conversion.md) | [`hal/optical_conversion.hpp`](../../include/shulib/hal/optical_conversion.hpp) | Optical-sensor canonical conversions — the ONE place the V5 optical sensor's raw channels become shulib's canonical ranges (§7: "convert exactly once, at the edge"). |
@@ -228,7 +232,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 1,710 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 1,775 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

@@ -1307,3 +1307,402 @@ byte-exact (`1460672…` / `b39abd8…` / `68d3a7a…` after each).
 
 **PART 0B READY FOR VERIFICATION**
 
+## Parts 1–3 — 2026-09-14 — THE LIBRARY DRIVES ROBOT TWO (brief `R3b-parts123-library-drives.md`)
+
+**Scope declaration, written before any code (Session 1's precedent, so an interrupted log cannot
+over-claim):** this section covers the execution brief's Parts 1–3 and nothing past them —
+`hal::MotorGroup` with its plant support, the `MotorGroupDisagree` fault routed through
+`tickHealthObservables`, the `==` motor-count guard; the `IOdometry` seam, `DriveEncoderOdometry`,
+ONE drive-geometry type consumed by the odometry and the stall check, and the brief's §2 ruling on
+the stall check; the chassis table's geometry fields, `PROGRAM=library` ("shulib Teleop"), the tank
+`Robot` graph, the fifth gate build; tests 1–13 and 16–19 with every listed mutation RUN; the
+documentation pass of brief §6. **Nothing here has run on hardware.** The library graph is meant to
+BUILD for robot two; the first run is the coordinator's and the team lead's. M1's badge does not
+move. Nothing is committed by the executor. Tree at start: `7fdaca6` (clean). Baseline claimed by
+the brief: suite 1188 / 1,540,944 clean-tree, 154 headers, gate PASS ×4, 3 `src/` TUs —
+re-measured below before being trusted.
+
+**A plan ruling received from the coordinator mid-task (team lead, 2026-09-14), to be recorded in
+the documentation pass:** BOTH of this season's competition robots are TANK drives for the fall
+semester; the X-drive is built in spring and the holonomic work finishes then. Goes into
+`build-order.md`'s deviations table (R3c and I2's holonomic half slip to spring; R3c's
+absolute-reference half — GPS/AprilTag on a field — needs no holonomic chassis and can proceed on a
+tank robot once a GPS/camera is mounted; I1 becomes "robot one, also tank": a second chassis table
+plus R3d's calibration, not new core), one sentence in `roadmap.md`'s "you are here", and a one-line
+note at the head of the Phase R / R3c entry. `docs/shulib-v2-master-plan.md` is NOT edited (the
+coordinator amends its "Robots" section afterwards). The holonomic code stays as it is.
+
+### 1. Baseline re-established (clean tree, `7fdaca6`)
+
+- Host build (existing `build/test` configure, all doc gates in-build): exit 0; binary md5
+  `c8d0260d…` (saved to the scratchpad as the GREEN binary for the mutation cycle).
+- Host suite: **1188 cases / 1,540,944 assertions / 0 failed / 3 skipped** — matches the brief's
+  clean-tree number exactly.
+- `include/shulib/*.hpp`: **154 headers** (matches).
+- `git status` at start: `docs/shulib-v2-master-plan.md` shows MODIFIED and I did not touch it —
+  the coordinator's message says the master plan is amended by the coordinator after this pass,
+  so it is being edited concurrently in this tree. Left strictly alone; not part of this section's
+  diff. (The gate/suite numbers above do not depend on it.)
+
+### 2. Brief checks — what the reading found before writing
+
+- **"Evaluated on each read" (Session 2 §4.2) cannot be literal.** The disagreement observable
+  is `teleop::CoupledSideMonitor`, which COUNTS PERSISTENCE (25 consecutive ticks) inside
+  `update()`. Evaluating it inside `position()` / `velocity()` / `temperature()` would advance
+  the 250 ms window once per READ — three or four times per control tick — and nobody in the
+  motion stack reads `velocity()` at all (the pipeline writes volts; the odometry reads
+  `position()`; the health tick reads `temperature()`), so a read-side evaluation would also
+  never run on the path that matters. Resolved (D1-1 below): one explicit evaluation per tick,
+  performed by `motion::tickHealthObservables()`, which the execution brief already names as
+  the route ("so it fires in drive() and every motion").
+- **`tickHealthObservables()` sees only `IMotor*`.** F4 is frozen, so `IMotor` cannot grow a
+  virtual for the observable, and the tree builds without RTTI assumptions. Resolved by an
+  ADDITIVE, defaulted `MotionDeps::motorGroups` span (D1-2) — the bundle is outside F6 by the
+  register's own wording ("the deps bundle's OWN member surface … belongs to C1/C2's layers").
+- **The Session 2 brief's "teleop loop … already extracted for the X-drive graph" is not true
+  of the tree at `7fdaca6`:** `opcontrol()` carries the R1a loop INLINE. Part 3 extracts it
+  into one function both graphs call (the brief's intent), and says so.
+- **`docs/shulib-v2-master-plan.md` is dirty in the working tree at start** (the coordinator's
+  concurrent amendment, per the ruling message). Not touched here.
+- The `FaultCode` enum has exactly one exhaustive `switch` in the tree (`faultCodeName`);
+  `mechanism_outcome.hpp` / `mechanism_op.hpp` only NAME `MechanismStalled`. So the append
+  touches `fault.hpp` and its pin test only.
+
+### 3. Decisions taken (with the rejected alternatives)
+
+**D1-1 — The group's disagreement observable is evaluated ONCE per control tick, explicitly
+(`MotorGroup::evaluateDisagreement()`), by `motion::tickHealthObservables()`.** The monitor is
+stateful (persistence counters); one evaluation per tick is the only semantics under which its
+25-tick window means 250 ms. `disagreeingMembers()` / `disagreeingMask()` / `lastVerdict()` are
+the stored result of the last evaluation.
+- Rejected: evaluating on every read (the brief's wording) — advances the window per read and
+  never runs on the motion stack's path (§2 above).
+- Rejected: a separate loop-layer detector — a SECOND evaluator over the same numbers; the
+  execution brief's "one evaluator, not two" forbids it.
+
+**D1-2 — `MotionDeps` gains `std::span<hal::MotorGroup* const> motorGroups = {}`** (additive,
+defaulted, designated-initializer-compatible; every existing call site compiles unchanged).
+`tickHealthObservables()` sums each group's persisted count into a new
+`HealthMonitor::Observations::groupMembersDisagreeing`, and `HealthMonitor` raises the appended
+`FaultCode::MotorGroupDisagree = 12` ("MOTOR_GROUP_DISAGREE", subsystem MOT) per EPISODE. The
+scheduler's default `abortFaultMask` is `ODO_STUCK` only, so the new code is continue-degraded
+by default with no scheduler change; test 4 pins both the default and the opt-in abort.
+- Rejected: a virtual on `IMotor` — F4 is frozen.
+- Rejected: `dynamic_cast` inside the health tick — RTTI-dependent, and a hidden dependency on
+  the concrete type inside a function that is supposed to see the seam.
+
+**D1-3 — `hal/motor_group.hpp` includes `teleop/coupled_side_monitor.hpp`.** The monitor is
+pure, PROS-free and already the drive program's detector; reusing it IS the brief's ruling. The
+include direction (hal → teleop) is unusual and is stated in the header.
+- Rejected: moving the monitor into `hal/` — "shulib Drive" and the tester bind to `teleop::`
+  and Part 0b's tests pin it there; a move for tidiness would touch hardware-proven code.
+
+**D1-4 — Median for even N is the mean of the two middle values.** Exact when they agree (the
+healthy case), untouched by ONE frozen member for N ≥ 4, and for N = 2 no aggregate can tell
+the live member from the dead one — stated in the header, not hidden. Robot two is N = 5.
+- Rejected: the lower-middle element — no better for N = 2, and a discontinuous aggregate.
+
+**D1-5 — The plant's coupled members are a POST-construction attach
+(`DrivePlant::attachCoupledMembers(wheel, span)`) plus `setMemberFault(wheel, member, fault)`
+with `MemberFault{None, Frozen, SignFlipped}`.** One member per wheel (no call) leaves the
+primary's two synthesis lines byte-for-byte as they were, so the whole existing suite is the
+pin (landmine 5). A Frozen member HOLDS position AND velocity from the fault tick (a dead port
+through ProsMotor's last-good screen); a SignFlipped member reports its mates' state negated.
+- Rejected: a constructor parameter — every `SimHarness` construction would change shape for a
+  feature only the group tests use.
+- Rejected: freezing position only — a dead port freezes every reading; the monitor's
+  frozen-member signature is velocity == 0 while the mates turn, which a position-only freeze
+  would not produce.
+
+**D1-6 — `MotionDeps::validate()` demands EQUALITY, with the message naming `hal::MotorGroup`
+and both failure directions.** No existing test relied on `>=` (verified by the suite run
+below — if one had, this entry would name it).
+
+**D2-1 — ONE drive geometry type, `hal::DriveGeometry` (`hal/drive_geometry.hpp`).** Wheel radius
+× motor→wheel ratio → inches per radian; `fromDiameter()` for what a human measures; `valid()`
+refuses UNSET (0). In `hal/` because it describes the mechanism the adapters sit on and both
+consumers (localization/, motion/) can include hal/ without a layering exception. Asymmetric
+sides = two objects.
+- Rejected: `kinematics/` — F5's home; the ruling says the ratio never lives in kinematics.
+- Rejected: `localization/` — motion/ would then pull the odometry tree into the stall check.
+
+**D2-2 — `OdoStallCheckConfig::wheelRadius` (one scalar) becomes `wheels` (an array of
+`DriveGeometry`, one per kinematic wheel, every slot defaulting to the old stand-in) plus
+`setAllWheels()` for the symmetric one-liner.** spinTravel = mean_i(|Δshaft_i|·ipr_i). Not
+bit-identical to the old `(Σ|Δ|/n)·r` in floating point (products before the sum), which can
+matter only at an exact threshold boundary; the suite (margins everywhere) is the pin and stayed
+green. `lastSpinTravel()` / `lastObservedMotion()` exposed so test 13 can compare the two
+consumers on bits and a panel can show them.
+- Rejected: a span in the config — lifetime trouble in a config that is copied by value
+  (`MotionConfig`, `ChassisConfig`).
+- Rejected: keeping `wheelRadius` beside the array — two sources of truth in one struct.
+
+**D2-3 — The §2 ruling is a config bit, `OdoStallCheckConfig::independentMotionSource`
+(default true), and the verdict is `independentMotionSource && …`.** `canDetectStall()` reports
+it; the observables still compute; `kNoIndependentStallSourceNote` is the ONE boot-log line,
+named in the header so the log and the reasoning cannot drift. The tank composition root sets it
+false and logs the note once.
+- Rejected: leaving the check wired on a drive-encoder robot — a verdict it cannot make.
+- Rejected: refusing to construct — every motion builds the check from its config; the robot
+  must still drive.
+- Rejected: a `MotionDeps` flag — the fact is about the stall check's inputs, so it lives with
+  the check's config, next to the geometry it also needs.
+
+**D2-4 — `DriveEncoderOdometryConfig` is its own struct with the SAME two knobs as
+`PilonsOdometryConfig` (names, defaults), whose field comments are cited, not copied.**
+- Rejected: `using DriveEncoderOdometryConfig = PilonsOdometryConfig` — a config named for the
+  other odometry on this class's constructor.
+
+**D2-5 — `DriveEncoderOdometry` re-baselines a side ONLY on a finite read.** Parity with Pilons
+on the tick itself (position frozen, heading advances, flagged); one step better afterwards: the
+next finite read integrates the travel across the bad tick instead of poisoning every later tick
+(TrackingWheel's baseline goes NaN for good). Pinned by test 12.
+
+**D2-6 — `PilonsOdometry` is now `final : public IOdometry`, four `override`s, no other change.
+`Localizer` takes `IOdometry&`; its header prose names the seam.** Neither `Localizer` nor
+`PilonsOdometry` is in the Freeze Register (checked: the frozen rows touched by nothing here are
+F4 hal seams, F5 kinematics, F6 Chassis, F10 Routine). Source-compatible: every existing caller
+passes a `PilonsOdometry&`, which binds to the base reference. `ekf_fusion.hpp` names
+`PilonsOdometry` only in prose, so its include set is unchanged.
+
+**D2-7 — The plant stays at 1:1.** The team lead has reported no motor→wheel ratio other than
+"600 rpm" (which reads as direct drive but is not a tooth count); the original brief's ruling
+teaches the plant a ratio only when one other than 1:1 is reported. `DrivePlantConfig::
+driveWheelDiameter` is untouched; test 9 configures the odometry from it via
+`DriveGeometry::fromDiameter(diameter, 1.0)` and says so.
+
+### 4. Work log (appended as it happens)
+
+- **Part 1 written and GREEN.** New `include/shulib/hal/motor_group.hpp`; `diag/fault.hpp`
+  (`MotorGroupDisagree = 12`, `"MOTOR_GROUP_DISAGREE"`); `diag/health_monitor.hpp`
+  (`Observations::groupMembersDisagreeing`, the per-episode raise, `motorGroupDisagreeing()`);
+  `motion/motion.hpp` (`MotionDeps::motorGroups`, `validate()` `>=` → `==` naming
+  `hal::MotorGroup`, `tickHealthObservables()` evaluating every group once); `chassis/robot_context.hpp`
+  (the three "never checked" comments corrected); `sim/drive_plant.hpp` (`MemberFault`,
+  `attachCoupledMembers()`, `setMemberFault()`); `test/fault_test.cpp` (the value-12 pin);
+  `test/motor_group_test.cpp` (tests 1, 3, 5, 6, 16 + construction refusals);
+  `test/motor_group_plant_test.cpp` (tests 2, 3-plant, 4, 7 clean + 7 hostile).
+- **A defect found in the tree while doing it (fixed in place, Session-1 rule "a chunk that
+  finds a flaw in an earlier chunk fixes it there"):** `motion/motion_scheduler.hpp:612-616`
+  assembles the scheduler's stamped `MotionDeps` FIELD BY FIELD, so any additive field is
+  silently dropped on the scheduled path. Test 4 caught it: the same fighting member raised
+  `MOTOR_GROUP_DISAGREE` under a hand-ticked `MoveToPose` and raised NOTHING under the
+  scheduler. `.motorGroups = deps.motorGroups` is now carried, with a comment naming the trap.
+- **A test expectation of mine that was wrong (recorded because the reasoning matters):** the
+  first draft of tests 3/4 read `disagreeingMembers()` AFTER the motion settled. At rest the
+  side is uncommanded, the monitor is not evaluated, the streaks reset and the episode
+  re-arms — that is the DESIGN (a fight is a live state; the latch keeps the history). The
+  tests now sample the PEAK over the run and the latch's count, and assert the end-of-run
+  value IS 0.
+- The Session-1 §4.2 trap, met again and handled the same way: the first build stopped at
+  `check-fresh` (a new public header), the second at the briefing gate (dirty-tree drift);
+  `docs/api` and the briefing regenerated transiently, third build relinked (md5 `01bc6ee5…`),
+  then the scheduler fix relinked again (md5 `fee31f2c…`).
+- **Suite after Part 1: 1199 cases / 1,559,907 assertions / 0 failed / 3 skipped** (dirty
+  tree). The 1188 pre-existing cases are all green and their assertion total is unchanged
+  (1,540,944 + 18,963 new = 1,559,907), so the plant's coupled-member change is bit-identical
+  for one member per wheel — the whole suite is the pin, as landmine 5 demands — and NO
+  existing test relied on `>=` (D1-6 holds; nothing to fix). Coverage: 1,734 entities / 122
+  headers, all documented. Saved as the green binary for the Part 1 mutation cycle.
+- **Part 2 written and GREEN (7 new cases, first run).** New `hal/drive_geometry.hpp`,
+  `localization/odometry.hpp`, `localization/drive_encoder_odometry.hpp`; `motion/odo_stall_check.hpp`
+  rewritten (per-wheel `wheels`, `setAllWheels()`, `independentMotionSource`, `canDetectStall()`,
+  `lastSpinTravel()`, `lastObservedMotion()`, `kNoIndependentStallSourceNote`);
+  `localization/pilons_odometry.hpp` (`final : public IOdometry`, four `override`s);
+  `localization/localizer.hpp` (`IOdometry&`, prose); `motion/motion_config.hpp` (the `stall`
+  field's doc); `test/motion_stall_check_test.cpp:197` (`wheelRadius` → `wheels[0]`, the ONE
+  existing consumer of the removed field); `test/drive_encoder_odometry_test.cpp` (8b, 9, 10, 11,
+  12, 13, 17). The removability gate caught `R3a-PROGRESS §8.4` in a public header banner (the
+  Part 0b catch again) — reworded to "the development log on the shulib-v2 branch". Coverage:
+  1,775 entities / 125 headers, all documented. Binary md5 `f3e9f42c…`.
+- **Suite after Part 2: 1206 cases / 1,563,119 assertions / 0 failed / 3 skipped** (dirty tree).
+  **Test 8 (the seam changes nothing) holds to the digit:** the seven new cases add exactly 3,212
+  assertions (their isolated run of 3,775 included the nine pre-existing `OdoStallCheck:` cases,
+  563), and 1,559,907 + 3,212 = 1,563,119 — the pre-existing suite's total is unchanged through
+  `Localizer`'s virtual dispatch and the stall check's per-wheel conversion. Worst drive-encoder
+  odometry error vs the A2 truth over the 6 s script: printed by test 9 (sub-1e-6 in; the bound
+  is the perfect-sensor bound of `sim_odometry_truth_test.cpp`).
+
+### 5. Mutations — each run, red OBSERVED verbatim, restored byte-exact, green re-run
+
+Protocol (Session 1 §4.2, Part 0b §5, made mechanical in a scratchpad driver): per mutation —
+plant (the target must occur EXACTLY once, asserted), regenerate `docs/api` transiently and the
+briefing with the GREEN binary in place (the briefing gate reads the binary's suite counts), a
+REAL `cmake --build`, assert exit 0 AND a changed binary md5, run the target cases, record the
+red; restore the pristine bytes, assert the file md5 equals the pristine's, regenerate, rebuild,
+re-run the cases green. A mutant that did not build is recorded as FAKE and re-run. The rebuild
+after every restore reproduced the SAME binary md5 as the green one (`fee31f2c` for Part 1,
+`f3e9f42c` for Part 2) — the host build is deterministic, so "restored" is a fact about the
+binary, not only the source.
+
+**Part 1 (green binary `fee31f2c…`, 1199 cases):**
+
+| # | Mutation (file) | Mutant md5 | Observed red (verbatim doctest lines, first few) | After restore |
+|---|---|---|---|---|
+| M1 | fan-out loop stops one short (`motor_group.hpp`) | `5a72ac8c` | `MotorGroup 1:*` 0 passed / **1 failed**, 42 / **5 failed**: `motor_group_test.cpp:83: CHECK( m.commandedVoltage().value() == 7.25 )`, `:90 … == 12.0`, `:95 … == -12.0`, `:114 … == 3.0`, `:125: REQUIRE( m.commandedVoltage().value() == expected )` all `is NOT correct!` (the fifth member never got a volt) | 1/1, 3037/3037 green |
+| M2 | `+ 1e-9` on the median (any arithmetic in the read path) | `4f74b838` | `MotorGroup 2:*,7:*` **0 passed / 3 failed**: `motor_group_plant_test.cpp:196: REQUIRE( base.groupPos[i] == group.groupPos[i] )` ×3 (N = 1, the clean sweep AND the hostile sweep all lose bit-identity) | 3/3, 14317/14317 green |
+| M3 | median → mean | `86493b0e` | `MotorGroup 3*` 0 / **2 failed**, 354 / **16 failed**: the plant case's `:196` bit-identity, then `motor_group_test.cpp:159: CHECK( g.position().value() == 10.0 )` (reads 8.6), `:160 … == 6.5`, `:167 … == 123.456` ×5, `:168 … == -9.75` … | 2/2, 829/829 green |
+| M4a | health tick no longer evaluates the groups (`motion.hpp`) | `bf294d3c` | `MotorGroup 4:*,3 (plant)*` 0 / **2 failed**, 528 / **11 failed**: `:265: CHECK( b.peakDisagreeing[0] == 1 )`, `:266 peakMask`, `:271: CHECK( frozen.latch.raiseCount(MotorGroupDisagree) == 1 )`, `:272 firstFault`, `:306`, `:307`, `:308: CHECK( peak.peakDisagreeing[1] == 1 )`, `:309` … — nothing counted, nothing raised, in both cases | 2/2 green |
+| M4b | HealthMonitor does not raise (`health_monitor.hpp`) | `62e79087` | `MotorGroup 4:*` 0 / **1 failed**, 13 / **5 failed**: `:306 raiseCount == 1`, `:307 firstFault`, `:321: CHECK( sawLine )`, `:336: CHECK( sched2.waitUntilSettled() == Cancelled )`, `:337 abortFault == MotorGroupDisagree` — the member is still COUNTED (M4a's lines stay green) but no fault reaches the latch or the scheduler's abort policy | 1/1, 13/13 green |
+| M5 | `==` → `>=` in `MotionDeps::validate()` | `49ecad4f` | `MotorGroup 5:*` 0 / **1 failed**, 6 / **3 failed**: `motor_group_test.cpp:252: CHECK( what.find("MotorGroup") != npos )`, `:253 … "EQUAL"`, `:258: CHECK_THROWS_AS( depsOf(c3).validate(), PreconditionError ) did NOT throw at all!` — four motors on two wheels accepted again; three too | 1/1, 6/6 green |
+| M6 | temperature max → mean | `9dd53dab` | `MotorGroup 6:*` 0 / **1 failed**, 9 / **2 failed**: `:293: CHECK( g.temperature() == 55.0 )` (reads 42.0 — the member about to throttle hidden), `:295 … == 61.5` | 1/1, 9/9 green |
+| M16a | the group's nearZeroFraction 0.25 → 0.85 (a 20 % slow member flags) | `bf3fa556` | `MotorGroup 16:*` 0 / **1 failed**, 155 / **1 failed**: `motor_group_test.cpp:351: REQUIRE( v.disagreeingMask == 0 )` — port 18's signature reported as a fight | 1/1, 736/736 green |
+| M16b | the sign test dropped in the shared monitor (`coupled_side_monitor.hpp`) | `4330a437` | `MotorGroup 16:*,side monitor:*` 3 passed / **7 failed**, 737 / **17 failed** — the driver kept the first eight red lines, all Part 0b's own (`coupled_side_monitor_test.cpp:90/93/95/96/97/105/111/130`); test 16's own red is therefore RE-RUN alone below (D5: observed, not inferred) | 10/10, 818/818 green |
+
+**Part 2 (green binary `f3e9f42c…`, 1206 cases):**
+
+| # | Mutation (file) | Mutant md5 | Observed red | After restore |
+|---|---|---|---|---|
+| M9a | ΔL/ΔR swapped (`drive_encoder_odometry.hpp`) | `7e0d782d` | `DriveEncoderOdometry 9:*,11:*` **0 / 2 failed**, 509 / 2: `drive_encoder_odometry_test.cpp:182: REQUIRE( std::abs(odom2.lastHeadingDisagreement()) < kExact )` and `:274` (test 11's clean-rolling silence). **Honest note:** test 9's TRUTH-tracking line (`:179`) stayed green — the centre travel (ΔL+ΔR)/2 is symmetric, so a swap cannot move the pose; it is the heading CROSS-CHECK line inside test 9, and test 11, that see it. The brief listed the swap under test 9; it is caught there, by that line, not by the pose | 2/2, 3105/3105 green |
+| M9b | the /2 dropped | `39bcdfe2` | `9:*` **0 / 1 failed**: `:179: REQUIRE( err < kBoundIn )` on the first tick | 1/1, 2501/2501 green |
+| M9c | lateral ≠ 0 (0.1·forward) | `8aa2695c` | `9:*` **0 / 1 failed**: `:179: REQUIRE( err < kBoundIn )` | 1/1 green |
+| M10 | the left scale used for both sides | `c128b7ac` | `10:*,13:*` **0 / 2 failed**, 38 / **5 failed**: `:221: CHECK( drift == Approx(0.01 * travelled) )` (no drift where 1 % was predicted), `:224: CHECK( odomBad.lastHeadingDisagreement() > 0.0 )`, `:398: CHECK( check.lastSpinTravel().value() == odomForward )` (the asymmetric cases) | 2/2, 38/38 green |
+| M11 | cross-check with the wrong sign | `8ea78ee6` | `11:*` **0 / 1 failed**, 105 / 1: `:274: REQUIRE( std::abs(odomC.lastHeadingDisagreement()) < kExact )` — the clean ARC segments read −2Δθ. **Honest note:** the straight-slip sign assertions (`:238-240`) stayed green under this mutation: with a straight command both encoders count the same spin, so (dR−dL) is 0 with either sign and the disagreement is −Δθ_imu regardless. The arc-silence check is what pins the sign | 1/1, 604/604 green |
+| M12a | rotation half of the gate removed | `efde6fc2` | `12:*` 23 / **1 failed**: `:300: CHECK( odom.lastDeltaImplausible() )` (121° in one tick trusted) | 1/1, 23/23 green |
+| M12b | travel half removed | `c000979e` | `12:*` 23 / **1 failed**: `:307: CHECK( odom.lastDeltaImplausible() )` (a 1000 rad side jump trusted) | green |
+| M12c | non-finite freeze removed | `0b8c628e` | `12:*` 23 / **3 failed**: `:319: CHECK( odom.pose().x().value() == before.x().value() )`, `:320 y`, `:332: CHECK( std::isfinite(odom.pose().x().value()) )` — the NaN poisoned the pose | green |
+| M13 | the stall check converts with the radius alone (ignores the ratio) (`odo_stall_check.hpp`) | `e976d0b2` | `13:*` 32 / **2 failed**: `:398: CHECK( check.lastSpinTravel().value() == odomForward )` ×2 — the two ratio ≠ 1 geometries; the two consumers disagree | 1/1, 32/32 green |
+| M17 | the check re-wired (verdict without an independent source) | — | **FAKE on the first run** (build exit 2): the cycle ran while my chassis-table edit for Part 3 was in the tree with the test's initializer not yet listing the new fields (`-Werror=missing-field-initializers`). Re-run below | — |
+| M16b (solo) | the sign test dropped, filter `MotorGroup 16:*` only | — | **FAKE on the first run**, same cause. Re-run below | — |
+
+**Re-runs and Part 3 (green binary `8c649d4f…`, 1208 cases):**
+
+| # | Mutation (file) | Mutant md5 | Observed red | After restore |
+|---|---|---|---|---|
+| M17 (re-run) | the stall check re-wired: `stalled_ = (spinTravel >= …` without `independentMotionSource &&` | `3c326982` | `OdoStallCheck 17:*` 0 / **1 failed**, 10 / **3 failed**: `drive_encoder_odometry_test.cpp:454: CHECK_FALSE( feedStall(unwired) )`, `:455: CHECK_FALSE( unwired.stalled() )`, `:463: REQUIRE_FALSE( unwired.update(…) )` — a verdict from a tautology | 1/1, 32/32 green |
+| M16b (re-run, solo) | the sign test dropped in the shared monitor, filter `MotorGroup 16:*` ONLY | `567e9025` | 0 / **1 failed**, 655 / **1 failed**: `motor_group_test.cpp:370: REQUIRE( v.disagreeingMask == (std::uint32_t{1} << 3) )` — the member turning AGAINST its mates is no longer seen. Observed, not inferred | 1/1, 736/736 green |
+| M18 | `tableTrackWidth()` returns the wheel diameter (`src/chassis_table.hpp`) | `1d22713e` | `chassis table 18:*` 1 / **1 failed**, 43 / **8 failed**: `chassis_table_test.cpp:319: CHECK( a[0].value() == b[0].value() )` ×3, `:320` ×3 (every kinematics output), `:332: CHECK( tableTrackWidth(t).value() == 13.25 )`, `:333` | 2/2, 43/43 green |
+| M19 | the Makefile's `PROGRAM=library` append dropped — the gate's self-test case 12, a REAL `make ROBOT=tank PROGRAM=library` against the planted Makefile | (ELF) | recorded under §6 from the self-test run | restored by the plant class's byte-exact assertion |
+
+Totals: **21 distinct mutations** (9 Part 1, 10 Part 2, 1 Part 3, 1 gate), every one built as a
+distinct binary, red on the assertion it was aimed at, restored byte-exact, green re-run; M16b
+observed twice (with and without Part 0b's suite). Two FAKE first runs (M17, M16b — my own
+Part 3 table edit broke the host build mid-campaign) re-run and counted only from the re-run.
+No mutation stayed green.
+
+### 4b. Part 3 work log
+
+- **`src/chassis_table.hpp`:** `wheelDiameterIn` / `trackWidthIn` / `externalRatio` /
+  `geometryProvenance` (robot two: 2.75 REPORTED, 0, 0, provenance; the bench bot: 2.75, 0, 0);
+  `tableGeometrySet()`, `tableDriveGeometry()` (ONE `hal::DriveGeometry`), `tableTrackWidth()`,
+  `describeMissingForLibrary()` (the IMU and the three numbers), `tableConsistent()` check 6
+  (negative / non-finite geometry is a contradiction). The header now includes
+  `shulib/hal/drive_geometry.hpp` and `shulib/units/quantity.hpp` (still PROS-free, still
+  host-included by relative path). `test/chassis_table_test.cpp`: test 18 (two cases) + the
+  hand-built table lists the new fields (`-Werror=missing-field-initializers` — the reason the
+  first M17/M16b cycles were FAKE).
+- **`src/main.cpp`** rewritten around a third branch: `SHULIB_RUNS_TANK_LIBRARY` (with
+  `SHULIB_STATE_SCREENS` for both non-X-drive programs); the fifth beacon
+  `shulib-robot-variant=tank-library`; `runTeleopLoop()` — the R1a loop body as ONE function
+  template both graphs call (the X-drive graph's `opcontrol()` now calls it with a lambda that
+  updates the fault display; unchanged in shape, plus Part 0b's disable-poll exit through
+  `chassis.cancel()`); the `tanklib` namespace: `TankMotors` (ten `ProsMotor`s from the table,
+  table order per side), `tankChassisConfig()` (`stall.setAllWheels(geometry)`,
+  `stall.independentMotionSource = false`), `TankRobot` (exactly the brief's §4 list),
+  `tankPortMapString()` from the table, `refuse()` / `paintRefusal()`, `TankPanel` (brief §4's
+  rows and LCD). `initialize()` refuses BEFORE any adapter on an inconsistent, unsigned or
+  UNSET-for-the-library table and catches `PreconditionError` at the graph boundary; the boot log
+  carries `kNoIndependentStallSourceNote` and the no-dead-port-tolerance line; `opcontrol()`
+  idles with the refusal painted when `g_tank` is null. `autonomous()` no motion; `disabled()` /
+  `competition_initialize()` the state screens.
+- **Makefile:** `PROGRAM=library` → `-DSHULIB_PROGRAM_LIBRARY`, `$(error)` without `ROBOT=tank`
+  and for unknown values; exercised: `ROBOT=bench PROGRAM=library`, `ROBOT=xdrive PROGRAM=library`,
+  `PROGRAM=foo` all stop with the intended text; `ROBOT=tank PROGRAM=library` plans the build with
+  the define on every TU.
+- **`tools/src_build_gate.py`:** fifth build (`tank-library`: args, define set, beacon, dead
+  X-drive wiring expectation), header text, self-test cases 12 (library append dropped) and 13
+  (the real build alone).
+- **`make ROBOT=tank PROGRAM=library`:** exit 0, three TUs, links (`bin/hot.package.bin`), the
+  ELF carries ONLY `shulib-robot-variant=tank-library`. First build showed two
+  `-Wformat-truncation` warnings from my new code (a 64-byte side string into the 96-byte port
+  map; a 160-byte reason into a 160-byte "UNSET: …" buffer) — a disallowed category under the
+  gate; fixed by sizing (24-byte side buffers; the reason passed straight to the refusal).
+  **Gate `check`: PASS ×5** — bench/tank/tank-drive/tank-library 2 allowed `-Wunused-function`
+  each (`robot()`, `portMapString()` — the invented X-drive graph stays dead code in the library
+  build, as the brief's expectation said it would), xdrive 0, 0 disallowed everywhere, hash and
+  beacons asserted.
+- Register labels placed in the tree for HA-124/125/126/130 (`src/chassis_table.hpp`), HA-128
+  (`src/main.cpp`), HA-130/133 (`hal/motor_group.hpp`, `test/motor_group_test.cpp`), HA-131
+  (`motion/odo_stall_check.hpp`), HA-132/133 (`teleop/coupled_side_monitor.hpp`); HA-127/129 are
+  log-sourced and say so (exempt from direction 2, like HA-18/33/47).
+
+### 7. Prose review (pace rule 4) — every changed source file and every new concept, grepped across `docs/`, `README.md`, Daniel's note, `ci.yml`, the Makefile and the gate tool; the historical logs and the briefs are excluded (the record is not rewritten)
+
+| Concept / file | Where it is mentioned (outside `docs/api`, which is regenerated) | What was done |
+|---|---|---|
+| `MotorGroup` / "motor group" | `roadmap.md`, `hardware-assumptions.md`, `build-order.md`, `R3a-BENCH-WORKSHEET.md`, Daniel's note, `guide/14`, `legacy-command-vocabulary.md`, `chunks/F1-mechanism-seam.md`, `verify/verify-f1.sh`, `R3a-tank-bench-validation.md` | roadmap checkbox 1 flipped with evidence; register HA-130/133 cite it; build-order Next block + R3b status line; worksheet Station F; Daniel's note's "real driver code" paragraph rewritten. `guide/14` (F1's mechanism "motor groups") and the legacy vocabulary are about MECHANISM groups and stay true — untouched. F1's brief/verify script are historical. |
+| `IOdometry`, `DriveEncoderOdometry`, "drive-encoder odometry", "two dedicated rotation sensors", "concrete `PilonsOdometry&`" | `roadmap.md` (×2 places), `build-order.md` (Next block, the R3b entry's scope list), `hardware-assumptions.md` HA-14, `R3a-BENCH-WORKSHEET.md`, `R3a-tank-bench-validation.md` | roadmap checkbox 2 flipped and the "remain open, gated on R3a Batch-1" sentence corrected; build-order's R3b entry gained a dated status line (its scope list is kept as the chunk's original statement, per §9.4 of the original brief); HA-14's blast-radius containment amended for robot two; the R3a brief is historical. |
+| `DriveGeometry` / "drive geometry", `wheelRadius`, `OdoStallCheck`, `independentMotionSource` | `hardware-assumptions.md` (HA-14, HA-124/125/126, HA-131), `diagnostics-plan.md`, `roadmap.md`, `build-order.md`, `DOCS2-API-DEFECTS.md` (historical), `C2-motion-scheduler.md` (historical), the R1a runbook/session records ("drive geometry" = the tracking-wheel geometry there; unrelated, untouched) | `diagnostics-plan.md`'s stall paragraph amended with the drive-encoder caveat and HA-131; the register entries written; roadmap/build-order as above. |
+| `PROGRAM=library`, "shulib Teleop", `tank-library`, "four builds", "three robot variants" | `Makefile`, `tools/src_build_gate.py`, `RESUMING.md`, `ci.yml` (two places), `roadmap.md`, `build-order.md`, worksheet Station A/F, Daniel's note | RESUMING §3 says five builds and names both PROGRAM values; `ci.yml` header and the arm-compile-gate step comment say five; the roadmap's "four builds" is the Part 0b paragraph in the past tense followed by "proves five builds"; worksheet Station A names the third program; Daniel's note carries the third program at the top and in the "where things live" section. |
+| `MotorGroupDisagree` / `MOTOR_GROUP_DISAGREE` | `roadmap.md`, `hardware-assumptions.md`, worksheet Station F | named where the driver will see it (Station F's fault row) and in the register's HA-132/133. |
+| `src/chassis_table.hpp` (geometry fields) | Daniel's note ("the one place you might need to edit"), worksheet D/E/F, `roadmap.md`, `build-order.md` | Daniel's note now says the geometry lines are typed by jal from a measurement; Station F.0 is the measuring procedure. |
+| `src/main.cpp` (the library program) | `RESUMING.md`, `ci.yml`, `roadmap.md`, `build-order.md`, `docs/README.md`? (no), `guide/07-getting-set-up`? | grepped `main.cpp` across `docs/`: the guide's set-up chapter describes building for the robot generically and names no variant; `RESUMING.md` and `ci.yml` updated as above. |
+| Counts (`docs/README.md`, `docs-publishing.md`) | 1,710 → **1,775 entities**, 121 → **125 headers**, 123 → **127 files** — measured from `check-coverage` and `ls docs/api` after the final `generate`. | updated. |
+| `docs/guide/14-what-it-cannot-do-yet.md` | mentions motor groups only in F1's mechanism sense | **untouched** — still true: the library has not driven a robot. |
+| `docs/shulib-v2-master-plan.md` | the "Robots" section | **not edited** (the coordinator's, per the ruling message; it is already dirty in the working tree with the coordinator's amendment). |
+
+### 6. Final verification (all from the repo root, on the finished working tree, HEAD `7fdaca6`)
+
+| Check | Result |
+|---|---|
+| Host build (all doc gates in-build: self-test, coverage, fresh, examples, removability, briefing, staleness) | exit 0, binary md5 `de914a33…` |
+| Host suite | **1208 cases / 1,563,162 assertions / 0 failed / 3 skipped** — DIRTY-tree count (the hash string carries `-dirty`; the committed briefing must carry the CLEAN-tree number, measured by the coordinator after the commit — Session 1 §6). Baseline 1188 / 1,540,944 → +20 cases (11 motor group, 7 drive-encoder odometry, 2 chassis table) / +22,218 assertions; the 1188 pre-existing cases' total is unchanged to the digit (verified at each part) |
+| `api_doc_tool.py` self-test / check-coverage / check-fresh / check-examples / check-removability | **5 × PASS**; coverage **1,775 entities / 125 headers**, all documented (was 1,710 / 121); 387 quoted example lines verbatim; removability clean (one catch during the pass: `R3a-PROGRESS §8.4` in a public header banner — reworded) |
+| `briefing_status.py check` | PASS — against a briefing regenerated on the DIRTY tree (suite line 1,563,162; 158 headers). Will read as drift after the commit until regenerated clean: the known caveat |
+| `doc_staleness_audit.py` self-test + audit | **2 × PASS** (10 detector cases; 26 live docs, 0 numeric claims) |
+| PROS-free guard (ci.yml, verbatim) | CLEAN — `include/shulib` PROS-free outside `hal/pros/`; the four new headers included |
+| Sim-layering guard (ci.yml, verbatim) | CLEAN |
+| ARM header cross-compile (anchored sed, repo root, `-Werror`) | **CLEAN, 158 headers** (was 154: `hal/motor_group.hpp`, `hal/drive_geometry.hpp`, `localization/odometry.hpp`, `localization/drive_encoder_odometry.hpp`) |
+| `src_build_gate.py self-test` | **OK, 28 detector cases** (was 23), each a real build — incl. case 12 = **test 19**: the Makefile's `PROGRAM=library` append dropped, a REAL `make ROBOT=tank PROGRAM=library`, verdict FAIL naming `whole token -DSHULIB_PROGRAM_LIBRARY`, the tank-library beacon NOT in the ELF, and the tank beacon present ("a tank build wearing a tank-library label"); restored byte-exact by the plant class's own assertion (the Makefile's only diff after the run is this pass's edit). Case 13: the real tank-library build passes alone |
+| `src_build_gate.py check` | **PASS ×5** — bench / xdrive / tank / tank-drive / **tank-library**, **3/3 TUs** each, xdrive **0** `-Wunused-function` from `src/main.cpp`, the other four 2 each (`robot()`, `portMapString()`: the invented X-drive graph stays dead code in the library build — the brief's expectation held; nothing to update), 0 disallowed, hash asserted, beacons asserted NUL-terminated |
+| `make ROBOT=tank PROGRAM=library` | exit 0, links `bin/hot.package.bin`; `strings` on the ELF shows ONLY `shulib-robot-variant=tank-library` |
+| Makefile validation | `ROBOT=bench PROGRAM=library`, `ROBOT=xdrive PROGRAM=library`, `PROGRAM=foo` all `$(error)` with the intended text; `ROBOT=tank PROGRAM=library` plans with the define on every TU |
+| Register reconciliation | direction 1 (`PROVISIONAL (A4` without an HA id) prints nothing; direction 2: HA-124/125/126/128/130/131/132/133 each found in the tree where the entry claims; HA-127/129 log-sourced and say so |
+| C7 removability grep of public docs | empty |
+| Mutations | **21 distinct, all built, all red on the intended assertion, all restored byte-exact and re-run green** (§5); M16b observed twice; the two FAKE first runs re-run |
+| `docs/guide/14` | untouched (no diff) |
+| git | nothing staged, nothing committed by the executor; `git status` lists the modified and new files (the coordinator commits after independent verification) |
+
+**What the briefs got wrong, said plainly (also in §2):** (1) the Session 2 brief's "disagreement
+observable evaluated on each read" cannot be literal with a persistence-counting monitor — one
+evaluation per tick through the health tick (D1-1); (2) its "the teleop loop … already extracted for
+the X-drive graph" — it was inline at `7fdaca6`; extracted here; (3) the execution brief lists the
+ΔL/ΔR swap under test 9 — it is caught by test 9's heading cross-check line and by test 11, not by
+the pose (the centre travel is symmetric), recorded at M9a; (4) the brief's §4 expected the X-drive
+helpers to stay dead code in the library build — they do (no update needed).
+
+### 8. WHAT IS NOT DONE — read this before believing any checkbox
+
+- **NOTHING OF PARTS 1–3 HAS RUN ON HARDWARE.** `hal::MotorGroup`, `DriveEncoderOdometry`, the
+  `IOdometry` seam, the per-wheel stall geometry and "shulib Teleop" have been exercised only on
+  the host (the suite, 21 mutations) and by the ARM build through the gate. The library's motion
+  stack has still not driven a robot; **M1's badge is unflipped**; `docs/guide/14` stays as it is;
+  HA-18/52/112 unsettled.
+- **"shulib Teleop" CANNOT boot its graph yet, by design:** the chassis table's track width and
+  motor→wheel ratio are **UNSET** (HA-125/126) and the program refuses at boot with both named on
+  the state screen. The team lead measures (worksheet Station F.0: tape; tooth counts or "direct
+  drive"; a ruler on the wheel), the coordinator types the three numbers into
+  `src/chassis_table.hpp` with provenance, rebuilds, uploads: `make ROBOT=tank PROGRAM=library &&
+  pros upload --slot 2 --name "shulib Teleop"`. Then wheels-up, then the ground (Station F.2).
+- **The plant stays at 1:1** (D2-7): if the ratio comes back other than direct drive, the original
+  brief's ruling says teach the plant the ratio THEN (`DrivePlantConfig::driveWheelDiameter`,
+  HA-14) — M1's host-vs-V5 comparison is not checkable across different gearings.
+- **Dead-port tolerance is NOT in the library program** (brief §4): one refused adapter refuses the
+  graph; "shulib Drive" is the tolerant program until R3d.
+- **On robot two a stuck robot is invisible to the health monitor** (HA-131, the §2 ruling): the
+  stall check reports no verdict; the driver is the supervisor; a future detector builds on the
+  heading cross-check. Not a defect; a stated limit.
+- **The gains and budgets are PROVISIONAL** (HA-45/50/51/52): the library teleop will feel
+  different from "shulib Drive" (speeds through feedforward, capped) — expected, R5's measurement.
+- **The clean-tree suite number is not known yet** (dirty-tree 1,563,162); the coordinator
+  re-measures after the commit and regenerates `PROJECT-BRIEFING.md` (Session 1 §6's rule).
+- **`docs/shulib-v2-master-plan.md`** carries the coordinator's own uncommitted amendment (the fall-
+  tank ruling); not part of this pass's work, not touched.
+- **Robot two's section in the register cites the development log for HA-127/129** (no in-tree
+  source) — exempt from direction 2 like HA-18/33/47, and says so.
+- `docs/internal/build-order.md`'s R3b entry keeps its original scope list (dated status line
+  added); its "R3b's pieces 1 and 2 remain gated on R3a's Batch 1" paragraph in the R3b status
+  section is the historical narrative of 2026-08-19 and is left as history — the Next block and
+  the roadmap pointer are the status.
+
+**PART 1-3 READY FOR VERIFICATION**

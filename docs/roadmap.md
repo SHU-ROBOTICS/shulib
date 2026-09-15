@@ -210,8 +210,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 > library's motion stack has still never driven a robot.** Pieces 1 and 2 (the motor group; the
 > odometry seam) are next and unstarted; M1's badge has not moved.
 >
-> **R3b Part 0b — the DRIVE PROGRAM (written, verified and committed 2026-09-10 late; the upload
-> and the first drive are next, and nothing of it has run on hardware yet):** robot two can be
+> **R3b Part 0b — the DRIVE PROGRAM (written, verified and committed 2026-09-10 late; both
+> programs were uploaded to robot two's brain the same day by the coordinator — what they did on
+> the robot is the coordinator's record in the development log, not this paragraph's claim):**
+> robot two can be
 > driven **through the library's adapters** by a
 > program that just drives — `make ROBOT=tank PROGRAM=drive`, "shulib Drive" in its own slot (the
 > team lead's ruling: a program picked by name from the brain's slot list, not a chooser inside
@@ -223,9 +225,25 @@ not silently break them. This table is the spine of the no-staleness promise.
 > port dying at runtime, and turns the tester's fighting-motor and over-current cut-outs into
 > one-second non-fatal cuts through a pure, host-tested evaluator
 > (`shulib/teleop/coupled_side_monitor.hpp`) — every mutation the brief lists observed red. The
-> build gate now proves four builds. **Nothing of it has run on hardware yet, and the motion stack
-> has still not driven a robot** — the drive program is adapters and open-loop volts, and says so at
-> boot.
+> build gate then proved four builds. **The motion stack had still not driven a robot** — the
+> drive program is adapters and open-loop volts, and says so at boot.
+>
+> **R3b Parts 1–3 — THE LIBRARY BUILDS FOR ROBOT TWO (written and verified 2026-09-14; NOT run):**
+> `hal::MotorGroup` (Part 1), the `IOdometry` seam with `DriveEncoderOdometry` and the one
+> `hal::DriveGeometry` (Part 2), and a third program (Part 3): `make ROBOT=tank PROGRAM=library`
+> → **"shulib Teleop"**, slot 2 — robot two's whole object graph (ten `ProsMotor`s from the
+> table's signed ports behind two groups, `ProsImu`, explicit absent GPS/tags/vision,
+> drive-encoder odometry, fusion, `Localizer`, `RobotContext`, `MotionDeps`, `Chassis`) built from
+> `src/chassis_table.hpp`, driven by the R1a teleop loop through `Chassis::drive(speeds,
+> Frame::Body)` — the one loop function both graphs now share. The build gate proves five builds.
+> **It has NOT run.** It cannot yet: the table's geometry is UNSET (track width, motor→wheel
+> ratio — never guessed; the team lead measures, the coordinator types), and the program REFUSES
+> at boot with the missing fields on screen until then. The first run is wheels-up, then the
+> ground, with the coordinator and the team lead; M1's badge does not move here. With
+> drive-encoder odometry the stall cross-check has no independent source and is configured not
+> to lie about it. **Plan ruling the same day (team lead): BOTH of this season's competition
+> robots are TANK drives for the fall semester; the X-drive is built in spring 2027 and the
+> holonomic validation (R3c) moves there** — the holonomic code stays as built and sim-proven.
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
@@ -241,8 +259,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > omission still throws), an absent source is never polled (the `kInstallTagCorrector` /
 > `kInstallVisionPoller` wiring rule), and `src/main.cpp` ships no `hal/fake/` type. Five of
 > five mutation checks observed red then restored green. **Pieces 1 (multi-motor aggregation)
-> and 2 (`IOdometry` / drive-encoder odometry) remain open, gated on R3a Batch-1 measurements
-> — M1's badge stays with them.**
+> and 2 (`IOdometry` / drive-encoder odometry) landed 2026-09-14 (R3b Parts 1–3, below); M1's
+> badge stays unflipped until the library has driven a robot.**
 > **The auton API exists and is FROZEN at BOTH tiers — F6 (`Chassis`) LOCKED at D2 and F10
 > (`Routine`, the recipe layer) LOCKED at D3, both 2026-08-12, API 2.0**
 > (built at C4, stressed by D1's second consumer, ruled and pinned at D2):
@@ -1239,21 +1257,48 @@ register above, pin-enforced. This milestone does not close until the on-robot c
 > against the A2 plant, and **all three are then validatable on the available tank bot** — none needs a
 > competition robot.
 
-- [ ] **Multi-motor-per-side aggregation.** `motion/command_pipeline.hpp:146-152` maps one kinematic
-      wheel to exactly one motor, and `motion/motion.hpp:201-203` guards it with `>=` — so a real
-      drivetrain with 2–4 motors per side is **accepted**, and the surplus motors are **never given a
-      voltage and never given a brake mode, with no fault raised.** Measured on the bench bot's
-      then-7-motor drive with a negative control: 2 commanded at +4.4286 V, 5 silent. *(The drive
-      has since been mechanically repaired to 8 motors, 4 per side — the probe is to be re-stated
-      at 8, where the shipped pipeline would leave 6 silent.)*
-      `kinematics/tank.hpp:80` delegates this to "the HAL's business"; that facility was never built.
-- [ ] **An odometry path that does not require two dedicated rotation sensors.** The chain
-      motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` is hard: `Localizer`
-      takes a **concrete** `PilonsOdometry&`, there is no `IOdometry` seam, `PilonsOdometry`
-      precondition-requires both a Forward and a Lateral wheel, and no `IRotation`-over-`IMotor`
-      adapter exists. **LemLib does drive-encoder odometry and shulib cannot** — a competitive gap
-      against the library this project exists to beat. This is also the only honest home for a
-      **gear ratio**, a concept the library has nowhere (DEFECTS1 `A29`).
+- [x] **Multi-motor-per-side aggregation — DONE at R3b Part 1 (2026-09-14, on the host; not yet
+      run on a robot).** The gap as measured: `motion/command_pipeline.hpp` maps one kinematic wheel
+      to exactly one motor, and `motion/motion.hpp` guarded it with `>=` — so a real drivetrain with
+      2–5 motors per side was **accepted**, and the surplus motors were **never given a voltage and
+      never given a brake mode, with no fault raised** (measured on the bench bot's then-7-motor
+      drive with a negative control: 2 commanded at +4.4286 V, 5 silent). Delivered:
+      `hal/motor_group.hpp` — `hal::MotorGroup`, N ≥ 1 coupled motors behind ONE `IMotor` (fan-out
+      commands; MEDIAN position/velocity so a dead port's frozen reading cannot drag the side;
+      per-member mean current with the sum exposed; max temperature; the drive program's
+      coupled-side monitor reused as the disagreement observable, one evaluation per tick);
+      `MotionDeps::validate()` now demands EQUALITY between motors and wheels, naming the group;
+      `FaultCode::MotorGroupDisagree = 12`, raised by `HealthMonitor` per episode through
+      `tickHealthObservables()` (so it fires in `drive()` and every motion), continue-degraded by
+      default; the A2 plant writes one wheel's state into every coupled member and can freeze or
+      sign-flip one. Evidence: `test/motor_group_test.cpp` + `test/motor_group_plant_test.cpp` (11
+      cases; an N = 1 group and five-per-side groups are BIT-IDENTICAL to bare motors through the
+      clean and the hostile tank sweeps; a frozen member is ignored by the median and counted; a
+      fighting member raises the fault and the motion still settles), nine mutations observed red
+      then restored green; the whole pre-existing suite unchanged to the assertion.
+      `kinematics/tank.hpp:80`'s "the HAL's business" now names a HAL facility that exists.
+- [x] **An odometry path that does not require two dedicated rotation sensors — DONE at R3b
+      Part 2 (2026-09-14, on the host; not yet run on a robot).** The gap as measured: the chain
+      motion → `IPoseSource` → `Localizer` → `PilonsOdometry` → 2 × `IRotation` was hard —
+      `Localizer` took a **concrete** `PilonsOdometry&`, there was no `IOdometry` seam, and
+      `PilonsOdometry` precondition-requires both a Forward and a Lateral wheel. **LemLib does
+      drive-encoder odometry and shulib could not.** Delivered: `localization/odometry.hpp` —
+      `IOdometry`, the four members the Localizer actually uses; `PilonsOdometry` implements it
+      with no behavioural change (the whole suite unchanged to the assertion) and `Localizer` takes
+      `IOdometry&` (source-compatible); `localization/drive_encoder_odometry.hpp` —
+      `DriveEncoderOdometry` from the two side motors (the groups) + the IMU: IMU-owned heading
+      exactly as Pilons, centre forward = (ΔL+ΔR)/2 and lateral = 0 by `tank.hpp`'s written
+      decision, the same `arcStep`, the same trust gate, plus the encoder-vs-IMU heading
+      cross-check as an observable; `hal/drive_geometry.hpp` — the **gear ratio's one home**
+      (DEFECTS1 `A29` closed in shape: wheel radius × motor→wheel ratio, per side, consumed by
+      BOTH the odometry and the stall check, whose config is now per-wheel). Evidence:
+      `test/drive_encoder_odometry_test.cpp` (7 cases: within 1e-6 in of the A2 truth every tick
+      through straight/arc/spin/reverse; a 2 % right-side scale error drifts by exactly the
+      predicted 1 %; the cross-check fires under injected slip with the predicted sign and
+      magnitude and is silent through arcs; gate parity with Pilons; stall check and odometry
+      agree on implied travel from one geometry object, bit for bit), eleven mutations observed
+      red then restored green. On robot two the stall check has NO independent motion source and
+      is configured not to report a verdict (hardware register HA-131).
 - [x] **An absent-device ruling — DONE at R3b piece 3 (2026-08-19).** The gap as measured:
       `chassis/robot_context.hpp:62-73` precondition-requires `gps`, `tags` and `vision` non-null;
       most robots have none of the three, and `src/main.cpp` shipped `FakeTagSource`/`FakeVision`
