@@ -108,7 +108,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - **Next up:** R3b Parts 1–3 — THE LIBRARY DRIVES ROBOT TWO — are written, independently verified and committed (2026-09-14); what follows is the team lead's two measurements (track width, motor→wheel gearing) typed into the table, then the first bench run of "shulib Teleop", wheels-up then ground, before the coders arrive Thursday 2026-09-17. make ROBOT=tank PROGRAM=library builds "shulib Teleop" (slot 2): robot two's object graph — two hal::MotorGroups over the ten ProsMotors from the signed chassis table, ProsImu, explicit absent GPS/tags/vision, DriveEncoderOdometry over the groups through the new IOdometry seam with one hal::DriveGeometry shared by the odometry and the (now per-wheel, honestly unwired) stall check, fusion, Localizer, RobotContext, MotionDeps, Chassis — driven by the R1a teleop loop, now one function both graphs share, through Chassis::drive(Body). The build gate proves five builds; 21 mutations observed red then restored (one of them observed twice).  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,208 cases / 1,563,162 assertions, 3 skipped — **green**  
+- **Suite:** 1,208 cases / 1,563,156 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 158  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 133 registered, **7 settled** — next free is **HA-134**  
