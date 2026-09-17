@@ -211,9 +211,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > odometry seam) are next and unstarted; M1's badge has not moved.
 >
 > **R3b Part 0b — the DRIVE PROGRAM (written, verified and committed 2026-09-10 late; both
-> programs were uploaded to robot two's brain the same day by the coordinator — what they did on
-> the robot is the coordinator's record in the development log, not this paragraph's claim):**
-> robot two can be
+> programs were uploaded to robot two's brain the same day; and on 2026-09-17 the team lead
+> reported that "shulib Drive did run and work well" — the first time this project's code has
+> moved a robot, through the adapters, which confirms the table's ports, signs and cartridge by
+> outcome; no log was captured, so cuts and currents are unrecorded):**
+> robot two is
 > driven **through the library's adapters** by a
 > program that just drives — `make ROBOT=tank PROGRAM=drive`, "shulib Drive" in its own slot (the
 > team lead's ruling: a program picked by name from the brain's slot list, not a chooser inside

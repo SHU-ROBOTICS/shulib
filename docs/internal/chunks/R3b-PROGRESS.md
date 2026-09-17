@@ -1706,3 +1706,19 @@ helpers to stay dead code in the library build — they do (no update needed).
   the roadmap pointer are the status.
 
 **PART 1-3 READY FOR VERIFICATION**
+
+---
+
+### Coordinator's note, 2026-09-17: "shulib Drive" DROVE robot two
+
+Reported by the team lead on 2026-09-17: *"shulib Drive did run and work well."* That is the first
+time this project's code has moved a robot — through the `hal/pros` adapters (ten `ProsMotor`s
+with the table's measured signs, `ProsController`), the shared stick mapping, the degradation
+policy and the coupled-side monitor — and it confirms by outcome that robot two's chassis table
+(ports, signs, cartridge) is right: a wrong sign would have been a fight and a cut. No log was
+captured (the brain was off USB, no SD card), so the run's warnings, cut count and currents are
+NOT recorded; the next run with a card in will have them. **The library's MOTION STACK has still
+not driven a robot** — "shulib Teleop" (Parts 1–3) is built, verified and unrun, waiting on the
+track width and the motor→wheel gearing. Daniel's temporary root-level note is retired with this
+commit, its content living on in worksheet Stations D, E and F. Parts 1–3 were committed as
+`3cf03d0` (verified independently; the clean-tree suite count followed as `bdb385c`).
