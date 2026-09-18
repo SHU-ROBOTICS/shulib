@@ -279,3 +279,21 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   args as a positional int array, `NONE` is route structure). **Decision taken without you #8:**
   G2 runs now, before G1 Part 2, because G1 Part 2 rewrites `main.cpp` and the bench session's
   packages depend on `src/` staying as committed; G2 touches no `src/`. Launching its executor.
+- **19:39 — SESSION CLOSE-OUT (the team lead is rebooting into another OS).** The G2 executor was
+  STOPPED mid-chunk by the coordinator (its last step: the `version.hpp` bump and test 13); its
+  files are left UNCOMMITTED and UNVERIFIED in the working tree with an interruption note at the
+  end of `G2-PROGRESS.md` that says exactly how to resume or discard. So the next session's
+  `git status` is DIRTY ON PURPOSE — read `G2-PROGRESS.md` first, per RESUMING. Committed and
+  verified tonight, in order: `17aa4eb` R3d Part 1, `5e4ce65` R3d Part 2, `d8aab95` T2 (library
+  half), `280dce8` and `e9ba69f` (briefs), `fe8e270` G1 Part 1. Nothing pushed.
+  **Hardware:** the brain never enumerated on USB today (no kernel event on any port — cable or a
+  laptop USB controller that reset with an error at 04:54); nothing has run on the robot. The
+  four packages built from `5e4ce65` live in the hardware checkout
+  `.claude/worktrees/hw-17aa4eb` (detached at `5e4ce65`; `/tmp/hw_pkgs` is lost on reboot —
+  rebuild with `rm -rf bin .d && make ROBOT=tank [PROGRAM=…]` there or in any checkout of
+  `5e4ce65`, one program at a time, then `pros upload --slot N --name "…"`; Station G in the
+  worksheet is the runbook). The T2 agent worktree (`.claude/worktrees/agent-aef02a3f7fb230a9d`)
+  is integrated and can be removed with `git worktree remove --force`.
+  **Next work, in order:** finish G2 (resume per its log) → G1 Part 2 (the PROS device provider
+  and the `main.cpp` collapse) + T2's `src/` re-pointing → G3's brief → the bench session whenever
+  the brain connects (it needs nothing from any of these).
