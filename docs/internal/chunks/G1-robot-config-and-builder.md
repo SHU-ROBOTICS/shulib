@@ -22,8 +22,8 @@ C++. Three sources, ONE representation, ONE builder.
 
 **The measure is `src/main.cpp`.** Today the library program's composition root is a fifty-line
 struct that names every adapter, every seam and every constructor argument by hand
-(`tanklib::TankRobot`, `src/main.cpp` — re-checked after R3d Part 2), and the X-drive graph is a
-second such struct (`Robot`, `src/main.cpp:270-330`). The DoD (build-order G1): **"a hand-built
+(`tanklib::TankRobot`, `src/main.cpp:604-670`), and the X-drive graph is a
+second such struct (`Robot`, `src/main.cpp:335-424`). The DoD (build-order G1): **"a hand-built
 config produces a working Chassis in two lines; zero VexBuilder dependency."** The target a
 competition main converges on — names illustrative until this brief fixes them:
 
@@ -49,7 +49,7 @@ exactly as every graph in the tree has been. Wiring it into `main.cpp` is its Pa
 | The deps bundle | `include/shulib/motion/motion.hpp:178-215` `MotionDeps{ctx, localizer, kinematics, faults, health, motorGroups}` + `validate()` | the ONE cross-check (motor count == wheel count) lives here; the builder must produce a bundle this accepts |
 | The context | `include/shulib/chassis/robot_context.hpp:32-75` | every handle non-null by precondition; absent devices are EXPLICIT (`AbsentGps`, `AbsentTagSource`, `AbsentVision`) |
 | The drivetrain's one representation | `include/shulib/hal/drivetrain_description.hpp` (R3d Part 1) | `DrivetrainDescription` = signed ports per side, ipr per side, effective width, cartridge, IMU port, source, provenance; `valid()`, `leftGeometry()/rightGeometry()`; produced by the calibrator and by `tableToDescription()`; persisted by R3d Part 2. **G1's `RobotConfig` EMBEDS it for a tank** — it is not redefined |
-| The two graphs in `src/main.cpp` | the X-drive `Robot` struct (`:270-330`, invented ports HA-111) and `tanklib::TankRobot` (after R3d Part 2: built from a `DrivetrainDescription`) | exactly the object lists the builder must own, in exactly this construction order: kinematics → adapters → groups → sensors → diagnostics (sink, latch, monitor) → geometry → odometry → fusion → localizer → context → deps → pacer → chassis |
+| The two graphs in `src/main.cpp` | the X-drive `Robot` struct (`:335-424`, invented ports HA-111) and `tanklib::TankRobot` (`:604-670`, built from a `DrivetrainDescription` since R3d Part 2; its `TankMotors` at `:554` shows the per-port `try` and the ABSENT slot) | exactly the object lists the builder must own, in exactly this construction order: kinematics → adapters → groups → sensors → diagnostics (sink, latch, monitor) → geometry → odometry → fusion → localizer → context → deps → pacer → chassis |
 | The kinematics presets | `kinematics/tank.hpp:35` `TankKinematics{trackWidth}`, `kinematics/x_drive.hpp:52` `xDrive(driveRadius)`, `kinematics/h_drive.hpp` | value-constructed; "drivetrain is config data" (chassis.hpp) |
 | The odometries | `localization/drive_encoder_odometry.hpp` (tank, no pods), `localization/pilons_odometry.hpp` + `tracking_wheel.hpp:60-70` (`TrackingWheel::forward/lateral(sensor, diameter, offset)`) | the `IOdometry` seam (R3b Part 2) is what lets the builder pick one |
 | The localizer | `localization/localizer.hpp:180` `Localizer(clock, imu, odom, fusion, correctors = {}, config = {})` | correctors are E2/E3's (GPS, tags): the builder wires the GPS corrector when a GPS is configured — check `gps_corrector.hpp`'s constructor |
