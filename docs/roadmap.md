@@ -256,8 +256,20 @@ not silently break them. This table is the spine of the no-staleness promise.
 > group and the odometry seam — is in the tree; starting it before R3b's bench run is a scheduling
 > decision, not a dependency change. The two typed numbers the table waits for (track width, the
 > motor→wheel ratio) are no longer waited on: the robot measures them at Part 3, and the typed
-> table stays as the fallback. **Nothing of R3d has run on a robot; the library's motion stack has
-> still never driven one.**
+> table stays as the fallback. **R3d Part 1 LANDED 2026-09-18 — host-only:** `hal::DrivetrainDescription`
+> (the one representation, with the typed table now a second source through `tableToDescription()`),
+> `hal::DriveGeometry::fromInchesPerRadian` for a scale a robot measured rather than a person typed,
+> and `calibration::DrivetrainCalibrator` — a tick-driven, non-blocking, allocation-free state
+> machine that finds the drive ports and their polarity from a powerless hand push, names each
+> port's side from the IMU's yaw sign under a single-member pulse, takes each side's inches per
+> radian from one push along a tape (the MEDIAN, the same statistic the motor group will report
+> with), and measures the effective track width from a spin each way. It is proven against the A2
+> plant to 1e-9 on the scale and 1e-6 on the width, reproduces itself across four hostile seeds, and
+> refuses — naming the port — on a contradiction, a fight, a wheels-up run, a curved push, a missed
+> tick or any timeout, always into 0 V and coast. **It has never moved a physical drivetrain, and
+> nothing consumes a description yet** (no record, no boot check, no program — those are Part 2,
+> unstarted). R3b is still open on its bench run; **the library's motion stack has still never driven
+> a robot.**
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD

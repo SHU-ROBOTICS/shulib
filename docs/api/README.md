@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 1,775 of them across 125 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 1,890 of them across 127 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -166,6 +166,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Distance](distance.md) | [`hal/distance.hpp`](../../include/shulib/hal/distance.hpp) | IDistance — a distance / time-of-flight sensor (pros::Distance) behind the HAL. |
 | [Distance conversion](distance_conversion.md) | [`hal/distance_conversion.hpp`](../../include/shulib/hal/distance_conversion.hpp) | Distance-sensor canonical conversions — the ONE place the V5 distance sensor's millimeters become shulib's canonical inches and its raw 0–63 confidence becomes [0, 1] (§7: "convert exactly once, at the edge"). |
 | [Drive geometry](drive_geometry.md) | [`hal/drive_geometry.hpp`](../../include/shulib/hal/drive_geometry.hpp) | DriveGeometry — ONE description of a drive side's geometry, consumed by BOTH the drive-encoder odometry and the stall cross-check. |
+| [Drivetrain description](drivetrain_description.md) | [`hal/drivetrain_description.hpp`](../../include/shulib/hal/drivetrain_description.hpp) | DrivetrainDescription — the ONE representation of a drivetrain's discovered facts. |
 | [GPS](gps.md) | [`hal/gps.hpp`](../../include/shulib/hal/gps.hpp) | IGps — the VEX GPS behind the HAL, reporting in shulib's CANONICAL frame (the VEX meters / clockwise-from-North convention is converted away in the hal/pros adapter via gps_conversion.hpp). |
 | [GPS conversion](gps_conversion.md) | [`hal/gps_conversion.hpp`](../../include/shulib/hal/gps_conversion.hpp) | GPS canonical conversions — the ONE place the VEX GPS frame becomes shulib's canonical frame (§7: "convert exactly once, at the edge"). |
 | [IMU](imu.md) | [`hal/imu.hpp`](../../include/shulib/hal/imu.hpp) | IImu — the inertial sensor behind the HAL, reporting in shulib's CANONICAL frame (the V5's clockwise/degrees convention is converted away in the hal/pros adapter via imu_conversion.hpp, so everything above this line is CCW-positive radians). |
@@ -222,6 +223,12 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [Version](version.md) | [`version.hpp`](../../include/shulib/version.hpp) | The shulib API version — the mechanism behind the Freeze Register's promise. |
 
+### Calibration
+
+| Page | Header | What it is |
+|---|---|---|
+| [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
+
 ### Teleop
 
 | Page | Header | What it is |
@@ -232,7 +239,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 1,775 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 1,890 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

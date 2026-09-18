@@ -37,12 +37,15 @@
 #include <cstring>
 
 #include "shulib/hal/drive_geometry.hpp"
+#include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::bench {
 
 /// PHYSICAL smart ports are 1..21 -- how humans and every PROS API but the registry name them.
-constexpr int kMaxPort = 21;
+/// CITES hal::kMaxSmartPorts rather than repeating the number (R3d Part 1): the library owns the
+/// brain's port count, and this table is one of its consumers.
+constexpr int kMaxPort = static_cast<int>(hal::kMaxSmartPorts);
 
 /// The cartridge in the drive motors. Unset = nobody has READ one off a motor yet.
 enum class Cartridge { Unset, Red, Green, Blue };
@@ -261,6 +264,75 @@ inline bool describeMissingForLibrary(const ChassisTable& t, char* buf, std::siz
     if (t.trackWidthIn <= 0.0) { add("track width"); geometryMissing = true; }
     if (t.externalRatio <= 0.0) { add("external ratio (motor->wheel)"); geometryMissing = true; }
     return any || geometryMissing;
+}
+
+/// Names every reason this table cannot produce a VALID hal::DrivetrainDescription: everything
+/// describeMissingForLibrary() checks, PLUS the MEASURED SIGNS. Returns true when something is
+/// missing. The signs are the addition that matters: an UNSIGNED table's entries are all
+/// positive and would make a description that LOOKS complete — ten ports, two sides, a scale and
+/// a width, every check in valid() passed — while half its motors would fight their side-mates on
+/// the first command. An unsigned table is not a drivable one (the header's own rule), so it is
+/// not a describable one either.
+inline bool describeMissingForDescription(const ChassisTable& t, char* buf, std::size_t n) {
+    const bool any = describeMissingForLibrary(t, buf, n);
+    if (!t.signsMeasured) {
+        if (buf[0] != '\0') std::strncat(buf, ", ", n - std::strlen(buf) - 1);
+        std::strncat(buf, "measured signs", n - std::strlen(buf) - 1);
+        return true;
+    }
+    return any;
+}
+
+/// THE SECOND SOURCE of hal::DrivetrainDescription (R3d Part 1, T9): the typed table, mapped
+/// into the one representation the calibrator also produces, so a composition root has exactly
+/// one input type with two sources.
+///
+/// What is carried over, unchanged: the SIGNED port entries bit for bit (the sign lives inside
+/// the port number, here as everywhere), the cartridge, the IMU port, the track width, and the
+/// geometry provenance string -- truncated to the description's fixed buffer, because a
+/// description must be writable to a card as it stands. `source` is TypedTable, never
+/// RobotMeasured: a number a person typed off a tape is not a number the robot measured, and the
+/// banner must be able to say which it is looking at.
+///
+/// A table that cannot describe a drivetrain yields an INVALID description rather than a
+/// plausible one (describeMissingForDescription names why): UNSET geometry leaves the scales and
+/// the width at 0, an UNSET cartridge leaves a byte outside the enum, an UNSET IMU leaves port 0,
+/// and an UNSIGNED table leaves BOTH SIDES EMPTY. Nothing here loosens the table's own rule that
+/// a value is never invented -- valid() refuses each of those in turn, naming it.
+[[nodiscard]] inline hal::DrivetrainDescription tableToDescription(const ChassisTable& t) {
+    hal::DrivetrainDescription d{};
+    d.kind = hal::DrivetrainKind::Tank;
+    switch (t.cartridge) {
+        case Cartridge::Red:   d.cartridge = hal::MotorCartridge::Red; break;
+        case Cartridge::Green: d.cartridge = hal::MotorCartridge::Green; break;
+        case Cartridge::Blue:  d.cartridge = hal::MotorCartridge::Blue; break;
+        // UNSET stays the byte 0, which is not a member of the enum: valid() refuses it.
+        case Cartridge::Unset: break;
+    }
+    d.imuPort = t.imuPort;
+    d.source = hal::DescriptionSource::TypedTable;
+    if (t.signsMeasured) {
+        const std::size_t nLeft = t.leftCount < hal::kMaxSmartPorts ? t.leftCount
+                                                                    : hal::kMaxSmartPorts;
+        const std::size_t nRight = t.rightCount < hal::kMaxSmartPorts ? t.rightCount
+                                                                      : hal::kMaxSmartPorts;
+        for (std::size_t i = 0; i < nLeft; ++i) d.left.signedPorts[i] = t.left[i];
+        for (std::size_t i = 0; i < nRight; ++i) d.right.signedPorts[i] = t.right[i];
+        d.left.count = static_cast<std::uint8_t>(nLeft);
+        d.right.count = static_cast<std::uint8_t>(nRight);
+    }
+    if (tableGeometrySet(t)) {
+        // ONE object serves both sides: robot two is BELIEVED symmetric and the table has no
+        // per-side measurement to say otherwise. The description represents asymmetry the day
+        // one does -- and the calibrator's two independent scales already do.
+        const units::Length ipr = tableDriveGeometry(t).inchesPerRadian();
+        d.left.inchesPerRadian = ipr;
+        d.right.inchesPerRadian = ipr;
+        d.trackWidth = tableTrackWidth(t);
+    }
+    std::snprintf(d.provenance, sizeof d.provenance, "TYPED TABLE (%s): %s", t.robot,
+                  t.geometryProvenance != nullptr ? t.geometryProvenance : "");
+    return d;
 }
 
 /// "15 16 17 18", or "-11 +12 -13 +14 -15" when `withSigns`, or "UNSET".

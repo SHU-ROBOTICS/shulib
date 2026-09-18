@@ -105,13 +105,13 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 27 of 48 chunks complete
 
-- **Next up:** R3d Part 1 — the drivetrain description and the self-calibrator, HOST-ONLY — briefed 2026-09-17 ([brief](chunks/R3d-drivetrain-self-calibration.md)) and waiting for the team lead's go before its executor launches; then Part 2 (persistence, the registry seam, boot verification, the programs — host-only), then Part 3 (the bench session), which is also where R3b closes.  
+- **Next up:** R3d Part 2 — persistence, the registry seam, boot verification and the two programs, HOST-ONLY ([brief](chunks/R3d-part2-persistence-boot-programs.md)). Part 1 LANDED 2026-09-18 (the description, the calibrator, the two plant extensions; host-only, nothing on hardware — [live log](chunks/R3d-PROGRESS.md)); then Part 3 (the bench session), which is also where R3b closes.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,208 cases / 1,563,156 assertions, 3 skipped — **green**  
+- ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b, R3d** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- **Suite:** 1,233 cases / 1,568,972 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 158  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 133 registered, **7 settled** — next free is **HA-134**  
+- **Public headers:** 160  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 137 registered, **7 settled** — next free is **HA-138**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:

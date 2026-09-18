@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,775 of them, across 125 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,890 of them, across 127 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -58,6 +58,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Angle::radians (overload 2)` | function | [angle.md](angle.md#angle-radians-2) |
 | `AngleDim` | type alias | [quantity.md](quantity.md#angledim) |
 | `AngularVelocity` | type alias | [quantity.md](quantity.md#angularvelocity) |
+| `Answer` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-answer) |
+| `Answer::Abort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-abort) |
+| `Answer::BackFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-backfirst) |
+| `Answer::Distance24` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-distance24) |
+| `Answer::Distance48` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-distance48) |
+| `Answer::Distance72` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-distance72) |
+| `Answer::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-done) |
+| `Answer::FrontFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-frontfirst) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
 | `appendPadded` | free function | [line_format.md](line_format.md#appendpadded) |
 | `appendTimestamp` | free function | [line_format.md](line_format.md#appendtimestamp) |
@@ -189,6 +197,43 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `CalibrationReport` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibrationreport) |
+| `CalibrationReport::backFirst` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-backfirst) |
+| `CalibrationReport::drivePortCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-driveportcount) |
+| `CalibrationReport::leftInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftinchesperradian) |
+| `CalibrationReport::leftMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftmedianrad) |
+| `CalibrationReport::leftSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftspreadrad) |
+| `CalibrationReport::portCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-portcount) |
+| `CalibrationReport::ports` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-ports) |
+| `CalibrationReport::pushDistanceIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pushdistancein) |
+| `CalibrationReport::pushStraightnessRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pushstraightnessrad) |
+| `CalibrationReport::rightInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightinchesperradian) |
+| `CalibrationReport::rightMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightmedianrad) |
+| `CalibrationReport::rightSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightspreadrad) |
+| `CalibrationReport::widthCcwIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthccwin) |
+| `CalibrationReport::widthCwIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthcwin) |
+| `CalibrationReport::widthDisagreement` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthdisagreement) |
+| `CalibratorConfig` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorconfig) |
+| `CalibratorConfig::commandTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-commandtimeout) |
+| `CalibratorConfig::imuReadyTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-imureadytimeout) |
+| `CalibratorConfig::minPushRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-minpushrad) |
+| `CalibratorConfig::monitor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-monitor) |
+| `CalibratorConfig::movedThreshold` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-movedthreshold) |
+| `CalibratorConfig::pulseTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulsetime) |
+| `CalibratorConfig::pulseVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulsevolts) |
+| `CalibratorConfig::pulseYawFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulseyawfloor) |
+| `CalibratorConfig::restFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restfloor) |
+| `CalibratorConfig::restSettleTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restsettletime) |
+| `CalibratorConfig::restTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-resttimeout) |
+| `CalibratorConfig::spinAgreement` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinagreement) |
+| `CalibratorConfig::spinTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spintimeout) |
+| `CalibratorConfig::spinTurns` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinturns) |
+| `CalibratorConfig::spinVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinvolts) |
+| `CalibratorConfig::straightBound` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-straightbound) |
+| `CalibratorStatus` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorstatus) |
+| `CalibratorStatus::phase` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-phase) |
+| `CalibratorStatus::progress` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-progress) |
+| `CalibratorStatus::prompt` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-prompt) |
 | `CameraIntrinsics` | struct | [vision_conversion.md](vision_conversion.md#struct-cameraintrinsics) |
 | `CameraIntrinsics::cx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cx) |
 | `CameraIntrinsics::cy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cy) |
@@ -198,6 +243,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CameraMount::x` | field | [vision_conversion.md](vision_conversion.md#cameramount-x) |
 | `CameraMount::y` | field | [vision_conversion.md](vision_conversion.md#cameramount-y) |
 | `CameraMount::yaw` | field | [vision_conversion.md](vision_conversion.md#cameramount-yaw) |
+| `cartridgeWord` | free function | [drivetrain_description.md](drivetrain_description.md#cartridgeword) |
 | `Chassis` | class | [chassis.md](chassis.md#class-chassis) |
 | `Chassis::brake` | function | [chassis.md](chassis.md#chassis-brake) |
 | `Chassis::cancel` | function | [chassis.md](chassis.md#chassis-cancel) |
@@ -373,6 +419,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DegradationVerdict::totalDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-totaldead) |
 | `DegradationVerdict::verdict` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-verdict) |
 | `desaturateUniform` | free function | [desaturate.md](desaturate.md#desaturateuniform) |
+| `DescriptionSource` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-descriptionsource) |
+| `DescriptionSource::RobotMeasured` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-robotmeasured) |
+| `DescriptionSource::TypedTable` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-typedtable) |
 | `DisplayController` | enum class | [pros-line_display.md](pros-line_display.md#enum-class-displaycontroller) |
 | `DisplayController::Master` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-master) |
 | `DisplayController::Partner` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-partner) |
@@ -403,6 +452,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveEncoderOdometryConfig::maxTickTravel` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometryconfig-maxticktravel) |
 | `DriveGeometry` | struct | [drive_geometry.md](drive_geometry.md#struct-drivegeometry) |
 | `DriveGeometry::fromDiameter` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-fromdiameter) |
+| `DriveGeometry::fromInchesPerRadian` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-frominchesperradian) |
 | `DriveGeometry::inchesPerRadian` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-inchesperradian) |
 | `DriveGeometry::motorToWheelRatio` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-motortowheelratio) |
 | `DriveGeometry::valid` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-valid) |
@@ -411,6 +461,40 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
 | `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
+| `DriveSideDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivesidedescription) |
+| `DriveSideDescription::count` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-count) |
+| `DriveSideDescription::inchesPerRadian` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-inchesperradian) |
+| `DriveSideDescription::signedPorts` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-signedports) |
+| `DrivetrainCalibrator` | class | [drivetrain_calibrator.md](drivetrain_calibrator.md#class-drivetraincalibrator) |
+| `DrivetrainCalibrator::abort` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-abort) |
+| `DrivetrainCalibrator::answer` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-answer) |
+| `DrivetrainCalibrator::config` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-config) |
+| `DrivetrainCalibrator::DrivetrainCalibrator` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-drivetraincalibrator) |
+| `DrivetrainCalibrator::phase` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-phase) |
+| `DrivetrainCalibrator::reason` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-reason) |
+| `DrivetrainCalibrator::report` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-report) |
+| `DrivetrainCalibrator::result` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-result) |
+| `DrivetrainCalibrator::start` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-start) |
+| `DrivetrainCalibrator::status` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-status) |
+| `DrivetrainCalibrator::tick` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-tick) |
+| `DrivetrainDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivetraindescription) |
+| `DrivetrainDescription::cartridge` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-cartridge) |
+| `DrivetrainDescription::describe` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-describe) |
+| `DrivetrainDescription::imuPort` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-imuport) |
+| `DrivetrainDescription::kind` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-kind) |
+| `DrivetrainDescription::left` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-left) |
+| `DrivetrainDescription::leftGeometry` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-leftgeometry) |
+| `DrivetrainDescription::portMagnitude` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-portmagnitude) |
+| `DrivetrainDescription::provenance` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-provenance) |
+| `DrivetrainDescription::right` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-right) |
+| `DrivetrainDescription::rightGeometry` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-rightgeometry) |
+| `DrivetrainDescription::sideOf` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-sideof) |
+| `DrivetrainDescription::signedPortOf` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-signedportof) |
+| `DrivetrainDescription::source` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-source) |
+| `DrivetrainDescription::trackWidth` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-trackwidth) |
+| `DrivetrainDescription::valid` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-valid) |
+| `DrivetrainKind` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-drivetrainkind) |
+| `DrivetrainKind::Tank` | enumerator | [drivetrain_description.md](drivetrain_description.md#drivetrainkind-tank) |
 | `DriveVerdict` | enum class | [drivetrain_degradation.md](drivetrain_degradation.md#enum-class-driveverdict) |
 | `DriveVerdict::Drive` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drive) |
 | `DriveVerdict::DriveDegraded` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drivedegraded) |
@@ -646,6 +730,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HoldPose::HoldPose` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose) |
 | `HoldPose::HoldPose (overload 2)` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose-2) |
 | `HoldPose::name` | function | [hold_pose.md](hold_pose.md#holdpose-name) |
+| `HumanFacts` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-humanfacts) |
+| `HumanFacts::cartridge` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-cartridge) |
+| `HumanFacts::imuPort` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-imuport) |
+| `HumanFacts::kind` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-kind) |
+| `HumanFacts::provenance` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-provenance) |
 
 ## I
 
@@ -947,6 +1036,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
+| `kDegreesToRadians` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kdegreestoradians) |
 | `kDistanceConfidenceAvailableAboveMm` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidenceavailableabovemm) |
 | `kDistanceConfidenceFullScale` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidencefullscale) |
 | `kDistanceNoObjectMm` | constant | [distance_conversion.md](distance_conversion.md#kdistancenoobjectmm) |
@@ -969,6 +1059,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
+| `kMaxSmartPorts` | constant | [drivetrain_description.md](drivetrain_description.md#kmaxsmartports) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
@@ -976,6 +1067,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
+| `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
+| `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
 | `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
@@ -1077,6 +1170,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismOutcome::TimedOut` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-timedout) |
 | `MechanismOutcome::Unconfirmed` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-unconfirmed) |
 | `mechanismOutcomeName` | free function | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcomename) |
+| `medianInPlace` | free function | [motor_group.md](motor_group.md#medianinplace) |
 | `MemberAbsenceDetector` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-memberabsencedetector) |
 | `MemberAbsenceDetector::absent` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-absent) |
 | `MemberAbsenceDetector::MemberAbsenceDetector` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-memberabsencedetector) |
@@ -1186,6 +1280,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionStatsSink::summarize` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-summarize) |
 | `MotionStatsSink::targetPose` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-targetpose) |
 | `MotionStatsSink::wantsRecord` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-wantsrecord) |
+| `MotorCartridge` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-motorcartridge) |
+| `MotorCartridge::Blue` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-blue) |
+| `MotorCartridge::Green` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-green) |
+| `MotorCartridge::Red` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-red) |
 | `MotorGearset` | enum class | [pros-motor.md](pros-motor.md#enum-class-motorgearset) |
 | `MotorGearset::Blue` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-blue) |
 | `MotorGearset::Green` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-green) |
@@ -1296,6 +1394,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `Phase` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-phase) |
+| `Phase::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-aborted) |
+| `Phase::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-done) |
+| `Phase::Idle` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-idle) |
+| `Phase::PushCapture` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-pushcapture) |
+| `Phase::ScalePush` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-scalepush) |
+| `Phase::SideAssign` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-sideassign) |
+| `Phase::SpinTest` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-spintest) |
+| `Phase::WaitImu` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-waitimu) |
 | `Pid` | class | [pid.md](pid.md#class-pid) |
 | `Pid::integralAccumulator` | function | [pid.md](pid.md#pid-integralaccumulator) |
 | `Pid::lastError` | function | [pid.md](pid.md#pid-lasterror) |
@@ -1331,6 +1438,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PneumaticMechanism::PneumaticMechanism` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism) |
 | `PneumaticMechanism::safeCommand` | function | [mechanism.md](mechanism.md#pneumaticmechanism-safecommand) |
 | `PneumaticMechanism::set` | function | [mechanism.md](mechanism.md#pneumaticmechanism-set) |
+| `PortObservation` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-portobservation) |
+| `PortObservation::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-port) |
+| `PortObservation::pulseShaftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseshaftrad) |
+| `PortObservation::pulseYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseyawrad) |
+| `PortObservation::pushDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pushdeltarad) |
+| `PortObservation::side` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-side) |
+| `PortObservation::sign` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-sign) |
+| `PortObservation::tapeDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-tapedeltarad) |
 | `Pose2d` | class | [pose2d.md](pose2d.md#class-pose2d) |
 | `Pose2d::approxEqual` | function | [pose2d.md](pose2d.md#pose2d-approxequal) |
 | `Pose2d::heading` | function | [pose2d.md](pose2d.md#pose2d-heading) |

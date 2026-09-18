@@ -332,3 +332,148 @@ TEST_CASE("chassis table 18: set geometry reaches TankKinematics and the odometr
     CHECK(tableTrackWidth(t).value() == 13.25);
     CHECK(tableTrackWidth(t).value() != 2.0 * g.wheelRadius.value());
 }
+
+// ═══ Test 2 (R3d Part 1): the table is the SECOND SOURCE of the ONE representation ═══════
+// Bug caught: the typed fallback and the robot's own calibration disagreeing about what a
+// drivetrain IS — a second shape for the same facts, which is how two programs come to believe
+// two different robots. And, more sharply: a sign dropped on the way across (every '-' entry
+// silently made positive would fight five motors against four on the first command), or the
+// wheel DIAMETER used where the radius belongs (every distance doubled, silently).
+#include "shulib/hal/drivetrain_description.hpp"
+
+TEST_CASE("chassis table 2: tableToDescription carries robot two's table into the one "
+          "representation, signs and scale bit for bit") {
+    using shulib::bench::describeMissingForDescription;
+    using shulib::bench::tableDriveGeometry;
+    using shulib::bench::tableToDescription;
+    using shulib::hal::DescriptionSource;
+    using shulib::hal::DrivetrainDescription;
+    using shulib::hal::DrivetrainKind;
+    using shulib::hal::MotorCartridge;
+    using shulib::units::Length;
+
+    ChassisTable t = robotTwo();
+    t.wheelDiameterIn = 2.75;
+    t.trackWidthIn = 13.25;  // non-round, so a swap with the wheel cannot hide
+    t.externalRatio = 0.6;
+    t.geometryProvenance = "tape + tooth counts, a host test";
+
+    char missing[192];
+    CHECK_FALSE(describeMissingForDescription(t, missing, sizeof missing));
+    const DrivetrainDescription d = tableToDescription(t);
+    char why[160];
+    REQUIRE(d.valid(why, sizeof why));
+    CHECK(why[0] == '\0');
+
+    // The SIGNS, as typed, entry by entry — the one place a sign lives, carried not re-derived.
+    REQUIRE(d.left.count == 5);
+    REQUIRE(d.right.count == 5);
+    const std::int8_t expectedLeft[5] = {-11, 12, -13, 14, -15};
+    const std::int8_t expectedRight[5] = {20, -19, 18, -17, 16};
+    for (std::size_t i = 0; i < 5; ++i) {
+        CHECK(d.left.signedPorts[i] == expectedLeft[i]);
+        CHECK(d.right.signedPorts[i] == expectedRight[i]);
+    }
+    CHECK(d.signedPortOf(11) == -11);
+    CHECK(d.signedPortOf(20) == 20);
+    CHECK(d.sideOf(15) == -1);
+    CHECK(d.sideOf(16) == +1);
+    // Ports beyond the count were never written: a description is writable to a card as it is.
+    for (std::size_t i = 5; i < shulib::hal::kMaxSmartPorts; ++i) {
+        CHECK(d.left.signedPorts[i] == 0);
+        CHECK(d.right.signedPorts[i] == 0);
+    }
+
+    // The SCALE is the RADIUS x ratio, never the diameter: 2.75/2 x 0.6, bit for bit, on both
+    // sides, and identical to what the odometry already gets from tableDriveGeometry().
+    CHECK(d.left.inchesPerRadian.value() == 1.375 * 0.6);
+    CHECK(d.right.inchesPerRadian.value() == 1.375 * 0.6);
+    CHECK(d.left.inchesPerRadian.value() == tableDriveGeometry(t).inchesPerRadian().value());
+    CHECK(d.leftGeometry().inchesPerRadian().value()
+          == tableDriveGeometry(t).inchesPerRadian().value());
+    CHECK(d.left.inchesPerRadian.value() != 2.75 * 0.6);  // the diameter, if anyone swapped it
+    CHECK(d.trackWidth.value() == 13.25);
+
+    // The stated facts and the provenance.
+    CHECK(d.kind == DrivetrainKind::Tank);
+    CHECK(d.cartridge == MotorCartridge::Blue);
+    CHECK(d.imuPort == 2);
+    CHECK(d.source == DescriptionSource::TypedTable);  // NOT RobotMeasured: a typed number
+    CHECK(std::strstr(d.provenance, "TYPED TABLE") != nullptr);
+    CHECK(std::strstr(d.provenance, "tape + tooth counts") != nullptr);
+    CHECK(std::strstr(d.provenance, "test copy of robot two") != nullptr);
+}
+
+TEST_CASE("chassis table 2: an UNSET or UNSIGNED table cannot produce a VALID description, and "
+          "names what is missing") {
+    using shulib::bench::describeMissingForDescription;
+    using shulib::bench::tableToDescription;
+    using shulib::hal::DrivetrainDescription;
+    using shulib::hal::MotorCartridge;
+
+    char missing[192];
+    char why[160];
+
+    // (a) the table as COMMITTED for robot two: geometry UNSET. Refused, naming the numbers.
+    ChassisTable unsetGeometry = robotTwo();  // wheel 2.75, width 0, ratio 0
+    CHECK(describeMissingForDescription(unsetGeometry, missing, sizeof missing));
+    CHECK(std::strstr(missing, "track width") != nullptr);
+    CHECK(std::strstr(missing, "external ratio") != nullptr);
+    const DrivetrainDescription a = tableToDescription(unsetGeometry);
+    CHECK_FALSE(a.valid(why, sizeof why));
+    CHECK(a.left.inchesPerRadian.value() == 0.0);  // never invented from the wheel alone
+    CHECK(a.trackWidth.value() == 0.0);
+    CHECK(std::strstr(why, "inches per radian") != nullptr);
+
+    // (b) an UNSIGNED table — the dangerous one. Every entry is positive and a naive mapping
+    // would produce a description that passes every check in valid() while half the motors
+    // fought their side-mates on the first command. Both sides are left EMPTY instead.
+    ChassisTable unsigned_ = robotTwo();
+    unsigned_.wheelDiameterIn = 2.75;
+    unsigned_.trackWidthIn = 13.25;
+    unsigned_.externalRatio = 1.0;
+    for (std::size_t i = 0; i < unsigned_.leftCount; ++i) {
+        unsigned_.left[i] = static_cast<std::int8_t>(absPort(unsigned_.left[i]));
+    }
+    for (std::size_t i = 0; i < unsigned_.rightCount; ++i) {
+        unsigned_.right[i] = static_cast<std::int8_t>(absPort(unsigned_.right[i]));
+    }
+    unsigned_.signsMeasured = false;
+    CHECK(consistent(unsigned_, why, sizeof why));  // it is a legal table …
+    CHECK(describeMissingForDescription(unsigned_, missing, sizeof missing));  // … not a
+    CHECK(std::strstr(missing, "measured signs") != nullptr);                  //   describable one
+    const DrivetrainDescription b = tableToDescription(unsigned_);
+    CHECK_FALSE(b.valid(why, sizeof why));
+    CHECK(b.left.count == 0);
+    CHECK(b.right.count == 0);
+    CHECK(std::strstr(why, "no ports") != nullptr);
+
+    // (c) an UNSET cartridge leaves a byte outside the enum, and an UNSET IMU leaves port 0 —
+    // each refused on its own, neither invented.
+    ChassisTable noCartridge = robotTwo();
+    noCartridge.wheelDiameterIn = 2.75;
+    noCartridge.trackWidthIn = 13.25;
+    noCartridge.externalRatio = 1.0;
+    noCartridge.cartridge = Cartridge::Unset;
+    CHECK(describeMissingForDescription(noCartridge, missing, sizeof missing));
+    CHECK(std::strstr(missing, "cartridge") != nullptr);
+    const DrivetrainDescription c = tableToDescription(noCartridge);
+    CHECK(c.cartridge == static_cast<MotorCartridge>(0));
+    CHECK_FALSE(c.valid(why, sizeof why));
+    CHECK(std::strstr(why, "cartridge") != nullptr);
+
+    ChassisTable noImu = robotTwo();
+    noImu.wheelDiameterIn = 2.75;
+    noImu.trackWidthIn = 13.25;
+    noImu.externalRatio = 1.0;
+    noImu.imuPort = 0;
+    CHECK(describeMissingForDescription(noImu, missing, sizeof missing));
+    CHECK(std::strstr(missing, "IMU port") != nullptr);
+    CHECK_FALSE(tableToDescription(noImu).valid(why, sizeof why));
+    CHECK(std::strstr(why, "IMU port") != nullptr);
+
+    // (d) the table this TU actually compiles — the bench bot's — is UNSIGNED and geometry-less,
+    // so it too refuses. Nothing in the tree can build a drivetrain from it today, by design.
+    CHECK(describeMissingForDescription(kChassis, missing, sizeof missing));
+    CHECK_FALSE(tableToDescription(kChassis).valid(why, sizeof why));
+}

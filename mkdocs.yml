@@ -244,6 +244,7 @@ nav:
           - Distance: api/distance.md
           - Distance conversion: api/distance_conversion.md
           - Drive geometry: api/drive_geometry.md
+          - Drivetrain description: api/drivetrain_description.md
           - GPS: api/gps.md
           - GPS conversion: api/gps_conversion.md
           - IMU: api/imu.md
@@ -283,6 +284,8 @@ nav:
           - Accuracy: api/accuracy.md
       - Top level:
           - Version: api/version.md
+      - Calibration:
+          - Drivetrain calibrator: api/drivetrain_calibrator.md
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md
           - Drivetrain degradation: api/drivetrain_degradation.md

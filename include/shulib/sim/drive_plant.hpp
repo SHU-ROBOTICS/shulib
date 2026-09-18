@@ -11,7 +11,10 @@
 // error MEASURABLE rather than inferred.
 //
 // ── The tick pipeline (step(dt)) ────────────────────────────────────────────────────
-//   1. read each FakeMotor's commandedVoltage()   (post ±12 V clamp — the F4 contract)
+//   1. read each WHEEL's command                  (post ±12 V clamp — the F4 contract):
+//        the primary's commandedVoltage() when every member of the wheel was commanded
+//        the same volts, else the members' mean — wheelCommand(), the coupled-train
+//        model added at R3d Part 1 (T6b); a one-member wheel is the original line
 //   2. DegradationModel::effectiveVoltage()       (A3 seam; identity today)
 //   3. MotorModel::advance() per wheel            (the inverted-feedforward "dynamics")
 //   4. DegradationModel::wheelMotionVelocity()    (A3 slip seam; identity today)
@@ -151,8 +154,17 @@ enum class MemberFault {
     None,         ///< healthy: the wheel's true shaft position and spin, like every mate
     Frozen,       ///< a dead port: HOLDS whatever it last reported (position AND velocity —
                   ///< ProsMotor's last-good screen), from the tick the fault is set on
-    SignFlipped,  ///< a member wired the wrong way round: reports the NEGATED shaft
-                  ///< position and spin of its mates (what a fight looks like)
+    SignFlipped,  ///< a member wired the wrong way round on the READ side only: reports the
+                  ///< NEGATED shaft position and spin of its mates while its command still
+                  ///< reaches the train the right way (what a fight looks like to a detector).
+                  ///< Its semantics are pinned by motor_group_plant_test 3–4 and the monitor
+                  ///< tests and must not change — Reversed below is the NEW, separate member.
+    Reversed,     ///< a motor physically WIRED BACKWARDS through a POSITIVE port (chunk R3d
+                  ///< Part 1, T6a): its readings are negated exactly like SignFlipped AND its
+                  ///< commanded volts are negated before the motor model, so +V drives the
+                  ///< train the wrong way. This is the fault a sign-capture calibration has to
+                  ///< discover; SignFlipped could not model it, because there the command
+                  ///< still goes the right way.
 };
 
 class DrivePlant {
@@ -230,7 +242,7 @@ public:
         kinematics::WheelSpeeds motion{n_};
         for (int i = 0; i < n_; ++i) {
             const auto idx = static_cast<std::size_t>(i);
-            const units::Voltage commanded = motors_[idx]->commandedVoltage();
+            const units::Voltage commanded = wheelCommand(idx);  // the coupled-train model (T6b)
             const units::Voltage effective =
                 degradation_.effectiveVoltage(i, commanded, now, rng_);
             wheelSpin_[idx] = model_.advance(wheelSpin_[idx], effective, dt);
@@ -258,6 +270,10 @@ public:
             r.wheelCount = n_;
             for (int i = 0; i < n_; ++i) {
                 const auto idx = static_cast<std::size_t>(i);
+                // The COMMAND a controller issued, not wheelCommand()'s train model: the
+                // record is telemetry of what the stack asked for, and under a MotorGroup's
+                // fan-out (the only way the library commands a coupled side) the two are the
+                // same value anyway.
                 r.wheelVoltage[idx] = motors_[idx]->commandedVoltage();
             }
             r.imuYaw = imu_.heading();        // what the (possibly degraded) sensor reports
@@ -286,9 +302,11 @@ public:
     // ── Coupled members (R3b Part 1) ──────────────────────────────────────────────
     /// Attach EXTRA FakeMotors to wheel `wheel`: from now on every sensor synthesis writes the
     /// SAME shaft position and spin into each of them as into the wheel's primary motor —
-    /// N motors on one gear train, which is physical truth for a coupled side. The plant
-    /// still reads its command from the PRIMARY (a hal::MotorGroup fans one voltage to all
-    /// members, so the primary carries it). One member per wheel — no call — is the default
+    /// N motors on one gear train, which is physical truth for a coupled side. Since R3d
+    /// Part 1 the plant reads the wheel's COMMAND from all of them through wheelCommand():
+    /// the primary's value when a hal::MotorGroup has fanned one voltage to every member
+    /// (the original path, bit for bit), the members' mean when they differ — so pulsing a
+    /// single member of a train moves the train. One member per wheel — no call — is the default
     /// and is bit-identical to a plant that never had this method (the whole suite is the
     /// pin). Non-owning: the fakes and the array must outlive the plant. Precondition:
     /// wheel in range, count <= kMaxExtraMembersPerWheel, all non-null; may be called once
@@ -337,10 +355,63 @@ private:
             case MemberFault::Frozen:
                 return;  // holds its last reading, like a dead port through ProsMotor
             case MemberFault::SignFlipped:
+            case MemberFault::Reversed:
+                // Both report the negated shaft: from the READ side a motor wired
+                // backwards and a member fighting its mates look exactly alike. They
+                // differ only on the COMMAND side (effectiveMemberVolts).
                 m.setPosition(units::AngleDim{-pos.value()});
                 m.setVelocity(units::AngularVelocity{-vel.value()});
                 return;
         }
+    }
+
+    /// The volts a member's command actually delivers to the train: a Reversed member is
+    /// wired backwards, so its commanded volts turn the gear train the other way. Applied to
+    /// EVERY member wherever its command is read (the primary on the equal-command path, and
+    /// every member inside the mean) — the negation belongs to the member's wiring, not to
+    /// its position in the array. Identity for every other fault, which is what keeps the
+    /// pre-existing suite bit-identical.
+    [[nodiscard]] static double effectiveMemberVolts(double commanded, MemberFault fault) noexcept {
+        return fault == MemberFault::Reversed ? -commanded : commanded;
+    }
+
+    /// The volts wheel `w` actually turns under — the COUPLED-TRAIN COMMAND MODEL (R3d
+    /// Part 1, T6b). Until R3d the plant read a wheel's command from its PRIMARY member
+    /// alone, so a calibrator pulsing ONE extra member of a five-motor train would have
+    /// moved nothing at all and its test would have passed for the wrong reason.
+    ///
+    /// The rule, and why it is shaped this way:
+    ///   * if every member of the wheel is commanded the SAME volts — EXACT comparison, which
+    ///     is what a hal::MotorGroup's fan-out always produces — the wheel's command is the
+    ///     PRIMARY's value: the pre-R3d path, bit for bit, which is why
+    ///     motor_group_plant_test 7's five-member equivalence pin survives unchanged;
+    ///   * otherwise the wheel turns at the MEAN of its members' effective volts — a
+    ///     velocity-driven model of a train pulled by some of its motors while the rest
+    ///     free-wheel. It is TORQUE-FREE like everything else here (motor_model.hpp's
+    ///     honesty boundary): it does not claim what force five motors exert on one shaft,
+    ///     only that the train follows the average of what it is being asked for. That makes it
+    ///     OPTIMISTIC — a real motor back-driving four gearboxes reaches less than 1/N — so it is
+    ///     a registered SIM belief, settled by R6's back-fit (A4 register HA-137).
+    [[nodiscard]] units::Voltage wheelCommand(std::size_t w) const {
+        const double primary = motors_[w]->commandedVoltage().value();
+        const int extras = extraCount_[w];
+        bool allSame = true;
+        for (int k = 0; k < extras; ++k) {
+            if (extra_[w][static_cast<std::size_t>(k)]->commandedVoltage().value() != primary) {
+                allSame = false;  // exact compare, on purpose (header)
+                break;
+            }
+        }
+        if (allSame) {
+            return units::Voltage{effectiveMemberVolts(primary, memberFault_[w][0])};
+        }
+        double sum = effectiveMemberVolts(primary, memberFault_[w][0]);
+        for (int k = 0; k < extras; ++k) {
+            const auto kIdx = static_cast<std::size_t>(k);
+            sum += effectiveMemberVolts(extra_[w][kIdx]->commandedVoltage().value(),
+                                        memberFault_[w][kIdx + 1]);
+        }
+        return units::Voltage{sum / static_cast<double>(extras + 1)};
     }
 
     /// The attached members of wheel `w` (never the primary — its write is the original

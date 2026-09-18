@@ -36,12 +36,15 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 133 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 137 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
 > one is reported (HA-124), two are UNSET and refuse at boot (HA-125/126), one reasoned (HA-131),
-> two invented (HA-132/133). The per-confidence counts below predate them.)* **No *v2* robot exists**, and
+> two invented (HA-132/133). R3d Part 1 added FOUR more on 2026-09-17 — HA-134/135 reasoned,
+> HA-136/137 invented — and not one of the four is measured on anything: each is a belief the host
+> plant cannot settle, which is exactly why it is an entry. The per-confidence counts below predate
+> all fourteen.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -204,6 +207,10 @@
 | HA-131 | On robot two, ODO_STUCK cannot be detected by the wheels-vs-odometry cross-check: the odometry IS the drive encoders, so the check is a tautology and is deliberately not wired to report a verdict | reasoned (structural) | R3d/R4 |
 | HA-132 | The coupled-side agreement thresholds — evaluate above 1 V and 1 rad/s; opposite sign above 0.5 rad/s; under 25 % of the side's fastest; 25 consecutive 10 ms ticks — separate a real fight from a transient | **invented** | R3d/R4 |
 | HA-133 | A coupled member under 25 % of its side's fastest is disagreeing, and one at 80 % (port 18's signature) is NOT — the disagreement FLOOR tolerates a slow member and catches a frozen one | **invented** | R3d/R4 |
+| HA-134 | On a tank, driving ONE side forward alone pivots the robot about the other: LEFT forward → CLOCKWISE → NEGATIVE canonical yaw; RIGHT forward → positive. The calibrator reads a drive port's SIDE off that sign | reasoned (rigid-body) | R3d Part 3 |
+| HA-135 | The EFFECTIVE track width a powered spin measures is LARGER than the tape's contact-line-to-contact-line width, because a turning tank scrubs; the effective one is what the kinematics and the heading cross-check need | reasoned | R3d Part 3 |
+| HA-136 | Every number in `calibration::CalibratorConfig` — the push threshold, the rest floor/settle/timeout, the pulse ceiling/time/yaw floor, the straightness bound, the minimum push, the spin ceiling/turns/timeout/agreement, the IMU-ready and missed-tick timeouts — plus the two reproducibility tolerances the host suite pins | **invented** | R3d Part 3 |
+| HA-137 | A coupled train whose members are commanded DIFFERENT volts turns at the MEAN of their effective volts (the A2 plant's model; torque-free) | **invented** (sim shape) | R6 |
 
 ---
 
@@ -885,8 +892,11 @@ The register was written for one robot. Robot two — the season's tank chassis,
 motors per side driving four wheels per side, an IMU on port 2 and nothing else — is described
 by `src/chassis_table.hpp` (ports, signs, cartridge, IMU port, geometry) and the entries below
 carry the facts about it as they are MEASURED, REPORTED or UNSET, each with its source and date.
-Nothing here is invented for the robot itself; the two invented entries (HA-132/133) are the
-library's thresholds, not the robot's dimensions. The bench bot's rows above are not rewritten.
+Nothing here is invented for the robot itself: the invented entries (HA-132/133, and HA-136/137
+added by R3d Part 1 on 2026-09-17) are the LIBRARY's thresholds and one SIM model shape, not the
+robot's dimensions. Fourteen entries now — four measured on robot two (HA-127/128/129/130), one
+reported (HA-124), two UNSET and refusing at boot (HA-125/126), three reasoned (HA-131/134/135),
+four invented (HA-132/133/136/137). The bench bot's rows above are not rewritten.
 
 - [ ] **HA-124 — robot two's drive wheels are 2.75 in in diameter.**
   *Claim:* a ruler across the tread of any of robot two's eight drive wheels reads 2.75 in.
@@ -895,8 +905,10 @@ library's thresholds, not the robot's dimensions. The bench bot's rows above are
   `motion/odo_stall_check.hpp` (one `hal::DriveGeometry` object, both consumers).
   *Confidence:* **reported** — the team lead, 2026-09-14: "standard wheels", the bench bot's
   measured size. Not yet rulered on THIS robot (worksheet Station F.0.3).
-  *Settle (R3b/R3d):* the ruler; then R3d's one-push-along-a-tape scale calibration replaces the
-  typed number with a measured inches-per-radian.
+  *Settle (R3b / **R3d Part 3**):* the ruler; then R3d's one-push-along-a-tape scale calibration
+  replaces the typed number with a measured inches-per-radian. That calibration EXISTS since R3d
+  Part 1 (2026-09-17) and recovers the A2 plant's own radius to 1e-9; it has never been run on a
+  robot, so this entry moves only on Part 3's bench log.
   *Blast radius if wrong:* every odometry distance scales by the error (a 2 % diameter error is
   a 2 % distance error, pinned quantitatively by the drive-encoder odometry's test 10); the
   stall check's spin travel scales identically, so the two never disagree with each other, only
@@ -910,9 +922,12 @@ library's thresholds, not the robot's dimensions. The bench bot's rows above are
   *Confidence:* **UNSET** — deliberately. A guessed track width turns every commanded yaw into
   the wrong wheel-speed difference (`kinematics/tank.hpp`) and every encoder-implied heading
   into the wrong number, silently; the drivetrain kind was stated, the width was not.
-  *Settle (R3b):* tape measure, centre of the left contact line to centre of the right, front
-  and back pairs (Station F.0.1); typed with provenance. R3d then measures it from the IMU
-  (spin in place: Δθ_enc vs Δθ_imu — the cross-check `lastHeadingDisagreement()` exposes).
+  *Settle (R3b / **R3d Part 3**):* tape measure, centre of the left contact line to centre of the
+  right, front and back pairs (Station F.0.1); typed with provenance. R3d then measures it from the
+  IMU (spin in place: Δθ_enc vs Δθ_imu — the cross-check `lastHeadingDisagreement()` exposes). That
+  spin EXISTS since R3d Part 1 and recovers the plant's true width both ways to 1e-6 — but note
+  that what it will produce on a floor is the EFFECTIVE width (HA-135), which is NOT the tape's
+  number and is not meant to be.
   *Blast radius if wrong:* turns under-/over-rotate by the ratio of the error; the heading
   cross-check reads a steady bias on every turn (that is how a wrong width will be SEEN).
   **Contained:** one table field.
@@ -923,9 +938,12 @@ library's thresholds, not the robot's dimensions. The bench bot's rows above are
   says nothing about the gears between the output shaft and the wheel.
   *Source:* `src/chassis_table.hpp`; `hal/drive_geometry.hpp` (the ratio's one home).
   *Confidence:* **UNSET** — deliberately.
-  *Settle (R3b/R3d):* "direct drive" (→ 1.0) or the tooth counts on BOTH sides (the R3a B1.2
-  amendment: ask per side — an asymmetric drivetrain is representable, two `DriveGeometry`
-  objects); then R3d's push-along-a-tape calibration.
+  *Settle (R3b / **R3d Part 3**):* "direct drive" (→ 1.0) or the tooth counts on BOTH sides (the
+  R3a B1.2 amendment: ask per side — an asymmetric drivetrain is representable, two
+  `DriveGeometry` objects); then R3d's push-along-a-tape calibration, which measures the radius ×
+  ratio PRODUCT and cannot separate the factors — so once it has run, this entry is answered by
+  being made unnecessary rather than by being filled in
+  (`hal::DriveGeometry::fromInchesPerRadian`, R3d Part 1).
   *Blast radius if wrong:* the whole odometry scale (a 5:3 reduction typed as direct drive is a
   67 % distance error). **Contained:** one table field; the plant stays at 1:1 until a ratio
   other than 1:1 is reported (R3b Parts 1–3 D2-7).
@@ -973,10 +991,16 @@ library's thresholds, not the robot's dimensions. The bench bot's rows above are
   `hal/motor_group.hpp` (the header cites it as the reason the disagreement floor must
   tolerate a slow member); `test/motor_group_test.cpp` test 16 (a member at 80 % of its mates
   is NOT flagged at rest or under command; the same member opposite in sign IS — pinned, with
-  the threshold mutation observed red).
+  the threshold mutation observed red); and, since R3d Part 1,
+  `include/shulib/calibration/drivetrain_calibrator.hpp`, which cites it as the reason each side's
+  distance scale is taken through `hal::medianInPlace` — the SAME function the group will report
+  `position()` with at run time, so a member that travels short cancels EXACTLY between the
+  calibration and the run rather than approximately.
   *Confidence:* **measured** 2026-09-10, twice. What it means mechanically is not.
-  *Settle (R3b/R3d):* watch it under power (the panel's `disagree` counts and the group's
-  median); if it persists, swap the motor and re-measure.
+  *Settle (R3b / R3d Part 3):* watch it under power (the panel's `disagree` counts and the group's
+  median); if it persists, swap the motor and re-measure. R3d's calibration report gives a second,
+  sharper reading for free: it prints each side's member SPREAD over the tape push, so one run says
+  how short port 18 is against its four mates without anyone watching a live panel.
   *Blast radius if wrong:* if it turned out to be a fight rather than a shortfall, the group's
   median would still ignore it (one of five) and the monitor would count it; if the shortfall
   grew past 75 %, the floor (HA-133) would report it as frozen. Either way it is visible.
@@ -993,8 +1017,14 @@ library's thresholds, not the robot's dimensions. The bench bot's rows above are
   `src/main.cpp` (`kNoIndependentStallSourceNote` logged once at boot); `localization/
   drive_encoder_odometry.hpp` (`lastHeadingDisagreement()`, the future detector's input).
   *Confidence:* reasoned (structural — a fact about the sources, not a measurement).
-  *Settle (R3d/R4):* a stuck/slip detector on the heading cross-check plus current, measured
-  against real pushes; or tracking wheels, which restore the independent source.
+  *Settle (**R4** — RE-HOMED from "R3d/R4" on 2026-09-17 by R3d Part 1):* a stuck/slip detector on
+  the heading cross-check plus current, measured against real pushes; or tracking wheels, which
+  restore the independent source. **Why it moved:** R3d builds a DESCRIPTION of a drivetrain —
+  which ports, which signs, which sides, what scale, what width. A stuck/slip detector is not a
+  description; it is a run-time detector, and it cannot be tuned without real pushes on a real
+  floor (the host plant's slip is a declared scenario fact, not an emergent one), which is R4's
+  whole subject. R3d Part 1 does hand that detector its input, ready and host-proven: the effective
+  track width the cross-check has to read zero against.
   *Blast radius if wrong:* n/a in the honest direction — the alternative was a monitor that
   lies. The cost is the missing detection itself: the driver is the supervisor (the panel says
   so), and an auton that pushes a wall will not fault; its watchdog bounds the damage.
@@ -1031,6 +1061,110 @@ library's thresholds, not the robot's dimensions. The bench bot's rows above are
   *Blast radius if wrong:* a slow-but-healthy member reported as a fight on every run (and a
   fault line per run), or a nearly-frozen member (25–50 %) missed. **Contained:** one field
   of HA-132's struct.
+
+### R3d Part 1's additions — the beliefs the self-calibration is built on (2026-09-17)
+
+Four entries, added by the chunk that made the robot able to describe its own drivetrain. **None
+of the four has been measured on anything**: two are reasoned from mechanism, one is a set of
+invented thresholds, and one is a belief about the host PLANT rather than about a robot. The
+calibrator they belong to is proven against the A2 plant and has never moved a physical drivetrain.
+
+- [ ] **HA-134 — on a tank, one side forward alone turns the robot toward that side, and the IMU's
+  yaw SIGN is therefore what names a drive port's side.**
+  *Claim:* driving ONE side of a tank forward while the other is unpowered pivots the robot about
+  the unpowered side. The LEFT side forward turns it CLOCKWISE, which is NEGATIVE yaw in shulib's
+  CCW-positive canonical frame (`hal/imu.hpp`); the RIGHT side forward is positive. The drivetrain
+  calibrator pulses one member at a time and reads that member's side off that sign alone.
+  *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (the header's phase table and
+  `finishPulse()`, `A4 register HA-134`); `test/drivetrain_calibrator_test.cpp` test 6 — every LEFT
+  pulse's Δθ negative, every RIGHT pulse's positive, the resulting sides equal to the plant's wheel
+  membership exactly, with the rule-swapping mutation observed red.
+  *Confidence:* reasoned — rigid-body kinematics. Note honestly what the host suite does and does
+  not prove: it AGREES with the frozen F5 contract (`kinematics/tank.hpp`'s `forward()` computes
+  ω = (right − left)/track, so left alone gives ω < 0), and the plant turns the robot USING that
+  same contract — so the plant cannot be an independent check of the claim. What it does check is
+  that the calibrator reads the sign the same way round as the kinematics writes it, which is the
+  half that a typo would break.
+  *Settle (R3d Part 3):* the FIRST pulse on the floor. One 3 V, 0.4 s pulse on port 11 with the
+  panel showing Δθ settles it in about a second.
+  *Blast radius if wrong:* the two sides swap, so every commanded turn goes the wrong way and the
+  odometry's heading cross-check reads double instead of zero. **Contained:** one comparison in
+  `finishPulse()`. Loud rather than silent — a mirrored description turns the robot away from every
+  target on the first arc.
+
+- [ ] **HA-135 — the EFFECTIVE track width from a powered spin is LARGER than the taped one.**
+  *Claim:* on foam, a tank turning in place SCRUBS — the wheels slide sideways as well as rolling —
+  so the drive encoders over-count the turn relative to the yaw the robot actually achieves, and
+  `W = (ΔR − ΔL) / Δθ_imu` comes out LARGER than a tape measure's contact-line-to-contact-line
+  width. The effective number is the one `TankKinematics` needs to command a turn that lands and
+  the one the heading cross-check must read as zero; the taped number is the fallback's provenance
+  and is a different quantity, not a better or worse estimate of the same one.
+  *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (T8, `finishSpin()`,
+  `A4 register HA-135`); `include/shulib/hal/drivetrain_description.hpp`'s `trackWidth` field
+  comment; `test/drivetrain_calibrator_test.cpp` test 13, which adds a turn-scrub model the plant
+  does not itself have: 5 % scrub yields 13.157 in against a true 12.5 — larger, in the predicted
+  direction, and within 8 %.
+  *Confidence:* reasoned. The A2 plant scrubs NOTHING, so the host recovers the true width exactly
+  (1e-6 in both directions) and can say nothing whatever about the size of the gap. The DIRECTION
+  is reasoned from the mechanism; the RATIO is unmeasured and no number in the tree claims it.
+  *Settle (R3d Part 3):* tape the width, then calibrate, and record both numbers and their ratio,
+  on the same robot on the same floor. That ratio is the first real datum about this claim.
+  *Blast radius if wrong:* if the effective width came out SMALLER than the tape's, the scrub model
+  is backwards and the reason for preferring a measured width to a taped one is wrong — visible
+  immediately, because Part 3 records the two numbers side by side. Either way the calibrated
+  number remains the one the kinematics wants, because it is defined by the measurement it came
+  from.
+
+- [ ] **HA-136 — every number in `CalibratorConfig` is invented for a first run.**
+  *Claim:* the calibration's thresholds — `movedThreshold` 5° (carried unchanged from the bench
+  tester's MOTOR WATCH, where it was invented too), `restFloor` 0.05 rad/s, `restSettleTime` 0.5 s,
+  `restTimeout` 3 s, `pulseVolts` 3 V, `pulseTime` 0.4 s, `pulseYawFloor` 2°, `straightBound` 3°,
+  `minPushRad` 2π (one wheel turn), `spinVolts` 3 V, `spinTurns` 2, `spinTimeout` 20 s,
+  `spinAgreement` 5 %, `imuReadyTimeout` 5 s, `commandTimeout` 0.1 s — plus the two reproducibility
+  tolerances the class CLAIMS (`kReproScaleTolerance` 2 %, `kReproWidthTolerance` 3 %) — together
+  let a real drivetrain be described without either refusing a good run or accepting a bad one.
+  *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (`CalibratorConfig`, every field
+  tagged `PROVISIONAL (A4: HA-136)`); `test/drivetrain_calibrator_test.cpp`, where the push
+  threshold, the pulse yaw floor, the missed-tick bound and the spin agreement are each attacked
+  from BOTH sides — a value just under the line and the same value just over it.
+  *Confidence:* **invented**, every one, for a first run. The host plant can only show that each
+  threshold FIRES where it is set, never that it is set in the right place.
+  `pulseVolts`/`spinVolts` inherit the DRIVE station's first ceiling, the only one of the sixteen
+  with any hardware history at all — and even that history is "nothing broke at 3 V", not a
+  measurement.
+  *Settle (R3d Part 3):* one calibration on the floor with the report printed. The report exists
+  for this: per-port push Δ, per-port pulse Δθ, each side's median AND spread, the straightness,
+  both widths and their disagreement — so a single run says which thresholds sit in the wrong
+  place. `restFloor` and `pulseYawFloor` are the two most likely to move; both are bounded below by
+  sensor noise nobody has measured.
+  *Blast radius if wrong:* too tight and a good drivetrain cannot be described — a refusal, loud,
+  with the offending number in the message; too loose and a bad one is described confidently, which
+  would bake a wrong sign or a wrong side into a record the competition program then trusts. The
+  asymmetry is deliberate: every threshold is placed so that its failure mode is a REFUSAL.
+  **Contained:** one config struct, sixteen fields.
+
+- [ ] **HA-137 — a coupled train commanded unequal volts turns at the MEAN of its members'
+  effective volts (a belief about the SIM, not about a robot).**
+  *Claim:* in the A2 plant, a wheel whose coupled members carry DIFFERENT commands turns as though
+  it were commanded the mean of them (a `Reversed` member's volts negated first); when every member
+  carries the SAME command — which is what a `hal::MotorGroup` always produces — the wheel takes
+  that value, bit for bit.
+  *Source:* `include/shulib/sim/drive_plant.hpp` (`wheelCommand()`, `A4 register HA-137`);
+  `test/drive_plant_coupled_test.cpp` tests 18–20.
+  *Confidence:* **invented**, and deliberately a SIM shape rather than a robot fact. It is
+  torque-free like everything else in the plant (`motor_model.hpp`'s honesty boundary): it does not
+  claim what force four free-wheeling motors exert against one driven one, only that the train
+  follows the average of what it is asked for. A real train pulled by one of five motors will not
+  reach a fifth of its free speed — that one motor has to back-drive four gearboxes — so the plant
+  is OPTIMISTIC here, and every number the host suite reports for a single-member pulse is a lower
+  bound on how long that pulse really takes.
+  *Settle (R6 — back-fit, beside HA-48's model-shape question):* compare one member's pulse on a
+  real robot against the plant's prediction for the same command. If the robot needs materially
+  more than 1/N, the mean becomes a weighted model or the pulse ceiling rises.
+  *Blast radius if wrong:* the calibrator's single-member pulse turns a real robot LESS than the
+  host suite predicts, so `pulseYawFloor` (HA-136) refuses a run that is actually fine — a refusal,
+  on a bench, with the measured Δθ on the screen. It cannot make a calibration WRONG, only make one
+  fail to finish. **Contained:** one function in the plant.
 
 ---
 

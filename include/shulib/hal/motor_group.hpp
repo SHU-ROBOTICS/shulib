@@ -90,6 +90,25 @@
 
 namespace shulib::hal {
 
+/// THE median of the `n` values in `v` — the one definition in the tree, so nothing that has to
+/// agree with a hal::MotorGroup's reading can drift from it. Odd n: the middle value, no
+/// arithmetic at all (n == 1 is the bare value, bit for bit). Even n: the mean of the two middle
+/// values (exact when they agree), which one dead member still cannot reach when n >= 4 — see the
+/// header's "why not the mean". SORTS `v` IN PLACE, which is why the caller passes a scratch
+/// array it owns. Precondition: v non-null, n >= 1.
+///
+/// Extracted from MotorGroup at chunk R3d Part 1 because the drivetrain calibrator measures each
+/// side's distance scale through the SAME statistic the group will later report to the odometry:
+/// a slow member (robot two's port 18, A4 register HA-130) then cancels exactly instead of
+/// approximately. A second, privately written median would have made that cancellation an
+/// accident rather than a guarantee.
+[[nodiscard]] inline double medianInPlace(double* v, std::size_t n) {
+    SHULIB_PRECONDITION(v != nullptr, "medianInPlace: values must be non-null");
+    SHULIB_PRECONDITION(n >= 1, "medianInPlace: needs at least one value");
+    std::sort(v, v + n);
+    return (n % 2 == 1) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+}
+
 /// N coupled motors presented as ONE IMotor: commands fan out to every member unchanged;
 /// position and velocity read back as the MEDIAN (a dead port's frozen reading cannot drag
 /// them until a majority is dead), current as the per-member mean (the sum is
@@ -229,10 +248,7 @@ private:
         for (std::size_t i = 0; i < n; ++i) {
             v[i] = read(*members_[i]);
         }
-        std::sort(v, v + n);
-        // Odd N: the middle value, no arithmetic (N == 1 is the bare motor, bit for bit).
-        // Even N: the mean of the two middle values (exact when they agree).
-        return (n % 2 == 1) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+        return medianInPlace(v, n);  // the ONE median (above), shared with the calibrator
     }
 
     [[nodiscard]] double sumCurrent() const {

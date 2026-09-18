@@ -8,7 +8,7 @@
 
 DriveGeometry — ONE description of a drive side's geometry, consumed by BOTH the drive-encoder odometry and the stall cross-check.
 
-This header declares **1** type (5 members).
+This header declares **1** type (6 members).
 
 Extracted from [`include/shulib/hal/drive_geometry.hpp`](../../include/shulib/hal/drive_geometry.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -19,6 +19,7 @@ Extracted from [`include/shulib/hal/drive_geometry.hpp`](../../include/shulib/ha
   - [`motorToWheelRatio`](#drivegeometry-motortowheelratio)
   - [`inchesPerRadian`](#drivegeometry-inchesperradian)
   - [`fromDiameter`](#drivegeometry-fromdiameter)
+  - [`fromInchesPerRadian`](#drivegeometry-frominchesperradian)
   - [`valid`](#drivegeometry-valid)
 
 <a id="struct-drivegeometry"></a>
@@ -31,7 +32,7 @@ struct DriveGeometry
 
 One drive side's motor-to-wheel geometry: wheel radius and external motor→wheel ratio, yielding inches of wheel travel per radian of motor output-shaft rotation. Plain data (designated initializers at the call site), validated by whoever consumes it (valid()). Instantiate one per side at the composition root and hand the SAME object to the odometry and the stall check — one representation, two consumers.
 
-*struct, declared at [`include/shulib/hal/drive_geometry.hpp:43`](../../include/shulib/hal/drive_geometry.hpp#L43).*
+*struct, declared at [`include/shulib/hal/drive_geometry.hpp:61`](../../include/shulib/hal/drive_geometry.hpp#L61).*
 
 <a id="drivegeometry-wheelradius"></a>
 
@@ -41,9 +42,9 @@ One drive side's motor-to-wheel geometry: wheel radius and external motor→whee
 units::Length wheelRadius{3.25 / 2.0}
 ```
 
-Wheel RADIUS (inches). Stand-in default: half of 3.25 in (A4: HA-14).
+Wheel RADIUS (inches) — EXCEPT in a geometry built by fromInchesPerRadian(), where this field carries the whole radius × ratio PRODUCT and the ratio beside it is 1.0 (see the header's "two constructors, two provenances"). Stand-in default: half of 3.25 in (A4: HA-14).
 
-*field, declared at [`include/shulib/hal/drive_geometry.hpp:45`](../../include/shulib/hal/drive_geometry.hpp#L45).*
+*field, declared at [`include/shulib/hal/drive_geometry.hpp:66`](../../include/shulib/hal/drive_geometry.hpp#L66).*
 
 <a id="drivegeometry-motortowheelratio"></a>
 
@@ -55,7 +56,7 @@ double motorToWheelRatio = 1.0
 
 External gearing, motor output shaft → wheel: wheel revolutions per motor revolution (1.0 = direct drive; 0.6 = a 5:3 reduction; the cartridge is NOT included — the adapter already reports OUTPUT-shaft rotation). Stand-in default 1:1 (A4: HA-14).
 
-*field, declared at [`include/shulib/hal/drive_geometry.hpp:49`](../../include/shulib/hal/drive_geometry.hpp#L49).*
+*field, declared at [`include/shulib/hal/drive_geometry.hpp:70`](../../include/shulib/hal/drive_geometry.hpp#L70).*
 
 <a id="drivegeometry-inchesperradian"></a>
 
@@ -67,7 +68,7 @@ External gearing, motor output shaft → wheel: wheel revolutions per motor revo
 
 Inches of wheel travel per radian of motor output-shaft rotation: radius × ratio.
 
-*function, declared at [`include/shulib/hal/drive_geometry.hpp:52`](../../include/shulib/hal/drive_geometry.hpp#L52).*
+*function, declared at [`include/shulib/hal/drive_geometry.hpp:73`](../../include/shulib/hal/drive_geometry.hpp#L73).*
 
 <a id="drivegeometry-fromdiameter"></a>
 
@@ -79,7 +80,19 @@ Inches of wheel travel per radian of motor output-shaft rotation: radius × rati
 
 A geometry built from what a human measures: the wheel DIAMETER (a ruler across the tread) and the ratio (tooth counts, or 1.0 for direct drive).
 
-*function, declared at [`include/shulib/hal/drive_geometry.hpp:58`](../../include/shulib/hal/drive_geometry.hpp#L58).*
+*function, declared at [`include/shulib/hal/drive_geometry.hpp:79`](../../include/shulib/hal/drive_geometry.hpp#L79).*
+
+<a id="drivegeometry-frominchesperradian"></a>
+
+### `DriveGeometry::fromInchesPerRadian`
+
+```cpp
+[[nodiscard]] static constexpr DriveGeometry fromInchesPerRadian( units::Length inchesPerRadian) noexcept
+```
+
+A geometry built from what the ROBOT measures (chunk R3d Part 1): inches of wheel travel per radian of motor output-shaft rotation, straight from a push of a known distance along a tape. The radius and the ratio are NOT separable from that measurement and are not invented here: the product is stored in `wheelRadius` with a ratio of exactly 1.0, so inchesPerRadian() returns it unchanged (× 1.0 is exact). A calibrated geometry's `wheelRadius` is therefore NOT a radius — see the header.
+
+*function, declared at [`include/shulib/hal/drive_geometry.hpp:90`](../../include/shulib/hal/drive_geometry.hpp#L90).*
 
 <a id="drivegeometry-valid"></a>
 
@@ -91,14 +104,14 @@ A geometry built from what a human measures: the wheel DIAMETER (a ruler across 
 
 Both fields finite and strictly positive — what a consumer's precondition checks. UNSET (0) is invalid on purpose: a geometry nobody measured must refuse, never silently scale travel by zero.
 
-*function, declared at [`include/shulib/hal/drive_geometry.hpp:66`](../../include/shulib/hal/drive_geometry.hpp#L66).*
+*function, declared at [`include/shulib/hal/drive_geometry.hpp:98`](../../include/shulib/hal/drive_geometry.hpp#L98).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
-<details markdown="1" open>
-<summary>The header’s own reasoning — 29 lines</summary>
+<details markdown="1">
+<summary>The header’s own reasoning — 47 lines, click to expand</summary>
 
 ```text
 
@@ -130,6 +143,24 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  carried here unchanged from OdoStallCheckConfig so a config that names no geometry
  behaves exactly as before. Robot two's measured values arrive through the chassis
  table (src/chassis_table.hpp), never through these defaults.
+
+ ── TWO CONSTRUCTORS, TWO PROVENANCES — and what wheelRadius then means ─────────────
+ fromDiameter(d, ratio) is what a HUMAN measures: a ruler across the tread and a pair of
+ tooth counts, two separable facts.
+
+ fromInchesPerRadian(k) is what a ROBOT measures (chunk R3d Part 1, T5): pushing the
+ chassis a known distance along a tape and dividing by the shaft radians it turned yields
+ ONE number, and nothing in that measurement can separate the radius from the ratio. So
+ the calibrated constructor stores k in `wheelRadius` with `motorToWheelRatio = 1.0`, and
+ — stated here because it is the one surprising thing about this type — **a CALIBRATED
+ geometry's `wheelRadius` field carries the PRODUCT, not a radius.** Both consumers
+ (drive_encoder_odometry.hpp, odo_stall_check.hpp) read only inchesPerRadian(), so neither
+ can tell the difference and neither needs to; only a PANEL does, and a panel showing a
+ calibrated description must print "ipr", never "radius".
+ Rejected: a third field or a tagged variant on a type two consumers already hold BY VALUE
+ (a shape change that buys no consumer anything); and storing a guessed diameter with a
+ ratio derived to match — that is HA-111's invented-constant defect class in a new coat,
+ two made-up factors standing in for one measured number.
 ```
 
 </details>
