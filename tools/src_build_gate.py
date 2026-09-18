@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """src build gate — src/ compiles AND links for the V5, every robot variant (GATE1; third
 variant at R3b Session 2; a second axis, the PROGRAM, at R3b Part 0b; its third value, the
-LIBRARY program, at R3b Parts 1–3).
+LIBRARY program, at R3b Parts 1–3; its fourth, the CALIBRATE program, at R3d Part 2).
 
 WHY THIS EXISTS
 ---------------
@@ -34,13 +34,19 @@ $(error))
   tank-library ROBOT=tank PROGRAM=library "shulib Teleop" (R3b Parts 1–3): THE LIBRARY drives
                                          robot two — the tank object graph in src/main.cpp
                                          (two MotorGroups, drive-encoder odometry, Chassis)
-                                         built from the chassis table; slot 2
+                                         built from the SD card's calibration record when there
+                                         is one, else from the chassis table; slot 2
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_LIBRARY
-  (PROGRAM=drive or PROGRAM=library with any other ROBOT is a Makefile $(error): only a
-   signed table drives.)
+  tank-calibrate ROBOT=tank PROGRAM=calibrate "shulib Calibrate" (R3d Part 2): the robot MEASURES
+                                         its own drivetrain (src/calibrate_program.cpp) and
+                                         writes /usd/shulib_drivetrain.bin; slot 4
+                                                              -DSHULIB_ROBOT_TANK_2026
+                                                              -DSHULIB_PROGRAM_CALIBRATE
+  (PROGRAM=drive, =library or =calibrate with any other ROBOT is a Makefile $(error): only
+   robot two has a signed table, and only a tank can be calibrated by this procedure.)
 
-WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-library)
+WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-library, tank-calibrate)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -67,12 +73,13 @@ WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-library)
     warning-count detector then caught for xdrive — but for tank that detector cannot
     fire (see the differential below), so the structural check has to be exact on its own.
  6. Asserts the VARIANT IDENTITY BEACON (R3b Session 2): src/main.cpp defines one
-    string per build — `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-library` —
+    string per build —
+    `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-library|tank-calibrate` —
     under the SAME preprocessor facts that select the wiring and the program, and prints it
     at boot so it is linked in. The expected beacon must be in the bytes of
-    bin/hot.package.elf and the other four must NOT be. MATCHED WITH THE NUL TERMINATOR
-    (Part 0b): `…=tank` is a prefix of `…=tank-drive` and of `…=tank-library`, so a plain
-    substring search would false-fail every tank-drive and tank-library build;
+    bin/hot.package.elf and the other five must NOT be. MATCHED WITH THE NUL TERMINATOR
+    (Part 0b): `…=tank` is a prefix of `…=tank-drive`, `…=tank-library` and
+    `…=tank-calibrate`, so a plain substring search would false-fail every one of those;
     a C string literal sits in the ELF with its terminating zero byte, and that is what is
     searched for. This is the end-to-end proof that the `#if` in the SOURCE took the
     branch the Makefile asked for — the one case no command-line check can see is a
@@ -92,16 +99,18 @@ passed on the command line but the #ifdef in main.cpp renamed or broken.
   how you see the wiring is dead" rationale and should change only when that does.
   (The documented count is TWO since R3b Session 2 — robot() and portMapString();
   shaped() moved into include/shulib/teleop/stick_mapping.hpp. The assertion is >= 1.)
-  TANK BEHAVES LIKE BENCH here (R3b Session 2), AND SO DO TANK-DRIVE (Part 0b) AND
-  TANK-LIBRARY (Parts 1–3): the X-drive wiring is dead code in all of them — the library
-  program builds its OWN tank graph and never calls robot()/portMapString() — so each must
+  TANK BEHAVES LIKE BENCH here (R3b Session 2), AND SO DO TANK-DRIVE (Part 0b),
+  TANK-LIBRARY (Parts 1–3) AND TANK-CALIBRATE (R3d Part 2): the X-drive wiring is dead code
+  in all of them — the library program builds its OWN tank graph and never calls
+  robot()/portMapString(), and the calibrate program builds none at all — so each must
   also emit >= 1 -Wunused-function from src/main.cpp (the tank-library build's own helpers
   are guarded under SHULIB_RUNS_TANK_LIBRARY and its loop body is a function template, so it
-  adds no warning of its own). That means the warning-count detector CANNOT tell a tank
-  build from a bench build, nor a tank-drive or tank-library build from a tank build — which
-  is exactly why the beacon (step 6) exists: it is the only detector that can see a tank
-  build that silently became a bench build, or a "shulib Drive" / "shulib Teleop" upload
-  that was silently the tester.
+  adds no warning of its own; the calibrate build's program lives entirely in
+  src/calibrate_program.cpp). That means the warning-count detector CANNOT tell a tank
+  build from a bench build, nor a tank-drive, tank-library or tank-calibrate build from a
+  tank build — which is exactly why the beacon (step 6) exists: it is the only detector that
+  can see a tank build that silently became a bench build, or a "shulib Drive" /
+  "shulib Teleop" / "shulib Calibrate" upload that was silently the tester.
 
 THE WARNING POLICY (GATE1 §4.3)
 -------------------------------
@@ -160,13 +169,14 @@ ARM_GXX = "arm-none-eabi-g++"
 # one's linked package must contain (and the others must not). The tables mirror the
 # Makefile's ROBOT and PROGRAM blocks and src/main.cpp's #if chain; a build added to one place
 # and not the others fails here, which is the point of having the tables.
-VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-library")
+VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-library", "tank-calibrate")
 BUILD_ARGS = {
     "bench": ("ROBOT=bench",),
     "xdrive": ("ROBOT=xdrive",),
     "tank": ("ROBOT=tank",),
     "tank-drive": ("ROBOT=tank", "PROGRAM=drive"),
     "tank-library": ("ROBOT=tank", "PROGRAM=library"),
+    "tank-calibrate": ("ROBOT=tank", "PROGRAM=calibrate"),
 }
 VARIANT_DEFINES = {
     "bench": (),
@@ -174,6 +184,7 @@ VARIANT_DEFINES = {
     "tank": ("-DSHULIB_ROBOT_TANK_2026",),
     "tank-drive": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_DRIVE"),
     "tank-library": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_LIBRARY"),
+    "tank-calibrate": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_CALIBRATE"),
 }
 ALL_DEFINES = sorted({d for ds in VARIANT_DEFINES.values() for d in ds})
 VARIANT_BEACONS = {
@@ -182,10 +193,11 @@ VARIANT_BEACONS = {
     "tank": b"shulib-robot-variant=tank",
     "tank-drive": b"shulib-robot-variant=tank-drive",
     "tank-library": b"shulib-robot-variant=tank-library",
+    "tank-calibrate": b"shulib-robot-variant=tank-calibrate",
 }
 # Which builds leave the invented X-drive wiring DEAD (>= 1 -Wunused-function from
 # src/main.cpp) versus LIVE (exactly 0). See the header's VARIANT DIFFERENTIAL.
-XDRIVE_WIRING_DEAD_IN = ("bench", "tank", "tank-drive", "tank-library")
+XDRIVE_WIRING_DEAD_IN = ("bench", "tank", "tank-drive", "tank-library", "tank-calibrate")
 
 
 def _beacon_bytes(beacon):
@@ -654,6 +666,32 @@ def do_self_test():
     b = run_build("tank-library")
     ok, problems = verdict("tank-library", b)
     expect(ok, f"13: the real tank-library build FAILED the gate: {problems}")
+
+    # 14: the Makefile's PROGRAM=calibrate append DROPPED (R3d Part 2: `make ROBOT=tank
+    #     PROGRAM=calibrate` silently builds the tester) -> FAIL on the token-exact structural
+    #     check naming the define AND on the beacon (a tank build wearing the tank-calibrate
+    #     label). The warning-count detector cannot see this one either (tank-calibrate behaves
+    #     like tank), so both other detectors must fire. This is the one program that POWERS THE
+    #     MOTORS on a robot whose wiring it does not yet know, so an upload that was silently the
+    #     tester is the worst confusion on the slot list.
+    calibrate_line = "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_CALIBRATE\n"
+    with _replace(MAKEFILE, calibrate_line, "# (self-test plant: calibrate append dropped)\n"):
+        b = run_build("tank-calibrate")
+        ok, problems = verdict("tank-calibrate", b)
+        expect(not ok, "14: PROGRAM=calibrate with its Makefile append dropped PASSED — the "
+                       "silent-no-op class is back for the calibrate program")
+        expect(any("whole token -DSHULIB_PROGRAM_CALIBRATE" in p for p in problems),
+               "14: the failure did not name the missing PROGRAM=calibrate define")
+        expect(any("beacon" in p and "NOT in" in p for p in problems),
+               "14: the tank-calibrate beacon's absence was not caught")
+        expect(any("tank build wearing a tank-calibrate label" in p for p in problems),
+               "14: the tank beacon's presence (NUL-terminated match) was not caught")
+
+    # 15: the real tank-calibrate build, alone -> PASS (the `…=tank` prefix inside
+    #     `…=tank-calibrate` must not false-fail, and the calibrate program must link).
+    b = run_build("tank-calibrate")
+    ok, problems = verdict("tank-calibrate", b)
+    expect(ok, f"15: the real tank-calibrate build FAILED the gate: {problems}")
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

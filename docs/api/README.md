@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 1,890 of them across 127 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 1,989 of them across 133 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -157,10 +157,12 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Absent vision](absent_vision.md) | [`hal/absent_vision.hpp`](../../include/shulib/hal/absent_vision.hpp) | AbsentVision — the explicit statement that THIS ROBOT HAS NO OBJECT/COLOR DETECTION SOURCE, as an IVision. |
 | [Battery](battery.md) | [`hal/battery.hpp`](../../include/shulib/hal/battery.hpp) | IBattery — the V5 battery (pros::battery) behind the HAL. |
 | [Block sink](block_sink.md) | [`hal/block_sink.hpp`](../../include/shulib/hal/block_sink.hpp) | IBlockSink — where BINARY BLOCKS physically go (an SD-card file on the brain, a captured buffer in a test). |
+| [Block source](block_source.md) | [`hal/block_source.hpp`](../../include/shulib/hal/block_source.hpp) | IBlockSource — where BINARY BLOCKS come FROM (an SD-card file on the brain, a canned buffer in a test). |
 | [Char sink](char_sink.md) | [`hal/char_sink.hpp`](../../include/shulib/hal/char_sink.hpp) | ICharSink — where formatted diagnostic BYTES physically go (a terminal, a captured string in a test, later a serial port). |
 | [Clock](clock.md) | [`hal/clock.hpp`](../../include/shulib/hal/clock.hpp) | IClock — the single source of "now" for the whole stack. |
 | [Controller](controller.md) | [`hal/controller.hpp`](../../include/shulib/hal/controller.hpp) | IController — the V5 game controller behind the HAL (chunk R1a, absorbing Phase T's T1): the INPUT half of driver control. |
 | [Controller conversion](controller_conversion.md) | [`hal/controller_conversion.hpp`](../../include/shulib/hal/controller_conversion.hpp) | Controller canonical conversions — the ONE place the V5 controller's raw stick range becomes shulib's canonical [-1, 1] (§7: "convert exactly once, at the edge"). |
+| [Device registry](device_registry.md) | [`hal/device_registry.hpp`](../../include/shulib/hal/device_registry.hpp) | IDeviceRegistry — WHAT IS ACTUALLY PLUGGED INTO EACH SMART PORT. |
 | [Digital in](digital_in.md) | [`hal/digital_in.hpp`](../../include/shulib/hal/digital_in.hpp) | IDigitalIn — a single digital input line behind the HAL (chunk R1b): a limit switch, a bumper, a jumper — any two-state sensor on an ADI port. |
 | [Digital out](digital_out.md) | [`hal/digital_out.hpp`](../../include/shulib/hal/digital_out.hpp) | IDigitalOut — a single digital output line behind the HAL (chunk F1, WS7/M4): a pneumatic solenoid on the ADI ports, or any other two-state actuator. |
 | [Distance](distance.md) | [`hal/distance.hpp`](../../include/shulib/hal/distance.hpp) | IDistance — a distance / time-of-flight sensor (pros::Distance) behind the HAL. |
@@ -191,9 +193,11 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [Battery (PROS)](pros-battery.md) | [`hal/pros/battery.hpp`](../../include/shulib/hal/pros/battery.hpp) | ProsBattery — IBattery over the pros::battery namespace (chunk R1a): the brownout-compensation input behind the HAL. |
 | [Block sink (PROS)](pros-block_sink.md) | [`hal/pros/block_sink.hpp`](../../include/shulib/hal/pros/block_sink.hpp) | ProsBlockSink — IBlockSink over a PROS FILE* on the V5's SD card (chunk R1b): where the blackbox's binary blocks physically go. |
+| [Block source (PROS)](pros-block_source.md) | [`hal/pros/block_source.hpp`](../../include/shulib/hal/pros/block_source.hpp) | ProsBlockSource — IBlockSource over a PROS FILE* on the V5's SD card (chunk R3d Part 2): where the calibration record is read back from. |
 | [Char sink (PROS)](pros-char_sink.md) | [`hal/pros/char_sink.hpp`](../../include/shulib/hal/pros/char_sink.hpp) | ProsCharSink — ICharSink over the V5's USB serial (chunk R1a): where TermSink's diagnostic bytes physically go on the robot (`pros terminal` displays them). |
 | [Clock (PROS)](pros-clock.md) | [`hal/pros/clock.hpp`](../../include/shulib/hal/pros/clock.hpp) | ProsClock — IClock over the V5's real time. |
 | [Controller (PROS)](pros-controller.md) | [`hal/pros/controller.hpp`](../../include/shulib/hal/pros/controller.hpp) | ProsController — IController over pros::Controller (chunk R1a): the driver's hands behind the HAL. |
+| [Device registry (PROS)](pros-device_registry.md) | [`hal/pros/device_registry.hpp`](../../include/shulib/hal/pros/device_registry.hpp) | ProsDeviceRegistry — IDeviceRegistry over PROS's smart-port registry. |
 | [Digital in (PROS)](pros-digital_in.md) | [`hal/pros/digital_in.hpp`](../../include/shulib/hal/pros/digital_in.hpp) | ProsDigitalIn — IDigitalIn over pros::adi::DigitalIn (chunk R1b): a limit switch / bumper line behind the HAL. |
 | [Digital out (PROS)](pros-digital_out.md) | [`hal/pros/digital_out.hpp`](../../include/shulib/hal/pros/digital_out.hpp) | ProsDigitalOut — IDigitalOut over pros::adi::DigitalOut (chunk R1b): the pneumatic solenoid line behind the HAL (F1's seam, finally on hardware). |
 | [Distance (PROS)](pros-distance.md) | [`hal/pros/distance.hpp`](../../include/shulib/hal/pros/distance.hpp) | ProsDistance — IDistance over pros::Distance (chunk R1b): the capture/dock-confirm rangefinder behind the HAL. |
@@ -227,6 +231,8 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 | Page | Header | What it is |
 |---|---|---|
+| [Boot check](boot_check.md) | [`calibration/boot_check.hpp`](../../include/shulib/calibration/boot_check.hpp) | THE BOOT CHECK — is this description still true of THIS robot? |
+| [Calibration record](calibration_record.md) | [`calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) | The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card. |
 | [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
 
 ### Teleop
@@ -239,7 +245,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 1,890 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 1,989 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

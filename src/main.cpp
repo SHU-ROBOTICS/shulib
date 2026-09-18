@@ -98,7 +98,8 @@
 #if defined(SHULIB_ROBOT_XDRIVE_INVENTED) && defined(SHULIB_ROBOT_TANK_2026)
 #error "two robot variant defines are set at once -- select exactly one with make ROBOT=..."
 #endif
-#if defined(SHULIB_PROGRAM_DRIVE) && defined(SHULIB_PROGRAM_LIBRARY)
+#if (defined(SHULIB_PROGRAM_DRIVE) + defined(SHULIB_PROGRAM_LIBRARY) \
+     + defined(SHULIB_PROGRAM_CALIBRATE)) > 1
 #error "two PROGRAM defines are set at once -- select exactly one with make PROGRAM=..."
 #endif
 #if defined(SHULIB_PROGRAM_DRIVE) && !defined(SHULIB_ROBOT_TANK_2026)
@@ -107,26 +108,44 @@
 #if defined(SHULIB_PROGRAM_LIBRARY) && !defined(SHULIB_ROBOT_TANK_2026)
 #error "PROGRAM=library needs ROBOT=tank -- only robot two's chassis table is signed, measured, and carries geometry"
 #endif
+#if defined(SHULIB_PROGRAM_CALIBRATE) && !defined(SHULIB_ROBOT_TANK_2026)
+#error "PROGRAM=calibrate needs ROBOT=tank -- the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table"
+#endif
 #if defined(SHULIB_ROBOT_XDRIVE_INVENTED)
 #define SHULIB_RUNS_BENCH_TESTER 0
 #define SHULIB_RUNS_TANK_LIBRARY 0
+#define SHULIB_RUNS_CALIBRATE 0
 #elif defined(SHULIB_PROGRAM_LIBRARY)
 #define SHULIB_RUNS_BENCH_TESTER 0
 #define SHULIB_RUNS_TANK_LIBRARY 1  // robot two, driven by the LIBRARY (the tank graph below)
+#define SHULIB_RUNS_CALIBRATE 0
+#elif defined(SHULIB_PROGRAM_CALIBRATE)
+#define SHULIB_RUNS_BENCH_TESTER 0
+#define SHULIB_RUNS_TANK_LIBRARY 0
+#define SHULIB_RUNS_CALIBRATE 1  // robot two MEASURES ITSELF (src/calibrate_program.cpp, R3d P2)
 #else
 #define SHULIB_RUNS_BENCH_TESTER 1  // bench AND tank: a tester-variant robot (no library graph);
                                     // which PROGRAM runs in opcontrol() is the second axis
 #define SHULIB_RUNS_TANK_LIBRARY 0
+#define SHULIB_RUNS_CALIBRATE 0
 #endif
 // The competition-state screens exist for every program that is NOT the invented X-drive
 // (which the src build gate expects to emit no unused-function warning from this file).
-#define SHULIB_STATE_SCREENS (SHULIB_RUNS_BENCH_TESTER || SHULIB_RUNS_TANK_LIBRARY)
+// "shulib Calibrate" paints its OWN not-driver-control screen from inside its loop (it powers
+// motors and must say so in its own words), but it still needs these for disabled() and
+// competition_initialize(), which run before and after its loop exists.
+#define SHULIB_STATE_SCREENS \
+    (SHULIB_RUNS_BENCH_TESTER || SHULIB_RUNS_TANK_LIBRARY || SHULIB_RUNS_CALIBRATE)
 
 #if SHULIB_RUNS_BENCH_TESTER
 #include "bench_r3a.hpp"
 #if defined(SHULIB_PROGRAM_DRIVE)
 #include "drive_program.hpp"
 #endif
+#endif
+#if SHULIB_RUNS_CALIBRATE
+#include "calibrate_program.hpp"
+#include "shulib/calibration/calibration_record.hpp"  // kRecordFileName, for the boot banner
 #endif
 
 #include <cstdio>
@@ -175,9 +194,15 @@
 
 #if SHULIB_RUNS_TANK_LIBRARY
 #include "chassis_table.hpp"
+#include "shulib/calibration/boot_check.hpp"
+#include "shulib/calibration/calibration_record.hpp"
 #include "shulib/hal/absent_gps.hpp"
+#include "shulib/hal/device_registry.hpp"
 #include "shulib/hal/drive_geometry.hpp"
+#include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/motor_group.hpp"
+#include "shulib/hal/pros/block_source.hpp"
+#include "shulib/hal/pros/device_registry.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/localization/drive_encoder_odometry.hpp"
 #include "shulib/motion/odo_stall_check.hpp"
@@ -189,8 +214,8 @@ namespace {
 // One string per BUILD, selected by the SAME preprocessor facts that select the wiring and
 // the program, and printed at boot so it is referenced and survives into the linked package.
 // The src build gate asserts the expected beacon IS in bin/hot.package.elf and the other
-// four are NOT (matched WITH the string's NUL terminator, because `…=tank` is a prefix of
-// `…=tank-drive` and of `…=tank-library`). That is the end-to-end proof that the #if chain
+// five are NOT (matched WITH the string's NUL terminator, because `…=tank` is a prefix of
+// `…=tank-drive`, `…=tank-library` and `…=tank-calibrate`). That is the end-to-end proof that the #if chain
 // in THIS file took the branch the Makefile asked for: the gate's compile-line check can see
 // a define that never landed, but not a macro renamed here -- and a tank build that silently
 // carried the bench bot's chassis table onto robot two is exactly HA-111's defect class
@@ -202,6 +227,14 @@ constexpr const char kVariantBeacon[] = "shulib-robot-variant=xdrive";
 constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank-drive";
 #elif defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_LIBRARY)
 constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank-library";
+#elif defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_CALIBRATE)
+constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank-calibrate";
+/// The BUILD stamp for the calibrate banner. The git hash names the COMMIT; this names the
+/// BUILD, and only the second one answers "did my upload actually land?" (the tester's
+/// reasoning, 2026-08-18). src/calibrate_program.cpp carries its own copy for its own screen;
+/// both are __DATE__ __TIME__ of their own translation unit, so a partial rebuild that left one
+/// TU stale would show two different stamps -- which is information, not a defect.
+constexpr const char kCalibrateBuildStamp[] = __DATE__ " " __TIME__;
 #elif defined(SHULIB_ROBOT_TANK_2026)
 constexpr const char kVariantBeacon[] = "shulib-robot-variant=tank";
 #else
@@ -440,25 +473,43 @@ void runTeleopLoop(shulib::chassis::Chassis& chassis, const shulib::hal::IContro
 }
 
 #if SHULIB_RUNS_TANK_LIBRARY
-// ═══ ROBOT TWO'S OBJECT GRAPH — "shulib Teleop" (R3b Parts 1–3, 2026-09-14) ═══════════
-// Built ENTIRELY from src/chassis_table.hpp: ten ProsMotors from the SIGNED ports with the
-// table's cartridge (the sign lives in the table entry and is applied by PROS once, in the
-// adapter — the group never negates), two hal::MotorGroups in the kinematics' wheel order
-// (left, right), ProsImu on the table's port, the explicit absent devices, ProsBattery,
-// the diagnostics stack exactly as the X-drive graph has it, DriveEncoderOdometry from the
-// two groups + the IMU + the table's geometry, ComplementaryFusion, Localizer, RobotContext,
-// MotionDeps (with the groups, so MOTOR_GROUP_DISAGREE fires in drive()), ProsTickPacer,
-// Chassis. NOTHING here is typed twice: the port-map string, the geometry and the
-// kinematics all read the table.
+// ═══ ROBOT TWO'S OBJECT GRAPH — "shulib Teleop" (R3b Parts 1–3; rebuilt on the DRIVETRAIN
+//     DESCRIPTION at R3d Part 2, 2026-09-18) ═════════════════════════════════════════
+// Built ENTIRELY from ONE hal::DrivetrainDescription: N ProsMotors from its SIGNED ports (the
+// sign lives inside the port entry and is applied by PROS once, in the adapter — the group
+// never negates), two hal::MotorGroups in the kinematics' wheel order (left, right), ProsImu
+// on its IMU port, the explicit absent devices, ProsBattery, the diagnostics stack exactly as
+// the X-drive graph has it, DriveEncoderOdometry from the two groups + the IMU + the
+// description's two geometries, ComplementaryFusion, Localizer, RobotContext, MotionDeps (with
+// the groups, so MOTOR_GROUP_DISAGREE fires in drive()), ProsTickPacer, Chassis.
 //
-// BOOT REFUSAL, NOT FAULT-ABORT: if the table's geometry is UNSET, or the IMU port is 0, or
-// the table contradicts itself, initialize() refuses BEFORE any adapter is constructed and
-// paints the state screen with exactly what is missing; if a ProsMotor (or the IMU)
-// constructor throws, the graph boundary catches it and refuses the same way. opcontrol()
-// then idles: no adapter exists, nothing is powered. DEAD-PORT TOLERANCE IS NOT IN SCOPE
-// for this program — the group requires N >= 1 PRESENT members at construction, and one
-// refused adapter refuses the whole graph; "shulib Drive" (slot 1) is the tolerant program
-// until R3d. The panel and the boot log say so.
+// ── WHERE THE DESCRIPTION COMES FROM (R3d Part 2, rulings P2/P3) ────────────────────
+// TWO sources, one representation, and a fixed order that is not configurable:
+//   1. the CALIBRATION RECORD on the SD card (/usd/shulib_drivetrain.bin), written by
+//      "shulib Calibrate" after the robot measured itself. It is VERIFIED against the brain's
+//      registry on the SAME boot that reads it, BEFORE any adapter is constructed
+//      (calibration/boot_check.hpp): a port that now carries a different DEVICE means the
+//      robot was rewired and REFUSES; ports that are simply gone are tolerated by the shared
+//      dead-port policy and become ABSENT group members.
+//   2. else src/chassis_table.hpp's typed table, through tableToDescription() — which is the
+//      ONLY path from the table into this graph. It is used with a WARNING, because it was
+//      typed from a build that may no longer exist, and it is registry-verified too.
+//   3. else refuse, naming BOTH reasons.
+// A record ALWAYS beats a table (it was produced by moving THIS robot); a record that fails
+// its port check NEVER falls back to the table (the table is older still). calibration::
+// chooseBootSource is that decision, as a host-tested table rather than an if-chain here.
+//
+// BOOT REFUSAL, NOT FAULT-ABORT: initialize() refuses BEFORE any adapter is constructed and
+// paints the screen with exactly what is missing; if a ProsMotor (or the IMU) constructor
+// throws, the graph boundary catches it and refuses the same way. opcontrol() then idles: no
+// adapter exists, nothing is powered.
+//
+// DEAD PORTS ARE NOW TOLERATED HERE, at BOOT (R3d Part 2, ruling P4): a recorded drive port
+// the registry reports EMPTY becomes a `nullptr` slot in its group's span, under the SAME
+// pure policy "shulib Drive" uses (teleop::evaluateDegradation — a side below three answering,
+// or more than two dead in total, refuses). The panel says `DEGRADED: dead <ports>`. What is
+// still NOT tolerated is a port dying AFTER boot inside this graph: that is a later chunk, and
+// "shulib Drive" (slot 1) remains the program with runtime absence detection.
 //
 // EXPECT IT TO FEEL DIFFERENT from "shulib Drive", and the panel says so: the pipeline
 // commands wheel SPEEDS through feedforward with PROVISIONAL gains (HA-45: kV = 12/70 V per
@@ -466,6 +517,8 @@ void runTeleopLoop(shulib::chassis::Chassis& chassis, const shulib::hal::IContro
 // compensation. If it is slow or saturates, that is R5's measurement showing up, not a bug;
 // the panel prints the budgets and the gains in use.
 namespace tanklib {
+
+namespace calib = shulib::calibration;
 
 constexpr const char* kBuildStamp = __DATE__ " " __TIME__;
 constexpr int kPanelEveryTicks = 10;  // 100 ms
@@ -475,33 +528,58 @@ constexpr std::uint32_t kColBg = 0x101418, kColBar = 0x1E5AA8, kColText = 0xF0F0
                         kColDim = 0x9AA4AE, kColGood = 0x39C36E, kColWarn = 0xE8B23A,
                         kColBad = 0xE2564A, kColSub = 0xC8D8F0;
 
-shulib::hal::pros::MotorGearset gearsetOf(shulib::bench::Cartridge c) {
+shulib::hal::pros::MotorGearset gearsetOf(shulib::hal::MotorCartridge c) {
     switch (c) {
-        case shulib::bench::Cartridge::Red: return shulib::hal::pros::MotorGearset::Red;
-        case shulib::bench::Cartridge::Green: return shulib::hal::pros::MotorGearset::Green;
-        default: return shulib::hal::pros::MotorGearset::Blue;  // Unset is refused before this
+        case shulib::hal::MotorCartridge::Red: return shulib::hal::pros::MotorGearset::Red;
+        case shulib::hal::MotorCartridge::Green: return shulib::hal::pros::MotorGearset::Green;
+        default: return shulib::hal::pros::MotorGearset::Blue;  // refused before this if unset
     }
 }
 
-/// The ten adapters, constructed from the table in ONE place, in table order per side, and
-/// the two pointer arrays the groups view. A throwing ProsMotor constructor propagates out
-/// of here — and out of TankRobot — to initialize()'s catch: the refusal path.
+// ── THE CHOSEN DESCRIPTION, decided in initialize() before anything is constructed ───
+// File-scope storage rather than a member, because TankRobot takes it BY REFERENCE and the
+// boot sequence has to finish deciding before the graph's constructor runs.
+shulib::hal::DrivetrainDescription g_description{};
+calib::BootVerdict g_verdict{};
+calib::BootSource g_source = calib::BootSource::Refuse;
+const char* g_sourceWhy = "";
+bool g_recordDecoded = false;
+char g_recordWhy[192] = "";
+
+/// The N adapters, constructed from the DESCRIPTION in ONE place, and the two pointer arrays
+/// the groups view. A port the boot check found MISSING becomes a `nullptr` slot: the group
+/// skips it, excludes it from every read, and reports it absent (hal/motor_group.hpp, ruling
+/// P4). A throwing ProsMotor constructor propagates out of here — and out of TankRobot — to
+/// initialize()'s catch: the refusal path.
 struct TankMotors {
-    std::optional<shulib::hal::pros::ProsMotor> storage[shulib::bench::kMaxPort];
-    shulib::hal::IMotor* left[shulib::bench::kMaxPort] = {};
-    shulib::hal::IMotor* right[shulib::bench::kMaxPort] = {};
+    std::optional<shulib::hal::pros::ProsMotor> storage[shulib::hal::kMaxSmartPorts];
+    shulib::hal::IMotor* left[shulib::hal::kMaxSmartPorts] = {};
+    shulib::hal::IMotor* right[shulib::hal::kMaxSmartPorts] = {};
     std::size_t leftN = 0;
     std::size_t rightN = 0;
+    std::size_t absentCount = 0;
 
-    TankMotors(const shulib::bench::ChassisTable& t, shulib::hal::pros::MotorGearset gearset) {
+    TankMotors(const shulib::hal::DrivetrainDescription& d, const calib::BootVerdict& verdict,
+               shulib::hal::pros::MotorGearset gearset) {
         std::size_t k = 0;
-        for (std::size_t i = 0; i < t.leftCount; ++i, ++k) {
-            storage[k].emplace(t.left[i], gearset);  // AS TYPED: the one place a sign lives
-            left[leftN++] = &*storage[k];
-        }
-        for (std::size_t i = 0; i < t.rightCount; ++i, ++k) {
-            storage[k].emplace(t.right[i], gearset);
-            right[rightN++] = &*storage[k];
+        const shulib::hal::DriveSideDescription* sides[2] = {&d.left, &d.right};
+        shulib::hal::IMotor** out[2] = {left, right};
+        std::size_t* n[2] = {&leftN, &rightN};
+        for (int sideIndex = 0; sideIndex < 2; ++sideIndex) {
+            const shulib::hal::DriveSideDescription& side = *sides[sideIndex];
+            for (std::size_t i = 0; i < side.count; ++i, ++k) {
+                const std::int8_t signedPort = side.signedPorts[i];
+                const int port = shulib::hal::DrivetrainDescription::portMagnitude(signedPort);
+                if (verdict.isMissing(port)) {
+                    // A DEAD PORT: no adapter is constructed (its ctor would throw) and the
+                    // slot stays a hole. The slot is KEPT so the panel's indices do not shift.
+                    out[sideIndex][(*n[sideIndex])++] = nullptr;
+                    ++absentCount;
+                    continue;
+                }
+                storage[k].emplace(signedPort, gearset);  // AS STORED: the one place a sign lives
+                out[sideIndex][(*n[sideIndex])++] = &*storage[k];
+            }
         }
     }
     [[nodiscard]] std::span<shulib::hal::IMotor* const> leftSpan() const {
@@ -514,8 +592,8 @@ struct TankMotors {
 
 /// The chassis config for this drivetrain: the MotionConfig defaults (PROVISIONAL gains and
 /// budgets, HA-45/50/51/52) with the stall check told the truth about its inputs — every
-/// wheel slot carries the table's geometry (the SAME object the odometry converts with), and
-/// there is NO independent motion source (the §2 ruling: odo_stall_check.hpp).
+/// wheel slot carries the drivetrain's geometry (the SAME object the odometry converts with),
+/// and there is NO independent motion source (the §2 ruling: odo_stall_check.hpp).
 shulib::chassis::ChassisConfig tankChassisConfig(shulib::hal::DriveGeometry geometry) {
     shulib::chassis::ChassisConfig cfg{};
     cfg.motion.stall.setAllWheels(geometry);
@@ -524,20 +602,25 @@ shulib::chassis::ChassisConfig tankChassisConfig(shulib::hal::DriveGeometry geom
 }
 
 struct TankRobot {
-    const shulib::bench::ChassisTable& table = shulib::bench::kChassis;
-    // ── drivetrain: config DATA from the table. Track width MEASURED by tape, never typed
-    //    here (UNSET refuses before this constructor runs).
-    shulib::kinematics::TankKinematics kin{shulib::bench::tableTrackWidth(table)};
+    /// THE ONE INPUT. Everything below is derived from it; nothing here reads the chassis
+    /// table (landmine 1: two sources inside one graph is how a record and a table come to
+    /// disagree about the same robot).
+    const shulib::hal::DrivetrainDescription& desc = g_description;
+    // ── drivetrain: config DATA from the description. The track width is MEASURED (from a
+    //    powered spin, effectively larger than a tape's — HA-135) or typed; either way it
+    //    arrives here as one number and is never retyped.
+    shulib::kinematics::TankKinematics kin{desc.trackWidth};
     shulib::hal::pros::ProsClock clock{};
-    // ── the ten adapters, then ONE IMotor per kinematic wheel: the groups (R3b Part 1).
-    TankMotors motors{table, gearsetOf(table.cartridge)};
+    // ── the adapters, then ONE IMotor per kinematic wheel: the groups (R3b Part 1), with a
+    //    hole where a recorded port is dead (R3d Part 2).
+    TankMotors motors{desc, g_verdict, gearsetOf(desc.cartridge)};
     shulib::hal::MotorGroup left{motors.leftSpan()};
     shulib::hal::MotorGroup right{motors.rightSpan()};
     shulib::hal::IMotor* driveMotors[2] = {&left, &right};  // TankKinematics: 0 = left, 1 = right
     shulib::hal::MotorGroup* groups[2] = {&left, &right};
-    // ── sensors: the IMU on the table's port (bootHeading 0: the robot boots facing +X);
-    //    everything else ABSENT, explicitly (R3b §6 — never polled, announced once).
-    shulib::hal::pros::ProsImu imu{table.imuPort, shulib::math::Angle{}, clock};
+    // ── sensors: the IMU on the description's port (bootHeading 0: the robot boots facing
+    //    +X); everything else ABSENT, explicitly (R3b §6 — never polled, announced once).
+    shulib::hal::pros::ProsImu imu{desc.imuPort, shulib::math::Angle{}, clock};
     shulib::hal::AbsentGps gps{};
     shulib::hal::AbsentTagSource tags{};
     shulib::hal::AbsentVision vision{};
@@ -549,13 +632,16 @@ struct TankRobot {
     shulib::diag::FaultLatch faults{telemetry, clock};
     shulib::diag::HealthMonitor health{faults};
     shulib::hal::pros::ProsLineDisplay lcd{};
-    // ── ONE drive geometry, instantiated from the table and handed to BOTH consumers. Robot
-    //    two is believed symmetric, so both sides get the same object; the type represents
-    //    asymmetry the day a per-side measurement says otherwise.
-    shulib::hal::DriveGeometry geometry = shulib::bench::tableDriveGeometry(table);
+    // ── TWO drive geometries, one per side, straight from the description. A calibration
+    //    measures each side separately, and an asymmetric drivetrain is representable; the
+    //    stall check takes the LEFT one because it wants a single number per wheel slot and
+    //    the two agree on any symmetric robot (the boot log prints both, so a disagreement is
+    //    visible rather than averaged away).
+    shulib::hal::DriveGeometry leftGeometry = desc.leftGeometry();
+    shulib::hal::DriveGeometry rightGeometry = desc.rightGeometry();
     // ── localization: drive-encoder odometry over the two groups (R3b Part 2), fused.
-    shulib::localization::DriveEncoderOdometry odom{imu, left, right, geometry, geometry,
-                                                    shulib::bench::tableTrackWidth(table)};
+    shulib::localization::DriveEncoderOdometry odom{imu,        left,           right,
+                                                    leftGeometry, rightGeometry, desc.trackWidth};
     shulib::localization::ComplementaryFusion fusion{};
     shulib::localization::Localizer localizer{clock, imu, odom, fusion};
     shulib::chassis::RobotContext ctx{{.clock = &clock,
@@ -573,7 +659,7 @@ struct TankRobot {
                                     .health = &health,
                                     .motorGroups = groups};
     shulib::hal::pros::ProsTickPacer pacer{};
-    shulib::chassis::Chassis chassis{deps, pacer, tankChassisConfig(geometry)};
+    shulib::chassis::Chassis chassis{deps, pacer, tankChassisConfig(leftGeometry)};
 };
 
 /// Constructed in initialize() inside the graph-boundary try; a throwing adapter leaves it
@@ -584,23 +670,51 @@ TankRobot& tankRobot() {
 }
 TankRobot* g_tank = nullptr;
 char g_refusalHeadline[64] = "";
-char g_refusalWhy[160] = "";
+char g_refusalWhy[192] = "";
 
-/// The §18.5 port-map string, built from the TABLE — never retyped.
+/// The §18.5 port-map string, built from the DESCRIPTION — never retyped, and carrying the
+/// SOURCE word first, because "a robot measured this" and "a person typed this off a tape"
+/// are not the same claim and the session header must be able to say which it is looking at.
 const char* tankPortMapString() {
-    // Sized so the whole string fits kMaxPortMapBytes: five signed ports render as 19
-    // characters per side ("-11 +12 -13 +14 -15"); a 24-byte side buffer bounds a longer
-    // table to what fits, and the session header sanitizes/truncates on top.
     static char buf[shulib::diag::kMaxPortMapBytes];
-    char l[24], r[24];
-    shulib::bench::portsToString(shulib::bench::kChassis.left, shulib::bench::kChassis.leftCount,
-                                 shulib::bench::kChassis.signsMeasured, l, sizeof l);
-    shulib::bench::portsToString(shulib::bench::kChassis.right, shulib::bench::kChassis.rightCount,
-                                 shulib::bench::kChassis.signsMeasured, r, sizeof r);
-    std::snprintf(buf, sizeof buf, "L %s R %s IMU%u W%.2f TW%.2f G%.3f", l, r,
-                  static_cast<unsigned>(shulib::bench::kChassis.imuPort),
-                  shulib::bench::kChassis.wheelDiameterIn, shulib::bench::kChassis.trackWidthIn,
-                  shulib::bench::kChassis.externalRatio);
+    constexpr std::size_t kSideCap = 40;
+    char l[kSideCap] = "";
+    char r[kSideCap] = "";
+    const shulib::hal::DriveSideDescription* sides[2] = {&g_description.left,
+                                                         &g_description.right};
+    char* out[2] = {l, r};
+    // Appended BY HAND rather than with a moving snprintf: the compiler cannot bound a
+    // `cap - strlen(dst)` argument, so -Wformat-truncation (which the src build gate treats as
+    // a disallowed warning) fires on a call that is in fact safe. An explicit bound is both
+    // safe and provably so.
+    for (int side = 0; side < 2; ++side) {
+        std::size_t used = 0;
+        for (std::size_t i = 0; i < sides[side]->count; ++i) {
+            char one[8];
+            std::snprintf(one, sizeof one, "%s%+d", i ? " " : "",
+                          static_cast<int>(sides[side]->signedPorts[i]));
+            for (const char* c = one; *c != '\0' && used + 1 < kSideCap; ++c) {
+                out[side][used++] = *c;
+            }
+            out[side][used] = '\0';
+        }
+    }
+    // Assembled in a GENEROUS local buffer and then bounded into the session header's fixed
+    // field, rather than formatted straight into it: a 21-port-per-side description would
+    // overrun 96 bytes, the compiler cannot bound a float conversion, and -Wformat-truncation
+    // is a disallowed warning in the src build gate. One bounded copy is provably right.
+    // (emitSessionHeader sanitizes and truncates on top of this, at the same width.)
+    static_assert(shulib::diag::kMaxPortMapBytes >= 32, "the port map field must fit something");
+    char full[200];
+    std::snprintf(full, sizeof full, "%s L %s R %s IMU%u ipr %.4f/%.4f TW%.2f",
+                  g_description.source == shulib::hal::DescriptionSource::RobotMeasured
+                      ? "MEASURED"
+                      : "TYPED",
+                  l, r, static_cast<unsigned>(g_description.imuPort),
+                  g_description.left.inchesPerRadian.value(),
+                  g_description.right.inchesPerRadian.value(),
+                  g_description.trackWidth.value());
+    std::snprintf(buf, sizeof buf, "%.*s", static_cast<int>(sizeof buf) - 1, full);
     return buf;
 }
 
@@ -618,20 +732,23 @@ void paintRefusal() {
     pros::c::screen_set_pen(kColBad);
     pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 48, "%.34s", g_refusalHeadline);
     pros::c::screen_set_pen(kColText);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 84, "%.56s", g_refusalWhy);
-    if (std::strlen(g_refusalWhy) > 56) {
-        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 100, "%.56s", g_refusalWhy + 56);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 84, "%.58s", g_refusalWhy);
+    if (std::strlen(g_refusalWhy) > 58) {
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 100, "%.58s", g_refusalWhy + 58);
+    }
+    if (std::strlen(g_refusalWhy) > 116) {
+        pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 116, "%.58s", g_refusalWhy + 116);
     }
     pros::c::screen_set_pen(kColDim);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 128,
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 140,
                              "The library graph did NOT construct. Nothing is powered.");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 144,
-                             "Geometry/IMU: measure, type into src/chassis_table.hpp,");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 160,
-                             "rebuild, upload. An adapter refusal: Bench Tests (slot 3).");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 184,
-                             "No dead-port tolerance here: shulib Drive (slot 1) has it.");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 208, "BUILD %s", kBuildStamp);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 156,
+                             "Run shulib Calibrate (slot 4): the robot measures itself and");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 172,
+                             "writes the answer to the SD card. This program boots from it.");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 192,
+                             "An adapter refusal: Bench Tests (slot 3) diagnoses it.");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 212, "BUILD %s", kBuildStamp);
     std::printf("[R3B] REFUSED AT BOOT: %s -- %s\n", g_refusalHeadline, g_refusalWhy);
     std::fflush(stdout);
 }
@@ -672,16 +789,17 @@ void drawHeader() {
     pros::c::screen_set_pen(kColText);
     pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 2, "shulib TELEOP");
     pros::c::screen_set_pen(kColSub);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 20, "THE LIBRARY drives: Chassis::drive()");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 250, 20, "BUILD %s", kBuildStamp);
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 20,
+                             "THE LIBRARY drives: Chassis::drive() -- NEVER RUN BEFORE");
+    pros::c::screen_print_at(pros::E_TEXT_SMALL, 300, 20, "BUILD %s", kBuildStamp);
     pros::c::screen_set_eraser(kColBg);
 }
 
-/// The per-tick panel + LCD for the library teleop (brief §4): session essentials, the
-/// estimate and its quality class, the two group commands, each group's member count /
-/// disagreeing count, the heading cross-check, battery, any latched fault by name, the
-/// budgets and gains in use, and the two honest notes (no independent stall source; no
-/// dead-port tolerance). LCD: `LIB 12V Bxx.xV` / `hdg ±ddd.d deg` / last fault or `ok`.
+/// The per-tick panel + LCD for the library teleop: session essentials, the estimate and its
+/// quality class, the two group commands, each group's PRESENT count / disagreeing count, the
+/// heading cross-check, battery, any latched fault by name, the budgets and gains in use, the
+/// honest notes, and — since R3d Part 2 — WHERE THE DESCRIPTION CAME FROM and which ports are
+/// dead. LCD: `LIB 12V Bxx.xV` / `hdg ±ddd.d deg` / last fault or `ok`.
 struct TankPanel {
     TankRobot& r;
     int tick = 0;
@@ -689,7 +807,7 @@ struct TankPanel {
 
     void operator()(const shulib::math::ChassisSpeeds& command, bool connected) {
         ++tick;
-        char line[96];
+        char line[120];
         if (tick % kPanelEveryTicks == 0) {
             const shulib::math::Pose2d pose = r.localizer.pose();
             const shulib::localization::Localizer::Quality q = r.localizer.qualityClass();
@@ -704,10 +822,13 @@ struct TankPanel {
             rowText(56, q == shulib::localization::Localizer::Quality::Degraded ? kColWarn
                                                                                  : kColText,
                     line);
-            std::snprintf(line, sizeof line, "L %+5.1fV %u members %d disagree | R %+5.1fV %u members %d disagree",
+            std::snprintf(line, sizeof line,
+                          "L %+5.1fV %u/%u present %d disagree | R %+5.1fV %u/%u present %d disagree",
                           r.left.commandedVoltage().value(),
+                          static_cast<unsigned>(r.left.presentCount()),
                           static_cast<unsigned>(r.left.memberCount()),
                           r.left.disagreeingMembers(), r.right.commandedVoltage().value(),
+                          static_cast<unsigned>(r.right.presentCount()),
                           static_cast<unsigned>(r.right.memberCount()),
                           r.right.disagreeingMembers());
             rowText(74, (r.left.disagreeingMembers() + r.right.disagreeingMembers()) > 0
@@ -737,7 +858,19 @@ struct TankPanel {
             rowText(128, kColDim, line);
             rowText(146, kColDim, "FEEL differs from shulib Drive: speeds via feedforward, not raw volts");
             rowText(164, kColWarn, "stall check: NO independent source (odometry IS the wheels)");
-            rowText(182, kColWarn, "dead ports: NOT tolerated here -- shulib Drive (slot 1) is");
+            // WHERE THE NUMBERS CAME FROM, and what is dead. A typed table on a rebuilt robot
+            // is a belief, not a measurement, and the driver must be able to see which one is
+            // driving them.
+            if (g_source == calib::BootSource::UseTable) {
+                rowText(182, kColWarn,
+                        "TYPED TABLE -- unverified since the rebuild; run shulib Calibrate");
+            } else if (g_verdict.decision == calib::BootDecision::Degraded) {
+                std::snprintf(line, sizeof line, "MEASURED record | %.70s", g_verdict.reason);
+                rowText(182, kColWarn, line);
+            } else {
+                rowText(182, kColGood,
+                        "MEASURED record from the SD card, verified against the ports");
+            }
             std::snprintf(line, sizeof line, "table %s", tankPortMapString());
             rowText(200, kColDim, line);
         }
@@ -750,6 +883,7 @@ struct TankPanel {
             std::snprintf(want[2], sizeof want[2], "%.19s",
                           r.faults.hasFault() ? shulib::diag::faultCodeName(r.faults.lastFault())
                           : !connected       ? "no controller 0V"
+                          : g_verdict.decision == calib::BootDecision::Degraded ? "DEGRADED see brain"
                                              : "ok");
             for (int row = 0; row < 3; ++row) {
                 if (std::strcmp(want[row], lcdRow[row]) != 0) {
@@ -806,12 +940,35 @@ void initialize() {
     }
     std::fflush(stdout);
     return;
+#elif SHULIB_RUNS_CALIBRATE
+    // "shulib Calibrate" (R3d Part 2): NO object graph is constructed here. The program finds
+    // its own motors from the brain's registry when opcontrol() runs it, because a calibration
+    // that starts from a typed port list can only ever CONFIRM the typing. This only proves the
+    // binary booted and says WHICH build it is (the beacon the src build gate asserts).
+    std::printf("\n[R3D] booted: shulib CALIBRATE build [%s].\n"
+                "[R3D] robot two MEASURES ITS OWN DRIVETRAIN -- which ports drive, which way each\n"
+                "[R3D] is wired, which side each is on, inches per radian per side, and the\n"
+                "[R3D] EFFECTIVE track width -- then writes them to /usd/%s.\n"
+                "[R3D] THIS PROGRAM HAS NEVER RUN ON HARDWARE. It POWERS THE MOTORS, and every\n"
+                "[R3D] threshold in it is INVENTED for a first run (A4 register HA-136).\n"
+                "[R3D] no object graph is constructed at boot; the X-drive wiring is NOT built.\n"
+                "[R3D] BUILD STAMP %s\n",
+                kVariantBeacon, shulib::calibration::kRecordFileName, kCalibrateBuildStamp);
+    {
+        char bits[64];
+        std::printf("[R3D] competition status at boot: %s -- calibration runs only in DRIVER "
+                    "CONTROL, enabled; any other state stops the run and says so.\n",
+                    competitionBits(pros::c::competition_get_status(), bits, sizeof bits));
+    }
+    std::fflush(stdout);
+    return;
 #elif SHULIB_RUNS_TANK_LIBRARY
     using namespace tanklib;
     std::printf("\n[R3B] booted: shulib TELEOP build [%s] -- THE LIBRARY drives robot two through\n"
                 "[R3B] Chassis::drive() over two hal::MotorGroups and drive-encoder odometry, built\n"
-                "[R3B] from src/chassis_table.hpp. Not yet run on hardware before this boot: the\n"
-                "[R3B] first run is wheels-up. The invented X-drive graph is NOT constructed.\n"
+                "[R3B] from the CALIBRATION RECORD on the SD card when there is one, else from\n"
+                "[R3B] src/chassis_table.hpp. Not yet run on hardware before this boot: the first\n"
+                "[R3B] run is wheels-up. The invented X-drive graph is NOT constructed.\n"
                 "[R3B] BUILD STAMP %s\n",
                 kVariantBeacon, kBuildStamp);
     {
@@ -822,20 +979,82 @@ void initialize() {
     }
     std::fflush(stdout);
 
-    // ── the table must be consistent, signed, and COMPLETE for the library — geometry and
-    //    IMU included — or nothing is constructed (never invented, never fault-aborted).
-    char why[160];
-    if (!shulib::bench::tableConsistent(shulib::bench::kChassis, why, sizeof why)) {
-        refuse("chassis table CONTRADICTS ITSELF", why);
-        return;
-    }
-    if (!shulib::bench::kChassis.signsMeasured) {
-        refuse("chassis table has NO SIGNS", "only a table with MEASURED signs can drive");
-        return;
-    }
-    if (shulib::bench::describeMissingForLibrary(shulib::bench::kChassis, why, sizeof why)) {
-        refuse("chassis table UNSET for the library:", why);  // `why` names each missing field
-        return;
+    // ═══ WHICH DESCRIPTION DRIVES THIS ROBOT (R3d Part 2) ════════════════════════════
+    // Order fixed, not configurable (ruling P3): the card's MEASURED record, else the typed
+    // table, else refuse. Everything below happens BEFORE a single adapter is constructed
+    // (ruling P2), so a rewired robot is refused rather than driven.
+    {
+        // 1. the record on the card. Read into a buffer LARGER than a record on purpose: a
+        //    longer file must show up as a LENGTH refusal, not as "the first 180 bytes fitted".
+        std::byte raw[shulib::calibration::kRecordBytes + 32]{};
+        std::size_t got = 0;
+        {
+            shulib::hal::pros::ProsBlockSource card{shulib::calibration::kRecordFileName};
+            if (!card.isOpen()) {
+                std::snprintf(g_recordWhy, sizeof g_recordWhy,
+                              "no calibration record: %s could not be opened (no SD card, or the "
+                              "robot has never been calibrated)",
+                              card.path());
+            } else {
+                got = card.readAll(raw);
+            }
+        }
+        if (got > 0) {
+            g_recordDecoded = shulib::calibration::decodeRecord(
+                std::span<const std::byte>{raw, got}, g_description, g_recordWhy,
+                sizeof g_recordWhy);
+        }
+        // 2. verify it against the ports, on THIS boot, before anything is constructed.
+        const shulib::hal::pros::ProsDeviceRegistry registry;
+        if (g_recordDecoded) {
+            g_verdict = shulib::calibration::verifyAgainstRegistry(g_description, registry);
+            std::printf("[R3B] calibration record: DECODED, port check %s -- %s\n",
+                        shulib::calibration::bootDecisionWord(g_verdict.decision),
+                        g_verdict.reason);
+        } else {
+            std::printf("[R3B] calibration record: NOT USED -- %s\n", g_recordWhy);
+        }
+        // 3. the table as the second source. tableToDescription() is the ONLY path from the
+        //    table into this graph (landmine 1); nothing below reads kChassis for a number.
+        const shulib::hal::DrivetrainDescription fromTable =
+            shulib::bench::tableToDescription(shulib::bench::kChassis);
+        char tableWhy[192];
+        const bool tableValid = fromTable.valid(tableWhy, sizeof tableWhy);
+        if (!tableValid) {
+            char missing[160];
+            (void)shulib::bench::describeMissingForDescription(shulib::bench::kChassis, missing,
+                                                               sizeof missing);
+            std::printf("[R3B] typed table: cannot describe a drivetrain -- UNSET: %s (%s)\n",
+                        missing, tableWhy);
+        }
+        // 4. the decision, as a host-tested table rather than an if-chain here.
+        const shulib::calibration::BootSourceChoice choice =
+            shulib::calibration::chooseBootSource(g_recordDecoded, g_verdict.decision, tableValid);
+        g_source = choice.source;
+        g_sourceWhy = choice.why;
+        std::printf("[R3B] boot source: %s -- %s\n",
+                    g_source == shulib::calibration::BootSource::UseRecord  ? "RECORD"
+                    : g_source == shulib::calibration::BootSource::UseTable ? "TYPED TABLE"
+                                                                            : "REFUSE",
+                    g_sourceWhy);
+        if (g_source == shulib::calibration::BootSource::UseTable) {
+            g_description = fromTable;
+            g_verdict = shulib::calibration::verifyAgainstRegistry(g_description, registry);
+            std::printf("[R3B] WARNING: driving from the TYPED TABLE -- unverified since the "
+                        "rebuild; run shulib Calibrate (slot 4). Port check %s -- %s\n",
+                        shulib::calibration::bootDecisionWord(g_verdict.decision),
+                        g_verdict.reason);
+            if (g_verdict.decision == shulib::calibration::BootDecision::Refuse) {
+                refuse("the TYPED TABLE does not match the ports", g_verdict.reason);
+                return;
+            }
+        } else if (g_source == shulib::calibration::BootSource::Refuse) {
+            char both[192];
+            std::snprintf(both, sizeof both, "%.80s | %.100s", g_recordWhy,
+                          g_recordDecoded ? g_verdict.reason : tableWhy);
+            refuse("NO USABLE DRIVETRAIN DESCRIPTION", both);
+            return;
+        }
     }
     // ── the graph, at its boundary: a throwing adapter refuses the whole program.
     try {
@@ -855,7 +1074,7 @@ void initialize() {
     r.imu.calibrate();
 
     // ── the §18.5 session header: provenance FIRST, missing hash LOUD; the port map, the
-    //    signs and the geometry all come from the table, never retyped.
+    //    signs and the geometry all come from the DESCRIPTION, never retyped.
     shulib::diag::SessionInfo session{};
     session.buildHash = shulib::diag::compiledBuildHash();
     session.routineId = "(none: teleop only; autons land later)";
@@ -865,14 +1084,60 @@ void initialize() {
     shulib::diag::emitSessionHeader(r.telemetry, session, r.battery.voltage());
 
     char line[240];
-    std::snprintf(line, sizeof line,
-                  "library graph BUILT from src/chassis_table.hpp: %s | cartridge %s (a belief the "
-                  "adapter WROTE and read back) | geometry: %s | %u+%u ProsMotors behind two "
-                  "MotorGroups (median reads; signs in the table only)",
-                  r.table.robot, shulib::bench::cartridgeWord(r.table.cartridge),
-                  r.table.geometryProvenance, static_cast<unsigned>(r.left.memberCount()),
-                  static_cast<unsigned>(r.right.memberCount()));
-    r.telemetry.log(shulib::hal::LogLevel::Info, "R3B", line);
+    {
+        char described[128];
+        r.desc.describe(described, sizeof described);
+        std::snprintf(line, sizeof line, "library graph BUILT from the %s: %.120s",
+                      g_source == shulib::calibration::BootSource::UseRecord
+                          ? "CALIBRATION RECORD on the SD card"
+                          : "TYPED TABLE (src/chassis_table.hpp)",
+                      described);
+        r.telemetry.log(shulib::hal::LogLevel::Info, "R3B", line);
+        std::snprintf(line, sizeof line,
+                      "%u+%u slots behind two MotorGroups, %u+%u PRESENT -- median reads are over "
+                      "the PRESENT members; the sign lives inside each port entry and PROS "
+                      "applies it once",
+                      static_cast<unsigned>(r.left.memberCount()),
+                      static_cast<unsigned>(r.right.memberCount()),
+                      static_cast<unsigned>(r.left.presentCount()),
+                      static_cast<unsigned>(r.right.presentCount()));
+        r.telemetry.log(shulib::hal::LogLevel::Info, "R3B", line);
+        std::snprintf(line, sizeof line, "description provenance: %.190s", r.desc.provenance);
+        r.telemetry.log(shulib::hal::LogLevel::Info, "R3B", line);
+        std::snprintf(line, sizeof line, "boot source: %.200s", g_sourceWhy);
+        r.telemetry.log(g_source == shulib::calibration::BootSource::UseRecord
+                            ? shulib::hal::LogLevel::Info
+                            : shulib::hal::LogLevel::Warn,
+                        "R3B", line);
+        std::snprintf(line, sizeof line, "port check: %.220s", g_verdict.reason);
+        r.telemetry.log(g_verdict.decision == shulib::calibration::BootDecision::Ok
+                            ? shulib::hal::LogLevel::Info
+                            : shulib::hal::LogLevel::Warn,
+                        "R3B", line);
+        // The chassis table's CROSS-CHECK, and the only other place this graph may read it
+        // (landmine 1): if the card's record and the typed table disagree about which ports
+        // drive, say so. A disagreement is not an error — the record measured THIS robot and
+        // the table was typed from a build that may no longer exist — but it is exactly the
+        // thing a person should be told before driving.
+        if (g_source == shulib::calibration::BootSource::UseRecord) {
+            const shulib::hal::DrivetrainDescription fromTable =
+                shulib::bench::tableToDescription(shulib::bench::kChassis);
+            int differing = 0;
+            for (int p = 1; p <= static_cast<int>(shulib::hal::kMaxSmartPorts); ++p) {
+                if (r.desc.signedPortOf(p) != fromTable.signedPortOf(p)) {
+                    ++differing;
+                }
+            }
+            if (differing > 0) {
+                std::snprintf(line, sizeof line,
+                              "CROSS-CHECK: the MEASURED record and the typed chassis table "
+                              "disagree about %d port(s). The record wins (it moved THIS robot); "
+                              "the table is stale and should be updated or deleted.",
+                              differing);
+                r.telemetry.log(shulib::hal::LogLevel::Warn, "R3B", line);
+            }
+        }
+    }
     r.telemetry.log(shulib::hal::LogLevel::Warn, "R3B",
                     "HARDWARE-UNVALIDATED: the library's motion stack has not driven a robot "
                     "before this program; gains and budgets are PROVISIONAL (HA-45/50/51/52) -- "
@@ -883,10 +1148,19 @@ void initialize() {
                     "GPS or camera on robot two; nothing is polled over an absent source");
     // The §2 ruling, said ONCE at boot (odo_stall_check.hpp carries the reasoning).
     r.telemetry.log(shulib::hal::LogLevel::Warn, "R3B", shulib::motion::kNoIndependentStallSourceNote);
+    if (r.motors.absentCount > 0) {
+        std::snprintf(line, sizeof line,
+                      "DEGRADED: %u recorded drive port(s) are EMPTY and were NOT constructed; "
+                      "their group slots are holes and every read is over the PRESENT members. "
+                      "%.80s",
+                      static_cast<unsigned>(r.motors.absentCount), g_verdict.reason);
+        r.telemetry.log(shulib::hal::LogLevel::Warn, "R3B", line);
+    }
     r.telemetry.log(shulib::hal::LogLevel::Info, "R3B",
-                    "dead-port tolerance: NONE in this program (a MotorGroup needs every member "
-                    "constructed; one refused adapter refuses the graph) -- shulib Drive (slot 1) "
-                    "is the tolerant program until R3d");
+                    "dead-port tolerance: AT BOOT ONLY (R3d Part 2) -- a recorded port the "
+                    "registry reports EMPTY becomes an absent group member under the same policy "
+                    "shulib Drive uses. A port that dies AFTER boot is still shulib Drive's (slot "
+                    "1): runtime absence detection is not in this graph yet");
     std::snprintf(line, sizeof line,
                   "facade alive: strafeAuthority=%.2f (tank: 0.00); stall check canDetectStall=%s; "
                   "budgets lin %.0f in/s ang %.2f rad/s wheel %.0f in/s; ff kS %.2f kV %.4f kA %.4f",
@@ -977,6 +1251,11 @@ void autonomous() {
     benchStateScreen("AUTONOMOUS",
                      "No motion here, ever: the tester's DRIVE station lives under driver control.");
     return;
+#elif SHULIB_RUNS_CALIBRATE
+    benchStateScreen("AUTONOMOUS",
+                     "No motion here, ever: calibration powers the motors and lives under driver "
+                     "control, where a person is standing by the battery.");
+    return;
 #elif SHULIB_RUNS_TANK_LIBRARY
     benchStateScreen("AUTONOMOUS",
                      "No motion here yet: the library teleop drives only under driver control.");
@@ -1008,7 +1287,15 @@ void autonomous() {
  * dropped controller from centred sticks (HA-103).
  */
 void opcontrol() {
-#if SHULIB_RUNS_BENCH_TESTER
+#if SHULIB_RUNS_CALIBRATE
+    // "shulib Calibrate" (R3d Part 2): NO chooser -- this build IS the calibrate program, by the
+    // team lead's ruling (a program picked by name from the slot list must do what its name
+    // says). It runs its own 10 ms loop, exits cleanly on a field DISABLE (its all-stop guard
+    // runs before PROS tears the task down), and idles on its result screen so an UNSAVED
+    // result is not thrown away by the program ending.
+    shulib::bench::runCalibrate();
+    return;
+#elif SHULIB_RUNS_BENCH_TESTER
 #if defined(SHULIB_PROGRAM_DRIVE)
     // "shulib Drive" (R3b Part 0b): NO chooser -- this build IS the drive program, by the team
     // lead's ruling (a program picked by name from the slot list must do what its name says).

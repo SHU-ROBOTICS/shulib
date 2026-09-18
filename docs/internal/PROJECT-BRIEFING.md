@@ -105,13 +105,13 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 27 of 48 chunks complete
 
-- **Next up:** R3d Part 2 — persistence, the registry seam, boot verification and the two programs, HOST-ONLY ([brief](chunks/R3d-part2-persistence-boot-programs.md)). Part 1 LANDED 2026-09-18 (the description, the calibrator, the two plant extensions; host-only, nothing on hardware — [live log](chunks/R3d-PROGRESS.md)); then Part 3 (the bench session), which is also where R3b closes.  
+- **Next up:** R3d Part 3 — THE BENCH SESSION, the team lead's morning: run "shulib Calibrate" on robot two, then "shulib Teleop" from the record it writes (worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)). This is also where R3b closes.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b, R3d** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,233 cases / 1,568,972 assertions, 3 skipped — **green**  
+- **Suite:** 1,267 cases / 1,624,433 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 160  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 137 registered, **7 settled** — next free is **HA-138**  
+- **Public headers:** 168  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 140 registered, **7 settled** — next free is **HA-141**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:

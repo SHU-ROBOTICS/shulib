@@ -169,9 +169,10 @@ consumer owns its own tiny `ButtonEdge` — every consumer sees every press. If 
 driver code that used `get_digital_new_press()`, replace each call site with a `ButtonEdge`
 member and feed it `pressed(...)` once per loop.
 
-## Why doesn't shulib use PROS's `registry_get_plugged_type()` to find devices?
+## How does shulib handle PROS's `registry_get_plugged_type()` and its zero-indexed ports?
 
-Because it has a different port convention from the rest of the SDK, and mixing them fails
+It uses it — through exactly one adapter, with the conversion on exactly one line, because the
+registry has a different port convention from the rest of the SDK and mixing them fails
 *silently*.
 
 `registry_get_plugged_type()` is **zero-indexed** — its own documentation says "the device plugged
@@ -184,9 +185,20 @@ the device APIs land on the wrong hardware. A bench probe written this way once 
 motor and a dead IMU" on a robot where both were perfectly healthy: it was asking the motor API
 about the port where the IMU actually lived, and `ENODEV` looks exactly like a dead motor.
 
-No shulib adapter calls the registry. Each adapter takes the port you give it and passes it
-straight to the one-indexed device API, so there is only ever one convention in play. If you write
-your own port-scanning diagnostic, that is where the trap is waiting — add one, not zero.
+So the library contains the trap rather than avoiding it. `hal::IDeviceRegistry` is stated in
+**physical ports, 1–21**, like everything else you will ever type; `hal::pros::ProsDeviceRegistry`
+is the only place in the tree that subtracts one, on a single marked line, and its test asserts the
+mapping **from both ends** (physical 1 reads index 0, physical 21 reads index 20) plus that a port
+outside 1–21 answers "empty" without the platform being called at all. Every ordinary device
+adapter still takes the port you give it and passes it straight to the one-indexed device API, so
+there is only ever one convention in play at a call site.
+
+Two things need the registry and cannot be written without it: "shulib Calibrate" builds its
+candidate list from the ports that actually carry a motor (a calibration that starts from a typed
+list can only ever confirm the typing), and "shulib Teleop" checks its calibration record against
+the ports **before it constructs a single adapter**, so a rewired robot is refused instead of
+driven. If you write your own port-scanning diagnostic, use the seam rather than the raw call —
+that is where the trap is waiting, and adding one rather than zero is the whole of it.
 
 ## I'm porting shulib to non-PROS hardware. What does "the shim tests the adapter, not the belief" mean for me?
 

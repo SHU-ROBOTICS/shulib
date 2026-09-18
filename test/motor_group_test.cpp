@@ -128,18 +128,37 @@ TEST_CASE("MotorGroup 1: every member receives every setVoltage and setBrakeMode
     }
 }
 
-TEST_CASE("MotorGroup: construction refuses an empty span and a null member") {
+TEST_CASE("MotorGroup: construction refuses an empty span, too many, and an ALL-ABSENT group") {
+    // CHANGED AT R3d PART 2 (ruling P4). This case used to require that a nullptr member be
+    // refused; a nullptr is now an ABSENT member — a drive port found dead at boot — and the
+    // contract is "at least ONE present" rather than "every member present". The refusals that
+    // remain are the ones that are still real: nothing at all, more members than the brain has
+    // ports, and a group of nothing but holes (which has no reading it could report).
     std::array<IMotor*, 0> none{};
     CHECK_THROWS_AS((MotorGroup{std::span<IMotor* const>{none}}), PreconditionError);
     FakeMotor a;
-    std::array<IMotor*, 3> withNull{&a, nullptr, &a};
-    CHECK_THROWS_AS((MotorGroup{std::span<IMotor* const>{withNull}}), PreconditionError);
     std::array<IMotor*, MotorGroup::kMaxMembers + 1> tooMany{};
     tooMany.fill(&a);
     CHECK_THROWS_AS((MotorGroup{std::span<IMotor* const>{tooMany}}), PreconditionError);
+    std::array<IMotor*, 3> allAbsent{nullptr, nullptr, nullptr};
+    CHECK_THROWS_AS((MotorGroup{std::span<IMotor* const>{allAbsent}}), PreconditionError);
+
+    // A hole beside a present member CONSTRUCTS, and says so.
+    std::array<IMotor*, 3> withHole{&a, nullptr, &a};
+    MotorGroup holed{std::span<IMotor* const>{withHole}};
+    CHECK(holed.memberCount() == 3);   // slots, so a panel's indices do not shift
+    CHECK(holed.presentCount() == 2);
+    CHECK(holed.absentMask() == 0b010u);
+    CHECK(holed.isPresent(0));
+    CHECK_FALSE(holed.isPresent(1));
+    CHECK_FALSE(holed.isPresent(9));   // out of range is not present, never out of bounds
+    CHECK_THROWS_AS((void)holed.member(1), PreconditionError);  // there is no object to hand back
+
     std::array<IMotor*, 1> one{&a};
     MotorGroup g{std::span<IMotor* const>{one}};
     CHECK(&g.member(0) == &a);
+    CHECK(g.presentCount() == 1);
+    CHECK(g.absentMask() == 0u);
     CHECK_THROWS_AS((void)g.member(1), PreconditionError);
 }
 
@@ -397,4 +416,138 @@ TEST_CASE("MotorGroup 16: a ~20 % slow member is NOT a disagreement; the same me
     g.resetDisagreement();
     CHECK(g.disagreeingMembers() == 0);
     CHECK(g.lastVerdict().persistedMask == 0);
+}
+
+// ═══ 8. THE ABSENT MEMBER (chunk R3d Part 2, ruling P4) ═════════════════════════════
+// Bug caught: a hole in the members span treated as a member. Every one of these is a way a
+// dead drive port would silently corrupt a side's numbers instead of being dropped from them:
+// a command sent to nothing (a crash), a hole counted in the median (the 1/N drift this class
+// exists to avoid, arriving through the other door), a hole counted in the per-member current
+// mean (a side with a dead port reading cooler than it is), a hole reported PRESENT to the
+// coupled-side monitor (a dead port flagged as a FIGHTING one, and a real fight hidden behind
+// it).
+//
+// Mutations these must fail under: count the absent member in the median; report it present to
+// the monitor; divide the current by memberCount() instead of presentCount().
+TEST_CASE("MotorGroup 8: an ABSENT member is skipped, excluded and reported absent") {
+    // Five SLOTS, four present: slot 2 is a hole. The fifth fake exists but is NOT in the span
+    // — it is the evidence that a skipped member is never touched.
+    std::array<FakeMotor, 5> motors{};
+    std::array<IMotor*, 5> ptrs{&motors[0], &motors[1], nullptr, &motors[3], &motors[4]};
+    MotorGroup g{std::span<IMotor* const>{ptrs}};
+
+    CHECK(g.memberCount() == 5);
+    CHECK(g.presentCount() == 4);
+    CHECK(g.absentMask() == 0b00100u);
+
+    SUBCASE("fan-out skips the hole, and never touches what is not in the span") {
+        g.setVoltage(Voltage{7.25});
+        g.setBrakeMode(BrakeMode::Brake);
+        for (const std::size_t i : {std::size_t{0}, std::size_t{1}, std::size_t{3},
+                                    std::size_t{4}}) {
+            CHECK(motors[i].commandedVoltage().value() == 7.25);
+            CHECK(motors[i].brakeMode() == BrakeMode::Brake);
+        }
+        // The motor behind the hole was never in the span and was never commanded: its state is
+        // the FakeMotor default, untouched.
+        CHECK(motors[2].commandedVoltage().value() == 0.0);
+        CHECK(motors[2].brakeMode() == BrakeMode::Coast);
+        CHECK(g.commandedVoltage().value() == 7.25);
+    }
+
+    SUBCASE("the median is over the PRESENT members — exactly the 4-member median") {
+        // Deliberately asymmetric readings, and a WILD value on the motor behind the hole: if
+        // the hole were read (as 0, or as that motor), the median would move.
+        const double p[5] = {1.0, 2.0, -999.0, 3.0, 4.0};
+        for (std::size_t i = 0; i < 5; ++i) {
+            motors[i].setPosition(AngleDim{p[i]});
+            motors[i].setVelocity(AngularVelocity{10.0 * p[i]});
+        }
+        // The four PRESENT readings are 1, 2, 3, 4 — median = 2.5, exactly.
+        CHECK(g.position().value() == 2.5);
+        CHECK(g.velocity().value() == 25.0);
+
+        // And it equals a group built over exactly those four, bit for bit — the property the
+        // hole must not change.
+        std::array<IMotor*, 4> four{&motors[0], &motors[1], &motors[3], &motors[4]};
+        MotorGroup dense{std::span<IMotor* const>{four}};
+        CHECK(g.position().value() == dense.position().value());
+        CHECK(g.velocity().value() == dense.velocity().value());
+    }
+
+    SUBCASE("current() is per PRESENT member, and temperature() is the max of the present") {
+        const double amps[5] = {1.0, 2.0, 100.0, 3.0, 4.0};
+        const double temp[5] = {30.0, 31.0, 999.0, 32.0, 33.0};
+        for (std::size_t i = 0; i < 5; ++i) {
+            motors[i].setCurrent(Current{amps[i]});
+            motors[i].setTemperature(temp[i]);
+        }
+        CHECK(g.totalCurrent().value() == 10.0);         // 1 + 2 + 3 + 4
+        CHECK(g.current().value() == 10.0 / 4.0);        // per PRESENT member, not per SLOT
+        CHECK(g.current().value() != 10.0 / 5.0);        // the mutation this pins
+        CHECK(g.temperature() == 33.0);                  // the hole's 999 is not a member
+    }
+
+    SUBCASE("brakeMode() reads a PRESENT member even when slot 0 is the hole") {
+        std::array<IMotor*, 3> holeFirst{nullptr, &motors[1], &motors[2]};
+        MotorGroup h{std::span<IMotor* const>{holeFirst}};
+        motors[1].setBrakeMode(BrakeMode::Hold);
+        CHECK(h.brakeMode() == BrakeMode::Hold);   // NOT a read through a null slot 0
+        CHECK(h.presentCount() == 2);
+        CHECK(h.absentMask() == 0b001u);
+        motors[1].setTemperature(41.0);
+        motors[2].setTemperature(44.0);
+        CHECK(h.temperature() == 44.0);
+    }
+
+    SUBCASE("the monitor is told present = FALSE, and never flags the hole") {
+        // The side is commanded hard and every PRESENT member turns together: a healthy side
+        // with a dead port. The hole must not appear in disagreeingMask() — a dead port
+        // reported as a fighting one is a driver told the wrong thing, and it would hide a
+        // real fight behind it.
+        g.setVoltage(Voltage{8.0});
+        for (std::size_t i = 0; i < 5; ++i) {
+            motors[i].setVelocity(AngularVelocity{20.0});
+        }
+        for (int t = 0; t < 40; ++t) {
+            g.evaluateDisagreement();
+        }
+        CHECK(g.disagreeingMembers() == 0);
+        CHECK(g.disagreeingMask() == 0u);
+        CHECK(g.lastVerdict().presentCount == 4);   // the monitor counted four, not five
+
+        // Now make ONE present member fight. It — and only it — is flagged, and the hole's bit
+        // stays clear.
+        motors[4].setVelocity(AngularVelocity{-20.0});
+        for (int t = 0; t < 40; ++t) {
+            g.evaluateDisagreement();
+        }
+        CHECK(g.disagreeingMembers() == 1);
+        CHECK(g.disagreeingMask() == (std::uint32_t{1} << 4));
+        CHECK((g.disagreeingMask() & g.absentMask()) == 0u);
+    }
+}
+
+TEST_CASE("MotorGroup 8b: an ALL-PRESENT group is bit-identical to what it was before holes existed") {
+    // The local half of the bit-identity pin (the whole pre-existing suite is the other half).
+    // Every read below is over "the present members" now; with nothing absent that must be the
+    // SAME NUMBER, not an approximation of it.
+    Fakes<5> f;
+    MotorGroup g{f.span()};
+    CHECK(g.presentCount() == 5);
+    CHECK(g.absentMask() == 0u);
+    const double p[5] = {1.5, -2.25, 0.125, 7.0, -0.5};
+    for (std::size_t i = 0; i < 5; ++i) {
+        f.motors[i].setPosition(AngleDim{p[i]});
+        f.motors[i].setVelocity(AngularVelocity{p[i] * 3.0});
+        f.motors[i].setCurrent(Current{std::abs(p[i])});
+        f.motors[i].setTemperature(20.0 + p[i]);
+    }
+    CHECK(g.position().value() == 0.125);        // the middle of the five, no arithmetic at all
+    CHECK(g.velocity().value() == 0.375);
+    CHECK(g.current().value() == (1.5 + 2.25 + 0.125 + 7.0 + 0.5) / 5.0);
+    CHECK(g.totalCurrent().value() == 1.5 + 2.25 + 0.125 + 7.0 + 0.5);
+    CHECK(g.temperature() == 27.0);
+    CHECK(&g.member(0) == &f.motors[0]);
+    CHECK(&g.member(4) == &f.motors[4]);
 }

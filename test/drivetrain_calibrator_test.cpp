@@ -44,6 +44,7 @@
 #include <cstring>
 #include <functional>
 #include <span>
+#include <string>
 
 #include "shulib/calibration/drivetrain_calibrator.hpp"
 #include "shulib/control/feedforward.hpp"
@@ -1170,4 +1171,114 @@ TEST_CASE("DrivetrainCalibrator 19: the caller contract is enforced, and the who
     CHECK(sticky.cal.result().trackWidth.value() == doctest::Approx(kTrackWidth).epsilon(1e-6));
     CHECK(sticky.cal.report().leftInchesPerRadian
           == doctest::Approx(kPlantRadius).epsilon(1e-6));
+}
+
+// ── 21 — accepts(): what a panel may OFFER, pinned against what answer() actually DOES ──
+//
+// ADDED AT R3d PART 2, in Part 1's file, because Part 2 found the gap here (RESUMING: "a chunk
+// that finds a flaw in an earlier chunk fixes it there"). answer() REFUSES an out-of-order
+// answer and ends the run — right, but it makes a wrong BUTTON destructive, and Phase alone
+// cannot tell a panel which answers are live (PushCapture and ScalePush are two steps each).
+// accepts() is the query; THIS case is what stops it drifting from answer(), because it never
+// asserts a hard-coded expectation: for every waiting step and EVERY Answer it runs the real
+// answer() on a FRESH rig and requires the two to agree. A divergence in either direction —
+// an answer offered that would abort, or an answer refused that would have worked — is red.
+TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at every waiting step") {
+    // The four waiting steps, reached by the same scripted operator the other cases use.
+    enum class Stop { PushWatching, PushAwaitingFront, ScaleWatching, ScaleAwaitingDistance };
+    const Stop stops[] = {Stop::PushWatching, Stop::PushAwaitingFront, Stop::ScaleWatching,
+                          Stop::ScaleAwaitingDistance};
+    const Answer answers[] = {Answer::Done,       Answer::FrontFirst, Answer::BackFirst,
+                              Answer::Distance24, Answer::Distance48, Answer::Distance72,
+                              Answer::Abort};
+
+    /// Drive a fresh rig to `stop` and leave it there, un-answered. The push distance is
+    /// accumulated ONLY while this script is actually pushing — the SideAssign pulses and the
+    /// spin move the robot too, and counting those would make the tape push look finished
+    /// before it had started (which is how the first draft of this case aborted).
+    const auto driveTo = [](CalibRig& rig, Stop stop) {
+        rig.cal.start(facts());
+        double pushed = 0.0;
+        bool signPushAnswered = false;
+        for (int t = 0; t < 20000; ++t) {
+            const Phase p = rig.cal.phase();
+            REQUIRE_MESSAGE(p != Phase::Aborted, "the scripted operator aborted the run: ",
+                            rig.cal.reason());
+            bool pushing = false;
+            if (p == Phase::PushCapture) {
+                if (pushed < 8.0) {
+                    rig.pushPrimaries(2.0, 2.0);
+                    pushing = true;
+                } else {
+                    rig.stopPush();
+                    if (stop == Stop::PushWatching) {
+                        return;  // watching, with a captured push and nothing answered
+                    }
+                    rig.cal.answer(Answer::Done);
+                    if (stop == Stop::PushAwaitingFront) {
+                        return;
+                    }
+                    rig.cal.answer(Answer::FrontFirst);
+                    signPushAnswered = true;
+                    pushed = 0.0;
+                }
+            } else if (p == Phase::ScalePush) {
+                REQUIRE(signPushAnswered);
+                if (pushed < 48.0) {
+                    rig.pushPrimaries(2.0, 2.0);
+                    pushing = true;
+                } else {
+                    rig.stopPush();
+                    if (stop == Stop::ScaleWatching) {
+                        return;
+                    }
+                    rig.cal.answer(Answer::Done);
+                    return;  // ScaleAwaitingDistance
+                }
+            } else {
+                rig.stopPush();  // SideAssign / SpinTest: the calibrator drives, hands off
+            }
+            rig.cal.tick();
+            rig.h.plant().step(Time{kDt});
+            if (pushing) {
+                pushed += std::abs(rig.trueForwardSpeed()) * kDt;
+            }
+        }
+        FAIL("the scripted operator never reached the requested step");
+    };
+
+    for (const Stop stop : stops) {
+        for (const Answer a : answers) {
+            CalibRig ask;
+            driveTo(ask, stop);
+            const bool offered = ask.cal.accepts(a);
+
+            CalibRig act;
+            driveTo(act, stop);
+            act.cal.answer(a);
+            // What answer() DID: Abort and a refusal both end in Aborted, so the two are told
+            // apart by the reason — a refusal says "nothing was recorded".
+            const bool refused = act.cal.phase() == Phase::Aborted
+                                 && reasonMentions(act.cal, "nothing was recorded");
+            // std::string, not the bare pointer: doctest stringifies a `const char*` as an
+            // ADDRESS, and "answer() 0x60024c521210" is a message nobody can act on.
+            CHECK_MESSAGE(offered == !refused, "step ", static_cast<int>(stop), ", answer ",
+                          static_cast<int>(a), ": accepts() said ", offered,
+                          " but answer() ", std::string{refused ? "REFUSED" : "accepted"});
+        }
+    }
+
+    // Abort is offered everywhere, including where no answer is expected at all.
+    CalibRig idle;
+    CHECK(idle.cal.accepts(Answer::Abort));
+    CHECK_FALSE(idle.cal.accepts(Answer::Done));          // Idle: nothing is waiting
+    CHECK_FALSE(idle.cal.accepts(Answer::Distance48));
+    CalibRig powered;
+    powered.cal.start(facts());
+    powered.cal.tick();
+    while (powered.cal.phase() == Phase::WaitImu) {
+        powered.h.plant().step(Time{kDt});
+        powered.cal.tick();
+    }
+    CHECK(powered.cal.accepts(Answer::Abort));
 }

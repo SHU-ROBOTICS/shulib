@@ -85,19 +85,30 @@ endif
 #                                         `pros upload --slot 1 --name "shulib Drive"`)
 #     make ROBOT=tank PROGRAM=library   → "shulib Teleop" (R3b Parts 1–3, 2026-09-14): THE LIBRARY
 #                                         drives robot two — the tank object graph in src/main.cpp,
-#                                         built from src/chassis_table.hpp, through Chassis::drive()
-#                                         (slot 2, `pros upload --slot 2 --name "shulib Teleop"`).
-#                                         Refuses at boot, on screen, while the table's geometry
-#                                         (track width, ratio) or IMU port is UNSET.
-# Three programs in three slots rather than one program with a chooser (team lead's ruling): the
+#                                         built from the CALIBRATION RECORD on the SD card when
+#                                         there is one, else from src/chassis_table.hpp, through
+#                                         Chassis::drive() (slot 2,
+#                                         `pros upload --slot 2 --name "shulib Teleop"`). Refuses
+#                                         at boot, on screen, when neither source can describe a
+#                                         drivetrain, or when the record does not match the ports.
+#     make ROBOT=tank PROGRAM=calibrate → "shulib Calibrate" (R3d Part 2, 2026-09-18): the robot
+#                                         MEASURES ITS OWN drivetrain — which ports drive, which
+#                                         way each is wired, which side each is on, inches per
+#                                         radian per side, the effective track width — and writes
+#                                         the answer to /usd/shulib_drivetrain.bin for "shulib
+#                                         Teleop" to boot from (slot 4,
+#                                         `pros upload --slot 4 --name "shulib Calibrate"`).
+#                                         It POWERS THE MOTORS. UNRUN on hardware.
+# Four programs in four slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
-# `drive` and `library` are only meaningful with a SIGNED chassis table, and only robot two's is
-# (its signs were measured 2026-09-10); so either with any other ROBOT is an $(error), not a
-# program that refuses at boot. Any other PROGRAM value is an $(error) too — the same silent-
-# no-op class GATE1 closed for ROBOT. tools/src_build_gate.py builds this axis as its fourth and
-# fifth entries (tank-drive, tank-library) and asserts each define lands token-exact and the
-# beacon is in the ELF.
+# `drive`, `library` and `calibrate` are only meaningful on robot two — `drive` and `library`
+# because only its chassis table carries measured signs, `calibrate` because the calibrator only
+# supports a tank drivetrain and takes the cartridge from that table; so any of the three with any
+# other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM value is an
+# $(error) too — the same silent-no-op class GATE1 closed for ROBOT. tools/src_build_gate.py
+# builds this axis as its fourth, fifth and sixth entries (tank-drive, tank-library,
+# tank-calibrate) and asserts each define lands token-exact and the beacon is in the ELF.
 PROGRAM?=tester
 ifeq ($(PROGRAM),tester)
 # the default: no define; src/main.cpp runs the bench tester on bench and tank
@@ -111,8 +122,13 @@ ifneq ($(ROBOT),tank)
 $(error PROGRAM=library needs ROBOT=tank — only robot two's chassis table is signed, measured and carries geometry; '$(ROBOT)' has no library graph)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_LIBRARY
+else ifeq ($(PROGRAM),calibrate)
+ifneq ($(ROBOT),tank)
+$(error PROGRAM=calibrate needs ROBOT=tank — the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table; '$(ROBOT)' cannot be calibrated by it)
+endif
+override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_CALIBRATE
 else
-$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library)
+$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library, calibrate)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

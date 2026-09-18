@@ -15,9 +15,12 @@ no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has it
 below. Nothing else on the menu can move the robot. *(Since R3b Part 0b there is a SECOND program
 for robot two, **"shulib Drive"** in **slot 1**, which just drives — Station E. It is not a menu;
 it drives from the moment it starts. Since R3b Parts 1–3 there is a THIRD, **"shulib Teleop"** in
-**slot 2**, in which THE LIBRARY drives — Station F; it refuses to start until the geometry is
-measured. Do not confuse the three: "Bench Tests" measures, "shulib Drive" drives through the
-adapters, "shulib Teleop" drives through the library.)*
+**slot 2**, in which THE LIBRARY drives — Station F. Since R3d Part 2 there is a FOURTH,
+**"shulib Calibrate"** in **slot 4**, in which the robot MEASURES ITS OWN DRIVETRAIN and writes
+the answer to the SD card — Station G; "shulib Teleop" then boots from that answer instead of the
+typed table. Do not confuse the four: "Bench Tests" measures by hand, "shulib Drive" drives
+through the adapters, "shulib Calibrate" measures the drivetrain itself, "shulib Teleop" drives
+through the library.)*
 
 1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"** with **Run** — not
    Timed Run, not Match. **Start it from the BRAIN's screen or from the laptop, NEVER from the
@@ -588,6 +591,194 @@ cable, or use "shulib Drive" for the session and report the port.
 > felt against "shulib Drive". The coordinator records them in the development log; they are the
 > first hardware evidence for the motor group, the drive-encoder odometry and the library's teleop
 > loop, and they decide whether M1's badge moves.
+
+---
+
+## Station G — CALIBRATE, then TELEOP FROM THE RECORD  *("shulib Calibrate" + "shulib Teleop", robot two — added R3d Part 2, 2026-09-18)*
+
+> ⚠ **This is the morning session, and it is written for you to run ALONE.** Two new things
+> happen here. First, **the robot measures its own drivetrain**: which ports drive, which way each
+> motor is wired, which side each is on, how far it travels per radian, and how wide its track
+> effectively is. Second, **"shulib Teleop" boots from that measurement instead of the typed
+> table**. Neither program has ever run on hardware. Both POWER THE MOTORS. Work through this in
+> order; where a box asks for a number, write the number down — a run nobody recorded did not
+> happen.
+>
+> **Why this exists:** robot two's drivetrain was REBUILT, so the ports and signs typed into
+> `src/chassis_table.hpp` are no longer trustworthy, and nobody wants to re-measure them by hand.
+> "shulib Calibrate" makes that not matter.
+
+**G.0 — before you touch a program**
+
+- [ ] **G.0.1** Charged battery in. **A FAT32-formatted SD card in the brain's card slot** — the
+      calibration is written to it, and without a card the run still happens but the answer is on
+      screen only. (Station 5 / Bench Tests button **5 SD CARD PROBE** is how you check a card the
+      brain will accept; reformat FAT32 if it fails.)
+- [ ] **G.0.2** **3 m clear in every direction** and a **second person at the battery** for
+      everything from G.2 onward. The calibration SPINS THE ROBOT IN PLACE, twice, under power.
+- [ ] **G.0.3** A **tape measure or a marked line on the floor**, and a way to push the robot a
+      known distance: **24 in, 48 in (two field tiles) or 72 in**. 48 in is the one to use unless
+      the space is tight.
+- [ ] **G.0.4** Read the **DO NOT** list at the end of this sheet. The two that bite here:
+      **never start a program from the CONTROLLER's own menu** (HA-128 — it arms a pretend match
+      and the program never gets driver control), and **do not "correct" a reading** to what this
+      sheet expects.
+
+**G.1 — upload all four programs (lab computer, brain on micro-USB)**
+
+`rm -rf bin .d` before each `make` is not optional: `make` is incremental, and a stale object file
+is how a build wears the wrong label. Run these four in order, one at a time:
+
+```sh
+cd ~/projects/shulib && git checkout shulib-v2 && git pull
+
+rm -rf bin .d && make ROBOT=tank                     && pros upload --slot 3 --name "Bench Tests"
+rm -rf bin .d && make ROBOT=tank PROGRAM=drive       && pros upload --slot 1 --name "shulib Drive"
+rm -rf bin .d && make ROBOT=tank PROGRAM=library     && pros upload --slot 2 --name "shulib Teleop"
+rm -rf bin .d && make ROBOT=tank PROGRAM=calibrate   && pros upload --slot 4 --name "shulib Calibrate"
+```
+
+- [ ] **G.1.1** All four uploads reported success. Every program shows a **BUILD** stamp on its
+      screen; **if a stamp is not the build you just uploaded, the upload did not land** —
+      re-upload before trusting anything (a silent upload failure cost a debugging cycle on
+      2026-08-18). → stamp seen on Calibrate: **________________**
+
+**G.2 — the census and MOTOR WATCH first (the rebuilt drivetrain)**
+
+Do this BEFORE calibrating. It takes three minutes and it is how you tell a calibration that
+refused from a robot that is unplugged.
+
+- [ ] **G.2.1** Run **slot 3 "Bench Tests"**, button **1 DEVICE CENSUS**. Write down every
+      non-empty port and what is in it. Expected for robot two: **ten MOTORs**, **one IMU**, one
+      RADIO. → motors found **____** · IMU on port **____** · radio on port **____**
+      → the full list, as printed: ______________________________________________
+- [ ] **G.2.2** Button **3 MOTOR WATCH (live)**: push the whole robot **FRONT-FIRST** along its
+      length, then touch to save. It prints UP/DOWN per port and, where the table has signs,
+      AGREES/DISAGREES. **After a rebuild, DISAGREES is expected and is not a fault** — it is the
+      reason this session exists. Write down what it says anyway; it is the independent check on
+      what the calibration will conclude.
+      → per port, AGREES / DISAGREES: ______________________________________________
+- [ ] **G.2.3** If the census shows fewer than ten motors, **re-seat those cables and re-run the
+      census** before going on. A port that is empty at boot is tolerated by the programs (up to
+      two), but you want to know about it now rather than read it off a screen later.
+
+**G.3 — the first calibrate run: WHEELS UP. It is SUPPOSED to refuse.**
+
+- [ ] **G.3.1** Robot **on blocks, no wheel touching anything.** Start **slot 4 "shulib
+      Calibrate"** from the **brain's** screen. The header reads `shulib CALIBRATE` /
+      `the robot measures its OWN drivetrain -- NEVER RUN BEFORE`.
+- [ ] **G.3.2** The screen says `WAITING FOR THE IMU` and `WAIT -- the IMU is calibrating. Keep
+      the robot still.` for about two seconds. **Do not move the robot.**
+- [ ] **G.3.3** It then says `1/4 PUSH -- which ports drive` and
+      `PUSH THE WHOLE ROBOT along its length, then touch DONE.` **Spin the wheels by hand**
+      (the robot is on blocks, so you cannot push it) — turn every wheel, both sides, the same
+      way, several turns. The line underneath counts `N of M motor(s) have moved`.
+- [ ] **G.3.4** When all ten have moved, touch **DONE**, then touch **FRONT 1st** or **BACK 1st**
+      to say which end of the robot you turned the wheels *towards*. (On blocks, answer as if you
+      had pushed it that way.)
+- [ ] **G.3.5** The screen says `2/4 PULSES -- which side each is on` and
+      `STAND CLEAR -- pulsing one motor at a time.` **Expect it to STOP here**, red, with
+      `STOPPED -- nothing was saved` and a reason naming a port and asking
+      **"is the robot on the FLOOR, not up on blocks?"**
+      **THAT IS THE PROGRAM WORKING.** It pulses one motor and looks for the robot to TURN; up on
+      blocks nothing turns, so it refuses rather than inventing a side.
+      → did it refuse with that message? **YES / NO** · the message, word for word:
+        ______________________________________________
+      → if it did NOT refuse, stop and tell the coordinator: something turned that should not have.
+
+**G.4 — the real run, on the floor**
+
+Robot on the floor, 3 m clear, second person at the battery. Start **slot 4** again.
+
+| The screen says | You do |
+|---|---|
+| `WAITING FOR THE IMU` · `WAIT -- the IMU is calibrating. Keep the robot still.` | nothing, ~2 s |
+| `1/4 PUSH -- which ports drive` · `PUSH THE WHOLE ROBOT along its length, then touch DONE.` | **push the whole robot forward** a metre or so, in a straight line, then let go. Watch `N of M motor(s) have moved` reach **10 of 10**. Then touch **DONE** |
+| `WHICH END WENT FIRST -- the FRONT, or the BACK?` | touch **FRONT 1st** if you pushed it forwards (the end with ports 15 and 16 leading), **BACK 1st** if you pushed it backwards |
+| `2/4 PULSES -- which side each is on` · `STAND CLEAR -- pulsing one motor at a time.` | **hands off, stand clear.** It pulses each drive motor on its own for 0.4 s and reads which way the robot yaws. The robot will twitch ten times. This takes under a minute |
+| `3/4 TAPE -- inches per radian` · `PUSH THE ROBOT STRAIGHT along the tape, then touch DONE.` | **push it straight along your tape, exactly 24, 48 or 72 in**, then touch **DONE**. Straight matters: the line underneath shows `drift ±d deg (bound 3.0 deg)` and it refuses past the bound |
+| `HOW FAR did you push it -- 24, 48 or 72 in?` | touch **24 in**, **48 in** or **72 in** — whichever you actually pushed |
+| `4/4 SPIN -- effective track width` · `STAND CLEAR -- spinning in place, both ways.` | ⚠ **STAND WELL CLEAR.** It spins the robot in place two full turns one way, then two the other. 3 m clear, second person at the battery, finger ready |
+| `DONE` · `MEASURED ...` | read G.5 |
+
+**ABORT is always on the screen, bottom right.** Touch it any time and everything goes to 0 V and
+coasts. A **firm press** — the screen is resistive, and it reads the moment you LIFT your finger.
+
+**G.5 — what DONE looks like, and the line to copy down**
+
+- [ ] **G.5.1** The screen shows **`MEASURED`** and a line like
+      `MEASURED tank BLUE 600 rpm: L5/R5 ports, ipr L1.37500 R1.37500, W 13.700 in`.
+      **COPY THAT LINE DOWN, EXACTLY.** → ______________________________________________
+- [ ] **G.5.2** Under it, either:
+      **`SAVED  /usd/shulib_drivetrain.bin`** in green, with
+      `written, flushed, RE-READ and compared byte for byte.` — the record is on the card and
+      "shulib Teleop" will boot from it; or
+      **`NOT SAVED`** in red with a reason (`no SD card in the brain`, `the card refused the
+      write`, …) and `The result is ON SCREEN ONLY -- copy it down NOW.`
+      → **SAVED / NOT SAVED** · if NOT SAVED, the reason word for word: ______________________
+- [ ] **G.5.3** The USB serial log has much more: the signed port list per side, both scales, the
+      effective track width, each side's SPREAD over the tape push (port 18 is expected to show
+      here — it travelled ~20 % short of its side-mates on both 2026-09-10 pushes), and both spin
+      widths with their disagreement. Read it off the user port — see **G.7**.
+- [ ] **G.5.4 RUN IT A SECOND TIME**, the whole of G.4 again. **A number that does not reproduce
+      is not a measurement.** Copy the second `MEASURED` line down too and compare:
+      → run 1 ipr L **______** R **______** W **______**
+      → run 2 ipr L **______** R **______** W **______**
+      The library CLAIMS the two scales agree within **2 %** and the widths within **3 %**; both
+      tolerances are **invented** (A4 register HA-136) and this session is the first evidence
+      about them either way. **If they disagree by more than that, that is the finding — write it
+      down, do not re-run until it looks better.**
+
+**G.6 — Teleop from the record**
+
+- [ ] **G.6.1** Start **slot 2 "shulib Teleop"**. At boot the serial log now says
+      `calibration record: DECODED, port check OK` and `boot source: RECORD`, and the panel's
+      bottom rows read **`MEASURED record from the SD card, verified against the ports`** and
+      `table MEASURED L -11 +12 ... R ... IMU2 ipr .../... TW...`.
+      → which did it say: **RECORD / TYPED TABLE / REFUSED** ______________________
+      → if it REFUSED, the headline and the reason, word for word: ______________________
+- [ ] **G.6.2** If a drive port is dead the panel says `DEGRADED: dead <ports>` and the L/R row
+      reads e.g. `4/5 present`. That is the program driving without that motor, on purpose, under
+      the same rule "shulib Drive" uses (a side below three answering, or more than two dead in
+      total, refuses).
+- [ ] **G.6.3** Now run **Station F's F.2 checks** against this boot — F.2.2 (wheels up, `est`
+      leaves `UNINIT`, `5 members 0 disagree`), F.2.3 (forward is forward, `hdg` goes DOWN on a
+      right-stick RIGHT push), F.2.4 (full-stick volts wheels up), F.2.5 (the ground run: one tile
+      out, one tile back, one full spin). Fill in F.2's boxes on that page; they are the same
+      questions and the same numbers.
+- [ ] **G.6.4** The one NEW question F.2 cannot ask: **does it drive better from the measured
+      record than it did from the typed table?** Straighter? Does `est x` come back nearer to 0?
+      → **BETTER / SAME / WORSE**, and how: ______________________________________________
+
+**G.7 — reading the user port raw (the full log)**
+
+The brain's serial output carries everything the screen truncates. On the lab computer:
+
+```sh
+pros lsusb                      # the brain shows TWO ports; the USER one is the second
+stty -F /dev/ttyACM1 raw -echo  # substitute the port lsusb showed
+timeout 120 cat /dev/ttyACM1 > ~/calibrate-$(date +%H%M).log
+strings ~/calibrate-*.log | grep R3D     # every line this program printed
+```
+
+**The port numbers RENUMBER between plug-ins** (HA-129: ttyACM0/1 alone, ttyACM1/2 with a
+controller attached), so re-run `pros lsusb` every single time. Start the `cat` BEFORE you start
+the program, or you will miss the banner.
+
+**What to send back**
+
+1. The census from **G.2.1** and the AGREES/DISAGREES rows from **G.2.2**.
+2. **G.3.5**: did the wheels-up run refuse, and with what message.
+3. Both `MEASURED` lines from **G.5.1** and **G.5.4**, and whether it said SAVED.
+4. The `boot source:` line from **G.6.1** and Station F's F.2 answers.
+5. **G.6.4**: better, same or worse than the typed table.
+6. The two log files from **G.7** (the calibrate run and the teleop run).
+
+> **NOTHING IN THIS STATION HAS BEEN RUN.** Both programs are host-tested only; every threshold in
+> the calibration is invented for a first run (A4 register HA-136); the procedure has been proven
+> against a simulated drivetrain and nothing else. **Expect it to refuse more than it succeeds the
+> first time, and treat every refusal as information** — each one names its own cause, and the
+> cause is what the coordinator needs.
 
 ---
 

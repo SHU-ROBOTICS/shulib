@@ -60,11 +60,21 @@ struct CoupledMembers {
     std::array<IMotor*, kMaxExtra + 1> leftPtrs{};
     std::array<IMotor*, kMaxExtra + 1> rightPtrs{};
     std::size_t perWheel;
+    /// Which SLOT of the LEFT group is ABSENT (a nullptr), or kNoAbsence. The motor behind it is
+    /// still attached to the plant's coupled train — a dead PORT does not remove a rotor from a
+    /// gear box — so the wheel still drags it. That is the physical truth an absent member
+    /// models, and the reason the absent-member run below is NOT expected to be bit-identical.
+    static constexpr std::size_t kNoAbsence = static_cast<std::size_t>(-1);
+    std::size_t absentLeftSlot = kNoAbsence;
     MotorGroup left;
     MotorGroup right;
 
-    CoupledMembers(SimHarness& h, std::size_t membersPerWheel)
-        : perWheel{membersPerWheel}, left{wire(h, 0, leftPtrs)}, right{wire(h, 1, rightPtrs)} {}
+    CoupledMembers(SimHarness& h, std::size_t membersPerWheel,
+                   std::size_t absentSlotOnLeft = kNoAbsence)
+        : perWheel{membersPerWheel},
+          absentLeftSlot{absentSlotOnLeft},
+          left{wire(h, 0, leftPtrs)},
+          right{wire(h, 1, rightPtrs)} {}
 
 private:
     std::span<IMotor* const> wire(SimHarness& h, int wheel,
@@ -78,6 +88,9 @@ private:
         }
         h.plant().attachCoupledMembers(
             wheel, std::span<FakeMotor* const>{ex.data(), perWheel - 1});
+        if (wheel == 0 && absentLeftSlot != kNoAbsence && absentLeftSlot < perWheel) {
+            ptrs[absentLeftSlot] = nullptr;  // the dead port: the library never sees that motor
+        }
         return std::span<IMotor* const>{ptrs.data(), perWheel};
     }
 };
@@ -100,9 +113,10 @@ struct GroupRig {
 
     GroupRig(const shulib::kinematics::IKinematics& kin, std::size_t membersPerWheel,
              const shulib::sim::SimHarnessConfig& cfg = plantConfig(),
-             shulib::sim::DegradationModel* degradation = nullptr)
+             shulib::sim::DegradationModel* degradation = nullptr,
+             std::size_t absentSlotOnLeft = CoupledMembers::kNoAbsence)
         : h{kin, cfg, nullptr, degradation},
-          m{h, membersPerWheel},
+          m{h, membersPerWheel, absentSlotOnLeft},
           drive{&m.left, &m.right},
           ctx{{.clock = &h.clock(),
                .driveMotors = drive,
@@ -153,9 +167,9 @@ void sampleGroups(RigT& rig, Trace& t) {
 }
 
 template <typename RigT>
-Trace runTrace(RigT& rig, const Pose2d& target, int maxTicks = 1200) {
+Trace runTraceTimeout(RigT& rig, const Pose2d& target, int maxTicks, double timeoutS) {
     Trace t;
-    MoveToPose m{rig.deps, target, motionConfig(), 8.0};
+    MoveToPose m{rig.deps, target, motionConfig(), timeoutS};
     m.start();
     auto reason = ExitReason::Running;
     for (int i = 0; i < maxTicks && reason == ExitReason::Running; ++i) {
@@ -173,6 +187,12 @@ Trace runTrace(RigT& rig, const Pose2d& target, int maxTicks = 1200) {
     }
     t.exit = reason;
     return t;
+}
+
+/// The pre-existing runner: the 8 s watchdog every case above uses, unchanged.
+template <typename RigT>
+Trace runTrace(RigT& rig, const Pose2d& target, int maxTicks = 1200) {
+    return runTraceTimeout(rig, target, maxTicks, 8.0);
 }
 
 bool sameTruth(const std::vector<TruthSample>& a, const std::vector<TruthSample>& b) {
@@ -381,4 +401,98 @@ TEST_CASE("MotorGroup 7: 5-member groups per side are bit-identical to the 1-mot
         // Ideal coupling under hostility is still agreement: no fight was ever seen.
         CHECK(grouped.latch.raiseCount(FaultCode::MotorGroupDisagree) == 0);
     }
+}
+
+// ═══ 9. An ABSENT member through the whole stack (chunk R3d Part 2) ═════════════════
+// Bug caught: the hole reaching the motion stack as anything other than "one fewer motor on
+// that side". The library never sees the dead port's motor — it is a nullptr in the span — but
+// the plant still drags that rotor, because a dead PORT does not take a rotor out of a gear
+// box. So: the group must report the absence, the monitor must never flag the hole, the reads
+// must be over the PRESENT members, and the routine must run and make progress.
+//
+// WHAT THIS CASE DELIBERATELY DOES NOT ASSERT, and what was MEASURED instead ─────────
+// It does NOT assert that the motion SETTLES. MEASURED here, on the A2 plant, with one of five
+// members absent: the coupled-train model drops that side to 80 % of its command (the plant
+// takes the MEAN of the members' effective volts, and the library commands nothing to the
+// hole), the robot pulls toward the weak side, and MoveToPose TIMED OUT on all four seeds —
+// closing 21.2 in to 2.21, 37.1 to 5.86, 12.0 to 0.86 and 7.53 to 0.48 in 802 ticks. So it
+// drives, and it drives short. That is a property of a DEGRADED DRIVETRAIN under PROVISIONAL
+// gains (HA-45/50/51/52), not of this class, and the honest thing is to record the numbers
+// rather than raise a budget until a green tick appears. It is also exactly why "shulib
+// Teleop" puts `DEGRADED: dead <port>` on the panel: the driver must be told. R5 measures what
+// a real degraded side does; nothing here claims to know.
+//
+// This is NOT a bit-identity case either, and saying so is the point: an absent member CHANGES
+// the physics. Bit identity belongs to the ALL-PRESENT case — test 7 above, and the whole
+// pre-existing suite.
+TEST_CASE("MotorGroup 9: a 5-member side with one ABSENT member runs, reports it, and is never "
+          "flagged as a fight") {
+    const TankKinematics kin{Length{12.0}};
+    for (std::uint64_t seed = 1; seed <= 4; ++seed) {
+        CAPTURE(seed);
+        const AlongAxis trial = alongAxisTrial(seed);
+        auto pcfg = plantConfig();
+        pcfg.plant.initialPose = trial.start;
+
+        GroupRig holed{kin, 5, pcfg, nullptr, /*absentSlotOnLeft=*/2};
+        REQUIRE(holed.m.left.memberCount() == 5);
+        REQUIRE(holed.m.left.presentCount() == 4);
+        REQUIRE(holed.m.left.absentMask() == 0b00100u);
+        REQUIRE(holed.m.right.presentCount() == 5);
+        REQUIRE(holed.m.right.absentMask() == 0u);
+
+        const auto distance = [&](const Pose2d& p) {
+            const double dx = trial.target.x().value() - p.x().value();
+            const double dy = trial.target.y().value() - p.y().value();
+            return std::sqrt(dx * dx + dy * dy);
+        };
+        const double before = distance(trial.start);
+        const Trace t = runTrace(holed, trial.target);
+        const double after = distance(holed.h.truePose());
+        MESSAGE("seed " << seed << ": degraded run exited " << static_cast<int>(t.exit)
+                        << " after " << t.ticks << " ticks, " << before << " in -> " << after
+                        << " in from the target");
+
+        // It MOVED, and toward the target: a side down 20 % is slower, not dead.
+        CHECK(t.ticks > 50);
+        CHECK(after < before);
+        // The dead port is NOT a fight: it is reported absent to the monitor and never flagged.
+        CHECK((t.peakMask[0] & holed.m.left.absentMask()) == 0u);
+        CHECK(holed.latch.raiseCount(FaultCode::MotorGroupDisagree) == 0);
+    }
+}
+
+TEST_CASE("MotorGroup 9b: the absent member is EXCLUDED from the side's reported position, "
+          "every tick of a real run") {
+    // The hole's motor is still turning (the plant drags it) — so if the group read it, the
+    // median would be over five and this test could not tell. It reads over FOUR, and the proof
+    // is that the holed group's position equals a group built over exactly the four present
+    // members, bit for bit, at every tick of a real motion. (The exit reason is not asserted —
+    // see case 9's note on what a degraded drivetrain does under provisional gains.)
+    const TankKinematics kin{Length{12.0}};
+    const AlongAxis trial = alongAxisTrial(3);
+    auto pcfg = plantConfig();
+    pcfg.plant.initialPose = trial.start;
+    GroupRig holed{kin, 5, pcfg, nullptr, /*absentSlotOnLeft=*/2};
+
+    std::array<IMotor*, 4> presentOnly{holed.m.leftPtrs[0], holed.m.leftPtrs[1],
+                                       holed.m.leftPtrs[3], holed.m.leftPtrs[4]};
+    MotorGroup dense{std::span<IMotor* const>{presentOnly}};
+
+    MoveToPose m{holed.deps, trial.target, motionConfig(), 8.0};
+    m.start();
+    auto reason = ExitReason::Running;
+    int ticks = 0;
+    for (int i = 0; i < 1200 && reason == ExitReason::Running; ++i) {
+        holed.loc.update();
+        reason = m.tick();
+        ++ticks;
+        REQUIRE(holed.m.left.position().value() == dense.position().value());
+        REQUIRE(holed.m.left.velocity().value() == dense.velocity().value());
+        if (reason == ExitReason::Running) {
+            holed.h.plant().step(Time{0.01});
+        }
+    }
+    CHECK(ticks > 50);
+    CHECK(holed.m.left.position().value() != 0.0);  // it really did turn
 }

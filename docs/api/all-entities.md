@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,890 of them, across 127 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 1,989 of them, across 133 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -162,6 +162,39 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BodyTravel` | struct | [arc_step.md](arc_step.md#struct-bodytravel) |
 | `BodyTravel::forward` | field | [arc_step.md](arc_step.md#bodytravel-forward) |
 | `BodyTravel::lateral` | field | [arc_step.md](arc_step.md#bodytravel-lateral) |
+| `BootDecision` | enum class | [boot_check.md](boot_check.md#enum-class-bootdecision) |
+| `BootDecision::Degraded` | enumerator | [boot_check.md](boot_check.md#bootdecision-degraded) |
+| `BootDecision::Ok` | enumerator | [boot_check.md](boot_check.md#bootdecision-ok) |
+| `BootDecision::Refuse` | enumerator | [boot_check.md](boot_check.md#bootdecision-refuse) |
+| `bootDecisionWord` | free function | [boot_check.md](boot_check.md#bootdecisionword) |
+| `BootPortStatus` | struct | [boot_check.md](boot_check.md#struct-bootportstatus) |
+| `BootPortStatus::found` | field | [boot_check.md](boot_check.md#bootportstatus-found) |
+| `BootPortStatus::port` | field | [boot_check.md](boot_check.md#bootportstatus-port) |
+| `BootPortStatus::side` | field | [boot_check.md](boot_check.md#bootportstatus-side) |
+| `BootPortStatus::signedPort` | field | [boot_check.md](boot_check.md#bootportstatus-signedport) |
+| `BootPortStatus::state` | field | [boot_check.md](boot_check.md#bootportstatus-state) |
+| `BootSource` | enum class | [boot_check.md](boot_check.md#enum-class-bootsource) |
+| `BootSource::Refuse` | enumerator | [boot_check.md](boot_check.md#bootsource-refuse) |
+| `BootSource::UseRecord` | enumerator | [boot_check.md](boot_check.md#bootsource-userecord) |
+| `BootSource::UseTable` | enumerator | [boot_check.md](boot_check.md#bootsource-usetable) |
+| `BootSourceChoice` | struct | [boot_check.md](boot_check.md#struct-bootsourcechoice) |
+| `BootSourceChoice::source` | field | [boot_check.md](boot_check.md#bootsourcechoice-source) |
+| `BootSourceChoice::why` | field | [boot_check.md](boot_check.md#bootsourcechoice-why) |
+| `BootVerdict` | struct | [boot_check.md](boot_check.md#struct-bootverdict) |
+| `BootVerdict::decision` | field | [boot_check.md](boot_check.md#bootverdict-decision) |
+| `BootVerdict::degradation` | field | [boot_check.md](boot_check.md#bootverdict-degradation) |
+| `BootVerdict::imuFound` | field | [boot_check.md](boot_check.md#bootverdict-imufound) |
+| `BootVerdict::imuOk` | field | [boot_check.md](boot_check.md#bootverdict-imuok) |
+| `BootVerdict::imuPort` | field | [boot_check.md](boot_check.md#bootverdict-imuport) |
+| `BootVerdict::isMissing` | function | [boot_check.md](boot_check.md#bootverdict-ismissing) |
+| `BootVerdict::missingCount` | field | [boot_check.md](boot_check.md#bootverdict-missingcount) |
+| `BootVerdict::newCount` | field | [boot_check.md](boot_check.md#bootverdict-newcount) |
+| `BootVerdict::newPorts` | field | [boot_check.md](boot_check.md#bootverdict-newports) |
+| `BootVerdict::portCount` | field | [boot_check.md](boot_check.md#bootverdict-portcount) |
+| `BootVerdict::ports` | field | [boot_check.md](boot_check.md#bootverdict-ports) |
+| `BootVerdict::reason` | field | [boot_check.md](boot_check.md#bootverdict-reason) |
+| `BootVerdict::swappedCount` | field | [boot_check.md](boot_check.md#bootverdict-swappedcount) |
+| `BootVerdict::usable` | function | [boot_check.md](boot_check.md#bootverdict-usable) |
 | `BrakeMode` | enum class | [motor.md](motor.md#enum-class-brakemode) |
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
@@ -281,6 +314,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::omega` | function | [twist2d.md](twist2d.md#chassisspeeds-omega) |
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
+| `chooseBootSource` | free function | [boot_check.md](boot_check.md#choosebootsource) |
 | `CommandIdStampSink` | class | [motion_scheduler.md](motion_scheduler.md#class-commandidstampsink) |
 | `CommandIdStampSink::activeId` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-activeid) |
 | `CommandIdStampSink::beginTick` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-begintick) |
@@ -363,6 +397,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CoupledSideMonitor::disagreeTicks` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-disagreeticks) |
 | `CoupledSideMonitor::reset` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-reset) |
 | `CoupledSideMonitor::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-update) |
+| `crc32Ieee` | free function | [calibration_record.md](calibration_record.md#crc32ieee) |
 | `Current` | type alias | [quantity.md](quantity.md#current) |
 
 ## D
@@ -409,6 +444,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DebugRecord::wheelVoltage` | field | [debug_record.md](debug_record.md#debugrecord-wheelvoltage) |
 | `decodeEnd` | free function | [blackbox_format.md](blackbox_format.md#decodeend) |
 | `decodeHeader` | free function | [blackbox_format.md](blackbox_format.md#decodeheader) |
+| `decodeRecord` | free function | [calibration_record.md](calibration_record.md#decoderecord) |
 | `decodeSummary` | free function | [blackbox_format.md](blackbox_format.md#decodesummary) |
 | `decodeTick` | free function | [blackbox_format.md](blackbox_format.md#decodetick) |
 | `decodeTriage` | free function | [blackbox_format.md](blackbox_format.md#decodetriage) |
@@ -422,6 +458,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DescriptionSource` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-descriptionsource) |
 | `DescriptionSource::RobotMeasured` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-robotmeasured) |
 | `DescriptionSource::TypedTable` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-typedtable) |
+| `DeviceKind` | enum class | [device_registry.md](device_registry.md#enum-class-devicekind) |
+| `DeviceKind::Adi` | enumerator | [device_registry.md](device_registry.md#devicekind-adi) |
+| `DeviceKind::Distance` | enumerator | [device_registry.md](device_registry.md#devicekind-distance) |
+| `DeviceKind::Gps` | enumerator | [device_registry.md](device_registry.md#devicekind-gps) |
+| `DeviceKind::Imu` | enumerator | [device_registry.md](device_registry.md#devicekind-imu) |
+| `DeviceKind::Motor` | enumerator | [device_registry.md](device_registry.md#devicekind-motor) |
+| `DeviceKind::None` | enumerator | [device_registry.md](device_registry.md#devicekind-none) |
+| `DeviceKind::Optical` | enumerator | [device_registry.md](device_registry.md#devicekind-optical) |
+| `DeviceKind::Other` | enumerator | [device_registry.md](device_registry.md#devicekind-other) |
+| `DeviceKind::Radio` | enumerator | [device_registry.md](device_registry.md#devicekind-radio) |
+| `DeviceKind::Rotation` | enumerator | [device_registry.md](device_registry.md#devicekind-rotation) |
+| `DeviceKind::Vision` | enumerator | [device_registry.md](device_registry.md#devicekind-vision) |
+| `deviceKindWord` | free function | [device_registry.md](device_registry.md#devicekindword) |
 | `DisplayController` | enum class | [pros-line_display.md](pros-line_display.md#enum-class-displaycontroller) |
 | `DisplayController::Master` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-master) |
 | `DisplayController::Partner` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-partner) |
@@ -467,6 +516,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveSideDescription::signedPorts` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-signedports) |
 | `DrivetrainCalibrator` | class | [drivetrain_calibrator.md](drivetrain_calibrator.md#class-drivetraincalibrator) |
 | `DrivetrainCalibrator::abort` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-abort) |
+| `DrivetrainCalibrator::accepts` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-accepts) |
 | `DrivetrainCalibrator::answer` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-answer) |
 | `DrivetrainCalibrator::config` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-config) |
 | `DrivetrainCalibrator::DrivetrainCalibrator` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-drivetraincalibrator) |
@@ -553,6 +603,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `encodeEnd` | free function | [blackbox_format.md](blackbox_format.md#encodeend) |
 | `encodeFrameHeader` | free function | [blackbox_format.md](blackbox_format.md#encodeframeheader) |
 | `encodeHeader` | free function | [blackbox_format.md](blackbox_format.md#encodeheader) |
+| `encodeRecord` | free function | [calibration_record.md](calibration_record.md#encoderecord) |
 | `encodeSummary` | free function | [blackbox_format.md](blackbox_format.md#encodesummary) |
 | `encodeTick` | free function | [blackbox_format.md](blackbox_format.md#encodetick) |
 | `encodeTriage` | free function | [blackbox_format.md](blackbox_format.md#encodetriage) |
@@ -759,6 +810,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IBlockSink::operator= (overload 2)` | function | [block_sink.md](block_sink.md#iblocksink-operator-eq-2) |
 | `IBlockSink::write` | function | [block_sink.md](block_sink.md#iblocksink-write) |
 | `IBlockSink::~IBlockSink` | function | [block_sink.md](block_sink.md#iblocksink-destructor-iblocksink) |
+| `IBlockSource` | class | [block_source.md](block_source.md#class-iblocksource) |
+| `IBlockSource::IBlockSource` | function | [block_source.md](block_source.md#iblocksource-iblocksource) |
+| `IBlockSource::IBlockSource (overload 2)` | function | [block_source.md](block_source.md#iblocksource-iblocksource-2) |
+| `IBlockSource::IBlockSource (overload 3)` | function | [block_source.md](block_source.md#iblocksource-iblocksource-3) |
+| `IBlockSource::isOpen` | function | [block_source.md](block_source.md#iblocksource-isopen) |
+| `IBlockSource::operator=` | function | [block_source.md](block_source.md#iblocksource-operator-eq) |
+| `IBlockSource::operator= (overload 2)` | function | [block_source.md](block_source.md#iblocksource-operator-eq-2) |
+| `IBlockSource::readAll` | function | [block_source.md](block_source.md#iblocksource-readall) |
+| `IBlockSource::~IBlockSource` | function | [block_source.md](block_source.md#iblocksource-destructor-iblocksource) |
 | `ICancellable` | class | [mechanism.md](mechanism.md#class-icancellable) |
 | `ICancellable::cancel` | function | [mechanism.md](mechanism.md#icancellable-cancel) |
 | `ICancellable::ICancellable` | function | [mechanism.md](mechanism.md#icancellable-icancellable) |
@@ -802,6 +862,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ICorrector::operator= (overload 2)` | function | [i_corrector.md](i_corrector.md#icorrector-operator-eq-2) |
 | `ICorrector::propose` | function | [i_corrector.md](i_corrector.md#icorrector-propose) |
 | `ICorrector::~ICorrector` | function | [i_corrector.md](i_corrector.md#icorrector-destructor-icorrector) |
+| `IDeviceRegistry` | class | [device_registry.md](device_registry.md#class-ideviceregistry) |
+| `IDeviceRegistry::IDeviceRegistry` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry) |
+| `IDeviceRegistry::IDeviceRegistry (overload 2)` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry-2) |
+| `IDeviceRegistry::IDeviceRegistry (overload 3)` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry-3) |
+| `IDeviceRegistry::operator=` | function | [device_registry.md](device_registry.md#ideviceregistry-operator-eq) |
+| `IDeviceRegistry::operator= (overload 2)` | function | [device_registry.md](device_registry.md#ideviceregistry-operator-eq-2) |
+| `IDeviceRegistry::pluggedKind` | function | [device_registry.md](device_registry.md#ideviceregistry-pluggedkind) |
+| `IDeviceRegistry::~IDeviceRegistry` | function | [device_registry.md](device_registry.md#ideviceregistry-destructor-ideviceregistry) |
 | `IDigitalIn` | class | [digital_in.md](digital_in.md#class-idigitalin) |
 | `IDigitalIn::IDigitalIn` | function | [digital_in.md](digital_in.md#idigitalin-idigitalin) |
 | `IDigitalIn::IDigitalIn (overload 2)` | function | [digital_in.md](digital_in.md#idigitalin-idigitalin-2) |
@@ -989,6 +1057,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IRotation::velocity` | function | [rotation.md](rotation.md#irotation-velocity) |
 | `IRotation::~IRotation` | function | [rotation.md](rotation.md#irotation-destructor-irotation) |
 | `isFinitePose` | free function | [finite_guard.md](finite_guard.md#isfinitepose) |
+| `isSmartPort` | free function | [device_registry.md](device_registry.md#issmartport) |
 | `ITagSource` | class | [vision.md](vision.md#class-itagsource) |
 | `ITagSource::ITagSource` | function | [vision.md](vision.md#itagsource-itagsource) |
 | `ITagSource::ITagSource (overload 2)` | function | [vision.md](vision.md#itagsource-itagsource-2) |
@@ -1065,7 +1134,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
 | `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
+| `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
+| `kRecordBytes` | constant | [calibration_record.md](calibration_record.md#krecordbytes) |
+| `kRecordFileName` | constant | [calibration_record.md](calibration_record.md#krecordfilename) |
+| `kRecordMagic` | constant | [calibration_record.md](calibration_record.md#krecordmagic) |
+| `kRecordPayloadBytes` | constant | [calibration_record.md](calibration_record.md#krecordpayloadbytes) |
+| `kRecordPrefixBytes` | constant | [calibration_record.md](calibration_record.md#krecordprefixbytes) |
+| `kRecordVersion` | constant | [calibration_record.md](calibration_record.md#krecordversion) |
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
 | `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
 | `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
@@ -1289,18 +1365,21 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorGearset::Green` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-green) |
 | `MotorGearset::Red` | enumerator | [pros-motor.md](pros-motor.md#motorgearset-red) |
 | `MotorGroup` | class | [motor_group.md](motor_group.md#class-motorgroup) |
+| `MotorGroup::absentMask` | function | [motor_group.md](motor_group.md#motorgroup-absentmask) |
 | `MotorGroup::brakeMode` | function | [motor_group.md](motor_group.md#motorgroup-brakemode) |
 | `MotorGroup::commandedVoltage` | function | [motor_group.md](motor_group.md#motorgroup-commandedvoltage) |
 | `MotorGroup::current` | function | [motor_group.md](motor_group.md#motorgroup-current) |
 | `MotorGroup::disagreeingMask` | function | [motor_group.md](motor_group.md#motorgroup-disagreeingmask) |
 | `MotorGroup::disagreeingMembers` | function | [motor_group.md](motor_group.md#motorgroup-disagreeingmembers) |
 | `MotorGroup::evaluateDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-evaluatedisagreement) |
+| `MotorGroup::isPresent` | function | [motor_group.md](motor_group.md#motorgroup-ispresent) |
 | `MotorGroup::kMaxMembers` | field | [motor_group.md](motor_group.md#motorgroup-kmaxmembers) |
 | `MotorGroup::lastVerdict` | function | [motor_group.md](motor_group.md#motorgroup-lastverdict) |
 | `MotorGroup::member` | function | [motor_group.md](motor_group.md#motorgroup-member) |
 | `MotorGroup::memberCount` | function | [motor_group.md](motor_group.md#motorgroup-membercount) |
 | `MotorGroup::MotorGroup` | function | [motor_group.md](motor_group.md#motorgroup-motorgroup) |
 | `MotorGroup::position` | function | [motor_group.md](motor_group.md#motorgroup-position) |
+| `MotorGroup::presentCount` | function | [motor_group.md](motor_group.md#motorgroup-presentcount) |
 | `MotorGroup::resetDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-resetdisagreement) |
 | `MotorGroup::setBrakeMode` | function | [motor_group.md](motor_group.md#motorgroup-setbrakemode) |
 | `MotorGroup::setVoltage` | function | [motor_group.md](motor_group.md#motorgroup-setvoltage) |
@@ -1438,6 +1517,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PneumaticMechanism::PneumaticMechanism` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism) |
 | `PneumaticMechanism::safeCommand` | function | [mechanism.md](mechanism.md#pneumaticmechanism-safecommand) |
 | `PneumaticMechanism::set` | function | [mechanism.md](mechanism.md#pneumaticmechanism-set) |
+| `PortClass` | enum class | [boot_check.md](boot_check.md#enum-class-portclass) |
+| `PortClass::Missing` | enumerator | [boot_check.md](boot_check.md#portclass-missing) |
+| `PortClass::Present` | enumerator | [boot_check.md](boot_check.md#portclass-present) |
+| `PortClass::Swapped` | enumerator | [boot_check.md](boot_check.md#portclass-swapped) |
+| `portClassWord` | free function | [boot_check.md](boot_check.md#portclassword) |
 | `PortObservation` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-portobservation) |
 | `PortObservation::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-port) |
 | `PortObservation::pulseShaftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseshaftrad) |
@@ -1490,6 +1574,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsBlockSink::ProsBlockSink (overload 3)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-3) |
 | `ProsBlockSink::write` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-write) |
 | `ProsBlockSink::~ProsBlockSink` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-destructor-prosblocksink) |
+| `ProsBlockSource` | class | [pros-block_source.md](pros-block_source.md#class-prosblocksource) |
+| `ProsBlockSource::isOpen` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-isopen) |
+| `ProsBlockSource::operator=` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-operator-eq) |
+| `ProsBlockSource::operator= (overload 2)` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-operator-eq-2) |
+| `ProsBlockSource::path` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-path) |
+| `ProsBlockSource::ProsBlockSource` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-prosblocksource) |
+| `ProsBlockSource::ProsBlockSource (overload 2)` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-prosblocksource-2) |
+| `ProsBlockSource::ProsBlockSource (overload 3)` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-prosblocksource-3) |
+| `ProsBlockSource::readAll` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-readall) |
+| `ProsBlockSource::~ProsBlockSource` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-destructor-prosblocksource) |
 | `ProsCharSink` | class | [pros-char_sink.md](pros-char_sink.md#class-proscharsink) |
 | `ProsCharSink::ProsCharSink` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink) |
 | `ProsCharSink::write` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-write) |
@@ -1500,6 +1594,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsController::isConnected` | function | [pros-controller.md](pros-controller.md#proscontroller-isconnected) |
 | `ProsController::pressed` | function | [pros-controller.md](pros-controller.md#proscontroller-pressed) |
 | `ProsController::ProsController` | function | [pros-controller.md](pros-controller.md#proscontroller-proscontroller) |
+| `ProsDeviceRegistry` | class | [pros-device_registry.md](pros-device_registry.md#class-prosdeviceregistry) |
+| `ProsDeviceRegistry::kindOf` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-kindof) |
+| `ProsDeviceRegistry::pluggedKind` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-pluggedkind) |
+| `ProsDeviceRegistry::ProsDeviceRegistry` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-prosdeviceregistry) |
 | `ProsDigitalIn` | class | [pros-digital_in.md](pros-digital_in.md#class-prosdigitalin) |
 | `ProsDigitalIn::faultedReads` | function | [pros-digital_in.md](pros-digital_in.md#prosdigitalin-faultedreads) |
 | `ProsDigitalIn::ProsDigitalIn` | function | [pros-digital_in.md](pros-digital_in.md#prosdigitalin-prosdigitalin) |
@@ -1976,6 +2074,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 |---|---|---|
 | `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
+| `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
 | `Voltage` | type alias | [quantity.md](quantity.md#voltage) |
 
 ## W

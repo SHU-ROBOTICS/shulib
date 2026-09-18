@@ -632,3 +632,747 @@ after the `sim/` extensions alone — 1208 / 1,563,156 (bit-identical) · final 
 1,568,972 assertions, green, 3 skipped.**
 
 *Log closed 2026-09-18 by the R3d Part 1 executor (opus).*
+
+---
+---
+
+# Part 2 — persistence, the registry, boot verification, and the programs
+
+| | |
+|---|---|
+| **Chunk** | R3d — drivetrain self-calibration |
+| **Part** | Part 2 (persistence + registry + boot verification + the two programs) |
+| **Date** | 2026-09-18 |
+| **Tree at start** | `17aa4eb` (`feat(calibration): R3d Part 1 -- the drivetrain description and the self-calibrator, host-only`), clean |
+| **Executor model** | opus (Claude Opus 5, 1M context) |
+| **Commit policy** | **The executor commits NOTHING.** No `git add`, no `git commit`, no `git push`, no worktree, no branch change. The coordinator verifies independently and commits. |
+| **Parallel work** | Chunk T2 runs in a SEPARATE worktree on `include/shulib/teleop/`. Nothing here modifies that directory. |
+
+> Appended in real time. Rulings beyond the brief carry the alternative considered and the reason.
+> Every mutation carries the **observed** failure message, not a claim that it would fail.
+
+---
+
+## Order of work
+
+Following the brief's §2 order with landmine 4's constraint (the `MotorGroup` absent member LANDS
+LAST among the library items, because it changes a load-bearing class the whole suite leans on):
+
+1. **This log section**; the clean-tree suite count re-measured at `17aa4eb` before touching anything.
+2. **`calibration/calibration_record.hpp`** — the on-card format, the CRC, the byte-exact golden,
+   the decode refusals (§4 tests 1–3).
+3. **`hal/block_source.hpp`** + `hal/fake/fake_block_source.hpp` + `hal/pros/block_source.hpp` +
+   the shim's `fopen` path + the adapter test through a real temp dir (§4 test 4).
+4. **`hal/device_registry.hpp`** + the fake + `hal/pros/device_registry.hpp` + the shim's
+   `pros/apix.h` and `shim::registryState()` + the adapter test (§4 test 5).
+5. **`calibration/boot_check.hpp`** — `verifyAgainstRegistry` + `chooseBootSource` (§4 tests 6–7).
+6. **The programs.** `Makefile` + `tools/src_build_gate.py` FIRST (so the sixth build exists and
+   fails honestly until the program does), then `src/calibrate_program.{hpp,cpp}`, then the
+   `src/main.cpp` `tanklib` refactor onto the description. `src_build_gate check` after each.
+7. **`hal::MotorGroup` absent member** LAST (§4 tests 8–9), with the plant pin re-run immediately.
+8. All verification; the documentation contract (§6); the prose review per changed file; the DoD
+   with evidence; the final suite count.
+
+---
+
+## Log
+
+### Step 0 — required reading + clean-tree baseline
+
+**Clean-tree baseline, re-measured BEFORE touching anything** (tree `17aa4eb`, clean):
+
+```
+[doctest] test cases:    1233 |    1233 passed | 0 failed | 3 skipped
+[doctest] assertions: 1568972 | 1568972 passed | 0 failed |
+[doctest] Status: SUCCESS!
+```
+
+Matches the number Part 1 closed on, so the tree is the one the brief was written against.
+
+**Read in full, in the brief's order:** `RESUMING.md` ("Standards that are not negotiable", "Pace
+and documentation rules"); the brief `R3d-part2-persistence-boot-programs.md` §0–§8; the parent
+spec's §3 T1/T9/T10 and §10; Part 1's `hal/drivetrain_description.hpp` and
+`calibration/drivetrain_calibrator.hpp` (the public surface, lines 95–480), `src/chassis_table.hpp`,
+and Part 1's whole PROGRESS section (rulings R1–R16, the stale-binary trap note at step 1);
+`hal/block_sink.hpp`, `hal/pros/block_sink.hpp`, `hal/fake/fake_block_sink.hpp`,
+`test/pros_block_sink_adapter_test.cpp`; `diag/blackbox_format.hpp` (whole — the `ByteWriter`/
+`ByteReader` pattern and the "golden, not a round trip" reasoning); `src/bench_r3a.cpp` (the
+zero-index note at :112–122 and the census at :573–607, plus the touch grid/`hitTest` at
+:1851–1955); `include/pros/apix.h` :620–662 and `include/pros/device.h` (the `v5_device_e_t`
+values); `test/pros_shim/pros/` (`shim_control.hpp`, `misc.hpp`, `rtos.hpp`);
+`hal/motor_group.hpp` (whole); `teleop/drivetrain_degradation.hpp` (whole); `src/main.cpp`
+(whole); `src/drive_program.cpp` (whole) + `.hpp`; `Makefile` :1–140; `tools/src_build_gate.py`
+(whole); `R3a-BENCH-WORKSHEET.md` Station A and Station F; `.github/workflows/ci.yml` guards;
+`tools/api_doc_tool.py`'s header; `test/CMakeLists.txt`; `docs/hardware-assumptions.md`
+(HA-120/122, the Robot 2 section HA-124–137, and `grep registry`).
+
+**What the `registry` grep found, so the register entry is a citation and not a duplicate**
+(brief §6): three hits, all in HA-120 and HA-122 — HA-120 records that the R1a expander sighting
+came from *index 21* and calls for "a CORRECTED 0–20 registry scan"; HA-122 calls the /usd/ path
+split "the registry-indexing shape R1a met". Neither states the zero-index mapping ITSELF as a
+belief with a settle step, and nothing in the register mentions `registry_get_plugged_type`. So
+the mapping gets its own NAMED entry (below) that CITES HA-120 rather than repeating it.
+
+---
+
+### Step 1 — the record format (`calibration/calibration_record.hpp`), §4 tests 1–3
+
+**What landed:** `include/shulib/calibration/calibration_record.hpp` — `kRecordMagic` "SHDC",
+`kRecordVersion = 1`, `kRecordFileName = "shulib_drivetrain.bin"` (ruling P6's one spelling),
+`kProvenanceBytes`, `kRecordPayloadBytes = 168`, `kRecordPrefixBytes = 8`, `kRecordBytes = 180`
+(both pinned by `static_assert`), `crc32Ieee()`, the LAYOUT TABLE as a comment block, and
+`encodeRecord` / `decodeRecord`. `test/calibration_record_test.cpp` (5 cases).
+
+The five refusals, in this order and no other: **magic → version → payload length → total length
+→ CRC → `valid()`**. The ordering is a ruling, not an accident (below).
+
+**RULING P-R1 — the golden array's bound is DEDUCED (`const std::uint8_t kGolden[]`), not written.**
+The first draft wrote `std::array<std::uint8_t, 180>`, which SILENTLY ZERO-FILLS a short
+initializer list. A miscounted NUL run in the provenance field (79 pad bytes, typed as 63) produced
+a legal 180-byte array whose content was shifted sixteen bytes and whose tail was zeros — the test
+failed at "byte 160", which reads like an encoder bug and is really a typo in the *expectation*.
+With the bound deduced, `static_assert(sizeof kGolden == 180)` turns that whole class into a
+COMPILE error. *Alternative considered:* generating the array from the Python deriver into the test
+file — rejected: a generated expectation is one edit away from being regenerated from the encoder,
+which is exactly the independence the golden exists for.
+
+**RULING P-R2 — the golden's expected bytes come from a SECOND IMPLEMENTATION, written from the
+layout table, and the file says so.** The brief says "hand-derived, not captured from the encoder".
+180 bytes of hand-typed hex is a transcription exercise with its own error rate (see P-R1), so the
+values were derived by `struct.pack` + `zlib.crc32` — an implementation of the *table*, not of the
+*encoder*, and one this repository has never seen. Every group of bytes in the array carries the
+field name it spells, so the array is checkable by eye against the table; the f64 values were chosen
+to have hand-checkable bit patterns (1.375 = `0x3FF6…`, 1.5 = `0x3FF8…`, 13.25 = `0x402A8…`). The
+property that matters is preserved and was **measured**: under mutation M-P1 the round-trip test
+stayed GREEN and the golden went RED.
+
+**RULING P-R3 — the refusal ORDER is LENGTH before CRC, and `valid()` last.** A CRC computed over
+the wrong number of bytes says "corrupt" about a file that is really "from another layout", and the
+operator's next move differs (recalibrate on this build vs. rebuild and recalibrate). `valid()` last
+so that an intact record spelling a contradictory description is reported as *"intact (CRC ok) but
+the description it spells is self-contradictory: …"* — which separates a producer bug from a card
+problem at 8 a.m. on a bench. *Alternative:* CRC first (cheapest total refusal) — rejected: cheapness
+is not the scarce resource here, the operator's next move is.
+
+**RULING P-R4 — `encodeRecord` does NOT check `valid()`; `decodeRecord` does.** One gate, at the
+point where bytes become a belief. A caller may legitimately want to persist whatever the calibrator
+produced; a caller must never boot from a description nobody checked. The calibrate program checks
+`valid()` itself before writing, because a record nobody can boot from is not worth writing — and
+that is a program policy, not a format rule.
+
+**RULING P-R5 — the provenance length is computed BOUNDED, not with `std::strlen`.** A description
+built by hand (or decoded from a record whose provenance filled all 96 bytes) need not be
+NUL-terminated, and `strlen` would walk off the struct. The field is fixed width; so is the read of it.
+
+**A trap met for real, and the recipe that closes it** (Part 1 recorded the first half; this is the
+second): `cmake --build build/test` runs the doc gates BEFORE the link, and **any suite-count change
+makes the briefing gate fail**, which blocks the relink and re-runs the OLD binary — mutation M-P1
+first reported GREEN for exactly that reason. `--target shulib_tests/fast` skips the gates, but it
+ALSO skips CMake's `depend` step, so a HEADER edited since the last depend run is invisible to make
+and the build silently does nothing — mutation M-P5 first reported GREEN for *that* reason, with no
+"Linking" line to give it away. Both are lies told by a stale executable. The recipe used from here
+on, and worth writing into RESUMING one day:
+
+```sh
+make -C build/test -f CMakeFiles/shulib_tests.dir/build.make CMakeFiles/shulib_tests.dir/depend
+cmake --build build/test --target shulib_tests/fast -j"$(nproc)"   # REQUIRE the Linking line
+```
+
+(`depend` must run AFTER a new TU has been compiled once, because the depfile the compiler emits is
+what `depend` converts. A new test file therefore needs: configure → build → depend → build.)
+
+**Mutations run — every one rebuilt with the recipe above, the Linking line seen, run, failure
+OBSERVED, restored:**
+
+| # | Mutation | Observed |
+|---|---|---|
+| M-P1 | `source` and `trackWidth` swapped in BOTH `encodeRecord` and `decodeRecord` | **RED, and exactly where it should be:** `calibration_record_test.cpp:160 CHECK( static_cast<std::uint8_t>(out[i]) == kGolden[i] ) … values: CHECK( 2 == 0 ) logged: byte 71 of the record` (and bytes 76–79, 176–179), `:165 CHECK( crc32Ieee(...) == 0x45C46E98U ) … values: CHECK( 2173237730 == 1170501272 )`, `:183 CHECK( back.trackWidth.value() == 13.25 )`. **`CalibrationRecord 3` (the round trip through both seams) stayed GREEN — 1 passed / 0 failed — which is the E1 lesson demonstrated rather than asserted.** |
+| M-P2 | the CRC check dropped (`if (false && stored != want)`) | **RED**, 8 assertions in the flipped-bit sweep, e.g. `:272 CHECK( decodeRecord(bytes, decoded, why, sizeof why) == false ) … values: CHECK( true == false )` and `:274 … did not name the CRC: record is intact (CRC ok) but the description it spells is self-contradictory: LEFT lists port 12 twice` (the sign-byte flip that `valid()` happens to catch anyway — the other seven are caught by nothing) |
+| M-P3 | the record LENGTH check dropped | **RED**, 7 assertions: `:238 CHECK_FALSE( decodeRecord(...) ) … values: CHECK_FALSE( true )` for the 179-byte case, `:247 … find("181")` for the padded one, and the two truncation subcases of test 3. (It also makes `in.subspan(176, 4)` read past the end — so the length check is load-bearing for memory safety, not only for the message.) |
+| M-P4 | the final `valid()` check dropped | **RED**: `:286 CHECK_FALSE( decodeRecord(...) ) … CHECK_FALSE( true )`, `:287 find("CRC ok")`, `:288 find("LEFT side has no ports")` |
+
+**A finding about the TEST, not the code.** `CHECK_MESSAGE(..., s.what, ...)` with a `const char*`
+struct member printed the POINTER (`one flipped bit in 0x562cd8730244 was NOT refused`). A failure
+message nobody can read is not a message; the loop now wraps it in `std::string`.
+
+---
+
+### Step 2 — the block SOURCE seam (§4 test 4)
+
+**What landed:** `include/shulib/hal/block_source.hpp` (`IBlockSource::readAll(std::span<std::byte>)
+noexcept → std::size_t`, `isOpen()`), `include/shulib/hal/fake/fake_block_source.hpp`
+(`setBytes`, `setShortRead`, `setOpen`, `readCalls`), `include/shulib/hal/pros/block_source.hpp`
+(`ProsBlockSource(fileName, mountRoot = "/usd/")`, fopen `"rb"`, the bare-name and
+mount-root-ends-in-'/' preconditions, owns the `FILE*`, non-copyable/non-movable), and
+`test/pros_block_source_adapter_test.cpp` (8 cases, through the shim + a REAL temp directory).
+
+**RULING P-R6 — the seam is WHOLE-FILE, not a stream, and the header says why.** Everything it
+carries is a small fixed-width self-checking record read once at boot. open/read/seek/tell/eof would
+be five more ways for an adapter to be subtly wrong about a file that fits in a stack buffer, each
+needing its own host test against a real filesystem. *Alternative:* a streaming sibling now —
+rejected, deferred with a named trigger in the header (the day something wants to replay a blackbox
+on the brain).
+
+**RULING P-R7 — `readAll` returns a COUNT, and a SHORT read is not an error.** A card yanked
+mid-write leaves a prefix; the seam hands back what there was and the FORMAT refuses it by name
+("truncated"). A bool would have thrown away the one word the operator needs. The count is
+`[[nodiscard]]` for the same reason `IBlockSink::write` is: a caller that ignores it cannot tell a
+full record from an empty file and would decode whatever its buffer happened to hold.
+
+**RULING P-R8 — `readAll` SEEKS TO 0 first.** The seam's contract says "from the start"; without the
+rewind a second call returns 0, and a boot path that retried would see an empty file and report "no
+calibration" on a card that has one. Mutation M-P6 pins it.
+
+**RULING P-R9 — three outcomes are kept apart: NO CARD, NO FILE, EMPTY FILE.** All three read 0
+bytes; `isOpen()` separates the third from the first two, and the composition root prints which. They
+send an operator to three different places ("put a card in", "run shulib Calibrate", "the file is
+zero bytes — the write failed"), and a seam that collapsed them would make the boot message useless.
+
+**Mutations run (recipe above; Linking line seen each time):**
+
+| # | Mutation | Observed |
+|---|---|---|
+| M-P5 | the `::pros::usd::is_installed()` probe dropped (`if (true)`) | **RED** (after the stale-binary correction above): `pros_block_source_adapter_test.cpp:166 CHECK_FALSE( source.isOpen() ) … CHECK_FALSE( true )`, `:168 CHECK( source.readAll(into) == 0U ) … values: CHECK( 4 == 0 )`, plus four bytes copied into a buffer that should have stayed untouched |
+| M-P6 | the `std::fseek(file_, 0, SEEK_SET)` rewind dropped | **RED**: `:86 CHECK( source.readAll(again) == payload.size() ) … values: CHECK( 0 == 10 )`, `:87 CHECK( std::memcmp(...) == 0 ) … values: CHECK( -10 == 0 )` |
+
+**An honest limit, stated rather than tested into:** the host CANNOT distinguish `"rb"` from `"r"`
+— POSIX does not translate — so no host test can fail if the mode is wrong, and the mode matters on
+a V5 whose newlib might. It is a BELIEF, and it goes into the register as one (below) rather than
+being claimed by a test that could not see it.
+
+---
+
+### Step 3 — the device REGISTRY seam (§4 test 5)
+
+**What landed:** `include/shulib/hal/device_registry.hpp` (`DeviceKind`, `deviceKindWord`,
+`IDeviceRegistry::pluggedKind(int port)`, `isSmartPort`),
+`include/shulib/hal/fake/fake_device_registry.hpp` (`setKind`, `setKinds`, `clear`, `queries`),
+`include/shulib/hal/pros/device_registry.hpp` (`ProsDeviceRegistry`, `kindOf`),
+`test/pros_shim/pros/apix.h` (NEW — `v5_device_e_t` transcribed verbatim from vendored
+`pros/device.h:48-63`, a ZERO-INDEXED `registry_get_plugged_type`, `shim::registryState()` with
+`queries`/`lastIndex`, and `shim::setPluggedAtPort()` which does the physical→index arithmetic ON
+THE TEST SIDE), `resetRegistry()` wired into `shim::resetAll()`, and
+`test/pros_device_registry_adapter_test.cpp` (5 cases).
+
+**RULING P-R10 — the seam speaks PHYSICAL ports; the `port − 1` lives on one line of the adapter.**
+Landmine 3 and `src/bench_r3a.cpp:112-122`. Everything else in PROS (and every human) says 1..21.
+The interface therefore says 1..21, and `hal/pros/device_registry.hpp`'s `pluggedKind()` carries the
+single marked conversion line. *Alternative considered:* an index-taking seam with the conversion at
+each call site — rejected, that is literally the 2026-08-18 defect generalised.
+
+**RULING P-R11 — the SHIM is indexed like PROS, and the test helper does the arithmetic.**
+`shim::registryState().kinds[i]` is what index `i` answers; `shim::setPluggedAtPort(p, …)` writes
+slot `p − 1`. If the shim had been indexed by physical port, the shim and the adapter would have
+SHARED the convention and the test could not see an off-by-one at all — the shared-model
+cancellation `shim_control.hpp` warns about, in the one place it would have mattered most. The shim
+also records `lastIndex`, so the conversion is asserted **directly** (`pluggedKind(1)` ⇒
+`lastIndex == 0`; `pluggedKind(21)` ⇒ `lastIndex == 20`) and not only through its consequences.
+
+**RULING P-R12 — out-of-range answers `None` WITHOUT calling PROS, and the test asserts the call
+never happened.** `registry_get_plugged_type` takes a `uint8_t`: a caller's 22 would pass straight
+through and read index 22 — the very read that invented the phantom ADI expander (HA-120) — and a
+negative would convert to a large index. Asserting only "the answer was None" would pass with the
+screen missing, because index 22 is empty in the shim; asserting `queries` did not move is what
+makes the screen the thing under test.
+
+**RULING P-R13 — `DeviceKind` is OURS; an unknown PROS device kind becomes `Other`, never `Motor`.**
+A re-export of `v5_device_e_t` would put a PROS type in the library's vocabulary (the PROS-free
+rule). And the direction of the default matters: "shulib Calibrate" builds its candidate list from
+the ports that answer `Motor`, so a device kind PROS adds next season landing in `Motor` would be
+POWERED as a drive motor. `E_DEVICE_AIVISION` maps to `Vision` (it is a camera); `E_DEVICE_SERIAL`
+and `E_DEVICE_UNDEFINED` to `Other`. The test walks the whole enum and two undefined values.
+
+**Mutations run (recipe above; Linking line seen each time):**
+
+| # | Mutation | Observed |
+|---|---|---|
+| M-P7 | `static_cast<std::uint8_t>(port)` instead of `port − 1` | **RED**, 20+ assertions across two cases, e.g. `pros_device_registry_adapter_test.cpp:48 CHECK( registry.pluggedKind(1) == DeviceKind::Motor ) … values: CHECK( 0 == 1 )`, `:49 CHECK( ...lastIndex == 0 ) … values: CHECK( 1 == 0 )`, `:52 CHECK( ...lastIndex == 20 ) … values: CHECK( 21 == 20 )`, and every row of the asymmetric census |
+| M-P8 | the `isSmartPort` out-of-range screen dropped | **RED**: `:115 CHECK( pros::shim::registryState().queries == before ) … values: CHECK( 5 == 0 )`, `:116 CHECK( ...lastIndex == -1 ) … values: CHECK( 23 == -1 )` — PROS was asked about index 23 |
+| M-P9 | the `kindOf` fallback returns `Motor` instead of `Other` | **RED**: `:152 CHECK( kindOf(v5_device_e_t(33)) == DeviceKind::Other ) … values: CHECK( 1 == 10 )` and the same for value 1 |
+
+---
+
+### Step 4 — the BOOT CHECK (`calibration/boot_check.hpp`), §4 tests 6 and 7
+
+**What landed:** `include/shulib/calibration/boot_check.hpp` — `PortClass{Present, Missing,
+Swapped}` + `portClassWord`, `BootDecision{Ok, Degraded, Refuse}` + `bootDecisionWord`,
+`BootPortStatus`, `BootVerdict` (rows, counts, `newPorts`, the IMU's own row, the
+`teleop::DegradationVerdict` it was taken from, a bounded `reason`, `usable()`, `isMissing(port)`),
+`verifyAgainstRegistry()`, and `BootSource`/`BootSourceChoice`/`chooseBootSource()`.
+`test/boot_check_test.cpp` (11 cases).
+
+**RULING P-R14 — the refusal PRECEDENCE is Swapped → IMU → policy, and the test pins the order.**
+All three can be true at once, and only one sentence fits on a refusal screen. A rewired drive port
+is the most serious finding (it invalidates the whole description, not one member), the IMU is next
+(every number was measured against it), the dead-port policy last (it is the only one the team lead
+has already ruled is survivable). *Alternative:* concatenating all three — rejected: a 240-char
+screen line that says three things says none of them, and the operator's first move differs per
+cause.
+
+**RULING P-R15 — a SWAPPED port is NOT counted as ANSWERING for the degradation policy.** There is
+no motor on that port to drive, so the census must not pretend there is. Consequence, asserted in
+the test rather than left implicit: on a one-swap robot the shared policy on its own would have said
+DRIVE_DEGRADED ("carry on without it"), and the swap check OVERRIDES that. "A motor is missing" and
+"this robot was rewired" are different findings with different right answers, and the more serious
+one wins.
+
+**RULING P-R16 — an INVALID description REFUSES here rather than tripping a precondition.** Every
+caller checks `valid()` first, so this path should be unreachable; it runs at BOOT on a robot, where
+a `SHULIB_PRECONDITION` throw is a dead robot and a refusal is a screen that says what to do. The
+test asserts the registry was never read (`queries() == 0`) on that path, so the refusal really is
+first.
+
+**RULING P-R17 — `reason` is 320 bytes and ASCII-only.** 320 because the Ok line carries the honest
+limit as well as the counts, and the host build compiles this header under `-Wformat-truncation`,
+which turned a 240-byte buffer into a COMPILE ERROR — the right place to find that out rather than
+on a brain's screen. ASCII-only because the V5's screen font and the USB serial log both render a
+UTF-8 em dash as mojibake; every runtime string in these headers now uses `--`, as `src/` already
+does. (`static_assert` messages keep their em dashes: those are compiler output, not a V5 screen.)
+
+**RULING P-R18 — `chooseBootSource` is `constexpr`, and the test `static_assert`s four rows.**
+A boot decision that can be evaluated at compile time cannot have reached for a clock, a global or
+an adapter. It also made mutations M-P12 and M-P13 fail at COMPILE time, naming the row — a stronger
+red than a runtime one, and one nobody can mistake for a flaky test.
+
+**The pinned limit (brief §4 test 6's last row), and why it is written the way it is.** `BootCheck
+6h` asserts that two drive ports EXCHANGED still read `Ok`, and that the Ok reason SAYS SO
+("NOT CHECKED: two drive cables swapped WITH EACH OTHER look identical here -- the first drive
+catches that"). The same case covers a RE-GEARING that keeps the ports. The test's comment is
+addressed to whoever later tries to "tighten" the check: this is the boundary of what a port census
+can know, and `teleop::CoupledSideMonitor` is what closes it, at the first drive, within 250 ms.
+
+**Mutations run (depend-then-fast recipe; Linking line seen; restored):**
+
+| # | Mutation | Observed |
+|---|---|---|
+| M-P10 | the `swappedCount > 0` refusal dropped | **RED**, 8 assertions across all three subcases of `BootCheck 6d`, e.g. `boot_check_test.cpp:189 CHECK( v.decision == BootDecision::Refuse ) … values: CHECK( 1 == 2 )` (Degraded instead of Refuse), `:194 find("14(ROTATION)")`, `:195 find("rewired")` |
+| M-P11 | a Swapped port classed as Missing instead | **RED**: `:190 CHECK( swappedCount == 1 ) … CHECK( 0 == 1 )`, `:191 CHECK( missingCount == 0 ) … CHECK( 1 == 0 )`, `:192 CHECK( v.ports[3].state == PortClass::Swapped ) … CHECK( 1 == 2 )`, and the decision itself |
+| M-P12 | a REFUSED record falls back to the typed table | **RED AT COMPILE TIME**: `boot_check_test.cpp:400:19: error: static assertion failed — static_assert(chooseBootSource(true, BootDecision::Refuse, true).source == BootSource::Refuse);` |
+| M-P13 | the record/table preference swapped (`recordDecoded && !tableValid`) | **RED AT COMPILE TIME** on the same `static_assert`; re-run with the four `static_assert`s temporarily relaxed so the RUNTIME half could be seen too — **RED**, `:382 CHECK( choice.source == r.want ) … values: CHECK( 1 == 0 ) logged: record=true verdict=0 table=true` and the same for `verdict=1`, with `why was: no calibration record on the card -- falling back to the TYPED TABLE…` |
+
+---
+
+### Step 5 — the build axis and the gate's SIXTH build (landed BEFORE the program, on purpose)
+
+`Makefile`: `PROGRAM=calibrate` (tank only, `$(error)` on any other ROBOT and on any other
+PROGRAM value), with the comment block rewritten for four programs in four slots.
+`tools/src_build_gate.py`: `tank-calibrate` added to `VARIANTS`, `BUILD_ARGS`, `VARIANT_DEFINES`,
+`VARIANT_BEACONS` and `XDRIVE_WIRING_DEAD_IN`, the header's four narrative passages updated (the
+builds table, "WHAT check DOES", the beacon step's "the other FIVE", and the variant-differential
+coupling note), and TWO new self-test cases: **14** (the `PROGRAM=calibrate` Makefile append
+DROPPED ⇒ FAIL on the token-exact define AND on both halves of the beacon check) and **15** (the
+real `tank-calibrate` build alone ⇒ PASS, which is also the NUL-terminated-match test for
+`…=tank` inside `…=tank-calibrate`).
+
+**This was landed before `src/calibrate_program.cpp` existed, and the gate was RUN in that state.**
+It failed exactly as it should:
+
+```
+src build gate: FAIL
+  [tank-calibrate] build tank-calibrate but the beacon 'shulib-robot-variant=tank-calibrate' is NOT
+    in bin/hot.package.elf — src/main.cpp's #if chain did not take the tank-calibrate branch
+  [tank-calibrate] build tank-calibrate but bin/hot.package.elf carries the tank beacon
+    'shulib-robot-variant=tank' — this is a tank build wearing a tank-calibrate label
+```
+
+That is the brief's "so the sixth build exists and fails honestly until the program does",
+observed rather than assumed — and it is the same failure the self-test's case 14 now plants
+deliberately, so the detector that caught it is itself pinned.
+
+---
+
+### Step 6 — "shulib Calibrate" (`src/calibrate_program.{hpp,cpp}`) and the `main.cpp` chain
+
+**What landed:** `src/calibrate_program.hpp` (one function, `shulib::bench::runCalibrate()`),
+`src/calibrate_program.cpp` (~700 lines), and `src/main.cpp`'s preprocessor chain: the two-PROGRAM
+guard generalised to a three-way count, `SHULIB_RUNS_CALIBRATE`, the beacon
+`shulib-robot-variant=tank-calibrate`, `kCalibrateBuildStamp`, `SHULIB_STATE_SCREENS` widened, and
+a branch in `initialize()`, `autonomous()` and `opcontrol()`.
+
+The program: registry census → candidates with POSITIVE ports and the table's cartridge → the IMU
+port DISCOVERED (ruling P1; the table's value printed as a cross-check, a mismatch a WARNING) →
+`ProsImu` + `calibrate()` once → `DrivetrainCalibrator` → a 10 ms loop with a release-edge touch
+row → on `Done`, encode → write → flush → CLOSE → re-open → read back → byte compare → `SAVED`.
+
+**RULING P-R19 — a Part 1 API GAP was found and FIXED IN PART 1 (landmine 8 / RESUMING's "a chunk
+that finds a flaw in an earlier chunk fixes it there").** `answer()` REFUSES an out-of-order answer
+and ENDS THE RUN — which is right, and which makes a wrong BUTTON destructive. But `Phase` alone
+cannot tell a panel which answers are live: `PushCapture` is two steps (watching, then awaiting
+FRONT/BACK) and so is `ScalePush`. The only public signal was the PROSE of `status().prompt`, and
+prose is not an API. So `DrivetrainCalibrator::accepts(Answer)` was added — a PURE QUERY over the
+same private step `answer()` switches on, changing no logic and moving no state. *Alternatives
+considered:* (a) a caller-side mirror of the step in the program (derivable, and correct — the
+program sends the answers) — rejected because every future consumer would re-derive it and one
+that got it wrong would abort a two-minute calibration on a mis-tap; (b) `strstr` on the prompt —
+rejected, that is coupling a program to wording. Because `accepts()` DUPLICATES `answer()`'s
+switch, the anti-drift device is a test rather than a comment: **`DrivetrainCalibrator 21`** drives
+a FRESH rig to each of the four waiting steps and asserts, for EVERY `Answer`, that `accepts()`
+agrees with what `answer()` actually does — it never asserts a hard-coded expectation, so a
+divergence in either direction is red. 52,952 assertions.
+
+**RULING P-R20 — Part 1's on-screen strings were converted to ASCII, in Part 1's files.** Found
+while writing Station G against the program's actual strings: `status_.prompt` reads
+`"WAIT — the IMU is calibrating…"` with a U+2014 EM DASH, and so do 23 other runtime strings in the
+calibrator plus 2 in `drivetrain_description.hpp`'s `valid()`. LVGL's built-in fonts carry ASCII
+and nothing else, so on the brain that renders as a missing-glyph box, and in a raw `cat` of the
+user port as mojibake — in the ONE sentence a person gets when the robot stops. `src/` has used
+`--` for exactly this reason since R3a (measured: ZERO em dashes inside string literals anywhere in
+`src/`, against 58 uses of `--`). Part 1 wrote those strings before they had a screen to land on;
+Part 2 built the screen and converted them. **Only string literals changed — comments keep their
+typography, and no logic moved**; the suite is green on the same assertion count. A note in the
+calibrator's header records the rule so it does not regress. This is a Part 1 file edit, declared
+here under landmine 8.
+
+**RULING P-R21 — the program IDLES on its result screen instead of returning.** `opcontrol()`
+returning ends the program and the brain clears the screen — which would throw away the ONLY copy
+of an UNSAVED result (no card, a card that refused). It therefore loops on `pros::delay(250)` until
+the field disables it. *Alternative:* returning and letting the operator re-read the serial log —
+rejected: the person running this is alone in a workshop with a brain, and the screen is what they
+have.
+
+**RULING P-R22 — a port the REGISTRY calls a motor whose ADAPTER refuses is DROPPED from the
+candidates with a named warning, not a refusal.** `ProsMotor`'s constructor writes the gearset and
+reads it back (HA-98), so it can refuse a port the census listed. A calibration of nine motors is
+still a calibration; a calibration that refuses to start because one cable is loose is a session
+lost. The port is NAMED on serial, because a silently missing motor is how a side comes up short.
+Below two usable candidates the program refuses (the calibrator's own precondition).
+
+**RULING P-R23 — the button row draws only the LIVE answers, and ABORT is always last.** Drawn from
+`accepts()`, so a button that would end the run is never under a thumb; ABORT keeps the rightmost
+slot in every phase so its position never moves. Touches are release-edge with the gap-belongs-left
+hit test `bench_r3a.cpp:1935-1942` records (robot two's first recorded tap released one pixel into
+a gap and did nothing).
+
+---
+
+### Step 7 — `hal::MotorGroup`'s ABSENT member (§4 tests 8–9), and the bit-identity pin
+
+**Order note (a deviation from the prompt's step list, with the reason).** The prompt ordered the
+programs (6) before `MotorGroup` (7); the brief's landmine 4 says "land it LAST among the LIBRARY
+items", i.e. after §2 items 1–4 and before item 6. Both are satisfiable except for one thing:
+`src/main.cpp`'s DEGRADED path CONSUMES the absent member (it hands the group a span with holes and
+reads `presentCount()`), so the `tanklib` refactor cannot compile before it. The order actually run
+was therefore: items 1–4 → the Makefile/gate → `calibrate_program` (which does not touch
+`MotorGroup` at all) → **`MotorGroup`** → the `main.cpp` refactor. That keeps every gate honest at
+every step and preserves what landmine 4 protects — the plant pin re-run immediately after the
+change, with the suite counted before and after.
+
+**What changed** (`include/shulib/hal/motor_group.hpp`): a `nullptr` slot is ABSENT.
+`setVoltage`/`setBrakeMode` skip it; `position()`/`velocity()` take the median over the PRESENT
+members; `current()` divides by `presentCount()`; `temperature()` and `brakeMode()` read the FIRST
+PRESENT member; `evaluateDisagreement()` reports `present = false` with no reading taken; new
+`presentCount()`, `absentMask()`, `isPresent(i)`; `member(i)` on an absent slot is a precondition
+violation; the constructor requires at least ONE present member. The header's "every member is
+PRESENT by contract … no dead-port tolerance (that is shulib Drive's job until R3d)" paragraph is
+replaced by the new contract, with the `NullMotor`-rejected and decided-at-boot reasoning.
+
+**THE BIT-IDENTITY PIN, measured:**
+
+| | cases | assertions |
+|---|---|---|
+| before the `MotorGroup` edit | 1263 | 1,622,729 |
+| after the edit, before any new test | 1263 | **1,622,738** |
+
+**+9 assertions, and every one of them is accounted for.** They are in the ONE pre-existing case
+that asserted the OLD contract — `MotorGroup: construction refuses an empty span and a null
+member`, which required a `nullptr` member to THROW. That requirement is exactly what ruling P4
+changes, so the case was rewritten (a null member now constructs and is reported absent; what still
+refuses is an empty span, too many members, and an ALL-absent group): one `CHECK_THROWS_AS`
+removed, ten `CHECK`s added, net +9. **No other test file's contribution changed by a single
+assertion**, which is the honest form of "all-present groups are bit-identical" — and it is stated
+that way rather than as a round number, because the round number would have been a lie.
+
+**RULING P-R24 — `memberCount()` still reports SLOTS, and `presentCount()` is the new question.**
+A panel walks a fixed array of ports and indexes it by slot; if `memberCount()` shrank when a
+member died, every index after the hole would shift and the panel would name the wrong port. The
+disagreement bit masks index slots for the same reason.
+
+**RULING P-R25 — `current()` divides by PRESENT, not by SLOTS.** An absent member is not a member
+drawing 0 A. Dividing by the slot count would make a side with a dead port read COOLER than it is,
+which is the direction that hides a problem. Mutation M-P17 pins it.
+
+**A MEASURED finding, recorded rather than asserted away (plant case 9).** With one of five members
+absent, the A2 plant's coupled-train model drops that side to 80 % of its command (the plant takes
+the MEAN of the members' effective volts and the library commands nothing to the hole). `MoveToPose`
+then **TIMED OUT on all four seeds** inside its 8 s watchdog, having closed 21.20 in → 2.21,
+37.09 → 5.86, 12.04 → 0.86 and 7.53 → 0.48. So a degraded drivetrain DRIVES, and drives SHORT.
+The case asserts what this chunk is responsible for (it moves, toward the target; the hole is never
+flagged as a fight; the reads are over the present members, pinned tick by tick against a group
+built over exactly those four) and DOES NOT assert that it settles — that is a property of a
+degraded drivetrain under provisional gains (HA-45/50/51/52), it is R5's to measure, and raising a
+budget until a green tick appeared would have been inventing a hardware claim. The numbers are in
+the test's comment and in a `MESSAGE` the suite prints.
+
+**Mutations run (depend-then-fast recipe; Linking line seen; restored):**
+
+| # | Mutation | Observed |
+|---|---|---|
+| M-P15 | the absent member counted in the median (as 0) | **RED**: `motor_group_test.cpp:467 CHECK( g.position().value() == 2.5 ) … values: CHECK( 2 == 2.5 )`, `:468 CHECK( g.velocity().value() == 25.0 ) … CHECK( 20 == 25 )`, and both halves of the "equals a group over exactly those four" comparison |
+| M-P16 | the hole reported `present = true` to the monitor | **RED**, 5 assertions: `:515 CHECK( g.disagreeingMembers() == 0 ) … CHECK( 1 == 0 )` (the DEAD PORT flagged as a fighting one), `:516 CHECK( g.disagreeingMask() == 0u ) … CHECK( 4 == 0 )`, `:517 CHECK( g.lastVerdict().presentCount == 4 ) … CHECK( 5 == 4 )`, and the real fight then reported as TWO |
+| M-P17 | `current()` divided by `members_.size()` instead of `present_` | **RED**: `:486 CHECK( g.current().value() == 10.0 / 4.0 ) … values: CHECK( 2 == 2.5 )` |
+
+---
+
+### Step 8 — "shulib Teleop" rebuilt on the DESCRIPTION
+
+`src/main.cpp`'s whole `tanklib` namespace was rewritten. `TankRobot` now takes
+`const hal::DrivetrainDescription&`; `TankMotors` builds from `signedPorts` AS STORED and puts a
+`nullptr` where the boot check found a port MISSING; `TankKinematics{desc.trackWidth}`; TWO
+`DriveGeometry`s from `leftGeometry()`/`rightGeometry()`; `ProsImu` on `desc.imuPort`;
+`tankPortMapString()` renders the DESCRIPTION with its source word first; the panel's bottom rows
+say where the numbers came from and which ports are dead.
+
+The boot sequence in `initialize()`, in order and BEFORE any adapter exists: read the card →
+`decodeRecord` → `verifyAgainstRegistry` → `chooseBootSource` → use the record, or the table with a
+WARNING and its own registry verification, or refuse naming both.
+
+**Landmine 1, checked by grep after the refactor.** `kChassis` appears in `main.cpp` exactly three
+times, all inside the boot sequence and all legitimate: `tableToDescription(kChassis)` as the
+second source, `describeMissingForDescription(kChassis, …)` for the refusal message, and
+`tableToDescription(kChassis)` again for the CROSS-CHECK warning. **No field of the table is read
+for a number anywhere in the graph** — no `leftCount`, no `wheelDiameterIn`, no `imuPort`,
+no `tableTrackWidth`, no `tableDriveGeometry`.
+
+**RULING P-R26 — the cross-check between the record and the table is a WARNING that counts
+disagreeing ports.** When the record is in use, the table is still mapped and compared port by
+port through `signedPortOf()`; a disagreement logs "the record wins (it moved THIS robot); the
+table is stale and should be updated or deleted". *Alternative:* saying nothing — rejected: a
+stale table is what the NEXT boot falls back to if the card is missing, so a person should know
+it is wrong before that boot happens.
+
+**RULING P-R27 — the stall check takes the LEFT geometry, and the boot log prints both.** The
+config wants one `DriveGeometry` per wheel slot; the description carries two, because a
+calibration measures each side separately. They agree on any symmetric robot. Taking the left one
+and PRINTING both makes a disagreement visible rather than averaged away. *Alternative:* the mean
+— rejected: a number nobody measured, standing where two measured ones disagree.
+
+**Three `-Wformat-truncation` findings, all caught by the src build gate, all real.** The gate
+treats it as a disallowed warning, and it was right three times: (1) `decodeRecord`'s valid()
+refusal could overrun a caller's buffer with a 159-byte inner reason (bounded to `%.100s`);
+(2) the port-map string could overrun the session header's 96-byte field on a 21-port-per-side
+description (now assembled in a 200-byte local and copied in bounded, with the manual append loop
+replacing a moving `snprintf` the compiler could not bound); (3) two boot-log lines (split in two,
+and a `%.140s` reduced to `%.80s`). None was reachable on robot two's ten ports — and all three
+are the kind of thing that becomes reachable the day somebody adds a port.
+
+---
+
+### Step 9 — verification
+
+| Gate | Result |
+|---|---|
+| Host suite | **1267 cases / 1,624,433 assertions, 0 failed, 3 skipped** (from 1233 / 1,568,972 at `17aa4eb`) |
+| `src_build_gate.py check` | **PASS — all 6 builds link** (`bench`, `xdrive`, `tank`, `tank-drive`, `tank-library`, `tank-calibrate`), 0 disallowed warnings, defines token-exact, beacons asserted |
+| `src_build_gate.py self-test` | **OK (33 detector cases, each against a real build)** — was 28 before the two new cases |
+| ARM header gate | `TU includes 168 headers` → **clean** at `-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror -Os -mcpu=cortex-a9` |
+| CI guard 1 (PROS-free) | empty — the only `pros/` includes under `include/shulib` are in `hal/pros/` |
+| CI guard 2 (sim-free) | empty |
+| Doc gates | self-test OK; coverage **1989 public entities across 133 headers, ALL documented**; freshness OK; examples 387 quoted lines verbatim; removability clean; briefing current; staleness audit clean |
+| Removability grep | empty |
+
+**The adapter FENCE test caught one of my own edits within the hour** (`fence: every adapter's
+suppression set is EXACTLY -Wshadow + -Wsign-conversion`): `hal/pros/device_registry.hpp` had been
+written with a speculative third `-Wconversion`, and the R1a guard refused it —
+`device_registry.hpp: suppression set must be exactly two flags, found 3`. Removing it, the ARM
+gate then failed on VENDORED code: `pros/apix.h` pulls `api.h`, which pulls `pros/llemu.hpp`, whose
+`pros::lcd` namespace is `[[deprecated]]` unless liblvgl's own llemu is in the include path.
+
+**RULING P-R28 — the fence is WIDENED by exactly one flag, in exactly one file, and the guard
+enforces the exception.** `-Wdeprecated-declarations` is permitted only in an adapter that includes
+`pros/apix.h`, which is only `device_registry.hpp`, because `registry_get_plugged_type` is declared
+nowhere else. This does NOT reopen R1a's mutation M11: M11 was "-Wconversion added so OUR sloppy
+adapter compiles" — a diagnostic about the adapter's own arithmetic — and a deprecation warning
+about a vendored namespace cannot hide one. It is the same category the src build gate already
+ignores BY PATH (`include/pros/`); the header gate has no path filter, so it is done by flag. Both
+mandatory flags are still demanded, and `pros_adapter_fence_test.cpp` now fails any other third
+flag and any `-Wdeprecated-declarations` in a file that does not include apix.h. *Alternatives
+rejected, in the header:* `pros::c::get_plugged_type` from the narrow `pros/device.h` (a DIFFERENT
+indexing convention, and the zero-indexed call is the one with the hardware history);
+re-declaring the vendored function ourselves (a second source of truth that would drift SILENTLY);
+`#define`-ing PROS's `_PROS_KERNEL_SUPPRESS_LLEMU_WARNING` from a library header (reaching into
+another project's internals, and order-dependent on what a TU includes first).
+
+---
+
+### Step 10 — the documentation pass and the PROSE REVIEW (RESUMING rule 4)
+
+**Touched, in the same pass as the code:**
+
+| Document | What changed |
+|---|---|
+| `docs/api/` + `mkdocs.yml` | regenerated: **1989 public entities across 133 headers, ALL documented** (was 1890 / 127 at Part 1). Six new pages: `block_source`, `pros-block_source`, `device_registry`, `pros-device_registry`, `calibration_record`, `boot_check` |
+| `docs/hardware-assumptions.md` | **HA-138** (the registry's zero-indexing, as a NAMED entry — see the grep note under step 0: HA-120 and HA-122 only ALLUDE to it, so this cites them rather than duplicating), **HA-139** (fopen `"rb"` under `/usd/`, flagged because the host CANNOT test the mode), **HA-140** (the CRC choice, as a design note under HA-122, saying why the blackbox deliberately has none). Index rows, the status line (7 of **140**), the narrative count, and the Robot-2 preamble (now seventeen entries, six reasoned). **HA-124/125/126 AMENDED**: they described a library program that reads the table's geometry and refuses while it is UNSET, which is no longer the whole truth — a record on the card supplies both and the table is the fallback |
+| `docs/internal/chunks/R3a-BENCH-WORKSHEET.md` | **Station G — CALIBRATE, then TELEOP FROM THE RECORD**, in Station F's shape, written for the team lead ALONE: G.0 (card, clearance, tape, the two DO-NOTs), G.1 (the four upload commands with `rm -rf bin .d` before each `make`), G.2 (Bench Tests census + MOTOR WATCH FIRST, with "DISAGREES is expected after a rebuild"), G.3 (wheels-up, **expect the yaw-floor refusal — that is the program working**), G.4 (a screen-by-screen table: what it says, what you do), G.5 (the `MEASURED` line to copy, SAVED vs NOT SAVED, and a SECOND run for reproduction), G.6 (Teleop from the record, with Station F's F.2 checks and one new question), G.7 (`pros lsusb` + `stty` + `cat` + `strings`, with HA-129's renumbering), and "what to send back". **Every screen string in it was copied from the program's source, not paraphrased.** Station A's "three programs" list is now four |
+| `docs/roadmap.md` | the "You are here" gains an R3d Part 2 paragraph (one paragraph: what landed, six builds, host-only, unrun, Part 3 is the morning); the Parts 1–3 paragraph's "proves five builds" corrected to "proved five builds (six since R3d Part 2…)" with a note that the graph is now built from a description |
+| `docs/internal/build-order.md` | the R3d status line (`Status 2026-09-18: PARTS 1 AND 2 LANDED (host-only); Part 3 next`), the Part 2 sentence expanded into what actually landed, and the FIRST bold `**Next:**` block rewritten to **Part 3 = the bench session, the team lead's morning** — keeping the T2-in-parallel sentence and the coders-wait sentence verbatim |
+| `README.md` | one bullet in "What it is NOT yet": a program exists in which the robot measures its own drivetrain, and **it has never been run** |
+| `docs/internal/PROJECT-BRIEFING.md` | regenerated |
+| `.github/workflows/ci.yml` | the arm-compile-gate comment: five builds → **six**, naming `PROGRAM=calibrate` |
+| `docs/internal/RESUMING.md` | §3's build-gate paragraph and the retired-blocker note: five builds → six, and `PROGRAM=calibrate` named beside `drive` and `library` |
+| `docs/faq.md` | **TOUCHED, against the brief's "NOT touched" list — see the deviation below** |
+
+**DEVIATION FROM THE BRIEF, declared: `docs/faq.md` WAS touched.** §6 lists it as not-touched. The
+prose-review grep for `registry` found this, in a published FAQ:
+
+> **Why doesn't shulib use PROS's `registry_get_plugged_type()` to find devices?**
+> … **No shulib adapter calls the registry.**
+
+That is now FALSE — `hal::pros::ProsDeviceRegistry` is exactly that adapter, and two programs
+depend on it. RESUMING's rule 4 ("read the hits, fix what is stale") and its standard "a chunk that
+finds a flaw in an earlier chunk fixes it there" both point one way, and a published document that
+contradicts the library is worse than a document the brief forgot to list. The answer is rewritten
+to keep everything that is still true (the two conventions, the silent failure, the bench probe
+that reported two healthy devices dead) and to say what the library now does instead: the seam is
+stated in physical ports, the conversion is one line in one adapter, tested from both ends, and the
+two things that cannot be written without it are named.
+
+**NOT touched, with the reason:**
+
+- **the guide (`docs/guide/`)** — the "Calibrating a robot" chapter is **Part 3's**, by the brief
+  and by C8's rule that a guide chapter is written from a procedure somebody has FOLLOWED. Nothing
+  here has been followed.
+- **`docs/shulib-v2-master-plan.md`** — it moves when the thing has RUN, not when it compiles.
+- **`docs/changelog.md`** — measured, not assumed: it carries no entry for R3b, R3d Part 1 or
+  anything since the 2026-08-15 release (`grep '2026-09\|R3b\|R3d'` → empty). It is release-scoped,
+  and adding a lone entry for an unrun program would be the only such entry in the file.
+- **`include/shulib/teleop/`** — chunk T2's, in a separate worktree. `git status` confirms not one
+  file under it is modified.
+- **`docs/diagnostics-plan.md`**, **`docs/legacy-command-vocabulary.md`** — read via the grep; both
+  hits are about `IBlockSink`/an unrelated "registry" of command ids, both still true.
+
+**PROSE REVIEW, per changed source file** (grep `docs/` and `README.md` for the file's name and its
+concepts; read every hit; fix what is stale). The greps run were the brief's twelve terms: `every
+member present`, `dead-port tolerance`, `until R3d`, `chassis table`, `tableTrackWidth`,
+`tableDriveGeometry`, `refuses at boot`, `shulib Teleop`, `three programs`, `five builds`,
+`IBlockSink`, `block_sink`, `registry`.
+
+| Changed source file | Checked | Changed |
+|---|---|---|
+| `include/shulib/hal/motor_group.hpp` | `every member present` (no public-doc hit — only the two internal briefs, which are historical records); `dead-port tolerance` (same); `until R3d` (`R3b-PROGRESS`, `R3b-parts123`, the R3d briefs — all historical); the header's own promise | the HEADER's own "no dead-port tolerance (that is shulib Drive's job until R3d)" paragraph — the sentence R3d was named in — replaced by the new contract. `docs/api/motor_group.md` regenerated |
+| `include/shulib/hal/block_source.hpp`, `hal/pros/block_source.hpp`, `hal/fake/fake_block_source.hpp` | `IBlockSink`, `block_sink` — 9 hits (diagnostics-plan, changelog, briefing, roadmap ×3, R1a/R1b/DEFECTS1 logs) | none stale: every one describes the WRITE seam, which is unchanged. The read sibling is additive and appears in the regenerated reference |
+| `include/shulib/hal/device_registry.hpp`, `hal/pros/device_registry.hpp`, `hal/fake/fake_device_registry.hpp` | `registry` — 7 hits: `docs/faq.md` (the whole answer), `docs/hardware-assumptions.md` HA-120 + HA-122, `docs/legacy-command-vocabulary.md` ×4 | **faq.md rewritten** (above). HA-120/HA-122 CITED by the new HA-138 rather than duplicated. legacy-command-vocabulary's "registry" is the command-id registry, unrelated |
+| `include/shulib/calibration/calibration_record.hpp`, `boot_check.hpp` | `refuses at boot` (one public hit, the build-order Next block — rewritten anyway); `IBlockSink` (above) | the register's HA-122 family now carries HA-139 and HA-140 beside it |
+| `include/shulib/calibration/drivetrain_calibrator.hpp` (Part 1's, amended) | the roadmap's and build-order's Part 1 paragraphs; the register's HA-136 | the roadmap's Part 1 paragraph kept (still true) with the Part 2 paragraph after it; a new header section records the ASCII rule |
+| `include/shulib/hal/drivetrain_description.hpp` (Part 1's, amended) | as above | 2 runtime strings to ASCII; nothing in prose depended on their typography |
+| `src/main.cpp` (`tanklib`) | `shulib Teleop` — 9 hits (roadmap, worksheet Station A + F, hardware-assumptions, session log, build-order); `chassis table` — 8 hits; `tableTrackWidth` / `tableDriveGeometry` — the register's HA-124, and internal logs | roadmap's Parts 1–3 paragraph amended; worksheet Station A's program list now four; **HA-124/125/126 amended** (they described the table as the library's only geometry source); Station F left as the historical record of the table-driven boot, with Station G carrying the record-driven one |
+| `src/calibrate_program.{hpp,cpp}` (new) | `three programs` — 1 public-ish hit (the R3b brief, historical); `five builds` — RESUMING §3, `ci.yml`, roadmap | RESUMING and `ci.yml` corrected to six builds and `PROGRAM=calibrate`; roadmap's is past tense and now carries the six-build note |
+| `Makefile`, `tools/src_build_gate.py` | `five builds` (above); the Makefile's own PROGRAM comment block | both rewritten for four programs / six builds |
+| `test/pros_shim/pros/apix.h` (new), `shim_control.hpp` | the shim's honest-limit statement in `shim_control.hpp` | none: the new shim header carries its own copy of the belief list and points at `shim_control.hpp` for the full statement, as every other shim header does |
+
+---
+
+## Definition of Done — Part 2, with evidence per line
+
+- [x] **Items 1–6 of §2 landed; every public member documented; ARM gate green with the new
+      headers.**
+      **1.** `include/shulib/hal/block_source.hpp` (`IBlockSource::readAll`, `isOpen`),
+      `hal/fake/fake_block_source.hpp` (`setBytes`, `setShortRead`, `setOpen`, `readCalls`),
+      `hal/pros/block_source.hpp` (`ProsBlockSource(fileName, mountRoot = "/usd/")`, fopen `"rb"`,
+      owns the `FILE*`, non-copyable/non-movable, the bare-name and trailing-'/' preconditions);
+      `test/pros_block_source_adapter_test.cpp` (8 cases, shim + a REAL temp directory: written by
+      `ProsBlockSink` and read back byte-identical, no card ⇒ refusing, no file ⇒ refusing and
+      DISTINCT from an empty file, a truncated file ⇒ a short COUNT).
+      **2.** `hal/device_registry.hpp` (`DeviceKind`, `deviceKindWord`, `IDeviceRegistry`,
+      `isSmartPort`), `hal/fake/fake_device_registry.hpp`, `hal/pros/device_registry.hpp`
+      (`ProsDeviceRegistry` over `registry_get_plugged_type(port − 1)`, the conversion on ONE
+      marked line with the R1a-shape trap cited); `test/pros_shim/pros/apix.h` NEW
+      (`v5_device_e_t` transcribed from the vendored `pros/device.h`, a zero-indexed
+      `registry_get_plugged_type`, `shim::registryState()` with `queries`/`lastIndex`, and
+      `setPluggedAtPort()` doing the arithmetic on the TEST side); `resetRegistry()` in
+      `shim::resetAll()`; `test/pros_device_registry_adapter_test.cpp` (5 cases: port 1 → index 0,
+      port 21 → index 20, 0/22/negatives ⇒ None with PROS never called, every `v5_device_e_t`
+      value mapped plus two undefined ones).
+      **3.** `calibration/calibration_record.hpp` — "SHDC", version 1, `payloadBytes` 168,
+      `kRecordBytes` 180, the description's fields fixed-width little-endian in DECLARATION order,
+      a bitwise CRC-32/IEEE, `kRecordFileName`, `encodeRecord`/`decodeRecord`;
+      `test/calibration_record_test.cpp` (5 cases).
+      **4.** `calibration/boot_check.hpp` — `verifyAgainstRegistry` + `chooseBootSource`;
+      `test/boot_check_test.cpp` (11 cases).
+      **5.** `hal::MotorGroup`'s ABSENT member; `test/motor_group_test.cpp` cases 8 and 8b,
+      `test/motor_group_plant_test.cpp` cases 9 and 9b.
+      **6.** `src/calibrate_program.{hpp,cpp}`, `src/main.cpp`'s chain and the `tanklib` rewrite,
+      `Makefile`'s `PROGRAM=calibrate`, `tools/src_build_gate.py`'s sixth build.
+      **Documentation:** doc coverage gate reports **1989 public entities across 133 headers, ALL
+      documented**. **ARM:** `TU includes 168 headers` → clean.
+- [x] **`python3 tools/src_build_gate.py self-test && check` — SIX builds green.**
+      `self-test: OK (33 detector cases, each against a real build)` (was 28; +5 assertions across
+      the two new cases 14 and 15). `check: PASS (all 6 builds link)` — `bench`, `xdrive`, `tank`,
+      `tank-drive`, `tank-library`, `tank-calibrate`; **0 disallowed warnings** on every one, and
+      that is a stronger statement than it was this morning because the gate CAUGHT four real
+      defects here first (three `-Wformat-truncation` sites and the sixth build's missing beacon).
+- [x] **Host suite green; PROS-free and layering guards green.**
+      **1267 cases / 1,624,433 assertions, 0 failed, 3 skipped.** Guard 1 (`#include <pros/>`
+      outside `hal/pros/`) — empty. Guard 2 (`shulib/sim/` outside `sim/`) — empty:
+      `calibration/` includes no `sim/`.
+- [x] **Tests 1–10 green; every §4 mutation observed red and logged.** The brief's ten rows are
+      covered by **31 test cases across six files** (5 record + 8 block source + 5 registry +
+      11 boot check + the 4 MotorGroup cases, plus calibrator case 21). **Seventeen distinct
+      mutations** (M-P1…M-P17), every one applied to the real tree, rebuilt with the depend-then-
+      fast recipe, the `Linking` line seen, run and OBSERVED — with the two stale-binary GREENs
+      recorded honestly (M-P1 and M-P5 each reported green once from a binary that had not been
+      relinked, and each was re-run correctly). Two of them (M-P12, M-P13) went red at COMPILE
+      time on a `static_assert`, and M-P13 was additionally re-run with those asserts relaxed so
+      the runtime half was observed too.
+- [x] **"shulib Calibrate" and "shulib Teleop" both say UNRUN on their boot banner and their
+      screens.** Calibrate: the banner block prints `THIS PROGRAM HAS NEVER RUN ON HARDWARE. It
+      POWERS THE MOTORS.` and `Every threshold in it is INVENTED for a first run (A4 register
+      HA-136).`; the screen header's subtitle is
+      `the robot measures its OWN drivetrain -- NEVER RUN BEFORE`; `initialize()` prints the same
+      before anything is constructed. Teleop: the banner says `Not yet run on hardware before this
+      boot: the first run is wheels-up`, the telemetry carries `HARDWARE-UNVALIDATED: …`, and the
+      screen header's subtitle now reads
+      `THE LIBRARY drives: Chassis::drive() -- NEVER RUN BEFORE`.
+- [x] **Station G written; the PROGRESS log complete with the prose-review record.** Station G is
+      ~150 lines in Station F's shape, with every screen string copied from the program's source.
+      This log carries the order of work, **28 rulings beyond the brief (P-R1…P-R28)** each with
+      its alternative and reason, every mutation with its OBSERVED message, the two stale-binary
+      traps and the recipe that closes them, the prose review as a per-file table, and the
+      declared deviations (faq.md touched; the MotorGroup/main.cpp ordering).
+- [x] **No hardware claim anywhere.** Both programs say so at boot and on screen (above). The
+      three new register entries are all UNSETTLED and each names what only a brain can settle —
+      HA-139 says explicitly that **no host test can fail if the fopen mode is wrong**. The
+      roadmap paragraph, the build-order Next block and the README bullet all end on "has not
+      run". Station G's closing note says "NOTHING IN THIS STATION HAS BEEN RUN" and tells the
+      team lead to expect refusals. The one place a number is claimed — plant case 9's degraded
+      run — states it as a PLANT measurement and says R5 owns the real one.
+
+**Nothing was committed.** No `git add`, no `git commit`, no `git push`, no worktree, no branch
+change. `git status` is dirty with exactly the files this part touched, plus three files that were
+already dirty or untracked when this executor started and were NOT touched by it:
+`docs/internal/chunks/SESSION-2026-09-18-autonomous.md` and
+`docs/internal/chunks/T2-input-shaping-drive-modes.md` (both the coordinator's, edited before the
+launch) and the untracked `docs/internal/chunks/G1-robot-config-and-builder.md`.
+
+**`include/shulib/teleop/` was NOT modified** — `git status --short include/shulib/teleop/` is
+empty. Chunk T2 owns that directory in its own worktree. Two notes for the integration: (1) this
+part READS `teleop/drivetrain_degradation.hpp` (the boot check derives its verdict from
+`evaluateDegradation`) and `teleop/coupled_side_monitor.hpp` (through `hal::MotorGroup`), so a
+change to either's semantics changes the boot check's verdicts — the dead-port policy is now
+shared by THREE programs, not two; (2) Part 1's `static_assert` pinning
+`teleop::kMaxSideMembers == hal::kMaxSmartPorts` is still in
+`test/drivetrain_description_test.cpp` and still fires at compile time if T2 moves that constant.
+
+**Suite counts, end to end:** clean tree `17aa4eb` — 1233 cases / 1,568,972 assertions · before the
+`MotorGroup` edit — 1263 / 1,622,729 · after the `MotorGroup` edit, before any new test — 1263 /
+**1,622,738** (+9, all in the one rewritten case that asserted the old contract; no other file
+moved) · final — **1267 cases / 1,624,433 assertions, green, 3 skipped.**
+
+*Log closed 2026-09-18 by the R3d Part 2 executor (opus).*
+
+---
+
+### Addendum — one claim made precise, after the DoD was written
+
+**RULING P-R29 — "the ONE conversion" is scoped to the LIBRARY, not to the repository.**
+`hal/pros/device_registry.hpp` originally read "It exists nowhere else in this tree". A grep for
+`registry_get_plugged_type` proved that false: `src/bench_r3a.cpp:581` keeps its own
+`const int port = idx + 1;`, and the brief EXPLICITLY rules the tester's census out of scope
+("a measuring tool with a hardware history; leave it"). A header that overstates its own invariant
+is worse than one that states a smaller true one, because the next person greps for the second copy
+and finds it. The header now says "the ONE conversion IN THE LIBRARY", names the tester's copy as a
+deliberate exception, and says that if either moves the other must too — and the tester's own
+comment at `bench_r3a.cpp:112-122` already says the same thing from its side.
+
+Re-verified after that edit and after the `docs/api/` regeneration it forced: suite **1267 /
+1,624,433 green**; doc gates green; ARM `TU includes 168 headers` clean; both CI guards and the
+removability grep empty; `src_build_gate.py check` **PASS (all 6 builds link)**.

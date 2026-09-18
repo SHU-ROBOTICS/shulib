@@ -235,10 +235,12 @@ nav:
           - Absent vision: api/absent_vision.md
           - Battery: api/battery.md
           - Block sink: api/block_sink.md
+          - Block source: api/block_source.md
           - Char sink: api/char_sink.md
           - Clock: api/clock.md
           - Controller: api/controller.md
           - Controller conversion: api/controller_conversion.md
+          - Device registry: api/device_registry.md
           - Digital in: api/digital_in.md
           - Digital out: api/digital_out.md
           - Distance: api/distance.md
@@ -265,9 +267,11 @@ nav:
       - HAL — the PROS adapters:
           - Battery (PROS): api/pros-battery.md
           - Block sink (PROS): api/pros-block_sink.md
+          - Block source (PROS): api/pros-block_source.md
           - Char sink (PROS): api/pros-char_sink.md
           - Clock (PROS): api/pros-clock.md
           - Controller (PROS): api/pros-controller.md
+          - Device registry (PROS): api/pros-device_registry.md
           - Digital in (PROS): api/pros-digital_in.md
           - Digital out (PROS): api/pros-digital_out.md
           - Distance (PROS): api/pros-distance.md
@@ -285,6 +289,8 @@ nav:
       - Top level:
           - Version: api/version.md
       - Calibration:
+          - Boot check: api/boot_check.md
+          - Calibration record: api/calibration_record.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md

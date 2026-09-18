@@ -76,6 +76,16 @@
 // (every array is sized by hal::kMaxSmartPorts). Raises NO faults — what to do about a refusal is
 // the program's policy, exactly as the HAL adapters leave raising to the loop layer. PROS-free
 // and sim-free.
+//
+// ── EVERY RUNTIME STRING IN THIS FILE IS ASCII (amended at R3d Part 2) ──────────────
+// Prompts, progress lines and refusals are painted on the V5's screen by
+// src/calibrate_program.cpp and read over USB serial. LVGL's built-in fonts carry ASCII and
+// nothing else, so a UTF-8 em dash renders as a missing-glyph box on the brain and as
+// mojibake in a raw `cat` of the user port — in the one sentence a person gets when the robot
+// stops. src/ has used "--" for exactly this reason since R3a; Part 1 wrote these strings
+// before they had a screen to land on, and Part 2 converted them (24 of them) when it built
+// that screen. The COMMENTS in this file keep their typography: they are read in an editor.
+// Nothing else changed with them.
 
 #include <cmath>
 #include <cstddef>
@@ -301,7 +311,7 @@ public:
             SHULIB_PRECONDITION(ports[i] > 0
                                     && ports[i] <= static_cast<std::int8_t>(hal::kMaxSmartPorts),
                                 "DrivetrainCalibrator: every candidate port must be POSITIVE and "
-                                "in 1..21 — the calibrator applies the sign, so an adapter built "
+                                "in 1..21 -- the calibrator applies the sign, so an adapter built "
                                 "with a negative port would apply it twice");
             for (std::size_t j = i + 1; j < candidates.size(); ++j) {
                 SHULIB_PRECONDITION(ports[j] != ports[i],
@@ -369,7 +379,7 @@ public:
             // ticking leaves the motors running. Stop them and say so.
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
-                          "a tick was missed: %.3f s since the last one, ceiling %.3f s — "
+                          "a tick was missed: %.3f s since the last one, ceiling %.3f s -- "
                           "motors stopped",
                           now.value() - lastTick_.value(), cfg_.commandTimeout.value());
             refuse(msg);
@@ -438,7 +448,7 @@ public:
         }
         char msg[kReasonCap];
         std::snprintf(msg, sizeof msg,
-                      "%s arrived while the run was %s — nothing was recorded",
+                      "%s arrived while the run was %s -- nothing was recorded",
                       answerWord(a), waitingWord());
         refuse(msg);
     }
@@ -469,7 +479,7 @@ public:
     [[nodiscard]] const hal::DrivetrainDescription& result() const {
         SHULIB_PRECONDITION(phase_ == Phase::Done,
                             "DrivetrainCalibrator::result: the run did not finish (phase is not "
-                            "Done) — read reason() instead");
+                            "Done) -- read reason() instead");
         return result_;
     }
 
@@ -478,6 +488,41 @@ public:
 
     /// The config in force.
     [[nodiscard]] const CalibratorConfig& config() const noexcept { return cfg_; }
+
+    /// True when answer(`a`) would be ACCEPTED right now — i.e. when a panel may OFFER it.
+    /// Abort is always accepted; everything else only by the step that is waiting for it.
+    ///
+    /// ── WHY THIS EXISTS (added at R3d Part 2, for the calibrate program's button row) ──
+    /// answer() REFUSES an out-of-order answer and ends the run, which is right (a touch that
+    /// silently did nothing would leave the operator believing a step had been taken) — but it
+    /// makes a wrong BUTTON destructive. A panel therefore has to know which answers are live,
+    /// and Phase alone cannot tell it: PushCapture is two steps (watching, then awaiting
+    /// FRONT/BACK) and so is ScalePush (watching, then awaiting the distance). Before this
+    /// query the only public signal was the PROSE of status().prompt, and prose is not an API.
+    /// A caller-side mirror of the step was the alternative — rejected: every consumer would
+    /// re-derive it, and one that got it wrong would abort a two-minute calibration on a
+    /// mis-tap.
+    ///
+    /// It is a PURE QUERY over the same step answer() switches on, and nothing about the state
+    /// machine moved to add it. It duplicates that switch, so the anti-drift device is a test
+    /// rather than a comment: drivetrain_calibrator_test.cpp case 21 drives the run to each
+    /// waiting step and asserts, for EVERY Answer, that accepts() agrees with what answer()
+    /// actually does on a fresh run.
+    [[nodiscard]] bool accepts(Answer a) const noexcept {
+        if (a == Answer::Abort) {
+            return true;  // abort is accepted in every phase, including Idle and Done
+        }
+        switch (step_) {
+            case Step::PushWatching: return a == Answer::Done;
+            case Step::PushAwaitingFront:
+                return a == Answer::FrontFirst || a == Answer::BackFirst;
+            case Step::ScaleWatching: return a == Answer::Done;
+            case Step::ScaleAwaitingDistance:
+                return a == Answer::Distance24 || a == Answer::Distance48
+                       || a == Answer::Distance72;
+            default: return false;
+        }
+    }
 
 private:
     /// The sub-step inside a phase. Private: a caller steers by Phase and Answer alone.
@@ -507,7 +552,7 @@ private:
         if (now.value() - phaseStart_.value() > cfg_.imuReadyTimeout.value()) {
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
-                          "the IMU never became ready within %.1f s — is it plugged into port "
+                          "the IMU never became ready within %.1f s -- is it plugged into port "
                           "%d?",
                           cfg_.imuReadyTimeout.value(), static_cast<int>(facts_.imuPort));
             refuse(msg);
@@ -538,7 +583,7 @@ private:
                 char msg[kReasonCap];
                 std::snprintf(msg, sizeof msg,
                               "port %d is still turning at %.3f rad/s after %.1f s of waiting "
-                              "for rest before pulsing port %d — a motor that reports motion "
+                              "for rest before pulsing port %d -- a motor that reports motion "
                               "while nothing is driven is a frozen reading or a moving robot",
                               static_cast<int>(m < n_ ? ports_[m] : 0),
                               m < n_ ? motors_[m]->velocity().value() : 0.0,
@@ -560,7 +605,7 @@ private:
             if (std::abs(motors_[j]->velocity().value()) > cfg_.restFloor.value()) {
                 char msg[kReasonCap];
                 std::snprintf(msg, sizeof msg,
-                              "port %d moved (%.3f rad/s) while only port %d was pulsed — it "
+                              "port %d moved (%.3f rad/s) while only port %d was pulsed -- it "
                               "did not move on the push, so it is not a drive motor and must "
                               "be still",
                               static_cast<int>(ports_[j]), motors_[j]->velocity().value(),
@@ -610,7 +655,7 @@ private:
                     char msg[kReasonCap];
                     std::snprintf(msg, sizeof msg,
                                   "port %d is still turning at %.3f rad/s after %.1f s of "
-                                  "waiting for rest around the spin — a motor that reports "
+                                  "waiting for rest around the spin -- a motor that reports "
                                   "motion while nothing is driven is a frozen reading or a "
                                   "moving robot",
                                   static_cast<int>(m < n_ ? ports_[m] : 0),
@@ -663,7 +708,7 @@ private:
         if (moved < 2) {
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
-                          "the push moved %d port(s); a drivetrain needs at least 2 — push the "
+                          "the push moved %d port(s); a drivetrain needs at least 2 -- push the "
                           "WHOLE robot, along its length",
                           static_cast<int>(moved));
             refuse(msg);
@@ -715,7 +760,7 @@ private:
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
                           "port %d: driven forward at its captured sign %+d, its OWN encoder "
-                          "went %.3f rad — the push and the pulse contradict each other",
+                          "went %.3f rad -- the push and the pulse contradict each other",
                           static_cast<int>(ports_[i]), static_cast<int>(sign_[i]), shaft);
             refuse(msg);
             return;
@@ -724,7 +769,7 @@ private:
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
                           "port %d: the robot turned only %.2f deg (floor %.2f deg) while it "
-                          "was driven — is the robot on the FLOOR, not up on blocks?",
+                          "was driven -- is the robot on the FLOOR, not up on blocks?",
                           static_cast<int>(ports_[i]), yaw_ / kDegreesToRadians,
                           cfg_.pulseYawFloor.value() / kDegreesToRadians);
             refuse(msg);
@@ -761,7 +806,7 @@ private:
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
                           "every pulse turned the robot the same way: %u port(s) on one side "
-                          "and none on the other — that is not a two-sided drivetrain",
+                          "and none on the other -- that is not a two-sided drivetrain",
                           static_cast<unsigned>(leftN_ + rightN_));
             refuse(msg);
             return;
@@ -778,7 +823,7 @@ private:
         if (std::abs(yaw_) > cfg_.straightBound.value()) {
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
-                          "the tape push curved by %.2f deg (bound %.2f deg) — push it again, "
+                          "the tape push curved by %.2f deg (bound %.2f deg) -- push it again, "
                           "straight",
                           yaw_ / kDegreesToRadians,
                           cfg_.straightBound.value() / kDegreesToRadians);
@@ -805,7 +850,7 @@ private:
             if (median[s] <= 0.0) {
                 char msg[kReasonCap];
                 std::snprintf(msg, sizeof msg,
-                              "%s side's median travel over the push is %.3f rad — the push "
+                              "%s side's median travel over the push is %.3f rad -- the push "
                               "must roll BOTH sides forward",
                               names[s], median[s]);
                 refuse(msg);
@@ -815,7 +860,7 @@ private:
                 char msg[kReasonCap];
                 std::snprintf(msg, sizeof msg,
                               "%s side turned only %.2f rad over the push; at least %.2f (one "
-                              "wheel turn) is needed to measure a scale — push it farther",
+                              "wheel turn) is needed to measure a scale -- push it farther",
                               names[s], median[s], cfg_.minPushRad.value());
                 refuse(msg);
                 return;
@@ -865,7 +910,7 @@ private:
             char msg[kReasonCap];
             std::snprintf(msg, sizeof msg,
                           "the spin measured a track width of %.3f in one way and %.3f the "
-                          "other — a width must be positive",
+                          "other -- a width must be positive",
                           a, b);
             refuse(msg);
             return;
@@ -1011,7 +1056,7 @@ private:
                         char msg[kReasonCap];
                         std::snprintf(msg, sizeof msg,
                                       "port %d fought its %s side-mates for the whole "
-                                      "persistence window during the spin — stop and check "
+                                      "persistence window during the spin -- stop and check "
                                       "that motor",
                                       static_cast<int>(ports_[idx[k]]),
                                       s == 0 ? "LEFT" : "RIGHT");
@@ -1140,14 +1185,14 @@ private:
                 status_.progress[0] = '\0';
                 return;
             case Phase::WaitImu:
-                status_.prompt = "WAIT — the IMU is calibrating. Keep the robot still.";
+                status_.prompt = "WAIT -- the IMU is calibrating. Keep the robot still.";
                 std::snprintf(status_.progress, sizeof status_.progress, "%.1f s of %.1f s",
                               clock_.now().value() - phaseStart_.value(),
                               cfg_.imuReadyTimeout.value());
                 return;
             case Phase::PushCapture: {
                 if (step_ == Step::PushAwaitingFront) {
-                    status_.prompt = "WHICH END WENT FIRST — the FRONT, or the BACK?";
+                    status_.prompt = "WHICH END WENT FIRST -- the FRONT, or the BACK?";
                     std::snprintf(status_.progress, sizeof status_.progress,
                                   "%u drive port(s) captured",
                                   static_cast<unsigned>(report_.drivePortCount));
@@ -1166,7 +1211,7 @@ private:
                 return;
             }
             case Phase::SideAssign:
-                status_.prompt = "STAND CLEAR — pulsing one motor at a time.";
+                status_.prompt = "STAND CLEAR -- pulsing one motor at a time.";
                 std::snprintf(status_.progress, sizeof status_.progress,
                               "port %d: %s, yaw %+.1f deg",
                               static_cast<int>(pulseIndex_ < n_ ? ports_[pulseIndex_] : 0),
@@ -1175,24 +1220,24 @@ private:
                 return;
             case Phase::ScalePush:
                 status_.prompt = step_ == Step::ScaleAwaitingDistance
-                                     ? "HOW FAR did you push it — 24, 48 or 72 in?"
+                                     ? "HOW FAR did you push it -- 24, 48 or 72 in?"
                                      : "PUSH THE ROBOT STRAIGHT along the tape, then touch DONE.";
                 std::snprintf(status_.progress, sizeof status_.progress,
                               "drift %+.1f deg (bound %.1f deg)", yaw_ / kDegreesToRadians,
                               cfg_.straightBound.value() / kDegreesToRadians);
                 return;
             case Phase::SpinTest:
-                status_.prompt = "STAND CLEAR — spinning in place, both ways.";
+                status_.prompt = "STAND CLEAR -- spinning in place, both ways.";
                 std::snprintf(status_.progress, sizeof status_.progress, "%s %.2f of %.2f turns",
                               spinDirection_ > 0.0 ? "CCW" : "CW",
                               std::abs(yaw_) / (2.0 * math::Angle::kPi), cfg_.spinTurns);
                 return;
             case Phase::Done:
-                status_.prompt = "DONE — the drivetrain described itself.";
+                status_.prompt = "DONE -- the drivetrain described itself.";
                 result_.describe(status_.progress, sizeof status_.progress);
                 return;
             case Phase::Aborted:
-                status_.prompt = "STOPPED — every motor is at 0 V and coasting.";
+                status_.prompt = "STOPPED -- every motor is at 0 V and coasting.";
                 std::snprintf(status_.progress, sizeof status_.progress, "%.95s", reason_);
                 return;
         }

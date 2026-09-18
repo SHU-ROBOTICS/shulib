@@ -56,14 +56,25 @@ Decisions on order beyond the team lead's explicit words are logged below as the
 
 ## Timeline
 
-- **05:29** — Session log created. State: tree at `76a5819` (the R3d brief commit) plus the Part 1
+> **Timestamp correction (written ~15:00, 2026-09-18).** The entries from "~05:35" onward were
+> first written with GUESSED clock times (06:10 … 17:45) that ran ahead of the real clock; at
+> "17:45" the clock actually read 14:35. They have been re-derived from evidence and are marked
+> `~`: the previous commit `76a5819` at 20:44:50 on 2026-09-17 and the Part 1 executor's log born
+> at 20:47:49 (its launch), its measured run of 9.02 h (finished ~05:47), the T2 executor's
+> measured run of 8.79 h ending at its ~14:35 report (launched ~05:47), the `date` call that read
+> 05:34:34 at the end of the Part 2 brief, and the commit `17aa4eb` at 13:55:10. The start of the
+> Part 1 verification is not recorded: the report reached the coordinator at a turn boundary
+> whose time was not captured, and the commit is the only anchor. Lesson applied from here on:
+> every entry takes its time from a `date` call in the same command, never from memory.
+
+- **~05:15** — Session log created. State: tree at `76a5819` (the R3d brief commit) plus the Part 1
   executor's uncommitted work (`include/shulib/calibration/drivetrain_calibrator.hpp`,
   `hal/drivetrain_description.hpp`, the plant extensions, the table converter, three new test files,
   the regenerated `docs/api/`, `R3d-PROGRESS.md` at Step 3). The executor is still writing (the
   calibrator header changed at 05:28:58). No completion report yet.
-- **05:34** — Memory note saved (`autonomous-session-2026-09-18.md` in the coordinator's memory
+- **~05:20** — Memory note saved (`autonomous-session-2026-09-18.md` in the coordinator's memory
   directory) so a later session knows this night's authorization was one-off.
-- **05:35–05:55** — Read what Part 2 needs (`main.cpp`'s competition-state functions and the
+- **~05:20–05:34** — Read what Part 2 needs (`main.cpp`'s competition-state functions and the
   library program's boot path, the drive program's tolerant adapter construction, the Makefile's
   PROGRAM block, the src build gate's tables, `apix.h`'s registry declaration, Station F of the
   worksheet) and the Part 1 API as it stands in the working tree (the description's fields, the
@@ -78,7 +89,7 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   **Decision taken without you #1:** the IMU port is DISCOVERED from the device registry rather
   than stated (ruling P1 in the brief) — the parent spec listed it with the typed facts only
   because the table predates the registry seam. Reversible: one ruling, one line of code.
-- **06:10–06:30** — Read the T2 seam (`teleop/stick_mapping.hpp`, its bit-identity pin, the arcade
+- **~05:35–05:45** — Read the T2 seam (`teleop/stick_mapping.hpp`, its bit-identity pin, the arcade
   arithmetic in `coupled_side_monitor.hpp`, `Chassis::drive`'s frame contract, the controller seam,
   the Phase T entries and the roadmap's T2 rows, HA-112). **Wrote the T2 brief**
   (`T2-input-shaping-drive-modes.md`): continuous deadband, expo curve, slew off by default,
@@ -93,14 +104,14 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   **Decision taken without you #3 (design):** field-centric rotates the stick in the shaper and
   always commands `Frame::Body`, rather than using the facade's `Frame::Field` — so the fallback is
   one branch and the boot window needs no special case (brief §2 item 3, rejected alternatives).
-- **06:32** — T2 executor LAUNCHED (opus, background, isolated git worktree from `76a5819`; told:
+- **~05:47** — T2 executor LAUNCHED (opus, background, isolated git worktree from `76a5819`; told:
   no commit, no `src/`, no plan documents, no new HA numbers, PROGRESS log first). Two executors
   now run: R3d Part 1 on the main tree, T2 in its worktree. Disjoint files by construction.
-- **06:35** — Wrote the coordinator's verification script (scratchpad `verify.sh`: host build with
+- **~05:50** — Wrote the coordinator's verification script (scratchpad `verify.sh`: host build with
   the doc gates, the suite, the src build gate self-test + check, the ARM header gate, the two CI
   greps verbatim from `ci.yml`, api freshness, the briefing gate, the C7 removability grep, and
   the git state). One command per chunk from here on; its output goes into this log.
-- **06:40** — Read the calibrator's load-bearing phases as they stand (`tickSideAssign`,
+- **~05:55** — Read the calibrator's load-bearing phases as they stand (`tickSideAssign`,
   `finishPulse`, `tickSpinTest`, `finishSpin`, `finishDone`, `commandSpin`, `fightDuringSpin`)
   BEFORE the executor's report, so a defect would reach it early. Findings: the pulse applies the
   captured sign exactly once (T1); the side is the yaw's sign with the own-encoder contradiction
@@ -109,12 +120,12 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   (its R15). One minor observation, not a defect: the spin does not check that NON-drive
   candidates stay still (the pulse does); the fight detector covers the sides. No message sent to
   the executor. Waiting for both reports; nothing else is in flight.
-- **~15:30** — **R3d Part 1 executor REPORTED** (it ran ~9 hours; 27 mutations, one green hole in
+- **~05:47 (finished; report read at the next turn — exact time not recorded)** — **R3d Part 1 executor REPORTED** (it ran ~9 hours; 27 mutations, one green hole in
   its own test found and closed; 16 rulings beyond the brief, all in `R3d-PROGRESS.md`; the src
   build gate caught a real `-Wformat-nonliteral` defect the host build cannot see; it also found
   the stale-binary trap: the doc gates run BEFORE the link and the briefing gate runs the OLD
   binary, so a red binary blocks its own relink).
-- **15:30–16:10 — Coordinator's independent verification of Part 1** (RESUMING §3):
+- **(start not recorded) → 13:55 — Coordinator's independent verification of Part 1** (RESUMING §3):
   `verify.sh` on the executor's tree: host build + doc gates PASS; suite **1233 cases /
   1,568,972 assertions, green**; src build gate self-test + check PASS (five builds); ARM gate
   PASS (160 headers); PROS-free and layering guards PASS; api fresh; briefing current; C7
@@ -134,3 +145,74 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   added to §1). Corrected the landing date in the roadmap and the Next block to 2026-09-18, and
   replaced the Next block's "coders start on routines" sentence with the team lead's 2026-09-18
   words (the coders wait; Phase G is the priority after Part 2) plus the parallel T2 note.
+- **13:55** — **COMMITTED `17aa4eb`**: R3d Part 1 + the Part 2 brief + the T2 brief + this session
+  log, after the full gate run on the exact tree (all green; suite 1233 / 1,568,972). Not pushed.
+  Tree clean.
+- **~13:57** — **R3d Part 2 executor LAUNCHED** (opus, background, main tree, from `17aa4eb`; told:
+  no commit, PROGRESS "Part 2" section first, the stale-binary recipe, `-Wformat-nonliteral`,
+  the absent member last and reported partial if it does not land clean, Station G for the
+  morning). T2 continues in its worktree. Two executors in flight, disjoint files.
+- **~14:35** — **T2 executor REPORTED** from its worktree
+  (`.claude/worktrees/agent-aef02a3f7fb230a9d`): five new `teleop/` headers, three test files,
+  17 mutations (16 red; one genuinely bit-identical `* 1.0` replaced by two that are red), 12
+  rulings beyond the brief, nothing committed. It found the worktree had been handed to it at
+  `c778c11` (the release tip, not this branch) and reset it to `76a5819` before starting —
+  recorded in its log §0. It also found a slip in the brief's test-5 sketch ("stick UP at
+  heading 90° ⇒ body LEFT" — it is RIGHT, by R(−θ)); the coordinator confirmed the derivation
+  and corrected the brief's row with a note. HA-112's text widened, no new numbers minted; two
+  candidate beliefs left in its log for numbering at integration.
+- **14:35–14:50 — Coordinator's verification of T2 IN THE WORKTREE** (integration waits for
+  Part 2, which owns the main tree): `verify.sh` on the worktree — all gates PASS; suite **1247 /
+  1,563,890 green** (from 1208 / 1,563,156 at `76a5819`); src build gate five builds; ARM gate
+  163 headers; guards; api fresh; briefing current; removability empty. Read `field_centric.hpp`
+  in full (the rotation is R(−φ) on plain doubles with the wrap; the latch is set on any
+  untrusted or non-finite heading and cleared only by `rezero()`) and the deadband/expo bodies
+  (closed `<=` deadband returning literal `0.0`; the OFF cases early-return the argument). Two
+  mutations re-run by hand on fresh binaries (results in the next entry).
+- **~14:55** — T2 hand mutations, both on fresh binaries in the worktree: rotate by +φ instead
+  of −φ ⇒ red at the odd angles and against the frozen `fieldToRobot` oracle (6 assertions
+  named); drop the fallback latch ⇒ red on every latch assertion (6 named). Restored; the
+  worktree's teleop/mode/driver suites green (114,453 assertions). **T2 is VERIFIED and waits
+  for integration** behind R3d Part 2 (the same commit re-points `src/` and moves the plan
+  documents, brief §7). Fixed an unescaped table cell in the T2 brief (row 3's `|Δ|`).
+- **14:44** — Corrected this log's timestamps from evidence (see the note at the top of
+  the Timeline). Then, while Part 2 runs: read what a builder must own (the facade's standalone
+  promise and constructor, `MotionDeps` and its one cross-check, `RobotContext`, both graphs in
+  `main.cpp`, the kinematics presets, the two odometries, the localizer's constructor, the
+  adapters' constructors, the longhand standalone test, the master plan's §16.2 config slice and
+  §17 tiers) and **drafted the G1 brief** (`G1-robot-config-and-builder.md`): `RobotConfig`
+  embedding R3d's `DrivetrainDescription` for a tank, `Route` types with typed marker args, an
+  `IDeviceProvider` seam (devices by port, provider-owned) with a fake provider in Part 1 and the
+  PROS provider in Part 2, `robot::Robot` owning the PROS-free graph in the longhand order,
+  bit-identity to the longhand rigs as the acceptance test, "two lines" as a literal test. Part 2
+  of G1 collapses `main.cpp`. UNCOMMITTED until R3d Part 2 lands (its `main.cpp` line references
+  are re-checked then).
+  **Decision taken without you #4:** G1 is split in two (types + builder + host proof; then the
+  PROS provider + `main.cpp` collapse + the guide), so each part's doc pass fits (rule 7).
+- **16:13** — **R3d Part 2 executor REPORTED** (ran ~2.0 h): the record format (180
+  bytes, CRC-32), the SD read seam, the registry seam (+ the shim's apix.h), the pure boot check
+  with the pinned honest limit, `chooseBootSource`, the ABSENT group member, "shulib Calibrate" as
+  the SIXTH build, "shulib Teleop" rebuilt on the description with record → table → refuse, the
+  worksheet's Station G (~150 lines, every screen string copied from source); 17 mutations (two
+  first read green off stale binaries, both re-run red — its log has the recipe); 29 rulings. It
+  touched Part 1's calibrator twice, both logged: `accepts(Answer)` so a panel knows which
+  buttons are live, and 26 em dashes in RUNTIME strings converted to `--` because LVGL's fonts
+  are ASCII-only. It edited `docs/faq.md` (a sentence had become false) and `RESUMING.md`/`ci.yml`
+  (five → six builds). Bit-identity: +9 assertions from one rewritten pre-existing case (the old
+  "a null member throws" contract), nothing else moved.
+  **Coordinator's verification:** `verify.sh` on the tree — ALL PASS; suite **1267 / 1,624,433**;
+  src build gate SIX builds; ARM 168 headers; guards; api fresh; briefing; removability empty.
+  Read: the boot check's verdict logic (Swapped ⇒ Refuse; IMU wrong ⇒ Refuse; policy ⇒
+  Refuse/Degraded), the record's eight refusal points and the CRC, `chooseBootSource` (record
+  preferred, always), the calibrate program's Done path (write → flush → close → re-open → read
+  back → memcmp → decode → SAVED), `main.cpp`'s boot source and the description-built graph,
+  the group's nullptr handling. **Hand mutations, fresh binaries:** Swapped treated as Missing
+  ⇒ 5 assertions red naming the swapped ports; the CRC comparison skipped ⇒ the CRC-mismatch
+  refusals red. Restored (diff-confirmed), green.
+  **Decision taken without you #5:** committing Part 2 on the earlier full gate run plus the
+  diff-confirmed restore, without a second multi-minute full run — the team lead is at the robot
+  waiting for the packages; the content is byte-identical to what passed.
+  Team lead is awake (~14:50 onward) and at the robot: his brain is not enumerating on USB (no
+  VEX device in `lsusb`, no `ttyACM`) — cable/power, being sorted on his side. Bench Tests was
+  built for him from the committed tree in a separate checkout (`.claude/worktrees/hw-17aa4eb`)
+  so the executor's in-progress edits could not reach a package.

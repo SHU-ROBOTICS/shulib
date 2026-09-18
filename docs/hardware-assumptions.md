@@ -36,15 +36,18 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 137 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 140 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
 > one is reported (HA-124), two are UNSET and refuse at boot (HA-125/126), one reasoned (HA-131),
 > two invented (HA-132/133). R3d Part 1 added FOUR more on 2026-09-17 — HA-134/135 reasoned,
 > HA-136/137 invented — and not one of the four is measured on anything: each is a belief the host
-> plant cannot settle, which is exactly why it is an entry. The per-confidence counts below predate
-> all fourteen.)* **No *v2* robot exists**, and
+> plant cannot settle, which is exactly why it is an entry. **R3d Part 2 added THREE more on
+> 2026-09-18 — HA-138/139/140, all reasoned** — and the same is true of them: the registry's
+> zero-indexing and fopen's `"rb"` are beliefs about PROS that only a brain can settle, and the CRC
+> note is a design decision recorded so the next person does not re-litigate it. The per-confidence
+> counts below predate all seventeen.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -211,6 +214,9 @@
 | HA-135 | The EFFECTIVE track width a powered spin measures is LARGER than the tape's contact-line-to-contact-line width, because a turning tank scrubs; the effective one is what the kinematics and the heading cross-check need | reasoned | R3d Part 3 |
 | HA-136 | Every number in `calibration::CalibratorConfig` — the push threshold, the rest floor/settle/timeout, the pulse ceiling/time/yaw floor, the straightness bound, the minimum push, the spin ceiling/turns/timeout/agreement, the IMU-ready and missed-tick timeouts — plus the two reproducibility tolerances the host suite pins | **invented** | R3d Part 3 |
 | HA-137 | A coupled train whose members are commanded DIFFERENT volts turns at the MEAN of their effective volts (the A2 plant's model; torque-free) | **invented** (sim shape) | R6 |
+| HA-138 | `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL PORT i+1, and indices run 0–20 | reasoned (vendored text) — and the ONE conversion lives in `hal/pros/device_registry.hpp` | R3d Part 3 |
+| HA-139 | `fopen(path, "rb")` under `/usd/` reads back the exact bytes `"wb"` wrote, byte for byte, on the brain's FatFS | reasoned, flagged — the host CANNOT test the mode (POSIX does not translate) | R3d Part 3 |
+| HA-140 | A CRC-32 over a 180-byte record is worth its 4 bytes and its microseconds on a V5, where the blackbox's own format deliberately carries none | reasoned (design note under HA-122) | R3d Part 3 |
 
 ---
 
@@ -894,15 +900,27 @@ by `src/chassis_table.hpp` (ports, signs, cartridge, IMU port, geometry) and the
 carry the facts about it as they are MEASURED, REPORTED or UNSET, each with its source and date.
 Nothing here is invented for the robot itself: the invented entries (HA-132/133, and HA-136/137
 added by R3d Part 1 on 2026-09-17) are the LIBRARY's thresholds and one SIM model shape, not the
-robot's dimensions. Fourteen entries now — four measured on robot two (HA-127/128/129/130), one
-reported (HA-124), two UNSET and refusing at boot (HA-125/126), three reasoned (HA-131/134/135),
-four invented (HA-132/133/136/137). The bench bot's rows above are not rewritten.
+robot's dimensions. Seventeen entries now — four measured on robot two (HA-127/128/129/130), one
+reported (HA-124), two UNSET and refusing at boot (HA-125/126), six reasoned
+(HA-131/134/135/138/139/140), four invented (HA-132/133/136/137). The bench bot's rows above are
+not rewritten.
+
+**R3d Part 2 (2026-09-18) added HA-138, HA-139 and HA-140.** All three are about the PLATFORM
+rather than the robot — what PROS's registry means by a port, what newlib does with a binary file
+on the card, and what a record on that card is worth protecting with. They sit here rather than in
+the R1a/R1b groups because they were found and are settled by robot two's session, and because two
+of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
 
 - [ ] **HA-124 — robot two's drive wheels are 2.75 in in diameter.**
   *Claim:* a ruler across the tread of any of robot two's eight drive wheels reads 2.75 in.
   *Source:* `src/chassis_table.hpp` (`.wheelDiameterIn = 2.75`, tagged `A4 register HA-124`);
-  consumed through `tableDriveGeometry()` by `localization/drive_encoder_odometry.hpp` and
-  `motion/odo_stall_check.hpp` (one `hal::DriveGeometry` object, both consumers).
+  consumed through `tableDriveGeometry()` into `tableToDescription()`, i.e. only when the library
+  program falls back to the TYPED TABLE. *(Amended at R3d Part 2, 2026-09-18: "shulib Teleop" now
+  builds from a `hal::DrivetrainDescription`, and when that comes from the SD card's calibration
+  record the wheel diameter is not read at all — the record carries a MEASURED inches-per-radian
+  per side instead, which is the radius × ratio product this entry and HA-126 together stand in
+  for. The table remains the fallback, so the entry stays live until a record exists on the
+  robot.)*
   *Confidence:* **reported** — the team lead, 2026-09-14: "standard wheels", the bench bot's
   measured size. Not yet rulered on THIS robot (worksheet Station F.0.3).
   *Settle (R3b / **R3d Part 3**):* the ruler; then R3d's one-push-along-a-tape scale calibration
@@ -916,9 +934,13 @@ four invented (HA-132/133/136/137). The bench bot's rows above are not rewritten
 
 - [ ] **HA-125 — robot two's track width, contact line to contact line.**
   *Claim:* NONE YET. There is no value in the tree. `src/chassis_table.hpp` carries
-  `.trackWidthIn = 0.0` (UNSET, tagged `A4 register HA-125`) and the library program refuses to
-  construct its graph while it is 0, painting "track width" on the state screen.
-  *Source:* `src/chassis_table.hpp`; `src/main.cpp` (`describeMissingForLibrary` at boot).
+  `.trackWidthIn = 0.0` (UNSET, tagged `A4 register HA-125`). *(Amended at R3d Part 2: the
+  library program now refuses only when NEITHER source can describe a drivetrain — a calibration
+  record on the SD card supplies an EFFECTIVE track width measured by a powered spin, HA-135, and
+  a robot with one never reads this field. Without a record the typed table is still the second
+  source, still UNSET, and the program still refuses at boot naming it.)*
+  *Source:* `src/chassis_table.hpp`; `src/main.cpp` (the boot-source decision,
+  `calibration::chooseBootSource`, and `describeMissingForDescription` in the refusal message).
   *Confidence:* **UNSET** — deliberately. A guessed track width turns every commanded yaw into
   the wrong wheel-speed difference (`kinematics/tank.hpp`) and every encoder-implied heading
   into the wrong number, silently; the drivetrain kind was stated, the width was not.
@@ -934,7 +956,8 @@ four invented (HA-132/133/136/137). The bench bot's rows above are not rewritten
 
 - [ ] **HA-126 — robot two's motor→wheel external ratio.**
   *Claim:* NONE YET. `.externalRatio = 0.0` (UNSET, tagged `A4 register HA-126`); the library
-  program refuses while it is 0. "600 rpm" was reported, which names the blue cartridge and
+  program refuses while it is 0 AND no calibration record exists (amended at R3d Part 2 — see
+  HA-125). "600 rpm" was reported, which names the blue cartridge and
   says nothing about the gears between the output shaft and the wheel.
   *Source:* `src/chassis_table.hpp`; `hal/drive_geometry.hpp` (the ratio's one home).
   *Confidence:* **UNSET** — deliberately.
@@ -1165,6 +1188,87 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   host suite predicts, so `pulseYawFloor` (HA-136) refuses a run that is actually fine — a refusal,
   on a bench, with the measured Δθ on the screen. It cannot make a calibration WRONG, only make one
   fail to finish. **Contained:** one function in the plant.
+
+- [ ] **HA-138 — `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL
+  PORT i + 1, and the valid indices are 0–20.**
+  *Claim:* PROS's smart-port registry is the ONE API in the tree that is not numbered the way
+  humans, motors, sensors and every other PROS call number ports. Index 0 is physical port 1;
+  index 20 is physical port 21; index 21 does not exist.
+  *Source:* vendored `include/pros/apix.h:640-660` — "Returns the type of the device plugged into
+  the **zero-indexed** port … The V5 port number from 0-20", and `ENXIO` outside that range. The
+  device type values are vendored `pros/device.h:48-63` and are NOT consecutive (NONE 0, MOTOR 2,
+  ROTATION 4, IMU 6, DISTANCE 7, RADIO 8, VISION 11, ADI 12, OPTICAL 16, GPS 20, AIVISION 29,
+  SERIAL 129, UNDEFINED 255). Bound in `include/shulib/hal/pros/device_registry.hpp`, where the
+  conversion is ONE marked line; shimmed in `test/pros_shim/pros/apix.h`, which is indexed the
+  PROS way so the adapter's conversion is the thing under test rather than a convention the shim
+  shares with it; exercised by `test/pros_device_registry_adapter_test.cpp` from BOTH ends
+  (physical 1 → index 0, physical 21 → index 20, asserted directly through the shim's recorded
+  `lastIndex`), and out-of-range ports are asserted never to reach PROS at all.
+  *Confidence:* **reasoned** — the vendored text states it plainly, and it already cost a session:
+  `src/bench_r3a.cpp:112-122` records 2026-08-18, when the tester scanned 1..21 as if the index
+  were physical, shifted every reading by one port and invented a device at index 21. HA-120 had
+  PREDICTED exactly that (the 2026-08-13 "ADI expander" sighting came from index 21) and the
+  prediction was not acted on. This entry exists so the mapping is a NAMED belief with a settle
+  step rather than a comment in a tester.
+  *Settle (R3d Part 3, Station G's census):* run "shulib Calibrate" beside the brain's own Devices
+  screen. The program's `STAGE 0` census prints one line per non-empty PHYSICAL port; every line
+  must name the same port and the same device as the brain does. Ten motors on 11–20, an IMU on 2
+  and a radio on 1 is the expected answer for robot two.
+  *Blast radius if wrong:* a calibration that pulses the wrong motors, or a boot check that
+  compares a record against a port map shifted by one and refuses a healthy robot — confidently,
+  and with a message naming the wrong ports. **Contained:** one line, one adapter, and the test
+  that pins it from both ends.
+
+- [ ] **HA-139 — `fopen(path, "rb")` under `/usd/` reads back exactly the bytes `"wb"` wrote.**
+  *Claim:* the read half of HA-122. A calibration record written through `ProsBlockSink`
+  (`fopen`+`fwrite`+`fflush`) and read back through `ProsBlockSource` (`fopen("rb")`+`fread`) is
+  byte-identical on the V5's FatFS — no newline translation, no 0x1A end-of-file interpretation,
+  no short read on a file that is entirely present.
+  *Source:* `include/shulib/hal/pros/block_source.hpp`;
+  `test/pros_block_source_adapter_test.cpp`, which writes NUL, LF, CR, CR+LF, 0x1A, DEL and 0xFF
+  through the sink and reads them back through the source against a REAL temp directory.
+  *Confidence:* **reasoned, and FLAGGED.** The host test proves the two adapters agree on Linux —
+  where `"rb"` and `"r"` are the same thing, because POSIX does not translate. **No host test can
+  fail if the mode is wrong**, and newlib on the brain is a different library. The mode is
+  therefore a belief that only a brain can settle, and it is written down as one instead of being
+  claimed by a test that could not see it.
+  *Settle (R3d Part 3, Station G):* run "shulib Calibrate" to `SAVED` — which is itself the
+  measurement, because the program writes, flushes, CLOSES, re-opens through `ProsBlockSource`,
+  reads back and compares the bytes before it says the word (ruling P5). Then pull the card and
+  compare the 180 bytes on a laptop (`cmp`, or `xxd`), which settles it independently of the
+  program's own opinion.
+  *Blast radius if wrong:* `NOT SAVED` on the brain, in red, with the reason — the read-back is
+  precisely what makes this failure loud instead of silent. The worse variant, a file that reads
+  back subtly changed and still passes a byte compare, cannot happen: the compare IS byte-exact,
+  and the CRC would refuse the difference at the next boot. **Contained:** one adapter and the
+  Done path of one program.
+
+- [ ] **HA-140 — a CRC-32 over the calibration record is worth its four bytes, where the
+  blackbox's format deliberately carries none (a DESIGN note under HA-122).**
+  *Claim:* the two on-card formats this tree writes take OPPOSITE decisions about integrity, and
+  both are right. `diag/blackbox_format.hpp` has no checksum: it is read by a HUMAN after the
+  fact, frame by frame, a truncated tail is expected and decodable, and the cost of a corrupt
+  field is a misleading number in an investigation. `calibration/calibration_record.hpp` has a
+  CRC-32: it is read by the ROBOT, once, at boot, and every field is immediately load-bearing — a
+  flipped bit in a SIGN reverses a motor against its side-mates, one in a SCALE makes every
+  odometry inch a lie, one in the track width's exponent makes every commanded turn wrong, and
+  none of those is visible from outside.
+  *Source:* `include/shulib/calibration/calibration_record.hpp` (`crc32Ieee`, computed BITWISE with
+  no lookup table — 1 KiB of flash for 180 bytes of input is the wrong trade in a header a
+  composition root includes); `test/calibration_record_test.cpp`, which pins the arithmetic against
+  the published CRC-32/IEEE check values (`"123456789"` → 0xCBF43926) and flips one bit in each
+  field class.
+  *Confidence:* **reasoned.** The polynomial and its properties are standard; what is a JUDGEMENT
+  is the trade — four bytes and a few microseconds per boot against the class of silent failure it
+  removes. It is recorded here because it is exactly the kind of decision a later chunk would
+  otherwise re-open without knowing why the blackbox differs.
+  *Settle (R3d Part 3):* not a measurement so much as a confirmation — the record decodes on the
+  brain and the boot log prints the description it spells. If the bitwise CRC ever shows up in a
+  loop-rate measurement (it will not: 180 bytes × 8 iterations, once per boot), the table version
+  is a two-line change.
+  *Blast radius if wrong (the CRC is not worth it):* four wasted bytes. **If it were ABSENT:** a
+  corrupt record drives a robot wrong, confidently, and the first symptom is a robot that will not
+  drive straight. The asymmetry is the whole argument. **Contained:** one function, one format.
 
 ---
 

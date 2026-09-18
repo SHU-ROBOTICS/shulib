@@ -103,6 +103,11 @@ current state, so here it is, third heading from the top:
 - Every physical constant in the tree (gains, geometry, sensor noise) is a labeled stand-in.
   [`docs/hardware-assumptions.md`](docs/hardware-assumptions.md) inventories them as falsifiable
   claims, each with its blast radius if wrong and the measurement that settles it.
+- **A program now exists in which the robot measures its own drivetrain** — which ports drive,
+  which way each motor is wired, which side each is on, the per-side inches per radian and the
+  effective track width — and writes the answer to the SD card for the teleop program to boot
+  from. **It has never been run on a robot**: it is proven against the same simulated plant as
+  everything else, and every threshold in it is an invented first guess.
 - The vision/AprilTag corrector exists, but **no camera has ever been pointed at a tag by this
   project**, and the library deliberately ships **no map of where the tags are** — that is your
   input, and nobody here can cite one. Its accuracy claims are simulation claims

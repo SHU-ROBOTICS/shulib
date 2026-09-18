@@ -262,7 +262,7 @@ struct DrivetrainDescription {
                 {
                     if (why != nullptr && cap > 0) {
                         std::snprintf(why, cap,
-                                      "%s inches per radian is %g — must be finite and > 0 (0 = "
+                                      "%s inches per radian is %g -- must be finite and > 0 (0 = "
                                       "UNSET)",
                                       names[s], ipr);
                     }
@@ -275,7 +275,7 @@ struct DrivetrainDescription {
             {
                 if (why != nullptr && cap > 0) {
                     std::snprintf(why, cap,
-                                  "track width is %g — must be finite and > 0 (0 = UNSET)",
+                                  "track width is %g -- must be finite and > 0 (0 = UNSET)",
                                   width);
                 }
                 return false;

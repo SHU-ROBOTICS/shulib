@@ -8,7 +8,7 @@
 
 MotorGroup — N physically COUPLED motors behind ONE IMotor.
 
-This header declares **1** type (19 members) and **1** free function.
+This header declares **1** type (22 members) and **1** free function.
 
 Extracted from [`include/shulib/hal/motor_group.hpp`](../../include/shulib/hal/motor_group.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -33,6 +33,9 @@ Extracted from [`include/shulib/hal/motor_group.hpp`](../../include/shulib/hal/m
   - [`lastVerdict`](#motorgroup-lastverdict)
   - [`resetDisagreement`](#motorgroup-resetdisagreement)
   - [`memberCount`](#motorgroup-membercount)
+  - [`presentCount`](#motorgroup-presentcount)
+  - [`absentMask`](#motorgroup-absentmask)
+  - [`isPresent`](#motorgroup-ispresent)
   - [`member`](#motorgroup-member)
   - [`thresholds`](#motorgroup-thresholds)
 
@@ -46,7 +49,7 @@ Extracted from [`include/shulib/hal/motor_group.hpp`](../../include/shulib/hal/m
 
 THE median of the `n` values in `v` — the one definition in the tree, so nothing that has to agree with a hal::MotorGroup's reading can drift from it. Odd n: the middle value, no arithmetic at all (n == 1 is the bare value, bit for bit). Even n: the mean of the two middle values (exact when they agree), which one dead member still cannot reach when n >= 4 — see the header's "why not the mean". SORTS `v` IN PLACE, which is why the caller passes a scratch array it owns. Precondition: v non-null, n >= 1.  Extracted from MotorGroup at chunk R3d Part 1 because the drivetrain calibrator measures each side's distance scale through the SAME statistic the group will later report to the odometry: a slow member (robot two's port 18, A4 register HA-130) then cancels exactly instead of approximately. A second, privately written median would have made that cancellation an accident rather than a guarantee.
 
-*free function, declared at [`include/shulib/hal/motor_group.hpp:105`](../../include/shulib/hal/motor_group.hpp#L105).*
+*free function, declared at [`include/shulib/hal/motor_group.hpp:126`](../../include/shulib/hal/motor_group.hpp#L126).*
 
 <a id="class-motorgroup"></a>
 
@@ -58,7 +61,7 @@ class MotorGroup final : public IMotor
 
 N coupled motors presented as ONE IMotor: commands fan out to every member unchanged; position and velocity read back as the MEDIAN (a dead port's frozen reading cannot drag them until a majority is dead), current as the per-member mean (the sum is totalCurrent()), temperature as the maximum, brake mode as the first member's device read-back. The coupled-side monitor rides inside as the disagreement observable — one evaluation per tick through evaluateDisagreement(), which motion::tickHealthObservables performs for every group it is handed. Raises nothing itself; never negates a member. Non-owning: members and the array the span views must outlive the group.
 
-*class, declared at [`include/shulib/hal/motor_group.hpp:120`](../../include/shulib/hal/motor_group.hpp#L120).*
+*class, declared at [`include/shulib/hal/motor_group.hpp:141`](../../include/shulib/hal/motor_group.hpp#L141).*
 
 <a id="motorgroup-kmaxmembers"></a>
 
@@ -70,7 +73,7 @@ static constexpr std::size_t kMaxMembers = teleop::kMaxSideMembers
 
 The most members one group may carry — a V5 brain has 21 smart ports, and the monitor's bit masks are sized to the same bound.
 
-*field, declared at [`include/shulib/hal/motor_group.hpp:124`](../../include/shulib/hal/motor_group.hpp#L124).*
+*field, declared at [`include/shulib/hal/motor_group.hpp:145`](../../include/shulib/hal/motor_group.hpp#L145).*
 
 <a id="motorgroup-motorgroup"></a>
 
@@ -80,9 +83,9 @@ The most members one group may carry — a V5 brain has 21 smart ports, and the 
 explicit MotorGroup(std::span<IMotor* const> members, teleop::SideMonitorConfig thresholds = {})
 ```
 
-`members`: N >= 1 present adapters, all non-null, in a FIXED order (the bit positions of disagreeingMask() index this span). `thresholds`: the disagreement detector's knobs — the defaults are the drive program's (INVENTED for a first run; R4 measures).
+`members`: N >= 1 slots in a FIXED order (the bit positions of disagreeingMask() and absentMask() index this span). A `nullptr` slot is an ABSENT member — a drive port found dead at boot (header). `thresholds`: the disagreement detector's knobs — the defaults are the drive program's (INVENTED for a first run; R4 measures).  Precondition: at least ONE member is PRESENT. A group of nothing but holes has no position, no velocity and no temperature to report, and every read below would have to invent one — so it is refused at construction, where a composition root can still paint a refusal, rather than at the first read, mid-match.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:129`](../../include/shulib/hal/motor_group.hpp#L129).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:156`](../../include/shulib/hal/motor_group.hpp#L156).*
 
 <a id="motorgroup-setvoltage"></a>
 
@@ -94,7 +97,7 @@ void setVoltage(units::Voltage volts) override
 
 Fan the SAME command to every member (each clamps for itself); the group mirrors the clamped value for commandedVoltage(). Non-finite is rejected here, before any member sees it, so a bad command cannot half-apply.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:142`](../../include/shulib/hal/motor_group.hpp#L142).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:176`](../../include/shulib/hal/motor_group.hpp#L176).*
 
 <a id="motorgroup-commandedvoltage"></a>
 
@@ -106,7 +109,7 @@ Fan the SAME command to every member (each clamps for itself); the group mirrors
 
 The group's last applied command after the ±kMaxMotorVoltage clamp — a local mirror (the ProsMotor convention), never a member read-back. 0 V until the first setVoltage().
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:154`](../../include/shulib/hal/motor_group.hpp#L154).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:190`](../../include/shulib/hal/motor_group.hpp#L190).*
 
 <a id="motorgroup-setbrakemode"></a>
 
@@ -116,9 +119,9 @@ The group's last applied command after the ±kMaxMotorVoltage clamp — a local 
 void setBrakeMode(BrakeMode mode) override
 ```
 
-Fan the mode to every member.
+Fan the mode to every PRESENT member.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:157`](../../include/shulib/hal/motor_group.hpp#L157).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:193`](../../include/shulib/hal/motor_group.hpp#L193).*
 
 <a id="motorgroup-brakemode"></a>
 
@@ -128,9 +131,9 @@ Fan the mode to every member.
 [[nodiscard]] BrakeMode brakeMode() const override
 ```
 
-The FIRST member's read-back (the device's answer, per the IMotor contract).
+The FIRST PRESENT member's read-back (the device's answer, per the IMotor contract).
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:164`](../../include/shulib/hal/motor_group.hpp#L164).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:202`](../../include/shulib/hal/motor_group.hpp#L202).*
 
 <a id="motorgroup-position"></a>
 
@@ -140,9 +143,9 @@ The FIRST member's read-back (the device's answer, per the IMotor contract).
 [[nodiscard]] units::AngleDim position() const override
 ```
 
-MEDIAN of the members' cumulative shaft rotation (header: why not the mean).
+MEDIAN of the PRESENT members' cumulative shaft rotation (header: why not the mean).
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:167`](../../include/shulib/hal/motor_group.hpp#L167).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:205`](../../include/shulib/hal/motor_group.hpp#L205).*
 
 <a id="motorgroup-velocity"></a>
 
@@ -152,9 +155,9 @@ MEDIAN of the members' cumulative shaft rotation (header: why not the mean).
 [[nodiscard]] units::AngularVelocity velocity() const override
 ```
 
-MEDIAN of the members' measured angular velocity.
+MEDIAN of the PRESENT members' measured angular velocity.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:172`](../../include/shulib/hal/motor_group.hpp#L172).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:210`](../../include/shulib/hal/motor_group.hpp#L210).*
 
 <a id="motorgroup-current"></a>
 
@@ -164,9 +167,9 @@ MEDIAN of the members' measured angular velocity.
 [[nodiscard]] units::Current current() const override
 ```
 
-MEAN current PER MEMBER, so per-motor thresholds keep their meaning; the sum is totalCurrent().
+MEAN current PER PRESENT MEMBER, so per-motor thresholds keep their meaning. An ABSENT member is not a member drawing 0 A: dividing by the SLOT count would make a side with a dead port read cooler than it is. The sum is totalCurrent().
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:179`](../../include/shulib/hal/motor_group.hpp#L179).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:218`](../../include/shulib/hal/motor_group.hpp#L218).*
 
 <a id="motorgroup-temperature"></a>
 
@@ -176,9 +179,9 @@ MEAN current PER MEMBER, so per-motor thresholds keep their meaning; the sum is 
 [[nodiscard]] double temperature() const override
 ```
 
-MAX member temperature (°C): the hottest member throttles first.
+MAX PRESENT member temperature (°C): the hottest member throttles first.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:184`](../../include/shulib/hal/motor_group.hpp#L184).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:223`](../../include/shulib/hal/motor_group.hpp#L223).*
 
 <a id="motorgroup-totalcurrent"></a>
 
@@ -188,9 +191,9 @@ MAX member temperature (°C): the hottest member throttles first.
 [[nodiscard]] units::Current totalCurrent() const
 ```
 
-The SUM of every member's current draw (amperes) — the side's total, exposed outside the IMotor surface so current() can stay per-member.
+The SUM of every PRESENT member's current draw (amperes) — the side's total, exposed outside the IMotor surface so current() can stay per-member.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:194`](../../include/shulib/hal/motor_group.hpp#L194).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:235`](../../include/shulib/hal/motor_group.hpp#L235).*
 
 <a id="motorgroup-evaluatedisagreement"></a>
 
@@ -202,7 +205,7 @@ const teleop::SideVerdict& evaluateDisagreement()
 
 One tick of the disagreement observable: samples every member's velocity() against the group's commanded voltage through the shared coupled-side monitor, advancing its persistence counters ONCE. Call exactly once per control tick — the health tick (motion::tickHealthObservables) does. Returns the verdict it also stores.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:200`](../../include/shulib/hal/motor_group.hpp#L200).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:241`](../../include/shulib/hal/motor_group.hpp#L241).*
 
 <a id="motorgroup-disagreeingmembers"></a>
 
@@ -214,7 +217,7 @@ One tick of the disagreement observable: samples every member's velocity() again
 
 Members that have disagreed with the group for the full persistence window, as of the last evaluateDisagreement() (0 = healthy, or never evaluated).
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:213`](../../include/shulib/hal/motor_group.hpp#L213).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:259`](../../include/shulib/hal/motor_group.hpp#L259).*
 
 <a id="motorgroup-disagreeingmask"></a>
 
@@ -226,7 +229,7 @@ Members that have disagreed with the group for the full persistence window, as o
 
 Bit i set = member i (this span's index) is PERSISTENTLY disagreeing.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:216`](../../include/shulib/hal/motor_group.hpp#L216).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:262`](../../include/shulib/hal/motor_group.hpp#L262).*
 
 <a id="motorgroup-lastverdict"></a>
 
@@ -238,7 +241,7 @@ Bit i set = member i (this span's index) is PERSISTENTLY disagreeing.
 
 The whole verdict of the last evaluateDisagreement() — for a panel that wants the this-tick mask, the fastest member and the present count as well.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:220`](../../include/shulib/hal/motor_group.hpp#L220).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:266`](../../include/shulib/hal/motor_group.hpp#L266).*
 
 <a id="motorgroup-resetdisagreement"></a>
 
@@ -250,7 +253,7 @@ void resetDisagreement() noexcept
 
 Clear the monitor's streaks and the stored verdict (a re-arm after a cut, or a new-run boundary).
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:224`](../../include/shulib/hal/motor_group.hpp#L224).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:270`](../../include/shulib/hal/motor_group.hpp#L270).*
 
 <a id="motorgroup-membercount"></a>
 
@@ -260,9 +263,45 @@ Clear the monitor's streaks and the stored verdict (a re-arm after a cut, or a n
 [[nodiscard]] std::size_t memberCount() const noexcept
 ```
 
-How many members the group commands.
+How many SLOTS the group has — present and absent together, so a panel's port list keeps its indices when a member goes missing. presentCount() is how many answer.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:230`](../../include/shulib/hal/motor_group.hpp#L230).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:277`](../../include/shulib/hal/motor_group.hpp#L277).*
+
+<a id="motorgroup-presentcount"></a>
+
+### `MotorGroup::presentCount`
+
+```cpp
+[[nodiscard]] std::size_t presentCount() const noexcept
+```
+
+How many members are PRESENT (not a nullptr slot). Always >= 1.
+
+*function, declared at [`include/shulib/hal/motor_group.hpp:280`](../../include/shulib/hal/motor_group.hpp#L280).*
+
+<a id="motorgroup-absentmask"></a>
+
+### `MotorGroup::absentMask`
+
+```cpp
+[[nodiscard]] std::uint32_t absentMask() const noexcept
+```
+
+Bit i set = slot i is ABSENT. 0 = a complete group — the state every graph built from a healthy robot is in, and the one the whole pre-existing suite pins.
+
+*function, declared at [`include/shulib/hal/motor_group.hpp:284`](../../include/shulib/hal/motor_group.hpp#L284).*
+
+<a id="motorgroup-ispresent"></a>
+
+### `MotorGroup::isPresent`
+
+```cpp
+[[nodiscard]] bool isPresent(std::size_t i) const noexcept
+```
+
+True when slot `i` is present. Out of range is false, so a panel walking a fixed-size array cannot fall off the end.
+
+*function, declared at [`include/shulib/hal/motor_group.hpp:288`](../../include/shulib/hal/motor_group.hpp#L288).*
 
 <a id="motorgroup-member"></a>
 
@@ -272,9 +311,9 @@ How many members the group commands.
 [[nodiscard]] IMotor& member(std::size_t i) const
 ```
 
-Member `i` (0-based, the span's order). Precondition: i < memberCount().
+Member `i` (0-based, the span's order). Preconditions: i < memberCount() AND slot i is PRESENT. Asking an absent slot for its motor is a caller bug — there is no object to return and no sentinel that would not be a lie — so it is a precondition violation rather than a reference to nothing.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:233`](../../include/shulib/hal/motor_group.hpp#L233).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:296`](../../include/shulib/hal/motor_group.hpp#L296).*
 
 <a id="motorgroup-thresholds"></a>
 
@@ -286,14 +325,14 @@ Member `i` (0-based, the span's order). Precondition: i < memberCount().
 
 The thresholds the disagreement observable runs under.
 
-*function, declared at [`include/shulib/hal/motor_group.hpp:239`](../../include/shulib/hal/motor_group.hpp#L239).*
+*function, declared at [`include/shulib/hal/motor_group.hpp:305`](../../include/shulib/hal/motor_group.hpp#L305).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 77 lines, click to expand</summary>
+<summary>The header’s own reasoning — 98 lines, click to expand</summary>
 
 ```text
 
@@ -366,9 +405,30 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  member is not — the disagreement FLOOR, A4 register HA-133, invented with the rest of the
  thresholds, HA-132). Configure the mask to abort if a season's data says otherwise.
 
- Every member is PRESENT by contract: the library graph requires N >= 1 constructed
- adapters and has no dead-port tolerance (that is "shulib Drive"'s job until R3d), so
- the monitor's `present` flag is always true here.
+ ── THE ABSENT MEMBER (chunk R3d Part 2, ruling P4) ─────────────────────────────────
+ A `nullptr` in the members span is an ABSENT member: a drive port the composition root
+ found DEAD at boot. The group's contract was "every member is PRESENT"; it is now "AT
+ LEAST ONE member is present", and every read below says which members it is over.
+
+ WHY A HOLE IN THE SPAN, AND NOT A NullMotor OBJECT: a fake in a competition binary is
+ test scaffolding (R3b §6's rule), and a NullMotor would have to answer position() and
+ velocity() with SOMETHING — and every answer is a lie the median would then average in.
+ A hole cannot be read by accident.
+
+ WHY BOOT, AND NOT RUNTIME: hal/pros/motor.hpp's constructor already throws on a dead port
+ (its read-back, HA-98), so the composition root catches per port, keeps
+ std::optional<ProsMotor> (the drive program's `Member` shape) and hands this class a span
+ with holes. Runtime death INSIDE the library graph — promoting the drive program's
+ MemberAbsenceDetector in here — is a later chunk; today absence is decided once, at boot,
+ by calibration::boot_check against the brain's own registry.
+
+ WHAT CHANGES, AND WHAT DOES NOT: setVoltage/setBrakeMode SKIP the holes; position(),
+ velocity(), current() and temperature() are over the PRESENT members only; the monitor is
+ told `present = false` for a hole and never flags it; memberCount() still reports how many
+ SLOTS the group has (so the panel's port list keeps its indices) and presentCount() how
+ many answer. ALL-PRESENT GROUPS ARE BIT-IDENTICAL — not "equivalent": the whole
+ pre-existing suite is the pin, and its assertion count was recorded before and after this
+ change, with `MotorGroup 8b` and the plant's case 7 as the local half of it.
 
  Non-owning: the pointer ARRAY the span views, and the motors it points to, must
  outlive the group — the tree's ownership convention (hal/motor.hpp:57-65).

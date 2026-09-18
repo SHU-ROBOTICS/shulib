@@ -237,7 +237,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 > table's signed ports behind two groups, `ProsImu`, explicit absent GPS/tags/vision,
 > drive-encoder odometry, fusion, `Localizer`, `RobotContext`, `MotionDeps`, `Chassis`) built from
 > `src/chassis_table.hpp`, driven by the R1a teleop loop through `Chassis::drive(speeds,
-> Frame::Body)` — the one loop function both graphs now share. The build gate proves five builds.
+> Frame::Body)` — the one loop function both graphs now share. The build gate proved five builds
+> (six since R3d Part 2 added "shulib Calibrate"). *(Since R3d Part 2 this graph is built from a
+> `hal::DrivetrainDescription` — the SD card's calibration record first, the typed table second —
+> rather than straight from the table; the paragraph above records Parts 1–3 as they landed.)*
 > **It has NOT run.** It cannot yet: the table's geometry is UNSET (track width, motor→wheel
 > ratio — never guessed; the team lead measures, the coordinator types), and the program REFUSES
 > at boot with the missing fields on screen until then. The first run is wheels-up, then the
@@ -266,10 +269,26 @@ not silently break them. This table is the spine of the no-staleness promise.
 > with), and measures the effective track width from a spin each way. It is proven against the A2
 > plant to 1e-9 on the scale and 1e-6 on the width, reproduces itself across four hostile seeds, and
 > refuses — naming the port — on a contradiction, a fight, a wheels-up run, a curved push, a missed
-> tick or any timeout, always into 0 V and coast. **It has never moved a physical drivetrain, and
-> nothing consumes a description yet** (no record, no boot check, no program — those are Part 2,
-> unstarted). R3b is still open on its bench run; **the library's motion stack has still never driven
-> a robot.**
+> tick or any timeout, always into 0 V and coast. **It has never moved a physical drivetrain.**
+>
+> **R3d Part 2 LANDED 2026-09-18 — still host-only, and now there is a PROGRAM to run it in.** The
+> calibrator's answer has somewhere to go and something that reads it back: a fixed-width, CRC-32'd
+> record on the SD card (`calibration/calibration_record.hpp`, 180 bytes, refused by name on magic,
+> version, length, CRC or a self-contradictory description, pinned by a byte-exact golden whose
+> bytes came from a second implementation of the layout); the read half of the block seam
+> (`hal/block_source.hpp` + the `/usd/` adapter); a port census seam over PROS's zero-indexed
+> registry (`hal/device_registry.hpp`, the one `port − 1` in the tree, tested from both ends); a
+> boot check that compares a record against the ports **before any adapter is constructed** and
+> refuses a rewired robot while tolerating a dead one (`calibration/boot_check.hpp`, over the same
+> dead-port policy "shulib Drive" uses); an ABSENT member in `hal::MotorGroup` (a `nullptr` slot,
+> skipped and excluded from every read, with all-present groups bit-identical); **a fourth program,
+> `make ROBOT=tank PROGRAM=calibrate` → "shulib Calibrate" (slot 4)**, in which the robot measures
+> its own drivetrain and writes the answer to the card; and **"shulib Teleop" rebuilt on the
+> description** — the card's record first, the typed table second with a warning on the panel, a
+> refusal naming both when neither can describe a drivetrain. The build gate proves **six builds**.
+> **NEITHER PROGRAM HAS RUN ON HARDWARE**, the register's three new entries (HA-138/139/140) are all
+> unsettled, and the morning's bench session is Part 3. R3b is still open on its bench run; **the
+> library's motion stack has still never driven a robot.**
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
