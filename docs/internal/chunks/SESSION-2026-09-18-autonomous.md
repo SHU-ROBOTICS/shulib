@@ -269,3 +269,13 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   bit-identity REQUIREs fail (exit reasons differ) and the healthy group raises a disagreement;
   the GPS corrector never installed ⇒ tick counts diverge and `lastCorrection().source` is not
   "gps". Restored, relinked, green. Committing.
+- **19:08** — **COMMITTED `fe8e270`** (G1 Part 1). Read what G2 needs (the recipe's
+  `driveTo` arithmetic, the facade's verbs, the F10 pin test's shape, the fault/telemetry APIs,
+  the integration document's §4 schema and its open `NONE` question, the legacy vocabulary) and
+  **wrote the G2 brief** (`G2-path-runner-and-registry.md`): the runner over the facade with D1's
+  error policy, markers on Settled only, a registry with no `std::function`, four library-owned
+  built-in ids, the manifest as line-JSON through `ICharSink`, the F8 freeze (in-memory types +
+  file schema reconciled — `"arc"` dropped as a named gap, `"locked"`→`"fixed"`, `"tangent"`→drive,
+  args as a positional int array, `NONE` is route structure). **Decision taken without you #8:**
+  G2 runs now, before G1 Part 2, because G1 Part 2 rewrites `main.cpp` and the bench session's
+  packages depend on `src/` staying as committed; G2 touches no `src/`. Launching its executor.
