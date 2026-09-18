@@ -247,6 +247,18 @@ not silently break them. This table is the spine of the no-staleness promise.
 > robots are TANK drives for the fall semester; the X-drive is built in spring 2027 and the
 > holonomic validation (R3c) moves there** — the holonomic code stays as built and sim-proven.
 >
+> **R3d BRIEFED 2026-09-17, with robot two apart and R3b still open on its bench run.** The team
+> lead's direction: complete the library with whatever needs no robot. R3d Part 1 — the drivetrain
+> description (one representation, two sources: the calibrator and the typed table) and the
+> self-calibrator proven against the host plant — is briefed and waits for the go; Part 2
+> (persistence with a checksum, the SD read seam, the registry seam, boot verification, the
+> programs) and Part 3 (the bench session, where R3b also closes) follow. R3d's gate — the motor
+> group and the odometry seam — is in the tree; starting it before R3b's bench run is a scheduling
+> decision, not a dependency change. The two typed numbers the table waits for (track width, the
+> motor→wheel ratio) are no longer waited on: the robot measures them at Part 3, and the typed
+> table stays as the fallback. **Nothing of R3d has run on a robot; the library's motion stack has
+> still never driven one.**
+>
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
 > clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to
