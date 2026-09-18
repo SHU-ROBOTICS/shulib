@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 1,989 of them, across 133 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,060 of them, across 138 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -115,12 +115,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AprilTagCorrectorConfig::minRange` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-minrange) |
 | `AprilTagCorrectorConfig::postFixStdDev` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-postfixstddev) |
 | `AprilTagCorrectorConfig::stdDevPerInch` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-stddevperinch) |
+| `arcadeRequest` | free function | [drive_modes.md](drive_modes.md#arcaderequest) |
 | `arcStep` | free function | [arc_step.md](arc_step.md#arcstep) |
 | `AxisGains` | struct | [motion_config.md](motion_config.md#struct-axisgains) |
 | `AxisGains::integralLimit` | field | [motion_config.md](motion_config.md#axisgains-integrallimit) |
 | `AxisGains::kD` | field | [motion_config.md](motion_config.md#axisgains-kd) |
 | `AxisGains::kI` | field | [motion_config.md](motion_config.md#axisgains-ki) |
 | `AxisGains::kP` | field | [motion_config.md](motion_config.md#axisgains-kp) |
+| `AxisShaping` | struct | [input_shaping.md](input_shaping.md#struct-axisshaping) |
+| `AxisShaping::deadband` | field | [input_shaping.md](input_shaping.md#axisshaping-deadband) |
+| `AxisShaping::expo` | field | [input_shaping.md](input_shaping.md#axisshaping-expo) |
+| `AxisShaping::valid` | function | [input_shaping.md](input_shaping.md#axisshaping-valid) |
 
 ## B
 
@@ -358,6 +363,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CompletedMotion::preempted` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-preempted) |
 | `CompletedMotion::startTime` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-starttime) |
 | `CompletedMotion::targetPose` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-targetpose) |
+| `continuousDeadband` | free function | [input_shaping.md](input_shaping.md#continuousdeadband) |
 | `ControllerAxis` | enum class | [controller.md](controller.md#enum-class-controlleraxis) |
 | `ControllerAxis::LeftX` | enumerator | [controller.md](controller.md#controlleraxis-leftx) |
 | `ControllerAxis::LeftY` | enumerator | [controller.md](controller.md#controlleraxis-lefty) |
@@ -506,10 +512,34 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveGeometry::motorToWheelRatio` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-motortowheelratio) |
 | `DriveGeometry::valid` | function | [drive_geometry.md](drive_geometry.md#drivegeometry-valid) |
 | `DriveGeometry::wheelRadius` | field | [drive_geometry.md](drive_geometry.md#drivegeometry-wheelradius) |
+| `DriveMode` | enum class | [drive_modes.md](drive_modes.md#enum-class-drivemode) |
+| `DriveMode::ArcadeBody` | enumerator | [drive_modes.md](drive_modes.md#drivemode-arcadebody) |
+| `DriveMode::ArcadeField` | enumerator | [drive_modes.md](drive_modes.md#drivemode-arcadefield) |
+| `DriveMode::TankSticks` | enumerator | [drive_modes.md](drive_modes.md#drivemode-tanksticks) |
 | `DriveRequest` | struct | [stick_mapping.md](stick_mapping.md#struct-driverequest) |
 | `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
 | `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
+| `DriverProfile` | struct | [input_shaping.md](input_shaping.md#struct-driverprofile) |
+| `DriverProfile::forward` | field | [input_shaping.md](input_shaping.md#driverprofile-forward) |
+| `DriverProfile::left` | field | [input_shaping.md](input_shaping.md#driverprofile-left) |
+| `DriverProfile::mode` | field | [input_shaping.md](input_shaping.md#driverprofile-mode) |
+| `DriverProfile::slew` | field | [input_shaping.md](input_shaping.md#driverprofile-slew) |
+| `DriverProfile::valid` | function | [input_shaping.md](input_shaping.md#driverprofile-valid) |
+| `DriverProfile::yaw` | field | [input_shaping.md](input_shaping.md#driverprofile-yaw) |
+| `DriveShaper` | class | [driver_control.md](driver_control.md#class-driveshaper) |
+| `DriveShaper::DriveShaper` | function | [driver_control.md](driver_control.md#driveshaper-driveshaper) |
+| `DriveShaper::fieldCentric` | function | [driver_control.md](driver_control.md#driveshaper-fieldcentric) |
+| `DriveShaper::profile` | function | [driver_control.md](driver_control.md#driveshaper-profile) |
+| `DriveShaper::reset` | function | [driver_control.md](driver_control.md#driveshaper-reset) |
+| `DriveShaper::rezero` | function | [driver_control.md](driver_control.md#driveshaper-rezero) |
+| `DriveShaper::setProfile` | function | [driver_control.md](driver_control.md#driveshaper-setprofile) |
+| `DriveShaper::shape` | function | [driver_control.md](driver_control.md#driveshaper-shape) |
+| `DriveShaper::state` | function | [driver_control.md](driver_control.md#driveshaper-state) |
+| `DriveShaperState` | struct | [driver_control.md](driver_control.md#struct-driveshaperstate) |
+| `DriveShaperState::controllerAbsent` | field | [driver_control.md](driver_control.md#driveshaperstate-controllerabsent) |
+| `DriveShaperState::fieldCentric` | field | [driver_control.md](driver_control.md#driveshaperstate-fieldcentric) |
+| `DriveShaperState::slewOutput` | field | [driver_control.md](driver_control.md#driveshaperstate-slewoutput) |
 | `DriveSideDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivesidedescription) |
 | `DriveSideDescription::count` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-count) |
 | `DriveSideDescription::inchesPerRadian` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-inchesperradian) |
@@ -627,6 +657,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ExitReason::Running` | enumerator | [exit_group.md](exit_group.md#exitreason-running) |
 | `ExitReason::Settled` | enumerator | [exit_group.md](exit_group.md#exitreason-settled) |
 | `ExitReason::TimedOut` | enumerator | [exit_group.md](exit_group.md#exitreason-timedout) |
+| `expoCurve` | free function | [input_shaping.md](input_shaping.md#expocurve) |
 
 ## F
 
@@ -666,6 +697,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FeedforwardGains::kA` | field | [feedforward.md](feedforward.md#feedforwardgains-ka) |
 | `FeedforwardGains::kS` | field | [feedforward.md](feedforward.md#feedforwardgains-ks) |
 | `FeedforwardGains::kV` | field | [feedforward.md](feedforward.md#feedforwardgains-kv) |
+| `FieldCentric` | class | [field_centric.md](field_centric.md#class-fieldcentric) |
+| `FieldCentric::fellBack` | function | [field_centric.md](field_centric.md#fieldcentric-fellback) |
+| `FieldCentric::FieldCentric` | function | [field_centric.md](field_centric.md#fieldcentric-fieldcentric) |
+| `FieldCentric::request` | function | [field_centric.md](field_centric.md#fieldcentric-request) |
+| `FieldCentric::reset` | function | [field_centric.md](field_centric.md#fieldcentric-reset) |
+| `FieldCentric::Result` | struct | [field_centric.md](field_centric.md#struct-fieldcentric-result) |
+| `FieldCentric::Result::request` | field | [field_centric.md](field_centric.md#fieldcentric-result-request) |
+| `FieldCentric::Result::state` | field | [field_centric.md](field_centric.md#fieldcentric-result-state) |
+| `FieldCentric::rezero` | function | [field_centric.md](field_centric.md#fieldcentric-rezero) |
+| `FieldCentric::state` | function | [field_centric.md](field_centric.md#fieldcentric-state) |
+| `FieldCentric::zeroRadians` | function | [field_centric.md](field_centric.md#fieldcentric-zeroradians) |
+| `FieldCentricReason` | enum class | [field_centric.md](field_centric.md#enum-class-fieldcentricreason) |
+| `FieldCentricReason::Active` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-active) |
+| `FieldCentricReason::HeadingNotTrusted` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-headingnottrusted) |
+| `FieldCentricReason::LatchedUntilRezero` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-latcheduntilrezero) |
+| `FieldCentricReason::NotSelected` | enumerator | [field_centric.md](field_centric.md#fieldcentricreason-notselected) |
+| `FieldCentricState` | struct | [field_centric.md](field_centric.md#struct-fieldcentricstate) |
+| `FieldCentricState::active` | field | [field_centric.md](field_centric.md#fieldcentricstate-active) |
+| `FieldCentricState::fellBack` | field | [field_centric.md](field_centric.md#fieldcentricstate-fellback) |
+| `FieldCentricState::reason` | field | [field_centric.md](field_centric.md#fieldcentricstate-reason) |
 | `FieldDelta` | struct | [arc_step.md](arc_step.md#struct-fielddelta) |
 | `FieldDelta::dx` | field | [arc_step.md](arc_step.md#fielddelta-dx) |
 | `FieldDelta::dy` | field | [arc_step.md](arc_step.md#fielddelta-dy) |
@@ -1104,6 +1155,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
+| `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
+| `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
 | `kDegreesToRadians` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kdegreestoradians) |
 | `kDistanceConfidenceAvailableAboveMm` | constant | [distance_conversion.md](distance_conversion.md#kdistanceconfidenceavailableabovemm) |
@@ -1256,6 +1309,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MemberSample` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-membersample) |
 | `MemberSample::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-present) |
 | `MemberSample::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-velocityrads) |
+| `modeRequest` | free function | [drive_modes.md](drive_modes.md#moderequest) |
 | `MotionConfig` | struct | [motion_config.md](motion_config.md#struct-motionconfig) |
 | `MotionConfig::brakeSettle` | field | [motion_config.md](motion_config.md#motionconfig-brakesettle) |
 | `MotionConfig::defaultTimeout` | field | [motion_config.md](motion_config.md#motionconfig-defaulttimeout) |
@@ -1903,6 +1957,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SettledUtil::reset` | function | [settled_util.md](settled_util.md#settledutil-reset) |
 | `SettledUtil::SettledUtil` | function | [settled_util.md](settled_util.md#settledutil-settledutil) |
 | `SettledUtil::update` | function | [settled_util.md](settled_util.md#settledutil-update) |
+| `shapeAxis` | free function | [input_shaping.md](input_shaping.md#shapeaxis) |
+| `shapeRequest` | free function | [input_shaping.md](input_shaping.md#shaperequest) |
+| `shapeToChassisSpeeds` | free function | [driver_control.md](driver_control.md#shapetochassisspeeds) |
 | `SideCount` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-sidecount) |
 | `SideCount::answering` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-answering) |
 | `SideCount::expected` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-expected) |
@@ -1925,6 +1982,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SideVolts` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidevolts) |
 | `SideVolts::left` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-left) |
 | `SideVolts::right` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-right) |
+| `SlewConfig` | struct | [slew_limiter.md](slew_limiter.md#struct-slewconfig) |
+| `SlewConfig::ratePerSecond` | field | [slew_limiter.md](slew_limiter.md#slewconfig-ratepersecond) |
+| `SlewLimiter` | class | [slew_limiter.md](slew_limiter.md#class-slewlimiter) |
+| `SlewLimiter::isOff` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-isoff) |
+| `SlewLimiter::ratePerSecond` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-ratepersecond) |
+| `SlewLimiter::reset` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-reset) |
+| `SlewLimiter::SlewLimiter` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter) |
+| `SlewLimiter::SlewLimiter (overload 2)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-2) |
+| `SlewLimiter::SlewLimiter (overload 3)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-3) |
+| `SlewLimiter::update` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-update) |
+| `SlewLimiter::value` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-value) |
 | `StallConfig` | struct | [stall_detector.md](stall_detector.md#struct-stallconfig) |
 | `StallConfig::currentAtLeast` | field | [stall_detector.md](stall_detector.md#stallconfig-currentatleast) |
 | `StallConfig::persistence` | field | [stall_detector.md](stall_detector.md#stallconfig-persistence) |
@@ -1939,6 +2007,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StickInput::leftX` | field | [stick_mapping.md](stick_mapping.md#stickinput-leftx) |
 | `StickInput::leftY` | field | [stick_mapping.md](stick_mapping.md#stickinput-lefty) |
 | `StickInput::rightX` | field | [stick_mapping.md](stick_mapping.md#stickinput-rightx) |
+| `StickInput::rightY` | field | [stick_mapping.md](stick_mapping.md#stickinput-righty) |
 | `StrafeTo` | class | [strafe_to.md](strafe_to.md#class-strafeto) |
 | `StrafeTo::name` | function | [strafe_to.md](strafe_to.md#strafeto-name) |
 | `StrafeTo::StrafeTo` | function | [strafe_to.md](strafe_to.md#strafeto-strafeto) |
@@ -1985,6 +2054,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TankKinematics::TankKinematics` | function | [tank.md](tank.md#tankkinematics-tankkinematics) |
 | `TankKinematics::toWheels` | function | [tank.md](tank.md#tankkinematics-towheels) |
 | `TankKinematics::wheelCount` | function | [tank.md](tank.md#tankkinematics-wheelcount) |
+| `tankRequest` | free function | [drive_modes.md](drive_modes.md#tankrequest) |
+| `tankRequest (overload 2)` | free function | [drive_modes.md](drive_modes.md#tankrequest-2) |
 | `tankSideVolts` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#tanksidevolts) |
 | `TermSink` | class | [term_sink.md](term_sink.md#class-termsink) |
 | `TermSink::emit` | function | [term_sink.md](term_sink.md#termsink-emit) |

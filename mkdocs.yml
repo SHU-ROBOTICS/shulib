@@ -294,7 +294,12 @@ nav:
           - Drivetrain calibrator: api/drivetrain_calibrator.md
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md
+          - Drive modes: api/drive_modes.md
+          - Driver control: api/driver_control.md
           - Drivetrain degradation: api/drivetrain_degradation.md
+          - Field centric: api/field_centric.md
+          - Input shaping: api/input_shaping.md
+          - Slew limiter: api/slew_limiter.md
           - Stick mapping: api/stick_mapping.md
 # END GENERATED API NAV
 

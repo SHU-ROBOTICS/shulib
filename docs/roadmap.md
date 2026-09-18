@@ -259,7 +259,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > group and the odometry seam — is in the tree; starting it before R3b's bench run is a scheduling
 > decision, not a dependency change. The two typed numbers the table waits for (track width, the
 > motor→wheel ratio) are no longer waited on: the robot measures them at Part 3, and the typed
-> table stays as the fallback. **R3d Part 1 LANDED 2026-09-18 — host-only:** `hal::DrivetrainDescription`
+> table stays as the fallback. **T2's library half LANDED 2026-09-18** (driver feel: continuous deadband, expo, slew off by default, the three drive modes, field-centric with a latched fallback — host-proven in an isolated worktree in parallel with R3d; the teleop loop and the drive programs are NOT yet re-pointed at it, so every package built today keeps yesterday's feel). **R3d Part 1 LANDED 2026-09-18 — host-only:** `hal::DrivetrainDescription`
 > (the one representation, with the typed table now a second source through `tableToDescription()`),
 > `hal::DriveGeometry::fromInchesPerRadian` for a scale a robot measured rather than a person typed,
 > and `calibration::DrivetrainCalibrator` — a tick-driven, non-blocking, allocation-free state
@@ -1573,12 +1573,12 @@ only the INPUT half is missing.*
   *consumes* the press, so a shared detector starves the second consumer (HA-104); the seam reports
   levels and the ban is guard-test-pinned. An **F4-additive sibling, outside that freeze**, exactly as
   `IDigitalOut` was; recorded as register row F13, **not frozen** — T2 is its first real consumer.
-- [ ] **Input shaping + drive modes** — the chunk that decides whether the robot feels controllable.
+- [~] **Input shaping + drive modes** *(T2, 2026-09-18: built and host-proven in `teleop/` — continuous deadband, expo, slew off by default, arcade/field/tank modes, one-tick latency pinned on the plant; NOT yet wired into the teleop loop or the drive programs, and no driver has felt it)* — the chunk that decides whether the robot feels controllable.
   **Continuous** deadband (the naive form jumps 0 → threshold and is what "twitchy" actually means),
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [ ] **Field-centric's honest failure mode** — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel; no panel shows it and no button is bound yet)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.

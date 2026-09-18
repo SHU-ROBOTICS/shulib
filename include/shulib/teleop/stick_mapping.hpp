@@ -1,22 +1,42 @@
 #pragma once
 //
 // Teleop stick mapping — the ONE place a driver's sticks become a body-frame
-// drive request (chunk R3b, Session 2). THIS IS THE SEAM CHUNK T2 OWNS: T2
-// (input shaping, drive modes, the feel properties) replaces the BODIES below
-// with real driver feel — a continuous deadband, monotonic curves, optional
-// slew, field-centric with its honest fallback — behind these same names, so
-// every caller (the library teleop loop in src/main.cpp and the bench tester's
-// DRIVE station) keeps feeling one robot.
+// drive request (chunk R3b, Session 2), and the DriveRequest/StickInput
+// vocabulary the whole feel layer is written in.
 //
-// WHAT IT IS TODAY: the R1a loop's mapping, extracted VERBATIM from
-// src/main.cpp and pinned bit-for-bit by test/stick_mapping_test.cpp against
-// a copy of that original code. Deadband only, at 0.05 (HA-112: INVENTED —
-// the deadband exists so a centred stick's ±2-count noise cannot creep the
-// robot, and nothing about it is a measurement). The naive deadband here is
+// T2 HAS LANDED, AND IT DID NOT REPLACE THIS FILE. The feel layer — a
+// continuous deadband, monotonic expo, optional slew, drive modes,
+// field-centric with its honest fallback — is built ALONGSIDE the two functions
+// below, in input_shaping.hpp / slew_limiter.hpp / drive_modes.hpp /
+// field_centric.hpp / driver_control.hpp, all speaking the StickInput and
+// DriveRequest declared here. The composed entry point is
+// teleop::DriveShaper::shape() (driver_control.hpp).
+//
+//   * `deadbanded()` is SUPERSEDED by `continuousDeadband()`
+//     (input_shaping.hpp), which rescales the surviving range instead of
+//     cutting it, so the output leaves zero smoothly. It is kept, unchanged,
+//     for two reasons that are not sentiment: test/stick_mapping_test.cpp pins
+//     it BIT FOR BIT against a verbatim copy of the R1a loop, and the drive
+//     program plus the bench tester's DRIVE station still call `mapSticks()`
+//     directly. Both callers move to `DriveShaper` when src/ is re-pointed;
+//     until then, "improving" either body below breaks a pin that exists to
+//     catch exactly that.
+//   * `mapSticks()` is superseded by `arcadeRequest()` + `shapeAxis()`
+//     (drive_modes.hpp, input_shaping.hpp). Same signs, same order of
+//     operations, same sign of zero — the shaped default profile differs from
+//     it only by the deadband rescale, and by nothing at all at 0 and at ±1.
+//
+// WHAT THE TWO FUNCTIONS BELOW ARE: the R1a loop's mapping, extracted VERBATIM
+// from src/main.cpp and pinned bit-for-bit by test/stick_mapping_test.cpp
+// against a copy of that original code. Deadband only, at 0.05 (HA-112:
+// INVENTED — the deadband exists so a centred stick's ±2-count noise cannot
+// creep the robot, and nothing about it is a measurement). That deadband is
 // DISCONTINUOUS (output jumps from 0 to 0.05 as the stick crosses the
-// threshold) — chunk T2 names that as its first property to fix, and it
-// is left exactly as it was on purpose: this chunk changes nothing about how
-// the robot drives, it only moves where the mapping lives.
+// threshold), which is what "twitchy, I can't place it" actually means, and it
+// is left exactly as it was on purpose.
+//
+// NOTHING IN THE FEEL LAYER HAS BEEN DRIVEN. Every default it ships is invented
+// and says so; no claim about how any of it feels is made anywhere.
 //
 // AXIS CONVENTION (locked frame F1, body frame, CCW-positive):
 //   * left stick pushed UP     → +forward  (+X body)
@@ -44,7 +64,8 @@ namespace shulib::teleop {
 
 /// The stick deadband, as a fraction of full deflection (canonical [-1, 1] axes). INVENTED
 /// (A4: HA-112) — it exists only so a centred stick's few counts of noise cannot creep the
-/// robot. Applied as a hard cut (see deadbanded()); T2 owns making it continuous.
+/// robot. Applied here as a hard cut (see deadbanded()); T2's continuousDeadband()
+/// (input_shaping.hpp) uses the same number as its default and rescales instead of cutting.
 inline constexpr double kStickDeadband = 0.05;
 
 /// What the driver's hands are doing, in the form the mapping needs: the three canonical
@@ -56,6 +77,11 @@ struct StickInput {
     double leftY = 0.0;      ///< Left stick, vertical: + = pushed UP (hal::ControllerAxis::LeftY).
     double leftX = 0.0;      ///< Left stick, horizontal: + = pushed RIGHT (hal::ControllerAxis::LeftX).
     double rightX = 0.0;     ///< Right stick, horizontal: + = pushed RIGHT (hal::ControllerAxis::RightX).
+    /// Right stick, vertical: + = pushed UP (hal::ControllerAxis::RightY). ADDED at T2 for
+    /// tank-stick mode (drive_modes.hpp), where it is the RIGHT side's command. `mapSticks()`
+    /// and every function below IGNORE it, so the R1a bit-identity pin is untouched: a field
+    /// appended to an aggregate with a default changes no existing caller and no existing value.
+    double rightY = 0.0;
     bool connected = false;  ///< IController::isConnected() — false forces a zero request.
 };
 
@@ -72,7 +98,11 @@ struct DriveRequest {
 
 /// The R1a deadband, verbatim: an axis strictly inside (−kStickDeadband, +kStickDeadband)
 /// becomes exactly 0.0; anything else — the threshold value itself included — passes through
-/// untouched. Discontinuous at the threshold by construction (T2's first property to fix).
+/// untouched. Discontinuous at the threshold by construction.
+///
+/// SUPERSEDED by continuousDeadband() (input_shaping.hpp) and kept deliberately: this body is
+/// pinned bit for bit against the original R1a loop, and the drive program and the bench
+/// tester still call it. Do not "improve" it — see the file header.
 [[nodiscard]] constexpr double deadbanded(double axis) noexcept {
     return (axis > -kStickDeadband && axis < kStickDeadband) ? 0.0 : axis;
 }

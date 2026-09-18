@@ -313,10 +313,22 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   segments. Measured cost: about 1.2 s per motion.
 - **No motion profiles on the main verbs yet** (trapezoidal velocity planning exists in
   `control/` but isn't wired into `moveTo`).
-- **`drive()` is a primitive, not a driver-control product** — the shipped teleop loop maps
-  sticks to it raw (a small deadband and nothing else, itself a registered guess, HA-112);
-  joystick shaping, slew-rate limits, and driver-preference curves are still future work
-  (phase T on the roadmap).
+- **`drive()` is a primitive, and the driver-control layer above it has never been driven.**
+  The shaping now exists: `shulib/teleop/` carries a continuous deadband, a monotonic expo
+  curve, an optional rate limit that is **off** by default, arcade / tank / field-centric
+  modes, and a `DriveShaper` that composes them in one call per tick — all host-tested,
+  including a test that pins a stick step reaching the commanded motor volts in the same tick.
+  Two things are still missing, and the second is the one that matters. **First**, the shipped
+  teleop loop in `src/main.cpp` and the bench drive program still call the older raw mapping
+  (`teleop/stick_mapping.hpp`); re-pointing them is a separate change. **Second, no driver has
+  felt any of it.** Every default in the feel layer is invented and registered as a guess
+  (HA-112) — which deadband, which curve, which slew rate a driver actually prefers is a
+  question only a person on a robot can answer, and nobody has been asked. Treat the defaults
+  as a starting point, not a recommendation. Button bindings and driver macros are still
+  future work (phase T on the roadmap).
+  *(This bullet used to say joystick shaping and slew limits did not exist at all; that went
+  stale when the layer landed, and it is corrected here rather than deleted, because "it
+  exists" and "it is known to feel right" are very different claims.)*
 - **No *scoring* layer** — the concrete season verbs (`intakeUntilCapture`, `liftToLevel`,
   match-load sequences) are roadmap item F3/M4 and do not exist. The mechanism *seam* they would
   be written against does exist and is described above; what you write today is your own

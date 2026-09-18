@@ -188,7 +188,7 @@
 | HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
 | HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
 | HA-111 | main.cpp's port map and motor direction signs match the robot | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. main.cpp still carries the invented map | R3 |
-| HA-112 | Teleop stick mapping signs + 0.05 deadband are drivable | **invented** | T2/R3 |
+| HA-112 | Teleop stick mapping signs + the feel layer's defaults are drivable (0.05 deadband, applied as a continuous rescale since T2; expo 0; slew off; the field-centric fallback latch) | **invented** | T2/R3 |
 | HA-113 | Distance `get_distance()` returns millimeters | reasoned | R3 |
 | HA-114 | Distance "no object" is the IN-BAND integer 9999, not PROS_ERR | reasoned | R3 |
 | HA-115 | Distance `get_confidence()` is 0–63, only available above 200 mm; its value at/below 200 mm is UNKNOWN | reasoned | R3 |
@@ -718,15 +718,33 @@ dependency order (battery scale before anything drives, signs before any closed 
   other three — caught in the first open-loop spin, BEFORE any closed loop (runbook order).
   **Contained:** constants + boot checks.
 
-- [ ] **HA-112 — the teleop mapping (stick signs, 0.05 deadband) is drivable.**
-  *Claim:* left-stick-up = +X forward, left-stick-left = +Y left, right-stick-right = CW
-  (−ω), and a 0.05 deadband kills centred-stick creep without killing fine control.
-  *Source:* `src/main.cpp` (opcontrol(), labelled; chunk T2 owns the real driver-feel layer).
-  *Confidence:* **invented**.
-  *Settle (T2/R3, runbook step 10):* a human drives it; signs that feel backwards get flipped
-  at the mapping, deadband tuned by feel.
+- [ ] **HA-112 — the teleop mapping AND the feel layer's defaults are drivable.**
+  *Claim:* (a) the axis signs — left-stick-up = +X forward, left-stick-left = +Y left,
+  right-stick-right = CW (−ω); (b) a **0.05 deadband** kills centred-stick creep without
+  killing fine control; and, since T2 built the feel layer, (c) **the shipped
+  `DriverProfile` is drivable as it stands** — deadband 0.05 applied as a CONTINUOUS
+  rescale rather than a hard cut, **expo 0** (no response curve at all), **slew OFF**
+  (no rate limit, so no added lag), mode **ArcadeBody**, and a field-centric fallback that
+  **latches** until the driver re-zeroes rather than flickering between frames.
+  *Source:* `include/shulib/teleop/input_shaping.hpp` (`kDefaultDeadband`, `kDefaultExpo`,
+  `DriverProfile`), `slew_limiter.hpp` (`SlewConfig`), `drive_modes.hpp` (`DriveMode`),
+  `field_centric.hpp` (the latch), `driver_control.hpp` (`DriveShaper`, the order); the
+  original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, which
+  `src/main.cpp`'s loop and the drive program still call.
+  *Confidence:* **invented — every number of it.** Widened at T2 from "the mapping" to "the
+  feel layer's defaults"; no new register number was minted, because nothing new was
+  measured. **No claim about how any of it feels is made anywhere**, and none can be: the
+  defaults were chosen to reproduce the shipped mapping as closely as a continuous deadband
+  allows (identical at centre and at both rails; inside that range the rescale asks for at
+  most 0.05 less), which is a compatibility argument, not a feel argument. The library has
+  never been driven by a person.
+  *Settle (T2/R3, runbook step 10):* a human drives it. Signs that feel backwards get flipped
+  at the mapping; the deadband, the expo and any slew rate get tuned by feel and recorded as
+  a named profile rather than edited into a constant.
   *Blast radius if wrong:* annoying, visible, and shallow — exactly the kind of wrong that is
-  fine to ship provisionally. **Contained:** one function in main.cpp.
+  fine to ship provisionally. **Contained:** the `teleop/` headers and one `DriverProfile`
+  value; the mode functions, the curve and the rate limit are each off or identity by
+  default, so a wrong default is a wrong *number*, never a wrong *shape*.
 
 ### R1b's additions — the beliefs about PROS the mechanism-sensor adapters are built on
 

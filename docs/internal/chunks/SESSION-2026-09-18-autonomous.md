@@ -216,3 +216,23 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   VEX device in `lsusb`, no `ttyACM`) — cable/power, being sorted on his side. Bench Tests was
   built for him from the committed tree in a separate checkout (`.claude/worktrees/hw-17aa4eb`)
   so the executor's in-progress edits could not reach a package.
+- **16:14** — **COMMITTED `5e4ce65`** (R3d Part 2 + the G1 brief + this log). The
+  hardware checkout moved to it and all four packages were built there, beacons confirmed:
+  Bench Tests (tank), shulib Drive (tank-drive), shulib Teleop (tank-library), shulib Calibrate
+  (tank-calibrate), saved under /tmp/hw_pkgs. The brain still does not enumerate; a
+  seven-minute USB watch is running at the team lead's request while he power-cycles it.
+- **16:16** — **T2 integrated into the main tree** (library half): ten files copied from
+  its worktree; the two shared documents three-way merged against their `76a5819` base — both
+  clean; api docs, mkdocs and the briefing regenerated; the roadmap's two Phase T rows → `[~]`
+  with what is and is not done; the build-order T2 entry's status line and the Next block's T2
+  sentence. **Decision taken without you #6:** the `src/` re-pointing (the teleop loop, the drive
+  program, the tester's DRIVE station → `DriveShaper`) is DEFERRED past the bench session, so the
+  four packages built for it keep exactly the feel you drove on 2026-09-17; it is the next small
+  commit after the robot has run. **Decision #7:** T2's two candidate register entries (a
+  continuous deadband is preferable; a driver prefers one frame over a silent return) are NOT
+  minted as HA numbers — they are driver-preference claims, already stated in HA-112's widened
+  entry; the register stays a register of hardware beliefs.
+- **16:24** — T2-integrated tree: `verify.sh` ALL PASS after the briefing was regenerated
+  for the new count — suite **1306 / 1,625,161 green** (T2 adds 39 cases); six builds; ARM;
+  guards; api fresh; removability empty. Committing T2's library half. The team lead's brain
+  has still not enumerated on any port (no kernel USB event at all); he has unplugged it for now.
