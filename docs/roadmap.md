@@ -290,6 +290,17 @@ not silently break them. This table is the spine of the no-staleness promise.
 > unsettled, and the morning's bench session is Part 3. R3b is still open on its bench run; **the
 > library's motion stack has still never driven a robot.**
 >
+> **G1 Part 1 LANDED 2026-09-18 — host-only: a robot can now be described as DATA and built from
+> it.** `config/robot_config.hpp` (`RobotConfig`, embedding R3d's `hal::DrivetrainDescription` by
+> value for a tank rather than mirroring it, plus the two holonomic kinds, the odometry choice, the
+> GPS, mechanism types and the tuning), `config/route.hpp` (`Route`/`Waypoint`/`Marker` — ids and
+> typed args, never code), the `hal::IDeviceProvider` seam with a host `FakeDeviceProvider`, and
+> `robot::Robot`, which owns the whole PROS-free graph and borrows its devices by port. The
+> acceptance test is bit-identity: a tank config and an X-drive config each drive the A2 plant with
+> per-tick ground truth `memcmp`-equal to the hand-wired graph, clean and hostile. **The PROS
+> provider and `src/main.cpp` are Part 2 — `main.cpp` is NOT one line shorter yet**, no config has
+> ever built a graph over a real device, and the motion stack still has not driven a robot.
+>
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
 > clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to
@@ -1600,7 +1611,16 @@ R4.)*
 *From a project file to a running robot, no hand-wiring.*
 
 **Config ingestion (WS9)**
-- [ ] `IRobotConfig` + `RobotBuilder.from(profile)` → a fully wired `Chassis`.
+- [~] `IRobotConfig` + `RobotBuilder.from(profile)` → a fully wired `Chassis`.
+  *G1 Part 1, 2026-09-18: the TYPES and the BUILDER landed and are proven on the host —
+  `config::RobotConfig` / `config::Route` / `config::IRobotConfig` / `config::IRouteSource`,
+  the `hal::IDeviceProvider` seam with `hal::fake::FakeDeviceProvider`, and `robot::Robot`,
+  whose `Chassis` drives the A2 plant BIT-IDENTICALLY to the hand-wired graph (tank and
+  X-drive, clean and hostile). Spelled `robot::Robot{config, devices}` rather than
+  `RobotBuilder.from(profile)`: `Chassis` is non-movable, so a factory returning one by value
+  was rejected in favour of `validate(config, devices)` + construction-in-place.
+  **OPEN:** `hal::pros::ProsDeviceProvider` and the `src/main.cpp` collapse (G1 Part 2), and
+  the codegen that fills these types from a `.vexbot` (G3).*
 - [ ] **`robotProfile` sub-schema** (F7) — drivetrain/odometry/sensors/mechanisms/corrections.
 - [ ] **Codegen tool** `.vexbot` → `robot_config.hpp` (config **and** routines, `inline constexpr`).
 - [ ] SD-card runtime loader (optional — re-export + re-run without recompiling).
@@ -1789,10 +1809,12 @@ must add for the integration to close. They are tracked here so the dependency i
 >
 > **The reciprocal half is the part this section used to hide.** These asks read as though shulib were
 > waiting on VexBuilder. It is not — or rather, it is not *only* that: **shulib has built none of the
-> code that consumes any of these contracts.** `IRobotConfig`, `IRouteSource`, `RobotBuilder`,
-> `PathRunner`, the id manifest, the `.vexbot` codegen and the `SHUL/2` wire are all unbuilt (G1–G4,
-> H1). Listing only one side's obligations is how a two-sided dependency turns into a stall with each
-> side believing it is blocked. Both lists are below.
+> code that consumes any of these contracts.** *(Corrected 2026-09-18, G1 Part 1: the first of them
+> is no longer unbuilt.)* `IRobotConfig` / `IRouteSource` and the builder landed host-only at **G1
+> Part 1** — the in-memory types exist and a config produces a driving `Chassis`; the PROS provider
+> and the `main.cpp` collapse are G1 Part 2. `PathRunner`, the id manifest, the `.vexbot` codegen and
+> the `SHUL/2` wire are still unbuilt (G2–G4, H1). Listing only one side's obligations is how a
+> two-sided dependency turns into a stall with each side believing it is blocked. Both lists are below.
 
 ### What VexBuilder must add
 

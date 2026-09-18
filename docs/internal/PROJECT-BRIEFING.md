@@ -107,10 +107,10 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 - **Next up:** R3d Part 3 — THE BENCH SESSION, the team lead's morning: run "shulib Calibrate" on robot two, then "shulib Teleop" from the record it writes (worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)). This is also where R3b closes.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,306 cases / 1,625,161 assertions, 3 skipped — **green**  
+- ⚠️ **INTERRUPTED CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- **Suite:** 1,342 cases / 1,632,353 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 173  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Public headers:** 178  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 140 registered, **7 settled** — next free is **HA-141**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
@@ -143,7 +143,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 8 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 9 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 

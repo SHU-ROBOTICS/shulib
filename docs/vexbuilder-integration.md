@@ -59,7 +59,7 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 
 | Piece | Status | Chunk |
 |---|---|---|
-| `IRobotConfig` / `IRouteSource` / `RobotBuilder` | ❌ | **G1** — *ungated, can start immediately* |
+| `IRobotConfig` / `IRouteSource` / `RobotBuilder` | 🚧 | **G1 Part 1 landed 2026-09-18, host-only** — the in-memory types (`config::RobotConfig`, `config::Route`, both seams) and the builder (`robot::Robot` over an `hal::IDeviceProvider`) exist and drive the host plant identically to a hand-wired graph. *Part 2 (the PROS provider + `src/main.cpp`) is open; ungated* |
 | `PathRunner` + command-id registry + manifest export | ❌ | **G2** — freezes F8 |
 | `.vexbot` ingestion + `robot_config.hpp` codegen + SD runtime loader | ❌ | **G3** — freezes F7 |
 | `.shupaths` one-way importer + the 10-minute guide | ❌ | **G4** — closes the accessibility milestone |

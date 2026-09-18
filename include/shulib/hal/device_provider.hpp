@@ -1,0 +1,143 @@
+#pragma once
+//
+// IDeviceProvider — devices BY PORT, and the one target-specific seam a builder needs
+// (chunk G1 Part 1, 2026-09-18).
+//
+// ── Why this seam exists ────────────────────────────────────────────────────────────
+// robot/robot.hpp turns a config::RobotConfig into the whole PROS-free object graph. To do
+// that it needs actual devices, and a device is the ONE thing a config cannot contain: a
+// port number is data, an `hal::IMotor` is a live object that only the target knows how to
+// make. Ruling B2: the provider makes them and OWNS them; the builder BORROWS.
+//
+// That ownership split is not tidiness. Every F4 seam in this tree is a REFERENCE — the
+// RobotContext, the Localizer, the MotorGroup all borrow — so ownership has to sit
+// somewhere that outlives the graph. The provider is that somewhere on every target, and it
+// is the only file that knows what a port is:
+//
+//     host tests   hal::fake::FakeDeviceProvider   — fakes from fixed storage, plant-bindable
+//     the robot    hal::pros::ProsDeviceProvider   — one std::optional per port  (G1 PART 2)
+//     the sim      whatever hal/sim ends up being  — H2's
+//
+// Because the seam is a reference and the PROVIDER holds the storage, the same
+// `robot::Robot` code serves all three with no `#ifdef` and no `pros/` include anywhere
+// above hal/pros — which is the F4 principle applied to CONSTRUCTION rather than to reads.
+//
+// ── A device that cannot be made returns NULLPTR, and says which port ───────────────
+// On the V5 every adapter's constructor throws on a dead port (HA-98's read-back). A
+// builder cannot let that throw propagate per device, because "port 13 is empty" is the most
+// common thing that will ever go wrong with a robot and it deserves a sentence, not a stack
+// unwind. So the provider catches per device, returns nullptr, and records WHY in
+// lastRefusal(). The builder turns that into a refusal naming the port — never a fake in a
+// competition binary, never a null in the graph (landmine 5: absent is EXPLICIT, and it is
+// spelled `hal::AbsentGps`, not `nullptr`).
+//
+// ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
+// Asking twice for the same port must return the SAME object. The graph borrows these
+// pointers and holds them for the life of the robot; a provider that made a second adapter
+// on the second call would leave half the graph pointing at an object nobody ticks. Every
+// implementation therefore looks up first and constructs only on a miss.
+//
+// ── Why ITickPacer is only FORWARD-DECLARED here ────────────────────────────────────
+// The pacer belongs on this seam: "advance the world to the next control tick" is exactly as
+// target-specific as "give me the motor on port 3" (host: step the A2 plant; robot:
+// delay_until the 10 ms boundary), and the provider is the one object that knows the target.
+// But motion/motion_scheduler.hpp, where ITickPacer lives, sits four layers ABOVE hal/, and
+// making an L0 header include it would invert the layering for one reference. A reference to
+// an incomplete type is all a declaration needs, so the include stays where it belongs — in
+// the consumer, which already has the whole motion stack.
+//
+// PROS-free, sim-free, allocation-free.
+
+#include <cstdint>
+
+#include "shulib/hal/battery.hpp"
+#include "shulib/hal/clock.hpp"
+#include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/hal/gps.hpp"
+#include "shulib/hal/imu.hpp"
+#include "shulib/hal/motor.hpp"
+#include "shulib/hal/rotation.hpp"
+#include "shulib/hal/telemetry_sink.hpp"
+#include "shulib/units/quantity.hpp"
+
+namespace shulib::motion {
+/// Forward declaration only — see the header note on why this seam names the pacer without
+/// including the motion layer that defines it.
+class ITickPacer;
+}  // namespace shulib::motion
+
+namespace shulib::hal {
+
+/// Devices by port, made or looked up on demand and owned by the provider (ruling B2).
+///
+/// The per-port accessors are NOT const: obtaining a device may construct one, and the provider
+/// is the object that then owns it. They are also not `noexcept` by declaration — an
+/// implementation is free to be, and both shipped ones are — because refusing to construct is
+/// spelled as a nullptr return rather than as an exception, and pinning `noexcept` on the
+/// interface would forbid an implementation that legitimately allocates its storage lazily.
+class IDeviceProvider {
+public:
+    /// Polymorphic-base boilerplate: the destructor is virtual so a provider held as
+    /// `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it
+    /// made, which is why it must outlive every graph built from it. Declaring the destructor
+    /// suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is
+    /// normally non-copyable for the same reason a graph is (its devices are pointed at).
+    virtual ~IDeviceProvider() = default;
+    /// Default-constructible: the base has nothing to initialize.
+    IDeviceProvider() = default;
+    /// Copyable at the base, because the base holds no state; concrete providers decide.
+    IDeviceProvider(const IDeviceProvider&) = default;
+    /// Movable, same reasoning as the copy constructor.
+    IDeviceProvider(IDeviceProvider&&) = default;
+    /// Copy-assignable, same reasoning.
+    IDeviceProvider& operator=(const IDeviceProvider&) = default;
+    /// Move-assignable, same reasoning.
+    IDeviceProvider& operator=(IDeviceProvider&&) = default;
+
+    /// The motor on `signedPort` — |p| in 1..kMaxSmartPorts, SIGN = the PROS reversal, handed
+    /// over AS STORED so the sign is applied exactly once, in the adapter (the one-place-for-a-
+    /// sign rule that hal/motor_group.hpp and hal/drivetrain_description.hpp both state).
+    /// `cartridge` is the human-stated gearset. Returns nullptr and sets lastRefusal() when the
+    /// port is out of range, empty, or carries something that is not a motor. Idempotent: the
+    /// same port yields the same object.
+    [[nodiscard]] virtual IMotor* motor(std::int8_t signedPort, MotorCartridge cartridge) = 0;
+
+    /// The inertial sensor on physical `port`, 1..kMaxSmartPorts. Returns nullptr + a refusal on
+    /// a port that cannot serve one. Idempotent.
+    [[nodiscard]] virtual IImu* imu(std::uint8_t port) = 0;
+
+    /// The GPS on physical `port`, with its lever arm from the robot centre (`leverArmForward` is
+    /// the +X body coordinate, `leverArmLeft` the +Y). The lever arm is a CONSTRUCTION argument
+    /// rather than a later setter because the adapter removes it at the HAL edge, once, and a
+    /// GPS that has already been read with the wrong arm has already lied. Returns nullptr + a
+    /// refusal on a port that cannot serve one. Idempotent.
+    [[nodiscard]] virtual IGps* gps(std::uint8_t port, units::Length leverArmForward,
+                                    units::Length leverArmLeft) = 0;
+
+    /// The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's encoder.
+    /// Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
+    [[nodiscard]] virtual IRotation* rotation(std::uint8_t port) = 0;
+
+    /// The run's clock. PORT-LESS and never refused: every target has one, and a robot without a
+    /// clock cannot report that it has no clock.
+    [[nodiscard]] virtual IClock& clock() = 0;
+
+    /// The battery. Port-less and never refused, same reasoning as the clock.
+    [[nodiscard]] virtual IBattery& battery() = 0;
+
+    /// The one diagnostics sink for this robot. Port-less and never refused: a NullSink is a
+    /// valid answer and is what "telemetry is off" means, so there is nothing to refuse.
+    [[nodiscard]] virtual ITelemetrySink& telemetry() = 0;
+
+    /// The tick pacer — how the world advances during a blocking verb. Port-less and never
+    /// refused. See the header note on the forward declaration.
+    [[nodiscard]] virtual motion::ITickPacer& pacer() = 0;
+
+    /// Why the most recent device request returned nullptr, naming the PORT. The empty string
+    /// when nothing has been refused. The returned pointer is owned by the provider and stays
+    /// valid until the next refusal, which is enough for a builder that reads it immediately and
+    /// copies it into a verdict.
+    [[nodiscard]] virtual const char* lastRefusal() const noexcept = 0;
+};
+
+}  // namespace shulib::hal

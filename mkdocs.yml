@@ -240,6 +240,7 @@ nav:
           - Clock: api/clock.md
           - Controller: api/controller.md
           - Controller conversion: api/controller_conversion.md
+          - Device provider: api/device_provider.md
           - Device registry: api/device_registry.md
           - Digital in: api/digital_in.md
           - Digital out: api/digital_out.md
@@ -292,6 +293,11 @@ nav:
           - Boot check: api/boot_check.md
           - Calibration record: api/calibration_record.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
+      - Config:
+          - Robot config: api/robot_config.md
+          - Route: api/route.md
+      - Robot:
+          - Robot: api/robot.md
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md
           - Drive modes: api/drive_modes.md

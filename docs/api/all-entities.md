@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,060 of them, across 138 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,253 of them, across 142 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -204,6 +204,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
+| `BuildVerdict` | struct | [robot.md](robot.md#struct-buildverdict) |
+| `BuildVerdict::ok` | field | [robot.md](robot.md#buildverdict-ok) |
+| `BuildVerdict::why` | field | [robot.md](robot.md#buildverdict-why) |
 | `ButtonEdge` | class | [controller.md](controller.md#class-buttonedge) |
 | `ButtonEdge::update` | function | [controller.md](controller.md#buttonedge-update) |
 | `ByteReader` | class | [blackbox_format.md](blackbox_format.md#class-bytereader) |
@@ -363,6 +366,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CompletedMotion::preempted` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-preempted) |
 | `CompletedMotion::startTime` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-starttime) |
 | `CompletedMotion::targetPose` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-targetpose) |
+| `Constraints` | struct | [route.md](route.md#struct-constraints) |
+| `Constraints::maxAngular` | field | [route.md](route.md#constraints-maxangular) |
+| `Constraints::maxLinear` | field | [route.md](route.md#constraints-maxlinear) |
+| `Constraints::timeout` | field | [route.md](route.md#constraints-timeout) |
 | `continuousDeadband` | free function | [input_shaping.md](input_shaping.md#continuousdeadband) |
 | `ControllerAxis` | enum class | [controller.md](controller.md#enum-class-controlleraxis) |
 | `ControllerAxis::LeftX` | enumerator | [controller.md](controller.md#controlleraxis-leftx) |
@@ -557,6 +564,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DrivetrainCalibrator::start` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-start) |
 | `DrivetrainCalibrator::status` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-status) |
 | `DrivetrainCalibrator::tick` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-tick) |
+| `DrivetrainConfig` | struct | [robot_config.md](robot_config.md#struct-drivetrainconfig) |
+| `DrivetrainConfig::cartridge` | function | [robot_config.md](robot_config.md#drivetrainconfig-cartridge) |
+| `DrivetrainConfig::driveMotorCount` | function | [robot_config.md](robot_config.md#drivetrainconfig-drivemotorcount) |
+| `DrivetrainConfig::hdrive` | field | [robot_config.md](robot_config.md#drivetrainconfig-hdrive) |
+| `DrivetrainConfig::imuPort` | function | [robot_config.md](robot_config.md#drivetrainconfig-imuport) |
+| `DrivetrainConfig::kind` | field | [robot_config.md](robot_config.md#drivetrainconfig-kind) |
+| `DrivetrainConfig::kindOf` | function | [robot_config.md](robot_config.md#drivetrainconfig-kindof) |
+| `DrivetrainConfig::tank` | field | [robot_config.md](robot_config.md#drivetrainconfig-tank) |
+| `DrivetrainConfig::wheelCount` | function | [robot_config.md](robot_config.md#drivetrainconfig-wheelcount) |
+| `DrivetrainConfig::xdrive` | field | [robot_config.md](robot_config.md#drivetrainconfig-xdrive) |
 | `DrivetrainDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivetraindescription) |
 | `DrivetrainDescription::cartridge` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-cartridge) |
 | `DrivetrainDescription::describe` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-describe) |
@@ -574,7 +591,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DrivetrainDescription::trackWidth` | field | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-trackwidth) |
 | `DrivetrainDescription::valid` | function | [drivetrain_description.md](drivetrain_description.md#drivetraindescription-valid) |
 | `DrivetrainKind` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-drivetrainkind) |
+| `DrivetrainKind` | enum class | [robot_config.md](robot_config.md#enum-class-drivetrainkind) |
+| `DrivetrainKind::HDrive` | enumerator | [robot_config.md](robot_config.md#drivetrainkind-hdrive) |
 | `DrivetrainKind::Tank` | enumerator | [drivetrain_description.md](drivetrain_description.md#drivetrainkind-tank) |
+| `DrivetrainKind::Tank` | enumerator | [robot_config.md](robot_config.md#drivetrainkind-tank) |
+| `DrivetrainKind::XDrive` | enumerator | [robot_config.md](robot_config.md#drivetrainkind-xdrive) |
+| `drivetrainKindWord` | free function | [robot_config.md](robot_config.md#drivetrainkindword) |
 | `DriveVerdict` | enum class | [drivetrain_degradation.md](drivetrain_degradation.md#enum-class-driveverdict) |
 | `DriveVerdict::Drive` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drive) |
 | `DriveVerdict::DriveDegraded` | enumerator | [drivetrain_degradation.md](drivetrain_degradation.md#driveverdict-drivedegraded) |
@@ -767,6 +789,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `GateReason::RejectedSensorQuality` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedsensorquality) |
 | `GateReason::RejectedStaleFix` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedstalefix) |
 | `GateReason::RejectedTagRange` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedtagrange) |
+| `GpsConfig` | struct | [robot_config.md](robot_config.md#struct-gpsconfig) |
+| `GpsConfig::leverArmForward` | field | [robot_config.md](robot_config.md#gpsconfig-leverarmforward) |
+| `GpsConfig::leverArmLeft` | field | [robot_config.md](robot_config.md#gpsconfig-leverarmleft) |
+| `GpsConfig::port` | field | [robot_config.md](robot_config.md#gpsconfig-port) |
+| `GpsConfig::present` | field | [robot_config.md](robot_config.md#gpsconfig-present) |
 | `GpsCorrector` | class | [gps_corrector.md](gps_corrector.md#class-gpscorrector) |
 | `GpsCorrector::acceptedFixes` | function | [gps_corrector.md](gps_corrector.md#gpscorrector-acceptedfixes) |
 | `GpsCorrector::GpsCorrector` | function | [gps_corrector.md](gps_corrector.md#gpscorrector-gpscorrector) |
@@ -809,6 +836,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HDriveConfig::strafeTractionDerate` | field | [h_drive.md](h_drive.md#hdriveconfig-strafetractionderate) |
 | `HDriveConfig::strafeWheelOffset` | field | [h_drive.md](h_drive.md#hdriveconfig-strafewheeloffset) |
 | `HDriveConfig::trackWidth` | field | [h_drive.md](h_drive.md#hdriveconfig-trackwidth) |
+| `HDriveDrivetrain` | struct | [robot_config.md](robot_config.md#struct-hdrivedrivetrain) |
+| `HDriveDrivetrain::cartridge` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-cartridge) |
+| `HDriveDrivetrain::imuPort` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-imuport) |
+| `HDriveDrivetrain::ports` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-ports) |
+| `HDriveDrivetrain::strafeWheelOffset` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-strafewheeloffset) |
+| `HDriveDrivetrain::trackWidth` | field | [robot_config.md](robot_config.md#hdrivedrivetrain-trackwidth) |
+| `HeadingMode` | enum class | [route.md](route.md#enum-class-headingmode) |
+| `HeadingMode::Fixed` | enumerator | [route.md](route.md#headingmode-fixed) |
+| `HeadingMode::Free` | enumerator | [route.md](route.md#headingmode-free) |
+| `headingModeWord` | free function | [route.md](route.md#headingmodeword) |
 | `HealthMonitor` | class | [health_monitor.md](health_monitor.md#class-healthmonitor) |
 | `HealthMonitor::brownedOut` | function | [health_monitor.md](health_monitor.md#healthmonitor-brownedout) |
 | `HealthMonitor::HealthMonitor` | function | [health_monitor.md](health_monitor.md#healthmonitor-healthmonitor) |
@@ -913,6 +950,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ICorrector::operator= (overload 2)` | function | [i_corrector.md](i_corrector.md#icorrector-operator-eq-2) |
 | `ICorrector::propose` | function | [i_corrector.md](i_corrector.md#icorrector-propose) |
 | `ICorrector::~ICorrector` | function | [i_corrector.md](i_corrector.md#icorrector-destructor-icorrector) |
+| `IDeviceProvider` | class | [device_provider.md](device_provider.md#class-ideviceprovider) |
+| `IDeviceProvider::battery` | function | [device_provider.md](device_provider.md#ideviceprovider-battery) |
+| `IDeviceProvider::clock` | function | [device_provider.md](device_provider.md#ideviceprovider-clock) |
+| `IDeviceProvider::gps` | function | [device_provider.md](device_provider.md#ideviceprovider-gps) |
+| `IDeviceProvider::IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider) |
+| `IDeviceProvider::IDeviceProvider (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-2) |
+| `IDeviceProvider::IDeviceProvider (overload 3)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-3) |
+| `IDeviceProvider::imu` | function | [device_provider.md](device_provider.md#ideviceprovider-imu) |
+| `IDeviceProvider::lastRefusal` | function | [device_provider.md](device_provider.md#ideviceprovider-lastrefusal) |
+| `IDeviceProvider::motor` | function | [device_provider.md](device_provider.md#ideviceprovider-motor) |
+| `IDeviceProvider::operator=` | function | [device_provider.md](device_provider.md#ideviceprovider-operator-eq) |
+| `IDeviceProvider::operator= (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-operator-eq-2) |
+| `IDeviceProvider::pacer` | function | [device_provider.md](device_provider.md#ideviceprovider-pacer) |
+| `IDeviceProvider::rotation` | function | [device_provider.md](device_provider.md#ideviceprovider-rotation) |
+| `IDeviceProvider::telemetry` | function | [device_provider.md](device_provider.md#ideviceprovider-telemetry) |
+| `IDeviceProvider::~IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-destructor-ideviceprovider) |
 | `IDeviceRegistry` | class | [device_registry.md](device_registry.md#class-ideviceregistry) |
 | `IDeviceRegistry::IDeviceRegistry` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry) |
 | `IDeviceRegistry::IDeviceRegistry (overload 2)` | function | [device_registry.md](device_registry.md#ideviceregistry-ideviceregistry-2) |
@@ -1098,6 +1151,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IPoseSource::quality` | function | [i_pose_source.md](i_pose_source.md#iposesource-quality) |
 | `IPoseSource::twist` | function | [i_pose_source.md](i_pose_source.md#iposesource-twist) |
 | `IPoseSource::~IPoseSource` | function | [i_pose_source.md](i_pose_source.md#iposesource-destructor-iposesource) |
+| `IRobotConfig` | class | [robot_config.md](robot_config.md#class-irobotconfig) |
+| `IRobotConfig::config` | function | [robot_config.md](robot_config.md#irobotconfig-config) |
+| `IRobotConfig::IRobotConfig` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig) |
+| `IRobotConfig::IRobotConfig (overload 2)` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig-2) |
+| `IRobotConfig::IRobotConfig (overload 3)` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig-3) |
+| `IRobotConfig::operator=` | function | [robot_config.md](robot_config.md#irobotconfig-operator-eq) |
+| `IRobotConfig::operator= (overload 2)` | function | [robot_config.md](robot_config.md#irobotconfig-operator-eq-2) |
+| `IRobotConfig::~IRobotConfig` | function | [robot_config.md](robot_config.md#irobotconfig-destructor-irobotconfig) |
 | `IRotation` | class | [rotation.md](rotation.md#class-irotation) |
 | `IRotation::IRotation` | function | [rotation.md](rotation.md#irotation-irotation) |
 | `IRotation::IRotation (overload 2)` | function | [rotation.md](rotation.md#irotation-irotation-2) |
@@ -1107,6 +1168,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IRotation::position` | function | [rotation.md](rotation.md#irotation-position) |
 | `IRotation::velocity` | function | [rotation.md](rotation.md#irotation-velocity) |
 | `IRotation::~IRotation` | function | [rotation.md](rotation.md#irotation-destructor-irotation) |
+| `IRouteSource` | class | [route.md](route.md#class-iroutesource) |
+| `IRouteSource::at` | function | [route.md](route.md#iroutesource-at) |
+| `IRouteSource::count` | function | [route.md](route.md#iroutesource-count) |
+| `IRouteSource::IRouteSource` | function | [route.md](route.md#iroutesource-iroutesource) |
+| `IRouteSource::IRouteSource (overload 2)` | function | [route.md](route.md#iroutesource-iroutesource-2) |
+| `IRouteSource::IRouteSource (overload 3)` | function | [route.md](route.md#iroutesource-iroutesource-3) |
+| `IRouteSource::operator=` | function | [route.md](route.md#iroutesource-operator-eq) |
+| `IRouteSource::operator= (overload 2)` | function | [route.md](route.md#iroutesource-operator-eq-2) |
+| `IRouteSource::route` | function | [route.md](route.md#iroutesource-route) |
+| `IRouteSource::~IRouteSource` | function | [route.md](route.md#iroutesource-destructor-iroutesource) |
 | `isFinitePose` | free function | [finite_guard.md](finite_guard.md#isfinitepose) |
 | `isSmartPort` | free function | [device_registry.md](device_registry.md#issmartport) |
 | `ITagSource` | class | [vision.md](vision.md#class-itagsource) |
@@ -1178,10 +1249,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |
+| `kMaxMarkerArgs` | constant | [route.md](route.md#kmaxmarkerargs) |
+| `kMaxMarkersPerWaypoint` | constant | [route.md](route.md#kmaxmarkersperwaypoint) |
+| `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
+| `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
+| `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
 | `kMaxSmartPorts` | constant | [drivetrain_description.md](drivetrain_description.md#kmaxsmartports) |
+| `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
@@ -1274,6 +1351,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `magnitudeOf` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#magnitudeof) |
 | `mapSticks` | free function | [stick_mapping.md](stick_mapping.md#mapsticks) |
 | `mapSticksToChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#mapstickstochassisspeeds) |
+| `Marker` | struct | [route.md](route.md#struct-marker) |
+| `Marker::argCount` | field | [route.md](route.md#marker-argcount) |
+| `Marker::args` | field | [route.md](route.md#marker-args) |
+| `Marker::id` | field | [route.md](route.md#marker-id) |
 | `MatrixKinematics` | class | [matrix_kinematics.md](matrix_kinematics.md#class-matrixkinematics) |
 | `MatrixKinematics::desaturate` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-desaturate) |
 | `MatrixKinematics::forward` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-forward) |
@@ -1285,6 +1366,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MatrixKinematics::Wheel::turnInches` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-turninches) |
 | `MatrixKinematics::Wheel::v` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-v) |
 | `MatrixKinematics::wheelCount` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheelcount) |
+| `MechanismConfig` | struct | [robot_config.md](robot_config.md#struct-mechanismconfig) |
+| `MechanismConfig::motorCount` | field | [robot_config.md](robot_config.md#mechanismconfig-motorcount) |
+| `MechanismConfig::motorPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-motorports) |
+| `MechanismConfig::name` | field | [robot_config.md](robot_config.md#mechanismconfig-name) |
+| `MechanismConfig::pneumaticCount` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticcount) |
+| `MechanismConfig::pneumaticPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticports) |
 | `MechanismDeps` | struct | [mechanism_op.md](mechanism_op.md#struct-mechanismdeps) |
 | `MechanismDeps::clock` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-clock) |
 | `MechanismDeps::faults` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-faults) |
@@ -1486,6 +1573,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ObjectObservation::bearing` | field | [vision.md](vision.md#objectobservation-bearing) |
 | `ObjectObservation::classId` | field | [vision.md](vision.md#objectobservation-classid) |
 | `ObjectObservation::confidence` | field | [vision.md](vision.md#objectobservation-confidence) |
+| `OdometryConfig` | struct | [robot_config.md](robot_config.md#struct-odometryconfig) |
+| `OdometryConfig::kind` | field | [robot_config.md](robot_config.md#odometryconfig-kind) |
+| `OdometryConfig::wheels` | field | [robot_config.md](robot_config.md#odometryconfig-wheels) |
+| `OdometryKind` | enum class | [robot_config.md](robot_config.md#enum-class-odometrykind) |
+| `OdometryKind::DriveEncoders` | enumerator | [robot_config.md](robot_config.md#odometrykind-driveencoders) |
+| `OdometryKind::TrackingWheels` | enumerator | [robot_config.md](robot_config.md#odometrykind-trackingwheels) |
+| `odometryKindWord` | free function | [robot_config.md](robot_config.md#odometrykindword) |
 | `OdoStallCheck` | class | [odo_stall_check.md](odo_stall_check.md#class-odostallcheck) |
 | `OdoStallCheck::canDetectStall` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-candetectstall) |
 | `OdoStallCheck::kMaxWheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheck-kmaxwheels) |
@@ -1584,6 +1678,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PortObservation::side` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-side) |
 | `PortObservation::sign` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-sign) |
 | `PortObservation::tapeDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-tapedeltarad) |
+| `PortUse` | enum class | [robot_config.md](robot_config.md#enum-class-portuse) |
+| `PortUse::DriveLeft` | enumerator | [robot_config.md](robot_config.md#portuse-driveleft) |
+| `PortUse::DriveRight` | enumerator | [robot_config.md](robot_config.md#portuse-driveright) |
+| `PortUse::DriveWheel` | enumerator | [robot_config.md](robot_config.md#portuse-drivewheel) |
+| `PortUse::Free` | enumerator | [robot_config.md](robot_config.md#portuse-free) |
+| `PortUse::Gps` | enumerator | [robot_config.md](robot_config.md#portuse-gps) |
+| `PortUse::Imu` | enumerator | [robot_config.md](robot_config.md#portuse-imu) |
+| `PortUse::Mechanism` | enumerator | [robot_config.md](robot_config.md#portuse-mechanism) |
+| `PortUse::PodForward` | enumerator | [robot_config.md](robot_config.md#portuse-podforward) |
+| `PortUse::PodLateral` | enumerator | [robot_config.md](robot_config.md#portuse-podlateral) |
+| `portUseWord` | free function | [robot_config.md](robot_config.md#portuseword) |
 | `Pose2d` | class | [pose2d.md](pose2d.md#class-pose2d) |
 | `Pose2d::approxEqual` | function | [pose2d.md](pose2d.md#pose2d-approxequal) |
 | `Pose2d::heading` | function | [pose2d.md](pose2d.md#pose2d-heading) |
@@ -1759,6 +1864,41 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `recoverFinite` | free function | [finite_guard.md](finite_guard.md#recoverfinite) |
 | `recoverFinitePose` | free function | [finite_guard.md](finite_guard.md#recoverfinitepose) |
 | `recoverWheelVoltage` | free function | [plausibility_guard.md](plausibility_guard.md#recoverwheelvoltage) |
+| `Robot` | class | [robot.md](robot.md#class-robot) |
+| `Robot::chassis` | function | [robot.md](robot.md#robot-chassis) |
+| `Robot::chassis (overload 2)` | function | [robot.md](robot.md#robot-chassis-2) |
+| `Robot::config` | function | [robot.md](robot.md#robot-config) |
+| `Robot::context` | function | [robot.md](robot.md#robot-context) |
+| `Robot::context (overload 2)` | function | [robot.md](robot.md#robot-context-2) |
+| `Robot::describe` | function | [robot.md](robot.md#robot-describe) |
+| `Robot::faults` | function | [robot.md](robot.md#robot-faults) |
+| `Robot::faults (overload 2)` | function | [robot.md](robot.md#robot-faults-2) |
+| `Robot::hasGpsCorrector` | function | [robot.md](robot.md#robot-hasgpscorrector) |
+| `Robot::health` | function | [robot.md](robot.md#robot-health) |
+| `Robot::health (overload 2)` | function | [robot.md](robot.md#robot-health-2) |
+| `Robot::localizer` | function | [robot.md](robot.md#robot-localizer) |
+| `Robot::localizer (overload 2)` | function | [robot.md](robot.md#robot-localizer-2) |
+| `Robot::motorGroupCount` | function | [robot.md](robot.md#robot-motorgroupcount) |
+| `Robot::operator=` | function | [robot.md](robot.md#robot-operator-eq) |
+| `Robot::operator= (overload 2)` | function | [robot.md](robot.md#robot-operator-eq-2) |
+| `Robot::Robot` | function | [robot.md](robot.md#robot-robot) |
+| `Robot::Robot (overload 2)` | function | [robot.md](robot.md#robot-robot-2) |
+| `Robot::Robot (overload 3)` | function | [robot.md](robot.md#robot-robot-3) |
+| `Robot::~Robot` | function | [robot.md](robot.md#robot-destructor-robot) |
+| `RobotConfig` | struct | [robot_config.md](robot_config.md#struct-robotconfig) |
+| `RobotConfig::describe` | function | [robot_config.md](robot_config.md#robotconfig-describe) |
+| `RobotConfig::drivetrain` | field | [robot_config.md](robot_config.md#robotconfig-drivetrain) |
+| `RobotConfig::identity` | field | [robot_config.md](robot_config.md#robotconfig-identity) |
+| `RobotConfig::mechanismCount` | field | [robot_config.md](robot_config.md#robotconfig-mechanismcount) |
+| `RobotConfig::mechanisms` | field | [robot_config.md](robot_config.md#robotconfig-mechanisms) |
+| `RobotConfig::odometry` | field | [robot_config.md](robot_config.md#robotconfig-odometry) |
+| `RobotConfig::sensors` | field | [robot_config.md](robot_config.md#robotconfig-sensors) |
+| `RobotConfig::tuning` | field | [robot_config.md](robot_config.md#robotconfig-tuning) |
+| `RobotConfig::valid` | function | [robot_config.md](robot_config.md#robotconfig-valid) |
+| `RobotConfig::validCartridge` | function | [robot_config.md](robot_config.md#robotconfig-validcartridge) |
+| `RobotConfig::validImuPort` | function | [robot_config.md](robot_config.md#robotconfig-validimuport) |
+| `RobotConfig::validPod` | function | [robot_config.md](robot_config.md#robotconfig-validpod) |
+| `RobotConfig::validWheelPort` | function | [robot_config.md](robot_config.md#robotconfig-validwheelport) |
 | `RobotContext` | class | [robot_context.md](robot_context.md#class-robotcontext) |
 | `RobotContext::battery` | function | [robot_context.md](robot_context.md#robotcontext-battery) |
 | `RobotContext::clock` | function | [robot_context.md](robot_context.md#robotcontext-clock) |
@@ -1778,9 +1918,18 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotContextConfig::tags` | field | [robot_context.md](robot_context.md#robotcontextconfig-tags) |
 | `RobotContextConfig::telemetry` | field | [robot_context.md](robot_context.md#robotcontextconfig-telemetry) |
 | `RobotContextConfig::vision` | field | [robot_context.md](robot_context.md#robotcontextconfig-vision) |
+| `RobotIdentity` | struct | [robot_config.md](robot_config.md#struct-robotidentity) |
+| `RobotIdentity::name` | field | [robot_config.md](robot_config.md#robotidentity-name) |
+| `RobotIdentity::season` | field | [robot_config.md](robot_config.md#robotidentity-season) |
+| `RobotIdentity::team` | field | [robot_config.md](robot_config.md#robotidentity-team) |
 | `robotToField` | free function | [frame.md](frame.md#robottofield) |
 | `rotationCentidegPerSecToCanonical` | free function | [rotation_conversion.md](rotation_conversion.md#rotationcentidegpersectocanonical) |
 | `rotationCentidegToCanonical` | free function | [rotation_conversion.md](rotation_conversion.md#rotationcentidegtocanonical) |
+| `Route` | struct | [route.md](route.md#struct-route) |
+| `Route::count` | field | [route.md](route.md#route-count) |
+| `Route::name` | field | [route.md](route.md#route-name) |
+| `Route::valid` | function | [route.md](route.md#route-valid) |
+| `Route::waypoints` | field | [route.md](route.md#route-waypoints) |
 | `Routine` | class | [routine.md](routine.md#class-routine) |
 | `Routine::brake` | function | [routine.md](routine.md#routine-brake) |
 | `Routine::chassis` | function | [routine.md](routine.md#routine-chassis) |
@@ -1941,6 +2090,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SdSinkStorage` | struct | [sd_sink.md](sd_sink.md#struct-sdsinkstorage) |
 | `SdSinkStorage::buffer` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-buffer) |
 | `SdSinkStorage::ring` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-ring) |
+| `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
+| `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
 | `SessionInfo` | struct | [session_info.md](session_info.md#struct-sessioninfo) |
 | `SessionInfo::alliance` | field | [session_info.md](session_info.md#sessioninfo-alliance) |
 | `SessionInfo::buildHash` | field | [session_info.md](session_info.md#sessioninfo-buildhash) |
@@ -2002,6 +2153,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallDetector::reset` | function | [stall_detector.md](stall_detector.md#stalldetector-reset) |
 | `StallDetector::StallDetector` | function | [stall_detector.md](stall_detector.md#stalldetector-stalldetector) |
 | `StallDetector::update` | function | [stall_detector.md](stall_detector.md#stalldetector-update) |
+| `StaticRobotConfig` | class | [robot_config.md](robot_config.md#class-staticrobotconfig) |
+| `StaticRobotConfig::config` | function | [robot_config.md](robot_config.md#staticrobotconfig-config) |
+| `StaticRobotConfig::StaticRobotConfig` | function | [robot_config.md](robot_config.md#staticrobotconfig-staticrobotconfig) |
+| `StaticRoutes` | class | [route.md](route.md#class-staticroutes) |
+| `StaticRoutes::at` | function | [route.md](route.md#staticroutes-at) |
+| `StaticRoutes::count` | function | [route.md](route.md#staticroutes-count) |
+| `StaticRoutes::route` | function | [route.md](route.md#staticroutes-route) |
+| `StaticRoutes::StaticRoutes` | function | [route.md](route.md#staticroutes-staticroutes) |
 | `StickInput` | struct | [stick_mapping.md](stick_mapping.md#struct-stickinput) |
 | `StickInput::connected` | field | [stick_mapping.md](stick_mapping.md#stickinput-connected) |
 | `StickInput::leftX` | field | [stick_mapping.md](stick_mapping.md#stickinput-leftx) |
@@ -2047,6 +2206,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TagProvenance::Measured` | enumerator | [tag_map.md](tag_map.md#tagprovenance-measured) |
 | `TagProvenance::Specified` | enumerator | [tag_map.md](tag_map.md#tagprovenance-specified) |
 | `TagProvenance::Unspecified` | enumerator | [tag_map.md](tag_map.md#tagprovenance-unspecified) |
+| `TankDrivetrain` | struct | [robot_config.md](robot_config.md#struct-tankdrivetrain) |
+| `TankDrivetrain::description` | field | [robot_config.md](robot_config.md#tankdrivetrain-description) |
 | `TankKinematics` | class | [tank.md](tank.md#class-tankkinematics) |
 | `TankKinematics::desaturate` | function | [tank.md](tank.md#tankkinematics-desaturate) |
 | `TankKinematics::forward` | function | [tank.md](tank.md#tankkinematics-forward) |
@@ -2106,6 +2267,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TrackingWheel::Role::Forward` | enumerator | [tracking_wheel.md](tracking_wheel.md#trackingwheel-role-forward) |
 | `TrackingWheel::Role::Lateral` | enumerator | [tracking_wheel.md](tracking_wheel.md#trackingwheel-role-lateral) |
 | `TrackingWheel::travelDelta` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-traveldelta) |
+| `TrackingWheelConfig` | struct | [robot_config.md](robot_config.md#struct-trackingwheelconfig) |
+| `TrackingWheelConfig::offset` | field | [robot_config.md](robot_config.md#trackingwheelconfig-offset) |
+| `TrackingWheelConfig::port` | field | [robot_config.md](robot_config.md#trackingwheelconfig-port) |
+| `TrackingWheelConfig::wheelDiameter` | field | [robot_config.md](robot_config.md#trackingwheelconfig-wheeldiameter) |
+| `TrackingWheelsOdometry` | struct | [robot_config.md](robot_config.md#struct-trackingwheelsodometry) |
+| `TrackingWheelsOdometry::forward` | field | [robot_config.md](robot_config.md#trackingwheelsodometry-forward) |
+| `TrackingWheelsOdometry::lateral` | field | [robot_config.md](robot_config.md#trackingwheelsodometry-lateral) |
 | `TrajectoryResult` | struct | [chassis.md](chassis.md#struct-trajectoryresult) |
 | `TrajectoryResult::completedLegs` | field | [chassis.md](chassis.md#trajectoryresult-completedlegs) |
 | `TrajectoryResult::exit` | field | [chassis.md](chassis.md#trajectoryresult-exit) |
@@ -2122,6 +2290,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TriageInfo::faultTime` | field | [blackbox_format.md](blackbox_format.md#triageinfo-faulttime) |
 | `TriageInfo::precedingTicks` | field | [blackbox_format.md](blackbox_format.md#triageinfo-precedingticks) |
 | `TriageInfo::tickIndex` | field | [blackbox_format.md](blackbox_format.md#triageinfo-tickindex) |
+| `TuningConfig` | type alias | [robot_config.md](robot_config.md#tuningconfig) |
 | `TurnTo` | class | [turn_to.md](turn_to.md#class-turnto) |
 | `TurnTo::cancel` | function | [turn_to.md](turn_to.md#turnto-cancel) |
 | `TurnTo::exitReason` | function | [turn_to.md](turn_to.md#turnto-exitreason) |
@@ -2143,6 +2312,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `validate` | free function | [robot.md](robot.md#validate) |
 | `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
 | `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
@@ -2162,6 +2332,24 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Watchdog::start` | function | [watchdog.md](watchdog.md#watchdog-start) |
 | `Watchdog::started` | function | [watchdog.md](watchdog.md#watchdog-started) |
 | `Watchdog::Watchdog` | function | [watchdog.md](watchdog.md#watchdog-watchdog) |
+| `Waypoint` | struct | [route.md](route.md#struct-waypoint) |
+| `Waypoint::constraints` | field | [route.md](route.md#waypoint-constraints) |
+| `Waypoint::heading` | field | [route.md](route.md#waypoint-heading) |
+| `Waypoint::headingMode` | field | [route.md](route.md#waypoint-headingmode) |
+| `Waypoint::markerCount` | field | [route.md](route.md#waypoint-markercount) |
+| `Waypoint::markers` | field | [route.md](route.md#waypoint-markers) |
+| `Waypoint::motion` | field | [route.md](route.md#waypoint-motion) |
+| `Waypoint::reverse` | field | [route.md](route.md#waypoint-reverse) |
+| `Waypoint::x` | field | [route.md](route.md#waypoint-x) |
+| `Waypoint::y` | field | [route.md](route.md#waypoint-y) |
+| `WaypointMotion` | enum class | [route.md](route.md#enum-class-waypointmotion) |
+| `WaypointMotion::DriveTo` | enumerator | [route.md](route.md#waypointmotion-driveto) |
+| `WaypointMotion::Hold` | enumerator | [route.md](route.md#waypointmotion-hold) |
+| `WaypointMotion::MoveToPose` | enumerator | [route.md](route.md#waypointmotion-movetopose) |
+| `WaypointMotion::Start` | enumerator | [route.md](route.md#waypointmotion-start) |
+| `WaypointMotion::StrafeTo` | enumerator | [route.md](route.md#waypointmotion-strafeto) |
+| `WaypointMotion::TurnTo` | enumerator | [route.md](route.md#waypointmotion-turnto) |
+| `waypointMotionWord` | free function | [route.md](route.md#waypointmotionword) |
 | `WheelSpeeds` | class | [wheel_speeds.md](wheel_speeds.md#class-wheelspeeds) |
 | `WheelSpeeds::approxEqual` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-approxequal) |
 | `WheelSpeeds::kMaxWheels` | field | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-kmaxwheels) |
@@ -2177,6 +2365,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | Name | Kind | Page |
 |---|---|---|
 | `xDrive` | free function | [x_drive.md](x_drive.md#xdrive) |
+| `XDriveDrivetrain` | struct | [robot_config.md](robot_config.md#struct-xdrivedrivetrain) |
+| `XDriveDrivetrain::cartridge` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-cartridge) |
+| `XDriveDrivetrain::driveRadius` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-driveradius) |
+| `XDriveDrivetrain::imuPort` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-imuport) |
+| `XDriveDrivetrain::ports` | field | [robot_config.md](robot_config.md#xdrivedrivetrain-ports) |
 
 ## Y
 

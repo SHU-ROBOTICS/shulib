@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,060 of them across 138 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 2,253 of them across 142 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -162,6 +162,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Clock](clock.md) | [`hal/clock.hpp`](../../include/shulib/hal/clock.hpp) | IClock — the single source of "now" for the whole stack. |
 | [Controller](controller.md) | [`hal/controller.hpp`](../../include/shulib/hal/controller.hpp) | IController — the V5 game controller behind the HAL (chunk R1a, absorbing Phase T's T1): the INPUT half of driver control. |
 | [Controller conversion](controller_conversion.md) | [`hal/controller_conversion.hpp`](../../include/shulib/hal/controller_conversion.hpp) | Controller canonical conversions — the ONE place the V5 controller's raw stick range becomes shulib's canonical [-1, 1] (§7: "convert exactly once, at the edge"). |
+| [Device provider](device_provider.md) | [`hal/device_provider.hpp`](../../include/shulib/hal/device_provider.hpp) | IDeviceProvider — devices BY PORT, and the one target-specific seam a builder needs. |
 | [Device registry](device_registry.md) | [`hal/device_registry.hpp`](../../include/shulib/hal/device_registry.hpp) | IDeviceRegistry — WHAT IS ACTUALLY PLUGGED INTO EACH SMART PORT. |
 | [Digital in](digital_in.md) | [`hal/digital_in.hpp`](../../include/shulib/hal/digital_in.hpp) | IDigitalIn — a single digital input line behind the HAL (chunk R1b): a limit switch, a bumper, a jumper — any two-state sensor on an ADI port. |
 | [Digital out](digital_out.md) | [`hal/digital_out.hpp`](../../include/shulib/hal/digital_out.hpp) | IDigitalOut — a single digital output line behind the HAL (chunk F1, WS7/M4): a pneumatic solenoid on the ADI ports, or any other two-state actuator. |
@@ -235,6 +236,19 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Calibration record](calibration_record.md) | [`calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) | The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card. |
 | [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
 
+### Config
+
+| Page | Header | What it is |
+|---|---|---|
+| [Robot config](robot_config.md) | [`config/robot_config.hpp`](../../include/shulib/config/robot_config.hpp) | RobotConfig — a whole robot, described as DATA. |
+| [Route](route.md) | [`config/route.hpp`](../../include/shulib/config/route.hpp) | Route — an autonomous routine as DATA. |
+
+### Robot
+
+| Page | Header | What it is |
+|---|---|---|
+| [Robot](robot.md) | [`robot/robot.hpp`](../../include/shulib/robot/robot.hpp) | robot::Robot — a config::RobotConfig, wired. |
+
 ### Teleop
 
 | Page | Header | What it is |
@@ -250,7 +264,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,060 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 2,253 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

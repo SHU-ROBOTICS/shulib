@@ -236,3 +236,36 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   for the new count — suite **1306 / 1,625,161 green** (T2 adds 39 cases); six builds; ARM;
   guards; api fresh; removability empty. Committing T2's library half. The team lead's brain
   has still not enumerated on any port (no kernel USB event at all); he has unplugged it for now.
+- **16:43** — **COMMITTED `d8aab95`** (T2's library half) and **`280dce8`** (the G1
+  brief's `main.cpp` line references re-checked against the Part 2 tree). Tree clean. The
+  seven-minute USB watch ended with no brain ever seen; the team lead has unplugged it — the
+  cable/port question is open on his side; all four packages stay built under /tmp/hw_pkgs and
+  in the hardware checkout at `5e4ce65` (T2 and G1 do not change any package: `src/` untouched).
+- **16:43** — **G1 Part 1 executor LAUNCHED** (opus, background, main tree from
+  `280dce8`; told: no commit, NO `src/`/Makefile/gate/worksheet changes because the hardware
+  session depends on them, PROGRESS log first, the stale-binary recipe). It is the no-code
+  foundation the team lead asked for first: `RobotConfig` embedding the drivetrain description,
+  `Route` types, the device-provider seam with a fake provider, `robot::Robot` owning the graph,
+  bit-identity to the longhand rigs as the acceptance test.
+- **18:52** — **G1 Part 1 executor REPORTED** (ran ~2.3 h): `config/robot_config.hpp`,
+  `config/route.hpp`, `hal/device_provider.hpp`, `hal/fake/fake_device_provider.hpp`,
+  `robot/robot.hpp`; 36 new cases; 15 mutations, FOUR first-run greens each closed by a
+  stronger test (a turnTo leg so swapped groups show; a 4.0 in fixture wheel so the derived
+  stall geometry is not the default; a frozen member so an empty group span shows; the signed
+  port asserted after both passes); 13 rulings — the one that matters: no `build()` factory (a
+  non-movable `Robot` cannot be returned by value; the brief's own B3 said so), so the two lines
+  are `validate()` + `Robot{cfg, devices}`. Pre-existing cases moved by exactly +15 assertions,
+  all from the CI-guard mirror test (3 per new header × 5), arithmetically verified. `src/`
+  byte-identical to `280dce8`. One edit outside the touch list, flagged: a table cell in
+  `docs/vexbuilder-integration.md` that had become false (accepted — it is a fact). No HA
+  numbers minted. **Coordinator's verification in progress:** `verify.sh` running; the
+  constructor read against `TankRobot` — same objects, same order (config → kinematics → motors
+  → groups → sensors → latch → monitor → geometry → odometry → fusion → corrector → localizer →
+  context → deps → chassis); two hand mutations queued behind the gate run (they share the
+  build directory).
+- **19:02** — G1 Part 1 verification complete: `verify.sh` ALL PASS — suite **1342 /
+  1,632,353 green**; six builds; ARM 178 headers; guards; api fresh; briefing; removability empty.
+  Hand mutations on fresh binaries: the kinematics' wheel order handed right,left ⇒ the
+  bit-identity REQUIREs fail (exit reasons differ) and the healthy group raises a disagreement;
+  the GPS corrector never installed ⇒ tick counts diverge and `lastCorrection().source` is not
+  "gps". Restored, relinked, green. Committing.
