@@ -138,7 +138,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 | F5 | **`IKinematics` contract** — twist `(vx,vy,ω)` ⇄ wheels + desaturate + `strafeAuthority()` (a **pure read-only query** = max sustainable \|vy\|/\|vx\|; the motion layer clamps, kinematics never clamps inside `toWheels()` — §13 #5) | All motion code; new drivetrains | M1 | ✅ **LOCKED 2026-06-19** *(host-validated by X-drive + tank; on-V5 number-match pending)* |
 | F6 | **Public `Chassis` API** — the whole facade surface, by group: **construction** `Chassis(deps, pacer, config = {})` + non-copyable/non-movable; **blocking verbs** `moveTo` / `strafeTo` / `turnTo` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `wait(Time)` — the last three adopted at D2; **manual verb** `drive(ChassisSpeeds, Frame)`, `Frame` required; **control** `cancel()` / `waitUntil(pred, Time)`; **state** `pose` / `setPose` / `strafeAuthority` / `lastExitReason` / `lastCompleted` / `motionConfig`; **Tier-3 seam** `deps()` / `scheduler()` (both overloads); **three public types** `ChassisConfig` / `MotionOptions` (existing fields frozen; the field *set* additive-open by design) / `TrajectoryResult` (incl. `succeeded()`); **plus the documented semantics** the header carries (blocking + watchdog, pre-empt, cancel safe state, fault policy, wait-for-live, strafe-fallback visibility). Time is typed `units::Time` across the surface (the D2 retype; `hold(500)` does not compile). **Deliberately OUTSIDE F6:** `Routine` / `RoutineResult` / `RoutineStopCause` — they froze at D3 as their own row **F10** (a different tier, versioning independently); the `MotionScheduler` / `MotionDeps` member surfaces reached through `scheduler()`/`deps()` (C1/C2's layers — only the accessors freeze here); the lower-layer config fields reached through `ChassisConfig` (they belong to their layers). Enforced structurally: compile-time signature pin `test/f6_signature_pin_test.cpp` (36 pins, mutation-proven) + the version mechanism `include/shulib/version.hpp` (API 2.0, breaking-vs-additive policy written) | Every auton ever written on shulib | M2 | ✅ **LOCKED 2026-08-12** *(at D2, after D1's second consumer; the nine-item critique rulings + rejected alternatives are the D2 completion record's centrepiece)* |
 | F7 | **`robotProfile` sub-schema** inside `.vexbot` — drivetrain/odometry/sensors/mechanisms/corrections | Config codegen; every robot file | M5 | 🎯 *(coordinate with VexBuilder)* |
-| F8 | **`paths[]` sub-schema + command-id vocabulary** inside `.vexbot` | Every data-driven routine | M5 | 🎯 *(coordinate with VexBuilder)* |
+| F8 | **`paths[]` sub-schema + command-id vocabulary** — BOTH halves of the routine contract, the in-memory one and the on-disk one. **FROZEN:** the data types `config::Route` (`name[32]`, `waypoints[32]`, `count`) / `Waypoint` (`x`, `y`, `heading`, `headingMode`, `motion`, `reverse`, `constraints`, `markers[4]`, `markerCount`) / `Marker` (`id[24]`, `args[2]`, `argCount`) / `Constraints` (`maxLinear`, `maxAngular`, `timeout`); the **enumerator VALUES** of `WaypointMotion` (`Start`=1 … `Hold`=6) and `HeadingMode` (`Fixed`=1, `Free`=2) — a generator persists them as integer literals, so a renumbering is invisible at every call site and catastrophic in a file exported last season; the capacities `kMaxWaypoints`=32 / `kMaxMarkersPerWaypoint`=4 / `kMaxMarkerArgs`=2 / `kMaxMarkerIdBytes`=24; the **id vocabulary rule** (1–23 bytes of `[a-z0-9_]`, so no id ever needs escaping on any of the four paths it travels — a C++ literal, a manifest line, a `.vexbot` field, a picker button); the **four library-owned built-in ids and their arities** `wait_ms(1)` / `brake(0)` / `hold_ms(1)` / `log(0..2)` **in that order** (the manifest's order is part of its bytes); `runner::CommandRegistry`'s public members (`on` ×2, `find`, `count`, `ids`), `runner::Handler`/`CommandEntry`, `PathRunner::run(const Route&) -> RunReport` and `RunReport`'s seven fields; `writeManifest`'s signature, field names and record order; and the **file** schema's field names and value vocabularies in [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.1–4.3. **ADDITIVE under `kApiMinor`:** new enumerators AT THE END, new built-in ids AT THE END, new `RunReport` fields, new registry members, new optional file fields, new manifest fields — and **relaxing** a `Route::valid()` rule (tightening one is breaking; G2 relaxed exactly one, R6 below). **Deliberately NOT frozen, said out loud because silence in this register reads as frozen:** the WORDING of the runner's log lines and of `valid()`'s refusal messages (the BEHAVIOUR is frozen — one Warn per unknown id naming the id and the waypoint index, one Warn on a stop, one Info per `log` marker — the sentences are not); and `motion: "arc"`, which is a **named gap** rather than an omission (no facade verb performs an arc, and F8 must not freeze something the library cannot do — it arrives additively with the roadmap's blending item). **The one behavioural change G2 made to G1's data rules (R6):** a `MoveToPose` with `HeadingMode::Free` is now LEGAL and means *keep the heading the estimate has when the leg starts*; `TurnTo` keeps refusing `Free`. Enforced structurally: compile-time signature pin `test/f8_signature_pin_test.cpp` (mutation-proven — `run()` gaining `noexcept`, `count()` changing return type, a widened id charset and a reordered built-in each fail the build NAMING F8) + the byte-exact manifest golden in `test/manifest_test.cpp` + `include/shulib/version.hpp` (API **2.2**, carrying the G2 additive note) | Every data-driven routine | M5 | ✅ **LOCKED 2026-09-18** *(at G2, whose acceptance test is differential rather than tolerance-based: the same five legs written once as DATA and once as a `Routine` chain drive two identically-seeded host plants **bit-identically** — per-tick ground truth by `memcmp`, every commanded volt an exact double. **Host plant only: no route has ever executed on a robot.**)* |
 | F9 | **`SHUL/2` telemetry wire protocol** (v1) — the wire serialization of `DebugRecord` (§18) | Sim, record/replay, tuner, VexBuilder overlay; **every sink (`TermSink`/`SdSink`/`Shul2Sink`) shares the `DebugRecord` schema** | M6 | 🎯 |
 | F10 | **Public `Routine` API (the Tier-2 recipe layer)** — construction `Routine(chassis, name = "routine")` `noexcept` + non-copyable/non-movable; **eleven steps**, each returning `Routine&`: `startAt` / `moveTo` / `driveTo` / `strafeTo` / `turnTo` / `face` / `followTrajectory` (span + brace overloads) / `brake` / `hold(Time)` / `pause(Time)` / `waitFor(pred, Time, name)`; **four observers** `ok()` / `result()` / `lastTrajectory()` / `chassis()`, all `noexcept`; **two public types** `RoutineResult` (all eight fields) and `RoutineStopCause` (**append-only** — the existing enumerator *values* are pinned, because a re-meaning is invisible at every call site); **plus the documented semantics**: eager execution (a step runs when it is chained), the stop/safe/skip/report error policy, preconditions throwing through with the chain's counters untouched, `lastTrajectory()` reading `exit = Running` until a trajectory has run, and typed time as a SEMANTIC (`hold(0.3)` must not compile). **Deliberately OUTSIDE F10:** `then()` — the mechanism seam, whose accepted return types and `name` default are a placeholder chosen before mechanisms existed (F1/F3 build them), so freezing it would commit to a guess; and the exact WORDING of the stop/skip log lines (the behaviour is frozen, the sentence is not). A **separate row from F6**, not an amendment: the recipe layer is a strict client of the facade, a different tier that can version independently, and amending F6 would retroactively blur what F6 promised on its own lock date. Enforced structurally: compile-time signature pin `test/routine_signature_pin_test.cpp` (37 pins, 16-mutation-proven, every `noexcept` pin using the compound-requirement detector that D2's hole #1 taught) + `include/shulib/version.hpp` | Every Tier-2 auton ever written on shulib | M7 | ✅ **LOCKED 2026-08-12** *(at D3, after the cookbook — its second consumer — wrote fourteen recipes against it and needed zero changes to the surface; the critique and its rulings are the D3 completion record's centrepiece)* |
 | F11 | **Mechanism seam + operation contract** — `hal::IMechanism` / `MotorMechanism` / `PneumaticMechanism` / `IDigitalOut` (the device level, an F4 **sibling explicitly outside that freeze** — F4's locked row is untouched) and `manipulation::IMechanismOp` / `MechanismOutcome` / the two generic operations (the bounded-operation level). **🚫 NOT FROZEN — stated out loud because silence in this register reads as "frozen"** (D2's lesson). Built at F1 (2026-08-13) deliberately BEFORE any concrete mechanism exists, so sequencing shapes the seam rather than hardware; it freezes only after its second real consumer — **F3's scoring primitives, on hardware** — has stressed it, the same build → second consumer → freeze path F6 and F10 took. Additive-growth notes ride the headers; `then()`'s mechanism branch stays unfrozen with it. *(**AMENDED at DOCS2, 2026-08-14 — this seam IS now in the api-doc coverage set.** The original ruling, made at F1 and cited by F12/F13/F14 as precedent, was that gating an unfrozen seam would pin it. Re-examined when the reference was expanded to the whole tree, that conflates two different mechanisms: changing a FROZEN signature fails a compile-time pin naming the register row and costs a major version bump plus a migration note, whereas a gated-but-unfrozen member costs one `///` edit and a regeneration. That is friction, not a freeze — and it is friction this project already imposes on itself, since documentation is a deliverable here. **Nothing about this seam's shape is frozen by being documented**, and the freeze trigger below is unchanged.)* | chunk F2's end-of-run guard (the claimant hook + cancel-all reach operations through this seam); F3's primitives; G1's `RobotBuilder`; H2's `hal/sim`; R1's adapters | — (candidate: F3) | 🚧 **open by design** |
@@ -1629,12 +1629,29 @@ R4.)*
 
 **Path authoring (WS8)**
 - [ ] `io/Trajectory`: read **`project.paths[]`** from `.vexbot`; **legacy `.shupaths` importer**
-  (maps old `code_template` strings → command-ids best-effort, flags the rest).
-- [ ] `PathRunner` — profiled per-segment execution + marker callbacks.
-- [ ] **Command-id registry** `runner.on("intake_in", fn)` (F8) — the no-code keystone.
+  (maps old `code_template` strings → command-ids best-effort, flags the rest). *(G3/G4. The READER
+  is the whole of what is left in this bullet — the thing it feeds now exists.)*
+- [x] `PathRunner` — per-waypoint execution through the frozen `Chassis` verbs + marker callbacks
+  (**G2, 2026-09-18, host plant only**). D1's error policy verbatim: the first non-Settled leg or
+  the first failed marker stops the route, `chassis.cancel()` safes the drive, every later waypoint
+  is skipped and counted into `RunReport`. Markers fire on `ExitReason::Settled` ONLY.
+  *(“Profiled” per-segment velocity blending is NOT in this and never was G2's — it is the
+  roadmap's blending item, a measured Frontier. The checkbox is for execution + markers.)*
+- [x] **Command-id registry** `registry.on("intake_in", fn)` (F8) — the no-code keystone
+  (**G2, 2026-09-18**): fixed capacity, no heap, no `std::function`; a handler is a plain function
+  pointer plus a NON-OWNING context pointer, and a callable's return type is adapted exactly as
+  `Routine::then()` adapts it (pinned against it behaviourally, on the same lambdas). Four ids are
+  library-owned and cannot be re-bound.
+- [x] **The command-id manifest** `runner::writeManifest` (**G2, 2026-09-18**) — one JSON object per
+  line, built-ins first in a frozen order, then registrations in registration order, with a
+  byte-exact golden test. This is **VexBuilder ask #4**, and shipping it unblocked their picker.
 
 **Definition of Done:** a team member who cannot code builds a robot + a routine in VexBuilder,
-exports one `.vexbot`, and the robot runs it. **Freezes:** F7, F8.
+exports one `.vexbot`, and the robot runs it. **Freezes:** F7, **F8 ✅ locked 2026-09-18 at G2.**
+*(The DoD itself is not met and is not close: nothing reads a `.vexbot` yet, and no route has ever
+run on a robot. What G2 settled is the half that does not need the file — a `Route` built in C++ and
+a `Route` parsed from one are the same object and run through the same code, which is what makes the
+file path testable before the file format exists.)*
 
 ---
 
@@ -1812,8 +1829,12 @@ must add for the integration to close. They are tracked here so the dependency i
 > code that consumes any of these contracts.** *(Corrected 2026-09-18, G1 Part 1: the first of them
 > is no longer unbuilt.)* `IRobotConfig` / `IRouteSource` and the builder landed host-only at **G1
 > Part 1** — the in-memory types exist and a config produces a driving `Chassis`; the PROS provider
-> and the `main.cpp` collapse are G1 Part 2. `PathRunner`, the id manifest, the `.vexbot` codegen and
-> the `SHUL/2` wire are still unbuilt (G2–G4, H1). Listing only one side's obligations is how a
+> and the `main.cpp` collapse are G1 Part 2. *(Corrected again 2026-09-18, G2: the second of them is
+> no longer unbuilt either.)* **You are here: `PathRunner`, the command-id registry and the exported
+> manifest landed at G2 and F8 is LOCKED** — a `Route` executes on the host plant, bit-identically to
+> the same legs hand-written as a `Routine`, and VexBuilder's picker is unblocked. The `.vexbot`
+> codegen and the `SHUL/2` wire are still unbuilt (G3–G4, H1), and **nothing in Phase G has run on a
+> robot.** Listing only one side's obligations is how a
 > two-sided dependency turns into a stall with each side believing it is blocked. Both lists are below.
 
 ### What VexBuilder must add
@@ -1845,7 +1866,7 @@ must add for the integration to close. They are tracked here so the dependency i
 | # | shulib must ship | Unblocks | Chunk | Gated on VexBuilder? |
 |---|---|---|---|---|
 | A | `IRobotConfig` / `IRouteSource` / `RobotBuilder` | everything downstream | **G1** | **no — startable today** |
-| B | `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) | **G2** | no |
+| B | ✅ `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) — **DELIVERED 2026-09-18**; the format is [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.3 | **G2** | no |
 | C | `.vexbot` ingestion + `robot_config.hpp` codegen + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
 | D | The `.shupaths` one-way importer | migrating existing routines | **G4** | yes — G3 |
 | E | The `SHUL/2` wire protocol | **VexBuilder ask #3** | **H1** | **no — the wire is defined unilaterally** |
@@ -1853,14 +1874,18 @@ must add for the integration to close. They are tracked here so the dependency i
 
 **The two that unblock each other soonest, and neither waits on the other:** shulib's **G2 manifest**
 unblocks VexBuilder's picker, and VexBuilder's **electrical UI + drivetrain fields** unblock shulib's
-G3 ingestion. Those are the right two to run in parallel first.
+G3 ingestion. Those are the right two to run in parallel first. **Half of that is now done
+(2026-09-18): the manifest shipped.** VexBuilder's electrical UI is the one item on the critical path
+between the two projects that only the other side can move.
 
 ### Joint decisions neither side can make alone
 
-- **Boundary-marker representation.** The legacy vocabulary's `NONE` id appears 18 times as a
-  path-segment boundary marker and is **absent from both legacy enums**. `.vexbot` already carries
-  real segment structure, so it may need no id at all. **Decide before the picker ships**, or the
-  importer will emit ids the UI cannot render.
+- ~~**Boundary-marker representation.**~~ **ANSWERED at G2, 2026-09-18: `NONE` is not an id and
+  never will be.** The legacy vocabulary's `NONE` appeared 18 times as a path-segment boundary and
+  was absent from both legacy enums; in this vocabulary **a waypoint IS a segment**, so the boundary
+  has no content left to carry. G4's importer folds the rows into waypoints and emits no marker for
+  them; the picker never renders one. The absence is pinned by the F8 freeze test, so a future
+  built-in cannot quietly give the legacy spelling a meaning it was ruled out of having.
 - **How much of the id vocabulary to mint up front.** Only ONE motion id was ever actually emitted by
   the legacy planner (`MOVE_WITH_HEADING`); the five manipulation ids were declared and never used,
   and the primitives behind them are gated on the build team's final mechanism decisions. The picker

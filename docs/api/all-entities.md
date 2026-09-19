@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,253 of them, across 142 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,307 of them, across 145 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -207,6 +207,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BuildVerdict` | struct | [robot.md](robot.md#struct-buildverdict) |
 | `BuildVerdict::ok` | field | [robot.md](robot.md#buildverdict-ok) |
 | `BuildVerdict::why` | field | [robot.md](robot.md#buildverdict-why) |
+| `BuiltinCommand` | struct | [route.md](route.md#struct-builtincommand) |
+| `BuiltinCommand::doc` | field | [route.md](route.md#builtincommand-doc) |
+| `BuiltinCommand::firstArgIsDurationMs` | field | [route.md](route.md#builtincommand-firstargisdurationms) |
+| `BuiltinCommand::id` | field | [route.md](route.md#builtincommand-id) |
+| `BuiltinCommand::maxArgs` | field | [route.md](route.md#builtincommand-maxargs) |
+| `BuiltinCommand::minArgs` | field | [route.md](route.md#builtincommand-minargs) |
 | `ButtonEdge` | class | [controller.md](controller.md#class-buttonedge) |
 | `ButtonEdge::update` | function | [controller.md](controller.md#buttonedge-update) |
 | `ByteReader` | class | [blackbox_format.md](blackbox_format.md#class-bytereader) |
@@ -323,6 +329,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
 | `chooseBootSource` | free function | [boot_check.md](boot_check.md#choosebootsource) |
+| `CommandEntry` | struct | [command_registry.md](command_registry.md#struct-commandentry) |
+| `CommandEntry::argCount` | field | [command_registry.md](command_registry.md#commandentry-argcount) |
+| `CommandEntry::handler` | field | [command_registry.md](command_registry.md#commandentry-handler) |
+| `CommandEntry::id` | field | [command_registry.md](command_registry.md#commandentry-id) |
+| `CommandEntry::idView` | function | [command_registry.md](command_registry.md#commandentry-idview) |
 | `CommandIdStampSink` | class | [motion_scheduler.md](motion_scheduler.md#class-commandidstampsink) |
 | `CommandIdStampSink::activeId` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-activeid) |
 | `CommandIdStampSink::beginTick` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-begintick) |
@@ -334,9 +345,18 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CommandIdStampSink::setTickPhases` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-settickphases) |
 | `CommandIdStampSink::summarize` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-summarize) |
 | `CommandIdStampSink::wantsRecord` | function | [motion_scheduler.md](motion_scheduler.md#commandidstampsink-wantsrecord) |
+| `commandIdValid` | free function | [route.md](route.md#commandidvalid) |
+| `commandIdView` | free function | [route.md](route.md#commandidview) |
 | `CommandOutcome` | struct | [command_pipeline.md](command_pipeline.md#struct-commandoutcome) |
 | `CommandOutcome::body` | field | [command_pipeline.md](command_pipeline.md#commandoutcome-body) |
 | `CommandOutcome::strafeFallback` | field | [command_pipeline.md](command_pipeline.md#commandoutcome-strafefallback) |
+| `CommandRegistry` | class | [command_registry.md](command_registry.md#class-commandregistry) |
+| `CommandRegistry::CommandRegistry` | function | [command_registry.md](command_registry.md#commandregistry-commandregistry) |
+| `CommandRegistry::count` | function | [command_registry.md](command_registry.md#commandregistry-count) |
+| `CommandRegistry::find` | function | [command_registry.md](command_registry.md#commandregistry-find) |
+| `CommandRegistry::ids` | function | [command_registry.md](command_registry.md#commandregistry-ids) |
+| `CommandRegistry::on` | function | [command_registry.md](command_registry.md#commandregistry-on) |
+| `CommandRegistry::on (overload 2)` | function | [command_registry.md](command_registry.md#commandregistry-on-2) |
 | `commandWithinCapability` | free function | [plausibility_guard.md](plausibility_guard.md#commandwithincapability) |
 | `CompensatedVoltage` | struct | [feedforward.md](feedforward.md#struct-compensatedvoltage) |
 | `CompensatedVoltage::brownoutLimited` | field | [feedforward.md](feedforward.md#compensatedvoltage-brownoutlimited) |
@@ -743,6 +763,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FieldDelta::dx` | field | [arc_step.md](arc_step.md#fielddelta-dx) |
 | `FieldDelta::dy` | field | [arc_step.md](arc_step.md#fielddelta-dy) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
+| `findBuiltinCommand` | free function | [route.md](route.md#findbuiltincommand) |
 | `Frame` | enum class | [frame.md](frame.md#enum-class-frame) |
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
 | `Frame::Field` | enumerator | [frame.md](frame.md#frame-field) |
@@ -830,6 +851,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `Handler` | struct | [command_registry.md](command_registry.md#struct-handler) |
+| `Handler::ctx` | field | [command_registry.md](command_registry.md#handler-ctx) |
+| `Handler::manipulation::MechanismOutcome` | function | [command_registry.md](command_registry.md#handler-manipulation-mechanismoutcome) |
 | `hDrive` | free function | [h_drive.md](h_drive.md#hdrive) |
 | `HDriveConfig` | struct | [h_drive.md](h_drive.md#struct-hdriveconfig) |
 | `HDriveConfig::strafeSpeedRatio` | field | [h_drive.md](h_drive.md#hdriveconfig-strafespeedratio) |
@@ -1224,6 +1248,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kApiMinor` | constant | [version.md](version.md#kapiminor) |
 | `kApiVersionString` | constant | [version.md](version.md#kapiversionstring) |
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
+| `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
+| `kBuiltinCommands` | constant | [route.md](route.md#kbuiltincommands) |
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
@@ -1246,10 +1272,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
 | `kInstallVisionPoller<AbsentVision>` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpollerabsentvision) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
+| `kManifestSchemaVersion` | constant | [manifest.md](manifest.md#kmanifestschemaversion) |
+| `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |
 | `kMaxMarkerArgs` | constant | [route.md](route.md#kmaxmarkerargs) |
+| `kMaxMarkerIdBytes` | constant | [route.md](route.md#kmaxmarkeridbytes) |
 | `kMaxMarkersPerWaypoint` | constant | [route.md](route.md#kmaxmarkersperwaypoint) |
 | `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
 | `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
@@ -1355,6 +1384,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Marker::argCount` | field | [route.md](route.md#marker-argcount) |
 | `Marker::args` | field | [route.md](route.md#marker-args) |
 | `Marker::id` | field | [route.md](route.md#marker-id) |
+| `markerIdView` | free function | [route.md](route.md#markeridview) |
 | `MatrixKinematics` | class | [matrix_kinematics.md](matrix_kinematics.md#class-matrixkinematics) |
 | `MatrixKinematics::desaturate` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-desaturate) |
 | `MatrixKinematics::forward` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-forward) |
@@ -1621,6 +1651,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `PathRunner` | class | [path_runner.md](path_runner.md#class-pathrunner) |
+| `PathRunner::operator=` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq) |
+| `PathRunner::operator= (overload 2)` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq-2) |
+| `PathRunner::PathRunner` | function | [path_runner.md](path_runner.md#pathrunner-pathrunner) |
+| `PathRunner::PathRunner (overload 2)` | function | [path_runner.md](path_runner.md#pathrunner-pathrunner-2) |
+| `PathRunner::PathRunner (overload 3)` | function | [path_runner.md](path_runner.md#pathrunner-pathrunner-3) |
+| `PathRunner::run` | function | [path_runner.md](path_runner.md#pathrunner-run) |
+| `PathRunner::~PathRunner` | function | [path_runner.md](path_runner.md#pathrunner-destructor-pathrunner) |
 | `Phase` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-phase) |
 | `Phase::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-aborted) |
 | `Phase::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-done) |
@@ -1998,6 +2036,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunGuardReport::postExpiryCancels` | field | [run_guard.md](run_guard.md#runguardreport-postexpirycancels) |
 | `RunGuardReport::scoringCut` | field | [run_guard.md](run_guard.md#runguardreport-scoringcut) |
 | `RunGuardReport::scoringEnded` | field | [run_guard.md](run_guard.md#runguardreport-scoringended) |
+| `RunReport` | struct | [path_runner.md](path_runner.md#struct-runreport) |
+| `RunReport::lastExit` | field | [path_runner.md](path_runner.md#runreport-lastexit) |
+| `RunReport::legsRun` | field | [path_runner.md](path_runner.md#runreport-legsrun) |
+| `RunReport::legsSkipped` | field | [path_runner.md](path_runner.md#runreport-legsskipped) |
+| `RunReport::markersFired` | field | [path_runner.md](path_runner.md#runreport-markersfired) |
+| `RunReport::ok` | function | [path_runner.md](path_runner.md#runreport-ok) |
+| `RunReport::reason` | field | [path_runner.md](path_runner.md#runreport-reason) |
+| `RunReport::stoppedAt` | field | [path_runner.md](path_runner.md#runreport-stoppedat) |
+| `RunReport::unknownIds` | field | [path_runner.md](path_runner.md#runreport-unknownids) |
 | `RunReporter` | class | [run_reporter.md](run_reporter.md#class-runreporter) |
 | `RunReporter::finishRun` | function | [run_reporter.md](run_reporter.md#runreporter-finishrun) |
 | `RunReporter::onMotionComplete` | function | [run_reporter.md](run_reporter.md#runreporter-onmotioncomplete) |
@@ -2008,6 +2055,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunReporter::RunReporter (overload 3)` | function | [run_reporter.md](run_reporter.md#runreporter-runreporter-3) |
 | `RunReporter::sessionStart` | function | [run_reporter.md](run_reporter.md#runreporter-sessionstart) |
 | `RunReporter::~RunReporter` | function | [run_reporter.md](run_reporter.md#runreporter-destructor-runreporter) |
+| `RunStopCause` | enum class | [path_runner.md](path_runner.md#enum-class-runstopcause) |
+| `RunStopCause::MarkerFailed` | enumerator | [path_runner.md](path_runner.md#runstopcause-markerfailed) |
+| `RunStopCause::MotionFailed` | enumerator | [path_runner.md](path_runner.md#runstopcause-motionfailed) |
+| `RunStopCause::None` | enumerator | [path_runner.md](path_runner.md#runstopcause-none) |
+| `runStopCauseWord` | free function | [path_runner.md](path_runner.md#runstopcauseword) |
 | `RunSummary` | struct | [run_summary.md](run_summary.md#struct-runsummary) |
 | `RunSummary::batteryEnd` | field | [run_summary.md](run_summary.md#runsummary-batteryend) |
 | `RunSummary::batteryStart` | field | [run_summary.md](run_summary.md#runsummary-batterystart) |
@@ -2359,6 +2411,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::size` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-size) |
 | `WheelSpeeds::WheelSpeeds` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds) |
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
+| `writeManifest` | free function | [manifest.md](manifest.md#writemanifest) |
+| `writeManifestEntry` | free function | [manifest.md](manifest.md#writemanifestentry) |
 
 ## X
 

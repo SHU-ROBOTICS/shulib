@@ -8,7 +8,7 @@
 
 Route — an autonomous routine as DATA.
 
-This header declares **8** types (40 members), **2** free functions, and **3** constants.
+This header declares **9** types (45 members), **6** free functions, and **6** constants.
 
 Extracted from [`include/shulib/config/route.hpp`](../../include/shulib/config/route.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -17,6 +17,18 @@ Extracted from [`include/shulib/config/route.hpp`](../../include/shulib/config/r
 - [`kMaxWaypoints`](#kmaxwaypoints) — *constant*
 - [`kMaxMarkersPerWaypoint`](#kmaxmarkersperwaypoint) — *constant*
 - [`kMaxMarkerArgs`](#kmaxmarkerargs) — *constant*
+- [`kMaxMarkerIdBytes`](#kmaxmarkeridbytes) — *constant*
+- [`commandIdView`](#commandidview) — *free function*
+- [`commandIdValid`](#commandidvalid) — *free function*
+- [`struct BuiltinCommand`](#struct-builtincommand)
+  - [`id`](#builtincommand-id)
+  - [`minArgs`](#builtincommand-minargs)
+  - [`maxArgs`](#builtincommand-maxargs)
+  - [`firstArgIsDurationMs`](#builtincommand-firstargisdurationms)
+  - [`doc`](#builtincommand-doc)
+- [`kBuiltinCommands`](#kbuiltincommands) — *constant*
+- [`kBuiltinCommandCount`](#kbuiltincommandcount) — *constant*
+- [`findBuiltinCommand`](#findbuiltincommand) — *free function*
 - [`enum class WaypointMotion`](#enum-class-waypointmotion)
   - [`Start`](#waypointmotion-start)
   - [`MoveToPose`](#waypointmotion-movetopose)
@@ -37,6 +49,7 @@ Extracted from [`include/shulib/config/route.hpp`](../../include/shulib/config/r
   - [`id`](#marker-id)
   - [`args`](#marker-args)
   - [`argCount`](#marker-argcount)
+- [`markerIdView`](#markeridview) — *free function*
 - [`struct Waypoint`](#struct-waypoint)
   - [`x`](#waypoint-x)
   - [`y`](#waypoint-y)
@@ -104,6 +117,150 @@ The most typed arguments one marker may carry. Design constant (B6): two covers 
 
 *constant, declared at [`include/shulib/config/route.hpp:60`](../../include/shulib/config/route.hpp#L60).*
 
+<a id="kmaxmarkeridbytes"></a>
+
+## `kMaxMarkerIdBytes`
+
+```cpp
+inline constexpr std::size_t kMaxMarkerIdBytes = 24
+```
+
+Bytes of storage one command id occupies, NUL INCLUDED — so the longest id TEXT is 23 bytes. G1 wrote `char id[24]` and never named the number; G2 needs the same bound in three more places (the registry's key buffer, the manifest writer, the id-validity rule), and a capacity spelled as a literal in four files is a capacity that will disagree with itself. Design constant (B6), not a hardware belief: 23 characters is longer than every id anyone has proposed, and short enough that a whole registry of 32 is under a kilobyte.
+
+*constant, declared at [`include/shulib/config/route.hpp:68`](../../include/shulib/config/route.hpp#L68).*
+
+<a id="commandidview"></a>
+
+## `commandIdView`
+
+```cpp
+[[nodiscard]] constexpr std::string_view commandIdView(const char* id, std::size_t capacity) noexcept
+```
+
+The text of a fixed-width, possibly UNTERMINATED character buffer (a command id, a route name), bounded by the BUFFER rather than by `strlen` — the same hazard `StaticRoutes::route()` guards against, since a generator may fill the last byte. `capacity` is the buffer's size in bytes.
+
+*free function, declared at [`include/shulib/config/route.hpp:74`](../../include/shulib/config/route.hpp#L74).*
+
+<a id="commandidvalid"></a>
+
+## `commandIdValid`
+
+```cpp
+[[nodiscard]] constexpr bool commandIdValid(std::string_view id) noexcept
+```
+
+Is `id` a legal command id? Non-empty, at most `kMaxMarkerIdBytes - 1` characters, and drawn from `[a-z0-9_]` only.  The charset is deliberately narrow (G2's REJECTED list): an id is the SAME STRING in a C++ source line, in a manifest line, in a `.vexbot` file and on a picker's button, and a vocabulary with no uppercase, no spaces, no punctuation and no non-ASCII is one that never needs escaping on any of those four paths. The length bound is what makes the id storable in the fixed buffer WITH a terminator — a 24-byte id that filled its buffer could be compared but never printed.
+
+*free function, declared at [`include/shulib/config/route.hpp:91`](../../include/shulib/config/route.hpp#L91).*
+
+<a id="struct-builtincommand"></a>
+
+## `struct BuiltinCommand`
+
+```cpp
+struct BuiltinCommand
+```
+
+One LIBRARY-OWNED command id: a marker a team never registers because the runner itself performs it (G2 ruling R3). The table below is the whole set; a team that registered `brake` to mean something else would break every route another team exported, so `CommandRegistry` refuses one as a precondition violation.  The SPEC lives here, at the data layer, rather than in `runner/`, because an id, its arity and its meaning are facts about the ROUTE VOCABULARY — `Route::valid()` checks them, the manifest publishes them and F8 freezes them; only the DOING of them belongs to the runner. The reverse arrangement would make `config/` depend on `runner/`, which is upside down.
+
+*struct, declared at [`include/shulib/config/route.hpp:113`](../../include/shulib/config/route.hpp#L113).*
+
+<a id="builtincommand-id"></a>
+
+### `BuiltinCommand::id`
+
+```cpp
+const char* id
+```
+
+The id text, e.g. "wait_ms". Always `commandIdValid()`.
+
+*field, declared at [`include/shulib/config/route.hpp:115`](../../include/shulib/config/route.hpp#L115).*
+
+<a id="builtincommand-minargs"></a>
+
+### `BuiltinCommand::minArgs`
+
+```cpp
+std::uint8_t minArgs
+```
+
+The fewest typed args the marker must carry.
+
+*field, declared at [`include/shulib/config/route.hpp:117`](../../include/shulib/config/route.hpp#L117).*
+
+<a id="builtincommand-maxargs"></a>
+
+### `BuiltinCommand::maxArgs`
+
+```cpp
+std::uint8_t maxArgs
+```
+
+The most typed args the marker may carry (<= kMaxMarkerArgs).
+
+*field, declared at [`include/shulib/config/route.hpp:119`](../../include/shulib/config/route.hpp#L119).*
+
+<a id="builtincommand-firstargisdurationms"></a>
+
+### `BuiltinCommand::firstArgIsDurationMs`
+
+```cpp
+bool firstArgIsDurationMs
+```
+
+True when `args[0]` is a DURATION IN MILLISECONDS and must therefore be > 0 — the facade verbs behind these ids refuse a non-positive duration at the door, so a route carrying one is a routine that throws mid-auton instead of one that is refused before it runs.
+
+*field, declared at [`include/shulib/config/route.hpp:123`](../../include/shulib/config/route.hpp#L123).*
+
+<a id="builtincommand-doc"></a>
+
+### `BuiltinCommand::doc`
+
+```cpp
+const char* doc
+```
+
+What it does, in one line — published verbatim in the manifest a picker reads.
+
+*field, declared at [`include/shulib/config/route.hpp:125`](../../include/shulib/config/route.hpp#L125).*
+
+<a id="kbuiltincommands"></a>
+
+## `kBuiltinCommands`
+
+```cpp
+inline constexpr BuiltinCommand kBuiltinCommands[] = { {"wait_ms", 1, 1, true, "wait, commanding nothing, for args[0] milliseconds (the drive keeps its last state)"}, {"brake", 0, 0, false, "stop the drive (0 V + Brake) and block until the estimate certifies rest"}, {"hold_ms", 1, 1, true, "actively hold the current pose for args[0] milliseconds, driving back disturbance"}, {"log", 0, 2, false, "write one Info line naming this marker and its args"}, }
+```
+
+Every built-in id, in the order the manifest publishes them. **APPEND-ONLY**: the order is part of the manifest's byte-exact contract (G2 landmine 5) and the id strings are frozen by F8.
+
+*constant, declared at [`include/shulib/config/route.hpp:130`](../../include/shulib/config/route.hpp#L130).*
+
+<a id="kbuiltincommandcount"></a>
+
+## `kBuiltinCommandCount`
+
+```cpp
+inline constexpr std::size_t kBuiltinCommandCount = sizeof kBuiltinCommands / sizeof(BuiltinCommand)
+```
+
+How many built-in ids there are — `kBuiltinCommands`'s length, named so a manifest header and a freeze pin can state it without re-deriving it.
+
+*constant, declared at [`include/shulib/config/route.hpp:142`](../../include/shulib/config/route.hpp#L142).*
+
+<a id="findbuiltincommand"></a>
+
+## `findBuiltinCommand`
+
+```cpp
+[[nodiscard]] constexpr const BuiltinCommand* findBuiltinCommand(std::string_view id) noexcept
+```
+
+The built-in whose id is exactly `id`, or nullptr when `id` is not one. Exact match only: ids are compared whole, never by prefix (`StaticRoutes::route()`'s lesson).
+
+*free function, declared at [`include/shulib/config/route.hpp:146`](../../include/shulib/config/route.hpp#L146).*
+
 <a id="enum-class-waypointmotion"></a>
 
 ## `enum class WaypointMotion`
@@ -114,7 +271,7 @@ enum class WaypointMotion : std::uint8_t
 
 What the robot does to get to a waypoint. Every value maps onto a verb the facade has TODAY (ruling B5); the numeric values are explicit and APPEND-ONLY, because a route may be generated by one version of the tools and read by another.
 
-*enum class, declared at [`include/shulib/config/route.hpp:65`](../../include/shulib/config/route.hpp#L65).*
+*enum class, declared at [`include/shulib/config/route.hpp:158`](../../include/shulib/config/route.hpp#L158).*
 
 <a id="waypointmotion-start"></a>
 
@@ -126,7 +283,7 @@ Start = 1
 
 Not a motion: "the robot starts HERE". Legal only at index 0 (see Route::valid()); the runner seeds the pose from it rather than driving to it.
 
-*enumerator, declared at [`include/shulib/config/route.hpp:68`](../../include/shulib/config/route.hpp#L68).*
+*enumerator, declared at [`include/shulib/config/route.hpp:161`](../../include/shulib/config/route.hpp#L161).*
 
 <a id="waypointmotion-movetopose"></a>
 
@@ -136,9 +293,9 @@ Not a motion: "the robot starts HERE". Legal only at index 0 (see Route::valid()
 MoveToPose = 2
 ```
 
-`Chassis::moveTo(pose)` — translate and rotate simultaneously to the full pose.
+`Chassis::moveTo(pose)` — translate and rotate simultaneously to the full pose. With `HeadingMode::Free` the commanded heading is the estimate's own, read when the leg starts (G2 ruling R6): "go there, keep facing where I am facing".
 
-*enumerator, declared at [`include/shulib/config/route.hpp:70`](../../include/shulib/config/route.hpp#L70).*
+*enumerator, declared at [`include/shulib/config/route.hpp:165`](../../include/shulib/config/route.hpp#L165).*
 
 <a id="waypointmotion-driveto"></a>
 
@@ -150,7 +307,7 @@ DriveTo = 3
 
 `Routine::driveTo(x, y)` — move to the point ARRIVING FACING IT; `heading` is ignored and computed from the approach, which is why headingMode must be Free.
 
-*enumerator, declared at [`include/shulib/config/route.hpp:73`](../../include/shulib/config/route.hpp#L73).*
+*enumerator, declared at [`include/shulib/config/route.hpp:168`](../../include/shulib/config/route.hpp#L168).*
 
 <a id="waypointmotion-turnto"></a>
 
@@ -162,7 +319,7 @@ TurnTo = 4
 
 `Chassis::turnTo(heading)` — rotate in place; `x` and `y` are ignored.
 
-*enumerator, declared at [`include/shulib/config/route.hpp:75`](../../include/shulib/config/route.hpp#L75).*
+*enumerator, declared at [`include/shulib/config/route.hpp:170`](../../include/shulib/config/route.hpp#L170).*
 
 <a id="waypointmotion-strafeto"></a>
 
@@ -174,7 +331,7 @@ StrafeTo = 5
 
 `Chassis::strafeTo(x, y)` — translate holding the current heading. Honest on tank: an off-line target exits TimedOut rather than pretending (C1's drivetrain honesty).
 
-*enumerator, declared at [`include/shulib/config/route.hpp:78`](../../include/shulib/config/route.hpp#L78).*
+*enumerator, declared at [`include/shulib/config/route.hpp:173`](../../include/shulib/config/route.hpp#L173).*
 
 <a id="waypointmotion-hold"></a>
 
@@ -186,7 +343,7 @@ Hold = 6
 
 `Chassis::hold(duration)` — actively hold the pose for `constraints.timeout`, which for this motion is the DURATION and must therefore be > 0.
 
-*enumerator, declared at [`include/shulib/config/route.hpp:81`](../../include/shulib/config/route.hpp#L81).*
+*enumerator, declared at [`include/shulib/config/route.hpp:176`](../../include/shulib/config/route.hpp#L176).*
 
 <a id="waypointmotionword"></a>
 
@@ -198,7 +355,7 @@ Hold = 6
 
 The motion as a word, for banners and refusal messages. "UNKNOWN" for a byte outside the enum.
 
-*free function, declared at [`include/shulib/config/route.hpp:85`](../../include/shulib/config/route.hpp#L85).*
+*free function, declared at [`include/shulib/config/route.hpp:180`](../../include/shulib/config/route.hpp#L180).*
 
 <a id="enum-class-headingmode"></a>
 
@@ -210,7 +367,7 @@ enum class HeadingMode : std::uint8_t
 
 Whether the waypoint's `heading` field means anything.
 
-*enum class, declared at [`include/shulib/config/route.hpp:98`](../../include/shulib/config/route.hpp#L98).*
+*enum class, declared at [`include/shulib/config/route.hpp:193`](../../include/shulib/config/route.hpp#L193).*
 
 <a id="headingmode-fixed"></a>
 
@@ -220,9 +377,9 @@ Whether the waypoint's `heading` field means anything.
 Fixed = 1
 ```
 
-The robot must arrive at `heading`. The only mode `MoveToPose` and `TurnTo` accept.
+The robot must arrive at `heading`. The only mode `TurnTo` accepts, and the mode `MoveToPose` takes when the author has a heading in mind.
 
-*enumerator, declared at [`include/shulib/config/route.hpp:100`](../../include/shulib/config/route.hpp#L100).*
+*enumerator, declared at [`include/shulib/config/route.hpp:196`](../../include/shulib/config/route.hpp#L196).*
 
 <a id="headingmode-free"></a>
 
@@ -232,9 +389,9 @@ The robot must arrive at `heading`. The only mode `MoveToPose` and `TurnTo` acce
 Free = 2
 ```
 
-The heading is the runner's to choose (the approach bearing, or whatever the robot already has). The only mode `DriveTo` accepts; `heading` is not read.
+The heading is the RUNNER's to choose, and `heading` is not read. What it chooses depends on the verb, and each choice is the only honest one that verb has (G2 ruling R6): * `DriveTo` — the approach bearing to (x, y), so the robot arrives facing the point. This is the only mode `DriveTo` accepts. * `MoveToPose` — whatever heading the estimate already has when the leg STARTS ("translate, keep facing where I am facing"). `moveTo` always commands a heading, so there is no "don't care" to pass down and the current one is the one that asks the drivetrain to do the least. * `StrafeTo`, `Hold`, `Start` — neither mode is read; either is accepted. * `TurnTo` — REFUSED: a turn to no heading is not a motion.
 
-*enumerator, declared at [`include/shulib/config/route.hpp:103`](../../include/shulib/config/route.hpp#L103).*
+*enumerator, declared at [`include/shulib/config/route.hpp:207`](../../include/shulib/config/route.hpp#L207).*
 
 <a id="headingmodeword"></a>
 
@@ -246,7 +403,7 @@ The heading is the runner's to choose (the approach bearing, or whatever the rob
 
 The heading mode as a word, for messages. "UNKNOWN" for a byte outside the enum.
 
-*free function, declared at [`include/shulib/config/route.hpp:107`](../../include/shulib/config/route.hpp#L107).*
+*free function, declared at [`include/shulib/config/route.hpp:211`](../../include/shulib/config/route.hpp#L211).*
 
 <a id="struct-constraints"></a>
 
@@ -258,7 +415,7 @@ struct Constraints
 
 Per-waypoint speed and time budgets. 0 means "use the robot's configured default" — the same sentinel `chassis::MotionOptions` already uses, so a route's constraints map onto it field for field with no translation table.
 
-*struct, declared at [`include/shulib/config/route.hpp:118`](../../include/shulib/config/route.hpp#L118).*
+*struct, declared at [`include/shulib/config/route.hpp:222`](../../include/shulib/config/route.hpp#L222).*
 
 <a id="constraints-maxlinear"></a>
 
@@ -270,7 +427,7 @@ units::Velocity maxLinear{0.0}
 
 Field-frame linear speed budget for this leg, in/s. Finite and >= 0; 0 = the default.
 
-*field, declared at [`include/shulib/config/route.hpp:120`](../../include/shulib/config/route.hpp#L120).*
+*field, declared at [`include/shulib/config/route.hpp:224`](../../include/shulib/config/route.hpp#L224).*
 
 <a id="constraints-maxangular"></a>
 
@@ -282,7 +439,7 @@ units::AngularVelocity maxAngular{0.0}
 
 Yaw-rate budget for this leg, rad/s. Finite and >= 0; 0 = the default.
 
-*field, declared at [`include/shulib/config/route.hpp:122`](../../include/shulib/config/route.hpp#L122).*
+*field, declared at [`include/shulib/config/route.hpp:226`](../../include/shulib/config/route.hpp#L226).*
 
 <a id="constraints-timeout"></a>
 
@@ -294,7 +451,7 @@ units::Time timeout{0.0}
 
 Watchdog bound for this leg, seconds. Finite and >= 0; 0 = the default — EXCEPT on a `Hold`, where this is the hold DURATION and must be > 0 (there is no sensible default duration for "stay here", and `Chassis::hold` refuses a non-positive one anyway).
 
-*field, declared at [`include/shulib/config/route.hpp:126`](../../include/shulib/config/route.hpp#L126).*
+*field, declared at [`include/shulib/config/route.hpp:230`](../../include/shulib/config/route.hpp#L230).*
 
 <a id="struct-marker"></a>
 
@@ -306,19 +463,19 @@ struct Marker
 
 One thing to do at a waypoint, named by an ID the student's registry binds to an action.  The id is a fixed-width NUL-terminated buffer rather than a pointer, so a whole Route can be written to a card or emitted by a generator as one object. The arguments are `std::int32_t` and deliberately NOT a variant or a double: every parametric primitive anyone has asked for takes a small integer (a lift level, a count, a side), and a typed integer is the one form that survives serialization, `constexpr` emission and a human reading it in a diff.
 
-*struct, declared at [`include/shulib/config/route.hpp:136`](../../include/shulib/config/route.hpp#L136).*
+*struct, declared at [`include/shulib/config/route.hpp:240`](../../include/shulib/config/route.hpp#L240).*
 
 <a id="marker-id"></a>
 
 ### `Marker::id`
 
 ```cpp
-char id[24]{}
+char id[kMaxMarkerIdBytes]{}
 ```
 
-The command id, e.g. "intake_in". Non-empty for any marker inside `Waypoint::markerCount`. An id G2's registry does not know logs a WARN and is SKIPPED (§16.3) — it is not a route validity error, because marker ids are an open vocabulary a team extends.
+The command id, e.g. "intake_in". Non-empty and `commandIdValid()` for any marker inside `Waypoint::markerCount`. An id G2's registry does not know logs a WARN and is SKIPPED (§16.3) — it is not a route validity error, because marker ids are an open vocabulary a team extends. An id outside the CHARSET is a different thing and IS refused: no registry can ever hold it, so it could only ever warn.
 
-*field, declared at [`include/shulib/config/route.hpp:140`](../../include/shulib/config/route.hpp#L140).*
+*field, declared at [`include/shulib/config/route.hpp:246`](../../include/shulib/config/route.hpp#L246).*
 
 <a id="marker-args"></a>
 
@@ -330,7 +487,7 @@ std::int32_t args[kMaxMarkerArgs]{}
 
 The typed arguments, e.g. `{3}` for "lift_to_level". Entries beyond `argCount` are 0 and are not read.
 
-*field, declared at [`include/shulib/config/route.hpp:143`](../../include/shulib/config/route.hpp#L143).*
+*field, declared at [`include/shulib/config/route.hpp:249`](../../include/shulib/config/route.hpp#L249).*
 
 <a id="marker-argcount"></a>
 
@@ -342,7 +499,19 @@ std::uint8_t argCount = 0
 
 How many entries of `args` are real. 0 is the common case.
 
-*field, declared at [`include/shulib/config/route.hpp:145`](../../include/shulib/config/route.hpp#L145).*
+*field, declared at [`include/shulib/config/route.hpp:251`](../../include/shulib/config/route.hpp#L251).*
+
+<a id="markeridview"></a>
+
+## `markerIdView`
+
+```cpp
+[[nodiscard]] constexpr std::string_view markerIdView(const Marker& marker) noexcept
+```
+
+A marker's id as text, bounded by the buffer (`commandIdView`'s note). This is the ONE spelling the registry, the runner and the manifest all use, so no consumer can invent a different reading of the same bytes.
+
+*free function, declared at [`include/shulib/config/route.hpp:257`](../../include/shulib/config/route.hpp#L257).*
 
 <a id="struct-waypoint"></a>
 
@@ -354,7 +523,7 @@ struct Waypoint
 
 One step of a route: where, how, how fast, and what to do there.
 
-*struct, declared at [`include/shulib/config/route.hpp:149`](../../include/shulib/config/route.hpp#L149).*
+*struct, declared at [`include/shulib/config/route.hpp:262`](../../include/shulib/config/route.hpp#L262).*
 
 <a id="waypoint-x"></a>
 
@@ -366,7 +535,7 @@ units::Length x{0.0}
 
 Field x, inches. Must be finite. Not read when `motion` is `TurnTo` or `Hold`.
 
-*field, declared at [`include/shulib/config/route.hpp:151`](../../include/shulib/config/route.hpp#L151).*
+*field, declared at [`include/shulib/config/route.hpp:264`](../../include/shulib/config/route.hpp#L264).*
 
 <a id="waypoint-y"></a>
 
@@ -378,7 +547,7 @@ units::Length y{0.0}
 
 Field y, inches. Must be finite. Not read when `motion` is `TurnTo` or `Hold`.
 
-*field, declared at [`include/shulib/config/route.hpp:153`](../../include/shulib/config/route.hpp#L153).*
+*field, declared at [`include/shulib/config/route.hpp:266`](../../include/shulib/config/route.hpp#L266).*
 
 <a id="waypoint-heading"></a>
 
@@ -390,7 +559,7 @@ math::Angle heading{}
 
 Field heading. Must be finite. Read only when `headingMode == Fixed`.
 
-*field, declared at [`include/shulib/config/route.hpp:155`](../../include/shulib/config/route.hpp#L155).*
+*field, declared at [`include/shulib/config/route.hpp:268`](../../include/shulib/config/route.hpp#L268).*
 
 <a id="waypoint-headingmode"></a>
 
@@ -402,7 +571,7 @@ HeadingMode headingMode = HeadingMode::Fixed
 
 Whether `heading` means anything at this waypoint.
 
-*field, declared at [`include/shulib/config/route.hpp:157`](../../include/shulib/config/route.hpp#L157).*
+*field, declared at [`include/shulib/config/route.hpp:270`](../../include/shulib/config/route.hpp#L270).*
 
 <a id="waypoint-motion"></a>
 
@@ -414,7 +583,7 @@ WaypointMotion motion = WaypointMotion::MoveToPose
 
 Which verb takes the robot here.
 
-*field, declared at [`include/shulib/config/route.hpp:159`](../../include/shulib/config/route.hpp#L159).*
+*field, declared at [`include/shulib/config/route.hpp:272`](../../include/shulib/config/route.hpp#L272).*
 
 <a id="waypoint-reverse"></a>
 
@@ -426,7 +595,7 @@ bool reverse = false
 
 Drive this leg backwards where the verb supports it. Advisory data for G2's runner; the library's verbs are holonomic and do not read it today, and it is carried rather than dropped because the legacy planner's rows have it and a route that loses it on import has silently changed what a person drew.
 
-*field, declared at [`include/shulib/config/route.hpp:164`](../../include/shulib/config/route.hpp#L164).*
+*field, declared at [`include/shulib/config/route.hpp:277`](../../include/shulib/config/route.hpp#L277).*
 
 <a id="waypoint-constraints"></a>
 
@@ -438,7 +607,7 @@ Constraints constraints{}
 
 This leg's budgets.
 
-*field, declared at [`include/shulib/config/route.hpp:166`](../../include/shulib/config/route.hpp#L166).*
+*field, declared at [`include/shulib/config/route.hpp:279`](../../include/shulib/config/route.hpp#L279).*
 
 <a id="waypoint-markers"></a>
 
@@ -450,7 +619,7 @@ Marker markers[kMaxMarkersPerWaypoint]{}
 
 What to fire here. Entries beyond `markerCount` are ignored entirely.
 
-*field, declared at [`include/shulib/config/route.hpp:168`](../../include/shulib/config/route.hpp#L168).*
+*field, declared at [`include/shulib/config/route.hpp:281`](../../include/shulib/config/route.hpp#L281).*
 
 <a id="waypoint-markercount"></a>
 
@@ -462,7 +631,7 @@ std::uint8_t markerCount = 0
 
 How many entries of `markers` are real. Must be <= kMaxMarkersPerWaypoint.
 
-*field, declared at [`include/shulib/config/route.hpp:170`](../../include/shulib/config/route.hpp#L170).*
+*field, declared at [`include/shulib/config/route.hpp:283`](../../include/shulib/config/route.hpp#L283).*
 
 <a id="struct-route"></a>
 
@@ -474,7 +643,7 @@ struct Route
 
 A whole autonomous routine, as one value.  Plain data with designated initializers at the call site. Like `RobotConfig`, it does not validate itself on construction — a caller builds one and asks `valid()`, which is what lets a test build a deliberately contradictory route and watch it be refused by name.
 
-*struct, declared at [`include/shulib/config/route.hpp:178`](../../include/shulib/config/route.hpp#L178).*
+*struct, declared at [`include/shulib/config/route.hpp:291`](../../include/shulib/config/route.hpp#L291).*
 
 <a id="route-name"></a>
 
@@ -486,7 +655,7 @@ char name[32]{}
 
 The route's name — the key `IRouteSource::route()` looks up. Must be non-empty: a route nobody can name is a route nobody can run.
 
-*field, declared at [`include/shulib/config/route.hpp:181`](../../include/shulib/config/route.hpp#L181).*
+*field, declared at [`include/shulib/config/route.hpp:294`](../../include/shulib/config/route.hpp#L294).*
 
 <a id="route-waypoints"></a>
 
@@ -498,7 +667,7 @@ Waypoint waypoints[kMaxWaypoints]{}
 
 The steps, in order.
 
-*field, declared at [`include/shulib/config/route.hpp:183`](../../include/shulib/config/route.hpp#L183).*
+*field, declared at [`include/shulib/config/route.hpp:296`](../../include/shulib/config/route.hpp#L296).*
 
 <a id="route-count"></a>
 
@@ -510,7 +679,7 @@ std::uint8_t count = 0
 
 How many entries of `waypoints` are real. Must be >= 1 and <= kMaxWaypoints.
 
-*field, declared at [`include/shulib/config/route.hpp:185`](../../include/shulib/config/route.hpp#L185).*
+*field, declared at [`include/shulib/config/route.hpp:298`](../../include/shulib/config/route.hpp#L298).*
 
 <a id="route-valid"></a>
 
@@ -520,9 +689,9 @@ How many entries of `waypoints` are real. Must be >= 1 and <= kMaxWaypoints.
 [[nodiscard]] bool valid(char* why = nullptr, std::size_t cap = 0) const noexcept
 ```
 
-True when nothing in the route contradicts itself. `why` (optional; pass nullptr and 0 to skip) receives the FIRST contradiction found, naming the waypoint index and the field.  The checks are exactly what a mis-drawn path, a bad import or a mis-generated file produces: an empty route name; no waypoints at all, or more than the capacity; a `Start` anywhere but index 0; an unknown motion byte or an unknown heading-mode byte; a NaN or an infinity in x, y or heading; a `MoveToPose` or `TurnTo` whose headingMode is Free (the verb needs a heading and Free says there is not one) or a `DriveTo` whose headingMode is Fixed (the verb computes the heading, so a stated one would be silently ignored); a negative or non-finite budget; a `Hold` whose timeout is not > 0 (that field IS the hold duration); more markers than capacity; and an empty marker id.  Index 0 is NOT required to be a `Start`: a route that begins with a motion from wherever the robot already is, is a legitimate thing to author (it is what every hand-written auton in this repo's history does), and requiring a Start would force every importer to invent a pose it does not have.  noexcept and total: it allocates nothing, throws nothing, and returns for every input.
+True when nothing in the route contradicts itself. `why` (optional; pass nullptr and 0 to skip) receives the FIRST contradiction found, naming the waypoint index and the field.  The checks are exactly what a mis-drawn path, a bad import or a mis-generated file produces: an empty route name; no waypoints at all, or more than the capacity; a `Start` anywhere but index 0; an unknown motion byte or an unknown heading-mode byte; a NaN or an infinity in x, y or heading; a `TurnTo` whose headingMode is Free (a turn to no heading is not a motion) or a `DriveTo` whose headingMode is Fixed (the verb computes the heading, so a stated one would be silently ignored); a negative or non-finite budget; a `Hold` whose timeout is not > 0 (that field IS the hold duration); more markers than capacity; and an empty marker id.  **Changed at G2 (ruling R6), the one RELAXATION on this list:** a `MoveToPose` with `HeadingMode::Free` used to be refused alongside `TurnTo`, on the reading that both verbs "need a heading". They do — but a `MoveToPose` has an honest one to fall back on that a `TurnTo` does not: the heading the robot already has. "Translate there, keep facing where I am facing" is a thing path authors ask for constantly and it had no spelling in the vocabulary; the runner supplies the estimate's heading at the leg's start. Relaxing a validity rule is the ADDITIVE direction (every route that was valid before is still valid), which is why it is a thing G2 may do at all and why doing it at the F8 freeze rather than after it costs nothing. `TurnTo` keeps the refusal, unchanged.  **Added at G2**, once a runner existed to say what the data can actually ask for — the same principle, applied to four more ways a route can contradict itself: * `reverse` on anything but a `DriveTo`. `DriveTo` is the only verb with an approach direction to reverse (the runner drives to the point facing away from it); on every other verb the flag is READ BY NOTHING, and a stated value that is silently ignored is the quieter of the two bugs — exactly the reasoning that already refuses a `DriveTo` with a `Fixed` heading. * A marker id outside the command-id charset (`commandIdValid`): non-empty, `[a-z0-9_]`, at most `kMaxMarkerIdBytes - 1` bytes. An unknown id is legal data; an UNREGISTRABLE one is not, because `CommandRegistry` refuses it and the runner could therefore only ever warn about it. * A BUILT-IN id with the wrong number of args (`kBuiltinCommands`): `wait_ms` without its duration is not a command the runner can guess a value for. * A built-in whose `args[0]` is a duration and is not > 0: `Chassis::wait`/`hold` refuse a non-positive duration at the door, so this is the `Hold`-timeout rule applied to the two markers that carry the same quantity.  Index 0 is NOT required to be a `Start`: a route that begins with a motion from wherever the robot already is, is a legitimate thing to author (it is what every hand-written auton in this repo's history does), and requiring a Start would force every importer to invent a pose it does not have.  noexcept and total: it allocates nothing, throws nothing, and returns for every input.
 
-*function, declared at [`include/shulib/config/route.hpp:205`](../../include/shulib/config/route.hpp#L205).*
+*function, declared at [`include/shulib/config/route.hpp:345`](../../include/shulib/config/route.hpp#L345).*
 
 <a id="class-iroutesource"></a>
 
@@ -534,7 +703,7 @@ class IRouteSource
 
 The route seam (master plan decision #10): where a robot's routines come from. A generated header, a card read at boot and an array typed by hand all look the same through it.
 
-*class, declared at [`include/shulib/config/route.hpp:360`](../../include/shulib/config/route.hpp#L360).*
+*class, declared at [`include/shulib/config/route.hpp:550`](../../include/shulib/config/route.hpp#L550).*
 
 <a id="iroutesource-destructor-iroutesource"></a>
 
@@ -546,7 +715,7 @@ virtual ~IRouteSource() = default
 
 Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSource&`/`*` destroys correctly, with the copy/move set re-defaulted because declaring the destructor suppresses them. The base carries no state.
 
-*function, declared at [`include/shulib/config/route.hpp:365`](../../include/shulib/config/route.hpp#L365).*
+*function, declared at [`include/shulib/config/route.hpp:555`](../../include/shulib/config/route.hpp#L555).*
 
 <a id="iroutesource-iroutesource"></a>
 
@@ -558,7 +727,7 @@ IRouteSource() = default
 
 Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSource&`/`*` destroys correctly, with the copy/move set re-defaulted because declaring the destructor suppresses them. The base carries no state. Default-constructible: the base has nothing to initialize.
 
-*function, declared at [`include/shulib/config/route.hpp:367`](../../include/shulib/config/route.hpp#L367).*
+*function, declared at [`include/shulib/config/route.hpp:557`](../../include/shulib/config/route.hpp#L557).*
 
 <a id="iroutesource-iroutesource-2"></a>
 
@@ -570,7 +739,7 @@ IRouteSource(const IRouteSource&) = default
 
 Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSource&`/`*` destroys correctly, with the copy/move set re-defaulted because declaring the destructor suppresses them. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means.
 
-*function, declared at [`include/shulib/config/route.hpp:369`](../../include/shulib/config/route.hpp#L369).*
+*function, declared at [`include/shulib/config/route.hpp:559`](../../include/shulib/config/route.hpp#L559).*
 
 <a id="iroutesource-iroutesource-3"></a>
 
@@ -582,7 +751,7 @@ IRouteSource(IRouteSource&&) = default
 
 Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSource&`/`*` destroys correctly, with the copy/move set re-defaulted because declaring the destructor suppresses them. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor.
 
-*function, declared at [`include/shulib/config/route.hpp:371`](../../include/shulib/config/route.hpp#L371).*
+*function, declared at [`include/shulib/config/route.hpp:561`](../../include/shulib/config/route.hpp#L561).*
 
 <a id="iroutesource-operator-eq"></a>
 
@@ -594,7 +763,7 @@ IRouteSource& operator=(const IRouteSource&) = default
 
 Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSource&`/`*` destroys correctly, with the copy/move set re-defaulted because declaring the destructor suppresses them. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/config/route.hpp:373`](../../include/shulib/config/route.hpp#L373).*
+*function, declared at [`include/shulib/config/route.hpp:563`](../../include/shulib/config/route.hpp#L563).*
 
 <a id="iroutesource-operator-eq-2"></a>
 
@@ -606,7 +775,7 @@ IRouteSource& operator=(IRouteSource&&) = default
 
 Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSource&`/`*` destroys correctly, with the copy/move set re-defaulted because declaring the destructor suppresses them. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/config/route.hpp:375`](../../include/shulib/config/route.hpp#L375).*
+*function, declared at [`include/shulib/config/route.hpp:565`](../../include/shulib/config/route.hpp#L565).*
 
 <a id="iroutesource-route"></a>
 
@@ -618,7 +787,7 @@ Polymorphic-base boilerplate: a virtual destructor so a source held as `IRouteSo
 
 The route called `name`, or NULLPTR when this source has no such route. A null return is the whole error channel on purpose: "the route you asked for is not here" is a normal thing for a program to ask (an auton selector offers what exists), not an exception.
 
-*function, declared at [`include/shulib/config/route.hpp:380`](../../include/shulib/config/route.hpp#L380).*
+*function, declared at [`include/shulib/config/route.hpp:570`](../../include/shulib/config/route.hpp#L570).*
 
 <a id="iroutesource-count"></a>
 
@@ -630,7 +799,7 @@ The route called `name`, or NULLPTR when this source has no such route. A null r
 
 How many routes this source carries — for an auton selector that lists them.
 
-*function, declared at [`include/shulib/config/route.hpp:383`](../../include/shulib/config/route.hpp#L383).*
+*function, declared at [`include/shulib/config/route.hpp:573`](../../include/shulib/config/route.hpp#L573).*
 
 <a id="iroutesource-at"></a>
 
@@ -642,7 +811,7 @@ How many routes this source carries — for an auton selector that lists them.
 
 The route at `index`, which must be < count(). Preconditioned, not bounds-returned: an out-of-range index here is a programming error, unlike a missing NAME.
 
-*function, declared at [`include/shulib/config/route.hpp:387`](../../include/shulib/config/route.hpp#L387).*
+*function, declared at [`include/shulib/config/route.hpp:577`](../../include/shulib/config/route.hpp#L577).*
 
 <a id="class-staticroutes"></a>
 
@@ -654,7 +823,7 @@ class StaticRoutes final : public IRouteSource
 
 An `IRouteSource` over a caller's array of routes — the implementation a generated header or a hand-typed table uses.  NON-OWNING: it holds a `std::span`, so the array must outlive the source. That is the opposite choice from `StaticRobotConfig` (which copies) and the reason is size: one config is ~400 bytes and one route is ~5 KB, so copying a table of them into a second buffer would double the largest static object on a brain with 128 KB of user RAM, to protect against a lifetime bug that a `constexpr` table at namespace scope — the only way either producer emits one — cannot have.
 
-*class, declared at [`include/shulib/config/route.hpp:399`](../../include/shulib/config/route.hpp#L399).*
+*class, declared at [`include/shulib/config/route.hpp:589`](../../include/shulib/config/route.hpp#L589).*
 
 <a id="staticroutes-staticroutes"></a>
 
@@ -666,7 +835,7 @@ explicit StaticRoutes(std::span<const Route> routes) noexcept
 
 View `routes`. The array must outlive this source. An empty span is legal: a robot with no routes yet is a robot, and `route()` will answer nullptr for everything.
 
-*function, declared at [`include/shulib/config/route.hpp:403`](../../include/shulib/config/route.hpp#L403).*
+*function, declared at [`include/shulib/config/route.hpp:593`](../../include/shulib/config/route.hpp#L593).*
 
 <a id="staticroutes-route"></a>
 
@@ -678,7 +847,7 @@ View `routes`. The array must outlive this source. An empty span is legal: a rob
 
 The route whose `name` matches exactly, or nullptr. Order is preserved and the FIRST match wins — duplicate names are not refused here, because a source is a view of someone else's table and refusing at lookup time would hide the duplicate rather than report it.
 
-*function, declared at [`include/shulib/config/route.hpp:408`](../../include/shulib/config/route.hpp#L408).*
+*function, declared at [`include/shulib/config/route.hpp:598`](../../include/shulib/config/route.hpp#L598).*
 
 <a id="staticroutes-count"></a>
 
@@ -690,7 +859,7 @@ The route whose `name` matches exactly, or nullptr. Order is preserved and the F
 
 How many routes this source views.
 
-*function, declared at [`include/shulib/config/route.hpp:426`](../../include/shulib/config/route.hpp#L426).*
+*function, declared at [`include/shulib/config/route.hpp:616`](../../include/shulib/config/route.hpp#L616).*
 
 <a id="staticroutes-at"></a>
 
@@ -702,7 +871,7 @@ How many routes this source views.
 
 The route at `index`, in the caller's array order. Precondition: index < count().
 
-*function, declared at [`include/shulib/config/route.hpp:429`](../../include/shulib/config/route.hpp#L429).*
+*function, declared at [`include/shulib/config/route.hpp:619`](../../include/shulib/config/route.hpp#L619).*
 
 ## Design commentary, from the header
 

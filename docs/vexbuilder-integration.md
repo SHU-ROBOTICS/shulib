@@ -30,8 +30,10 @@ Three consequences worth internalising:
    schema in §3/§4", not "shulib loaded it". A schema-validation fixture on your side is worth
    building; shulib will ship the same fixtures once G3 exists.
 2. **Nothing you emit is wasted if you follow §6's versioning rule.** Additive fields are free.
-3. **Two of the three seams are not frozen yet** (F7, F8) and one is not written (F9). §7 is the
-   honest list of what can still move, and what we will do to stop it moving under you.
+3. **One of the three seams is now FROZEN — F8** (`paths[]` + the command vocabulary), locked
+   2026-09-18 with shulib's path runner; §4 is a contract, not a proposal. F7 is still a draft and
+   F9 is not written. §7 is the honest list of what can still move, and what we will do to stop it
+   moving under you.
 
 ---
 
@@ -50,7 +52,7 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 | Explicit drivetrain fields (`kind`/`trackWidth`/`wheelDiameter`) | ❌ | **ask #2** — shulib has a brittle inference fallback and does not want to use it |
 | `project.robotProfile` block | ❌ | **ask #5** — schema in §3 |
 | `project.paths[]` | ❌ | **ask #1** — schema in §4 |
-| Command picker fed by shulib's manifest | ❌ | **ask #4** |
+| Command picker fed by shulib's manifest | ❌ | **ask #4 — UNBLOCKED: the manifest exists and its exact bytes are in §4.2.3** |
 | Agent server + `server.json` (`port`, `token`, `pid`) | ✅ | **this exists** — it is the piece the programming chair is taking |
 | Rapier physics sim | ❌ | "planned". Everything sim-related is downstream of it |
 | `.vbpath` / standalone path planner | 🚫 | **retired by decision.** Paths live in `.vexbot` now — see §4.0 |
@@ -60,7 +62,7 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 | Piece | Status | Chunk |
 |---|---|---|
 | `IRobotConfig` / `IRouteSource` / `RobotBuilder` | 🚧 | **G1 Part 1 landed 2026-09-18, host-only** — the in-memory types (`config::RobotConfig`, `config::Route`, both seams) and the builder (`robot::Robot` over an `hal::IDeviceProvider`) exist and drive the host plant identically to a hand-wired graph. *Part 2 (the PROS provider + `src/main.cpp`) is open; ungated* |
-| `PathRunner` + command-id registry + manifest export | ❌ | **G2** — freezes F8 |
+| `PathRunner` + command-id registry + manifest export | 🚧 | **G2 landed 2026-09-18, host-only — F8 FROZEN.** The runner executes a `Route` through the frozen chassis verbs, the registry binds ids to handlers, and `writeManifest` publishes the vocabulary (§4.2.3). Proven on the host physics plant against a hand-written recipe, bit for bit; *never run on a robot*. The `.vexbot` READER is G3's |
 | `.vexbot` ingestion + `robot_config.hpp` codegen + SD runtime loader | ❌ | **G3** — freezes F7 |
 | `.shupaths` one-way importer + the 10-minute guide | ❌ | **G4** — closes the accessibility milestone |
 | `SHUL/2` wire protocol | ❌ | **H1** — freezes F9. *Ungated: the wire is defined unilaterally* |
@@ -171,23 +173,81 @@ alongside the robot, so a routine can never fall out of version-sync with the ro
 This deletes the spec's unsolved "re-export when the robot changes" problem outright. A one-way
 importer migrates old `.shupaths` files; nothing writes them again.
 
-### 4.1 The schema
+### 4.1 The schema — **FROZEN 2026-09-18 (register row F8, chunk G2)**
+
+This section used to be a proposal. It is now a **contract**: G2 built the runner that executes this
+vocabulary, and the in-memory types, the enum values and the field names below are pinned by a
+compile-time freeze test (`test/f8_signature_pin_test.cpp`) that fails shulib's build if any of them
+moves. G3 writes the parser against exactly this and nothing else.
+
+**The names below changed from the proposal, and the changes are listed in 4.1.3.** They changed in
+one direction only: *the document converged on the code*. shulib executes `config::Route` today, on
+the host plant, and a schema field that did not map onto something the library can actually do would
+have been a promise no parser could keep.
 
 ```
 project.paths: [ {
-  schemaVersion: int,
-  name: string,
-  waypoints: [ {
-    x, y,                        // inches, field frame
-    heading,                     // degrees
-    headingMode: "locked"|"tangent"|"free",
-    motion: "move"|"strafe"|"turn"|"arc",
-    reverse: bool,
+  schemaVersion: int,            // 1
+  name: string,                  // 1..31 bytes; the key an auton selector looks up
+  waypoints: [ {                 // 1..32 of them
+    x, y,                        // inches, field frame, finite
+    heading,                     // DEGREES, finite (read only when headingMode is "fixed")
+    headingMode: "fixed" | "free",
+    motion: "start" | "move" | "drive" | "turn" | "strafe" | "hold",
+    reverse: bool,               // "drive" only
     constraints: { maxLinearSpeed?, maxAngularSpeed?, timeout? },
-    markers: [ { id: string, args?: { ... } } ]
+    markers: [ { id: string, args?: [int, int] } ]   // 0..4 of them
   } ]
 } ]
 ```
+
+#### 4.1.1 What each value MEANS — the verb table
+
+Every `motion` is a verb shulib has **today**; there are no aspirational values in this list, which
+is the whole reason the list is short.
+
+| `motion` | What the robot does | `headingMode` | Reads `x`,`y` | Reads `heading` | `reverse` |
+|---|---|---|---|---|---|
+| `"start"` | Not a motion: *"the robot begins HERE."* Seeds the pose estimate. **Legal at index 0 only** | either | yes | yes | no |
+| `"move"` | Translate and rotate to the full pose, simultaneously | `"fixed"` → arrive at `heading`; `"free"` → keep the heading the robot has when the leg starts | yes | when `"fixed"` | no |
+| `"drive"` | Drive to the point, **arriving facing it** — the heading is computed from the approach | **`"free"` only** | yes | no | **yes** — adds 180°, so the robot arrives backwards onto the point |
+| `"turn"` | Rotate in place to `heading` | **`"fixed"` only** | no | yes | no |
+| `"strafe"` | Translate holding the current heading | either | yes | no | no |
+| `"hold"` | Actively hold the pose for `constraints.timeout` | either | no | no | no |
+
+**`reverse` on anything but `"drive"` is refused**, not ignored: `"drive"` is the only verb with an
+approach direction to reverse, and a stated value that nothing reads is the quieter of the two bugs.
+
+#### 4.1.2 Constraints, units, and the zero sentinel
+
+| Field | Unit | Rule |
+|---|---|---|
+| `maxLinearSpeed` | **inches per second** | finite, ≥ 0. **0 or absent = the robot's configured default** |
+| `maxAngularSpeed` | **radians per second** | finite, ≥ 0. 0 or absent = the default |
+| `timeout` | **seconds** | finite, ≥ 0. 0 or absent = the default — **except on `"hold"`, where this field IS the hold duration and must be > 0** |
+
+Units are canonical shulib units and are not negotiable per-file: inches, seconds, radians per second
+(`heading` is the one exception — **degrees in the file**, because that is what a person draws with,
+converted once at parse). A route whose numbers are not finite is refused with a message naming the
+waypoint and the field.
+
+#### 4.1.3 The rename table — proposal → frozen
+
+| Was (proposal) | Is (frozen) | Why |
+|---|---|---|
+| `headingMode: "locked"` | **`"fixed"`** | the in-memory enumerator is `HeadingMode::Fixed`; one spelling everywhere beats a translation table nobody maintains |
+| `headingMode: "tangent"` | **`motion: "drive"`** | "tangent" was a heading MODE describing a MOTION. `"drive"` already means *"arrive facing the point"*, and the runner computes that heading, so the concept survives with a better home |
+| `motion: "move"` | `"move"` (unchanged), **plus `"start"`, `"drive"`, `"hold"`** | the proposal had no way to say "begin here", "arrive facing it" or "stay put", all of which every real auton needs |
+| `motion: "arc"` | **DROPPED — a named gap, see below** | no facade verb performs an arc, and F8 must not freeze something the library cannot do |
+| `markers[].args: { level: 3 }` | **`args: [3]`** — a positional array of **at most 2 integers** | the in-memory type is `int32_t args[2]`. A picker labels the positions from the **manifest**, which is a better place for a label than inside every path file |
+| *(unstated)* | `markers[].id` is **1–23 bytes of `[a-z0-9_]`** | 4.2 |
+| *(unstated)* | ≤ **32** waypoints, ≤ **4** markers per waypoint | design bounds, frozen so a generator can size its output |
+
+**The `"arc"` gap, stated out loud so it is not mistaken for an oversight.** shulib has no arc verb.
+Blended/spline trajectories are a real item on shulib's roadmap, and when one lands, `"arc"` is
+**added as a new value** — which is an ADDITIVE change under the versioning contract in §6 and costs
+your parser nothing. Do not emit `"arc"` before then; a reader that meets an unknown `motion` refuses
+the route by name rather than guessing.
 
 ### 4.2 The command-id rule — the keystone of the whole no-code story
 
@@ -198,36 +258,104 @@ eliminate.
 Instead a marker carries an **id**, and the student registers a handler once:
 
 ```text
-runner.on("intake_in", []{ intake.in(); });
+runner::CommandRegistry registry;
+registry.on("intake_in", intakeIn);        // intakeIn is a callable that OUTLIVES the registry
+
+runner::PathRunner runner{chassis, registry, telemetry};
+const runner::RunReport report = runner.run(*routes.route("left_side_rush"));
 ```
 
 The auton becomes **data a non-coder authors in VexBuilder, executed by a library the coders maintain.**
 
-- **shulib owns the canonical id vocabulary** and exports it as a **manifest** your picker reads
-  (ask #4). Ids are not free-form strings the user types.
-- **An unknown id logs a warning and is skipped. It never crashes.** Guaranteed by shulib.
-- **Markers may carry typed args** (`{id: "lift_to_level", args: {level: 3}}`) so parametric
-  primitives do not explode into one id per value.
+#### 4.2.1 The id vocabulary rule — FROZEN
+
+**An id is 1 to 23 characters of `[a-z0-9_]`.** Lower case, digits and underscore; nothing else.
+No spaces, no punctuation, no capitals, no non-ASCII. This is deliberate and it is the reason
+**nothing in this system ever needs escaping**: the same byte sequence is a C++ string literal, a
+manifest line, a `.vexbot` field and a button label, on every platform. An id outside the charset is
+refused by shulib at the door, both at registration and when a route is validated — it is not an
+"unknown id", because no registry could ever hold it.
+
+#### 4.2.2 The four LIBRARY-OWNED built-in ids — FROZEN
+
+These four always exist, on every robot, with no registration. **A team cannot re-bind them** (doing
+so is a hard error in shulib), so a route that uses them means the same thing in every program:
+
+| id | args | Meaning |
+|---|---|---|
+| `wait_ms` | `[ms]` — exactly one, **> 0** | wait, commanding nothing, for `args[0]` milliseconds |
+| `brake` | none | stop the drive (0 V + Brake) and block until the estimate certifies rest |
+| `hold_ms` | `[ms]` — exactly one, **> 0** | actively hold the current pose for `args[0]` milliseconds |
+| `log` | 0 to 2 | write one Info line naming this marker and its args — the non-coder's print statement |
+
+A built-in carrying the wrong number of args, or a non-positive duration, makes the route invalid
+before it runs — deliberately, because the alternative is a routine that throws mid-autonomous.
+
+#### 4.2.3 The manifest — ask #4, and it now EXISTS
+
+shulib owns the canonical id vocabulary and publishes it. `runner::writeManifest(registry, sink)`
+emits **one JSON object per line** — not one JSON document, because a line-oriented file is what the
+sink's contract carries, what keeps your parser trivial, and what makes two builds diffable:
+
+```
+{"manifestSchemaVersion":1,"builtins":4,"commands":2}
+{"id":"wait_ms","builtin":true,"minArgs":1,"maxArgs":1,"doc":"wait, commanding nothing, for args[0] milliseconds (the drive keeps its last state)"}
+{"id":"brake","builtin":true,"minArgs":0,"maxArgs":0,"doc":"stop the drive (0 V + Brake) and block until the estimate certifies rest"}
+{"id":"hold_ms","builtin":true,"minArgs":1,"maxArgs":1,"doc":"actively hold the current pose for args[0] milliseconds, driving back disturbance"}
+{"id":"log","builtin":true,"minArgs":0,"maxArgs":2,"doc":"write one Info line naming this marker and its args"}
+{"id":"intake_in","builtin":false,"minArgs":0,"maxArgs":0,"doc":""}
+{"id":"lift_to_level","builtin":false,"minArgs":1,"maxArgs":1,"doc":""}
+```
+
+- Line 1 is the header; every later line is one command, with the **same five fields** every time
+  (`doc` is `""` for a team-registered id, whose meaning the library does not know).
+- **Order is part of the contract:** the built-ins first, in the order above, **append-only**; then
+  the team's ids in **registration order**. A byte-exact golden test in shulib pins these bytes, so
+  a change to the file your picker parses cannot happen quietly.
+- `minArgs`/`maxArgs` tell the picker exactly how many argument fields to render.
+- Nothing in the file is escaped, because 4.2.1 makes escaping unnecessary.
+
+#### 4.2.4 The unknown-id guarantee, now implemented and tested
+
+**An unknown id logs one warning naming the id and the waypoint index, is counted, and is skipped.
+The route continues. It never crashes.** This is no longer a promise — it is `PathRunner`'s
+behaviour, with a test that breaks it deliberately and watches it fail. A typo in a picker must not
+end a match, and it must not be silent either: the count comes back in `RunReport::unknownIds`, which
+is the first number to look at when a route "ran fine" and scored nothing.
 
 ### 4.3 The state of the vocabulary today — read this before building the picker
 
-The manifest does not exist yet (it ships with G2). What we know from auditing the legacy code:
+**The manifest now exists (it shipped with G2, 4.2.3).** What the legacy audit found, and where each
+legacy id ended up:
 
 | Legacy id | Ever actually emitted? | Fate |
 |---|---|---|
-| `MOVE_WITH_HEADING` | **yes** — 826 CSV rows + 635 generated + 10 hand-written | covered: shulib's core motion verb is a strict superset |
-| `NONE` | **yes** — 18 rows, and **absent from both legacy enums** | **an open question, see below** |
-| `PICK_UP`, `PLACE`, `SCOOP`, `RELEASE`, `CLASP` | **no — declared in an enum, never emitted** | planned scoring primitives, not yet built |
+| `MOVE_WITH_HEADING` | **yes** — 826 CSV rows + 635 generated + 10 hand-written | covered: it is `motion: "move"` with `headingMode: "fixed"` |
+| `NONE` | **yes** — 18 rows, and **absent from both legacy enums** | **ANSWERED — see below. It is not an id and never will be** |
+| `PICK_UP`, `PLACE`, `SCOOP`, `RELEASE`, `CLASP` | **no — declared in an enum, never emitted** | planned scoring primitives, not yet built; they will arrive as ordinary registered ids in the manifest |
 
 **Only one motion id was ever really used.** The five manipulation ids are aspirational, and the
 primitives behind them are gated on the build team's final mechanism decisions — which are not made.
 **So the vocabulary will be small at first and grow.** Design the picker for a manifest that grows,
-and do not hardcode a list.
+and do not hardcode a list — including the built-ins, which are append-only but not fixed in number.
 
-**The `NONE` open question, which is yours as much as ours:** the 18 `NONE` rows are *segment boundary
-markers* delimiting 17 move segments. `.vexbot` already has real segment structure, so the boundaries
-may not need an id at all. **Decide this together before the picker ships**, or the importer will
-produce ids your UI cannot render.
+#### 4.3.1 The `NONE` question — ANSWERED: `NONE` is not an id
+
+The 18 `NONE` rows were *segment boundary markers* delimiting 17 move segments. **In this vocabulary
+a waypoint IS a segment**, so the boundary has no content left to carry, and shulib will never mint
+a command id called `none` (its absence is pinned by the freeze test, so a future built-in cannot
+quietly give the legacy spelling a meaning it was ruled out of having).
+
+**What this means for each side:** the `.shupaths` importer folds `NONE` rows into waypoint
+boundaries and emits no marker for them. Your picker never renders one, and never has to explain to
+a student what "NONE" would do. If a `.vexbot` ever arrives carrying `id: "none"`, it is an importer
+bug, and it will surface as one warning per occurrence rather than as a mystery.
+
+#### 4.3.2 What shulib has actually executed, stated honestly
+
+A `Route` has been executed **on the host physics plant only** — every verb, both drivetrains, with
+the runner's output required to be bit-identical to the same legs written by hand in C++. The library
+has never driven a physical robot. Read §7 before betting a competition on any of this.
 
 ---
 
@@ -306,11 +434,11 @@ You asked not to be blindsided. This is the list.
 | Risk | Likelihood | What we are doing about it |
 |---|---|---|
 | **F7 (`robotProfile`) is not frozen.** Field names and nesting can change | **real** | §3's schema is the current best draft. It freezes when shulib's ingestion ships. **Build against §3 and flag anything awkward — early feedback changes the schema cheaply, late feedback does not** |
-| **F8 (`paths[]` + ids) is not frozen** | **real** | Same. The *shape* in §4.1 is stable; the **vocabulary** is what will grow |
-| **The command-id manifest does not exist** | certain | Ships with shulib's path runner. Until then, treat the §4.3 table as the whole known vocabulary |
+| ~~**F8 (`paths[]` + ids) is not frozen**~~ | **RETIRED 2026-09-18** | **F8 is frozen.** §4.1's field names, the `motion`/`headingMode` value sets, the capacities and the four built-in ids are pinned by a compile-time test in shulib. What still grows is the **vocabulary of team-registered ids**, which is additive by design and arrives through the manifest |
+| ~~**The command-id manifest does not exist**~~ | **RETIRED 2026-09-18** | It exists, with a byte-exact golden test behind it. Its format and a real example are in §4.2.3 |
 | **`gearRatio` is a new field with no shulib support behind it yet** | certain | shulib has **no gear-ratio concept at all** today — a known defect being fixed in the robot phase. Emit it anyway; we need it and it is cheap to carry |
 | **Per-side gear ratios may be required** | likely | At least one team robot is believed to be geared differently left vs right. §3.1 puts `gearRatio` per motor for this reason — do not hoist it to a single drivetrain-level field |
-| **`NONE` boundary-marker representation is undecided** | certain | §4.3. **Decide jointly before the picker ships** |
+| ~~**`NONE` boundary-marker representation is undecided**~~ | **RETIRED 2026-09-18** | Decided: **`NONE` is not an id.** A waypoint IS a segment; the importer folds the boundary rows away and the picker never renders one. §4.3.1 |
 | **Rapier does not exist, so seam 3 is unexercised** | certain | H1 defines the wire unilaterally and can be built and round-trip tested with no sim at all. The socket work is independent and can proceed now |
 | **shulib's sensor-noise and tuning constants are all provisional** | certain | Irrelevant to the file format; relevant if you ever compare sim output to real output. Do not treat shulib's shipped constants as measured |
 
@@ -330,15 +458,17 @@ You asked not to be blindsided. This is the list.
    brittle inference path.
 4. **`project.robotProfile`** per §3.
 5. **`project.paths[]`** per §4.1 — unblocks the whole no-code milestone.
-6. **Command picker** reading shulib's manifest — needs shulib's G2 first; build the UI against a
-   hand-written manifest fixture in the meantime.
+6. **Command picker** reading shulib's manifest — **no longer blocked: G2 shipped the manifest.**
+   Build against the real format in §4.2.3; the four built-ins are always present, so the picker has
+   something to render on a robot whose team has registered nothing yet.
 7. **Rapier sim + `SHUL/2` feed** — last, and the only one gated on physics.
 
 ### 8.2 shulib side, in dependency order
 
 1. **G1** — the config/route types and builder, against hand-written fixtures. **Ungated, can start
    today, zero VexBuilder dependency.**
-2. **G2** — path runner, command registry, **manifest export** ← *this is what unblocks your picker.*
+2. ~~**G2** — path runner, command registry, **manifest export**~~ **— DONE 2026-09-18 (host-only).**
+   Your picker is unblocked; the format is §4.2.3.
 3. **G3** — `.vexbot` ingestion + codegen ← *this is what makes your file actually run a robot.*
 4. **G4** — legacy importer + the 10-minute guide.
 5. **H1** — `SHUL/2` ← *ungated; can be built and tested before Rapier exists.*
@@ -346,10 +476,11 @@ You asked not to be blindsided. This is the list.
 
 ### 8.3 The two things that unblock each other soonest
 
-- **shulib G2's manifest** unblocks **VexBuilder's picker.**
-- **VexBuilder's electrical UI + drivetrain fields** unblock **shulib G3's ingestion.**
-
-Those two can be worked in parallel and neither waits on the other. Do them first.
+- ~~**shulib G2's manifest** unblocks **VexBuilder's picker.**~~ **Done — the picker is unblocked**
+  (§4.2.3 is the format; §4.1 is the schema it writes into).
+- **VexBuilder's electrical UI + drivetrain fields** unblock **shulib G3's ingestion.** ← **now the
+  single critical path between the two projects.** Everything on shulib's side that can proceed
+  without it has proceeded.
 
 ---
 

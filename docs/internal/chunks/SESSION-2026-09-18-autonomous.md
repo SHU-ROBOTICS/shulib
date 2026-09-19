@@ -297,3 +297,32 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   **Next work, in order:** finish G2 (resume per its log) → G1 Part 2 (the PROS device provider
   and the `main.cpp` collapse) + T2's `src/` re-pointing → G3's brief → the bench session whenever
   the brain connects (it needs nothing from any of these).
+
+## Resumed — 2026-09-18 20:09 (the team lead: "you can continue")
+
+- **20:09** — "Where things stand" run: HEAD `d9d0ee3`, the tree dirty with exactly the
+  seven G2 paths the close-out recorded, both side worktrees present, no brain on USB. The
+  coordinator's gate script did not survive the reboot and was recreated in the scratchpad.
+  **G2 RESUMED**: a fresh executor (opus, background, main tree) told to read the interrupted
+  log first, treat every earlier claim as unverified, keep what is correct, finish the brief's
+  DoD, and re-run EVERY mutation against the final code. One thing in flight; the standing rules
+  are back in force (the overnight relaxation of rule 1 ended with that session).
+- **21:30** — **G2 (resumed) REPORTED and VERIFIED.** The second executor found the first
+  one's three headers and four tests complete and sound, and three defects its never-reached
+  first build exposed: `version.hpp` unbumped (the F8 pin's own case red), `Route::valid()`
+  refusing the very combination ruling R6 defines (`MoveToPose` + `Free`), and a tank test that
+  asserted what the library deliberately does not do (a tank cannot `DriveTo` a point far off its
+  heading without an authored turn — now the test pins that finding both ways). 14 mutations,
+  all red on the final code, after it caught a stale-object false green (an `inline constexpr`
+  table: touch EVERY including test before a fast relink). Coordinator: `verify.sh` ALL PASS —
+  suite **1358 / 1,635,290**; six builds; ARM 181 headers; guards; api; briefing; removability.
+  Read `run()`'s gate order, the stop path, the unknown-id path and `bearingTo`. Hand mutations
+  on fresh binaries: `atan2` arguments swapped ⇒ the bit-identity REQUIRE and the reverse-heading
+  checks red; markers moved ahead of the Settled gate ⇒ "fired == 0" red. Restored, green.
+  **Ruling accepted (R6-SPLIT):** `valid()` now permits `MoveToPose` + `Free` and still refuses
+  `Free` on `TurnTo` — it is the brief's own R6; it rewrites G1's test 2h; relaxing at the freeze
+  is the additive direction. Also accepted: the manifest lines carry `minArgs`/`maxArgs`/`doc`
+  (one number cannot describe `log`'s 0–2 args), and a surgical edit to
+  `legacy-command-vocabulary.md` (three sentences said G2 "must decide" what G2 has now frozen).
+  **Flagged for the team lead:** the master plan still spells the binding `runner.on(...)`; the
+  code is `registry.on(...)`. One line, his document.

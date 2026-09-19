@@ -298,6 +298,10 @@ nav:
           - Route: api/route.md
       - Robot:
           - Robot: api/robot.md
+      - Runner:
+          - Command registry: api/command_registry.md
+          - Manifest: api/manifest.md
+          - Path runner: api/path_runner.md
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md
           - Drive modes: api/drive_modes.md

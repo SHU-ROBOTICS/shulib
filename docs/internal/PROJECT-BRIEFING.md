@@ -107,10 +107,10 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 - **Next up:** R3d Part 3 — THE BENCH SESSION, the team lead's morning: run "shulib Calibrate" on robot two, then "shulib Teleop" from the record it writes (worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)). This is also where R3b closes.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,342 cases / 1,632,353 assertions, 3 skipped — **green**  
+- ⚠️ **INTERRUPTED CHUNK(S): G1, G2, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- **Suite:** 1,358 cases / 1,635,290 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 178  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Public headers:** 181  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 140 registered, **7 settled** — next free is **HA-141**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
@@ -129,7 +129,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 | **F5** | IKinematics contract — twist (vx,vy,ω) ⇄ wheels + desat… | ✅ LOCKED |
 | **F6** | Public Chassis API — the whole facade surface, by group… | ✅ LOCKED |
 | **F7** | robotProfile sub-schema inside .vexbot — drivetrain/odo… | 🎯 pending |
-| **F8** | paths[] sub-schema + command-id vocabulary inside .vexbot | 🎯 pending |
+| **F8** | paths[] sub-schema + command-id vocabulary — BOTH halve… | ✅ LOCKED |
 | **F9** | SHUL/2 telemetry wire protocol (v1) — the wire serializ… | 🎯 pending |
 | **F10** | Public Routine API (the Tier-2 recipe layer) — construc… | ✅ LOCKED |
 | **F11** | Mechanism seam + operation contract — hal::IMechanism /… | 🚧 open by design |

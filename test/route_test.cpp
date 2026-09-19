@@ -293,13 +293,24 @@ TEST_CASE("G1 route 2g: a motion byte this library has no verb for is refused") 
 // Bug caught: a stated heading that is silently ignored (DriveTo computes its own from the
 // approach — C1's honesty about tank verbs never planning turns), and a heading-servoing verb
 // with no heading to servo to. The first is the quieter bug and therefore the one worth naming.
-TEST_CASE("G1 route 2h: a verb that needs a heading refuses Free; DriveTo refuses Fixed") {
-    SUBCASE("MoveToPose with Free") {
+//
+// AMENDED AT G2 (ruling R6). The MoveToPose subcase used to assert the OPPOSITE of what it
+// asserts now: `MoveToPose` + `Free` was refused alongside `TurnTo` + `Free`, on the reading
+// that both verbs "need a heading". G2 built the runner and the reading did not survive it —
+// `MoveToPose` has an honest fallback heading that `TurnTo` has none of (the one the estimate
+// already carries), and "translate there, keep facing where I am facing" is an authoring idiom
+// with no other spelling in this vocabulary. `TurnTo` keeps the refusal; the case below now pins
+// the DIFFERENCE between the two verbs, which is the thing that is actually load-bearing.
+TEST_CASE("G1 route 2h: TurnTo refuses Free, MoveToPose accepts it (R6); DriveTo refuses Fixed") {
+    SUBCASE("MoveToPose with Free is LEGAL — the runner supplies the estimate's heading") {
         cfgns::Route r = baseRoute();
         r.waypoints[1].headingMode = cfgns::HeadingMode::Free;
-        const std::string why = whyNot(r);
-        CHECK(why.find("MoveToPose") != std::string::npos);
-        CHECK(why.find("needs a heading") != std::string::npos);
+        CHECK(r.valid());
+        CHECK(whyNot(r).empty());
+        // …and the distinction is the verb, not the mode: the same waypoint as a TurnTo is
+        // refused, so the relaxation did not simply delete the rule.
+        r.waypoints[1].motion = cfgns::WaypointMotion::TurnTo;
+        CHECK_FALSE(r.valid());
     }
     SUBCASE("TurnTo with Free") {
         cfgns::Route r = baseRoute();
@@ -321,6 +332,132 @@ TEST_CASE("G1 route 2h: a verb that needs a heading refuses Free; DriveTo refuse
             r.waypoints[1].motion = cfgns::WaypointMotion::StrafeTo;
             r.waypoints[1].headingMode = mode;
             r.waypoints[3].headingMode = mode;
+            CHECK(r.valid());
+        }
+    }
+}
+
+// ═══ 2j. The G2 rules: what the data may not ask a runner to do ══════════════════════
+// Bug caught: a route that states something the runner reads by NOTHING, or states something a
+// facade verb will refuse at the door MID-AUTON. Both are the same failure in different clothes
+// — a contradiction that a person can draw and a robot cannot perform — and `valid()` is the one
+// place that is allowed to notice before the match starts.
+//
+// Each subcase starts from the reference route, which is valid, and breaks EXACTLY ONE thing:
+// a rule that only fires in combination with another is a rule that cannot be trusted to be the
+// reason anything was refused. (`baseRoute()` already carries `reverse = true` on its DriveTo
+// and lower-snake marker ids, so nothing here needed the reference route widened to fit it.)
+TEST_CASE("G2 route 2j: reverse belongs to DriveTo; ids obey the charset; built-ins obey arity") {
+    SUBCASE("reverse is DriveTo's alone — every other verb reads it by nothing") {
+        // The reference route's DriveTo carries reverse = true and is valid; that is the control.
+        CHECK(baseRoute().valid());
+        CHECK(baseRoute().waypoints[2].reverse);
+
+        const cfgns::WaypointMotion others[] = {
+            cfgns::WaypointMotion::Start, cfgns::WaypointMotion::MoveToPose,
+            cfgns::WaypointMotion::TurnTo, cfgns::WaypointMotion::StrafeTo,
+            cfgns::WaypointMotion::Hold};
+        for (const cfgns::WaypointMotion v : others) {
+            CAPTURE(std::string{cfgns::waypointMotionWord(v)});
+            cfgns::Route r{.name = "rev"};
+            r.waypoints[0] = {.x = Length{10.0},
+                              .y = Length{2.0},
+                              .heading = Angle{},
+                              .headingMode = cfgns::HeadingMode::Fixed,
+                              .motion = v,
+                              .constraints = {.timeout = Time{1.0}}};
+            r.count = 1;
+            REQUIRE(r.valid());  // the SOLE cause: it is valid until reverse is set
+            r.waypoints[0].reverse = true;
+            const std::string why = whyNot(r);
+            CHECK(why.find(cfgns::waypointMotionWord(v)) != std::string::npos);
+            CHECK(why.find("reverse") != std::string::npos);
+        }
+    }
+
+    SUBCASE("a marker id outside the command-id charset is refused, not merely unknown") {
+        // An UNKNOWN id stays legal — that is the open-vocabulary guarantee, and it is the
+        // control this subcase needs to stay honest about what it is actually refusing.
+        cfgns::Route known = baseRoute();
+        std::strncpy(known.waypoints[1].markers[0].id, "nobody_has_this_one",
+                     sizeof known.waypoints[1].markers[0].id - 1);
+        CHECK(known.valid());
+
+        const char* const illegal[] = {"Intake_In",  "intake in", "intake-in",
+                                       "intake.in",  "intake/in", "\303\251clair"};
+        for (const char* bad : illegal) {
+            CAPTURE(std::string{bad});
+            cfgns::Route r = baseRoute();
+            std::memset(r.waypoints[1].markers[0].id, 0, sizeof r.waypoints[1].markers[0].id);
+            std::strncpy(r.waypoints[1].markers[0].id, bad,
+                         sizeof r.waypoints[1].markers[0].id - 1);
+            CHECK(whyNot(r).find("not a legal command id") != std::string::npos);
+        }
+
+        // A buffer filled to the last byte has no terminator: 24 characters of id, which cannot
+        // be stored with one and therefore cannot be printed by anything that reads it as a C
+        // string. Bounded by the BUFFER, exactly as the route-name lookup is.
+        cfgns::Route unterminated = baseRoute();
+        std::memset(unterminated.waypoints[1].markers[0].id, 'a',
+                    sizeof unterminated.waypoints[1].markers[0].id);
+        CHECK(whyNot(unterminated).find("not a legal command id") != std::string::npos);
+
+        // …and 23 characters, the longest that fits WITH a terminator, is fine.
+        cfgns::Route longest = baseRoute();
+        std::memset(longest.waypoints[1].markers[0].id, 0,
+                    sizeof longest.waypoints[1].markers[0].id);
+        std::memset(longest.waypoints[1].markers[0].id, 'a', cfgns::kMaxMarkerIdBytes - 1);
+        CHECK(longest.valid());
+    }
+
+    SUBCASE("a BUILT-IN id must carry the number of args its entry declares") {
+        for (const cfgns::BuiltinCommand& b : cfgns::kBuiltinCommands) {
+            CAPTURE(std::string{b.id});
+            // The legal spelling first — the control for everything below it.
+            cfgns::Route ok = baseRoute();
+            cfgns::Marker& m = ok.waypoints[1].markers[0];
+            std::memset(m.id, 0, sizeof m.id);
+            std::strncpy(m.id, b.id, sizeof m.id - 1);
+            m.argCount = b.minArgs;
+            m.args[0] = b.firstArgIsDurationMs ? 250 : 0;
+            REQUIRE(ok.valid());
+
+            if (b.minArgs > 0) {
+                cfgns::Route few = ok;
+                few.waypoints[1].markers[0].argCount =
+                    static_cast<std::uint8_t>(b.minArgs - 1);
+                const std::string why = whyNot(few);
+                CHECK(why.find(b.id) != std::string::npos);
+                CHECK(why.find("built-in id takes") != std::string::npos);
+            }
+            if (b.maxArgs < cfgns::kMaxMarkerArgs) {
+                cfgns::Route many = ok;
+                many.waypoints[1].markers[0].argCount =
+                    static_cast<std::uint8_t>(b.maxArgs + 1);
+                CHECK(whyNot(many).find("built-in id takes") != std::string::npos);
+            }
+            if (b.firstArgIsDurationMs) {
+                // args[0] is a DURATION: Chassis::wait/hold refuse a non-positive one at the
+                // door, so a route carrying one is a routine that throws mid-auton rather than
+                // one that is refused before it ever drives.
+                for (const std::int32_t bad : {0, -1, -250}) {
+                    CAPTURE(bad);
+                    cfgns::Route zero = ok;
+                    zero.waypoints[1].markers[0].args[0] = bad;
+                    const std::string why = whyNot(zero);
+                    CHECK(why.find(b.id) != std::string::npos);
+                    CHECK(why.find("must be > 0") != std::string::npos);
+                }
+            }
+        }
+    }
+
+    SUBCASE("a NON-built-in id is not held to any arity — the vocabulary is open") {
+        for (const std::uint8_t n : {std::uint8_t{0}, std::uint8_t{1}, std::uint8_t{2}}) {
+            cfgns::Route r = baseRoute();
+            r.waypoints[1].markers[0].argCount = n;
+            r.waypoints[1].markers[0].args[0] = 0;  // a zero that is NOT a duration
+            CAPTURE(static_cast<int>(n));
             CHECK(r.valid());
         }
     }

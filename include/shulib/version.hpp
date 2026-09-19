@@ -56,9 +56,20 @@ inline constexpr int kApiMajor = 2;
 /// (F1 is also the change that PROVED this path works: the D2/D3 pin tests
 /// had hard-asserted `kApiMinor == 0`, fencing off the growth this header
 /// calls "the intended path" — a conflation fixed in those pins at F1.)
-inline constexpr int kApiMinor = 1;
+/// 2 = chunk G2's additive growth (2026-09-18), the change that LOCKED
+/// register row F8 (the `paths[]` sub-schema + the command-id vocabulary):
+/// `config` gains `kMaxMarkerIdBytes` (naming the 24 G1 spelled as a
+/// literal), `commandIdValid`/`commandIdView`/`markerIdView`, the
+/// `BuiltinCommand` table and `findBuiltinCommand`; the new `runner`
+/// namespace adds `CommandRegistry`, `PathRunner` and `writeManifest`; and
+/// `Route::valid()` gains four rules and RELAXES one (G2 ruling R6:
+/// `MoveToPose` now accepts `HeadingMode::Free`, meaning "keep the heading
+/// the estimate has"). No frozen member changed shape, no enumerator moved,
+/// and the relaxation is additive in the only direction that matters —
+/// every route that validated under 2.1 still validates under 2.2.
+inline constexpr int kApiMinor = 2;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.1";
+inline constexpr const char* kApiVersionString = "2.2";
 
 }  // namespace shulib

@@ -59,6 +59,99 @@ inline constexpr std::size_t kMaxMarkersPerWaypoint = 4;
 /// that needs a third is a marker that wants a different id.
 inline constexpr std::size_t kMaxMarkerArgs = 2;
 
+/// Bytes of storage one command id occupies, NUL INCLUDED — so the longest id TEXT is 23 bytes.
+/// G1 wrote `char id[24]` and never named the number; G2 needs the same bound in three more
+/// places (the registry's key buffer, the manifest writer, the id-validity rule), and a capacity
+/// spelled as a literal in four files is a capacity that will disagree with itself. Design
+/// constant (B6), not a hardware belief: 23 characters is longer than every id anyone has
+/// proposed, and short enough that a whole registry of 32 is under a kilobyte.
+inline constexpr std::size_t kMaxMarkerIdBytes = 24;
+
+/// The text of a fixed-width, possibly UNTERMINATED character buffer (a command id, a route
+/// name), bounded by the BUFFER rather than by `strlen` — the same hazard `StaticRoutes::route()`
+/// guards against, since a generator may fill the last byte. `capacity` is the buffer's size in
+/// bytes.
+[[nodiscard]] constexpr std::string_view commandIdView(const char* id,
+                                                       std::size_t capacity) noexcept {
+    std::size_t n = 0;
+    while (n < capacity && id[n] != '\0') {
+        ++n;
+    }
+    return std::string_view{id, n};
+}
+
+/// Is `id` a legal command id? Non-empty, at most `kMaxMarkerIdBytes - 1` characters, and drawn
+/// from `[a-z0-9_]` only.
+///
+/// The charset is deliberately narrow (G2's REJECTED list): an id is the SAME STRING in a C++
+/// source line, in a manifest line, in a `.vexbot` file and on a picker's button, and a vocabulary
+/// with no uppercase, no spaces, no punctuation and no non-ASCII is one that never needs escaping
+/// on any of those four paths. The length bound is what makes the id storable in the fixed buffer
+/// WITH a terminator — a 24-byte id that filled its buffer could be compared but never printed.
+[[nodiscard]] constexpr bool commandIdValid(std::string_view id) noexcept {
+    if (id.empty() || id.size() > kMaxMarkerIdBytes - 1) {
+        return false;
+    }
+    for (const char c : id) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';
+        if (!ok) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/// One LIBRARY-OWNED command id: a marker a team never registers because the runner itself
+/// performs it (G2 ruling R3). The table below is the whole set; a team that registered `brake`
+/// to mean something else would break every route another team exported, so `CommandRegistry`
+/// refuses one as a precondition violation.
+///
+/// The SPEC lives here, at the data layer, rather than in `runner/`, because an id, its arity and
+/// its meaning are facts about the ROUTE VOCABULARY — `Route::valid()` checks them, the manifest
+/// publishes them and F8 freezes them; only the DOING of them belongs to the runner. The reverse
+/// arrangement would make `config/` depend on `runner/`, which is upside down.
+struct BuiltinCommand {
+    /// The id text, e.g. "wait_ms". Always `commandIdValid()`.
+    const char* id;
+    /// The fewest typed args the marker must carry.
+    std::uint8_t minArgs;
+    /// The most typed args the marker may carry (<= kMaxMarkerArgs).
+    std::uint8_t maxArgs;
+    /// True when `args[0]` is a DURATION IN MILLISECONDS and must therefore be > 0 — the facade
+    /// verbs behind these ids refuse a non-positive duration at the door, so a route carrying one
+    /// is a routine that throws mid-auton instead of one that is refused before it runs.
+    bool firstArgIsDurationMs;
+    /// What it does, in one line — published verbatim in the manifest a picker reads.
+    const char* doc;
+};
+
+/// Every built-in id, in the order the manifest publishes them. **APPEND-ONLY**: the order is part
+/// of the manifest's byte-exact contract (G2 landmine 5) and the id strings are frozen by F8.
+inline constexpr BuiltinCommand kBuiltinCommands[] = {
+    {"wait_ms", 1, 1, true,
+     "wait, commanding nothing, for args[0] milliseconds (the drive keeps its last state)"},
+    {"brake", 0, 0, false,
+     "stop the drive (0 V + Brake) and block until the estimate certifies rest"},
+    {"hold_ms", 1, 1, true,
+     "actively hold the current pose for args[0] milliseconds, driving back disturbance"},
+    {"log", 0, 2, false, "write one Info line naming this marker and its args"},
+};
+
+/// How many built-in ids there are — `kBuiltinCommands`'s length, named so a manifest header and a
+/// freeze pin can state it without re-deriving it.
+inline constexpr std::size_t kBuiltinCommandCount = sizeof kBuiltinCommands / sizeof(BuiltinCommand);
+
+/// The built-in whose id is exactly `id`, or nullptr when `id` is not one. Exact match only:
+/// ids are compared whole, never by prefix (`StaticRoutes::route()`'s lesson).
+[[nodiscard]] constexpr const BuiltinCommand* findBuiltinCommand(std::string_view id) noexcept {
+    for (const BuiltinCommand& b : kBuiltinCommands) {
+        if (std::string_view{b.id} == id) {
+            return &b;
+        }
+    }
+    return nullptr;
+}
+
 /// What the robot does to get to a waypoint. Every value maps onto a verb the facade has TODAY
 /// (ruling B5); the numeric values are explicit and APPEND-ONLY, because a route may be generated
 /// by one version of the tools and read by another.
@@ -66,7 +159,9 @@ enum class WaypointMotion : std::uint8_t {
     /// Not a motion: "the robot starts HERE". Legal only at index 0 (see Route::valid()); the
     /// runner seeds the pose from it rather than driving to it.
     Start = 1,
-    /// `Chassis::moveTo(pose)` — translate and rotate simultaneously to the full pose.
+    /// `Chassis::moveTo(pose)` — translate and rotate simultaneously to the full pose. With
+    /// `HeadingMode::Free` the commanded heading is the estimate's own, read when the leg starts
+    /// (G2 ruling R6): "go there, keep facing where I am facing".
     MoveToPose = 2,
     /// `Routine::driveTo(x, y)` — move to the point ARRIVING FACING IT; `heading` is ignored and
     /// computed from the approach, which is why headingMode must be Free.
@@ -96,10 +191,19 @@ enum class WaypointMotion : std::uint8_t {
 
 /// Whether the waypoint's `heading` field means anything.
 enum class HeadingMode : std::uint8_t {
-    /// The robot must arrive at `heading`. The only mode `MoveToPose` and `TurnTo` accept.
+    /// The robot must arrive at `heading`. The only mode `TurnTo` accepts, and the mode
+    /// `MoveToPose` takes when the author has a heading in mind.
     Fixed = 1,
-    /// The heading is the runner's to choose (the approach bearing, or whatever the robot
-    /// already has). The only mode `DriveTo` accepts; `heading` is not read.
+    /// The heading is the RUNNER's to choose, and `heading` is not read. What it chooses depends
+    /// on the verb, and each choice is the only honest one that verb has (G2 ruling R6):
+    ///   * `DriveTo` — the approach bearing to (x, y), so the robot arrives facing the point.
+    ///     This is the only mode `DriveTo` accepts.
+    ///   * `MoveToPose` — whatever heading the estimate already has when the leg STARTS
+    ///     ("translate, keep facing where I am facing"). `moveTo` always commands a heading, so
+    ///     there is no "don't care" to pass down and the current one is the one that asks the
+    ///     drivetrain to do the least.
+    ///   * `StrafeTo`, `Hold`, `Start` — neither mode is read; either is accepted.
+    ///   * `TurnTo` — REFUSED: a turn to no heading is not a motion.
     Free = 2,
 };
 
@@ -134,16 +238,25 @@ struct Constraints {
 /// takes a small integer (a lift level, a count, a side), and a typed integer is the one form
 /// that survives serialization, `constexpr` emission and a human reading it in a diff.
 struct Marker {
-    /// The command id, e.g. "intake_in". Non-empty for any marker inside `Waypoint::markerCount`.
-    /// An id G2's registry does not know logs a WARN and is SKIPPED (§16.3) — it is not a route
-    /// validity error, because marker ids are an open vocabulary a team extends.
-    char id[24]{};
+    /// The command id, e.g. "intake_in". Non-empty and `commandIdValid()` for any marker inside
+    /// `Waypoint::markerCount`. An id G2's registry does not know logs a WARN and is SKIPPED
+    /// (§16.3) — it is not a route validity error, because marker ids are an open vocabulary a
+    /// team extends. An id outside the CHARSET is a different thing and IS refused: no registry
+    /// can ever hold it, so it could only ever warn.
+    char id[kMaxMarkerIdBytes]{};
     /// The typed arguments, e.g. `{3}` for "lift_to_level". Entries beyond `argCount` are 0 and
     /// are not read.
     std::int32_t args[kMaxMarkerArgs]{};
     /// How many entries of `args` are real. 0 is the common case.
     std::uint8_t argCount = 0;
 };
+
+/// A marker's id as text, bounded by the buffer (`commandIdView`'s note). This is the ONE spelling
+/// the registry, the runner and the manifest all use, so no consumer can invent a different
+/// reading of the same bytes.
+[[nodiscard]] constexpr std::string_view markerIdView(const Marker& marker) noexcept {
+    return commandIdView(marker.id, kMaxMarkerIdBytes);
+}
 
 /// One step of a route: where, how, how fast, and what to do there.
 struct Waypoint {
@@ -190,11 +303,38 @@ struct Route {
     /// The checks are exactly what a mis-drawn path, a bad import or a mis-generated file
     /// produces: an empty route name; no waypoints at all, or more than the capacity; a `Start`
     /// anywhere but index 0; an unknown motion byte or an unknown heading-mode byte; a NaN or an
-    /// infinity in x, y or heading; a `MoveToPose` or `TurnTo` whose headingMode is Free (the
-    /// verb needs a heading and Free says there is not one) or a `DriveTo` whose headingMode is
-    /// Fixed (the verb computes the heading, so a stated one would be silently ignored); a
-    /// negative or non-finite budget; a `Hold` whose timeout is not > 0 (that field IS the hold
-    /// duration); more markers than capacity; and an empty marker id.
+    /// infinity in x, y or heading; a `TurnTo` whose headingMode is Free (a turn to no heading is
+    /// not a motion) or a `DriveTo` whose headingMode is Fixed (the verb computes the heading, so
+    /// a stated one would be silently ignored); a negative or non-finite budget; a `Hold` whose
+    /// timeout is not > 0 (that field IS the hold duration); more markers than capacity; and an
+    /// empty marker id.
+    ///
+    /// **Changed at G2 (ruling R6), the one RELAXATION on this list:** a `MoveToPose` with
+    /// `HeadingMode::Free` used to be refused alongside `TurnTo`, on the reading that both verbs
+    /// "need a heading". They do — but a `MoveToPose` has an honest one to fall back on that a
+    /// `TurnTo` does not: the heading the robot already has. "Translate there, keep facing where
+    /// I am facing" is a thing path authors ask for constantly and it had no spelling in the
+    /// vocabulary; the runner supplies the estimate's heading at the leg's start. Relaxing a
+    /// validity rule is the ADDITIVE direction (every route that was valid before is still
+    /// valid), which is why it is a thing G2 may do at all and why doing it at the F8 freeze
+    /// rather than after it costs nothing. `TurnTo` keeps the refusal, unchanged.
+    ///
+    /// **Added at G2**, once a runner existed to say what the data can actually ask for — the same
+    /// principle, applied to four more ways a route can contradict itself:
+    ///   * `reverse` on anything but a `DriveTo`. `DriveTo` is the only verb with an approach
+    ///     direction to reverse (the runner drives to the point facing away from it); on every
+    ///     other verb the flag is READ BY NOTHING, and a stated value that is silently ignored is
+    ///     the quieter of the two bugs — exactly the reasoning that already refuses a `DriveTo`
+    ///     with a `Fixed` heading.
+    ///   * A marker id outside the command-id charset (`commandIdValid`): non-empty,
+    ///     `[a-z0-9_]`, at most `kMaxMarkerIdBytes - 1` bytes. An unknown id is legal data; an
+    ///     UNREGISTRABLE one is not, because `CommandRegistry` refuses it and the runner could
+    ///     therefore only ever warn about it.
+    ///   * A BUILT-IN id with the wrong number of args (`kBuiltinCommands`): `wait_ms` without its
+    ///     duration is not a command the runner can guess a value for.
+    ///   * A built-in whose `args[0]` is a duration and is not > 0: `Chassis::wait`/`hold` refuse
+    ///     a non-positive duration at the door, so this is the `Hold`-timeout rule applied to the
+    ///     two markers that carry the same quantity.
     ///
     /// Index 0 is NOT required to be a `Start`: a route that begins with a motion from wherever
     /// the robot already is, is a legitimate thing to author (it is what every hand-written auton
@@ -275,12 +415,13 @@ struct Route {
                 }
                 return false;
             }
-            // The verb/heading-mode pairing. MoveToPose and TurnTo servo TO a heading, so Free
-            // leaves them without a target; DriveTo COMPUTES the heading from the approach, so a
-            // stated one would be accepted and then silently ignored — the quieter of the two
-            // bugs and therefore the one worth refusing out loud.
-            if ((w.motion == WaypointMotion::MoveToPose || w.motion == WaypointMotion::TurnTo)
-                && w.headingMode != HeadingMode::Fixed) {
+            // The verb/heading-mode pairing. `TurnTo` servos TO a heading and does nothing else,
+            // so Free leaves it with no target at all and no other content — there is no motion
+            // left to perform. `DriveTo` COMPUTES the heading from the approach, so a stated one
+            // would be accepted and then silently ignored — the quieter of the two bugs and
+            // therefore the one worth refusing out loud. `MoveToPose` is the case in between and
+            // is handled by ruling R6 below, not here.
+            if (w.motion == WaypointMotion::TurnTo && w.headingMode != HeadingMode::Fixed) {
                 if (why != nullptr && cap > 0) {
                     std::snprintf(why, cap,
                                   "route '%s' waypoint %d is a %s with headingMode %s; that verb "
@@ -309,6 +450,18 @@ struct Route {
                                   "route '%s' waypoint %d constraints (%g in/s, %g rad/s, %g s) "
                                   "must be finite and >= 0 (0 = the robot's default)",
                                   name, idx, lin, ang, t);
+                }
+                return false;
+            }
+            // `reverse` is DriveTo's alone (the G2 note above). Refusing it everywhere else is the
+            // wide rule on purpose: relaxing a validity rule later is additive, tightening one is
+            // breaking, so the honest width is the one to start at.
+            if (w.reverse && w.motion != WaypointMotion::DriveTo) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap,
+                                  "route '%s' waypoint %d is a %s with reverse set; only a "
+                                  "DriveTo has an approach direction to reverse",
+                                  name, idx, waypointMotionWord(w.motion));
                 }
                 return false;
             }
@@ -348,6 +501,43 @@ struct Route {
                                       static_cast<int>(kMaxMarkerArgs));
                     }
                     return false;
+                }
+                // ── the G2 rules (see the member comment) ──────────────────────────────
+                const std::string_view id = markerIdView(w.markers[m]);
+                if (!commandIdValid(id)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "route '%s' waypoint %d marker %d has id '%.*s', which is "
+                                      "not a legal command id (1..%d bytes of [a-z0-9_])",
+                                      name, idx, static_cast<int>(m), static_cast<int>(id.size()),
+                                      id.data(), static_cast<int>(kMaxMarkerIdBytes - 1));
+                    }
+                    return false;
+                }
+                const BuiltinCommand* const builtin = findBuiltinCommand(id);
+                if (builtin != nullptr) {
+                    const std::uint8_t n = w.markers[m].argCount;
+                    if (n < builtin->minArgs || n > builtin->maxArgs) {
+                        if (why != nullptr && cap > 0) {
+                            std::snprintf(why, cap,
+                                          "route '%s' waypoint %d marker '%s' carries %d args; "
+                                          "that built-in id takes %d..%d",
+                                          name, idx, builtin->id, static_cast<int>(n),
+                                          static_cast<int>(builtin->minArgs),
+                                          static_cast<int>(builtin->maxArgs));
+                        }
+                        return false;
+                    }
+                    if (builtin->firstArgIsDurationMs && !(w.markers[m].args[0] > 0)) {
+                        if (why != nullptr && cap > 0) {
+                            std::snprintf(why, cap,
+                                          "route '%s' waypoint %d marker '%s' has args[0] = %d ms; "
+                                          "that argument is a DURATION and must be > 0",
+                                          name, idx, builtin->id,
+                                          static_cast<int>(w.markers[m].args[0]));
+                        }
+                        return false;
+                    }
                 }
             }
         }
