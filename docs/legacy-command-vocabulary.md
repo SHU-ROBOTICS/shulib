@@ -74,7 +74,7 @@ Seven distinct ids exist across all sources (6 declared + 1 that appears only in
 reached* — the planner could only emit `MOVE_WITH_HEADING` (+ `NONE`). So the honest legacy-derived
 requirement is not "support these five ids"; it is: **(a)** the motion verb + boundary marker are
 the proven minimum a planner emits, and **(b)** mechanism ids must be *registerable by the team*
-(`runner.on(...)`) precisely because the mechanism set churns season to season — legacy hard-coding
+(`registry.on(...)`) precisely because the mechanism set churns season to season — legacy hard-coding
 the season's verbs into an enum is the anti-pattern G2's registry replaces.
 
 ### Duplicate-declaration hazard (why porting any of this was rejected)

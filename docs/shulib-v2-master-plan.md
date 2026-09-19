@@ -556,7 +556,7 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 8 | Skills routing / robot roles | X = tall scorer, H = Toggle-owner + parker (§14) | **Filled; build-team decisions open** |
 | 9 | Settling & filtering primitives | OkapiLib-style `SettledUtil` (err+deriv+time) on all motion exits; composable `filters/` (EMA/median) for **task-sensor/alignment** conditioning only — **excluded** from the EKF measurement path (§4a, §13 #4) | **Locked 2026-06-19** |
 | 10 | Robot-config seam | `.vexbot` → codegen `robot_config.hpp` (primary) + optional **SD-card runtime loader** (same `robotProfile` schema → same `RobotConfig`); both behind `IRobotConfig` (§16.2). Interface = Freeze F4/M1, schema = Freeze F7/M5. | **Locked 2026-06-19** |
-| 11 | Path command model | Command-**id registry** (`runner.on("intake_in",…)`), NOT embedded C++ `code_template`. shulib owns the canonical id **manifest** (VexBuilder reads it); unknown id → WARN+skip; optional typed-args on markers (§16.3) | **Locked 2026-06-19** |
+| 11 | Path command model | Command-**id registry** (`registry.on("intake_in",…)`), NOT embedded C++ `code_template`. shulib owns the canonical id **manifest** (VexBuilder reads it); unknown id → WARN+skip; optional typed-args on markers (§16.3) | **Locked 2026-06-19** |
 | 12 | Canonical ecosystem formats | shulib **defines** the `robotProfile` + `paths` sub-schemas inside `.vexbot` (+ command-id vocab) and `SHUL/2`; VexBuilder produces them. `.shupaths` + standalone planner **retired** (§16.1) | **Locked** |
 | 13 | Sim seam timing | **Define** the `SHUL/2` schema + `hal/sim` seam at design time (so M6 is a plug-in); **implement** the wire + sim adapter at M6 (F9); wire to Rapier at VexBuilder Phase 7. Scope = `hal/sim` + wire sink only (does **not** move `TermSink` M2 / `SdSink` M3); `hal/sim` is exercisable via `hal/fake` even if Rapier never lands. | **Locked 2026-06-19** |
 | 14 | VexBuilder must add | Explicit drivetrain fields (kind/trackWidth/wheelDia) in `.vexbot` so config isn't geometry-inferred (§16.2 caveat) | **Cross-team ask** |
@@ -721,7 +721,7 @@ Two ingestion paths, **same** in-memory types behind `IRobotConfig` / `IRouteSou
    boot — so a non-coder re-exports a file and re-runs **without recompiling**. Same interface, gated.
 
 `RobotBuilder.from(profile)` returns a fully wired `Chassis` (drivetrain + kinematics + localizer +
-sensors); `runner.load(route)` arms a routine. **"VexBuilder file → working robot + auton" is two
+sensors); `runner.run(route)` executes a routine. **"VexBuilder file → working robot + auton" is two
 lines.** _Standalone preserved:_ a code-fluent team can build `RobotConfig` and `Route` directly in
 C++ with **no file at all** — `.vexbot` is the on-ramp, not a dependency. _Honest caveat:_ the shipped
 `.vexbot` doesn't yet carry drivetrain type / track width / wheel diameter as first-class fields —
@@ -733,18 +733,18 @@ fields as the contract.
 `x,y,heading,headingMode,motion,reverse,constraints,markers`); shulib's `PathRunner` executes
 profiled motion per segment with marker callbacks. The legacy planner embedded **C++ snippets**
 (`code_template:"mech.intakeIn();"`) — a data/code coupling we reject. Instead markers carry command
-**ids** (`"intake_in"`) and the student registers handlers **once**. The intended spelling,
-sketched — `PathRunner` does not exist yet, so this is design, not code you can write today (and
-it is fenced as text for that reason: every `cpp` block in this project's documentation is a
-compiled, verbatim-quoted example, and a sketch of a future API cannot be one):
+**ids** (`"intake_in"`) and the student registers handlers **once**. The spelling, as built at
+chunk G2 (2026-09-18, host-proven; the handler is a callable that must OUTLIVE the registry, so it
+is a named object rather than a temporary — fenced as text because every `cpp` block in this
+project's documentation is a compiled, verbatim-quoted example, and this line is an excerpt):
 
 ```text
-runner.on("intake_in", []{ intake.in(); });   // data-driven: the AUTON is data, not code
+registry.on("intake_in", intakeIn);   // data-driven: the AUTON is data, not code
 ```
 
 This is the keystone of the no-code story (§17): a routine is **data a non-coder authors in
 VexBuilder**, executed by a library the coders maintain. (A codegen mode may emit the **same
-id→handler bindings** as a generated `runner.on(...)` registration table at compile time — never
+id→handler bindings** as a generated `registry.on(...)` registration table at compile time — never
 free-form code, so the data/code split holds.) shulib **owns the canonical command-id vocabulary**,
 exported as a manifest VexBuilder reads to populate its command picker; an **unknown id** logs a WARN
 fault and is skipped, never crashes (§16.5, §18.4). Markers may carry an optional **typed-args** object
