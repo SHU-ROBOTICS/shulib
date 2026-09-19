@@ -334,3 +334,12 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   G1's builder refuses on ANY missing drive motor while the committed Teleop tolerates one or
   two — the brief moves the tolerance into the builder (opt-in) so the rewrite cannot make
   Teleop stricter by accident.
+- **21:45 — CLOSE-OUT (the team lead is going home).** Nothing is in flight. The tree is
+  CLEAN at the commit that carries this entry. The G1 Part 2 brief (`ab7f5b1`) is written and
+  WAITING FOR HIS GO — he did not give one, so no executor was launched (rule 2). Today's commits,
+  none pushed: `17aa4eb` R3d Part 1 · `5e4ce65` R3d Part 2 · `d8aab95` T2 library half ·
+  `fe8e270` G1 Part 1 · `cf7a943` G2 + F8 frozen · `225d0ac` the master plan's binding spelling ·
+  briefs `280dce8`, `e9ba69f`, `ab7f5b1`. Hardware: nothing has run on the robot; the brain never
+  enumerated on USB (cable or the laptop's USB controller); the packages need a rebuild from
+  `5e4ce65` (or from the rewrite once it lands) — Station G is the runbook. **Next, in order:**
+  his go on G1 Part 2 → verify → commit → G3's brief → the bench session whenever the brain connects.
