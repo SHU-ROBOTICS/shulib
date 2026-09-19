@@ -1449,7 +1449,7 @@ directly in C++ with no `.vexbot` at all. The file is the on-ramp, never a depen
 
 **DoD:** a hand-built config produces a working `Chassis` in two lines; zero VexBuilder dependency.
 
-**STATUS — PART 1 LANDED 2026-09-18, HOST-ONLY; PART 2 OPEN** ([brief](chunks/G1-robot-config-and-builder.md);
+**PART 2 BRIEFED 2026-09-18 (evening), awaiting the team lead's go** ([brief](chunks/G1-part2-pros-provider-and-main.md): the PROS device provider, dead-port tolerance moved into the builder, the teleop loop as library code over T2's `DriveShaper`, "shulib Teleop" rebuilt on `robot::Robot`, `main.cpp` reduced to a dispatcher; "shulib Drive" and the tester keep their driven feel). **STATUS — PART 1 LANDED 2026-09-18, HOST-ONLY; PART 2 OPEN** ([brief](chunks/G1-robot-config-and-builder.md);
 [live log](chunks/G1-PROGRESS.md)). Part 1 shipped the types and the builder:
 `config/robot_config.hpp` (`RobotConfig`, which EMBEDS R3d's `hal::DrivetrainDescription` by value
 for a tank rather than mirroring it, plus the two holonomic kinds, the odometry choice, the GPS,

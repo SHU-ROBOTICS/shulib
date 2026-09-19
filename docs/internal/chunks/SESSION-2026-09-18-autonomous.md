@@ -326,3 +326,11 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   `legacy-command-vocabulary.md` (three sentences said G2 "must decide" what G2 has now frozen).
   **Flagged for the team lead:** the master plan still spells the binding `runner.on(...)`; the
   code is `registry.on(...)`. One line, his document.
+- **21:45** — **COMMITTED `cf7a943`** (G2; F8 frozen) and **`225d0ac`** (the master plan
+  and the legacy vocabulary now spell the binding as the code does — the team lead's call: "if
+  the code is fine, then we change the docs"). His second ruling: "we haven't tested teleop
+  before so we might as well rewrite" — G1 Part 2 goes ahead of the bench session. **Wrote the
+  G1 Part 2 (+ T2 wiring) brief** and stopped for his go (rule 2). The finding that shaped it:
+  G1's builder refuses on ANY missing drive motor while the committed Teleop tolerates one or
+  two — the brief moves the tolerance into the builder (opt-in) so the rewrite cannot make
+  Teleop stricter by accident.
