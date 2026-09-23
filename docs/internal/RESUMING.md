@@ -38,6 +38,10 @@ ones are fine. Before closing any chunk that touches docs, re-run the C7 removab
 
 ---
 
+> **Handing over between chats (2026-09-23):** [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)
+> is the full, self-contained list of everything left to finish shulib, with the state of the tree,
+> the robot facts, the standing rules and the documentation owed. Read it right after this file.
+
 ## Where things stand
 
 Check these three, in this order — they are authoritative over anything written here:
