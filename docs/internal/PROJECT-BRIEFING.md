@@ -107,7 +107,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 28 of 51 chunks complete
 
-- **Next up:** THE BENCH SESSION RESUMES (R3d Part 3) — rebuild and upload "shulib Calibrate" from the COMMITTED tree (rm -rf bin .d && make ROBOT=tank PROGRAM=calibrate, slot 4) and run worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md) on robot two: the one 48 in push, the pulses, the spin, SAVED, a second run for reproduction, then "shulib Teleop" from the record. G1 Part 2b ("shulib Teleop" on the library) follows it, its own go.  
+- **Next up:** THE BENCH SESSION RESUMES (R3d Part 3) — rebuild and upload "shulib Calibrate" from the COMMITTED tree (rm -rf bin .d && make ROBOT=tank PROGRAM=calibrate, slot 4) and run worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md) on robot two: the one 48 in push, the pulses, the spin, SAVED, a second run for reproduction, then "shulib Teleop" from the record. Then, each on its own go: R2a (Bench Tests stations 11 DISTANCE and 12 AI VISION — [brief](chunks/R2a-sensor-stations.md), chosen by the team lead to go BEFORE G1 Part 2b so the next robot session can check the sensors too), then G1 Part 2b ("shulib Teleop" on the library), then COMP.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,416 cases / 2,386,604 assertions, 3 skipped — **green**  
