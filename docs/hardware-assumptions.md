@@ -49,7 +49,11 @@
 > note is a design decision recorded so the next person does not re-litigate it. **G1 Part 2a added
 > ONE more on 2026-09-24 — HA-141, reasoned:** that the registry's KIND answer is right for an IMU, a
 > rotation sensor and a GPS, which the on-robot device provider now refuses ports on. The
-> per-confidence counts below predate all eighteen.)* **No *v2* robot exists**, and
+> per-confidence counts below predate all eighteen. **R3d Part 2F-1 (2026-09-24) added no entry and
+> REWROTE three:** HA-134 now describes a RAMPED pulse and what happens when no level turns the
+> robot, HA-136 lists the calibrator's new and removed numbers and the screen model's estimates, and
+> HA-137 carries the plant's two new rules — coast-follow and the slipping member — because the first
+> night on robot two showed the plant could not fail the way the robot did.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -212,10 +216,10 @@
 | HA-131 | On robot two, ODO_STUCK cannot be detected by the wheels-vs-odometry cross-check: the odometry IS the drive encoders, so the check is a tautology and is deliberately not wired to report a verdict | reasoned (structural) | R3d/R4 |
 | HA-132 | The coupled-side agreement thresholds — evaluate above 1 V and 1 rad/s; opposite sign above 0.5 rad/s; under 25 % of the side's fastest; 25 consecutive 10 ms ticks — separate a real fight from a transient | **invented** | R3d/R4 |
 | HA-133 | A coupled member under 25 % of its side's fastest is disagreeing, and one at 80 % (port 18's signature) is NOT — the disagreement FLOOR tolerates a slow member and catches a frozen one | **invented** | R3d/R4 |
-| HA-134 | On a tank, driving ONE side forward alone pivots the robot about the other: LEFT forward → CLOCKWISE → NEGATIVE canonical yaw; RIGHT forward → positive. The calibrator reads a drive port's SIDE off that sign | reasoned (rigid-body) | R3d Part 3 |
+| HA-134 | On a tank, driving ONE side forward alone turns the robot toward the other: LEFT forward → CLOCKWISE → NEGATIVE canonical yaw; RIGHT forward → positive. The calibrator reads a drive port's SIDE off that sign — from a pulse that RAMPS 3 → 6 → 9 V until the turn clears the floor, classifying a port no level turns (since R3d Part 2F-1) | reasoned (rigid-body) | R3d Part 3 |
 | HA-135 | The EFFECTIVE track width a powered spin measures is LARGER than the tape's contact-line-to-contact-line width, because a turning tank scrubs; the effective one is what the kinematics and the heading cross-check need | reasoned | R3d Part 3 |
-| HA-136 | Every number in `calibration::CalibratorConfig` — the push threshold, the rest floor/settle/timeout, the pulse ceiling/time/yaw floor, the straightness bound, the minimum push, the spin ceiling/turns/timeout/agreement, the IMU-ready and missed-tick timeouts — plus the two reproducibility tolerances the host suite pins | **invented** | R3d Part 3 |
-| HA-137 | A coupled train whose members are commanded DIFFERENT volts turns at the MEAN of their effective volts (the A2 plant's model; torque-free) | **invented** (sim shape) | R6 |
+| HA-136 | Every number in `calibration::CalibratorConfig` — the push threshold, the rest floors (motor velocity and, since 2F-1, IMU yaw rate)/settle/timeout, the pulse levels/time/yaw floor, the decoupled minimum, the push distance (a CHOICE), the straightness bound, the minimum push, the spin levels/start check/wrong-way bound/turns/timeout/agreement, the IMU-ready and missed-tick timeouts — plus the two reproducibility tolerances the host suite pins, and the calibration screen model's text budgets, line heights, hit padding and arming delay | **invented** | R3d Part 3 (the screen's: Bench Tests' SCREEN RULER) |
+| HA-137 | A coupled train whose members are commanded DIFFERENT volts turns at the MEAN of their effective volts (the A2 plant's model; torque-free); since R3d Part 2F-1 also: an all-coasting wheel may FOLLOW the driven one by a fraction κ (default 0 = pinned), and a slipping (`Decoupled`) member's volts never reach its train | **invented** (sim shape) | R6 |
 | HA-138 | `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL PORT i+1, and indices run 0–20 | reasoned (vendored text) — and the ONE conversion lives in `hal/pros/device_registry.hpp` | R3d Part 3 |
 | HA-139 | `fopen(path, "rb")` under `/usd/` reads back the exact bytes `"wb"` wrote, byte for byte, on the brain's FatFS | reasoned, flagged — the host CANNOT test the mode (POSIX does not translate) | R3d Part 3 |
 | HA-140 | A CRC-32 over a 180-byte record is worth its 4 bytes and its microseconds on a V5, where the blackbox's own format deliberately carries none | reasoned (design note under HA-122) | R3d Part 3 |
@@ -1043,8 +1047,11 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   *Confidence:* **measured** 2026-09-10, twice. What it means mechanically is not.
   *Settle (R3b / R3d Part 3):* watch it under power (the panel's `disagree` counts and the group's
   median); if it persists, swap the motor and re-measure. R3d's calibration report gives a second,
-  sharper reading for free: it prints each side's member SPREAD over the tape push, so one run says
-  how short port 18 is against its four mates without anyone watching a live panel.
+  sharper reading for free: it prints each side's member SPREAD over its push (the one 48 in push
+  since R3d Part 2F-1 — there is no separate tape push any more), so one run says how short port 18 is
+  against its four mates without anyone watching a live panel; and since 2F-1 its per-pulse serial
+  record says whether port 18's own pulse moves the robot at all (a slipping gear is LEFT OUT by name,
+  HA-134).
   *Blast radius if wrong:* if it turned out to be a fight rather than a shortfall, the group's
   median would still ignore it (one of five) and the monitor would count it; if the shortfall
   grew past 75 %, the floor (HA-133) would report it as frozen. Either way it is visible.
@@ -1113,28 +1120,45 @@ of the four has been measured on anything**: two are reasoned from mechanism, on
 invented thresholds, and one is a belief about the host PLANT rather than about a robot. The
 calibrator they belong to is proven against the A2 plant and has never moved a physical drivetrain.
 
-- [ ] **HA-134 — on a tank, one side forward alone turns the robot toward that side, and the IMU's
+- [ ] **HA-134 — on a tank, one side forward alone turns the robot toward the other, and the IMU's
   yaw SIGN is therefore what names a drive port's side.**
-  *Claim:* driving ONE side of a tank forward while the other is unpowered pivots the robot about
-  the unpowered side. The LEFT side forward turns it CLOCKWISE, which is NEGATIVE yaw in shulib's
-  CCW-positive canonical frame (`hal/imu.hpp`); the RIGHT side forward is positive. The drivetrain
-  calibrator pulses one member at a time and reads that member's side off that sign alone.
+  *Claim:* driving ONE side of a tank forward while the other is unpowered turns the robot: the LEFT
+  side forward turns it CLOCKWISE, which is NEGATIVE yaw in shulib's CCW-positive canonical frame
+  (`hal/imu.hpp`); the RIGHT side forward is positive. The drivetrain calibrator pulses one member at
+  a time and reads that member's side off that sign alone. **Amended at R3d Part 2F-1 (2026-09-24):**
+  the claim is only about the SIGN; how MUCH one member turns the robot is not claimed at all. The
+  pulse therefore RAMPS — 3, then 6, then 9 V, each for 0.4 s with the robot at rest between (motor
+  velocities AND the IMU's yaw rate under their floors) — and stops at the first level whose turn
+  reaches the 2° floor. A port that no level turns is CLASSIFIED rather than refused blind: its own
+  shaft turned while nothing else moved → a slipping gear, LEFT OUT of the description with a
+  warning; other drive ports moved but the robot did not turn → it ROLLED (or is off the floor),
+  refused naming the port; nothing moved → refused naming the port.
   *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (the header's phase table and
-  `finishPulse()`, `A4 register HA-134`); `test/drivetrain_calibrator_test.cpp` test 6 — every LEFT
+  `finishPulse()`, `A4 register HA-134`); `test/drivetrain_calibrator_test.cpp` case 6 — every LEFT
   pulse's Δθ negative, every RIGHT pulse's positive, the resulting sides equal to the plant's wheel
-  membership exactly, with the rule-swapping mutation observed red.
+  membership exactly, with the rule-swapping mutation observed red (since 2F-1 it is caught ON THE
+  ROBOT too: a flipped rule makes the spin turn the wrong way and the new wrong-way guard stops it at
+  15°); cases 22–26 for the ramp and the classification, on a plant that can now roll (HA-137).
   *Confidence:* reasoned — rigid-body kinematics. Note honestly what the host suite does and does
   not prove: it AGREES with the frozen F5 contract (`kinematics/tank.hpp`'s `forward()` computes
   ω = (right − left)/track, so left alone gives ω < 0), and the plant turns the robot USING that
   same contract — so the plant cannot be an independent check of the claim. What it does check is
   that the calibrator reads the sign the same way round as the kinematics writes it, which is the
   half that a typo would break.
-  *Settle (R3d Part 3):* the FIRST pulse on the floor. One 3 V, 0.4 s pulse on port 11 with the
-  panel showing Δθ settles it in about a second.
+  *What the first bench session showed (2026-09-24, R3d Part 3):* five starts of the Part 1 version
+  (one 3 V pulse): three stopped at port 11 (0.14°, 0.17°) or before any pulse, and one reached port
+  18, so ports 11–17 each cleared the 2° floor in that start — but the program printed no per-pulse
+  numbers, so neither the SIGN of those turns nor whether anyone touched the robot is on record, and
+  the port-11 stops carry a POSITIVE yaw where this entry predicts negative (noise at that size, or a
+  push made back-first while FRONT was answered — open). **Not settled.**
+  *Settle (R3d Part 3):* the first floor run of the 2F version with its serial record: one line per
+  pulse (port, level, yaw, own travel, others' travel, verdict). Every LEFT member's deciding yaw
+  negative and every RIGHT member's positive settles the sign; the levels used say how strong a
+  single-member pulse must be on robot two.
   *Blast radius if wrong:* the two sides swap, so every commanded turn goes the wrong way and the
   odometry's heading cross-check reads double instead of zero. **Contained:** one comparison in
-  `finishPulse()`. Loud rather than silent — a mirrored description turns the robot away from every
-  target on the first arc.
+  `finishPulse()`. Loud rather than silent — and since 2F-1 caught before any record is written: the
+  spin's wrong-way guard refuses at 15°.
 
 - [ ] **HA-135 — the EFFECTIVE track width from a powered spin is LARGER than the taped one.**
   *Claim:* on foam, a tank turning in place SCRUBS — the wheels slide sideways as well as rolling —
@@ -1159,56 +1183,104 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   number remains the one the kinematics wants, because it is defined by the measurement it came
   from.
 
-- [ ] **HA-136 — every number in `CalibratorConfig` is invented for a first run.**
+- [ ] **HA-136 — every number in `CalibratorConfig` is invented for a first run (and so is every
+  number in the calibration screen model).**
   *Claim:* the calibration's thresholds — `movedThreshold` 5° (carried unchanged from the bench
-  tester's MOTOR WATCH, where it was invented too), `restFloor` 0.05 rad/s, `restSettleTime` 0.5 s,
-  `restTimeout` 3 s, `pulseVolts` 3 V, `pulseTime` 0.4 s, `pulseYawFloor` 2°, `straightBound` 3°,
-  `minPushRad` 2π (one wheel turn), `spinVolts` 3 V, `spinTurns` 2, `spinTimeout` 20 s,
+  tester's MOTOR WATCH, where it was invented too), `restFloor` 0.05 rad/s, `restYawRateFloor` 2°/s,
+  `restSettleTime` 0.5 s, `restTimeout` 3 s, `pulseLevels` 3 / 6 / 9 V (`pulseLevelCount` 3),
+  `pulseTime` 0.4 s, `pulseYawFloor` 2°, `decoupledOwnMin` 20° of shaft, `pushDistance` 48 in,
+  `straightBound` 3°, `minPushRad` 2π (one wheel turn), `spinLevels` 3 / 6 V (`spinLevelCount` 2),
+  `spinStartTime` 2 s, `spinStartYaw` 5°, `spinWrongWay` 15°, `spinTurns` 2, `spinTimeout` 20 s,
   `spinAgreement` 5 %, `imuReadyTimeout` 5 s, `commandTimeout` 0.1 s — plus the two reproducibility
   tolerances the class CLAIMS (`kReproScaleTolerance` 2 %, `kReproWidthTolerance` 3 %) — together
   let a real drivetrain be described without either refusing a good run or accepting a bad one.
+  `pushDistance` is a CHOICE, not a belief: two field tiles, stated on the screen, the only distance
+  there is (there is no distance question any more, so a wrong one cannot be answered).
+  **Changed at R3d Part 2F-1 (2026-09-24):** ADDED `restYawRateFloor`, `pulseLevels` +
+  `pulseLevelCount`, `decoupledOwnMin`, `pushDistance`, `spinLevels` + `spinLevelCount`,
+  `spinStartTime`, `spinStartYaw`, `spinWrongWay`; REMOVED `pulseVolts` (3 V — now the ramp's first
+  level) and `spinVolts` (3 V — now the spin's first level); CHANGED `straightBound` (it now bounds the
+  ONE push, which also captures the signs — a twist could otherwise roll one side backward and invert
+  its signs) and `minPushRad` (checked at DONE over the moved ports AND per side once the sides are
+  known). One relation is now a precondition, not a hope: `restYawRateFloor × pulseTime <
+  pulseYawFloor` (0.8° < 2°), so a drift slow enough to pass the rest check can never, on its own,
+  cross the floor during a pulse — and a side can only come out wrong through a leak at least as big
+  as the floor. **The screen model's estimates** (`calibration/calibrate_panel.hpp`): characters per
+  472-pixel line LARGE 18 / MEDIUM 36 / SMALL 50 (and two sub-budgets, the header word 24 and the note
+  beside RUN AGAIN 18), line heights 34 / 20 / 16 px, touch padding ±4 px sideways and ±10 px up and
+  down, and a 0.5 s arming delay after every layout change — none measured; every literal is checked
+  against the budgets at compile time, so a measured number is a one-constant change.
   *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (`CalibratorConfig`, every field
-  tagged `PROVISIONAL (A4: HA-136)`); `test/drivetrain_calibrator_test.cpp`, where the push
-  threshold, the pulse yaw floor, the missed-tick bound and the spin agreement are each attacked
-  from BOTH sides — a value just under the line and the same value just over it.
+  tagged `PROVISIONAL (A4: HA-136)`); `include/shulib/calibration/calibrate_panel.hpp` (each budget
+  tagged ESTIMATE); `test/drivetrain_calibrator_test.cpp`, where the push threshold, the pulse yaw
+  floor, the missed-tick bound and the spin agreement are each attacked from BOTH sides — a value
+  just under the line and the same value just over it — and the ramp, the rest's yaw-rate floor, the
+  decoupled minimum and the spin's start check and wrong-way bound each have a case that fails
+  without them (each mutation run and observed red at R3d Part 2F-1).
   *Confidence:* **invented**, every one, for a first run. The host plant can only show that each
-  threshold FIRES where it is set, never that it is set in the right place.
-  `pulseVolts`/`spinVolts` inherit the DRIVE station's first ceiling, the only one of the sixteen
-  with any hardware history at all — and even that history is "nothing broke at 3 V", not a
-  measurement.
-  *Settle (R3d Part 3):* one calibration on the floor with the report printed. The report exists
-  for this: per-port push Δ, per-port pulse Δθ, each side's median AND spread, the straightness,
-  both widths and their disagreement — so a single run says which thresholds sit in the wrong
-  place. `restFloor` and `pulseYawFloor` are the two most likely to move; both are bounded below by
-  sensor noise nobody has measured.
+  threshold FIRES where it is set, never that it is set in the right place. The ramp's first level
+  and the spin's inherit the DRIVE station's first ceiling (3 V), whose only history is "nothing
+  broke at 3 V" — and the first bench session showed 3 V on one member of five is intermittent on
+  robot two (HA-134).
+  *Settle (R3d Part 3):* one calibration on the floor with the serial record printed: the push table,
+  one line per pulse (the level each port needed), one line per spin direction (the level it
+  finished at). `restFloor`, `restYawRateFloor` and `pulseYawFloor` are the most likely to move; all
+  three are bounded below by sensor noise nobody has measured. The screen's numbers settle at Bench
+  Tests' SCREEN RULER (the last digit visible on each size's row).
   *Blast radius if wrong:* too tight and a good drivetrain cannot be described — a refusal, loud,
   with the offending number in the message; too loose and a bad one is described confidently, which
   would bake a wrong sign or a wrong side into a record the competition program then trusts. The
-  asymmetry is deliberate: every threshold is placed so that its failure mode is a REFUSAL.
-  **Contained:** one config struct, sixteen fields.
+  asymmetry is deliberate: every threshold is placed so that its failure mode is a REFUSAL — and the
+  one new relaxation, a slipping member LEFT OUT instead of refused, says so on the screen and in the
+  record's absence of that port. **Contained:** one config struct and one screen header.
 
 - [ ] **HA-137 — a coupled train commanded unequal volts turns at the MEAN of its members'
-  effective volts (a belief about the SIM, not about a robot).**
+  effective volts; an all-coasting wheel may follow the driven one; a slipping member drives nothing
+  (beliefs about the SIM, not about a robot).**
   *Claim:* in the A2 plant, a wheel whose coupled members carry DIFFERENT commands turns as though
   it were commanded the mean of them (a `Reversed` member's volts negated first); when every member
   carries the SAME command — which is what a `hal::MotorGroup` always produces — the wheel takes
-  that value, bit for bit.
-  *Source:* `include/shulib/sim/drive_plant.hpp` (`wheelCommand()`, `A4 register HA-137`);
-  `test/drive_plant_coupled_test.cpp` tests 18–20.
-  *Confidence:* **invented**, and deliberately a SIM shape rather than a robot fact. It is
-  torque-free like everything else in the plant (`motor_model.hpp`'s honesty boundary): it does not
-  claim what force four free-wheeling motors exert against one driven one, only that the train
-  follows the average of what it is asked for. A real train pulled by one of five motors will not
-  reach a fifth of its free speed — that one motor has to back-drive four gearboxes — so the plant
-  is OPTIMISTIC here, and every number the host suite reports for a single-member pulse is a lower
-  bound on how long that pulse really takes.
+  that value, bit for bit. **Added at R3d Part 2F-1 (2026-09-24), both OFF by default:**
+  (a) **coast-follow** — `DrivePlantConfig::coastFollow`, κ ∈ [0, 1], tank only: a wheel whose every
+  coupled member is at exactly 0 V AND in `BrakeMode::Coast` turns at κ × the driven wheel's spin
+  instead of being pinned (a Brake/Hold side stays pinned). One side driven at v then gives
+  ω = (1 − κ)·v/W and vx = (1 + κ)·v/2: κ = 0 is the old pinned pivot, κ = 1 pure translation.
+  (b) **`MemberFault::Decoupled`** — a slipping gear: the member's command is left out of its
+  train's command, and its encoder reports its own free spin plus `decoupledDrag` (default 0) of the
+  train's travel.
+  **Why (a) and (b) exist — and why the calibrator no longer rests on the pinned wheel:** until 2F-1
+  every unpowered wheel was pinned (an implicit perfect brake) and the calibrator's own test rig ran
+  with no static friction, so a one-sided pulse could only PIVOT and always passed; at the tree's
+  usual kS = 1.2 the same single 3 V pulse turns this plant by EXACTLY nothing
+  (`test/drive_plant_coupled_test.cpp` case 25 keeps that as a regression), and on robot two it
+  turned the robot 0.14–0.17°. The calibrator's cases now run at kS = 1.2 with κ stated in every one,
+  including κ = 0.9 and 1 (the robot rolls and the pulse is refused ROLLED, naming the port) and a
+  slipping member (left out, and the run still saves).
+  *Source:* `include/shulib/sim/drive_plant.hpp` (`wheelCommand()`, `coupledOnlyCommand()`,
+  `stepWheelsCoastFollow()`, `wheelCoasting()`, `MemberFault::Decoupled`, `A4 register HA-137`);
+  `test/drive_plant_coupled_test.cpp` cases 18–26. Every other suite is bit-identical with both
+  extensions at their defaults (assertion counts and every printed value, compared case by case
+  before and after at R3d Part 2F-1).
+  *Confidence:* **invented**, and deliberately SIM shapes rather than robot facts. Everything is
+  torque-free like the rest of the plant (`motor_model.hpp`'s honesty boundary). The mean is
+  OPTIMISTIC — a real motor back-driving four gearboxes reaches less than 1/N of its free speed. κ is
+  a KINEMATIC stand-in, not derived from a wheel type, and the direction a real robot takes is not
+  obvious: lateral scrub (traction wheels) pushes a one-sided push toward ROLLING (κ → 1), while a
+  rigid body whose idle side rolls freely with no lateral force — the ideal of an all-omni robot like
+  robot two — turns MORE than a pinned pivot (for a uniform square robot its idle side runs backward
+  at about a fifth of the driven side's speed, a negative κ this field does not allow). So κ ∈ [0, 1]
+  spans from the pass case to the failing one; which end robot two is nearer is exactly what the 2F
+  serial record will show.
   *Settle (R6 — back-fit, beside HA-48's model-shape question):* compare one member's pulse on a
-  real robot against the plant's prediction for the same command. If the robot needs materially
-  more than 1/N, the mean becomes a weighted model or the pulse ceiling rises.
-  *Blast radius if wrong:* the calibrator's single-member pulse turns a real robot LESS than the
-  host suite predicts, so `pulseYawFloor` (HA-136) refuses a run that is actually fine — a refusal,
-  on a bench, with the measured Δθ on the screen. It cannot make a calibration WRONG, only make one
-  fail to finish. **Contained:** one function in the plant.
+  real robot (the 2F record: the level it needed, the yaw it gave, how far the OTHER side's encoders
+  moved) against the plant's prediction for the same command. If the robot needs materially more
+  than 1/N, the mean becomes a weighted model; the other side's travel over a pulse is κ's first
+  measurement.
+  *Blast radius if wrong:* the host suite predicts pulses that turn a real robot more (or less) than
+  it does — which the ramp and the classification now absorb: a pulse too weak steps up, and one that
+  never turns the robot is refused naming the port and saying whether it rolled or nothing moved.
+  It cannot make a calibration WRONG, only make one fail to finish. **Contained:** four functions in
+  the plant, all behind switches that default off.
 
 - [ ] **HA-138 — `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL
   PORT i + 1, and the valid indices are 0–20.**

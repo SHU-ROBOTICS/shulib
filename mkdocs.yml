@@ -292,6 +292,7 @@ nav:
           - Version: api/version.md
       - Calibration:
           - Boot check: api/boot_check.md
+          - Calibrate panel: api/calibrate_panel.md
           - Calibration record: api/calibration_record.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
       - Config:

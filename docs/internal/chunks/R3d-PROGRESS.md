@@ -1489,3 +1489,419 @@ removability grep empty; `src_build_gate.py check` **PASS (all 6 builds link)**.
   lateral scrub, so a pulse that breaks the coupled train's static friction should turn the robot;
   the plant's coast-follow fraction for this robot is near FREE rolling (κ close to 1), which is the
   regime where a one-sided push both turns AND translates. The team lead gave the **go on Part 2F-1**.
+
+## Part 2F-1 — the library: one push, a ramped pulse, the spin guards, a plant that can fail, the panel model — executor log, started 2026-09-24 04:21:08 EDT
+
+> Executor: Claude Opus 5.5 (1M context), launched by the coordinator on the team lead's go (2026-09-24).
+> Brief: [`R3d-part2f-calibrate-on-the-robot.md`](R3d-part2f-calibrate-on-the-robot.md) §1 (F1), §3, §4 F1, §5 F1, §6.
+> Tree at start: `76323f2`, clean. **Nothing here is committed by the executor; nothing here has run on a robot.**
+
+### Log
+
+- **2026-09-24 04:21:08 EDT** — Log created before any code (rule 2 of the launch prompt). Required reading begun: RESUMING.md, the Part 2F brief (all of it).
+- **2026-09-24 04:35:59 EDT** — Required reading done: RESUMING.md; the Part 2F brief in full; both investigations
+  (`calib_invest.json`, physics + screen); this log's Part 3; the R3d spec (T3, §4.2 rest definition)
+  and the Part 2 brief; `drivetrain_calibrator.hpp` (all), `drive_plant.hpp` (all),
+  `motor_model.hpp`, `motor.hpp`, `fake_motor.hpp`, `scenario.hpp`, `motor_group.hpp`
+  (`medianInPlace`); `test/drivetrain_calibrator_test.cpp` (all), `test/drive_plant_coupled_test.cpp`
+  (all); `src/calibrate_program.cpp` READ ONLY, for what it needs from the calibrator.
+  **What the old program uses** (the shim list is decided from this, not guessed): `Answer::{Done,
+  FrontFirst, BackFirst, Distance24, Distance48, Distance72, Abort}`; a `switch` over EVERY `Phase`
+  enumerator with no `default` (so removing `Phase::ScalePush` OR adding a new `Phase` would be a
+  `-Wswitch` error in the src build gate); `accepts()`, `status().{phase,prompt,progress}`,
+  `report().{portCount, ports[].{port,sign,side,pushDeltaRad,tapeDeltaRad}, leftSpreadRad,
+  rightSpreadRad, widthCcwIn, widthCwIn, widthDisagreement}`, `result()`, `reason()`, `tick()`,
+  `answer()`, `abort(const char*)`, `start()`, the constructor, `HumanFacts`. It does NOT use any
+  `CalibratorConfig` field.
+- **2026-09-24 04:35:59 EDT** — **Baseline suite (clean tree `76323f2`, freshly built):** `test cases: 1386 | 1386 passed |
+  3 skipped`, `assertions: 1638673 | 1638673 passed`. Per-case XML saved to the session scratchpad
+  (`f1/baseline.xml`, 1389 `TestCase` elements incl. the skipped) with a comparison script
+  (`f1/cases.py`) that diffs every case's assertion count AND its printed MESSAGE text, so "every
+  other suite bit-identical" is checked on the numbers the suites print, not only on counts.
+- **2026-09-24 04:38:19 EDT** — **Design read-out before any code (rulings beyond the brief, each with its alternative):**
+  - **R-F1a — the backward-compatible surface for `src/calibrate_program.cpp` is THREE retired names,
+    nothing more** (from the use list above): `Answer::Distance24/48/72` stay as enumerators that
+    `accepts()` NEVER accepts (so the old program's `buttonsFor()` never draws them) and that
+    `answer()` refuses as out of order; `Phase::ScalePush` stays as an enumerator the calibrator never
+    enters (the old program's `switch` has no `default`, so removing it is a `-Wswitch` build error in
+    the gate); `PortObservation::tapeDeltaRad` stays, always 0 (there is no tape push). Each is marked
+    RETIRED in its `///` and names F2 as the part that removes it. With these the OLD program still
+    runs, honestly, on the NEW calibrator: its prompts come from `status().prompt` (rewritten below
+    to fit its 44-character cut), its DONE is still accepted at any time (the gate is a readiness
+    query — F-R3), and it goes push → FRONT/BACK → ramped pulses → guarded spin → Done → save.
+    Alternative rejected: keeping the whole old surface (`pulseVolts`, `spinVolts`, the distance
+    step) — it would be a second calibrator inside the first, and the program uses none of it.
+  - **R-F1b — `Phase` gains NO enumerator.** The scale is computed at the end of `SideAssign`, once the
+    sides are known (brief F1.1); a new phase would break the old program's `switch` just as removing
+    one would.
+  - **R-F1c — one push gives signs AND scale, so each drive port's push-direction travel is |Δ| by
+    construction** (its raw sign IS the direction it moved). The old tape push's "a side's median
+    travel ≤ 0 — the push must roll BOTH sides forward" refusal therefore cannot fire any more and is
+    REMOVED rather than kept as dead code; the straightness bound (now on this push) is what guards a
+    twist that would invert one side's signs. The scale divides `pushDistance` by the side's median
+    |travel|, so a BACK-first push (the robot moved backward in its own frame) gives the same scale.
+  - **R-F1d — "far enough" = the median |travel| of the moved candidates ≥ `minPushRad`**, the SAME
+    threshold the per-side check uses; `finishPushCapture` refuses a push that fails it with the
+    existing too-short refusal (`PushTooShort`) at DONE, and the per-side check still runs after the
+    sides are known (as today). Alternative rejected: only the per-side check — it would run nine
+    powered pulses on a push already known too short to give a scale. "At rest" is in `pushReady()`
+    but is NOT a finish refusal (brief F1.1/F-R3: "a readiness query, not a new refusal"); the gate is
+    therefore STRICTER than the finish, never looser — no DONE the panel offers can be refused for a
+    predicate the gate checked.
+  - **R-F1e — `restYawRateFloor` = 2 deg/s, with a precondition `restYawRateFloor x pulseTime <
+    pulseYawFloor`.** Why that relation: a drift slow enough to pass the rest check and continue
+    through the pulse adds at most 0.8 deg, and a side can only come out WRONG if a leak opposing the
+    true yaw is itself ≥ the 2 deg floor — so the relation makes "a slow drift flips a side"
+    impossible by construction, not merely unlikely. Why not lower: the host's hostile IMU (HA-22,
+    invented) has 0.5 deg/s white rate noise per sample; 2 deg/s is 4 sigma, so a 50-tick settle
+    window is broken by noise ~0.3 % of the time. A real V5's rest noise is unmeasured.
+  - **R-F1f — RUN AGAIN needs NO calibrator API:** the program rebuilds the calibrator in place
+    (`std::optional<DrivetrainCalibrator>::emplace`), which carries nothing over BY CONSTRUCTION. A
+    `reset()` was the alternative — rejected: every field added later would have to remember to be
+    reset, and one that did not would leak a sign or a side between runs. The header says exactly
+    what F2 must do; a host case proves two back-to-back runs on one plant are independent.
+  - **A physics note for the coordinator (a FINDING, not a stop — the plant change is still built as
+    specified):** this log's 04:19 entry reads "omni ⇒ κ close to 1 (free rolling)". Rigid-body
+    dynamics say the opposite for a free-rolling OMNI side: one side pushed forward, the other side
+    exerting no longitudinal and no lateral force, a uniform square robot gets a = F/m and
+    α = F(W/2)/I with I = m(L²+W²)/12, so the idle side's speed is v_com − ωW/2 = −0.2 × the driven
+    side's — it runs slightly BACKWARD and the robot turns MORE than a pinned pivot. κ → 1 (rolling
+    instead of turning) is the TRACTION-scrub regime the physics investigation described. The brief's
+    κ (a kinematic stand-in: the coasting wheel's speed = κ × the driven wheel's, κ ∈ [0, 1]) is
+    therefore built as specified and its κ-near-1 cases prove the ROLLED branch — but which κ robot
+    two shows is a number only the serial record can settle, and the physics above suggests the
+    pulses should turn an all-omni robot readily once the train breaks free (consistent with start B,
+    where 3 V cleared the floor on seven motors). Recorded for HA-137; nothing in the tree depends on it.
+- **2026-09-24 04:47:04 EDT** — **F1.4 plant: LANDED in `include/shulib/sim/drive_plant.hpp`, ADDITIVE.**
+  `DrivePlantConfig::coastFollow` (κ ∈ [0, 1], default 0; κ > 0 only on a two-wheel kinematics): a
+  wheel whose every COUPLED member is at exactly 0 V AND reports `BrakeMode::Coast` turns at κ × the
+  driven wheels' mean spin — computed on a SEPARATE three-pass path taken only when κ > 0, because it
+  draws the degradation seams in a different order from the original interleaved loop, which runs
+  untouched at κ = 0. `MemberFault::Decoupled` (appended): its command is left out of the train's
+  command (`coupledOnlyCommand()`, reached only when a wheel HAS a decoupled member), its encoder
+  reports where it stood when the fault was set + its own free spin through the plant's motor model
+  + `DrivePlantConfig::decoupledDrag` (default 0, the brief's literal fault) of the train's travel.
+  Ruling beyond the brief: **`decoupledDrag`** — without it a slipping member reads NOTHING on a push
+  and is never a drive port, so the calibrator's DECOUPLED branch could only be reached by setting the
+  fault after the push; with it the plant models port 18 as the evidence shows it (captured by the
+  push, 22–33 % short — HA-130) and the "a left-out port dragged by its mates is not a stray mover"
+  logic becomes testable. Default 0 keeps the brief's definition.
+  **Bit-identity, measured:** after the plant change (calibrator untouched) the fresh binary ran the
+  whole suite and `f1/cases.py baseline.xml after_plant.xml` → `compared 1389 cases outside []: 1389
+  identical, 0 differ` (assertion counts AND every MESSAGE text).
+  **Plant cases 21–26** added to `test/drive_plant_coupled_test.cpp` (coast-follow never touches a
+  driven wheel; its exact shape ω = (1 − κ)v/W, vx = (1 + κ)v/2, κ = 1 exactly zero yaw; it reads the
+  brake mode, one held member is enough; Decoupled; **the regression that documents 2026-09-24**: at
+  kS 1.2 one member of five at 3 V for 0.4 s turns the plant EXACTLY 0.0 rad, 6 V also exactly 0, 9 V
+  −6.47° pinned and 0.0 rolling; the preconditions). First run: one red of MY OWN expectation (case
+  22 asserted x > 5 in at κ = 1; the robot rolls v × 0.4 s = 1.41 in — the assertion was wrong, not
+  the plant; replaced with the exact expected value). Then `DrivePlant*`: 9 cases, 4097 assertions,
+  all green. Mutations for these are run with the rest, below.
+- **2026-09-24 05:02:12 EDT** — **F1.1–F1.3 + F1.5 calibrator: REWRITTEN (`include/shulib/calibration/drivetrain_calibrator.hpp`,
+  1296 → 1904 lines — most of the growth is the header's explanation and the per-field `///`).**
+  One push (`PushCapture` now carries signs AND travel; `finishPushCapture` refuses PushTooFew →
+  PushCurved → PushTooShort in that order; the scale is computed at the end of `SideAssign` from the
+  travel CAPTURED AT DONE, since the pulses move every shaft afterwards); the ramp (`pulseLevels` 3/6/9
+  + `pulseLevelCount`, stop at the first level at/over `pulseYawFloor`; a contradiction is checked at the
+  deciding level (own ≤ 0, as before) AND at any level where the member's own shaft went back by
+  `movedThreshold` or more; at the top level ROLLED (others ≥ movedThreshold) → DECOUPLED (own ≥
+  `decoupledOwnMin`, left out, warning, never commanded again) → STILL); rest = motors AND
+  `|yawRate| ≤ restYawRateFloor` (one `atRest()` shared by the pulses, the spin rests and
+  `pushReady()`); the spin's wrong-way guard, start check and step-up (`spinLevels` 3/6; the start
+  check measures |yaw| gained SINCE THE LEVEL BEGAN — ruling: a cumulative check would let 4.9° crept
+  at 3 V plus 0.2° at 6 V pass as "started" and then stall for the whole timeout; and |yaw|, not the
+  directional yaw, so a spin already going the wrong way is never stepped UP — the wrong-way guard ends
+  it instead); `Refusal` (21 codes) + `refusalPort()` on every refusal; `warning()`; the status
+  numbers; `PulseRecord`/`SpinRecord` + `formatPushRecord/formatPulseRecord/formatSpinRecord`;
+  `refusalName()`/`pulseVerdictWord()`; the percent signs gone ("pct"). **Removed:** `pulseVolts`,
+  `spinVolts` (replaced by the level arrays), `Step::ScaleWatching/ScaleAwaitingDistance`, the
+  distance branches of `answer()/accepts()`, the "median travel ≤ 0" refusal (R-F1c). **Retired but
+  kept for the old program:** `Phase::ScalePush`, `Answer::Distance24/48/72`,
+  `PortObservation::tapeDeltaRad` (R-F1a). Copy construction/assignment are now `= delete`d
+  (they were already ill-formed — reference members — this states it). `status().prompt` now points
+  into a buffer the calibrator owns for the push step (it names `pushDistance`), documented as valid
+  until the next tick/answer/abort; every prompt is ≤ 44 characters so the OLD program's `%.44s`
+  shows it whole.
+  Rulings found while writing: **(i)** the harness pushes BY MOTOR COMMAND, so a wheel with a
+  Decoupled member got a 5/4 larger mean and the push curved 95° (case 24's first red) — fixed IN THE
+  HARNESS (`CalibRig::coupled[]`, documented there as an artifact of pushing by command, not a
+  property of the robot); **(ii)** the record formatters add 0.0 to every signed number, because a
+  zero travel times a captured sign of −1 printed "own -0.0 deg" (case 31's first red — a reader would
+  take it for a motor that moved backward); **(iii)** `status()` is the snapshot of the last tick,
+  `pushReady()` reads live — case 29 had to tick once before comparing them (documented in the test).
+  **Calibrator cases: 30, all green** (18 before → 30: 4, 4b, 5–19, 21 rewritten; 22–33 new).
+  **Whole suite, fresh binary:** `test cases: 1404 | 1404 passed | 3 skipped`, `assertions: 1600178`.
+  `f1/cases.py baseline.xml after_cal.xml drivetrain_calibrator_test.cpp` → `1377 cases compared: 1371
+  identical, 6 differ` — the six are `DrivePlant 21–26`, NEW (absent before); plant cases 18–20 and
+  every other suite are identical in counts AND printed values. The assertion total FELL (1638673 →
+  1600178) because the old case 21 ran a `REQUIRE` on every tick of every scripted drive (52952 of its
+  assertions); the new one stops the script with `stopWhen` and asserts the same agreement per
+  (step, answer) pair — the property is unchanged, the per-tick bookkeeping is gone. Measured timings
+  worth keeping: the spin's step-up fired at 2.01 s and its refusal at 4.02 s (the FakeClock sums
+  0.01 s steps, so tick 200 reads 1.99999… and the check fires one tick later — the bound is "the first
+  tick at or after 2 s"); the wrong-way stop came at 15.53° of TRUE rotation (the 15° bound plus at most
+  one tick of spin).
+- **2026-09-24 10:51:03 EDT** — **F1.6 panel: LANDED — `include/shulib/calibration/calibrate_panel.hpp` (new) and
+  `test/calibrate_panel_test.cpp` (new, cases P1–P12).** PROS-free, allocation-free, ASCII-only.
+  `viewFor(cal, secondsSinceLayoutChange, SaveOutcome = NotAttempted)` (ruling: the third parameter,
+  defaulted, because only the program knows whether the write + read-back succeeded — SAVED / NOT SAVED
+  / MEASURED — and the brief's two-argument call still compiles); `hitTest`; `layoutKey` (changes with
+  the screen and the buttons' ids + rectangles, NOT with arming); `TouchGate` (the release edge; an
+  error read ignored and never moving the count, so it cannot replay; `view()` owns the arming clock so
+  the program never tracks it; `touch()` re-checks `accepts()` — and `pushReady()` for DONE — against
+  the calibrator NOW, since the view a finger landed on may be a frame old); `stoppedWords(Refusal)`;
+  `wrapWords<Cols, Lines>` (constexpr; never splits a word; says when text did not fit);
+  `screenText`, `panelLiteralsFit()` and `panelLayoutHolds()` checked by `static_assert` (every named
+  literal and every STOPPED wording against its budget; every fixed rectangle on screen; ABORT's slot
+  inside the powered row; no middle box whose HIT box reaches the button row's). Rulings: **ABORT is
+  not on the finished screens** (Saved / Stopped): the run is over and abort() from Done would discard
+  a result — RUN AGAIN is the one button there; **RUN AGAIN is a middle-right box**, never in the
+  button row, so a reflexive tap after DONE-refused or ABORT cannot restart the run; **the pulses
+  screen's NEXT line carries the L/R/OUT chips** (the sides as decided — the diagnostic the screen
+  investigation asked for; the brief's "it spins -- stand clear" is the Spin screen's own instruction,
+  and ABORT is the whole row) — alternative: a sixth zone, rejected for lack of rows under the
+  estimated LARGE height; **two sub-budgets** besides the brief's three: `kHeaderCols` 24 (the header
+  bar is shared with the build time) and `kNoteCols` 18 (the note left of RUN AGAIN) — both
+  constants, both checked. The rig was lifted into `test/calibration_test_rig.hpp` so both files
+  drive the SAME scripted operator (a pure move: the calibrator cases' counts stayed 30 / 15869).
+  First run: 11 of 12 green; the red was my own sanity bound (P1 asserted > 20000 views; the seven
+  runs give 17504 — the bound, not the panel, was wrong; now > 10000 with the measured number in a
+  comment). Whole suite: `test cases: 1416 | 1416 passed | 3 skipped`, `assertions: 2386630`.
+- **2026-09-24 13:27:02 EDT** — **The brief's nine required mutations (§4 F1), each RUN on a fresh binary** by
+  a driver (`f1/mutate.py` in the session scratchpad): apply the edit (the old text must be unique) →
+  touch the edited header and both test files that include it → `cmake --build build/test --target
+  shulib_tests/fast` and REQUIRE `Linking CXX executable shulib_tests` → run the named case → keep the
+  red verbatim → restore the saved bytes (`filecmp` byte-identical: TRUE for all nine) → relink → the
+  same case green (TRUE for all nine). Observed reds:
+  1. **Flip the side rule** (`yaw_ < 0.0 ? Left` → `yaw_ > 0.0 ? Left`) → case 6: `FATAL ERROR:
+     REQUIRE( runCalibration(rig, RunOptions{}) == Phase::Done ) is NOT correct! values: REQUIRE( 7 == 6 )
+     logged: the robot spun the WRONG way: 15.5 deg against the CCW spin it was driven for (bound 15.0
+     deg) -- the sides are swapped`. (Worth noting: a flipped side rule is now caught ON THE ROBOT by the
+     new wrong-way guard, where under Part 1 it would have spun the wrong way for 20 s. The first run of
+     this mutation printed no reason; case 6's REQUIRE now carries the reason and it was re-run.)
+  2. **Drop the yaw-rate half of rest** (`atRest()` → motors only) → case 26: `REQUIRE( 7 == 6 ) logged:
+     port 11: driven forward at its captured sign +1 at 3.0 V, its OWN encoder went 0.000 rad -- the push
+     and the pulse contradict each other` — the hand's turn leaked into the 3 V pulse (which moves
+     nothing on this plant), crossed the 2° floor, and the run then read its own still shaft as a
+     contradiction: exactly the leak the rest check exists to stop.
+  3. **Drop the decoupled classification** (`own >= decoupledOwnMin` → `own >= 1e300`) → case 24:
+     `REQUIRE( end == Phase::Done ) ... values: REQUIRE( 7 == 6 ) logged: port 18 could not move the
+     robot at 9.0 V: it turned 0.00 deg (floor 2.00 deg), its own shaft 630.9 deg, no other drive port
+     moved -- is it on the FLOOR? is a wheel stuck?`
+  4. **Drop the wrong-way guard** (`< -spinWrongWay` → `< -1e300`) → case 27: `CHECK( cal.refusal() ==
+     code ) ... values: CHECK( 14 == 12 ) logged: refusal SPIN_TIMEOUT, expected SPIN_WRONG_WAY: the
+     CCW spin reached only 5.39 of 2.00 turns in 20.0 s` (+ `reasonMentions(... "WRONG way")` false).
+     **Finding from this red:** the timeout message printed |yaw| — 5.39 turns of the WRONG way reported
+     as progress. Fixed: it now prints the DIRECTIONAL turns (unreachable behind the guard, and the
+     honest number either way).
+  5. **Drop the spin-start check** (`if (!spinStarted_)` → never) → case 28: `CHECK( 14 == 13 ) logged:
+     refusal SPIN_TIMEOUT, expected SPIN_NO_START: the CCW spin reached only 0.00 of 2.00 turns in 20.0 s`
+     — the 20 s stall the check exists to prevent.
+  6. **Draw DONE before ready** (`if (ready)` → `if (cal.accepts(Answer::Done))`) → P1 and P2: `CHECK(
+     buttonMeansSomething(b, rig.cal) ) is NOT correct! ... logged: static_cast<int>(v.screen) := 2,
+     static_cast<int>(b.id) := 0` (the Push screen, the DONE button) — 5070 failed assertions across the
+     two cases.
+  7. **Move ABORT on one screen** (the Push screen's ABORT at x0 320) → P3: `CHECK( r == kAbortSlot ) is
+     NOT correct! values: CHECK( {320, 180, 474, 234} == {330, 180, 474, 234} ) logged:
+     static_cast<int>(s) := 2` (first run printed `{?}`; a `doctest::StringMaker<PanelRect>` was added so
+     the red names the corners, and the mutation re-run).
+  8. **Put FRONT where DONE was** (the robot's own hazard) → P4: `CHECK_FALSE( overlaps(hitBox(after.
+     buttons[i].rect), hitBox(causing)) ) ... logged: DONE -> WHICH END, static_cast<int>(after.buttons
+     [i].id) := 1` AND `CHECK( late.action == TouchAction::None ) ... values: CHECK( 1 == 0 )` — the
+     reflexive second tap, 0.6 s later, ANSWERED FRONT FIRST.
+  9. **Drop the arming delay** (`secondsSinceLayoutChange >= kArmingDelaySeconds` → `>= 0.0`) → P5:
+     `CHECK_FALSE( done->armed ) is NOT correct!` and `CHECK( gate.touch(tapAt(releases, kPrimarySlot),
+     v, rig.cal).action == TouchAction::None ) ... values: CHECK( 1 == 0 )`.
+  None came back green on its first run.
+- **2026-09-24 13:52:17 EDT** — **CORRECTION to my own procedure, found by a mutation that came back GREEN.** The first
+  runs of four PLANT mutations (below, M14–M17) came back green. Run down before anything else: the
+  `shulib_tests/fast` target does NOT track header dependencies in this build — touching
+  `include/shulib/sim/drive_plant.hpp` rebuilt **0** objects, and `compiler_depend.make` lists no
+  header at all — so objects compiled against an older header survive, and the linker keeps ONE copy
+  of each inline function from whichever object it meets first. My driver had touched only the test
+  files that include the edited header DIRECTLY; the sim suites' stale objects supplied the
+  un-mutated plant. (The launch prompt's "touch EVERY test including the edited header" means exactly
+  this, and I had read it narrowly.) Consequences, and what was redone:
+  - The driver now touches EVERY `test/*.cpp` (156 objects rebuilt per mutation and per restore — the
+    result JSON records the count; a full rebuild is ~11 s here).
+  - **Every mutation above and below was RE-RUN that way**; all nine required ones are red again with
+    the same messages (M4's message now reads `-5.39 of 2.00 turns`, the directional fix).
+  - **My earlier "bit-identical" comparisons were built with the same `/fast` target**, so the sim
+    suites' objects may not have been recompiled against the new plant; those comparisons are
+    WITHDRAWN. Redone on a binary with every object rebuilt (`touch test/*.cpp`, 156 objects):
+    `f1/cases.py baseline.xml after_full.xml` (excluding the calibrator and panel files) → **1377
+    compared: 1370 identical, 7 differ** — `DrivePlant 21–26` (new) and `pros_adapter_fence_test`'s
+    "only hal/pros includes <pros/>" (**495 → 498 assertions**: it walks every header under
+    `include/shulib/` and there is one more — `calibrate_panel.hpp`; same pass/fail, no printed values).
+    Plant cases 18–20 and every other suite: identical in assertion count AND every printed MESSAGE.
+    Full suite on that binary: `test cases: 1416 | 1416 passed | 3 skipped`, `assertions: 2386635`.
+- **2026-09-24 13:52:17 EDT** — **Mutations beyond the brief's list, all on fresh binaries (every object rebuilt), all
+  restored byte-identical and relinked green:**
+  - M10 `pushReady()` without "far enough" → case 29 (`REQUIRE( 7 == 2 )`: the scripted operator took
+    the DONE that appeared and the finish refused it) and P2. **P2 first came back GREEN** under this
+    mutation (run before the driver fix, but the reason was real and independent): its not-far-enough
+    moment was always MID-push, where the at-rest clause hid the dropped one. Strengthened: a new
+    subcase with a short push that has STOPPED; re-run → `CHECK( findButton(v, PanelButtonId::Done) ==
+    nullptr ) is NOT correct!`.
+  - M11 the ramp never stops early (floor only honoured at the top level) → case 23: `CHECK(
+    levelsOf(rig.cal, 11) == std::string{row.levels} ) ... values: CHECK( 3V:under the floor -- next
+    level 6V:under the floor -- next level 9V:LEFT  == 3V:LEFT  )`.
+  - M12 median → mean for the scale → case 10: `CHECK( 1.83911 == Approx( 1.625 ) )`.
+  - M13 the "%%" put back in the disagreement reason → cases 18 and 30: `CHECK( screenSafe(cal.reason())
+    ) ... the two spin directions disagree about the track width by 7.3 % (...)` and `CHECK(
+    std::strchr(rig.cal.reason(), '%') == nullptr )`.
+  - M14 plant ignores the brake mode → DrivePlant 23: `CHECK( 3.52941 == 0 )` (a HELD idle side rolled).
+  - M15 plant follows on every wheel → DrivePlant 21: `CHECK( sameTruth(a, b) )` false.
+  - M16 a Decoupled member's volts back in the mean → DrivePlant 24: `CHECK( t.h.sample().x == xBefore
+    ) ... CHECK( 5.64556 == 4.94118 )` (its 9 V moved the robot).
+  - M17 the follow's shape halved → DrivePlant 22: `CHECK( 0.441176 == Approx( 0.882353 ) ) logged:
+    kappa := 0.25`.
+  - M18 drop the "own shaft clearly backward" contradiction → case 7: `CHECK( 9 == 8 ) logged: refusal
+    PULSE_ROLLED, expected PULSE_CONTRADICTION: port 11 moved its gear train (others 49.8 deg) but the
+    robot turned only 0.00 deg even at 9.0 V ...`.
+  - M19 `TouchGate` without its re-check (first written so it did not compile — `-Werror`
+    unused-parameter — which is not a red of the property; rewritten as `alsoReady || !cal.accepts(a)
+    || true`) → P6: `CHECK( stale.action == TouchAction::None ) ... CHECK( 1 == 0 )`.
+  - M20 an error read moves the release count → P6: `CHECK( 1 == 0 )` (the next good read REPLAYED).
+  - M21 `kFrontBox` stretched into reach of the button row → **compile-time red**: `static assertion
+    failed: calibrate_panel: the fixed layout breaks a promise (off screen, ABORT moved out of its row,
+    or a middle box within reach of the button row)`.
+  - M22 `kLargeCols` 18 → 15 (as if the ruler said so) → **compile-time red**: `static assertion
+    failed: calibrate_panel: a literal does not fit its line budget, ...` — "changing one constant is
+    all it takes", demonstrated.
+  - M23 the scale re-reads the shafts after the pulses instead of the travel captured at DONE (first
+    written with an unused variable — `-Werror`; rewritten) → case 10: `REQUIRE( runCalibration(clean,
+    RunOptions{}) == Phase::Done ) ... REQUIRE( 7 == 6 )`.
+  - M24 no too-short refusal at DONE → case 29: `CHECK( 2 == 7 ) ... logged: refusal NONE, expected
+    PUSH_TOO_SHORT`.
+  - M25 the layout clock never re-greys → P5 and P12: `CHECK_FALSE( true )` on `armed`, and a tap that
+    should land on nothing answered (`CHECK( 1 == 0 )`).
+- **2026-09-24 14:02:11 EDT** — **`src/` BUILD, checked before any doc work:** `python3 tools/src_build_gate.py self-test`
+  → `OK (33 detector cases, each against a real build)`; `check` → `src build gate: PASS (all 6 builds
+  link ...)`; `[tank-calibrate] exit 0, 4/4 TUs compiled, warnings: 2 allowed (-Wunused-function), 3
+  vendor-ignored, 0 disallowed` — the SAME profile every build had in the pre-change run kept in the
+  session scratchpad (`gate_check.log`, tree `018424c`). So the OLD `src/calibrate_program.cpp`
+  compiles and links against the NEW calibrator, under `-Wformat-nonliteral`/`-Wformat-truncation`,
+  through exactly the three retired names (R-F1a). `git diff --stat -- src Makefile tools .github`:
+  empty. ARM all-headers TU (184 headers): compiles clean under the gate flags; PROS-free and sim
+  layering greps: empty.
+- **2026-09-24 14:02:11 EDT** — **Documentation, in this change** (the brief's §5 F1 list):
+  - `docs/api/` regenerated: `drivetrain_calibrator.md` (changed), `calibrate_panel.md` (NEW),
+    `README.md` + `all-entities.md` (indexes), `mkdocs.yml` (+1 nav line, written by the generator).
+    **A brief assumption that is FALSE in the tree:** the brief lists `docs/api/drive_plant.md` —
+    there is no such page, by design: `tools/api_doc_tool.py`'s `TARGET_EXCLUSIONS` excludes
+    `include/shulib/sim/` ("test-only — enforced by the sim-layering CI guard"). The plant's new rules
+    are documented in its header and in HA-137. Not a stop: nothing to generate. Coverage gate:
+    `2597 public entities across 148 headers, all documented`.
+  - `docs/hardware-assumptions.md`: the status note (2F-1 added no entry, rewrote three); the table
+    rows of HA-134/136/137; the entries HA-134 (the ramp and the classification; the first bench
+    session's evidence stated as NOT settling it; **and a correction found on the way: the entry's
+    heading said one side forward "turns the robot toward THAT side" while its own claim — LEFT
+    forward → clockwise — turns it toward the OTHER side; the table row said "about the other"; the
+    heading now matches**), HA-136 (every number added, removed and changed, the new precondition,
+    and the screen model's estimates), HA-137 (coast-follow, the slipping member, why the calibrator
+    no longer rests on the pinned wheel, and the physics note that an ideal free-rolling omni side
+    would turn the robot MORE than a pivot — a negative κ the field does not allow); HA-130's settle
+    line (the spread is over the one push now). Two phrases that named this log were caught by
+    `check-removability` and reworded (the register is public).
+  - `docs/changelog.md`: a "Changed since 2.2" section — unfrozen, no bump; what a caller must change.
+  - `docs/internal/chunks/R3d-drivetrain-self-calibration.md`: the AMENDMENT at T3, one-line pointers at
+    T4, T7, §4.2 and §4.3.
+  - `docs/internal/build-order.md`: the R3d status line (2026-09-24) and the FIRST bold `**Next:**`
+    (2F-2 waits for the go; the bench session resumes after F2; G1 Part 2b after that) — the previous
+    Next kept as history under "Previously", its stray closing `**` removed so the bold still pairs.
+  - `docs/roadmap.md`: the "Now (2026-09-24)" pointer and the bench-session paragraph (the library
+    half landed host-only; the program half waits for the go).
+  - `docs/internal/HANDOFF-remaining-work.md` S1: one superseded-in-part note (it described a tape push
+    and a yaw-floor refusal on a wheels-up run — both false after 2F-1).
+  - The briefing: regenerated LAST (below).
+  **Deliberately NOT touched, with why:** `src/` and the worksheet (F2's); `README.md` (its line
+  "calibration/ — the drivetrain self-calibrator, its SD-card record, the boot check" is incomplete now
+  — no screen model — but not false; F2 is when a program uses the panel); `docs/guide/` (no chapter
+  describes the push/pulse procedure — the calibration chapter is Part 3's, written from a followed
+  procedure); the roadmap's "R3d Part 1 LANDED 2026-09-18" paragraph (a dated landing record, true for
+  its date); `calibration_record.hpp`, `boot_check.hpp` (unchanged — `kRecordVersion` still 1).
+- **2026-09-24 14:02:11 EDT** — **Prose review (rule 4), grep RUN before this entry**: `grep -rnE
+  'SideAssign|ScalePush|Distance24|Distance48|Distance72|pulseVolts|spinVolts|tape push|twitch|STAND
+  CLEAR|PushCapture'` over `docs/`, `README.md`, `include/`, `src/` (90 hits before the doc edits),
+  plus `%.44s|44 char` for the brief's "44". Every hit read. **Fixed** (include/ and docs/): the HA-136
+  field list and its "pulseVolts/spinVolts inherit" sentence; HA-130's "SPREAD over the tape push";
+  the handoff's S1 line; the R3d spec (amendment + pointers, not a rewrite of history);
+  `calibrate_panel.hpp`'s ScalePush comment (it said "drawn as the pulses would be" — it is grouped
+  with the spin). **Unchanged, true:** `twitch`/`twitchy` in the stick-shaping and monitor comments,
+  `docs/guide/03`, `roadmap.md:1635`, `build-order.md:1408`, T2's brief (driver feel, unrelated); the
+  Part 2F brief itself; the historical Part 2 brief (line 249, "the tape push distances" — a record of
+  that part's scope) and the 2026-09-18 session log. **LISTED, NOT EDITED — false now, owned by F2:**
+  `src/calibrate_program.cpp` :11-12 (claims every screen line goes to serial), :18-19 and :663-664
+  ("the first run is WHEELS UP … expected to refuse at the yaw floor" — a wheels-up run now refuses
+  ROLLED/STILL after the ramp), :185-219 (the distance buttons, now never offered; the button row
+  itself), :415-418 (the "1/4 … 4/4" phase words — there is no TAPE phase), :430 (the `%.44s` cut —
+  every prompt now fits it), :441-455 (the table's `tapeDeltaRad` column, always 0), :500-504 ("Wheels
+  up, a yaw-floor refusal is EXPECTED"), :753 ("spread over the tape push"); the worksheet
+  `R3a-BENCH-WORKSHEET.md` Station G :688, :706, :709, :728 and every quoted prompt (the one push, the
+  ramp, LEFT OUT, RUN AGAIN, the wheels-up expectation).
+- **2026-09-24 14:07:06 EDT** — **Final verification, run in this order on the finished tree (every test object rebuilt
+  first, then the briefing regenerated LAST, then the launch prompt's command set):**
+  `cmake --build build/test -j` → exit 0, doc gates: `doc coverage: 2597 public entities across 148
+  headers, all documented`, `doc example scan: 408 quoted lines, all verbatim`, `removability: no
+  public doc references docs/internal/`, `briefing status: generated block current`, staleness audit
+  clean; suite `test cases: 1416 | 1416 passed | 0 failed | 3 skipped`, `assertions: 2386636 |
+  2386636 passed`. `src_build_gate.py self-test` → OK (33 cases); `check` → PASS, all six builds,
+  0 disallowed warnings, `tank-calibrate` included. ARM TU over all 184 headers → exit 0. PROS-free
+  grep → empty; sim-layering grep → empty. `api_doc_tool.py generate && check-fresh && briefing_status.py
+  check && check-removability` → exit 0. `git diff --stat -- src Makefile tools .github` → empty. C7
+  removability grep over the public docs → 0 hits. **Against the baseline, on this binary:** every
+  pre-existing case outside the calibrator/panel/plant-coupled files identical in assertion count and
+  printed values (1367 of 1368), the one difference `pros_adapter_fence_test`'s header walk (495 →
+  498: one more header); plant cases 18–20 identical; calibrator file 18 cases / 54436 assertions →
+  30 / 15869 (rewritten; the old case 21's per-tick REQUIRE was most of the old count); panel file new,
+  12 cases / 786455 assertions (P1 alone checks every view of seven runs); plant-coupled file 3 / 4025 →
+  9 / 4097.
+
+### Definition of Done — Part 2F-1 (the brief's §4 F1), with evidence per line
+
+- [x] **§1 in full.** F1.1 one push (`finishPushCapture`, cases 4, 4b, 5, 10, 11, 29); F1.2 the ramp and
+      the classification (`finishPulse`, cases 6, 7, 9, 22–26); F1.3 the spin's two guards and step-up
+      (`tickSpinTest`, cases 27, 28, 15); F1.4 the plant (DrivePlant 21–26; the calibrator rig at kS 1.2
+      with κ stated per case, κ = 0.9 and 1 in case 25); F1.5 the numbers, `pushReady()`, `Refusal` +
+      `refusalPort()` on every refusal (`requireRefusal` asserts code, port, safe state and ASCII/no-'%'
+      in every refusal case), no '%' (case 30 reads the source), the serial record (case 31); F1.6 the
+      panel (P1–P12). **With two measured caveats:** the spin's "≤ 2 s at each level" fires on the first
+      tick AT OR AFTER 2 s — 2.01 s / 4.02 s on the FakeClock, whose summed 0.01 s steps put tick 200 at
+      1.99999…; and the wrong-way stop lands at 15° plus at most one tick of spin (15.53° measured).
+- [x] **Every public member documented** — the coverage gate, 2597 entities / 148 headers.
+- [x] **ARM gate** — 184 headers, exit 0.
+- [x] **PROS-free / sim-free guards** — both greps empty; `calibrate_panel.hpp` includes only the
+      standard library and the calibrator.
+- [x] **Every required case with its mutation RUN on a fresh binary and observed red** — the nine
+      (flip the side rule; drop the yaw-rate rest; drop the decoupled classification; drop the
+      wrong-way guard; drop the spin-start check; draw DONE before ready; move ABORT; FRONT where DONE
+      was; drop the arming delay) and sixteen more, every one with all 156 objects rebuilt, restored
+      byte-identical and relinked green (the reds are quoted above). Two mutations were first WRITTEN
+      wrong (they tripped `-Werror`, not the property) and were rewritten; one test (P2) was
+      STRENGTHENED after a mutation came back green; four plant mutations came back green through a
+      stale-object artifact of MY driver, which was then fixed and every mutation re-run.
+- [x] **Every pre-existing suite bit-identical except the calibrator's** — above; the calibrator's
+      rewritten cases: 4, 4b (bracketing now on a full 48 in push), 5 (BACK-first now keeps the scale),
+      6, 7 (+ the rolling contradiction), 8, 9 (wheels-up now refuses ROLLED naming the FLOOR — the train
+      moves, the robot does not), 10 (one push; a port dropping off the bus replaces the frozen member),
+      11 (refused at DONE, before anything powered), 12, 13, 14, 15 (the timeout case now a spin that
+      starts then jams; the never-starting spin is case 28's), 16, 17 (`ScalePush` out of the phase
+      list), 18 (+ "pct"), 19 (+ the new preconditions; the old kS 1.2 full run is now the default rig),
+      21 (two waiting steps; the retired distances refused everywhere) — every one at kS 1.2 (why: the
+      file header). New: 22–33.
+- [x] **`src/` byte-identical** — `git diff --stat -- src` empty; the old program builds through three
+      retired names (`Phase::ScalePush`, `Answer::Distance24/48/72`, `PortObservation::tapeDeltaRad`),
+      which **F2 removes**.
+- [x] **The documentation** — the list above; the briefing regenerated last.
+- [x] **The log** — this section.
+
+**NOT done, and not claimed:** F2 (the program as a renderer of the panel, RUN AGAIN's rebuild, the
+serial lines actually printed, Station G rewritten); any hardware claim — nothing here has run on a
+robot, no screen text has been seen on a V5, and every budget, height and pad in the panel is an
+estimate until the SCREEN RULER is read; a missed tick is tested during the SPIN (case 16) and holds for
+the ramped pulses by construction (the check precedes the phase dispatch), not by its own case; which κ
+robot two shows (the physics note above) is for its serial record to say. **For the coordinator:** the
+four "GREEN" plant mutations were a stale-object artifact of `/fast` (it does not track header
+dependencies here) — any verification that relinks with `/fast` after a header edit must touch every
+`test/*.cpp` first, or it can run a binary that mixes old and new inline code.

@@ -16,6 +16,66 @@
 
 ## API 2.2
 
+### Changed since 2.2 (2026-09-24) — the drivetrain calibrator rebuilt after its first night on a robot; a pure model of its screen
+
+> Written when it landed. **No version bump:** `calibration::DrivetrainCalibrator` is not in the
+> [Freeze Register](roadmap.md#freeze-register), and nothing frozen moved — the calibration record's
+> format is unchanged (`kRecordVersion` is still 1) and so is the boot check. **The calibrator's
+> public surface DID change**, so this section says what a caller must do. Why it changed: on
+> 2026-09-24 the calibrator ran five times on a real robot and never finished — its one 3 V
+> single-motor pulse was too weak for a five-motor gear train, its screen offered DONE before
+> anything was pushed, and its host tests had passed on a test plant that could not fail the way the
+> robot did. **Everything below is proven on the host test plant only; none of it has run on a
+> robot.**
+
+**CHANGED — what a caller must change:**
+
+- **One push instead of two.** The operator pushes the robot forward `CalibratorConfig::pushDistance`
+  (48 in) along a tape ONCE, then answers FRONT or BACK; that push gives the drive ports, their signs
+  and each side's scale. There is no distance question: `Answer::Distance24/48/72` are **retired** —
+  `accepts()` never accepts them and `answer()` refuses one as out of order — and `Phase::ScalePush`
+  is **retired** (never entered). `PortObservation::tapeDeltaRad` is **retired** (always 0); read
+  `pushTravelRad`. The three retired names still compile so the current "shulib Calibrate" program
+  builds; **they will be removed** when that program is rewritten.
+  **Migration:** drop the distance buttons and the `ScalePush` case; offer DONE only when the new
+  `pushReady()` is true (see below).
+- **`CalibratorConfig::pulseVolts` and `spinVolts` are gone**, replaced by ramps:
+  `pulseLevels` / `pulseLevelCount` (3, 6, 9 V) and `spinLevels` / `spinLevelCount` (3, 6 V). New
+  fields: `restYawRateFloor`, `decoupledOwnMin`, `pushDistance`, `spinStartTime`, `spinStartYaw`,
+  `spinWrongWay`. A config whose ramp is not strictly increasing inside (0, 12] V, or whose
+  `restYawRateFloor × pulseTime` is not under `pulseYawFloor`, is refused at construction.
+  **Migration:** a config that set `pulseVolts = X` sets `pulseLevels[0] = X` (and the count), or
+  keeps the defaults.
+- **A drive port whose motor turns but moves nothing (a slipping gear) is LEFT OUT** of the
+  description with a warning (`warning()`, `report().excludedPorts`), and the run can still finish:
+  a description may now name fewer ports than the push moved. The boot check already treats such a
+  present-but-unrecorded motor as a warning.
+- **`status().prompt`** may now point into a buffer the calibrator owns (the push instruction names
+  the configured distance); it is valid until the calibrator's next `tick()`, `answer()` or
+  `abort()` — copy it if you keep it longer. Every prompt is at most 44 characters.
+- **Behaviour you should know changed, without a signature moving:** rest between pulses now also
+  requires the IMU's yaw rate under a floor; the side pulse ramps and stops at the first level that
+  turns the robot; the spin refuses at once if it turns the WRONG way (15°), and steps up once and
+  then refuses if it cannot start turning (instead of stalling 20 s); the spin-disagreement refusal
+  says "pct" instead of the percent sign (PROS re-reads screen text as a format); the copy
+  constructor and copy assignment are now explicitly deleted (they were already ill-formed).
+
+**ADDITIVE:**
+
+- **`calibration::Refusal`**, `refusal()` and `refusalPort()` — a code (and the port, where there is
+  one) for every way a run can stop, so a screen can explain a stop without parsing prose;
+  `refusalName()` for logs.
+- **`pushReady()`** — the DONE gate, built from the same predicates DONE is judged on.
+- **Numbers in `CalibratorStatus`** (moved count, push travel and far-enough, at-rest, drift, pulse
+  ordinal/port/level, live yaw, spin direction/turns/level, the side counts, left-out count, seconds
+  in the phase) and **a serial record** in the report — one `PulseRecord` per pulse at every level,
+  one `SpinRecord` per spin direction — with `formatPushRecord()`, `formatPulseRecord()` and
+  `formatSpinRecord()` printing each as one ASCII line.
+- **`calibration/calibrate_panel.hpp`** — the calibration screen as a pure, host-tested model:
+  `viewFor()`, `hitTest()`, `TouchGate`, `wrapWords()`, `stoppedWords()`, with compile-time checks
+  that every piece of text fits its (estimated) line budget, is ASCII and carries no percent sign.
+  No program uses it yet.
+
 ### Added since 2.2 (2026-09-24) — the on-robot device provider, dead ports in the builder, the port map, the driver-control loop
 
 > Written when it landed. **No version bump, and none owed:** everything here is additive, and none

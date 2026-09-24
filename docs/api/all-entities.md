@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,339 of them, across 147 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,597 of them, across 148 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -204,6 +204,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
+| `budgetFor` | free function | [calibrate_panel.md](calibrate_panel.md#budgetfor) |
 | `BuildOptions` | struct | [robot.md](robot.md#struct-buildoptions) |
 | `BuildOptions::absentDrivePorts` | field | [robot.md](robot.md#buildoptions-absentdriveports) |
 | `BuildOptions::isAbsent` | function | [robot.md](robot.md#buildoptions-isabsent) |
@@ -250,40 +251,73 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CalibrationReport` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibrationreport) |
 | `CalibrationReport::backFirst` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-backfirst) |
 | `CalibrationReport::drivePortCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-driveportcount) |
+| `CalibrationReport::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedcount) |
+| `CalibrationReport::excludedPorts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-excludedports) |
 | `CalibrationReport::leftInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftinchesperradian) |
 | `CalibrationReport::leftMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftmedianrad) |
 | `CalibrationReport::leftSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-leftspreadrad) |
 | `CalibrationReport::portCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-portcount) |
 | `CalibrationReport::ports` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-ports) |
+| `CalibrationReport::pulseCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pulsecount) |
+| `CalibrationReport::pulses` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pulses) |
 | `CalibrationReport::pushDistanceIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pushdistancein) |
 | `CalibrationReport::pushStraightnessRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-pushstraightnessrad) |
 | `CalibrationReport::rightInchesPerRadian` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightinchesperradian) |
 | `CalibrationReport::rightMedianRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightmedianrad) |
 | `CalibrationReport::rightSpreadRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-rightspreadrad) |
+| `CalibrationReport::spinCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-spincount) |
+| `CalibrationReport::spins` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-spins) |
 | `CalibrationReport::widthCcwIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthccwin) |
 | `CalibrationReport::widthCwIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthcwin) |
 | `CalibrationReport::widthDisagreement` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibrationreport-widthdisagreement) |
 | `CalibratorConfig` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorconfig) |
 | `CalibratorConfig::commandTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-commandtimeout) |
+| `CalibratorConfig::decoupledOwnMin` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-decoupledownmin) |
 | `CalibratorConfig::imuReadyTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-imureadytimeout) |
 | `CalibratorConfig::minPushRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-minpushrad) |
 | `CalibratorConfig::monitor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-monitor) |
 | `CalibratorConfig::movedThreshold` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-movedthreshold) |
+| `CalibratorConfig::pulseLevelCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulselevelcount) |
+| `CalibratorConfig::pulseLevels` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulselevels) |
 | `CalibratorConfig::pulseTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulsetime) |
-| `CalibratorConfig::pulseVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulsevolts) |
 | `CalibratorConfig::pulseYawFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pulseyawfloor) |
+| `CalibratorConfig::pushDistance` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-pushdistance) |
 | `CalibratorConfig::restFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restfloor) |
 | `CalibratorConfig::restSettleTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restsettletime) |
 | `CalibratorConfig::restTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-resttimeout) |
+| `CalibratorConfig::restYawRateFloor` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-restyawratefloor) |
 | `CalibratorConfig::spinAgreement` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinagreement) |
+| `CalibratorConfig::spinLevelCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinlevelcount) |
+| `CalibratorConfig::spinLevels` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinlevels) |
+| `CalibratorConfig::spinStartTime` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinstarttime) |
+| `CalibratorConfig::spinStartYaw` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinstartyaw) |
 | `CalibratorConfig::spinTimeout` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spintimeout) |
 | `CalibratorConfig::spinTurns` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinturns) |
-| `CalibratorConfig::spinVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinvolts) |
+| `CalibratorConfig::spinWrongWay` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-spinwrongway) |
 | `CalibratorConfig::straightBound` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorconfig-straightbound) |
 | `CalibratorStatus` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-calibratorstatus) |
+| `CalibratorStatus::atRest` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-atrest) |
+| `CalibratorStatus::candidates` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-candidates) |
+| `CalibratorStatus::driftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-driftrad) |
+| `CalibratorStatus::excludedCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-excludedcount) |
+| `CalibratorStatus::leftCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-leftcount) |
+| `CalibratorStatus::liveYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-liveyawrad) |
+| `CalibratorStatus::movedNow` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-movednow) |
 | `CalibratorStatus::phase` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-phase) |
+| `CalibratorStatus::phaseSeconds` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-phaseseconds) |
 | `CalibratorStatus::progress` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-progress) |
 | `CalibratorStatus::prompt` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-prompt) |
+| `CalibratorStatus::pulseLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulselevelvolts) |
+| `CalibratorStatus::pulseOrdinal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulseordinal) |
+| `CalibratorStatus::pulsePort` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulseport) |
+| `CalibratorStatus::pulseTotal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulsetotal) |
+| `CalibratorStatus::pulsing` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pulsing) |
+| `CalibratorStatus::pushFarEnough` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pushfarenough) |
+| `CalibratorStatus::pushTravelRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-pushtravelrad) |
+| `CalibratorStatus::rightCount` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-rightcount) |
+| `CalibratorStatus::spinDirection` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spindirection) |
+| `CalibratorStatus::spinLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spinlevelvolts) |
+| `CalibratorStatus::spinTurns` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#calibratorstatus-spinturns) |
 | `CameraIntrinsics` | struct | [vision_conversion.md](vision_conversion.md#struct-cameraintrinsics) |
 | `CameraIntrinsics::cx` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cx) |
 | `CameraIntrinsics::cy` | field | [vision_conversion.md](vision_conversion.md#cameraintrinsics-cy) |
@@ -331,6 +365,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::omega` | function | [twist2d.md](twist2d.md#chassisspeeds-omega) |
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
+| `Checked` | struct | [calibrate_panel.md](calibrate_panel.md#struct-checked) |
+| `Checked::cols` | field | [calibrate_panel.md](calibrate_panel.md#checked-cols) |
+| `Checked::text` | field | [calibrate_panel.md](calibrate_panel.md#checked-text) |
 | `chooseBootSource` | free function | [boot_check.md](boot_check.md#choosebootsource) |
 | `CommandEntry` | struct | [command_registry.md](command_registry.md#struct-commandentry) |
 | `CommandEntry::argCount` | field | [command_registry.md](command_registry.md#commandentry-argcount) |
@@ -393,6 +430,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Constraints::maxAngular` | field | [route.md](route.md#constraints-maxangular) |
 | `Constraints::maxLinear` | field | [route.md](route.md#constraints-maxlinear) |
 | `Constraints::timeout` | field | [route.md](route.md#constraints-timeout) |
+| `contains` | free function | [calibrate_panel.md](calibrate_panel.md#contains) |
 | `continuousDeadband` | free function | [input_shaping.md](input_shaping.md#continuousdeadband) |
 | `ControllerAxis` | enum class | [controller.md](controller.md#enum-class-controlleraxis) |
 | `ControllerAxis::LeftX` | enumerator | [controller.md](controller.md#controlleraxis-leftx) |
@@ -583,13 +621,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DrivetrainCalibrator::answer` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-answer) |
 | `DrivetrainCalibrator::config` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-config) |
 | `DrivetrainCalibrator::DrivetrainCalibrator` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-drivetraincalibrator) |
+| `DrivetrainCalibrator::DrivetrainCalibrator (overload 2)` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-drivetraincalibrator-2) |
+| `DrivetrainCalibrator::operator=` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-operator-eq) |
 | `DrivetrainCalibrator::phase` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-phase) |
+| `DrivetrainCalibrator::pushReady` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-pushready) |
 | `DrivetrainCalibrator::reason` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-reason) |
+| `DrivetrainCalibrator::refusal` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-refusal) |
+| `DrivetrainCalibrator::refusalPort` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-refusalport) |
 | `DrivetrainCalibrator::report` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-report) |
 | `DrivetrainCalibrator::result` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-result) |
 | `DrivetrainCalibrator::start` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-start) |
 | `DrivetrainCalibrator::status` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-status) |
 | `DrivetrainCalibrator::tick` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-tick) |
+| `DrivetrainCalibrator::warning` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-warning) |
 | `DrivetrainConfig` | struct | [robot_config.md](robot_config.md#struct-drivetrainconfig) |
 | `DrivetrainConfig::cartridge` | function | [robot_config.md](robot_config.md#drivetrainconfig-cartridge) |
 | `DrivetrainConfig::driveMotorCount` | function | [robot_config.md](robot_config.md#drivetrainconfig-drivemotorcount) |
@@ -770,6 +814,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FieldDelta::dy` | field | [arc_step.md](arc_step.md#fielddelta-dy) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
 | `findBuiltinCommand` | free function | [route.md](route.md#findbuiltincommand) |
+| `formatPulseRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpulserecord) |
+| `formatPushRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpushrecord) |
+| `formatSpinRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatspinrecord) |
 | `Frame` | enum class | [frame.md](frame.md#enum-class-frame) |
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
 | `Frame::Field` | enumerator | [frame.md](frame.md#frame-field) |
@@ -898,6 +945,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitorConfig::brownoutRecoverVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutrecovervolts) |
 | `HealthMonitorConfig::brownoutVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutvolts) |
 | `HealthMonitorConfig::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-maxmotortempc) |
+| `heightFor` | free function | [calibrate_panel.md](calibrate_panel.md#heightfor) |
+| `hitBox` | free function | [calibrate_panel.md](calibrate_panel.md#hitbox) |
+| `hitTest` | free function | [calibrate_panel.md](calibrate_panel.md#hittest) |
 | `HoldPose` | class | [hold_pose.md](hold_pose.md#class-holdpose) |
 | `HoldPose::HoldPose` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose) |
 | `HoldPose::HoldPose (overload 2)` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose-2) |
@@ -1253,14 +1303,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `kAbortRow` | constant | [calibrate_panel.md](calibrate_panel.md#kabortrow) |
+| `kAbortSlot` | constant | [calibrate_panel.md](calibrate_panel.md#kabortslot) |
+| `kAll` | constant | [calibrate_panel.md](calibrate_panel.md#kall) |
 | `kApiMajor` | constant | [version.md](version.md#kapimajor) |
 | `kApiMinor` | constant | [version.md](version.md#kapiminor) |
 | `kApiVersionString` | constant | [version.md](version.md#kapiversionstring) |
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
+| `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
+| `kBackBox` | constant | [calibrate_panel.md](calibrate_panel.md#kbackbox) |
 | `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
 | `kBuiltinCommands` | constant | [route.md](route.md#kbuiltincommands) |
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
+| `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
+| `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
+| `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
 | `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
@@ -1273,13 +1331,38 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kEndPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#kendpayloadbytes) |
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
+| `kFrontBox` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontbox) |
+| `kFullReasonOnSerial` | constant | [calibrate_panel.md](calibrate_panel.md#kfullreasononserial) |
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
+| `kHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#khandsoff) |
+| `kHeaderBar` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderbar) |
 | `kHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kheaderbytes) |
+| `kHeaderCols` | constant | [calibrate_panel.md](calibrate_panel.md#kheadercols) |
+| `kHeaderIdle` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderidle) |
+| `kHeaderImu` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderimu) |
+| `kHeaderMeasured` | constant | [calibrate_panel.md](calibrate_panel.md#kheadermeasured) |
+| `kHeaderNotSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadernotsaved) |
+| `kHeaderPulses` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpulses) |
+| `kHeaderPush` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderpush) |
+| `kHeaderSaved` | constant | [calibrate_panel.md](calibrate_panel.md#kheadersaved) |
+| `kHeaderSpin` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderspin) |
+| `kHeaderStopped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderstopped) |
+| `kHeaderWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderwhichend) |
 | `kHeadingErrorMaxDeg` | constant | [accuracy.md](accuracy.md#kheadingerrormaxdeg) |
+| `kHitPadX` | constant | [calibrate_panel.md](calibrate_panel.md#khitpadx) |
+| `kHitPadY` | constant | [calibrate_panel.md](calibrate_panel.md#khitpady) |
+| `kImuWarming` | constant | [calibrate_panel.md](calibrate_panel.md#kimuwarming) |
 | `kInstallTagCorrector` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrector) |
 | `kInstallTagCorrector<AbsentTagSource>` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrectorabsenttagsource) |
 | `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
 | `kInstallVisionPoller<AbsentVision>` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpollerabsentvision) |
+| `kLabelAbort` | constant | [calibrate_panel.md](calibrate_panel.md#klabelabort) |
+| `kLabelBack` | constant | [calibrate_panel.md](calibrate_panel.md#klabelback) |
+| `kLabelDone` | constant | [calibrate_panel.md](calibrate_panel.md#klabeldone) |
+| `kLabelFront` | constant | [calibrate_panel.md](calibrate_panel.md#klabelfront) |
+| `kLabelRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#klabelrunagain) |
+| `kLargeCols` | constant | [calibrate_panel.md](calibrate_panel.md#klargecols) |
+| `kLargeHeight` | constant | [calibrate_panel.md](calibrate_panel.md#klargeheight) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
 | `kManifestSchemaVersion` | constant | [manifest.md](manifest.md#kmanifestschemaversion) |
 | `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
@@ -1294,15 +1377,35 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
 | `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
+| `kMaxPulseLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulselevels) |
+| `kMaxPulseRecords` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulserecords) |
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
 | `kMaxSmartPorts` | constant | [drivetrain_description.md](drivetrain_description.md#kmaxsmartports) |
+| `kMaxSpinLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxspinlevels) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
+| `kMediumCols` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumcols) |
+| `kMediumHeight` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumheight) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
+| `kNextDoneWhenMoved` | constant | [calibrate_panel.md](calibrate_panel.md#knextdonewhenmoved) |
+| `kNextLetGo` | constant | [calibrate_panel.md](calibrate_panel.md#knextletgo) |
+| `kNextSaves` | constant | [calibrate_panel.md](calibrate_panel.md#knextsaves) |
+| `kNextSpins` | constant | [calibrate_panel.md](calibrate_panel.md#knextspins) |
+| `kNextTouchDone` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdone) |
+| `kNextTwitch` | constant | [calibrate_panel.md](calibrate_panel.md#knexttwitch) |
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
+| `kNoteCols` | constant | [calibrate_panel.md](calibrate_panel.md#knotecols) |
+| `kNotStarted` | constant | [calibrate_panel.md](calibrate_panel.md#knotstarted) |
 | `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
+| `kPanelLastRow` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellastrow) |
+| `kPanelLineCap` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellinecap) |
+| `kPanelMaxButtons` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxbuttons) |
+| `kPanelMaxLines` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxlines) |
+| `kPanelWidth` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelwidth) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
+| `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
+| `kPushForward` | constant | [calibrate_panel.md](calibrate_panel.md#kpushforward) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
 | `kRecordBytes` | constant | [calibration_record.md](calibration_record.md#krecordbytes) |
 | `kRecordFileName` | constant | [calibration_record.md](calibration_record.md#krecordfilename) |
@@ -1313,17 +1416,29 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
 | `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
 | `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
+| `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
+| `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
+| `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
+| `kSmallCols` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallcols) |
+| `kSmallHeight` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallheight) |
+| `kSpinAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kspinagain) |
+| `kSpinFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kspinfirst) |
+| `kSpinning` | constant | [calibrate_panel.md](calibrate_panel.md#kspinning) |
+| `kStandClear` | constant | [calibrate_panel.md](calibrate_panel.md#kstandclear) |
 | `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
+| `kTwitching` | constant | [calibrate_panel.md](calibrate_panel.md#ktwitching) |
+| `kWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kwhichend) |
 
 ## L
 
 | Name | Kind | Page |
 |---|---|---|
+| `layoutKey` | free function | [calibrate_panel.md](calibrate_panel.md#layoutkey) |
 | `Length` | type alias | [quantity.md](quantity.md#length) |
 | `LevelFilterSink` | class | [level_filter_sink.md](level_filter_sink.md#class-levelfiltersink) |
 | `LevelFilterSink::clearLevels` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-clearlevels) |
@@ -1655,11 +1770,61 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `opticalHueToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalhuetocanonical) |
 | `opticalProximityToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalproximitytocanonical) |
 | `opticalUnitIntervalToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalunitintervaltocanonical) |
+| `overlaps` | free function | [calibrate_panel.md](calibrate_panel.md#overlaps) |
 
 ## P
 
 | Name | Kind | Page |
 |---|---|---|
+| `PanelButton` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelbutton) |
+| `PanelButton::armed` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-armed) |
+| `PanelButton::id` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-id) |
+| `PanelButton::label` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-label) |
+| `PanelButton::rect` | field | [calibrate_panel.md](calibrate_panel.md#panelbutton-rect) |
+| `PanelButtonId` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-panelbuttonid) |
+| `PanelButtonId::Abort` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-abort) |
+| `PanelButtonId::Back` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-back) |
+| `PanelButtonId::Done` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-done) |
+| `PanelButtonId::Front` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-front) |
+| `PanelButtonId::RunAgain` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelbuttonid-runagain) |
+| `panelLayoutHolds` | free function | [calibrate_panel.md](calibrate_panel.md#panellayoutholds) |
+| `PanelLine` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelline) |
+| `PanelLine::size` | field | [calibrate_panel.md](calibrate_panel.md#panelline-size) |
+| `PanelLine::text` | field | [calibrate_panel.md](calibrate_panel.md#panelline-text) |
+| `PanelLine::tone` | field | [calibrate_panel.md](calibrate_panel.md#panelline-tone) |
+| `PanelLine::x` | field | [calibrate_panel.md](calibrate_panel.md#panelline-x) |
+| `PanelLine::y` | field | [calibrate_panel.md](calibrate_panel.md#panelline-y) |
+| `panelLiteralsFit` | free function | [calibrate_panel.md](calibrate_panel.md#panelliteralsfit) |
+| `PanelRect` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelrect) |
+| `PanelRect::operator==` | function | [calibrate_panel.md](calibrate_panel.md#panelrect-operator-eq-eq) |
+| `PanelRect::x0` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-x0) |
+| `PanelRect::x1` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-x1) |
+| `PanelRect::y0` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-y0) |
+| `PanelRect::y1` | field | [calibrate_panel.md](calibrate_panel.md#panelrect-y1) |
+| `PanelScreen` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-panelscreen) |
+| `PanelScreen::ImuWait` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-imuwait) |
+| `PanelScreen::NotStarted` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-notstarted) |
+| `PanelScreen::Pulses` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-pulses) |
+| `PanelScreen::Push` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-push) |
+| `PanelScreen::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-saved) |
+| `PanelScreen::Spin` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-spin) |
+| `PanelScreen::Stopped` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-stopped) |
+| `PanelScreen::WhichEnd` | enumerator | [calibrate_panel.md](calibrate_panel.md#panelscreen-whichend) |
+| `PanelTone` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-paneltone) |
+| `PanelTone::Amber` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-amber) |
+| `PanelTone::Blue` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-blue) |
+| `PanelTone::Green` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-green) |
+| `PanelTone::Grey` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-grey) |
+| `PanelTone::Red` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-red) |
+| `PanelTone::White` | enumerator | [calibrate_panel.md](calibrate_panel.md#paneltone-white) |
+| `PanelView` | struct | [calibrate_panel.md](calibrate_panel.md#struct-panelview) |
+| `PanelView::buttonCount` | field | [calibrate_panel.md](calibrate_panel.md#panelview-buttoncount) |
+| `PanelView::buttons` | field | [calibrate_panel.md](calibrate_panel.md#panelview-buttons) |
+| `PanelView::headerTone` | field | [calibrate_panel.md](calibrate_panel.md#panelview-headertone) |
+| `PanelView::headerWord` | field | [calibrate_panel.md](calibrate_panel.md#panelview-headerword) |
+| `PanelView::lineCount` | field | [calibrate_panel.md](calibrate_panel.md#panelview-linecount) |
+| `PanelView::lines` | field | [calibrate_panel.md](calibrate_panel.md#panelview-lines) |
+| `PanelView::screen` | field | [calibrate_panel.md](calibrate_panel.md#panelview-screen) |
 | `PathRunner` | class | [path_runner.md](path_runner.md#class-pathrunner) |
 | `PathRunner::operator=` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq) |
 | `PathRunner::operator= (overload 2)` | function | [path_runner.md](path_runner.md#pathrunner-operator-eq-2) |
@@ -1718,13 +1883,18 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PortClass::Swapped` | enumerator | [boot_check.md](boot_check.md#portclass-swapped) |
 | `portClassWord` | free function | [boot_check.md](boot_check.md#portclassword) |
 | `PortObservation` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-portobservation) |
+| `PortObservation::excluded` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-excluded) |
 | `PortObservation::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-port) |
+| `PortObservation::pulseLevelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulselevelvolts) |
+| `PortObservation::pulseOthersRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseothersrad) |
 | `PortObservation::pulseShaftRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseshaftrad) |
 | `PortObservation::pulseYawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pulseyawrad) |
 | `PortObservation::pushDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pushdeltarad) |
+| `PortObservation::pushTravelRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pushtravelrad) |
 | `PortObservation::side` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-side) |
 | `PortObservation::sign` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-sign) |
 | `PortObservation::tapeDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-tapedeltarad) |
+| `PortObservation::verdict` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-verdict) |
 | `PortUse` | enum class | [robot_config.md](robot_config.md#enum-class-portuse) |
 | `PortUse::DriveLeft` | enumerator | [robot_config.md](robot_config.md#portuse-driveleft) |
 | `PortUse::DriveRight` | enumerator | [robot_config.md](robot_config.md#portuse-driveright) |
@@ -1884,6 +2054,24 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsTickPacer` | class | [pros-tick_pacer.md](pros-tick_pacer.md#class-prostickpacer) |
 | `ProsTickPacer::kTickMs` | field | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-ktickms) |
 | `ProsTickPacer::pace` | function | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-pace) |
+| `PulseRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-pulserecord) |
+| `PulseRecord::levelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-levelvolts) |
+| `PulseRecord::ordinal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-ordinal) |
+| `PulseRecord::othersMaxRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-othersmaxrad) |
+| `PulseRecord::ownRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-ownrad) |
+| `PulseRecord::port` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-port) |
+| `PulseRecord::verdict` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-verdict) |
+| `PulseRecord::yawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-yawrad) |
+| `PulseVerdict` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-pulseverdict) |
+| `PulseVerdict::Contradiction` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-contradiction) |
+| `PulseVerdict::Decoupled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-decoupled) |
+| `PulseVerdict::Left` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-left) |
+| `PulseVerdict::None` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-none) |
+| `PulseVerdict::Right` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-right) |
+| `PulseVerdict::Rolled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-rolled) |
+| `PulseVerdict::Still` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-still) |
+| `PulseVerdict::Weak` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-weak) |
+| `pulseVerdictWord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdictword) |
 
 ## Q
 
@@ -1930,6 +2118,29 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `recoverFinite` | free function | [finite_guard.md](finite_guard.md#recoverfinite) |
 | `recoverFinitePose` | free function | [finite_guard.md](finite_guard.md#recoverfinitepose) |
 | `recoverWheelVoltage` | free function | [plausibility_guard.md](plausibility_guard.md#recoverwheelvoltage) |
+| `Refusal` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-refusal) |
+| `Refusal::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-aborted) |
+| `Refusal::ImuNotReady` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-imunotready) |
+| `Refusal::InvalidDescription` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-invaliddescription) |
+| `Refusal::MissedTick` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-missedtick) |
+| `Refusal::NonDriveMoved` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-nondrivemoved) |
+| `Refusal::None` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-none) |
+| `Refusal::OneSided` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-onesided) |
+| `Refusal::OutOfOrder` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-outoforder) |
+| `Refusal::PulseContradiction` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulsecontradiction) |
+| `Refusal::PulseRolled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulserolled) |
+| `Refusal::PulseStill` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulsestill) |
+| `Refusal::PushCurved` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushcurved) |
+| `Refusal::PushTooFew` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtoofew) |
+| `Refusal::PushTooShort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtooshort) |
+| `Refusal::RestTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-resttimeout) |
+| `Refusal::SpinDisagree` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spindisagree) |
+| `Refusal::SpinFight` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinfight) |
+| `Refusal::SpinNoStart` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinnostart) |
+| `Refusal::SpinTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spintimeout) |
+| `Refusal::SpinWidthInvalid` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwidthinvalid) |
+| `Refusal::SpinWrongWay` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwrongway) |
+| `refusalName` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusalname) |
 | `Robot` | class | [robot.md](robot.md#class-robot) |
 | `Robot::chassis` | function | [robot.md](robot.md#robot-chassis) |
 | `Robot::chassis (overload 2)` | function | [robot.md](robot.md#robot-chassis-2) |
@@ -2137,6 +2348,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | Name | Kind | Page |
 |---|---|---|
 | `safeAngle` | free function | [blackbox_format.md](blackbox_format.md#safeangle) |
+| `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
+| `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
+| `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
+| `SaveOutcome::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-saved) |
+| `screenText` | free function | [calibrate_panel.md](calibrate_panel.md#screentext) |
 | `SdSink` | class | [sd_sink.md](sd_sink.md#class-sdsink) |
 | `SdSink::brownout` | function | [sd_sink.md](sd_sink.md#sdsink-brownout) |
 | `SdSink::bytesBuffered` | function | [sd_sink.md](sd_sink.md#sdsink-bytesbuffered) |
@@ -2227,6 +2443,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SlewLimiter::SlewLimiter (overload 3)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-3) |
 | `SlewLimiter::update` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-update) |
 | `SlewLimiter::value` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-value) |
+| `SpinRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-spinrecord) |
+| `SpinRecord::direction` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-direction) |
+| `SpinRecord::leftTravelIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-lefttravelin) |
+| `SpinRecord::levelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-levelvolts) |
+| `SpinRecord::rightTravelIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-righttravelin) |
+| `SpinRecord::seconds` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-seconds) |
+| `SpinRecord::widthIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-widthin) |
+| `SpinRecord::yawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-yawrad) |
 | `StallConfig` | struct | [stall_detector.md](stall_detector.md#struct-stallconfig) |
 | `StallConfig::currentAtLeast` | field | [stall_detector.md](stall_detector.md#stallconfig-currentatleast) |
 | `StallConfig::persistence` | field | [stall_detector.md](stall_detector.md#stallconfig-persistence) |
@@ -2250,6 +2474,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StickInput::leftY` | field | [stick_mapping.md](stick_mapping.md#stickinput-lefty) |
 | `StickInput::rightX` | field | [stick_mapping.md](stick_mapping.md#stickinput-rightx) |
 | `StickInput::rightY` | field | [stick_mapping.md](stick_mapping.md#stickinput-righty) |
+| `stoppedWords` | free function | [calibrate_panel.md](calibrate_panel.md#stoppedwords) |
+| `StoppedWords` | struct | [calibrate_panel.md](calibrate_panel.md#struct-stoppedwords) |
+| `StoppedWords::doLine` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-doline) |
+| `StoppedWords::headline` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-headline) |
+| `StoppedWords::why` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-why) |
 | `StrafeTo` | class | [strafe_to.md](strafe_to.md#class-strafeto) |
 | `StrafeTo::name` | function | [strafe_to.md](strafe_to.md#strafeto-name) |
 | `StrafeTo::StrafeTo` | function | [strafe_to.md](strafe_to.md#strafeto-strafeto) |
@@ -2307,6 +2536,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TermSink::summarize` | function | [term_sink.md](term_sink.md#termsink-summarize) |
 | `TermSink::TermSink` | function | [term_sink.md](term_sink.md#termsink-termsink) |
 | `TermSink::wantsRecord` | function | [term_sink.md](term_sink.md#termsink-wantsrecord) |
+| `TextSize` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-textsize) |
+| `TextSize::Large` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-large) |
+| `TextSize::Medium` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-medium) |
+| `TextSize::Small` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-small) |
 | `throwingPreconditionHandler` | free function | [check.md](check.md#throwingpreconditionhandler) |
 | `TickAttribution` | class | [tick_attribution.md](tick_attribution.md#class-tickattribution) |
 | `TickAttribution::abandonTick` | function | [tick_attribution.md](tick_attribution.md#tickattribution-abandontick) |
@@ -2340,6 +2573,24 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `tickPhaseName` | free function | [tick_attribution.md](tick_attribution.md#tickphasename) |
 | `Time` | type alias | [quantity.md](quantity.md#time) |
 | `toChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#tochassisspeeds) |
+| `TouchAction` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-touchaction) |
+| `TouchAction::Answer` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-answer) |
+| `TouchAction::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-none) |
+| `TouchAction::RunAgain` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-runagain) |
+| `TouchGate` | class | [calibrate_panel.md](calibrate_panel.md#class-touchgate) |
+| `TouchGate::touch` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-touch) |
+| `TouchGate::TouchGate` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-touchgate) |
+| `TouchGate::view` | function | [calibrate_panel.md](calibrate_panel.md#touchgate-view) |
+| `TouchResult` | struct | [calibrate_panel.md](calibrate_panel.md#struct-touchresult) |
+| `TouchResult::action` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-action) |
+| `TouchResult::answer` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-answer) |
+| `TouchResult::hit` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-hit) |
+| `TouchResult::newRelease` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-newrelease) |
+| `TouchSample` | struct | [calibrate_panel.md](calibrate_panel.md#struct-touchsample) |
+| `TouchSample::error` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-error) |
+| `TouchSample::releaseCount` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-releasecount) |
+| `TouchSample::x` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-x) |
+| `TouchSample::y` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-y) |
 | `TrackingWheel` | class | [tracking_wheel.md](tracking_wheel.md#class-trackingwheel) |
 | `TrackingWheel::forward` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-forward) |
 | `TrackingWheel::lateral` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-lateral) |
@@ -2399,6 +2650,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
 | `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
+| `viewFor` | free function | [calibrate_panel.md](calibrate_panel.md#viewfor) |
 | `Voltage` | type alias | [quantity.md](quantity.md#voltage) |
 
 ## W
@@ -2442,6 +2694,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::size` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-size) |
 | `WheelSpeeds::WheelSpeeds` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds) |
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
+| `within` | free function | [calibrate_panel.md](calibrate_panel.md#within) |
+| `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |
+| `Wrapped::1]` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-1) |
+| `Wrapped::complete` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-complete) |
+| `Wrapped::count` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-count) |
+| `wrapWords` | free function | [calibrate_panel.md](calibrate_panel.md#wrapwords) |
 | `writeManifest` | free function | [manifest.md](manifest.md#writemanifest) |
 | `writeManifestEntry` | free function | [manifest.md](manifest.md#writemanifestentry) |
 | `writePortMap` | free function | [robot.md](robot.md#writeportmap) |

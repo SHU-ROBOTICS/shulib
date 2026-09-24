@@ -162,7 +162,32 @@ coupled-train command model (T6) is what lets the host prove this. Rejected: pul
 "assumed side" (there is no side to assume before this step); reading the side from the port's
 position on the brain (a wiring convention, not a measurement).
 
-**T4 — The per-side distance scale is `tapeDistance / median(Δshaft of that side's members)`.** The
+> **AMENDMENT — R3d Part 2F-1, 2026-09-24** ([brief](R3d-part2f-calibrate-on-the-robot.md), the team
+> lead's decisions 1–3; executor log [`R3d-PROGRESS.md`](R3d-PROGRESS.md) "Part 2F-1"). The side is
+> still the yaw's SIGN (this ruling's physics is unchanged), but the PULSE is not one pulse any more.
+> Robot two's first night (R3d-PROGRESS Part 3) stopped the Part 1 calibrator at its side pulse on
+> every start that reached it — one member at 3 V for 0.4 s turned the robot 0.14–0.17° against a 2°
+> floor — and showed why the host had passed: the calibrator's test rig ran the plant with NO static
+> friction and pinned every unpowered wheel, so a one-sided pulse could only pivot. What changed:
+> (1) the pulse RAMPS 3 → 6 → 9 V and stops at the first level whose turn reaches the floor;
+> (2) "rest" is now what this ruling always said — every velocity AND the yaw rate under a floor (the
+> code had checked the velocities only); (3) a port that no level turns is CLASSIFIED instead of
+> refused blind: its own shaft turned and nothing else moved → a slipping gear, LEFT OUT of the
+> description with a warning (the run continues); others moved but the robot did not turn → ROLLED,
+> refused naming the port; nothing moved → refused naming the port; (4) the own-encoder
+> contradiction is checked at the deciding level as before and also whenever the member's own shaft
+> clearly went backward. The "Rejected: pulsing a whole assumed side" stands; the physics
+> investigation's recommended unpowered hand TWIST was rejected by the team lead (decision 1) and is
+> recorded in the Part 2F brief. **Also amended by 2F-1:** T4 and T7 — the scale now comes from the
+> ONE push (48 in, fixed, no distance question; the push that captures the signs also captures the
+> travel, and its straightness bound now also guards the signs); §4.2's `ScalePush` phase is retired
+> and the spin gained a wrong-way guard and a start check; §4.3's `pulseVolts`/`spinVolts` became
+> the ramps `pulseLevels`/`spinLevels` (HA-136 lists every number added and removed). The host plant
+> gained coast-follow and a slipping member (HA-137), and the calibrator's cases now run at the tree's
+> usual kS = 1.2 with the idle side's behaviour stated in every case. Nothing here has run on a robot.
+
+**T4 — The per-side distance scale is `tapeDistance / median(Δshaft of that side's members)`.**
+*(Amended at R3d Part 2F-1: one push gives both the signs and this scale — see the note at T3.)* The
 median, not the mean, for the same reason the group reads the median (`motor_group.hpp:26-37`): robot
 two's port 18 travels ~20 % short on a push (HA-130) and must neither poison the scale nor be
 silently accepted as the truth of the side. The median is ALSO what `MotorGroup::position()` will
@@ -195,7 +220,9 @@ pinned by the WHOLE existing suite (unchanged output) and by their own tests. Re
 "push world" outside the plant (the A2 rule — closed-loop truth lives in one place).
 
 **T7 — "No number typed" means no DRIVETRAIN CONSTANT typed; the tape distance is a procedure
-input.** The push along a tape needs the distance pushed. It is not a fact about the robot (a
+input.** *(Amended at R3d Part 2F-1, the team lead's decision 2: the distance is FIXED at 48 in and
+stated on the screen — there is no short list and no question, so a wrong distance cannot be
+answered. See the note at T3.)* The push along a tape needs the distance pushed. It is not a fact about the robot (a
 different push, a different number), so the DoD's "no number typed except the three" is kept in
 its meaning: the operator CHOOSES the distance from the screen's short list (24 / 48 / 72 in, the
 tile multiples a tape on a field naturally hits; 48 default) and the calibrator computes. Rejected:
@@ -264,6 +291,8 @@ own — the executor decides, in the log, with the reason).
 
 ### 4.2 `calibration::DrivetrainCalibrator` — the phases
 
+*(Amended at R3d Part 2F-1, 2026-09-24: one push, a ramped pulse, the spin's guards; `ScalePush` retired — see the note at T3. The table below is the Part 1 design, kept as written.)*
+
 Construction: `candidates` (span of `IMotor*`, every motor the registry found or, on the host, every
 fake), `ports` (parallel `std::int8_t`, positive), `IImu&`, `IClock&`, `CalibratorConfig`
 (§4.3). `start(HumanFacts{kind, cartridge, imuPort})` from `Idle`. `tick()` once per control tick
@@ -288,6 +317,8 @@ config's `commandTimeout` makes a missing tick a stop: if `clock.now()` jumps mo
 last tick, the calibrator commands 0 V and aborts. The stalled-pacer lesson of C2, applied here).
 
 ### 4.3 `CalibratorConfig` — every number a field, every field a register entry
+
+*(Amended at R3d Part 2F-1: `pulseVolts`/`spinVolts` became the ramps `pulseLevels`/`spinLevels`, and seven fields were added — HA-136 lists them; see the note at T3.)*
 
 `movedThreshold` (0.0873 rad — carried from MOTOR WATCH, invented there), `restFloor` (0.05 rad/s),
 `restSettleTime` (0.5 s), `pulseVolts` (3 V), `pulseTime` (0.4 s), `pulseYawFloor` (2°),

@@ -327,18 +327,24 @@ not silently break them. This table is the spine of the no-staleness promise.
 > one line shorter, and none of it has run on a robot** — the provider has been tested only against
 > the host's stand-in for the PROS headers.
 >
-> **Now (2026-09-24): G1 Part 2b — "shulib Teleop" rebuilt on the library — then Part 2c,
-> `main.cpp` as a dispatcher.** Each waits for the team lead's go. **The bench session pre-empts
-> everything** the moment the brain enumerates: it can close R3d; it cannot close R3b or M1,
-> because no uploaded program commands a `moveTo` yet.
+> **Now (2026-09-24): the Calibrate fix's second half — "shulib Calibrate" redrawn from the new
+> screen model, and its runbook rewritten — then the bench session resumes; then G1 Part 2b ("shulib
+> Teleop" on the library) and Part 2c (`main.cpp` as a dispatcher).** Each waits for the team lead's
+> go. The bench session can close R3d; it cannot close R3b or M1, because no uploaded program
+> commands a `moveTo` yet.
 >
 > **The bench session BEGAN 2026-09-24** — the brain is on USB again. The device census and motor
 > watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
 > 3 V for 0.4 s turned the robot 0.17°, under its invented 2° floor), and its screen proved hard to
 > follow. No calibration record exists yet, so nothing built on the library can boot on the robot. A
-> fix to Calibrate is briefed ahead of Part 2b: one 48 in push, a motor pulse that ramps up and names
-> a slipping motor instead of stopping, two spin safety guards, and a readable screen. (Of five
-> Calibrate starts that night, one cleared the 2° floor on seven motors before stopping.)
+> fix to Calibrate came ahead of Part 2b, in two halves. **The library half LANDED 2026-09-24,
+> host-only:** the calibrator now takes one 48 in push, its side pulse ramps 3 → 6 → 9 V and names a
+> slipping motor (leaving it out) instead of stopping, the spin has two safety guards (the wrong way;
+> cannot start), every stop carries a code and the port, and the screen's logic is a pure, host-tested
+> model — proven on a host plant that can now fail the way the robot did (an idle side that coasts, a
+> motor that slips), and on nothing else. **The program half — "shulib Calibrate" drawn from that
+> model, and its runbook — waits for the team lead's go.** (Of five Calibrate starts that night, one
+> cleared the 2° floor on seven motors before stopping.)
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD

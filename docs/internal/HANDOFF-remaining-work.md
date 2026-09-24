@@ -467,6 +467,10 @@ you mean so its in-progress edits cannot reach a package.
   holds only Drive) → Bench Tests census + MOTOR WATCH on the rebuilt drivetrain → shulib Calibrate
   wheels-up (expect the yaw-floor refusal — that is correct) → Calibrate on the floor (push
   front-first, answer the prompts, tape push, spin — 3 m clear, a second person at the battery) →
+  *(Superseded in part by R3d Part 2F-1, 2026-09-24: the calibrator now takes ONE 48 in push — no
+  separate tape push, no distance question — and a wheels-up run now refuses at the first port as
+  "rolled / not on the floor" after a 3 → 6 → 9 V ramp, not at the yaw floor. Station G is rewritten
+  from the new program in 2F-2; follow it, not this line.)* →
   `SAVED` read back → a second Calibrate run for reproduction → shulib Teleop from the record, wheels
   up then floor. **What it closes:** R3d (on the reproduction run). **What it cannot close:** R3b and
   M1 — no uploaded program commands a `moveTo`, so the "few inches of `moveTo`" this file used to list
