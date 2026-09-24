@@ -17,10 +17,11 @@ roadmap is right.
 
 The headline limitation, stated as many times as it takes:
 
-- **No shulib code has ever closed a control loop or followed a path on a robot.** One bench
-  session (2026-08-13) commanded real motors open-loop and read real sensors through the
-  adapters — that validated the *platform layer*, nothing more: no loop closed, no wheel
-  turned under motion control. Everything above the platform layer is verified host-side
+- **No shulib code has ever closed a control loop or followed a path on a robot.** Bench
+  sessions (2026-08-13 onward) commanded real motors open-loop and read real sensors through
+  the adapters, and on 2026-09-17 a driver drove robot two with the sticks through them
+  (open-loop, the team lead's report, no log) — that validated the *platform layer*, nothing
+  more: no loop closed, no wheel turned under motion control. Everything above the platform layer is verified host-side
   only, against a simulated plant and deliberately hostile simulated sensors
   ([Chapter 7](07-getting-set-up.md) explains the approach;
   the [README](../../README.md#what-it-is-not-yet) states it third-heading-from-the-top).
@@ -40,12 +41,15 @@ The headline limitation, stated as many times as it takes:
   implements **our beliefs about PROS** and cannot prove the beliefs: if we are wrong about a
   unit or a sign, the stand-in and the adapter are wrong together and every test stays green
   ([FAQ](../faq.md) has the full version). Every such belief is a labelled register entry
-  (HA-94 onward). *Second*, what the one bench session (2026-08-13) actually settled is
-  narrow: seven unit-scale beliefs on the drivetrain set, measured on one robot, once. Every
-  heading and sign convention remains open, the wiring's port map is still a labelled guess
-  that fails loudly on a robot that doesn't match it — and **the mechanism-sensor adapters
-  have never touched a physical device at all**: their beliefs (HA-113 onward, including two
-  the vendored SDK sources do not state) wait on the extended bench checklist. *Third*, the
+  (HA-94 onward). *Second*, what the bench sessions have actually settled is narrow: seven
+  unit-scale beliefs on the drivetrain set (2026-08-13, one robot, once), the IMU's heading
+  direction (HA-02, confirmed 2026-08-19) and part of the SD card's behaviour (HA-122,
+  2026-08-18). The other heading and sign conventions remain open; only the X-drive build's
+  port map is a labelled guess (the tank builds use port tables measured on those robots) —
+  and **of the mechanism-sensor adapters only the SD-card writer has touched a physical
+  device**: distance, optical and the digital lines have not, and their beliefs (HA-113
+  onward, including two the vendored SDK sources do not state) wait on the extended bench
+  checklist. *Third*, the
   headline unchanged: a bench reading sensors is not a robot driving. Until a loop closes on
   hardware, "the adapters work" means "the adapters agree with our model of PROS, and that
   model has been spot-checked once."
@@ -226,8 +230,9 @@ One related piece stays deliberately open: **`then()`** and the mechanism seam a
 and this project freezes surfaces after a second consumer has stressed them, not before.
 The [Freeze Register](../roadmap.md#freeze-register) remains the authority on what is and
 isn't stable (the coordinate conventions, units, accuracy targets, hardware interfaces,
-kinematics contract, and both API tiers *are* locked; the mechanism seam is listed there as
-explicitly not-yet-frozen).
+kinematics contract, both API tiers and — since 2026-09-18 — the route data schema and
+command-id vocabulary *are* locked; the mechanism seam is listed there as explicitly
+not-yet-frozen).
 
 ## A run-scoped deadline now exists — and "guaranteed" is a narrower word than it sounds
 
@@ -286,8 +291,11 @@ The project's [accessibility model](../shulib-v2-master-plan.md#17-accessibility
 promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
 ([Chapter 9](09-the-recipe-api.md)) and the full C++ API — but the easier tiers don't:
 
-- **No zero-code authoring** (Tiers 0–1: build the robot and drag waypoints in the VexBuilder
-  app, run the saved file with no C++). The `.vexbot` file formats and the path-runner are
+- **No zero-code authoring yet** (Tiers 0–1: build the robot and drag waypoints in the
+  VexBuilder app, run the saved file with no C++). Half of it exists: a routine can be DATA — the
+  path runner, the command-id registry and the manifest a path editor reads shipped on
+  2026-09-18, with the route schema frozen — but nothing loads a route or a robot from a
+  `.vexbot` file yet, so today a route is still typed in C++. The file reader is the rest of
   roadmap milestone M5, coordinated with the separate VexBuilder project.
 - **No ready-made scoring verbs for recipes to command** — the mechanism layer exists (see
   above) and `then()` runs its operations, but the mechanisms themselves are structs your
@@ -298,10 +306,11 @@ promises four tiers of use. Today Tiers 2 and 3 exist — the recipe layer
   are build-checked, and *are* now published to the team site. But the site publishes from the
   release branch, not the working one, so it shows the last release rather than the current
   tree — deliberately, because that is what keeps the development log off the public site. Read
-  the in-repo copies if you need today's truth. HTTPS is also still pending a certificate.
+  the in-repo copies if you need today's truth.
   *(This bullet used to say no cookbook existed at all; that was written before D3 shipped
   it and went stale — corrected at F1. It then said nothing was hosted anywhere, which went
-  stale when the site went up — corrected here.)*
+  stale when the site went up — corrected then. It said "HTTPS is still pending a
+  certificate" until 2026-09-24; the certificate was issued and HTTPS enforced on 2026-08-14.)*
 
 ## Motion-quality boundaries
 
@@ -348,9 +357,10 @@ fault fires, then writes the triage block first and the preceding ticks after it
 because the fault may be the brownout that cuts the write short), and a decoder that ships in the
 same chunk and is held to the format by byte-exact goldens rather than by agreeing with the
 encoder. The controller-screen fault display is built too. **Both are host-proven only:** the
-blackbox writes through a device seam whose V5 adapter exists but has never touched a physical SD
-card, so "it records without a laptop" is a property of the design and the host tests, not
-something any robot has yet demonstrated.
+V5 card adapter under the blackbox HAS written a file to a real SD card at the bench (2026-08-18;
+the file was read back on a laptop), but the blackbox itself has never recorded a run on a robot, so "it records without
+a laptop" is a property of the design and the host tests, not something any robot has yet
+demonstrated.
 
 Still genuinely not built, per the [diagnostics plan](../diagnostics-plan.md): the live telemetry
 wire to VexBuilder, record/replay-as-regression-test, and the on-brain status screen (the

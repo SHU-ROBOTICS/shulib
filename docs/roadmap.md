@@ -1022,8 +1022,11 @@ adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation
   over-budget peak-onto-limit, uniform ratio/direction preservation, all-zero no-op, non-positive budget
   rejected; wired into both drives' `desaturate()` and tested via the `MatrixKinematics` delegation path.
   Mutation-checked (inverting the scale factor goes red).*
-- [ ] *(M2 carry-forward)* generalize `MatrixKinematics::forward()` to the full `(AᵀA)⁻¹Aᵀ` pseudo-inverse
+- [x] *(M2 carry-forward)* generalize `MatrixKinematics::forward()` to the full `(AᵀA)⁻¹Aᵀ` pseudo-inverse
   for non-orthogonal drives (H-drive's off-center strafe wheel). Relaxes a precondition only — F5-safe.
+  *Done at chunk C3 (2026-08-06): `forward()` is the full least-squares pseudo-inverse, `AᵀA` inverted
+  once in closed form at construction (`kinematics/matrix_kinematics.hpp`). This box stayed `[ ]`
+  until 2026-09-24 although the work was recorded done under M2.*
 
 **Definition of Done:** a trivial motion's kinematics produce identical numbers in a host gtest and on
 the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-frozen; the `hal/pros` adapters landed at R1a/R1b, and the on-V5 kinematics number-match awaits R3 — not a toolchain)*.
@@ -1754,9 +1757,12 @@ tuned on the brain mid-session. **Freezes:** F9.
 **Definition of Done:** a brand-new member follows the 10-minute guide to a running auton without
 help; the API reference is live on the website.
 
-*Status of that DoD, stated plainly: both clauses are OPEN.* The 10-minute guide starts in
+*Status of that DoD, stated plainly: the website clause is met; the guide clause is OPEN.* The 10-minute guide starts in
 VexBuilder and cannot honestly be written until G4 builds it. The API reference exists, is
-generated and gated, and is **not live anywhere** — there is no site. And the human clause is
+generated and gated, and **is live** at docs.shurobotics.com since 2026-08-14 (published from
+`main`, so it shows the last release, not the working branch) — that clause is met. *(This sentence
+said "not live anywhere — there is no site" until 2026-09-24, contradicting the checkbox above it.)*
+The human clause is
 still human: C8 recorded that no genuinely-new reader had used the guide, and D3 cannot close
 that either — nobody read the cookbook cold. It needs a real person, and it now has a named
 owner rather than a hope (see "you are here").
@@ -1860,7 +1866,9 @@ must add for the integration to close. They are tracked here so the dependency i
 ### What VexBuilder must add
 
 1. **Add `project.paths[]`** to the `.vexbot` schema (routines now live in the project file, not the
-   retired `.shupaths`). → unblocks F8, M5.
+   retired `.shupaths`). → M5. *(It said "unblocks F8": F8 was locked on 2026-09-18 without it —
+   shulib froze the `paths[]` schema itself, in [`vexbuilder-integration.md`](vexbuilder-integration.md)
+   §4.1–4.3, for VexBuilder to adopt.)*
 2. **Add explicit drivetrain fields** (`kind` / `trackWidth` / `wheelDiameter`) to the robot config so
    shulib doesn't have to *infer* them from part geometry (brittle). → firms up F7, M5.
 3. **Expose the agent socket for `SHUL/2`** (already discoverable via `server.json`) and, when the
@@ -1868,7 +1876,8 @@ must add for the integration to close. They are tracked here so the dependency i
    **(3a — the socket itself, taken by the programming chair. Independent of everything else and
    startable now; H1 defines the wire unilaterally and needs no sim to be built or tested.)**
 4. **Consume the shulib command-id manifest** to populate VexBuilder's command picker, so authored
-   `paths[]` only reference ids shulib actually handles. → unblocks F8, M5.
+   `paths[]` only reference ids shulib actually handles. → M5. *(F8 is locked; the manifest this
+   consumes exists — row B below.)*
 5. **Add the `project.robotProfile` block** shulib specifies (drivetrain / odometry / sensors /
    mechanisms / corrections). → F7. *Added 2026-08-17: it was implied by #2 and never stated as its
    own ask, so it had no owner.*
@@ -1877,7 +1886,8 @@ must add for the integration to close. They are tracked here so the dependency i
    arrays because the UI was never built** — and that is the *source data* for `robotProfile`. Asks #2
    and #5 cannot be satisfied without it. → gates F7, M5.
 7. **Emit a per-motor `gearRatio`** (`{motorTeeth, wheelTeeth}`) in the drivetrain block. *Added
-   2026-08-17.* shulib currently has **no gear-ratio concept anywhere** — a known defect — and at
+   2026-08-17.* shulib had **no gear-ratio concept anywhere** when this was asked; since R3b
+   (2026-09-14) `hal::DriveGeometry` carries a per-side motor-to-wheel ratio — and at
    least one team robot is believed to be geared **differently on the left and right sides**, so this
    must be per-motor and must not be hoisted to a single drivetrain-level field.
 
@@ -1885,7 +1895,7 @@ must add for the integration to close. They are tracked here so the dependency i
 
 | # | shulib must ship | Unblocks | Chunk | Gated on VexBuilder? |
 |---|---|---|---|---|
-| A | `IRobotConfig` / `IRouteSource` / `RobotBuilder` | everything downstream | **G1** | **no — startable today** |
+| A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); Part 2 (the PROS device provider) is next |
 | B | ✅ `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) — **DELIVERED 2026-09-18**; the format is [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.3 | **G2** | no |
 | C | `.vexbot` ingestion + `robot_config.hpp` codegen + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
 | D | The `.shupaths` one-way importer | migrating existing routines | **G4** | yes — G3 |

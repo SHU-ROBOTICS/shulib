@@ -17,7 +17,8 @@ reasoning still holds; it is history, not status.
 Two things have changed since it was written, and both matter to anyone editing the reference:
 
 - **DOCS2 pointed the generator at the whole tree.** `docs/api/` is a page per shipped header —
-  125 of them plus the A–Z index and the section README (127 files), covering 1,775 public entities — and the target list is a GLOB,
+  125 of them plus the A–Z index and the section README (127 files), covering 1,775 public entities, at DOCS2;
+  145 pages (147 files) and 2,307 entities by 2026-09-24 — and the target list is a GLOB,
   not a list. See the regeneration table at the bottom of this file.
 - **The site nav is generated too**, into `mkdocs.yml` between markers, and byte-checked by
   `check-fresh`. A page absent from the nav was measured to publish *unreachable* with exit

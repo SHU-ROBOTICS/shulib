@@ -205,6 +205,11 @@ wrong one — the handoff audit caught the three documents giving three differen
 4. **Prose review is a logged step, not a hope.** For every changed source file, grep `docs/` and
    `README.md` for its name and its concepts, read the hits, fix what is stale. Record what was
    checked in the PROGRESS log or the commit body. This is the part the gates cannot see.
+   **Run the grep and read its hits BEFORE writing that it was done** — and the same for any other
+   claim a commit body makes about the tree. (Added 2026-09-24: two commit bodies that day claimed a
+   review or an edit that had not happened — `e2eab5d` said the guide described a rule it does not
+   mention, `10a8445` said this rule already carried this sentence. Both were caught by re-checking
+   after the commit, and corrected in the next one.)
 5. **Status pointers are checked before every commit.** Re-read `roadmap.md`'s "You are here" and
    `build-order.md`'s `**Next:**` block (the briefing tool derives its pointer from the FIRST bold
    `Next:` in that file) and confirm both are true for the tree AFTER the commit. A chunk without its
