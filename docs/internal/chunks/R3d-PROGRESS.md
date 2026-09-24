@@ -1376,3 +1376,95 @@ comment at `bench_r3a.cpp:112-122` already says the same thing from its side.
 Re-verified after that edit and after the `docs/api/` regeneration it forced: suite **1267 /
 1,624,433 green**; doc gates green; ARM `TU includes 168 headers` clean; both CI guards and the
 removability grep empty; `src_build_gate.py check` **PASS (all 6 builds link)**.
+
+## Part 3 — THE BENCH SESSION (worksheet Station G), coordinator's live log — started 2026-09-24 01:36:21 EDT
+
+> Written by the coordinator in real time, from what the brain printed and what the team lead
+> reported. Every hardware claim below cites its log file or says "team lead's report".
+> Packages: built 2026-09-24 from the COMMITTED tree `018424c` in a clean detached worktree
+> (`.claude/worktrees/hw-018424c`) — the G1 Part 2a executor was working in the main tree at the
+> time and cannot have reached them. Beacons and build stamps checked per package:
+> Bench Tests `shulib-robot-variant=tank`, shulib Drive `tank-drive`, shulib Teleop
+> `tank-library`, shulib Calibrate `tank-calibrate`; all `v0.1.1-313-g018424c` (not dirty).
+
+- **01:36:21** — **The brain ENUMERATED on this laptop's USB** — the first time since
+  2026-09-18 (the team lead brought a new data cable). `pros lsusb`:
+  `/dev/ttyACM0 - VEX Robotics V5 Brain - 1CA1A500 - VEX Robotics Communications Port` (system),
+  `/dev/ttyACM1 - VEX Robotics V5 Brain - 1CA1A500 - VEX Robotics User Port` (user).
+- **01:37:09** — **G.1: all four programs UPLOADED** with `pros upload --slot N --name … --after none`
+  (never auto-run): slot 3 "Bench Tests", slot 1 "shulib Drive", slot 2 "shulib Teleop", slot 4
+  "shulib Calibrate" — each `Finished uploading … to V5`, exit 0; the cold library package was
+  already on the brain. G.1.1's on-screen stamp check is the team lead's to read at each start.
+- **01:39:55 → ~01:48** — **G.2: Bench Tests (slot 3) run from the brain's screen**; user port captured
+  raw to `docs/internal/evidence/r3d-session-2026-09-24-census.log` (8,115 bytes; read with
+  `strings`). What the brain printed, verbatim in the log:
+  - **SD CARD PROBE (HA-122):** `usd_is_installed() : 1`, `fopen(/usd/probe.txt,wb) : OK`,
+    `fwrite/fflush : 17 bytes, fflush=0`, `CARD IS FULLY WORKING`.
+  - **DEVICE CENSUS:** port 1 RADIO; port 2 IMU; MOTOR on **11 12 13 14 15** (left) and on **18 19
+    20** (right) — `motors found: 8 (chassis table expects 10)`. **Ports 16 and 17 are EMPTY.**
+  - **MOTOR WATCH, one front-first push:** L11 −373 DOWN · L12 +377 UP · L13 −290 DOWN ·
+    **L14 0 "did not move"** · L15 −380 DOWN · R18 +371 UP · R19 −371 DOWN · R20 +372 UP;
+    `PARTIAL: 7 of 10 table ports moved; silent: 14 17 16`. Every sign that moved AGREES with the
+    typed table's (−11 +12 −13 −15 | +20 −19 +18). **Port 18 travelled the same as its side-mates
+    (+371 vs 372/371)** — the ~20 % short travel of 2026-09-10 (HA-130) did not appear on this push.
+    **Port 13 travelled ~23 % less than its side-mates (−290 vs −373/−377/−380).**
+  - Findings for the team lead before any calibration: 16 and 17 absent; 14 answers the registry
+    but did not turn under a push (not meshed? a slipping gear? a dead encoder?); 13 short.
+- **~01:48** — **the brain dropped off USB** (`pros lsusb`: no ports) — the capture ended with it.
+- **G.1.1 confirmed from the log:** the running Bench Tests printed `build hash : v0.1.1-313-g018424c`
+  and `BUILD STAMP: Sep 24 2026 01:34:38` — the package uploaded at G.1. PROS 4.2.2, VEXos
+  `V1.1.5 (b18)`. The brain printed its table header as `LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19
+  +18 -17 +16 ... MEASURED` — the typed table's claim, which this census contradicts (16, 17 absent).
+- **back on USB** after the drop (same brain `1CA1A500`, ttyACM0/1); a second capture started.
+- **01:52 → 01:58** — **Bench Tests again, after the team lead re-seated 16 and 17**; capture
+  `docs/internal/evidence/r3d-session-2026-09-24-bench2.log`. Three census + MOTOR WATCH rounds:
+  - census 1 and 2: **all TEN motors** (11–20), IMU 2, radio 1. **Census 3: port 19 ABSENT**
+    (`motors found: 9`). Port 19 moved normally in the 01:4x push (−371) and is silent (0 deg) in
+    every push here — **port 19 is dropping off the bus: a connection fault (the cable, a cable
+    end, or brain port 19), not only a stuck encoder.** Team lead: "i cant tell if the port is bad".
+  - pushes: L 382/−384/386/−389/390 · R −388/390/**−303**/0/−394; then 328/−328/328/−331/329 ·
+    −328/327/**−248**/0/−329; then 115/−115/114/−114/117 · −116/117/**−78**/—/−117. **Port 14 now
+    moves** with its side. **Port 18 travels 22–33 % short in all three** (HA-130's pattern, which
+    the 01:4x push did not show; port 13 was the short one then).
+  - **Every sign here is the INVERSE of the 01:4x push** (L11 UP here, DOWN there) and consistent
+    across all ten ports with the table's signs under a BACK-first push — either these pushes went
+    back-first or the rebuild moved the front. To be answered by the team lead; Calibrate asks it.
+  - Checked in the source before advising: the calibrator never drives a candidate that did not
+    move in its push (`drivetrain_calibrator.hpp`:25-28), and the boot check treats a motor on a
+    port the record does not name as a WARNING, never a refusal (`boot_check.hpp`:28).
+- **02:03** — **G.3 (the wheels-up Calibrate run) SKIPPED — the team lead's decision** ("I don't want
+  to turn the wheels by hand because it gets confusing"). What is given up, stated: the first
+  powered calibrator run with the robot unable to travel, and the evidence that side-assignment
+  REFUSES when nothing turns (that refusal stays host-proven only). Mitigations for G.4 on the
+  floor: its first powered action is 0.4 s single-motor pulses; ABORT (0 V + coast) is always on
+  screen; 3 m clear and a second person at the battery per G.0.2. Recommended to the team lead:
+  UNPLUG port 19 for the session so the drivetrain is the same 9-motor robot on every run.
+- **02:51** — **Sensors mounted (team lead's report):** distance sensor facing RIGHT on **port 5**,
+  distance sensor facing LEFT on **port 4**, **AI Vision** at the FRONT on **port 3**. Offsets from
+  the turning centre not yet measured. To be confirmed by the next census (capture `session-3`).
+- **02:53** — Team lead: all three sensors are **level** and "pretty much in the center" (read as:
+  centred front-to-back for the side sensors, centred left-right for the front camera). The
+  side sensors' lateral offsets and the camera's forward offset and height are still UNMEASURED
+  — owed before L6 (wall reset) and L3 (vision) use them.
+- **~03:00 → 02:59** — **shulib Calibrate (slot 4), three starts** — capture `session-3` (to be saved as
+  evidence at session end). Build stamp `Sep 24 2026 01:34:54`, hash `v0.1.1-313-g018424c` (the
+  uploaded package). Its STAGE 0 census, from the registry: RADIO 1 · IMU 2 · **VISION 3 ·
+  DISTANCE 4 · DISTANCE 5** · MOTOR 11–18 and 20 — **9 motors, port 19 absent** (unplugged, as
+  recommended); the sensors the team lead mounted are CONFIRMED on those ports.
+  IMU port DISCOVERED from the registry (2, matching the table). Cartridge stated BLUE 600 rpm.
+  - **Runs 1 and 2:** `PUSH THE WHOLE ROBOT ... | 0 of 9 motor(s) have moved`, then DONE touched
+    → `STOPPED: the push moved 0 port(s); a drivetrain needs at least 2`. All motors 0 V + coast;
+    nothing written. (The count only takes a push that happens BEFORE DONE.)
+  - **Run 3:** DONE → `ANSWER: FRONT 1st` → `STAND CLEAR -- pulsing one motor at a time. | port 11:
+    settling, yaw +0.8 deg` → **`STOPPED: port 11: the robot turned only 0.17 deg (floor 2.00 deg)
+    while it was driven -- is the robot on the FLOOR, not up on blocks?`** Nothing written.
+    Whether the robot was on the floor is being asked. **If it was:** one motor at 3.0 V for 0.4 s,
+    back-driving four coasting side-mates through a coupled train, turned the robot 0.17° — the
+    invented pulse numbers (HA-136: `pulseVolts` 3.0 V, `pulseTime` 0.4 s, `pulseYawFloor` 2.0°)
+    would be too weak for a five-motor coupled side, and side assignment cannot pass on this robot
+    as built. **If it was on blocks:** this is the G.3 refusal, the program working.
+  - **The team lead's report on the screen, verbatim:** "THE UI ON THE ROBOT IS TERRIBLE WHILE
+    RUNNING CALIBRATE I CANT READ IT AND THE BUTTONS DONT WORK I DONT KNOW AFTER I PUSH IT WHAT IM
+    SUPPOSED TO DO". The log shows every touch registering as an ANSWER (DONE, FRONT 1st), so the
+    touches worked; what failed is that the screen did not make the next action clear or legible.
+    A usability defect in `src/calibrate_program.cpp`'s panel — owed a fix.

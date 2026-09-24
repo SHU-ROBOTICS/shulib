@@ -332,6 +332,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > everything** the moment the brain enumerates: it can close R3d; it cannot close R3b or M1,
 > because no uploaded program commands a `moveTo` yet.
 >
+> **The bench session BEGAN 2026-09-24** — the brain is on USB again. The device census and motor
+> watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
+> 3 V for 0.4 s turned the robot 0.17°, under its invented 2° floor), and its screen proved hard to
+> follow. No calibration record exists yet, so nothing built on the library can boot on the robot. A
+> fix to Calibrate is proposed ahead of Part 2b.
+>
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
 > clause is blocked on **library code, not hardware**. **M1's badge therefore slips from R3 to
