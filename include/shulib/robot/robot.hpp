@@ -10,10 +10,13 @@
 // from an hal::IDeviceProvider, which is the one object that knows what a port is on this
 // target. Two lines at the composition root:
 //
-//     ProsDeviceProvider devices;                 // the adapters, made on demand  (Part 2)
+//     hal::pros::ProsDeviceProvider devices;      // the adapters, made on demand, by port
 //     robot::Robot robot{kRobotConfig, devices};  // the whole graph, wired
 //
-// and `robot.chassis()` is the same facade a hand-wired graph produces.
+// and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the
+// first line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the
+// PROS shim); no program in src/ uses either line yet — "shulib Teleop" moves onto them in
+// Part 2b.
 //
 // ── IT ADDS A WAY TO WIRE; IT NEVER CHANGES THE PHYSICS (ruling B4) ─────────────────
 // The graph below is the SAME objects, in the SAME order, with the SAME arguments as
@@ -50,10 +53,26 @@
 // unconditionally in Part 1, because no camera adapter exists yet (R2 owns it) and a field
 // for hardware the library cannot open would be a promise rather than a description.
 //
+// ── ABSENT DRIVE PORTS: the boot check decides, the builder obeys (G1 Part 2a, M1) ──
+// A tank drive port the boot check found DEAD (calibration/boot_check.hpp — the registry is read
+// BEFORE any adapter exists, and the dead-port policy, teleop::evaluateDegradation, is applied
+// there, once) is handed to the builder in `BuildOptions::absentDrivePorts`. Such a port is
+// NEVER requested from the provider and becomes a `nullptr` slot in its side's MotorGroup — the
+// group's ABSENT member (hal/motor_group.hpp), which it skips when commanding and excludes from
+// every read. The builder applies NO policy of its own: re-running the policy over provider
+// refusals was the rejected alternative, because it would report a dead port twice, silently
+// tolerate a motor that ANSWERS the registry but rejects its configuration, and refuse every
+// robot with fewer than three motors a side. So the builder refuses only what is structurally
+// wrong with the list — a port that is not one of the description's drive ports, a list on a
+// drivetrain that is not a tank, a side left with no present member — and everything the
+// provider will not make still refuses the build, as before. With no absent ports (the
+// default) every byte of the graph is what it was: Part 1's bit-identity cases are the pin.
+//
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
-// No config has ever been used on a physical robot; src/main.cpp is unchanged and still
-// wires both of its graphs by hand — collapsing it is Part 2.
+// No config has ever been used on a physical robot. src/main.cpp is unchanged and still wires
+// both of its graphs by hand: the on-robot provider exists (Part 2a) but no program uses it
+// yet — "shulib Teleop" moves onto it in Part 2b, and main.cpp becomes a dispatcher in 2c.
 //
 // PROS-free, sim-free, allocation-free in the control path (the graph is one in-place
 // aggregate, sized by hal::kMaxSmartPorts — no unique_ptr anywhere, as with every other
@@ -107,8 +126,31 @@ struct BuildVerdict {
     char why[192]{};
 };
 
+/// What the builder is told about THIS boot that the config cannot say. Today one thing: which
+/// tank drive ports the boot check found dead. Default-constructed, it changes nothing — every
+/// Part 1 caller's graph is byte-for-byte what it was.
+struct BuildOptions {
+    /// Tank drive ports the boot check reported MISSING, as port MAGNITUDES 1..21 — exactly the
+    /// numbers `calibration::BootVerdict::isMissing()` answers for. Each becomes an ABSENT
+    /// (`nullptr`) member of its side's MotorGroup and is never requested from the provider. A
+    /// repeated entry is harmless (membership, not a count). BORROWED: read during `validate()`
+    /// and during `Robot`'s construction only, never kept — the Robot recovers what it needs
+    /// from its own groups.
+    std::span<const int> absentDrivePorts = {};
+
+    /// True when physical port `port` is in `absentDrivePorts`.
+    [[nodiscard]] constexpr bool isAbsent(int port) const noexcept {
+        for (const int p : absentDrivePorts) {
+            if (p == port) {
+                return true;
+            }
+        }
+        return false;
+    }
+};
+
 /// Can `cfg` be built with `devices`? PURE, TOTAL, and the precondition `Robot`'s constructor
-/// runs (ruling B3). Three passes, in this order:
+/// runs (ruling B3). Four passes, in this order:
 ///
 ///  1. **The config's own rules** — `config::RobotConfig::valid()`, whose message (including a
 ///     tank description's own refusal, verbatim) surfaces unchanged.
@@ -119,16 +161,23 @@ struct BuildVerdict {
 ///     hot path — so it is made HERE too, before the deps exist, where it can name the config
 ///     field instead of saying "3 != 4". (It lives in exactly these two places and nowhere else;
 ///     `RobotConfig::valid()` deliberately does not duplicate it — see its documentation.)
-///  3. **Every device obtainable** — each drive port, the IMU, the GPS if one is configured, and
-///     each tracking-wheel encoder is requested from the provider. The first `nullptr` becomes
-///     the verdict, carrying the provider's own `lastRefusal()` so the port that is empty or dead
-///     is named by the layer that actually looked.
+///  3. **The absent ports** (`options.absentDrivePorts`, G1 Part 2a) — refused, naming the port,
+///     when the list is given for a drivetrain that is not a tank (only a tank side is a group
+///     that can carry a hole), when a port in it is not one of the description's drive ports,
+///     or when it would leave a side with NO present member. Nothing else: the dead-port
+///     POLICY was applied by the boot check that produced the list (header, ruling M1).
+///  4. **Every device obtainable** — each drive port that is not absent, the IMU, the GPS if one
+///     is configured, and each tracking-wheel encoder is requested from the provider. The first
+///     `nullptr` becomes the verdict, carrying the provider's own `lastRefusal()` so the port
+///     that is empty or dead is named by the layer that actually looked. An absent port is
+///     never asked for, so a dead port is named once — by the boot check — and never twice.
 ///
 /// It is not `const` on the provider because obtaining a device may construct one; it is
 /// idempotent, so calling it and then constructing a `Robot` asks for the same objects twice and
 /// gets the same addresses both times.
 [[nodiscard]] inline BuildVerdict validate(const config::RobotConfig& cfg,
-                                           hal::IDeviceProvider& devices) {
+                                           hal::IDeviceProvider& devices,
+                                           const BuildOptions& options = {}) {
     BuildVerdict verdict;
     if (!cfg.valid(verdict.why, sizeof verdict.why)) {
         return verdict;
@@ -142,6 +191,53 @@ struct BuildVerdict {
                       config::drivetrainKindWord(cfg.drivetrain.kind), wheels, motors);
         return verdict;
     }
+    if (!options.absentDrivePorts.empty()) {
+        if (cfg.drivetrain.kind != config::DrivetrainKind::Tank) {
+            std::snprintf(verdict.why, sizeof verdict.why,
+                          "absent drive port %d was given for a %s drivetrain -- only a tank "
+                          "side can run with an absent member",
+                          options.absentDrivePorts.front(),
+                          config::drivetrainKindWord(cfg.drivetrain.kind));
+            return verdict;
+        }
+        const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+        for (const int p : options.absentDrivePorts) {
+            if (d.sideOf(p) == 0) {  // sideOf matches |stored port| == p, so -11 or 0 is no match
+                std::snprintf(verdict.why, sizeof verdict.why,
+                              "absent port %d is not one of this drivetrain's drive ports "
+                              "(absent ports are port numbers 1..21 from the boot check)",
+                              p);
+                return verdict;
+            }
+        }
+        const hal::DriveSideDescription* sides[2] = {&d.left, &d.right};
+        const char* names[2] = {"LEFT", "RIGHT"};
+        for (std::size_t s = 0; s < 2; ++s) {
+            const hal::DriveSideDescription& side = *sides[s];
+            std::size_t present = 0;
+            char ports[72] = "";
+            std::size_t used = 0;
+            for (std::size_t i = 0; i < side.count; ++i) {
+                const int port = hal::DrivetrainDescription::portMagnitude(side.signedPorts[i]);
+                if (!options.isAbsent(port)) {
+                    ++present;
+                }
+                char one[8] = "";
+                std::snprintf(one, sizeof one, "%s%d", i == 0 ? "" : " ", port);
+                for (std::size_t k = 0; one[k] != '\0' && used + 1 < sizeof ports; ++k) {
+                    ports[used++] = one[k];
+                }
+                ports[used] = '\0';
+            }
+            if (present == 0) {
+                std::snprintf(verdict.why, sizeof verdict.why,
+                              "every %s drive port is absent (ports %s) -- a side needs at least "
+                              "one motor that answers",
+                              names[s], ports);
+                return verdict;
+            }
+        }
+    }
     const hal::MotorCartridge cartridge = cfg.drivetrain.cartridge();
     const auto askMotor = [&](std::int8_t signedPort, const char* role) noexcept -> bool {
         if (devices.motor(signedPort, cartridge) != nullptr) {
@@ -154,12 +250,22 @@ struct BuildVerdict {
     switch (cfg.drivetrain.kind) {
         case config::DrivetrainKind::Tank: {
             const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+            // An ABSENT port is skipped, never asked for: the boot check has already named it,
+            // and asking would name it a second time (ruling M2).
             for (std::size_t i = 0; i < d.left.count; ++i) {
+                if (options.isAbsent(hal::DrivetrainDescription::portMagnitude(
+                        d.left.signedPorts[i]))) {
+                    continue;
+                }
                 if (!askMotor(d.left.signedPorts[i], "a LEFT drive motor")) {
                     return verdict;
                 }
             }
             for (std::size_t i = 0; i < d.right.count; ++i) {
+                if (options.isAbsent(hal::DrivetrainDescription::portMagnitude(
+                        d.right.signedPorts[i]))) {
+                    continue;
+                }
                 if (!askMotor(d.right.signedPorts[i], "a RIGHT drive motor")) {
                     return verdict;
                 }
@@ -210,6 +316,97 @@ struct BuildVerdict {
     return verdict;
 }
 
+/// The §18.5 session header's PORT MAP for `cfg` — the text `diag::SessionInfo::portMap` carries
+/// — generated from the config, so it cannot drift from the wiring (the "G1 generates" promise in
+/// diag/session_info.hpp). `Robot::portMap()` is this over the Robot's own config; it is a free
+/// function as well so the formatting can be tested on a description no valid Robot could carry
+/// (a 21-port side).
+///
+/// The formats are the ones src/main.cpp prints by hand today, so moving a program onto the
+/// builder changes no session header:
+///
+///  * **tank** — `tankPortMapString()`'s: the description's source word, both sides' SIGNED
+///    ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then
+///    — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides'
+///    inches per radian and the track width. For a drive-encoder tank without a GPS (robot two)
+///    the text is byte-for-byte `tankPortMapString()`'s.
+///  * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the
+///    GPS when present, the IMU.
+///  * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.
+///
+/// Deliberately NOT marked for absent ports: this is what the robot is WIRED to be; a dead port
+/// is `describe()`'s and the panel's to announce. Bounded BY HAND — assembled in a generous local
+/// buffer and copied into `out` with an explicit bound, never a moving `snprintf` (the on-robot
+/// build gate treats `-Wformat-truncation` as an error) — so it truncates rather than
+/// overflowing and writes a NUL whenever `cap > 0`. Does not validate: it formats what is stored.
+inline void writePortMap(const config::RobotConfig& cfg, char* out, std::size_t cap) noexcept {
+    if (out == nullptr || cap == 0) {
+        return;
+    }
+    // One side's signed ports, "%+d" space-separated, capped by hand — tankPortMapString()'s loop.
+    const auto sidePorts = [](char* dst, std::size_t dstCap, const std::int8_t* ports,
+                              std::size_t count) noexcept {
+        std::size_t used = 0;
+        for (std::size_t i = 0; i < count; ++i) {
+            char one[8] = "";
+            std::snprintf(one, sizeof one, "%s%+d", i != 0 ? " " : "", static_cast<int>(ports[i]));
+            for (std::size_t k = 0; one[k] != '\0' && used + 1 < dstCap; ++k) {
+                dst[used++] = one[k];
+            }
+            dst[used] = '\0';
+        }
+    };
+    char gps[12] = "";
+    if (cfg.sensors.gps.present) {
+        std::snprintf(gps, sizeof gps, " GPS%u", static_cast<unsigned>(cfg.sensors.gps.port));
+    }
+    char pods[24] = "";
+    if (cfg.odometry.kind == config::OdometryKind::TrackingWheels) {
+        std::snprintf(pods, sizeof pods, " ROTF%d ROTL%d",
+                      static_cast<int>(cfg.odometry.wheels.forward.port),
+                      static_cast<int>(cfg.odometry.wheels.lateral.port));
+    }
+    char full[224] = "UNSET drivetrain";  // overwritten by every known kind below
+    switch (cfg.drivetrain.kind) {
+        case config::DrivetrainKind::Tank: {
+            const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
+            constexpr std::size_t kSideCap = 40;  // tankPortMapString()'s, so 2b's switch is exact
+            char l[kSideCap] = "";
+            char r[kSideCap] = "";
+            sidePorts(l, kSideCap, d.left.signedPorts, d.left.count);
+            sidePorts(r, kSideCap, d.right.signedPorts, d.right.count);
+            std::snprintf(full, sizeof full, "%s L %s R %s IMU%u%s%s ipr %.4f/%.4f TW%.2f",
+                          d.source == hal::DescriptionSource::RobotMeasured ? "MEASURED" : "TYPED",
+                          l, r, static_cast<unsigned>(d.imuPort), gps, pods,
+                          d.left.inchesPerRadian.value(), d.right.inchesPerRadian.value(),
+                          d.trackWidth.value());
+            break;
+        }
+        case config::DrivetrainKind::XDrive: {
+            const config::XDriveDrivetrain& x = cfg.drivetrain.xdrive;
+            std::snprintf(full, sizeof full, "FL%d BL%d BR%d FR%d%s%s IMU%u",
+                          static_cast<int>(x.ports[0]), static_cast<int>(x.ports[1]),
+                          static_cast<int>(x.ports[2]), static_cast<int>(x.ports[3]), pods, gps,
+                          static_cast<unsigned>(x.imuPort));
+            break;
+        }
+        case config::DrivetrainKind::HDrive: {
+            const config::HDriveDrivetrain& hcfg = cfg.drivetrain.hdrive;
+            std::snprintf(full, sizeof full, "L%d R%d S%d%s%s IMU%u",
+                          static_cast<int>(hcfg.ports[0]), static_cast<int>(hcfg.ports[1]),
+                          static_cast<int>(hcfg.ports[2]), pods, gps,
+                          static_cast<unsigned>(hcfg.imuPort));
+            break;
+        }
+    }
+    // The ONE bound: copy by hand, stop one short of `cap`, always terminate.
+    std::size_t n = 0;
+    for (; full[n] != '\0' && n + 1 < cap; ++n) {
+        out[n] = full[n];
+    }
+    out[n] = '\0';
+}
+
 /// A whole robot: the PROS-free object graph a `config::RobotConfig` describes, owned, with its
 /// devices borrowed from an `hal::IDeviceProvider`.
 ///
@@ -222,18 +419,23 @@ struct BuildVerdict {
 /// half of it pointing at the wrong place. Construct it where it will live.
 class Robot {
 public:
-    /// Build the whole graph. PRECONDITION: `validate(cfg, devices)` passes — and this runs it,
-    /// so a config that cannot be built throws `PreconditionError` carrying the verdict's own
-    /// sentence, before any member exists. `cfg` is COPIED (a boot sequence that decodes a
-    /// record into a local and hands out a reference to it is the dangling-reference bug this
-    /// copy makes impossible); `devices` is borrowed and must outlive the Robot.
-    Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices)
-        : cfg_{prechecked(cfg, devices)},
+    /// Build the whole graph. PRECONDITION: `validate(cfg, devices, options)` passes — and this
+    /// runs it, with the SAME options, so a config that cannot be built throws
+    /// `PreconditionError` carrying the verdict's own sentence, before any member exists. `cfg`
+    /// is COPIED (a boot sequence that decodes a record into a local and hands out a reference to
+    /// it is the dangling-reference bug this copy makes impossible); `devices` is borrowed and
+    /// must outlive the Robot; `options` is read during construction only (its absent ports
+    /// become `nullptr` group members and are never requested — G1 Part 2a, ruling M1), so its
+    /// span may die as soon as the constructor returns. Default options build exactly the graph
+    /// the two-argument form always built.
+    Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices,
+          const BuildOptions& options = {})
+        : cfg_{prechecked(cfg, devices, options)},
           tankKin_{makeTankKinematics(cfg_)},
           matrixKin_{makeMatrixKinematics(cfg_)},
           kin_{tankKin_.has_value() ? static_cast<const kinematics::IKinematics*>(&*tankKin_)
                                     : static_cast<const kinematics::IKinematics*>(&*matrixKin_)},
-          wiring_{wireMotors(cfg_, devices)},
+          wiring_{wireMotors(cfg_, devices, options)},
           left_{makeSideGroup(cfg_, wiring_.leftMembers, wiring_.leftCount)},
           right_{makeSideGroup(cfg_, wiring_.rightMembers, wiring_.rightCount)},
           driveMotors_{makeDriveMotors(wiring_, left_, right_)},
@@ -335,14 +537,30 @@ public:
     /// drivetrain, whose wheels are single motors.
     [[nodiscard]] std::size_t motorGroupCount() const noexcept { return groupCount_; }
 
+    /// The drive-encoder odometry this robot runs, for a panel that wants its cross-check (the
+    /// per-side distances beside the fused estimate) — or `nullptr` when this robot runs
+    /// tracking wheels instead. Read-only: the Localizer owns the updating.
+    [[nodiscard]] const localization::DriveEncoderOdometry* driveOdometry() const noexcept {
+        return driveOdom_.has_value() ? &*driveOdom_ : nullptr;
+    }
+
+    /// The §18.5 session header's port map for this robot, generated from the config it was
+    /// built with — `writePortMap(config(), out, cap)`, whose documentation gives the formats.
+    /// Truncates rather than overflowing (the header field is `diag::kMaxPortMapBytes`, 96
+    /// bytes); writes a NUL whenever cap > 0. Use this, never `describe()`, for the header:
+    /// the banner is longer than the field.
+    void portMap(char* out, std::size_t cap) const noexcept { writePortMap(cfg_, out, cap); }
+
     /// The BANNER LINE: identity, the drivetrain kind and where its numbers came from, both
-    /// sides' ports AS STORED (signs included — the one place a sign lives), the geometry that
+    /// sides' ports AS STORED (signs included — the one place a sign lives), any drive port
+    /// built ABSENT (`DEGRADED: absent 3,13` — only when there is one), the geometry that
     /// governs, the estimator, and each optional device as present or ABSENT. Truncates rather
     /// than overflowing; writes at least a NUL whenever cap > 0.
     ///
     /// It is built from the CONFIG this robot was constructed with, not from a second copy of the
     /// numbers, so it cannot drift from the wiring — the same property src/main.cpp's
-    /// `portMapString()` has and for the same reason.
+    /// `portMapString()` has and for the same reason. The absent ports are read back from the
+    /// two groups' own slots, which were built from the same description in the same order.
     void describe(char* buf, std::size_t cap) const {
         if (buf == nullptr || cap == 0) {
             return;
@@ -356,13 +574,16 @@ public:
                 const hal::DrivetrainDescription& d = cfg_.drivetrain.tank.description;
                 appendPorts(left, kSideCap, d.left.signedPorts, d.left.count);
                 appendPorts(right, kSideCap, d.right.signedPorts, d.right.count);
+                char absent[kSideCap] = "";
+                appendAbsent(absent, kSideCap);
                 std::snprintf(buf, cap,
-                              "%s [%s] tank %s | L %s R %s | ipr L%.5f R%.5f W %.3f in | IMU%u | "
-                              "%s | GPS %s tags ABSENT vision ABSENT",
+                              "%s [%s] tank %s | L %s R %s%s%s | ipr L%.5f R%.5f W %.3f in | "
+                              "IMU%u | %s | GPS %s tags ABSENT vision ABSENT",
                               name, cfg_.identity.team,
                               d.source == hal::DescriptionSource::RobotMeasured ? "MEASURED"
                                                                                 : "TYPED",
-                              left, right, leftGeometry_.inchesPerRadian().value(),
+                              left, right, absent[0] != '\0' ? " | DEGRADED: absent " : "",
+                              absent, leftGeometry_.inchesPerRadian().value(),
                               rightGeometry_.inchesPerRadian().value(), d.trackWidth.value(),
                               static_cast<unsigned>(d.imuPort),
                               config::odometryKindWord(cfg_.odometry.kind),
@@ -414,12 +635,16 @@ private:
         std::size_t wheelCount = 0;
     };
 
-    /// Run the verdict and throw its sentence if it fails, then hand back `cfg` for the member
-    /// initializer. Being the FIRST member's initializer is what makes the refusal happen before
-    /// any object exists (ruling B3).
+    /// Run the verdict — WITH the constructor's options, so a port the boot check reported
+    /// absent is not asked for here either — and throw its sentence if it fails, then hand back
+    /// `cfg` for the member initializer. Being the FIRST member's initializer is what makes the
+    /// refusal happen before any object exists (ruling B3). (Dropping the options here was the
+    /// audit's defect 1: a robot a tolerant validate() had passed threw inside its own
+    /// constructor. Test 2 constructs one to keep that from coming back.)
     [[nodiscard]] static const config::RobotConfig& prechecked(const config::RobotConfig& cfg,
-                                                               hal::IDeviceProvider& devices) {
-        const BuildVerdict verdict = validate(cfg, devices);
+                                                               hal::IDeviceProvider& devices,
+                                                               const BuildOptions& options) {
+        const BuildVerdict verdict = validate(cfg, devices, options);
         SHULIB_PRECONDITION(verdict.ok, verdict.why);
         return cfg;
     }
@@ -458,9 +683,16 @@ private:
     /// Ask the provider for every drive motor the config names, handing each signed port over AS
     /// STORED so the sign is applied exactly once, inside the adapter. A null here would be a
     /// provider that refused after `validate()` said it would not — a contract breach, and a loud
-    /// one, because the alternative is a nullptr inside a MotorGroup.
+    /// one, because the alternative is an UNPLANNED nullptr inside a MotorGroup.
+    ///
+    /// The one PLANNED nullptr: a tank port in `options.absentDrivePorts` is not asked for at all
+    /// and its slot is left empty — the group's ABSENT member, in the description's own order so
+    /// every index a panel shows still means the same port (src/main.cpp's `TankMotors` keeps its
+    /// slots for the same reason). `validate()` has already refused a list that is not a tank's,
+    /// names a port that is not a drive port, or empties a side.
     [[nodiscard]] static MotorWiring wireMotors(const config::RobotConfig& cfg,
-                                                hal::IDeviceProvider& devices) {
+                                                hal::IDeviceProvider& devices,
+                                                const BuildOptions& options) {
         MotorWiring w;
         const hal::MotorCartridge cartridge = cfg.drivetrain.cartridge();
         const auto take = [&](std::int8_t signedPort) -> hal::IMotor* {
@@ -470,14 +702,19 @@ private:
                                 "validate() had already obtained");
             return m;
         };
+        const auto takeUnlessAbsent = [&](std::int8_t signedPort) -> hal::IMotor* {
+            return options.isAbsent(hal::DrivetrainDescription::portMagnitude(signedPort))
+                       ? nullptr
+                       : take(signedPort);
+        };
         switch (cfg.drivetrain.kind) {
             case config::DrivetrainKind::Tank: {
                 const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
                 for (std::size_t i = 0; i < d.left.count; ++i) {
-                    w.leftMembers[w.leftCount++] = take(d.left.signedPorts[i]);
+                    w.leftMembers[w.leftCount++] = takeUnlessAbsent(d.left.signedPorts[i]);
                 }
                 for (std::size_t i = 0; i < d.right.count; ++i) {
-                    w.rightMembers[w.rightCount++] = take(d.right.signedPorts[i]);
+                    w.rightMembers[w.rightCount++] = takeUnlessAbsent(d.right.signedPorts[i]);
                 }
                 break;
             }
@@ -642,6 +879,38 @@ private:
         }
         if (cap > 0) {
             out[n < cap ? n : cap - 1] = '\0';
+        }
+    }
+
+    /// Write the port numbers (magnitudes, "3,13") of every drive slot built ABSENT, LEFT side
+    /// then RIGHT, read back from the groups' own slots — which were built from the description
+    /// in its stored order, so slot i IS the description's port i. Empty on a complete robot and
+    /// on a holonomic one. Bounded by hand like appendPorts(), always NUL-terminated.
+    void appendAbsent(char* out, std::size_t cap) const {
+        if (cap == 0) {
+            return;
+        }
+        out[0] = '\0';
+        if (!left_.has_value()) {
+            return;  // holonomic: no groups, nothing can be absent
+        }
+        const hal::DrivetrainDescription& d = cfg_.drivetrain.tank.description;
+        const hal::DriveSideDescription* sides[2] = {&d.left, &d.right};
+        const hal::MotorGroup* groups[2] = {&*left_, &*right_};
+        std::size_t n = 0;
+        for (std::size_t s = 0; s < 2; ++s) {
+            for (std::size_t i = 0; i < sides[s]->count; ++i) {
+                if (groups[s]->isPresent(i)) {
+                    continue;
+                }
+                char one[8] = "";
+                std::snprintf(one, sizeof one, "%s%d", n == 0 ? "" : ",",
+                              hal::DrivetrainDescription::portMagnitude(sides[s]->signedPorts[i]));
+                for (std::size_t k = 0; one[k] != '\0' && n + 1 < cap; ++k) {
+                    out[n++] = one[k];
+                }
+                out[n] = '\0';
+            }
         }
     }
 

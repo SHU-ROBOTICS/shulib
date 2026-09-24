@@ -79,12 +79,14 @@
 // velocity() with SOMETHING — and every answer is a lie the median would then average in.
 // A hole cannot be read by accident.
 //
-// WHY BOOT, AND NOT RUNTIME: hal/pros/motor.hpp's constructor already throws on a dead port
-// (its read-back, HA-98), so the composition root catches per port, keeps
-// std::optional<ProsMotor> (the drive program's `Member` shape) and hands this class a span
-// with holes. Runtime death INSIDE the library graph — promoting the drive program's
-// MemberAbsenceDetector in here — is a later chunk; today absence is decided once, at boot,
-// by calibration::boot_check against the brain's own registry.
+// WHY BOOT, AND NOT RUNTIME: a dead port is known before the graph exists. The drive program
+// finds one by catching hal/pros/motor.hpp's constructor throw per port (its HA-98 read-back,
+// kept as std::optional<ProsMotor> in its `Member` shape) and drives the rest itself, without
+// this class. The graphs that DO use this class — "shulib Teleop" (src/main.cpp's `TankMotors`)
+// and, since G1 Part 2a, robot::Robot (`BuildOptions::absentDrivePorts`) — take the MISSING set
+// calibration::boot_check read from the brain's own registry, never construct those ports, and
+// hand this class a span with a hole where each one would be. Runtime death INSIDE the library
+// graph — promoting the drive program's MemberAbsenceDetector in here — is a later chunk.
 //
 // WHAT CHANGES, AND WHAT DOES NOT: setVoltage/setBrakeMode SKIP the holes; position(),
 // velocity(), current() and temperature() are over the PRESENT members only; the monitor is

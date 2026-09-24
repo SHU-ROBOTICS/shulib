@@ -112,7 +112,22 @@ public:
     /// thing through the indication that is already on the panel.
     ///
     /// Nothing is tared and no estimate moves (HA-05) — the zero lives here.
+    ///
+    /// ONE EXCEPTION (G1 Part 2a, found while wiring this to a button): a heading that is NOT A
+    /// FINITE NUMBER is not stored. It would become a NaN zero, and every later trusted tick
+    /// would rotate by `heading − NaN` — a NaN request that `Chassis::drive` rejects by
+    /// precondition, long after the press, with nothing on the panel to explain it. Instead the
+    /// previous zero is kept and the fallback latch is SET, so the controls stay robot-centric
+    /// and the panel says `LatchedUntilRezero` until the driver presses again on a real heading.
+    /// (`request()` already treats a non-finite heading as untrusted; this closes the one path
+    /// that let such a heading outlive its tick.)
     constexpr void rezero(double headingRadians) noexcept {
+        // `x - x == 0` is false exactly for NaN and ±infinity — std::isfinite is not constexpr
+        // in C++20, and this function is.
+        if (!(headingRadians - headingRadians == 0.0)) {
+            fellBack_ = true;
+            return;
+        }
         zero_ = headingRadians;
         fellBack_ = false;
     }

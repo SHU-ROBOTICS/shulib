@@ -133,9 +133,9 @@ What the last `shape()` call did — for a panel, and for a test that wants to s
 constexpr void rezero(double headingRadians) noexcept
 ```
 
-"The way the robot is facing now is away from me" — the driver's field-centric button. Sets the zero and clears the fallback latch (field_centric.hpp::rezero). Harmless in a body-frame mode, where it simply pre-arms the zero for a later mode switch.
+"The way the robot is facing now is away from me" — the driver's field-centric button. Sets the zero and clears the fallback latch (field_centric.hpp::rezero) — except on a heading that is not a finite number, which keeps the old zero and SETS the latch instead. Harmless in a body-frame mode, where it simply pre-arms the zero for a later mode switch.
 
-*function, declared at [`include/shulib/teleop/driver_control.hpp:159`](../../include/shulib/teleop/driver_control.hpp#L159).*
+*function, declared at [`include/shulib/teleop/driver_control.hpp:160`](../../include/shulib/teleop/driver_control.hpp#L160).*
 
 <a id="driveshaper-profile"></a>
 
@@ -147,7 +147,7 @@ constexpr void rezero(double headingRadians) noexcept
 
 The profile in force. Returned by const reference; the shaper owns its copy.
 
-*function, declared at [`include/shulib/teleop/driver_control.hpp:164`](../../include/shulib/teleop/driver_control.hpp#L164).*
+*function, declared at [`include/shulib/teleop/driver_control.hpp:165`](../../include/shulib/teleop/driver_control.hpp#L165).*
 
 <a id="driveshaper-setprofile"></a>
 
@@ -159,7 +159,7 @@ constexpr void setProfile(const DriverProfile& profile) noexcept
 
 Swap in another driver's tuning. The limiters are rebuilt at the new rate and RESET — carrying a limiter's history across a rate change would make the first tick after the switch obey neither rate. Field-centric's zero and latch survive, because the driver's notion of "away from me" is not a tuning parameter.
 
-*function, declared at [`include/shulib/teleop/driver_control.hpp:170`](../../include/shulib/teleop/driver_control.hpp#L170).*
+*function, declared at [`include/shulib/teleop/driver_control.hpp:171`](../../include/shulib/teleop/driver_control.hpp#L171).*
 
 <a id="driveshaper-reset"></a>
 
@@ -171,7 +171,7 @@ constexpr void reset() noexcept
 
 Forget every tick that came before: limiters to zero, field-centric's zero and latch cleared, reported state blank. What a program calls when control changes hands or teleop restarts — never something a match does on its own.
 
-*function, declared at [`include/shulib/teleop/driver_control.hpp:181`](../../include/shulib/teleop/driver_control.hpp#L181).*
+*function, declared at [`include/shulib/teleop/driver_control.hpp:182`](../../include/shulib/teleop/driver_control.hpp#L182).*
 
 <a id="driveshaper-fieldcentric"></a>
 
@@ -183,7 +183,7 @@ Forget every tick that came before: limiters to zero, field-centric's zero and l
 
 Field-centric's own state, for a caller that wants the latch between ticks (the per-tick indication is in `state().fieldCentric`).
 
-*function, declared at [`include/shulib/teleop/driver_control.hpp:191`](../../include/shulib/teleop/driver_control.hpp#L191).*
+*function, declared at [`include/shulib/teleop/driver_control.hpp:192`](../../include/shulib/teleop/driver_control.hpp#L192).*
 
 <a id="shapetochassisspeeds"></a>
 
@@ -195,7 +195,7 @@ Field-centric's own state, for a caller that wants the latch between ticks (the 
 
 The whole feel layer plus the speed budgets, in one call — the teleop loop's line. Shapes the sticks and scales the result into the body-frame `ChassisSpeeds` that `Chassis::drive(…, Frame::Body)` takes.  The frame is ALWAYS Body, including in field-centric mode: the rotation already happened inside `shape()`. `maxLinear` / `maxAngular` are the caller's MotionConfig budgets (HA-50, provisional), passed in rather than read here so nothing in this header needs a chassis.
 
-*free function, declared at [`include/shulib/teleop/driver_control.hpp:211`](../../include/shulib/teleop/driver_control.hpp#L211).*
+*free function, declared at [`include/shulib/teleop/driver_control.hpp:212`](../../include/shulib/teleop/driver_control.hpp#L212).*
 
 ## Design commentary, from the header
 

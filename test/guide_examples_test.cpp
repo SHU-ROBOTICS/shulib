@@ -3,7 +3,7 @@
 // compiling or stops behaving as the prose claims turns this file red.
 //
 // Mapping (keep in sync with the guide — see docs/guide/README.md):
-//   guide-08a/b/c  -> docs/guide/08-your-first-routine.md   (the tutorial)
+//   guide-08a/b/c/d-> docs/guide/08-your-first-routine.md   (the tutorial)
 //   guide-09a/b/c/d-> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
 //   guide-10a..e   -> docs/guide/10-the-api.md              (API idioms)
 //
@@ -26,7 +26,10 @@
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
+#include "shulib/config/robot_config.hpp"
+#include "shulib/hal/fake/fake_device_provider.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
+#include "shulib/robot/robot.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/manipulation/mechanism_op.hpp"
 #include "shulib/diag/build_info.hpp"
@@ -319,6 +322,77 @@ TEST_CASE("guide-08c: a starved timeout exits TimedOut — and the log says so")
     // never aborts anything; the motion already ended).
     CHECK(c.rig.latch.raiseCount(shulib::diag::FaultCode::MotionTimeout) == 1);
     CHECK(capture.text().find("✗TIMEOUT") != std::string::npos);
+
+    printIfRequested(capture.text());
+}
+
+// ═══ guide-08d: the same robot, from DATA, in two lines (G1 Part 2a) ═══════════════
+// (chapter 8, "The same wiring, in two lines": a RobotConfig, a device provider,
+// robot::validate() and robot::Robot. The listing is quoted from the config through
+// the routine call.)
+
+TEST_CASE("guide-08d: the same robot in two lines — validate() and Robot over a provider") {
+    namespace k = shulib::kinematics;
+    // The simulated robot, exactly as 08a builds it (same geometry, same placement,
+    // same feedforward).
+    const k::MatrixKinematics kin = k::xDrive(7_in);
+    shulib::sim::SimHarnessConfig simCfg;
+    simCfg.plant.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};
+    simCfg.plant.initialPose = Pose2d{-48_in, -24_in, 90_deg};
+    shulib::sim::SimHarness robot{kin, simCfg};
+    FakeCharSink capture;
+    shulib::diag::TermSink term{robot.clock(), capture};
+    SimPacer pacer{robot};
+
+    // The DEVICE PROVIDER: the one object that knows what a port is. On a brain it
+    // is `shulib::hal::pros::ProsDeviceProvider devices;` and nothing else. Here it
+    // is the host's provider, bound port by port to the simulated robot's devices —
+    // the host's stand-in for "a robot exists and is plugged in".
+    shulib::hal::fake::FakeDeviceProvider devices{robot.clock(), robot.battery(), term, pacer};
+    for (int w = 0; w < 4; ++w) {
+        devices.bindMotor(static_cast<std::uint8_t>(w + 1), robot.motor(w));
+    }
+    devices.bindImu(10, robot.imu());
+    devices.bindRotation(6, robot.forwardEncoder());
+    devices.bindRotation(7, robot.lateralEncoder());
+
+    // The same X-drive, described as DATA: which port drives which wheel, and
+    // where the IMU and the two tracking wheels are plugged in.
+    shulib::config::RobotConfig config{
+        .drivetrain = {.kind = shulib::config::DrivetrainKind::XDrive,
+                       .xdrive = {.ports = {1, 2, 3, 4},  // FL, BL, BR, FR
+                                  .cartridge = shulib::hal::MotorCartridge::Green,
+                                  .imuPort = 10,
+                                  .driveRadius = 7_in}},
+        .odometry = {.kind = shulib::config::OdometryKind::TrackingWheels,
+                     .wheels = {.forward = {.port = 6, .wheelDiameter = 2_in, .offset = -3_in},
+                                .lateral = {.port = 7, .wheelDiameter = 2_in,
+                                            .offset = -4.5_in}}}};
+    config.tuning.motion.wheelFf = {.kS = 1.2, .kV = 0.17, .kA = 0.0};  // matches step 2
+
+    // Line one: ask. The verdict names the port or the field that is wrong,
+    // before a single object exists.
+    const shulib::robot::BuildVerdict verdict = shulib::robot::validate(config, devices);
+    REQUIRE(verdict.ok);
+
+    // Line two: build. Steps 3 to 5 above, wired, in one line.
+    shulib::robot::Robot built{config, devices};
+
+    // The routine does not know, or care, how its chassis was built.
+    const ExitReason outcome = firstRoutine(built.chassis());
+
+    // ── What the chapter claims about this run, held as assertions ──────────────
+    CHECK(outcome == ExitReason::Settled);
+    const Pose2d goal{-12_in, 24_in, 135_deg};
+    CHECK(motion_rig::posErr(robot.truePose(), goal) < 1.0);
+    CHECK(motion_rig::headErr(robot.truePose(), goal) < 0.035);
+    CHECK_FALSE(built.faults().hasFault());
+    // And a config that names a port the robot does not serve is refused BY NAME,
+    // before anything is built.
+    devices.refusePort(3);
+    const shulib::robot::BuildVerdict refused = shulib::robot::validate(config, devices);
+    CHECK_FALSE(refused.ok);
+    CHECK(std::string{refused.why}.find("port 3") != std::string::npos);
 
     printIfRequested(capture.text());
 }

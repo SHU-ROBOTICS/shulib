@@ -16,6 +16,57 @@
 
 ## API 2.2
 
+### Added since 2.2 (2026-09-24) — the on-robot device provider, dead ports in the builder, the port map, the driver-control loop
+
+> Written when it landed. **No version bump, and none owed:** everything here is additive, and none
+> of it grows a FROZEN surface — `IDeviceProvider` and `robot::Robot` are not in the Freeze
+> Register, `Chassis` (F6), the route and runner (F8), `Routine` (F10), the HAL interfaces (F4) and
+> the kinematics (F5) are untouched, and `motion::ITickPacer` gained nothing. **Nothing on a brain
+> uses any of it yet** — no program in `src/` changed; "shulib Teleop" moves onto it in a later
+> step — and everything below is proven on the host only: the provider through the host's
+> stand-in for the PROS headers, the builder and the loop on the host test plant.
+
+**ADDITIVE:**
+
+- **`hal::pros::ProsDeviceProvider`** (`hal/pros/device_provider.hpp`) — the on-robot
+  `IDeviceProvider`: real adapters made on first request, one per port, owned for the life of the
+  program, with no heap. **Before it constructs anything it asks the brain's port registry what is
+  plugged in**, and refuses an empty or wrong-kind port with a sentence naming the port, what it
+  found and what it expected (`port 2: a rotation sensor (expected an IMU)`); a motor that is
+  present but rejects its configuration is refused with the adapter's own reason. Asking again for
+  a port returns the same object; asking with a different sign, cartridge or GPS lever arm is a
+  precondition violation. `imu()` starts the IMU's calibration once, itself. (New hardware belief:
+  HA-141, [register](hardware-assumptions.md).)
+- **Dead drive ports in the builder:** `robot::BuildOptions{ .absentDrivePorts = … }` — port
+  numbers the boot check found dead — accepted by `robot::validate(cfg, devices, options)` and
+  `robot::Robot{cfg, devices, options}`. Each becomes an ABSENT member of its side's
+  `hal::MotorGroup` and is never asked for; the list is refused, naming the port, if a port in it
+  is not a drive port, if the drivetrain is not a tank, or if it would empty a side. The builder
+  applies no dead-port policy of its own. **Default options build exactly what 2.2 built.**
+  `Robot::describe()` adds `DEGRADED: absent …` when a port is absent (only then).
+- **The session header's port map, generated:** `Robot::portMap(out, cap)` and the free function
+  `robot::writePortMap(config, out, cap)` — the text `diag::SessionInfo::portMap` carries, in the
+  same format the programs in `src/` print by hand today, bounded and always terminated.
+- **`Robot::driveOdometry()`** — the drive-encoder odometry, for a panel's cross-check row
+  (`nullptr` on a tracking-wheel robot).
+- **`teleop::runDriverControl`** (`teleop/teleop_loop.hpp`) — the driver-control loop, PROS-free:
+  a disable check that stops the drive into its safe state and returns, all four stick axes read
+  only while the controller is connected, `DriveShaper`, the chassis's speed budgets,
+  `drive(…, Frame::Body)`, a re-zero button with its own edge, a per-tick hook for a panel. The
+  tick period, the disabled check and the heading source are arguments
+  (`teleop::DriverLoopConfig`, `teleop::HeadingSample`).
+- **`hal::fake::FakeDeviceProvider::motorRequestCount(port)`** — counts every request, refused ones
+  included (test infrastructure).
+
+**Behaviour you should know changed, without a signature moving:**
+
+- **`teleop::FieldCentric::rezero()` (and so `DriveShaper::rezero()`) no longer accepts a heading
+  that is not a finite number.** It used to store it as the zero and clear the fallback latch, after
+  which the next trusted tick produced a NaN command that `Chassis::drive` refuses by precondition.
+  Now the previous zero is kept and the fallback latches, so the controls stay robot-centric until
+  the driver re-zeroes on a real heading. Every finite heading behaves exactly as before.
+  **Migration:** none.
+
 ### 2026-09-18 — routines as data, a robot built from data, driver feel, and self-calibration; F8 frozen
 
 > *Written 2026-09-24, late.* The bump to 2.2 landed on 2026-09-18 without this section, against
@@ -55,7 +106,8 @@ listed first because it is the one a compiler will not show you.
 - **A robot described as data and built from it:** `config/robot_config.hpp` (`RobotConfig`),
   `hal/device_provider.hpp` (`IDeviceProvider`, devices by port) with a host fake, and
   `robot/robot.hpp` (`robot::validate()` and `robot::Robot`, which owns the whole graph). The PROS
-  device provider is not built yet, so no program on a brain uses this path.
+  device provider was not built at 2.2, so no program on a brain used this path. *(It has existed
+  since 2026-09-24 — the entry above — and still no program on a brain uses the path.)*
 - **Coupled drive motors:** `hal::MotorGroup` (N motors as one, median reads, a member may be
   ABSENT), `hal::DriveGeometry`, and `diag::FaultCode::MotorGroupDisagree = 12` — appended, per the
   append-only rule — raised when one member of a group persistently disagrees with its mates.

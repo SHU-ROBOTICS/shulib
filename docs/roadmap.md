@@ -313,13 +313,24 @@ not silently break them. This table is the spine of the no-staleness promise.
 > VexBuilder's picker. A route executes on the host test plant bit-identically to the same legs
 > written as a `Routine`. **Nothing of Phase G has run on a robot.**
 >
-> **Now (2026-09-24): G1 Part 2 — the PROS device provider, the library teleop loop, and
-> `src/main.cpp` as a dispatcher.** Its brief was revised on 2026-09-24, after an audit found four
-> defects in it, into three parts (the library half, shulib Teleop on the library, `main.cpp` as a
-> dispatcher); the first waits for the team lead's go (he put this work ahead of the bench session
-> on 2026-09-18). **The bench session pre-empts everything** the moment the
-> brain enumerates: it can close R3d; it cannot close R3b or M1, because no uploaded program
-> commands a `moveTo` yet.
+> **G1 Part 2a LANDED 2026-09-24 — host-only: the library half of G1 Part 2.** (Part 2's brief was
+> revised that morning, after an audit found four defects in it, into three parts: the library
+> half, shulib Teleop on the library, `main.cpp` as a dispatcher.) `hal::pros::ProsDeviceProvider`
+> — the on-robot device provider: real adapters made on demand, one per port, and a port refused
+> BY NAME when the brain's registry says it is empty or carries the wrong kind, before anything is
+> opened (the new belief it rests on is HA-141); dead drive ports in the builder
+> (`robot::BuildOptions` — the boot check's missing ports become absent group members, never
+> requested, and the builder applies no dead-port policy of its own); the session header's port map
+> generated from the config (`Robot::portMap()`, byte-identical to the text `src/` prints by hand);
+> and the driver-control loop, `teleop::runDriverControl`, PROS-free and proven on the host plant
+> under a fake controller. **No program uses any of it yet: `src/` is unchanged, `main.cpp` is not
+> one line shorter, and none of it has run on a robot** — the provider has been tested only against
+> the host's stand-in for the PROS headers.
+>
+> **Now (2026-09-24): G1 Part 2b — "shulib Teleop" rebuilt on the library — then Part 2c,
+> `main.cpp` as a dispatcher.** Each waits for the team lead's go. **The bench session pre-empts
+> everything** the moment the brain enumerates: it can close R3d; it cannot close R3b or M1,
+> because no uploaded program commands a `moveTo` yet.
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
@@ -1270,7 +1281,9 @@ DoD in Phases C–F depends on it.*
   injected (`git describe --always --dirty`; the test CMake does it; the PROS Makefile gains the
   same line at R1), and a missing hash is LOUD ([ERROR][SES] + the literal token MISSING), never
   a plausible placeholder — pinned by golden. Port map is caller-authored text at C5 (the core
-  HAL has no port numbers); G1's RobotBuilder generates it. Battery start is READ, not typed.*
+  HAL has no port numbers); G1's RobotBuilder generates it. Battery start is READ, not typed.
+  (Since G1 Part 2a, 2026-09-24, the generator exists — `robot::Robot::portMap()` — but no
+  program uses it yet; the programs still build their port maps by hand until Part 2b.)*
 - [x] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
   *Resolved at chunk A1 by **clean-room supersession**, per the execution plan's "Explicitly rejected"
   note (re-derive, don't copy): nothing builds on `logger.hpp`, and the replacement designs each
@@ -1645,8 +1658,10 @@ R4.)*
   X-drive, clean and hostile). Spelled `robot::Robot{config, devices}` rather than
   `RobotBuilder.from(profile)`: `Chassis` is non-movable, so a factory returning one by value
   was rejected in favour of `validate(config, devices)` + construction-in-place.
-  **OPEN:** `hal::pros::ProsDeviceProvider` and the `src/main.cpp` collapse (G1 Part 2), and
-  the codegen that fills these types from a `.vexbot` (G3).*
+  *G1 Part 2a, 2026-09-24: `hal::pros::ProsDeviceProvider` landed (host-tested through the PROS
+  shim only), with dead drive ports honoured by the builder and the port map generated.*
+  **OPEN:** the programs in `src/` moving onto the builder and the `src/main.cpp` collapse (G1
+  Parts 2b and 2c), and the codegen that fills these types from a `.vexbot` (G3).*
 - [ ] **`robotProfile` sub-schema** (F7) — drivetrain/odometry/sensors/mechanisms/corrections.
 - [ ] **Codegen tool** `.vexbot` → `robot_config.hpp` (config **and** routines, `inline constexpr`).
 - [ ] SD-card runtime loader (optional — re-export + re-run without recompiling).
@@ -1858,7 +1873,8 @@ must add for the integration to close. They are tracked here so the dependency i
 > code that consumes any of these contracts.** *(Corrected 2026-09-18, G1 Part 1: the first of them
 > is no longer unbuilt.)* `IRobotConfig` / `IRouteSource` and the builder landed host-only at **G1
 > Part 1** — the in-memory types exist and a config produces a driving `Chassis`; the PROS provider
-> and the `main.cpp` collapse are G1 Part 2. *(Corrected again 2026-09-18, G2: the second of them is
+> and the `main.cpp` collapse are G1 Part 2 *(the provider landed host-only at Part 2a, 2026-09-24;
+> the `main.cpp` collapse is Parts 2b/2c)*. *(Corrected again 2026-09-18, G2: the second of them is
 > no longer unbuilt either.)* **You are here: `PathRunner`, the command-id registry and the exported
 > manifest landed at G2 and F8 is LOCKED** — a `Route` executes on the host plant, bit-identically to
 > the same legs hand-written as a `Routine`, and VexBuilder's picker is unblocked. The `.vexbot`
@@ -1898,7 +1914,7 @@ must add for the integration to close. They are tracked here so the dependency i
 
 | # | shulib must ship | Unblocks | Chunk | Gated on VexBuilder? |
 |---|---|---|---|---|
-| A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); Part 2 (the PROS device provider) is next |
+| A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); **Part 2a DELIVERED 2026-09-24, host-only** (the PROS device provider, absent drive ports, the generated port map, the driver-control loop); Parts 2b/2c (the programs in `src/` moved onto it) are next |
 | B | ✅ `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) — **DELIVERED 2026-09-18**; the format is [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.3 | **G2** | no |
 | C | `.vexbot` ingestion + `robot_config.hpp` codegen + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
 | D | The `.shupaths` one-way importer | migrating existing routines | **G4** | yes — G3 |

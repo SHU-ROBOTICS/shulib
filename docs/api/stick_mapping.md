@@ -206,9 +206,9 @@ Request × budgets → the body-frame ChassisSpeeds that Chassis::drive(…, Fra
 [[nodiscard]] constexpr math::ChassisSpeeds mapSticksToChassisSpeeds( const StickInput& in, units::Velocity maxLinear, units::AngularVelocity maxAngular) noexcept
 ```
 
-The whole mapping in one call — what the library teleop loop uses each tick. Bit-identical to the R1a loop it replaced: a disconnected controller returns a default-constructed ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a connected one returns toChassisSpeeds(mapSticks(in), …).
+The whole mapping in one call — what "shulib Teleop"'s loop in src/main.cpp (`runTeleopLoop`) uses each tick today. (The library's own loop, `teleop::runDriverControl` in teleop_loop.hpp, added at G1 Part 2a, shapes through `DriveShaper` and `toChassisSpeeds` instead; this function stays for the program that has not moved yet and for its bit-identity pin.) Bit-identical to the R1a loop it replaced: a disconnected controller returns a default-constructed ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a connected one returns toChassisSpeeds(mapSticks(in), …).
 
-*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:137`](../../include/shulib/teleop/stick_mapping.hpp#L137).*
+*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:140`](../../include/shulib/teleop/stick_mapping.hpp#L140).*
 
 ## Design commentary, from the header
 

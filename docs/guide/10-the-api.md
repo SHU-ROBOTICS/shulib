@@ -174,6 +174,18 @@ field-relative command needs a heading, and the boot estimate doesn't have one y
 (`Frame::Body` works fine during boot). Each call runs exactly one loop iteration — sensor
 update, command, diagnostics record — so your loop's own timing sets the cadence.
 
+That loop is the shape of driver control, and you do not have to write the real one yourself:
+`teleop::runDriverControl` ([`teleop/teleop_loop.hpp`](../api/teleop_loop.md)) is it, finished.
+Each tick it checks whether the field has disabled the robot (and if so stops the drive into the
+safe state and returns), reads the controller's sticks — all four axes, and only while the
+controller is actually connected — passes them through the driver's feel settings (the deadband,
+the curve, the mode: arcade, tank sticks, or field-centric with its honest fallback), scales them
+to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code paint a panel, and
+waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
+disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
+what lets the test suite run the whole loop on the simulator. Honest status: it is host-tested
+only; no program on the robot uses it yet, and no driver has felt it.
+
 ### `brake(options)` and `hold(duration, options)` — stopping, actively
 
 `brake()` commands a stop and blocks until the estimate *certifies* the robot at rest (settling

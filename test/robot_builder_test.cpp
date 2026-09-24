@@ -24,6 +24,7 @@
 
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <optional>
 #include <span>
@@ -33,6 +34,7 @@
 #include "motion_test_rig.hpp"
 #include "shulib/config/robot_config.hpp"
 #include "shulib/diag/fault.hpp"
+#include "shulib/diag/session_info.hpp"
 #include "shulib/hal/fake/fake_device_provider.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/robot/robot.hpp"
@@ -957,4 +959,527 @@ TEST_CASE("G1 builder 10b: Robot holds its config by value") {
     robot->describe(buf, sizeof buf);
     CHECK(std::string{buf}.find("Robot Two") != std::string::npos);
     CHECK(robot->config().valid());
+}
+
+// ═════════════════════════════════════════════════════════════════════════════════════
+// G1 PART 2a (2026-09-24) — ABSENT DRIVE PORTS (ruling M1), portMap(), driveOdometry()
+// ═════════════════════════════════════════════════════════════════════════════════════
+// Brief §4 tests 2, 3 and the portMap half of 5. Every case above this banner is Part 1's and
+// is untouched: they build with DEFAULT options, and their bit-identity is the pin that the
+// options changed nothing when nothing is absent (their assertion counts are recorded in the
+// Part 2a log, before and after).
+
+namespace {
+
+/// A PlantWorld wired for `c`, then told that `absent` are DEAD — the provider REFUSES them, the
+/// way the real provider refuses an empty port — and a Robot built from it with those ports in
+/// its BuildOptions. The dead motors stay in the plant's coupled trains, uncommanded at 0 V: a
+/// dead port does not take a motor out of a gear box, and the plant's mean-of-members model
+/// (drive_plant.hpp, HA-137) then drives the wheel at the average of four commanded members and
+/// one silent one — a degraded robot, not a merely renamed one.
+struct DegradedRobot {
+    PlantWorld world;
+    shulib::robot::Robot robot;
+
+    DegradedRobot(const cfgns::RobotConfig& c, std::span<const int> absent,
+                  const shulib::kinematics::IKinematics& kin, const SimHarnessConfig& cfg)
+        : world{kin, cfg}, robot{wiredAndRefused(world, c, absent), world.devices, {absent}} {}
+
+private:
+    static const cfgns::RobotConfig& wiredAndRefused(PlantWorld& w, const cfgns::RobotConfig& c,
+                                                     std::span<const int> absent) {
+        w.wire(c);
+        for (const int p : absent) {
+            w.devices.refusePort(static_cast<std::uint8_t>(p));
+        }
+        return c;
+    }
+};
+
+/// The two side groups of a tank Robot, through the Tier-3 seam a panel uses.
+const MotorGroup& group(shulib::robot::Robot& r, std::size_t side) {
+    return *r.chassis().deps().motorGroups[side];
+}
+
+/// src/main.cpp's `tankPortMapString()` (lines 678-719 at 018424c), TRANSCRIBED — the body
+/// verbatim, with the file-scope `g_description` made a parameter and the static buffer made the
+/// caller's. It is the reference `writePortMap()` must equal byte for byte, so that Part 2b can
+/// swap the generator without a single session header changing. Written out rather than shared
+/// for Part 1's reason: a helper both sides used would make them agree by construction.
+void transcribedTankPortMapString(const DrivetrainDescription& g_description,
+                                  char (&buf)[shulib::diag::kMaxPortMapBytes]) {
+    constexpr std::size_t kSideCap = 40;
+    char l[kSideCap] = "";
+    char r[kSideCap] = "";
+    const shulib::hal::DriveSideDescription* sides[2] = {&g_description.left,
+                                                         &g_description.right};
+    char* out[2] = {l, r};
+    for (int side = 0; side < 2; ++side) {
+        std::size_t used = 0;
+        for (std::size_t i = 0; i < sides[side]->count; ++i) {
+            char one[8];
+            std::snprintf(one, sizeof one, "%s%+d", i ? " " : "",
+                          static_cast<int>(sides[side]->signedPorts[i]));
+            for (const char* c = one; *c != '\0' && used + 1 < kSideCap; ++c) {
+                out[side][used++] = *c;
+            }
+            out[side][used] = '\0';
+        }
+    }
+    char full[200];
+    std::snprintf(full, sizeof full, "%s L %s R %s IMU%u ipr %.4f/%.4f TW%.2f",
+                  g_description.source == shulib::hal::DescriptionSource::RobotMeasured
+                      ? "MEASURED"
+                      : "TYPED",
+                  l, r, static_cast<unsigned>(g_description.imuPort),
+                  g_description.left.inchesPerRadian.value(),
+                  g_description.right.inchesPerRadian.value(),
+                  g_description.trackWidth.value());
+    std::snprintf(buf, sizeof buf, "%.*s", static_cast<int>(sizeof buf) - 1, full);
+}
+
+/// A tank description with `leftCount` ports 1..leftCount on the left (alternating signs, +1
+/// first) and `rightCount` on the right (ports 1..rightCount, -1 first) — shapes no valid Robot
+/// carries once a side is wide (the ports collide), which is exactly why writePortMap() is also a
+/// free function: it formats what is stored and validates nothing.
+cfgns::RobotConfig wideTankConfig(std::uint8_t leftCount, std::uint8_t rightCount = 0) {
+    cfgns::RobotConfig c = tankConfig(1, cfgns::OdometryKind::DriveEncoders);
+    DrivetrainDescription& d = c.drivetrain.tank.description;
+    for (std::uint8_t i = 0; i < leftCount; ++i) {
+        const auto port = static_cast<std::int8_t>(i + 1);
+        d.left.signedPorts[i] = (i % 2 == 0) ? port : static_cast<std::int8_t>(-port);
+    }
+    d.left.count = leftCount;
+    if (rightCount > 0) {
+        for (std::uint8_t i = 0; i < rightCount; ++i) {
+            const auto port = static_cast<std::int8_t>(i + 1);
+            d.right.signedPorts[i] = (i % 2 == 0) ? static_cast<std::int8_t>(-port) : port;
+        }
+        d.right.count = rightCount;
+    }
+    return c;
+}
+
+}  // namespace
+
+// ═══ 2a-2. Absent ports: the builder obeys the boot check's list ═════════════════════
+TEST_CASE("G1 2a builder A1: one absent port — validate() passes, the Robot CONSTRUCTS, the group "
+          "reports 4 of 5 present, the port is NEVER requested, describe() names it") {
+    // BUG CAUGHT (the brief's mutations "drop the options in prechecked()" and "request absent
+    // ports anyway"): the audit's defect 1 — validate() tolerant, the constructor not, so a robot
+    // the check passed threw inside its own constructor — and a builder that asked the provider
+    // for a port the boot check had already reported dead (naming it twice, and on a real robot
+    // refusing the build over a port the policy had accepted). The provider REFUSES port 3 here,
+    // as the real one refuses an empty port, so either mutation turns this case red.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+    const int absent[] = {3};
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    world.devices.refusePort(3);
+
+    // Without the list, the build is refused — naming the port, as before Part 2a.
+    const shulib::robot::BuildVerdict refused = shulib::robot::validate(c, world.devices);
+    CHECK_FALSE(refused.ok);
+    CHECK(std::string{refused.why}.find("port 3") != std::string::npos);
+    const int askedWithoutList = world.devices.motorRequestCount(3);
+    CHECK(askedWithoutList == 1);  // the counter really does count a REFUSED request
+
+    // With it: the verdict passes, and the constructor — which re-runs the verdict — agrees.
+    const shulib::robot::BuildOptions options{.absentDrivePorts = absent};
+    const shulib::robot::BuildVerdict v = shulib::robot::validate(c, world.devices, options);
+    CAPTURE(v.why);
+    REQUIRE(v.ok);
+    std::optional<shulib::robot::Robot> robot;
+    REQUIRE_NOTHROW(robot.emplace(c, world.devices, options));
+
+    // Port 3 was never asked for by the tolerant verdict nor by the Robot's two passes.
+    CHECK(world.devices.motorRequestCount(3) == askedWithoutList);
+    // Every other drive port was.
+    for (std::size_t i = 0; i < 5; ++i) {
+        CAPTURE(i);
+        if (DrivetrainDescription::portMagnitude(kLeft[i]) != 3) {
+            CHECK(world.devices.motorRequestCount(static_cast<std::uint8_t>(
+                      DrivetrainDescription::portMagnitude(kLeft[i])))
+                  > 0);
+        }
+        CHECK(world.devices.motorRequestCount(static_cast<std::uint8_t>(
+                  DrivetrainDescription::portMagnitude(kRight[i])))
+              > 0);
+    }
+    // The LEFT group has a hole in slot 2 (port 3 is the third stored entry); the right is whole.
+    const MotorGroup& left = group(*robot, 0);
+    const MotorGroup& right = group(*robot, 1);
+    CHECK(left.memberCount() == 5);
+    CHECK(left.presentCount() == 4);
+    CHECK(left.absentMask() == (std::uint32_t{1} << 2));
+    CHECK_FALSE(left.isPresent(2));
+    CHECK(right.presentCount() == 5);
+    CHECK(right.absentMask() == 0);
+
+    char buf[320] = "";
+    robot->describe(buf, sizeof buf);
+    CAPTURE(std::string{buf});
+    CHECK(std::string{buf}.find("DEGRADED: absent 3 |") != std::string::npos);
+    // …and the stored ports are still printed as stored: absence is not a rewrite of the wiring.
+    CHECK(std::string{buf}.find("L 1,-2,3,-4,5") != std::string::npos);
+}
+
+TEST_CASE("G1 2a builder A2: DEFAULT options are Part 1's builder exactly — same graph, same run, "
+          "same banner") {
+    // BUG CAUGHT: an options path that changes a complete robot — a default that is not empty,
+    // an absent check that drops a present member, a banner segment printed when nothing is
+    // absent. Three ways of spelling "no options" are driven across the plant and compared bit
+    // for bit; Part 1's own cases above (5, 5b, 5c, 5d, 6, 6b) are the other half of this pin.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+
+    BuiltRobot twoArg{c, kin, worldConfig()};
+    const Trace a = runLeg(twoArg.robot.chassis(), twoArg.world.pacer, kStart, kTankTarget);
+
+    PlantWorld w2{kin, worldConfig()};
+    w2.wire(c);
+    shulib::robot::Robot defaulted{c, w2.devices, shulib::robot::BuildOptions{}};
+    const Trace b = runLeg(defaulted.chassis(), w2.pacer, kStart, kTankTarget);
+
+    PlantWorld w3{kin, worldConfig()};
+    w3.wire(c);
+    const std::span<const int> empty{};
+    shulib::robot::Robot explicitEmpty{c, w3.devices, {empty}};
+    const Trace d = runLeg(explicitEmpty.chassis(), w3.pacer, kStart, kTankTarget);
+
+    REQUIRE(a.exit == ExitReason::Settled);
+    requireIdentical(a, b);
+    requireIdentical(a, d);
+    char ba[320] = "";
+    char bb[320] = "";
+    twoArg.robot.describe(ba, sizeof ba);
+    defaulted.describe(bb, sizeof bb);
+    CHECK(std::string{ba} == std::string{bb});
+    CHECK(std::string{ba}.find("DEGRADED") == std::string::npos);
+    CHECK(group(defaulted, 0).absentMask() == 0);
+    CHECK(group(defaulted, 1).absentMask() == 0);
+}
+
+TEST_CASE("G1 2a builder A3: every new refusal names the port — in validate() AND, with the same "
+          "sentence, from the constructor") {
+    // BUG CAUGHT: a list the builder cannot honour being honoured anyway — a port that is not a
+    // drive port silently ignored (a typo in the boot check's output would vanish), a signed
+    // port accepted as its magnitude, a side emptied into a MotorGroup precondition three objects
+    // deep, an X-drive given a hole its single-motor wheels cannot have.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig tank = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+    struct Case {
+        std::string label;
+        std::vector<int> absent;
+        std::string phrase;
+    };
+    const Case cases[] = {
+        {"a pod port, not a drive port", {7}, "absent port 7 is not one of this drivetrain's drive ports"},
+        {"the IMU port", {10}, "absent port 10 is not one of"},
+        {"port 0", {0}, "absent port 0 is not one of"},
+        {"port 22", {22}, "absent port 22 is not one of"},
+        {"a SIGNED port (-2) instead of its number", {-2}, "absent port -2 is not one of"},
+        {"a good port then a bad one", {3, 8}, "absent port 8 is not one of"},
+        {"the whole LEFT side", {1, 2, 3, 4, 5}, "every LEFT drive port is absent (ports 1 2 3 4 5)"},
+        {"the whole RIGHT side, in another order", {15, 11, 13, 12, 14},
+         "every RIGHT drive port is absent (ports 11 12 13 14 15)"},
+    };
+    for (const Case& k : cases) {
+        CAPTURE(k.label);
+        PlantWorld world{kin, worldConfig()};
+        world.wire(tank);
+        const shulib::robot::BuildOptions options{
+            .absentDrivePorts = std::span<const int>{k.absent.data(), k.absent.size()}};
+        const shulib::robot::BuildVerdict v = shulib::robot::validate(tank, world.devices, options);
+        CHECK_FALSE(v.ok);
+        CAPTURE(v.why);
+        CHECK(std::string{v.why}.find(k.phrase) != std::string::npos);
+        // Refused BEFORE any device was asked for.
+        for (std::uint8_t p = 1; p <= 21; ++p) {
+            CHECK(world.devices.motorRequestCount(p) == 0);
+        }
+        try {
+            shulib::robot::Robot robot{tank, world.devices, options};
+            FAIL("Robot's constructor accepted an absent list validate() had refused");
+        } catch (const shulib::PreconditionError& e) {
+            CHECK(std::string{e.what()} == std::string{v.why});
+        }
+    }
+
+    SUBCASE("a one-member side cannot lose its only member") {
+        const cfgns::RobotConfig lone = tankConfig(1, cfgns::OdometryKind::DriveEncoders);
+        PlantWorld world{kin, worldConfig()};
+        world.wire(lone);
+        const int absent[] = {11};
+        const shulib::robot::BuildVerdict v =
+            shulib::robot::validate(lone, world.devices, {.absentDrivePorts = absent});
+        CHECK_FALSE(v.ok);
+        CHECK(std::string{v.why} == "every RIGHT drive port is absent (ports 11) -- a side needs "
+                                    "at least one motor that answers");
+    }
+    SUBCASE("a list on an X-drive") {
+        const shulib::kinematics::MatrixKinematics xkin =
+            shulib::kinematics::xDrive(Length{kDriveRadius});
+        const cfgns::RobotConfig x = xdriveConfig(false);
+        PlantWorld world{xkin, worldConfig()};
+        world.wire(x);
+        const int absent[] = {2};
+        const shulib::robot::BuildVerdict v =
+            shulib::robot::validate(x, world.devices, {.absentDrivePorts = absent});
+        CHECK_FALSE(v.ok);
+        CHECK(std::string{v.why}
+              == "absent drive port 2 was given for a x-drive drivetrain -- only a tank side can "
+                 "run with an absent member");
+        CHECK(world.devices.motorRequestCount(2) == 0);
+        CHECK_THROWS_AS((shulib::robot::Robot{x, world.devices, {.absentDrivePorts = absent}}),
+                        shulib::PreconditionError);
+    }
+    SUBCASE("everything else is unchanged: another refused port still refuses the build") {
+        PlantWorld world{kin, worldConfig()};
+        world.wire(tank);
+        world.devices.refusePort(3);
+        world.devices.refusePort(13);  // dead, but NOT on the boot check's list
+        const int absent[] = {3};
+        const shulib::robot::BuildVerdict v =
+            shulib::robot::validate(tank, world.devices, {.absentDrivePorts = absent});
+        CHECK_FALSE(v.ok);
+        CHECK(std::string{v.why} == "a RIGHT drive motor cannot be made: port 13 has no motor");
+    }
+    SUBCASE("a repeated entry is one absent port, not two") {
+        PlantWorld world{kin, worldConfig()};
+        world.wire(tank);
+        world.devices.refusePort(4);
+        const int absent[] = {4, 4, 4};
+        shulib::robot::Robot robot{tank, world.devices, {.absentDrivePorts = absent}};
+        CHECK(group(robot, 0).presentCount() == 4);
+        CHECK(world.devices.motorRequestCount(4) == 0);
+    }
+}
+
+// ═══ 2a-3. The degraded robot DRIVES, on the plant, and reports ════════════════════════
+TEST_CASE("G1 2a builder A4: a robot with dead ports DRIVES the plant, keeps an honest estimate, "
+          "reports honestly, raises no false fight — and is NOT the healthy robot") {
+    // BUG CAUGHT: an absent member that breaks the drive (a hole commanded, a hole read into the
+    // median, the odometry reading a nullptr), one that reads as a FIGHTING member to the
+    // coupled-side monitor (a dead port must never raise MOTOR_GROUP_DISAGREE — the monitor is
+    // told present = false), and one that changes nothing at all (a "degraded" robot that is
+    // secretly whole would pass every other line here, so the run must DIFFER from the healthy
+    // twin's).
+    //
+    // WHAT THIS DOES NOT ASSERT, measured and deliberate: that the degraded robot SETTLES. On
+    // this plant it does not — with one member of five silent on a side, the 30 in heading-held
+    // moveTo times out a few inches off the line, and even a symmetric loss (one dead per side)
+    // misses the settle window. The plant models a silent member as dragging the wheel to the
+    // MEAN of its members' volts (drive_plant.hpp, HA-137), i.e. 80 % speed; a real train of
+    // four powered motors and one unpowered one is voltage-limited and loses far less speed than
+    // that, so the plant is PESSIMISTIC here and the missed settle is a statement about the
+    // model and the provisional feedforward, not about robot two. What IS a property of the
+    // library is asserted: it drives, it knows where it is, and it says what happened.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+
+    BuiltRobot healthy{c, kin, worldConfig()};
+    const Trace h = runLeg(healthy.robot.chassis(), healthy.world.pacer, kStart, kTankTarget);
+    REQUIRE(h.exit == ExitReason::Settled);
+
+    struct Shape {
+        std::string label;
+        std::vector<int> absent;
+        std::string banner;
+    };
+    const Shape shapes[] = {{"one dead LEFT member", {3}, "DEGRADED: absent 3 |"},
+                            {"one dead per side, the left one the plant's PRIMARY", {1, 13},
+                             "DEGRADED: absent 1,13 |"},
+                            {"two dead on the right", {12, 14}, "DEGRADED: absent 12,14 |"}};
+    for (const Shape& s : shapes) {
+        CAPTURE(s.label);
+        DegradedRobot degraded{c, std::span<const int>{s.absent.data(), s.absent.size()}, kin,
+                               worldConfig()};
+        const Trace t = runLeg(degraded.robot.chassis(), degraded.world.pacer, kStart, kTankTarget);
+        const Pose2d truth = degraded.world.h.truePose();
+        // It REPORTS honestly: settled or timed out — never cancelled by a fault it invented.
+        CHECK((t.exit == ExitReason::Settled || t.exit == ExitReason::TimedOut));
+        CHECK(degraded.robot.faults().raiseCount(shulib::diag::FaultCode::MotorGroupDisagree)
+              == 0);
+        // It DRIVES: most of the 30 in leg, on the plant's ground truth.
+        CHECK(motion_rig::posErr(truth, kStart) > 20.0);
+        // It KNOWS where it is: the estimate — drive-encoder odometry over the groups' medians of
+        // the PRESENT members — agrees with the ground truth. A hole read as a member (a zero, or
+        // a neighbour's value) is what would pull these apart.
+        CHECK(motion_rig::posErr(degraded.robot.chassis().pose(), truth) < 1.0);
+        CHECK(motion_rig::headErr(degraded.robot.chassis().pose(), truth) < 0.03);
+        // The dead ports were never asked for, and the banner names them.
+        for (const int p : s.absent) {
+            CHECK(degraded.world.devices.motorRequestCount(static_cast<std::uint8_t>(p)) == 0);
+        }
+        char buf[320] = "";
+        degraded.robot.describe(buf, sizeof buf);
+        CHECK(std::string{buf}.find(s.banner) != std::string::npos);
+        // A degraded robot is a DIFFERENT robot: the silent members drag the train, so the
+        // ground truth cannot match the healthy run's.
+        CHECK_FALSE(sameTruth(h.truth, t.truth));
+    }
+}
+
+// ═══ 2a-5a. portMap(): the session header's field, generated and bounded ═════════════
+TEST_CASE("G1 2a builder A5: portMap() is byte-identical to src/main.cpp's tankPortMapString() for "
+          "every tank it can describe, and to portMapString()'s shape for the X-drive") {
+    // BUG CAUGHT: a generator that drifts from today's text (Part 2b swaps one for the other, and
+    // every session header since R3b would change shape under the team's log readers), a sign
+    // dropped, a side swapped, the source word lost.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+
+    SUBCASE("the fixture tank, as a Robot") {
+        BuiltRobot built{tankConfig(5, cfgns::OdometryKind::DriveEncoders), kin, worldConfig()};
+        char got[shulib::diag::kMaxPortMapBytes] = "";
+        built.robot.portMap(got, sizeof got);
+        CHECK(std::string{got}
+              == "MEASURED L +1 -2 +3 -4 +5 R -11 +12 -13 +14 -15 IMU10 ipr 2.0000/2.0000 TW12.00");
+        char ref[shulib::diag::kMaxPortMapBytes] = "";
+        transcribedTankPortMapString(built.robot.config().drivetrain.tank.description, ref);
+        CHECK(std::string{got} == std::string{ref});
+    }
+    SUBCASE("every width from 1 to 21 ports on a side, TYPED and MEASURED — against the transcription") {
+        for (std::uint8_t n = 1; n <= 21; ++n) {
+            for (const DescriptionSource src :
+                 {DescriptionSource::RobotMeasured, DescriptionSource::TypedTable}) {
+                CAPTURE(static_cast<int>(n));
+                cfgns::RobotConfig c = wideTankConfig(n);
+                c.drivetrain.tank.description.source = src;
+                char got[shulib::diag::kMaxPortMapBytes] = "";
+                shulib::robot::writePortMap(c, got, sizeof got);
+                char ref[shulib::diag::kMaxPortMapBytes] = "";
+                transcribedTankPortMapString(c.drivetrain.tank.description, ref);
+                CHECK(std::string{got} == std::string{ref});
+            }
+        }
+    }
+    SUBCASE("a tank's GPS and pods are named between the IMU and the geometry") {
+        cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::TrackingWheels);
+        c.sensors.gps = {.present = true, .port = kGpsPort};
+        char got[shulib::diag::kMaxPortMapBytes] = "";
+        shulib::robot::writePortMap(c, got, sizeof got);
+        CHECK(std::string{got}.find(" IMU10 GPS9 ROTF6 ROTL7 ipr 2.0000/2.0000") != std::string::npos);
+    }
+    SUBCASE("the X-drive, with and without a GPS, and an H-drive") {
+        const shulib::kinematics::MatrixKinematics xkin =
+            shulib::kinematics::xDrive(Length{kDriveRadius});
+        BuiltRobot x{xdriveConfig(true), xkin, worldConfig()};
+        char got[shulib::diag::kMaxPortMapBytes] = "";
+        x.robot.portMap(got, sizeof got);
+        // main.cpp's portMapString() format, over this fixture's numbers.
+        char ref[shulib::diag::kMaxPortMapBytes] = "";
+        std::snprintf(ref, sizeof ref, "FL%d BL%d BR%d FR%d ROTF%d ROTL%d GPS%u IMU%u", 1, 2, 3, 4,
+                      6, 7, 9U, 10U);
+        CHECK(std::string{got} == std::string{ref});
+        CHECK(std::string{got} == "FL1 BL2 BR3 FR4 ROTF6 ROTL7 GPS9 IMU10");
+
+        shulib::robot::writePortMap(xdriveConfig(false), got, sizeof got);
+        CHECK(std::string{got} == "FL1 BL2 BR3 FR4 ROTF6 ROTL7 IMU10");
+
+        cfgns::RobotConfig hcfg = xdriveConfig(false);
+        hcfg.drivetrain.kind = cfgns::DrivetrainKind::HDrive;
+        hcfg.drivetrain.hdrive = {.ports = {-1, 2, 3}, .imuPort = kImuPort};
+        shulib::robot::writePortMap(hcfg, got, sizeof got);
+        CHECK(std::string{got} == "L-1 R2 S3 ROTF6 ROTL7 IMU10");
+
+        cfgns::RobotConfig unset = xdriveConfig(false);
+        unset.drivetrain.kind = static_cast<cfgns::DrivetrainKind>(0);
+        shulib::robot::writePortMap(unset, got, sizeof got);
+        CHECK(std::string{got} == "UNSET drivetrain");
+    }
+    SUBCASE("absence is not written into the map: it is what the robot is WIRED to be") {
+        const cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+        const int absent[] = {3};
+        DegradedRobot degraded{c, absent, kin, worldConfig()};
+        char got[shulib::diag::kMaxPortMapBytes] = "";
+        degraded.robot.portMap(got, sizeof got);
+        char whole[shulib::diag::kMaxPortMapBytes] = "";
+        shulib::robot::writePortMap(c, whole, sizeof whole);
+        CHECK(std::string{got} == std::string{whole});
+    }
+}
+
+TEST_CASE("G1 2a builder A6: a 21-port side TRUNCATES — it never overflows, and it always "
+          "terminates") {
+    // BUG CAUGHT (the brief's mutation "drop the bound"): the generator writing past the 96-byte
+    // session-header field. The destination is a larger buffer painted with a canary, and the
+    // generator is told the field's size — so an overflow lands inside this test's own array
+    // and shows up as a bitten canary instead of as undefined behaviour.
+    //
+    // Two bounds exist and both are exercised. ONE 21-port side is capped at 39 characters (the
+    // side cap tankPortMapString() has), and the line still fits the field. BOTH sides at 21
+    // ports cannot fit, and the FIELD bound is what stops it — the one "drop the bound" breaks.
+    SUBCASE("one 21-port side: the SIDE is capped, and the line fits") {
+        const cfgns::RobotConfig wide = wideTankConfig(21, 1);
+        char buf[256];
+        std::memset(buf, '\xAB', sizeof buf);
+        shulib::robot::writePortMap(wide, buf, shulib::diag::kMaxPortMapBytes);
+        const std::string s{buf};
+        CAPTURE(s);
+        CHECK(s.rfind("MEASURED L +1 -2 +3 -4 +5", 0) == 0);
+        CHECK(s.substr(11, 39) == "+1 -2 +3 -4 +5 -6 +7 -8 +9 -10 +11 -12 ");
+        CHECK(s.substr(50, 5) == " R -1");
+        CHECK(s == "MEASURED L +1 -2 +3 -4 +5 -6 +7 -8 +9 -10 +11 -12  R -1 IMU10 ipr "
+                   "2.0000/2.0000 TW12.00");
+        for (std::size_t i = s.size() + 1; i < sizeof buf; ++i) {
+            CAPTURE(i);
+            CHECK(buf[i] == '\xAB');
+        }
+    }
+    SUBCASE("both sides at 21 ports: the FIELD bound stops it at 95 characters and a NUL") {
+        const cfgns::RobotConfig wide = wideTankConfig(21, 21);
+        char buf[256];
+        std::memset(buf, '\xAB', sizeof buf);
+        shulib::robot::writePortMap(wide, buf, shulib::diag::kMaxPortMapBytes);
+        CHECK(std::strlen(buf) == shulib::diag::kMaxPortMapBytes - 1);  // it filled the field…
+        for (std::size_t i = shulib::diag::kMaxPortMapBytes; i < sizeof buf; ++i) {
+            CAPTURE(i);
+            CHECK(buf[i] == '\xAB');                         // …and not one byte more
+        }
+        const std::string s{buf};
+        CHECK(s.substr(92) == " IM");  // cut mid-token, exactly where the field ends
+        char ref[shulib::diag::kMaxPortMapBytes] = "";
+        transcribedTankPortMapString(wide.drivetrain.tank.description, ref);
+        CHECK(s == std::string{ref});
+    }
+    SUBCASE("the degenerate caps: nothing through a null or a zero cap; a cap of 1 is \"\"") {
+        const cfgns::RobotConfig wide = wideTankConfig(21, 21);
+        char tiny[4] = {'x', 'y', 'z', '\0'};
+        shulib::robot::writePortMap(wide, tiny, 0);
+        CHECK(tiny[0] == 'x');
+        shulib::robot::writePortMap(wide, nullptr, 96);
+        shulib::robot::writePortMap(wide, tiny, 1);
+        CHECK(tiny[0] == '\0');
+        CHECK(tiny[1] == 'y');
+        char ten[16];
+        std::memset(ten, '\xAB', sizeof ten);
+        shulib::robot::writePortMap(wide, ten, 10);
+        CHECK(std::string{ten} == "MEASURED ");
+        CHECK(ten[10] == '\xAB');
+    }
+}
+
+// ═══ 2a. driveOdometry(): the panel's cross-check, without reaching into private members ═══
+TEST_CASE("G1 2a builder A7: driveOdometry() is the Localizer's drive-encoder odometry on a "
+          "drive-encoder tank, and nullptr otherwise") {
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    BuiltRobot tank{tankConfig(5, cfgns::OdometryKind::DriveEncoders), kin, worldConfig()};
+    const shulib::localization::DriveEncoderOdometry* odo = tank.robot.driveOdometry();
+    REQUIRE(odo != nullptr);
+    CHECK(odo->leftInchesPerRadian().value() == kPlantInchesPerRadian);
+    CHECK(odo->trackWidth().value() == kTrackWidth);
+    (void)runLeg(tank.robot.chassis(), tank.world.pacer, kStart, kTankTarget);
+    // It is the estimator the Localizer runs: its pose moved with the robot, and the same
+    // object is handed out every time.
+    CHECK(tank.robot.driveOdometry() == odo);
+    CHECK(odo->pose().x().value() != 0.0);
+
+    BuiltRobot pods{tankConfig(5, cfgns::OdometryKind::TrackingWheels), kin, worldConfig()};
+    CHECK(pods.robot.driveOdometry() == nullptr);
+    const shulib::kinematics::MatrixKinematics xkin =
+        shulib::kinematics::xDrive(Length{kDriveRadius});
+    BuiltRobot x{xdriveConfig(false), xkin, worldConfig()};
+    CHECK(x.robot.driveOdometry() == nullptr);
 }

@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 140 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 141 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -46,8 +46,10 @@
 > plant cannot settle, which is exactly why it is an entry. **R3d Part 2 added THREE more on
 > 2026-09-18 — HA-138/139/140, all reasoned** — and the same is true of them: the registry's
 > zero-indexing and fopen's `"rb"` are beliefs about PROS that only a brain can settle, and the CRC
-> note is a design decision recorded so the next person does not re-litigate it. The per-confidence
-> counts below predate all seventeen.)* **No *v2* robot exists**, and
+> note is a design decision recorded so the next person does not re-litigate it. **G1 Part 2a added
+> ONE more on 2026-09-24 — HA-141, reasoned:** that the registry's KIND answer is right for an IMU, a
+> rotation sensor and a GPS, which the on-robot device provider now refuses ports on. The
+> per-confidence counts below predate all eighteen.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -217,6 +219,7 @@
 | HA-138 | `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL PORT i+1, and indices run 0–20 | reasoned (vendored text) — and the ONE conversion lives in `hal/pros/device_registry.hpp` | R3d Part 3 |
 | HA-139 | `fopen(path, "rb")` under `/usd/` reads back the exact bytes `"wb"` wrote, byte for byte, on the brain's FatFS | reasoned, flagged — the host CANNOT test the mode (POSIX does not translate) | R3d Part 3 |
 | HA-140 | A CRC-32 over a 180-byte record is worth its 4 bytes and its microseconds on a V5, where the blackbox's own format deliberately carries none | reasoned (design note under HA-122) | R3d Part 3 |
+| HA-141 | The registry's KIND answer is right for an IMU, a rotation sensor and a GPS (not only for a motor): a port carrying one reads that kind, and an empty one reads NONE | reasoned (vendored enum) — the on-robot provider refuses a port on this answer ALONE for the three kinds whose adapters cannot fail loudly | G1 Part 2b's first boot / R3 |
 
 ---
 
@@ -918,10 +921,10 @@ by `src/chassis_table.hpp` (ports, signs, cartridge, IMU port, geometry) and the
 carry the facts about it as they are MEASURED, REPORTED or UNSET, each with its source and date.
 Nothing here is invented for the robot itself: the invented entries (HA-132/133, and HA-136/137
 added by R3d Part 1 on 2026-09-17) are the LIBRARY's thresholds and one SIM model shape, not the
-robot's dimensions. Seventeen entries now — four measured on robot two (HA-127/128/129/130), one
-reported (HA-124), two UNSET and refusing at boot (HA-125/126), six reasoned
-(HA-131/134/135/138/139/140), four invented (HA-132/133/136/137). The bench bot's rows above are
-not rewritten.
+robot's dimensions. Eighteen entries now — four measured on robot two (HA-127/128/129/130), one
+reported (HA-124), two UNSET and refusing at boot (HA-125/126), seven reasoned
+(HA-131/134/135/138/139/140/141), four invented (HA-132/133/136/137). The bench bot's rows above
+are not rewritten.
 
 **R3d Part 2 (2026-09-18) added HA-138, HA-139 and HA-140.** All three are about the PLATFORM
 rather than the robot — what PROS's registry means by a port, what newlib does with a binary file
@@ -1287,6 +1290,45 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   *Blast radius if wrong (the CRC is not worth it):* four wasted bytes. **If it were ABSENT:** a
   corrupt record drives a robot wrong, confidently, and the first symptom is a robot that will not
   drive straight. The asymmetry is the whole argument. **Contained:** one function, one format.
+
+**G1 Part 2a (2026-09-24) added HA-141.** Like HA-138 it is about the PLATFORM, and it is the
+belief the new on-robot device provider rests on: HA-138 says WHICH registry index is which port;
+this says the KIND the registry reports on that port can be trusted for the three sensor kinds.
+
+- [ ] **HA-141 — the registry's KIND answer is right for an IMU, a rotation sensor and a GPS, and
+  an empty port reads NONE.**
+  *Claim:* `registry_get_plugged_type()` on the index of a port carrying a V5 inertial sensor
+  returns `E_DEVICE_IMU` (6), on a rotation sensor `E_DEVICE_ROTATION` (4), on a GPS
+  `E_DEVICE_GPS` (20) — the same way it has been relied on to return `E_DEVICE_MOTOR` (2) for a motor
+  since R3d Part 2 — and on a port with nothing plugged in, `E_DEVICE_NONE` (0). False if any of the
+  three reports a different value, `E_DEVICE_UNDEFINED`, or NONE while plugged in (for example
+  while the sensor is still enumerating after power-up).
+  *Source:* `include/shulib/hal/pros/device_provider.hpp` (`ProsDeviceProvider::expectKind()`,
+  tagged `A4 register HA-141`), which asks before constructing ANY port device and refuses on any
+  other answer; the kind mapping is `hal/pros/device_registry.hpp`'s `kindOf()` over the vendored
+  `pros/device.h:48-63` values; host-tested through `test/pros_shim/pros/apix.h` by
+  `test/pros_device_provider_test.cpp` (cases 1b, 1c, 1k), which — like every shim test — tests the
+  provider against this belief and cannot test the belief.
+  *Confidence:* **reasoned** — the vendored enum names each kind, and for ONE of the three a census
+  has already agreed with the robot: robot two's census read the IMU on port 2 (2026-09-10, and again
+  2026-09-24), alongside MOTOR on its drive ports and the radio on port 1. **What is new is the
+  DEPENDENCE:** until this part only the
+  boot check read the registry, and only for motors. `ProsImu` and `ProsRotation` cannot throw and
+  `ProsGps` defers on an unreadable device, so for those three kinds the registry's answer is now the
+  ONLY thing that can refuse an empty or wrong port — which is why the belief gets its own entry.
+  No rotation sensor or GPS has ever been plugged into either robot.
+  *Settle (G1 Part 2b's first boot of "shulib Teleop" / R3):* boot the program built on the
+  provider with the IMU plugged in and see it construct (and calibrate); boot it once with the IMU
+  cable pulled and see the refusal name the IMU's port with "nothing plugged in (expected an IMU)".
+  When a rotation sensor or a GPS first exists on a robot, the same pair of boots for each. The
+  census beside the brain's own Devices screen (HA-138's settle step) reads the kinds at the same
+  time.
+  *Blast radius if wrong:* **refuses rather than lies.** A sensor the registry mis-kinds is REFUSED
+  at boot, by port, with what was found — a robot that will not start, on a bench, with the reason on
+  the screen; it cannot become a live adapter over an empty port (the failure this check exists to
+  prevent). The one silent variant would be the registry reporting the right kind for an EMPTY port,
+  which would put us back where the provider started — an adapter over nothing — and the IMU's own
+  `isReady()` never going true is then the only tell. **Contained:** one check, in one provider.
 
 ---
 

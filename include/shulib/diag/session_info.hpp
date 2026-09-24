@@ -21,7 +21,10 @@
 // Field notes:
 //   * portMap is CALLER-AUTHORED text at C5 ("L1,2,3 R4,5,6 IMU10"): the core HAL
 //     deliberately has no port numbers (fakes don't have ports), so the honest v1
-//     is a pass-through string; G1's RobotBuilder generates it from the profile.
+//     is a pass-through string. Since G1 Part 2a the builder GENERATES it from the
+//     robot's config — robot::Robot::portMap() / robot::writePortMap(), in the same
+//     text src/main.cpp's hand-built port maps print — though no program in src/ uses
+//     the generator yet (G1 Part 2b moves "shulib Teleop" onto it).
 //   * alliance/side are free text ("red"/"left"/"skills"); empty fields render as
 //     "-" so a blank never silently vanishes from a column.
 //   * battery start is READ, not caller-typed — a typed 12.6 that was actually
@@ -44,7 +47,7 @@ struct SessionInfo {
     std::string_view routineId{};  ///< e.g. "redLeftTall"
     std::string_view alliance{};   ///< "red" / "blue" / "skills"
     std::string_view side{};       ///< "left" / "right"
-    std::string_view portMap{};    ///< caller-authored at C5; G1 generates (header note)
+    std::string_view portMap{};    ///< caller-authored at C5; robot::Robot::portMap() generates it (header note)
 };
 
 /// Bounds for the header's caller-controlled fields (sanitized appends; the sink

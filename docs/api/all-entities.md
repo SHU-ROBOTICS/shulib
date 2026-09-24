@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,307 of them, across 145 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,339 of them, across 147 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -204,6 +204,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
+| `BuildOptions` | struct | [robot.md](robot.md#struct-buildoptions) |
+| `BuildOptions::absentDrivePorts` | field | [robot.md](robot.md#buildoptions-absentdriveports) |
+| `BuildOptions::isAbsent` | function | [robot.md](robot.md#buildoptions-isabsent) |
 | `BuildVerdict` | struct | [robot.md](robot.md#struct-buildverdict) |
 | `BuildVerdict::ok` | field | [robot.md](robot.md#buildverdict-ok) |
 | `BuildVerdict::why` | field | [robot.md](robot.md#buildverdict-why) |
@@ -547,6 +550,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
 | `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
+| `DriverLoopConfig` | struct | [teleop_loop.md](teleop_loop.md#struct-driverloopconfig) |
+| `DriverLoopConfig::rezeroButton` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-rezerobutton) |
+| `DriverLoopConfig::tickPeriod` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-tickperiod) |
 | `DriverProfile` | struct | [input_shaping.md](input_shaping.md#struct-driverprofile) |
 | `DriverProfile::forward` | field | [input_shaping.md](input_shaping.md#driverprofile-forward) |
 | `DriverProfile::left` | field | [input_shaping.md](input_shaping.md#driverprofile-left) |
@@ -870,6 +876,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HeadingMode::Fixed` | enumerator | [route.md](route.md#headingmode-fixed) |
 | `HeadingMode::Free` | enumerator | [route.md](route.md#headingmode-free) |
 | `headingModeWord` | free function | [route.md](route.md#headingmodeword) |
+| `HeadingSample` | struct | [teleop_loop.md](teleop_loop.md#struct-headingsample) |
+| `HeadingSample::radians` | field | [teleop_loop.md](teleop_loop.md#headingsample-radians) |
+| `HeadingSample::trusted` | field | [teleop_loop.md](teleop_loop.md#headingsample-trusted) |
 | `HealthMonitor` | class | [health_monitor.md](health_monitor.md#class-healthmonitor) |
 | `HealthMonitor::brownedOut` | function | [health_monitor.md](health_monitor.md#healthmonitor-brownedout) |
 | `HealthMonitor::HealthMonitor` | function | [health_monitor.md](health_monitor.md#healthmonitor-healthmonitor) |
@@ -1791,6 +1800,25 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsController::isConnected` | function | [pros-controller.md](pros-controller.md#proscontroller-isconnected) |
 | `ProsController::pressed` | function | [pros-controller.md](pros-controller.md#proscontroller-pressed) |
 | `ProsController::ProsController` | function | [pros-controller.md](pros-controller.md#proscontroller-proscontroller) |
+| `ProsDeviceProvider` | class | [pros-device_provider.md](pros-device_provider.md#class-prosdeviceprovider) |
+| `ProsDeviceProvider::battery` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-battery) |
+| `ProsDeviceProvider::clock` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-clock) |
+| `ProsDeviceProvider::gps` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-gps) |
+| `ProsDeviceProvider::imu` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-imu) |
+| `ProsDeviceProvider::kRefusalBytes` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-krefusalbytes) |
+| `ProsDeviceProvider::kSlots` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-kslots) |
+| `ProsDeviceProvider::lastRefusal` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-lastrefusal) |
+| `ProsDeviceProvider::motor` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-motor) |
+| `ProsDeviceProvider::operator=` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-operator-eq) |
+| `ProsDeviceProvider::operator= (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-operator-eq-2) |
+| `ProsDeviceProvider::pacer` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-pacer) |
+| `ProsDeviceProvider::ProsDeviceProvider` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-2) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 3)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-3) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 4)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-4) |
+| `ProsDeviceProvider::rotation` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-rotation) |
+| `ProsDeviceProvider::telemetry` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-telemetry) |
+| `ProsDeviceProvider::~ProsDeviceProvider` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-destructor-prosdeviceprovider) |
 | `ProsDeviceRegistry` | class | [pros-device_registry.md](pros-device_registry.md#class-prosdeviceregistry) |
 | `ProsDeviceRegistry::kindOf` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-kindof) |
 | `ProsDeviceRegistry::pluggedKind` | function | [pros-device_registry.md](pros-device_registry.md#prosdeviceregistry-pluggedkind) |
@@ -1909,6 +1937,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot::context` | function | [robot.md](robot.md#robot-context) |
 | `Robot::context (overload 2)` | function | [robot.md](robot.md#robot-context-2) |
 | `Robot::describe` | function | [robot.md](robot.md#robot-describe) |
+| `Robot::driveOdometry` | function | [robot.md](robot.md#robot-driveodometry) |
 | `Robot::faults` | function | [robot.md](robot.md#robot-faults) |
 | `Robot::faults (overload 2)` | function | [robot.md](robot.md#robot-faults-2) |
 | `Robot::hasGpsCorrector` | function | [robot.md](robot.md#robot-hasgpscorrector) |
@@ -1919,6 +1948,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot::motorGroupCount` | function | [robot.md](robot.md#robot-motorgroupcount) |
 | `Robot::operator=` | function | [robot.md](robot.md#robot-operator-eq) |
 | `Robot::operator= (overload 2)` | function | [robot.md](robot.md#robot-operator-eq-2) |
+| `Robot::portMap` | function | [robot.md](robot.md#robot-portmap) |
 | `Robot::Robot` | function | [robot.md](robot.md#robot-robot) |
 | `Robot::Robot (overload 2)` | function | [robot.md](robot.md#robot-robot-2) |
 | `Robot::Robot (overload 3)` | function | [robot.md](robot.md#robot-robot-3) |
@@ -2007,6 +2037,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RoutineStopCause::MotionFailed` | enumerator | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | enumerator | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | enumerator | [routine.md](routine.md#routinestopcause-waittimedout) |
+| `runDriverControl` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol) |
 | `RunGuard` | class | [run_guard.md](run_guard.md#class-runguard) |
 | `RunGuard::expired` | function | [run_guard.md](run_guard.md#runguard-expired) |
 | `RunGuard::operator=` | function | [run_guard.md](run_guard.md#runguard-operator-eq) |
@@ -2413,6 +2444,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
 | `writeManifest` | free function | [manifest.md](manifest.md#writemanifest) |
 | `writeManifestEntry` | free function | [manifest.md](manifest.md#writemanifestentry) |
+| `writePortMap` | free function | [robot.md](robot.md#writeportmap) |
 
 ## X
 

@@ -154,8 +154,9 @@ public:
     [[nodiscard]] constexpr const DriveShaperState& state() const noexcept { return state_; }
 
     /// "The way the robot is facing now is away from me" — the driver's field-centric button.
-    /// Sets the zero and clears the fallback latch (field_centric.hpp::rezero). Harmless in a
-    /// body-frame mode, where it simply pre-arms the zero for a later mode switch.
+    /// Sets the zero and clears the fallback latch (field_centric.hpp::rezero) — except on a
+    /// heading that is not a finite number, which keeps the old zero and SETS the latch instead.
+    /// Harmless in a body-frame mode, where it simply pre-arms the zero for a later mode switch.
     constexpr void rezero(double headingRadians) noexcept {
         fieldCentric_.rezero(headingRadians);
     }

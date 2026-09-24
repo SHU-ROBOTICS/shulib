@@ -15,7 +15,9 @@
 // is the only file that knows what a port is:
 //
 //     host tests   hal::fake::FakeDeviceProvider   — fakes from fixed storage, plant-bindable
-//     the robot    hal::pros::ProsDeviceProvider   — one std::optional per port  (G1 PART 2)
+//     the robot    hal::pros::ProsDeviceProvider   — one std::optional per port (G1 Part 2a;
+//                                                    host-tested through the PROS shim, not
+//                                                    yet used by any program in src/)
 //     the sim      whatever hal/sim ends up being  — H2's
 //
 // Because the seam is a reference and the PROVIDER holds the storage, the same
@@ -23,13 +25,21 @@
 // above hal/pros — which is the F4 principle applied to CONSTRUCTION rather than to reads.
 //
 // ── A device that cannot be made returns NULLPTR, and says which port ───────────────
-// On the V5 every adapter's constructor throws on a dead port (HA-98's read-back). A
-// builder cannot let that throw propagate per device, because "port 13 is empty" is the most
-// common thing that will ever go wrong with a robot and it deserves a sentence, not a stack
-// unwind. So the provider catches per device, returns nullptr, and records WHY in
-// lastRefusal(). The builder turns that into a refusal naming the port — never a fake in a
-// competition binary, never a null in the graph (landmine 5: absent is EXPLICIT, and it is
-// spelled `hal::AbsentGps`, not `nullptr`).
+// "Port 13 is empty" is the most common thing that will ever go wrong with a robot, and it
+// deserves a sentence, not a stack unwind. So a provider that cannot make a device returns
+// nullptr and records WHY in lastRefusal(), naming the port; the builder turns that into a
+// refusal before any object exists — never a fake in a competition binary, never an unplanned
+// null in the graph (landmine 5: absent is EXPLICIT, and it is spelled `hal::AbsentGps`, not
+// `nullptr`).
+//
+// On the V5, HOW a dead port is found is not uniform, and this paragraph used to get it wrong
+// (it said every adapter's constructor throws on a dead port — corrected at G1 Part 2a, after the
+// 2026-09-24 audit measured otherwise). Only ProsMotor fails loudly, through its HA-98 read-back;
+// ProsImu's and ProsRotation's constructors cannot throw at all, and ProsGps DEFERS its check on a
+// device it cannot read. So hal::pros::ProsDeviceProvider asks the brain's port REGISTRY what is
+// plugged in before it constructs anything (A4 register HA-141), refuses an empty or wrong-kind
+// port on that answer, and ALSO catches an adapter's throw per device (a motor that answers the
+// registry but rejects its configuration). Both checks name the port.
 //
 // ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
 // Asking twice for the same port must return the SAME object. The graph borrows these

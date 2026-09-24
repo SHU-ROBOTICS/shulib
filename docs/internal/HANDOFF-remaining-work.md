@@ -53,7 +53,8 @@
   tools/src_build_gate.py self-test && check` (**six** builds: `bench`, `xdrive`, `tank`,
   `tank-drive`, `tank-library`, `tank-calibrate`); the ARM header gate (181 headers); the two CI
   greps; `python3 tools/api_doc_tool.py check-removability`.
-- **Open chunks** (a `-PROGRESS.md` with no `-COMPLETED.md`): **G1** (Part 1 landed; Part 2 briefed),
+- **Open chunks** (a `-PROGRESS.md` with no `-COMPLETED.md`): **G1** (Part 1 landed; Part 2 briefed
+  in three parts — Part 2a landed 2026-09-24, host-only; 2b and 2c open),
   **R3a** (bench measurements; its DoD's register groups are unsettled), **R3b** (host pieces landed;
   closes on an on-robot auton), **R3d** (Parts 1–2 landed; Part 3 is the bench session), **T2**
   (library half landed; `src/` wiring is in G1 Part 2, and `T2-COMPLETED.md` is owed at the end).
@@ -225,19 +226,22 @@ blackbox + reader, fault latch, health monitor, loop monitor. Mechanisms: `hal/m
 (`IMechanism`, `MotorMechanism`, `PneumaticMechanism`), `manipulation/mechanism_op.hpp`
 (`RunUntilConfirmed`, `ActuateAndConfirm`) and `manipulation/stall_detector.hpp` (`StallDetector`) —
 **seam only, F11 unfrozen, never on hardware.** Sequencing: `sequence/run_guard.hpp` (`RunGuard`, the
-guaranteed end-of-run action; F12 unfrozen). Adapters (`hal/pros/`, 17 headers): motor, IMU, GPS,
+guaranteed end-of-run action; F12 unfrozen). Adapters (`hal/pros/`, 18 headers): motor, IMU, GPS,
 rotation, distance, optical, digital in/out, controller, battery, clock, char sink, block sink +
-source (SD), line display, tick pacer, device registry — **no AI Vision adapter.** Drivetrain:
+source (SD), line display, tick pacer, device registry, and (G1 Part 2a, 2026-09-24) the device
+provider `ProsDeviceProvider` — **no AI Vision adapter.** Drivetrain:
 `hal::MotorGroup` (median reads, ABSENT members), `hal::DriveGeometry`, `hal::DrivetrainDescription`.
 Calibration: `calibration/drivetrain_calibrator.hpp`, `calibration_record.hpp` (180-byte, CRC-32),
 `boot_check.hpp`. Driver control: `teleop/stick_mapping.hpp` (raw, used by shulib Drive),
 `coupled_side_monitor.hpp`, `drivetrain_degradation.hpp`, and T2's `input_shaping.hpp`,
-`slew_limiter.hpp`, `drive_modes.hpp`, `field_centric.hpp`, `driver_control.hpp` (**not wired into
-any program yet**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
+`slew_limiter.hpp`, `drive_modes.hpp`, `field_centric.hpp`, `driver_control.hpp`, and (G1 Part 2a)
+`teleop_loop.hpp` — `runDriverControl`, the loop over them (**none of it wired into any program
+yet**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
 constructs a mechanism from it yet**), `config/route.hpp` (**F8 frozen**; `Waypoint::reverse` exists),
 `hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, clock, battery, telemetry,
 pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot::validate` +
-`robot::Robot`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
+`robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
+`portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
 Programs in `src/` (six builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
 the measuring tool; `src/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
@@ -261,7 +265,10 @@ is given in brackets; `NEW` marks work the plan has no entry for — **add an en
 ### Part L — library code, done on the laptop (host-proven, build-gated; no robot needed)
 
 **L1. [G1 Part 2 + T2's wiring] The PROS device provider, the library teleop loop, `main.cpp` as a
-dispatcher.** — **BRIEF REVISED 2026-09-24 INTO PARTS 2a / 2b / 2c; PART 2a WAITS FOR JAL'S GO:**
+dispatcher.** — **BRIEF REVISED 2026-09-24 INTO PARTS 2a / 2b / 2c. PART 2a LANDED 2026-09-24,
+HOST-ONLY** (jal's go that morning; `G1-PROGRESS.md` "Part 2a"); **2b and 2c each wait for his go.**
+*(This line read "PART 2a WAITS FOR JAL'S GO" until 2a landed; the paragraph below is kept as it was
+written before the go.)*
 `docs/internal/chunks/G1-part2-pros-provider-and-main.md`. jal approved the direction ("we haven't
 tested teleop before so we might as well rewrite") but has NOT said go. The 2026-09-24 audit found
 four defects that would make an executor fail: `Robot`'s constructor re-runs `validate()` without
@@ -545,9 +552,9 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
 
 ## 7. The recommended order
 
-1. **The G1 Part 2 brief was revised and committed on 2026-09-24** (three parts). Show jal Part 2a's
-   scope and documentation list and **wait for his go (L1).** On go, launch the executor per §3,
-   verify, commit — then 2b, then 2c, each with its own go.
+1. **The G1 Part 2 brief was revised and committed on 2026-09-24** (three parts). **Part 2a landed
+   the same day** (host-only). Show jal Part 2b's scope and documentation list and **wait for his go
+   (L1).** On go, launch the executor per §3, verify, commit — then 2c, with its own go.
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).
    Nothing is worth more. It needs nothing from L1.
 3. Brief → go → build, one at a time: **L2** (it is also what lets R3b/M1 close), **L3**, **L6**,

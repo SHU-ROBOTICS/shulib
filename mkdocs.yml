@@ -272,6 +272,7 @@ nav:
           - Char sink (PROS): api/pros-char_sink.md
           - Clock (PROS): api/pros-clock.md
           - Controller (PROS): api/pros-controller.md
+          - Device provider (PROS): api/pros-device_provider.md
           - Device registry (PROS): api/pros-device_registry.md
           - Digital in (PROS): api/pros-digital_in.md
           - Digital out (PROS): api/pros-digital_out.md
@@ -311,6 +312,7 @@ nav:
           - Input shaping: api/input_shaping.md
           - Slew limiter: api/slew_limiter.md
           - Stick mapping: api/stick_mapping.md
+          - Teleop loop: api/teleop_loop.md
 # END GENERATED API NAV
 
   - FAQ: faq.md

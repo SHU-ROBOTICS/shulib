@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,307 of them across 145 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 2,339 of them across 147 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -198,6 +198,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Char sink (PROS)](pros-char_sink.md) | [`hal/pros/char_sink.hpp`](../../include/shulib/hal/pros/char_sink.hpp) | ProsCharSink — ICharSink over the V5's USB serial (chunk R1a): where TermSink's diagnostic bytes physically go on the robot (`pros terminal` displays them). |
 | [Clock (PROS)](pros-clock.md) | [`hal/pros/clock.hpp`](../../include/shulib/hal/pros/clock.hpp) | ProsClock — IClock over the V5's real time. |
 | [Controller (PROS)](pros-controller.md) | [`hal/pros/controller.hpp`](../../include/shulib/hal/pros/controller.hpp) | ProsController — IController over pros::Controller (chunk R1a): the driver's hands behind the HAL. |
+| [Device provider (PROS)](pros-device_provider.md) | [`hal/pros/device_provider.hpp`](../../include/shulib/hal/pros/device_provider.hpp) | ProsDeviceProvider — hal::IDeviceProvider over the real V5 adapters. |
 | [Device registry (PROS)](pros-device_registry.md) | [`hal/pros/device_registry.hpp`](../../include/shulib/hal/pros/device_registry.hpp) | ProsDeviceRegistry — IDeviceRegistry over PROS's smart-port registry. |
 | [Digital in (PROS)](pros-digital_in.md) | [`hal/pros/digital_in.hpp`](../../include/shulib/hal/pros/digital_in.hpp) | ProsDigitalIn — IDigitalIn over pros::adi::DigitalIn (chunk R1b): a limit switch / bumper line behind the HAL. |
 | [Digital out (PROS)](pros-digital_out.md) | [`hal/pros/digital_out.hpp`](../../include/shulib/hal/pros/digital_out.hpp) | ProsDigitalOut — IDigitalOut over pros::adi::DigitalOut (chunk R1b): the pneumatic solenoid line behind the HAL (F1's seam, finally on hardware). |
@@ -269,10 +270,11 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Input shaping](input_shaping.md) | [`teleop/input_shaping.hpp`](../../include/shulib/teleop/input_shaping.hpp) | Input shaping — what a driver's raw stick deflection becomes before it is a command. |
 | [Slew limiter](slew_limiter.md) | [`teleop/slew_limiter.hpp`](../../include/shulib/teleop/slew_limiter.hpp) | SlewLimiter — the optional rate limit on ONE driver axis. |
 | [Stick mapping](stick_mapping.md) | [`teleop/stick_mapping.hpp`](../../include/shulib/teleop/stick_mapping.hpp) | Teleop stick mapping — the ONE place a driver's sticks become a body-frame drive request (chunk R3b, Session 2), and the DriveRequest/StickInput vocabulary the whole feel layer is written in. |
+| [Teleop loop](teleop_loop.md) | [`teleop/teleop_loop.hpp`](../../include/shulib/teleop/teleop_loop.hpp) | runDriverControl — the library's driver-control loop. |
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,307 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 2,339 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

@@ -4,9 +4,10 @@
 //
 // ── What it is for ──────────────────────────────────────────────────────────────────
 // robot::Robot asks a provider for devices by port. On the V5 that provider constructs
-// hal/pros adapters (G1 Part 2). On the host it is this: fixed storage of F4 fakes, indexed
-// by physical port, handed out on demand — so the SAME builder, the same graph and the same
-// construction order are exercised off-robot, at laptop speed, with no PROS anywhere.
+// hal/pros adapters (hal::pros::ProsDeviceProvider, G1 Part 2a). On the host it is this: fixed
+// storage of F4 fakes, indexed by physical port, handed out on demand — so the SAME builder, the
+// same graph and the same construction order are exercised off-robot, at laptop speed, with no
+// PROS anywhere.
 //
 // ── The plant-attachment hooks, and why BINDING is one of them ──────────────────────
 // A host test does not want a graph over inert fakes; it wants a graph over the A2 plant, so
@@ -31,15 +32,21 @@
 //
 // A bound device is BORROWED: the caller owns it and it must outlive the provider. Ruling
 // B2 ("the provider owns them") is about the BUILDER never owning hardware; on the robot
-// ProsDeviceProvider will own every device it makes, and here the SimHarness — which
-// outlives the Robot in every test — owns the bound ones.
+// ProsDeviceProvider owns every device it makes, and here the SimHarness — which outlives the
+// Robot in every test — owns the bound ones.
 //
 // ── refusePort(), so refusal is testable ────────────────────────────────────────────
 // The most common thing that will ever go wrong with a robot is an empty or dead port, and
 // the builder's answer to it (a verdict naming the port, before a single object exists) is
 // the part of G1 that most needs a test. refusePort(13) makes this provider answer nullptr
-// for anything on port 13, with a refusal string that names it — the host stand-in for a
-// ProsMotor constructor throwing on a port with nothing in it.
+// for anything on port 13, with a refusal string that names it — the host stand-in for the real
+// provider refusing a port (ProsDeviceProvider refuses an EMPTY or wrong-kind port on the
+// registry's answer, and a motor whose read-back fails on the adapter's throw).
+//
+// ── motorRequestCount(), so "never asked for" is testable (G1 Part 2a) ─────────────
+// A port the boot check reported dead is handed to the builder as ABSENT and must never be
+// requested. motorRequested() cannot prove that — it is set only when a request is SERVED — so
+// every motor() call is also COUNTED per port, refused or not.
 //
 // ── SIM-FREE, on purpose ────────────────────────────────────────────────────────────
 // Nothing in this file includes shulib/sim/, and the CI layering guard enforces that. The
@@ -138,10 +145,18 @@ public:
 
     // ── what was ASKED FOR, so a test can prove the builder passed the config through ──
 
-    /// Whether `motor()` has been called for `port` — the evidence that the builder asked for
-    /// exactly the ports the config names, and no others.
+    /// Whether `motor()` has been called for `port` AND served it — the evidence that the builder
+    /// asked for exactly the ports the config names, and no others. A REFUSED request does not
+    /// set it; `motorRequestCount()` counts those too.
     [[nodiscard]] bool motorRequested(std::uint8_t port) const {
         return motorRequested_[checkedIndex(port)];
+    }
+    /// How many times `motor()` has been called for physical `port`, SERVED OR REFUSED (G1 Part
+    /// 2a). This is the only way to prove a port was never ASKED for: `motorRequested()` stays
+    /// false for a refused port, so a builder that asked for an absent port, got a refusal and
+    /// ignored it would look innocent to it. Counted by |signedPort| before any refusal check.
+    [[nodiscard]] int motorRequestCount(std::uint8_t port) const {
+        return motorRequests_[checkedIndex(port)];
     }
     /// The cartridge the last `motor()` call for `port` passed. The byte 0 if never asked. This
     /// is how a test proves the human-stated, unverifiable cartridge reached the adapter rather
@@ -174,6 +189,9 @@ public:
     /// the storage is fixed, so the same port always yields the same address.
     [[nodiscard]] IMotor* motor(std::int8_t signedPort, MotorCartridge cartridge) override {
         const int port = DrivetrainDescription::portMagnitude(signedPort);
+        if (port >= 1 && port <= static_cast<int>(kMaxSmartPorts)) {
+            ++motorRequests_[static_cast<std::size_t>(port)];  // counted BEFORE any refusal
+        }
         if (!servable(port, "motor")) {
             return nullptr;
         }
@@ -273,6 +291,7 @@ private:
 
     bool refused_[kSlots]{};
     bool motorRequested_[kSlots]{};
+    int motorRequests_[kSlots]{};
     MotorCartridge cartridges_[kSlots]{};
     std::int8_t signedPorts_[kSlots]{};
     units::Length leverForward_[kSlots]{};

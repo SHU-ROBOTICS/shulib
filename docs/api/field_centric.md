@@ -175,9 +175,9 @@ A field-centric mapper with zero at heading 0 and the fallback latch CLEARED. Th
 constexpr void rezero(double headingRadians) noexcept
 ```
 
-"The way I am facing now is away from me" — the driver's button. Records `headingRadians` as the new zero and CLEARS the fallback latch, which is the only thing that clears it.  It does NOT check whether that heading is trustworthy, and it takes no trust argument: the driver is asserting a frame, and the very next `request()` re-latches the fallback if the heading is still untrusted. Refusing the press outright would leave the driver pressing a dead button with no way to tell why; re-latching one tick later says the same thing through the indication that is already on the panel.  Nothing is tared and no estimate moves (HA-05) — the zero lives here.
+"The way I am facing now is away from me" — the driver's button. Records `headingRadians` as the new zero and CLEARS the fallback latch, which is the only thing that clears it.  It does NOT check whether that heading is trustworthy, and it takes no trust argument: the driver is asserting a frame, and the very next `request()` re-latches the fallback if the heading is still untrusted. Refusing the press outright would leave the driver pressing a dead button with no way to tell why; re-latching one tick later says the same thing through the indication that is already on the panel.  Nothing is tared and no estimate moves (HA-05) — the zero lives here.  ONE EXCEPTION (G1 Part 2a, found while wiring this to a button): a heading that is NOT A FINITE NUMBER is not stored. It would become a NaN zero, and every later trusted tick would rotate by `heading − NaN` — a NaN request that `Chassis::drive` rejects by precondition, long after the press, with nothing on the panel to explain it. Instead the previous zero is kept and the fallback latch is SET, so the controls stay robot-centric and the panel says `LatchedUntilRezero` until the driver presses again on a real heading. (`request()` already treats a non-finite heading as untrusted; this closes the one path that let such a heading outlive its tick.)
 
-*function, declared at [`include/shulib/teleop/field_centric.hpp:115`](../../include/shulib/teleop/field_centric.hpp#L115).*
+*function, declared at [`include/shulib/teleop/field_centric.hpp:124`](../../include/shulib/teleop/field_centric.hpp#L124).*
 
 <a id="fieldcentric-zeroradians"></a>
 
@@ -189,7 +189,7 @@ constexpr void rezero(double headingRadians) noexcept
 
 The driver's zero, in radians, as last set by `rezero()` (0 until then).
 
-*function, declared at [`include/shulib/teleop/field_centric.hpp:121`](../../include/shulib/teleop/field_centric.hpp#L121).*
+*function, declared at [`include/shulib/teleop/field_centric.hpp:136`](../../include/shulib/teleop/field_centric.hpp#L136).*
 
 <a id="fieldcentric-fellback"></a>
 
@@ -201,7 +201,7 @@ The driver's zero, in radians, as last set by `rezero()` (0 until then).
 
 True while the fallback latch is engaged. Cleared only by `rezero()`.
 
-*function, declared at [`include/shulib/teleop/field_centric.hpp:124`](../../include/shulib/teleop/field_centric.hpp#L124).*
+*function, declared at [`include/shulib/teleop/field_centric.hpp:139`](../../include/shulib/teleop/field_centric.hpp#L139).*
 
 <a id="fieldcentric-reset"></a>
 
@@ -213,7 +213,7 @@ constexpr void reset() noexcept
 
 Forget everything: zero back to 0 and the latch cleared. For a program handing control between drivers or restarting teleop, not for anything a match does.
 
-*function, declared at [`include/shulib/teleop/field_centric.hpp:128`](../../include/shulib/teleop/field_centric.hpp#L128).*
+*function, declared at [`include/shulib/teleop/field_centric.hpp:143`](../../include/shulib/teleop/field_centric.hpp#L143).*
 
 <a id="fieldcentric-request"></a>
 
@@ -225,7 +225,7 @@ Forget everything: zero back to 0 and the latch cleared. For a program handing c
 
 Rotate a SHAPED body-frame request out of the driver's frame into the robot's, or fall back honestly.  `shapedBody` is the request as the mode mapping and the shaping produced it: its `forward`/`left` pair is read as the driver's stick vector in the DRIVER's frame, and `yawCcw` is frame-invariant and is copied through untouched.  `headingRadians` is the robot's ESTIMATED heading, CCW-positive, in the same frame the driver's zero was captured in. `headingTrusted` is the caller's verdict on it — the estimate is live (past the boot window) and no IMU_LOST fault is latched.  Rotates by MINUS `(heading - zero)`: a robot turned CCW from the driver's zero must move CW in its own frame to keep going the way the driver pushed. This is the same R(-θ) the frozen `math::fieldToRobot` applies, re-derived here on plain doubles so that this file stays free of Angle's non-finite precondition and of the velocity types.  FALLS BACK when `headingTrusted` is false OR the heading is not a finite number: the request is returned unrotated, `fellBack` is set, and it LATCHES — subsequent trusted ticks keep falling back, reporting `LatchedUntilRezero`, until the driver re-zeroes. A non-finite heading is treated as untrusted rather than propagated because "trusted" is exactly the claim such a number fails; propagating it would turn the whole request into NaN and surface as a precondition abort inside `Chassis::drive` with nothing on the panel to explain it.
 
-*function, declared at [`include/shulib/teleop/field_centric.hpp:165`](../../include/shulib/teleop/field_centric.hpp#L165).*
+*function, declared at [`include/shulib/teleop/field_centric.hpp:180`](../../include/shulib/teleop/field_centric.hpp#L180).*
 
 <a id="fieldcentric-state"></a>
 
@@ -237,7 +237,7 @@ Rotate a SHAPED body-frame request out of the driver's frame into the robot's, o
 
 The indication with no tick run — what a panel shows when the mode is not selected, or between ticks. `active` is never true here: it is a property of a tick, not of the object.
 
-*function, declared at [`include/shulib/teleop/field_centric.hpp:193`](../../include/shulib/teleop/field_centric.hpp#L193).*
+*function, declared at [`include/shulib/teleop/field_centric.hpp:208`](../../include/shulib/teleop/field_centric.hpp#L208).*
 
 <a id="struct-fieldcentric-result"></a>
 
@@ -249,7 +249,7 @@ struct Result
 
 What `request()` returns: the body-frame request to command, and what to show about it.
 
-*struct, declared at [`include/shulib/teleop/field_centric.hpp:134`](../../include/shulib/teleop/field_centric.hpp#L134).*
+*struct, declared at [`include/shulib/teleop/field_centric.hpp:149`](../../include/shulib/teleop/field_centric.hpp#L149).*
 
 <a id="fieldcentric-result-request"></a>
 
@@ -261,7 +261,7 @@ DriveRequest request{}
 
 The request to hand to the drivetrain, always in the ROBOT's frame — rotated when field-centric is active, passed through untouched when it is not.
 
-*field, declared at [`include/shulib/teleop/field_centric.hpp:137`](../../include/shulib/teleop/field_centric.hpp#L137).*
+*field, declared at [`include/shulib/teleop/field_centric.hpp:152`](../../include/shulib/teleop/field_centric.hpp#L152).*
 
 <a id="fieldcentric-result-state"></a>
 
@@ -273,7 +273,7 @@ FieldCentricState state{}
 
 The indication (see FieldCentricState).
 
-*field, declared at [`include/shulib/teleop/field_centric.hpp:139`](../../include/shulib/teleop/field_centric.hpp#L139).*
+*field, declared at [`include/shulib/teleop/field_centric.hpp:154`](../../include/shulib/teleop/field_centric.hpp#L154).*
 
 ## Design commentary, from the header
 

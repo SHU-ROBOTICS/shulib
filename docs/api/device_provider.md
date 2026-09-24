@@ -41,7 +41,7 @@ class IDeviceProvider
 
 Devices by port, made or looked up on demand and owned by the provider (ruling B2).  The per-port accessors are NOT const: obtaining a device may construct one, and the provider is the object that then owns it. They are also not `noexcept` by declaration — an implementation is free to be, and both shipped ones are — because refusing to construct is spelled as a nullptr return rather than as an exception, and pinning `noexcept` on the interface would forbid an implementation that legitimately allocates its storage lazily.
 
-*class, declared at [`include/shulib/hal/device_provider.hpp:78`](../../include/shulib/hal/device_provider.hpp#L78).*
+*class, declared at [`include/shulib/hal/device_provider.hpp:88`](../../include/shulib/hal/device_provider.hpp#L88).*
 
 <a id="ideviceprovider-destructor-ideviceprovider"></a>
 
@@ -53,7 +53,7 @@ virtual ~IDeviceProvider() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at).
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:85`](../../include/shulib/hal/device_provider.hpp#L85).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:95`](../../include/shulib/hal/device_provider.hpp#L95).*
 
 <a id="ideviceprovider-ideviceprovider"></a>
 
@@ -65,7 +65,7 @@ IDeviceProvider() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:87`](../../include/shulib/hal/device_provider.hpp#L87).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:97`](../../include/shulib/hal/device_provider.hpp#L97).*
 
 <a id="ideviceprovider-ideviceprovider-2"></a>
 
@@ -77,7 +77,7 @@ IDeviceProvider(const IDeviceProvider&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:89`](../../include/shulib/hal/device_provider.hpp#L89).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:99`](../../include/shulib/hal/device_provider.hpp#L99).*
 
 <a id="ideviceprovider-ideviceprovider-3"></a>
 
@@ -89,7 +89,7 @@ IDeviceProvider(IDeviceProvider&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:91`](../../include/shulib/hal/device_provider.hpp#L91).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:101`](../../include/shulib/hal/device_provider.hpp#L101).*
 
 <a id="ideviceprovider-operator-eq"></a>
 
@@ -101,7 +101,7 @@ IDeviceProvider& operator=(const IDeviceProvider&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:93`](../../include/shulib/hal/device_provider.hpp#L93).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:103`](../../include/shulib/hal/device_provider.hpp#L103).*
 
 <a id="ideviceprovider-operator-eq-2"></a>
 
@@ -113,7 +113,7 @@ IDeviceProvider& operator=(IDeviceProvider&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:95`](../../include/shulib/hal/device_provider.hpp#L95).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:105`](../../include/shulib/hal/device_provider.hpp#L105).*
 
 <a id="ideviceprovider-motor"></a>
 
@@ -125,7 +125,7 @@ Polymorphic-base boilerplate: the destructor is virtual so a provider held as `I
 
 The motor on `signedPort` — |p| in 1..kMaxSmartPorts, SIGN = the PROS reversal, handed over AS STORED so the sign is applied exactly once, in the adapter (the one-place-for-a- sign rule that hal/motor_group.hpp and hal/drivetrain_description.hpp both state). `cartridge` is the human-stated gearset. Returns nullptr and sets lastRefusal() when the port is out of range, empty, or carries something that is not a motor. Idempotent: the same port yields the same object.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:103`](../../include/shulib/hal/device_provider.hpp#L103).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:113`](../../include/shulib/hal/device_provider.hpp#L113).*
 
 <a id="ideviceprovider-imu"></a>
 
@@ -137,7 +137,7 @@ The motor on `signedPort` — |p| in 1..kMaxSmartPorts, SIGN = the PROS reversal
 
 The inertial sensor on physical `port`, 1..kMaxSmartPorts. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:107`](../../include/shulib/hal/device_provider.hpp#L107).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:117`](../../include/shulib/hal/device_provider.hpp#L117).*
 
 <a id="ideviceprovider-gps"></a>
 
@@ -149,7 +149,7 @@ The inertial sensor on physical `port`, 1..kMaxSmartPorts. Returns nullptr + a r
 
 The GPS on physical `port`, with its lever arm from the robot centre (`leverArmForward` is the +X body coordinate, `leverArmLeft` the +Y). The lever arm is a CONSTRUCTION argument rather than a later setter because the adapter removes it at the HAL edge, once, and a GPS that has already been read with the wrong arm has already lied. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:114`](../../include/shulib/hal/device_provider.hpp#L114).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:124`](../../include/shulib/hal/device_provider.hpp#L124).*
 
 <a id="ideviceprovider-rotation"></a>
 
@@ -161,7 +161,7 @@ The GPS on physical `port`, with its lever arm from the robot centre (`leverArmF
 
 The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's encoder. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:119`](../../include/shulib/hal/device_provider.hpp#L119).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:129`](../../include/shulib/hal/device_provider.hpp#L129).*
 
 <a id="ideviceprovider-clock"></a>
 
@@ -173,7 +173,7 @@ The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's
 
 The run's clock. PORT-LESS and never refused: every target has one, and a robot without a clock cannot report that it has no clock.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:123`](../../include/shulib/hal/device_provider.hpp#L123).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:133`](../../include/shulib/hal/device_provider.hpp#L133).*
 
 <a id="ideviceprovider-battery"></a>
 
@@ -185,7 +185,7 @@ The run's clock. PORT-LESS and never refused: every target has one, and a robot 
 
 The battery. Port-less and never refused, same reasoning as the clock.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:126`](../../include/shulib/hal/device_provider.hpp#L126).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:136`](../../include/shulib/hal/device_provider.hpp#L136).*
 
 <a id="ideviceprovider-telemetry"></a>
 
@@ -197,7 +197,7 @@ The battery. Port-less and never refused, same reasoning as the clock.
 
 The one diagnostics sink for this robot. Port-less and never refused: a NullSink is a valid answer and is what "telemetry is off" means, so there is nothing to refuse.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:130`](../../include/shulib/hal/device_provider.hpp#L130).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:140`](../../include/shulib/hal/device_provider.hpp#L140).*
 
 <a id="ideviceprovider-pacer"></a>
 
@@ -209,7 +209,7 @@ The one diagnostics sink for this robot. Port-less and never refused: a NullSink
 
 The tick pacer — how the world advances during a blocking verb. Port-less and never refused. See the header note on the forward declaration.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:134`](../../include/shulib/hal/device_provider.hpp#L134).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:144`](../../include/shulib/hal/device_provider.hpp#L144).*
 
 <a id="ideviceprovider-lastrefusal"></a>
 
@@ -221,14 +221,14 @@ The tick pacer — how the world advances during a blocking verb. Port-less and 
 
 Why the most recent device request returned nullptr, naming the PORT. The empty string when nothing has been refused. The returned pointer is owned by the provider and stays valid until the next refusal, which is enough for a builder that reads it immediately and copies it into a verdict.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:140`](../../include/shulib/hal/device_provider.hpp#L140).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:150`](../../include/shulib/hal/device_provider.hpp#L150).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 48 lines, click to expand</summary>
+<summary>The header’s own reasoning — 58 lines, click to expand</summary>
 
 ```text
 
@@ -247,7 +247,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  is the only file that knows what a port is:
 
      host tests   hal::fake::FakeDeviceProvider   — fakes from fixed storage, plant-bindable
-     the robot    hal::pros::ProsDeviceProvider   — one std::optional per port  (G1 PART 2)
+     the robot    hal::pros::ProsDeviceProvider   — one std::optional per port (G1 Part 2a;
+                                                    host-tested through the PROS shim, not
+                                                    yet used by any program in src/)
      the sim      whatever hal/sim ends up being  — H2's
 
  Because the seam is a reference and the PROVIDER holds the storage, the same
@@ -255,13 +257,21 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  above hal/pros — which is the F4 principle applied to CONSTRUCTION rather than to reads.
 
  ── A device that cannot be made returns NULLPTR, and says which port ───────────────
- On the V5 every adapter's constructor throws on a dead port (HA-98's read-back). A
- builder cannot let that throw propagate per device, because "port 13 is empty" is the most
- common thing that will ever go wrong with a robot and it deserves a sentence, not a stack
- unwind. So the provider catches per device, returns nullptr, and records WHY in
- lastRefusal(). The builder turns that into a refusal naming the port — never a fake in a
- competition binary, never a null in the graph (landmine 5: absent is EXPLICIT, and it is
- spelled `hal::AbsentGps`, not `nullptr`).
+ "Port 13 is empty" is the most common thing that will ever go wrong with a robot, and it
+ deserves a sentence, not a stack unwind. So a provider that cannot make a device returns
+ nullptr and records WHY in lastRefusal(), naming the port; the builder turns that into a
+ refusal before any object exists — never a fake in a competition binary, never an unplanned
+ null in the graph (landmine 5: absent is EXPLICIT, and it is spelled `hal::AbsentGps`, not
+ `nullptr`).
+
+ On the V5, HOW a dead port is found is not uniform, and this paragraph used to get it wrong
+ (it said every adapter's constructor throws on a dead port — corrected at G1 Part 2a, after the
+ 2026-09-24 audit measured otherwise). Only ProsMotor fails loudly, through its HA-98 read-back;
+ ProsImu's and ProsRotation's constructors cannot throw at all, and ProsGps DEFERS its check on a
+ device it cannot read. So hal::pros::ProsDeviceProvider asks the brain's port REGISTRY what is
+ plugged in before it constructs anything (A4 register HA-141), refuses an empty or wrong-kind
+ port on that answer, and ALSO catches an adapter's throw per device (a motor that answers the
+ registry but rejects its configuration). Both checks name the port.
 
  ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
  Asking twice for the same port must return the SAME object. The graph borrows these

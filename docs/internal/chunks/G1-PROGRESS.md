@@ -457,3 +457,462 @@ read-back is the existing entry that covers it. No new number is warranted yet.
 - **NO HARDWARE CLAIM.** A `Robot` built from a config has driven the A2 host plant, through fakes,
   and nothing else. The library's motion stack has still never driven a robot.
 - **Nothing was committed, pushed or `git add`ed.** No worktree was created.
+
+---
+
+## Part 2a — 2026-09-24 01:32:44 EDT
+
+> **Part:** G1 Part 2a — the library half (the PROS device provider, absent drive ports in the
+> builder, `Robot::portMap()`/`driveOdometry()`, `teleop::runDriverControl`). **Tree at start:**
+> `018424c` (branch `shulib-v2`, clean). **Executor model:** opus. **Brief:**
+> [`G1-part2-pros-provider-and-main.md`](G1-part2-pros-provider-and-main.md) §2a. The team lead's go:
+> 2026-09-24. Appended in real time; every timestamp from a `date` call. Nothing here is committed
+> by the executor. `src/`, `Makefile`, `tools/src_build_gate.py`, `.github/`, the worksheet: not
+> touched.
+
+### 2a.0 Log created (01:32:44 EDT)
+
+Log section created before any code. Next: the required reading, then the clean-tree suite count.
+
+### 2a.1 Required reading, and the baseline (01:40:20 EDT)
+
+**Read in full before any code:** `RESUMING.md`; the brief (revision note, §0, §1, §2a in full,
+§3 M1–M5, §4 tests 1–5, §5, §6, §7); Part 1's log above; `HANDOFF-remaining-work.md` §3;
+`robot/robot.hpp` (all); `hal/device_provider.hpp`; `hal/fake/fake_device_provider.hpp`;
+`hal/device_registry.hpp`, `hal/fake/fake_device_registry.hpp`, `hal/pros/device_registry.hpp`;
+the adapters `hal/pros/{motor,imu,gps,rotation,tick_pacer,battery,clock,char_sink}.hpp`; the shim
+`test/pros_shim/pros/{shim_control.hpp,apix.h,motors.hpp,imu.hpp,gps.hpp,rotation.hpp,rtos.hpp,
+misc.hpp}`; `test/pros_adapter_fence_test.cpp` (it constrains any new `hal/pros/` header — see
+below); `hal/motor_group.hpp` (the ABSENT member); `teleop/{driver_control,stick_mapping,
+drive_modes,field_centric,input_shaping}.hpp`; `hal/controller.hpp`; `hal/fake/fake_controller.hpp`;
+`localization/localizer.hpp` (`Quality`); `motion/motion_scheduler.hpp` (`ITickPacer`);
+`calibration/boot_check.hpp` (`BootVerdict::isMissing`); `diag/session_info.hpp`;
+`chassis/chassis.hpp` (`drive`, `cancel`, `deps`, `motionConfig`); `config/robot_config.hpp`
+(the three drivetrain alternatives, the tracking-wheel and GPS configs);
+`hal/drivetrain_description.hpp` (`sideOf`, `signedPortOf`, `portMagnitude`); `core/check.hpp`
+(`PreconditionError` is a `std::logic_error`); `src/main.cpp` READ ONLY (`runTeleopLoop` :452-473,
+`TankMotors` :554-596, `tankPortMapString` :678-722, the X-drive `portMapString` :432-440, the
+graph-boundary catch :1060-1066); `test/robot_builder_test.cpp` (all); `test/driver_control_test.cpp`
+(all); `test/guide_examples_test.cpp` (the ch. 8 cases); `test/CMakeLists.txt`;
+`tools/api_doc_tool.py` (target globbing, `do_check_examples`).
+
+**Baseline, measured on this tree (`018424c` + this log's append; configured hash
+`v0.1.1-313-g018424c-dirty`):** `1358 test cases / 1,635,266 assertions, 3 skipped — SUCCESS`.
+It matches the handoff's number exactly. Per-case assertion counts were dumped to a scratch file
+(`--reporters=xml`) so every pre-existing case that moves can be named, not guessed.
+`only hal/pros includes <pros/>*` = 492 = 3 × (181 headers − 17 under `hal/pros/`), the formula
+Part 1 recorded.
+
+**Facts measured from the reading that shape the design:**
+
+1. `test/pros_adapter_fence_test.cpp` walks EVERY `hal/pros/*.hpp`: a file with no
+   `#include "pros/…"` must contain no `#pragma GCC diagnostic` at all. So the provider header
+   includes only other `shulib/hal/pros/` adapters, never a `pros/` header directly, and needs no
+   fence of its own — the adapters' fences cover the vendored code.
+2. The shim models the registry, a motor read-back failure (`MotorPortState::disconnected` makes
+   `get_encoder_units()` answer `invalid`, which throws in `ProsMotor`'s constructor), and IMU
+   calibration (`ImuPortState::resetCalls`). So every test-1 property is expressible through the
+   shim as it stands — including an EMPTY IMU/rotation/GPS port: the registry answers
+   `E_DEVICE_NONE` by default and the provider must refuse on that answer alone, because
+   `ProsImu`'s and `ProsRotation`'s constructors would succeed. No brief assumption is false here.
+3. `ProsMotor`'s precondition messages contain an EM DASH (UTF-8 `E2 80 94`). The brief says the
+   provider's refusal carries "the adapter's message", and the task says refusal text must be
+   plain ASCII. Both are honoured by copying the message through an ASCII filter (ruling below).
+4. `FakeDeviceProvider::motorRequested()` is set only when a request is SERVED — a refused port
+   never sets it. So "the absent port was never requested" cannot be proved with it alone (a
+   builder that asked and ignored a refusal would pass). The fake gains a counter of EVERY
+   `motor()` call per port, refused or not.
+5. `src/main.cpp`'s `tankPortMapString()` prints `"<SOURCE> L <ports> R <ports> IMU<n> ipr
+   <l>/<r> TW<w>"`, each side `%+d` space-separated and capped at 39 characters, the whole bounded
+   to the 96-byte field. `Robot::portMap()` reproduces that byte for byte for a drive-encoder,
+   GPS-less tank (so 2b's switch changes no session header), pinned by a literal in the test.
+
+### 2a.2 First code pass (01:52:22 EDT)
+
+Written: `include/shulib/hal/pros/device_provider.hpp` (new), `include/shulib/teleop/teleop_loop.hpp`
+(new); `include/shulib/robot/robot.hpp` (`BuildOptions`, `validate(cfg, devices, options = {})`,
+`writePortMap()`, `Robot{cfg, devices, options = {}}` with the options reaching `prechecked()` and
+`wireMotors()`, `portMap()`, `driveOdometry()`, `describe()` naming absent ports, the banner's
+stale "Part 2" sentences); `include/shulib/hal/fake/fake_device_provider.hpp`
+(`motorRequestCount()`); `include/shulib/teleop/field_centric.hpp` + `driver_control.hpp` (the
+`rezero()` finding — ruling G1-2a-R6 below).
+
+Two compile checks before any test: the host test flags (`-Wall -Wextra -Wpedantic -Werror
+-Wshadow -Wconversion -Wsign-conversion -Wdouble-promotion`, shim on the path) — clean; and a
+scratch TU that ODR-USES every new function the way Part 2b's `src/` will (`ProsDeviceProvider`
+in `std::optional` storage, `validate` + `Robot` with options, `portMap`, `describe`,
+`driveOdometry`, `runDriverControl` over a `ProsController`), compiled with
+`arm-none-eabi-g++` and the `src/` build's own flags (`-Os -Wall -Wextra -Wformat=2 -Wno-psabi`,
+common.mk's machine flags, the REAL vendored PROS headers) — **zero diagnostics**, so
+`-Wformat-truncation` / `-Wformat-nonliteral` will not bite 2b from these headers.
+
+**Not mine, noted so nobody mistakes it for this part's work:** `docs/internal/chunks/R3d-PROGRESS.md`
+(+35 lines, "Part 3 — THE BENCH SESSION … coordinator's live log", started 01:36:21) and
+`docs/internal/evidence/r3d-session-2026-09-24-census.log` (untracked) appeared in the working
+tree while this part was running. They are the coordinator's bench-session record (packages built
+from the committed `018424c` in a separate worktree, per landmine 9). This part does not touch
+them. One consequence to watch: the briefing is regenerated LAST by this part, and whatever the
+coordinator's files say at that moment is what the generator reads.
+
+### 2a.3 Tests written; the suite green; the pre-existing numbers accounted for (02:07:22 EDT)
+
+**27 new cases**, mapped to brief §4:
+
+| Test | Where | Cases |
+|---|---|---|
+| 1 (provider) | `test/pros_device_provider_test.cpp` (new) | `ProsDeviceProvider 1a` same port ⇒ same object, constructed once (the shim's configuration counters do not move on the repeat) · `1b` EMPTY IMU / rotation / GPS / motor port ⇒ nullptr + the exact sentence, and the shim device never touched · `1c` wrong kind — a sweep putting ALL 13 `v5_device_e_t` values on the port for each of the 4 requests, only the right one served — plus four verbatim sentences · `1d` motor read-back failure ⇒ nullptr + the ADAPTER's message, ASCII, whole; a later request after the port answers constructs afresh · `1e` sign / cartridge / lever-arm / second IMU / second GPS ⇒ `PreconditionError` · `1f` calibration started once across 6 requests, never tared · `1g` out-of-range ports and a cartridge byte 0 refused without a single registry query · `1h` registry asked at construction only; a refusal is not cached · `1i` an injected registry replaces the owned one · `1j` the port-less handles · `1k` a whole `robot::Robot` over the REAL provider through the shim: every stored sign arrives at the device (−6000 mV on a negative port), `portMap()` byte-exact for robot two's shape, and ports 16/17 EMPTY ⇒ refused by name without the list, built with it, never opened, 3 of 5 present, `DEGRADED: absent 17,16` |
+| 2 (absent ports) | `test/robot_builder_test.cpp` (appended) | `G1 2a builder A1` one absent port: validate passes, the Robot CONSTRUCTS, 4/5 present with the hole in slot 2, the port NEVER requested (`motorRequestCount`, which counts refused requests too), banner names it · `A2` default options = Part 1 exactly (three spellings driven bit-identical) · `A3` every new refusal, verbatim, from validate() AND the constructor (same sentence), refused before any device is asked for; one-member side; X-drive list; another dead port still refuses; a repeated entry |
+| 3 (degraded on the plant) | same | `A4` three degraded shapes drive, keep an honest estimate, report honestly, raise no `MOTOR_GROUP_DISAGREE`, never request the dead ports, and differ from the healthy twin |
+| 5 (portMap) | same | `A5` byte-identical to a TRANSCRIPTION of `tankPortMapString()` for every side width 1..21, TYPED and MEASURED; tank GPS/pods; X-drive = `portMapString()`'s format; H-drive; UNSET; absence not written into the map · `A6` truncation: one 21-port side capped at 39 chars, both sides 21 ⇒ the FIELD bound stops at 95 + NUL with a canary intact; caps 0 / null / 1 / 10 · `A7` `driveOdometry()` |
+| 4 + 5 (loop) | `test/teleop_loop_test.cpp` (new) | `G1 2a loop 4a` step at tick k in the volts of tick k (and the release) · `4b` disabled ⇒ 0 V + Brake at the motors and return; disabled on tick 0 reads nothing · `4c` disconnected ⇒ bit-zero command from a controller that LIES while disconnected, zero reads while disconnected, all four axes read once per connected tick · `4d` re-zero once per press with that tick's heading, governing the same tick · `4d'` the non-finite re-zero (class half + loop half) · `4e` untrusted ⇒ fellBack, unrotated, latched after trust returns · `4f` tank sticks: RightY drives the right side · `4g` the period reaches the shaper; always Body (a robot facing +Y drives forward); `DriverLoopConfig{}` and a NaN period never run · `5` default profile vs `mapSticksToChassisSpeeds` over a 603-tick sweep of three axes: bit-identical at 0 and ±1 (9 points), elsewhere the gap equals `budget·d·(1−|x|)/(1−d)` to 1e-9 and never exceeds `budget·d` |
+
+**Suite:** `1385 test cases / 1,638,655 assertions, 3 skipped — SUCCESS` (baseline 1358 / 1,635,266).
+New cases: +27 / +3,381. **Pre-existing cases: +8 assertions, every one in the PROS fence file, and
+no other pre-existing case moved** (per-case XML diff against the baseline dump):
+
+| Pre-existing case | Before → after | Why |
+|---|---|---|
+| `fence: every adapter's suppression set is EXACTLY …` | 116 → 118 | one more `hal/pros/*.hpp` scanned: `readFile`'s REQUIRE + the "no pragma in a file with no direct pros include" CHECK |
+| `fence: closes BEFORE shulib code …` | 97 → 98 | the new file's `readFile` REQUIRE (then `continue`: nothing to scope-check) |
+| `adapters: PROS includes are QUOTED …` | 36 → 38 | the new file's `readFile` + its CHECK |
+| `only hal/pros includes <pros/> …` | 492 → 495 | `teleop/teleop_loop.hpp` is one more header outside `hal/pros/`: 3 × (183 − 18) = 495 |
+
+Part 1's bit-identity cases (`G1 builder 5/5b/5c/5d/6/6b`), `stick_mapping_test.cpp`, and T2's
+`driver_control_test.cpp` / `drive_modes_test.cpp` / `input_shaping_test.cpp` did not move by one
+assertion.
+
+**One measurement that changed a test, recorded because it matters at the bench.** Test 3 was first
+written to require the degraded robot to SETTLE. It does not, on this plant: one dead member of five
+on a side ⇒ the heading-held 30 in `moveTo` times out 4.7 in off target; two dead on the right ⇒ 10.5
+in; even one dead PER SIDE misses the settle window (0.6 in off) and its turn times out (measured with
+a scratch case, since deleted). Cause: `sim::DrivePlant` models a silent member as dragging the wheel
+to the MEAN of its members' volts (HA-137) — 80 % speed — while the controller's feedforward assumes
+full authority. For N−1 powered motors in a voltage-limited train that model is PESSIMISTIC (a real
+train loses far less free speed), so this is a statement about the model and the provisional
+feedforward, not about robot two. The case now asserts what IS the library's property — it drives
+(> 20 in), its estimate stays within 1 in / 0.03 rad of the ground truth, it reports Settled or
+TimedOut (never a fault-cancel), raises no false fight, never opens the dead ports, and is not the
+healthy robot — and says in its comment why it does not assert a settle. **Worth the coordinator's
+attention given the 01:39 census (16 and 17 empty, 14 silent): a robot with dead drive members is a
+different robot to the closed loop, and nothing on the host has measured by how much.**
+
+**The stale-object trap, met once already:** the first run after the `field_centric.hpp` edit went red
+on the fix's own test because `--target shulib_tests/fast` skips dependency scanning and the linker
+kept an OLD inline `FieldCentric::rezero` from an unrecompiled object (an ODR pick, not a test bug).
+From here on every build before a result is trusted touches EVERY `test/*_test.cpp` (a superset of
+"every file that includes the edited header") and requires the link line.
+
+### 2a.4 Rulings beyond the brief (each with the alternative and the reason)
+
+**G1-2a-R1 — the re-zero edge runs BEFORE shaping, in the same tick, on the same heading sample.**
+The brief's §2a item 5 lists `drive(Body)` and then "the loop's OWN ButtonEdge … calls
+`shaper.rezero(heading.radians)`". *Alternative:* re-zero after `drive()`, as listed. *Reason:* the
+press is "the way the robot faces NOW is away from me", and applying it after the tick is shaped makes
+the press tick still show `LatchedUntilRezero` and rotate by the old zero, one tick late. Sampling the
+heading once and re-zeroing first gives the press the same one-tick-latency property as the sticks,
+and it has a second, measured benefit: the same tick's `shape()` re-latches on a bad heading, so the
+loop cannot carry a non-finite zero forward even without R6. The signature is exactly the brief's.
+Pinned by `loop 4d` (tick 5's state is `Active` with zero = tick 5's heading) and mutation L4b below.
+
+**G1-2a-R2 — the re-zero button is read only while connected, like the axes.** Not stated in the
+brief. *Alternative:* read it every tick. *Reason:* a disconnected controller's readings mean nothing
+(HA-103), and feeding `false` to the edge while disconnected is the honest reading; the one
+consequence (a button held across a drop registers once on reconnect) is the `ButtonEdge`'s documented
+behaviour for a held button. Pinned by `loop 4c` (`buttonReads == 8`, zero reads while disconnected).
+
+**G1-2a-R3 — `DriverLoopConfig`'s defaults are deliberately NOT a working config.** `tickPeriod`
+defaults to 0 and `runDriverControl` preconditions it finite and > 0 before the first tick;
+`rezeroButton` defaults to `L1` and its documentation says "state it". *Alternatives:* a 10 ms
+default (a second, silent copy of `ProsTickPacer::kTickMs` in a PROS-free header, and a wrong value on
+any other pacer); a constructor (loses the designated-initializer spelling every config in the tree
+uses); no default for the button (an aggregate member with no initializer is indeterminate under
+default-initialization). A zero period is the "nobody wrote this config" detector: `DriverLoopConfig{}`
+and a NaN period are refused before `disabled()` is ever polled (`loop 4g`).
+
+**G1-2a-R4 — `writePortMap(cfg, out, cap)` is a public FREE function; `Robot::portMap()` forwards to
+it.** *Alternative:* only the member the brief names. *Reason:* the brief's test "a 21-port side
+truncated not overflowed" is not constructible through a `Robot` — 21 ports on one side plus one on the
+other collide, and `valid()` refuses the config. A free formatter over the config (which validates
+nothing and formats what is stored) is the honest way to test the bound the brief asks for, and it is
+what `Robot::portMap()` IS. Documented as such in both places.
+
+**G1-2a-R5 — the port-map FORMATS are the ones `src/main.cpp` prints today, byte for byte.** Tank:
+`tankPortMapString()`'s (source word, `%+d` space-separated sides each capped at 39 chars, `IMU<n>`,
+`ipr l/r`, `TW`), pinned against a verbatim TRANSCRIPTION of that function for every side width 1..21
+(`A5`) and both 21-wide (`A6`). X-drive: `portMapString()`'s (`FL BL BR FR ROTF ROTL GPS IMU`). Two
+additions, both chosen so robot two's text is unchanged: a tank's `GPS<n>` and pods `ROTF<n> ROTL<n>`
+are printed only when configured and go between the IMU and the geometry (ports before scales, so
+truncation eats the geometry first); an X-drive's `GPS<n>` is omitted when there is no GPS (the invented
+graph always had one). H-drive, which has no printer today, follows the X-drive's shape (`L R S`).
+*Alternative:* a new format (e.g. `describe()`'s comma lists). *Reason:* Part 2b swaps the generator;
+every session header since R3b would change shape under whoever reads the logs.
+
+**G1-2a-R6 — `FieldCentric::rezero()` no longer accepts a non-finite heading (a T2 defect, fixed where
+it lives).** Found while wiring the button: `rezero(NaN)` stored a NaN zero and CLEARED the latch, so
+the next trusted tick rotated by `heading − NaN` ⇒ a NaN request ⇒ `Chassis::drive`'s precondition ⇒
+the teleop task dies, ticks after the press. Now a non-finite heading keeps the old zero and SETS the
+latch (`LatchedUntilRezero` on the panel until a press on a real heading). This narrows T2's ruling
+T2f ("rezero clears the latch unconditionally") for non-finite headings ONLY; every finite path is
+unchanged (T2's tests did not move by one assertion). `constexpr` is kept — `std::isfinite` is not
+constexpr in C++20, so the test is `x − x == 0`, commented. *Alternative:* guard only inside
+`runDriverControl` — rejected by the standing rule (a chunk that finds a flaw in an earlier chunk fixes
+it there, not around it), and because any other caller of `DriveShaper::rezero` would keep the hole.
+`driver_control.hpp`'s `rezero` doc says so. Pinned by `loop 4d'` (class half: inf, −inf, NaN).
+
+**G1-2a-R7 — the provider serves ONE IMU and ONE GPS; another port for either is a PRECONDITION.** The
+brief's storage list says one `std::optional` each. *Alternative:* refuse (nullptr). *Reason:* it is not
+a wiring fault the robot can have — a config has one IMU port and one GPS port — it is two parts of one
+program disagreeing, which is what preconditions are for; same for a second motor request with another
+sign or cartridge, or the GPS with another lever arm.
+
+**G1-2a-R8 — the registry is consulted when a device is MADE, never again for it; a refusal is not
+cached.** *Alternative:* re-check on every request. *Reason:* the builder asks twice (validate, then the
+constructor's passes); a cable flicker between the two would turn the second ask into `wireMotors()`'s
+"the provider refused a motor validate() had obtained" precondition — a boot crash out of a flicker —
+and would break the idempotence contract. Runtime loss is the adapter's sentinel screening and the
+health layer's. A refused port IS re-asked, so a port plugged in after the first look is served (`1h`).
+
+**G1-2a-R9 — the provider owns a `ProsDeviceRegistry` by default and has a constructor that borrows any
+`IDeviceRegistry`.** The brief allows either. Both exist: `ProsDeviceProvider devices;` is the brain's
+two-line spelling, and the borrowing form lets a host test program a census without the shim (`1i`).
+
+**G1-2a-R10 — each construction is wrapped in `catch (const std::exception&)`, not only
+`PreconditionError`.** The adapters throw through `SHULIB_PRECONDITION`, whose handlers (the default and
+`src/main.cpp`'s) throw `PreconditionError`, a `std::logic_error`. Catching the base keeps a future
+handler that throws another standard exception from unwinding the boot; nothing broader (`...`) is
+caught, so a non-standard throw still surfaces.
+
+**G1-2a-R11 — the adapter's message reaches the refusal through an ASCII filter.** `ProsMotor`'s
+messages carry an em dash; the brief says the refusal carries "the adapter's message" and the task says
+refusals are plain ASCII (they reach a screen with ASCII-only fonts). A UTF-8 lead byte becomes `-`, its
+continuation bytes are dropped, a control byte becomes a space; bounded by hand. *Alternative:* edit
+`motor.hpp`'s messages — rejected: it would not protect against the next adapter, and the refusal is
+where the screen-safety property belongs. Pinned by `1c`/`1d`.
+
+**G1-2a-R12 — `FakeDeviceProvider` gains `motorRequestCount(port)`, counting REFUSED requests too.**
+The brief: "make the fake provider count requests if it cannot already". It could say "served or not",
+not "asked or not" — a builder that asked for an absent port, got a refusal, and ignored it would have
+looked innocent. Counted before any refusal check.
+
+**G1-2a-R13 — `BuildOptions::isAbsent()` is a member; a repeated absent port is accepted.** Membership,
+not a count: `{4, 4, 4}` is one absent port (`A3`). Refusing duplicates would be a new rule about the
+boot check's output that nothing needs.
+
+**G1-2a-R14 — the empty-side refusal names the SIDE and lists its ports** ("every LEFT drive port is
+absent (ports 1 2 3 4 5) -- a side needs at least one motor that answers"), rather than one port: no
+single port is the cause. The other two refusals name the one port.
+
+**G1-2a-R15 — `portMap()` does NOT mark absent ports; `describe()` does.** The port map is what the
+robot is WIRED to be (and it must stay byte-identical to today's for 2b); a dead port is the banner's
+and the panel's to announce (`DEGRADED: absent 3,13`, printed only when there is one, so a complete
+robot's banner is byte-for-byte Part 1's — `A2`).
+
+**G1-2a-R16 — test 3 does not require the degraded robot to SETTLE** (measured in 2a.3: the plant's
+mean-of-members model is pessimistic for a voltage-limited train). It asserts drive, honest estimate,
+honest report, no false fight, never-opened dead ports, and a run different from the healthy twin's.
+
+### 2a.5 The mutation campaign — every run on a FRESH binary (provider and builder rows logged 02:15:52 EDT)
+
+Harness (scratchpad `mutate.py`, not committed): back the file up → replace EXACTLY ONE anchored
+occurrence (abort if the anchor matches 0 or 2+ times) → `touch` EVERY `test/*_test.cpp` → `cmake
+--build build/test --target shulib_tests/fast` → **require `Linking CXX executable shulib_tests`**
+(no link line = result not trusted) → run the named cases → print each red case with its first error
+verbatim → restore from the backup → `cmp` the restored file against the backup (byte-identical, every
+row). Rows below are the OBSERVED output, trimmed to the first error of each red case.
+
+| # | Mutation (file) | Observed |
+|---|---|---|
+| P1 | **skip the registry check** — `expectKind()` always true (`device_provider.hpp`) — *the brief's* | **RED, 5 cases.** `1b`: `CHECK( devices.imu(2) == nullptr ) … values: CHECK( 0x7ffd9360e200 == nullptr )` — an EMPTY IMU port came back LIVE, exactly the audit's defect 2, and the same for the rotation, GPS and motor subcases (11 errors); `1c`: `CHECK( got == (raw == req.served) ) … CHECK( true == false ) logged: req.name := motor, raw := 0`; `1h`, `1i` (an empty rotation port served); `1k`: `CHECK_FALSE( v.ok )` — the robot with ports 16/17 empty VALIDATED |
+| P2 | **return a fresh device per request** — the "already made" branch skipped, so the slot is re-emplaced — *the brief's* | **RED, 3 cases.** `1a`: `CHECK( pros::shim::motorState(11).setGearingCalls == gearingCalls ) … CHECK( 2 == 1 )`. **Worth recording: `CHECK(m2 == m1)` stayed GREEN** — re-emplacing a `std::optional` reconstructs in the SAME storage, so the address check alone cannot see a fresh object; the shim's configuration counter is what catches it (which is why 1a asserts both). Also `1e` (conflicts no longer detected), `1h` |
+| P3 | **drop the conflict check** (motor sign/cartridge) — *the brief's* | **RED.** `1e`: `CHECK_THROWS_AS( (void)devices.motor(11, MotorCartridge::Blue), PreconditionError ) did NOT throw at all!` and the same for `(-11, Green)` |
+| P4 | calibration never started by the provider | **RED.** `1f`: `CHECK( pros::shim::imuState(2).resetCalls == 1 ) … CHECK( 0 == 1 )`; `1k` the same |
+| P4b | calibration started on EVERY request | **RED, 3 cases.** `1a`/`1f`: `CHECK( devices.imu(2) == i1 ) THREW exception: "ProsImu::calibrate: already calibrated — a second reset() would re-zero …"`; `1k`: the Robot's second pass threw |
+| P5 | the ASCII filter dropped (bytes copied raw) | **RED.** `1d`: `CHECK( why.find("did not accept degrees - wrong port") … )` and `CHECK( isAscii(devices.lastRefusal()) ) … CHECK( false )`, logged why := `… degrees — wrong port …` (the raw em dash) |
+| P6 | the registry re-asked on EVERY request (motor) | **RED, 3 cases.** `1h`: `CHECK( devices.motor(12, MotorCartridge::Green) == m ) … CHECK( nullptr == 0x7ffce8221b40 )` — a made motor refused after its cable came out; `1g`, `1i` (query counts) |
+| B1 | **drop the options in `prechecked()`** (`(void)options; validate(cfg, devices)`) — *the brief's* | **RED, 5 cases — the constructor throws, as the brief predicted.** `A1`: `REQUIRE_NOTHROW( robot.emplace(c, world.devices, options) ) THREW exception: "a LEFT drive motor cannot be made: port 3 has no motor"`; `A3`: `Robot's constructor accepted an absent list validate() had refused` (logged `absent port 7 …`); `A4`, `A5`; `1k`: `THREW … port 17: nothing plugged in (expected a motor)` |
+| B2a | **request absent ports anyway** — `wireMotors()` asks for the absent port and ignores the answer — *the brief's* | **RED, 3 cases.** `A1`: `CHECK( world.devices.motorRequestCount(3) == askedWithoutList ) … CHECK( 2 == 1 )`; `A3` (`motorRequestCount(4) == 0` → `1 == 0`); `A4` ×2. Only the new counter can see this variant: the port was refused, so `motorRequested()` stayed false and nothing threw |
+| B2b | the same in `validate()`'s device pass (LEFT side) | **RED, 4 cases.** `A1`: `REQUIRE( v.ok ) … REQUIRE( false ) logged: v.why := a LEFT drive motor cannot be made: port 3 has no motor`; `A3`, `A4`, `A5` |
+| B3 | a non-drive absent port accepted | **RED.** `A3`: `CHECK_FALSE( v.ok ) … CHECK_FALSE( true ) logged: k.label := a pod port, not a drive port` (13 errors across the six non-drive cases) |
+| B4 | an emptied side accepted | **RED.** `A3`: `CHECK_FALSE( v.ok ) … logged: k.label := the whole LEFT side` (66 errors: the MotorGroup's own precondition then fires with a DIFFERENT sentence, and devices were asked) |
+| B5 | a list on an X-drive accepted | **RED.** `A3`: `CHECK( std::string{v.why} == "absent drive port 2 was given for a x-drive drivetrain -- …" ) … values: CHECK( absent port 2 is not one of this drivetrain's drive ports … == …)`. Note: the build is still REFUSED under this mutant — by the next check, with a misleading sentence (the X-drive's unused tank slot has no ports) — so the MESSAGE check is the detector, not the bool |
+| B6 | the `DEGRADED` segment printed on a complete robot | **RED.** `A2`: `CHECK( std::string{ba}.find("DEGRADED") == std::string::npos ) … CHECK( 70 == 18446744073709551615 )` |
+| L1 | **a one-tick buffer** — `drive(pending); pending = command;` (`teleop_loop.hpp`) — *the brief's* | **RED, 2 cases.** `4a`: `CHECK( firstMoved == kStep ) … CHECK( 6 == 5 )`, `CHECK( log[kStep].leftVolts > 1.0 ) … CHECK( 0 > 1 )`; `4g` |
+| L2 | **skip the cancel** on disable — *the brief's* | **RED.** `4b`: `CHECK( c.rig.h.motor(0).commandedVoltage().value() == 0.0 ) … CHECK( 11.4 == 0 )` (and the right side, and both brake modes) |
+| L3 | **poll the axes while disconnected** — *the brief's* | **RED.** `4c`: `CHECK( pad.readsWhileDisconnected == 0 ) … CHECK( 20 == 0 )`, `CHECK( pad.reads[a] == 8 ) … CHECK( 12 == 8 )`. **Worth recording: the four bit-zero command checks stayed GREEN under this mutant** — the shaper short-circuits on `connected = false` whatever it is handed, so only the lying, counting controller can see a loop that reads a dropped controller |
+| L4 | **never read RightY** — *the brief's* | **RED, 2 cases.** `4f`: `CHECK( log[3].rightVolts > 1.0 ) … CHECK( 0 > 1 )`; `4c`: `CHECK( pad.reads[a] == 8 ) … CHECK( 0 == 8 ) logged: a := 3` |
+| L4b | the re-zero AFTER `drive()` — the brief's LISTED order (ruling R1) | **RED.** `4d`: `CHECK( log[5].state.fieldCentric.reason == FieldCentricReason::Active ) … CHECK( 2 == 0 )` — the press tick still `LatchedUntilRezero` |
+| L5 | re-zero on the button LEVEL | **RED.** `4d`: `CHECK( log[8].zero == doctest::Approx(0.5) ) … CHECK( 0.8 == Approx( 0.5 ) )` — the zero chased the heading while held |
+| L6 | the trust verdict dropped (`true` always) | **RED, 2 cases.** `4e`: `CHECK( log[k].state.fieldCentric.fellBack ) … CHECK( false ) logged: k := 0`; `4d` |
+| L7 | the shaper handed dt = 0 instead of the period | **RED.** `4g`: `CHECK( log[0].state.slewOutput.forward == doctest::Approx(period) ) … CHECK( 0 == Approx( 0.01 ) )` and `( 0.02 )` |
+| L8 | `drive(…, Frame::Field)` | **RED — but only after the test was strengthened.** First run (5 ticks, "> 1 V"): `CHECK( t.leftVolts > 1.0 ) … CHECK( 0 > 1 )` on ONE tick only — the boot-window tick. Measured why (scratch case, deleted): after the 0.1 s settle window a Field-frame +X at a 90° heading still puts **kS = 1.2 V on both sides**, because the rotated forward component is cos 90° × 60 ≈ 4e-15 in/s rather than exactly 0 and kS is gated on the sign of the commanded wheel speed. The subcase now runs 20 ticks (past the settle window) and requires > 5 V (full stick in Body is ~11 V). Re-run: `CHECK( driven == 20 ) … CHECK( 0 == 20 )`. **The kS-on-a-rounding-residual behaviour is a pre-existing pipeline property, not this part's; reported, not chased.** |
+| L9 | the tick-period precondition dropped | **RED.** `4g`: `CHECK_THROWS_AS( runDriverControl( … DriverLoopConfig{} … ), shulib::PreconditionError ) threw a DIFFERENT exception: "PlantPacer: pace cap exceeded — a wait failed to end"` (the unconfigured loop ran 200,000 ticks) and the same for the NaN period |
+| R6 | `FieldCentric::rezero`'s non-finite guard removed (`field_centric.hpp`) | **RED.** `4d'`: `CHECK( fc.zeroRadians() == 0.7 ) … CHECK( inf == 0.7 ) logged: bad := inf`, `CHECK( fc.fellBack() ) … CHECK( false )`, plus the loop half's `CHECK( t.zero == 0.25 )`. T2's 38 cases (`-tc="T2*"`) stayed green under it — T2's suite never covered a non-finite re-zero |
+| L4b+R6 | BOTH: the brief's listed order WITHOUT the class fix (run by hand, both files restored and `cmp`-confirmed) | **RED, and the crash is real:** `4d'`: `CHECK_NOTHROW( log = runTicks(…) ) THREW exception: "Chassis::drive: speeds must be finite"` — the teleop task would die ticks after a NaN-heading press. With either R1's order or R6's fix alone the loop is safe; both are kept |
+| M1a | **drop the bound** in `writePortMap()` — *the brief's* (run on the one subcase whose buffer is large enough to overflow INSIDE the test's array; the other subcases' 4- and 16-byte buffers would have been genuine stack overruns) | **RED.** `A6` "both sides at 21 ports": `CHECK( std::strlen(buf) == shulib::diag::kMaxPortMapBytes - 1 ) … CHECK( 124 == 95 )`, `CHECK( buf[i] == '\xAB' ) … CHECK( 49 == -85 ) logged: i := 96` (32 errors — the whole canary tail) |
+| M1b | the bound off by one (`n < cap`: no room for the NUL) | **RED.** `A6`: `CHECK( … == 95 ) … CHECK( 96 == 95 )`, `CHECK( buf[i] == '\xAB' ) … CHECK( 0 == -85 ) logged: i := 96` |
+| M2 | the side format `%+d` → `%d` | **RED, 2 cases.** `A5`: `values: CHECK( MEASURED L 1 -2 3 -4 5 R -11 12 … == MEASURED L +1 -2 +3 -4 +5 R -11 +12 … )` (44 errors — every width against the transcription); `1k` |
+| M3 | the pods dropped from the map | **RED.** `A5`: `values: CHECK( FL1 BL2 BR3 FR4 GPS9 IMU10 == FL1 BL2 BR3 FR4 ROTF6 ROTL7 GPS9 IMU10 )` |
+| B7 | absent slots COMPACTED out of the group instead of kept as holes | **RED, 2 cases.** `A1`: `CHECK( left.memberCount() == 5 ) … CHECK( 4 == 5 )`, `CHECK( left.absentMask() == … ) … CHECK( 0 == 4 )`; `A4`: the banner lost `DEGRADED: absent 3 |` (the absent ports are read back from the slots) |
+
+**30 distinct mutations (7 provider, 8 builder, 10 loop, R6, 4 port-map) plus the L4b+R6
+combination — 32 runs counting L8's weak first run and a first P1 run made before the harness printed
+per-case summaries (also red); every one RED on a freshly linked binary (logged 03:06:47 EDT); every
+restore `cmp`-identical.** Two came back WEAK and changed the tests: **P2** (the
+address check alone could not see a re-emplaced object — the configuration counter did) and **L8**
+(red only on the boot tick until the subcase ran past the settle window with a 5 V threshold). One
+brief mutation is ALSO only visible through a counter: **L3** (and **B2a**), which is why the counting
+controller and `motorRequestCount()` exist. After the last restore: `touch test/*_test.cpp`, relink
+(`Linking CXX executable shulib_tests`), whole suite **1385 / 1,638,666, SUCCESS** (the +11 over §2a.3's
+figure is `4g`'s Body subcase growing from 5 ticks to 20).
+
+### 2a.6 The documentation pass and the prose review (03:18:38 EDT)
+
+**The brief's §2a documentation list, done:**
+
+| Document | What changed |
+|---|---|
+| `docs/api/` + `mkdocs.yml` | regenerated (`api_doc_tool.py generate`): two new pages (`pros-device_provider.md`, `teleop_loop.md`), and `robot.md`, `driver_control.md`, `field_centric.md`, `stick_mapping.md`, `device_provider.md`, `motor_group.md`, `session_info.md`, the index and the all-entities page moved with their headers. Coverage: **2339 public entities across 147 headers, all documented** |
+| `docs/guide/08-your-first-routine.md` | new subsection "The same wiring, in two lines" after Step 2: a `RobotConfig` for the chapter's own X-drive, `robot::validate` + `robot::Robot` over a provider, the routine run on `built.chassis()`; what a device provider is (the host fake here, `ProsDeviceProvider` on a brain, which asks the registry first); the longhand kept and named as the Tier-3 path; an honest note that no `src/` program is built this way and nothing built this way has run on a robot. The listing is quoted VERBATIM from the new compiled case **`guide-08d`** in `test/guide_examples_test.cpp` (which also asserts the routine settles on the ground truth and that a refused port is named); the chapter's case list and the test file's mapping comment gained `08d`. `check-examples`: **408 quoted lines, all verbatim** |
+| `docs/guide/10-the-api.md` | after the teleop-shaped `drive()` loop: a paragraph pointing at `teleop::runDriverControl` (what it does each tick, what is injected and why), honest status — prose only, no signature restated (the chapter's own rule) |
+| `docs/changelog.md` | a dated **"Added since 2.2 (2026-09-24)"** entry under API 2.2: every addition, the `FieldCentric::rezero` behaviour change with "Migration: none", and why there is no bump (nothing frozen grows; `IDeviceProvider` and `Robot` are unfrozen); the 2.2 entry's "the PROS device provider is not built yet" sentence gained a dated parenthetical instead of being rewritten |
+| `docs/roadmap.md` | "You are here": a **G1 Part 2a LANDED** paragraph (host-only, no program uses it, not one line of `main.cpp` shorter) and the **Now** paragraph moved to 2b-then-2c with the bench session still pre-empting; the table row A ("Part 2 … is next" → 2a DELIVERED, 2b/2c next); the M5 WS9 bullet's OPEN clause; "the reciprocal half" paragraph's parenthetical; and the C5 session-header bullet's "G1's RobotBuilder generates it" gained a dated parenthetical (the generator exists, no program uses it until 2b) — the full rewrite of that sentence stays Part 2c's, as the brief lists |
+| `docs/internal/build-order.md` | the first bold `**Next:**` is now **G1 Part 2b** (waits for the go; the bench session pre-empts), carrying the 2a landing; the previous block is kept as labelled history (its bold opener removed so the briefing tool still finds exactly one first `Next:`); G1's status line and its closing sentence; the phase table's G row; the "half built" risk line |
+| `docs/hardware-assumptions.md` | **HA-141** registered — summary row, a full entry after HA-140 (claim, source with the `A4 register HA-141` tag now in `device_provider.hpp`, confidence **reasoned**, the settle step at 2b's first boot, blast radius "refuses rather than lies"), the status line "7 of **141** settled", the intro's per-part note, and the robot-two section's count (eighteen entries, seven reasoned). *First draft claimed a 2026-08-18 census had read the kinds correctly; I could not cite it, so it was cut to what `R3b-PROGRESS.md` §9 records (the IMU on port 2, 2026-09-10) and the census the coordinator logged today* |
+| the briefing | regenerated LAST, after the final green build (§2a.7) |
+
+**Documents touched OUTSIDE the brief's 2a list, each because 2a made a sentence in it false:**
+`docs/vexbuilder-integration.md` (row 64: "*Part 2 (the PROS provider + `src/main.cpp`) is open*" —
+the brief assigns this row to 2c, but its "the PROS provider is open" half became false today; one
+cell, now "Part 2a (the PROS provider, host-tested only) landed 2026-09-24; Parts 2b/2c … are
+open"); `docs/internal/HANDOFF-remaining-work.md` (§1's open-chunks line, §4's inventory of what
+exists — 18 `hal/pros` headers, the loop, the builder's new members — L1's status line with the old
+wording kept in a note, and §7 step 1; the handoff's own rule is that it is corrected in the commit
+that notices it is wrong); `docs/internal/PROJECT-BRIEFING.md` hand-written half (the T and G rows of
+the phase table and §13's heading and summary box — the generated block is the tool's).
+
+**Headers whose COMMENTS changed because 2a made them false** (no code change in any of them except
+`field_centric.hpp`, ruling R6): `hal/device_provider.hpp` (**the false sentence at :26**, "every
+adapter's constructor throws on a dead port", replaced by what is true — only ProsMotor throws, the
+provider asks the registry first, HA-141 — and the "(G1 PART 2)" table row); `robot/robot.hpp`
+(:13-16 and :55-56 — the two-line sketch now names `hal::pros::ProsDeviceProvider` and says no
+`src/` program uses it; the NO-HARDWARE paragraph); `hal/fake/fake_device_provider.hpp` (future
+tense about the PROS provider, and `refusePort()`'s "stand-in for a ProsMotor constructor throwing on
+an empty port" — the real provider refuses an empty port on the registry's answer); `diag/session_info.hpp`
+(":47 G1 generates" and its banner note — the generator exists); `hal/motor_group.hpp` ("WHY BOOT":
+it said the composition root catches the ProsMotor throw per port and hands the group a span with
+holes — true of neither program that uses the group; now: the drive program catches and does not use
+the group, Teleop's `TankMotors` and `robot::Robot` take the boot check's MISSING set);
+`teleop/stick_mapping.hpp` (the doc comment on `mapSticksToChassisSpeeds` called it "what the library
+teleop loop uses" — the library's loop now does NOT; comment only, the body and its pin untouched,
+landmine 7); `teleop/driver_control.hpp` (`rezero`'s doc, R6).
+
+**The prose review — the grep was RUN, and its hits read, before this paragraph was written.**
+Pattern, over `docs/`, `README.md`, `include/` and `src/` (`.md`, `.hpp`, `.cpp`, `.h`):
+`main\.cpp|TankRobot|runTeleopLoop|composition root|wiring|hand-wired|object graph|mapSticksToChassisSpeeds|deadband-only|Part 2|every adapter.s constructor throws`
+(then a second pass for `ProsDeviceProvider|PROS provider|PROS device provider|device provider|runDriverControl|portMap()`
+over the live docs). Every hit in a LIVE document was read:
+
+- **README.md** (6 hits): lines 97/152 (the 2026-08-12 boot "constructed its whole object graph") —
+  history, true; 238 "`src/main.cpp` is the complete, commented wiring example" — still true in 2a
+  (2b rewrites that paragraph, per the brief); 265/268/282 — true. **Not touched** (2b/2c own README).
+- **docs/guide/**: 03:244/384, 12:153/178, 13:38, 15:160 — generic uses of "wiring", true. 07:122
+  (`src/main.cpp` wires the library) — true until 2c, which owns it. **14:331** ("the teleop loop in
+  `src/main.cpp` and the bench drive program still call the older raw mapping") — still true of the
+  PROGRAMS; guide 14 is 2b's, **not touched**. 08 — the new section's own hits, plus 50-53/156/167/217
+  (the longhand is `src/main.cpp`'s shape) — still true.
+- **docs/*.md**: faq 115, master plan 197/251 (the WHY document — not an executor's to amend),
+  diagnostics-plan, legacy-command-vocabulary (legacy `main.cpp`), changelog 304/447 (history),
+  docs/README 9 (history) — true. roadmap: 50 hits read; the stale ones are the five edits above; the
+  rest are dated history (R1a's "deadband-only teleop" at :692, C7's rewire, M1/M2 clauses) and true.
+  hardware-assumptions: HA-111 (:704-712, `src/main.cpp`'s invented map — 2c's), HA-112 (:736, the
+  mapping `src/main.cpp`'s loop still calls — 2b updates its source lines), :963/1011/1061 (`src/`
+  sources, unchanged), :2341 (the "builder will replace hand-kept port lists" row — 2c's) — all still
+  true, **not touched**.
+- **include/** (~150 hits): every "composition root" / "wiring" use is generic and true; the stale
+  ones are the seven headers listed above. `robot.hpp:23/920` ("the same objects … as src/main.cpp's
+  two hand-written graphs … TankRobot and X-drive Robot") — true while those graphs exist (2b/2c).
+  `config/robot_config.hpp:71-72` ("the X-drive … must be expressible as data (Part 2)") — still a
+  future statement (2c). `tick_pacer.hpp:5/27`, `char_sink.hpp:12`, `main.h` — history, true.
+- **src/** (report only — `src/` is not this part's to edit, and it is byte-identical): no `src/`
+  comment became FALSE, because `src/` describes itself and did not change. Two became AMBIGUOUS and are
+  Part 2b's to replace: `src/main.cpp:1322` — the runtime banner "opcontrol(): the LIBRARY's teleop loop
+  is live on robot two" means `runTeleopLoop`, while "the library's teleop loop" is now
+  `teleop::runDriverControl`; and `src/main.cpp:1279-1281` ("The R1a teleop loop … is
+  shulib::teleop::mapSticksToChassisSpeeds") — true of `runTeleopLoop`, which 2b deletes.
+- **docs/internal/** chunk briefs, PROGRESS and COMPLETED logs (the bulk of the hit count —
+  R3b-PROGRESS 67, the G1 Part 2 brief 53, SESSION-2026-09-18 40, …): records of what was true when
+  written; **not edited**. The live internal documents (build-order, RESUMING, HANDOFF, the
+  briefing's hand-written half) were read and corrected as listed.
+
+### 2a.7 Verification — every gate, on the final tree (host build at 03:22:40 EDT; the rest immediately after)
+
+Run in this order: `touch test/*_test.cpp` → `--target shulib_tests/fast` (link line seen) → whole
+suite green → `briefing_status.py generate` (LAST, on that fresh green binary: suite 1,386 /
+1,638,673, headers 183, HA 141 / next free HA-142, and the Next-up line now G1 Part 2b) → then the
+full gated build and the rest:
+
+| Gate | Command | Result |
+|---|---|---|
+| Host build + suite (03:22:40) | `cmake --build build/test -j"$(nproc)" && ./build/test/shulib_tests \| tail -6` | doc gates: coverage **2339 entities / 147 headers, all documented**; **408 quoted lines, all verbatim**; removability clean; **briefing current**; staleness audit self-test OK + clean. Suite **1386 cases / 1,638,673 assertions, 3 skipped — SUCCESS** |
+| `src` build gate | `python3 tools/src_build_gate.py self-test && … check` | **self-test OK (33 detector cases); PASS — all 6 builds link** (`bench`, `xdrive`, `tank`, `tank-drive`, `tank-library`, `tank-calibrate`: exit 0, 4/4 TUs, 0 disallowed warnings, beacons checked — unchanged, as `src/` is) |
+| ARM header gate | the RESUMING/HANDOFF command, to a scratch TU | **183 headers, exit 0** under `-Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror -Os`, cortex-a9 |
+| PROS-free guard | `grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib \| grep -v '^include/shulib/hal/pros/'` | **empty** (and `teleop_loop.hpp` / `robot.hpp` include no `pros/` and no `shulib/sim/`) |
+| sim guard | `grep -rnE --exclude-dir=sim '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' include/shulib` | **empty** |
+| API reference | `api_doc_tool.py generate && check-fresh`; `briefing_status.py check`; `check-removability` | fresh (exit 0); briefing current (exit 0); removability clean (exit 0) |
+| `src/` untouched | `git diff --stat -- src Makefile tools .github` + `git status --short` on the same paths | **empty** — byte-identical |
+
+**Final suite accounting** (per-case XML diff against the baseline dump): **1358 → 1386 cases (+28),
+1,635,266 → 1,638,673 assertions (+3,407)** = 28 new cases (+3,399: 11 provider, 7 builder, 9 loop,
+and `guide-08d`) + **8 in four pre-existing fence cases** (§2a.3's table: one more `hal/pros/` header
+scanned, one more header outside it). No other pre-existing case moved; none disappeared.
+
+### 2a.8 DoD — brief §5 "2a", with evidence
+
+- [x] **§2a item 1 — `ProsDeviceProvider`:** `include/shulib/hal/pros/device_provider.hpp` (439
+      lines). Fixed storage, no heap (`std::optional` per port); registry asked before ANY
+      construction (`expectKind`); the four refusal shapes; per-construction `try`; one object per
+      port; conflicts are preconditions; IMU calibration started once; `hal/device_provider.hpp:26`'s
+      false sentence corrected. Evidence: cases `1a`–`1k`, mutations P1–P6.
+- [x] **Item 2 — its tests through the shim:** `test/pros_device_provider_test.cpp` (EMPTY IMU /
+      rotation / GPS / motor, every wrong kind, the read-back failure with the adapter's message,
+      identity, the conflicts, calibrate-once, and the end-to-end `Robot` over the real provider).
+- [x] **Item 3 — absent drive ports:** `robot::BuildOptions`; `validate(…, options)` and
+      `Robot{…, options}` with the options reaching `prechecked()` AND `wireMotors()` (mutation B1 is
+      the audit's defect 1, red); never requested (B2a/B2b); the three refusals naming the port
+      (B3/B4/B5); no policy; default = Part 1 exactly (`A2` + Part 1's untouched bit-identity cases);
+      `describe()` names absent ports (B6, B7).
+- [x] **Item 4 — `portMap()` and `driveOdometry()`:** byte-identical to a transcription of
+      `tankPortMapString()` for every side width, X-drive in `portMapString()`'s format, bounded by
+      hand (M1a/M1b), always terminated; `driveOdometry()` (`A7`).
+- [x] **Item 5 — `runDriverControl`:** `include/shulib/teleop/teleop_loop.hpp` (167 lines),
+      PROS-free, the brief's exact signature; one ordering ruling (R1, re-zero before shaping).
+      Evidence: loop cases `4a`–`4g`, `5`; mutations L1–L9, L4b, R6 and the L4b+R6 combination.
+- [x] **Item 6 — tests 1–5:** §2a.3's table.
+- [x] **Every public member documented; ARM gate green; PROS-free and sim-free guards:** §2a.7.
+- [x] **Mutations logged red:** §2a.5 — 30 distinct, every one red on a freshly linked binary.
+- [x] **Pre-existing suite unchanged except stated additions:** +8 assertions, four fence cases,
+      explained line by line.
+- [x] **`src/` byte-identical:** §2a.7.
+- [x] **§2a's documentation:** §2a.6 (plus three documents outside the list, each named with why).
+- [x] **The prose review:** §2a.6 — the grep run and its live hits read before it was written up.
+- [x] **The log:** this section.
+
+### What is NOT done, stated plainly
+
+- **No program uses any of this.** `src/` is byte-identical; `src/main.cpp` is not one line shorter;
+  "shulib Teleop" still wires its graph by hand and still runs `runTeleopLoop` over the raw mapping.
+  That is Part 2b (and `main.cpp` as a dispatcher, Part 2c) — each waits for the team lead's go.
+- **NO HARDWARE CLAIM.** `ProsDeviceProvider` has been exercised only through `test/pros_shim/`,
+  which tests it against our BELIEF about PROS (HA-138's indexing, HA-141's kinds) and cannot test
+  the belief. `runDriverControl` has driven only the A2 host plant; no driver has felt it. The
+  library's motion stack has still never driven a robot.
+- **The degraded-robot plant finding (§2a.3)** is a statement about the plant's pessimistic
+  mean-of-members model, not about robot two — nothing measures a real train with a dead member yet.
+- **The kS-on-a-rounding-residual observation (mutation L8)** — a Field-frame command perpendicular to
+  a tank's heading yields ±kS (1.2 V) on both sides — is a pre-existing command-pipeline behaviour,
+  reported here and NOT investigated or changed.
+- **HA-141 is unsettled** — its settle step is 2b's first boot of "shulib Teleop" (IMU present, then
+  pulled).
+- **Nothing was committed, staged or pushed; no branch or worktree was created.** The coordinator's
+  concurrent bench-session files (`R3d-PROGRESS.md`, `docs/internal/evidence/r3d-session-2026-09-24-*.log`)
+  are in the working tree and are NOT this part's.
