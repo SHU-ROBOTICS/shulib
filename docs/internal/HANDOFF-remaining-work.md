@@ -293,7 +293,7 @@ dispatcher, the X-drive as data, the build gate's differential redesigned.
 - Done / docs owed: per the revised brief's DoD and documentation lists.
 - Size: ~1–1.5 days executor + verification, across its parts.
 
-**L2. [NEW-COMP] The competition program.** Does not exist in the plan or the tree (the G1 Part 2
+**L2. [COMP] The competition program.** BRIEFED 2026-09-24 (`docs/internal/chunks/COMP-competition-program.md`, two parts, each on jal's go, after G1 Part 2b); it did not exist in the plan or the tree before that (the G1 Part 2
 brief names it as a future consumer of the builder's dead-port tolerance).
 - What: the program uploaded for a match. `initialize()`: boot the robot (IMU calibration, port check
   against the SD record, status screen, refusal by name). A **brain-screen auton selector** (touch

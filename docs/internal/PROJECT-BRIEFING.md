@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 28 of 50 chunks complete
+**Position:** 28 of 51 chunks complete
 
 - **Next up:** THE BENCH SESSION RESUMES (R3d Part 3) — rebuild and upload "shulib Calibrate" from the COMMITTED tree (rm -rf bin .d && make ROBOT=tank PROGRAM=calibrate, slot 4) and run worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md) on robot two: the one 48 in push, the pulses, the spin, SAVED, a second run for reproduction, then "shulib Teleop" from the record. G1 Part 2b ("shulib Teleop" on the library) follows it, its own go.  
   *(source: `build-order.md`'s `Next:` pointer)*

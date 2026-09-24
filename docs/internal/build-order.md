@@ -838,6 +838,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
+| **COMP** | The match program | COMP (parts a, b) | none (the schedule numbers need the game manual) |
 | **G** | No-code authoring | G1–G4 | G1–G2 none (G2 froze F8 itself, 2026-09-18); G3–G4 read VexBuilder's files |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
 | **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6 | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c's absolute-reference half needs a GPS/camera on a tank robot (fall); its holonomic half needs the X-drive, built in spring 2027 |
@@ -845,7 +846,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**50 chunks** — the table above, counted row by row (corrected 2026-09-24: it read 48, because
+**51 chunks** — the table above, counted row by row (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
 DOCS1 and DOCS2 were never added to the total when their row was; the handoff audit counted the
 table). R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
 GATE1 was added 2026-08-19 (+1, reactive — `src/` was in no gate and CI could not see whether an
@@ -860,7 +861,7 @@ drive the robot, and the frozen `drive(ChassisSpeeds, Frame)` verb means only th
 missing. Freezes land at D2 (**F6**), G2 (**F8**), G3 (**F7**), H1 (**F9**). **Phase T freezes
 nothing** — `IController` is an F4-additive sibling, exactly as F1's `IDigitalOut` was.
 
-*The total was 43 until DEFECTS1 (+1), 44 until R3 split three ways (+2), 46 until GATE1 (+1), 47 until R3d (+1, 2026-09-10), and 48 until DOCS1 and DOCS2 were counted (+2, 2026-09-24 — they had been in the table since the DOCS/DEFECTS row was added, never in the sum). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
+*The total was 43 until DEFECTS1 (+1), 44 until R3 split three ways (+2), 46 until GATE1 (+1), 47 until R3d (+1, 2026-09-10), and 48 until DOCS1 and DOCS2 were counted (+2, 2026-09-24 — they had been in the table since the DOCS/DEFECTS row was added, never in the sum), and 50 until COMP (+1, 2026-09-24 — the competition program the handoff called L2; the plan had never had an entry for the program a match actually runs). It had stayed at 43 across two earlier changes that cancelled: R1 split into R1a + R1b (+1), and T1 is
 now delivered by R1a rather than as its own chunk (−1). All are recorded in the deviations table.*
 
 ---
@@ -1445,6 +1446,19 @@ declared safe state, asserted at the motors.
 
 ---
 
+# Phase COMP — The match program
+
+### COMP — the competition program: boot, pick an auton on the brain screen, run it under a guaranteed end, drive
+The program uploaded for a match. `initialize()` boots the robot exactly as "shulib Teleop" does (the SD record, the port check, the absent ports) with a `RunGuard` as the chassis's pacer; a brain-screen auton selector (a pure, host-tested model; NONE by default) whose choice persists until `autonomous()`; `autonomous()` runs the chosen entry — a student's `Routine` function or a `Route` — under the guard, so the end action (the park) always fires and the hard stop forces the robot safe; `opcontrol()` is the library's driver loop. Every phase starts safe. The library ships the mechanism (registry, selector, runner) and ONE labelled test routine; the season's autons are the students' (the guardrail).
+
+**Why here:** it is the last piece between the library and a student's auton running on the robot — every `autonomous()` in `src/` commands nothing — so R3b and M1 cannot close without it. It depends on G1 Part 2b (`bootConfig()` in a shared file, the provider and the loop on the robot).
+
+**DoD:** COMP-a — `BuildOptions::pacer`, `competition::AutonRegistry`, `competition::AutonMenu`, `competition::runAuton`, host-proven with the end action firing on a stalled routine and the hard stop forcing safe; COMP-b — a competition program in `src/` as a seventh build (`PROGRAM=competition`, slot 5) and a separate autons file in `src/` that the students own, the guide chapter "The competition program" with compiled examples, worksheet Station H (a practice match). Nothing claimed on hardware until Station H's log.
+
+> **Status 2026-09-24:** BRIEFED ([brief](chunks/COMP-competition-program.md)) while the team lead was away from the robot; COMP-a waits for his go, after G1 Part 2b. The schedule numbers (the VEX U autonomous period for Override, the skills run) are UNKNOWN until he states them from the game manual.
+
+---
+
 # Phase G — No-code authoring
 
 > M5 — the accessibility pillar's Tiers 0 and 1. **Sequenced so that VexBuilder gates as little as
@@ -1877,6 +1891,7 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 
 | Change | Roadmap says | Build order says | Why |
 |---|---|---|---|
+| **+ COMP: the competition program** *(2026-09-24)* | *(absent — no milestone owned the program a match runs; M4's guaranteed-park line assumed one)* | **COMP (a: library, b: program), after G1 Part 2b** | Every piece a match needs existed except the program that ties them together; `autonomous()` commands nothing in every build. The handoff's L2, briefed while the team lead was away from the robot |
 | **R3d Part 2F (the Calibrate fix) ahead of G1 Part 2b** *(2026-09-24, team lead)* | G1 Part 2b next, then 2c; the bench session pre-empts | **R3d Part 2F — F1 library, F2 program — before G1 Part 2b** | The bench session could not finish: Calibrate's single-member 3 V pulse turned robot two 0.14–0.17° on the first port in three starts and cleared the floor on seven ports in a fourth, and its screen could not be followed. Without a SAVED record nothing built on the library boots on the robot, so this is the critical path. **The team lead's decisions:** sides from a RAMPED motor pulse (3/6/9 V) — chosen over the investigation's recommended UNPOWERED hand twist (sides from each motor's travel against the IMU yaw while the operator turns the robot in place; rejected by him: hand steps confuse the operator) and over a wheels-up coupling partition (two extra lift steps); ONE 48 in push; a RUN AGAIN button |
 | **G1 Part 2 ahead of R3d Part 3's bench session** *(2026-09-18 21:45, team lead)* | R3d Part 3 (the bench session) next, then Phase G | **G1 Part 2 (the PROS provider, the library teleop loop, `main.cpp` as a dispatcher) is briefed and waits for the go; the bench session runs the moment the brain enumerates on USB, whatever is in flight** | The team lead: *"we haven't tested teleop before so we might as well rewrite"* — "shulib Teleop" has never run, so rebuilding it on the library loses no driven behaviour. The brain had not enumerated all day, so the bench session could not run anyway (SESSION-2026-09-18 log). Recorded here 2026-09-24 by the handoff audit; the Next block had not been moved when the ruling was made |
 | **G1 split in two; G1 Part 1 and G2 before Stage 1 closed; G2 before G1 Part 2** *(2026-09-18, coordinator, under the team lead's authorization for that night)* | G1 → G2 in order, after Stage 1 (R3a/R3b/R3d) closes | **G1 Part 1 (types, builder, host proof) → G2 (runner, registry, manifest, F8) → G1 Part 2 (the PROS provider + `main.cpp`)** | Split so each part's doc pass fits (rule 7). Neither needs a robot, and the robot could not connect. G2 before G1 Part 2 because Part 2 rewrites `src/main.cpp` and that day's bench packages depended on `src/` staying as committed; G2 touches no `src/`. Session log decisions #4 and #8 |

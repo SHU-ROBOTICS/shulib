@@ -197,7 +197,9 @@ until 2b).
 
 1. **`src/teleop_program.cpp` / `.hpp`** (in `namespace shulib::bench`, like the other programs;
    entry functions `teleopInitialize()` and `runTeleop()`):
-   - `bootConfig()` — the existing record → verify → table → refuse block, MOVED (not rewritten),
+   - `bootConfig()` — the existing record → verify → table → refuse block, MOVED (not rewritten)
+     **into a shared `src/boot_source.cpp`/`.hpp`** (amended 2026-09-24, proposed with the COMP brief: the
+     competition program boots exactly as Teleop does and must call the same function, not a copy),
      returning `{config::RobotConfig config; std::array<int, …> absentPorts; std::size_t
      absentCount; …the words the banner prints}`. Its pure core (description + verdict →
      `RobotConfig`: the tank slice is the chosen `DrivetrainDescription`, drive-encoder odometry,
