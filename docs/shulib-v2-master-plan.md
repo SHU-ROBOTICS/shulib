@@ -4,11 +4,13 @@
 > reference, not a forward plan. Most of what follows is now shipped code — where a section still
 > describes something unbuilt, it says so in place. Living document.
 >
-> **The one status line that governs everything:** shulib **has never driven a robot.** No
+> **The one status line that governs everything:** shulib **has never driven a robot under its
+> own control.** No
 > control loop has ever closed on hardware, no wheel has ever turned under the library's own
 > steering. What *has* happened: the code boots on a V5 brain, and the hardware adapters have
 > commanded real motors and read real sensors at a bench, proving their unit conversions correct
-> on one robot, once. Everything above that seam is verified against a simulator only.
+> on one robot, once, and a driver has since driven a second robot with the sticks through them
+> (open-loop, 2026-09-17). Everything above that seam is verified against a simulator only.
 >
 > **What this is:** a design & architecture reference for shulib — the reasoning behind the
 > shape, including the alternatives that were rejected.

@@ -145,7 +145,7 @@ X-drive build GPS and rotation sensors — rather than in-memory fakes, includin
 driver-control loop.
 
 What that does *not* yet mean, stated as plainly as the robot itself states it over serial:
-**the library has still never driven a robot** — no control loop has ever closed, and no wheel
+**the library has still never driven a robot under its own control** — no control loop has ever closed, and no wheel
 has ever turned under the library's own steering. The adapters are host-tested against a
 programmable stand-in for PROS, which proves the glue is faithful to our *beliefs* about PROS
 — units, signs, error values — and cannot prove the beliefs themselves

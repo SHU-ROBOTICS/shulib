@@ -355,7 +355,7 @@ bug, and it will surface as one warning per occurrence rather than as a mystery.
 
 A `Route` has been executed **on the host physics plant only** — every verb, both drivetrains, with
 the runner's output required to be bit-identical to the same legs written by hand in C++. The library
-has never driven a physical robot. Read §7 before betting a competition on any of this.
+has never driven a physical robot under its own control. Read §7 before betting a competition on any of this.
 
 ---
 

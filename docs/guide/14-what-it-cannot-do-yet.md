@@ -13,7 +13,7 @@ is that rule applied to itself. The links matter more than the prose: statuses c
 linked documents are maintained as the truth. Where this page and the roadmap disagree, the
 roadmap is right.
 
-## It has never driven a robot
+## It has never driven a robot under its own control
 
 The headline limitation, stated as many times as it takes:
 

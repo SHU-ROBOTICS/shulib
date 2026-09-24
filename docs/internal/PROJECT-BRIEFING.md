@@ -180,7 +180,10 @@ real time, so it is an honest record of exactly how far the work got — before 
 
 ## 3. The governing constraint, and it governs everything
 
-**The library has never driven a robot.**
+**The library has never driven a robot under its own control.** *(Worded this way everywhere since
+2026-09-24: "has never driven a robot" alone had become false — a driver drove robot two through
+the library's adapters on 2026-09-17. What stays true is that no control loop of the library's
+has ever closed on hardware.)*
 
 On 2026-08-12 the package was built, uploaded and booted on a V5 brain. It constructed its whole
 object graph on ARM and printed its diagnostics banner over USB, including a live `strafeAuthority`

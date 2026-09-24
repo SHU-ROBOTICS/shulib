@@ -77,7 +77,7 @@
 - **What HAS run on hardware, with logs in the repo:** the v2 core booted on a brain (2026-08-12,
   `docs/internal/evidence/first-boot-2026-08-12.md`); the R1a bench session — eight motors commanded
   at +2.0 V through `ProsMotor`, sensors read, seven unit-scale beliefs settled (2026-08-13,
-  `R1a-BENCH-SESSION.md`); Bench Tests on the old bot, the SD card written and read back, the IMU
+  `R1a-BENCH-SESSION.md`); Bench Tests on the old bot, a log written to the SD card (read back on a laptop), the IMU
   heading sign confirmed (2026-08-17..19, `evidence/r3a-session-2026-08-19*.log`, HA-02, HA-122);
   Bench Tests on robot two — the census, IMU on port 2, battery and controller reads, sign captures,
   ten motors constructed at 0 V (2026-09-10, `R3b-PROGRESS.md`). **Unlogged:** "shulib Drive" drove
@@ -462,7 +462,7 @@ you mean so its in-progress edits cannot reach a package.
   M1 — no uploaded program commands a `moveTo`, so the "few inches of `moveTo`" this file used to list
   is impossible until L2 (or a minimal auton hook) exists; R3b closes on that later run. Then write
   `R3d-COMPLETED.md` from the log, move the roadmap pointer and the Next block, flip only evidenced
-  checkboxes. **The "never driven a robot" sweep** (`docs/internal/guide-maintenance.md`'s "R3 — first
+  checkboxes. **The "never driven a robot under its own control" sweep** (`docs/internal/guide-maintenance.md`'s "R3 — first
   real robot run" row) happens when the log shows the library's MOTION STACK drove — every instance
   in ONE commit: `README.md`, `docs/README.md`, guide ch. 01, 07, 14 and the guide README, the master
   plan's status line, `docs/vexbuilder-integration.md`. Teleop driving from the record is the library

@@ -74,7 +74,7 @@ core never touches PROS directly (that separation is load-bearing; see the layou
 
 ## What it is NOT yet
 
-**This library has never driven a robot.** That is the single most important fact about its
+**This library has never driven a robot under its own control.** That is the single most important fact about its
 current state, so here it is, third heading from the top:
 
 - **Everything about motion and control is verified off-robot**, against a simulated plant and

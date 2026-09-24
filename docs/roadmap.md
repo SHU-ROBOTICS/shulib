@@ -54,7 +54,8 @@ an intention in the present tense is how a roadmap starts lying:
   tests.
 - **It's provably correct.** The core runs off-robot in automated tests and inside our simulator, so
   bugs are caught before they cost a match. **Status: real, and bounded by what a simulator can
-  prove.** It proves *logic*, not constants — and the library has never driven a robot.
+  prove.** It proves *logic*, not constants — and the library has never driven a robot under its own
+  control.
 
 shulib is one half of a two-tool ecosystem:
 
@@ -1306,7 +1307,8 @@ DoD in Phases C–F depends on it.*
   deleted (34 files); the CI PROS-free guard covers all of `include/shulib/`; the new `shulib/` is
   the only tree. The **F6 freeze clause closed at D2 (2026-08-12)** — LOCKED, enumerated,
   pin-enforced. `[~]` not `[x]` because one clause is NOT done and is owned elsewhere:
-  **hardware-validation on the V5 is OPEN (R3)** — this package has never driven a robot.
+  **hardware-validation on the V5 is OPEN (R3b)** — this package has never driven a robot under its
+  own control.
   (The "cannot until R1's adapters exist" this line carried closed at R1a — the adapters
   exist and main.cpp wires them; what remains open is R3's bench-and-drive clause itself.)
   (It has been **booted** on a V5 brain, 2026-08-12:
