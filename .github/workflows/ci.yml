@@ -4,8 +4,8 @@ name: ci
 # Runs the same checks we run locally: the architecture guards, the strict host
 # build, the test suite, (since chunk A4) a cross-COMPILE of every v2 header for
 # the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
-# AND link, every build (five since R3b Parts 1–3: three robot variants and the
-# tank drive/library programs) — of src/ under a warning policy.
+# AND link, every build (six since R3d Part 2: three robot variants and the tank
+# drive/library/calibrate programs) — of src/ under a warning policy.
 # (This file said the ARM link was impossible in CI until 2026-08-19 — "needs
 #  PROS's bundled toolchain". MEASURED FALSE at GATE1: the firmware archives are
 #  vendored in-tree and `make` links end to end at apt's arm-none-eabi-g++ 13.2.1

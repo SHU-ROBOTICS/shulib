@@ -1,10 +1,12 @@
 # shulib, from scratch — the plain-English orientation
 
 > **Who this is for:** a new team member, or anyone who opens this repo and wonders what it is.
-> No jargon, no chunk codes, nothing assumed. Written 2026-08-14 because the team lead asked for
-> something they could hand to a teammate — which was itself the finding: fifteen guide chapters and
-> a hundred thousand words existed, and none of them answered *"what is this project and where is
-> it?"* in one page.
+> No jargon, no chunk codes, nothing assumed. First written 2026-08-14 because the team lead asked for
+> something they could hand to a teammate — fifteen guide chapters and a hundred thousand words
+> existed, and none of them answered *"what is this project and where is it?"* in one page.
+> **Rewritten 2026-09-24:** the August version said our robots were X-drive and H-drive (both of this
+> fall's robots are tank drives) and listed three missing pieces that have since been built. A page
+> written to orient a confused reader is the worst page to leave stale.
 
 ---
 
@@ -16,14 +18,18 @@ accurately. That is hard, and it is what this library does.
 
 ## Why build our own
 
-Most teams use **LemLib**. It supports only *tank* drives — robots that turn like a car. Our robots
-are **X-drive and H-drive**: they slide sideways. LemLib cannot drive them at all.
-
-So shulib exists to do three things LemLib does not:
+Most teams use **LemLib**. It supports only *tank* drives — robots that turn like a car. shulib was
+started so that X-drive and H-drive robots — which can slide sideways — could be driven properly, and
+it does three things LemLib does not:
 
 - **Move sideways and turn at the same time**, as independent motions
 - **Combine several sensors** into one confident estimate of where the robot is
-- **Be usable by someone who cannot write C++** — *this part is not built yet*
+- **Be usable by someone who cannot write C++** — *half built: a routine can be data, but nothing
+  loads one from a file yet*
+
+**This season is different from the plan.** Both of our fall 2026 robots are **tank drives** (the
+team lead's call, 2026-09-14); the X-drive comes in spring 2027. So this fall shulib drives tanks —
+which it does fine — and the sideways-motion half waits for the spring robot to be proven.
 
 ## The four jobs
 
@@ -32,27 +38,29 @@ So shulib exists to do three things LemLib does not:
 3. **Get somewhere.** "Drive to that spot facing that way" — and actually arrive.
 4. **Run a routine.** A sequence of moves, with a guarantee it stops safely before time runs out.
 
-Jobs 2, 3 and 4 are **done and heavily tested**. Job 1 was built on 2026-08-13/14.
+All four are **built and heavily tested on the laptop.** Only the first has been tried on a robot.
 
 ## The trick that made it possible without a robot
 
-There was no robot for most of this project. So instead of guessing, we built **a simulated robot in
-software** — voltage in, motion out, sensors reading back — and then made that simulator *lie* the
-way real hardware lies: drifting gyros, dropouts, sagging batteries, wheels that slip.
+There was no robot for most of this project. So instead of guessing, we built a **host test plant**:
+a laptop-only model of a robot — voltage in, motion out, sensors reading back — that knows exactly
+where the robot *really* is, so a test can grade a routine by how close it ended up. Then we made it
+*lie* the way real hardware lies: drifting gyros, dropouts, sagging batteries, wheels that slip.
+(It is not a visual simulator you can watch; it is a grading tool inside the tests.)
 
 Everything above the hardware layer was developed and proven against it. That is why there are over
-a million test assertions, and why the library works at all when no robot existed.
+a million and a half test assertions, and why the library works at all when no robot existed.
 
-**What a simulator cannot tell you is whether your numbers are right.** Every constant — degrees per
-encoder tick, what a millivolt means — was a written-down *guess*, tracked in a register. A real
-robot is the only thing that settles them.
+**What the host test plant cannot tell you is whether your numbers are right.** Every constant —
+degrees per encoder tick, what a millivolt means, how fast the robot accelerates — is a written-down
+*guess* until a real robot measures it, and every guess is tracked in a register.
 
 ## Why the strange names
 
 Work happens in **chunks**: one focused piece at a time, each with a written plan, adversarial tests,
 and a record of what it actually proved. They are lettered by phase — **A** foundations, **C** making
 it move, **D** making it usable, **E** position accuracy, **F** sequencing, **R** the robot, **T**
-driver control, **G** the no-code tool, **H** ecosystem.
+driver control, **G** the no-code path, **H** ecosystem.
 
 `R1a` means "robot phase, first chunk, first half." The letters are bookkeeping and nothing more.
 
@@ -65,81 +73,58 @@ they share letters with chunk names and are *not* the same thing.
 ## Three different kinds of "proven" — read this before anything else
 
 **Almost every confusing sentence in this project is one of these three being mistaken for another.**
-"The library is nearly finished" and "the library has never driven a robot" are both true, and they
-are true at different tiers.
+"The library is nearly finished" and "the library's motion has never driven a robot" are both true,
+and they are true at different tiers.
 
-| Tier | What it proves | How much we have |
+| Tier | What it proves | How much we have (2026-09-24) |
 |---|---|---|
-| **1. Host simulation** | the **logic** is right — the maths, the control loops, the decisions | **Enormous.** 1,151 tests / 1.5M assertions, graded against exact ground truth |
-| **2. ARM compile + boot** | it will **build and run** on a V5 brain | **Complete.** All 149 headers cross-compile; it booted on a brain 2026-08-12 |
-| **3. Physical hardware** | the **numbers** are right — what a millivolt is, which way is clockwise | **Almost nothing.** 8 motors spun at 2 V once; 7 conversions confirmed; one robot, one day |
+| **1. The host test plant** | the **logic** is right — the maths, the control loops, the decisions | **Enormous.** 1,358 tests / 1.6M assertions, graded against exact ground truth |
+| **2. ARM compile + boot** | it will **build and run** on a V5 brain | **Complete for what exists.** All 181 headers cross-compile; six robot programs build and link every commit; the core booted on a brain 2026-08-12 |
+| **3. Physical hardware** | the **numbers** are right — what a millivolt is, which way is clockwise | **A little.** Motors spun at 2 V and seven conversions confirmed (2026-08-13); the gyro's direction and the SD card confirmed (2026-08-18/19); robot two's ports and motor directions measured (2026-09-10); robot two driven by hand through the library's hardware layer once (2026-09-17, no log). **The library's own steering has never moved a wheel.** |
 
-The library is roughly **95% done at tier 1 and 5% done at tier 3.** That single sentence explains
-more of this repo's apparent contradictions than anything else here.
+## Where it stands (2026-09-24)
 
-## Where it stands (2026-08-17)
-
-- **Done, and proven at tier 1:** the thinking half, completely — three drivetrain types, sensor
-  fusion, motion, sequencing, two ways to write a routine, diagnostics, and the documentation.
-- **Done, and proven at tier 3 in part:** the hardware layer — fourteen adapters. Motors, battery
-  and clock have met real devices. The other eleven have not.
+- **Built and proven on the host test plant:** the whole thinking half — three drivetrain types,
+  sensor fusion, motion, sequencing, two ways to write a routine in code, a way to write a routine
+  as **data**, a robot described as data and built from it, the drivetrain teaching itself its own
+  facts (which motors, which way, how far apart the wheels are), driver-control feel, diagnostics,
+  and the documentation.
+- **Built for the robot:** seventeen hardware adapters and six programs — a measuring tool
+  ("Bench Tests"), a plain driving program ("shulib Drive"), the library's own driving program
+  ("shulib Teleop"), and a calibration program ("shulib Calibrate") for robot two, plus two others.
+- **Run on a robot:** Bench Tests (in several sessions) and shulib Drive (once). **shulib Calibrate and shulib
+  Teleop have never run.** Robot two's drivetrain was rebuilt around 2026-09-18, and nothing has run
+  since — the laptop has not been able to see the robot's brain over USB (a cable is being replaced).
 - **Published:** everything through 2026-08-15 is live at docs.shurobotics.com.
-- **Not built:** the no-code authoring tool (the entire "usable without C++" promise), driver-control
-  feel, real tuning constants, the students' own scoring routines — **and three small pieces of the
-  drivetrain layer nobody knew were missing until a real robot was held up against the code** (see
-  below).
+- **Not built yet:** the program you would upload for a match (with an auton picker), the camera
+  adapter, button bindings for mechanisms, the scoring moves (waiting on what the robots' mechanisms
+  will be), real tuning numbers, and the loading of routines from a file. **And the students' own
+  routines are the students' to write** — the library supplies the moves, not the strategy.
 
-**An auton already works in simulation.** A six-step routine — move, move, strafe, turn, hold, brake
-— settles **0.228 in** from its target in 9.56 s. That is a measured result from a passing test, not
-a goal.
+**An auton already works on the host test plant.** A six-step routine — move, move, strafe, turn,
+hold, brake — settles **0.228 in** from its target in 9.56 s. That is a measured result from a passing
+test, not a goal — and it is not a robot result.
 
 ## The sentence that governs everything
 
-**The library has never driven a robot.**
+**The library's motion has never driven a robot.**
 
-It has booted on a brain. It has spun a motor. Every conversion it performs is verified. But nothing
-has ever closed a control loop — no wheel has ever turned under the library's own steering.
+It has booted on a brain. Its hardware layer has spun motors and read sensors, and a driver has
+driven robot two through it. But nothing has ever closed a control loop — no wheel has ever turned
+under the library's own steering.
 
 That distinction is defended in about six places across the documentation **on purpose**, because it
 is the easiest thing in this project to start quietly lying about.
 
-## What stands between here and a robot that drives
+## What stands between here and a robot that drives itself
 
-> **CORRECTED 2026-08-17, and the correction is the point.** This list previously said the first item
-> was a *"small fix, no hardware needed"* — telling the library which ports the motors are on. That
-> was wrong, and it was wrong in the most expensive way a document can be: it was the one actionable
-> list in the one document written to orient a confused reader, and it sent them in the wrong
-> direction. **Measured, not argued:** the port map is the easy part; the library is missing two
-> capabilities underneath it. Written up in `build-order.md`'s R3b entry with the measurements.
+1. **The first drive on robot two** — calibrate it (the robot measures its own drivetrain and saves
+   the answer to its SD card), then drive it with shulib Teleop from that record. This needs only the
+   USB cable. It proves the calibration and the library's driving path; it does not yet prove an auton.
+2. **A program that runs an auton** — the match program with a picker on the brain's screen. Nothing
+   uploaded today commands a single autonomous move, deliberately. Once it exists, the first short
+   auton on the robot is the moment "the library has driven a robot" becomes true.
+3. **Real numbers** — tuning measured on the robot instead of guessed, and position corrections
+   (a wall reset, GPS or the camera) so the estimate does not drift over a routine.
 
-**Step 1 — measure the robot.** Wheel diameter, gear ratio, track width, and which direction the
-gyro calls positive. Mostly a ruler and a protractor; half a morning. **Nothing later is correct
-until this is done**, because two of the pieces below take these numbers as inputs.
-
-**Step 2 — build three small missing pieces.** Roughly 150 lines of library code between them:
-
-1. **Command more than one motor per wheel.** The library sends one voltage to one motor per wheel.
-   A real VEX drivetrain has 2–4 motors per side; the available robot has seven. Handing it seven is
-   *accepted* today and **two get driven while five sit dead, silently.** The kinematics file says
-   this aggregation is "the HAL's business" — and that facility was never built.
-2. **Read distance from a drive motor's encoder.** Odometry (knowing where you are) currently
-   requires two dedicated *Rotation Sensors* on unpowered tracking wheels. The available robot has
-   none. Reading the drive motors instead is how most teams do it — LemLib does — and shulib cannot
-   yet. This is also the only honest home for a **gear ratio**, a concept the library does not have
-   anywhere.
-3. **Say "this chassis cannot see sideways."** A tank robot cannot measure lateral movement, and
-   odometry currently insists on a sensor for it. The kinematics layer already states exactly this in
-   shipped code; the localization layer has not caught up.
-
-**Step 3 — drive it**, measure how far off it is, and fix that.
-
-### Two different autons, two different distances away
-
-| Goal | What it needs | Realistic distance |
-|---|---|---|
-| **Heading-based auton** — turn to a heading under control, drive forward for a measured time | steps 1–3 above. **No odometry at all**: turning reads only the gyro | days |
-| **Position-based auton** — "drive to that spot on the field" | the above, **plus two Rotation Sensors** to buy and mount, plus measured sensor noise and real tuning constants | weeks, and gated on parts |
-| **The sideways-motion thesis** that justifies the whole project | a competition robot with an X or H drive, a GPS and a camera | gated on a robot that does not exist yet |
-
-Everything else — the camera, the no-code tool, driver-control feel — is real work, and **none of it
-is on that path.**
+The full list, with who decides what, is `docs/internal/HANDOFF-remaining-work.md`.

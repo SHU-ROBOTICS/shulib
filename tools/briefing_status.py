@@ -286,11 +286,14 @@ def guard_state():
 def pin_counts():
     out = {}
     for name, path in (("F6", "test/f6_signature_pin_test.cpp"),
+                       ("F8", "test/f8_signature_pin_test.cpp"),   # frozen at G2, 2026-09-18
                        ("F10", "test/routine_signature_pin_test.cpp")):
         full = os.path.join(REPO, path)
         if os.path.exists(full):
             text = open(full, encoding="utf-8").read()
-            out[name] = len(re.findall(r"SHULIB_F\d+_(?:PIN|NOT_NOEXCEPT)\(", text))
+            # Invocations only: the lookbehind skips the two `#define SHULIB_F…(` lines, which
+            # this counted as pins until 2026-09-24 (F6 read 50 for 48 pins, F10 52 for 50).
+            out[name] = len(re.findall(r"(?<!#define )SHULIB_F\d+_(?:PIN|NOT_NOEXCEPT)\(", text))
     return out
 
 

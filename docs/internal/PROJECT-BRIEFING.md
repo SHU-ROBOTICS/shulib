@@ -141,7 +141,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 ⚠️ **Register rows F1–F5 are NOT chunks F1–F5.** Row F2 is the accuracy targets; chunk F2 was the sequence engine. The collision is in shipped code (`spec/accuracy.hpp`). **Never edit rows F1–F5.**
 
-**Guards, run just now:** PROS-free PASS · sim-layering PASS · freeze pins: F6 50, F10 52
+**Guards, run just now:** PROS-free PASS · sim-layering PASS · freeze pins: F6 48, F8 84, F10 50
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 

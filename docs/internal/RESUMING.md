@@ -12,8 +12,10 @@
 
 - **`docs/internal/`** — development **process**: this file, `build-order.md`, `chunks/*`
   (briefs, `-PROGRESS` live logs, `-COMPLETED` records), `transcripts/`. This directory is a
-  **self-contained, removable unit**: when `shulib-v2` squash-merges to `main`, `docs/internal/`
-  is dropped and `main` shows only the library and its documentation.
+  **self-contained, removable unit**: a release merges `shulib-v2` into `release/v2` with
+  `docs/internal/` dropped, and `main` is a single-parent snapshot of that tree
+  ([`RELEASING.md`](RELEASING.md) — not a squash), so `main` shows only the library and its
+  documentation.
 - **`docs/`** — project **documentation**, public-facing: `roadmap.md`,
   `shulib-v2-master-plan.md`, `hardware-assumptions.md`, `diagnostics-plan.md`,
   `legacy-command-vocabulary.md`.
@@ -25,7 +27,7 @@ ones are fine. Before closing any chunk that touches docs, re-run the C7 removab
 
 ---
 
-## The three planning documents
+## The planning documents
 
 | File | Answers |
 |---|---|
@@ -38,13 +40,13 @@ ones are fine. Before closing any chunk that touches docs, re-run the C7 removab
 
 ---
 
-> **Handing over between chats (2026-09-23):** [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)
+> **Handing over between chats (2026-09-23; corrected by an audit 2026-09-24):** [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)
 > is the full, self-contained list of everything left to finish shulib, with the state of the tree,
 > the robot facts, the standing rules and the documentation owed. Read it right after this file.
 
 ## Where things stand
 
-Check these three, in this order — they are authoritative over anything written here:
+Check these four, in this order — they are authoritative over anything written here:
 
 ```sh
 git log --oneline -8                       # what has landed
@@ -79,12 +81,14 @@ or [`A2-host-plant.md`](chunks/A2-host-plant.md) as the template. A good brief c
 **The brief is where the thinking goes.** Read the code it touches before writing it — the highest-value
 lines in both briefs so far came from noticing something specific in an existing header.
 
-### 2. Commit the brief, then run it
-An executor subagent runs the chunk (`Agent` tool, `subagent_type: general-purpose`,
+### 2. Commit the brief, wait for the team lead's go, then run it
+Show him the brief's scope and its documentation list and stop (pace rule 2 below); run it only
+on his go, in a later turn. An executor subagent runs the chunk (`Agent` tool, `subagent_type: general-purpose`,
 `run_in_background: true` so the user can watch and the session stays responsive). **Executor
 model: `opus`, since 2026-09-14** — the team lead's call, to conserve credits ("swap from fable
 to opus so that we don't run out out of nowhere"); Fable only when he asks for it on a specific
-chunk. Chunks A1 through R3b Parts 1–3 were executed by Fable.
+chunk. Earlier chunks were executed by Fable — by the coordinators' account; no PROGRESS or
+COMPLETED record before R3d's names its executor's model, and every log since does.
 
 The prompt must include: required reading, the non-negotiable constraints restated inline (do not rely
 on the brief alone for the critical ones), the test bar, the verification commands, the documentation
@@ -130,7 +134,8 @@ python3 tools/src_build_gate.py check
 > (the 2026 chassis, since R3b Session 2), with `PROGRAM=drive` / `PROGRAM=library` /
 > `PROGRAM=calibrate` on tank for the drive program, the library program and (since R3d Part 2)
 > the self-calibration program — the old documented `CXXFLAGS_EXTRA` flag was a
-> measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and no longer appears anywhere.
+> measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and survives only in comments that
+> say it used to be documented (`Makefile`, `src/main.cpp`) — never as an instruction.
 
 > **This command was BROKEN here until DOCS1 (2026-08-14), and the failure was silent-ish in the
 > worst way.** The `sed` read `s|.*/include/||`, which needs a `/` *before* `include` — so run from
@@ -148,14 +153,18 @@ constraint in the source.
 
 ### 4. Commit
 Only after verifying. Conventional-commit style matching the existing log; the body explains the
-*reasoning* and names honest partials. Trailer:
+*reasoning* and names honest partials. Trailer: **the attribution line the current session's
+system reminder gives** — it names the model coordinating the session, so it changes when the model
+does. As of 2026-09-24:
 
 ```
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 ```
 
-*(The trailer names the model that coordinated the session. It read `Claude Opus 5 (1M context)`
-from 2026-08-01 to 2026-09-10; commits since then carry the line above.)*
+*(History: `Claude Opus 5 (1M context)` from 2026-08-01 to 2026-09-10, `Claude Fable 5.1` from
+2026-09-10 to 2026-09-18, `Claude Opus 5.5 (1M context)` from 2026-09-23. This section named a fixed
+line until 2026-09-24, and a session obeying it over the system reminder would have written the
+wrong one — the handoff audit caught the three documents giving three different trailers.)*
 
 **Do not push** unless asked.
 

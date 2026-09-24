@@ -54,6 +54,26 @@ Decisions on order beyond the team lead's explicit words are logged below as the
 
 *(appended as they happen)*
 
+> **Index added 2026-09-24 by the handoff audit (finding session#0).** Nothing was ever appended
+> here: every decision was written inline in the Timeline below, so a reader told to "read these
+> first" found only the placeholder. The index, by Timeline entry:
+>
+> - **#1** (~05:20–05:34) — the IMU port is DISCOVERED from the device registry, not typed (R3d
+>   Part 2's ruling P1).
+> - **#2** (~05:35–05:45) — T2 launched in an isolated worktree in parallel with R3d (rule 1 relaxed
+>   for that night only).
+> - **#3** (~05:35–05:45) — field-centric rotates the stick in the shaper and always commands
+>   `Frame::Body`.
+> - **#4** (14:44) — G1 split into two parts so each doc pass fits.
+> - **#5** (16:13) — R3d Part 2 committed on the earlier full gate run plus a diff-confirmed restore.
+> - **#6** (16:16) — T2's `src/` re-pointing deferred (now inside G1 Part 2).
+> - **#7** (16:16) — T2's two candidate register entries not minted as HA numbers.
+> - **#8** (19:08) — G2 ran before G1 Part 2.
+>
+> The team lead's own rulings that evening (G1 Part 2 ahead of the bench session; the master plan
+> follows the code) are in the 21:45 entry. All of them are now also rows in `build-order.md`'s
+> deviations table.
+
 ## Timeline
 
 > **Timestamp correction (written ~15:00, 2026-09-18).** The entries from "~05:35" onward were
@@ -343,3 +363,42 @@ Decisions on order beyond the team lead's explicit words are logged below as the
   enumerated on USB (cable or the laptop's USB controller); the packages need a rebuild from
   `5e4ce65` (or from the rewrite once it lands) — Station G is the runbook. **Next, in order:**
   his go on G1 Part 2 → verify → commit → G3's brief → the bench session whenever the brain connects.
+
+## Corrections (2026-09-24 handoff audit)
+
+> This log is a record of its day, so it is not rewritten; what it got wrong is corrected here,
+> each against the evidence named. None of these changes a decision or a verification result.
+
+- **The hardware checkout held ONE package, not four** (16:14 and 19:39 entries). Each
+  `rm -rf bin .d && make …` in `.claude/worktrees/hw-17aa4eb` overwrote the one before; its `bin/`
+  holds only shulib Drive (beacon `shulib-robot-variant=tank-drive`), and `/tmp/hw_pkgs` did not
+  survive the reboot. Bench Tests, Calibrate and Teleop must be rebuilt.
+- **"T2 and G1 do not change any package: `src/` untouched"** (16:43): `src/` was untouched, but T2
+  changed `teleop/stick_mapping.hpp` (`StickInput` gained `rightY`), which every program includes —
+  the package BYTES differ from `5e4ce65`'s; the behaviour does not.
+- **The standing-rules paragraph at the top paraphrased RESUMING wrongly:** rule 2 is "a brief
+  WAITS FOR THE TEAM LEAD'S GO", not merely "a brief before an executor"; rule 8 is the session
+  close-out, and "no hardware claim without a log" is the team lead's standing word, not a numbered
+  RESUMING rule.
+- **"Nothing outside this repository is modified"**: the ~05:20 entry itself records a memory note
+  written to the coordinator's memory directory, outside the repo.
+- **"Nothing is in flight"** (21:45) was true of the working tree; the generated briefing still
+  listed G1, G2, R3a, R3b, R3d and T2 as INTERRUPTED because no completion records existed. G2's was
+  written 2026-09-24 (`G2-COMPLETED.md`), and the briefing's label now reads OPEN.
+- **The suite count 1,635,290** (21:30) included six assertions from a stale `-dirty` build hash in
+  `build/test`; the honest count at that code was 1,635,284 (1,635,266 since `05ad50a`).
+- **Commit times, from `git log`:** `5e4ce65` 16:13:05 · `d8aab95` 16:24:04 · `280dce8` 16:28:39 ·
+  `fe8e270` 19:02:16 · `e9ba69f` 19:08:18 · `d9d0ee3` 19:39:11 · `cf7a943` 21:30:01 · `225d0ac`
+  21:40:27 · `ab7f5b1` 21:45:14. The log wrote `d8aab95` and `280dce8` at 16:43 and `fe8e270` at
+  19:08 (that minute is `e9ba69f`); the 19:39 list, "in order", puts `e9ba69f` (19:08) before
+  `fe8e270` (19:02); and the 21:45 list of the day's commits omits `d9d0ee3`.
+- **Durations that do not add up:** "9.02 h (finished ~05:47)" from a 20:47:49 launch is 05:49;
+  "~2.3 h" from 16:43 to 18:52 is 2 h 09 min; the Part 2 executor's report is timed 16:13, the minute of
+  the commit itself (`5e4ce65`, 16:13:05), so its real arrival time is not recorded. The timestamp-correction note's
+  scope was also wider than it says (the first committed version, in `17aa4eb`, had 05:29 and 05:34 for the first
+  two entries; those were re-timed too).
+- **Counts:** `d8aab95`'s body says "ARM (171 headers)" — the tree had 173; its "documents touched"
+  lists the T2 brief, which it did not touch (both of the coordinator's edits to the brief landed
+  in `5e4ce65`); the "26 em dashes" were 24 in `drivetrain_calibrator.hpp` and 2 in
+  `drivetrain_description.hpp`; Station G ran 188 lines, not ~150; the worktree was handed to T2 at
+  `c778c11`, which is the tip of `main` (the published release), not of `release/v2`.

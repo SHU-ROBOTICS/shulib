@@ -627,10 +627,18 @@ cable, or use "shulib Drive" for the session and report the port.
 **G.1 — upload all four programs (lab computer, brain on micro-USB)**
 
 `rm -rf bin .d` before each `make` is not optional: `make` is incremental, and a stale object file
-is how a build wears the wrong label. Run these four in order, one at a time:
+is how a build wears the wrong label. Run these four in order, one at a time.
+
+**Build on the laptop that holds the committed tree, and do not `git pull`** (corrected 2026-09-24:
+the remote is behind this laptop — nothing after 2026-09-17 is pushed — so a pull on another machine
+builds an older tree with no "shulib Calibrate" at all). Start from a CLEAN tree (`git status` prints
+nothing). If an executor is working in the main tree, build in a separate worktree at the commit you
+mean instead (`git worktree add --detach ../hw-build <commit>`), so its in-progress edits cannot reach
+a package. The old hardware checkout `.claude/worktrees/hw-17aa4eb` holds ONE package (shulib Drive,
+from `5e4ce65`); do not upload from its `bin/` expecting the other three.
 
 ```sh
-cd ~/projects/shulib && git checkout shulib-v2 && git pull
+cd ~/projects/shulib && git status --short    # must print nothing
 
 rm -rf bin .d && make ROBOT=tank                     && pros upload --slot 3 --name "Bench Tests"
 rm -rf bin .d && make ROBOT=tank PROGRAM=drive       && pros upload --slot 1 --name "shulib Drive"
