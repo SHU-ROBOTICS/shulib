@@ -162,6 +162,18 @@ the robot Makefile evaluates per build). **Rejected:** a generated header per bu
 machinery for a host-test nicety); code reading `.git/` at runtime (absurd on a V5); any
 fallback value (the landmine).
 
+> **Corrected 2026-09-24 (handoff audit, finding coord#0).** The honest-scope sentence above
+> was wider than stated: watching `.git/HEAD` never re-ran the configure on a COMMIT, only on a
+> checkout that changed the file, because on a branch `.git/HEAD` holds `ref: refs/heads/…`
+> and a commit moves the ref file instead. `build/test` carried `d9d0ee3-dirty` five commits
+> later, and because the plumbing test asserted once PER CHARACTER, the suite's assertion
+> count carried the stale suffix (+6), so the recorded count failed the briefing gate on the
+> first honest reconfigure. Fixed where it lives: `test/CMakeLists.txt` also watches the
+> reflog (`logs/HEAD`, appended on every move of HEAD, both paths via `git rev-parse
+> --git-path`), proven in a throwaway clone (old: a commit did not reconfigure; new: it did),
+> and the test asserts the alphabet ONCE over the whole string (mutation: `-` removed from the
+> alphabet ⇒ red, naming index 6). The dirty-flag lag itself remains as documented.
+
 ### D9 — D-2's cost/visibility posture: wantsRecord() forwards even when the bucket is empty
 A throttled tick still pays record population so the drop can be SEEN and counted at emit().
 Counting inside wantsRecord() would let a query with no call-count contract mutate state;

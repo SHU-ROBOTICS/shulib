@@ -108,7 +108,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - **Next up:** R3d Part 3 — THE BENCH SESSION, the team lead's morning: run "shulib Calibrate" on robot two, then "shulib Teleop" from the record it writes (worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)). This is also where R3b closes.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **INTERRUPTED CHUNK(S): G1, G2, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
-- **Suite:** 1,358 cases / 1,635,290 assertions, 3 skipped — **green**  
+- **Suite:** 1,358 cases / 1,635,266 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 181  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 140 registered, **7 settled** — next free is **HA-141**  

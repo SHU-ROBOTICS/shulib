@@ -29,7 +29,9 @@
   `release/v2` with `docs/internal/` dropped — never measure `main` by commit distance; see
   `build-order.md`). **Nothing from 2026-09-17 onward has been pushed.** Push only when jal asks.
 - **HEAD at writing:** `d34bbf9` (plus the commit that adds this file). **Tree clean. Nothing in flight.**
-- **Suite:** 1358 test cases / 1,635,290 assertions, 3 skipped, all green.
+- **Suite:** 1358 test cases / 1,635,266 assertions, 3 skipped, all green (since the
+  2026-09-24 build-identity fix; the 1,635,290 recorded before it included six assertions from a
+  stale `-dirty` build hash — see `C5-COMPLETED.md` D8's correction).
 - **Gates, all green at HEAD:** host suite (the doc gates run inside the test build: coverage,
   freshness, verbatim examples, removability, briefing, staleness); `python3 tools/src_build_gate.py
   self-test && check` (**six** builds: `bench`, `xdrive`, `tank`, `tank-drive`, `tank-library`,

@@ -29,10 +29,18 @@ add_compile_options(
 # If git is unavailable the macro is NOT defined and the loud MISSING path runs
 # (test/session_header_test.cpp turns that into a visible failure here, where git
 # does exist — never a silently plausible placeholder). Evaluated at CONFIGURE
-# time; the CONFIGURE_DEPENDS on .git/HEAD re-runs it when the checked-out commit
-# moves (a dirty-flag change without a commit can lag until the next reconfigure
-# — an accepted, documented staleness for the HOST suite; the R1 robot Makefile
+# time; the CONFIGURE_DEPENDS below re-run it when the checked-out commit moves
+# (a dirty-flag change without a commit can lag until the next reconfigure — an
+# accepted, documented staleness for the HOST suite; the R1 robot Makefile
 # evaluates per build).
+#
+# WHICH FILE MOVES WHEN THE COMMIT MOVES (fixed 2026-09-24, audit coord#0): this
+# watched `.git/HEAD` alone until then, and on a branch that file holds
+# `ref: refs/heads/<branch>` and does NOT change when a commit lands — so the
+# configure never re-ran, and build/test carried `d9d0ee3-dirty` five commits
+# after d9d0ee3. The reflog (`logs/HEAD`) is appended on EVERY move of HEAD —
+# commit, checkout, reset, rebase, pull — so it is watched too. Both paths come
+# from `git rev-parse --git-path`, which is also right inside a linked worktree.
 execute_process(
   COMMAND git describe --always --dirty --abbrev=7
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
@@ -42,8 +50,21 @@ execute_process(
 if(NOT SHULIB_GIT_HASH STREQUAL "")
   add_compile_definitions(SHULIB_BUILD_HASH="${SHULIB_GIT_HASH}")
   message(STATUS "shulib build hash: ${SHULIB_GIT_HASH}")
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/../.git/HEAD")
+  foreach(_shulib_git_file HEAD logs/HEAD)
+    execute_process(
+      COMMAND git rev-parse --git-path ${_shulib_git_file}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+      OUTPUT_VARIABLE _shulib_git_path
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET)
+    get_filename_component(_shulib_git_path "${_shulib_git_path}" ABSOLUTE
+                           BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
+    # A missing file (reflog disabled) is skipped rather than watched: a
+    # configure dependency that does not exist breaks the generated build.
+    if(EXISTS "${_shulib_git_path}")
+      set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_shulib_git_path}")
+    endif()
+  endforeach()
 else()
   message(WARNING "shulib: git hash unavailable — SHULIB_BUILD_HASH not defined; "
                   "the session header will be LOUDLY missing (by design)")
