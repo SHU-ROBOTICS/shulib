@@ -193,54 +193,96 @@ until 2b).
 
 ## 2b. PART 2b — "shulib Teleop" rebuilt on the library (`src/`; `main.cpp` shrinks, still has the X-drive)
 
+> **Re-checked 2026-09-24 against the tree at `10de29f`** (a read-only checker, then the coordinator):
+> seventeen corrections folded in below — three that would have broken the build, the boot source made
+> genuinely shareable, the screen rules R3d Part 2F established, Station F rather than G as the stale
+> runbook, and the order relative to the bench session and R2a. **Start 2b only after R2a is committed**
+> (both edit the worksheet and `build-order.md`), and **read the bench session's Station G result in
+> `R3d-PROGRESS.md` first**: if the OLD Teleop ran on the robot, its banner must say what Calibrate's
+> does (`src/main.cpp` ~:952-953 — "THIS VERSION has never run; the previous one ran on <date>"), not
+> "UNRUN".
+
 ### IN
 
-1. **`src/teleop_program.cpp` / `.hpp`** (in `namespace shulib::bench`, like the other programs;
-   entry functions `teleopInitialize()` and `runTeleop()`):
-   - `bootConfig()` — the existing record → verify → table → refuse block, MOVED (not rewritten)
-     **into a shared `src/boot_source.cpp`/`.hpp`** (amended 2026-09-24, proposed with the COMP brief: the
-     competition program boots exactly as Teleop does and must call the same function, not a copy),
-     returning `{config::RobotConfig config; std::array<int, …> absentPorts; std::size_t
-     absentCount; …the words the banner prints}`. Its pure core (description + verdict →
-     `RobotConfig`: the tank slice is the chosen `DrivetrainDescription`, drive-encoder odometry,
-     GPS absent, the provisional tuning) is a library-free function host-tested in test 6.
-   - `ProsDeviceProvider` → `robot::validate(config, devices, {absentPorts})` ⇒ the refusal screen
-     naming the port/field, or the `Robot` constructed **once, from `initialize()`, into
-     `std::optional<robot::Robot>` storage** — never a function-local static that a later call would
-     re-attempt after a throw (landmine 1). The graph-boundary `try` stays: a throwing precondition
-     inside construction is a refusal screen, never a crash loop.
-   - The precondition hook: `main.cpp`'s handler gains `attachFaultLatch(diag::FaultLatch*)`,
-     declared in a small `src/` header and called once the `Robot` exists, so a precondition after
-     boot still latches `FaultCode::Precondition` exactly as `:1068` does today.
-   - The session header's port map from `robot.portMap()`; the banner from `robot.describe()`.
-   - `runDriverControl` with the default `DriverProfile` (`ArcadeBody`, ruling M5), the re-zero
-     button a named constant, field-centric a constant that is OFF.
-   - The panel, MOVED: its group rows via `robot.chassis().deps().motorGroups` (the Tier-3 path is
-     fine in `src/`), its cross-check row via `robot.driveOdometry()`, its estimate row via
-     `robot.localizer()`; plus ONE new row: the shaper's mode word and the field-centric state
-     (`fellBack`/latched), from `DriveShaperState`. The refusal painter, MOVED.
-   - **Every line the current program says at boot that is still true is still said**: UNRUN;
-     provisional gains; no independent stall source; the source word MEASURED/TYPED; the
-     competition status; the build stamp. The old and new banners are diffed in the log.
-2. **`src/main.cpp`**: the tank-library branches of `initialize()` and `opcontrol()` forward to
-   `teleopInitialize()`/`runTeleop()`; `TankMotors`, `TankRobot`, `tankPortMapString`,
-   `runTeleopLoop`, the panel and the boot block leave `main.cpp`. **The X-drive graph and its
-   helpers stay in Part 2b**, so the gate's variant differential still holds unchanged.
-3. The `src` build gate stays at six builds, all green, beacons unchanged, zero disallowed warnings.
+1. **`src/boot_source.hpp` / `.cpp` — the SHARED boot source** (the COMP brief's ruling C4; both
+   programs call it): the existing record → verify → table → refuse DECISIONS, moved with every decision
+   unchanged (`src/main.cpp` ~:983-1059), **plus** the record/table cross-check (~:1118-1140) — but it
+   **returns** its outcome instead of painting or returning out of `initialize()`: `{ok; the refusal
+   headline + why; config::RobotConfig config; std::array<int, kMaxSmartPorts> absentPorts; std::size_t
+   absentCount; the source words (MEASURED/TYPED, the `boot source:` line); the verdict's reason}`. It
+   writes no program globals and no screen; each program paints its own refusal and logs with its own
+   prefix. **Its pure core** (description + verdict → `RobotConfig`: the tank slice is the chosen
+   `DrivetrainDescription`, drive-encoder odometry, GPS absent, the provisional tuning, the absent
+   ports) is **inline and PROS-free in `src/boot_source.hpp`**, so a host test can include it the way
+   `chassis_table_test.cpp` includes `src/chassis_table.hpp` (the host build compiles only `test/*.cpp`
+   and includes headers, never `src/*.cpp`).
+2. **`src/teleop_program.cpp` / `.hpp`** (in `namespace shulib::bench`, like the other programs), entry
+   functions **`teleopInitialize()`, `teleopAutonomous()` and `runTeleop()`** (the tank-library
+   `autonomous()` branch reads the graph's telemetry today, ~:1260-1268, and must forward too):
+   - `ProsDeviceProvider` → `robot::validate(config, devices, options)` ⇒ the refusal screen naming the
+     port/field, or the `Robot` constructed **once, from `initialize()`, into `std::optional<robot::Robot>`
+     storage** — never a function-local static a later call would re-attempt after a throw. The options
+     are spelled **`robot::BuildOptions{.absentDrivePorts = std::span<const int>{boot.absentPorts.data(),
+     boot.absentCount}}`** — a span over the whole array would hand `validate()` the unused zeros and it
+     refuses "absent port 0 is not one of this drivetrain's drive ports". **The graph-boundary `try` wraps
+     `validate()` as well as the construction** (a provider configuration conflict is a precondition).
+   - The precondition hook: `main.cpp`'s handler gains `attachFaultLatch(diag::FaultLatch*)`, declared in
+     a small `src/` header and called once the `Robot` exists, so a precondition after boot still latches
+     `FaultCode::Precondition` exactly as `main.cpp` ~:1069 does today.
+   - The session header's port map from `robot.portMap()`; the boot banner from `robot.describe()` —
+     **but the panel's DEGRADED/source row keeps printing the boot verdict's `reason`**
+     (`calibration::boot_check.hpp` ~:301, "`DEGRADED: dead … -- driving without them`"), never
+     `describe()`'s `DEGRADED: absent 3,13`, because Station G.6.2 quotes the former.
+   - The program keeps its OWN `ProsController` (master) and `ProsLineDisplay` (the controller screen) —
+     the provider supplies neither; the battery comes from `robot.context().battery()`.
+   - `runDriverControl(robot.chassis(), master, devices.pacer(), shaper, teleop::DriverLoopConfig{...},
+     disabled, heading, panel)` with the default `DriverProfile` (`ArcadeBody`, ruling M5), the re-zero
+     button a named constant, field-centric a constant that is OFF. The heading source's `trusted` is
+     `robot.localizer().qualityClass() != Uninitialized && robot.context().imu().isReady() &&
+     robot.faults().raiseCount(diag::FaultCode::ImuLost) == 0` (the feel layer's contract,
+     `driver_control.hpp` ~:106-107).
+   - The panel, MOVED: its group rows via `robot.chassis().deps().motorGroups`, its cross-check row via
+     `robot.driveOdometry()`, its estimate row via `robot.localizer()`; plus ONE new row: the driver mode
+     (`shaper.profile().mode` — `DriveShaperState` has no mode) and the field-centric state from
+     `DriveShaperState`, **in words the program writes** (`teleop/` has no word function). **R3d Part 2F's
+     screen rules apply:** repaint only what changed, live numbers at most 5 Hz (every `screen_print_at`
+     leaks; the old panel printed ten rows every 100 ms), and EVERY screen string through one sanitizer
+     (PROS re-reads printed text as a format, so a `%` breaks it even through `"%s"`; the refusal screen
+     prints `e.what()` and several precondition messages carry em dashes). **Move `printText` out of
+     `src/calibrate_program.cpp`'s anonymous namespace into a shared `src/` screen-text header** that both
+     programs (and COMP) use — with the calibrate program's behaviour unchanged.
+   - **Every line the current program says at boot that is still true is still said**: provisional gains;
+     no independent stall source; the source word MEASURED/TYPED; the competition status; the build stamp;
+     and the run status per the note above. Checked by a **source-level diff of every printf/log string,
+     old against new**, in the log (there is no hardware to run it on).
+3. **`src/main.cpp`**: the tank-library branches of `initialize()`, `autonomous()` and `opcontrol()`
+   forward to the three entry functions; `TankMotors`, `TankRobot`, `tankPortMapString`, the panel and the
+   boot block leave `main.cpp`. **`runTeleopLoop` STAYS in 2b** — the X-drive's `opcontrol()` still calls
+   it (~:1335); 2c removes it with the X-drive graph. **The X-drive graph and its helpers stay**, so the
+   gate's variant differential still holds unchanged.
+4. The `src` build gate stays at six builds, all green, beacons unchanged, zero disallowed warnings.
+5. **Line references** above are to `src/main.cpp` at `10de29f` (1,339 lines); re-check them before use.
 
 ### Documentation, in Part 2b's commit
-`README.md` — the "Wiring a `Chassis`" paragraph (the builder is the on-ramp;
-`src/teleop_program.cpp` the worked example; the longhand kept as Tier 3); `docs/guide/14` — the
-driver-control bullet (the shaper now drives Teleop; no driver has felt it);
-`docs/hardware-assumptions.md` — HA-112's source lines (Teleop consumes the feel layer);
-`docs/internal/chunks/R3a-BENCH-WORKSHEET.md` — **Station F.1's panel table rewritten from the new
-code** (it is already stale against the committed panel: "5 members" vs "%u/%u present", the
-removed "dead ports: NOT tolerated" row, the geometry row) and Station G's Teleop steps checked
-string-for-string against the new banner and panel; `docs/roadmap.md` — the two Phase T rows (still
-`[~]`: Teleop wired, Drive and the tester not, no driver has felt it) and "You are here";
-`docs/internal/build-order.md` — G1's and T2's status and the first `Next:`; the briefing. **If
-Part 2b lands before the bench session, the S1 runbook's Teleop IS this program** — the worksheet
-edit above is what keeps Station G true.
+`README.md` — the "Wiring a `Chassis`" paragraph (the builder is the on-ramp; `src/teleop_program.cpp`
+the worked example; the longhand kept as Tier 3); `docs/guide/08-your-first-routine.md` ~:308-309 ("none
+of the programs in `src/` is built this way yet") and `docs/guide/10-the-api.md` ~:187 ("no program on
+the robot uses it yet"); `docs/guide/14` — the driver-control bullet (the shaper now drives Teleop; no
+driver has felt it); `docs/hardware-assumptions.md` — HA-112's source lines, and **HA-141's settle step
+reworded** (the boot check refuses a missing IMU BEFORE the provider is asked, so a pulled IMU cable
+never shows the provider's "nothing plugged in (expected an IMU)"; settle it with a wrong-kind or
+unplugged port the boot check does NOT cover, and add that step to the worksheet);
+`docs/internal/chunks/R3a-BENCH-WORKSHEET.md` — **Station F rewritten from the new code** (its intro
+~:485, F.0 ~:494-499, the F.1 panel table, the dead-ports paragraph ~:554-556, F.2.2 ~:567 — all stale
+against the committed program), and Station G's Teleop quotes — G.6.1 (`calibration record: DECODED, port
+check OK`, `boot source: RECORD`, the source row), G.6.2 (`MEASURED record | DEGRADED: dead … -- driving
+without them`, `4/5 present`), G.6.3 (`5/5 present 0 disagree`), the boot-warning line (~:736-737) and the
+`boot source:` line in G.7 (~:863) — checked string-for-string against the new program; `docs/roadmap.md`
+— the two Phase T rows (still `[~]`), "You are here", and ~:1302-1304 ("until Part 2b");
+`docs/vexbuilder-integration.md` ~:64 ("Parts 2b/2c … are open"); the `Makefile` ~:86-88 and
+`tools/src_build_gate.py` ~:34-35 comments ("the tank object graph in src/main.cpp");
+`docs/internal/build-order.md` — G1's and T2's status and the first `Next:`; the briefing. **Prose review
+widened** to the `Makefile` and `tools/` comments.
 
 ---
 
