@@ -67,6 +67,11 @@ inline constexpr int kApiMajor = 2;
 /// the estimate has"). No frozen member changed shape, no enumerator moved,
 /// and the relaxation is additive in the only direction that matters —
 /// every route that validated under 2.1 still validates under 2.2.
+/// 2.2 also carries what landed between 2.1 and G2 without a bump of its own
+/// (R3b's appended FaultCode::MotorGroupDisagree, the new calibration/,
+/// config/, robot/ and teleop/ headers) and ONE tightened precondition —
+/// MotionDeps now requires the motor count to EQUAL the wheel count — whose
+/// major-bump question is open. docs/changelog.md, API 2.2, lists all of it.
 inline constexpr int kApiMinor = 2;
 
 /// "major.minor", for session headers / logs that want one printable token.

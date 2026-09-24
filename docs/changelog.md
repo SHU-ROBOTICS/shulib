@@ -14,6 +14,69 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.2
+
+### 2026-09-18 — routines as data, a robot built from data, driver feel, and self-calibration; F8 frozen
+
+> *Written 2026-09-24, late.* The bump to 2.2 landed on 2026-09-18 without this section, against
+> this file's own promise. It covers everything user-visible between 2.1 (2026-08-15) and 2.2,
+> reconstructed from the commits and the headers' own notes. **None of it has run under the
+> library's motion stack on a robot** — every closed-loop claim below is proven on the host test
+> plant.
+
+**Nothing frozen changed shape.** Every change is additive except one tightened precondition,
+listed first because it is the one a compiler will not show you.
+
+**Behaviour you should know changed, without a signature moving:**
+
+- **`motion::MotionDeps` now requires the drive-motor count to EQUAL the kinematics' wheel count**
+  (it accepted *more* motors than wheels before). The old rule let eight raw motors sit on a
+  two-wheel tank kinematics with six of them never commanded — no voltage, no brake mode, no
+  fault. **Migration:** put the N motors on one side behind one `hal::MotorGroup` and hand the
+  group to the context as that wheel's motor. A program that passed extra motors now refuses at
+  construction with a sentence saying exactly this. **Under the version policy this is a breaking
+  change** — the old documentation made "at least as many motors as wheels" valid, a program
+  relying on it no longer runs, and `MotionDeps` is what the frozen `Chassis` constructor takes —
+  and it shipped (2026-09-14) without a major bump or a migration note. Whether to bump, or to
+  rule it a defect fix as the 2.1 entry did for unfrozen surfaces, is an open ruling for the
+  project lead; this entry will say which when it is made.
+
+**ADDITIVE:**
+
+- **Routines as data (the change that bumped the minor and LOCKED register row F8):**
+  `runner::PathRunner` runs a `config::Route` through the facade's verbs, `runner::CommandRegistry`
+  binds a marker's command id to your code (`registry.on("intake_in", fn)`), and
+  `runner::writeManifest` exports the id vocabulary for a path editor. `config/route.hpp` gains
+  the id rules and the four library-owned built-ins (`wait_ms`, `brake`, `hold_ms`, `log`);
+  `Route::valid()` gains rules and **relaxes one** — a `MoveToPose` may now use
+  `HeadingMode::Free` ("keep the heading you have"). Relaxing is the additive direction: every
+  route valid under 2.1 is valid under 2.2. On a tank, a route must carry its own turns — the
+  facade never plans a turn you did not ask for.
+- **A robot described as data and built from it:** `config/robot_config.hpp` (`RobotConfig`),
+  `hal/device_provider.hpp` (`IDeviceProvider`, devices by port) with a host fake, and
+  `robot/robot.hpp` (`robot::validate()` and `robot::Robot`, which owns the whole graph). The PROS
+  device provider is not built yet, so no program on a brain uses this path.
+- **Coupled drive motors:** `hal::MotorGroup` (N motors as one, median reads, a member may be
+  ABSENT), `hal::DriveGeometry`, and `diag::FaultCode::MotorGroupDisagree = 12` — appended, per the
+  append-only rule — raised when one member of a group persistently disagrees with its mates.
+  `MotionDeps` gains `motorGroups` so the fault fires in `drive()` and in every motion.
+- **Odometry from the drive motors:** `localization::IOdometry` (the seam) and
+  `DriveEncoderOdometry`. `Localizer`'s constructor now takes an `IOdometry&` rather than a
+  `PilonsOdometry&` — every existing call still compiles, because `PilonsOdometry` implements it.
+  `MotionConfig`'s stall check gains per-wheel geometry and an `independentMotionSource` flag
+  (off when the odometry IS the drive encoders, since a check against itself proves nothing).
+- **Drivetrain self-calibration:** `hal::DrivetrainDescription`,
+  `calibration::DrivetrainCalibrator` (the robot measures its own sides, signs, scales and track
+  width), `calibration/calibration_record.hpp` (a 180-byte, CRC-checked record for the SD card)
+  and `calibration/boot_check.hpp` (a record verified against the ports before any adapter
+  exists); `hal::IBlockSource` and `hal::IDeviceRegistry` with their PROS adapters and fakes.
+- **Driver feel:** `teleop/` — `input_shaping.hpp` (continuous deadband, expo), `slew_limiter.hpp`,
+  `drive_modes.hpp` (arcade body/field, tank sticks), `field_centric.hpp` (with a latched fallback
+  on an untrusted heading), `driver_control.hpp` (`DriveShaper`), plus `stick_mapping.hpp`,
+  `coupled_side_monitor.hpp` and `drivetrain_degradation.hpp`. **No program uses the shaper yet.**
+- **Absent devices:** `hal::AbsentGps`, `AbsentTagSource`, `AbsentVision` — for a robot without
+  them, never polled, with no fake in a competition build.
+
 ## API 2.1
 
 ### 2026-08-15 — 59 defect fixes, mostly additive, with five surface changes to know about

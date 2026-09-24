@@ -65,7 +65,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Staleness here has two causes and **only one of them is mechanical.**
 >
 > 1. **The generated block below** carries everything derivable from the repo: position, next
->    chunk, interrupted chunks, suite counts, headers, hardware assumptions, the Freeze Register,
+>    chunk, open chunks, suite counts, headers, hardware assumptions, the Freeze Register,
 >    both CI guards run live, freeze-pin counts, verification harnesses, outstanding
 >    `TODO(chunk)` markers, honest partials, every deliberately-skipped test **by name**, and
 >    flagged open defects. It is rewritten by `python3 tools/briefing_status.py generate`, and a
@@ -105,11 +105,11 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 27 of 50 chunks complete
+**Position:** 28 of 50 chunks complete
 
 - **Next up:** G1 Part 2 — the PROS device provider, the library teleop loop, and main.cpp as a dispatcher — its brief is being revised after the 2026-09-24 handoff audit found four defects in it, and then waits for the team lead's go. The bench session (R3d Part 3, worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)) pre-empts everything the moment robot two's brain enumerates on USB.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **OPEN CHUNK(S): G1, G2, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
+- ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,358 cases / 1,635,266 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 181  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
@@ -118,7 +118,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `GATE1` · `R1a` · `R1b`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G2` · `GATE1` · `R1a` · `R1b`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -735,14 +735,21 @@ resuming session reads it first.)*
 
 **Seams that exist:** `motor` (encoder + velocity + current + temperature), `rotation`, `imu`, `gps`,
 `distance`, `optical`, `vision` (AI Vision: objects *and* AprilTags), `battery`, `clock`,
-`digital_out`, `line_display`, and — since R1a — `controller` (axes/buttons/isConnected, row F13,
-not frozen; PROS adapters now exist for **all fourteen** — the R1a nine at R1a and the mechanism
-five at R1b).
+`digital_out`, `digital_in` (R1b, row F14), `line_display`, `controller` (R1a, row F13), the SD
+block sink/source, and the device registry (R3d Part 2). **PROS adapters exist for all of them
+EXCEPT `vision`** (17 adapter headers under `hal/pros/`): the AI Vision adapter is chunk R2, and
+the vendored PROS 4.2.2 already carries the API it needs (`include/pros/ai_vision.h`) — checked
+2026-09-24. *(This paragraph said "adapters for all fourteen" and listed digital input as missing
+until 2026-09-24.)*
 
-**Seams that DO NOT exist:** **digital input** (limit switches, bumpers — R1b's), analog input
-(potentiometers, line trackers), legacy 3-wire (ultrasonic, optical shaft encoders).
+**Seams that DO NOT exist:** analog input (potentiometers, line trackers), legacy 3-wire
+(ultrasonic, optical shaft encoders).
 
-**For the new competition bots, ranked by accuracy-per-port:**
+**For the new competition bots, ranked by accuracy-per-port:** *(written for the X/H robots of the
+original plan. Fall 2026 reality: both robots are TANK drives with NO tracking wheels — the team
+lead's decision — so odometry is the drive motors' encoders + IMU; GPS was named the priority
+purchase; two AI Vision sensors arrived ~2026-09-23. `HANDOFF-remaining-work.md` §2 carries the
+current facts and the vision mounting advice.)*
 
 1. **IMU** — one, centre-mounted, isolated from vibration and away from motors. Heading is the largest
    error term and is IMU-owned by design; the `< 1.0°` target lives or dies here.

@@ -38,9 +38,9 @@ Bumped ONLY for breaking changes to a frozen public surface, always with a migra
 inline constexpr int kApiMinor = 2
 ```
 
-Bumped for additive extensions of a frozen surface (new verbs, new options fields, appended enumerators). Reset to 0 on a major bump. 1 = chunk F1's additive growth (2026-08-13): RoutineStopCause gains the appended MechanismFailed enumerator, then() accepts a fourth return type (manipulation::MechanismOutcome), and FaultCode appends MechanismStalled — every one the documented additive path, no frozen member changed shape. (F1 is also the change that PROVED this path works: the D2/D3 pin tests had hard-asserted `kApiMinor == 0`, fencing off the growth this header calls "the intended path" — a conflation fixed in those pins at F1.) 2 = chunk G2's additive growth (2026-09-18), the change that LOCKED register row F8 (the `paths[]` sub-schema + the command-id vocabulary): `config` gains `kMaxMarkerIdBytes` (naming the 24 G1 spelled as a literal), `commandIdValid`/`commandIdView`/`markerIdView`, the `BuiltinCommand` table and `findBuiltinCommand`; the new `runner` namespace adds `CommandRegistry`, `PathRunner` and `writeManifest`; and `Route::valid()` gains four rules and RELAXES one (G2 ruling R6: `MoveToPose` now accepts `HeadingMode::Free`, meaning "keep the heading the estimate has"). No frozen member changed shape, no enumerator moved, and the relaxation is additive in the only direction that matters — every route that validated under 2.1 still validates under 2.2.
+Bumped for additive extensions of a frozen surface (new verbs, new options fields, appended enumerators). Reset to 0 on a major bump. 1 = chunk F1's additive growth (2026-08-13): RoutineStopCause gains the appended MechanismFailed enumerator, then() accepts a fourth return type (manipulation::MechanismOutcome), and FaultCode appends MechanismStalled — every one the documented additive path, no frozen member changed shape. (F1 is also the change that PROVED this path works: the D2/D3 pin tests had hard-asserted `kApiMinor == 0`, fencing off the growth this header calls "the intended path" — a conflation fixed in those pins at F1.) 2 = chunk G2's additive growth (2026-09-18), the change that LOCKED register row F8 (the `paths[]` sub-schema + the command-id vocabulary): `config` gains `kMaxMarkerIdBytes` (naming the 24 G1 spelled as a literal), `commandIdValid`/`commandIdView`/`markerIdView`, the `BuiltinCommand` table and `findBuiltinCommand`; the new `runner` namespace adds `CommandRegistry`, `PathRunner` and `writeManifest`; and `Route::valid()` gains four rules and RELAXES one (G2 ruling R6: `MoveToPose` now accepts `HeadingMode::Free`, meaning "keep the heading the estimate has"). No frozen member changed shape, no enumerator moved, and the relaxation is additive in the only direction that matters — every route that validated under 2.1 still validates under 2.2. 2.2 also carries what landed between 2.1 and G2 without a bump of its own (R3b's appended FaultCode::MotorGroupDisagree, the new calibration/, config/, robot/ and teleop/ headers) and ONE tightened precondition — MotionDeps now requires the motor count to EQUAL the wheel count — whose major-bump question is open. docs/changelog.md, API 2.2, lists all of it.
 
-*constant, declared at [`include/shulib/version.hpp:70`](../../include/shulib/version.hpp#L70).*
+*constant, declared at [`include/shulib/version.hpp:75`](../../include/shulib/version.hpp#L75).*
 
 <a id="kapiversionstring"></a>
 
@@ -52,7 +52,7 @@ inline constexpr const char* kApiVersionString = "2.2"
 
 "major.minor", for session headers / logs that want one printable token.
 
-*constant, declared at [`include/shulib/version.hpp:73`](../../include/shulib/version.hpp#L73).*
+*constant, declared at [`include/shulib/version.hpp:78`](../../include/shulib/version.hpp#L78).*
 
 ## Design commentary, from the header
 
