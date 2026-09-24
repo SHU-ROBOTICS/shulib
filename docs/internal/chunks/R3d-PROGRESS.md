@@ -1484,3 +1484,8 @@ removability grep empty; `src_build_gate.py check` **PASS (all 6 builds link)**.
   no per-pulse numbers that would say why. The port-11 refusals carry POSITIVE yaw (+0.14, +0.17)
   where HA-134 predicts negative for a left member driven forward — noise at this level, or pushes
   made with the other end first while FRONT 1st was answered (open).
+- **2026-09-24 04:19** — **Robot two's wheels are OMNI on both sides** (team lead's report, answering the
+  physics investigation's open question). Consequence for R3d Part 2F: a one-sided push meets little
+  lateral scrub, so a pulse that breaks the coupled train's static friction should turn the robot;
+  the plant's coast-follow fraction for this robot is near FREE rolling (κ close to 1), which is the
+  regime where a one-sided push both turns AND translates. The team lead gave the **go on Part 2F-1**.
