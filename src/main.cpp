@@ -949,8 +949,9 @@ void initialize() {
                 "[R3D] robot two MEASURES ITS OWN DRIVETRAIN -- which ports drive, which way each\n"
                 "[R3D] is wired, which side each is on, inches per radian per side, and the\n"
                 "[R3D] EFFECTIVE track width -- then writes them to /usd/%s.\n"
-                "[R3D] THIS PROGRAM HAS NEVER RUN ON HARDWARE. It POWERS THE MOTORS, and every\n"
-                "[R3D] threshold in it is INVENTED for a first run (A4 register HA-136).\n"
+                "[R3D] THIS VERSION (R3d Part 2F) HAS NEVER RUN ON HARDWARE; the Part 2 version\n"
+                "[R3D] ran five starts on 2026-09-24 and finished none. It POWERS THE MOTORS, and\n"
+                "[R3D] every threshold in it is INVENTED (A4 register HA-136).\n"
                 "[R3D] no object graph is constructed at boot; the X-drive wiring is NOT built.\n"
                 "[R3D] BUILD STAMP %s\n",
                 kVariantBeacon, shulib::calibration::kRecordFileName, kCalibrateBuildStamp);

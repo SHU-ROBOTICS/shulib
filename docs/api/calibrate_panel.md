@@ -1852,7 +1852,7 @@ The view for this frame. `secondsSinceLayoutChange` arms the non-ABORT buttons o
 
 The index of the ARMED button whose hit box (hitBox()) contains (x, y), or −1. A greyed button is never hit; neither is anything outside every button.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:880`](../../include/shulib/calibration/calibrate_panel.hpp#L880).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:879`](../../include/shulib/calibration/calibrate_panel.hpp#L879).*
 
 <a id="layoutkey"></a>
 
@@ -1864,7 +1864,7 @@ The index of the ARMED button whose hit box (hitBox()) contains (x, y), or −1.
 
 A number that changes exactly when the LAYOUT does — the screen and every button's identity and rectangle — and NOT when a button merely arms. TouchGate restarts its arming clock on a change.
 
-*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:891`](../../include/shulib/calibration/calibrate_panel.hpp#L891).*
+*free function, declared at [`include/shulib/calibration/calibrate_panel.hpp:890`](../../include/shulib/calibration/calibrate_panel.hpp#L890).*
 
 <a id="struct-touchsample"></a>
 
@@ -1876,7 +1876,7 @@ struct TouchSample
 
 One read of the touch screen, PROS-free: what screen_touch_status() returns, reduced to what a release-edge reader needs.
 
-*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:914`](../../include/shulib/calibration/calibrate_panel.hpp#L914).*
+*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:913`](../../include/shulib/calibration/calibrate_panel.hpp#L913).*
 
 <a id="touchsample-error"></a>
 
@@ -1888,7 +1888,7 @@ bool error = false
 
 The read FAILED (PROS: E_TOUCH_ERROR, every field −1). Ignored — and it must not move the release count, or the next good read would replay the last touch.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:917`](../../include/shulib/calibration/calibrate_panel.hpp#L917).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:916`](../../include/shulib/calibration/calibrate_panel.hpp#L916).*
 
 <a id="touchsample-releasecount"></a>
 
@@ -1900,7 +1900,7 @@ std::int32_t releaseCount = 0
 
 PROS's release_count: it only ever increases, one per finger lifted.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:919`](../../include/shulib/calibration/calibrate_panel.hpp#L919).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:918`](../../include/shulib/calibration/calibrate_panel.hpp#L918).*
 
 <a id="touchsample-x"></a>
 
@@ -1912,7 +1912,7 @@ std::int16_t x = 0
 
 Where the LAST touch was — stale while idle, so it means something only on a new release.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:921`](../../include/shulib/calibration/calibrate_panel.hpp#L921).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:920`](../../include/shulib/calibration/calibrate_panel.hpp#L920).*
 
 <a id="touchsample-y"></a>
 
@@ -1924,7 +1924,7 @@ std::int16_t y = 0
 
 See x.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:923`](../../include/shulib/calibration/calibrate_panel.hpp#L923).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:922`](../../include/shulib/calibration/calibrate_panel.hpp#L922).*
 
 <a id="enum-class-touchaction"></a>
 
@@ -1936,7 +1936,7 @@ enum class TouchAction : std::uint8_t
 
 What a touch should do.
 
-*enum class, declared at [`include/shulib/calibration/calibrate_panel.hpp:927`](../../include/shulib/calibration/calibrate_panel.hpp#L927).*
+*enum class, declared at [`include/shulib/calibration/calibrate_panel.hpp:926`](../../include/shulib/calibration/calibrate_panel.hpp#L926).*
 
 <a id="touchaction-none"></a>
 
@@ -1948,7 +1948,7 @@ None
 
 nothing — no new release, a miss, a greyed button, or a stale layout
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:928`](../../include/shulib/calibration/calibrate_panel.hpp#L928).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:927`](../../include/shulib/calibration/calibrate_panel.hpp#L927).*
 
 <a id="touchaction-answer"></a>
 
@@ -1960,7 +1960,7 @@ Answer
 
 send TouchResult::answer to the calibrator
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:929`](../../include/shulib/calibration/calibrate_panel.hpp#L929).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:928`](../../include/shulib/calibration/calibrate_panel.hpp#L928).*
 
 <a id="touchaction-runagain"></a>
 
@@ -1972,7 +1972,7 @@ RunAgain
 
 rebuild the calibrator (the program's job — drivetrain_calibrator.hpp)
 
-*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:930`](../../include/shulib/calibration/calibrate_panel.hpp#L930).*
+*enumerator, declared at [`include/shulib/calibration/calibrate_panel.hpp:929`](../../include/shulib/calibration/calibrate_panel.hpp#L929).*
 
 <a id="struct-touchresult"></a>
 
@@ -1984,7 +1984,7 @@ struct TouchResult
 
 The outcome of one touch read.
 
-*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:934`](../../include/shulib/calibration/calibrate_panel.hpp#L934).*
+*struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:933`](../../include/shulib/calibration/calibrate_panel.hpp#L933).*
 
 <a id="touchresult-action"></a>
 
@@ -1996,7 +1996,7 @@ TouchAction action = TouchAction::None
 
 What to do.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:936`](../../include/shulib/calibration/calibrate_panel.hpp#L936).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:935`](../../include/shulib/calibration/calibrate_panel.hpp#L935).*
 
 <a id="touchresult-answer"></a>
 
@@ -2008,7 +2008,7 @@ Answer answer = Answer::Abort
 
 The answer, when action is Answer.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:938`](../../include/shulib/calibration/calibrate_panel.hpp#L938).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:937`](../../include/shulib/calibration/calibrate_panel.hpp#L937).*
 
 <a id="touchresult-hit"></a>
 
@@ -2020,7 +2020,7 @@ int hit = -1
 
 The button index hit in the DRAWN view (−1 for none) — for the serial log.
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:940`](../../include/shulib/calibration/calibrate_panel.hpp#L940).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:939`](../../include/shulib/calibration/calibrate_panel.hpp#L939).*
 
 <a id="touchresult-newrelease"></a>
 
@@ -2032,7 +2032,7 @@ bool newRelease = false
 
 True when this read carried a NEW release (logged even when it hits nothing).
 
-*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:942`](../../include/shulib/calibration/calibrate_panel.hpp#L942).*
+*field, declared at [`include/shulib/calibration/calibrate_panel.hpp:941`](../../include/shulib/calibration/calibrate_panel.hpp#L941).*
 
 <a id="class-touchgate"></a>
 
@@ -2044,7 +2044,7 @@ class TouchGate
 
 The touch discipline, in one place: the release EDGE only; error reads ignored and never replayed; the layout clock that arms buttons kArmingDelaySeconds after every layout change; and a re-check against the calibrator before any answer — because the view a finger landed on may be one frame older than the state machine.
 
-*class, declared at [`include/shulib/calibration/calibrate_panel.hpp:949`](../../include/shulib/calibration/calibrate_panel.hpp#L949).*
+*class, declared at [`include/shulib/calibration/calibrate_panel.hpp:948`](../../include/shulib/calibration/calibrate_panel.hpp#L948).*
 
 <a id="touchgate-touchgate"></a>
 
@@ -2056,7 +2056,7 @@ explicit TouchGate(std::int32_t releaseCountAtStart) noexcept
 
 `releaseCountAtStart`: PROS's release_count when the panel first appears, so a tap made before the program existed is never replayed as an answer.
 
-*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:953`](../../include/shulib/calibration/calibrate_panel.hpp#L953).*
+*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:952`](../../include/shulib/calibration/calibrate_panel.hpp#L952).*
 
 <a id="touchgate-view"></a>
 
@@ -2068,7 +2068,7 @@ explicit TouchGate(std::int32_t releaseCountAtStart) noexcept
 
 The view to paint now. Restarts the arming clock at `nowSeconds` whenever the layout (layoutKey()) differs from the last view this returned — so the program never has to track it, and a new layout's buttons come up greyed on the very first frame they appear.
 
-*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:959`](../../include/shulib/calibration/calibrate_panel.hpp#L959).*
+*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:958`](../../include/shulib/calibration/calibrate_panel.hpp#L958).*
 
 <a id="touchgate-touch"></a>
 
@@ -2080,7 +2080,7 @@ The view to paint now. Restarts the arming clock at `nowSeconds` whenever the la
 
 One touch read against the view that is ON THE SCREEN (`drawn`). A new release that lands on an armed button becomes an answer only if the calibrator still accepts it now (DONE also needs pushReady()); RUN AGAIN only once the run has ended.
 
-*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:975`](../../include/shulib/calibration/calibrate_panel.hpp#L975).*
+*function, declared at [`include/shulib/calibration/calibrate_panel.hpp:974`](../../include/shulib/calibration/calibrate_panel.hpp#L974).*
 
 ## Design commentary, from the header
 

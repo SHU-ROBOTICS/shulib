@@ -371,7 +371,6 @@ TEST_CASE("DrivetrainCalibrator 4: the one push finds exactly the ten drive port
             // The travel the scale is taken from is sign-corrected: positive, front-first.
             CHECK(rep.ports[i].pushTravelRad == rep.ports[i].sign * rep.ports[i].pushDeltaRad);
             CHECK(rep.ports[i].pushTravelRad > 0.0);
-            CHECK(rep.ports[i].tapeDeltaRad == 0.0);  // RETIRED: there is no tape push
             CHECK_FALSE(rep.ports[i].excluded);
         }
     }
@@ -917,7 +916,7 @@ TEST_CASE("DrivetrainCalibrator 16: a 0.2 s gap between ticks while spinning sto
 // pushed clear.
 TEST_CASE("DrivetrainCalibrator 17: abort() from every phase leaves the safe state, and result() "
           "is then a precondition breach") {
-    // ScalePush is RETIRED (never entered), so it is not in this list.
+    // Every phase a run can be in (Part 2F-2 removed the never-entered ScalePush).
     const Phase phases[] = {Phase::WaitImu, Phase::PushCapture, Phase::SideAssign,
                             Phase::SpinTest, Phase::Done};
     for (Phase target : phases) {
@@ -1088,9 +1087,13 @@ TEST_CASE("DrivetrainCalibrator 19: the caller contract is enforced, including t
     CalibRig stray{CalibratorConfig{}, calibPlant(0.0)};
     stray.cal.start(facts());
     stray.cal.tick();
-    stray.cal.answer(Answer::Distance48);  // RETIRED: no step ever asks for it
+    // (Part 2F-2: this used the retired Answer::Distance48; FRONT FIRST while the push is still
+    // being watched is the same out-of-order touch on the live surface.)
+    REQUIRE(stray.cal.accepts(Answer::Done));  // the IMU is ready: the push is being watched
+    stray.cal.answer(Answer::FrontFirst);
     requireRefusal(stray, Refusal::OutOfOrder, 0);
-    CHECK(reasonMentions(stray.cal, "48 in"));
+    CHECK(reasonMentions(stray.cal, "FRONT FIRST"));
+    CHECK(reasonMentions(stray.cal, "waiting for DONE"));
     CHECK(reasonMentions(stray.cal, "nothing was recorded"));
 }
 
@@ -1101,14 +1104,12 @@ TEST_CASE("DrivetrainCalibrator 19: the caller contract is enforced, including t
 // answer and ends the run — right, but it makes a wrong BUTTON destructive. accepts() is the
 // query; THIS case is what stops it drifting from answer(), because it never asserts a
 // hard-coded expectation: for every waiting step and EVERY Answer it runs the real answer() on a
-// FRESH rig and requires the two to agree. (2F-1: the push has two waiting steps now; the three
-// retired distance answers are in the sweep and must be refused everywhere.)
+// FRESH rig and requires the two to agree. (2F-1: the push has two waiting steps now. 2F-2: the
+// three retired distance answers are gone from the enum, so the sweep is every Answer there is.)
 TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at every waiting step") {
     enum class Stop { PushWatching, PushAwaitingFront };
     const Stop stops[] = {Stop::PushWatching, Stop::PushAwaitingFront};
-    const Answer answers[] = {Answer::Done,       Answer::FrontFirst, Answer::BackFirst,
-                              Answer::Distance24, Answer::Distance48, Answer::Distance72,
-                              Answer::Abort};
+    const Answer answers[] = {Answer::Done, Answer::FrontFirst, Answer::BackFirst, Answer::Abort};
 
     const auto driveTo = [](CalibRig& rig, Stop stop) {
         rig.cal.start(facts());
@@ -1134,9 +1135,6 @@ TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at every wai
             CHECK_MESSAGE(offered == !refused, "step ", static_cast<int>(stop), ", answer ",
                           static_cast<int>(a), ": accepts() said ", offered,
                           " but answer() ", std::string{refused ? "REFUSED" : "accepted"});
-            if (a == Answer::Distance24 || a == Answer::Distance48 || a == Answer::Distance72) {
-                CHECK_FALSE(offered);  // retired: never offered, anywhere
-            }
         }
     }
 
@@ -1144,7 +1142,8 @@ TEST_CASE("DrivetrainCalibrator 21: accepts() agrees with answer(), at every wai
     CalibRig idle{CalibratorConfig{}, calibPlant(0.0)};
     CHECK(idle.cal.accepts(Answer::Abort));
     CHECK_FALSE(idle.cal.accepts(Answer::Done));          // Idle: nothing is waiting
-    CHECK_FALSE(idle.cal.accepts(Answer::Distance48));
+    CHECK_FALSE(idle.cal.accepts(Answer::FrontFirst));
+    CHECK_FALSE(idle.cal.accepts(Answer::BackFirst));
     CHECK_FALSE(idle.cal.pushReady());
 }
 

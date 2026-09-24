@@ -43,6 +43,10 @@
 //    Refusal code names every refusal, pushReady() is the DONE gate built from the finish's own
 //    predicates, and the report carries one record per push port, per pulse and per spin
 //    direction for the serial log (calibrate_panel.hpp is the pure screen model built on them).
+//  * Part 2F-2 (2026-09-24) removed the three names 2F-1 had kept only so the Part 2 program
+//    still compiled: Phase::ScalePush (the separate tape push), Answer::Distance24/48/72 (the
+//    distance question) and PortObservation::tapeDeltaRad. The scale's input is the one push's
+//    pushTravelRad; there is no distance to answer.
 //
 // ── The phases ──────────────────────────────────────────────────────────────────────
 //   WaitImu      unpowered   wait for imu.isReady(), bounded.
@@ -64,7 +68,6 @@
 //                            can turn the robot with is classified (PulseVerdict). Once every
 //                            port is decided, each side's scale is pushDistance divided by the
 //                            MEDIAN of its members' push travel.
-//   ScalePush    —           RETIRED at 2F-1 (the scale comes from the one push); never entered.
 //   SpinTest     powered     spin in place both ways; W = (dR - dL) / dtheta_imu per direction,
 //                            averaged. On a floor this measures the EFFECTIVE width, which is
 //                            LARGER than a taped one because a turning tank scrubs (A4 register
@@ -178,9 +181,6 @@ enum class Phase : std::uint8_t {
     WaitImu,      ///< waiting for the IMU to finish its boot calibration
     PushCapture,  ///< UNPOWERED: watching the one push for drive ports, their signs and travel
     SideAssign,   ///< powered: a ramped pulse per drive port, naming its side from the yaw sign
-    ScalePush,    ///< RETIRED at Part 2F-1 — never entered: the scale now comes from the one push.
-                  ///< Kept only because src/calibrate_program.cpp switches over every Phase with no
-                  ///< default; Part 2F-2 rewrites that program and removes this value.
     SpinTest,     ///< powered: a spin each way for the effective track width
     Done,         ///< result() is valid
     Aborted,      ///< refused or aborted; reason() says why, every motor is at 0 V + Coast
@@ -192,11 +192,6 @@ enum class Answer : std::uint8_t {
     Done,        ///< "I have finished pushing"
     FrontFirst,  ///< the push led with the end the build team calls the FRONT
     BackFirst,   ///< the push led with the other end — every captured sign inverts
-    Distance24,  ///< RETIRED at Part 2F-1: never accepted (accepts() is false; answer() refuses it
-                 ///< as out of order). Kept only so src/calibrate_program.cpp compiles until Part
-                 ///< 2F-2 rewrites it; that part removes all three distance answers.
-    Distance48,  ///< RETIRED at Part 2F-1 — see Distance24
-    Distance72,  ///< RETIRED at Part 2F-1 — see Distance24
     Abort,       ///< stop now
 };
 
@@ -372,10 +367,6 @@ struct PortObservation {
     /// forward direction — positive for a front-first push, negative for a back-first one. 0 for
     /// a port that is not a drive motor.
     double pushTravelRad = 0.0;
-    /// RETIRED at Part 2F-1 — always 0: there is no separate tape push. Kept only because
-    /// src/calibrate_program.cpp prints it; Part 2F-2 removes it. The scale's input is
-    /// pushTravelRad.
-    double tapeDeltaRad = 0.0;
     /// The IMU's accumulated dtheta over this port's DECIDING pulse (its last), radians.
     double pulseYawRad = 0.0;
     /// This port's own sign-corrected shaft travel over that pulse, radians.
@@ -485,8 +476,10 @@ struct CalibratorStatus {
     /// The phase as of the last tick(), answer() or abort().
     Phase phase = Phase::Idle;
     /// The instruction for the person — or the refusal's one-line summary, once aborted. Owned by
-    /// the calibrator and valid until its next tick(), answer() or abort(); at most 44 characters,
-    /// the width the Part 2 program prints.
+    /// the calibrator and valid until its next tick(), answer() or abort(); at most 44 characters
+    /// (the width the Part 2 program printed it at — the Part 2F-2 program paints
+    /// calibrate_panel.hpp's words instead and does not show this; a caller that does has 44 to
+    /// allow for).
     const char* prompt = "not started";
     /// A live line of this phase's numbers, NUL-terminated and bounded — for a serial log.
     char progress[96]{};
@@ -771,8 +764,7 @@ public:
     [[nodiscard]] const CalibratorConfig& config() const noexcept { return cfg_; }
 
     /// True when answer(`a`) would be ACCEPTED right now — i.e. when a panel may OFFER it.
-    /// Abort is always accepted; everything else only by the step that is waiting for it (and the
-    /// three retired distance answers never).
+    /// Abort is always accepted; everything else only by the step that is waiting for it.
     ///
     /// ── WHY THIS EXISTS (added at R3d Part 2, for the calibrate program's button row) ──
     /// answer() REFUSES an out-of-order answer and ends the run, which is right (a touch that
@@ -1653,9 +1645,6 @@ private:
             case Answer::Done: return "DONE";
             case Answer::FrontFirst: return "FRONT FIRST";
             case Answer::BackFirst: return "BACK FIRST";
-            case Answer::Distance24: return "24 in";
-            case Answer::Distance48: return "48 in";
-            case Answer::Distance72: return "72 in";
             case Answer::Abort: return "ABORT";
         }
         return "?";
@@ -1743,10 +1732,6 @@ private:
                               static_cast<unsigned>(status_.pulseTotal),
                               status_.pulsing ? "pulsing" : "settling", status_.pulseLevelVolts,
                               yaw_ / kDegreesToRadians);
-                return;
-            case Phase::ScalePush:  // retired: never entered (the enum's note)
-                status_.prompt = "not in use";
-                status_.progress[0] = '\0';
                 return;
             case Phase::SpinTest:
                 status_.prompt = "STAND CLEAR -- spinning in place, both ways.";

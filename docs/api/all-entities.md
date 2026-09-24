@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,597 of them, across 148 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,592 of them, across 148 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -61,9 +61,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Answer` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-answer) |
 | `Answer::Abort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-abort) |
 | `Answer::BackFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-backfirst) |
-| `Answer::Distance24` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-distance24) |
-| `Answer::Distance48` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-distance48) |
-| `Answer::Distance72` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-distance72) |
 | `Answer::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-done) |
 | `Answer::FrontFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-frontfirst) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
@@ -1838,7 +1835,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Phase::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-done) |
 | `Phase::Idle` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-idle) |
 | `Phase::PushCapture` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-pushcapture) |
-| `Phase::ScalePush` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-scalepush) |
 | `Phase::SideAssign` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-sideassign) |
 | `Phase::SpinTest` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-spintest) |
 | `Phase::WaitImu` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#phase-waitimu) |
@@ -1893,7 +1889,6 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PortObservation::pushTravelRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-pushtravelrad) |
 | `PortObservation::side` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-side) |
 | `PortObservation::sign` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-sign) |
-| `PortObservation::tapeDeltaRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-tapedeltarad) |
 | `PortObservation::verdict` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#portobservation-verdict) |
 | `PortUse` | enum class | [robot_config.md](robot_config.md#enum-class-portuse) |
 | `PortUse::DriveLeft` | enumerator | [robot_config.md](robot_config.md#portuse-driveleft) |

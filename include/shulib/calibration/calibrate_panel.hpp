@@ -768,7 +768,6 @@ inline void panelChips(const DrivetrainCalibrator& cal, char* out, std::size_t c
             addPanelButton(v, PanelButtonId::Abort, kAbortRow, kLabelAbort, secs);
             return v;
         }
-        case Phase::ScalePush:  // RETIRED — never entered; if it ever were, the spin screen
         case Phase::SpinTest: {
             v.screen = PanelScreen::Spin;
             v.headerTone = PanelTone::Amber;

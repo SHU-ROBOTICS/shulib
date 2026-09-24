@@ -1905,3 +1905,496 @@ robot two shows (the physics note above) is for its serial record to say. **For 
 four "GREEN" plant mutations were a stale-object artifact of `/fast` (it does not track header
 dependencies here) — any verification that relinks with `/fast` after a header edit must touch every
 `test/*.cpp` first, or it can run a binary that mixes old and new inline code.
+
+## Part 2F-2 — 2026-09-24 15:23 EDT
+
+The executor for Part F2 (the brief `R3d-part2f-calibrate-on-the-robot.md` §2): `src/calibrate_program.cpp`
+becomes a renderer of F1's `viewFor()` through `TouchGate`; RUN AGAIN; the serial record printed; F1's three
+retired names removed; Station G rewritten from the new code. Go given by the team lead on 2026-09-24. Nothing
+committed, nothing uploaded, no `pros` command run.
+
+- **15:23** — log opened before any code (HEAD dc26b8d, tree clean). Reading next: RESUMING, the brief,
+  the Part 3 and Part 2F-1 logs, the screen investigation, the code.
+- **15:43** — **Required reading done:** RESUMING.md; the Part 2F brief (§0, §1 for the API, §2, §3,
+  §4 F2, §5 F2, §6, §7, §8); this log's Part 3 and Part 2F-1 (its rulings R-F1a..f, the retired
+  names, the stale src/ and worksheet lines it listed at 14:02); the screen investigation
+  (`calib_invest.json`, second entry, every fact); `calibrate_panel.hpp` (all), `drivetrain_calibrator.hpp`
+  (all), `src/calibrate_program.{hpp,cpp}` (all), `src/main.cpp` (the calibrate `#if` chain, its boot
+  banner, `opcontrol()`, the precondition handler — it throws `PreconditionError`), `src/bench_r3a.cpp`
+  (the screen helpers, the ruler, MOTOR WATCH, DRIVE, the IMU two-box question), `include/pros/screen.h`
+  (no format attribute on `screen_print_at`; enums in `pros::`, functions in `pros::c::`;
+  `E_TOUCH_ERROR` reads carry −1 in every field), the Makefile's `WARNFLAGS` (`-Wall -Wextra
+  -Wformat=2`, no `-Werror`), `tools/src_build_gate.py` (ALLOWED = `{-Wunused-function}` only),
+  `test/calibration_test_rig.hpp`, `test/calibrate_panel_test.cpp` (P1–P12's helpers), the calibrator
+  cases that name the retired names (≈:374, :920, :1091, :1110, :1137, :1147), and worksheet Station G
+  (:597–:790).
+- **15:43** — **Baseline, clean tree `dc26b8d`, every object rebuilt** (`cmake --build build/test`,
+  `Linking CXX executable shulib_tests` seen): `test cases: 1416 | 1416 passed | 0 failed | 3 skipped`,
+  `assertions: 2386636 | 2386636 passed` — F1's final numbers. Per-case XML kept in the scratchpad
+  (`f2/baseline.xml`) for F1's `cases.py` comparison at the end.
+- **15:43** — **Findings from the reading that shape the work (none a stop):**
+  1. `calibrate_panel.hpp:771` names `Phase::ScalePush` (`case Phase::ScalePush: // RETIRED`). Removing
+     the enumerator (deliverable 4) forces deleting that one case label — an edit to the panel header
+     BEYOND its budget constants. Forced, not chosen; logged as ruling F2-R1 below.
+  2. The pre-run refusal path puts `e.what()` of a `PreconditionError` on the SCREEN, and the hal/pros
+     adapters' precondition messages contain UTF-8 em dashes (`hal/pros/motor.hpp:102,105`,
+     `imu.hpp:108`, `block_sink.hpp:83`, `block_source.hpp:75`) — non-ASCII that VEXos's fonts cannot
+     draw. The panel's own lines are proven ASCII by the host tests; text the PROGRAM adds is not. So
+     the renderer gets ONE print function that sanitizes (non-ASCII → `?`, an em/en dash → `-`, `%` →
+     `?`) and cuts at the size's budget before the literal `"%s"` reaches `screen_print_at`.
+  3. `print_at` leaks its buffer per call (investigation), and a diffing renderer at the 10 ms tick
+     would redraw a live number up to 100 times a second — ~18 KB/s of leak with three live lines.
+     So an IN-PLACE text change of an unchanged-colour line is limited to 5 Hz per line; a layout,
+     colour, header or button change is drawn on the same tick. (Numbers: below, with the renderer.)
+  4. `src/calibrate_program.hpp` says "It has NEVER RUN ON HARDWARE" — false since the first bench
+     night (the Part 2 program ran five starts); `src/main.cpp`'s calibrate boot banner says "THIS
+     PROGRAM HAS NEVER RUN ON HARDWARE" — true of THIS build (the rewrite has not run) but misleading.
+     The `.hpp` is mine to fix; `main.cpp` is not in scope beyond the entry — listed, not edited (below).
+- **15:43–15:50** *(appended between two `date` reads)* — **THE CHARACTER BUDGETS — DERIVED FROM THE TREE, NOT MEASURED.** The team lead cannot run
+  the SCREEN RULER (Bench Tests button 9: *"i cant do 9 so just assume based on the other tests"*), so
+  the budgets come from what the tree records being READ on a V5 screen. The evidence gives LOWER
+  bounds only — text that was seen whole — and no measured upper bound; no record anywhere says a line
+  ran off the right edge (the one "cut" line, the old prompt at 44, was our own `%.44s`, not the font).
+  Lengths computed, not counted by eye:
+
+  | Size | The widest line the tree records as READ on a V5 | Chars, from x | What it proves | Other evidence | Budget |
+  |---|---|---|---|---|---|
+  | SMALL | Bench Tests' scrolling log: every station's lines cut at `kScreenCols = 54` (`bench_r3a.cpp:206`) and drawn from x = 8 — the census, SD probe and MOTOR WATCH screens read on robot two (Part 3; the coordinator's statement) and on the bench bot every R3a session | 54, x 8 | ≤ 8.7 px/char; no complaint of a cut right edge in any session | the old calibrate header ran two SMALL strings into each other at y = 20 (the investigation) — an overlap of OUR placement, not a width fact | **50 (F1's, kept)** — 4 under the evidence |
+  | MEDIUM | Bench Tests' station 10 DRIVE row `CEILING 12 V   L  +0.0 V   R  +0.0 V` (`bench_r3a.cpp:1601`, printed at :1606), read to its LAST field (`R +0.0 V`) in photographs of the panel (R3b-PROGRESS §10.4, "at any screenshot"; the controller LCD's copy has no `V`, so the quote is the brain's) | 36, x 8 | ≤ 13.1 px/char | the Bench Tests splash `BUILD Aug 19 2026 13:28:57` (26, x 10) read to its seconds (R3a-PROGRESS §20.3; that the splash, not the header's SMALL copy at x 250, was the one read is the likelier reading, not certain); MOTOR WATCH's right-column cells `L11 DOWN    -373` (16, x 248); the old calibrate prompt, 44 MEDIUM chars from x 8 — the one long MEDIUM line with a complaint ("I CANT READ IT"), cause unknown | **36 (F1's, kept)** — exactly the widest line proven whole; not raised toward 44, which is the line that drew the complaint |
+  | LARGE | the IMU rotate test's live number `  +87.24 deg` (`bench_r3a.cpp:703`), read on the bench bot ("80 plus", R3a-PROGRESS §18.5) | 12, x 8 | ≤ 39 px/char — weak | `FIELD CONTROL CONNECTED` (23, x 10) "showed, on screen" on robot two (R3b-PROGRESS §9.3) — the record does not say it was whole; `Bench Tests` (11) on the splash | **18 (F1's, kept)** — the LEAST supported budget: above the 12 proven whole, below the 23 reported shown |
+
+  **Ruling F2-R2 — keep all three of F1's constants** (`kLargeCols` 18, `kMediumCols` 36, `kSmallCols`
+  50). The evidence supports each (SMALL and MEDIUM sit at or under the widest line proven whole), and
+  none of it supports a different number. Alternatives rejected: **LARGE 12** (the only width PROVEN
+  whole) — the panel's own literals need 17 (`WRONG MOTOR MOVED`) and its live numbers 16, so 12 would
+  fail `panelLiteralsFit()` and force rewording `calibrate_panel.hpp`'s text, which is F1's and not
+  this part's to change on no new evidence; **MEDIUM 44** (what the old prompt drew) — that is the
+  line the team lead could not read. **Not evidence, recorded as such:** if VEXos's text sizes are its
+  usual mono fonts (the investigation's unverified inference: MEDIUM ≈ 10 px wide, LARGE ≈ 20 px),
+  every budget has 25–40 % of margin; if LARGE were a 60 px font, 18 would run off — nothing in the tree
+  rules that out except the 36 px erase band `screenBig()` gives a LARGE line, which is a guess of the
+  same kind. **Bench Tests button 9 (SCREEN RULER) settles all three in one minute; until it is read,
+  every budget, line height and position in `calibrate_panel.hpp` is an estimate** — the worksheet says
+  so in Station G.
+- **15:50** — **Design read-out before any code (rulings beyond the brief, each with its alternative):**
+  - **F2-R1 — the retired `case Phase::ScalePush:` label in `calibrate_panel.hpp:771` is deleted with
+    the enumerator.** Forced by deliverable 4, not chosen; the panel's text, layout and logic are
+    otherwise untouched. Alternative: keep `Phase::ScalePush` — rejected, the brief says F2 removes it.
+  - **F2-R3 — no new `src/` file.** The renderer, the program's own screens and the serial record stay
+    in `src/calibrate_program.cpp`. A new TU would be compiled into ALL SIX builds (the Makefile builds
+    every `src/*.cpp`; the gate reports "4/4 TUs") for a renderer only one program uses, and would move
+    the gate's per-build profile for no reader's benefit. Alternative: `src/calibrate_screen.cpp` —
+    rejected on those grounds; the file is organised in sections instead.
+  - **F2-R4 — the renderer diffs against what is PAINTED.** A change of screen or of any line's place or
+    size is a full repaint (one erase of the content area, then everything). Otherwise: the header when
+    its colour or word changes; a line whose COLOUR changed at once; a line whose TEXT changed at most
+    every 0.2 s (5 Hz); a button that changed (appeared, armed, moved) at once; a button that vanished
+    is erased. An in-place text change never erases: the new text is printed padded with spaces to the
+    old text's length, which covers the old cells because VEXos draws text pen-on-ERASER (an opaque cell
+    — `bench_r3a.cpp:1912`, a hardware finding) — so a live number never flickers. The leak arithmetic
+    that sets 5 Hz: `print_at` leaks roughly its string plus a heap header per call (the investigation);
+    three live lines at the 10 ms tick would be ~300 prints/s, at 5 Hz 15/s — a three-minute run leaks
+    on the order of 150 KB instead of ~3 MB, against a ~48 MB heap, and RUN AGAIN repeats runs in one
+    program. The program counts its prints and reports the count at every outcome. Alternatives: a full
+    10 Hz repaint (the old program; flicker + the leak) — rejected; no rate limit — rejected (the leak).
+  - **F2-R5 — one print function.** Every character reaches `pros::c::screen_print_at(size, x, y, "%s",
+    buf)` through `printText()`, which copies into a buffer of the size's budget + 1, replacing `%` and
+    control bytes with `?`, a UTF-8 em/en dash with `-`, any other non-ASCII character with ONE `?`, and
+    cutting at the size's budget. The panel's lines are already proven clean by the host tests; the
+    program's own text (a precondition's `e.what()`, which carries em dashes) is not, and this is the
+    one place that makes it so.
+  - **F2-R6 — the touch baseline must come from a GOOD read.** `TouchGate` is constructed with the
+    release count of the first read that is not `E_TOUCH_ERROR` (up to 20 tries at start); if none is
+    good, the first good read inside the loop rebuilds the gate and is never acted on. Why: a gate
+    built from an error read's −1 would treat the first good read as a NEW release at stale x/y.
+  - **F2-R7 — RUN AGAIN rebuilds three things, and only these:** the calibrator (`std::optional::
+    emplace` + `start()`, as F1's header prescribes), the `TouchGate` (a new one, based on the count of
+    the very release that asked for RUN AGAIN, so that release cannot replay), and the program's per-run
+    record (printed counts, the save outcome, the outcome flag, the loop timing) — a value-initialised
+    struct, so a field added later is reset by construction too. What survives is the program's, not
+    the run's: the motor adapters, the IMU adapter (already calibrated), the clock, the pacer, the three
+    stated facts, the painter (invalidated, so the next frame is a full repaint).
+  - **F2-R8 — a `PreconditionError` inside the loop is caught ONCE at the loop's edge**: every motor to
+    0 V + Coast, a PROGRAM FAULT screen with the message, the serial line, then the same idle-until-
+    disabled as before. Before, it unwound out of `opcontrol()` (the guard still stopped the motors, but
+    the screen said nothing). Alternative: let it propagate — rejected, the operator would see a frozen
+    screen.
+  - **F2-R9 — a field disable on a FINISHED screen exits without `abort()`.** `abort()` from Done
+    discards the result (F1's contract); the run is over, the motors are already at 0 V. A disable while
+    running aborts as before.
+  - **F2-R10 — serial additions beyond the brief's list, each for reading a capture without guessing:**
+    the config the run used (one line, at start); a `screen:` line whenever the LAYOUT changes (what the
+    operator was looking at); every touch with the button it landed on and why it did or did not act
+    (greyed / not accepted now / nothing); the push's live count on change (≤ 4 lines/s); the loop's
+    worst gap between two ticks at every outcome (rule 7 refuses past 100 ms while powered — this is
+    the number that would say whether a MISSED_TICK was the program's fault).
+- **16:25** — **The three RETIRED names REMOVED** (deliverable 4), with every reference:
+  `drivetrain_calibrator.hpp` — `Phase::ScalePush` (and its `updateStatus()` case and the header's
+  phase-list line), `Answer::Distance24/48/72` (and their `answerWord()` cases and the `accepts()`
+  doc's "retired" clause), `PortObservation::tapeDeltaRad`; the header's 2F-1 section gains one
+  line saying 2F-2 removed them; `CalibratorStatus::prompt`'s doc no longer says "the width the Part 2
+  program prints" as if that program still printed it (the 44 bound is kept — case 33 pins it — and
+  now says why it exists). `calibrate_panel.hpp:771` — the `case Phase::ScalePush:` label (F2-R1).
+  Tests: `drivetrain_calibrator_test.cpp` case 4 (the ten `tapeDeltaRad == 0` checks dropped), case
+  17 (comment), case 19 (the out-of-order touch is now FRONT FIRST while the push is watched — the
+  same refusal on the live surface, with a REQUIRE that the push IS being watched, and the reason
+  checked for "FRONT FIRST", "waiting for DONE" and "nothing was recorded"), case 21 (the sweep is
+  every Answer there is; the idle check asks FRONT and BACK). `docs/api` regenerated
+  (`drivetrain_calibrator.md`, `calibrate_panel.md`, `README.md`, `all-entities.md`: 2597 → 2592
+  entities — the five names).
+- **16:25** — **Host suite after the removal, every object rebuilt** (`touch test/*.cpp` +
+  `shulib_tests/fast`, `Linking CXX executable shulib_tests` seen; the full target stops at the doc
+  gates until the briefing is regenerated — last): `test cases: 1416 | 1416 passed | 0 failed | 3
+  skipped`, `assertions: 2386604`. F1's `cases.py` against the baseline: **1415 identical, 4
+  differ, each explained to the assertion:** case 4 85 → 75 (ten `tapeDeltaRad` checks), case 19
+  25 → 27 (+ the REQUIRE, + one reason check), case 21 52 → 29 (2 steps × 3 retired answers × 3
+  assertions, the 6 "never offered" checks, one idle check → two), P9 3982 → 3981 (P9 reads the
+  panel header's SOURCE at run time and it has one line fewer). Total −32 = 2386636 − 2386604.
+  Two back-to-back runs of the new binary: 1419 of 1419 identical (deterministic). *(An oddity run
+  down on the way: the STALE binary, run after the header edit, printed 2386635 — P9 reads the
+  header from disk at run time, so a stale binary sees the new source. Not a flake.)*
+- **16:25** — **`src/calibrate_program.cpp` REWRITTEN** (795 → ~1370 lines; most of the growth is
+  the header's explanation, the program's own checked literals, and the serial record) and
+  `calibrate_program.hpp` (its hardware claim corrected: the Part 2 version ran five starts and
+  finished none; THIS version has never run; the function's contract restated — it now returns only
+  on a field disable or a pre-run refusal). One `make ROBOT=tank PROGRAM=calibrate`: exit 0, the
+  only warnings the vendored `lv_obj_style.h` one and main.cpp's two allowed `-Wunused-function`;
+  `calibrate_program.cpp` — which now includes `calibrate_panel.hpp` and so compiles `viewFor()`,
+  `TouchGate` and `wrapWords` under src/'s `-Wall -Wextra -Wformat=2` for the first time — adds
+  NONE. The full six-build gate is running.
+- **16:25** — **A FINDING about F1's panel (not a stop, not changed here):** compiled on the HOST at
+  `-O1` with glibc's `_FORTIFY_SOURCE` (my throwaway walk, below), `calibrate_panel.hpp:644`
+  (`panelChips`: `std::snprintf(out, cap, "%s", buf)`) draws `-Wformat-truncation`: "output between
+  1 and 268 bytes into a destination of size 51". A FALSE positive — the line is reached only when
+  `used <= kMediumCols` (36) and `cap` is 51 — and the ARM src build at `-Os` (what the gate
+  compiles) does not report it; nor does a probe TU calling `viewFor()` under `arm-none-eabi-g++
+  -Wall -Wextra -Wformat=2` at `-Os`, `-O2` or `-O3` (newlib has no fortify object sizes, so the
+  source array's bound never reaches the check). But the gate FAILS on that category, so a compiler, flag or
+  inlining change could turn it into a gate failure with no code change. The fix, if it ever fires,
+  is a bounded precision (`"%.*s"` with the known length) or a `memcpy`; it is F1's header and
+  this part's brief confines it to its budget constants, so it is recorded for the coordinator.
+- **16:27** — **Six-build gate on the rewritten program:** `src_build_gate.py self-test` → `OK (33
+  detector cases, each against a real build)`; `check` → `src build gate: PASS (all 6 builds link
+  ...)`, every build `exit 0, 4/4 TUs compiled, warnings: 2 allowed (-Wunused-function), 3
+  vendor-ignored, 0 disallowed` (xdrive 0 allowed), beacons checked — the SAME profile as F1's
+  pre-change run (`f1/gate_check.log`). `bin/` and `.d/` are the gate's (gitignored).
+- **16:48** — **Station G REWRITTEN** (`R3a-BENCH-WORKSHEET.md` :597 → the DO NOT list; 225 lines in, 140
+  out): the purpose; what has run and what has not (the Part 2 program's five starts; THIS version
+  never; the budgets DERIVED, not measured, and what to write down if a line runs off the edge);
+  robot two tonight (OMNI wheels both sides; port 19 unplugged → LEFT 11–15, RIGHT 16 17 18 20;
+  port 18 short); G.0 the one 48 in tape and deciding the FRONT before any push; G.1 the build
+  (the BUILD time on the top bar); G.2 census/MOTOR WATCH for nine motors; **G.3 the wheels-up run
+  OPTIONAL** (and what it now stops with: `IT ROLLED` or `NOTHING MOVED` after 3/6/9 V, not a
+  yaw-floor refusal); **G.4 the run**, a table of every screen with its top-bar word, its exact text
+  and what to do — the ONE push, **the DONE rule** (appears only when ≥ 2 turned, one wheel turn of
+  median travel, and everything still), the drift going red `-- TOO CURVED`, the pulse levels and
+  what a jerk looks like (2° ≈ a quarter to a third of an inch 7–10 in from the turning point; the
+  arithmetic: 0.0349 in per inch), **the spin and its two safety stops** (15° wrong way; 5° in 2 s at
+  3 V then 6 V) and the 20 s timeout; **LEFT OUT and what it means** (port 18's slipping gear; the run
+  saves without it; Teleop's boot calls the extra motor a warning); what each red headline means;
+  **RUN AGAIN** (and that every SAVED run replaces the record, a stopped one does not); **G.5 "how to
+  know it calibrated correctly"** — SAVED; the MEASURED line; ports per side against LEFT 11–15 /
+  RIGHT 16 17 18 20; `ipr` ≈ 1.375 for a 2.75 in wheel 1:1 with L ≈ R, and a different value read
+  as a ratio (ipr ÷ 1.375); the track width ≈ the taped wheel centre-to-centre or somewhat larger
+  (scrub; omni scrubs less); a second run within 2 % / 3 %; G.6 Teleop from the record with the new
+  **G.6.4: `est x` ≈ 48 after a 48 in drive along the tape**; G.7 every serial line a run prints, in
+  order, with host-plant examples labelled as such. **Every backtick-quoted string in the station
+  was checked by a script against the source** (the panel, the calibrator, the program, main.cpp,
+  the boot check, the description): 86 found verbatim; the other 51 are printf-formatted lines,
+  each checked by hand against its format (e.g. `PORT 12  6 V` ← `"PORT %d  %.0f V"`, `3 of 9  yaw
+  -1.2 of 2.0 deg` ← `"%u of %u  yaw %+.1f of %.1f deg"`, the MEASURED line ← `describe()`) or shell
+  commands. Two stale Teleop quotes inside Station G fixed on the way: G.6.3's `5 members 0
+  disagree` (the row now reads `5/5 present 0 disagree`, main.cpp:826) and G.6.2's source row
+  (`MEASURED record | DEGRADED: dead ...`, main.cpp:868 + boot_check.hpp:300).
+- **16:48** — **The rest of the documentation:** `docs/changelog.md` — a "Removed since 2.2" section
+  above F1's (the three names, a migration each; unfrozen, no bump); `docs/internal/build-order.md` —
+  the R3d status line "2026-09-24 (later)" and **the FIRST bold `**Next:**`: the bench session
+  resumes — rebuild and upload shulib Calibrate from the committed tree and run Station G; G1 Part 2b
+  follows, its own go** (the old Next kept under "Previously", its bold markers re-paired: 6/6/8 per
+  line, even); `docs/roadmap.md` — the "Now" pointer and the bench-session paragraph (the program
+  half landed, build-checked, not run; budgets derived); `docs/hardware-assumptions.md` — HA-136 one
+  sentence on how the budgets were checked (derived lower-bound evidence, still settled by the
+  ruler) and the register's status note; `README.md` — `calibration/` now lists its screen model (F1
+  had listed this as incomplete-not-false, to fix when a program used the panel — one does now);
+  `docs/internal/HANDOFF-remaining-work.md` S1 — F1's "Station G is rewritten in 2F-2" now past
+  tense, the wheels-up run optional; `docs/api` regenerated (above). The briefing: regenerated LAST.
+- **16:48** — **Prose review (RESUMING rule 4) — grep RUN before this entry:** `grep -rnE
+  'SideAssign|ScalePush|Distance24|Distance48|Distance72|tapeDeltaRad|\bTAPE\b|twitch|STAND
+  CLEAR|wheels up|wheels-up|WHEELS UP|yaw floor|yaw-floor'` over `docs/ README.md include/ src/`
+  (203 hits, saved in the scratchpad `f2/prose_hits.txt`), plus `'%\.44s|44 char|at most 44|44
+  characters'` for the brief's "44", plus `'shulib Calibrate|calibrate_program|PROGRAM=calibrate'`
+  over README, `docs/*.md`, `docs/guide`, `docs/api`. Every hit outside the historical logs read.
+  **Fixed:** the HANDOFF S1 note (tense; wheels-up optional); README's `calibration/` line;
+  `CalibratorStatus::prompt`'s doc (the 44 bound's reason); the calibrator header's phase list and
+  its 2F-2 line; F1's src list at its 14:02 entry — every line it named is gone with the rewrite
+  (`:11-12` the serial claim is now true and itemised; `:18-19`/`:663-664`/`:500-504` the
+  wheels-up yaw-floor expectation — gone; `:185-219` the button row — gone; `:415-418` the 1/4..4/4
+  words — gone; `:430` the `%.44s` — gone; `:441-455` the `tapeDeltaRad` column — gone; `:753` the
+  "tape push" spread — now "push"); F1's worksheet list (:688, :706, :709, :728, the quoted prompts) —
+  the station is rewritten. **Unchanged, true:** `SideAssign` (a live enumerator) everywhere;
+  `STAND CLEAR` and `twitch` in the panel's literals, the calibrator's prompts, the worksheet and the
+  generated API pages (the words on the screen); `twitch`/`twitchy` in the stick-shaping, input-shaping
+  and coupled-monitor comments and `docs/guide/03` (driver feel — unrelated); `wheels up` in Stations
+  D/E/F, `src/bench_r3a.cpp`, `src/drive_program.hpp`, `src/main.cpp:971` (Teleop's boot text),
+  `docs/roadmap.md:195-196,250` and `hardware-assumptions.md:1096` (the DRIVE station, Teleop and the
+  coupled monitor — not Calibrate);
+  `roadmap.md:275` (R3d Part 1's dated landing record); "yaw floor" in the calibrator's 2F-1 notes
+  (true); the changelog's F1 section naming the retired names as retired (a dated record, with the
+  new "Removed" section above it saying they are gone); `docs/api`'s banner copy of the calibrator
+  header's 2F-2 line (generated). The historical logs and briefs (R3d-PROGRESS, the Part 2F brief, the
+  Part 2 brief, R3b logs, the 2026-09-18 session log) are records and were not edited.
+  **Listed, NOT edited (outside this part's files):** `src/main.cpp`'s calibrate boot banner says
+  "THIS PROGRAM HAS NEVER RUN ON HARDWARE" (true of this build, but the Part 2 program ran — the
+  program's own banner now says both), and the AUTONOMOUS state screen `main.cpp` paints for the
+  calibrate build prints a 120-character `why` in SMALL from x 10, which will run off the right edge
+  — both `main.cpp`'s, which this part may touch only for the calibrate entry.
+- **17:04** — **EVERY STRING THE PROGRAM CAN DRAW, per screen, with its size, length and budget.** Sources:
+  the panel's named literals (`panel_text::kAll`, printed with their budgets by a throwaway), the 21
+  STOPPED wordings (`stoppedWords()`, same throwaway), the program's own literals (`text::kAll`, each
+  `static_assert`ed), and — for the FORMATTED lines — the longest text each line slot actually showed
+  over seven scripted runs on the host plant (the throwaway walk below; every slot's maximum is within
+  its budget, checked). Three slots sit exactly AT their budget and are the first to watch on the
+  robot: the pulses' side chips (36/36 MEDIUM), the longest STOPPED "why" (36/36 MEDIUM) and a wrapped
+  reason line (50/50 SMALL); and one of the program's own, `NOT DRIVER CONTROL` (18/18 LARGE).
+  Every pixel row: the text lines' estimated bottoms end at 227 (a SMALL line at 212 + 16), the button
+  row at 234, the program's own screens at 224 — all under 236.
+
+  | Screen | String (live ones: an example) | Size | Len | Budget | Note |
+  |---|---|---|---|---|---|
+  | every screen (top bar, right) | `BUILD hh:mm:ss` | SMALL | 14 | 50 | program; x 340 |
+  | Starting (program) | `CALIBRATE` | MEDIUM (bar) | 9 | 24 |  |
+  | Starting (program) | `HANDS OFF` | LARGE | 9 | 18 |  |
+  | Starting (program) | `STARTING UP` | LARGE | 11 | 18 |  |
+  | Starting (program) | `finding the motors and the IMU` | MEDIUM | 30 | 36 |  |
+  | ImuWait | `1/5 IMU` | MEDIUM (bar) | 7 | 24 |  |
+  | ImuWait | `HANDS OFF` | LARGE | 9 | 18 |  |
+  | ImuWait | `IMU WARMING UP` | LARGE | 14 | 18 |  |
+  | ImuWait | `0.4 s  (live, '%.1f s')` | LARGE | 5 | 18 | max seen 5 |
+  | ImuWait | `NEXT: push it 48 in along the tape` | MEDIUM | 34 | 36 | formatted from pushDistance |
+  | Push | `2/5 PUSH` | MEDIUM (bar) | 8 | 24 |  |
+  | Push | `PUSH IT FORWARD` | LARGE | 15 | 18 |  |
+  | Push | `48 IN ALONG TAPE` | LARGE | 16 | 18 | formatted |
+  | Push | `9 of 9 turned  (live, '%u of %u turned')` | LARGE | 15 | 18 | max seen `10 of 12 turned`; worst `21 of 21 turned` = 15 |
+  | Push | `drift +0.3 deg  /  drift -10.0 deg -- TOO CURVED` | MEDIUM | 29 | 36 | max seen 29 |
+  | Push | `DONE shows once the motors turn` | MEDIUM | 31 | 36 |  |
+  | Push | `keep pushing -- the full 48 in` | MEDIUM | 30 | 36 | formatted |
+  | Push | `let go -- DONE shows when it stops` | MEDIUM | 34 | 36 |  |
+  | Push | `touch DONE -- then say which end` | MEDIUM | 32 | 36 | green |
+  | WhichEnd | `3/5 WHICH END` | MEDIUM (bar) | 13 | 24 |  |
+  | WhichEnd | `WHICH END FIRST?` | LARGE | 16 | 18 |  |
+  | WhichEnd | `NEXT: motors twitch -- stand clear` | MEDIUM | 34 | 36 | amber |
+  | Pulses | `4/5 PULSES` | MEDIUM (bar) | 10 | 24 | amber bar |
+  | Pulses | `STAND CLEAR` | LARGE | 11 | 18 |  |
+  | Pulses | `TWITCHING MOTORS` | LARGE | 16 | 18 |  |
+  | Pulses | `PORT 12  6 V  (live, 'PORT %d  %.0f V')` | LARGE | 12 | 18 | max seen 12 |
+  | Pulses | `settling -- hands off` | MEDIUM | 21 | 36 |  |
+  | Pulses | `3 of 9  yaw -1.2 of 2.0 deg  (live)` | MEDIUM | 29 | 36 | max seen 29 |
+  | Pulses | `L 11 12 13 14 15  R 16 17 20  OUT 18  (chips)` | MEDIUM | 36 | 36 | AT the budget (seen 36); longer falls back to counts `L 5  R 4  OUT 1` |
+  | Spin | `5/5 SPIN` | MEDIUM (bar) | 8 | 24 | amber bar |
+  | Spin | `STAND CLEAR` | LARGE | 11 | 18 |  |
+  | Spin | `SPINNING` | LARGE | 8 | 18 |  |
+  | Spin | `CCW 0.8/2 TURNS  (live)  /  SETTLING` | LARGE | 15 | 18 | max seen 15 |
+  | Spin | `at 3 V  /  at 6 V -- stepped up` | MEDIUM | 20 | 36 |  |
+  | Spin | `hands off -- it spins next / hands off -- it spins again` | MEDIUM | 27 | 36 |  |
+  | Spin | `NEXT: it saves -- stay clear` | MEDIUM | 28 | 36 |  |
+  | Saved | `SAVED / NOT SAVED / MEASURED` | MEDIUM (bar) | 9 | 24 | green / red / blue |
+  | Saved | `LEFT 5  RIGHT 4` | LARGE | 15 | 18 | max seen 15 |
+  | Saved | `ipr L 1.37500 R 1.37500` | MEDIUM | 23 | 36 | `%.5f` each |
+  | Saved | `track 13.700 in` | MEDIUM | 15 | 36 |  |
+  | Saved | `LEFT OUT 18  /  LEFT OUT: 3 PORTS` | MEDIUM | 11 | 18 | the note beside RUN AGAIN (kNoteCols) |
+  | Saved | `NEXT: copy these, then RUN AGAIN to check` | SMALL | 41 | 50 |  |
+  | Saved | `NOT SAVED -- copy these numbers NOW` | SMALL | 35 | 50 | red |
+  | Saved | `the warning, wrapped (2 lines)` | SMALL | 48 | 50 | max seen 48 |
+  | Stopped | `STOPPED -- MOTORS OFF` | MEDIUM (bar) | 21 | 24 | red bar |
+  | Stopped | `the headline per code (21 codes)` | LARGE | 17 | 18 | longest `WRONG MOTOR MOVED` |
+  | Stopped | `the why per code` | MEDIUM | 36 | 36 | longest `something kept moving before a pulse` — AT the budget |
+  | Stopped | `the do per code` | MEDIUM | 35 | 36 | longest `push it again, STRAIGHT on the tape` |
+  | Stopped | `PORT 11` | MEDIUM | 7 | 36 |  |
+  | Stopped | `the reason, wrapped (≤ 3 lines)` | SMALL | 50 | 50 | AT the budget (seen 50) |
+  | Stopped | `the full reason is on the serial log` | SMALL | 36 | 50 |  |
+  | buttons (MEDIUM, centred) | `DONE / FRONT FIRST / BACK FIRST / ABORT / RUN AGAIN` | MEDIUM | 11 | 12 | label budget 12 |
+  | Cannot start (program) | `CANNOT START` | MEDIUM (bar) | 12 | 24 | red bar |
+  | Cannot start (program) | `CARTRIDGE UNSET / IMU COUNT NOT 1 / TOO FEW MOTORS / MOTORS REFUSED / IMU REFUSED` | LARGE | 15 | 18 |  |
+  | Cannot start (program) | `the why, wrapped (≤ 3 lines)` | MEDIUM | 36 | 36 | wrapWords<36,3>; runtime text sanitised |
+  | Cannot start (program) | `the fix, wrapped (≤ 2 lines)` | SMALL | 50 | 50 | wrapWords<50,2> |
+  | Cannot start (program) | `nothing is powered -- fix it, then restart slot 4` | SMALL | 49 | 50 |  |
+  | Cannot start (program) | `Bench Tests (slot 3) is the diagnosis tool / the full text is on the serial log` | SMALL | 42 | 50 |  |
+  | Program fault (program) | `STOPPED -- MOTORS OFF / PROGRAM FAULT / every motor is at 0 V, coasting` | MEDIUM/LARGE/SMALL | 31 | 50 | + the message wrapped as above |
+  | Not driver control (program) | `NOT DRIVER CONTROL` | LARGE | 18 | 18 | AT the budget |
+  | Not driver control (program) | `It powers the motors, so it runs ONLY in` | SMALL | 40 | 50 |  |
+  | Not driver control (program) | `DRIVER CONTROL, enabled. Motors: 0 V, coasting.` | SMALL | 47 | 50 |  |
+  | Not driver control (program) | `status bits 0x0f field=yes disabled=yes auton=yes` | SMALL | 49 | 50 | worst case; buffer kSmallCols+1 |
+  | Not driver control (program) | `Unplug any competition switch or field cable,` | SMALL | 45 | 50 |  |
+  | Not driver control (program) | `and NEVER start it from the CONTROLLER's menu.` | SMALL | 46 | 50 |  |
+  | Not driver control (program) | `Any result is on the serial log too ([R3D]).` | SMALL | 44 | 50 |  |
+
+- **17:04** — **A full run as the operator would see it, generated from `viewFor()`** by a throwaway host
+  program (`f2/walk.cpp` in the session scratchpad, not committed; it drives the SAME scripted operator
+  and plant as the panel's host cases through a `TouchGate`, and prints every layout change, the frame
+  before it, and the finished screen 0.6 s later). The clean run, condensed (host plant: ten drive
+  motors + two idle, so `of 12`; robot two will show `of 9`):
+  1. blue `1/5 IMU`: `HANDS OFF` / `IMU WARMING UP` / amber `0.0 s` / `NEXT: push it 48 in along the
+     tape` — ABORT {330,180,474,234}, armed.
+  2. blue `2/5 PUSH`: `PUSH IT FORWARD` / `48 IN ALONG TAPE` / amber `0 of 12 turned` / `drift +0.0
+     deg` / `DONE shows once the motors turn` — ABORT only. Mid-push the NEXT line reads `let go --
+     DONE shows when it stops`; at rest after 48 in (t = 8.18 s) the number turns GREEN `10 of 12
+     turned`, the NEXT line GREEN `touch DONE -- then say which end`, and DONE appears at
+     {6,180,300,234} **GREYED** (the arming delay), then green.
+  3. blue `3/5 WHICH END`: `WHICH END FIRST?` / amber `NEXT: motors twitch -- stand clear` — FRONT
+     FIRST {6,72,234,158} and BACK FIRST {246,72,474,158} both GREYED at first, ABORT armed. Neither
+     box overlaps DONE's rectangle (the double-tap rule).
+  4. AMBER `4/5 PULSES`: `STAND CLEAR` / `TWITCHING MOTORS` / `PORT 11  3 V` / `settling -- hands
+     off` / (chips, empty until the first side is decided) — ABORT the whole row {6,180,474,234}. At
+     the last port: `PORT 20  9 V` / GREEN `10 of 10  yaw +6.3 of 2.0 deg` / `L 11 12 13 14 15  R 16 17
+     18 19`.
+  5. AMBER `5/5 SPIN`: `STAND CLEAR` / `SPINNING` / `SETTLING` / `hands off -- it spins next` /
+     `NEXT: it saves -- stay clear`, then `CCW 1.2/2 TURNS` / `at 3 V` while turning, then `hands
+     off -- it spins again` before the CW half — ABORT the whole row.
+  6. GREEN `SAVED`: GREEN `LEFT 5  RIGHT 5` / `ipr L 1.62500 R 1.62500` / `track 12.500 in` / SMALL
+     `NEXT: copy these, then RUN AGAIN to check` — RUN AGAIN {246,112,474,158} GREYED, armed 0.6 s later.
+  The other runs: **port 18 slipping** ends RED `NOT SAVED` (as told) with `LEFT 5  RIGHT 4`, amber
+  `LEFT OUT 18` beside RUN AGAIN, red `NOT SAVED -- copy these numbers NOW`, and the warning wrapped
+  whole: `port 18 turns but does not move the robot -- its` / `gear is slipping; it is left out`;
+  the pulses screen showed `L 11 12 13 14 15  R 16 17 19  OUT 18` (36/36). **κ = 1 (rolls)** stops at
+  port 11 after 3/6/9 V: RED `STOPPED -- MOTORS OFF`, red `IT ROLLED` / `it moved but did not turn`
+  / `on the FLOOR? then report the port` / red `PORT 11` / grey `port 11 moved its gear train
+  (others 49.8 deg) but` / `the robot turned only 0.00 deg even at 9.0 V` / `the full reason is on
+  the serial log`. The curved push, DONE-before-any-push, BACK-first and spin-fight runs were walked
+  too (their lines are in the table's maxima). **Prints, by the painter's rules** (a COPY of
+  `PanelPainter`'s logic in the throwaway, PROS calls replaced by a counter — it measures the rules,
+  not the program): the clean 52 s run **217 prints** (6 full repaints, 36 padded in-place updates),
+  port 18's 48 s run 206, the rolled run 54 — about 4 prints a second, against ~300/s for a
+  per-tick repaint of three live lines. On the robot the program reports its own count at every
+  outcome (`loop: ... N screen prints so far`).
+- **17:04** — **THE SERIAL RECORD, old vs new.** The banner (a script diffed every `emit` literal
+  before the loop, `dc26b8d` → now):
+  ```
+  -#  THIS PROGRAM HAS NEVER RUN ON HARDWARE. It POWERS THE MOTORS.
+  +#  THIS BUILD HAS NEVER RUN ON HARDWARE. It POWERS THE MOTORS. (The Part 2
+  +#  program ran five starts on 2026-09-24 and finished none; this is Part 2F.)
+  -EVERY THRESHOLD BELOW IS INVENTED (HA-136). Wheels UP on the first run: the pulses
+  -turn nothing, and the run REFUSES at the yaw floor. That is the program WORKING.
+  +config: push 48 in along a tape; a port MOVED past 5.0 deg of shaft; the push straight within ...
+  +config: pulses ramp 3.0/6.0/9.0 V for 0.40 s each, a side needs 2.0 deg of yaw; ...
+  +config: spin 2 turns each way, levels 3.0 then 6.0 V; must turn 5.0 deg within 2.0 s ...
+  +ONE PUSH, 48 in, forward, along a tape; then FRONT or BACK; then STAND CLEAR: one
+  +motor at a time jerks (3, then 6, then 9 V), then it spins both ways. INVENTED numbers.
+  +WARNING: every touch read at start was an ERROR read -- ...   (only if it happens)
+  +===== RUN 1 =====
+  ```
+  (unchanged: the stamp, the hash, the census, the cartridge belief, the IMU lines). **Added in the
+  run** — the lines start B of the first night lacked: `phase: <STEP> | <progress>`; `screen: <top bar>:
+  <first three lines> | [buttons]` on every layout change; `touch: x=.. y=.. release=.. on <button> ->
+  ANSWER <x> | RUN AGAIN | ignored -- the button was still GREYED (arming) | ignored -- the calibrator
+  no longer accepts it | ignored -- no button there`; `push live: <progress>` on change (≤ 4/s, a 5 s
+  keepalive); at DONE the **push table** and a summary; `front: ...` and `drive ports, signed: ...`;
+  **one line per pulse**; `LEFT OUT: port N ...`; **one line per spin direction**; `===== RUN n
+  ENDED: DONE|STOPPED =====`; at Done the MEASURED line (now printed bare, not as `MEASURED: MEASURED
+  ...`), the signed ports per side on one line each, `LEFT OUT: none | <ports> -- (<warning>)`, the
+  scales with their L/R ratio, the width, the push's drift/medians/spreads, both spin widths, SAVED /
+  NOT SAVED (and that an earlier record stays on the card if this run did not replace it); at a stop
+  `STOPPED [<CODE> port N]: <reason>`; at every outcome `loop: N ticks, worst gap between two ticks
+  N ms ...; N screen prints so far`; at RUN AGAIN `===== RUN n -- RUN AGAIN: a NEW calibrator, nothing
+  carried over =====`. Examples from the calibrator's own formatters on the host plant (port 18
+  slipping; a throwaway, host numbers, NOT robot output):
+  ```
+  [R3D]   push port 18 travel +1184.7 deg MOVED sign +1
+  [R3D] pulse port 11 (1 of 10) 3.0 V yaw +0.00 deg own +0.0 deg others 0.0 deg: under the floor -- next level
+  [R3D] pulse port 11 (1 of 10) 9.0 V yaw -6.47 deg own +49.8 deg others 49.8 deg: LEFT
+  [R3D] pulse port 16 (6 of 10) 6.0 V yaw +3.15 deg own +24.3 deg others 24.3 deg: RIGHT
+  [R3D] pulse port 18 (8 of 10) 9.0 V yaw +0.00 deg own +630.9 deg others 0.0 deg: LEFT OUT (decoupled)
+  [R3D] spin CCW 3.0 V yaw +720.2 deg L -78.56 in R +78.56 in W 12.500 in 7.43 s
+  [R3D] MEASURED tank BLUE 600 rpm: L5/R4 ports, ipr L1.62500 R1.62500, W 12.500 in
+  ```
+- **17:04** — **RUN AGAIN's reset, exactly** (ruling F2-R7, in `runCalibrate()`): on
+  `TouchAction::RunAgain` — which `TouchGate` returns only when the phase is Done or Aborted — the
+  program prints the RUN banner, commands 0 V + Coast on every candidate, `cal.emplace(motorSpan,
+  portSpan, *imu, clock)` (the old calibrator is DESTROYED first — `optional::emplace` — so no sign,
+  side, report row, refusal, warning, status or timer survives; F1's case 32 proves two back-to-back
+  runs on one plant are independent), `cal->start(facts)`, `gate.emplace(sample.releaseCount)` (a new
+  `TouchGate`, based on the release that asked, so it cannot replay; its layout clock starts empty,
+  so the first frame is greyed), `run = RunRecord{}` (printed counts, save outcome, outcome flag, push
+  log state, layout key, loop timing — value-initialised) and `painter.invalidate()` (the next frame
+  is a full repaint). **Carried: nothing of the run.** Kept, because they are the program's: the motor
+  adapters (built once, positive ports), the IMU adapter (calibrated once — HA-05 forbids a second
+  `calibrate()`), the clock, the pacer, the three stated facts, and `g_screenPrints` (a PROGRAM-wide
+  leak count, deliberately not reset). Not host-testable (it is `src/`); checked by reading, and by
+  F1's case 32 for the calibrator half.
+- **17:24** — **One more check, by reading, of what the rewrite puts on the opcontrol task's STACK** (the
+  old program already held the calibrator there): `sizeof` measured with `arm-none-eabi-g++` —
+  `DrivetrainCalibrator` 7712 B (F1's pulse records are most of it); on the host (32-bit): `PanelView`
+  704 B, `TouchGate` 24 B. The loop's frame adds one painter (~0.7 KB: ten lines, three buttons) and
+  one view; `TouchGate::view()` builds at most two more views transiently. PROS's default task stack
+  is `TASK_STACK_DEPTH_DEFAULT 0x2000` words (32 KB, `include/pros/rtos.h:72`); the peak (the frame,
+  a `viewFor()` call, newlib's `printf`) is estimated at about half of that — an estimate from sizes,
+  not a measurement on the robot.
+- **17:24** — **FINAL VERIFICATION, in this order, on the finished tree** (every test object rebuilt with
+  `touch test/*.cpp` + `shulib_tests/fast`, `Linking CXX executable shulib_tests` seen; the briefing
+  regenerated LAST on that green binary; then the full target and the launch prompt's command set):
+  - `./build/test/shulib_tests` → `test cases: 1416 | 1416 passed | 0 failed | 3 skipped`,
+    `assertions: 2386604 | 2386604 passed | 0 failed`. Per case against the baseline (`cases.py`,
+    assertion counts AND printed messages): **1415 identical, 4 differ** — cases 4, 19, 21 and P9,
+    each explained above; the plant, the panel's other eleven cases and every other suite identical.
+  - `cmake --build build/test` (the full target, doc gates included) → `api_doc_tool self-test: OK`,
+    `doc coverage: 2592 public entities across 148 headers, all documented`, `doc example scan: 408
+    quoted lines, all verbatim`, `removability: no public doc references docs/internal/`, `briefing
+    status: generated block current`, `doc staleness audit: clean`; `Built target shulib_tests`.
+  - `python3 tools/src_build_gate.py self-test` → `OK (33 detector cases, each against a real
+    build)`; `check` → `src build gate: PASS (all 6 builds link ...)` — bench, tank, tank-drive,
+    tank-library, tank-calibrate each `exit 0, 4/4 TUs compiled, warnings: 2 allowed
+    (-Wunused-function), 3 vendor-ignored, 0 disallowed`, xdrive `0 allowed`; hashes asserted; beacons
+    checked (unchanged).
+  - ARM TU over every header (184 + `main`) under `-Wall -Wextra -Wconversion -Wsign-conversion
+    -Wshadow -Werror -Os` → exit 0. PROS-free grep → empty. Sim-layering grep → empty.
+  - `api_doc_tool.py generate && check-fresh && briefing_status.py check && check-removability` → exit 0.
+  - `git diff --stat -- Makefile tools .github src/main.cpp src/bench_r3a.cpp src/drive_program.cpp` →
+    empty. Nothing staged, nothing committed, nothing uploaded, no `pros` command run.
+  - Files changed (`git diff --numstat`, + / −): `src/calibrate_program.cpp` 1038/453,
+    `src/calibrate_program.hpp` 12/8, `include/shulib/calibration/drivetrain_calibrator.hpp` 9/24,
+    `include/shulib/calibration/calibrate_panel.hpp` 0/1, `test/drivetrain_calibrator_test.cpp`
+    12/13, `docs/internal/chunks/R3a-BENCH-WORKSHEET.md` 225/140, `docs/changelog.md` 20/0,
+    `docs/roadmap.md` 8/4, `docs/hardware-assumptions.md` 10/2, `README.md` 2/1,
+    `docs/internal/build-order.md` 5/1, `docs/internal/HANDOFF-remaining-work.md` 3/2,
+    `docs/internal/PROJECT-BRIEFING.md` 2/2 (generated), `docs/api/` four pages (generated), this log.
+
+### Definition of Done — Part 2F-2 (the brief's §4 F2), with evidence per line
+
+- [x] **§2 in full.** F2.1 — `src/calibrate_program.cpp` renders `viewFor()` through `TouchGate`
+      (`PanelPainter`: changed zones only; the view recomputed and painted right after every answer and
+      on the tick of every step change; every touch through `TouchGate::touch()` against the view just
+      painted); only `"%s"` reaches `screen_print_at` (`printText()`, the one call site); every buffer
+      sized from its budget; no '%', ASCII only (the panel's lines proven by F1's host tests, the
+      program's own literals by `static_assert`, runtime text sanitised); every pixel y < 236 (the
+      string table's arithmetic). Kept: the census, the IMU discovery, the cartridge belief,
+      `AllStopGuard`, the per-tick `competition_is_disabled()` exit, write → flush → re-read →
+      compare → SAVED, now handed to the panel as `SaveOutcome`. **RUN AGAIN:** rebuilt in place, the
+      gate and the per-run record new, nothing carried (the entry above). **The serial record:** every
+      line F1 made available, printed — the push table at DONE, one line per pulse, the spin per
+      direction, the excluded ports, the MEASURED line and SAVED / NOT SAVED — plus the additions listed
+      (F2-R10). F2.2 — the layout is the panel's (F1); the program's own screens follow it. F2.3 —
+      Station G rewritten from the code (the entry above).
+- [x] **The three retired names removed**, every reference updated (`drivetrain_calibrator.hpp`, the
+      panel's one case label, the calibrator's cases 4/17/19/21), `docs/api` regenerated, the changelog.
+- [x] **Six builds link, zero disallowed warnings** (`-Wformat-nonliteral`, `-Wformat-truncation`
+      included); beacons unchanged — the gate output above.
+- [x] **The worksheet rewritten from the code** — every quoted string checked against the source
+      (86 verbatim; 51 formatted lines or commands checked by hand).
+- [x] **A list of every on-screen string with its size and budget** — the table above.
+- [x] **No hardware claim.** The program's header, its `.hpp`, its banner, Station G, the changelog,
+      the roadmap and build-order each say the rewritten program has not run.
+- [x] **Budgets** derived from the tree's evidence and logged, kept at F1's values (ruling F2-R2),
+      stated as derived-not-measured in the log, the worksheet and HA-136.
+- [x] **Prose review** — grep run and every hit read before the entry that says so.
+
+**NOT done, and not claimed:** nothing here has run on a robot — no screen of it has been seen on a V5,
+no touch of it read, no record written by it; the character budgets, line heights and positions are
+derived estimates (Bench Tests button 9 measures them in a minute); the renderer and RUN AGAIN are
+checked by the build gate and by reading only (`src/` has no host tests), and the walk-through's print
+counts come from a COPY of the painter's rules, not the program; `src/main.cpp`'s calibrate boot banner
+and its AUTONOMOUS state screen's over-long SMALL line are listed, not fixed (out of this part's
+files); the host-only `-Wformat-truncation` false positive at `calibrate_panel.hpp:644` is recorded,
+not fixed (F1's header; the ARM gate does not see it); whether the DONE button flickers if
+`pushReady()` toggles near its thresholds on the robot (it re-greys on every reappearance) is for the
+serial record's `push live:` lines to show — the panel decides DONE, not the program. **For the
+coordinator (brief §8):** rebuild the calibrate package from the COMMITTED tree, confirm the beacon,
+and read every screen string against Station G.

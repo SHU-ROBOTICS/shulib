@@ -250,7 +250,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   hal/              the hardware interfaces (motor, motor groups, IMU, GPS, clock, distance,
                     optical, digital in/out, controller, mechanism, device provider, …) + fakes
     pros/           the real V5 adapters over the PROS SDK — the ONE exempted path (see rule 1)
-  calibration/      the drivetrain self-calibrator, its SD-card record, the boot check
+  calibration/      the drivetrain self-calibrator, its screen model, its SD-card record,
+                    the boot check
   config/           a robot and a route described as DATA (RobotConfig, Route)
   robot/            robot::Robot — the whole library graph built from a RobotConfig
   runner/           runs a Route: the path runner, the command-id registry, the manifest

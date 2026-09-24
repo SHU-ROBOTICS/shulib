@@ -107,10 +107,10 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 28 of 50 chunks complete
 
-- **Next up:** R3d Part 2F-2 — "shulib Calibrate" rebuilt as a RENDERER of the F1 panel model (src/calibrate_program.cpp draws calibration::viewFor() through calibration::TouchGate, prints the serial record, offers RUN AGAIN) and worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md) rewritten from the new code — WAITING FOR THE TEAM LEAD'S GO ([brief](chunks/R3d-part2f-calibrate-on-the-robot.md) §2, §4 F2). The bench session (R3d Part 3) resumes after F2; G1 Part 2b ("shulib Teleop" on the library) follows it, its own go.  
+- **Next up:** THE BENCH SESSION RESUMES (R3d Part 3) — rebuild and upload "shulib Calibrate" from the COMMITTED tree (rm -rf bin .d && make ROBOT=tank PROGRAM=calibrate, slot 4) and run worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md) on robot two: the one 48 in push, the pulses, the spin, SAVED, a second run for reproduction, then "shulib Teleop" from the record. G1 Part 2b ("shulib Teleop" on the library) follows it, its own go.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,416 cases / 2,386,636 assertions, 3 skipped — **green**  
+- **Suite:** 1,416 cases / 2,386,604 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 184  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 141 registered, **7 settled** — next free is **HA-142**  

@@ -16,6 +16,26 @@
 
 ## API 2.2
 
+### Removed since 2.2 (2026-09-24, later the same day) — the calibrator's three retired names
+
+> Written when it landed. **No version bump:** `calibration::DrivetrainCalibrator` is not in the
+> [Freeze Register](roadmap.md#freeze-register); the calibration record's format and the boot check
+> are unchanged. The section below retired these names and said they would be removed once the
+> "shulib Calibrate" program no longer used them; that program now paints the screen model
+> (`calibrate_panel.hpp`'s `viewFor()`) instead, so they are gone. **The rewritten program has not
+> run on a robot.**
+
+**REMOVED — what a caller must change:**
+
+- **`Phase::ScalePush`** — the calibrator never entered it since the change below. **Migration:**
+  delete the `case`; a `switch` over `Phase` now has seven values.
+- **`Answer::Distance24`, `Answer::Distance48`, `Answer::Distance72`** — never accepted since the
+  change below (there is one push, of `CalibratorConfig::pushDistance`). **Migration:** delete the
+  distance buttons; the answers are `Done`, `FrontFirst`, `BackFirst` and `Abort`.
+- **`PortObservation::tapeDeltaRad`** — always 0 since the change below. **Migration:** read
+  `pushTravelRad` (a drive port's travel over the one push, sign-corrected) or `pushDeltaRad` (as
+  read).
+
 ### Changed since 2.2 (2026-09-24) — the drivetrain calibrator rebuilt after its first night on a robot; a pure model of its screen
 
 > Written when it landed. **No version bump:** `calibration::DrivetrainCalibrator` is not in the

@@ -327,8 +327,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > one line shorter, and none of it has run on a robot** — the provider has been tested only against
 > the host's stand-in for the PROS headers.
 >
-> **Now (2026-09-24): the Calibrate fix's second half — "shulib Calibrate" redrawn from the new
-> screen model, and its runbook rewritten — then the bench session resumes; then G1 Part 2b ("shulib
+> **Now (2026-09-24, later): the bench session resumes — "shulib Calibrate", now drawn from its
+> screen model, is rebuilt from the committed tree and run on robot two; then G1 Part 2b ("shulib
 > Teleop" on the library) and Part 2c (`main.cpp` as a dispatcher).** Each waits for the team lead's
 > go. The bench session can close R3d; it cannot close R3b or M1, because no uploaded program
 > commands a `moveTo` yet.
@@ -342,8 +342,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > slipping motor (leaving it out) instead of stopping, the spin has two safety guards (the wrong way;
 > cannot start), every stop carries a code and the port, and the screen's logic is a pure, host-tested
 > model — proven on a host plant that can now fail the way the robot did (an idle side that coasts, a
-> motor that slips), and on nothing else. **The program half — "shulib Calibrate" drawn from that
-> model, and its runbook — waits for the team lead's go.** (Of five Calibrate starts that night, one
+> motor that slips), and on nothing else. **The program half LANDED the same day — build-checked, NOT
+> yet run on the robot:** "shulib Calibrate" now paints that model (and only what changed), reads
+> every touch through its touch gate, offers RUN AGAIN on the finished and stopped screens, and
+> prints a serial record a capture can be read by — one line per pulse and per spin direction, the
+> push table, the result or the stop's code and port. Its screen's text sizes are derived from lines
+> earlier programs showed on this brain, not measured. (Of five Calibrate starts that night, one
 > cleared the 2° floor on seven motors before stopping.)
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;

@@ -53,7 +53,9 @@
 > REWROTE three:** HA-134 now describes a RAMPED pulse and what happens when no level turns the
 > robot, HA-136 lists the calibrator's new and removed numbers and the screen model's estimates, and
 > HA-137 carries the plant's two new rules — coast-follow and the slipping member — because the first
-> night on robot two showed the plant could not fail the way the robot did.)* **No *v2* robot exists**, and
+> night on robot two showed the plant could not fail the way the robot did. **R3d Part 2F-2** (the
+> same day) added no entry; HA-136 records how the screen's character budgets were checked against
+> earlier screens instead of measured.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -1209,7 +1211,13 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   472-pixel line LARGE 18 / MEDIUM 36 / SMALL 50 (and two sub-budgets, the header word 24 and the note
   beside RUN AGAIN 18), line heights 34 / 20 / 16 px, touch padding ±4 px sideways and ±10 px up and
   down, and a 0.5 s arming delay after every layout change — none measured; every literal is checked
-  against the budgets at compile time, so a measured number is a one-constant change.
+  against the budgets at compile time, so a measured number is a one-constant change. *(R3d Part
+  2F-2, 2026-09-24: the three character budgets were checked against what earlier programs showed
+  legibly on a V5 — the SCREEN RULER could not be run — and kept: SMALL 50 sits under the bench
+  tester's 54-character lines, MEDIUM 36 equals the widest MEDIUM line read whole in a photograph of
+  the panel (the tester's DRIVE row), and LARGE 18 lies between the 12 characters read whole (the IMU
+  test's live number) and a 23-character state screen reported shown. They are DERIVED lower-bound
+  evidence, not a measurement; the SCREEN RULER still settles them.)*
   *Source:* `include/shulib/calibration/drivetrain_calibrator.hpp` (`CalibratorConfig`, every field
   tagged `PROVISIONAL (A4: HA-136)`); `include/shulib/calibration/calibrate_panel.hpp` (each budget
   tagged ESTIMATE); `test/drivetrain_calibrator_test.cpp`, where the push threshold, the pulse yaw
