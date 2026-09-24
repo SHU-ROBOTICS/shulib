@@ -107,7 +107,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 28 of 50 chunks complete
 
-- **Next up:** G1 Part 2 — the PROS device provider, the library teleop loop, and main.cpp as a dispatcher — its brief is being revised after the 2026-09-24 handoff audit found four defects in it, and then waits for the team lead's go. The bench session (R3d Part 3, worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)) pre-empts everything the moment robot two's brain enumerates on USB.  
+- **Next up:** G1 Part 2a — the PROS device provider (registry-checked), absent drive ports in the builder, Robot::portMap(), and the library teleop loop, library-only — waiting for the team lead's go on the brief revised 2026-09-24 ([brief](chunks/G1-part2-pros-provider-and-main.md): three parts — 2a library, 2b shulib Teleop on the library, 2c main.cpp as a dispatcher — each its own go and commit). The bench session (R3d Part 3, worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)) pre-empts everything the moment robot two's brain enumerates on USB.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,358 cases / 1,635,266 assertions, 3 skipped — **green**  
@@ -642,12 +642,13 @@ read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — G1 Part 2 (after its brief is revised and the team lead says go); the bench session the moment the brain enumerates
+## 13. THE IMMEDIATE TASK — G1 Part 2a (when the team lead says go); the bench session the moment the brain enumerates
 
 > **Current as of 2026-09-24.** The first bold `Next:` in [`build-order.md`](build-order.md) owns
 > this fact and the generated block above copies it; [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)
-> §5 and §7 hold the whole remaining list and its order. In one line: the G1 Part 2 brief is being
-> revised (the 2026-09-24 audit found four defects in it), then it waits for the go; the bench
+> §5 and §7 hold the whole remaining list and its order. In one line: the G1 Part 2 brief was
+> revised into three parts on 2026-09-24 (the audit found four defects in it) and Part 2a waits for
+> the go; the bench
 > session (worksheet Station G) pre-empts everything when robot two's brain shows up in
 > `pros lsusb`. Everything below this box is the section as it stood before — kept, because its
 > reasoning about R3/R4 is still the reasoning, but its "immediate task" is no longer R3 whole:

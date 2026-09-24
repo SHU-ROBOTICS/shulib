@@ -314,9 +314,10 @@ not silently break them. This table is the spine of the no-staleness promise.
 > written as a `Routine`. **Nothing of Phase G has run on a robot.**
 >
 > **Now (2026-09-24): G1 Part 2 — the PROS device provider, the library teleop loop, and
-> `src/main.cpp` as a dispatcher.** Its brief is being revised after an audit of the handoff
-> found four defects in it, and then waits for the team lead's go (the team lead put it ahead of
-> the bench session on 2026-09-18). **The bench session pre-empts everything** the moment the
+> `src/main.cpp` as a dispatcher.** Its brief was revised on 2026-09-24, after an audit found four
+> defects in it, into three parts (the library half, shulib Teleop on the library, `main.cpp` as a
+> dispatcher); the first waits for the team lead's go (he put this work ahead of the bench session
+> on 2026-09-18). **The bench session pre-empts everything** the moment the
 > brain enumerates: it can close R3d; it cannot close R3b or M1, because no uploaded program
 > commands a `moveTo` yet.
 >

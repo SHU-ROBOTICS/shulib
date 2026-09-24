@@ -14,7 +14,7 @@
 > the next session DOES: the first drive can close R3d but **not** R3b or M1 (no program commands a
 > `moveTo`); **shulib Teleop refuses without a SAVED calibration record** (the typed table has no
 > track width or ratio); the hardware checkout holds **only the shulib Drive package**; the G1 Part 2
-> brief had four defects and is being revised before its go; robot one's ports do **not** need typing
+> brief had four defects and was revised into three parts before its go; robot one's ports do **not** need typing
 > (the calibrator discovers them). **The item IDs were renamed** — they were A1–A10 / B / C1–C9 /
 > D1–D2, which collide with the plan's own chunk IDs (build-order's C6 is legacy salvage, not a
 > vision session): library work is now **L1–L10**, questions for jal and the builders **Q1–Q7**,
@@ -31,8 +31,8 @@
    lessons (the stale-binary trap, below). Its end carries a corrections section from the audit.
 3. This file.
 4. The first bold `**Next:**` block in `docs/internal/build-order.md`.
-5. The brief for the next chunk: `docs/internal/chunks/G1-part2-pros-provider-and-main.md` (being
-   revised after the audit — read its revision note at the top).
+5. The brief for the next chunk: `docs/internal/chunks/G1-part2-pros-provider-and-main.md` (revised
+   2026-09-24 after the audit — read its revision note at the top).
 
 ---
 
@@ -261,7 +261,7 @@ is given in brackets; `NEW` marks work the plan has no entry for — **add an en
 ### Part L — library code, done on the laptop (host-proven, build-gated; no robot needed)
 
 **L1. [G1 Part 2 + T2's wiring] The PROS device provider, the library teleop loop, `main.cpp` as a
-dispatcher.** — **BRIEF WRITTEN, BEING REVISED, THEN WAITS FOR JAL'S GO:**
+dispatcher.** — **BRIEF REVISED 2026-09-24 INTO PARTS 2a / 2b / 2c; PART 2a WAITS FOR JAL'S GO:**
 `docs/internal/chunks/G1-part2-pros-provider-and-main.md`. jal approved the direction ("we haven't
 tested teleop before so we might as well rewrite") but has NOT said go. The 2026-09-24 audit found
 four defects that would make an executor fail: `Robot`'s constructor re-runs `validate()` without
@@ -271,10 +271,13 @@ requires the X-drive helpers' `-Wunused-function` warnings in `main.cpp` (moving
 tank builds); and test 7 forbids `screen_print` in a `main.cpp` that §2.6 says keeps the state
 screens. Plus smaller gaps (no tick-period source for the loop, the degradation policy's 3-per-side
 floor, the panel reading private odometry, the fault hook across translation units, tank-stick mode's
-right stick, a read-back-failing motor becoming tolerated). The revision splits it into parts so each
-doc pass fits.
-- What: `hal/pros/device_provider.hpp` (`ProsDeviceProvider`); dead-port tolerance in the builder as
-  an opt-in; `teleop/teleop_loop.hpp` (`runDriverControl`, PROS-free); shulib Teleop moved to
+right stick, a read-back-failing motor becoming tolerated). The revision fixes each (the builder now
+takes the boot check's list of ABSENT ports instead of re-running the dead-port policy) and splits
+the work into three parts so each doc pass fits: **2a** library only (provider, absent ports,
+`Robot::portMap()`, the loop), **2b** shulib Teleop rebuilt on the library, **2c** `main.cpp` as a
+dispatcher, the X-drive as data, the build gate's differential redesigned.
+- What: `hal/pros/device_provider.hpp` (`ProsDeviceProvider`, registry-checked); absent drive ports
+  in the builder, from the boot check; `teleop/teleop_loop.hpp` (`runDriverControl`, PROS-free); shulib Teleop moved to
   `src/teleop_program.cpp` built as provider → `bootConfig()` (SD record → typed table → refuse) →
   `robot::Robot` → the loop; the X-drive graph as a config constant; `src/main.cpp` a dispatcher.
 - Rulings already made: only Teleop changes feel (shulib Drive and the tester keep `mapSticks`);
@@ -542,9 +545,9 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
 
 ## 7. The recommended order
 
-1. **Revise the G1 Part 2 brief** (the audit's four defects + the smaller gaps, split into parts),
-   commit it, show jal its scope and documentation lists, and **wait for his go (L1).** On go, launch
-   the executor per §3, verify, commit — one part at a time.
+1. **The G1 Part 2 brief was revised and committed on 2026-09-24** (three parts). Show jal Part 2a's
+   scope and documentation list and **wait for his go (L1).** On go, launch the executor per §3,
+   verify, commit — then 2b, then 2c, each with its own go.
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).
    Nothing is worth more. It needs nothing from L1.
 3. Brief → go → build, one at a time: **L2** (it is also what lets R3b/M1 close), **L3**, **L6**,
