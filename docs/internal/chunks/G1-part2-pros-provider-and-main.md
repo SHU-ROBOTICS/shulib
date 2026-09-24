@@ -279,7 +279,8 @@ edit above is what keeps Station G true.
 HA-111's note (the invented map is now a config constant) and the "Port map, last season" row
 (`:2299`), whose tail says a builder will replace hand-kept port lists; `docs/roadmap.md` — the M5 config bullet, the
 port-map sentence ("G1's RobotBuilder generates it"), "You are here"; `docs/internal/build-order.md` —
-G1 CLOSED, the first `Next:`; **`G1-COMPLETED.md`**; the briefing. **Deferred, stated in the
+G1 CLOSED, the first `Next:`; `docs/vexbuilder-integration.md` — the `IRobotConfig` / builder status
+row (`:64`, "G1 Part 1 landed … Part 2 …"); **`G1-COMPLETED.md`**; the briefing. **Deferred, stated in the
 commit:** the guide chapter on describing a robot as data (Part 1 handed it to Part 2) waits for G3,
 when a robot can come from a FILE — today it would teach typing a `RobotConfig` in C++, the audience
 the feature exists to avoid (G2 deferred its routine chapter for the same reason).
