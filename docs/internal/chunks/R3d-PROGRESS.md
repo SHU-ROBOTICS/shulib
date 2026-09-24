@@ -1468,3 +1468,19 @@ removability grep empty; `src_build_gate.py check` **PASS (all 6 builds link)**.
     SUPPOSED TO DO". The log shows every touch registering as an ANSWER (DONE, FRONT 1st), so the
     touches worked; what failed is that the screen did not make the next action clear or legible.
     A usability defect in `src/calibrate_program.cpp`'s panel — owed a fix.
+- **CORRECTION (written 2026-09-24, after a read-only investigation re-read the whole capture):** the
+  calibrate evidence log holds **FIVE** Calibrate starts, not three — the coordinator read only the
+  capture's last 120 lines when it wrote the entry above. From
+  `strings docs/internal/evidence/r3d-session-2026-09-24-calibrate.log`:
+  - **A** (lines ~483-518): DONE → FRONT 1st → `STOPPED: port 11: the robot turned only 0.14 deg`.
+  - **B** (~617-652): DONE → FRONT 1st → the push had yawed the robot `+10.5 deg` → pulses ran and
+    **STOPPED AT PORT 18**: `the robot turned only 0.09 deg (floor 2.00 deg)`. Reaching port 18 means
+    every drive port before it in candidate order (11–17) CLEARED the 2° floor — **the 3 V / 0.4 s
+    single-motor pulse worked for seven motors in this start** and failed on port 18, the member
+    that travels short (HA-130).
+  - **C, D** (~751-783, ~882-914): DONE before any push → `the push moved 0 port(s)`.
+  - **E** (~1013-1048): the start recorded above (port 11, 0.17°).
+  So the single-motor pulse is INTERMITTENT on this robot, not impossible, and the program printed
+  no per-pulse numbers that would say why. The port-11 refusals carry POSITIVE yaw (+0.14, +0.17)
+  where HA-134 predicts negative for a left member driven forward — noise at this level, or pushes
+  made with the other end first while FRONT 1st was answered (open).

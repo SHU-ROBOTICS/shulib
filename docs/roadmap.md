@@ -336,7 +336,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
 > 3 V for 0.4 s turned the robot 0.17°, under its invented 2° floor), and its screen proved hard to
 > follow. No calibration record exists yet, so nothing built on the library can boot on the robot. A
-> fix to Calibrate is proposed ahead of Part 2b.
+> fix to Calibrate is briefed ahead of Part 2b: one 48 in push, a motor pulse that ramps up and names
+> a slipping motor instead of stopping, two spin safety guards, and a readable screen. (Of five
+> Calibrate starts that night, one cleared the 2° floor on seven motors before stopping.)
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
