@@ -19,7 +19,9 @@ I'm the VEX U programming chair at Seton Hall. **shulib v2** is a holonomic-nati
 for VEX U robots, at `/home/gonzei/projects/shulib`, branch `shulib-v2`.
 
 **The thesis:** LemLib — the library most VEX teams use — is **tank-only**, with no holonomic support
-and no sensor fusion. We run X-drive and H-drive robots. shulib wins by being holonomic-native
+and no sensor fusion. The library is built for X-drive and H-drive robots — and **both of this fall's
+competition robots are TANK drives** (team lead, 2026-09-14); the X-drive is built in spring 2027 and
+all holonomic validation waits for it. shulib wins by being holonomic-native
 (translation and rotation decoupled and simultaneous), fusion-based (odometry + IMU + GPS + AprilTags
 behind swappable policies), and **usable by people who cannot write C++** — four tiers of progressive
 disclosure, each a strict superset of the one below.
@@ -45,7 +47,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 1. **[`RESUMING.md`](RESUMING.md)** — the working protocol, canonical.
 2. **[`ORIENTATION.md`](ORIENTATION.md)** — plain-English, no jargon: what this is and where it stands. Start here if the chunk letters mean nothing to you yet.
-3. **[`chunks/R1b-COMPLETED.md`](chunks/R1b-COMPLETED.md)** and **[`chunks/R1a-BENCH-SESSION.md`](chunks/R1a-BENCH-SESSION.md)** — the most recent chunk record, and the first time this library met real hardware. *(The `HANDOFF-*.md` files are older and now historical — R1a and R1b landed after them.)*
+3. **[`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)** — everything left to finish shulib, the robot facts and the recommended order (2026-09-23, corrected by the 2026-09-24 audit); then the last session log, [`chunks/SESSION-2026-09-18-autonomous.md`](chunks/SESSION-2026-09-18-autonomous.md). **[`chunks/R1a-BENCH-SESSION.md`](chunks/R1a-BENCH-SESSION.md)** is the first time this library met real hardware. *(This line named R1b's record as "the most recent" until 2026-09-24; the older `HANDOFF-*.md` files ARE historical, but `HANDOFF-remaining-work.md` is current.)*
 4. **[`build-order.md`](build-order.md)** — "Current position" (long, worth it), then "The order at a
    glance".
 5. Run these and read the output:
@@ -103,11 +105,11 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 27 of 48 chunks complete
+**Position:** 27 of 50 chunks complete
 
-- **Next up:** R3d Part 3 — THE BENCH SESSION, the team lead's morning: run "shulib Calibrate" on robot two, then "shulib Teleop" from the record it writes (worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)). This is also where R3b closes.  
+- **Next up:** G1 Part 2 — the PROS device provider, the library teleop loop, and main.cpp as a dispatcher — its brief is being revised after the 2026-09-24 handoff audit found four defects in it, and then waits for the team lead's go. The bench session (R3d Part 3, worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md)) pre-empts everything the moment robot two's brain enumerates on USB.  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **INTERRUPTED CHUNK(S): G1, G2, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record. **Read that log before anything else.**
+- ⚠️ **OPEN CHUNK(S): G1, G2, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,358 cases / 1,635,266 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 181  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
@@ -185,14 +187,16 @@ object graph on ARM and printed its diagnostics banner over USB, including a liv
 query through the frozen facade. **It drove nothing, because it could not** — every motor and sensor
 in that binary was a fake.
 
-Since R1a (2026-08-13) the `hal/pros` adapters EXIST — **fourteen** after R1b — and
-`src/main.cpp` wires the R1a ten. On 2026-08-13 the bench runbook **was run**: eight physical
+Since R1a (2026-08-13) the `hal/pros` adapters EXIST — fifteen after R1b, **seventeen** since R3d
+Part 2 added the block source and the device registry (2026-09-18) — and the programs in `src/`
+construct them. On 2026-08-13 the bench runbook **was run**: eight physical
 motors commanded at +2.0 V through the real `ProsMotor`, physical sensors read, and seven
 unit-scale beliefs settled — on ONE robot, ONCE. **And the constraint stands unchanged: no
 control loop has ever closed, no wheel has ever turned under the library's own steering, no
 path has ever been followed.** The adapters are host-proven against `test/pros_shim/`, which
 tests them against our *beliefs* about PROS (HA-94…122) and can never test the beliefs;
-R1b's five mechanism-sensor adapters have not touched a physical device at all.
+Of R1b's five mechanism-sensor adapters, only `ProsBlockSink` has touched a physical device (it
+wrote a log to a real SD card on 2026-08-18, HA-122); the other four have not.
 "The adapters exist", and now "a bench session ran", must not drift into "it works on a
 robot" any more than "it booted" was allowed to.
 
@@ -387,10 +391,15 @@ standalone probe compiles in seconds without touching the build directory:
 g++ -std=gnu++20 -I include -I test -I test/vendor probe.cpp -o probe
 ```
 
-### 2. Commit the brief
+### 2. Commit the brief — and WAIT for the team lead's go
+Show him its scope and its documentation list, and stop (RESUMING rule 2). Never write a brief and
+launch its executor in the same turn.
 
-### 3. Run it with Fable
-`Agent` tool, `model: "fable"`, `subagent_type: "general-purpose"`, `run_in_background: true`.
+### 3. Run it with an opus executor
+`Agent` tool, `model: "opus"`, `subagent_type: "general-purpose"`, `run_in_background: true`, told
+**"do not commit"** and **"create the PROGRESS log first and append as you go"**. **Fable only when
+the team lead says yes for that specific run** (his rule since 2026-09-14, to conserve credits; this
+line said `model: "fable"` until 2026-09-24).
 
 The prompt is a skill in itself. It must carry: **required reading in order**; **the non-negotiable
 constraints restated inline** (the agent reads the prompt more carefully than the attachment); the
@@ -437,9 +446,10 @@ Say so in the chunk prompt.
 
 ### 5. Commit
 Only after verifying. Conventional style; the body explains the **reasoning** and names honest
-partials. Trailer:
+partials. Trailer: the attribution line the current session's system reminder gives — it names
+the coordinating model and changes when the model does. As of 2026-09-24:
 ```
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 ```
 **Do not push** unless asked.
 
@@ -578,7 +588,7 @@ expectation was wrong before you edit the assertion.
 
 ---
 
-## 11. F2 in detail — the most recent chunk, and the one most likely to be over-quoted
+## 11. F2 in detail — the chunk most likely to be over-quoted
 
 `sequence/run_guard.hpp` owns the run-scoped deadline and the **guaranteed end-of-run action**. D-8
 (the routine watchdog E1 re-homed) and the end action are **one primitive with two policies**.
@@ -615,21 +625,30 @@ shape of the remainder, not a count — a count here goes stale every chunk.)*
 | Phase | Chunks | Gate |
 |---|---|---|
 | ~~The release to `main`~~ | **DONE 2026-08-15** | published at `c778c11`; procedure now in `RELEASING.md` + `tools/release.py` |
-| **R — Robot arrival** | R2–R6 *(R1a, R1b done)* | **hardware (available now)** |
-| **T — Driver control** | T2–T3 *(T1 delivered at R1a)* | none |
-| **G — No-code authoring** | G1–G4 | G1 ungated; G2–G4 need VexBuilder |
+| **R — Robot arrival** | R2, R3a–R3d (partial: host halves landed, bench runs open), R4–R6 *(R1a, R1b done)* | **hardware** — robot two exists; its brain has not enumerated on this laptop since 2026-09-18 |
+| **T — Driver control** | T2 (library half landed 2026-09-18; its `src/` wiring is in G1 Part 2) – T3 *(T1 delivered at R1a)* | none |
+| **G — No-code authoring** | G1 (Part 1 landed; Part 2 briefed) · G2 ✅ (F8 locked) · G3–G4 | G3–G4 read VexBuilder's files |
 | **H — Ecosystem** | H1–H3 | H2 needs VexBuilder's sim |
 | **F′ — Scoring primitives** | F3–F4 | hardware + final mechanism decisions |
 | **E′ — Field accuracy** | E5–E6 | hardware + a field |
 | **I — Second robot** | I1–I2 | both robots |
 
-**Milestones:** M0 ✅ · M1 🎯 closes at R1–R3 · **M2 open on exactly one clause — a robot that moves**
+**Milestones:** M0 ✅ · M1 🎯 closes at R3b (a v2 auton on the robot) · **M2 open on exactly one clause — a robot that moves**
 · M3 at E6 · M4 at F4 · M5 at G4 · M6 at H3 · M7 largely delivered (one honest gap: no beginner has
 read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — R3, first motion
+## 13. THE IMMEDIATE TASK — G1 Part 2 (after its brief is revised and the team lead says go); the bench session the moment the brain enumerates
+
+> **Current as of 2026-09-24.** The first bold `Next:` in [`build-order.md`](build-order.md) owns
+> this fact and the generated block above copies it; [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)
+> §5 and §7 hold the whole remaining list and its order. In one line: the G1 Part 2 brief is being
+> revised (the 2026-09-24 audit found four defects in it), then it waits for the go; the bench
+> session (worksheet Station G) pre-empts everything when robot two's brain shows up in
+> `pros lsusb`. Everything below this box is the section as it stood before — kept, because its
+> reasoning about R3/R4 is still the reasoning, but its "immediate task" is no longer R3 whole:
+> R3 is split into R3a–R3d, and their host halves have landed.
 
 > *This section is the one a pasted-in session acts on first, so it is the one most worth
 > distrusting. It said "THE IMMEDIATE TASK — R1b" for a day after R1b shipped, and

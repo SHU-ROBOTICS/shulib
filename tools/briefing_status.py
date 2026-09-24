@@ -82,7 +82,16 @@ def completed_chunks():
 
 
 def in_flight_chunks():
-    """A PROGRESS log with no COMPLETED record = a chunk that was interrupted."""
+    """A PROGRESS log with no COMPLETED record = a chunk that is OPEN.
+
+    Open means one of two things, and this function cannot tell which (the tree's
+    cleanliness is a property of the commit being made, which this block must not
+    depend on — see the "DO NOT ADD THEM BACK" note): interrupted mid-chunk (then `git
+    status` is dirty and RESUMING says to read the log first), or landed in parts
+    with work remaining (G1 Part 1 before Part 2, R3d before its bench run). It was
+    labelled INTERRUPTED until 2026-09-24, which was false for every chunk in the
+    second case and told a new session to treat parked work as a crash.
+    """
     d = os.path.join(REPO, "docs/internal/chunks")
     if not os.path.isdir(d):
         return []
@@ -335,10 +344,12 @@ def render():
     L.append("")
     L.append(f"- **Next up:** {next_chunk()}  \n  *(source: `build-order.md`'s `Next:` pointer)*")
     if flight:
-        L.append(f"- ⚠️ **INTERRUPTED CHUNK(S): {', '.join(flight)}** — a `-PROGRESS.md` exists "
-                 "with no completion record. **Read that log before anything else.**")
+        L.append(f"- ⚠️ **OPEN CHUNK(S): {', '.join(flight)}** — a `-PROGRESS.md` exists with no "
+                 "completion record: either interrupted mid-chunk (`git status` is dirty — read "
+                 "that log before anything else) or landed in parts with work remaining (read "
+                 "the log before starting its next part).")
     else:
-        L.append("- **No interrupted chunks** — every `-PROGRESS.md` has a matching "
+        L.append("- **No open chunks** — every `-PROGRESS.md` has a matching "
                  "`-COMPLETED.md`.")
     if suite:
         health = ("**green**" if suite["failed"] == 0 and suite["afailed"] == 0

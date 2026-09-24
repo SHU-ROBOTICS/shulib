@@ -150,16 +150,19 @@ not silently break them. This table is the spine of the no-staleness promise.
 
 ## Milestones at a glance
 
-> **You are here:** **M1 complete; M2 control + localization complete; Phase A COMPLETE
-> (2026-08-06); Phase C COMPLETE (2026-08-10) — C1–C7 all closed. M2's STRUCTURAL clause closed
+> **You are here:** **M1 host-side complete (F4 + F5 locked; M1's on-V5 DoD is open, owned by R3b);
+> M2 control + localization complete; Phase A COMPLETE (2026-08-06); Phase C COMPLETE (2026-08-11)
+> — C1–C8 all closed. *(Corrected 2026-09-24: this line said "M1 complete" while M1's badge is
+> 🎯 and its DoD needs identical numbers on the V5, and "C1–C7 … 2026-08-10" though C8 closed the
+> phase a day later.)* M2's STRUCTURAL clause closed
 > at C7: the pre-rebuild tree is deleted, `make` produces an uploadable V5 package again, and
-> `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3 — the
+> `src/main.cpp` wires the v2 stack alone. M2's ON-ROBOT clause is OPEN, owned by R3b — the
 > library has NEVER DRIVEN a physical robot. The drivetrain-and-driver hal/pros adapters
 > landed at R1a (2026-08-13, host-tested against a shim of PROS — see the R1a entry below),
 > and the mechanism-sensor adapters at R1b (2026-08-14 — see the R1b entry below). All of
 > Phase E, F1, F2, R1a and R1b are committed on `shulib-v2`. **DOCS1** (the full documentation
 > pass) and **DOCS2** (the generated reference over the whole public API — 1,625 public entities
-> across 115 headers at the time; 1,645 across 118 since R3b piece 3, all gated) are both done. **THE RELEASE HAPPENED on 2026-08-15** —
+> across 115 headers at the time; 2,307 across 145 at 2026-09-24, all gated) are both done. **THE RELEASE HAPPENED on 2026-08-15** —
 > `origin/main` is `c778c11`, docs.shurobotics.com publishes everything through DEFECTS1, and
 > the procedure is now `RELEASING.md` + `tools/release.py` rather than folklore. *(This sentence
 > read "what remains before R3 is the release to `main`, and the only question riding with it is
@@ -287,8 +290,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > description** — the card's record first, the typed table second with a warning on the panel, a
 > refusal naming both when neither can describe a drivetrain. The build gate proves **six builds**.
 > **NEITHER PROGRAM HAS RUN ON HARDWARE**, the register's three new entries (HA-138/139/140) are all
-> unsettled, and the morning's bench session is Part 3. R3b is still open on its bench run; **the
-> library's motion stack has still never driven a robot.**
+> unsettled, and Part 3 is the bench session — **not yet held: robot two's brain has not enumerated
+> on this laptop's USB since 2026-09-18.** R3b is still open on its bench run; **the library's
+> motion stack has still never driven a robot.**
 >
 > **G1 Part 1 LANDED 2026-09-18 — host-only: a robot can now be described as DATA and built from
 > it.** `config/robot_config.hpp` (`RobotConfig`, embedding R3d's `hal::DrivetrainDescription` by
@@ -300,6 +304,20 @@ not silently break them. This table is the spine of the no-staleness promise.
 > per-tick ground truth `memcmp`-equal to the hand-wired graph, clean and hostile. **The PROS
 > provider and `src/main.cpp` are Part 2 — `main.cpp` is NOT one line shorter yet**, no config has
 > ever built a graph over a real device, and the motion stack still has not driven a robot.
+>
+> **G2 LANDED 2026-09-18 — host-only, and F8 is LOCKED.** `runner::PathRunner` runs a `Route`
+> through the facade (first failure stops and safes the drive; markers fire on a settled leg
+> only), `runner::CommandRegistry` binds command ids to code (`registry.on(...)`, four
+> library-owned built-ins, no heap), and `runner::writeManifest` exports the id vocabulary for
+> VexBuilder's picker. A route executes on the host test plant bit-identically to the same legs
+> written as a `Routine`. **Nothing of Phase G has run on a robot.**
+>
+> **Now (2026-09-24): G1 Part 2 — the PROS device provider, the library teleop loop, and
+> `src/main.cpp` as a dispatcher.** Its brief is being revised after an audit of the handoff
+> found four defects in it, and then waits for the team lead's go (the team lead put it ahead of
+> the bench session on 2026-09-18). **The bench session pre-empts everything** the moment the
+> brain enumerates: it can close R3d; it cannot close R3b or M1, because no uploaded program
+> commands a `moveTo` yet.
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
@@ -707,9 +725,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > its own layer: guide ch. 14 still said "no shulib code has ever read a real sensor" and
 > "no adapter has ever touched a physical device" — both false since R1a's bench session;
 > corrected to the platform-layer-only truth.
-> **Next: DOCS1 — the full documentation pass, then the release to `main`** (called 2026-08-14;
-> merging to `main` is what publishes docs.shurobotics.com, so the documentation pass IS the
-> release gate). **Then R3 — first motion, walked from the bench runbook (now 20 steps).**
+> *History (the next step as called on 2026-08-14 — all of it since done: DOCS1 closed, the release
+> to `main` happened 2026-08-15, and R3 was split into R3a–R3d on 2026-08-17):* DOCS1 — the full
+> documentation pass, then the release to `main` (merging to `main` is what publishes
+> docs.shurobotics.com, so the documentation pass IS the release gate); then R3 — first motion,
+> walked from the bench runbook (then 20 steps).
 > (Phase T's T1 was delivered at R1a, per the recorded split ruling; that line previously said
 > Phase T and went stale the day the split was ruled — corrected at R1a.)**
 > (There is no Phase B: the original hardware phase was resequenced to Phase R when the
