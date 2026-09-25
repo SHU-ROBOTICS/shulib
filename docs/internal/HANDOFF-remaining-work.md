@@ -133,10 +133,29 @@
   port**; measure its forward offset, sideways offset and height from the robot's centre (inches) and
   whether it is level or tilted. Pieces are detected by the sensor's own onboard detection (colour
   signatures or the season's game-element model) — **pieces do NOT need tags**. Tags are only for
-  localization, and only help if the competition field has AprilTags — **UNKNOWN, jal must confirm
-  (Q4).** Whether the built-in model recognizes Override pieces is **UNKNOWN** until the sensor is on
+  localization — and **the Override field HAS them** (nine goals, ids 0–4 with 1–4 duplicated; see the
+  game bullet below and Q4). Whether the built-in model recognizes Override pieces is **UNKNOWN** until the sensor is on
   the bench. **The vendored PROS 4.2.2 already has the AI Vision API** (`include/pros/ai_vision.h`),
   so the adapter (L3) is not blocked on a kernel upgrade.
+- **The game, from the official manual** (Override Game Manual **v1.0, released 2026-07-02**,
+  `content.vexrobotics.com/docs/2026-2027/override/files/v5rc-override-1.0.pdf`; read 2026-09-24):
+  **VEX U Head-to-Head: a 30 s Autonomous Period (`<VUT4>`) then a 90 s Driver Controlled Period
+  (`<VUT5>`); VEX U Autonomous Coding Skills: 60 s, two robots; VEX U Driving Skills: 60 s** (the Match
+  table, Appendix B). **AprilTags are ON the field** (Appendix A, sheet A16 "AprilTag numbering/locations"):
+  one on each of the nine goals, numbered 0 (centre) and 1–4 — **each of 1–4 appears TWICE**, mirrored,
+  so a tag's number alone does not say which goal it is; the tag FAMILY is not in the manual's text
+  (R2a's station cycles the four). **`localization::TagMap` refuses duplicate ids** (`tag_map.hpp`
+  ~:92-104) and the AprilTag corrector looks placements up by id alone (`apriltag_corrector.hpp`
+  ~:349, :394) — **it cannot represent this field as written**; R2b/E3 must allow several placements
+  per id and choose by the current estimate (nearest, gated). **GPS field code strips are OPTIONAL per
+  event** (the manual lists them among the modifications an event may make) — ask each event.
+- **Mechanisms (jal, 2026-09-24):** the builders are still deciding; **the team will write its own
+  custom mechanisms on the library's building blocks** ("using our library we will just make our own
+  custom ones"). So L8 is re-scoped from season-named primitives the library implements to generic,
+  well-documented building blocks (motor and pneumatic mechanisms, confirm-by-sensor or by-time, homing
+  by limit switch or stall, safe states, bindings) plus a guide chapter and one worked example — to be
+  briefed; pneumatics included (`PneumaticMechanism`, `ProsDigitalOut`, `ActuateAndConfirm` exist,
+  host-only).
 - **Competition:** jal has a competition the weekend of 2026-09-26/27 (his words, 2026-09-23). **Do
   not rush verification to hit it; do not promise the whole library by then.** Report honestly what
   is and is not proven at each step. As of 2026-09-24: no program can run an autonomous in a match
@@ -440,8 +459,8 @@ is a plan change for jal to confirm in the brief (Q7).
   which way.
 - **Q3. Robot one's cartridge**, and whether it gets its own build variant (Calibrate builds only for
   robot two's `ROBOT=tank` today). Its ports are discovered by the calibrator.
-- **Q4. Does the competition field have AprilTags?** If not, vision's match value is piece detection
-  only.
+- **Q4. ANSWERED 2026-09-24:** yes — AprilTags on the nine goals, ids 0–4 with 1–4 duplicated (§2).
+  The tag FAMILY is still unknown (R2a's station finds it on a printed tag or the field).
 - **Q5. The auton routines themselves** are the STUDENTS' to author (the guardrail: students must be
   able to write and defend competition code). The next session teaches, reviews and supplies
   primitives; it does not write the season's routines.

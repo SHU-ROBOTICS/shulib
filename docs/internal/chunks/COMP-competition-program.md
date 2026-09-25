@@ -94,8 +94,12 @@ An exception inside the auton is caught ON the auton task: the robot is safed, a
 say what broke. **Register an HA entry** for the belief that PROS kills its competition tasks
 (`autonomous`, `opcontrol`, `disabled`, `competition_initialize`) on a mode change — Station H settles it.
 
-**C6 — The schedule is stated, never defaulted, and bounded by the period.** The VEX U autonomous period and
-skills-run lengths come from the game manual (UNKNOWN until the team lead states them). `runAuton` detects an
+**C6 — The schedule is stated, never defaulted, and bounded by the period.** From the official Override
+Game Manual v1.0 (2026-07-02; the team lead asked the coordinator to look it up): **VEX U Head-to-Head —
+a 30 s Autonomous Period (`<VUT4>`), then 90 s of driver control (`<VUT5>`); VEX U Autonomous Coding
+Skills — 60 s, two robots; Driving Skills — 60 s** (Appendix B's Match table). The program states these as
+its two periods (match 30 s, skills 60 s); each auton states its own `endActionAt`/`hardStopAt` inside
+its period. `runAuton` detects an
 UNSET schedule (the fields' 0.0 defaults) and refuses with a sentence BEFORE calling `run()` (which would
 throw); the program also refuses any entry whose `hardStopAt` exceeds the period it runs in.
 
@@ -172,6 +176,6 @@ throw); the program also refuses any entry whose `hardStopAt` exceeds the period
 6. No hardware claim: the program is UNRUN until Station H's log says otherwise.
 
 ## 5. Not decided here
-The schedule numbers (C6 — the team lead, from the game manual), which routines exist (the students'), the
+Which routines exist (the students'), the
 mechanisms and their end states (handoff Q1), button bindings (T3), field-centric for the driver (off, as
 Teleop).
