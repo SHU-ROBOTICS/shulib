@@ -9,7 +9,8 @@
 // team lead's ruling, R3b Part 0b). src/main.cpp's opcontrol() calls it.
 //
 // IT POWERS THE MOTORS. The Part 2 version ran five starts on robot two on 2026-09-24 and
-// finished none; THIS version (Part 2F-2) has NEVER RUN ON HARDWARE.
+// finished none; THIS version (Part 2F-2) first ran there that evening -- run 1 STOPPED on
+// SPIN_DISAGREE, run 2 finished unrecorded (docs/internal/chunks/R3d-PROGRESS.md, RUN 1 / 2).
 
 namespace shulib::bench {
 

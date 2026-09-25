@@ -630,8 +630,11 @@ cable, or use "shulib Drive" for the session and report the port.
 > robot two on 2026-09-24 and finished none: its one 3 V motor pulse was too weak for a five-motor
 > side, two starts ended on a DONE touched before any push, and its screen could not be followed.
 > **The version this station describes (R3d Part 2F: one push, a ramped pulse, a screen rebuilt
-> for reading at arm's length) HAS NEVER RUN ON A ROBOT.** Every threshold in it is invented for a
-> first run (A4 register HA-136). **The screen's text sizes are DERIVED, not measured:** the
+> for reading at arm's length) FIRST RAN on robot two the evening of 2026-09-24:** run 1 got
+> through the push and every pulse and STOPPED on `SPIN_DISAGREE` (the two spin directions' track
+> widths 20.3 % apart; nothing saved); run 2 finished by the team lead's report, with no serial
+> capture — [R3d-PROGRESS.md](R3d-PROGRESS.md), RUN 1 / RUN 2. Every threshold in it is still
+> invented for a first run (A4 register HA-136). **The screen's text sizes are DERIVED, not measured:** the
 > character budgets (18 LARGE, 36 MEDIUM, 50 SMALL per line) come from the longest lines earlier
 > programs showed legibly on this brain; Bench Tests button **9 SCREEN RULER** is what would
 > measure them. If a line on the calibrate screen runs off the right edge, write down which one,

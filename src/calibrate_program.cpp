@@ -1082,8 +1082,9 @@ void runCalibrate() {
     emit("#  shulib CALIBRATE -- robot two MEASURES ITS OWN DRIVETRAIN");
     emit("#  which ports drive, which way each is wired, which side, inches per radian");
     emit("#  per side, and the EFFECTIVE track width -- then writes them to the SD card.");
-    emit("#  THIS BUILD HAS NEVER RUN ON HARDWARE. It POWERS THE MOTORS. (The Part 2");
-    emit("#  program ran five starts on 2026-09-24 and finished none; this is Part 2F.)");
+    emit("#  It POWERS THE MOTORS. This build (Part 2F) first ran on robot two on");
+    emit("#  2026-09-24: run 1 STOPPED on SPIN_DISAGREE, run 2 finished (unrecorded).");
+    emit("#  (The Part 2 program ran five starts that morning and finished none.)");
     emit("#  Every threshold in it is INVENTED for a first run (A4 register HA-136).");
     emit("################################################################");
     emitf("BUILD STAMP: %s   <-- must match the build you just uploaded", kBuildStamp);
