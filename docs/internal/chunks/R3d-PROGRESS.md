@@ -2398,3 +2398,51 @@ not fixed (F1's header; the ARM gate does not see it); whether the DONE button f
 serial record's `push live:` lines to show — the panel decides DONE, not the program. **For the
 coordinator (brief §8):** rebuild the calibrate package from the COMMITTED tree, confirm the beacon,
 and read every screen string against Station G.
+- **2026-09-24 20:42** — **Second bench session begins:** the brain enumerated again (`/dev/ttyACM0`/`ttyACM1`, brain `1CA1A500`). Uploading the four packages built from the COMMITTED `2780462` (R3d Part 2F complete) in the clean worktree `.claude/worktrees/hw-2780462`, beacons and stamps checked at build.
+- **20:42** — all four UPLOADED (`--after none`): slot 4 shulib Calibrate (`tank-calibrate`), slot 3 Bench Tests (`tank`), slot 1 shulib Drive (`tank-drive`), slot 2 shulib Teleop (`tank-library`), each stamped `v0.1.1-319-g2780462`. Recording the user port from here (capture `session4-calibrate`).
+- **~20:45 — shulib Calibrate (R3d Part 2F) RUN 1 on robot two, on the floor — got through the push and
+  every pulse; STOPPED at the spin's agreement check.** Evidence:
+  `docs/internal/evidence/r3d-session-2026-09-24b-calibrate-run1.log` (read with `strings`). Build stamp
+  `shulib Calibrate Sep 24 2026 17:42:16` (the 2780462 package). Census: RADIO 1, IMU 2, VISION 3,
+  DISTANCE 4, DISTANCE 5, MOTOR 11–18 and 20 (19 unplugged) — 9 candidates.
+  - **The one push** (DONE touched after it; on the WHICH END screen one touch landed on no button and was
+    ignored — `touch: x=185 y=209 release=3 on nothing -> ignored` — before FRONT FIRST): 8 of 9 MOVED, drift **+0.70°** (bound 3.0), median **36.78 rad** (~2100° of shaft
+    for 48 in). Per port: 11 +2091.6 · 12 −2094.0 · 13 +2092.8 · **14 +0.0 (did NOT move — as in the
+    `-census.log` push and both pushes of `-calibrate.log`; `-bench2.log`'s motor watch DID see it move,
+    −389 and −331: INTERMITTENT)** · 15 +2120.4 · 16 −2151.6 · 17 +2150.4 · **18 −1545.6 (73 % of its
+    mates — HA-130's short travel, again)** · 20 −2156.4. `FRONT FIRST` answered. **Every captured sign is
+    the INVERSE of the typed table's** (+11 −12 +13 +15 | −16 +17 −18 −20 vs the table's −11 +12 −13 −15 |
+    +16 −17 +18 +20): the end that led this push is the end the table calls the BACK (the 11/20 end), or the
+    motors were rewired in the rebuild — either way the record's FRONT is the end that led the push.
+  - **The ramped pulses WORKED** (the team lead's choice): 3 V moved nothing enough on most ports; **6 V
+    turned the robot 6–14.5°** on ports 11, 12, 13, 16, 17, 20; port 18 cleared the floor at 3 V
+    (−4.34°). Sides: 11, 12, 13 on one side; 16, 17, 18, 20 on the other (labelled RIGHT / LEFT relative to
+    the end that led the push). **Port 15 was LEFT OUT (DECOUPLED)**: at 6 V its own shaft 60°, the others
+    13°, yaw 1.6°; at 9 V its own 24°, the others 2.4°, yaw 0.43° — its motor turns but does not drive the
+    train (a slipping or disengaged gear). Port 14 was never a drive candidate (it did not move in the push).
+  - **The spin:** CCW 3.0 V, +720.8° in 11.2 s, sides −109.35 / +82.02 in ⇒ W 15.212 in; CW 3.0 V,
+    −720.3° in 8.2 s, sides +136.22 / **−19.79** in ⇒ W 12.410 in. **STOPPED [SPIN_DISAGREE]: 20.3 %**
+    (bound 5 %). Nothing written to the card ("Every motor is at 0 V and coasting. Nothing was written to the
+    card by this run."). The side of 11, 12, 13 barely rolled in the CW spin. **Best explanation, NOT
+    proven:** that side had three working motors and two that do not drive (14 not turning, 15 slipping)
+    against four on the other side (19 unplugged), so the robot pivoted about the weak side in one direction
+    and not the other and the two directions measured different effective widths. Nothing in the log points
+    at the software (the yaw is `get_rotation()` summed per tick at ~0.6°/tick; both spins stopped within
+    1° of 720°), but that is an absence of evidence, not a proof. Loop worst gap 15 ms; 253 screen prints.
+  - **The team lead asked whether the spin was meant to be 90°** — no: two full turns each way (the config
+    line says so). He first counted "maybe 3-4 times per each direction" by eye on this run; the IMU read
+    +720.8° / −720.3°, and the wheel travel (191.4 in and 156.0 in of side travel summed) would need an
+    effective track width of 6.2–10.2 in (the two directions) for 3–4 turns. **Settled on run 2**, below: he counted it again —
+    "it spun twice per".
+- **~21:00 — Calibrate RUN 2 (RUN AGAIN on the same boot, or a fresh start — not recorded which): the team
+  lead reports "it worked" and "it spun twice per"; the finished screen read "right 4 left 4"** (his words;
+  the panel's line is `LEFT %u  RIGHT %u`, from `r.left.count` / `r.right.count`). **NO serial capture:** the
+  brain left USB at 20:53:51 (`session4-204340.log.events`: `closed`, then only `no user port` until the
+  recorder's last line at 21:20:29), so every serial line of run 2 is lost. What is NOT known: whether the
+  header said SAVED, the `ipr L/R` and `track` numbers, the LEFT OUT line, and which motor made the 11/12/13
+  side four this time (run 1 had 14 not moving and 15 LEFT OUT as DECOUPLED; 14 has moved in one earlier
+  capture, so either could be intermittent). **If the
+  header said SAVED, `/usd/shulib_drivetrain.bin` now exists, and "shulib Teleop" (slot 2) will load it on
+  its next boot in preference to the typed table (`src/main.cpp`, WHERE THE DESCRIPTION COMES FROM),
+  with FRONT = the end that led the push.** Next: read the record back (its numbers) before anything
+  drives from it.

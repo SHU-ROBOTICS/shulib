@@ -336,7 +336,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **The bench session BEGAN 2026-09-24** — the brain is on USB again. The device census and motor
 > watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
 > 3 V for 0.4 s turned the robot 0.17°, under its invented 2° floor), and its screen proved hard to
-> follow. No calibration record exists yet, so nothing built on the library can boot on the robot. A
+> follow. (That night, no calibration record existed, so nothing built on the library could boot on the robot.) A
 > fix to Calibrate came ahead of Part 2b, in two halves. **The library half LANDED 2026-09-24,
 > host-only:** the calibrator now takes one 48 in push, its side pulse ramps 3 → 6 → 9 V and names a
 > slipping motor (leaving it out) instead of stopping, the spin has two safety guards (the wrong way;
@@ -348,7 +348,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > prints a serial record a capture can be read by — one line per pulse and per spin direction, the
 > push table, the result or the stop's code and port. Its screen's text sizes are derived from lines
 > earlier programs showed on this brain, not measured. (Of five Calibrate starts that night, one
-> cleared the 2° floor on seven motors before stopping.)
+> cleared the 2° floor on seven motors before stopping.) **The rebuilt program RAN on robot two that
+> evening (2026-09-24, the second session):** run 1 got through the push and every pulse — the ramp found the
+> sides at 6 V and left out one slipping motor — and STOPPED because its two spin directions
+> measured track widths 20 % apart (the bound, 5 %, is invented); nothing was saved. Run 2 finished
+> by the team lead's report, but the brain was off USB, so whether it saved and what it measured
+> are not yet known.
 >
 > **R3 SPLIT INTO R3a + R3b + R3c on 2026-08-17.** R3's entry was written when no robot existed;
 > held against the one that arrived, four of its six scope items are impossible on it and its DoD
