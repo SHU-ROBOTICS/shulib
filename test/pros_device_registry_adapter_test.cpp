@@ -2,10 +2,11 @@
 //
 // ═══ WHAT ONLY THIS FILE CAN PROVE ══════════════════════════════════════════════════
 // That the PHYSICAL-port → ZERO-INDEXED-registry conversion is right, and right in BOTH
-// DIRECTIONS. src/bench_r3a.cpp:112-122 records the day the absence of this test cost a
-// session: the tester scanned 1..21 as if the index were physical, shifted every reading by
-// one port, and invented a device at index 21 (physical 22, which does not exist) — a
-// confident, completely wrong port map that HA-120 had already predicted.
+// DIRECTIONS. src/bench_r3a.cpp's registry comment (just above `kMaxRegistryIndex`) records the
+// day the absence of this test cost a session: the tester scanned 1..21 as if the index were
+// physical, shifted every reading by one port, and invented a device at index 21 (physical
+// 22, which does not exist) — a confident, completely wrong port map that HA-120 had already
+// predicted.
 //
 // A test that only asserted "port 1 reads a motor" would pass with the conversion MISSING as
 // long as the fixture happened to put a motor on both. So the fixture below is deliberately

@@ -327,11 +327,14 @@ not silently break them. This table is the spine of the no-staleness promise.
 > one line shorter, and none of it has run on a robot** — the provider has been tested only against
 > the host's stand-in for the PROS headers.
 >
-> **Now (2026-09-24, later): the bench session resumes — "shulib Calibrate", now drawn from its
-> screen model, is rebuilt from the committed tree and run on robot two; then G1 Part 2b ("shulib
-> Teleop" on the library) and Part 2c (`main.cpp` as a dispatcher).** Each waits for the team lead's
-> go. The bench session can close R3d; it cannot close R3b or M1, because no uploaded program
-> commands a `moveTo` yet.
+> **Now (2026-09-24, later): the bench session continues — "shulib Calibrate", now drawn from its
+> screen model, was rebuilt from the committed tree and has run on robot two twice (next paragraph);
+> what is left of the session is a recorded reproduction run and "shulib Teleop" from the record;
+> then G1 Part 2b ("shulib Teleop" on the library) and Part 2c (`main.cpp` as a dispatcher).** Each
+> waits for the team lead's go. *(R2a landed the same evening, build-gated and not run: Bench Tests'
+> stations 11 DISTANCE and 12 AI VISION — see the R2 row under M1 — so the same bench session can
+> also check what the distance sensors and the AI Vision camera report.)* The bench session can
+> close R3d; it cannot close R3b or M1, because no uploaded program commands a `moveTo` yet.
 >
 > **The bench session BEGAN 2026-09-24** — the brain is on USB again. The device census and motor
 > watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
@@ -1026,8 +1029,17 @@ adapters at R1b (2026-08-14), all host-tested against the shim; on-V5 validation
   prefix, HA-122). STILL not done: the vision adapter (R2's), `src/main.cpp` wiring for the
   new five (deliberately untouched — it carries an invented X-drive config no robot matches),
   and everything on-robot: none of the five has ever touched a physical sensor.*
-- [ ] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
+- [~] Vendor & extend the existing `ai_vision.hpp` wrapper into the `hal/pros` `IVision`/`ITagSource`
   adapter (object mode **and** AprilTag mode).
+  *`[~]` at R2a (2026-09-24): the EVIDENCE half exists, the adapter does NOT. R2 was split: Bench
+  Tests gained two stations that show what robot two's sensors report — **11 DISTANCE** (every
+  distance sensor's raw PROS reads beside the `ProsDistance` adapter's inches and confidence) and
+  **12 AI VISION** (tag and object detection and the camera's USB bounding-box overlay turned on,
+  the object count, temperature, how often the data changes, each detection's type, id or class
+  name and box or tag corners as PROS reports them, and a tag-family cycle) — with a RECORD button
+  that writes one line per sensor or detection to serial and the SD card. Ports are discovered from
+  the brain's registry. Build-gated; **neither station has run on a robot.** The adapter itself
+  (R2b) is written afterwards from those records, not from beliefs.*
 - [~] `hal/fake/*` deterministic doubles (injectable clock) for host tests. *Done 2026-06-19:
   `FakeClock` (monotonicity-enforcing), `FakeMotor` (real clamp/validation + injectable encoder),
   `FakeImu` (canonical injectable incl. ±180° seam), `FakeGps` (canonical pose + fix/error, safe no-fix

@@ -1306,7 +1306,8 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   (physical 1 → index 0, physical 21 → index 20, asserted directly through the shim's recorded
   `lastIndex`), and out-of-range ports are asserted never to reach PROS at all.
   *Confidence:* **reasoned** — the vendored text states it plainly, and it already cost a session:
-  `src/bench_r3a.cpp:112-122` records 2026-08-18, when the tester scanned 1..21 as if the index
+  `src/bench_r3a.cpp`'s registry comment (just above `kMaxRegistryIndex`; lines 135-145 since
+  R2a, 112-122 before it) records 2026-08-18, when the tester scanned 1..21 as if the index
   were physical, shifted every reading by one port and invented a device at index 21. HA-120 had
   PREDICTED exactly that (the 2026-08-13 "ADI expander" sighting came from index 21) and the
   prediction was not acted on. This entry exists so the mapping is a NAMED belief with a settle

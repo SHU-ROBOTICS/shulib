@@ -11,11 +11,12 @@
 //
 // ═══ THE R1a-SHAPED TRAP, AND WHY THE CONVERSION IS ONE LINE ════════════════════════
 // The registry is ZERO-INDEXED and NOTHING ELSE IN PROS IS — every motor, sensor and
-// adapter in this tree takes a physical 1..21 port. src/bench_r3a.cpp:112-122 records the
-// day that cost: the tester scanned 1..21 as if the index were physical, which shifted
-// every reading by one port and invented a device at index 21 (physical 22, which does not
-// exist). It produced a confident, completely wrong port map — and HA-120 had already
-// predicted exactly that, because the 2026-08-13 "ADI expander" sighting came from index 21.
+// adapter in this tree takes a physical 1..21 port. src/bench_r3a.cpp's registry comment (the
+// one just above `kMaxRegistryIndex`) records the day that cost: the tester scanned 1..21 as
+// if the index were physical, which shifted every reading by one port and invented a device
+// at index 21 (physical 22, which does not exist). It produced a confident, completely wrong
+// port map — and HA-120 had already predicted exactly that, because the 2026-08-13 "ADI
+// expander" sighting came from index 21.
 // The same two-conventions-in-one-API shape as HA-122's /usd/ prefix.
 //
 // So in the LIBRARY the conversion appears EXACTLY ONCE, on the line marked below, and
@@ -63,8 +64,9 @@
 // mandatory flags.
 // Rejected alternatives: `pros::c::get_plugged_type` from the narrow `pros/device.h` (a
 // DIFFERENT indexing convention — 1-based — and the zero-indexed call is the one with the
-// hardware history, bench_r3a.cpp:112-122); re-declaring the function ourselves (a second
-// source of truth for a vendored signature, and one that would drift SILENTLY); defining
+// hardware history, bench_r3a.cpp's comment above `kMaxRegistryIndex`); re-declaring the
+// function ourselves (a second source of truth for a vendored signature, and one that would
+// drift SILENTLY); defining
 // PROS's `_PROS_KERNEL_SUPPRESS_LLEMU_WARNING` from a library header (reaching into another
 // project's internals, and order-dependent on which header a TU includes first).
 #pragma GCC diagnostic push
@@ -102,8 +104,8 @@ public:
         //    is deliberate: src/bench_r3a.cpp's census (`const int port = idx + 1;`) keeps its
         //    own, because it is a measuring tool with a hardware history and the R3d brief
         //    ruled it out of scope to rewrite over this seam. If either ever moves, the other
-        //    must too — and the tester's comment at bench_r3a.cpp:112-122 says the same thing
-        //    from its side.
+        //    must too — and the tester's comment above `kMaxRegistryIndex` in bench_r3a.cpp says
+        //    the same thing from its side.
         const auto index = static_cast<std::uint8_t>(port - 1);
         return kindOf(::pros::c::registry_get_plugged_type(index));
     }

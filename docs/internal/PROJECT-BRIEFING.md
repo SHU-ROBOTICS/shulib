@@ -105,12 +105,12 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 28 of 51 chunks complete
+**Position:** 29 of 51 chunks complete
 
-- **Next up:** THE BENCH SESSION RESUMES (R3d Part 3) — rebuild and upload "shulib Calibrate" from the COMMITTED tree (rm -rf bin .d && make ROBOT=tank PROGRAM=calibrate, slot 4) and run worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md) on robot two: the one 48 in push, the pulses, the spin, SAVED, a second run for reproduction, then "shulib Teleop" from the record. Then, each on its own go: R2a (Bench Tests stations 11 DISTANCE and 12 AI VISION — [brief](chunks/R2a-sensor-stations.md), chosen by the team lead to go BEFORE G1 Part 2b so the next robot session can check the sensors too), then G1 Part 2b ("shulib Teleop" on the library), then COMP.  
+- **Next up:** THE BENCH SESSION CONTINUES (R3d Part 3) — "shulib Calibrate" (built from the committed 2780462) is on slot 4 and has run twice on robot two (below: run 1 STOPPED, run 2 finished UNRECORDED): read run 2's finished screen — SAVED or not, ipr, track, LEFT OUT — then a reproduction run WITH the serial capture running, then "shulib Teleop" from the record, per worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md). R2a's bench check is folded into that session: rebuild "Bench Tests" from the committed tree (rm -rf bin .d && make ROBOT=tank, slot 3) and run worksheet [Stations H and I](chunks/R3a-BENCH-WORKSHEET.md) — buttons 11 DISTANCE and 12 AI VISION, RECORD at each step. Then, each on its own go: G1 Part 2b ("shulib Teleop" on the library), then COMP.  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,416 cases / 2,386,604 assertions, 3 skipped — **green**  
+- **Suite:** 1,425 cases / 2,386,871 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 184  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 141 registered, **7 settled** — next free is **HA-142**  
@@ -118,7 +118,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G2` · `GATE1` · `R1a` · `R1b`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 
@@ -145,7 +145,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 9 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 10 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 

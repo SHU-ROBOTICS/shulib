@@ -28,6 +28,23 @@
 //     since R3b Part 0b, shared with the drive program) shipped UNSET until measured
 //     (no port is ever invented -- HA-111 was that defect) and now carries the
 //     measured ports AND signs; the bench bot keeps its measured, unsigned table.
+//   * Station 12 AI VISION (R2a, 2026-09-24) WRITES THE CAMERA'S OWN SETTINGS -- tag and
+//     object detection on, the USB bounding-box overlay on, a tag family when FAMILY is
+//     pressed -- and says so on its screen and in the log. It powers nothing. Station 11
+//     DISTANCE writes nothing at all.
+//
+// ═══ STATIONS 11 DISTANCE AND 12 AI VISION (R2a, 2026-09-24) ═══════════════════════
+// The team lead's question: "how do we know the distance sensors and the ai visions sensors
+// are working? is there logging or can I see the camera directly like what it sees?" These two
+// stations SHOW what the sensors report -- raw PROS values, the distance adapter's canonical
+// values beside them, the camera's detections -- and a RECORD button writes one `[R3A]` line
+// per sensor / detection to serial and the SD log. They INTERPRET NOTHING (no bearing, no
+// range, no frame): the AI Vision adapter (R2b) is written afterwards from these records, not
+// from beliefs. Ports are DISCOVERED from the registry at station entry, never typed. The
+// camera's own USB-C port streams video to VEX's AI Vision Utility; station 12 turns the
+// bounding-box overlay on for that stream, so the video outlines what the station lists.
+// Their buttons (and the menu's) go through the PROS-free geometry in bench_r3a.hpp, which the
+// host suite tests; their text goes through screenText(), the one sanitising path.
 //
 // ═══ WHY IT PROBES BEFORE IT CONSTRUCTS ════════════════════════════════════════════
 // Every hal/pros adapter ctor does a device read-back and raises a precondition
@@ -68,21 +85,27 @@
 #include <span>
 #include <string_view>
 
+#include "pros/ai_vision.h"
 #include "pros/apix.h"
+#include "pros/distance.h"
+#include "pros/error.h"
 #include "pros/imu.h"
 #include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
+#include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/build_info.hpp"
 #include "shulib/hal/controller.hpp"
+#include "shulib/hal/distance_conversion.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/pros/battery.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/controller.hpp"
+#include "shulib/hal/pros/distance.hpp"
 #include "shulib/hal/pros/imu.hpp"
 #include "shulib/hal/pros/line_display.hpp"
 #include "shulib/hal/pros/motor.hpp"
@@ -205,6 +228,82 @@ constexpr std::uint32_t kColBg = 0x101418, kColBar = 0x1E5AA8, kColText = 0xF0F0
 /// line loses nothing that matters; an unreadable overflow would.
 constexpr int kScreenCols = 54;
 
+// ═══ THE ONE SANITISING PATH TO THE PANEL (R2a, 2026-09-24) ══════════════════════════
+// PROS hands already-formatted text to VEXos AS A FORMAT STRING (R3d Part 2F-2's finding,
+// src/calibrate_program.cpp's header), so a '%' that reaches the panel is re-read as a
+// conversion with no argument behind it; and VEXos's fonts carry ASCII only. screenEmit() used
+// to print whatever line it was handed through "%s" -- and station 10's own threshold line
+// ("<25% of side max") and every adapter refusal (e.what(), with UTF-8 em dashes) reach it.
+// So text now goes through panelSafe(): '%' and control bytes become '?', a UTF-8 em/en dash
+// becomes '-', any other non-ASCII character becomes ONE '?', and the copy stops at the
+// budget. screenText() then prints it through a literal "%s" -- calibrate_program.cpp's
+// printText, re-implemented here because the two programs share no translation unit.
+// The prints this file makes with a FIXED literal and numbers only (the ruler, the touch
+// readout, the splash, MOTOR WATCH / DRIVE cells) cannot carry a '%' or a non-ASCII byte to
+// the panel and are left as they ran on hardware (R2a-PROGRESS, ruling R2a-R3).
+
+/// The widest text this file puts on one panel line: the scrolling log's kScreenCols.
+constexpr std::size_t kPanelCap = static_cast<std::size_t>(kScreenCols) + 1;
+
+/// screenText() calls since boot. PROS 4.2.2's print_at LEAKS its formatted buffer per call
+/// (R3d Part 2F-2), so the live stations print only on change and report this count.
+std::uint32_t g_screenPrints = 0;
+
+/// `text` as it may appear on the panel, into `out` (at most min(budget, cap - 1) characters,
+/// always terminated). Returns the length written.
+std::size_t panelSafe(const char* text, std::size_t budget, char* out, std::size_t cap) {
+    const std::size_t limit = budget < cap - 1 ? budget : cap - 1;
+    std::size_t k = 0;
+    const auto* p = reinterpret_cast<const unsigned char*>(text != nullptr ? text : "");
+    while (*p != 0 && k < limit) {
+        const unsigned char c = *p;
+        if (c >= 0x80) {
+            // A UTF-8 sequence. p[1] is read only when p[0] is not the terminator and p[2] only
+            // when p[1] is 0x80 -- neither read passes the string's end.
+            if (c == 0xE2 && p[1] == 0x80 && (p[2] == 0x93 || p[2] == 0x94)) {
+                out[k++] = '-';  // an en or em dash
+                p += 3;
+                continue;
+            }
+            if (c >= 0xC0) out[k++] = '?';  // a lead byte: one '?' for the whole character
+            ++p;                             // a continuation byte (or the lead just replaced)
+            continue;
+        }
+        out[k++] = (c < 0x20 || c == 0x7F || c == '%') ? '?' : static_cast<char>(c);
+        ++p;
+    }
+    out[k] = '\0';
+    return k;
+}
+
+/// Print `text`, made panel-safe and cut at `budget`, padded with spaces to `padTo` characters
+/// (never past the budget -- an in-place update covers the old, longer text: VEXos draws text
+/// pen-on-ERASER, an opaque cell), through a literal "%s", `pen` on `eraser`.
+void screenText(pros::text_format_e_t font, std::int16_t x, std::int16_t y, std::uint32_t pen,
+                std::uint32_t eraser, const char* text, std::size_t budget,
+                std::size_t padTo = 0) {
+    char out[kPanelCap + 1];
+    std::size_t k = panelSafe(text, budget, out, sizeof out);
+    const std::size_t limit = budget < sizeof out - 1 ? budget : sizeof out - 1;
+    while (k < padTo && k < limit) out[k++] = ' ';
+    out[k] = '\0';
+    pros::c::screen_set_eraser(eraser);
+    pros::c::screen_set_pen(pen);
+    pros::c::screen_print_at(font, x, y, "%s", out);
+    ++g_screenPrints;
+}
+
+/// True when a LITERAL is fit for the panel as written: printable ASCII, no '%', at most
+/// `budget` characters. Every menu literal is checked with it at compile time.
+constexpr bool panelLiteralFits(const char* s, std::size_t budget) {
+    std::size_t n = 0;
+    for (; s[n] != '\0'; ++n) {
+        const char c = s[n];
+        if (c < 0x20 || c > 0x7E || c == '%') return false;
+    }
+    return n <= budget;
+}
+
 /// Severity, so a result can be READ rather than parsed. The bencher is crouched
 /// over a robot at arm's length -- colour and position carry the verdict, and the
 /// words are there for the log afterwards.
@@ -217,8 +316,10 @@ Sev g_lastVerdict = Sev::Info;  // what the running test concluded
 
 /// What each menu entry concluded last time it ran; -1 = never run. "Passed" and
 /// "not tried yet" must look different, or a bencher cannot tell what is left.
-constexpr int kMaxMenu = 10;
-int g_verdict[kMaxMenu] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+/// Twelve since R2a (11 DISTANCE, 12 AI VISION); the menu grid in bench_r3a.hpp is sized to
+/// match, and both are static_asserted against the menu table below.
+constexpr int kMaxMenu = 12;
+int g_verdict[kMaxMenu] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 
 std::uint32_t sevColour(Sev s) {
     switch (s) {
@@ -248,9 +349,28 @@ void setVerdict(Sev s) {
 /// the values E_TOUCH_EVENT_RELEASE/PRESS while the enum spells them
 /// E_TOUCH_RELEASED/PRESSED, and their comments are transposed -- another reason
 /// not to build behaviour on that value.)
+///
+/// AN ERROR READ IS NOT A TAP (R2a, 2026-09-24). `screen.h:726-729`: when the screen mutex
+/// fails, the status comes back as E_TOUCH_ERROR with -1 in EVERY field -- so an edge on
+/// release_count alone reads it as a new release, and the next GOOD read as another one at the
+/// STALE x/y. The baseline comes from releaseBaseline() (below) and error reads are skipped.
+void waitForTouch();
+
+/// The release count from the first NON-error touch read -- the baseline every "new tap" edge
+/// in this file is taken against (the menu loop, waitForTouch, the R2a stations' TapWatch).
+std::int32_t releaseBaseline() {
+    for (;;) {
+        const pros::screen_touch_status_s_t t = pros::c::screen_touch_status();
+        if (t.touch_status != pros::E_TOUCH_ERROR) return t.release_count;
+        pros::delay(5);
+    }
+}
+
 void waitForTouch() {
-    const std::int32_t start = pros::c::screen_touch_status().release_count;
-    while (pros::c::screen_touch_status().release_count == start) {
+    const std::int32_t start = releaseBaseline();
+    for (;;) {
+        const pros::screen_touch_status_s_t t = pros::c::screen_touch_status();
+        if (t.touch_status != pros::E_TOUCH_ERROR && t.release_count != start) return;
         pros::delay(20);
     }
 }
@@ -267,9 +387,8 @@ void screenClear() {
 void drawHeader(const char* title) {
     pros::c::screen_set_pen(kColBar);
     pros::c::screen_fill_rect(0, 0, kUsableW, kHeaderH);
-    pros::c::screen_set_eraser(kColBar);
-    pros::c::screen_set_pen(kColText);
-    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 6, "%.30s", title);
+    // Cut at 30 as before ("%.30s" until R2a) -- now through the sanitising path.
+    screenText(pros::E_TEXT_MEDIUM, 8, 6, kColText, kColBar, title, 30);
     pros::c::screen_set_eraser(kColBg);
 }
 
@@ -297,16 +416,15 @@ void screenEmit(const char* line) {
         waitForTouch();
         screenClear();
     }
-    char t[kScreenCols + 2];
-    std::snprintf(t, sizeof t, "%.*s", kScreenCols, line);
     // Indented/continuation lines are supporting detail: dim them so the eye finds
-    // the headline values first.
-    pros::c::screen_set_pen(g_lineSev != Sev::Info ? sevColour(g_lineSev)
-                            : (line[0] == ' ') ? kColDim
-                                               : kColText);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8,
-                             static_cast<std::int16_t>(kContentY + g_screenLine * kLineH),
-                             "%s", t);
+    // the headline values first. Through the sanitising path (R2a): the same 54-column cut
+    // as before, and a '%' or a UTF-8 dash in the line can no longer reach VEXos.
+    const std::uint32_t pen = g_lineSev != Sev::Info ? sevColour(g_lineSev)
+                              : (line[0] == ' ')     ? kColDim
+                                                     : kColText;
+    screenText(pros::E_TEXT_SMALL, 8,
+               static_cast<std::int16_t>(kContentY + g_screenLine * kLineH), pen, kColBg, line,
+               static_cast<std::size_t>(kScreenCols));
     ++g_screenLine;
 }
 
@@ -1756,6 +1874,1002 @@ void measureLoopRate() {
     emit("fusion. HA-32's '~100 Hz under full stack load' stays OPEN; this is its floor.");
 }
 
+// ═══ STATIONS 11 DISTANCE AND 12 AI VISION — the shared pieces (R2a, 2026-09-24) ═══════
+// Both stations: a fresh registry scan at entry (never the chassis table, never g_found);
+// everything they print goes to serial + the SD log (g_screenActive off), and the panel is a
+// FIXED live layout redrawn at most 5 Hz and only where a line changed; a button row at the
+// bottom (menu_grid::kStationRow: slot 0 left, 1 RECORD, 2 DONE) whose buttons are GREY and
+// dead for the first 0.5 s (menu buttons 11 and 12 sit exactly where RECORD and DONE are, so a
+// reflexive double tap on the menu would otherwise record or exit at once); every touch logged
+// with what it hit; error reads skipped. They judge nothing: the verdict is DONE, or CHECK when
+// a sensor was missing or a read / setting returned PROS_ERR.
+namespace sensors {
+
+constexpr std::uint32_t kLiveMs = 200;  // the panel's refresh: 5 Hz -- PROS leaks every print
+constexpr std::uint32_t kArmMs = 500;   // the buttons' arming delay (calibrate's kArmingDelaySeconds)
+constexpr std::uint32_t kTickMs = 10;   // the loop; station 12's change timer polls the camera at it
+constexpr std::size_t kSmall = calibration::kSmallCols;    // 50: an ESTIMATE until the ruler (HA-136)
+constexpr std::size_t kMedium = calibration::kMediumCols;  // 36: likewise
+/// One line of a station button, MEDIUM, from x0 + kLabelInsetX to x1 - 1 at the proven MEDIUM
+/// upper bound (472 px per kMediumCols characters): 11.
+constexpr std::size_t kRowCols =
+    static_cast<std::size_t>(menu_grid::line1Px(menu_grid::kStationRow)) * calibration::kMediumCols
+    / 472;
+constexpr std::uint32_t kColGreyFill = 0x3A4450;  // an arming button's fill (calibrate's)
+/// The status line (RECORD confirmations, the idle instruction), SMALL, above the button row.
+constexpr std::int16_t kStatusY = 171;
+static_assert(kStatusY + kLineH < menu_grid::kStationRow.y0,
+              "the status line must end above the station buttons");
+static_assert(panelLiteralFits("RECORD", kRowCols) && panelLiteralFits("DONE", kRowCols)
+                  && panelLiteralFits("FAMILY", kRowCols) && panelLiteralFits("as found", kRowCols)
+                  && panelLiteralFits("CIRCLE21H7", kRowCols),
+              "a station button label does not fit its line");
+
+/// One fixed line of a live panel, PRINTED only when its text or colour changes (PROS leaks
+/// every print). An in-place change is padded to the old length: VEXos draws text
+/// pen-on-eraser, so the old characters are covered without an erase and without a flicker.
+struct LiveLine {
+    pros::text_format_e_t font = pros::E_TEXT_SMALL;
+    std::int16_t x = 8;
+    std::int16_t y = 0;
+    std::size_t budget = kSmall;
+    char shown[kPanelCap + 1] = "";
+    std::uint32_t colour = 0;
+    bool painted = false;
+
+    void place(pros::text_format_e_t f, std::int16_t py, std::size_t b) {
+        font = f;
+        y = py;
+        budget = b;
+        shown[0] = '\0';
+        painted = false;
+    }
+
+    void set(const char* text, std::uint32_t pen) {
+        char want[kPanelCap + 1];
+        panelSafe(text, budget, want, sizeof want);
+        if (painted && pen == colour && std::strcmp(want, shown) == 0) return;
+        const std::size_t oldLen = painted ? std::strlen(shown) : 0;
+        screenText(font, x, y, pen, kColBg, want, budget, oldLen);
+        std::memcpy(shown, want, sizeof shown);
+        colour = pen;
+        painted = true;
+    }
+};
+
+/// Station-row slot `slot` (0 left, 1 middle, 2 right), one or two MEDIUM lines; GREY while
+/// `armed` is false.
+void drawRowButton(int slot, const char* line1, const char* line2, bool armed) {
+    const menu_grid::Rect r = menu_grid::buttonBox(menu_grid::kStationRow, slot);
+    const std::uint32_t fill = armed ? kColBar : kColGreyFill;
+    pros::c::screen_set_pen(fill);
+    pros::c::screen_fill_rect(r.x0, r.y0, r.x1, r.y1);
+    pros::c::screen_set_pen(armed ? kColEdge : kColDim);
+    pros::c::screen_draw_rect(r.x0, r.y0, r.x1, r.y1);
+    const std::uint32_t pen = armed ? kColText : kColDim;
+    const auto tx = static_cast<std::int16_t>(r.x0 + menu_grid::kLabelInsetX);
+    screenText(pros::E_TEXT_MEDIUM, tx, static_cast<std::int16_t>(r.y0 + 4), pen, fill, line1,
+               kRowCols);
+    if (line2 != nullptr && line2[0] != '\0') {
+        screenText(pros::E_TEXT_MEDIUM, tx, static_cast<std::int16_t>(r.y0 + 26), pen, fill, line2,
+                   kRowCols);
+    }
+    pros::c::screen_set_eraser(kColBg);
+}
+
+/// New releases on the panel; error reads skipped (R2a-R4).
+class TapWatch {
+public:
+    TapWatch() : seen_{releaseBaseline()} {}
+    /// True when a NEW release arrived; where it landed in (x, y).
+    bool poll(int& x, int& y) {
+        const pros::screen_touch_status_s_t t = pros::c::screen_touch_status();
+        if (t.touch_status == pros::E_TOUCH_ERROR || t.release_count == seen_) return false;
+        seen_ = t.release_count;
+        x = t.x;
+        y = t.y;
+        return true;
+    }
+
+private:
+    std::int32_t seen_;
+};
+
+/// What a touch on the station row means right now, for the log.
+const char* rowTouchWord(int slot, bool armed, const char* slot0, const char* slot1,
+                         const char* slot2) {
+    const char* word = slot == 0 ? slot0 : slot == 1 ? slot1 : slot == 2 ? slot2 : nullptr;
+    if (word == nullptr) return "no button there";
+    return armed ? word : "a button, IGNORED (still arming, grey)";
+}
+
+/// Every PHYSICAL port the registry reports as `kind` right now, ascending -- registry index i
+/// is physical port i + 1 (the census's correction, kMaxRegistryIndex's note). Returns the count.
+/// `ports` must hold kMaxPort entries.
+static_assert(kMaxRegistryIndex + 1 <= kMaxPort, "discover() can fill every registry index");
+int discover(pros::c::v5_device_e_t kind, int* ports) {
+    int n = 0;
+    for (int idx = 0; idx <= kMaxRegistryIndex; ++idx) {
+        if (pros::c::registry_get_plugged_type(static_cast<std::uint8_t>(idx)) == kind) {
+            ports[n++] = idx + 1;
+        }
+    }
+    return n;
+}
+
+/// "4 5" -- ports, space-separated.
+void portList(const int* ports, int n, char* buf, std::size_t cap) {
+    buf[0] = '\0';
+    for (int i = 0; i < n; ++i) {
+        char one[8];
+        std::snprintf(one, sizeof one, "%s%d", i > 0 ? " " : "", ports[i]);
+        std::strncat(buf, one, cap - std::strlen(buf) - 1);
+    }
+}
+
+/// An int32 exactly as PROS returned it: the number, or "ERR" for PROS_ERR.
+void rawInt(std::int32_t v, char* buf, std::size_t cap) {
+    if (v == PROS_ERR) {
+        std::snprintf(buf, cap, "ERR");
+    } else {
+        std::snprintf(buf, cap, "%ld", static_cast<long>(v));
+    }
+}
+
+/// A signed double with 2 (panel) or 3 (record) decimals, or "ERR" when it is not finite
+/// (PROS_ERR_F is INFINITY).
+void signedOrErr(double v, bool record, char* buf, std::size_t cap) {
+    if (!std::isfinite(v)) {
+        std::snprintf(buf, cap, "ERR");
+    } else if (record) {
+        std::snprintf(buf, cap, "%+.3f", v);
+    } else {
+        std::snprintf(buf, cap, "%+.2f", v);
+    }
+}
+
+/// A PROS setter's return, for the log.
+void retWord(std::int32_t ret, int err, char* buf, std::size_t cap) {
+    if (ret == PROS_ERR) {
+        std::snprintf(buf, cap, "PROS_ERR (errno %d)", err);
+    } else if (ret == PROS_SUCCESS) {
+        std::snprintf(buf, cap, "PROS_SUCCESS");
+    } else {
+        std::snprintf(buf, cap, "%ld", static_cast<long>(ret));
+    }
+}
+
+// ── 11 DISTANCE ──────────────────────────────────────────────────────────────
+
+/// One read of one sensor: the RAW PROS C API, then the library adapter -- separate device
+/// reads, so two samples taken back to back, never one atomic snapshot.
+struct DistRead {
+    std::int32_t mm = PROS_ERR;    ///< distance_get: mm per the PROS doc (HA-113)
+    std::int32_t conf = PROS_ERR;  ///< distance_get_confidence: 0-63 per the doc (HA-115)
+    std::int32_t size = PROS_ERR;  ///< distance_get_object_size: 0-400 per the doc
+    double vel = 0.0;              ///< distance_get_object_velocity: m/s per the doc
+    bool lib = false;              ///< the adapter exists
+    double libIn = 0.0;            ///< ProsDistance::distance(), canonical inches
+    double libConf = 0.0;          ///< ProsDistance::confidence(), [0, 1]
+    int libFaulted = 0;            ///< ProsDistance::faultedReads(), since the station began
+};
+
+DistRead readDistance(int port, const hal::pros::ProsDistance* lib) {
+    const auto p = static_cast<std::uint8_t>(port);
+    DistRead r;
+    r.mm = pros::c::distance_get(p);
+    r.conf = pros::c::distance_get_confidence(p);
+    r.size = pros::c::distance_get_object_size(p);
+    r.vel = pros::c::distance_get_object_velocity(p);
+    if (lib != nullptr) {
+        r.lib = true;
+        r.libIn = lib->distance().value();
+        r.libConf = lib->confidence();
+        r.libFaulted = lib->faultedReads();
+    }
+    return r;
+}
+
+/// Reads of one sensor since the station began: how many, how many were the in-band 9999
+/// (the adapter's kDistanceNoObjectMm, HA-114), how many PROS_ERR.
+struct DistTally {
+    unsigned long reads = 0;
+    unsigned long noObject = 0;
+    unsigned long err = 0;
+};
+
+void tally(DistTally& t, const DistRead& r) {
+    ++t.reads;
+    if (r.mm == hal::kDistanceNoObjectMm) ++t.noObject;
+    if (r.mm == PROS_ERR) ++t.err;
+}
+
+void paintDistance(LiveLine& a, LiveLine& b, LiveLine& c, int port, const DistRead& r,
+                   const DistTally& t) {
+    char mm[16], cf[16], sz[16], vel[16], line[96];
+    rawInt(r.mm, mm, sizeof mm);
+    rawInt(r.conf, cf, sizeof cf);
+    rawInt(r.size, sz, sizeof sz);
+    signedOrErr(r.vel, false, vel, sizeof vel);
+    std::snprintf(line, sizeof line, "PORT %d RAW %5s mm conf %2s", port, mm, cf);
+    a.set(line, r.mm == PROS_ERR ? kColBad : kColText);
+    if (r.lib) {
+        std::snprintf(line, sizeof line, "  LIB %7.2f in conf %4.2f", r.libIn, r.libConf);
+    } else {
+        std::snprintf(line, sizeof line, "  LIB -- adapter refused (log)");
+    }
+    b.set(line, kColSub);
+    std::snprintf(line, sizeof line, "  size %s  vel %sm/s  %ld x%lu  ERR x%lu/%d", sz, vel,
+                  static_cast<long>(hal::kDistanceNoObjectMm), t.noObject, t.err,
+                  r.lib ? r.libFaulted : 0);
+    c.set(line, (t.err > 0 || (r.lib && r.libFaulted > 0)) ? kColWarn : kColDim);
+}
+
+/// The RECORD line for one sensor -- serial + the SD log.
+void recordDistance(int rec, int port, const DistRead& r, const DistTally& t, std::uint32_t now) {
+    char mm[16], cf[16], sz[16], vel[16], li[24], lc[24];
+    rawInt(r.mm, mm, sizeof mm);
+    rawInt(r.conf, cf, sizeof cf);
+    rawInt(r.size, sz, sizeof sz);
+    signedOrErr(r.vel, true, vel, sizeof vel);
+    if (r.lib) {
+        std::snprintf(li, sizeof li, "%.3f", r.libIn);
+        std::snprintf(lc, sizeof lc, "%.3f", r.libConf);
+    } else {
+        std::snprintf(li, sizeof li, "none");
+        std::snprintf(lc, sizeof lc, "none");
+    }
+    emitf("[R3A] dist REC %d port %d raw %s mm conf %s size %s vel %s m/s -> lib %s in conf %s"
+          " | reads %lu: %ld x%lu, PROS_ERR x%lu, lib faulted %d | t %lu ms",
+          rec, port, mm, cf, sz, vel, li, lc, t.reads, static_cast<long>(hal::kDistanceNoObjectMm),
+          t.noObject, t.err, r.lib ? r.libFaulted : 0, static_cast<unsigned long>(now));
+}
+
+// ── 12 AI VISION ─────────────────────────────────────────────────────────────
+
+/// The four tag families PROS 4.2.2 names (ai_vision.h:117-122), in PROS's own spelling. The
+/// Override field HAS AprilTags (one per goal -- the game manual, read 2026-09-24), but the
+/// manual's text does not name their FAMILY, so it is UNKNOWN -- the FAMILY button cycles them.
+struct Family {
+    pros::aivision_tag_family_e_t id;
+    const char* name;
+};
+constexpr Family kFamilies[] = {
+    {pros::TAG_CIRCLE_21H7, "CIRCLE21H7"},
+    {pros::TAG_16H5, "16H5"},
+    {pros::TAG_25H9, "25H9"},
+    {pros::TAG_61H11, "61H11"},
+};
+constexpr int kFamilyCount = static_cast<int>(sizeof kFamilies / sizeof kFamilies[0]);
+
+/// The detected-type flags (ai_vision.h:57-62), as unsigned for comparison with the byte.
+constexpr unsigned kTypeColor = pros::E_AIVISION_DETECTED_COLOR;
+constexpr unsigned kTypeCode = pros::E_AIVISION_DETECTED_CODE;
+constexpr unsigned kTypeObject = pros::E_AIVISION_DETECTED_OBJECT;
+constexpr unsigned kTypeTag = pros::E_AIVISION_DETECTED_TAG;
+
+const char* typeWord(unsigned type) {
+    return type == kTypeColor ? "COLOR" : type == kTypeCode ? "CODE"
+         : type == kTypeObject ? "OBJECT" : type == kTypeTag ? "TAG" : nullptr;
+}
+
+/// A detection-mode bitfield as PROS's names (ai_vision.h:70-76): "0x05 TAGS+OBJECTS".
+void modesWord(std::int32_t v, int err, char* buf, std::size_t cap) {
+    if (v == PROS_ERR) {
+        std::snprintf(buf, cap, "PROS_ERR (errno %d)", err);
+        return;
+    }
+    const auto bits = static_cast<unsigned long>(v);
+    // Sized to its content: "TAGS+COLORS+OBJECTS+COLOR_MERGE" is 31 characters, so the line
+    // ("0x" + at most 8 hex digits + " " + this) always fits the callers' 64-byte buffers.
+    char names[32] = "";
+    auto add = [&names](const char* w) {
+        if (names[0] != '\0') std::strncat(names, "+", sizeof names - std::strlen(names) - 1);
+        std::strncat(names, w, sizeof names - std::strlen(names) - 1);
+    };
+    if ((bits & pros::E_AIVISION_MODE_TAGS) != 0) add("TAGS");
+    if ((bits & pros::E_AIVISION_MODE_COLORS) != 0) add("COLORS");
+    if ((bits & pros::E_AIVISION_MODE_OBJECTS) != 0) add("OBJECTS");
+    if ((bits & pros::E_AIVISION_MODE_COLOR_MERGE) != 0) add("COLOR_MERGE");
+    std::snprintf(buf, cap, "0x%02lx %s", bits, names[0] != '\0' ? names : "(none)");
+}
+
+/// The class name the camera reports for `id`, printable ASCII only ('?' for anything else),
+/// or "ERR". The PROS doc asks for a buffer of at least 20; 64 zeroed bytes are passed.
+void className(std::uint8_t port, int id, char* out, std::size_t cap) {
+    std::uint8_t raw[64] = {};
+    const std::int32_t ret = pros::c::aivision_get_class_name(port, id, raw);
+    raw[sizeof raw - 1] = 0;
+    if (ret == PROS_ERR) {
+        std::snprintf(out, cap, "ERR");
+        return;
+    }
+    std::size_t k = 0;
+    for (std::size_t i = 0; raw[i] != 0 && k + 1 < cap; ++i) {
+        out[k++] = (raw[i] >= 0x20 && raw[i] < 0x7F) ? static_cast<char>(raw[i]) : '?';
+    }
+    out[k] = '\0';
+}
+
+/// Everything the camera reports right now: the count as returned, and up to 24 objects.
+struct CamSnap {
+    std::int32_t count = PROS_ERR;
+    int n = 0;
+    pros::aivision_object_s_t obj[AIVISION_MAX_OBJECT_COUNT];
+};
+
+void snapCamera(std::uint8_t port, CamSnap& s) {
+    s.count = pros::c::aivision_get_object_count(port);
+    s.n = (s.count == PROS_ERR || s.count <= 0) ? 0
+        : s.count > AIVISION_MAX_OBJECT_COUNT   ? AIVISION_MAX_OBJECT_COUNT
+                                                 : static_cast<int>(s.count);
+    for (int i = 0; i < s.n; ++i) {
+        s.obj[i] = pros::c::aivision_get_object(port, static_cast<std::uint32_t>(i));
+    }
+}
+
+/// FNV-1a over the count and every object's bytes: two snapshots with the same signature are
+/// (with overwhelming likelihood) the same data. The change timer runs on it.
+std::uint32_t signature(const CamSnap& s) {
+    std::uint32_t h = 2166136261U;
+    auto mix = [&h](const void* data, std::size_t len) {
+        const auto* b = static_cast<const unsigned char*>(data);
+        for (std::size_t i = 0; i < len; ++i) {
+            h ^= b[i];
+            h *= 16777619U;
+        }
+    };
+    mix(&s.count, sizeof s.count);
+    for (int i = 0; i < s.n; ++i) mix(&s.obj[i], sizeof s.obj[i]);
+    return h;
+}
+
+/// One detection with its fields COPIED OUT of the packed struct (landmine 2: never a pointer or
+/// reference to a packed member), read per the header's own layout for its type -- COLOR and
+/// CODE as `color` (x, y, w, h, angle), OBJECT as `element` (x, y, w, h, score), TAG as `tag`
+/// (x0, y0 .. x3, y3). Nothing converted. `raw` keeps all 18 bytes for the record.
+struct Det {
+    unsigned id = 0;
+    unsigned type = 0;
+    int v[8] = {};
+    unsigned char raw[sizeof(pros::aivision_object_s_t)] = {};
+};
+
+Det decode(const pros::aivision_object_s_t& o) {
+    Det d;
+    std::memcpy(d.raw, &o, sizeof o);
+    d.id = o.id;
+    d.type = o.type;
+    if (d.type == kTypeColor || d.type == kTypeCode) {
+        d.v[0] = o.object.color.xoffset;
+        d.v[1] = o.object.color.yoffset;
+        d.v[2] = o.object.color.width;
+        d.v[3] = o.object.color.height;
+        d.v[4] = o.object.color.angle;
+    } else if (d.type == kTypeObject) {
+        d.v[0] = o.object.element.xoffset;
+        d.v[1] = o.object.element.yoffset;
+        d.v[2] = o.object.element.width;
+        d.v[3] = o.object.element.height;
+        d.v[4] = o.object.element.score;
+    } else if (d.type == kTypeTag) {
+        d.v[0] = o.object.tag.x0;
+        d.v[1] = o.object.tag.y0;
+        d.v[2] = o.object.tag.x1;
+        d.v[3] = o.object.tag.y1;
+        d.v[4] = o.object.tag.x2;
+        d.v[5] = o.object.tag.y2;
+        d.v[6] = o.object.tag.x3;
+        d.v[7] = o.object.tag.y3;
+    }
+    return d;
+}
+
+/// A tag's centre: the mean of its four corners -- arithmetic on the reported corners, the one
+/// derived number these stations show (the brief asks for it).
+double tagCentreX(const Det& d) { return (d.v[0] + d.v[2] + d.v[4] + d.v[6]) / 4.0; }
+double tagCentreY(const Det& d) { return (d.v[1] + d.v[3] + d.v[5] + d.v[7]) / 4.0; }
+
+/// The panel row(s) for detection `i`: returns 1, or 2 for a TAG (its corners on a second row).
+int detRows(int i, const Det& d, std::uint8_t port, char (*rows)[64]) {
+    const char* w = typeWord(d.type);
+    if (w == nullptr) {
+        std::snprintf(rows[0], 64, "%d TYPE 0x%02x id %u (raw on RECORD)", i, d.type & 0xFFU, d.id);
+        return 1;
+    }
+    if (d.type == kTypeTag) {
+        std::snprintf(rows[0], 64, "%d TAG id %u  centre %ld,%ld", i, d.id,
+                      std::lround(tagCentreX(d)), std::lround(tagCentreY(d)));
+        std::snprintf(rows[1], 64, "  corners %d,%d %d,%d %d,%d %d,%d", d.v[0], d.v[1], d.v[2],
+                      d.v[3], d.v[4], d.v[5], d.v[6], d.v[7]);
+        return 2;
+    }
+    if (d.type == kTypeObject) {
+        char cls[48];
+        className(port, static_cast<int>(d.id), cls, sizeof cls);
+        std::snprintf(rows[0], 64, "%d OBJECT %u %.10s x%d y%d w%d h%d s%d", i, d.id, cls, d.v[0],
+                      d.v[1], d.v[2], d.v[3], d.v[4]);
+        return 1;
+    }
+    std::snprintf(rows[0], 64, "%d %s %u x%d y%d w%d h%d a%d", i, w, d.id, d.v[0], d.v[1], d.v[2],
+                  d.v[3], d.v[4]);
+    return 1;
+}
+
+/// The RECORD line for one detection -- serial + the SD log, with its 18 raw bytes in hex.
+void recordDetection(int rec, int port, int i, const Det& d) {
+    char hex[2 * sizeof d.raw + 1];
+    for (std::size_t b = 0; b < sizeof d.raw; ++b) {
+        std::snprintf(hex + 2 * b, 3, "%02x", static_cast<unsigned>(d.raw[b]));
+    }
+    const char* w = typeWord(d.type);
+    if (w == nullptr) {
+        emitf("[R3A] aiv REC %d port %d obj %d TYPE 0x%02x id %u (not COLOR 1 / CODE 2 / OBJECT 4"
+              " / TAG 8) | raw %s", rec, port, i, d.type & 0xFFU, d.id, hex);
+    } else if (d.type == kTypeTag) {
+        emitf("[R3A] aiv REC %d port %d obj %d TAG id %u centre %.2f %.2f corners %d,%d %d,%d"
+              " %d,%d %d,%d | raw %s", rec, port, i, d.id, tagCentreX(d), tagCentreY(d), d.v[0],
+              d.v[1], d.v[2], d.v[3], d.v[4], d.v[5], d.v[6], d.v[7], hex);
+    } else if (d.type == kTypeObject) {
+        char cls[48];
+        className(static_cast<std::uint8_t>(port), static_cast<int>(d.id), cls, sizeof cls);
+        emitf("[R3A] aiv REC %d port %d obj %d OBJECT id %u class '%s' x %d y %d w %d h %d"
+              " score %d | raw %s", rec, port, i, d.id, cls, d.v[0], d.v[1], d.v[2], d.v[3],
+              d.v[4], hex);
+    } else {
+        emitf("[R3A] aiv REC %d port %d obj %d %s id %u x %d y %d w %d h %d angle %d | raw %s",
+              rec, port, i, w, d.id, d.v[0], d.v[1], d.v[2], d.v[3], d.v[4], hex);
+    }
+}
+
+/// How often the camera's data changes, on the port the panel shows (ruling R2a-R8): the
+/// interval between consecutive changes of the whole snapshot's signature, polled every tick.
+struct ChangeTimer {
+    static constexpr int kRing = 16;
+    bool haveSig = false;
+    std::uint32_t sig = 0;
+    std::uint32_t lastChange = 0;  // when the data last changed (0: not yet)
+    unsigned long changes = 0;     // changes seen
+    std::uint32_t ring[kRing] = {};
+    int ringN = 0;
+    int ringAt = 0;
+    std::uint32_t minMs = 0xFFFFFFFFU;
+
+    void feed(std::uint32_t s, std::uint32_t now) {
+        if (!haveSig) {
+            haveSig = true;
+            sig = s;
+            return;
+        }
+        if (s == sig) return;
+        sig = s;
+        ++changes;
+        if (lastChange != 0) {
+            const std::uint32_t dt = now - lastChange;
+            ring[ringAt] = dt;
+            ringAt = (ringAt + 1) % kRing;
+            if (ringN < kRing) ++ringN;
+            if (dt < minMs) minMs = dt;
+        }
+        lastChange = now;
+    }
+    unsigned long meanMs() const {
+        unsigned long sum = 0;
+        for (int i = 0; i < ringN; ++i) sum += ring[i];
+        return ringN > 0 ? sum / static_cast<unsigned long>(ringN) : 0;
+    }
+    /// The panel's words for it.
+    void describe(std::uint32_t now, std::uint32_t since, char* buf, std::size_t cap) const {
+        const std::uint32_t quietFrom = lastChange != 0 ? lastChange : since;
+        if (now - quietFrom > 2000U) {
+            std::snprintf(buf, cap, "no change in the data for %lu s",
+                          static_cast<unsigned long>((now - quietFrom) / 1000U));
+        } else if (ringN == 0) {
+            std::snprintf(buf, cap, "data changed %lu time(s); timing ...", changes);
+        } else {
+            std::snprintf(buf, cap, "data changes every ~%lu ms (min %lu, n %lu)", meanMs(),
+                          static_cast<unsigned long>(minMs), changes);
+        }
+    }
+};
+
+/// Turn on what station 12 needs on one camera, and LOG every write and read-back (landmine 1:
+/// whether the camera keeps these after the program ends is UNKNOWN, so a later program must be
+/// able to see what this one set). Returns false when any write returned PROS_ERR.
+bool setUpCamera(int port, int family) {
+    const auto p = static_cast<std::uint8_t>(port);
+    bool ok = true;
+    char w[64];
+    errno = 0;
+    const std::int32_t before = pros::c::aivision_get_enabled_detection_types(p);
+    modesWord(before, errno, w, sizeof w);
+    emitf("[R3A] aiv port %d detection modes AS FOUND: %s", port, w);
+    errno = 0;
+    std::int32_t ret = pros::c::aivision_enable_detection_types(
+        p, static_cast<std::uint8_t>(pros::E_AIVISION_MODE_TAGS | pros::E_AIVISION_MODE_OBJECTS));
+    retWord(ret, errno, w, sizeof w);
+    ok = ok && ret != PROS_ERR;
+    emitf("[R3A] aiv port %d SET tag + object detection ON (colours left as found) -> %s", port, w);
+    errno = 0;
+    ret = pros::c::aivision_set_usb_bounding_box_overlay(p, true);
+    retWord(ret, errno, w, sizeof w);
+    ok = ok && ret != PROS_ERR;
+    emitf("[R3A] aiv port %d SET USB bounding-box overlay ON -> %s", port, w);
+    if (family >= 0) {
+        errno = 0;
+        ret = pros::c::aivision_set_tag_family_override(p, kFamilies[family].id);
+        retWord(ret, errno, w, sizeof w);
+        ok = ok && ret != PROS_ERR;
+        emitf("[R3A] aiv port %d SET tag family %s (override: the ONLY family; re-applied, chosen"
+              " earlier this power cycle) -> %s", port, kFamilies[family].name, w);
+    } else {
+        emitf("[R3A] aiv port %d tag family NOT set: the camera's own (as found) until FAMILY is"
+              " pressed", port);
+    }
+    errno = 0;
+    const std::int32_t after = pros::c::aivision_get_enabled_detection_types(p);
+    modesWord(after, errno, w, sizeof w);
+    emitf("[R3A] aiv port %d detection modes NOW: %s", port, w);
+    return ok;
+}
+
+/// The camera's class-name table, to the log once per entry (what its model can name).
+void logClassNames(int port) {
+    const auto p = static_cast<std::uint8_t>(port);
+    std::uint8_t scratch[64] = {};
+    errno = 0;
+    const std::int32_t count = pros::c::aivision_get_class_name(p, -1, scratch);
+    if (count == PROS_ERR) {
+        emitf("[R3A] aiv port %d class names: get_class_name(-1) -> PROS_ERR (errno %d)", port,
+              errno);
+        return;
+    }
+    emitf("[R3A] aiv port %d class names: get_class_name(-1) -> %ld (the count, per the PROS doc;"
+          " it may read wrong for the first few hundred ms after plug-in)", port,
+          static_cast<long>(count));
+    const int m = count <= 0 ? 0
+                : count > AIVISION_MAX_CLASSNAME_COUNT ? AIVISION_MAX_CLASSNAME_COUNT
+                                                       : static_cast<int>(count);
+    for (int i = 0; i < m; ++i) {
+        char name[48];
+        className(p, i, name, sizeof name);
+        emitf("[R3A] aiv port %d class %d '%s'", port, i, name);
+    }
+}
+
+/// The RECORD lines for one camera: a summary, then one line per detection (a fresh snapshot).
+void recordCamera(int rec, int port, int family, const ChangeTimer* timer, int timedPort,
+                  std::uint32_t now) {
+    const auto p = static_cast<std::uint8_t>(port);
+    CamSnap s;
+    snapCamera(p, s);
+    const double temp = pros::c::aivision_get_temperature(p);
+    errno = 0;
+    const std::int32_t modes = pros::c::aivision_get_enabled_detection_types(p);
+    char cnt[16], tp[16], md[64], ch[96];
+    rawInt(s.count, cnt, sizeof cnt);
+    if (std::isfinite(temp)) {
+        std::snprintf(tp, sizeof tp, "%.2f", temp);
+    } else {
+        std::snprintf(tp, sizeof tp, "ERR");
+    }
+    modesWord(modes, errno, md, sizeof md);
+    if (timer != nullptr && timer->ringN > 0) {
+        std::snprintf(ch, sizeof ch, "data changed every ~%lu ms (min %lu, n %lu)", timer->meanMs(),
+                      static_cast<unsigned long>(timer->minMs), timer->changes);
+    } else if (timer != nullptr) {
+        std::snprintf(ch, sizeof ch, "changes not timed yet (%lu change(s) seen; 2 needed)",
+                      timer->changes);
+    } else {
+        std::snprintf(ch, sizeof ch, "changes not timed here (the panel times port %d)", timedPort);
+    }
+    emitf("[R3A] aiv REC %d port %d count %s read %d temp %s C family %s modes %s | %s | t %lu ms",
+          rec, port, cnt, s.n, tp, family >= 0 ? kFamilies[family].name : "as-found", md, ch,
+          static_cast<unsigned long>(now));
+    for (int i = 0; i < s.n; ++i) recordDetection(rec, port, i, decode(s.obj[i]));
+}
+
+}  // namespace sensors
+
+/// The tag family station 12 last set this power cycle; -1 = never, the camera's own ("as
+/// found"). In memory for one power cycle, like MOTOR WATCH's capture.
+int g_tagFamily = -1;
+
+/// STATION 11 — DISTANCE (R2a). Read-only: every DISTANCE port in the registry, the RAW PROS C
+/// API beside the library adapter's canonical inches and confidence, the in-band 9999 and
+/// PROS_ERR counts; RECORD writes one [R3A] dist line per sensor. Nothing is written to a sensor.
+void distanceStation(pros::c::v5_device_e_t*) {
+    using namespace sensors;
+    rule("11 DISTANCE -- read-only");
+    g_screenActive = false;  // serial + SD from here; the panel is the live view
+    const std::uint32_t prints0 = g_screenPrints;
+    const bool sdOn = g_card != nullptr && g_card->isOpen();
+
+    int ports[kMaxPort];
+    const int n = discover(pros::c::E_DEVICE_DISTANCE, ports);
+    char list[96];
+    portList(ports, n, list, sizeof list);
+    emitf("[R3A] dist registry scan now: %d DISTANCE sensor(s)%s%s", n,
+          n > 0 ? " on port(s) " : "", list);
+    if (n == 0) {
+        // Every line from here to the return is on the panel: each fits its 54 columns.
+        g_screenActive = true;
+        screenClear();
+        emitS(Sev::Warn, "no DISTANCE sensor in the registry -- nothing to show.");
+        emit("  check both ends of the cable, then run");
+        emit("  1 DEVICE CENSUS: it lists what the brain sees.");
+        emit("  (robot two: ports 4 and 5, 2026-09-24)");
+        return;
+    }
+    emit("RAW = the PROS C API as it returns it: distance_get (mm), _get_confidence");
+    emit("      (0-63), _get_object_size, _get_object_velocity (m/s).");
+    emit("LIB = shulib's hal::pros::ProsDistance: distance() in inches, confidence() in");
+    emit("      [0, 1]. Separate device reads: RAW and LIB are two samples, not one.");
+    emit("Nothing is powered and nothing is written to a sensor.");
+
+    // The adapter, one per sensor, each inside a try (the file's rule: a surprise reports itself
+    // instead of ending the session).
+    std::optional<hal::pros::ProsDistance> lib[kMaxPort];
+    bool anyFault = false;
+    for (int k = 0; k < n; ++k) {
+        try {
+            lib[k].emplace(static_cast<std::uint8_t>(ports[k]));
+        } catch (const std::exception& e) {
+            anyFault = true;
+            emitf("[R3A] dist port %d ProsDistance REFUSED: %s", ports[k], e.what());
+        }
+    }
+
+    // ── the live panel: two sensors in full, a status line, RECORD and DONE ──────
+    screenClear();
+    constexpr int kShownMax = 2;
+    constexpr std::int16_t kBlockY = 40;
+    constexpr std::int16_t kBlockPitch = 62;  // MEDIUM + MEDIUM (22 px pitch) + SMALL
+    static_assert(kBlockY + (kShownMax - 1) * kBlockPitch + 44 + kLineH < kStatusY,
+                  "the second sensor's block must end above the status line");
+    const int shown = n < kShownMax ? n : kShownMax;
+    LiveLine la[kShownMax], lb[kShownMax], lc[kShownMax], status;
+    for (int k = 0; k < shown; ++k) {
+        const auto y0 = static_cast<std::int16_t>(kBlockY + k * kBlockPitch);
+        la[k].place(pros::E_TEXT_MEDIUM, y0, kMedium);
+        lb[k].place(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(y0 + 22), kMedium);
+        lc[k].place(pros::E_TEXT_SMALL, static_cast<std::int16_t>(y0 + 44), kSmall);
+    }
+    status.place(pros::E_TEXT_SMALL, kStatusY, kSmall);
+    char idle[64];
+    if (n > shown) {
+        std::snprintf(idle, sizeof idle, "+%d more DISTANCE sensor(s): RECORD logs every one",
+                      n - shown);
+    } else {
+        std::snprintf(idle, sizeof idle, "hold square to a wall at 6/12/24 in; RECORD each");
+    }
+    status.set(idle, kColWarn);
+    drawRowButton(1, "RECORD", "", false);
+    drawRowButton(2, "DONE", "", false);
+
+    DistTally tallies[kMaxPort] = {};
+    TapWatch taps;
+    const std::uint32_t t0 = pros::millis();
+    std::uint32_t lastPaint = t0 - kLiveMs;  // paint on the first tick
+    bool armed = false;
+    int records = 0;
+    for (;;) {
+        const std::uint32_t now = pros::millis();
+        if (!armed && now - t0 >= kArmMs) {
+            armed = true;
+            drawRowButton(1, "RECORD", "", true);
+            drawRowButton(2, "DONE", "", true);
+        }
+        int tx = 0, ty = 0;
+        if (taps.poll(tx, ty)) {
+            const int slot = menu_grid::hitTest(menu_grid::kStationRowHit, tx, ty);
+            emitf("[R3A] dist touch x=%d y=%d -> %s", tx, ty,
+                  rowTouchWord(slot, armed, nullptr, "RECORD", "DONE"));  // slot 0: no button
+            if (armed && slot == 2) break;
+            if (armed && slot == 1) {
+                ++records;
+                for (int k = 0; k < n; ++k) {
+                    const DistRead r = readDistance(ports[k], lib[k] ? &*lib[k] : nullptr);
+                    tally(tallies[k], r);
+                    anyFault = anyFault || r.mm == PROS_ERR || (r.lib && r.libFaulted > 0);
+                    recordDistance(records, ports[k], r, tallies[k], now);
+                }
+                if (g_card != nullptr) (void)g_card->flush();
+                char s[64];
+                std::snprintf(s, sizeof s, "RECORD %d: %d line(s) -> serial%s", records, n,
+                              sdOn ? " + SD card" : " only (SD OFF)");
+                status.set(s, sdOn ? kColGood : kColWarn);
+            }
+        }
+        if (now - lastPaint >= kLiveMs) {
+            lastPaint = now;
+            for (int k = 0; k < n; ++k) {
+                const DistRead r = readDistance(ports[k], lib[k] ? &*lib[k] : nullptr);
+                tally(tallies[k], r);
+                anyFault = anyFault || r.mm == PROS_ERR || (r.lib && r.libFaulted > 0);
+                if (k < shown) paintDistance(la[k], lb[k], lc[k], ports[k], r, tallies[k]);
+            }
+        }
+        pros::delay(kTickMs);
+    }
+
+    // The full record first, on serial + SD only; then a short summary on the panel too, every
+    // line of it within the scrolling log's 54 columns.
+    for (int k = 0; k < n; ++k) {
+        emitf("[R3A] dist port %d: %lu reads since entry, %ld x%lu, PROS_ERR x%lu, lib faulted %d",
+              ports[k], tallies[k].reads, static_cast<long>(hal::kDistanceNoObjectMm),
+              tallies[k].noObject, tallies[k].err, lib[k] ? lib[k]->faultedReads() : 0);
+    }
+    emitf("[R3A] dist LEFT after %d RECORD(s): nothing written to any sensor; screen prints"
+          " this station %lu", records, static_cast<unsigned long>(g_screenPrints - prints0));
+    g_screenActive = true;
+    screenClear();
+    emit("");
+    emitf("11 DISTANCE ended: %d RECORD(s)", records);
+    for (int k = 0; k < n; ++k) {
+        emitf("  port %d: %lu reads, %ld x%lu", ports[k], tallies[k].reads,
+              static_cast<long>(hal::kDistanceNoObjectMm), tallies[k].noObject);
+        emitf("    PROS_ERR x%lu, lib faulted %d", tallies[k].err,
+              lib[k] ? lib[k]->faultedReads() : 0);
+    }
+    emit(sdOn ? "  RECORD lines: /usd/r3a_log.txt + serial, [R3A] dist"
+              : "  SD OFF: RECORD lines on serial only, [R3A] dist");
+    if (anyFault) {
+        emitS(Sev::Warn, "  a read returned PROS_ERR (see the [R3A] dist lines)");
+    }
+}
+
+/// STATION 12 — AI VISION (R2a). Writes the CAMERA's settings (tag + object detection on, the
+/// USB bounding-box overlay on, a tag family on FAMILY) and says so; shows the object count,
+/// temperature, how often the data changes, and each detection -- type, id or class name, box or
+/// tag centre and corners -- as the header lays them out. Interprets nothing. RECORD writes a
+/// summary and one line per detection per camera.
+void aiVisionStation(pros::c::v5_device_e_t*) {
+    using namespace sensors;
+    int ports[kMaxPort];
+    const int n = discover(pros::c::E_DEVICE_AIVISION, ports);
+    int legacy[kMaxPort];
+    const int nLegacy = discover(pros::c::E_DEVICE_VISION, legacy);
+    char title[40];
+    if (n > 0) {
+        std::snprintf(title, sizeof title, "12 AI VISION -- port %d", ports[0]);
+    } else {
+        std::snprintf(title, sizeof title, "12 AI VISION -- none found");
+    }
+    rule(title);
+    g_screenActive = false;  // serial + SD from here; the panel is the live view
+    const std::uint32_t prints0 = g_screenPrints;
+    const bool sdOn = g_card != nullptr && g_card->isOpen();
+
+    char list[96], legacyList[96];
+    portList(ports, n, list, sizeof list);
+    portList(legacy, nLegacy, legacyList, sizeof legacyList);
+    emitf("[R3A] aiv registry scan now: %d AI-VISION sensor(s)%s%s", n,
+          n > 0 ? " on port(s) " : "", list);
+    if (nLegacy > 0) {
+        emitf("[R3A] aiv port(s) %s report VISION (code 11, the older Vision sensor): NOT driven"
+              " by this station", legacyList);
+    }
+    if (n == 0) {
+        // Every line from here to the return is on the panel: each fits its 54 columns.
+        g_screenActive = true;
+        screenClear();
+        emitS(Sev::Warn, "no AI-VISION sensor in the registry: nothing to show.");
+        if (nLegacy > 0) {
+            emitf("  port(s) %s: VISION (code 11) -- the older sensor", legacyList);
+        }
+        emit("  check both ends of the cable, then run");
+        emit("  1 DEVICE CENSUS: it must say AI-VISION.");
+        emit("  (robot two: port 3, 2026-09-24)");
+        return;
+    }
+    emit("This station WRITES THE CAMERA'S SETTINGS: tag + object detection ON, the USB");
+    emit("bounding-box overlay ON, and a tag family when FAMILY is pressed. Whether the camera");
+    emit("keeps them after this program ends is UNKNOWN -- every write is logged below.");
+    emit("COLORS are left as found: colour detection needs colour descriptors, and this");
+    emit("station defines none. Nothing is interpreted: no bearing, no distance.");
+
+    bool anyFault = false;
+    for (int k = 0; k < n; ++k) {
+        if (!setUpCamera(ports[k], g_tagFamily)) anyFault = true;
+        logClassNames(ports[k]);
+    }
+    const bool setOk = !anyFault;
+    const auto p0 = static_cast<std::uint8_t>(ports[0]);
+
+    // ── the live panel ──────────────────────────────────────────────────────────
+    screenClear();
+    constexpr int kRows = 4;
+    constexpr std::int16_t kRowY = 116;
+    static_assert(kRowY + (kRows - 1) * kLineH + kLineH < kStatusY,
+                  "the last detection row must end above the status line");
+    LiveLine said[3], counts, period, rows[kRows], status;
+    said[0].place(pros::E_TEXT_SMALL, 38, kSmall);
+    said[1].place(pros::E_TEXT_SMALL, 51, kSmall);
+    said[2].place(pros::E_TEXT_SMALL, 64, kSmall);
+    counts.place(pros::E_TEXT_MEDIUM, 79, kMedium);
+    period.place(pros::E_TEXT_SMALL, 102, kSmall);
+    for (int r = 0; r < kRows; ++r) {
+        rows[r].place(pros::E_TEXT_SMALL, static_cast<std::int16_t>(kRowY + r * kLineH), kSmall);
+    }
+    status.place(pros::E_TEXT_SMALL, kStatusY, kSmall);
+    {
+        char s[64];
+        if (setOk) {
+            if (n > 1) {
+                std::snprintf(s, sizeof s, "THIS STATION TURNED ON, on port %d (and %d more):",
+                              ports[0], n - 1);
+            } else {
+                std::snprintf(s, sizeof s, "THIS STATION TURNED ON, on port %d:", ports[0]);
+            }
+            said[0].set(s, kColWarn);
+            said[1].set("tag + object detection and the USB box overlay", kColWarn);
+        } else {
+            std::snprintf(s, sizeof s, "A SETTING FAILED on port %d -- see serial / SD", ports[0]);
+            said[0].set(s, kColBad);
+            said[1].set("tag + object detection or the overlay may be OFF", kColBad);
+        }
+        said[2].set("COLORS need color descriptors - none set here", kColDim);
+    }
+    status.set("move a piece left, then right; RECORD each spot", kColWarn);
+    drawRowButton(0, "FAMILY", g_tagFamily >= 0 ? kFamilies[g_tagFamily].name : "as found", false);
+    drawRowButton(1, "RECORD", "", false);
+    drawRowButton(2, "DONE", "", false);
+
+    ChangeTimer timer;
+    CamSnap snap;
+    TapWatch taps;
+    const std::uint32_t t0 = pros::millis();
+    std::uint32_t lastPaint = t0 - kLiveMs;  // paint on the first tick
+    bool armed = false;
+    bool familyFailed = false;  // a FAMILY write returned PROS_ERR: the exit must not claim it
+    int records = 0;
+    for (;;) {
+        const std::uint32_t now = pros::millis();
+        if (!armed && now - t0 >= kArmMs) {
+            armed = true;
+            drawRowButton(0, "FAMILY", g_tagFamily >= 0 ? kFamilies[g_tagFamily].name : "as found",
+                          true);
+            drawRowButton(1, "RECORD", "", true);
+            drawRowButton(2, "DONE", "", true);
+        }
+        int tx = 0, ty = 0;
+        if (taps.poll(tx, ty)) {
+            const int slot = menu_grid::hitTest(menu_grid::kStationRowHit, tx, ty);
+            emitf("[R3A] aiv touch x=%d y=%d -> %s", tx, ty,
+                  rowTouchWord(slot, armed, "FAMILY", "RECORD", "DONE"));
+            if (armed && slot == 2) break;
+            if (armed && slot == 0) {
+                g_tagFamily = (g_tagFamily + 1) % kFamilyCount;  // -1 (as found) -> the first
+                for (int k = 0; k < n; ++k) {
+                    char w[48];
+                    errno = 0;
+                    const std::int32_t ret = pros::c::aivision_set_tag_family_override(
+                        static_cast<std::uint8_t>(ports[k]), kFamilies[g_tagFamily].id);
+                    retWord(ret, errno, w, sizeof w);
+                    if (ret == PROS_ERR) {
+                        anyFault = true;
+                        familyFailed = true;
+                    }
+                    emitf("[R3A] aiv port %d SET tag family %s (override: the ONLY family now) ->"
+                          " %s | t %lu ms", ports[k], kFamilies[g_tagFamily].name, w,
+                          static_cast<unsigned long>(now));
+                }
+                drawRowButton(0, "FAMILY", kFamilies[g_tagFamily].name, true);
+                char s[64];
+                std::snprintf(s, sizeof s, "tag family now %s -- hold the tag in view",
+                              kFamilies[g_tagFamily].name);
+                status.set(s, kColWarn);
+            }
+            if (armed && slot == 1) {
+                ++records;
+                for (int k = 0; k < n; ++k) {
+                    recordCamera(records, ports[k], g_tagFamily, k == 0 ? &timer : nullptr,
+                                 ports[0], now);
+                }
+                if (g_card != nullptr) (void)g_card->flush();
+                char s[64];
+                std::snprintf(s, sizeof s, "RECORD %d -> serial%s", records,
+                              sdOn ? " + SD card" : " only (SD OFF)");
+                status.set(s, sdOn ? kColGood : kColWarn);
+            }
+        }
+
+        // The change timer polls every tick; the panel repaints at 5 Hz, only what changed.
+        snapCamera(p0, snap);
+        if (snap.count == PROS_ERR) anyFault = true;
+        timer.feed(signature(snap), now);
+        if (now - lastPaint >= kLiveMs) {
+            lastPaint = now;
+            char line[96], cnt[32], tp[16];
+            if (snap.count == PROS_ERR) {
+                std::snprintf(cnt, sizeof cnt, "ERR");
+            } else if (snap.count > AIVISION_MAX_OBJECT_COUNT) {
+                std::snprintf(cnt, sizeof cnt, "%ld (%d read)", static_cast<long>(snap.count),
+                              snap.n);
+            } else {
+                std::snprintf(cnt, sizeof cnt, "%ld", static_cast<long>(snap.count));
+            }
+            const double temp = pros::c::aivision_get_temperature(p0);
+            if (std::isfinite(temp)) {
+                std::snprintf(tp, sizeof tp, "%.1f", temp);
+            } else {
+                std::snprintf(tp, sizeof tp, "ERR");
+            }
+            std::snprintf(line, sizeof line, "OBJECTS %s  TEMP %s C", cnt, tp);
+            counts.set(line, snap.count == PROS_ERR ? kColBad : kColText);
+            timer.describe(now, t0, line, sizeof line);
+            period.set(line, kColDim);
+
+            // The detections, as many as fit; a TAG takes two rows (its corners); when some do
+            // not fit, the last row says how many more (RECORD logs them all).
+            int row = 0;
+            int shownDets = 0;
+            for (int i = 0; i < snap.n; ++i) {
+                const Det d = decode(snap.obj[i]);
+                char two[2][64] = {"", ""};
+                const int need = detRows(i, d, p0, two);
+                const int limit = (i + 1 < snap.n) ? kRows - 1 : kRows;  // keep one for "+more"
+                if (row + need > limit) break;
+                const std::uint32_t pen = typeWord(d.type) == nullptr ? kColWarn
+                                        : d.type == kTypeTag           ? kColSub
+                                                                        : kColText;
+                for (int j = 0; j < need; ++j) rows[row++].set(two[j], pen);
+                ++shownDets;
+            }
+            if (shownDets < snap.n) {
+                std::snprintf(line, sizeof line, "+%d more -- RECORD logs all %d",
+                              snap.n - shownDets, snap.n);
+                rows[row++].set(line, kColDim);
+            }
+            while (row < kRows) rows[row++].set("", kColDim);
+        }
+        pros::delay(kTickMs);
+    }
+
+    // The full record first, on serial + SD only; then a short summary on the panel too, every
+    // line of it within the scrolling log's 54 columns.
+    const char* const famWord = g_tagFamily >= 0 ? kFamilies[g_tagFamily].name : "as found";
+    if (timer.ringN > 0) {
+        emitf("[R3A] aiv port %d data changed %lu time(s); last %d intervals ~%lu ms, min %lu ms",
+              ports[0], timer.changes, timer.ringN, timer.meanMs(),
+              static_cast<unsigned long>(timer.minMs));
+    } else {
+        emitf("[R3A] aiv port %d data changed %lu time(s); not timed (2 needed)", ports[0],
+              timer.changes);
+    }
+    // What was LEFT on the camera is claimed only as far as the writes said they succeeded.
+    if (setOk) {
+        emitf("[R3A] aiv LEFT port(s) %s, %d RECORD(s): tag + object detection ON, USB overlay ON,"
+              " tag family %s%s; kept after this program? UNKNOWN; screen prints %lu", list,
+              records, famWord, familyFailed ? " (a FAMILY write FAILED)" : "",
+              static_cast<unsigned long>(g_screenPrints - prints0));
+    } else {
+        emitf("[R3A] aiv LEFT port(s) %s, %d RECORD(s): a SETTING write FAILED at entry (the SET"
+              " lines above); what the camera has is UNKNOWN; screen prints %lu", list, records,
+              static_cast<unsigned long>(g_screenPrints - prints0));
+    }
+    g_screenActive = true;
+    screenClear();
+    emit("");
+    emitf("12 AI VISION ended: %d RECORD(s)", records);
+    if (setOk) {
+        emit("  LEFT ON THE CAMERA: tag + object detection ON,");
+        emitf("  the USB overlay ON, tag family %s.", famWord);
+        emit("  written to the SENSOR: whether it keeps them after");
+        emit("  this program ends is UNKNOWN.");
+    } else {
+        emit("  a SETTING write FAILED at entry: what the camera");
+        emit("  now has is UNKNOWN -- see the [R3A] aiv SET lines.");
+    }
+    if (familyFailed) emit("  a FAMILY write FAILED -- see the SET lines.");
+    emit(sdOn ? "  RECORD lines: /usd/r3a_log.txt + serial, [R3A] aiv"
+              : "  SD OFF: RECORD lines on serial only, [R3A] aiv");
+    if (anyFault) {
+        emitS(Sev::Warn, "  a setting or read returned PROS_ERR ([R3A] aiv)");
+    }
+}
+
 }  // namespace
 
 namespace {
@@ -1768,8 +2882,16 @@ namespace {
 /// rotated while it watches. A person working alone at a bench cannot infer that
 /// from a table of numbers, so each entry now states the action and the finish
 /// condition, and both are printed into the SD log as part of the record.
+///
+/// THE LABEL AND THE BUTTON ARE SEPARATE SINCE R2a. `label` is the station's full name as the
+/// LOG writes it (`>>>>>> <label>`) -- unchanged for 1-10, because the worksheet and every
+/// earlier session's log quote it. `btn1`/`btn2` are what the three-column button has room
+/// for: two MEDIUM lines, the first up to kBtnLine1Cols characters, the second up to
+/// kBtnLine2Cols beside the status dot -- checked at compile time below.
 struct MenuItem {
     const char* label;
+    const char* btn1;  ///< the button's first line (MEDIUM): number and name
+    const char* btn2;  ///< the button's second line (MEDIUM), "" for none
     void (*run)(pros::c::v5_device_e_t*);
     bool handsOn;          ///< needs the bencher to physically do something
     const char* doThis;    ///< the action, imperative, one line
@@ -1804,70 +2926,97 @@ void tAll(pros::c::v5_device_e_t* f) {
 }
 
 constexpr MenuItem kMenu[] = {
-    {"1  DEVICE CENSUS", &tCensus, false,
+    {"1  DEVICE CENSUS", "1 DEVICE", "CENSUS", &tCensus, false,
      "nothing - just read it",
      "you have noted every port and what is in it"},
 
-    {"2  IMU + ROTATE", &tImu, true,
+    {"2  IMU + ROTATE", "2 IMU +", "ROTATE", &tImu, true,
      "turn the WHOLE ROBOT counter-clockwise (to its left)",
      "the big number ROSE while you turned. If it fell, say so"},
 
-    {"3  MOTOR WATCH (live)", &motorWatch, true,
+    {"3  MOTOR WATCH (live)", "3 MOTOR", "WATCH", &motorWatch, true,
      "push the robot forward, OR spin one wheel - it records itself",
      "the table showed UP/DOWN per port and you touched to save it"},
 
-    {"4  BATT/CTRL", &tPlatform, true,
+    {"4  BATT/CTRL", "4 BATT/CTRL", "", &tPlatform, true,
      "pair a controller to the brain if it says NOT CONNECTED",
      "controller reads CONNECTED (it unblocks 4 register entries)"},
 
-    {"5  SD CARD PROBE", &tSdProbe, false,
+    {"5  SD CARD PROBE", "5 SD CARD", "PROBE", &tSdProbe, false,
      "nothing - unless it fails, then reformat the card FAT32",
      "all three steps pass and the header chip reads PASS"},
 
-    {"6  LOOP RATE", &tLoopRate, false,
+    {"6  LOOP RATE", "6 LOOP RATE", "", &tLoopRate, false,
      "nothing - leave the robot still",
      "min/max/mean are printed"},
 
-    {"7  RUN ALL", &tAll, true,
+    {"7  RUN ALL", "7 RUN ALL", "", &tAll, true,
      "be ready to rotate the robot when test 2's readout appears",
      "every test above has run once"},
 
-    {"8  MOTORS (static)", &tMotors, false,
+    {"8  MOTORS (static)", "8 MOTORS", "STATIC", &tMotors, false,
      "nothing - a one-shot snapshot. Use test 3 to capture movement",
      "you have seen each motor's raw and canonical position"},
 
-    {"9  SCREEN RULER", &screenRuler, true,
+    {"9  SCREEN RULER", "9 SCREEN", "RULER", &screenRuler, true,
      "read the four numbered questions off the panel and report them",
      "you have answered all four - they fix the layout constants"},
 
-    {"10 DRIVE (POWERS)", &driveStation, true,
+    {"10 DRIVE (POWERS)", "10 DRIVE", "POWERS", &driveStation, true,
      "WHEELS UP first (ground only after a clean 6 V wheels-up run). POWERS motors: hold L1",
      "you drove at 3 V wheels-up, raised the ceiling with R1, and touched to stop",
      true},
+
+    // R2a (2026-09-24). Hands-on: the robot is held at taped distances / a piece is moved.
+    {"11 DISTANCE", "11 DISTANCE", "", &distanceStation, true,
+     "hold the robot square to a wall at 6, 12, 24 in (tape) - RECORD at each; then open space",
+     "you have a RECORD number for 6, 12 and 24 in and for open space, per sensor"},
+
+    {"12 AI VISION", "12 AI", "VISION", &aiVisionStation, true,
+     "a game piece ~1 ft then ~2 ft ahead, moved left then right - RECORD each; FAMILY for a tag",
+     "you have a RECORD number per spot, and which FAMILY sees your tag (if you have one)"},
 };
 constexpr int kMenuCount = static_cast<int>(sizeof kMenu / sizeof kMenu[0]);
 static_assert(kMenuCount == kMaxMenu, "g_verdict[] must have one slot per menu entry");
 
-// Two columns x three rows of touch targets. Deliberately large (232x62): this is
-// operated by someone crouched over a robot, not with a mouse.
+// ═══ THE MENU GRID: 3 x 4 since R2a (bench_r3a.hpp's menu_grid, host-tested) ═══════════
 // USABLE HEIGHT IS ~240, NOT 272. The panel is 480x272 but VEXos reserves the top
 // strip for its own status bar, so anything drawn near y=272 is off-screen. The
 // first layout was verified against 272 and PASSED -- the check was right, the
 // constant was wrong, and the bottom row landed off the panel on real hardware
-// (observed 2026-08-18). Everything now stays inside y < 236 for margin:
-// row 3 spans 184..226.
-// 9 items => 5 rows on a 240px panel. 38 + 5*36 + 4*4 = 234, inside the bound
-// with margin. Verified on the host before upload, against the CORRECT height.
-constexpr std::int16_t kBtnW = 232, kBtnH = 36, kBtnX0 = 6, kBtnY0 = 38, kGap = 4;
+// (observed 2026-08-18). Everything stays inside y < 236: the 2 x 5 menu ended at
+// y = 234 with 36 px buttons and could not take a sixth row (it would end near 274),
+// so twelve stations go three across, four down, in 46 px buttons -- rows 38-84 /
+// 88-134 / 138-184 / 188-234. The geometry and the hit test live in bench_r3a.hpp, PROS-free,
+// where test/bench_menu_grid_test.cpp checks every pixel of them.
+constexpr menu_grid::Spec kGrid = menu_grid::kMenu;
+static_assert(kGrid.count == kMenuCount, "the grid must have one button per menu entry");
 
-void buttonBox(int i, std::int16_t& x0, std::int16_t& y0, std::int16_t& x1, std::int16_t& y1) {
-    const std::int16_t col = static_cast<std::int16_t>(i % 2);
-    const std::int16_t row = static_cast<std::int16_t>(i / 2);
-    x0 = static_cast<std::int16_t>(kBtnX0 + col * (kBtnW + kGap));
-    y0 = static_cast<std::int16_t>(kBtnY0 + row * (kBtnH + kGap));
-    x1 = static_cast<std::int16_t>(x0 + kBtnW);
-    y1 = static_cast<std::int16_t>(y0 + kBtnH);
+/// The label budgets, from the button's pixels at the proven MEDIUM upper bound (472 px per
+/// calibration::kMediumCols characters -- R3d-PROGRESS 15:43-15:50): line 1 runs from x0 + 8
+/// to x1 - 1 (11 characters), line 2 stops short of the status dot (9). ESTIMATES until the
+/// SCREEN RULER is read (HA-136); change the one constant and every label is re-checked.
+constexpr std::size_t kBtnLine1Cols =
+    static_cast<std::size_t>(menu_grid::line1Px(kGrid)) * calibration::kMediumCols / 472;
+constexpr std::size_t kBtnLine2Cols =
+    static_cast<std::size_t>(menu_grid::line2Px(kGrid)) * calibration::kMediumCols / 472;
+
+/// Every menu literal fits where it is drawn, ASCII only, and without a '%'. The log label
+/// and the instructions reach the panel through screenEmit()'s 54-column cut, so they are
+/// checked for the characters only.
+constexpr bool menuLiteralsFit() {
+    for (const MenuItem& m : kMenu) {
+        if (!panelLiteralFits(m.btn1, kBtnLine1Cols)) return false;
+        if (!panelLiteralFits(m.btn2, kBtnLine2Cols)) return false;
+        if (!panelLiteralFits(m.label, 200) || !panelLiteralFits(m.doThis, 200)
+            || !panelLiteralFits(m.doneWhen, 200)) {
+            return false;
+        }
+    }
+    return true;
 }
+static_assert(menuLiteralsFit(), "a menu button line does not fit its budget, or a menu literal "
+                                 "carries a non-ASCII byte or a '%'");
 
 void drawMenu() {
     g_screenActive = false;
@@ -1896,63 +3045,52 @@ void drawMenu() {
     pros::c::screen_set_eraser(kColBg);
 
     for (int i = 0; i < kMenuCount; ++i) {
-        std::int16_t x0, y0, x1, y1;
-        buttonBox(i, x0, y0, x1, y1);
+        const menu_grid::Rect r = menu_grid::buttonBox(kGrid, i);
         pros::c::screen_set_pen(kColBar);
-        pros::c::screen_fill_rect(x0, y0, x1, y1);
+        pros::c::screen_fill_rect(r.x0, r.y0, r.x1, r.y1);
         pros::c::screen_set_pen(kMenu[i].powersMotors ? kColBad : kColEdge);
-        pros::c::screen_draw_rect(x0, y0, x1, y1);
+        pros::c::screen_draw_rect(r.x0, r.y0, r.x1, r.y1);
         // An amber stripe means THIS ONE NEEDS YOUR HANDS. A RED stripe and edge mean
         // THIS ONE POWERS MOTORS (station 10 DRIVE, the only one). Encoded as form
         // rather than words: the labels are already at the width the button allows.
         if (kMenu[i].handsOn) {
             pros::c::screen_set_pen(kMenu[i].powersMotors ? kColBad : kColWarn);
-            pros::c::screen_fill_rect(x0, y0, static_cast<std::int16_t>(x0 + 5), y1);
+            pros::c::screen_fill_rect(
+                r.x0, r.y0, static_cast<std::int16_t>(r.x0 + menu_grid::kStripeW - 1), r.y1);
         }
         // Text draws pen-on-eraser, so the eraser must match the button fill or
-        // every label carries a black box behind it.
-        pros::c::screen_set_eraser(kColBar);
-        pros::c::screen_set_pen(kColText);
-        pros::c::screen_print_at(pros::E_TEXT_MEDIUM, static_cast<std::int16_t>(x0 + 10),
-                                 static_cast<std::int16_t>(y0 + 10), "%s", kMenu[i].label);
+        // every label carries a black box behind it. Two MEDIUM lines since R2a.
+        const auto tx = static_cast<std::int16_t>(r.x0 + menu_grid::kLabelInsetX);
+        screenText(pros::E_TEXT_MEDIUM, tx, static_cast<std::int16_t>(r.y0 + menu_grid::kLine1DY),
+                   kColText, kColBar, kMenu[i].btn1, kBtnLine1Cols);
+        if (kMenu[i].btn2[0] != '\0') {
+            screenText(pros::E_TEXT_MEDIUM, tx,
+                       static_cast<std::int16_t>(r.y0 + menu_grid::kLine2DY), kColText, kColBar,
+                       kMenu[i].btn2, kBtnLine2Cols);
+        }
         pros::c::screen_set_eraser(kColBg);
 
         // Status dot: hollow until the test has run, then filled with its verdict.
         // This is the only thing on the menu that changes during a session, and it
-        // answers "what have I already done" without a word of text.
-        const std::int16_t cx = static_cast<std::int16_t>(x1 - 16);
-        const std::int16_t cy = static_cast<std::int16_t>(y0 + kBtnH / 2);
+        // answers "what have I already done" without a word of text. Bottom right of
+        // every button, beside line 2 (bench_r3a.hpp's kDot* offsets, host-checked).
+        const auto cx = static_cast<std::int16_t>(r.x1 - menu_grid::kDotDX);
+        const auto cy = static_cast<std::int16_t>(r.y0 + menu_grid::kDotDY);
         if (g_verdict[i] < 0) {
             pros::c::screen_set_pen(kColEdge);
-            pros::c::screen_draw_circle(cx, cy, 6);
+            pros::c::screen_draw_circle(cx, cy, menu_grid::kDotR);
         } else {
             pros::c::screen_set_pen(sevColour(static_cast<Sev>(g_verdict[i])));
-            pros::c::screen_fill_circle(cx, cy, 6);
+            pros::c::screen_fill_circle(cx, cy, menu_grid::kDotR);
         }
     }
 }
 
-/// -1 when the touch landed outside the button grid. INSIDE the grid, the 4 px gaps between
-/// buttons belong to the button above / to the left of them (integer division of the
-/// pitch), so no point inside the grid is dead: on robot two's brain the very first recorded tap
-/// (2026-09-10, `touch: x=364 y=117`) released one pixel into the gap between rows 2 and 3
-/// and did nothing, on a resistive screen where a fingernail's release point wanders a few
-/// pixels. A gap that swallows taps is a trap, not a feature; the header strip above the
-/// grid and the margin below it still hit nothing, so a stale coordinate at (0,0) cannot
-/// launch a station (the earlier touch-fix's invariant, kept).
-int hitTest(std::int16_t tx, std::int16_t ty) {
-    std::int16_t x0, y0, x1, y1;
-    buttonBox(0, x0, y0, x1, y1);
-    const std::int16_t gridX0 = x0, gridY0 = y0;
-    buttonBox(kMenuCount - 1, x0, y0, x1, y1);
-    const std::int16_t gridX1 = x1, gridY1 = y1;
-    if (tx < gridX0 || tx > gridX1 || ty < gridY0 || ty > gridY1) return -1;
-    const int col = std::min(1, static_cast<int>((tx - gridX0) / (kBtnW + kGap)));
-    const int row = std::min(kMenuCount / 2 - 1 + kMenuCount % 2,
-                             static_cast<int>((ty - gridY0) / (kBtnH + kGap)));
-    const int i = row * 2 + col;
-    return i < kMenuCount ? i : -1;
-}
+/// -1 when the touch landed outside the button grid, else the menu index. The rules --
+/// no dead gap inside the grid, dead header and margins outside it, the right edge from the
+/// rightmost column -- are menu_grid::hitTest's (bench_r3a.hpp), tested pixel by pixel on the
+/// host, including against the 2 x 5 menu this replaced.
+int hitTest(int tx, int ty) { return menu_grid::hitTest(kGrid, tx, ty); }
 
 /// TOUCH READOUT (2026-09-10, robot two's brain). The menu registered no tap on a brain
 /// whose own VEXos dialogs took taps fine, so the program now SAYS what it sees: every
@@ -2003,6 +3141,7 @@ void runR3a() {
     emit("");
     emit("################################################################");
     emit("#  shulib R3a/R3b  BENCH TESTER  --  read-only EXCEPT 10 DRIVE (POWERS MOTORS)");
+    emit("#  (12 AI VISION writes the CAMERA's own settings -- never a motor; R2a)");
     emit("################################################################");
     // NEVER pass compiledBuildHash() straight to a %s: it returns std::string_view,
     // which is trivially copyable, so it goes through varargs WITHOUT A COMPILER
@@ -2057,8 +3196,9 @@ void runR3a() {
     for (;;) {
         drawMenu();
         int choice = -1;
+        // The baseline from a GOOD read (an E_TOUCH_ERROR read carries -1 everywhere -- R2a).
+        std::int32_t seen = releaseBaseline();
         pros::screen_touch_status_s_t last = pros::c::screen_touch_status();
-        std::int32_t seen = last.release_count;
         // The at-rest values, once per menu draw -- hit-tested like any other reading, so a
         // tap that landed while a station was still printing shows where it WOULD have hit
         // rather than a false "h-1" (the first robot-two session read one exactly that way).
@@ -2070,7 +3210,10 @@ void runR3a() {
                 touchReadout(t, hitTest(t.x, t.y));  // what the program SEES, every change
                 last = t;
             }
-            if (t.release_count != seen) {   // a NEW tap, not the at-rest state
+            // A NEW tap, not the at-rest state -- and not an ERROR read: that one carries -1 in
+            // every field, and taking it as a tap made the NEXT good read a second "new" tap at
+            // the STALE x/y (R2a, ruling R2a-R4). The readout above still shows it: evidence.
+            if (t.touch_status != pros::E_TOUCH_ERROR && t.release_count != seen) {
                 seen = t.release_count;
                 choice = hitTest(t.x, t.y);  // -1 when it landed off any button: keep waiting
             }

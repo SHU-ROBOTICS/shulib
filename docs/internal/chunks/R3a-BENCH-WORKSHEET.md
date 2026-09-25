@@ -12,7 +12,9 @@
 
 **The program is already on the brain: slot 3, named "Bench Tests".** It is **read-only and commands
 no motion — EXCEPT button 10 DRIVE**, which powers the drive motors and has its own station (D)
-below. Nothing else on the menu can move the robot. *(Since R3b Part 0b there is a SECOND program
+below. Nothing else on the menu can move the robot. *(Button **12 AI VISION** writes the AI Vision
+CAMERA's own settings — tag and object detection on, its video overlay on — and says so on its
+screen; it powers nothing. Station I.)* *(Since R3b Part 0b there is a SECOND program
 for robot two, **"shulib Drive"** in **slot 1**, which just drives — Station E. It is not a menu;
 it drives from the moment it starts. Since R3b Parts 1–3 there is a THIRD, **"shulib Teleop"** in
 **slot 2**, in which THE LIBRARY drives — Station F. Since R3d Part 2 there is a FOURTH,
@@ -43,13 +45,28 @@ through the library.)*
 2. A **boot splash** shows a **BUILD** stamp for two seconds, and the same stamp sits on the menu.
    **If that stamp is not the build you just uploaded, the upload did not land** — re-upload before
    trusting anything on screen. (A silent upload failure cost a debugging cycle on 2026-08-18.)
-3. A **touch menu** appears. Tap any test:
+3. A **touch menu** appears: **twelve buttons, three across and four down**, numbered like a
+   phone keypad (since R2a, 2026-09-24 — it was two columns of five):
+
+   ```text
+   [ 1 DEVICE   ] [ 2 IMU +    ] [ 3 MOTOR    ]
+   [   CENSUS   ] [   ROTATE   ] [   WATCH    ]
+   [ 4 BATT/CTRL] [ 5 SD CARD  ] [ 6 LOOP RATE]
+   [            ] [   PROBE    ] [            ]
+   [ 7 RUN ALL  ] [ 8 MOTORS   ] [ 9 SCREEN   ]
+   [            ] [   STATIC   ] [   RULER    ]
+   [ 10 DRIVE   ] [ 11 DISTANCE] [ 12 AI      ]
+   [   POWERS   ] [            ] [   VISION   ]
+   ```
+
+   Each button shows its number and name on two lines (shortened to fit; the log still writes
+   the full name, e.g. `>>>>>> 3  MOTOR WATCH (live)`). Tap any test:
 
    **An amber stripe down a button's left edge means that test needs your hands.**
    Each test also opens with two amber lines — `DO NOW` and `DONE IF` — so you never
    have to guess what you are supposed to do or when you are finished.
 
-   | Button | Hands? | What YOU do | Finished when |
+   | Button (as the log names it) | Hands? | What YOU do | Finished when |
    |---|---|---|---|
    | **1 DEVICE CENSUS** | — | nothing, just read it | you have noted every port and what is in it |
    | **2 IMU + ROTATE** | **yes** | turn the whole robot counter-clockwise | the big number **ROSE** while you turned — if it fell, say so |
@@ -61,12 +78,15 @@ through the library.)*
    | **8 MOTORS (static)** | — | nothing — a one-shot snapshot; use 3 to capture movement | you have seen each motor's raw and canonical position |
    | **9 SCREEN RULER** | **yes** | answer the four numbered questions on screen | all four answered — they fix the layout constants |
    | **10 DRIVE (POWERS)** | **yes — RED stripe** | **POWERS THE MOTORS.** Wheels off the ground; hold **L1** to drive | you drove at 3 V wheels-up, raised the ceiling with **R1**, touched to stop — see **Station D** |
+   | **11 DISTANCE** | **yes** | hold the robot square to a wall at 6, 12 and 24 in (tape) and press **RECORD** at each; then point it at open space — see **Station H** | a RECORD number for 6, 12, 24 in and open space, per sensor |
+   | **12 AI VISION** | **yes** | a game piece about 1 ft then 2 ft ahead, moved left then right, **RECORD** each; **FAMILY** for a printed tag — see **Station I** | a RECORD number per spot, and which FAMILY sees your tag (if you have one) |
 
-   Each button carries a **status dot**: hollow until run, then filled — green PASS,
-   amber CHECK, red FAIL. That is how you tell what is left without keeping a list.
+   Each button carries a **status dot** at its bottom right: hollow until run, then filled —
+   green PASS, amber CHECK, red FAIL, **white DONE** (the test ran and judges nothing — 11 and 12
+   end that way). That is how you tell what is left without keeping a list.
    **Button 10 has a RED stripe and a red edge instead of amber: it is the only one that
    powers motors.** *(This table was corrected at R3b Session 2 — it had listed the menu as it
-   was before MOTOR WATCH existed.)*
+   was before MOTOR WATCH existed — and grew to twelve at R2a.)*
 
 4. Results print on the screen. When it fills, tap to continue. When a test ends, tap
    **TOUCH TO RETURN TO MENU**.
@@ -875,11 +895,218 @@ robot, not from robot two.)
 
 ---
 
+## Station H — THE DISTANCE SENSORS  *(Bench Tests button 11, robot two — added R2a, 2026-09-24)*
+
+> **Read-only.** Nothing is powered and nothing is written to a sensor. **This station has NEVER
+> RUN ON A ROBOT**; its text sizes are the same derived estimates as Station G's (if a line runs
+> off the right edge, write down which one, word for word).
+>
+> **What it answers:** the team lead's *"how do we know the distance sensors ... are working?"* — and
+> three beliefs the library's distance code is built on that no robot has checked yet: the reading
+> is in **millimetres** (HA-113), **9999 means "nothing there"** (HA-114), and the confidence is
+> **0–63 and only meaningful above 200 mm** (HA-115; PROS's C header says it returns 10 below
+> that, its C++ header does not say). Your RECORD lines settle them. The station **interprets
+> nothing**: it shows what PROS returns and what the library's adapter makes of it, side by side.
+>
+> **Robot two, 2026-09-24:** distance sensors on **port 4 (facing LEFT)** and **port 5 (facing
+> RIGHT)**. The station finds them itself, in the brain's own device list — nothing is typed.
+
+**H.0 — before**
+
+- [ ] **H.0.1** "Bench Tests" uploaded from the committed tree (G.1's first line, `make ROBOT=tank`,
+      slot 3); its BUILD stamp is the build you just made.
+- [ ] **H.0.2** A **tape measure**, a **flat wall** (or a board held still and square), a pen. A card
+      in the SD slot (every RECORD also goes to `/usd/r3a_log.txt`), and the laptop on the USER port
+      if you can (G.7 — every line of this station starts `[R3A]`).
+- [ ] **H.0.3** Find each sensor's **front face**. Every distance below is measured **from that face**,
+      not from the robot's edge.
+
+**H.1 — reading the screen** (every string copied from the code; the numbers are made up)
+
+| Where | It says | What it is |
+|---|---|---|
+| top bar | `11 DISTANCE -- read-only` | |
+| per sensor, line 1 (white; **red** on an error) | `PORT 4 RAW   305 mm conf 61` | exactly what PROS returned: `distance_get` and `distance_get_confidence`. `ERR` = PROS's error value |
+| line 2 (light blue) | `  LIB   12.01 in conf 0.97` | the same sensor through **shulib's adapter**: inches, and a confidence from 0 to 1. A separate read, so it can be one sample newer than line 1. `  LIB -- adapter refused (log)` if the adapter would not start |
+| line 3 (grey; **amber** once any error was counted) | `  size 75  vel +0.02m/s  9999 x0  ERR x0/0` | PROS's object size and object velocity, raw; **how many reads since you pressed 11 were exactly 9999**; how many were errors (raw / through the adapter) |
+| the line above the buttons (amber) | `hold square to a wall at 6/12/24 in; RECORD each` | what to do. With more than two sensors: `+1 more DISTANCE sensor(s): RECORD logs every one` |
+| after a RECORD (green) | `RECORD 3: 2 line(s) -> serial + SD card` | written — or amber `RECORD 3: 2 line(s) -> serial only (SD OFF)` |
+| buttons | **RECORD** (bottom middle), **DONE** (bottom right) | **grey for half a second** when the screen appears — a tap then is ignored (and logged as ignored) |
+
+The numbers change up to five times a second. Two sensors fit on the screen, port 4 above port 5.
+If it says `no DISTANCE sensor in the registry -- nothing to show.`, the brain does not see one:
+check both ends of the cable and run **1 DEVICE CENSUS**.
+
+**H.2 — the distances.** Hold the robot **square** to the wall — the sensor's face parallel to it —
+**still**, then press **RECORD**. Each RECORD writes BOTH sensors; the one facing away is your
+open-space reading for free.
+
+| Which side faces the wall | Tape (sensor face to wall) | = mm | RECORD # | port 4 RAW mm / conf | port 4 LIB in / conf | port 5 RAW mm / conf | port 5 LIB in / conf |
+|---|---|---|---|---|---|---|---|
+| LEFT (port 4) | 6 in | 152 | | | | | |
+| LEFT (port 4) | 12 in | 305 | | | | | |
+| LEFT (port 4) | 24 in | 610 | | | | | |
+| RIGHT (port 5) | 6 in | 152 | | | | | |
+| RIGHT (port 5) | 12 in | 305 | | | | | |
+| RIGHT (port 5) | 24 in | 610 | | | | | |
+| neither — open space, nothing within 3 m either side | — | — | | | | | |
+
+- [ ] **H.2.1** 6 in is **152 mm — below the 200 mm** where PROS says confidence is not available.
+      Write down what `conf` shows there, whatever it is.
+- [ ] **H.2.2** **Open space:** leave it pointing at nothing for **30 seconds**, then RECORD. Does
+      RAW sit at **exactly 9999** the whole time (the `9999 x` count climbs by about five a second
+      if it does)? What does LIB say — `conf 0.00`?
+- [ ] **H.2.3** Any `ERR` count above 0, or a red line 1 → write down when it happened.
+
+**What each answer means — for whoever reads your numbers, NOT for you to act on.** RAW should be
+about the "= mm" column (HA-113: millimetres); if it reads about the tape in inches or centimetres
+instead, that is the finding. LIB should be about the tape in inches. Open space should read 9999
+(HA-114). **Do not "correct" anything**: write what the screen showed.
+
+**H.3 — what to send back**
+
+1. The H.2 table, with the RECORD numbers.
+2. The `[R3A] dist` lines — from `/usd/r3a_log.txt` on the card, or the serial capture (G.7;
+   `strings <log> | grep '\[R3A\] dist'`). One RECORD line looks like this (numbers made up):
+   `[R3A] dist REC 3 port 4 raw 305 mm conf 61 size 75 vel +0.021 m/s -> lib 12.008 in conf 0.968 | reads 57: 9999 x0, PROS_ERR x0, lib faulted 0 | t 123456 ms`
+   — the station's `REC` count, the port, the raw PROS values, the adapter's inches and confidence,
+   how many reads since you entered the station and how many of them were 9999 / an error, and the
+   brain's clock in ms. Every touch is logged too (`[R3A] dist touch x=.. y=.. -> RECORD`).
+3. H.2.1–H.2.3's answers, and anything surprising, as observed.
+
+---
+
+## Station I — THE AI VISION CAMERA  *(Bench Tests button 12, robot two — added R2a, 2026-09-24)*
+
+> **It changes the CAMERA's settings and powers nothing.** When you press 12 it turns ON the
+> camera's **tag detection** and **object detection** (the camera's built-in game-element model),
+> and its **USB bounding-box overlay**; **FAMILY** sets which AprilTag family it looks for. The
+> screen says so in amber. **Whether the camera keeps these settings after Bench Tests ends is
+> UNKNOWN** — the serial log records every setting it wrote and what it read back (I.4 finds out).
+> **This station has NEVER RUN ON A ROBOT.** It **interprets nothing**: no bearing, no distance —
+> the numbers are the camera's own; the AI Vision code in the library (R2b) is written afterwards
+> from what you record here.
+>
+> **"Can I see what the camera sees?"** Yes, but not through the brain: the camera's **own USB-C
+> port** streams its video to **VEX's AI Vision Utility** on a computer. That is VEX's program, not
+> ours — follow VEX's instructions to connect it. With the overlay on, the video draws a box around
+> each thing the camera detected, so the video and the station's list should show the SAME
+> detections.
+>
+> **COLORS** (colour signatures) are left alone: the camera only detects a colour after it has
+> been taught one (a colour descriptor), and this station teaches none. The screen says
+> `COLORS need color descriptors - none set here`.
+>
+> **Robot two, 2026-09-24:** AI Vision on **port 3**, at the front, level, roughly centred. The
+> station finds it itself (the brain's device list must say **AI-VISION** for it).
+
+**I.0 — before**
+
+- [ ] **I.0.1** "Bench Tests" uploaded (as H.0.1); SD card in; the serial capture running if you can
+      (G.7).
+- [ ] **I.0.2** **A game piece** (this season's), a **tape measure**, a clear stretch of floor in front
+      of the robot. **An AprilTag** if the team has one — best of all one of the FIELD's: the
+      Override field carries a tag on each of its nine goals (game manual, read 2026-09-24), but
+      the manual's text does not name their family, so the family that sees a field tag in I.4 IS
+      the field's family. Any other printed tag still exercises the station.
+- [ ] **I.0.3** Optional: a computer with **VEX's AI Vision Utility** and a USB-C cable for the
+      camera's own port (I.3).
+
+**I.1 — reading the screen** (every string copied from the code; the numbers are made up)
+
+| Where | It says | What it is |
+|---|---|---|
+| top bar | `12 AI VISION -- port 3` | the camera the screen shows |
+| amber | `THIS STATION TURNED ON, on port 3:` / `tag + object detection and the USB box overlay` | what it changed on the camera. **Red** `A SETTING FAILED on port 3 -- see serial / SD` / `tag + object detection or the overlay may be OFF` if the camera refused a setting |
+| grey | `COLORS need color descriptors - none set here` | see above |
+| big line | `OBJECTS 2  TEMP 41.3 C` | how many things the camera reports right now, and its temperature. `ERR` = PROS's error value |
+| grey | `data changes every ~33 ms (min 20, n 45)` | how often the camera's reported data CHANGES, timed by the brain checking every 10 ms — a first hint at how fresh its answers are. Before two changes: `data changed 1 time(s); timing ...`; when nothing is moving: `no change in the data for 5 s` (a still scene may not change at all — move the piece) |
+| one row per detection | `0 OBJECT 1 <class> x120 y80 w40 h38 s92` | row number; **OBJECT** = the game-element model; its id; the class name the camera reports for that id; then the box as PROS reports it — `x` (PROS: "left edge, from camera's view"), `y` ("top edge"), `w`, `h` — and `s`, the score. **PROS does not state the units**; do not assume pixels |
+| | `1 TAG id 5  centre 160,120` then `  corners 150,110 170,110 170,130 150,130` (light blue) | an AprilTag: its id, the average of its four corners, and the four corners |
+| | `2 COLOR 1 x120 y80 w40 h38 a125` | a colour or code detection (only if colours were set up elsewhere); `a` is the angle exactly as PROS gives it (its header says tenths of a degree) |
+| | `3 TYPE 0x00 id 0 (raw on RECORD)` (amber) | something that is none of the four kinds — a finding |
+| | `+3 more -- RECORD logs all 7` | more than four rows' worth; RECORD writes every one |
+| above the buttons | `move a piece left, then right; RECORD each spot` | after RECORD: `RECORD 2 -> serial + SD card` (green) or `RECORD 2 -> serial only (SD OFF)`; after FAMILY: `tag family now 16H5 -- hold the tag in view` |
+| buttons | **FAMILY** (bottom left) / **RECORD** (middle) / **DONE** (right) | FAMILY's second line is the tag family: `as found` (never set — the camera's own setting) until you press it, then `CIRCLE21H7` → `16H5` → `25H9` → `61H11` → round again (PROS's own names for the four families it knows). All three are **grey for half a second** first |
+
+If it says `no AI-VISION sensor in the registry: nothing to show.`, the brain does not see the
+camera as an AI Vision sensor: check the cable and run **1 DEVICE CENSUS** — it must say
+`AI-VISION` for port 3. (If the census says `VISION` instead, that is the older Vision sensor, and
+this station will not drive it.)
+
+**I.2 — a game piece, WITHOUT the video.** Piece on the floor straight in front of the camera; a
+tape from the camera lens forward. Hold each spot still for two seconds, then **RECORD**.
+
+| Spot | RECORD # | OBJECTS | the piece's row, as shown (type, id, class, x, y, w, h, s) |
+|---|---|---|---|
+| ~1 ft, centred | | | |
+| ~1 ft, moved LEFT (the robot's left) | | | |
+| ~1 ft, moved RIGHT | | | |
+| ~2 ft, centred | | | |
+| ~2 ft, LEFT | | | |
+| ~2 ft, RIGHT | | | |
+| nothing in view | | | |
+
+- [ ] **I.2.1** Moving the piece to the robot's **RIGHT** — did `x` go **UP** or **DOWN**? → ______
+- [ ] **I.2.2** From 1 ft to 2 ft — did `w` and `h` get **smaller**? → ______
+- [ ] **I.2.3** Did the class name match what the piece is? → the name shown: ______
+- [ ] **I.2.4** Move the piece steadily across the view for ten seconds and read the grey line:
+      `data changes every ~___ ms (min ___)`. RECORD once while it moves.
+
+**I.3 — the same, WITH the video.** Connect the camera's USB-C to the computer and open VEX's AI
+Vision Utility (VEX's instructions). If the camera cannot stream while it is plugged into the brain,
+skip I.3 and say so. Repeat I.2's six spots and RECORD each.
+
+- [ ] **I.3.1** Does the video draw a box around the piece at each spot? → yes / no
+- [ ] **I.3.2** Does the number of boxes in the video match `OBJECTS` on the brain? → ______
+- [ ] **I.3.3** Screenshot the video at the 1 ft RIGHT spot, with the brain's screen in the photo if
+      you can.
+
+**I.4 — an AprilTag (only if the team has one; a field tag if possible — I.0.2).** Hold the tag flat, facing the camera,
+about 1 ft away, still.
+
+- [ ] **I.4.1** With FAMILY showing `as found`: does a `TAG` row appear? → yes / no. RECORD.
+- [ ] **I.4.2** If not: press **FAMILY** once, wait **three seconds**, look for a `TAG` row; again
+      until one appears or all four have been tried. RECORD when it appears.
+      → the family that saw it: **______** (`CIRCLE21H7` / `16H5` / `25H9` / `61H11` / none)
+- [ ] **I.4.3** Rotate the tag a quarter turn — do the corners move round? RECORD.
+
+**I.5 — does the camera keep the settings?** *(two minutes; the answer tells R2b whether a program
+must set them every time.)* Press DONE, **power the brain off and on**, run Bench Tests, press 12
+again, and before touching anything read the serial or SD log's line
+`[R3A] aiv port 3 detection modes AS FOUND: ...` — what does it say? → ______ Copy it next to the
+AS FOUND line from your FIRST press of 12 today, before this station had written anything. If the
+first one lacked `TAGS` or `OBJECTS` and this one has both, the camera kept the setting across a
+power cycle; if this one reads the same as the first, it did not. If the first already had both,
+this test cannot tell — write that. (Nothing in the library assumes either answer yet.)
+
+**What to send back**
+
+1. The I.2 table (and I.3's if you did it), with the RECORD numbers; I.2.1–I.2.4; I.3's answers and
+   screenshot; the I.4 family; the I.5 AS FOUND line.
+2. The `[R3A] aiv` lines from `/usd/r3a_log.txt` or the serial capture
+   (`strings <log> | grep '\[R3A\] aiv'`). At entry the station logs every setting it wrote and
+   what came back: `[R3A] aiv port 3 detection modes AS FOUND: ...`, `SET tag + object detection
+   ON (colours left as found) -> PROS_SUCCESS`, `SET USB bounding-box overlay ON -> ...`,
+   `tag family NOT set: the camera's own (as found) until FAMILY is pressed`, `detection modes
+   NOW: ...`, and the camera's list of class names (`class names: get_class_name(-1) -> ...`, then
+   `class 0 '...'` per name). Each RECORD writes one summary line and one line per detection
+   (numbers made up):
+   `[R3A] aiv REC 2 port 3 count 1 read 1 temp 41.25 C family as-found modes 0x05 TAGS+OBJECTS | data changed every ~33 ms (min 20, n 45) | t 123456 ms`
+   `[R3A] aiv REC 2 port 3 obj 0 OBJECT id 1 class '...' x 120 y 80 w 40 h 38 score 92 | raw 0104...`
+   — a TAG line carries `centre` and `corners`, a COLOR/CODE line `angle`; every detection line ends
+   with the object's 18 raw bytes in hex, so nothing is lost to how the station decoded it.
+3. Anything surprising, as observed — a row that flickers, a count that never settles, a class
+   name that is wrong.
+
+---
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
       (`src/bench_r3a.cpp`) — read-only except button 10 DRIVE, which powers nothing unless L1 is
-      held and its six checks pass. For the 2026 tank chassis the build is `make ROBOT=tank`, and
+      held and its six checks pass (button 12 AI VISION writes the camera's own detection
+      settings, never a motor). For the 2026 tank chassis the build is `make ROBOT=tank`, and
       its drive program is `make ROBOT=tank PROGRAM=drive` (Station E). The invented X-drive
       wiring is behind a build flag and would fault at boot on either robot.
       *(Brain's programming port is **micro-USB**, not USB-C.)*

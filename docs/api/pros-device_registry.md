@@ -29,7 +29,7 @@ class ProsDeviceRegistry final : public IDeviceRegistry
 
 IDeviceRegistry over `pros::c::registry_get_plugged_type`. Stateless, cacheless and constructible anywhere; the ONE line that turns a physical port into PROS's zero-indexed registry index lives in pluggedKind() and is pinned from both ends by the adapter test (header: the 2026-08-18 off-by-one that invented a device at index 21).
 
-*class, declared at [`include/shulib/hal/pros/device_registry.hpp:87`](../../include/shulib/hal/pros/device_registry.hpp#L87).*
+*class, declared at [`include/shulib/hal/pros/device_registry.hpp:89`](../../include/shulib/hal/pros/device_registry.hpp#L89).*
 
 <a id="prosdeviceregistry-prosdeviceregistry"></a>
 
@@ -41,7 +41,7 @@ ProsDeviceRegistry() = default
 
 Nothing to open, nothing to own — the registry is the brain's own table.
 
-*function, declared at [`include/shulib/hal/pros/device_registry.hpp:90`](../../include/shulib/hal/pros/device_registry.hpp#L90).*
+*function, declared at [`include/shulib/hal/pros/device_registry.hpp:92`](../../include/shulib/hal/pros/device_registry.hpp#L92).*
 
 <a id="prosdeviceregistry-pluggedkind"></a>
 
@@ -53,7 +53,7 @@ Nothing to open, nothing to own — the registry is the brain's own table.
 
 What PHYSICAL port `port` (1..kMaxSmartPorts) carries, right now. A port outside that range answers None WITHOUT touching PROS (header: uint8_t truncation would otherwise read a neighbouring or nonexistent index).
 
-*function, declared at [`include/shulib/hal/pros/device_registry.hpp:95`](../../include/shulib/hal/pros/device_registry.hpp#L95).*
+*function, declared at [`include/shulib/hal/pros/device_registry.hpp:97`](../../include/shulib/hal/pros/device_registry.hpp#L97).*
 
 <a id="prosdeviceregistry-kindof"></a>
 
@@ -65,14 +65,14 @@ What PHYSICAL port `port` (1..kMaxSmartPorts) carries, right now. A port outside
 
 PROS's device type as this library's DeviceKind. Every value of `v5_device_e_t` is named here on purpose — a device kind PROS adds later lands in `Other`, never in `Motor`, and the adapter test walks the whole enum so that stays true.
 
-*function, declared at [`include/shulib/hal/pros/device_registry.hpp:114`](../../include/shulib/hal/pros/device_registry.hpp#L114).*
+*function, declared at [`include/shulib/hal/pros/device_registry.hpp:116`](../../include/shulib/hal/pros/device_registry.hpp#L116).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 44 lines</summary>
+<summary>The header’s own reasoning — 45 lines</summary>
 
 ```text
 
@@ -87,11 +87,12 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  ═══ THE R1a-SHAPED TRAP, AND WHY THE CONVERSION IS ONE LINE ════════════════════════
  The registry is ZERO-INDEXED and NOTHING ELSE IN PROS IS — every motor, sensor and
- adapter in this tree takes a physical 1..21 port. src/bench_r3a.cpp:112-122 records the
- day that cost: the tester scanned 1..21 as if the index were physical, which shifted
- every reading by one port and invented a device at index 21 (physical 22, which does not
- exist). It produced a confident, completely wrong port map — and HA-120 had already
- predicted exactly that, because the 2026-08-13 "ADI expander" sighting came from index 21.
+ adapter in this tree takes a physical 1..21 port. src/bench_r3a.cpp's registry comment (the
+ one just above `kMaxRegistryIndex`) records the day that cost: the tester scanned 1..21 as
+ if the index were physical, which shifted every reading by one port and invented a device
+ at index 21 (physical 22, which does not exist). It produced a confident, completely wrong
+ port map — and HA-120 had already predicted exactly that, because the 2026-08-13 "ADI
+ expander" sighting came from index 21.
  The same two-conventions-in-one-API shape as HA-122's /usd/ prefix.
 
  So in the LIBRARY the conversion appears EXACTLY ONCE, on the line marked below, and
