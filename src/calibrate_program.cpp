@@ -14,8 +14,11 @@
 // The Part 2 version of this program ran five starts on robot two on 2026-09-24 and finished
 // none (each stopped at or before its side pulse — R3d-PROGRESS "Part 3"); the team lead could
 // not follow its screen ("I CANT READ IT ... I DONT KNOW AFTER I PUSH IT WHAT IM SUPPOSED TO
-// DO"). THIS version — Part 2F-1's one-push calibrator behind the screen below — HAS NEVER RUN
-// ON HARDWARE. Every calibrator threshold is INVENTED (A4 register HA-136), and every text
+// DO"). THIS version — Part 2F-1's one-push calibrator behind the screen below — FIRST RAN on
+// robot two the evening of 2026-09-24: run 1 STOPPED on SPIN_DISAGREE, run 2 finished with no
+// serial capture (R3d-PROGRESS "RUN 1" / "RUN 2"); its recorded reproduction run is still owed.
+// (This paragraph said "HAS NEVER RUN ON HARDWARE" until G1 Part 2b's prose review.) Every calibrator
+// threshold is INVENTED (A4 register HA-136), and every text
 // budget, line height and position on the screen is an ESTIMATE derived from what earlier
 // screens showed on a V5, not measured (Bench Tests' SCREEN RULER, button 9, settles them).
 //
@@ -41,7 +44,8 @@
 // ═══ ONLY A LITERAL "%s" EVER REACHES A PROS SCREEN CALL ═══════════════════════════
 // PROS hands the already-formatted text to VEXos AS A FORMAT STRING, so a '%' that reaches the
 // screen is re-read as a conversion with no argument behind it; and VEXos's fonts carry ASCII
-// only. printText() is the ONE path to screen_print_at: it copies the text into a buffer sized
+// only. printText() (src/screen_text.hpp since G1 Part 2b, shared with "shulib Teleop"; it lived
+// in this file until then) is the ONE path to screen_print_at: it copies the text into a buffer sized
 // from the size's budget, turns '%' and control bytes into '?', a UTF-8 em/en dash into '-' and
 // any other non-ASCII character into one '?' (the hal/pros adapters' precondition messages carry
 // em dashes, and a refusal screen shows them), cuts it at the budget, and prints it through "%s".
@@ -122,6 +126,7 @@
 #include "pros/screen.h"
 
 #include "chassis_table.hpp"
+#include "screen_text.hpp"  // printText(), g_screenPrints (moved there at G1 Part 2b)
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/calibration/drivetrain_calibrator.hpp"
@@ -237,63 +242,11 @@ std::uint32_t barTextColour(PanelTone t) {
                                                                                    : kColText;
 }
 
-pros::text_format_e_t formatOf(TextSize s) {
-    switch (s) {
-        case TextSize::Small: return pros::E_TEXT_SMALL;
-        case TextSize::Large: return pros::E_TEXT_LARGE;
-        case TextSize::Medium: return pros::E_TEXT_MEDIUM;
-    }
-    return pros::E_TEXT_MEDIUM;
-}
-
-// The widest budget is SMALL's, so kPanelLineCap (kSmallCols + 1) holds a line of any size.
-static_assert(calibration::kLargeCols <= calibration::kSmallCols
-                  && calibration::kMediumCols <= calibration::kSmallCols,
-              "printText's buffer is sized from the SMALL budget, the widest");
-
-/// Every call to screen_print_at since the program started — PROS leaks each one's buffer, so the
-/// count is reported at every outcome (header).
-std::uint32_t g_screenPrints = 0;
-
-/// THE ONE PATH TO THE SCREEN (header): `text` copied into a buffer of the size's budget + 1 —
-/// '%' and control bytes become '?', a UTF-8 em/en dash becomes '-', any other non-ASCII
-/// character becomes ONE '?', and the copy stops at the budget — then padded with spaces to
-/// `padTo` characters (never past the budget: an in-place update covers the old, longer text),
-/// then printed through a literal "%s" with `pen` on `eraser`.
-void printText(TextSize size, std::int16_t x, std::int16_t y, std::uint32_t pen,
-                      std::uint32_t eraser, const char* text, std::size_t padTo = 0) {
-    char out[calibration::kPanelLineCap];
-    const std::size_t cap = calibration::budgetFor(size);
-    std::size_t k = 0;
-    const auto* p = reinterpret_cast<const unsigned char*>(text != nullptr ? text : "");
-    while (*p != 0 && k < cap) {
-        const unsigned char c = *p;
-        if (c >= 0x80) {
-            // A UTF-8 sequence. p[1] is read only when p[0] is not the terminator and p[2] only
-            // when p[1] is 0x80 — neither read passes the string's end.
-            if (c == 0xE2 && p[1] == 0x80 && (p[2] == 0x93 || p[2] == 0x94)) {
-                out[k++] = '-';  // an en or em dash
-                p += 3;
-                continue;
-            }
-            if (c >= 0xC0) {
-                out[k++] = '?';  // a lead byte: one '?' for the whole character
-            }
-            ++p;  // a continuation byte (or the lead byte just replaced) is dropped
-            continue;
-        }
-        out[k++] = (c < 0x20 || c == 0x7F || c == '%') ? '?' : static_cast<char>(c);
-        ++p;
-    }
-    while (k < padTo && k < cap) {
-        out[k++] = ' ';
-    }
-    out[k] = '\0';
-    pros::c::screen_set_eraser(eraser);
-    pros::c::screen_set_pen(pen);
-    pros::c::screen_print_at(formatOf(size), x, y, "%s", out);
-    ++g_screenPrints;
-}
+// formatOf(), the budget static_assert, g_screenPrints and printText() lived here until G1
+// Part 2b (2026-09-26), which moved them VERBATIM into src/screen_text.hpp so "shulib Teleop"
+// paints through the same path; every call below is unchanged, and g_screenPrints (now
+// shulib::bench::g_screenPrints, found by the same unqualified name) still counts this program's
+// prints.
 
 // ── the header bar: the step word left (MEDIUM), the build time right (SMALL) ─────────
 constexpr std::int16_t kHeaderWordX = 8;
@@ -640,8 +593,9 @@ struct AllStopGuard {
 };
 
 /// The chassis table's cartridge as the adapter's gearset. Only ever called after Unset has been
-/// refused, so the default is unreachable — and is Blue rather than a silent guess, matching the
-/// tank graph's own helper.
+/// refused, so the default is unreachable — and is Blue rather than a silent guess, as the tank
+/// graph's matching helper in src/main.cpp was until G1 Part 2b retired it (the device provider's
+/// own gearsetOf() now refuses a byte outside the enum instead of defaulting).
 hal::pros::MotorGearset gearsetOf(Cartridge c) {
     switch (c) {
         case Cartridge::Red: return hal::pros::MotorGearset::Red;

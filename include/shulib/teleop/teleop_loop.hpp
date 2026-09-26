@@ -48,9 +48,10 @@
 // input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
-// Host-proven on the A2 plant only. No program calls this yet: "shulib Teleop" moves onto it in
-// G1 Part 2b, with the default DriverProfile (ArcadeBody) and field-centric selectable but OFF.
-// Nothing in the feel layer it runs has been felt by a driver (HA-112).
+// Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/teleop_program.cpp)
+// drives through it, with the default DriverProfile (ArcadeBody) and field-centric selectable but
+// OFF — and that version of the program has not run on hardware, so nothing in the feel layer it
+// runs has been felt by a driver (HA-112).
 //
 // PROS-free, sim-free, allocation-free.
 
@@ -72,9 +73,12 @@ namespace shulib::teleop {
 /// The two numbers the loop needs that neither the chassis nor the controller can supply.
 ///
 /// State BOTH, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`. The
-/// defaults are deliberately not a working configuration: a zero period trips
+/// period's default is deliberately not a working configuration: a zero period trips
 /// `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never
-/// run.
+/// run. The button's default is NOT so guarded: a config that leaves `rezeroButton` unset
+/// quietly gets `L1` — a shoulder button, which the planned claw bindings take — so a program
+/// must name its button ("shulib Teleop" names `A`). Making this default refuse too is owed
+/// before any program binds a mechanism to a shoulder button.
 struct DriverLoopConfig {
     /// How long one tick is — the pacer's period (on a brain, `ProsTickPacer::kTickMs` = 10 ms,
     /// HA-32). Handed to the shaper as its dt, where only the slew limiter reads it. Must be

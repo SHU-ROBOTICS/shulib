@@ -54,10 +54,12 @@
   `tank-drive`, `tank-library`, `tank-calibrate`); the ARM header gate (181 headers); the two CI
   greps; `python3 tools/api_doc_tool.py check-removability`.
 - **Open chunks** (a `-PROGRESS.md` with no `-COMPLETED.md`): **G1** (Part 1 landed; Part 2 briefed
-  in three parts — Part 2a landed 2026-09-24, host-only; 2b and 2c open),
+  in three parts — Part 2a landed 2026-09-24, host-only; Part 2b landed 2026-09-26, build-gated, this
+  version of "shulib Teleop" unrun; 2c open),
   **R3a** (bench measurements; its DoD's register groups are unsettled), **R3b** (host pieces landed;
   closes on an on-robot auton), **R3d** (Parts 1–2 landed; Part 3 is the bench session), **T2**
-  (library half landed; `src/` wiring is in G1 Part 2, and `T2-COMPLETED.md` is owed at the end).
+  (library half landed; its `src/` wiring landed with G1 Part 2b, unrun — `T2-COMPLETED.md` is owed
+  once a driver has compared the feel on the robot).
   None is interrupted: the tree is clean. G2 was closed on 2026-09-24 (`G2-COMPLETED.md`).
 - **Side worktrees:** `.claude/worktrees/agent-aef02a3f7fb230a9d` (T2's, integrated — remove with
   `git worktree remove --force <path>` and then `git branch -D worktree-agent-aef02a3f7fb230a9d`,
@@ -265,9 +267,11 @@ pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot
 Programs in `src/` (six builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
 the measuring tool; `src/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
 `src/drive_program.cpp`), **shulib Teleop** (`PROGRAM=library`, slot 2, built from the SD record — the
-typed table cannot describe the drivetrain, see §2; the library teleop loop in `src/main.cpp`;
-**never run**), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/calibrate_program.cpp`;
-**never run**), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
+typed table cannot describe the drivetrain, see §2; since G1 Part 2b `robot::Robot` + the library's
+own loop in `src/teleop_program.cpp`, **this version never run** — the previous, hand-wired one drove
+robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/calibrate_program.cpp`;
+**first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
+serial capture; its recorded reproduction run is still owed), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
 invented ports, HA-111). **Every `autonomous()` commands nothing.** Upload: `rm -rf bin .d && make
 ROBOT=tank PROGRAM=<p> && pros upload --slot N --name "<name>"` — one program at a time (each build
 overwrites `bin/`).
@@ -285,9 +289,14 @@ is given in brackets; `NEW` marks work the plan has no entry for — **add an en
 
 **L1. [G1 Part 2 + T2's wiring] The PROS device provider, the library teleop loop, `main.cpp` as a
 dispatcher.** — **BRIEF REVISED 2026-09-24 INTO PARTS 2a / 2b / 2c. PART 2a LANDED 2026-09-24,
-HOST-ONLY** (jal's go that morning; `G1-PROGRESS.md` "Part 2a"); **2b and 2c each wait for his go.**
-*(This line read "PART 2a WAITS FOR JAL'S GO" until 2a landed; the paragraph below is kept as it was
-written before the go.)*
+HOST-ONLY** (jal's go that morning; `G1-PROGRESS.md` "Part 2a"). **PART 2b LANDED 2026-09-26,
+BUILD-GATED — "shulib Teleop" on `robot::Robot`; THIS VERSION HAS NOT RUN ON A ROBOT** (jal's answers
+of 2026-09-26: switch to the feel layer, status pointers only, the documentation list accepted; his
+go on 2b CONFIRMED to the executor by the coordinator on 2026-09-26; `G1-PROGRESS.md` "Part 2b").
+**2c waits for his go — after the brake-mode fix (DEFECTS2) and T3, in his order of 2026-09-26
+(§7).**
+*(This line read "PART 2a WAITS FOR JAL'S GO" until 2a landed, and "2b and 2c each wait for his go"
+until 2b landed; the paragraph below is kept as it was written before the go.)*
 `docs/internal/chunks/G1-part2-pros-provider-and-main.md`. jal approved the direction ("we haven't
 tested teleop before so we might as well rewrite") but has NOT said go. The 2026-09-24 audit found
 four defects that would make an executor fail: `Robot`'s constructor re-runs `validate()` without
@@ -379,7 +388,15 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - What: bind a button (hold/press/toggle) to a mechanism operation or a chassis action; **stick input
   takes control back within one tick; releasing the button cancels and the mechanism ends in its
   declared safe state** (asserted at the motors). Per-consumer `ButtonEdge` (HA-104).
-- The binding mechanism is the library's; which button does what is the team's.
+- The binding mechanism is the library's; which button does what is the team's. **The team lead's
+  plan (2026-09-26): the claw pivots on ports 6 and 7, on R1/R2 and L1/L2** — after the brake-mode
+  fix (DEFECTS2), which makes Hold reach the motor.
+- **Owed before a claw takes a shoulder button (found by G1 Part 2b's second review round):**
+  `teleop::DriverLoopConfig::rezeroButton` DEFAULTS to `L1`, so a program that leaves it unset
+  re-zeroes field-centric on a claw press. "shulib Teleop" names `A` and `static_assert`s that its
+  button is not a shoulder button; the library default itself must become non-working (a sentinel
+  `runDriverControl` refuses, as a zero `tickPeriod` is refused) or move off the shoulders, before
+  T3 or the competition program calls the loop.
 - Docs owed: guide chapter section on driver control, cookbook, roadmap Phase T rows, build-order.
 - Size: ~½–1 day.
 
@@ -577,8 +594,12 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
 ## 7. The recommended order
 
 1. **The G1 Part 2 brief was revised and committed on 2026-09-24** (three parts). **Part 2a landed
-   the same day** (host-only). Show jal Part 2b's scope and documentation list and **wait for his go
-   (L1).** On go, launch the executor per §3, verify, commit — then 2c, with its own go.
+   the same day** (host-only); **Part 2b landed 2026-09-26** (build-gated; this version of "shulib
+   Teleop" has not run on a robot). **jal's order of 2026-09-26: the brake-mode fix (DEFECTS2 —
+   Hold and Brake reach the V5 motor; Teleop coasts on stick release), then T3 (the claw pivots on
+   ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
+   started only on his go. Before 2c: re-check its brief against the tree (2b, DEFECTS2 and T3 all
+   change what it starts from).
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).
    Nothing is worth more. It needs nothing from L1.
 3. Brief → go → build, one at a time: **L2** (it is also what lets R3b/M1 close), **L3**, **L6**,

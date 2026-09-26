@@ -61,7 +61,7 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 
 | Piece | Status | Chunk |
 |---|---|---|
-| `IRobotConfig` / `IRouteSource` / `RobotBuilder` | 🚧 | **G1 Part 1 landed 2026-09-18, host-only** — the in-memory types (`config::RobotConfig`, `config::Route`, both seams) and the builder (`robot::Robot` over an `hal::IDeviceProvider`) exist and drive the host plant identically to a hand-wired graph. *Part 2a (the PROS provider, host-tested only) landed 2026-09-24; Parts 2b/2c (`src/main.cpp` onto the builder) are open; ungated* |
+| `IRobotConfig` / `IRouteSource` / `RobotBuilder` | 🚧 | **G1 Part 1 landed 2026-09-18, host-only** — the in-memory types (`config::RobotConfig`, `config::Route`, both seams) and the builder (`robot::Robot` over an `hal::IDeviceProvider`) exist and drive the host plant identically to a hand-wired graph. *Part 2a (the PROS provider, host-tested only) landed 2026-09-24; Part 2b ("shulib Teleop" built on the builder over the PROS provider — that version not yet run on a robot) landed 2026-09-26; Part 2c (`src/main.cpp` as a dispatcher) is open; ungated* |
 | `PathRunner` + command-id registry + manifest export | 🚧 | **G2 landed 2026-09-18, host-only — F8 FROZEN.** The runner executes a `Route` through the frozen chassis verbs, the registry binds ids to handlers, and `writeManifest` publishes the vocabulary (§4.2.3). Proven on the host physics plant against a hand-written recipe, bit for bit; *never run on a robot*. The `.vexbot` READER is G3's |
 | `.vexbot` ingestion + `robot_config.hpp` codegen + SD runtime loader | ❌ | **G3** — freezes F7 |
 | `.shupaths` one-way importer + the 10-minute guide | ❌ | **G4** — closes the accessibility milestone |

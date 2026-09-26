@@ -15,12 +15,16 @@
 //
 // and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the
 // first line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the
-// PROS shim); no program in src/ uses either line yet — "shulib Teleop" moves onto them in
-// Part 2b.
+// PROS shim); since G1 Part 2b "shulib Teleop" (src/teleop_program.cpp) is built from these two
+// pieces — the first program that is. On a brain the second line is spelled the way that program
+// spells it: `robot::validate()` first (it names the port or the field before anything is
+// constructed), then `std::optional<Robot>::emplace` into storage that lives for the whole
+// program, once, from `initialize()` (below: a Robot is constructed where it will live).
 //
 // ── IT ADDS A WAY TO WIRE; IT NEVER CHANGES THE PHYSICS (ruling B4) ─────────────────
-// The graph below is the SAME objects, in the SAME order, with the SAME arguments as
-// src/main.cpp's two hand-written graphs and as the host rigs. That is not an aspiration:
+// The graph below is the SAME objects, in the SAME order, with the SAME arguments as the
+// hand-written graphs src/main.cpp carried (robot two's until G1 Part 2b; the invented X-drive's
+// until 2c) and as the host rigs. That is not an aspiration:
 // it is the acceptance test. test/robot_builder_test.cpp drives a builder-made Chassis and
 // a hand-wired one across the A2 plant and requires the per-tick ground-truth samples to be
 // memcmp-EQUAL, the commanded volts equal, and the exit reason and tick count equal —
@@ -42,8 +46,13 @@
 // Rejected: a factory returning std::optional<Robot>. Chassis is non-copyable and
 // non-movable (its scheduler is pinned by a self-referential command-id stamp), so Robot is
 // too, and returning one by value would depend on elision games the V5 toolchain should not
-// be asked to play. A Robot is constructed WHERE IT WILL LIVE: `static Robot r{…}` in a
-// main, `std::optional<Robot>::emplace` in a test.
+// be asked to play. A Robot is constructed WHERE IT WILL LIVE: on a brain, an EMPTY
+// `std::optional<Robot>` that lives for the program, emplaced ONCE from `initialize()` —
+// src/teleop_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
+// before `initialize()` has installed the on-robot precondition handler, in an order across
+// translation units nobody controls; inside a function, one whose constructor THROWS is
+// constructed again on the next call, and PROS calls opcontrol() again after every disable. In a
+// test, `std::optional<Robot>::emplace` too.
 //
 // ── ABSENT IS NOT NULL ──────────────────────────────────────────────────────────────
 // A robot with no GPS gets hal::AbsentGps in its context and NO corrector in its Localizer.
@@ -70,9 +79,10 @@
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
-// No config has ever been used on a physical robot. src/main.cpp is unchanged and still wires
-// both of its graphs by hand: the on-robot provider exists (Part 2a) but no program uses it
-// yet — "shulib Teleop" moves onto it in Part 2b, and main.cpp becomes a dispatcher in 2c.
+// No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
+// graph with this class over the on-robot provider (src/teleop_program.cpp), and THAT version of
+// the program has not run on hardware; src/main.cpp still wires its invented X-drive graph by
+// hand until it becomes a dispatcher in 2c.
 //
 // PROS-free, sim-free, allocation-free in the control path (the graph is one in-place
 // aggregate, sized by hal::kMaxSmartPorts — no unique_ptr anywhere, as with every other
@@ -322,14 +332,17 @@ struct BuildOptions {
 /// function as well so the formatting can be tested on a description no valid Robot could carry
 /// (a 21-port side).
 ///
-/// The formats are the ones src/main.cpp prints by hand today, so moving a program onto the
-/// builder changes no session header:
+/// The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder
+/// changed no session header (G1 Part 2b moved "shulib Teleop"; the X-drive graph in main.cpp still
+/// prints its own until 2c):
 ///
-///  * **tank** — `tankPortMapString()`'s: the description's source word, both sides' SIGNED
+///  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED
 ///    ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then
 ///    — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides'
 ///    inches per radian and the track width. For a drive-encoder tank without a GPS (robot two)
-///    the text is byte-for-byte `tankPortMapString()`'s.
+///    the text is byte-for-byte what `tankPortMapString()` printed (pinned against a transcription
+///    of it in test/robot_builder_test.cpp, and against robot two's 2026-09-25 capture in
+///    test/boot_source_test.cpp).
 ///  * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the
 ///    GPS when present, the IMU.
 ///  * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.
@@ -343,7 +356,8 @@ inline void writePortMap(const config::RobotConfig& cfg, char* out, std::size_t 
     if (out == nullptr || cap == 0) {
         return;
     }
-    // One side's signed ports, "%+d" space-separated, capped by hand — tankPortMapString()'s loop.
+    // One side's signed ports, "%+d" space-separated, capped by hand — the retired
+    // tankPortMapString()'s loop.
     const auto sidePorts = [](char* dst, std::size_t dstCap, const std::int8_t* ports,
                               std::size_t count) noexcept {
         std::size_t used = 0;
@@ -370,7 +384,7 @@ inline void writePortMap(const config::RobotConfig& cfg, char* out, std::size_t 
     switch (cfg.drivetrain.kind) {
         case config::DrivetrainKind::Tank: {
             const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
-            constexpr std::size_t kSideCap = 40;  // tankPortMapString()'s, so 2b's switch is exact
+            constexpr std::size_t kSideCap = 40;  // tankPortMapString()'s, so 2b's switch was exact
             char l[kSideCap] = "";
             char r[kSideCap] = "";
             sidePorts(l, kSideCap, d.left.signedPorts, d.left.count);
@@ -687,8 +701,8 @@ private:
     ///
     /// The one PLANNED nullptr: a tank port in `options.absentDrivePorts` is not asked for at all
     /// and its slot is left empty — the group's ABSENT member, in the description's own order so
-    /// every index a panel shows still means the same port (src/main.cpp's `TankMotors` keeps its
-    /// slots for the same reason). `validate()` has already refused a list that is not a tank's,
+    /// every index a panel shows still means the same port (src/main.cpp's hand-wired `TankMotors`
+    /// kept its slots for the same reason, until G1 Part 2b retired it). `validate()` has already refused a list that is not a tank's,
     /// names a port that is not a drive port, or empties a side.
     [[nodiscard]] static MotorWiring wireMotors(const config::RobotConfig& cfg,
                                                 hal::IDeviceProvider& devices,
@@ -843,9 +857,10 @@ private:
     /// builder knows and a person should not have to retype — the stall check's per-wheel drive
     /// geometry, and the fact that a drivetrain whose odometry IS its drive encoders has no
     /// independent motion source to cross-check against (odo_stall_check.hpp's §2 ruling).
-    /// Exactly what `src/main.cpp`'s `tankChassisConfig()` does by hand, and applied only where
-    /// that function applies it: a holonomic drivetrain's config carries no per-wheel scale, so
-    /// its tuning is passed through untouched — which is also what main.cpp's X-drive graph does.
+    /// Exactly what `src/main.cpp`'s `tankChassisConfig()` did by hand until G1 Part 2b, and
+    /// applied only where that function applied it: a holonomic drivetrain's config carries no
+    /// per-wheel scale, so its tuning is passed through untouched — which is also what main.cpp's
+    /// X-drive graph does.
     [[nodiscard]] static config::TuningConfig effectiveTuning(const config::RobotConfig& cfg) {
         config::TuningConfig tuning = cfg.tuning;
         if (cfg.drivetrain.kind == config::DrivetrainKind::Tank) {
@@ -863,7 +878,7 @@ private:
 
     /// Write `count` signed ports into `out` as "1,-2,3", bounded by `cap` and always
     /// NUL-terminated. Appended BY HAND rather than with a moving snprintf for the same reason
-    /// src/main.cpp's `tankPortMapString()` does it: the compiler cannot bound a
+    /// src/main.cpp's `tankPortMapString()` did it: the compiler cannot bound a
     /// `cap - strlen(dst)` argument, so -Wformat-truncation fires on a call that is in fact safe,
     /// and the on-robot build gate treats that warning as an error.
     static void appendPorts(char* out, std::size_t cap, const std::int8_t* ports,
@@ -917,7 +932,8 @@ private:
     // ── the graph, in CONSTRUCTION ORDER (declaration order IS initialization order) ────
     //    kinematics → motors → groups → sensors → diagnostics → geometry → odometry →
     //    fusion → correctors → localizer → context → deps → chassis. The same list, in the
-    //    same order, as src/main.cpp's TankRobot and X-drive Robot.
+    //    same order, as src/main.cpp's hand-wired graphs (its TankRobot until G1 Part 2b; its
+    //    X-drive Robot until 2c).
 
     /// The config this robot was built from, COPIED (see the constructor).
     ///

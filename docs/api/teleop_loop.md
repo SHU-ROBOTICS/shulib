@@ -30,9 +30,9 @@ Extracted from [`include/shulib/teleop/teleop_loop.hpp`](../../include/shulib/te
 struct DriverLoopConfig
 ```
 
-The two numbers the loop needs that neither the chassis nor the controller can supply.  State BOTH, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`. The defaults are deliberately not a working configuration: a zero period trips `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never run.
+The two numbers the loop needs that neither the chassis nor the controller can supply.  State BOTH, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`. The period's default is deliberately not a working configuration: a zero period trips `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never run. The button's default is NOT so guarded: a config that leaves `rezeroButton` unset quietly gets `L1` — a shoulder button, which the planned claw bindings take — so a program must name its button ("shulib Teleop" names `A`). Making this default refuse too is owed before any program binds a mechanism to a shoulder button.
 
-*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:78`](../../include/shulib/teleop/teleop_loop.hpp#L78).*
+*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:82`](../../include/shulib/teleop/teleop_loop.hpp#L82).*
 
 <a id="driverloopconfig-tickperiod"></a>
 
@@ -44,7 +44,7 @@ units::Time tickPeriod{0.0}
 
 How long one tick is — the pacer's period (on a brain, `ProsTickPacer::kTickMs` = 10 ms, HA-32). Handed to the shaper as its dt, where only the slew limiter reads it. Must be finite and > 0. `motion::ITickPacer` has no period of its own, and cannot gain one (M3), which is why the program states it here.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:83`](../../include/shulib/teleop/teleop_loop.hpp#L83).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:87`](../../include/shulib/teleop/teleop_loop.hpp#L87).*
 
 <a id="driverloopconfig-rezerobutton"></a>
 
@@ -56,7 +56,7 @@ hal::ControllerButton rezeroButton = hal::ControllerButton::L1
 
 The driver's field-centric re-zero button (`DriveShaper::rezero`). Harmless in a body mode, where a press only pre-arms the zero for a later switch to `ArcadeField`. Which button is the PROGRAM's choice, so state it.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:87`](../../include/shulib/teleop/teleop_loop.hpp#L87).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:91`](../../include/shulib/teleop/teleop_loop.hpp#L91).*
 
 <a id="struct-headingsample"></a>
 
@@ -68,7 +68,7 @@ struct HeadingSample
 
 One tick's heading, as the loop hands it to the shaper: the robot's estimated heading and the caller's verdict on it. What a `runDriverControl` heading source returns.
 
-*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:92`](../../include/shulib/teleop/teleop_loop.hpp#L92).*
+*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:96`](../../include/shulib/teleop/teleop_loop.hpp#L96).*
 
 <a id="headingsample-radians"></a>
 
@@ -80,7 +80,7 @@ double radians = 0.0
 
 The estimated heading, radians, CCW-positive, in the same frame the driver's zero is captured in. Ignored unless the profile's mode is `ArcadeField`.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:95`](../../include/shulib/teleop/teleop_loop.hpp#L95).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:99`](../../include/shulib/teleop/teleop_loop.hpp#L99).*
 
 <a id="headingsample-trusted"></a>
 
@@ -92,7 +92,7 @@ bool trusted = false
 
 True only when the estimate is live and the heading is believable (for a robot::Robot: the Localizer is past `Quality::Uninitialized` and the IMU reports ready). False makes field-centric fall back to robot-centric and LATCH until the driver re-zeroes.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:99`](../../include/shulib/teleop/teleop_loop.hpp#L99).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:103`](../../include/shulib/teleop/teleop_loop.hpp#L103).*
 
 <a id="rundrivercontrol"></a>
 
@@ -104,14 +104,14 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 Run driver control until `disabled()` says stop: sticks → `shaper` → budgets → the chassis, once per tick, in the order the file header lists (disabled check, sticks while connected, one heading sample, the re-zero edge, shape, `drive(Body)`, `perTick`, `pace`).  * `chassis` — the facade to drive; its `motionConfig()` supplies the speed budgets (`maxLinearSpeed`, `maxAngularSpeed` — HA-50, provisional). * `controller` — the driver's controller (VEX U's partner is a second call with a second shaper). * `pacer` — the tick boundary: on a brain the provider's `ProsTickPacer`; in a host test the plant-stepping pacer. * `shaper` — the driver's feel (`DriveShaper`, one per driver, held across calls so its field-centric zero and latch survive a disable). * `cfg` — the tick period and the re-zero button. PRECONDITION: `cfg.tickPeriod` finite and > 0, checked before the first tick. * `disabled` — `bool()`: polled FIRST every tick; true ⇒ `chassis.cancel()` (0 V + Brake) and return. The only way out. * `heading` — `HeadingSample()`: called once per tick, after the sticks, before shaping. * `perTick` — `void(const math::ChassisSpeeds& command, bool connected, const DriveShaperState& state)`: called after `drive()`, before `pace()` — the panel's hook.  Nothing is read from the controller while it is disconnected; the command is then exactly zero whatever the axes claim (HA-103).
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:125`](../../include/shulib/teleop/teleop_loop.hpp#L125).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:129`](../../include/shulib/teleop/teleop_loop.hpp#L129).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 54 lines, click to expand</summary>
+<summary>The header’s own reasoning — 55 lines, click to expand</summary>
 
 ```text
 
@@ -163,9 +163,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
 
  ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
- Host-proven on the A2 plant only. No program calls this yet: "shulib Teleop" moves onto it in
- G1 Part 2b, with the default DriverProfile (ArcadeBody) and field-centric selectable but OFF.
- Nothing in the feel layer it runs has been felt by a driver (HA-112).
+ Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/teleop_program.cpp)
+ drives through it, with the default DriverProfile (ArcadeBody) and field-centric selectable but
+ OFF — and that version of the program has not run on hardware, so nothing in the feel layer it
+ runs has been felt by a driver (HA-112).
 
  PROS-free, sim-free, allocation-free.
 ```

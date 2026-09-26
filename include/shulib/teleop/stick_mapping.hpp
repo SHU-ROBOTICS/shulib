@@ -130,10 +130,11 @@ struct DriveRequest {
                                request.yawCcw * maxAngular};
 }
 
-/// The whole mapping in one call — what "shulib Teleop"'s loop in src/main.cpp (`runTeleopLoop`)
-/// uses each tick today. (The library's own loop, `teleop::runDriverControl` in teleop_loop.hpp,
-/// added at G1 Part 2a, shapes through `DriveShaper` and `toChassisSpeeds` instead; this function
-/// stays for the program that has not moved yet and for its bit-identity pin.) Bit-identical
+/// The whole mapping in one call — what src/main.cpp's R1a loop (`runTeleopLoop`, now called only
+/// by the invented X-drive graph) uses each tick. "shulib Teleop" used it until G1 Part 2b moved
+/// it onto the library's own loop, `teleop::runDriverControl` (teleop_loop.hpp), which shapes
+/// through `DriveShaper` and `toChassisSpeeds` instead; this function stays for the X-drive loop
+/// until G1 Part 2c and for its bit-identity pin. Bit-identical
 /// to the R1a loop it replaced: a disconnected controller returns a default-constructed
 /// ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a
 /// connected one returns toChassisSpeeds(mapSticks(in), …).

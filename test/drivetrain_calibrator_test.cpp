@@ -279,7 +279,8 @@ struct SpinStiction final : shulib::sim::DegradationModel {
 };
 
 /// Build the two MotorGroups a later program would build from a finished description: one signed
-/// adapter per port, then a group per side — the same shape src/main.cpp uses.
+/// adapter per port, then a group per side — the same shape robot::Robot builds (and src/main.cpp
+/// built by hand until G1 Part 2b).
 struct GraphFromDescription {
     std::array<SignedMotor, 10> signedMotors;
     std::array<IMotor*, 5> leftPtrs{};

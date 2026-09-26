@@ -13,12 +13,14 @@
 //
 // The longhand rigs below are therefore written out IN FULL rather than reusing a helper the
 // builder also uses — a shared helper would make the two sides agree by construction and prove
-// nothing. They are transcriptions of src/main.cpp's TankRobot and X-drive Robot, and of
+// nothing. They are transcriptions of src/main.cpp's TankRobot (which "shulib Teleop" wired by
+// hand until G1 Part 2b moved it onto robot::Robot) and X-drive Robot, and of
 // chassis_facade_test.cpp's standalone case, with the harness standing in for hal/pros.
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Everything here runs on the A2 plant behind the F4 fakes. No config has built a graph over a
-// real device; src/main.cpp is untouched and still wires both of its graphs by hand.
+// real device: since G1 Part 2b "shulib Teleop" builds one over the PROS provider, and that
+// version has not run on hardware; src/main.cpp still wires its X-drive graph by hand.
 
 #include "doctest.h"
 
@@ -306,9 +308,10 @@ Trace runLeg(shulib::chassis::Chassis& chassis, RecordingPacer& pacer, const Pos
 
 // ═══ the LONGHAND rigs — transcriptions of src/main.cpp, written out in full ═════════
 
-/// src/main.cpp's TankRobot, by hand, over the plant: five coupled motors per side behind two
-/// MotorGroups, drive-encoder odometry over those groups, no GPS. Member order IS initialization
-/// order, and it is the order robot/robot.hpp declares its own members in.
+/// src/main.cpp's TankRobot as it was until G1 Part 2b, by hand, over the plant: five coupled
+/// motors per side behind two MotorGroups, drive-encoder odometry over those groups, no GPS.
+/// Member order IS initialization order, and it is the order robot/robot.hpp declares its own
+/// members in.
 struct LonghandTank {
     SimHarness h;
     shulib::hal::fake::FakeMotor extra[2][4]{};
@@ -388,9 +391,9 @@ struct LonghandTank {
                 .faults = &faults,
                 .health = &health,
                 .motorGroups = std::span<MotorGroup* const>{groups.data(), 2}};
-        // src/main.cpp's tankChassisConfig(), by hand: the stall check is told the drivetrain's
-        // real geometry, and told that a drive-encoder odometry is not an independent motion
-        // source. This is the one thing robot::Robot derives rather than asking a person for.
+        // src/main.cpp's tankChassisConfig() (until G1 Part 2b), by hand: the stall check is told
+        // the drivetrain's real geometry, and told that a drive-encoder odometry is not an
+        // independent motion source. This is the one thing robot::Robot derives rather than asking a person for.
         shulib::chassis::ChassisConfig chassisCfg{.motion = motionConfig()};
         chassisCfg.motion.stall.setAllWheels(leftGeometry);
         chassisCfg.motion.stall.independentMotionSource =
@@ -639,8 +642,9 @@ TEST_CASE("G1 builder 5c: a tank with TRACKING WHEELS — the motor_group_plant_
           "composition — is bit-identical too") {
     // The brief names GroupRig for test 5, and GroupRig runs PilonsOdometry over the harness's
     // tracking wheels rather than the drive encoders. Both readings are covered: 5/5b are the
-    // drive-encoder tank (what src/main.cpp's TankRobot actually is), and this is GroupRig's
-    // exact composition, reached from a config by choosing a different odometry kind.
+    // drive-encoder tank (what src/main.cpp's TankRobot was, and robot two's robot::Robot is), and
+    // this is GroupRig's exact composition, reached from a config by choosing a different
+    // odometry kind.
     const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
     const cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::TrackingWheels);
     LonghandTank longhand{kin, 5, cfgns::OdometryKind::TrackingWheels, worldConfig()};
@@ -692,8 +696,8 @@ TEST_CASE("G1 builder 5f: a FROZEN member of a builder-made group is counted and
 }
 
 // ═══ 5e. The ONE thing the builder DERIVES rather than asking a person for ══════════
-// src/main.cpp's tankChassisConfig() tells the stall check the drivetrain's real per-wheel
-// geometry and tells it that a drive-encoder odometry is not an independent motion source. The
+// src/main.cpp's tankChassisConfig() told the stall check (until G1 Part 2b) the drivetrain's real
+// per-wheel geometry and that a drive-encoder odometry is not an independent motion source. The
 // builder has both facts already, so it fills them in — and this case asserts that on the FACADE,
 // not on the plant, because a healthy run never trips the stall check and therefore cannot show
 // the difference. (That is not a guess: mutations M8 and M9 were run against the bit-identity

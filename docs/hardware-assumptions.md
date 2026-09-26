@@ -225,7 +225,7 @@
 | HA-138 | `registry_get_plugged_type(i)` is ZERO-indexed: registry index i is PHYSICAL PORT i+1, and indices run 0–20 | reasoned (vendored text) — and the ONE conversion lives in `hal/pros/device_registry.hpp` | R3d Part 3 |
 | HA-139 | `fopen(path, "rb")` under `/usd/` reads back the exact bytes `"wb"` wrote, byte for byte, on the brain's FatFS | reasoned, flagged — the host CANNOT test the mode (POSIX does not translate) | R3d Part 3 |
 | HA-140 | A CRC-32 over a 180-byte record is worth its 4 bytes and its microseconds on a V5, where the blackbox's own format deliberately carries none | reasoned (design note under HA-122) | R3d Part 3 |
-| HA-141 | The registry's KIND answer is right for an IMU, a rotation sensor and a GPS (not only for a motor): a port carrying one reads that kind, and an empty one reads NONE | reasoned (vendored enum) — the on-robot provider refuses a port on this answer ALONE for the three kinds whose adapters cannot fail loudly | G1 Part 2b's first boot / R3 |
+| HA-141 | The registry's KIND answer is right for an IMU, a rotation sensor and a GPS (not only for a motor): a port carrying one reads that kind, and an empty one reads NONE | reasoned (vendored enum) — the on-robot provider refuses a port on this answer ALONE for the three kinds whose adapters cannot fail loudly | IMU half: G1 Part 2b's first boot; the provider's kind refusal: the first program that asks it for a GPS or rotation port / R3 |
 
 ---
 
@@ -738,15 +738,20 @@ dependency order (battery scale before anything drives, signs before any closed 
   *Source:* `include/shulib/teleop/input_shaping.hpp` (`kDefaultDeadband`, `kDefaultExpo`,
   `DriverProfile`), `slew_limiter.hpp` (`SlewConfig`), `drive_modes.hpp` (`DriveMode`),
   `field_centric.hpp` (the latch), `driver_control.hpp` (`DriveShaper`, the order); the
-  original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, which
-  `src/main.cpp`'s loop and the drive program still call.
+  original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, which the
+  drive program ("shulib Drive"), the bench tester's DRIVE station and `src/main.cpp`'s X-drive
+  loop still call. Since G1 Part 2b "shulib Teleop" runs the feel layer instead
+  (`src/teleop_program.cpp`, through `teleop::runDriverControl`, `teleop/teleop_loop.hpp`), with
+  this default profile — the one program that does.
   *Confidence:* **invented — every number of it.** Widened at T2 from "the mapping" to "the
   feel layer's defaults"; no new register number was minted, because nothing new was
   measured. **No claim about how any of it feels is made anywhere**, and none can be: the
   defaults were chosen to reproduce the shipped mapping as closely as a continuous deadband
   allows (identical at centre and at both rails; inside that range the rescale asks for at
-  most 0.05 less), which is a compatibility argument, not a feel argument. The library has
-  never been driven by a person.
+  most 0.05 less), which is a compatibility argument, not a feel argument. The feel layer has
+  never been driven by a person: the previous "shulib Teleop" drove robot two under a driver on
+  2026-09-25 (eight starts, open-loop), but through the OLD raw mapping; the feel layer's first
+  driver is the G1 Part 2b version's first run, which has not happened.
   *Settle (T2/R3, runbook step 10):* a human drives it. Signs that feel backwards get flipped
   at the mapping; the deadband, the expo and any slew rate get tuned by feel and recorded as
   a named profile rather than edited into a constant.
@@ -966,8 +971,10 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   record on the SD card supplies an EFFECTIVE track width measured by a powered spin, HA-135, and
   a robot with one never reads this field. Without a record the typed table is still the second
   source, still UNSET, and the program still refuses at boot naming it.)*
-  *Source:* `src/chassis_table.hpp`; `src/main.cpp` (the boot-source decision,
-  `calibration::chooseBootSource`, and `describeMissingForDescription` in the refusal message).
+  *Source:* `src/chassis_table.hpp`; `src/boot_source.hpp` (the boot-source decision,
+  `decideBootSourceFrom()` over `calibration::chooseBootSource`) and `src/boot_source.cpp`
+  (`describeMissingForDescription`'s words, printed in the `typed table: cannot describe a
+  drivetrain -- UNSET:` boot line) — in `src/main.cpp` until G1 Part 2b moved them out, unchanged.
   *Confidence:* **UNSET** — deliberately. A guessed track width turns every commanded yaw into
   the wrong wheel-speed difference (`kinematics/tank.hpp`) and every encoder-implied heading
   into the wrong number, silently; the drivetrain kind was stated, the width was not.
@@ -1067,7 +1074,8 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   robot is INVISIBLE to the health monitor until a detector built on the encoder-vs-IMU heading
   cross-check exists.
   *Source:* `include/shulib/motion/odo_stall_check.hpp` (the §2 ruling; `A4 register HA-131`);
-  `src/main.cpp` (`kNoIndependentStallSourceNote` logged once at boot); `localization/
+  `src/teleop_program.cpp` (`kNoIndependentStallSourceNote` logged once at boot, in two pieces
+  so the 200-byte log line does not cut it; `src/main.cpp` until G1 Part 2b); `localization/
   drive_encoder_odometry.hpp` (`lastHeadingDisagreement()`, the future detector's input).
   *Confidence:* reasoned (structural — a fact about the sources, not a measurement).
   *Settle (**R4** — RE-HOMED from "R3d/R4" on 2026-09-17 by R3d Part 1):* a stuck/slip detector on
@@ -1398,12 +1406,17 @@ this says the KIND the registry reports on that port can be trusted for the thre
   `ProsGps` defers on an unreadable device, so for those three kinds the registry's answer is now the
   ONLY thing that can refuse an empty or wrong port — which is why the belief gets its own entry.
   No rotation sensor or GPS has ever been plugged into either robot.
-  *Settle (G1 Part 2b's first boot of "shulib Teleop" / R3):* boot the program built on the
-  provider with the IMU plugged in and see it construct (and calibrate); boot it once with the IMU
-  cable pulled and see the refusal name the IMU's port with "nothing plugged in (expected an IMU)".
-  When a rotation sensor or a GPS first exists on a robot, the same pair of boots for each. The
-  census beside the brain's own Devices screen (HA-138's settle step) reads the kinds at the same
-  time.
+  *Settle (G1 Part 2b's first boot of "shulib Teleop" / R3) — reworded at G1 Part 2b:* on
+  "shulib Teleop" the boot check reaches every IMU and drive-port fault FIRST, through the same
+  registry call (`calibration/boot_check.hpp`'s `verifyAgainstRegistry`, which refuses a record
+  whose IMU port no longer reads IMU), so a pulled IMU cable is refused by the BOOT CHECK and never
+  reaches the provider — that boot cannot show "nothing plugged in (expected an IMU)". So the belief
+  settles in two halves: the **IMU-present half** on the G1 Part 2b program's first boot (the
+  provider constructs the IMU on the registry's word and starts its calibration); the **provider's
+  kind refusal** on the first program that asks the provider for a port the boot check does NOT
+  verify — a GPS or a rotation sensor, the day one first exists on a robot — with a pair of boots
+  (plugged, then unplugged) for each. No worksheet step for it until then. The census beside the
+  brain's own Devices screen (HA-138's settle step) reads the kinds at the same time.
   *Blast radius if wrong:* **refuses rather than lies.** A sensor the registry mis-kinds is REFUSED
   at boot, by port, with what was found — a robot that will not start, on a bench, with the reason on
   the screen; it cannot become a live adapter over an empty port (the failure this check exists to
@@ -1891,7 +1904,8 @@ E2's tuning constants make the corrector work better or worse; these three make 
   the camera can be discarded without affecting its horizontal position.
   *Source:* `hal/vision_conversion.hpp`, the planar-reduction note (A4: HA-70). `CameraMount`
   carries position and yaw only, which encodes the assumption in the type.
-  *Confidence:* **invented** — no camera is mounted on anything.
+  *Confidence:* **invented** — robot two has carried an AI Vision camera on port 3 since
+  2026-09-24, but nobody has measured how it is mounted, and no library adapter reads it yet (R2).
   *Settle (R3):* measure the mounted camera's pitch and roll; if either is significant, the
   reduction needs the full 3-D transform and `CameraMount` grows two fields.
   *Blast radius if wrong:* a pitched camera turns a tag's HEIGHT into a RANGE error — a tag

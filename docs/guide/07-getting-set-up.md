@@ -119,9 +119,11 @@ mental model, which matters more:
   the raw device, applies the unit conversion **exactly once**, and hands the core a canonical
   value — every unit belief it rests on is catalogued in the
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
-- **`src/`** — the programs that run on a real V5 brain. `src/main.cpp` wires the library to
-  the adapters above and is the worked example of constructing a whole robot in plain C++; the
-  other files are the bench tester, "shulib Drive", "shulib Calibrate" and robot two's port
+- **`src/`** — the programs that run on a real V5 brain. `src/main.cpp` is the PROS entry point
+  and wires the invented X-drive by hand, the worked example of constructing a whole robot in
+  plain C++; "shulib Teleop" (`src/teleop_program.cpp`) is the worked example of the other way —
+  `robot::Robot` built from a config over the real adapters; the other files are the bench
+  tester, "shulib Drive", "shulib Calibrate", the boot source Teleop shares, and robot two's port
   table. Which robot a build targets is chosen at `make` time: the X-drive build's port map is an
   explicitly labelled guess (no such robot exists yet), while the tank builds use port tables
   measured on the old bench robot and on robot two — and robot two's graph is built from the calibration record the

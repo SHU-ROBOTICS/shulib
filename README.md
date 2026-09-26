@@ -113,8 +113,9 @@ current state, so here it is, third heading from the top:
 - **A program now exists in which the robot measures its own drivetrain** — which ports drive,
   which way each motor is wired, which side each is on, the per-side inches per radian and the
   effective track width — and writes the answer to the SD card for the teleop program to boot
-  from. **It has never been run on a robot**: it is proven against the same simulated plant as
-  everything else, and every threshold in it is an invented first guess.
+  from. **It has run on robot two (2026-09-24): one run stopped on its own consistency check and
+  one finished with no log captured, so its recorded reproduction run is still owed.** Every
+  threshold in it is an invented first guess, proven against the host test plant.
 - The vision/AprilTag corrector exists, but **no camera has ever been pointed at a tag by this
   project**, and the library deliberately ships **no map of where the tags are** — that is your
   input, and nobody here can cite one. Its accuracy claims are simulation claims
@@ -233,13 +234,19 @@ angle, or duration belongs), every motion carries its own timeout, and if a faul
 mid-motion (say, the odometry catches a wheel lying) the motion aborts into a safe state and the
 exit reason says so.
 
-Wiring a `Chassis` is ordinary C++ too — construct a kinematics preset, the hardware interfaces,
-the localizer, and hand them over; no config file or code generator is ever required.
-`src/main.cpp` is the complete, commented wiring example (real `hal/pros` adapters; the X-drive
-variant's port map is labelled as the invention it is, and robot two's graph is built from the
-calibration record on the SD card or a measured port table), and the test suite builds
-the same stack in one place against simulated hardware (`test/chassis_facade_test.cpp`, the
-"standalone" case).
+Wiring a `Chassis` is ordinary C++ too, and there are two ways to do it. The on-ramp is the
+builder: describe the robot as a `config::RobotConfig`, and `robot::Robot` builds the whole graph
+from it over a device provider — `robot::validate()` names the port or the field that is wrong
+before anything is constructed. `src/teleop_program.cpp` ("shulib Teleop") is the worked example
+on a real robot: robot two's config comes from the calibration record on its SD card, and
+`hal::pros::ProsDeviceProvider` supplies the real adapters. (A typed port table is the fallback in
+general, but robot two's cannot describe its drivetrain — its track width and gearing are unset —
+so without a record "shulib Teleop" refuses to build.) The longhand
+— construct a kinematics preset, the hardware interfaces, the localizer, and hand them over — is
+always available (Tier 3), and no config file or code generator is ever required: `src/main.cpp`
+still wires its X-drive variant that way (its port map labelled as the invention it is), and the
+test suite builds the same stack in one place against the host test plant
+(`test/chassis_facade_test.cpp`, the "standalone" case).
 
 ## How the tree is laid out
 
@@ -267,7 +274,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   diag/             structured records, sinks, fault latch, health/loop monitors
   sim/              the host plant + hostile sensor models (tests only — see rule 2)
 src/                the robot programs: main.cpp (the PROS entry point), the bench tester,
-                    shulib Drive, shulib Calibrate, and robot two's port table
+                    shulib Drive, shulib Calibrate, shulib Teleop (built on robot::Robot) with
+                    the boot source it shares, and robot two's port table
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

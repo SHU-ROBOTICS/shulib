@@ -238,7 +238,7 @@ constexpr bool tableGeometrySet(const ChassisTable& t) {
 /// The ONE drive-geometry object the library graph hands to BOTH the drive-encoder odometry
 /// and the stall check (hal::DriveGeometry: wheel radius x motor->wheel ratio -> inches per
 /// radian), built from the table's measured diameter and ratio. Precondition: geometry set
-/// (tableGeometrySet) -- the composition root refuses before calling this. Robot two is
+/// (tableGeometrySet) -- tableToDescription() calls it only then. Robot two is
 /// believed symmetric, so one object serves both sides; the type represents asymmetry the
 /// day a per-side measurement says otherwise.
 inline hal::DriveGeometry tableDriveGeometry(const ChassisTable& t) {
@@ -252,7 +252,9 @@ inline units::Length tableTrackWidth(const ChassisTable& t) {
 
 /// Names every field the LIBRARY graph needs that is UNSET: everything describeMissing()
 /// checks with the IMU included, PLUS the three geometry numbers. Returns true when
-/// something is missing; the composition root paints `buf` on the state screen and refuses.
+/// something is missing; the boot source prints `buf` on serial (through
+/// describeMissingForDescription(), in its `typed table: cannot describe a drivetrain -- UNSET:`
+/// line) and a boot with no usable record refuses.
 inline bool describeMissingForLibrary(const ChassisTable& t, char* buf, std::size_t n) {
     const bool any = describeMissing(t, buf, n, false);
     auto add = [&](const char* what) {
@@ -330,8 +332,21 @@ inline bool describeMissingForDescription(const ChassisTable& t, char* buf, std:
         d.right.inchesPerRadian = ipr;
         d.trackWidth = tableTrackWidth(t);
     }
-    std::snprintf(d.provenance, sizeof d.provenance, "TYPED TABLE (%s): %s", t.robot,
-                  t.geometryProvenance != nullptr ? t.geometryProvenance : "");
+    // "TYPED TABLE (<robot>): <geometry provenance>", cut to the description's fixed buffer.
+    // Appended BY HAND rather than with snprintf (G1 Part 2b): with a constant table the compiler
+    // can see the truncation is CERTAIN, and -Wformat-truncation — an error in the src build gate
+    // — fired the first time this was inlined into a translation unit that every build compiles
+    // (src/boot_source.cpp). The bytes are exactly what the snprintf wrote: the same text, cut
+    // one short of the buffer, always terminated.
+    std::size_t n = 0;
+    const char* pieces[4] = {"TYPED TABLE (", t.robot != nullptr ? t.robot : "", "): ",
+                             t.geometryProvenance != nullptr ? t.geometryProvenance : ""};
+    for (const char* piece : pieces) {
+        for (std::size_t k = 0; piece[k] != '\0' && n + 1 < sizeof d.provenance; ++k) {
+            d.provenance[n++] = piece[k];
+        }
+    }
+    d.provenance[n] = '\0';
     return d;
 }
 

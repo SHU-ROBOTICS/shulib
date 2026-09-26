@@ -327,10 +327,12 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   curve, an optional rate limit that is **off** by default, arcade / tank / field-centric
   modes, and a `DriveShaper` that composes them in one call per tick — all host-tested,
   including a test that pins a stick step reaching the commanded motor volts in the same tick.
-  Two things are still missing, and the second is the one that matters. **First**, the shipped
-  teleop loop in `src/main.cpp` and the bench drive program still call the older raw mapping
-  (`teleop/stick_mapping.hpp`); re-pointing them is a separate change. **Second, no driver has
-  felt any of it.** Every default in the feel layer is invented and registered as a guess
+  Two things are still missing, and the second is the one that matters. **First**, only one
+  program uses it: "shulib Teleop" (`src/teleop_program.cpp`) now drives through
+  `teleop::runDriverControl` with the default profile, and that version of the program has not
+  run on a robot yet; "shulib Drive" and the bench tester's drive station keep the older raw
+  mapping (`teleop/stick_mapping.hpp`) until a driver has compared the two on the robot.
+  **Second, no driver has felt any of it.** Every default in the feel layer is invented and registered as a guess
   (HA-112) — which deadband, which curve, which slew rate a driver actually prefers is a
   question only a person on a robot can answer, and nobody has been asked. Treat the defaults
   as a starting point, not a recommendation. Button bindings and driver macros are still

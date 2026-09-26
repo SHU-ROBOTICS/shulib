@@ -494,102 +494,160 @@ progress: STOP, read the `last:` line, and send it word for word.**
 
 ---
 
-## Station F — LIBRARY TELEOP  *("shulib Teleop", robot two — added R3b Parts 1–3, 2026-09-14)*
+## Station F — LIBRARY TELEOP  *("shulib Teleop", robot two — added R3b Parts 1–3, 2026-09-14; REWRITTEN from the code at G1 Part 2b, 2026-09-26)*
 
-> ⚠ **This is the first program in which THE LIBRARY drives a robot.** "shulib Drive" (Station E)
-> sends plain volts through the adapters; "shulib Teleop" drives through `Chassis::drive()`: two
-> motor groups (five motors each, the table's signs), the drive motors' own encoders as odometry,
-> the IMU for heading, the whole motion stack in between. **It has never run.** The first run is
-> WHEELS UP, then the ground, with the coordinator and the team lead present. It POWERS THE MOTORS
-> from the moment driver control starts, up to 12 V. Bench Tests (slot 3) stays the diagnosis tool
-> and "shulib Drive" (slot 1) stays the program that tolerates a dead port — this one does not.
+> ⚠ **"shulib Teleop" is the program in which THE LIBRARY drives robot two.** "shulib Drive"
+> (Station E) sends plain volts through the adapters; "shulib Teleop" builds the library's own
+> robot — `robot::Robot`: two motor groups, the drive motors' own encoders as odometry, the IMU for
+> heading, the motion stack in between — from the **calibration record** on the SD card, and drives
+> it through the library's driver-control loop (`teleop::runDriverControl`, with the driver-feel
+> layer). **THIS VERSION of "shulib Teleop" (G1 Part 2b, built on `robot::Robot`) has not run on
+> hardware.** The previous version (build `v0.1.1-319-g2780462`) drove robot two from the
+> calibration record on 2026-09-25 — eight starts, open-loop under driver control through the
+> library's own graph ([R3d-PROGRESS.md](R3d-PROGRESS.md), "2026-09-25 evening"); no
+> library-commanded motion has run (R3b open). So this version's first run is **WHEELS UP, then the
+> ground**. It POWERS THE MOTORS from the moment driver control starts, up to 12 V. Bench Tests
+> (slot 3) stays the diagnosis tool, and "shulib Drive" (slot 1) stays the program that notices a
+> port dying mid-run.
 
-**F.0 — it refuses until two numbers are measured (lab computer, brain on micro-USB)**
+> ⚠ **WHICH END IS FORWARD — read this before any stick moves.**
+> 1. In **"shulib Teleop"**, forward (stick up, `est x` rising) is the end that **LED the Calibrate
+>    push** saved in the record. On robot two since 2026-09-25 that is the **AI Vision (camera,
+>    port 3) end — the 11/20 end.**
+> 2. **"shulib Drive" (slot 1)** and Bench Tests' **MOTOR WATCH** use the **typed table**, whose
+>    front is the **15/16 end** — the other end. **The same stick drives OPPOSITE ways in slots 1
+>    and 2.** MOTOR WATCH's `AGREES` / `DISAGREES` rows compare against the TABLE, so in **F.2.1**
+>    push the TABLE's front (15/16) first; a push led by the camera end and answered FRONT FIRST
+>    shows every recorded port DISAGREES — the 180° turn, not a wiring fault. (Station G.2.2 uses
+>    MOTOR WATCH differently: it records UP/DOWN per port for the front chosen in G.0.4.)
+> 3. Teleop's boot says `CROSS-CHECK: the MEASURED record and the typed chassis table disagree about
+>    10 port(s)`. That is mostly this 180° turn (every sign flips) plus ports 14 and 19 (only the
+>    table lists them). **Do not edit the table on that warning** — there is no ruling to, and
+>    flipping the table flips "shulib Drive".
+
+**F.0 — it boots from the record; no record on the card means REFUSED**
+
+Build and upload from a clean, committed tree (Station G.1 says how; never from a tree an executor
+is working in):
 
 ```sh
-cd ~/projects/shulib && git checkout shulib-v2 && git pull
-make ROBOT=tank PROGRAM=library && pros upload --slot 2 --name "shulib Teleop"   # the library program
+rm -rf bin .d && make ROBOT=tank PROGRAM=library && pros upload --slot 2 --name "shulib Teleop"
 ```
 
 Start it from the **brain** or the laptop, never from the controller's own menu (Station A's
-pretend-match trap). **As committed it REFUSES at boot**, on purpose, with a red screen
-`shulib TELEOP -- REFUSED AT BOOT · chassis table UNSET for the library: track width, external
-ratio (motor->wheel)`. Nothing is powered. That is the program working: the library needs the
-**track width** (for the turn geometry) and the **motor→wheel ratio** (for the odometry scale),
-and neither has been measured — they are typed only from a measurement, never guessed.
+pretend-match trap). It reads `/usd/shulib_drivetrain.bin`, the record "shulib Calibrate" (slot 4,
+Station G) writes, and checks it against the ports BEFORE anything is powered. **No record on the
+card means refused: the typed table cannot describe robot two** (its track width and motor→wheel
+ratio are UNSET in `src/chassis_table.hpp`, and they are never guessed). A refusal paints a red
+screen — top bar `TELEOP REFUSED AT BOOT` — with a headline, the reason, `Library graph NOT built.
+Nothing is powered.`, the Calibrate hint and `Adapter refused? Bench Tests (slot 3) diagnoses.`, and
+serial prints `[R3B] REFUSED AT BOOT: <headline> -- <reason>`. The headlines:
 
-- [ ] **F.0.1 Tape-measure the track width:** wheels on the floor, measure from the **centre of
-      the left wheels' contact line to the centre of the right wheels' contact line**, in inches,
-      to a tenth. Do it at the front pair and the back pair; they should agree.
-      → front **________ in** · back **________ in**
-- [ ] **F.0.2 The gearing, motor to wheel:** is each wheel driven **directly** by its motor's
-      output shaft (a direct-drive train) or through gears/sprockets? If through gears, **count
-      the teeth** on the motor-side gear and on the wheel-side gear (both sides of the robot).
-      → direct drive **YES / NO** · motor gear **____ T** · wheel gear **____ T** (left) ·
-        **____ T / ____ T** (right)
-- [ ] **F.0.3 Ruler the wheel diameter** on THIS robot (the 2.75 in in the table is REPORTED,
-      "standard wheels", not yet measured here). → **________ in**
-- [ ] **F.0.4** Send all three to the coordinator. The coordinator types them into
-      `src/chassis_table.hpp` (robot two's block: `.trackWidthIn`, `.externalRatio` = wheel revs
-      per motor rev, e.g. `1.0` for direct drive; `.wheelDiameterIn`) with the provenance beside
-      them, rebuilds, uploads, and the program boots its graph. **Nobody else edits those lines.**
+| Headline | Why | Do |
+|---|---|---|
+| `NO USABLE DRIVETRAIN DESCRIPTION` | no record on the card (or one that failed its format checks), and the table cannot describe a drivetrain | run Calibrate (Station G) |
+| `NO USABLE DRIVETRAIN DESCRIPTION`, reason `\| REFUSE: port(s) <n>(<kind>) carry a DIFFERENT device than the calibration recorded -- this robot was rew` — the screen's reason is the port check's sentence CUT at 100 characters, with no mark (port `13(IMU)` ends it at `rew`); the WHOLE sentence is on serial, in the earlier line `calibration record: DECODED, port check REFUSE -- REFUSE: port(s) ... -- this robot was rewired; run shulib Calibrate` (or `... REFUSE: the calibration was taken against an IMU on port 2 and that port now reads EMPTY; run shulib Calibrate`), then `boot source: REFUSE -- the calibration record does not match this robot's ports ...` | the record was taken on a different wiring — a port now carries a different device, or the IMU moved. A record that fails its port check NEVER falls back to the table | re-calibrate; do not "fix" the record |
+| `the library graph REFUSED to build` | the library would not build the robot — e.g. `a RIGHT drive motor cannot be made: port 13: the motor rejected its configuration: ...` | Bench Tests (slot 3) on that port |
 
-**F.1 — what the screen shows when it boots (after F.0)**
+*(Until G1 Part 2b this step asked for the track width, the gearing and the wheel diameter to be
+tape-measured and typed into the table. The record replaced that: the robot measures them itself.)*
+
+**F.1 — what the screen shows when it boots**
+
+The screen repaints only what changed, five times a second at most. Every row is at most 50
+characters (the SMALL budget — an ESTIMATE, HA-136); if one runs off the right edge, write down
+which, word for word.
 
 | Row | What it says | What it means |
 |---|---|---|
-| header | `shulib TELEOP` · `THE LIBRARY drives: Chassis::drive()` · `BUILD <stamp>` | which build (the stamp must be the one you just built) |
-| cmd | `cmd vx +20.0 in/s  w +0.50 rad/s` | what the sticks are asking for, in SPEEDS (not volts): forward in inches per second, yaw in radians per second. `NO CONTROLLER -> 0` if the controller is not linked |
-| est | `est x +12.3  y -0.4  hdg +45.2 deg  DEADRECKON` | the library's own **estimate of where the robot is**, from the drive encoders and the IMU, in inches and degrees from where it booted; the word is the estimate's quality: `UNINIT` (IMU still calibrating, ~2 s after boot), `DEADRECKON` (normal: encoders + IMU, no absolute reference on this robot), `DEGRADED` (the IMU dropped out or the odometry saw an implausible tick — read the fault row) |
-| L / R | `L +6.2V 5 members 0 disagree \| R +6.2V 5 members 0 disagree` | the volts each side's group is sending, how many motors it commands, and how many are **disagreeing** with their side-mates (turning against them, or not turning while they do). Green = none; **red = a member is fighting or frozen** |
-| xcheck | `hdg xcheck +0.0003 rad/tick (enc-IMU)  battery 12.9 V  L/R travel +0.20 +0.20` | the heading the wheels imply vs the heading the IMU measured, per tick — near 0 when rolling cleanly; a steady bias while driving straight means a side is slipping or the track width is wrong; then the battery, and each side's travel this tick in inches |
-| fault | `faults: none` or `FAULT latched: first MOTOR_GROUP_DISAGREE, last …, n=1` | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the drive CONTINUES; the driver is told); `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
-| budgets | `budgets lin 60 ang 3.0 wheel 70 \| ff kS 1.00 kV 0.171 PROVISIONAL HA-45` | the speed caps and the feedforward gains in use — **placeholders**, not measurements (R5 measures them) |
-| notes | `FEEL differs from shulib Drive…` · `stall check: NO independent source…` · `dead ports: NOT tolerated here…` | three honest facts about this program, explained below |
-| table | `table L -11 +12 -13 +14 -15 R +20 -19 +18 -17 +16 IMU2 W2.75 TW13.25 G1.000` | the ports and signs, the IMU port, the geometry — straight from the chassis table |
+| top bar (blue) | `shulib TELEOP` · `BUILD hh:mm:ss` | which build — the time must be the build you just uploaded |
+| 1 (amber) | `THIS VERSION has not run on hardware (G1 2b)` | this program version's own run status (the whole sentence is on serial) |
+| 2 cmd | `cmd vx  +20.0 in/s  w +0.50 rad/s` · `  NO CONTROLLER` (amber) when the controller is not linked | what the sticks ask for, in SPEEDS (not volts): forward in inches per second, yaw in radians per second. Unlinked = exactly zero |
+| 3 est | `est x   +12.3  y    -0.4  hdg  +45.2 DEADRECKON` | the library's own **estimate of where the robot is**, from the drive encoders and the IMU, in inches and degrees from where it booted; the word is its quality: `UNINIT` (IMU still calibrating, ~2 s after boot), `DEADRECKON` (normal on this robot), `DEGRADED` (amber: the IMU dropped out or the odometry saw an implausible tick — read the fault rows) |
+| 4 driver | `driver ARCADE BODY  field-centric OFF` | the stick mapping in force — ARCADE BODY: left stick drives (up = forward, see WHICH END), right stick left/right turns — and field-centric's state. It is OFF in this build (a constant in the code); `ON`, `FELL BACK` or `LATCHED` appear only if it is switched on |
+| 5 L | `L  +6.2 V  4/4 present  0 disagree` | the LEFT group: volts sent, motors answering / motors in the record, motors **disagreeing** with their side-mates. **Green** = all present, none disagree; **amber** = a motor is absent (dead at boot); **red** = a motor is fighting or frozen |
+| 6 R | `R  +6.2 V  4/4 present  0 disagree` | the same for the RIGHT group |
+| 7 xcheck | `hdg xcheck +0.0003 rad/tick  batt 12.90 V` | the heading the wheels imply vs the heading the IMU measured, per tick — near 0 rolling cleanly; a steady bias while driving straight means a side is slipping or the track width is off; then the battery |
+| 8 travel | `L/R travel  +0.20  +0.20 in (last tick)` | how far each side rolled in the last tick |
+| 9–10 faults | `faults: none`, or `FAULT n=1  first MOTOR_GROUP_DISAGREE` / `      last MOTOR_GROUP_DISAGREE` (red) | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the drive CONTINUES; the driver is told); `ODO_STUCK` = the odometry saw an implausible tick; `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
+| 11–12 source | green: `MEASURED record from the SD card, verified against` / `the ports` — or amber: `MEASURED record \| DEGRADED: dead 13 -- driving` / `without them (left dead 0, right dead 1). ...` — or amber: `TYPED TABLE -- unverified since the rebuild; run` / `shulib Calibrate` | where the numbers came from, and which ports are dead. A reason longer than two rows ends at its last whole sentence with ` ...` (a DEGRADED one always does: the NEW-motors list follows); the whole reason is the serial `port check:` line |
 
-The controller LCD: row 0 `LIB 12V B12.9V` (the program and the battery), row 1 `hdg +45.2 deg`
-(the estimate's heading), row 2 the last fault by name or `ok`.
+**On serial only** (they never change while it runs, and the screen has no room): the speed caps
+and the gains — `facade alive: ... budgets lin 60 in/s ang 6.00 rad/s wheel 60 in/s; ff kS 1.00 kV
+0.1714 kA 0.0000` on the 2026-09-25 record, **placeholders**, not measurements (R5 measures them) —
+the feel note, the stall note, and the port map (`[SES] ports MEASURED L -16 +17 -18 -20 R +11 -12
++13 +15 IMU2 ipr 1.2544/1.3670 TW12.01` on that record). The last serial line before driving is
+`opcontrol(): the LIBRARY's teleop loop is live on robot two -- teleop::runDriverControl, ...`.
 
-**What "feels slower than shulib Drive" means.** "shulib Drive" puts the stick straight on the
-motors as volts. This program turns the stick into a **speed request**, sends it through the
-library's pipeline (speed caps → wheel speeds → a feedforward that guesses the volts a speed
-needs → the battery ceiling), and the guesses are placeholders. So full stick may not be full
-volts, and a turn may feel capped. **That is expected and is not a defect** — it is the
-measurement R5 exists to make. Write down what it felt like; do not retune anything on the spot.
+The controller LCD: row 0 `LIB 12V B12.9V` (the program and the battery), row 1 `hdg  +45.2 deg`
+(the estimate's heading), row 2 the last fault by name, `no controller 0V`, `DEGRADED see brain`
+or `ok`.
+
+**What "feels different from shulib Drive" means.** "shulib Drive" puts the stick straight on the
+motors as volts. This program turns the stick into a **speed request** and sends it through the
+library's pipeline (speed caps → wheel speeds → a feedforward that guesses the volts a speed needs
+→ the battery ceiling), and the guesses are placeholders. So full stick may not be full volts, and
+a turn may feel capped. **That is expected and is not a defect** — it is the measurement R5 exists
+to make. Write down what it felt like; do not retune anything on the spot.
+
+**What changed in the feel since the previous version (2026-09-25).** The stick now passes through
+the library's driver-feel layer with its default settings: the same as before everywhere except a
+small band around the centre, where a HARD deadband (nothing, then a jump) became a SMOOTH one (a
+tiny push gives a tiny speed). No expo curve, no rate limit. **Nobody has felt it yet** — F.2.6 is
+where a driver compares the two.
 
 **What the estimate on screen means.** Nothing on this robot tells the library where it is on the
-field: no GPS, no camera, no tracking wheels. The `est` row is dead reckoning from the drive
-encoders and the IMU — it starts at (0, 0) facing +X wherever the robot booted, and it drifts
-as the wheels slip. It is shown so a human can judge it: drive one tile forward and back and see
-whether it returns near 0; spin once and see whether `hdg` comes back. Those observations are
-the first evidence anyone will have about this odometry on a real chassis.
+field: no GPS, no tracking wheels, and the camera is not read by this program. The `est` row is
+dead reckoning from the drive encoders and the IMU — it starts at (0, 0) facing +X wherever the
+robot booted, and it drifts as the wheels slip. Drive one tile forward and back and see whether it
+returns near 0; spin once and see whether `hdg` comes back. **On the 2026-09-25 record the scale
+read about 8 % short** (a taped 48 in read `est x` 44 — carried, not fixed, by the team lead's
+decision), so one tile reads about 22, not 24, until a new calibration.
 
-**What "stall check: NO independent source" means.** The library normally raises `ODO_STUCK` when
-the wheels spin but the robot does not move. On this robot the odometry IS the wheels, so that
-check cannot see a stuck robot and is deliberately not wired to pretend it can. **If the robot
-is pushing against something and the wheels are spinning, the library will not know — you
-will.** Let go of the stick.
+**What "stall check: NO independent source" means (serial).** The library normally raises
+`ODO_STUCK` when the wheels spin but the robot does not move. On this robot the odometry IS the
+wheels, so that check cannot see a stuck robot and is deliberately not wired to pretend it can.
+**If the robot is pushing against something and the wheels are spinning, the library will not
+know — you will.** Let go of the stick.
 
-**What "dead ports: NOT tolerated" means.** If any of the ten motor cables is dead at boot, this
-program refuses (`an adapter REFUSED at construction`) instead of driving on nine. Re-seat the
-cable, or use "shulib Drive" for the session and report the port.
+**What happens with a dead port.** A recorded drive port that is EMPTY at boot is **tolerated**,
+under the same rule "shulib Drive" uses (a side below three answering, or more than two dead in
+total, refuses): the program drives without it, the source rows say `MEASURED record | DEGRADED:
+dead <ports> -- driving without them ...`, that side's row shows `3/4 present` in amber, and the
+LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by this program —
+"shulib Drive" (slot 1) is the one with runtime dead-port detection.
 
-**F.2 — the first run: WHEELS UP, then the ground**
+**F.2 — the first run of THIS version: WHEELS UP, then the ground**
 
-- [ ] **F.2.1** Bench Tests first, once: **1 DEVICE CENSUS** shows ten motors and the IMU on
-      port 2; **3 MOTOR WATCH** front-first push shows every port **AGREES**. Then "shulib
-      Drive" (Station E) wheels-up for thirty seconds, so the signs are known good TODAY before
-      the library is trusted with them.
+- [ ] **F.2.1** Bench Tests first, once: **1 DEVICE CENSUS** shows the record's eight drive ports
+      (**11 12 13 15 16 17 18 20** on the 2026-09-25 record) as MOTOR and the IMU on port 2 (14 is
+      the known extra motor the record does not name). Then **3 MOTOR WATCH**: push the whole robot
+      with the **TABLE's front — the 15/16 end — leading**, and answer **FRONT FIRST** (WHICH END IS
+      FORWARD, item 2). It checks the wiring against the TYPED TABLE, which "shulib Drive" uses and
+      this program does not. If the record's 180° turn is the whole story (item 3), the eight
+      recorded ports read **AGREES** and 19 shows no motor; anything else is a finding.
+      → every DISAGREES row, and what it shows for 14, word for word: ______________
+      *(Until G1 Part 2b this step also ran "shulib Drive" wheels-up for thirty seconds, to prove
+      the TABLE's signs good before a Teleop that drove from the table. This Teleop drives from
+      the record — the record's own port check and F.2.2's wheels-up run check what it uses — and
+      slot 1 just before slot 2 would put two opposite "forward"s back to back.)*
 - [ ] **F.2.2** Robot on blocks, no wheel touching anything, 3 m clear, second person at the
-      battery. Start **"shulib Teleop"** (slot 2) from the brain. Wait for `est` to leave
-      `UNINIT` (the IMU calibrates for ~2 s; the sticks work during it — body-frame driving does
-      not need the estimate). Read the L/R row: `5 members 0 disagree` on both sides.
-- [ ] **F.2.3** Ease the **left stick forward**. `L` and `R` volts rise together, all wheels turn
-      **toward the front**, `L/R travel` both positive, `hdg xcheck` near 0, `est x` climbing.
-      Release: 0 V. **Right stick** left/right: the sides turn opposite ways and `hdg` moves the
-      way the robot would turn (push RIGHT = clockwise = `hdg` going DOWN).
-      → all wheels toward the front on "forward"? **YES / NO** — if NO, which side:
+      battery. Start **"shulib Teleop"** (slot 2) from the brain. Serial (if a laptop is capturing,
+      G.7): `calibration record: DECODED, port check OK` and `boot source: RECORD`. Wait for `est`
+      to leave `UNINIT` (the IMU calibrates for ~2 s; the sticks work during it — body-frame
+      driving does not need the estimate). Read the L/R rows: **`4/4 present  0 disagree`** on both
+      sides on the 2026-09-25 record.
+- [ ] **F.2.3** Ease the **left stick forward** — a little first: near the centre it now eases in
+      smoothly. `L` and `R` volts rise together, all wheels turn **toward the record's front — the
+      camera end (11/20) on the 2026-09-25 record** (after a new calibration, the end pushed first
+      in G.4), `L/R travel` both positive, `hdg xcheck` near 0, `est x` climbing. Release: 0 V, and
+      the drive **COASTS** to a stop — the team lead's ruling for Teleop (2026-09-26). In this build
+      every library stop reaches the motors as plain 0 V: PROS's `move_voltage` ignores the brake
+      mode (read from the code and the vendored PROS header, not yet seen on the robot); the
+      brake-mode fix due next makes Brake real and keeps Teleop's release a coast. **Right stick**
+      left/right: the sides turn opposite ways and `hdg` moves the way the robot would turn (push
+      RIGHT = clockwise = `hdg` going DOWN).
+      → all wheels toward the camera end on "forward"? **YES / NO** — if NO, which side:
       → `hdg` goes DOWN on a right-stick RIGHT push? **YES / NO**
       → any `disagree` count above 0, or a fault by name — copy it word for word: ______________
 - [ ] **F.2.4** Full stick for a few seconds, wheels up: read the highest `L`/`R` volts and the
@@ -597,20 +655,25 @@ cable, or use "shulib Drive" for the session and report the port.
       what "full speed" needs — write it down, it is R5's first data point)
 - [ ] **F.2.5 The ground run — the rule:** 3 m clear in every direction, a second person at the
       battery, stop on ANY red. Robot on the floor, start the program again, **small stick inputs
-      first**. Forward one tile, stop: read `est x` (about 24 for one tile). Back to the start:
-      `est x` near 0? Spin once around: `hdg` back near where it started?
+      first**. Forward one tile (toward the camera end), stop: read `est x` (about 22 on the
+      2026-09-25 record's scale). Back to the start: `est x` near 0? Spin once around: `hdg` back
+      near where it started?
       → forward on "forward"? **YES / NO** · turned the expected way? **YES / NO**
       → `est x` after one tile forward **______** · after returning **______** · `hdg` after one
         full spin **______ deg** · pulls to one side? **NO / LEFT / RIGHT**
-      → slower/faster than "shulib Drive"? **SLOWER / SAME / FASTER** — describe: ______________
-- [ ] **F.2.6** Turn the program off from the brain (or the field disables it: the loop exits
-      cleanly and brakes the drive). Everything printed to serial is the session's record.
+- [ ] **F.2.6 The feel, against the previous Teleop** (the team lead drove it on 2026-09-25):
+      small stick movements around the centre — **smoother / the same / worse**? Anything else
+      different? ______________________________________________
+- [ ] **F.2.7** Turn the program off from the brain (or the field disables it: the loop exits
+      cleanly and commands the drive 0 V + Brake, and serial says `opcontrol(): field DISABLED --
+      loop exited cleanly after cancel() (0 V + Brake); N screen prints so far`). In THIS build the
+      Brake does not reach the motors (F.2.3): expect a coast here too, until the brake-mode fix.
+      Everything printed to serial is the session's record.
 
-> **What to send back:** the three geometry numbers from F.0, the YES/NO answers and the numbers
-> from F.2.3–F.2.5, every fault name and every `disagree` count above 0 word for word, and how it
-> felt against "shulib Drive". The coordinator records them in the development log; they are the
-> first hardware evidence for the motor group, the drive-encoder odometry and the library's teleop
-> loop, and they decide whether M1's badge moves.
+> **What to send back:** the YES/NO answers and the numbers from F.2.2–F.2.6, every fault name and
+> every `disagree` count above 0 word for word, any screen row that ran off the edge, and the
+> serial capture. The coordinator records them in the development log; they are the first
+> hardware evidence for THIS version of the program and for the driver-feel layer.
 
 ---
 
@@ -659,8 +722,11 @@ cable, or use "shulib Drive" for the session and report the port.
 - [ ] **G.0.4** **Decide which end is the FRONT, before you push anything.** Whatever end you push
       first and call FRONT becomes the front: "shulib Teleop" will drive "forward" toward it. (The
       typed table calls the end with ports **15 and 16** the front; the rebuild may have changed
-      that — the 2026-09-24 census pushes came out with every sign inverted.) → the FRONT is the
-      end with ports **______**.
+      that — the 2026-09-24 census pushes came out with every sign inverted. The record on the card
+      since 2026-09-25 took the OTHER end — the camera (AI Vision, port 3) end, 11/20 — as its
+      front, so a new record pushed from the 15/16 end reverses Teleop's forward: Station F, WHICH
+      END IS FORWARD. There is no ruling on which end; write down the one you chose.) → the FRONT is
+      the end with ports **______**.
 - [ ] **G.0.5** Read the **DO NOT** list at the end of this sheet. The two that bite here:
       **never start a program from the CONTROLLER's own menu** (HA-128 — it arms a pretend match
       and the program never gets driver control), and **do not "correct" a reading** to what this
@@ -757,7 +823,8 @@ this run, in no side of the description — and the run goes on with the others.
 shows it as `OUT 18`; the finished screen as amber `LEFT OUT 18` and the sentence
 `port 18 turns but does not move the robot -- its` / `gear is slipping; it is left out`. The run
 still SAVES, WITHOUT that port; "shulib Teleop" then drives without it (a motor on a port the record
-does not name is a warning at its boot, never a refusal). **Fix the gear, then calibrate again** —
+does not name is NAMED at its boot — `NEW motors not in the calibration: 14` in the port-check line,
+as on 2026-09-25 — never a refusal). **Fix the gear, then calibrate again** —
 the robot has one motor less on that side until you do.
 
 **What a stop means — the words on the red screen.** `IT ROLLED` (`it moved but did not turn`):
@@ -791,9 +858,12 @@ record on the card**; a run that stops, or says NOT SAVED, leaves the previous r
       the signed ports of each side (`LEFT  (signed, AS MEASURED): ...`). → the MEASURED line:
       ______________________________________________
       Check each against what the robot IS:
-      - **Ports per side.** Robot two tonight: **LEFT 11 12 13 14 15** (five), **RIGHT 16 17 18 20**
-        (four; port 19 unplugged). A motor on the wrong side, or a split other than 5/4, is a
-        finding — write it down. (A LEFT OUT port makes that side one shorter; see above.)
+      - **Ports per side — which side is LEFT depends on the front you chose (G.0.4).** Robot two
+        tonight, with the **15/16 end** first: **LEFT 11 12 13 14 15** (five), **RIGHT 16 17 18 20**
+        (four; port 19 unplugged). With the **camera (11/20) end** first the sides swap: **LEFT 16
+        17 18 20**, **RIGHT 11 12 13 14 15**. A motor on the wrong side, or a split other than 5/4
+        (4/5 camera end first), is a finding — write it down. (A LEFT OUT port makes that side one
+        shorter; see above.)
       - **`ipr` near 1.375, and L ≈ R.** A 2.75 in wheel driven 1:1 by its motor moves 1.375 in
         (its radius) per radian of motor shaft. **A different value means gearing** and tells you the
         ratio: wheel turns per motor turn = ipr ÷ 1.375 (e.g. 2.29 → the wheel turns 5/3 as fast
@@ -817,27 +887,38 @@ record on the card**; a run that stops, or says NOT SAVED, leaves the previous r
 **G.6 — Teleop from the record**
 
 - [ ] **G.6.1** Start **slot 2 "shulib Teleop"**. At boot the serial log says
-      `calibration record: DECODED, port check OK` and `boot source: RECORD`, and the panel's
-      source row reads **`MEASURED record from the SD card, verified against the ports`**.
+      `calibration record: DECODED, port check OK` and `boot source: RECORD`, and the panel's two
+      source rows (the bottom two) read **`MEASURED record from the SD card, verified against`** /
+      **`the ports`**, in green.
       → which did it say: **RECORD / TYPED TABLE / REFUSE** ______________________
       → if it refused, the headline and the reason, word for word: ______________________
-- [ ] **G.6.2** If a recorded drive port is dead the source row reads
-      `MEASURED record | DEGRADED: dead <ports> -- driving without them ...` and the L/R row shows
-      e.g. `4/5 present`. That is the program driving without that motor, on purpose, under the
+- [ ] **G.6.2** If a recorded drive port is dead the source rows read (amber)
+      `MEASURED record | DEGRADED: dead <ports> -- driving` / `without them (left dead <n>, right
+      dead <n>). ...` — e.g. port 13 dead on the 2026-09-25 record: `MEASURED record | DEGRADED: dead
+      13 -- driving` / `without them (left dead 0, right dead 1). ...` (the ` ...`: the NEW-motors
+      list follows on serial, in the `port check:` line) — and that side's row shows e.g. `3/4
+      present` in amber. That is the program driving without that motor, on purpose, under the
       same rule "shulib Drive" uses (a side below three answering, or more than two dead in total,
       refuses).
 - [ ] **G.6.3** Now run **Station F's F.2 checks** against this boot — F.2.2 (wheels up, `est`
-      leaves `UNINIT`, the L/R row reads `5/5 present 0 disagree` for the left and `4/4 present 0
-      disagree` for the right tonight), F.2.3 (forward is forward, `hdg` goes DOWN on a right-stick
-      RIGHT push), F.2.4 (full-stick volts wheels up), F.2.5 (the ground run). Fill in F.2's boxes on
-      that page.
+      leaves `UNINIT`, the L and R rows read `4/4 present  0 disagree` on the 2026-09-25 record —
+      `4+4 PRESENT` in the serial boot lines), F.2.3 (forward is toward the end you pushed first in
+      G.4 — the front you chose in G.0.4; `hdg` goes DOWN on a right-stick RIGHT push), F.2.4
+      (full-stick volts wheels up),
+      F.2.5 (the ground run), F.2.6 (the feel). Fill in F.2's boxes on that page. The serial boot
+      lines carry the rest: the record's ports (`[SES] ports MEASURED L -16 +17 -18 -20 R +11 -12
+      +13 +15 ...`), the budgets `lin 60 in/s ang 6.00 rad/s wheel 60 in/s` and the gains `ff kS
+      1.00 kV 0.1714`.
 - [ ] **G.6.4 THE SCALE, CHECKED BY DRIVING.** On the floor, robot at the tape's START, drive
       straight along the tape to the **48 in** mark and stop. `est x` should read **about 48**. A
-      scale that is off by some percent shows as `est x` off by the same percent.
+      scale that is off by some percent shows as `est x` off by the same percent. (On the
+      2026-09-25 record it read 44 — about 8 % short, carried by the team lead's decision.)
       → `est x` at the 48 in mark: **______**
-- [ ] **G.6.5** The one question F.2 cannot ask: **does it drive better from the measured record
-      than it did from the typed table?** Straighter? Does `est x` come back nearer to 0?
-      → **BETTER / SAME / WORSE**, and how: ______________________________________________
+- [ ] **G.6.5** *(Retired at G1 Part 2b. It asked whether Teleop drives better from the record than
+      from the typed table; robot two's table cannot describe a drivetrain — no track width, no
+      ratio — so Teleop has only ever driven from a record, and that comparison cannot be made. The
+      comparison that exists now is Station F's F.2.6: this version's feel against the previous
+      one's.)*
 
 **G.7 — reading the user port raw (the full record)**
 
@@ -884,14 +965,15 @@ robot, not from robot two.)
 3. Every **stop**, word for word: the red headline, the `PORT` line — and the log.
 4. Both `MEASURED` lines (**G.5.2**, **G.5.3**), whether each said SAVED, and the tape width.
 5. `est x` at the 48 in mark (**G.6.4**), the `boot source:` line (**G.6.1**) and Station F's F.2
-   answers.
-6. **G.6.5**: better, same or worse than the typed table.
+   answers, F.2.6's feel included.
+6. *(G.6.5 is retired — nothing to send.)*
 7. The log files from **G.7** (the calibrate runs and the teleop run), and any line on the
    calibrate screen that ran off its edge.
 
-> **THIS VERSION OF "shulib Calibrate" HAS NOT RUN.** It is proven on a simulated drivetrain that
-> can roll, slip and coast (the host plant) and nowhere else; every threshold is invented for a
-> first run (HA-136); the screen's text budgets and positions are derived from earlier screens,
+> **THIS VERSION OF "shulib Calibrate" (R3d Part 2F) HAS RUN — AND ITS RECORDED REPRODUCTION RUN
+> IS STILL OWED.** It first ran on robot two on 2026-09-24 (run 1 STOPPED on `SPIN_DISAGREE`, run 2
+> finished, unrecorded — [R3d-PROGRESS.md](R3d-PROGRESS.md)). Every threshold is still
+> invented for a first run (HA-136); the screen's text budgets and positions are derived from earlier screens,
 > not measured. **Expect it to stop more than it succeeds the first time, and treat every stop as
 > information** — each one names its cause, and the serial record now carries the numbers behind
 > it.

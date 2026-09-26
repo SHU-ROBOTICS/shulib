@@ -83,11 +83,13 @@ endif
 #                                         the sticks through the hal/pros adapters, with dead-port
 #                                         tolerance (src/drive_program.cpp; slot 1,
 #                                         `pros upload --slot 1 --name "shulib Drive"`)
-#     make ROBOT=tank PROGRAM=library   → "shulib Teleop" (R3b Parts 1–3, 2026-09-14): THE LIBRARY
-#                                         drives robot two — the tank object graph in src/main.cpp,
-#                                         built from the CALIBRATION RECORD on the SD card when
-#                                         there is one, else from src/chassis_table.hpp, through
-#                                         Chassis::drive() (slot 2,
+#     make ROBOT=tank PROGRAM=library   → "shulib Teleop" (R3b Parts 1–3, 2026-09-14; rebuilt on
+#                                         robot::Robot at G1 Part 2b, 2026-09-26): THE LIBRARY
+#                                         drives robot two — src/teleop_program.cpp, robot::Robot
+#                                         over the PROS device provider, built from the CALIBRATION
+#                                         RECORD on the SD card when there is one, else from
+#                                         src/chassis_table.hpp (src/boot_source.{hpp,cpp}), through
+#                                         teleop::runDriverControl and Chassis::drive() (slot 2,
 #                                         `pros upload --slot 2 --name "shulib Teleop"`). Refuses
 #                                         at boot, on screen, when neither source can describe a
 #                                         drivetrain, or when the record does not match the ports.
@@ -98,7 +100,8 @@ endif
 #                                         the answer to /usd/shulib_drivetrain.bin for "shulib
 #                                         Teleop" to boot from (slot 4,
 #                                         `pros upload --slot 4 --name "shulib Calibrate"`).
-#                                         It POWERS THE MOTORS. UNRUN on hardware.
+#                                         It POWERS THE MOTORS. It has run on robot two since
+#                                         2026-09-24 (its recorded reproduction run is still owed).
 # Four programs in four slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
@@ -119,7 +122,7 @@ endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE
 else ifeq ($(PROGRAM),library)
 ifneq ($(ROBOT),tank)
-$(error PROGRAM=library needs ROBOT=tank — only robot two's chassis table is signed, measured and carries geometry; '$(ROBOT)' has no library graph)
+$(error PROGRAM=library needs ROBOT=tank — only robot two has a calibration record and a signed chassis table; '$(ROBOT)' has no library graph)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_LIBRARY
 else ifeq ($(PROGRAM),calibrate)

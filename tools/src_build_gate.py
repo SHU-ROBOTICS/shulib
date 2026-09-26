@@ -31,11 +31,12 @@ $(error))
                                          program in its own slot
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_DRIVE
-  tank-library ROBOT=tank PROGRAM=library "shulib Teleop" (R3b Parts 1–3): THE LIBRARY drives
-                                         robot two — the tank object graph in src/main.cpp
-                                         (two MotorGroups, drive-encoder odometry, Chassis)
-                                         built from the SD card's calibration record when there
-                                         is one, else from the chassis table; slot 2
+  tank-library ROBOT=tank PROGRAM=library "shulib Teleop" (R3b Parts 1–3; on robot::Robot since
+                                         G1 Part 2b): THE LIBRARY drives robot two —
+                                         src/teleop_program.cpp, robot::Robot over the PROS device
+                                         provider (two MotorGroups, drive-encoder odometry,
+                                         Chassis), built from the SD card's calibration record
+                                         when there is one, else from the chassis table; slot 2
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_LIBRARY
   tank-calibrate ROBOT=tank PROGRAM=calibrate "shulib Calibrate" (R3d Part 2): the robot MEASURES
@@ -101,12 +102,13 @@ passed on the command line but the #ifdef in main.cpp renamed or broken.
   shaped() moved into include/shulib/teleop/stick_mapping.hpp. The assertion is >= 1.)
   TANK BEHAVES LIKE BENCH here (R3b Session 2), AND SO DO TANK-DRIVE (Part 0b),
   TANK-LIBRARY (Parts 1–3) AND TANK-CALIBRATE (R3d Part 2): the X-drive wiring is dead code
-  in all of them — the library program builds its OWN tank graph and never calls
-  robot()/portMapString(), and the calibrate program builds none at all — so each must
-  also emit >= 1 -Wunused-function from src/main.cpp (the tank-library build's own helpers
-  are guarded under SHULIB_RUNS_TANK_LIBRARY and its loop body is a function template, so it
-  adds no warning of its own; the calibrate build's program lives entirely in
-  src/calibrate_program.cpp). That means the warning-count detector CANNOT tell a tank
+  in all of them — the library program builds its OWN graph (robot::Robot, in
+  src/teleop_program.cpp since G1 Part 2b) and never calls robot()/portMapString(), and the
+  calibrate program builds none at all — so each must also emit >= 1 -Wunused-function from
+  src/main.cpp (the tank-library branch of main.cpp only forwards to src/teleop_program.cpp,
+  which every build compiles and --gc-sections drops where it is unreferenced, and the
+  X-drive's loop body is a function template, so neither adds a warning of its own; the
+  calibrate build's program lives entirely in src/calibrate_program.cpp). That means the warning-count detector CANNOT tell a tank
   build from a bench build, nor a tank-drive, tank-library or tank-calibrate build from a
   tank build — which is exactly why the beacon (step 6) exists: it is the only detector that
   can see a tank build that silently became a bench build, or a "shulib Drive" /

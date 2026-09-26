@@ -5,8 +5,9 @@
 // ── Why this type exists ────────────────────────────────────────────────────────────
 // Everything a composition root says about a robot — which ports drive, which way, how
 // the chassis is measured, which sensors are on it, which mechanisms it carries, what the
-// motion layer is tuned to — is today spelled as C++ object construction in one place
-// (src/main.cpp's two graphs). That is a fine thing for a code-fluent team and a closed
+// motion layer is tuned to — was spelled only as C++ object construction in one place
+// (src/main.cpp's hand-wired graphs, until G1 Part 2b built "shulib Teleop" from a
+// RobotConfig instead). That is a fine thing for a code-fluent team and a closed
 // door for everyone else. This header is the OTHER door: the same facts as a plain value
 // a person can type, a calibrator can fill in, or a generator can emit, and which
 // robot/robot.hpp turns into the identical object graph.
@@ -322,7 +323,7 @@ struct GpsConfig {
 /// TAGS AND VISION ARE DELIBERATELY ABSENT IN PART 1, and that is a statement about the tree
 /// rather than about the schema: no camera adapter exists (R2 owns it), so a field here would
 /// describe hardware the library cannot open. `robot::Robot` installs `hal::AbsentTagSource` and
-/// `hal::AbsentVision` unconditionally, exactly as both src/main.cpp graphs do today.
+/// `hal::AbsentVision` unconditionally, exactly as src/main.cpp's hand-wired graphs did.
 struct SensorsConfig {
     /// The GPS, present or absent.
     GpsConfig gps{};

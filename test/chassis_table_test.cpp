@@ -18,6 +18,8 @@
 #include <cstring>
 #include <initializer_list>
 #include <limits>
+#include <string>
+#include <string_view>
 
 #include "../src/chassis_table.hpp"
 
@@ -476,4 +478,52 @@ TEST_CASE("chassis table 2: an UNSET or UNSIGNED table cannot produce a VALID de
     // so it too refuses. Nothing in the tree can build a drivetrain from it today, by design.
     CHECK(describeMissingForDescription(kChassis, missing, sizeof missing));
     CHECK_FALSE(tableToDescription(kChassis).valid(why, sizeof why));
+}
+
+TEST_CASE("chassis table 3: tableToDescription()'s provenance is byte for byte the snprintf it "
+          "replaced -- whole when it fits, cut ONE short of the 96-byte buffer when not") {
+    // G1 Part 2b replaced `snprintf(d.provenance, 96, "TYPED TABLE (%s): %s", robot, geometry)`
+    // with a hand-bounded copy (finding F-2b-1: -Wformat-truncation). Its comment promises the
+    // same bytes; this pins them at every length that matters, INCLUDING the cut — the only path
+    // the ROBOT=tank build's real table takes (its provenance is far longer than 95 bytes). The
+    // expected text is built here with std::string, never by the code under test.
+    using shulib::bench::tableToDescription;
+    constexpr std::size_t kCap = sizeof(shulib::hal::DrivetrainDescription::provenance);
+    static_assert(kCap == 96, "the description's provenance buffer changed size");
+    const auto expected = [](const ChassisTable& t) {
+        const std::string whole =
+            std::string{"TYPED TABLE ("} + t.robot + "): " + t.geometryProvenance;
+        return whole.substr(0, kCap - 1);  // what snprintf wrote: cut one short, terminated
+    };
+    ChassisTable t = robotTwo();
+    const std::string prefix = std::string{"TYPED TABLE ("} + t.robot + "): ";
+    REQUIRE(prefix.size() < kCap - 2);
+
+    // (a) short: whole.
+    t.geometryProvenance = "tape + tooth counts, a host test";
+    CHECK(std::string_view{tableToDescription(t).provenance}
+          == "TYPED TABLE (test copy of robot two): tape + tooth counts, a host test");
+    // (b) exactly 95 bytes: whole, the NUL in the buffer's last byte.
+    const std::string fits(kCap - 1 - prefix.size(), 'x');
+    t.geometryProvenance = fits.c_str();
+    {
+        const shulib::hal::DrivetrainDescription d = tableToDescription(t);
+        CHECK(std::strlen(d.provenance) == kCap - 1);
+        CHECK(std::string_view{d.provenance} == prefix + fits);
+    }
+    // (c) 96 bytes: cut by exactly one — the boundary an off-by-one would write past.
+    const std::string oneOver(kCap - prefix.size(), 'y');
+    t.geometryProvenance = oneOver.c_str();
+    {
+        const shulib::hal::DrivetrainDescription d = tableToDescription(t);
+        CHECK(std::strlen(d.provenance) == kCap - 1);
+        CHECK(std::string_view{d.provenance} == expected(t));
+        CHECK(d.provenance[kCap - 1] == '\0');
+    }
+    // (d) the table this TU compiles (the bench bot's), whose provenance is far longer.
+    {
+        const shulib::hal::DrivetrainDescription d = tableToDescription(kChassis);
+        CHECK(std::strlen(d.provenance) == kCap - 1);
+        CHECK(std::string_view{d.provenance} == expected(kChassis));
+    }
 }

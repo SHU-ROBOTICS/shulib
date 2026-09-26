@@ -236,8 +236,12 @@ constexpr int kScreenCols = 54;
 // ("<25% of side max") and every adapter refusal (e.what(), with UTF-8 em dashes) reach it.
 // So text now goes through panelSafe(): '%' and control bytes become '?', a UTF-8 em/en dash
 // becomes '-', any other non-ASCII character becomes ONE '?', and the copy stops at the
-// budget. screenText() then prints it through a literal "%s" -- calibrate_program.cpp's
-// printText, re-implemented here because the two programs share no translation unit.
+// budget. screenText() then prints it through a literal "%s" -- the same rules as
+// src/screen_text.hpp's printText(), the shared path "shulib Calibrate" and "shulib Teleop" use
+// since G1 Part 2b. The tester deliberately keeps its OWN copy: it cuts at this file's 54-column
+// scrolling-log width (kScreenCols), not the SMALL budget printText() cuts at, and counts its
+// prints in its own g_screenPrints -- and those widths ran on hardware as they are (R2a-R3), so
+// moving it onto the shared header would change what ran.
 // The prints this file makes with a FIXED literal and numbers only (the ruler, the touch
 // readout, the splash, MOTOR WATCH / DRIVE cells) cannot carry a '%' or a non-ASCII byte to
 // the panel and are left as they ran on hardware (R2a-PROGRESS, ruling R2a-R3).

@@ -1,0 +1,382 @@
+#pragma once
+//
+// boot_source.hpp — WHICH DESCRIPTION DRIVES THIS ROBOT, decided once per boot, and the
+// robot::Robot config it becomes (G1 Part 2b, 2026-09-26; the decisions are R3d Part 2's, moved
+// out of src/main.cpp unchanged).
+//
+// ── Why this is its own file ────────────────────────────────────────────────────────
+// Until G1 Part 2b the boot source was a 77-line block inside src/main.cpp's initialize(), and it
+// wrote six program globals and painted the screen on the way. Two programs need it now: "shulib
+// Teleop" (src/teleop_program.cpp) and the competition program (COMP), whose brief's §0 row "The
+// boot source" names this file. So the decisions live here ONCE, and each program paints its own
+// refusal and logs with its own prefix. Nothing here writes a program global or a screen.
+//
+// ── The decisions (R3d Part 2, rulings P2/P3 — moved, not changed) ──────────────────
+// TWO sources, one representation (hal::DrivetrainDescription), a fixed order:
+//   1. the CALIBRATION RECORD on the SD card (/usd/shulib_drivetrain.bin), written by "shulib
+//      Calibrate" after the robot measured itself, VERIFIED against the brain's port registry on
+//      the same boot, before any adapter exists (calibration/boot_check.hpp);
+//   2. else src/chassis_table.hpp's typed table, through tableToDescription() — the ONLY path
+//      from the table into a graph — with a WARNING, and registry-verified too;
+//   3. else refuse, naming BOTH reasons.
+// A record ALWAYS beats a table; a record that fails its port check NEVER falls back to the table
+// (calibration::chooseBootSource is that table of rules, host-tested). The dead-port POLICY is
+// applied once, inside calibration::verifyAgainstRegistry: its MISSING ports become the absent
+// list below, and robot::Robot builds them as ABSENT group members (G1 Part 2a, ruling M1).
+//
+// ── Everything decided here is PROS-free; only the card and the registry are not ────
+//  * THE PURE CORE: bootConfigFrom() — description + verdict → the config::RobotConfig
+//    robot::Robot is built from, plus the absent-port list.
+//  * THE DECISION: readRecord() (the card's bytes → a decoded record, or why not) and
+//    decideBootSourceFrom() (record + registry + the table's description → which source, the
+//    port check of the one chosen, the cross-check, the refusal, the config) — each decision
+//    line handed to the caller's printer AS IT IS DECIDED (the brief's A9, design (a): today's
+//    text and order, before the session header).
+//  * THE SHIM (src/boot_source.cpp, PROS-bound, a dozen lines): decideBootSource() opens the
+//    card, makes the registry, turns this build's typed table into a description, and prints
+//    each line through printf under the caller's tag.
+// All of the first two is inline here so the host test (test/boot_source_test.cpp, the brief's
+// test 6) runs EVERY decision against the IBlockSource / IDeviceRegistry fakes, the way
+// test/chassis_table_test.cpp includes src/chassis_table.hpp: the host build compiles only
+// test/*.cpp and never src/*.cpp. (Until the Part 2b review's second round the decision flow
+// lived in the .cpp beside the PROS calls, where no test could reach it.)
+//
+// ── The absent ports cross ONE door ─────────────────────────────────────────────────
+// The list is private storage with a length. It leaves only as `BootConfig::absent()` — a span
+// bounded to the ports that ARE absent — or as `BootConfig::buildOptions()`, the
+// robot::BuildOptions built from that span, and a program spells them through the outcome's
+// `built` member (`boot.built.buildOptions()`): the one door, and the one the test goes through.
+// A span over the whole fixed array would hand validate() the unused zeros, and it refuses
+// "absent port 0 is not one of this drivetrain's drive ports": the G1 Part 2b brief spells that
+// hazard out, and keeping the array private is the fix at the root rather than a warning at each
+// call site. (It cannot stop a program that builds a longer span from `absent().data()` on
+// purpose; nothing in the tree does.)
+//
+// NO HARDWARE CLAIM for this file's arrangement. The decisions themselves ran on robot two on
+// 2026-09-25 inside the previous "shulib Teleop" (eight boots from the RECORD, R3d-PROGRESS
+// "2026-09-25 evening"); this file's version of them has not run on hardware.
+
+#include <array>
+#include <cstddef>
+#include <cstdio>
+#include <span>
+#include <string_view>
+
+#include "shulib/calibration/boot_check.hpp"
+#include "shulib/calibration/calibration_record.hpp"
+#include "shulib/config/robot_config.hpp"
+#include "shulib/core/check.hpp"
+#include "shulib/hal/block_source.hpp"
+#include "shulib/hal/device_registry.hpp"
+#include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/robot/robot.hpp"
+
+namespace shulib::bench {
+
+class BootConfig;
+
+/// THE PURE CORE: the config robot::Robot is built from, for the description the boot chose and
+/// the port check it passed — and the ports that check found MISSING.
+///
+///  * `identity.name` ← `robotName` (bounded, NUL-terminated; the team and season stay empty —
+///    nothing on the robot knows them), because a banner that says which robot it is looking at
+///    is worth one line and the per-robot name lives in src/chassis_table.hpp's `robot` field;
+///  * the drivetrain is a TANK whose description is `description`, COPIED AS IT IS — signed ports,
+///    both inches-per-radian, the track width, the cartridge, the IMU port, the SOURCE and the
+///    provenance, byte for byte;
+///  * the odometry is the drive encoders (the fall robots have no tracking wheels);
+///  * no GPS (robot two has none) — robot::Robot then installs hal::AbsentGps and no corrector;
+///  * no mechanisms;
+///  * `tuning` is `chassis::ChassisConfig{}`, the library's PROVISIONAL defaults, UNTOUCHED: the
+///    one thing a tank's tuning needs that a person should not type — the stall check's geometry
+///    and "no independent motion source" — is applied by robot::Robot::effectiveTuning(), which is
+///    exactly what src/main.cpp's tankChassisConfig() did by hand. Writing it here as well would
+///    be two owners for one rule;
+///  * the absent list: every drive port of `description`, LEFT side then RIGHT in the stored
+///    order, that `verdict.isMissing()` — as the port MAGNITUDE the builder takes.
+///
+/// PRECONDITION: `verdict.usable()` (Ok or Degraded). A refused verdict describes a robot that
+/// must not be built, and no caller in the tree builds one.
+[[nodiscard]] inline BootConfig bootConfigFrom(const hal::DrivetrainDescription& description,
+                                               const calibration::BootVerdict& verdict,
+                                               std::string_view robotName);
+
+/// The pure core's answer: the config, and the absent drive ports behind one door (header).
+class BootConfig {
+public:
+    /// The whole robot, as data — what `robot::validate()` and `robot::Robot` take.
+    config::RobotConfig config{};
+
+    /// The drive ports the boot check found MISSING, as port magnitudes 1..21, LEFT then RIGHT in
+    /// the description's order — exactly as many as there are, never the unused tail of the
+    /// storage. The span points into THIS object, so it is valid while this object is.
+    [[nodiscard]] std::span<const int> absent() const noexcept {
+        return std::span<const int>{absentPorts_.data(), absentCount_};
+    }
+
+    /// The builder's options for this boot: `{.absentDrivePorts = absent()}`, and nothing else.
+    /// The only spelling of the options a program should use (header: one door). Borrows this
+    /// object's storage, so it must not outlive it — robot::Robot reads it during construction
+    /// only.
+    [[nodiscard]] robot::BuildOptions buildOptions() const noexcept {
+        return robot::BuildOptions{.absentDrivePorts = absent()};
+    }
+
+private:
+    friend BootConfig bootConfigFrom(const hal::DrivetrainDescription&,
+                                     const calibration::BootVerdict&, std::string_view);
+
+    std::array<int, hal::kMaxSmartPorts> absentPorts_{};
+    std::size_t absentCount_ = 0;
+};
+
+inline BootConfig bootConfigFrom(const hal::DrivetrainDescription& description,
+                                 const calibration::BootVerdict& verdict,
+                                 std::string_view robotName) {
+    SHULIB_PRECONDITION(verdict.usable(),
+                        "bootConfigFrom: the port check REFUSED this description -- nothing may "
+                        "be built from it");
+    BootConfig out;
+    config::RobotConfig& c = out.config;
+
+    const std::size_t nameCap = sizeof c.identity.name - 1;
+    std::size_t n = 0;
+    for (; n < robotName.size() && n < nameCap; ++n) {
+        c.identity.name[n] = robotName[n];
+    }
+    c.identity.name[n] = '\0';
+
+    c.drivetrain.kind = config::DrivetrainKind::Tank;
+    c.drivetrain.tank.description = description;
+    c.odometry.kind = config::OdometryKind::DriveEncoders;
+    c.sensors.gps.present = false;
+    c.mechanismCount = 0;
+    // c.tuning stays chassis::ChassisConfig{} ON PURPOSE (see the declaration above).
+
+    const hal::DriveSideDescription* sides[2] = {&description.left, &description.right};
+    for (const hal::DriveSideDescription* side : sides) {
+        for (std::size_t i = 0; i < side->count; ++i) {
+            const int port = hal::DrivetrainDescription::portMagnitude(side->signedPorts[i]);
+            if (verdict.isMissing(port) && out.absentCount_ < out.absentPorts_.size()) {
+                out.absentPorts_[out.absentCount_++] = port;
+            }
+        }
+    }
+    return out;
+}
+
+/// How many physical ports 1..21 the two descriptions disagree about — a port one lists and the
+/// other does not, or a port both list with different signs. The boot's CROSS-CHECK between the
+/// card's record and the typed table (a disagreement is not an error: the record measured THIS
+/// robot, and the table was typed from a build that may no longer exist — but a person should be
+/// told before driving). On robot two on 2026-09-25 it read 10: the record's front is the table's
+/// back, which flips every sign, plus ports 14 and 19, which only the table lists.
+[[nodiscard]] inline int countPortDisagreements(const hal::DrivetrainDescription& a,
+                                                const hal::DrivetrainDescription& b) noexcept {
+    int differing = 0;
+    for (int p = 1; p <= static_cast<int>(hal::kMaxSmartPorts); ++p) {
+        if (a.signedPortOf(p) != b.signedPortOf(p)) {
+            ++differing;
+        }
+    }
+    return differing;
+}
+
+/// What one boot decided: usable or refused (with the refusal's headline and reason, for the
+/// program to paint), which source and why, the port check's verdict, the cross-check count, and
+/// — when usable — the config and the absent ports, in `built`.
+///
+/// It has no accessors of its own on purpose: a program reads the config and the builder's
+/// options through `built` (`boot.built.config`, `boot.built.buildOptions()`), the same door the
+/// host test goes through. (Until the Part 2b review's second round it carried forwarders to
+/// them that no test called — a second, untested door to the one hazard the header warns about.)
+struct BootOutcome {
+    /// True when a description was chosen and passed its port check: the program may build.
+    bool ok = false;
+    /// The refusal's short headline (screen and serial), empty when `ok`.
+    char headline[64]{};
+    /// The refusal's reason, naming the port or the field, empty when `ok`.
+    char why[192]{};
+    /// Which source was chosen (UseRecord / UseTable), or Refuse.
+    calibration::BootSource source = calibration::BootSource::Refuse;
+    /// The `boot source:` sentence — always a string literal from chooseBootSource().
+    const char* sourceWhy = "";
+    /// The port check of the CHOSEN description (the table's, when the table was chosen). Its
+    /// `reason` is what the panel's source row and the `port check:` line print, and what the
+    /// worksheet's Station G quotes.
+    calibration::BootVerdict verdict{};
+    /// How many ports the card's record and the typed table disagree about; 0 unless the record
+    /// was chosen (the cross-check runs only then).
+    int crossCheckDiffering = 0;
+    /// The config and the absent ports (meaningful only when `ok`) — the one door (header).
+    BootConfig built{};
+};
+
+/// What the card held, read ONCE at boot: the decoded description, or why there is none.
+struct RecordRead {
+    /// The record's description (meaningful only when `decoded`).
+    hal::DrivetrainDescription description{};
+    /// True when the card held a record that passed every format check.
+    bool decoded = false;
+    /// Why there is no usable record — no card or no file, an EMPTY file, or the decoder's own
+    /// refusal naming the check that failed; empty when `decoded`.
+    char why[192] = "";
+};
+
+/// Read the calibration record through `card` and decode it. `path` is only what the messages call
+/// the file (on the brain, `/usd/shulib_drivetrain.bin`). A card that is not open, an open but
+/// EMPTY file and a record the decoder refuses are three different sentences and one decision:
+/// not decoded.
+[[nodiscard]] inline RecordRead readRecord(hal::IBlockSource& card, const char* path) {
+    RecordRead out{};
+    const char* p = path != nullptr ? path : "";
+    if (!card.isOpen()) {
+        std::snprintf(out.why, sizeof out.why,
+                      "no calibration record: %s could not be opened (no SD card, or the robot "
+                      "has never been calibrated)",
+                      p);
+        return out;
+    }
+    // Read into a buffer LARGER than a record on purpose: a longer file must show up as a LENGTH
+    // refusal, not as "the first 180 bytes fitted".
+    std::byte raw[calibration::kRecordBytes + 32]{};
+    const std::size_t got = card.readAll(raw);
+    if (got == 0) {
+        // The one message the move ADDED (G1 Part 2b, ruling G1-2b-R7): an open but EMPTY file
+        // used to print "calibration record: NOT USED -- " with nothing after the dash. The
+        // decision was and is the same (not decoded); only the sentence is new.
+        std::snprintf(out.why, sizeof out.why,
+                      "the calibration record %s is EMPTY (0 bytes read) -- run shulib Calibrate", p);
+        return out;
+    }
+    out.decoded = calibration::decodeRecord(std::span<const std::byte>{raw, got}, out.description,
+                                            out.why, sizeof out.why);
+    return out;
+}
+
+/// The source as the `boot source:` line's word.
+[[nodiscard]] inline const char* bootSourceWord(calibration::BootSource s) noexcept {
+    switch (s) {
+        case calibration::BootSource::UseRecord: return "RECORD";
+        case calibration::BootSource::UseTable: return "TYPED TABLE";
+        case calibration::BootSource::Refuse: return "REFUSE";
+    }
+    return "REFUSE";
+}
+
+namespace detail {
+/// Fill a refused outcome: the headline and the reason, for the caller to paint and print.
+inline void refuseWith(BootOutcome& out, const char* headline, const char* why) {
+    out.ok = false;
+    // Precisions one short of each buffer, so -Wformat-truncation can see the bound (a verdict's
+    // reason is up to 319 bytes; the refusal's `why` keeps its first 191).
+    std::snprintf(out.headline, sizeof out.headline, "%.63s", headline);
+    std::snprintf(out.why, sizeof out.why, "%.191s", why);
+}
+}  // namespace detail
+
+/// The longest decision line decideBootSourceFrom() hands its printer, with room to spare: the
+/// TYPED TABLE warning is 117 bytes of fixed text, a decision word of at most 8 and a verdict
+/// reason of up to 319 — 444.
+inline constexpr std::size_t kBootLineBytes = 512;
+
+/// THE BOOT DECISION, PROS-free (header): verify the card's record against the registry, fall back
+/// to the typed table only when there is no usable record, and refuse when neither will do — the
+/// decisions of R3d Part 2 (rulings P2/P3), moved from src/main.cpp at G1 Part 2b with every
+/// decision unchanged. Each decision line is handed to `printLine(const char*)` as it is decided,
+/// in today's text and order: the record line, the table line when the table cannot describe a
+/// drivetrain, `boot source:`, the TYPED TABLE warning, the cross-check. Returns the outcome;
+/// paints nothing and sets no global.
+///
+/// `fromTable` is this build's typed table as a description (tableToDescription(kChassis) — the
+/// ONLY path from the table into a graph) and `tableMissing` the words naming what it lacks
+/// (describeMissingForDescription), printed only when the table cannot describe a drivetrain.
+/// `robotName` becomes the config's identity (bootConfigFrom).
+template <class PrintLine>
+[[nodiscard]] BootOutcome decideBootSourceFrom(const RecordRead& record,
+                                               const hal::IDeviceRegistry& registry,
+                                               const hal::DrivetrainDescription& fromTable,
+                                               const char* tableMissing,
+                                               std::string_view robotName, PrintLine&& printLine) {
+    BootOutcome out{};
+    char line[kBootLineBytes];
+
+    // 1. the record, verified against the ports on THIS boot, before anything is constructed.
+    if (record.decoded) {
+        out.verdict = calibration::verifyAgainstRegistry(record.description, registry);
+        std::snprintf(line, sizeof line, "calibration record: DECODED, port check %s -- %s",
+                      calibration::bootDecisionWord(out.verdict.decision), out.verdict.reason);
+    } else {
+        std::snprintf(line, sizeof line, "calibration record: NOT USED -- %s", record.why);
+    }
+    printLine(static_cast<const char*>(line));
+
+    // 2. the table as the second source.
+    char tableWhy[192] = "";
+    const bool tableValid = fromTable.valid(tableWhy, sizeof tableWhy);
+    if (!tableValid) {
+        std::snprintf(line, sizeof line, "typed table: cannot describe a drivetrain -- UNSET: %s (%s)",
+                      tableMissing != nullptr ? tableMissing : "", tableWhy);
+        printLine(static_cast<const char*>(line));
+    }
+
+    // 3. the decision, as a host-tested table (calibration::chooseBootSource) rather than an
+    //    if-chain here.
+    const calibration::BootSourceChoice choice =
+        calibration::chooseBootSource(record.decoded, out.verdict.decision, tableValid);
+    out.source = choice.source;
+    out.sourceWhy = choice.why;
+    std::snprintf(line, sizeof line, "boot source: %s -- %s", bootSourceWord(choice.source),
+                  choice.why);
+    printLine(static_cast<const char*>(line));
+
+    const hal::DrivetrainDescription* chosen = &record.description;
+    if (choice.source == calibration::BootSource::UseTable) {
+        chosen = &fromTable;
+        out.verdict = calibration::verifyAgainstRegistry(fromTable, registry);
+        std::snprintf(line, sizeof line,
+                      "WARNING: driving from the TYPED TABLE -- unverified since the rebuild; run "
+                      "shulib Calibrate (slot 4). Port check %s -- %s",
+                      calibration::bootDecisionWord(out.verdict.decision), out.verdict.reason);
+        printLine(static_cast<const char*>(line));
+        if (out.verdict.decision == calibration::BootDecision::Refuse) {
+            detail::refuseWith(out, "the TYPED TABLE does not match the ports", out.verdict.reason);
+            return out;
+        }
+    } else if (choice.source == calibration::BootSource::Refuse) {
+        char both[192];
+        std::snprintf(both, sizeof both, "%.80s | %.100s", record.why,
+                      record.decoded ? out.verdict.reason : tableWhy);
+        detail::refuseWith(out, "NO USABLE DRIVETRAIN DESCRIPTION", both);
+        return out;
+    }
+
+    // 4. the record/table CROSS-CHECK — the only other place a boot may read the table: if the
+    //    card's record and the typed table disagree about which ports drive, say so. Not an error
+    //    (the record measured THIS robot), but exactly what a person should be told before
+    //    driving. Printed here, as it is decided, since G1 Part 2b (it used to be a TermSink WARN
+    //    line after the session header — the brief's A9).
+    if (choice.source == calibration::BootSource::UseRecord) {
+        out.crossCheckDiffering = countPortDisagreements(record.description, fromTable);
+        if (out.crossCheckDiffering > 0) {
+            std::snprintf(line, sizeof line,
+                          "CROSS-CHECK: the MEASURED record and the typed chassis table disagree "
+                          "about %d port(s). The record wins (it moved THIS robot); the table is "
+                          "stale and should be updated or deleted.",
+                          out.crossCheckDiffering);
+            printLine(static_cast<const char*>(line));
+        }
+    }
+
+    out.built = bootConfigFrom(*chosen, out.verdict, robotName);
+    out.ok = true;
+    return out;
+}
+
+/// THE BOOT (src/boot_source.cpp; the PROS shim): open the card's record and read it, make the
+/// brain's registry, turn this build's typed table into a description, and run
+/// decideBootSourceFrom() — printing each decision line through printf as `[<tag>] …`, BEFORE any
+/// adapter exists. Returns the outcome; paints nothing and sets no global.
+[[nodiscard]] BootOutcome decideBootSource(const char* tag);
+
+}  // namespace shulib::bench

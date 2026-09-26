@@ -23,8 +23,9 @@
 //     deliberately has no port numbers (fakes don't have ports), so the honest v1
 //     is a pass-through string. Since G1 Part 2a the builder GENERATES it from the
 //     robot's config — robot::Robot::portMap() / robot::writePortMap(), in the same
-//     text src/main.cpp's hand-built port maps print — though no program in src/ uses
-//     the generator yet (G1 Part 2b moves "shulib Teleop" onto it).
+//     text src/main.cpp's hand-built port maps printed. Since G1 Part 2b "shulib
+//     Teleop" prints its port map from it (src/teleop_program.cpp); the invented
+//     X-drive graph in src/main.cpp still builds its own by hand until G1 Part 2c.
 //   * alliance/side are free text ("red"/"left"/"skills"); empty fields render as
 //     "-" so a blank never silently vanishes from a column.
 //   * battery start is READ, not caller-typed — a typed 12.6 that was actually

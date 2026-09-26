@@ -403,8 +403,10 @@ TEST_CASE("BootCheck 7: chooseBootSource — EVERY row of the decision table") {
 }
 
 TEST_CASE("BootCheck 7b: the record and the table, end to end through the chooser") {
-    // The shape src/main.cpp's boot takes: verify, then choose. Written here so the two halves
-    // are tested together, because that join is where a program usually gets it wrong.
+    // The shape the boot takes (src/boot_source.hpp's decideBootSourceFrom() since G1 Part 2b;
+    // src/main.cpp's before):
+    // verify, then choose. Written here so the two halves are tested together, because that
+    // join is where a program usually gets it wrong.
     const DrivetrainDescription record = robotTwo();
     FakeDeviceRegistry registry = healthyRegistry();
 

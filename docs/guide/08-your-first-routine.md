@@ -299,15 +299,18 @@ crash or a sensor that silently reads zero.
 **`validate`** is the question "can this robot be built, right now?", answered with a yes or a
 sentence naming the port or the field that is wrong. **`Robot`** is the answer being yes: it builds
 the same objects the longhand wiring above builds, in the same order — the test suite drives a
-builder-made robot and a hand-wired one side by side on the simulator and requires them to agree to
-the last bit. `built.chassis()` is the same `Chassis` your routine already takes.
+builder-made robot and a hand-wired one side by side on the host test plant and requires them to
+agree to the last bit. `built.chassis()` is the same `Chassis` your routine already takes.
 
 The longhand stays, and it stays worth reading: it is exactly what `Robot` does for you, and it is
 the path you take (Tier 3 in the project's
 [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
-when you need something the builder does not build. One honest note: none of the programs in
-`src/` is built this way yet, and nothing built this way has run on a robot — the on-robot provider
-has only been tested against a host stand-in for the PROS headers.
+when you need something the builder does not build. One honest note: one program in `src/` is
+built this way — "shulib Teleop", in `src/teleop_program.cpp`, whose `robot::Robot` comes from
+robot two's calibration record — and this version of it has not run on a robot yet (the version
+before it, wired by hand, drove robot two open-loop under a driver on 2026-09-25). Nothing built this
+way has run on a robot, and the on-robot provider has only been tested against a host stand-in for
+the PROS headers.
 
 ## Step 3 — the report, and running it
 

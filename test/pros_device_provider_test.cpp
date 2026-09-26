@@ -394,7 +394,7 @@ TEST_CASE("ProsDeviceProvider 1j: the clock, battery, sink and pacer are the V5 
     CHECK(devices.clock().now().value() == doctest::Approx(2.5));
     // The battery reads the brain's pack (the shim's 12600 mV).
     CHECK(devices.battery().voltage().value() == doctest::Approx(12.6));
-    // The sink is the terminal formatter both main.cpp graphs build by hand.
+    // The sink is the terminal formatter src/main.cpp's hand-wired graphs built.
     CHECK(dynamic_cast<shulib::diag::TermSink*>(&devices.telemetry()) != nullptr);
     // The pacer is the delay_until one, 10 ms.
     devices.pacer().pace();

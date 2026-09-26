@@ -69,7 +69,7 @@
 // constructs the adapter, and never again: a second reset() would re-zero the sensor under a
 // live boot heading (HA-05), which ProsImu refuses by precondition. A program built on this
 // provider therefore never calls calibrate() itself. The boot heading is 0 — the robot boots
-// believing it faces +X — which is what both of src/main.cpp's graphs do today (HA-05's one
+// believing it faces +X — which is what src/main.cpp's hand-wired graphs did (HA-05's one
 // owner is the start pose; a provider option for it arrives when a program needs one).
 //
 // ── WHAT IT DOES NOT DO ─────────────────────────────────────────────────────────────
@@ -82,8 +82,9 @@
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Host-tested through test/pros_shim/ only, which tests this class against our BELIEF about
-// PROS and cannot test the belief (shim_control.hpp says so in full). No program constructs one
-// yet: src/ is unchanged, and "shulib Teleop" is re-pointed at it in G1 Part 2b.
+// PROS and cannot test the belief (shim_control.hpp says so in full). Since G1 Part 2b one
+// program constructs one — "shulib Teleop" (src/teleop_program.cpp) — and that version of the
+// program has not run on hardware, so no provider has yet made a device on a brain.
 //
 // No pros header is included here directly — only the hal/pros adapters, whose own diagnostic
 // fences cover the vendored code (test/pros_adapter_fence_test.cpp requires a file with no
@@ -325,7 +326,8 @@ public:
     /// The V5 battery (`ProsBattery`). Never refused.
     [[nodiscard]] IBattery& battery() override { return battery_; }
     /// The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) —
-    /// exactly the sink both of src/main.cpp's graphs build by hand. Never refused.
+    /// exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's still
+    /// does). Never refused.
     [[nodiscard]] ITelemetrySink& telemetry() override { return telemetry_; }
     /// The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace). Never
     /// refused.

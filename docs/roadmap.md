@@ -248,7 +248,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **It has NOT run.** It cannot yet: the table's geometry is UNSET (track width, motor→wheel
 > ratio — never guessed; the team lead measures, the coordinator types), and the program REFUSES
 > at boot with the missing fields on screen until then. The first run is wheels-up, then the
-> ground, with the coordinator and the team lead; M1's badge does not move here. With
+> ground, with the coordinator and the team lead; M1's badge does not move here. *(True as
+> written on 2026-09-14. Since then it HAS run: the R3d Part 2 version, booting from the
+> calibration record rather than the table, drove robot two on 2026-09-25 — eight starts,
+> open-loop under driver control through the library's own graph; no library-commanded motion has
+> run (R3b open). G1 Part 2b rebuilt it on `robot::Robot`, and that version has not run.)* With
 > drive-encoder odometry the stall cross-check has no independent source and is configured not
 > to lie about it. **Plan ruling the same day (team lead): BOTH of this season's competition
 > robots are TANK drives for the fall semester; the X-drive is built in spring 2027 and the
@@ -304,7 +308,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > acceptance test is bit-identity: a tank config and an X-drive config each drive the A2 plant with
 > per-tick ground truth `memcmp`-equal to the hand-wired graph, clean and hostile. **The PROS
 > provider and `src/main.cpp` are Part 2 — `main.cpp` is NOT one line shorter yet**, no config has
-> ever built a graph over a real device, and the motion stack still has not driven a robot.
+> ever built a graph over a real device, and the motion stack still has not driven a robot. *(True of
+> that day; Parts 2a and 2b, below, have since landed.)*
 >
 > **G2 LANDED 2026-09-18 — host-only, and F8 is LOCKED.** `runner::PathRunner` runs a `Route`
 > through the facade (first failure stops and safes the drive; markers fire on a settled leg
@@ -325,12 +330,27 @@ not silently break them. This table is the spine of the no-staleness promise.
 > and the driver-control loop, `teleop::runDriverControl`, PROS-free and proven on the host plant
 > under a fake controller. **No program uses any of it yet: `src/` is unchanged, `main.cpp` is not
 > one line shorter, and none of it has run on a robot** — the provider has been tested only against
-> the host's stand-in for the PROS headers.
+> the host's stand-in for the PROS headers. *(True of that day; since G1 Part 2b, below, "shulib
+> Teleop" uses all four, and none of it has run on a robot still.)*
 >
-> **Now (2026-09-25): "shulib Teleop" drove robot two from the robot's own saved calibration —
-> eight starts, open-loop under a driver — the first time the library's own code drove the robot.
-> Next: G1 Part 2b ("shulib Teleop" on the library), then Part 2c (`main.cpp` as a dispatcher), then
-> COMP (the competition program).** Each waits for the team lead's go. Still owed from the bench
+> **G1 Part 2b LANDED 2026-09-26 — "shulib Teleop" is rebuilt on the library, and THIS version has
+> not run on a robot.** `src/teleop_program.cpp` builds `robot::Robot` over
+> `hal::pros::ProsDeviceProvider` from a shared boot source (`src/boot_source.{hpp,cpp}`: the card's
+> calibration record, else the typed table, else refuse — the decisions unchanged) and drives through
+> `teleop::runDriverControl` with the driver-feel layer's default profile (the team lead chose the
+> switch on 2026-09-26: the same as the old mapping except for a continuous deadband around the
+> stick's centre; no driver has felt it). `src/main.cpp`'s tank-library branches forward to it
+> (1,340 → 722 lines; the invented X-drive graph stays until Part 2c). The previous, hand-wired
+> version drove robot two from the calibration record on 2026-09-25 — eight starts, open-loop under a
+> driver, the first time the library's own object graph drove the robot; no library-commanded motion
+> has run.
+>
+> **Now (2026-09-26): Next: the brake-mode fix, then T3, then G1 Part 2c (`main.cpp` as a
+> dispatcher), then COMP (the competition program)** — the team lead's order of 2026-09-26. The
+> brake-mode fix: PROS's `move_voltage` ignores the brake mode, so no Brake or Hold the library
+> commands reaches a V5 motor today; it is fixed at the adapter, and "shulib Teleop" keeps COASTING
+> when the sticks are released (his ruling). T3: the claw pivots on ports 6 and 7, bound to R1/R2
+> and L1/L2. Each waits for the team lead's go. Still owed from the bench
 > session: a recorded Calibrate reproduction run (the saved distance scale reads about 8 % short)
 > and the sensor stations. *(R2a landed the same evening, build-gated and not run: Bench Tests'
 > stations 11 DISTANCE and 12 AI VISION — see the R2 row under M1 — so the same bench session can
@@ -1318,8 +1338,10 @@ DoD in Phases C–F depends on it.*
   same line at R1), and a missing hash is LOUD ([ERROR][SES] + the literal token MISSING), never
   a plausible placeholder — pinned by golden. Port map is caller-authored text at C5 (the core
   HAL has no port numbers); G1's RobotBuilder generates it. Battery start is READ, not typed.
-  (Since G1 Part 2a, 2026-09-24, the generator exists — `robot::Robot::portMap()` — but no
-  program uses it yet; the programs still build their port maps by hand until Part 2b.)*
+  (Since G1 Part 2a, 2026-09-24, the generator exists — `robot::Robot::portMap()`; since G1 Part
+  2b, 2026-09-26, "shulib Teleop" prints its session header's port map from it, byte-identical to
+  the hand-built text it replaced. The invented X-drive graph in `src/main.cpp` still builds its
+  own by hand until Part 2c.)*
 - [x] Fix the three inherited `logger.hpp` bugs (`escapeJSONString` unapplied, dead `sendDebugMessages`, racing flush) before building on it.
   *Resolved at chunk A1 by **clean-room supersession**, per the execution plan's "Explicitly rejected"
   note (re-derive, don't copy): nothing builds on `logger.hpp`, and the replacement designs each
@@ -1568,8 +1590,9 @@ all three and does not exist.*
   background task" decision was kept, and writes are caller-paced (E1 completion record, T1).
   **The on-robot `/usd/` adapter was R1b's** (2026-08-14): `hal/pros/block_sink.hpp`
   (`ProsBlockSink`) gates on `usd_is_installed()`, refuses rather than throws with no card, and owns
-  the `/usd/` prefix in exactly one place. E1 shipped the seam and a host fake, nothing PROS. It has
-  never been run against a physical SD card.
+  the `/usd/` prefix in exactly one place. E1 shipped the seam and a host fake, nothing PROS. *(This
+  line said "It has never been run against a physical SD card" until G1 Part 2b's prose review: the
+  adapter wrote a real SD card and read it back on 2026-08-18/19, on the old robot.)*
 - [~] **Estimator introspection** in the fusion DoD: per-correction residual + Mahalanobis distance +
   accept/reject reason; per-tick covariance trace (or trust weights) — the quantities that *certify* < 1°.
   **HALF at E1:** the PATH exists and is proven end to end (corrector → `GateAudit` on the fusion
@@ -1659,12 +1682,12 @@ only the INPUT half is missing.*
   *consumes* the press, so a shared detector starves the second consumer (HA-104); the seam reports
   levels and the ban is guard-test-pinned. An **F4-additive sibling, outside that freeze**, exactly as
   `IDigitalOut` was; recorded as register row F13, **not frozen** — T2 is its first real consumer.
-- [~] **Input shaping + drive modes** *(T2, 2026-09-18: built and host-proven in `teleop/` — continuous deadband, expo, slew off by default, arcade/field/tank modes, one-tick latency pinned on the plant; NOT yet wired into the teleop loop or the drive programs, and no driver has felt it)* — the chunk that decides whether the robot feels controllable.
+- [~] **Input shaping + drive modes** *(T2, 2026-09-18: built and host-proven in `teleop/` — continuous deadband, expo, slew off by default, arcade/field/tank modes, one-tick latency pinned on the plant. Since G1 Part 2b (2026-09-26) "shulib Teleop" drives through it — `teleop::runDriverControl`, the default profile, field-centric OFF — but that version of the program has not run on a robot; "shulib Drive" and the bench tester's DRIVE station keep the raw mapping until a driver has compared the two on the robot. No driver has felt it)* — the chunk that decides whether the robot feels controllable.
   **Continuous** deadband (the naive form jumps 0 → threshold and is what "twitchy" actually means),
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel; no panel shows it and no button is bound yet)* — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. Since G1 Part 2b (2026-09-26) "shulib Teleop"'s panel shows the state in words (OFF / ON / FELL BACK / LATCHED) and its loop binds the re-zero to button A, with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.
@@ -1696,8 +1719,11 @@ R4.)*
   was rejected in favour of `validate(config, devices)` + construction-in-place.
   *G1 Part 2a, 2026-09-24: `hal::pros::ProsDeviceProvider` landed (host-tested through the PROS
   shim only), with dead drive ports honoured by the builder and the port map generated.*
-  **OPEN:** the programs in `src/` moving onto the builder and the `src/main.cpp` collapse (G1
-  Parts 2b and 2c), and the codegen that fills these types from a `.vexbot` (G3).*
+  *G1 Part 2b, 2026-09-26: the first program on the builder — "shulib Teleop"
+  (`src/teleop_program.cpp`) builds `robot::Robot` over the provider from the calibration record;
+  that version has not run on a robot.*
+  **OPEN:** the `src/main.cpp` collapse (G1 Part 2c), and the codegen that fills these types from a
+  `.vexbot` (G3).*
 - [ ] **`robotProfile` sub-schema** (F7) — drivetrain/odometry/sensors/mechanisms/corrections.
 - [ ] **Codegen tool** `.vexbot` → `robot_config.hpp` (config **and** routines, `inline constexpr`).
 - [ ] SD-card runtime loader (optional — re-export + re-run without recompiling).
@@ -1950,7 +1976,7 @@ must add for the integration to close. They are tracked here so the dependency i
 
 | # | shulib must ship | Unblocks | Chunk | Gated on VexBuilder? |
 |---|---|---|---|---|
-| A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); **Part 2a DELIVERED 2026-09-24, host-only** (the PROS device provider, absent drive ports, the generated port map, the driver-control loop); Parts 2b/2c (the programs in `src/` moved onto it) are next |
+| A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); **Part 2a DELIVERED 2026-09-24, host-only** (the PROS device provider, absent drive ports, the generated port map, the driver-control loop); **Part 2b DELIVERED 2026-09-26, build-gated** ("shulib Teleop" moved onto it; that version not run on a robot); Part 2c (`main.cpp` as a dispatcher) is next |
 | B | ✅ `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) — **DELIVERED 2026-09-18**; the format is [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.3 | **G2** | no |
 | C | `.vexbot` ingestion + `robot_config.hpp` codegen + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
 | D | The `.shupaths` one-way importer | migrating existing routines | **G4** | yes — G3 |
