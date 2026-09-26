@@ -5,8 +5,10 @@
 > [`G1-robot-config-and-builder.md`](G1-robot-config-and-builder.md) §2 "Part 2"; T2's integration
 > contract: [`T2-input-shaping-drive-modes.md`](T2-input-shaping-drive-modes.md) §7. The team lead's
 > ruling that opens it (2026-09-18): *"we haven't tested teleop before so we might as well rewrite"*
-> — "shulib Teleop" has never run on hardware, so nothing driven is lost by rebuilding it on the
-> library. **Executor model: `opus`. Do not commit.** Live log: append a section per part to
+> — at the time "shulib Teleop" had never run on hardware. *(Since 2026-09-25 the previous Teleop HAS
+> run — eight starts from the saved record, open-loop under driver control, `R3d-PROGRESS.md` "2026-09-25
+> evening" — and on 2026-09-26 the team lead re-affirmed the rebuild, the switch to the feel layer
+> included: §2b's re-check, A6.)* **Executor model: `opus`. Do not commit.** Live log: append a section per part to
 > [`G1-PROGRESS.md`](G1-PROGRESS.md), FIRST ("Part 2a", "Part 2b", "Part 2c").
 >
 > **This brief is THREE PARTS, each its own executor run, verification and commit, in order.** Each
@@ -83,7 +85,7 @@ program — and "shulib Teleop" lives in its own file whose core a student can r
 ```text
 ProsDeviceProvider devices;                         // the adapters, made on demand, by port
 BootChoice boot = bootConfig();                     // the card's record, else the typed table; the absent ports
-robot::Robot robot{boot.config, devices, {boot.absentPorts}};   // the whole library graph, wired
+robot::Robot robot{boot.config, devices, {.absentDrivePorts = boot.absent()}};   // the whole graph, wired
 teleop::runDriverControl(robot.chassis(), master, devices.pacer(), shaper, loopCfg, disabled, heading, panel);
 ```
 
@@ -193,18 +195,126 @@ until 2b).
 
 ## 2b. PART 2b — "shulib Teleop" rebuilt on the library (`src/`; `main.cpp` shrinks, still has the X-drive)
 
-> **Re-checked 2026-09-24 against the tree at `10de29f`** (a read-only checker, then the coordinator):
-> seventeen corrections folded in below — three that would have broken the build, the boot source made
-> genuinely shareable, the screen rules R3d Part 2F established, Station F rather than G as the stale
-> runbook, and the order relative to the bench session and R2a. **Start 2b only after R2a is committed**
-> (both edit the worksheet and `build-order.md`), and **read the bench session's Station G result in
-> `R3d-PROGRESS.md` first**: if the OLD Teleop ran on the robot, its banner must say what Calibrate's
-> does (`src/main.cpp` ~:952-953 — "THIS VERSION has never run; the previous one ran on <date>"), not
-> "UNRUN".
+> **Re-checked 2026-09-26 against the tree at `4611b22`** (two read-only checkers — the brief against
+> the code, the brief against the 2026-09-25 robot evidence — and a completeness critic, then the
+> coordinator, who re-verified the blocker and must items). Earlier re-check: 2026-09-24 at `10de29f`
+> (seventeen corrections, folded in below). **Preconditions met:** R2a is committed (`b0715b4`); the
+> bench session's result is committed (`4611b22`: `R3d-PROGRESS.md` "2026-09-25 evening" and
+> `docs/internal/evidence/r3d-session-2026-09-25-teleop.log.gz`) — **read that section first.**
+> **The amendments A1–A19 below are binding and override the text after them wherever they conflict.**
+
+### Re-check 2026-09-26 — amendments (binding)
+
+- **A1 — Run status, settled wording.** The old Teleop ran. The new program's banner and every
+  run-status sentence it writes say: `THIS VERSION of "shulib Teleop" (G1 Part 2b, built on
+  robot::Robot) has not run on hardware. The previous version (build v0.1.1-319-g2780462) drove robot
+  two from the calibration record on 2026-09-25 -- eight starts, open-loop under driver control
+  through the library's own graph; no library-commanded motion has run (R3b open).` (ASCII, `--`.)
+  Now FALSE and **not** to be carried over: `src/main.cpp` ~:972-973 "Not yet run on hardware before
+  this boot: the first run is wheels-up."; ~:793 "THE LIBRARY drives: Chassis::drive() -- NEVER RUN
+  BEFORE"; ~:1144-1145 "the library's motion stack has not driven a robot before this program" (reword:
+  the graph has driven robot two open-loop under a driver, no library-commanded motion has run, gains
+  PROVISIONAL); the header comment ~:17-18. The banner diff marks each as REWORDED.
+- **A2 — The beacon stays in `main.cpp`'s branch.** `kVariantBeacon` is referenced only from the
+  tank-library `initialize()` body (~:975, :1071); moved out, `-fdata-sections` + `--gc-sections`
+  (`common.mk` :6, :37) drop it and the gate's beacon step fails. So: `main.cpp`'s tank-library
+  `initialize()` branch formats `competitionBits(competition_get_status())` into a local buffer and
+  calls `shulib::bench::teleopInitialize(kVariantBeacon, bits)`; `teleopInitialize` prints the
+  `booted: shulib TELEOP build [<beacon>]` banner and the `competition status at boot` line from those
+  arguments, in today's order, and logs the beacon as ~:1071 does. No beacon literal outside
+  `main.cpp`'s `#if` chain (landmine 10).
+- **A3 — The panel is RE-LAID OUT to fit, not moved as is.** `printText` cuts SMALL at 50 characters
+  (`calibrate_panel.hpp` :77; `calibrate_program.cpp` ~:266), and most old rows are longer (~53-88).
+  Every row fits its budget from its x, literal rows checked at compile time as `calibrate_program.cpp`
+  ~:307-316 does; the L and R groups on separate rows; the source / DEGRADED reason wrapped over at most
+  two rows (G.6.1/G.6.2 quote it — the quotes are updated to what the new screen shows); the refusal
+  wraps at `kSmallCols`, not 58; rows that never change (budgets and gains, the feel note, the stall note,
+  the port map) may become serial-only, since the boot lines carry them. **The port map, if kept, prints
+  `robot.portMap()` without the false `table` label** (it prints "table" today whatever the source,
+  ~:874). Redraw only on change, live numbers at most 5 Hz.
+- **A4 — `teleopAutonomous()` commands NO motion, and no routine is ever added to it** (the team lead's
+  ruling, 2026-09-25: autons run only in the competition program's `autonomous()` — COMP). `main.cpp`'s
+  tank-library `autonomous()` keeps painting `benchStateScreen("AUTONOMOUS", <a reason of at most 50
+  characters that promises no motion here, ever>)` (it stays in `main.cpp` until 2c.1), then calls
+  `teleopAutonomous()`, which logs one Warn line with the same sentence when the `Robot` was built and
+  does nothing otherwise. The doc comment above `autonomous()` (~:1240-1250) joins the prose review.
+- **A5 — HA-141's settle step, reworded** (replaces the doc-list instruction below): on shulib Teleop the
+  boot check reaches every IMU and drive-port fault FIRST, through the same registry call
+  (`boot_check.hpp` ~:203-219, :281-288), so a pulled IMU is refused by the boot check, never by the
+  provider. The IMU-present half settles on 2b's first boot (the provider constructs and calibrates the
+  IMU); the provider's kind refusal settles on the first program that asks the provider for a port the
+  boot check does not verify (a GPS or a rotation sensor). No worksheet step for it in 2b.
+- **A6 — M4 restated (the team lead, 2026-09-26: "switch").** See §3 M4.
+- **A7 — Pointers only (the team lead, 2026-09-26).** 2b's commit carries only what rule 5 needs: the
+  first `**Next:**` = G1 Part 2c, then COMP, with R3d's reproduction run and Stations H/I still owed;
+  "You are here" = 2b landed, THIS version unrun; one sentence that the previous Teleop drove robot two
+  from the record on 2026-09-25. **Everything else in the held documentation pass waits** and the commit
+  body names it as deferred. Add `HANDOFF-remaining-work.md` L1 (~:286-288) and §7 item 1 (~:579-581) to
+  2b's documentation list. Nothing 2b writes repeats HANDOFF ~:497's "(or a minimal auton hook)".
+- **A8 — Station F says which end is forward** (a safety matter, from the 2026-09-25 evidence): (1) in
+  shulib Teleop, forward (stick up, `est x` rising) is the end that LED the Calibrate push saved in the
+  record — on robot two since 2026-09-25 the AI Vision (camera, port 3) end, the 11/20 end; (2) shulib
+  Drive (slot 1) and Bench Tests' MOTOR WATCH use the typed table, whose front is the 15/16 end — the
+  same stick drives OPPOSITE ways in slots 1 and 2, and F.2.1's front-first push is the TABLE's front;
+  (3) the boot `CROSS-CHECK ... disagree about 10 port(s)` is mostly that 180° turn plus 14 and 19 — do
+  not edit the table on that warning (no ruling; flipping it flips shulib Drive). Station F's examples
+  and G.6.3's counts come from the 2026-09-25 capture: `4+4 PRESENT`, the record's ports, budgets lin 60 /
+  ang 6.00 / wheel 60, `ff kS 1.00 kV 0.1714`. F.0 becomes "no record on the card means refused; the
+  typed table cannot describe robot two". **G.6.4 keeps "about 48"** (a scale check) and may add one
+  line: on the 2026-09-25 record it read 44 (~8 % short, carried by the team lead's decision).
+- **A9 — The boot source prints its decision lines as it decides** (design (a)): through `printf` with a
+  caller-supplied tag, in today's text and order (record why, `calibration record: DECODED, port check
+  ...` / `NOT USED`, `typed table: ...`, `boot source: ...`, the TYPED TABLE warning, the cross-check
+  count — `main.cpp` ~:996-1048, :1127-1139), before the session header, and returns the outcome. The
+  outcome exposes **`std::span<const int> absent() const`** (bounded to `absentCount`), used everywhere
+  the absent ports are passed — §0's sketch and §2b item 2's options included.
+- **A10 — The banner diff is three-way:** old source strings, the 2026-09-25 capture's first boot block
+  (every distinct `[R3B]`/`[SES]` line), and new source strings; each line marked still said (with its
+  new location), REWORDED (with the evidence line) or deliberately dropped. `TermSink` cuts a message at
+  200 bytes with an ellipsis (`term_sink.hpp` ~:278, :87) — four boot lines were cut on the brain — so a
+  kept program-owned line counts as said only at ≤ 200 bytes; longer ones are split into two calls, and
+  the library's `kNoIndependentStallSourceNote` is printed in two parts or listed as still cut.
+- **A11 — Test 6, strengthened** (replaces §4 row 6's content): the core's config has `tuning` equal to
+  `ChassisConfig{}` and odometry `DriveEncoders`; a description with L 1.25442 / R 1.36703 in/rad gives
+  `robot.driveOdometry()`'s per-side scales exactly; a golden rebuilt from the 2026-09-25 description
+  gives `Robot::portMap()` equal to the captured `[SES] ports` text; one missing port gives
+  `absent().size() == 1` and `validate()` passes. Mutations: pass the whole `absentPorts` array (fails
+  with "absent port 0"); a non-default tuning in the core; copy the left scale into the right.
+- **A12 — The new translation units compile, unguarded, in all six builds** (no `src/*.cpp` is
+  `#if`-guarded; `--gc-sections` drops what nothing references; in bench and xdrive `kChassis` is the
+  bench table). Never use `main.cpp`'s `SHULIB_RUNS_*` macros outside `main.cpp`. `attachFaultLatch` is
+  declared in a small `src/` header and defined in `main.cpp` for EVERY build (landmine 11).
+- **A13 — `printText` moves VERBATIM** into the shared screen-text header: the log shows its body before
+  and after (whitespace-only differences), every `calibrate_program.cpp` call site unchanged, the print
+  counter still counting Calibrate's prints — Calibrate's "THIS VERSION ... first ran" banner must stay
+  true. The header takes `TextSize` / `budgetFor` from `calibration/calibrate_panel.hpp` and does not
+  modify it (COMP ruling C4). Bench Tests keeps its own sanitizer (R2a-R3: its widths ran on hardware);
+  2b only rewrites its stated reason (`bench_r3a.cpp` ~:239-240) to name the shared header and say why
+  the tester does not use it.
+- **A14 — The prose review, widened** (extends §5): `test/` and `tools/` comments too; add the terms
+  `tankPortMapString`, `tankChassisConfig`, `TankMotors`, `TankPanel`, "never run", "NEVER RUN", "has
+  not run", "UNRUN", "no camera", "autons land", and the panel label `table `. Fix what is FALSE in the
+  files 2b edits, with A1's wording; **leave every "never driven a robot under its own control" line as
+  it is** (still true — no library-commanded motion has run; the R3 sweep owns it); list hits in files
+  2b does not edit as owned by the deferred documentation pass.
+- **A15 — Identity and the description line.** The pure core sets `RobotConfig::identity` (e.g. "Robot
+  Two") or the log accepts `(unnamed)` explicitly; the description's own `describe()` line (`MEASURED
+  tank BLUE 600 rpm: L4/R4 ...`) stays beside `robot.describe()` (which carries no cartridge). The core
+  is "description + verdict → `RobotConfig` + the absent-port list" (`RobotConfig` has no absent field).
+- **A16 — Size.** 2b's documentation list exceeds rule 7's five; the worksheet rewrite must land with
+  the code (rule 3). **Accepted by the team lead, 2026-09-26.**
+- **A17 — Baseline and line references.** Suite 1,425 cases / 2,386,871 assertions; `src/main.cpp` 1,340
+  lines (at `6b074ae`, unchanged at `4611b22`). Line references below are approximate — re-anchor each,
+  or cite by quoted text; the NEW-motors sentence is logged at Info inside the port-check line.
+- **A18 — §1's builder, provider, registry and session-header rows describe the tree BEFORE 2a**;
+  what they call missing was delivered by 2a (`2019ada`: `BuildOptions`, `portMap()`,
+  `driveOdometry()`, the corrected provider comment, HA-141). Do not redo it.
+- **A19 — Citation fix.** "The COMP brief's ruling C4" in item 1 means the COMP brief's §0 row "The
+  boot source" (~:31) and COMP-b §3.1 (~:144-146); C4 is now the auton selector.
 
 ### IN
 
-1. **`src/boot_source.hpp` / `.cpp` — the SHARED boot source** (the COMP brief's ruling C4; both
+1. **`src/boot_source.hpp` / `.cpp` — the SHARED boot source** (the COMP brief's §0 "The boot source"; both
    programs call it): the existing record → verify → table → refuse DECISIONS, moved with every decision
    unchanged (`src/main.cpp` ~:983-1059), **plus** the record/table cross-check (~:1118-1140) — but it
    **returns** its outcome instead of painting or returning out of `initialize()`: `{ok; the refusal
@@ -354,8 +464,10 @@ the loop is host-testable end to end. Rejected: leaving the loop in `src/`; addi
 `motion::ITickPacer` (it is part of the frozen `Chassis` constructor's signature — a new pure
 virtual would break every implementer).
 
-**M4 — Only "shulib Teleop" changes feel now.** It has never been driven, so there is no feel to
-preserve. "shulib Drive" HAS been driven (2026-09-17); the tester's DRIVE station has never
+**M4 — Only "shulib Teleop" changes feel now** (restated 2026-09-26, A6). Teleop HAS now been driven
+on the old `mapSticks` mapping (2026-09-25, eight logged starts), and the team lead chose to switch it
+to the default `DriveShaper` profile anyway: the change is bounded to the deadband region (test 5), and
+the new build's first run is where a driver compares the two. "shulib Drive" HAS been driven (2026-09-17); the tester's DRIVE station has never
 commanded a non-zero voltage but is the measuring tool whose gates are written around the raw
 mapping. Both keep the pinned `mapSticks` until a driver has compared the two on the robot (the T2
 finish). The roadmap's T2 rows stay `[~]` and say exactly this.
@@ -375,7 +487,7 @@ rotation. The re-zero button is wired regardless (harmless in a body mode).
 | 3 | 2a | The degraded robot on the plant drives and reports; Part 1's bit-identity tests unchanged (assertion counts recorded before/after) | absence changes nothing when nothing is absent | — |
 | 4 | 2a | `runDriverControl` on the plant with `FakeController`: a stick step at tick k is in the commanded volts of tick k; `disabled()` ⇒ `cancel()` (0 V + Brake at the motors) and return; disconnected ⇒ zero command whatever the axes; the re-zero edge calls `rezero` once per press; an untrusted heading ⇒ `state().fieldCentric.fellBack`; tank-sticks mode moves the RIGHT side from `RightY` | the loop's six properties | add a one-tick buffer; skip the cancel; poll axes while disconnected; never read `RightY` |
 | 5 | 2a | `portMap()` for a tank and an X-drive, and a 21-port side truncated not overflowed; the default-profile loop vs the old mapping on a sweep: identical outside the deadband rescale (the documented bound), identical at 0 and ±1 | the header field is generated, bounded; Teleop's feel change is exactly the continuous deadband | drop the bound |
-| 6 | 2b | `bootConfig()`'s pure core: a record description ⇒ config valid, `source` preserved, drive-encoder odometry, GPS absent; the verdict's missing ports carried through | the boot source feeds the builder faithfully | drop the sign copy (caught through the builder's signed-port assertion) |
+| 6 | 2b | `bootConfig()`'s pure core — **as amended by A11**: config valid, `source` preserved, `tuning == ChassisConfig{}`, drive-encoder odometry, GPS absent; per-side scales carried exactly (L 1.25442 / R 1.36703); `portMap()` equals the 2026-09-25 capture's `[SES] ports` text; one missing port ⇒ `absent().size() == 1` and `validate()` passes | the boot source feeds the builder faithfully | pass the whole `absentPorts` array; a non-default tuning in the core; copy the left scale into the right |
 | 7 | 2b/2c | Six builds green; beacons unchanged; old and new boot banners diffed (2b); `main.cpp` ≤ 300 lines with the grep above (2c); the gate's beacon catches a broken `#ifdef` (2c's mutation) | §0's measure is mechanical | 2c's `#ifdef` mutation |
 
 Every mutation RUN on a fresh binary (edit → touch EVERY test that includes the edited header →
@@ -390,9 +502,10 @@ is regenerated only after the last restore is relinked green.
       guards (the provider lives under `hal/pros/`; `teleop_loop.hpp` includes no `pros/`); tests 1–5
       with their mutations logged red; the pre-existing suite unchanged except stated additions;
       `src/` byte-identical; §2a's documentation; the prose review (below); the log.
-- [ ] **2b:** §2b items 1–3; test 6; the banner diff; six builds, beacons unchanged; "shulib Teleop"
-      still says UNRUN everywhere it did, no hardware claim; §2b's documentation; the prose review; the
-      log.
+- [ ] **2b:** §2b items 1–3 and amendments A1–A19; test 6 (A11); the three-way banner diff (A10); six
+      builds, beacons unchanged (A2); the new program claims no hardware run of itself, and the previous
+      version's 2026-09-25 run is named wherever the old program said it had never run (A1); §2b's
+      documentation with A7's pointer scope; the widened prose review (A14); the log.
 - [ ] **2c:** §2c items 1–5; the gate redesign with its mutation; line counts before/after; §2c's
       documentation; `G1-COMPLETED.md`; the prose review; the log.
 
@@ -420,10 +533,16 @@ stale. Run the grep BEFORE writing that it was run.
    `describe()` (whose banner is longer than the 96-byte field).
 7. **Do not change `stick_mapping.hpp`'s bodies or `stick_mapping_test.cpp`**; the drive program's pin
    depends on them (M4).
-8. **No hardware claim.** Teleop remains UNRUN; say so where the old program did.
-9. **Parts 2b and 2c change the packages the first drive uses.** If the brain enumerates while one is
+8. **No hardware claim for THIS version.** The previous version's 2026-09-25 run is stated as A1 words
+   it, and nothing beyond it.
+9. **Parts 2b and 2c change the hardware packages.** If the brain enumerates while one is
    in flight, S1 builds its packages from the last COMMITTED tree in a separate worktree
    (`R3a-BENCH-WORKSHEET.md` G.1), never from the executor's working tree.
+10. **A tank-library beacon that `main.cpp`'s selected branch does not reference is removed by
+    `--gc-sections` and fails the gate**; a beacon literal in `teleop_program.cpp` (compiled in every
+    build) can land in the other builds' ELFs, which the same gate step forbids. Pass it (A2).
+11. **The new `src/*.cpp` compile in all six builds** — no `SHULIB_RUNS_*` outside `main.cpp`, and every
+    symbol they call in `main.cpp` (`attachFaultLatch`) is defined in every build (A12).
 
 ---
 
