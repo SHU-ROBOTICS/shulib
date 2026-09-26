@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 30 of 53 chunks complete
+**Position:** 30 of 54 chunks complete
 
 - **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check) were built in parallel in isolated worktrees and merge one at a time — DIAG1 Part A and COMP-a have landed (below; COMP-a's status is under COMP) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*

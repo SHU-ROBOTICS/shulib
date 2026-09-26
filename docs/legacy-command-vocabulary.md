@@ -6,7 +6,8 @@
 > primitives — an earlier revision said "F2 (mechanism primitives)", which is two mistakes:
 > chunk F2 is the sequence engine, and the mechanism seam was F1) and G2 (the
 > canonical command-id registry)**, and the two data specimens characterized here are the real
-> inputs **G4's `.shupaths` importer** must be able to read.
+> inputs G4's `.shupaths` importer would have had to read (that importer was dropped on 2026-09-26;
+> the specimens remain the record of the legacy vocabulary).
 >
 > **Method:** extracted **mechanically** (scripts in §6), from all four places commands existed
 > in `legacy/`; the hand-reading only interprets what the scripts found. Nothing below is from

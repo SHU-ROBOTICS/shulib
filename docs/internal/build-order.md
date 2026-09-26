@@ -841,14 +841,14 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **F** | Sequencing | F1–F2 | — |
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
 | **COMP** | The match program | COMP (parts a, b) | none (the schedule numbers need the game manual) |
-| **G** | No-code authoring | G1–G4 | G1–G2 none (G2 froze F8 itself, 2026-09-18); G3–G4 read VexBuilder's files |
+| **G** | No-code authoring | G1, G2, G3a, G3, G4 | G1–G2 none (G2 froze F8 itself, 2026-09-18); G3–G4 read VexBuilder's files |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
 | **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6 | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c's absolute-reference half needs a GPS/camera on a tank robot (fall); its holonomic half needs the X-drive, built in spring 2027 |
 | **F′** | Scoring primitives | F3–F4 | needs hardware + final mechanisms |
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**53 chunks** — the table above, counted row by row (DIAG1 added 2026-09-26, +1 — reactive: an implausible odometry tick must name its check before the first auton) (DEFECTS2 added 2026-09-26, +1 — reactive, found by T3's research: brake modes never reached the motor) (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
+**54 chunks** — the table above, counted row by row (G3a added 2026-09-26, +1 — the robot profile, its generator and the robot panel, before G3, the team lead's "lets do it for before implementing .vexbot") (DIAG1 added 2026-09-26, +1 — reactive: an implausible odometry tick must name its check before the first auton) (DEFECTS2 added 2026-09-26, +1 — reactive, found by T3's research: brake modes never reached the motor) (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
 DOCS1 and DOCS2 were never added to the total when their row was; the handoff audit counted the
 table). R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
 GATE1 was added 2026-08-19 (+1, reactive — `src/` was in no gate and CI could not see whether an
@@ -892,7 +892,7 @@ NOW  ──► R3a ──► R3b ──► R3d ──► R4 ──► R5 ──�
                     ├──► F3 ──► F4                            needs the build team's mechanism decisions
                     │           M4 ✅
                     ├──► T2 ──► T3                            ungated — do any time
-                    ├──► G1 ──► G2 ──► G3 ──► G4              G3+ read VexBuilder files
+                    ├──► G1 ──► G2 ──► G3a ──► G3 ──► G4       G3+ read VexBuilder files
                     │                         M5 ✅
                     ├──► H1 ──► H2 ──► H3                     H2 needs VexBuilder's sim
                     │                         M6 ✅
@@ -943,7 +943,7 @@ the answer to "the robot is unavailable today, what do I do?"
 | **Absolute reference** | R2 → R3c → E5 → E6 | **M3** | a camera; then a competition robot with pods + a GPS + a field | parts arrive. R3c is where **the holonomic thesis finally gets validated** — a tank bot can say nothing about it |
 | **Scoring** | F3 → F4 | **M4** | **the build team's final mechanism / lift / role decisions** — a hardware call, not a software one | those decisions land. F3 also needs the lift-homing answer (limit switch vs stall) still owed since 2026-08-13 |
 | **Driver control** | T2 → T3 | — | **nothing** | any time. T1 already shipped at R1a; only the *feel* layer (curves, slew, per-driver tuning) is missing, and the frozen `drive(ChassisSpeeds, Frame)` verb means only the INPUT half is left |
-| **No-code authoring** | G1 → G2 → G3 → G4 | **M5** | G1–G2 **nothing** (G2 reconciled and froze the `paths[]` schema itself); G3–G4 read VexBuilder's files | **Under way (2026-09-26):** G1 Part 1 and G2 landed 2026-09-18, host-only; G1 Part 2a landed 2026-09-24, host-only; G1 Part 2b landed 2026-09-26, build-gated ("shulib Teleop" on `robot::Robot`; that version not run on a robot); G1 Part 2c waits for the team lead's go, after the brake-mode fix (DEFECTS2) and T3 (his order, 2026-09-26); G3–G4 unbuilt. Nothing of Phase G has run on a robot |
+| **No-code authoring** | G1 → G2 → G3a → G3 → G4 | **M5** | G1–G2 **nothing** (G2 reconciled and froze the `paths[]` schema itself); G3–G4 read VexBuilder's files | **Under way (2026-09-26):** G1 Part 1 and G2 landed 2026-09-18, host-only; G1 Part 2a landed 2026-09-24, host-only; G1 Part 2b landed 2026-09-26, build-gated ("shulib Teleop" on `robot::Robot`; that version not run on a robot); G1 Part 2c waits for the team lead's go, after the brake-mode fix (DEFECTS2) and T3 (his order, 2026-09-26); G3–G4 unbuilt. Nothing of Phase G has run on a robot |
 
 ### Stage 4 — the tail
 
@@ -1539,7 +1539,39 @@ the X-drive route does **not** run on a tank and should not — `moveTo` transla
 it servos to, so a tank route is authored with its turns as waypoints, exactly as a tank recipe is
 written with them (D12 honesty reaching the data layer intact).
 
+### G3a — the robot profile, its generator and the robot panel (VS Code) ⟵ NEW 2026-09-26, before G3
+> **Status 2026-09-26: PLANNED** (the team lead: "lets do it for before implementing .vexbot"; "I
+> genuinely want to complete the full library asap"). Its brief is written after G1 Part 2c lands —
+> 2c's one-chain robot selection is the generator's target — and waits for his go.
+
+A robot described as DATA a person can edit without touching C++, before any `.vexbot` carries it:
+- **The profile, revised.** `docs/vexbuilder-integration.md` §3.1's `robotProfile`, shrunk to what a
+  human must state since the runtime-discovery ruling of 2026-09-10 — cartridge, drivetrain kind,
+  which end is the front, the ports and sides as the build team wires them, sensors, mechanisms —
+  while track width, wheel diameter and motor reversal are MEASURED by shulib Calibrate (shown, never
+  typed); plus a new `controls` block for T3's hold and toggle bindings and the re-zero button, which
+  the drafted schema has no place for. A standalone robot file (the profile block alone) that a
+  `.vexbot` later embeds unchanged (G3).
+- **The generator** — a host tool: robot file → the C++ tables the program's one-chain robot
+  selection picks (today's `src/chassis_table.hpp` and `src/mechanism_table.hpp` shapes), checked in,
+  with a freshness gate like `api_doc_tool check-fresh`. ONE validator: the generator names every
+  refusal the C++ compile-time checks would make (a port twice, a button twice, the re-zero button
+  bound, a claw port that is a drive port), a test pins the two to agree, and the C++ checks stay the
+  final authority.
+- **The robot panel** — an OPTIONAL VS Code extension: a form over the robot file (drive ports,
+  sensors, mechanisms and their buttons), live warnings from the generator, save = write the file and
+  run the generator, the calibration record from the SD card shown read-only. No build needs it.
+
+**DoD:** robot two's robot file generates tables byte-for-byte equal to today's hand-written ones (the
+differential); a stale generated header fails the gate; every refusal the C++ checks make, the
+generator names first; the panel round-trips the file. **F7 does NOT freeze here** — it freezes at
+G3, when `.vexbot` carries the profile.
+
 ### G3 — `.vexbot` ingestion + codegen → **freeze F7**
+> **Re-scoped 2026-09-26:** the profile's revision and the generator are G3a's (above). G3 reads the
+> profile out of a `.vexbot` into G3a's generator, adds the optional SD-card runtime loader,
+> `inferDrivetrain()` and `schemaVersion` negotiation, and freezes F7.
+
 The `robotProfile` sub-schema, the `.vexbot` → `robot_config.hpp` codegen tool (primary, on-robot: no
 runtime JSON parse, no SD dependency, compile-checked), the optional SD-card runtime loader,
 `inferDrivetrain()` as the documented-brittle fallback, and `schemaVersion` negotiation with additive
@@ -1552,9 +1584,10 @@ carry `project.paths[]`, and its `electrical{}` arrays are empty because the UI 
 **DoD:** a real `.vexbot` produces a working robot and routine; a deliberately-newer schemaVersion
 loads without fatality. **F7 frozen.**
 
-### G4 — Legacy `.shupaths` importer + the 10-minute guide ⟵ **closes M5**
-One-way importer mapping old `code_template` strings to command ids best-effort, flagging what it
-can't. Then the "first auton in 10 minutes" guide — build → export → drag a path → run — which can
+### G4 — The 10-minute guide ⟵ **closes M5** *(the legacy `.shupaths` importer DROPPED 2026-09-26)*
+*(The one-way importer mapping old `code_template` strings to command ids was DROPPED on 2026-09-26 —
+the team lead: "shupaths probably isn't going to be a thing"; paths live only in `.vexbot`'s
+`paths[]`. Reinstated only if a team needs an old file migrated.)* The "first auton in 10 minutes" guide — build → export → drag a path → run — which can
 finally be written truthfully because the flow now exists.
 
 **DoD:** a team member who cannot code builds a robot and a routine in VexBuilder, exports one
@@ -1901,6 +1934,8 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 
 | Change | Roadmap says | Build order says | Why |
 |---|---|---|---|
+| **+ G3a: the robot profile, its generator and a VS Code robot panel, before G3** *(2026-09-26, the team lead: "lets do it for before implementing .vexbot")* | *(absent — a robot's config was to be edited only in VexBuilder, whose electrical-config screen does not exist)* | **G3a after the first autonomous, before G3: the profile revised to the human-stated facts plus a `controls` block, a generator to the C++ tables with a freshness gate, an optional VS Code panel; G3 then reads the same profile out of `.vexbot`** | the team lead wants robots managed as data, plug-and-play, without VexBuilder's scale; the drafted profile predates the runtime-discovery ruling and has no place for button bindings, and F7 is not frozen, so fixing both now is cheap |
+| **G4's legacy `.shupaths` importer dropped** *(2026-09-26, the team lead: "shupaths probably isn't going to be a thing")* | G4: the `.shupaths` importer + the 10-minute guide | **G4 = the 10-minute guide only** | paths live only in `.vexbot`'s `paths[]`; no team file needs migrating. Reversible if one does |
 | **T3 Part 1 merged: the coordinator's rulings at the merge** *(2026-09-26)* | the addendum's `robot.mechanism(name)` for the claw; the controller's link and buttons assumed to return together; HA-157's second half at Station J | **`robot.pneumaticMechanism(name)` for a pneumatic mechanism (`mechanism(name)` stays the motor lookup) and `builtMechanismAt(i)` for a boot report over both kinds; HA-147 registered (the controller belief the toggle rests on; Station J.9.5 tests it), HA-148..HA-152 left unused (reserved for T3, never reissued); HA-157's second half settled at COMP's station, not Station J; Station J gains J.9.5's held-A reconnect step and J.9.7 (the valve's cable pulled)** | B2's review: one shared lookup would hand a binding a base pointer it cannot use without a downcast; the toggle's "never replayed" guarantee was stronger than the evidence until the belief was registered and tested; Station J's DO NOT list forbids the controller-menu start that HA-157's second half needs, and COMP's station makes that start on purpose (the team has no competition switch) |
 | **G1 Part 2c, DIAG1 and COMP-a started in parallel with T3, each in an isolated worktree** *(2026-09-26 morning, team lead: "start all three")* | one thing in flight; 2c after T3, COMP after 2c | **T3 (finishing), 2c, DIAG1 ([brief](chunks/DIAG1-odometry-tick-names-its-check.md)) and COMP-a built at once in separate worktrees; the coordinator merges and verifies one at a time; COMP-b still after 2c** | The team lead's priority is the first autonomous; none of the three touches T3's files, and each merge is verified on its own. COMP's brief carries a binding re-check (B1–B27, incl. two blockers fixed before any code) |
 | **+ DIAG1: an implausible odometry tick names its check** *(2026-09-26, reactive; the team lead's "as recommended")* | *(absent)* | **DIAG1 before the first autonomous** | robot two raised ODO_STUCK twice on 2026-09-25 with no check named and no values; ODO_STUCK is the scheduler's default abort fault, so a repeat would end the first auton's drive unexplained |

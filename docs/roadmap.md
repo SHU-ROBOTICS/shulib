@@ -1748,9 +1748,9 @@ R4.)*
 - [ ] `schemaVersion` negotiation + additive migration (future `.vexbot` files still load).
 
 **Path authoring (WS8)**
-- [ ] `io/Trajectory`: read **`project.paths[]`** from `.vexbot`; **legacy `.shupaths` importer**
-  (maps old `code_template` strings → command-ids best-effort, flags the rest). *(G3/G4. The READER
-  is the whole of what is left in this bullet — the thing it feeds now exists.)*
+- [ ] `io/Trajectory`: read **`project.paths[]`** from `.vexbot`. *(G3. The READER is the whole of what
+  is left in this bullet — the thing it feeds now exists. The legacy `.shupaths` importer once listed
+  here was DROPPED on 2026-09-26: paths live only in `.vexbot`.)*
 - [x] `PathRunner` — per-waypoint execution through the frozen `Chassis` verbs + marker callbacks
   (**G2, 2026-09-18, host plant only**). D1's error policy verbatim: the first non-Settled leg or
   the first failed marker stops the route, `chassis.cancel()` safes the drive, every later waypoint
@@ -1995,8 +1995,9 @@ must add for the integration to close. They are tracked here so the dependency i
 |---|---|---|---|---|
 | A | `IRobotConfig` / `IRouteSource` / the builder | everything downstream | **G1** | no — **Part 1 DELIVERED 2026-09-18** (`config/robot_config.hpp`, `config/route.hpp`, `robot::Robot` — spelled `Robot{config, devices}`, not `RobotBuilder`); **Part 2a DELIVERED 2026-09-24, host-only** (the PROS device provider, absent drive ports, the generated port map, the driver-control loop); **Part 2b DELIVERED 2026-09-26, build-gated** ("shulib Teleop" moved onto it; that version not run on a robot); Part 2c (`main.cpp` as a dispatcher) is next |
 | B | ✅ `PathRunner`, the command-id registry, and the **exported manifest** | **VexBuilder ask #4** (the picker) — **DELIVERED 2026-09-18**; the format is [`vexbuilder-integration.md`](vexbuilder-integration.md) §4.2.3 | **G2** | no |
-| C | `.vexbot` ingestion + `robot_config.hpp` codegen + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
-| D | The `.shupaths` one-way importer | migrating existing routines | **G4** | yes — G3 |
+| C′ | The robot profile (revised to the human-stated facts, plus a `controls` block), its generator to the C++ tables, and an optional VS Code robot panel | editing a robot without C++ | **G3a** (added 2026-09-26, before G3) | no |
+| C | `.vexbot` ingestion (into G3a's generator) + the SD runtime loader | a `.vexbot` actually running a robot | **G3** | yes — asks #1, #2, #5, #6 |
+| D | ~~The `.shupaths` one-way importer~~ — **DROPPED 2026-09-26** (paths live only in `.vexbot`) | — | — | — |
 | E | The `SHUL/2` wire protocol | **VexBuilder ask #3** | **H1** | **no — the wire is defined unilaterally** |
 | F | The `hal/sim` adapter + record/replay | the sim seam closing | **H2** | yes — Rapier |
 

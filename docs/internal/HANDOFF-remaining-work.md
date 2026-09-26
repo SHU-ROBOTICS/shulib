@@ -458,9 +458,12 @@ is a plan change for jal to confirm in the brief (Q7).
 - Size: ~1 day.
 
 **L10. The remaining plan chunks (lower priority for the season):**
-- **[G3] `.vexbot` ingestion + codegen → freeze F7.** Serves VexBuilder's files — after L1–L9 unless
-  jal says otherwise (§2). ~1.5 days.
-- **[G4] legacy `.shupaths` importer + the ten-minute guide** (closes M5). ~1 day shulib side.
+- **[G3a — NEW 2026-09-26, before G3] The robot profile, its generator and an optional VS Code robot
+  panel** (jal: "lets do it for before implementing .vexbot"; build-order's G3a entry). ~3–5 days.
+- **[G3] `.vexbot` ingestion into G3a's generator → freeze F7.** Serves VexBuilder's files. ~1 day
+  after G3a.
+- **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26
+  (jal: "shupaths probably isn't going to be a thing"). ~½ day shulib side.
 - **[H1] SHUL/2 telemetry wire → freeze F9.** ~1 day.
 - **T2 finish:** re-point shulib Drive and the tester's DRIVE station at `DriveShaper` AFTER a driver
   has compared feels on hardware (the G1 Part 2 brief's ruling M4) — then **`T2-COMPLETED.md`**, which

@@ -63,8 +63,9 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 |---|---|---|
 | `IRobotConfig` / `IRouteSource` / `RobotBuilder` | 🚧 | **G1 Part 1 landed 2026-09-18, host-only** — the in-memory types (`config::RobotConfig`, `config::Route`, both seams) and the builder (`robot::Robot` over an `hal::IDeviceProvider`) exist and drive the host plant identically to a hand-wired graph. *Part 2a (the PROS provider, host-tested only) landed 2026-09-24; Part 2b ("shulib Teleop" built on the builder over the PROS provider — that version not yet run on a robot) landed 2026-09-26; Part 2c (`src/main.cpp` as a dispatcher) is open; ungated* |
 | `PathRunner` + command-id registry + manifest export | 🚧 | **G2 landed 2026-09-18, host-only — F8 FROZEN.** The runner executes a `Route` through the frozen chassis verbs, the registry binds ids to handlers, and `writeManifest` publishes the vocabulary (§4.2.3). Proven on the host physics plant against a hand-written recipe, bit for bit; *never run on a robot*. The `.vexbot` READER is G3's |
-| `.vexbot` ingestion + `robot_config.hpp` codegen + SD runtime loader | ❌ | **G3** — freezes F7 |
-| `.shupaths` one-way importer + the 10-minute guide | ❌ | **G4** — closes the accessibility milestone |
+| The robot profile revised (§3.1), its generator, and an optional VS Code robot panel | ❌ | **G3a** — added 2026-09-26, before G3; the profile can change until G3 freezes it |
+| `.vexbot` ingestion (into G3a's generator) + SD runtime loader | ❌ | **G3** — freezes F7 |
+| The 10-minute guide | ❌ | **G4** — closes the accessibility milestone (the `.shupaths` importer was dropped on 2026-09-26) |
 | `SHUL/2` wire protocol | ❌ | **H1** — freezes F9. *Ungated: the wire is defined unilaterally* |
 | `hal/sim` adapter + record/replay | ❌ | **H2** — needs your Rapier sim |
 | On-brain live tuner | ❌ | **H3** |
@@ -204,8 +205,9 @@ promise is preserved: a code-fluent team builds the same types directly in C++ w
 
 **`.shupaths` and the standalone Python path planner are RETIRED.** Paths now live inside `.vexbot`
 alongside the robot, so a routine can never fall out of version-sync with the robot it was drawn for.
-This deletes the spec's unsolved "re-export when the robot changes" problem outright. A one-way
-importer migrates old `.shupaths` files; nothing writes them again.
+This deletes the spec's unsolved "re-export when the robot changes" problem outright. Nothing writes
+`.shupaths` files again, and nothing reads them: the one-way importer once planned was dropped on
+2026-09-26.
 
 ### 4.1 The schema — **FROZEN 2026-09-18 (register row F8, chunk G2)**
 
@@ -380,7 +382,8 @@ a waypoint IS a segment**, so the boundary has no content left to carry, and shu
 a command id called `none` (its absence is pinned by the freeze test, so a future built-in cannot
 quietly give the legacy spelling a meaning it was ruled out of having).
 
-**What this means for each side:** the `.shupaths` importer folds `NONE` rows into waypoint
+**What this means for each side:** *(the `.shupaths` importer this paragraph assumed was dropped on
+2026-09-26; the rule stands for any importer:)* an importer folds `NONE` rows into waypoint
 boundaries and emits no marker for them. Your picker never renders one, and never has to explain to
 a student what "NONE" would do. If a `.vexbot` ever arrives carrying `id: "none"`, it is an importer
 bug, and it will surface as one warning per occurrence rather than as a mystery.

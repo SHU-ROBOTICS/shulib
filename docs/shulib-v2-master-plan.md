@@ -264,7 +264,7 @@ consume facade verbs and sit at skills level. The device seam itself (`IMechanis
 `MotorMechanism`, `PneumaticMechanism`, `IDigitalOut`) lives in `hal/` — outside the F4 freeze,
 register row F11._
 
-**IO / Tools** — `io/Trajectory` + `.vexbot` `paths[]` reader (+ legacy `.shupaths` importer); `io/Telemetry` SHUL/2
+**IO / Tools** — `io/Trajectory` + `.vexbot` `paths[]` reader (the legacy `.shupaths` importer was dropped 2026-09-26); `io/Telemetry` SHUL/2
 (ports/absorbs `logger.hpp` into the new core **before** the end-of-M2 legacy deletion, fixing its 3 known bugs — §18.6); `tools/sysid` (offline kS/kV/kA least-squares → emits **constants**,
 not code) + on-robot tuner.
 
@@ -686,7 +686,8 @@ physics sim (Tauri / React / Rust+SQLite) — saving everything in **one `.vexbo
 shulib is the **runtime**: it ingests that file and runs it, today and for robots not yet designed.
 **Decision (locked):** the standalone `.shupaths` format and the separate Python path planner are
 **retired** — paths now live inside `.vexbot` alongside the robot, so a routine can never fall out
-of version-sync with the robot it was drawn for. A one-way importer migrates existing `.shupaths`.
+of version-sync with the robot it was drawn for. A one-way importer for existing `.shupaths` was planned
+and dropped on 2026-09-26: nothing reads them.
 
 **16.0 — Principle: shulib defines the contracts; VexBuilder implements them.** Because shulib's
 core depends only on the PROS-free **HAL** (§5), the *exact same* motion/localization/auton code
@@ -756,7 +757,8 @@ free-form code, so the data/code split holds.) shulib **owns the canonical comma
 exported as a manifest VexBuilder reads to populate its command picker; an **unknown id** logs a WARN
 fault and is skipped, never crashes (§16.5, §18.4). Markers may carry an optional **typed-args** object
 (e.g. `{id:"lift_to_level", args:{level:3}}`) so parametric primitives don't explode into one id per
-value. The `.shupaths` importer maps old `code_template` strings to ids best-effort, flagging any it can't.
+value. (The `.shupaths` importer that would have mapped old `code_template` strings to ids was dropped on
+2026-09-26.)
 
 **16.4 — Seam 3: Simulation & telemetry (`SHUL/2`).** When Rapier lands, shulib runs *unmodified*
 in-sim through `hal/sim`, which speaks `SHUL/2` over VexBuilder's agent socket (discovered via
