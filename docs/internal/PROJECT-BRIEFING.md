@@ -107,7 +107,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 29 of 51 chunks complete
 
-- **Next up:** THE BENCH SESSION CONTINUES (R3d Part 3) — "shulib Calibrate" (built from the committed 2780462) is on slot 4 and has run twice on robot two (below: run 1 STOPPED, run 2 finished UNRECORDED): read run 2's finished screen — SAVED or not, ipr, track, LEFT OUT — then a reproduction run WITH the serial capture running, then "shulib Teleop" from the record, per worksheet [Station G](chunks/R3a-BENCH-WORKSHEET.md). R2a's bench check is folded into that session: rebuild "Bench Tests" from the committed tree (rm -rf bin .d && make ROBOT=tank, slot 3) and run worksheet [Stations H and I](chunks/R3a-BENCH-WORKSHEET.md) — buttons 11 DISTANCE and 12 AI VISION, RECORD at each step. Then, each on its own go: G1 Part 2b ("shulib Teleop" on the library), then COMP.  
+- **Next up:** G1 PART 2b ("shulib Teleop" rebuilt on the library), then Part 2c (main.cpp as a dispatcher), then COMP — each on its own go  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,425 cases / 2,386,871 assertions, 3 skipped — **green**  

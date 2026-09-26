@@ -2446,3 +2446,61 @@ and read every screen string against Station G.
   its next boot in preference to the typed table (`src/main.cpp`, WHERE THE DESCRIPTION COMES FROM),
   with FRONT = the end that led the push.** Next: read the record back (its numbers) before anything
   drives from it.
+
+## Part 3 continued — 2026-09-25 evening: shulib Teleop from the saved record (Station G.6) — the library's graph DROVE robot two
+
+Evidence: `docs/internal/evidence/r3d-session-2026-09-25-teleop.log.gz` (gzip -9 of the raw 17.25 MB
+capture, verified byte-identical on decompress; read with `zcat … | strings`; the reconnecting recorder,
+`session5`, opened the user port at 22:04:17, lost it 22:15:07 when the team lead switched the robot
+off, re-opened 22:15:45, closed 23:07:33).
+
+- **Before the capture: a Calibrate run, UNRECORDED.** The team lead ran shulib Calibrate (slot 4, the
+  `2780462` build) before plugging in: "calibration ran it seemingly worked". No serial record exists.
+  The record Teleop then booted from says `description provenance: shulib Calibrate Sep 24 2026 17:42:16 |
+  ROBOT-MEASURED: 8 ports, push 48 in, W 12.006 in` — that build stamp is shared by 2026-09-24's run 2 and
+  tonight's run, and the record carries no date, so WHICH run wrote it is not provable from the tree
+  (tonight's, by the team lead's account).
+- **shulib Teleop (slot 2, `v0.1.1-319-g2780462`, stamp `Sep 24 2026 17:42:12`) — EIGHT starts, all
+  booted from the RECORD:** `calibration record: DECODED, port check OK -- OK: all 8 recorded drive ports
+  carry motors, IMU on port 2. NEW motors not in the calibration: 14.` · `boot source: RECORD` ·
+  `[SES] ports MEASURED L -16 +17 -18 -20 R +11 -12 +13 +15 IMU2 ipr 1.2544/1.3670 TW12.01` · `4+4 slots
+  behind two MotorGroups, 4+4 PRESENT` · `ff kS 1.00 kV 0.1714 kA 0.0000`, budgets 60 in/s · battery
+  13.0-13.1 V at boot. **The record's L/R scales differ by 9.0 %** (1.2544 vs 1.3670 in/rad), against
+  run 1's push at ~2.7 %. **This is the first time the library's own object graph (MotorGroups,
+  DriveEncoderOdometry, Localizer, Chassis::drive through feedforward) drove robot two** — open-loop, under
+  driver control. It is NOT a library-commanded motion (no moveTo ran; R3b stays open).
+  | start | length | faults (the log's own lines) |
+  |---|---|---|
+  | 1 | 306.8 s | none (before the worksheet run: the team lead called start 2 "the real one ... where I actually followed the rules") |
+  | 2 | 93.6 s | `fault=ODO_STUCK n=1 FIRST implausible odometry tick` at t=34.40, `n=2` at t=60.32 — **the team lead's "real" G.6 run** (wheels up, then floor, per the worksheet) |
+  | 3 | 78.7 s | `fault=MOTOR_GROUP_DISAGREE n=1 FIRST 1 member(s) disagree with their coupled group` at t=10.09 (commanded `v(9.2, 2.0, 0.00)`); the log does not name the member |
+  | 4-8 | 228.6 / 18.1 / 16.4 / 13.4 / 671.6 s | none |
+  **Both ODO_STUCK ticks came with commanded speed 0** (`v(0.0, 0.0, 0.00)` on the surrounding records),
+  i.e. not from driving; `DriveEncoderOdometry` calls a tick implausible on a non-finite delta, |Δθ| > π/2
+  in one tick, or |side travel| > 36 in in one tick (`drive_encoder_odometry.hpp` ~:164-166), and the fault
+  line records none of the values — **cause UNKNOWN**; a reading glitch at rest (IMU or encoder) is the
+  best guess, not a finding. The fault then stays latched on every record (`flt=ODO_STUCK`), q 0.34 → 0.20.
+- **The team lead's screen readings (Station G.6.3/F.2 and G.6.4), taken across starts 3-8** — `est x`
+  and `hdg` exist only on the panel, not on serial:
+  - **forward drove toward the CAMERA end** (AI Vision, port 3). With the record's signs identical to
+    2026-09-24 run 1's (the inverse of `src/chassis_table.hpp`'s), the camera end is the end the typed
+    table calls the BACK (the 11/20 end): **the table's "front = 15/16 end" is the opposite of the robot's
+    front as the team uses it.**
+  - one tile (24 in) forward by stick: `est x` "about 22-24"; driven back: "near 0"; one full spin:
+    `hdg` back within "<0.3"; everything else "working as it should".
+  - **G.6.4, the 48 in taped drive: `est x` = 44 (8.3 % short), ending at heading −11.2° (veered RIGHT).**
+    A gradual 11° veer shortens the x-projection by ~0.5 %, so it does not explain the 8 %. **The saved
+    scale under-reads distance by ~8 %**; a 40 in library drive would travel ~43.6 in. Best explanation
+    (NOT proven): the push that made the record went past 48 in. The veer: open-loop teleop gives both
+    sides equal volts; the right side is the weak one (14 not in the record, 15 slipping) — the team lead
+    leans "build", and that fits.
+- **The team lead's decision: NO Calibrate rerun tonight.** R3d stays OPEN (its close is the recorded
+  reproduction run), and the ~8 % scale shortfall and the 9 % L/R gap are carried, not fixed.
+- **Bench Tests `6b074ae`** (beacon `tank`, stations 11 DISTANCE / 12 AI VISION) uploaded to slot 3 at
+  ~22:17; not run yet.
+- **Rulings made this session (the doc pass that carries them into build-order / roadmap / handoff waits,
+  by the team lead's choice, until the auton is done):** (1) an auton hook inside shulib Teleop was
+  briefed, launched and **stopped before any code** — "I want to eventually use the actual autonomous not
+  put it in teleop. i want to do things genuinely correct"; autons go only through the real
+  `autonomous()` (G1 2b → 2c → COMP). (2) After G1 Part 2b: **2c, then COMP**. (3) Whether the team owns a
+  competition switch: unknown (the team lead is asking).

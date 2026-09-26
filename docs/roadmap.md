@@ -327,11 +327,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > one line shorter, and none of it has run on a robot** — the provider has been tested only against
 > the host's stand-in for the PROS headers.
 >
-> **Now (2026-09-24, later): the bench session continues — "shulib Calibrate", now drawn from its
-> screen model, was rebuilt from the committed tree and has run on robot two twice (next paragraph);
-> what is left of the session is a recorded reproduction run and "shulib Teleop" from the record;
-> then G1 Part 2b ("shulib Teleop" on the library) and Part 2c (`main.cpp` as a dispatcher).** Each
-> waits for the team lead's go. *(R2a landed the same evening, build-gated and not run: Bench Tests'
+> **Now (2026-09-25): "shulib Teleop" drove robot two from the robot's own saved calibration —
+> eight starts, open-loop under a driver — the first time the library's own code drove the robot.
+> Next: G1 Part 2b ("shulib Teleop" on the library), then Part 2c (`main.cpp` as a dispatcher), then
+> COMP (the competition program).** Each waits for the team lead's go. Still owed from the bench
+> session: a recorded Calibrate reproduction run (the saved distance scale reads about 8 % short)
+> and the sensor stations. *(R2a landed the same evening, build-gated and not run: Bench Tests'
 > stations 11 DISTANCE and 12 AI VISION — see the R2 row under M1 — so the same bench session can
 > also check what the distance sensors and the AI Vision camera report.)* The bench session can
 > close R3d; it cannot close R3b or M1, because no uploaded program commands a `moveTo` yet.
