@@ -836,7 +836,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **A** | Build the ground to stand on | A1–A4 | — |
 | **C** | Make it move | C1–C8 | — |
 | **D** | Make it usable | D1–D3 | — |
-| **DOCS/DEFECTS** | Reactive: documentation, the defects it found, the gate a defect exposed | DOCS1, DOCS2, DEFECTS1, GATE1 | — |
+| **DOCS/DEFECTS** | Reactive: documentation, the defects it found, the gate a defect exposed | DOCS1, DOCS2, DEFECTS1, GATE1, DEFECTS2 | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
@@ -848,7 +848,7 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**51 chunks** — the table above, counted row by row (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
+**52 chunks** — the table above, counted row by row (DEFECTS2 added 2026-09-26, +1 — reactive, found by T3's research: brake modes never reached the motor) (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
 DOCS1 and DOCS2 were never added to the total when their row was; the handoff audit counted the
 table). R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
 GATE1 was added 2026-08-19 (+1, reactive — `src/` was in no gate and CI could not see whether an
@@ -1434,6 +1434,8 @@ curve monotonicity tests are the load-bearing pair. **Perceived latency is NOT c
 input-to-motion latency is PROS call cost plus loop rate, both unmeasured (R4).
 
 ### T3 — Button bindings and driver macros
+> **Status 2026-09-26:** BRIEFED for robot two's claws — [brief](chunks/T3-claw-pivots-bindings-and-mechanisms.md) and [addendum](chunks/T3-addendum-pneumatic-claw.md) (the pneumatic claw on A). The team lead's rulings amend the "Non-negotiable" below: the stick-interrupt rule applies to chassis MACROS only; for a mechanism button binding, releasing the button is the stop (deviations table). Its library half is being built in an isolated worktree in parallel with DEFECTS2 and merges after it; nothing of it has run on a robot.
+
 Bind a button to a mechanism operation (F1's seam) or a chassis action — the "hold A to intake until
 capture" pattern that makes F1 pay off in teleop as well as auton.
 
@@ -1897,6 +1899,8 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 
 | Change | Roadmap says | Build order says | Why |
 |---|---|---|---|
+| **+ DEFECTS2: brake modes reach the motor** *(2026-09-26, reactive; the team lead's rulings)* | *(absent — the defect was unknown: every stop in the library ends in `move_voltage(0)`, which PROS documents as ignoring the brake mode)* | **DEFECTS2 ([brief](chunks/DEFECTS2-brake-modes-reach-the-motor.md)) right after G1 Part 2b, before T3**; fix Hold AND Brake at the `ProsMotor` adapter, keyed on the mode THIS program commanded; Coast unchanged; "shulib Teleop" COASTS on stick release | T3's claw pivots must HOLD their angle on release, and the drive's "0 V + Brake" stop coasts on the robot today; found by T3's read-only research and re-verified by the coordinator against `include/pros/motors.h` and the tree |
+| **T3 re-scoped for the claws** *(2026-09-26, team lead)* | T3: button bindings and driver macros, stick input interrupts any binding | **T3 ([brief](chunks/T3-claw-pivots-bindings-and-mechanisms.md) + [addendum](chunks/T3-addendum-pneumatic-claw.md)): robot two's claw pivots (ports 6/7, RED, hold-to-run on R1/R2 and L1/L2, HOLD on release) and the pneumatic claw (3-wire port A, toggle on controller A, starts closed, keeps its state on disable); `robot::Robot` builds mechanisms from `MechanismConfig` (handoff L9's piece); Teleop's re-zero button moves A → Y** | The team lead's order ("needs to be done asap with actual library code"). Rulings: the stick-interrupt rule applies to chassis MACROS only — for a mechanism button, releasing it is the stop (R1); both buttons of a pivot held ⇒ hold (R2); the panel merges its two fault rows (R3); one T3 chunk, not split (R4) |
 | **The brake-mode fix (DEFECTS2) and T3 (the claw pivots) ahead of G1 Part 2c** *(2026-09-26, team lead; recorded by G1 Part 2b's second review round)* | G1 Part 2c next, then COMP (the 2026-09-25 ruling) | **2b → DEFECTS2 → T3 → 2c → COMP**, each on its own go | The research for T3 (two claw pivots on ports 6 and 7 that must HOLD their angle when released) found that no brake mode the library commands reaches a V5 motor: PROS's `move_voltage` ignores it and `hal::pros::ProsMotor` stops only through `move_voltage(0)`. The team lead ruled both Hold and Brake fixed at the adapter right after 2b, "shulib Teleop" to COAST when the sticks are released (the feel of 2026-09-25), and the claw bindings (R1/R2 and L1/L2) next. 2c (a restructuring with no robot-visible change) and COMP follow. DEFECTS2's own commit adds its build-order entry and the chunk count; this row records only the order |
 | **R2 split: R2a (sensor stations) first, ahead of G1 Part 2b** *(2026-09-24, team lead)* | R2 — the AI Vision adapter, in Stage 3's absolute-reference track | **R2a: Bench Tests stations 11 DISTANCE + 12 AI VISION (read-only); R2b: the adapter from their evidence** | The sensors are mounted and nothing shows what they read; the team lead asked how he would know they work. Evidence before the adapter means the adapter's units, frame and latency are measured, not believed. Small, src/-only, and it makes the next robot session check the sensors alongside Calibrate |
 | **+ COMP: the competition program** *(2026-09-24)* | *(absent — no milestone owned the program a match runs; M4's guaranteed-park line assumed one)* | **COMP (a: library, b: program), after G1 Part 2b** | Every piece a match needs existed except the program that ties them together; `autonomous()` commands nothing in every build. The handoff's L2, briefed while the team lead was away from the robot |

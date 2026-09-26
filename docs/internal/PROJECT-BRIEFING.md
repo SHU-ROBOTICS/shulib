@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 29 of 51 chunks complete
+**Position:** 29 of 52 chunks complete
 
 - **Next up:** the brake-mode fix (DEFECTS2 — Hold and Brake reach the V5 motor; "shulib Teleop" COASTS on stick release), then T3 (the claw pivots on ports 6 and 7, bound to R1/R2 and L1/L2), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go  
   *(source: `build-order.md`'s `Next:` pointer)*
