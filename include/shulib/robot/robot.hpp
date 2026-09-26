@@ -34,7 +34,11 @@
 // THE BUILDER CONSTRUCTS AND NEVER TICKS. No localizer update, no motion tick, no motor
 // write happens anywhere in this file. That is what makes the ordering above a discipline
 // rather than a hazard — nothing here has an observable time-ordering, because no time
-// passes and no device is written during construction.
+// passes and no device is written during construction. ONE exception, and it is not a
+// command the builder invents (T3's addendum B2): a 3-wire line cannot be MADE without being
+// DRIVEN (A4 register HA-119), so a pneumatic mechanism's lines are asked for at the config's
+// stated START level, and on a brain that is the moment they take it — last, after the whole
+// drive graph (the MECHANISMS section below).
 //
 // ── validate() is PURE and TOTAL; construction PRECONDITIONS on it (ruling B3) ──────
 // A robot that cannot be built says WHICH PORT OR FIELD before a single object exists. That
@@ -77,6 +81,35 @@
 // provider will not make still refuses the build, as before. With no absent ports (the
 // default) every byte of the graph is what it was: Part 1's bit-identity cases are the pin.
 //
+// ── MECHANISMS: built from the config, ABSENT rather than refused (chunk T3) ────────
+// Every `config::MechanismConfig` with motors becomes ONE hal::MotorMechanism, built in the
+// constructor's BODY — after the whole drive graph, so the drive's construction order, its
+// provider requests and its behaviour are exactly what they were (the bit-identity cases are
+// still the pin, and one with mechanisms configured has joined them). Each motor is asked for
+// with the MECHANISM's own signed port and cartridge; the mechanism gets its DECLARED safe brake
+// mode and its config name (borrowed from this Robot's own copy of the config). validate() does
+// NOT ask for mechanism motors: a motor the provider will not make leaves THAT mechanism ABSENT —
+// mechanismAt() is nullptr, mechanismAbsence() carries the provider's own sentence naming the
+// port — and the rest of the robot builds and drives, because an unplugged claw must not stop a
+// robot from driving (the dead-port rule's spirit). A port a mechanism shares with the drive
+// never gets this far: RobotConfig::valid() refuses the collision before anything is asked for.
+// Since T3's addendum B2, a mechanism with 3-wire lines and no motors becomes ONE
+// hal::PneumaticMechanism: each line asked for with the config's START level (making a line
+// drives it — the one device write above), the mechanism's DECLARED safe level, its config name;
+// pneumaticMechanism(name) finds it, and mechanisms() carries it beside the motor ones. A line the
+// provider will not make leaves that mechanism ABSENT, like a motor. A mechanism with both motors
+// and lines never gets here (valid() refuses it), and one with neither is reported as not built.
+// The lookups by name and index are TYPED (a binding needs the concrete type), so a null from
+// one of them does not mean "absent": builtMechanismAt(i) is the kind-neutral "is it built?", and
+// mechanismAbsence(i) is empty exactly when it is non-null. A boot or panel line that reports
+// each declared mechanism asks those two — never mechanismAt(), which is null for a built claw.
+// On a field, a Robot built in initialize() is built while the brain is DISABLED, so whether a
+// line's start level reaches the valve then, or only at the enable, is A4 register HA-157's too.
+// The builder still never ticks and never commands a motor: a mechanism is first made safe by
+// whatever drives it (a teleop::MechanismBinding at the driver-control loop's entry, an
+// operation's exit), and a pneumatic one's first level after the start level is the driver's
+// (a teleop::ToggleBinding) or an operation's.
+//
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
 // No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
@@ -92,6 +125,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <optional>
 #include <span>
 
@@ -106,6 +140,7 @@
 #include "shulib/hal/absent_vision.hpp"
 #include "shulib/hal/device_provider.hpp"
 #include "shulib/hal/drive_geometry.hpp"
+#include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor_group.hpp"
 #include "shulib/kinematics/h_drive.hpp"
 #include "shulib/kinematics/matrix_kinematics.hpp"
@@ -181,6 +216,12 @@ struct BuildOptions {
 ///     `nullptr` becomes the verdict, carrying the provider's own `lastRefusal()` so the port
 ///     that is empty or dead is named by the layer that actually looked. An absent port is
 ///     never asked for, so a dead port is named once — by the boot check — and never twice.
+///     MECHANISM motors are deliberately not asked for here (chunk T3): one the provider will
+///     not make leaves that mechanism ABSENT when the Robot is built, and never refuses the robot.
+///     Nor are a pneumatic mechanism's 3-wire lines (addendum B2): asking for one DRIVES it, and
+///     the only refusal the on-robot provider can make — a line outside 1..8 — is pass 1's.
+///     Their CONFIG is checked in pass 1 (cartridge, safe brake mode, safe and start levels,
+///     ports and lines that collide with the drive or each other).
 ///
 /// It is not `const` on the provider because obtaining a device may construct one; it is
 /// idempotent, so calling it and then constructing a `Robot` asks for the same objects twice and
@@ -441,7 +482,9 @@ public:
     /// must outlive the Robot; `options` is read during construction only (its absent ports
     /// become `nullptr` group members and are never requested — G1 Part 2a, ruling M1), so its
     /// span may die as soon as the constructor returns. Default options build exactly the graph
-    /// the two-argument form always built.
+    /// the two-argument form always built. LAST, after the whole drive graph, each configured
+    /// mechanism with motors, or with 3-wire lines, is built — or recorded ABSENT with the
+    /// provider's sentence (chunk T3 and its addendum B2; the file header's MECHANISMS section).
     Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices,
           const BuildOptions& options = {})
         : cfg_{prechecked(cfg, devices, options)},
@@ -499,7 +542,9 @@ public:
                 .health = &health_,
                 .motorGroups =
                     std::span<hal::MotorGroup* const>{groups_.data(), groupCount_}},
-          chassis_{deps_, devices.pacer(), effectiveTuning(cfg_)} {}
+          chassis_{deps_, devices.pacer(), effectiveTuning(cfg_)} {
+        buildMechanisms(devices);
+    }
 
     /// Non-copyable: the graph is a web of references into this object's own storage.
     Robot(const Robot&) = delete;
@@ -556,6 +601,112 @@ public:
     /// tracking wheels instead. Read-only: the Localizer owns the updating.
     [[nodiscard]] const localization::DriveEncoderOdometry* driveOdometry() const noexcept {
         return driveOdom_.has_value() ? &*driveOdom_ : nullptr;
+    }
+
+    // ── the mechanisms (chunk T3; the file header's MECHANISMS section) ───────────────
+
+    /// How many mechanisms the config declares, built or not, of both kinds —
+    /// `config().mechanismCount`. `builtMechanismAt()`, `mechanismAt()`, `pneumaticMechanismAt()`
+    /// and `mechanismAbsence()` take an index below this.
+    [[nodiscard]] std::size_t mechanismCount() const noexcept { return cfg_.mechanismCount; }
+
+    /// The `i`-th declared mechanism if it was BUILT, of EITHER kind — nullptr when it is ABSENT,
+    /// has nothing to build, or `i` is not below `mechanismCount()`. This is THE "is this one
+    /// built?" question: a boot line or a panel row that reports each declared mechanism asks
+    /// this (and prints its `name()`), never `mechanismAt()`, which is nullptr for a built
+    /// PNEUMATIC mechanism too and would report a working claw as absent.
+    /// `mechanismAbsence(i)` is empty exactly when this is non-null.
+    [[nodiscard]] hal::IMechanism* builtMechanismAt(std::size_t i) noexcept {
+        MechanismSlot* slot = declaredSlot(*this, i);
+        if (slot == nullptr) {
+            return nullptr;
+        }
+        if (slot->built.has_value()) {
+            return &*slot->built;
+        }
+        return slot->pneumatic.has_value() ? &*slot->pneumatic : nullptr;
+    }
+    /// The `i`-th declared mechanism if it was built, read-only (same rules).
+    [[nodiscard]] const hal::IMechanism* builtMechanismAt(std::size_t i) const noexcept {
+        const MechanismSlot* slot = declaredSlot(*this, i);
+        if (slot == nullptr) {
+            return nullptr;
+        }
+        if (slot->built.has_value()) {
+            return &*slot->built;
+        }
+        return slot->pneumatic.has_value() ? &*slot->pneumatic : nullptr;
+    }
+
+    /// The `i`-th declared mechanism as a BUILT MOTOR mechanism — or nullptr when it is ABSENT
+    /// (the provider refused one of its motors), is a pneumatic mechanism (see
+    /// `pneumaticMechanismAt()`), has nothing to build, or `i` is not below `mechanismCount()`.
+    /// A TYPED lookup, for code that needs the motor type (a `teleop::MechanismBinding`): null
+    /// here does NOT mean "absent" — `builtMechanismAt()` answers that.
+    [[nodiscard]] hal::MotorMechanism* mechanismAt(std::size_t i) noexcept {
+        MechanismSlot* slot = declaredSlot(*this, i);
+        return slot != nullptr && slot->built.has_value() ? &*slot->built : nullptr;
+    }
+    /// The `i`-th declared mechanism, read-only (same rules).
+    [[nodiscard]] const hal::MotorMechanism* mechanismAt(std::size_t i) const noexcept {
+        const MechanismSlot* slot = declaredSlot(*this, i);
+        return slot != nullptr && slot->built.has_value() ? &*slot->built : nullptr;
+    }
+
+    /// The `i`-th declared mechanism as a BUILT PNEUMATIC mechanism (addendum B2) — or nullptr
+    /// when it is ABSENT (the provider refused one of its lines), is a motor mechanism (see
+    /// `mechanismAt()`), has nothing to build, or `i` is not below `mechanismCount()`. Typed,
+    /// like `mechanismAt()`: null here does not mean "absent" either.
+    [[nodiscard]] hal::PneumaticMechanism* pneumaticMechanismAt(std::size_t i) noexcept {
+        MechanismSlot* slot = declaredSlot(*this, i);
+        return slot != nullptr && slot->pneumatic.has_value() ? &*slot->pneumatic : nullptr;
+    }
+    /// The `i`-th declared pneumatic mechanism, read-only (same rules).
+    [[nodiscard]] const hal::PneumaticMechanism* pneumaticMechanismAt(std::size_t i) const noexcept {
+        const MechanismSlot* slot = declaredSlot(*this, i);
+        return slot != nullptr && slot->pneumatic.has_value() ? &*slot->pneumatic : nullptr;
+    }
+
+    /// Why the `i`-th declared mechanism was NOT built: the provider's own sentence (naming the
+    /// port or the 3-wire line) for an ABSENT one, a fixed sentence for one with nothing to
+    /// build, and "no mechanism is declared at this index" for an `i` not below
+    /// `mechanismCount()`. The empty string EXACTLY when `builtMechanismAt(i)` is non-null — a
+    /// built mechanism of either kind, and nothing else. Stable for the Robot's lifetime.
+    [[nodiscard]] const char* mechanismAbsence(std::size_t i) const noexcept {
+        const MechanismSlot* slot = declaredSlot(*this, i);
+        return slot != nullptr ? slot->absence : "no mechanism is declared at this index";
+    }
+
+    /// The BUILT MOTOR mechanism whose config name is `name` — nullptr when no declared mechanism
+    /// has that name (or `name` is null), when that one was not built, or when it is a pneumatic
+    /// mechanism (`pneumaticMechanism()` finds those: the lookup is typed because a binding needs
+    /// the concrete type, and the library does not downcast). Names are unique: the config's
+    /// `valid()` refuses two mechanisms with one name.
+    [[nodiscard]] hal::MotorMechanism* mechanism(const char* name) noexcept {
+        return mechanismAt(mechanismIndex(name));
+    }
+    /// The named mechanism, read-only (same rules).
+    [[nodiscard]] const hal::MotorMechanism* mechanism(const char* name) const noexcept {
+        return mechanismAt(mechanismIndex(name));
+    }
+
+    /// The BUILT PNEUMATIC mechanism whose config name is `name` (addendum B2) — what a
+    /// `teleop::ToggleBinding` is bound to. nullptr when no declared mechanism has that name (or
+    /// `name` is null), when that one was not built, or when it is a motor mechanism.
+    [[nodiscard]] hal::PneumaticMechanism* pneumaticMechanism(const char* name) noexcept {
+        return pneumaticMechanismAt(mechanismIndex(name));
+    }
+    /// The named pneumatic mechanism, read-only (same rules).
+    [[nodiscard]] const hal::PneumaticMechanism* pneumaticMechanism(const char* name) const noexcept {
+        return pneumaticMechanismAt(mechanismIndex(name));
+    }
+
+    /// Every BUILT mechanism of BOTH kinds, in config order, as the `hal::IMechanism*` span an
+    /// end-of-run guard walks (`sequence::RunGuardConfig::mechanisms`) — an ABSENT one is not in
+    /// it, because there is nothing there to make safe. Empty on a robot with none. The storage is
+    /// this Robot's, so the span is valid for the Robot's lifetime.
+    [[nodiscard]] std::span<hal::IMechanism* const> mechanisms() noexcept {
+        return std::span<hal::IMechanism* const>{builtMechanisms_.data(), builtMechanismCount_};
     }
 
     /// The §18.5 session header's port map for this robot, generated from the config it was
@@ -982,6 +1133,140 @@ private:
     chassis::RobotContext ctx_;
     motion::MotionDeps deps_;
     chassis::Chassis chassis_;
+
+    // ── the mechanisms, built in the constructor BODY, after everything above ──────────
+
+    /// Sized to the on-robot provider's refusal buffer (hal::pros::ProsDeviceProvider's
+    /// `kRefusalBytes`, 160) so the whole sentence it wrote survives the copy.
+    static constexpr std::size_t kMechanismAbsenceBytes = 160;
+
+    /// One declared mechanism's storage, in config order: the motors or lines it borrowed from the
+    /// provider (the span the mechanism holds points HERE, so it lives as long as the Robot), the
+    /// mechanism itself when it was built — a motor one OR a pneumatic one, never both — and the
+    /// reason when it was not.
+    struct MechanismSlot {
+        /// The motors, in the config's order. Entries past its `motorCount` stay null.
+        hal::IMotor* motors[config::kMaxMotorsPerMechanism]{};
+        /// The built motor mechanism; empty when ABSENT, pneumatic, or empty.
+        std::optional<hal::MotorMechanism> built;
+        /// The 3-wire lines, in the config's order (addendum B2). Entries past its
+        /// `pneumaticCount` stay null.
+        hal::IDigitalOut* lines[config::kMaxPneumaticsPerMechanism]{};
+        /// The built pneumatic mechanism; empty when ABSENT, a motor mechanism, or empty.
+        std::optional<hal::PneumaticMechanism> pneumatic;
+        /// Why it was not built (the provider's sentence, or a fixed one); empty when built.
+        char absence[kMechanismAbsenceBytes]{};
+    };
+
+    /// Build every configured mechanism, in config order (the header's MECHANISMS section). A
+    /// mechanism with motors: asks the provider for each motor with the mechanism's OWN signed
+    /// port and cartridge. A mechanism with 3-wire lines (and so, by `valid()`, no motors): asks
+    /// for each line at the mechanism's START level — which DRIVES it on a brain — and declares
+    /// its SAFE level. Either way it stops at the first refusal, which leaves that mechanism ABSENT
+    /// with the provider's sentence and goes on to the next. Commands nothing else. (A provider
+    /// precondition — the same port asked for again with a different sign or cartridge, or the
+    /// same line at a different level, which the config's collision checks make impossible from
+    /// this Robot alone — still throws out of the constructor, loudly, as it should.)
+    void buildMechanisms(hal::IDeviceProvider& devices) {
+        for (std::size_t m = 0; m < cfg_.mechanismCount; ++m) {
+            const config::MechanismConfig& mc = cfg_.mechanisms[m];
+            MechanismSlot& slot = mechanismSlots_[m];
+            if (mc.motorCount == 0) {
+                buildPneumatic(devices, mc, slot);
+                continue;
+            }
+            bool allMade = true;
+            for (std::size_t i = 0; i < mc.motorCount; ++i) {
+                hal::IMotor* motor = devices.motor(mc.motorPorts[i], mc.cartridge);
+                if (motor == nullptr) {
+                    copyAbsence(slot, devices.lastRefusal());
+                    allMade = false;
+                    break;
+                }
+                slot.motors[i] = motor;
+            }
+            if (!allMade) {
+                continue;
+            }
+            slot.built.emplace(std::span<hal::IMotor* const>{slot.motors, mc.motorCount},
+                               config::toBrakeMode(mc.safeMode), mc.name);
+            builtMechanisms_[builtMechanismCount_++] = &*slot.built;
+        }
+    }
+
+    /// Build one mechanism with no motors (addendum B2): a `hal::PneumaticMechanism` over its
+    /// 3-wire lines, each asked for at `pneumaticStart` (making a line drives it — HA-119 — so this
+    /// is the program-start level reaching the robot; built while the brain is DISABLED, as in
+    /// `initialize()` on a field, whether it reaches the valve then is A4 register HA-157's
+    /// second half), declared safe at `pneumaticSafe`, named from this Robot's config copy. A
+    /// refused line leaves it ABSENT with the provider's sentence; a mechanism with no lines
+    /// either is recorded as having nothing to build. A line made BEFORE
+    /// the refused one stays made — driven to the start level, and part of no mechanism. On a
+    /// brain that cannot happen: the on-robot provider refuses only a line outside 1..8, and
+    /// `RobotConfig::valid()` refuses those first; only a provider that refuses more can do it.
+    void buildPneumatic(hal::IDeviceProvider& devices, const config::MechanismConfig& mc,
+                        MechanismSlot& slot) {
+        if (mc.pneumaticCount == 0) {
+            copyAbsence(slot, "no motors and no 3-wire lines -- nothing to build");
+            return;
+        }
+        const bool start = config::toLineValue(mc.pneumaticStart);
+        for (std::size_t i = 0; i < mc.pneumaticCount; ++i) {
+            hal::IDigitalOut* line = devices.digitalOut(mc.pneumaticPorts[i], start);
+            if (line == nullptr) {
+                copyAbsence(slot, devices.lastRefusal(),
+                            "the device provider refused a 3-wire line and gave no reason");
+                return;
+            }
+            slot.lines[i] = line;
+        }
+        slot.pneumatic.emplace(std::span<hal::IDigitalOut* const>{slot.lines, mc.pneumaticCount},
+                               config::toLineValue(mc.pneumaticSafe), mc.name);
+        builtMechanisms_[builtMechanismCount_++] = &*slot.pneumatic;
+    }
+
+    /// Copy `why` into `slot.absence`, bounded by hand and always terminated; an empty or null
+    /// sentence becomes `fallback`, so an ABSENT mechanism never reports an empty reason.
+    static void copyAbsence(
+        MechanismSlot& slot, const char* why,
+        const char* fallback = "the device provider refused a motor and gave no reason") noexcept {
+        const char* text = (why != nullptr && why[0] != '\0') ? why : fallback;
+        std::size_t n = 0;
+        for (; text[n] != '\0' && n + 1 < kMechanismAbsenceBytes; ++n) {
+            slot.absence[n] = text[n];
+        }
+        slot.absence[n] = '\0';
+    }
+
+    /// The slot of the `i`-th DECLARED mechanism, or nullptr for an `i` not below
+    /// `mechanismCount()`. The ONE bound every indexed accessor goes through (both constnesses,
+    /// by the template), so a single check guards the slot array, and its absence is observable
+    /// WITHOUT reading past it: an index in [count, capacity) would find an empty slot, whose
+    /// absence text is "" — not the fixed sentence `mechanismAbsence()` gives that index.
+    template <typename Self>
+    [[nodiscard]] static auto declaredSlot(Self& self, std::size_t i) noexcept
+        -> decltype(&self.mechanismSlots_[0]) {
+        return i < self.cfg_.mechanismCount ? &self.mechanismSlots_[i] : nullptr;
+    }
+
+    /// The index of the declared mechanism named `name`, or `mechanismCount()` when none is (or
+    /// `name` is null). Compared over the name field's 24 bytes — enough, because `valid()`
+    /// guarantees every declared name has its NUL inside them.
+    [[nodiscard]] std::size_t mechanismIndex(const char* name) const noexcept {
+        if (name == nullptr) {
+            return cfg_.mechanismCount;
+        }
+        for (std::size_t i = 0; i < cfg_.mechanismCount; ++i) {
+            if (std::strncmp(cfg_.mechanisms[i].name, name, sizeof cfg_.mechanisms[i].name) == 0) {
+                return i;
+            }
+        }
+        return cfg_.mechanismCount;
+    }
+
+    MechanismSlot mechanismSlots_[config::kMaxMechanisms]{};
+    std::array<hal::IMechanism*, config::kMaxMechanisms> builtMechanisms_{};
+    std::size_t builtMechanismCount_ = 0;
 };
 
 }  // namespace shulib::robot

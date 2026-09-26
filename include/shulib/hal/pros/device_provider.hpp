@@ -64,6 +64,18 @@
 // one port, and quietly returning the first configuration would apply the wrong sign to a drive
 // side without a word.
 //
+// ── THE 3-WIRE LINES: NO REGISTRY, AND MAKING ONE DRIVES IT (T3's addendum B2) ──────
+// digitalOut(line, initialState) makes a ProsDigitalOut on the brain's own 3-wire port `line`
+// (1..8 = A..H). The registry is NOT asked, because it cannot answer: the eight 3-wire ports are
+// not smart ports, a solenoid on one has no digital identity, and nothing on the brain can tell a
+// connected valve from an empty port (A4 register HA-158, reasoned). So the only refusal is a line
+// outside 1..8; an in-range line is always made — and MADE MEANS DRIVEN: ProsDigitalOut's
+// constructor sets the line to `initialState` (HA-119), which is why the level is an argument and
+// why a later request for the same line returns the same object WITHOUT driving it again. A later
+// request with a different initial state is a precondition, like a motor's sign. There is no `try`
+// around the construction: the vendored DigitalOut constructor reports a bad port through errno
+// (ENXIO, vendored adi.hpp:539-542), never by throwing, and the range is checked before it runs.
+//
 // ── IMU CALIBRATION STARTS HERE, EXACTLY ONCE ───────────────────────────────────────
 // imu() starts the sensor's calibration (ProsImu::calibrate(), non-blocking — HA-108) when it
 // constructs the adapter, and never again: a second reset() would re-zero the sensor under a
@@ -105,6 +117,7 @@
 #include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/device_registry.hpp"
+#include "shulib/hal/pros/digital_out.hpp"
 #include "shulib/hal/pros/gps.hpp"
 #include "shulib/hal/pros/imu.hpp"
 #include "shulib/hal/pros/motor.hpp"
@@ -319,6 +332,36 @@ public:
         return &*rotations_[i];
     }
 
+    /// The digital out on the brain's 3-wire port `line` (1..8 = A..H) — a solenoid's line. Made
+    /// on the first request, and MAKING IT DRIVES IT to `initialState` (ProsDigitalOut's
+    /// constructor; HA-119); the same object ever after, never driven again by a request. nullptr +
+    /// a refusal ONLY for a line outside 1..8 — the registry is not asked because it cannot see a
+    /// solenoid (header; HA-158), so an in-range line is always made. PRECONDITION: a later request
+    /// for a made line states the same `initialState` (one line, one configuration).
+    [[nodiscard]] IDigitalOut* digitalOut(std::uint8_t line, bool initialState) override {
+        const int l = static_cast<int>(line);
+        if (l < 1 || l > static_cast<int>(kBrainAdiLines)) {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "3-wire port %d is not a brain 3-wire port (1..8 are A..H)", l);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(l);
+        if (lines_[i].has_value()) {
+            if (lineInitial_[i] != initialState) {
+                std::snprintf(conflict_, sizeof conflict_,
+                              "ProsDeviceProvider: 3-wire port %c was made driven %s; asked again "
+                              "as %s -- one line, one configuration",
+                              static_cast<char>('A' + l - 1), lineInitial_[i] ? "high" : "low",
+                              initialState ? "high" : "low");
+                SHULIB_PRECONDITION(false, conflict_);
+            }
+            return &*lines_[i];
+        }
+        lines_[i].emplace(line, initialState);  // DRIVES the line now (HA-119); no registry (HA-158)
+        lineInitial_[i] = initialState;
+        return &*lines_[i];
+    }
+
     // ── IDeviceProvider: the port-less handles ─────────────────────────────────────────
 
     /// The V5's real clock (`ProsClock`, microseconds → seconds once). Never refused.
@@ -433,6 +476,8 @@ private:
     units::Length gpsLeverForward_{0.0};
     units::Length gpsLeverLeft_{0.0};
     std::optional<ProsRotation> rotations_[kSlots]{};
+    std::optional<ProsDigitalOut> lines_[kBrainAdiLines + 1]{};  // slot 0 unused, like the ports
+    bool lineInitial_[kBrainAdiLines + 1]{};
 
     char refusal_[kRefusalBytes]{};
     char conflict_[192]{};

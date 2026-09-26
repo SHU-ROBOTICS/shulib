@@ -292,9 +292,10 @@ config says "the front-left motor is on port 1"; the provider is what turns "por
 you can command. In this test it is the host's provider, bound to the simulated robot's motors and
 sensors (the test file shows the binding). On a V5 brain it is
 `shulib::hal::pros::ProsDeviceProvider`, which opens the real hardware port by port — and before
-it opens anything it asks the brain what is actually plugged into that port, so an empty or wrong
-port becomes a sentence naming it (`port 13: nothing plugged in (expected a motor)`) instead of a
-crash or a sensor that silently reads zero.
+it opens anything on a smart port it asks the brain what is actually plugged into that port, so an
+empty or wrong port becomes a sentence naming it (`port 13: nothing plugged in (expected a motor)`)
+instead of a crash or a sensor that silently reads zero. (The brain's 3-wire ports are the one
+exception: nothing can see a pneumatic valve on one, so a line is opened on trust.)
 
 **`validate`** is the question "can this robot be built, right now?", answered with a yes or a
 sentence naming the port or the field that is wrong. **`Robot`** is the answer being yes: it builds

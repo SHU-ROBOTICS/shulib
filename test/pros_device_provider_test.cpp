@@ -26,6 +26,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <vector>
 
 #include "pros/shim_control.hpp"
 
@@ -36,6 +37,7 @@
 #include "shulib/hal/device_registry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/fake/fake_device_registry.hpp"
+#include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor_group.hpp"
 #include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/robot/robot.hpp"
@@ -502,5 +504,110 @@ TEST_CASE("ProsDeviceProvider 1k: robot::Robot builds over the REAL provider thr
         char banner[320] = "";
         robot.describe(banner, sizeof banner);
         CHECK(contains(banner, "DEGRADED: absent 17,16"));
+    }
+}
+
+// ═══ 1l. The 3-wire lines (T3's addendum B2) ═════════════════════════════════════════
+TEST_CASE("ProsDeviceProvider 1l: digitalOut() — the same line is the SAME object, DRIVEN once at "
+          "the stated level when made; the registry is never asked (it cannot see a solenoid); a "
+          "line outside 1..8 is refused by number and never driven") {
+    // BUG CAUGHT: a fresh ProsDigitalOut per request (each construction DRIVES the line — the claw
+    // would snap to its boot level every time anything asked); a registry check on a 3-wire port
+    // (every line refused: the brain's registry has no kind for a solenoid, and with nothing
+    // plugged into any smart port — this shim's default — it answers NONE everywhere); a letter
+    // byte translated rather than refused; the stated level dropped for PROS's default LOW.
+    pros::shim::resetAll();  // the registry says: nothing plugged in, anywhere
+    ProsDeviceProvider devices;
+    const auto& writesA = pros::shim::adiLine(0, 1).writes;
+
+    shulib::hal::IDigitalOut* a = devices.digitalOut(1, true);
+    REQUIRE(a != nullptr);
+    CHECK(writesA == std::vector<std::int32_t>{1});  // made = driven HIGH, once
+    CHECK(a->commanded());
+    CHECK(devices.digitalOut(1, true) == a);
+    CHECK(writesA.size() == 1U);  // not driven again
+    a->set(false);
+    CHECK(writesA == (std::vector<std::int32_t>{1, 0}));
+    CHECK_FALSE(a->commanded());
+    CHECK(pros::shim::registryState().queries == 0);  // HA-158: nothing to ask
+    CHECK(std::strlen(devices.lastRefusal()) == 0);
+
+    // One line, one configuration.
+    try {
+        (void)devices.digitalOut(1, false);
+        FAIL("a second boot level for port A was accepted");
+    } catch (const PreconditionError& e) {
+        CHECK(contains(e.what(), "3-wire port A was made driven high; asked again as low"));
+        CHECK(contains(e.what(), "one line, one configuration"));
+    }
+    CHECK(writesA.size() == 2U);
+
+    // Another line, another object, made at ITS stated level — PROS's LOW default never decides.
+    shulib::hal::IDigitalOut* h = devices.digitalOut(8, false);
+    REQUIRE(h != nullptr);
+    CHECK(h != a);
+    CHECK(pros::shim::adiLine(0, 8).writes == std::vector<std::int32_t>{0});
+    shulib::hal::IDigitalOut* c = devices.digitalOut(3, true);
+    REQUIRE(c != nullptr);
+    CHECK(pros::shim::adiLine(0, 3).writes == std::vector<std::int32_t>{1});
+
+    // Outside 1..8 — 'A' (65) and 'a' (97) included: one spelling at the seam — refused by
+    // number, and no line is driven (the shim would map 'A' onto line 1).
+    for (const int bad : {0, 9, 65, 97, 255}) {
+        CAPTURE(bad);
+        CHECK(devices.digitalOut(static_cast<std::uint8_t>(bad), true) == nullptr);
+        CHECK(std::string{devices.lastRefusal()}
+              == "3-wire port " + std::to_string(bad)
+                     + " is not a brain 3-wire port (1..8 are A..H)");
+        CHECK(isAscii(devices.lastRefusal()));
+    }
+    CHECK(writesA.size() == 2U);
+    CHECK(pros::shim::registryState().queries == 0);
+}
+
+TEST_CASE("ProsDeviceProvider 1m: robot::Robot builds a pneumatic claw over the REAL provider "
+          "through the shim — validate() drives nothing; the line takes the START level once, "
+          "when the Robot is built; the mechanism's commands reach the line") {
+    // The end-to-end half of the addendum's provider item: the builder and this provider
+    // together, as a program built on them will run. What only this case can show is the
+    // PHYSICAL ACTION at the device: the one write the builder causes lands on the right line, at
+    // the stated level, exactly once, and never during validate(). (Written whatever the brain's
+    // state: whether a write made while the brain is DISABLED — a Robot built in initialize() on a
+    // field — reaches the valve is A4 register HA-157's second half, beyond any host test.)
+    pros::shim::resetAll();
+    shulib::config::RobotConfig cfg = shimTankConfig();
+    cfg.mechanisms[0] = {.name = "claw",
+                         .pneumaticPorts = {1},
+                         .pneumaticCount = 1,
+                         .pneumaticSafe = shulib::config::PneumaticLevel::Low,
+                         .pneumaticStart = shulib::config::PneumaticLevel::High};
+    cfg.mechanismCount = 1;
+    const int ports[10] = {11, 12, 13, 14, 15, 20, 19, 18, 17, 16};
+    for (const int p : ports) {
+        pros::shim::setPluggedAtPort(p, pros::c::E_DEVICE_MOTOR);
+    }
+    pros::shim::setPluggedAtPort(2, pros::c::E_DEVICE_IMU);
+    const auto& writesA = pros::shim::adiLine(0, 1).writes;
+
+    ProsDeviceProvider devices;
+    const shulib::robot::BuildVerdict v = shulib::robot::validate(cfg, devices);
+    CAPTURE(v.why);
+    REQUIRE(v.ok);
+    CHECK(writesA.empty());  // validate() never asks for a line: asking would drive it
+    shulib::robot::Robot robot{cfg, devices};
+    CHECK(writesA == std::vector<std::int32_t>{1});  // the START level, once
+    shulib::hal::PneumaticMechanism* claw = robot.pneumaticMechanism("claw");
+    REQUIRE(claw != nullptr);
+    CHECK(claw->commanded());
+    claw->set(false);
+    CHECK(writesA == (std::vector<std::int32_t>{1, 0}));
+    claw->set(true);
+    claw->applySafeState();  // the SAFE level, Low
+    CHECK(writesA == (std::vector<std::int32_t>{1, 0, 1, 0}));
+    CHECK(robot.mechanisms().size() == 1U);
+    // No other 3-wire line on the brain was touched.
+    for (std::uint8_t line = 2; line <= 8; ++line) {
+        CAPTURE(static_cast<int>(line));
+        CHECK(pros::shim::adiLine(0, line).writes.empty());
     }
 }

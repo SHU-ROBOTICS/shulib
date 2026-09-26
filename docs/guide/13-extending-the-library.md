@@ -156,10 +156,13 @@ answer until there is a robot; the assumptions register tracks it (HA-92).
 On the robot, one construction fact matters enough to state here: **building the pneumatic
 line adapter actuates the port** — the V5 drives a digital output the moment the object is
 constructed, so `ProsDigitalOut` makes its initial state a *required* argument with no
-default. Pass it the same value you declare as the mechanism's safe state and boot drives
-the line straight to safe, once, with no glitch through the wrong state; mismatch them and
-the cylinder physically moves at power-on (the [FAQ](../faq.md) entry "Why did my pneumatic
-fire the moment the robot booted?" is this exact story). The confirm sensors have their
+default. Pass it the level the mechanism must be at boot — the safe state you declare for it,
+or, for a mechanism in a `config::RobotConfig`, its stated `pneumaticStart` (a `robot::Robot`
+hands that level to the device provider for you) — and boot drives the line straight there,
+once, with no glitch through the wrong state; state the wrong one and the cylinder physically
+moves at power-on (the [FAQ](../faq.md) entry "Why did my pneumatic fire the moment the robot
+booted?" is this exact story, and says what is still unmeasured about a brain that boots
+disabled). The confirm sensors have their
 adapters too — `ProsDistance`, `ProsOptical`, and `ProsDigitalIn` for a limit switch or bumper,
 which is the obvious confirmation for a clamp or a homed lift — and each carries a trap note
 worth reading before your predicate thresholds on it. A distance sensor with nothing in view
@@ -195,7 +198,10 @@ double-driving it.
 Three practical notes. First, keep a list of your mechanisms as `hal::IMechanism*` — the
 run guard's cancel-all ([Chapter 6](06-how-things-fail.md)) takes exactly that list and
 forces every one of them safe at the buzzer, which is the whole reason the base interface
-exists. Second, if you write your OWN operation type (not the two shipped shapes), claim
+exists. (A `robot::Robot` built from a `config::RobotConfig` builds the motor and pneumatic
+mechanisms its config declares and hands you that list: `Robot::mechanisms()`, with each one also
+reachable by name through `Robot::mechanism("…")` or `Robot::pneumaticMechanism("…")`.)
+Second, if you write your OWN operation type (not the two shipped shapes), claim
 the mechanism with the **registering** overload — `tryClaim(*this)`, implementing
 `hal::ICancellable`, exactly as the shipped operations do — or the guard cannot reach your
 operation at the deadline: it can repaint the device safe, but a live operation re-commands

@@ -22,7 +22,7 @@
 
 ---
 
-## Re-check 2026-09-26 — amendments B1–B27 (BINDING; they override the text below where they conflict)
+## Re-check 2026-09-26 — amendments B1–B27, and B28 added at T3 Part 1's merge (BINDING; they override the text below where they conflict)
 
 > A read-only re-check of this brief against the tree at `b622d9b` plus G1 Part 2b (landed `7f9b9a1`),
 > DEFECTS2 (landed `a8540e6`) and the T3 briefs (`9325490`), the vendored PROS headers and the 2026-09-25
@@ -147,6 +147,13 @@
   cancel-all; AutonContext's mechanisms list is for the guard's safing only (a lookup by name comes when a
   routine first commands a mechanism); the Makefile comment becomes "Five programs …", the guide chapter's
   number stated, COMP's new HA entries take the next free numbers at commit time (after HA-160).
+- **B28 — Station K carries HA-157's second half** *(added at T3 Part 1's merge, 2026-09-26)*: whether a
+  3-wire level the program writes while the brain is DISABLED reaches the valve. Station K starts the
+  program through the controller's Timed Run on purpose (B5), which brings the brain up disabled (HA-128),
+  so it is the one station that can answer it; Station J never starts from the controller's menu. Station
+  K's claw step: leave the claw at the OTHER level from its start level, start the program that way, and
+  record whether the claw moves at the start, at the enable, when driver control begins, or never
+  (HA-157's settle text). COMP-b writes the step.
 
 ---
 

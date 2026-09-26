@@ -78,6 +78,13 @@ so it cannot disagree with the code.
 | [Make a direct call count as a step](05-mixing-tiers.md#make-a-direct-call-count-as-a-step) | You dropped a tier and still want the chain to stop if it fails |
 | [Re-seed the estimate mid-routine](05-mixing-tiers.md#re-seed-the-estimate-mid-routine) | The robot has just squared itself against a wall |
 
+### [6 — Driver control](06-driver-control.md)
+
+| Recipe | Use this when |
+|---|---|
+| [Drive a mechanism from two buttons](06-driver-control.md#drive-a-mechanism-from-two-buttons) | A claw, arm or intake moves while a button is held and stops when the driver lets go |
+| [Open and close a pneumatic claw with one button](06-driver-control.md#open-and-close-a-pneumatic-claw-with-one-button) | A claw on air opens on one press and closes on the next |
+
 ---
 
 ## The three things every recipe assumes

@@ -57,7 +57,11 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   safe state: motor mechanisms go safe on every exit, while a discrete actuator keeps a state it
   successfully commanded and goes safe only on cancel — a clamp whose safe state is "open" would
   fling its game piece the instant a grab succeeded. The library ships the grammar, not the
-  nouns; there is no `shulib::Intake` and never will be.
+  nouns; there is no `shulib::Intake` and never will be. For driver control, a motor mechanism
+  can be put on two buttons — hold one to drive it, let go and it goes to its safe state — and a
+  pneumatic one on a single button that opens it on one press and closes it on the next; a robot
+  built from a config builds its declared mechanisms of both kinds (host-tested only; none of it
+  has run on a robot yet).
 - **A guaranteed end of run**: wrap the tick pacer and a routine gets a hard deadline — the
   active motion is cut at the instant you name, every later motion is *refused* (a latch, not a
   pause), your end action runs strictly after cancel-all, and an unconditional floor fires
@@ -262,7 +266,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   config/           a robot and a route described as DATA (RobotConfig, Route)
   robot/            robot::Robot — the whole library graph built from a RobotConfig
   runner/           runs a Route: the path runner, the command-id registry, the manifest
-  teleop/           driver control: stick mapping, input shaping, drive modes, field-centric
+  teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,
+                    mechanism buttons
   kinematics/       drivetrain math: X-drive, tank, H-drive behind one contract
   control/          PID, feedforward, motion profiles, settling, watchdogs
   localization/     odometry, tracking wheels, the fused localizer + correction seam

@@ -49,6 +49,7 @@
 
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/hal/motor.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::config {
@@ -329,27 +330,155 @@ struct SensorsConfig {
     GpsConfig gps{};
 };
 
-/// One mechanism — an intake, a lift, a clamp — as data.
+/// A motor mechanism's DECLARED safe brake mode, as config data — what `robot::Robot` hands to
+/// `hal::MotorMechanism`'s constructor, and so what every stop of that mechanism lands in
+/// (`applySafeState()`: this mode, then 0 V).
 ///
-/// TYPES ONLY IN PART 1, and this is the one place in the header where a field exists that
-/// nothing reads yet. It is here so F7's schema is complete for G3's codegen and so a `.vexbot`
-/// round-trip does not lose the mechanisms it carries; `robot::Robot` constructs NO mechanism
-/// from it, and `valid()` checks only that the ports do not collide with anything else on the
-/// robot. G2/T3 consume it, with the command registry that binds a mechanism to a marker id.
+/// DELIBERATELY NOT `hal::BrakeMode`, and the reason is landmine-sized: `hal::BrakeMode`'s first
+/// enumerator is `Coast`, so a value-initialised field of that type would silently declare COAST
+/// — and a loaded arm or claw at 0 V and Coast drops its load. There is no safe default for a
+/// mechanism (hal/mechanism.hpp's banner: Hold for a loaded lift, Coast or Brake for a jammed
+/// intake), so the config refuses to have one: like `hal::MotorCartridge`, this enum has NO
+/// `Unset` member, the byte 0 is what a config nobody filled in carries, and
+/// `RobotConfig::valid()` refuses it for any mechanism that has motors. Fixed-width, so a
+/// generator can emit it and a card can store it.
+enum class SafeBrakeMode : std::uint8_t {
+    Coast = 1,  ///< undriven — for an intake that must never sit at stall current
+    Brake = 2,  ///< brakes and resists, but does not return to where it stopped
+    Hold = 3,   ///< drives back to the angle it stopped at — the one that keeps a load up
+};
+
+/// The safe brake mode as a word, for banners and refusal messages. "UNSET" for any byte outside
+/// the enum, which is what a default-constructed `MechanismConfig` carries.
+[[nodiscard]] inline const char* safeBrakeModeWord(SafeBrakeMode m) noexcept {
+    switch (m) {
+        case SafeBrakeMode::Coast: return "coast";
+        case SafeBrakeMode::Brake: return "brake";
+        case SafeBrakeMode::Hold: return "hold";
+    }
+    return "UNSET";
+}
+
+/// True when `m` is one of the three modes — false for the UNSET byte 0 and any other byte.
+[[nodiscard]] constexpr bool isSafeBrakeMode(SafeBrakeMode m) noexcept {
+    return m == SafeBrakeMode::Coast || m == SafeBrakeMode::Brake || m == SafeBrakeMode::Hold;
+}
+
+/// The HAL brake mode a `SafeBrakeMode` stands for. Total: a byte outside the enum converts to
+/// `Hold` — the mode that drops nothing — and never to Coast. That fallback is a floor, not a
+/// default anyone relies on: `robot::Robot` only converts a mode `RobotConfig::valid()` accepted.
+[[nodiscard]] constexpr hal::BrakeMode toBrakeMode(SafeBrakeMode m) noexcept {
+    switch (m) {
+        case SafeBrakeMode::Coast: return hal::BrakeMode::Coast;
+        case SafeBrakeMode::Brake: return hal::BrakeMode::Brake;
+        case SafeBrakeMode::Hold: return hal::BrakeMode::Hold;
+    }
+    return hal::BrakeMode::Hold;
+}
+
+/// A pneumatic mechanism's line LEVEL, as config data — its declared SAFE level and its START
+/// level (`MechanismConfig::pneumaticSafe`, `pneumaticStart`). `Low` is the line off (`false`:
+/// the solenoid unpowered), `High` the line on (`true`: powered).
+///
+/// DELIBERATELY NOT `bool`, for the reason `SafeBrakeMode` is not a `hal::BrakeMode`: a
+/// value-initialised bool is `false`, so a field of that type would silently declare "off" for a
+/// config nobody filled in — and whether off leaves a claw OPEN (dropping what it holds) or CLOSED
+/// depends on how its valve is plumbed, which only the team knows. So, like `hal::MotorCartridge`,
+/// this enum has NO `Unset` member, the byte 0 is what a config nobody filled in carries, and
+/// `RobotConfig::valid()` refuses it for any mechanism that has 3-wire lines (T3's addendum B2).
+enum class PneumaticLevel : std::uint8_t {
+    Low = 1,   ///< the line off (`false`) — the solenoid unpowered
+    High = 2,  ///< the line on (`true`) — the solenoid powered
+};
+
+/// The level as a word, for banners and refusal messages: "low", "high", or "UNSET" for any byte
+/// outside the enum, which is what a default-constructed `MechanismConfig` carries.
+[[nodiscard]] inline const char* pneumaticLevelWord(PneumaticLevel l) noexcept {
+    switch (l) {
+        case PneumaticLevel::Low: return "low";
+        case PneumaticLevel::High: return "high";
+    }
+    return "UNSET";
+}
+
+/// True when `l` is `Low` or `High` — false for the UNSET byte 0 and any other byte.
+[[nodiscard]] constexpr bool isPneumaticLevel(PneumaticLevel l) noexcept {
+    return l == PneumaticLevel::Low || l == PneumaticLevel::High;
+}
+
+/// The line value a level stands for: `High` is `true`, `Low` is `false`. Only for a level
+/// `RobotConfig::valid()` accepted — `robot::Robot` converts nothing else — because there is no
+/// safe floor to fall back to here (unlike `toBrakeMode()`'s Hold): either value moves a cylinder.
+[[nodiscard]] constexpr bool toLineValue(PneumaticLevel l) noexcept {
+    return l == PneumaticLevel::High;
+}
+
+/// One mechanism — an intake, a lift, a clamp, a claw pivot, a pneumatic claw — as data.
+///
+/// BUILT since chunk T3 (2026-09-26): `robot::Robot` builds ONE `hal::MotorMechanism` per
+/// mechanism that has motors, asking the provider for each motor with THIS mechanism's cartridge
+/// (not the drivetrain's), names it with `name`, and exposes it by name (`Robot::mechanism()`) and
+/// as the `hal::IMechanism*` span an end-of-run guard walks (`Robot::mechanisms()`). Since T3's
+/// addendum B2 (the same day) it also builds ONE `hal::PneumaticMechanism` per mechanism that has
+/// 3-wire lines and no motors — each line made at `pneumaticStart` (on a brain, making a line
+/// DRIVES it), the mechanism's safe level `pneumaticSafe` — found by `Robot::pneumaticMechanism()`
+/// and in the same span. A device the provider will not make leaves that mechanism ABSENT,
+/// reported with the provider's sentence — never the whole robot refused. A mechanism with BOTH
+/// motors and lines is refused by `RobotConfig::valid()`: one name is one object, and a voltage
+/// and a level do not fan through one. What a mechanism MEANS — which buttons drive it, what
+/// confirms it — stays with the program (teleop/mechanism_binding.hpp, manipulation/).
+///
+/// Two mechanisms that must move independently are TWO entries, never one entry with two motors:
+/// a `MotorMechanism` fans ONE voltage to all its motors, so two claws in one entry would move
+/// together on every button. The same holds for lines: a `PneumaticMechanism` fans ONE level to
+/// every line, so its two lines are two valves fired together — NOT the two coils of a
+/// double-coil solenoid, which need opposite levels and are not built by this library. How one
+/// WOULD be, once a robot is known to have one (said here, deliberately not built — T3's addendum
+/// B2): its two lines stay ONE mechanism (one name, one toggle button), and each line gains a
+/// stated polarity; for an inverted line the builder asks the provider at the OPPOSITE start level
+/// and hands the mechanism a one-line `hal::IDigitalOut` adapter that writes (and reports) the
+/// opposite of what it is told — so `PneumaticMechanism` still fans one level, each coil gets its
+/// own, and nothing else changes: not the toggle, not the guard's span.
 struct MechanismConfig {
-    /// The mechanism's name — also the key a command-id registry will bind against. Non-empty
-    /// for any mechanism inside `RobotConfig::mechanismCount`.
+    /// The mechanism's name — the key `robot::Robot::mechanism()` looks it up by, and the key a
+    /// command-id registry will bind against. Non-empty, NUL-terminated inside these 24 bytes, and
+    /// unique among the robot's mechanisms (all three refused by `RobotConfig::valid()`). The Robot
+    /// BORROWS this text for the mechanism's `name()` from its own copy of the config.
     char name[24]{};
     /// The mechanism's motor ports WITH THEIR SIGNS, same one-place-for-a-sign rule as the
-    /// drivetrain's. Entries beyond `motorCount` are 0 and are not read.
+    /// drivetrain's: a pivot that moves the wrong way on its forward button is fixed by flipping
+    /// the sign HERE, nowhere else. Entries beyond `motorCount` are 0 and are not read.
     std::int8_t motorPorts[kMaxMotorsPerMechanism]{};
-    /// How many entries of `motorPorts` are real. 0 is legal — a purely pneumatic mechanism.
+    /// How many entries of `motorPorts` are real. 0 is legal — a purely pneumatic mechanism (a
+    /// mechanism with motors AND lines is refused).
     std::uint8_t motorCount = 0;
-    /// The mechanism's pneumatic (ADI digital-out) lines, 1..8 on the brain's three-wire port.
-    /// Entries beyond `pneumaticCount` are 0 and are not read.
+    /// The cartridge in THIS mechanism's motors — its own, never the drivetrain's (a RED claw on a
+    /// BLUE drive is the normal case). HUMAN-STATED and unverifiable from inside, exactly as
+    /// `hal::MotorCartridge` documents. The byte 0 is UNSET, and `RobotConfig::valid()` refuses it
+    /// (or any byte outside the enum) whenever `motorCount > 0`; not read when `motorCount == 0`.
+    hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0);
+    /// The DECLARED safe brake mode every stop of this mechanism lands in. The byte 0 is UNSET, and
+    /// `RobotConfig::valid()` refuses it whenever `motorCount > 0` — see `SafeBrakeMode` for why
+    /// there is no default. Not read when `motorCount == 0`.
+    SafeBrakeMode safeMode = static_cast<SafeBrakeMode>(0);
+    /// The mechanism's pneumatic (ADI digital-out) lines: the brain's three-wire ports as numbers,
+    /// 1..8 for A..H. Entries beyond `pneumaticCount` are 0 and are not read. No line may appear
+    /// twice — in one mechanism or across two (refused by `RobotConfig::valid()`). BUILT since T3's
+    /// addendum B2, as one `hal::PneumaticMechanism` (see above).
     std::uint8_t pneumaticPorts[kMaxPneumaticsPerMechanism]{};
     /// How many entries of `pneumaticPorts` are real. 0 is legal — a purely motorized mechanism.
     std::uint8_t pneumaticCount = 0;
+    /// The level every line is driven to whenever anything STOPS this mechanism — its
+    /// `applySafeState()`, which an end-of-run guard calls. (A driver's toggle button never
+    /// commands it: a claw keeps its level through a disable.) The byte 0 is UNSET, and
+    /// `RobotConfig::valid()` refuses it whenever `pneumaticCount > 0` — see `PneumaticLevel` for
+    /// why there is no default. Not read when `pneumaticCount == 0`.
+    PneumaticLevel pneumaticSafe = static_cast<PneumaticLevel>(0);
+    /// The level every line is driven to when the Robot is BUILT — the program-start state (a claw
+    /// that starts closed). On a brain, making a 3-wire line drives it (A4 register HA-119), so
+    /// this is the one level the builder itself puts on the robot. The byte 0 is UNSET, refused by
+    /// `RobotConfig::valid()` whenever `pneumaticCount > 0`. Not read when `pneumaticCount == 0`.
+    PneumaticLevel pneumaticStart = static_cast<PneumaticLevel>(0);
 };
 
 /// The motion layer's gains, budgets and fault policy for this robot — `chassis::ChassisConfig`
@@ -424,9 +553,17 @@ struct RobotConfig {
     /// `DriveEncoders` on a holonomic drivetrain (that estimator reads two sides and a holonomic
     /// drivetrain has none); a tracking wheel with an unset port, a non-positive diameter or a
     /// non-finite offset; a GPS declared present with an unset port or a non-finite lever arm;
-    /// more mechanisms than capacity, a mechanism with an empty name, too many motors or
-    /// pneumatics, a motor port out of range or a pneumatic line outside 1..8; and — across ALL
-    /// of the above at once — any smart port claimed by two different things, naming both.
+    /// more mechanisms than capacity, a mechanism with an empty name or a name with no NUL inside
+    /// its 24 bytes, too many motors or pneumatics, a motor port out of range or a pneumatic line
+    /// outside 1..8, a 3-wire line listed twice (by two mechanisms or by one — T3's addendum B2);
+    /// and — across ALL of the above at once — any smart port claimed by two different things,
+    /// naming both (so a mechanism port that is also a drive port is refused here, before any
+    /// device is asked for with either cartridge). THEN, in a second pass once every port is
+    /// claimed (chunk T3 — so each collision above keeps its own message): a mechanism with BOTH
+    /// motors and 3-wire lines (addendum B2); for every mechanism with motors, an UNSET or unknown
+    /// cartridge byte, an UNSET or unknown safe brake mode byte; for every mechanism with lines
+    /// (addendum B2), an UNSET or unknown safe level byte, an UNSET or unknown start level byte;
+    /// and, for all mechanisms, two with the same name.
     ///
     /// WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than
     /// a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is
@@ -639,11 +776,25 @@ struct RobotConfig {
             }
             return false;
         }
+        // One owner per brain 3-wire line (addendum B2): the mechanism index + 1, 0 = free. A line
+        // is not a smart port, so it has its own table; index 0 is unused so a line indexes directly.
+        std::uint8_t lineOwner[9]{};
         for (std::size_t m = 0; m < mechanismCount; ++m) {
             const MechanismConfig& mech = mechanisms[m];
             if (mech.name[0] == '\0') {
                 if (why != nullptr && cap > 0) {
                     std::snprintf(why, cap, "mechanism %d has an empty name", static_cast<int>(m));
+                }
+                return false;
+            }
+            // Checked BEFORE any message below prints the name with "%s" — an unterminated name
+            // would be read past its 24 bytes — and because robot::Robot borrows it as a C string.
+            if (!terminatedName(mech.name)) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap,
+                                  "mechanism %d's name has no NUL inside its %d bytes (23 "
+                                  "characters at most)",
+                                  static_cast<int>(m), static_cast<int>(sizeof mech.name));
                 }
                 return false;
             }
@@ -688,6 +839,133 @@ struct RobotConfig {
                     }
                     return false;
                 }
+                // Every earlier owner's name was checked (non-empty, terminated) on its own pass
+                // of this loop, so printing it here is safe.
+                const std::uint8_t earlier = lineOwner[line];
+                if (earlier != 0) {
+                    if (why != nullptr && cap > 0) {
+                        const char letter = static_cast<char>('A' + line - 1);
+                        if (earlier - 1U == m) {
+                            std::snprintf(why, cap,
+                                          "mechanism '%s' lists 3-wire port %c (line %d) twice",
+                                          mech.name, letter, static_cast<int>(line));
+                        } else {
+                            std::snprintf(why, cap,
+                                          "3-wire port %c (line %d) is claimed by mechanism '%s' "
+                                          "and by mechanism '%s'",
+                                          letter, static_cast<int>(line),
+                                          mechanisms[earlier - 1U].name, mech.name);
+                        }
+                    }
+                    return false;
+                }
+                lineOwner[line] = static_cast<std::uint8_t>(m + 1);
+            }
+        }
+        // ── the mechanisms, second pass (chunk T3): what a BUILT mechanism needs ─────────
+        // AFTER every port above is claimed, on purpose: a config with a collision AND an unset
+        // cartridge is refused for the collision, with the message it always had — the port
+        // checks are the older rules and their sentences are pinned. Everything here is about a
+        // mechanism robot::Robot will construct, so an entry with no motors is not asked for a
+        // cartridge or a safe mode it would never use, and one with no lines is not asked for a
+        // level (addendum B2).
+        for (std::size_t m = 0; m < mechanismCount; ++m) {
+            const MechanismConfig& mech = mechanisms[m];
+            if (mech.motorCount > 0 && mech.pneumaticCount > 0) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap,
+                                  "mechanism '%s' has %d motors AND %d 3-wire lines -- make them "
+                                  "two mechanisms: one name is one motor mechanism or one "
+                                  "pneumatic mechanism",
+                                  mech.name, static_cast<int>(mech.motorCount),
+                                  static_cast<int>(mech.pneumaticCount));
+                }
+                return false;
+            }
+            if (mech.motorCount > 0) {
+                if (!validCartridge(mech.cartridge, nullptr, 0)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanism '%s' cartridge byte %d is not Red, Green or Blue "
+                                      "(0 = UNSET) -- state the gearset in its motors",
+                                      mech.name,
+                                      static_cast<int>(static_cast<std::uint8_t>(mech.cartridge)));
+                    }
+                    return false;
+                }
+                if (!isSafeBrakeMode(mech.safeMode)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanism '%s' safe brake mode byte %d is not Coast, Brake "
+                                      "or Hold (0 = UNSET) -- there is no default: at Coast a "
+                                      "loaded mechanism drops",
+                                      mech.name,
+                                      static_cast<int>(static_cast<std::uint8_t>(mech.safeMode)));
+                    }
+                    return false;
+                }
+            }
+            if (mech.pneumaticCount > 0) {
+                if (!isPneumaticLevel(mech.pneumaticSafe)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanism '%s' pneumatic safe level byte %d is not Low or "
+                                      "High (0 = UNSET) -- there is no default: which level drops "
+                                      "what a claw holds depends on the valve",
+                                      mech.name,
+                                      static_cast<int>(
+                                          static_cast<std::uint8_t>(mech.pneumaticSafe)));
+                    }
+                    return false;
+                }
+                if (!isPneumaticLevel(mech.pneumaticStart)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanism '%s' pneumatic start level byte %d is not Low or "
+                                      "High (0 = UNSET) -- state it: the robot DRIVES the line to "
+                                      "it when it is built",
+                                      mech.name,
+                                      static_cast<int>(
+                                          static_cast<std::uint8_t>(mech.pneumaticStart)));
+                    }
+                    return false;
+                }
+            }
+            for (std::size_t earlier = 0; earlier < m; ++earlier) {
+                if (sameName(mechanisms[earlier].name, mech.name)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanisms %d and %d are both named '%s' -- a name is the "
+                                      "key a mechanism is looked up by",
+                                      static_cast<int>(earlier), static_cast<int>(m), mech.name);
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /// True when `name` has a NUL inside its 24 bytes — the precondition for reading it as a C
+    /// string at all.
+    [[nodiscard]] static constexpr bool terminatedName(const char (&name)[24]) noexcept {
+        for (const char ch : name) {
+            if (ch == '\0') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Two TERMINATED mechanism names, compared as C strings (bytes after the NUL are ignored, so
+    /// a name typed into a reused buffer still compares by what it says).
+    [[nodiscard]] static constexpr bool sameName(const char (&a)[24], const char (&b)[24]) noexcept {
+        for (std::size_t i = 0; i < 24; ++i) {
+            if (a[i] != b[i]) {
+                return false;
+            }
+            if (a[i] == '\0') {
+                return true;
             }
         }
         return true;

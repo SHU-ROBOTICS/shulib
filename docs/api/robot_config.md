@@ -8,7 +8,7 @@
 
 RobotConfig — a whole robot, described as DATA.
 
-This header declares **17** types (75 members), **3** free functions, **3** constants, and **1** type alias.
+This header declares **19** types (86 members), **9** free functions, **3** constants, and **1** type alias.
 
 Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/config/robot_config.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -70,12 +70,29 @@ Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/c
   - [`leverArmLeft`](#gpsconfig-leverarmleft)
 - [`struct SensorsConfig`](#struct-sensorsconfig)
   - [`gps`](#sensorsconfig-gps)
+- [`enum class SafeBrakeMode`](#enum-class-safebrakemode)
+  - [`Coast`](#safebrakemode-coast)
+  - [`Brake`](#safebrakemode-brake)
+  - [`Hold`](#safebrakemode-hold)
+- [`safeBrakeModeWord`](#safebrakemodeword) — *free function*
+- [`isSafeBrakeMode`](#issafebrakemode) — *free function*
+- [`toBrakeMode`](#tobrakemode) — *free function*
+- [`enum class PneumaticLevel`](#enum-class-pneumaticlevel)
+  - [`Low`](#pneumaticlevel-low)
+  - [`High`](#pneumaticlevel-high)
+- [`pneumaticLevelWord`](#pneumaticlevelword) — *free function*
+- [`isPneumaticLevel`](#ispneumaticlevel) — *free function*
+- [`toLineValue`](#tolinevalue) — *free function*
 - [`struct MechanismConfig`](#struct-mechanismconfig)
   - [`name`](#mechanismconfig-name)
   - [`motorPorts`](#mechanismconfig-motorports)
   - [`motorCount`](#mechanismconfig-motorcount)
+  - [`cartridge`](#mechanismconfig-cartridge)
+  - [`safeMode`](#mechanismconfig-safemode)
   - [`pneumaticPorts`](#mechanismconfig-pneumaticports)
   - [`pneumaticCount`](#mechanismconfig-pneumaticcount)
+  - [`pneumaticSafe`](#mechanismconfig-pneumaticsafe)
+  - [`pneumaticStart`](#mechanismconfig-pneumaticstart)
 - [`TuningConfig`](#tuningconfig) — *type alias*
 - [`enum class PortUse`](#enum-class-portuse)
   - [`Free`](#portuse-free)
@@ -97,6 +114,8 @@ Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/c
   - [`mechanismCount`](#robotconfig-mechanismcount)
   - [`tuning`](#robotconfig-tuning)
   - [`valid`](#robotconfig-valid)
+  - [`terminatedName`](#robotconfig-terminatedname)
+  - [`sameName`](#robotconfig-samename)
   - [`describe`](#robotconfig-describe)
   - [`validCartridge`](#robotconfig-validcartridge)
   - [`validImuPort`](#robotconfig-validimuport)
@@ -124,7 +143,7 @@ inline constexpr std::size_t kMaxMechanisms = 8
 
 The most mechanisms one robot may declare. A DESIGN constant (ruling B6), not a hardware belief: nothing measured says eight, and a robot with more mechanisms than this is asking for a bigger number here, not for a different data structure.
 
-*constant, declared at [`include/shulib/config/robot_config.hpp:59`](../../include/shulib/config/robot_config.hpp#L59).*
+*constant, declared at [`include/shulib/config/robot_config.hpp:60`](../../include/shulib/config/robot_config.hpp#L60).*
 
 <a id="kmaxmotorspermechanism"></a>
 
@@ -136,7 +155,7 @@ inline constexpr std::size_t kMaxMotorsPerMechanism = 4
 
 The most motors one mechanism may drive. Design constant (B6), same reasoning as above.
 
-*constant, declared at [`include/shulib/config/robot_config.hpp:62`](../../include/shulib/config/robot_config.hpp#L62).*
+*constant, declared at [`include/shulib/config/robot_config.hpp:63`](../../include/shulib/config/robot_config.hpp#L63).*
 
 <a id="kmaxpneumaticspermechanism"></a>
 
@@ -148,7 +167,7 @@ inline constexpr std::size_t kMaxPneumaticsPerMechanism = 2
 
 The most pneumatic (ADI digital-out) lines one mechanism may actuate. Design constant (B6).
 
-*constant, declared at [`include/shulib/config/robot_config.hpp:65`](../../include/shulib/config/robot_config.hpp#L65).*
+*constant, declared at [`include/shulib/config/robot_config.hpp:66`](../../include/shulib/config/robot_config.hpp#L66).*
 
 <a id="enum-class-drivetrainkind"></a>
 
@@ -160,7 +179,7 @@ enum class DrivetrainKind : std::uint8_t
 
 Which drivetrain a RobotConfig describes.  DELIBERATELY NOT `hal::DrivetrainKind`, and the distinction matters: that enum is the one written into a persisted calibration record, it is append-only for that reason, and it knows only `Tank` because the calibrator can only measure a tank today. THIS enum is the CONFIG vocabulary and already carries the two holonomic kinds, because src/main.cpp's X-drive graph has existed since R1a and must be expressible as data (Part 2). A tank config carries a `hal::DrivetrainDescription`, whose own `kind` field is the persisted one; the two agree by construction because valid() checks them against each other.
 
-*enum class, declared at [`include/shulib/config/robot_config.hpp:76`](../../include/shulib/config/robot_config.hpp#L76).*
+*enum class, declared at [`include/shulib/config/robot_config.hpp:77`](../../include/shulib/config/robot_config.hpp#L77).*
 
 <a id="drivetrainkind-tank"></a>
 
@@ -172,7 +191,7 @@ Tank = 1
 
 two sides, no lateral authority — kinematics/tank.hpp
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:77`](../../include/shulib/config/robot_config.hpp#L77).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:78`](../../include/shulib/config/robot_config.hpp#L78).*
 
 <a id="drivetrainkind-xdrive"></a>
 
@@ -184,7 +203,7 @@ XDrive = 2
 
 four 45° omnis — kinematics/x_drive.hpp
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:78`](../../include/shulib/config/robot_config.hpp#L78).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:79`](../../include/shulib/config/robot_config.hpp#L79).*
 
 <a id="drivetrainkind-hdrive"></a>
 
@@ -196,7 +215,7 @@ HDrive = 3
 
 tank base + one transverse strafe wheel — kinematics/h_drive.hpp
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:79`](../../include/shulib/config/robot_config.hpp#L79).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:80`](../../include/shulib/config/robot_config.hpp#L80).*
 
 <a id="drivetrainkindword"></a>
 
@@ -208,7 +227,7 @@ tank base + one transverse strafe wheel — kinematics/h_drive.hpp
 
 The drivetrain kind as a word, for banners and refusal messages. "UNSET" for any byte outside the enum, which is what a default-constructed config carries.
 
-*free function, declared at [`include/shulib/config/robot_config.hpp:84`](../../include/shulib/config/robot_config.hpp#L84).*
+*free function, declared at [`include/shulib/config/robot_config.hpp:85`](../../include/shulib/config/robot_config.hpp#L85).*
 
 <a id="struct-robotidentity"></a>
 
@@ -220,7 +239,7 @@ struct RobotIdentity
 
 Who this robot is, in words. Banner material only — nothing in the library branches on it. Fixed-width and NUL-terminated so the whole config can be written to a card as it stands.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:95`](../../include/shulib/config/robot_config.hpp#L95).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:96`](../../include/shulib/config/robot_config.hpp#L96).*
 
 <a id="robotidentity-name"></a>
 
@@ -232,7 +251,7 @@ char name[32]{}
 
 The robot's name, e.g. "Robot Two". Empty is legal (an unnamed robot still drives).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:97`](../../include/shulib/config/robot_config.hpp#L97).*
+*field, declared at [`include/shulib/config/robot_config.hpp:98`](../../include/shulib/config/robot_config.hpp#L98).*
 
 <a id="robotidentity-team"></a>
 
@@ -244,7 +263,7 @@ char team[16]{}
 
 The team number, e.g. "1234A".
 
-*field, declared at [`include/shulib/config/robot_config.hpp:99`](../../include/shulib/config/robot_config.hpp#L99).*
+*field, declared at [`include/shulib/config/robot_config.hpp:100`](../../include/shulib/config/robot_config.hpp#L100).*
 
 <a id="robotidentity-season"></a>
 
@@ -256,7 +275,7 @@ char season[16]{}
 
 The season, e.g. "Push Back".
 
-*field, declared at [`include/shulib/config/robot_config.hpp:101`](../../include/shulib/config/robot_config.hpp#L101).*
+*field, declared at [`include/shulib/config/robot_config.hpp:102`](../../include/shulib/config/robot_config.hpp#L102).*
 
 <a id="struct-tankdrivetrain"></a>
 
@@ -268,7 +287,7 @@ struct TankDrivetrain
 
 A tank drivetrain: R3d's `hal::DrivetrainDescription`, EMBEDDED BY VALUE and unchanged (ruling B1). Everything a tank needs is already in it — signed ports per side, inches per radian per side, effective track width, cartridge, IMU port, source and provenance — and it is the type the calibrator produces and the record persists, so a config built from a card is a field copy and nothing else.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:109`](../../include/shulib/config/robot_config.hpp#L109).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:110`](../../include/shulib/config/robot_config.hpp#L110).*
 
 <a id="tankdrivetrain-description"></a>
 
@@ -280,7 +299,7 @@ hal::DrivetrainDescription description{}
 
 The description, exactly as the calibrator or the typed table produced it. Its own `valid()` is called by RobotConfig::valid(), and its message surfaces verbatim.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:112`](../../include/shulib/config/robot_config.hpp#L112).*
+*field, declared at [`include/shulib/config/robot_config.hpp:113`](../../include/shulib/config/robot_config.hpp#L113).*
 
 <a id="struct-xdrivedrivetrain"></a>
 
@@ -292,7 +311,7 @@ struct XDriveDrivetrain
 
 A symmetric 45° X-drive, typed by hand (no calibrator measures one yet).
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:116`](../../include/shulib/config/robot_config.hpp#L116).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:117`](../../include/shulib/config/robot_config.hpp#L117).*
 
 <a id="xdrivedrivetrain-ports"></a>
 
@@ -304,7 +323,7 @@ std::int8_t ports[4]{}
 
 The four wheel ports in x_drive.hpp's canonical F5 wheel order — 0 front-left, 1 back-left, 2 back-right, 3 front-right — WITH THEIR SIGNS, exactly as `hal::DriveSideDescription::signedPorts` carries a tank's: `-11` is port 11 handed to the adapter negative, which PROS reverses exactly once. The sign lives here and nowhere else. A `0` entry is "no motor on that wheel", which is representable and refused by `robot::validate()`'s wheel-count cross-check, not here (see RobotConfig::valid()).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:123`](../../include/shulib/config/robot_config.hpp#L123).*
+*field, declared at [`include/shulib/config/robot_config.hpp:124`](../../include/shulib/config/robot_config.hpp#L124).*
 
 <a id="xdrivedrivetrain-cartridge"></a>
 
@@ -316,7 +335,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 The cartridge in the drive motors. HUMAN-STATED and unverifiable from inside, exactly as `hal::MotorCartridge` documents; `valid()` refuses any byte outside the enum.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:126`](../../include/shulib/config/robot_config.hpp#L126).*
+*field, declared at [`include/shulib/config/robot_config.hpp:127`](../../include/shulib/config/robot_config.hpp#L127).*
 
 <a id="xdrivedrivetrain-imuport"></a>
 
@@ -328,7 +347,7 @@ std::uint8_t imuPort = 0
 
 The IMU's smart port, 1..hal::kMaxSmartPorts. 0 is UNSET and invalid — every drivetrain here is heading-owned by an IMU.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:129`](../../include/shulib/config/robot_config.hpp#L129).*
+*field, declared at [`include/shulib/config/robot_config.hpp:130`](../../include/shulib/config/robot_config.hpp#L130).*
 
 <a id="xdrivedrivetrain-driveradius"></a>
 
@@ -340,7 +359,7 @@ units::Length driveRadius{0.0}
 
 Centre-to-wheel distance in inches, the ONE geometry input `kinematics::xDrive()` takes. Must be finite and > 0.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:132`](../../include/shulib/config/robot_config.hpp#L132).*
+*field, declared at [`include/shulib/config/robot_config.hpp:133`](../../include/shulib/config/robot_config.hpp#L133).*
 
 <a id="struct-hdrivedrivetrain"></a>
 
@@ -352,7 +371,7 @@ struct HDriveDrivetrain
 
 An H-drive: a tank base plus one transverse strafe wheel, typed by hand.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:136`](../../include/shulib/config/robot_config.hpp#L136).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:137`](../../include/shulib/config/robot_config.hpp#L137).*
 
 <a id="hdrivedrivetrain-ports"></a>
 
@@ -364,7 +383,7 @@ std::int8_t ports[3]{}
 
 The three wheel ports in h_drive.hpp's wheel order — 0 LEFT drive line, 1 RIGHT drive line, 2 STRAFE — signed, with the same one-place-for-a-sign rule as the X-drive's. Spelling the strafe wheel as `ports[2]` rather than a separate field is deliberate: the kinematics numbers it as wheel 2, and a separate field would need a second rule saying where it goes in the motor array.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:142`](../../include/shulib/config/robot_config.hpp#L142).*
+*field, declared at [`include/shulib/config/robot_config.hpp:143`](../../include/shulib/config/robot_config.hpp#L143).*
 
 <a id="hdrivedrivetrain-cartridge"></a>
 
@@ -376,7 +395,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 The cartridge in the drive motors. HUMAN-STATED; `valid()` refuses a byte outside the enum.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:144`](../../include/shulib/config/robot_config.hpp#L144).*
+*field, declared at [`include/shulib/config/robot_config.hpp:145`](../../include/shulib/config/robot_config.hpp#L145).*
 
 <a id="hdrivedrivetrain-imuport"></a>
 
@@ -388,7 +407,7 @@ std::uint8_t imuPort = 0
 
 The IMU's smart port, 1..hal::kMaxSmartPorts. 0 is UNSET and invalid.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:146`](../../include/shulib/config/robot_config.hpp#L146).*
+*field, declared at [`include/shulib/config/robot_config.hpp:147`](../../include/shulib/config/robot_config.hpp#L147).*
 
 <a id="hdrivedrivetrain-trackwidth"></a>
 
@@ -400,7 +419,7 @@ units::Length trackWidth{0.0}
 
 Contact line to contact line, inches, finite and > 0 — `hDrive()`'s `trackWidth`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:148`](../../include/shulib/config/robot_config.hpp#L148).*
+*field, declared at [`include/shulib/config/robot_config.hpp:149`](../../include/shulib/config/robot_config.hpp#L149).*
 
 <a id="hdrivedrivetrain-strafewheeloffset"></a>
 
@@ -412,7 +431,7 @@ units::Length strafeWheelOffset{0.0}
 
 The strafe wheel's +FORWARD body coordinate, SIGNED and finite (negative = behind centre) — `hDrive()`'s `strafeWheelOffset`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:151`](../../include/shulib/config/robot_config.hpp#L151).*
+*field, declared at [`include/shulib/config/robot_config.hpp:152`](../../include/shulib/config/robot_config.hpp#L152).*
 
 <a id="struct-drivetrainconfig"></a>
 
@@ -424,7 +443,7 @@ struct DrivetrainConfig
 
 Which drivetrain this robot has, and its numbers.  A TAGGED STRUCT rather than a union: all three alternatives are stored and `kind` says which one is read. The alternative — `std::variant` or a real union — was rejected because it costs this type its aggregate-ness, and being an aggregate is precisely what lets a person (and G3's generator) write `{.kind = …, .tank = {…}}` with designated initializers and have the compiler check it. The price is about thirty bytes of static storage on a brain that has megabytes, paid once.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:162`](../../include/shulib/config/robot_config.hpp#L162).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:163`](../../include/shulib/config/robot_config.hpp#L163).*
 
 <a id="drivetrainconfig-kind"></a>
 
@@ -436,7 +455,7 @@ DrivetrainKind kind = DrivetrainKind::Tank
 
 Which of the three members below is the real one. Everything else is ignored — not validated, not read, not built.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:165`](../../include/shulib/config/robot_config.hpp#L165).*
+*field, declared at [`include/shulib/config/robot_config.hpp:166`](../../include/shulib/config/robot_config.hpp#L166).*
 
 <a id="drivetrainconfig-tank"></a>
 
@@ -448,7 +467,7 @@ TankDrivetrain tank{}
 
 The tank alternative, read only when `kind == Tank`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:167`](../../include/shulib/config/robot_config.hpp#L167).*
+*field, declared at [`include/shulib/config/robot_config.hpp:168`](../../include/shulib/config/robot_config.hpp#L168).*
 
 <a id="drivetrainconfig-xdrive"></a>
 
@@ -460,7 +479,7 @@ XDriveDrivetrain xdrive{}
 
 The X-drive alternative, read only when `kind == XDrive`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:169`](../../include/shulib/config/robot_config.hpp#L169).*
+*field, declared at [`include/shulib/config/robot_config.hpp:170`](../../include/shulib/config/robot_config.hpp#L170).*
 
 <a id="drivetrainconfig-hdrive"></a>
 
@@ -472,7 +491,7 @@ HDriveDrivetrain hdrive{}
 
 The H-drive alternative, read only when `kind == HDrive`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:171`](../../include/shulib/config/robot_config.hpp#L171).*
+*field, declared at [`include/shulib/config/robot_config.hpp:172`](../../include/shulib/config/robot_config.hpp#L172).*
 
 <a id="drivetrainconfig-kindof"></a>
 
@@ -484,7 +503,7 @@ The H-drive alternative, read only when `kind == HDrive`.
 
 Which alternative is live — the accessor the brief names, so call sites read `drivetrain.kind()`-shaped code even though the tag is a plain field.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:175`](../../include/shulib/config/robot_config.hpp#L175).*
+*function, declared at [`include/shulib/config/robot_config.hpp:176`](../../include/shulib/config/robot_config.hpp#L176).*
 
 <a id="drivetrainconfig-imuport"></a>
 
@@ -496,7 +515,7 @@ Which alternative is live — the accessor the brief names, so call sites read `
 
 The IMU port this drivetrain's heading comes from, whichever alternative is live. 0 when `kind` is not a known kind.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:179`](../../include/shulib/config/robot_config.hpp#L179).*
+*function, declared at [`include/shulib/config/robot_config.hpp:180`](../../include/shulib/config/robot_config.hpp#L180).*
 
 <a id="drivetrainconfig-cartridge"></a>
 
@@ -508,7 +527,7 @@ The IMU port this drivetrain's heading comes from, whichever alternative is live
 
 The cartridge in the drive motors, whichever alternative is live. The byte 0 (UNSET) when `kind` is not a known kind.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:190`](../../include/shulib/config/robot_config.hpp#L190).*
+*function, declared at [`include/shulib/config/robot_config.hpp:191`](../../include/shulib/config/robot_config.hpp#L191).*
 
 <a id="drivetrainconfig-wheelcount"></a>
 
@@ -520,7 +539,7 @@ The cartridge in the drive motors, whichever alternative is live. The byte 0 (UN
 
 How many KINEMATIC WHEELS the installed drivetrain has — 2 tank, 4 X-drive, 3 H-drive. This is the number `kinematics::IKinematics::wheelCount()` will report, derived from the config so `robot::validate()` can make the F5 cross-check before any object exists. 0 when `kind` is not a known kind.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:203`](../../include/shulib/config/robot_config.hpp#L203).*
+*function, declared at [`include/shulib/config/robot_config.hpp:204`](../../include/shulib/config/robot_config.hpp#L204).*
 
 <a id="drivetrainconfig-drivemotorcount"></a>
 
@@ -532,7 +551,7 @@ How many KINEMATIC WHEELS the installed drivetrain has — 2 tank, 4 X-drive, 3 
 
 How many `hal::IMotor` handles the builder will place in the RobotContext — ONE per kinematic wheel when the config is complete. A tank always contributes 2 (one MotorGroup per side, and a side with no ports is already refused by the description's own `valid()`); a holonomic drivetrain contributes one per NON-ZERO port slot, so a wheel whose port was left at 0 makes this number smaller than `wheelCount()` — which is exactly the disagreement `robot::validate()` exists to name.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:218`](../../include/shulib/config/robot_config.hpp#L218).*
+*function, declared at [`include/shulib/config/robot_config.hpp:219`](../../include/shulib/config/robot_config.hpp#L219).*
 
 <a id="enum-class-odometrykind"></a>
 
@@ -544,7 +563,7 @@ enum class OdometryKind : std::uint8_t
 
 Which estimator feeds the Localizer.
 
-*enum class, declared at [`include/shulib/config/robot_config.hpp:245`](../../include/shulib/config/robot_config.hpp#L245).*
+*enum class, declared at [`include/shulib/config/robot_config.hpp:246`](../../include/shulib/config/robot_config.hpp#L246).*
 
 <a id="odometrykind-driveencoders"></a>
 
@@ -556,7 +575,7 @@ DriveEncoders = 1
 
 The drive encoders themselves — `localization::DriveEncoderOdometry` over the two side groups. Needs no extra hardware and is the default for a tank. NOT available on a holonomic drivetrain: that estimator reads exactly two sides and an X-drive has none.
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:249`](../../include/shulib/config/robot_config.hpp#L249).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:250`](../../include/shulib/config/robot_config.hpp#L250).*
 
 <a id="odometrykind-trackingwheels"></a>
 
@@ -568,7 +587,7 @@ TrackingWheels = 2
 
 Two unpowered tracking wheels — `localization::PilonsOdometry`. The only choice for a holonomic drivetrain, and the better one for a tank that has the pods.
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:252`](../../include/shulib/config/robot_config.hpp#L252).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:253`](../../include/shulib/config/robot_config.hpp#L253).*
 
 <a id="odometrykindword"></a>
 
@@ -580,7 +599,7 @@ Two unpowered tracking wheels — `localization::PilonsOdometry`. The only choic
 
 The odometry kind as a word, for banners. "UNSET" for a byte outside the enum.
 
-*free function, declared at [`include/shulib/config/robot_config.hpp:256`](../../include/shulib/config/robot_config.hpp#L256).*
+*free function, declared at [`include/shulib/config/robot_config.hpp:257`](../../include/shulib/config/robot_config.hpp#L257).*
 
 <a id="struct-trackingwheelconfig"></a>
 
@@ -592,7 +611,7 @@ struct TrackingWheelConfig
 
 One unpowered tracking wheel: where it is plugged in, how big it is, and where it sits. The role (forward or lateral) is NOT a field — it is fixed by which slot of `TrackingWheelsOdometry` the wheel occupies, exactly as `localization::TrackingWheel`'s private constructor and two factories fix it, so a pair handed over in the wrong order cannot be represented rather than merely being rejected.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:269`](../../include/shulib/config/robot_config.hpp#L269).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:270`](../../include/shulib/config/robot_config.hpp#L270).*
 
 <a id="trackingwheelconfig-port"></a>
 
@@ -604,7 +623,7 @@ std::uint8_t port = 0
 
 The rotation sensor's smart port, 1..hal::kMaxSmartPorts. 0 is UNSET and invalid. Unsigned: a rotation sensor's direction is a mounting fact expressed by the wheel's offset sign and the sensor's own reading, not by a negative port.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:273`](../../include/shulib/config/robot_config.hpp#L273).*
+*field, declared at [`include/shulib/config/robot_config.hpp:274`](../../include/shulib/config/robot_config.hpp#L274).*
 
 <a id="trackingwheelconfig-wheeldiameter"></a>
 
@@ -616,7 +635,7 @@ units::Length wheelDiameter{0.0}
 
 Wheel diameter in inches, finite and > 0.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:275`](../../include/shulib/config/robot_config.hpp#L275).*
+*field, declared at [`include/shulib/config/robot_config.hpp:276`](../../include/shulib/config/robot_config.hpp#L276).*
 
 <a id="trackingwheelconfig-offset"></a>
 
@@ -628,7 +647,7 @@ units::Length offset{0.0}
 
 The wheel's signed offset from the tracking centre, inches, finite — the +LEFT coordinate for the FORWARD wheel and the +FORWARD coordinate for the LATERAL one (tracking_wheel.hpp).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:278`](../../include/shulib/config/robot_config.hpp#L278).*
+*field, declared at [`include/shulib/config/robot_config.hpp:279`](../../include/shulib/config/robot_config.hpp#L279).*
 
 <a id="struct-trackingwheelsodometry"></a>
 
@@ -640,7 +659,7 @@ struct TrackingWheelsOdometry
 
 The two-pod (Pilons) odometry's geometry.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:282`](../../include/shulib/config/robot_config.hpp#L282).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:283`](../../include/shulib/config/robot_config.hpp#L283).*
 
 <a id="trackingwheelsodometry-forward"></a>
 
@@ -652,7 +671,7 @@ TrackingWheelConfig forward{}
 
 The FORWARD-rolling wheel (body +X); its `offset` is its +LEFT coordinate.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:284`](../../include/shulib/config/robot_config.hpp#L284).*
+*field, declared at [`include/shulib/config/robot_config.hpp:285`](../../include/shulib/config/robot_config.hpp#L285).*
 
 <a id="trackingwheelsodometry-lateral"></a>
 
@@ -664,7 +683,7 @@ TrackingWheelConfig lateral{}
 
 The LATERAL-rolling wheel (body +Y); its `offset` is its +FORWARD coordinate.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:286`](../../include/shulib/config/robot_config.hpp#L286).*
+*field, declared at [`include/shulib/config/robot_config.hpp:287`](../../include/shulib/config/robot_config.hpp#L287).*
 
 <a id="struct-odometryconfig"></a>
 
@@ -676,7 +695,7 @@ struct OdometryConfig
 
 Which estimator this robot runs, and its geometry.  Same tagged-struct shape and the same reasoning as DrivetrainConfig. Note what this means for a tank that HAS pods but is configured `DriveEncoders`: the `wheels` member is simply not read — not validated, not port-claimed, not built. Declaring pods and then choosing drive encoders is therefore a no-op, not an error; the brief calls that a warning rather than a refusal, and the honest place for a warning is the boot banner, not a validity rule that would make an over-complete config invalid.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:297`](../../include/shulib/config/robot_config.hpp#L297).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:298`](../../include/shulib/config/robot_config.hpp#L298).*
 
 <a id="odometryconfig-kind"></a>
 
@@ -688,7 +707,7 @@ OdometryKind kind = OdometryKind::DriveEncoders
 
 Which estimator to build.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:299`](../../include/shulib/config/robot_config.hpp#L299).*
+*field, declared at [`include/shulib/config/robot_config.hpp:300`](../../include/shulib/config/robot_config.hpp#L300).*
 
 <a id="odometryconfig-wheels"></a>
 
@@ -700,7 +719,7 @@ TrackingWheelsOdometry wheels{}
 
 The tracking-wheel geometry, read only when `kind == TrackingWheels`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:301`](../../include/shulib/config/robot_config.hpp#L301).*
+*field, declared at [`include/shulib/config/robot_config.hpp:302`](../../include/shulib/config/robot_config.hpp#L302).*
 
 <a id="struct-gpsconfig"></a>
 
@@ -712,7 +731,7 @@ struct GpsConfig
 
 The GPS, if this robot has one.  ABSENCE IS A FIELD, NOT A ZERO PORT. `present = false` means the robot has no GPS, and robot/robot.hpp answers that with the explicit `hal::AbsentGps` in the context and NO corrector installed — never a null and never a fake (landmine 5). A GPS-less robot is the common case here: robot two has none, and Driving Skills has no field strip at all.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:310`](../../include/shulib/config/robot_config.hpp#L310).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:311`](../../include/shulib/config/robot_config.hpp#L311).*
 
 <a id="gpsconfig-present"></a>
 
@@ -724,7 +743,7 @@ bool present = false
 
 Whether a GPS is installed. When false every other field is ignored.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:312`](../../include/shulib/config/robot_config.hpp#L312).*
+*field, declared at [`include/shulib/config/robot_config.hpp:313`](../../include/shulib/config/robot_config.hpp#L313).*
 
 <a id="gpsconfig-port"></a>
 
@@ -736,7 +755,7 @@ std::uint8_t port = 0
 
 The GPS's smart port, 1..hal::kMaxSmartPorts. 0 is UNSET and invalid when `present`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:314`](../../include/shulib/config/robot_config.hpp#L314).*
+*field, declared at [`include/shulib/config/robot_config.hpp:315`](../../include/shulib/config/robot_config.hpp#L315).*
 
 <a id="gpsconfig-leverarmforward"></a>
 
@@ -748,7 +767,7 @@ units::Length leverArmForward{0.0}
 
 The sensor's +FORWARD body coordinate from the robot centre, inches, finite.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:316`](../../include/shulib/config/robot_config.hpp#L316).*
+*field, declared at [`include/shulib/config/robot_config.hpp:317`](../../include/shulib/config/robot_config.hpp#L317).*
 
 <a id="gpsconfig-leverarmleft"></a>
 
@@ -760,7 +779,7 @@ units::Length leverArmLeft{0.0}
 
 The sensor's +LEFT body coordinate from the robot centre, inches, finite.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:318`](../../include/shulib/config/robot_config.hpp#L318).*
+*field, declared at [`include/shulib/config/robot_config.hpp:319`](../../include/shulib/config/robot_config.hpp#L319).*
 
 <a id="struct-sensorsconfig"></a>
 
@@ -772,7 +791,7 @@ struct SensorsConfig
 
 Every sensor this robot has that is not part of the drivetrain or the odometry.  TAGS AND VISION ARE DELIBERATELY ABSENT IN PART 1, and that is a statement about the tree rather than about the schema: no camera adapter exists (R2 owns it), so a field here would describe hardware the library cannot open. `robot::Robot` installs `hal::AbsentTagSource` and `hal::AbsentVision` unconditionally, exactly as src/main.cpp's hand-wired graphs did.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:327`](../../include/shulib/config/robot_config.hpp#L327).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:328`](../../include/shulib/config/robot_config.hpp#L328).*
 
 <a id="sensorsconfig-gps"></a>
 
@@ -784,7 +803,163 @@ GpsConfig gps{}
 
 The GPS, present or absent.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:329`](../../include/shulib/config/robot_config.hpp#L329).*
+*field, declared at [`include/shulib/config/robot_config.hpp:330`](../../include/shulib/config/robot_config.hpp#L330).*
+
+<a id="enum-class-safebrakemode"></a>
+
+## `enum class SafeBrakeMode`
+
+```cpp
+enum class SafeBrakeMode : std::uint8_t
+```
+
+A motor mechanism's DECLARED safe brake mode, as config data — what `robot::Robot` hands to `hal::MotorMechanism`'s constructor, and so what every stop of that mechanism lands in (`applySafeState()`: this mode, then 0 V).  DELIBERATELY NOT `hal::BrakeMode`, and the reason is landmine-sized: `hal::BrakeMode`'s first enumerator is `Coast`, so a value-initialised field of that type would silently declare COAST — and a loaded arm or claw at 0 V and Coast drops its load. There is no safe default for a mechanism (hal/mechanism.hpp's banner: Hold for a loaded lift, Coast or Brake for a jammed intake), so the config refuses to have one: like `hal::MotorCartridge`, this enum has NO `Unset` member, the byte 0 is what a config nobody filled in carries, and `RobotConfig::valid()` refuses it for any mechanism that has motors. Fixed-width, so a generator can emit it and a card can store it.
+
+*enum class, declared at [`include/shulib/config/robot_config.hpp:345`](../../include/shulib/config/robot_config.hpp#L345).*
+
+<a id="safebrakemode-coast"></a>
+
+### `SafeBrakeMode::Coast`
+
+```cpp
+Coast = 1
+```
+
+undriven — for an intake that must never sit at stall current
+
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:346`](../../include/shulib/config/robot_config.hpp#L346).*
+
+<a id="safebrakemode-brake"></a>
+
+### `SafeBrakeMode::Brake`
+
+```cpp
+Brake = 2
+```
+
+brakes and resists, but does not return to where it stopped
+
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:347`](../../include/shulib/config/robot_config.hpp#L347).*
+
+<a id="safebrakemode-hold"></a>
+
+### `SafeBrakeMode::Hold`
+
+```cpp
+Hold = 3
+```
+
+drives back to the angle it stopped at — the one that keeps a load up
+
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:348`](../../include/shulib/config/robot_config.hpp#L348).*
+
+<a id="safebrakemodeword"></a>
+
+## `safeBrakeModeWord`
+
+```cpp
+[[nodiscard]] inline const char* safeBrakeModeWord(SafeBrakeMode m) noexcept
+```
+
+The safe brake mode as a word, for banners and refusal messages. "UNSET" for any byte outside the enum, which is what a default-constructed `MechanismConfig` carries.
+
+*free function, declared at [`include/shulib/config/robot_config.hpp:353`](../../include/shulib/config/robot_config.hpp#L353).*
+
+<a id="issafebrakemode"></a>
+
+## `isSafeBrakeMode`
+
+```cpp
+[[nodiscard]] constexpr bool isSafeBrakeMode(SafeBrakeMode m) noexcept
+```
+
+True when `m` is one of the three modes — false for the UNSET byte 0 and any other byte.
+
+*free function, declared at [`include/shulib/config/robot_config.hpp:363`](../../include/shulib/config/robot_config.hpp#L363).*
+
+<a id="tobrakemode"></a>
+
+## `toBrakeMode`
+
+```cpp
+[[nodiscard]] constexpr hal::BrakeMode toBrakeMode(SafeBrakeMode m) noexcept
+```
+
+The HAL brake mode a `SafeBrakeMode` stands for. Total: a byte outside the enum converts to `Hold` — the mode that drops nothing — and never to Coast. That fallback is a floor, not a default anyone relies on: `robot::Robot` only converts a mode `RobotConfig::valid()` accepted.
+
+*free function, declared at [`include/shulib/config/robot_config.hpp:370`](../../include/shulib/config/robot_config.hpp#L370).*
+
+<a id="enum-class-pneumaticlevel"></a>
+
+## `enum class PneumaticLevel`
+
+```cpp
+enum class PneumaticLevel : std::uint8_t
+```
+
+A pneumatic mechanism's line LEVEL, as config data — its declared SAFE level and its START level (`MechanismConfig::pneumaticSafe`, `pneumaticStart`). `Low` is the line off (`false`: the solenoid unpowered), `High` the line on (`true`: powered).  DELIBERATELY NOT `bool`, for the reason `SafeBrakeMode` is not a `hal::BrakeMode`: a value-initialised bool is `false`, so a field of that type would silently declare "off" for a config nobody filled in — and whether off leaves a claw OPEN (dropping what it holds) or CLOSED depends on how its valve is plumbed, which only the team knows. So, like `hal::MotorCartridge`, this enum has NO `Unset` member, the byte 0 is what a config nobody filled in carries, and `RobotConfig::valid()` refuses it for any mechanism that has 3-wire lines (T3's addendum B2).
+
+*enum class, declared at [`include/shulib/config/robot_config.hpp:389`](../../include/shulib/config/robot_config.hpp#L389).*
+
+<a id="pneumaticlevel-low"></a>
+
+### `PneumaticLevel::Low`
+
+```cpp
+Low = 1
+```
+
+the line off (`false`) — the solenoid unpowered
+
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:390`](../../include/shulib/config/robot_config.hpp#L390).*
+
+<a id="pneumaticlevel-high"></a>
+
+### `PneumaticLevel::High`
+
+```cpp
+High = 2
+```
+
+the line on (`true`) — the solenoid powered
+
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:391`](../../include/shulib/config/robot_config.hpp#L391).*
+
+<a id="pneumaticlevelword"></a>
+
+## `pneumaticLevelWord`
+
+```cpp
+[[nodiscard]] inline const char* pneumaticLevelWord(PneumaticLevel l) noexcept
+```
+
+The level as a word, for banners and refusal messages: "low", "high", or "UNSET" for any byte outside the enum, which is what a default-constructed `MechanismConfig` carries.
+
+*free function, declared at [`include/shulib/config/robot_config.hpp:396`](../../include/shulib/config/robot_config.hpp#L396).*
+
+<a id="ispneumaticlevel"></a>
+
+## `isPneumaticLevel`
+
+```cpp
+[[nodiscard]] constexpr bool isPneumaticLevel(PneumaticLevel l) noexcept
+```
+
+True when `l` is `Low` or `High` — false for the UNSET byte 0 and any other byte.
+
+*free function, declared at [`include/shulib/config/robot_config.hpp:405`](../../include/shulib/config/robot_config.hpp#L405).*
+
+<a id="tolinevalue"></a>
+
+## `toLineValue`
+
+```cpp
+[[nodiscard]] constexpr bool toLineValue(PneumaticLevel l) noexcept
+```
+
+The line value a level stands for: `High` is `true`, `Low` is `false`. Only for a level `RobotConfig::valid()` accepted — `robot::Robot` converts nothing else — because there is no safe floor to fall back to here (unlike `toBrakeMode()`'s Hold): either value moves a cylinder.
+
+*free function, declared at [`include/shulib/config/robot_config.hpp:412`](../../include/shulib/config/robot_config.hpp#L412).*
 
 <a id="struct-mechanismconfig"></a>
 
@@ -794,9 +969,9 @@ The GPS, present or absent.
 struct MechanismConfig
 ```
 
-One mechanism — an intake, a lift, a clamp — as data.  TYPES ONLY IN PART 1, and this is the one place in the header where a field exists that nothing reads yet. It is here so F7's schema is complete for G3's codegen and so a `.vexbot` round-trip does not lose the mechanisms it carries; `robot::Robot` constructs NO mechanism from it, and `valid()` checks only that the ports do not collide with anything else on the robot. G2/T3 consume it, with the command registry that binds a mechanism to a marker id.
+One mechanism — an intake, a lift, a clamp, a claw pivot, a pneumatic claw — as data.  BUILT since chunk T3 (2026-09-26): `robot::Robot` builds ONE `hal::MotorMechanism` per mechanism that has motors, asking the provider for each motor with THIS mechanism's cartridge (not the drivetrain's), names it with `name`, and exposes it by name (`Robot::mechanism()`) and as the `hal::IMechanism*` span an end-of-run guard walks (`Robot::mechanisms()`). Since T3's addendum B2 (the same day) it also builds ONE `hal::PneumaticMechanism` per mechanism that has 3-wire lines and no motors — each line made at `pneumaticStart` (on a brain, making a line DRIVES it), the mechanism's safe level `pneumaticSafe` — found by `Robot::pneumaticMechanism()` and in the same span. A device the provider will not make leaves that mechanism ABSENT, reported with the provider's sentence — never the whole robot refused. A mechanism with BOTH motors and lines is refused by `RobotConfig::valid()`: one name is one object, and a voltage and a level do not fan through one. What a mechanism MEANS — which buttons drive it, what confirms it — stays with the program (teleop/mechanism_binding.hpp, manipulation/).  Two mechanisms that must move independently are TWO entries, never one entry with two motors: a `MotorMechanism` fans ONE voltage to all its motors, so two claws in one entry would move together on every button. The same holds for lines: a `PneumaticMechanism` fans ONE level to every line, so its two lines are two valves fired together — NOT the two coils of a double-coil solenoid, which need opposite levels and are not built by this library. How one WOULD be, once a robot is known to have one (said here, deliberately not built — T3's addendum B2): its two lines stay ONE mechanism (one name, one toggle button), and each line gains a stated polarity; for an inverted line the builder asks the provider at the OPPOSITE start level and hands the mechanism a one-line `hal::IDigitalOut` adapter that writes (and reports) the opposite of what it is told — so `PneumaticMechanism` still fans one level, each coil gets its own, and nothing else changes: not the toggle, not the guard's span.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:339`](../../include/shulib/config/robot_config.hpp#L339).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:442`](../../include/shulib/config/robot_config.hpp#L442).*
 
 <a id="mechanismconfig-name"></a>
 
@@ -806,9 +981,9 @@ One mechanism — an intake, a lift, a clamp — as data.  TYPES ONLY IN PART 1,
 char name[24]{}
 ```
 
-The mechanism's name — also the key a command-id registry will bind against. Non-empty for any mechanism inside `RobotConfig::mechanismCount`.
+The mechanism's name — the key `robot::Robot::mechanism()` looks it up by, and the key a command-id registry will bind against. Non-empty, NUL-terminated inside these 24 bytes, and unique among the robot's mechanisms (all three refused by `RobotConfig::valid()`). The Robot BORROWS this text for the mechanism's `name()` from its own copy of the config.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:342`](../../include/shulib/config/robot_config.hpp#L342).*
+*field, declared at [`include/shulib/config/robot_config.hpp:447`](../../include/shulib/config/robot_config.hpp#L447).*
 
 <a id="mechanismconfig-motorports"></a>
 
@@ -818,9 +993,9 @@ The mechanism's name — also the key a command-id registry will bind against. N
 std::int8_t motorPorts[kMaxMotorsPerMechanism]{}
 ```
 
-The mechanism's motor ports WITH THEIR SIGNS, same one-place-for-a-sign rule as the drivetrain's. Entries beyond `motorCount` are 0 and are not read.
+The mechanism's motor ports WITH THEIR SIGNS, same one-place-for-a-sign rule as the drivetrain's: a pivot that moves the wrong way on its forward button is fixed by flipping the sign HERE, nowhere else. Entries beyond `motorCount` are 0 and are not read.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:345`](../../include/shulib/config/robot_config.hpp#L345).*
+*field, declared at [`include/shulib/config/robot_config.hpp:451`](../../include/shulib/config/robot_config.hpp#L451).*
 
 <a id="mechanismconfig-motorcount"></a>
 
@@ -830,9 +1005,33 @@ The mechanism's motor ports WITH THEIR SIGNS, same one-place-for-a-sign rule as 
 std::uint8_t motorCount = 0
 ```
 
-How many entries of `motorPorts` are real. 0 is legal — a purely pneumatic mechanism.
+How many entries of `motorPorts` are real. 0 is legal — a purely pneumatic mechanism (a mechanism with motors AND lines is refused).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:347`](../../include/shulib/config/robot_config.hpp#L347).*
+*field, declared at [`include/shulib/config/robot_config.hpp:454`](../../include/shulib/config/robot_config.hpp#L454).*
+
+<a id="mechanismconfig-cartridge"></a>
+
+### `MechanismConfig::cartridge`
+
+```cpp
+hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
+```
+
+The cartridge in THIS mechanism's motors — its own, never the drivetrain's (a RED claw on a BLUE drive is the normal case). HUMAN-STATED and unverifiable from inside, exactly as `hal::MotorCartridge` documents. The byte 0 is UNSET, and `RobotConfig::valid()` refuses it (or any byte outside the enum) whenever `motorCount > 0`; not read when `motorCount == 0`.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:459`](../../include/shulib/config/robot_config.hpp#L459).*
+
+<a id="mechanismconfig-safemode"></a>
+
+### `MechanismConfig::safeMode`
+
+```cpp
+SafeBrakeMode safeMode = static_cast<SafeBrakeMode>(0)
+```
+
+The DECLARED safe brake mode every stop of this mechanism lands in. The byte 0 is UNSET, and `RobotConfig::valid()` refuses it whenever `motorCount > 0` — see `SafeBrakeMode` for why there is no default. Not read when `motorCount == 0`.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:463`](../../include/shulib/config/robot_config.hpp#L463).*
 
 <a id="mechanismconfig-pneumaticports"></a>
 
@@ -842,9 +1041,9 @@ How many entries of `motorPorts` are real. 0 is legal — a purely pneumatic mec
 std::uint8_t pneumaticPorts[kMaxPneumaticsPerMechanism]{}
 ```
 
-The mechanism's pneumatic (ADI digital-out) lines, 1..8 on the brain's three-wire port. Entries beyond `pneumaticCount` are 0 and are not read.
+The mechanism's pneumatic (ADI digital-out) lines: the brain's three-wire ports as numbers, 1..8 for A..H. Entries beyond `pneumaticCount` are 0 and are not read. No line may appear twice — in one mechanism or across two (refused by `RobotConfig::valid()`). BUILT since T3's addendum B2, as one `hal::PneumaticMechanism` (see above).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:350`](../../include/shulib/config/robot_config.hpp#L350).*
+*field, declared at [`include/shulib/config/robot_config.hpp:468`](../../include/shulib/config/robot_config.hpp#L468).*
 
 <a id="mechanismconfig-pneumaticcount"></a>
 
@@ -856,7 +1055,31 @@ std::uint8_t pneumaticCount = 0
 
 How many entries of `pneumaticPorts` are real. 0 is legal — a purely motorized mechanism.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:352`](../../include/shulib/config/robot_config.hpp#L352).*
+*field, declared at [`include/shulib/config/robot_config.hpp:470`](../../include/shulib/config/robot_config.hpp#L470).*
+
+<a id="mechanismconfig-pneumaticsafe"></a>
+
+### `MechanismConfig::pneumaticSafe`
+
+```cpp
+PneumaticLevel pneumaticSafe = static_cast<PneumaticLevel>(0)
+```
+
+The level every line is driven to whenever anything STOPS this mechanism — its `applySafeState()`, which an end-of-run guard calls. (A driver's toggle button never commands it: a claw keeps its level through a disable.) The byte 0 is UNSET, and `RobotConfig::valid()` refuses it whenever `pneumaticCount > 0` — see `PneumaticLevel` for why there is no default. Not read when `pneumaticCount == 0`.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:476`](../../include/shulib/config/robot_config.hpp#L476).*
+
+<a id="mechanismconfig-pneumaticstart"></a>
+
+### `MechanismConfig::pneumaticStart`
+
+```cpp
+PneumaticLevel pneumaticStart = static_cast<PneumaticLevel>(0)
+```
+
+The level every line is driven to when the Robot is BUILT — the program-start state (a claw that starts closed). On a brain, making a 3-wire line drives it (A4 register HA-119), so this is the one level the builder itself puts on the robot. The byte 0 is UNSET, refused by `RobotConfig::valid()` whenever `pneumaticCount > 0`. Not read when `pneumaticCount == 0`.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:481`](../../include/shulib/config/robot_config.hpp#L481).*
 
 <a id="tuningconfig"></a>
 
@@ -868,7 +1091,7 @@ using TuningConfig = chassis::ChassisConfig
 
 The motion layer's gains, budgets and fault policy for this robot — `chassis::ChassisConfig` passed through WHOLE, not mirrored, for exactly the reason ruling B1 gives for the drivetrain description: a second struct with the same fields drifts. Every value in it is PROVISIONAL until R5 tunes on hardware (HA-45/50/51/52).
 
-*type alias, declared at [`include/shulib/config/robot_config.hpp:359`](../../include/shulib/config/robot_config.hpp#L359).*
+*type alias, declared at [`include/shulib/config/robot_config.hpp:488`](../../include/shulib/config/robot_config.hpp#L488).*
 
 <a id="enum-class-portuse"></a>
 
@@ -880,7 +1103,7 @@ enum class PortUse : std::uint8_t
 
 What claims a smart port, for the one-owner-per-port check. Ordered by nothing; the values are interior to `RobotConfig::valid()` and are not persisted anywhere.
 
-*enum class, declared at [`include/shulib/config/robot_config.hpp:363`](../../include/shulib/config/robot_config.hpp#L363).*
+*enum class, declared at [`include/shulib/config/robot_config.hpp:492`](../../include/shulib/config/robot_config.hpp#L492).*
 
 <a id="portuse-free"></a>
 
@@ -892,7 +1115,7 @@ Free = 0
 
 nothing claims this port
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:364`](../../include/shulib/config/robot_config.hpp#L364).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:493`](../../include/shulib/config/robot_config.hpp#L493).*
 
 <a id="portuse-driveleft"></a>
 
@@ -904,7 +1127,7 @@ DriveLeft
 
 a tank LEFT-side drive motor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:365`](../../include/shulib/config/robot_config.hpp#L365).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:494`](../../include/shulib/config/robot_config.hpp#L494).*
 
 <a id="portuse-driveright"></a>
 
@@ -916,7 +1139,7 @@ DriveRight
 
 a tank RIGHT-side drive motor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:366`](../../include/shulib/config/robot_config.hpp#L366).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:495`](../../include/shulib/config/robot_config.hpp#L495).*
 
 <a id="portuse-drivewheel"></a>
 
@@ -928,7 +1151,7 @@ DriveWheel
 
 a holonomic drive motor (X-drive or H-drive wheel)
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:367`](../../include/shulib/config/robot_config.hpp#L367).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:496`](../../include/shulib/config/robot_config.hpp#L496).*
 
 <a id="portuse-imu"></a>
 
@@ -940,7 +1163,7 @@ Imu
 
 the drivetrain's inertial sensor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:368`](../../include/shulib/config/robot_config.hpp#L368).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:497`](../../include/shulib/config/robot_config.hpp#L497).*
 
 <a id="portuse-podforward"></a>
 
@@ -952,7 +1175,7 @@ PodForward
 
 the forward tracking wheel's rotation sensor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:369`](../../include/shulib/config/robot_config.hpp#L369).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:498`](../../include/shulib/config/robot_config.hpp#L498).*
 
 <a id="portuse-podlateral"></a>
 
@@ -964,7 +1187,7 @@ PodLateral
 
 the lateral tracking wheel's rotation sensor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:370`](../../include/shulib/config/robot_config.hpp#L370).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:499`](../../include/shulib/config/robot_config.hpp#L499).*
 
 <a id="portuse-gps"></a>
 
@@ -976,7 +1199,7 @@ Gps
 
 the GPS
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:371`](../../include/shulib/config/robot_config.hpp#L371).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:500`](../../include/shulib/config/robot_config.hpp#L500).*
 
 <a id="portuse-mechanism"></a>
 
@@ -988,7 +1211,7 @@ Mechanism
 
 a mechanism motor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:372`](../../include/shulib/config/robot_config.hpp#L372).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:501`](../../include/shulib/config/robot_config.hpp#L501).*
 
 <a id="portuseword"></a>
 
@@ -1000,7 +1223,7 @@ a mechanism motor
 
 A port claim as words, for the collision message — "port 7 is claimed by the LEFT drive and by a mechanism motor" reads as an instruction to go and fix one of them.
 
-*free function, declared at [`include/shulib/config/robot_config.hpp:377`](../../include/shulib/config/robot_config.hpp#L377).*
+*free function, declared at [`include/shulib/config/robot_config.hpp:506`](../../include/shulib/config/robot_config.hpp#L506).*
 
 <a id="struct-robotconfig"></a>
 
@@ -1012,7 +1235,7 @@ struct RobotConfig
 
 EVERYTHING about one robot, as one value.  Plain data with designated initializers at the call site, like every other config type in this tree. Nothing validates itself on construction: a caller builds one and then asks `valid()`, which is what lets a host test build a deliberately contradictory config by hand and watch it be refused by name.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:398`](../../include/shulib/config/robot_config.hpp#L398).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:527`](../../include/shulib/config/robot_config.hpp#L527).*
 
 <a id="robotconfig-identity"></a>
 
@@ -1024,7 +1247,7 @@ RobotIdentity identity{}
 
 Who this robot is — banner material.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:400`](../../include/shulib/config/robot_config.hpp#L400).*
+*field, declared at [`include/shulib/config/robot_config.hpp:529`](../../include/shulib/config/robot_config.hpp#L529).*
 
 <a id="robotconfig-drivetrain"></a>
 
@@ -1036,7 +1259,7 @@ DrivetrainConfig drivetrain{}
 
 Which drivetrain it has, and its numbers.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:402`](../../include/shulib/config/robot_config.hpp#L402).*
+*field, declared at [`include/shulib/config/robot_config.hpp:531`](../../include/shulib/config/robot_config.hpp#L531).*
 
 <a id="robotconfig-odometry"></a>
 
@@ -1048,7 +1271,7 @@ OdometryConfig odometry{}
 
 Which estimator it runs.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:404`](../../include/shulib/config/robot_config.hpp#L404).*
+*field, declared at [`include/shulib/config/robot_config.hpp:533`](../../include/shulib/config/robot_config.hpp#L533).*
 
 <a id="robotconfig-sensors"></a>
 
@@ -1060,7 +1283,7 @@ SensorsConfig sensors{}
 
 Which other sensors it carries.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:406`](../../include/shulib/config/robot_config.hpp#L406).*
+*field, declared at [`include/shulib/config/robot_config.hpp:535`](../../include/shulib/config/robot_config.hpp#L535).*
 
 <a id="robotconfig-mechanisms"></a>
 
@@ -1072,7 +1295,7 @@ MechanismConfig mechanisms[kMaxMechanisms]{}
 
 Its mechanisms. Entries beyond `mechanismCount` are ignored entirely.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:408`](../../include/shulib/config/robot_config.hpp#L408).*
+*field, declared at [`include/shulib/config/robot_config.hpp:537`](../../include/shulib/config/robot_config.hpp#L537).*
 
 <a id="robotconfig-mechanismcount"></a>
 
@@ -1084,7 +1307,7 @@ std::uint8_t mechanismCount = 0
 
 How many entries of `mechanisms` are real. Must be <= kMaxMechanisms.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:410`](../../include/shulib/config/robot_config.hpp#L410).*
+*field, declared at [`include/shulib/config/robot_config.hpp:539`](../../include/shulib/config/robot_config.hpp#L539).*
 
 <a id="robotconfig-tuning"></a>
 
@@ -1096,7 +1319,7 @@ TuningConfig tuning{}
 
 The motion layer's gains, budgets and fault policy. Defaults are the library's PROVISIONAL ones.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:413`](../../include/shulib/config/robot_config.hpp#L413).*
+*field, declared at [`include/shulib/config/robot_config.hpp:542`](../../include/shulib/config/robot_config.hpp#L542).*
 
 <a id="robotconfig-valid"></a>
 
@@ -1106,9 +1329,33 @@ The motion layer's gains, budgets and fault policy. Defaults are the library's P
 [[nodiscard]] bool valid(char* why = nullptr, std::size_t cap = 0) const noexcept
 ```
 
-True when nothing in the config contradicts itself. `why` (optional; pass nullptr and 0 to skip) receives the FIRST contradiction found, naming the field or the port.  WHAT IT CHECKS — exactly the mistakes a typo, a mis-wire or a mis-generated file produce: an unknown drivetrain or odometry kind byte; a tank whose `hal::DrivetrainDescription` is invalid (ITS OWN message surfaces verbatim — one representation, one refusal); a tank whose description disagrees with the config tag; an unknown cartridge byte; an IMU port outside 1..21; a holonomic port outside -21..21; the same holonomic wheel port twice; a non-finite or non-positive drive radius / track width; a non-finite strafe offset; `DriveEncoders` on a holonomic drivetrain (that estimator reads two sides and a holonomic drivetrain has none); a tracking wheel with an unset port, a non-positive diameter or a non-finite offset; a GPS declared present with an unset port or a non-finite lever arm; more mechanisms than capacity, a mechanism with an empty name, too many motors or pneumatics, a motor port out of range or a pneumatic line outside 1..8; and — across ALL of the above at once — any smart port claimed by two different things, naming both.  WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is representable ("no port" is the tree's meaning for 0 everywhere else), and the refusal it deserves is the F5 cross-check `robot::validate()` already has to make — the same wheel-count-equals-motor-count check `motion::MotionDeps::validate()` makes at the bottom of the stack. Making it here as WELL would be two owners for one rule, which is how two checks come to disagree; one owner, named in both places, is the choice.  noexcept and total: it allocates nothing, throws nothing, and returns for every input.
+True when nothing in the config contradicts itself. `why` (optional; pass nullptr and 0 to skip) receives the FIRST contradiction found, naming the field or the port.  WHAT IT CHECKS — exactly the mistakes a typo, a mis-wire or a mis-generated file produce: an unknown drivetrain or odometry kind byte; a tank whose `hal::DrivetrainDescription` is invalid (ITS OWN message surfaces verbatim — one representation, one refusal); a tank whose description disagrees with the config tag; an unknown cartridge byte; an IMU port outside 1..21; a holonomic port outside -21..21; the same holonomic wheel port twice; a non-finite or non-positive drive radius / track width; a non-finite strafe offset; `DriveEncoders` on a holonomic drivetrain (that estimator reads two sides and a holonomic drivetrain has none); a tracking wheel with an unset port, a non-positive diameter or a non-finite offset; a GPS declared present with an unset port or a non-finite lever arm; more mechanisms than capacity, a mechanism with an empty name or a name with no NUL inside its 24 bytes, too many motors or pneumatics, a motor port out of range or a pneumatic line outside 1..8, a 3-wire line listed twice (by two mechanisms or by one — T3's addendum B2); and — across ALL of the above at once — any smart port claimed by two different things, naming both (so a mechanism port that is also a drive port is refused here, before any device is asked for with either cartridge). THEN, in a second pass once every port is claimed (chunk T3 — so each collision above keeps its own message): a mechanism with BOTH motors and 3-wire lines (addendum B2); for every mechanism with motors, an UNSET or unknown cartridge byte, an UNSET or unknown safe brake mode byte; for every mechanism with lines (addendum B2), an UNSET or unknown safe level byte, an UNSET or unknown start level byte; and, for all mechanisms, two with the same name.  WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is representable ("no port" is the tree's meaning for 0 everywhere else), and the refusal it deserves is the F5 cross-check `robot::validate()` already has to make — the same wheel-count-equals-motor-count check `motion::MotionDeps::validate()` makes at the bottom of the stack. Making it here as WELL would be two owners for one rule, which is how two checks come to disagree; one owner, named in both places, is the choice.  noexcept and total: it allocates nothing, throws nothing, and returns for every input.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:440`](../../include/shulib/config/robot_config.hpp#L440).*
+*function, declared at [`include/shulib/config/robot_config.hpp:577`](../../include/shulib/config/robot_config.hpp#L577).*
+
+<a id="robotconfig-terminatedname"></a>
+
+### `RobotConfig::terminatedName`
+
+```cpp
+[[nodiscard]] static constexpr bool terminatedName(const char (&name)[24]) noexcept
+```
+
+True when `name` has a NUL inside its 24 bytes — the precondition for reading it as a C string at all.
+
+*function, declared at [`include/shulib/config/robot_config.hpp:951`](../../include/shulib/config/robot_config.hpp#L951).*
+
+<a id="robotconfig-samename"></a>
+
+### `RobotConfig::sameName`
+
+```cpp
+[[nodiscard]] static constexpr bool sameName(const char (&a)[24], const char (&b)[24]) noexcept
+```
+
+Two TERMINATED mechanism names, compared as C strings (bytes after the NUL are ignored, so a name typed into a reused buffer still compares by what it says).
+
+*function, declared at [`include/shulib/config/robot_config.hpp:962`](../../include/shulib/config/robot_config.hpp#L962).*
 
 <a id="robotconfig-describe"></a>
 
@@ -1120,7 +1367,7 @@ void describe(char* buf, std::size_t cap) const
 
 The one-line banner: identity, drivetrain kind and source, the geometry that governs, the estimator, and which optional devices are present. Truncates rather than overflowing; writes at least a NUL whenever cap > 0. Only meaningful on a `valid()` config.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:699`](../../include/shulib/config/robot_config.hpp#L699).*
+*function, declared at [`include/shulib/config/robot_config.hpp:977`](../../include/shulib/config/robot_config.hpp#L977).*
 
 <a id="robotconfig-validcartridge"></a>
 
@@ -1132,7 +1379,7 @@ The one-line banner: identity, drivetrain kind and source, the geometry that gov
 
 The cartridge check, shared by the two holonomic branches (the tank's lives inside `hal::DrivetrainDescription::valid()`, where it already was).
 
-*function, declared at [`include/shulib/config/robot_config.hpp:746`](../../include/shulib/config/robot_config.hpp#L746).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1024`](../../include/shulib/config/robot_config.hpp#L1024).*
 
 <a id="robotconfig-validimuport"></a>
 
@@ -1144,7 +1391,7 @@ The cartridge check, shared by the two holonomic branches (the tank's lives insi
 
 The IMU-port range check, shared by the two holonomic branches.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:760`](../../include/shulib/config/robot_config.hpp#L760).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1038`](../../include/shulib/config/robot_config.hpp#L1038).*
 
 <a id="robotconfig-validwheelport"></a>
 
@@ -1156,7 +1403,7 @@ The IMU-port range check, shared by the two holonomic branches.
 
 One holonomic wheel port's range check. `0` (no port) passes HERE on purpose — see the "what it deliberately does not check" note on valid(); only a number that is not a port at all is refused. `kindWord` and `wheel` are what make the message point at a field.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:774`](../../include/shulib/config/robot_config.hpp#L774).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1052`](../../include/shulib/config/robot_config.hpp#L1052).*
 
 <a id="robotconfig-validpod"></a>
 
@@ -1168,7 +1415,7 @@ One holonomic wheel port's range check. `0` (no port) passes HERE on purpose —
 
 One tracking wheel's own checks (port set and in range, diameter finite and > 0, offset finite). `role` names the slot in the message.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:793`](../../include/shulib/config/robot_config.hpp#L793).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1071`](../../include/shulib/config/robot_config.hpp#L1071).*
 
 <a id="class-irobotconfig"></a>
 
@@ -1180,7 +1427,7 @@ class IRobotConfig
 
 The config seam (master plan decision #10, name kept): where a robot's description comes from. ONE virtual call, made once at boot — a generated header, a card read at boot, or a constant typed by hand all look the same to `robot::Robot` through this.
 
-*class, declared at [`include/shulib/config/robot_config.hpp:827`](../../include/shulib/config/robot_config.hpp#L827).*
+*class, declared at [`include/shulib/config/robot_config.hpp:1105`](../../include/shulib/config/robot_config.hpp#L1105).*
 
 <a id="irobotconfig-destructor-irobotconfig"></a>
 
@@ -1192,7 +1439,7 @@ virtual ~IRobotConfig() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:832`](../../include/shulib/config/robot_config.hpp#L832).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1110`](../../include/shulib/config/robot_config.hpp#L1110).*
 
 <a id="irobotconfig-irobotconfig"></a>
 
@@ -1204,7 +1451,7 @@ IRobotConfig() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:834`](../../include/shulib/config/robot_config.hpp#L834).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1112`](../../include/shulib/config/robot_config.hpp#L1112).*
 
 <a id="irobotconfig-irobotconfig-2"></a>
 
@@ -1216,7 +1463,7 @@ IRobotConfig(const IRobotConfig&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:836`](../../include/shulib/config/robot_config.hpp#L836).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1114`](../../include/shulib/config/robot_config.hpp#L1114).*
 
 <a id="irobotconfig-irobotconfig-3"></a>
 
@@ -1228,7 +1475,7 @@ IRobotConfig(IRobotConfig&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:838`](../../include/shulib/config/robot_config.hpp#L838).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1116`](../../include/shulib/config/robot_config.hpp#L1116).*
 
 <a id="irobotconfig-operator-eq"></a>
 
@@ -1240,7 +1487,7 @@ IRobotConfig& operator=(const IRobotConfig&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:840`](../../include/shulib/config/robot_config.hpp#L840).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1118`](../../include/shulib/config/robot_config.hpp#L1118).*
 
 <a id="irobotconfig-operator-eq-2"></a>
 
@@ -1252,7 +1499,7 @@ IRobotConfig& operator=(IRobotConfig&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:842`](../../include/shulib/config/robot_config.hpp#L842).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1120`](../../include/shulib/config/robot_config.hpp#L1120).*
 
 <a id="irobotconfig-config"></a>
 
@@ -1264,7 +1511,7 @@ Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRo
 
 This robot's description. The reference must stay valid for as long as the caller uses it — every implementation in the tree returns a reference to storage it owns, never a temporary.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:846`](../../include/shulib/config/robot_config.hpp#L846).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1124`](../../include/shulib/config/robot_config.hpp#L1124).*
 
 <a id="class-staticrobotconfig"></a>
 
@@ -1276,7 +1523,7 @@ class StaticRobotConfig final : public IRobotConfig
 
 An `IRobotConfig` over one config held BY VALUE — the implementation a generated header, a hand-typed constant or a card read at boot all end up using. Holding by value rather than by reference is deliberate: a boot sequence that decodes a record into a local and then hands out a reference to it is the dangling-reference bug this type exists to make impossible.
 
-*class, declared at [`include/shulib/config/robot_config.hpp:853`](../../include/shulib/config/robot_config.hpp#L853).*
+*class, declared at [`include/shulib/config/robot_config.hpp:1131`](../../include/shulib/config/robot_config.hpp#L1131).*
 
 <a id="staticrobotconfig-staticrobotconfig"></a>
 
@@ -1288,7 +1535,7 @@ explicit StaticRobotConfig(const RobotConfig& cfg) noexcept
 
 Copy `cfg` into this source. The copy is the point; nothing is borrowed.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:856`](../../include/shulib/config/robot_config.hpp#L856).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1134`](../../include/shulib/config/robot_config.hpp#L1134).*
 
 <a id="staticrobotconfig-config"></a>
 
@@ -1300,7 +1547,7 @@ Copy `cfg` into this source. The copy is the point; nothing is borrowed.
 
 The held config.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:859`](../../include/shulib/config/robot_config.hpp#L859).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1137`](../../include/shulib/config/robot_config.hpp#L1137).*
 
 ## Design commentary, from the header
 

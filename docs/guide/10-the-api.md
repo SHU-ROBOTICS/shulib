@@ -187,6 +187,51 @@ what lets the test suite run the whole loop on the host test plant. Honest statu
 (`src/teleop_program.cpp`) now drives through it, but that version of the program has not run on a
 robot yet — so the loop is host-tested only, and no driver has felt it.
 
+#### Buttons for mechanisms
+
+A mechanism the driver works *while* driving — a claw, an arm, an intake — is a
+`teleop::MechanismBinding` ([`teleop/mechanism_binding.hpp`](../api/mechanism_binding.md)) handed
+to the same loop: a forward button and a reverse button over one motor mechanism, at a voltage
+you state (there is no default). While one button is held the mechanism is driven at that voltage
+every tick; the tick neither is held — or both are — it goes to its declared safe state once, and
+then nothing is commanded until a button is pressed again. Letting go *is* the stop; the sticks
+never interrupt a mechanism, because the driver's thumbs are on them the whole time. The loop makes
+every binding safe before its first tick and again on a field disable (after the drive's own
+stop), and reads the buttons only while the controller is connected. Two rules keep it honest:
+a stop made through the binding while a finger is still on the button (`makeSafe()`) is not undone
+by that finger — the binding waits until it has seen both buttons up — and a mechanism an operation
+has claimed is never touched, even when that operation is one the end of autonomous cut off (its
+claim outlives it, so release it before driver control). `teleop::validBindings()` checks a whole
+set before driver control starts: one button, one job, one binding per mechanism, and no binding on
+the loop's re-zero button — which defaults to **L1**, so name another one if a mechanism wants L1.
+With a `robot::Robot`, the mechanisms come from the config: each `config::MechanismConfig` with
+motors states its own cartridge and safe brake mode (neither has a default),
+`Robot::mechanism("…")` finds it by name, and one whose motor is unplugged is reported absent
+rather than stopping the robot. The [cookbook](../cookbook/06-driver-control.md) has the recipe.
+Honest status: host-tested only; no driver has used a binding, and whether Hold keeps a loaded
+mechanism up is unmeasured.
+
+A pneumatic claw is the other shape: **one** button that opens it on one press and closes it on
+the next. That is a `teleop::ToggleBinding` (same header) over one `hal::PneumaticMechanism`,
+handed to the loop in a second list after the hold bindings. Each press flips the level the valve
+was last told, once — holding the button does nothing more. A press has to be *seen*: a button that
+is already down when driver control starts, or when a dropped controller comes back, is not a
+press, so a press made while the controller was gone is not replayed — provided the controller's
+"connected" signal and its buttons come back together, which is not measured yet. You state the
+claw's starting level (there is no default — which level is "closed" depends on the plumbing), and
+the binding sends it once, the first time driver control starts. And on a field disable the loop
+makes every hold binding safe but leaves the claw **exactly where it is**, so it never drops what it
+holds; a controller drop does not touch it either. `validBindings(holds, toggles, …)` checks both
+lists as one set. From a config, a mechanism with 3-wire lines (the brain's ports A–H, stored as
+1–8) states a `pneumaticStart` and a `pneumaticSafe` level, and `Robot::pneumaticMechanism("…")`
+finds it — making the line sets it to the start level on the spot. The name and index lookups are
+typed, so `mechanismAt(i)` is null for a built claw; to ask "is the `i`-th mechanism built?" of
+either kind, use `Robot::builtMechanismAt(i)` (and `mechanismAbsence(i)` for why not). Honest
+status: host-tested only; no solenoid has fired, and whether the brain holds a 3-wire output's
+level while it is disabled — or acts on a level set while it is disabled, which is when a robot
+built in `initialize()` on a field sets the claw's start level — is unknown (the register's
+HA-157).
+
 ### `brake(options)` and `hold(duration, options)` — stopping, actively
 
 `brake()` commands a stop and blocks until the estimate *certifies* the robot at rest (settling

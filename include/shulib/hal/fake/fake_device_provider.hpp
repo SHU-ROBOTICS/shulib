@@ -48,6 +48,16 @@
 // requested. motorRequested() cannot prove that — it is set only when a request is SERVED — so
 // every motor() call is also COUNTED per port, refused or not.
 //
+// ── The 3-wire lines, MADE the way the brain makes them (T3's addendum B2) ──────────
+// digitalOut(line, initialState) serves a FakeDigitalOut per brain 3-wire line (1..8), or a line
+// the caller bound (bindDigitalOut). Making a line DRIVES it: the first request that serves a line
+// calls set(initialState) on it, exactly once, because on the brain pros::adi::DigitalOut's
+// constructor does (HA-119) — a fake that skipped it would let a host test pass a builder that
+// never states a boot level. Later requests return the same object and drive nothing; a later
+// request with a different initial state is a precondition, as on the robot. refuseLine() is the
+// host stand-in for a provider that will not make a line — which the on-robot provider can only do
+// for a line outside 1..8, because nothing on a brain can see an empty 3-wire port (HA-158).
+//
 // ── SIM-FREE, on purpose ────────────────────────────────────────────────────────────
 // Nothing in this file includes shulib/sim/, and the CI layering guard enforces that. The
 // PLANT attachment is done BY THE TEST, which may include sim/ and does; this header only
@@ -64,6 +74,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/device_provider.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/hal/fake/fake_digital_out.hpp"
 #include "shulib/hal/fake/fake_gps.hpp"
 #include "shulib/hal/fake/fake_imu.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
@@ -79,6 +90,8 @@ public:
     /// One more than the highest physical port, so a port number indexes the arrays directly and
     /// index 0 is simply never used.
     static constexpr std::size_t kSlots = kMaxSmartPorts + 1;
+    /// One more than the highest brain 3-wire line (8), for the same direct indexing.
+    static constexpr std::size_t kLineSlots = kBrainAdiLines + 1;
 
     /// The four PORT-LESS handles, which this provider borrows rather than invents: on the host
     /// they are the harness's clock, the harness's battery, whatever sink the test wants to read
@@ -118,6 +131,11 @@ public:
     void bindRotation(std::uint8_t port, IRotation& rotation) {
         boundRotation_[checkedIndex(port)] = &rotation;
     }
+    /// Serve 3-wire `line` (1..8) with a digital out the caller owns — a recording line, when a
+    /// test wants every level it was ever driven to. Making it still DRIVES it (the header).
+    void bindDigitalOut(std::uint8_t line, IDigitalOut& out) {
+        boundLine_[checkedLine(line)] = &out;
+    }
 
     // ── the provider's OWN fakes, for plant attachment and for direct driving ──────────
 
@@ -132,6 +150,11 @@ public:
     [[nodiscard]] FakeRotation& fakeRotation(std::uint8_t port) {
         return rotations_[checkedIndex(port)];
     }
+    /// This provider's own FakeDigitalOut for 3-wire `line` (1..8) — what `digitalOut()` hands out
+    /// when the line is not bound. Its `setCount()` includes the drive that made it.
+    [[nodiscard]] FakeDigitalOut& fakeDigitalOut(std::uint8_t line) {
+        return lines_[checkedLine(line)];
+    }
 
     // ── the refusal switch ─────────────────────────────────────────────────────────────
 
@@ -142,6 +165,11 @@ public:
     void allowPort(std::uint8_t port) { refused_[checkedIndex(port)] = false; }
     /// Whether `port` is currently refused.
     [[nodiscard]] bool isRefused(std::uint8_t port) const { return refused_[checkedIndex(port)]; }
+    /// Make every `digitalOut()` request for 3-wire `line` (1..8) answer nullptr, with a refusal
+    /// naming the line — the host stand-in for a provider that will not make a line.
+    void refuseLine(std::uint8_t line) { lineRefused_[checkedLine(line)] = true; }
+    /// Undo refuseLine().
+    void allowLine(std::uint8_t line) { lineRefused_[checkedLine(line)] = false; }
 
     // ── what was ASKED FOR, so a test can prove the builder passed the config through ──
 
@@ -180,6 +208,19 @@ public:
     /// The +LEFT lever arm the last `gps()` call for `port` passed (0 if never asked).
     [[nodiscard]] units::Length gpsLeverLeft(std::uint8_t port) const {
         return leverLeft_[checkedIndex(port)];
+    }
+    /// How many times `digitalOut()` has been called for 3-wire `line` (1..8), SERVED OR REFUSED —
+    /// counted before any refusal, so "never asked for" is provable (validate() must not ask: asking
+    /// drives the line).
+    [[nodiscard]] int digitalOutRequestCount(std::uint8_t line) const {
+        return lineRequests_[checkedLine(line)];
+    }
+    /// Whether 3-wire `line` has been MADE (served once, and so driven once).
+    [[nodiscard]] bool digitalOutMade(std::uint8_t line) const { return lineMade_[checkedLine(line)]; }
+    /// The level 3-wire `line` was MADE at — the `initialState` of the request that made it. Read
+    /// it only when `digitalOutMade(line)`; false otherwise, which means nothing.
+    [[nodiscard]] bool digitalOutInitialState(std::uint8_t line) const {
+        return lineInitial_[checkedLine(line)];
     }
 
     // ── IDeviceProvider ────────────────────────────────────────────────────────────────
@@ -237,6 +278,39 @@ public:
                                             : static_cast<IRotation*>(&rotations_[i]);
     }
 
+    /// The digital out on 3-wire `line` — bound or own fake; DRIVEN to `initialState` by the
+    /// request that makes it, never by a later one (header). nullptr + a refusal for a line
+    /// outside 1..8 or a refused line. PRECONDITION: a later request states the same
+    /// `initialState` the line was made at.
+    [[nodiscard]] IDigitalOut* digitalOut(std::uint8_t line, bool initialState) override {
+        const int l = static_cast<int>(line);
+        if (l >= 1 && l <= static_cast<int>(kBrainAdiLines)) {
+            ++lineRequests_[static_cast<std::size_t>(l)];  // counted BEFORE any refusal
+        } else {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "3-wire port %d is not a brain 3-wire port (1..8 are A..H)", l);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(l);
+        if (lineRefused_[i]) {
+            std::snprintf(refusal_, sizeof refusal_, "3-wire port %c (line %d) has no digital out",
+                          static_cast<char>('A' + l - 1), l);
+            return nullptr;
+        }
+        IDigitalOut* out =
+            boundLine_[i] != nullptr ? boundLine_[i] : static_cast<IDigitalOut*>(&lines_[i]);
+        if (lineMade_[i]) {
+            SHULIB_PRECONDITION(lineInitial_[i] == initialState,
+                                "FakeDeviceProvider: a 3-wire line was asked for again with a "
+                                "different initial state -- one line, one configuration");
+            return out;
+        }
+        out->set(initialState);  // MAKING a line drives it, as on the brain (HA-119)
+        lineMade_[i] = true;
+        lineInitial_[i] = initialState;
+        return out;
+    }
+
     /// The borrowed clock.
     [[nodiscard]] IClock& clock() override { return *clock_; }
     /// The borrowed battery.
@@ -258,6 +332,14 @@ private:
         SHULIB_PRECONDITION(port >= 1 && port <= static_cast<std::uint8_t>(kMaxSmartPorts),
                             "FakeDeviceProvider: port must be in 1..21");
         return static_cast<std::size_t>(port);
+    }
+
+    /// Bounds-check a 3-wire line (1..8) for the TEST hooks and return it as an index — a
+    /// precondition, like checkedIndex(): the library never calls these hooks.
+    [[nodiscard]] std::size_t checkedLine(std::uint8_t line) const {
+        SHULIB_PRECONDITION(line >= 1 && line <= kBrainAdiLines,
+                            "FakeDeviceProvider: a 3-wire line must be in 1..8");
+        return static_cast<std::size_t>(line);
     }
 
     /// Whether `port` can be served, writing the refusal when it cannot. `what` names the device
@@ -296,6 +378,13 @@ private:
     std::int8_t signedPorts_[kSlots]{};
     units::Length leverForward_[kSlots]{};
     units::Length leverLeft_[kSlots]{};
+
+    FakeDigitalOut lines_[kLineSlots]{};
+    IDigitalOut* boundLine_[kLineSlots]{};
+    bool lineRefused_[kLineSlots]{};
+    int lineRequests_[kLineSlots]{};
+    bool lineMade_[kLineSlots]{};
+    bool lineInitial_[kLineSlots]{};
 
     char refusal_[96]{};
 };

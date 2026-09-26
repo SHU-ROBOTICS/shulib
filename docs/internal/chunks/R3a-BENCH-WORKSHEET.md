@@ -768,7 +768,9 @@ refused from a robot that is unplugged.
 
 - [ ] **G.2.1** Run **slot 3 "Bench Tests"**, button **1 DEVICE CENSUS**. Expected for robot two
       tonight: **nine MOTORs (11–18 and 20)**, the IMU on port 2, the radio on port 1, the AI
-      Vision on 3 and the distance sensors on 4 and 5.
+      Vision on 3 and the distance sensors on 4 and 5. *(Once the claw pivots are plugged in
+      (T3, 2026-09-26): also MOTOR on **6 and 7** — eleven motors. Calibrate leaves those two
+      alone; Station J.)*
       → motors found **____** · IMU on port **____** · the full list, as printed:
         ______________________________________________
 - [ ] **G.2.2** Button **3 MOTOR WATCH (live)**: push the whole robot **FRONT-FIRST** (the front
@@ -938,8 +940,10 @@ strings ~/calibrate-*.log | grep R3D     # every line this program printed
 **The port numbers RENUMBER between plug-ins** (HA-129), so re-run `pros lsusb` every single time.
 Start the `cat` BEFORE you start the program, or you will miss the banner. What a run prints, in
 order, every line starting `[R3D]`:
-- the banner and `BUILD STAMP:`, the census (`STAGE 0`), `CARTRIDGE BELIEF`, the IMU port, three
-  `config:` lines (every threshold the run used), `===== RUN 1 =====`;
+- the banner and `BUILD STAMP:`, the census (`STAGE 0`) — and, when a claw pivot is plugged in,
+  `port 6: claw pivot (declared) -- not a candidate, not touched` (and 7; Station J.2) —
+  `CARTRIDGE BELIEF`, the IMU port, three `config:` lines (every threshold the run used),
+  `===== RUN 1 =====`;
 - `phase: ...` at each step; `screen: <top bar>: <first lines> | [buttons]` whenever the layout
   changes (what you were looking at); `touch: x=.. y=.. release=.. on <button> -> ...` for EVERY
   touch, including why one did nothing (`the button was still GREYED (arming)`, `no button there`);
@@ -1190,6 +1194,295 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 
 ---
 
+## Station J — THE CLAWS: the two pivots and the pneumatic claw  *("shulib Teleop", slot 2, robot two — added T3, 2026-09-26; the pneumatic claw, J.9, by T3's addendum the same day)*
+
+> ⚠ **The claws' first run. It POWERS TWO MORE MOTORS, at full power, from the controller's
+> shoulder buttons.** Robot two's two claw PIVOTS, as the team lead stated them on 2026-09-26:
+> **port 6** moves one pivot **forward while R1 is held, back while R2 is held**; **port 7** moves
+> the other **forward on L1, back on L2**. RED cartridge each, **12 V while a button is held**, and
+> on release each pivot is meant to **hold its angle**.
+>
+> **And the PNEUMATIC claw (J.9)**, as the team lead stated it the same day: its solenoid is on the
+> brain's **3-wire port A**; **press A ⇒ the claw opens, press A again ⇒ it closes**; it is
+> **CLOSED when the program starts**; and when the robot is disabled it **keeps its state**. Which
+> line level opens it, and whether its valve is single or double, are **not known** (A4 register
+> HA-159). **Because A is the claw's, the field-centric re-zero button is now Y** (the team lead's
+> ruling, 2026-09-26).
+>
+> **Which programs have the claws.** Only **slot 2, "shulib Teleop"**. **Slot 1, "shulib Drive",
+> does NOT** — it never commands port 6 or 7, and R1 / L1 do nothing there. **Slot 4, "shulib
+> Calibrate", never touches them** (J.2 checks it). Slot 3, Bench Tests, lists them in its census;
+> its DRIVE station commands only the chassis table's drive ports. The pneumatic claw is the same:
+> only slot 2 drives 3-wire port A. No census lists it (Bench Tests' DEVICE CENSUS reads the 21
+> smart ports; a 3-wire port is not one of them), and in slots 1, 3 and 4 nothing in shulib drives
+> the line, so the claw sits wherever its valve leaves it — nobody has looked at what that is.
+>
+> **What has run: nothing.** No census or capture has ever shown a motor on port 6 or 7 (the
+> 2026-09-24/25 captures list motors on 11–18 and 20 only — A4 register HA-153), and no program has
+> commanded one; nothing has ever driven 3-wire port A. **"Holds" is claimed nowhere until J.5 is
+> logged**, and it depends on the separate DEFECTS2 fix (a program-commanded Hold actually reaching
+> the motor) being in the build you uploaded — ask the coordinator which commit carries both.
+>
+> **Teleop's claw lines do not exist yet in the tree this station was written against.** Its boot
+> lines for the claws, its banner's claw sentence and its claw row on the panel are written when
+> T3's library half (and its addendum's: the pneumatic claw's toggle) is merged into Teleop. Every
+> quote of them below is marked **`<<FROM TELEOP AT MERGE>>`**, and the coordinator replaces each
+> marker with the exact text from the code at that merge. **A copy of this station that still shows
+> a marker is not ready to run — ask for the updated sheet.** The ONE quote that is final today is
+> Calibrate's (J.2): that line is in the code now.
+
+**J.0 — before**
+
+- [ ] **J.0.1 Station F passes first** — Teleop drives, wheels up and then on the ground, from THIS
+      build (F.2; or G.6 when it boots from the calibration record). The claws are tried on a
+      program whose driving is already known to be right, never the other way round.
+- [ ] **J.0.2** Slots 2, 3 and 4 uploaded from the commit the coordinator names (G.1's commands,
+      `rm -rf bin .d` before each `make`), and every BUILD stamp is the build you just made.
+- [ ] **J.0.3** The serial capture running before you start anything (G.7) — J.2's lines and
+      Teleop's boot lines are on it.
+- [ ] **J.0.4 Label both ends of both claw cables** (the brain end and the motor end: "6 CLAW",
+      "7 CLAW"). The brain cannot tell a claw cable from a drive cable (A4 register HA-155); only a
+      label can.
+- [ ] **J.0.5** Both claws clear of everything, **no hand in a claw while slot 2 runs**, a second
+      person at the battery. 12 V into a claw that is already at its stop is the motor's full stall
+      current (HA-154).
+
+**J.1 — the census sees them** (Bench Tests, slot 3, button **1 DEVICE CENSUS**)
+
+- [ ] **J.1.1** MOTOR on **6** and **7**, besides the drive motors (11–18 and 20; 19 if it is
+      plugged in again) and the IMU on 2. → MOTOR on 6 **YES / NO** · on 7 **YES / NO** · the full
+      list as printed: ______________________________________________
+      *(Station G's G.2.1 says "nine MOTORs"; with the claws plugged in the census shows ELEVEN.
+      That is expected — the two extra are 6 and 7.)*
+- [ ] **J.1.2** Read the **cartridge insert colour** off each claw motor (A4 register HA-153 says
+      RED). → port 6 **RED / GREEN / BLUE** · port 7 **RED / GREEN / BLUE**
+
+**J.2 — Calibrate leaves the claws alone** (slot 4 — part of Station G's run, or a start you
+abort at the push screen)
+
+Right after the census (`STAGE 0 ...`, one line per device, then `11 motor(s), 1 IMU(s)` with port
+19 unplugged — the census still COUNTS the claws), the serial log must show exactly these two
+lines — copied from the code, final:
+
+```
+[R3D] port 6: claw pivot (declared) -- not a candidate, not touched
+[R3D] port 7: claw pivot (declared) -- not a candidate, not touched
+```
+
+- [ ] **J.2.1** Both lines present. → **YES / NO**. If the census printed `MOTOR` on 6 or 7 and its
+      line is MISSING, **stop and send the log** — Calibrate would then have written BLUE gearing to
+      that claw and set it to coast.
+- [ ] **J.2.2** The push screen's big number counts the **drive motors only**: `0 of 9 turned` with
+      port 19 unplugged, `0 of 10` with it — never "of 11" or "of 12". → it said: ______
+- [ ] **J.2.3** Through the whole Calibrate run neither claw moves under power. *(Calibrate does not
+      HOLD them either — "not touched" means no command at all — so a loaded claw may sag under its
+      own weight while Calibrate runs. That is the motor's unpowered state, not a command; write it
+      down if it happens.)* → a claw moved under power? **NO / YES** (which, when): ______
+
+**J.3 — Teleop's boot** (slot 2, started from the brain; the robot on blocks)
+
+- [ ] **J.3.1** The boot lines, one per pivot, each BUILT or ABSENT — copy both word for word:
+      `<<FROM TELEOP AT MERGE>>` (the built line for "claw pivot 6" and for "claw pivot 7", and the
+      ABSENT form, which carries the device provider's own sentence for the port).
+      → ______________________________________________
+- [ ] **J.3.2** The banner says the claws are in THIS program and not in "shulib Drive":
+      `<<FROM TELEOP AT MERGE>>`. → seen **YES / NO**
+- [ ] **J.3.3** The panel's claw row: `<<FROM TELEOP AT MERGE>>` (its shape, per the T3 brief: each
+      pivot's state — FWD, REV, HOLD or ABSENT — and its temperature). → as shown: ______________
+- [ ] **J.3.4** If a claw says ABSENT, **Teleop still drives** — by design, a missing claw motor never
+      stops the drive (run F.2.3 for a few seconds to see it). → drove with a claw ABSENT? **YES / NO
+      / not tried**
+
+**J.4 — which way each button moves each claw** (robot on blocks; short taps first, half a second)
+
+- [ ] **J.4.1** Tap **R1**: the **port-6** claw moves; the port-7 claw and every wheel do NOT.
+      → it moved **OPEN / CLOSED / UP / DOWN** (or: ______) · anything else moved? ______
+- [ ] **J.4.2** Tap **R2**: the port-6 claw moves the OTHER way. → **YES / NO**
+- [ ] **J.4.3** Tap **L1**: the **port-7** claw moves; the port-6 claw and every wheel do NOT.
+      → it moved ______ · anything else moved? ______
+- [ ] **J.4.4** Tap **L2**: the port-7 claw moves the other way. → **YES / NO**
+- [ ] **J.4.5** Hold **R1 and L2 together**: port 6 goes forward and port 7 goes back at the same
+      time — the two pivots are independent. → **YES / NO**
+- [ ] **J.4.6** While each button is held, the claw row reads FWD / REV for that pivot, and HOLD after
+      release (`<<FROM TELEOP AT MERGE>>`). → **YES / NO**
+
+**If R1 moves a claw the way the team calls "back",** that is a finding, not a fault: the fix is ONE
+sign in `src/mechanism_table.hpp` (the coordinator changes that pivot's `+6` to `-6`, or `+7` to
+`-7`), **never swapping R1 and R2** — the buttons are the driver's, the sign is the motor's. **If R1
+moves the WRONG claw, or a wheel, stop:** a swapped cable (HA-155) or a wrong port (HA-153) — send
+J.1's census and what moved.
+
+**J.5 — the load test: does it HOLD?** *(settles A4 register HA-156; needs DEFECTS2 in this build)*
+
+For each pivot in turn: hold its forward button until the claw is at a **mid angle — not against
+its stop** — with a game piece in it if the claw carries one; **release**; put a mark (tape, a
+pencil line on a card behind it) where the claw's tip is, or read its angle with a phone level.
+
+| Pivot | Loaded with | sag at 0 s | at 10 s | at 30 s | a gentle push by hand while released: springs BACK / stays PUSHED / flops FREE | temperature after (claw row) |
+|---|---|---|---|---|---|---|
+| port 6 (R1/R2) | | | | | | |
+| port 7 (L1/L2) | | | | | | |
+
+**"Holds" is written nowhere — not in the code, not in a commit — until this table is filled in
+and sent.** Springs BACK is what Hold should do; stays PUSHED is Brake; flops FREE is Coast (the
+release did not reach the motor as a hold — send it at once).
+
+**J.6 — both buttons of one pivot** (ruling R2)
+
+- [ ] **J.6.1** Hold **R1 and R2 together**: the port-6 claw does NOT move (it holds; neither button
+      wins). Then let go of R2 while still holding R1: it moves forward. Let go of R1 while holding
+      R2: it moves back. → **YES / NO**
+- [ ] **J.6.2** The same with **L1 and L2** for port 7. → **YES / NO**
+
+**J.7 — the controller goes away**
+
+A claw's travel is short: at 12 V it may reach its stop before anyone can cut the link, and a
+claw that has "stopped" at its stop shows nothing about the disconnect. So this test is passed on
+**what Teleop commands**, read off the claw row and the serial log — not on whether the claw
+moved. And the link is cut by **pulling a cable**, not with the controller's power button, so the
+moment of the disconnect is the moment you choose: with the controller **tethered** (a smart cable
+from the controller to the brain, as for pairing in Station 5.5), pull the tether; on the radio,
+pull the **radio's cable from brain port 1**. The USB serial capture (G.7) is on its own cable and
+keeps running either way.
+
+- [ ] **J.7.1** Put both claws at **mid travel**. Count out loud "three, two, one, GO": on GO the
+      driver presses **R1 and L1 together and keeps holding them**; about one second after GO the
+      second person pulls the cable. **The pass:** the claw row shows each pivot go from FWD to
+      HOLD when the link goes (`<<FROM TELEOP AT MERGE>>` — the row's exact words and the serial
+      line for a disconnect, if Teleop prints one, are filled from the code at the merge), while
+      the driver is STILL holding both buttons. → FWD then HOLD, both pivots? **YES / NO** · what
+      the row and the serial log showed: ______________________________________________
+      *If a claw reaches its stop before the pull,* the test still counts (the row reads FWD until
+      the link goes), but a pivot pressed against its stop at 12 V heats (A4 register HA-154):
+      **if the pull has not happened within about three seconds of a claw reaching its stop, the
+      driver lets go and you start again from mid travel.** **If the row still reads FWD after the
+      pull, or a claw keeps moving or keeps pushing against its stop: that is a FAIL** — the
+      second person pulls the battery at once (the driver can no longer stop it), and you send the
+      log.
+- [ ] **J.7.2** Plug the cable back in. Nothing moves until a button is pressed (a button STILL held
+      when it reconnects drives again — by design: a disconnect counts as a release, not a
+      lock-out). → **YES / NO**
+
+**J.8 — heat: holding against the stop** *(A4 register HA-154; every timing is invented until this)*
+
+Read both claws' temperatures on the claw row first. Then close the **port-6** claw against its
+stop and **keep holding R1**. Read the temperature every 10 s. **Stop at 50 °C, or the moment the
+claw goes weak** (the motor is believed to start derating at 55 °C — A4 register HA-44, whose
+onset nobody has measured; 50 °C leaves room for that belief to be wrong). Then the same for port
+7 on L1.
+
+| Pivot | before | 10 s | 20 s | 30 s | 60 s (only if under 50 °C) | went weak at |
+|---|---|---|---|---|---|---|
+| port 6 | | | | | | |
+| port 7 | | | | | | |
+
+**J.9 — the PNEUMATIC claw on A** *(A4 register HA-159: its polarity, and one wire or two; T3's
+addendum, 2026-09-26)*
+
+Everything here is by eye: no census lists a 3-wire device, and the program cannot tell whether
+the air moved — it knows only what it COMMANDED. The table's polarity is a guess
+(`kClawOpenCommand = true` in `src/mechanism_table.hpp`: "line ON = open"). What can show whether
+it is right is J.9.2 (where the claw is after the start) TOGETHER WITH J.9.3's first press — and
+only when J.9.0 found the valve's one cable in A: a claw that does not move when A is pressed says
+nothing about the polarity. The program commands the claw once at the start and then ONLY when A
+is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
+
+- [ ] **J.9.0 Before.** Air in the system, charged the way the team always charges it (the gauge
+      reading, if there is a gauge: ______). The claw empty and **no hand in it** — it can move the
+      moment slot 2 starts. **Look at the valve:** how many 3-wire cables run from the claw's
+      valve into the brain, and into which lettered ports? → **ONE / TWO** · into: ______
+      *If ONE, but NOT in A:* stop — do not run J.9 — and send the letter. The table says A (A4
+      register HA-159) and the program drives only A, so the claw would sit wherever its valve
+      rests, and J.9.2 would look like a polarity answer when it is not one.
+      *If TWO:* write down both letters, run only J.9.1 and J.9.2, and send them — the table
+      declares ONE line (A); a second line is a fact nobody has stated, and the program does not
+      drive it. (No polarity answer comes from this case: that needs J.9.3 and one cable.)
+- [ ] **J.9.1** Teleop's boot line for the claw: `<<FROM TELEOP AT MERGE>>` (the built form, naming
+      "claw", 3-wire port A and button A — or the ABSENT form with its reason). → ______________
+- [ ] **J.9.2 At the start the claw should CLOSE.** Note where the claw is before you start slot 2
+      (wherever the valve left it). Start slot 2 and watch it. → before the start: **OPEN /
+      CLOSED** · after the start: **CLOSED / OPEN** · it moved: **at the start / when driver
+      control began / not at all**. **Do not call the polarity yet** — a claw that is OPEN after
+      the start may have a backwards polarity, OR a valve that is not being driven at all (no air,
+      a loose cable) resting open. J.9.3's first press tells them apart.
+- [ ] **J.9.3 Press A ⇒ the claw OPENS; press A again ⇒ it CLOSES.** Short, separate presses: open,
+      closed, open, closed. → the FIRST press: the claw **OPENED / CLOSED / did NOTHING** · each
+      press flipped it exactly once? **YES / NO** · anything else moved (a pivot, a wheel)? ______
+      · the panel's claw word after each press (`<<FROM TELEOP AT MERGE>>`): ______ · pressing
+      **Y** (the re-zero button now) leaves the claw alone? **YES / NO**
+      **The polarity, from J.9.2 and this FIRST press** (only with J.9.0's one cable in A):
+      - CLOSED after the start, and the first press OPENED it: **the polarity is RIGHT.**
+      - OPEN after the start, and the first press CLOSED it: **`kClawOpenCommand` is BACKWARDS.**
+        Write down "OPENED AT THE START". The coordinator flips that ONE constant in
+        `src/mechanism_table.hpp` — never the button, never the start position — and records the
+        flip where the guess is written (the host test's pin, HA-159, this sheet). You may go on
+        with this build (every press still flips the claw), but read every "opens" below as
+        "closes" and the other way round, and say so in what you send back.
+      - The first press did NOTHING: **not a polarity answer** — the valve is not being driven
+        (the air, the cable, the port, or a second cable J.9.0 missed). Stop J.9, write down what
+        you saw, and send it.
+      → the polarity: **RIGHT / BACKWARDS ("OPENED AT THE START") / not called**
+- [ ] **J.9.4 Holding A does nothing more.** Hold A down for about three seconds, then let go: the
+      claw flips ONCE, at the press — nothing while A is held, nothing at the release. → **YES /
+      NO** *(if it flips again, chatters, or flips on the release: stop and send it)*
+- [ ] **J.9.5 The controller goes away while the claw is OPEN ⇒ it STAYS OPEN.** Open it with A.
+      Pull the cable as in J.7 (the tether, or the radio's cable from brain port 1): the claw stays
+      open — the program commands nothing on a disconnect. Press A a few times on the unplugged
+      controller: nothing moves. Plug the cable back in: still open, nothing moves until A is
+      pressed, and one press closes it. → stayed OPEN when the link went? **YES / NO** · nothing
+      moved at the reconnect? **YES / NO** · one press closed it? **YES / NO**
+      **Then, HOLDING A across the reconnect** *(A4 register HA-147 — added at T3's merge,
+      2026-09-26)*: open the claw with A. Hold A down. Pull the cable; plug it back in STILL
+      holding A; keep holding for two seconds, then let go. Nothing may move until A is released
+      and pressed again; then one press closes it. → moved while A was held across the reconnect?
+      **YES / NO** *(YES = the controller's link and its buttons do not come back together: stop
+      and send it — until it is answered, the driver's rule is to let go of A after a controller
+      drop before pressing again)*
+- [ ] **J.9.6 The disable ⇒ the claw KEEPS its state** *(only when a disable is available that
+      arrives AFTER slot 2 is already in driver control, in the SAME run — the program not
+      restarted: a field controller or competition switch that disables the running program, or
+      the end of a Timed Run started from the BRAIN's screen if that ends in a disable of the same
+      run (nobody here has seen what one does at its end). **A launch from the CONTROLLER's own
+      menu does NOT count and is forbidden** (Station A step 1, G.0.5, the DO NOT list; A4
+      register HA-128): it RESTARTS the program and leaves it disabled before driver control ever
+      runs, so A can never open the claw first, and the restart commands CLOSED again. **The
+      serial log decides:** Teleop's boot lines printed a second time mean the program restarted,
+      and the check does not count. If no such disable is available, write "not available": this
+      check waits for the first session that has one.)* Open the claw with A and let the robot be
+      disabled: it stays OPEN through the disable. Enable again: still open, and one press of A
+      closes it. Then the same starting CLOSED: it stays closed.
+      The program commands nothing on a disable; whether the BRAIN itself keeps a 3-wire output's
+      level while disabled is UNMEASURED — this is the check. → OPEN through the disable? **YES /
+      NO / not available** · CLOSED through it? **YES / NO / not available**
+- [ ] **J.9.7 With the valve's cable PULLED, nothing can tell** *(A4 register HA-158 — added at
+      T3's merge, 2026-09-26; no hand in the claw)*. Stop the program. Pull the valve's 3-wire
+      cable out of port A. Start slot 2 as in J.9.2: the boot line for the claw must be the SAME
+      as J.9.1's (no refusal, no "absent"), and the screen the same. Look at the brain's own
+      Devices screen for any entry for the valve, with the cable plugged and unplugged. **Plug the
+      cable back into A before anything else.** → any difference anywhere (boot line, screen,
+      Devices)? **YES / NO** *(NO is the expected answer: nothing the program can read sees a
+      solenoid — an unplugged valve shows only as a claw that does not move)*
+
+**What to send back**
+
+1. J.1: the census list and both cartridge colours.
+2. J.2: the two Calibrate lines as they appeared (or that one was missing), the push count, and
+   whether a claw moved under power.
+3. J.3: both claw boot lines word for word, the banner's claw sentence, the claw row as shown, and
+   J.3.4.
+4. J.4: which way R1, R2, L1 and L2 moved which claw — and anything else that moved.
+5. J.5's table and the hand-push answers. J.6's answers. J.7: which cable you pulled, and what the
+   claw row and the serial log showed at the disconnect.
+6. J.8's temperature table.
+7. J.9: the valve's cable count and letters; the claw before and after the start; the first
+   press, and the polarity answer (RIGHT / BACKWARDS, "OPENED AT THE START" / not called); the
+   boot line; each press, the hold, the disconnect (and A held across the reconnect) and the
+   disable (which disable, or "not available"); J.9.7's pulled-cable answer — as observed.
+8. The serial logs (G.7) of the Calibrate start and the Teleop run, and anything surprising, as
+   observed.
+
+---
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
@@ -1203,6 +1496,10 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
       without a second person at the battery.
 - ❌ **Do not start "shulib Drive" with the robot on the ground** until Station E's wheels-up run
       was clean; it powers the motors from the moment it starts, with no button to hold.
+- ❌ **Do not start a program from the CONTROLLER's own menu** (Run, Timed Run or Match) — start it
+      from the brain's screen or the laptop. From the controller it arms a pretend match: the
+      program restarts and sits DISABLED, never reaching driver control (Station A, step 1; A4
+      register HA-128). *(Added 2026-09-26 by T3's addendum: G.0.5 and J.9.6 point here.)*
 - ❌ **Do not disassemble anything** to read a gear — photograph it in place.
 - ❌ **Do not "correct" a reading to what this sheet expects.** A contradiction is the most valuable
       output of the session.

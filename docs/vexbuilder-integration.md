@@ -112,7 +112,14 @@ project.robotProfile {
     gpsPort: int|null
   },
   sensors:    [ { port, type: "distance"|"optical"|"rotation"|"vision"|"imu"|"gps" } ],
-  mechanisms: [ { name, motors: [ ... ], pneumatics: [ port ] } ],
+  mechanisms: [ { name,                          // unique, at most 23 characters
+                  motors: [ { port: 1..21, reversed: bool } ],
+                  cartridge: "red"|"green"|"blue",   // REQUIRED when motors is non-empty
+                  safeMode: "coast"|"brake"|"hold",  // REQUIRED when motors is non-empty
+                  pneumatics: [ "A".."H" ],          // the brain's 3-wire ports; at most 2
+                  pneumaticSafe: "low"|"high",       // REQUIRED when pneumatics is non-empty
+                  pneumaticStart: "low"|"high" } ],  // REQUIRED when pneumatics is non-empty
+                  // motors OR pneumatics in one mechanism, never both
   corrections { x, y, theta }
 }
 ```
@@ -134,6 +141,33 @@ project.robotProfile {
   cartridge; PROS only echoes what you configured. Whatever your UI collects here is trusted
   absolutely, and a wrong value is a silent 3× error in every velocity. Make the UI make it hard to
   get wrong.
+- **Every mechanism with motors needs its own `cartridge` and a `safeMode`, and neither has a
+  default.** shulib builds each such mechanism from the profile (since chunk T3, 2026-09-26), asking
+  for its motors with the MECHANISM's cartridge — a RED claw on a BLUE drive is the normal case, so
+  the drivetrain's value is never borrowed. `safeMode` is where the mechanism goes whenever anything
+  stops it: `"hold"` keeps a loaded arm or claw where it is, `"coast"` or `"brake"` suit an intake
+  that must not sit at stall current. There is no safe choice to default to — a missing value
+  defaulting to coast would drop a loaded arm — so a mechanism with motors and either field missing
+  is refused by name. Two things that must move separately (two claws, say) are **two
+  mechanisms**, never one mechanism with two motors: one mechanism drives all its motors together.
+  A mechanism's `motors` may not share a port with the drivetrain or with each other; names must be
+  unique (they are how a program finds a mechanism).
+- **A pneumatic mechanism needs a `pneumaticSafe` and a `pneumaticStart` level, and neither has a
+  default** (since T3's addendum B2, 2026-09-26, shulib builds these too). `"low"` is the line off
+  — the solenoid unpowered — and `"high"` is the line on. `pneumaticStart` is what the valve is set
+  to **the moment the robot is built**: making a 3-wire line drives it, so there is no "unset" moment
+  at boot to hide in. (On a field the robot is built while the brain is disabled; whether the valve
+  takes the level then, or only once the robot is enabled, is not yet measured.) `pneumaticSafe` is
+  where an end-of-run stop puts it. Whether `"high"` opens a claw or closes it depends on how the
+  valve is plumbed, which only the team knows — so a missing value is refused by name, never
+  defaulted to `"low"`. **One mechanism is motors OR pneumatics,
+  never both** (a claw pivot and the claw's air are two mechanisms); a mixed entry is refused. Emit
+  the 3-wire ports as the brain's letters A–H: shulib's config stores them as the numbers 1–8
+  (A = 1). A port may appear once across all mechanisms. **Two ports in one mechanism are two
+  valves fired together at the same level**, not the two coils of a double-coil solenoid (which
+  need opposite levels and are not supported yet — when a robot needs one, each port gains a
+  stated polarity; no such field exists today, so do not emit one). Nothing on the brain can
+  confirm a solenoid is plugged into a 3-wire port — the UI is the only check there is.
 - **`role` on odometry wheels is required**, not inferred. shulib's odometry refuses two wheels of the
   same role, which is the guard that stops a forward and a lateral pod being swapped.
 - **`corrections{}`** is the per-robot calibration slice (wheel scale, lever arm, mount offsets). It

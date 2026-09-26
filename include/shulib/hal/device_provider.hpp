@@ -41,6 +41,13 @@
 // port on that answer, and ALSO catches an adapter's throw per device (a motor that answers the
 // registry but rejects its configuration). Both checks name the port.
 //
+// A 3-WIRE (ADI) LINE IS THE EXCEPTION, and says so (T3's addendum B2, 2026-09-26). The brain's
+// eight 3-wire ports, A..H, are not smart ports: a pneumatic solenoid on one has no digital
+// identity, the registry cannot see it, and an unplugged line reads exactly like a working one
+// (A4 register HA-158; hal/digital_out.hpp's no-validity note). So digitalOut() can refuse only a
+// line that is not one of the eight — on the brain nothing can tell it a solenoid is missing. And
+// MAKING a line DRIVES it (HA-119), which is why the line's level is an argument of the request.
+//
 // ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
 // Asking twice for the same port must return the SAME object. The graph borrows these
 // pointers and holds them for the life of the robot; a provider that made a second adapter
@@ -62,6 +69,7 @@
 
 #include "shulib/hal/battery.hpp"
 #include "shulib/hal/clock.hpp"
+#include "shulib/hal/digital_out.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/gps.hpp"
 #include "shulib/hal/imu.hpp"
@@ -77,6 +85,10 @@ class ITickPacer;
 }  // namespace shulib::motion
 
 namespace shulib::hal {
+
+/// The brain's own 3-wire (ADI) ports, lettered A..H on the brain and numbered 1..8 on this seam
+/// (A = 1). An expander's lines are not on the seam.
+inline constexpr std::uint8_t kBrainAdiLines = 8;
 
 /// Devices by port, made or looked up on demand and owned by the provider (ruling B2).
 ///
@@ -127,6 +139,19 @@ public:
     /// The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's encoder.
     /// Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
     [[nodiscard]] virtual IRotation* rotation(std::uint8_t port) = 0;
+
+    /// The digital output on the brain's 3-wire port `line`, 1..kBrainAdiLines (= A..H; a letter
+    /// byte such as 'A' is NOT translated — state the number) — a pneumatic solenoid's line.
+    /// MAKING ONE DRIVES IT: the line is set to `initialState` the moment it is made (on a brain,
+    /// inside `pros::adi::DigitalOut`'s constructor — A4 register HA-119), so the level is STATED
+    /// here, never defaulted: state what the mechanism must be at program start. Returns nullptr
+    /// and sets lastRefusal() for a line outside 1..8. Idempotent: the same line yields the same
+    /// object, driven only when it was MADE — a later request drives nothing. PRECONDITION: a later
+    /// request for a made line states the SAME `initialState` (one line, one configuration — two
+    /// parts of a program disagreeing about a line's boot level is not a wiring fault). Nothing
+    /// can refuse an EMPTY line: the brain's registry cannot see a solenoid (header; HA-158).
+    /// Added in T3's addendum B2 (2026-09-26); every implementer must answer it.
+    [[nodiscard]] virtual IDigitalOut* digitalOut(std::uint8_t line, bool initialState) = 0;
 
     /// The run's clock. PORT-LESS and never refused: every target has one, and a robot without a
     /// clock cannot report that it has no clock.

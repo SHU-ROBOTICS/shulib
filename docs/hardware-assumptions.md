@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 146 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 154 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -49,7 +49,7 @@
 > note is a design decision recorded so the next person does not re-litigate it. **G1 Part 2a added
 > ONE more on 2026-09-24 — HA-141, reasoned:** that the registry's KIND answer is right for an IMU, a
 > rotation sensor and a GPS, which the on-robot device provider now refuses ports on. The
-> per-confidence counts below predate all eighteen. **R3d Part 2F-1 (2026-09-24) added no entry and
+> per-confidence counts below predate every entry from HA-124 on. **R3d Part 2F-1 (2026-09-24) added no entry and
 > REWROTE three:** HA-134 now describes a RAMPED pulse and what happens when no level turns the
 > robot, HA-136 lists the calibrator's new and removed numbers and the screen model's estimates, and
 > HA-137 carries the plant's two new rules — coast-follow and the slipping member — because the first
@@ -60,9 +60,17 @@
 > turned out never to have reached one (HA-142 and HA-146 reasoned from the vendored text, HA-144
 > invented, HA-143 and HA-145 UNKNOWN and labelled invented), and AMENDED three: HA-53 (the drive's
 > "0 V + Brake" coasted on a V5 until then), HA-92 (its premise that the declaration reaches the
-> motor was false at the wire) and HA-98 (brake mode is device state too). The per-confidence
-> counts below predate these five as well (2026-09-26): they still sum to 122, and a recount is
-> due once the entries from HA-147 on are in.)* **No *v2* robot exists**, and
+> motor was false at the wire) and HA-98 (brake mode is device state too). **T3 (2026-09-26) added
+> FOUR — HA-153 to HA-156**, robot two's claw pivots, which no capture has seen yet: HA-153
+> reported, HA-154 and HA-155 reasoned (HA-154's timing invented), HA-156 invented. **T3's addendum
+> (E2, the same day) added ONE — HA-159**, robot two's pneumatic claw on 3-wire port A: the port
+> reported, its polarity and whether its valve is single or double unknown. **T3's addendum B2 (the library half, the same day) added TWO — HA-157, UNKNOWN, and HA-158,
+> reasoned** — about the brain's 3-wire ports that the pneumatic claw depends on — **and the
+> merge added ONE — HA-147, invented:** the controller belief the claw's toggle rests on (B2's
+> review). HA-148 to HA-152 were reserved for T3 and are UNUSED: the numbers are not reissued, so
+> the register has 154 entries up to HA-159. The
+> per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
+> 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -238,6 +246,14 @@
 | HA-144 | A REPEATED `brake()` under Hold re-captures the held position (so one per tick under load lets a shaft creep); the adapter issues one per transition into zero. Second half: whether a same-mode `set_brake_mode()` written to a motor already held does the same (still sent every tick by a caller that re-states it) | **invented** | T3's claw station |
 | HA-145 | What a motor stopped under Hold (or Brake) does while VEXos has the robot DISABLED, and after re-enable | **invented** (UNKNOWN) — the adapter's stop record cannot see a disable | T3's claw station / COMP |
 | HA-146 | After `brake()`, the next `move_voltage(v ≠ 0)` drives the motor at once (the stop is replaced, not latched); a `set_brake_mode()` repeated every tick changes nothing but the register of a RUNNING motor (a held one: HA-144) | reasoned (vendored text) | R3 / T3's claw station |
+| HA-147 | A V5 controller's connected flag and its button levels change together: on the first tick `is_connected()` is true after a disconnect, `get_digital()` already returns the LIVE level (never a stale one from before the drop), and a button's level does not bounce across two 10 ms samples | **invented** (unmeasured; HA-103 claims only that a disconnected controller reads 0) — the pneumatic claw's toggle takes a connected tick's level as live | Station J.9.5 (robot two's claw) |
+| HA-153 | Robot two's two claw pivots are separate V5 motors with RED (100 rpm) cartridges on smart ports 6 (R1 forward / R2 back) and 7 (L1 / L2), and a POSITIVE command moves each the way the team lead calls "forward" | **reported** 2026-09-26 (team lead); NO capture has seen a motor on 6 or 7, and the way each turns is not even reported | T3 / worksheet Station J |
+| HA-154 | A claw pivot held at 12 V against its mechanical stop draws up to the motor's DEFAULT current limit (2500 mA — nothing in shulib changes it) for as long as the button is held, and heats; shulib watches only the DRIVE motors' temperatures | reasoned (vendored `motors.h`; a stalled motor heats) — every TIMING **invented** (none is stated) | T3 / worksheet Station J |
+| HA-155 | A cable swapped between a claw pivot and a drive motor is invisible to the brain's registry (a MOTOR on both ports either way), so no check before power can see it | reasoned (the registry reports a device's KIND, never which motor) | T3 / worksheet Station J (a person, not the registry) |
+| HA-156 | A claw pivot released in Hold (0 V, after DEFECTS2 makes a Hold reach the motor) keeps its angle under its load — its own weight and a game piece — with a sag over 30 s too small to matter | **invented** — no load, sag or hold current measured; "holds" is claimed nowhere until Station J logs it | T3 / worksheet Station J |
+| HA-157 | While the brain is DISABLED (between autonomous and driver control, on a field or competition-switch disable) a 3-wire digital output KEEPS the level the program last commanded, and still has it after the re-enable; and a level the program commands WHILE disabled (a Robot built in `initialize()` on a field, or a program started from the controller's menu, HA-128) reaches the valve — at once, or at the latest at the enable | **UNKNOWN** — nothing vendored says; the pneumatic claw's driver-control toggle commands NOTHING on a disable and relies on the first half; the claw's start level on a field relies on the second | Station J (robot two's claw) |
+| HA-158 | Nothing the program can read sees a pneumatic solenoid on a brain 3-wire port: the registry is indexed by SMART port, and a valve on A..H is a passive load — a connected line and an empty one are indistinguishable | reasoned (vendored registry + ADI shape) — the on-robot provider refuses a 3-wire line only for being outside 1..8 | Station J (robot two's claw) |
+| HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 
 ---
 
@@ -1596,6 +1612,278 @@ motor — now rests on. **None of them has been observed on a robot.**
   tick; on robot two, disable, re-enable, and drive — the first stick moves the robot.
   *Blast radius if wrong:* a held mechanism that ignores its next command (a claw that will not
   open); a drive sluggish after every library stop. **Contained:** `ProsMotor::setVoltage()`.
+
+### T3's additions — robot two's claw pivots and its pneumatic claw (2026-09-26)
+
+**T3 (the claw pivots, 2026-09-26) added HA-153 to HA-156**, its addendum HA-157 to HA-159 (the
+pneumatic claw, below), and its merge HA-147 (the controller belief the claw's toggle rests on,
+first below). HA-142 to HA-146 are DEFECTS2's (above); HA-148 to HA-152 were reserved for T3 and
+are unused. HA-153 to HA-156 are beliefs about motors NOBODY HAS SEEN YET: the team lead reported
+the two claw pivots on 2026-09-26, no census or capture has shown a motor on port 6 or 7, and
+nothing in this tree has commanded either. `src/mechanism_table.hpp` declares them;
+`src/calibrate_program.cpp` already acts on the declaration (it never makes 6 or 7 a drive
+candidate); "shulib Teleop" drives them once T3's Teleop wiring (its Part 2) lands. Worksheet
+Station J is their first run.
+
+- [ ] **HA-147 — a V5 controller's connected flag and its button levels change together.**
+  *Claim:* on the first tick `is_connected()` reads true after a disconnect, `get_digital()`
+  already returns the button's LIVE level — never a stale one from before the drop — and a
+  button's level does not bounce across two 10 ms samples on a press or a release. False if the
+  flag can come back a tick (or more) before the button data does, or if a press or release reads
+  down-up-down across consecutive ticks.
+  *Source:* `include/shulib/teleop/mechanism_binding.hpp` (ToggleBinding's A PRESS MUST BE SEEN
+  rule, tagged `A4 register HA-147`: the FIRST connected tick's level is taken as live);
+  `test/toggle_binding_test.cpp` T4 ("WHAT THE GUARANTEE RESTS ON") pins the boundary in the
+  direction of the hazard — a stale "up" on the first reconnected tick, then the live "down", FLIPS
+  the claw. HA-103 claims only that a disconnected controller reads 0 and that `is_connected()` is
+  the only validity signal; nothing claimed the two change together. Found by T3's B2 review and
+  registered at the merge.
+  *Confidence:* **invented** — unmeasured; nothing vendored says either way.
+  *Settle (worksheet Station J.9.5):* open the claw, hold A down, pull the controller's cable,
+  plug it back in STILL holding A, keep holding for two seconds, then let go. Nothing may move
+  until A is released and pressed again; then one press closes it. Record whether the claw moved
+  while A was held across the reconnect.
+  *Blast radius if wrong:* a phantom flip of the pneumatic claw when the driver holds A across a
+  controller reconnect (or on a bouncing release) — an open flip drops what the claw holds. Until
+  it is measured the driver's rule is: after a controller drop, let go of A before pressing it
+  again (the driver-control cookbook says so). **Contained:** `ToggleBinding::tick()`; the
+  mitigation (a reconnect settle window) is flagged for the team lead's ruling after J.9.5, not
+  built.
+
+- [ ] **HA-153 — robot two's claw pivots are RED motors on ports 6 and 7, and a positive command
+  moves each the way the team lead calls "forward".**
+  *Claim:* robot two carries two SEPARATE claw-pivot motors, each a V5 smart motor with a RED
+  (100 rpm) cartridge: one on smart port **6** (forward while R1 is held, back while R2 is), one on
+  port **7** (L1 / L2). A POSITIVE voltage — the table's `+6` / `+7`, which PROS does not reverse —
+  moves each pivot the way R1 (port 6) and L1 (port 7) are meant to move it. False if a census shows
+  no motor, or another kind of device, on 6 or 7; if either cartridge insert is not red; or if R1 /
+  L1 moves its claw the "back" way.
+  *Source:* `src/mechanism_table.hpp` (`kRobotTwoMechanisms`, tagged `A4 register HA-153`): the
+  ports, the cartridge and the `+` signs; `src/calibrate_program.cpp` drops 6 and 7 from its drive
+  candidates on this belief. `test/mechanism_table_test.cpp` pins the table's contents — which
+  tests the TYPING against the report, never the report.
+  *Confidence:* **reported** by the team lead, 2026-09-26 — not measured. No capture has seen a
+  motor on 6 or 7: the 2026-09-24 Calibrate census lists motors on 11–18 and 20 only, and the
+  2026-09-25 Teleop capture's port check names only port 14 as a motor outside its record. The
+  DIRECTION is not even reported: "forward" is the name of a button, not a measured rotation, and
+  the `+` signs are the table's unmeasured starting point.
+  *Settle (worksheet Station J):* Bench Tests' DEVICE CENSUS shows MOTOR on 6 and 7; the insert
+  colour read off each motor; Calibrate prints `port 6: claw pivot (declared) -- not a candidate,
+  not touched` and the same for 7; J's direction check — hold R1, which way does the port-6 claw
+  go; hold L1, the port-7 claw.
+  *Blast radius if wrong:* a wrong PORT leaves that claw ABSENT in Teleop (the provider refuses a
+  port with no motor on it, by name) — or, if a DRIVE motor is on 6 or 7, Calibrate drops that
+  drive motor (the side calibrates one short) and R1 spins a wheel. A wrong CARTRIDGE writes the
+  wrong gearset: the volts still reach the motor and the claw still moves; only the motor's speed
+  and position scaling — unused by a hold-to-run button, needed by a future angle preset — would be
+  off. A wrong SIGN moves the claw opposite to what the driver expects, and is fixed by flipping
+  that entry's sign in the table (never by swapping its buttons). **Contained:** one table.
+
+- [ ] **HA-154 — a claw pivot held at 12 V against its stop heats, at the motor's default current
+  limit, and shulib does not watch it.**
+  *Claim:* a claw pivot commanded 12 V while it is pressed against its mechanical stop (the driver
+  keeps holding R1 after the claw has closed) draws current up to the V5 motor's current limit —
+  PROS's documented DEFAULT, 2500 mA, which nothing in shulib changes — for as long as the button
+  is held, and heats; as it heats, the motor's own firmware derates it (HA-44's shape) until the
+  claw weakens. A pivot in Hold against a load also draws current, and heats more slowly. **How
+  long any of this takes is not known.** False if a stalled pivot barely warms in a minute at 12 V
+  (then nothing is needed), or if it reaches the derating temperature within seconds (then a stall
+  cut-off is not optional).
+  *Source:* `src/mechanism_table.hpp` (`volts = 12.0`, tagged `A4 register HA-154`) — the ordered
+  full power passes straight through while a button is held; a stall cut-off is OUT of T3 by the
+  brief. The vendored `include/pros/motors.h` (`motor_get_current_limit`: "The default value is
+  2500 mA."). `include/shulib/diag/health_monitor.hpp` raises `MOTOR_OVER_TEMP` from the hottest
+  motor "over the drive" — a claw motor is not in it.
+  *Confidence:* reasoned (the limit is the vendored default; a stalled DC motor heats) — every
+  TIMING is **invented**, and none is written here on purpose: nothing may use one until Station J
+  measures it.
+  *Settle (worksheet Station J):* close one claw against its stop and hold the button for a timed
+  interval, reading the motor's temperature before and after (Teleop's claw row, once it exists);
+  stop well below HA-44's 55 °C first step.
+  *Blast radius if wrong:* a claw that goes weak mid-match as its motor derates, or a motor that
+  cuts itself out hot — and shulib would not say why: `MOTOR_OVER_TEMP` watches the drive only.
+  The driver sees a claw that stopped gripping. **Contained:** one mechanism; the drive is not
+  affected.
+
+- [ ] **HA-155 — a cable swapped between a claw pivot and a drive motor is invisible to the
+  registry.**
+  *Claim:* the brain's device registry reports a port's device KIND — MOTOR — never WHICH motor,
+  so a claw-pivot cable and a drive-motor cable swapped with each other at the brain look identical
+  to every check shulib runs before power: the census, Calibrate's declared-port drop, Teleop's
+  port check against the record, the provider's kind check. False only if the registry could tell
+  one motor from another, which its API (HA-138, HA-141) does not offer.
+  *Source:* `src/calibrate_program.cpp` (the declared-port drop, tagged `A4 register HA-155`): it
+  drops PORTS, trusting that the cable in port 6 is the claw's; `src/mechanism_table.hpp`. Teleop's
+  boot check already says the same of two DRIVE cables swapped with each other ("NOT CHECKED: two
+  drive cables swapped WITH EACH OTHER look identical here").
+  *Confidence:* reasoned (what the registry reports).
+  *Settle:* not by the registry, ever. By a person: label both ends of both claw cables; Station
+  J's direction check is the first run that would show a swap (R1 must move the CLAW, not a wheel).
+  *Blast radius if a swap happens:* Calibrate skips the drive motor now on 6 or 7 (that side
+  calibrates one short) and takes the claw motor now on a drive port as a candidate — geared BLUE
+  and set to Coast, so a loaded claw drops, and if the push swings it far enough to count as moved,
+  it is taken for a drive motor and PULSED. On a record made before the swap, Teleop drives the claw
+  motor as a member of a drive side — the coupled-side monitor catches that half
+  (`MOTOR_GROUP_DISAGREE`: a claw at its stop cannot follow its side) — while R1 drives a wheel at
+  12 V, which only a person sees. **Contained:** by labels and Station J; no software can contain
+  it.
+
+- [ ] **HA-156 — a claw pivot released in Hold keeps its angle under its load.**
+  *Claim:* once DEFECTS2 has made a program-commanded Hold at 0 V reach the motor (its own
+  register entries carry that part), a claw pivot released at an angle HOLDS that angle under its
+  own weight and a game piece: the sag over 30 s is small enough that the claw still does its job.
+  "Holds" is claimed nowhere — in the code, the worksheet or a commit — until Station J logs it.
+  False if the claw droops visibly within 30 s, drops its piece, or the motor heats holding it
+  (HA-154).
+  *Source:* `src/mechanism_table.hpp` (`safeMode = Hold`, tagged `A4 register HA-156`). The T3
+  brief specifies that the library's hold-to-run binding applies the safe state ONCE on release
+  (never re-applied per tick, which could creep the hold point); that binding is written in T3's
+  library half and merged separately — it is not in the tree this entry was written in.
+  *Confidence:* **invented** — the load, the hold's stiffness and the hold current are all
+  unmeasured; the V5's Hold is a position hold whose strength under a claw's load nobody here has
+  measured.
+  *Settle (worksheet Station J):* move each pivot to a mid angle, loaded with a game piece if the
+  claw carries one, release, and measure the sag at 0, 10 and 30 s against a mark; read the
+  temperature after.
+  *Blast radius if wrong:* a claw that sags or drops its piece after release, so the driver has to
+  keep holding the button — and HA-154's heating then applies. **Contained:** one mechanism; the
+  fix is a MEASURED one (a holding voltage or a hold stiffness), never a guess.
+
+**T3's addendum (E2, the pneumatic claw, 2026-09-26) added HA-159** (its library half, B2, owns
+HA-157 and HA-158). The team lead reported a PNEUMATIC claw the same night: its solenoid on the
+brain's 3-wire port A, toggled by the controller's A button, closed at program start, keeping its
+state when the robot is disabled. `src/mechanism_table.hpp` declares it; nothing in this tree
+drives a 3-wire line yet ("shulib Teleop" does once the addendum's library half is merged), and
+shulib's census cannot show it (it reads the 21 smart ports). Worksheet Station J.9 is its first
+run.
+
+**T3's addendum B2 (2026-09-26) added HA-157 and HA-158.** Both are about the brain's own eight
+3-wire ports, which the library first USES here — for robot two's pneumatic claw on port A, toggled
+by the driver's A button. Neither is about the claw itself (its port, its valve and which level
+opens it are the program half's entry, from the team lead's report).
+
+- [ ] **HA-157 — a 3-wire output keeps its level while the brain is disabled, and takes a level
+  commanded while it is disabled.**
+  *Claim:* two halves. (1) While the V5 brain is DISABLED — the gap between autonomous and driver
+  control, a field disable, a competition-switch disable — a 3-wire digital output stays at the
+  level the program last commanded, and is still at that level when the brain is enabled again.
+  (2) A level the program commands WHILE the brain is disabled reaches the valve — at once, or at
+  the latest when the brain is enabled. The second half is not a corner case: `robot::Robot` makes
+  each pneumatic line at the config's `pneumaticStart` the moment it is built, and a program builds
+  its Robot in `initialize()` ("shulib Teleop" does, since G1 Part 2b: its `teleopInitialize()`,
+  commit `7f9b9a1`), which on a field — and whenever the program is started from the
+  controller's own menu (HA-128, measured: the brain then starts DISABLED) — runs while the brain
+  is disabled. False if VEXos drives the brain's 3-wire outputs to any level of its own while
+  disabled (as it cuts the motors) or on the way back to enabled, or drops (or holds back past
+  the enable) a 3-wire write made while disabled.
+  *Source:* `include/shulib/teleop/mechanism_binding.hpp` (ToggleBinding, the DISCONNECT/DISABLE
+  rule, tagged `A4 register HA-157`) and `include/shulib/teleop/teleop_loop.hpp` (the disable path
+  leaves every toggle untouched): the library commands NOTHING to a pneumatic claw on a disable, on
+  the team lead's rule that the claw keeps its state. `include/shulib/robot/robot.hpp` (the
+  MECHANISMS section and `buildPneumatic()`, tagged `A4 register HA-157`): the start level is
+  written when the Robot is built, whatever the brain's state. `test/toggle_binding_test.cpp` TL3
+  pins that the LIBRARY commands nothing on a disable, and `test/pros_device_provider_test.cpp` 1m
+  that construction writes the start level once; no host test can pin what the brain does with
+  either.
+  *Confidence:* **UNKNOWN.** The vendored PROS headers document the 3-wire output's constructor
+  and `set_value()` only (vendored `adi.hpp` ~:530-615) and say nothing about a disabled brain.
+  VEXos is known to stop the MOTORS while disabled; whether it treats a 3-wire output the same
+  way — its level, or a write to it — is exactly the open question. No solenoid has ever been on
+  either robot.
+  *Settle:* (1) at Station J (robot two's claw — J.9.6): close the claw, disable (the field
+  control / Timed Run disable, or a competition switch), and watch it; then open it, disable, and
+  watch again; re-enable and press A once. Record whether the claw moved on the disable, whether it
+  moved on the re-enable, and whether that first press did the visible thing. (2) at COMP's
+  station (the competition program's bench run), NOT Station J — Station J never starts a program
+  from the controller's menu (its DO NOT list; HA-128), and COMP's station does so on purpose,
+  through the controller's Timed Run, because the team has no competition switch (the coordinator's
+  placement at T3's merge, 2026-09-26): leave the claw at the OTHER level from the start level (the
+  run before ends with it there), start the program that way — the brain then comes up DISABLED,
+  so `initialize()` builds the Robot and writes the start level while disabled — and watch: does
+  the claw move at the start (the write reached the valve while disabled), only when the robot is
+  enabled, only when driver control begins (the toggle's own initial level), or never? A bench
+  start from the laptop runs enabled and cannot answer (2).
+  *Blast radius if wrong:* (1) the claw moves by ITSELF on every disable — if that is open, it
+  drops what it holds — and because the adapter still reports the level it last commanded, the
+  first press after the re-enable commands the level the line already has: the driver sees a
+  press that does nothing and has to press again. (2) The claw's FIELD-START state rests on it:
+  if a write made while disabled is dropped, the claw sits wherever its valve rests from program
+  start through autonomous — a preload it should grip is not gripped — until driver control
+  starts and the toggle sends its initial level (which the program states equal to the start
+  level); if the write is held back to the enable, the claw moves at the enable, on the field.
+  **Contained:** one rule in the toggle and one line in the loop's disable path for (1) — the fix
+  (re-assert the commanded level when driver control re-enters) is a small, testable change
+  there; for (2), the fix is to command the start level again at the first ENABLED moment (the
+  top of `autonomous()` and of `opcontrol()`), a program-side change.
+
+- [ ] **HA-158 — nothing the program can read sees a solenoid on a brain 3-wire port.**
+  *Claim:* the brain's device registry (`registry_get_plugged_type()`) is indexed by SMART port —
+  indices 0..20 (HA-138) — and the brain's own eight 3-wire ports are served by its internal ADI
+  (PROS's `INTERNAL_ADI_PORT`, 22, vendored `adi.h:136`), outside that range; a solenoid valve on
+  one of them is a passive load with no digital identity, and a digital output has no read-back
+  (hal/digital_out.hpp: no feedback, no validity). So a connected valve and an empty port are
+  indistinguishable to the program. False if some API — a registry kind, an ADI read, a current
+  sense — reports what is plugged into a 3-wire port.
+  *Source:* `include/shulib/hal/device_provider.hpp` (the header's "A 3-WIRE LINE IS THE
+  EXCEPTION"), `include/shulib/hal/pros/device_provider.hpp` (`digitalOut()` asks no registry,
+  tagged `A4 register HA-158`), `include/shulib/hal/fake/fake_device_provider.hpp`;
+  `test/pros_device_provider_test.cpp` 1l (the line is made with the registry reporting NONE on
+  every port, and the registry is never asked).
+  *Confidence:* **reasoned** — from the registry's documented index range, the internal-ADI port
+  number, and the 3-wire output's documented API, which has no read of anything but the level the
+  program set.
+  *Settle (Station J — a step the station does not have yet; the coordinator adds it to J.9, whose
+  J.9.0 only LOOKS at the valve's cable and whose J.9.5 pulls the CONTROLLER's):* with no hand in
+  the claw, pull the valve's 3-wire cable out of port A and start slot 2 — the program must build
+  the claw exactly as it does with it plugged in (the same boot line for the claw, no refusal, no
+  difference on the screen) — and look at the brain's own Devices screen for any entry for the
+  valve, plugged and unplugged. Confirming the belief means seeing NO difference. Plug the cable
+  back in before anything else in J.9.
+  *Blast radius if wrong:* in the safe direction — if something CAN see a solenoid, the provider
+  could refuse an empty 3-wire port and does not, which is a missed check, not a wrong action. If
+  RIGHT (the expected case), an unplugged or mis-plugged valve is invisible to every check in the
+  library: the claw simply does not move, and the driver's eyes are the only tell — which is why
+  the station tests it by pulling the cable. **Contained:** one provider member.
+
+- [ ] **HA-159 — robot two's claw solenoid is on 3-wire port A; single or double, and which level
+  opens the claw, are NOT KNOWN.**
+  *Claim:* robot two's pneumatic claw is moved by a solenoid valve wired to the brain's 3-wire
+  port **A** (line 1) through ONE cable, and commanding that line to the level `kClawOpenCommand`
+  — `true` (HIGH), the addendum's starting guess, "ON = open" — OPENS the claw, while the other
+  level CLOSES it. False if the valve's cable is in another lettered port; if the valve has TWO
+  cables into the brain (a double solenoid, whose second line nobody has declared); or if HIGH
+  closes the claw.
+  *Source:* `src/mechanism_table.hpp` (`kRobotTwoMechanisms.pneumatics[0]` and
+  `kClawOpenCommand`, tagged `A4 register HA-159`): line 1, the polarity as ONE named constant
+  marked UNVERIFIED, the start and safe positions CLOSED. `test/mechanism_table_test.cpp` pins the
+  entry against the report AND the polarity's value (`true`), as it pins the pivots' signs: the
+  flip Station J.9 may call for is ONE line of code (the constant; every level follows it), and it
+  is a measurement — so the constant, that pin, this entry (its claim and its index row) and
+  Station J.9's quote change together, in one change.
+  *Confidence:* **reported** by the team lead, 2026-09-26 — the PORT only ("port A"). Whether the
+  valve is single or double, and the polarity, are **unknown**: the team lead said so, and `true`
+  is a guess recorded as one. Nothing has seen the claw move under a program: no program in this
+  tree drives a 3-wire line, shulib's census reads the 21 smart ports only, and nothing in shulib
+  can ask the brain what is on a 3-wire line (the library half's register entries carry what the
+  brain can and cannot report there).
+  *Settle (worksheet Station J.9):* J.9.0 — look at the valve: one cable or two into the brain,
+  and which letters (one cable NOT in A stops the station: the port is wrong, not the polarity);
+  J.9.2 — where the claw is after slot 2 starts; J.9.3 — the FIRST press of A decides, with one
+  cable in A: CLOSED after the start and the press OPENS it ⇒ the polarity is right; OPEN after
+  the start and the press CLOSES it ⇒ it is backwards (flip `kClawOpenCommand`, the only code
+  edit, and record it — the test's pin, this entry, J.9); the press moves NOTHING ⇒ no answer
+  about the polarity (the air, the cable, the port, the valve). Then A opens it, A again closes
+  it.
+  *Blast radius if wrong:* a wrong POLARITY opens the claw at program start — constructing the
+  3-wire output drives the line at once (HA-119) — so a preloaded piece drops as the program
+  starts; every press still flips the claw, so the driver sees the button "backwards"; and a
+  library-forced safe state (COMP's end-of-run guard, later) would OPEN the claw instead of keeping
+  what it holds. Fixed by flipping ONE constant. A wrong PORT leaves the claw unmoved by A while
+  the program drives a line with nothing (or something else) on it — and no software can see
+  that: a 3-wire output has no feedback channel (`hal/digital_out.hpp`). A valve with TWO cables
+  gets only the one in port A driven, never the other; what the claw does then is not known, and
+  J.9.0's look is what catches it before power. **Contained:** one mechanism; the drive is not
+  affected.
 
 ---
 

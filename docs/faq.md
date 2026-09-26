@@ -93,11 +93,17 @@ state to LOW** — so a bare construction physically moves any cylinder whose "s
 the high state, at boot, before any of your code runs (HA-119).
 
 shulib's `ProsDigitalOut` makes the default impossible: the initial state is a **required**
-constructor argument. State it, and make it the same value as the owning
-`PneumaticMechanism`'s declared safe state — then boot drives the line straight to safe, once,
-with no glitch through the wrong state. If your robot moves at power-on, look for a digital
-line whose constructor argument disagrees with its mechanism's safe state (or for a raw
-`pros::adi::DigitalOut` constructed beside the adapter, riding the LOW default).
+constructor argument. State it, and make it the level the owning `PneumaticMechanism` must be
+at boot — its declared safe state, or, for a mechanism in a `config::RobotConfig`, its
+`pneumaticStart` level (the `robot::Robot` hands that level to the device provider, which drives
+the line to it once, when it is made) — then boot drives the line straight there, once, with no
+glitch through the wrong state. (One open question: on a field — and when a program is started
+from the controller's own menu — the program starts with the brain DISABLED, and whether the
+brain acts on a 3-wire write made then, or only once the robot is enabled, has not been measured:
+the assumptions register's HA-157.) If your robot moves at power-on, look for a digital line
+whose boot level disagrees with what its mechanism must be at boot (for a config-built robot,
+check `pneumaticStart`), or for a raw `pros::adi::DigitalOut` constructed beside the adapter,
+riding the LOW default.
 
 ## The code said the SD-card writes succeeded — where did my log go?
 

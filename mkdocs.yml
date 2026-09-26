@@ -141,6 +141,7 @@ nav:
       - Timing and partners: cookbook/03-timing-and-partners.md
       - Drivetrains: cookbook/04-drivetrains.md
       - Mixing tiers: cookbook/05-mixing-tiers.md
+      - Driver control: cookbook/06-driver-control.md
 
 # BEGIN GENERATED API NAV — regenerate with: python3 tools/api_doc_tool.py generate
   - API reference:
@@ -311,6 +312,7 @@ nav:
           - Drivetrain degradation: api/drivetrain_degradation.md
           - Field centric: api/field_centric.md
           - Input shaping: api/input_shaping.md
+          - Mechanism binding: api/mechanism_binding.md
           - Slew limiter: api/slew_limiter.md
           - Stick mapping: api/stick_mapping.md
           - Teleop loop: api/teleop_loop.md

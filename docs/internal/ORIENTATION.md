@@ -97,9 +97,12 @@ and they are true at different tiers.
   since — the laptop has not been able to see the robot's brain over USB (a cable is being replaced).
 - **Published:** everything through 2026-08-15 is live at docs.shurobotics.com.
 - **Not built yet:** the program you would upload for a match (with an auton picker), the camera
-  adapter, button bindings for mechanisms, the scoring moves (waiting on what the robots' mechanisms
-  will be), real tuning numbers, and the loading of routines from a file. **And the students' own
-  routines are the students' to write** — the library supplies the moves, not the strategy.
+  adapter, the claws' buttons in a robot program (the library's own mechanism buttons — hold-to-run
+  and a pneumatic toggle — and a robot that builds its motor and pneumatic mechanisms from its
+  config, exist since 2026-09-26 — host test plant only), the scoring moves (waiting on what the
+  robots' mechanisms will be), real tuning numbers, and the loading of routines from a file. **And
+  the students' own routines are the students' to write** — the library supplies the moves, not
+  the strategy.
 
 **An auton already works on the host test plant.** A six-step routine — move, move, strafe, turn,
 hold, brake — settles **0.228 in** from its target in 9.56 s. That is a measured result from a passing

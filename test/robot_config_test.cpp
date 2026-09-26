@@ -12,6 +12,7 @@
 
 #include "doctest.h"
 
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -334,12 +335,12 @@ TEST_CASE("G1 config 1h: a holonomic drivetrain's cartridge, IMU port, geometry 
     }
 }
 
-// ═══ 1i. Mechanisms — types only, but their ports are real ═══════════════════════════
-// Bug caught: mechanism ports left out of the collision check because nothing builds them yet.
+// ═══ 1i. Mechanisms — their shape and their ports (built since T3; see 1m) ════════════
+// Bug caught: mechanism ports left out of the collision check because Part 1 built no mechanism.
 // They are the ports most likely to collide (they are typed last and by a different person), and
 // the collision is invisible until two adapters fight over one motor on the field.
-TEST_CASE("G1 config 1i: a mechanism's shape and its ports are checked even though Part 1 builds "
-          "none") {
+TEST_CASE("G1 config 1i: a mechanism's shape and its ports are checked (Part 1 built none; T3 "
+          "builds them)") {
     SUBCASE("more mechanisms than capacity") {
         cfgns::RobotConfig c = baseTank();
         c.mechanismCount = 9;
@@ -380,13 +381,26 @@ TEST_CASE("G1 config 1i: a mechanism's shape and its ports are checked even thou
     }
     SUBCASE("a legal mechanism set does not disturb anything") {
         cfgns::RobotConfig c = baseTank();
+        // Since T3 a mechanism with motors must STATE its cartridge and safe brake mode (1m
+        // below); this set states them, so it stays the legal reference it always was. Since T3's
+        // addendum B2 a mechanism may not have motors AND lines (1n below), so the intake's line
+        // that used to ride on it is its own pneumatic mechanism, stating its two levels.
         c.mechanisms[0] = {.name = "intake",
                            .motorPorts = {11, -12},
                            .motorCount = 2,
+                           .cartridge = MotorCartridge::Green,
+                           .safeMode = cfgns::SafeBrakeMode::Coast};
+        c.mechanisms[1] = {.name = "lift",
+                           .motorPorts = {13},
+                           .motorCount = 1,
+                           .cartridge = MotorCartridge::Red,
+                           .safeMode = cfgns::SafeBrakeMode::Hold};
+        c.mechanisms[2] = {.name = "intake flap",
                            .pneumaticPorts = {1},
-                           .pneumaticCount = 1};
-        c.mechanisms[1] = {.name = "lift", .motorPorts = {13}, .motorCount = 1};
-        c.mechanismCount = 2;
+                           .pneumaticCount = 1,
+                           .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                           .pneumaticStart = cfgns::PneumaticLevel::Low};
+        c.mechanismCount = 3;
         CHECK(c.valid());
         // Entries BEYOND the count are ignored entirely, garbage and all.
         c.mechanisms[7] = {.name = "", .motorPorts = {1, 1, 1, 1}, .motorCount = 9};
@@ -473,4 +487,336 @@ TEST_CASE("G1 config 1l: StaticRobotConfig holds its config BY VALUE") {
     const cfgns::IRobotConfig& seam = held;
     CHECK(std::string{seam.config().identity.name} == "Robot Two");
     CHECK(seam.config().valid());
+}
+
+// ═══ 1m. What a BUILT mechanism needs (chunk T3, brief test 14's config half) ═════════
+// Since T3, robot::Robot builds a hal::MotorMechanism from every mechanism with motors, asking the
+// provider with the MECHANISM's cartridge and handing it the DECLARED safe brake mode. Both are
+// therefore required, and "nobody wrote it" must never read as a value — least of all as Coast,
+// which is where a value-initialised hal::BrakeMode would land and where a loaded claw drops.
+namespace {
+
+/// A valid tank with robot two's two claw pivots: separate single-motor mechanisms on 6 and 7,
+/// RED, Hold. Every 1m case starts from this and breaks exactly one thing.
+cfgns::RobotConfig tankWithClaws() {
+    cfgns::RobotConfig c = baseTank();
+    c.mechanisms[0] = {.name = "claw pivot 6",
+                       .motorPorts = {6},
+                       .motorCount = 1,
+                       .cartridge = MotorCartridge::Red,
+                       .safeMode = cfgns::SafeBrakeMode::Hold};
+    c.mechanisms[1] = {.name = "claw pivot 7",
+                       .motorPorts = {-7},
+                       .motorCount = 1,
+                       .cartridge = MotorCartridge::Red,
+                       .safeMode = cfgns::SafeBrakeMode::Hold};
+    c.mechanismCount = 2;
+    return c;
+}
+
+}  // namespace
+
+TEST_CASE("T3 config 1m: the claw reference config is valid, and a MechanismConfig nobody filled "
+          "in carries UNSET — never Coast") {
+    CHECK(whyNot(tankWithClaws()).empty());
+    const cfgns::MechanismConfig blank{};
+    CHECK(static_cast<int>(static_cast<std::uint8_t>(blank.safeMode)) == 0);
+    CHECK(static_cast<int>(static_cast<std::uint8_t>(blank.cartridge)) == 0);
+    CHECK_FALSE(cfgns::isSafeBrakeMode(blank.safeMode));
+    CHECK(std::string{cfgns::safeBrakeModeWord(blank.safeMode)} == "UNSET");
+    // The three real modes convert to exactly the HAL mode of the same name…
+    CHECK(cfgns::toBrakeMode(cfgns::SafeBrakeMode::Coast) == shulib::hal::BrakeMode::Coast);
+    CHECK(cfgns::toBrakeMode(cfgns::SafeBrakeMode::Brake) == shulib::hal::BrakeMode::Brake);
+    CHECK(cfgns::toBrakeMode(cfgns::SafeBrakeMode::Hold) == shulib::hal::BrakeMode::Hold);
+    CHECK(std::string{cfgns::safeBrakeModeWord(cfgns::SafeBrakeMode::Hold)} == "hold");
+    // …and a byte nobody minted never becomes Coast: the floor is Hold.
+    for (const int b : {0, 4, 200}) {
+        CAPTURE(b);
+        const auto m = static_cast<cfgns::SafeBrakeMode>(b);
+        CHECK_FALSE(cfgns::isSafeBrakeMode(m));
+        CHECK(cfgns::toBrakeMode(m) == shulib::hal::BrakeMode::Hold);
+    }
+}
+
+TEST_CASE("T3 config 1m': a mechanism WITH motors must state its cartridge and its safe brake mode "
+          "— refused by name; a pneumatic-only one need not") {
+    SUBCASE("an UNSET cartridge") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[1].cartridge = static_cast<MotorCartridge>(0);
+        const std::string why = whyNot(c);
+        CHECK(why.find("'claw pivot 7'") != std::string::npos);
+        CHECK(why.find("cartridge byte 0") != std::string::npos);
+        CHECK(why.find("UNSET") != std::string::npos);
+    }
+    SUBCASE("a cartridge byte nobody minted") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[0].cartridge = static_cast<MotorCartridge>(7);
+        CHECK(whyNot(c).find("cartridge byte 7") != std::string::npos);
+    }
+    SUBCASE("an UNSET safe brake mode") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[0].safeMode = static_cast<cfgns::SafeBrakeMode>(0);
+        const std::string why = whyNot(c);
+        CHECK(why.find("'claw pivot 6'") != std::string::npos);
+        CHECK(why.find("safe brake mode byte 0") != std::string::npos);
+    }
+    SUBCASE("a safe brake mode byte nobody minted") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[1].safeMode = static_cast<cfgns::SafeBrakeMode>(4);
+        CHECK(whyNot(c).find("safe brake mode byte 4") != std::string::npos);
+    }
+    SUBCASE("each of the three real modes and cartridges is accepted") {
+        for (const auto mode : {cfgns::SafeBrakeMode::Coast, cfgns::SafeBrakeMode::Brake,
+                                cfgns::SafeBrakeMode::Hold}) {
+            for (const auto cart :
+                 {MotorCartridge::Red, MotorCartridge::Green, MotorCartridge::Blue}) {
+                cfgns::RobotConfig c = tankWithClaws();
+                c.mechanisms[0].safeMode = mode;
+                c.mechanisms[0].cartridge = cart;
+                CHECK(c.valid());
+            }
+        }
+    }
+    SUBCASE("a pneumatic-only mechanism is not asked for either (it states its LEVELS — 1n)") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[2] = {.name = "clamp",
+                           .pneumaticPorts = {1},
+                           .pneumaticCount = 1,
+                           .pneumaticSafe = cfgns::PneumaticLevel::High,
+                           .pneumaticStart = cfgns::PneumaticLevel::High};
+        c.mechanismCount = 3;
+        CHECK(whyNot(c).empty());
+        CHECK(static_cast<int>(static_cast<std::uint8_t>(c.mechanisms[2].cartridge)) == 0);
+    }
+}
+
+TEST_CASE("T3 config 1m'': the new refusals run AFTER every port claim — a collision keeps the "
+          "message it always had, even when the same config also has an unset cartridge") {
+    // BUG CAUGHT: the cartridge / safe-mode check placed inside the first mechanism loop, ahead of
+    // the port claims — a mis-wired config would then be reported as "state the cartridge", and a
+    // person would go and fix the wrong thing while the port collision stayed.
+    SUBCASE("the unset mechanism is the one that collides") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[0].motorPorts[0] = -2;  // the LEFT drive's port 2
+        c.mechanisms[0].cartridge = static_cast<MotorCartridge>(0);
+        c.mechanisms[0].safeMode = static_cast<cfgns::SafeBrakeMode>(0);
+        const std::string why = whyNot(c);
+        CHECK(why.find("port 2 is claimed by the LEFT drive and by a mechanism motor")
+              != std::string::npos);
+    }
+    SUBCASE("an EARLIER mechanism is unset and a LATER one collides") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[0].cartridge = static_cast<MotorCartridge>(0);
+        c.mechanisms[1].motorPorts[0] = 10;  // the IMU
+        const std::string why = whyNot(c);
+        CHECK(why.find("port 10") != std::string::npos);
+        CHECK(why.find("the IMU") != std::string::npos);
+    }
+    SUBCASE("a claw on a drive port is refused (the drive-port collision, with a claw's numbers)") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[1].motorPorts[0] = 4;  // RIGHT drive stores +4
+        const std::string why = whyNot(c);
+        CHECK(why.find("port 4") != std::string::npos);
+        CHECK(why.find("RIGHT drive") != std::string::npos);
+    }
+}
+
+TEST_CASE("T3 config 1m''': a mechanism name must be terminated inside its 24 bytes and unique — "
+          "the Robot borrows it as a C string and looks mechanisms up by it") {
+    SUBCASE("two mechanisms with one name") {
+        cfgns::RobotConfig c = tankWithClaws();
+        std::memcpy(c.mechanisms[1].name, "claw pivot 6", sizeof "claw pivot 6");
+        const std::string why = whyNot(c);
+        CHECK(why.find("mechanisms 0 and 1") != std::string::npos);
+        CHECK(why.find("'claw pivot 6'") != std::string::npos);
+    }
+    SUBCASE("the same name with different garbage after its NUL is still the same name") {
+        cfgns::RobotConfig c = tankWithClaws();
+        std::memset(c.mechanisms[0].name, 'x', sizeof c.mechanisms[0].name);
+        std::memset(c.mechanisms[1].name, 'y', sizeof c.mechanisms[1].name);
+        std::memcpy(c.mechanisms[0].name, "claw", sizeof "claw");
+        std::memcpy(c.mechanisms[1].name, "claw", sizeof "claw");
+        CHECK(whyNot(c).find("both named 'claw'") != std::string::npos);
+    }
+    SUBCASE("a prefix is a different name") {
+        cfgns::RobotConfig c = tankWithClaws();
+        std::memcpy(c.mechanisms[1].name, "claw pivot 66", sizeof "claw pivot 66");
+        CHECK(whyNot(c).empty());
+    }
+    SUBCASE("a pneumatic-only mechanism's name is checked too") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[2] = {.name = "claw pivot 7",
+                           .pneumaticPorts = {1},
+                           .pneumaticCount = 1,
+                           .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                           .pneumaticStart = cfgns::PneumaticLevel::Low};
+        c.mechanismCount = 3;
+        CHECK(whyNot(c).find("mechanisms 1 and 2") != std::string::npos);
+    }
+    SUBCASE("24 characters and no NUL") {
+        cfgns::RobotConfig c = tankWithClaws();
+        std::memset(c.mechanisms[1].name, 'z', sizeof c.mechanisms[1].name);
+        const std::string why = whyNot(c);
+        CHECK(why.find("mechanism 1's name has no NUL") != std::string::npos);
+        // 23 characters is the longest legal name.
+        std::memset(c.mechanisms[1].name, 'z', sizeof c.mechanisms[1].name - 1);
+        c.mechanisms[1].name[23] = '\0';
+        CHECK(whyNot(c).empty());
+    }
+}
+
+// ═══ 1n. What a BUILT pneumatic mechanism needs (T3's addendum B2) ════════════════════
+// Since B2, robot::Robot builds a hal::PneumaticMechanism from every mechanism with 3-wire lines,
+// making each line at its START level (on a brain, making a line DRIVES it) and declaring its SAFE
+// level. Both are therefore required, and "nobody wrote it" must never read as a level — least of
+// all as `false`, which is where a value-initialised bool would land, and which opens or closes a
+// claw depending on plumbing only the team knows.
+namespace {
+
+/// Robot two's claw pivots plus its pneumatic claw on 3-wire port A, starting CLOSED — here the
+/// line off, safe closed too. Every 1n case starts from this and breaks exactly one thing.
+cfgns::RobotConfig tankWithPneumaticClaw() {
+    cfgns::RobotConfig c = tankWithClaws();
+    c.mechanisms[2] = {.name = "claw",
+                       .pneumaticPorts = {1},
+                       .pneumaticCount = 1,
+                       .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                       .pneumaticStart = cfgns::PneumaticLevel::Low};
+    c.mechanismCount = 3;
+    return c;
+}
+
+}  // namespace
+
+TEST_CASE("B2 config 1n: the pneumatic claw config is valid, and a MechanismConfig nobody filled "
+          "in carries UNSET levels — never Low") {
+    CHECK(whyNot(tankWithPneumaticClaw()).empty());
+    const cfgns::MechanismConfig blank{};
+    CHECK(static_cast<int>(static_cast<std::uint8_t>(blank.pneumaticSafe)) == 0);
+    CHECK(static_cast<int>(static_cast<std::uint8_t>(blank.pneumaticStart)) == 0);
+    CHECK_FALSE(cfgns::isPneumaticLevel(blank.pneumaticSafe));
+    CHECK_FALSE(cfgns::isPneumaticLevel(blank.pneumaticStart));
+    CHECK(std::string{cfgns::pneumaticLevelWord(blank.pneumaticStart)} == "UNSET");
+    CHECK(std::string{cfgns::pneumaticLevelWord(cfgns::PneumaticLevel::Low)} == "low");
+    CHECK(std::string{cfgns::pneumaticLevelWord(cfgns::PneumaticLevel::High)} == "high");
+    CHECK(cfgns::isPneumaticLevel(cfgns::PneumaticLevel::Low));
+    CHECK(cfgns::isPneumaticLevel(cfgns::PneumaticLevel::High));
+    CHECK_FALSE(cfgns::isPneumaticLevel(static_cast<cfgns::PneumaticLevel>(3)));
+    // Exactly High is the line on; Low is the line off.
+    CHECK(cfgns::toLineValue(cfgns::PneumaticLevel::High));
+    CHECK_FALSE(cfgns::toLineValue(cfgns::PneumaticLevel::Low));
+}
+
+TEST_CASE("B2 config 1n': a mechanism WITH 3-wire lines must state its safe and start levels — "
+          "UNSET or unknown refused by name; all four pairs accepted") {
+    SUBCASE("an UNSET safe level") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticSafe = static_cast<cfgns::PneumaticLevel>(0);
+        const std::string why = whyNot(c);
+        CHECK(why.find("mechanism 'claw' pneumatic safe level byte 0") != std::string::npos);
+        CHECK(why.find("UNSET") != std::string::npos);
+    }
+    SUBCASE("an UNSET start level") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticStart = static_cast<cfgns::PneumaticLevel>(0);
+        const std::string why = whyNot(c);
+        CHECK(why.find("mechanism 'claw' pneumatic start level byte 0") != std::string::npos);
+        CHECK(why.find("DRIVES the line") != std::string::npos);
+    }
+    SUBCASE("level bytes nobody minted") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticSafe = static_cast<cfgns::PneumaticLevel>(3);
+        CHECK(whyNot(c).find("safe level byte 3") != std::string::npos);
+        c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticStart = static_cast<cfgns::PneumaticLevel>(200);
+        CHECK(whyNot(c).find("start level byte 200") != std::string::npos);
+    }
+    SUBCASE("a TWO-line mechanism is asked too") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticPorts[1] = 2;
+        c.mechanisms[2].pneumaticCount = 2;
+        CHECK(whyNot(c).empty());
+        c.mechanisms[2].pneumaticStart = static_cast<cfgns::PneumaticLevel>(0);
+        CHECK(whyNot(c).find("start level byte 0") != std::string::npos);
+    }
+    SUBCASE("each of the four real pairs is accepted") {
+        for (const auto safe : {cfgns::PneumaticLevel::Low, cfgns::PneumaticLevel::High}) {
+            for (const auto start : {cfgns::PneumaticLevel::Low, cfgns::PneumaticLevel::High}) {
+                cfgns::RobotConfig c = tankWithPneumaticClaw();
+                c.mechanisms[2].pneumaticSafe = safe;
+                c.mechanisms[2].pneumaticStart = start;
+                CHECK(c.valid());
+            }
+        }
+    }
+    SUBCASE("a mechanism with NO lines is not asked for levels (a motor one never was)") {
+        cfgns::RobotConfig c = tankWithClaws();
+        CHECK(static_cast<int>(static_cast<std::uint8_t>(c.mechanisms[0].pneumaticSafe)) == 0);
+        CHECK(whyNot(c).empty());
+    }
+}
+
+TEST_CASE("B2 config 1n'': a mechanism with motors AND 3-wire lines is refused by name — make them "
+          "two mechanisms") {
+    // BUG CAUGHT: a mixed entry accepted, which the Robot could only build as ONE of the two kinds
+    // (the other half silently dropped) — a claw pivot whose air never fires, or the reverse.
+    cfgns::RobotConfig c = tankWithClaws();
+    c.mechanisms[0].pneumaticPorts[0] = 1;
+    c.mechanisms[0].pneumaticCount = 1;
+    c.mechanisms[0].pneumaticSafe = cfgns::PneumaticLevel::Low;
+    c.mechanisms[0].pneumaticStart = cfgns::PneumaticLevel::Low;
+    const std::string why = whyNot(c);
+    CHECK(why.find("mechanism 'claw pivot 6' has 1 motors AND 1 3-wire lines") != std::string::npos);
+    CHECK(why.find("two mechanisms") != std::string::npos);
+    // Named for the MIX, not for anything else it lacks: with its levels unset as well, the mix
+    // is still what is reported (it is the structural problem, and the first one the pass meets).
+    c.mechanisms[0].pneumaticSafe = static_cast<cfgns::PneumaticLevel>(0);
+    CHECK(whyNot(c).find("AND 1 3-wire lines") != std::string::npos);
+}
+
+TEST_CASE("B2 config 1n''': a 3-wire line listed twice — by two mechanisms or by one — is refused, "
+          "naming the port letter; the line claims come before the level checks") {
+    // BUG CAUGHT: two mechanisms fanning to ONE solenoid (the provider hands both the same object:
+    // the claw opens when the other mechanism is told to), or a line typed twice in one entry.
+    SUBCASE("two mechanisms on port A") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[3] = {.name = "flap",
+                           .pneumaticPorts = {1},
+                           .pneumaticCount = 1,
+                           .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                           .pneumaticStart = cfgns::PneumaticLevel::Low};
+        c.mechanismCount = 4;
+        CHECK(whyNot(c) == "3-wire port A (line 1) is claimed by mechanism 'claw' and by mechanism "
+                           "'flap'");
+        c.mechanisms[3].pneumaticPorts[0] = 8;  // H: a different line is fine
+        CHECK(whyNot(c).empty());
+    }
+    SUBCASE("one mechanism listing a line twice") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticPorts[1] = 1;
+        c.mechanisms[2].pneumaticCount = 2;
+        CHECK(whyNot(c) == "mechanism 'claw' lists 3-wire port A (line 1) twice");
+    }
+    SUBCASE("the collision is reported even when an EARLIER mechanism's levels are unset") {
+        // BUG CAUGHT: the level checks placed in the claim pass, ahead of a later collision — a
+        // mis-wired config would be reported as "state the level", and the person would go and
+        // fix the wrong thing while two mechanisms still shared port A.
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[3] = {.name = "flap", .pneumaticPorts = {2}, .pneumaticCount = 1};  // unset
+        c.mechanisms[4] = {.name = "latch",
+                           .pneumaticPorts = {1},
+                           .pneumaticCount = 1,
+                           .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                           .pneumaticStart = cfgns::PneumaticLevel::Low};
+        c.mechanismCount = 5;
+        CHECK(whyNot(c) == "3-wire port A (line 1) is claimed by mechanism 'claw' and by mechanism "
+                           "'latch'");
+        c.mechanisms[4].pneumaticPorts[0] = 3;  // no collision left: now the unset level is named
+        CHECK(whyNot(c).find("mechanism 'flap' pneumatic safe level byte 0") != std::string::npos);
+    }
+    SUBCASE("a line entry past the count is not read") {
+        cfgns::RobotConfig c = tankWithPneumaticClaw();
+        c.mechanisms[2].pneumaticPorts[1] = 1;  // garbage beyond pneumaticCount = 1
+        CHECK(whyNot(c).empty());
+    }
 }

@@ -28,11 +28,13 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
 #include <vector>
 
+#include "mechanism_test_rig.hpp"
 #include "motion_test_rig.hpp"
 #include "shulib/config/robot_config.hpp"
 #include "shulib/diag/fault.hpp"
@@ -1486,4 +1488,781 @@ TEST_CASE("G1 2a builder A7: driveOdometry() is the Localizer's drive-encoder od
         shulib::kinematics::xDrive(Length{kDriveRadius});
     BuiltRobot x{xdriveConfig(false), xkin, worldConfig()};
     CHECK(x.robot.driveOdometry() == nullptr);
+}
+
+// ═══════════════════ T3 — mechanisms built from the config (brief test 14) ═══════════════════
+// The builder half of the claws: robot::Robot turns each MechanismConfig with motors into ONE
+// hal::MotorMechanism, asks for its motors with the MECHANISM's cartridge, names it, exposes it by
+// name and as the span an end-of-run guard walks — and a motor the provider will not make leaves
+// THAT mechanism absent, never the robot. The drive must not notice any of it.
+namespace {
+
+constexpr std::int8_t kClaw6 = 6;
+constexpr std::int8_t kClaw7 = -7;  // stored NEGATIVE: the sign must reach the provider as is
+
+/// Robot two's shape for this file: the five-per-side drive-encoder tank, plus two separate RED
+/// claw pivots on 6 and 7 with Hold as their declared safe state.
+cfgns::RobotConfig tankWithClaws() {
+    cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+    c.mechanisms[0] = {.name = "claw pivot 6",
+                       .motorPorts = {kClaw6},
+                       .motorCount = 1,
+                       .cartridge = MotorCartridge::Red,
+                       .safeMode = cfgns::SafeBrakeMode::Hold};
+    c.mechanisms[1] = {.name = "claw pivot 7",
+                       .motorPorts = {kClaw7},
+                       .motorCount = 1,
+                       .cartridge = MotorCartridge::Red,
+                       .safeMode = cfgns::SafeBrakeMode::Hold};
+    c.mechanismCount = 2;
+    return c;
+}
+
+/// The report contract every Robot keeps (B2 review round 1, finding 3), over every index a boot
+/// or panel line could ask for AND past the slot storage: `builtMechanismAt(i)` is non-null
+/// EXACTLY when `mechanismAbsence(i)` is empty — a built mechanism of either kind, and nothing
+/// else — and when it is non-null it IS the typed lookup's object, the motor one or the pneumatic
+/// one, never both. An index not below the declared count finds nothing and says so. (Asking
+/// past the storage is safe only because every accessor goes through ONE bound; with that bound
+/// removed, index `mechanismCount()` — still inside the array — already fails the sentence check,
+/// so the loss is seen without relying on a read past the array.)
+void checkReportContract(const shulib::robot::Robot& r) {
+    for (std::size_t i = 0; i <= cfgns::kMaxMechanisms + 1; ++i) {
+        CAPTURE(i);
+        const shulib::hal::IMechanism* built = r.builtMechanismAt(i);
+        const std::string why{r.mechanismAbsence(i)};
+        CHECK((built != nullptr) == why.empty());
+        const shulib::hal::IMechanism* motor = r.mechanismAt(i);
+        const shulib::hal::IMechanism* air = r.pneumaticMechanismAt(i);
+        CHECK((motor == nullptr || air == nullptr));
+        CHECK(built == (motor != nullptr ? motor : air));
+        if (i >= r.mechanismCount()) {
+            CHECK(built == nullptr);
+            CHECK(why == "no mechanism is declared at this index");
+        }
+    }
+}
+
+}  // namespace
+
+TEST_CASE("T3 builder M1: validate() checks a mechanism's CONFIG but never asks for its motors — "
+          "and refuses a claw on a drive port before any device is asked for") {
+    // BUG CAUGHT: validate() asking for mechanism motors (a refused claw would then refuse the
+    // whole robot); a claw sharing a drive port reaching the provider with its RED cartridge
+    // (the on-robot provider treats that as a precondition — it throws on the brain).
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    SUBCASE("a good claw config: valid, and ports 6 and 7 not asked for by validate()") {
+        const cfgns::RobotConfig c = tankWithClaws();
+        PlantWorld world{kin, worldConfig()};
+        world.wire(c);
+        const shulib::robot::BuildVerdict v = shulib::robot::validate(c, world.devices);
+        CHECK(v.ok);
+        CHECK(world.devices.motorRequestCount(6) == 0);
+        CHECK(world.devices.motorRequestCount(7) == 0);
+    }
+    SUBCASE("a claw on the LEFT drive's port 3: refused, naming both owners, nothing asked for") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.mechanisms[0].motorPorts[0] = -3;
+        PlantWorld world{kin, worldConfig()};
+        world.wire(c);
+        const shulib::robot::BuildVerdict v = shulib::robot::validate(c, world.devices);
+        CHECK_FALSE(v.ok);
+        const std::string why{v.why};
+        CHECK(why.find("port 3") != std::string::npos);
+        CHECK(why.find("LEFT drive") != std::string::npos);
+        CHECK(why.find("mechanism motor") != std::string::npos);
+        for (std::uint8_t p = 1; p <= 21; ++p) {
+            CHECK(world.devices.motorRequestCount(p) == 0);
+        }
+        CHECK_THROWS_AS(shulib::robot::Robot(c, world.devices), shulib::PreconditionError);
+    }
+    SUBCASE("a claw on a tracking-wheel port (a pods robot uses 6 and 7 for its pods)") {
+        cfgns::RobotConfig c = tankWithClaws();
+        c.odometry = tankConfig(5, cfgns::OdometryKind::TrackingWheels).odometry;
+        PlantWorld world{kin, worldConfig()};
+        const shulib::robot::BuildVerdict v = shulib::robot::validate(c, world.devices);
+        CHECK_FALSE(v.ok);
+        CHECK(std::string{v.why}.find("tracking wheel") != std::string::npos);
+    }
+    SUBCASE("an UNSET cartridge or safe mode is refused before any device is asked for") {
+        for (const bool cartridge : {true, false}) {
+            CAPTURE(cartridge);
+            cfgns::RobotConfig c = tankWithClaws();
+            if (cartridge) {
+                c.mechanisms[1].cartridge = static_cast<MotorCartridge>(0);
+            } else {
+                c.mechanisms[1].safeMode = static_cast<cfgns::SafeBrakeMode>(0);
+            }
+            PlantWorld world{kin, worldConfig()};
+            const shulib::robot::BuildVerdict v = shulib::robot::validate(c, world.devices);
+            CHECK_FALSE(v.ok);
+            const std::string why{v.why};
+            CHECK(why.find("'claw pivot 7'") != std::string::npos);
+            CHECK(why.find(cartridge ? "cartridge" : "safe brake mode") != std::string::npos);
+            for (std::uint8_t p = 1; p <= 21; ++p) {
+                CHECK(world.devices.motorRequestCount(p) == 0);
+            }
+        }
+    }
+}
+
+TEST_CASE("T3 builder M2: the Robot builds TWO single-motor mechanisms, names them from its OWN "
+          "copy of the config, asks with each one's RED cartridge and stored sign, declares Hold, "
+          "and commands nothing") {
+    // BUG CAUGHT: one two-motor mechanism for two claws (both would move on R1); the DRIVE's
+    // cartridge handed to a claw (BLUE gearing on a RED motor — a silent 6x speed error); a sign
+    // dropped; a name borrowed from the caller's config (dangling when the caller's copy dies);
+    // Coast as the safe mode; a builder that writes a motor while constructing.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    cfgns::RobotConfig c = tankWithClaws();
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    mech_rig::RecordingMotor six;
+    mech_rig::RecordingMotor seven;
+    world.devices.bindMotor(6, six);
+    world.devices.bindMotor(7, seven);
+    shulib::robot::Robot robot{c, world.devices};
+    c.mechanisms[0].name[0] = 'X';  // the caller's copy changes; the Robot's must not
+
+    REQUIRE(robot.mechanismCount() == 2);
+    shulib::hal::MotorMechanism* m6 = robot.mechanismAt(0);
+    shulib::hal::MotorMechanism* m7 = robot.mechanismAt(1);
+    REQUIRE(m6 != nullptr);
+    REQUIRE(m7 != nullptr);
+    CHECK(m6 != m7);
+    CHECK(std::string{m6->name()} == "claw pivot 6");
+    CHECK(std::string{m7->name()} == "claw pivot 7");
+    CHECK(m6->name() == robot.config().mechanisms[0].name);  // borrowed from the ROBOT's copy
+    CHECK(robot.mechanism("claw pivot 6") == m6);
+    CHECK(robot.mechanism("claw pivot 7") == m7);
+    CHECK(m6->safeBrakeMode() == shulib::hal::BrakeMode::Hold);
+    CHECK(m7->safeBrakeMode() == shulib::hal::BrakeMode::Hold);
+    REQUIRE(m6->motors().size() == 1U);
+    REQUIRE(m7->motors().size() == 1U);
+    CHECK(m6->motors()[0] == &six);
+    CHECK(m7->motors()[0] == &seven);
+    CHECK(robot.mechanismAbsence(0)[0] == '\0');
+    CHECK(robot.mechanismAbsence(1)[0] == '\0');
+    // The cartridge and the sign that reached the provider are the MECHANISM's.
+    CHECK(world.devices.motorCartridge(6) == MotorCartridge::Red);
+    CHECK(world.devices.motorCartridge(7) == MotorCartridge::Red);
+    CHECK(world.devices.motorCartridge(1) == MotorCartridge::Blue);  // the drive keeps its own
+    CHECK(world.devices.motorSignedPort(6) == kClaw6);
+    CHECK(world.devices.motorSignedPort(7) == kClaw7);
+    CHECK(world.devices.motorRequestCount(6) == 1);
+    CHECK(world.devices.motorRequestCount(7) == 1);
+    // The end-of-run guard's span: both, in config order, as the same objects.
+    const std::span<shulib::hal::IMechanism* const> all = robot.mechanisms();
+    REQUIRE(all.size() == 2U);
+    CHECK(all[0] == static_cast<shulib::hal::IMechanism*>(m6));
+    CHECK(all[1] == static_cast<shulib::hal::IMechanism*>(m7));
+    // Built, not commanded.
+    CHECK(six.eventCount() == 0);
+    CHECK(seven.eventCount() == 0);
+    // Two mechanisms, not one: commanding 6 does not reach 7.
+    m6->setVoltage(shulib::units::Voltage{12.0});
+    CHECK(six.eventCount() == 1);
+    CHECK(seven.eventCount() == 0);
+    // Lookups that must find nothing.
+    CHECK(robot.mechanism("claw pivot") == nullptr);  // a prefix is not the name
+    CHECK(robot.mechanism("Xlaw pivot 6") == nullptr);
+    CHECK(robot.mechanism(nullptr) == nullptr);
+    CHECK(robot.mechanismAt(2) == nullptr);
+    CHECK(robot.builtMechanismAt(2) == nullptr);
+    // The first index past the declared count is still INSIDE the slot array, so a lost bound is
+    // seen here as a wrong answer ("" instead of the sentence) — before the index-99 probe below,
+    // which without the bound would be a read past the array (undefined behaviour, not a test).
+    CHECK(std::string{robot.mechanismAbsence(2)} == "no mechanism is declared at this index");
+    CHECK(std::string{robot.mechanismAbsence(99)} == "no mechanism is declared at this index");
+    // The kind-neutral question finds both, as the same objects.
+    CHECK(robot.builtMechanismAt(0) == static_cast<shulib::hal::IMechanism*>(m6));
+    CHECK(robot.builtMechanismAt(1) == static_cast<shulib::hal::IMechanism*>(m7));
+    const shulib::robot::Robot& constRobot = robot;
+    CHECK(constRobot.mechanism("claw pivot 7") == m7);
+    CHECK(constRobot.mechanismAt(0) == m6);
+    checkReportContract(robot);
+}
+
+TEST_CASE("T3 builder M3: a claw motor the provider refuses leaves THAT mechanism ABSENT with the "
+          "provider's sentence — the robot still builds and drives, bit-identically") {
+    // BUG CAUGHT: an unplugged claw refusing the whole robot (the driver loses the drive for a
+    // claw); an absent mechanism left in the guard's span (a null or a half-built object to make
+    // safe); an absent mechanism with an empty reason; a drive graph perturbed by the refusal.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankWithClaws();
+
+    LonghandTank longhand{kin, 5, cfgns::OdometryKind::DriveEncoders, worldConfig()};
+    const Trace a = runLeg(*longhand.chassis, longhand.pacer, kStart, kTankTarget);
+
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    world.devices.refusePort(7);
+    REQUIRE(shulib::robot::validate(c, world.devices).ok);
+    std::optional<shulib::robot::Robot> robot;
+    REQUIRE_NOTHROW(robot.emplace(c, world.devices));
+    CHECK(robot->mechanismAt(0) != nullptr);
+    CHECK(robot->mechanismAt(1) == nullptr);
+    CHECK(robot->mechanism("claw pivot 7") == nullptr);
+    const std::string why{robot->mechanismAbsence(1)};
+    CHECK(why.find("port 7") != std::string::npos);  // the provider's own sentence
+    CHECK(why == "port 7 has no motor");
+    REQUIRE(robot->mechanisms().size() == 1U);
+    CHECK(robot->mechanisms()[0] == static_cast<shulib::hal::IMechanism*>(robot->mechanismAt(0)));
+    CHECK(robot->builtMechanismAt(1) == nullptr);  // absent to the kind-neutral question too
+    checkReportContract(*robot);
+    CHECK(world.devices.motorRequestCount(7) == 1);  // asked once, by the Robot, not by validate()
+
+    const Trace b = runLeg(robot->chassis(), world.pacer, kStart, kTankTarget);
+    REQUIRE(a.exit == ExitReason::Settled);
+    requireIdentical(a, b);
+
+    SUBCASE("a two-motor mechanism whose SECOND motor is refused is absent as a whole") {
+        cfgns::RobotConfig lift = tankWithClaws();
+        lift.mechanisms[1] = {.name = "lift",
+                              .motorPorts = {16, -17},
+                              .motorCount = 2,
+                              .cartridge = MotorCartridge::Green,
+                              .safeMode = cfgns::SafeBrakeMode::Hold};
+        PlantWorld w2{kin, worldConfig()};
+        w2.wire(lift);
+        w2.devices.refusePort(17);
+        const shulib::robot::Robot r{lift, w2.devices};
+        CHECK(r.mechanismAt(1) == nullptr);
+        CHECK(std::string{r.mechanismAbsence(1)}.find("port 17") != std::string::npos);
+        CHECK(w2.devices.motorRequestCount(16) == 1);  // the first was made, then left unused
+    }
+    SUBCASE("a mechanism with neither motors nor lines is reported as not built, and is not in "
+            "the span") {
+        // (Until T3's addendum B2 this subcase was a pneumatic-only mechanism, reported "not
+        // built"; since B2 that one IS built — builder P1 — and the empty mechanism is the case
+        // left with nothing to build.)
+        cfgns::RobotConfig air = tankWithClaws();
+        air.mechanisms[2] = {.name = "placeholder"};
+        air.mechanismCount = 3;
+        PlantWorld w3{kin, worldConfig()};
+        w3.wire(air);
+        shulib::robot::Robot r{air, w3.devices};
+        CHECK(r.mechanismCount() == 3);
+        CHECK(r.mechanismAt(2) == nullptr);
+        CHECK(r.pneumaticMechanismAt(2) == nullptr);
+        CHECK(std::string{r.mechanismAbsence(2)}
+              == "no motors and no 3-wire lines -- nothing to build");
+        CHECK(r.builtMechanismAt(2) == nullptr);
+        CHECK(r.mechanisms().size() == 2U);
+        checkReportContract(r);
+    }
+}
+
+TEST_CASE("T3 builder M4: a tank WITH claws configured drives the plant bit-identically to the "
+          "hand-wired graph that has none — the mechanisms are invisible to the drive") {
+    // BUG CAUGHT: mechanism construction moved ahead of the drive graph (a different provider
+    // request order, a different member layout feeding the same objects), or a claw motor wired
+    // into a drive group. The no-mechanism pins (5, 5b, 5c, 5d, A2) are unchanged and still run.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    LonghandTank longhand{kin, 5, cfgns::OdometryKind::DriveEncoders, worldConfig()};
+    const Trace a = runLeg(*longhand.chassis, longhand.pacer, kStart, kTankTarget);
+    BuiltRobot built{tankWithClaws(), kin, worldConfig()};
+    const Trace b = runLeg(built.robot.chassis(), built.world.pacer, kStart, kTankTarget);
+    REQUIRE(a.exit == ExitReason::Settled);
+    REQUIRE(a.ticks > 50);
+    requireIdentical(a, b);
+    CHECK(built.robot.mechanisms().size() == 2U);
+    CHECK(built.robot.motorGroupCount() == 2);
+}
+
+TEST_CASE("T3 builder M5: a provider that refuses a claw motor WITHOUT a reason still leaves a "
+          "reason; indices past the declared mechanisms find nothing") {
+    // BUG CAUGHT: an ABSENT mechanism reported with an empty sentence (a boot line reading
+    // "claw pivot 7 ABSENT: " tells nobody anything); an accessor that indexes the slot array with
+    // any number it is handed (index 99 reads past eight slots).
+    struct SilentRefusal final : shulib::hal::IDeviceProvider {
+        explicit SilentRefusal(FakeDeviceProvider& in) : inner{&in} {}
+        FakeDeviceProvider* inner;
+        [[nodiscard]] IMotor* motor(std::int8_t p, MotorCartridge c) override {
+            return DrivetrainDescription::portMagnitude(p) == 7 ? nullptr : inner->motor(p, c);
+        }
+        [[nodiscard]] shulib::hal::IImu* imu(std::uint8_t p) override { return inner->imu(p); }
+        [[nodiscard]] shulib::hal::IGps* gps(std::uint8_t p, Length f, Length l) override {
+            return inner->gps(p, f, l);
+        }
+        [[nodiscard]] shulib::hal::IRotation* rotation(std::uint8_t p) override {
+            return inner->rotation(p);
+        }
+        [[nodiscard]] shulib::hal::IDigitalOut* digitalOut(std::uint8_t line, bool initial) override {
+            return inner->digitalOut(line, initial);
+        }
+        [[nodiscard]] shulib::hal::IClock& clock() override { return inner->clock(); }
+        [[nodiscard]] shulib::hal::IBattery& battery() override { return inner->battery(); }
+        [[nodiscard]] shulib::hal::ITelemetrySink& telemetry() override {
+            return inner->telemetry();
+        }
+        [[nodiscard]] shulib::motion::ITickPacer& pacer() override { return inner->pacer(); }
+        [[nodiscard]] const char* lastRefusal() const noexcept override { return ""; }
+    };
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankWithClaws();
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    SilentRefusal silent{world.devices};
+    shulib::robot::Robot robot{c, silent};
+    CHECK(robot.mechanismAt(1) == nullptr);
+    CHECK(std::string{robot.mechanismAbsence(1)}
+          == "the device provider refused a motor and gave no reason");
+    CHECK(robot.mechanismAt(0) != nullptr);
+    CHECK(std::string{robot.mechanismAbsence(0)}.empty());
+    // Past the declared count, and past the slot array itself: nothing, no read past it, and a
+    // sentence rather than the empty string that means "built" (B2 review round 1, finding 3).
+    for (const std::size_t i : {std::size_t{2}, std::size_t{7}, std::size_t{8}, std::size_t{99}}) {
+        CAPTURE(i);
+        CHECK(robot.mechanismAt(i) == nullptr);
+        CHECK(robot.builtMechanismAt(i) == nullptr);
+        CHECK(std::string{robot.mechanismAbsence(i)} == "no mechanism is declared at this index");
+    }
+    checkReportContract(robot);
+}
+
+TEST_CASE("T3 builder M6: each mechanism is built with ITS OWN declared safe mode — Coast, Brake "
+          "and Hold side by side — and with EVERY one of its motors") {
+    // BUG CAUGHT (review round 1; both mutants SURVIVED every earlier case, because every
+    // mechanism built above declares Hold and has one motor): a Robot that ignores the declared
+    // safe mode and builds Hold for everything (an intake declared Coast would sit at stall
+    // current when jammed, the mechanism.hpp banner's own warning); a two-motor mechanism built
+    // over its FIRST motor only (a config-built lift or intake would drive one motor and leave
+    // its partner on the same shaft undriven).
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    cfgns::RobotConfig c = tankConfig(5, cfgns::OdometryKind::DriveEncoders);
+    c.mechanisms[0] = {.name = "intake",
+                       .motorPorts = {16, -17},
+                       .motorCount = 2,
+                       .cartridge = MotorCartridge::Green,
+                       .safeMode = cfgns::SafeBrakeMode::Coast};
+    c.mechanisms[1] = {.name = "arm",
+                       .motorPorts = {18},
+                       .motorCount = 1,
+                       .cartridge = MotorCartridge::Red,
+                       .safeMode = cfgns::SafeBrakeMode::Brake};
+    c.mechanisms[2] = {.name = "claw",
+                       .motorPorts = {-19},
+                       .motorCount = 1,
+                       .cartridge = MotorCartridge::Red,
+                       .safeMode = cfgns::SafeBrakeMode::Hold};
+    c.mechanismCount = 3;
+    REQUIRE(c.valid(nullptr, 0));
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    mech_rig::RecordingMotor m16;
+    mech_rig::RecordingMotor m17;
+    mech_rig::RecordingMotor m18;
+    mech_rig::RecordingMotor m19;
+    world.devices.bindMotor(16, m16);
+    world.devices.bindMotor(17, m17);
+    world.devices.bindMotor(18, m18);
+    world.devices.bindMotor(19, m19);
+    shulib::robot::Robot robot{c, world.devices};
+
+    shulib::hal::MotorMechanism* intake = robot.mechanism("intake");
+    shulib::hal::MotorMechanism* arm = robot.mechanism("arm");
+    shulib::hal::MotorMechanism* claw = robot.mechanism("claw");
+    REQUIRE(intake != nullptr);
+    REQUIRE(arm != nullptr);
+    REQUIRE(claw != nullptr);
+    CHECK(robot.mechanisms().size() == 3U);
+
+    // Each one's declared mode, not one mode for all.
+    CHECK(intake->safeBrakeMode() == shulib::hal::BrakeMode::Coast);
+    CHECK(arm->safeBrakeMode() == shulib::hal::BrakeMode::Brake);
+    CHECK(claw->safeBrakeMode() == shulib::hal::BrakeMode::Hold);
+
+    // The intake is BOTH of its motors, in config order, each asked for with its own sign.
+    REQUIRE(intake->motors().size() == 2U);
+    CHECK(intake->motors()[0] == &m16);
+    CHECK(intake->motors()[1] == &m17);
+    CHECK(world.devices.motorSignedPort(16) == 16);
+    CHECK(world.devices.motorSignedPort(17) == -17);
+    CHECK(world.devices.motorCartridge(16) == MotorCartridge::Green);
+    CHECK(world.devices.motorCartridge(17) == MotorCartridge::Green);
+    CHECK(world.devices.motorSignedPort(19) == -19);
+    REQUIRE(arm->motors().size() == 1U);
+    REQUIRE(claw->motors().size() == 1U);
+
+    // One command reaches both intake motors — and nothing else.
+    intake->setVoltage(shulib::units::Voltage{6.0});
+    REQUIRE(m16.eventCount() == 1);
+    REQUIRE(m17.eventCount() == 1);
+    CHECK(m16.events()[0].kind == mech_rig::RecordingMotor::Event::Kind::Voltage);
+    CHECK(m16.events()[0].volts == 6.0);
+    CHECK(m17.events()[0].volts == 6.0);
+    CHECK(m18.eventCount() == 0);
+    CHECK(m19.eventCount() == 0);
+
+    // The safe state, at the MOTORS: each mechanism's own mode first, then 0 V — on every motor.
+    using Kind = mech_rig::RecordingMotor::Event::Kind;
+    const auto safeWith = [](const mech_rig::RecordingMotor& m, shulib::hal::BrakeMode mode) {
+        const auto& ev = m.events();
+        return ev.size() >= 2 && ev[ev.size() - 2].kind == Kind::Brake
+               && ev[ev.size() - 2].mode == mode && ev.back().kind == Kind::Voltage
+               && ev.back().volts == 0.0;
+    };
+    intake->applySafeState();
+    arm->applySafeState();
+    claw->applySafeState();
+    CHECK(safeWith(m16, shulib::hal::BrakeMode::Coast));
+    CHECK(safeWith(m17, shulib::hal::BrakeMode::Coast));
+    CHECK(safeWith(m18, shulib::hal::BrakeMode::Brake));
+    CHECK(safeWith(m19, shulib::hal::BrakeMode::Hold));
+}
+
+// ═══════════════ T3's addendum B2 — the pneumatic claw built from the config ═══════════════
+// The builder half of the claw on 3-wire port A: robot::Robot turns each MechanismConfig with
+// 3-wire lines into ONE hal::PneumaticMechanism, asks the provider for each line at the config's
+// START level (making a line DRIVES it — HA-119 — and the fake provider does exactly that, once),
+// declares its SAFE level, names it, exposes it by name and in the guard's span — and a line the
+// provider will not make leaves THAT mechanism absent, never the robot. The drive must not notice.
+namespace {
+
+/// A 3-wire line that records EVERY level it is driven to, in order.
+class RecordingLine final : public shulib::hal::IDigitalOut {
+public:
+    void set(bool value) override {
+        writes.push_back(value);
+        level = value;
+    }
+    [[nodiscard]] bool commanded() const override { return level; }
+    std::vector<bool> writes;
+    bool level = false;
+};
+
+/// tankWithClaws() plus a pneumatic claw on 3-wire port A that STARTS High and is SAFE Low — two
+/// different levels on purpose, so a builder that swapped them, or made the line at a default,
+/// cannot pass.
+cfgns::RobotConfig tankWithAirClaw() {
+    cfgns::RobotConfig c = tankWithClaws();
+    c.mechanisms[2] = {.name = "claw",
+                       .pneumaticPorts = {1},
+                       .pneumaticCount = 1,
+                       .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                       .pneumaticStart = cfgns::PneumaticLevel::High};
+    c.mechanismCount = 3;
+    return c;
+}
+
+}  // namespace
+
+TEST_CASE("B2 builder FP1: the fake provider's digital out — the same line is the SAME object, "
+          "DRIVEN once at the stated level when made and never again; out of range and refused "
+          "lines are refused by name") {
+    // BUG CAUGHT: a provider that makes a fresh line per request (half the graph on an object
+    // nobody commands); one that re-drives the line on every request (the claw snaps back to its
+    // boot level whenever anything asks for it again); one that never drives it at all (a host
+    // test would then pass a builder that states no boot level); a letter byte translated.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    PlantWorld world{kin, worldConfig()};
+    FakeDeviceProvider& d = world.devices;
+    shulib::hal::IDigitalOut* a = d.digitalOut(1, true);
+    REQUIRE(a != nullptr);
+    CHECK(a == &d.fakeDigitalOut(1));
+    CHECK(d.fakeDigitalOut(1).setCount() == 1);  // made = driven, once
+    CHECK(a->commanded());
+    CHECK(d.digitalOutMade(1));
+    CHECK(d.digitalOutInitialState(1));
+    a->set(false);
+    CHECK(d.digitalOut(1, true) == a);            // the same object…
+    CHECK(d.fakeDigitalOut(1).setCount() == 2);   // …and NOT driven again
+    CHECK_FALSE(a->commanded());
+    CHECK(d.digitalOutRequestCount(1) == 2);
+    CHECK_THROWS_AS((void)d.digitalOut(1, false), shulib::PreconditionError);
+    // Another line is another object, made at ITS level.
+    shulib::hal::IDigitalOut* h = d.digitalOut(8, false);
+    REQUIRE(h != nullptr);
+    CHECK(h != a);
+    CHECK(d.fakeDigitalOut(8).setCount() == 1);
+    CHECK_FALSE(d.digitalOutInitialState(8));
+    // Out of range, by number — 'A' (65) included: one spelling at the seam.
+    for (const int bad : {0, 9, 65, 255}) {
+        CAPTURE(bad);
+        CHECK(d.digitalOut(static_cast<std::uint8_t>(bad), true) == nullptr);
+        CHECK(std::string{d.lastRefusal()}
+              == "3-wire port " + std::to_string(bad)
+                     + " is not a brain 3-wire port (1..8 are A..H)");
+    }
+    CHECK(d.fakeDigitalOut(1).setCount() == 2);  // the letter did not reach line 1
+    // A refused line: counted, refused by letter, never made, never driven.
+    d.refuseLine(3);
+    CHECK(d.digitalOut(3, true) == nullptr);
+    CHECK(std::string{d.lastRefusal()} == "3-wire port C (line 3) has no digital out");
+    CHECK(d.digitalOutRequestCount(3) == 1);
+    CHECK_FALSE(d.digitalOutMade(3));
+    CHECK(d.fakeDigitalOut(3).setCount() == 0);
+    d.allowLine(3);
+    CHECK(d.digitalOut(3, true) != nullptr);
+    // A bound line is the one served — and it is driven when made, like any other.
+    RecordingLine mine;
+    d.bindDigitalOut(5, mine);
+    CHECK(d.digitalOut(5, false) == &mine);
+    CHECK(mine.writes == std::vector<bool>{false});
+}
+
+TEST_CASE("B2 builder P1: the Robot builds and NAMES the pneumatic claw — one PneumaticMechanism "
+          "over its line, made at the START level, safe at the SAFE level, found by "
+          "pneumaticMechanism(), in the guard's span — and the drive is bit-identical") {
+    // BUG CAUGHT: the line made at the SAFE level or at a default (the claw opens or closes at boot
+    // on a level nobody stated); the safe level taken from the start level; a name borrowed from
+    // the caller's config; the claw left out of the guard's span (an end-of-run guard could not
+    // stop it); the motor lookup handing back a pneumatic mechanism; validate() asking for the line
+    // (asking DRIVES it); a claw that perturbs the drive.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    cfgns::RobotConfig c = tankWithAirClaw();
+    {
+        PlantWorld probe{kin, worldConfig()};
+        probe.wire(c);
+        REQUIRE(shulib::robot::validate(c, probe.devices).ok);
+        CHECK(probe.devices.digitalOutRequestCount(1) == 0);  // validate() never asks for a line
+    }
+    LonghandTank longhand{kin, 5, cfgns::OdometryKind::DriveEncoders, worldConfig()};
+    const Trace a = runLeg(*longhand.chassis, longhand.pacer, kStart, kTankTarget);
+
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    RecordingLine lineA;
+    world.devices.bindDigitalOut(1, lineA);
+    std::optional<shulib::robot::Robot> robot;
+    robot.emplace(c, world.devices);
+    c.mechanisms[2].name[0] = 'X';  // the caller's copy changes; the Robot's must not
+
+    // Made at START (High) — exactly once, and nothing else was put on the line.
+    CHECK(lineA.writes == std::vector<bool>{true});
+    CHECK(world.devices.digitalOutRequestCount(1) == 1);
+    CHECK(world.devices.digitalOutInitialState(1));
+
+    shulib::hal::PneumaticMechanism* claw = robot->pneumaticMechanism("claw");
+    REQUIRE(claw != nullptr);
+    CHECK(std::string{claw->name()} == "claw");
+    CHECK(claw->name() == robot->config().mechanisms[2].name);  // borrowed from the ROBOT's copy
+    CHECK(claw->safeCommand() == false);                        // SAFE is Low, not START's High
+    REQUIRE(claw->lines().size() == 1U);
+    CHECK(claw->lines()[0] == &lineA);
+    CHECK(robot->pneumaticMechanismAt(2) == claw);
+    CHECK(robot->mechanismAt(2) == nullptr);           // the MOTOR lookup does not hand it out
+    CHECK(robot->mechanism("claw") == nullptr);
+    CHECK(robot->pneumaticMechanism("claw pivot 6") == nullptr);  // and the reverse
+    CHECK(robot->pneumaticMechanismAt(0) == nullptr);
+    CHECK(robot->mechanism("claw pivot 6") != nullptr);
+    CHECK(std::string{robot->mechanismAbsence(2)}.empty());
+    // The kind-neutral question — the one a boot line asks — finds the claw: the typed motor
+    // lookup's nullptr above is NOT "absent" (B2 review round 1, finding 3).
+    CHECK(robot->builtMechanismAt(2) == static_cast<shulib::hal::IMechanism*>(claw));
+    CHECK(robot->pneumaticMechanism("Xlaw") == nullptr);
+    CHECK(robot->pneumaticMechanism(nullptr) == nullptr);
+    CHECK(robot->pneumaticMechanismAt(3) == nullptr);
+    // Inside the slot array, so a lost bound shows here, before the index-99 probe (see M2).
+    CHECK(std::string{robot->mechanismAbsence(3)} == "no mechanism is declared at this index");
+    CHECK(robot->pneumaticMechanismAt(99) == nullptr);
+    const shulib::robot::Robot& constRobot = *robot;
+    CHECK(constRobot.pneumaticMechanism("claw") == claw);
+    CHECK(constRobot.pneumaticMechanismAt(2) == claw);
+    CHECK(constRobot.builtMechanismAt(2) == static_cast<const shulib::hal::IMechanism*>(claw));
+    checkReportContract(constRobot);
+    // The guard's span: both pivots, then the claw, in config order.
+    const std::span<shulib::hal::IMechanism* const> all = robot->mechanisms();
+    REQUIRE(all.size() == 3U);
+    CHECK(all[0] == static_cast<shulib::hal::IMechanism*>(robot->mechanismAt(0)));
+    CHECK(all[1] == static_cast<shulib::hal::IMechanism*>(robot->mechanismAt(1)));
+    CHECK(all[2] == static_cast<shulib::hal::IMechanism*>(claw));
+    // Through the span, the guard's one capability lands the SAFE level on the line.
+    all[2]->applySafeState();
+    CHECK(lineA.writes == (std::vector<bool>{true, false}));
+    claw->set(true);
+    CHECK(lineA.writes.back());
+
+    const Trace b = runLeg(robot->chassis(), world.pacer, kStart, kTankTarget);
+    REQUIRE(a.exit == ExitReason::Settled);
+    requireIdentical(a, b);
+    CHECK(lineA.writes.size() == 3U);  // driving the robot put nothing on the claw
+
+    SUBCASE("a TWO-line mechanism: both lines, in config order, each made at the start level") {
+        cfgns::RobotConfig two = tankWithClaws();
+        two.mechanisms[2] = {.name = "clamp",
+                             .pneumaticPorts = {5, 3},
+                             .pneumaticCount = 2,
+                             .pneumaticSafe = cfgns::PneumaticLevel::High,
+                             .pneumaticStart = cfgns::PneumaticLevel::Low};
+        two.mechanismCount = 3;
+        PlantWorld w2{kin, worldConfig()};
+        w2.wire(two);
+        RecordingLine e;
+        RecordingLine cLine;
+        w2.devices.bindDigitalOut(5, e);
+        w2.devices.bindDigitalOut(3, cLine);
+        const shulib::robot::Robot r{two, w2.devices};
+        const shulib::hal::PneumaticMechanism* clamp = r.pneumaticMechanism("clamp");
+        REQUIRE(clamp != nullptr);
+        REQUIRE(clamp->lines().size() == 2U);
+        CHECK(clamp->lines()[0] == &e);
+        CHECK(clamp->lines()[1] == &cLine);
+        CHECK(e.writes == std::vector<bool>{false});
+        CHECK(cLine.writes == std::vector<bool>{false});
+        CHECK(clamp->safeCommand());
+    }
+}
+
+TEST_CASE("B2 builder P2: a 3-wire line the provider refuses leaves THAT mechanism ABSENT with the "
+          "provider's sentence — the robot still builds and drives, bit-identically") {
+    // BUG CAUGHT: a refused line refusing the whole robot (the driver loses the drive for a claw);
+    // an absent claw left in the guard's span; an absent claw with an empty reason; a claw built
+    // over the lines that WERE made (a two-valve clamp firing half its cylinders).
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankWithAirClaw();
+    LonghandTank longhand{kin, 5, cfgns::OdometryKind::DriveEncoders, worldConfig()};
+    const Trace a = runLeg(*longhand.chassis, longhand.pacer, kStart, kTankTarget);
+
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    world.devices.refuseLine(1);
+    REQUIRE(shulib::robot::validate(c, world.devices).ok);
+    std::optional<shulib::robot::Robot> robot;
+    REQUIRE_NOTHROW(robot.emplace(c, world.devices));
+    CHECK(robot->pneumaticMechanismAt(2) == nullptr);
+    CHECK(robot->pneumaticMechanism("claw") == nullptr);
+    CHECK(std::string{robot->mechanismAbsence(2)} == "3-wire port A (line 1) has no digital out");
+    CHECK(robot->builtMechanismAt(2) == nullptr);
+    REQUIRE(robot->mechanisms().size() == 2U);  // the two pivots, not the claw
+    CHECK(robot->mechanismAt(0) != nullptr);
+    CHECK(robot->mechanismAt(1) != nullptr);
+    checkReportContract(*robot);
+    const Trace b = runLeg(robot->chassis(), world.pacer, kStart, kTankTarget);
+    REQUIRE(a.exit == ExitReason::Settled);
+    requireIdentical(a, b);
+
+    SUBCASE("a two-line mechanism whose SECOND line is refused is absent as a whole") {
+        cfgns::RobotConfig two = tankWithClaws();
+        two.mechanisms[2] = {.name = "clamp",
+                             .pneumaticPorts = {2, 4},
+                             .pneumaticCount = 2,
+                             .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                             .pneumaticStart = cfgns::PneumaticLevel::Low};
+        two.mechanismCount = 3;
+        PlantWorld w2{kin, worldConfig()};
+        w2.wire(two);
+        w2.devices.refuseLine(4);
+        shulib::robot::Robot r{two, w2.devices};
+        CHECK(r.pneumaticMechanismAt(2) == nullptr);
+        CHECK(std::string{r.mechanismAbsence(2)} == "3-wire port D (line 4) has no digital out");
+        CHECK(r.mechanisms().size() == 2U);
+        // The first line was made (and so driven to the start level), then left unused.
+        CHECK(w2.devices.digitalOutMade(2));
+        CHECK(w2.devices.digitalOutRequestCount(4) == 1);
+    }
+    SUBCASE("a provider that refuses a line WITHOUT a reason still leaves a reason") {
+        struct SilentLine final : shulib::hal::IDeviceProvider {
+            explicit SilentLine(FakeDeviceProvider& in) : inner{&in} {}
+            FakeDeviceProvider* inner;
+            [[nodiscard]] IMotor* motor(std::int8_t p, MotorCartridge m) override {
+                return inner->motor(p, m);
+            }
+            [[nodiscard]] shulib::hal::IImu* imu(std::uint8_t p) override { return inner->imu(p); }
+            [[nodiscard]] shulib::hal::IGps* gps(std::uint8_t p, Length f, Length l) override {
+                return inner->gps(p, f, l);
+            }
+            [[nodiscard]] shulib::hal::IRotation* rotation(std::uint8_t p) override {
+                return inner->rotation(p);
+            }
+            [[nodiscard]] shulib::hal::IDigitalOut* digitalOut(std::uint8_t, bool) override {
+                return nullptr;
+            }
+            [[nodiscard]] shulib::hal::IClock& clock() override { return inner->clock(); }
+            [[nodiscard]] shulib::hal::IBattery& battery() override { return inner->battery(); }
+            [[nodiscard]] shulib::hal::ITelemetrySink& telemetry() override {
+                return inner->telemetry();
+            }
+            [[nodiscard]] shulib::motion::ITickPacer& pacer() override { return inner->pacer(); }
+            [[nodiscard]] const char* lastRefusal() const noexcept override { return ""; }
+        };
+        PlantWorld w3{kin, worldConfig()};
+        w3.wire(c);
+        SilentLine silent{w3.devices};
+        shulib::robot::Robot r{c, silent};
+        CHECK(r.pneumaticMechanismAt(2) == nullptr);
+        CHECK(std::string{r.mechanismAbsence(2)}
+              == "the device provider refused a 3-wire line and gave no reason");
+        CHECK(r.mechanisms().size() == 2U);
+    }
+}
+
+TEST_CASE("B2 builder P3: an index past the declared mechanisms finds nothing — the first slot past "
+          "the storage included, on a heap-placed Robot") {
+    // BUG CAUGHT: an accessor that indexes the slot array with any number it is handed.
+    // HISTORY, because it is why the accessors look the way they do. Each accessor used to carry
+    // its own bound, and for an index between the declared count and the capacity the slots are
+    // empty anyway — so only an index at or past the capacity told a bound apart from its
+    // absence, and there the missing bound is a read past the array: undefined behaviour, which
+    // the ordinary suite cannot promise to see (measured: mutant MR28, pneumaticMechanismAt()
+    // without its bound, SURVIVED one campaign and was caught in the next only because a stray
+    // byte happened to be non-zero; AddressSanitizer caught it every time, here). Since B2's
+    // review round 1 every indexed accessor goes through ONE private bound, and an undeclared
+    // index answers a SENTENCE from mechanismAbsence() where an empty slot holds "" — so index 3
+    // (inside the array) already shows a lost bound, deterministically, in the ordinary suite.
+    // The heap placement and the index kMaxMechanisms stay: under AddressSanitizer a read past
+    // the array still lands in the allocation's redzone and is reported, as a second witness.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    const cfgns::RobotConfig c = tankWithAirClaw();
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    auto robot = std::make_unique<shulib::robot::Robot>(c, world.devices);
+    REQUIRE(robot->pneumaticMechanismAt(2) != nullptr);
+    for (const std::size_t i : {std::size_t{3}, cfgns::kMaxMechanisms - 1, cfgns::kMaxMechanisms,
+                                cfgns::kMaxMechanisms + 1}) {
+        CAPTURE(i);
+        CHECK(robot->pneumaticMechanismAt(i) == nullptr);
+        CHECK(robot->mechanismAt(i) == nullptr);
+        CHECK(robot->builtMechanismAt(i) == nullptr);
+        CHECK(std::string{robot->mechanismAbsence(i)} == "no mechanism is declared at this index");
+        const shulib::robot::Robot& constRobot = *robot;
+        CHECK(constRobot.pneumaticMechanismAt(i) == nullptr);
+        CHECK(constRobot.mechanismAt(i) == nullptr);
+        CHECK(constRobot.builtMechanismAt(i) == nullptr);
+    }
+}
+
+TEST_CASE("B2 builder P4: a boot report that asks builtMechanismAt() tells each declared mechanism "
+          "the truth — a working pneumatic claw is BUILT, never 'ABSENT' with an empty reason") {
+    // BUG CAUGHT (B2 review round 1, finding 3): the loop a boot line or a panel row writes —
+    // "for each declared mechanism: built, or ABSENT with its reason" — written against the typed
+    // motor lookup, which is nullptr for a BUILT pneumatic mechanism, reports the working claw as
+    // "ABSENT: " with nothing after it. The report below is written the way the header says to
+    // write it, over one robot holding every case: a built motor mechanism, a motor mechanism
+    // whose motor was refused, the built claw, a pneumatic mechanism whose line was refused, and
+    // one with nothing to build.
+    const shulib::kinematics::TankKinematics kin{Length{kTrackWidth}};
+    cfgns::RobotConfig c = tankWithAirClaw();  // pivots 0 and 1, the claw on line 1 at index 2
+    c.mechanisms[3] = {.name = "clamp",
+                       .pneumaticPorts = {4},
+                       .pneumaticCount = 1,
+                       .pneumaticSafe = cfgns::PneumaticLevel::Low,
+                       .pneumaticStart = cfgns::PneumaticLevel::Low};
+    c.mechanisms[4] = {.name = "placeholder"};
+    c.mechanismCount = 5;
+    REQUIRE(c.valid());
+    PlantWorld world{kin, worldConfig()};
+    world.wire(c);
+    world.devices.refusePort(7);
+    world.devices.refuseLine(4);
+    const shulib::robot::Robot robot{c, world.devices};
+
+    std::vector<std::string> report;
+    for (std::size_t i = 0; i < robot.mechanismCount(); ++i) {
+        const shulib::hal::IMechanism* m = robot.builtMechanismAt(i);
+        report.push_back(m != nullptr ? std::string{m->name()} + ": built"
+                                      : std::string{robot.config().mechanisms[i].name}
+                                            + " ABSENT: " + robot.mechanismAbsence(i));
+    }
+    CHECK(report == std::vector<std::string>{
+                        "claw pivot 6: built",
+                        "claw pivot 7 ABSENT: port 7 has no motor",
+                        "claw: built",
+                        "clamp ABSENT: 3-wire port D (line 4) has no digital out",
+                        "placeholder ABSENT: no motors and no 3-wire lines -- nothing to build"});
+    // The trap, shown: the typed motor lookup says nullptr for the built claw.
+    CHECK(robot.mechanismAt(2) == nullptr);
+    CHECK(robot.builtMechanismAt(2) != nullptr);
+    checkReportContract(robot);
 }

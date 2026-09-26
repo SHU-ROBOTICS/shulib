@@ -9,6 +9,7 @@
 //   cookbook-03a/b    -> docs/cookbook/03-timing-and-partners.md
 //   cookbook-04a/b    -> docs/cookbook/04-drivetrains.md
 //   cookbook-05a/b    -> docs/cookbook/05-mixing-tiers.md
+//   cookbook-06a/b    -> docs/cookbook/06-driver-control.md
 //
 // The cookbook quotes these bodies VERBATIM — the same anti-rot rule the guide
 // uses (docs/internal/guide-maintenance.md rule 1), extended to docs/cookbook/.
@@ -31,9 +32,17 @@
 #include "motion_test_rig.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
+#include "shulib/hal/controller.hpp"
+#include "shulib/hal/fake/fake_controller.hpp"
+#include "shulib/hal/fake/fake_digital_out.hpp"
+#include "shulib/hal/fake/fake_motor.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
+#include "shulib/hal/mechanism.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
+#include "shulib/teleop/driver_control.hpp"
+#include "shulib/teleop/mechanism_binding.hpp"
+#include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/literals.hpp"
 
 using namespace shulib::units::literals;
@@ -43,6 +52,20 @@ using shulib::chassis::RoutineResult;
 using shulib::chassis::RoutineStopCause;
 using shulib::chassis::TrajectoryResult;
 using shulib::control::ExitReason;
+using shulib::hal::BrakeMode;
+using shulib::hal::ControllerButton;
+using shulib::hal::MotorMechanism;
+using shulib::hal::PneumaticMechanism;
+using shulib::math::ChassisSpeeds;
+using shulib::teleop::DriverLoopConfig;
+using shulib::teleop::DriverProfile;
+using shulib::teleop::DriveShaper;
+using shulib::teleop::DriveShaperState;
+using shulib::teleop::HeadingSample;
+using shulib::teleop::MechanismBinding;
+using shulib::teleop::runDriverControl;
+using shulib::teleop::ToggleBinding;
+using shulib::teleop::validBindings;
 using shulib::math::Pose2d;
 using shulib::units::Length;
 using shulib::units::Time;
@@ -629,4 +652,125 @@ TEST_CASE("cookbook-05b: re-seeding the estimate in the middle of a routine") {
     CHECK(c.chassis.pose().x().value() == doctest::Approx(36.0));
     // The robot did not move an inch: seeding changes belief, not position.
     CHECK(motion_rig::posErr(c.rig.h.truePose(), truthBefore) == doctest::Approx(0.0));
+}
+
+// ═══ cookbook-06a — two buttons drive a mechanism (docs/cookbook/06-driver-control.md) ═══
+// Bug caught: a driver-control recipe that teaches something the loop does not do — a claw that
+// keeps driving after the button is let go, a binding that silently shares the loop's DEFAULT
+// re-zero button (L1), or a claw that moves the drive. The claw here is a fake motor behind a
+// one-motor mechanism; the loop runs on the host test plant, ten ticks, R1 held for ticks 2..5.
+TEST_CASE("cookbook-06a: two buttons drive a claw, letting go holds it, and the drive is "
+          "untouched") {
+    const shulib::kinematics::TankKinematics kin{11_in};
+    motion_rig::ChassisRig c{kin};
+    shulib::hal::fake::FakeController controller;
+    DriveShaper shaper{DriverProfile{}};
+    shulib::hal::fake::FakeMotor clawMotor;
+    int tick = 0;
+    std::vector<double> clawVolts;
+    std::vector<double> driveVolts;
+    const auto disabled = [&] {
+        controller.setPressed(ControllerButton::R1, tick >= 2 && tick < 6);
+        return tick >= 10;
+    };
+    const auto heading = [] { return HeadingSample{.radians = 0.0, .trusted = true}; };
+    const auto panel = [&](const ChassisSpeeds&, bool, const DriveShaperState&) {
+        clawVolts.push_back(clawMotor.commandedVoltage().value());
+        driveVolts.push_back(c.rig.h.motor(0).commandedVoltage().value());
+        ++tick;
+    };
+    // The program's own screen line. Here a refusal FAILS the test, so the recipe's refusal
+    // branch (which then returns) can never pass it vacuously.
+    const auto showOnScreen = [](const char* line) { FAIL_CHECK(line); };
+
+    // Two claws that move separately are TWO mechanisms, one motor each.
+    shulib::hal::IMotor* clawMotors[1] = {&clawMotor};
+    MotorMechanism claw{clawMotors, BrakeMode::Hold, "claw"};
+    MechanismBinding clawButtons{claw, ControllerButton::R1, ControllerButton::R2, 12_volt};
+    MechanismBinding* bindings[1] = {&clawButtons};
+
+    // L1 is the loop's default re-zero button: state one the claws do not use.
+    const DriverLoopConfig loop{.tickPeriod = 10_ms, .rezeroButton = ControllerButton::A};
+    char why[160] = "";
+    if (!validBindings(bindings, loop.rezeroButton, why, sizeof why)) {
+        showOnScreen(why);  // say what is wrong while the program still can...
+        return;             // ...and never start the loop, which would refuse it by throwing
+    }
+    runDriverControl(c.chassis, controller, c.pacer, shaper, loop, bindings,
+                     disabled, heading, panel);
+
+    REQUIRE(clawVolts.size() == 10U);
+    const std::vector<double> expected{0, 0, 12, 12, 12, 12, 0, 0, 0, 0};
+    CHECK(clawVolts == expected);                   // full power only while R1 is down
+    CHECK(clawMotor.brakeMode() == BrakeMode::Hold);  // and it HOLDS once let go
+    for (const double v : driveVolts) {
+        CHECK(v == 0.0);  // sticks centred: the claw buttons moved nothing else
+    }
+    // The watch-out, checked: with the loop's DEFAULT re-zero button, the same set is refused.
+    CHECK(validBindings(bindings, DriverLoopConfig{}.rezeroButton));  // R1/R2 do not clash with L1
+    MechanismBinding onL1{claw, ControllerButton::L1, ControllerButton::L2, 12_volt};
+    MechanismBinding* clashing[1] = {&onL1};
+    CHECK_FALSE(validBindings(clashing, DriverLoopConfig{}.rezeroButton));
+}
+
+// ═══ cookbook-06b — one button opens and closes a pneumatic claw (docs/cookbook/06-driver-control.md) ═══
+// Bug caught: a toggle recipe that teaches something the loop does not do — a claw that chatters
+// while the button is held, a claw that moves on a field disable, a claw button that is also the
+// re-zero button, or a claw that disturbs the pivot beside it. The solenoid here is a fake line
+// behind a one-line mechanism; the loop runs on the host test plant, ten ticks, A held for ticks
+// 2..5, then the disable.
+TEST_CASE("cookbook-06b: one button toggles a pneumatic claw, holding it does nothing more, and "
+          "a disable leaves the claw where it is") {
+    const shulib::kinematics::TankKinematics kin{11_in};
+    motion_rig::ChassisRig c{kin};
+    shulib::hal::fake::FakeController controller;
+    DriveShaper shaper{DriverProfile{}};
+    shulib::hal::fake::FakeMotor pivotMotor;
+    shulib::hal::fake::FakeDigitalOut clawSolenoid;
+    // The pivot from the recipe above, on R1/R2: the claw is added BESIDE it.
+    shulib::hal::IMotor* pivotMotors[1] = {&pivotMotor};
+    MotorMechanism pivot{pivotMotors, BrakeMode::Hold, "claw pivot"};
+    MechanismBinding pivotButtons{pivot, ControllerButton::R1, ControllerButton::R2, 12_volt};
+    MechanismBinding* bindings[1] = {&pivotButtons};
+
+    // ONE constant says which level opens the claw: if A closes it instead, flip it here.
+    constexpr bool kClawOpen = true;
+    shulib::hal::IDigitalOut* clawLines[1] = {&clawSolenoid};
+    PneumaticMechanism claw{clawLines, !kClawOpen, "claw"};  // its safe level: closed
+    ToggleBinding clawButton{claw, ControllerButton::A, !kClawOpen};  // it starts closed
+    ToggleBinding* toggles[1] = {&clawButton};
+
+    int tick = 0;
+    std::vector<bool> clawOpen;
+    const auto disabled = [&] {
+        controller.setPressed(ControllerButton::A, tick >= 2 && tick < 6);
+        return tick >= 10;
+    };
+    const auto heading = [] { return HeadingSample{.radians = 0.0, .trusted = true}; };
+    const auto panel = [&](const ChassisSpeeds&, bool, const DriveShaperState&) {
+        clawOpen.push_back(clawSolenoid.commanded() == kClawOpen);
+        ++tick;
+    };
+    // The program's own screen line. Here a refusal FAILS the test, so the recipe's refusal
+    // branch (which then returns) can never pass it vacuously.
+    const auto showOnScreen = [](const char* line) { FAIL_CHECK(line); };
+
+    // A is the claw now, so the field-centric re-zero moves to another button.
+    const DriverLoopConfig loop{.tickPeriod = 10_ms, .rezeroButton = ControllerButton::Y};
+    char why[160] = "";
+    if (!validBindings(bindings, toggles, loop.rezeroButton, why, sizeof why)) {
+        showOnScreen(why);
+        return;
+    }
+    runDriverControl(c.chassis, controller, c.pacer, shaper, loop, bindings, toggles,
+                     disabled, heading, panel);
+
+    REQUIRE(clawOpen.size() == 10U);
+    const std::vector<bool> expected{false, false, true, true, true, true, true, true, true, true};
+    CHECK(clawOpen == expected);              // one press, one flip — held for four ticks
+    CHECK(clawSolenoid.setCount() == 2);      // closed at the start, open on the press: that is all
+    CHECK(clawSolenoid.commanded() == kClawOpen);  // and the disable left it OPEN
+    CHECK(pivotMotor.commandedVoltage().value() == 0.0);  // the pivot was never driven
+    // The watch-out, checked: with A still the re-zero button, the same set is refused.
+    CHECK_FALSE(validBindings(bindings, toggles, ControllerButton::A));
 }

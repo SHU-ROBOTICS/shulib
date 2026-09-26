@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,593 of them across 148 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 2,669 of them across 149 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -269,13 +269,14 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Drivetrain degradation](drivetrain_degradation.md) | [`teleop/drivetrain_degradation.hpp`](../../include/shulib/teleop/drivetrain_degradation.hpp) | Drivetrain degradation policy — what a drive program does when some of the motors it was built for do not answer. |
 | [Field centric](field_centric.md) | [`teleop/field_centric.hpp`](../../include/shulib/teleop/field_centric.hpp) | Field-centric driving, and the honest failure mode without which it must not ship. |
 | [Input shaping](input_shaping.md) | [`teleop/input_shaping.hpp`](../../include/shulib/teleop/input_shaping.hpp) | Input shaping — what a driver's raw stick deflection becomes before it is a command. |
+| [Mechanism binding](mechanism_binding.md) | [`teleop/mechanism_binding.hpp`](../../include/shulib/teleop/mechanism_binding.hpp) | MechanismBinding — two controller buttons driving one motor mechanism, hold-to-run. |
 | [Slew limiter](slew_limiter.md) | [`teleop/slew_limiter.hpp`](../../include/shulib/teleop/slew_limiter.hpp) | SlewLimiter — the optional rate limit on ONE driver axis. |
 | [Stick mapping](stick_mapping.md) | [`teleop/stick_mapping.hpp`](../../include/shulib/teleop/stick_mapping.hpp) | Teleop stick mapping — the ONE place a driver's sticks become a body-frame drive request (chunk R3b, Session 2), and the DriveRequest/StickInput vocabulary the whole feel layer is written in. |
 | [Teleop loop](teleop_loop.md) | [`teleop/teleop_loop.hpp`](../../include/shulib/teleop/teleop_loop.hpp) | runDriverControl — the library's driver-control loop. |
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,593 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 2,669 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

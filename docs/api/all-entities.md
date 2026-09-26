@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,593 of them, across 148 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,669 of them, across 149 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -448,6 +448,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ControllerButton::Up` | enumerator | [controller.md](controller.md#controllerbutton-up) |
 | `ControllerButton::X` | enumerator | [controller.md](controller.md#controllerbutton-x) |
 | `ControllerButton::Y` | enumerator | [controller.md](controller.md#controllerbutton-y) |
+| `controllerButtonWord` | free function | [mechanism_binding.md](mechanism_binding.md#controllerbuttonword) |
 | `ControllerFaultDisplay` | class | [controller_display.md](controller_display.md#class-controllerfaultdisplay) |
 | `ControllerFaultDisplay::ControllerFaultDisplay` | function | [controller_display.md](controller_display.md#controllerfaultdisplay-controllerfaultdisplay) |
 | `ControllerFaultDisplay::update` | function | [controller_display.md](controller_display.md#controllerfaultdisplay-update) |
@@ -1034,6 +1035,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IDeviceProvider` | class | [device_provider.md](device_provider.md#class-ideviceprovider) |
 | `IDeviceProvider::battery` | function | [device_provider.md](device_provider.md#ideviceprovider-battery) |
 | `IDeviceProvider::clock` | function | [device_provider.md](device_provider.md#ideviceprovider-clock) |
+| `IDeviceProvider::digitalOut` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalout) |
 | `IDeviceProvider::gps` | function | [device_provider.md](device_provider.md#ideviceprovider-gps) |
 | `IDeviceProvider::IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider) |
 | `IDeviceProvider::IDeviceProvider (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-2) |
@@ -1259,7 +1261,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IRouteSource::operator= (overload 2)` | function | [route.md](route.md#iroutesource-operator-eq-2) |
 | `IRouteSource::route` | function | [route.md](route.md#iroutesource-route) |
 | `IRouteSource::~IRouteSource` | function | [route.md](route.md#iroutesource-destructor-iroutesource) |
+| `isControllerButton` | free function | [mechanism_binding.md](mechanism_binding.md#iscontrollerbutton) |
 | `isFinitePose` | free function | [finite_guard.md](finite_guard.md#isfinitepose) |
+| `isPneumaticLevel` | free function | [robot_config.md](robot_config.md#ispneumaticlevel) |
+| `isSafeBrakeMode` | free function | [robot_config.md](robot_config.md#issafebrakemode) |
 | `isSmartPort` | free function | [device_registry.md](device_registry.md#issmartport) |
 | `ITagSource` | class | [vision.md](vision.md#class-itagsource) |
 | `ITagSource::ITagSource` | function | [vision.md](vision.md#itagsource-itagsource) |
@@ -1310,10 +1315,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
 | `kBackBox` | constant | [calibrate_panel.md](calibrate_panel.md#kbackbox) |
+| `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
 | `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
 | `kBuiltinCommands` | constant | [route.md](route.md#kbuiltincommands) |
 | `kCommandAuditMargin` | constant | [plausibility_guard.md](plausibility_guard.md#kcommandauditmargin) |
 | `kCompactThresholdBytes` | constant | [line_format.md](line_format.md#kcompactthresholdbytes) |
+| `kControllerButtonCount` | constant | [mechanism_binding.md](mechanism_binding.md#kcontrollerbuttoncount) |
 | `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
 | `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
 | `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
@@ -1518,12 +1525,37 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MatrixKinematics::Wheel::turnInches` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-turninches) |
 | `MatrixKinematics::Wheel::v` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-v) |
 | `MatrixKinematics::wheelCount` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheelcount) |
+| `MechanismBinding` | class | [mechanism_binding.md](mechanism_binding.md#class-mechanismbinding) |
+| `MechanismBinding::forwardButton` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-forwardbutton) |
+| `MechanismBinding::makeSafe` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-makesafe) |
+| `MechanismBinding::mechanism` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanism) |
+| `MechanismBinding::MechanismBinding` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding) |
+| `MechanismBinding::MechanismBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding-2) |
+| `MechanismBinding::MechanismBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding-3) |
+| `MechanismBinding::operator=` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-operator-eq) |
+| `MechanismBinding::operator= (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-operator-eq-2) |
+| `MechanismBinding::reset` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-reset) |
+| `MechanismBinding::reverseButton` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-reversebutton) |
+| `MechanismBinding::State` | enum class | [mechanism_binding.md](mechanism_binding.md#enum-class-mechanismbinding-state) |
+| `MechanismBinding::state` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state) |
+| `MechanismBinding::State::Forward` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-forward) |
+| `MechanismBinding::State::Idle` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-idle) |
+| `MechanismBinding::State::Inert` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-inert) |
+| `MechanismBinding::State::Reverse` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-reverse) |
+| `MechanismBinding::State::Stopped` | enumerator | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-state-stopped) |
+| `MechanismBinding::tick` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-tick) |
+| `MechanismBinding::volts` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-volts) |
+| `MechanismBinding::~MechanismBinding` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-destructor-mechanismbinding) |
 | `MechanismConfig` | struct | [robot_config.md](robot_config.md#struct-mechanismconfig) |
+| `MechanismConfig::cartridge` | field | [robot_config.md](robot_config.md#mechanismconfig-cartridge) |
 | `MechanismConfig::motorCount` | field | [robot_config.md](robot_config.md#mechanismconfig-motorcount) |
 | `MechanismConfig::motorPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-motorports) |
 | `MechanismConfig::name` | field | [robot_config.md](robot_config.md#mechanismconfig-name) |
 | `MechanismConfig::pneumaticCount` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticcount) |
 | `MechanismConfig::pneumaticPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticports) |
+| `MechanismConfig::pneumaticSafe` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticsafe) |
+| `MechanismConfig::pneumaticStart` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticstart) |
+| `MechanismConfig::safeMode` | field | [robot_config.md](robot_config.md#mechanismconfig-safemode) |
 | `MechanismDeps` | struct | [mechanism_op.md](mechanism_op.md#struct-mechanismdeps) |
 | `MechanismDeps::clock` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-clock) |
 | `MechanismDeps::faults` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-faults) |
@@ -1866,6 +1898,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PlausibilityConfig::maxSpeed` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxspeed) |
 | `PlausibilityConfig::maxYawRate` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxyawrate) |
 | `PlausibilityConfig::validate` | function | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-validate) |
+| `PneumaticLevel` | enum class | [robot_config.md](robot_config.md#enum-class-pneumaticlevel) |
+| `PneumaticLevel::High` | enumerator | [robot_config.md](robot_config.md#pneumaticlevel-high) |
+| `PneumaticLevel::Low` | enumerator | [robot_config.md](robot_config.md#pneumaticlevel-low) |
+| `pneumaticLevelWord` | free function | [robot_config.md](robot_config.md#pneumaticlevelword) |
 | `PneumaticMechanism` | class | [mechanism.md](mechanism.md#class-pneumaticmechanism) |
 | `PneumaticMechanism::applySafeState` | function | [mechanism.md](mechanism.md#pneumaticmechanism-applysafestate) |
 | `PneumaticMechanism::commanded` | function | [mechanism.md](mechanism.md#pneumaticmechanism-commanded) |
@@ -1969,6 +2005,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsDeviceProvider` | class | [pros-device_provider.md](pros-device_provider.md#class-prosdeviceprovider) |
 | `ProsDeviceProvider::battery` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-battery) |
 | `ProsDeviceProvider::clock` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-clock) |
+| `ProsDeviceProvider::digitalOut` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalout) |
 | `ProsDeviceProvider::gps` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-gps) |
 | `ProsDeviceProvider::imu` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-imu) |
 | `ProsDeviceProvider::kRefusalBytes` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-krefusalbytes) |
@@ -2138,6 +2175,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::SpinWrongWay` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwrongway) |
 | `refusalName` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusalname) |
 | `Robot` | class | [robot.md](robot.md#class-robot) |
+| `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
+| `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
 | `Robot::chassis` | function | [robot.md](robot.md#robot-chassis) |
 | `Robot::chassis (overload 2)` | function | [robot.md](robot.md#robot-chassis-2) |
 | `Robot::config` | function | [robot.md](robot.md#robot-config) |
@@ -2152,9 +2191,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot::health (overload 2)` | function | [robot.md](robot.md#robot-health-2) |
 | `Robot::localizer` | function | [robot.md](robot.md#robot-localizer) |
 | `Robot::localizer (overload 2)` | function | [robot.md](robot.md#robot-localizer-2) |
+| `Robot::mechanism` | function | [robot.md](robot.md#robot-mechanism) |
+| `Robot::mechanism (overload 2)` | function | [robot.md](robot.md#robot-mechanism-2) |
+| `Robot::mechanismAbsence` | function | [robot.md](robot.md#robot-mechanismabsence) |
+| `Robot::mechanismAt` | function | [robot.md](robot.md#robot-mechanismat) |
+| `Robot::mechanismAt (overload 2)` | function | [robot.md](robot.md#robot-mechanismat-2) |
+| `Robot::mechanismCount` | function | [robot.md](robot.md#robot-mechanismcount) |
+| `Robot::mechanisms` | function | [robot.md](robot.md#robot-mechanisms) |
 | `Robot::motorGroupCount` | function | [robot.md](robot.md#robot-motorgroupcount) |
 | `Robot::operator=` | function | [robot.md](robot.md#robot-operator-eq) |
 | `Robot::operator= (overload 2)` | function | [robot.md](robot.md#robot-operator-eq-2) |
+| `Robot::pneumaticMechanism` | function | [robot.md](robot.md#robot-pneumaticmechanism) |
+| `Robot::pneumaticMechanism (overload 2)` | function | [robot.md](robot.md#robot-pneumaticmechanism-2) |
+| `Robot::pneumaticMechanismAt` | function | [robot.md](robot.md#robot-pneumaticmechanismat) |
+| `Robot::pneumaticMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-pneumaticmechanismat-2) |
 | `Robot::portMap` | function | [robot.md](robot.md#robot-portmap) |
 | `Robot::Robot` | function | [robot.md](robot.md#robot-robot) |
 | `Robot::Robot (overload 2)` | function | [robot.md](robot.md#robot-robot-2) |
@@ -2167,7 +2217,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotConfig::mechanismCount` | field | [robot_config.md](robot_config.md#robotconfig-mechanismcount) |
 | `RobotConfig::mechanisms` | field | [robot_config.md](robot_config.md#robotconfig-mechanisms) |
 | `RobotConfig::odometry` | field | [robot_config.md](robot_config.md#robotconfig-odometry) |
+| `RobotConfig::sameName` | function | [robot_config.md](robot_config.md#robotconfig-samename) |
 | `RobotConfig::sensors` | field | [robot_config.md](robot_config.md#robotconfig-sensors) |
+| `RobotConfig::terminatedName` | function | [robot_config.md](robot_config.md#robotconfig-terminatedname) |
 | `RobotConfig::tuning` | field | [robot_config.md](robot_config.md#robotconfig-tuning) |
 | `RobotConfig::valid` | function | [robot_config.md](robot_config.md#robotconfig-valid) |
 | `RobotConfig::validCartridge` | function | [robot_config.md](robot_config.md#robotconfig-validcartridge) |
@@ -2245,6 +2297,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RoutineStopCause::None` | enumerator | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | enumerator | [routine.md](routine.md#routinestopcause-waittimedout) |
 | `runDriverControl` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol) |
+| `runDriverControl (overload 2)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-2) |
+| `runDriverControl (overload 3)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-3) |
 | `RunGuard` | class | [run_guard.md](run_guard.md#class-runguard) |
 | `RunGuard::expired` | function | [run_guard.md](run_guard.md#runguard-expired) |
 | `RunGuard::operator=` | function | [run_guard.md](run_guard.md#runguard-operator-eq) |
@@ -2344,6 +2398,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | Name | Kind | Page |
 |---|---|---|
 | `safeAngle` | free function | [blackbox_format.md](blackbox_format.md#safeangle) |
+| `SafeBrakeMode` | enum class | [robot_config.md](robot_config.md#enum-class-safebrakemode) |
+| `SafeBrakeMode::Brake` | enumerator | [robot_config.md](robot_config.md#safebrakemode-brake) |
+| `SafeBrakeMode::Coast` | enumerator | [robot_config.md](robot_config.md#safebrakemode-coast) |
+| `SafeBrakeMode::Hold` | enumerator | [robot_config.md](robot_config.md#safebrakemode-hold) |
+| `safeBrakeModeWord` | free function | [robot_config.md](robot_config.md#safebrakemodeword) |
 | `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
 | `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
 | `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
@@ -2568,7 +2627,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TickPhase::User` | enumerator | [debug_record.md](debug_record.md#tickphase-user) |
 | `tickPhaseName` | free function | [tick_attribution.md](tick_attribution.md#tickphasename) |
 | `Time` | type alias | [quantity.md](quantity.md#time) |
+| `toBrakeMode` | free function | [robot_config.md](robot_config.md#tobrakemode) |
 | `toChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#tochassisspeeds) |
+| `ToggleBinding` | class | [mechanism_binding.md](mechanism_binding.md#class-togglebinding) |
+| `ToggleBinding::button` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-button) |
+| `ToggleBinding::enter` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-enter) |
+| `ToggleBinding::entered` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-entered) |
+| `ToggleBinding::initialState` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-initialstate) |
+| `ToggleBinding::mechanism` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-mechanism) |
+| `ToggleBinding::operator=` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-operator-eq) |
+| `ToggleBinding::operator= (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-operator-eq-2) |
+| `ToggleBinding::tick` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-tick) |
+| `ToggleBinding::ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding) |
+| `ToggleBinding::ToggleBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-2) |
+| `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
+| `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
+| `toLineValue` | free function | [robot_config.md](robot_config.md#tolinevalue) |
 | `TouchAction` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-touchaction) |
 | `TouchAction::Answer` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-answer) |
 | `TouchAction::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-none) |
@@ -2644,6 +2718,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 |---|---|---|
 | `validate` | free function | [robot.md](robot.md#validate) |
 | `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
+| `validBindings` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings) |
+| `validBindings (overload 2)` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings-2) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
 | `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
 | `viewFor` | free function | [calibrate_panel.md](calibrate_panel.md#viewfor) |

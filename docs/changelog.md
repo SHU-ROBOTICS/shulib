@@ -16,6 +16,102 @@
 
 ## API 2.2
 
+### Added since 2.2 (2026-09-26) — mechanism buttons in driver control, and mechanisms built from the config
+
+> Written when it landed. **No version bump:** nothing here grows a FROZEN surface — the mechanism
+> seam (F11), the controller seam (F13) and the robot profile (F7) are all still unfrozen, `Chassis`
+> (F6) and `Routine` (F10) are untouched, and `robot::Robot`, `config::RobotConfig` and
+> `teleop::runDriverControl` are not in the [Freeze Register](roadmap.md#freeze-register), and
+> neither is `hal::IDeviceProvider`. Some config rules are new and REFUSE configs they used to
+> accept, and the device provider gained a member every implementer must answer — see below.
+> **Everything here is proven on the host test plant only; no program uses it yet, and nothing has
+> moved a mechanism on a robot.** The pneumatic half (the toggle, the provider's 3-wire lines,
+> pneumatic mechanisms from the config) landed the same day, from T3's addendum.
+
+**ADDITIVE:**
+
+- **`teleop::MechanismBinding`** (`teleop/mechanism_binding.hpp`) — two controller buttons driving
+  one `hal::MotorMechanism`, hold-to-run: the forward button alone drives it at a STATED voltage
+  (no default; in (0, 12] V) every tick, the reverse button alone at minus that, and neither, both,
+  or a disconnected controller puts it in its declared safe state ONCE, on the transition — then it
+  commands nothing until a button drives again. Releasing the button is the stop. An outside stop
+  through the binding (`makeSafe()`) while a button is held leaves it inert until the driver lets
+  go; a mechanism that something else has claimed is never commanded — including one an operation
+  left claimed when the end of autonomous deleted its task, so a program whose autonomous commands
+  a bound mechanism releases that claim before driver control.
+  `teleop::validBindings(bindings, rezeroButton, why, cap)` checks a whole set (a button used
+  twice, a button that is also the re-zero button, a mechanism bound twice) and names the problem;
+  `teleop::controllerButtonWord()` prints a button.
+- **`teleop::ToggleBinding`** (same header) — ONE button flipping one `hal::PneumaticMechanism`:
+  each press flips the level the line was last commanded, exactly once (holding does nothing more);
+  a press must be SEEN — a button already down when driver control starts, or when a dropped
+  controller comes back, is not a press, so a press made while the controller was gone is not
+  replayed (provided the controller's connected flag and its buttons come back together — not yet
+  measured); the initial level is STATED (no default) and sent once, at the binding's first loop
+  entry; and a disconnect, a reconnect or a field disable commands NOTHING — the claw keeps what it
+  holds. It takes no claim and never commands a claimed mechanism.
+  `teleop::validBindings(bindings, toggles, rezeroButton, why, cap)` checks hold bindings and
+  toggles as ONE set (the hold-only form is the same check with no toggles).
+- **`teleop::runDriverControl` takes the bindings** — a new overload with a
+  `std::span<teleop::MechanismBinding* const>` after the loop config. Each binding is reset and made
+  safe before the first tick, ticked after `drive()` with its buttons read only while the controller
+  is connected, and made safe again on a field disable (after the drive's own stop). It refuses,
+  before the first tick, a set `validBindings()` refuses. The old signature is the same loop with
+  no bindings. **Watch the default:** `DriverLoopConfig::rezeroButton` defaults to L1, so a program
+  that binds L1 must name another re-zero button. A second overload also takes a
+  `std::span<teleop::ToggleBinding* const>` after the hold bindings: each toggle is entered before
+  the first tick, ticked with its button read only while connected, and **left untouched on a
+  field disable** (the hold bindings are made safe; the claw is not).
+- **`config::MechanismConfig` gains `cartridge` and `safeMode`** (`config::SafeBrakeMode` —
+  `Coast`, `Brake`, `Hold`, with the byte 0 meaning UNSET and no default), plus
+  `config::safeBrakeModeWord()`, `config::isSafeBrakeMode()` and `config::toBrakeMode()` — and
+  **`pneumaticSafe` and `pneumaticStart`** (`config::PneumaticLevel` — `Low`, `High`, the byte 0
+  UNSET, no default), plus `config::pneumaticLevelWord()`, `config::isPneumaticLevel()` and
+  `config::toLineValue()`.
+- **`hal::IDeviceProvider::digitalOut(line, initialState)`** — the brain's own 3-wire ports, 1..8
+  for A..H (`hal::kBrainAdiLines`). Making a line DRIVES it to the stated level (PROS's own
+  constructor does), so the level is an argument; the same line again is the same object, never
+  driven again; the same line at another level is a precondition. `hal::pros::ProsDeviceProvider`
+  makes a `ProsDigitalOut` and can refuse only a line outside 1..8 — the brain's registry cannot
+  see a solenoid, so nothing can tell it one is missing. `hal::fake::FakeDeviceProvider` drives its
+  lines the same way and adds `bindDigitalOut()`, `fakeDigitalOut()`, `refuseLine()`/`allowLine()`,
+  `digitalOutRequestCount()`, `digitalOutMade()` and `digitalOutInitialState()`.
+- **`robot::Robot` builds the mechanisms** — one `hal::MotorMechanism` per mechanism with motors,
+  its motors asked for with the MECHANISM's cartridge and signed ports, its declared safe mode, its
+  config name. `Robot::mechanism(name)`, `mechanismAt(i)`, `mechanismCount()`,
+  `mechanismAbsence(i)`, and `mechanisms()` — the `hal::IMechanism*` span an end-of-run guard
+  walks. **A mechanism motor the device provider will not make leaves that mechanism ABSENT**, with
+  the provider's sentence, and the robot still builds and drives; `validate()` does not ask for
+  mechanism motors. **Since the addendum it also builds one `hal::PneumaticMechanism` per
+  mechanism with 3-wire lines**: each line made at the config's start level (on a brain, the moment
+  the Robot is built is the moment the claw takes it), the declared safe level, the config name —
+  `Robot::pneumaticMechanism(name)` and `pneumaticMechanismAt(i)` find it (`mechanism(name)` stays
+  the MOTOR lookup), and `mechanisms()` carries both kinds. A line the provider will not make leaves
+  that mechanism ABSENT; `validate()` never asks for a line (asking would drive it). A robot with no
+  mechanisms builds exactly the graph it built before.
+- **`Robot::builtMechanismAt(i)`** — the `i`-th declared mechanism if it was built, of EITHER kind
+  (a `hal::IMechanism*`). Because the other lookups are typed, `mechanismAt(i)` is null for a built
+  pneumatic claw; a boot line or panel row that reports each declared mechanism asks
+  `builtMechanismAt(i)`, and `mechanismAbsence(i)` is empty exactly when it is non-null — for an
+  index past the declared mechanisms it now says "no mechanism is declared at this index" rather
+  than the empty string that means "built".
+
+**Behaviour you should know changed, without a signature moving:**
+
+- **`RobotConfig::valid()` (and so `robot::validate()` and `Robot`'s constructor) now refuses a
+  mechanism WITH motors whose `cartridge` or `safeMode` is unset**, a mechanism name with no NUL
+  inside its 24 bytes, and two mechanisms with the same name — each by name. Port collisions are
+  checked first and keep their messages. **Migration:** give every mechanism that has motors a
+  `.cartridge` and a `.safeMode`; a purely pneumatic mechanism needs neither.
+- **…and, since the addendum, a mechanism with 3-wire lines whose `pneumaticSafe` or
+  `pneumaticStart` is unset, a mechanism with BOTH motors and lines, and a 3-wire line listed twice**
+  (by two mechanisms, or twice by one) — each by name. **Migration:** give every pneumatic
+  mechanism its two levels; split a mixed mechanism into a motor one and a pneumatic one.
+- **`hal::IDeviceProvider` has a new pure virtual, `digitalOut()`.** Code that only CALLS a
+  provider is unaffected; a class that IMPLEMENTS one must add it (the two in the library have).
+  **Migration:** answer it — make the line at the stated level, or return nullptr and say why in
+  `lastRefusal()`.
+
 ### Fixed since 2.2 (2026-09-26) — Brake and Hold now reach a V5 motor; the driver loop's release mode
 
 > Written when it landed (chunk DEFECTS2). **No version bump — the decision, under

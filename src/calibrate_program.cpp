@@ -83,6 +83,14 @@
 // A calibration that starts from a typed port list can only ever CONFIRM the typing. Every port
 // the registry says carries a MOTOR is a candidate, and which of them drive — which way each is
 // wired, which side it is on — is decided by pushing the robot, not by reading a file.
+// ONE EXCEPTION, since T3 (2026-09-26): a port src/mechanism_table.hpp DECLARES as a mechanism
+// motor (robot two's claw pivots, 6 and 7) is dropped right after the census, before any adapter
+// exists, and logged `port 6: claw pivot (declared) -- not a candidate, not touched`. The push
+// could not tell a claw from a drive motor that did not turn, and step 4's adapter would write BLUE
+// gearing to it and set it to Coast — a loaded claw would drop — before the run began. This is
+// not a fourth human fact about the DRIVETRAIN (the three below stay three): it says which motors
+// are NOT the drivetrain, which the registry cannot tell — it reports a motor's kind, never its
+// job.
 //
 // THREE facts still come from a human, and only three (the parent spec's list):
 //   * the CARTRIDGE — physically unobservable from inside. Taken from the chassis table's
@@ -125,6 +133,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
+#include "mechanism_table.hpp"  // T3: the declared mechanism ports Calibrate never touches
 #include "chassis_table.hpp"
 #include "screen_text.hpp"  // printText(), g_screenPrints (moved there at G1 Part 2b)
 #include "shulib/calibration/calibrate_panel.hpp"
@@ -1076,12 +1085,30 @@ void runCalibrate() {
             imuPort = p;
         }
         if (kind == hal::DeviceKind::Motor && n < hal::kMaxSmartPorts) {
-            candidates[n].port = p;
+            // ports[] is the ONE candidate list until step 4 builds from it (T3: the filter below
+            // rewrites it in place, so a second copy here could only go stale).
             ports[n] = static_cast<std::int8_t>(p);  // POSITIVE: the calibrator applies the sign
             ++n;
         }
     }
     emitf("  %u motor(s), %d IMU(s)", static_cast<unsigned>(n), imuCount);
+    {
+        // A DECLARED MECHANISM PORT IS NEVER A DRIVE CANDIDATE (T3): src/mechanism_table.hpp
+        // declares robot two's claw pivots on 6 and 7. They leave the list HERE, before step 4
+        // builds any ProsMotor, so a claw is never geared BLUE, never set to Coast (a loaded claw
+        // would drop) and never pulsed. One line per port says why the census's motor count and
+        // the candidate count differ. "claw pivot" is the kind of every entry declared today.
+        // It drops PORTS: a claw cable swapped with a drive cable at the brain is invisible to the
+        // registry, and to this (A4 register HA-155) — a label on the cable is the only guard.
+        // The re-listing is the table's pure function, run by the host suite; this block's text is
+        // pinned by test/mechanism_table_test.cpp — change the two together.
+        DroppedMechanismPorts dropped{};
+        n = dropDeclaredMechanismPorts(kMechanisms, {ports, n}, dropped);
+        for (std::size_t i = 0; i < dropped.count; ++i) {
+            emitf("port %d: claw pivot (declared) -- not a candidate, not touched",
+                  static_cast<int>(dropped.ports[i]));
+        }
+    }
 
     // ── 3. the three human facts, and the refusals that protect them ─────────────────
     if (kChassis.cartridge == Cartridge::Unset) {
@@ -1113,7 +1140,8 @@ void runCalibrate() {
     if (n < 2) {
         char why[140];
         std::snprintf(why, sizeof why,
-                      "the registry found %u motor(s); a drivetrain needs at least two",
+                      "the registry found %u motor(s) besides the declared mechanisms; a "
+                      "drivetrain needs at least two",
                       static_cast<unsigned>(n));
         paintRefusal(text::kTooFewMotors, why,
                      "re-seat the drive cables and check the census (Bench Tests, slot 3)");
@@ -1128,15 +1156,16 @@ void runCalibrate() {
     const hal::pros::MotorGearset gearset = gearsetOf(kChassis.cartridge);
     std::size_t built = 0;
     for (std::size_t i = 0; i < n; ++i) {
+        const int port = ports[i];  // the census's list, after the declared-mechanism drop
         try {
-            candidates[built].port = candidates[i].port;
-            ports[built] = static_cast<std::int8_t>(candidates[i].port);
+            candidates[built].port = port;
+            ports[built] = static_cast<std::int8_t>(port);
             candidates[built].motor.emplace(ports[built], gearset);
             ++built;
         } catch (const PreconditionError& e) {
             emitf("WARNING: port %d answered MOTOR in the registry but its adapter REFUSED: "
                   "%s -- dropped from the candidates",
-                  candidates[i].port, e.what());
+                  port, e.what());
         }
     }
     n = built;

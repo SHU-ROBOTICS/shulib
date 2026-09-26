@@ -218,7 +218,13 @@ The mechanism seam that used to be a placeholder here is now real code
   sensor.
 - **Not proven, stated plainly:** anything on hardware. No solenoid has fired, no motor has
   jammed for real, no distance sensor has seen a real game piece, and whether `Hold` truly
-  holds a *loaded* lift is a registered assumption (HA-92), not a fact. The stall thresholds
+  holds a *loaded* lift is a registered assumption (HA-92), not a fact. Nor is it known whether
+  the brain keeps a 3-wire output's level while it is disabled, or acts on a level set while it
+  is disabled (HA-157) — a pneumatic claw on a driver's toggle button relies on the first,
+  because the library commands the claw nothing on a disable, and its start level on a field
+  relies on the second — and nothing the program can read is believed to see a valve on a
+  3-wire port at all (HA-158, reasoned), so an unplugged solenoid is invisible to every check.
+  The stall thresholds
   an operation needs are required parameters
   precisely because no honest default exists before hardware characterization (phase R4).
   And the scoring verbs themselves — `intakeUntilCapture`, `liftToLevel`,
@@ -335,8 +341,12 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   **Second, no driver has felt any of it.** Every default in the feel layer is invented and registered as a guess
   (HA-112) — which deadband, which curve, which slew rate a driver actually prefers is a
   question only a person on a robot can answer, and nobody has been asked. Treat the defaults
-  as a starting point, not a recommendation. Button bindings and driver macros are still
-  future work (phase T on the roadmap).
+  as a starting point, not a recommendation. Mechanism BUTTONS exist since chunk T3
+  (`teleop::MechanismBinding`: hold a button to drive a mechanism, let go and it goes to its safe
+  state; `teleop::ToggleBinding`: press a button to open a pneumatic claw, press again to close it
+  — [Chapter 10](10-the-api.md)), host-tested only, and no driver has used one; driver
+  MACROS (a button that runs a chassis motion the sticks can interrupt) are still future work
+  (phase T on the roadmap).
   *(This bullet used to say joystick shaping and slew limits did not exist at all; that went
   stale when the layer landed, and it is corrected here rather than deleted, because "it
   exists" and "it is known to feel right" are very different claims.)*
