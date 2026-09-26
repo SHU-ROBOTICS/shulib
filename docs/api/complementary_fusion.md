@@ -105,9 +105,9 @@ Fraction of the heading innovation pulled per tick at confidence == 1, in (0,1].
 units::AngularVelocity maxHeadingNudgeRate{10.0 * math::Angle::kPi / 180.0}
 ```
 
-Per-tick heading budget as a RATE: at most `maxHeadingNudgeRate · dt` of bias change in one tick, loop-rate-independent, exactly as maxNudgeRate bounds position. This is the never-snap bound for yaw — the number that makes "a yaw reset can never happen" a property of the code rather than a promise. 10 deg/s. PROVISIONAL (A4: HA-82).
+Per-tick heading budget as a RATE: at most `maxHeadingNudgeRate · dt` of bias change in one tick, loop-rate-independent, exactly as maxNudgeRate bounds position. This is the never-snap bound for yaw — the number that makes "no CORRECTOR can reset the yaw" a property of the code rather than a promise. (The one heading assignment in the tree is a CALLER seed outside the fusion path, Localizer::reseatHeading — the competition program's start pose, never a sensor.) 10 deg/s. PROVISIONAL (A4: HA-82).
 
-*field, declared at [`include/shulib/localization/complementary_fusion.hpp:90`](../../include/shulib/localization/complementary_fusion.hpp#L90).*
+*field, declared at [`include/shulib/localization/complementary_fusion.hpp:92`](../../include/shulib/localization/complementary_fusion.hpp#L92).*
 
 <a id="class-complementaryfusion"></a>
 
@@ -119,7 +119,7 @@ class ComplementaryFusion final : public IFusionPolicy
 
 The M2 fusion policy: a gated, rate-limited NUDGE toward absolute fixes, never a snap. It is structurally incapable of snapping, and that is the point rather than a tuning achievement — position moves by at most `maxNudgeRate · dt` in a tick, and heading leaves as a bounded INCREMENT instead of an absolute value, so no corrector can reset the estimate however confident it claims to be. Proposals sum and the sum is clamped again, so N correctors cannot out-vote one tick's budget either. Holds no state between calls: the same prediction, proposals and dt always give the same answer. EkfFusion replaces it behind IFusionPolicy at M3 without touching a caller.
 
-*class, declared at [`include/shulib/localization/complementary_fusion.hpp:101`](../../include/shulib/localization/complementary_fusion.hpp#L101).*
+*class, declared at [`include/shulib/localization/complementary_fusion.hpp:103`](../../include/shulib/localization/complementary_fusion.hpp#L103).*
 
 <a id="complementaryfusion-complementaryfusion"></a>
 
@@ -131,7 +131,7 @@ explicit ComplementaryFusion(const ComplementaryFusionConfig& config = {})
 
 Copies `config`; nothing is referenced after construction, so the argument may be a temporary. Each field is a LOUD precondition rather than a silent clamp: rates ≥ 0, gates > 0, gains in (0, 1]. A zero gain is excluded on purpose — it is a policy that accepts every fix and then corrects by nothing, which looks like working fusion in every audit flag while the estimate dead-reckons.
 
-*function, declared at [`include/shulib/localization/complementary_fusion.hpp:108`](../../include/shulib/localization/complementary_fusion.hpp#L108).*
+*function, declared at [`include/shulib/localization/complementary_fusion.hpp:110`](../../include/shulib/localization/complementary_fusion.hpp#L110).*
 
 <a id="complementaryfusion-fuse"></a>
 
@@ -143,7 +143,7 @@ Copies `config`; nothing is referenced after construction, so the argument may b
 
 Fold `valid` into `predicted` and return the corrected absolute POSITION together with a bounded heading INCREMENT — never an absolute heading, which is what makes snapping impossible rather than merely unlikely.  Position and heading are gated INDEPENDENTLY, so a fix may pass one and fail the other. Position: reject |measured − predicted| > innovationGate, else pull maxGain·confidence of it, clamped per proposal and once more on the sum to maxNudgeRate·dt. Heading: the same recipe over `predicted.heading().errorTo(measured)` (shortest signed, so the ±π seam costs nothing), but ONLY for proposals with `providesHeading` — everything else carries a pass-through of the prediction whose innovation is zero by construction. A non-finite innovation or confidence is rejected exactly like an out-of-gate one, and a confidence outside [0, 1] is clamped, so a corrector cannot amplify its own gain.  Empty `valid` returns the predicted position unchanged (dead-reckoning). dt == 0 makes both per-tick budgets zero: the position comes back unchanged and `applied` / `headingApplied` are false, but the audit still reports the GATE's verdict rather than pretending no proposal arrived. `positionStdDev` is not read here — it is carried for the M3 EKF's measurement noise. Holds no state, so this is safe to call out of order.
 
-*function, declared at [`include/shulib/localization/complementary_fusion.hpp:141`](../../include/shulib/localization/complementary_fusion.hpp#L141).*
+*function, declared at [`include/shulib/localization/complementary_fusion.hpp:143`](../../include/shulib/localization/complementary_fusion.hpp#L143).*
 
 ## Design commentary, from the header
 

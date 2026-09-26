@@ -16,6 +16,77 @@
 
 ## API 2.2
 
+### Added since 2.2 (2026-09-26) — the competition library: an auton registry, a selector, a runner, abandon, and the start-heading seed
+
+> Written when it was built (chunk COMP-a, the LIBRARY half of the competition program; the
+> program itself — `src/`, the seventh build — is COMP-b). **No version bump — every change is
+> ADDITIVE:** nothing frozen changed shape. `RunGuard` (Freeze Register row F12) is not frozen;
+> `Localizer` and `robot::BuildOptions` are outside every freeze; `Routine::startAt` (F10) and
+> `Chassis::setPose` (F6) are untouched and still seed position only. **Nothing below has run on a
+> robot** — it is proven on the host test plant only.
+
+**ADDED:**
+
+- **`robot::BuildOptions::pacer`** (default `nullptr` = the provider's pacer, so every existing
+  graph is byte-for-byte unchanged). A competition program passes its `sequence::RunGuard` here —
+  the guard reaches a running motion only through the pacer, and a Chassis takes its pacer once.
+  **Unlike `absentDrivePorts`, the pacer is BORROWED FOR THE ROBOT'S WHOLE LIFE** (the Chassis
+  keeps it): spell it `robot::BuildOptions{.absentDrivePorts = ..., .pacer = &guard}` with the
+  guard constructed first and living as long as the Robot.
+- **`sequence::RunGuard::requestAbandon()`** and `abandonRequested()`, plus
+  `RunGuardReport::abandoned` — the third way a run ends (the first two are the deadline and the
+  hard stop). One atomic store, safe from any task and from inside a pacer; from the next check on
+  every motion is cut before the world advances and every guard wait returns `RunExpired`; when
+  scoring returns, `run()` does the full cancel-all, SKIPS the end action, and disarms. It is a
+  latch, never a disarm: the routine unwinds normally, on its own stack. A request made while no
+  run is live is dropped when the next run arms. **What you must do:** nothing — no existing call
+  changes; `RunGuardReport` gained a field.
+- **`localization::Localizer::reseatHeading(math::Angle)`** — the heading's twin of `setPose`: the
+  published heading becomes the given one on this tick (through the same bias the tag corrector
+  moves; the IMU stays the only source of heading CHANGE), and the next tick re-baselines as after
+  `setPose`. Preconditions: the estimate is live, and no motion is active. It is a CALLER seed —
+  no sensor and no corrector can reach it. **What you must do:** nothing; `setPose` still ignores
+  heading.
+- **`include/shulib/competition/`** (new directory):
+  `auton_registry.hpp` — `AutonRegistry`, `AutonEntry` (a name, MATCH or SKILLS, a routine OR a
+  route, a FIELD or RELATIVE `StartPose`, `endActionAt`/`hardStopAt`, an optional end action),
+  `AutonPeriods` (the program's two periods — required, never defaulted), `checkAutonEntry`;
+  every unset or impossible field is refused at REGISTRATION, by name. A ROUTE entry's start is
+  its route's `Start` waypoint — and that waypoint's heading is read only when it is `Fixed`: a
+  `Free` Start states no heading, so the entry must declare a FIELD start at the same (x, y) or
+  it is refused (a default 0 is never seated by accident).
+  `match_runner.hpp` — `runAuton(...)`: refuses before arming, arms the guard, waits (with the
+  guard's own wait) for a live estimate, re-seats position AND heading on one tick, runs the
+  routine or the route, and returns a TAGGED `AutonRunResult`. A run whose estimate never went
+  live (`NotStarted`) brakes at its end — the entry's own end action is never run in a frame
+  that was never seated.
+  `auton_menu.hpp` — `AutonMenu`, the brain-screen selector as a pure, host-tested model: NONE
+  always present and the default, paged, one atomic choice that `lockChoice()` freezes.
+  `acceptance_run.hpp` — `acceptanceRun`, the one routine the library ships: drive 24 in, turn
+  90 degrees, face the start and drive back; not season content.
+- **`include/shulib/ui/touch_panel.hpp`** (new directory) — the generic pieces of a screen model:
+  the text budgets (held equal to the calibrate panel's at compile time), rectangles and padded hit
+  boxes, `screenText`/`copyScreenText` (printable ASCII, no `%`), the release edge, the arming
+  clock. `calibration/calibrate_panel.hpp` is unchanged.
+
+**RE-WORDED (a guarantee stated more precisely, not weakened):** `localizer.hpp` said "there is no
+code path … that ASSIGNS a heading"; it now says no CORRECTOR and no fusion policy can, and names
+the one caller seed. Never-snap — what a sensor may do to a live estimate — is unchanged. The
+claims that followed from the old sentence now name the seed too: the heading bias is exactly
+zero, and the published heading is the raw IMU bit for bit, only on a tree with no
+heading-providing corrector AND no `reseatHeading()` seed — so **`Localizer::headingBias()` is no
+longer a pure drift measure once a competition auton has started** (it carries the start-heading
+seed). `Localizer::Quality::Uninitialized`'s doc now says what the code has always done: the
+estimate is never live on the FIRST `update()`, only from the second (behaviour unchanged).
+`config::Route`'s docs (F8; wording only) and the VexBuilder verb table say that a `Start`'s
+heading is the start heading a competition auton is seated to when the Start is `Fixed`.
+
+**Hardware assumptions:** HA-05 is AMENDED (the start heading's one owner is the chosen auton's
+start pose, applied at autonomous start through the localizer's bias — never the IMU's boot
+heading); HA-161 is NEW (the belief that PROS kills its competition tasks on a mode change — the
+reason the competition program will run its auton on a task of its own). See the
+[hardware assumptions register](hardware-assumptions.md).
+
 ### Changed since 2.2 (2026-09-26) — an `ODO_STUCK` line names the check that fired and its values
 
 > Written when it landed (chunk DIAG1). **No version bump — the decision, under

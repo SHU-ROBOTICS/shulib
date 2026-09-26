@@ -67,7 +67,7 @@ struct EkfFusionConfig
 
 Tuning for `EkfFusion`. Every value is INVENTED and registered in the A4 hardware-assumptions register; R4 replaces them with measurements. The defaults are deliberately conservative (wide priors, a modest gate) so the filter's failure mode is "slow to trust" rather than "confidently wrong".
 
-*struct, declared at [`include/shulib/localization/ekf_fusion.hpp:249`](../../include/shulib/localization/ekf_fusion.hpp#L249).*
+*struct, declared at [`include/shulib/localization/ekf_fusion.hpp:251`](../../include/shulib/localization/ekf_fusion.hpp#L251).*
 
 <a id="ekffusionconfig-posnoiseperinch"></a>
 
@@ -79,7 +79,7 @@ double posNoisePerInch = 0.02
 
 1σ position error added per inch travelled (2% of travel). This is the term that makes the gate widen after a long blind stretch, which is what stops the E2/D2 gate lockout. PROVISIONAL (A4: HA-83).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:254`](../../include/shulib/localization/ekf_fusion.hpp#L254).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:256`](../../include/shulib/localization/ekf_fusion.hpp#L256).*
 
 <a id="ekffusionconfig-posnoiserate"></a>
 
@@ -91,7 +91,7 @@ units::Velocity posNoiseRate{0.5}
 
 1σ position error added per second even when standing still — the floor that keeps `P` strictly positive-definite on a stationary tick. PROVISIONAL (A4: HA-83).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:257`](../../include/shulib/localization/ekf_fusion.hpp#L257).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:259`](../../include/shulib/localization/ekf_fusion.hpp#L259).*
 
 <a id="ekffusionconfig-headingnoiseperrad"></a>
 
@@ -103,7 +103,7 @@ double headingNoisePerRad = 0.01
 
 1σ heading error added per radian actually rotated (1% of the rotation) — scale-factor error in the gyro. PROVISIONAL (A4: HA-84).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:260`](../../include/shulib/localization/ekf_fusion.hpp#L260).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:262`](../../include/shulib/localization/ekf_fusion.hpp#L262).*
 
 <a id="ekffusionconfig-headingdriftrate"></a>
 
@@ -115,7 +115,7 @@ units::AngularVelocity headingDriftRate{(1.0 / 60.0) * math::Angle::kPi / 180.0}
 
 1σ heading error added per second at rest: HA-20's ≈1°/min of raw V5 IMU drift, which is the assumption the whole heading-correction story rests on. PROVISIONAL (A4: HA-84).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:263`](../../include/shulib/localization/ekf_fusion.hpp#L263).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:265`](../../include/shulib/localization/ekf_fusion.hpp#L265).*
 
 <a id="ekffusionconfig-velnoise"></a>
 
@@ -127,7 +127,7 @@ units::Acceleration velNoise{200.0}
 
 How much body velocity the drivetrain can gain or lose in one second — the process noise on the velocity states, i.e. how far the constant-velocity model is allowed to be wrong. 200 in/s² is roughly a hard VEX drive launch. PROVISIONAL (A4: HA-85).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:267`](../../include/shulib/localization/ekf_fusion.hpp#L267).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:269`](../../include/shulib/localization/ekf_fusion.hpp#L269).*
 
 <a id="ekffusionconfig-odomstddev"></a>
 
@@ -139,7 +139,7 @@ units::Length odomStdDev{0.01}
 
 1σ error on ONE TICK's odometry displacement, independent of distance — encoder quantization and tracking-wheel jitter. PROVISIONAL (A4: HA-86).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:272`](../../include/shulib/localization/ekf_fusion.hpp#L272).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:274`](../../include/shulib/localization/ekf_fusion.hpp#L274).*
 
 <a id="ekffusionconfig-odomstddevperinch"></a>
 
@@ -151,7 +151,7 @@ double odomStdDevPerInch = 0.02
 
 …plus this fraction of the tick's travel — slip, which scales with distance. PROVISIONAL (A4: HA-86).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:275`](../../include/shulib/localization/ekf_fusion.hpp#L275).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:277`](../../include/shulib/localization/ekf_fusion.hpp#L277).*
 
 <a id="ekffusionconfig-gatesigma"></a>
 
@@ -163,7 +163,7 @@ double gateSigma = 3.0
 
 Reject a fix whose Mahalanobis distance exceeds this. 3.0 on a 2-degree-of-freedom position innovation is a ≈1.1% false-reject rate if the noise model is right. PROVISIONAL (A4: HA-87).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:281`](../../include/shulib/localization/ekf_fusion.hpp#L281).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:283`](../../include/shulib/localization/ekf_fusion.hpp#L283).*
 
 <a id="ekffusionconfig-headingstddev"></a>
 
@@ -175,7 +175,7 @@ units::AngleDim headingStdDev{2.0 * math::Angle::kPi / 180.0}
 
 1σ on an absolute heading measurement, flat: `CorrectionProposal` carries no heading σ, and inventing a per-proposal relationship would be worse than one honest constant. PROVISIONAL (A4: HA-88).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:285`](../../include/shulib/localization/ekf_fusion.hpp#L285).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:287`](../../include/shulib/localization/ekf_fusion.hpp#L287).*
 
 <a id="ekffusionconfig-initialposstddev"></a>
 
@@ -187,7 +187,7 @@ units::Length initialPosStdDev{24.0}
 
 "I could be anywhere within a tile." PROVISIONAL (A4: HA-89).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:289`](../../include/shulib/localization/ekf_fusion.hpp#L289).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:291`](../../include/shulib/localization/ekf_fusion.hpp#L291).*
 
 <a id="ekffusionconfig-initialheadingstddev"></a>
 
@@ -199,7 +199,7 @@ units::AngleDim initialHeadingStdDev{30.0 * math::Angle::kPi / 180.0}
 
 PROVISIONAL (A4: HA-89).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:291`](../../include/shulib/localization/ekf_fusion.hpp#L291).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:293`](../../include/shulib/localization/ekf_fusion.hpp#L293).*
 
 <a id="ekffusionconfig-initialvelstddev"></a>
 
@@ -211,7 +211,7 @@ units::Velocity initialVelStdDev{24.0}
 
 PROVISIONAL (A4: HA-89).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:293`](../../include/shulib/localization/ekf_fusion.hpp#L293).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:295`](../../include/shulib/localization/ekf_fusion.hpp#L295).*
 
 <a id="ekffusionconfig-maxnudgerate"></a>
 
@@ -223,7 +223,7 @@ units::Velocity maxNudgeRate{12.0}
 
 Max position correction per tick, as a RATE, so the bound is loop-rate independent. Matches `ComplementaryFusionConfig::maxNudgeRate` on purpose: never-snap must not change meaning when the tier is swapped.
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:299`](../../include/shulib/localization/ekf_fusion.hpp#L299).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:301`](../../include/shulib/localization/ekf_fusion.hpp#L301).*
 
 <a id="ekffusionconfig-maxheadingnudgerate"></a>
 
@@ -235,7 +235,7 @@ units::AngularVelocity maxHeadingNudgeRate{10.0 * math::Angle::kPi / 180.0}
 
 Max heading-bias change per tick, as a rate. Matches `maxHeadingNudgeRate` (A4: HA-82).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:301`](../../include/shulib/localization/ekf_fusion.hpp#L301).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:303`](../../include/shulib/localization/ekf_fusion.hpp#L303).*
 
 <a id="ekffusionconfig-reinitrejectcount"></a>
 
@@ -247,7 +247,7 @@ int reinitRejectCount = 50
 
 How many CONSECUTIVE gate rejections before the filter is willing to admit it is lost. At a ~20 Hz fix cadence this is ≈2.5 seconds of a sensor insisting the estimate is wrong. PROVISIONAL (A4: HA-90).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:307`](../../include/shulib/localization/ekf_fusion.hpp#L307).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:309`](../../include/shulib/localization/ekf_fusion.hpp#L309).*
 
 <a id="ekffusionconfig-reinitinnovation"></a>
 
@@ -259,7 +259,7 @@ units::Length reinitInnovation{6.0}
 
 …and the mean rejected innovation over that run must exceed this, so a burst of borderline rejections while the filter is very confident cannot trigger it. PROVISIONAL (A4: HA-90).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:311`](../../include/shulib/localization/ekf_fusion.hpp#L311).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:313`](../../include/shulib/localization/ekf_fusion.hpp#L313).*
 
 <a id="ekffusionconfig-reinitcooldown"></a>
 
@@ -271,7 +271,7 @@ units::Time reinitCooldown{5.0}
 
 Minimum time between re-inits — the rate limit. PROVISIONAL (A4: HA-91).
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:313`](../../include/shulib/localization/ekf_fusion.hpp#L313).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:315`](../../include/shulib/localization/ekf_fusion.hpp#L315).*
 
 <a id="ekffusionconfig-maxdt"></a>
 
@@ -283,7 +283,7 @@ double maxDt = 0.1
 
 Above this tick dt, the interval is not a usable prediction step (a loop stall, or the dt==0 tick the Localizer produces after construction and after `setPose`). The filter re-bases on the handed prediction instead of integrating garbage. Mirrors `LocalizerConfig::maxDt`; kept here because a policy cannot see the Localizer's config.
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:319`](../../include/shulib/localization/ekf_fusion.hpp#L319).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:321`](../../include/shulib/localization/ekf_fusion.hpp#L321).*
 
 <a id="class-ekffusion"></a>
 
@@ -295,7 +295,7 @@ class EkfFusion final : public IFusionPolicy
 
 A 5-state SE(2) extended Kalman filter implementing `IFusionPolicy`. See the file header for the design and for the T1/T2/T4/T5 rulings.  STATEFUL, unlike `ComplementaryFusion`. `IFusionPolicy::fuse` never promised statelessness — an EKF cannot be stateless — but nothing said so either, so it is said here: ONE instance belongs to ONE Localizer, is mutated on the control task only, and must outlive it.
 
-*class, declared at [`include/shulib/localization/ekf_fusion.hpp:328`](../../include/shulib/localization/ekf_fusion.hpp#L328).*
+*class, declared at [`include/shulib/localization/ekf_fusion.hpp:330`](../../include/shulib/localization/ekf_fusion.hpp#L330).*
 
 <a id="ekffusion-kn"></a>
 
@@ -307,7 +307,7 @@ static constexpr std::size_t kN = 5
 
 State dimension. Indices are named below so no bare 0..4 appears in the algebra.
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:331`](../../include/shulib/localization/ekf_fusion.hpp#L331).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:333`](../../include/shulib/localization/ekf_fusion.hpp#L333).*
 
 <a id="ekffusion-kpx"></a>
 
@@ -319,7 +319,7 @@ static constexpr std::size_t kPx = 0
 
 field-frame x position, inches
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:332`](../../include/shulib/localization/ekf_fusion.hpp#L332).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:334`](../../include/shulib/localization/ekf_fusion.hpp#L334).*
 
 <a id="ekffusion-kpy"></a>
 
@@ -331,7 +331,7 @@ static constexpr std::size_t kPy = 1
 
 field-frame y position, inches
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:333`](../../include/shulib/localization/ekf_fusion.hpp#L333).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:335`](../../include/shulib/localization/ekf_fusion.hpp#L335).*
 
 <a id="ekffusion-kth"></a>
 
@@ -343,7 +343,7 @@ static constexpr std::size_t kTh = 2
 
 Heading θ, radians. Re-based to the IMU's answer at the top of every tick rather than integrated here: what this filter estimates is the ERROR in that heading, and it leaves as a bounded increment. There is no rival heading in the state.
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:337`](../../include/shulib/localization/ekf_fusion.hpp#L337).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:339`](../../include/shulib/localization/ekf_fusion.hpp#L339).*
 
 <a id="ekffusion-kvx"></a>
 
@@ -355,7 +355,7 @@ static constexpr std::size_t kVx = 3
 
 BODY-frame forward velocity, in/s
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:338`](../../include/shulib/localization/ekf_fusion.hpp#L338).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:340`](../../include/shulib/localization/ekf_fusion.hpp#L340).*
 
 <a id="ekffusion-kvy"></a>
 
@@ -367,7 +367,7 @@ static constexpr std::size_t kVy = 4
 
 BODY-frame left velocity, in/s
 
-*field, declared at [`include/shulib/localization/ekf_fusion.hpp:339`](../../include/shulib/localization/ekf_fusion.hpp#L339).*
+*field, declared at [`include/shulib/localization/ekf_fusion.hpp:341`](../../include/shulib/localization/ekf_fusion.hpp#L341).*
 
 <a id="ekffusion-ekffusion"></a>
 
@@ -379,7 +379,7 @@ explicit EkfFusion(const EkfFusionConfig& config = {})
 
 Validates every tuning value — each has its own precondition message — and COPIES the config, so mutating the caller's struct afterward changes nothing here. ALL preconditions live in this constructor deliberately: `fuse()` then has none left to raise, which is what lets it be non-throwing on the control path.  Construction does NOT initialize the filter. The first `fuse()` adopts the pose it is handed as the prior mean and the configured initial std devs as the prior covariance, so an EkfFusion never has to be told where the robot starts.  The default config is usable and deliberately conservative — wide priors, a modest gate, so the failure mode is "slow to trust" rather than "confidently wrong" — but every number in it is a guess until the hardware is measured.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:353`](../../include/shulib/localization/ekf_fusion.hpp#L353).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:355`](../../include/shulib/localization/ekf_fusion.hpp#L355).*
 
 <a id="ekffusion-fuse"></a>
 
@@ -391,7 +391,7 @@ Validates every tuning value — each has its own precondition message — and C
 
 One fusion tick. The file header walks the five steps; the CONTRACT is here.  `predicted` is the Localizer's already-INTEGRATED dead-reckoned pose (field frame, inches and radians), never a raw control input — and it must be the pose built on THIS policy's own previous answer, because the tick's odometry increment is recovered as `predicted.position` minus the position last returned. `valid` holds only proposals the Localizer has already screened, folded most-trusted (smallest `positionStdDev`) first. `dt` is the tick duration in seconds.  STATEFUL. It advances the state, the covariance and every counter, so calling it twice with identical arguments does not give the same answer twice, and a skipped tick loses the increment that tick carried. One instance belongs to one Localizer, on one task.  Returns the corrected field position, a bounded heading INCREMENT (never an absolute heading — the Localizer folds it into a persistent bias), and the gate audit. It never allocates and never throws: every runtime pathology is screened and counted instead.  Degenerate ticks, all of which apply no correction: the first call adopts `predicted` as the prior; `dt <= 0` (startup, or the tick after a `setPose` teleport) and `dt > maxDt` (a loop stall) re-base onto `predicted` and widen the covariance, counted in `resyncCount()`; a non-finite input returns `predicted` untouched, counted in `numericGuardTrips()`.  With NO proposals the answer is not bit-identical to `predicted` the way the complementary tier's is — it differs by one tick of velocity filtering, bounded by a fraction of one tick's travel and measured to be non-cumulative.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:410`](../../include/shulib/localization/ekf_fusion.hpp#L410).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:412`](../../include/shulib/localization/ekf_fusion.hpp#L412).*
 
 <a id="ekffusion-positioncovariancetrace"></a>
 
@@ -403,7 +403,7 @@ One fusion tick. The file header walks the five steps; the CONTRACT is here.  `p
 
 `P[px][px] + P[py][py]`, square inches — the POSITION block only (header, T5). A 1σ radius is `sqrt(trace / 2)`.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:486`](../../include/shulib/localization/ekf_fusion.hpp#L486).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:488`](../../include/shulib/localization/ekf_fusion.hpp#L488).*
 
 <a id="ekffusion-covariance"></a>
 
@@ -415,7 +415,7 @@ One fusion tick. The file header walks the five steps; the CONTRACT is here.  `p
 
 One covariance entry, for the invariant tests (symmetry, positive-definiteness). Both indices must be < kN. BOUNDS-CHECKED and therefore no longer noexcept: these are public, and the documented contract was only a naming convention ("indexed by the kPx…kVy constants"), not a guard — nothing stopped covariance(9, 0) from reading past a std::array<double, 25>. Every other public indexing accessor in the tree checks (wheel_speeds.hpp is the house pattern); these two did not, and "observability only, never on the control path" does not make out-of-range reads defined.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:496`](../../include/shulib/localization/ekf_fusion.hpp#L496).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:498`](../../include/shulib/localization/ekf_fusion.hpp#L498).*
 
 <a id="ekffusion-state"></a>
 
@@ -427,7 +427,7 @@ One covariance entry, for the invariant tests (symmetry, positive-definiteness).
 
 One state entry, indexed by the `kPx`…`kVy` constants; the index must be < kN. Bounds-checked, and not noexcept, for the reason above.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:502`](../../include/shulib/localization/ekf_fusion.hpp#L502).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:504`](../../include/shulib/localization/ekf_fusion.hpp#L504).*
 
 <a id="ekffusion-velocityx"></a>
 
@@ -439,7 +439,7 @@ One state entry, indexed by the `kPx`…`kVy` constants; the index must be < kN.
 
 Body-frame velocity estimate, in/s.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:507`](../../include/shulib/localization/ekf_fusion.hpp#L507).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:509`](../../include/shulib/localization/ekf_fusion.hpp#L509).*
 
 <a id="ekffusion-velocityy"></a>
 
@@ -451,7 +451,7 @@ Body-frame velocity estimate, in/s.
 
 The body-frame LEFT (+Y) component, in/s — the `kVy` state. Both velocity getters report the filter's own smoothed velocity STATE, which is not `IPoseSource::twist()`: that one is a FIELD-frame finite difference of the published pose.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:511`](../../include/shulib/localization/ekf_fusion.hpp#L511).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:513`](../../include/shulib/localization/ekf_fusion.hpp#L513).*
 
 <a id="ekffusion-reinitcount"></a>
 
@@ -463,7 +463,7 @@ The body-frame LEFT (+Y) component, in/s — the `kVy` state. Both velocity gett
 
 How many times the covariance has been re-initialised (T2). Latched for the run.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:514`](../../include/shulib/localization/ekf_fusion.hpp#L514).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:516`](../../include/shulib/localization/ekf_fusion.hpp#L516).*
 
 <a id="ekffusion-everreinit"></a>
 
@@ -475,7 +475,7 @@ How many times the covariance has been re-initialised (T2). Latched for the run.
 
 Latched: has this filter ever declared itself lost? Never clears — a run in which the estimator gave up once is a different run from one in which it did not, forever.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:517`](../../include/shulib/localization/ekf_fusion.hpp#L517).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:519`](../../include/shulib/localization/ekf_fusion.hpp#L519).*
 
 <a id="ekffusion-consecutiverejects"></a>
 
@@ -487,7 +487,7 @@ Latched: has this filter ever declared itself lost? Never clears — a run in wh
 
 Consecutive gate rejections right now (resets on any accepted fix).
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:519`](../../include/shulib/localization/ekf_fusion.hpp#L519).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:521`](../../include/shulib/localization/ekf_fusion.hpp#L521).*
 
 <a id="ekffusion-resynccount"></a>
 
@@ -499,7 +499,7 @@ Consecutive gate rejections right now (resets on any accepted fix).
 
 Ticks on which the filter re-based onto the handed prediction instead of predicting: `dt <= 0` (the tick after a `setPose` teleport) and `dt > maxDt` (a loop stall). The FIRST tick is NOT counted here — it initialises and returns before this test — so a 0 does not rule out the filter having adopted `predicted` wholesale on tick one. Latched for the run.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:524`](../../include/shulib/localization/ekf_fusion.hpp#L524).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:526`](../../include/shulib/localization/ekf_fusion.hpp#L526).*
 
 <a id="ekffusion-numericguardtrips"></a>
 
@@ -511,7 +511,7 @@ Ticks on which the filter re-based onto the handed prediction instead of predict
 
 Times a non-finite intermediate was caught and the update abandoned. Should be 0.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:526`](../../include/shulib/localization/ekf_fusion.hpp#L526).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:528`](../../include/shulib/localization/ekf_fusion.hpp#L528).*
 
 <a id="ekffusion-acceptedfixes"></a>
 
@@ -523,7 +523,7 @@ Times a non-finite intermediate was caught and the update abandoned. Should be 0
 
 Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:528`](../../include/shulib/localization/ekf_fusion.hpp#L528).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:530`](../../include/shulib/localization/ekf_fusion.hpp#L530).*
 
 <a id="ekffusion-rejectedfixes"></a>
 
@@ -535,7 +535,7 @@ Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
 
 …counted per PROPOSAL rather than per tick, and cumulative for the run (neither clears). A MALFORMED proposal — non-finite pose, or σ <= 0 — is counted here too, because it fails the same test: the gate accepts only a finite distance at or under `gateSigma`, and a NaN satisfies no inequality.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:533`](../../include/shulib/localization/ekf_fusion.hpp#L533).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:535`](../../include/shulib/localization/ekf_fusion.hpp#L535).*
 
 <a id="ekffusion-lastcorrectionmagnitude"></a>
 
@@ -547,7 +547,7 @@ Fixes accepted by the Mahalanobis gate, and fixes rejected by it.
 
 How far the last tick's CORRECTIONS moved the position, summed over the proposals folded (so it upper-bounds the net move). This — not `AppliedCorrection::dx`, which under this tier also carries the small velocity-filtering residual from steps B/C — is the quantity `maxNudgeRate · dt` bounds, and it is what a never-snap test should assert on.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:539`](../../include/shulib/localization/ekf_fusion.hpp#L539).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:541`](../../include/shulib/localization/ekf_fusion.hpp#L541).*
 
 <a id="ekffusion-lastheadingcorrectionmagnitude"></a>
 
@@ -559,14 +559,14 @@ How far the last tick's CORRECTIONS moved the position, summed over the proposal
 
 …and the same for heading: |the increment emitted last tick|, bounded by `maxHeadingNudgeRate · dt`.
 
-*function, declared at [`include/shulib/localization/ekf_fusion.hpp:544`](../../include/shulib/localization/ekf_fusion.hpp#L544).*
+*function, declared at [`include/shulib/localization/ekf_fusion.hpp:546`](../../include/shulib/localization/ekf_fusion.hpp#L546).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 225 lines, click to expand</summary>
+<summary>The header’s own reasoning — 227 lines, click to expand</summary>
 
 ```text
 
@@ -625,7 +625,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      of the Kalman gain is ZEROED, so a GPS cannot rotate the robot's idea of the field
      through a cross-covariance term. That preserves E2's T3 ruling under the swap, and it is
      the reason the published heading is still bit-identical to the raw IMU on a tree with no
-     heading-providing corrector.
+     heading-providing corrector — and no caller seed: Localizer::reseatHeading() (COMP-a)
+     sets the bias outside this filter, so after a competition auton starts the published
+     heading is the raw IMU plus that seed, and this filter's increments add to it.
 
  REJECTED — let the EKF own the published heading and delete the re-stamp. Tidier algebra, and
  a structural change to both M2's decision #4 and E3's design: a policy that can return an

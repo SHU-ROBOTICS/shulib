@@ -172,6 +172,10 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
 - **`hard stop … all devices safed unconditionally`:** the floor fired mid-action. Whatever
   was still running was cut and every listed device forced safe. If this happens every run,
   your end action does not fit its runway.
+- **`run ABANDONED at T+… -- motions refused from here`**, then **`run ABANDONED -- end-of-run
+  action skipped`:** working as designed — the program ended the run itself because the field
+  disabled the robot (or left autonomous) mid-run. The end action is skipped on purpose: the
+  robot no longer belongs to your auton. The first line's `T+` says when it happened.
 - **The run went long anyway, in a wait:** a frozen-surface wait (`pause`, `waitFor`,
   `chassis.waitUntil`) cannot be cut and pays its own remaining budget —
   [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative.

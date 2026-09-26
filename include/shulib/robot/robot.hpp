@@ -171,9 +171,11 @@ struct BuildVerdict {
     char why[192]{};
 };
 
-/// What the builder is told about THIS boot that the config cannot say. Today one thing: which
-/// tank drive ports the boot check found dead. Default-constructed, it changes nothing — every
-/// Part 1 caller's graph is byte-for-byte what it was.
+/// What the builder is told about THIS boot that the config cannot say: which tank drive ports the
+/// boot check found dead, and (since COMP-a) a pacer to put between the chassis and the provider's.
+/// Default-constructed, it changes nothing — every Part 1 caller's graph is byte-for-byte what it
+/// was. The two fields have DIFFERENT lifetimes, and that is the thing to read before passing one:
+/// `absentDrivePorts` is read during construction only; `pacer` is kept for the Robot's whole life.
 struct BuildOptions {
     /// Tank drive ports the boot check reported MISSING, as port MAGNITUDES 1..21 — exactly the
     /// numbers `calibration::BootVerdict::isMissing()` answers for. Each becomes an ABSENT
@@ -182,6 +184,19 @@ struct BuildOptions {
     /// and during `Robot`'s construction only, never kept — the Robot recovers what it needs
     /// from its own groups.
     std::span<const int> absentDrivePorts = {};
+
+    /// The pacer the Chassis is built with, or `nullptr` (the default) for `devices.pacer()` —
+    /// exactly the graph every earlier caller got. A competition program passes its
+    /// `sequence::RunGuard` here (constructed around `devices.pacer()` BEFORE the Robot), because
+    /// the guard's deadline reaches a running motion only through the pacer seam
+    /// (run_guard.hpp's banner) and a Chassis takes its pacer once, at construction.
+    ///
+    /// BORROWED FOR THE ROBOT'S WHOLE LIFE — unlike `absentDrivePorts`, this is NOT read during
+    /// construction only: the Chassis keeps the reference (chassis.hpp's constructor), so the
+    /// pacer must outlive the Robot. Declared after `absentDrivePorts` so the designated spelling
+    /// reads in declaration order: `robot::BuildOptions{.absentDrivePorts = ..., .pacer = &guard}`.
+    /// `validate()` does not read it (a pacer is not a device and cannot be refused).
+    motion::ITickPacer* pacer = nullptr;
 
     /// True when physical port `port` is in `absentDrivePorts`.
     [[nodiscard]] constexpr bool isAbsent(int port) const noexcept {
@@ -479,12 +494,14 @@ public:
     /// `PreconditionError` carrying the verdict's own sentence, before any member exists. `cfg`
     /// is COPIED (a boot sequence that decodes a record into a local and hands out a reference to
     /// it is the dangling-reference bug this copy makes impossible); `devices` is borrowed and
-    /// must outlive the Robot; `options` is read during construction only (its absent ports
-    /// become `nullptr` group members and are never requested — G1 Part 2a, ruling M1), so its
-    /// span may die as soon as the constructor returns. Default options build exactly the graph
-    /// the two-argument form always built. LAST, after the whole drive graph, each configured
-    /// mechanism with motors, or with 3-wire lines, is built — or recorded ABSENT with the
-    /// provider's sentence (chunk T3 and its addendum B2; the file header's MECHANISMS section).
+    /// must outlive the Robot; `options.absentDrivePorts` is read during construction only (its
+    /// absent ports become `nullptr` group members and are never requested — G1 Part 2a, ruling
+    /// M1), so that span may die as soon as the constructor returns — but `options.pacer`, when
+    /// set, is KEPT by the Chassis and must outlive the Robot (COMP-a; `BuildOptions::pacer`).
+    /// Default options build exactly the graph the two-argument form always built. LAST, after the
+    /// whole drive graph, each configured mechanism with motors, or with 3-wire lines, is built —
+    /// or recorded ABSENT with the provider's sentence (chunk T3 and its addendum B2; the file
+    /// header's MECHANISMS section).
     Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices,
           const BuildOptions& options = {})
         : cfg_{prechecked(cfg, devices, options)},
@@ -542,7 +559,8 @@ public:
                 .health = &health_,
                 .motorGroups =
                     std::span<hal::MotorGroup* const>{groups_.data(), groupCount_}},
-          chassis_{deps_, devices.pacer(), effectiveTuning(cfg_)} {
+          chassis_{deps_, options.pacer != nullptr ? *options.pacer : devices.pacer(),
+                   effectiveTuning(cfg_)} {
         buildMechanisms(devices);
     }
 

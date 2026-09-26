@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 155 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 156 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -68,10 +68,12 @@
 > reasoned** — about the brain's 3-wire ports that the pneumatic claw depends on — **and the
 > merge added ONE — HA-147, invented:** the controller belief the claw's toggle rests on (B2's
 > review). HA-148 to HA-152 were reserved for T3 and are UNUSED: the numbers are not reissued, so
-> the register has 154 entries up to HA-159 (155 with DIAG1's HA-160, below). **DIAG1 added ONE on 2026-09-26 — HA-160** — that the V5 IMU's heading is continuous tick to
+> the register has 154 entries up to HA-159 (156 with DIAG1's HA-160 and COMP-a's HA-161, below). **DIAG1 added ONE on 2026-09-26 — HA-160** — that the V5 IMU's heading is continuous tick to
 > tick while ready, an assumption the library always made and never wrote down, now QUESTIONED by
 > the 2026-09-25 robot evidence — and AMENDED HA-123: extended to drive-encoder sides, and its
-> blast radius corrected (a spurious trip ends the active motion). The
+> blast radius corrected (a spurious trip ends the active motion). **COMP-a added ONE on 2026-09-26 — HA-161, reasoned** (PROS deletes its competition tasks on
+> a mode change and not the program's own — the belief the competition program's own auton task
+> rests on), and AMENDED HA-05 (the start heading's owner is the chosen auton's start pose). The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -107,7 +109,7 @@
 | HA-02 | IMU as-mounted heading is CW-positive | **CONFIRMED** 2026-08-19 on the bench bot: operator turned the robot LEFT/CCW and RAW `get_rotation()` went NEGATIVE (-0.073 -> -87.241 deg) while CANONICAL rose (+0.073 -> +87.241 deg). Raw decreasing on a CCW turn IS raw being CW-positive, exactly as claimed; and the adapter's negation therefore yields the CCW-positive canonical F1 requires. Evidence: `evidence/r3a-session-2026-08-19.log` run 2 | R3 |
 | HA-03 | `get_rotation()` is cumulative/unbounded (the required binding) | reasoned | R1/R3 |
 | HA-04 | IMU yaw-rate source sign (`get_gyro_rate().z` undocumented) | **invented** | R3 |
-| HA-05 | Post-cal tare invalidates bootHeading; offset applied once | reasoned | R1/R3 |
+| HA-05 | Post-cal tare invalidates bootHeading; offset applied once | reasoned — **AMENDED** 2026-09-26 (COMP-a): the start heading's one owner is the chosen auton's start pose, applied at autonomous start through the Localizer's bias (`reseatHeading`) — bootHeading stays 0 and the IMU is never re-zeroed | R1/R3 |
 | HA-06 | Firmware GPS offset unset ⇒ `get_position()` = SENSOR pose | reasoned | R1/R3 |
 | HA-07 | GPS `get_error()` returns meters | reasoned | R3 |
 | HA-08 | Failed reads return PROS_ERR/PROS_ERR_F; adapters screen to stale-finite | reasoned | R1/R3 |
@@ -258,6 +260,7 @@
 | HA-158 | Nothing the program can read sees a pneumatic solenoid on a brain 3-wire port: the registry is indexed by SMART port, and a valve on A..H is a passive load — a connected line and an empty one are indistinguishable | reasoned (vendored registry + ADI shape) — the on-robot provider refuses a 3-wire line only for being outside 1..8 | Station J (robot two's claw) |
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
+| HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
 
 ---
 
@@ -339,6 +342,21 @@ a config constant **by design** — a correction here never touches the core.
   *Blast radius if wrong:* a silent constant heading offset from the tare instant onward — eats
   the < 1° budget invisibly, unexplainable from telemetry. **Contained** only by discipline plus
   R3's bench check; this is why it is registered rather than assumed.
+  *Amended (COMP-a, 2026-09-26) — who owns the START heading.* The claim above stands (never tare
+  after calibration). What changed is the owner of the start heading: it is the CHOSEN AUTON's
+  declared start pose — `StartPose::field(x, y, heading)`, or `StartPose::relative()` (the robot's
+  own placement is heading 0) — applied at the instant the auton starts by
+  `competition::runAuton`, through `Localizer::reseatHeading`: the published heading is
+  `imu.heading() + bias`, and the seed sets the bias. The IMU's boot heading stays 0
+  (`hal/pros/device_provider.hpp`), the sensor is never re-zeroed, and the IMU remains the only
+  source of heading CHANGE. Two reasons it cannot be the boot heading: the auton is chosen on the
+  brain screen AFTER the robot boots (the boot cannot know which start pose will run), and the
+  seed also discards whatever the IMU drifted while the robot waited for the match. The seed is
+  refused while the IMU is still calibrating (the estimate must be live first), and it re-baselines
+  the estimator's next tick exactly as `setPose` does. `Routine::startAt` (frozen, F10) still seeds
+  position only. *Settle (COMP-b's practice match):* place the robot at a known field heading,
+  wait a minute on the selector, run the acceptance auton; it must drive along its PLACED heading,
+  not the heading the IMU read at boot.
 
 - [ ] **HA-06 — with no firmware offset configured, `get_position()` reports the SENSOR, not the
   robot center.**
@@ -1888,6 +1906,58 @@ opens it are the program half's entry, from the team lead's report).
   gets only the one in port A driven, never the other; what the claw does then is not known, and
   J.9.0's look is what catches it before power. **Contained:** one mechanism; the drive is not
   affected.
+
+**COMP-a (2026-09-26) added HA-161.** The competition program (COMP-b) runs its autonomous routine on
+a task it creates itself, and ends that routine itself — through `RunGuard::requestAbandon()` — when
+the field disables the robot or leaves autonomous (the team lead's ruling of 2026-09-24: "our own
+auton task"). That design, and code already in the tree, rest on a belief about PROS that no
+vendored header states. It was registered at COMP-a because COMP-a built the library half of the
+design; COMP-b's practice match settles it. (The number was COMP-a's reservation, taken while T3 and DIAG1
+were built in parallel; both have since landed, with the numbers below it.)
+
+- [ ] **HA-161 — PROS deletes its competition tasks on a mode change, and leaves the program's own
+  tasks alone.**
+  *Claim:* (a) PROS runs each of `competition_initialize()`, `disabled()`, `autonomous()` and
+  `opcontrol()` on a task of its own and DELETES that task when the competition mode changes (the
+  field disables the robot, or autonomous ends and driver control begins) — mid-statement, with no
+  unwinding: a deleted task runs no destructor, releases nothing and finishes no loop. (b) A task
+  the PROGRAM created (`pros::Task`) is not deleted on a mode change — it keeps running, and must
+  end its own work.
+  *Source:* half (a) is written, as a belief, in code comments only:
+  `include/shulib/teleop/teleop_loop.hpp` (step 1: "PROS deletes the opcontrol task on a field
+  disable, and a deleted task runs no destructor", so the driver loop polls the disable and
+  returns, braking the drive before the task is torn down), `src/main.cpp` (the X-drive loop:
+  "PROS deletes the task on disable and a deleted task runs no destructor"),
+  `src/drive_program.cpp` ("A FIELD DISABLE is NOT a C++ exit — PROS deletes the opcontrol task,
+  and a deleted task runs no destructors … Stated so nobody believes the guard covers a kill")
+  and `src/calibrate_program.cpp` (the same belief, nearly word for word, for its all-stop guard), and
+  `include/shulib/robot/robot.hpp` ("PROS calls opcontrol() again after every disable"). Two
+  rules rest on half (a) as well: the claw bindings take no claim (a claim would survive a
+  deleted task), and T3's static-state rule — the teleop program keeps its bindings, its
+  mechanisms and their `IMotor*` arrays in its static state, never on the driver task's stack,
+  which a deleted task would leave dangling. Half (b) is what COMP's own-task design rests on
+  (`competition/match_runner.hpp` runs on whichever task calls it; the program's task and its
+  handshake are COMP-b's). The vendored `include/pros/misc.h` (`competition_get_status`,
+  `competition_is_disabled`, `competition_is_autonomous`, `competition_is_field`,
+  `competition_is_switch`) says nothing about tasks.
+  *Confidence:* **reasoned** — both halves are how PROS's competition template is generally
+  understood to work, and half (a) is the belief this tree's code comments have carried since R3b
+  Part 0b; neither half is stated in the vendored PROS text, and neither has been observed directly
+  on this project's brain (R3b Part 0b's "finding" was a correction to a brief's REASONING — a
+  deleted FreeRTOS task does not unwind its stack — not an observation of what PROS does).
+  *Settle (COMP-b's practice-match station, K):* a program whose `autonomous()` holds an object whose
+  destructor logs a line and loops logging "alive N" every 50 ms, and whose own task logs "task
+  alive N" likewise; end autonomous (the controller's Timed Run, or a competition switch). (a) is
+  confirmed if "alive" stops at the mode change and the destructor's line never appears; (b) if
+  "task alive" continues through it.
+  *Blast radius if wrong:* if (a) is wrong (PROS does not delete its tasks), an `autonomous()` that
+  kept running would command the drive alongside driver control — COMP-b's design does not let it
+  (the auton runs on the program's own task, which `opcontrol()` waits for), so the damage is
+  contained to the loops that assume the kill. If (b) is wrong (PROS deletes the program's tasks
+  too), a routine could be killed mid-motion, leaving the scheduler's active motion on a freed
+  stack — the failure the own-task design exists to avoid; the recovery would be a disable-aware
+  pacer that ends the routine before the mode change lands, which the abandon latch already is.
+  **Contained:** the program's task body and its watch pacer (COMP-b).
 
 ---
 

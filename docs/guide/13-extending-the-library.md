@@ -12,6 +12,8 @@ Everything in `include/shulib/` sits in a deliberate stack — each layer only k
 ones below it:
 
 ```text
+competition/    the competition program's library half: autons as data,
+                the selector model, the auton runner
 chassis/        the facade (Chassis) — what routines talk to            [Ch. 10]
 sequence/       the run guard — a whole-run deadline + guaranteed end   [Ch. 6]
 motion/         motion primitives + the one-at-a-time scheduler         [Ch. 5]
@@ -26,6 +28,7 @@ hal/            the hardware interfaces — motors, sensors, the mechanism
 hal/pros/       the real-hardware adapters over the PROS SDK — the ONE
                 place the library touches VEX's software
 units/ math/    typed quantities, Angle, Pose2d, the frame transforms   [Ch. 2]
+ui/             brain-screen panel pieces (budgets, hit boxes, touches)
 sim/            the simulated robot (tests only!)
 ```
 

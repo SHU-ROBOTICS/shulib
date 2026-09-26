@@ -78,7 +78,9 @@
   positive). [Ch. 2]
 - **heading bias** — the estimator's learned answer to "how wrong is the IMU today", added to
   every IMU reading before the pose is published. The IMU still owns every actual rotation; the
-  bias moves only a fraction of a degree per tick, and only when a tag says so. [Ch. 3]
+  bias moves only a fraction of a degree per tick, and only when a tag says so — except once, when
+  an auton starts, where it is SET so the heading equals the one the auton's start pose declares
+  (`Localizer::reseatHeading`; your placement, not a sensor). [Ch. 3]
 - **holonomic** — able to move in any direction regardless of facing, while also rotating.
   [Ch. 4]
 - **host-side** — running on an ordinary computer rather than the robot. [Ch. 7]
@@ -146,8 +148,10 @@
 - **routine** — the function encoding one autonomous plan as a sequence of commands. [Ch. 8]
 - **run guard** — a wrapper around the tick pacer that gives a whole routine a hard deadline: it
   cuts the active motion at the instant you name, *refuses* every motion started after it, and
-  runs your end-of-run action before an unconditional floor. It holds no opinion about strategy —
-  no default match length, no park pose; both instants and the action are yours. [Ch. 6, Ch. 14]
+  runs your end-of-run action before an unconditional floor — unless the program *abandons* the
+  run (the field disabled the robot mid-auton), when the motion is cut at once and the end action
+  is skipped. It holds no opinion about strategy — no default match length, no park pose; both
+  instants and the action are yours. [Ch. 6, Ch. 14]
 - **end-of-run action** — the thing you guarantee happens before time runs out (park, retract,
   end legal). Supplied by you to the run guard, which performs it after cancelling everything
   else. [Ch. 6]

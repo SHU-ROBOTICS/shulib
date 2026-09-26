@@ -202,7 +202,10 @@ enum class HeadingMode : std::uint8_t {
     ///     ("translate, keep facing where I am facing"). `moveTo` always commands a heading, so
     ///     there is no "don't care" to pass down and the current one is the one that asks the
     ///     drivetrain to do the least.
-    ///   * `StrafeTo`, `Hold`, `Start` — neither mode is read; either is accepted.
+    ///   * `StrafeTo`, `Hold`, `Start` — the runner reads neither mode; either is accepted. On a
+    ///     `Start` a competition auton entry DOES read it (competition/auton_registry.hpp, since
+    ///     COMP-a): a `Fixed` Start's `heading` is the heading the robot is seated to when the
+    ///     auton starts, and a `Free` Start states none, so the entry must declare one.
     ///   * `TurnTo` — REFUSED: a turn to no heading is not a motion.
     Free = 2,
 };
@@ -264,7 +267,8 @@ struct Waypoint {
     units::Length x{0.0};
     /// Field y, inches. Must be finite. Not read when `motion` is `TurnTo` or `Hold`.
     units::Length y{0.0};
-    /// Field heading. Must be finite. Read only when `headingMode == Fixed`.
+    /// Field heading. Must be finite. Read only when `headingMode == Fixed` — on a `Start`, as
+    /// the heading a competition auton is seated to (HeadingMode's note).
     math::Angle heading{};
     /// Whether `heading` means anything at this waypoint.
     HeadingMode headingMode = HeadingMode::Fixed;

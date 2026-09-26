@@ -35,9 +35,32 @@
 // The published heading is `imu.heading() + headingBias_`. The IMU remains the SOLE source of
 // heading CHANGE — every rotation the robot makes still enters through imu.heading(), tick for
 // tick, and PilonsOdometry is untouched — while the bias is a slowly-learned constant offset that
-// moves by at most `maxHeadingNudgeRate · dt` per tick (ComplementaryFusion). There is no code
-// path, here or anywhere below, that ASSIGNS a heading: the policy can only return an increment.
-// That is what makes never-snap (§13 #4) structural for yaw rather than a promise.
+// moves by at most `maxHeadingNudgeRate · dt` per tick (ComplementaryFusion). No CORRECTOR and no
+// fusion policy can ASSIGN a heading, here or anywhere below: the policy can only return an
+// increment. That is what makes never-snap (§13 #4) structural for yaw rather than a promise.
+//
+// The one assignment that exists is a CALLER SEED, and it is not a correction: reseatHeading()
+// (COMP-a, 2026-09-26) is the heading twin of setPose(). A caller who KNOWS which way the robot
+// faces — the competition program, at the instant an auton starts, from the auton's declared start
+// pose — sets the bias so the published heading equals that value on this tick; the IMU stays the
+// only source of every change after it. Never-snap is a rule about what a SENSOR may do to a live
+// estimate, and it still holds: nothing that reads a sensor can reach reseatHeading().
+// (Decision-consistency check, logged in the COMP-a progress record. The sentence this paragraph
+// replaced — "there is no code path, here or anywhere below, that ASSIGNS a heading" — had three
+// echoes, each re-read: apriltag_corrector.hpp's "no code path HERE writes a pose or a heading"
+// (about the corrector; still true word for word), complementary_fusion.hpp's "a yaw reset can
+// never happen" on maxHeadingNudgeRate (about the fusion path; now says so), and guide chapter 3's
+// "no code path anywhere assigns the robot a heading" (reworded with this change). No test
+// asserted the stronger reading; the never-snap tests exercise correctors, which still cannot.
+// That first check grepped for the ASSIGNMENT sentence only and missed its CONSEQUENCES — the
+// claims that the bias is exactly zero without a heading corrector. A review of COMP-a found
+// them (five), and a second grep — "heading-providing corrector|no-heading-corrector|EXACTLY
+// 0.0|bit-identical" over include/ and the public docs — found one more; all six now say "no
+// heading-providing corrector AND no reseatHeading() seed": the position note below
+// ("BIT-IDENTICAL to before E3"), STEP 2's early-out comment (the sixth), headingBias()'s doc
+// (which also called the bias a drift measure), biasedHeading()'s doc, the headingBias_
+// member's comment, and ekf_fusion.hpp's "bit-identical to the raw IMU" on the θ gain. Every
+// test asserting a zero bias builds a tree with no seed, so each is still true.)
 //
 // WHY THE BIAS MUST PERSIST, which is the whole design. The Localizer re-reads the IMU every tick,
 // so a heading correction that only decorated THIS tick's published heading would be discarded on
@@ -54,8 +77,9 @@
 // prediction kept accumulating a cross-track error of roughly `b × distance` — which is most of
 // what heading drift actually costs over a run. So STEP 2 rotates the odometry delta by `b` before
 // folding it. At `b == 0` this is skipped by an explicit early-out, so a tree with no
-// heading-providing corrector is BIT-IDENTICAL to before E3 by construction, not by a
-// floating-point argument.
+// heading-providing corrector AND no reseatHeading() seed is BIT-IDENTICAL to before E3 by
+// construction, not by a floating-point argument. (A seed makes `b` non-zero on purpose — the
+// start heading lives in it — and from then on the delta IS rotated, which is the point.)
 //
 // Swapping the complementary filter for an EKF later is a one-argument change (IFusionPolicy); the
 // IPoseSource read seam and the ICorrector write seam never move. At M2 the corrector list is empty
@@ -153,9 +177,13 @@ public:
     /// The order below is declaration order, NOT a ranking — `Degraded` is worse than
     /// `DeadReckon` despite sorting after it, so compare by enumerator and never by value.
     enum class Quality {
-        /// No live estimate yet: update() has never run, or the boot settle window is
-        /// still open. Distinct from Degraded on purpose — a consumer can tell "not
-        /// started" from "started and lost it".
+        /// No live estimate yet: no update() has run, or only ONE has, or the IMU has never
+        /// been ready, or the boot settle window is still open. The very first update() never
+        /// makes the estimate live — the class is judged BEFORE that call marks the estimate
+        /// as ever-updated (refreshQuality() runs ahead of the mark), and that call has no
+        /// earlier tick to take a dt against — so a Localizer whose IMU is ready from the start
+        /// is live from its SECOND update(). Distinct from Degraded on purpose — a consumer can
+        /// tell "not started" from "started and lost it".
         Uninitialized,
         /// Running on odometry alone, within the configured drift horizon. Healthy: no
         /// corrector has proposed recently, and the estimate has not yet dead-reckoned far
@@ -241,7 +269,8 @@ public:
         double ody = foldDeltas ? (odomNow.y().value() - lastOdomY_) : 0.0;
         // E3: the odometry rotated this delta by the RAW IMU heading; re-express it under the
         // corrected one (header note). The early-out is not an optimisation — it is what makes a
-        // no-heading-corrector tree bit-identical to pre-E3 by construction.
+        // tree with no heading corrector and no reseatHeading() seed bit-identical to pre-E3 by
+        // construction.
         if (headingBias_ != 0.0) {
             const double cb = std::cos(headingBias_);
             const double sb = std::sin(headingBias_);
@@ -436,7 +465,8 @@ public:
 
     // --- extra observability (telemetry / motion gating) ---
     /// The categorical health a motion or skills gate branches on, carrying the distinction the
-    /// [0,1] scalar cannot: Uninitialized means there is no live estimate YET and is what the
+    /// [0,1] scalar cannot: Uninitialized means there is no live estimate YET (never on the
+    /// first update(), nor before the IMU is ready and settled — Quality's note) and is what the
     /// motion layer's wait-for-live gate blocks on, while Degraded means an estimate exists and is
     /// decaying. Keeping those two apart is deliberate — a robot that had a fix and lost heading
     /// authority needs different recovery from one that is still booting.
@@ -466,9 +496,12 @@ public:
 
     /// The learned heading bias, in radians: how far the published heading sits from the raw IMU
     /// reading (E3). Exposed so a test can prove the correction ACCUMULATES rather than
-    /// evaporating each tick — the M2 red team's failure mode — and so telemetry can say how far
-    /// the IMU has been found to have drifted. Zero on any tree with no heading-providing
-    /// corrector, exactly.
+    /// evaporating each tick — the M2 red team's failure mode. It is a DRIFT measure only while
+    /// nothing has seeded it: reseatHeading() (COMP-a) SETS it to the caller's start heading minus
+    /// the raw IMU reading, so after a competition auton starts it carries the start-heading seed
+    /// (for example +90 deg, or a RELATIVE start's minus-the-pre-match-drift) plus whatever a
+    /// heading corrector learned since. Zero on any tree with no heading-providing corrector and
+    /// no reseatHeading() seed, exactly.
     [[nodiscard]] units::AngleDim headingBias() const noexcept {
         return units::AngleDim{headingBias_};
     }
@@ -480,7 +513,9 @@ public:
     /// E3: the learned heading bias is KEPT, deliberately. A teleport says where the robot IS, not
     /// which way the IMU is wrong; discarding a bias that took a second of tag sightings to learn,
     /// every time a routine re-seeds its position, would throw away the correction at exactly the
-    /// moments a routine cares most. `p.heading()` is still ignored, as it always was.
+    /// moments a routine cares most. `p.heading()` is still ignored, as it always was — the
+    /// heading's own seed is reseatHeading(), below; a caller seeding both calls the two on the
+    /// same tick (competition::runAuton does).
     void setPose(const math::Pose2d& p) {
         odom_.setPose(p);
         fusedX_ = p.x().value();
@@ -495,11 +530,45 @@ public:
         hasLast_ = false;  // next tick re-establishes dt (no phantom velocity from the jump)
     }
 
+    /// Seed the HEADING: make the published heading equal `heading` on this tick, by setting the
+    /// bias so that `imu.heading() + bias == heading` (the shortest signed difference, so the bias
+    /// stays within half a turn). The heading twin of setPose() — a CALLER seed, never a
+    /// correction (header: THE HEADING BIAS) — added at COMP-a so an auton's declared start
+    /// heading (and a "relative" start's zero) replaces whatever the IMU read at boot and drifted
+    /// to while the robot waited. The IMU stays the sole source of every heading CHANGE after it.
+    ///
+    /// It re-baselines EXACTLY as setPose() does: twist cleared and the next tick's dt made 0. That
+    /// is load-bearing, not tidiness. A fusion policy that sizes its heading process noise from the
+    /// change in the handed heading (EkfFusion's step A) would otherwise read this seed as a real
+    /// rotation of the whole difference, and a 90-degree seed would inflate its heading uncertainty
+    /// as if the robot had spun; the dt-0 tick instead re-bases the filter onto the new heading.
+    /// The position, its trust (distanceSinceCorrection) and the odometry are untouched — the
+    /// wheels' deltas were measured against the RAW IMU heading and are re-aimed by the bias every
+    /// tick (STEP 2), so position follows the new heading from the next tick on.
+    ///
+    /// Preconditions: the estimate is LIVE (qualityClass() != Uninitialized) — during the IMU's
+    /// boot the raw heading is calibration garbage that moves, and a bias computed from it would be
+    /// wrong the moment calibration ends; and, by contract since this class cannot see it, NO
+    /// MOTION is active — a motion mid-flight would see its heading error jump under it
+    /// (competition::runAuton checks that before it calls this). Call it on the same tick as a
+    /// setPose() that seeds the position, with no update() between them.
+    void reseatHeading(math::Angle heading) {
+        SHULIB_PRECONDITION(qualityClass_ != Quality::Uninitialized,
+                            "Localizer::reseatHeading: the estimate is not live yet (the IMU is "
+                            "still booting) -- wait for qualityClass() != Uninitialized first");
+        const math::Angle raw = imu_.heading();
+        headingBias_ = raw.errorTo(heading);  // wrap(heading - raw), in (-pi, pi]
+        pose_ = math::Pose2d{units::Length{fusedX_}, units::Length{fusedY_}, biasedHeading(raw)};
+        twist_ = math::Twist2d{};
+        hasLast_ = false;  // exactly setPose()'s re-baseline (doc above: the EKF's dt-0 resync)
+    }
+
 private:
-    /// The published heading: the raw IMU reading plus the learned bias (E3, header note). The
-    /// zero-bias early-out makes a tree with no heading-providing corrector bit-identical to
-    /// pre-E3 by construction rather than by an argument about floating point, and it also keeps
-    /// Angle::radians' finiteness precondition off the hot path in the common case.
+    /// The published heading: the raw IMU reading plus the bias — learned by correctors, and/or
+    /// seeded by reseatHeading() (E3, COMP-a; header note). The zero-bias early-out makes a tree
+    /// with no heading-providing corrector and no seed bit-identical to pre-E3 by construction
+    /// rather than by an argument about floating point, and it also keeps Angle::radians'
+    /// finiteness precondition off the hot path in the common case.
     [[nodiscard]] math::Angle biasedHeading(math::Angle raw) const noexcept {
         if (headingBias_ == 0.0 || !std::isfinite(headingBias_)) {
             return raw;
@@ -572,7 +641,8 @@ private:
     double settleUntil_ = 0.0;   // clock time the settle window ends (== firstReady if no boundary)
 
     // E3 — the persistent heading bias (header note). EXACTLY 0.0 on any tree with no
-    // heading-providing corrector, which is what the bit-identity early-outs key on.
+    // heading-providing corrector and no reseatHeading() seed (COMP-a), which is what the
+    // bit-identity early-outs key on.
     double headingBias_ = 0.0;
     double appliedHeadingNudge_ = 0.0;  // this tick's net bias change, for AppliedCorrection::dtheta
 };

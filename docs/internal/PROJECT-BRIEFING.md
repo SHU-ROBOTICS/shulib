@@ -107,13 +107,13 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 30 of 53 chunks complete
 
-- **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check) were built in parallel in isolated worktrees and merge one at a time — DIAG1 Part A has landed (below) (the team lead, 2026-09-26)  
+- **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check) were built in parallel in isolated worktrees and merge one at a time — DIAG1 Part A and COMP-a have landed (below; COMP-a's status is under COMP) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **OPEN CHUNK(S): DIAG1, G1, R3a, R3b, R3d, T2, T3** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,568 cases / 2,462,140 assertions, 3 skipped — **green**  
+- ⚠️ **OPEN CHUNK(S): COMP, DIAG1, G1, R3a, R3b, R3d, T2, T3** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
+- **Suite:** 1,625 cases / 2,463,673 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 186  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 155 registered, **7 settled** — next free is **HA-161**  
+- **Public headers:** 191  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 156 registered, **7 settled** — next free is **HA-162**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
@@ -145,7 +145,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 10 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 11 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 

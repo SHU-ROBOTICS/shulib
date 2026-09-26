@@ -273,7 +273,11 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   localization/     odometry, tracking wheels, the fused localizer + correction seam
   motion/           motion primitives, the one-active-motion scheduler, stall cross-check
   manipulation/     bounded mechanism operations (run-until-confirmed, actuate-and-confirm)
-  sequence/         the end-of-run guard — cuts and latches motion on a hard schedule
+  sequence/         the end-of-run guard — cuts and latches motion on a hard schedule, or on an
+                    abandon (a mid-auton disable)
+  competition/      the competition program's library half: the auton registry, the selector
+                    model, the auton runner (start-pose re-seat + guard), the acceptance run
+  ui/               the generic brain-screen panel pieces (budgets, hit boxes, the touch edge)
   core/             the precondition policy (one place decides what a broken contract does)
   chassis/          the public facade (Chassis) + the composition root (RobotContext)
   diag/             structured records, sinks, fault latch, health/loop monitors

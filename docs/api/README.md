@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,691 of them across 150 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 2,898 of them across 155 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -239,6 +239,15 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Calibration record](calibration_record.md) | [`calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) | The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card. |
 | [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
 
+### Competition
+
+| Page | Header | What it is |
+|---|---|---|
+| [Acceptance run](acceptance_run.md) | [`competition/acceptance_run.hpp`](../../include/shulib/competition/acceptance_run.hpp) | competition::acceptanceRun — the LIBRARY's acceptance run: the one routine shulib ships. |
+| [Auton menu](auton_menu.md) | [`competition/auton_menu.hpp`](../../include/shulib/competition/auton_menu.hpp) | competition::AutonMenu — the brain-screen auton selector as a PURE MODEL. |
+| [Auton registry](auton_registry.md) | [`competition/auton_registry.hpp`](../../include/shulib/competition/auton_registry.hpp) | competition::AutonRegistry — the autons a competition program can run, as DATA. |
+| [Match runner](match_runner.md) | [`competition/match_runner.hpp`](../../include/shulib/competition/match_runner.hpp) | competition::runAuton — run ONE registered auton under a RunGuard, from its start pose to its guaranteed end. |
+
 ### Config
 
 | Page | Header | What it is |
@@ -275,9 +284,15 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Stick mapping](stick_mapping.md) | [`teleop/stick_mapping.hpp`](../../include/shulib/teleop/stick_mapping.hpp) | Teleop stick mapping — the ONE place a driver's sticks become a body-frame drive request (chunk R3b, Session 2), and the DriveRequest/StickInput vocabulary the whole feel layer is written in. |
 | [Teleop loop](teleop_loop.md) | [`teleop/teleop_loop.hpp`](../../include/shulib/teleop/teleop_loop.hpp) | runDriverControl — the library's driver-control loop. |
 
+### Ui
+
+| Page | Header | What it is |
+|---|---|---|
+| [Touch panel](touch_panel.md) | [`ui/touch_panel.hpp`](../../include/shulib/ui/touch_panel.hpp) | ui::touch_panel — the GENERIC pieces of a brain-screen panel model. |
+
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,691 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 2,898 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

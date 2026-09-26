@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,691 of them, across 150 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,898 of them, across 155 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -25,6 +25,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AbsentVision` | class | [absent_vision.md](absent_vision.md#class-absentvision) |
 | `AbsentVision::objects` | function | [absent_vision.md](absent_vision.md#absentvision-objects) |
 | `Acceleration` | type alias | [quantity.md](quantity.md#acceleration) |
+| `acceptanceRun` | free function | [acceptance_run.md](acceptance_run.md#acceptancerun) |
+| `acceptanceRunEntry` | free function | [acceptance_run.md](acceptance_run.md#acceptancerunentry) |
 | `ActuateAndConfirm` | class | [mechanism_op.md](mechanism_op.md#class-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm (overload 2)` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm-2) |
@@ -115,6 +117,83 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AprilTagCorrectorConfig::stdDevPerInch` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-stddevperinch) |
 | `arcadeRequest` | free function | [drive_modes.md](drive_modes.md#arcaderequest) |
 | `arcStep` | free function | [arc_step.md](arc_step.md#arcstep) |
+| `ArmingClock` | class | [touch_panel.md](touch_panel.md#class-armingclock) |
+| `ArmingClock::armedAfter` | function | [touch_panel.md](touch_panel.md#armingclock-armedafter) |
+| `ArmingClock::observe` | function | [touch_panel.md](touch_panel.md#armingclock-observe) |
+| `AutonContext` | struct | [auton_registry.md](auton_registry.md#struct-autoncontext) |
+| `AutonContext::chassis` | field | [auton_registry.md](auton_registry.md#autoncontext-chassis) |
+| `AutonContext::entry` | field | [auton_registry.md](auton_registry.md#autoncontext-entry) |
+| `AutonContext::guard` | field | [auton_registry.md](auton_registry.md#autoncontext-guard) |
+| `AutonContext::mechanisms` | field | [auton_registry.md](auton_registry.md#autoncontext-mechanisms) |
+| `AutonContext::telemetry` | field | [auton_registry.md](auton_registry.md#autoncontext-telemetry) |
+| `AutonEndAction` | type alias | [auton_registry.md](auton_registry.md#autonendaction) |
+| `AutonEntry` | struct | [auton_registry.md](auton_registry.md#struct-autonentry) |
+| `AutonEntry::effectiveStart` | function | [auton_registry.md](auton_registry.md#autonentry-effectivestart) |
+| `AutonEntry::endAction` | field | [auton_registry.md](auton_registry.md#autonentry-endaction) |
+| `AutonEntry::endActionAt` | field | [auton_registry.md](auton_registry.md#autonentry-endactionat) |
+| `AutonEntry::hardStopAt` | field | [auton_registry.md](auton_registry.md#autonentry-hardstopat) |
+| `AutonEntry::kind` | field | [auton_registry.md](auton_registry.md#autonentry-kind) |
+| `AutonEntry::name` | field | [auton_registry.md](auton_registry.md#autonentry-name) |
+| `AutonEntry::route` | field | [auton_registry.md](auton_registry.md#autonentry-route) |
+| `AutonEntry::routine` | field | [auton_registry.md](auton_registry.md#autonentry-routine) |
+| `AutonEntry::start` | field | [auton_registry.md](auton_registry.md#autonentry-start) |
+| `AutonKind` | enum class | [auton_registry.md](auton_registry.md#enum-class-autonkind) |
+| `AutonKind::Match` | enumerator | [auton_registry.md](auton_registry.md#autonkind-match) |
+| `AutonKind::Skills` | enumerator | [auton_registry.md](auton_registry.md#autonkind-skills) |
+| `AutonKind::Unset` | enumerator | [auton_registry.md](auton_registry.md#autonkind-unset) |
+| `autonKindWord` | free function | [auton_registry.md](auton_registry.md#autonkindword) |
+| `AutonMenu` | class | [auton_menu.md](auton_menu.md#class-autonmenu) |
+| `AutonMenu::AutonMenu` | function | [auton_menu.md](auton_menu.md#autonmenu-autonmenu) |
+| `AutonMenu::AutonMenu (overload 2)` | function | [auton_menu.md](auton_menu.md#autonmenu-autonmenu-2) |
+| `AutonMenu::AutonMenu (overload 3)` | function | [auton_menu.md](auton_menu.md#autonmenu-autonmenu-3) |
+| `AutonMenu::choice` | function | [auton_menu.md](auton_menu.md#autonmenu-choice) |
+| `AutonMenu::chosenEntry` | function | [auton_menu.md](auton_menu.md#autonmenu-chosenentry) |
+| `AutonMenu::lockChoice` | function | [auton_menu.md](auton_menu.md#autonmenu-lockchoice) |
+| `AutonMenu::locked` | function | [auton_menu.md](auton_menu.md#autonmenu-locked) |
+| `AutonMenu::operator=` | function | [auton_menu.md](auton_menu.md#autonmenu-operator-eq) |
+| `AutonMenu::operator= (overload 2)` | function | [auton_menu.md](auton_menu.md#autonmenu-operator-eq-2) |
+| `AutonMenu::page` | function | [auton_menu.md](auton_menu.md#autonmenu-page) |
+| `AutonMenu::pageCount` | function | [auton_menu.md](auton_menu.md#autonmenu-pagecount) |
+| `AutonMenu::touch` | function | [auton_menu.md](auton_menu.md#autonmenu-touch) |
+| `AutonMenu::unlock` | function | [auton_menu.md](auton_menu.md#autonmenu-unlock) |
+| `AutonMenu::view` | function | [auton_menu.md](auton_menu.md#autonmenu-view) |
+| `AutonMenu::~AutonMenu` | function | [auton_menu.md](auton_menu.md#autonmenu-destructor-autonmenu) |
+| `AutonPeriods` | struct | [auton_registry.md](auton_registry.md#struct-autonperiods) |
+| `AutonPeriods::match` | field | [auton_registry.md](auton_registry.md#autonperiods-match) |
+| `AutonPeriods::periodFor` | function | [auton_registry.md](auton_registry.md#autonperiods-periodfor) |
+| `AutonPeriods::skills` | field | [auton_registry.md](auton_registry.md#autonperiods-skills) |
+| `AutonPeriods::validate` | function | [auton_registry.md](auton_registry.md#autonperiods-validate) |
+| `AutonRegistry` | class | [auton_registry.md](auton_registry.md#class-autonregistry) |
+| `AutonRegistry::add` | function | [auton_registry.md](auton_registry.md#autonregistry-add) |
+| `AutonRegistry::at` | function | [auton_registry.md](auton_registry.md#autonregistry-at) |
+| `AutonRegistry::AutonRegistry` | function | [auton_registry.md](auton_registry.md#autonregistry-autonregistry) |
+| `AutonRegistry::check` | function | [auton_registry.md](auton_registry.md#autonregistry-check) |
+| `AutonRegistry::empty` | function | [auton_registry.md](auton_registry.md#autonregistry-empty) |
+| `AutonRegistry::find` | function | [auton_registry.md](auton_registry.md#autonregistry-find) |
+| `AutonRegistry::periodFor` | function | [auton_registry.md](auton_registry.md#autonregistry-periodfor) |
+| `AutonRegistry::periods` | function | [auton_registry.md](auton_registry.md#autonregistry-periods) |
+| `AutonRegistry::size` | function | [auton_registry.md](auton_registry.md#autonregistry-size) |
+| `AutonRoutine` | type alias | [auton_registry.md](auton_registry.md#autonroutine) |
+| `AutonRunOutcome` | enum class | [match_runner.md](match_runner.md#enum-class-autonrunoutcome) |
+| `AutonRunOutcome::NotStarted` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-notstarted) |
+| `AutonRunOutcome::Refused` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-refused) |
+| `AutonRunOutcome::RouteRan` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-routeran) |
+| `AutonRunOutcome::RoutineRan` | enumerator | [match_runner.md](match_runner.md#autonrunoutcome-routineran) |
+| `autonRunOutcomeWord` | free function | [match_runner.md](match_runner.md#autonrunoutcomeword) |
+| `AutonRunResult` | struct | [match_runner.md](match_runner.md#struct-autonrunresult) |
+| `AutonRunResult::armedAt` | field | [match_runner.md](match_runner.md#autonrunresult-armedat) |
+| `AutonRunResult::guard` | field | [match_runner.md](match_runner.md#autonrunresult-guard) |
+| `AutonRunResult::imuAtSeat` | field | [match_runner.md](match_runner.md#autonrunresult-imuatseat) |
+| `AutonRunResult::liveAfter` | field | [match_runner.md](match_runner.md#autonrunresult-liveafter) |
+| `AutonRunResult::outcome` | field | [match_runner.md](match_runner.md#autonrunresult-outcome) |
+| `AutonRunResult::route` | field | [match_runner.md](match_runner.md#autonrunresult-route) |
+| `AutonRunResult::routine` | field | [match_runner.md](match_runner.md#autonrunresult-routine) |
+| `AutonRunResult::seated` | field | [match_runner.md](match_runner.md#autonrunresult-seated) |
+| `AutonRunResult::started` | function | [match_runner.md](match_runner.md#autonrunresult-started) |
+| `AutonRunResult::why` | field | [match_runner.md](match_runner.md#autonrunresult-why) |
+| `AutonVerdict` | struct | [auton_registry.md](auton_registry.md#struct-autonverdict) |
+| `AutonVerdict::ok` | field | [auton_registry.md](auton_registry.md#autonverdict-ok) |
+| `AutonVerdict::why` | field | [auton_registry.md](auton_registry.md#autonverdict-why) |
 | `AxisGains` | struct | [motion_config.md](motion_config.md#struct-axisgains) |
 | `AxisGains::integralLimit` | field | [motion_config.md](motion_config.md#axisgains-integrallimit) |
 | `AxisGains::kD` | field | [motion_config.md](motion_config.md#axisgains-kd) |
@@ -203,9 +282,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
 | `budgetFor` | free function | [calibrate_panel.md](calibrate_panel.md#budgetfor) |
+| `budgetFor` | free function | [touch_panel.md](touch_panel.md#budgetfor) |
 | `BuildOptions` | struct | [robot.md](robot.md#struct-buildoptions) |
 | `BuildOptions::absentDrivePorts` | field | [robot.md](robot.md#buildoptions-absentdriveports) |
 | `BuildOptions::isAbsent` | function | [robot.md](robot.md#buildoptions-isabsent) |
+| `BuildOptions::pacer` | field | [robot.md](robot.md#buildoptions-pacer) |
 | `BuildVerdict` | struct | [robot.md](robot.md#struct-buildverdict) |
 | `BuildVerdict::ok` | field | [robot.md](robot.md#buildverdict-ok) |
 | `BuildVerdict::why` | field | [robot.md](robot.md#buildverdict-why) |
@@ -363,6 +444,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ChassisSpeeds::omega` | function | [twist2d.md](twist2d.md#chassisspeeds-omega) |
 | `ChassisSpeeds::vx` | function | [twist2d.md](twist2d.md#chassisspeeds-vx) |
 | `ChassisSpeeds::vy` | function | [twist2d.md](twist2d.md#chassisspeeds-vy) |
+| `checkAutonEntry` | free function | [auton_registry.md](auton_registry.md#checkautonentry) |
 | `Checked` | struct | [calibrate_panel.md](calibrate_panel.md#struct-checked) |
 | `Checked::cols` | field | [calibrate_panel.md](calibrate_panel.md#checked-cols) |
 | `Checked::text` | field | [calibrate_panel.md](calibrate_panel.md#checked-text) |
@@ -429,6 +511,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Constraints::maxLinear` | field | [route.md](route.md#constraints-maxlinear) |
 | `Constraints::timeout` | field | [route.md](route.md#constraints-timeout) |
 | `contains` | free function | [calibrate_panel.md](calibrate_panel.md#contains) |
+| `contains` | free function | [touch_panel.md](touch_panel.md#contains) |
 | `continuousDeadband` | free function | [input_shaping.md](input_shaping.md#continuousdeadband) |
 | `ControllerAxis` | enum class | [controller.md](controller.md#enum-class-controlleraxis) |
 | `ControllerAxis::LeftX` | enumerator | [controller.md](controller.md#controlleraxis-leftx) |
@@ -456,6 +539,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ControllerId` | enum class | [pros-controller.md](pros-controller.md#enum-class-controllerid) |
 | `ControllerId::Master` | enumerator | [pros-controller.md](pros-controller.md#controllerid-master) |
 | `ControllerId::Partner` | enumerator | [pros-controller.md](pros-controller.md#controllerid-partner) |
+| `copyScreenText` | free function | [touch_panel.md](touch_panel.md#copyscreentext) |
 | `CorrectionProposal` | struct | [correction.md](correction.md#struct-correctionproposal) |
 | `CorrectionProposal::confidence` | field | [correction.md](correction.md#correctionproposal-confidence) |
 | `CorrectionProposal::fieldPose` | field | [correction.md](correction.md#correctionproposal-fieldpose) |
@@ -948,8 +1032,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitorConfig::brownoutVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutvolts) |
 | `HealthMonitorConfig::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-maxmotortempc) |
 | `heightFor` | free function | [calibrate_panel.md](calibrate_panel.md#heightfor) |
+| `heightFor` | free function | [touch_panel.md](touch_panel.md#heightfor) |
 | `hitBox` | free function | [calibrate_panel.md](calibrate_panel.md#hitbox) |
+| `hitBox` | free function | [touch_panel.md](touch_panel.md#hitbox) |
 | `hitTest` | free function | [calibrate_panel.md](calibrate_panel.md#hittest) |
+| `hitTest` | free function | [touch_panel.md](touch_panel.md#hittest) |
 | `HoldPose` | class | [hold_pose.md](hold_pose.md#class-holdpose) |
 | `HoldPose::HoldPose` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose) |
 | `HoldPose::HoldPose (overload 2)` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose-2) |
@@ -1312,12 +1399,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 |---|---|---|
 | `kAbortRow` | constant | [calibrate_panel.md](calibrate_panel.md#kabortrow) |
 | `kAbortSlot` | constant | [calibrate_panel.md](calibrate_panel.md#kabortslot) |
+| `kAcceptanceRunName` | constant | [acceptance_run.md](acceptance_run.md#kacceptancerunname) |
 | `kAll` | constant | [calibrate_panel.md](calibrate_panel.md#kall) |
 | `kApiMajor` | constant | [version.md](version.md#kapimajor) |
 | `kApiMinor` | constant | [version.md](version.md#kapiminor) |
 | `kApiVersionString` | constant | [version.md](version.md#kapiversionstring) |
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
+| `kArmingDelaySeconds` | constant | [touch_panel.md](touch_panel.md#karmingdelayseconds) |
 | `kBackBox` | constant | [calibrate_panel.md](calibrate_panel.md#kbackbox) |
 | `kBrainAdiLines` | constant | [device_provider.md](device_provider.md#kbrainadilines) |
 | `kBuiltinCommandCount` | constant | [route.md](route.md#kbuiltincommandcount) |
@@ -1359,7 +1448,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kHeaderWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderwhichend) |
 | `kHeadingErrorMaxDeg` | constant | [accuracy.md](accuracy.md#kheadingerrormaxdeg) |
 | `kHitPadX` | constant | [calibrate_panel.md](calibrate_panel.md#khitpadx) |
+| `kHitPadX` | constant | [touch_panel.md](touch_panel.md#khitpadx) |
 | `kHitPadY` | constant | [calibrate_panel.md](calibrate_panel.md#khitpady) |
+| `kHitPadY` | constant | [touch_panel.md](touch_panel.md#khitpady) |
 | `kImuWarming` | constant | [calibrate_panel.md](calibrate_panel.md#kimuwarming) |
 | `kInstallTagCorrector` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrector) |
 | `kInstallTagCorrector<AbsentTagSource>` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrectorabsenttagsource) |
@@ -1371,9 +1462,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLabelFront` | constant | [calibrate_panel.md](calibrate_panel.md#klabelfront) |
 | `kLabelRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#klabelrunagain) |
 | `kLargeCols` | constant | [calibrate_panel.md](calibrate_panel.md#klargecols) |
+| `kLargeCols` | constant | [touch_panel.md](touch_panel.md#klargecols) |
 | `kLargeHeight` | constant | [calibrate_panel.md](calibrate_panel.md#klargeheight) |
+| `kLargeHeight` | constant | [touch_panel.md](touch_panel.md#klargeheight) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
 | `kManifestSchemaVersion` | constant | [manifest.md](manifest.md#kmanifestschemaversion) |
+| `kMaxAutonNameChars` | constant | [auton_registry.md](auton_registry.md#kmaxautonnamechars) |
+| `kMaxAutons` | constant | [auton_registry.md](auton_registry.md#kmaxautons) |
 | `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
@@ -1393,7 +1488,25 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxSpinLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxspinlevels) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
 | `kMediumCols` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumcols) |
+| `kMediumCols` | constant | [touch_panel.md](touch_panel.md#kmediumcols) |
 | `kMediumHeight` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumheight) |
+| `kMediumHeight` | constant | [touch_panel.md](touch_panel.md#kmediumheight) |
+| `kMenuEntriesPerPage` | constant | [auton_menu.md](auton_menu.md#kmenuentriesperpage) |
+| `kMenuEntryRow0` | constant | [auton_menu.md](auton_menu.md#kmenuentryrow0) |
+| `kMenuEntryRow1` | constant | [auton_menu.md](auton_menu.md#kmenuentryrow1) |
+| `kMenuEntryRows` | constant | [auton_menu.md](auton_menu.md#kmenuentryrows) |
+| `kMenuHeaderBar` | constant | [auton_menu.md](auton_menu.md#kmenuheaderbar) |
+| `kMenuHeaderPrefix` | constant | [auton_menu.md](auton_menu.md#kmenuheaderprefix) |
+| `kMenuHintText` | constant | [auton_menu.md](auton_menu.md#kmenuhinttext) |
+| `kMenuLockedText` | constant | [auton_menu.md](auton_menu.md#kmenulockedtext) |
+| `kMenuMaxButtons` | constant | [auton_menu.md](auton_menu.md#kmenumaxbuttons) |
+| `kMenuNextLabel` | constant | [auton_menu.md](auton_menu.md#kmenunextlabel) |
+| `kMenuNextSlot` | constant | [auton_menu.md](auton_menu.md#kmenunextslot) |
+| `kMenuNoneInfo` | constant | [auton_menu.md](auton_menu.md#kmenunoneinfo) |
+| `kMenuNoneLabel` | constant | [auton_menu.md](auton_menu.md#kmenunonelabel) |
+| `kMenuNoneSlot` | constant | [auton_menu.md](auton_menu.md#kmenunoneslot) |
+| `kMenuPrevLabel` | constant | [auton_menu.md](auton_menu.md#kmenuprevlabel) |
+| `kMenuPrevSlot` | constant | [auton_menu.md](auton_menu.md#kmenuprevslot) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
 | `kNextDoneWhenMoved` | constant | [calibrate_panel.md](calibrate_panel.md#knextdonewhenmoved) |
@@ -1402,6 +1515,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kNextSpins` | constant | [calibrate_panel.md](calibrate_panel.md#knextspins) |
 | `kNextTouchDone` | constant | [calibrate_panel.md](calibrate_panel.md#knexttouchdone) |
 | `kNextTwitch` | constant | [calibrate_panel.md](calibrate_panel.md#knexttwitch) |
+| `kNoAutonName` | constant | [auton_registry.md](auton_registry.md#knoautonname) |
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
 | `kNoteCols` | constant | [calibrate_panel.md](calibrate_panel.md#knotecols) |
 | `kNotStarted` | constant | [calibrate_panel.md](calibrate_panel.md#knotstarted) |
@@ -1409,10 +1523,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kOdomAuditPrecision` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditprecision) |
 | `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
 | `kPanelLastRow` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellastrow) |
+| `kPanelLastRow` | constant | [touch_panel.md](touch_panel.md#kpanellastrow) |
 | `kPanelLineCap` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellinecap) |
 | `kPanelMaxButtons` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxbuttons) |
 | `kPanelMaxLines` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxlines) |
 | `kPanelWidth` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelwidth) |
+| `kPanelWidth` | constant | [touch_panel.md](touch_panel.md#kpanelwidth) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
@@ -1431,7 +1547,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
 | `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
 | `kSmallCols` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallcols) |
+| `kSmallCols` | constant | [touch_panel.md](touch_panel.md#ksmallcols) |
 | `kSmallHeight` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallheight) |
+| `kSmallHeight` | constant | [touch_panel.md](touch_panel.md#ksmallheight) |
 | `kSpinAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kspinagain) |
 | `kSpinFirst` | constant | [calibrate_panel.md](calibrate_panel.md#kspinfirst) |
 | `kSpinning` | constant | [calibrate_panel.md](calibrate_panel.md#kspinning) |
@@ -1449,7 +1567,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `LayoutKey` | class | [touch_panel.md](touch_panel.md#class-layoutkey) |
 | `layoutKey` | free function | [calibrate_panel.md](calibrate_panel.md#layoutkey) |
+| `LayoutKey::mix` | function | [touch_panel.md](touch_panel.md#layoutkey-mix) |
+| `LayoutKey::mix (overload 2)` | function | [touch_panel.md](touch_panel.md#layoutkey-mix-2) |
+| `LayoutKey::value` | function | [touch_panel.md](touch_panel.md#layoutkey-value) |
 | `Length` | type alias | [quantity.md](quantity.md#length) |
 | `LevelFilterSink` | class | [level_filter_sink.md](level_filter_sink.md#class-levelfiltersink) |
 | `LevelFilterSink::clearLevels` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-clearlevels) |
@@ -1485,6 +1607,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Localizer::Quality::Degraded` | enumerator | [localizer.md](localizer.md#localizer-quality-degraded) |
 | `Localizer::Quality::Uninitialized` | enumerator | [localizer.md](localizer.md#localizer-quality-uninitialized) |
 | `Localizer::qualityClass` | function | [localizer.md](localizer.md#localizer-qualityclass) |
+| `Localizer::reseatHeading` | function | [localizer.md](localizer.md#localizer-reseatheading) |
 | `Localizer::setPose` | function | [localizer.md](localizer.md#localizer-setpose) |
 | `Localizer::twist` | function | [localizer.md](localizer.md#localizer-twist) |
 | `Localizer::update` | function | [localizer.md](localizer.md#localizer-update) |
@@ -1587,6 +1710,43 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MemberSample` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-membersample) |
 | `MemberSample::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-present) |
 | `MemberSample::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-velocityrads) |
+| `MenuButton` | struct | [auton_menu.md](auton_menu.md#struct-menubutton) |
+| `MenuButton::1]` | field | [auton_menu.md](auton_menu.md#menubutton-1) |
+| `MenuButton::armed` | field | [auton_menu.md](auton_menu.md#menubutton-armed) |
+| `MenuButton::chosen` | field | [auton_menu.md](auton_menu.md#menubutton-chosen) |
+| `MenuButton::entry` | field | [auton_menu.md](auton_menu.md#menubutton-entry) |
+| `MenuButton::id` | field | [auton_menu.md](auton_menu.md#menubutton-id) |
+| `MenuButton::rect` | field | [auton_menu.md](auton_menu.md#menubutton-rect) |
+| `MenuButtonId` | enum class | [auton_menu.md](auton_menu.md#enum-class-menubuttonid) |
+| `MenuButtonId::Entry` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-entry) |
+| `MenuButtonId::Next` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-next) |
+| `MenuButtonId::None` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-none) |
+| `MenuButtonId::Prev` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-prev) |
+| `MenuLine` | struct | [auton_menu.md](auton_menu.md#struct-menuline) |
+| `MenuLine::1]` | field | [auton_menu.md](auton_menu.md#menuline-1) |
+| `MenuLine::size` | field | [auton_menu.md](auton_menu.md#menuline-size) |
+| `MenuLine::tone` | field | [auton_menu.md](auton_menu.md#menuline-tone) |
+| `MenuLine::x` | field | [auton_menu.md](auton_menu.md#menuline-x) |
+| `MenuLine::y` | field | [auton_menu.md](auton_menu.md#menuline-y) |
+| `MenuTouch` | struct | [auton_menu.md](auton_menu.md#struct-menutouch) |
+| `MenuTouch::action` | field | [auton_menu.md](auton_menu.md#menutouch-action) |
+| `MenuTouch::choice` | field | [auton_menu.md](auton_menu.md#menutouch-choice) |
+| `MenuTouch::hit` | field | [auton_menu.md](auton_menu.md#menutouch-hit) |
+| `MenuTouch::newRelease` | field | [auton_menu.md](auton_menu.md#menutouch-newrelease) |
+| `MenuTouchAction` | enum class | [auton_menu.md](auton_menu.md#enum-class-menutouchaction) |
+| `MenuTouchAction::Chose` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-chose) |
+| `MenuTouchAction::None` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-none) |
+| `MenuTouchAction::Paged` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-paged) |
+| `MenuTouchAction::RefusedLocked` | enumerator | [auton_menu.md](auton_menu.md#menutouchaction-refusedlocked) |
+| `MenuView` | struct | [auton_menu.md](auton_menu.md#struct-menuview) |
+| `MenuView::buttonCount` | field | [auton_menu.md](auton_menu.md#menuview-buttoncount) |
+| `MenuView::buttons` | field | [auton_menu.md](auton_menu.md#menuview-buttons) |
+| `MenuView::header` | field | [auton_menu.md](auton_menu.md#menuview-header) |
+| `MenuView::info` | field | [auton_menu.md](auton_menu.md#menuview-info) |
+| `MenuView::locked` | field | [auton_menu.md](auton_menu.md#menuview-locked) |
+| `MenuView::page` | field | [auton_menu.md](auton_menu.md#menuview-page) |
+| `MenuView::pageCount` | field | [auton_menu.md](auton_menu.md#menuview-pagecount) |
+| `MenuView::status` | field | [auton_menu.md](auton_menu.md#menuview-status) |
 | `modeRequest` | free function | [drive_modes.md](drive_modes.md#moderequest) |
 | `MotionConfig` | struct | [motion_config.md](motion_config.md#struct-motionconfig) |
 | `MotionConfig::brakeSettle` | field | [motion_config.md](motion_config.md#motionconfig-brakesettle) |
@@ -1802,6 +1962,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `OdoStallCheckConfig::setAllWheels` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-setallwheels) |
 | `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
+| `onScreen` | free function | [touch_panel.md](touch_panel.md#onscreen) |
 | `operator""_deg` | free function | [literals.md](literals.md#operator-quote-quote-_deg) |
 | `operator""_deg (overload 2)` | free function | [literals.md](literals.md#operator-quote-quote-_deg-2) |
 | `operator""_in` | free function | [literals.md](literals.md#operator-quote-quote-_in) |
@@ -1822,6 +1983,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `opticalProximityToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalproximitytocanonical) |
 | `opticalUnitIntervalToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalunitintervaltocanonical) |
 | `overlaps` | free function | [calibrate_panel.md](calibrate_panel.md#overlaps) |
+| `overlaps` | free function | [touch_panel.md](touch_panel.md#overlaps) |
 
 ## P
 
@@ -2173,6 +2335,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `recoverFinite` | free function | [finite_guard.md](finite_guard.md#recoverfinite) |
 | `recoverFinitePose` | free function | [finite_guard.md](finite_guard.md#recoverfinitepose) |
 | `recoverWheelVoltage` | free function | [plausibility_guard.md](plausibility_guard.md#recoverwheelvoltage) |
+| `Rect` | struct | [touch_panel.md](touch_panel.md#struct-rect) |
+| `Rect::operator==` | function | [touch_panel.md](touch_panel.md#rect-operator-eq-eq) |
+| `Rect::x0` | field | [touch_panel.md](touch_panel.md#rect-x0) |
+| `Rect::x1` | field | [touch_panel.md](touch_panel.md#rect-x1) |
+| `Rect::y0` | field | [touch_panel.md](touch_panel.md#rect-y0) |
+| `Rect::y1` | field | [touch_panel.md](touch_panel.md#rect-y1) |
 | `Refusal` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-refusal) |
 | `Refusal::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-aborted) |
 | `Refusal::ImuNotReady` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-imunotready) |
@@ -2196,6 +2364,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::SpinWidthInvalid` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwidthinvalid) |
 | `Refusal::SpinWrongWay` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwrongway) |
 | `refusalName` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusalname) |
+| `ReleaseEdge` | class | [touch_panel.md](touch_panel.md#class-releaseedge) |
+| `ReleaseEdge::ReleaseEdge` | function | [touch_panel.md](touch_panel.md#releaseedge-releaseedge) |
+| `ReleaseEdge::take` | function | [touch_panel.md](touch_panel.md#releaseedge-take) |
 | `Robot` | class | [robot.md](robot.md#class-robot) |
 | `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
 | `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
@@ -2318,16 +2489,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RoutineStopCause::MotionFailed` | enumerator | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | enumerator | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | enumerator | [routine.md](routine.md#routinestopcause-waittimedout) |
+| `runAuton` | free function | [match_runner.md](match_runner.md#runauton) |
 | `runDriverControl` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol) |
 | `runDriverControl (overload 2)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-2) |
 | `runDriverControl (overload 3)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-3) |
 | `RunGuard` | class | [run_guard.md](run_guard.md#class-runguard) |
+| `RunGuard::abandonRequested` | function | [run_guard.md](run_guard.md#runguard-abandonrequested) |
 | `RunGuard::expired` | function | [run_guard.md](run_guard.md#runguard-expired) |
 | `RunGuard::operator=` | function | [run_guard.md](run_guard.md#runguard-operator-eq) |
 | `RunGuard::operator= (overload 2)` | function | [run_guard.md](run_guard.md#runguard-operator-eq-2) |
 | `RunGuard::pace` | function | [run_guard.md](run_guard.md#runguard-pace) |
 | `RunGuard::pause` | function | [run_guard.md](run_guard.md#runguard-pause) |
 | `RunGuard::remaining` | function | [run_guard.md](run_guard.md#runguard-remaining) |
+| `RunGuard::requestAbandon` | function | [run_guard.md](run_guard.md#runguard-requestabandon) |
 | `RunGuard::run` | function | [run_guard.md](run_guard.md#runguard-run) |
 | `RunGuard::RunGuard` | function | [run_guard.md](run_guard.md#runguard-runguard) |
 | `RunGuard::RunGuard (overload 2)` | function | [run_guard.md](run_guard.md#runguard-runguard-2) |
@@ -2341,6 +2515,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunGuardConfig::mechanisms` | field | [run_guard.md](run_guard.md#runguardconfig-mechanisms) |
 | `RunGuardConfig::validate` | function | [run_guard.md](run_guard.md#runguardconfig-validate) |
 | `RunGuardReport` | struct | [run_guard.md](run_guard.md#struct-runguardreport) |
+| `RunGuardReport::abandoned` | field | [run_guard.md](run_guard.md#runguardreport-abandoned) |
 | `RunGuardReport::anonymousClaimsReleased` | field | [run_guard.md](run_guard.md#runguardreport-anonymousclaimsreleased) |
 | `RunGuardReport::endActionEnded` | field | [run_guard.md](run_guard.md#runguardreport-endactionended) |
 | `RunGuardReport::endActionRan` | field | [run_guard.md](run_guard.md#runguardreport-endactionran) |
@@ -2430,6 +2605,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
 | `SaveOutcome::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-saved) |
 | `screenText` | free function | [calibrate_panel.md](calibrate_panel.md#screentext) |
+| `screenText` | free function | [touch_panel.md](touch_panel.md#screentext) |
 | `SdSink` | class | [sd_sink.md](sd_sink.md#class-sdsink) |
 | `SdSink::brownout` | function | [sd_sink.md](sd_sink.md#sdsink-brownout) |
 | `SdSink::bytesBuffered` | function | [sd_sink.md](sd_sink.md#sdsink-bytesbuffered) |
@@ -2537,6 +2713,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallDetector::reset` | function | [stall_detector.md](stall_detector.md#stalldetector-reset) |
 | `StallDetector::StallDetector` | function | [stall_detector.md](stall_detector.md#stalldetector-stalldetector) |
 | `StallDetector::update` | function | [stall_detector.md](stall_detector.md#stalldetector-update) |
+| `startModeWord` | free function | [auton_registry.md](auton_registry.md#startmodeword) |
+| `StartPose` | class | [auton_registry.md](auton_registry.md#class-startpose) |
+| `StartPose::field` | function | [auton_registry.md](auton_registry.md#startpose-field) |
+| `StartPose::field (overload 2)` | function | [auton_registry.md](auton_registry.md#startpose-field-2) |
+| `StartPose::isSet` | function | [auton_registry.md](auton_registry.md#startpose-isset) |
+| `StartPose::Mode` | enum class | [auton_registry.md](auton_registry.md#enum-class-startpose-mode) |
+| `StartPose::mode` | function | [auton_registry.md](auton_registry.md#startpose-mode) |
+| `StartPose::Mode::Field` | enumerator | [auton_registry.md](auton_registry.md#startpose-mode-field) |
+| `StartPose::Mode::Relative` | enumerator | [auton_registry.md](auton_registry.md#startpose-mode-relative) |
+| `StartPose::Mode::Unset` | enumerator | [auton_registry.md](auton_registry.md#startpose-mode-unset) |
+| `StartPose::pose` | function | [auton_registry.md](auton_registry.md#startpose-pose) |
+| `StartPose::relative` | function | [auton_registry.md](auton_registry.md#startpose-relative) |
+| `StartPose::sameAs` | function | [auton_registry.md](auton_registry.md#startpose-sameas) |
+| `StartPose::StartPose` | function | [auton_registry.md](auton_registry.md#startpose-startpose) |
 | `StaticRobotConfig` | class | [robot_config.md](robot_config.md#class-staticrobotconfig) |
 | `StaticRobotConfig::config` | function | [robot_config.md](robot_config.md#staticrobotconfig-config) |
 | `StaticRobotConfig::StaticRobotConfig` | function | [robot_config.md](robot_config.md#staticrobotconfig-staticrobotconfig) |
@@ -2614,9 +2804,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TermSink::TermSink` | function | [term_sink.md](term_sink.md#termsink-termsink) |
 | `TermSink::wantsRecord` | function | [term_sink.md](term_sink.md#termsink-wantsrecord) |
 | `TextSize` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-textsize) |
+| `TextSize` | enum class | [touch_panel.md](touch_panel.md#enum-class-textsize) |
 | `TextSize::Large` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-large) |
+| `TextSize::Large` | enumerator | [touch_panel.md](touch_panel.md#textsize-large) |
 | `TextSize::Medium` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-medium) |
+| `TextSize::Medium` | enumerator | [touch_panel.md](touch_panel.md#textsize-medium) |
 | `TextSize::Small` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-small) |
+| `TextSize::Small` | enumerator | [touch_panel.md](touch_panel.md#textsize-small) |
 | `throwingPreconditionHandler` | free function | [check.md](check.md#throwingpreconditionhandler) |
 | `TickAttribution` | class | [tick_attribution.md](tick_attribution.md#class-tickattribution) |
 | `TickAttribution::abandonTick` | function | [tick_attribution.md](tick_attribution.md#tickattribution-abandontick) |
@@ -2665,6 +2859,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
 | `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
 | `toLineValue` | free function | [robot_config.md](robot_config.md#tolinevalue) |
+| `Tone` | enum class | [touch_panel.md](touch_panel.md#enum-class-tone) |
+| `Tone::Amber` | enumerator | [touch_panel.md](touch_panel.md#tone-amber) |
+| `Tone::Blue` | enumerator | [touch_panel.md](touch_panel.md#tone-blue) |
+| `Tone::Green` | enumerator | [touch_panel.md](touch_panel.md#tone-green) |
+| `Tone::Grey` | enumerator | [touch_panel.md](touch_panel.md#tone-grey) |
+| `Tone::Red` | enumerator | [touch_panel.md](touch_panel.md#tone-red) |
+| `Tone::White` | enumerator | [touch_panel.md](touch_panel.md#tone-white) |
 | `TouchAction` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-touchaction) |
 | `TouchAction::Answer` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-answer) |
 | `TouchAction::None` | enumerator | [calibrate_panel.md](calibrate_panel.md#touchaction-none) |
@@ -2679,10 +2880,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TouchResult::hit` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-hit) |
 | `TouchResult::newRelease` | field | [calibrate_panel.md](calibrate_panel.md#touchresult-newrelease) |
 | `TouchSample` | struct | [calibrate_panel.md](calibrate_panel.md#struct-touchsample) |
+| `TouchSample` | struct | [touch_panel.md](touch_panel.md#struct-touchsample) |
 | `TouchSample::error` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-error) |
+| `TouchSample::error` | field | [touch_panel.md](touch_panel.md#touchsample-error) |
 | `TouchSample::releaseCount` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-releasecount) |
+| `TouchSample::releaseCount` | field | [touch_panel.md](touch_panel.md#touchsample-releasecount) |
 | `TouchSample::x` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-x) |
+| `TouchSample::x` | field | [touch_panel.md](touch_panel.md#touchsample-x) |
 | `TouchSample::y` | field | [calibrate_panel.md](calibrate_panel.md#touchsample-y) |
+| `TouchSample::y` | field | [touch_panel.md](touch_panel.md#touchsample-y) |
 | `TrackingWheel` | class | [tracking_wheel.md](tracking_wheel.md#class-trackingwheel) |
 | `TrackingWheel::forward` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-forward) |
 | `TrackingWheel::lateral` | function | [tracking_wheel.md](tracking_wheel.md#trackingwheel-lateral) |
@@ -2789,6 +2995,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::WheelSpeeds` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds) |
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
 | `within` | free function | [calibrate_panel.md](calibrate_panel.md#within) |
+| `within` | free function | [touch_panel.md](touch_panel.md#within) |
 | `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |
 | `Wrapped::1]` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-1) |
 | `Wrapped::complete` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-complete) |

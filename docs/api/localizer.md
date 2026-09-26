@@ -8,7 +8,7 @@
 
 Localizer — the fused field-frame estimate.
 
-This header declares **3** types (23 members).
+This header declares **3** types (24 members).
 
 Extracted from [`include/shulib/localization/localizer.hpp`](../../include/shulib/localization/localizer.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -35,6 +35,7 @@ Extracted from [`include/shulib/localization/localizer.hpp`](../../include/shuli
   - [`lastOdomTickAudit`](#localizer-lastodomtickaudit)
   - [`headingBias`](#localizer-headingbias)
   - [`setPose`](#localizer-setpose)
+  - [`reseatHeading`](#localizer-reseatheading)
   - [`enum class Localizer::Quality`](#enum-class-localizer-quality)
     - [`Uninitialized`](#localizer-quality-uninitialized)
     - [`DeadReckon`](#localizer-quality-deadreckon)
@@ -51,7 +52,7 @@ struct LocalizerConfig
 
 Tuning for the fused estimate: the dt window the twist finite-difference is trusted over, how fast the quality scalar decays while dead-reckoning, and how long the boot settle window holds the fold closed. The Localizer constructor range-checks maxDt, driftHorizon, qFloor and bootSettleTime (red-on-failure); `minDt` is NOT checked, and nothing checks `minDt <= maxDt`, so the dt BAND is the caller's to keep sane: a floor above the ceiling empties it and every tick then silently reports zero linear velocity and Degraded quality, while a floor <= 0 disables the velocity-spike guard minDt exists to be. The drift-rate numbers are invented guesses until a real drivetrain is measured.
 
-*struct, declared at [`include/shulib/localization/localizer.hpp:121`](../../include/shulib/localization/localizer.hpp#L121).*
+*struct, declared at [`include/shulib/localization/localizer.hpp:145`](../../include/shulib/localization/localizer.hpp#L145).*
 
 <a id="localizerconfig-maxdt"></a>
 
@@ -63,7 +64,7 @@ double maxDt = 0.1
 
 Above this tick dt (s), the linear-velocity finite-difference is not trusted (first tick after construction/teleport, or a loop stall) → zero linear velocity for that tick + a flagged tick.
 
-*field, declared at [`include/shulib/localization/localizer.hpp:124`](../../include/shulib/localization/localizer.hpp#L124).*
+*field, declared at [`include/shulib/localization/localizer.hpp:148`](../../include/shulib/localization/localizer.hpp#L148).*
 
 <a id="localizerconfig-mindt"></a>
 
@@ -75,7 +76,7 @@ double minDt = 1e-4
 
 Below this tick dt (s), the finite-difference is likewise not trusted (a near-zero interval would otherwise blow up into an unphysical velocity spike).
 
-*field, declared at [`include/shulib/localization/localizer.hpp:127`](../../include/shulib/localization/localizer.hpp#L127).*
+*field, declared at [`include/shulib/localization/localizer.hpp:151`](../../include/shulib/localization/localizer.hpp#L151).*
 
 <a id="localizerconfig-drifthorizon"></a>
 
@@ -87,7 +88,7 @@ units::Length driftHorizon{12.0}
 
 distanceSinceCorrection at which the quality scalar decays to qFloor (drift erodes trust as we dead-reckon farther — process noise scales with travel). Default ~ one foot — an INVENTED drift-rate guess until R4 measures real dead-reckon drift (A4 register HA-36).
 
-*field, declared at [`include/shulib/localization/localizer.hpp:131`](../../include/shulib/localization/localizer.hpp#L131).*
+*field, declared at [`include/shulib/localization/localizer.hpp:155`](../../include/shulib/localization/localizer.hpp#L155).*
 
 <a id="localizerconfig-qfloor"></a>
 
@@ -99,7 +100,7 @@ double qFloor = 0.2
 
 Quality floor while dead-reckoning far from a fix, in [0,1).
 
-*field, declared at [`include/shulib/localization/localizer.hpp:133`](../../include/shulib/localization/localizer.hpp#L133).*
+*field, declared at [`include/shulib/localization/localizer.hpp:157`](../../include/shulib/localization/localizer.hpp#L157).*
 
 <a id="localizerconfig-bootsettletime"></a>
 
@@ -111,7 +112,7 @@ double bootSettleTime = 0.1
 
 How long after a WITNESSED not-ready→ready transition the fold stays closed while the delayed sensor data path flushes its boot-boundary garbage (the settle window — header note). Applies ONLY when a not-ready phase was observed; a ready-from-construction boot takes no hold. Must cover the worst sensor data-path latency; 0.1 s clears the ~50 ms GPS-class delay with margin (adequacy vs. REAL latencies: A4 register HA-35, R4 measures).
 
-*field, declared at [`include/shulib/localization/localizer.hpp:139`](../../include/shulib/localization/localizer.hpp#L139).*
+*field, declared at [`include/shulib/localization/localizer.hpp:163`](../../include/shulib/localization/localizer.hpp#L163).*
 
 <a id="class-localizer"></a>
 
@@ -123,7 +124,7 @@ class Localizer final : public IPoseSource
 
 The fused field-frame estimate, and the IPoseSource every consumer above it reads: a deterministic five-step tick over an injected clock, IMU, IOdometry (PilonsOdometry or DriveEncoderOdometry — the R3b Part 2 seam) and a non-owning list of correctors. Position is a PERSISTENT accumulator advanced by odometry DELTAS and nudged — never snapped — toward corrector proposals; heading is composed from the IMU as the LAST write of every tick, so nothing below can ASSIGN a heading, only move a bounded, persistent bias. It owns no loop and raises no faults: the caller calls update() once per control tick, and pose()/twist()/quality() then describe THAT tick until the next one.
 
-*class, declared at [`include/shulib/localization/localizer.hpp:150`](../../include/shulib/localization/localizer.hpp#L150).*
+*class, declared at [`include/shulib/localization/localizer.hpp:174`](../../include/shulib/localization/localizer.hpp#L174).*
 
 <a id="localizer-kmaxcorrectors"></a>
 
@@ -135,7 +136,7 @@ static constexpr std::size_t kMaxCorrectors = 4
 
 At most this many correctors (GPS + AI-Vision tag + Pi tag + LIDAR today) — the valid-proposal buffer is fixed-capacity so the hot path never heap-allocates.
 
-*field, declared at [`include/shulib/localization/localizer.hpp:176`](../../include/shulib/localization/localizer.hpp#L176).*
+*field, declared at [`include/shulib/localization/localizer.hpp:204`](../../include/shulib/localization/localizer.hpp#L204).*
 
 <a id="localizer-localizer"></a>
 
@@ -147,7 +148,7 @@ Localizer(hal::IClock& clock, hal::IImu& imu, IOdometry& odom, IFusionPolicy& fu
 
 `correctors` is a NON-OWNING view: the backing array (and the correctors it points to) must outlive the Localizer. Empty at M2 (dead-reckon). All references are validated non-null.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:180`](../../include/shulib/localization/localizer.hpp#L180).*
+*function, declared at [`include/shulib/localization/localizer.hpp:208`](../../include/shulib/localization/localizer.hpp#L208).*
 
 <a id="localizer-update"></a>
 
@@ -159,7 +160,7 @@ void update()
 
 One fused tick (the five steps above).
 
-*function, declared at [`include/shulib/localization/localizer.hpp:212`](../../include/shulib/localization/localizer.hpp#L212).*
+*function, declared at [`include/shulib/localization/localizer.hpp:240`](../../include/shulib/localization/localizer.hpp#L240).*
 
 <a id="localizer-pose"></a>
 
@@ -171,7 +172,7 @@ One fused tick (the five steps above).
 
 The fused field-frame pose as of the last update(): x/y in INCHES from the persistent accumulator, heading in RADIANS as `imu.heading() + headingBias()`. While the IMU is still booting or settling the POSITION is frozen at its seed value (the fold is closed) while the heading keeps tracking the raw IMU, calibration garbage included — so check qualityClass() before believing this, rather than reading a plausible-looking pose that does not exist yet.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:418`](../../include/shulib/localization/localizer.hpp#L418).*
+*function, declared at [`include/shulib/localization/localizer.hpp:447`](../../include/shulib/localization/localizer.hpp#L447).*
 
 <a id="localizer-twist"></a>
 
@@ -183,7 +184,7 @@ The fused field-frame pose as of the last update(): x/y in INCHES from the persi
 
 Field-frame velocity: vx/vy in in/s, finite-differenced from the FUSED pose, and ω in rad/s taken straight from the IMU (0 when the IMU reads non-finite). A tick whose dt lands outside [minDt, maxDt] — a loop stall, or the tick after a teleport — reports ZERO linear velocity rather than a spike; the first tick, and any dt <= 0, keeps the previous linear velocity and refreshes only ω.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:424`](../../include/shulib/localization/localizer.hpp#L424).*
+*function, declared at [`include/shulib/localization/localizer.hpp:453`](../../include/shulib/localization/localizer.hpp#L453).*
 
 <a id="localizer-quality"></a>
 
@@ -195,7 +196,7 @@ Field-frame velocity: vx/vy in in/s, finite-differenced from the FUSED pose, and
 
 Graded trust in [0,1], kept consistent with qualityClass(): EXACTLY 0 whenever the IMU has no heading authority (booting, settling, or lost mid-run), otherwise a drift term decaying linearly to qFloor over driftHorizon of dead-reckoned travel, halved for an unhealthy dt and halved again for an implausible odometry delta. An applied fix clears the drift term in PROPORTION to that fix's confidence, so a microscopic fix cannot spring this to 1.0.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:430`](../../include/shulib/localization/localizer.hpp#L430).*
+*function, declared at [`include/shulib/localization/localizer.hpp:459`](../../include/shulib/localization/localizer.hpp#L459).*
 
 <a id="localizer-isdeadreckoning"></a>
 
@@ -207,7 +208,7 @@ Graded trust in [0,1], kept consistent with qualityClass(): EXACTLY 0 whenever t
 
 True when no corrector proposal was applied on the most recent update(). A per-TICK answer, not a summary: it returns to true the moment a source goes quiet, and says nothing about how far the robot has dead-reckoned since (that is distanceSinceCorrection()). True before the first update().
 
-*function, declared at [`include/shulib/localization/localizer.hpp:435`](../../include/shulib/localization/localizer.hpp#L435).*
+*function, declared at [`include/shulib/localization/localizer.hpp:464`](../../include/shulib/localization/localizer.hpp#L464).*
 
 <a id="localizer-qualityclass"></a>
 
@@ -217,9 +218,9 @@ True when no corrector proposal was applied on the most recent update(). A per-T
 [[nodiscard]] Quality qualityClass() const noexcept
 ```
 
-The categorical health a motion or skills gate branches on, carrying the distinction the [0,1] scalar cannot: Uninitialized means there is no live estimate YET and is what the motion layer's wait-for-live gate blocks on, while Degraded means an estimate exists and is decaying. Keeping those two apart is deliberate — a robot that had a fix and lost heading authority needs different recovery from one that is still booting.
+The categorical health a motion or skills gate branches on, carrying the distinction the [0,1] scalar cannot: Uninitialized means there is no live estimate YET (never on the first update(), nor before the IMU is ready and settled — Quality's note) and is what the motion layer's wait-for-live gate blocks on, while Degraded means an estimate exists and is decaying. Keeping those two apart is deliberate — a robot that had a fix and lost heading authority needs different recovery from one that is still booting.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:443`](../../include/shulib/localization/localizer.hpp#L443).*
+*function, declared at [`include/shulib/localization/localizer.hpp:473`](../../include/shulib/localization/localizer.hpp#L473).*
 
 <a id="localizer-distancesincecorrection"></a>
 
@@ -231,7 +232,7 @@ The categorical health a motion or skills gate branches on, carrying the distinc
 
 Inches of odometry travel accumulated since a fix was last applied — the input the quality decay is computed from. An applied fix does not zero it but SCALES it by (1 − the fix's confidence), so a weak fix barely dents it; setPose() clears it outright, and travel made while the boot fold is closed never enters it.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:448`](../../include/shulib/localization/localizer.hpp#L448).*
+*function, declared at [`include/shulib/localization/localizer.hpp:478`](../../include/shulib/localization/localizer.hpp#L478).*
 
 <a id="localizer-lastcorrection"></a>
 
@@ -243,7 +244,7 @@ Inches of odometry travel accumulated since a fix was last applied — the input
 
 The last tick's applied correction AND the gate's account of why (`audit`, added at E1) — the values a record producer stamps into the §18.2 gating slots.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:451`](../../include/shulib/localization/localizer.hpp#L451).*
+*function, declared at [`include/shulib/localization/localizer.hpp:481`](../../include/shulib/localization/localizer.hpp#L481).*
 
 <a id="localizer-lastodomdeltaimplausible"></a>
 
@@ -255,7 +256,7 @@ The last tick's applied correction AND the gate's account of why (`audit`, added
 
 Forwarding accessor for IOdometry::lastDeltaImplausible() — added at C1 (additive) so the motion loop can feed HealthMonitor's odomImplausible observable without holding the odometry itself. Raising stays POLICY: this only EXPOSES the flag; the Localizer still never raises faults (D3 at A3).
 
-*function, declared at [`include/shulib/localization/localizer.hpp:456`](../../include/shulib/localization/localizer.hpp#L456).*
+*function, declared at [`include/shulib/localization/localizer.hpp:486`](../../include/shulib/localization/localizer.hpp#L486).*
 
 <a id="localizer-lastodomtickaudit"></a>
 
@@ -267,7 +268,7 @@ Forwarding accessor for IOdometry::lastDeltaImplausible() — added at C1 (addit
 
 Forwarding accessor for IOdometry::lastTickAudit() — added at DIAG1 (additive), beside the flag above: the trust gate's account of the last tick (which check, which values), which motion::tickHealthObservables hands HealthMonitor so the ODO_STUCK line can say why. Exposes only, like the flag; the Localizer still never raises.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:463`](../../include/shulib/localization/localizer.hpp#L463).*
+*function, declared at [`include/shulib/localization/localizer.hpp:493`](../../include/shulib/localization/localizer.hpp#L493).*
 
 <a id="localizer-headingbias"></a>
 
@@ -277,9 +278,9 @@ Forwarding accessor for IOdometry::lastTickAudit() — added at DIAG1 (additive)
 [[nodiscard]] units::AngleDim headingBias() const noexcept
 ```
 
-The learned heading bias, in radians: how far the published heading sits from the raw IMU reading (E3). Exposed so a test can prove the correction ACCUMULATES rather than evaporating each tick — the M2 red team's failure mode — and so telemetry can say how far the IMU has been found to have drifted. Zero on any tree with no heading-providing corrector, exactly.
+The learned heading bias, in radians: how far the published heading sits from the raw IMU reading (E3). Exposed so a test can prove the correction ACCUMULATES rather than evaporating each tick — the M2 red team's failure mode. It is a DRIFT measure only while nothing has seeded it: reseatHeading() (COMP-a) SETS it to the caller's start heading minus the raw IMU reading, so after a competition auton starts it carries the start-heading seed (for example +90 deg, or a RELATIVE start's minus-the-pre-match-drift) plus whatever a heading corrector learned since. Zero on any tree with no heading-providing corrector and no reseatHeading() seed, exactly.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:472`](../../include/shulib/localization/localizer.hpp#L472).*
+*function, declared at [`include/shulib/localization/localizer.hpp:505`](../../include/shulib/localization/localizer.hpp#L505).*
 
 <a id="localizer-setpose"></a>
 
@@ -289,9 +290,21 @@ The learned heading bias, in radians: how far the published heading sits from th
 void setPose(const math::Pose2d& p)
 ```
 
-Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to IOdometry::setPose so the predictor and the fused belief never diverge, and re-baselines twist + dt so the teleport injects no phantom velocity next tick.  E3: the learned heading bias is KEPT, deliberately. A teleport says where the robot IS, not which way the IMU is wrong; discarding a bias that took a second of tag sightings to learn, every time a routine re-seeds its position, would throw away the correction at exactly the moments a routine cares most. `p.heading()` is still ignored, as it always was.
+Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to IOdometry::setPose so the predictor and the fused belief never diverge, and re-baselines twist + dt so the teleport injects no phantom velocity next tick.  E3: the learned heading bias is KEPT, deliberately. A teleport says where the robot IS, not which way the IMU is wrong; discarding a bias that took a second of tag sightings to learn, every time a routine re-seeds its position, would throw away the correction at exactly the moments a routine cares most. `p.heading()` is still ignored, as it always was — the heading's own seed is reseatHeading(), below; a caller seeding both calls the two on the same tick (competition::runAuton does).
 
-*function, declared at [`include/shulib/localization/localizer.hpp:484`](../../include/shulib/localization/localizer.hpp#L484).*
+*function, declared at [`include/shulib/localization/localizer.hpp:519`](../../include/shulib/localization/localizer.hpp#L519).*
+
+<a id="localizer-reseatheading"></a>
+
+### `Localizer::reseatHeading`
+
+```cpp
+void reseatHeading(math::Angle heading)
+```
+
+Seed the HEADING: make the published heading equal `heading` on this tick, by setting the bias so that `imu.heading() + bias == heading` (the shortest signed difference, so the bias stays within half a turn). The heading twin of setPose() — a CALLER seed, never a correction (header: THE HEADING BIAS) — added at COMP-a so an auton's declared start heading (and a "relative" start's zero) replaces whatever the IMU read at boot and drifted to while the robot waited. The IMU stays the sole source of every heading CHANGE after it.  It re-baselines EXACTLY as setPose() does: twist cleared and the next tick's dt made 0. That is load-bearing, not tidiness. A fusion policy that sizes its heading process noise from the change in the handed heading (EkfFusion's step A) would otherwise read this seed as a real rotation of the whole difference, and a 90-degree seed would inflate its heading uncertainty as if the robot had spun; the dt-0 tick instead re-bases the filter onto the new heading. The position, its trust (distanceSinceCorrection) and the odometry are untouched — the wheels' deltas were measured against the RAW IMU heading and are re-aimed by the bias every tick (STEP 2), so position follows the new heading from the next tick on.  Preconditions: the estimate is LIVE (qualityClass() != Uninitialized) — during the IMU's boot the raw heading is calibration garbage that moves, and a bias computed from it would be wrong the moment calibration ends; and, by contract since this class cannot see it, NO MOTION is active — a motion mid-flight would see its heading error jump under it (competition::runAuton checks that before it calls this). Call it on the same tick as a setPose() that seeds the position, with no update() between them.
+
+*function, declared at [`include/shulib/localization/localizer.hpp:555`](../../include/shulib/localization/localizer.hpp#L555).*
 
 <a id="enum-class-localizer-quality"></a>
 
@@ -303,7 +316,7 @@ enum class Quality
 
 Categorical health for motion/skills gating (distinct from the [0,1] scalar). The order below is declaration order, NOT a ranking — `Degraded` is worse than `DeadReckon` despite sorting after it, so compare by enumerator and never by value.
 
-*enum class, declared at [`include/shulib/localization/localizer.hpp:155`](../../include/shulib/localization/localizer.hpp#L155).*
+*enum class, declared at [`include/shulib/localization/localizer.hpp:179`](../../include/shulib/localization/localizer.hpp#L179).*
 
 <a id="localizer-quality-uninitialized"></a>
 
@@ -313,9 +326,9 @@ Categorical health for motion/skills gating (distinct from the [0,1] scalar). Th
 Uninitialized
 ```
 
-No live estimate yet: update() has never run, or the boot settle window is still open. Distinct from Degraded on purpose — a consumer can tell "not started" from "started and lost it".
+No live estimate yet: no update() has run, or only ONE has, or the IMU has never been ready, or the boot settle window is still open. The very first update() never makes the estimate live — the class is judged BEFORE that call marks the estimate as ever-updated (refreshQuality() runs ahead of the mark), and that call has no earlier tick to take a dt against — so a Localizer whose IMU is ready from the start is live from its SECOND update(). Distinct from Degraded on purpose — a consumer can tell "not started" from "started and lost it".
 
-*enumerator, declared at [`include/shulib/localization/localizer.hpp:159`](../../include/shulib/localization/localizer.hpp#L159).*
+*enumerator, declared at [`include/shulib/localization/localizer.hpp:187`](../../include/shulib/localization/localizer.hpp#L187).*
 
 <a id="localizer-quality-deadreckon"></a>
 
@@ -327,7 +340,7 @@ DeadReckon
 
 Running on odometry alone, within the configured drift horizon. Healthy: no corrector has proposed recently, and the estimate has not yet dead-reckoned far enough for that to matter.
 
-*enumerator, declared at [`include/shulib/localization/localizer.hpp:163`](../../include/shulib/localization/localizer.hpp#L163).*
+*enumerator, declared at [`include/shulib/localization/localizer.hpp:191`](../../include/shulib/localization/localizer.hpp#L191).*
 
 <a id="localizer-quality-corrected"></a>
 
@@ -339,7 +352,7 @@ Corrected
 
 The best state: a corrector proposal was folded in this tick and every health check passed. This is the only class that means an absolute reference is live.
 
-*enumerator, declared at [`include/shulib/localization/localizer.hpp:166`](../../include/shulib/localization/localizer.hpp#L166).*
+*enumerator, declared at [`include/shulib/localization/localizer.hpp:194`](../../include/shulib/localization/localizer.hpp#L194).*
 
 <a id="localizer-quality-degraded"></a>
 
@@ -351,14 +364,14 @@ Degraded
 
 Trust the pose less. Reached four different ways, all of which mean the same thing to a caller: the IMU was ready and stopped being ready, the odometry reported an implausible delta, the tick's dt was outside the trusted band, or dead reckoning has run past `driftHorizon`.
 
-*enumerator, declared at [`include/shulib/localization/localizer.hpp:171`](../../include/shulib/localization/localizer.hpp#L171).*
+*enumerator, declared at [`include/shulib/localization/localizer.hpp:199`](../../include/shulib/localization/localizer.hpp#L199).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 89 lines, click to expand</summary>
+<summary>The header’s own reasoning — 113 lines, click to expand</summary>
 
 ```text
 
@@ -397,9 +410,32 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  The published heading is `imu.heading() + headingBias_`. The IMU remains the SOLE source of
  heading CHANGE — every rotation the robot makes still enters through imu.heading(), tick for
  tick, and PilonsOdometry is untouched — while the bias is a slowly-learned constant offset that
- moves by at most `maxHeadingNudgeRate · dt` per tick (ComplementaryFusion). There is no code
- path, here or anywhere below, that ASSIGNS a heading: the policy can only return an increment.
- That is what makes never-snap (§13 #4) structural for yaw rather than a promise.
+ moves by at most `maxHeadingNudgeRate · dt` per tick (ComplementaryFusion). No CORRECTOR and no
+ fusion policy can ASSIGN a heading, here or anywhere below: the policy can only return an
+ increment. That is what makes never-snap (§13 #4) structural for yaw rather than a promise.
+
+ The one assignment that exists is a CALLER SEED, and it is not a correction: reseatHeading()
+ (COMP-a, 2026-09-26) is the heading twin of setPose(). A caller who KNOWS which way the robot
+ faces — the competition program, at the instant an auton starts, from the auton's declared start
+ pose — sets the bias so the published heading equals that value on this tick; the IMU stays the
+ only source of every change after it. Never-snap is a rule about what a SENSOR may do to a live
+ estimate, and it still holds: nothing that reads a sensor can reach reseatHeading().
+ (Decision-consistency check, logged in the COMP-a progress record. The sentence this paragraph
+ replaced — "there is no code path, here or anywhere below, that ASSIGNS a heading" — had three
+ echoes, each re-read: apriltag_corrector.hpp's "no code path HERE writes a pose or a heading"
+ (about the corrector; still true word for word), complementary_fusion.hpp's "a yaw reset can
+ never happen" on maxHeadingNudgeRate (about the fusion path; now says so), and guide chapter 3's
+ "no code path anywhere assigns the robot a heading" (reworded with this change). No test
+ asserted the stronger reading; the never-snap tests exercise correctors, which still cannot.
+ That first check grepped for the ASSIGNMENT sentence only and missed its CONSEQUENCES — the
+ claims that the bias is exactly zero without a heading corrector. A review of COMP-a found
+ them (five), and a second grep — "heading-providing corrector|no-heading-corrector|EXACTLY
+ 0.0|bit-identical" over include/ and the public docs — found one more; all six now say "no
+ heading-providing corrector AND no reseatHeading() seed": the position note below
+ ("BIT-IDENTICAL to before E3"), STEP 2's early-out comment (the sixth), headingBias()'s doc
+ (which also called the bias a drift measure), biasedHeading()'s doc, the headingBias_
+ member's comment, and ekf_fusion.hpp's "bit-identical to the raw IMU" on the θ gain. Every
+ test asserting a zero bias builds a tree with no seed, so each is still true.)
 
  WHY THE BIAS MUST PERSIST, which is the whole design. The Localizer re-reads the IMU every tick,
  so a heading correction that only decorated THIS tick's published heading would be discarded on
@@ -416,8 +452,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  prediction kept accumulating a cross-track error of roughly `b × distance` — which is most of
  what heading drift actually costs over a run. So STEP 2 rotates the odometry delta by `b` before
  folding it. At `b == 0` this is skipped by an explicit early-out, so a tree with no
- heading-providing corrector is BIT-IDENTICAL to before E3 by construction, not by a
- floating-point argument.
+ heading-providing corrector AND no reseatHeading() seed is BIT-IDENTICAL to before E3 by
+ construction, not by a floating-point argument. (A seed makes `b` non-zero on purpose — the
+ start heading lives in it — and from then on the delta IS rotated, which is the point.)
 
  Swapping the complementary filter for an EKF later is a one-argument change (IFusionPolicy); the
  IPoseSource read seam and the ICorrector write seam never move. At M2 the corrector list is empty

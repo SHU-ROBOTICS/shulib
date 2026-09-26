@@ -82,7 +82,9 @@
 // live boot heading (HA-05), which ProsImu refuses by precondition. A program built on this
 // provider therefore never calls calibrate() itself. The boot heading is 0 — the robot boots
 // believing it faces +X — which is what src/main.cpp's hand-wired graphs did (HA-05's one
-// owner is the start pose; a provider option for it arrives when a program needs one).
+// owner is the start pose; a provider option for it arrives when a program needs one). The
+// competition program does not: since COMP-a the chosen auton's start pose is seated when the
+// auton starts, through Localizer::reseatHeading (HA-05, amended), over this boot heading of 0.
 //
 // ── WHAT IT DOES NOT DO ─────────────────────────────────────────────────────────────
 // It applies NO dead-port policy. A port the boot check reported MISSING is never requested

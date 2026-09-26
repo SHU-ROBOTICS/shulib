@@ -297,6 +297,11 @@ nav:
           - Calibrate panel: api/calibrate_panel.md
           - Calibration record: api/calibration_record.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
+      - Competition:
+          - Acceptance run: api/acceptance_run.md
+          - Auton menu: api/auton_menu.md
+          - Auton registry: api/auton_registry.md
+          - Match runner: api/match_runner.md
       - Config:
           - Robot config: api/robot_config.md
           - Route: api/route.md
@@ -317,6 +322,8 @@ nav:
           - Slew limiter: api/slew_limiter.md
           - Stick mapping: api/stick_mapping.md
           - Teleop loop: api/teleop_loop.md
+      - Ui:
+          - Touch panel: api/touch_panel.md
 # END GENERATED API NAV
 
   - FAQ: faq.md

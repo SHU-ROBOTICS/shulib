@@ -214,9 +214,13 @@ previous rule was thrown away. It was not. Every degree the robot actually turns
 the IMU, tick by tick, exactly as before. What the tag corrector learns is a slowly-moving
 **bias** — "the IMU reads about three degrees low today" — which is added to the IMU's answer.
 The robot's reported heading is *the IMU's reading plus a learned correction*, and that
-correction is allowed to move only a fraction of a degree per tick. There is no code path
-anywhere that assigns the robot a heading. A yaw reset in the middle of a match would be worse
-than a position jump, because every field-relative command issued afterwards would inherit it.
+correction is allowed to move only a fraction of a degree per tick. No sensor and no corrector
+can assign the robot a heading. A yaw reset in the middle of a match would be worse than a
+position jump, because every field-relative command issued afterwards would inherit it. (The one
+place a heading IS set is the start of an auton: `competition::runAuton` sets it from the start
+pose the auton declares, through `Localizer::reseatHeading` — the heading's twin of `setPose`.
+That is you telling the robot which way you placed it, before anything moves; no sensor can reach
+it.)
 
 The checks it runs before it will move anything, each one a way tag data can be wrong:
 
@@ -381,9 +385,12 @@ smaller than the things you have not measured yet.
 - **Always set the starting pose first.** Odometry is a running total; `setPose` is where the
   total starts. Place the robot carefully to match — every inch of placement error is error the
   run starts with. (Heading is special: it's owned by the IMU, which calibrates at power-on. The
-  wiring code establishes the starting heading; your `setPose` sets position. If a tag corrector
-  has already learned that the IMU reads a little low, `setPose` keeps that correction — moving
-  the robot says nothing about which way the gyro is wrong.)
+  wiring code establishes the heading the robot boots with; your `setPose` sets position. If a tag
+  corrector has already learned that the IMU reads a little low, `setPose` keeps that correction —
+  moving the robot says nothing about which way the gyro is wrong. An auton run through
+  `competition::runAuton` is seated differently: its declared start pose sets position AND heading
+  at the instant it starts, which also throws away whatever the IMU drifted while the robot sat
+  waiting for the match.)
 - **Expect drift, and design around it — but know which run you are in, and what you have
   wired.** In Autonomous, with the strip visible, position drift is bounded by the GPS corrector
   and a long routine is not inherently worse than a short one. In **Driving Skills there is no
