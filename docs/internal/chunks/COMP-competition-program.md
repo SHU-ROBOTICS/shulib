@@ -22,6 +22,134 @@
 
 ---
 
+## Re-check 2026-09-26 — amendments B1–B27 (BINDING; they override the text below where they conflict)
+
+> A read-only re-check of this brief against the tree at `b622d9b` plus G1 Part 2b (landed `7f9b9a1`),
+> DEFECTS2 (landed `a8540e6`) and the T3 briefs (`9325490`), the vendored PROS headers and the 2026-09-25
+> robot evidence; the load-bearing items re-verified by the coordinator. **The team lead's rulings
+> (2026-09-26):** COMP-a starts NOW in an isolated worktree, in parallel with T3 / G1 Part 2c / DIAG1 (COMP-b
+> after 2c); the auton-pick question under a Timed Run (B6) is decided AFTER the measurement; COMP-b's large
+> documentation list is accepted as one step and it CARRIES the held 2026-09-25 documentation pass (B21).
+
+- **B1 (was blocker A1) — abandon is a LATCH, never a disarm.** `RunGuard::requestAbandon() noexcept`
+  (ADDITIVE to F12) stores an atomic flag and returns. From the next check on, exactly as after
+  `endActionAt`, `pace()` cuts any active motion BEFORE the world advances, and `waitFor()` / `pause()` /
+  `expired()` return RunExpired (the cause goes in the report). **`run()`**, not abandon, sees the flag when
+  scoring returns: the FULL cancel-all (B10), SKIP the end action, disarm at its normal exit.
+  `RunGuardReport` gains `bool abandoned` (`endActionRan` false then). Tests: abandon during a motion, inside
+  `guard.waitFor`, inside `guard.pause`, during the end action — later guard calls return RunExpired without
+  throwing, later motion starts are cut, the scheduler ends idle and callable, the guard disarms only when
+  `run()` returns. Mutation: disarm inside `requestAbandon()`.
+- **B2 (was blocker A2) — one task on the Chassis.** No task but the auton task touches the Chassis,
+  scheduler, localizer, pacer or mechanisms until the auton task has published FINISHED (an atomic, its last
+  act after `run()` returned; the guard's cancel-all already left drive and mechanisms safe). `opcontrol()`
+  waits for it with NO upper bound, checking every tick; after a stated program constant (reasoned in code)
+  it paints `AUTON ENDING -- driver control waits` and logs once, naming the cause. `disabled()` commands
+  nothing and only paints. The guide states the worst case (a frozen wait delays driver control by its
+  remainder; use `guard.pause()`/`guard.waitFor()` in autons).
+- **B3 — order and 2c.** COMP starts after G1 Part 2c for COMP-b (the order 2b → DEFECTS2 → T3 → 2c → COMP);
+  COMP-a (library only) may run earlier in a worktree. §3.3's "if 2c has not yet replaced it" is settled:
+  COMP adds only forwarding branches to 2c's dispatcher `main.cpp` (≤ 300 lines) and builds its phase screens
+  on `src/state_screens.*`; it does not touch the gate's (removed) warning differential.
+- **B4 — Station K**, never H (H/I are R2a's sensors, J is T3's claws). K runs only after Stations F (drive)
+  and J (claws) passed on the same build line.
+- **B5 — the controller Timed Run is the bench start mode** (the team owns no competition switch). COMP-b:
+  (1) logs every competition-status CHANGE (millis + decoded bits) from the auton task's idle loop, and one
+  line on entry to / normal return from each of `competition_initialize()` / `disabled()` / `autonomous()` /
+  `opcontrol()`; (2) a NEW HA (next free at commit, after DIAG1's HA-160 — e.g. HA-161): "a controller Timed
+  Run enables autonomous() after a disabled window of __ s, for __ s, then __" — UNMEASURED, settled by
+  Station K; HA-128 cross-referenced, still settled for what it measured; (3) the worksheet's "never start
+  from the controller's menu" rule gains ONE exception, written at A.1, G.0.5 and the DO NOT list: slot 5
+  "shulib Competition" at Station K, started with Timed Run; afterwards turn the controller off, wait ten
+  seconds, see the menu return before starting any other slot; (4) Station K's first step is this
+  measurement — if Timed Run never enters autonomous(), K records that and tries "Match" from the same menu;
+  (5) C6's periods never come from this measurement.
+- **B6 — the auton pick under a Timed Run** (the team lead: decide after measuring): if Station K finds no
+  disabled window before autonomous(), how an auton is chosen on the bench goes to the team lead (options: a
+  remembered last choice on the SD card, a switch, practice only at an event). Nothing is built for it before
+  his ruling; no auton is ever started from `opcontrol()` or another program.
+- **B7 — the pacer layering.** A program-side `CompetitionWatch` pacer wraps `devices.pacer()`; its `pace()`
+  reads `competition_get_status()`, and on a disable or a change out of autonomous while a run is live calls
+  `guard.requestAbandon()` (an atomic store, no re-entry), then paces (≤ one tick of latency, stated).
+  Storage: the program's static state of empty optionals, declared provider, watch, guard{watch},
+  robot{.pacer = &guard}; the watch gets the guard's address after the guard is emplaced. Host-tested with a
+  fake status source.
+- **B8 — 2b's one-door boot.** `initialize()`: the precondition handler; `st.boot = decideBootSource(kTag)`;
+  on `!ok` paint the refusal and stop; emplace provider, watch, guard; then inside ONE try:
+  `robot::BuildOptions opts = st.boot.buildOptions(); opts.pacer = &*st.guard;` → `validate` → `emplace`;
+  `attachFaultLatch(&robot.faults())` BEFORE the auton task exists; the beacon arrives from main.cpp's
+  branch; no `SHULIB_RUNS_*` outside main.cpp. `BootConfig::buildOptions()`'s doc is reworded (a pacer a
+  caller adds is borrowed for the Robot's life) or `buildOptions(motion::ITickPacer&)` is added.
+- **B9 — the guard's mechanisms are the Robot's PRESENT mechanisms** (after T3): no nullptr (RunGuardConfig
+  throws on one) — filtered and each absent one logged by name; from the Robot, never from an AutonEntry.
+  Test: one pivot absent ⇒ the auton runs and the present pivot is safed at the cut and the end.
+- **B10 — abandon's cancel-all is run()'s FULL cancel-all:** the drive, then every listed mechanism
+  (claimant cancelled, anonymous claim force-released, safe state applied). Test: an abandon during a
+  mechanism operation leaves no mechanism `claimed()`, and a T3 binding drives that pivot on the next press.
+  (T3 also frees leftover claims at driver-control entry — the team lead's ruling.)
+- **B11 — opcontrol is Teleop's driver control**: after B2's wait, T3's `runDriverControl` bindings overload
+  with the SAME bindings as Teleop (built and validated in `initialize()`'s try, held in the static state),
+  `DriverLoopConfig{.tickPeriod = 10 ms, .rezeroButton = Teleop's constant (Y), .releaseBrakeMode = Coast}`.
+  §5's "button bindings (T3)" is decided; only chassis macros stay open. The claw-port-in-record refusal
+  lives in the SHARED boot source (moved there if T3 put it in teleop_program.cpp); a shared panel moves to
+  a shared `src/` file, never copied.
+- **B12 — re-seat only a LIVE estimate.** `runAuton` arms the guard FIRST (start time as close to
+  `autonomous()` entry as the hand-off allows; the latency logged), then inside the guarded run waits with
+  `guard.waitFor(localizer.qualityClass() != Uninitialized)`, THEN re-seats position and heading, then runs
+  the routine; `reseatHeading`'s precondition: the estimate is live. Test with the plant's IMU still
+  calibrating; mutation: re-seat before the wait.
+- **B13 — the re-seat test must be able to fail:** the plant's IMU must DISAGREE with the declared start
+  (e.g. plant at 90°, a Degradation `imuHeading()` subtracting 90°; for the relative start a ≥10° pre-auton
+  drift) — state both numbers; the "drop the re-seat" mutation must go red.
+- **B14 — `reseatHeading` is a CALLER seed**, the heading twin of `setPose`: it re-baselines exactly as
+  `setPose` does (clears `hasLast_`), and `runAuton` calls it on the same tick as `setPose` (or one
+  `Localizer::reseat(Pose2d)` does both); precondition: no active motion. COMP-a rewords `localizer.hpp`
+  ~:35-39 and `complementary_fusion.hpp` ~:86-90 to "no CORRECTOR can …", logging the decision-consistency
+  check. Tests: an EkfFusion localizer re-seated by 90° shows no heading process-noise spike; a re-seat
+  raises no ODO_STUCK.
+- **B15 — each AutonEntry declares its KIND (Match or Skills)**; the period follows from the program's two
+  constants (30 s, 60 s); the selector shows the kind; the registry refuses at REGISTRATION (inside the try,
+  logged by name) an unset schedule or a `hardStopAt` beyond the kind's period; `runAuton` keeps its own
+  checks. The guide recommends a margin inside the period.
+- **B16 — routes:** a route entry's start pose IS its route's Start waypoint (field mode); the registry
+  refuses a route entry that also declares a different StartPose; a route with no Start takes the entry's.
+  `runAuton` returns the RunGuardReport plus EITHER the routine's RoutineResult OR the route's RunReport (a
+  tagged result).
+- **B17 — Station K is written against robot two as it is** (the 2026-09-25 evidence): boots from the record
+  (no record ⇒ refused); +x is the record's front, the CAMERA end; the expected end pose both as the estimate
+  and on the tape (with the record as saved, ~8 % short — or the Calibrate reproduction run first,
+  recommended); an ODO_STUCK during a motion aborts it (DIAG1's valued line lands before K; K records
+  `stoppedAt` and the cause); the field/switch case stays UNRUN at the bench; the mid-auton-disable step is
+  written from K's own Timed Run measurement.
+- **B18 — the test routine** is the library's acceptance run, not season content: a PROS-free header,
+  host-tested on the plant, registered from the students' file, which otherwise ships EMPTY apart from the
+  registration pattern — the executor authors no season auton.
+- **B19 — the auton task:** created ONCE in `initialize()`, after the precondition handler and
+  `attachFaultLatch`; the function-pointer `pros::Task` constructor (no heap), `TASK_PRIORITY_DEFAULT`,
+  `TASK_STACK_DEPTH_DEFAULT`; idles on `notify_take(true, TIMEOUT_MAX)`; its body catches `PreconditionError`
+  and `...`, safes through the guard's unwind, and reports; waits between tasks use `notify_take` with a
+  timeout or an atomic checked every tick, never `task_join`; a second `autonomous()` on the same boot runs the
+  choice current then.
+- **B20 — one painter, one set of budgets:** `ui/`'s text budgets are static_asserted equal to calibration's;
+  the program prints only through `src/screen_text.hpp`'s `printText`; an atomic "screen owner" handed over
+  explicitly (menu → auton status → driver panel); the auton task's fault screen is a request the owner paints.
+- **B21 — documentation:** COMP-b's list is accepted as one step (the team lead), and COMP-b CARRIES the
+  held 2026-09-25 documentation pass, removing every "or a minimal auton hook" (build-order, HANDOFF) and
+  correcting HANDOFF L2 ("after G1 Part 2b", "Left / Right / Skills / None").
+- **B22 — the one-tick latch:** a routine that starts a motion after `requestAbandon()` commands one tick
+  before `pace()` cuts it; test: at most one commanded tick per refused start, zero plant travel; stated in
+  the guide.
+- **B23-B27 (notes):** re-anchor every citation when COMP starts (or cite by quoted text) — `misc.h`'s enum is
+  at ~:41-50 and C4 needs `competition_is_field` / `is_switch`; the task-kill HA names `teleop_loop.hpp`
+  ~:19-23 and T3's static-state rule as the other things resting on the belief; an auton name ≤ kMediumCols −
+  7 = 29 ASCII characters, no `%`, also within the selector button's label budget; since DEFECTS2 every guard
+  stop and the default `brake` end action really brake at the motor and the claw pivots HOLD at every
+  cancel-all; AutonContext's mechanisms list is for the guard's safing only (a lookup by name comes when a
+  routine first commands a mechanism); the Makefile comment becomes "Five programs …", the guide chapter's
+  number stated, COMP's new HA entries take the next free numbers at commit time (after HA-160).
+
+---
+
 ## 0. What exists (read these; every line was re-checked at `8ac243f`)
 
 | Piece | Where | What matters |

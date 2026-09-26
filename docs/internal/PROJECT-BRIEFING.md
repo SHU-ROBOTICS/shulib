@@ -105,9 +105,9 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 30 of 52 chunks complete
+**Position:** 30 of 53 chunks complete
 
-- **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go  
+- **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check B1–B27) are being built in parallel in isolated worktrees (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,464 cases / 2,387,533 assertions, 3 skipped — **green**  
