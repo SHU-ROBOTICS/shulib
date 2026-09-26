@@ -1434,7 +1434,7 @@ curve monotonicity tests are the load-bearing pair. **Perceived latency is NOT c
 input-to-motion latency is PROS call cost plus loop rate, both unmeasured (R4).
 
 ### T3 — Button bindings and driver macros
-> **Status 2026-09-26:** PART 1 LANDED (host- and build-gated; [live log](chunks/T3-PROGRESS.md)) for robot two's claws — [brief](chunks/T3-claw-pivots-bindings-and-mechanisms.md) and [addendum](chunks/T3-addendum-pneumatic-claw.md) (the pneumatic claw on A). The team lead's rulings amend the "Non-negotiable" below: the stick-interrupt rule applies to chassis MACROS only; for a mechanism button binding, releasing the button is the stop (deviations table). Part 1 = the library half and the program's claw table (two worktrees, merged together); **Part 2 — the Teleop wiring — is next**; nothing of T3 has run on a robot, and no program drives a claw until Part 2.
+> **Status 2026-09-26:** PART 1 LANDED (host- and build-gated; [live log](chunks/T3-PROGRESS.md)) for robot two's claws — [brief](chunks/T3-claw-pivots-bindings-and-mechanisms.md) and [addendum](chunks/T3-addendum-pneumatic-claw.md) (the pneumatic claw on A). The team lead's rulings amend the "Non-negotiable" below: the stick-interrupt rule applies to chassis MACROS only; for a mechanism button binding, releasing the button is the stop (deviations table). Part 1 = the library half and the program's claw table (two worktrees, merged together); **Part 2 — the Teleop wiring ([brief](chunks/T3-part2-teleop-wiring.md)) — is next**; nothing of T3 has run on a robot, and no program drives a claw until Part 2.
 
 Bind a button to a mechanism operation (F1's seam) or a chassis action — the "hold A to intake until
 capture" pattern that makes F1 pay off in teleop as well as auton.
