@@ -22,6 +22,8 @@
 //                      put into its safe state before VEXos cuts the motors itself (R3b Part 0b's
 //                      finding, carried over from runTeleopLoop). PROS calls opcontrol() again
 //                      when driver control resumes; the caller simply calls this again.
+//                      Whether that stop — a PROS brake() since DEFECTS2 — lands in time and
+//                      outlasts the cut is A4 register HA-145 (unknown).
 //   2. the sticks      isConnected() first; ALL FOUR axes, and the re-zero button, are read
 //                      ONLY while connected. A disconnected V5 controller reads 0 on every
 //                      channel (HA-103), so the connected flag is the only thing that separates
@@ -40,6 +42,13 @@
 //                      budgets from chassis.motionConfig(), then chassis.drive(…, Frame::Body)
 //                      — ALWAYS Body, field-centric included: the rotation already happened
 //                      inside shape().
+//   6b. release mode   cfg.releaseBrakeMode (default Coast) on every drive motor — also once
+//                      at ENTRY, before the first tick (chunk DEFECTS2). drive() pre-empting a
+//                      motion cancels it into Brake, and since DEFECTS2 a Brake at 0 V goes to
+//                      a V5 as PROS brake(); re-asserting after EVERY drive() — not only after a
+//                      pre-emption — keeps the invariant independent of which library path
+//                      set another mode, for one set_brake_mode per motor per tick (believed
+//                      harmless to a running motor: A4 register HA-146).
 //   7. perTick(command, connected, shaper.state())  the caller's panel.
 //   8. pacer.pace()    the tick boundary.
 //
@@ -60,6 +69,7 @@
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/hal/controller.hpp"
+#include "shulib/hal/motor.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/twist2d.hpp"
 #include "shulib/motion/motion_config.hpp"
@@ -70,15 +80,16 @@
 
 namespace shulib::teleop {
 
-/// The two numbers the loop needs that neither the chassis nor the controller can supply.
+/// What the loop needs that neither the chassis nor the controller can supply.
 ///
-/// State BOTH, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`. The
-/// period's default is deliberately not a working configuration: a zero period trips
+/// State the first TWO, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`.
+/// The period's default is deliberately not a working configuration: a zero period trips
 /// `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never
 /// run. The button's default is NOT so guarded: a config that leaves `rezeroButton` unset
 /// quietly gets `L1` — a shoulder button, which the planned claw bindings take — so a program
 /// must name its button ("shulib Teleop" names `A`). Making this default refuse too is owed
-/// before any program binds a mechanism to a shoulder button.
+/// before any program binds a mechanism to a shoulder button. The third, `releaseBrakeMode`,
+/// has a working default (Coast, the team lead's ruling).
 struct DriverLoopConfig {
     /// How long one tick is — the pacer's period (on a brain, `ProsTickPacer::kTickMs` = 10 ms,
     /// HA-32). Handed to the shaper as its dt, where only the slew limiter reads it. Must be
@@ -89,6 +100,15 @@ struct DriverLoopConfig {
     /// mode, where a press only pre-arms the zero for a later switch to `ArcadeField`. Which
     /// button is the PROGRAM's choice, so state it.
     hal::ControllerButton rezeroButton = hal::ControllerButton::L1;
+    /// What the drive does when the sticks are released (chunk DEFECTS2): the brake mode the
+    /// loop puts on every drive motor at entry and again after every `drive()`, so a library
+    /// stop inside the loop — `drive()` pre-empting a motion cancels it into Brake — never
+    /// outlives its tick. Default `Coast`, the team lead's ruling (2026-09-26): the drive rolls
+    /// free on release, the feel shulib Teleop was driven with on 2026-09-25. `Brake` or `Hold`
+    /// make a release stop the drive; since DEFECTS2 the V5 adapter sends them to the motor as
+    /// PROS brake() at a zero command (`hal/pros/motor.hpp`, THE STOP — not yet seen on a robot).
+    /// The disable path is NOT governed by this: a disable still cancels into Brake.
+    hal::BrakeMode releaseBrakeMode = hal::BrakeMode::Coast;
 };
 
 /// One tick's heading, as the loop hands it to the shaper: the robot's estimated heading and
@@ -105,7 +125,8 @@ struct HeadingSample {
 
 /// Run driver control until `disabled()` says stop: sticks → `shaper` → budgets → the chassis,
 /// once per tick, in the order the file header lists (disabled check, sticks while connected,
-/// one heading sample, the re-zero edge, shape, `drive(Body)`, `perTick`, `pace`).
+/// one heading sample, the re-zero edge, shape, `drive(Body)`, the release mode, `perTick`,
+/// `pace`).
 ///
 /// * `chassis` — the facade to drive; its `motionConfig()` supplies the speed budgets
 ///   (`maxLinearSpeed`, `maxAngularSpeed` — HA-50, provisional).
@@ -115,8 +136,9 @@ struct HeadingSample {
 ///   plant-stepping pacer.
 /// * `shaper` — the driver's feel (`DriveShaper`, one per driver, held across calls so its
 ///   field-centric zero and latch survive a disable).
-/// * `cfg` — the tick period and the re-zero button. PRECONDITION: `cfg.tickPeriod` finite and
-///   > 0, checked before the first tick.
+/// * `cfg` — the tick period, the re-zero button and the release brake mode (applied at entry
+///   and after every `drive()`). PRECONDITION: `cfg.tickPeriod` finite and > 0, checked before
+///   the first tick.
 /// * `disabled` — `bool()`: polled FIRST every tick; true ⇒ `chassis.cancel()` (0 V + Brake)
 ///   and return. The only way out.
 /// * `heading` — `HeadingSample()`: called once per tick, after the sticks, before shaping.
@@ -135,6 +157,13 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
     const motion::MotionConfig& budgets = chassis.motionConfig();
     const double dtSeconds = cfg.tickPeriod.value();
     hal::ButtonEdge rezeroEdge{};  // the loop's OWN edge (HA-104: one per consumer)
+    // DEFECTS2: the release mode on every drive motor — at entry, and after every drive().
+    const auto applyReleaseMode = [&chassis, &cfg] {
+        for (hal::IMotor* m : chassis.deps().ctx->driveMotors()) {
+            m->setBrakeMode(cfg.releaseBrakeMode);
+        }
+    };
+    applyReleaseMode();
     while (true) {
         // 1. A field disable: safe the drive, then leave.
         if (disabled()) {
@@ -162,6 +191,8 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
         const math::ChassisSpeeds command =
             toChassisSpeeds(request, budgets.maxLinearSpeed, budgets.maxAngularSpeed);
         chassis.drive(command, math::Frame::Body);
+        // 6b. The release mode again, in this same tick: undoes a pre-emption's Brake (DEFECTS2).
+        applyReleaseMode();
         // 7–8. The caller's panel, then the tick boundary.
         perTick(command, sticks.connected, shaper.state());
         pacer.pace();

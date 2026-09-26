@@ -105,20 +105,20 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 29 of 52 chunks complete
+**Position:** 30 of 52 chunks complete
 
-- **Next up:** the brake-mode fix (DEFECTS2 — Hold and Brake reach the V5 motor; "shulib Teleop" COASTS on stick release), then T3 (the claw pivots on ports 6 and 7, bound to R1/R2 and L1/L2), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go  
+- **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): G1, R3a, R3b, R3d, T2** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,444 cases / 2,387,352 assertions, 3 skipped — **green**  
+- **Suite:** 1,464 cases / 2,387,533 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 184  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 141 registered, **7 settled** — next free is **HA-142**  
+- **Hardware assumptions:** 146 registered, **7 settled** — next free is **HA-147**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DEFECTS2` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 

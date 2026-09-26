@@ -641,10 +641,11 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
       smoothly. `L` and `R` volts rise together, all wheels turn **toward the record's front — the
       camera end (11/20) on the 2026-09-25 record** (after a new calibration, the end pushed first
       in G.4), `L/R travel` both positive, `hdg xcheck` near 0, `est x` climbing. Release: 0 V, and
-      the drive **COASTS** to a stop — the team lead's ruling for Teleop (2026-09-26). In this build
-      every library stop reaches the motors as plain 0 V: PROS's `move_voltage` ignores the brake
-      mode (read from the code and the vendored PROS header, not yet seen on the robot); the
-      brake-mode fix due next makes Brake real and keeps Teleop's release a coast. **Right stick**
+      the drive **COASTS** to a stop — the team lead's ruling for Teleop (2026-09-26): since
+      DEFECTS2 the library's own stops (a cancel, a brake) really brake at the motor through PROS's
+      `brake()` — `move_voltage(0)` ignores the brake mode (HA-142) — and the driver loop sets the
+      drive back to Coast at entry and after every tick's command, so a stick release is a coast
+      (read from the code, not yet seen on the robot). **Right stick**
       left/right: the sides turn opposite ways and `hdg` moves the way the robot would turn (push
       RIGHT = clockwise = `hdg` going DOWN).
       → all wheels toward the camera end on "forward"? **YES / NO** — if NO, which side:
@@ -666,8 +667,11 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
       different? ______________________________________________
 - [ ] **F.2.7** Turn the program off from the brain (or the field disables it: the loop exits
       cleanly and commands the drive 0 V + Brake, and serial says `opcontrol(): field DISABLED --
-      loop exited cleanly after cancel() (0 V + Brake); N screen prints so far`). In THIS build the
-      Brake does not reach the motors (F.2.3): expect a coast here too, until the brake-mode fix.
+      loop exited cleanly after cancel() (0 V + Brake); N screen prints so far`). Since DEFECTS2 that
+      cancel reaches the motors as a real `brake()` — but a DISABLE is a poor test of it: the stop
+      goes out only once the brain already reports disabled, and whether VEXos is cutting motor
+      output by then is UNKNOWN (HA-145). The clean check of Brake is a library stop while ENABLED
+      (COMP's first auton stop; T3's claw pivots hold at Station J), not this one.
       Everything printed to serial is the session's record.
 
 > **What to send back:** the YES/NO answers and the numbers from F.2.2–F.2.6, every fault name and

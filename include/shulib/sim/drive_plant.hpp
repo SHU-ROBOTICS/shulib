@@ -162,6 +162,13 @@ struct DrivePlantConfig {
     /// the pinned pivot, κ = 1 is pure translation — the one-sided push ROLLS the robot and turns it
     /// not at all. A Brake/Hold side at 0 V stays pinned whatever κ is.
     ///
+    /// **That pinned Brake/Hold wheel is what the V5 adapter produces only since DEFECTS2
+    /// (2026-09-26).** Until then ProsMotor sent every zero as 0 V, which PROS documents as
+    /// ignoring the brake mode (A4 register HA-142) — so on a robot every "0 V + Brake" and
+    /// "0 V + Hold" stop was the unresisted 0 V case, while this plant pinned the wheel. Now a zero
+    /// under a Brake/Hold the program commanded goes out as PROS brake(), and the plant's pin is
+    /// the right SHAPE; how hard a real motor brakes or holds is still not modelled (HA-53, HA-92).
+    ///
     /// **It is a KINEMATIC stand-in, and INVENTED (A4 register HA-137).** The plant models no mass,
     /// no inertia and no scrub (motor_model.hpp's honesty boundary), so κ is not derived from a wheel
     /// type: lateral scrub (traction wheels) pushes a real robot toward κ → 1, while a rigid body

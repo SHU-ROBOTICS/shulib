@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 141 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 146 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -55,7 +55,14 @@
 > HA-137 carries the plant's two new rules — coast-follow and the slipping member — because the first
 > night on robot two showed the plant could not fail the way the robot did. **R3d Part 2F-2** (the
 > same day) added no entry; HA-136 records how the screen's character budgets were checked against
-> earlier screens instead of measured.)* **No *v2* robot exists**, and
+> earlier screens instead of measured. **DEFECTS2 added FIVE on 2026-09-26 — HA-142..HA-146** — the
+> beliefs about how a brake mode reaches a V5 motor, found when the library's Brake and Hold stops
+> turned out never to have reached one (HA-142 and HA-146 reasoned from the vendored text, HA-144
+> invented, HA-143 and HA-145 UNKNOWN and labelled invented), and AMENDED three: HA-53 (the drive's
+> "0 V + Brake" coasted on a V5 until then), HA-92 (its premise that the declaration reaches the
+> motor was false at the wire) and HA-98 (brake mode is device state too). The per-confidence
+> counts below predate these five as well (2026-09-26): they still sum to 122, and a recount is
+> due once the entries from HA-147 on are in.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -137,7 +144,7 @@
 | HA-50 | C1 motion gains + speed budget (kP 3.0/4.0, 60 in/s, 6 rad/s, 60 in/s wheels) | **invented** | R5 |
 | HA-51 | C1 settle tolerances (0.5″/1.15° + rate floors; brake 1.2 in/s; 5 s timeout) | **invented** | R4/R5 |
 | HA-52 | Stall cross-check thresholds (0.3 s window, 1.0″ spin, 25% ratio, stand-in radii) | **invented** | R3/R4 |
-| HA-53 | Cancel safe state: 0 V + BrakeMode::Brake stops the drive promptly from speed | reasoned | R3/R5 |
+| HA-53 | Cancel safe state: 0 V + BrakeMode::Brake stops the drive promptly from speed | reasoned — **AMENDED** 2026-09-26 (DEFECTS2): on a V5 this stop COASTED until DEFECTS2 (the adapter sent 0 V, which ignores the mode — HA-142); it brakes only since | R3/R5 |
 | HA-54 | H-drive strafe traction derate ≈ 0.35 (⇒ authority 0.35 at 1:1 gearing) | **invented** | R5 |
 | HA-55 | 15″ H-bot stand-in geometry (11″ track, strafe wheel 4″ aft, 1:1 strafe gearing) | **invented** | R3 |
 | HA-56 | D-5 plausibility envelope defaults (maxSpeed 150 in/s, maxYawRate 20 rad/s, ×1.5 margin) | reasoned | R3/R5 |
@@ -176,13 +183,13 @@
 | HA-89 | The EKF's prior when it knows nothing: 24 in, 30°, 24 in/s | **invented** | R4 |
 | HA-90 | 50 consecutive gate rejections with a mean innovation over 6 in means "lost" | **invented** | R4 |
 | HA-91 | 5 s is long enough between re-init declarations to tell recovery from a storm | **invented** | R4 |
-| HA-92 | `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive | **invented** | R3/R5 |
+| HA-92 | `BrakeMode::Hold` at 0 V holds a LOADED cascade lift against back-drive | **invented** — **AMENDED** 2026-09-26 (DEFECTS2): the premise that the declaration reaches the motor was FALSE at the wire until DEFECTS2 (HA-142) | R3/R5 |
 | HA-93 | A jammed 11 W mechanism motor reads ≈ 2.5 A at a full 12 V command, with ≈ 0.05 rad/s residual creep | **invented** | R4 |
 | HA-94 | Motor `move_voltage()` takes millivolts, ±12000 | **settled** measured-on-comp-bot 2026-08-13: 2.0 V commanded → device reported 1823–1990 mV under load | R3 |
 | HA-95 | Motor `get_position()` with `MotorUnits::degrees` reports output-shaft degrees | **settled** measured 2026-08-13: deg/rad = 57.296 on all 8 motors (57.2958 exact) | R3 |
 | HA-96 | Motor `get_actual_velocity()` returns output-shaft RPM | **settled** measured 2026-08-13: rpm/(rad/s) = 9.549 (9.5493 exact) | R3 |
 | HA-97 | Motor `get_current_draw()` returns mA | **settled** measured 2026-08-13: mA/A = 1000.0 exactly, 8 motors | R3 |
-| HA-98 | Motor units/gearing live in the DEVICE and persist across programs; explicit set + read-back holds | **partial** 2026-08-13: set+read-back accepted on 8 motors (no precondition fired); PERSISTENCE across programs NOT tested, so this stays open | R3 |
+| HA-98 | Motor units/gearing — and the BRAKE MODE (added to this row by DEFECTS2) — live in the DEVICE and persist across programs; explicit set + read-back holds | **partial** 2026-08-13: set+read-back accepted on 8 motors (no precondition fired); PERSISTENCE across programs NOT tested, so this stays open | R3 |
 | HA-99 | Battery voltage/current are mV/mA — units NOT in the vendored source (website only) | **settled** measured 2026-08-13: raw 13039 → 13.04 V, raw 919 → 0.92 A. R1a's weakest belief, now observed | R3 |
 | HA-100 | `battery_get_capacity()` returns percent 0–100 | **settled** measured 2026-08-13: raw 91.0 → 0.91 | R3 |
 | HA-101 | `micros()` is µs since program start, monotonic, uint64 | **settled** measured 2026-08-13: 999784 µs over a nominal 1000 ms delay (0.02% low) | R3 |
@@ -226,6 +233,11 @@
 | HA-139 | `fopen(path, "rb")` under `/usd/` reads back the exact bytes `"wb"` wrote, byte for byte, on the brain's FatFS | reasoned, flagged — the host CANNOT test the mode (POSIX does not translate) | R3d Part 3 |
 | HA-140 | A CRC-32 over a 180-byte record is worth its 4 bytes and its microseconds on a V5, where the blackbox's own format deliberately carries none | reasoned (design note under HA-122) | R3d Part 3 |
 | HA-141 | The registry's KIND answer is right for an IMU, a rotation sensor and a GPS (not only for a motor): a port carrying one reads that kind, and an empty one reads NONE | reasoned (vendored enum) — the on-robot provider refuses a port on this answer ALONE for the three kinds whose adapters cannot fail loudly | IMU half: G1 Part 2b's first boot; the provider's kind refusal: the first program that asks it for a GPS or rotation port / R3 |
+| HA-142 | `move_voltage()` (and `move()`) IGNORE the brake mode; only `brake()` applies it — so a stop is "mode + `brake()`", never "mode + 0 V" | reasoned (vendored text, stated twice) — the DEFECTS2 fix rests on it | R3 (an ENABLED Brake stop vs a Coast release — a disable is confounded by HA-145) / T3's claw station |
+| HA-143 | At `move_voltage(0)` a V5 motor free-wheels — the "coast" `IMotor` promises, which HA-137's coast-follow and Calibrate's pulses rest on | **invented** (UNKNOWN — no PROS text says what 0 V does; robot observations are qualitative) | R3 / R4 |
+| HA-144 | A REPEATED `brake()` under Hold re-captures the held position (so one per tick under load lets a shaft creep); the adapter issues one per transition into zero. Second half: whether a same-mode `set_brake_mode()` written to a motor already held does the same (still sent every tick by a caller that re-states it) | **invented** | T3's claw station |
+| HA-145 | What a motor stopped under Hold (or Brake) does while VEXos has the robot DISABLED, and after re-enable | **invented** (UNKNOWN) — the adapter's stop record cannot see a disable | T3's claw station / COMP |
+| HA-146 | After `brake()`, the next `move_voltage(v ≠ 0)` drives the motor at once (the stop is replaced, not latched); a `set_brake_mode()` repeated every tick changes nothing but the register of a RUNNING motor (a held one: HA-144) | reasoned (vendored text) | R3 / T3's claw station |
 
 ---
 
@@ -568,6 +580,16 @@ dependency order (battery scale before anything drives, signs before any closed 
   *Blast radius if wrong (adapter skips the discipline):* a motor left in rotations reads 1/360
   — odometry wrong by 360× with nothing crashing. **Contained:** ctor discipline + mutation-
   proven test (campaign M5).
+  *Amended DEFECTS2 (2026-09-26) — the BRAKE MODE is device state too:* `get_brake_mode()` reads
+  back whatever mode the port was last given, by any program, and the ctor deliberately commands
+  none (choosing a mode for a mechanism it knows nothing about is not the adapter's call). Since
+  DEFECTS2 that inherited mode would matter at the motor if anything keyed on it, because a zero
+  under Brake/Hold is now sent as `brake()` (HA-142). So `ProsMotor` keys the stop on the mode THIS
+  PROGRAM commanded through `setBrakeMode()` — never on the device's read-back, which only seeds
+  the T7 fallback (DEFECTS1 E2) — and a motor this program never gave a mode stays on
+  `move_voltage(0)` at zero (`pros_motor_adapter_test.cpp` DEFECTS2 a7, the seeded-mode trap,
+  mutation-proven). The persistence of the brake mode across programs is untested, like the rest
+  of this row's persistence half.
 
 - [x] **HA-99 — battery voltage/current are mV/mA. SETTLED — and it was R1a's weakest belief.**
   *Claim:* `battery_get_voltage()` ≈ 12600 on a fresh pack (mV); `battery_get_current()` is mA.
@@ -1424,6 +1446,157 @@ this says the KIND the registry reports on that port can be trusted for the thre
   which would put us back where the provider started — an adapter over nothing — and the IMU's own
   `isReady()` never going true is then the only tell. **Contained:** one check, in one provider.
 
+**DEFECTS2 (2026-09-26) added HA-142–HA-146.** Found by the read-only research for T3 (claw pivots
+that must HOLD their angle on release): every Brake and Hold stop in the library reached a V5 as a
+0 V command, which PROS documents as ignoring the brake mode — so a declared Hold went limp and the
+drive's "0 V + Brake" cancel coasted, while every host test passed (the fakes echo the mode, the A2
+plant pins a wheel at 0 V, the shim had no `brake()`). The fix is one function in the PROS adapter
+(`hal/pros/motor.hpp`, "THE STOP"); these five entries are what it — and everything that stops a
+motor — now rests on. **None of them has been observed on a robot.**
+
+- [ ] **HA-142 — `move_voltage()` and `move()` ignore the brake mode; only `brake()` applies it.**
+  *Claim:* a V5 motor commanded `move_voltage(0)` is under VOLTAGE control at 0 V whatever its
+  brake-mode register says; the mode acts only after `brake()`, which "sets motor velocity to zero,
+  which will cause it to act according to the set brake mode". So a stop that must brake or hold is
+  "the mode + `brake()`", never "the mode + 0 V". False if a motor set to Hold and commanded
+  `move_voltage(0)` holds its position, or if `brake()` under Hold does not.
+  *Source:* vendored `include/pros/motors.h:52` (`motor_move`) and `:253-254`
+  (`motor_move_voltage`): *"This function will not respect brake modes, and simply sets the voltage
+  to the desired value"*; `motors.h:82-86` and `motors.hpp:260-284` (`brake()`); the mode enum's
+  own words, every one about a motor that is STOPPED (`motors.h:860-868`). In the tree:
+  `include/shulib/hal/pros/motor.hpp` (THE STOP; `stopAtZero()`), which sends a zero under a
+  COMMANDED Brake/Hold as `brake()`; the shim's control state (`test/pros_shim/pros/motors.hpp`);
+  the comments that now say so in `hal/motor.hpp`, `hal/mechanism.hpp`,
+  `manipulation/mechanism_op.hpp`, `motion/motion.hpp`, `sim/drive_plant.hpp` (each tagged
+  `A4 register HA-142`); host-tested by `test/pros_motor_adapter_test.cpp` (DEFECTS2 a1–a11, a9b
+  included) and `test/brake_stop_stack_test.cpp` (s1–s8) — which test the adapter against this
+  belief and cannot test the belief. The same belief is why the adapter re-sends a mode write the
+  port refused before its next `brake()`: `brake()` stops under the REGISTER, not under what the
+  program meant (a9b).
+  *Confidence:* **reasoned** — the vendored text is explicit, and says it twice. Nothing else in
+  PROS's headers contradicts it.
+  *Settle (R3, robot two — the first look; T3's claw station — the loaded one):* compare two stops
+  from the same speed WHILE ENABLED — a stick release under the ruled Coast, and a library Brake
+  stop (COMP's first autonomous `chassis.brake()`, or a driver-loop build with
+  `DriverLoopConfig::releaseBrakeMode = Brake`): the Brake stop should be visibly shorter. Before
+  DEFECTS2 the two were the same 0 V. **A DISABLE is a confounded test:** the loop's disable path
+  issues its Brake stop only once the brain already reports disabled, and whether VEXos is by then
+  cutting motor output is HA-145's open question — so what a disable shows is that entry as much
+  as this one. For the hold: T3's claw
+  pivot declared Hold, released with a load — it stays; turned by hand, it pushes back.
+  *Blast radius if wrong:* if `move_voltage(0)` DID honour the mode, DEFECTS2 changed the wire call
+  and not the behaviour — harmless. If `brake()` does NOT apply the mode, every Brake/Hold stop stays
+  limp: a claw drops, a cancel coasts — the pre-DEFECTS2 robot, no worse. **Contained:** one
+  function (`ProsMotor::stopAtZero()`), below every wrapper.
+
+- [ ] **HA-143 — what a V5 motor PHYSICALLY does at `move_voltage(0)`: believed to free-wheel.**
+  *Claim:* at `move_voltage(0)` the shaft is undriven and turns freely except for friction — the
+  "coast" `hal::BrakeMode::Coast` promises and `IMotor`'s contract describes. False if a 0 V command
+  short-circuits the windings (a dynamic brake), or holds.
+  *Source:* `include/shulib/hal/motor.hpp` (the `BrakeMode::Coast` doc, tagged `A4 register
+  HA-143`); `include/shulib/hal/pros/motor.hpp` (THE STOP: Coast, and every zero under no commanded
+  mode, stays `move_voltage(0)` — exactly the pre-DEFECTS2 wire traffic, so Calibrate, shulib Drive
+  and the tester's DRIVE station are unchanged); the plant's coast-follow (HA-137) and the
+  calibrator's one-sided pulses assume it.
+  *Confidence:* **invented — UNKNOWN.** PROS says only that the voltage "simply" is set; it does not
+  say what an H-bridge at 0 V does. Two QUALITATIVE observations point toward a coast and neither is
+  a measurement: the R3d Part 2F investigation of Calibrate's first night concluded robot two's
+  idle side coasts during a one-sided pulse (the development log; HA-137 carries the model it led
+  to), and the team lead describes the 2026-09-25 Teleop drive as coasting on stick release (the
+  ruling that keeps it).
+  *Settle (R3/R4):* robot two at a known speed, WHILE ENABLED, sticks released (0 V under Coast)
+  versus an enabled Brake stop (`brake()` under Brake, HA-142 — COMP's first autonomous
+  `chassis.brake()`, or a driver-loop build with `DriverLoopConfig::releaseBrakeMode = Brake`): the
+  roll distances should differ clearly. Not against a DISABLE — HA-142's settle step says why that
+  comparison is confounded (HA-145). And by hand, a motor at 0 V turns as easily with its register
+  at hold as at coast (which also checks HA-142's first half).
+  *Blast radius if wrong (0 V brakes):* the "coast" in Calibrate's pulses and the plant's κ is
+  really a brake — the calibration's side test is modelled with the wrong sign of error — and the
+  ruled Teleop release feel is a braking one. Nothing DEFECTS2 did makes it worse: the Coast path is
+  byte-for-byte the wire traffic it was. **Contained:** it is a fact about the motor; the only code
+  it steers is the plant's coast-follow model.
+
+- [ ] **HA-144 — a REPEATED `brake()` under Hold re-captures the held position — and so, perhaps,
+  does a `set_brake_mode()` of the SAME mode written to a motor already held.**
+  *Claim:* each `brake()` under Hold re-targets the hold at the shaft's CURRENT position, so one
+  issued every 10 ms tick under a load that sags between ticks lets the shaft creep, never springing
+  back. False if a repeated `brake()` keeps the first target. *Second half (added in DEFECTS2's
+  review):* whether a `set_brake_mode(hold)` written to a motor ALREADY stopped under Hold does the
+  same. The adapter keeps sending that write every tick wherever a caller re-states an unchanged
+  mode over a stop: `DriveBrake` (Brake, every tick since C1 — Brake holds no position, so only
+  Hold is at stake) and the driver loop's release re-assert when `releaseBrakeMode` is Brake or
+  Hold (no program does; the ruled Coast never stops). False if a same-mode write leaves the stop
+  alone — which is what the shim assumes and cannot test.
+  *Source:* `include/shulib/hal/pros/motor.hpp` (THE STOP, and `stopAtZero()`: the adapter issues
+  `brake()` only on the TRANSITION into a stop — a zero repeated under the same mode sends nothing
+  more; tagged `A4 register HA-144`); `include/shulib/hal/motor.hpp` (`BrakeMode::Hold`); pinned by
+  `pros_motor_adapter_test.cpp` a8 and `brake_stop_stack_test.cpp` s7 (one `brake()` across ten
+  ticks of the DriveBrake pattern / five released driver-loop ticks — mutation-proven). Both of those
+  also send the same-mode `set_brake_mode()` every tick (a8 counts ten); the shim's header lists it
+  among what it cannot model (`test/pros_shim/pros/motors.hpp`).
+  *Confidence:* **invented.** PROS says only that Hold "may behave differently than calling
+  motor_move_absolute(port, 0)", and nothing about a mode write to a stopped motor. The adapter is
+  built so that the first half being TRUE costs nothing; for the second half it is NOT — the write
+  is still sent. Not suppressed in the adapter (skip a same-mode write while stopped under it):
+  that drops the per-tick re-write which heals a register changed underneath (a second adapter on
+  the port, a replugged motor — HA-98), changes `DriveBrake`'s wire traffic from what it has been
+  since C1, and today guards nothing a program does — the ruled release is Coast, T3's claws take
+  their safe state once, and `DriveBrake` stops under Brake.
+  *Settle (T3's claw station):* a loaded claw held by one `brake()` versus one re-issued every tick
+  (a test build) — the sag over 30 s; then the same claw held by one `brake()` with a
+  `set_brake_mode(hold)` written every tick (a test build) — the same sag test. **The opposite risk
+  is the real one to look for:** if a hold LAPSES without a fresh command (a firmware timeout no PROS
+  text mentions), issuing once is wrong — the claw would hold, then let go. Watch a held claw for a
+  full minute.
+  *Blast radius if wrong (it lapses):* a held claw lets go after some time with no command; the fix
+  would be a periodic re-issue, in the same one function. *If the same-mode write re-targets:* only
+  a Hold that a caller re-states every tick creeps — none today; the fix is the suppression above,
+  in `setBrakeMode()`. **Contained:** `stopAtZero()` / `setBrakeMode()`.
+
+- [ ] **HA-145 — Hold (or Brake) while VEXos has the robot DISABLED, and after re-enable.**
+  *Claim:* UNKNOWN in both halves — whether a motor stopped under Hold keeps holding while the
+  brain is disabled (between autonomous and driver control, after the match), and what state it is
+  in when re-enabled. The belief this register can state: VEXos cuts motor output while disabled,
+  so a hold does NOT survive it.
+  *Source:* `include/shulib/hal/pros/motor.hpp` (THE STOP: the adapter's stop record is per object
+  and cannot see a disable — after re-enable, a zero repeated under the same mode sends nothing new
+  until the command leaves zero or the mode changes; tagged `A4 register HA-145`). The driver loop
+  (`include/shulib/teleop/teleop_loop.hpp`) cancels into Brake on a disable and re-asserts its
+  release mode every tick; neither re-issues a `brake()` for an unchanged mode. The loop header's
+  step 1, which says the disable stop lands before VEXos cuts the motors, points here (tagged
+  `A4 register HA-145`).
+  *Confidence:* **invented — UNKNOWN.** No PROS or VEX text in the tree covers it.
+  *Settle (T3's claw station, then COMP):* stop a loaded claw under Hold, disable (the controller's
+  Timed Run ending), feel the shaft; re-enable WITHOUT commanding it and feel again. The same
+  question covers the driver loop's disable stop: its Brake `brake()` is issued once the brain
+  already reports disabled (the loop's header records, from R3b Part 0b, that this lands before
+  VEXos cuts the motors itself — how long that window is, and whether a `brake()` issued in it
+  outlasts the cut, is this entry).
+  *Blast radius if wrong:* a claw holding a game piece at the end of autonomous drops it at the
+  disable; a re-enabled claw stays limp until its first command. The re-arm would be one explicit
+  "re-issue the stop" at the start of each competition phase — not built, because nothing yet says
+  it is needed. **Contained:** the adapter plus one call site per phase.
+
+- [ ] **HA-146 — leaving the stop: after `brake()`, the next `move_voltage(v ≠ 0)` drives the motor
+  at once; a `set_brake_mode()` repeated every tick changes nothing but a RUNNING motor's register.**
+  *Claim:* the velocity-zero stop `brake()` puts the motor in is a control mode the next
+  `move_voltage()` REPLACES — not a latch — so a held claw moves the tick it is commanded, and a
+  cancelled drive responds to the first stick after it. And a `set_brake_mode()` sent while the
+  mode is unchanged (the driver loop's release re-assert, every tick since DEFECTS2; `DriveBrake`'s,
+  every tick since C1) neither jolts nor resets a RUNNING motor. (The same write to a motor STOPPED
+  under Hold is HA-144's second half, not this entry.)
+  *Source:* vendored `motors.h:253-254` (`move_voltage` "simply sets the voltage") and
+  `motors.hpp:260-284` (`brake()` is a velocity command); `include/shulib/hal/pros/motor.hpp`
+  (`setVoltage()` clears the stop record on any non-zero command; tagged `A4 register HA-146`);
+  `include/shulib/teleop/teleop_loop.hpp` (step 6b); pinned on the host by
+  `pros_motor_adapter_test.cpp` a4 — against the shim, which leaves a stop at once.
+  *Confidence:* **reasoned** — PROS's movement calls each set a new target; nothing says `brake()`
+  is sticky.
+  *Settle (R3 / T3's claw station):* hold a claw, then command it open — it moves on the first
+  tick; on robot two, disable, re-enable, and drive — the first stick moves the robot.
+  *Blast radius if wrong:* a held mechanism that ignores its next command (a claw that will not
+  open); a drive sluggish after every library stop. **Contained:** `ProsMotor::setVoltage()`.
+
 ---
 
 ## Group R4 — noise, drift, latency, timing, power, traction (characterization)
@@ -2196,6 +2369,16 @@ E2's tuning constants make the corrector work better or worse; these three make 
   stack. Measure sag over 30 s at several loads; if Hold alone is insufficient, F3's `liftToLevel`
   needs its sag-comp PID hold (already in its spec) and the declared safe state stays Hold as the
   best-available floor.
+  *Amended DEFECTS2 (2026-09-26) — the premise was false at the wire:* "the declaration reach[es]
+  the motor provably" was true only down to `IMotor::setBrakeMode()` and the device's mode
+  REGISTER. The stop itself went out as `move_voltage(0)`, which PROS documents as ignoring the
+  mode (HA-142), so on a V5 a declared Hold went LIMP — the question this entry asks (does Hold win
+  against the load?) could not even have been posed on hardware before DEFECTS2. Since then
+  `ProsMotor` sends that zero as `brake()`, pinned at the bottom of `MotorMechanism` and a
+  mechanism operation over real `ProsMotor`s (`test/brake_stop_stack_test.cpp` s1, mutation-proven).
+  Nothing about the holding TORQUE changed; that is still this entry, and still invented. The first
+  loaded hold will be T3's claw pivots (ports 6 and 7), and two neighbours ride along: HA-144
+  (whether a repeated stop re-captures the held position) and HA-145 (a hold across a disable).
   *Blast radius if wrong:* a cancelled/parked lift descends at the buzzer — scored stack lost and
   a possible entanglement; F2's park guard inherits the same exposure. The failure is visible the
   first time hardware exists, which is why this is registered rather than assumed silently.
@@ -2295,8 +2478,9 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Source:* `include/shulib/motion/motion.hpp` `applyCancelSafeState()` (PROVISIONAL (A4:
   HA-53)); consumed by every `IMotion::cancel()` and by `MotionScheduler`'s pre-empt / fault
   abort / panic paths. Host evidence is deliberately conservative: the A2 plant does not model
-  brake modes, so tests prove the 0 V dynamics reach rest (9.7 in coast from 57 in/s on the
-  lagged plant) and pin the Brake command by state inspection only.
+  brake TORQUE (it pins a wheel at 0 V whatever its mode, and reads the mode only for R3d Part
+  2F-1's coast-follow, off by default), so tests prove the 0 V dynamics reach rest (9.7 in coast
+  from 57 in/s on the lagged plant) and pin the Brake command by state inspection only.
   *Confidence:* reasoned — Brake mode's short-circuit behaviour is VEX-documented; its stopping
   distance from competition speeds on our robot's mass/wheels is unmeasured.
   *Settle (R3 bench, R5 at speed):* command a cancel from cruise on hardware; measure
@@ -2305,6 +2489,20 @@ E2's tuning constants make the corrector work better or worse; these three make 
   bounded by the coast physics either way (never re-energized: the 0 V command is proven by
   test), so the failure mode is "stops like coast", not "keeps driving". If Brake proves
   harmful (e.g. brownout interaction), the safe state is ONE function in ONE place.
+  *Amended DEFECTS2 (2026-09-26) — until then this stop COASTED on a V5:* the PROS adapter sent
+  the zero as `move_voltage(0)`, which ignores the brake mode (HA-142), so every cancel path —
+  a user cancel, a pre-emption, a fault abort, the panic stop, and so the driver loops' disable —
+  was the "stops like coast" failure mode above, silently, while the host tests pinned "Brake" by
+  state inspection. Since DEFECTS2 the adapter sends that zero as `brake()`
+  (pinned through a whole `robot::Robot` over the shim: `test/brake_stop_stack_test.cpp` s2, s4,
+  s5), so the claim can now be tested at all. Three consequences for the settle step: a library
+  stop while ENABLED now brakes while a stick release still COASTS (the team lead's ruling —
+  `teleop::DriverLoopConfig::releaseBrakeMode`, default Coast, re-asserted every tick because a
+  `drive()` pre-emption cancels into Brake), so the two should look different on robot two; a
+  DISABLE is not a clean test of this entry, because the loop's Brake stop goes out once the brain
+  already reports disabled, and what VEXos does to motor output by then is HA-145; and "re-commanding it repeatedly" is now one `brake()` per
+  transition into the stop plus a `set_brake_mode()` per tick, not a `brake()` per tick (HA-144,
+  HA-146).
 
 - [ ] **HA-54 — the H-drive's strafe traction derate ≈ 0.35: a single, lightly-loaded strafe
   omni sustains ≈ 35% of its free surface speed pushing the whole robot laterally on foam.**

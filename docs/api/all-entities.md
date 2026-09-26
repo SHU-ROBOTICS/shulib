@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,592 of them, across 148 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,593 of them, across 148 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -586,6 +586,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
 | `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
 | `DriverLoopConfig` | struct | [teleop_loop.md](teleop_loop.md#struct-driverloopconfig) |
+| `DriverLoopConfig::releaseBrakeMode` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-releasebrakemode) |
 | `DriverLoopConfig::rezeroButton` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-rezerobutton) |
 | `DriverLoopConfig::tickPeriod` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-tickperiod) |
 | `DriverProfile` | struct | [input_shaping.md](input_shaping.md#struct-driverprofile) |

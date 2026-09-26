@@ -159,10 +159,15 @@ enum class MotionState : std::uint8_t {
 /// contract above). Brake mode is set BEFORE the zero-volt command so the stop
 /// lands under braking semantics, never a momentary coast.
 ///
-/// HARDWARE CLAIM, honest scope: the A2 plant does not model brake modes, so
-/// host tests prove the 0 V dynamics reach rest and pin the Brake command by
-/// state inspection — how hard a real V5 drivetrain brakes from speed is
-/// unverifiable until hardware. PROVISIONAL (A4: HA-53).
+/// HARDWARE CLAIM, honest scope: the A2 plant pins a wheel at 0 V whatever its
+/// mode (it reads the mode only for coast-follow, off by default), so host
+/// tests prove the 0 V dynamics reach rest and pin the Brake command by state
+/// inspection — how hard a real V5 drivetrain brakes from speed is
+/// unverifiable until hardware. PROVISIONAL (A4: HA-53). On a V5 this stop
+/// APPLIES Brake only since DEFECTS2 (2026-09-26): the PROS adapter now sends
+/// the zero as brake(); before it, by PROS's own text, every cancel coasted
+/// (A4 register HA-142; brake_stop_stack_test.cpp s2 pins it through a whole
+/// robot over the shim).
 inline void applyCancelSafeState(chassis::RobotContext& ctx) {
     for (hal::IMotor* m : ctx.driveMotors()) {
         m->setBrakeMode(hal::BrakeMode::Brake);

@@ -36,7 +36,10 @@
 // in the manipulation layer (operation exit, cancel, failure) and F2's park
 // guard land here, so the declaration is applied by construction, not by
 // convention. Whether BrakeMode::Hold actually holds a LOADED cascade lift is a
-// hardware claim no host test can verify: PROVISIONAL (A4: HA-92).
+// hardware claim no host test can verify: PROVISIONAL (A4: HA-92). (Until
+// DEFECTS2, 2026-09-26, the declaration did not even reach a V5: the PROS
+// adapter sent the zero as 0 V, which ignores the mode. It now sends it as
+// brake() — hal/pros/motor.hpp, THE STOP, A4 register HA-142.)
 //
 // ── The operation claim (T3) ────────────────────────────────────────────────────────
 // Two mechanisms running at once is required (intake while the lift settles).

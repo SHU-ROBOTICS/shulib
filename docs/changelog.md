@@ -16,6 +16,81 @@
 
 ## API 2.2
 
+### Fixed since 2.2 (2026-09-26) — Brake and Hold now reach a V5 motor; the driver loop's release mode
+
+> Written when it landed (chunk DEFECTS2). **No version bump — the decision, under
+> [`version.hpp`](https://github.com/SHU-ROBOTICS/shulib/blob/main/include/shulib/version.hpp)'s
+> policy:** no signature changed anywhere; `hal::IMotor` (Freeze Register row F4) already PROMISED
+> what this fix delivers ("Hold is the active position hold the guaranteed park relies on"), and
+> `Chassis::cancel()`'s documented safe state (F6: "0 V + Brake") is unchanged in the contract — it
+> is the V5 adapter, an implementation outside every freeze, that now keeps them. The one new name,
+> `teleop::DriverLoopConfig::releaseBrakeMode`, is on an unfrozen struct and its default keeps the
+> stick-release behaviour a robot showed before. A behaviour change that makes an implementation
+> match its frozen contract is neither the policy's BREAKING (the documented semantics did not
+> move) nor its ADDITIVE (nothing frozen grew). **Nothing below has run on a robot**; the beliefs
+> it rests on are A4 register HA-142–HA-146 in the
+> [hardware assumptions register](hardware-assumptions.md).
+
+**FIXED — what changes on a robot:**
+
+- **Every Brake and Hold stop now applies its mode at the motor.** PROS applies a brake mode only
+  through `pros::Motor::brake()`; `move_voltage()` "will not respect brake modes". Until now
+  `hal::pros::ProsMotor` sent every zero as `move_voltage(0)`, so — by PROS's own documentation;
+  nobody has watched it happen — on a V5 a mechanism declared `BrakeMode::Hold` went LIMP when its
+  operation ended, and the drive's cancel safe state ("0 V + Brake") COASTED, through every path
+  that uses it: `Chassis::cancel()` and its panic
+  stop, a pre-emption, a fault abort, the `brake()` verb (`DriveBrake`), `RunGuard`'s forced-safe
+  paths, and the driver loop's disable. Every host test passed throughout, because the fakes echo
+  the mode and the host test plant pins a wheel at 0 V. Now a zero command (the millivolts SENT
+  round to 0) under a Brake or Hold that the program set with `setBrakeMode()` goes out as
+  `brake()` — once, on the way into the stop; the mode and the zero may come in either order.
+  **Coast is unchanged**, byte for byte on the wire: a zero under Coast is still `move_voltage(0)`,
+  so "shulib Calibrate", "shulib Drive" and the tester's DRIVE station behave exactly as before.
+- **A motor your program never gave a mode is unchanged too.** The adapter keys the stop on the
+  mode THIS program commanded, never on the mode the device remembers from an earlier program
+  (which it still reads for `brakeMode()`'s fallback): a drive motor left in Hold by another
+  program does not start holding at centred sticks.
+- **A stop the port refused is retried, never believed.** `brake()` stops under whatever mode the
+  motor's register holds, so if a port drops out as a mode or a stop is sent (PROS answers with an
+  error), the adapter records no stop, re-sends the mode before its next `brake()`, and tries again
+  at the next zero command. A caller that sends its zero only once — a mechanism operation's exit —
+  gets no retry if the port is down at that instant, as with any refused command.
+- **A mode, once set, governs every later zero on that motor — so it now matters on a robot.**
+  The library's Brake stops (a cancel, the `brake()` verb, a pre-emption, a fault abort) leave the
+  drive motors in Brake, and a later zero command that sets no mode of its own — a motion's settle
+  stop, the zero volts a motion commands while it waits for the estimate — now BRAKES too, where
+  before DEFECTS2 every such zero was a plain 0 V. That is `hal::IMotor`'s contract working as
+  written, and it is why the driver loop now re-asserts its own release mode every tick (below).
+- **What you must do:** nothing, unless your program relied on a Brake or Hold stop coasting —
+  then set `BrakeMode::Coast` where you meant it. Expect a mechanism declared Hold to draw holding
+  current at rest now (watch its temperature — HA-92), and expect the drive to brake on a cancel.
+
+**ADDED:**
+
+- **`teleop::DriverLoopConfig::releaseBrakeMode`** (default `BrakeMode::Coast`, the team lead's
+  ruling of 2026-09-26). `runDriverControl` puts it on every drive motor at entry and again after
+  every `drive()` — because a `drive()` that pre-empts a motion cancels it into Brake, and with the
+  fix above that Brake would now make the next released stick brake the drive. The disable path is
+  not governed by it: a disable still cancels into Brake. **What you must do:** nothing to keep
+  coasting on release; set `.releaseBrakeMode = hal::BrakeMode::Brake` (or `Hold`) to make a
+  release stop the drive.
+
+**CORRECTED DOCUMENTATION:**
+
+- `ProsMotor::faultedReads()` counts a screened `brakeMode()` read — it has since DEFECTS1 — but
+  its comment and the class comment still said it did not. They now say five screened reads are
+  counted.
+- The `hal::BrakeMode` comments (`hal/motor.hpp`) now quote what PROS actually says each mode does
+  and mark the rest as belief: which position Hold holds, and that Brake does not return to where
+  it stopped, are not in PROS's text.
+
+**For contributors:** the host PROS shim (`test/pros_shim/pros/motors.hpp`) gained `Motor::brake()`
+and a per-port CONTROL STATE (`shim::MotorControl::Voltage` / `Stopped`, and the mode a stop was
+issued under), so a test can tell "0 V, mode ignored" from "stopped, mode applied". Assert a stop
+through that state, never through an adapter's `brakeMode()`, which read Hold all through this
+defect. `MotorPortState::refuseSetBrakeMode` refuses the next N mode writes alone, for a dropout
+that ends between two calls.
+
 ### Removed since 2.2 (2026-09-24, later the same day) — the calibrator's three retired names
 
 > Written when it landed. **No version bump:** `calibration::DrivetrainCalibrator` is not in the

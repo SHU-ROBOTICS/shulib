@@ -138,9 +138,9 @@ exited: cancel() — stopped from outside (APPENDED at chunk C2 per the append-o
 inline void applyCancelSafeState(chassis::RobotContext& ctx)
 ```
 
-The CANCEL SAFE STATE, defined in ONE place so every cancel path — each primitive's cancel(), the scheduler's pre-emption, its fault-policy abort, and its no-active-motion panic stop — commands the identical thing: zero volts under BrakeMode::Brake on every drive motor (rationale in the cancel contract above). Brake mode is set BEFORE the zero-volt command so the stop lands under braking semantics, never a momentary coast.  HARDWARE CLAIM, honest scope: the A2 plant does not model brake modes, so host tests prove the 0 V dynamics reach rest and pin the Brake command by state inspection — how hard a real V5 drivetrain brakes from speed is unverifiable until hardware. PROVISIONAL (A4: HA-53).
+The CANCEL SAFE STATE, defined in ONE place so every cancel path — each primitive's cancel(), the scheduler's pre-emption, its fault-policy abort, and its no-active-motion panic stop — commands the identical thing: zero volts under BrakeMode::Brake on every drive motor (rationale in the cancel contract above). Brake mode is set BEFORE the zero-volt command so the stop lands under braking semantics, never a momentary coast.  HARDWARE CLAIM, honest scope: the A2 plant pins a wheel at 0 V whatever its mode (it reads the mode only for coast-follow, off by default), so host tests prove the 0 V dynamics reach rest and pin the Brake command by state inspection — how hard a real V5 drivetrain brakes from speed is unverifiable until hardware. PROVISIONAL (A4: HA-53). On a V5 this stop APPLIES Brake only since DEFECTS2 (2026-09-26): the PROS adapter now sends the zero as brake(); before it, by PROS's own text, every cancel coasted (A4 register HA-142; brake_stop_stack_test.cpp s2 pins it through a whole robot over the shim).
 
-*free function, declared at [`include/shulib/motion/motion.hpp:166`](../../include/shulib/motion/motion.hpp#L166).*
+*free function, declared at [`include/shulib/motion/motion.hpp:171`](../../include/shulib/motion/motion.hpp#L171).*
 
 <a id="struct-motiondeps"></a>
 
@@ -152,7 +152,7 @@ struct MotionDeps
 
 The dependencies every motion shares, as NAMED pointers (designated initializers at the call site), validated non-null by validate(). All pointees must outlive the motion. This bundle is deliberately the same set the C4 Chassis facade will own — a motion is constructible from a facade's internals with no reshaping (flagged for F6).
 
-*struct, declared at [`include/shulib/motion/motion.hpp:178`](../../include/shulib/motion/motion.hpp#L178).*
+*struct, declared at [`include/shulib/motion/motion.hpp:183`](../../include/shulib/motion/motion.hpp#L183).*
 
 <a id="motiondeps-ctx"></a>
 
@@ -164,7 +164,7 @@ chassis::RobotContext* ctx = nullptr
 
 clock, motors, imu, battery, telemetry
 
-*field, declared at [`include/shulib/motion/motion.hpp:179`](../../include/shulib/motion/motion.hpp#L179).*
+*field, declared at [`include/shulib/motion/motion.hpp:184`](../../include/shulib/motion/motion.hpp#L184).*
 
 <a id="motiondeps-localizer"></a>
 
@@ -176,7 +176,7 @@ localization::Localizer* localizer = nullptr
 
 the fused estimate + categorical quality
 
-*field, declared at [`include/shulib/motion/motion.hpp:180`](../../include/shulib/motion/motion.hpp#L180).*
+*field, declared at [`include/shulib/motion/motion.hpp:185`](../../include/shulib/motion/motion.hpp#L185).*
 
 <a id="motiondeps-kinematics"></a>
 
@@ -188,7 +188,7 @@ const kinematics::IKinematics* kinematics = nullptr
 
 the F5 drivetrain contract
 
-*field, declared at [`include/shulib/motion/motion.hpp:181`](../../include/shulib/motion/motion.hpp#L181).*
+*field, declared at [`include/shulib/motion/motion.hpp:186`](../../include/shulib/motion/motion.hpp#L186).*
 
 <a id="motiondeps-faults"></a>
 
@@ -200,7 +200,7 @@ diag::FaultLatch* faults = nullptr
 
 run-scoped latch (MotionTimeout, …)
 
-*field, declared at [`include/shulib/motion/motion.hpp:182`](../../include/shulib/motion/motion.hpp#L182).*
+*field, declared at [`include/shulib/motion/motion.hpp:187`](../../include/shulib/motion/motion.hpp#L187).*
 
 <a id="motiondeps-health"></a>
 
@@ -212,7 +212,7 @@ diag::HealthMonitor* health = nullptr
 
 the A3 pathology→fault policy
 
-*field, declared at [`include/shulib/motion/motion.hpp:183`](../../include/shulib/motion/motion.hpp#L183).*
+*field, declared at [`include/shulib/motion/motion.hpp:188`](../../include/shulib/motion/motion.hpp#L188).*
 
 <a id="motiondeps-motorgroups"></a>
 
@@ -224,7 +224,7 @@ std::span<hal::MotorGroup* const> motorGroups = {}
 
 The hal::MotorGroups among the drive motors, if any (R3b Part 1) — NON-OWNING, the array must outlive the bundle. tickHealthObservables() evaluates each group's disagreement observable once per tick and feeds the persisted count to the HealthMonitor, so MOTOR_GROUP_DISAGREE fires in drive() and in every motion. Empty (the default) for a robot whose drive motors are bare adapters: nothing is evaluated.
 
-*field, declared at [`include/shulib/motion/motion.hpp:189`](../../include/shulib/motion/motion.hpp#L189).*
+*field, declared at [`include/shulib/motion/motion.hpp:194`](../../include/shulib/motion/motion.hpp#L194).*
 
 <a id="motiondeps-validate"></a>
 
@@ -236,7 +236,7 @@ void validate() const
 
 Trip SHULIB_PRECONDITION on the FIRST null pointer, naming which one. Every motion calls this from its constructor (through validatedClock()), so a dependency the designated-initializer call site forgot is a loud contract breach at construction rather than a null dereference three ticks into an auton.
 
-*function, declared at [`include/shulib/motion/motion.hpp:195`](../../include/shulib/motion/motion.hpp#L195).*
+*function, declared at [`include/shulib/motion/motion.hpp:200`](../../include/shulib/motion/motion.hpp#L200).*
 
 <a id="motiondeps-validatedclock"></a>
 
@@ -248,7 +248,7 @@ Trip SHULIB_PRECONDITION on the FIRST null pointer, naming which one. Every moti
 
 validate(), then hand out the clock — for a member-initializer list's FIRST dependency use, so a null pointer trips the precondition rather than being dereferenced.
 
-*function, declared at [`include/shulib/motion/motion.hpp:229`](../../include/shulib/motion/motion.hpp#L229).*
+*function, declared at [`include/shulib/motion/motion.hpp:234`](../../include/shulib/motion/motion.hpp#L234).*
 
 <a id="tickhealthobservables"></a>
 
@@ -260,7 +260,7 @@ inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled)
 
 Tick the shared HealthMonitor with every observable reachable from the deps — the A3 containment wiring in ONE place (chunk C4; three copies had grown by then: MoveToPose, TurnTo, and the scheduler's idle tick, and the facade's drive() would have been a fourth). `odomStalled` stays a parameter because it is the one observable with a per-caller story: the active motion feeds its OdoStallCheck verdict; idle/teleop callers pass false — nothing (or nothing closed-loop) is commanded, so there is no spin to cross-check (the DriveBrake-exemption reasoning). Since R3b Part 1 this is ALSO the one tick of every hal::MotorGroup's disagreement observable (deps.motorGroups): each group's coupled-side monitor advances exactly once here, and the persisted count reaches the monitor as groupMembersDisagreeing — so MOTOR_GROUP_DISAGREE fires in drive() and in every motion with no extra caller wiring.
 
-*free function, declared at [`include/shulib/motion/motion.hpp:248`](../../include/shulib/motion/motion.hpp#L248).*
+*free function, declared at [`include/shulib/motion/motion.hpp:253`](../../include/shulib/motion/motion.hpp#L253).*
 
 <a id="class-imotion"></a>
 
@@ -272,7 +272,7 @@ class IMotion
 
 The contract every motion primitive implements: one target, one tick() that reads the world and issues ONE drivetrain command, one verdict. A motion owns no loop, no task and no estimator — the loop owner advances the Localizer first, then calls tick() (the tick contract above). Implementers owe the whole of it, not just the signatures: an exit leaves the motors stopped and every later tick() is a no-op returning the cached verdict, start() fully re-arms a finished object, and cancel() works at any time and is idempotent. No motion may hang — the watchdog runs even while waiting for a live estimate.
 
-*class, declared at [`include/shulib/motion/motion.hpp:276`](../../include/shulib/motion/motion.hpp#L276).*
+*class, declared at [`include/shulib/motion/motion.hpp:281`](../../include/shulib/motion/motion.hpp#L281).*
 
 <a id="imotion-destructor-imotion"></a>
 
@@ -284,7 +284,7 @@ virtual ~IMotion() = default
 
 Interface plumbing, spelled out because declaring the destructor demands all six: motions are held and destroyed through this base, and copy/move are defaulted because IMotion itself holds no state — every motion's state is in the concrete type, which is also why the scheduler passes motions by pointer, not by value.
 
-*function, declared at [`include/shulib/motion/motion.hpp:282`](../../include/shulib/motion/motion.hpp#L282).*
+*function, declared at [`include/shulib/motion/motion.hpp:287`](../../include/shulib/motion/motion.hpp#L287).*
 
 <a id="imotion-imotion"></a>
 
@@ -296,7 +296,7 @@ IMotion() = default
 
 *Covered by the comment on [`~IMotion`](#imotion-destructor-imotion) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion.hpp:283`](../../include/shulib/motion/motion.hpp#L283).*
+*function, declared at [`include/shulib/motion/motion.hpp:288`](../../include/shulib/motion/motion.hpp#L288).*
 
 <a id="imotion-imotion-2"></a>
 
@@ -308,7 +308,7 @@ IMotion(const IMotion&) = default
 
 *Covered by the comment on [`~IMotion`](#imotion-destructor-imotion) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion.hpp:284`](../../include/shulib/motion/motion.hpp#L284).*
+*function, declared at [`include/shulib/motion/motion.hpp:289`](../../include/shulib/motion/motion.hpp#L289).*
 
 <a id="imotion-imotion-3"></a>
 
@@ -320,7 +320,7 @@ IMotion(IMotion&&) = default
 
 *Covered by the comment on [`~IMotion`](#imotion-destructor-imotion) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion.hpp:285`](../../include/shulib/motion/motion.hpp#L285).*
+*function, declared at [`include/shulib/motion/motion.hpp:290`](../../include/shulib/motion/motion.hpp#L290).*
 
 <a id="imotion-operator-eq"></a>
 
@@ -332,7 +332,7 @@ IMotion& operator=(const IMotion&) = default
 
 *Covered by the comment on [`~IMotion`](#imotion-destructor-imotion) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion.hpp:286`](../../include/shulib/motion/motion.hpp#L286).*
+*function, declared at [`include/shulib/motion/motion.hpp:291`](../../include/shulib/motion/motion.hpp#L291).*
 
 <a id="imotion-operator-eq-2"></a>
 
@@ -344,7 +344,7 @@ IMotion& operator=(IMotion&&) = default
 
 *Covered by the comment on [`~IMotion`](#imotion-destructor-imotion) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/motion/motion.hpp:287`](../../include/shulib/motion/motion.hpp#L287).*
+*function, declared at [`include/shulib/motion/motion.hpp:292`](../../include/shulib/motion/motion.hpp#L292).*
 
 <a id="imotion-start"></a>
 
@@ -356,7 +356,7 @@ virtual void start() = 0
 
 Arm the motion: reset controllers/settle state, start the watchdog. Re-callable — a finished motion re-arms completely.
 
-*function, declared at [`include/shulib/motion/motion.hpp:291`](../../include/shulib/motion/motion.hpp#L291).*
+*function, declared at [`include/shulib/motion/motion.hpp:296`](../../include/shulib/motion/motion.hpp#L296).*
 
 <a id="imotion-tick"></a>
 
@@ -368,7 +368,7 @@ Arm the motion: reset controllers/settle state, start the watchdog. Re-callable 
 
 One control tick (see the tick contract above). Precondition: start() has been called. The loop must update the Localizer BEFORE calling this.
 
-*function, declared at [`include/shulib/motion/motion.hpp:295`](../../include/shulib/motion/motion.hpp#L295).*
+*function, declared at [`include/shulib/motion/motion.hpp:300`](../../include/shulib/motion/motion.hpp#L300).*
 
 <a id="imotion-cancel"></a>
 
@@ -380,7 +380,7 @@ virtual void cancel() = 0
 
 Stop the motion from outside (see the cancel contract above). PURE virtual ON PURPOSE — a motion type without a cancellation story is the forgettable-safety-step failure mode (A1's emitRecord lesson); every implementer must state one. Idempotent; never raises; applies the cancel safe state whenever the motion has been started.
 
-*function, declared at [`include/shulib/motion/motion.hpp:302`](../../include/shulib/motion/motion.hpp#L302).*
+*function, declared at [`include/shulib/motion/motion.hpp:307`](../../include/shulib/motion/motion.hpp#L307).*
 
 <a id="imotion-exitreason"></a>
 
@@ -392,7 +392,7 @@ Stop the motion from outside (see the cancel contract above). PURE virtual ON PU
 
 The verdict of the most recent tick() (Running before the first tick).
 
-*function, declared at [`include/shulib/motion/motion.hpp:305`](../../include/shulib/motion/motion.hpp#L305).*
+*function, declared at [`include/shulib/motion/motion.hpp:310`](../../include/shulib/motion/motion.hpp#L310).*
 
 <a id="imotion-state"></a>
 
@@ -404,7 +404,7 @@ The verdict of the most recent tick() (Running before the first tick).
 
 The motion-layer state (the activeCommandState vocabulary).
 
-*function, declared at [`include/shulib/motion/motion.hpp:308`](../../include/shulib/motion/motion.hpp#L308).*
+*function, declared at [`include/shulib/motion/motion.hpp:313`](../../include/shulib/motion/motion.hpp#L313).*
 
 <a id="imotion-name"></a>
 
@@ -416,7 +416,7 @@ The motion-layer state (the activeCommandState vocabulary).
 
 Stable short name for logs / result lines (e.g. "MoveToPose").
 
-*function, declared at [`include/shulib/motion/motion.hpp:311`](../../include/shulib/motion/motion.hpp#L311).*
+*function, declared at [`include/shulib/motion/motion.hpp:316`](../../include/shulib/motion/motion.hpp#L316).*
 
 ## Design commentary, from the header
 

@@ -461,6 +461,16 @@ template <typename PerTick>
 void runTeleopLoop(shulib::chassis::Chassis& chassis, const shulib::hal::IController& master,
                    shulib::motion::ITickPacer& pacer, PerTick&& perTick) {
     const shulib::motion::MotionConfig& cfg = chassis.motionConfig();
+    // DEFECTS2: since the adapter makes Brake/Hold real at 0 V, a released stick after a cancel()
+    // (which leaves the drive in Brake) would BRAKE. The driver's release mode is COAST (the team
+    // lead's ruling for Teleop, applied here too) -- at entry and after every drive(), exactly as
+    // teleop::runDriverControl does it. G1 Part 2c removes this loop with the X-drive graph.
+    const auto coastDrive = [&chassis] {
+        for (shulib::hal::IMotor* m : chassis.deps().ctx->driveMotors()) {
+            m->setBrakeMode(shulib::hal::BrakeMode::Coast);
+        }
+    };
+    coastDrive();
     while (true) {
         if (pros::c::competition_is_disabled()) {
             chassis.cancel();  // the panic-stop safe state; VEXos disables output too
@@ -475,6 +485,7 @@ void runTeleopLoop(shulib::chassis::Chassis& chassis, const shulib::hal::IContro
         const shulib::math::ChassisSpeeds command = shulib::teleop::mapSticksToChassisSpeeds(
             sticks, cfg.maxLinearSpeed, cfg.maxAngularSpeed);
         chassis.drive(command, shulib::math::Frame::Body);
+        coastDrive();
         perTick(command, sticks.connected);
         pacer.pace();
     }

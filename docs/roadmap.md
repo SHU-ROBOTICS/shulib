@@ -345,12 +345,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > driver, the first time the library's own object graph drove the robot; no library-commanded motion
 > has run.
 >
-> **Now (2026-09-26): Next: the brake-mode fix, then T3, then G1 Part 2c (`main.cpp` as a
-> dispatcher), then COMP (the competition program)** — the team lead's order of 2026-09-26. The
-> brake-mode fix: PROS's `move_voltage` ignores the brake mode, so no Brake or Hold the library
-> commands reaches a V5 motor today; it is fixed at the adapter, and "shulib Teleop" keeps COASTING
-> when the sticks are released (his ruling). T3: the claw pivots on ports 6 and 7, bound to R1/R2
-> and L1/L2. Each waits for the team lead's go. Still owed from the bench
+> **Now (2026-09-26): Next: T3 (robot two's claws), then G1 Part 2c (`main.cpp` as a dispatcher),
+> then COMP (the competition program)** — the team lead's order of 2026-09-26. The brake-mode fix
+> has landed (host- and build-gated, not run on a robot): a Brake or Hold the library commands now
+> reaches the V5 motor through PROS's `brake()`, and "shulib Teleop" still COASTS when the sticks
+> are released (his ruling). T3: the claw pivots on ports 6 and 7 (R1/R2, L1/L2, holding on
+> release) and the pneumatic claw on controller A. Each waits for the team lead's go. Still owed from the bench
 > session: a recorded Calibrate reproduction run (the saved distance scale reads about 8 % short)
 > and the sensor stations. *(R2a landed the same evening, build-gated and not run: Bench Tests'
 > stations 11 DISTANCE and 12 AI VISION — see the R2 row under M1 — so the same bench session can
