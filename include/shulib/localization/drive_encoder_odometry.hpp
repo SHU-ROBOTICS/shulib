@@ -22,7 +22,11 @@
 // never the authority), and from construction onward (the seeded pose's heading is
 // informational; the IMU is the authority, so there is no construction→first-update
 // window where they disagree). Δθ for the arc comes from the two IMU samples via
-// Angle::errorTo (shortest signed, wrap-correct).
+// Angle::errorTo (shortest signed, wrap-correct) — which rests on the IMU heading being
+// CONTINUOUS tick to tick while ready (A4 register HA-160: assumed, never measured, and
+// questioned by robot two's 2026-09-25 evidence, where during a hard reverse the
+// reconstructed heading swung up to 37° between 10 ms records — 8 of the last 9 steps at
+// 16.9° or more, alternating in sign).
 //
 // ── The trust gate — carried over, not re-derived ───────────────────────────────────
 // Both halves of PilonsOdometry's gate, with the same two knobs, the same names, the same
@@ -30,9 +34,17 @@
 // not repeated here): |Δθ| above maxTickRotation, or either side's |Δtravel| above
 // maxTickTravel, or a non-finite integration ⇒ lastDeltaImplausible(). An implausible-but-
 // finite tick is REPORTED, NOT WITHHELD; only a non-finite tick FREEZES position (heading
-// still advances). The travel half matters more here than for tracking wheels: a drive
-// port that enumerates late, or whose adapter holds a last-good value and then wakes,
-// produces exactly the one-tick phantom the gate exists to flag.
+// still advances). The travel half matters more here than for tracking wheels: on a side
+// that is ONE motor, a drive port that enumerates late, or whose adapter holds a last-good
+// value and then wakes, produces exactly the one-tick phantom the gate exists to flag. On a
+// side that is a hal::MotorGroup the side reads the members' MEDIAN, so one such member is
+// absorbed and never reaches the gate; a trip there means enough members jumped together to
+// move the median (two of four), and one bad member is the group's coupled-side monitor's
+// to find (MOTOR_GROUP_DISAGREE — velocity-based; whether it sees a member whose velocity
+// is held too is not established). Since DIAG1 the gate also
+// keeps its ACCOUNT of every tick — lastTickAudit(): which checks tripped, Δθ, the two IMU
+// headings and ΔL/ΔR — and the verdict is read from it, so the ODO_STUCK line can name the
+// check and its values (diag/odom_tick_audit.hpp).
 //
 // ── The heading cross-check — NEW, and deliberately an observable, not a fault ──────
 // The encoders imply their own heading change, Δθ_enc = (ΔR − ΔL) / trackWidth. Against
@@ -46,14 +58,15 @@
 // `independentMotionSource`), and a future stuck/slip detector for the chassis will be
 // built on this observable; the composition root says so once at boot.
 //
-// Baselines both sides at construction (the TrackingWheel::reset() precedent,
-// pilons_odometry.hpp:119), so a pre-existing shaft total is not counted as travel on the
+// Baselines both sides at construction (the TrackingWheel::reset() precedent, in
+// PilonsOdometry's constructor), so a pre-existing shaft total is not counted as travel on the
 // first update(). Holds every reference; the IMU and both motors must outlive this object.
 // Owns no loop. PROS-free; host-tested against the A2 plant's ground truth.
 
 #include <cmath>
 
 #include "shulib/core/check.hpp"
+#include "shulib/diag/odom_tick_audit.hpp"
 #include "shulib/hal/drive_geometry.hpp"
 #include "shulib/hal/imu.hpp"
 #include "shulib/hal/motor.hpp"
@@ -163,7 +176,20 @@ public:
         // position only on a non-finite tick.
         const bool finite = std::isfinite(d.dx.value()) && std::isfinite(d.dy.value());
         const bool travelSane = std::abs(dL) <= maxTickTravel_ && std::abs(dR) <= maxTickTravel_;
-        implausible_ = !finite || std::abs(dTheta) > maxTickRotation_ || !travelSane;
+        // The gate's account (DIAG1): its three sub-expressions COPIED as they stand, with the
+        // values they read — and the verdict is then read FROM the account, so the two are the
+        // same bits by construction (`!finite || rotation || !travelSane` is exactly
+        // tripped()). A NaN side reports NONFINITE+TRAVEL: `|NaN| <= max` is false.
+        audit_ = diag::OdomTickAudit{.nonFinite = !finite,
+                                     .rotation = std::abs(dTheta) > maxTickRotation_,
+                                     .travel = !travelSane,
+                                     .dTheta = units::AngleDim{dTheta},
+                                     .headingBefore = units::AngleDim{h0.radians()},
+                                     .headingAfter = units::AngleDim{h1.radians()},
+                                     .travelA = units::Length{dL},
+                                     .travelB = units::Length{dR},
+                                     .labels = diag::OdomTravelLabels::DriveSides};
+        implausible_ = audit_.tripped();
 
         pose_ = finite ? math::Pose2d{pose_.x() + d.dx, pose_.y() + d.dy, h1}
                        : math::Pose2d{pose_.x(), pose_.y(), h1};
@@ -184,6 +210,11 @@ public:
     /// True iff the last update() was untrustworthy (oversized Δθ, oversized side travel,
     /// or a non-finite integration).
     [[nodiscard]] bool lastDeltaImplausible() const noexcept override { return implausible_; }
+
+    /// The gate's account of the last update() (IOdometry contract): which checks tripped,
+    /// Δθ and the two IMU headings, and the LEFT / RIGHT side travel it bounded (labels
+    /// DriveSides). Every tick, not sticky; tripped() == lastDeltaImplausible().
+    [[nodiscard]] diag::OdomTickAudit lastTickAudit() const noexcept override { return audit_; }
 
     /// The heading cross-check of the last tick: encoder-implied Δθ − IMU Δθ (radians,
     /// signed). ≈ 0 under clean rolling; a slipping or stalled side shows as a bias with the
@@ -216,6 +247,7 @@ private:
     double baseRight_ = 0.0;
     SideTravel lastTravel_{};
     double headingDisagreement_ = 0.0;
+    diag::OdomTickAudit audit_{};
     bool implausible_ = false;
 };
 

@@ -48,8 +48,20 @@ whatever it's touching — a runaway powered by its own blindness. shulib runs a
 against exactly this: if the motors are demonstrably spinning but the odometry reports no motion,
 it raises the fault **`ODO_STUCK`** — "the estimate is lying." This is the *one* fault that
 aborts the current motion by default (into a safe stop), precisely because continuing to steer by
-a lying estimate at full power is the worst available option. In simulation, the abort turns a
-42-inch runaway into a 4-inch one.
+a lying estimate at full power is the worst available option. On the host test plant, the abort
+turns a 42-inch runaway into a 4-inch one.
+
+`ODO_STUCK` has a second trigger, and on a robot without tracking wheels it is the *only* one
+(there the odometry *is* the drive encoders, so "the motors spin but the odometry says no motion"
+cannot be checked). Every tick, the odometry judges its own inputs: a heading that changed by
+more than 90° in one tick, a side or pod that moved more than 36 inches in one tick, or a
+reading that came back as not-a-number is **implausible** — no robot moves like that in 10 ms,
+so something between the sensor and the code lied. A finite tick is still counted (a real
+motion must never be thrown away by a guess; a not-a-number one holds position instead), but the
+fault is raised, and its line names which check
+fired and the numbers it saw — `why=ROT dth=1.745rad h0=… h1=…` — so the log can say whether to
+look at the IMU or at one side's wheels ([Chapter 11](11-reading-the-diagnostics.md) reads one
+field by field).
 
 ## Sensors that fail by lying, not by erroring
 

@@ -16,6 +16,51 @@
 
 ## API 2.2
 
+### Changed since 2.2 (2026-09-26) — an `ODO_STUCK` line names the check that fired and its values
+
+> Written when it landed (chunk DIAG1). **No version bump — the decision, under
+> [`version.hpp`](https://github.com/SHU-ROBOTICS/shulib/blob/main/include/shulib/version.hpp)'s
+> policy:** every surface this touches — `localization::IOdometry`,
+> `diag::HealthMonitor::Observations`, the fault line's text — is outside the
+> [Freeze Register](roadmap.md#freeze-register), and the one frozen promise nearby (F6's fault
+> policy: `ODO_STUCK` aborts the active motion by default) is unchanged. The odometry's
+> VERDICT — which ticks are implausible — is bit-identical; only the words on the line grew.
+> **Nothing below has run on a robot.** It exists because robot two raised
+> `implausible odometry tick` twice on 2026-09-25 and the line could not say why — and the next
+> one could end an autonomous.
+
+**CHANGED — what you will see:**
+
+- **The `implausible odometry tick` fault line says which check fired, with the numbers.**
+  `fault=ODO_STUCK n=1 FIRST implausible odometry tick why=ROT dth=1.745rad h0=0.012 h1=1.757
+  L=0.000in R=0.000in` — `why=` is one or more of `NONFINITE`, `ROT` (the heading moved more than
+  π/2 in one tick), `TRAVEL` (a side or pod moved more than 36 in in one tick); `dth`, `h0`, `h1`
+  are the tick's heading change and its start/end IMU headings in radians; `L=`/`R=` are the two
+  drive sides' travel in inches (`fwd=`/`lat=` on a tracking-wheel robot). One line per episode,
+  with the FIRST tick's values. `why=UNREPORTED` means the odometry gave no account; `+STALL`
+  means the stall cross-check rose on the same tick (the stall-only line is unchanged). Read
+  field by field in the guide's
+  [Chapter 11](guide/11-reading-the-diagnostics.md#reading-an-odo_stuck-line).
+- **What you must do:** nothing, unless you parse fault lines — the text after
+  `implausible odometry tick` is new.
+
+**ADDED:**
+
+- **`diag/odom_tick_audit.hpp`** — `diag::OdomTickAudit` (the trust gate's account of one tick:
+  three flags, five values, `tripped()`), `diag::OdomTravelLabels`, `diag::appendOdomTickAudit()`
+  and `diag::kOdomAuditDetailMaxBytes` (140 — what the fault latch's line can carry whole).
+- **`localization::IOdometry::lastTickAudit()`** — a new **pure virtual**. Both of the library's
+  odometries implement it, and their verdict is now read FROM the audit, so the two cannot
+  disagree. **What you must do:** if you wrote your own `IOdometry`, add it — returning
+  `diag::OdomTickAudit{}` compiles and makes your lines read `why=UNREPORTED`; filling it from your
+  own gate makes them say why. This is source-breaking for such a class; it is not a frozen
+  surface, which is why it carries no version bump.
+- **`localization::Localizer::lastOdomTickAudit()`** (forwards it) and
+  **`diag::HealthMonitor::Observations::odomAudit`** (appended LAST, so every designated
+  initializer still compiles; left default, the line reads `why=UNREPORTED`).
+  `motion::tickHealthObservables` fills it, so `drive()`, every motion and the idle tick carry it
+  with no change to your program.
+
 ### Added since 2.2 (2026-09-26) — mechanism buttons in driver control, and mechanisms built from the config
 
 > Written when it landed. **No version bump:** nothing here grows a FROZEN surface — the mechanism

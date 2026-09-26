@@ -348,7 +348,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **Now (2026-09-26): Next: T3 Part 2 (robot two's claws wired into "shulib Teleop"), then G1
 > Part 2c (`main.cpp` as a dispatcher), then COMP (the competition program)** — the team lead's
 > order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in parallel and merge one at a
-> time. The brake-mode fix has landed (host- and build-gated, not run on a robot): a Brake or Hold
+> time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust gate now names the check
+> that fired and its values, so the next one on the robot can be explained. The brake-mode fix has landed (host- and build-gated, not run on a robot): a Brake or Hold
 > the library commands now reaches the V5 motor through PROS's `brake()`, and "shulib Teleop" still
 > COASTS when the sticks are released (his ruling). T3 Part 1 has landed the same way: the library
 > can bind the claw pivots on ports 6 and 7 (R1/R2, L1/L2, holding on release) and the pneumatic

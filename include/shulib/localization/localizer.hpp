@@ -3,7 +3,7 @@
 // Localizer — the fused field-frame estimate (master plan §5/§6/§8; WS5). It is a thin, deterministic
 // orchestrator over three already-tested pieces: an IOdometry (PilonsOdometry over tracking
 // wheels, or DriveEncoderOdometry over the drive motors — high-rate prediction; the seam
-// landed at R3b Part 2 and this class depends on nothing past its four members), the IMU
+// landed at R3b Part 2 and this class depends on nothing past its five members), the IMU
 // (heading authority), and a list of correctors (absolute fixes) behind an IFusionPolicy. It owns
 // the four jobs the pieces below cannot, in a fixed five-step update():
 //   1. dt — source it from the injected IClock and turn the per-tick position change into a Twist2d.
@@ -455,6 +455,13 @@ public:
     /// only EXPOSES the flag; the Localizer still never raises faults (D3 at A3).
     [[nodiscard]] bool lastOdomDeltaImplausible() const noexcept {
         return odom_.lastDeltaImplausible();
+    }
+    /// Forwarding accessor for IOdometry::lastTickAudit() — added at DIAG1 (additive), beside
+    /// the flag above: the trust gate's account of the last tick (which check, which values),
+    /// which motion::tickHealthObservables hands HealthMonitor so the ODO_STUCK line can say
+    /// why. Exposes only, like the flag; the Localizer still never raises.
+    [[nodiscard]] diag::OdomTickAudit lastOdomTickAudit() const noexcept {
+        return odom_.lastTickAudit();
     }
 
     /// The learned heading bias, in radians: how far the published heading sits from the raw IMU

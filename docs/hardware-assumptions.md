@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 154 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 155 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -68,7 +68,10 @@
 > reasoned** — about the brain's 3-wire ports that the pneumatic claw depends on — **and the
 > merge added ONE — HA-147, invented:** the controller belief the claw's toggle rests on (B2's
 > review). HA-148 to HA-152 were reserved for T3 and are UNUSED: the numbers are not reissued, so
-> the register has 154 entries up to HA-159. The
+> the register has 154 entries up to HA-159 (155 with DIAG1's HA-160, below). **DIAG1 added ONE on 2026-09-26 — HA-160** — that the V5 IMU's heading is continuous tick to
+> tick while ready, an assumption the library always made and never wrote down, now QUESTIONED by
+> the 2026-09-25 robot evidence — and AMENDED HA-123: extended to drive-encoder sides, and its
+> blast radius corrected (a spurious trip ends the active motion). The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -222,7 +225,7 @@
 | HA-120 | ADI addressing: 1–8 ≡ 'a'–'h' ≡ 'A'–'H'; expander via {smart, adi} pairs; whether OUR robot has an expander is UNKNOWN | reasoned | R3 |
 | HA-121 | ADI `DigitalIn::get_value()` is a level (PROS_ERR on refusal); `get_new_press()` CONSUMES the press | reasoned | R3 |
 | HA-122 | SD: `usd_is_installed()` returns 1/0; fopen NEEDS the /usd/ prefix (list_files FORBIDS it); fflush is the strongest persist | **partial** 2026-08-18: beliefs (1) and (2) CONFIRMED on hardware — `usd_is_installed()` returned 1 with a card and 0 without, and `fopen("/usd/probe.txt","wb")` succeeded WITH the prefix; a 17-byte fwrite + `fflush`==0 landed. Belief (3)'s DURABILITY half (yank the card after a flush, count what survived) NOT tested, so this stays open | R3 |
-| HA-123 | A per-tick tracking-wheel travel above 36 in is corruption, not motion | **invented** | R3 |
+| HA-123 | A per-tick travel above 36 in — from one tracking pod, or one DRIVE SIDE of a drive-encoder odometry — is corruption, not motion | **invented** — **AMENDED** 2026-09-26 (DIAG1): extended to drive-encoder sides (the bound has applied to them since 2026-09-14; this entry had not said so); blast radius corrected — a spurious trip ENDS the active motion | R3 |
 | HA-124 | Robot two's drive wheels are 2.75 in in diameter | **reported** (team lead, 2026-09-14; "standard wheels") — not yet rulered on this robot | R3b/R3d |
 | HA-125 | Robot two's track width (contact line to contact line) | **UNSET** — no value exists in the tree; the library program refuses to boot until a tape measurement is typed in | R3b/R3d |
 | HA-126 | Robot two's motor→wheel external ratio | **UNSET** — "600 rpm" was reported, which is a cartridge, not a tooth count; the library program refuses until direct drive or the counts are stated | R3b/R3d |
@@ -254,6 +257,7 @@
 | HA-157 | While the brain is DISABLED (between autonomous and driver control, on a field or competition-switch disable) a 3-wire digital output KEEPS the level the program last commanded, and still has it after the re-enable; and a level the program commands WHILE disabled (a Robot built in `initialize()` on a field, or a program started from the controller's menu, HA-128) reaches the valve — at once, or at the latest at the enable | **UNKNOWN** — nothing vendored says; the pneumatic claw's driver-control toggle commands NOTHING on a disable and relies on the first half; the claw's start level on a field relies on the second | Station J (robot two's claw) |
 | HA-158 | Nothing the program can read sees a pneumatic solenoid on a brain 3-wire port: the registry is indexed by SMART port, and a valve on A..H is a passive load — a connected line and an empty one are indistinguishable | reasoned (vendored registry + ADI shape) — the on-robot provider refuses a 3-wire line only for being outside 1..8 | Station J (robot two's claw) |
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
+| HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 
 ---
 
@@ -1895,10 +1899,13 @@ the suite (the models take the measured values by config — zero code motion). 
 settleable before hardware, and none block any host chunk.
 
 
-- [ ] **HA-123 — a single tracking-wheel travel delta above 36 in in one tick is corruption,
-  not motion.**
+- [ ] **HA-123 — a single tracking-pod or drive-side travel delta above 36 in in one tick is
+  corruption, not motion.**
   *Claim:* `PilonsOdometry` treats |Δtravel| > `maxTickTravel` (default 36 in) from either pod
-  in one `update()` as implausible. The number is a SANITY bound, not a measurement: it is
+  in one `update()` as implausible, and `DriveEncoderOdometry` applies the same bound, with the
+  same default, to each DRIVE SIDE's travel (since R3b Part 2, 2026-09-14 — its config field
+  carried this entry's label from the start, but the entry itself spoke only of tracking wheels
+  until DIAG1 extended it, 2026-09-26). The number is a SANITY bound, not a measurement: it is
   chosen to be unreachable by a real drivetrain at any plausible loop rate, so it can only
   catch corruption that is orders of magnitude out.
   *Source:* introduced at DEFECTS1 (item N1) — a tracking pod that is dead or not yet
@@ -1906,19 +1913,67 @@ settleable before hardware, and none block any host chunk.
   pod finally answers, differences its TRUE cumulative position against that 0. Measured at
   **28.4 in** of phantom translation for a pod waking at 1000°, and unbounded in general.
   Before this, `PilonsOdometry` gated |Δθ| and never |Δtravel|, so the jump passed in silence.
-  *Confidence:* **invented.** Nobody has measured a real loop rate under load, and this class
-  holds no clock, so the bound is **dt-BLIND** — the same 36 in is 300 ft/s on a 10 ms tick and
+  The drive-encoder side has the same failure shape where a side is ONE motor: a drive port
+  that enumerates late, or whose adapter holds a last-good value and then wakes
+  (`localization/drive_encoder_odometry.hpp`). Where a side is a motor GROUP (robot two: four
+  motors a side) the odometry reads the members' MEDIAN, so one such member is absorbed and the
+  bound never sees it — a drive-side trip there means enough members jumped together to move
+  the median (two of four). The group-level detector for one bad member is the coupled-side
+  monitor (`MOTOR_GROUP_DISAGREE`), which samples member velocity; whether it catches a member
+  whose velocity is held too is not established.
+  *Confidence:* **invented.** Nobody has measured a real loop rate under load, and neither class
+  holds a clock, so the bound is **dt-BLIND** — the same 36 in is 300 ft/s on a 10 ms tick and
   15 ft/s on a 200 ms one. That is why it is generous rather than tight, and why the gate
   REPORTS rather than withholds: a dt-blind bound that could stop odometry accumulating on a
   slow loop would be a worse failure than the jump it prevents.
   *Settle (R3/R4):* measure the real control-loop period under load, then re-express this as a
   velocity bound (`maxTickTravel = vMax × dt`) using the same clock the loop reads. R4 owns the
-  loop-rate measurement; until then this stays a magnitude check.
+  loop-rate measurement; until then this stays a magnitude check. Since DIAG1 a trip names
+  itself on the fault line — `implausible odometry tick why=TRAVEL … L=… R=…` (`fwd=`/`lat=` for
+  pods) — so any trip seen on a robot says which side or pod, and by how much.
   *Blast radius if wrong (too tight):* legitimate fast motion on a slow loop is flagged
-  implausible, which HealthMonitor turns into a spurious fault — noisy, not dangerous, because
-  the delta is still integrated. **If too loose:** a smaller phantom jump stays invisible, which
-  is the pre-DEFECTS1 behaviour. **Contained:** one config field, one comparison, and the pose
-  is unaffected either way.
+  implausible, which HealthMonitor turns into `ODO_STUCK` — and `ODO_STUCK` is the motion
+  scheduler's DEFAULT ABORT fault, so a spurious trip **ENDS the active motion** (an autonomous
+  stops where it is). **Corrected 2026-09-26 (DIAG1):** this entry said "noisy, not dangerous,
+  because the delta is still integrated". The integration half is true; the "not dangerous"
+  half was not, and was never true while `ODO_STUCK` aborted by default. **If too loose:** a
+  smaller phantom jump stays invisible, which is the pre-DEFECTS1 behaviour. **Contained:** one
+  config field and one comparison per odometry; the POSE is unaffected either way (the delta is
+  integrated), the active MOTION is not.
+- [ ] **HA-160 — the V5 IMU's heading is continuous tick to tick while it reports ready.**
+  *Claim:* while `isReady()` is true, two heading reads taken one control tick (~10 ms) apart
+  differ by no more than the robot actually turned in between — a few degrees at most, never
+  tens. The library has always rested on this without saying so: heading is IMU-OWNED (the
+  pose's heading is set equal to the reading every tick), and each tick's Δθ — the arc
+  `arcStep` integrates along, and the drive-encoder heading cross-check — is the difference of
+  two consecutive reads.
+  *Source:* implicit since M2; registered by DIAG1 (2026-09-26). Consumed by
+  `localization/drive_encoder_odometry.hpp` and `localization/pilons_odometry.hpp`. Policed only
+  coarsely: the odometry trust gate trips at |Δθ| > π/2 per tick (`maxTickRotation`), and during
+  a SCHEDULED motion the scheduler's pose-delta guard raises `IMPLAUSIBLE` above its yaw-rate
+  envelope (that guard does not run under driver control) — so under driver control a swing
+  smaller than 90° in one tick passes in silence.
+  *Confidence:* **invented, and QUESTIONED by the 2026-09-25 robot evidence** (robot two, the
+  library's graph under open-loop driver control). In one start, during ~0.35 s of reversing at
+  up to ~34 in/s, the heading RECONSTRUCTED from the logged commands swung by up to 37° between two
+  consecutive 10 ms records — of the last nine such steps, eight were 16.9° or more, alternating
+  in sign, and one was 1.4° — and 37° in 10 ms would be a robot spinning at ~3700°/s; an
+  `implausible odometry tick` fault fired on the first tick the command returned to zero. That
+  is an INFERENCE, not a reading: the log of that day carried no heading field, so the heading
+  was recovered from the field-frame command (assuming the tank's body command had no lateral
+  part), and the fault line then named no check. The cause is UNKNOWN — an IMU data glitch, a
+  mounting or vibration effect under a hard reverse, or something between the sensor and the
+  read are all open.
+  *Settle (R3/R4):* record the raw IMU heading every tick (not reconstructed) through hard
+  reverses and stops, wheels up and on the floor; any consecutive-read step larger than the
+  robot can turn in 10 ms falsifies the claim. Since DIAG1 a step over 90° also names itself on
+  the fault line (`why=ROT dth=… h0=… h1=…`).
+  *Blast radius if wrong:* the pose's heading jumps with the reading, and every tick's arc is
+  integrated along the wrong average heading, so position is corrupted too; a step over 90°
+  trips `ODO_STUCK`, which ENDS the active motion under the default fault policy (HA-123's
+  corrected blast radius). **Contained:** detection only — the trust gate, the pose-delta guard
+  and now the fault line's values. Nothing filters the IMU heading, deliberately: a filter would
+  lag every real turn to hide a fault whose cause is not yet known.
 - [ ] **HA-20 — IMU per-boot rate bias is ≤ 1°/min (typical 0.1–0.5°/min).**
   *Claim:* a calibrated V5 IMU's per-boot yaw-rate bias magnitude does not exceed 1°/min.
   *Source:* `include/shulib/sim/hostile/imu_hostility.hpp:71` (`rateBiasMax`); consumed by the
@@ -2042,7 +2097,8 @@ settleable before hardware, and none block any host chunk.
   sustained, keeping per-tick Δθ ≪ 1 rad — the premise behind arcStep's wrap-horizon
   precondition and the pilons trust-gate calibration.
   *Source:* `include/shulib/localization/arc_step.hpp:49–56` (precondition);
-  `include/shulib/localization/pilons_odometry.hpp:29–34` (gate note);
+  `include/shulib/localization/pilons_odometry.hpp:33–39` (gate note; re-pointed at DIAG1, whose
+  header lines moved it);
   `composed.hpp` `JitterScheduleConfig.nominal{0.01}`.
   *Confidence:* reasoned — 10 ms is the standard PROS task cadence and the M2 stack is small;
   unmeasured under our full eventual load (E4 EKF + sinks + vision).
@@ -2138,7 +2194,8 @@ settleable before hardware, and none block any host chunk.
 
 - [ ] **HA-42 — the brain cuts motor power at ≈ 10.5 V and recovers at ≈ 10.8 V.**
   *Source:* `power_hostility.hpp:73` (`cutoffVolts`) **and**
-  `include/shulib/diag/health_monitor.hpp:66–69` (`brownoutVolts`/`brownoutRecoverVolts`) — two
+  `include/shulib/diag/health_monitor.hpp:96–99` (`brownoutVolts`/`brownoutRecoverVolts`; line numbers
+  re-pointed 2026-09-26 at DIAG1, whose header note moved them — they already read 66–69 against 71–74) — two
   deliberately-aligned copies; they must move together when measured.
   *Confidence:* **invented** (community-folklore threshold; the hysteresis width is pure guess).
   *Settle (R3/R4):* bench brownout (HA-19's session): note the actual cutoff and recovery
@@ -2157,7 +2214,8 @@ settleable before hardware, and none block any host chunk.
 - [ ] **HA-44 — V5 thermal throttling steps at 55/60/65 °C to 50/25/12.5% — and the onset on
   OUR motors is at the documented values.**
   *Source:* `power_hostility.hpp:77` (`throttleTempC`), model steps in the same header;
-  `health_monitor.hpp:70–71` (`maxMotorTempC = 55` — deliberately equal to the first step).
+  `health_monitor.hpp:101` (`maxMotorTempC = 55` — deliberately equal to the first step; re-pointed
+  at DIAG1 from a stale `:70–71`).
   *Confidence:* **mixed** — the step *shape* is measured elsewhere (VEX-documented current
   limiting); the onset temperatures on our units are unmeasured (invented until R4).
   *Settle (R4):* drive to droop; correlate `temperature()` with observed speed steps.

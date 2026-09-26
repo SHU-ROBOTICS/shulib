@@ -22,8 +22,14 @@
 //    decision #3), and from construction onward (the seeded pose's heading is informational; the
 //    IMU is the authority, so there is no construction→first-update window where they disagree).
 //    Δθ for the arc comes from the two IMU samples via Angle::errorTo (shortest signed, wrap-correct).
+//    That rests on the IMU heading being CONTINUOUS tick to tick while ready (A4 register HA-160 —
+//    assumed, never measured, and questioned by robot two's 2026-09-25 evidence).
 //
-// TRUST GATE. `lastDeltaImplausible()` is true when a tick is NOT trustworthy, for either reason:
+// TRUST GATE. `lastDeltaImplausible()` is true when a tick is NOT trustworthy, for any of three
+// reasons (the third, the travel half, arrived at DEFECTS1 — see maxTickTravel; this block
+// listed two until DIAG1), and `lastTickAudit()` says WHICH, with the values (DIAG1 — the
+// verdict is read from the audit, so the two cannot disagree; diag/odom_tick_audit.hpp):
+//   * either pod's |Δtravel| > maxTickTravel — the RAW wheel delta, before offset correction.
 //   * |Δθ| > maxTickRotation — a heading change too large for one tick. NOTE this is a magnitude
 //     threshold on the ALREADY-WRAPPED Δθ; it catches an aliased/stalled sample only when the
 //     wrapped magnitude lands in (maxTickRotation, π]. A real rotation > π that aliases to a SMALL
@@ -39,6 +45,7 @@
 #include <cmath>
 
 #include "shulib/core/check.hpp"
+#include "shulib/diag/odom_tick_audit.hpp"
 #include "shulib/hal/imu.hpp"
 #include "shulib/localization/arc_step.hpp"
 #include "shulib/localization/odometry.hpp"
@@ -95,7 +102,8 @@ struct PilonsOdometryConfig {
 /// wheels; the IMU and the wheels' rotation sensors must outlive this object.
 /// Owns no loop: the caller calls update() at its own cadence. Implements the IOdometry
 /// seam (R3b Part 2) with no behavioural change — the four members were already exactly
-/// what the Localizer used; DriveEncoderOdometry is the seam's other implementation.
+/// what the Localizer used; DriveEncoderOdometry is the seam's other implementation. The
+/// fifth, lastTickAudit(), came at DIAG1: the gate's account, from which the verdict is read.
 class PilonsOdometry final : public IOdometry {
 public:
     /// `forward` must be a TrackingWheel::forward(), `lateral` a TrackingWheel::lateral() — the
@@ -147,7 +155,20 @@ public:
         // are what is bounded, before arcStep spreads the error across x and y.
         const bool travelSane =
             std::abs(fwdDelta) <= maxTickTravel_ && std::abs(latDelta) <= maxTickTravel_;
-        implausible_ = !finite || std::abs(dTheta) > maxTickRotation_ || !travelSane;
+        // The gate's account (DIAG1): the three sub-expressions COPIED as they stand, the
+        // verdict read FROM them (same bits by construction). The forward value is the RAW
+        // fwdDelta — what the gate bounds — never centerFwd: a pod reading 40 in that the
+        // offset correction pulls back under 36 was still flagged, and the line must show why.
+        audit_ = diag::OdomTickAudit{.nonFinite = !finite,
+                                     .rotation = std::abs(dTheta) > maxTickRotation_,
+                                     .travel = !travelSane,
+                                     .dTheta = units::AngleDim{dTheta},
+                                     .headingBefore = units::AngleDim{h0.radians()},
+                                     .headingAfter = units::AngleDim{h1.radians()},
+                                     .travelA = units::Length{fwdDelta},
+                                     .travelB = units::Length{latDelta},
+                                     .labels = diag::OdomTravelLabels::TrackingWheels};
+        implausible_ = audit_.tripped();
 
         // Heading is IMU-owned and always advances. Position only accumulates a FINITE delta, so a
         // non-finite tick freezes position at its last good value instead of poisoning the pose.
@@ -182,8 +203,14 @@ public:
         prevHeading_ = imu_.heading();
     }
 
-    /// True iff the last update() was untrustworthy (oversized Δθ OR non-finite integration).
+    /// True iff the last update() was untrustworthy: an oversized Δθ, an oversized pod travel
+    /// (either wheel), or a non-finite integration — the three halves of the header's gate.
     [[nodiscard]] bool lastDeltaImplausible() const noexcept override { return implausible_; }
+
+    /// The gate's account of the last update() (IOdometry contract): which checks tripped,
+    /// Δθ and the two IMU headings, and the forward pod's RAW travel and the lateral pod's
+    /// (labels TrackingWheels). Every tick, not sticky; tripped() == lastDeltaImplausible().
+    [[nodiscard]] diag::OdomTickAudit lastTickAudit() const noexcept override { return audit_; }
 
 private:
     hal::IImu& imu_;
@@ -193,6 +220,7 @@ private:
     math::Angle prevHeading_;
     double maxTickRotation_;
     double maxTickTravel_;
+    diag::OdomTickAudit audit_{};
     bool implausible_ = false;
 };
 

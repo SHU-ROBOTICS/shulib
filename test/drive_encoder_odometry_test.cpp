@@ -125,8 +125,12 @@ public:
     [[nodiscard]] Pose2d pose() const noexcept override { return pose_; }
     void setPose(const Pose2d& p) override { pose_ = p; }
     [[nodiscard]] bool lastDeltaImplausible() const noexcept override { return implausible; }
+    [[nodiscard]] shulib::diag::OdomTickAudit lastTickAudit() const noexcept override {
+        return audit;
+    }
     int updates = 0;
     bool implausible = false;
+    shulib::diag::OdomTickAudit audit{};  // scripted independently of `implausible` on purpose
 
 private:
     Pose2d pose_{};

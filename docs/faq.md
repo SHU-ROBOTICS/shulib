@@ -23,7 +23,16 @@ infinity). The `hal/pros` adapters screen every read **before** any conversion:
   zero: a zeroed encoder reads as "the robot stopped", which is exactly the lie that makes a
   dead-encoder runaway invisible — a *frozen* value is what the health layer's
   wheels-spin-but-no-motion cross-check is designed to catch, raising `ODO_STUCK` and (by
-  default) aborting the active motion into a safe brake.
+  default) aborting the active motion into a safe brake. *(On a robot whose odometry IS the
+  drive encoders that cross-check cannot run — register entry HA-131. What is left is the
+  odometry's own per-tick trust gate, and it sees only the value the odometry reads. On a side
+  driven by ONE motor, a port that holds and then wakes more than 36 in on trips it, and the
+  `ODO_STUCK` line names the side and the jump, `why=TRAVEL … L=… R=…`; a smaller jump passes
+  unflagged. On a side driven by a motor GROUP the odometry reads the members' MEDIAN, so one
+  held member is absorbed and the gate never sees it: a `TRAVEL` there means enough of that
+  side's members jumped together to move the median (on a four-motor side, two of them). The
+  group-level check is `MOTOR_GROUP_DISAGREE`, which compares each member's velocity with its
+  mates'; whether it catches a member whose velocity is held as well is not established.)*
 - **The conversions themselves throw on a sentinel** — a fail-loud backstop, not the normal
   path; the adapters exist to make it unreachable (register entry HA-08).
 

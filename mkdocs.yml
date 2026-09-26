@@ -213,6 +213,7 @@ nav:
           - Line format: api/line_format.md
           - Loop monitor: api/loop_monitor.md
           - Motion result: api/motion_result.md
+          - Odom tick audit: api/odom_tick_audit.md
           - Plausibility guard: api/plausibility_guard.md
           - Rate limit sink: api/rate_limit_sink.md
           - Run summary: api/run_summary.md

@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,669 of them across 149 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 2,691 of them across 150 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -122,6 +122,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Line format](line_format.md) | [`diag/line_format.hpp`](../../include/shulib/diag/line_format.hpp) | line_format — the ONE set of §18.3 text-formatting primitives. |
 | [Loop monitor](loop_monitor.md) | [`diag/loop_monitor.hpp`](../../include/shulib/diag/loop_monitor.hpp) | LoopMonitor — loop-overrun / tick-timing detection. |
 | [Motion result](motion_result.md) | [`diag/motion_result.hpp`](../../include/shulib/diag/motion_result.hpp) | MotionResult — the per-motion result line, as data + one formatter. |
+| [Odom tick audit](odom_tick_audit.md) | [`diag/odom_tick_audit.hpp`](../../include/shulib/diag/odom_tick_audit.hpp) | OdomTickAudit — the odometry trust gate's account of ONE tick: which of its checks tripped and the values it tripped on. |
 | [Plausibility guard](plausibility_guard.md) | [`diag/plausibility_guard.hpp`](../../include/shulib/diag/plausibility_guard.hpp) | Physical-plausibility invariants (diagnostics-plan D-5; WS13, chunk C5) — FiniteGuard's log-and-recover posture, extended beyond finiteness. |
 | [Rate limit sink](rate_limit_sink.md) | [`diag/rate_limit_sink.hpp`](../../include/shulib/diag/rate_limit_sink.hpp) | RateLimitedSink — per-channel rate limiting with COUNTED, REPORTED drops. |
 | [Run summary](run_summary.md) | [`diag/run_summary.hpp`](../../include/shulib/diag/run_summary.hpp) | RunSummary — the end-of-run one-screen summary, as DATA. |
@@ -276,7 +277,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,669 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 2,691 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

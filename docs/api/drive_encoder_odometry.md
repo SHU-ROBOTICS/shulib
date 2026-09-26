@@ -8,7 +8,7 @@
 
 DriveEncoderOdometry — dead reckoning from the DRIVE motors' own encoders and the IMU, for a tank drive with no tracking wheels.
 
-This header declares **3** types (14 members).
+This header declares **3** types (15 members).
 
 Extracted from [`include/shulib/localization/drive_encoder_odometry.hpp`](../../include/shulib/localization/drive_encoder_odometry.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -26,6 +26,7 @@ Extracted from [`include/shulib/localization/drive_encoder_odometry.hpp`](../../
   - [`pose`](#driveencoderodometry-pose)
   - [`setPose`](#driveencoderodometry-setpose)
   - [`lastDeltaImplausible`](#driveencoderodometry-lastdeltaimplausible)
+  - [`lastTickAudit`](#driveencoderodometry-lasttickaudit)
   - [`lastHeadingDisagreement`](#driveencoderodometry-lastheadingdisagreement)
   - [`lastSideTravel`](#driveencoderodometry-lastsidetravel)
   - [`leftInchesPerRadian`](#driveencoderodometry-leftinchesperradian)
@@ -42,7 +43,7 @@ struct DriveEncoderOdometryConfig
 
 The trust gate's two knobs — the SAME two as PilonsOdometryConfig, same names, same defaults, same reasoning (cited, not restated: read that struct's field comments).
 
-*struct, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:70`](../../include/shulib/localization/drive_encoder_odometry.hpp#L70).*
+*struct, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:83`](../../include/shulib/localization/drive_encoder_odometry.hpp#L83).*
 
 <a id="driveencoderodometryconfig-maxtickrotation"></a>
 
@@ -54,7 +55,7 @@ units::AngleDim maxTickRotation{0.5 * math::Angle::kPi}
 
 |Δθ| (radians) above which a tick's heading change is implausible. Default π/2 — PilonsOdometryConfig::maxTickRotation, verbatim.
 
-*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:73`](../../include/shulib/localization/drive_encoder_odometry.hpp#L73).*
+*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:86`](../../include/shulib/localization/drive_encoder_odometry.hpp#L86).*
 
 <a id="driveencoderodometryconfig-maxticktravel"></a>
 
@@ -66,7 +67,7 @@ units::Length maxTickTravel{36.0}
 
 Largest believable |Δtravel| of ONE side in one tick (inches) before the delta is implausible. Default 36 in — PilonsOdometryConfig::maxTickTravel, verbatim, incl. its dt-blindness caveat. PROVISIONAL (A4: HA-123).
 
-*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:77`](../../include/shulib/localization/drive_encoder_odometry.hpp#L77).*
+*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:90`](../../include/shulib/localization/drive_encoder_odometry.hpp#L90).*
 
 <a id="struct-sidetravel"></a>
 
@@ -78,7 +79,7 @@ struct SideTravel
 
 The two sides' travel over the last tick (inches), for the panel and the stall-check agreement test.
 
-*struct, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:82`](../../include/shulib/localization/drive_encoder_odometry.hpp#L82).*
+*struct, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:95`](../../include/shulib/localization/drive_encoder_odometry.hpp#L95).*
 
 <a id="sidetravel-left"></a>
 
@@ -90,7 +91,7 @@ units::Length left{}
 
 left side's wheel travel this tick (+ = forward)
 
-*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:83`](../../include/shulib/localization/drive_encoder_odometry.hpp#L83).*
+*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:96`](../../include/shulib/localization/drive_encoder_odometry.hpp#L96).*
 
 <a id="sidetravel-right"></a>
 
@@ -102,7 +103,7 @@ units::Length right{}
 
 right side's wheel travel this tick (+ = forward)
 
-*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:84`](../../include/shulib/localization/drive_encoder_odometry.hpp#L84).*
+*field, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:97`](../../include/shulib/localization/drive_encoder_odometry.hpp#L97).*
 
 <a id="class-driveencoderodometry"></a>
 
@@ -114,7 +115,7 @@ class DriveEncoderOdometry final : public IOdometry
 
 Dead reckoning for a tank drive without tracking wheels: each side's drive-motor encoder delta (radians × that side's hal::DriveGeometry) gives the side's travel; the centre moves forward by their mean and sideways by exactly zero (tank.hpp's written decision); the IMU owns heading; the same arcStep and the same trust gate as PilonsOdometry. Exposes the encoder-vs-IMU heading cross-check as an observable — never a fault. Holds the IMU and both motors by reference; owns no loop.
 
-*class, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:93`](../../include/shulib/localization/drive_encoder_odometry.hpp#L93).*
+*class, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:106`](../../include/shulib/localization/drive_encoder_odometry.hpp#L106).*
 
 <a id="driveencoderodometry-driveencoderodometry"></a>
 
@@ -126,7 +127,7 @@ DriveEncoderOdometry(hal::IImu& imu, hal::IMotor& left, hal::IMotor& right, hal:
 
 `left` / `right`: the side's IMotor (a hal::MotorGroup on a real robot) in the kinematics' wheel order; `leftGeometry` / `rightGeometry`: each side's geometry — one object per side, the SAME objects the stall check is configured with; `trackWidth`: contact line to contact line, > 0 (TankKinematics's own value); `initial` seeds the position (heading informational — IMU-owned from the first reading).
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:100`](../../include/shulib/localization/drive_encoder_odometry.hpp#L100).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:113`](../../include/shulib/localization/drive_encoder_odometry.hpp#L113).*
 
 <a id="driveencoderodometry-update"></a>
 
@@ -138,7 +139,7 @@ void update() override
 
 One integration tick: read the IMU and both sides, convert, arcStep, accumulate, evaluate the trust gate and the heading cross-check.
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:133`](../../include/shulib/localization/drive_encoder_odometry.hpp#L133).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:146`](../../include/shulib/localization/drive_encoder_odometry.hpp#L146).*
 
 <a id="driveencoderodometry-pose"></a>
 
@@ -150,7 +151,7 @@ One integration tick: read the IMU and both sides, convert, arcStep, accumulate,
 
 The accumulated field-frame estimate (heading the IMU's). A pure read.
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:174`](../../include/shulib/localization/drive_encoder_odometry.hpp#L174).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:200`](../../include/shulib/localization/drive_encoder_odometry.hpp#L200).*
 
 <a id="driveencoderodometry-setpose"></a>
 
@@ -162,7 +163,7 @@ void setPose(const math::Pose2d& p) override
 
 Teleport the POSITION (x, y); heading stays IMU-owned. Re-baselines the heading reference so the teleport injects no phantom rotation; the encoder baselines are left intact (a teleport doesn't change what the wheels have rolled).
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:179`](../../include/shulib/localization/drive_encoder_odometry.hpp#L179).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:205`](../../include/shulib/localization/drive_encoder_odometry.hpp#L205).*
 
 <a id="driveencoderodometry-lastdeltaimplausible"></a>
 
@@ -174,7 +175,19 @@ Teleport the POSITION (x, y); heading stays IMU-owned. Re-baselines the heading 
 
 True iff the last update() was untrustworthy (oversized Δθ, oversized side travel, or a non-finite integration).
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:186`](../../include/shulib/localization/drive_encoder_odometry.hpp#L186).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:212`](../../include/shulib/localization/drive_encoder_odometry.hpp#L212).*
+
+<a id="driveencoderodometry-lasttickaudit"></a>
+
+### `DriveEncoderOdometry::lastTickAudit`
+
+```cpp
+[[nodiscard]] diag::OdomTickAudit lastTickAudit() const noexcept override
+```
+
+The gate's account of the last update() (IOdometry contract): which checks tripped, Δθ and the two IMU headings, and the LEFT / RIGHT side travel it bounded (labels DriveSides). Every tick, not sticky; tripped() == lastDeltaImplausible().
+
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:217`](../../include/shulib/localization/drive_encoder_odometry.hpp#L217).*
 
 <a id="driveencoderodometry-lastheadingdisagreement"></a>
 
@@ -186,7 +199,7 @@ True iff the last update() was untrustworthy (oversized Δθ, oversized side tra
 
 The heading cross-check of the last tick: encoder-implied Δθ − IMU Δθ (radians, signed). ≈ 0 under clean rolling; a slipping or stalled side shows as a bias with the sign of the side that under-travelled the IMU's turn. An observable, not a fault.
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:191`](../../include/shulib/localization/drive_encoder_odometry.hpp#L191).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:222`](../../include/shulib/localization/drive_encoder_odometry.hpp#L222).*
 
 <a id="driveencoderodometry-lastsidetravel"></a>
 
@@ -198,7 +211,7 @@ The heading cross-check of the last tick: encoder-implied Δθ − IMU Δθ (rad
 
 Each side's wheel travel over the last tick (inches) — the panel's two numbers and the value the stall check must agree with for the same encoder delta.
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:195`](../../include/shulib/localization/drive_encoder_odometry.hpp#L195).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:226`](../../include/shulib/localization/drive_encoder_odometry.hpp#L226).*
 
 <a id="driveencoderodometry-leftinchesperradian"></a>
 
@@ -210,7 +223,7 @@ Each side's wheel travel over the last tick (inches) — the panel's two numbers
 
 Inches per radian in use for the left / right side (the geometry, resolved).
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:198`](../../include/shulib/localization/drive_encoder_odometry.hpp#L198).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:229`](../../include/shulib/localization/drive_encoder_odometry.hpp#L229).*
 
 <a id="driveencoderodometry-rightinchesperradian"></a>
 
@@ -222,7 +235,7 @@ Inches per radian in use for the left / right side (the geometry, resolved).
 
 Inches per radian in use for the right side.
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:200`](../../include/shulib/localization/drive_encoder_odometry.hpp#L200).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:231`](../../include/shulib/localization/drive_encoder_odometry.hpp#L231).*
 
 <a id="driveencoderodometry-trackwidth"></a>
 
@@ -234,14 +247,14 @@ Inches per radian in use for the right side.
 
 The track width in use (inches).
 
-*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:202`](../../include/shulib/localization/drive_encoder_odometry.hpp#L202).*
+*function, declared at [`include/shulib/localization/drive_encoder_odometry.hpp:233`](../../include/shulib/localization/drive_encoder_odometry.hpp#L233).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 51 lines, click to expand</summary>
+<summary>The header’s own reasoning — 63 lines, click to expand</summary>
 
 ```text
 
@@ -267,7 +280,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  never the authority), and from construction onward (the seeded pose's heading is
  informational; the IMU is the authority, so there is no construction→first-update
  window where they disagree). Δθ for the arc comes from the two IMU samples via
- Angle::errorTo (shortest signed, wrap-correct).
+ Angle::errorTo (shortest signed, wrap-correct) — which rests on the IMU heading being
+ CONTINUOUS tick to tick while ready (A4 register HA-160: assumed, never measured, and
+ questioned by robot two's 2026-09-25 evidence, where during a hard reverse the
+ reconstructed heading swung up to 37° between 10 ms records — 8 of the last 9 steps at
+ 16.9° or more, alternating in sign).
 
  ── The trust gate — carried over, not re-derived ───────────────────────────────────
  Both halves of PilonsOdometry's gate, with the same two knobs, the same names, the same
@@ -275,9 +292,17 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  not repeated here): |Δθ| above maxTickRotation, or either side's |Δtravel| above
  maxTickTravel, or a non-finite integration ⇒ lastDeltaImplausible(). An implausible-but-
  finite tick is REPORTED, NOT WITHHELD; only a non-finite tick FREEZES position (heading
- still advances). The travel half matters more here than for tracking wheels: a drive
- port that enumerates late, or whose adapter holds a last-good value and then wakes,
- produces exactly the one-tick phantom the gate exists to flag.
+ still advances). The travel half matters more here than for tracking wheels: on a side
+ that is ONE motor, a drive port that enumerates late, or whose adapter holds a last-good
+ value and then wakes, produces exactly the one-tick phantom the gate exists to flag. On a
+ side that is a hal::MotorGroup the side reads the members' MEDIAN, so one such member is
+ absorbed and never reaches the gate; a trip there means enough members jumped together to
+ move the median (two of four), and one bad member is the group's coupled-side monitor's
+ to find (MOTOR_GROUP_DISAGREE — velocity-based; whether it sees a member whose velocity
+ is held too is not established). Since DIAG1 the gate also
+ keeps its ACCOUNT of every tick — lastTickAudit(): which checks tripped, Δθ, the two IMU
+ headings and ΔL/ΔR — and the verdict is read from it, so the ODO_STUCK line can name the
+ check and its values (diag/odom_tick_audit.hpp).
 
  ── The heading cross-check — NEW, and deliberately an observable, not a fault ──────
  The encoders imply their own heading change, Δθ_enc = (ΔR − ΔL) / trackWidth. Against
@@ -291,8 +316,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  `independentMotionSource`), and a future stuck/slip detector for the chassis will be
  built on this observable; the composition root says so once at boot.
 
- Baselines both sides at construction (the TrackingWheel::reset() precedent,
- pilons_odometry.hpp:119), so a pre-existing shaft total is not counted as travel on the
+ Baselines both sides at construction (the TrackingWheel::reset() precedent, in
+ PilonsOdometry's constructor), so a pre-existing shaft total is not counted as travel on the
  first update(). Holds every reference; the IMU and both motors must outlive this object.
  Owns no loop. PROS-free; host-tested against the A2 plant's ground truth.
 ```

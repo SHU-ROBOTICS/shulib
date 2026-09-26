@@ -2475,11 +2475,27 @@ off, re-opened 22:15:45, closed 23:07:33).
   | 2 | 93.6 s | `fault=ODO_STUCK n=1 FIRST implausible odometry tick` at t=34.40, `n=2` at t=60.32 — **the team lead's "real" G.6 run** (wheels up, then floor, per the worksheet) |
   | 3 | 78.7 s | `fault=MOTOR_GROUP_DISAGREE n=1 FIRST 1 member(s) disagree with their coupled group` at t=10.09 (commanded `v(9.2, 2.0, 0.00)`); the log does not name the member |
   | 4-8 | 228.6 / 18.1 / 16.4 / 13.4 / 671.6 s | none |
-  **Both ODO_STUCK ticks came with commanded speed 0** (`v(0.0, 0.0, 0.00)` on the surrounding records),
-  i.e. not from driving; `DriveEncoderOdometry` calls a tick implausible on a non-finite delta, |Δθ| > π/2
-  in one tick, or |side travel| > 36 in in one tick (`drive_encoder_odometry.hpp` ~:164-166), and the fault
-  line records none of the values — **cause UNKNOWN**; a reading glitch at rest (IMU or encoder) is the
-  best guess, not a finding. The fault then stays latched on every record (`flt=ODO_STUCK`), q 0.34 → 0.20.
+  **Both ODO_STUCK ticks came with commanded speed 0** (`v(0.0, 0.0, 0.00)` on the fault tick's own
+  record) — but only episode 1 was at rest. **CORRECTED 2026-09-26 (DIAG1; this entry first read "Both
+  ... came with commanded speed 0 ... i.e. not from driving" and "a reading glitch at rest"):** in
+  `zcat r3d-session-2026-09-25-teleop.log.gz | strings`, episode 1 is strings line **102381** (t=34.40):
+  the last non-zero command is t=34.01 (a gentle forward, ~5.7 in/s), then zero for 0.39 s — at rest.
+  Episode 2 is strings line **110158** (t=60.32) and fired on the FIRST zero-command record after
+  **~0.35 s of hard reversing** (t=59.97-60.31, strings lines 110053-110155, |v| up to 34.0 in/s). A
+  record's `v(...)` is the COMMANDED speed in the FIELD frame (`robotToField(body, published heading)`),
+  so on this tank the published heading can be reconstructed as `atan2(-vy, -vx)` while reversing:
+  over the last nine 10 ms intervals (t=60.22→60.31) it swung +16.9, -19.7, +17.6, -17.1, +18.5,
+  -1.4 (t=60.27→60.28, strings lines 110143→110146), -18.2, +24.1 and **-36.9°** — eight of the nine
+  at 16.9° or more, those eight alternating in sign, up to 37° — and no robot turns 37° in 10 ms.
+  *(Re-checked by DIAG1's review, 2026-09-26: this correction first listed the eight large swings as if
+  they were consecutive, dropping the -1.4.)* That makes the IMU heading path the prime
+  suspect for episode 2; it is an INFERENCE (it assumes zero body lateral and that the stamped heading is
+  the published one), not a finding, and it is registered as HA-160. `DriveEncoderOdometry` calls a tick
+  implausible on a non-finite delta, |Δθ| > π/2 in one tick, or |side travel| > 36 in in one tick
+  (`drive_encoder_odometry.hpp` ~:164-166 as of `ea58fbc`), and that day's fault line recorded none of the values —
+  **cause still UNKNOWN for both**; since DIAG1 the line names the check and its values
+  (`why=ROT dth=… h0=… h1=… L=… R=…`), so the next one will say. The fault then stays latched on every
+  record (`flt=ODO_STUCK`), q 0.34 → 0.20.
 - **The team lead's screen readings (Station G.6.3/F.2 and G.6.4), taken across starts 3-8** — `est x`
   and `hdg` exist only on the panel, not on serial:
   - **forward drove toward the CAMERA end** (AI Vision, port 3). With the record's signs identical to

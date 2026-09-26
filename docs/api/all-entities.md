@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,669 of them, across 149 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,691 of them, across 150 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -64,6 +64,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Answer::Done` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-done) |
 | `Answer::FrontFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-frontfirst) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
+| `appendOdomTickAudit` | free function | [odom_tick_audit.md](odom_tick_audit.md#appendodomtickaudit) |
 | `appendPadded` | free function | [line_format.md](line_format.md#appendpadded) |
 | `appendTimestamp` | free function | [line_format.md](line_format.md#appendtimestamp) |
 | `appendUnsigned` | free function | [line_format.md](line_format.md#appendunsigned) |
@@ -562,6 +563,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveEncoderOdometry::lastDeltaImplausible` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastdeltaimplausible) |
 | `DriveEncoderOdometry::lastHeadingDisagreement` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastheadingdisagreement) |
 | `DriveEncoderOdometry::lastSideTravel` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastsidetravel) |
+| `DriveEncoderOdometry::lastTickAudit` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lasttickaudit) |
 | `DriveEncoderOdometry::leftInchesPerRadian` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-leftinchesperradian) |
 | `DriveEncoderOdometry::pose` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-pose) |
 | `DriveEncoderOdometry::rightInchesPerRadian` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-rightinchesperradian) |
@@ -936,6 +938,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitor::Observations::groupMembersDisagreeing` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-groupmembersdisagreeing) |
 | `HealthMonitor::Observations::imuReady` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-imuready) |
 | `HealthMonitor::Observations::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-maxmotortempc) |
+| `HealthMonitor::Observations::odomAudit` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomaudit) |
 | `HealthMonitor::Observations::odomImplausible` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomimplausible) |
 | `HealthMonitor::Observations::odomStalled` | field | [health_monitor.md](health_monitor.md#healthmonitor-observations-odomstalled) |
 | `HealthMonitor::reset` | function | [health_monitor.md](health_monitor.md#healthmonitor-reset) |
@@ -1206,6 +1209,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IOdometry::IOdometry (overload 2)` | function | [odometry.md](odometry.md#iodometry-iodometry-2) |
 | `IOdometry::IOdometry (overload 3)` | function | [odometry.md](odometry.md#iodometry-iodometry-3) |
 | `IOdometry::lastDeltaImplausible` | function | [odometry.md](odometry.md#iodometry-lastdeltaimplausible) |
+| `IOdometry::lastTickAudit` | function | [odometry.md](odometry.md#iodometry-lasttickaudit) |
 | `IOdometry::operator=` | function | [odometry.md](odometry.md#iodometry-operator-eq) |
 | `IOdometry::operator= (overload 2)` | function | [odometry.md](odometry.md#iodometry-operator-eq-2) |
 | `IOdometry::pose` | function | [odometry.md](odometry.md#iodometry-pose) |
@@ -1401,6 +1405,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kNoIndependentStallSourceNote` | constant | [odo_stall_check.md](odo_stall_check.md#knoindependentstallsourcenote) |
 | `kNoteCols` | constant | [calibrate_panel.md](calibrate_panel.md#knotecols) |
 | `kNotStarted` | constant | [calibrate_panel.md](calibrate_panel.md#knotstarted) |
+| `kOdomAuditDetailMaxBytes` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditdetailmaxbytes) |
+| `kOdomAuditPrecision` | constant | [odom_tick_audit.md](odom_tick_audit.md#kodomauditprecision) |
 | `kOdoStallMaxWheels` | constant | [odo_stall_check.md](odo_stall_check.md#kodostallmaxwheels) |
 | `kPanelLastRow` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellastrow) |
 | `kPanelLineCap` | constant | [calibrate_panel.md](calibrate_panel.md#kpanellinecap) |
@@ -1469,6 +1475,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Localizer::kMaxCorrectors` | field | [localizer.md](localizer.md#localizer-kmaxcorrectors) |
 | `Localizer::lastCorrection` | function | [localizer.md](localizer.md#localizer-lastcorrection) |
 | `Localizer::lastOdomDeltaImplausible` | function | [localizer.md](localizer.md#localizer-lastodomdeltaimplausible) |
+| `Localizer::lastOdomTickAudit` | function | [localizer.md](localizer.md#localizer-lastodomtickaudit) |
 | `Localizer::Localizer` | function | [localizer.md](localizer.md#localizer-localizer) |
 | `Localizer::pose` | function | [localizer.md](localizer.md#localizer-pose) |
 | `Localizer::Quality` | enum class | [localizer.md](localizer.md#enum-class-localizer-quality) |
@@ -1764,6 +1771,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `OdometryKind::DriveEncoders` | enumerator | [robot_config.md](robot_config.md#odometrykind-driveencoders) |
 | `OdometryKind::TrackingWheels` | enumerator | [robot_config.md](robot_config.md#odometrykind-trackingwheels) |
 | `odometryKindWord` | free function | [robot_config.md](robot_config.md#odometrykindword) |
+| `OdomTickAudit` | struct | [odom_tick_audit.md](odom_tick_audit.md#struct-odomtickaudit) |
+| `OdomTickAudit::dTheta` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-dtheta) |
+| `OdomTickAudit::headingAfter` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-headingafter) |
+| `OdomTickAudit::headingBefore` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-headingbefore) |
+| `OdomTickAudit::labels` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-labels) |
+| `OdomTickAudit::nonFinite` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-nonfinite) |
+| `OdomTickAudit::rotation` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-rotation) |
+| `OdomTickAudit::travel` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-travel) |
+| `OdomTickAudit::travelA` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-travela) |
+| `OdomTickAudit::travelB` | field | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-travelb) |
+| `OdomTickAudit::tripped` | function | [odom_tick_audit.md](odom_tick_audit.md#odomtickaudit-tripped) |
+| `OdomTravelLabels` | enum class | [odom_tick_audit.md](odom_tick_audit.md#enum-class-odomtravellabels) |
+| `OdomTravelLabels::DriveSides` | enumerator | [odom_tick_audit.md](odom_tick_audit.md#odomtravellabels-drivesides) |
+| `OdomTravelLabels::TrackingWheels` | enumerator | [odom_tick_audit.md](odom_tick_audit.md#odomtravellabels-trackingwheels) |
 | `OdoStallCheck` | class | [odo_stall_check.md](odo_stall_check.md#class-odostallcheck) |
 | `OdoStallCheck::canDetectStall` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheck-candetectstall) |
 | `OdoStallCheck::kMaxWheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheck-kmaxwheels) |
@@ -1886,6 +1907,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PidConfig::outputMin` | field | [pid.md](pid.md#pidconfig-outputmin) |
 | `PilonsOdometry` | class | [pilons_odometry.md](pilons_odometry.md#class-pilonsodometry) |
 | `PilonsOdometry::lastDeltaImplausible` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lastdeltaimplausible) |
+| `PilonsOdometry::lastTickAudit` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lasttickaudit) |
 | `PilonsOdometry::PilonsOdometry` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-pilonsodometry) |
 | `PilonsOdometry::pose` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-pose) |
 | `PilonsOdometry::setPose` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-setpose) |

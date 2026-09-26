@@ -381,6 +381,11 @@ from scratch; the integrator is in `localization/arc_step.hpp`):
   non-finite. A non-finite tick **freezes** the position (never writes NaN into the persistent pose); an
   oversized-but-finite tick is flagged yet still integrated. Recovery beyond that is the fusion layer's.
   (Hardened by the 2026-06-19 localization red-team: 5 lenses, every finding adversarially re-verified.)
+  *(Since the 2026-08-15 defect pass the gate has a third check — either wheel's, or since 2026-09-14
+  either drive side's, `|Δtravel| > maxTickTravel` (36 in; hardware register HA-123) — and since
+  2026-09-26 `lastTickAudit()` records which check tripped and the values it saw, which the
+  `ODO_STUCK` fault line prints. Per-tick Δθ being small also assumes the IMU's heading is continuous
+  tick to tick — register HA-160, questioned by robot evidence on 2026-09-25.)*
 
 ---
 

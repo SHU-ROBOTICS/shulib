@@ -13,7 +13,8 @@ that's a genuine skill: the transcript is designed so that "what went wrong at t
 answerable from a text file, at the field, without a debugger. Everything below is the *exact*
 format the code produces today — every example is copied from output that the test suite pins
 byte-for-byte (`test/term_sink_test.cpp`, `test/run_summary_test.cpp`,
-`test/motion_result_test.cpp`, `test/session_header_test.cpp` hold the golden strings). If the
+`test/motion_result_test.cpp`, `test/session_header_test.cpp` and, for the `ODO_STUCK` line,
+`test/odom_tick_audit_test.cpp` hold the golden strings). If the
 format ever changes, those tests change with it — trust them over this page and tell the guide
 maintainer.
 
@@ -180,7 +181,9 @@ worth recognizing on sight:
 - **Fault lines** (Error level, from the fault latch):
   `fault=NAN_POSE n=1 FIRST pose.x` — the code, the run's running fault count, `FIRST` if this
   is the run's first fault (the root-cause marker), then detail (here: which quantity went bad;
-  for a brownout you'd see `battery=10.50V`, for a loop overrun `dt=0.7500 budget=0.5000`).
+  for a brownout you'd see `battery=10.50V`, for a loop overrun `dt=0.7500 budget=0.5000`, and
+  for an odometry tick the odometry refused, the check and its numbers —
+  [below](#reading-an-odo_stuck-line)).
 - **Fault-policy aborts** (Warn, from the scheduler):
   `[SCH] fault abort: ODO_STUCK — cancelling MoveToPose` — pairs with a `✗FAULT_ABORT` result
   line moments later.
@@ -208,7 +211,7 @@ but not narrated there. The authoritative list is always
 | `PRECONDITION` | code broke a library contract mid-run | a bug in routine or library code (NaN input, bad config) | ends that motion | read the message; fix the calling code — this is a programming error surfaced politely |
 | `NAN_POSE` | a not-a-number reached the data path; a safe fallback was substituted | divide-by-zero upstream, corrupt sensor math | no | the estimate froze rather than went insane — treat the pose as suspect from this moment; find the named quantity in the detail |
 | `LOOP_OVERRUN` | a control tick blew its time budget | too much work on the control task, a blocking call where none belongs | no | check the attribution line for *which phase*; recurring overruns degrade control quality everywhere |
-| `ODO_STUCK` | wheels demonstrably spinning, odometry reporting no motion — **the estimate is lying** | dead/unplugged rotation sensor, robot physically stalled against something | **yes** (the only default abort) | this is the serious one: after it, the pose can't be trusted. Physically check the tracking wheels and their cables first |
+| `ODO_STUCK` | **the estimate is lying**, for one of two reasons the line names: `wheels spin but odometry reports no motion` (the stall cross-check), or `implausible odometry tick why=…` (the odometry's own trust gate refused one tick — [how to read it](#reading-an-odo_stuck-line)) | stall: a dead/unplugged rotation sensor, or the robot pinned against something. Trust gate: a heading that jumped more than 90° in one tick (`ROT`), one side or pod that moved more than 36 in in one tick (`TRAVEL` — a pod's or single-motor side's port waking up late, a corrupt reading; on a side driven by a motor group the odometry reads the members' median, so one waking member cannot trip it — a drive-side `TRAVEL` there means several members jumped together, and the group-level check for one bad member is `MOTOR_GROUP_DISAGREE`, which compares member velocities — whether it catches a member whose velocity is held too is not established), or a reading that came back NaN/Inf (`NONFINITE`) | **yes** (the only default abort) | this is the serious one: after it, the pose can't be trusted. Read the `why=` first — it says where to look. A robot with no tracking wheels (odometry from the drive motors) cannot run the stall check, so on it this code always comes from the trust gate, and "check the tracking wheels" does not apply |
 | `IMU_LOST` | the IMU was alive, then stopped responding | cable/port failure mid-run | no | heading is now coasting on the last good data; expect growing heading error after this timestamp. Check the cable |
 | `GPS_GATE_REJECT` | an absolute fix arrived and the fusion gate refused it | sensor glitch — or an estimate so far gone the truth looks crazy | no | a few: the gate doing its job. Many in a row: estimate and sensor disagree badly — cross-check the pose story around that time |
 | `BROWNOUT` | battery at/below the danger threshold | tired battery + heavy motor load | no | swap the battery; re-read the rest of the log knowing the motors were weak |
@@ -225,6 +228,46 @@ per-code counts survive across motions within a run. The default abort policy �
 only with a reason: the default encodes "abort only when the estimate itself is lying"
 (everything else is better survived than halted). The reasoning is spelled out in
 [`include/shulib/motion/motion_scheduler.hpp`](../../include/shulib/motion/motion_scheduler.hpp).
+
+### Reading an `ODO_STUCK` line
+
+Because `ODO_STUCK` ends whatever motion is running when it fires (the default policy above),
+its line carries enough to explain itself. When the odometry's trust gate is the cause, it reads:
+
+```text
+fault=ODO_STUCK n=1 FIRST implausible odometry tick why=ROT dth=1.745rad h0=0.012 h1=1.757 L=0.000in R=0.000in
+```
+
+- **`why=`** — which check refused the tick, one or more of `NONFINITE`, `ROT`, `TRAVEL`
+  (always in that order, joined by `+`):
+  - `ROT` — the heading changed by more than the rotation bound in one tick. The default bound
+    is π/2 = **1.571 rad (90°)**.
+  - `TRAVEL` — one side (or one tracking pod) moved more than the travel bound in one tick. The
+    default is **36 in**.
+  - `NONFINITE` — the tick's position change came out NaN or infinite, so position was held for
+    that tick. A NaN side shows as `NONFINITE+TRAVEL` together: a NaN is not "within the bound"
+    either. `NONFINITE` *alone* means every reading was within its bound but the arithmetic
+    overflowed — possible only when the travel bound or a tracking wheel's offset is configured
+    near the largest number a `double` holds, so check the configuration, not the robot.
+- **`dth=`** — the heading change of that tick, in **radians** (1.571 = 90°, 3.142 = 180°).
+- **`h0=` / `h1=`** — the IMU heading at the start and the end of the tick, also in radians.
+  A `ROT` with the wheels quiet (`L`/`R` near zero) means the *heading* jumped while nothing
+  rolled — look at the IMU (its cable, its mounting, a bump) before the wheels.
+- **`L=` / `R=`** — each drive side's travel that tick, in inches, on a robot whose odometry
+  reads the drive motors. On a robot with tracking wheels the same two slots read **`fwd=` /
+  `lat=`** (the forward pod's raw reading and the lateral pod's). A `TRAVEL` names the side or
+  pod with the big number — start with its ports and cables. On a side driven by a motor
+  group the number is the members' **median**, so it moved because several members jumped
+  together; a single bad member is absorbed by the median and shows up, if at all, as
+  `MOTOR_GROUP_DISAGREE`.
+
+Numbers print as `NaN`, `+Inf` or `-Inf` when they are not finite, and a huge value prints
+compactly (`1e+09in`) rather than as a wall of digits. Two more endings you may see:
+**`why=UNREPORTED`** means the odometry said "implausible" without saying why (a custom
+odometry that does not fill in its account), and **`+STALL`** at the end means the stall
+cross-check tripped on the same tick. One *episode* is one line, carrying the values of its
+**first** tick: if the heading keeps swinging for half a second, you get the first swing, not
+fifty lines.
 
 ## Volume control: filtering, throttling, and the competition build
 

@@ -51,6 +51,29 @@
 //    cutoff behaviour under load is unmeasured until R3/R4.
 //    (Register: docs/hardware-assumptions.md.)
 //
+// ── The odometry line (chunk DIAG1, 2026-09-26) ─────────────────────────────────────
+// ODO_STUCK is the scheduler's default ABORT fault, and on 2026-09-25 robot two raised it as
+// `implausible odometry tick` with nothing else, so the cause could not be read off the log.
+// The line now carries the trust gate's own account (Observations::odomAudit,
+// diag/odom_tick_audit.hpp): `implausible odometry tick why=ROT dth=1.745rad h0=0.012
+// h1=1.757 L=0.000in R=0.000in`. What did NOT change, each pinned by test (except where
+// said):
+//  * The TRIGGER is still `odomImplausible || odomStalled`. The audit is detail only — a
+//    tripped audit with the verdict false raises nothing — so the fault cannot move.
+//  * The detail is RAISED only on the rising edge; a 500-tick episode is one line carrying
+//    the FIRST tick's values (pinned). It is also only FORMATTED there, so the ticks after it
+//    cost nothing — a property of the code, NOT pinned: building the text on every bad tick
+//    and raising only on the edge would print the same lines, so no output test can see it.
+//  * An implausible verdict with an empty audit (a source that never filled it) reads
+//    ` why=UNREPORTED` rather than inventing values.
+//  * When the stall verdict and the implausible verdict rise on the SAME tick, the valued
+//    implausible text wins and ` +STALL` is appended (the team lead's call, 2026-09-26): the
+//    values are what cannot be recovered afterwards, while the stall is a caller verdict with
+//    nothing more to say. A stall alone still reads `wheels spin but odometry reports no
+//    motion`, exactly as before.
+// The detail is bounded by kOdomAuditDetailMaxBytes (140) so FaultLatch's 176-byte line
+// never truncates it; the worst case is 137 bytes (odom_tick_audit.hpp).
+//
 // Single-task by contract, like the rest of diag/ (see fault.hpp).
 
 #include <cmath>
@@ -58,6 +81,8 @@
 
 #include "shulib/core/check.hpp"
 #include "shulib/diag/fault.hpp"
+#include "shulib/diag/line_format.hpp"
+#include "shulib/diag/odom_tick_audit.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::diag {
@@ -90,7 +115,7 @@ public:
     /// source (e.g. no motor temps wired yet) simply leaves the field alone.
     struct Observations {
         bool imuReady = true;          ///< IImu::isReady()
-        bool odomImplausible = false;  ///< PilonsOdometry::lastDeltaImplausible()
+        bool odomImplausible = false;  ///< IOdometry::lastDeltaImplausible() (the trust gate)
         bool odomStalled = false;      ///< caller-computed wheels-spin-but-no-motion
                                        ///< cross-check (see note below)
         bool fixGated = false;         ///< Localizer::lastCorrection().gated
@@ -101,6 +126,12 @@ public:
                                           ///< (motion::tickHealthObservables sums every
                                           ///< group's disagreeingMembers()); 0 = healthy, and
                                           ///< the default for a robot with no groups
+        OdomTickAudit odomAudit{};     ///< IOdometry::lastTickAudit() — the gate's account of
+                                       ///< the SAME tick odomImplausible judges. DETAIL ONLY:
+                                       ///< printed on the ODO_STUCK line, never a trigger.
+                                       ///< APPENDED last (DIAG1): callers use designated
+                                       ///< initializers, which must follow declaration order.
+                                       ///< Left default, the line reads `why=UNREPORTED`.
     };
     // On odomStalled: a frozen/disconnected encoder is INVISIBLE to the M2 estimator
     // (zero travel is a perfectly plausible reading — found and recorded at A3), so
@@ -150,13 +181,24 @@ public:
             faults_.raise(FaultCode::ImuLost, "IMU", "isReady dropped mid-run");
         }
 
-        // Odometry: implausible tick OR the caller's stall cross-check.
+        // Odometry: implausible tick OR the caller's stall cross-check. The TRIGGER is the
+        // verdict, unchanged — the audit is detail, formatted only here, on the rising edge
+        // (header: "The odometry line"), so a 500-tick episode costs one rendering.
         const bool odoBad = o.odomImplausible || o.odomStalled;
         if (odoBad && !odoActive_) {
             odoActive_ = true;
-            faults_.raise(FaultCode::OdoStuck, "LOC",
-                          o.odomStalled ? "wheels spin but odometry reports no motion"
-                                        : "implausible odometry tick");
+            if (o.odomImplausible) {
+                lineformat::Line text;
+                text.appendLiteral("implausible odometry tick");
+                appendOdomTickAudit(text, o.odomAudit);
+                if (o.odomStalled) {
+                    text.appendLiteral(" +STALL");  // both rose on this tick
+                }
+                faults_.raise(FaultCode::OdoStuck, "LOC", text.view());
+            } else {
+                faults_.raise(FaultCode::OdoStuck, "LOC",
+                              "wheels spin but odometry reports no motion");
+            }
         } else if (!odoBad) {
             odoActive_ = false;
         }

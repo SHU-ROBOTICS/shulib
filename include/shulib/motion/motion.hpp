@@ -104,9 +104,11 @@
 //   * Each active tick runs the OdoStallCheck (spin-vs-motion cross-check — the
 //     ONLY defence against a frozen/dead encoder until Phase E) and ticks the
 //     shared HealthMonitor with every observable reachable from the deps
-//     (imuReady, odomStalled, odomImplausible, fixGated, batteryVolts,
-//     maxMotorTempC) — so ODO_STUCK / IMU_LOST / BROWNOUT / GPS_GATE_REJECT /
-//     MOTOR_OVER_TEMP surface during motion with no extra caller wiring.
+//     (imuReady, odomStalled, odomImplausible with its odomAudit detail since
+//     DIAG1, fixGated, batteryVolts, maxMotorTempC, groupMembersDisagreeing since
+//     R3b Part 1) — so ODO_STUCK / IMU_LOST / BROWNOUT / GPS_GATE_REJECT /
+//     MOTOR_OVER_TEMP / MOTOR_GROUP_DISAGREE surface during motion with no extra
+//     caller wiring.
 //   The active motion IS the loop at C1; when no motion is active, the loop
 //   owner ticks the monitor itself (C2 formalizes this ownership).
 //
@@ -249,7 +251,10 @@ struct MotionDeps {
 /// observable (deps.motorGroups): each group's coupled-side monitor advances
 /// exactly once here, and the persisted count reaches the monitor as
 /// groupMembersDisagreeing — so MOTOR_GROUP_DISAGREE fires in drive() and in
-/// every motion with no extra caller wiring.
+/// every motion with no extra caller wiring. Since DIAG1 it also hands over the
+/// odometry's account of the tick (Localizer::lastOdomTickAudit()) as the LAST
+/// field, odomAudit: detail for the ODO_STUCK line, never a trigger — and because
+/// every program raises through here, no program needed a change to get it.
 inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
     chassis::RobotContext& ctx = *deps.ctx;
     localization::Localizer& loc = *deps.localizer;
@@ -267,7 +272,8 @@ inline void tickHealthObservables(const MotionDeps& deps, bool odomStalled) {
                        .fixGated = loc.lastCorrection().gated,
                        .batteryVolts = ctx.battery().voltage(),
                        .maxMotorTempC = maxTemp,
-                       .groupMembersDisagreeing = disagreeing});
+                       .groupMembersDisagreeing = disagreeing,
+                       .odomAudit = loc.lastOdomTickAudit()});
 }
 
 /// The contract every motion primitive implements: one target, one tick() that reads the

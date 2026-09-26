@@ -8,7 +8,7 @@
 
 Localizer — the fused field-frame estimate.
 
-This header declares **3** types (22 members).
+This header declares **3** types (23 members).
 
 Extracted from [`include/shulib/localization/localizer.hpp`](../../include/shulib/localization/localizer.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -32,6 +32,7 @@ Extracted from [`include/shulib/localization/localizer.hpp`](../../include/shuli
   - [`distanceSinceCorrection`](#localizer-distancesincecorrection)
   - [`lastCorrection`](#localizer-lastcorrection)
   - [`lastOdomDeltaImplausible`](#localizer-lastodomdeltaimplausible)
+  - [`lastOdomTickAudit`](#localizer-lastodomtickaudit)
   - [`headingBias`](#localizer-headingbias)
   - [`setPose`](#localizer-setpose)
   - [`enum class Localizer::Quality`](#enum-class-localizer-quality)
@@ -256,6 +257,18 @@ Forwarding accessor for IOdometry::lastDeltaImplausible() — added at C1 (addit
 
 *function, declared at [`include/shulib/localization/localizer.hpp:456`](../../include/shulib/localization/localizer.hpp#L456).*
 
+<a id="localizer-lastodomtickaudit"></a>
+
+### `Localizer::lastOdomTickAudit`
+
+```cpp
+[[nodiscard]] diag::OdomTickAudit lastOdomTickAudit() const noexcept
+```
+
+Forwarding accessor for IOdometry::lastTickAudit() — added at DIAG1 (additive), beside the flag above: the trust gate's account of the last tick (which check, which values), which motion::tickHealthObservables hands HealthMonitor so the ODO_STUCK line can say why. Exposes only, like the flag; the Localizer still never raises.
+
+*function, declared at [`include/shulib/localization/localizer.hpp:463`](../../include/shulib/localization/localizer.hpp#L463).*
+
 <a id="localizer-headingbias"></a>
 
 ### `Localizer::headingBias`
@@ -266,7 +279,7 @@ Forwarding accessor for IOdometry::lastDeltaImplausible() — added at C1 (addit
 
 The learned heading bias, in radians: how far the published heading sits from the raw IMU reading (E3). Exposed so a test can prove the correction ACCUMULATES rather than evaporating each tick — the M2 red team's failure mode — and so telemetry can say how far the IMU has been found to have drifted. Zero on any tree with no heading-providing corrector, exactly.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:465`](../../include/shulib/localization/localizer.hpp#L465).*
+*function, declared at [`include/shulib/localization/localizer.hpp:472`](../../include/shulib/localization/localizer.hpp#L472).*
 
 <a id="localizer-setpose"></a>
 
@@ -278,7 +291,7 @@ void setPose(const math::Pose2d& p)
 
 Teleport the POSITION (x, y); heading stays IMU-owned. Forwards to IOdometry::setPose so the predictor and the fused belief never diverge, and re-baselines twist + dt so the teleport injects no phantom velocity next tick.  E3: the learned heading bias is KEPT, deliberately. A teleport says where the robot IS, not which way the IMU is wrong; discarding a bias that took a second of tag sightings to learn, every time a routine re-seeds its position, would throw away the correction at exactly the moments a routine cares most. `p.heading()` is still ignored, as it always was.
 
-*function, declared at [`include/shulib/localization/localizer.hpp:477`](../../include/shulib/localization/localizer.hpp#L477).*
+*function, declared at [`include/shulib/localization/localizer.hpp:484`](../../include/shulib/localization/localizer.hpp#L484).*
 
 <a id="enum-class-localizer-quality"></a>
 
@@ -352,7 +365,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  Localizer — the fused field-frame estimate (master plan §5/§6/§8; WS5). It is a thin, deterministic
  orchestrator over three already-tested pieces: an IOdometry (PilonsOdometry over tracking
  wheels, or DriveEncoderOdometry over the drive motors — high-rate prediction; the seam
- landed at R3b Part 2 and this class depends on nothing past its four members), the IMU
+ landed at R3b Part 2 and this class depends on nothing past its five members), the IMU
  (heading authority), and a list of correctors (absolute fixes) behind an IFusionPolicy. It owns
  the four jobs the pieces below cannot, in a fixed five-step update():
    1. dt — source it from the injected IClock and turn the per-tick position change into a Twist2d.

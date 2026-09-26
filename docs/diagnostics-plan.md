@@ -232,7 +232,14 @@ for items already on this list, plus one genuinely uncovered detector:
   detector for such a chassis will use — hardware register HA-131.)* When that E-phase detector is
   built, the legacy mutual-comparison approach is the proven requirements input: it needs
   *which-wheel* attribution, structured (`fault=ODO_STUCK wheel=L`), not a banner. **Owner: the
-  E-phase estimator-side detector named in `motion/odo_stall_check.hpp`.**
+  E-phase estimator-side detector named in `motion/odo_stall_check.hpp`.** *(Since DIAG1,
+  2026-09-26 — a NARROWER thing, not that detector: the odometry's per-tick trust gate now says
+  which of its checks refused a tick and the values it saw, on the `ODO_STUCK` line itself —
+  `implausible odometry tick why=TRAVEL dth=0.000rad h0=… h1=… L=40.000in R=0.000in`, with
+  `fwd=`/`lat=` for tracking pods (`diag/odom_tick_audit.hpp`). That attributes ONE implausible
+  tick to a side or pod; it cannot see a wheel that goes quiet over a window, which is the
+  stall case above, and the which-wheel detector is still owed. It came from robot two's two
+  unexplained `implausible odometry tick` faults on 2026-09-25, whose lines named nothing.)*
 - **Drive-side veer/imbalance triage** (`legacy main.cpp` [VEER]/[OPCTL]): L/R average-velocity
   imbalance % + per-side temperature deltas, with a diagnosis matrix (slower AND hotter ⇒ tight
   gearbox; balanced motors but veering ⇒ odom-wheel contact). The team lived this failure hard

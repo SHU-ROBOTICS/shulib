@@ -79,8 +79,10 @@ say. Where a diagnosis depends on an unverified assumption, the
   - *Almost settled, never quite:* error hovers just outside tolerance, or bounces through
     zero. That's a tuning/settling story — see "it oscillates" below.
 - **`✗FAULT_ABORT=CODE`** — the fault policy stopped it deliberately. The code (almost always
-  `ODO_STUCK`) is the story; see its row in [Chapter 11](11-reading-the-diagnostics.md) and
-  check the physical sensor.
+  `ODO_STUCK`) is the story; see its row in [Chapter 11](11-reading-the-diagnostics.md). Its
+  fault line says which check fired and on what numbers
+  ([reading an `ODO_STUCK` line](11-reading-the-diagnostics.md#reading-an-odo_stuck-line)) —
+  check the sensor *that* names, not every sensor.
 - **`✗SUPERSEDED` / `✗CANCELLED`** — *your code* ended it: something called the next verb (or
   `cancel()`) early. Look at your routine's logic — a mis-nested `if`, a `waitUntil` that
   returned sooner than you assumed.
@@ -116,16 +118,22 @@ This is [Chapter 5](05-getting-there.md)'s control-tuning material made audible:
   sensor.
 - **Position right-ish, heading wrong:** the IMU path — and heading error *becomes* position
   error as you drive ([Chapter 2](02-the-field-and-coordinates.md)), so catch it early. Look
-  for `IMU_LOST`, or on hardware suspect drift/calibration
+  for `IMU_LOST`, or an `ODO_STUCK` reading `why=ROT` (the heading moved further in one tick
+  than a robot turns — the register's HA-160 is that open question), or on hardware suspect
+  drift/calibration
   (the register's HA-20 is the relevant open assumption — an *uncorrected* V5 IMU is expected to
   drift toward the spec limit over a 60 s run. Heading correction now exists — AprilTags are the
   one absolute heading source in the library — but it needs a camera and a tag map you supply,
   and it has never seen a real tag).
 - **The estimate jumps:** a fusion correction landed (look for `CLMP`) — or something worse
-  (`flt=NAN_POSE`, `IMPLAUSIBLE`). The never-snap rule means visible teleports should not
-  happen; a real jump with no flags is a bug — capture the transcript and report it.
+  (`flt=NAN_POSE`, `IMPLAUSIBLE`, or an `ODO_STUCK` whose line reads `why=TRAVEL` or `why=ROT`:
+  the odometry flags such a tick but still counts it, so the jump is in the estimate). The
+  never-snap rule means visible teleports should not happen; a real jump with no flags is a
+  bug — capture the transcript and report it.
 - **The pose froze:** `NAN_POSE`'s designed behavior is freezing position rather than
-  corrupting it, and `ODO_STUCK` means it *should* have frozen. The transcript will say.
+  corrupting it. An `ODO_STUCK` reading `wheels spin but odometry reports no motion` is a frozen
+  sensor caught in the act, and one reading `why=NONFINITE` held position for that one tick.
+  The transcript will say.
 
 ## "It won't build" (your code, not the robot)
 
