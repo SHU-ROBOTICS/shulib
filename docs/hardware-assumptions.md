@@ -73,7 +73,10 @@
 > the 2026-09-25 robot evidence — and AMENDED HA-123: extended to drive-encoder sides, and its
 > blast radius corrected (a spurious trip ends the active motion). **COMP-a added ONE on 2026-09-26 — HA-161, reasoned** (PROS deletes its competition tasks on
 > a mode change and not the program's own — the belief the competition program's own auton task
-> rests on), and AMENDED HA-05 (the start heading's owner is the chosen auton's start pose). The
+> rests on), and AMENDED HA-05 (the start heading's owner is the chosen auton's start pose). **T3 Part 2 (the Teleop wiring, the same day) added no
+> entry** — HA-148..HA-152 stay unused — and brought HA-153, HA-154, HA-156 and HA-159 up to the
+> tree: "shulib Teleop" now builds and drives the claws (not on a robot yet), so their lines saying
+> no program drives them, or that the claw row does not exist, were corrected. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -1642,10 +1645,10 @@ pneumatic claw, below), and its merge HA-147 (the controller belief the claw's t
 first below). HA-142 to HA-146 are DEFECTS2's (above); HA-148 to HA-152 were reserved for T3 and
 are unused. HA-153 to HA-156 are beliefs about motors NOBODY HAS SEEN YET: the team lead reported
 the two claw pivots on 2026-09-26, no census or capture has shown a motor on port 6 or 7, and
-nothing in this tree has commanded either. `src/mechanism_table.hpp` declares them;
-`src/calibrate_program.cpp` already acts on the declaration (it never makes 6 or 7 a drive
-candidate); "shulib Teleop" drives them once T3's Teleop wiring (its Part 2) lands. Worksheet
-Station J is their first run.
+nothing has commanded either on a robot. `src/mechanism_table.hpp` declares them;
+`src/calibrate_program.cpp` acts on the declaration (it never makes 6 or 7 a drive candidate);
+"shulib Teleop" builds and drives them since T3's Teleop wiring (its Part 2, the same day) —
+host- and build-gated, never run. Worksheet Station J is their first run.
 
 - [ ] **HA-147 — a V5 controller's connected flag and its button levels change together.**
   *Claim:* on the first tick `is_connected()` reads true after a disconnect, `get_digital()`
@@ -1682,7 +1685,9 @@ Station J is their first run.
   L1 moves its claw the "back" way.
   *Source:* `src/mechanism_table.hpp` (`kRobotTwoMechanisms`, tagged `A4 register HA-153`): the
   ports, the cartridge and the `+` signs; `src/calibrate_program.cpp` drops 6 and 7 from its drive
-  candidates on this belief. `test/mechanism_table_test.cpp` pins the table's contents — which
+  candidates on this belief, and since T3 Part 2 "shulib Teleop" builds both pivots from it
+  (`src/boot_source.hpp`), names them as claw pivots in its port check, and binds R1/R2 and L1/L2
+  to them (`src/teleop_claws.hpp`). `test/mechanism_table_test.cpp` pins the table's contents — which
   tests the TYPING against the report, never the report.
   *Confidence:* **reported** by the team lead, 2026-09-26 — not measured. No capture has seen a
   motor on 6 or 7: the 2026-09-24 Calibrate census lists motors on 11–18 and 20 only, and the
@@ -1694,8 +1699,10 @@ Station J is their first run.
   not touched` and the same for 7; J's direction check — hold R1, which way does the port-6 claw
   go; hold L1, the port-7 claw.
   *Blast radius if wrong:* a wrong PORT leaves that claw ABSENT in Teleop (the provider refuses a
-  port with no motor on it, by name) — or, if a DRIVE motor is on 6 or 7, Calibrate drops that
-  drive motor (the side calibrates one short) and R1 spins a wheel. A wrong CARTRIDGE writes the
+  port with no motor on it, by name, and the drive still runs) — or, if a DRIVE motor is on 6 or
+  7, Calibrate drops that drive motor (the side calibrates one short) and R1 spins a wheel. (A
+  calibration RECORD that lists 6 or 7 as a drive port — one taken before Calibrate skipped the
+  claws — makes Teleop refuse at boot, "recalibrate", since T3 Part 2.) A wrong CARTRIDGE writes the
   wrong gearset: the volts still reach the motor and the claw still moves; only the motor's speed
   and position scaling — unused by a hold-to-run button, needed by a future angle preset — would be
   off. A wrong SIGN moves the claw opposite to what the driver expects, and is fixed by flipping
@@ -1720,11 +1727,15 @@ Station J is their first run.
   TIMING is **invented**, and none is written here on purpose: nothing may use one until Station J
   measures it.
   *Settle (worksheet Station J):* close one claw against its stop and hold the button for a timed
-  interval, reading the motor's temperature before and after (Teleop's claw row, once it exists);
-  stop well below HA-44's 55 °C first step.
+  interval, reading the motor's temperature before and after (Teleop's claw row, `CLAW 6 HOLD
+  34C | ...`, since T3 Part 2); stop well below HA-44's 55 °C first step. The row shows the
+  motor's LAST GOOD reading — it freezes, unmarked, if the motor stops answering, and reads 20 °C
+  if it never answered (`hal/pros/motor.hpp`'s screen; the motor seam has no validity channel) —
+  so a reading that does not move while the pivot is held means a cable check first.
   *Blast radius if wrong:* a claw that goes weak mid-match as its motor derates, or a motor that
   cuts itself out hot — and shulib would not say why: `MOTOR_OVER_TEMP` watches the drive only.
-  The driver sees a claw that stopped gripping. **Contained:** one mechanism; the drive is not
+  The driver sees a claw that stopped gripping; Teleop's claw row SHOWS each pivot's temperature
+  (T3 Part 2; its last good reading — see the settle text), but nothing acts on it. **Contained:** one mechanism; the drive is not
   affected.
 
 - [ ] **HA-155 — a cable swapped between a claw pivot and a drive motor is invisible to the
@@ -1759,8 +1770,10 @@ Station J is their first run.
   (HA-154).
   *Source:* `src/mechanism_table.hpp` (`safeMode = Hold`, tagged `A4 register HA-156`). The T3
   brief specifies that the library's hold-to-run binding applies the safe state ONCE on release
-  (never re-applied per tick, which could creep the hold point); that binding is written in T3's
-  library half and merged separately — it is not in the tree this entry was written in.
+  (never re-applied per tick, which could creep the hold point); that binding is
+  `teleop::MechanismBinding` (T3 Part 1, `include/shulib/teleop/mechanism_binding.hpp`), and
+  "shulib Teleop" binds both pivots with it since T3 Part 2 — a release is ONE `brake()` under Hold
+  at the PROS shim (`test/teleop_claws_test.cpp` test 1), which says nothing about the load.
   *Confidence:* **invented** — the load, the hold's stiffness and the hold current are all
   unmeasured; the V5's Hold is a position hold whose strength under a claw's load nobody here has
   measured.
@@ -1774,10 +1787,10 @@ Station J is their first run.
 **T3's addendum (E2, the pneumatic claw, 2026-09-26) added HA-159** (its library half, B2, owns
 HA-157 and HA-158). The team lead reported a PNEUMATIC claw the same night: its solenoid on the
 brain's 3-wire port A, toggled by the controller's A button, closed at program start, keeping its
-state when the robot is disabled. `src/mechanism_table.hpp` declares it; nothing in this tree
-drives a 3-wire line yet ("shulib Teleop" does once the addendum's library half is merged), and
-shulib's census cannot show it (it reads the 21 smart ports). Worksheet Station J.9 is its first
-run.
+state when the robot is disabled. `src/mechanism_table.hpp` declares it; "shulib Teleop" drives
+its line since T3 Part 2 (made at the START level when the Robot is built, then A's toggle) — not
+yet on the robot — and shulib's census cannot show it (it reads the 21 smart ports). Worksheet
+Station J.9 is its first run.
 
 **T3's addendum B2 (2026-09-26) added HA-157 and HA-158.** Both are about the brain's own eight
 3-wire ports, which the library first USES here — for robot two's pneumatic claw on port A, toggled
@@ -1884,8 +1897,9 @@ opens it are the program half's entry, from the team lead's report).
   Station J.9's quote change together, in one change.
   *Confidence:* **reported** by the team lead, 2026-09-26 — the PORT only ("port A"). Whether the
   valve is single or double, and the polarity, are **unknown**: the team lead said so, and `true`
-  is a guess recorded as one. Nothing has seen the claw move under a program: no program in this
-  tree drives a 3-wire line, shulib's census reads the 21 smart ports only, and nothing in shulib
+  is a guess recorded as one. Nothing has seen the claw move under a program: the one program that
+  drives its line ("shulib Teleop", since T3 Part 2) has not run on the robot, shulib's census
+  reads the 21 smart ports only, and nothing in shulib
   can ask the brain what is on a 3-wire line (the library half's register entries carry what the
   brain can and cannot report there).
   *Settle (worksheet Station J.9):* J.9.0 — look at the valve: one cable or two into the brain,
@@ -3068,7 +3082,7 @@ Recorded so "exhaustive" is checkable — these were examined and deliberately N
 | `Localizer` `maxDt`/`minDt` (0.1 s / 0.1 ms) | Self-referential policy bounds on *our own* loop, not claims about hardware; the hardware-facing part is HA-32/HA-34. |
 | Cross-libm bit-identity of sim runs | A documented A2 determinism caveat about *host toolchains*, not about the robot; no hardware measurement settles it. |
 | Stochastic truth-side hostility (random per-tick traction) | A3 D10/§3.8: a possible model extension, not an assumption — nothing at M2 needs it; revisit only if R4's data shows slip is noise-dominated (HA-37..39 will say). |
-| Pneumatics/air budget, mechanism-specific constants | No mechanism exists even on paper (F′-phase, build-team-gated); F1's seam will register its own assumptions when authored. |
+| Pneumatics/air budget, mechanism-specific constants | When written, no mechanism existed even on paper (F′-phase, build-team-gated). *(Since T3, 2026-09-26, robot two's claws exist on paper and in "shulib Teleop" — their beliefs ARE registered, HA-153..HA-159 and HA-147; what stays excluded is the AIR budget (how many actuations a tank holds — nobody has stated the tank or the cylinders) and the constants of mechanisms not yet declared, which F3's primitives register when authored.)* |
 | ~~AprilTag camera intrinsics/mount~~ | **No longer excluded — E3 authored the PnP path and registered HA-68…HA-82.** Camera INTRINSICS themselves remain out: `CameraIntrinsics` has no defaults to be wrong about, and R2 obtains them by calibration. The MOUNT is now HA-70. |
 
 ---

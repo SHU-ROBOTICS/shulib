@@ -16,6 +16,55 @@
 
 ## API 2.2
 
+### Changed since 2.2 (2026-09-26, later) — driver control releases a leftover claim; the boot check names declared mechanism motors
+
+> Written when it landed (T3 Part 2 — robot two's claws wired into "shulib Teleop"). **No version
+> bump:** `teleop::runDriverControl`, the mechanism bindings and `calibration::verifyAgainstRegistry`
+> are not in the [Freeze Register](roadmap.md#freeze-register), and every signature that existed
+> still compiles and means what it meant, except the one behaviour change below. **Host test plant
+> only; nothing here has run on a robot.**
+
+**BEHAVIOUR CHANGE (the team lead's ruling, 2026-09-26):**
+
+- **`teleop::runDriverControl` RELEASES a claim still on a bound mechanism when it starts.** An
+  operation autonomous was running when the field ended autonomous never releases its own claim —
+  PROS deletes that task wherever it is — and a binding never commands a claimed mechanism, so the
+  driver was locked out of that mechanism for the whole of driver control ("Added since 2.2 —
+  mechanism buttons in driver control", below, told a program to release it itself). Now the loop
+  does it: after its set check (a refused set still touches nothing) and before the entry safe
+  state and each toggle's `enter()`, every hold
+  binding's and toggle's mechanism that is still claimed is released — the claimant's `cancel()` is
+  NOT called, because it may have lived on the deleted task's stack — and the loop logs one Warn
+  line per release on the chassis's own sink, tag `TEL`: `driver control: RELEASED a claim left on
+  mechanism '<name>' at entry (an operation that outlived its task) -- its buttons work from the
+  first tick`. A claim taken DURING the loop is untouched: the binding still defers to it.
+  **What it moves, for a toggle:** the release comes before the toggle's first `enter()`, so at the
+  FIRST driver-control start the toggle's initial level now goes out even when an operation had
+  the mechanism claimed — a claw an autonomous operation left claimed at the OTHER level moves to
+  the initial level (a claw that starts closed closes) the moment driver control starts, a
+  movement nobody pressed a button for. Before, a claimed claw stayed where the operation left it;
+  an unclaimed one already moved (the toggle's rule since it was added).
+  **Migration:** a program that released the claim itself before the loop may keep doing so (the
+  loop then finds nothing and says nothing) or drop it. A program that starts an operation on a
+  bound mechanism BEFORE calling the loop, meaning to tick it from the per-tick hook, loses that
+  claim at the loop's start: start the operation from the hook instead. The dead operation object
+  still believes it holds the claim, so do not `cancel()` it later — that would safe the mechanism
+  under whoever holds it then. If your autonomous leaves a toggle's mechanism where driver control
+  must find it, state that level as the toggle's initial level — the toggle has no "keep what is
+  there" start.
+
+**ADDITIVE:**
+
+- **`MechanismBinding::releaseLeftoverClaim()` / `releasedLeftoverClaim()`**, and the same pair on
+  **`ToggleBinding`** — what the loop calls at entry, and what a panel reads afterwards ("a claim
+  was released when driver control started").
+- **`calibration::DeclaredMotorPorts`** and a three-argument **`verifyAgainstRegistry(desc,
+  registry, declared)`**: motor ports the PROGRAM declares as mechanism motors, and the words for
+  them. A registry motor on one of them that the description does not list is expected — counted in
+  `BootVerdict::declaredPorts` / `declaredCount` and named in its own clause after the NEW motors
+  (`NEW motors not in the calibration: 14; claw pivots (declared, not drive motors): 6 7`), never
+  as a NEW motor. The two-argument form is unchanged, word for word.
+
 ### Added since 2.2 (2026-09-26) — the competition library: an auton registry, a selector, a runner, abandon, and the start-heading seed
 
 > Written when it was built (chunk COMP-a, the LIBRARY half of the competition program; the
@@ -140,8 +189,9 @@ reason the competition program will run its auton on a task of its own). See the
 > `teleop::runDriverControl` are not in the [Freeze Register](roadmap.md#freeze-register), and
 > neither is `hal::IDeviceProvider`. Some config rules are new and REFUSE configs they used to
 > accept, and the device provider gained a member every implementer must answer — see below.
-> **Everything here is proven on the host test plant only; no program uses it yet, and nothing has
-> moved a mechanism on a robot.** The pneumatic half (the toggle, the provider's 3-wire lines,
+> **Everything here is proven on the host test plant only, and nothing has moved a mechanism on a
+> robot.** (When this was written no program used it; since T3 Part 2, later the same day, "shulib
+> Teleop" drives robot two's claws with it — still not run on a robot.) The pneumatic half (the toggle, the provider's 3-wire lines,
 > pneumatic mechanisms from the config) landed the same day, from T3's addendum.
 
 **ADDITIVE:**
@@ -154,7 +204,9 @@ reason the competition program will run its auton on a task of its own). See the
   through the binding (`makeSafe()`) while a button is held leaves it inert until the driver lets
   go; a mechanism that something else has claimed is never commanded — including one an operation
   left claimed when the end of autonomous deleted its task, so a program whose autonomous commands
-  a bound mechanism releases that claim before driver control.
+  a bound mechanism releases that claim before driver control. *(Superseded later the same day:
+  `runDriverControl` now releases such a claim itself when it starts — "Changed since 2.2 (2026-09-26,
+  later) — driver control releases a leftover claim", above.)*
   `teleop::validBindings(bindings, rezeroButton, why, cap)` checks a whole set (a button used
   twice, a button that is also the re-zero button, a mechanism bound twice) and names the problem;
   `teleop::controllerButtonWord()` prints a button.

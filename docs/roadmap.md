@@ -345,16 +345,19 @@ not silently break them. This table is the spine of the no-staleness promise.
 > driver, the first time the library's own object graph drove the robot; no library-commanded motion
 > has run.
 >
-> **Now (2026-09-26): Next: T3 Part 2 (robot two's claws wired into "shulib Teleop"), then G1
-> Part 2c (`main.cpp` as a dispatcher), then COMP (the competition program)** — the team lead's
-> order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in parallel and merge one at a
-> time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust gate now names the check
-> that fired and its values, so the next one on the robot can be explained. The brake-mode fix has landed (host- and build-gated, not run on a robot): a Brake or Hold
-> the library commands now reaches the V5 motor through PROS's `brake()`, and "shulib Teleop" still
-> COASTS when the sticks are released (his ruling). T3 Part 1 has landed the same way: the library
-> can bind the claw pivots on ports 6 and 7 (R1/R2, L1/L2, holding on release) and the pneumatic
-> claw on controller A, and build them from the robot's config — but no program drives them until
-> Part 2 wires them into Teleop. Still owed from the bench
+> **Now (2026-09-26): Next: G1 Part 2c (`main.cpp` as a dispatcher), then COMP (the competition
+> program)** — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
+> parallel and merge one at a time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust
+> gate now names the check that fired and its values, so the next one on the robot can be explained. The brake-mode fix has landed (host- and build-gated, not run on
+> a robot): a Brake or Hold the library commands now reaches the V5 motor through PROS's `brake()`,
+> and "shulib Teleop" still COASTS when the sticks are released (his ruling). **T3 has landed, both
+> parts, the same way — host- and build-gated, NOT run on a robot:** "shulib Teleop" now drives
+> robot two's claws — R1/R2 the pivot on port 6, L1/L2 the one on port 7 (full power while held,
+> holding on release), A opens and closes the pneumatic claw on 3-wire port A (closed at the
+> start, kept through a disable), and the field-centric re-zero moved to Y. The boot names the
+> pivots as claw pivots (a record that took a claw port as a drive port refuses, "recalibrate"), a
+> missing claw is ABSENT while the drive runs, and the panel's two fault rows became one to make
+> room for a claw row. No claw has moved yet — worksheet Station J is the first sight. Still owed from the bench
 > session: a recorded Calibrate reproduction run (the saved distance scale reads about 8 % short)
 > and the sensor stations. *(R2a landed the same evening, build-gated and not run: Bench Tests'
 > stations 11 DISTANCE and 12 AI VISION — see the R2 row under M1 — so the same bench session can
@@ -1704,12 +1707,22 @@ only the INPUT half is missing.*
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. Since G1 Part 2b (2026-09-26) "shulib Teleop"'s panel shows the state in words (OFF / ON / FELL BACK / LATCHED) and its loop binds the re-zero to button A, with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. Since G1 Part 2b (2026-09-26) "shulib Teleop"'s panel shows the state in words (OFF / ON / FELL BACK / LATCHED) and its loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling) — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.
-- [ ] **Button bindings / driver macros** — bind a button to a mechanism operation (the F1 seam) or a
-  chassis action. The binding mechanism is the library's; which button does what is the team's.
+- [~] **Button bindings / driver macros** *(T3, 2026-09-26 — MECHANISM BUTTONS DONE, host- and
+  build-gated, NOT RUN ON A ROBOT; chassis MACROS not started. Part 1: hold-to-run and toggle
+  bindings in `teleop/mechanism_binding.hpp` and `runDriverControl`'s bindings overloads, with
+  mechanisms built from the config by `robot::Robot`. Part 2: "shulib Teleop" drives robot two's
+  claws with them — R1/R2 the pivot on port 6, L1/L2 the one on port 7 (12 V while held, HOLD on
+  release, both buttons of one pivot ⇒ hold), A toggles the pneumatic claw on 3-wire A (CLOSED at
+  the start, kept through a disable), the field-centric re-zero on Y; a claim an autonomous
+  operation left on a bound mechanism is RELEASED when driver control starts, and logged. The team
+  lead's ruling amends the rule below: stick-interrupt applies to chassis MACROS only — for a
+  mechanism button, releasing the button is the stop, asserted at the motors. No claw has moved;
+  worksheet Station J is the first sight)* — bind a button to a mechanism operation (the F1 seam)
+  or a chassis action. The binding mechanism is the library's; which button does what is the team's.
   **A macro must never take the robot away from its driver**: interruptible by stick input within one
   tick, and releasing the button cancels the operation and safes the mechanism.
 

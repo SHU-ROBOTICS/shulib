@@ -54,3 +54,10 @@ seeded-mode trap); never calling `brake()` → 17 red, 76 assertions.
   `brake()` under Hold re-captures the position), HA-145 (Hold across a disable) stay open; the claws'
   Station J and COMP's first auton stop are where they settle.
 - The library default `DriverLoopConfig::rezeroButton = L1` (a claw pivot's button) — owed with T3/COMP.
+  *(Update, T3 Part 2, 2026-09-26: the default is still L1, and it is now GUARDED rather than moved:
+  `teleop::validBindings()` — `runDriverControl`'s precondition before its first tick, since T3
+  Part 1 — refuses any binding on the loop's re-zero button, so the collision cannot run silently;
+  "shulib Teleop" names Y (the team lead's ruling), `static_assert`-tied to the mechanism table's
+  `kTeleopRezeroButton` and checked against every binding button of both tables at compile time,
+  and validates its set against it in `teleopInitialize()`. COMP inherits the same rule through the
+  same loop. A program with no bindings still gets L1, harmlessly.)*

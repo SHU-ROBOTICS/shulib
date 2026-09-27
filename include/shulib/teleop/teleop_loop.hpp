@@ -54,7 +54,9 @@
 //
 // With MECHANISM BINDINGS (the overload taking a span; chunk T3, teleop/mechanism_binding.hpp),
 // three things are added and nothing above moves: BEFORE tick 1 every binding is reset() and
-// makeSafe()'d (after the same precondition checks, and `validBindings()` is one of them); in step
+// makeSafe()'d (after the same precondition checks, and `validBindings()` is one of them — and,
+// between the two, a claim still on a bound mechanism is RELEASED and said: the team lead's ruling
+// of 2026-09-26, T3 Part 2, below); in step
 // 1 every binding is makeSafe()'d right AFTER chassis.cancel(); and after step 6b's release mode
 // (so after drive()), before step 7's perTick, each binding's two buttons are read — only while
 // connected, a disconnected
@@ -70,6 +72,18 @@
 // a disable, because it must not drop what it holds. `validBindings()` checks both spans as one
 // set. The two-span overload is the body; the one-span and no-span overloads forward to it.
 //
+// A CLAIM LEFT OVER AT ENTRY IS RELEASED (the team lead's ruling, 2026-09-26; T3 Part 2). PROS
+// deletes the autonomous task when the field ends it, so an operation running then keeps its
+// mechanism CLAIMED into driver control — and a binding never commands a claimed mechanism, so the
+// driver would be locked out of it for the whole period. At entry, after the set check and before
+// the entry safe state and enter(), every binding's and toggle's releaseLeftoverClaim() releases a
+// claim still on its mechanism (never calling the claimant's cancel(): it may have lived on the
+// deleted task's stack), and the loop SAYS so: one Warn line per released claim, tag `TEL`, through
+// the chassis's own sink (`chassis.deps().ctx->telemetry()`), and the binding remembers it for a
+// panel (`releasedLeftoverClaim()`). The mechanism is then made safe at entry like any other. A
+// claim taken DURING the loop is not touched: the binding still defers to it. The cost of the
+// ruling is stated in mechanism_binding.hpp (an operation started before entry loses its claim).
+//
 // No buffer, no queue, no "apply next tick": a stick step read at tick k is in the commanded
 // volts of tick k (pinned through the host plant). PERCEIVED latency is not claimed — real
 // input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
@@ -83,6 +97,7 @@
 // PROS-free, sim-free, allocation-free.
 
 #include <cmath>
+#include <cstdio>
 #include <span>
 #include <utility>
 
@@ -90,6 +105,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/math/frame.hpp"
 #include "shulib/math/twist2d.hpp"
 #include "shulib/motion/motion_config.hpp"
@@ -164,14 +180,18 @@ struct HeadingSample {
 /// * `bindings` — the driver's mechanism buttons (chunk T3), each ticked after `drive()` with its
 ///   two buttons read only while connected. PRECONDITION, checked before the first tick:
 ///   `validBindings(bindings, cfg.rezeroButton)` — no null, no button used twice, none equal to
-///   the re-zero button, no mechanism bound twice. Every binding is `reset()` and `makeSafe()`'d
-///   before the first tick, and `makeSafe()`'d again on the disable. BORROWED for the call; for a
+///   the re-zero button, no mechanism bound twice. A claim still on a bound mechanism at entry is
+///   RELEASED (`releaseLeftoverClaim()`) and logged — one Warn line each, tag `TEL`, on the
+///   chassis's sink (the team lead's ruling, 2026-09-26). Every binding is `reset()` and
+///   `makeSafe()`'d before the first tick, and `makeSafe()`'d again on the disable. BORROWED for the call; for a
 ///   PROS program the bindings (and their mechanisms and motors) live in static storage, because a
 ///   field disable deletes the task. The overload without this argument passes an empty span.
 /// * `toggles` — the driver's TOGGLE buttons (addendum B2: one button flipping one pneumatic
 ///   mechanism per press), ticked after the hold bindings with their buttons read only while
-///   connected. Every toggle is `enter()`'d before the first tick (its initial level, once in its
-///   life) and is NOT touched on the disable: the claw keeps its level. Checked with `bindings` as
+///   connected. A claim still on a toggle's mechanism at entry is released and logged, as for
+///   `bindings`, BEFORE its `enter()`. Every toggle is `enter()`'d before the first tick (its
+///   initial level, once in its life) and is NOT touched on the disable: the claw keeps its level.
+///   Checked with `bindings` as
 ///   ONE set by the same precondition, `validBindings(bindings, toggles, cfg.rezeroButton)`.
 ///   BORROWED, static storage on a brain, exactly as `bindings`. The overloads without this
 ///   argument pass an empty span.
@@ -196,6 +216,27 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
     SHULIB_PRECONDITION(
         validBindings(bindings, toggles, cfg.rezeroButton, bindingWhy, sizeof bindingWhy),
         bindingWhy);
+    // A claim still on a bound mechanism at entry is RELEASED, and said (the team lead's ruling,
+    // 2026-09-26): a claim left by a deleted autonomous task must never lock the driver out. After
+    // the set check (a refused set touches nothing), before the entry safe state below.
+    const auto sayReleased = [&chassis](const char* mechanismName) {
+        char line[192];
+        std::snprintf(line, sizeof line,
+                      "driver control: RELEASED a claim left on mechanism '%s' at entry (an "
+                      "operation that outlived its task) -- its buttons work from the first tick",
+                      mechanismName);
+        chassis.deps().ctx->telemetry().log(hal::LogLevel::Warn, "TEL", line);
+    };
+    for (MechanismBinding* binding : bindings) {
+        if (binding->releaseLeftoverClaim()) {
+            sayReleased(binding->mechanism().name());
+        }
+    }
+    for (ToggleBinding* toggle : toggles) {
+        if (toggle->releaseLeftoverClaim()) {
+            sayReleased(toggle->mechanism().name());
+        }
+    }
     // Bindings, before tick 1: every one starts from nothing, in its declared safe state.
     for (MechanismBinding* binding : bindings) {
         binding->reset();

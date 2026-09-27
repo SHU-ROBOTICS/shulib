@@ -45,8 +45,10 @@ BootOutcome decideBootSource(const char* tag) {
     char missing[160] = "";
     (void)describeMissingForDescription(kChassis, missing, sizeof missing);
 
+    // kMechanisms (src/mechanism_table.hpp, through boot_source.hpp): robot two's claws in the
+    // ROBOT=tank builds, none elsewhere — converted into the config here (T3 Part 2).
     BootOutcome out = decideBootSourceFrom(
-        record, registry, fromTable, missing, kChassis.robot,
+        record, registry, fromTable, missing, kMechanisms, kChassis.robot,
         [tag](const char* line) { std::printf("[%s] %s\n", tag, line); });
     std::fflush(stdout);
     return out;

@@ -2542,3 +2542,900 @@ entry, the claw panel row, Station J's `<<FROM TELEOP AT MERGE>>` markers, and e
 says the re-zero is A. **Open for the team lead after Station J.9.5:** a reconnect settle window for
 the toggle (B2's finding 1 — flagged, not built). **Recommended, not done:** an AddressSanitizer CI job
 (B2's finding 4; ~9 s of suite time). **Nothing of T3 has run on a robot.**
+
+---
+
+## Part 2: Teleop wiring (worktree `t3-part2`, 2026-09-26)
+
+> **Brief:** `docs/internal/chunks/T3-part2-teleop-wiring.md` (read in full, with the T3 brief, its
+> addendum and every earlier section of this log). **Tree at start:** `cc513a7` on branch `t3-part2`
+> (a git worktree), clean. **Executor model:** opus. **Started:** Sat Sep 26 01:33 PM EDT 2026.
+> **Rules:** do not commit, do not push, no `pros`, nothing on `/dev/ttyACM*`; edit only this
+> worktree; nothing in `src/main.cpp`, and nothing about how `src/mechanism_table.hpp` or
+> `src/chassis_table.hpp` choose the robot (G1 Part 2c's final run owns those); "host test plant",
+> never the other word; ASCII only in runtime strings; only a literal `"%s"` reaches a screen print.
+> HA numbers, if needed: HA-148 or HA-149 only. The team lead's rulings for this run: R1/R2 drive
+> port 6, L1/L2 port 7, 12 V, HOLD on release, both buttons of one pivot held => hold; A toggles the
+> pneumatic claw, starts CLOSED, keeps its state on a disable; the re-zero button moves A -> Y; a
+> claim left by a deleted autonomous task is RELEASED by `runDriverControl` at loop entry, and said so.
+
+Appended in real time. **Nothing in this section has run on a robot.**
+
+### P2.1 Log created; reading
+Read in full: the Part 2 brief, the T3 brief, its addendum, this whole log (both halves, both
+reviews, the coordinator's merge record), `RESUMING.md`. Code read: `src/teleop_program.cpp` (all),
+`src/boot_source.{hpp,cpp}`, `src/mechanism_table.hpp`, `src/chassis_table.hpp` (the parts the
+boot uses), `teleop/mechanism_binding.hpp`, `teleop/teleop_loop.hpp`, `robot/robot.hpp`'s
+MECHANISMS section and slot storage, `config/robot_config.hpp`'s `MechanismConfig` /
+`SafeBrakeMode` / `PneumaticLevel`, `hal/mechanism.hpp` (claim token, both mechanism types),
+`calibration/boot_check.hpp`, `core/check.hpp`, the PROS shim's motors / rtos / misc,
+`hal/pros/tick_pacer.hpp`, `test/boot_source_test.cpp` (fixtures and 6k-6r),
+`test/mechanism_binding_test.cpp` (the loop rig, L4-L12), `test/pros_device_provider_test.cpp`
+(1k, 1l, 1m), worksheet Stations F and J.
+
+**Baseline (this worktree, fresh `build/test`, before any edit but this log):** `1533 cases /
+2,393,888 assertions, 3 skipped — SUCCESS` — the coordinator's merged number, so the worktree is
+the tree the brief was written against.
+
+### P2.2 The design, before any code (each with the alternative rejected)
+
+1. **The conversion lives in `src/boot_source.hpp`'s pure core** — `bootConfigFrom()` and
+   `decideBootSourceFrom()` gain the mechanism table as an EXPLICIT parameter (no default: a caller
+   that forgot it would silently build a claw-less robot). Config order is the table's: the motor
+   entries in table order, then the pneumatic ones — so `robot.mechanismAt(i)` is motor entry `i`
+   and `robot.pneumaticMechanismAt(motorCount + j)` is pneumatic entry `j`. Every field converted:
+   name (copied whole — a name that does not fit `MechanismConfig::name` is REFUSED, never
+   truncated), `motorPorts[0] = signedPort` / `motorCount = 1`, the cartridge (table enum ->
+   `hal::MotorCartridge`, Unset -> the refused byte 0), the safe mode (`hal::BrakeMode` ->
+   `config::SafeBrakeMode`), `pneumaticPorts[0] = adiLine` / `pneumaticCount = 1`, START and SAFE
+   as LEVELS from `pneumaticStartCommand(e)` / `pneumaticSafeCommand(e)`. Buttons and volts are not
+   config fields; they go to the bindings, from the same table entry. Rejected: a converter in
+   `mechanism_table.hpp` (it would make the PROS-free table include the library's config and the
+   robot builder), and a default `= kNoMechanisms` (hides the question the brief asks).
+2. **The drive-port collision refusal is a BOOT decision** (`decideBootSourceFrom`, after the source
+   is chosen, before anything is built): a declared mechanism motor port that the chosen description
+   lists as a drive port refuses the boot by name. Rejected: leaving it to `RobotConfig::valid()` —
+   it refuses too, but its words ("port 6 is claimed by the LEFT drive and by a mechanism motor")
+   do not say what to DO; the brief's words do ("recalibrate").
+3. **The boot check names declared claw ports** — a LIBRARY change, additive:
+   `calibration::verifyAgainstRegistry(desc, registry, declared)` with
+   `DeclaredMotorPorts{ports, label}`; a registry MOTOR on a declared port that the description
+   does not list is counted in its own class and named with the caller's label ("claw pivots"),
+   never as a NEW motor. The two-argument form forwards with no declared ports, and its prose is
+   byte-identical (every existing pinned sentence stays). Rejected: post-editing the verdict's
+   `reason` string in the program (fragile), and a registry wrapper that hides ports 6/7 (it would
+   lie about the brain).
+4. **A new PROS-free header, `src/teleop_claws.hpp`**, host-tested: the bindings' static storage
+   and their construction from the table over a built `robot::Robot` (validated as one set), the
+   claws' boot lines, the banner's claw sentence, the claw panel row, the controller's absent word,
+   and the MERGED fault row (ruling R3 — the change that made room for the claw row). Everything
+   the worksheet quotes is produced here, so a host test can pin it word for word;
+   `src/teleop_program.cpp` (which the host cannot compile: no screen shim) only calls it.
+   Rejected: all of it inside `teleop_program.cpp` (untestable text and logic).
+5. **An absent mechanism has NO binding** — its buttons do nothing (the brief's "inert"); the
+   binding set handed to the loop holds only built mechanisms. Rejected: a binding over a stand-in
+   mechanism (a fake motor on the brain would be a lie in the panel's temperature).
+6. **The claim ruling in the library loop:** after the `validBindings` precondition (a refused set
+   still touches nothing) and BEFORE the entry safe state / `enter()`, each binding's NEW
+   `releaseLeftoverClaim()` releases a claim still on its mechanism (never the claimant's
+   `cancel()` — it may have lived on the deleted task's stack) and remembers it
+   (`releasedLeftoverClaim()`, for a panel); the loop writes ONE Warn line per released claim
+   through the chassis's own sink (`chassis.deps().ctx->telemetry()`, tag `TEL`), so no new loop
+   parameter is needed and no program can forget to pass a sink. Hold AND toggle bindings (B2.11
+   item 7: the same gap). A claim taken DURING the loop is still never commanded (unchanged).
+   Rejected: a sink field in `DriverLoopConfig` (a nullptr default would let a program be silent);
+   releasing inside `reset()`/`enter()` (a binding used outside the loop must keep the old rule).
+7. **The panel:** the two fault rows become one — `faults: none`, or `FAULT n=<n> first <A> last
+   <B>` when it fits the 50-character SMALL budget, else `FAULT n=<n> last <B>` (the latest is the
+   one to act on; serial has both) — and the freed row is the claw row, `CLAW 6 HOLD 34C | 7 HOLD
+   33C | CLAW CLOSED`, with ` FREED` at its end (amber) while a claim released at this entry is
+   remembered. A pivot's word is what its motor was last COMMANDED (`FWD` > 0 V, `REV` < 0 V, else
+   its declared safe mode's word, `HOLD`), not the binding's state — so an operation driving it
+   would show too. Worst-case lengths checked at compile time for the build's table.
+8. **The re-zero:** `kRezeroButton = Y`, `static_assert(kRezeroButton ==
+   bench::kTeleopRezeroButton)`, and the shoulder-button assert extended by
+   `mechanismButtonsAvoid(kMechanisms, kRezeroButton)` (never a binding button).
+
+### P2.3 The code, written; the suite green
+
+- **Library** (`include/shulib/`): `teleop/mechanism_binding.hpp` — `releaseLeftoverClaim()` /
+  `releasedLeftoverClaim()` on both binding kinds; the header's "THE GAP THIS LEAVES" paragraph
+  replaced by the ruling (what it releases, how it says so, what it costs). `teleop/teleop_loop.hpp`
+  — the entry block (after the `validBindings` precondition, before `reset()`/`makeSafe()` and
+  `enter()`): each binding's and toggle's leftover claim released and one Warn line per claim on
+  `chassis.deps().ctx->telemetry()`, tag `TEL`; banner and function-doc bullets.
+  `calibration/boot_check.hpp` — `DeclaredMotorPorts`, the three-argument `verifyAgainstRegistry()`
+  (the two-argument form forwards), `BootVerdict::declaredPorts/declaredCount`. The NEW-motors
+  clause is printed with precision 110 — `-Wformat-truncation` in the host build refused the first
+  version (a 191-byte `%s` into a 320-byte reason); the arithmetic that it never cuts is in the
+  comment.
+- **Program** (`src/`): `boot_source.hpp` (the conversion, `mechanismTableProblem()`, the declared
+  ports, the collision refusal; the table passed explicitly), `boot_source.cpp` (passes
+  `kMechanisms`), NEW `teleop_claws.hpp` (`TeleopClaws` + every word), `teleop_program.cpp` (Y, the
+  two static_asserts, `TeleopClaws` in `TeleopState`, bound inside the try with `unbind()` in the
+  catch, the banner's claw sentence, one boot line per claw, the merged fault row, the claw row, the
+  LCD's `CLAW ABSENT`, the bindings overload, the exit line), `teleop_program.hpp` (docs),
+  `mechanism_table.hpp` (comments only: `kTeleopRezeroButton`'s doc now says TIED and where; "WHO
+  READS IT" names Teleop). `kRunStatus` gained a sentence (the claws have never been driven), which
+  made it 422 bytes: the src gate's `-Wformat-truncation` caught `status[400]` — now 480.
+- **Tests:** `mechanism_binding_test.cpp` — L10 REWRITTEN to the ruling (it pinned the gap), L13
+  (a claim taken during the loop), B10b (the binding half), L11 extended (a refused set releases no
+  claim), `ClawLoop` now carries a `FakeTelemetrySink` on its chassis; `toggle_binding_test.cpp` —
+  T5b, TL6, TL5 extended; `boot_check_test.cpp` — 6f'; `boot_source_test.cpp` — 6s-6v, `runBoot`
+  takes the table (default none), the G1 2b cases pass `kNoMechanisms` explicitly; NEW
+  `teleop_claws_test.cpp` — test 1 (the pivots through the shim, the REAL table), 1b-1j.
+- Suite after: **1552 cases / 2,396,838 assertions, 3 skipped — SUCCESS** (baseline 1533 /
+  2,393,888; +19 cases). Noted: `teleop_claws_test.cpp`'s runs go through the REAL provider, whose
+  sink is a `TermSink` on stdout, so the suite now prints ~300 `[LOC]` lines while those cases run
+  — the robot's own per-tick telemetry, harmless, not muted (muting it would need a provider seam
+  the brief does not own).
+- `src_build_gate.py check`: PASS, all six builds (6/6 TUs), 0 disallowed — after the `status[480]`
+  fix.
+
+### P2.4 RESUMED AFTER THE POWER LOSS (a second executor run, opus, started 20:22 EDT)
+
+The machine lost power during the first run; nothing was committed and `/tmp` was wiped by the
+reboot. This run read this log to its end, `git status` / `git diff` of the worktree (24 files
+modified, `src/teleop_claws.hpp` and `test/teleop_claws_test.cpp` untracked), and — the one record
+that survived — the first run's own session transcript (`~/.claude/projects/…/subagents/workflows/
+wf_399b7be9-2da/agent-a07d87ee11490fa81.jsonl`), before touching anything.
+
+**Where the first run really stopped.** Its last tool call was at **14:20:36 EDT** (reading the end
+of Station J's send-back list), and it never returned: the transcript records it as a permission
+request that was aborted when the session died. Everything between P2.3 (14:11) and that call is
+NOT in this log, so it is listed here from the transcript and the tree:
+- tests added after P2.3: `teleop_claws_test.cpp` **1k** (each toggle's initial level is the
+  config's START level, with start != safe and both polarities) and **1l** ("shulib Teleop"'s
+  wiring, read from its source) — the suite went 1552 → **1554** cases;
+- documentation: `docs/cookbook/06-driver-control.md`, `docs/guide/10-the-api.md`, `11`, `14`,
+  `docs/changelog.md` (a "Changed since 2.2" section: the claim ruling's behaviour change and the
+  boot check's declared ports), worksheet Station F (the one fault row, the claw row, the LCD's
+  `CLAW ABSENT`) and Station J (every `<<FROM TELEOP AT MERGE>>` replaced by a quote from the code);
+- **a mutation battery, launched at 14:18 in the background** — a harness (`harness.py`: exact-once
+  replacements, `touch test/*.cpp`, the `/fast` target, the `Linking CXX executable shulib_tests`
+  line required, the whole suite, restore, SHA-256 compared) over **56 mutants** (`mutants.py`),
+  both under `/tmp`. Both files were recovered verbatim from the transcript into
+  `.claude/coordinator/scratch/t3p2/prev_{harness,mutants}.py`. Only its first three verdicts reached
+  the transcript (B1 swap R1/R2 RED 6 cases; B2a drop the hold release RED 3; B2b drop the toggle
+  release RED 2); the rest were written to `/tmp` and are GONE — none is claimed here.
+
+**Was a mutation left applied?** The battery's harness restored each file after each mutant, and
+the power loss could have caught one mid-run. Checked, not assumed:
+1. **The file times** match the battery's order to its LAST mutant: `robot.hpp` 14:21:34 (B6),
+   `teleop_loop.hpp` 14:23:30 (L1–L5), `mechanism_binding.hpp` 14:26:12 (L6–L12), `boot_check.hpp`
+   14:27:40 (K1–K4), `boot_source.hpp` 14:31:35 (S1–S11), `teleop_claws.hpp` 17:01:51 (C1–C16),
+   `teleop_program.cpp` 17:03:22 (P1–P3), `boot_source.cpp` 17:03:52 (P4, the last). (Why C1–C16
+   took until 17:01 is not known — the machine may have slept; it does not change the check below.)
+2. **Every one of the 56 mutants' anchors** is in the tree EXACTLY ONCE and no mutant's replacement
+   text is present (a script over `prev_mutants.py`, 20:27): `56 mutants; suspects: 0`.
+3. `include/shulib/robot/robot.hpp` (B6's file, the only battery file outside this chunk's diff) is
+   byte-identical to `HEAD` (`git diff --quiet`).
+4. **Every source change was read against P2.2/P2.3** (the whole `git diff` of `include/`, `src/`
+   and `test/`, and both new files): each matches what the log says was built; nothing unexplained.
+5. **The suite on a fresh full build** (the doc gates regenerated first; `touch test/*.cpp`; the
+   Linking line seen): **1554 cases | 1554 passed | 0 failed | 3 skipped; 2,396,871 assertions**.
+
+**Verdict: no mutation was left in the tree; the code is the first run's intended code.** This run
+continues from where the transcript stops: the rest of §1 item 7's documents, the battery again on
+the FINAL code (its evidence kept under `.claude/coordinator/scratch/t3p2/`, never `/tmp`), the
+prose review, and the gates.
+
+### P2.5 This run's changes to code and tests (20:27–20:35), then the battery launched
+
+**Comments only, in `src/mechanism_table.hpp`** (stale since the wiring; no value moved):
+`pneumaticStartCommand()`'s doc said "what the coordinator hands the library ... at merge" — now it
+names BOTH its users (the config's `pneumaticStart` in `src/boot_source.hpp`, and the toggle's
+initial level in `src/teleop_claws.hpp`); `pneumaticSafeCommand()`'s "at merge" likewise; robot
+two's doc block said "no program in this tree drives a 3-wire line" (Teleop does now — not run on
+the robot) and "nothing in shulib watches a mechanism motor's temperature yet" (Teleop's claw row
+SHOWS it now; nothing ACTS on it — both said). `test/mechanism_table_test.cpp`: one comment's
+"the coordinator's merge step" → where the tie now sits.
+
+**Tests strengthened — each one kills a mutant this run added (run 2 below):**
+- `teleop_claws_test.cpp` **1h** — FREED from EACH kind alone (a released claim on only pivot 7,
+  then on only the claw): the first run's case claimed a pivot AND the claw at once, so a panel
+  that read only one kind passed it (C17 / C18). Also: that release fired nothing at the claw.
+- **1k** — the claw row for a table robot two's cannot imitate: `CLAW 9 BRAKE 0C | CLAMP CLOSED |
+  WING OPEN` (a stopped mechanism's OWN mode, not a hard-coded HOLD — C19; a LOW-opens polarity
+  read right — C10 again, from the other side).
+- NEW **1m** — `bind()` with a 13 V entry THROWS `PreconditionError` (why Teleop binds inside its
+  boot boundary's try), leaves pivot 6 bound (bind() does not clean up after a throw), and the
+  catch's `unbind()` leaves nothing — the contract `teleop_program.cpp`'s catch relies on.
+- `boot_source_test.cpp` **6u** — a pivot FLIPPED in the table (`-6`, Station J's fix for a claw
+  that moves the wrong way) is still declared port 6 to the port check, and converts as `-6`
+  (S14); **6v** — the flipped pivot still collides with a record's drive port 6 (S15).
+
+Suite: **1555 cases | 1555 passed | 0 failed | 3 skipped; 2,396,896 assertions** (from 1554 /
+2,396,871: +1 case, +25 assertions), `/fast` after `touch test/*.cpp`, the Linking line seen.
+
+**The battery, run 2 (launched 20:35, background):** `.claude/coordinator/scratch/t3p2/
+harness.py` (the first run's harness, byte for byte) over `mutants.py` = the first run's 56
+(`prev_mutants.py`) + 10 new (B4c the TABLE's claw started open; S12 Brake converted as Hold; S13
+every level inverted; S14 the declared ports keep their sign; S15 the collision on the signed
+port; C17 / C18 FREED blind to a kind; C19 the stop word hard-coded; L14 / L15 a claim released
+every tick instead of only at entry). All 66 anchors checked present exactly once before the
+launch. Output: `run2.jsonl` beside it. No file under `include/`, `src/` or `test/` is edited
+while it runs (the harness restores by rewriting the whole file).
+
+### P2.6 The rest of §1 item 7's documents (20:36–20:50, while the battery ran)
+
+What the first run had already written was re-read against the code before anything was added:
+the Station J quotes (J.3.1 BUILT/ABSENT lines, the port-check clause, the collision refusal;
+J.3.2 banner; J.3.3 row; J.4.6; J.7.1; J.9.1; J.9.3) against `src/teleop_claws.hpp`, the
+`[R3B]` / `[WARN][R3B]` prefixes against `diag/term_sink.hpp`'s `log()` (Info carries no level
+tag), the 196-column wrap against `kLogPieceCols`, "the row repaints at most five times a second"
+against `kPanelEveryTicks = 20`, and J.7.1's "Teleop prints NO serial line when the controller
+drops" against `teleop_loop.hpp` (its one `log()` is the claim release), `teleop_program.cpp`
+(`connected` reaches only the panel and the LCD) and `hal/pros/controller.hpp` (no log) — all true.
+The re-zero line's end, `re-zero button Y; field-centric: OFF (selectable)`, against `kDriverLine`
++ `buttonWord(kRezeroButton)`. Station F never named the re-zero button (grep of F, and of F at
+`cc513a7`): nothing to move A → Y there; its fault rows (the table, the LCD) were done by the first
+run.
+
+Written by this run:
+- **Station G** (`R3a-BENCH-WORKSHEET.md` ~:834): its `NEW motors not in the calibration: 14`
+  quote now says the line goes on `; claw pivots (declared, not drive motors): 6 7` with the claw
+  motors plugged in (a reader at G, before J, would otherwise log it as a finding).
+- **`build-order.md`:** the first `Next:` is now G1 Part 2c, then COMP; a "T3 PART 2 LANDED"
+  sentence ahead of Part 1's (which no longer says Part 2 is next); T3's status line (both parts
+  in, **chassis macros still open**, this entry's DoD theirs); T2's status line (re-zero A → Y);
+  a deviations row for the claim ruling (with the alternatives rejected).
+- **`roadmap.md`:** "Now" (next: 2c, then COMP; T3 landed, both parts, not run); the
+  field-centric row (re-zero A → Y); the "Button bindings / driver macros" row `[ ]` → `[~]`
+  (mechanism buttons done host/build-gated; macros not started — Part 1 had left it `[ ]`).
+- **`HANDOFF-remaining-work.md`:** robot one's paragraph (Calibrate takes every motor EXCEPT a
+  declared mechanism port); L5 (done for the claws; the stick rule amended; the claim ruling; still
+  open: macros, presets; the re-zero default GUARDED by `validBindings()`, Teleop on Y — replacing
+  the "owed ... names A" paragraph); L9 (the named-mechanism lookup DONE at T3 Part 1 — it still
+  said Robot builds no mechanism); Q1 (answered in part for robot two, the pneumatic claw
+  included); §7 (DEFECTS2 and T3 landed; next 2c, then COMP).
+- **`DEFECTS2-COMPLETED.md`:** its last NOT-done bullet (the L1 default) — what guards it now.
+- **`hardware-assumptions.md`:** no new entry (HA-148..HA-152 stay unused); the status paragraph
+  says so; HA-153 (Teleop builds/binds/names the pivots; a record listing 6/7 as drive refuses),
+  HA-154 (the claw row now exists and SHOWS the temperature; nothing acts on it), HA-156 (its
+  "binding not in the tree" sentence), HA-159 and the addendum paragraph ("no program drives a
+  3-wire line" — Teleop does, not on the robot), the T3 intro ("drives them once Part 2 lands"),
+  and the "not registered" table's pneumatics row (the claws' beliefs ARE registered now; the air
+  budget is still not).
+- **`README.md`** (the layout's `src/` line) and **`docs/guide/07-getting-set-up.md`** (the `src/`
+  file list): Teleop's claw wiring and robot two's mechanism table named.
+- Checked, NOT changed: `include/shulib/teleop/teleop_loop.hpp`'s `DriverLoopConfig` comment (the
+  brief's "~:90": it no longer says A — "a program should still name its button, and 'shulib
+  Teleop' does"); the COMP brief (`:89` already says T3 frees leftover claims; `:92` already says
+  Y); `docs/vexbuilder-integration.md` (Part 2 changes no schema); guide 12 / 13 and the master
+  plan (no Teleop, claw or claim-at-entry text); HANDOFF L1's "2c waits ... after DEFECTS2 and T3"
+  (2c's line — its final run, in another worktree, owns it).
+
+### P2.7 Prose review (the greps run and their hits read BEFORE this entry)
+
+1. `grep -rn -i "re-zero\|rezero"` over `docs/ README.md include/ src/` (all `.md`, then the
+   headers separately), minus generated `docs/api/`, PROGRESS logs and transcripts — every hit
+   read. Stale ones fixed: roadmap `:1693`, build-order `:1409`, HANDOFF `:395-396`,
+   DEFECTS2-COMPLETED `:56`. The rest are the loop's generic re-zero, library tests that use A as
+   an arbitrary re-zero in their own rigs, the cookbook's L1/A/Y examples (compiled, correct), and
+   history in briefs.
+2. `grep -rn -i` for the changed files' names and concepts — `verifyAgainstRegistry`, `NEW motors`,
+   `bootConfigFrom`, `decideBootSourceFrom`, `boot_source`, `teleop_claws`, `mechanism_table`,
+   `kTeleopRezeroButton`, `kRezeroButton`, `releaseLeftoverClaim`, `releasedLeftoverClaim`,
+   `DeclaredMotorPorts`, `fault rows`, `no mechanism(s)`, `builds no mechanism` — 54 hits
+   (`scratch/t3p2/prose_grep1.txt`), each read: fixed the register's T3 intro (`:1626`) and its
+   pneumatics exclusion row (`:2954`); the rest are current or history.
+3. `grep -rn -i "claw\|interruptible\|MechanismConfig\|\bbinding"` over the public docs, README,
+   HANDOFF, RESUMING and build-order — 302 hits (`prose_grep2.txt`), filtered for tense words
+   (not yet / until / once ... lands / no program / owed / later) and those read: nothing stale left
+   (the cookbook's and guide 10's "until" are the binding's inert rule).
+4. `grep -rn "shulib Teleop\|Teleop"` over README and the public docs (minus register, changelog,
+   roadmap, done above) — README `:244-248`, `:282`; faq `:204`; guide 07 `:124-126`, 08 `:310`, 10,
+   14; vexbuilder-integration `:64` — read: README `:282` and guide 07 `:126` updated (the `src/`
+   lists); the rest true.
+5. `grep -rn "MechanismBinding\|ToggleBinding\|runDriverControl\|claimed()\|\bclaim\b"` over README
+   and public docs — the cookbook, guide 10/11/12/13/14 hits read: the claim-at-entry rule is stated
+   the same way everywhere it appears (cookbook 06, guide 10, guide 11's Warn line, changelog);
+   guide 12's `anonymous claim force-released` is RunGuard's, unrelated.
+6. Source comments: `grep -rn -i` for "until part 2 / no program drives / not yet / at merge /
+   FROM TELEOP / coordinator.*merge" over `include/ src/ test/` — fixed `mechanism_table.hpp`
+   (`pneumaticStartCommand`/`pneumaticSafeCommand`'s "at merge", robot two's "no program in this
+   tree drives a 3-wire line" and "nothing ... watches a mechanism motor's temperature") and one
+   test comment (P2.5). Every other hit is unrelated ("not yet" of other subsystems).
+7. The C7 removability grep on public docs (`internal/`, `chunks/`, `RESUMING`, `build-order`) is
+   run with the gates (P2.9). "Station J" in public prose has a precedent in the register's settle
+   lines, and names no path.
+
+### P2.8 The mutation battery, run 2 — 66 mutants, every one RED on a fresh binary (20:35–21:00)
+
+Run on the FINAL code (no file under `include/`, `src/` or `test/` changed after 20:35 — the last
+edits were P2.5's). Each mutant: exact-once replacement (anchor checked), `touch test/*.cpp`,
+`cmake --build build/test --target shulib_tests/fast -j8` with the `Linking CXX executable
+shulib_tests` line REQUIRED, the WHOLE suite, then the file restored by rewriting its saved text.
+Harness end lines: `{"hashes_ok": true}` (every mutated file's SHA-256 equal before and after the
+battery) and `{"final_relink": true, "rc": 0}`; afterwards all 66 anchors were re-found exactly
+once and `robot.hpp` still equals `HEAD`. Evidence: `.claude/coordinator/scratch/t3p2/run2.jsonl`
+(one JSON line per mutant: verdict, doctest summary, failing cases), `harness.py`, `mutants.py`,
+`prev_mutants.py`, `mutation_table.md`. **Result: 66 of 66 RED, none survived, none failed to
+compile.** Per-mutant build + suite: 19–28 s.
+
+The brief's six (§1 item 6) are B1–B6 plus B4c: swap R1/R2 (B1); drop the claim release (B2a hold
+bindings, B2b toggles); convert a pivot with Coast (B3); start the claw open (B4a the config's start
+level, B4b the toggle's initial level, B4c the TABLE's start position); hand the library the claw's
+POSITION instead of its level (B5a) or the safe level as the start (B5b); construct the 3-wire
+output at the opposite level before setting the start (B6, in `robot.hpp`'s builder — caught by
+Part 1's `pros_device_provider_test.cpp` 1m and this part's test 1c).
+
+The five this run added a test for (P2.5) — **C17, C18, C19, S14, S15** — are RED only because of
+those tests; that each would have SURVIVED the first run's tests is REASONED from what those tests
+checked (1h claimed a pivot and the claw together; no row test used a non-Hold mechanism; 6u/6v
+used only `+6`/`+7`), not run — the old tests no longer exist to run them against.
+
+| # | Mutant | File | What it breaks | Verdict | Failing cases | First failing case |
+|---|---|---|---|---|---|---|
+| 1 | `B1-swapR1R2` | `src/teleop_claws.hpp` | the brief: swap R1/R2 in the wiring | **RED** | 6 | T3 P2 test 1 |
+| 2 | `B2a-noHoldRelease` | `include/shulib/teleop/teleop_loop.hpp` | the brief: drop the claim release (hold bindings) | **RED** | 3 | T3 L10 |
+| 3 | `B2b-noToggleRelease` | `include/shulib/teleop/teleop_loop.hpp` | the brief: drop the claim release (toggles) | **RED** | 2 | T3 P2 test 1h |
+| 4 | `B3-pivotCoast` | `src/boot_source.hpp` | the brief: convert a pivot with Coast | **RED** | 6 | T3 P2 test 6s |
+| 5 | `B4a-startOpenConfig` | `src/boot_source.hpp` | the brief: start the claw open (the config start level) | **RED** | 4 | T3 P2 test 6s |
+| 6 | `B4b-startOpenToggle` | `src/teleop_claws.hpp` | the brief: start the claw open (the toggle initial level) | **RED** | 5 | T3 P2 test 1c |
+| 7 | `B5a-positionAsLevel` | `src/boot_source.hpp` | the brief: the claw POSITION handed over instead of its level | **RED** | 2 | T3 P2 test 6s |
+| 8 | `B5b-safeAsStart` | `src/boot_source.hpp` | the brief: the SAFE level handed over as the start | **RED** | 2 | T3 P2 test 6s |
+| 9 | `B6-oppositeThenStart` | `include/shulib/robot/robot.hpp` | the brief: the 3-wire output constructed at the opposite level, then set to the start | **RED** | 5 | ProsDeviceProvider 1m |
+| 10 | `L1-releaseBeforeCheck` | `include/shulib/teleop/teleop_loop.hpp` | claims released BEFORE the set check | **RED** | 6 | T3 L10 |
+| 11 | `L2-holdReleaseAfterSafe` | `include/shulib/teleop/teleop_loop.hpp` | hold release AFTER the entry safe state | **RED** | 2 | T3 L10 |
+| 12 | `L3-toggleReleaseAfterEnter` | `include/shulib/teleop/teleop_loop.hpp` | toggle release AFTER enter() | **RED** | 2 | T3 P2 test 1h |
+| 13 | `L4-notSaid` | `include/shulib/teleop/teleop_loop.hpp` | the release is not logged | **RED** | 3 | T3 L10 |
+| 14 | `L5-saidAsInfo` | `include/shulib/teleop/teleop_loop.hpp` | logged at Info, not Warn | **RED** | 3 | T3 L10 |
+| 15 | `L6-holdFlagNeverSet` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the panel flag never set | **RED** | 3 | T3 B10b |
+| 16 | `L7-holdCallsClaimant` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the dead claimant's cancel() called | **RED** | 2 | T3 B10b |
+| 17 | `L8-holdFlagSticky` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the flag never clears | **RED** | 3 | T3 B10b |
+| 18 | `L9-holdReleaseSafes` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the release also commands the safe state | **RED** | 2 | T3 B10b |
+| 19 | `L10-toggleFlagNeverSet` | `include/shulib/teleop/mechanism_binding.hpp` | toggle: the panel flag never set | **RED** | 3 | T3 P2 test 1h |
+| 20 | `L11-toggleReleaseFires` | `include/shulib/teleop/mechanism_binding.hpp` | toggle: the release fires the valve | **RED** | 3 | T3 P2 test 1h |
+| 21 | `L12-toggleReleaseEnters` | `include/shulib/teleop/mechanism_binding.hpp` | toggle: the release spends the first entry | **RED** | 3 | T3 P2 test 1h |
+| 22 | `K1-declaredIgnored` | `include/shulib/calibration/boot_check.hpp` | declared ports ignored (claws reported as NEW) | **RED** | 3 | BootCheck 6f' |
+| 23 | `K2-labelDropped` | `include/shulib/calibration/boot_check.hpp` | the caller's label dropped | **RED** | 3 | BootCheck 6f' |
+| 24 | `K3-clauseAlways` | `include/shulib/calibration/boot_check.hpp` | the declared clause printed with no declared motor | **RED** | 5 | BootCheck 6f' |
+| 25 | `K4-drivePortDeclared` | `include/shulib/calibration/boot_check.hpp` | a listed drive port no longer skipped in the NEW/declared sweep | **RED** | 9 | BootCheck 6a |
+| 26 | `S1-safeFromStart` | `src/boot_source.hpp` | the SAFE level taken from the start | **RED** | 2 | T3 P2 test 6s |
+| 27 | `S2-signDropped` | `src/boot_source.hpp` | a pivot's sign dropped | **RED** | 2 | T3 P2 test 6s |
+| 28 | `S3-cartridgeRedAsBlue` | `src/boot_source.hpp` | RED converted as the drive's BLUE | **RED** | 2 | T3 P2 test 6s |
+| 29 | `S4-pneumaticsFirst` | `src/boot_source.hpp` | the config order: pneumatics before motors | **RED** | 13 | T3 P2 test 6s |
+| 30 | `S5-noMechanismsInConfig` | `src/boot_source.hpp` | the mechanisms converted and then dropped | **RED** | 13 | T3 P2 test 6s |
+| 31 | `S6-noCollisionCheck` | `src/boot_source.hpp` | the drive-port collision never refuses | **RED** | 1 | T3 P2 test 6v |
+| 32 | `S7-collisionAlwaysRecord` | `src/boot_source.hpp` | the collision names the record for a typed table | **RED** | 1 | T3 P2 test 6v |
+| 33 | `S8-nameFitOffByOne` | `src/boot_source.hpp` | a 23-character name refused | **RED** | 1 | T3 P2 test 6t |
+| 34 | `S9-countFitOffByOne` | `src/boot_source.hpp` | eight mechanisms refused | **RED** | 1 | T3 P2 test 6t |
+| 35 | `S10-noTableRefusal` | `src/boot_source.hpp` | a table that does not convert is not refused by the boot | **RED** | 1 | T3 P2 test 6t |
+| 36 | `S11-recordNotDeclared` | `src/boot_source.hpp` | the record's port check not given the declared ports | **RED** | 2 | T3 P2 test 6u |
+| 37 | `C1-toggleInitialFromSafe` | `src/teleop_claws.hpp` | the toggle's initial level = the SAFE level | **RED** | 1 | T3 P2 test 1k |
+| 38 | `C2-toggleInitialFromPosition` | `src/teleop_claws.hpp` | the toggle's initial level = the start POSITION | **RED** | 1 | T3 P2 test 1k |
+| 39 | `C3-rezeroIgnored` | `src/teleop_claws.hpp` | bind() validates against Y, not the loop re-zero it was given | **RED** | 1 | T3 P2 test 1d |
+| 40 | `C4-refusedLeavesBindings` | `src/teleop_claws.hpp` | a refused set leaves its bindings behind | **RED** | 1 | T3 P2 test 1d |
+| 41 | `C5-noNameCheck` | `src/teleop_claws.hpp` | bind() binds by index without the name check | **RED** | 1 | T3 P2 test 1i |
+| 42 | `C6-noCountCheck` | `src/teleop_claws.hpp` | bind() ignores a count mismatch | **RED** | 1 | T3 P2 test 1i |
+| 43 | `C7-kindAsAbsent` | `src/teleop_claws.hpp` | a built mechanism of the other kind read as ABSENT | **RED** | 1 | T3 P2 test 1i |
+| 44 | `C8-rowFwdRev` | `src/teleop_claws.hpp` | the row: FWD/REV swapped | **RED** | 3 | T3 P2 test 1e |
+| 45 | `C9-rowNoFreed` | `src/teleop_claws.hpp` | the row never says FREED | **RED** | 1 | T3 P2 test 1h |
+| 46 | `C10-rowOpenClosed` | `src/teleop_claws.hpp` | the row: OPEN/CLOSED inverted | **RED** | 4 | T3 P2 test 1e |
+| 47 | `C11-noTempClamp` | `src/teleop_claws.hpp` | the temperature not clamped | **RED** | 1 | T3 P2 test 1g |
+| 48 | `C12-absentNoSentence` | `src/teleop_claws.hpp` | the ABSENT line without the provider's sentence | **RED** | 1 | T3 P2 test 1e |
+| 49 | `C13-faultFallbackFirst` | `src/teleop_claws.hpp` | the short fault row names the FIRST fault | **RED** | 1 | T3 P2 test 1j |
+| 50 | `C14-faultNoFallback` | `src/teleop_claws.hpp` | the full fault row always, cut at 50 | **RED** | 1 | T3 P2 test 1j |
+| 51 | `C15-absentNeverSaid` | `src/teleop_claws.hpp` | anyClawAbsent() never true | **RED** | 1 | T3 P2 test 1e |
+| 52 | `C16-bannerNoRezero` | `src/teleop_claws.hpp` | the banner forgets the re-zero button | **RED** | 1 | T3 P2 test 1g |
+| 53 | `P1-loopWithoutBindings` | `src/teleop_program.cpp` | the loop called without the bindings | **RED** | 1 | T3 P2 test 1l |
+| 54 | `P2-rezeroA` | `src/teleop_program.cpp` | the re-zero left on A | **RED** | 1 | T3 P2 test 1l |
+| 55 | `P3-noUnbindInCatch` | `src/teleop_program.cpp` | the catch leaves the bindings | **RED** | 1 | T3 P2 test 1l |
+| 56 | `P4-bootWithoutTable` | `src/boot_source.cpp` | the boot source handed no mechanisms | **RED** | 1 | T3 P2 test 1l |
+| 57 | `B4c-tableStartOpen` | `src/mechanism_table.hpp` | the brief: start the claw open (robot two's TABLE) | **RED** | 7 | T3 P2 test 6s |
+| 58 | `S12-brakeAsHold` | `src/boot_source.hpp` | a Brake safe mode converted as Hold | **RED** | 2 | T3 P2 test 6s |
+| 59 | `S13-levelInverted` | `src/boot_source.hpp` | every pneumatic level inverted | **RED** | 4 | T3 P2 test 6s |
+| 60 | `S14-declaredSigned` | `src/boot_source.hpp` | the declared ports keep their sign (a flipped pivot -6 becomes a NEW motor) | **RED** | 1 | T3 P2 test 6u |
+| 61 | `S15-collisionSigned` | `src/boot_source.hpp` | the drive-port collision matched on the SIGNED port (a flipped pivot slips through) | **RED** | 1 | T3 P2 test 6v |
+| 62 | `C17-freedIgnoresToggles` | `src/teleop_claws.hpp` | the panel's FREED ignores a released claim on the claw | **RED** | 1 | T3 P2 test 1h |
+| 63 | `C18-freedIgnoresHolds` | `src/teleop_claws.hpp` | the panel's FREED ignores a released claim on a pivot | **RED** | 1 | T3 P2 test 1h |
+| 64 | `C19-pivotWordFromSafeOnly` | `src/teleop_claws.hpp` | the row's stop word hard-coded HOLD, not the pivot's declared mode | **RED** | 1 | T3 P2 test 1k |
+| 65 | `L14-holdReleaseEveryTick` | `include/shulib/teleop/teleop_loop.hpp` | hold bindings: a claim released every tick, not only at entry | **RED** | 3 | T3 L10 |
+| 66 | `L15-toggleReleaseEveryTick` | `include/shulib/teleop/teleop_loop.hpp` | toggles: a claim released every tick, not only at entry | **RED** | 2 | T3 P2 test 1h |
+
+**What no host test can reach** (so no mutant was run on it, stated rather than implied): the parts
+of `src/teleop_program.cpp` that only the brain runs — the claw row's COLOUR (amber on ABSENT or
+FREED), the LCD's `CLAW ABSENT` precedence, a boot line's Info/Warn level, the exit line. They are
+compiled and linked by the src gate in all six builds (P2.9), and test 1l pins by READING the
+source the four wiring lines whose loss would still compile (P1–P4). Everything they print comes
+from `src/teleop_claws.hpp`, which the host suite does run.
+
+### P2.9 Final gates (all in this worktree, 21:00–21:10, after the last edit to any header, source or test)
+
+- `python3 tools/api_doc_tool.py generate` then `python3 tools/briefing_status.py generate` BEFORE
+  the build; `touch test/*.cpp && cmake --build build/test -j8` → exit 0, the doc-gate target ran
+  (coverage: 2679 public entities across 149 headers, all documented; examples: 437 quoted lines,
+  all verbatim; removability clean; briefing current; staleness audit clean), `[100%] Linking CXX
+  executable shulib_tests`.
+- **Suite: `1555 | 1555 passed | 0 failed | 3 skipped`; `2396896 | 2396896 passed | 0 failed`;
+  `Status: SUCCESS!`** (baseline at `cc513a7`: 1533 / 2,393,888 — **+22 cases, +3,008 assertions**
+  for T3 Part 2).
+- `briefing_status.py generate` AGAIN after the binary existed (it reads the suite's counts) →
+  `check`: `briefing status: generated block current`. Its pointer now reads `Next up: G1 PART 2c
+  ...`; suite 1,555 / 2,396,896; honest partials 10 → 11 (the Phase T row now `[~]`).
+- `api_doc_tool.py`: `self-test` OK; `check-coverage` all documented; `check-fresh` exit 0;
+  `check-examples` 437 lines verbatim; `check-removability`: no public doc references
+  `docs/internal/` (and the manual C7 grep for `internal/ chunks/ RESUMING build-order` over the
+  public docs: empty).
+- `doc_staleness_audit.py self-test`: OK (10 cases); `doc_staleness_audit.py`: clean (27 live docs).
+- `src_build_gate.py self-test`: OK (33 detector cases, each against a real build);
+  `src_build_gate.py check`: **PASS — all 6 builds link, 6/6 TUs each, 0 disallowed** (2 allowed
+  `-Wunused-function` in five builds, 0 in xdrive — the same counts as the first run's 14:09 gate),
+  hash asserted `v0.1.1-335-gcc513a7-dirty`, beacons checked.
+- ARM header gate (185 headers, `arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion
+  -Wsign-conversion -Wshadow -Werror -Os -mcpu=cortex-a9 ...`): exit 0, clean.
+- CI greps: `library is PROS-free (all of include/shulib except hal/pros/)`; `layering holds: core
+  is sim-free`. No `SHULIB_RUNS_*` outside `src/main.cpp`.
+- ASCII: no string literal in any changed runtime file carries a byte above 0x7F (a scan of the
+  code with comments stripped); the panel still paints only through `printText()`'s literal `"%s"`.
+
+### P2.10 Not done here, and for the team lead / coordinator
+
+- **Nothing of T3 has run on a robot.** Every claim above is the host test plant, the PROS shim, or
+  the six builds. Station J is the first sight of every claw.
+- Not committed (by the rules). `T3-COMPLETED.md` is the coordinator's, after the commit.
+- **Chassis macros** (the stick-interrupt case) and angle presets stay open under T3 (build-order's
+  T3 entry says so now).
+- Still open from Part 1, unchanged: a reconnect settle window for the toggle (B2's finding 1 — for
+  the team lead after Station J.9.5), an AddressSanitizer CI job (recommended, not done).
+- The library default `DriverLoopConfig::rezeroButton = L1` was NOT moved — GUARDED by
+  `validBindings()` (DEFECTS2-COMPLETED's bullet says so now).
+- A throw from `bind()` (a binding's precondition) is reported under the headline `the library
+  graph REFUSED to build`, not `the claw buttons REFUSED` — the catch is shared; the reason
+  sentence names the binding's own precondition. Left as is (cosmetic; noted for the coordinator).
+- HANDOFF L1's "2c waits ... after DEFECTS2 and T3" is 2c's to update (its final run, another
+  worktree). Merge note: this run's `build-order.md`, `roadmap.md`, `HANDOFF-remaining-work.md` and
+  `hardware-assumptions.md` edits touch the same "Next"/"Now" blocks 2c, DIAG1 and COMP-a will; the
+  briefing and `docs/api/` must be REGENERATED at the merge, never hand-merged.
+- The suite prints ~300 `[LOC]` lines while `teleop_claws_test.cpp` runs (the REAL provider's
+  TermSink on stdout) — harmless, not muted (a provider seam this chunk does not own).
+
+### P2.11 Part 2 review findings and their disposition (review round 1; the builder again, started 21:30 EDT)
+
+**Start (21:30).** Nine findings from the reviewer (one major, eight minor). Before anything: this
+section was absent, so no earlier attempt at this round had written anything; every file under
+`include/`, `src/` and `test/` is older than P2.9's gates (the newest, `test/*.cpp`, 21:02 — the
+final gate's `touch`; `Makefile`, `src/bench_r3a.cpp` and a vendored lvgl header carry 21:07 mtimes
+from the src gate's rebuild, and `git diff` shows no change to any of them); all 66 anchors of
+`scratch/t3p2/mutants.py` are in the tree exactly once with no replacement text present
+(`scratch/t3p2/review/anchors_check.py`: `66 mutants; suspects: 0`); `robot.hpp` equals `HEAD`.
+So the tree is P2.9's. Scratch for this round: `.claude/coordinator/scratch/t3p2/review/`.
+
+**Baseline for this round (21:31, a fresh `/fast` link, the Linking line seen):** `1555 | 1555
+passed | 0 failed | 3 skipped; 2,396,896 assertions` — P2.9's numbers, so the binary matches the
+tree the reviewer read.
+
+#### P2.11.1 Finding 1 (major) — Station F's fault-row example could not appear: REAL, fixed
+
+Re-checked against the code: `faultRowText()` (`src/teleop_claws.hpp`) prints the full form only
+when it is at most `calibration::kSmallCols` (50) characters. `FAULT n=1 first MOTOR_GROUP_DISAGREE
+last MOTOR_GROUP_DISAGREE` is 62 (16 + 20 + 6 + 20), so robot two shows `FAULT n=1 last
+MOTOR_GROUP_DISAGREE`. The row's second example had the same flaw in a milder form: `FAULT n=3 last
+MECHANISM_STALLED` appears only when the FIRST name is long enough to push the pair past 50 — and
+MECHANISM_STALLED is not a fault Teleop raises. P2.6's "its fault rows ... were done by the first
+run" was a statement about who wrote them, not a check; it should not have been read as one.
+- **Fixed** (worksheet row 9): the leading example is now the realistic line, `FAULT n=1 last
+  MOTOR_GROUP_DISAGREE`; the full form is quoted with `FAULT n=1 first IMU_LOST last IMU_LOST`
+  (test 1j already pinned it) and, at the very edge, `FAULT n=2 first IMU_LOST last
+  MOTOR_GROUP_DISAGREE` (exactly 50); the row says MOTOR_GROUP_DISAGREE's 20 characters usually
+  leave room for one name. Grep: no other doc quotes the row (`grep -rn "FAULT n="` over `docs/`,
+  `README.md`, `src/`, `include/` — only row 9, the code and old logs).
+- **Tests** (1j): both quoted lines are now pinned — `FAULT n=1 last MOTOR_GROUP_DISAGREE`, and the
+  50-character edge (`<=`, not `<`: a strict comparison would shorten it — mutant C23).
+- **Found while re-checking Station F (not in the findings):** F.2.7 quoted the loop's exit line as
+  `... cancel() (0 V + Brake); N screen prints so far` — but this chunk CHANGED that line (the
+  first run's `teleop_program.cpp` edit: `each claw pivot made safe, the pneumatic claw left as it
+  was;` before the count). Nobody had re-read F.2.7 against it. Fixed in the worksheet; test 1l now
+  pins the line (mutant P13).
+
+#### P2.11.2 Finding 2 (minor) — the typed-table branch's declared ports untested: REAL, fixed
+
+Re-checked: `decideBootSourceFrom()` calls `verifyAgainstRegistry(..., declared)` twice (the
+record, `src/boot_source.hpp` ~:476; the typed table's re-check, ~:506). 6u reaches only the
+first; 6v's typed-table part ends in the collision refusal and reads only its headline and why.
+Every `teleop_claws_test.cpp` boot uses a decoded record. So dropping `declared` from the second
+call would have kept the suite green — reasoned, then RUN below as **S16** (RED on the new test
+only).
+- **New test 6w** (`boot_source_test.cpp`): no card, the usable typed table, a census with MOTORs
+  on 6 and 7 — the WARNING line is pinned whole (`... NEW motors not in the calibration: none; claw
+  pivots (declared, not drive motors): 6 7. NOT CHECKED: ...`), `newCount == 0`, `declaredCount ==
+  2`, the config carries the three mechanisms; and the same boot WITHOUT the table prints `NEW
+  motors not in the calibration: 6 7` (so the case cannot pass by accident).
+
+#### P2.11.3 Finding 3 (minor) — Teleop's claw call sites deletable with the suite green; the log overstated 1l: REAL, fixed
+
+Re-checked `src/teleop_program.cpp`: the banner's claw `printf` (:889), both boot-line loops in
+`logBootLines()` (:862-872) and the claw-row paint (:743-746) were read by no test; test 1l pinned
+only the re-zero, the static_asserts, the static storage, the try/catch, the loop call and the boot
+source's table. P2.8's sentence "test 1l pins by READING the source the four wiring lines whose
+loss would still compile (P1–P4)" implied those were the only such lines: they were not.
+- **Test 1l extended** — each pinned WHOLE (so its arguments, a boot line's Info/Warn level, the
+  claw row's amber condition and the LCD's order of urgency are pinned with it): the banner's claw
+  sentence right after the BUILD STAMP `printf`; the motor boot-line loop; the pneumatic boot-line
+  loop; the `logBootLines(r, log, st.boot)` call after the session header; the fault row and the
+  claw row painted together; the LCD's third line (`... DEGRADED see brain` → `CLAW ABSENT` → `ok`);
+  and the exit line (F.2.7, finding 1's extra).
+- **Mutants P5–P14** (below) delete or weaken each; every one RED on test 1l. Whether the ARM
+  build would ALSO have refused a deletion (an unused function or member) was not measured here —
+  the reviewer reasoned it would compile; it no longer matters, because the host suite now refuses
+  each.
+- **The P2.8 paragraph, corrected here** (the log is append-only, so it is superseded, not
+  edited): what no host test can reach in `teleop_program.cpp` is now only what the BRAIN does with
+  the calls — the screen's rendering of a row and its colour, the controller LCD's rendering, the
+  timing of the panel's repaint. Every claw-related STATEMENT in the file is pinned by test 1l's
+  reading of the source, and every word it prints is produced and pinned by
+  `src/teleop_claws.hpp`'s tests.
+
+#### P2.11.4 Finding 4 (minor) — the claw row's compile-time width check not tied to a row: REAL, fixed
+
+Re-checked: both `static_assert`s and test 1g said only `clawRowWorstLength(...) <= 50`, so an
+under-count passed all three. For robot two the true worst row is exactly 50 characters:
+`CLAW 6 HOLD 999C | 7 HOLD 999C | CLAW CLOSED FREED` (4 + 12 + 14 + 14 + 6).
+- **Test 1g:** `clawRowWorstLength(kRobotTwoMechanisms) == 50` (exact); that worst row RENDERED by
+  the code — both pivots stopped with the shim at 5000 C and 1000 C (clamped to 999), the claw
+  CLOSED, a claim on pivot 7 released at entry — equals the string above and its length equals
+  `clawRowWorstLength()`, so every character (FREED included) is kept; and
+  `clawRowWorstLength(kNoMechanisms)` equals the no-claws row's length.
+- **Mutants W1** (` FREED` not counted), **W2** (a 3-character temperature), **W3** (a
+  2-character separator) — each still compiles (every sum stays <= 50) and each is RED on 1g.
+
+#### P2.11.5 Finding 5 (minor) — a reversed pivot's words, and the 23-character name: REAL, fixed
+
+Re-checked: `motorClawBootLine()`'s BUILT branch, `clawBannerLine()` and `clawRowText()`'s ABSENT
+branch print `absPort(e.signedPort)`, and no test used a negative port in any of them (1k's `-9`
+lift reached only the row's BUILT branch). `copyMechanismName()`'s bound was pinned only through
+`mechanismTableProblem()` at 23/24.
+- **New test 1n** (`teleop_claws_test.cpp`; the fixture now takes a table): pivot 6 flipped to `-6`
+  — the BUILT line says `port 6 (typed -6)`, the banner `R1/R2 port 6`, the row `CLAW 6 HOLD ...`
+  and, with R1 held, `CLAW 6 FWD ...` while the shim's port 6 receives `-12000 mV` (the flip reaches
+  the motor through the port entry, as Station J's fix intends); with that port EMPTY, the ABSENT
+  line (`port 6: nothing plugged in (expected a motor)`, the provider's own magnitude) and the row
+  `CLAW 6 ABSENT | ...`. A 23-character pivot name boots, binds (bind()'s name check compares it
+  WHOLE), and is carried whole into the config, the built mechanism and the boot line.
+- **Test 6t:** `bootConfigFrom()` with 23-character names of BOTH kinds, compared whole.
+- **Mutants C20 / C21 / C22** (the signed port in each text) and **S17** (`copyMechanismName`
+  keeps 22) — RED.
+
+#### P2.11.6 Finding 6 (minor) — the row's temperature can be stale; `--` never appears on the brain: REAL; documented, the code fix is NOT in scope
+
+Re-checked: `hal::pros::ProsMotor::temperature()` (`include/shulib/hal/pros/motor.hpp` ~:269-282)
+returns the last good value on a failed read (counted in `faultedReads()`) and 20 °C before any
+good read; `hal::IMotor` has no validity channel and does not expose `faultedReads()`; the row reads
+through `IMotor`. So on robot two a pivot that stops answering after boot shows its last
+temperature, frozen and unmarked; one that never answered shows `20C`; `--` is unreachable there.
+(A pivot unplugged AT BOOT is ABSENT — the census refuses it — so the realistic case is a cable
+worked loose mid-run.) J.8 is where this bites: a frozen number while the driver holds a pivot
+against its stop reads as "not heating".
+- **Documented:** `src/teleop_claws.hpp` (`clawTemperatureText()`'s doc: what the number is on the
+  brain, why `--` never shows there, why the branch stays); worksheet J.3.3 (last good reading,
+  freezes unmarked, `20C` if never answered, no `--`) and J.8 (a number that has not moved for 30 s
+  of holding is not proof the motor is cool — let go, check the cable, write it down); A4 register
+  HA-154's settle text (the same, with the source).
+- **Not done, and why:** showing `--` once reads fail needs the read's validity to cross the
+  `hal::IMotor` seam — its header says it deliberately has none ("without this seam growing a
+  validity channel F4 does not have", `pros/motor.hpp`'s `faultedReads()` doc) — or an accessor on
+  `ProsDeviceProvider` for its concrete motors (it has none: `motors_` is private). Either is a
+  library/HAL design change outside T3 Part 2's brief. **For the team lead** (P2.11.12).
+
+#### P2.11.7 Finding 7 (minor) — the merge notes left out docs/changelog.md: REAL, fixed (merge notes below, P2.11.11)
+
+Re-checked: `git diff cc513a7 shulib-v2 -- docs/changelog.md` — main added DIAG1's `### Changed
+since 2.2 (2026-09-26) — an ODO_STUCK line names ...` and COMP-a's `### Added since 2.2
+(2026-09-26) — the competition library ...` directly under `## API 2.2`, exactly where this
+worktree adds its `### Changed since 2.2 (2026-09-26, later) — driver control releases a leftover
+claim ...`. The files changed on BOTH sides since `cc513a7` (`comm` of the two `--name-only`
+lists): `README.md`, `docs/api/README.md`, `docs/api/all-entities.md`, `docs/changelog.md`,
+`docs/guide/11-reading-the-diagnostics.md`, `docs/hardware-assumptions.md`,
+`docs/internal/HANDOFF-remaining-work.md`, `docs/internal/PROJECT-BRIEFING.md`,
+`docs/internal/build-order.md`, `docs/roadmap.md` — P2.10 named four of the hand-merged ones, and
+missed the changelog, guide 11 and the README. A trial merge (P2.11.11) says which conflict.
+
+#### P2.11.8 Finding 8 (minor) — the claim release lets the claw's start level go out at the first entry: REAL; stated everywhere, the choice is the team lead's
+
+Re-checked: `runDriverControl` releases leftover claims, then `reset()`/`makeSafe()`, then
+`enter()` (`teleop_loop.hpp` ~:219-243); `ToggleBinding::enter()` sends the initial level on the
+first entry unless the mechanism is claimed; TL6 and 1h pin that it goes out after a release. So a
+claw an autonomous operation left claimed at the OTHER level now moves to its start level
+(CLOSED, on robot two) when driver control first starts. Precisely what changed: an UNCLAIMED claw
+autonomous had moved already did that (Part 1's rule — "the FIRST driver-control entry still sets
+the initial level once"); the ruling extends it to a CLAIMED one, which Part 1 left where the
+operation put it. The header's "a claim at the first entry means it is never sent" was still
+there, true only for a program that calls `enter()` itself — misleading beside the next sentence.
+- **Fixed:** `mechanism_binding.hpp` — the NO CLAIM bullet rewritten (enter() over a claim sends
+  nothing; inside the loop the claim is released first, so the first entry always sends; the
+  movement stated; only a program that calls enter() itself gets "never sent"), and `enter()`'s
+  doc says the same in one sentence. `docs/changelog.md` — a "What it moves, for a toggle"
+  sentence in the behaviour-change bullet, and a migration line (state the level autonomous leaves
+  as the toggle's initial level; there is no "keep what is there" start). `docs/cookbook/
+  06-driver-control.md` — the same in the claim bullet. The COMP brief's B10 note (the one that
+  says "T3 also frees leftover claims") now carries the consequence and says COMP-b re-checks the
+  team lead's answer before it wires the claw.
+- **Not decided here:** today's Teleop runs no autonomous, so nothing on robot two can do this
+  yet; COMP's will. **For the team lead** (P2.11.12).
+
+#### P2.11.9 Finding 9 (minor) — a departure from the brief not logged with its alternative: REAL, logged now
+
+The brief (§1 item 1) names `robot.builtMechanismAt(i)` / `robot.pneumaticMechanism(name)` as the
+boot report's and the panel's claw lookups. What was built:
+- the **boot lines** use `builtMechanismAt(i)` for both kinds (as the brief says) and
+  `mechanismAbsence(i)` for an absent one's sentence;
+- **`TeleopClaws::bind()`** binds a pivot through `robot.mechanismAt(i)` and the claw through
+  `robot.pneumaticMechanismAt(k)` (`k = mechanismConfigIndexOfPneumatic(table, j)`), each only after
+  checking the robot's mechanism COUNT equals the table's and the built mechanism's NAME at that
+  index equals the entry's — a mismatch is refused, by name, and leaves nothing bound;
+- the **claw row** reads the same indices (`mechanismAt(i)` / `pneumaticMechanismAt(k)`), relying
+  on bind()'s check at boot (the robot never changes after it).
+
+**Chosen: index lookup + name check. Rejected: `pneumaticMechanism(name)` (and `mechanism(name)`)
+alone.** Why: a name lookup binds to whatever mechanism has that name in the robot — built from a
+DIFFERENT table, or in another order, it would still find "claw" and bind A to it, and a name the
+robot does not have would come back null and be indistinguishable from an ABSENT claw (the button
+silently inert). The index + name check REFUSES a robot not converted from this table in its
+order (test 1i: swapped pivots, a missing entry, the other kind at an index — mutants C5, C6, C7),
+and it keeps ONE source of truth for the order (`bootConfigFrom()`'s CONFIG ORDER) shared by the
+bindings, the boot lines and the row. Cost: `bind()` depends on the conversion's order, which
+`mechanismConfigIndexOfPneumatic()` states and 6s pins (`== 2` for robot two's claw). This entry
+should have been in P2.2 (it was only in the first builder's report); it is here now.
+
+#### P2.11.10 Prose review for this round (the greps run and their hits read BEFORE this entry)
+
+- `grep -rn "FAULT n="` over `docs/`, `README.md`, `src/`, `include/` (minus PROGRESS logs): row 9
+  of Station F, the code and its tests only — row 9 fixed (P2.11.1).
+- `grep -rn "screen prints so far"` over the docs: F.2.7 only — fixed (P2.11.1's extra).
+- `grep -rn -i "never sent\|initial level"` over `docs/`, `README.md`, `include/shulib/teleop/`
+  (minus generated `docs/api/`, logs): the cookbook, the changelog (the Part 1 toggle bullet at
+  ~:100 — "sent once, at the binding's first loop entry ... never commands a claimed mechanism" —
+  still true: the loop releases the claim first, which the 2.2 "Changed" section above it now
+  says), the COMP brief, HA-157's settle text (~:1817-1825: consistent — the toggle's initial level
+  at driver-control start), the Part 2 brief, and `mechanism_binding.hpp` / `teleop_loop.hpp`
+  (the loop's "its initial level, once in its life" lines: consistent). Fixed: the header's NO
+  CLAIM bullet and `enter()`'s doc (P2.11.8).
+- `grep -rn -i "claw row"` with "temp" over the docs: HA-154's settle and blast-radius lines,
+  worksheet J.6's table heading, J.8, Station F's row 10 — each now says the row shows the LAST
+  GOOD reading (HA-154's blast radius and Station F row 10 amended too, beyond the two places the
+  finding named). Guides 11 and 14 do not mention the claw row's temperature (grepped: no hit).
+- `grep -rn "clawRowWorstLength\|copyMechanismName\|faultRowText"` over the docs: none outside
+  logs — they are src/-internal names; nothing public to update.
+- The C7 removability grep over the public docs: run with the gates (P2.11.14).
+
+#### P2.11.11 Merge notes, corrected (supersede P2.10's merge-note sentence)
+
+**A trial merge, objects only** (`git stash create` of this worktree's tracked changes → commit
+`abfdd8a`, no ref written; `git merge-tree --write-tree --name-only shulib-v2 abfdd8a`; the two
+untracked new files, `src/teleop_claws.hpp` and `test/teleop_claws_test.cpp`, do not exist on
+`shulib-v2`, so they cannot conflict). Run after the battery, on this round's tree before its last
+changelog edit (the two cross-references named by title — see the changelog bullet below). **Seven files conflict:**
+- **Regenerate, never hand-merge:** `docs/api/README.md`, `docs/api/all-entities.md` (and every
+  `docs/api/` page, `mkdocs.yml`), `docs/internal/PROJECT-BRIEFING.md` — the briefing twice, before
+  the build and after the suite binary exists.
+- **`docs/changelog.md`** — the finding: three sections now sit directly under `## API 2.2`.
+  **Order, newest first by landing:** T3 Part 2's `### Changed since 2.2 (2026-09-26, later) —
+  driver control releases a leftover claim; ...` FIRST (it lands after COMP-a), then main's COMP-a
+  `### Added since 2.2 (2026-09-26) — the competition library ...`, then main's DIAG1 `### Changed
+  since 2.2 (2026-09-26) — an ODO_STUCK line names ...`, then T3 Part 1's `### Added since 2.2
+  (2026-09-26) — mechanism buttons ...`, then DEFECTS2's `### Fixed since 2.2`. Each section
+  whole. The two cross-references between T3's sections name their target section by title (fixed
+  in this round), so they survive the sections landing between them.
+- **`docs/hardware-assumptions.md`** — hand-merge: main's COMP-a/DIAG1 register changes (HA-05
+  amended, HA-161 new, the status line/paragraph) with this chunk's HA-153/154/156/159 and T3-intro
+  edits; the status line's count must be recomputed from the merged index, not taken from either
+  side.
+- **`docs/internal/build-order.md`**, **`docs/roadmap.md`** — hand-merge the "Next"/"Now" blocks
+  and status lines (both sides moved them; the FIRST bold `Next:` must be true for the merged tree —
+  the briefing derives its pointer from it).
+- **Merged cleanly in the trial, but re-read after the merge:** `README.md` (main: the layout's
+  `competition/` and `ui/` lines; here: the `src/` line), `docs/guide/11-reading-the-diagnostics.md`
+  (main: the ODO_STUCK section; here: the released-claim Warn line), `docs/internal/
+  HANDOFF-remaining-work.md`.
+- **Also changed here since P2.10, for the merge record:** `docs/internal/chunks/COMP-competition-
+  program.md` (B10's note, P2.11.8 — main has not touched the brief since `cc513a7`),
+  `docs/cookbook/06-driver-control.md`.
+
+#### P2.11.12 For the team lead (nothing here decided by this run)
+
+1. **The claw at the first driver-control start after an autonomous (finding 8).** Since the claim
+   ruling, the first `runDriverControl` entry always sends the toggle's initial level — robot two's
+   claw is commanded CLOSED when driver control starts, whatever autonomous left it at, claimed or
+   not (before the ruling, a claw an operation still had claimed stayed where it was; an unclaimed
+   one already closed). Today's Teleop runs no autonomous, so it cannot happen yet; COMP's
+   autonomous will command the claw. Is "the claw closes when driver control starts" wanted? If
+   not, the toggle needs a "keep what is there" start (a library change: the first entry would adopt
+   `mechanism.commanded()` instead of sending a level). The COMP brief's B10 note carries the
+   question to COMP-b.
+2. **A stale claw temperature (finding 6).** The claw row can show a frozen last-good temperature
+   (or 20 °C) with no mark, because `hal::IMotor` carries no read validity. Documented at J.3.3,
+   J.8 and HA-154 (let go and check the cable if the number does not move). A real fix — `--` once a
+   pivot's reads fail — needs either a validity signal across the `IMotor` seam (its header says it
+   deliberately has none) or a `ProsDeviceProvider` accessor for its motors' `faultedReads()`. Worth
+   a chunk before J.8 is trusted for heat numbers? Not decided here.
+3. Still open from P2.10, unchanged: the reconnect settle window (after J.9.5), an AddressSanitizer
+   CI job, chassis macros and angle presets, and the shared-catch headline for a `bind()` throw.
+
+#### P2.11.13 The battery on this round's FINAL code — 85 mutants, every one RED on a fresh binary (22:02–22:32)
+
+Run after the last edit to any file under `include/`, `src/` or `test/` (the comment edits of
+P2.11.6 / P2.11.8 and the tests of P2.11.1–P2.11.5 all came first). The harness is run 2's,
+byte for byte (`review/harness.py`, `cmp` identical to `../harness.py`): exact-once replacements,
+`touch test/*.cpp`, the `/fast` target with the `Linking CXX executable shulib_tests` line
+REQUIRED, the WHOLE suite, the file restored from its saved text. The set (`review/mutants_r1.py`)
+= run 2's 66 (`../mutants.py`, unchanged) + 19 new for this round. Suite before the battery:
+**1557 | 1557 passed | 0 failed | 3 skipped; 2,396,948 assertions**. Harness end lines:
+`{"hashes_ok": true}` (every mutated file's SHA-256 equal before and after) and
+`{"final_relink": true, "rc": 0}`; afterwards every anchor was re-found exactly once
+(`anchors_check.py`: its one flag, P12's replacement text, is a false positive — that exact text
+is an unrelated pre-existing call at `teleop_program.cpp:800`), and `robot.hpp` still equals
+`HEAD`. **Result: 85 of 85 RED, none survived, none failed to compile;** 20–21 s each. Evidence:
+`.claude/coordinator/scratch/t3p2/review/run_r1.jsonl`, `mutation_table_r1.md`.
+
+Rows 1–66 are run 2's mutants again on the final code: every verdict RED again, and none fails
+FEWER cases than in run 2 (compared line by line against `../run2.jsonl`); 24 fail one or two
+MORE — wherever the recorded list shows which (the harness keeps the first eight failing cases),
+a case this round added (1g, 1n, 6t, 6w). The new ones — 67–85 — are each RED ONLY
+because of this round's tests: that each would have SURVIVED the P2.9 suite is reasoned from
+what those tests read (the finding texts, re-checked in P2.11.1–P2.11.5), not run — those tests
+no longer exist to run them against.
+
+| # | Mutant | File | What it breaks | Verdict | Failing cases | First failing case |
+|---|---|---|---|---|---|---|
+| 1 | `B1-swapR1R2` | `src/teleop_claws.hpp` | the brief: swap R1/R2 in the wiring | **RED** | 7 | T3 P2 test 1 |
+| 2 | `B2a-noHoldRelease` | `include/shulib/teleop/teleop_loop.hpp` | the brief: drop the claim release (hold bindings) | **RED** | 4 | T3 L10 |
+| 3 | `B2b-noToggleRelease` | `include/shulib/teleop/teleop_loop.hpp` | the brief: drop the claim release (toggles) | **RED** | 2 | T3 P2 test 1h |
+| 4 | `B3-pivotCoast` | `src/boot_source.hpp` | the brief: convert a pivot with Coast | **RED** | 7 | T3 P2 test 6s |
+| 5 | `B4a-startOpenConfig` | `src/boot_source.hpp` | the brief: start the claw open (the config start level) | **RED** | 5 | T3 P2 test 6s |
+| 6 | `B4b-startOpenToggle` | `src/teleop_claws.hpp` | the brief: start the claw open (the toggle initial level) | **RED** | 6 | T3 P2 test 1c |
+| 7 | `B5a-positionAsLevel` | `src/boot_source.hpp` | the brief: the claw POSITION handed over instead of its level | **RED** | 2 | T3 P2 test 6s |
+| 8 | `B5b-safeAsStart` | `src/boot_source.hpp` | the brief: the SAFE level handed over as the start | **RED** | 2 | T3 P2 test 6s |
+| 9 | `B6-oppositeThenStart` | `include/shulib/robot/robot.hpp` | the brief: the 3-wire output constructed at the opposite level, then set to the start | **RED** | 5 | ProsDeviceProvider 1m |
+| 10 | `L1-releaseBeforeCheck` | `include/shulib/teleop/teleop_loop.hpp` | claims released BEFORE the set check | **RED** | 7 | T3 L10 |
+| 11 | `L2-holdReleaseAfterSafe` | `include/shulib/teleop/teleop_loop.hpp` | hold release AFTER the entry safe state | **RED** | 2 | T3 L10 |
+| 12 | `L3-toggleReleaseAfterEnter` | `include/shulib/teleop/teleop_loop.hpp` | toggle release AFTER enter() | **RED** | 2 | T3 P2 test 1h |
+| 13 | `L4-notSaid` | `include/shulib/teleop/teleop_loop.hpp` | the release is not logged | **RED** | 3 | T3 L10 |
+| 14 | `L5-saidAsInfo` | `include/shulib/teleop/teleop_loop.hpp` | logged at Info, not Warn | **RED** | 3 | T3 L10 |
+| 15 | `L6-holdFlagNeverSet` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the panel flag never set | **RED** | 4 | T3 B10b |
+| 16 | `L7-holdCallsClaimant` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the dead claimant's cancel() called | **RED** | 2 | T3 B10b |
+| 17 | `L8-holdFlagSticky` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the flag never clears | **RED** | 3 | T3 B10b |
+| 18 | `L9-holdReleaseSafes` | `include/shulib/teleop/mechanism_binding.hpp` | hold binding: the release also commands the safe state | **RED** | 2 | T3 B10b |
+| 19 | `L10-toggleFlagNeverSet` | `include/shulib/teleop/mechanism_binding.hpp` | toggle: the panel flag never set | **RED** | 3 | T3 P2 test 1h |
+| 20 | `L11-toggleReleaseFires` | `include/shulib/teleop/mechanism_binding.hpp` | toggle: the release fires the valve | **RED** | 3 | T3 P2 test 1h |
+| 21 | `L12-toggleReleaseEnters` | `include/shulib/teleop/mechanism_binding.hpp` | toggle: the release spends the first entry | **RED** | 3 | T3 P2 test 1h |
+| 22 | `K1-declaredIgnored` | `include/shulib/calibration/boot_check.hpp` | declared ports ignored (claws reported as NEW) | **RED** | 4 | BootCheck 6f' |
+| 23 | `K2-labelDropped` | `include/shulib/calibration/boot_check.hpp` | the caller's label dropped | **RED** | 4 | BootCheck 6f' |
+| 24 | `K3-clauseAlways` | `include/shulib/calibration/boot_check.hpp` | the declared clause printed with no declared motor | **RED** | 6 | BootCheck 6f' |
+| 25 | `K4-drivePortDeclared` | `include/shulib/calibration/boot_check.hpp` | a listed drive port no longer skipped in the NEW/declared sweep | **RED** | 10 | BootCheck 6a |
+| 26 | `S1-safeFromStart` | `src/boot_source.hpp` | the SAFE level taken from the start | **RED** | 2 | T3 P2 test 6s |
+| 27 | `S2-signDropped` | `src/boot_source.hpp` | a pivot's sign dropped | **RED** | 3 | T3 P2 test 6s |
+| 28 | `S3-cartridgeRedAsBlue` | `src/boot_source.hpp` | RED converted as the drive's BLUE | **RED** | 2 | T3 P2 test 6s |
+| 29 | `S4-pneumaticsFirst` | `src/boot_source.hpp` | the config order: pneumatics before motors | **RED** | 15 | T3 P2 test 6s |
+| 30 | `S5-noMechanismsInConfig` | `src/boot_source.hpp` | the mechanisms converted and then dropped | **RED** | 15 | T3 P2 test 6s |
+| 31 | `S6-noCollisionCheck` | `src/boot_source.hpp` | the drive-port collision never refuses | **RED** | 1 | T3 P2 test 6v |
+| 32 | `S7-collisionAlwaysRecord` | `src/boot_source.hpp` | the collision names the record for a typed table | **RED** | 1 | T3 P2 test 6v |
+| 33 | `S8-nameFitOffByOne` | `src/boot_source.hpp` | a 23-character name refused | **RED** | 2 | T3 P2 test 6t |
+| 34 | `S9-countFitOffByOne` | `src/boot_source.hpp` | eight mechanisms refused | **RED** | 1 | T3 P2 test 6t |
+| 35 | `S10-noTableRefusal` | `src/boot_source.hpp` | a table that does not convert is not refused by the boot | **RED** | 1 | T3 P2 test 6t |
+| 36 | `S11-recordNotDeclared` | `src/boot_source.hpp` | the record's port check not given the declared ports | **RED** | 2 | T3 P2 test 6u |
+| 37 | `C1-toggleInitialFromSafe` | `src/teleop_claws.hpp` | the toggle's initial level = the SAFE level | **RED** | 1 | T3 P2 test 1k |
+| 38 | `C2-toggleInitialFromPosition` | `src/teleop_claws.hpp` | the toggle's initial level = the start POSITION | **RED** | 1 | T3 P2 test 1k |
+| 39 | `C3-rezeroIgnored` | `src/teleop_claws.hpp` | bind() validates against Y, not the loop re-zero it was given | **RED** | 1 | T3 P2 test 1d |
+| 40 | `C4-refusedLeavesBindings` | `src/teleop_claws.hpp` | a refused set leaves its bindings behind | **RED** | 1 | T3 P2 test 1d |
+| 41 | `C5-noNameCheck` | `src/teleop_claws.hpp` | bind() binds by index without the name check | **RED** | 1 | T3 P2 test 1i |
+| 42 | `C6-noCountCheck` | `src/teleop_claws.hpp` | bind() ignores a count mismatch | **RED** | 1 | T3 P2 test 1i |
+| 43 | `C7-kindAsAbsent` | `src/teleop_claws.hpp` | a built mechanism of the other kind read as ABSENT | **RED** | 1 | T3 P2 test 1i |
+| 44 | `C8-rowFwdRev` | `src/teleop_claws.hpp` | the row: FWD/REV swapped | **RED** | 4 | T3 P2 test 1e |
+| 45 | `C9-rowNoFreed` | `src/teleop_claws.hpp` | the row never says FREED | **RED** | 2 | T3 P2 test 1g |
+| 46 | `C10-rowOpenClosed` | `src/teleop_claws.hpp` | the row: OPEN/CLOSED inverted | **RED** | 5 | T3 P2 test 1e |
+| 47 | `C11-noTempClamp` | `src/teleop_claws.hpp` | the temperature not clamped | **RED** | 1 | T3 P2 test 1g |
+| 48 | `C12-absentNoSentence` | `src/teleop_claws.hpp` | the ABSENT line without the provider's sentence | **RED** | 2 | T3 P2 test 1e |
+| 49 | `C13-faultFallbackFirst` | `src/teleop_claws.hpp` | the short fault row names the FIRST fault | **RED** | 1 | T3 P2 test 1j |
+| 50 | `C14-faultNoFallback` | `src/teleop_claws.hpp` | the full fault row always, cut at 50 | **RED** | 1 | T3 P2 test 1j |
+| 51 | `C15-absentNeverSaid` | `src/teleop_claws.hpp` | anyClawAbsent() never true | **RED** | 1 | T3 P2 test 1e |
+| 52 | `C16-bannerNoRezero` | `src/teleop_claws.hpp` | the banner forgets the re-zero button | **RED** | 2 | T3 P2 test 1g |
+| 53 | `P1-loopWithoutBindings` | `src/teleop_program.cpp` | the loop called without the bindings | **RED** | 1 | T3 P2 test 1l |
+| 54 | `P2-rezeroA` | `src/teleop_program.cpp` | the re-zero left on A | **RED** | 1 | T3 P2 test 1l |
+| 55 | `P3-noUnbindInCatch` | `src/teleop_program.cpp` | the catch leaves the bindings | **RED** | 1 | T3 P2 test 1l |
+| 56 | `P4-bootWithoutTable` | `src/boot_source.cpp` | the boot source handed no mechanisms | **RED** | 1 | T3 P2 test 1l |
+| 57 | `B4c-tableStartOpen` | `src/mechanism_table.hpp` | the brief: start the claw open (robot two's TABLE) | **RED** | 8 | T3 P2 test 6s |
+| 58 | `S12-brakeAsHold` | `src/boot_source.hpp` | a Brake safe mode converted as Hold | **RED** | 2 | T3 P2 test 6s |
+| 59 | `S13-levelInverted` | `src/boot_source.hpp` | every pneumatic level inverted | **RED** | 5 | T3 P2 test 6s |
+| 60 | `S14-declaredSigned` | `src/boot_source.hpp` | the declared ports keep their sign (a flipped pivot -6 becomes a NEW motor) | **RED** | 1 | T3 P2 test 6u |
+| 61 | `S15-collisionSigned` | `src/boot_source.hpp` | the drive-port collision matched on the SIGNED port (a flipped pivot slips through) | **RED** | 1 | T3 P2 test 6v |
+| 62 | `C17-freedIgnoresToggles` | `src/teleop_claws.hpp` | the panel's FREED ignores a released claim on the claw | **RED** | 1 | T3 P2 test 1h |
+| 63 | `C18-freedIgnoresHolds` | `src/teleop_claws.hpp` | the panel's FREED ignores a released claim on a pivot | **RED** | 2 | T3 P2 test 1g |
+| 64 | `C19-pivotWordFromSafeOnly` | `src/teleop_claws.hpp` | the row's stop word hard-coded HOLD, not the pivot's declared mode | **RED** | 1 | T3 P2 test 1k |
+| 65 | `L14-holdReleaseEveryTick` | `include/shulib/teleop/teleop_loop.hpp` | hold bindings: a claim released every tick, not only at entry | **RED** | 4 | T3 L10 |
+| 66 | `L15-toggleReleaseEveryTick` | `include/shulib/teleop/teleop_loop.hpp` | toggles: a claim released every tick, not only at entry | **RED** | 2 | T3 P2 test 1h |
+| 67 | `S16-tableNotDeclared` | `src/boot_source.hpp` | the TYPED TABLE's port check not given the declared ports (claws NEW with no SD card) | **RED** | 1 | T3 P2 test 6w |
+| 68 | `S17-nameCopyShort` | `src/boot_source.hpp` | copyMechanismName cuts a 23-character name to 22 | **RED** | 2 | T3 P2 test 6t |
+| 69 | `W1-worstNoFreed` | `src/teleop_claws.hpp` | clawRowWorstLength forgets " FREED" (44 for robot two: the guard passes, checking nothing) | **RED** | 1 | T3 P2 test 1g |
+| 70 | `W2-worstTempShort` | `src/teleop_claws.hpp` | clawRowWorstLength counts a 3-character temperature | **RED** | 1 | T3 P2 test 1g |
+| 71 | `W3-worstSepShort` | `src/teleop_claws.hpp` | clawRowWorstLength counts a 2-character pivot separator | **RED** | 1 | T3 P2 test 1g |
+| 72 | `C20-bootLineSignedPort` | `src/teleop_claws.hpp` | the BUILT boot line prints the SIGNED port (port -6 after a flip) | **RED** | 1 | T3 P2 test 1n |
+| 73 | `C21-bannerSignedPort` | `src/teleop_claws.hpp` | the banner prints the SIGNED port | **RED** | 1 | T3 P2 test 1n |
+| 74 | `C22-absentRowSignedPort` | `src/teleop_claws.hpp` | the row's ABSENT pivot printed with its SIGNED port | **RED** | 1 | T3 P2 test 1n |
+| 75 | `C23-faultEdgeStrict` | `src/teleop_claws.hpp` | a full fault row of exactly 50 characters falls back to the short form | **RED** | 1 | T3 P2 test 1j |
+| 76 | `P5-noBanner` | `src/teleop_program.cpp` | the banner's claw sentence never printed (J.3.2) | **RED** | 1 | T3 P2 test 1l |
+| 77 | `P6-noMotorBootLines` | `src/teleop_program.cpp` | the pivots' boot lines never printed (J.3.1) | **RED** | 1 | T3 P2 test 1l |
+| 78 | `P7-noPneumaticBootLines` | `src/teleop_program.cpp` | the claw's boot line never printed (J.9.1) | **RED** | 1 | T3 P2 test 1l |
+| 79 | `P8-noClawRow` | `src/teleop_program.cpp` | the claw row never painted (J.3.3) | **RED** | 1 | T3 P2 test 1l |
+| 80 | `P9-noFaultRow` | `src/teleop_program.cpp` | the merged fault row never painted (Station F row 9) | **RED** | 1 | T3 P2 test 1l |
+| 81 | `P10-lcdNoClawAbsent` | `src/teleop_program.cpp` | the controller never says CLAW ABSENT | **RED** | 1 | T3 P2 test 1l |
+| 82 | `P11-clawRowNeverAmber` | `src/teleop_program.cpp` | the claw row never amber (ABSENT / FREED) | **RED** | 1 | T3 P2 test 1l |
+| 83 | `P12-bootLineAlwaysInfo` | `src/teleop_program.cpp` | an ABSENT pivot's boot line at Info, not Warn ([WARN] lost) | **RED** | 1 | T3 P2 test 1l |
+| 84 | `P13-exitLineOld` | `src/teleop_program.cpp` | the exit line without its claw clause (F.2.7) | **RED** | 1 | T3 P2 test 1l |
+| 85 | `P14-noBootLinesCall` | `src/teleop_program.cpp` | logBootLines() never called (every boot line after the header lost) | **RED** | 1 | T3 P2 test 1l |
+
+#### P2.11.14 Final gates, this round (all in this worktree, 22:42–22:47, after the last edit to any header, source, test or public doc)
+
+A first full run (22:37–22:41, every gate green) was REPEATED because the changelog's two
+cross-references were renamed after its doc gates had run (P2.11.11). The script
+(`review/gates.sh`, its output `review/gates_out_final.txt`) runs, in order:
+- `api_doc_tool.py generate` (wrote `docs/api/all-entities.md`, `mkdocs.yml`; `mechanism_binding.md`
+  carries this round's header wording) and `briefing_status.py generate` BEFORE the build;
+  `touch test/*.cpp && cmake --build build/test -j8` → exit 0, the Linking line seen, the
+  doc-gate target ran: coverage 2679 public entities across 149 headers, all documented; 437
+  quoted lines, all verbatim; removability clean; briefing current; staleness audit clean.
+- **Suite: `1557 | 1557 passed | 0 failed | 3 skipped`; `2396948 | 2396948 passed | 0 failed`;
+  `Status: SUCCESS!`** (P2.9: 1555 / 2,396,896 — this round +2 cases (1n, 6w), +52 assertions;
+  from `cc513a7`'s 1533 / 2,393,888, T3 Part 2 is +24 cases, +3,060 assertions).
+- `briefing_status.py generate` AGAIN after the binary existed, then `check`: `generated block
+  current` (suite 1,557 / 2,396,948; `Next up: G1 PART 2c ...`; honest partials 11).
+- `api_doc_tool.py`: `self-test` OK; `check-coverage` all documented; `check-fresh` exit 0;
+  `check-examples` 437 verbatim; `check-removability` clean. The manual C7 grep (`internal/`,
+  `chunks/`, `RESUMING`, `build-order` over `README.md` and `docs/` outside `docs/internal/`):
+  empty.
+- `doc_staleness_audit.py self-test`: OK (10 cases); `doc_staleness_audit.py`: clean (27 live docs).
+- `src_build_gate.py self-test`: OK (33 detector cases, each against a real build — it plants into
+  `src/bench_r3a.cpp` while it runs and restores it byte-exact; `git diff` of that file after: empty);
+  `src_build_gate.py check`: **PASS — all 6 builds link, 6/6 TUs each, 0 disallowed** (2 allowed
+  `-Wunused-function` in five builds, 0 in xdrive — unchanged from P2.9), hash asserted
+  `v0.1.1-335-gcc513a7-dirty`, beacons checked.
+- ARM header gate (185 headers, the RESUMING flags): `ARM compile gate: CLEAN`.
+- CI greps: `library is PROS-free (all of include/shulib except hal/pros/)`; `layering holds: core
+  is sim-free`. `SHULIB_RUNS_` outside `src/main.cpp`: two COMMENT lines only
+  (`boot_source.cpp:13`, `teleop_program.cpp:75`, both saying they do not read it), no code.
+- ASCII: comments stripped (test 1l's normaliser, in Python), no byte above 0x7F in the code of
+  `src/teleop_claws.hpp`, `teleop_program.cpp`, `boot_source.{hpp,cpp}`, `mechanism_table.hpp`,
+  or the three changed library headers. This round changed no runtime string.
+
+**This round, in one line:** 9 findings re-checked — all 9 real; 7 fixed in code/tests/docs, 1
+(finding 6) documented with the code fix flagged as out of scope, 1 (finding 8) stated everywhere
+with the choice left to the team lead; one more stale quote found and fixed (F.2.7); 85 of 85
+mutants RED; every gate green. **Not committed. Nothing here has run on a robot.**
+
+---
+
+## The coordinator's merge — T3 Part 2 (2026-09-26, ~22:50–23:15)
+
+**What was merged.** The t3-part2 worktree's tree (the builder's run from 13:33, cut off by the
+afternoon's power loss at ~14:35, resumed at 20:20 — P2.4 — then its review round and fixes, P2.11),
+as the transport commit `1a86103`, squash-merged onto `a01e3a2` (T3 Part 1, the Part 2 brief, DIAG1
+Part A, COMP-a and the G3a plan change on top of `cc513a7`). No code conflict. Documentation, all as
+the builder's trial merge predicted (P2.11.11): `docs/changelog.md` (T3 Part 2's section on top,
+newest first); `docs/hardware-assumptions.md` (DIAG1's and COMP-a's status sentences kept, then T3
+Part 2's "added no entry" sentence); `docs/internal/build-order.md` (the `Next:` block now reads G1
+Part 2c, then COMP; T3 Part 2's LANDED sentence inserted before Part 1's, whose "Part 2 is next"
+became "Part 2 then wired them in"; the deviations table keeps the G3a and `.shupaths` rows and adds
+Part 2's claim-release row); `docs/roadmap.md` ("Now": Part 2's text plus DIAG1's landed sentence);
+`docs/api/*` and the briefing regenerated (the briefing again after the suite binary existed).
+
+**Not complete.** A `T3-COMPLETED.md` was drafted and withdrawn before commit: the build-order entry
+keeps chassis MACROS and angle presets under T3 (the team lead's rulings kept macros in T3 — the
+stick-interrupt rule applies to them), so T3's DoD is not met; only the claws' part is, on the host.
+
+**Verification (the coordinator, on the merged tree).** Suite **1649 | 1649 passed | 0 failed | 3
+skipped**, 2,466,733 assertions; `src_build_gate.py` self-test OK (33) and check PASS on all six
+builds (0 disallowed, beacons); ARM header gate clean (191 headers); both CI greps empty;
+`check-fresh` 0; the briefing current; removability empty; the staleness audit clean. Four hand
+mutations aimed at the integration points, each on a freshly linked binary, restored by hash, the
+restored tree 1649/1649: the claim release at loop entry dropped → RED (4 cases); the claw's line
+handed over at the SAFE level as its start → RED; a claw port that is a drive port no longer refused
+→ RED; a pivot's forward/reverse buttons swapped in Teleop's wiring → RED (7 cases). The builder's
+own battery: 85 of 85 RED (P2.8, P2.11). Read by the coordinator: the review's lens-1 checks against
+the code (no boot twitch, ports, hold on release, disable and controller drop, nothing throws after
+driver control starts), the fix report, the claim-release and collision code.
+
+**For the team lead (from the review round, open):** whether the first driver-control start should
+keep a claw level autonomous left instead of sending the start level (finding 8); a read-validity
+signal so a silent pivot does not show a frozen temperature (finding 6); the reconnect settle window
+after J.9.5; an AddressSanitizer CI job. **Nothing of T3 has run on a robot — Station J next.**

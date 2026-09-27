@@ -563,13 +563,14 @@ which, word for word.
 | top bar (blue) | `shulib TELEOP` · `BUILD hh:mm:ss` | which build — the time must be the build you just uploaded |
 | 1 (amber) | `THIS VERSION has not run on hardware (G1 2b)` | this program version's own run status (the whole sentence is on serial) |
 | 2 cmd | `cmd vx  +20.0 in/s  w +0.50 rad/s` · `  NO CONTROLLER` (amber) when the controller is not linked | what the sticks ask for, in SPEEDS (not volts): forward in inches per second, yaw in radians per second. Unlinked = exactly zero |
-| 3 est | `est x   +12.3  y    -0.4  hdg  +45.2 DEADRECKON` | the library's own **estimate of where the robot is**, from the drive encoders and the IMU, in inches and degrees from where it booted; the word is its quality: `UNINIT` (IMU still calibrating, ~2 s after boot), `DEADRECKON` (normal on this robot), `DEGRADED` (amber: the IMU dropped out or the odometry saw an implausible tick — read the fault rows) |
+| 3 est | `est x   +12.3  y    -0.4  hdg  +45.2 DEADRECKON` | the library's own **estimate of where the robot is**, from the drive encoders and the IMU, in inches and degrees from where it booted; the word is its quality: `UNINIT` (IMU still calibrating, ~2 s after boot), `DEADRECKON` (normal on this robot), `DEGRADED` (amber: the IMU dropped out or the odometry saw an implausible tick — read the fault row) |
 | 4 driver | `driver ARCADE BODY  field-centric OFF` | the stick mapping in force — ARCADE BODY: left stick drives (up = forward, see WHICH END), right stick left/right turns — and field-centric's state. It is OFF in this build (a constant in the code); `ON`, `FELL BACK` or `LATCHED` appear only if it is switched on |
 | 5 L | `L  +6.2 V  4/4 present  0 disagree` | the LEFT group: volts sent, motors answering / motors in the record, motors **disagreeing** with their side-mates. **Green** = all present, none disagree; **amber** = a motor is absent (dead at boot); **red** = a motor is fighting or frozen |
 | 6 R | `R  +6.2 V  4/4 present  0 disagree` | the same for the RIGHT group |
 | 7 xcheck | `hdg xcheck +0.0003 rad/tick  batt 12.90 V` | the heading the wheels imply vs the heading the IMU measured, per tick — near 0 rolling cleanly; a steady bias while driving straight means a side is slipping or the track width is off; then the battery |
 | 8 travel | `L/R travel  +0.20  +0.20 in (last tick)` | how far each side rolled in the last tick |
-| 9–10 faults | `faults: none`, or `FAULT n=1  first MOTOR_GROUP_DISAGREE` / `      last MOTOR_GROUP_DISAGREE` (red) | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the drive CONTINUES; the driver is told); `ODO_STUCK` = the odometry saw an implausible tick; `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
+| 9 faults | `faults: none`, or (red) `FAULT n=1 last MOTOR_GROUP_DISAGREE` — ONE row since T3 Part 2 (the two fault rows were merged to make room for the claws, the team lead's ruling R3). It names the FIRST and the LAST fault only when both fit the row's 50 characters, e.g. `FAULT n=1 first IMU_LOST last IMU_LOST` or, at the very edge, `FAULT n=2 first IMU_LOST last MOTOR_GROUP_DISAGREE`; otherwise it shows only the latest, as above — `MOTOR_GROUP_DISAGREE` is 20 characters, so with it the row usually has room for one name (serial has every fault) | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the drive CONTINUES; the driver is told); `ODO_STUCK` = the odometry saw an implausible tick; `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
+| 10 claws | `CLAW 6 HOLD 34C \| 7 HOLD 33C \| CLAW CLOSED` (T3 Part 2) — amber when a claw is `ABSENT` or the row ends `FREED` | robot two's claws: each pivot by its port — `FWD` / `REV` while its button is held, `HOLD` when stopped, `ABSENT` when it was not built — and its temperature (the motor's last good reading: it freezes, unmarked, if the motor stops answering — J.3.3); then the pneumatic claw, `OPEN` / `CLOSED` / `ABSENT`. Station J reads this row |
 | 11–12 source | green: `MEASURED record from the SD card, verified against` / `the ports` — or amber: `MEASURED record \| DEGRADED: dead 13 -- driving` / `without them (left dead 0, right dead 1). ...` — or amber: `TYPED TABLE -- unverified since the rebuild; run` / `shulib Calibrate` | where the numbers came from, and which ports are dead. A reason longer than two rows ends at its last whole sentence with ` ...` (a DEGRADED one always does: the NEW-motors list follows); the whole reason is the serial `port check:` line |
 
 **On serial only** (they never change while it runs, and the screen has no room): the speed caps
@@ -580,8 +581,9 @@ the feel note, the stall note, and the port map (`[SES] ports MEASURED L -16 +17
 `opcontrol(): the LIBRARY's teleop loop is live on robot two -- teleop::runDriverControl, ...`.
 
 The controller LCD: row 0 `LIB 12V B12.9V` (the program and the battery), row 1 `hdg  +45.2 deg`
-(the estimate's heading), row 2 the last fault by name, `no controller 0V`, `DEGRADED see brain`
-or `ok`.
+(the estimate's heading), row 2 the last fault by name, `no controller 0V`, `DEGRADED see brain`,
+`CLAW ABSENT` (a declared claw was not built — the brain's claw row says which) or `ok`, in that
+order of urgency.
 
 **What "feels different from shulib Drive" means.** "shulib Drive" puts the stick straight on the
 motors as volts. This program turns the stick into a **speed request** and sends it through the
@@ -667,7 +669,8 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
       different? ______________________________________________
 - [ ] **F.2.7** Turn the program off from the brain (or the field disables it: the loop exits
       cleanly and commands the drive 0 V + Brake, and serial says `opcontrol(): field DISABLED --
-      loop exited cleanly after cancel() (0 V + Brake); N screen prints so far`). Since DEFECTS2 that
+      loop exited cleanly after cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw
+      left as it was; N screen prints so far` — the claw clause since T3 Part 2). Since DEFECTS2 that
       cancel reaches the motors as a real `brake()` — but a DISABLE is a poor test of it: the stop
       goes out only once the brain already reports disabled, and whether VEXos is cutting motor
       output by then is UNKNOWN (HA-145). The clean check of Brake is a library stop while ENABLED
@@ -830,7 +833,8 @@ shows it as `OUT 18`; the finished screen as amber `LEFT OUT 18` and the sentenc
 `port 18 turns but does not move the robot -- its` / `gear is slipping; it is left out`. The run
 still SAVES, WITHOUT that port; "shulib Teleop" then drives without it (a motor on a port the record
 does not name is NAMED at its boot — `NEW motors not in the calibration: 14` in the port-check line,
-as on 2026-09-25 — never a refusal). **Fix the gear, then calibrate again** —
+as on 2026-09-25 — never a refusal; since T3 Part 2, with the claw motors plugged in, the same
+line goes on `; claw pivots (declared, not drive motors): 6 7` — they are expected, not NEW). **Fix the gear, then calibrate again** —
 the robot has one motor less on that side until you do.
 
 **What a stop means — the words on the red screen.** `IT ROLLED` (`it moved but did not turn`):
@@ -1223,13 +1227,13 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 > logged**, and it depends on the separate DEFECTS2 fix (a program-commanded Hold actually reaching
 > the motor) being in the build you uploaded — ask the coordinator which commit carries both.
 >
-> **Teleop's claw lines do not exist yet in the tree this station was written against.** Its boot
-> lines for the claws, its banner's claw sentence and its claw row on the panel are written when
-> T3's library half (and its addendum's: the pneumatic claw's toggle) is merged into Teleop. Every
-> quote of them below is marked **`<<FROM TELEOP AT MERGE>>`**, and the coordinator replaces each
-> marker with the exact text from the code at that merge. **A copy of this station that still shows
-> a marker is not ready to run — ask for the updated sheet.** The ONE quote that is final today is
-> Calibrate's (J.2): that line is in the code now.
+> **Teleop's claw lines are quoted below from the code** (T3 Part 2, 2026-09-26: the claws wired
+> into "shulib Teleop" — its boot lines, its banner's claw sentence, its claw row on the panel;
+> `src/teleop_claws.hpp` words them, and `test/teleop_claws_test.cpp` pins every one word for word).
+> Serial lines are quoted without their `[t=   0.00] ` time prefix; a log line longer than 196
+> characters continues on the next line after `... `. **A line on the robot that differs from the
+> quote is a finding — write down what it said.** The re-zero button is **Y** in that build (the
+> boot's `driver control:` line ends `re-zero button Y; field-centric: OFF (selectable)`).
 
 **J.0 — before**
 
@@ -1281,14 +1285,39 @@ lines — copied from the code, final:
 
 **J.3 — Teleop's boot** (slot 2, started from the brain; the robot on blocks)
 
-- [ ] **J.3.1** The boot lines, one per pivot, each BUILT or ABSENT — copy both word for word:
-      `<<FROM TELEOP AT MERGE>>` (the built line for "claw pivot 6" and for "claw pivot 7", and the
-      ABSENT form, which carries the device provider's own sentence for the port).
+- [ ] **J.3.1** The boot lines, one per pivot, each BUILT or ABSENT — copy both word for word.
+      BUILT, as the code words them:
+      `[R3B] claw pivot 6: BUILT -- port 6 (typed +6), RED, R1 forward / R2 reverse at 12 V, HOLD on release -- in shulib Teleop only`
+      `[R3B] claw pivot 7: BUILT -- port 7 (typed +7), RED, L1 forward / L2 reverse at 12 V, HOLD on release -- in shulib Teleop only`
+      ABSENT (a warning; the drive still runs), with the device provider's own sentence for the
+      port — e.g. for an empty port 7:
+      `[WARN][R3B] claw pivot 7: ABSENT -- port 7: nothing plugged in (expected a motor) -- L1/L2 do nothing; the drive still runs`
+      And the port check (the `calibration record: DECODED, port check OK -- ...` line and the
+      later `port check:` line) names them as claw pivots, never as NEW motors:
+      `... NEW motors not in the calibration: 14; claw pivots (declared, not drive motors): 6 7. NOT CHECKED: ...`
+      (with 19 unplugged, 14 is still the one NEW motor). If the record lists 6 or 7 as a DRIVE
+      port, Teleop REFUSES: `a CLAW port is a DRIVE port in the record` / `port 6 is both a claw
+      (claw pivot 6) and a drive motor in the record -- recalibrate: shulib Calibrate (slot 4)
+      never takes a declared claw port` — run Station G again.
       → ______________________________________________
 - [ ] **J.3.2** The banner says the claws are in THIS program and not in "shulib Drive":
-      `<<FROM TELEOP AT MERGE>>`. → seen **YES / NO**
-- [ ] **J.3.3** The panel's claw row: `<<FROM TELEOP AT MERGE>>` (its shape, per the T3 brief: each
-      pivot's state — FWD, REV, HOLD or ABSENT — and its temperature). → as shown: ______________
+      `[R3B] THE CLAWS are in THIS program (slot 2), NOT shulib Drive (slot 1): R1/R2 port 6, L1/L2 port 7, A the claw on 3-wire A; re-zero Y`
+      (right after the `BUILD STAMP` line; the run-status line before it ends `Its claws (T3: the
+      pivots on 6 and 7, the pneumatic claw on 3-wire A) have never been driven.`).
+      → seen **YES / NO**
+- [ ] **J.3.3** The panel's claw row — row 10, under the ONE fault row: `CLAW 6 HOLD 34C | 7 HOLD
+      33C | CLAW CLOSED`. Each pivot by its port: `FWD` / `REV` (the volts its motor was last
+      commanded), `HOLD` when stopped, `ABSENT` when it was not built — then its temperature in
+      whole °C; then the pneumatic claw, `CLAW OPEN` / `CLAW CLOSED` / `CLAW ABSENT`. The
+      temperature is the motor's LAST GOOD reading: if a pivot stops answering after boot (its
+      cable worked loose), its number FREEZES and nothing on the row says so, and a motor that has
+      never answered a read shows `20C` — the program cannot tell (the library's motor seam carries
+      no "stale" mark); `--` never appears on the brain. The row is
+      AMBER when a claw is ABSENT, or when it ends `FREED` (driver control released a claim an
+      operation had left on a claw; serial names which, `[WARN][TEL] driver control: RELEASED a
+      claim left on mechanism '...' at entry ...` — not expected on this station, which runs no
+      autonomous). The controller's third line says `CLAW ABSENT` when a claw is absent and nothing
+      more urgent is showing. → as shown: ______________
 - [ ] **J.3.4** If a claw says ABSENT, **Teleop still drives** — by design, a missing claw motor never
       stops the drive (run F.2.3 for a few seconds to see it). → drove with a claw ABSENT? **YES / NO
       / not tried**
@@ -1304,7 +1333,9 @@ lines — copied from the code, final:
 - [ ] **J.4.5** Hold **R1 and L2 together**: port 6 goes forward and port 7 goes back at the same
       time — the two pivots are independent. → **YES / NO**
 - [ ] **J.4.6** While each button is held, the claw row reads FWD / REV for that pivot, and HOLD after
-      release (`<<FROM TELEOP AT MERGE>>`). → **YES / NO**
+      release — R1 held: `CLAW 6 FWD nnC | 7 HOLD nnC | CLAW ...`; R2 held: `CLAW 6 REV nnC | ...`;
+      let go: `CLAW 6 HOLD nnC | ...` (the row repaints at most five times a second, so a tap
+      shorter than 0.2 s may never show FWD). → **YES / NO**
 
 **If R1 moves a claw the way the team calls "back",** that is a finding, not a fault: the fix is ONE
 sign in `src/mechanism_table.hpp` (the coordinator changes that pivot's `+6` to `-6`, or `+7` to
@@ -1348,10 +1379,11 @@ keeps running either way.
 - [ ] **J.7.1** Put both claws at **mid travel**. Count out loud "three, two, one, GO": on GO the
       driver presses **R1 and L1 together and keeps holding them**; about one second after GO the
       second person pulls the cable. **The pass:** the claw row shows each pivot go from FWD to
-      HOLD when the link goes (`<<FROM TELEOP AT MERGE>>` — the row's exact words and the serial
-      line for a disconnect, if Teleop prints one, are filled from the code at the merge), while
-      the driver is STILL holding both buttons. → FWD then HOLD, both pivots? **YES / NO** · what
-      the row and the serial log showed: ______________________________________________
+      HOLD when the link goes — `CLAW 6 FWD nnC | 7 FWD nnC | CLAW ...` becomes `CLAW 6 HOLD nnC |
+      7 HOLD nnC | CLAW ...`, and row 2 (`cmd`) ends `NO CONTROLLER` — while the driver is STILL
+      holding both buttons. (Teleop prints NO serial line when the controller drops: the panel is
+      the evidence, so photograph it.) → FWD then HOLD, both pivots? **YES / NO** · what the row
+      showed: ______________________________________________
       *If a claw reaches its stop before the pull,* the test still counts (the row reads FWD until
       the link goes), but a pivot pressed against its stop at 12 V heats (A4 register HA-154):
       **if the pull has not happened within about three seconds of a claw reaching its stop, the
@@ -1369,7 +1401,9 @@ Read both claws' temperatures on the claw row first. Then close the **port-6** c
 stop and **keep holding R1**. Read the temperature every 10 s. **Stop at 50 °C, or the moment the
 claw goes weak** (the motor is believed to start derating at 55 °C — A4 register HA-44, whose
 onset nobody has measured; 50 °C leaves room for that belief to be wrong). Then the same for port
-7 on L1.
+7 on L1. The row shows the motor's LAST GOOD reading, and it FREEZES without saying so if the
+motor stops answering (J.3.3) — so a number that has not moved at all for 30 s of holding is not
+proof the motor is cool: let go, check that pivot's cable, and write down what you found.
 
 | Pivot | before | 10 s | 20 s | 30 s | 60 s (only if under 50 °C) | went weak at |
 |---|---|---|---|---|---|---|
@@ -1397,8 +1431,11 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       *If TWO:* write down both letters, run only J.9.1 and J.9.2, and send them — the table
       declares ONE line (A); a second line is a fact nobody has stated, and the program does not
       drive it. (No polarity answer comes from this case: that needs J.9.3 and one cable.)
-- [ ] **J.9.1** Teleop's boot line for the claw: `<<FROM TELEOP AT MERGE>>` (the built form, naming
-      "claw", 3-wire port A and button A — or the ABSENT form with its reason). → ______________
+- [ ] **J.9.1** Teleop's boot line for the claw, as the code words it:
+      `[R3B] claw: BUILT -- 3-wire port A, CLOSED at the start (line low; line high opens it -- polarity UNVERIFIED, HA-159); A toggles it; a disable leaves it where it is`
+      (the ABSENT form, `[WARN][R3B] claw: ABSENT -- <reason> -- A does nothing; the drive still
+      runs`, cannot happen on the brain: its provider refuses only a 3-wire port outside A..H, and
+      the table's A is checked before the build). → ______________
 - [ ] **J.9.2 At the start the claw should CLOSE.** Note where the claw is before you start slot 2
       (wherever the valve left it). Start slot 2 and watch it. → before the start: **OPEN /
       CLOSED** · after the start: **CLOSED / OPEN** · it moved: **at the start / when driver
@@ -1408,7 +1445,9 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 - [ ] **J.9.3 Press A ⇒ the claw OPENS; press A again ⇒ it CLOSES.** Short, separate presses: open,
       closed, open, closed. → the FIRST press: the claw **OPENED / CLOSED / did NOTHING** · each
       press flipped it exactly once? **YES / NO** · anything else moved (a pivot, a wheel)? ______
-      · the panel's claw word after each press (`<<FROM TELEOP AT MERGE>>`): ______ · pressing
+      · the panel's claw word after each press (the claw row's last word: `CLAW OPEN` after an
+      opening press, `CLAW CLOSED` after a closing one — what the program COMMANDED, read through
+      the polarity guess): ______ · pressing
       **Y** (the re-zero button now) leaves the claw alone? **YES / NO**
       **The polarity, from J.9.2 and this FIRST press** (only with J.9.0's one cable in A):
       - CLOSED after the start, and the first press OPENED it: **the polarity is RIGHT.**

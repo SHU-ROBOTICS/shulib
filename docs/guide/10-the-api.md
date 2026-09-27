@@ -184,8 +184,9 @@ to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code 
 waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
 disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
 what lets the test suite run the whole loop on the host test plant. Honest status: "shulib Teleop"
-(`src/teleop_program.cpp`) now drives through it, but that version of the program has not run on a
-robot yet — so the loop is host-tested only, and no driver has felt it.
+(`src/teleop_program.cpp`) now drives through it — robot two's claws included, on the buttons
+below — but that version of the program has not run on a robot yet, so the loop is host-tested
+only, and no driver has felt it.
 
 #### Buttons for mechanisms
 
@@ -200,8 +201,11 @@ every binding safe before its first tick and again on a field disable (after the
 stop), and reads the buttons only while the controller is connected. Two rules keep it honest:
 a stop made through the binding while a finger is still on the button (`makeSafe()`) is not undone
 by that finger — the binding waits until it has seen both buttons up — and a mechanism an operation
-has claimed is never touched, even when that operation is one the end of autonomous cut off (its
-claim outlives it, so release it before driver control). `teleop::validBindings()` checks a whole
+has claimed *during* driver control is never touched. A claim still there when driver control
+*starts* is different: an operation the end of autonomous cut off never releases its own claim (PROS
+deletes that task wherever it is), so the loop releases it at its start, before anything is made
+safe — without calling the dead operation — and says so, one `[WARN][TEL]` line per claim, with
+`releasedLeftoverClaim()` true on the binding for your panel. `teleop::validBindings()` checks a whole
 set before driver control starts: one button, one job, one binding per mechanism, and no binding on
 the loop's re-zero button — which defaults to **L1**, so name another one if a mechanism wants L1.
 With a `robot::Robot`, the mechanisms come from the config: each `config::MechanismConfig` with

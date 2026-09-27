@@ -831,7 +831,8 @@ TEST_CASE("mechanism table: the buttons across the pivots AND the claw -- the cl
     CHECK(mechanismButtonsUnique(secondOnY));
     CHECK_FALSE(mechanismButtonsAvoid(secondOnY, kTeleopRezeroButton));
     // WHY THE RE-ZERO MOVED: robot two's table binds A now, so a Teleop that kept its old re-zero
-    // button (A) would collide — the coordinator's merge step (header, kTeleopRezeroButton).
+    // button (A) would collide — since T3 Part 2 Teleop's kRezeroButton is Y, static_assert-tied
+    // to kTeleopRezeroButton in src/teleop_program.cpp (header, kTeleopRezeroButton).
     CHECK_FALSE(mechanismButtonsAvoid(kRobotTwoMechanisms, ControllerButton::A));
     // An unset toggle collides with nothing here (completeness refuses it — one check, one fault).
     MechanismTable unset = robotTwo();

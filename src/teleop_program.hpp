@@ -14,7 +14,12 @@
 // "shulib Teleop" (G1 Part 2b, built on robot::Robot) has not run on hardware. The previous version
 // (build v0.1.1-319-g2780462) drove robot two from the calibration record on 2026-09-25 -- eight
 // starts, open-loop under driver control through the library's own graph; no library-commanded
-// motion has run (R3b open).
+// motion has run (R3b open). Its claws (T3: the pivots on 6 and 7, the pneumatic claw on 3-wire A)
+// have never been driven.
+//
+// THE CLAWS live here since T3 Part 2 (2026-09-26), not in "shulib Drive": R1/R2 drive the pivot on
+// port 6, L1/L2 the one on port 7 (12 V while held, HOLD on release), A toggles the pneumatic claw
+// (CLOSED at the start, left as it is by a disable), and the field-centric re-zero button is Y.
 
 namespace shulib::bench {
 
@@ -30,8 +35,9 @@ inline constexpr const char kTeleopAutonomousReason[] = "No motion here, ever: T
 /// the two arguments src/main.cpp formats — the BEACON stays a literal in main.cpp's #if chain, so
 /// only the build that selected this program links it (the brief's A2) — then decides the boot
 /// source, builds the robot::Robot ONCE over a hal::pros::ProsDeviceProvider inside the graph
-/// boundary's try, hands its fault latch to main.cpp's precondition handler, and writes the session
-/// header and the boot lines. On any refusal it paints the refusal screen, says it on serial,
+/// boundary's try — and, inside the same try, binds and validates the claws' buttons (T3 Part 2)
+/// — hands its fault latch to main.cpp's precondition handler, and writes the session header and
+/// the boot lines (one per claw, BUILT or ABSENT). On any refusal it paints the refusal screen, says it on serial,
 /// constructs nothing further, and returns: nothing is powered.
 void teleopInitialize(const char* variantBeacon, const char* competitionStatusBits);
 
@@ -42,8 +48,9 @@ void teleopAutonomous();
 
 /// opcontrol()'s tank-library branch: the library's driver-control loop
 /// (teleop::runDriverControl — the DriveShaper feel layer, default profile ArcadeBody,
-/// field-centric selectable but OFF) over the robot's Chassis, with the brain panel and the
-/// controller screen. Returns when the field disables the robot, after cancel() (0 V + Brake);
+/// field-centric selectable but OFF) over the robot's Chassis, with the claws' bindings (T3 Part
+/// 2), the brain panel and the controller screen. Returns when the field disables the robot, after
+/// cancel() (0 V + Brake) and each claw pivot's safe state (the pneumatic claw is left as it is);
 /// PROS calls opcontrol() again when driver control resumes. When the boot refused, it repaints
 /// the refusal and idles, powering nothing.
 void runTeleop();

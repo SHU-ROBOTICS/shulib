@@ -94,12 +94,13 @@
 //     declares another kind of motor mechanism changes that line with it. The pneumatic claw is
 //     not in the census at all (a 3-wire port is not a smart port), and Calibrate never drives a
 //     3-wire line.
-//   * "shulib Teleop": NOT YET. The pivots' bindings, boot lines and panel row, and the claw's
-//     toggle, are wired when T3's library half (the hold-to-run binding, the driver loop's
-//     bindings overload, mechanisms built from config::MechanismConfig) and the addendum's (B2: the
-//     toggle binding, the provider's 3-wire output, pneumatic mechanisms from config) are merged.
-//     Nothing here depends on those library pieces, on purpose — they were being written in
-//     parallel; the entries convert to them at that merge.
+//   * "shulib Teleop" (since T3 Part 2, 2026-09-26): src/boot_source.hpp converts every entry into
+//     a config::MechanismConfig (the pivots as single-motor mechanisms, the claw as a pneumatic
+//     one whose START and SAFE are LEVELS from pneumaticStartCommand() / pneumaticSafeCommand()),
+//     so robot::Robot builds them, and names the declared motor ports as claw pivots in its port
+//     check; src/teleop_claws.hpp binds each built one to its buttons (the toggle's initial level
+//     from pneumaticStartCommand() too) and words its boot line and panel row. Nothing HERE depends
+//     on the library: the conversion is the program's, and this file stays plain data.
 //
 // COMPILE-TIME CHECKS (the static_asserts at the end of this file) — each the thing a typo would
 // produce, each a named predicate the host test breaks with hand-built tables:
@@ -138,18 +139,15 @@ namespace shulib::bench {
 
 /// THE BUTTON NO MECHANISM MAY TAKE: "shulib Teleop"'s field-centric RE-ZERO button — **Y**, the
 /// team lead's ruling of 2026-09-26 (T3 addendum §0): A became the pneumatic claw's toggle, so the
-/// re-zero moved to Y. (It was A, restated from G1 Part 2b's Teleop; the library's own
+/// re-zero moved to Y. (It was A, in G1 Part 2b's Teleop; the library's own
 /// DriverLoopConfig::rezeroButton default is L1, which robot two's port-7 pivot uses.)
-/// NOT YET TIED TO TELEOP — the coordinator's step at merge: Teleop's own constant,
-/// `kRezeroButton` in src/teleop_program.cpp (committed in the main tree at 7f9b9a1, :141, still
-/// `hal::ControllerButton::A`), is not in the tree this table was written against (b622d9b). At
-/// the merge the coordinator moves it A -> Y (the addendum's one-line Teleop change) and ties the
-/// two with `static_assert(kRezeroButton == bench::kTeleopRezeroButton)` (or sets one from the
-/// other), so they can never drift. Until then the two DISAGREE, and the claw must not be wired
-/// into a Teleop whose re-zero is still A. (This paragraph describes the tree BEFORE that merge;
-/// the merge that ties the two rewrites it to name the static_assert and where it sits.) The
-/// library's bindings also refuse, at construction, a button equal to the loop's re-zero button —
-/// that is the runtime check; this is the compile-time one.
+/// TIED TO TELEOP since T3 Part 2 (2026-09-26): Teleop's own constant, `kRezeroButton` in
+/// src/teleop_program.cpp, is Y, and a `static_assert(kRezeroButton == kTeleopRezeroButton)` right
+/// under it makes the two one fact — a build in which they drift does not compile. Beside it, a
+/// second static_assert checks that no binding button of either table is the re-zero button. This
+/// table's check 6 (below) keeps every DECLARED button off it at compile time; at run time
+/// Teleop's teleopInitialize() and the library's runDriverControl() refuse, before the first tick,
+/// a binding on the loop's re-zero button (teleop::validBindings).
 inline constexpr hal::ControllerButton kTeleopRezeroButton = hal::ControllerButton::Y;
 
 /// THE CLAW'S OPEN POLARITY — **UNVERIFIED**. The 3-wire line level that OPENS robot two's
@@ -236,14 +234,16 @@ struct MechanismTable {
 /// DEFECTS2, and holding a LOADED pivot is unmeasured (A4 register HA-156). VOLTS 12: full power
 /// passes straight through while a button is held (a stall cut-off is out of T3), so a pivot held
 /// against its stop heats at the motor's DEFAULT current limit, 2500 mA, and nothing in shulib
-/// watches a mechanism motor's temperature yet (A4 register HA-154). THE PORTS are all the brain
+/// acts on a mechanism motor's temperature yet — "shulib Teleop"'s claw row SHOWS it (T3 Part 2),
+/// and the driver is the only cut-off (A4 register HA-154). THE PORTS are all the brain
 /// can check: a claw cable swapped with a drive cable is invisible to it (A4 register HA-155).
 /// THE PNEUMATIC CLAW: REPORTED by the team lead 2026-09-26 (T3 addendum §0) — 3-wire port A
 /// (line 1), toggled by A, CLOSED at program start, keeps its state when disabled; single or
 /// double, and the polarity, NOT KNOWN (A4 register HA-159): one line declared, the polarity
 /// kClawOpenCommand's guess. Its SAFE position, CLOSED, is the addendum's statement — a closed claw
 /// keeps what it holds — not the team lead's words. Nothing has seen it: shulib's census reads
-/// the 21 smart ports only, and no program in this tree drives a 3-wire line.
+/// the 21 smart ports only, and the one program that drives its line — "shulib Teleop", since T3
+/// Part 2 (the line made at the START level, then A's toggle) — has not run on the robot.
 inline constexpr MechanismTable kRobotTwoMechanisms = {
     .motors =
         {
@@ -468,15 +468,20 @@ constexpr bool pneumaticCommandFor(const PneumaticMechanismEntry& e, PneumaticPo
     return position == PneumaticPosition::Open ? *e.openCommand : !*e.openCommand;
 }
 
-/// The level `e` is commanded to at program start (its `start` position): what the coordinator
-/// hands the library as the mechanism's start value at merge. A COMPLETE entry only.
+/// The level `e` is commanded to at program start (its `start` position). Since T3 Part 2 it is
+/// BOTH the config's START level (src/boot_source.hpp: config::MechanismConfig::pneumaticStart,
+/// which robot::Robot drives the 3-wire line to when it makes it) AND the driver's toggle's
+/// initial level (src/teleop_claws.hpp) — one function, so the two cannot disagree and the claw
+/// cannot move when driver control first starts. A COMPLETE entry only.
 constexpr bool pneumaticStartCommand(const PneumaticMechanismEntry& e) {
     return pneumaticCommandFor(e, *e.start);
 }
 
-/// The level a LIBRARY-FORCED safe state commands (its `safe` position): the `safe` argument of
-/// hal::PneumaticMechanism at merge. Never what a disable does (the entry's `safe` field). A
-/// COMPLETE entry only.
+/// The level a LIBRARY-FORCED safe state commands (its `safe` position): the config's SAFE level
+/// (src/boot_source.hpp: config::MechanismConfig::pneumaticSafe, since T3 Part 2), which
+/// robot::Robot hands hal::PneumaticMechanism as its `safe` argument. Never what a disable does
+/// (the entry's `safe` field; the driver's toggle commands nothing on a disable). A COMPLETE entry
+/// only.
 constexpr bool pneumaticSafeCommand(const PneumaticMechanismEntry& e) {
     return pneumaticCommandFor(e, *e.safe);
 }

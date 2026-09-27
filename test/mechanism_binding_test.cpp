@@ -40,6 +40,7 @@
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/hal/controller.hpp"
+#include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/kinematics/tank.hpp"
@@ -403,6 +404,39 @@ TEST_CASE("T3 B10: a mechanism someone else has claimed() is NEVER commanded —
     CHECK(isVoltage(q.motor.events(), 0, 12.0));
 }
 
+// ═══ B10b (the claim ruling, binding half). releaseLeftoverClaim() ═════════════════════
+TEST_CASE("T3 B10b: releaseLeftoverClaim() releases a claim that is there (and says so), never "
+          "calls its claimant, commands nothing, leaves the state alone — and answers false, "
+          "forgetting the last answer, when there is none") {
+    // BUG CAUGHT: a release that calls the claimant's cancel() (the dead operation's object lived
+    // on a deleted task's stack); a release that also makes the mechanism safe (the loop's entry
+    // safe state is its own step, and a second one repaints); a flag that never clears (the panel
+    // would say FREED forever); a flag that is set without a claim.
+    struct Spy final : shulib::hal::ICancellable {
+        void cancel() override { ++cancels; }
+        int cancels = 0;
+    };
+    Pivot p{"claw pivot 6"};
+    MechanismBinding b{p.mech, ControllerButton::R1, ControllerButton::R2, kFull};
+    CHECK_FALSE(b.releasedLeftoverClaim());  // a fresh binding has released nothing
+    Spy spy;
+    REQUIRE(p.mech.tryClaim(spy));
+    b.tick(true, true, false);  // pressed under the claim: Inert, nothing commanded
+    REQUIRE(b.state() == State::Inert);
+    CHECK(b.releaseLeftoverClaim());
+    CHECK(b.releasedLeftoverClaim());
+    CHECK_FALSE(p.mech.claimed());
+    CHECK(p.mech.claimant() == nullptr);
+    CHECK(spy.cancels == 0);
+    CHECK(p.motor.eventCount() == 0);       // commands nothing
+    CHECK(b.state() == State::Inert);       // the state is the loop's reset()'s to change
+    CHECK_FALSE(b.releaseLeftoverClaim());  // nothing there now
+    CHECK_FALSE(b.releasedLeftoverClaim());  // and the last answer is forgotten
+    CHECK(p.motor.eventCount() == 0);
+    // It never TAKES a claim: a mechanism nobody claimed stays unclaimed.
+    CHECK_FALSE(p.mech.claimed());
+}
+
 // ═══ B11 (brief test 11, binding half). Refused at CONSTRUCTION ═════════════════════
 TEST_CASE("T3 B11: construction refuses forward == reverse, a non-button, V <= 0, V > 12, NaN "
           "and infinity — and accepts the edges") {
@@ -531,7 +565,10 @@ struct LoopTick {
 
 /// Robot two's pair: pivot 6 on R1/R2, pivot 7 on L1/L2, 12 V, Hold — and the loop around them.
 struct ClawLoop {
-    motion_rig::ChassisRig c{kTank};
+    /// The chassis's own sink — where the loop says what it did that nobody pressed for (a
+    /// released leftover claim, tag TEL).
+    shulib::hal::fake::FakeTelemetrySink sink;
+    motion_rig::ChassisRig c{kTank, motion_rig::plantConfig(), &sink};
     LyingController pad;
     DriveShaper shaper{DriverProfile{}};
     Pivot six{"claw pivot 6"};
@@ -772,51 +809,142 @@ TEST_CASE("T3 L8: every pivot is made safe at loop ENTRY, before the first disab
     }
 }
 
-// ═══ L10 (brief test 10, loop half). A claim already there when driver control starts ═══
-TEST_CASE("T3 L10: a mechanism already claimed when runDriverControl starts is never commanded by "
-          "the loop — not at entry, not while held, not on the disable — and the claim survives") {
-    // PINS TODAY'S RULE, AND THE GAP IT LEAVES (review round 1; mechanism_binding.hpp, the NO
-    // CLAIM rule). The loop ticks no operation, so a claim on a bound mechanism at entry is either
-    // an operation the PROGRAM ticks (from perTick) or one stranded by a task PROS deleted
-    // mid-operation — an autonomous routine the field cut off — and the loop cannot tell which.
-    // Today it defers to the claim either way: the other pivot and the drive work, this pivot
-    // gets nothing at all, and the claim is still there when the loop returns. Releasing a
-    // stranded claim is the program's job until a ruling moves it into the library; this case
-    // is the one that flips when it does.
-    // BUG CAUGHT: a loop (or binding) that drives or safes a mechanism an operation owns; a loop
-    // that quietly releases someone else's claim.
+// ═══ L10 (brief test 10, loop half; the claim ruling, T3 Part 2). A claim already there ══
+namespace {
+
+/// A claimant that must NEVER be called: the stranded operation it stands for lived on the stack of
+/// a task PROS deleted, so calling it would be a use-after-free on a brain.
+struct DeadClaimant final : shulib::hal::ICancellable {
+    void cancel() override { ++cancels; }
+    int cancels = 0;
+};
+
+/// The TEL lines the loop wrote, in order.
+std::vector<std::string> telLines(const shulib::hal::fake::FakeTelemetrySink& sink) {
+    std::vector<std::string> out;
+    for (int i = 0; i < sink.size(); ++i) {
+        if (sink.at(i).subsystem == "TEL") {
+            CHECK(sink.at(i).level == shulib::hal::LogLevel::Warn);
+            out.push_back(sink.at(i).message);
+        }
+    }
+    return out;
+}
+
+}  // namespace
+
+TEST_CASE("T3 L10: a claim left on a bound mechanism when runDriverControl starts is RELEASED at "
+          "entry and SAID, once — then the pivot is made safe and its button drives from the first "
+          "tick (the team lead's ruling, 2026-09-26)") {
+    // BUG CAUGHT: a stranded claim (an autonomous operation the field's disable deleted
+    // mid-operation) locking the driver out of the claw for the whole driver period — what this
+    // case pinned as the GAP before the ruling; a release nobody is told about; a release AFTER the
+    // entry safe state (the pivot would skip its safe state and first move at +12 V); a release
+    // that calls the dead claimant's cancel() (its object lived on the deleted task's stack); a
+    // release that also frees a mechanism nobody claimed, or logs one that was not claimed.
     ClawLoop w;
-    REQUIRE(w.six.mech.tryClaim());  // what an autonomous task deleted mid-operation leaves
-    const auto log = w.run(8, [&](int) {
+    DeadClaimant dead;
+    REQUIRE(w.six.mech.tryClaim(dead));  // what an autonomous task deleted mid-operation leaves
+    std::size_t sinkAtFirstPoll = 99;
+    std::size_t sixEventsAtFirstPoll = 99;
+    const auto log = w.run(8, [&](int k) {
+        if (k == 0) {
+            sinkAtFirstPoll = telLines(w.sink).size();
+            sixEventsAtFirstPoll = w.six.motor.events().size();
+        }
         w.pad.hold(ControllerButton::R1, true);
         w.pad.hold(ControllerButton::L1, true);
         w.pad.axes[1] = 1.0;  // and the driver is driving
     });
     REQUIRE(log.size() == 8U);
-    CHECK(log.back().leftVolts > 1.0);     // the drive is unaffected
-    CHECK(w.six.motor.eventCount() == 0);  // not the entry safe state, not +12 V, not the disable
-    CHECK(w.six.mech.claimed());
-    CHECK(isSafeAt(w.seven.motor.events(), 0));  // pivot 7: safe at entry, then it drives
+    // Released, and never through the claimant.
+    CHECK_FALSE(w.six.mech.claimed());
+    CHECK(w.six.mech.claimant() == nullptr);
+    CHECK(dead.cancels == 0);
+    // Said ONCE, before the first poll, naming the mechanism — and nothing about pivot 7.
+    CHECK(sinkAtFirstPoll == 1U);
+    const std::vector<std::string> said = telLines(w.sink);
+    REQUIRE(said.size() == 1U);
+    CHECK(said[0]
+          == "driver control: RELEASED a claim left on mechanism 'claw pivot 6' at entry (an "
+             "operation that outlived its task) -- its buttons work from the first tick");
+    CHECK(w.bind6.releasedLeftoverClaim());  // what a panel reads
+    CHECK_FALSE(w.bind7.releasedLeftoverClaim());
+    // Then the ordinary entry: the declared safe state BEFORE the first poll (the release came
+    // first, or makeSafe() would have skipped the claimed pivot), and R1 drives from tick 0.
+    CHECK(sixEventsAtFirstPoll == 2U);
+    CHECK(isSafeAt(w.six.motor.events(), 0));
     for (const LoopTick& t : log) {
+        CHECK(t.sixVolts == 12.0);
         CHECK(t.sevenVolts == 12.0);
     }
-    CHECK(w.bind6.state() == State::Inert);  // a press was seen under the claim
-    // What a panel reads to say WHY pivot 6 does nothing — the binding's state cannot say it.
-    CHECK(w.bind6.mechanism().claimed());
-    // Once the claim is released (by its owner, or by the program before driver control), pivot
-    // 6 is the driver's again on the next call: safe at entry, and a held button drives at once.
-    w.six.mech.releaseClaim();
+    CHECK(log.back().leftVolts > 1.0);  // the drive is unaffected
+    // The binding took no claim of its own while driving, and the disable safes it as usual.
+    CHECK_FALSE(w.six.mech.claimed());
+    CHECK(isSafeAt(w.six.motor.events(), w.six.motor.events().size() - 2));
+    // The NEXT entry finds no claim: nothing is said, and the panel's word goes away.
     const auto again = w.run(2, [&](int) { w.pad.hold(ControllerButton::R1, true); });
     REQUIRE(again.size() == 2U);
-    CHECK(isSafeAt(w.six.motor.events(), 0));
+    CHECK(telLines(w.sink).size() == 1U);
+    CHECK_FALSE(w.bind6.releasedLeftoverClaim());
+    CHECK(again[0].sixVolts == 12.0);
+
+    SUBCASE("both pivots claimed (one anonymously): two lines, in binding order") {
+        ClawLoop two;
+        DeadClaimant d6;
+        REQUIRE(two.six.mech.tryClaim(d6));
+        REQUIRE(two.seven.mech.tryClaim());  // an anonymous claim is released the same way
+        two.run(1, [](int) {});
+        const std::vector<std::string> lines = telLines(two.sink);
+        REQUIRE(lines.size() == 2U);
+        CHECK(lines[0].find("'claw pivot 6'") != std::string::npos);
+        CHECK(lines[1].find("'claw pivot 7'") != std::string::npos);
+        CHECK_FALSE(two.six.mech.claimed());
+        CHECK_FALSE(two.seven.mech.claimed());
+        CHECK(isSafeAt(two.seven.motor.events(), 0));
+        CHECK(d6.cancels == 0);
+    }
+}
+
+// ═══ L13 (the claim ruling's other half). A claim taken DURING the loop is still obeyed ══
+TEST_CASE("T3 L13: a claim taken DURING driver control is never commanded by the loop — not by "
+          "the held button, not by the disable — and is not released; only the NEXT entry "
+          "releases it (the ruling is at entry, and only there)") {
+    // BUG CAUGHT: a loop that releases claims every tick (an operation a program runs from perTick
+    // would lose its mechanism mid-run to a finger on the button); a binding that commands a
+    // mechanism an operation owns; a disable path that safes a claimed mechanism under its owner.
+    ClawLoop w;
+    constexpr int kClaimAt = 3;
+    const auto log = w.run(10, [&](int k) {
+        if (k == kClaimAt) {
+            REQUIRE(w.six.mech.tryClaim());  // an operation starts on pivot 6, mid-driving
+        }
+        w.pad.hold(ControllerButton::R1, true);
+    });
+    REQUIRE(log.size() == 10U);
+    CHECK(log[kClaimAt - 1].sixVolts == 12.0);
+    // From the claim on: not one more event on pivot 6 — not +12 V, not the disable's safe state.
+    CHECK(w.six.motor.events().size() == log[kClaimAt - 1].sixEvents);
+    CHECK(w.six.mech.claimed());  // still the operation's when the loop returns
+    CHECK(w.bind6.state() == State::Inert);
+    CHECK(telLines(w.sink).empty());  // nothing was released, so nothing was said
+    CHECK_FALSE(w.bind6.releasedLeftoverClaim());
+    // PROS calls opcontrol() again: at THAT entry the claim is a leftover, and it is released.
+    const auto again = w.run(2, [&](int) { w.pad.hold(ControllerButton::R1, true); });
+    REQUIRE(again.size() == 2U);
+    CHECK_FALSE(w.six.mech.claimed());
+    CHECK(telLines(w.sink).size() == 1U);
     CHECK(again[0].sixVolts == 12.0);
 }
 
 // ═══ L11 (brief test 11, loop half). The loop refuses a bad set BEFORE anything moves ═══
 TEST_CASE("T3 L11: runDriverControl refuses a binding on the re-zero button (the default L1) or a "
           "button used twice — before the first poll, before touching any mechanism") {
-    // BUG CAUGHT: a loop that starts anyway, so L1 both re-zeroes field-centric AND drives pivot 7.
+    // BUG CAUGHT: a loop that starts anyway, so L1 both re-zeroes field-centric AND drives pivot 7;
+    // a loop that releases a leftover claim BEFORE it has checked the set (a refused program must
+    // leave every mechanism exactly as it found it — the claim ruling acts only on a loop that runs).
     ClawLoop w;
+    REQUIRE(w.six.mech.tryClaim());
     int polled = 0;
     const auto never = [&](const ChassisSpeeds&, bool, const DriveShaperState&) {};
     const auto poll = [&] {
@@ -838,6 +966,9 @@ TEST_CASE("T3 L11: runDriverControl refuses a binding on the re-zero button (the
     CHECK(w.c.pacer.paces == 0);
     CHECK(w.six.motor.eventCount() == 0);
     CHECK(w.seven.motor.eventCount() == 0);
+    CHECK(w.six.mech.claimed());       // the leftover claim is still there…
+    CHECK(telLines(w.sink).empty());   // …and nothing claimed to have released it
+    CHECK_FALSE(w.bind6.releasedLeftoverClaim());
 }
 
 // ═══ L12 (brief test 12). The drive does not know the bindings exist ════════════════

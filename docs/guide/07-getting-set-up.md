@@ -123,8 +123,9 @@ mental model, which matters more:
   and wires the invented X-drive by hand, the worked example of constructing a whole robot in
   plain C++; "shulib Teleop" (`src/teleop_program.cpp`) is the worked example of the other way —
   `robot::Robot` built from a config over the real adapters; the other files are the bench
-  tester, "shulib Drive", "shulib Calibrate", the boot source Teleop shares, and robot two's port
-  table. Which robot a build targets is chosen at `make` time: the X-drive build's port map is an
+  tester, "shulib Drive", "shulib Calibrate", the boot source Teleop shares, Teleop's claw wiring
+  (`src/teleop_claws.hpp`), and robot two's port table and mechanism table (its claws —
+  `src/mechanism_table.hpp`). Which robot a build targets is chosen at `make` time: the X-drive build's port map is an
   explicitly labelled guess (no such robot exists yet), while the tank builds use port tables
   measured on the old bench robot and on robot two — and robot two's graph is built from the calibration record the
   robot writes to its own SD card.

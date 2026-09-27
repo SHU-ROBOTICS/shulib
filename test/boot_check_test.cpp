@@ -275,6 +275,65 @@ TEST_CASE("BootCheck 6f: a NEW motor is a WARNING, never a refusal") {
     CHECK(static_cast<int>(v.portCount) == 10);  // and they are NOT drive ports
 }
 
+TEST_CASE("BootCheck 6f': a DECLARED mechanism motor (a claw pivot, T3 Part 2) is named with the "
+          "caller's words, never as a NEW motor; the decision and the rest of the prose are "
+          "untouched") {
+    // BUG CAUGHT: a declared claw reported as an unknown motor ("NEW motors ... 6 7" — the boot
+    // line the T3 brief says must name them as claw pivots); a declared port that is EMPTY listed
+    // anyway; a declared port that is a DRIVE port pulled out of its drive row (the collision is
+    // the program's refusal to make, and the drive row must stay); the old prose changed for a
+    // caller that declares nothing.
+    const DrivetrainDescription d = robotTwo();
+    FakeDeviceRegistry registry = healthyRegistry();
+    registry.setKind(6, DeviceKind::Motor);
+    registry.setKind(7, DeviceKind::Motor);
+    registry.setKind(8, DeviceKind::Motor);  // an undeclared extra motor: still NEW
+    const int claws[] = {6, 7, 9, 12};       // 9 is EMPTY; 12 is a drive port
+    const shulib::calibration::DeclaredMotorPorts declared{
+        .ports = claws, .label = "claw pivots (declared, not drive motors)"};
+
+    const BootVerdict v = verifyAgainstRegistry(d, registry, declared);
+    CHECK(v.decision == BootDecision::Ok);
+    REQUIRE(static_cast<int>(v.newCount) == 1);
+    CHECK(static_cast<int>(v.newPorts[0]) == 8);
+    REQUIRE(static_cast<int>(v.declaredCount) == 2);
+    CHECK(static_cast<int>(v.declaredPorts[0]) == 6);
+    CHECK(static_cast<int>(v.declaredPorts[1]) == 7);
+    CHECK(static_cast<int>(v.portCount) == 10);  // port 12 kept its drive row
+    CHECK(std::string{v.reason}
+          == "OK: all 10 recorded drive ports carry motors, IMU on port 2. NEW motors not in the "
+             "calibration: 8; claw pivots (declared, not drive motors): 6 7. NOT CHECKED: two "
+             "drive cables swapped WITH EACH OTHER look identical here -- the first drive catches "
+             "that");
+    // Only declared motors, no NEW one: "none" first, then the declared clause.
+    registry.setKind(8, DeviceKind::None);
+    const BootVerdict onlyClaws = verifyAgainstRegistry(d, registry, declared);
+    CHECK(std::string{onlyClaws.reason}.find(
+              "NEW motors not in the calibration: none; claw pivots (declared, not drive motors): "
+              "6 7. NOT CHECKED")
+          != std::string::npos);
+    // DEGRADED carries the same clause at its end.
+    registry.setKind(13, DeviceKind::None);
+    const BootVerdict degraded = verifyAgainstRegistry(d, registry, declared);
+    CHECK(degraded.decision == BootDecision::Degraded);
+    CHECK(std::string{degraded.reason}
+          == "DEGRADED: dead 13 -- driving without them (left dead 1, right dead 0). NEW motors "
+             "not in the calibration: none; claw pivots (declared, not drive motors): 6 7");
+    // The two-argument form, and a declared set whose ports carry no motor, say exactly the old
+    // words: a caller that declares nothing sees no change.
+    registry.setKind(13, DeviceKind::Motor);
+    registry.setKind(8, DeviceKind::Motor);
+    const BootVerdict old = verifyAgainstRegistry(d, registry);
+    CHECK(static_cast<int>(old.declaredCount) == 0);
+    CHECK(static_cast<int>(old.newCount) == 3);
+    CHECK(std::string{old.reason}.find("NEW motors not in the calibration: 6 7 8. NOT CHECKED")
+          != std::string::npos);
+    const int empty[] = {9, 10};
+    const BootVerdict none =
+        verifyAgainstRegistry(d, registry, {.ports = empty, .label = "claw pivots"});
+    CHECK(std::string{none.reason} == std::string{old.reason});
+}
+
 TEST_CASE("BootCheck 6g: an INVALID description refuses before a single port is read") {
     // Defensive: every caller checks valid() first. A refusal here is still better than a
     // graph built from a description that contradicts itself — and it must not be an

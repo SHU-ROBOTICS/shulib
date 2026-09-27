@@ -284,7 +284,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   sim/              the host plant + hostile sensor models (tests only — see rule 2)
 src/                the robot programs: main.cpp (the PROS entry point), the bench tester,
                     shulib Drive, shulib Calibrate, shulib Teleop (built on robot::Robot) with
-                    the boot source it shares, and robot two's port table
+                    the boot source it shares and its claw wiring, and robot two's port and
+                    mechanism (claw) tables
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

@@ -107,10 +107,10 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 30 of 54 chunks complete
 
-- **Next up:** T3 — robot two's claws in "shulib Teleop" (the pivots on ports 6 and 7, hold-to-run on R1/R2 and L1/L2, HOLDING on release; the pneumatic claw on 3-wire port A, toggled by controller A; the re-zero button moves A → Y), then G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check) were built in parallel in isolated worktrees and merge one at a time — DIAG1 Part A and COMP-a have landed (below; COMP-a's status is under COMP) (the team lead, 2026-09-26)  
+- **Next up:** G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check) were built in parallel in isolated worktrees and merge one at a time — DIAG1 Part A and COMP-a have landed (below; COMP-a's status is under COMP) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): COMP, DIAG1, G1, R3a, R3b, R3d, T2, T3** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,625 cases / 2,463,673 assertions, 3 skipped — **green**  
+- **Suite:** 1,649 cases / 2,466,733 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 191  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 156 registered, **7 settled** — next free is **HA-162**  
@@ -145,7 +145,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 11 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 12 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 
@@ -628,9 +628,9 @@ shape of the remainder, not a count — a count here goes stale every chunk.)*
 | Phase | Chunks | Gate |
 |---|---|---|
 | ~~The release to `main`~~ | **DONE 2026-08-15** | published at `c778c11`; procedure now in `RELEASING.md` + `tools/release.py` |
-| **R — Robot arrival** | R2, R3a–R3d (partial: host halves landed, bench runs open), R4–R6 *(R1a, R1b done)* | **hardware** — robot two exists; bench sessions ran on it 2026-09-24 and 2026-09-25 |
-| **T — Driver control** | T2 (library half landed 2026-09-18; the library loop over it, `teleop::runDriverControl`, landed at G1 Part 2a 2026-09-24; its `src/` wiring landed with G1 Part 2b 2026-09-26, unrun) – T3 (the claw pivots, next after the brake-mode fix) *(T1 delivered at R1a)* | none |
-| **G — No-code authoring** | G1 (Part 1 landed; Part 2a landed 2026-09-24, host-only; Part 2b landed 2026-09-26, build-gated, unrun; 2c briefed, after T3) · G2 ✅ (F8 locked) · G3–G4 | G3–G4 read VexBuilder's files |
+| **R — Robot arrival** | R2, R3a–R3d (partial: host halves landed, bench runs open), R4–R6 *(R1a, R1b done)* | **hardware** — robot two exists; its brain has not enumerated on this laptop since 2026-09-18 |
+| **T — Driver control** | T2 (library half landed 2026-09-18; the library loop over it, `teleop::runDriverControl`, landed at G1 Part 2a 2026-09-24; its `src/` wiring is G1 Part 2b) – T3 *(T1 delivered at R1a)* | none |
+| **G — No-code authoring** | G1 (Part 1 landed; Part 2a landed 2026-09-24, host-only; 2b/2c briefed) · G2 ✅ (F8 locked) · G3–G4 | G3–G4 read VexBuilder's files |
 | **H — Ecosystem** | H1–H3 | H2 needs VexBuilder's sim |
 | **F′ — Scoring primitives** | F3–F4 | hardware + final mechanism decisions |
 | **E′ — Field accuracy** | E5–E6 | hardware + a field |
@@ -642,17 +642,14 @@ read the cookbook cold).
 
 ---
 
-## 13. THE IMMEDIATE TASK — the brake-mode fix, then T3 (each on the team lead's go); the bench session the moment the brain enumerates
+## 13. THE IMMEDIATE TASK — G1 Part 2b (when the team lead says go); the bench session the moment the brain enumerates
 
-> **Current as of 2026-09-26.** The first bold `Next:` in [`build-order.md`](build-order.md) owns
+> **Current as of 2026-09-24.** The first bold `Next:` in [`build-order.md`](build-order.md) owns
 > this fact and the generated block above copies it; [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md)
-> §5 and §7 hold the whole remaining list and its order. In one line: G1 Part 2b landed on
-> 2026-09-26, build-gated — "shulib Teleop" is built on `robot::Robot` and the library's driver
-> loop, and THIS version has not run on a robot (the previous one drove robot two from its
-> calibration record on 2026-09-25). The team lead's order since then: **the brake-mode fix**
-> (PROS's `move_voltage` ignores the brake mode, so no Brake or Hold the library commands reaches a
-> V5 motor; Teleop keeps coasting on stick release), **then T3** (the claw pivots on ports 6 and 7),
-> then G1 Part 2c, then COMP — each briefed and started only on his go. The bench
+> §5 and §7 hold the whole remaining list and its order. In one line: the G1 Part 2 brief was
+> revised into three parts on 2026-09-24 (the audit found four defects in it); Part 2a (the library
+> half) landed the same day, host-only, and Part 2b ("shulib Teleop" on the library) waits for the
+> go; the bench
 > session (worksheet Station G) pre-empts everything when robot two's brain shows up in
 > `pros lsusb`. Everything below this box is the section as it stood before — kept, because its
 > reasoning about R3/R4 is still the reasoning, but its "immediate task" is no longer R3 whole:

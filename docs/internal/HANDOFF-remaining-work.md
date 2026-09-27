@@ -111,7 +111,9 @@
   the card. The table does drive shulib Drive and Bench Tests (they need only ports and the
   cartridge). So on the robot: Calibrate must succeed before Teleop can run at all.
 - **Robot one:** also tank. **Its ports do not need typing** — shulib Calibrate takes every motor the
-  brain's registry reports as a candidate and decides which drive, their signs and their sides by the
+  brain's registry reports as a candidate — EXCEPT a port `src/mechanism_table.hpp` declares as a
+  mechanism motor (robot two's claw pivots on 6 and 7, since T3: never a candidate, never touched) —
+  and decides which drive, their signs and their sides by the
   push; it finds the IMU port from the registry too. Only three facts are human-stated: the
   cartridge, the kind (tank) and the front. **But today Calibrate builds only for `ROBOT=tank` and
   takes the cartridge from robot two's table** — robot one needs either its own variant or a stated
@@ -391,14 +393,27 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - The binding mechanism is the library's; which button does what is the team's. **The team lead's
   plan (2026-09-26): the claw pivots on ports 6 and 7, on R1/R2 and L1/L2** — after the brake-mode
   fix (DEFECTS2), which makes Hold reach the motor.
-- **Owed before a claw takes a shoulder button (found by G1 Part 2b's second review round):**
-  `teleop::DriverLoopConfig::rezeroButton` DEFAULTS to `L1`, so a program that leaves it unset
-  re-zeroes field-centric on a claw press. "shulib Teleop" names `A` and `static_assert`s that its
-  button is not a shoulder button; the library default itself must become non-working (a sentinel
-  `runDriverControl` refuses, as a zero `tickPeriod` is refused) or move off the shoulders, before
-  T3 or the competition program calls the loop.
-- Docs owed: guide chapter section on driver control, cookbook, roadmap Phase T rows, build-order.
-- Size: ~½–1 day.
+- **DONE FOR THE CLAWS (T3, 2026-09-26 — Part 1 the library and the claw table, Part 2 the Teleop
+  wiring; host- and build-gated, NOTHING RUN ON A ROBOT):** hold-to-run and toggle bindings
+  (`teleop/mechanism_binding.hpp`), `runDriverControl`'s bindings overloads, and "shulib Teleop"
+  driving robot two's claws — R1/R2 port 6, L1/L2 port 7 (12 V while held, HOLD on release, both
+  buttons of one pivot ⇒ hold), A toggles the pneumatic claw on 3-wire A (CLOSED at the start, kept
+  through a disable). The team lead's rulings amended the stick rule: stick-interrupt applies to
+  chassis MACROS only; for a mechanism button, releasing the button is the stop. And a claim an
+  autonomous operation left on a bound mechanism is RELEASED by `runDriverControl` when driver
+  control starts, and logged (`[WARN][TEL] driver control: RELEASED a claim ...`) — his ruling,
+  T3 Part 2. **Still open here: chassis macros** (a button running a chassis motion the sticks can
+  interrupt) and angle presets. Station J is where the claws are first seen.
+- **The re-zero default, and what guards it now:** `teleop::DriverLoopConfig::rezeroButton` still
+  DEFAULTS to `L1` (pivot 7's forward button). What stops the collision running is
+  `teleop::validBindings()` — `runDriverControl` refuses, before its first tick, a binding on the
+  loop's re-zero button (T3 Part 1). "shulib Teleop" names **Y** (the team lead's ruling: A became
+  the claw's toggle), `static_assert`s that it equals the table's `kTeleopRezeroButton` and is no
+  binding button of either mechanism table, and validates its whole set against it in
+  `teleopInitialize()`. The default itself was NOT moved or made a sentinel — a program with no
+  bindings still gets L1, harmlessly.
+- Docs owed (for the macros): guide chapter section, cookbook, roadmap Phase T rows, build-order.
+- Size: the macros ~½–1 day.
 
 **L6. [NEW-WALLRESET] Re-seat the position estimate against a wall or goal.**
 - What: a primitive "drive slowly toward a known wall until the distance sensor reads X, then set the
@@ -450,9 +465,14 @@ is a plan change for jal to confirm in the brief (Q7).
   already has it (`Waypoint::reverse`, which the runner honours). So the work is an ADDITIVE option on
   `Routine::driveTo` — a `kApiMinor` bump, pins updated deliberately, a changelog entry — following
   `include/shulib/version.hpp`'s policy exactly.
-- A named-mechanism lookup on `robot::Robot` (`robot.mechanism("intake")`): **bigger than it looked** —
-  `Robot` constructs no mechanism from `MechanismConfig` today, and the config lacks what a mechanism
-  needs (its safe state / brake mode, the motors' cartridge); the provider lacks a digital-out member.
+- A named-mechanism lookup on `robot::Robot` (`robot.mechanism("intake")`): **DONE at T3 Part 1
+  (2026-09-26)** — `MechanismConfig` gained a cartridge, a safe brake mode and a pneumatic START and
+  SAFE level (each with an UNSET value `valid()` refuses); `Robot` builds a `MotorMechanism` or a
+  `PneumaticMechanism` per configured mechanism (ABSENT, never a whole-build refusal, when the
+  provider refuses one) with typed lookups `mechanism(name)` / `pneumaticMechanism(name)` and the
+  RunGuard span; the provider gained `digitalOut()`. Since T3 Part 2 "shulib Teleop"'s boot source
+  converts `src/mechanism_table.hpp` into those configs, so robot two's claws are built from it.
+  Host-tested only.
 - A `Robot::fromCard()`-style one-liner (may be L1's `bootConfig()` exposed; decide in L1/L2).
 - Docs owed: the register rows touched, the changelog, guide, cookbook.
 - Size: ~1 day.
@@ -474,6 +494,12 @@ is a plan change for jal to confirm in the brief (Q7).
 - **Q1. The mechanisms on each robot:** intake type, lift type and levels, clamp (yes/no, pneumatic or
   motor), every motor port and sign, every pneumatic port, and how the lift homes (limit switch vs
   stall — owed since 2026-08-13). **Blocks L8, L5's meaning, and every scoring routine.**
+  **ANSWERED IN PART (the team lead, 2026-09-26), for ROBOT TWO:** two claw PIVOTS, RED, on ports 6
+  and 7 (R1/R2 and L1/L2, 12 V, holding on release), and a PNEUMATIC claw on 3-wire port A (A
+  toggles it, CLOSED at program start, keeps its state when disabled) — all REPORTED, none seen by a
+  census yet (A4 register HA-153, HA-159); the pivots' physical directions, a loaded Hold, the
+  claw's single/double solenoid and its polarity are UNMEASURED (worksheet Station J). Still open:
+  every other mechanism on robot two (intake? lift?), everything on robot one, and the homing.
 - **Q2. Sensor placement:** AI Vision per §2 (one per robot, chassis, front, level, offsets measured);
   GPS — bought? where mounted? (lever arm offsets); distance sensors for the wall reset — where, facing
   which way.
@@ -602,7 +628,9 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    Hold and Brake reach the V5 motor; Teleop coasts on stick release), then T3 (the claw pivots on
    ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
    started only on his go. Before 2c: re-check its brief against the tree (2b, DEFECTS2 and T3 all
-   change what it starts from).
+   change what it starts from). **DEFECTS2 and T3 (both parts — the claws now driven by "shulib
+   Teleop") have landed, host- and build-gated, not run on a robot; next: G1 Part 2c, then COMP.**
+   The claws' first sight is worksheet Station J (after Station F).
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).
    Nothing is worth more. It needs nothing from L1.
 3. Brief → go → build, one at a time: **L2** (it is also what lets R3b/M1 close), **L3**, **L6**,

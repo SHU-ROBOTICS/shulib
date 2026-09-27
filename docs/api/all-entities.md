@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,898 of them, across 155 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,908 of them, across 155 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -264,6 +264,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BootSourceChoice::why` | field | [boot_check.md](boot_check.md#bootsourcechoice-why) |
 | `BootVerdict` | struct | [boot_check.md](boot_check.md#struct-bootverdict) |
 | `BootVerdict::decision` | field | [boot_check.md](boot_check.md#bootverdict-decision) |
+| `BootVerdict::declaredCount` | field | [boot_check.md](boot_check.md#bootverdict-declaredcount) |
+| `BootVerdict::declaredPorts` | field | [boot_check.md](boot_check.md#bootverdict-declaredports) |
 | `BootVerdict::degradation` | field | [boot_check.md](boot_check.md#bootverdict-degradation) |
 | `BootVerdict::imuFound` | field | [boot_check.md](boot_check.md#bootverdict-imufound) |
 | `BootVerdict::imuOk` | field | [boot_check.md](boot_check.md#bootverdict-imuok) |
@@ -599,6 +601,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DebugRecord::wheelCount` | field | [debug_record.md](debug_record.md#debugrecord-wheelcount) |
 | `DebugRecord::wheelCurrent` | field | [debug_record.md](debug_record.md#debugrecord-wheelcurrent) |
 | `DebugRecord::wheelVoltage` | field | [debug_record.md](debug_record.md#debugrecord-wheelvoltage) |
+| `DeclaredMotorPorts` | struct | [boot_check.md](boot_check.md#struct-declaredmotorports) |
+| `DeclaredMotorPorts::label` | field | [boot_check.md](boot_check.md#declaredmotorports-label) |
+| `DeclaredMotorPorts::ports` | field | [boot_check.md](boot_check.md#declaredmotorports-ports) |
 | `decodeEnd` | free function | [blackbox_format.md](blackbox_format.md#decodeend) |
 | `decodeHeader` | free function | [blackbox_format.md](blackbox_format.md#decodeheader) |
 | `decodeRecord` | free function | [calibration_record.md](calibration_record.md#decoderecord) |
@@ -1664,6 +1669,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismBinding::MechanismBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-mechanismbinding-3) |
 | `MechanismBinding::operator=` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-operator-eq) |
 | `MechanismBinding::operator= (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-operator-eq-2) |
+| `MechanismBinding::releasedLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-releasedleftoverclaim) |
+| `MechanismBinding::releaseLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-releaseleftoverclaim) |
 | `MechanismBinding::reset` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-reset) |
 | `MechanismBinding::reverseButton` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-reversebutton) |
 | `MechanismBinding::State` | enum class | [mechanism_binding.md](mechanism_binding.md#enum-class-mechanismbinding-state) |
@@ -2853,6 +2860,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleBinding::mechanism` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-mechanism) |
 | `ToggleBinding::operator=` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-operator-eq) |
 | `ToggleBinding::operator= (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-operator-eq-2) |
+| `ToggleBinding::releasedLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-releasedleftoverclaim) |
+| `ToggleBinding::releaseLeftoverClaim` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-releaseleftoverclaim) |
 | `ToggleBinding::tick` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-tick) |
 | `ToggleBinding::ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding) |
 | `ToggleBinding::ToggleBinding (overload 2)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-2) |
@@ -2950,6 +2959,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `validBindings (overload 2)` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings-2) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
 | `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
+| `verifyAgainstRegistry (overload 2)` | free function | [boot_check.md](boot_check.md#verifyagainstregistry-2) |
 | `viewFor` | free function | [calibrate_panel.md](calibrate_panel.md#viewfor) |
 | `Voltage` | type alias | [quantity.md](quantity.md#voltage) |
 

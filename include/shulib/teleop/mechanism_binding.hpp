@@ -53,15 +53,23 @@
 //     deletes the opcontrol task and runs no destructor), and would then break the next
 //     operation's start() and RunGuard's cancel-all. The claim's owner owns the mechanism; a
 //     press seen while it does leaves the binding inert, so it never carries over after.
-//     THE GAP THIS LEAVES: the same deletion can strand SOMEONE ELSE's claim. An operation that
-//     autonomous was running when the field ended it keeps its mechanism claimed into driver
-//     control, and nothing here can tell that dead claim from a live one — so the binding defers
-//     for the whole driver period: its buttons do nothing, and it never makes the mechanism safe
-//     (whatever the dead operation last commanded stays commanded). Until the library owns that
-//     case, a program whose autonomous routine commands a bound mechanism releases any claim
-//     still on it (`releaseClaim()` — never the claimant's cancel(), which may have lived on the
-//     deleted task's stack) before it starts driver control, and its panel shows the claim
-//     (`mechanism().claimed()`), because the binding's own state reads only Stopped or Inert.
+//   * A CLAIM STILL THERE WHEN DRIVER CONTROL STARTS IS RELEASED (the team lead's ruling,
+//     2026-09-26; T3 Part 2). The same task deletion can strand SOMEONE ELSE's claim: an
+//     operation autonomous was running when the field ended it keeps its mechanism claimed into
+//     driver control, and nothing can tell that dead claim from a live one — so, deferring to it,
+//     the binding would do nothing for the whole driver period. A claim left by a deleted task
+//     must never lock the driver out. So `runDriverControl`, at loop ENTRY, calls every binding's
+//     releaseLeftoverClaim() — after its set check, before the entry safe state — which releases
+//     the claim (`releaseClaim()`; never the claimant's cancel(), which may have lived on the
+//     deleted task's stack) and remembers that it did (releasedLeftoverClaim(), for a panel); the
+//     loop says so, one Warn line per released claim (tag TEL). The mechanism is then made safe
+//     at entry like any other and its buttons work from the first tick. What the ruling costs,
+//     stated: an operation a program starts on a bound mechanism BEFORE entering the loop (to tick
+//     it from perTick) loses its claim at entry — start such an operation after entry, from
+//     perTick; and the dead operation object still believes it holds the claim, so a later
+//     cancel() of THAT object would safe the mechanism and release whatever claim is on it then
+//     (the exposure an end-of-run guard's anonymous force-release already accepts). A claim taken
+//     DURING the loop is untouched by the ruling: the binding defers to it, as above.
 //
 // ── TOGGLE BINDINGS — one button, one pneumatic mechanism (addendum B2) ──────────────
 // "Press A and the claw opens; press A again and it closes." A ToggleBinding is one button over
@@ -98,10 +106,16 @@
 //     a 3-wire output's level while it is disabled is not known (A4 register HA-157); nothing here
 //     can make it, and nothing here pretends to.
 //   * NO CLAIM, and a mechanism someone else has claimed() is never commanded — the initial level
-//     included (a claim at the first entry means it is never sent: a start level landing later,
-//     whenever a claim happens to end, would be a movement nobody pressed for). The edge keeps
-//     following the button during a claim, so a press seen then is DROPPED, never carried over.
-//     (The stranded-claim gap above applies to a toggle exactly as to a hold binding.)
+//     included: enter() over a claim spends the first entry WITHOUT sending it (a start level
+//     landing later, whenever a claim happens to end, would be a movement nobody pressed for).
+//     The edge keeps following the button during a claim, so a press seen then is DROPPED, never
+//     carried over. But runDriverControl releases a claim still there at loop ENTRY before it
+//     calls enter(), exactly as for a hold binding (the ruling above) — so inside the loop the
+//     first entry always finds the mechanism unclaimed and SENDS the initial level. What that
+//     means, stated: a claw an autonomous operation left claimed at the OTHER level moves to the
+//     initial level when driver control first starts — exactly as an unclaimed one does (the
+//     INITIAL LEVEL rule above); before the ruling, a claimed one stayed where the operation left
+//     it. Only a program that calls enter() itself, over a claim, gets "never sent".
 // The loop reads a toggle's button only while the controller is connected, and validBindings()
 // checks toggles and hold bindings as ONE set: one button, one job, none on the re-zero button.
 //
@@ -264,6 +278,24 @@ public:
         observedReleased_ = true;
     }
 
+    /// THE LEFTOVER-CLAIM RULING (the team lead, 2026-09-26; file header): release a claim still on
+    /// this binding's mechanism — for `runDriverControl` to call at loop ENTRY, and nowhere else (a
+    /// claim met by tick() or makeSafe() is still deferred to). The claimant's cancel() is NOT
+    /// called: it may have lived on a deleted task's stack. Returns true when a claim was there,
+    /// and remembers that answer until the next call, as `releasedLeftoverClaim()`. Commands
+    /// nothing, and leaves the binding's state alone.
+    bool releaseLeftoverClaim() noexcept {
+        releasedLeftover_ = mech_->claimed();
+        if (releasedLeftover_) {
+            mech_->releaseClaim();
+        }
+        return releasedLeftover_;
+    }
+
+    /// True when the last `releaseLeftoverClaim()` — the last loop entry — found a claim on the
+    /// mechanism and released it: what a panel shows so the driver knows (the loop also logs it).
+    [[nodiscard]] bool releasedLeftoverClaim() const noexcept { return releasedLeftover_; }
+
     /// Where the binding is (see State).
     [[nodiscard]] State state() const noexcept { return state_; }
     /// The button that drives +V.
@@ -282,6 +314,7 @@ private:
     units::Voltage volts_;
     State state_ = State::Idle;
     bool observedReleased_ = true;
+    bool releasedLeftover_ = false;
 };
 
 /// Press-to-toggle: one button flipping one `hal::PneumaticMechanism` between its two line levels,
@@ -322,8 +355,9 @@ public:
 
     /// Loop entry — `runDriverControl` calls it before its first tick. The FIRST call in the
     /// binding's life commands `initialState()`, once, unless someone else has claimed the
-    /// mechanism (then it is never sent — header). Every call forgets the button's level, so a
-    /// button already down counts as held, not as a press.
+    /// mechanism (then it is never sent — header). `runDriverControl` releases a leftover claim
+    /// just before this call, so there the first entry always sends it. Every call forgets the
+    /// button's level, so a button already down counts as held, not as a press.
     void enter() {
         if (!entered_) {
             entered_ = true;
@@ -355,6 +389,23 @@ public:
         mech_->set(!mech_->commanded());
     }
 
+    /// THE LEFTOVER-CLAIM RULING, for a toggle exactly as for a hold binding
+    /// (`MechanismBinding::releaseLeftoverClaim()`; file header): release a claim still on this
+    /// toggle's mechanism — for `runDriverControl` at loop ENTRY only, BEFORE `enter()`, so a first
+    /// entry then sends the initial level. The claimant's cancel() is NOT called. Returns true when
+    /// a claim was there, remembered as `releasedLeftoverClaim()` until the next call. Commands
+    /// nothing.
+    bool releaseLeftoverClaim() noexcept {
+        releasedLeftover_ = mech_->claimed();
+        if (releasedLeftover_) {
+            mech_->releaseClaim();
+        }
+        return releasedLeftover_;
+    }
+
+    /// True when the last `releaseLeftoverClaim()` found a claim and released it (a panel's word).
+    [[nodiscard]] bool releasedLeftoverClaim() const noexcept { return releasedLeftover_; }
+
     /// Whether the first loop entry has happened (and with it the one chance to send the initial
     /// level). A panel reads it; nothing branches on it outside this class.
     [[nodiscard]] bool entered() const noexcept { return entered_; }
@@ -378,6 +429,7 @@ private:
     hal::ControllerButton button_;
     bool initial_;
     bool entered_ = false;
+    bool releasedLeftover_ = false;
     hal::ButtonEdge edge_{};
 };
 

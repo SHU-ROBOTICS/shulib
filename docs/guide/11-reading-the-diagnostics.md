@@ -197,6 +197,12 @@ worth recognizing on sight:
   were up ([Ch. 10](10-the-api.md)).
 - **`waitUntil timed out after 3.00s`** (Warn, tag `SCH`) — informational; deliberately not a
   fault.
+- **A released leftover claim** (Warn, tag `TEL`, once per mechanism at the start of driver
+  control): `driver control: RELEASED a claim left on mechanism 'claw' at entry (an operation that
+  outlived its task) -- its buttons work from the first tick` — an operation autonomous was
+  running when the field ended it still held that mechanism; driver control freed it so its
+  buttons work ([Ch. 10](10-the-api.md), "Buttons for mechanisms"). Expected after an autonomous
+  cut off mid-operation; anywhere else, find out who took the claim.
 
 ## Every fault code
 

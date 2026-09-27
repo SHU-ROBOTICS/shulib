@@ -28,6 +28,9 @@
 //            WARNING, never a refusal: an extra motor is not a drivetrain fault (an
 //            intake, a lift), but a drive motor added since the calibration would sit
 //            uncommanded and fighting its side-mates, so nobody gets to not be told.
+//            A motor on a port the PROGRAM declares as a mechanism motor (a claw pivot —
+//            `DeclaredMotorPorts`, T3 Part 2) is not NEW: it is expected, and named in its
+//            own clause with the program's words, never as an unknown motor.
 // The IMU port must carry an IMU. Missing or wrong kind ⇒ REFUSE: every number in the
 // description was measured against an IMU, and without one nothing can be re-checked.
 //
@@ -56,6 +59,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <span>
 
 #include "shulib/hal/device_registry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
@@ -128,9 +132,16 @@ struct BootVerdict {
     /// How many of them are SWAPPED.
     std::uint8_t swappedCount = 0;
     /// Physical ports carrying a MOTOR that the description does not list — always a warning.
+    /// A port the caller DECLARED as a mechanism motor is not here: it is in `declaredPorts`.
     std::uint8_t newPorts[hal::kMaxSmartPorts]{};
     /// How many entries of `newPorts` are real.
     std::uint8_t newCount = 0;
+    /// Physical ports carrying a MOTOR that the description does not list AND the caller declared
+    /// as a mechanism motor (`DeclaredMotorPorts` — a claw pivot, T3 Part 2): expected, named with
+    /// the caller's label, never counted as NEW. Never changes the decision.
+    std::uint8_t declaredPorts[hal::kMaxSmartPorts]{};
+    /// How many entries of `declaredPorts` are real.
+    std::uint8_t declaredCount = 0;
     /// The description's IMU port.
     std::uint8_t imuPort = 0;
     /// What the registry says is on the IMU port.
@@ -164,6 +175,20 @@ struct BootVerdict {
     }
 };
 
+/// Motor ports the PROGRAM declares as something other than drive motors — robot two's claw
+/// pivots on 6 and 7 (T3 Part 2) — and the words the verdict calls them by. A registry MOTOR on
+/// one of these ports that the description does not list is EXPECTED: it is named in its own
+/// clause (`<label>: 6 7`) instead of as a NEW motor, so a boot line never reports a declared claw
+/// as an unknown motor. Borrowed for the call. The default is none, which is what the
+/// two-argument `verifyAgainstRegistry()` passes.
+struct DeclaredMotorPorts {
+    /// Physical ports 1..21 (magnitudes); a port outside that range matches nothing.
+    std::span<const int> ports{};
+    /// What the verdict calls them, e.g. "claw pivots (declared, not drive motors)". Printed with
+    /// a precision of 48 characters; ASCII only (it reaches a screen). Null prints nothing.
+    const char* label = "declared mechanism motors";
+};
+
 /// Compare `desc` against what `registry` says is plugged in, WITHOUT constructing anything.
 ///
 /// The decision, in this order (each earlier one wins, and `reason` names it):
@@ -173,13 +198,17 @@ struct BootVerdict {
 ///  3. the IMU port missing or carrying something else — Refuse, naming what is there;
 ///  4. whatever `teleop::evaluateDegradation` says about the PRESENT counts — Refuse,
 ///     Degraded (listing the missing ports) or Ok. One policy, shared with "shulib Drive".
-/// NEW motors are always listed, and never change the decision.
+/// NEW motors are always listed, and never change the decision. A motor on a port in `declared`
+/// that the description does not list is not NEW: it is listed after them under the caller's
+/// label, and never changes the decision either. With no declared port (or none carrying a motor)
+/// the prose is exactly the two-argument form's.
 ///
 /// The honest limit is in the header and is repeated in `reason` on every non-Ok verdict: two
 /// drive cables swapped WITH EACH OTHER are invisible to a port census and are caught at the
 /// first drive by the coupled-side monitor.
 [[nodiscard]] inline BootVerdict verifyAgainstRegistry(const hal::DrivetrainDescription& desc,
-                                                       const hal::IDeviceRegistry& registry) {
+                                                       const hal::IDeviceRegistry& registry,
+                                                       const DeclaredMotorPorts& declared) {
     BootVerdict v{};
     char why[160];
     if (!desc.valid(why, sizeof why)) {
@@ -224,7 +253,15 @@ struct BootVerdict {
         if (desc.sideOf(p) != 0) {
             continue;  // a listed drive port; it already has a row
         }
-        v.newPorts[v.newCount++] = static_cast<std::uint8_t>(p);
+        bool isDeclared = false;
+        for (const int d : declared.ports) {
+            isDeclared = isDeclared || d == p;
+        }
+        if (isDeclared) {
+            v.declaredPorts[v.declaredCount++] = static_cast<std::uint8_t>(p);
+        } else {
+            v.newPorts[v.newCount++] = static_cast<std::uint8_t>(p);
+        }
     }
 
     // ── the degradation policy, over PRESENT counts (one policy, two programs) ──
@@ -270,6 +307,28 @@ struct BootVerdict {
         std::snprintf(listNew + std::strlen(listNew), sizeof listNew - std::strlen(listNew),
                       "%s", one);
     }
+    // The NEW-motors clause: the list (or "none"), then — only when a declared port carries a
+    // motor — "; <label>: <ports>" (T3 Part 2). Without one it is byte-identical to before. It is
+    // printed below with a precision of 110, which -Wformat-truncation needs to see the reason fit
+    // its 320 bytes, and which never cuts: the NEW and the declared ports are disjoint, so both
+    // lists together name at most the 21 ports (53 characters), plus "none; ", the label's 48 and
+    // ": " — 109 at the very most.
+    char listDeclared[64] = "";
+    for (std::size_t i = 0; i < v.declaredCount; ++i) {
+        char one[16];
+        std::snprintf(one, sizeof one, "%s%d", listDeclared[0] == '\0' ? "" : " ",
+                      static_cast<int>(v.declaredPorts[i]));
+        std::snprintf(listDeclared + std::strlen(listDeclared),
+                      sizeof listDeclared - std::strlen(listDeclared), "%s", one);
+    }
+    char newWords[192] = "";
+    if (v.declaredCount > 0) {
+        std::snprintf(newWords, sizeof newWords, "%s; %.48s: %s",
+                      listNew[0] == '\0' ? "none" : listNew,
+                      declared.label != nullptr ? declared.label : "", listDeclared);
+    } else {
+        std::snprintf(newWords, sizeof newWords, "%s", listNew[0] == '\0' ? "none" : listNew);
+    }
 
     if (v.swappedCount > 0) {
         v.decision = BootDecision::Refuse;
@@ -299,19 +358,24 @@ struct BootVerdict {
         v.decision = BootDecision::Degraded;
         std::snprintf(v.reason, sizeof v.reason,
                       "DEGRADED: dead %s -- driving without them (left dead %d, right dead "
-                      "%d). NEW motors not in the calibration: %s",
-                      listMissing, v.degradation.leftDead, v.degradation.rightDead,
-                      listNew[0] == '\0' ? "none" : listNew);
+                      "%d). NEW motors not in the calibration: %.110s",
+                      listMissing, v.degradation.leftDead, v.degradation.rightDead, newWords);
         return v;
     }
     v.decision = BootDecision::Ok;
     std::snprintf(v.reason, sizeof v.reason,
                   "OK: all %d recorded drive ports carry motors, IMU on port %d. NEW motors "
-                  "not in the calibration: %s. NOT CHECKED: two drive cables swapped WITH EACH "
+                  "not in the calibration: %.110s. NOT CHECKED: two drive cables swapped WITH EACH "
                   "OTHER look identical here -- the first drive catches that",
-                  static_cast<int>(v.portCount), static_cast<int>(v.imuPort),
-                  listNew[0] == '\0' ? "none" : listNew);
+                  static_cast<int>(v.portCount), static_cast<int>(v.imuPort), newWords);
     return v;
+}
+
+/// `verifyAgainstRegistry` with NO declared mechanism motors — every motor the description does
+/// not list is NEW (the R3d Part 2 form; its prose unchanged).
+[[nodiscard]] inline BootVerdict verifyAgainstRegistry(const hal::DrivetrainDescription& desc,
+                                                       const hal::IDeviceRegistry& registry) {
+    return verifyAgainstRegistry(desc, registry, DeclaredMotorPorts{});
 }
 
 /// Which of the two description sources a boot should use.

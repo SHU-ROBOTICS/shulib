@@ -46,6 +46,7 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/digital_out.hpp"
+#include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
 #include "shulib/kinematics/tank.hpp"
@@ -370,6 +371,35 @@ TEST_CASE("B2 T5: a claimed mechanism is never commanded — not the initial lev
     CHECK_FALSE(c.mech.claimed());  // the binding never took one
 }
 
+// ═══ T5b. The claim ruling, toggle half: releaseLeftoverClaim() ═════════════════════
+TEST_CASE("B2 T5b: a toggle's releaseLeftoverClaim() releases a claim that is there without calling "
+          "its claimant or touching the line, remembers it until the next call, and after it the "
+          "FIRST enter() sends the initial level after all") {
+    // BUG CAUGHT: a release that fires the valve (the entry's initial level is enter()'s job); a
+    // release through the dead claimant's cancel(); a flag that never clears; a release that
+    // spends the first entry (the initial level would then never be sent).
+    struct Spy final : shulib::hal::ICancellable {
+        void cancel() override { ++cancels; }
+        int cancels = 0;
+    };
+    Claw c{"claw"};
+    ToggleBinding t{c.mech, ControllerButton::A, kClosed};
+    Spy spy;
+    REQUIRE(c.mech.tryClaim(spy));
+    CHECK_FALSE(t.releasedLeftoverClaim());
+    CHECK(t.releaseLeftoverClaim());
+    CHECK(t.releasedLeftoverClaim());
+    CHECK_FALSE(c.mech.claimed());
+    CHECK(c.mech.claimant() == nullptr);
+    CHECK(spy.cancels == 0);
+    CHECK(c.line.writes.empty());  // the release fires nothing
+    CHECK_FALSE(t.entered());      // …and does not spend the first entry
+    t.enter();
+    CHECK(c.line.writes == Levels{kClosed});  // the initial level, now that nobody claims it
+    CHECK_FALSE(t.releaseLeftoverClaim());
+    CHECK_FALSE(t.releasedLeftoverClaim());
+}
+
 // ═══ T6. validBindings() — hold bindings and toggles as ONE set ═════════════════════
 TEST_CASE("B2 T6: validBindings() over both kinds refuses a toggle on the re-zero button, a toggle "
           "sharing a button with a pivot or another toggle, a claw toggled twice and a null — by "
@@ -506,7 +536,9 @@ enum class Loop { Both, HoldsOnly, NoBindings };
 /// Robot two's driver controls: pivot 6 on R1/R2, pivot 7 on L1/L2 (12 V, Hold), and the claw on A
 /// starting closed — around the loop, on the host test plant.
 struct ClawControls {
-    motion_rig::ChassisRig c{kTank};
+    /// The chassis's own sink — where the loop says it released a leftover claim (tag TEL).
+    shulib::hal::fake::FakeTelemetrySink sink;
+    motion_rig::ChassisRig c{kTank, motion_rig::plantConfig(), &sink};
     LyingController pad;
     DriveShaper shaper{DriverProfile{}};
     Pivot six{"claw pivot 6"};
@@ -762,4 +794,55 @@ TEST_CASE("B2 TL5: runDriverControl refuses a toggle on the re-zero button, or o
     CHECK_FALSE(w.toggle.entered());
     CHECK(w.six.motor.eventCount() == 0);
     CHECK(w.seven.motor.eventCount() == 0);
+    // A refused set releases no claim either (the claim ruling acts only on a loop that runs).
+    REQUIRE(w.claw.mech.tryClaim());
+    CHECK_THROWS_AS(runDriverControl(w.c.chassis, w.pad, w.c.pacer, w.shaper, rezeroOnA,
+                                     std::span<MechanismBinding* const>{w.holds},
+                                     std::span<ToggleBinding* const>{w.toggles}, poll,
+                                     [] { return trusted(); }, never),
+                    PreconditionError);
+    CHECK(w.claw.mech.claimed());
+    CHECK_FALSE(w.toggle.releasedLeftoverClaim());
+    CHECK(w.sink.empty());
+}
+
+// ═══ TL6. The claim ruling in the loop, for the claw ════════════════════════════════
+TEST_CASE("B2 TL6: a claim left on the claw at the first entry is RELEASED and said, then the "
+          "initial level is sent and A toggles from the first seen press; a claim taken during "
+          "the loop is obeyed until the next entry") {
+    // BUG CAUGHT: a stranded claim that keeps the claw from ever receiving its start level and its
+    // button for the whole driver period; a release after enter() (the first entry would be spent
+    // under the claim, and the start level never sent); a release that is not said.
+    ClawControls w;
+    REQUIRE(w.claw.mech.tryClaim());  // an autonomous operation on the claw, deleted mid-run
+    std::size_t writesAtFirstPoll = 99;
+    const auto log = w.run(8, [&](int k) {
+        if (k == 0) {
+            writesAtFirstPoll = w.claw.line.writes.size();
+        }
+        if (k == 5) {
+            REQUIRE(w.claw.mech.tryClaim());  // an operation takes the claw DURING the loop…
+        }
+        w.pad.hold(ControllerButton::A, k == 2 || k == 7);  // …and A is pressed under it at 7
+    });
+    REQUIRE(log.size() == 8U);
+    CHECK(writesAtFirstPoll == 1U);  // released BEFORE enter(): the start level went out
+    CHECK(w.claw.line.writes == (Levels{kClosed, kOpen}));  // …and the press at 2; not the one at 7
+    CHECK(w.toggle.releasedLeftoverClaim());
+    int tel = 0;
+    for (int i = 0; i < w.sink.size(); ++i) {
+        if (w.sink.at(i).subsystem == "TEL") {
+            ++tel;
+            CHECK(w.sink.at(i).level == shulib::hal::LogLevel::Warn);
+            CHECK(w.sink.at(i).message
+                  == "driver control: RELEASED a claim left on mechanism 'claw' at entry (an "
+                     "operation that outlived its task) -- its buttons work from the first tick");
+        }
+    }
+    CHECK(tel == 1);
+    CHECK(w.claw.mech.claimed());  // the claim taken DURING the loop is still there
+    // The next entry releases it (a leftover now), says so, and sends no initial level again.
+    w.run(1, [](int) {});
+    CHECK_FALSE(w.claw.mech.claimed());
+    CHECK(w.claw.line.writes == (Levels{kClosed, kOpen}));
 }

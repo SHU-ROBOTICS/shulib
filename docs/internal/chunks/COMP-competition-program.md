@@ -86,7 +86,12 @@
 - **B10 — abandon's cancel-all is run()'s FULL cancel-all:** the drive, then every listed mechanism
   (claimant cancelled, anonymous claim force-released, safe state applied). Test: an abandon during a
   mechanism operation leaves no mechanism `claimed()`, and a T3 binding drives that pivot on the next press.
-  (T3 also frees leftover claims at driver-control entry — the team lead's ruling.)
+  (T3 also frees leftover claims at driver-control entry — the team lead's ruling. Its consequence
+  for the claw, noted at T3 Part 2's review: the release comes before the toggle's first `enter()`,
+  so at the FIRST driver-control start the toggle sends its initial level even over a claim — a
+  claw an auton left claimed and OPEN closes when driver control starts, as an unclaimed one
+  already did. Whether that is wanted after an auton is the team lead's call — asked in
+  T3-PROGRESS P2.11; COMP-b re-checks the answer before it wires the claw.)
 - **B11 — opcontrol is Teleop's driver control**: after B2's wait, T3's `runDriverControl` bindings overload
   with the SAME bindings as Teleop (built and validated in `initialize()`'s try, held in the static state),
   `DriverLoopConfig{.tickPeriod = 10 ms, .rezeroButton = Teleop's constant (Y), .releaseBrakeMode = Coast}`.

@@ -344,9 +344,13 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   as a starting point, not a recommendation. Mechanism BUTTONS exist since chunk T3
   (`teleop::MechanismBinding`: hold a button to drive a mechanism, let go and it goes to its safe
   state; `teleop::ToggleBinding`: press a button to open a pneumatic claw, press again to close it
-  — [Chapter 10](10-the-api.md)), host-tested only, and no driver has used one; driver
-  MACROS (a button that runs a chassis motion the sticks can interrupt) are still future work
-  (phase T on the roadmap).
+  — [Chapter 10](10-the-api.md)), and since T3's second part "shulib Teleop" gives robot two's
+  claws to the driver with them: R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
+  (full power while held, holding on release), A opens and closes the pneumatic claw, and the
+  field-centric re-zero moved to Y. **None of it has run on a robot**: no claw has moved, whether a
+  released pivot really holds its load, which way each one turns and which line level opens the
+  claw are all unmeasured, and no driver has used a claw button. Driver MACROS (a button that runs
+  a chassis motion the sticks can interrupt) are still future work (phase T on the roadmap).
   *(This bullet used to say joystick shaping and slew limits did not exist at all; that went
   stale when the layer landed, and it is corrected here rather than deleted, because "it
   exists" and "it is known to feel right" are very different claims.)*

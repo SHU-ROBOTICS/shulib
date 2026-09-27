@@ -26,6 +26,20 @@
 // what tankPortMapString() printed, byte for byte), the controller-screen lines, and every boot
 // line that is still true (the brief's A10 diff, in docs/internal/chunks/G1-PROGRESS.md).
 //
+// ═══ THE CLAWS (T3 Part 2, 2026-09-26) ══════════════════════════════════════════════
+// Robot two's claws are driven HERE, in slot 2 — never in "shulib Drive" (slot 1). The boot
+// source converts src/mechanism_table.hpp into the config (src/boot_source.hpp), so robot::Robot
+// builds the two pivots (ports 6 and 7) and the pneumatic claw (3-wire A) — the claw's line made
+// at its START level, CLOSED — and the port check names the pivots as claw pivots, never as NEW
+// motors; a record that lists a claw port as a DRIVE port refuses the boot ("recalibrate").
+// teleopInitialize() binds them inside its try (src/teleop_claws.hpp: R1/R2 -> port 6, L1/L2 ->
+// port 7, 12 V, HOLD on release; A toggles the claw, its initial level the SAME start level) and
+// validates the set against the re-zero button, which moved A -> Y (the team lead's ruling); an
+// ABSENT claw gets no binding and says so, and the drive runs. runTeleop() hands the bindings to
+// the library loop, which releases a claim an operation left on a claw at entry and logs it (the
+// team lead's ruling). The panel's two fault rows are one row now, and the freed row is the claws'
+// (ruling R3). NOTHING OF THIS HAS RUN ON A ROBOT (worksheet Station J).
+//
 // ═══ RUN STATUS ═════════════════════════════════════════════════════════════════════
 // THIS VERSION has not run on hardware (kRunStatus below says it at every boot). The PREVIOUS
 // version drove robot two from the calibration record on 2026-09-25 — open-loop, under a driver;
@@ -78,7 +92,9 @@
 
 #include "boot_source.hpp"
 #include "fault_latch_hook.hpp"
+#include "mechanism_table.hpp"
 #include "screen_text.hpp"
+#include "teleop_claws.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
@@ -102,6 +118,7 @@
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/teleop/drive_modes.hpp"
 #include "shulib/teleop/input_shaping.hpp"
+#include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -126,7 +143,8 @@ constexpr const char* kRunStatus =
     "THIS VERSION of \"shulib Teleop\" (G1 Part 2b, built on robot::Robot) has not run on "
     "hardware. The previous version (build v0.1.1-319-g2780462) drove robot two from the "
     "calibration record on 2026-09-25 -- eight starts, open-loop under driver control through "
-    "the library's own graph; no library-commanded motion has run (R3b open).";
+    "the library's own graph; no library-commanded motion has run (R3b open). Its claws (T3: the "
+    "pivots on 6 and 7, the pneumatic claw on 3-wire A) have never been driven.";
 
 // ═══ DRIVER CONTROL — the choices this program makes (rulings M4/M5) ═══════════════════════
 /// Field-centric is SELECTABLE, and OFF: the first hardware run of this version must not also be
@@ -135,14 +153,23 @@ constexpr const char* kRunStatus =
 /// moment that heading is not trusted.
 constexpr bool kFieldCentric = false;
 /// The driver's field-centric re-zero button ("the way the robot faces now is away from me").
-/// Harmless in ArcadeBody, where a press only pre-arms the zero. No ruling picks it: A, the button
-/// the host tests use, until the team says otherwise (G1-PROGRESS Part 2b, ruling G1-2b-R4). The
-/// boot line names it from this constant (buttonWord below), never from a second spelling.
-constexpr hal::ControllerButton kRezeroButton = hal::ControllerButton::A;
-// NEVER a shoulder button: T3 binds L1/L2 and R1/R2 to the claw pivots on ports 6 and 7 (the team
-// lead's plan, 2026-09-26), and a re-zero on a claw button would also re-zero the field frame every
-// time the claw moved. (teleop::DriverLoopConfig's own default is L1 — a program must state its
-// button, as this one does.)
+/// Harmless in ArcadeBody, where a press only pre-arms the zero. **Y — the team lead's ruling of
+/// 2026-09-26** (T3's addendum §0): A became the pneumatic claw's toggle, so the re-zero moved from
+/// A to Y. The boot line names it from this constant (buttonWord below), never from a second
+/// spelling.
+constexpr hal::ControllerButton kRezeroButton = hal::ControllerButton::Y;
+// TIED to the mechanism table's reserved button (src/mechanism_table.hpp, kTeleopRezeroButton, whose
+// own check 6 keeps every declared binding button off it): the two can never drift apart.
+static_assert(kRezeroButton == kTeleopRezeroButton,
+              "Teleop's re-zero button and src/mechanism_table.hpp's kTeleopRezeroButton disagree");
+// NEVER a binding button — robot two's claw pivots take L1/L2 and R1/R2, its claw takes A — and a
+// re-zero on a claw button would re-zero the field frame every time the claw moved. Checked against
+// both tables, and against the four shoulder buttons for any table (teleop::DriverLoopConfig's own
+// default is L1 — a program must state its button, as this one does). validBindings() checks the
+// same at run time, in teleopInitialize(), before the loop ever starts.
+static_assert(mechanismButtonsAvoid(kRobotTwoMechanisms, kRezeroButton)
+                  && mechanismButtonsAvoid(kMechanisms, kRezeroButton),
+              "the re-zero button is a claw's binding button");
 static_assert(kRezeroButton != hal::ControllerButton::L1 && kRezeroButton != hal::ControllerButton::L2
                   && kRezeroButton != hal::ControllerButton::R1
                   && kRezeroButton != hal::ControllerButton::R2,
@@ -270,7 +297,8 @@ constexpr int kPanelEveryTicks = 20;        // 200 ms: live numbers at most 5 Hz
 constexpr int kLcdEveryTicks = 20;          // 200 ms: and the controller screen only on change
 
 /// The panel's rows, top to bottom. Row 0 and the two source rows never change after boot; the
-/// rest are live.
+/// rest are live. TWELVE, and a thirteenth fails the static_assert below: so when T3 Part 2 needed
+/// a row for the claws, the two fault rows became one (the team lead's ruling R3, 2026-09-26).
 enum PanelRow : int {
     kRowStatus = 0,  // static: this version's run status
     kRowCmd,         // the command, or NO CONTROLLER
@@ -280,8 +308,8 @@ enum PanelRow : int {
     kRowRight,       // the RIGHT group
     kRowXcheck,      // the encoder-vs-IMU heading cross-check and the battery
     kRowTravel,      // the last tick's per-side travel
-    kRowFault1,      // faults: none / FAULT n= first
-    kRowFault2,      // last
+    kRowFault,       // faults: none / FAULT n= first .. last — ONE row since T3 Part 2 (ruling R3)
+    kRowClaws,       // the claws (T3 Part 2): each pivot's command word and temperature, the claw
     kRowSource1,     // static: where the description came from (G.6.1 / G.6.2 quote it)
     kRowSource2,     // static: its second line
     kRowCount,
@@ -470,6 +498,10 @@ struct TeleopState {
     // One driver, one shaper, held across opcontrol() calls so field-centric's zero and latch
     // survive a disable.
     teleop::DriveShaper shaper{teleopProfile()};
+    // The claws' bindings (T3 Part 2): bound ONCE, inside teleopInitialize()'s try, from the table
+    // over the robot above; held here — never on runTeleop()'s stack — because the loop holds them
+    // by address and PROS deletes the opcontrol task on a field disable.
+    TeleopClaws claws{};
     char portMap[diag::kMaxPortMapBytes]{};
     char refusalHeadline[64]{};
     char refusalWhy[192]{};
@@ -574,11 +606,13 @@ const char* fieldCentricWord(const teleop::FieldCentricState& s) {
 /// feel note, the stall note, the port map) are serial-only now: the boot lines carry them.
 ///
 /// LCD (3 x 19, HA-57): `LIB 12V Bxx.xV` / `hdg +ddd.d deg` / the last fault, `no controller 0V`,
-/// `DEGRADED see brain` or `ok` — written only when a line changed.
+/// `DEGRADED see brain`, `CLAW ABSENT` (T3 Part 2: a declared claw was not built) or `ok` — in that
+/// order of urgency, written only when a line changed.
 class TeleopPanel {
 public:
-    TeleopPanel(const robot::Robot& r, hal::ILineDisplay& lcd, const BootOutcome& boot)
-        : r_{r}, lcd_{lcd}, boot_{boot} {
+    TeleopPanel(const robot::Robot& r, hal::ILineDisplay& lcd, const BootOutcome& boot,
+                const TeleopClaws& claws)
+        : r_{r}, lcd_{lcd}, boot_{boot}, claws_{claws} {
         const auto groups = r_.chassis().deps().motorGroups;
         SHULIB_PRECONDITION(groups.size() == 2 && groups[0] != nullptr && groups[1] != nullptr,
                             "TeleopPanel: a tank robot has exactly two motor groups");
@@ -698,17 +732,18 @@ private:
             paintRow(kRowTravel, kColDim, "");
         }
 
+        // ONE fault row since T3 Part 2 (ruling R3): src/teleop_claws.hpp's faultRowText().
         const diag::FaultLatch& f = r_.faults();
-        if (f.hasFault()) {
-            std::snprintf(line, sizeof line, "FAULT n=%d  first %s", f.faultCount(),
-                          diag::faultCodeName(f.firstFault()));
-            paintRow(kRowFault1, kColBad, line);
-            std::snprintf(line, sizeof line, "      last %s", diag::faultCodeName(f.lastFault()));
-            paintRow(kRowFault2, kColBad, line);
-        } else {
-            paintRow(kRowFault1, kColGood, "faults: none");
-            paintRow(kRowFault2, kColGood, "");
-        }
+        const ClawRow faults = faultRowText(f.hasFault() ? f.faultCount() : 0, f.firstFault(),
+                                            f.lastFault());
+        paintRow(kRowFault, f.hasFault() ? kColBad : kColGood, faults.text);
+
+        // The claw row (T3 Part 2): amber while a claw is ABSENT or a claim was released at this
+        // entry (FREED) — each is something the driver must know before trusting the buttons.
+        const ClawRow claws = clawRowText(kMechanisms, r_, claws_);
+        paintRow(kRowClaws,
+                 anyClawAbsent(r_) || claws_.anyReleasedLeftoverClaim() ? kColWarn : kColText,
+                 claws.text);
     }
 
     void refreshLcd(bool connected) {
@@ -722,7 +757,8 @@ private:
                       : !connected           ? "no controller 0V"
                       : boot_.verdict.decision == calibration::BootDecision::Degraded
                           ? "DEGRADED see brain"
-                          : "ok");
+                      : anyClawAbsent(r_) ? kLcdClawAbsent.data()
+                                          : "ok");
         for (int row = 0; row < 3; ++row) {
             if (std::strcmp(want[row], lcdRow_[row]) != 0) {
                 lcd_.setLine(row, want[row]);
@@ -734,6 +770,7 @@ private:
     const robot::Robot& r_;
     hal::ILineDisplay& lcd_;
     const BootOutcome& boot_;
+    const TeleopClaws& claws_;
     const hal::MotorGroup* left_ = nullptr;
     const hal::MotorGroup* right_ = nullptr;
     int tick_ = 0;
@@ -786,7 +823,7 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                    check);
     }
     {
-        char status[400];
+        char status[480];  // kRunStatus is 422 bytes since T3 Part 2 (the claws' sentence)
         std::snprintf(status, sizeof status, "HARDWARE-UNVALIDATED: %s", kRunStatus);
         logWrapped(log, hal::LogLevel::Warn, status);
     }
@@ -819,6 +856,20 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                   kDriverLineFieldCentric.data(),
                   kFieldCentric ? kSelectableOn.data() : kSelectableOff.data());
     log.log(hal::LogLevel::Info, kTag, line);
+    // THE CLAWS (T3 Part 2): one line per declared mechanism, BUILT or ABSENT with the provider's
+    // own sentence (src/teleop_claws.hpp words them; Station J.3.1 / J.9.1 quote them). An ABSENT
+    // one is a warning: its buttons do nothing, and the drive runs anyway.
+    for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
+        logWrapped(log, r.builtMechanismAt(i) != nullptr ? hal::LogLevel::Info : hal::LogLevel::Warn,
+                   motorClawBootLine(kMechanisms, r, i).text);
+    }
+    for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) {
+        logWrapped(log,
+                   r.builtMechanismAt(mechanismConfigIndexOfPneumatic(kMechanisms, j)) != nullptr
+                       ? hal::LogLevel::Info
+                       : hal::LogLevel::Warn,
+                   pneumaticClawBootLine(kMechanisms, r, j).text);
+    }
 }
 
 }  // namespace
@@ -833,6 +884,9 @@ void teleopInitialize(const char* variantBeacon, const char* competitionStatusBi
                 "[%s] %s\n"
                 "[%s] BUILD STAMP %s\n",
                 kTag, variantBeacon, kTag, kTag, kTag, kTag, kTag, kRunStatus, kTag, kBuildStamp);
+    // The banner's claw sentence (T3 Part 2; Station J.3.2): generated from the table, so it
+    // cannot drift from the buttons the loop is given.
+    std::printf("[%s] %s\n", kTag, clawBannerLine(kMechanisms, kRezeroButton).text);
     std::printf("[%s] competition status at boot: %s -- the loop runs only in DRIVER CONTROL, "
                 "enabled; any other state paints the screen with the reason.\n",
                 kTag, competitionStatusBits);
@@ -859,7 +913,18 @@ void teleopInitialize(const char* variantBeacon, const char* competitionStatusBi
             return;
         }
         st.robot.emplace(st.boot.built.config, *st.devices, st.boot.built.buildOptions());
+        // The claws' bindings (T3 Part 2), built and VALIDATED here, inside the boundary's try —
+        // a binding's constructor may throw, and nothing that can throw runs after driver control
+        // starts. An ABSENT claw gets no binding; the set is checked against kRezeroButton.
+        char why[192] = "";
+        if (!st.claws.bind(kMechanisms, *st.robot, kRezeroButton, why, sizeof why)) {
+            st.robot.reset();
+            st.devices.reset();
+            refuse("the claw buttons REFUSED", why);
+            return;
+        }
     } catch (const PreconditionError& e) {
+        st.claws.unbind();  // no binding may outlive the mechanisms it points at
         st.robot.reset();
         st.devices.reset();
         refuse("the library graph REFUSED to build", e.what());
@@ -910,19 +975,24 @@ void runTeleop() {
     robot::Robot& r = *st.robot;
     hal::ITelemetrySink& log = st.devices->telemetry();
     log.log(hal::LogLevel::Info, kTag, kOpcontrolLive);
-    TeleopPanel panel{r, *st.lcd, st.boot};
+    TeleopPanel panel{r, *st.lcd, st.boot, st.claws};
     panel.paintAll();
     const teleop::DriverLoopConfig loopCfg{
         .tickPeriod = units::Time{static_cast<double>(hal::pros::ProsTickPacer::kTickMs) / 1000.0},
         .rezeroButton = kRezeroButton};
+    // The bindings overload (T3 Part 2): the pivots hold-to-run, the claw's toggle. The set was
+    // validated in teleopInitialize() against the same kRezeroButton, so the loop's own check of it
+    // before the first tick cannot refuse. A claim an operation left on a claw is RELEASED at entry
+    // and logged by the loop itself ([WARN][TEL]; the team lead's ruling, 2026-09-26).
     teleop::runDriverControl(
-        r.chassis(), *st.master, st.devices->pacer(), st.shaper, loopCfg,
-        [] { return pros::c::competition_is_disabled() != 0; },
+        r.chassis(), *st.master, st.devices->pacer(), st.shaper, loopCfg, st.claws.holds(),
+        st.claws.toggles(), [] { return pros::c::competition_is_disabled() != 0; },
         [&r] { return headingSample(r); }, panel);
-    char line[160];
+    char line[200];
     std::snprintf(line, sizeof line,
                   "opcontrol(): field DISABLED -- loop exited cleanly after cancel() (0 V + Brake); "
-                  "%lu screen prints so far",
+                  "each claw pivot made safe, the pneumatic claw left as it was; %lu screen prints "
+                  "so far",
                   static_cast<unsigned long>(g_screenPrints));
     log.log(hal::LogLevel::Info, kTag, line);
 }

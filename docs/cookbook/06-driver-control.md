@@ -64,9 +64,10 @@ test drives this for ten ticks and checks the claw's volts tick by tick: 0, 0, 1
 - **The safe state is applied once, not every tick.** Re-applying a hold every tick would fight
   anything else that later wants the mechanism, and on a V5 a repeated hold can re-capture its
   hold point wherever the load has sagged to.
-- **The loop owns the edges of driver control.** It makes every binding safe before its first
-  tick and again on a field disable (after stopping the drive), and it reads the buttons only
-  while the controller is connected — a dropped controller is a release.
+- **The loop owns the edges of driver control.** It releases any claim an operation left on a
+  bound mechanism, makes every binding safe before its first tick and again on a field disable
+  (after stopping the drive), and it reads the buttons only while the controller is connected — a
+  dropped controller is a release.
 - **`MotorMechanism` takes the safe brake mode as an argument, with no default**, for the reason
   [Chapter 13](../guide/13-extending-the-library.md) gives: at 0 V a loaded claw in Hold stays up,
   and in Coast it drops — no single mode is safe for every mechanism.
@@ -94,12 +95,20 @@ test drives this for ten ticks and checks the claw's volts tick by tick: 0, 0, 1
   undo the stop. A stop that goes around the binding does not stick: something that holds only
   the mechanism (an end-of-run guard's list) can make it safe, but a held button drives it again
   on the next tick.
-- **An operation's claim wins — even a dead one.** While an operation has the mechanism claimed,
-  its buttons do nothing. An operation your autonomous routine was running when the field ended
-  autonomous never releases its claim — PROS deletes the autonomous task wherever it is, and
-  nothing after that runs — so the claw stays out of the driver's hands for the whole of driver
-  control. If autonomous commands a mechanism the driver also has buttons for, release its claim
-  (`releaseClaim()`) at the start of driver control, before the loop.
+- **A claim left over when driver control starts is released — and said.** While an operation
+  has the mechanism claimed, its buttons do nothing. An operation your autonomous routine was
+  running when the field ended autonomous never releases its own claim — PROS deletes the
+  autonomous task wherever it is, and nothing after that runs — so `runDriverControl` does it for
+  you: at its start, before it makes anything safe, it releases any claim still on a bound
+  mechanism (it never calls the dead operation's `cancel()`), writes one `[WARN][TEL] driver
+  control: RELEASED a claim left on mechanism '...' at entry` line for each, and the binding's
+  `releasedLeftoverClaim()` stays true for your panel. The price: an operation your program starts
+  on a bound mechanism *before* the loop loses its claim at the loop's start — start it from the
+  loop's per-tick hook instead. A claim taken *during* driver control is still obeyed: the
+  buttons do nothing until that operation lets go. For a toggle the release comes first, so the
+  first time driver control starts, its initial level goes out even if an operation had the claw
+  claimed: a claw your autonomous left open is closed (for a claw that starts closed) the moment
+  driver control begins — the same as when nothing had claimed it.
 - **Hold is only as good as the motor.** Whether a V5 motor at 0 V in Hold actually keeps a loaded
   claw where it stopped has not been measured; test it on your robot before you trust it.
 
