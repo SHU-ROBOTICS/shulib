@@ -243,9 +243,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
 
  ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
- Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/teleop_program.cpp)
+ Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp)
  drives through it, with the default DriverProfile (ArcadeBody) and field-centric selectable but
- OFF — and, since G1 Part 2c, so does the invented X-drive's program (src/xdrive_program.cpp), which
+ OFF — and, since G1 Part 2c, so does the invented X-drive's program (src/programs/xdrive_program.cpp), which
  refuses at boot on every robot that exists. Neither version has run on hardware, so nothing in the
  feel layer it runs has been felt by a driver (HA-112).
 

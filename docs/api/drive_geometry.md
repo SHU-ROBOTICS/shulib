@@ -142,7 +142,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  The defaults are the tree's STAND-IN geometry (3.25 in wheel, 1:1 — A4 register HA-14),
  carried here unchanged from OdoStallCheckConfig so a config that names no geometry
  behaves exactly as before. Robot two's measured values arrive through the chassis
- table (src/chassis_table.hpp), never through these defaults.
+ table (src/robots/chassis_table.hpp), never through these defaults.
 
  ── TWO CONSTRUCTORS, TWO PROVENANCES — and what wheelRadius then means ─────────────
  fromDiameter(d, ratio) is what a HUMAN measures: a ruler across the tread and a pair of

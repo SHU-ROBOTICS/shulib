@@ -7,7 +7,7 @@
 // ── Why this is its own file ────────────────────────────────────────────────────────
 // Until G1 Part 2b the boot source was a 77-line block inside src/main.cpp's initialize(), and it
 // wrote six program globals and painted the screen on the way. Two programs need it now: "shulib
-// Teleop" (src/teleop_program.cpp) and the competition program (COMP), whose brief's §0 row "The
+// Teleop" (src/programs/teleop_program.cpp) and the competition program (COMP), whose brief's §0 row "The
 // boot source" names this file. So the decisions live here ONCE, and each program paints its own
 // refusal and logs with its own prefix. Nothing here writes a program global or a screen.
 //
@@ -16,7 +16,7 @@
 //   1. the CALIBRATION RECORD on the SD card (/usd/shulib_drivetrain.bin), written by "shulib
 //      Calibrate" after the robot measured itself, VERIFIED against the brain's port registry on
 //      the same boot, before any adapter exists (calibration/boot_check.hpp);
-//   2. else src/chassis_table.hpp's typed table, through tableToDescription() — the ONLY path
+//   2. else src/robots/chassis_table.hpp's typed table, through tableToDescription() — the ONLY path
 //      from the table into a graph — with a WARNING, and registry-verified too;
 //   3. else refuse, naming BOTH reasons.
 // A record ALWAYS beats a table; a record that fails its port check NEVER falls back to the table
@@ -27,20 +27,20 @@
 // ── Everything decided here is PROS-free; only the card and the registry are not ────
 //  * THE PURE CORE: bootConfigFrom() — description + verdict + the mechanism table → the
 //    config::RobotConfig robot::Robot is built from (the drivetrain AND, since T3 Part 2, every
-//    mechanism src/mechanism_table.hpp declares, converted field by field), plus the absent-port
+//    mechanism src/robots/mechanism_table.hpp declares, converted field by field), plus the absent-port
 //    list.
 //  * THE DECISION: readRecord() (the card's bytes → a decoded record, or why not) and
 //    decideBootSourceFrom() (record + registry + the table's description → which source, the
 //    port check of the one chosen, the cross-check, the refusal, the config) — each decision
 //    line handed to the caller's printer AS IT IS DECIDED (the brief's A9, design (a): today's
 //    text and order, before the session header).
-//  * THE SHIM (src/boot_source.cpp, PROS-bound, a dozen lines): decideBootSource() opens the
+//  * THE SHIM (src/common/boot_source.cpp, PROS-bound, a dozen lines): decideBootSource() opens the
 //    card, makes the registry, turns this build's typed table into a description, and prints
 //    each line through printf under the caller's tag.
 // All of the first two is inline here so the host test (test/boot_source_test.cpp, the brief's
 // test 6) runs EVERY decision against the IBlockSource / IDeviceRegistry fakes, the way
-// test/chassis_table_test.cpp includes src/chassis_table.hpp: the host build compiles only
-// test/*.cpp and never src/*.cpp. (Until the Part 2b review's second round the decision flow
+// test/chassis_table_test.cpp includes src/robots/chassis_table.hpp: the host build compiles only
+// test/*.cpp and never a .cpp under src/. (Until the Part 2b review's second round the decision flow
 // lived in the .cpp beside the PROS calls, where no test could reach it.)
 //
 // ── The absent ports cross ONE door ─────────────────────────────────────────────────
@@ -64,7 +64,7 @@
 #include <span>
 #include <string_view>
 
-#include "mechanism_table.hpp"
+#include "robots/mechanism_table.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/config/robot_config.hpp"
@@ -78,19 +78,19 @@
 namespace shulib::bench {
 
 // ═══ THE MECHANISMS, INTO THE CONFIG (T3 Part 2, 2026-09-26) ═════════════════════════════
-// src/mechanism_table.hpp is the ONE typed input about a robot's mechanisms; config::MechanismConfig
+// src/robots/mechanism_table.hpp is the ONE typed input about a robot's mechanisms; config::MechanismConfig
 // is what robot::Robot builds them from. The conversion is here, in the pure core, so the host
 // suite runs it against the REAL table (test/boot_source_test.cpp, test/teleop_claws_test.cpp).
 // CONFIG ORDER IS TABLE ORDER: the motor entries first, in the table's order, then the pneumatic
 // ones — so robot.mechanismAt(i) is motor entry i and robot.pneumaticMechanismAt(motorCount + j) is
-// pneumatic entry j (mechanismConfigIndexOfPneumatic() below; src/teleop_claws.hpp binds by it).
+// pneumatic entry j (mechanismConfigIndexOfPneumatic() below; src/programs/teleop_claws.hpp binds by it).
 // EVERY FIELD IS CONVERTED, NOTHING DEFAULTED: a name is copied WHOLE (one that does not fit is
 // refused, never cut), the signed port as typed, the cartridge and the safe mode each to the
 // config's own enum, the 3-wire line, and the START and SAFE of a pneumatic entry as LEVELS —
 // pneumaticStartCommand() / pneumaticSafeCommand(), through the entry's polarity — never as its
 // positions. The START level is what the builder drives the line to when it makes it (A4 register
 // HA-119: a 3-wire output is driven the moment it is constructed), and the SAME function gives the
-// driver's toggle its initial level (src/teleop_claws.hpp), so the two cannot disagree and the claw
+// driver's toggle its initial level (src/programs/teleop_claws.hpp), so the two cannot disagree and the claw
 // cannot move when driver control first starts. The buttons and the volts are not config fields:
 // they go to the bindings, from the same entry.
 
@@ -218,7 +218,7 @@ class BootConfig;
 ///
 ///  * `identity.name` ← `robotName` (bounded, NUL-terminated; the team and season stay empty —
 ///    nothing on the robot knows them), because a banner that says which robot it is looking at
-///    is worth one line and the per-robot name lives in src/chassis_table.hpp's `robot` field;
+///    is worth one line and the per-robot name lives in src/robots/chassis_table.hpp's `robot` field;
 ///  * the drivetrain is a TANK whose description is `description`, COPIED AS IT IS — signed ports,
 ///    both inches-per-radian, the track width, the cartridge, the IMU port, the SOURCE and the
 ///    provenance, byte for byte;
@@ -543,7 +543,7 @@ template <class PrintLine>
     //    skipped the claws could list one, and robot two would then drive a claw as a wheel.
     //    (RobotConfig::valid() would refuse that too, but its words name a collision, not the fix.)
     if (const char* problem = mechanismTableProblem(mechanisms); problem != nullptr) {
-        std::snprintf(line, sizeof line, "mechanism table: REFUSED -- %s (src/mechanism_table.hpp)",
+        std::snprintf(line, sizeof line, "mechanism table: REFUSED -- %s (src/robots/mechanism_table.hpp)",
                       problem);
         printLine(static_cast<const char*>(line));
         detail::refuseWith(out, "the MECHANISM TABLE does not convert", problem);
@@ -561,7 +561,7 @@ template <class PrintLine>
                       fromRecord ? "record" : "typed table",
                       fromRecord ? "recalibrate: shulib Calibrate (slot 4) never takes a declared "
                                    "claw port"
-                                 : "src/chassis_table.hpp and src/mechanism_table.hpp disagree");
+                                 : "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp disagree");
         std::snprintf(line, sizeof line, "mechanisms: REFUSED -- %s", why);
         printLine(static_cast<const char*>(line));
         detail::refuseWith(out,
@@ -576,7 +576,7 @@ template <class PrintLine>
     return out;
 }
 
-/// THE BOOT (src/boot_source.cpp; the PROS shim): open the card's record and read it, make the
+/// THE BOOT (src/common/boot_source.cpp; the PROS shim): open the card's record and read it, make the
 /// brain's registry, turn this build's typed table into a description, and run
 /// decideBootSourceFrom() with this build's mechanism table (kMechanisms) — printing each decision
 /// line through printf as `[<tag>] …`, BEFORE any adapter exists. Returns the outcome; paints

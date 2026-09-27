@@ -15,7 +15,7 @@
 //
 // and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the
 // first line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the
-// PROS shim); since G1 Part 2b "shulib Teleop" (src/teleop_program.cpp) is built from these two
+// PROS shim); since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp) is built from these two
 // pieces — the first program that is. On a brain the second line is spelled the way that program
 // spells it: `robot::validate()` first (it names the port or the field before anything is
 // constructed), then `std::optional<Robot>::emplace` into storage that lives for the whole
@@ -52,7 +52,7 @@
 // too, and returning one by value would depend on elision games the V5 toolchain should not
 // be asked to play. A Robot is constructed WHERE IT WILL LIVE: on a brain, an EMPTY
 // `std::optional<Robot>` that lives for the program, emplaced ONCE from `initialize()` —
-// src/teleop_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
+// src/programs/teleop_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
 // before `initialize()` has installed the on-robot precondition handler, in an order across
 // translation units nobody controls; inside a function, one whose constructor THROWS is
 // constructed again on the next call, and PROS calls opcontrol() again after every disable. In a
@@ -113,9 +113,9 @@
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
 // No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
-// graph with this class over the on-robot provider (src/teleop_program.cpp), and THAT version of
+// graph with this class over the on-robot provider (src/programs/teleop_program.cpp), and THAT version of
 // the program has not run on hardware. Since G1 Part 2c the invented X-drive is built the same way
-// (src/xdrive_config.hpp, src/xdrive_program.cpp) and no program wires a graph by hand; its ports
+// (src/robots/xdrive_config.hpp, src/programs/xdrive_program.cpp) and no program wires a graph by hand; its ports
 // are invented, so it refuses at boot on every robot that exists.
 //
 // PROS-free, sim-free, allocation-free in the control path (the graph is one in-place

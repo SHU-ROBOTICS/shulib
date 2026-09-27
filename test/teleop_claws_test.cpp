@@ -3,7 +3,7 @@
 // test 1, and the Part 2 brief's §1 item 6).
 //
 // ═══ WHAT THIS FILE PINS ════════════════════════════════════════════════════════════
-// src/teleop_claws.hpp is what "shulib Teleop" calls (src/teleop_program.cpp cannot be compiled on
+// src/programs/teleop_claws.hpp is what "shulib Teleop" calls (src/programs/teleop_program.cpp cannot be compiled on
 // the host: no screen shim). So the case below builds the program's own composition — the boot
 // decision over robot two's 2026-09-25 record and the shim's registry, with the REAL
 // kRobotTwoMechanisms; robot::Robot over the REAL provider; TeleopClaws::bind() with the table's
@@ -31,7 +31,7 @@
 #include <string_view>
 #include <vector>
 
-#include "../src/teleop_claws.hpp"
+#include "programs/teleop_claws.hpp"
 #include "pros/shim_control.hpp"
 #include "shulib/config/robot_config.hpp"
 #include "shulib/core/check.hpp"
@@ -496,7 +496,7 @@ TEST_CASE("T3 P2 test 1g: the boot lines, the banner's claw sentence and the cla
           == std::string{"THE CLAWS are in THIS program (slot 2), NOT shulib Drive (slot 1): R1/R2 "
                          "port 6, L1/L2 port 7, A the claw on 3-wire A; re-zero Y"});
     CHECK(std::string{clawBannerLine(shulib::bench::kNoMechanisms, kTeleopRezeroButton).text}
-          == std::string{"no mechanisms are declared for this robot (src/mechanism_table.hpp)"});
+          == std::string{"no mechanisms are declared for this robot (src/robots/mechanism_table.hpp)"});
     // The row, before driver control: both pivots at 0 V (their stop word), the shim's 20 C.
     CHECK(std::string{clawRowText(kRobotTwoMechanisms, *t.robot, t.claws).text}
           == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED");
@@ -821,7 +821,7 @@ TEST_CASE("T3 P2 test 1n: a pivot flipped to -6 in the table is still PORT 6 in 
 }
 
 // ═══ "shulib Teleop"'s own wiring, read from its source ═══════════════════════════════════
-// src/teleop_program.cpp cannot be compiled on the host (no screen shim), so the lines that wire
+// src/programs/teleop_program.cpp cannot be compiled on the host (no screen shim), so the lines that wire
 // the claws are pinned by READING the file — the precedent is mechanism_table_test.cpp's pin on
 // Calibrate's filter. The normaliser below is that file's codeOnly(), copied rather than shared on
 // purpose: the two files belong to chunks merged in parallel (T3 Part 2 here, G1 Part 2c there),
@@ -908,7 +908,7 @@ TEST_CASE("T3 P2 test 1l: \"shulib Teleop\"'s wiring, read from its source — t
     CHECK(codeOnly("x(\"// kept  as is\", '/', 'a');") == "x(\"// kept  as is\", '/', 'a');");
     CHECK(codeOnly("n = 1'000; // gone\nm = 2;") == "n = 1'000; m = 2;");
 
-    const std::string teleop = repoCode("src/teleop_program.cpp");
+    const std::string teleop = repoCode("src/programs/teleop_program.cpp");
     CHECK(count(teleop, "constexpr hal::ControllerButton kRezeroButton = hal::ControllerButton::Y;")
           == 1U);
     CHECK(count(teleop, "static_assert(kRezeroButton == kTeleopRezeroButton,") == 1U);
@@ -982,7 +982,7 @@ TEST_CASE("T3 P2 test 1l: \"shulib Teleop\"'s wiring, read from its source — t
                         "kTag, line);")
           == 1U);
     // The boot source hands the build's mechanism table to the decision.
-    const std::string bootCpp = repoCode("src/boot_source.cpp");
+    const std::string bootCpp = repoCode("src/common/boot_source.cpp");
     CHECK(count(bootCpp, "decideBootSourceFrom( record, registry, fromTable, missing, kMechanisms, "
                          "kChassis.robot,")
           == 1U);

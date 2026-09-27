@@ -15,7 +15,7 @@
 // It has more than one producer on purpose:
 //   * calibration::DrivetrainCalibrator fills it from a push, a set of pulses, a push
 //     along a tape and a powered spin      (source = RobotMeasured);
-//   * src/chassis_table.hpp's tableToDescription() fills it from the typed table, which
+//   * src/robots/chassis_table.hpp's tableToDescription() fills it from the typed table, which
 //     stays as the fallback                (source = TypedTable).
 // One representation, two sources — so a composition root has exactly ONE input type.
 //
@@ -27,7 +27,7 @@
 // the shape that makes that possible; nothing here writes a byte.
 //
 // ── One number lives here: kMaxSmartPorts ───────────────────────────────────────────
-// A V5 brain has 21 smart ports. src/chassis_table.hpp's kMaxPort now CITES the constant
+// A V5 brain has 21 smart ports. src/robots/chassis_table.hpp's kMaxPort now CITES the constant
 // below rather than repeating it. teleop::kMaxSideMembers deliberately keeps its own copy:
 // hal::MotorGroup already depends on teleop/coupled_side_monitor.hpp, so making the monitor
 // depend on this header would close a directory-level cycle, and a pure fight detector has
@@ -89,7 +89,7 @@ enum class MotorCartridge : std::uint8_t {
 /// Where a description's numbers came from — printed in every banner, because "typed by a
 /// human from a tape measure" and "measured by the robot" are not the same claim.
 enum class DescriptionSource : std::uint8_t {
-    TypedTable = 1,     ///< src/chassis_table.hpp, via tableToDescription()
+    TypedTable = 1,     ///< src/robots/chassis_table.hpp, via tableToDescription()
     RobotMeasured = 2,  ///< calibration::DrivetrainCalibrator, on a robot that moved
 };
 

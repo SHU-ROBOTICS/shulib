@@ -1,5 +1,7 @@
 # R5a (handoff L7) — gains and noise, measured by the robot inside shulib Calibrate and kept on the SD card
 
+> **Paths moved at SRC1 (2026-09-27):** the `src/` files this brief names each moved to a folder, names unchanged — `src/robots/` ← `chassis_table.hpp`, `mechanism_table.hpp`, `xdrive_config.hpp`; `src/programs/` ← `bench_r3a.{hpp,cpp}`, `calibrate_program.{hpp,cpp}`, `drive_program.{hpp,cpp}`, `teleop_claws.hpp`, `teleop_program.{hpp,cpp}`, `xdrive_program.{hpp,cpp}`; `src/common/` ← `boot_source.{hpp,cpp}`, `fault_latch_hook.hpp`, `state_screens.{hpp,cpp}`. `src/main.cpp` and `src/build_selection.hpp` stay where they were. The full mapping is in the [SRC1 brief §1](SRC1-organize-src.md); every include of a `src/` file is now written from `src/` (`#include "robots/chassis_table.hpp"`). The body below is NOT rewritten — it describes the tree it was written against; its executor re-checks every path against the tree.
+
 > **THE TEAM LEAD'S ANSWERS (2026-09-26, ~23:10): every recommendation accepted** — "Accept all" on
 > D1–D12 as written below. Builders start after tonight's claw and auton merges (his ruling of ~14:15:
 > "briefs now, build after tonight"); each part still starts on its own go, at its turn in the order

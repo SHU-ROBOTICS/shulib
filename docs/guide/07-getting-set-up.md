@@ -119,18 +119,25 @@ mental model, which matters more:
   the raw device, applies the unit conversion **exactly once**, and hands the core a canonical
   value — every unit belief it rests on is catalogued in the
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
-- **`src/`** — the programs that run on a real V5 brain. `src/build_selection.hpp` is where a
-  build becomes one program on one robot: the `make ROBOT=… PROGRAM=…` switches are read there and
-  nowhere else, by one chain that picks the program and the robot's tables together.
+- **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
+  what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
+  own code — where students edit (empty until the driver program and the autonomous list land) —
+  **`src/programs/`** holds one program each, and **`src/common/`** what the programs share.
+  Every include of one of these files is written from `src/` —
+  `#include "robots/chassis_table.hpp"` — the same in every folder. `src/build_selection.hpp` is
+  where a build becomes one program on one robot: the `make ROBOT=… PROGRAM=…` switches are read
+  there and nowhere else, by one chain that picks the program and the robot's tables together.
   `src/main.cpp` is the PROS entry point, and all it does is hand each PROS entry point to that
-  program. "shulib Teleop" (`src/teleop_program.cpp`) is the worked example of building a whole robot —
-  `robot::Robot` from a config over the real adapters — and `src/xdrive_config.hpp` shows a
-  robot typed by hand as a `constexpr RobotConfig` (the invented X-drive, built the same way by
-  `src/xdrive_program.cpp`). The other files are the bench tester, "shulib Drive", "shulib
-  Calibrate", the boot source Teleop shares, Teleop's claw wiring (`src/teleop_claws.hpp`), the
-  competition-state screens, and the per-robot tables — every robot's ports, and robot two's claws
-  (`src/mechanism_table.hpp`). (Wiring a robot by hand, object by object, is still possible — the test suite's
-  standalone case does it — but no program here does any more.) Which robot a build targets is
+  program. "shulib Teleop" (`src/programs/teleop_program.cpp`) is the worked example of building a
+  whole robot — `robot::Robot` from a config over the real adapters — and
+  `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the
+  invented X-drive, built the same way by `src/programs/xdrive_program.cpp`). The other programs are
+  the bench tester, "shulib Drive" and "shulib Calibrate"; Teleop's claw wiring is
+  `src/programs/teleop_claws.hpp`; `src/common/` holds the boot source Teleop shares and the
+  competition-state screens; and the per-robot tables in `src/robots/` carry every robot's ports,
+  and robot two's claws (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
+  object, is still possible — the test suite's standalone case does it — but no program here does
+  any more.) Which robot a build targets is
   chosen at `make` time: the X-drive build's port map is an
   explicitly labelled guess (no such robot exists yet), while the tank builds use port tables
   measured on the old bench robot and on robot two — and robot two's graph is built from the calibration record the

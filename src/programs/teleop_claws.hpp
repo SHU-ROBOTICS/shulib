@@ -1,14 +1,14 @@
 #pragma once
 //
 // teleop_claws.hpp — robot two's CLAWS in "shulib Teleop" (T3 Part 2, 2026-09-26): the driver's
-// bindings built from src/mechanism_table.hpp over the robot::Robot the boot built, and every word
+// bindings built from src/robots/mechanism_table.hpp over the robot::Robot the boot built, and every word
 // the program says about them — the boot lines, the banner's claw sentence, the panel's claw row,
 // the controller's absent word — plus the MERGED fault row that made room for the claw row (the
 // team lead's ruling R3: "the panel is full — merge the two fault rows and give the freed row to
 // the claws").
 //
 // ── Why its own file, PROS-free ─────────────────────────────────────────────────────
-// src/teleop_program.cpp cannot be compiled on the host (it paints through pros/screen.h, which
+// src/programs/teleop_program.cpp cannot be compiled on the host (it paints through pros/screen.h, which
 // the host PROS shim does not have). Everything here is logic or text the worksheet quotes WORD
 // FOR WORD (Station J), so it lives where the host suite can run it: test/teleop_claws_test.cpp
 // drives the REAL table through hal::pros::ProsDeviceProvider and the PROS shim, and pins every
@@ -20,10 +20,10 @@
 //     binding's rule R2);
 //   * A toggles the pneumatic claw, which starts CLOSED — the toggle's initial level is
 //     pneumaticStartCommand(entry), the SAME function that gives the config its pneumaticStart
-//     (src/boot_source.hpp), so the level the builder drove the line to at boot and the level the
+//     (src/common/boot_source.hpp), so the level the builder drove the line to at boot and the level the
 //     toggle sends at the first driver-control entry are one value, and the claw cannot move when
 //     driver control starts; a disable leaves it where it is (the library's toggle);
-//   * the re-zero button is Y (src/teleop_program.cpp's kRezeroButton, tied to the table's
+//   * the re-zero button is Y (src/programs/teleop_program.cpp's kRezeroButton, tied to the table's
 //     kTeleopRezeroButton by a static_assert): bind() validates the whole set against it.
 //
 // ── An ABSENT mechanism has no binding ──────────────────────────────────────────────
@@ -50,8 +50,8 @@
 #include <span>
 #include <string_view>
 
-#include "boot_source.hpp"
-#include "mechanism_table.hpp"
+#include "common/boot_source.hpp"
+#include "robots/mechanism_table.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/hal/controller.hpp"
@@ -96,7 +96,7 @@ public:
         unbind();
         SHULIB_PRECONDITION(mechanismTableProblem(table) == nullptr,
                             "TeleopClaws::bind: the mechanism table has an unset field");
-        // The robot must have been built from THIS table, in its order (src/boot_source.hpp's
+        // The robot must have been built from THIS table, in its order (src/common/boot_source.hpp's
         // CONFIG ORDER): otherwise an index would bind a button to another mechanism, or a count
         // mismatch would read a declared mechanism as absent. Checked, never assumed.
         if (robot.mechanismCount() != motorEntryCount(table) + pneumaticEntryCount(table)) {
@@ -286,7 +286,7 @@ inline ClawLine clawBannerLine(const MechanismTable& t, hal::ControllerButton re
     ClawLine out;
     if (motorEntryCount(t) + pneumaticEntryCount(t) == 0) {
         std::snprintf(out.text, sizeof out.text,
-                      "no mechanisms are declared for this robot (src/mechanism_table.hpp)");
+                      "no mechanisms are declared for this robot (src/robots/mechanism_table.hpp)");
         return out;
     }
     std::size_t n = static_cast<std::size_t>(std::snprintf(

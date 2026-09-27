@@ -549,7 +549,7 @@ the card's calibration record — measured on THIS robot
 UseTable
 ```
 
-src/chassis_table.hpp's typed table — a human's tape measure
+src/robots/chassis_table.hpp's typed table — a human's tape measure
 
 *enumerator, declared at [`include/shulib/calibration/boot_check.hpp:384`](../../include/shulib/calibration/boot_check.hpp#L384).*
 

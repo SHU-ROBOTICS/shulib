@@ -40,7 +40,7 @@ using shulib::units::Length;
 namespace {
 
 /// Robot two's measured drivetrain, as a RobotMeasured description: LEFT -11 +12 -13 +14 -15,
-/// RIGHT +20 -19 +18 -17 +16, IMU on port 2 (src/chassis_table.hpp's provenance).
+/// RIGHT +20 -19 +18 -17 +16, IMU on port 2 (src/robots/chassis_table.hpp's provenance).
 DrivetrainDescription robotTwo() {
     DrivetrainDescription d{};
     d.kind = DrivetrainKind::Tank;
@@ -462,7 +462,7 @@ TEST_CASE("BootCheck 7: chooseBootSource — EVERY row of the decision table") {
 }
 
 TEST_CASE("BootCheck 7b: the record and the table, end to end through the chooser") {
-    // The shape the boot takes (src/boot_source.hpp's decideBootSourceFrom() since G1 Part 2b;
+    // The shape the boot takes (src/common/boot_source.hpp's decideBootSourceFrom() since G1 Part 2b;
     // src/main.cpp's before):
     // verify, then choose. Written here so the two halves are tested together, because that
     // join is where a program usually gets it wrong.

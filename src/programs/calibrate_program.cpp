@@ -37,14 +37,14 @@
 //     its prints and reports the count at every outcome;
 //   * an in-place text change never erases: the new text is printed padded with spaces to the
 //     old text's length, and VEXos draws text pen-on-ERASER (an opaque cell — a hardware finding,
-//     src/bench_r3a.cpp's menu), so the old characters are covered without a flicker.
+//     src/programs/bench_r3a.cpp's menu), so the old characters are covered without a flicker.
 // The program's own screens (starting, cannot start, not driver control, a program fault) use
 // the same primitives and the same budgets, each literal checked at compile time below.
 //
 // ═══ ONLY A LITERAL "%s" EVER REACHES A PROS SCREEN CALL ═══════════════════════════
 // PROS hands the already-formatted text to VEXos AS A FORMAT STRING, so a '%' that reaches the
 // screen is re-read as a conversion with no argument behind it; and VEXos's fonts carry ASCII
-// only. printText() (src/screen_text.hpp since G1 Part 2b, shared with "shulib Teleop"; it lived
+// only. printText() (src/common/screen_text.hpp since G1 Part 2b, shared with "shulib Teleop"; it lived
 // in this file until then) is the ONE path to screen_print_at: it copies the text into a buffer sized
 // from the size's budget, turns '%' and control bytes into '?', a UTF-8 em/en dash into '-' and
 // any other non-ASCII character into one '?' (the hal/pros adapters' precondition messages carry
@@ -83,7 +83,7 @@
 // A calibration that starts from a typed port list can only ever CONFIRM the typing. Every port
 // the registry says carries a MOTOR is a candidate, and which of them drive — which way each is
 // wired, which side it is on — is decided by pushing the robot, not by reading a file.
-// ONE EXCEPTION, since T3 (2026-09-26): a port src/mechanism_table.hpp DECLARES as a mechanism
+// ONE EXCEPTION, since T3 (2026-09-26): a port src/robots/mechanism_table.hpp DECLARES as a mechanism
 // motor (robot two's claw pivots, 6 and 7) is dropped right after the census, before any adapter
 // exists, and logged `port 6: claw pivot (declared) -- not a candidate, not touched`. The push
 // could not tell a claw from a drive motor that did not turn, and step 4's adapter would write BLUE
@@ -117,7 +117,7 @@
 // calibrator ALSO stops every motor on every refusal and on abort(); the guard is the belt to
 // that pair of braces, and a PreconditionError inside the loop is caught once at its edge.
 
-#include "calibrate_program.hpp"
+#include "programs/calibrate_program.hpp"
 
 #include <cstdarg>
 #include <cstddef>
@@ -133,9 +133,9 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
-#include "mechanism_table.hpp"  // T3: the declared mechanism ports Calibrate never touches
-#include "chassis_table.hpp"
-#include "screen_text.hpp"  // printText(), g_screenPrints (moved there at G1 Part 2b)
+#include "robots/mechanism_table.hpp"  // T3: the declared mechanism ports Calibrate never touches
+#include "robots/chassis_table.hpp"
+#include "common/screen_text.hpp"  // printText(), g_screenPrints (moved there at G1 Part 2b)
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/calibration/drivetrain_calibrator.hpp"
@@ -252,7 +252,7 @@ std::uint32_t barTextColour(PanelTone t) {
 }
 
 // formatOf(), the budget static_assert, g_screenPrints and printText() lived here until G1
-// Part 2b (2026-09-26), which moved them VERBATIM into src/screen_text.hpp so "shulib Teleop"
+// Part 2b (2026-09-26), which moved them VERBATIM into src/common/screen_text.hpp so "shulib Teleop"
 // paints through the same path; every call below is unchanged, and g_screenPrints (now
 // shulib::bench::g_screenPrints, found by the same unqualified name) still counts this program's
 // prints.
@@ -1116,7 +1116,7 @@ void runCalibrate() {
     }
     emitf("  %u motor(s), %d IMU(s)", static_cast<unsigned>(n), imuCount);
     {
-        // A DECLARED MECHANISM PORT IS NEVER A DRIVE CANDIDATE (T3): src/mechanism_table.hpp
+        // A DECLARED MECHANISM PORT IS NEVER A DRIVE CANDIDATE (T3): src/robots/mechanism_table.hpp
         // declares robot two's claw pivots on 6 and 7. They leave the list HERE, before step 4
         // builds any ProsMotor, so a claw is never geared BLUE, never set to Coast (a loaded claw
         // would drop) and never pulsed. One line per port says why the census's motor count and
@@ -1138,7 +1138,7 @@ void runCalibrate() {
         paintRefusal(text::kCartridgeUnset,
                      "the cartridge cannot be measured from inside; read the insert colour off a "
                      "motor",
-                     "type it into src/chassis_table.hpp, rebuild, upload");
+                     "type it into src/robots/chassis_table.hpp, rebuild, upload");
         return;
     }
     emitf("CARTRIDGE BELIEF: %s -- stated by a human and UNVERIFIABLE from inside (every "

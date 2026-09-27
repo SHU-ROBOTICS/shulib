@@ -218,7 +218,7 @@
 | HA-108 | `Imu::reset(false)` starts calibration; one boot-time call is not a post-cal tare | reasoned | R3 |
 | HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
 | HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
-| HA-111 | The invented X-drive's port map and motor direction signs match the robot (`src/xdrive_config.hpp` since G1 Part 2c; `src/main.cpp` before) | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. The xdrive build still carries the invented map, now as a config constant that refuses at boot on any robot that exists | R3 |
+| HA-111 | The invented X-drive's port map and motor direction signs match the robot (`src/robots/xdrive_config.hpp` since G1 Part 2c; `src/main.cpp` before) | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. The xdrive build still carries the invented map, now as a config constant that refuses at boot on any robot that exists | R3 |
 | HA-112 | Teleop stick mapping signs + the feel layer's defaults are drivable (0.05 deadband, applied as a continuous rescale since T2; expo 0; slew off; the field-centric fallback latch) | **invented** | T2/R3 |
 | HA-113 | Distance `get_distance()` returns millimeters | reasoned | R3 |
 | HA-114 | Distance "no object" is the IN-BAND integer 9999, not PROS_ERR | reasoned | R3 |
@@ -772,7 +772,7 @@ dependency order (battery scale before anything drives, signs before any closed 
 
 - [ ] **HA-111 — the invented X-drive's port map and motor direction signs match the robot.**
   *Claim:* FL1 BL2 BR−3 FR−4 ROTF5 ROTL6 GPS9 IMU10, green cartridges — ALL INVENTED.
-  *Source:* `src/xdrive_config.hpp` (`kInventedXDrive`, a `constexpr config::RobotConfig`, its
+  *Source:* `src/robots/xdrive_config.hpp` (`kInventedXDrive`, a `constexpr config::RobotConfig`, its
   name carrying this entry's number) since G1 Part 2c, 2026-09-26 — the SAME numbers, pinned
   against a transcription of the old constants by `test/xdrive_config_test.cpp`; until then
   `src/main.cpp` (the `k*Port` block, labelled), which is now a dispatcher and carries no port.
@@ -809,9 +809,9 @@ dependency order (battery scale before anything drives, signs before any closed 
   `field_centric.hpp` (the latch), `driver_control.hpp` (`DriveShaper`, the order); the
   original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, whose
   `mapSticks` the drive program ("shulib Drive") and the bench tester's DRIVE station still call.
-  Since G1 Part 2b "shulib Teleop" runs the feel layer instead (`src/teleop_program.cpp`, through
+  Since G1 Part 2b "shulib Teleop" runs the feel layer instead (`src/programs/teleop_program.cpp`, through
   `teleop::runDriverControl`, `teleop/teleop_loop.hpp`), with this default profile; since G1 Part
-  2c the invented X-drive does too (`src/xdrive_program.cpp` — it replaced `src/main.cpp`'s R1a
+  2c the invented X-drive does too (`src/programs/xdrive_program.cpp` — it replaced `src/main.cpp`'s R1a
   loop, the last caller of `mapSticksToChassisSpeeds`), and it refuses at boot on every robot that
   exists, so no driver has felt it there either.
   *Confidence:* **invented — every number of it.** Widened at T2 from "the mapping" to "the
@@ -999,7 +999,7 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
 
 The register was written for one robot. Robot two — the season's tank chassis, five coupled
 motors per side driving four wheels per side, an IMU on port 2 and nothing else — is described
-by `src/chassis_table.hpp` (ports, signs, cartridge, IMU port, geometry) and the entries below
+by `src/robots/chassis_table.hpp` (ports, signs, cartridge, IMU port, geometry) and the entries below
 carry the facts about it as they are MEASURED, REPORTED or UNSET, each with its source and date.
 Nothing here is invented for the robot itself: the invented entries (HA-132/133, and HA-136/137
 added by R3d Part 1 on 2026-09-17) are the LIBRARY's thresholds and one SIM model shape, not the
@@ -1016,7 +1016,7 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
 
 - [ ] **HA-124 — robot two's drive wheels are 2.75 in in diameter.**
   *Claim:* a ruler across the tread of any of robot two's eight drive wheels reads 2.75 in.
-  *Source:* `src/chassis_table.hpp` (`.wheelDiameterIn = 2.75`, tagged `A4 register HA-124`);
+  *Source:* `src/robots/chassis_table.hpp` (`.wheelDiameterIn = 2.75`, tagged `A4 register HA-124`);
   consumed through `tableDriveGeometry()` into `tableToDescription()`, i.e. only when the library
   program falls back to the TYPED TABLE. *(Amended at R3d Part 2, 2026-09-18: "shulib Teleop" now
   builds from a `hal::DrivetrainDescription`, and when that comes from the SD card's calibration
@@ -1036,14 +1036,14 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   with the world. **Contained:** one table field.
 
 - [ ] **HA-125 — robot two's track width, contact line to contact line.**
-  *Claim:* NONE YET. There is no value in the tree. `src/chassis_table.hpp` carries
+  *Claim:* NONE YET. There is no value in the tree. `src/robots/chassis_table.hpp` carries
   `.trackWidthIn = 0.0` (UNSET, tagged `A4 register HA-125`). *(Amended at R3d Part 2: the
   library program now refuses only when NEITHER source can describe a drivetrain — a calibration
   record on the SD card supplies an EFFECTIVE track width measured by a powered spin, HA-135, and
   a robot with one never reads this field. Without a record the typed table is still the second
   source, still UNSET, and the program still refuses at boot naming it.)*
-  *Source:* `src/chassis_table.hpp`; `src/boot_source.hpp` (the boot-source decision,
-  `decideBootSourceFrom()` over `calibration::chooseBootSource`) and `src/boot_source.cpp`
+  *Source:* `src/robots/chassis_table.hpp`; `src/common/boot_source.hpp` (the boot-source decision,
+  `decideBootSourceFrom()` over `calibration::chooseBootSource`) and `src/common/boot_source.cpp`
   (`describeMissingForDescription`'s words, printed in the `typed table: cannot describe a
   drivetrain -- UNSET:` boot line) — in `src/main.cpp` until G1 Part 2b moved them out, unchanged.
   *Confidence:* **UNSET** — deliberately. A guessed track width turns every commanded yaw into
@@ -1064,7 +1064,7 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   program refuses while it is 0 AND no calibration record exists (amended at R3d Part 2 — see
   HA-125). "600 rpm" was reported, which names the blue cartridge and
   says nothing about the gears between the output shaft and the wheel.
-  *Source:* `src/chassis_table.hpp`; `hal/drive_geometry.hpp` (the ratio's one home).
+  *Source:* `src/robots/chassis_table.hpp`; `hal/drive_geometry.hpp` (the ratio's one home).
   *Confidence:* **UNSET** — deliberately.
   *Settle (R3b / **R3d Part 3**):* "direct drive" (→ 1.0) or the tooth counts on BOTH sides (the
   R3a B1.2 amendment: ask per side — an asymmetric drivetrain is representable, two
@@ -1092,7 +1092,7 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   SYSTEM) that persists across `pros v5 stop` / `run` until the controller leaves that mode;
   a controller linked and left on its home screen does not, and the program then runs in
   driver control normally.
-  *Source:* `src/state_screens.{hpp,cpp}` (the competition-state screens, moved out of
+  *Source:* `src/common/state_screens.{hpp,cpp}` (the competition-state screens, moved out of
   `src/main.cpp` at G1 Part 2c, output unchanged) and each program's boot-time status print (the
   bits `src/main.cpp` formats and passes, `A4 register HA-128`); the worksheet's Station A rule.
   *Confidence:* **measured** 2026-09-10 — the program restarted and went black when the
@@ -1116,7 +1116,7 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   *Claim:* on a whole-robot hand push, port 18's encoder advances about 20 % less than the
   other four motors on its side (137 vs ~175 deg on the first push, 171 vs ~210 deg on the
   second), reproducibly — a member that is SLOW, not one that opposes. Cause UNKNOWN.
-  *Source:* `src/chassis_table.hpp` (the table comment, `A4 register HA-130`);
+  *Source:* `src/robots/chassis_table.hpp` (the table comment, `A4 register HA-130`);
   `hal/motor_group.hpp` (the header cites it as the reason the disagreement floor must
   tolerate a slow member); `test/motor_group_test.cpp` test 16 (a member at 80 % of its mates
   is NOT flagged at rest or under command; the same member opposite in sign IS — pinned, with
@@ -1146,7 +1146,7 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   robot is INVISIBLE to the health monitor until a detector built on the encoder-vs-IMU heading
   cross-check exists.
   *Source:* `include/shulib/motion/odo_stall_check.hpp` (the §2 ruling; `A4 register HA-131`);
-  `src/teleop_program.cpp` (`kNoIndependentStallSourceNote` logged once at boot, in two pieces
+  `src/programs/teleop_program.cpp` (`kNoIndependentStallSourceNote` logged once at boot, in two pieces
   so the 200-byte log line does not cut it; `src/main.cpp` until G1 Part 2b); `localization/
   drive_encoder_odometry.hpp` (`lastHeadingDisagreement()`, the future detector's input).
   *Confidence:* reasoned (structural — a fact about the sources, not a measurement).
@@ -1386,7 +1386,7 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   (physical 1 → index 0, physical 21 → index 20, asserted directly through the shim's recorded
   `lastIndex`), and out-of-range ports are asserted never to reach PROS at all.
   *Confidence:* **reasoned** — the vendored text states it plainly, and it already cost a session:
-  `src/bench_r3a.cpp`'s registry comment (just above `kMaxRegistryIndex`; lines 135-145 since
+  `src/programs/bench_r3a.cpp`'s registry comment (just above `kMaxRegistryIndex`; lines 135-145 since
   R2a, 112-122 before it) records 2026-08-18, when the tester scanned 1..21 as if the index
   were physical, shifted every reading by one port and invented a device at index 21. HA-120 had
   PREDICTED exactly that (the 2026-08-13 "ADI expander" sighting came from index 21) and the
@@ -1654,8 +1654,8 @@ pneumatic claw, below), and its merge HA-147 (the controller belief the claw's t
 first below). HA-142 to HA-146 are DEFECTS2's (above); HA-148 to HA-152 were reserved for T3 and
 are unused. HA-153 to HA-156 are beliefs about motors NOBODY HAS SEEN YET: the team lead reported
 the two claw pivots on 2026-09-26, no census or capture has shown a motor on port 6 or 7, and
-nothing has commanded either on a robot. `src/mechanism_table.hpp` declares them;
-`src/calibrate_program.cpp` acts on the declaration (it never makes 6 or 7 a drive candidate);
+nothing has commanded either on a robot. `src/robots/mechanism_table.hpp` declares them;
+`src/programs/calibrate_program.cpp` acts on the declaration (it never makes 6 or 7 a drive candidate);
 "shulib Teleop" builds and drives them since T3's Teleop wiring (its Part 2, the same day) —
 host- and build-gated, never run. Worksheet Station J is their first run.
 
@@ -1692,11 +1692,11 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   moves each pivot the way R1 (port 6) and L1 (port 7) are meant to move it. False if a census shows
   no motor, or another kind of device, on 6 or 7; if either cartridge insert is not red; or if R1 /
   L1 moves its claw the "back" way.
-  *Source:* `src/mechanism_table.hpp` (`kRobotTwoMechanisms`, tagged `A4 register HA-153`): the
-  ports, the cartridge and the `+` signs; `src/calibrate_program.cpp` drops 6 and 7 from its drive
+  *Source:* `src/robots/mechanism_table.hpp` (`kRobotTwoMechanisms`, tagged `A4 register HA-153`): the
+  ports, the cartridge and the `+` signs; `src/programs/calibrate_program.cpp` drops 6 and 7 from its drive
   candidates on this belief, and since T3 Part 2 "shulib Teleop" builds both pivots from it
-  (`src/boot_source.hpp`), names them as claw pivots in its port check, and binds R1/R2 and L1/L2
-  to them (`src/teleop_claws.hpp`). `test/mechanism_table_test.cpp` pins the table's contents — which
+  (`src/common/boot_source.hpp`), names them as claw pivots in its port check, and binds R1/R2 and L1/L2
+  to them (`src/programs/teleop_claws.hpp`). `test/mechanism_table_test.cpp` pins the table's contents — which
   tests the TYPING against the report, never the report.
   *Confidence:* **reported** by the team lead, 2026-09-26 — not measured. No capture has seen a
   motor on 6 or 7: the 2026-09-24 Calibrate census lists motors on 11–18 and 20 only, and the
@@ -1727,7 +1727,7 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   long any of this takes is not known.** False if a stalled pivot barely warms in a minute at 12 V
   (then nothing is needed), or if it reaches the derating temperature within seconds (then a stall
   cut-off is not optional).
-  *Source:* `src/mechanism_table.hpp` (`volts = 12.0`, tagged `A4 register HA-154`) — the ordered
+  *Source:* `src/robots/mechanism_table.hpp` (`volts = 12.0`, tagged `A4 register HA-154`) — the ordered
   full power passes straight through while a button is held; a stall cut-off is OUT of T3 by the
   brief. The vendored `include/pros/motors.h` (`motor_get_current_limit`: "The default value is
   2500 mA."). `include/shulib/diag/health_monitor.hpp` raises `MOTOR_OVER_TEMP` from the hottest
@@ -1754,8 +1754,8 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   to every check shulib runs before power: the census, Calibrate's declared-port drop, Teleop's
   port check against the record, the provider's kind check. False only if the registry could tell
   one motor from another, which its API (HA-138, HA-141) does not offer.
-  *Source:* `src/calibrate_program.cpp` (the declared-port drop, tagged `A4 register HA-155`): it
-  drops PORTS, trusting that the cable in port 6 is the claw's; `src/mechanism_table.hpp`. Teleop's
+  *Source:* `src/programs/calibrate_program.cpp` (the declared-port drop, tagged `A4 register HA-155`): it
+  drops PORTS, trusting that the cable in port 6 is the claw's; `src/robots/mechanism_table.hpp`. Teleop's
   boot check already says the same of two DRIVE cables swapped with each other ("NOT CHECKED: two
   drive cables swapped WITH EACH OTHER look identical here").
   *Confidence:* reasoned (what the registry reports).
@@ -1777,7 +1777,7 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   "Holds" is claimed nowhere — in the code, the worksheet or a commit — until Station J logs it.
   False if the claw droops visibly within 30 s, drops its piece, or the motor heats holding it
   (HA-154).
-  *Source:* `src/mechanism_table.hpp` (`safeMode = Hold`, tagged `A4 register HA-156`). The T3
+  *Source:* `src/robots/mechanism_table.hpp` (`safeMode = Hold`, tagged `A4 register HA-156`). The T3
   brief specifies that the library's hold-to-run binding applies the safe state ONCE on release
   (never re-applied per tick, which could creep the hold point); that binding is
   `teleop::MechanismBinding` (T3 Part 1, `include/shulib/teleop/mechanism_binding.hpp`), and
@@ -1796,7 +1796,7 @@ host- and build-gated, never run. Worksheet Station J is their first run.
 **T3's addendum (E2, the pneumatic claw, 2026-09-26) added HA-159** (its library half, B2, owns
 HA-157 and HA-158). The team lead reported a PNEUMATIC claw the same night: its solenoid on the
 brain's 3-wire port A, toggled by the controller's A button, closed at program start, keeping its
-state when the robot is disabled. `src/mechanism_table.hpp` declares it; "shulib Teleop" drives
+state when the robot is disabled. `src/robots/mechanism_table.hpp` declares it; "shulib Teleop" drives
 its line since T3 Part 2 (made at the START level when the Robot is built, then A's toggle) — not
 yet on the robot — and shulib's census cannot show it (it reads the 21 smart ports). Worksheet
 Station J.9 is its first run.
@@ -1897,7 +1897,7 @@ opens it are the program half's entry, from the team lead's report).
   level CLOSES it. False if the valve's cable is in another lettered port; if the valve has TWO
   cables into the brain (a double solenoid, whose second line nobody has declared); or if HIGH
   closes the claw.
-  *Source:* `src/mechanism_table.hpp` (`kRobotTwoMechanisms.pneumatics[0]` and
+  *Source:* `src/robots/mechanism_table.hpp` (`kRobotTwoMechanisms.pneumatics[0]` and
   `kClawOpenCommand`, tagged `A4 register HA-159`): line 1, the polarity as ONE named constant
   marked UNVERIFIED, the start and safe positions CLOSED. `test/mechanism_table_test.cpp` pins the
   entry against the report AND the polarity's value (`true`), as it pins the pivots' signs: the
@@ -1951,9 +1951,9 @@ were built in parallel; both have since landed, with the numbers below it.)
   disable, and a deleted task runs no destructor", so the driver loop polls the disable and
   returns, braking the drive before the task is torn down), `src/main.cpp` (the X-drive loop:
   "PROS deletes the task on disable and a deleted task runs no destructor"),
-  `src/drive_program.cpp` ("A FIELD DISABLE is NOT a C++ exit — PROS deletes the opcontrol task,
+  `src/programs/drive_program.cpp` ("A FIELD DISABLE is NOT a C++ exit — PROS deletes the opcontrol task,
   and a deleted task runs no destructors … Stated so nobody believes the guard covers a kill")
-  and `src/calibrate_program.cpp` (the same belief, nearly word for word, for its all-stop guard), and
+  and `src/programs/calibrate_program.cpp` (the same belief, nearly word for word, for its all-stop guard), and
   `include/shulib/robot/robot.hpp` ("PROS calls opcontrol() again after every disable"). Two
   rules rest on half (a) as well: the claw bindings take no claim (a claim would survive a
   deleted task), and T3's static-state rule — the teleop program keeps its bindings, its
@@ -3070,7 +3070,7 @@ order of magnitude, the stand-in is corroborated; where they diverge, R-phase sh
 | Rotation sensor ticks/rev | 36000 (centidegree) — `odomUnit.cpp:17` computes travel as `position·πd/36000` | HA-16 | **This is the "measured elsewhere" provenance:** the conversion ran on a real robot all season. HA-16 confidence is effectively settled-by-prior-use; R3 still confirms on current sensors |
 | Minimum drive command to move | 20/127 linear, 25/127 rotational (`main.cpp:838-839`, measured by `test_min_output()`'s +1-per-500 ms ramp) | HA-45 (kS) | ≈ 1.9 V equivalent linear kS on that robot vs the 1.0 V placeholder — **R5 should expect kS nearer 2 V** on a comparable drivetrain; the placeholder is likely low, not high |
 | Drive geometry, as built | trackWidth 15″, wheel 3.25″, 400 rpm cartridge-equivalent (`main.cpp:38`) | HA-14/HA-15/HA-17 | Corroborates 3.25″ as this team's habitual wheel size (HA-14's guess); rpm differs from HA-15's GREEN/900-ticks stand-in — cartridge is an R3 read-off either way |
-| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — since G1 the session header's port map is generated from a robot's config (`robot::Robot::portMap()`), and since G1 Part 2c every program built on `robot::Robot` prints it that way ("shulib Teleop" and the invented X-drive, whose map is now a config constant); the typed table the tester and "shulib Drive" read (`src/chassis_table.hpp`) is still typed by hand. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
+| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — since G1 the session header's port map is generated from a robot's config (`robot::Robot::portMap()`), and since G1 Part 2c every program built on `robot::Robot` prints it that way ("shulib Teleop" and the invented X-drive, whose map is now a config constant); the typed table the tester and "shulib Drive" read (`src/robots/chassis_table.hpp`) is still typed by hand. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
 | Calibration-routine specimens | `test_min_output()` (kS ramp), `rotation_calibration()` (iterative IMU-vs-wheel θ-scale comparison, ×3 passes) (`main.cpp:101-217`) | M3 calibration routines, R5 | The *procedures* are the salvage: both are legitimate bench routines to re-derive cleanly at M3/R5. The θ-scale factor itself is obsolete (v2 heading is IMU-owned) |
 
 Diagnostic-culture evidence from the same files (stuck-wheel detection, L/R travel-imbalance and

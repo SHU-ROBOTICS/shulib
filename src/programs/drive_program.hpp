@@ -6,9 +6,9 @@
 // Built as its own program -- `make ROBOT=tank PROGRAM=drive`, uploaded to its own slot as
 // "shulib Drive" (team lead's ruling, 2026-09-10: the operator picks a program by name from
 // the brain's slot list; a "Drive" that hid the tester behind a timeout would be one more
-// thing to explain at a field). The bench tester (src/bench_r3a.cpp, "Bench Tests") stays the
+// thing to explain at a field). The bench tester (src/programs/bench_r3a.cpp, "Bench Tests") stays the
 // wheels-up diagnosis tool in its own slot; both share ONE chassis table
-// (src/chassis_table.hpp) so they cannot disagree about which robot they are on.
+// (src/robots/chassis_table.hpp) so they cannot disagree about which robot they are on.
 //
 // WHAT IT IS NOT: the library's motion stack. No Chassis, no MotionScheduler, no odometry,
 // no heading -- those are R3b Parts 1-3, and the banner at boot says so. The library has

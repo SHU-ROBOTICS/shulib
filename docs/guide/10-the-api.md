@@ -184,7 +184,7 @@ to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code 
 waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
 disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
 what lets the test suite run the whole loop on the host test plant. Honest status: "shulib Teleop"
-(`src/teleop_program.cpp`) now drives through it — robot two's claws included, on the buttons
+(`src/programs/teleop_program.cpp`) now drives through it — robot two's claws included, on the buttons
 below — but that version of the program has not run on a robot yet, so the loop is host-tested
 only, and no driver has felt it.
 

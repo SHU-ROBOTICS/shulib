@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 31 of 57 chunks complete
+**Position:** 32 of 58 chunks complete
 
 - **Next up:** COMP-b (the competition program — autonomous() with the 40 in auton, opcontrol()), and T4 (the driver program — the team lead's request of 2026-09-26 late evening: ONE readable driver file shared by a separate driver program and COMP-b's opcontrol(); its brief is being written and decides the order and the slots) — each on its own go; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
@@ -118,7 +118,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DEFECTS2` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G1` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DEFECTS2` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G1` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a` · `SRC1`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 

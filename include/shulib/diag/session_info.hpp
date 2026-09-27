@@ -24,8 +24,8 @@
 //     is a pass-through string. Since G1 Part 2a the builder GENERATES it from the
 //     robot's config — robot::Robot::portMap() / robot::writePortMap(), in the same
 //     text src/main.cpp's hand-built port maps printed. Since G1 Part 2b "shulib
-//     Teleop" prints its port map from it (src/teleop_program.cpp), and since G1
-//     Part 2c the invented X-drive does too (src/xdrive_program.cpp): no program
+//     Teleop" prints its port map from it (src/programs/teleop_program.cpp), and since G1
+//     Part 2c the invented X-drive does too (src/programs/xdrive_program.cpp): no program
 //     builds a port map by hand any more.
 //   * alliance/side are free text ("red"/"left"/"skills"); empty fields render as
 //     "-" so a blank never silently vanishes from a column.

@@ -24,7 +24,7 @@
 //     ProsController), never its motion stack -- the library has still not
 //     driven a robot, and this station is labelled that way on every screen.
 //   * The drivetrain it was written for is a SECOND robot: the season's tank
-//     chassis, five COUPLED motors per side. Its chassis table (src/chassis_table.hpp
+//     chassis, five COUPLED motors per side. Its chassis table (src/robots/chassis_table.hpp
 //     since R3b Part 0b, shared with the drive program) shipped UNSET until measured
 //     (no port is ever invented -- HA-111 was that defect) and now carries the
 //     measured ports AND signs; the bench bot keeps its measured, unsigned table.
@@ -71,8 +71,8 @@
 // text census cannot ride in it. This writes text bytes through the same
 // ProsBlockSink device seam instead, which is exactly what that seam is for.
 
-#include "bench_r3a.hpp"
-#include "chassis_table.hpp"
+#include "programs/bench_r3a.hpp"
+#include "robots/chassis_table.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -147,7 +147,7 @@ constexpr int kMaxRegistryIndex = 20;
 constexpr int kLoopSamples = 200; // 200 × 10 ms ≈ 2 s of cadence measurement
 
 // ═══ THE CHASSIS TABLE — the ONE typed input (R3b Session 2, brief §3.1) ═══════════
-// Lives in src/chassis_table.hpp since R3b Part 0b, shared with src/drive_program.cpp so
+// Lives in src/robots/chassis_table.hpp since R3b Part 0b, shared with src/programs/drive_program.cpp so
 // the tester and the drive program cannot disagree about which robot they are on. It
 // carries robot two's MEASURED SIGNS (signsMeasured = true); the bench bot's stays
 // unsigned. The helpers below are this file's thin bindings of the header's pure
@@ -230,14 +230,14 @@ constexpr int kScreenCols = 54;
 
 // ═══ THE ONE SANITISING PATH TO THE PANEL (R2a, 2026-09-24) ══════════════════════════
 // PROS hands already-formatted text to VEXos AS A FORMAT STRING (R3d Part 2F-2's finding,
-// src/calibrate_program.cpp's header), so a '%' that reaches the panel is re-read as a
+// src/programs/calibrate_program.cpp's header), so a '%' that reaches the panel is re-read as a
 // conversion with no argument behind it; and VEXos's fonts carry ASCII only. screenEmit() used
 // to print whatever line it was handed through "%s" -- and station 10's own threshold line
 // ("<25% of side max") and every adapter refusal (e.what(), with UTF-8 em dashes) reach it.
 // So text now goes through panelSafe(): '%' and control bytes become '?', a UTF-8 em/en dash
 // becomes '-', any other non-ASCII character becomes ONE '?', and the copy stops at the
 // budget. screenText() then prints it through a literal "%s" -- the same rules as
-// src/screen_text.hpp's printText(), the shared path "shulib Calibrate" and "shulib Teleop" use
+// src/common/screen_text.hpp's printText(), the shared path "shulib Calibrate" and "shulib Teleop" use
 // since G1 Part 2b. The tester deliberately keeps its OWN copy: it cuts at this file's 54-column
 // scrolling-log width (kScreenCols), not the SMALL budget printText() cuts at, and counts its
 // prints in its own g_screenPrints -- and those widths ran on hardware as they are (R2a-R3), so
@@ -721,7 +721,7 @@ void census(pros::c::v5_device_e_t* found) {
         emitS(Sev::Warn, "motors found: %d   (chassis table has NO PORTS yet -- side '?')",
               motors);
         emit("Report these port numbers, per side, and which end is the FRONT; they go");
-        emit("into src/chassis_table.hpp. Nothing is guessed in the meantime.");
+        emit("into src/robots/chassis_table.hpp. Nothing is guessed in the meantime.");
     }
     emit("Index 21+ is NOT scanned: apix.h documents 0-20, and reading past it is");
     emit("what produced the phantom 'ADI expander' on 2026-08-18 (HA-120 predicted it).");
@@ -1291,7 +1291,7 @@ void motorWatch(pros::c::v5_device_e_t* found) {
         emitS(Sev::Warn, "SEVERAL moved, but the chassis table has NO PORTS -- signs cannot be");
         emit("captured (there is nothing to attach them to). The UP/DOWN column above IS");
         emit("the sign convention for the front you pushed toward: report it WITH the port");
-        emit("numbers per side, and it goes into src/chassis_table.hpp.");
+        emit("numbers per side, and it goes into src/robots/chassis_table.hpp.");
         std::snprintf(g_watch.lastSummary, sizeof g_watch.lastSummary,
                       "several moved; table has no ports -- no signs");
     } else {
@@ -1432,7 +1432,7 @@ void driveStation(pros::c::v5_device_e_t* found) {
     char missing[96];
     if (describeMissing(kChassis, missing, sizeof missing, true)) {
         emitS(Sev::Bad, "REFUSED: chassis table UNSET -- missing: %s.", missing);
-        emit("  Nothing is guessed. Fill kChassis in src/chassis_table.hpp from the build team's");
+        emit("  Nothing is guessed. Fill kChassis in src/robots/chassis_table.hpp from the build team's");
         emit("  report (ports per side + the front they chose), rebuild, upload, re-run.");
         return;
     }
@@ -2911,7 +2911,7 @@ void tImu(pros::c::v5_device_e_t* f) {
         rule("STAGE 2  IMU");
         emitS(Sev::Bad, "IMU port UNSET in the chassis table (%s).", kChassis.robot);
         emit("Mount an IMU on any smart port, report the port number, and it goes into");
-        emit("src/chassis_table.hpp. Nothing is guessed in the meantime.");
+        emit("src/robots/chassis_table.hpp. Nothing is guessed in the meantime.");
         return;
     }
     reportImu(f[kChassis.imuPort] == pros::c::E_DEVICE_IMU);
@@ -3122,7 +3122,7 @@ void touchReadout(const pros::screen_touch_status_s_t& t, int hit) {
 void testerInitialize(const char* variantBeacon, const char* competitionStatusBits) {
     // Moved VERBATIM from src/main.cpp's initialize() at G1 Part 2c (the dispatcher forwards
     // here); the bytes on serial are unchanged. The X-drive graph is not constructed in this
-    // build — it lives in src/xdrive_program.cpp, which only the xdrive build calls.
+    // build — it lives in src/programs/xdrive_program.cpp, which only the xdrive build calls.
     std::printf("\n[R3A] booted: bench-tester build [%s].\n"
                 "[R3A] read-only EXCEPT the tester's DRIVE station (R3b Session 2), which powers\n"
                 "[R3A] the drive motors through the hal/pros adapters behind six safety gates --\n"
@@ -3198,7 +3198,7 @@ void runR3a() {
         }
         char why[96];
         if (!tableConsistent(kChassis, why, sizeof why)) {
-            emitS(Sev::Bad, "TABLE CONTRADICTS ITSELF: %s -- fix src/chassis_table.hpp first.", why);
+            emitS(Sev::Bad, "TABLE CONTRADICTS ITSELF: %s -- fix src/robots/chassis_table.hpp first.", why);
         }
     }
     emit("!! SIDE LABELS ARE THE TABLE'S CLAIM, NOT A MEASUREMENT (R3a-PROGRESS S10.3);");

@@ -4,8 +4,10 @@
 //
 // ═══ READ THIS FIRST ════════════════════════════════════════════════════════════════
 // There is no robot in this file, and no build switch. Every program lives in its own file under
-// src/, and which one this binary IS — and which ROBOT's tables it carries — was decided when it was
-// built: `make ROBOT=... PROGRAM=...`, both validated by the Makefile, and read by ONE #if chain in
+// src/programs/ (what a robot IS lives under src/robots/, what the programs share under
+// src/common/, the team's own code under src/team/ — SRC1's layout, 2026-09-27), and which one
+// this binary IS — and which ROBOT's tables it carries — was decided when it was built:
+// `make ROBOT=... PROGRAM=...`, both validated by the Makefile, and read by ONE #if chain in
 // src/build_selection.hpp, whose every branch sets the program (`kProgram`), the robot (`kRobotId`)
 // and the identity beacon (`kVariantBeacon`) together (G1 Part 2c's final run, 2026-09-26: the team
 // lead's ruling "one chain picks both" moved the chain out of this file, where it chose the program
@@ -18,22 +20,23 @@
 //     -Wswitch failure in all five), forwarding to that program's shulib::bench:: functions.
 //
 //   build                              program              where it lives
-//   make                               "Bench Tests"        src/bench_r3a.cpp (the bench bot)
-//   make ROBOT=tank                    "Bench Tests"        src/bench_r3a.cpp over robot two's
-//                                                           signed table (src/chassis_table.hpp)
-//   make ROBOT=tank PROGRAM=drive      "shulib Drive"       src/drive_program.cpp        (slot 1)
-//   make ROBOT=tank PROGRAM=library    "shulib Teleop"      src/teleop_program.cpp       (slot 2)
-//                                                           + src/boot_source.{hpp,cpp}
-//   make ROBOT=tank PROGRAM=calibrate  "shulib Calibrate"   src/calibrate_program.cpp    (slot 4)
-//   make ROBOT=xdrive                  the INVENTED X-drive src/xdrive_program.cpp
-//                                                           + src/xdrive_config.hpp (HA-111)
+//   make                               "Bench Tests"        src/programs/bench_r3a.cpp (the bench bot)
+//   make ROBOT=tank                    "Bench Tests"        src/programs/bench_r3a.cpp over robot
+//                                                           two's signed table
+//                                                           (src/robots/chassis_table.hpp)
+//   make ROBOT=tank PROGRAM=drive      "shulib Drive"       src/programs/drive_program.cpp      (slot 1)
+//   make ROBOT=tank PROGRAM=library    "shulib Teleop"      src/programs/teleop_program.cpp     (slot 2)
+//                                                           + src/common/boot_source.{hpp,cpp}
+//   make ROBOT=tank PROGRAM=calibrate  "shulib Calibrate"   src/programs/calibrate_program.cpp  (slot 4)
+//   make ROBOT=xdrive                  the INVENTED X-drive src/programs/xdrive_program.cpp
+//                                                           + src/robots/xdrive_config.hpp (HA-111)
 // Four programs in four slots rather than one program with a chooser (the team lead's ruling,
-// R3b Part 0b): the operator picks a program by NAME from the brain's slot list. Every src/*.cpp
-// compiles into every build; the linker's --gc-sections drops what the selected program never
+// R3b Part 0b): the operator picks a program by NAME from the brain's slot list. Every .cpp under
+// src/ compiles into every build; the linker's --gc-sections drops what the selected program never
 // calls. The ROBOT is set by the same branch (kRobotId): the bench build carries the bench bot's
 // tables, the four tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
-// chassis table and no mechanisms (src/chassis_table.hpp and src/mechanism_table.hpp select them
-// from kRobotId).
+// chassis table and no mechanisms (src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp
+// select them from kRobotId).
 //
 // ═══ WHAT RUNS, AND WHAT HAS RUN (no claim beyond the logs) ════════════════════════════
 //   * NO LIBRARY-COMMANDED MOTION HAS RUN ON A ROBOT (R3b open). "shulib Drive" drove robot two
@@ -58,14 +61,14 @@
 #include <cstddef>
 #include <cstdio>
 
-#include "bench_r3a.hpp"
+#include "programs/bench_r3a.hpp"
 #include "build_selection.hpp"
-#include "calibrate_program.hpp"
-#include "drive_program.hpp"
-#include "fault_latch_hook.hpp"
-#include "state_screens.hpp"
-#include "teleop_program.hpp"
-#include "xdrive_program.hpp"
+#include "programs/calibrate_program.hpp"
+#include "programs/drive_program.hpp"
+#include "common/fault_latch_hook.hpp"
+#include "common/state_screens.hpp"
+#include "programs/teleop_program.hpp"
+#include "programs/xdrive_program.hpp"
 
 #include "shulib/core/check.hpp"
 #include "shulib/diag/fault.hpp"
@@ -108,7 +111,7 @@ const char* bootStatusBits(char* buf, std::size_t n) {
 
 /// fault_latch_hook.hpp: point the precondition handler above at a latch that lives in another
 /// translation unit — the program that built the graph calls it once the latch exists. Defined for
-/// EVERY build (every src/*.cpp compiles into every build); --gc-sections drops it where nothing
+/// EVERY build (every .cpp under src/ compiles into every build); --gc-sections drops it where nothing
 /// calls it.
 void shulib::bench::attachFaultLatch(shulib::diag::FaultLatch* latch) noexcept {
     g_faults = latch;
@@ -128,7 +131,7 @@ void initialize() {
     // The ROBOT this build carries the tables of (src/build_selection.hpp's kRobotBeacon, derived
     // from kRobotId): printed so it is linked, and so the gate can assert it (step 6) — a build whose
     // branch set another robot carries another robot's beacon, and FAILS.
-    std::printf("[BLD] robot tables: %s (src/chassis_table.hpp, src/mechanism_table.hpp)\n",
+    std::printf("[BLD] robot tables: %s (src/robots/chassis_table.hpp, src/robots/mechanism_table.hpp)\n",
                 kRobotBeacon);
     char bits[64];
     switch (kProgram) {

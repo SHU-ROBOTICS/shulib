@@ -6,10 +6,10 @@
 // Calibrate call site pinned by reading its source.
 //
 // WHAT THIS TU SEES. The table lives in src/ (a per-robot composition fact, not library API) and
-// is PROS-free so this test can include it by relative path, as test/chassis_table_test.cpp
+// is PROS-free so this test can include it from src/, as test/chassis_table_test.cpp
 // includes the chassis table. Robot two's entries are defined in every build under their own name
 // (kRobotTwoMechanisms), so the contents test below reads THE REAL BYTES — a swapped button in
-// src/mechanism_table.hpp turns this file red — while kMechanisms, the build's selection, is the
+// src/robots/mechanism_table.hpp turns this file red — while kMechanisms, the build's selection, is the
 // host's: no build switch is set, so src/build_selection.hpp's chain takes its #else (the bench
 // build) and none is declared. The selection itself, mechanismTableFor(), is called for EVERY robot
 // below. Since G1 Part 2c's final run (2026-09-26) robot two's DRIVE table is here too, by its own
@@ -17,7 +17,7 @@
 // because the chassis table defined robot two's only under the tank define), and the header
 // static_asserts the real pair in every build.
 //
-// WHAT THIS TU CANNOT DO: run the call site. src/calibrate_program.cpp is a whole PROS program
+// WHAT THIS TU CANNOT DO: run the call site. src/programs/calibrate_program.cpp is a whole PROS program
 // (pros/screen.h, pros/misc.h and the rest are not in the host shim). So the filter's LOGIC —
 // re-listing the survivors in place, the new count, the dropped list — lives in the table's pure
 // dropDeclaredMechanismPorts(), which the cases here RUN; and what is left at the call site (one
@@ -39,7 +39,7 @@
 #include <string>
 #include <vector>
 
-#include "../src/mechanism_table.hpp"
+#include "robots/mechanism_table.hpp"
 
 using shulib::bench::absPort;
 using shulib::bench::Cartridge;
@@ -82,7 +82,7 @@ using shulib::hal::ControllerButton;
 
 namespace {
 
-/// A copy of robot two's REAL drive table (src/chassis_table.hpp's kRobotTwoChassis: LEFT -11 +12
+/// A copy of robot two's REAL drive table (src/robots/chassis_table.hpp's kRobotTwoChassis: LEFT -11 +12
 /// -13 +14 -15, RIGHT +20 -19 +18 -17 +16, IMU on port 2, BLUE — test/chassis_table_test.cpp pins
 /// those literals), for a case to break one field of.
 [[nodiscard]] ChassisTable robotTwoChassis() { return shulib::bench::kRobotTwoChassis; }
@@ -151,7 +151,7 @@ struct Filtered {
     return Filtered{kept, asInts(v.data(), v.size()), asInts(dropped.ports, dropped.count)};
 }
 
-/// src/calibrate_program.cpp's CODE: every comment removed and every run of whitespace squeezed
+/// src/programs/calibrate_program.cpp's CODE: every comment removed and every run of whitespace squeezed
 /// to one space, so a pinned statement matches however clang-format wraps it, and a statement
 /// that has been commented out no longer counts as present. String and character literals are
 /// copied whole (a "//" inside one is not a comment; the spaces inside one are kept); a ' right
@@ -228,7 +228,7 @@ struct Filtered {
 
 TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team lead stated "
           "(2026-09-26) -- the real table, not a copy") {
-    // BUG CAUGHT: any typo in src/mechanism_table.hpp's robot-two block — a swapped R1/R2 (the
+    // BUG CAUGHT: any typo in src/robots/mechanism_table.hpp's robot-two block — a swapped R1/R2 (the
     // claw runs backwards on the button the driver thinks is forward), the pivots' buttons crossed
     // (R1 moves the port-7 claw), a wrong port (the binding drives some other motor), a sign
     // flipped without a measurement, a wrong cartridge (RED gearing written as something else), a
@@ -346,7 +346,7 @@ TEST_CASE("mechanism table: the claw's polarity is ONE constant -- a flip moves 
 
     // The table's text, comments stripped: the constant is defined ONCE, and the ONE polarity in
     // the table is that constant — so flipping it is the whole fix, and a literal cannot hide.
-    const std::string code = codeOnly(readRepoFile("src/mechanism_table.hpp"));
+    const std::string code = codeOnly(readRepoFile("src/robots/mechanism_table.hpp"));
     CHECK(occurrences(code, "inline constexpr bool kClawOpenCommand = ") == 1);
     CHECK(occurrences(code, ".openCommand = ") == 1);
     CHECK(occurrences(code, ".openCommand = kClawOpenCommand,") == 1);
@@ -847,7 +847,7 @@ TEST_CASE("mechanism table: the buttons across the pivots AND the claw -- the cl
     CHECK_FALSE(mechanismButtonsAvoid(secondOnY, kTeleopRezeroButton));
     // WHY THE RE-ZERO MOVED: robot two's table binds A now, so a Teleop that kept its old re-zero
     // button (A) would collide — since T3 Part 2 Teleop's kRezeroButton is Y, static_assert-tied
-    // to kTeleopRezeroButton in src/teleop_program.cpp (header, kTeleopRezeroButton).
+    // to kTeleopRezeroButton in src/programs/teleop_program.cpp (header, kTeleopRezeroButton).
     CHECK_FALSE(mechanismButtonsAvoid(kRobotTwoMechanisms, ControllerButton::A));
     // An unset toggle collides with nothing here (completeness refuses it — one check, one fault).
     MechanismTable unset = robotTwo();
@@ -977,7 +977,7 @@ TEST_CASE("mechanism table: shulib Calibrate's ONE call site -- right after the 
     // pinned here as text, EXACTLY: this case fails on any edit to those lines, and whoever edits
     // them updates this case in the same change. What text cannot show — that the lines print on
     // the robot and no claw moves — is worksheet Station J.2's.
-    std::ifstream in{std::string{SHULIB_SOURCE_DIR} + "/src/calibrate_program.cpp"};
+    std::ifstream in{std::string{SHULIB_SOURCE_DIR} + "/src/programs/calibrate_program.cpp"};
     REQUIRE(in.good());
     std::stringstream text;
     text << in.rdbuf();
@@ -1034,6 +1034,6 @@ TEST_CASE("mechanism table: shulib Calibrate's ONE call site -- right after the 
         CHECK(between.find(write) == std::string::npos);
     }
 
-    // The program includes the table it filters by.
-    CHECK(code.find("#include \"mechanism_table.hpp\"") != std::string::npos);
+    // The program includes the table it filters by (written from src/ since SRC1).
+    CHECK(code.find("#include \"robots/mechanism_table.hpp\"") != std::string::npos);
 }

@@ -3,9 +3,9 @@
 // screen_text.hpp — THE ONE PATH FROM A PROGRAM TO THE BRAIN'S SCREEN (G1 Part 2b, 2026-09-26).
 //
 // printText() was written for "shulib Calibrate" at R3d Part 2F-2 (2026-09-24), inside
-// src/calibrate_program.cpp's anonymous namespace. G1 Part 2b moved it here, VERBATIM (its body is
+// src/programs/calibrate_program.cpp's anonymous namespace. G1 Part 2b moved it here, VERBATIM (its body is
 // byte-for-byte what it was; only the `inline` a header needs was added), so that "shulib Teleop"
-// (src/teleop_program.cpp) paints through the same sanitizer, and the competition program (COMP)
+// (src/programs/teleop_program.cpp) paints through the same sanitizer, and the competition program (COMP)
 // can too. Calibrate's behaviour is unchanged: its call sites are untouched and the print counter
 // below still counts every one of its prints.
 //
@@ -27,7 +27,7 @@
 // `text::kAll` and teleop_program.cpp's own table do.
 //
 // ═══ WHY NOT "Bench Tests" TOO ══════════════════════════════════════════════════════
-// src/bench_r3a.cpp keeps its OWN sanitizer (panelSafe/screenText, R2a): the same rules, but cut
+// src/programs/bench_r3a.cpp keeps its OWN sanitizer (panelSafe/screenText, R2a): the same rules, but cut
 // at the tester's 54-column scrolling-log width, not the SMALL budget, and with its own print
 // counter — and its widths ran on hardware as they are (R2a-R3). It does not include this header,
 // which is what lets both files name their counter g_screenPrints without a clash (the tester's

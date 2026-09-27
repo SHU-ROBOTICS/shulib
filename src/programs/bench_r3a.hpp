@@ -8,11 +8,11 @@
 // compile-time robot selector WITHOUT the invented X-drive ever being built —
 // its ports are invented (HA-111), and on the bench robot the device provider
 // would refuse its first port at boot (since G1 Part 2c the X-drive lives in
-// src/xdrive_program.cpp, which only the xdrive build calls). Both tester variants
+// src/programs/xdrive_program.cpp, which only the xdrive build calls). Both tester variants
 // (ROBOT=bench, the measured bench bot; ROBOT=tank, the 2026 chassis whose
 // table carries MEASURED SIGNS since R3b Part 0b) boot into this as "Bench
-// Tests" -- unless built with PROGRAM=drive, which boots src/drive_program.cpp
-// ("shulib Drive") instead. The chassis table both share is src/chassis_table.hpp.
+// Tests" -- unless built with PROGRAM=drive, which boots src/programs/drive_program.cpp
+// ("shulib Drive") instead. The chassis table both share is src/robots/chassis_table.hpp.
 //
 // This lives in src/, not include/shulib/, deliberately: it makes raw
 // <pros/*> calls to print RAW value beside CANONICAL value, which is the
@@ -20,7 +20,7 @@
 //
 // THIS HEADER ITSELF IS PROS-FREE (since R2a): besides runR3a() it carries only the
 // menu's pure GEOMETRY (menu_grid below), so test/bench_menu_grid_test.cpp can include it
-// by relative path and try to break the hit test on the host -- the chassis_table.hpp
+// from src/ (`programs/bench_r3a.hpp`) and try to break the hit test on the host -- the chassis_table.hpp
 // precedent. Nothing here draws; bench_r3a.cpp draws from it.
 
 #include <cstdint>

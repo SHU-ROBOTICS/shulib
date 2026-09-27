@@ -12,7 +12,7 @@
 // the next question. None of that was testable, because all of it lived in a PROS-bound
 // program. This header is the part of the screen that decides WHAT it says and WHICH touches
 // mean something — so those decisions are unit-tested on the host rather than eyeballed on the
-// robot. The program (src/calibrate_program.cpp, Part 2F-2) only RENDERS a PanelView.
+// robot. The program (src/programs/calibrate_program.cpp, Part 2F-2) only RENDERS a PanelView.
 //
 // ── What it decides ─────────────────────────────────────────────────────────────────
 //  * viewFor(): per state, a header colour and word, an instruction of at most two LARGE lines,

@@ -1,7 +1,7 @@
 // state_screens.cpp — the competition-state screens (header: why they exist, what moved at G1
 // Part 2c). Moved from src/main.cpp; the output is unchanged.
 
-#include "state_screens.hpp"
+#include "common/state_screens.hpp"
 
 #include <cstdint>
 #include <cstdio>

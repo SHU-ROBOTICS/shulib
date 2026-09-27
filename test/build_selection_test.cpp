@@ -20,7 +20,7 @@
 #include <cstring>
 #include <string_view>
 
-#include "../src/build_selection.hpp"
+#include "build_selection.hpp"
 
 using shulib::bench::kProgram;
 using shulib::bench::kRobotId;

@@ -10,7 +10,7 @@
 //     hal::pros::ProsDeviceProvider — the library's own composition root (G1 Parts 1 and 2a).
 //     Same objects, same order, same arguments as the hand-wired TankRobot (robot.hpp's ruling
 //     B4, pinned bit-for-bit on the host plant by test/robot_builder_test.cpp);
-//   * the BOOT SOURCE is src/boot_source.{hpp,cpp}, shared with the competition program, its
+//   * the BOOT SOURCE is src/common/boot_source.{hpp,cpp}, shared with the competition program, its
 //     decisions unchanged;
 //   * the LOOP is teleop::runDriverControl with the DriveShaper feel layer (T2), default profile
 //     ArcadeBody — the ONE feel change the team lead chose (the brief's ruling M4, restated
@@ -18,7 +18,7 @@
 //     continuous deadband instead of a hard one around the centre (test/teleop_loop_test.cpp,
 //     the brief's test 5). Field-centric is selectable (kFieldCentric) but OFF (ruling M5);
 //   * the PANEL is re-laid out to fit the screen's SMALL budget (the brief's A3), painted only
-//     where it changed, live numbers at most 5 Hz, every string through src/screen_text.hpp's
+//     where it changed, live numbers at most 5 Hz, every string through src/common/screen_text.hpp's
 //     printText().
 // What did NOT change: the boot decisions, the dead-port policy (applied once, by the boot check),
 // the stall-check wiring (robot::Robot::effectiveTuning does what tankChassisConfig() did), the
@@ -28,11 +28,11 @@
 //
 // ═══ THE CLAWS (T3 Part 2, 2026-09-26) ══════════════════════════════════════════════
 // Robot two's claws are driven HERE, in slot 2 — never in "shulib Drive" (slot 1). The boot
-// source converts src/mechanism_table.hpp into the config (src/boot_source.hpp), so robot::Robot
+// source converts src/robots/mechanism_table.hpp into the config (src/common/boot_source.hpp), so robot::Robot
 // builds the two pivots (ports 6 and 7) and the pneumatic claw (3-wire A) — the claw's line made
 // at its START level, CLOSED — and the port check names the pivots as claw pivots, never as NEW
 // motors; a record that lists a claw port as a DRIVE port refuses the boot ("recalibrate").
-// teleopInitialize() binds them inside its try (src/teleop_claws.hpp: R1/R2 -> port 6, L1/L2 ->
+// teleopInitialize() binds them inside its try (src/programs/teleop_claws.hpp: R1/R2 -> port 6, L1/L2 ->
 // port 7, 12 V, HOLD on release; A toggles the claw, its initial level the SAME start level) and
 // validates the set against the re-zero button, which moved A -> Y (the team lead's ruling); an
 // ABSENT claw gets no binding and says so, and the drive runs. runTeleop() hands the bindings to
@@ -77,7 +77,7 @@
 // (attachFaultLatch) is defined in all six. ASCII only in every runtime string; every screen
 // string goes through printText(); only a literal "%s" reaches a PROS print.
 
-#include "teleop_program.hpp"
+#include "programs/teleop_program.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -90,11 +90,11 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
-#include "boot_source.hpp"
-#include "fault_latch_hook.hpp"
-#include "mechanism_table.hpp"
-#include "screen_text.hpp"
-#include "teleop_claws.hpp"
+#include "common/boot_source.hpp"
+#include "common/fault_latch_hook.hpp"
+#include "robots/mechanism_table.hpp"
+#include "common/screen_text.hpp"
+#include "programs/teleop_claws.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
@@ -158,10 +158,10 @@ constexpr bool kFieldCentric = false;
 /// A to Y. The boot line names it from this constant (buttonWord below), never from a second
 /// spelling.
 constexpr hal::ControllerButton kRezeroButton = hal::ControllerButton::Y;
-// TIED to the mechanism table's reserved button (src/mechanism_table.hpp, kTeleopRezeroButton, whose
+// TIED to the mechanism table's reserved button (src/robots/mechanism_table.hpp, kTeleopRezeroButton, whose
 // own check 6 keeps every declared binding button off it): the two can never drift apart.
 static_assert(kRezeroButton == kTeleopRezeroButton,
-              "Teleop's re-zero button and src/mechanism_table.hpp's kTeleopRezeroButton disagree");
+              "Teleop's re-zero button and src/robots/mechanism_table.hpp's kTeleopRezeroButton disagree");
 // NEVER a binding button — robot two's claw pivots take L1/L2 and R1/R2, its claw takes A — and a
 // re-zero on a claw button would re-zero the field frame every time the claw moved. Checked against
 // both tables, and against the four shoulder buttons for any table (teleop::DriverLoopConfig's own
@@ -732,7 +732,7 @@ private:
             paintRow(kRowTravel, kColDim, "");
         }
 
-        // ONE fault row since T3 Part 2 (ruling R3): src/teleop_claws.hpp's faultRowText().
+        // ONE fault row since T3 Part 2 (ruling R3): src/programs/teleop_claws.hpp's faultRowText().
         const diag::FaultLatch& f = r_.faults();
         const ClawRow faults = faultRowText(f.hasFault() ? f.faultCount() : 0, f.firstFault(),
                                             f.lastFault());
@@ -789,7 +789,7 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
         std::snprintf(line, sizeof line, "library graph BUILT from the %s: %.120s",
                       boot.source == calibration::BootSource::UseRecord
                           ? "CALIBRATION RECORD on the SD card"
-                          : "TYPED TABLE (src/chassis_table.hpp)",
+                          : "TYPED TABLE (src/robots/chassis_table.hpp)",
                       described);
         log.log(hal::LogLevel::Info, kTag, line);
     }
@@ -857,7 +857,7 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
                   kFieldCentric ? kSelectableOn.data() : kSelectableOff.data());
     log.log(hal::LogLevel::Info, kTag, line);
     // THE CLAWS (T3 Part 2): one line per declared mechanism, BUILT or ABSENT with the provider's
-    // own sentence (src/teleop_claws.hpp words them; Station J.3.1 / J.9.1 quote them). An ABSENT
+    // own sentence (src/programs/teleop_claws.hpp words them; Station J.3.1 / J.9.1 quote them). An ABSENT
     // one is a warning: its buttons do nothing, and the drive runs anyway.
     for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
         logWrapped(log, r.builtMechanismAt(i) != nullptr ? hal::LogLevel::Info : hal::LogLevel::Warn,
@@ -879,7 +879,7 @@ void teleopInitialize(const char* variantBeacon, const char* competitionStatusBi
     std::printf("\n[%s] booted: shulib TELEOP build [%s] -- THE LIBRARY drives robot two through\n"
                 "[%s] robot::Robot (G1 Part 2b): two hal::MotorGroups, drive-encoder odometry and\n"
                 "[%s] Chassis::drive(), built from the CALIBRATION RECORD on the SD card when\n"
-                "[%s] there is one, else from src/chassis_table.hpp. The invented X-drive graph\n"
+                "[%s] there is one, else from src/robots/chassis_table.hpp. The invented X-drive graph\n"
                 "[%s] is NOT constructed.\n"
                 "[%s] %s\n"
                 "[%s] BUILD STAMP %s\n",

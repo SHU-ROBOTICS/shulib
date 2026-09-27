@@ -15,7 +15,7 @@
 //     program this build runs), kRobotId (which robot's tables it carries) and kVariantBeacon (the
 //     build's identity string).
 // Below the chain everything is C++. src/main.cpp switches on kProgram, a case per program and no
-// default; src/chassis_table.hpp and src/mechanism_table.hpp select the robot's tables from kRobotId
+// default; src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp select the robot's tables from kRobotId
 // through constexpr functions with a case per robot (chassisTableFor(), mechanismTableFor()); and
 // robotBeacon() below turns kRobotId into the robot's beacon. So a misspelt program or robot anywhere
 // below the chain is a compile ERROR, and one added to an enum but not handled somewhere is a

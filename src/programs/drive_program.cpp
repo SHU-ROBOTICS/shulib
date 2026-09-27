@@ -2,7 +2,7 @@
 // library's hal/pros ADAPTERS, with dead-port tolerance (chunk R3b Part 0b, 2026-09-10).
 //
 // ═══ WHAT THIS IS ══════════════════════════════════════════════════════════════════
-// The bench tester's DRIVE station (src/bench_r3a.cpp, station 10) with the menu, the
+// The bench tester's DRIVE station (src/programs/bench_r3a.cpp, station 10) with the menu, the
 // sign-capture dependency, the voltage ceiling and the dead-man REMOVED, and dead-port
 // tolerance ADDED. Built as its OWN program in its own slot (`make ROBOT=tank
 // PROGRAM=drive`; `pros upload --slot 1 --name "shulib Drive"`), because the operator picks
@@ -36,7 +36,7 @@
 // 250 ms before it cuts again).
 //
 // ═══ SIGNS LIVE IN ONE PLACE ═══════════════════════════════════════════════════════
-// The table's signed entry (src/chassis_table.hpp: LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19
+// The table's signed entry (src/robots/chassis_table.hpp: LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19
 // +18 -17 +16, measured 2026-09-10) goes to ProsMotor AS TYPED; PROS applies the reversal
 // once, in the adapter. Nothing in this file negates anything.
 //
@@ -48,7 +48,7 @@
 // it, which does run the guard before the task is torn down. Stated so nobody believes the
 // guard covers a kill.
 
-#include "drive_program.hpp"
+#include "programs/drive_program.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -64,7 +64,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
-#include "chassis_table.hpp"
+#include "robots/chassis_table.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/build_info.hpp"
 #include "shulib/hal/controller.hpp"
@@ -326,12 +326,12 @@ void runDrive() {
         return;
     }
     if (describeMissing(kChassis, why, sizeof why, true)) {
-        paintRefusal("chassis table UNSET", why, "fill src/chassis_table.hpp, rebuild, upload");
+        paintRefusal("chassis table UNSET", why, "fill src/robots/chassis_table.hpp, rebuild, upload");
         return;
     }
     if (!tableConsistent(kChassis, why, sizeof why)) {
         paintRefusal("chassis table CONTRADICTS ITSELF", why,
-                     "fix src/chassis_table.hpp, rebuild, upload");
+                     "fix src/robots/chassis_table.hpp, rebuild, upload");
         return;
     }
 

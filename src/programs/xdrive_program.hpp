@@ -3,7 +3,7 @@
 // The INVENTED X-DRIVE program — `make ROBOT=xdrive` (G1 Part 2c, 2026-09-26; the graph itself dates
 // from R1a, 2026-08-13, and until Part 2c was hand-wired inside src/main.cpp).
 //
-// The robot is the constant in src/xdrive_config.hpp, built by robot::Robot over
+// The robot is the constant in src/robots/xdrive_config.hpp, built by robot::Robot over
 // hal::pros::ProsDeviceProvider; its driver control is the library's loop,
 // teleop::runDriverControl, with the DriveShaper's default profile and the drive COASTING on stick
 // release. EVERY PORT IS INVENTED (A4 register HA-111): on any robot that exists today the build

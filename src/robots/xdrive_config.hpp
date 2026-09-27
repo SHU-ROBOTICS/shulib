@@ -7,9 +7,9 @@
 // ports, the motor signs, the cartridge (HA-15), the drive radius (HA-17), the tracking-wheel
 // sizes and offsets (HA-12, HA-13) and the GPS lever arm (HA-10) are stand-ins from the day the
 // whole object graph first booted (2026-08-12). The build that uses them — `make ROBOT=xdrive`,
-// src/xdrive_program.cpp — CANNOT boot on a real robot: on robot two the provider refuses port 1
+// src/programs/xdrive_program.cpp — CANNOT boot on a real robot: on robot two the provider refuses port 1
 // (the radio) before anything is opened, and the program says so on its screen and on serial.
-// Robot two's ports come from the calibration record on its SD card (src/boot_source.{hpp,cpp})
+// Robot two's ports come from the calibration record on its SD card (src/common/boot_source.{hpp,cpp})
 // and are never typed here.
 //
 // ═══ WHAT CHANGED AT G1 PART 2c ═════════════════════════════════════════════════════
@@ -38,7 +38,8 @@
 // value at compile time. This is the tree's FIRST constexpr RobotConfig instance, and
 // test/xdrive_config_test.cpp proves it is one with static_asserts that read it.
 //
-// PROS-free, so the host test includes it by relative path (the src/chassis_table.hpp precedent).
+// PROS-free, so the host test includes it from src/ (`robots/xdrive_config.hpp`), as it does the
+// chassis table.
 
 #include "shulib/config/robot_config.hpp"
 #include "shulib/hal/drivetrain_description.hpp"

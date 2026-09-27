@@ -2,7 +2,7 @@
 //
 // THE MECHANISM TABLE — the ONE typed input about a robot's MECHANISMS: every motor that is not
 // the drivetrain, and every pneumatic line (chunk T3, 2026-09-26; the pneumatic claw added by T3's
-// addendum, E2, the same day). The PROS-free sibling of src/chassis_table.hpp, which stays "the ONE
+// addendum, E2, the same day). The PROS-free sibling of src/robots/chassis_table.hpp, which stays "the ONE
 // typed input about a drivetrain"; selected, like it, by kRobotId — which src/build_selection.hpp's
 // ONE chain sets in the same branch as the program and the beacon — so `make ROBOT=tank` and this
 // table cannot disagree about which robot it is. THIS FILE HAS NO #if OF ITS OWN (G1 Part 2c's final
@@ -91,7 +91,7 @@
 // run the chassis table follows this one: kRobotTwoChassis is on the host too.)
 //
 // WHO READS IT, as of this commit:
-//   * "shulib Calibrate" (src/calibrate_program.cpp): the census's motor ports go through
+//   * "shulib Calibrate" (src/programs/calibrate_program.cpp): the census's motor ports go through
 //     dropDeclaredMechanismPorts() BEFORE any ProsMotor is built, so a declared claw PIVOT is
 //     never a drive candidate — no gearing written, no Coast, no pulse. It logs one line per
 //     dropped port, `port 6: claw pivot (declared) -- not a candidate, not touched`; the words
@@ -99,11 +99,11 @@
 //     declares another kind of motor mechanism changes that line with it. The pneumatic claw is
 //     not in the census at all (a 3-wire port is not a smart port), and Calibrate never drives a
 //     3-wire line.
-//   * "shulib Teleop" (since T3 Part 2, 2026-09-26): src/boot_source.hpp converts every entry into
+//   * "shulib Teleop" (since T3 Part 2, 2026-09-26): src/common/boot_source.hpp converts every entry into
 //     a config::MechanismConfig (the pivots as single-motor mechanisms, the claw as a pneumatic
 //     one whose START and SAFE are LEVELS from pneumaticStartCommand() / pneumaticSafeCommand()),
 //     so robot::Robot builds them, and names the declared motor ports as claw pivots in its port
-//     check; src/teleop_claws.hpp binds each built one to its buttons (the toggle's initial level
+//     check; src/programs/teleop_claws.hpp binds each built one to its buttons (the toggle's initial level
 //     from pneumaticStartCommand() too) and words its boot line and panel row. Nothing HERE depends
 //     on the library: the conversion is the program's, and this file stays plain data.
 //
@@ -139,7 +139,7 @@
 #include <span>
 
 #include "build_selection.hpp"
-#include "chassis_table.hpp"
+#include "robots/chassis_table.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/motor.hpp"
 
@@ -150,7 +150,7 @@ namespace shulib::bench {
 /// re-zero moved to Y. (It was A, in G1 Part 2b's Teleop; the library's own
 /// DriverLoopConfig::rezeroButton default is L1, which robot two's port-7 pivot uses.)
 /// TIED TO TELEOP since T3 Part 2 (2026-09-26): Teleop's own constant, `kRezeroButton` in
-/// src/teleop_program.cpp, is Y, and a `static_assert(kRezeroButton == kTeleopRezeroButton)` right
+/// src/programs/teleop_program.cpp, is Y, and a `static_assert(kRezeroButton == kTeleopRezeroButton)` right
 /// under it makes the two one fact — a build in which they drift does not compile. Beside it, a
 /// second static_assert checks that no binding button of either table is the re-zero button. This
 /// table's check 6 (below) keeps every DECLARED button off it at compile time; at run time
@@ -491,16 +491,16 @@ constexpr bool pneumaticCommandFor(const PneumaticMechanismEntry& e, PneumaticPo
 }
 
 /// The level `e` is commanded to at program start (its `start` position). Since T3 Part 2 it is
-/// BOTH the config's START level (src/boot_source.hpp: config::MechanismConfig::pneumaticStart,
+/// BOTH the config's START level (src/common/boot_source.hpp: config::MechanismConfig::pneumaticStart,
 /// which robot::Robot drives the 3-wire line to when it makes it) AND the driver's toggle's
-/// initial level (src/teleop_claws.hpp) — one function, so the two cannot disagree and the claw
+/// initial level (src/programs/teleop_claws.hpp) — one function, so the two cannot disagree and the claw
 /// cannot move when driver control first starts. A COMPLETE entry only.
 constexpr bool pneumaticStartCommand(const PneumaticMechanismEntry& e) {
     return pneumaticCommandFor(e, *e.start);
 }
 
 /// The level a LIBRARY-FORCED safe state commands (its `safe` position): the config's SAFE level
-/// (src/boot_source.hpp: config::MechanismConfig::pneumaticSafe, since T3 Part 2), which
+/// (src/common/boot_source.hpp: config::MechanismConfig::pneumaticSafe, since T3 Part 2), which
 /// robot::Robot hands hal::PneumaticMechanism as its `safe` argument. Never what a disable does
 /// (the entry's `safe` field; the driver's toggle commands nothing on a disable). A COMPLETE entry
 /// only.

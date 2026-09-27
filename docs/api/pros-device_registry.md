@@ -87,7 +87,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  ═══ THE R1a-SHAPED TRAP, AND WHY THE CONVERSION IS ONE LINE ════════════════════════
  The registry is ZERO-INDEXED and NOTHING ELSE IN PROS IS — every motor, sensor and
- adapter in this tree takes a physical 1..21 port. src/bench_r3a.cpp's registry comment (the
+ adapter in this tree takes a physical 1..21 port. src/programs/bench_r3a.cpp's registry comment (the
  one just above `kMaxRegistryIndex`) records the day that cost: the tester scanned 1..21 as
  if the index were physical, which shifted every reading by one port and invented a device
  at index 21 (physical 22, which does not exist). It produced a confident, completely wrong
@@ -98,7 +98,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  So in the LIBRARY the conversion appears EXACTLY ONCE, on the line marked below, and
  test/pros_device_registry_adapter_test.cpp pins it FROM BOTH ENDS: physical port 1 must
  read registry index 0, and physical port 21 must read index 20. A test that only checked
- one end would pass with an off-by-one in the other direction. (src/bench_r3a.cpp's census
+ one end would pass with an off-by-one in the other direction. (src/programs/bench_r3a.cpp's census
  keeps its own copy, deliberately — see the note at the conversion line.)
 
  Out-of-range ports (0, 22, negatives) answer None WITHOUT calling PROS at all. That is not

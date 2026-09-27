@@ -4,7 +4,7 @@
 // table must carry no sign. A half-signed table is refused.
 //
 // The table lives in src/ (it is a per-robot composition fact, not library API), and it is
-// PROS-free on purpose so this test can include it by relative path and break its checks
+// PROS-free on purpose so this test can include it from src/ and break its checks
 // with hand-built tables. The mutation the brief requires ("remove a check") was run against
 // these cases and the observed red is in the R3b log.
 //
@@ -26,7 +26,7 @@
 #include <string>
 #include <string_view>
 
-#include "../src/chassis_table.hpp"
+#include "robots/chassis_table.hpp"
 
 using shulib::bench::absPort;
 using shulib::bench::Cartridge;

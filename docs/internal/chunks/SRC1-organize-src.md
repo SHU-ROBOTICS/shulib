@@ -1,6 +1,7 @@
 # SRC1 — `src/` organized into `robots/`, `team/`, `programs/` and `common/`
 
-> **Execution brief.** Written 2026-09-27 (~02:10) by the coordinator from the team lead's request and
+> **Execution brief.** Written 2026-09-27 (before 01:51, when `0fab866` committed it; this line said
+> "~02:10", a time after that commit, until SRC1's review corrected it) by the coordinator from the team lead's request and
 > answers. **The team lead's go:** "the src folder is getting very crowded is there something we can do
 > about this?", then "Yes, this layout" and "Now, before the new code is built" (the driver program T4
 > and the auton tester COMP-t are briefed but not built; their builders start on this layout). **One

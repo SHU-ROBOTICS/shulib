@@ -82,6 +82,15 @@ add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 target_include_directories(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
 
+# src/'s own include root (chunk SRC1, 2026-09-27) — the same one the PROS Makefile gives the
+# robot build (its EXTRA_INCDIR comment carries the whole reasoning). The tests that read a
+# robot's tables or a program's pure helpers include them as src/ does, written FROM src/:
+# `#include "robots/chassis_table.hpp"`, `#include "common/boot_source.hpp"`, never `../src/…`.
+# -iquote (quoted includes only), not -I; the joined spelling keeps it ONE option, which CMake's
+# option de-duplication cannot split. tools/src_build_gate.py's step 0 [include-root] fails any
+# path two roots could both answer, so the search order never decides which file is meant.
+target_compile_options(shulib_tests PRIVATE "-iquote${CMAKE_CURRENT_SOURCE_DIR}/../src")
+
 # ── The host PROS shim (chunk R1a) ──────────────────────────────────────────────────
 # hal/pros adapters #include <pros/*.hpp>. On the HOST they must resolve to
 # test/pros_shim/'s hand-written programmable stand-ins, NOT the real vendored

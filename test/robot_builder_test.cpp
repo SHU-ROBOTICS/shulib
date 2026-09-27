@@ -21,7 +21,7 @@
 // Everything here runs on the A2 plant behind the F4 fakes. No config has built a graph over a
 // real device: since G1 Part 2b "shulib Teleop" builds one over the PROS provider, and that
 // version has not run on hardware; since G1 Part 2c the invented X-drive is built the same way
-// (src/xdrive_config.hpp — test/xdrive_config_test.cpp), and no program wires a graph by hand.
+// (src/robots/xdrive_config.hpp — test/xdrive_config_test.cpp), and no program wires a graph by hand.
 
 #include "doctest.h"
 

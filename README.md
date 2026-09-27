@@ -241,7 +241,7 @@ exit reason says so.
 Wiring a `Chassis` is ordinary C++ too, and there are two ways to do it. The on-ramp is the
 builder: describe the robot as a `config::RobotConfig`, and `robot::Robot` builds the whole graph
 from it over a device provider — `robot::validate()` names the port or the field that is wrong
-before anything is constructed. `src/teleop_program.cpp` ("shulib Teleop") is the worked example
+before anything is constructed. `src/programs/teleop_program.cpp` ("shulib Teleop") is the worked example
 on a real robot: robot two's config comes from the calibration record on its SD card, and
 `hal::pros::ProsDeviceProvider` supplies the real adapters. (A typed port table is the fallback in
 general, but robot two's cannot describe its drivetrain — its track width and gearing are unset —
@@ -254,7 +254,7 @@ any more: which program a build is, and which robot's tables it carries, are cho
 `#if` chain in `src/build_selection.hpp` (the only place the `make ROBOT=… PROGRAM=…` switches are
 read), `src/main.cpp` only hands the PROS entry points to that program, and the one other robot
 described there — an X-drive whose port map is labelled as the invention it is — is a
-`constexpr RobotConfig` (`src/xdrive_config.hpp`) built the same way as Teleop's.
+`constexpr RobotConfig` (`src/robots/xdrive_config.hpp`) built the same way as Teleop's.
 
 ## How the tree is laid out
 
@@ -286,13 +286,19 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   chassis/          the public facade (Chassis) + the composition root (RobotContext)
   diag/             structured records, sinks, fault latch, health/loop monitors
   sim/              the host plant + hostile sensor models (tests only — see rule 2)
-src/                the robot programs: build_selection.hpp (the one place a build's switches are
-                    read — it picks the program and the robot together), main.cpp (the PROS
-                    entry point — it hands each entry point to that program), the bench tester,
-                    shulib Drive, shulib Calibrate, shulib Teleop (built on robot::Robot) with the
-                    boot source it shares and its claw wiring, the state screens they share, the per-robot tables
-                    (every robot's ports; robot two's claws), and the invented X-drive (a
-                    RobotConfig constant, built on robot::Robot)
+src/                the robot programs, one folder per job (every include written from src/:
+                    #include "robots/chassis_table.hpp"):
+  main.cpp          the PROS entry point — it hands each entry point to the build's program
+  build_selection.hpp  the one place a build's switches are read — it picks the program and
+                    the robot together
+  robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
+                    claws) and the invented X-drive (a RobotConfig constant)
+  team/             the team's own code — where students edit (empty until the driver program
+                    and the autonomous list land)
+  programs/         one program each: the bench tester, shulib Drive, shulib Calibrate, shulib
+                    Teleop (built on robot::Robot) with its claw wiring, the X-drive's program
+  common/           what the programs share: the boot source, the state screens, the screen
+                    text path, the fault-latch hook
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

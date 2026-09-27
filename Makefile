@@ -12,16 +12,32 @@ BINDIR=$(ROOT)/bin
 SRCDIR=$(ROOT)/src
 INCDIR=$(ROOT)/include
 
+# src/'s OWN INCLUDE ROOT (chunk SRC1, 2026-09-27). src/ is organized by job: robots/ (what each
+# robot IS), team/ (the team's code), programs/ (one program each), common/ (what the programs
+# share), with main.cpp and build_selection.hpp at the top. Every include of a src/ file is
+# written FROM src/ -- `#include "robots/chassis_table.hpp"`, `#include "common/boot_source.hpp"`,
+# `#include "build_selection.hpp"` -- the same in every folder, in main.cpp and in the host tests
+# (test/CMakeLists.txt gives that build the same root). common.mk's INCLUDE line turns this into
+# -iquote"./src", searched AFTER -iquote"./include".
+# -iquote and not -I: every src/ include is a quoted one, and -iquote adds src/ to the quoted
+# search only, where -I would also answer <...> includes meant for the toolchain and the vendored
+# SDK. Search ORDER is not what keeps a same-named header from shadowing a src/ one (or a src/
+# header from shadowing a library one): tools/src_build_gate.py's step 0 [include-root] FAILS any
+# src/ path that also exists under include/, test/pros_shim/, test/vendor/ or test/, or beside its
+# includer in a src/ subfolder, and any src/ include not written from src/ -- so no file can be
+# found by two roots in either build, and the order never decides.
+EXTRA_INCDIR:=$(SRCDIR)
+
 # src/ compiled with NO warning flags until 2026-08-18 -- common.mk sets only
 # -Wno-psabi. The library headers get the full strict set in CI's ARM gate, but
-# src/main.cpp and src/bench_r3a.cpp got nothing, and a data abort shipped to the
+# src/main.cpp and src/programs/bench_r3a.cpp got nothing, and a data abort shipped to the
 # robot as a result. Enabled here WITHOUT -Werror; tools/src_build_gate.py is what fails
 # a build on a warning: EVERY warning in our code fails it (vendored headers are ignored by
 # path), -Wunused-function included since G1 Part 2c's final run (the team lead's ruling,
 # 2026-09-26). That category was allowed from GATE1 until then, as the evidence that the
 # invented X-drive wiring in src/main.cpp was dead code in the bench and tank builds (robot()
 # and portMapString() warned there, and the gate counted them); G1 Part 2c made the X-drive
-# data (src/xdrive_config.hpp) built in its own file, NO build emits the warning any more, and
+# data (src/robots/xdrive_config.hpp) built in its own file, NO build emits the warning any more, and
 # a NEW dead function in src/ now fails the gate instead of passing it.
 # What replaced the warning count as the proof that a build is the variant it claims: the
 # identity BEACONS -- the variant beacon, typed in the same branch of src/build_selection.hpp's
@@ -57,12 +73,12 @@ endif
 # and the identity beacon together:
 #     make                → ROBOT=bench  — the measured tank BENCH bot: boots the bench tester
 #     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too, over
-#                            its MEASURED, SIGNED chassis table (src/chassis_table.hpp, shared
+#                            its MEASURED, SIGNED chassis table (src/robots/chassis_table.hpp, shared
 #                            with the drive program and the library program). Add PROGRAM=drive
 #                            (below) for the program that just drives it, or PROGRAM=library for
 #                            the program in which THE LIBRARY drives it (R3b Parts 1–3).
-#     make ROBOT=xdrive   → the invented X-drive (HA-111): src/xdrive_config.hpp, built on
-#                            robot::Robot by src/xdrive_program.cpp since G1 Part 2c. Its
+#     make ROBOT=xdrive   → the invented X-drive (HA-111): src/robots/xdrive_config.hpp, built on
+#                            robot::Robot by src/programs/xdrive_program.cpp since G1 Part 2c. Its
 #                            ports are invented, so on every robot that exists it refuses at
 #                            boot, naming the first port, with nothing powered.
 # Any other value is an $(error), NOT a silent default: the previous mechanism was
@@ -94,14 +110,14 @@ endif
 #                                         gated DRIVE station (slot 3, `pros upload --slot 3`)
 #     make ROBOT=tank PROGRAM=drive     → "shulib Drive": the program that JUST DRIVES robot two from
 #                                         the sticks through the hal/pros adapters, with dead-port
-#                                         tolerance (src/drive_program.cpp; slot 1,
+#                                         tolerance (src/programs/drive_program.cpp; slot 1,
 #                                         `pros upload --slot 1 --name "shulib Drive"`)
 #     make ROBOT=tank PROGRAM=library   → "shulib Teleop" (R3b Parts 1–3, 2026-09-14; rebuilt on
 #                                         robot::Robot at G1 Part 2b, 2026-09-26): THE LIBRARY
-#                                         drives robot two — src/teleop_program.cpp, robot::Robot
+#                                         drives robot two — src/programs/teleop_program.cpp, robot::Robot
 #                                         over the PROS device provider, built from the CALIBRATION
 #                                         RECORD on the SD card when there is one, else from
-#                                         src/chassis_table.hpp (src/boot_source.{hpp,cpp}), through
+#                                         src/robots/chassis_table.hpp (src/common/boot_source.{hpp,cpp}), through
 #                                         teleop::runDriverControl and Chassis::drive() (slot 2,
 #                                         `pros upload --slot 2 --name "shulib Teleop"`). Refuses
 #                                         at boot, on screen, when neither source can describe a

@@ -106,13 +106,13 @@
   travels ~20 % short on a push (HA-130, unexplained). **The drivetrain was REBUILT around
   2026-09-18** — trust none of these until the census + MOTOR WATCH (or the calibrator) re-measure
   them.
-- **The typed table is NOT a Teleop fallback.** `src/chassis_table.hpp` carries ports, signs and the
+- **The typed table is NOT a Teleop fallback.** `src/robots/chassis_table.hpp` carries ports, signs and the
   cartridge but `trackWidthIn = 0.0` and `externalRatio = 0.0`, so `tableToDescription()` yields an
   invalid description and **shulib Teleop refuses to start without a SAVED calibration record** on
   the card. The table does drive shulib Drive and Bench Tests (they need only ports and the
   cartridge). So on the robot: Calibrate must succeed before Teleop can run at all.
 - **Robot one:** also tank. **Its ports do not need typing** — shulib Calibrate takes every motor the
-  brain's registry reports as a candidate — EXCEPT a port `src/mechanism_table.hpp` declares as a
+  brain's registry reports as a candidate — EXCEPT a port `src/robots/mechanism_table.hpp` declares as a
   mechanism motor (robot two's claw pivots on 6 and 7, since T3: never a candidate, never touched) —
   and decides which drive, their signs and their sides by the
   push; it finds the IMU port from the registry too. Only three facts are human-stated: the
@@ -268,16 +268,24 @@ pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
 Programs in `src/` (six builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
-the measuring tool; `src/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
-`src/drive_program.cpp`), **shulib Teleop** (`PROGRAM=library`, slot 2, built from the SD record — the
+the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
+`src/programs/drive_program.cpp`), **shulib Teleop** (`PROGRAM=library`, slot 2, built from the SD record — the
 typed table cannot describe the drivetrain, see §2; since G1 Part 2b `robot::Robot` + the library's
-own loop in `src/teleop_program.cpp`, **this version never run** — the previous, hand-wired one drove
-robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/calibrate_program.cpp`;
+own loop in `src/programs/teleop_program.cpp`, **this version never run** — the previous, hand-wired one drove
+robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/programs/calibrate_program.cpp`;
 **first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
 serial capture; its recorded reproduction run is still owed), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
-invented ports, HA-111 — since G1 Part 2c `src/xdrive_config.hpp` on `robot::Robot`, refusing at boot
+invented ports, HA-111 — since G1 Part 2c `src/robots/xdrive_config.hpp` on `robot::Robot`, refusing at boot
 on any robot that exists). `src/build_selection.hpp` chooses, in one chain, which program AND which robot's tables a build is,
 and `src/main.cpp` only hands each PROS entry point to that program (G1 Part 2c and its final run).
+Since SRC1 (2026-09-27, the team lead's layout) `src/` is one folder per job: `src/robots/` (what
+each robot IS — the two tables, the X-drive's config), `src/team/` (the team's own code, where
+students edit — empty until the driver program and the auton list land), `src/programs/` (one
+program each) and `src/common/` (what the programs share — the boot source, the state screens,
+the screen-text path, the fault-latch hook); every include of a `src/` file is written from `src/`
+(`#include "robots/chassis_table.hpp"`), and the `src` gate's step 0 fails any path a second
+include root could answer and any `src/` path a program prints that names no file (so a message
+that tells a student which file to edit cannot point at a moved one).
 **Every `autonomous()` commands nothing.** Upload: `rm -rf bin .d && make
 ROBOT=tank PROGRAM=<p> && pros upload --slot N --name "<name>"` — one program at a time (each build
 overwrites `bin/`).
@@ -325,7 +333,7 @@ the work into three parts so each doc pass fits: **2a** library only (provider, 
 dispatcher, the X-drive as data, the build gate's differential redesigned.
 - What: `hal/pros/device_provider.hpp` (`ProsDeviceProvider`, registry-checked); absent drive ports
   in the builder, from the boot check; `teleop/teleop_loop.hpp` (`runDriverControl`, PROS-free); shulib Teleop moved to
-  `src/teleop_program.cpp` built as provider → `bootConfig()` (SD record → typed table → refuse) →
+  `src/programs/teleop_program.cpp` built as provider → `bootConfig()` (SD record → typed table → refuse) →
   `robot::Robot` → the loop; the X-drive graph as a config constant; `src/main.cpp` a dispatcher.
 - Rulings already made: only Teleop changes feel (shulib Drive and the tester keep `mapSticks`);
   field-centric ships selectable but OFF; the registry check and the builder's device pass both stay
@@ -481,7 +489,7 @@ is a plan change for jal to confirm in the brief (Q7).
   `PneumaticMechanism` per configured mechanism (ABSENT, never a whole-build refusal, when the
   provider refuses one) with typed lookups `mechanism(name)` / `pneumaticMechanism(name)` and the
   RunGuard span; the provider gained `digitalOut()`. Since T3 Part 2 "shulib Teleop"'s boot source
-  converts `src/mechanism_table.hpp` into those configs, so robot two's claws are built from it.
+  converts `src/robots/mechanism_table.hpp` into those configs, so robot two's claws are built from it.
   Host-tested only.
 - A `Robot::fromCard()`-style one-liner (may be L1's `bootConfig()` exposed; decide in L1/L2).
 - Docs owed: the register rows touched, the changelog, guide, cookbook.

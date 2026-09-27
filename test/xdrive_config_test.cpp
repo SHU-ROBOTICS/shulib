@@ -1,6 +1,6 @@
-// xdrive_config_test.cpp — G1 Part 2c: the invented X-drive as DATA (src/xdrive_config.hpp,
-// included by relative path the way chassis_table_test.cpp includes src/chassis_table.hpp — the
-// host build compiles test/*.cpp only, never src/*.cpp).
+// xdrive_config_test.cpp — G1 Part 2c: the invented X-drive as DATA (src/robots/xdrive_config.hpp,
+// included from src/ the way chassis_table_test.cpp includes src/robots/chassis_table.hpp — the
+// host build compiles test/*.cpp only, never a .cpp under src/).
 //
 // ═══ WHAT THIS FILE PROVES, AND HOW IT TRIES TO BREAK IT ═════════════════════════════
 //   * kInventedXDrive IS a constant expression — the tree's first constexpr RobotConfig. Proved
@@ -34,7 +34,7 @@
 #include <optional>
 #include <string>
 
-#include "../src/xdrive_config.hpp"
+#include "robots/xdrive_config.hpp"
 #include "pros/shim_control.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/config/robot_config.hpp"
@@ -264,7 +264,7 @@ TEST_CASE("G1 2c xdrive 3: over the real ProsDeviceProvider it REFUSES on robot 
         }
         CHECK(pros::shim::imuState(10).resetCalls == 0);
         // And the constructor refuses by precondition with the same sentence — the graph
-        // boundary's catch in src/xdrive_program.cpp is what turns this into a screen.
+        // boundary's catch in src/programs/xdrive_program.cpp is what turns this into a screen.
         ProsDeviceProvider again;
         std::optional<shulib::robot::Robot> robot;
         CHECK_THROWS_WITH_AS(robot.emplace(kInventedXDrive, again),

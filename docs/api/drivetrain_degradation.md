@@ -268,7 +268,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  invented answer. Widen it, with a reason, when such a robot exists.
 
  PURE and PROS-free: numbers in, a verdict out, no state, no clock. The
- caller (src/drive_program.cpp) counts the motors whose adapter constructed —
+ caller (src/programs/drive_program.cpp) counts the motors whose adapter constructed —
  and re-counts when a member goes ABSENT at runtime — and acts on the verdict.
 ```
 

@@ -17,7 +17,7 @@
 #include <cstring>
 #include <limits>
 
-#include "../src/chassis_table.hpp"
+#include "robots/chassis_table.hpp"
 #include "shulib/hal/drive_geometry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/teleop/coupled_side_monitor.hpp"
@@ -34,7 +34,7 @@ using shulib::units::Length;
 
 // ── ONE HOME FOR THE PORT COUNT ─────────────────────────────────────────────────────
 // hal::kMaxSmartPorts is the library's home for "a V5 brain has 21 smart ports".
-// src/chassis_table.hpp's kMaxPort CITES it (one definition, checked by the compiler).
+// src/robots/chassis_table.hpp's kMaxPort CITES it (one definition, checked by the compiler).
 // teleop::kMaxSideMembers deliberately does NOT: hal::MotorGroup already includes
 // teleop/coupled_side_monitor.hpp, so a citation the other way would close a directory-level
 // cycle and would make a pure fight detector depend on a drivetrain description. The equality is

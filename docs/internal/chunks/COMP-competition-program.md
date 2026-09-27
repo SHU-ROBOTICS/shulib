@@ -1,5 +1,7 @@
 # COMP — the competition program: boot the robot, pick an auton on the brain screen, run it under a guaranteed end, drive
 
+> **Paths moved at SRC1 (2026-09-27):** the `src/` files this brief names each moved to a folder, names unchanged — `src/common/` ← `boot_source.{hpp,cpp}`, `screen_text.hpp`, `state_screens.{hpp,cpp}`. `src/main.cpp` and `src/build_selection.hpp` stay where they were. The full mapping is in the [SRC1 brief §1](SRC1-organize-src.md); every include of a `src/` file is now written from `src/` (`#include "robots/chassis_table.hpp"`). The body below is NOT rewritten — it describes the tree it was written against; its executor re-checks every path against the tree.
+
 > **Execution brief.** First written 2026-09-24 at `2780462`; **REVISED the same day at `8ac243f`** after a
 > read-only checker compared it with the tree (sixteen findings, the load-bearing ones re-read in the source
 > by the coordinator) and the team lead ruled on the two design questions it raised (below). It is the

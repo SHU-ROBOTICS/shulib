@@ -1,7 +1,7 @@
 #pragma once
 //
 // THE CHASSIS TABLE — the ONE typed input about a drivetrain (R3b Session 2 brief §3.1;
-// moved out of src/bench_r3a.cpp at R3b Part 0b so the bench tester and the drive program
+// moved out of src/programs/bench_r3a.cpp at R3b Part 0b so the bench tester and the drive program
 // share ONE definition — two copies of a port table is how two programs come to disagree
 // about which robot they are on).
 //
@@ -173,14 +173,14 @@ inline constexpr ChassisTable kBenchBotChassis = {
 };
 
 // THE INVENTED X-DRIVE (A4 register HA-111) -- NO typed chassis table. Its drivetrain is data of
-// another kind (src/xdrive_config.hpp's kInventedXDrive, a config::RobotConfig), and no program in
+// another kind (src/robots/xdrive_config.hpp's kInventedXDrive, a config::RobotConfig), and no program in
 // its build reads a chassis table. Every field is UNSET, so anything that ever did read this one
 // would refuse by name (describeMissing) instead of driving another robot's ports. Until G1 Part
 // 2c's final run the xdrive build carried the BENCH BOT's table here (the #else of this file's old
 // #if) -- another robot's facts in a build, dormant only because nothing in that build read them.
 // kChassis in the ROBOT=xdrive build (chassisTableFor(RobotId::InventedXDrive)).
 inline constexpr ChassisTable kNoChassis = {
-    .robot = "INVENTED X-DRIVE -- no typed chassis table (src/xdrive_config.hpp, HA-111)",
+    .robot = "INVENTED X-DRIVE -- no typed chassis table (src/robots/xdrive_config.hpp, HA-111)",
     .left = {},
     .leftCount = 0,
     .right = {},
@@ -189,7 +189,7 @@ inline constexpr ChassisTable kNoChassis = {
     .imuPort = 0,
     .measured = false,
     .signsMeasured = false,
-    .provenance = "none: the invented X-drive is src/xdrive_config.hpp, not a typed table",
+    .provenance = "none: the invented X-drive is src/robots/xdrive_config.hpp, not a typed table",
     .wheelDiameterIn = 0.0,
     .trackWidthIn = 0.0,
     .externalRatio = 0.0,
@@ -234,7 +234,7 @@ static_assert(kRobotId != RobotId::RobotTwo
 static_assert(kRobotId != RobotId::BenchBot || &kChassis == &kBenchBotChassis,
               "the bench build must select the bench bot's table");
 static_assert(kRobotId != RobotId::InventedXDrive || &kChassis == &kNoChassis,
-              "the X-drive build must select the UNSET table (its robot is src/xdrive_config.hpp)");
+              "the X-drive build must select the UNSET table (its robot is src/robots/xdrive_config.hpp)");
 
 /// |p| for a (possibly signed) table entry, as an int.
 constexpr int absPort(std::int8_t p) { return p < 0 ? -static_cast<int>(p) : static_cast<int>(p); }
@@ -413,7 +413,7 @@ inline bool describeMissingForDescription(const ChassisTable& t, char* buf, std:
     // Appended BY HAND rather than with snprintf (G1 Part 2b): with a constant table the compiler
     // can see the truncation is CERTAIN, and -Wformat-truncation — an error in the src build gate
     // — fired the first time this was inlined into a translation unit that every build compiles
-    // (src/boot_source.cpp). The bytes are exactly what the snprintf wrote: the same text, cut
+    // (src/common/boot_source.cpp). The bytes are exactly what the snprintf wrote: the same text, cut
     // one short of the buffer, always terminated.
     std::size_t n = 0;
     const char* pieces[4] = {"TYPED TABLE (", t.robot != nullptr ? t.robot : "", "): ",

@@ -224,7 +224,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > program that just drives — `make ROBOT=tank PROGRAM=drive`, "shulib Drive" in its own slot (the
 > team lead's ruling: a program picked by name from the brain's slot list, not a chooser inside
 > Bench Tests). The measured signs (`LEFT −11 +12 −13 +14 −15 | RIGHT +20 −19 +18 −17 +16`) and the
-> IMU on port 2 live in ONE chassis table (`src/chassis_table.hpp`) shared by the tester and the
+> IMU on port 2 live in ONE chassis table (`src/robots/chassis_table.hpp`) shared by the tester and the
 > drive program; MOTOR WATCH cross-checks a push against them per port. The program tolerates dead
 > ports under a pure, host-tested policy (`shulib/teleop/drivetrain_degradation.hpp`: drive degraded
 > unless a side has fewer than three answering motors or more than two are dead in total), detects a
@@ -240,7 +240,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > → **"shulib Teleop"**, slot 2 — robot two's whole object graph (ten `ProsMotor`s from the
 > table's signed ports behind two groups, `ProsImu`, explicit absent GPS/tags/vision,
 > drive-encoder odometry, fusion, `Localizer`, `RobotContext`, `MotionDeps`, `Chassis`) built from
-> `src/chassis_table.hpp`, driven by the R1a teleop loop through `Chassis::drive(speeds,
+> `src/robots/chassis_table.hpp`, driven by the R1a teleop loop through `Chassis::drive(speeds,
 > Frame::Body)` — the one loop function both graphs now share. The build gate proved five builds
 > (six since R3d Part 2 added "shulib Calibrate"). *(Since R3d Part 2 this graph is built from a
 > `hal::DrivetrainDescription` — the SD card's calibration record first, the typed table second —
@@ -334,8 +334,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > Teleop" uses all four, and none of it has run on a robot still.)*
 >
 > **G1 Part 2b LANDED 2026-09-26 — "shulib Teleop" is rebuilt on the library, and THIS version has
-> not run on a robot.** `src/teleop_program.cpp` builds `robot::Robot` over
-> `hal::pros::ProsDeviceProvider` from a shared boot source (`src/boot_source.{hpp,cpp}`: the card's
+> not run on a robot.** `src/programs/teleop_program.cpp` builds `robot::Robot` over
+> `hal::pros::ProsDeviceProvider` from a shared boot source (`src/common/boot_source.{hpp,cpp}`: the card's
 > calibration record, else the typed table, else refuse — the decisions unchanged) and drives through
 > `teleop::runDriverControl` with the driver-feel layer's default profile (the team lead chose the
 > switch on 2026-09-26: the same as the old mapping except for a continuous deadband around the
@@ -370,6 +370,14 @@ not silently break them. This table is the spine of the no-staleness promise.
 > ruling of 2026-09-26 and has LANDED, host-proven only: the auton registry, the selector model, the
 > auton runner with the start-pose re-seat, and the abandon latch; see the M4 Sequencing row. COMP-b,
 > the program itself, still follows 2c.)*
+> **`src/` was reorganized before the next programs are built (SRC1, 2026-09-27, the team lead's
+> request):** `src/robots/` is what each robot IS (its tables), `src/team/` the team's own code —
+> where students edit, empty until the driver program and the auton list land — `src/programs/`
+> one program each, and `src/common/` what the programs share; `main.cpp` and
+> `build_selection.hpp` stay at the top. No file was renamed and no program's logic changed: the
+> six packages print each file's new path where a message names one, and otherwise hold the same
+> functions and data, linked in a new order. The `src/` build gate now fails any path a second
+> include root could answer, and any `src/` path a program prints that names no file.
 >
 > **The bench session BEGAN 2026-09-24** — the brain is on USB again. The device census and motor
 > watch ran on robot two; shulib Calibrate ran and STOPPED at its side-assignment pulse (one motor at
@@ -1754,7 +1762,7 @@ R4.)*
   *G1 Part 2a, 2026-09-24: `hal::pros::ProsDeviceProvider` landed (host-tested through the PROS
   shim only), with dead drive ports honoured by the builder and the port map generated.*
   *G1 Part 2b, 2026-09-26: the first program on the builder — "shulib Teleop"
-  (`src/teleop_program.cpp`) builds `robot::Robot` over the provider from the calibration record;
+  (`src/programs/teleop_program.cpp`) builds `robot::Robot` over the provider from the calibration record;
   that version has not run on a robot.*
   **OPEN:** the `src/main.cpp` collapse (G1 Part 2c), and the codegen that fills these types from a
   `.vexbot` (G3).*

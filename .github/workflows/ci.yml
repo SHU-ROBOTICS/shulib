@@ -43,8 +43,9 @@ jobs:
       # missing a violation planted at include/shulib/localization/pros/ —
       # any directory named "pros", anywhere, would have been exempt (D3: "a
       # gate's exclusion list is where its holes live"; brief M8/M9).
-      # src/main.cpp remains the other deliberate exception: it lives outside
-      # include/shulib/ and is the PROS entry point wiring the PROS-free core.
+      # src/ remains the other deliberate exception: it lives outside include/shulib/
+      # — main.cpp, the PROS entry points, and the programs under src/programs/ and
+      # src/common/ (SRC1's layout, 2026-09-27) — and wires the PROS-free core to them.
       - name: No <pros/> in the library (except hal/pros, path-anchored)
         run: |
           if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib \
@@ -151,8 +152,12 @@ jobs:
       # program naming ANOTHER robot's table, a second chain, an entry point
       # calling another program's function, a branch assigning the wrong
       # program or the wrong ROBOT, the robot split into a chain of its own, a
-      # program the gate's table does not know) and building each where a
-      # build is what sees it; then check runs the gate itself. Both builds are
+      # program the gate's table does not know, and — since SRC1 — a switch or
+      # another robot's table in each of src/'s folders, a header a second
+      # include root would answer instead of src/'s, an include not written
+      # from src/, an old-form include that must not build, and a src/ path a
+      # program prints that names no file) and building
+      # each where a build is what sees it; then check runs the gate itself. Both builds are
       # forced fresh (bin/ and .d/ deleted) and the compiled-TU count is printed
       # and verified, so an incremental no-op can never report green silently.
       - name: src build gate self-test (prove the detectors fire)

@@ -2,7 +2,7 @@
 //
 // ═══ WHAT ONLY THIS FILE CAN PROVE ══════════════════════════════════════════════════
 // That the PHYSICAL-port → ZERO-INDEXED-registry conversion is right, and right in BOTH
-// DIRECTIONS. src/bench_r3a.cpp's registry comment (just above `kMaxRegistryIndex`) records the
+// DIRECTIONS. src/programs/bench_r3a.cpp's registry comment (just above `kMaxRegistryIndex`) records the
 // day the absence of this test cost a session: the tester scanned 1..21 as if the index were
 // physical, shifted every reading by one port, and invented a device at index 21 (physical
 // 22, which does not exist) — a confident, completely wrong port map that HA-120 had already
@@ -165,7 +165,7 @@ TEST_CASE("ProsDeviceRegistry: EVERY v5_device_e_t value is mapped, and none bec
 
 TEST_CASE("ProsDeviceRegistry: robot two's census, read through the seam") {
     // The shape Station G's first step produces: ten motors on 11-15 / 16-20, an IMU on 2,
-    // the radio on 1 (src/chassis_table.hpp's provenance). This is what "shulib Calibrate"
+    // the radio on 1 (src/robots/chassis_table.hpp's provenance). This is what "shulib Calibrate"
     // builds its candidate list from, and what the boot check compares a record against.
     pros::shim::resetAll();
     pros::shim::setPluggedAtPort(1, pros::c::E_DEVICE_RADIO);

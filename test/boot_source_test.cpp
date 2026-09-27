@@ -1,6 +1,6 @@
 // boot_source_test.cpp — G1 Part 2b's test 6: the boot source feeds the builder faithfully
-// (src/boot_source.hpp, included by relative path the way chassis_table_test.cpp includes
-// src/chassis_table.hpp — the host build compiles test/*.cpp only, never src/*.cpp).
+// (src/common/boot_source.hpp, included from src/ the way chassis_table_test.cpp includes
+// src/robots/chassis_table.hpp — the host build compiles test/*.cpp only, never a .cpp under src/).
 //
 // As the brief's amendment A11 strengthened it, and as the Part 2b reviews sharpened it:
 //   * the config the core builds is valid, carries the description's SOURCE, the drive-encoder
@@ -49,7 +49,7 @@
 #include <utility>
 #include <vector>
 
-#include "../src/boot_source.hpp"
+#include "common/boot_source.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/chassis/chassis.hpp"
@@ -105,7 +105,7 @@ using shulib::hal::fake::FakeTelemetrySink;
 using shulib::units::Length;
 namespace cfgns = shulib::config;
 
-/// The name src/chassis_table.hpp gives robot two, which the teleop program passes as the robot's
+/// The name src/robots/chassis_table.hpp gives robot two, which the teleop program passes as the robot's
 /// identity (kChassis.robot in the ROBOT=tank build).
 constexpr std::string_view kRobotTwoName = "2026 TANK CHASSIS (robot two)";
 
@@ -159,7 +159,7 @@ FakeDeviceRegistry robotTwoCensus() {
     return reg;
 }
 
-/// Robot two's TYPED table as src/chassis_table.hpp carries it for the ROBOT=tank builds
+/// Robot two's TYPED table as src/robots/chassis_table.hpp carries it for the ROBOT=tank builds
 /// (kRobotTwoChassis; its front is the 15/16 end), typed here by hand as the description the pure
 /// core is handed. (Until G1 Part 2c's final run the host could not see robot two's table at all —
 /// it was defined only under the tank define; test/chassis_table_test.cpp now pins the real table,
@@ -549,7 +549,7 @@ TEST_CASE("G1 2b test 6j: the robot's name is bounded to the identity field, nev
 }
 
 // ═══ 6k-6r: THE WHOLE BOOT DECISION, run against the fakes (the second review round) ════════
-// decideBootSourceFrom() is everything src/boot_source.cpp's decideBootSource() decides; the .cpp
+// decideBootSourceFrom() is everything src/common/boot_source.cpp's decideBootSource() decides; the .cpp
 // only opens the card, makes the registry, turns kChassis into a description and prints. So these
 // cases hand it what the brain would: a FakeBlockSource holding an ENCODED record (or refusing,
 // or empty, or short), a FakeDeviceRegistry census, and a table description — and read back the
@@ -827,7 +827,7 @@ TEST_CASE("G1 2b test 6r: a usable table that FAILS its own port check is refuse
 }
 
 // ═══ 6s-6v: THE MECHANISMS INTO THE CONFIG (T3 Part 2) ═══════════════════════════════════════
-// src/boot_source.hpp's pure core converts src/mechanism_table.hpp — the REAL table, robot two's
+// src/common/boot_source.hpp's pure core converts src/robots/mechanism_table.hpp — the REAL table, robot two's
 // kRobotTwoMechanisms, defined in every build — into config::MechanismConfig, field by field, in
 // table order; the port check names the declared motor ports as claw pivots; and a claw port that
 // the chosen description lists as a drive port refuses the boot. NO HARDWARE CLAIM: nobody has
@@ -1033,7 +1033,7 @@ TEST_CASE("T3 P2 test 6t: a table that does not convert WHOLE is named by mechan
     REQUIRE(b.lines.size() == 5U);
     CHECK(b.lines[4]
           == "mechanism table: REFUSED -- a mechanism name is longer than 23 characters (a "
-             "RobotConfig name field) (src/mechanism_table.hpp)");
+             "RobotConfig name field) (src/robots/mechanism_table.hpp)");
     CHECK_FALSE(b.out.ok);
     CHECK(std::string_view{b.out.headline} == "the MECHANISM TABLE does not convert");
     CHECK(std::string_view{b.out.why}
@@ -1122,7 +1122,7 @@ TEST_CASE("T3 P2 test 6v: a claw port that the RECORD lists as a DRIVE port REFU
     CHECK_FALSE(f.out.ok);
     CHECK(std::string_view{f.out.headline} == "a CLAW port is a DRIVE port in the record");
     CHECK(std::string_view{f.out.why}.starts_with("port 6 is both a claw (claw pivot 6)"));
-    // The typed table says the same about ITSELF (src/chassis_table.hpp and the mechanism table
+    // The typed table says the same about ITSELF (src/robots/chassis_table.hpp and the mechanism table
     // disagree) — a build's pair cannot, by the mechanism table's check 8; a hand-built one can.
     FakeBlockSource none;
     none.setOpen(false);
@@ -1136,7 +1136,7 @@ TEST_CASE("T3 P2 test 6v: a claw port that the RECORD lists as a DRIVE port REFU
     CHECK(std::string_view{t.out.headline} == "a CLAW port is a DRIVE port in the typed table");
     CHECK(std::string_view{t.out.why}
           == "port 7 is both a claw (claw pivot 7) and a drive motor in the typed table -- "
-             "src/chassis_table.hpp and src/mechanism_table.hpp disagree");
+             "src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp disagree");
 }
 
 TEST_CASE("T3 P2 test 6w: a boot with NO record falls back to the TYPED TABLE — and its port check "

@@ -4,7 +4,7 @@
 // Until Part 2c this program was src/main.cpp's `struct Robot` (a hand-wired object graph, built
 // by a function-local static on first use), `portMapString()`, and `runTeleopLoop()` — a 30-line
 // loop mapping the sticks through the raw R1a mapping. Now:
-//   * the ROBOT is data — src/xdrive_config.hpp's `kInventedXDrive`, the same numbers — and the
+//   * the ROBOT is data — src/robots/xdrive_config.hpp's `kInventedXDrive`, the same numbers — and the
 //     GRAPH is robot::Robot over hal::pros::ProsDeviceProvider, the way "shulib Teleop" builds
 //     robot two. The builder installs a GPS corrector the hand-wired graph did not have (the
 //     config header says why);
@@ -28,7 +28,7 @@
 // it drove nothing and could not. None is on record booting since R1a gave it real adapters.
 //
 // ═══ STORAGE ════════════════════════════════════════════════════════════════════════
-// Exactly "shulib Teleop"'s pattern (src/teleop_program.cpp, "STORAGE"; the G1 Part 2 brief's
+// Exactly "shulib Teleop"'s pattern (src/programs/teleop_program.cpp, "STORAGE"; the G1 Part 2 brief's
 // landmine 1): ONE function-local static of EMPTY optionals — a constructor that cannot throw —
 // emplaced once from xdriveInitialize(). Never at namespace scope (built before initialize() has
 // installed the precondition handler, in an order nobody controls, and kept alive by a static
@@ -39,7 +39,7 @@
 // defined in all six. ASCII only in every runtime string; every screen string goes through
 // printText(); only a literal "%s" reaches a PROS print.
 
-#include "xdrive_program.hpp"
+#include "programs/xdrive_program.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -51,9 +51,9 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
-#include "fault_latch_hook.hpp"
-#include "screen_text.hpp"
-#include "xdrive_config.hpp"
+#include "common/fault_latch_hook.hpp"
+#include "common/screen_text.hpp"
+#include "robots/xdrive_config.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/build_info.hpp"
@@ -113,7 +113,7 @@ static_assert(kLoopConfig.rezeroButton != hal::ControllerButton::L1
 /// What the driver line says — ArcadeBody, deadband 0.05, no expo, no slew, re-zero Y, release
 /// COAST — checked against the profile and the loop configuration the loop is given, so a change
 /// to either (or to the library's defaults) cannot leave it saying the old words
-/// (src/teleop_program.cpp's driverLineMatchesProfile(), for this program's profile).
+/// (src/programs/teleop_program.cpp's driverLineMatchesProfile(), for this program's profile).
 constexpr bool driverLineMatchesProfile() {
     const teleop::AxisShaping* axes[3] = {&kProfile.forward, &kProfile.left, &kProfile.yaw};
     for (const teleop::AxisShaping* a : axes) {
@@ -234,10 +234,10 @@ void refuse(const char* why) {
     paintRefusal(st.refusal);
 }
 
-/// The heading the feel layer trusts — the SAME rule as src/teleop_program.cpp's headingSample()
+/// The heading the feel layer trusts — the SAME rule as src/programs/teleop_program.cpp's headingSample()
 /// (driver_control.hpp's contract): the fused heading, trusted only when the estimate is live, the
 /// IMU reports ready, and no IMU_LOST fault has been raised this run. Written twice, deliberately
-/// for now: a shared helper would edit src/teleop_program.cpp, which T3 is changing in parallel —
+/// for now: a shared helper would edit src/programs/teleop_program.cpp, which T3 is changing in parallel —
 /// G1-PROGRESS "Part 2c" lists the merge as owed.
 teleop::HeadingSample headingSample(const robot::Robot& r) {
     const bool trusted =

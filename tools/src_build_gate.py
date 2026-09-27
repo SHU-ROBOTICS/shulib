@@ -22,8 +22,8 @@ $(error))
 -----------------------------------------------------------------------------------
   bench       ROBOT=bench (default)      the measured tank bench bot — boots the bench tester
   xdrive      ROBOT=xdrive               the invented X-drive (HA-111) — since G1 Part 2c a
-                                         config constant (src/xdrive_config.hpp) built on
-                                         robot::Robot by src/xdrive_program.cpp
+                                         config constant (src/robots/xdrive_config.hpp) built on
+                                         robot::Robot by src/programs/xdrive_program.cpp
                                                               -DSHULIB_ROBOT_XDRIVE_INVENTED
   tank        ROBOT=tank                 the 2026 tank chassis, robot two — boots the bench
                                          tester over its SIGNED chassis table
@@ -35,14 +35,14 @@ $(error))
                                                               -DSHULIB_PROGRAM_DRIVE
   tank-library ROBOT=tank PROGRAM=library "shulib Teleop" (R3b Parts 1–3; on robot::Robot since
                                          G1 Part 2b): THE LIBRARY drives robot two —
-                                         src/teleop_program.cpp, robot::Robot over the PROS device
+                                         src/programs/teleop_program.cpp, robot::Robot over the PROS device
                                          provider (two MotorGroups, drive-encoder odometry,
                                          Chassis), built from the SD card's calibration record
                                          when there is one, else from the chassis table; slot 2
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_LIBRARY
   tank-calibrate ROBOT=tank PROGRAM=calibrate "shulib Calibrate" (R3d Part 2): the robot MEASURES
-                                         its own drivetrain (src/calibrate_program.cpp) and
+                                         its own drivetrain (src/programs/calibrate_program.cpp) and
                                          writes /usd/shulib_drivetrain.bin; slot 4
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_CALIBRATE
@@ -116,7 +116,7 @@ WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-library, tan
     and Calibrate's AUTONOMOUS reasons are main.cpp's own literals, no program's symbol) — a
     swap there shows the wrong sentence and passes.
 
-Once per `check`, before any build — step 0, three source checks:
+Once per `check`, before any build — step 0, five source checks:
   THE ONE-CHAIN RULE (G1 Part 2c; widened at 2c's final run, 2026-09-26, the team lead's ruling
   "one chain picks both"): the build switches (`SHULIB_ROBOT_*`, `SHULIB_PROGRAM_*`) are READ IN
   ONE FILE, src/build_selection.hpp (SELECTION_HEADER), and nowhere else — a switch named
@@ -135,8 +135,8 @@ Once per `check`, before any build — step 0, three source checks:
   after a table's include would re-point every kRobotId below it — kChassis, the tables'
   static_asserts, the mechanism table through its include — while kRobotBeacon, derived above it,
   kept robot two's beacon. The vendored trees are not read (third-party code, ignored by path as
-  for warnings). There are NO allowlisted files: src/chassis_table.hpp's own `#if` (2c's named
-  residual) and src/mechanism_table.hpp's two (T3's) are gone — the tables select from
+  for warnings). There are NO allowlisted files: src/robots/chassis_table.hpp's own `#if` (2c's named
+  residual) and src/robots/mechanism_table.hpp's two (T3's) are gone — the tables select from
   `kRobotId` in C++. In the header, every block that reads a switch is either an
   impossible-combination guard (nothing but `#error` inside) or THE ONE CHAIN — exactly one —
   whose every branch, `#else` included, holds exactly the three constants, each once, and
@@ -172,6 +172,36 @@ Once per `check`, before any build — step 0, three source checks:
   BUILD_SELECTION_NAMES, and every name in the table is one main.cpp uses. So a program cannot
   be added to the source (COMP's will be the sixth) without telling this gate which functions
   are its own.
+  THE INCLUDE ROOT (SRC1, 2026-09-27, the team lead's layout): src/ is organized by job — robots/,
+  team/, programs/, common/, with main.cpp and build_selection.hpp at the top — and BOTH builds
+  make src/ itself an include root: the Makefile's EXTRA_INCDIR (common.mk: -iquote"./src", AFTER
+  -iquote"./include") and test/CMakeLists.txt (-iquote<repo>/src, BEFORE the host's -I shim,
+  library and vendored directories). A quoted include is answered by the first place that has the
+  file — beside its includer, then the roots in order — so a path two places could answer is
+  decided by search ORDER, and the two builds do not share one: the host test could read one
+  header and the robot build another. This check makes the order irrelevant. It FAILS: a source
+  or header under src/ whose src-relative path also exists under include/, test/pros_shim/,
+  test/vendor/ or test/ (INCLUDE_SHADOW_ROOTS: the other roots, and the host tests' own
+  directory), or under a src/ subfolder (found beside an includer there first) — in both
+  directions, so a src/shulib/… or src/pros/… that would shadow the library or the SDK fails too;
+  a quoted include in a src/ file that climbs with `..` or resolves beside its includer in a
+  subfolder (the old sibling form `"chassis_table.hpp"` in src/robots/: it BUILDS, and it reads
+  differently in every folder); and a host test that reaches into src/ by `../src/…`. Every
+  include of a src/ file is written FROM src/ (`"robots/chassis_table.hpp"`), the same in every
+  folder, in main.cpp and in the tests. An old-form include in any other folder resolves nowhere
+  and fails the BUILD (self-test case 29). A README (src/team/README.md) is not a source: neither
+  this step nor step 1 counts it.
+  THE PATHS A PROGRAM PRINTS (SRC1's review, 2026-09-27): a program's text tells its reader which
+  file to edit — "fill src/robots/chassis_table.hpp, rebuild, upload", the `[BLD] robot tables:`
+  line, the bench tester's census — and nothing else reads those sentences: the host tests pin
+  three of them word for word, no step here reads the rest, and the staleness audit reads docs
+  only. So a path that names nothing (a typo, or a file moved without its sentence — the class
+  SRC1's move made live) printed to a student on the robot with every other check green. It FAILS
+  now: every `src/…` path inside a string literal of a file under src/ or include/shulib/
+  (PRINTED_PATH_ROOTS: the code a package is built from) must name a file or folder that exists.
+  Adjacent literals are joined first, as the compiler joins them, so a path split across two is
+  read whole; comments are not read (the staleness audit's class, and a comment reaches no
+  robot); test/ is not read (its own tests pin what they print). Self-test case 30.
 
 THE VARIANT DIFFERENTIAL, RETIRED AT G1 PART 2c — what it was, why it went, what replaced it
 ------------------------------------------------------------------------------------------
@@ -181,7 +211,7 @@ X-drive wiring — `robot()`, `portMapString()` — was dead code there, and the
 documented those warnings as the evidence) and the xdrive build none (the wiring live). It was
 meant to catch a define passed on the command line while the #ifdef in main.cpp that reads it
 was renamed or broken. G1 Part 2c moved the X-drive out of main.cpp (it is data now,
-src/xdrive_config.hpp, built by robot::Robot in src/xdrive_program.cpp, a file every build
+src/robots/xdrive_config.hpp, built by robot::Robot in src/programs/xdrive_program.cpp, a file every build
 compiles and --gc-sections trims), so no build emits that warning any more and the
 differential could only fail. It was also WEAKER than it looked: it could tell only xdrive
 from the rest — tank, tank-drive, tank-library and tank-calibrate all looked like bench to
@@ -197,12 +227,14 @@ compile ERROR, and one added to an enum but not handled everywhere is a -Wswitch
 the policy below FAILS. And what the variant beacon cannot vouch for — which program a branch
 assigns and which function a case calls (step 8, from the symbol table), which robot a branch
 assigns (step 6's robot beacon) — is read from the package. The self-test plants every one
-(cases 16-27); the G1 Part 2c log carries the hand mutations.
+(cases 16-27; SRC1's folders and include root, cases 28-29; the paths a program prints, case 30);
+the G1 Part 2c and SRC1 logs
+carry the hand mutations.
 
-THE RESIDUAL G1 PART 2c NAMED, CLOSED AT ITS FINAL RUN (2026-09-26): src/chassis_table.hpp
+THE RESIDUAL G1 PART 2c NAMED, CLOSED AT ITS FINAL RUN (2026-09-26): src/robots/chassis_table.hpp
 selected robot two's table over the bench bot's on its own `#if defined(SHULIB_ROBOT_TANK_2026)`,
 and a break there made a tank build carry the bench bot's table with the chain — and so the
-beacon — still right (measured at 2c: that build PASSED). T3's src/mechanism_table.hpp added two
+beacon — still right (measured at 2c: that build PASSED). T3's src/robots/mechanism_table.hpp added two
 more such `#if`s, which failed step 0 on the merged tree. All three are gone: the tables select
 from `kRobotId`, which the one chain sets; step 0 has no allowlist; and a branch that sets the
 wrong robot fails step 0's chain table AND step 6's robot beacon.
@@ -365,7 +397,8 @@ DEFINES_MACRO = re.compile(r"^\s*#\s*(define|undef)\s+(\w+)")
 
 # Step 0, A ROBOT'S TABLES BY NAME (header). The two table files; the per-robot tables and the
 # selection functions are DERIVED from them (an enumerated list here would miss the next robot's).
-TABLE_FILES = (os.path.join("src", "chassis_table.hpp"), os.path.join("src", "mechanism_table.hpp"))
+TABLE_FILES = (os.path.join("src", "robots", "chassis_table.hpp"),
+               os.path.join("src", "robots", "mechanism_table.hpp"))
 _TABLE_OBJECT = re.compile(
     r"\bconstexpr\s+(?:[\w:]*::)?(?:ChassisTable|MechanismTable)\s+(\w+)\s*(?:=|\{)")
 _TABLE_SELECTOR = re.compile(
@@ -808,6 +841,171 @@ def program_table_problems(repo=None):
     return problems
 
 
+# Step 0, THE INCLUDE ROOT (SRC1, 2026-09-27; header). src/ is itself an include root in both builds;
+# these are the OTHER places a quoted include of a src/ path could be answered, in either build: the
+# library and SDK root (the robot build searches -iquote ./include BEFORE ./src), the host build's
+# PROS shim and vendored headers (-I, searched after the host's -iquote src — so here a src/ path
+# would shadow THEM), and test/ itself (a host test's quoted include looks beside the test first).
+INCLUDE_ROOT = "src"
+INCLUDE_SHADOW_ROOTS = ("include", os.path.join("test", "pros_shim"), os.path.join("test", "vendor"),
+                        "test")
+INCLUDE_SKIPPED_TEST_DIRS = (os.path.join("test", "pros_shim"), os.path.join("test", "vendor"))
+QUOTED_INCLUDE = re.compile(r'^\s*#\s*include\s*"([^"]+)"')
+
+
+def _src_tree(repo):
+    """(files, dirs) under INCLUDE_ROOT, both src-relative with `/` separators: every file with an
+    extension a compiler reads (ONE_CHAIN_EXTS — a README is never an include target), and every
+    directory below src/ itself."""
+    src = os.path.join(repo, INCLUDE_ROOT)
+    files, dirs = [], []
+    for root, dnames, fnames in os.walk(src):
+        dnames.sort()
+        here = os.path.relpath(root, src).replace(os.sep, "/")
+        if here != ".":
+            dirs.append(here)
+        for f in sorted(fnames):
+            if f.endswith(ONE_CHAIN_EXTS):
+                files.append(f if here == "." else f"{here}/{f}")
+    return files, dirs
+
+
+def include_root_problems(repo=None):
+    """Step 0 (header, "THE INCLUDE ROOT"): no src/ path is one a second place could answer, and every
+    include of a src/ file is written from src/. Returns a list of problem strings."""
+    repo = repo or REPO
+    problems = []
+    files, dirs = _src_tree(repo)
+    src_rel = lambda r: f"{INCLUDE_ROOT}/{r}"  # noqa: E731 — a path as the problems print it
+    # (a) a SHADOW: the same src-relative path answered by another root, or beside an includer in a
+    #     src/ subfolder (a quoted include looks in its includer's own directory FIRST).
+    for r in files:
+        for other in INCLUDE_SHADOW_ROOTS:
+            if os.path.isfile(os.path.join(repo, other, r)):
+                problems.append(
+                    f"{other}/{r} and {src_rel(r)} are the same path under two include roots — "
+                    f"`#include \"{r}\"` would be answered by whichever root a build searches "
+                    f"first, and the robot and host builds do not search them in the same order "
+                    f"(header, step 0, the include root)")
+        for d in dirs:
+            if os.path.isfile(os.path.join(repo, INCLUDE_ROOT, d, r)):
+                problems.append(
+                    f"{src_rel(d + '/' + r)} shadows {src_rel(r)} for every file in "
+                    f"{src_rel(d)}/: a quoted include looks beside its includer first, so "
+                    f"`#include \"{r}\"` there would not reach {src_rel(r)} (header, step 0, the "
+                    f"include root)")
+    # (b) a src/ include NOT written from src/: one that climbs, or one a subfolder's file resolves
+    #     beside itself — the old sibling form, which builds and reads differently in every folder.
+    for r in files:
+        here = r.rsplit("/", 1)[0] if "/" in r else ""
+        code = _strip_comments(_read(repo, os.path.join(INCLUDE_ROOT, r)))
+        for n, line in _logical_lines(code):
+            m = QUOTED_INCLUDE.match(line)
+            if not m:
+                continue
+            x = m.group(1)
+            if ".." in x.split("/") or x.startswith("./"):
+                problems.append(
+                    f"{src_rel(r)}:{n} includes \"{x}\" by a relative path — every include of a "
+                    f"src/ file is written from src/ (`#include \"robots/chassis_table.hpp\"`) "
+                    f"(header, step 0, the include root)")
+            elif here and os.path.isfile(os.path.join(repo, INCLUDE_ROOT, here, x)):
+                problems.append(
+                    f"{src_rel(r)}:{n} includes \"{x}\", which resolves beside it in "
+                    f"{src_rel(here)}/ — write it from src/, `#include \"{here}/{x}\"`, the same in "
+                    f"every folder (header, step 0, the include root)")
+    # (c) a host test that reaches into src/ by a relative path instead of through the root.
+    for root, dnames, fnames in os.walk(os.path.join(repo, "test")):
+        dnames.sort()
+        rel_root = os.path.relpath(root, repo)
+        if rel_root.startswith(INCLUDE_SKIPPED_TEST_DIRS):
+            dnames[:] = []
+            continue
+        for f in sorted(fnames):
+            if not f.endswith(ONE_CHAIN_EXTS):
+                continue
+            rel = os.path.join(rel_root, f)
+            for n, line in _logical_lines(_strip_comments(_read(repo, rel))):
+                m = QUOTED_INCLUDE.match(line)
+                if not m or ".." not in m.group(1).split("/"):
+                    continue
+                target = os.path.relpath(os.path.normpath(os.path.join(root, m.group(1))), repo)
+                if target == INCLUDE_ROOT or target.startswith(INCLUDE_ROOT + os.sep):
+                    problems.append(
+                        f"{rel}:{n} includes \"{m.group(1)}\" — a host test includes a src/ file "
+                        f"written from src/, `#include \"{os.path.relpath(target, INCLUDE_ROOT)}\"`"
+                        f", through test/CMakeLists.txt's src/ root (header, step 0, the include "
+                        f"root)")
+    return problems
+
+
+# Step 0, THE PATHS A PROGRAM PRINTS (SRC1's review, 2026-09-27; header). The code a package is built
+# from — src/ and the library headers every src/ file includes — and a path into src/ inside one of
+# its string literals. The look-behind keeps `include/src/…`-style tails and `../src/` out; the path
+# stops at the first character a file name here does not use, and a sentence's full stop after it is
+# not part of it.
+PRINTED_PATH_ROOTS = (INCLUDE_ROOT, os.path.join("include", "shulib"))
+_PRINTED_PATH = re.compile(r"(?<![\w/.-])src/[A-Za-z0-9_./-]*")
+_LITERAL_GAP = re.compile(r"\s*(?:u8|u|U|L)?")  # what may stand between two literals the compiler joins
+
+
+def _literal_runs(code):
+    """(pieces, text) for every run of ADJACENT string literals in `code` (comments already
+    stripped): `"fill src/robots/" "chassis_table.hpp"` is one string to the compiler, so it is one
+    string here and a path split across the two is read whole. `text` is the literals' contents
+    joined, quotes and any encoding prefix dropped; `pieces` is one (offset in `text`, line) per
+    literal, so a match in `text` is reported on the line its literal starts. A character literal,
+    or any code between two literals, ends a run."""
+    runs, text, pieces, end = [], None, None, None
+    line, counted = 1, 0
+    for m in _CXX_TOKENS.finditer(code):
+        t = m.group(0)
+        if not t.startswith('"'):
+            if text is not None:
+                runs.append((pieces, text))
+            text = None
+            continue
+        line += code.count("\n", counted, m.start())
+        counted = m.start()
+        if text is not None and _LITERAL_GAP.fullmatch(code[end:m.start()]):
+            pieces.append((len(text), line))
+            text += t[1:-1]
+        else:
+            if text is not None:
+                runs.append((pieces, text))
+            text, pieces = t[1:-1], [(0, line)]
+        end = m.end()
+    if text is not None:
+        runs.append((pieces, text))
+    return runs
+
+
+def printed_path_problems(repo=None):
+    """Step 0 (header, "THE PATHS A PROGRAM PRINTS"): every `src/…` path inside a string literal of a
+    file under PRINTED_PATH_ROOTS names a file or folder that exists. Returns a list of problem
+    strings, each on the line of the literal the path starts in."""
+    repo = repo or REPO
+    problems = []
+    for base in PRINTED_PATH_ROOTS:
+        for root, dnames, fnames in os.walk(os.path.join(repo, base)):
+            dnames.sort()
+            for f in sorted(fnames):
+                if not f.endswith(ONE_CHAIN_EXTS):
+                    continue
+                rel = os.path.relpath(os.path.join(root, f), repo)
+                for pieces, text in _literal_runs(_strip_comments(_read(repo, rel))):
+                    for m in _PRINTED_PATH.finditer(text):
+                        path = m.group(0).rstrip(".")
+                        if os.path.exists(os.path.join(repo, *path.split("/"))):
+                            continue
+                        n = [ln for at, ln in pieces if at <= m.start()][-1]
+                        problems.append(
+                            f"{rel}:{n} prints \"{path}\", which does not exist — text that "
+                            f"names a file sends its reader there; after a move it must name "
+                            f"the file's new path (header, step 0, the paths a program prints)")
+    return problems
+
+
 _NM_FUNCTION = re.compile(r"(shulib::bench::\w+)\([^()]*\)")
 _NM_OBJECT = re.compile(r"shulib::bench::\w+")
 
@@ -1122,7 +1320,7 @@ def cmd_check(path_env=None, quiet=False):
                   file=sys.stderr)
         return 1
 
-    # Step 0, once: three source checks (header) — they need no build.
+    # Step 0, once: five source checks (header) — they need no build.
     all_problems = [f"[one-chain] {p}" for p in one_chain_problems()]
     per_robot, _derive_problems = per_robot_table_names()
     say(f"  [one-chain] the build switches are read in {SELECTION_HEADER} only "
@@ -1140,6 +1338,17 @@ def cmd_check(path_env=None, quiet=False):
     say(f"  [program-table] {len(PROGRAM_ENTRY_SYMBOLS)} programs, "
         f"{sum(len(v) for v in PROGRAM_ENTRY_SYMBOLS.values())} entry names, "
         f"{'matching' if not table_problems else 'NOT matching'} src/main.cpp")
+    root_problems = [f"[include-root] {p}" for p in include_root_problems()]
+    all_problems += root_problems
+    src_files, src_dirs = _src_tree(REPO)
+    say(f"  [include-root] {len(src_files)} source files in src/ and {len(src_dirs)} folders "
+        f"({', '.join(d + '/' for d in src_dirs)}): "
+        f"{'every include of one written from src/, no path a second root could answer' if not root_problems else 'NOT CLEAN, see below'}")
+    path_problems = [f"[printed-path] {p}" for p in printed_path_problems()]
+    all_problems += path_problems
+    say(f"  [printed-path] every src/ path in a string literal under "
+        f"{' and '.join(r + '/' for r in PRINTED_PATH_ROOTS)} "
+        f"{'names a file or folder that exists' if not path_problems else 'does NOT — see below'}")
 
     for robot in VARIANTS:
         b = run_build(robot, path_env)
@@ -1159,7 +1368,7 @@ def cmd_check(path_env=None, quiet=False):
     say(f"src build gate: PASS (all {len(VARIANTS)} builds link; policy: errors fail, "
         f"vendor warnings path-ignored, {allowed}every other warning fails; defines "
         f"token-exact; one chain picks program and robot; variant and robot beacons asserted; "
-        f"programs asserted)")
+        f"programs asserted; src/'s include root unambiguous; every printed src/ path exists)")
     return 0
 
 
@@ -1168,17 +1377,22 @@ def cmd_check(path_env=None, quiet=False):
 # tree, confirm the verdict, restore byte-exact. A gate nobody has seen go red is a
 # rumour (doc_staleness_audit.py precedent).
 
-SRC_PLANT = os.path.join(REPO, "src", "bench_r3a.cpp")           # unguarded in both variants
+SRC_PLANT = os.path.join(REPO, "src", "programs", "bench_r3a.cpp")  # unguarded in every build
 MAIN_CPP_PATH = os.path.join(REPO, MAIN_CPP)                      # the dispatcher (cases 18-22)
 SELECTION_PATH = os.path.join(REPO, SELECTION_HEADER)             # the one chain (16-19, 21-25)
-CHASSIS_TABLE_PATH = os.path.join(REPO, "src", "chassis_table.hpp")      # (19, 23)
-MECHANISM_TABLE_PATH = os.path.join(REPO, "src", "mechanism_table.hpp")  # (19, 23)
+CHASSIS_TABLE_PATH = os.path.join(REPO, "src", "robots", "chassis_table.hpp")      # (19, 23)
+MECHANISM_TABLE_PATH = os.path.join(REPO, "src", "robots", "mechanism_table.hpp")  # (19, 23, 28)
 LIBRARY_PLANT = os.path.join(REPO, "include", "shulib", "config", "robot_config.hpp")  # (19)
 TEST_PLANT = os.path.join(REPO, "test", "build_selection_test.cpp")                 # (19)
 VENDORED_TEST_PLANT = os.path.join(REPO, "test", "vendor", "doctest.h")              # (19)
-DRIVE_PLANT = os.path.join(REPO, "src", "drive_program.cpp")                        # (26)
-CALIBRATE_PLANT = os.path.join(REPO, "src", "calibrate_program.cpp")                # (26)
+DRIVE_PLANT = os.path.join(REPO, "src", "programs", "drive_program.cpp")           # (26, 29)
+CALIBRATE_PLANT = os.path.join(REPO, "src", "programs", "calibrate_program.cpp")   # (26)
 CMAKE_PLANT = os.path.join(REPO, "test", "CMakeLists.txt")                          # (27)
+COMMON_PLANT = os.path.join(REPO, "src", "common", "boot_source.hpp")               # (28)
+CLAWS_PLANT = os.path.join(REPO, "src", "programs", "teleop_claws.hpp")             # (28)
+TEAM_DIR = os.path.join(REPO, "src", "team")                                        # (28)
+TEAM_README = os.path.join(TEAM_DIR, "README.md")                                   # (28)
+HOST_INCLUDE_PLANT = os.path.join(REPO, "test", "chassis_table_test.cpp")           # (28)
 VENDOR_PLANT = os.path.join(REPO, "include", "liblvgl", "core", "lv_obj_style.h")
 MAKEFILE = os.path.join(REPO, "Makefile")
 
@@ -1251,20 +1465,33 @@ class _replace:
 
 
 class _newfile:
-    """Create `path` (which must not exist) holding `content` for the duration of the block; remove
-    it after, and assert it is gone — a probe file never outlives its case."""
+    """Create `path` (which must not exist) holding `content` for the duration of the block — and
+    any parent directory it lacks (SRC1: the include-root cases plant `include/robots/…`); remove
+    the file and exactly the directories it created, and assert they are gone — a probe file never
+    outlives its case."""
 
     def __init__(self, path, content):
         self.path, self.content = path, content
 
     def __enter__(self):
         assert not os.path.exists(self.path), f"the probe file already exists: {self.path}"
+        missing, d = [], os.path.dirname(self.path)
+        while not os.path.exists(d):
+            missing.append(d)
+            d = os.path.dirname(d)
+        self.made = list(reversed(missing))
+        for d in self.made:
+            os.mkdir(d)
         with open(self.path, "w", encoding="utf-8") as f:
             f.write(self.content)
 
     def __exit__(self, *exc):
         os.remove(self.path)
+        for d in reversed(self.made):
+            os.rmdir(d)
         assert not os.path.exists(self.path), f"the probe file was not removed: {self.path}"
+        assert not any(os.path.exists(d) for d in self.made), \
+            f"a probe directory was not removed: {self.made}"
         return False
 
 
@@ -1691,8 +1918,8 @@ def do_self_test():
 
     # ── G1 Part 2c's final run: the ROBOT (the team lead's ruling "one chain picks both") ────
     # 23: a robot added to the `RobotId` enum and handled nowhere -> -Wswitch at robotBeacon()
-    #     (src/build_selection.hpp), chassisTableFor() (src/chassis_table.hpp) and
-    #     mechanismTableFor() (src/mechanism_table.hpp): a robot cannot be added without saying
+    #     (src/build_selection.hpp), chassisTableFor() (src/robots/chassis_table.hpp) and
+    #     mechanismTableFor() (src/robots/mechanism_table.hpp): a robot cannot be added without saying
     #     what its beacon and its tables are. Step 0's chain table reports it from the source too.
     robot_tail = "    InventedXDrive,  ///< the invented X-drive (A4 register HA-111; no such robot exists)\n"
     with _replace(SELECTION_PATH, robot_tail,
@@ -1916,6 +2143,151 @@ def do_self_test():
         expect(one_chain_problems() == [],
                f"27: a switch in a CMake comment was reported: {one_chain_problems()}")
     expect(one_chain_problems() == [], "27: a plant was not restored")
+
+    # ── SRC1 (2026-09-27): src/ organized into robots/, team/, programs/ and common/ ─────────────
+    # 28: STEP 0 READS EVERY FOLDER, AND THE INCLUDE ROOT HOLDS (header). (a) The one-chain rule
+    #     walks src/'s subfolders: a build switch in src/programs/ (SRC_PLANT), in src/common/ and in
+    #     a new file in src/team/ is reported, and so is a per-robot table named in src/common/ and in
+    #     src/team/ (src/robots/'s tables are cases 19, 26 and 27). (b) The include root: the real tree
+    #     reports nothing; a header planted where a second place would answer a src/ path — under
+    #     include/ (searched BEFORE src/ by the robot build), test/pros_shim/, test/vendor/ or test/
+    #     (the host build), or nested in a src/ subfolder (found beside its includer first) — is
+    #     reported, and so is a src/ header that would shadow the library's own (src/shulib/…), the
+    #     SDK's (src/pros/…) or the vendored test framework's (src/doctest.h); an include written the
+    #     old sibling way (it BUILDS — the reason this is a check and not left to the compiler), one
+    #     that climbs with `..`, one that starts `./` (it builds too), and a host test reaching
+    #     into src/ by `../src/` are each reported, and the old form inside a comment is not.
+    #     src/team/README.md is not a source: neither step 0 nor step 1 counts it. Source-only;
+    #     every plant restored.
+    for where, form in ((SRC_PLANT, "#ifdef SHULIB_ROBOT_TANK_2026"),
+                        (COMMON_PLANT, "#if defined(SHULIB_PROGRAM_LIBRARY)")):
+        rel = os.path.relpath(where, REPO)
+        with _plant(where, f"\n{form}\nstatic int self_test_folder_switch;\n#endif\n"):
+            found = one_chain_problems()
+            expect(any(rel in p and only_header in p for p in found),
+                   f"28: a switch in {rel} was not reported: {found}")
+    team_probe = os.path.join(TEAM_DIR, "self_test_probe.hpp")
+    rel_team = os.path.relpath(team_probe, REPO)
+    with _newfile(team_probe, "#pragma once\n#ifdef SHULIB_ROBOT_TANK_2026\nint self_test_team;\n"
+                              "#endif\n"):
+        found = one_chain_problems()
+        expect(any(rel_team in p and only_header in p for p in found),
+               f"28: a switch in a src/team/ file was not reported: {found}")
+    with _newfile(team_probe, "#pragma once\n"
+                              "static const void* const kSelfTestTeam = &kRobotTwoChassis;\n"):
+        found = one_chain_problems()
+        expect(any(rel_team in p and f"names kRobotTwoChassis, {by_name}" in p for p in found),
+               f"28: a per-robot table named in src/team/ was not reported: {found}")
+    with _plant(COMMON_PLANT, "\nstatic const void* const kSelfTestCommon = &kBenchBotChassis;\n"):
+        found = one_chain_problems()
+        expect(any(os.path.relpath(COMMON_PLANT, REPO) in p
+                   and f"names kBenchBotChassis, {by_name}" in p for p in found),
+               f"28: a per-robot table named in src/common/ was not reported: {found}")
+    expect(include_root_problems() == [],
+           f"28: the real tree's include root is not clean: {include_root_problems()}")
+    for probe, why in (
+            (("include", "robots", "chassis_table.hpp"),
+             "include/robots/chassis_table.hpp and src/robots/chassis_table.hpp are the same path"),
+            (("test", "pros_shim", "common", "boot_source.hpp"),
+             "test/pros_shim/common/boot_source.hpp and src/common/boot_source.hpp are the same"),
+            (("test", "robots", "xdrive_config.hpp"),
+             "test/robots/xdrive_config.hpp and src/robots/xdrive_config.hpp are the same path"),
+            (("test", "build_selection.hpp"),
+             "test/build_selection.hpp and src/build_selection.hpp are the same path"),
+            (("src", "programs", "robots", "chassis_table.hpp"),
+             "src/programs/robots/chassis_table.hpp shadows src/robots/chassis_table.hpp"),
+            (("src", "robots", "build_selection.hpp"),
+             "src/robots/build_selection.hpp shadows src/build_selection.hpp"),
+            (("src", "shulib", "core", "check.hpp"),
+             "include/shulib/core/check.hpp and src/shulib/core/check.hpp are the same path"),
+            (("src", "pros", "misc.hpp"),
+             "test/pros_shim/pros/misc.hpp and src/pros/misc.hpp are the same path"),
+            # (SRC1's review) test/vendor/, both directions: a src/doctest.h would be read by all
+            # 172 host tests (`#include "doctest.h"`; -iquote src is searched before the vendored
+            # directory), and a vendored copy of a src/ path would be read instead of src/'s.
+            (("src", "doctest.h"),
+             "test/vendor/doctest.h and src/doctest.h are the same path"),
+            (("test", "vendor", "robots", "chassis_table.hpp"),
+             "test/vendor/robots/chassis_table.hpp and src/robots/chassis_table.hpp are the same")):
+        with _newfile(os.path.join(REPO, *probe), "#pragma once\n"):
+            found = include_root_problems()
+            expect(any(why in p for p in found),
+                   f"28: {'/'.join(probe)} was not reported ({why}): {found}")
+    for where, old, new, why in (
+            (MECHANISM_TABLE_PATH, '#include "robots/chassis_table.hpp"\n',
+             '#include "chassis_table.hpp"\n',
+             'includes "chassis_table.hpp", which resolves beside it in src/robots/'),
+            (CLAWS_PLANT, '#include "common/boot_source.hpp"\n',
+             '#include "../common/boot_source.hpp"\n',
+             'includes "../common/boot_source.hpp" by a relative path'),
+            # (SRC1's review) the `./` form: it BUILDS (not beside its includer, so the -iquote src
+            # root answers it), and it is not written from src/.
+            (CLAWS_PLANT, '#include "common/boot_source.hpp"\n',
+             '#include "./common/boot_source.hpp"\n',
+             'includes "./common/boot_source.hpp" by a relative path'),
+            (HOST_INCLUDE_PLANT, '#include "robots/chassis_table.hpp"\n',
+             '#include "../src/robots/chassis_table.hpp"\n',
+             'written from src/, `#include "robots/chassis_table.hpp"`')):
+        with _replace(where, old, new):
+            found = include_root_problems()
+            expect(any(os.path.relpath(where, REPO) in p and why in p for p in found),
+                   f"28: `{new.strip()}` in {os.path.relpath(where, REPO)} was not reported: {found}")
+    with _plant(MECHANISM_TABLE_PATH, '\n// #include "chassis_table.hpp" -- the old form, in a '
+                                      'comment\n'):
+        expect(include_root_problems() == [],
+               f"28: an include inside a comment was reported: {include_root_problems()}")
+    expect(os.path.isfile(TEAM_README), f"28: {TEAM_README} is missing — the README case below "
+                                        f"would prove nothing")
+    expect(not any(f.endswith(".md") for f in _src_tree(REPO)[0])
+           and not any(t.endswith(".md") for t in expected_tus()),
+           "28: src/team/README.md was counted as a source")
+    expect(include_root_problems() == [] and one_chain_problems() == [],
+           "28: a plant was not restored")
+
+    # 29: an include left in the OLD form in src/programs/ (`#include "chassis_table.hpp"`) -> the
+    #     BUILD fails, naming the file: nothing answers that spelling from a subfolder — not the
+    #     program's own folder, not include/, not src/ — so a half-done move can never compile
+    #     against a stale copy. (Step 0 does not report it: the include resolves nowhere, which is
+    #     the compiler's to say; case 28 is the form that DOES build.)
+    with _replace(DRIVE_PLANT, '#include "robots/chassis_table.hpp"\n',
+                  '#include "chassis_table.hpp"\n'):
+        b = run_build("bench")
+        ok, problems = verdict("bench", b)
+        expect(not ok, "29: an old-form include in src/programs/ BUILT")
+        expect(any("drive_program.cpp" in p and "chassis_table.hpp" in p for p in problems),
+               f"29: the failure did not name the file and the include: {problems}")
+
+    # 30: THE PATHS A PROGRAM PRINTS (SRC1's review, 2026-09-27; header). The real tree reports
+    #     nothing — its printed src/ paths all exist, some followed by a sentence's full stop,
+    #     which is not part of the path. A path that names nothing is reported: in a program's
+    #     refusal (the review's surviving mutation, `src/robot/` for `src/robots/` in shulib Drive's
+    #     fix line), split across two adjacent literals (the compiler joins them, so the check
+    #     does), and in a library header; the same dead path in a comment is not (a comment
+    #     reaches no robot). Source-only; every plant restored.
+    expect(printed_path_problems() == [],
+           f"30: the real tree's printed paths do not all exist: {printed_path_problems()}")
+    rel = os.path.relpath(DRIVE_PLANT, REPO)
+    with _replace(DRIVE_PLANT, '"fill src/robots/chassis_table.hpp, rebuild, upload"',
+                  '"fill src/robot/chassis_table.hpp, rebuild, upload"'):
+        found = printed_path_problems()
+        expect(any(rel in p and 'prints "src/robot/chassis_table.hpp"' in p for p in found),
+               f"30: a dead path in {rel}'s refusal was not reported: {found}")
+    rel = os.path.relpath(COMMON_PLANT, REPO)
+    with _plant(COMMON_PLANT, '\ninline constexpr const char* kSelfTestSplit = "fill src/robots/"\n'
+                              '    "chasis_table.hpp, rebuild, upload";\n'):
+        found = printed_path_problems()
+        expect(any(rel in p and 'prints "src/robots/chasis_table.hpp"' in p for p in found),
+               f"30: a dead path split across two literals in {rel} was not reported: {found}")
+    rel = os.path.relpath(LIBRARY_PLANT, REPO)
+    with _plant(LIBRARY_PLANT, '\ninline constexpr const char* kSelfTestLibrary = '
+                               '"see src/common/no_such_file.hpp.";\n'):
+        found = printed_path_problems()
+        expect(any(rel in p and 'prints "src/common/no_such_file.hpp"' in p for p in found),
+               f"30: a dead path in a library header ({rel}) was not reported: {found}")
+    with _plant(DRIVE_PLANT, '\n// "fill src/robot/chassis_table.hpp" -- a dead path in a comment\n'):
+        expect(printed_path_problems() == [],
+               f"30: a path inside a comment was reported: {printed_path_problems()}")
+    expect(printed_path_problems() == [], "30: a plant was not restored")
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

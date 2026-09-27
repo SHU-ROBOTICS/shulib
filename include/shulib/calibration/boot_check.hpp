@@ -381,7 +381,7 @@ struct DeclaredMotorPorts {
 /// Which of the two description sources a boot should use.
 enum class BootSource : std::uint8_t {
     UseRecord,  ///< the card's calibration record — measured on THIS robot
-    UseTable,   ///< src/chassis_table.hpp's typed table — a human's tape measure
+    UseTable,   ///< src/robots/chassis_table.hpp's typed table — a human's tape measure
     Refuse,     ///< neither can be trusted; nothing is constructed
 };
 

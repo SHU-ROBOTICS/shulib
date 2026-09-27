@@ -97,7 +97,7 @@
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Host-tested through test/pros_shim/ only, which tests this class against our BELIEF about
 // PROS and cannot test the belief (shim_control.hpp says so in full). Since G1 Part 2b one
-// program constructs one — "shulib Teleop" (src/teleop_program.cpp) — and that version of the
+// program constructs one — "shulib Teleop" (src/programs/teleop_program.cpp) — and that version of the
 // program has not run on hardware, so no provider has yet made a device on a brain.
 //
 // No pros header is included here directly — only the hal/pros adapters, whose own diagnostic

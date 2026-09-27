@@ -15,7 +15,7 @@
 // "shulib Calibrate" also paints its OWN not-driver-control screen from inside its loop (it powers
 // motors and must say so in its own words), but needs these for disabled() and
 // competition_initialize(), which run before and after its loop exists. The invented X-drive
-// (src/xdrive_program.cpp) never painted them and still does not.
+// (src/programs/xdrive_program.cpp) never painted them and still does not.
 //
 // ═══ WHAT MOVED, AND WHAT DID NOT ═══════════════════════════════════════════════════
 // Both functions are src/main.cpp's, byte for byte in what they print (G1-PROGRESS "Part 2c"
@@ -25,7 +25,7 @@
 // the format). No literal here contains a '%', so the pixels are the ones the brain showed (this
 // screen ran on robot two on 2026-09-10 — R3b-PROGRESS §9.3 — with no recorded word on whether
 // every line fit). The state and reason strings callers pass are program literals, ASCII and
-// '%'-free — keep them so. This path deliberately does NOT go through src/screen_text.hpp's
+// '%'-free — keep them so. This path deliberately does NOT go through src/common/screen_text.hpp's
 // printText(): its SMALL budget (50 characters, an estimate — A4 register HA-136) would cut three
 // of the fixed lines below (53-54 characters) and all four of src/main.cpp's own reason literals
 // (DISABLED, FIELD CONTROL, the tester's and Calibrate's AUTONOMOUS: 66-126 characters; only
@@ -33,7 +33,7 @@
 // what the brain shows, and G1 Part 2c changes nothing a robot shows.
 //
 // PROS-bound (pros/misc.h, pros/screen.h) in the .cpp, so it lives in src/. This header is
-// PROS-free. Compiled in every build, like every src/*.cpp (the G1 Part 2 brief's A12);
+// PROS-free. Compiled in every build, like every .cpp under src/ (the G1 Part 2 brief's A12);
 // --gc-sections drops benchStateScreen() from the X-drive's package, where nothing calls it
 // (competitionBits() stays: src/main.cpp formats every program's boot status bits with it).
 

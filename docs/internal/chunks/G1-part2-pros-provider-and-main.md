@@ -1,5 +1,7 @@
 # G1 Part 2 (+ T2's wiring) — the PROS device provider, the library teleop loop, and a `main.cpp` a person can read
 
+> **Paths moved at SRC1 (2026-09-27):** the `src/` files this brief names each moved to a folder, names unchanged — `src/robots/` ← `chassis_table.hpp`; `src/programs/` ← `bench_r3a.{hpp,cpp}`, `calibrate_program.{hpp,cpp}`, `drive_program.{hpp,cpp}`, `teleop_program.{hpp,cpp}`; `src/common/` ← `boot_source.{hpp,cpp}`, `state_screens.{hpp,cpp}`. `src/main.cpp` and `src/build_selection.hpp` stay where they were. The full mapping is in the [SRC1 brief §1](SRC1-organize-src.md); every include of a `src/` file is now written from `src/` (`#include "robots/chassis_table.hpp"`). The body below is NOT rewritten — it describes the tree it was written against; its executor re-checks every path against the tree.
+
 > **Execution brief.** First written 2026-09-18 (evening) at tree `225d0ac`; **REVISED 2026-09-24**
 > at tree `a2c9fff` after an audit of the brief against the tree (below). Parent spec:
 > [`G1-robot-config-and-builder.md`](G1-robot-config-and-builder.md) §2 "Part 2"; T2's integration

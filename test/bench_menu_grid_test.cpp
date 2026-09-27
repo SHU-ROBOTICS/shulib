@@ -1,7 +1,7 @@
 // Adversarial tests for Bench Tests' menu grid (chunk R2a, 2026-09-24): the 2 × 5 menu became
 // 3 × 4 so twelve stations fit, and buttonBox()/hitTest() were generalized from a hard-coded two
-// columns to N. The geometry lives in src/bench_r3a.hpp, PROS-free on purpose, so this test can
-// include it by relative path (the chassis_table.hpp precedent) and try to break it.
+// columns to N. The geometry lives in src/programs/bench_r3a.hpp, PROS-free on purpose, so this test can
+// include it from src/ (the chassis_table.hpp precedent) and try to break it.
 //
 // What a broken grid costs on the robot: a tap that launches the WRONG station (10 DRIVE powers
 // motors), a tap that launches NOTHING (robot two's first recorded tap, 2026-09-10, released one
@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <initializer_list>
 
-#include "../src/bench_r3a.hpp"
+#include "programs/bench_r3a.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 
 using shulib::bench::menu_grid::buttonBox;

@@ -312,8 +312,8 @@ moves the whole develop-upload-read loop off the robot and onto a desk.
 - [ ] **D.0.8 External gearing motor → wheel**: tooth counts, or "direct". → **________**
       *("600 rpm" was reported, which reads as direct drive; the count settles it.)*
 
-> **STOP here and send D.0.3–D.0.8 in.** The chassis table (`src/chassis_table.hpp` since R3b
-> Part 0b — it used to sit at the top of `src/bench_r3a.cpp`) shipped with the ports **UNSET** on
+> **STOP here and send D.0.3–D.0.8 in.** The chassis table (`src/robots/chassis_table.hpp` since R3b
+> Part 0b — it used to sit at the top of `src/programs/bench_r3a.cpp`) shipped with the ports **UNSET** on
 > purpose — nothing is guessed — and until they were typed in, button 10 refused with
 > `chassis table UNSET — missing: LEFT ports, RIGHT ports`. A rebuilt program with the ports filled
 > in is what the rest of this station runs on. *(Robot two's table is filled and MEASURED as of
@@ -539,7 +539,7 @@ Start it from the **brain** or the laptop, never from the controller's own menu 
 pretend-match trap). It reads `/usd/shulib_drivetrain.bin`, the record "shulib Calibrate" (slot 4,
 Station G) writes, and checks it against the ports BEFORE anything is powered. **No record on the
 card means refused: the typed table cannot describe robot two** (its track width and motor→wheel
-ratio are UNSET in `src/chassis_table.hpp`, and they are never guessed). A refusal paints a red
+ratio are UNSET in `src/robots/chassis_table.hpp`, and they are never guessed). A refusal paints a red
 screen — top bar `TELEOP REFUSED AT BOOT` — with a headline, the reason, `Library graph NOT built.
 Nothing is powered.`, the Calibrate hint and `Adapter refused? Bench Tests (slot 3) diagnoses.`, and
 serial prints `[R3B] REFUSED AT BOOT: <headline> -- <reason>`. The headlines:
@@ -695,7 +695,7 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
 > run nobody recorded did not happen.
 >
 > **Why this exists:** robot two's drivetrain was REBUILT, so the ports and signs typed into
-> `src/chassis_table.hpp` are no longer trustworthy, and nobody wants to re-measure them by hand.
+> `src/robots/chassis_table.hpp` are no longer trustworthy, and nobody wants to re-measure them by hand.
 >
 > **What has run, and what has not.** The FIRST version of "shulib Calibrate" ran five starts on
 > robot two on 2026-09-24 and finished none: its one 3 V motor pulse was too weak for a five-motor
@@ -1237,7 +1237,7 @@ this test cannot tell — write that. (Nothing in the library assumes either ans
 >
 > **Teleop's claw lines are quoted below from the code** (T3 Part 2, 2026-09-26: the claws wired
 > into "shulib Teleop" — its boot lines, its banner's claw sentence, its claw row on the panel;
-> `src/teleop_claws.hpp` words them, and `test/teleop_claws_test.cpp` pins every one word for word).
+> `src/programs/teleop_claws.hpp` words them, and `test/teleop_claws_test.cpp` pins every one word for word).
 > Serial lines are quoted without their `[t=   0.00] ` time prefix; a log line longer than 196
 > characters continues on the next line after `... `. **A line on the robot that differs from the
 > quote is a finding — write down what it said.** The re-zero button is **Y** in that build (the
@@ -1346,7 +1346,7 @@ lines — copied from the code, final:
       shorter than 0.2 s may never show FWD). → **YES / NO**
 
 **If R1 moves a claw the way the team calls "back",** that is a finding, not a fault: the fix is ONE
-sign in `src/mechanism_table.hpp` (the coordinator changes that pivot's `+6` to `-6`, or `+7` to
+sign in `src/robots/mechanism_table.hpp` (the coordinator changes that pivot's `+6` to `-6`, or `+7` to
 `-7`), **never swapping R1 and R2** — the buttons are the driver's, the sign is the motor's. **If R1
 moves the WRONG claw, or a wheel, stop:** a swapped cable (HA-155) or a wrong port (HA-153) — send
 J.1's census and what moved.
@@ -1423,7 +1423,7 @@ addendum, 2026-09-26)*
 
 Everything here is by eye: no census lists a 3-wire device, and the program cannot tell whether
 the air moved — it knows only what it COMMANDED. The table's polarity is a guess
-(`kClawOpenCommand = true` in `src/mechanism_table.hpp`: "line ON = open"). What can show whether
+(`kClawOpenCommand = true` in `src/robots/mechanism_table.hpp`: "line ON = open"). What can show whether
 it is right is J.9.2 (where the claw is after the start) TOGETHER WITH J.9.3's first press — and
 only when J.9.0 found the valve's one cable in A: a claw that does not move when A is pressed says
 nothing about the polarity. The program commands the claw once at the start and then ONLY when A
@@ -1461,7 +1461,7 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       - CLOSED after the start, and the first press OPENED it: **the polarity is RIGHT.**
       - OPEN after the start, and the first press CLOSED it: **`kClawOpenCommand` is BACKWARDS.**
         Write down "OPENED AT THE START". The coordinator flips that ONE constant in
-        `src/mechanism_table.hpp` — never the button, never the start position — and records the
+        `src/robots/mechanism_table.hpp` — never the button, never the start position — and records the
         flip where the guess is written (the host test's pin, HA-159, this sheet). You may go on
         with this build (every press still flips the claw), but read every "opens" below as
         "closes" and the other way round, and say so in what you send back.
@@ -1533,7 +1533,7 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
-      (`src/bench_r3a.cpp`) — read-only except button 10 DRIVE, which powers nothing unless L1 is
+      (`src/programs/bench_r3a.cpp`) — read-only except button 10 DRIVE, which powers nothing unless L1 is
       held and its six checks pass (button 12 AI VISION writes the camera's own detection
       settings, never a motor). For the 2026 tank chassis the build is `make ROBOT=tank`, and
       its drive program is `make ROBOT=tank PROGRAM=drive` (Station E). The invented X-drive
