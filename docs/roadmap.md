@@ -348,7 +348,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **Now (2026-09-27): Next: TANK1 — `moveTo` on a tank steers back onto its line (the team lead:
 > "Fix the library first"; today a tank that drifts sideways cannot finish a `moveTo`, so the 40 in
 > auton would end on its time limit); then the auton tester (COMP-t: run an auton on the bench from
-> RUN, no competition mode needed) and the competition program (COMP-b). T4's driver file (Part 1a)
+> RUN, no competition mode needed), then the competition program (COMP-b), which takes its auton file from the tester. T4's driver file (Part 1a)
 > has LANDED, host- and build-gated: robot two's buttons, feel and driver loop in one file,
 > `src/team/robot_two_driver.hpp`, which no program runs yet — COMP-b's `opcontrol()` will, and so
 > will the driver program that replaces the old "shulib Drive"; "shulib Teleop" retires when that
@@ -1686,7 +1686,7 @@ is required, not optional, to hold < 1°.)*
   `include/shulib/ui/`'s generic panel pieces. Proven on the host test plant with the end action
   firing on a stalled routine, the hard stop forcing safe, an abandon cutting a routine mid-motion,
   and a start pose that lands the routine although the IMU disagrees by 90 degrees. Kept `[~]`:
-  the PROGRAM is COMP-b (`src/`, the seventh build), and nothing here has run on a robot.
+  the PROGRAM is COMP-b (`src/`, the eighth build, after the auton tester COMP-t), and nothing here has run on a robot.
 - [x] **The v1 combinator ruling (chunk F2, explicit):** the engine ships as **the wall-clock guard +
   deadline-aware waits + the existing async handle (`scheduler()`)** — exactly the smaller v1 this
   document and the master plan's cut-list sanctioned. `Sequence`/`Parallel`/`Race` types are **not

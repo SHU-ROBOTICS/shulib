@@ -697,7 +697,8 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE. SRC1 (`src/`
    organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; no program runs it yet). Next
    (2026-09-27): TANK1 (`moveTo` on a tank steers back onto its line — jal: "Fix the library first"); then
-   COMP-t (the auton tester, with the 40 in auton) on TANK1 and COMP-b on T4 Part 1a. jal pushes the branch
+   COMP-t (the auton tester, with the 40 in auton) on TANK1, then COMP-b on COMP-t and T4 Part 1a (it takes
+   the students' auton file and the run pieces from COMP-t), then T4 Parts 1b, 2, 3. jal pushes the branch
    once the auton is complete, before G3a.** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
    brief against the tree is `G1-PROGRESS.md` 2c.1.)* The claws' first sight is worksheet Station J
    (after Station F).
