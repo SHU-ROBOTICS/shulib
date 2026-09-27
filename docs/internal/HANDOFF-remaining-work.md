@@ -432,7 +432,7 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - Docs owed: cookbook recipe, guide, HA entries (sensor offset, wall positions), roadmap, changelog.
 - Size: ~1 day (it was ½ before the gaps were found).
 
-**L7. [R4 + R5 + E5, reframed] Gains and noise as self-run calibration routines** inside shulib
+**L7. [R4 + R5 + E5, reframed] Gains and noise as self-run calibration routines** **BRIEFED 2026-09-26 as chunk R5a** (`chunks/R5a-gains-and-noise-on-the-sd-card.md`; every recommendation accepted, Q7 ruled: the SD card). inside shulib
 Calibrate. **The plan already has this work** — R4 (IMU bias/drift), R5 (the on-robot ramp routine),
 E5 (calibration routines + persistence to SD) — so it is not new; what is new is the framing jal
 agreed to on 2026-09-18 ("calibrate absolutely everything it needs to know"): **R5's DoD says the gains
@@ -460,7 +460,7 @@ is a plan change for jal to confirm in the brief (Q7).
   roadmap M4. **F11 does not freeze here** — its trigger is F3's primitives run **on hardware** (S4).
 - Size: ~2 days once decided.
 
-**L9. [NEW-ERGONOMICS] The small API additions the readable routine depends on.**
+**L9. [NEW-ERGONOMICS] The small API additions the readable routine depends on.** **BRIEFED 2026-09-26** (`chunks/L9-rest-reverse-driving-and-one-line-boot.md`: `reverseTo` / `faceAway`, API 2.3; the boot as library code; T3 already delivered the mechanism lookup).
 - Reverse driving: **the facade has no `driveTo`** (it is `Routine`'s, F10-frozen), and the data path
   already has it (`Waypoint::reverse`, which the runner honours). So the work is an ADDITIVE option on
   `Routine::driveTo` — a `kApiMinor` bump, pins updated deliberately, a changelog entry — following
@@ -477,6 +477,18 @@ is a plan change for jal to confirm in the brief (Q7).
 - Docs owed: the register rows touched, the changelog, guide, cookbook.
 - Size: ~1 day.
 
+**L9b. [SAFE-SAVE, NEW 2026-09-26, reactive] Calibrate's save can never erase a good record; the boot falls
+back to a verified backup.** BRIEFED (`chunks/SAFE-SAVE-calibrate-save-and-teleop-label.md`; every
+recommendation accepted). The brain cannot rename or delete a file, so today a failed save can erase the
+record Teleop boots from while its NOT SAVED text says the old one survived. **Until Part B1 is in the
+build: copy `shulib_drivetrain.bin` off the card on a laptop, dated, before ANY Calibrate run** (worksheet
+G.0.1). Part A (the library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-final, before the next
+Calibrate rerun; B2 (the boot's fallback, Teleop's words) after COMP-b. Teleop's "table" label was
+already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all.
+
+**DIAG1 Part B** (the median's non-finite handling) is BRIEFED too (`chunks/DIAG1-partB-median-nonfinite.md`;
+every recommendation accepted). ~½–1 day.
+
 **L10. The remaining plan chunks (lower priority for the season):**
 - **[G3a — NEW 2026-09-26, before G3] The robot profile, its generator and an optional VS Code robot
   panel** (jal: "lets do it for before implementing .vexbot"; build-order's G3a entry). ~3–5 days.
@@ -484,7 +496,7 @@ is a plan change for jal to confirm in the brief (Q7).
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26
   (jal: "shupaths probably isn't going to be a thing"). ~½ day shulib side.
-- **[H1] SHUL/2 telemetry wire → freeze F9.** ~1 day.
+- **[H1] SHUL/2 telemetry wire → freeze F9.** BRIEFED 2026-09-26 (`chunks/H1-shul2-wire.md`; parts A1, A2, B; in this wave, last when slots are short). ~1–2 days.
 - **T2 finish:** re-point shulib Drive and the tester's DRIVE station at `DriveShaper` AFTER a driver
   has compared feels on hardware (the G1 Part 2 brief's ruling M4) — then **`T2-COMPLETED.md`**, which
   `T2-PROGRESS.md` owes.
@@ -516,7 +528,7 @@ is a plan change for jal to confirm in the brief (Q7).
   feeds the frozen `Chassis` constructor). Bump to 3.0 with a migration note, or rule it a defect fix?
   The changelog's API 2.2 entry states the migration and says the ruling is open.
 - **Q7. L7's framing:** gains persisted to the SD card at runtime (the 2026-09-18 framing) or
-  committed as constants (R5's DoD as written)?
+  committed as constants (R5's DoD as written)? **RULED 2026-09-26 (jal): ON THE SD CARD** — Calibrate measures and saves, programs load at boot; the brief is `chunks/R5a-gains-and-noise-on-the-sd-card.md` (chunk R5a).
 
 ### Part S — sessions with the robots, in order (none can be done at a desk; each produces evidence)
 

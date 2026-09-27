@@ -835,20 +835,20 @@ Gains tuned in sim are therefore **provisional**; real tuning happens on hardwar
 |---|---|---|---|
 | **A** | Build the ground to stand on | A1–A4 | — |
 | **C** | Make it move | C1–C8 | — |
-| **D** | Make it usable | D1–D3 | — |
-| **DOCS/DEFECTS** | Reactive: documentation, the defects it found, the gate a defect exposed | DOCS1, DOCS2, DEFECTS1, GATE1, DEFECTS2, DIAG1 | — |
+| **D** | Make it usable | D1–D3, L9 | — |
+| **DOCS/DEFECTS** | Reactive: documentation, the defects it found, the gate a defect exposed | DOCS1, DOCS2, DEFECTS1, GATE1, DEFECTS2, DIAG1, SAFE-SAVE | — |
 | **E** | Bound the drift (vs. synthetic truth) | E1–E4 | — |
 | **F** | Sequencing | F1–F2 | — |
 | **T** | Driver control | T2–T3 | — (**T1 delivered by R1a**) |
 | **COMP** | The match program | COMP (parts a, b) | none (the schedule numbers need the game manual) |
 | **G** | No-code authoring | G1, G2, G3a, G3, G4 | G1–G2 none (G2 froze F8 itself, 2026-09-18); G3–G4 read VexBuilder's files |
 | **H** | Ecosystem | H1–H3 | needs VexBuilder sim |
-| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6 | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c's absolute-reference half needs a GPS/camera on a tank robot (fall); its holonomic half needs the X-drive, built in spring 2027 |
+| **R** | **Robot arrival** | R1a, R1b, R2, R3a, R3b, R3c, R3d, R4–R6, R5a | **needs hardware** — R3a/R3b/R3d need a tank robot (the bench bot, or robot two since 2026-09-10); R3c's absolute-reference half needs a GPS/camera on a tank robot (fall); its holonomic half needs the X-drive, built in spring 2027 |
 | **F′** | Scoring primitives | F3–F4 | needs hardware + final mechanisms |
 | **E′** | Accuracy on the real field | E5–E6 | needs hardware + field |
 | **I** | Second robot | I1–I2 | needs both robots |
 
-**54 chunks** — the table above, counted row by row (G3a added 2026-09-26, +1 — the robot profile, its generator and the robot panel, before G3, the team lead's "lets do it for before implementing .vexbot") (DIAG1 added 2026-09-26, +1 — reactive: an implausible odometry tick must name its check before the first auton) (DEFECTS2 added 2026-09-26, +1 — reactive, found by T3's research: brake modes never reached the motor) (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
+**57 chunks** — the table above, counted row by row (SAFE-SAVE, L9 and R5a added 2026-09-26 late evening, +3, their briefs committed with the team lead's "accept all": SAFE-SAVE reactive — a failed Calibrate save could erase a good record, and the brain cannot rename a file; L9 the handoff's NEW-ERGONOMICS item given an entry; R5a the handoff's L7, taking R4's rest capture, R5's ramp and fit and E5's persistence to the SD card by the Q7 ruling) (G3a added 2026-09-26, +1 — the robot profile, its generator and the robot panel, before G3, the team lead's "lets do it for before implementing .vexbot") (DIAG1 added 2026-09-26, +1 — reactive: an implausible odometry tick must name its check before the first auton) (DEFECTS2 added 2026-09-26, +1 — reactive, found by T3's research: brake modes never reached the motor) (COMP added 2026-09-24, +1) (corrected 2026-09-24: it read 48, because
 DOCS1 and DOCS2 were never added to the total when their row was; the handoff audit counted the
 table). R3 split into R3a + R3b + R3c on 2026-08-17 (+2), recorded in the deviations table.
 GATE1 was added 2026-08-19 (+1, reactive — `src/` was in no gate and CI could not see whether an
@@ -1214,6 +1214,15 @@ written until G4.
 from the cookbook alone.
 
 ---
+
+### L9 — reverse driving in a recipe, and booting a Robot from the SD card as library code ⟵ NEW 2026-09-26
+> **Status 2026-09-26: BRIEFED** ([brief](chunks/L9-rest-reverse-driving-and-one-line-boot.md); the
+> team lead accepted every recommendation). The handoff's L9 ("NEW-ERGONOMICS") minus the mechanism
+> lookup T3 already delivered. **Part A** — two new `Routine` steps, `reverseTo` and `faceAway` (F10's
+> intended growth path), the API to **2.3**; branched after G1 Part 2c-final merges, as an explicit
+> exception to pace rule 1 (D4), and split A1 / A2 by pace rule 7 (D8). **Part B** — the boot as library
+> code (plan, then build; the program keeps its own words through a `BootWording`), after T3 Part 2,
+> 2c-final and COMP-b. Nothing built.
 
 # Phase E — Bound the drift (against synthetic truth)
 
@@ -1600,6 +1609,11 @@ finally be written truthfully because the flow now exists.
 > M6. Gated on VexBuilder's Rapier sim, but H1 is not — the wire is defined unilaterally.
 
 ### H1 — `SHUL/2` wire protocol → **freeze F9**
+> **Status 2026-09-26: BRIEFED** ([brief](chunks/H1-shul2-wire.md); every recommendation accepted):
+> binary with a CRC on every frame, the Tick/Summary payloads ARE the blackbox's bytes, parts A1 (read
+> side), A2 (write side), B (the freeze on one consumer, ruled). Runs in this wave, LAST when builder
+> slots are short — nothing reads the wire until H2. Nothing built.
+
 The versioned, sequenced wire serialization of the `DebugRecord` defined back in A1, behind the same
 `ITelemetrySink` seam. Defining `DebugRecord` once in chunk one and serializing it here is exactly why
 A1 came first: one schema, four sinks, directly comparable bench / terminal / field / sim traces.
@@ -1842,6 +1856,8 @@ port; the bench bot and robot two both calibrate with the same routine; every pe
 reproduced by a second run within a stated tolerance.
 
 ### R4 — Sensor characterization → real noise parameters
+> **Status 2026-09-26:** R4's stationary IMU drift/noise capture and loop timing is taken by **R5a** ([brief](chunks/R5a-gains-and-noise-on-the-sd-card.md)).
+
 Measure what only hardware can tell you: IMU per-boot bias and 60s drift rate, GPS update latency and
 error distribution on and off the strip, encoder noise, and tracking-wheel slip under acceleration.
 Feed these back as the EKF's noise parameters, replacing E4's modeled guesses. Add boot-time IMU cold
@@ -1853,6 +1869,8 @@ actually is on your hardware.
 **DoD:** measured noise parameters committed; the E4 EKF re-verified against them; documented 60s drift.
 
 ### R5 — `tools/sysid` + real gains
+> **Status 2026-09-26:** R5's ramp routine and the kS/kV/kA fit — ON THE BRAIN, persisted to the SD card (Q7), not committed as constants is taken by **R5a** ([brief](chunks/R5a-gains-and-noise-on-the-sd-card.md)).
+
 Offline least-squares characterization producing kS/kV/kA **constants, not code** (§10), fed by one
 on-robot ramp routine. The solver and the ramp are host-authored and host-tested against synthetic
 data long before this; here they meet a real robot. Then re-tune the C-phase controllers against
@@ -1860,6 +1878,17 @@ measured dynamics, replacing the provisional sim-tuned gains.
 
 **DoD:** real kS/kV/kA for both robots committed as constants; predicted-vs-actual velocity error
 documented; motion re-verified on hardware.
+
+### R5a — gains and noise measured by the robot, kept on the SD card ⟵ NEW 2026-09-26 (handoff L7)
+> **Status 2026-09-26: BRIEFED** ([brief](chunks/R5a-gains-and-noise-on-the-sd-card.md); every
+> recommendation accepted, the team lead's **Q7 ruling**: persist to the SD card at runtime). shulib
+> Calibrate's GAINS step (a ramp and two step segments per side, fitted on the brain; kS/kV the mean of
+> both sides, kA recorded but not applied) and REST step (IMU drift and noise, loop timing), saved in a
+> sibling file bound to the drivetrain record's CRC through SAFE-SAVE's safe save; the builder consumes
+> it; a missing or damaged file boots on the placeholders and says so. Four parts, A–D: A on its go, B
+> after 2c, C after B + T3 Part 2 + SAFE-SAVE A and B1, D after C + COMP-b + SAFE-SAVE B2. Takes R4's rest
+> capture, R5's ramp and fit and E5's persistence (their status lines). The measurement itself is a
+> robot session (S2/S3). Nothing built.
 
 ### R6 — Sim fidelity back-fit
 Feed the measured parameters from R4 and R5 back into the A2 plant, then re-run the entire host suite
@@ -1898,6 +1927,8 @@ strategy authored by students on top of them.
 # Phase E′ — Accuracy on the real field
 
 ### E5 — Calibration routines + persistence
+> **Status 2026-09-26:** E5's persistence of the gains and noise (the rest of E5 — GPS lever arm, camera mount — stays here) is taken by **R5a** ([brief](chunks/R5a-gains-and-noise-on-the-sd-card.md)).
+
 Wheel scale and offset, GPS lever-arm, camera mount, IMU bias — measured by documented routines and
 saved to SD. This is what makes the accuracy reproducible after a rebuild rather than a one-time
 achievement.
@@ -1934,6 +1965,10 @@ is the record; a count of a table you can see is a second thing to maintain.)*
 
 | Change | Roadmap says | Build order says | Why |
 |---|---|---|---|
+| **+ R5a: gains and noise measured by the robot and kept on the SD card** *(2026-09-26, the team lead's Q7)* | R5: `tools/sysid` offline, "kS/kV/kA committed as constants" | the fit runs on the brain inside shulib Calibrate; the result persists beside the drivetrain record, bound to it, and the builder consumes it; a laptop re-fit (D6) cross-checks | the team lead's 2026-09-18 framing and Q7: nothing a robot can measure is typed or committed; gains depend on the drivetrain record's scale and must be re-measured with it, which a committed constant cannot follow |
+| **+ SAFE-SAVE: Calibrate's save can never erase a good record** *(2026-09-26, reactive; the team lead's "accept all")* | *(absent — the defect was unknown)* | **Part A (the safe-save library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-final, BEFORE the next Calibrate rerun; B2 (the boot's backup fallback, Teleop's words) after COMP-b; both before R5a's C and D** | the brain cannot rename or delete a file, so a failed save could erase the record Teleop boots from while saying the old one survived; until B1 lands the worksheet and handoff tell the operator to copy the record off the card first |
+| **+ L9: reverse driving and the boot as library code** *(2026-09-26, the team lead's "accept all")* | *(the handoff's L9, no build-order entry)* | **Part A (`reverseTo` / `faceAway`, API 2.3) branched after G1 Part 2c-final merges — an explicit exception to pace rule 1 — and split A1/A2; Part B after T3 Part 2, 2c-final and COMP-b** | routine authors need a reversed approach on a tank without hand-written angle arithmetic; Part A shares only one test file with in-flight work |
+| **H1 in this wave** *(2026-09-26, the team lead's "accept all")* | H1 ungated, lower priority for the season (handoff L10) | **briefed now, built in this wave — LAST when builder slots are short** | "I genuinely want to complete the full library asap" read as the "unless he says otherwise" of the 2026-09-23 ruling; nothing consumes the wire until H2 |
 | **+ G3a: the robot profile, its generator and a VS Code robot panel, before G3** *(2026-09-26, the team lead: "lets do it for before implementing .vexbot")* | *(absent — a robot's config was to be edited only in VexBuilder, whose electrical-config screen does not exist)* | **G3a after the first autonomous, before G3: the profile revised to the human-stated facts plus a `controls` block, a generator to the C++ tables with a freshness gate, an optional VS Code panel; G3 then reads the same profile out of `.vexbot`** | the team lead wants robots managed as data, plug-and-play, without VexBuilder's scale; the drafted profile predates the runtime-discovery ruling and has no place for button bindings, and F7 is not frozen, so fixing both now is cheap |
 | **G4's legacy `.shupaths` importer dropped** *(2026-09-26, the team lead: "shupaths probably isn't going to be a thing")* | G4: the `.shupaths` importer + the 10-minute guide | **G4 = the 10-minute guide only** | paths live only in `.vexbot`'s `paths[]`; no team file needs migrating. Reversible if one does |
 | **T3 Part 2: a claim left at driver-control entry is RELEASED by the library** *(2026-09-26, the team lead's ruling)* | *(T3 Part 1's rule: a binding never commands a claimed mechanism — so a claim an autonomous operation left when the field deleted its task locked the driver out for the whole period, and the program was told to release it itself)* | **`teleop::runDriverControl` releases every bound mechanism's leftover claim at loop ENTRY — after its set check, before the entry safe state and the toggles' `enter()` — never calling the claimant's `cancel()`, and says so (one `[WARN][TEL]` line per claim; `releasedLeftoverClaim()` for a panel, "shulib Teleop"'s claw row ends `FREED`); a claim taken DURING the loop is still obeyed. Teleop's re-zero moves A → Y; its two fault rows become one (ruling R3, applied here)** | "A claim left by a deleted autonomous task must never lock the driver out." The loop cannot tell a dead claim from a live one, so the release is at entry only — before any operation the loop's `perTick` ticks can have taken one. Its cost, stated in `mechanism_binding.hpp` and the changelog: an operation a program starts BEFORE the loop loses its claim (start it from `perTick`), and the dead operation object still believes it holds one. Rejected: a release inside `reset()`/`enter()` (a binding used outside the loop must keep the old rule); a sink in `DriverLoopConfig` (a default null would let a program stay silent) |

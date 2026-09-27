@@ -3439,3 +3439,8 @@ driver control starts), the fix report, the claim-release and collision code.
 keep a claw level autonomous left instead of sending the start level (finding 8); a read-validity
 signal so a silent pivot does not show a frozen temperature (finding 6); the reconnect settle window
 after J.9.5; an AddressSanitizer CI job. **Nothing of T3 has run on a robot — Station J next.**
+
+**The team lead's ruling on finding 8 (2026-09-26, ~23:10):** "Keep: driver start closes it" — the
+first driver-control start keeps sending the pneumatic claw its START level (CLOSED) whatever
+autonomous left it at, as built; revisit when an autonomous first commands the claw. Finding 6 (a
+frozen temperature on a silent pivot) was not put to him tonight: it stays an open follow-up.

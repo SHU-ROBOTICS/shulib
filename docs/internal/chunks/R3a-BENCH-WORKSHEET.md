@@ -720,6 +720,10 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
 - [ ] **G.0.1** Charged battery in. **A FAT32-formatted SD card in the brain's card slot** — the
       calibration is written to it; without a card the run still happens but the answer is on
       screen and in the log only. (Bench Tests button **5 SD CARD PROBE** checks a card.)
+      **Before any Calibrate run on a card that already holds a record, copy
+      `shulib_drivetrain.bin` off the card on a laptop, and date the copy.** Until the SAFE-SAVE fix
+      to Calibrate's save is in the build, a NOT SAVED run can erase it, and that copy is the only way
+      back (added 2026-09-26).
 - [ ] **G.0.2** **3 m clear in every direction** and a **second person at the battery** for
       everything from G.4 on. The calibration JERKS each drive motor on its own and then SPINS THE
       ROBOT IN PLACE, twice, under power.
@@ -851,7 +855,10 @@ motor fought its side during the spin — check that port before driving. `YOU S
 in the middle, on the right (grey for half a second first). It starts a **completely new run** in
 the same program — a new calibrator, nothing carried over from the last run; the IMU does not warm
 up again. Put the robot back at the START mark first. **Every run that says SAVED REPLACES the
-record on the card**; a run that stops, or says NOT SAVED, leaves the previous record where it was.
+record on the card**. **A run that STOPS writes nothing. A run that says NOT SAVED may already have
+ERASED the record that was on the card** (found 2026-09-26; the program's own NOT SAVED text says the
+opposite and is wrong until the SAFE-SAVE fix to Calibrate's save is in the build). Copy the record off
+the card first (G.0.1).
 
 **G.5 — how to know it calibrated correctly**
 

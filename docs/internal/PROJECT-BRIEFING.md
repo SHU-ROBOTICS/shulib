@@ -105,7 +105,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 30 of 54 chunks complete
+**Position:** 30 of 57 chunks complete
 
 - **Next up:** G1 PART 2c (main.cpp as a dispatcher), then COMP — each on its own go; 2c, DIAG1 (an implausible odometry tick names its check — before the first auton) and COMP-a (COMP's library half, with its binding re-check) were built in parallel in isolated worktrees and merge one at a time — DIAG1 Part A and COMP-a have landed (below; COMP-a's status is under COMP) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
