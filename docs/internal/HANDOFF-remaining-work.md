@@ -507,6 +507,28 @@ already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all
 **DIAG1 Part B** (the median's non-finite handling) is BRIEFED too (`chunks/DIAG1-partB-median-nonfinite.md`;
 every recommendation accepted). ~½–1 day.
 
+**L2t. [COMP-t, NEW 2026-09-27] The auton tester.** BRIEFED (`chunks/COMP-t-auton-tester.md`; jal: D1–D9 as
+recommended). "shulib Auton Tester" runs a registered auton on the bench through the same `runAuton` path
+`autonomous()` uses — touch RUN, a 3 s countdown, any button aborts — and creates the students' auton file
+`src/team/autons.{hpp,cpp}` with the 40 in auton. Slot 7 until T4 Part 3, then slot 2. **Built after TANK1**;
+before its builder starts, every MOTION_TIMEOUT prediction in its brief is re-made from TANK1's tests.
+
+**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** BEING BRIEFED. On
+today's tank `moveTo` nothing corrects a sideways drift, so the 40 in auton on a robot with one side a few
+percent weak ends MOTION_TIMEOUT (COMP-t's probe; robot two's sides differ by ~9 %). jal: "Fix the library
+first" — a bounded correction that never plans a turn, logged when it steers, the X-drive and H-drive
+byte-for-byte unchanged, the auton line unchanged. HA-179/180.
+
+**L5b. [T4, NEW 2026-09-26] The driver program.** BRIEFED (`chunks/T4-driver-program.md`); Part 0 (the slots
+and the plan) landed 2026-09-27. Parts 1a → (COMP-b) → 1b → 2 (the old drive's protections, moved into the
+library) → 3 (the new "shulib Drive" replaces the old one; "shulib Teleop" retires). jal's answers:
+N1 (a) the over-current cut ON with an off switch and a required push check; N2 (a) as amended; N4 (a) the
+auton tester in slot 7 until Part 3; N5 (a) an optional SD copy of every library program's log; N7 (c)
+driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 as the brief recommends.
+- For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser (COMP-b's header), at
+  its place after CLAW ABSENT — never into `teleop_program.cpp`.
+- For SAFE-SAVE A/B1's re-check: `formatSaveReport`'s sentences name Teleop, which T4 Part 3 retires.
+
 **L10. The remaining plan chunks (lower priority for the season):**
 - **[G3a — NEW 2026-09-26, before G3] The robot profile, its generator and an optional VS Code robot
   panel** (jal: "lets do it for before implementing .vexbot"; build-order's G3a entry). ~3–5 days.
@@ -514,6 +536,10 @@ every recommendation accepted). ~½–1 day.
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26
   (jal: "shupaths probably isn't going to be a thing"). ~½ day shulib side.
+- **[H4 — NEW 2026-09-27, after G3a] The robot console:** the log and the brain's screen on the computer
+  over USB, remote touches back, on H1's wire; a bench tool, inert under field control.
+- **[PKG1 — NEW 2026-09-27, LAST] The PROS template and the starter project** (jal: "after everything like
+  after everything"); G4's guide is written from it, so G4 goes last with it.
 - **[H1] SHUL/2 telemetry wire → freeze F9.** BRIEFED 2026-09-26 (`chunks/H1-shul2-wire.md`; parts A1, A2, B; in this wave, last when slots are short). ~1–2 days.
 - **T2 finish:** re-point shulib Drive and the tester's DRIVE station at `DriveShaper` AFTER a driver
   has compared feels on hardware (the G1 Part 2 brief's ruling M4) — then **`T2-COMPLETED.md`**, which
@@ -658,9 +684,11 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    Hold and Brake reach the V5 motor; Teleop coasts on stick release), then T3 (the claw pivots on
    ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
    started only on his go. **DEFECTS2, T3 (both parts — the claws now driven by "shulib Teleop") and G1
-   Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE; next: COMP, and T4
-   (the driver program — the team lead's request of 2026-09-26 late evening; its brief is being
-   written).** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
+   Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE. SRC1 (`src/`
+   organized) has landed. Next (2026-09-27): TANK1 (`moveTo` on a tank steers back onto its line — jal:
+   "Fix the library first") and T4 Part 1a (the driver file) in parallel; then COMP-t (the auton tester,
+   with the 40 in auton) on TANK1 and COMP-b on T4 Part 1a. jal pushes the branch once the auton is
+   complete, before G3a.** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
    brief against the tree is `G1-PROGRESS.md` 2c.1.)* The claws' first sight is worksheet Station J
    (after Station F).
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).

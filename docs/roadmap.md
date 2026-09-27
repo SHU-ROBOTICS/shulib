@@ -345,9 +345,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > driver, the first time the library's own object graph drove the robot; no library-commanded motion
 > has run.
 >
-> **Now (2026-09-27): Next: COMP-b (the competition program: the first autonomous) and T4 (the
-> driver program — the team lead's request: one readable driver file for a driver program and the
-> competition program's `opcontrol()`). G1 is COMPLETE** — Part 2c and its final run have landed: one
+> **Now (2026-09-27): Next: TANK1 — `moveTo` on a tank steers back onto its line (the team lead:
+> "Fix the library first"; today a tank that drifts sideways cannot finish a `moveTo`, so the 40 in
+> auton would end on its time limit) — and T4's driver file, in parallel; then the auton tester
+> (COMP-t: run an auton on the bench from RUN, no competition mode needed) and the competition
+> program (COMP-b). T4 (the driver program — one readable driver file for "shulib Drive" and the
+> competition program's `opcontrol()`) is briefed; "shulib Teleop" retires when it lands. G1 is COMPLETE** — Part 2c and its final run have landed: one
 > chain in `src/build_selection.hpp` picks each build's program and robot, and `src/main.cpp` only
 > dispatches. — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
 > parallel and merge one at a time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust
@@ -1737,6 +1740,11 @@ only the INPUT half is missing.*
   or a chassis action. The binding mechanism is the library's; which button does what is the team's.
   **A macro must never take the robot away from its driver**: interruptible by stick input within one
   tick, and releasing the button cancels the operation and safes the mechanism.
+- [ ] **The driver program** *(T4, 2026-09-27 — BRIEFED, PLANNED; nothing built)* — ONE readable driver
+  file for robot two (to be created as `src/team/robot_two_driver.hpp`: which button does what, the feel), run by the
+  new "shulib Drive" and by the competition program's `opcontrol()`, never copied; the old drive's
+  protections (a dead drive motor, a motor fighting its side, over-current) moved into the library's
+  driver loop for every program; "shulib Teleop" retired when it lands.
 
 **Definition of Done:** the two reference routines (X tall-tower, H Toggle-own + park) run end-to-end
 in host sim; a deliberately stalled scoring loop still ends with the robot parked in the Midfield; and

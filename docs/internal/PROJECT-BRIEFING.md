@@ -105,9 +105,9 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 32 of 58 chunks complete
+**Position:** 32 of 62 chunks complete
 
-- **Next up:** COMP-b (the competition program — autonomous() with the 40 in auton, opcontrol()), and T4 (the driver program — the team lead's request of 2026-09-26 late evening: ONE readable driver file shared by a separate driver program and COMP-b's opcontrol(); its brief is being written and decides the order and the slots) — each on its own go; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
+- **Next up:** TANK1 (moveTo on a tank steers back onto its line — BEING BRIEFED; the team lead, 2026-09-27: "Fix the library first", because on today's tank moveTo the 40 in auton with one side a few percent weak ends MOTION_TIMEOUT) and T4 Part 1a (the driver file — [brief](chunks/T4-driver-program.md); Part 0, the slots and this plan, landed with the plan commit), built in parallel; then COMP-t (the auton tester with the 40 in auton — [brief](chunks/COMP-t-auton-tester.md), his answers D1–D9 as recommended) on TANK1, and COMP-b (the competition program — autonomous() and opcontrol() running the driver file) on T4 Part 1a — each on its own go. The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): COMP, DIAG1, R3a, R3b, R3d, T2, T3** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
 - **Suite:** 1,659 cases / 2,467,051 assertions, 3 skipped — **green**  

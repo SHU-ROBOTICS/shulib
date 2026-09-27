@@ -25,6 +25,14 @@ typed table. Do not confuse the four: "Bench Tests" measures by hand, "shulib Dr
 through the adapters, "shulib Calibrate" measures the drivetrain itself, "shulib Teleop" drives
 through the library.)*
 
+> **The slot map (the team lead's rulings, 2026-09-27 — T4 R6).** Slots 1–4 are as above until T4 Part 3.
+> **Slot 5 is HELD for the team's own old-code fallback: never upload a shulib program over it.** **Slot 6**
+> is reserved for **"shulib Competition"** (COMP-b). **Slot 7** is **"shulib Auton Tester"** (COMP-t) until
+> T4 Part 3 moves it to slot 2. At T4 Part 3 the NEW **"shulib Drive"** replaces the old one in slot 1 (same
+> name — it drives toward the calibration record's front, the camera end, where the old one drives toward
+> the 15/16 end) and "shulib Teleop" is retired. **Before any upload session, photograph the brain's
+> Programs list**, so what each slot held is on record.
+
 1. Power the brain on. Open **Programs** and run **slot 3 — "Bench Tests"** with **Run** — not
    Timed Run, not Match. **Start it from the BRAIN's screen or from the laptop, NEVER from the
    controller's own menu.** On 2026-09-10 (robot two's first session) launching it from the

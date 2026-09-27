@@ -61,8 +61,8 @@
   `opcontrol()`; (2) a NEW HA (next free at commit, after DIAG1's HA-160 — e.g. HA-161): "a controller Timed
   Run enables autonomous() after a disabled window of __ s, for __ s, then __" — UNMEASURED, settled by
   Station K; HA-128 cross-referenced, still settled for what it measured; (3) the worksheet's "never start
-  from the controller's menu" rule gains ONE exception, written at A.1, G.0.5 and the DO NOT list: slot 5
-  "shulib Competition" at Station K, started with Timed Run; afterwards turn the controller off, wait ten
+  from the controller's menu" rule gains ONE exception, written at A.1, G.0.5 and the DO NOT list: slot 6
+  "shulib Competition" (slot 5 is held for the team's old-code fallback — T4 Part 0, 2026-09-27) at Station K, started with Timed Run; afterwards turn the controller off, wait ten
   seconds, see the menu return before starting any other slot; (4) Station K's first step is this
   measurement — if Timed Run never enters autonomous(), K records that and tries "Match" from the same menu;
   (5) C6's periods never come from this measurement.
@@ -172,10 +172,9 @@
   `VARIANT_BEACONS`, `BUILD_PROGRAM`, `BUILD_ROBOT` (`RobotTwo` — no new robot beacon) and
   `PROGRAM_ENTRY_SYMBOLS`, and a self-test pair like cases 14/15. The define is read in
   `src/build_selection.hpp` ONLY, and the program reads `kChassis` / `kMechanisms` only — never a per-robot table
-  by name (step 0 refuses it). `-Wunused-function` is a gate FAILURE. **The slot and opcontrol() are re-checked
-  against T4** (the driver program, the team lead's request of 2026-09-26 late evening: ONE readable driver file
-  shared by a separate driver program and COMP-b's `opcontrol()`, which may supersede B11): its brief decides the
-  slots (slot 5 is held for the team's old-code fallback).
+  by name (step 0 refuses it). `-Wunused-function` is a gate FAILURE. **The slot and opcontrol() — decided by T4** (the team lead's rulings of 2026-09-27, R6; T4 Part 0): slot 6
+  "shulib Competition"; `opcontrol()` per B11 as T4 Part 1a replaces it. Whichever of COMP-b and COMP-t (the
+  auton tester, briefed as the seventh build) lands second takes the next build and the next self-test pair.
 ---
 
 ## 0. What exists (read these; every line was re-checked at `8ac243f`)
@@ -310,7 +309,7 @@ throw); the program also refuses any entry whose `hardStopAt` exceeds the period
    `shulib-robot-variant=tank-competition`), the Makefile's PROGRAM validation and its "Four programs"
    comment (~:102), `tools/src_build_gate.py` (`VARIANTS`, `BUILD_ARGS`, `VARIANT_DEFINES`, `BEACONS`, its
    header table, a self-test pair like its cases 14/15, and — if G1 Part 2c has not yet replaced it — the
-   variant differential's list), `.github/workflows/ci.yml`'s comment. Slot **5 "shulib Competition"**.
+   variant differential's list), `.github/workflows/ci.yml`'s comment. Slot **5 "shulib Competition"** (slot 6 — B5 as amended).
 4. Docs (COMP-b): a guide chapter **"The competition program"** from the code (registering an auton, the two
    start modes, the selector, the schedule and the end action, a mid-auton disable, a refused boot), every
    example COMPILED in `test/guide_examples_test.cpp` and quoted verbatim; README; worksheet **Station H**
