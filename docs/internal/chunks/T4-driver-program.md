@@ -951,6 +951,15 @@ step.
        "shulib Drive" will (T4)."
      - **1b** adds: "so does "shulib Teleop", inside its bench panel, until the driver program retires
        it".
+       - **1b also RESTORES §2's "To change what a button does, change it HERE and nowhere else."**
+         *(Added 2026-09-27 by Part 1a's review.)* Part 1a could not write that sentence: while the
+         interim tie stands it is false. So 1a wrote, in its place: "To change what a button does,
+         change it HERE -- and, until T4 moves the buttons out of src/robots/mechanism_table.hpp,
+         there too (the re-zero also in "shulib Teleop"): `make` refuses a build in which they
+         disagree." 1b removes the table's copy and the tie, which makes the 1a clause false; 1b
+         deletes it and writes §2's sentence back. In the same change, 1b deletes cookbook chapter
+         6's "Watch out for" bullet that 1a wrote, "Until the buttons leave the mechanism table,
+         change a button in both files …" (see §4, Part 1b).
      - **Part 2** adds the protections paragraph.
      - **Part 3** writes the final form shown in §2.
    - It is a HEADER, not a `.cpp`: the host suite compiles only `test/*.cpp` and includes `src/` headers
@@ -2014,6 +2023,12 @@ documents.**
   1b item 3.
 - **The parked `.claude/coordinator/drafts/T3-COMPLETED.draft-for-when-macros-land.md`** re-pointed
   (§8).
+- **The interim sentences Part 1a wrote** go false in 1b, so 1b removes each one *(added 2026-09-27 by
+  Part 1a's review; T4-PROGRESS "Part 1a")*: the driver file header's "there too" clause (§1 Part 1a
+  item 2, the 1b bullet); cookbook chapter 6's "Watch out for" bullet, "Until the buttons leave the
+  mechanism table, change a button in both files — and the re-zero button in three …"; and HANDOFF
+  L5's "robot two's buttons are ALSO stated in its driver file … tied to the table's at compile time
+  in Teleop until T4 Part 1b".
 - `build-order.md` / roadmap / HANDOFF status. The prose review terms: "TeleopClaws",
   "kTeleopRezeroButton", "re-zero", "which button", "teleop_claws".
 

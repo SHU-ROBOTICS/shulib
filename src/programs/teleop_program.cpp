@@ -91,10 +91,12 @@
 #include "pros/screen.h"
 
 #include "common/boot_source.hpp"
+#include "common/driver_controls.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "robots/mechanism_table.hpp"
 #include "common/screen_text.hpp"
 #include "programs/teleop_claws.hpp"
+#include "team/robot_two_driver.hpp"
 #include "shulib/calibration/boot_check.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
@@ -148,9 +150,9 @@ constexpr const char* kRunStatus =
 
 // ═══ DRIVER CONTROL — the choices this program makes (rulings M4/M5) ═══════════════════════
 /// Field-centric is SELECTABLE, and OFF: the first hardware run of this version must not also be
-/// the first run of a frame rotation (ruling M5). Set true to drive ArcadeField; the heading source
-/// below is what it trusts, and it falls back to robot-centric (and LATCHES until a re-zero) the
-/// moment that heading is not trusted.
+/// the first run of a frame rotation (ruling M5). Set true to drive ArcadeField; the heading it
+/// trusts is the one heading rule's (driverHeading(), src/common/driver_controls.hpp), and it falls
+/// back to robot-centric (and LATCHES until a re-zero) the moment that heading is not trusted.
 constexpr bool kFieldCentric = false;
 /// The driver's field-centric re-zero button ("the way the robot faces now is away from me").
 /// Harmless in ArcadeBody, where a press only pre-arms the zero. **Y — the team lead's ruling of
@@ -174,6 +176,20 @@ static_assert(kRezeroButton != hal::ControllerButton::L1 && kRezeroButton != hal
                   && kRezeroButton != hal::ControllerButton::R1
                   && kRezeroButton != hal::ControllerButton::R2,
               "the re-zero button may not be a shoulder button: T3 binds them to the claw pivots");
+// THE INTERIM TIE (T4 Part 1a, 2026-09-27; retired by T4 Part 1b). Robot two's buttons are stated
+// twice until 1b: in the driver file (src/team/robot_two_driver.hpp, which the competition program
+// will run) and in the mechanism table this program binds from. These two make them ONE fact at
+// compile time — the claws' buttons and volts, entry by entry and by name, and the re-zero — so a
+// button changed in one place and not the other is a build that does not compile, never a Teleop
+// whose buttons differ from the competition program's. Part 1b removes the table's copy and makes
+// this program run the driver file itself.
+static_assert(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles,
+                                 kRobotTwoMechanisms),
+              "the driver file and the mechanism table disagree about a button -- change both "
+              "until T4 Part 1b");
+static_assert(RobotTwoDriver::kLoop.rezeroButton == kRezeroButton,
+              "the driver file's re-zero button and shulib Teleop's kRezeroButton disagree -- "
+              "change both until T4 Part 1b");
 
 /// A controller button as the boot line names it.
 constexpr const char* buttonWord(hal::ControllerButton b) {
@@ -551,18 +567,10 @@ void refuse(const char* headline, const char* why) {
     paintRefusal(st.refusalHeadline, st.refusalWhy);
 }
 
-// ═══ THE HEADING THE FEEL LAYER TRUSTS (driver_control.hpp's contract) ════════════════════
-/// The fused heading, trusted only when the estimate is live (past Uninitialized — motion.hpp's
-/// wait-for-live contract), the IMU itself reports ready, and no IMU_LOST fault has been raised
-/// this run. Degraded has four causes and says nothing specific about the heading, so it is not
-/// the test. Read before this tick's drive(), so it is the previous tick's estimate (10 ms old).
-teleop::HeadingSample headingSample(const robot::Robot& r) {
-    const bool trusted =
-        r.localizer().qualityClass() != localization::Localizer::Quality::Uninitialized
-        && r.context().imu().isReady() && r.faults().raiseCount(diag::FaultCode::ImuLost) == 0;
-    return teleop::HeadingSample{.radians = r.localizer().pose().heading().radians(),
-                                 .trusted = trusted};
-}
+// THE HEADING THE FEEL LAYER TRUSTS is src/common/driver_controls.hpp's driverHeading() — the ONE
+// heading rule since T4 Part 1a (2026-09-27), shared with the X-drive and every driver file and
+// host-tested there. Until then this file and src/programs/xdrive_program.cpp each carried a copy
+// (G1 Part 2c listed the merge as owed).
 
 const char* qualityName(localization::Localizer::Quality q) {
     using Q = localization::Localizer::Quality;
@@ -987,7 +995,7 @@ void runTeleop() {
     teleop::runDriverControl(
         r.chassis(), *st.master, st.devices->pacer(), st.shaper, loopCfg, st.claws.holds(),
         st.claws.toggles(), [] { return pros::c::competition_is_disabled() != 0; },
-        [&r] { return headingSample(r); }, panel);
+        [&r] { return driverHeading(r); }, panel);
     char line[200];
     std::snprintf(line, sizeof line,
                   "opcontrol(): field DISABLED -- loop exited cleanly after cancel() (0 V + Brake); "

@@ -280,9 +280,10 @@ on any robot that exists). `src/build_selection.hpp` chooses, in one chain, whic
 and `src/main.cpp` only hands each PROS entry point to that program (G1 Part 2c and its final run).
 Since SRC1 (2026-09-27, the team lead's layout) `src/` is one folder per job: `src/robots/` (what
 each robot IS — the two tables, the X-drive's config), `src/team/` (the team's own code, where
-students edit — empty until the driver program and the auton list land), `src/programs/` (one
+students edit — its first file is robot two's driver file, `src/team/robot_two_driver.hpp` (T4
+Part 1a), and the auton list comes with COMP-t), `src/programs/` (one
 program each) and `src/common/` (what the programs share — the boot source, the state screens,
-the screen-text path, the fault-latch hook); every include of a `src/` file is written from `src/`
+the screen-text path, the fault-latch hook, a driver file's binder and checks); every include of a `src/` file is written from `src/`
 (`#include "robots/chassis_table.hpp"`), and the `src` gate's step 0 fails any path a second
 include root could answer and any `src/` path a program prints that names no file (so a message
 that tells a student which file to edit cannot point at a moved one).
@@ -421,14 +422,18 @@ brief names it as a future consumer of the builder's dead-port tolerance).
   autonomous operation left on a bound mechanism is RELEASED by `runDriverControl` when driver
   control starts, and logged (`[WARN][TEL] driver control: RELEASED a claim ...`) — his ruling,
   T3 Part 2. **Still open here: chassis macros** (a button running a chassis motion the sticks can
-  interrupt) and angle presets. Station J is where the claws are first seen.
+  interrupt) and angle presets. Station J is where the claws are first seen. **Since T4 Part 1a
+  (2026-09-27)** robot two's buttons are ALSO stated in its driver file (`src/team/robot_two_driver.hpp`,
+  L5b), tied to the table's at compile time in Teleop until T4 Part 1b makes the driver file their one
+  owner; the macros, when they come, get their line in its WHICH BUTTON block and their binder in
+  `src/common/driver_controls.hpp` (T4 brief §8).
 - **The re-zero default, and what guards it now:** `teleop::DriverLoopConfig::rezeroButton` still
   DEFAULTS to `L1` (pivot 7's forward button). What stops the collision running is
   `teleop::validBindings()` — `runDriverControl` refuses, before its first tick, a binding on the
   loop's re-zero button (T3 Part 1). "shulib Teleop" names **Y** (the team lead's ruling: A became
   the claw's toggle), `static_assert`s that it equals the table's `kTeleopRezeroButton` and is no
-  binding button of either mechanism table, and validates its whole set against it in
-  `teleopInitialize()`. The default itself was NOT moved or made a sentinel — a program with no
+  binding button of either mechanism table (and, since T4 Part 1a, that it equals the driver file's
+  `kLoop.rezeroButton`), and validates its whole set against it in `teleopInitialize()`. The default itself was NOT moved or made a sentinel — a program with no
   bindings still gets L1, harmlessly.
 - Docs owed (for the macros): guide chapter section, cookbook, roadmap Phase T rows, build-order.
 - Size: the macros ~½–1 day.
@@ -520,8 +525,13 @@ first" — a bounded correction that never plans a turn, logged when it steers, 
 byte-for-byte unchanged, the auton line unchanged. HA-179/180.
 
 **L5b. [T4, NEW 2026-09-26] The driver program.** BRIEFED (`chunks/T4-driver-program.md`); Part 0 (the slots
-and the plan) landed 2026-09-27. Parts 1a → (COMP-b) → 1b → 2 (the old drive's protections, moved into the
-library) → 3 (the new "shulib Drive" replaces the old one; "shulib Teleop" retires). jal's answers:
+and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot, run
+by NO program yet** (`chunks/T4-PROGRESS.md` "Part 1a"): robot two's driver file `src/team/robot_two_driver.hpp`
+and its generic half `src/common/driver_controls.hpp` (the binder by name, the five checks, the ONE heading rule
+Teleop and the X-drive now call); the buttons also stay in `src/robots/mechanism_table.hpp`, tied at compile
+time in Teleop, until Part 1b; COMP-b's B11 replaced ("`opcontrol()` IS the driver file"). Parts (COMP-b) → 1b
+→ 2 (the old drive's protections, moved into the library) → 3 (the new "shulib Drive" replaces the old one;
+"shulib Teleop" retires). jal's answers:
 N1 (a) the over-current cut ON with an off switch and a required push check; N2 (a) as amended; N4 (a) the
 auton tester in slot 7 until Part 3; N5 (a) an optional SD copy of every library program's log; N7 (c)
 driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 as the brief recommends.
@@ -685,10 +695,10 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
    started only on his go. **DEFECTS2, T3 (both parts — the claws now driven by "shulib Teleop") and G1
    Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE. SRC1 (`src/`
-   organized) has landed. Next (2026-09-27): TANK1 (`moveTo` on a tank steers back onto its line — jal:
-   "Fix the library first") and T4 Part 1a (the driver file) in parallel; then COMP-t (the auton tester,
-   with the 40 in auton) on TANK1 and COMP-b on T4 Part 1a. jal pushes the branch once the auton is
-   complete, before G3a.** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
+   organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; no program runs it yet). Next
+   (2026-09-27): TANK1 (`moveTo` on a tank steers back onto its line — jal: "Fix the library first"); then
+   COMP-t (the auton tester, with the 40 in auton) on TANK1 and COMP-b on T4 Part 1a. jal pushes the branch
+   once the auton is complete, before G3a.** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
    brief against the tree is `G1-PROGRESS.md` 2c.1.)* The claws' first sight is worksheet Station J
    (after Station F).
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).

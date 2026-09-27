@@ -44,7 +44,7 @@ would move the failure rather than fix it: a header added later and forgotten
 is invisible to the generator AND to the coverage gate, which is the exact
 "silently absent, and the reference still looks complete" failure described
 above. So the list is a glob, on the same reasoning already recorded below for
-EXAMPLE_SOURCE_GLOB: a gate you must remember to update when adding a file is a
+EXAMPLE_SOURCE_GLOBS: a gate you must remember to update when adding a file is a
 gate that rots.
 
 WHAT DOCS2 FOUND WHEN IT POINTED THE PARSER AT THE REST OF THE TREE
@@ -1805,10 +1805,52 @@ def do_check_fresh():
 PUBLIC_DOC_GLOBS = ["docs/*.md", "docs/guide/*.md", "docs/cookbook/*.md", "docs/api/*.md"]
 PUBLIC_DOC_FILES = ["README.md", "test/README.md"]
 
-# The compiled-example sources are a GLOB, not a list: a gate you must remember
-# to update when adding a file is a gate that rots (the same reasoning as the
-# ARM gate's generated header list).
-EXAMPLE_SOURCE_GLOB = "test/*example*_test.cpp"
+# The compiled sources a public document may quote, as GLOBS, never as a list of
+# files: a gate you must remember to update when adding a file is a gate that
+# rots (the same reasoning as the ARM gate's generated header list).
+#
+# ONE GLOB PER KIND OF FILE (chunk T4 Part 1a, 2026-09-27 — until then this was
+# one glob, EXAMPLE_SOURCE_GLOB, the example tests alone). Each entry names one
+# KIND of compiled file that a chapter may quote from, and each must match at
+# least one file — a glob that matches nothing is a kind the scan silently
+# stopped reading, which is worse than failing:
+#   * test/*example*_test.cpp — the compiled example tests: every listing the
+#     guide and the cookbook teach from is compiled and RUN there;
+#   * src/team/*_driver.hpp — a robot's DRIVER FILE (T4): the team's own driver
+#     code, which the cookbook shows part by part ("A whole driver file": the
+#     controls, the feel, bind() and run()). It is compiled by every robot build
+#     and host-tested (test/robot_two_driver_test.cpp for robot two's), so a quote
+#     of it is held to the code as a listing is — and, by the whole-run rule
+#     below, each such listing to an unbroken run of the file.
+# The auton tester's chunk (COMP-t) appends src/team/autons.cpp, the students'
+# auton file, by the same rule. It is NEVER widened to all of src/: a program's
+# plumbing is not something a public document teaches from, and a quote of it
+# would pass this scan while describing code no reader should copy. The guide's
+# README states the same scope in prose ("the team's files under src/team/ that
+# a chapter quotes").
+EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp"]
+
+# THE WHOLE-RUN RULE, for the kinds a chapter shows AS THE FILE READS (T4 Part
+# 1a's review, 2026-09-27). The scan checks MEMBERSHIP: every quoted line must
+# be a line of some source. That catches a quoted line that changed or went —
+# NOT a line ADDED to the file inside the part a listing shows. A third control
+# added to a driver file's kHolds leaves every quoted line present, so the
+# cookbook's "one line per mechanism" listing would go silently one control
+# short (seen: an `{"intake", …}` line added to robot two's driver file, and
+# the membership scan stayed green). G3a's robot panel is going to write
+# exactly that part of the file. So, for each kind listed here: a listing ALL
+# of whose lines are lines of one file of the kind must ALSO be ONE UNBROKEN
+# RUN of that file's non-blank lines — nothing skipped, nothing reordered.
+# Blank lines are ignored on both sides, and a listing may start and stop
+# anywhere in the file. A listing that mixes lines from two files is held to
+# membership only. Each entry must also be an EXAMPLE_SOURCE_GLOBS entry (its
+# lines have to pass membership first); the scan fails if one is not. The
+# example tests are NOT a whole-run kind (the rule was made for the file G3a
+# will write): a recipe may still leave out lines of its test, such as a CHECK,
+# between the lines it shows. Measured when the rule was added: all 46 listings
+# that lie wholly inside one example test are unbroken runs already, so adding
+# that kind here would need no chapter re-quoted — a separate decision.
+WHOLE_RUN_SOURCE_GLOBS = ["src/team/*_driver.hpp"]
 
 # The C7 removability property: docs/internal/ must be droppable without
 # breaking a single public link.
@@ -1857,7 +1899,12 @@ def _public_docs():
 
 
 def do_check_examples():
-    """Every ```cpp line in public docs must appear VERBATIM in a compiled test.
+    """Every ```cpp line in public docs must appear VERBATIM in a compiled source.
+
+    The compiled sources are EXAMPLE_SOURCE_GLOBS: the example tests, and the
+    team's files a chapter quotes from (a robot's driver file, since T4). A
+    listing of a WHOLE_RUN_SOURCE_GLOBS file must also be one unbroken run of
+    it (the rule's reasoning is at that list).
 
     CAMPAIGN FIND (D3, mutations H1 and H6): this rule has existed since C8 and
     was enforced only by the internal verify harness — so a rotted example
@@ -1865,46 +1912,88 @@ def do_check_examples():
     survived everything. The rule is only a mechanism when a machine runs it.
     """
     import glob as _glob
-    sources = sorted(_glob.glob(os.path.join(REPO, EXAMPLE_SOURCE_GLOB)))
-    if not sources:
-        print("DOC EXAMPLE SCAN: no test/*example*_test.cpp found — the scan would "
-              "pass vacuously, which is worse than failing.", file=sys.stderr)
-        return 1
+    sources = []
+    for pattern in EXAMPLE_SOURCE_GLOBS:
+        matched = sorted(_glob.glob(os.path.join(REPO, pattern)))
+        if not matched:
+            print(f"DOC EXAMPLE SCAN: no file matches {pattern} — the scan would stop "
+                  "reading that kind of source without a word, which is worse than "
+                  "failing.", file=sys.stderr)
+            return 1
+        sources.extend(matched)
     known = set()
     for src in sources:
         for line in open(src, encoding="utf-8").read().splitlines():
             known.add(line.strip())
+    # The whole-run kinds (WHOLE_RUN_SOURCE_GLOBS): each file's non-blank lines,
+    # in order.
+    whole = []
+    for pattern in WHOLE_RUN_SOURCE_GLOBS:
+        if pattern not in EXAMPLE_SOURCE_GLOBS:
+            print(f"DOC EXAMPLE SCAN: {pattern} is a whole-run kind but not an "
+                  "EXAMPLE_SOURCE_GLOBS entry — its lines could never pass the "
+                  "membership scan it builds on.", file=sys.stderr)
+            return 1
+        for path in sorted(_glob.glob(os.path.join(REPO, pattern))):
+            lines = [l.strip() for l in open(path, encoding="utf-8").read().splitlines()
+                     if l.strip()]
+            whole.append((os.path.relpath(path, REPO), lines))
+
+    def _one_run(quoted, lines):
+        n = len(quoted)
+        return any(lines[i:i + n] == quoted for i in range(len(lines) - n + 1))
 
     bad = []
+    broken = []
     checked = 0
+    runs = 0
     for rel in _public_docs():
         if rel.startswith("docs/api/"):
             continue  # generated in full; check-fresh is the stronger rule (above)
         text = open(os.path.join(REPO, rel), encoding="utf-8").read()
         for bi, block in enumerate(re.findall(r"```cpp\n(.*?)```", text, re.S), 1):
-            for line in block.splitlines():
-                s = line.strip()
-                if not s:
-                    continue
-                checked += 1
-                if s not in known:
-                    bad.append((rel, bi, s))
-    if not bad:
+            quoted = [line.strip() for line in block.splitlines() if line.strip()]
+            missing = [s for s in quoted if s not in known]
+            checked += len(quoted)
+            bad.extend((rel, bi, s) for s in missing)
+            if missing or not quoted:
+                continue  # membership already failed it (or there is nothing to place)
+            owners = [src for src, lines in whole if set(quoted) <= set(lines)]
+            if not owners:
+                continue  # not a listing of a whole-run file: membership is the rule
+            runs += 1
+            if not any(_one_run(quoted, lines) for src, lines in whole if src in owners):
+                broken.append((rel, bi, owners[0]))
+    if not bad and not broken:
         print(f"doc example scan: {checked} quoted lines, all verbatim "
-              f"({len(sources)} source files)")
+              f"({len(sources)} source files); {runs} listings of whole-run files, "
+              "each one unbroken run")
         return 0
-    print("", file=sys.stderr)
-    print("NOT VERBATIM — a documented example has drifted from the code that "
-          "compiles it.", file=sys.stderr)
-    print("Fix the EXAMPLE TEST first, then re-quote the listing from it. Never "
-          "hand-edit", file=sys.stderr)
-    print("the markdown toward agreement: only one of the two sides is checked "
-          "by a compiler.", file=sys.stderr)
-    print("", file=sys.stderr)
-    for rel, bi, line in bad[:40]:
-        print(f"  {rel} (block {bi}): {line}", file=sys.stderr)
-    if len(bad) > 40:
-        print(f"  … and {len(bad) - 40} more", file=sys.stderr)
+    if bad:
+        print("", file=sys.stderr)
+        print("NOT VERBATIM — a documented listing has drifted from the compiled "
+              "source it quotes.", file=sys.stderr)
+        print("Fix the SOURCE first — the example test, or the team's file under "
+              "src/team/ — then re-quote", file=sys.stderr)
+        print("the listing from it. Never hand-edit the markdown toward agreement: "
+              "only one of the two", file=sys.stderr)
+        print("sides is checked by a compiler.", file=sys.stderr)
+        print("", file=sys.stderr)
+        for rel, bi, line in bad[:40]:
+            print(f"  {rel} (block {bi}): {line}", file=sys.stderr)
+        if len(bad) > 40:
+            print(f"  … and {len(bad) - 40} more", file=sys.stderr)
+    if broken:
+        print("", file=sys.stderr)
+        print("NOT ONE UNBROKEN RUN — a listing of a team file skips or reorders "
+              "its lines: a line was", file=sys.stderr)
+        print("added to the file inside the part the listing shows (or the listing "
+              "leaves one out). Re-quote", file=sys.stderr)
+        print("the listing from the file, so it shows every line of that part.",
+              file=sys.stderr)
+        print("", file=sys.stderr)
+        for rel, bi, src in broken:
+            print(f"  {rel} (block {bi}): a listing of {src}", file=sys.stderr)
     return 1
 
 
@@ -2475,6 +2564,112 @@ def do_self_test():
         # the other and the reference is short by a whole file.
         outs = [t["out"] for t, _b, _e in pages]
         check(len(outs) == len(set(outs)), "page paths are unique")
+
+        # ── check-examples reads every KIND in EXAMPLE_SOURCE_GLOBS, and only those (T4 1a) ──
+        # Bug caught: a quote of a team file a chapter shows whole (robot two's
+        # driver file, src/team/robot_two_driver.hpp) drifting from the file while
+        # the scan stays green — because the scan read test/ only, or because a glob
+        # that matches nothing (the file renamed) silently drops that kind; and the
+        # opposite hole, a glob widened to all of src/, which would let a chapter
+        # quote a program's plumbing. A fixture tree, run through the real check.
+        import contextlib
+        import io
+        ex = os.path.join(tmp, "examples-fixture")
+
+        def _put(rel, text):
+            path = os.path.join(ex, rel)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text)
+
+        def _scan():
+            global REPO
+            saved = REPO
+            REPO = ex
+            try:
+                with contextlib.redirect_stdout(io.StringIO()), \
+                        contextlib.redirect_stderr(io.StringIO()):
+                    return do_check_examples()
+            finally:
+                REPO = saved
+
+        _put("test/fixture_example_test.cpp", "    int onlyInTheExample = 1;\n")
+        _put("src/team/fixture_driver.hpp",
+             "    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n")
+        _put("src/programs/fixture_program.cpp", "    int onlyInAProgram = 3;\n")
+        quote = ("```cpp\nstatic constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n"
+                 "int onlyInTheExample = 1;\n```\n")
+        _put("docs/cookbook/fixture.md", quote)
+        check(_scan() == 0,
+              "check-examples: a line only a driver file holds is VERBATIM (passes)")
+        _put("docs/cookbook/fixture.md", quote.replace("= 7;", "= 8;"))
+        check(_scan() == 1,
+              "check-examples: a drifted driver-file quote fails")
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInAProgram = 3;\n```\n")
+        check(_scan() == 1,
+              "check-examples: a line only a program file holds fails (never all of src/)")
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+        check(_scan() == 0, "check-examples: the fixture's example line passes on its own")
+
+        # ── the WHOLE-RUN rule (WHOLE_RUN_SOURCE_GLOBS; T4 Part 1a's review) ──
+        # Bug caught: a control ADDED to a driver file inside the part a chapter
+        # lists (every quoted line still present, so membership stays green) —
+        # the listing silently one control short; and the same rule wrongly
+        # applied to an example test, whose recipes skip the test's CHECKs.
+        driver_whole = ("    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n"
+                        "    static constexpr int kHolds[] = {\n"
+                        "        1,  // pivot six\n"
+                        "\n"
+                        "        2,  // pivot seven\n"
+                        "    };\n")
+        _put("src/team/fixture_driver.hpp", driver_whole)
+        listing = ("```cpp\nstatic constexpr int kHolds[] = {\n    1,  // pivot six\n"
+                   "    2,  // pivot seven\n};\n```\n")
+        _put("docs/cookbook/fixture.md", listing)
+        check(_scan() == 0,
+              "check-examples: a listing that is one unbroken run of a driver file passes "
+              "(blank lines ignored on both sides)")
+        _put("src/team/fixture_driver.hpp",
+             driver_whole.replace("        2,  // pivot seven\n",
+                                  "        2,  // pivot seven\n"
+                                  "        3,  // an intake, added to the file only\n"))
+        check(_scan() == 1,
+              "check-examples: a line ADDED to a driver file inside a listed part fails, "
+              "though every quoted line is still in the file")
+        _put("src/team/fixture_driver.hpp", driver_whole)
+        _put("docs/cookbook/fixture.md",
+             "```cpp\nstatic constexpr int kHolds[] = {\n    2,  // pivot seven\n"
+             "    1,  // pivot six\n```\n")
+        check(_scan() == 1,
+              "check-examples: a listing of a driver file with its lines REORDERED fails")
+        _put("docs/cookbook/fixture.md",
+             "```cpp\nstatic constexpr int kHolds[] = {\n    2,  // pivot seven\n```\n")
+        check(_scan() == 1,
+              "check-examples: a listing of a driver file that SKIPS a line of its part "
+              "fails")
+        _put("src/team/fixture_driver.hpp",
+             "    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n")
+        _put("test/fixture_example_test.cpp",
+             "    int onlyInTheExample = 1;\n    CHECK(onlyInTheExample == 1);\n"
+             "    int alsoInTheExample = 2;\n")
+        _put("docs/cookbook/fixture.md",
+             "```cpp\nint onlyInTheExample = 1;\nint alsoInTheExample = 2;\n```\n")
+        check(_scan() == 0,
+              "check-examples: an example test is not a whole-run kind — a recipe that leaves "
+              "out the test's CHECK passes")
+        saved_whole = WHOLE_RUN_SOURCE_GLOBS[:]
+        WHOLE_RUN_SOURCE_GLOBS[:] = ["src/team/*_notalisted_kind.hpp"]
+        try:
+            check(_scan() == 1,
+                  "check-examples: a whole-run kind that is not an EXAMPLE_SOURCE_GLOBS "
+                  "entry fails")
+        finally:
+            WHOLE_RUN_SOURCE_GLOBS[:] = saved_whole
+        _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+        os.remove(os.path.join(ex, "src/team/fixture_driver.hpp"))
+        check(_scan() == 1,
+              "check-examples: a kind whose glob matches NO file fails, even when no quote "
+              "reads it")
 
         # ── the two removability screens must not drift apart again (DOCS1) ──
         # This gate runs at BUILD time; prepare_site.py's runs at PUBLISH time.

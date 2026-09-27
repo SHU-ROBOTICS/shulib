@@ -106,6 +106,13 @@
 //     check; src/programs/teleop_claws.hpp binds each built one to its buttons (the toggle's initial level
 //     from pneumaticStartCommand() too) and words its boot line and panel row. Nothing HERE depends
 //     on the library: the conversion is the program's, and this file stays plain data.
+//   * robot two's DRIVER FILE (src/team/robot_two_driver.hpp, since T4 Part 1a, 2026-09-27): its
+//     compile-time checks read kRobotTwoMechanisms BY NAME — every control names an entry of its
+//     kind, and every entry has a control (src/common/driver_controls.hpp). The buttons are stated
+//     there AND here until T4 Part 1b removes them from this file: until then "shulib Teleop"
+//     static_asserts that the two agree, entry by entry (controlsMatchTable), and that the driver
+//     file's re-zero is kTeleopRezeroButton's Y, so a button changed in one place only does not
+//     compile.
 //
 // COMPILE-TIME CHECKS (the static_asserts at the end of this file) — each the thing a typo would
 // produce, each a named predicate the host test breaks with hand-built tables:
@@ -151,7 +158,10 @@ namespace shulib::bench {
 /// DriverLoopConfig::rezeroButton default is L1, which robot two's port-7 pivot uses.)
 /// TIED TO TELEOP since T3 Part 2 (2026-09-26): Teleop's own constant, `kRezeroButton` in
 /// src/programs/teleop_program.cpp, is Y, and a `static_assert(kRezeroButton == kTeleopRezeroButton)` right
-/// under it makes the two one fact — a build in which they drift does not compile. Beside it, a
+/// under it makes the two one fact — a build in which they drift does not compile. (Since T4 Part
+/// 1a Teleop's constant is also static_assert-tied to robot two's driver file's re-zero,
+/// `RobotTwoDriver::kLoop.rezeroButton` in src/team/robot_two_driver.hpp, until T4 Part 1b makes
+/// the driver file its one owner.) Beside it, a
 /// second static_assert checks that no binding button of either table is the re-zero button. This
 /// table's check 6 (below) keeps every DECLARED button off it at compile time; at run time
 /// Teleop's teleopInitialize() and the library's runDriverControl() refuse, before the first tick,
@@ -493,8 +503,13 @@ constexpr bool pneumaticCommandFor(const PneumaticMechanismEntry& e, PneumaticPo
 /// The level `e` is commanded to at program start (its `start` position). Since T3 Part 2 it is
 /// BOTH the config's START level (src/common/boot_source.hpp: config::MechanismConfig::pneumaticStart,
 /// which robot::Robot drives the 3-wire line to when it makes it) AND the driver's toggle's
-/// initial level (src/programs/teleop_claws.hpp) — one function, so the two cannot disagree and the claw
-/// cannot move when driver control first starts. A COMPLETE entry only.
+/// initial level (src/programs/teleop_claws.hpp; a driver file's binder reads the same level back
+/// from the config, src/common/driver_controls.hpp) — one function, so the two cannot disagree.
+/// THE RULE (corrected at T4 Part 1a, 2026-09-27; this said "the claw cannot move when driver
+/// control first starts" until then): the first driver-control entry in a run SENDS this level;
+/// nothing moves unless something commanded the line in between; after an autonomous that left
+/// the claw OPEN, the entry closes it — the team lead's ruling (2026-09-26): "starts closed —
+/// whatever autonomous left it at". A COMPLETE entry only.
 constexpr bool pneumaticStartCommand(const PneumaticMechanismEntry& e) {
     return pneumaticCommandFor(e, *e.start);
 }

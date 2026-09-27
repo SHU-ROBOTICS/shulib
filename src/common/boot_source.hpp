@@ -90,9 +90,14 @@ namespace shulib::bench {
 // pneumaticStartCommand() / pneumaticSafeCommand(), through the entry's polarity — never as its
 // positions. The START level is what the builder drives the line to when it makes it (A4 register
 // HA-119: a 3-wire output is driven the moment it is constructed), and the SAME function gives the
-// driver's toggle its initial level (src/programs/teleop_claws.hpp), so the two cannot disagree and the claw
-// cannot move when driver control first starts. The buttons and the volts are not config fields:
-// they go to the bindings, from the same entry.
+// driver's toggle its initial level (src/programs/teleop_claws.hpp; a driver file's binder reads it
+// back from this config, src/common/driver_controls.hpp), so the two cannot disagree. THE RULE
+// (corrected at T4 Part 1a, 2026-09-27; this said "the claw cannot move when driver control first
+// starts" until then): the first driver-control entry in a run SENDS the start level; nothing moves
+// unless something commanded the line in between; after an autonomous that left the claw OPEN, the
+// entry closes it — the team lead's ruling (2026-09-26): "starts closed — whatever autonomous left
+// it at". The buttons and the volts are not config fields: they go to the bindings, from the same
+// entry.
 
 /// The words the boot check uses for a declared mechanism MOTOR port that carries a motor the
 /// description does not list — Calibrate's own words for them ("claw pivot (declared)"), because

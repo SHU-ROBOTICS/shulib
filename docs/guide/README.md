@@ -68,9 +68,14 @@ only by a person running an internal script — so a listing could drift from th
 compiles it and pass both the build and CI. (It was found by deliberately introducing the
 drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole suite.) The
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
-any public document to appear verbatim in a compiled example test, and the example sources are
-matched by a glob, so a new examples file is covered the moment it exists. The same run also
-checks that no public document links into the development-process notes.
+any public document to appear verbatim in a compiled source: a compiled example test, or one of
+the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
+`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes) — never the rest of
+`src/`. A listing of a driver file must also be one unbroken run of the file's lines, so a line
+added to the file inside a part a chapter shows fails the scan too. The sources are matched by
+globs, one per kind of file, so a new examples file is covered the moment it exists, and a kind
+that matches no file fails the scan. The same run also checks that no public document links into
+the development-process notes.
 
 **Where this applies:** `docs/guide/`, `docs/cookbook/`, `docs/*.md`, and the repo `README.md`.
 It deliberately does *not* apply to `docs/api/`, which is generated in full and checked by a

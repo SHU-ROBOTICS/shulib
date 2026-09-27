@@ -5,7 +5,10 @@
 // the program says about them — the boot lines, the banner's claw sentence, the panel's claw row,
 // the controller's absent word — plus the MERGED fault row that made room for the claw row (the
 // team lead's ruling R3: "the panel is full — merge the two fault rows and give the freed row to
-// the claws").
+// the claws"). Since T4 Part 1a (2026-09-27) it also carries the INTERIM TIE between these
+// bindings' buttons and robot two's driver file (controlsMatchTable, below), and the claw row
+// takes its ` FREED` as a bool, so a program binding through the driver file prints the same row;
+// T4 Part 1b moves the buttons into the driver file alone and retires TeleopClaws.
 //
 // ── Why its own file, PROS-free ─────────────────────────────────────────────────────
 // src/programs/teleop_program.cpp cannot be compiled on the host (it paints through pros/screen.h, which
@@ -21,8 +24,12 @@
 //   * A toggles the pneumatic claw, which starts CLOSED — the toggle's initial level is
 //     pneumaticStartCommand(entry), the SAME function that gives the config its pneumaticStart
 //     (src/common/boot_source.hpp), so the level the builder drove the line to at boot and the level the
-//     toggle sends at the first driver-control entry are one value, and the claw cannot move when
-//     driver control starts; a disable leaves it where it is (the library's toggle);
+//     toggle sends at the first driver-control entry are one value. THE RULE (corrected at T4 Part
+//     1a, 2026-09-27; it said "the claw cannot move when driver control starts" until then): the
+//     FIRST driver-control entry in a run SENDS the start level; nothing moves unless something
+//     commanded the line in between; after an autonomous that left the claw OPEN, the entry closes
+//     it — the team lead's ruling (2026-09-26): "starts closed — whatever autonomous left it at".
+//     A disable, and every later entry, leave it where it is (the library's toggle);
 //   * the re-zero button is Y (src/programs/teleop_program.cpp's kRezeroButton, tied to the table's
 //     kTeleopRezeroButton by a static_assert): bind() validates the whole set against it.
 //
@@ -51,6 +58,7 @@
 #include <string_view>
 
 #include "common/boot_source.hpp"
+#include "common/driver_controls.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/diag/fault.hpp"
@@ -193,6 +201,50 @@ private:
     teleop::ToggleBinding* togglePtrs_[kMaxPneumatics]{};
     std::size_t toggleCount_ = 0;
 };
+
+// ═══ THE INTERIM TIE: the driver file and this table, until T4 Part 1b ════════════════
+// Since T4 Part 1a robot two's buttons are stated TWICE: in the driver file
+// (src/team/robot_two_driver.hpp, kHolds / kToggles — the team's copy, which the competition
+// program will run) and in this program's table entries (forward / reverse / volts / toggle), which
+// TeleopClaws binds. T4 Part 1b removes the table's copy and makes "shulib Teleop" run the driver
+// file; until then src/programs/teleop_program.cpp static_asserts this predicate over the two, so a
+// button changed in one and not the other fails the build. It retires in 1b, with TeleopClaws.
+
+/// True when every control's buttons and volts equal those of the `t` entry of the SAME NAME: a
+/// hold's forward, back and volts are its motor entry's forward, reverse and volts, and a toggle's
+/// button is its pneumatic entry's toggle. A control whose name `t` does not declare (of its kind)
+/// does not match. Which entries have a control at all is the driver file's own check
+/// (controlsCoverTable), not this one's. Complete entries only (every table a build compiles).
+constexpr bool controlsMatchTable(std::span<const HoldControl> holds,
+                                  std::span<const ToggleControl> toggles,
+                                  const MechanismTable& t) noexcept {
+    for (const HoldControl& h : holds) {
+        bool matched = false;
+        for (std::size_t k = 0; k < motorEntryCount(t); ++k) {
+            const MotorMechanismEntry& e = t.motors[k];
+            if (controlNameIs(e.name, h.mechanism)) {
+                matched = e.forward.has_value() && e.reverse.has_value() && *e.forward == h.forward
+                          && *e.reverse == h.back && e.volts == h.volts.value();
+            }
+        }
+        if (!matched) {
+            return false;
+        }
+    }
+    for (const ToggleControl& c : toggles) {
+        bool matched = false;
+        for (std::size_t k = 0; k < pneumaticEntryCount(t); ++k) {
+            const PneumaticMechanismEntry& e = t.pneumatics[k];
+            if (controlNameIs(e.name, c.mechanism)) {
+                matched = e.toggle.has_value() && *e.toggle == c.button;
+            }
+        }
+        if (!matched) {
+            return false;
+        }
+    }
+    return true;
+}
 
 // ═══ THE WORDS ══════════════════════════════════════════════════════════════════════
 // Every sentence below is ASCII, and bounded: each goes through snprintf with a precision on every
@@ -381,9 +433,13 @@ struct ClawRow {
     char text[calibration::kSmallCols + 1]{};
 };
 
-/// The claw row for `t` over `robot`, with ` FREED` when `claws` remembers a released claim.
-inline ClawRow clawRowText(const MechanismTable& t, const robot::Robot& robot,
-                           const TeleopClaws& claws) {
+/// The claw row for `t` over `robot`, with ` FREED` when `freed` — a claim released at this
+/// driver-control entry is remembered by whatever holds the bindings (TeleopClaws, or a driver
+/// file's DriverBindings: `anyReleasedLeftoverClaim()`). THE SHARED FORM since T4 Part 1a: the
+/// row reads the robot and the table, and takes the one fact it needs from the bindings as a
+/// bool, so a program that binds through a driver file (the competition program, chunk COMP-b)
+/// prints the same row, byte for byte, without a TeleopClaws.
+inline ClawRow clawRowText(const MechanismTable& t, const robot::Robot& robot, bool freed) {
     ClawRow out;
     if (motorEntryCount(t) + pneumaticEntryCount(t) == 0) {
         std::snprintf(out.text, sizeof out.text, "%.50s", kNoClawsRow.data());
@@ -425,11 +481,19 @@ inline ClawRow clawRowText(const MechanismTable& t, const robot::Robot& robot,
         n += static_cast<std::size_t>(
             std::snprintf(row + n, sizeof row - n, " | %.23s %.6s", upper, word));
     }
-    if (claws.anyReleasedLeftoverClaim() && n < sizeof row) {
+    if (freed && n < sizeof row) {
         std::snprintf(row + n, sizeof row - n, " FREED");
     }
     std::snprintf(out.text, sizeof out.text, "%.50s", row);
     return out;
+}
+
+/// The claw row with ` FREED` read from `claws` — "shulib Teleop"'s call, unchanged since T3 Part
+/// 2. A one-line forwarder to the shared form above (T4 Part 1a), kept until T4 Part 1b retires
+/// TeleopClaws, so no call site and no test pin changes.
+inline ClawRow clawRowText(const MechanismTable& t, const robot::Robot& robot,
+                           const TeleopClaws& claws) {
+    return clawRowText(t, robot, claws.anyReleasedLeftoverClaim());
 }
 
 /// True when any mechanism the robot declares was NOT built — what the controller's third line

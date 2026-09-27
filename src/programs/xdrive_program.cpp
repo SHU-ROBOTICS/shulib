@@ -51,6 +51,7 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
+#include "common/driver_controls.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/screen_text.hpp"
 #include "robots/xdrive_config.hpp"
@@ -67,7 +68,6 @@
 #include "shulib/hal/pros/line_display.hpp"
 #include "shulib/hal/pros/tick_pacer.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
-#include "shulib/localization/localizer.hpp"
 #include "shulib/robot/robot.hpp"
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/teleop/drive_modes.hpp"
@@ -234,18 +234,10 @@ void refuse(const char* why) {
     paintRefusal(st.refusal);
 }
 
-/// The heading the feel layer trusts — the SAME rule as src/programs/teleop_program.cpp's headingSample()
-/// (driver_control.hpp's contract): the fused heading, trusted only when the estimate is live, the
-/// IMU reports ready, and no IMU_LOST fault has been raised this run. Written twice, deliberately
-/// for now: a shared helper would edit src/programs/teleop_program.cpp, which T3 is changing in parallel —
-/// G1-PROGRESS "Part 2c" lists the merge as owed.
-teleop::HeadingSample headingSample(const robot::Robot& r) {
-    const bool trusted =
-        r.localizer().qualityClass() != localization::Localizer::Quality::Uninitialized
-        && r.context().imu().isReady() && r.faults().raiseCount(diag::FaultCode::ImuLost) == 0;
-    return teleop::HeadingSample{.radians = r.localizer().pose().heading().radians(),
-                                 .trusted = trusted};
-}
+// The heading the feel layer trusts is src/common/driver_controls.hpp's driverHeading() — the ONE
+// heading rule since T4 Part 1a (2026-09-27), shared with "shulib Teleop" and every driver file,
+// and host-tested there. (G1 Part 2c wrote it here a second time, deliberately, while T3 was
+// changing Teleop in parallel, and listed the merge as owed; T4 Part 1a made it.)
 
 }  // namespace
 
@@ -342,7 +334,7 @@ void runXdrive() {
     teleop::runDriverControl(
         r.chassis(), *st.master, st.devices->pacer(), st.shaper, kLoopConfig,
         [] { return pros::c::competition_is_disabled() != 0; },
-        [&r] { return headingSample(r); },
+        [&r] { return driverHeading(r); },
         [&clock, &faultDisplay](const math::ChassisSpeeds&, bool, const teleop::DriveShaperState&) {
             faultDisplay.update(clock.now());
         });

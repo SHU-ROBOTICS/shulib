@@ -293,12 +293,12 @@ src/                the robot programs, one folder per job (every include writte
                     the robot together
   robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
                     claws) and the invented X-drive (a RobotConfig constant)
-  team/             the team's own code — where students edit (empty until the driver program
-                    and the autonomous list land)
+  team/             the team's own code — where students edit: robot two's driver file (which
+                    button does what, the feel; no program runs it yet), the autonomous list next
   programs/         one program each: the bench tester, shulib Drive, shulib Calibrate, shulib
                     Teleop (built on robot::Robot) with its claw wiring, the X-drive's program
   common/           what the programs share: the boot source, the state screens, the screen
-                    text path, the fault-latch hook
+                    text path, the fault-latch hook, a driver file's binder and checks
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

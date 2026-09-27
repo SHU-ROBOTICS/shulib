@@ -21,8 +21,10 @@ ctest --test-dir build/test --output-on-failure
 (`tools/api_doc_tool.py`): a public entity anywhere under `include/shulib/` with no
 documentation comment fails the build *naming that entity, its file and its line*; the generated reference in
 `docs/api/` must match a fresh generation; every ```` ```cpp ```` line in the public
-documentation must appear verbatim in a compiled example test; and no public document may link
-into the development-process notes. The library itself is header-only C++ and depends on none of
+documentation must appear verbatim in a compiled example test (or in a team file a chapter quotes
+— robot two's driver file, `src/team/robot_two_driver.hpp`, each listing of which must also be an
+unbroken run of the file); and no public document may link into the development-process notes.
+The library itself is header-only C++ and depends on none of
 this — only the test build does, and deliberately: a gate you can forget to run is not a gate.
 
 ## Conventions

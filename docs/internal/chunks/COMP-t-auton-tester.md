@@ -13,6 +13,13 @@
 > guide 16) from TANK1's own tests, and dates the change here. **Slot:** 7 until T4 Part 3, then 2 (T4 N4).
 > **Tree:** SRC1 is committed (`1237c91`); the flat-layout fallback is moot. Which of COMP-t and COMP-b
 > lands second takes the next build number and self-test pair.
+>
+> **At T4 Part 1a's merge (2026-09-27):** `tools/api_doc_tool.py` now has `EXAMPLE_SOURCE_GLOBS` (the list,
+> created by T4 with `test/*example*_test.cpp` and `src/team/*_driver.hpp` — COMP-t APPENDS `src/team/autons.cpp`
+> as briefed) AND a second list, `WHOLE_RUN_SOURCE_GLOBS`, whose files every listing must quote as one
+> unbroken run of lines. **The coordinator's ruling: `src/team/autons.cpp` joins `WHOLE_RUN_SOURCE_GLOBS` too**
+> (a listing of an auton that skips a line misstates the auton); guide 16 quotes each piece as its own
+> unbroken listing.
 
 > **Execution brief (DRAFT for the team lead's go).** Written 2026-09-27 (~02:00–03:30 EDT) from a read-only
 > pass over `shulib-v2` at `37706ce` (G1 complete) plus the SRC1 brief (`0fab866`) and T4's amended brief,

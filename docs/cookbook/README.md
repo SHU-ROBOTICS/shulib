@@ -1,7 +1,9 @@
 # The shulib cookbook
 
 > **What this is:** short, complete answers to "how do I write the routine I am trying to write
-> right now." Every recipe is a real compiled program that runs against the simulator.
+> right now." Every recipe is a real compiled program that runs on the host test plant — and the
+> last section of chapter 6 is a real file from the project, robot two's driver file, which runs
+> on the host through a stand-in for PROS.
 > **What this is not:** a course. The [user guide](../guide/README.md) teaches the ideas in order;
 > this book assumes you already have a robot object and a deadline.
 
@@ -21,8 +23,12 @@ Every recipe has the same four parts:
 1. **Use this when** — the situation, in one sentence. Skim these to find your recipe.
 2. **The recipe** — code you can paste. It is quoted *verbatim* from
    [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), where it is
-   compiled and run against the simulated robot on every build. If a recipe stopped working,
-   that file would go red before you ever saw it.
+   compiled and run on the host test plant on every build. If a recipe stopped working,
+   that file would go red before you ever saw it. (Chapter 6's last section quotes robot two's
+   driver file, [`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp), instead:
+   every robot build compiles it, and
+   [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs it on every
+   build.)
 3. **Why it is written this way** — the reasoning, so you can change it safely.
 4. **Watch out for** — the mistake this recipe exists to prevent.
 
@@ -84,6 +90,7 @@ so it cannot disagree with the code.
 |---|---|
 | [Drive a mechanism from two buttons](06-driver-control.md#drive-a-mechanism-from-two-buttons) | A claw, arm or intake moves while a button is held and stops when the driver lets go |
 | [Open and close a pneumatic claw with one button](06-driver-control.md#open-and-close-a-pneumatic-claw-with-one-button) | A claw on air opens on one press and closes on the next |
+| [A whole driver file: robot two's](06-driver-control.md#a-whole-driver-file-robot-twos) | You want one robot's buttons, feel and loop in one file a student can defend |
 
 ---
 
@@ -116,7 +123,8 @@ defeat. [Chapter 10](../guide/10-the-api.md) is that API in prose.
 - **Strategy.** Which goals to score, in which order, is your team's to decide and defend. The
   recipes use plausible field points as scaffolding; none of them is an argument about what a
   good auton does.
-- **Anything untested.** If it is not in `test/cookbook_examples_test.cpp`, it is not in here.
+- **Anything untested.** If it is not in `test/cookbook_examples_test.cpp` (or, for chapter 6's
+  driver file, `test/robot_two_driver_test.cpp`), it is not in here.
 
 ---
 

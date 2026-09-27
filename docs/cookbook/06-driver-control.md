@@ -3,16 +3,20 @@
 The other five chapters are about autonomous routines. This one is about the two minutes after
 them: the driver's own buttons. The drive itself needs no recipe — `teleop::runDriverControl` is
 the whole loop ([Chapter 10](../guide/10-the-api.md) walks through it) — so this chapter is about
-the thing a team adds to it: a mechanism the driver works while driving.
+the thing a team adds to it: a mechanism the driver works while driving. It ends with a whole
+driver file — one robot's buttons, feel and loop in one place.
 
-The listings are compiled and run in
+The first two recipes' listings are compiled and run in
 [`test/cookbook_examples_test.cpp`](../../test/cookbook_examples_test.cpp), cases `cookbook-06a`
 and `cookbook-06b`, on the host test plant. **No driver has used either on a robot yet.** Beyond
 the names every recipe assumes, they have the teleop and hardware names in scope —
 `MechanismBinding`, `ToggleBinding`, `MotorMechanism`, `PneumaticMechanism`, `ControllerButton`,
 `BrakeMode`, `DriverLoopConfig`, `validBindings`, `runDriverControl` — plus the shaper, the
 controller, the loop's three callbacks and a `showOnScreen` stand-in for the program's own screen
-line, which each test declares just above.
+line, which each test declares just above. The last section quotes a real file from the project,
+[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp), which every robot build
+compiles and [`test/robot_two_driver_test.cpp`](../../test/robot_two_driver_test.cpp) runs through
+the host's stand-in for PROS.
 
 ---
 
@@ -197,3 +201,111 @@ disable ends driver control and the claw is **still open**.
   so the start level is set then: if the brain ignores it, the claw sits wherever its valve rests
   until the robot is enabled — or until driver control starts and the toggle sets its level. Check
   both on your robot before a match depends on them.
+
+---
+
+## A whole driver file: robot two's
+
+**Use this when:** you want to see everything a driver does to one robot — every stick and button,
+the feel, and the call into the loop — in one file a student can read top to bottom and defend.
+
+The two recipes above are the pieces. A team's own robot puts them in ONE file:
+[`src/team/robot_two_driver.hpp`](../../src/team/robot_two_driver.hpp) is robot two's. Its header
+comment lists what every control does in plain words; below it, the code has three parts. **Which
+button does what** — one line per mechanism, named as the robot's mechanism table names it:
+
+```cpp
+static constexpr HoldControl kHolds[] = {
+    {"claw pivot 6", Button::R1, Button::R2, 12_volt},  // forward / back, full power
+    {"claw pivot 7", Button::L1, Button::L2, 12_volt},  // forward / back, full power
+};
+static constexpr ToggleControl kToggles[] = {
+    {"claw", Button::A},  // each press opens or closes it
+};
+```
+
+**The feel** — the library's default arcade feel with field-centric off, the loop's tick, the
+re-zero button, and what the drive does when the sticks are let go:
+
+```cpp
+static constexpr teleop::DriverProfile kFeel{.mode = teleop::DriveMode::ArcadeBody};
+
+static constexpr teleop::DriverLoopConfig kLoop{
+    .tickPeriod = 10_ms,                        // the brain's tick
+    .rezeroButton = Button::Y,                  // field-centric's "away from me"
+    .releaseBrakeMode = hal::BrakeMode::Coast,  // let go of the sticks: the drive coasts
+};
+```
+
+**How it runs** — `bind()` once, when the program boots, and `run()` in driver control, each under
+the file's own comment. Nothing in this part changes when a button does:
+
+```cpp
+/// initialize(), once, right after the robot is built. False, with the reason in `why` and
+/// nothing bound, when the robot is not the one these controls are for. A mechanism it
+/// declares but could not build (a motor unplugged) gets no binding: its buttons do
+/// nothing, and the drive still runs. Call it inside the boot's try: a binding can throw.
+bool bind(robot::Robot& robot, char* why, std::size_t cap) {
+    return bindings_.bind(robot, kHolds, kToggles, kLoop.rezeroButton, why, cap);
+}
+
+/// opcontrol(): drive until the field disables the robot, then return (PROS calls
+/// opcontrol() again when driver control comes back). `pacer` is the brain's tick,
+/// `disabled` asks the field, and `perTick` is the program's screen (it may do nothing).
+template <class IsDisabled, class PerTick>
+void run(robot::Robot& robot, motion::ITickPacer& pacer, IsDisabled&& disabled,
+         PerTick&& perTick) {
+    teleop::runDriverControl(robot.chassis(), controller_, pacer, feel_, kLoop,
+                             bindings_.holds(), bindings_.toggles(), disabled,
+                             [&robot] { return driverHeading(robot); }, perTick);
+}
+```
+
+Every line of these listings is the file's own, and each listing is an unbroken run of the file:
+the documentation build fails when a quoted line changes in the file, and when a line is added to
+the file inside a part listed here, until the listing is quoted again.
+
+**No program runs this file yet.** The competition program's driver control will, and so will
+the driver program that replaces the old "shulib Drive". **Nothing of it
+has run on a robot**: it is tested on the host, through a stand-in for PROS, against robot two's
+real mechanism table.
+
+**Why it is written this way.**
+
+- **The file says WHICH button, never HOW a binding works.** Everything that is not "which button
+  does what" is in [`src/common/driver_controls.hpp`](../../src/common/driver_controls.hpp), written
+  and tested once: the two control types, the checks, the binder behind `bind()`, and the one rule
+  for trusting the heading. A second robot's driver file copies only its own controls.
+- **`bind()` finds each mechanism BY NAME**, in the robot the program built from its mechanism
+  table. It refuses — `false`, with the reason, nothing bound — a name the robot does not declare,
+  a hold on a mechanism that is not a motor (or a toggle on one that is not pneumatic), and a
+  mechanism the robot declares that no control names: those are controls written for a different
+  robot. A mechanism the robot declares but could not build (its motor unplugged) is skipped — its
+  buttons do nothing, and the drive still runs.
+- **The claw starts where the robot started.** A toggle's first level is the level the robot built
+  the claw's line at, read back from the robot — so nothing in this file says "closed", and flipping
+  which level opens the claw (in the mechanism table) needs no edit here. The first time driver
+  control starts in a run, that level is sent, whatever an autonomous routine left: the team lead's
+  ruling, "starts closed — whatever autonomous left it at". After that, a disable and the next start
+  send nothing.
+- **`run()` IS the library's loop**, with its arguments in plain sight: the robot's chassis, the
+  controller, the program's tick, the feel, the loop settings, the two lists of bindings, the
+  field's disable, the heading and the program's screen.
+- **`make` refuses a set that could not work.** Six checks under the class stop the build — each
+  with its own message — on a button doing two jobs, a control on the re-zero button, a voltage
+  outside (0, 12], a name the robot's table does not have (or of the wrong kind, or twice), a
+  mechanism with no control, and a loop tick that is not the brain's.
+
+**Watch out for:**
+
+- **Keep the driver file in static storage.** The program holds ONE for the whole run, never on
+  `opcontrol()`'s stack: a field disable deletes the driver-control task, and the loop holds the
+  bindings by address.
+- **Call `bind()` inside the boot's `try`**, and `unbind()` first in its `catch`: a binding that
+  cannot be built throws, and nothing may be left pointing at a robot the `catch` tears down.
+- **Until the buttons leave the mechanism table, change a button in both files** — and the
+  re-zero button in three, because "shulib Teleop" also names its own. For now robot two's
+  mechanism table still states the buttons as well, for the program that binds from it; the build
+  refuses the files when they disagree. That second copy is being removed.
+- **A robot with no toggle (or no hold)** drops that list and passes `{}` in its place — in `bind()`
+  and in the checks. C++ has no empty `[]` array, so the compiler walks you through it.

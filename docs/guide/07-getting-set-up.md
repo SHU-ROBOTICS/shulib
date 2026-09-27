@@ -121,7 +121,9 @@ mental model, which matters more:
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
 - **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
   what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
-  own code — where students edit (empty until the driver program and the autonomous list land) —
+  own code — where students edit (its first file is robot two's driver file,
+  `src/team/robot_two_driver.hpp`: which button does what and the driving feel, in one file that no
+  program runs yet; the autonomous list comes with the auton tester) —
   **`src/programs/`** holds one program each, and **`src/common/`** what the programs share.
   Every include of one of these files is written from `src/` —
   `#include "robots/chassis_table.hpp"` — the same in every folder. `src/build_selection.hpp` is

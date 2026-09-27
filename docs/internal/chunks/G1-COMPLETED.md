@@ -82,6 +82,9 @@ hand-wired Teleop they replaced drove robot two on 2026-09-25).
 - The four sentences `main.cpp` paints itself (the DISABLED, FIELD CONTROL, tester and Calibrate
   AUTONOMOUS reasons) are not tied to a program by any check (2c's review; logged).
 - Two X-drive details have no host test because `src/*.cpp` is not host-compiled (its fault-latch
-  attach and its heading-trust clause; logged).
+  attach and its heading-trust clause; logged). *(T4 Part 1a, 2026-09-27: the heading-trust clause has
+  one now — the owed shared helper, ruling R8, was made: Teleop and the X-drive both call
+  `driverHeading()` in `src/common/driver_controls.hpp`, and `test/driver_controls_test.cpp` flips each of
+  its three terms alone (T7). The fault-latch attach still has none.)*
 - The next program to join the chain is the competition program (COMP-b, amendment B29) and the driver
   program (T4, being briefed).

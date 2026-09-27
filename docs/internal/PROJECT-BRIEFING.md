@@ -107,10 +107,10 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 32 of 62 chunks complete
 
-- **Next up:** TANK1 (moveTo on a tank steers back onto its line — BEING BRIEFED; the team lead, 2026-09-27: "Fix the library first", because on today's tank moveTo the 40 in auton with one side a few percent weak ends MOTION_TIMEOUT) and T4 Part 1a (the driver file — [brief](chunks/T4-driver-program.md); Part 0, the slots and this plan, landed with the plan commit), built in parallel; then COMP-t (the auton tester with the 40 in auton — [brief](chunks/COMP-t-auton-tester.md), his answers D1–D9 as recommended) on TANK1, and COMP-b (the competition program — autonomous() and opcontrol() running the driver file) on T4 Part 1a — each on its own go. The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
+- **Next up:** TANK1 (moveTo on a tank steers back onto its line — BEING BRIEFED; the team lead, 2026-09-27: "Fix the library first", because on today's tank moveTo the 40 in auton with one side a few percent weak ends MOTION_TIMEOUT) built in parallel with T4 Part 1a (the driver file — [brief](chunks/T4-driver-program.md)), which has LANDED (below); then COMP-t (the auton tester with the 40 in auton — [brief](chunks/COMP-t-auton-tester.md), his answers D1–D9 as recommended) on TANK1, and COMP-b (the competition program — autonomous() and opcontrol() running the driver file) on T4 Part 1a — each on its own go. The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **OPEN CHUNK(S): COMP, DIAG1, R3a, R3b, R3d, T2, T3** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,659 cases / 2,467,051 assertions, 3 skipped — **green**  
+- ⚠️ **OPEN CHUNK(S): COMP, DIAG1, R3a, R3b, R3d, T2, T3, T4** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
+- **Suite:** 1,685 cases / 2,469,415 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 191  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 156 registered, **7 settled** — next free is **HA-162**  
@@ -145,7 +145,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 12 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 13 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 

@@ -128,7 +128,12 @@ target_compile_definitions(shulib_tests PRIVATE
 #                   runs of the tool. (Also catches a hand-written file dropped
 #                   into docs/api/, which is generated in full.)
 #   check-examples  every ```cpp line in the public documentation must appear
-#                   VERBATIM in a compiled example test. That rule has existed
+#                   VERBATIM in a compiled example test — or, since T4 Part 1a,
+#                   in a team file a chapter quotes from (a robot's driver file,
+#                   src/team/*_driver.hpp; the tool's EXAMPLE_SOURCE_GLOBS lists
+#                   the kinds — and each listing of a driver file must also be
+#                   an unbroken run of it, WHOLE_RUN_SOURCE_GLOBS, so a line
+#                   added to the file inside a listed part fails too). That rule has existed
 #                   since C8 — but it lived only in an internal verify script,
 #                   so until D3 a rotted example passed the build AND passed
 #                   CI. Found by mutation; a rule nothing runs is a convention.
@@ -178,13 +183,17 @@ set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
 # must re-run the gates, or a drift introduced after the last build sits green
 # until something unrelated forces a rebuild. CONFIGURE_DEPENDS so a new
 # chapter or a new examples file is picked up without a manual cmake re-run.
+# The example sources are the tool's EXAMPLE_SOURCE_GLOBS, each kind here too:
+# the example tests, and (since T4 Part 1a) a robot's driver file, which the
+# cookbook quotes part by part — an edit to it must re-run the verbatim scan.
 file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
-  "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp")
+  "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/*_driver.hpp")
 
 # ── EVERY header and EVERY generated page is an input (chunk DOCS2) ──────────
 # Until DOCS2 the gate depended on two headers and three pages, because those

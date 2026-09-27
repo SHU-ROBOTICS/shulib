@@ -347,10 +347,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 >
 > **Now (2026-09-27): Next: TANK1 — `moveTo` on a tank steers back onto its line (the team lead:
 > "Fix the library first"; today a tank that drifts sideways cannot finish a `moveTo`, so the 40 in
-> auton would end on its time limit) — and T4's driver file, in parallel; then the auton tester
-> (COMP-t: run an auton on the bench from RUN, no competition mode needed) and the competition
-> program (COMP-b). T4 (the driver program — one readable driver file for "shulib Drive" and the
-> competition program's `opcontrol()`) is briefed; "shulib Teleop" retires when it lands. G1 is COMPLETE** — Part 2c and its final run have landed: one
+> auton would end on its time limit); then the auton tester (COMP-t: run an auton on the bench from
+> RUN, no competition mode needed) and the competition program (COMP-b). T4's driver file (Part 1a)
+> has LANDED, host- and build-gated: robot two's buttons, feel and driver loop in one file,
+> `src/team/robot_two_driver.hpp`, which no program runs yet — COMP-b's `opcontrol()` will, and so
+> will the driver program that replaces the old "shulib Drive"; "shulib Teleop" retires when that
+> lands. G1 is COMPLETE** — Part 2c and its final run have landed: one
 > chain in `src/build_selection.hpp` picks each build's program and robot, and `src/main.cpp` only
 > dispatches. — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
 > parallel and merge one at a time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust
@@ -375,7 +377,8 @@ not silently break them. This table is the spine of the no-staleness promise.
 > the program itself, still follows 2c.)*
 > **`src/` was reorganized before the next programs are built (SRC1, 2026-09-27, the team lead's
 > request):** `src/robots/` is what each robot IS (its tables), `src/team/` the team's own code —
-> where students edit, empty until the driver program and the auton list land — `src/programs/`
+> where students edit; its first file is robot two's driver file (T4 Part 1a), and the auton list
+> comes with the auton tester — `src/programs/`
 > one program each, and `src/common/` what the programs share; `main.cpp` and
 > `build_selection.hpp` stay at the top. No file was renamed and no program's logic changed: the
 > six packages print each file's new path where a message names one, and otherwise hold the same
@@ -1740,11 +1743,14 @@ only the INPUT half is missing.*
   or a chassis action. The binding mechanism is the library's; which button does what is the team's.
   **A macro must never take the robot away from its driver**: interruptible by stick input within one
   tick, and releasing the button cancels the operation and safes the mechanism.
-- [ ] **The driver program** *(T4, 2026-09-27 — BRIEFED, PLANNED; nothing built)* — ONE readable driver
-  file for robot two (to be created as `src/team/robot_two_driver.hpp`: which button does what, the feel), run by the
-  new "shulib Drive" and by the competition program's `opcontrol()`, never copied; the old drive's
-  protections (a dead drive motor, a motor fighting its side, over-current) moved into the library's
-  driver loop for every program; "shulib Teleop" retired when it lands.
+- [~] **The driver program** *(T4, 2026-09-27 — Part 1a LANDED, host- and build-gated: the driver file
+  `src/team/robot_two_driver.hpp` and its generic half `src/common/driver_controls.hpp`, held by
+  `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp`; NO program runs it yet and
+  nothing of it has run on a robot. Parts 1b, 2 and 3 PLANNED)* — ONE readable driver file for robot
+  two (which button does what, the feel), run by the new "shulib Drive" and by the competition
+  program's `opcontrol()`, never copied; the old drive's protections (a dead drive motor, a motor
+  fighting its side, over-current) moved into the library's driver loop for every program; "shulib
+  Teleop" retired when it lands.
 
 **Definition of Done:** the two reference routines (X tall-tower, H Toggle-own + park) run end-to-end
 in host sim; a deliberately stalled scoring loop still ends with the robot parked in the Midfield; and

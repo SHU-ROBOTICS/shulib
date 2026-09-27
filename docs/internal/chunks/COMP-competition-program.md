@@ -94,12 +94,48 @@
   claw an auton left claimed and OPEN closes when driver control starts, as an unclaimed one
   already did. Whether that is wanted after an auton is the team lead's call — asked in
   T3-PROGRESS P2.11; COMP-b re-checks the answer before it wires the claw.)
-- **B11 — opcontrol is Teleop's driver control**: after B2's wait, T3's `runDriverControl` bindings overload
-  with the SAME bindings as Teleop (built and validated in `initialize()`'s try, held in the static state),
-  `DriverLoopConfig{.tickPeriod = 10 ms, .rezeroButton = Teleop's constant (Y), .releaseBrakeMode = Coast}`.
-  §5's "button bindings (T3)" is decided; only chassis macros stay open. The claw-port-in-record refusal
-  lives in the SHARED boot source (moved there if T3 put it in teleop_program.cpp); a shared panel moves to
-  a shared `src/` file, never copied.
+- **B11 — opcontrol() IS the driver file** *(REPLACED by T4 Part 1a, 2026-09-27, the team lead's rulings
+  R1–R7 of that night; until then it read "opcontrol is Teleop's driver control": T3's bindings overload with
+  the SAME bindings as Teleop and a `DriverLoopConfig` naming Teleop's constant)*.
+  - The program holds a `RobotTwoDriver` (`src/team/robot_two_driver.hpp`) in its static state.
+  - `initialize()` calls `st.driver.bind(*st.robot, why, sizeof why)` inside the ONE try, right after
+    the Robot's emplace. False ⇒ the refusal screen with `why`, and nothing further built. The catch
+    calls `st.driver.unbind()` before it resets the Robot.
+  - `opcontrol()`, after B2's wait, calls `st.driver.run(r, <pacer>, disabled, panel)`, and nothing else
+    drives.
+  - The re-zero, the feel and Coast-on-release are the driver file's constants, never restated here.
+  - The pacer is COMP-b's choice (the provider's, or the guard, which passes through outside a run —
+    say which).
+  - **The driver-control screen is built from T4's shared PURE rows.**
+    - Its rows and the controller-screen lines come from PURE, PROS-free functions in one shared `src/`
+      header (proposed `src/common/driver_panel.hpp`), host-tested.
+    - COMP's page is the header, the claw row, the fault row and the controller row. The PROTECTION row
+      joins at T4 Part 2.
+    - The new "shulib Drive" composes its MAIN and DETAILS pages from the same rows (T4 Part 3, the team
+      lead's R5), and a later robot console can stream them (the team lead, 2026-09-27). The program only
+      paints.
+    - The claw row is `clawRowText(t, robot, st.driver.bindings().anyReleasedLeftoverClaim())`.
+    - The controller screen's ONE chooser moves here, and so does any piece COMP needs that is still in
+      `teleop_program.cpp`. They MOVE to the shared header; they are never copied. SAFE-SAVE B2 later adds
+      its `BACKUP` word to that chooser.
+  - The claw-port-in-record refusal stays in the shared boot source.
+  - Teleop's claw boot line ends `-- in shulib Teleop only`, which is false once this program binds the
+    claws: reword it and re-quote worksheet J.3.1 in the same change.
+  - B10's question is ANSWERED by the team lead's ruling: the first driver-control entry closes the claw
+    whatever autonomous left, and the driver file's T2b pins it. Station K's B28 step still observes it
+    on the robot.
+  - The driver file's header caller sentence gains this program.
+  - A host source pin proves the wiring (T4's pattern).
+  - The drive protections (T4 Part 2, which lands after this) reach opcontrol() through
+    runDriverControl with no wiring. Until then this program's driver control has no mid-match absence
+    rule and no cuts, and Station K says so.
+  - *(As landed at T4 Part 1a, for COMP-b's builder: the shared claw row is
+    `clawRowText(const MechanismTable&, const robot::Robot&, bool freed)` in
+    `src/programs/teleop_claws.hpp`, byte-identical to Teleop's; the driver file's `bindings()` is a
+    `DriverBindings` (`src/common/driver_controls.hpp`) with `holds()`, `toggles()`, `holdFor(name)`,
+    `toggleFor(name)` and `anyReleasedLeftoverClaim()`; T2b is `test/robot_two_driver_test.cpp`'s
+    "T4 1a T2b" case. Until T4 Part 1b the buttons are also in `src/robots/mechanism_table.hpp`, tied at
+    compile time — COMP-b edits neither copy.)*
 - **B12 — re-seat only a LIVE estimate.** `runAuton` arms the guard FIRST (start time as close to
   `autonomous()` entry as the hand-off allows; the latency logged), then inside the guarded run waits with
   `guard.waitFor(localizer.qualityClass() != Uninitialized)`, THEN re-seats position and heading, then runs
