@@ -518,7 +518,10 @@ recommended). "shulib Auton Tester" runs a registered auton on the bench through
 `src/team/autons.{hpp,cpp}` with the 40 in auton. Slot 7 until T4 Part 3, then slot 2. **Built after TANK1**;
 before its builder starts, every MOTION_TIMEOUT prediction in its brief is re-made from TANK1's tests.
 
-**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** BEING BRIEFED. On
+**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** BRIEFED
+(`chunks/TANK1-tank-moveto-steers.md`; jal's go ~08:17, D1–D4 as recommended); Part A building, Part B alongside
+COMP-t; API 2.3 (L9 Part A then takes the next free minor). **IMU1** (the IMU's yaw rate read once per tick) is
+a separate small chunk from its D4. On
 today's tank `moveTo` nothing corrects a sideways drift, so the 40 in auton on a robot with one side a few
 percent weak ends MOTION_TIMEOUT (COMP-t's probe; robot two's sides differ by ~9 %). jal: "Fix the library
 first" — a bounded correction that never plans a turn, logged when it steers, the X-drive and H-drive
