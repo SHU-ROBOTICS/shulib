@@ -382,8 +382,10 @@ SHULIB_F10_PIN(!F10ConstStep<Routine>,
 // kApiMinor = 1 with the string left at "2.0" passed all three former lines.
 //
 // Bug now caught: the printable version and the numeric version disagree.
-// That token is what a session header prints (main.cpp TODO(R1)), so a desync
-// mislabels every on-robot transcript and blackbox file.
+// That token is the one printable API version, meant for the session header, so a desync
+// would mislabel every on-robot transcript and blackbox file that carries it. (This comment
+// said "main.cpp TODO(R1)" until G1 Part 2c: no such marker has existed since R1a, and
+// diag::SessionInfo has no version field yet — no program prints the token today.)
 //
 // kApiMinor is deliberately unpinned — additive growth is legal. Saying so is
 // the point; a vacuous assertion says it in a way that looks like a test.

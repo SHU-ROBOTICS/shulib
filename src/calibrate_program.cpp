@@ -1034,6 +1034,29 @@ const char* missWord(const PanelView& v, const TouchSample& s, const TouchResult
 
 }  // namespace
 
+void calibrateInitialize(const char* variantBeacon, const char* competitionStatusBits) {
+    // Moved VERBATIM from src/main.cpp's initialize() at G1 Part 2c (the dispatcher forwards
+    // here); the bytes on serial are unchanged, except that the BUILD STAMP line now prints THIS
+    // file's kBuildStamp — the same __DATE__ " " __TIME__ the banner printed, from main.cpp's own
+    // copy (kCalibrateBuildStamp) until the move. One stamp for the program now, where main.cpp's
+    // comment said a partial rebuild could show two.
+    std::printf("\n[R3D] booted: shulib CALIBRATE build [%s].\n"
+                "[R3D] robot two MEASURES ITS OWN DRIVETRAIN -- which ports drive, which way each\n"
+                "[R3D] is wired, which side each is on, inches per radian per side, and the\n"
+                "[R3D] EFFECTIVE track width -- then writes them to /usd/%s.\n"
+                "[R3D] It POWERS THE MOTORS. THIS VERSION (R3d Part 2F) first ran on robot two on\n"
+                "[R3D] 2026-09-24 -- run 1 STOPPED on SPIN_DISAGREE, run 2 finished (unrecorded);\n"
+                "[R3D] the Part 2 version finished none of five starts. Every threshold in it is\n"
+                "[R3D] INVENTED (A4 register HA-136).\n"
+                "[R3D] no object graph is constructed at boot; the X-drive wiring is NOT built.\n"
+                "[R3D] BUILD STAMP %s\n",
+                variantBeacon, calibration::kRecordFileName, kBuildStamp);
+    std::printf("[R3D] competition status at boot: %s -- calibration runs only in DRIVER "
+                "CONTROL, enabled; any other state stops the run and says so.\n",
+                competitionStatusBits);
+    std::fflush(stdout);
+}
+
 void runCalibrate() {
     Candidate candidates[hal::kMaxSmartPorts];
     std::size_t n = 0;

@@ -251,6 +251,23 @@ void rowText(std::int16_t x, std::int16_t y, std::int16_t w, std::uint32_t colou
 
 }  // namespace
 
+void driveInitialize(const char* variantBeacon, const char* competitionStatusBits) {
+    // Moved VERBATIM from src/main.cpp's initialize() at G1 Part 2c (the dispatcher forwards
+    // here); the bytes on serial are unchanged — including the second line's "[R3A]" prefix and
+    // its "the tester runs only" wording, which this program has printed since R3b Part 0b (it
+    // shares the tester's line; G1-PROGRESS "Part 2c" lists the wording, not changed here).
+    std::printf("\n[R3B] booted: shulib DRIVE build [%s].\n"
+                "[R3B] robot two drives from the sticks through the hal/pros adapters (open-loop\n"
+                "[R3B] volts, dead-port tolerance, 1 s non-fatal cuts) -- never through the motion\n"
+                "[R3B] stack. The library has still not driven a robot.\n"
+                "[R3B] the X-drive object graph is deliberately NOT constructed.\n",
+                variantBeacon);
+    std::printf("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
+                "CONTROL, enabled; any other state paints the screen with the reason.\n",
+                competitionStatusBits);
+    std::fflush(stdout);
+}
+
 void runDrive() {
     // The SD text log, opened first so the banner itself is captured. One file per boot
     // (the sink owns its FILE*). Static: opcontrol() can be entered more than once per boot

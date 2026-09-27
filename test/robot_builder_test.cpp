@@ -20,7 +20,8 @@
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Everything here runs on the A2 plant behind the F4 fakes. No config has built a graph over a
 // real device: since G1 Part 2b "shulib Teleop" builds one over the PROS provider, and that
-// version has not run on hardware; src/main.cpp still wires its X-drive graph by hand.
+// version has not run on hardware; since G1 Part 2c the invented X-drive is built the same way
+// (src/xdrive_config.hpp — test/xdrive_config_test.cpp), and no program wires a graph by hand.
 
 #include "doctest.h"
 
@@ -730,7 +731,8 @@ TEST_CASE("G1 builder 5e: the builder derives the stall check's geometry and mot
     SUBCASE("a holonomic robot's tuning is passed through UNTOUCHED") {
         // An X-drive config carries no per-wheel scale (its odometry is the pods), so there is
         // nothing to derive and the builder invents nothing — which is also exactly what
-        // src/main.cpp's X-drive graph does: `Chassis chassis{deps, pacer}`, default config.
+        // src/main.cpp's hand-wired X-drive graph did until G1 Part 2c: `Chassis chassis{deps,
+        // pacer}`, default config.
         const shulib::kinematics::MatrixKinematics xkin =
             shulib::kinematics::xDrive(Length{kDriveRadius});
         BuiltRobot built{xdriveConfig(false), xkin, worldConfig()};
@@ -1374,7 +1376,7 @@ TEST_CASE("G1 2a builder A5: portMap() is byte-identical to src/main.cpp's tankP
         BuiltRobot x{xdriveConfig(true), xkin, worldConfig()};
         char got[shulib::diag::kMaxPortMapBytes] = "";
         x.robot.portMap(got, sizeof got);
-        // main.cpp's portMapString() format, over this fixture's numbers.
+        // main.cpp's retired portMapString() format (G1 Part 2c), over this fixture's numbers.
         char ref[shulib::diag::kMaxPortMapBytes] = "";
         std::snprintf(ref, sizeof ref, "FL%d BL%d BR%d FR%d ROTF%d ROTL%d GPS%u IMU%u", 1, 2, 3, 4,
                       6, 7, 9U, 10U);

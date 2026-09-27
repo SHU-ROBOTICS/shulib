@@ -7,14 +7,15 @@
 //
 // WHAT THIS TU SEES. The table lives in src/ (a per-robot composition fact, not library API) and
 // is PROS-free so this test can include it by relative path, as test/chassis_table_test.cpp
-// includes the chassis table. UNLIKE the chassis table, robot two's entries are defined in every
-// build under their own name (kRobotTwoMechanisms), so the contents test below reads THE REAL
-// BYTES — a swapped button in src/mechanism_table.hpp turns this file red — while kMechanisms, the
-// build's selection, is the host's: no variant define, so none declared. Robot two's DRIVE ports
-// are not visible here (the chassis table defines them only under the tank define, and defining it
-// in this TU would give kChassis two definitions across the suite), so the disjointness case
-// re-types them from src/chassis_table.hpp, exactly as chassis_table_test.cpp does; the header's
-// own static_assert checks the real pair on every `make ROBOT=tank`.
+// includes the chassis table. Robot two's entries are defined in every build under their own name
+// (kRobotTwoMechanisms), so the contents test below reads THE REAL BYTES — a swapped button in
+// src/mechanism_table.hpp turns this file red — while kMechanisms, the build's selection, is the
+// host's: no build switch is set, so src/build_selection.hpp's chain takes its #else (the bench
+// build) and none is declared. The selection itself, mechanismTableFor(), is called for EVERY robot
+// below. Since G1 Part 2c's final run (2026-09-26) robot two's DRIVE table is here too, by its own
+// name (kRobotTwoChassis): the disjointness case reads the real one (it re-typed it until then,
+// because the chassis table defined robot two's only under the tank define), and the header
+// static_asserts the real pair in every build.
 //
 // WHAT THIS TU CANNOT DO: run the call site. src/calibrate_program.cpp is a whole PROS program
 // (pros/screen.h, pros/misc.h and the rest are not in the host shim). So the filter's LOGIC —
@@ -81,27 +82,10 @@ using shulib::hal::ControllerButton;
 
 namespace {
 
-/// Robot two's DRIVE table as committed in src/chassis_table.hpp (the SHULIB_ROBOT_TANK_2026
-/// block), re-typed because this TU cannot see it (header): LEFT -11 +12 -13 +14 -15, RIGHT +20
-/// -19 +18 -17 +16, IMU on port 2, BLUE.
-[[nodiscard]] ChassisTable robotTwoChassis() {
-    return ChassisTable{
-        .robot = "test copy of robot two",
-        .left = {-11, 12, -13, 14, -15},
-        .leftCount = 5,
-        .right = {20, -19, 18, -17, 16},
-        .rightCount = 5,
-        .cartridge = Cartridge::Blue,
-        .imuPort = 2,
-        .measured = true,
-        .signsMeasured = true,
-        .provenance = "test",
-        .wheelDiameterIn = 2.75,
-        .trackWidthIn = 0.0,
-        .externalRatio = 0.0,
-        .geometryProvenance = "test",
-    };
-}
+/// A copy of robot two's REAL drive table (src/chassis_table.hpp's kRobotTwoChassis: LEFT -11 +12
+/// -13 +14 -15, RIGHT +20 -19 +18 -17 +16, IMU on port 2, BLUE — test/chassis_table_test.cpp pins
+/// those literals), for a case to break one field of.
+[[nodiscard]] ChassisTable robotTwoChassis() { return shulib::bench::kRobotTwoChassis; }
 
 /// A copy of robot two's REAL table, for a case to break one field of.
 [[nodiscard]] MechanismTable robotTwo() { return kRobotTwoMechanisms; }
@@ -370,10 +354,11 @@ TEST_CASE("mechanism table: the claw's polarity is ONE constant -- a flip moves 
 
 TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot two declares "
           "mechanisms") {
-    // BUG CAUGHT: the #if selecting robot two's table for a build that is not robot two (the bench
-    // bot's Calibrate would then refuse its own ports 6 and 7 for claws it does not have). The tank
-    // side of the selection is asserted by the header itself under the tank define, on every
-    // `make ROBOT=tank` (the src build gate's four tank builds compile it).
+    // BUG CAUGHT: the selection handing robot two's table to a build that is not robot two (the
+    // bench bot's Calibrate would then refuse its own ports 6 and 7 for claws it does not have). The
+    // tank side of the selection is the next case's (mechanismTableFor() for every robot) and the
+    // header's static_asserts keyed on kRobotId, on every `make ROBOT=tank` (the src build gate's
+    // four tank builds compile them).
     CHECK(&kMechanisms == &kNoMechanisms);
     CHECK(kMechanisms.motorCount == 0);
     CHECK(motorEntryCount(kMechanisms) == 0);
@@ -389,6 +374,35 @@ TEST_CASE("mechanism table: the HOST build's selection is 'none' -- only robot t
     CHECK(f.kept == 4);
     CHECK(f.array == std::vector<int>{6, 7, 11, 20});
     CHECK(f.dropped.empty());
+}
+
+TEST_CASE("mechanism table: the selection -- mechanismTableFor() gives robot two its claws and every "
+          "other robot none, and each robot's pair of tables is disjoint") {
+    // BUG CAUGHT: a wrong robot in mechanismTableFor() — robot two handed kNoMechanisms (Calibrate
+    // would take its claw pivots as drive candidates again, and Teleop would have no claws), or the
+    // bench bot handed robot two's claws (its Calibrate would refuse its own ports 6 and 7). The robot
+    // builds evaluate exactly these calls; until G1 Part 2c's final run only the host's #else could be
+    // tested here.
+    using shulib::bench::chassisTableFor;
+    using shulib::bench::mechanismTableFor;
+    using shulib::bench::RobotId;
+    CHECK(&mechanismTableFor(RobotId::RobotTwo) == &kRobotTwoMechanisms);
+    CHECK(&mechanismTableFor(RobotId::BenchBot) == &kNoMechanisms);
+    CHECK(&mechanismTableFor(RobotId::InventedXDrive) == &kNoMechanisms);
+    CHECK(mechanismTableFor(RobotId::RobotTwo).motorCount == 2);
+    CHECK(mechanismTableFor(RobotId::RobotTwo).pneumaticCount == 1);
+    // The host is the bench build.
+    CHECK(&kMechanisms == &mechanismTableFor(shulib::bench::kRobotId));
+    // Check 8 for EVERY robot's own pair — the pair each robot build static_asserts.
+    for (RobotId r : {RobotId::BenchBot, RobotId::RobotTwo, RobotId::InventedXDrive}) {
+        CAPTURE(static_cast<int>(r));
+        CHECK(mechanismsDisjointFromChassis(mechanismTableFor(r), chassisTableFor(r)));
+        CHECK(allChecksPass(mechanismTableFor(r)));
+    }
+    // ...and the check sees a claw moved onto the REAL robot two's drive side.
+    MechanismTable onDrive = robotTwo();
+    onDrive.motors[0].signedPort = -13;  // robot two's left -13
+    CHECK_FALSE(mechanismsDisjointFromChassis(onDrive, shulib::bench::kRobotTwoChassis));
 }
 
 TEST_CASE("mechanism table: 'is this a declared mechanism port' -- 6 and 7 yes, every drive port "
@@ -531,7 +545,8 @@ TEST_CASE("mechanism table: the claw ports are not robot two's drive ports, nor 
           "and the check sees a collision on either side, by |port|") {
     // BUG CAUGHT: a claw typed onto a drive port. The binding would then drive a wheel on R1, the
     // chassis would command the claw, and Calibrate would drop a drive motor. The header
-    // static_asserts this for every tank build; here the predicate itself is broken on purpose.
+    // static_asserts it for robot two's REAL pair in every build and for each build's own pair;
+    // here the predicate itself is broken on purpose.
     const ChassisTable drive = robotTwoChassis();
     CHECK(mechanismsDisjointFromChassis(kRobotTwoMechanisms, drive));
     for (std::size_t i = 0; i < kRobotTwoMechanisms.motorCount; ++i) {

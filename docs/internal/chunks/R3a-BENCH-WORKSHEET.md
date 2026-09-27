@@ -1,8 +1,9 @@
 # R3a — bench worksheet (no program required)
 
-> **For a helper at the robot. Nothing here needs code uploaded.** The shipped `src/main.cpp`
-> **cannot boot on this robot** — its port map is invented and wrong (R3a brief §2) — so do not try
-> to run it. Everything below uses the brain's built-in **Devices** screen, a tape measure, and hands.
+> **For a helper at the robot. Nothing here needs code uploaded.** The build this worksheet was first
+> written against — the invented X-drive, `make ROBOT=xdrive` — **cannot boot on this robot**: its port
+> map is invented and wrong (R3a brief §2; since G1 Part 2c it refuses at boot, naming the first port,
+> with nothing powered). Do not try to run it. Everything below uses the brain's built-in **Devices** screen, a tape measure, and hands.
 >
 > Answers get pasted **raw, uninterpreted** into `R3a-PROGRESS.md` Batch 1 before any analysis.
 
@@ -1536,7 +1537,8 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       held and its six checks pass (button 12 AI VISION writes the camera's own detection
       settings, never a motor). For the 2026 tank chassis the build is `make ROBOT=tank`, and
       its drive program is `make ROBOT=tank PROGRAM=drive` (Station E). The invented X-drive
-      wiring is behind a build flag and would fault at boot on either robot.
+      is behind a build flag (`make ROBOT=xdrive`) and refuses at boot on either robot, naming
+      port 1 and powering nothing (G1 Part 2c).
       *(Brain's programming port is **micro-USB**, not USB-C.)*
 - ❌ **Do not run 10 DRIVE with a wheel touching anything** until Station D says to, and never
       without a second person at the battery.

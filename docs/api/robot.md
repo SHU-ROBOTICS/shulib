@@ -70,7 +70,7 @@ struct BuildVerdict
 
 The answer to "can this robot be built, on this target, right now?" — one bool and one sentence. The sentence is what a person reads off the brain screen when the robot refuses to boot, so it names the PORT or the FIELD and nothing else; 192 bytes is enough for the longest message any check below can produce and small enough to sit on a boot stack.
 
-*struct, declared at [`include/shulib/robot/robot.hpp:167`](../../include/shulib/robot/robot.hpp#L167).*
+*struct, declared at [`include/shulib/robot/robot.hpp:168`](../../include/shulib/robot/robot.hpp#L168).*
 
 <a id="buildverdict-ok"></a>
 
@@ -82,7 +82,7 @@ bool ok = false
 
 True when every check passed and `Robot` may be constructed from the same pair.
 
-*field, declared at [`include/shulib/robot/robot.hpp:169`](../../include/shulib/robot/robot.hpp#L169).*
+*field, declared at [`include/shulib/robot/robot.hpp:170`](../../include/shulib/robot/robot.hpp#L170).*
 
 <a id="buildverdict-why"></a>
 
@@ -94,7 +94,7 @@ char why[192]{}
 
 The FIRST thing that was wrong, naming the port or the config field. Empty when `ok`.
 
-*field, declared at [`include/shulib/robot/robot.hpp:171`](../../include/shulib/robot/robot.hpp#L171).*
+*field, declared at [`include/shulib/robot/robot.hpp:172`](../../include/shulib/robot/robot.hpp#L172).*
 
 <a id="struct-buildoptions"></a>
 
@@ -106,7 +106,7 @@ struct BuildOptions
 
 What the builder is told about THIS boot that the config cannot say: which tank drive ports the boot check found dead, and (since COMP-a) a pacer to put between the chassis and the provider's. Default-constructed, it changes nothing — every Part 1 caller's graph is byte-for-byte what it was. The two fields have DIFFERENT lifetimes, and that is the thing to read before passing one: `absentDrivePorts` is read during construction only; `pacer` is kept for the Robot's whole life.
 
-*struct, declared at [`include/shulib/robot/robot.hpp:179`](../../include/shulib/robot/robot.hpp#L179).*
+*struct, declared at [`include/shulib/robot/robot.hpp:180`](../../include/shulib/robot/robot.hpp#L180).*
 
 <a id="buildoptions-absentdriveports"></a>
 
@@ -118,7 +118,7 @@ std::span<const int> absentDrivePorts = {}
 
 Tank drive ports the boot check reported MISSING, as port MAGNITUDES 1..21 — exactly the numbers `calibration::BootVerdict::isMissing()` answers for. Each becomes an ABSENT (`nullptr`) member of its side's MotorGroup and is never requested from the provider. A repeated entry is harmless (membership, not a count). BORROWED: read during `validate()` and during `Robot`'s construction only, never kept — the Robot recovers what it needs from its own groups.
 
-*field, declared at [`include/shulib/robot/robot.hpp:186`](../../include/shulib/robot/robot.hpp#L186).*
+*field, declared at [`include/shulib/robot/robot.hpp:187`](../../include/shulib/robot/robot.hpp#L187).*
 
 <a id="buildoptions-pacer"></a>
 
@@ -130,7 +130,7 @@ motion::ITickPacer* pacer = nullptr
 
 The pacer the Chassis is built with, or `nullptr` (the default) for `devices.pacer()` — exactly the graph every earlier caller got. A competition program passes its `sequence::RunGuard` here (constructed around `devices.pacer()` BEFORE the Robot), because the guard's deadline reaches a running motion only through the pacer seam (run_guard.hpp's banner) and a Chassis takes its pacer once, at construction.  BORROWED FOR THE ROBOT'S WHOLE LIFE — unlike `absentDrivePorts`, this is NOT read during construction only: the Chassis keeps the reference (chassis.hpp's constructor), so the pacer must outlive the Robot. Declared after `absentDrivePorts` so the designated spelling reads in declaration order: `robot::BuildOptions{.absentDrivePorts = ..., .pacer = &guard}`. `validate()` does not read it (a pacer is not a device and cannot be refused).
 
-*field, declared at [`include/shulib/robot/robot.hpp:199`](../../include/shulib/robot/robot.hpp#L199).*
+*field, declared at [`include/shulib/robot/robot.hpp:200`](../../include/shulib/robot/robot.hpp#L200).*
 
 <a id="buildoptions-isabsent"></a>
 
@@ -142,7 +142,7 @@ The pacer the Chassis is built with, or `nullptr` (the default) for `devices.pac
 
 True when physical port `port` is in `absentDrivePorts`.
 
-*function, declared at [`include/shulib/robot/robot.hpp:202`](../../include/shulib/robot/robot.hpp#L202).*
+*function, declared at [`include/shulib/robot/robot.hpp:203`](../../include/shulib/robot/robot.hpp#L203).*
 
 <a id="validate"></a>
 
@@ -154,7 +154,7 @@ True when physical port `port` is in `absentDrivePorts`.
 
 Can `cfg` be built with `devices`? PURE, TOTAL, and the precondition `Robot`'s constructor runs (ruling B3). Four passes, in this order:  1. **The config's own rules** — `config::RobotConfig::valid()`, whose message (including a tank description's own refusal, verbatim) surfaces unchanged. 2. **The F5 cross-check** — the number of KINEMATIC WHEELS the drivetrain has must equal the number of `hal::IMotor` handles the builder will put in the context. This is the same check `motion::MotionDeps::validate()` makes at the bottom of the stack, and it is the ONLY thing standing between a config typo and an unchecked `std::span::operator[]` on the hot path — so it is made HERE too, before the deps exist, where it can name the config field instead of saying "3 != 4". (It lives in exactly these two places and nowhere else; `RobotConfig::valid()` deliberately does not duplicate it — see its documentation.) 3. **The absent ports** (`options.absentDrivePorts`, G1 Part 2a) — refused, naming the port, when the list is given for a drivetrain that is not a tank (only a tank side is a group that can carry a hole), when a port in it is not one of the description's drive ports, or when it would leave a side with NO present member. Nothing else: the dead-port POLICY was applied by the boot check that produced the list (header, ruling M1). 4. **Every device obtainable** — each drive port that is not absent, the IMU, the GPS if one is configured, and each tracking-wheel encoder is requested from the provider. The first `nullptr` becomes the verdict, carrying the provider's own `lastRefusal()` so the port that is empty or dead is named by the layer that actually looked. An absent port is never asked for, so a dead port is named once — by the boot check — and never twice. MECHANISM motors are deliberately not asked for here (chunk T3): one the provider will not make leaves that mechanism ABSENT when the Robot is built, and never refuses the robot. Nor are a pneumatic mechanism's 3-wire lines (addendum B2): asking for one DRIVES it, and the only refusal the on-robot provider can make — a line outside 1..8 — is pass 1's. Their CONFIG is checked in pass 1 (cartridge, safe brake mode, safe and start levels, ports and lines that collide with the drive or each other).  It is not `const` on the provider because obtaining a device may construct one; it is idempotent, so calling it and then constructing a `Robot` asks for the same objects twice and gets the same addresses both times.
 
-*free function, declared at [`include/shulib/robot/robot.hpp:244`](../../include/shulib/robot/robot.hpp#L244).*
+*free function, declared at [`include/shulib/robot/robot.hpp:245`](../../include/shulib/robot/robot.hpp#L245).*
 
 <a id="writeportmap"></a>
 
@@ -164,7 +164,7 @@ Can `cfg` be built with `devices`? PURE, TOTAL, and the precondition `Robot`'s c
 inline void writePortMap(const config::RobotConfig& cfg, char* out, std::size_t cap) noexcept
 ```
 
-The §18.5 session header's PORT MAP for `cfg` — the text `diag::SessionInfo::portMap` carries — generated from the config, so it cannot drift from the wiring (the "G1 generates" promise in diag/session_info.hpp). `Robot::portMap()` is this over the Robot's own config; it is a free function as well so the formatting can be tested on a description no valid Robot could carry (a 21-port side).  The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder changed no session header (G1 Part 2b moved "shulib Teleop"; the X-drive graph in main.cpp still prints its own until 2c):  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides' inches per radian and the track width. For a drive-encoder tank without a GPS (robot two) the text is byte-for-byte what `tankPortMapString()` printed (pinned against a transcription of it in test/robot_builder_test.cpp, and against robot two's 2026-09-25 capture in test/boot_source_test.cpp). * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the GPS when present, the IMU. * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.  Deliberately NOT marked for absent ports: this is what the robot is WIRED to be; a dead port is `describe()`'s and the panel's to announce. Bounded BY HAND — assembled in a generous local buffer and copied into `out` with an explicit bound, never a moving `snprintf` (the on-robot build gate treats `-Wformat-truncation` as an error) — so it truncates rather than overflowing and writes a NUL whenever `cap > 0`. Does not validate: it formats what is stored.
+The §18.5 session header's PORT MAP for `cfg` — the text `diag::SessionInfo::portMap` carries — generated from the config, so it cannot drift from the wiring (the "G1 generates" promise in diag/session_info.hpp). `Robot::portMap()` is this over the Robot's own config; it is a free function as well so the formatting can be tested on a description no valid Robot could carry (a 21-port side).  The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder changed no session header (G1 Part 2b moved "shulib Teleop", G1 Part 2c the invented X-drive):  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides' inches per radian and the track width. For a drive-encoder tank without a GPS (robot two) the text is byte-for-byte what `tankPortMapString()` printed (pinned against a transcription of it in test/robot_builder_test.cpp, and against robot two's 2026-09-25 capture in test/boot_source_test.cpp). * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the GPS when present, the IMU. * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.  Deliberately NOT marked for absent ports: this is what the robot is WIRED to be; a dead port is `describe()`'s and the panel's to announce. Bounded BY HAND — assembled in a generous local buffer and copied into `out` with an explicit bound, never a moving `snprintf` (the on-robot build gate treats `-Wformat-truncation` as an error) — so it truncates rather than overflowing and writes a NUL whenever `cap > 0`. Does not validate: it formats what is stored.
 
 *free function, declared at [`include/shulib/robot/robot.hpp:411`](../../include/shulib/robot/robot.hpp#L411).*
 
@@ -596,7 +596,7 @@ The §18.5 session header's port map for this robot, generated from the config i
 void describe(char* buf, std::size_t cap) const
 ```
 
-The BANNER LINE: identity, the drivetrain kind and where its numbers came from, both sides' ports AS STORED (signs included — the one place a sign lives), any drive port built ABSENT (`DEGRADED: absent 3,13` — only when there is one), the geometry that governs, the estimator, and each optional device as present or ABSENT. Truncates rather than overflowing; writes at least a NUL whenever cap > 0.  It is built from the CONFIG this robot was constructed with, not from a second copy of the numbers, so it cannot drift from the wiring — the same property src/main.cpp's `portMapString()` has and for the same reason. The absent ports are read back from the two groups' own slots, which were built from the same description in the same order.
+The BANNER LINE: identity, the drivetrain kind and where its numbers came from, both sides' ports AS STORED (signs included — the one place a sign lives), any drive port built ABSENT (`DEGRADED: absent 3,13` — only when there is one), the geometry that governs, the estimator, and each optional device as present or ABSENT. Truncates rather than overflowing; writes at least a NUL whenever cap > 0.  It is built from the CONFIG this robot was constructed with, not from a second copy of the numbers, so it cannot drift from the wiring — the same property src/main.cpp's retired `portMapString()` had and for the same reason. The absent ports are read back from the two groups' own slots, which were built from the same description in the same order.
 
 *function, declared at [`include/shulib/robot/robot.hpp:747`](../../include/shulib/robot/robot.hpp#L747).*
 
@@ -605,7 +605,7 @@ The BANNER LINE: identity, the drivetrain kind and where its numbers came from, 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 121 lines, click to expand</summary>
+<summary>The header’s own reasoning — 122 lines, click to expand</summary>
 
 ```text
 
@@ -723,8 +723,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
  No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
  graph with this class over the on-robot provider (src/teleop_program.cpp), and THAT version of
- the program has not run on hardware; src/main.cpp still wires its invented X-drive graph by
- hand until it becomes a dispatcher in 2c.
+ the program has not run on hardware. Since G1 Part 2c the invented X-drive is built the same way
+ (src/xdrive_config.hpp, src/xdrive_program.cpp) and no program wires a graph by hand; its ports
+ are invented, so it refuses at boot on every robot that exists.
 
  PROS-free, sim-free, allocation-free in the control path (the graph is one in-place
  aggregate, sized by hal::kMaxSmartPorts — no unique_ptr anywhere, as with every other

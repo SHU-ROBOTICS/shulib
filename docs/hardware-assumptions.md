@@ -218,7 +218,7 @@
 | HA-108 | `Imu::reset(false)` starts calibration; one boot-time call is not a post-cal tare | reasoned | R3 |
 | HA-109 | `imu_gyro_s_t` is deg/s and z is the yaw axis (sign is HA-04's entry) | **invented** | R3 |
 | HA-110 | IMU as-mounted pitch/roll sign conventions | **invented** | R3 |
-| HA-111 | main.cpp's port map and motor direction signs match the robot | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. main.cpp still carries the invented map | R3 |
+| HA-111 | The invented X-drive's port map and motor direction signs match the robot (`src/xdrive_config.hpp` since G1 Part 2c; `src/main.cpp` before) | **invented — and MEASURED WRONG for the comp bot** 2026-08-13: real map is drive LEFT 15/16/17/18, RIGHT 11/12/14, IMU 4, no rotation sensors, no GPS. The xdrive build still carries the invented map, now as a config constant that refuses at boot on any robot that exists | R3 |
 | HA-112 | Teleop stick mapping signs + the feel layer's defaults are drivable (0.05 deadband, applied as a continuous rescale since T2; expo 0; slew off; the field-centric fallback latch) | **invented** | T2/R3 |
 | HA-113 | Distance `get_distance()` returns millimeters | reasoned | R3 |
 | HA-114 | Distance "no object" is the IN-BAND integer 9999, not PROS_ERR | reasoned | R3 |
@@ -770,15 +770,21 @@ dependency order (battery scale before anything drives, signs before any closed 
   *Blast radius if wrong:* tip detection reads a climb as a dive — but no tip detector ships
   yet, so today the radius is zero. Settle it before one does.
 
-- [ ] **HA-111 — `src/main.cpp`'s port map and motor direction signs match the robot.**
+- [ ] **HA-111 — the invented X-drive's port map and motor direction signs match the robot.**
   *Claim:* FL1 BL2 BR−3 FR−4 ROTF5 ROTL6 GPS9 IMU10, green cartridges — ALL INVENTED.
-  *Source:* `src/main.cpp` (the `k*Port` block, labelled).
+  *Source:* `src/xdrive_config.hpp` (`kInventedXDrive`, a `constexpr config::RobotConfig`, its
+  name carrying this entry's number) since G1 Part 2c, 2026-09-26 — the SAME numbers, pinned
+  against a transcription of the old constants by `test/xdrive_config_test.cpp`; until then
+  `src/main.cpp` (the `k*Port` block, labelled), which is now a dispatcher and carries no port.
   *Confidence:* **invented — and MEASURED WRONG on 2026-08-13.** The real map on the old
   competition bot is: drive **LEFT 15/16/17/18, RIGHT 11/12/14** (green cartridges), **IMU on
   port 4**, and **no rotation sensors and no GPS at all**. Only "there are motors on low ports"
-  survived. `src/main.cpp` still carries the invented map, deliberately — it also assumes an
+  survived. The xdrive build still carries the invented map, deliberately — it also assumes an
   X-drive with two tracking wheels, which this robot is not and does not have, so fixing the
-  ports alone would not make it correct. The wiring belongs to whichever chunk runs the shipped
+  ports alone would not make it correct. Since G1 Part 2c it is built by `robot::Robot` over the
+  on-robot device provider, which asks the brain's registry before opening a port: on this robot,
+  and on robot two, it refuses at boot naming port 1 and powers nothing (host-proven through the
+  PROS shim only — `test/xdrive_config_test.cpp`; no X-drive build has been uploaded since). The wiring belongs to whichever chunk runs the shipped
   stack on this robot.
   *Also measured:* port 13 spins FREE (18 mA vs its neighbours' 500–950 mA, and it does not move
   when its wheels are turned by hand) — a mechanical disconnect, not a software matter. Port 16
@@ -801,11 +807,13 @@ dependency order (battery scale before anything drives, signs before any closed 
   *Source:* `include/shulib/teleop/input_shaping.hpp` (`kDefaultDeadband`, `kDefaultExpo`,
   `DriverProfile`), `slew_limiter.hpp` (`SlewConfig`), `drive_modes.hpp` (`DriveMode`),
   `field_centric.hpp` (the latch), `driver_control.hpp` (`DriveShaper`, the order); the
-  original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, which the
-  drive program ("shulib Drive"), the bench tester's DRIVE station and `src/main.cpp`'s X-drive
-  loop still call. Since G1 Part 2b "shulib Teleop" runs the feel layer instead
-  (`src/teleop_program.cpp`, through `teleop::runDriverControl`, `teleop/teleop_loop.hpp`), with
-  this default profile — the one program that does.
+  original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, whose
+  `mapSticks` the drive program ("shulib Drive") and the bench tester's DRIVE station still call.
+  Since G1 Part 2b "shulib Teleop" runs the feel layer instead (`src/teleop_program.cpp`, through
+  `teleop::runDriverControl`, `teleop/teleop_loop.hpp`), with this default profile; since G1 Part
+  2c the invented X-drive does too (`src/xdrive_program.cpp` — it replaced `src/main.cpp`'s R1a
+  loop, the last caller of `mapSticksToChassisSpeeds`), and it refuses at boot on every robot that
+  exists, so no driver has felt it there either.
   *Confidence:* **invented — every number of it.** Widened at T2 from "the mapping" to "the
   feel layer's defaults"; no new register number was minted, because nothing new was
   measured. **No claim about how any of it feels is made anywhere**, and none can be: the
@@ -1084,8 +1092,9 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   SYSTEM) that persists across `pros v5 stop` / `run` until the controller leaves that mode;
   a controller linked and left on its home screen does not, and the program then runs in
   driver control normally.
-  *Source:* `src/main.cpp` (the competition-state screens and the boot-time status print,
-  `A4 register HA-128`); the worksheet's Station A rule.
+  *Source:* `src/state_screens.{hpp,cpp}` (the competition-state screens, moved out of
+  `src/main.cpp` at G1 Part 2c, output unchanged) and each program's boot-time status print (the
+  bits `src/main.cpp` formats and passes, `A4 register HA-128`); the worksheet's Station A rule.
   *Confidence:* **measured** 2026-09-10 — the program restarted and went black when the
   controller linked; turning the controller OFF cleared it within seconds; the decisive test
   (controller linked, hands off, program started from the laptop) ran driver control for
@@ -3061,7 +3070,7 @@ order of magnitude, the stand-in is corroborated; where they diverge, R-phase sh
 | Rotation sensor ticks/rev | 36000 (centidegree) — `odomUnit.cpp:17` computes travel as `position·πd/36000` | HA-16 | **This is the "measured elsewhere" provenance:** the conversion ran on a real robot all season. HA-16 confidence is effectively settled-by-prior-use; R3 still confirms on current sensors |
 | Minimum drive command to move | 20/127 linear, 25/127 rotational (`main.cpp:838-839`, measured by `test_min_output()`'s +1-per-500 ms ramp) | HA-45 (kS) | ≈ 1.9 V equivalent linear kS on that robot vs the 1.0 V placeholder — **R5 should expect kS nearer 2 V** on a comparable drivetrain; the placeholder is likely low, not high |
 | Drive geometry, as built | trackWidth 15″, wheel 3.25″, 400 rpm cartridge-equivalent (`main.cpp:38`) | HA-14/HA-15/HA-17 | Corroborates 3.25″ as this team's habitual wheel size (HA-14's guess); rpm differs from HA-15's GREEN/900-ticks stand-in — cartridge is an R3 read-off either way |
-| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — the C5 session-header port map and G1's RobotBuilder replace hand-kept port lists. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
+| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — since G1 the session header's port map is generated from a robot's config (`robot::Robot::portMap()`), and since G1 Part 2c every program built on `robot::Robot` prints it that way ("shulib Teleop" and the invented X-drive, whose map is now a config constant); the typed table the tester and "shulib Drive" read (`src/chassis_table.hpp`) is still typed by hand. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
 | Calibration-routine specimens | `test_min_output()` (kS ramp), `rotation_calibration()` (iterative IMU-vs-wheel θ-scale comparison, ×3 passes) (`main.cpp:101-217`) | M3 calibration routines, R5 | The *procedures* are the salvage: both are legitimate bench routines to re-derive cleanly at M3/R5. The θ-scale factor itself is obsolete (v2 heading is IMU-owned) |
 
 Diagnostic-culture evidence from the same files (stuck-wheel detection, L/R travel-imbalance and

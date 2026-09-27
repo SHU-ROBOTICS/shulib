@@ -371,8 +371,8 @@ public:
     /// The V5 battery (`ProsBattery`). Never refused.
     [[nodiscard]] IBattery& battery() override { return battery_; }
     /// The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) —
-    /// exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's still
-    /// does). Never refused.
+    /// exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's until G1
+    /// Part 2c, which builds it over this provider). Never refused.
     [[nodiscard]] ITelemetrySink& telemetry() override { return telemetry_; }
     /// The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace). Never
     /// refused.

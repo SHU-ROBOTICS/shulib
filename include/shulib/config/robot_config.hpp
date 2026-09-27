@@ -71,7 +71,8 @@ inline constexpr std::size_t kMaxPneumaticsPerMechanism = 2;
 /// written into a persisted calibration record, it is append-only for that reason, and it knows
 /// only `Tank` because the calibrator can only measure a tank today. THIS enum is the CONFIG
 /// vocabulary and already carries the two holonomic kinds, because src/main.cpp's X-drive graph
-/// has existed since R1a and must be expressible as data (Part 2). A tank config carries a
+/// existed since R1a and had to be expressible as data — since G1 Part 2c it is
+/// (src/xdrive_config.hpp, the tree's first `constexpr RobotConfig`). A tank config carries a
 /// `hal::DrivetrainDescription`, whose own `kind` field is the persisted one; the two agree by
 /// construction because valid() checks them against each other.
 enum class DrivetrainKind : std::uint8_t {

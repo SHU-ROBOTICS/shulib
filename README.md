@@ -247,10 +247,14 @@ on a real robot: robot two's config comes from the calibration record on its SD 
 general, but robot two's cannot describe its drivetrain — its track width and gearing are unset —
 so without a record "shulib Teleop" refuses to build.) The longhand
 — construct a kinematics preset, the hardware interfaces, the localizer, and hand them over — is
-always available (Tier 3), and no config file or code generator is ever required: `src/main.cpp`
-still wires its X-drive variant that way (its port map labelled as the invention it is), and the
-test suite builds the same stack in one place against the host test plant
-(`test/chassis_facade_test.cpp`, the "standalone" case).
+always available (Tier 3), and no config file or code generator is ever required: the test suite
+builds the same stack by hand in one place against the host test plant
+(`test/chassis_facade_test.cpp`, the "standalone" case). No program in `src/` wires a graph by hand
+any more: which program a build is, and which robot's tables it carries, are chosen together by one
+`#if` chain in `src/build_selection.hpp` (the only place the `make ROBOT=… PROGRAM=…` switches are
+read), `src/main.cpp` only hands the PROS entry points to that program, and the one other robot
+described there — an X-drive whose port map is labelled as the invention it is — is a
+`constexpr RobotConfig` (`src/xdrive_config.hpp`) built the same way as Teleop's.
 
 ## How the tree is laid out
 
@@ -282,10 +286,13 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   chassis/          the public facade (Chassis) + the composition root (RobotContext)
   diag/             structured records, sinks, fault latch, health/loop monitors
   sim/              the host plant + hostile sensor models (tests only — see rule 2)
-src/                the robot programs: main.cpp (the PROS entry point), the bench tester,
-                    shulib Drive, shulib Calibrate, shulib Teleop (built on robot::Robot) with
-                    the boot source it shares and its claw wiring, and robot two's port and
-                    mechanism (claw) tables
+src/                the robot programs: build_selection.hpp (the one place a build's switches are
+                    read — it picks the program and the robot together), main.cpp (the PROS
+                    entry point — it hands each entry point to that program), the bench tester,
+                    shulib Drive, shulib Calibrate, shulib Teleop (built on robot::Robot) with the
+                    boot source it shares and its claw wiring, the state screens they share, the per-robot tables
+                    (every robot's ports; robot two's claws), and the invented X-drive (a
+                    RobotConfig constant, built on robot::Robot)
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)
@@ -298,8 +305,8 @@ Two structural rules, both enforced by CI grep-guards, keep the design honest:
 1. **The library never includes PROS** — except `include/shulib/hal/pros/`, the adapter
    directory built to, which the guard exempts by exact path and nothing else. Everything else
    under `include/shulib/` compiles on any C++20 compiler — which is exactly what makes a host
-   suite of this size possible. `src/main.cpp` is the other deliberate PROS toucher, outside the
-   library tree.
+   suite of this size possible. `src/` — the programs, outside the library tree — is the other
+   deliberate PROS toucher.
 2. **The core never includes the simulator.** Code under test can only see sensor interfaces,
    never the simulated ground truth — so a test can grade the estimator against a truth the
    estimator provably cannot peek at.

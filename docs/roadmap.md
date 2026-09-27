@@ -345,8 +345,11 @@ not silently break them. This table is the spine of the no-staleness promise.
 > driver, the first time the library's own object graph drove the robot; no library-commanded motion
 > has run.
 >
-> **Now (2026-09-26): Next: G1 Part 2c (`main.cpp` as a dispatcher), then COMP (the competition
-> program)** — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
+> **Now (2026-09-27): Next: COMP-b (the competition program: the first autonomous) and T4 (the
+> driver program — the team lead's request: one readable driver file for a driver program and the
+> competition program's `opcontrol()`). G1 is COMPLETE** — Part 2c and its final run have landed: one
+> chain in `src/build_selection.hpp` picks each build's program and robot, and `src/main.cpp` only
+> dispatches. — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
 > parallel and merge one at a time — DIAG1 has landed: an `ODO_STUCK` line from the odometry's trust
 > gate now names the check that fired and its values, so the next one on the robot can be explained. The brake-mode fix has landed (host- and build-gated, not run on
 > a robot): a Brake or Hold the library commands now reaches the V5 motor through PROS's `brake()`,
@@ -1269,9 +1272,10 @@ DoD in Phases C–F depends on it.*
   exactly that blind spot. `tools/src_build_gate.py check` now drives the REAL `make` for every
   robot variant (`ROBOT=bench` and `ROBOT=xdrive` at GATE1; `ROBOT=tank` since R3b session 2,
   2026-09-10), compile AND link, forced-fresh with the compiled
-  TU count printed; errors fail, vendored warnings are ignored by path, `-Wunused-function` is
-  allowed by category (the residual hole is stated in the tool), everything else fails, and a
-  missing toolchain FAILS rather than skips. `self-test` plants five faults against real builds
+  TU count printed; errors fail, vendored warnings are ignored by path, everything else fails
+  (`-Wunused-function` excepted by category at GATE1, the residual hole stated in the tool — *a
+  FAILURE like every other category since G1 Part 2c's final run, 2026-09-26, the team lead's
+  ruling*), and a missing toolchain FAILS rather than skips. `self-test` plants five faults against real builds
   first. Two records were corrected by measurement: the on-robot link is NOT blocked (the gate IS
   the build), and `make ROBOT=xdrive` replaces a documented flag that silently built the wrong
   robot. *Evidence: `tools/src_build_gate.py`; `.github/workflows/ci.yml` (`arm-compile-gate`, two

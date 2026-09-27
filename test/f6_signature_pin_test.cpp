@@ -415,9 +415,11 @@ SHULIB_F6_PIN(TerseSpellingsStillCompile<Chassis>,
 //
 // Bug now caught: kApiMinor is bumped for an additive change and
 // kApiVersionString is not updated with it (or vice versa). That token is the
-// one printable version — main.cpp carries a TODO(R1) to emit it in the §18.5
-// session header — so a desync would label every on-robot transcript and every
-// blackbox file with an API version the build is not. Provenance that is
+// one printable version — meant for the §18.5 session header (this said "main.cpp
+// carries a TODO(R1) to emit it" until G1 Part 2c: no such marker has existed since
+// R1a, and diag::SessionInfo has no version field yet) — so a desync would label every
+// on-robot transcript and every blackbox file that carries it with an API version the
+// build is not. Provenance that is
 // silently wrong is worse than absent, because it looks authoritative.
 //
 // kApiMinor is deliberately NOT pinned to any value: additive growth is legal

@@ -55,7 +55,8 @@
   greps; `python3 tools/api_doc_tool.py check-removability`.
 - **Open chunks** (a `-PROGRESS.md` with no `-COMPLETED.md`): **G1** (Part 1 landed; Part 2 briefed
   in three parts — Part 2a landed 2026-09-24, host-only; Part 2b landed 2026-09-26, build-gated, this
-  version of "shulib Teleop" unrun; 2c open),
+  version of "shulib Teleop" unrun; Part 2c landed 2026-09-26, build-gated — G1's completion record
+  is written when 2c is merged),
   **R3a** (bench measurements; its DoD's register groups are unsettled), **R3b** (host pieces landed;
   closes on an on-robot auton), **R3d** (Parts 1–2 landed; Part 3 is the bench session), **T2**
   (library half landed; its `src/` wiring landed with G1 Part 2b, unrun — `T2-COMPLETED.md` is owed
@@ -258,8 +259,8 @@ Calibration: `calibration/drivetrain_calibrator.hpp`, `calibration_record.hpp` (
 `boot_check.hpp`. Driver control: `teleop/stick_mapping.hpp` (raw, used by shulib Drive),
 `coupled_side_monitor.hpp`, `drivetrain_degradation.hpp`, and T2's `input_shaping.hpp`,
 `slew_limiter.hpp`, `drive_modes.hpp`, `field_centric.hpp`, `driver_control.hpp`, and (G1 Part 2a)
-`teleop_loop.hpp` — `runDriverControl`, the loop over them (**none of it wired into any program
-yet**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
+`teleop_loop.hpp` — `runDriverControl`, the loop over them (**wired into "shulib Teleop" since G1
+Part 2b and the invented X-drive since Part 2c; neither has run with it**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
 constructs a mechanism from it yet**), `config/route.hpp` (**F8 frozen**; `Waypoint::reverse` exists),
 `hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, clock, battery, telemetry,
 pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot::validate` +
@@ -274,7 +275,10 @@ own loop in `src/teleop_program.cpp`, **this version never run** — the previou
 robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/calibrate_program.cpp`;
 **first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
 serial capture; its recorded reproduction run is still owed), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
-invented ports, HA-111). **Every `autonomous()` commands nothing.** Upload: `rm -rf bin .d && make
+invented ports, HA-111 — since G1 Part 2c `src/xdrive_config.hpp` on `robot::Robot`, refusing at boot
+on any robot that exists). `src/build_selection.hpp` chooses, in one chain, which program AND which robot's tables a build is,
+and `src/main.cpp` only hands each PROS entry point to that program (G1 Part 2c and its final run).
+**Every `autonomous()` commands nothing.** Upload: `rm -rf bin .d && make
 ROBOT=tank PROGRAM=<p> && pros upload --slot N --name "<name>"` — one program at a time (each build
 overwrites `bin/`).
 
@@ -295,8 +299,14 @@ HOST-ONLY** (jal's go that morning; `G1-PROGRESS.md` "Part 2a"). **PART 2b LANDE
 BUILD-GATED — "shulib Teleop" on `robot::Robot`; THIS VERSION HAS NOT RUN ON A ROBOT** (jal's answers
 of 2026-09-26: switch to the feel layer, status pointers only, the documentation list accepted; his
 go on 2b CONFIRMED to the executor by the coordinator on 2026-09-26; `G1-PROGRESS.md` "Part 2b").
-**2c waits for his go — after the brake-mode fix (DEFECTS2) and T3, in his order of 2026-09-26
-(§7).**
+**PART 2c LANDED 2026-09-26, BUILD-GATED** (built in an isolated worktree in parallel with T3,
+DIAG1 and COMP-a — jal's "start all three"; `G1-PROGRESS.md` "Part 2c"): `src/main.cpp` a
+dispatcher, the invented X-drive a `constexpr RobotConfig` on `robot::Robot`, the state screens
+moved out, the build gate's differential retired for the beacon over one chain and a program check
+from each package's symbol table. **Its final run** (the team lead's rulings of 2026-09-26 ~13:15)
+moved the one chain into `src/build_selection.hpp`, picking the program AND the robot's tables (no
+`#if` in either table; a robot beacon asserted per build; no program may name another robot's table),
+and made `-Wunused-function` a gate failure. **G1 is complete; nothing of it has run on a robot.**
 *(This line read "PART 2a WAITS FOR JAL'S GO" until 2a landed, and "2b and 2c each wait for his go"
 until 2b landed; the paragraph below is kept as it was written before the go.)*
 `docs/internal/chunks/G1-part2-pros-provider-and-main.md`. jal approved the direction ("we haven't
@@ -639,10 +649,12 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    Teleop" has not run on a robot). **jal's order of 2026-09-26: the brake-mode fix (DEFECTS2 —
    Hold and Brake reach the V5 motor; Teleop coasts on stick release), then T3 (the claw pivots on
    ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
-   started only on his go. Before 2c: re-check its brief against the tree (2b, DEFECTS2 and T3 all
-   change what it starts from). **DEFECTS2 and T3 (both parts — the claws now driven by "shulib
-   Teleop") have landed, host- and build-gated, not run on a robot; next: G1 Part 2c, then COMP.**
-   The claws' first sight is worksheet Station J (after Station F).
+   started only on his go. **DEFECTS2, T3 (both parts — the claws now driven by "shulib Teleop") and G1
+   Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE; next: COMP, and T4
+   (the driver program — the team lead's request of 2026-09-26 late evening; its brief is being
+   written).** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
+   brief against the tree is `G1-PROGRESS.md` 2c.1.)* The claws' first sight is worksheet Station J
+   (after Station F).
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).
    Nothing is worth more. It needs nothing from L1.
 3. Brief → go → build, one at a time: **L2** (it is also what lets R3b/M1 close), **L3**, **L6**,

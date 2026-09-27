@@ -38,8 +38,8 @@ Two structural rules are enforced by CI (automated checks that run on every comm
 1. **The library never includes PROS** (the V5 runtime) — except the adapter directory built
    to, `include/shulib/hal/pros/`, which the check exempts by exact path and nothing else.
    Everything else under `include/shulib/` compiles on any C++20 compiler — which is precisely
-   what makes the massive host-side test suite possible (`src/main.cpp`, outside the library
-   tree, is the other deliberate PROS toucher). If your change needs something from PROS
+   what makes the massive host-side test suite possible (`src/` — the programs, outside the
+   library tree — is the other deliberate PROS toucher). If your change needs something from PROS
    anywhere else in the library, the design is wrong — the need belongs behind a `hal/`
    interface, with the PROS call living in a `hal/pros/` adapter.
 2. **The core never includes the simulator.** Code under test can only see sensor interfaces —

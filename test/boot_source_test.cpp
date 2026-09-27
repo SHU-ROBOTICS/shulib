@@ -159,9 +159,11 @@ FakeDeviceRegistry robotTwoCensus() {
     return reg;
 }
 
-/// Robot two's TYPED table as src/chassis_table.hpp carries it in the ROBOT=tank build (its
-/// front is the 15/16 end), typed here by hand because the host build compiles the bench bot's
-/// table — including that header twice with two definitions of kChassis would break the ODR.
+/// Robot two's TYPED table as src/chassis_table.hpp carries it for the ROBOT=tank builds
+/// (kRobotTwoChassis; its front is the 15/16 end), typed here by hand as the description the pure
+/// core is handed. (Until G1 Part 2c's final run the host could not see robot two's table at all —
+/// it was defined only under the tank define; test/chassis_table_test.cpp now pins the real table,
+/// its name and its missing-geometry line to the same literals this file re-types.)
 DrivetrainDescription robotTwoTableSigns() {
     constexpr std::int8_t left[5] = {-11, 12, -13, 14, -15};
     constexpr std::int8_t right[5] = {20, -19, 18, -17, 16};

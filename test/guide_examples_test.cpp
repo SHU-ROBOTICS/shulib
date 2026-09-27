@@ -163,7 +163,7 @@ TEST_CASE("guide-08a: your first routine — wiring, running, and the report") {
     const k::MatrixKinematics kin = k::xDrive(7_in);
 
     // Step 2 — the robot. On a real V5 the hal/pros adapters go here (they
-    // exist; src/main.cpp wires them); here it is the simulated robot the
+    // exist; a device provider supplies them); here it is the host test plant the
     // whole library is tested against. The feedforward constants describe
     // the robot being driven — they MUST match between plant and
     // controller (chapter 5).

@@ -53,8 +53,8 @@
 //
 // ═══ ORDER AT BOOT (initialize()) ═══════════════════════════════════════════════════
 // src/main.cpp installs the precondition handler FIRST, then calls teleopInitialize(): the banner
-// and competition status (from main.cpp's arguments — the beacon stays a literal in main.cpp's
-// #if chain, the brief's A2), the boot source (which prints its own decision lines), then the
+// and competition status (from main.cpp's arguments — the beacon stays a literal in
+// src/build_selection.hpp's one chain, the brief's A2 and G1 Part 2c final), the boot source (which prints its own decision lines), then the
 // graph, ONCE, into std::optional storage inside the graph boundary's try — validate() AND the
 // construction, because a provider configuration conflict is a precondition — then the fault
 // latch handed to main.cpp's handler (fault_latch_hook.hpp), the session header, and the boot
@@ -72,8 +72,8 @@
 // other programs' packages. A function-local static is initialized on first call, so in the builds
 // that never call it, --gc-sections drops everything here.
 //
-// Compiled in all six builds (the brief's A12): nothing here reads src/main.cpp's SHULIB_RUNS_*
-// macros, no beacon literal lives here (landmine 10), and every symbol it needs from main.cpp
+// Compiled in all six builds (the brief's A12): nothing here reads a build switch (only
+// src/build_selection.hpp's one chain does — G1 Part 2c final), no beacon literal lives here (landmine 10), and every symbol it needs from main.cpp
 // (attachFaultLatch) is defined in all six. ASCII only in every runtime string; every screen
 // string goes through printText(); only a literal "%s" reaches a PROS print.
 

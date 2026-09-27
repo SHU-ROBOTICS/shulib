@@ -6,12 +6,17 @@
 // The table lives in src/ (it is a per-robot composition fact, not library API), and it is
 // PROS-free on purpose so this test can include it by relative path and break its checks
 // with hand-built tables. The mutation the brief requires ("remove a check") was run against
-// these cases and the observed red is in the R3b log. The REAL table this TU sees is the
-// bench bot's (no variant define on the host). The tank table cannot be compiled into the
-// same TU under its define, so robot two's measured entries are RE-TYPED here from the
-// brief's §0 and checked as a table of their own; the header's copy is checked on every
-// `make ROBOT=tank` by the drive program's boot-time tableConsistent() call, and the src
-// build gate compiles that path.
+// these cases and the observed red is in the R3b log.
+//
+// WHAT THIS TU SEES (since G1 Part 2c's final run, 2026-09-26): EVERY robot's REAL table, by its
+// own name — kBenchBotChassis, kRobotTwoChassis, kNoChassis (the invented X-drive's, all UNSET) —
+// and the selection chassisTableFor(), which the cases below call for every robot. kChassis, the
+// build's selection, is the host's: the host sets no build switch, so src/build_selection.hpp's
+// chain takes its #else and kChassis is the bench bot's, as in `make` with no ROBOT. Until that run
+// robot two's table existed only under the tank define, so this file RE-TYPED its entries and a
+// typo in the real table was invisible to the suite; the re-typed copy (robotTwo(), below) stays as
+// the table the break-it cases mutate, and a case now pins it — and the real table — to the brief's
+// literals, field by field.
 
 #include "doctest.h"
 
@@ -25,9 +30,14 @@
 
 using shulib::bench::absPort;
 using shulib::bench::Cartridge;
+using shulib::bench::chassisTableFor;
 using shulib::bench::ChassisTable;
+using shulib::bench::kBenchBotChassis;
 using shulib::bench::kChassis;
 using shulib::bench::kMaxPort;
+using shulib::bench::kNoChassis;
+using shulib::bench::kRobotTwoChassis;
+using shulib::bench::RobotId;
 using shulib::bench::portsToString;
 using shulib::bench::tableConsistent;
 using shulib::bench::tableCount;
@@ -38,7 +48,9 @@ using shulib::bench::tableSignOf;
 
 namespace {
 
-/// Robot two's table exactly as measured (brief §0): the signed ports, IMU 2, blue.
+/// Robot two's table exactly as measured (brief §0): the signed ports, IMU 2, blue — typed by hand
+/// with its own name and provenance, so the break-it cases can see their mutation in a message. The
+/// case "robot two's REAL table" pins it to kRobotTwoChassis field by field.
 [[nodiscard]] ChassisTable robotTwo() {
     return ChassisTable{
         .robot = "test copy of robot two",
@@ -104,11 +116,11 @@ TEST_CASE("chassis table: robot two's measured table is consistent, and the sign
     CHECK(std::strcmp(buf, "+20 -19 +18 -17 +16") == 0);
 }
 
-TEST_CASE("chassis table: the bench bot's table (the one this TU compiles) is consistent and "
-          "UNSIGNED") {
+TEST_CASE("chassis table: the bench bot's table (the host's selection, as in `make` with no "
+          "ROBOT) is consistent and UNSIGNED") {
     // BUG CAUGHT: the real table drifting into an inconsistent state, or growing signs it
-    // never measured. On the host neither variant define is set, so kChassis is the bench
-    // bot's.
+    // never measured. On the host no build switch is set, so kChassis is the bench bot's.
+    REQUIRE(&kChassis == &kBenchBotChassis);
     char why[96];
     CHECK(consistent(kChassis, why, sizeof why));
     CHECK_FALSE(kChassis.signsMeasured);
@@ -283,7 +295,7 @@ TEST_CASE("chassis table 18: geometry UNSET refuses the library graph, naming wh
     bad = robotTwo();
     bad.wheelDiameterIn = std::numeric_limits<double>::quiet_NaN();
     CHECK_FALSE(consistent(bad, why, sizeof why));
-    // The committed table (this TU compiles the bench bot's) has legal geometry fields.
+    // The committed table (the host's selection, the bench bot's) has legal geometry fields.
     CHECK(consistent(kChassis, why, sizeof why));
     CHECK(kChassis.wheelDiameterIn == 2.75);
     CHECK(kChassis.trackWidthIn == 0.0);   // UNSET, on purpose: never guessed
@@ -474,8 +486,8 @@ TEST_CASE("chassis table 2: an UNSET or UNSIGNED table cannot produce a VALID de
     CHECK_FALSE(tableToDescription(noImu).valid(why, sizeof why));
     CHECK(std::strstr(why, "IMU port") != nullptr);
 
-    // (d) the table this TU actually compiles — the bench bot's — is UNSIGNED and geometry-less,
-    // so it too refuses. Nothing in the tree can build a drivetrain from it today, by design.
+    // (d) the host's selection — the bench bot's table — is UNSIGNED and geometry-less, so it too
+    // refuses. Nothing in the tree can build a drivetrain from it today, by design.
     CHECK(describeMissingForDescription(kChassis, missing, sizeof missing));
     CHECK_FALSE(tableToDescription(kChassis).valid(why, sizeof why));
 }
@@ -520,10 +532,124 @@ TEST_CASE("chassis table 3: tableToDescription()'s provenance is byte for byte t
         CHECK(std::string_view{d.provenance} == expected(t));
         CHECK(d.provenance[kCap - 1] == '\0');
     }
-    // (d) the table this TU compiles (the bench bot's), whose provenance is far longer.
+    // (d) the host's selection (the bench bot's table), whose provenance is far longer.
     {
         const shulib::hal::DrivetrainDescription d = tableToDescription(kChassis);
         CHECK(std::strlen(d.provenance) == kCap - 1);
         CHECK(std::string_view{d.provenance} == expected(kChassis));
     }
+}
+
+// ═══ G1 Part 2c's final run: every robot's REAL table on the host, and the selection ═══════════
+// The team lead's ruling "one chain picks both" (2026-09-26): src/build_selection.hpp's one chain
+// sets kRobotId, and this table has no #if of its own — chassisTableFor(kRobotId) is the build's table.
+// So the tables the robot builds carry are compiled HERE, and the mapping each robot build uses is
+// a function the host can call for every robot.
+
+TEST_CASE("chassis table: the selection -- chassisTableFor() gives every robot its OWN table, and "
+          "the host's kChassis is the bench build's") {
+    // BUG CAUGHT: a wrong robot in chassisTableFor() (robot two handed the bench bot's unsigned
+    // table: every tank program refuses, or worse, a table with the right shape and the wrong
+    // ports), or two robots sharing one table. The robot builds evaluate exactly these calls.
+    CHECK(&chassisTableFor(RobotId::BenchBot) == &kBenchBotChassis);
+    CHECK(&chassisTableFor(RobotId::RobotTwo) == &kRobotTwoChassis);
+    CHECK(&chassisTableFor(RobotId::InventedXDrive) == &kNoChassis);
+    CHECK(&kBenchBotChassis != &kRobotTwoChassis);
+    CHECK(&kRobotTwoChassis != &kNoChassis);
+    CHECK(&kNoChassis != &kBenchBotChassis);
+    // Each table names its own robot, so a banner can never print one robot over another's ports.
+    CHECK(std::string_view{chassisTableFor(RobotId::BenchBot).robot}.find("BENCH BOT")
+          != std::string_view::npos);
+    CHECK(std::string_view{chassisTableFor(RobotId::RobotTwo).robot}.find("robot two")
+          != std::string_view::npos);
+    CHECK(std::string_view{chassisTableFor(RobotId::InventedXDrive).robot}.find("INVENTED X-DRIVE")
+          != std::string_view::npos);
+    // The host (no build switch) is the bench build.
+    CHECK(shulib::bench::kRobotId == RobotId::BenchBot);
+    CHECK(&kChassis == &chassisTableFor(shulib::bench::kRobotId));
+    CHECK(&kChassis == &kBenchBotChassis);
+}
+
+TEST_CASE("chassis table: robot two's REAL table (kRobotTwoChassis) is the measured one, field by "
+          "field -- and the hand-typed copy the other cases break matches it") {
+    // BUG CAUGHT: a typo in the table robot two's four builds carry — a dropped sign, a swapped
+    // side, the IMU moved — which, until G1 Part 2c's final run, no host test could see (the table
+    // existed only under the tank define, and this file tested a re-typed copy). Every literal below
+    // is from the brief's §0 and the table's own provenance, never read from the header under test.
+    const ChassisTable& t = kRobotTwoChassis;
+    const std::int8_t left[5] = {-11, 12, -13, 14, -15};
+    const std::int8_t right[5] = {20, -19, 18, -17, 16};
+    REQUIRE(t.leftCount == 5);
+    REQUIRE(t.rightCount == 5);
+    for (std::size_t i = 0; i < 5; ++i) {
+        CAPTURE(i);
+        CHECK(t.left[i] == left[i]);
+        CHECK(t.right[i] == right[i]);
+    }
+    for (std::size_t i = 5; i < static_cast<std::size_t>(kMaxPort); ++i) {
+        CHECK(t.left[i] == 0);
+        CHECK(t.right[i] == 0);
+    }
+    CHECK(t.cartridge == Cartridge::Blue);
+    CHECK(t.imuPort == 2);
+    CHECK(t.measured);
+    CHECK(t.signsMeasured);
+    CHECK(t.wheelDiameterIn == 2.75);
+    CHECK(t.trackWidthIn == 0.0);   // UNSET: tape owed, never guessed
+    CHECK(t.externalRatio == 0.0);  // UNSET: tooth counts owed, never guessed
+    char why[96];
+    CHECK(consistent(t, why, sizeof why));
+    // The two strings test/boot_source_test.cpp re-types as "what the ROBOT=tank build prints":
+    // the robot's name and what its table cannot describe.
+    CHECK(std::string_view{t.robot} == "2026 TANK CHASSIS (robot two)");
+    char missing[192];
+    CHECK(shulib::bench::describeMissingForDescription(t, missing, sizeof missing));
+    CHECK(std::string_view{missing} == "track width, external ratio (motor->wheel)");
+    // The hand-typed copy the break-it cases start from is the real table in every field a check
+    // reads (its name and provenance are its own, on purpose).
+    const ChassisTable copy = robotTwo();
+    CHECK(copy.leftCount == t.leftCount);
+    CHECK(copy.rightCount == t.rightCount);
+    for (std::size_t i = 0; i < static_cast<std::size_t>(kMaxPort); ++i) {
+        CAPTURE(i);
+        CHECK(copy.left[i] == t.left[i]);
+        CHECK(copy.right[i] == t.right[i]);
+    }
+    CHECK(copy.cartridge == t.cartridge);
+    CHECK(copy.imuPort == t.imuPort);
+    CHECK(copy.measured == t.measured);
+    CHECK(copy.signsMeasured == t.signsMeasured);
+    CHECK(copy.wheelDiameterIn == t.wheelDiameterIn);
+    CHECK(copy.trackWidthIn == t.trackWidthIn);
+    CHECK(copy.externalRatio == t.externalRatio);
+}
+
+TEST_CASE("chassis table: the invented X-drive's table is UNSET in every field -- consistent, and "
+          "refused by everything that would drive from it") {
+    // BUG CAUGHT: the xdrive build carrying ANOTHER robot's facts — until G1 Part 2c's final run it
+    // carried the bench bot's table (the #else of this file's old #if), dormant only because no
+    // program in that build reads a chassis table. An UNSET table makes any future reader refuse by
+    // name instead of driving the bench bot's ports on an X-drive.
+    const ChassisTable& t = kNoChassis;
+    char why[96];
+    CHECK(consistent(t, why, sizeof why));  // unset is legal, never contradictory
+    CHECK_FALSE(tableHasPorts(t));
+    CHECK(tableCount(t) == 0);
+    CHECK(t.cartridge == Cartridge::Unset);
+    CHECK(t.imuPort == 0);
+    CHECK_FALSE(t.measured);
+    CHECK_FALSE(t.signsMeasured);
+    CHECK(t.wheelDiameterIn == 0.0);
+    CHECK(t.trackWidthIn == 0.0);
+    CHECK(t.externalRatio == 0.0);
+    for (int p = 1; p <= kMaxPort; ++p) {
+        CAPTURE(p);
+        CHECK(tableSideOf(t, p) == 0);
+        CHECK(tableSignedPort(t, p) == 0);
+    }
+    char missing[192];
+    CHECK(shulib::bench::describeMissing(t, missing, sizeof missing, true));  // the drive refusal
+    CHECK(std::string_view{missing} == "LEFT ports, RIGHT ports, cartridge");
+    CHECK(shulib::bench::describeMissingForDescription(t, missing, sizeof missing));
+    CHECK_FALSE(shulib::bench::tableToDescription(t).valid(why, sizeof why));
 }

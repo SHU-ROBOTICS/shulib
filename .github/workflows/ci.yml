@@ -115,7 +115,8 @@ jobs:
   #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's
   #    bundled toolchain; measured false — firmware/*.a are vendored in-tree and
   #    apt's gcc-arm-none-eabi (13.2.1) links it, with Makefile's gnu++20 pin.
-  #    Warning policy, self-test, and the stated residual hole live in
+  #    The warning policy (no category allowed since G1 Part 2c's final run:
+  #    every warning in our code fails) and the self-test live in
   #    tools/src_build_gate.py's header. A missing toolchain FAILS; never skips.
   #  What is still NOT here: uploading to or running on a brain (chunks R3a/R3b/R3c).
   arm-compile-gate:
@@ -139,11 +140,21 @@ jobs:
 
       # SRC BUILD GATE (chunk GATE1) — one command, identical to what is run
       # locally. The self-test runs FIRST and proves the detectors can fire by
-      # planting real faults (a syntax error, a disallowed warning, an allowed
-      # warning, a vendor-path warning) and building each; then check runs the
-      # gate itself. Both builds are forced fresh (bin/ and .d/ deleted) and the
-      # compiled-TU count is printed and verified, so an incremental no-op can
-      # never report green silently.
+      # planting real faults (a syntax error, a disallowed warning, a new dead
+      # function — -Wunused-function, a FAILURE since G1 Part 2c's final run — a
+      # vendor-path warning, a dropped or look-alike variant define, and — since
+      # G1 Part 2c, which retired the warning-count differential — a broken
+      # branch of src/build_selection.hpp's one #if chain, an unhandled program
+      # or robot, a build switch read anywhere else (each table, a library
+      # header, a host test, a .c++ or .S file and the host build's CMake
+      # included) in every directive form, a selection name made a macro, a
+      # program naming ANOTHER robot's table, a second chain, an entry point
+      # calling another program's function, a branch assigning the wrong
+      # program or the wrong ROBOT, the robot split into a chain of its own, a
+      # program the gate's table does not know) and building each where a
+      # build is what sees it; then check runs the gate itself. Both builds are
+      # forced fresh (bin/ and .d/ deleted) and the compiled-TU count is printed
+      # and verified, so an incremental no-op can never report green silently.
       - name: src build gate self-test (prove the detectors fire)
         run: python3 tools/src_build_gate.py self-test
 

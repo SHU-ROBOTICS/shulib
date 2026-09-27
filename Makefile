@@ -15,12 +15,20 @@ INCDIR=$(ROOT)/include
 # src/ compiled with NO warning flags until 2026-08-18 -- common.mk sets only
 # -Wno-psabi. The library headers get the full strict set in CI's ARM gate, but
 # src/main.cpp and src/bench_r3a.cpp got nothing, and a data abort shipped to the
-# robot as a result. Enabled here, deliberately WITHOUT -Werror: in the bench
-# and tank builds the X-drive helpers (robot(), portMapString()) are legitimately
-# unused, and two -Wunused-function warnings are the correct, informative
-# output -- they are how you can see that the invented wiring really is dead code.
-# (There were three until R3b Session 2 moved shaped() into the PROS-free
-# shulib/teleop/stick_mapping.hpp; tools/src_build_gate.py asserts >= 1, not 3.)
+# robot as a result. Enabled here WITHOUT -Werror; tools/src_build_gate.py is what fails
+# a build on a warning: EVERY warning in our code fails it (vendored headers are ignored by
+# path), -Wunused-function included since G1 Part 2c's final run (the team lead's ruling,
+# 2026-09-26). That category was allowed from GATE1 until then, as the evidence that the
+# invented X-drive wiring in src/main.cpp was dead code in the bench and tank builds (robot()
+# and portMapString() warned there, and the gate counted them); G1 Part 2c made the X-drive
+# data (src/xdrive_config.hpp) built in its own file, NO build emits the warning any more, and
+# a NEW dead function in src/ now fails the gate instead of passing it.
+# What replaced the warning count as the proof that a build is the variant it claims: the
+# identity BEACONS -- the variant beacon, typed in the same branch of src/build_selection.hpp's
+# ONE #if chain that sets the program and the robot, and the robot beacon derived from that
+# robot (the gate's steps 0 and 6) -- and the PROGRAM read from the linked ELF's symbol table
+# (step 8): the variant beacon vouches for the branch, the robot beacon for the robot the branch
+# set, step 8 for the program it set and for what each entry point calls.
 #
 # Honest limit, stated so nobody trusts this further than it goes: -Wformat=2 did
 # NOT catch the bug that motivated it. std::string_view is trivially copyable, so
@@ -44,14 +52,19 @@ override EXTRA_CXXFLAGS+=-DSHULIB_BUILD_HASH=\"$(SHULIB_GIT_HASH)\"
 endif
 
 # ── WHICH ROBOT IS THIS BINARY FOR? (chunk GATE1; third variant at R3b Session 2) ──
-# ROBOT selects the variant src/main.cpp builds:
+# ROBOT selects the robot a build is for -- read, with PROGRAM below, by ONE #if chain in
+# src/build_selection.hpp (and nowhere else in the tree), which sets the program, the robot's tables
+# and the identity beacon together:
 #     make                → ROBOT=bench  — the measured tank BENCH bot: boots the bench tester
 #     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too, over
 #                            its MEASURED, SIGNED chassis table (src/chassis_table.hpp, shared
 #                            with the drive program and the library program). Add PROGRAM=drive
 #                            (below) for the program that just drives it, or PROGRAM=library for
 #                            the program in which THE LIBRARY drives it (R3b Parts 1–3).
-#     make ROBOT=xdrive   → the invented X-drive wiring (HA-111; cannot boot on the bench bot)
+#     make ROBOT=xdrive   → the invented X-drive (HA-111): src/xdrive_config.hpp, built on
+#                            robot::Robot by src/xdrive_program.cpp since G1 Part 2c. Its
+#                            ports are invented, so on every robot that exists it refuses at
+#                            boot, naming the first port, with nothing powered.
 # Any other value is an $(error), NOT a silent default: the previous mechanism was
 # "make CXXFLAGS_EXTRA=-DSHULIB_ROBOT_XDRIVE_INVENTED" as documented in src/main.cpp —
 # but common.mk consumes EXTRA_CXXFLAGS, the names were transposed, and the documented
@@ -66,7 +79,7 @@ endif
 # top of any command-line value instead of vanishing.
 ROBOT?=bench
 ifeq ($(ROBOT),bench)
-# src/main.cpp defaults to the bench tank when neither variant define is set.
+# src/build_selection.hpp's chain defaults to the bench tank when neither variant define is set.
 else ifeq ($(ROBOT),xdrive)
 override EXTRA_CXXFLAGS+=-DSHULIB_ROBOT_XDRIVE_INVENTED
 else ifeq ($(ROBOT),tank)
@@ -111,10 +124,10 @@ endif
 # other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM value is an
 # $(error) too — the same silent-no-op class GATE1 closed for ROBOT. tools/src_build_gate.py
 # builds this axis as its fourth, fifth and sixth entries (tank-drive, tank-library,
-# tank-calibrate) and asserts each define lands token-exact and the beacon is in the ELF.
+# tank-calibrate) and asserts each define lands token-exact and the beacons are in the ELF.
 PROGRAM?=tester
 ifeq ($(PROGRAM),tester)
-# the default: no define; src/main.cpp runs the bench tester on bench and tank
+# the default: no define; src/build_selection.hpp's chain picks the bench tester on bench and tank
 else ifeq ($(PROGRAM),drive)
 ifneq ($(ROBOT),tank)
 $(error PROGRAM=drive needs ROBOT=tank — only robot two's chassis table carries measured signs; '$(ROBOT)' cannot drive)

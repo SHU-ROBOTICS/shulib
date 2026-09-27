@@ -206,9 +206,9 @@ Request × budgets → the body-frame ChassisSpeeds that Chassis::drive(…, Fra
 [[nodiscard]] constexpr math::ChassisSpeeds mapSticksToChassisSpeeds( const StickInput& in, units::Velocity maxLinear, units::AngularVelocity maxAngular) noexcept
 ```
 
-The whole mapping in one call — what src/main.cpp's R1a loop (`runTeleopLoop`, now called only by the invented X-drive graph) uses each tick. "shulib Teleop" used it until G1 Part 2b moved it onto the library's own loop, `teleop::runDriverControl` (teleop_loop.hpp), which shapes through `DriveShaper` and `toChassisSpeeds` instead; this function stays for the X-drive loop until G1 Part 2c and for its bit-identity pin. Bit-identical to the R1a loop it replaced: a disconnected controller returns a default-constructed ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a connected one returns toChassisSpeeds(mapSticks(in), …).
+The whole mapping in one call — what src/main.cpp's R1a loop (`runTeleopLoop`) used each tick. "shulib Teleop" used it until G1 Part 2b moved it onto the library's own loop, `teleop::runDriverControl` (teleop_loop.hpp), which shapes through `DriveShaper` and `toChassisSpeeds` instead; the invented X-drive, the loop's last caller, moved the same way at G1 Part 2c, which deleted `runTeleopLoop`. No program calls this function now; it stays for its bit-identity pin (test/stick_mapping_test.cpp). Bit-identical to the R1a loop it replaced: a disconnected controller returns a default-constructed ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a connected one returns toChassisSpeeds(mapSticks(in), …).
 
-*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:141`](../../include/shulib/teleop/stick_mapping.hpp#L141).*
+*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:142`](../../include/shulib/teleop/stick_mapping.hpp#L142).*
 
 ## Design commentary, from the header
 

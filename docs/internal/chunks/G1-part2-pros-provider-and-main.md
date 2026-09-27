@@ -421,7 +421,7 @@ widened** to the `Makefile` and `tools/` comments.
    that can tell the tank builds apart. So: remove the warning-count differential
    (`XDRIVE_WIRING_DEAD_IN`, the check at `:441-456`), rewrite the tool header's VARIANT DIFFERENTIAL
    section to say what replaced it and why, update the self-test, and rewrite `Makefile:15-23`'s
-   WARNFLAGS rationale (`-Wunused-function` stays allowed by category). **Mutation:** break one
+   WARNFLAGS rationale (`-Wunused-function` stays allowed by category *(SUPERSEDED 2026-09-26 by the team lead's ruling: `-Wunused-function` is a gate FAILURE — G1 Part 2c final, `G1-PROGRESS.md` 2cF.3)*). **Mutation:** break one
    `#ifdef` in `main.cpp`'s variant lattice and show the gate FAIL on the beacon; restore; green.
    Update `.github/workflows/ci.yml`'s comment if its wording changes.
 5. `main.cpp` ≤ 300 lines; a grep in the log shows no `MotorGroup`, `Localizer`, `RobotContext`,

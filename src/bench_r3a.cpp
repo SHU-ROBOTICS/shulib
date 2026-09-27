@@ -3119,6 +3119,22 @@ void touchReadout(const pros::screen_touch_status_s_t& t, int hit) {
 
 }  // namespace
 
+void testerInitialize(const char* variantBeacon, const char* competitionStatusBits) {
+    // Moved VERBATIM from src/main.cpp's initialize() at G1 Part 2c (the dispatcher forwards
+    // here); the bytes on serial are unchanged. The X-drive graph is not constructed in this
+    // build — it lives in src/xdrive_program.cpp, which only the xdrive build calls.
+    std::printf("\n[R3A] booted: bench-tester build [%s].\n"
+                "[R3A] read-only EXCEPT the tester's DRIVE station (R3b Session 2), which powers\n"
+                "[R3A] the drive motors through the hal/pros adapters behind six safety gates --\n"
+                "[R3A] never through the motion stack. The library has still not driven a robot.\n"
+                "[R3A] the X-drive object graph is deliberately NOT constructed.\n",
+                variantBeacon);
+    std::printf("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
+                "CONTROL, enabled; any other state paints the screen with the reason.\n",
+                competitionStatusBits);
+    std::fflush(stdout);
+}
+
 void runR3a() {
     // The SD text log, opened first so the banner itself is captured. One file per
     // boot (ProsBlockSink owns its FILE*), so a re-run means a power cycle.

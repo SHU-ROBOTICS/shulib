@@ -135,7 +135,9 @@ python3 tools/src_build_gate.py check
 > `PROGRAM=calibrate` on tank for the drive program, the library program and (since R3d Part 2)
 > the self-calibration program — the old documented `CXXFLAGS_EXTRA` flag was a
 > measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and survives only in comments that
-> say it used to be documented (`Makefile`, `src/main.cpp`) — never as an instruction.
+> say it used to be documented (`Makefile`, `src/build_selection.hpp` — the one file that reads the
+> ROBOT/PROGRAM defines since G1 Part 2c's final run; `src/main.cpp` read them until then) — never as
+> an instruction.
 
 > **This command was BROKEN here until DOCS1 (2026-08-14), and the failure was silent-ish in the
 > worst way.** The `sed` read `s|.*/include/||`, which needs a `/` *before* `include` — so run from

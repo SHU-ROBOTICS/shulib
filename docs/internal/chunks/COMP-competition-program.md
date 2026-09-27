@@ -22,7 +22,7 @@
 
 ---
 
-## Re-check 2026-09-26 — amendments B1–B27, and B28 added at T3 Part 1's merge (BINDING; they override the text below where they conflict)
+## Re-check 2026-09-26 — amendments B1–B27, B28 added at T3 Part 1's merge and B29 at G1 Part 2c final's (BINDING; they override the text below where they conflict)
 
 > A read-only re-check of this brief against the tree at `b622d9b` plus G1 Part 2b (landed `7f9b9a1`),
 > DEFECTS2 (landed `a8540e6`) and the T3 briefs (`9325490`), the vendored PROS headers and the 2026-09-25
@@ -160,6 +160,20 @@
   record whether the claw moves at the start, at the enable, when driver control begins, or never
   (HA-157's settle text). COMP-b writes the step.
 
+- **B29 — the seventh build under G1 Part 2c final's ONE chain** *(added at 2c final's merge, 2026-09-27; it
+  REPLACES §3 item 3, which still names `SHULIB_RUNS_*` and the retired differential)*: COMP-b adds the program by a
+  `Program::Competition` enumerator; ONE branch of `src/build_selection.hpp`'s chain (`#elif
+  defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_COMPETITION)` setting `kProgram =
+  Program::Competition`, `kRobotId = RobotId::RobotTwo` and `kVariantBeacon =
+  "shulib-robot-variant=tank-competition"`, nothing else) plus its `#error` guards; a case in EACH of `src/main.cpp`'s
+  five entry-point switches; in `tools/src_build_gate.py` `VARIANTS`, `BUILD_ARGS`, `VARIANT_DEFINES`,
+  `VARIANT_BEACONS`, `BUILD_PROGRAM`, `BUILD_ROBOT` (`RobotTwo` — no new robot beacon) and
+  `PROGRAM_ENTRY_SYMBOLS`, and a self-test pair like cases 14/15. The define is read in
+  `src/build_selection.hpp` ONLY, and the program reads `kChassis` / `kMechanisms` only — never a per-robot table
+  by name (step 0 refuses it). `-Wunused-function` is a gate FAILURE. **The slot and opcontrol() are re-checked
+  against T4** (the driver program, the team lead's request of 2026-09-26 late evening: ONE readable driver file
+  shared by a separate driver program and COMP-b's `opcontrol()`, which may supersede B11): its brief decides the
+  slots (slot 5 is held for the team's old-code fallback).
 ---
 
 ## 0. What exists (read these; every line was re-checked at `8ac243f`)

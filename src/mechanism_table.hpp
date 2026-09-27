@@ -3,9 +3,12 @@
 // THE MECHANISM TABLE — the ONE typed input about a robot's MECHANISMS: every motor that is not
 // the drivetrain, and every pneumatic line (chunk T3, 2026-09-26; the pneumatic claw added by T3's
 // addendum, E2, the same day). The PROS-free sibling of src/chassis_table.hpp, which stays "the ONE
-// typed input about a drivetrain"; selected by the SAME define the Makefile's ROBOT switch sets
-// (SHULIB_ROBOT_TANK_2026), so `make ROBOT=tank` and this table cannot disagree about which robot
-// it is.
+// typed input about a drivetrain"; selected, like it, by kRobotId — which src/build_selection.hpp's
+// ONE chain sets in the same branch as the program and the beacon — so `make ROBOT=tank` and this
+// table cannot disagree about which robot it is. THIS FILE HAS NO #if OF ITS OWN (G1 Part 2c's final
+// run, 2026-09-26, the team lead's ruling "one chain picks both"; it selected on its own
+// `#if defined(SHULIB_ROBOT_TANK_2026)` from T3 until then). The src build gate's step 0 fails any
+// build switch named here.
 //
 // WHAT IT DECLARES. Robot two (the 2026 tank chassis) has two SEPARATE claw PIVOT motors, stated
 // by the team lead on 2026-09-26: port 6 drives one pivot forward while R1 is held and backward
@@ -75,15 +78,17 @@
 // mechanism. That design is made when the fact arrives (the library half, B2, says how
 // config::MechanismConfig's second pneumatic line would carry it); nothing here builds it now.
 //
-// THE HOST SUITE TESTS THESE VERY BYTES. chassis_table.hpp defines robot two's table only under
-// its define, so its host test has to RE-TYPE the numbers (test/chassis_table_test.cpp's header
-// says so) and a typo in the real table is invisible to the suite. Here robot two's table is
-// defined in EVERY build under its own name, kRobotTwoMechanisms, and only the selector kMechanisms
-// depends on the define — so test/mechanism_table_test.cpp reads the real entries, and a swapped
-// button in this file turns the suite red. A program uses kMechanisms, never the per-robot name.
-// (The alternative — one name defined differently per variant, as the chassis table does — would
-// also force a host test that defined the tank macro into an ODR violation against every other TU
-// that includes the chassis table.)
+// THE HOST SUITE TESTS THESE VERY BYTES. Robot two's table is defined in EVERY build under its own
+// name, kRobotTwoMechanisms, and only the selection — mechanismTableFor(kRobotId), below — depends on
+// the build — so test/mechanism_table_test.cpp reads the real entries, and a swapped button in this
+// file turns the suite red; it also calls mechanismTableFor() for EVERY RobotId, so the table robot
+// two's builds select is host-tested too, not only the host's own. A program uses kMechanisms, never
+// the per-robot name: the src build gate's step 0 fails one that names kRobotTwoMechanisms,
+// kNoMechanisms or mechanismTableFor() outside a static_assert (a static_assert may: it is
+// compile-time only). (T3 set this pattern while the chassis table still defined ONE name differently
+// per variant, which forced its host test to re-type robot two's numbers — defining the tank macro in
+// one test TU would have given kChassis two definitions across the suite. Since G1 Part 2c's final
+// run the chassis table follows this one: kRobotTwoChassis is on the host too.)
 //
 // WHO READS IT, as of this commit:
 //   * "shulib Calibrate" (src/calibrate_program.cpp): the census's motor ports go through
@@ -113,13 +118,15 @@
 //   6. no binding button, of either kind, is kTeleopRezeroButton (below — Y);
 //   7. 0 < volts <= 12 (hal::kMaxMotorVoltage) on every motor entry, which also refuses NaN and
 //      infinity;
-//   8. no MOTOR port is a drive port of the SAME variant's typed chassis table, nor its IMU port
-//      (checked for the build's kChassis / kMechanisms pair; the same predicate runs in the host
-//      suite against robot two's drive ports). A 3-wire line is a different connector: the
-//      chassis table names no 3-wire port, so there is nothing to collide with;
+//   8. no MOTOR port is a drive port of the SAME robot's typed chassis table, nor its IMU port
+//      (checked for robot two's REAL pair, kRobotTwoMechanisms / kRobotTwoChassis, and for the
+//      build's kChassis / kMechanisms pair; the host suite also breaks the predicate by hand). A
+//      3-wire line is a different connector: the chassis table names no 3-wire port, so there is
+//      nothing to collide with;
 //   9. every pneumatic line a real 3-WIRE port, 1..8 ('A'..'H'), and no line declared twice.
-// Checks 1-7 and 9 run on robot two's table in EVERY build, the host's included; check 8 runs on
-// the build's own pair. What no compiler can check — that a motor is really on the port, which
+// All nine run on robot two's REAL tables in EVERY build, the host's included (check 8 on robot
+// two's pair only since G1 Part 2c's final run put both of its tables on the host), and all nine
+// again on the build's own pair. What no compiler can check — that a motor is really on the port, which
 // way it turns, and which level opens the claw — is Station J's.
 //
 // PROS-FREE ON PURPOSE: plain data and pure helpers, so the host test can include it by relative
@@ -131,6 +138,7 @@
 #include <optional>
 #include <span>
 
+#include "build_selection.hpp"
 #include "chassis_table.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/motor.hpp"
@@ -225,7 +233,7 @@ struct MechanismTable {
 };
 
 /// ROBOT TWO — the 2026 tank chassis. Defined in every build (header: the host suite tests these
-/// bytes); selected by kMechanisms only under SHULIB_ROBOT_TANK_2026.
+/// bytes); kMechanisms only where kRobotId is RobotId::RobotTwo (mechanismTableFor()).
 /// THE PIVOTS' PORTS, CARTRIDGE, BUTTONS, VOLTS, SAFE STATE: REPORTED by the team lead 2026-09-26
 /// (T3's request, verbatim in its brief). NOT SEEN: the 2026-09-24/25 captures list motors only on
 /// 11-18 and 20, so no census has shown a motor on 6 or 7 yet (A4 register HA-153). SIGNS: + on
@@ -295,13 +303,27 @@ inline constexpr MechanismTable kRobotTwoMechanisms = {
 inline constexpr MechanismTable kNoMechanisms = {
     .motors = {}, .motorCount = 0, .pneumatics = {}, .pneumaticCount = 0};
 
-#if defined(SHULIB_ROBOT_TANK_2026)
-/// THE BUILD'S TABLE — the only name a program uses. Robot two's.
-inline constexpr const MechanismTable& kMechanisms = kRobotTwoMechanisms;
-#else
-/// THE BUILD'S TABLE — the only name a program uses. None declared for this robot.
-inline constexpr const MechanismTable& kMechanisms = kNoMechanisms;
-#endif
+/// Robot `id`'s mechanism table: THE ONE PLACE a robot becomes its mechanisms (the chassis table's
+/// chassisTableFor() is the other half). A case per robot and no default, so a robot added to
+/// RobotId (src/build_selection.hpp) without a table here is -Wswitch (a src build gate FAILURE, a
+/// host compile error), and reaching the end in a constant expression is a compile error. The host
+/// suite calls it for EVERY RobotId (test/mechanism_table_test.cpp).
+constexpr const MechanismTable& mechanismTableFor(RobotId id) {
+    switch (id) {
+        case RobotId::RobotTwo:
+            return kRobotTwoMechanisms;
+        case RobotId::BenchBot:
+            return kNoMechanisms;
+        case RobotId::InventedXDrive:
+            return kNoMechanisms;
+    }
+    __builtin_unreachable();
+}
+
+/// THE BUILD'S TABLE — the only name a program uses (the src build gate's step 0 fails one that
+/// names a per-robot table): the mechanisms of the robot src/build_selection.hpp's one chain chose
+/// for this build. No #if: a misspelt robot here is a compile error.
+inline constexpr const MechanismTable& kMechanisms = mechanismTableFor(kRobotId);
 
 /// How many MOTOR entries every check and lookup reads: `motorCount`, clamped to the array, so a
 /// hand-built table with an impossible count is refused by mechanismCountValid() instead of read
@@ -558,6 +580,10 @@ static_assert(mechanismButtonsAvoid(kRobotTwoMechanisms, kTeleopRezeroButton),
               "robot two: a mechanism takes shulib Teleop's re-zero button (kTeleopRezeroButton)");
 static_assert(mechanismVoltsValid(kRobotTwoMechanisms),
               "robot two: a mechanism's volts are not in (0, 12]");
+// ...and check 8 on robot two's REAL pair, in every build (both tables are defined everywhere since
+// G1 Part 2c's final run):
+static_assert(mechanismsDisjointFromChassis(kRobotTwoMechanisms, kRobotTwoChassis),
+              "robot two: a mechanism port is one of robot two's DRIVE ports (or its IMU port)");
 // The BUILD's table (all nine; the same eight again when it is robot two's, and check 8 against
 // the SAME variant's chassis table — the only pairing that means anything):
 static_assert(mechanismCountValid(kMechanisms) && mechanismTableComplete(kMechanisms)
@@ -569,17 +595,18 @@ static_assert(mechanismCountValid(kMechanisms) && mechanismTableComplete(kMechan
               "this build's mechanism table fails a consistency check");
 static_assert(mechanismsDisjointFromChassis(kMechanisms, kChassis),
               "a mechanism port is a DRIVE port (or the IMU port) of this build's chassis table");
-// THE SELECTION, restated as a check: a misspelt macro in the #if above would compile cleanly and
-// hand robot two an EMPTY table, and Calibrate would then take its claws as drive candidates again
-// — HA-111's defect class (a build carrying another robot's facts). A typo would have to be made
-// twice, in two places, to get past this.
-#if defined(SHULIB_ROBOT_TANK_2026)
-static_assert(&kMechanisms == &kRobotTwoMechanisms && kMechanisms.motorCount == 2
-                  && kMechanisms.pneumaticCount == 1,
+// THE SELECTION, restated as a check: a wrong robot in mechanismTableFor() above (or kMechanisms
+// bound to a fixed robot instead of kRobotId) would compile cleanly and hand robot two an EMPTY table,
+// and Calibrate would then take its claws as drive candidates again — HA-111's defect class (a build
+// carrying another robot's facts). A typo would have to be made twice, in two places, to get past
+// this. (Until G1 Part 2c's final run these two were the branches of an #if on the tank define; they
+// are the same two checks, keyed on the one chain's kRobotId.)
+static_assert(kRobotId != RobotId::RobotTwo
+                  || (&kMechanisms == &kRobotTwoMechanisms && kMechanisms.motorCount == 2
+                      && kMechanisms.pneumaticCount == 1),
               "ROBOT=tank must select robot two's mechanism table (the claw pivots on 6 and 7, "
               "the pneumatic claw on 3-wire A)");
-#else
-static_assert(&kMechanisms == &kNoMechanisms, "only robot two declares mechanisms");
-#endif
+static_assert(kRobotId == RobotId::RobotTwo || &kMechanisms == &kNoMechanisms,
+              "only robot two declares mechanisms");
 
 }  // namespace shulib::bench

@@ -114,8 +114,9 @@
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
 // No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
 // graph with this class over the on-robot provider (src/teleop_program.cpp), and THAT version of
-// the program has not run on hardware; src/main.cpp still wires its invented X-drive graph by
-// hand until it becomes a dispatcher in 2c.
+// the program has not run on hardware. Since G1 Part 2c the invented X-drive is built the same way
+// (src/xdrive_config.hpp, src/xdrive_program.cpp) and no program wires a graph by hand; its ports
+// are invented, so it refuses at boot on every robot that exists.
 //
 // PROS-free, sim-free, allocation-free in the control path (the graph is one in-place
 // aggregate, sized by hal::kMaxSmartPorts — no unique_ptr anywhere, as with every other
@@ -389,8 +390,7 @@ struct BuildOptions {
 /// (a 21-port side).
 ///
 /// The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder
-/// changed no session header (G1 Part 2b moved "shulib Teleop"; the X-drive graph in main.cpp still
-/// prints its own until 2c):
+/// changed no session header (G1 Part 2b moved "shulib Teleop", G1 Part 2c the invented X-drive):
 ///
 ///  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED
 ///    ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then
@@ -741,8 +741,8 @@ public:
     /// than overflowing; writes at least a NUL whenever cap > 0.
     ///
     /// It is built from the CONFIG this robot was constructed with, not from a second copy of the
-    /// numbers, so it cannot drift from the wiring — the same property src/main.cpp's
-    /// `portMapString()` has and for the same reason. The absent ports are read back from the
+    /// numbers, so it cannot drift from the wiring — the same property src/main.cpp's retired
+    /// `portMapString()` had and for the same reason. The absent ports are read back from the
     /// two groups' own slots, which were built from the same description in the same order.
     void describe(char* buf, std::size_t cap) const {
         if (buf == nullptr || cap == 0) {
@@ -1029,7 +1029,7 @@ private:
     /// Exactly what `src/main.cpp`'s `tankChassisConfig()` did by hand until G1 Part 2b, and
     /// applied only where that function applied it: a holonomic drivetrain's config carries no
     /// per-wheel scale, so its tuning is passed through untouched — which is also what main.cpp's
-    /// X-drive graph does.
+    /// hand-wired X-drive graph did until G1 Part 2c built it here.
     [[nodiscard]] static config::TuningConfig effectiveTuning(const config::RobotConfig& cfg) {
         config::TuningConfig tuning = cfg.tuning;
         if (cfg.drivetrain.kind == config::DrivetrainKind::Tank) {

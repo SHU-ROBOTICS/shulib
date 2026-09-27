@@ -5,9 +5,10 @@
 // (2026-09-24) with stations 11 DISTANCE and 12 AI VISION and the three-column menu.
 //
 // Declared in its own header so src/main.cpp can dispatch to it under the
-// compile-time robot selector WITHOUT the X-drive object graph ever being
-// constructed — that graph's ports are invented (HA-111) and every adapter
-// ctor read-back would throw at boot on the bench robot. Both tester variants
+// compile-time robot selector WITHOUT the invented X-drive ever being built —
+// its ports are invented (HA-111), and on the bench robot the device provider
+// would refuse its first port at boot (since G1 Part 2c the X-drive lives in
+// src/xdrive_program.cpp, which only the xdrive build calls). Both tester variants
 // (ROBOT=bench, the measured bench bot; ROBOT=tank, the 2026 chassis whose
 // table carries MEASURED SIGNS since R3b Part 0b) boot into this as "Bench
 // Tests" -- unless built with PROGRAM=drive, which boots src/drive_program.cpp
@@ -36,6 +37,14 @@ namespace shulib::bench {
 /// so on its screen, but powers nothing. Every station except 10 commands no motion.
 /// Never returns.
 void runR3a();
+
+/// initialize()'s tester branch (the bench and tank builds; G1 Part 2c moved it here from
+/// src/main.cpp, verbatim): the `booted: bench-tester build [<beacon>]` banner and the
+/// `competition status at boot:` line, from the two strings src/main.cpp passes — the beacon is a
+/// literal in src/build_selection.hpp's one chain, so only the build that selected this program
+/// links it.
+/// Constructs nothing and powers nothing; the program itself runs from opcontrol().
+void testerInitialize(const char* variantBeacon, const char* competitionStatusBits);
 
 /// THE MENU GRID — pure geometry (R2a, 2026-09-24; the 2 × 5 menu became 3 × 4 so twelve
 /// stations fit without shrinking a target).

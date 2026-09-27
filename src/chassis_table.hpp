@@ -5,10 +5,19 @@
 // share ONE definition — two copies of a port table is how two programs come to disagree
 // about which robot they are on).
 //
-// Per variant: which ports drive which side, WITH THEIR MEASURED SIGNS when those have been
-// measured, the cartridge, the IMU port, and whether any of it was MEASURED. Selected by the
-// SAME define the Makefile's ROBOT switch sets, so `make ROBOT=tank` and this table cannot
-// disagree about which robot it is.
+// Per robot: which ports drive which side, WITH THEIR MEASURED SIGNS when those have been
+// measured, the cartridge, the IMU port, and whether any of it was MEASURED. Every robot's table
+// is defined in EVERY build under its own name (kBenchBotChassis, kRobotTwoChassis, kNoChassis),
+// and the build's table, kChassis — the only name a program uses — is chassisTableFor(kRobotId):
+// kRobotId is set by src/build_selection.hpp's ONE chain, in the same branch as the program and the
+// beacon, so `make ROBOT=tank` and this table cannot disagree about which robot it is. A program
+// that names a per-robot table or chassisTableFor() outside a static_assert FAILS the src build
+// gate's step 0 (naming another robot's table is choosing a robot outside the chain, and nothing
+// in the package would show it); the host tests under test/ read them by name. THIS FILE
+// HAS NO #if OF ITS OWN (G1 Part 2c's final run, 2026-09-26, the team lead's ruling "one chain
+// picks both"): it selected robot two's table on its own `#if defined(SHULIB_ROBOT_TANK_2026)`
+// until then, and a break there gave a tank build the bench bot's table with every check green
+// (measured at G1 Part 2c). The src build gate's step 0 fails any build switch named here.
 //
 // RULE: A VALUE IS NEVER INVENTED. An unset field is 0 / Unset, describeMissing() names it on
 // screen, and every station or program that needs it refuses until it is filled. HA-111's
@@ -27,8 +36,10 @@
 // are typed, measured values with a date.
 //
 // PROS-FREE ON PURPOSE: this header is plain data and pure helpers over it, so the host test
-// (test/chassis_table_test.cpp) can include it and break the consistency checks. It lives in
-// src/, not include/shulib/, because it is a per-robot composition fact, not library API.
+// (test/chassis_table_test.cpp) can include it, break the consistency checks, and read EVERY
+// robot's real table — robot two's included, which the host could not see while it was defined
+// only under the tank define. It lives in src/, not include/shulib/, because it is a per-robot
+// composition fact, not library API.
 
 #include <cmath>
 #include <cstddef>
@@ -36,6 +47,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "build_selection.hpp"
 #include "shulib/hal/drive_geometry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/units/quantity.hpp"
@@ -74,7 +86,6 @@ struct ChassisTable {
     const char* geometryProvenance;  // who measured the three numbers above, how, and when
 };
 
-#if defined(SHULIB_ROBOT_TANK_2026)
 // ROBOT TWO -- the 2026 tank chassis (build team, stated 2026-09-10): five COUPLED motors
 // per side driving four wheels per side.
 // PORTS: reported by the team lead 2026-09-10, read off the robot while standing BEHIND
@@ -106,7 +117,8 @@ struct ChassisTable {
 // lead); external ratio UNSET ("600 rpm" was reported, which reads as direct drive 1:1 but is
 // a cartridge speed, not a tooth count -- the coordinator types 1.0 only when "direct drive"
 // or the counts are stated). The library program REFUSES at boot while either is 0.
-inline constexpr ChassisTable kChassis = {
+// kChassis in the four ROBOT=tank builds (chassisTableFor(RobotId::RobotTwo)).
+inline constexpr ChassisTable kRobotTwoChassis = {
     .robot = "2026 TANK CHASSIS (robot two)",
     .left = {-11, 12, -13, 14, -15},
     .leftCount = 5,
@@ -126,7 +138,7 @@ inline constexpr ChassisTable kChassis = {
                           "not yet rulered on this robot); track width UNSET (tape owed); ratio "
                           "UNSET (\"600 rpm\" reported = a cartridge, not a tooth count)",
 };
-#else
+
 // THE BENCH BOT -- measured. 2026-08-13 census, amended by R3a-PROGRESS §9.1 (port 13
 // mechanically repaired => 8 motors, 4 per side, symmetric; §5.3's asymmetry ruling
 // withdrawn) and the sides confirmed by the §15-§19 whole-robot pushes. IMU on port 4.
@@ -138,7 +150,9 @@ inline constexpr ChassisTable kChassis = {
 // signs were captured on the panel (R3a-PROGRESS §17.3/§18.2) but never typed into a
 // table, so its DRIVE station keeps using MOTOR WATCH's per-power-cycle capture, and the
 // drive program refuses it: an unsigned table is not a drivable one.
-inline constexpr ChassisTable kChassis = {
+// kChassis in the ROBOT=bench build — `make` with no ROBOT — and on the host, which sets no switch
+// (chassisTableFor(RobotId::BenchBot)).
+inline constexpr ChassisTable kBenchBotChassis = {
     .robot = "TANK BENCH BOT (measured) -- NOT the invented X-drive",
     .left = {15, 16, 17, 18},
     .leftCount = 4,
@@ -157,7 +171,70 @@ inline constexpr ChassisTable kChassis = {
     .geometryProvenance = "wheel 2.75 in measured on the bench bot (R3a); track width and ratio "
                           "UNSET -- no library graph is built for this robot",
 };
-#endif
+
+// THE INVENTED X-DRIVE (A4 register HA-111) -- NO typed chassis table. Its drivetrain is data of
+// another kind (src/xdrive_config.hpp's kInventedXDrive, a config::RobotConfig), and no program in
+// its build reads a chassis table. Every field is UNSET, so anything that ever did read this one
+// would refuse by name (describeMissing) instead of driving another robot's ports. Until G1 Part
+// 2c's final run the xdrive build carried the BENCH BOT's table here (the #else of this file's old
+// #if) -- another robot's facts in a build, dormant only because nothing in that build read them.
+// kChassis in the ROBOT=xdrive build (chassisTableFor(RobotId::InventedXDrive)).
+inline constexpr ChassisTable kNoChassis = {
+    .robot = "INVENTED X-DRIVE -- no typed chassis table (src/xdrive_config.hpp, HA-111)",
+    .left = {},
+    .leftCount = 0,
+    .right = {},
+    .rightCount = 0,
+    .cartridge = Cartridge::Unset,
+    .imuPort = 0,
+    .measured = false,
+    .signsMeasured = false,
+    .provenance = "none: the invented X-drive is src/xdrive_config.hpp, not a typed table",
+    .wheelDiameterIn = 0.0,
+    .trackWidthIn = 0.0,
+    .externalRatio = 0.0,
+    .geometryProvenance = "none: no typed chassis table for this robot",
+};
+
+/// Robot `id`'s chassis table: THE ONE PLACE a robot becomes a table. A case per robot and no
+/// default, so a robot added to RobotId (src/build_selection.hpp) without a table here is -Wswitch
+/// (a src build gate FAILURE, a host compile error), and reaching the end in a constant expression
+/// is a compile error. The host suite calls it for EVERY RobotId (test/chassis_table_test.cpp).
+constexpr const ChassisTable& chassisTableFor(RobotId id) {
+    switch (id) {
+        case RobotId::BenchBot:
+            return kBenchBotChassis;
+        case RobotId::RobotTwo:
+            return kRobotTwoChassis;
+        case RobotId::InventedXDrive:
+            return kNoChassis;
+    }
+    __builtin_unreachable();
+}
+
+/// THE BUILD'S TABLE — the only name a program uses (the src build gate's step 0 fails one that
+/// names a per-robot table): the table of the robot src/build_selection.hpp's one chain chose for
+/// this build. No #if: a misspelt robot here is a compile error.
+inline constexpr const ChassisTable& kChassis = chassisTableFor(kRobotId);
+
+// THE SELECTION, restated as a check (the mechanism table's precedent): kChassis must be the table
+// chassisTableFor() gives THIS build's robot -- so replacing kRobotId above with a fixed robot, or
+// kChassis with a table by name, fails every build whose robot is not that one. A typo would have to
+// be made twice, in two places, to get past it; the mapping itself is host-tested per robot.
+static_assert(&kChassis == &chassisTableFor(kRobotId),
+              "kChassis must be chassisTableFor(kRobotId): this build's robot, chosen by the one chain");
+// ...and the mapping itself restated per robot, by NAME, so a wrong robot inside chassisTableFor()
+// fails that robot's build too (the host suite calls it for every robot; the robot builds are the
+// ones that carry the answer). Robot two's table must also be the SIGNED one, five motors a side:
+// the bench bot's unsigned table under the tank define is the exact defect the old #if allowed.
+static_assert(kRobotId != RobotId::RobotTwo
+                  || (&kChassis == &kRobotTwoChassis && kChassis.signsMeasured
+                      && kChassis.leftCount == 5 && kChassis.rightCount == 5),
+              "ROBOT=tank must select robot two's SIGNED table (five motors a side)");
+static_assert(kRobotId != RobotId::BenchBot || &kChassis == &kBenchBotChassis,
+              "the bench build must select the bench bot's table");
+static_assert(kRobotId != RobotId::InventedXDrive || &kChassis == &kNoChassis,
+              "the X-drive build must select the UNSET table (its robot is src/xdrive_config.hpp)");
 
 /// |p| for a (possibly signed) table entry, as an int.
 constexpr int absPort(std::int8_t p) { return p < 0 ? -static_cast<int>(p) : static_cast<int>(p); }

@@ -33,4 +33,11 @@ namespace shulib::bench {
 /// again when driver control resumes.
 void runDrive();
 
+/// initialize()'s "shulib Drive" branch (G1 Part 2c moved it here from src/main.cpp, verbatim):
+/// the `booted: shulib DRIVE build [<beacon>]` banner and the `competition status at boot:` line,
+/// from the two strings src/main.cpp passes — the beacon is a literal in src/build_selection.hpp's
+/// one chain, so only the build that selected this program links it. Constructs nothing and powers nothing;
+/// the program itself runs from opcontrol().
+void driveInitialize(const char* variantBeacon, const char* competitionStatusBits);
+
 }  // namespace shulib::bench

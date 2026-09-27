@@ -32,8 +32,8 @@ inline constexpr const char kTeleopAutonomousReason[] = "No motion here, ever: T
 
 /// initialize()'s tank-library branch. Prints the boot banner (`booted: shulib TELEOP build
 /// [<beacon>]`, the build stamp, the run status) and the `competition status at boot:` line from
-/// the two arguments src/main.cpp formats — the BEACON stays a literal in main.cpp's #if chain, so
-/// only the build that selected this program links it (the brief's A2) — then decides the boot
+/// the two arguments src/main.cpp formats — the BEACON stays a literal in src/build_selection.hpp's
+/// one chain (G1 Part 2c final), so only the build that selected this program links it (the brief's A2) — then decides the boot
 /// source, builds the robot::Robot ONCE over a hal::pros::ProsDeviceProvider inside the graph
 /// boundary's try — and, inside the same try, binds and validates the claws' buttons (T3 Part 2)
 /// — hands its fault latch to main.cpp's precondition handler, and writes the session header and

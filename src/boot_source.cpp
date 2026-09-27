@@ -9,11 +9,11 @@
 // here. The order of the side effects is the old block's: open the card, read it, close it; THEN
 // ask the registry — all before any adapter exists.
 //
-// Compiled in all six builds, like every src/*.cpp (the brief's A12): nothing here reads
-// src/main.cpp's SHULIB_RUNS_* macros, and in the builds whose program never calls
-// decideBootSource() the linker's --gc-sections drops it. In the bench and xdrive builds
-// src/chassis_table.hpp's kChassis is the bench bot's table, which is harmless because no program
-// in those builds asks for a boot source.
+// Compiled in all six builds, like every src/*.cpp (the brief's A12): nothing here reads a build
+// switch (only src/build_selection.hpp's one chain does — G1 Part 2c final), and in the builds whose
+// program never calls decideBootSource() the linker's --gc-sections drops it. In the bench build
+// src/chassis_table.hpp's kChassis is the bench bot's table and in the xdrive build it is
+// kNoChassis, which is harmless because no program in those builds asks for a boot source.
 //
 // The one printf below uses a LITERAL format (src/ compiles under -Wformat-nonliteral), and every
 // bounded copy in the header carries a precision the compiler can check (-Wformat-truncation):

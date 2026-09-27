@@ -247,7 +247,7 @@ The V5 battery (`ProsBattery`). Never refused.
 [[nodiscard]] ITelemetrySink& telemetry() override
 ```
 
-The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) — exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's still does). Never refused.
+The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) — exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's until G1 Part 2c, which builds it over this provider). Never refused.
 
 *function, declared at [`include/shulib/hal/pros/device_provider.hpp:376`](../../include/shulib/hal/pros/device_provider.hpp#L376).*
 

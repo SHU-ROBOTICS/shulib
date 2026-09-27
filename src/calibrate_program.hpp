@@ -24,4 +24,12 @@ namespace shulib::bench {
 /// full record of every run, each line prefixed `[R3D]`.
 void runCalibrate();
 
+/// initialize()'s "shulib Calibrate" branch (G1 Part 2c moved it here from src/main.cpp,
+/// verbatim): the `booted: shulib CALIBRATE build [<beacon>]` banner with the run status and the
+/// build stamp, and the `competition status at boot:` line, from the two strings src/main.cpp
+/// passes — the beacon is a literal in src/build_selection.hpp's one chain, so only the build that
+/// selected this program links it. Constructs nothing and powers nothing: the program finds its own motors
+/// from the brain's registry when opcontrol() runs it.
+void calibrateInitialize(const char* variantBeacon, const char* competitionStatusBits);
+
 }  // namespace shulib::bench
