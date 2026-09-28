@@ -660,6 +660,12 @@ Each has its options and, where the evidence supports one, a recommendation. Non
 28. **The F3/F4 re-scope in the plan** (§3.8, §7.3): his go on the drafted deviations row, the dependency #6
     amendment, and the placement of F4's generic items.
 29. **Anything still missing** — the list is open until he says it is complete.
+30. **(NEW, 2026-09-28, after the core-first ruling) The bench page and the direction check in the CORE?** §3.5
+    makes them the ONLY confirmation for a 3-wire binding and for two same-kind cables swapped between
+    mechanisms — and both sat in MECH D, which the ruling puts after the panel, so the core would ship port
+    binding with nothing to confirm it on the robot. (a) Move the mechanism bench page and the direction check
+    into the core (~1½–2½ days more); guided binding, auto-tuning and the health log stay in the rest.
+    (b) Keep them in the rest; until then, a swapped cable shows only in the boot line. **Recommend (a).**
 
 ## 6. Surfaces touched (what MECH changes that is frozen, locked or published)
 
@@ -715,7 +721,7 @@ REST — the remainder of MECH B, MECH C and MECH D, and the panel's extension f
 core ~10½–18 days; the rest ~19–32; the panel's extension ~2–3½ (all rough). The §5 questions the CORE needs
 answered before its brief: Q1 (where bindings live — the core carries the compiled binding; guided binding and
 the SD record are in the rest), Q2, Q3, Q4, Q5, Q6, Q8 (presets beside hold/toggle), Q13, Q18, Q25, Q26, Q28,
-Q29; the others can wait for the rest.
+Q29, Q30; the others can wait for the rest.
 
 - **MECH A after T4 Part 3 lands** (§5 Q25). T4 Part 3 moves the buttons out of `src/robots/mechanism_table.hpp`
   and makes the driver file their one owner. MECH A rewrites that table into roles and a binding and extends

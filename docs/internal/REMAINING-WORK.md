@@ -177,7 +177,7 @@ Subtotal: ~10–12½ days.
 | MECH (proposed) | where port bindings live: compiled, on the SD card, or both | to decide in the planning |
 | MECH (proposed) | how a claw grab counts as done without a sensor | to decide in the planning |
 | MECH (proposed) | mechanism sensors come with MECH, not after G3 | to confirm |
-| MECH (proposed) | whether the list is complete, and the checker's ~20 further questions | before any brief |
+| MECH | whether the list is complete, and the requirements' §5 questions (30; the core's are marked) — incl. Q30: move the bench page and the direction check into the core, since they are the only way to confirm a binding (recommend yes, +~1½–2½ days) | before the core's brief |
 | G3a | its six decisions (D1–D6), and whether to flip robot two's typed front to the camera end | before its go |
 | Q2 / Q3 / Q6 | sensor placement; robot one's cartridge; the `MotionDeps` version question | open |
 | Q1 | the mechanisms each robot has. **In the plan it blocks F3 and every scoring routine**, and it is answered in part for robot two (the claws). NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: with MECH, Q1 would decide only the robots' **settings**, never library work | open |
