@@ -6,8 +6,8 @@
 // The A2 plant proves control LOGIC, not CONSTANTS. Gains below converge on the
 // plant's placeholder dynamics; R5 measures real kS/kV/kA and re-tunes, R6
 // back-fits the plant. Register entries: HA-50 (gains + speed budget), HA-51
-// (settle tolerances), HA-52 (stall cross-check + stand-in radii). Do not read
-// any number here as a measurement.
+// (settle tolerances), HA-52 (stall cross-check + stand-in radii), HA-179 (TANK1's
+// tank steering, TankSteerConfig). Do not read any number here as a measurement.
 //
 // ── Unit discipline (constraint: this layer owns unit consistency) ──────────────────
 // Pid is bare-double by design. Each axis's gains are documented WITH their
@@ -60,6 +60,81 @@ struct AxisGains {
     /// back-calculated so it cannot wind up past the clamp. Infinity means unclamped,
     /// which is only safe while kI is 0 — the default pairing. Must be ≥ 0.
     double integralLimit = std::numeric_limits<double>::infinity();
+};
+
+/// How MoveToPose steers a TANK (a drivetrain whose strafeAuthority() is exactly 0) back onto
+/// its target's LINE while it drives — chunk TANK1. The line runs through the target point along
+/// the target heading (for Routine::driveTo that is the start-to-target line). On any drivetrain
+/// with strafe authority this struct is never read, so X-drive and H-drive motion is unchanged
+/// bit for bit. Every value is PROVISIONAL (A4: HA-179) — host-test-plant numbers, not a robot's.
+///
+/// What it does, in one sentence per knob: the heading MoveToPose servoes to is the target
+/// heading bent by crossGain × (inches off the line, as predicted leadTime seconds ahead), never
+/// by more than maxSteer, faded to nothing over the last fadeDistance inches of the leg; and
+/// while it steers, it MEASURES the
+/// difference between the yaw rate the robot made (the Localizer's reading of the IMU, this
+/// tick) and the yaw rate the heading loop asked for the tick before (after the omega clamp,
+/// before desaturation), low-passed over yawObserverTime, and commands the opposite, never more
+/// than yawCorrectionLimit — which is what cancels the steady turn of a weaker drive side. That
+/// difference also contains desaturation at full speed, motor lag and blocked rotation: while
+/// the robot cannot follow a yaw command, the correction integrates like a heading integral, up
+/// to yawCorrectionLimit, and decays within about yawObserverTime once the robot turns again
+/// (HA-179's blast radius). What it never does: plan a turn, or aim at the target POINT. A leg
+/// that STARTS more than maxSteer off its target heading is not steered at all (it runs exactly
+/// as it did before TANK1, and one Warn line says why) — face() stays your turn.
+struct TankSteerConfig {
+    /// Heading bend per inch of cross-track error (rad/in). PROVISIONAL (A4: HA-179).
+    double crossGain = 0.1;
+    /// The cap on the bend AND the engage window (rad, 15 degrees): the heading setpoint never
+    /// leaves target heading ± maxSteer, and a leg whose first live heading is farther than this
+    /// from its target heading is not steered. The two are ONE number on purpose: a leg that
+    /// starts within the cap is one whose heading error the bend itself could have commanded;
+    /// beyond it, steering would mean the heading loop first making the author's turn. So
+    /// raising it to let the bend remove larger offsets also widens which un-faced legs are
+    /// steered — on the host test plant un-faced legs arrive up to about 30 degrees off and time
+    /// out from about 40, a cliff the author cannot see, so keep it well under 30 (HA-179).
+    /// 0 turns TANK1 off entirely: a tank's moveTo then moves, records and ends exactly as it did
+    /// before TANK1, bit for bit. Must be < pi/2 (a bend of 90 degrees or more would reverse which
+    /// way the robot drives along the line). PROVISIONAL (A4: HA-179).
+    double maxSteer = 0.2617993877991494;
+    /// Along-track distance over which the bend fades to zero at arrival (in, > 0): the bend is
+    /// scaled by clamp(along-track distance to go / fadeDistance, -1, 1), which is continuous
+    /// through arrival and carries the sign that makes a REVERSE approach steer the right way.
+    /// PROVISIONAL (A4: HA-179).
+    double fadeDistance = 6.0;
+    /// How far ahead (s) the bend looks: it steers on the cross-track error predicted this far
+    /// ahead from the robot's heading and the forward speed it was commanded the tick before
+    /// (tank_steer.hpp, tankLeadCross), not on the error now. It damps the line loop: without it
+    /// a leg that starts pointed at its line can overshoot the line near the target, where the
+    /// fade leaves the rest unremovable — a leg that finished before TANK1 then timed out. On the
+    /// host test plant (2026-09-28, the Part A review's grid of 24 563 legs) no lead from 0.05 to
+    /// 0.10 s left any leg that settles with TANK1 off timing out with it on, at motor time
+    /// constants from 0 to about 0.18 s; with no lead 178 did (0.04 s: 4; 0.25 s under lag:
+    /// 72–102). 0.06 sits inside that band and keeps a 6 in offset over 40 in removable on the
+    /// lag-free plant. >= 0 (0 = steer on the error now). PROVISIONAL (A4: HA-179).
+    double leadTime = 0.06;
+    /// Time constant (s) of the low-pass that turns "measured yaw rate − commanded yaw rate" into
+    /// the estimated unexplained yaw. It must be long against IMU noise and short against the
+    /// leg; it assumes the drivetrain follows a yaw command much faster than this (a heavy
+    /// robot's lag reads as unexplained yaw — HA-179 records the host-test-plant margin).
+    /// > 0. PROVISIONAL (A4: HA-179).
+    double yawObserverTime = 0.1;
+    /// The most yaw rate (rad/s) the correction may add, either way — bounding how large a side
+    /// imbalance TANK1 will cancel, how hard it will fight a robot being turned by something
+    /// else, and how far it integrates while the robot cannot follow (pinned, lagging). 0
+    /// disables the correction (the bend alone). >= 0. PROVISIONAL (A4: HA-179).
+    double yawCorrectionLimit = 1.5;
+
+    /// Every field finite; crossGain, leadTime and yawCorrectionLimit >= 0; maxSteer in
+    /// [0, pi/2); fadeDistance and yawObserverTime > 0. MotionConfig::validate() refuses a
+    /// config whose tankSteer fails this.
+    [[nodiscard]] bool valid() const noexcept {
+        auto fin = [](double v) { return std::isfinite(v); };
+        return fin(crossGain) && fin(maxSteer) && fin(fadeDistance) && fin(leadTime)
+               && fin(yawObserverTime) && fin(yawCorrectionLimit) && crossGain >= 0.0
+               && maxSteer >= 0.0 && maxSteer < 1.5707963267948966 && fadeDistance > 0.0
+               && leadTime >= 0.0 && yawObserverTime > 0.0 && yawCorrectionLimit >= 0.0;
+    }
 };
 
 /// Every knob the C1 motion primitives share. A motion COPIES it at construction and
@@ -122,16 +197,24 @@ struct MotionConfig {
     /// encoders: the check then never reports a verdict — odo_stall_check.hpp's §2 ruling).
     OdoStallCheckConfig stall{};
 
+    /// Tank steering (chunk TANK1): read by MoveToPose only, and only when the drivetrain's
+    /// strafeAuthority() is exactly 0. `tankSteer.maxSteer = 0` switches it off for every leg
+    /// built from this config. Appended last so every designated initializer of this struct keeps
+    /// compiling. PROVISIONAL (A4: HA-179).
+    TankSteerConfig tankSteer{};
+
     /// Re-check the invariants the motions rely on and RAISE on the first violation:
-    /// feedforward and PID gains finite, integral limits non-negative, and all FIVE speed /
+    /// feedforward and PID gains finite, integral limits non-negative, all FIVE speed /
     /// timeout / geometry scalars strictly positive (maxLinearSpeed, maxAngularSpeed,
     /// maxWheelSpeed, defaultTimeout, rotationRadius — 0 is rejected, never read as
-    /// "unset"). Every C1 motion calls this from its own constructor, so it is a backstop
-    /// rather than a step you can forget — call it yourself only when validating a config
-    /// you have not yet handed to a motion.
+    /// "unset"), and tankSteer.valid(). Every C1 motion calls this from its own constructor,
+    /// so it is a backstop rather than a step you can forget — call it yourself only when
+    /// validating a config you have not yet handed to a motion.
     /// It deliberately does NOT descend into the SettleConfig or OdoStallCheckConfig
     /// members: those are checked by SettledUtil and OdoStallCheck when the motion builds
-    /// them, which is the only place their own invariants are known.
+    /// them, which is the only place their own invariants are known. It DOES descend into
+    /// tankSteer (since TANK1): no other object owns that struct, and MoveToPose reads it on
+    /// every tank tick, so this is the one place a bad value can be refused before it steers.
     void validate() const {
         auto finiteGains = [](const AxisGains& g) {
             return std::isfinite(g.kP) && std::isfinite(g.kI) && std::isfinite(g.kD)
@@ -158,6 +241,7 @@ struct MotionConfig {
                             "MotionConfig: defaultTimeout must be finite and > 0");
         SHULIB_PRECONDITION(std::isfinite(rotationRadius.value()) && rotationRadius.value() > 0.0,
                             "MotionConfig: rotationRadius must be finite and > 0");
+        SHULIB_PRECONDITION(tankSteer.valid(), "MotionConfig: tankSteer invalid");
         // SettleConfig / OdoStallCheckConfig fields are validated by their owners
         // (SettledUtil / OdoStallCheck) at construction.
     }

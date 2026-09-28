@@ -468,8 +468,10 @@ struct LonghandXDrive {
 // ── the legs ────────────────────────────────────────────────────────────────────────
 // Two different ones, because the two drivetrains can honestly do different things and
 // pretending otherwise would be designing the test around the library rather than around the
-// robot. A TANK has no lateral authority, so a laterally-offset target exits TimedOut on purpose
-// (C1's drivetrain honesty, chassis.hpp); its leg is therefore along its own heading, exactly as
+// robot. A TANK has no lateral authority: a target beside it exits TimedOut on purpose (C1's
+// drivetrain honesty, chassis.hpp), and since TANK1 a SMALL offset along its heading may instead
+// be steered out — a leg that depended on either would be testing tank steering, not the builder.
+// Its leg is therefore along its own heading, exactly as
 // motor_group_plant_test's alongAxisTrial draws one. An X-DRIVE translates and rotates at once,
 // so its leg does both.
 const Pose2d kStart{Length{-12.0}, Length{6.0}, Angle::degrees(30.0)};

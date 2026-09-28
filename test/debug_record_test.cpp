@@ -94,6 +94,22 @@ TEST_CASE("DebugRecord: a default record is a valid 'quiet' tick (nothing built 
     for (const auto& phase : r.tickPhase) {
         CHECK(phase.value() == 0.0);
     }
+    // TANK1 addition: a quiet record does not claim tank steering.
+    CHECK_FALSE(r.tankSteerActive);
+}
+
+// TANK1 appended tankSteerActive BEFORE the F9 freeze, under the file's append-only rule: it
+// must sit AFTER tickPhase (the previous last field) with nothing but tail padding behind it.
+// Bug caught: the flag inserted mid-record (a reshape every sink's field order would inherit —
+// the blackbox encoder follows declaration order) instead of appended.
+TEST_CASE("DebugRecord: tankSteerActive (TANK1) is the struct's LAST field — appended, not inserted") {
+    static_assert(std::is_same_v<decltype(DebugRecord::tankSteerActive), bool>);
+    const DebugRecord r{};
+    const auto base = reinterpret_cast<std::uintptr_t>(&r);
+    const auto flag = reinterpret_cast<std::uintptr_t>(&r.tankSteerActive);
+    const auto phases = reinterpret_cast<std::uintptr_t>(&r.tickPhase);
+    CHECK(flag >= phases + sizeof(r.tickPhase));  // after the previous last field
+    CHECK(base + sizeof(DebugRecord) - (flag + sizeof(bool)) < alignof(DebugRecord));  // then padding
 }
 
 TEST_CASE("DebugRecord: the complete §18.2 field set is populatable and reads back") {
@@ -138,6 +154,7 @@ TEST_CASE("DebugRecord: the complete §18.2 field set is populatable and reads b
         units::Time{0.0042};
     r.tickPhase[static_cast<std::size_t>(shulib::diag::TickPhase::Motion)] =
         units::Time{0.0021};
+    r.tankSteerActive = true;  // TANK1
 
     CHECK(r.t.value() == 12.34);
     CHECK(r.targetPose.heading().degrees() == doctest::Approx(90.0));
@@ -149,6 +166,7 @@ TEST_CASE("DebugRecord: the complete §18.2 field set is populatable and reads b
     CHECK(r.droppedLines == 47);
     CHECK(r.tickPhase[0].value() == doctest::Approx(0.0042));
     CHECK(r.tickPhase[1].value() == doctest::Approx(0.0021));
+    CHECK(r.tankSteerActive);
 }
 
 TEST_CASE("DebugRecord: per-wheel capacity is tied to the kinematics contract") {

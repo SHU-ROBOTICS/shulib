@@ -88,10 +88,27 @@ move? shulib's answer is a principle worth knowing because you'll see it in the 
   few percent in *time*. When this limited mode is active, the diagnostic stream marks every
   affected line with the flag `SFB` ("strafe fallback") — the robot never quietly does something
   different from what you asked without telling you.
-- On **tank** (authority 0.0), a sideways target is physically unreachable, and the library does
-  not pretend otherwise: the motion runs until its time limit and honestly reports `TimedOut`,
-  rather than faking success or crashing. Routines for a tank robot simply don't ask for pure
-  sideways moves — they turn first, like a driver would (the API chapter shows the idiom).
+- On **tank** (authority 0.0), the drivetrain cannot move sideways at all, and the library does
+  not pretend otherwise: a target it cannot reach by driving along its heading — a point beside
+  the robot, or one farther off the robot's line than the steering below can remove over the
+  leg — runs until its time limit and honestly reports `TimedOut`, rather than faking success or
+  crashing. Routines for a tank robot simply don't ask for sideways moves — they turn first, like
+  a driver would (the API chapter shows the idiom).
+- What a tank's `moveTo` *does* do, since API 2.3, is **steer back onto its line**. The line is
+  the one you drew: through the target point, along the target heading. When a weaker side pulls
+  the robot off it, `moveTo` bends the heading it aims for back toward the line — by at most 15°,
+  easing off while the robot is already closing on the line so it arrives on it rather than
+  across it, and less and less over the last 6 inches so it cannot wobble at the finish — and it
+  cancels the turn the weaker side keeps adding. It never aims at the target *point* and never plans a
+  turn for you: a leg that starts more than 15° off its target heading is not steered at all
+  (the log says `turn first: face()`), so `face()` before `driveTo()` is still how a tank leg
+  starts. Whenever it is steering, the diagnostic line carries the flag `TSTR`. On the host test
+  plant this lets a 40 in leg finish with one side up to 25 % weak; a point *beside* the robot
+  is still out of reach, and **none of it has run on a robot yet** — the limits are in
+  [Chapter 14](14-what-it-cannot-do-yet.md#motion-quality-boundaries). The X-drive and H-drive
+  are untouched — except an H-drive configured with no strafe authority at all
+  (`strafeTractionDerate` 0, a dead strafe wheel), which cannot move sideways either and is
+  steered like a tank.
 
 If you're budgeting time for a routine on the H-drive, the `strafeAuthority()` query on the
 chassis tells you the number the library is using, so you can decide whether a leg should strafe

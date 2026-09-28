@@ -8,7 +8,7 @@
 
 DebugRecord — the per-tick snapshot schema.
 
-This header declares **3** types (55 members) and **1** constant.
+This header declares **3** types (56 members) and **1** constant.
 
 Extracted from [`include/shulib/diag/debug_record.hpp`](../../include/shulib/diag/debug_record.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -73,6 +73,7 @@ Extracted from [`include/shulib/diag/debug_record.hpp`](../../include/shulib/dia
   - [`droppedRecords`](#debugrecord-droppedrecords)
   - [`droppedLines`](#debugrecord-droppedlines)
   - [`tickPhase`](#debugrecord-tickphase)
+  - [`tankSteerActive`](#debugrecord-tanksteeractive)
 
 <a id="enum-class-gatereason"></a>
 
@@ -781,6 +782,18 @@ std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)> tickPhase{}
 D-3: per-subsystem tick-time attribution in canonical seconds, indexed by TickPhase (top of file). Slots for phases marked RESERVED hold 0 until their producer exists; slots 6..7 are spare capacity (kTickPhaseSlots note). The values describe the most recently COMPLETED tick (the stamping sink cannot know the current tick's total mid-tick; one-tick lag, documented at the producer). All-zero when attribution is off, which is indistinguishable here from a tick that spent no time anywhere — read it with that in mind. Do NOT audit the sum against `dt`: tick_attribution.hpp's "attributed never exceeds the total" contract is qualified ON THE SAME CLOCK, and the attribution clock is injected separately from the loop clock `dt` is measured on — this record carries no attribution total of its own to compare against. Even on that one clock the relation is soft enough that TickAttribution floors its own remainder at 0, because a clock that jumps mid-phase can push the phases past the total. So read a shortfall as un-instrumented work rather than a missing phase, and read a sum above `dt` as a statement about two clocks rather than a broken record. — C5 (scheduler)
 
 *field, declared at [`include/shulib/diag/debug_record.hpp:212`](../../include/shulib/diag/debug_record.hpp#L212).*
+
+<a id="debugrecord-tanksteeractive"></a>
+
+### `DebugRecord::tankSteerActive`
+
+```cpp
+bool tankSteerActive = false
+```
+
+MoveToPose on a TANK changed this tick's yaw command to steer back onto the target's line (the bend's share of the heading loop plus the yaw correction) by more than the legibility floor (motion/tank_steer.hpp, kTankSteerNoiseFraction: 2 % of maxAngularSpeed). Never set on a drivetrain with strafe authority, nor by any motion but a plain MoveToPose. The blackbox carries it as tick flags bit 2; TermSink prints " TSTR". — TANK1
+
+*field, declared at [`include/shulib/diag/debug_record.hpp:221`](../../include/shulib/diag/debug_record.hpp#L221).*
 
 ## Design commentary, from the header
 

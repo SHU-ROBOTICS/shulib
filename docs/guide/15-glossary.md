@@ -177,6 +177,11 @@
   input, not something the library knows: shulib ships no map, because nobody here can cite one.
   An error in it does not average out. [Ch. 3]
 - **tank drive** — left wheels/right wheels; drives and turns, cannot strafe. [Ch. 4]
+- **tank steering** — what a tank's `moveTo` does since API 2.3 to stay on the line you drew
+  (through the target point, along the target heading): it bends the heading it aims for back
+  toward the line, at most 15°, and cancels the turn a weaker side adds. Only for a leg that starts
+  within 15° of its target heading; it never aims at the point. The `TSTR` flag marks it in the
+  log. [Ch. 4, Ch. 11]
 - **telemetry sink** — anything that accepts the diagnostic stream: the terminal formatter, a
   test capture, a level filter, a rate limiter, or the SD-card blackbox (which is shipped, not
   future). [Ch. 11]

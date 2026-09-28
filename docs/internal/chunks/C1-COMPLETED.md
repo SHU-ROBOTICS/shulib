@@ -272,6 +272,14 @@ planning into C1 would smuggle the LemLib behaviour into the library's core; C3'
 fallback is the sanctioned, telemetry-visible exception. Tank tests therefore use
 kinematically-feasible targets, and this scope line is stated rather than hidden.
 
+> **Amended 2026-09-27 by TANK1** (the team lead's ruling "Fix the library first"; [TANK1 brief](TANK1-tank-moveto-steers.md)
+> §1.7, [live log](TANK1-PROGRESS.md) Part A) — a dated note, the decision above left as written: on a
+> strafeAuthority-0 drive, `moveTo` now removes a lateral offset from its target's LINE by bending its
+> heading setpoint toward the line (≤ 15°, faded to 0 at the target) and cancelling measured unexplained
+> yaw — a second sanctioned, telemetry-visible exception (TSTR) beside C3's fallback. Still no
+> turn-then-drive planning anywhere: nothing aims at the target point, and a leg that starts > 15° off its
+> heading is not steered.
+
 ### D13 — No motion profiles at C1
 The P-velocity-cap loop already produces trapezoid-ish motion (cruise at cap, exponential
 approach), and every DoD item is provable without profiles. `TrapezoidProfile` stays ready;

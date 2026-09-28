@@ -14,6 +14,85 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.3
+
+### Changed — `moveTo` on a tank steers back onto its line (TANK1, 2026-09-27)
+
+> Written when it landed (chunk TANK1, Part A). **Minor bump, 2.2 → 2.3** — the team lead's ruling
+> (2026-09-27): one sentence the FROZEN `Chassis` header carries ([Freeze Register](roadmap.md#freeze-register)
+> row F6, its strafe-fallback semantics) said *"On tank, laterally-offset targets honestly exit
+> TimedOut"*, and after this change some of them arrive. That relaxes a stated LIMIT — the same
+> direction as 2.2's relaxed `Route::valid()` rule — and no signature moved, so the bump is minor;
+> but tank programs move differently, so it is listed as a behaviour change with a one-line way
+> back. **Tank only: the X-drive and H-drive are unchanged, byte for byte** (every record, log
+> line and motion checked with the change on and off) — with one exception by design: an H-drive
+> configured with NO strafe authority (`strafeTractionDerate` 0, a dead strafe wheel) cannot move
+> sideways either, reports authority 0, and is steered like a tank. **Host test plant only —
+> nothing here has run on a robot.**
+
+**BEHAVIOUR CHANGE (tank drives — a drivetrain whose `strafeAuthority()` is exactly 0):**
+
+- **A tank `moveTo` leg that starts within 15° of its target heading now steers back onto its
+  line while it drives.** The line runs through the target point along the target heading (for a
+  recipe `driveTo`, the line from where the step started to the point). The heading the leg servoes
+  to is bent toward the line — 0.1 rad per inch off it, never more than 15°, fading to nothing over
+  the last 6 in; the inches counted are where the robot WILL be 0.06 s ahead at its heading and
+  commanded speed, so the bend eases while the robot is already closing on the line instead of
+  carrying it across — and the turn the robot makes that the heading loop did not ask for (a
+  weaker side's pull) is measured and cancelled, never more than 1.5 rad/s. It never aims at the
+  target POINT and never plans a turn: `face()` is still your turn. The three changes you can see:
+  1. **Legs that already arrived take slightly different paths.** Any engaged tank leg with a
+     cross-track error or a yaw disturbance moves differently from before, including legs that
+     used to arrive: on the host test plant the library's acceptance run on an even drive ended at
+     (0.24, 0.12, 180.00°) in 5.42 s before and ends at (0.23, 0.04, −179.97°) in 5.44 s now. Legs
+     that used to time out on a weak side now finish: the 40 in leg with one side 3 %, 5 % or 9 %
+     weak timed out 0.93 / 1.56 / 2.86 in off its line and now finishes within 0.02 in of it.
+     **A leg that arrived before still arrives** — checked on the host test plant over 24 563 legs
+     that start up to 14° off their target heading toward points up to 60 in away, with motor lags
+     from none to about 0.18 s: none that settles with the change switched off times out with it
+     on. (A review of this change caught a draft that failed that check — a leg starting 10–15°
+     off its heading and turned toward its line crossed the line near its target and timed out
+     half an inch beside it; steering on where the robot will be, above, removed every one.) The
+     limit, stated: with about 0.24 s of motor lag, 24 of the 1 867 such legs that arrive with the
+     change off time out with it on — at that lag the heading loop itself is at its limit, which
+     R5's measured tuning is for.
+  2. **An un-faced tank leg logs one Warn.** A tank `moveTo` leg that starts more than 15° off its
+     target heading is not steered at all — it runs exactly as before — and logs, once, at its
+     first live tick: `[WARN][MOT] tank moveTo not steered: it starts 26.6 deg off its target
+     heading (steers within 15.0 deg) -- turn first: face()`.
+  3. **(When the result line's cross-track column lands — TANK1 Part B, not yet built)**
+     translating tank result lines will gain an ` xt` column. Nothing in this entry adds it.
+- The tick log line of a steered tick carries the new flag ` TSTR` (after ` SFB`); ` SFB` lights
+  on far fewer tank ticks than before, because the sideways error it reports is being steered out.
+- `strafeTo`, `hold`, `turnTo`, `face`, `brake` and `drive()` are unchanged on a tank.
+
+**ADDED:**
+
+- `motion::TankSteerConfig` (`crossGain`, `maxSteer`, `fadeDistance`, `leadTime`,
+  `yawObserverTime`, `yawCorrectionLimit`; every value PROVISIONAL — HA-179 in the
+  [Hardware Assumptions Register](hardware-assumptions.md)) and `MotionConfig::tankSteer`,
+  appended last (every designated initializer still compiles); `MotionConfig::validate()` refuses
+  an invalid one.
+- `motion/tank_steer.hpp` — the pure geometry: `TankLineError`, `tankLineError()`,
+  `tankLeadCross()`, `tankSteerAngle()`, `tankLegEngages()`, `TankSteerStatus`,
+  `kTankSteerNoiseFraction`.
+- `MoveToPose::tankSteerStatus()` — whether a motion may steer, whether this run does, and the last
+  commanding tick's cross-track error, the predicted one its bend steered on, the bend and the yaw
+  correction.
+- `diag::DebugRecord::tankSteerActive` (appended last) — on the SD-card blackbox as tick-flags bit
+  2 (the file format version stays 1: every earlier writer wrote that bit as 0, so an older file
+  reads it as false, which is true of it); on the terminal as ` TSTR`.
+- `PoseMotionOptions::tankSteer` (Tier 3; false unless you build a plain `MoveToPose`).
+
+**Migration:** nothing to change to keep compiling. To get the old tank back exactly, set
+`maxSteer` to 0 — `ChassisConfig.motion.tankSteer.maxSteer = 0` (on a robot built from a
+`RobotConfig`, its `tuning.motion.tankSteer.maxSteer`): a tank's `moveTo` then moves, records,
+logs and ends exactly as it did at 2.2, bit for bit, with no Warn. (Part B's ` xt` column, when it
+lands, will be the one exception: a diagnostic on the result line, kept whatever `maxSteer` is.)
+The documented limits of the steering —
+what it removes and what still times out, and what motor lag does to it — are in the guide's
+[chapter 14](guide/14-what-it-cannot-do-yet.md#motion-quality-boundaries).
+
 ## API 2.2
 
 ### Changed since 2.2 (2026-09-26, later) — driver control releases a leftover claim; the boot check names declared mechanism motors

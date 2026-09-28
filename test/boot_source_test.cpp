@@ -238,12 +238,14 @@ constexpr std::size_t memberCount() {
 }
 static_assert(memberCount<shulib::chassis::ChassisConfig>() == 2,
               "ChassisConfig gained a member: compare it in requireDefaultTuning()");
-static_assert(memberCount<shulib::motion::MotionConfig>() == 12,
+static_assert(memberCount<shulib::motion::MotionConfig>() == 13,
               "MotionConfig gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::control::FeedforwardGains>() == 3,
               "FeedforwardGains gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::motion::AxisGains>() == 4,
               "AxisGains gained a member: compare it in requireDefaultTuning()");
+static_assert(memberCount<shulib::motion::TankSteerConfig>() == 6,
+              "TankSteerConfig gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::control::SettleConfig>() == 3,
               "SettleConfig gained a member: compare it in requireDefaultTuning()");
 static_assert(memberCount<shulib::motion::OdoStallCheckConfig>() == 6,
@@ -257,11 +259,11 @@ static_assert(memberCount<shulib::diag::LoopMonitorConfig>() == 1,
 static_assert(memberCount<shulib::diag::PlausibilityConfig>() == 3,
               "PlausibilityConfig gained a member: compare it in requireDefaultTuning()");
 // And the sizes, measured on the host (x86-64/LP64): a member whose TYPE changed.
-static_assert(sizeof(shulib::motion::MotionConfig) == 368,
+static_assert(sizeof(shulib::motion::MotionConfig) == 416,
               "MotionConfig changed size: check requireDefaultTuning() still compares it all");
 static_assert(sizeof(shulib::motion::MotionSchedulerConfig) == 48,
               "MotionSchedulerConfig changed size: check requireDefaultTuning() still compares it all");
-static_assert(sizeof(shulib::chassis::ChassisConfig) == 416,
+static_assert(sizeof(shulib::chassis::ChassisConfig) == 464,
               "ChassisConfig changed size: check requireDefaultTuning() still compares it all");
 
 /// `t` equals chassis::ChassisConfig{} in EVERY leaf, written out longhand (file header).
@@ -294,6 +296,14 @@ void requireDefaultTuning(const shulib::chassis::ChassisConfig& t) {
     }
     REQUIRE(m.defaultTimeout == r.defaultTimeout);
     REQUIRE(m.rotationRadius.value() == r.rotationRadius.value());
+    // TANK1's tank steering (MotionConfig::tankSteer, appended last): a default-tuned robot
+    // steers with the library's defaults, and maxSteer = 0 would switch it off for the robot.
+    REQUIRE(m.tankSteer.crossGain == r.tankSteer.crossGain);
+    REQUIRE(m.tankSteer.maxSteer == r.tankSteer.maxSteer);
+    REQUIRE(m.tankSteer.fadeDistance == r.tankSteer.fadeDistance);
+    REQUIRE(m.tankSteer.leadTime == r.tankSteer.leadTime);
+    REQUIRE(m.tankSteer.yawObserverTime == r.tankSteer.yawObserverTime);
+    REQUIRE(m.tankSteer.yawCorrectionLimit == r.tankSteer.yawCorrectionLimit);
     // The stall check: the field a port of main.cpp's tankChassisConfig() into the core would set
     // (setAllWheels + independentMotionSource) — robot::Robot::effectiveTuning() overwrites both
     // for a tank, so ONLY this check can see it.

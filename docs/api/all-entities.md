@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,908 of them, across 155 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,935 of them, across 156 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -596,6 +596,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DebugRecord::qualityClass` | field | [debug_record.md](debug_record.md#debugrecord-qualityclass) |
 | `DebugRecord::strafeFallbackActive` | field | [debug_record.md](debug_record.md#debugrecord-strafefallbackactive) |
 | `DebugRecord::t` | field | [debug_record.md](debug_record.md#debugrecord-t) |
+| `DebugRecord::tankSteerActive` | field | [debug_record.md](debug_record.md#debugrecord-tanksteeractive) |
 | `DebugRecord::targetPose` | field | [debug_record.md](debug_record.md#debugrecord-targetpose) |
 | `DebugRecord::tickPhase` | field | [debug_record.md](debug_record.md#debugrecord-tickphase) |
 | `DebugRecord::wheelCount` | field | [debug_record.md](debug_record.md#debugrecord-wheelcount) |
@@ -1562,6 +1563,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
+| `kTankSteerNoiseFraction` | constant | [tank_steer.md](tank_steer.md#ktanksteernoisefraction) |
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
@@ -1765,6 +1767,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionConfig::maxWheelSpeed` | field | [motion_config.md](motion_config.md#motionconfig-maxwheelspeed) |
 | `MotionConfig::rotationRadius` | field | [motion_config.md](motion_config.md#motionconfig-rotationradius) |
 | `MotionConfig::stall` | field | [motion_config.md](motion_config.md#motionconfig-stall) |
+| `MotionConfig::tankSteer` | field | [motion_config.md](motion_config.md#motionconfig-tanksteer) |
 | `MotionConfig::translation` | field | [motion_config.md](motion_config.md#motionconfig-translation) |
 | `MotionConfig::translationSettle` | field | [motion_config.md](motion_config.md#motionconfig-translationsettle) |
 | `MotionConfig::validate` | function | [motion_config.md](motion_config.md#motionconfig-validate) |
@@ -1909,6 +1912,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MoveToPose::setTarget` | function | [move_to_pose.md](move_to_pose.md#movetopose-settarget) |
 | `MoveToPose::start` | function | [move_to_pose.md](move_to_pose.md#movetopose-start) |
 | `MoveToPose::state` | function | [move_to_pose.md](move_to_pose.md#movetopose-state) |
+| `MoveToPose::tankSteerStatus` | function | [move_to_pose.md](move_to_pose.md#movetopose-tanksteerstatus) |
 | `MoveToPose::target` | function | [move_to_pose.md](move_to_pose.md#movetopose-target) |
 | `MoveToPose::tick` | function | [move_to_pose.md](move_to_pose.md#movetopose-tick) |
 
@@ -2144,6 +2148,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PoseMotionOptions::captureHeadingAtLive` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-captureheadingatlive) |
 | `PoseMotionOptions::capturePoseAtLive` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-captureposeatlive) |
 | `PoseMotionOptions::holdFor` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-holdfor) |
+| `PoseMotionOptions::tankSteer` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-tanksteer) |
 | `Power` | type alias | [quantity.md](quantity.md#power) |
 | `precondition_failed` | free function | [check.md](check.md#precondition_failed) |
 | `PreconditionError` | struct | [check.md](check.md#struct-preconditionerror) |
@@ -2801,9 +2806,31 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TankKinematics::TankKinematics` | function | [tank.md](tank.md#tankkinematics-tankkinematics) |
 | `TankKinematics::toWheels` | function | [tank.md](tank.md#tankkinematics-towheels) |
 | `TankKinematics::wheelCount` | function | [tank.md](tank.md#tankkinematics-wheelcount) |
+| `tankLeadCross` | free function | [tank_steer.md](tank_steer.md#tankleadcross) |
+| `tankLegEngages` | free function | [tank_steer.md](tank_steer.md#tanklegengages) |
+| `tankLineError` | free function | [tank_steer.md](tank_steer.md#tanklineerror) |
+| `TankLineError` | struct | [tank_steer.md](tank_steer.md#struct-tanklineerror) |
+| `TankLineError::along` | field | [tank_steer.md](tank_steer.md#tanklineerror-along) |
+| `TankLineError::cross` | field | [tank_steer.md](tank_steer.md#tanklineerror-cross) |
 | `tankRequest` | free function | [drive_modes.md](drive_modes.md#tankrequest) |
 | `tankRequest (overload 2)` | free function | [drive_modes.md](drive_modes.md#tankrequest-2) |
 | `tankSideVolts` | free function | [coupled_side_monitor.md](coupled_side_monitor.md#tanksidevolts) |
+| `tankSteerAngle` | free function | [tank_steer.md](tank_steer.md#tanksteerangle) |
+| `TankSteerConfig` | struct | [motion_config.md](motion_config.md#struct-tanksteerconfig) |
+| `TankSteerConfig::crossGain` | field | [motion_config.md](motion_config.md#tanksteerconfig-crossgain) |
+| `TankSteerConfig::fadeDistance` | field | [motion_config.md](motion_config.md#tanksteerconfig-fadedistance) |
+| `TankSteerConfig::leadTime` | field | [motion_config.md](motion_config.md#tanksteerconfig-leadtime) |
+| `TankSteerConfig::maxSteer` | field | [motion_config.md](motion_config.md#tanksteerconfig-maxsteer) |
+| `TankSteerConfig::valid` | function | [motion_config.md](motion_config.md#tanksteerconfig-valid) |
+| `TankSteerConfig::yawCorrectionLimit` | field | [motion_config.md](motion_config.md#tanksteerconfig-yawcorrectionlimit) |
+| `TankSteerConfig::yawObserverTime` | field | [motion_config.md](motion_config.md#tanksteerconfig-yawobservertime) |
+| `TankSteerStatus` | struct | [tank_steer.md](tank_steer.md#struct-tanksteerstatus) |
+| `TankSteerStatus::bend` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-bend) |
+| `TankSteerStatus::cross` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-cross) |
+| `TankSteerStatus::crossAhead` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-crossahead) |
+| `TankSteerStatus::eligible` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-eligible) |
+| `TankSteerStatus::engaged` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-engaged) |
+| `TankSteerStatus::yawCorrection` | field | [tank_steer.md](tank_steer.md#tanksteerstatus-yawcorrection) |
 | `TermSink` | class | [term_sink.md](term_sink.md#class-termsink) |
 | `TermSink::emit` | function | [term_sink.md](term_sink.md#termsink-emit) |
 | `TermSink::log` | function | [term_sink.md](term_sink.md#termsink-log) |

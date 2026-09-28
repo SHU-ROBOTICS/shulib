@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,908 of them across 155 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 2,935 of them across 156 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -47,6 +47,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Odometry stall check](odo_stall_check.md) | [`motion/odo_stall_check.hpp`](../../include/shulib/motion/odo_stall_check.hpp) | OdoStallCheck — the spin-vs-motion cross-check. |
 | [Run reporter](run_reporter.md) | [`motion/run_reporter.hpp`](../../include/shulib/motion/run_reporter.hpp) | RunReporter — the glue that makes a run LEGIBLE end to end (WS13, chunk C5): session header (§18.5) → per-motion result lines (§18.3/§18.4) → run summary (§18.3). |
 | [Strafe to](strafe_to.md) | [`motion/strafe_to.hpp`](../../include/shulib/motion/strafe_to.hpp) | StrafeTo — translate to a FIELD (x, y) while HOLDING heading. |
+| [Tank steer](tank_steer.md) | [`motion/tank_steer.hpp`](../../include/shulib/motion/tank_steer.hpp) | tank_steer.hpp — the pure geometry of TANK1: where a tank is relative to its target's LINE, and how far MoveToPose bends the heading setpoint to steer it back. |
 | [Turn to](turn_to.md) | [`motion/turn_to.hpp`](../../include/shulib/motion/turn_to.hpp) | TurnTo — rotate in place to a FIELD heading. |
 
 ### Control
@@ -292,7 +293,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,908 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 2,935 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

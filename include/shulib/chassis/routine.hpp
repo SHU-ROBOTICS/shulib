@@ -69,7 +69,11 @@
 // then delegate to turnTo / moveTo; that keeps C1's D12 intact on tank drives
 // (the AUTHOR still writes the turn — face() IS the author's turn, said in
 // field words), and a hand-written turnTo(atan2(...)) remains bit-identical
-// to it by construction. Dropping from Tier 2 to Tier 3 is deleting the
+// to it by construction. Since TANK1 (API 2.3) face() is also what makes a
+// tank's driveTo leg steerable: a tank moveTo steers back onto its line only
+// for a leg that starts within 15° of its target heading, and a leg right
+// after face() starts within about a degree of it — the library still plans
+// no turn (chassis.hpp: TANK STEERING). Dropping from Tier 2 to Tier 3 is deleting the
 // Routine object and keeping every verb.
 //
 // ═══ The error policy (decided, documented, tested — design constraint 4) ═════════
@@ -228,7 +232,10 @@ public:
     /// target heading is the bearing from the live pose estimate to (x, y),
     /// computed when this step RUNS (after the steps before it). On tank,
     /// face(x, y) first so the approach is a line the drivetrain can follow
-    /// (C1's honesty: tank verbs never plan turns — face() is YOUR turn).
+    /// (C1's honesty: tank verbs never plan turns — face() is YOUR turn); it is
+    /// also what makes the leg steerable — a tank moveTo steers back onto its
+    /// line only when the leg starts within 15° of its target heading, and logs
+    /// "turn first: face()" when it does not (chassis.hpp: TANK STEERING).
     Routine& driveTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
         if (skipIfStopped("driveTo")) {
             return *this;

@@ -114,7 +114,12 @@ point you named — and hands it to `turnTo` / `moveTo`. That matters most on a 
 where [Chapter 4](04-drivetrains.md) explained the drivetrain cannot slide sideways and
 [Chapter 10](10-the-api.md) showed you the turn-then-drive idiom with `atan2`. `face(x, y)`
 **is** that idiom's turn, written in field words — you are still the one deciding to turn,
-which is exactly the honesty rule tank verbs follow everywhere in shulib.
+which is exactly the honesty rule tank verbs follow everywhere in shulib. On a tank it is also
+what makes the next leg *steerable*: since API 2.3 a tank `moveTo` (and so `driveTo`) steers
+back onto its line when a weaker side pulls it off, but only for a leg that starts within 15° of
+its target heading — which a leg right after `face()` does. A `driveTo` with no `face()` before
+it starts as far off its heading as the point is off your nose; past 15° it is not steered and
+the log says `turn first: face()` ([Chapter 11](11-reading-the-diagnostics.md)).
 
 ## When a step fails
 

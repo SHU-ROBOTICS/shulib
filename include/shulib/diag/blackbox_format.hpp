@@ -70,7 +70,9 @@ namespace shulib::diag::blackbox {
 inline constexpr char kMagic[4] = {'S', 'H', 'B', 'B'};
 
 /// On-disk format version. BUMP THIS whenever any layout below changes — a reader
-/// refuses a version it was not built for rather than misreading it (header note).
+/// refuses a version it was not built for rather than misreading it (header note). Giving a
+/// meaning to a tick-flags bit every earlier writer wrote as 0 is not a layout change (bit 2,
+/// TANK1: see the tick record's flags note), so it did not bump.
 inline constexpr std::uint16_t kFormatVersion = 1;
 
 /// Size of the fixed file header, in bytes (v1). Fixed width so a reader can seek
@@ -432,7 +434,12 @@ private:
 //   64 errorX                                 268 imuYawRate      356 batteryCurrent
 //   72 errorY                                 276 quality         364 tickPhase[8]
 //   80 errorHeading                           284 covarianceTrace 428 = end
-// flags bit 0 = clampedThisTick, bit 1 = strafeFallbackActive.
+// flags bit 0 = clampedThisTick, bit 1 = strafeFallbackActive, bit 2 = tankSteerActive
+// (TANK1, 2026-09); bits 3-7 are written 0. Bit 2 is a meaning given to a bit every earlier
+// writer wrote as 0, so an older file decodes it as false — which is true of it — and the
+// record width is unchanged: kFormatVersion stays 1 (decided at TANK1 — no robot program in
+// src/ wrote blackbox files before it, so no file exists whose bit 2 means anything else). A
+// reader built before TANK1 ignores the bit and loses only the flag.
 
 /// Encode one DebugRecord. Returns the bytes written, or 0 if `out` was too small or
 /// the layout did not come out to exactly kTickPayloadBytes (a loud, testable failure
@@ -464,7 +471,8 @@ private:
     w.u16(static_cast<std::uint16_t>(r.fault));
     w.u8(static_cast<std::uint8_t>(r.gateReason));
     w.u8(static_cast<std::uint8_t>((r.clampedThisTick ? 1U : 0U)
-                                   | (r.strafeFallbackActive ? 2U : 0U)));
+                                   | (r.strafeFallbackActive ? 2U : 0U)
+                                   | (r.tankSteerActive ? 4U : 0U)));
     w.u32(r.droppedRecords);
     w.u32(r.droppedLines);
     for (const auto v : r.wheelVoltage) {
@@ -549,6 +557,7 @@ private:
         const std::uint8_t flags = b.u8();
         r.clampedThisTick = (flags & 1U) != 0U;
         r.strafeFallbackActive = (flags & 2U) != 0U;
+        r.tankSteerActive = (flags & 4U) != 0U;
     }
     r.droppedRecords = b.u32();
     r.droppedLines = b.u32();

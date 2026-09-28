@@ -72,9 +72,26 @@ inline constexpr int kApiMajor = 2;
 /// config/, robot/ and teleop/ headers) and ONE tightened precondition —
 /// MotionDeps now requires the motor count to EQUAL the wheel count — whose
 /// major-bump question is open. docs/changelog.md, API 2.2, lists all of it.
-inline constexpr int kApiMinor = 2;
+/// 3 = chunk TANK1 (2026-09-27): `moveTo` on a tank steers back onto its
+/// line. It rewrites one sentence a FROZEN header carries — F6's
+/// strafe-fallback semantics said "On tank, laterally-offset targets honestly
+/// exit TimedOut", and after TANK1 some of them arrive — so read strictly it is
+/// neither additive ("unchanged behaviour") nor a break (nothing stops
+/// compiling, no F6 signature moves). Ruled MINOR (the team lead's go,
+/// 2026-09-27): the changed sentence stated a LIMIT and the change relaxes it,
+/// the direction G2's R6 took above; and it is recorded as a BEHAVIOUR CHANGE
+/// with its three visible effects and a one-line way back
+/// (`ChassisConfig.motion.tankSteer.maxSteer = 0` restores the pre-TANK1 tank's
+/// motion, records and truth bit for bit). X-drive and H-drive are unchanged
+/// byte for byte (except an H-drive configured with NO strafe authority —
+/// strafeTractionDerate 0 — which cannot strafe either and is steered like a
+/// tank). Added: `motion::TankSteerConfig` + `MotionConfig::tankSteer`,
+/// `motion/tank_steer.hpp`, `MoveToPose::tankSteerStatus()`,
+/// `DebugRecord::tankSteerActive` (blackbox tick flags bit 2, TermSink
+/// " TSTR"). docs/changelog.md, API 2.3, lists all of it.
+inline constexpr int kApiMinor = 3;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.2";
+inline constexpr const char* kApiVersionString = "2.3";
 
 }  // namespace shulib

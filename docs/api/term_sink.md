@@ -31,7 +31,7 @@ class TermSink final : public hal::ITelemetrySink
 
 The human-readable terminal stream and the primary dev surface: leveled tagged lines from log(), one column-aligned line per DebugRecord from emit(), and the one-screen block from summarize(). It holds NO mutable state — no buffer, no queue, no background flush — so every LINE is formatted into a stack-local buffer and handed to the ICharSink as exactly ONE write(): one for log(), one for emit(), six for summarize()'s block. A line can therefore never be torn or interleaved mid-way, whatever a caller's string contains; whole LINES can be, so two tasks sharing a sink can split summarize()'s six. Nothing here allocates. Every line is pinned by a golden test, which is why the character device is injected rather than hard-coded to stdout. This is a DISPLAY edge: degrees are rendered here and only here, and only the headline fields appear — the full record belongs to the blackbox and SHUL/2 sinks.
 
-*class, declared at [`include/shulib/diag/term_sink.hpp:77`](../../include/shulib/diag/term_sink.hpp#L77).*
+*class, declared at [`include/shulib/diag/term_sink.hpp:78`](../../include/shulib/diag/term_sink.hpp#L78).*
 
 <a id="termsink-termsink"></a>
 
@@ -43,7 +43,7 @@ TermSink(hal::IClock& clock, hal::ICharSink& out) noexcept
 
 Both references must outlive the sink. `clock` stamps log() lines; emit() lines are stamped from the record itself (see header).
 
-*function, declared at [`include/shulib/diag/term_sink.hpp:81`](../../include/shulib/diag/term_sink.hpp#L81).*
+*function, declared at [`include/shulib/diag/term_sink.hpp:82`](../../include/shulib/diag/term_sink.hpp#L82).*
 
 <a id="termsink-log"></a>
 
@@ -55,7 +55,7 @@ void log(hal::LogLevel level, std::string_view subsystem, std::string_view messa
 
 One leveled, subsystem-tagged line, stamped from the injected CLOCK (unlike emit(), which stamps from the record). Info carries no level tag — the common case stays quiet — while the others render [LEVEL] butted against [TAG]. Both `subsystem` and `message` are caller-controlled text and are SANITIZED on the way out: control bytes become '?', bytes >= 0x80 pass through, and over-long text truncates with '…' at a UTF-8 boundary (16 and 200 bytes). There is no unsanitized path to the device, so no caller string can break the one-line-per-call framing or escape into the terminal.
 
-*function, declared at [`include/shulib/diag/term_sink.hpp:90`](../../include/shulib/diag/term_sink.hpp#L90).*
+*function, declared at [`include/shulib/diag/term_sink.hpp:91`](../../include/shulib/diag/term_sink.hpp#L91).*
 
 <a id="termsink-wantsrecord"></a>
 
@@ -67,7 +67,7 @@ One leveled, subsystem-tagged line, stamped from the injected CLOCK (unlike emit
 
 TermSink consumes records — overridden as a pair with emit(), per the seam contract.
 
-*function, declared at [`include/shulib/diag/term_sink.hpp:103`](../../include/shulib/diag/term_sink.hpp#L103).*
+*function, declared at [`include/shulib/diag/term_sink.hpp:104`](../../include/shulib/diag/term_sink.hpp#L104).*
 
 <a id="termsink-emit"></a>
 
@@ -77,9 +77,9 @@ TermSink consumes records — overridden as a pair with emit(), per the seam con
 void emit(const DebugRecord& r) override
 ```
 
-One line per tick, stamped from the RECORD's own `t` and not the clock — which is what makes a replayed record render byte-identically to a live one. The tick is tagged [MOT] when it carries a command id OR a non-idle motion state (a C1 motion running standalone has id 0, so discriminating on the id alone once rendered an ACTIVE motion as "[LOC] idle"), and "[LOC] idle" only when both are zero. Trailing flags are appended ONLY when set: " DR", " SFB", " CLMP", " flt=NAME". Angles print in degrees, and a non-finite value renders as a deterministic "NaN"/"+Inf"/"-Inf" token rather than libc's locale-varying spelling.
+One line per tick, stamped from the RECORD's own `t` and not the clock — which is what makes a replayed record render byte-identically to a live one. The tick is tagged [MOT] when it carries a command id OR a non-idle motion state (a C1 motion running standalone has id 0, so discriminating on the id alone once rendered an ACTIVE motion as "[LOC] idle"), and "[LOC] idle" only when both are zero. Trailing flags are appended ONLY when set, in this order: " DR", " SFB", " TSTR" (TANK1's tank steering), " CLMP", " flt=NAME". Angles print in degrees, and a non-finite value renders as a deterministic "NaN"/"+Inf"/"-Inf" token rather than libc's locale-varying spelling.
 
-*function, declared at [`include/shulib/diag/term_sink.hpp:112`](../../include/shulib/diag/term_sink.hpp#L112).*
+*function, declared at [`include/shulib/diag/term_sink.hpp:114`](../../include/shulib/diag/term_sink.hpp#L114).*
 
 <a id="termsink-summarize"></a>
 
@@ -91,14 +91,14 @@ void summarize(const RunSummary& s) override
 
 Render the §18.3 one-screen run-summary block. UNSTAMPED by design — the block is a run artifact, not a timed event (the sketch shows no [t=]); each of its six lines is one write() (the framing contract). Field renderings (chosen at C5, each pinned by golden test): * heading values render "n/a" when hasHeadingData is false — the block never fabricates a 0.0° it has no data for * an EMPTY buildHash renders the literal token MISSING (never a plausible-looking placeholder — §18.5's loudness rule) * the drop counters are ALWAYS shown, zeros included: "dropped 0 rec 0 ln" is a positive health claim, not noise (D-2: silence is the bug) * first fault carries its latch time ("ODO_STUCK@  4.2s") — the 2am root-cause line
 
-*function, declared at [`include/shulib/diag/term_sink.hpp:179`](../../include/shulib/diag/term_sink.hpp#L179).*
+*function, declared at [`include/shulib/diag/term_sink.hpp:184`](../../include/shulib/diag/term_sink.hpp#L184).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 52 lines, click to expand</summary>
+<summary>The header’s own reasoning — 53 lines, click to expand</summary>
 
 ```text
 
@@ -118,9 +118,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
                      — timestamped from the RECORD's t (not the clock), so replayed
                        records render identically to live ones; idle ticks (no active
                        command) are tagged [LOC]. Trailing flags appear only when set:
-                       " DR" (dead-reckoning), " SFB" (strafe fallback), " CLMP"
-                       (nudge clamped), " flt=NAME" (fault this tick). The line shows
-                       the HEADLINE fields; the full record belongs to SdSink/SHUL/2.
+                       " DR" (dead-reckoning), " SFB" (strafe fallback), " TSTR" (tank
+                       steering, TANK1), " CLMP" (nudge clamped), " flt=NAME" (fault
+                       this tick). The line shows the HEADLINE fields; the full record
+                       belongs to SdSink/SHUL/2.
    run summary:      summarize(RunSummary) renders the §18.3 one-screen block (chunk
                      C5) — six lines, unstamped, byte-pinned by golden test. The
                      per-motion RESULT LINE does not enter here: it rides log() as

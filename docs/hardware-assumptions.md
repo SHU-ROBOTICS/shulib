@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 156 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 158 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -76,7 +76,12 @@
 > rests on), and AMENDED HA-05 (the start heading's owner is the chosen auton's start pose). **T3 Part 2 (the Teleop wiring, the same day) added no
 > entry** — HA-148..HA-152 stay unused — and brought HA-153, HA-154, HA-156 and HA-159 up to the
 > tree: "shulib Teleop" now builds and drives the claws (not on a robot yet), so their lines saying
-> no program drives them, or that the claw row does not exist, were corrected. The
+> no program drives them, or that the claw row does not exist, were corrected. **TANK1 (2026-09-27)
+> added TWO — HA-179, invented, and HA-180, reasoned** — the constants `moveTo`'s new tank steering
+> runs on (a bend toward the target's line and a cancelled weak-side yaw, tuned on the host test
+> plant's placeholder dynamics), and the belief it rests on that robot two's sideways drift is its
+> HEADING being pulled, not the chassis sliding sideways; the register then holds 158 entries.
+> HA-162..HA-178 are not in it: numbers other chunks hold (briefed, not landed) — never reissued. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -264,6 +269,8 @@
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
+| HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
+| HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
 
 ---
 
@@ -328,7 +335,9 @@ a config constant **by design** — a correction here never touches the core.
   for whichever source the R1 adapter picks.
   *Blast radius if wrong:* a negated yaw rate breaks the drift-observability property Phase E
   depends on (heading and rate must move together — `imu_hostility.hpp` models them consistently
-  for exactly this reason) and inverts E2's high-yaw-rate rejection. **Contained:** one negate in
+  for exactly this reason) and inverts E2's high-yaw-rate rejection. Since TANK1 (2026-09-27) it would
+  also turn a tank `moveTo`'s yaw observer into positive feedback, bounded at its 1.5 rad/s limit
+  (HA-179's blast radius has the measurement). **Contained:** one negate in
   `imuYawRateToCanonical` / adapter source choice.
 
 - [ ] **HA-05 — any post-calibration tare desyncs bootHeading; the additive offset is applied
@@ -1981,6 +1990,91 @@ were built in parallel; both have since landed, with the numbers below it.)
   stack — the failure the own-task design exists to avoid; the recovery would be a disable-aware
   pacer that ends the routine before the mode change lands, which the abandon latch already is.
   **Contained:** the program's task body and its watch pacer (COMP-b).
+
+**TANK1 (2026-09-27) added TWO — HA-179 and HA-180.** A tank `moveTo` now steers back onto its line
+while it drives (the changelog's API 2.3 entry; `motion/tank_steer.hpp`, `motion/move_to_pose.hpp`): the
+heading it servoes to is bent toward the target's line, and the yaw the robot makes that the heading loop
+did not ask for — a weaker side's pull — is measured and cancelled. Every constant in it was tuned on the
+host test plant, whose motors respond instantly and whose tank never skids; these two entries are what
+that leaves unproven. The numbers below are host-test-plant measurements of 2026-09-27, re-measured on
+2026-09-28 after a review added the bend's lead; **none of it has run on a robot.**
+
+- [ ] **HA-179 — TANK1's steering constants hold on robot two.**
+  *Claim:* with a bend of 0.1 rad per inch off the line capped at 15°, steering on where the robot will
+  be 0.06 s ahead, a 6 in fade, a 0.1 s yaw observer and a 1.5 rad/s correction limit, robot two's tank
+  `moveTo` removes the drift of a side up to about 10 % weaker than the other before arrival, inside the
+  unchanged 0.5 in / 0.02 rad arrival rule, without heading oscillation, and without making a leg that
+  arrives with the steering off time out with it on — which requires the drivetrain to follow a yaw
+  command much faster than 0.1 s (its motor time constant, kA/kV, well under about 0.2 s).
+  *Source:* `include/shulib/motion/motion_config.hpp` (`TankSteerConfig`, every field PROVISIONAL (A4:
+  HA-179)); `include/shulib/motion/move_to_pose.hpp` (the tank path, labelled HA-179). Host test plant,
+  instant motors: the 40 in leg settles with one side up to 25 % weak (1.83–2.57 s, within 0.1 in of its
+  line), the acceptance run finishes with either side 9 % weak, and a faced leg removes an offset from its
+  line of up to 6 in over 40 in, 8 in over 50 in, about 1 in over 20 in. **The lead** (steering on the
+  error 0.06 s ahead): without it the line loop was under-damped — a leg starting 10–15° off its target
+  heading, turned toward its line, crossed the line near its target and timed out half an inch beside it
+  (178 of the 1 861 legs of a 24 563-leg grid that arrive with steering off), and the lateral reach had
+  holes (over 50 in, 4–6 in timed out while 7–8 in arrived). With it: none of them, at plant lags from 0
+  to about 0.18 s; every lead from 0.05 to 0.10 s measured did the same, 0.04 s left 4, 0.25 s left 72–102
+  under lag. **With a motor lag the controller does not model** (the plant's kA raised, the controller's
+  left at 0, as R5a will leave it): at a time constant of about 0.12 s and about 0.18 s the 40 in leg still
+  finishes with one side up to 25 % weak (1.37–1.82 s and 2.09–2.42 s; 30 % times out at every lag, as
+  without lag), and a 6 in offset over 40 in is still removed (1.45 / 2.39 s); a 10 in one is not (1.6 in
+  off the line at 0.12 s). **At about 0.24 s** 24 of the 1 867 grid legs that arrive with steering off
+  time out with it on (all 48 in long, starting 10–14° off their heading) — the heading loop's own kP 4 is
+  the limit there. Near-target yaw-command sign changes stay small: 0 on every drift case without lag;
+  at most 4 per arriving leg at 0.12–0.18 s (7 and 11 on the 12 in offset that times out).
+  *Confidence:* **invented** — tuned on the host test plant's placeholder dynamics (the HA-45/HA-50
+  co-dependency: wrong kV or kA changes what every one of these numbers costs).
+  *Settle:* COMP-t's floor run of the 40 in auton (its Station M.6: the RESULT, END y, how many ticks show
+  TSTR, and the tape's sideways offset), and R5, whose characterization records kA (R5a) and so the motor
+  time constant. **When that is known, re-run the host probe grids with the measured kA** — the review's
+  24 563-leg grid for "no leg that arrived before times out", and the design sweep: the lead's band
+  (0.05–0.10 s measured regression-free at 0–0.18 s) was chosen for an unknown lag, and the right
+  `leadTime` grows with the robot's real heading lag; that choice is R5's. The same grids re-derive how
+  often TSTR lights if R5a moves `maxAngularSpeed` (the flag's floor is 2 % of it).
+  *Blast radius if wrong:* too weak — the drift is not removed, and the leg ends as it did before TANK1: an
+  honest MOTION_TIMEOUT (bounded, visible, and the tick lines show TSTR to the end). Too strong, or a
+  drivetrain too slow for it — heading wobble on steered tank legs, bounded by the 15° cap and the
+  1.5 rad/s limit and visible as TSTR; at a stop a weak side's static friction can leave a small commanded
+  yaw it does not follow. **While the robot cannot follow a yaw command** (pinned by a defender, wedged on a
+  wall, motor lag, both sides saturated) the correction integrates the heading error, up to 1.5 rad/s, and
+  unwinds within about 0.1 s once the robot turns again: measured, a 0.5 s pin of the 9 % weak 40 in leg
+  still arrives (2.41 s, peak correction 0.62 rad/s) and so does a 1.0 s pin (3.11 s, the correction at its
+  1.5 rad/s limit), and a 6 in offset leg pinned during its bend swings to 16.5° off its heading on release
+  (19° with 0.18 s of lag) and still arrives (before the lead it timed out). **The cap is also the engage window:** raising
+  `maxSteer` to remove larger offsets also steers un-faced legs further off — with no window at all an
+  un-faced 40 in leg arrives up to 30° off its nose and times out from 40°, a cliff an author cannot see —
+  so keep it well under 30°. **The IMU read:** the observer uses the rate the Localizer read that tick
+  (`loc.twist()`), the tick's FIRST `ProsImu::yawRate()` on robot two; on a robot with a GPS or tag
+  corrector, until IMU1 lands, the corrector reads first on the ticks it reaches its yaw-rate gate and the
+  Localizer's rate is about 0 (or a spike) there — modelled on every other tick: with zeros 15 of 15 probe
+  cases still arrive, with zeros and a 3 % ×50 spike 8 of 15. (The Localizer also reads the rate a second
+  time on the first tick of every chained motion — IMU1's too; the observer never runs on a motion's first
+  tick, so it does not reach TANK1.) **The rate's SIGN:** TANK1's observer is the first control law in the
+  library that closes a loop on the yaw rate's sign (before it, the rate fed records, rest checks and
+  |ω| gates), so a rate whose sign disagrees with the heading's (HA-04 — `get_gyro_rate().z`'s sign is
+  undocumented) makes the observer push the WRONG way, up to its 1.5 rad/s limit: measured with a negated
+  rate on the 9 % weak 40 in leg, heading wobble to about 16° and a TIMEOUT, visible as TSTR lit and the
+  correction pinned at its limit. Robot two's default rate (differentiated `get_rotation()`) has the
+  heading's sign by construction. **Contained:** `maxSteer = 0` restores the pre-TANK1 tank's motion,
+  records and log exactly; every number is config.
+
+- [ ] **HA-180 — robot two's sideways error on a straight `moveTo` comes from its heading, not a skid.**
+  *Claim:* the drift of a tank leg on robot two is the HEADING being pulled — which the IMU sees and the
+  drive encoders integrate into the pose — not the chassis sliding sideways, which
+  `TankKinematics::forward()` reports as zero and no sensor on robot two sees.
+  *Source:* TANK1 steers on the ESTIMATE's distance off the line; robot two's odometry is its drive
+  encoders and IMU (HA-131), with no tracking wheel and no GPS on the bench. On the host test plant the
+  drift is all heading by construction (its tank never skids), and a drive-encoder rig wired the way the
+  builder wires robot two settles the 5 % and 9 % weak 40 in legs exactly like the tracking-wheel rig.
+  *Confidence:* **reasoned** — the 2026-09-25 veer (about 11° over 48 in, open loop) was a heading change,
+  read on the IMU; a sideways skid component was never measured.
+  *Settle:* COMP-t's Station M.6 — END y by the estimate against the tape's sideways offset from the line,
+  three runs; agreement within 0.5 in settles it.
+  *Blast radius if wrong:* the screen says FINISHED while the robot is off its line on the tape by the
+  skid, and every later leg starts from that error. Not contained by config — only a GPS, a tracking wheel
+  or a wall reset sees a skid.
 
 ---
 

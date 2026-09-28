@@ -525,7 +525,11 @@ a separate small chunk from its D4. On
 today's tank `moveTo` nothing corrects a sideways drift, so the 40 in auton on a robot with one side a few
 percent weak ends MOTION_TIMEOUT (COMP-t's probe; robot two's sides differ by ~9 %). jal: "Fix the library
 first" — a bounded correction that never plans a turn, logged when it steers, the X-drive and H-drive
-byte-for-byte unchanged, the auton line unchanged. HA-179/180.
+byte-for-byte unchanged, the auton line unchanged. HA-179/180. **Part A BUILT 2026-09-27 in the `tank1`
+worktree, not committed** (`chunks/TANK1-PROGRESS.md`, Part A: the steering, TSTR, the Warn, 40 new test
+cases after the 2026-09-28 review added the bend's lead, API 2.3, HA-179/180) — it waits for the
+coordinator's verification; its build found that the
+Localizer reads the IMU rate twice at every chained-motion boundary (IMU1's, not TANK1's; TANK1 immune).
 
 **L5b. [T4, NEW 2026-09-26] The driver program.** BRIEFED (`chunks/T4-driver-program.md`); Part 0 (the slots
 and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot, run

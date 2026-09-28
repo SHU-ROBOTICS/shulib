@@ -156,8 +156,22 @@ motion:
     ([Ch. 3](03-knowing-where-you-are.md)). It is on for every tick of a run with no corrector
     wired in; with a GPS or AprilTag corrector attached it clears on the ticks where a fix is
     actually applied.
-  - `SFB` — strafe fallback: the H-drive is running a sideways-limited leg at reduced lateral
-    speed ([Ch. 4](04-drivetrains.md)).
+  - `SFB` — strafe fallback: the leg is asking for more sideways speed than the drivetrain can
+    deliver, and the sideways part is being cut to what it can do ([Ch. 4](04-drivetrains.md)).
+    On an H-drive that is a sideways-limited leg running at reduced lateral speed. On a tank,
+    which cannot move sideways at all, it lights whenever the target point is not straight ahead
+    of the robot by more than a hair — a leg off its line, but also a leg that starts turned off
+    its target heading (even one that starts ON its line), or the robot's own steering turning it
+    for a moment — so on a tank log it usually appears beside `TSTR` (next), which is the part
+    doing something about it (on the host test plant, a 40 in leg with one side 9 % weak shows
+    `SFB` on 39 ticks, down from about 500 before tank steering existed).
+  - `TSTR` — tank steering (a tank only, since API 2.3): `moveTo` changed this tick's turn
+    command to steer the robot back onto its line — the heading it aims for bent toward the line,
+    and the turn a weaker side keeps adding cancelled ([Ch. 4](04-drivetrains.md)). It lights
+    only when that change is larger than 2 % of the robot's turn-speed budget, so sensor noise
+    does not keep it on; on an even drive it stays dark, and on a drive with one side 5 % weak it
+    is on for a good part of every leg. `TSTR` on to the very end of a leg that then timed out
+    means the drift or the offset was bigger than the steering is allowed to remove.
   - `CLMP` — a fusion correction was clamped this tick (the never-snap rule at work).
   - `flt=CODE` — a fault was raised *this tick*: this is where you find the exact moment
     something happened.
@@ -192,6 +206,12 @@ worth recognizing on sight:
   of the control tick ate the budget.
 - **Throttle notices** (Warn, tag `DIA`): `throttled MOT: dropped 47 lines` — the rate limiter
   (below) dropped output and is telling you exactly how much.
+- **A tank leg that will not be steered** (Warn, tag `MOT`, once, at the leg's first live tick):
+  `tank moveTo not steered: it starts 26.6 deg off its target heading (steers within 15.0 deg)
+  -- turn first: face()` — the leg starts too far off its target heading for tank steering to
+  take it on (steering it would mean the library making your turn), so it runs exactly as a tank
+  `moveTo` did before API 2.3 and will most likely time out. Fix: `face()` the point (or
+  `turnTo` the heading) before this leg ([Ch. 9](09-the-recipe-api.md)).
 - **Boot-window guard** (Warn, tag `CHS`): `field-frame drive() before the estimate is live:
   commanding zero until it is` — a field-relative manual command arrived before the sensors
   were up ([Ch. 10](10-the-api.md)).
@@ -342,7 +362,10 @@ summary — so the last thing on the screen is why it broke:
 **Reading a blackbox file** needs the decoder that ships with it (`diag/blackbox_reader.hpp`).
 It refuses a file whose format version it does not recognise rather than guessing at it — a
 wrong number read confidently is worse than no number — and it will not crash on a damaged file,
-which is exactly the file you are most likely to be holding.
+which is exactly the file you are most likely to be holding. The format has grown once without a new
+version number, on purpose: since API 2.3 each tick's flags byte also carries the tank-steering
+flag (`TSTR` above), in a bit every earlier writer wrote as 0 — so a file from before simply reads
+it as "not steering", which is true of it.
 
 **Honest status:** the format, the sink and the decoder exist and are tested — **and so does the
 piece that writes to `/usd/` on a real brain** (`ProsBlockSink`, which arrived with the hardware

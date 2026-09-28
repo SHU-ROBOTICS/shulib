@@ -95,7 +95,35 @@
 //    (record strafeFallbackActive → TermSink " SFB"), never silent. There is
 //    deliberately NO polling getter for it: a live-polled bool invites
 //    control-flow coupling to a telemetry concept (C3 §11's recommendation,
-//    adopted). On tank, laterally-offset targets honestly exit TimedOut.
+//    adopted). On tank, see TANK STEERING, next.
+//  * TANK STEERING (TANK1, API 2.3 — this item replaced the sentence "On
+//    tank, laterally-offset targets honestly exit TimedOut"): on a drive with
+//    NO strafe authority (strafeAuthority() exactly 0 — a tank, or an H-drive
+//    configured with a dead strafe wheel), moveTo keeps a leg on its LINE, the
+//    line through the target point along the target heading. The heading it
+//    servoes to is bent toward that line (0.1 rad per inch off it — counted
+//    where the robot will be tankSteer.leadTime = 0.06 s ahead at its heading
+//    and commanded speed, so the bend eases while the robot closes on the line
+//    instead of carrying it across — never more than
+//    MotionConfig::tankSteer.maxSteer = 15°, faded to 0 over the last 6 in),
+//    and the yaw the robot makes that the heading loop did not ask for — a
+//    weaker side's pull — is measured and cancelled (at most 1.5 rad/s). A leg
+//    that arrives with the steering off arrives with it on (host test plant,
+//    2026-09-28: a 24 563-leg grid, motor lags to ~0.18 s; at ~0.24 s a few
+//    legs starting 10–14° off their heading do not — docs/changelog.md, 2.3).
+//    It never aims at the target POINT and never plans a turn: a leg that
+//    STARTS more than maxSteer off its target heading is not steered at all —
+//    it runs exactly as before TANK1 and logs ONE Warn ("... -- turn first:
+//    face()"). Telemetry-visible like SFB: record tankSteerActive → TermSink
+//    " TSTR". What still exits TimedOut on a tank: a point beside the robot
+//    on its own heading (nothing to steer along); an offset larger than a 15°
+//    bend removes over the leg — no size is promised, it depends on the leg's
+//    length and the drivetrain's motor lag (host test plant, 2026-09-28);
+//    every strafeTo (holding its heading is its contract). A PathRunner leg
+//    with HeadingMode::Free targets the heading the robot has at leg start,
+//    so it steers toward an off-line point by at most 15°.
+//    `tankSteer.maxSteer = 0` restores the pre-TANK1 tank's motion exactly.
+//    Nothing of it has run on a robot.
 //
 // ═══ drive(ChassisSpeeds, Frame) — the frame-explicit manual verb ═════════════════
 // The verb a driver-control loop calls every iteration (field-centric or
@@ -260,7 +288,10 @@ public:
     // ── the blocking verbs (each: async + waitUntilSettled; header semantics) ──────
 
     /// Drive to `target` (FIELD pose): the decoupled holonomic engine —
-    /// translation and rotation simultaneous and independent (C1's thesis).
+    /// translation and rotation simultaneous and independent (C1's thesis). On a
+    /// tank, a leg that starts within 15° of its target heading also steers back
+    /// onto its line while it drives, and a leg that starts farther off runs
+    /// unsteered and logs one Warn (header: TANK STEERING). It never plans a turn.
     control::ExitReason moveTo(const math::Pose2d& target, const MotionOptions& options = {}) {
         options.validate();
         motion::MoveToPose m{sched_.deps(), target, effectiveConfig(options),
@@ -270,7 +301,10 @@ public:
 
     /// Translate to FIELD (x, y) while actively HOLDING the heading the robot
     /// has at its first live tick. On tank (authority 0) an off-line target
-    /// honestly exits TimedOut (C1's drivetrain honesty).
+    /// honestly exits TimedOut (C1's drivetrain honesty) — unchanged by TANK1:
+    /// strafeTo never takes moveTo's tank steering, because holding the heading
+    /// it found IS its contract (on a tank, a moveTo with the current heading is
+    /// the translate that steers).
     control::ExitReason strafeTo(units::Length x, units::Length y,
                                  const MotionOptions& options = {}) {
         options.validate();

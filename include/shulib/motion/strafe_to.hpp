@@ -14,7 +14,11 @@
 // component of the body command is clamped to zero by the engine's authority
 // clamp — the motion physically cannot reach a laterally-offset target and
 // exits TimedOut via the watchdog rather than hanging or lying. On the X-drive
-// (authority 1.0) it strafes freely; C3's H-drive lands between.
+// (authority 1.0) it strafes freely; C3's H-drive lands between. TANK1's tank
+// steering (move_to_pose.hpp) is deliberately NOT taken here: this motion's
+// promise is to HOLD the heading it found, and steering back onto a line means
+// bending the heading by up to 15° — so it is built with
+// PoseMotionOptions::tankSteer false and is unchanged on a tank, bit for bit.
 
 #include "shulib/motion/move_to_pose.hpp"
 
@@ -30,7 +34,8 @@ namespace shulib::motion {
 /// setTarget() is discarded by the same capture. On a drivetrain with no strafe authority
 /// (tank) the body-lateral command is clamped to zero, so a laterally-offset target is
 /// physically unreachable and the motion exits TimedOut rather than hanging or claiming a
-/// success it never had.
+/// success it never had — it never takes MoveToPose's tank steering (TANK1), which would
+/// mean leaving the held heading.
 class StrafeTo final : public MoveToPose {
 public:
     /// Translate to FIELD (x, y), holding the first-live heading. `timeout` (s)

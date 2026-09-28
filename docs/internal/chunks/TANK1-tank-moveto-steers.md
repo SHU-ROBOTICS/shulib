@@ -1,5 +1,15 @@
 # TANK1 — `moveTo` on a tank steers back onto its line: a bounded bend toward the target's line, and the yaw a weak side makes measured and cancelled; never a planned turn
 
+> **AMENDED AT PART A's REVIEW (2026-09-28) — read `TANK1-PROGRESS.md` "Part A review findings and their
+> disposition" before this brief's formula, P-numbers or §6 table.** The review found a design error (legs
+> starting 10–15° off their heading and off their line, which settled before TANK1, timed out beside the
+> target: the bend reacted to the cross-track error NOW and over-shot the line). Fixed at the root with a LEAD:
+> the bend steers on the cross-track error predicted `TankSteerConfig::leadTime` (0.06 s, PROVISIONAL, HA-179)
+> ahead from the heading and last tick's commanded speed — no sensor read, nothing computed from the target
+> point. Everything the team lead ruled is unchanged (the 15° cap and window, the observer, the Warn, the
+> arrival rule, the off switch, X/H byte-identical); he was told the same day. The review's 24 563-leg grid:
+> 178 regressions → 0 up to ~0.18 s of motor lag; at ~0.24 s, 24 remain (disclosed).
+>
 > **THE TEAM LEAD'S GO (2026-09-27, ~08:17): "Go, all recommended".** **D1 (a)** a minor version bump — 2.3,
 > since TANK1 lands before L9 Part A (L9 takes the next free minor); the changelog entry is a BEHAVIOUR CHANGE
 > listing the three changes, `maxSteer = 0` the way back. **D2 (a)** only legs that start within 15° of their

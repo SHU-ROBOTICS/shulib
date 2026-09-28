@@ -90,8 +90,15 @@ independently. Use it for essentially every "go there" in a routine.
 
 Fine print: on drivetrains with limited sideways ability, `moveTo` degrades exactly as
 [Chapter 4](04-drivetrains.md) described — the H-drive runs sideways-heavy legs slower (with the
-`SFB` flag in the diagnostics), and a tank drive simply cannot reach a target that requires
-net sideways motion, so it honestly times out. The tank idiom is `guide-10b`:
+`SFB` flag in the diagnostics), and a tank drive cannot move sideways at all, so a target it
+cannot reach by driving along its heading — a point beside it, or one farther off its line than
+the steering below removes over the leg — honestly times out. What a tank `moveTo` does do
+(since API 2.3) is stay on its *line* — the line through the target point along the target
+heading: a leg that starts within 15° of its target heading bends its heading back toward that
+line when a weaker side pulls it off (by at most 15°, visible as `TSTR` in the diagnostics),
+which is what lets a leg you aimed finish on a robot whose sides are not perfectly matched. It never turns you toward
+the target point. So the idiom is unchanged — aim first, then drive along the aim — and it is
+`guide-10b`:
 
 ```cpp
 // On a tank drive, a sideways target is physically unreachable — the library
@@ -114,7 +121,13 @@ Go to a field (x, y) while *actively holding* whatever heading the robot has whe
 starts — disturbances get driven back, not just ignored. Use it when the aim matters more than
 the path: sliding along a wall of goals while pointed at them. Gotcha: it holds the heading it
 *finds*, so settle your heading (with `moveTo`/`turnTo`) before strafing, not after. On tank:
-honest `TimedOut`, as above.
+honest `TimedOut`, as above — `strafeTo` never steers the way a tank `moveTo` does, because
+holding the heading it found *is* its promise, and steering means leaving it. On a tank, the
+translate that steers is a `moveTo` with the heading you already have: it bends toward the line
+through its target by at most 15°. On the host test plant that removes a target a few inches off
+your heading over a 40 in leg — more over a longer leg, about an inch over a 20 in one; on a robot
+it depends on motor lag nobody has measured yet, and nothing here has run on one — and never a
+point beside you: face that one.
 
 ### `turnTo(heading, options)` — rotate in place
 
@@ -272,7 +285,8 @@ breaking every call site — an intentional piece of freeze-proofing.)
 
 The chassis-wide defaults live in `ChassisConfig` / `MotionConfig`
 ([`include/shulib/motion/motion_config.hpp`](../../include/shulib/motion/motion_config.hpp)) —
-gains, speed budgets, settle tolerances, the default timeout. Read that header before touching
+gains, speed budgets, settle tolerances, the default timeout, and (since API 2.3) the tank
+steering's `tankSteer` knobs, whose `maxSteer = 0` turns it off. Read that header before touching
 any of it, and remember: **every number in it is a provisional stand-in** until a real robot is
 measured ([Chapter 14](14-what-it-cannot-do-yet.md)).
 
@@ -329,7 +343,9 @@ show `cmd#0`). Until you need it, you don't need it.
 - **The first motion waits for sensors.** Budget its timeout for ~2 s of IMU calibration.
 - **`strafeTo` holds the heading it finds** — aim first, then strafe.
 - **Trajectory options are per leg**, and every waypoint costs a settle.
-- **Tank + sideways target = honest timeout.** Use the turn-then-drive idiom.
+- **Tank + sideways target = honest timeout.** Use the turn-then-drive idiom. A tank `moveTo`
+  steers back onto its line only when the leg starts within 15° of its target heading; the log
+  says `turn first: face()` when it does not.
 - **`pose()` is an estimate.** Grading your routine by `pose()` alone proves the robot agrees
   with itself, not that it's right. (In simulation, tests grade against the sim's ground truth
   — which the estimator provably cannot see.)

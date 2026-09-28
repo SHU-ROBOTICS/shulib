@@ -210,6 +210,15 @@ struct DebugRecord {
     /// un-instrumented work rather than a missing phase, and read a sum above `dt` as a
     /// statement about two clocks rather than a broken record. — C5 (scheduler)
     std::array<units::Time, static_cast<std::size_t>(kTickPhaseSlots)> tickPhase{};
+
+    // ── appended at TANK1 (2026-09), BEFORE the F9 freeze — append-only, per the note above ──
+    /// MoveToPose on a TANK changed this tick's yaw command to steer back onto the target's
+    /// line (the bend's share of the heading loop plus the yaw correction) by more than the
+    /// legibility floor (motion/tank_steer.hpp, kTankSteerNoiseFraction: 2 % of
+    /// maxAngularSpeed). Never set on a drivetrain with strafe authority, nor by any motion but
+    /// a plain MoveToPose. The blackbox carries it as tick flags bit 2; TermSink prints
+    /// " TSTR". — TANK1
+    bool tankSteerActive = false;
 };
 
 }  // namespace shulib::diag

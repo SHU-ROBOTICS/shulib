@@ -41,6 +41,11 @@ The schema space was reserved, and the fields are wire-pinned by test
 | `tickPhase[5]` User | `Time` | **0 — RESERVED** | G2 markers / mechanisms |
 | `tickPhase[6..7]` | `Time` | **0 — SPARE** | unassigned pre-freeze capacity: a new phase is a vocabulary append, never a wire reshape |
 
+**Appended since, before F9 (2026-09-27, TANK1):** `tankSteerActive` (`bool`, the record's last field) —
+set by `MoveToPose` on a tank when its steering changed the tick's yaw command by more than its legibility
+floor; carried by the blackbox as tick-flags bit 2 (a bit every earlier writer wrote 0, so the file format
+version stayed 1) and by TermSink as ` TSTR`. H1's wire decoder should expose that bit rather than ignore it.
+
 The `TickPhase` index vocabulary (values 0–5 defined, 6–7 spare; `kTickPhaseSlots = 8`) lives in
 `debug_record.hpp` beside `GateReason`, explicit-valued and append-only. `FaultCode` gained
 `Implausible = 10` (append-only) for D-5. **Also on the seam since C5** (not per-tick, but F9's

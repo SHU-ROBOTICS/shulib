@@ -132,6 +132,38 @@ TEST_CASE("TermSink.emit: state flags and the fault code appear if and only if s
           " DR SFB CLMP flt=GPS_GATE_REJECT\n");
 }
 
+// TANK1: " TSTR" (tank steering) sits between SFB and CLMP. Bug caught: the token missing, or
+// printed out of the documented order DR, SFB, TSTR, CLMP, flt (M21) — a reader scanning the
+// flag columns of a tank log reads them positionally.
+TEST_CASE("TermSink.emit: TSTR (TANK1) renders in the documented order DR SFB TSTR CLMP flt") {
+    Rig rig;
+    DebugRecord r = midRunTick();
+    r.deadReckoning = true;
+    r.strafeFallbackActive = true;
+    r.tankSteerActive = true;
+    r.clampedThisTick = true;
+    r.fault = FaultCode::GpsGateReject;
+    rig.sink.emit(r);
+    CHECK(rig.out.text() ==
+          "[t=  12.34] [MOT] cmd#7▸1 tgt(  24.0,  36.0,  90.0°) "
+          "err(  0.40\",  0.20\",  0.3°) v(  18.0,   4.0, 0.10) q=0.91"
+          " DR SFB TSTR CLMP flt=GPS_GATE_REJECT\n");
+}
+
+TEST_CASE("TermSink.emit: TSTR alone, and absent when the flag is clear") {
+    Rig rig;
+    DebugRecord r = midRunTick();
+    r.tankSteerActive = true;
+    rig.sink.emit(r);
+    CHECK(rig.out.text() ==
+          "[t=  12.34] [MOT] cmd#7▸1 tgt(  24.0,  36.0,  90.0°) "
+          "err(  0.40\",  0.20\",  0.3°) v(  18.0,   4.0, 0.10) q=0.91 TSTR\n");
+    rig.out.clear();
+    r.tankSteerActive = false;
+    rig.sink.emit(r);
+    CHECK(rig.out.text().find("TSTR") == std::string::npos);
+}
+
 TEST_CASE("TermSink.emit: NaN and ±Inf render as deterministic right-aligned tokens — "
           "never libc's locale-dependent forms") {
     Rig rig;

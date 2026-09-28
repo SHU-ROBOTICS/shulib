@@ -328,6 +328,39 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   segments. Measured cost: about 1.2 s per motion.
 - **No motion profiles on the main verbs yet** (trapezoidal velocity planning exists in
   `control/` but isn't wired into `moveTo`).
+- **Tank steering exists, and has only been proven on the host test plant.** Since API 2.3 a
+  tank `moveTo` steers back onto its line ([Chapter 4](04-drivetrains.md)): its heading bends at
+  most 15° toward the line, the turn a weaker side adds is cancelled at most 1.5 rad/s, and only
+  a leg that starts within 15° of its target heading is steered. Its limits, as measured on the
+  host test plant (2026-09-27, re-measured 2026-09-28 after a review changed how the bend is
+  computed):
+  - **Motor lag moves it.** The plant's motors respond instantly; given a lag the controller
+    does not know about, the margins move. With a motor time constant of about 0.12 s or 0.18 s
+    the 40 in leg still finished with one side up to 25 % weak (30 % timed out with and without
+    lag). A target 6 in off your heading over a 40 in leg was steered out with and without that
+    lag; 10 in was not (it stopped 1.6 in off the line with 0.12 s of lag, 3.1 in without), and
+    a short leg removes much less (over 20 in, about an inch with no lag). **Do not plan on a
+    sideways offset being removed** — face the point. The robot's real lag is measured at R5.
+  - **With a long lag, a few legs that arrived without it time out with it.** Up to about
+    0.18 s of lag, no leg on the grid measured (24 563 legs starting up to 14° off their target
+    heading) that arrives with steering switched off times out with it on. At about 0.24 s, 24 of
+    the 1 867 that arrive do — legs 48 in long starting 10–14° off their heading — because at
+    that lag the heading loop itself is at its limit; R5's measured tuning is for that.
+  - **A skid it cannot see.** It steers on the pose *estimate*. On a robot whose position comes
+    from its drive motors and IMU, a sideways slide of the chassis is invisible (the IMU sees
+    heading, the wheels see rolling), so the screen can say FINISHED while the robot is off its
+    line by the slide. Registered as HA-180 in the
+    [Hardware Assumptions Register](../hardware-assumptions.md); only a GPS, a tracking wheel or
+    a wall reset would see it.
+  - **A pinned robot winds it up.** While something stops the robot turning — a defender, a wall
+    — the correction builds up to its 1.5 rad/s limit, and when the robot is freed it can
+    overshoot: a 6 in offset leg pinned mid-bend swung 16–19° off its heading on release (on the
+    host test plant it still arrived). Bounded, visible (`TSTR`), and registered with its
+    constants as HA-179.
+  - **It does nothing for a point beside you**, for `strafeTo` (which holds its heading by
+    promise), or for a leg that starts more than 15° off its heading (that one logs
+    `turn first: face()`).
+  - Setting `tankSteer.maxSteer` to 0 in the motion config restores the old tank exactly.
 - **`drive()` is a primitive, and the driver-control layer above it has never been driven.**
   The shaping now exists: `shulib/teleop/` carries a continuous deadband, a monotonic expo
   curve, an optional rate limit that is **off** by default, arcade / tank / field-centric

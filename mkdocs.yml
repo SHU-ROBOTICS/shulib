@@ -162,6 +162,7 @@ nav:
           - Odometry stall check: api/odo_stall_check.md
           - Run reporter: api/run_reporter.md
           - Strafe to: api/strafe_to.md
+          - Tank steer: api/tank_steer.md
           - Turn to: api/turn_to.md
       - Control:
           - Exit group: api/exit_group.md
