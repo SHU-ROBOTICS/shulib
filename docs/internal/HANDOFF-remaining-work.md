@@ -424,8 +424,8 @@ brief names it as a future consumer of the builder's dead-port tolerance).
   T3 Part 2. **Still open here: chassis macros** (a button running a chassis motion the sticks can
   interrupt) and angle presets. Station J is where the claws are first seen. **Since T4 Part 1a
   (2026-09-27)** robot two's buttons are ALSO stated in its driver file (`src/team/robot_two_driver.hpp`,
-  L5b), tied to the table's at compile time in Teleop until T4 Part 1b makes the driver file their one
-  owner; the macros, when they come, get their line in its WHICH BUTTON block and their binder in
+  L5b), tied to the table's at compile time in Teleop until T4 Part 3 (which took over Part 1b) makes the
+  driver file their one owner; the macros, when they come, get their line in its WHICH BUTTON block and their binder in
   `src/common/driver_controls.hpp` (T4 brief §8).
 - **The re-zero default, and what guards it now:** `teleop::DriverLoopConfig::rezeroButton` still
   DEFAULTS to `L1` (pivot 7's forward button). What stops the collision running is
@@ -536,9 +536,10 @@ and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-ga
 by NO program yet** (`chunks/T4-PROGRESS.md` "Part 1a"): robot two's driver file `src/team/robot_two_driver.hpp`
 and its generic half `src/common/driver_controls.hpp` (the binder by name, the five checks, the ONE heading rule
 Teleop and the X-drive now call); the buttons also stay in `src/robots/mechanism_table.hpp`, tied at compile
-time in Teleop, until Part 1b; COMP-b's B11 replaced ("`opcontrol()` IS the driver file"). Parts (COMP-b) → 1b
-→ 2 (the old drive's protections, moved into the library) → 3 (the new "shulib Drive" replaces the old one;
-"shulib Teleop" retires). jal's answers:
+time in Teleop, until Part 3 (Part 1b was folded into Part 3 on jal's ruling of 2026-09-28: Teleop is never
+rewired); COMP-b's B11 replaced ("`opcontrol()` IS the driver file"). Parts (COMP-b) → 2 (the old drive's
+protections, moved into the library) → 3 (the new "shulib Drive" replaces the old one; "shulib Teleop" retires;
+the buttons leave the mechanism table). jal's answers:
 N1 (a) the over-current cut ON with an off switch and a required push check; N2 (a) as amended; N4 (a) the
 auton tester in slot 7 until Part 3; N5 (a) an optional SD copy of every library program's log; N7 (c)
 driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 as the brief recommends.
@@ -705,7 +706,9 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; no program runs it yet). Next
    (2026-09-27): TANK1 (`moveTo` on a tank steers back onto its line — jal: "Fix the library first"); then
    COMP-t (the auton tester, with the 40 in auton) on TANK1, then COMP-b on COMP-t and T4 Part 1a (it takes
-   the students' auton file and the run pieces from COMP-t), then T4 Parts 1b, 2, 3. jal pushes the branch
+   the students' auton file and the run pieces from COMP-t), then T4 Parts 2 and 3 (Part 1b folded into 3,
+   jal 2026-09-28). The sensors (L3 the AI Vision adapter, L4 piece targeting, L6 the wall reset) come after G3
+   (jal, 2026-09-28). jal pushes the branch
    once the auton is complete, before G3a.** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
    brief against the tree is `G1-PROGRESS.md` 2c.1.)* The claws' first sight is worksheet Station J
    (after Station F).

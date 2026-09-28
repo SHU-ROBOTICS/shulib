@@ -12,6 +12,14 @@
 > `src/team/robot_two_driver.hpp`, its helpers `src/common/driver_controls.hpp`, the programs under
 > `src/programs/` — the coordinator maps every path at SRC1's merge.
 >
+> **PART 1b SKIPPED — FOLDED INTO PART 3 (the team lead, 2026-09-28: "why would teleop be running the driver file
+> if itll be gone?" → "Skip it, fold into Part 3").** Teleop is never rewired. Part 3's executor ALSO does
+> §1 Part 1b item 1 (the buttons, `kTeleopRezeroButton` and checks 4-7 leave `src/robots/mechanism_table.hpp`;
+> nothing about ports, signs, cartridges, safe modes, the line, the polarity or the positions changes), retires
+> the interim tie and `controlsMatchTable` with Teleop, and does the driver-file header work 1b owned (§2's "and
+> nowhere else" restored; 1a's three interim sentences removed). Everything in 1b about re-wiring Teleop lapses.
+> The order is Part 1a (landed) → COMP-b → Part 2 → Part 3.
+>
 > **PART 0 LANDED (2026-09-27)** with the coordinator's plan commit after SRC1 (`1237c91`): COMP's B5, B29
 > and §3 item 3 name slot 6; the build order's T4 entry, count and deviations rows; G3a's line on the driver
 > file's marked region; worksheet Station A's slot map; the roadmap's row; HANDOFF's lines. The auton tester
