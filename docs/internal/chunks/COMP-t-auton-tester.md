@@ -1,5 +1,99 @@
 # COMP-t — "shulib Auton Tester": run one of the team's autons on the bench, from RUN, through exactly the path `autonomous()` uses
 
+> **RE-PREDICTED AFTER TANK1 PART A (2026-09-28).** TANK1 Part A — `moveTo` on a tank steers back onto its
+> line — was built, reviewed and FIXED in the worktree `.claude/worktrees/tank1` (the review's blocker added a
+> lead term, `TankSteerConfig::leadTime` 0.06 s; the worktree's transport commit is `681ee1e`). Every prediction
+> below that said ROUTINE STOPPED / MOTION_TIMEOUT for a weak side is re-made here from a **RE-MEASUREMENT**, not
+> copied from TANK1's §6 table (which predates the lead): COMP-t's OWN probe — the `src1sim2/` students' file and
+> tester flow, the `overlay/` library pieces — rebuilt against TANK1 as fixed and run through `runTesterOnce`
+> exactly as COMP-t runs it (the real `AbortWatch`, 50 idle ticks, the 3 s countdown, the quiet tick,
+> `runAuton` with no command registry); TANK1's own P1/P3 legs re-measured beside it, and its
+> `test/motion_tank_steer_test.cpp` rebuilt and run (23/23 cases pass). Probes, outputs and hashes:
+> `.claude/coordinator/scratch/comp-t-repredict/` (`repredict.cpp`, `build.sh`; `table_tank1.txt`,
+> `table_base.txt`, `sweep_tank1_0001.txt`, `verbose_tank1.txt`, `p1p3.txt`, `hp3_tank1.txt`, `hp4_tank1.txt`;
+> the check's amendments in `fix2/`: `rp_fix2.cpp` — `prelatch.txt`, `census_40in.txt`, `precise.txt` — and
+> the students' file with the amended comment, `students/`, `table_newcomment2.txt`, `arm_*.text`;
+> `fix2/include_sha256_union114.txt`). **Compiled against 114 files of the worktree's `include/`** (every
+> header any probe read — the tester probe, P1/P3, TANK1's test file, `host_probe3.cpp` and `host_probe4.cpp`,
+> which alone reads `hal/fake/fake_block_sink.hpp`), every one byte-identical to its blob in `681ee1e`; the
+> sha256 of that sorted `sha256sum` list (paths relative to the worktree) is
+> `c06ea3af731f1181df5aa9d0962b728a6b0327b424223c3258457f6a4c3820c4` (the tester probe alone
+> reads 93 of them: `314fa66742d264e53dcbc8bda701cad28aa8d6a57a9431782f2188774c80def5`,
+> `include_sha256_tester_probe.txt`; the first count, 113 files / `4aecad74…` in `include_sha256_union.txt`,
+> missed `fake_block_sink.hpp`) — if TANK1 moves, re-run `build.sh` and compare. The same probe built on
+> `a62067b` (a `git archive`, before TANK1) reproduces §0.4 probe 4 exactly — the "before" column. **Host test plant numbers (instant motors, a tank that never skids);
+> none of it has run on a robot.**
+>
+> | side | 40 in — before TANK1 | 40 in — after TANK1 | acceptance run — before | acceptance run — after TANK1 |
+> |---|---|---|---|---|
+> | R ×1.00 | FINISHED (39.77, 0.00, 0.00°) T+1.80 | **FINISHED (39.77, 0.00, 0.00°) T+1.80**, 192 paces, TSTR 0 | FINISHED (0.24, 0.12, 180.00°) T+5.42 | FINISHED (0.23, 0.04, −179.97°) T+5.44 |
+> | R ×0.97 | STOPPED (39.96, −0.93, −0.26°) | **FINISHED (39.73, 0.00, 0.04°) T+1.83**, TSTR 55 of 197 | FINISHED (0.16, 0.46, 177.97°) T+5.94 | FINISHED (0.27, 0.06, 179.19°) T+5.62 |
+> | R ×0.95 | STOPPED (39.93, −1.56, −0.44°) | **FINISHED (39.70, 0.01, 0.06°) T+1.85, faults this run: none**, 197 paces, TSTR 81 of 199 | STOPPED at step 1, (23.93, −0.64) | FINISHED (0.30, 0.06, 178.58°) T+5.78 |
+> | R ×0.91 | STOPPED (39.84, −2.86, −0.83°) | **FINISHED (39.64, 0.02, 0.10°) T+1.89**, TSTR 116 of 203 | STOPPED at step 1, (23.87, −1.17) | FINISHED (0.37, 0.06, 177.28°) T+6.14 |
+> | R ×0.75 | STOPPED (39.20, −8.31, −2.81°) | **FINISHED (39.53, −0.00, 0.09°) T+2.56**, TSTR 255 of 270 | STOPPED at step 1, (23.44, −3.48) | FINISHED (0.47, 0.05, 171.61°) T+8.25 |
+> | R ×0.72 | STOPPED (39.00, −9.35, −3.29°) | STOPPED, MOTION_TIMEOUT, END (39.54, −0.23, 0.10°) — 0.46 in short, 0.23 in beside | STOPPED at step 1, (23.32, −3.94) | STOPPED at step 1, (23.54, −0.22) |
+> | R ×0.70 | STOPPED (38.85, −10.03, −3.63°) | STOPPED, MOTION_TIMEOUT, END (39.50, −0.41, 0.20°) | STOPPED at step 1, (23.23, −4.25) | STOPPED at step 1, (23.50, −0.25) |
+> | **R ×0.65** | STOPPED (38.41, −11.71, −4.58°) | **STOPPED at moveTo, MOTION_TIMEOUT, END (39.38, −0.93, 0.56°)**, T+5.01, 513 paces, TSTR on 500 of the moveTo's 501 running ticks (all but the first) | STOPPED at step 1, (22.96, −5.03) | **STOPPED at step 1, (23.37, −0.49, 0.30°)** |
+> | L ×0.91 | STOPPED (39.84, +2.86, 0.83°) | **FINISHED (39.64, −0.02, −0.10°) T+1.89**, TSTR 116 of 203 | STOPPED at step 1, (23.87, +1.17) | FINISHED (0.36, 0.05, −177.18°) T+6.15 |
+> | L ×0.65 | STOPPED (38.41, +11.71, 4.58°) | STOPPED at moveTo, MOTION_TIMEOUT, END (39.38, +0.93, −0.56°) | STOPPED at step 1, (22.96, +5.03) | STOPPED at step 1, (23.37, +0.49, −0.30°) |
+>
+> Every STOPPED cell is ROUTINE STOPPED at step 1 (`moveTo`), exit TimedOut, "faults this run: 1, last
+> MOTION_TIMEOUT", scoring ended T+5.01 s, the brake end action run and succeeded, the drive at 0 V after; every
+> FINISHED cell has faults this run none. END is the estimate, and the truth agrees in every cell. No run logged
+> the `MOT` Warn (every leg starts on its own heading). TSTR counts are out of the 40 in's `[MOT]` tick lines (the
+> moveTo's ticks plus the brake's; TermSink's rule); the run's serial also carries the countdown's ~300 `[LOC]
+> idle` lines, which never show TSTR. On the host test plant TSTR is 0 on an even drive; TANK1's own P7 (composed
+> hostility, IMU rate noise among it) lights it on about 1 % of an even drive's ticks — 20 of 2 125, up to 2.9 %
+> on one leg (`motion/tank_steer.hpp`, `kTankSteerNoiseFraction`). Against TANK1's §6 table (measured before the lead) no RESULT word moved; the numbers
+> did, slightly (×0.65: END y −1.01 → −0.93; the acceptance run's ×0.65 stop y −0.56 → −0.49; ×0.75's acceptance
+> run 8.46 → 8.25 s).
+>
+> **The honest-stop threshold** (both autons, both sides, 1.00 down to 0.50 in steps of 0.001 — one RESULT change
+> per sweep, so it is monotone; the two sides are mirror images): **the 40 in FINISHES down to ×0.723** (a 27.7 %
+> weaker side; T+3.70 s, END |y| 0.20) **and first STOPS at ×0.722**; on the 0.01 grid, **×0.73 is the weakest that
+> finishes (T+2.95 s, END y −0.15) and ×0.72 the first that stops**. The acceptance run finishes to ×0.724 and
+> stops from ×0.723. What fails first is the last half inch, not the line: at ×0.72 the robot ends 0.46 in short
+> along its line and 0.23 in beside it — just outside the 0.5 in circle (TANK1's brief: the weak side can no
+> longer creep under its static-friction volts). Robot two's ~9 % sits far inside; with motor lag the plant
+> margin shrinks (HA-179: the 40 in still finishes to 25 % weak at a 0.12–0.18 s motor time constant; 30 % times
+> out at every lag). **Tests (3b′)/(4b)'s failure case: ×0.65** — TANK1's own P3 honest-stop case, 7.3 points
+> past the last finish so no small numeric change flips it. (3b′) bounds the END by the arrival rule, not by
+> TANK1's miss shape: the 40 in's END is 1.12 in from (40, 0) (0.62 in short, 0.93 in beside), 0.62 in outside
+> the 0.5 in circle (×0.70: 0.65 in; ×0.72: 0.51 in; ×0.722: 0.5002 in; ×0.723 finishes at 0.4986 in —
+> `fix2/precise.txt`). An END-|y| bound would pin TANK1's shape instead: ×0.70 ends at |y| 0.41, inside it.
+> (4b)'s ×0.65 stop ends 0.80 in from its step-1 target (24, 0) at |y| 0.49 — so (4b) carries no END-y bound.
+>
+> **COMP-t's `host_probe4.cpp`, rebuilt UNCHANGED against TANK1,** fails exactly its three ×0.95 weak-side
+> expectations (it now reads FINISHED, faults 0, END y 0.01) and passes every other check (the clean hand-off still
+> 3.0100 s / 0.020 s, the countdown throw, the chain proof, READY's eight lines, the append open, BlockCharSink) —
+> the re-prediction, and nothing else moved.
+>
+> **Places changed** (evidence and decisions keep their pre-TANK1 text as history, marked): (1) this note;
+> (2) the header below ("dates the change here" → done); (3) re-check finding 3's "Fixed" bullet and finding 7's
+> ×0.95 fault line; (4) D3's "Whatever the speed" bullet; (5) D10 — marked SUPERSEDED, the record kept; (6) §0.2's
+> "likely RESULT word" paragraph; (7) §0.4 probe 4 (the after-TANK1 table added under the kept pre-TANK1 one) and
+> probe 5's ×0.95 line; (8) §3.1 the students' file's tank comment (rewritten; **the `moveTo` line is unchanged**;
+> host and V5 compiles give the same code, the V5's `.text` byte-identical) and the note after the listing;
+> (9) §4's OUT row (built as TANK1) and its rejected settle-tolerance row (still rejected — TANK1 did not need
+> it); (10) §5: (3b) (now FINISHED at ×0.95), a new (3b′) at ×0.65, (3c) and (4) (unchanged; annotated), (4b)
+> (FINISHES at ×0.95; the honest stop at ×0.65), and (23)'s weak-side golden; (11) Station M.5, M.6 and M.8;
+> (12) guide 16's tank paragraph; (13) §6 item 7's FOUND row; (14) landmine 17. **Not changed** (outside the
+> list, noted so nobody is surprised): §0.4 probe 2's clean acceptance END (0.24, 0.12, 180.0°) is pre-TANK1
+> evidence — after TANK1 it reads (0.23, 0.04, −179.97°) T+5.44 (TANK1's documented behaviour change), inside
+> test (4)'s tolerance; the Status line; D1, D2, D4–D9.
+>
+> **Amended at the check (2026-09-28; seven findings, each re-measured in `comp-t-repredict/fix2/`), inside
+> the places above:** HA-180 is no longer named as a cause of a red RESULT (re-check finding 3's bullet, D3,
+> D10's banner, §0.2, M.6, landmine 17) — a skid is invisible to the estimate, so it can only make a FINISHED
+> false on the tape, and M.6 now says before the run that such a FINISHED is HA-180 failing; the students'
+> comment says to read END x AND y (how far short, how far beside) and that TSTR marks the tick lines where it
+> steers noticeably (host table and V5 `.text` re-built: identical); (3c)'s annotation is measured with its
+> fault latched before RUN (faults 1 → 1, lastFault None); TSTR counts are named as `[MOT]` tick lines, an
+> even drive's noise is stated (TANK1's P7, about 1 %) and ×0.65's count is 500 of 501 running ticks; M.6
+> (and M.8) say how serial is captured during the drive, or "not captured"; (3b′) bounds the END by the
+> arrival rule (1.12 in from (40, 0)) instead of END |y|, and (4b) states it has no END-y bound (|y| 0.49);
+> the compiled-header set is 114 files (`c06ea3af…`), not 113. No RESULT word and no measured number moved.
+
 > **THE TEAM LEAD'S ANSWERS (2026-09-27, ~04:55).** **D1–D9: all as recommended** ("Accept all") —
 > `PROGRAM=autontest`; endActionAt 27 s / hardStopAt 29 s; the robot's configured speeds with a wheels-up
 > run first; no driving between runs; all four abort edges; one appended SD file through the adapter's
@@ -10,7 +104,9 @@
 > unchanged, the auton's `moveTo` line unchanged). **COMP-t is built AFTER TANK1 lands.** Before its
 > builder starts, the coordinator re-makes every prediction below that says ROUTINE STOPPED / MOTION_TIMEOUT
 > for a weak side (D3, D10, §0.2, M.5/M.6/M.8, tests (3b)/(3c)/(4b), the students' file's tank comment,
-> guide 16) from TANK1's own tests, and dates the change here. **Slot:** 7 until T4 Part 3, then 2 (T4 N4).
+> guide 16) from TANK1's own tests, and dates the change here. **Done 2026-09-28** — re-measured on TANK1 Part
+> A as fixed (the lead term) through COMP-t's own probe, TANK1's P1/P3 beside it: the note above lists every
+> place changed and the numbers. **Slot:** 7 until T4 Part 3, then 2 (T4 N4).
 > **Tree:** SRC1 is committed (`1237c91`); the flat-layout fallback is moot. Which of COMP-t and COMP-b
 > lands second takes the next build number and self-test pair.
 >
@@ -124,6 +220,21 @@ the adapter); **D9 and D10 are new.**
      0.5 in, the brake still run — a known tank outcome, not a tester bug.** M.6 records the result word, END
      y and the faults line. The students' file says it in one comment. The verb stays a decision (D10):
      no verb in the library settles a tank after a lateral drift, and the number is never fudged.
+     *(This bullet is the pre-TANK1 record. D10 was superseded by "Fix the library first".)*
+   - **Re-predicted after TANK1 Part A (2026-09-28; the note at the top).** A tank `moveTo` now steers back
+     onto its line (a bend toward the line of at most 15°, and the yaw a weak side makes measured and
+     cancelled; the arrival rule is unchanged: 0.5 in AND 0.02 rad). Re-measured through `runTesterOnce`: the
+     40 in **FINISHES** with either side up to ×0.723 weak (×0.97 T+1.83, ×0.95 T+1.85, ×0.91 T+1.89, END
+     |y| ≤ 0.02, faults this run none), and the acceptance run finishes at ×0.95 and ×0.91; **the honest-stop
+     case moves to ×0.65** (the first stop is ×0.722; at ×0.65: ROUTINE STOPPED at moveTo, MOTION_TIMEOUT, END
+     (39.38, −0.93, 0.56°), the brake still run). The expected first floor result is therefore **FINISHED — if
+     TANK1's constants hold on robot two (HA-179)**, which M.6's RESULT word settles; ROUTINE STOPPED stays a
+     possible, honest result, and TSTR on the tick lines says whether the library was steering. **A FINISHED is
+     not the end of it:** whether it is true on the tape is HA-180's question (the drift is the heading being
+     pulled, not a sideways skid — a skid is invisible to robot two's sensors, so it never turns the word red;
+     it can only make a FINISHED false on the tape), answered only by the tape's sideways offset against END y
+     (M.6). The students' file's comment, D3, §0.2, M.5/M.6/M.8, tests (3b)/(3b′)/(4b) and guide 16 now say so; the
+     `moveTo` line and the number 40 are unchanged.
 4. **(major) The PROS-side abort wiring was neither host-tested nor pinned — REAL, fixed at the root.**
    - **Verified.** `ProsAbortInputs::read()` lived in the program TU (probe :87-99). Tests (6) and (19) drive
      `abortCauseOf` and a SCRIPTED `IAbortInputs`, so "the release count read instead", applied where it would
@@ -164,7 +275,9 @@ the adapter); **D9 and D10 are new.**
 7. **(minor) The "VERBATIM" `runTesterOnce` omitted the fault reads — REAL, fixed.** The verbatim block now
    reads `faultCount()` at RUN and at the end, and `lastFault()` ONLY when the count rose (a fault latched
    before RUN is not this run's — test (3c)). The fields are in `TesterRunRecord` verbatim. Probed: the
-   ×0.95 run reports "faults this run: 1, last MOTION_TIMEOUT".
+   ×0.95 run reports "faults this run: 1, last MOTION_TIMEOUT". **Re-predicted after TANK1 (2026-09-28):**
+   the ×0.95 run now FINISHES with "faults this run: none"; the ×0.65 run reports "faults this run: 1, last
+   MOTION_TIMEOUT" (re-measured through the same `runTesterOnce`, RESULT page and all).
 8. **(minor) Test (14)'s bound contradicted the probe — REAL, fixed.** The loop ends on the first tick whose
    elapsed time is ≥ 3.0 s, and floating accumulation makes that tick 301 on the plant (measured 3.0100 s).
    (14) is now `3.0 ≤ runStarted − countdownStarted ≤ 3.0 + one tick + 1e-9`, with that reason.
@@ -271,8 +384,18 @@ wheels-up run first** (Station M.5, then M.6).
   overshoot and wheel slip at the start (slip makes it stop SHORT: the encoders count turns the floor did not
   give). The wheels-up run, 3 m clear and the abort cover them. **Cost:** the first floor run is at full
   provisional speed.
-- **Whatever the speed, the likely first floor RESULT is `ROUTINE STOPPED` (MOTION_TIMEOUT)** — a tank
-  cannot drive out a sideways drift (D10). A cap (b) may make the drift smaller; it does not remove it.
+- **Re-predicted after TANK1 (2026-09-28): whatever the speed, the expected first floor RESULT is
+  `FINISHED`** — on a tank `moveTo` now steers back onto its line, and on the host test plant the 40 in
+  finishes with either side up to ×0.723 weak (robot two's is ~9 %); whether the ROBOT does is HA-179's
+  question, which M.6's RESULT settles. `ROUTINE STOPPED` (MOTION_TIMEOUT) stays possible and honest; TSTR on
+  the tick lines says whether the library was steering. (HA-180 — a sideways skid — cannot change the word:
+  the sensors do not see a skid, so it can only make a FINISHED false on the tape; M.6 checks END y against the
+  tape for that.) A cap (b) does not change this prediction
+  (measured at 24 in/s through `chassis.moveTo`: FINISHED to ×0.72, about 0.7 s slower; ×0.70 still stops —
+  `comp-t-repredict/cap.txt`).
+  *(Pre-TANK1 this bullet read: "Whatever the speed, the likely first floor RESULT is `ROUTINE STOPPED`
+  (MOTION_TIMEOUT) — a tank cannot drive out a sideways drift (D10). A cap (b) may make the drift smaller; it
+  does not remove it.")*
 - **(b)** Cap it for the first runs: `r.moveTo(math::Pose2d{40_in, 0_in, 0_deg}, {.maxLinearSpeed =
   units::Velocity{24.0}});` (there is no velocity literal). **Cost:** a line the team deletes later, and the
   first runs do not show the defaults.
@@ -353,6 +476,19 @@ different kind.
 
 **D10 (NEW, re-check finding 3) — The 40 in auton on a tank that drifts. RECOMMENDED (a): keep ONE
 `moveTo((40, 0) facing 0)` as the team lead specified, and PREDICT its result honestly.**
+
+> **SUPERSEDED (the team lead, 2026-09-27 ~04:55: "Fix the library first").** Neither (a) nor (b) was chosen:
+> chunk **TANK1** gave `moveTo` on a tank the steering this decision said the library lacked (a bend toward the
+> target's line of at most 15°, and the weak side's yaw measured and cancelled; never a planned turn; TSTR on
+> the tick lines where it steers noticeably; the arrival rule unchanged; the auton's `moveTo` line unchanged). **Re-predicted
+> after TANK1 Part A (2026-09-28), re-measured through `runTesterOnce` (the note at the top):** the 40 in now
+> FINISHES on the host test plant with either side up to ×0.723 weak (×0.91: T+1.89 s, END (39.64, 0.02,
+> 0.10°), faults none), and the honest stop is ×0.65 (ROUTINE STOPPED at moveTo, MOTION_TIMEOUT, END (39.38,
+> −0.93, 0.56°)). The first floor RESULT is expected FINISHED; whether the robot does is HA-179's question
+> (M.6's RESULT); whether a FINISHED is true on the tape is HA-180's (a skid the sensors cannot see never turns
+> the word red — M.6's tape offset against END y answers it). The text below is kept as the record of the
+> decision as it was asked.
+
 - **What will likely happen on the floor.** `moveTo` arrives only when the robot is within 0.5 in of the
   point AND within ~1.15° of the heading. A tank cannot drive sideways, so any drift to one side on the way
   (robot two's sides differ by ~9 %) can never be driven out. The step then ends on its 5 s time limit:
@@ -423,13 +559,26 @@ travel about **40 × 48/44 ≈ 43.6 in** until a careful Calibrate rerun fixes t
 owes; SAFE-SAVE B1 is to land before it). **The number in the file stays 40. It is never fudged to make the
 tape agree**; the file's banner says so (§3.1). The station writes both numbers down.
 
-**And the likely RESULT word is `ROUTINE STOPPED`, not `FINISHED` (D10; re-check finding 3).** On
-2026-09-25 robot two veered 11° right over 48 in open-loop, its right side the weak one (`R3d-PROGRESS.md`
-:2507-2514). Under `moveTo` the heading is held (P only, kP 4), but any sideways drift on the way cannot be
-driven out by a tank, and `moveTo` only arrives within 0.5 in of the POINT. So expect: the robot stops near
-x 40 by the estimate, a little to one side; the step times out at 5 s; MOTION_TIMEOUT is this run's fault;
-the brake still runs. That is the library being honest about a tank, not a tester bug. M.6 records the
-word, END y and the faults line; the guide explains it before the students see it.
+**And the RESULT word to expect is `FINISHED` — re-predicted after TANK1 Part A (2026-09-28; the note at
+the top).** On 2026-09-25 robot two veered 11° right over 48 in open-loop, its right side the weak one
+(`R3d-PROGRESS.md` :2507-2514). A tank still cannot drive sideways, but `moveTo` now steers it back onto its
+line while it drives: it measures the turn a weak side makes that the heading loop did not ask for and
+cancels it, and it bends the heading it aims for toward the line by at most 15° (TANK1). Re-measured through
+`runTesterOnce` on the host test plant, the 40 in finishes with a 9 % weak side at T+1.89 s, END (39.64,
+0.02, 0.10°), and with either side up to ×0.723 weak. So expect: FINISHED near x 40 by the estimate, END |y|
+under 0.5 in, "faults this run: none", and TSTR on many of the run's `[MOT]` tick lines (host test plant,
+×0.91: 116 of the run's 203 `[MOT]` tick lines; the countdown's `[LOC] idle` lines never carry it). Whether
+the robot FINISHES is HA-179's question (TANK1's constants against robot two's unmeasured motor lag). `ROUTINE
+STOPPED` (MOTION_TIMEOUT, the brake still run) stays possible and is still the library being honest about a
+tank, not a tester bug; TSTR on the tick lines says whether it was steering. **HA-180 cannot turn the word
+red:** if the drift is partly a sideways skid rather than the heading being pulled, robot two's sensors do not
+see it, so the estimate, the steering and the RESULT never do either — it shows only as a FINISHED whose tape
+offset from the line disagrees with END y. So a FINISHED is checked against the tape, not taken as a pass. M.6
+records the word, END y, the faults line, the TSTR count and the tape's sideways offset; the guide explains it
+before the students see it. *(Pre-TANK1 this paragraph
+predicted `ROUTINE STOPPED`, not `FINISHED` (D10; re-check finding 3): "Under `moveTo` the heading is held (P
+only, kP 4), but any sideways drift on the way cannot be driven out by a tank, and `moveTo` only arrives
+within 0.5 in of the POINT.")*
 
 ### 0.3 The team lead's newer request (relayed with this task) — OUT, and kept possible
 "it would be nice to have the logging be visible and the whatever else on the brain screen not only visible on
@@ -497,7 +646,26 @@ files: **`tools/src_build_gate.py check` PASSED all seven builds**.
 | ×0.91 | ROUTINE STOPPED, END y −2.86 | ROUTINE STOPPED at step 1, END (23.87, −1.17) |
 
 The estimate and the truth agree in every row (the plant's odometry is perfect); only the arrival fails. A
-kinematic plant with no inertia gives a SHAPE, not inches.
+kinematic plant with no inertia gives a SHAPE, not inches. *(The table above is the PRE-TANK1 evidence, kept;
+re-run on `a62067b` on 2026-09-28 it is reproduced exactly.)*
+
+**4′. The same probe after TANK1 Part A as fixed (re-measured 2026-09-28; the note at the top has the build,
+the hashes and both sides).** `comp-t-repredict/repredict.cpp` — `host_probe3.cpp`'s run, plus the record's
+fault counts and the TSTR records — rebuilt against the `tank1` worktree (`681ee1e`); `host_probe3.cpp` itself,
+rebuilt unchanged, prints the same rows for ×1.00–×0.91 (`hp3_tank1.txt`).
+
+| right side | 40 in forward, after TANK1 | acceptance run, after TANK1 |
+|---|---|---|
+| ×1.00 | FINISHED, END (39.77, 0.00, 0.00°), scoring T+1.80 s, TSTR 0 | FINISHED, (0.23, 0.04, −179.97°), T+5.44 s |
+| ×0.97 | **FINISHED**, END (39.73, 0.00, 0.04°), T+1.83 s | FINISHED, (0.27, 0.06, 179.19°), T+5.62 s |
+| ×0.95 | **FINISHED**, END (39.70, 0.01, 0.06°), T+1.85 s, faults this run none | **FINISHED**, (0.30, 0.06, 178.58°), T+5.78 s |
+| ×0.91 | **FINISHED**, END (39.64, 0.02, 0.10°), T+1.89 s (left side: (39.64, −0.02, −0.10°)) | **FINISHED**, (0.37, 0.06, 177.28°), T+6.14 s (left: (0.36, 0.05, −177.18°), T+6.15 s) |
+| ×0.75 | FINISHED, END (39.53, −0.00, 0.09°), T+2.56 s | FINISHED, (0.47, 0.05, 171.61°), T+8.25 s |
+| ×0.72 / ×0.70 | ROUTINE STOPPED at moveTo, MOTION_TIMEOUT, END (39.54, −0.23) / (39.50, −0.41) — ends about half an inch SHORT, along-limited | ROUTINE STOPPED at step 1, END (23.54, −0.22) / (23.50, −0.25) |
+| **×0.65** | **ROUTINE STOPPED at moveTo, MOTION_TIMEOUT, END (39.38, −0.93, 0.56°)**, T+5.01 s, end action succeeded (left side: y +0.93) | **ROUTINE STOPPED at step 1, END (23.37, −0.49, 0.30°)** (left: y +0.49) |
+
+The honest-stop threshold (0.001 steps, both sides, monotone): the 40 in finishes to ×0.723 and stops from
+×0.722; the acceptance run finishes to ×0.724 and stops from ×0.723. Host test plant; none of it on a robot.
 
 **5. The amended design on the host** (`host_probe4.cpp`, `-Wpedantic -Wconversion -Wsign-conversion
 -Werror`, over `src1sim2/` and `overlay/`): **PROBE4 PASS.**
@@ -507,6 +675,11 @@ kinematic plant with no inertia gives a SHAPE, not inches.
 - The amended `runTesterOnce`, clean: `runStarted` at 3.0100 s after the countdown began, plant travel
   0.00000 at that moment, hand-off 0.020 s (the quiet tick), FINISHED, faults 0 → 0.
 - ×0.95: ROUTINE STOPPED, "faults this run: 1, last MOTION_TIMEOUT", END y −1.56, end action succeeded.
+  **Pre-TANK1. Re-run 2026-09-28 — `host_probe4.cpp` rebuilt UNCHANGED against TANK1 as fixed
+  (`comp-t-repredict/hp4_tank1.txt`):** this is now the ONLY part that fails (its three expectations): ×0.95
+  reads FINISHED, "faults this run: none", END y 0.01, end action succeeded — the re-prediction. Every other
+  item below passes unchanged. The weak-side honest stop is ×0.65 ("faults this run: 1, last MOTION_TIMEOUT",
+  END y −0.93, end action succeeded — `repredict.cpp`).
 - A pacer layer that throws 0.5 s into the countdown: `threw`, the watch disarmed, travel 0.00000,
   PROGRAM ERROR, and the line "… it threw (a program error): …; the drive was stopped".
 - READY at its worst case: 8 lines, the longest exactly 50 (`FAULT n=99999 last GPS_GATE_REJECT  BUILD
@@ -865,10 +1038,17 @@ namespace {
 // ONE moveTo: the library drives to the POSE -- 40 in ahead, 0 in to the side, facing 0 degrees --
 // and the step ends when the robot is there and still, or when the motion's own time limit ends
 // it. Nothing is tuned here: the motion uses the robot's configured defaults.
-// A TANK CANNOT DRIVE SIDEWAYS. If the robot drifts to one side on the way (one side of the drive
-// weaker than the other does that), the drift cannot be driven out: the step ends on its time
-// limit instead, the result reads ROUTINE STOPPED with the fault MOTION_TIMEOUT, and the brake at
-// the end still runs. That is the library telling the truth about this robot, not a broken auton.
+// A TANK CANNOT DRIVE SIDEWAYS. If one side of the drive is weaker than the other, it turns the
+// robot toward that side and the robot drifts off its straight line. While it drives, the library
+// steers it back: it measures the turn it did not ask for and cancels it, and it aims a little
+// back toward the line, never more than 15 degrees off the heading written here. (It steers only
+// a step that starts within 15 degrees of that heading, as this one does; otherwise turn first
+// with face().) On the serial log, TSTR marks each tick's line where it is steering noticeably.
+// If the robot still cannot finish within half an inch of the spot and about a degree of the
+// heading, the step ends on its time limit: the result reads ROUTINE STOPPED with the fault
+// MOTION_TIMEOUT, and the brake at the end still runs. That is the library telling the truth
+// about this robot, not a broken auton: read END x and y (how far short, how far beside) and the
+// TSTR lines before changing anything.
 chassis::RoutineResult fortyInchesForward(competition::AutonContext& ctx) {
     chassis::Routine r{ctx.chassis, "40in-forward"};
     r.moveTo(math::Pose2d{40_in, 0_in, 0_deg});
@@ -915,6 +1095,27 @@ is (finding 1), and the 40 in auton says what a tank does with a sideways drift 
 for the V5 in `src1sim2/team/autons.cpp` (probe 6). The "time limit" is deliberately not a number in the
 file: it is the robot's `defaultTimeout` (5 s, PROVISIONAL), and the guide states it with its source, so
 the file cannot drift from the config.
+
+**Re-predicted after TANK1 Part A (2026-09-28): the tank paragraph rewritten, no code changed — the `moveTo`
+line is exactly as before.** The paragraph it replaces said the drift "cannot be driven out: the step ends on
+its time limit instead, the result reads ROUTINE STOPPED with the fault MOTION_TIMEOUT" — false after TANK1.
+The new one says what TANK1 does in words a student can check against the library: a weaker side turns the
+robot toward it; the library cancels the turn it did not ask for (the yaw observer) and aims back toward the
+line by at most 15° (the bend, `maxSteer`); it steers only a leg that STARTS within 15° of its heading (D2 of
+TANK1 — this one starts on it; others log "turn first: face()"); TSTR marking the tick lines where it steers
+noticeably (the flag lights only when the steering moved that tick's turn command by more than 2 % of
+`maxAngularSpeed` — `kTankSteerNoiseFraction` — so not on every tick of a steered leg: ×0.91, 116 of the run's
+203 `[MOT]` lines); and when it still cannot arrive (0.5 in AND 0.02 rad ≈ 1.15°, unchanged) the old honest
+ending, kept, plus where to look first: END x AND y — how far short and how far beside — and TSTR. Both
+matter: near the stop threshold the miss is mostly SHORT (×0.72: 0.46 in short, 0.23 in beside — END y alone
+reads −0.23 and looks fine), and at ×0.65 mostly beside (0.62 in short, 0.93 in beside).
+Measured on the host test plant, not promised for the robot: the paragraph gives no weak-side percentage.
+Built both ways (`comp-t-repredict/fix2/students/team/autons.cpp`, the comment as amended at the check): the
+host tester run is byte-identical to the old comment's (`fix2/table_newcomment2.txt` = `table_tank1.txt`), and
+the V5 `-c` compile under the `src/` warning set, against TANK1's `include/` with COMP-t's §0.5.1 registry fix
+(`fix2/arm_c_fix2.sh`), gives zero warnings and a `.text` section byte-identical to the old file's and to the
+pre-TANK1 original's (`fix2/arm_{orig,prev,new2}.text`, sha256 `33217026…`; every code section's disassembly
+identical too). Every line ≤ 99 columns.
 
 **Order:** the 40 in first — the team's, the one run most — then the library's test.
 
@@ -1659,7 +1860,10 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
   - the slot choice (T4 N4);
   - moving Teleop's refusal painter or fault row into `common/` (T4's files);
   - **a tank arrival rule for `moveTo`, or a steering drive-to-point verb (D10)** — library work, the
-    coordinator's plan entry (§6 item 7);
+    coordinator's plan entry (§6 item 7). **Re-predicted after TANK1 (2026-09-28): BUILT as TANK1** — `moveTo`
+    on a tank steers back onto its line (Part A landed before COMP-t, as the team lead ruled). Still OUT of
+    COMP-t: the tester changes no motion code and no tank constant, and TANK1 Part B (the result line's ` xt`
+    column) is TANK1's, not COMP-t's;
   - **a route auton's command registry** (B30: registered once beside `registerAutons` when the first route
     auton exists).
 - **COMP-b must NOT reuse `AbortWatch`.** It aborts on ANY button: in a match, a driver's bumped button would
@@ -1677,7 +1881,9 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
     pinned as well;
   - **a warning, not a refusal, for a typed-table boot** (D9 (b));
   - **a per-auton settle tolerance to make the 40 in "finish"** (D10): `MotionOptions` has none, and loosening
-    `translationSettle` robot-wide to hide a tank's drift would hide it from every auton;
+    `translationSettle` robot-wide to hide a tank's drift would hide it from every auton. **Still rejected after
+    TANK1 (2026-09-28): TANK1 did not need it** — the arrival rule is unchanged (0.5 in AND 0.02 rad), and the
+    40 in FINISHES inside it on the host test plant to ×0.723;
   - the students' file as a header of `inline` functions — a `.cpp` is what every VEX team reads, and the
     host build can compile it;
   - a `Tester` enumerator or `PROGRAM=tester` (D1).
@@ -1697,15 +1903,39 @@ between `PlantPacer` and the guard).
 - (3) the 40 in through `runTesterOnce` on the plant: ROUTINE_RAN, routine OK, end action succeeded, not
   cut, not abandoned, `pacesSeen > 0`; the truth AND the record's END estimate x within 0.5 in of 40, |y| <
   0.5, |heading| < 1.2°;
-- **(3b) (re-check, finding 3) the 40 in on a plant whose RIGHT side is weak** (a `DegradationModel` scaling
-  wheel 1's volts by 0.95, probe 4): `testerResultWord` is ROUTINE STOPPED; the routine stopped at step 1
-  (`moveTo`) with exit TimedOut; `faultsAfter − faultsBefore == 1` and `lastFault == MotionTimeout`; END
-  |y| > 0.5; the end action ran and succeeded; the drive at 0 V + Brake afterwards. This pins the PREDICTED
-  floor result, and that the tester reports it as this run's fault;
+- **(3b) (re-check, finding 3; RE-PREDICTED after TANK1 Part A, 2026-09-28) the 40 in on a plant whose RIGHT
+  side is weak** (a `DegradationModel` scaling wheel 1's volts by 0.95, probe 4′): `testerResultWord` is
+  **FINISHED**; the routine OK, 1 of 1 steps; `faultsAfter == faultsBefore` and `lastFault` None ("faults this
+  run: none"); the truth AND the record's END estimate x within 0.5 in of 40, |y| < 0.5, |heading| < 1.2°
+  (measured (39.70, 0.01, 0.06°), T+1.85 s); the end action ran and succeeded; the drive at 0 V + Brake
+  afterwards; **and the run's records carry TSTR** (measured 81 of the 199 motion records; the clean ×1.00 run:
+  0) — without that clause a (3b) whose weak side was never wired would pass on a clean plant. This pins the
+  PREDICTED floor result on a drift like robot two's. *(Pre-TANK1, (3b) expected ROUTINE STOPPED at step 1, one
+  MOTION_TIMEOUT and END |y| > 0.5 on this plant; that shape moved to (3b′).)*
+- **(3b′) (NEW at the re-prediction, 2026-09-28) the honest stop is still reported: the 40 in on a RIGHT side
+  at ×0.65** (probe 4′; TANK1's own P3 stop case, 7.3 points past the weakest side that finishes, ×0.723):
+  `testerResultWord` is ROUTINE STOPPED; the routine stopped at step 1 (`moveTo`) with exit TimedOut;
+  `faultsAfter − faultsBefore == 1` and `lastFault == MotionTimeout`; **the END outside the arrival rule:
+  its distance to (40, 0) > 0.5 in** (measured END (39.38, −0.93, 0.56°), 1.12 in away — 0.62 in of margin;
+  0.62 in short, 0.93 in beside) — the tester's report agreeing with the stop, NOT an END-|y| bound, which
+  would pin TANK1's miss shape (×0.70 already ends at |y| 0.41, and an HA-179 retune could move it); the end
+  action ran and succeeded; the drive at 0 V + Brake afterwards — after TANK1 the tester still reports a real
+  failure, as this run's fault (measured: scoring T+5.01 s, 513 paces, TSTR on 500 of the moveTo's 501 running
+  ticks, all but the first). The left side at ×0.65 is its mirror image (END y +0.93);
 - **(3c) (finding 7) a fault latched BEFORE RUN** (raise one on the latch, then a clean run): "faults this
-  run" is none and `lastFault` is None — the whole-boot latch never leaks into a run's record;
-- (4) the acceptance run ends within tolerance of (0, 0) facing 180°;
-- **(4b)** the acceptance run on the 0.95 plant stops at step 1 (`moveTo`), and steps 2–4 are skipped;
+  run" is none and `lastFault` is None — the whole-boot latch never leaks into a run's record; *(unchanged
+  after TANK1: its run is the clean plant, where the 40 in is unchanged — measured with the fault latched
+  before RUN: FINISHED (39.77, 0.00, 0.00°) T+1.80, faults 1 → 1 (none this run), lastFault None —
+  `comp-t-repredict/fix2/prelatch.txt`);*
+- (4) the acceptance run ends within tolerance of (0, 0) facing 180°; *(unchanged after TANK1: it now ends at
+  (0.23, 0.04, −179.97°) T+5.44, was (0.24, 0.12, 180.00°) T+5.42 — inside it);*
+- **(4b) (RE-PREDICTED after TANK1 Part A, 2026-09-28)** the acceptance run on the 0.95 plant now
+  **FINISHES**: the routine OK, 4 of 4 steps, "faults this run: none", END (0.30, 0.06, 178.58°), T+5.78 s
+  (probe 4′). **The honest-stop case moves to ×0.65** (the acceptance run first stops at ×0.723): the run stops at step 1 (`moveTo`), steps 2–4 are skipped,
+  one MOTION_TIMEOUT, END (23.37, −0.49, 0.30°) — the case TANK1's P3 pins through the Routine (END (23.37,
+  ∓0.49), either side); the END outside step 1's arrival rule (distance to (24, 0) > 0.5 in; measured 0.80
+  in). **No END-y bound: its END |y| is 0.49** — inside 0.5, so an END-|y| clause copied here would fail by
+  0.01 in. *(Pre-TANK1: the ×0.95 run stopped at step 1, END (23.93, −0.64).)*
 - (5) a RELATIVE start after a pre-run drift: the plant placed at (10, −5, 30°) with an IMU offset of 17°.
   The END estimate reads (40, 0, 0) in the start frame while the truth is 40 in along the 30° heading. It
   fails without the re-seat.
@@ -1764,7 +1994,11 @@ between `PlantPacer` and the guard).
 - (23) `testerResultWord` for every record shape; `testerRunLines` goldens for each shape (clean, countdown
   abort, run abort with buttons, cut, floor, refused, not started, threw — in the run AND in the countdown,
   **a ROUTE entry refused by name: "a route auton needs a command registry" (finding 5)**, and the weak-side
-  ROUTINE STOPPED with "faults this run: 1, last MOTION_TIMEOUT"), each line < 200 bytes at the worst case
+  ROUTINE STOPPED with "faults this run: 1, last MOTION_TIMEOUT" — **since TANK1 (re-predicted 2026-09-28) the
+  ×0.65 run, not ×0.95**, whose probe lines read `… '40in forward' ROUTINE STOPPED -- ROUTINE_RAN; in time, end
+  action succeeded`, `scoring ended T+5.01s, end action ended T+5.13s, 513 paces`, `routine STOPPED, 0 of 1
+  steps done, stopped at moveTo` and `END estimate (39.38, -0.93) facing 0.6 deg LIVE`; the ×0.95 run is now a
+  FINISHED shape), each line < 200 bytes at the worst case
   (a 29-character name, run 99999, extreme numbers), 7-bit ASCII, "--" for an end action that did not run.
 **`test/auton_tester_panel_test.cpp`:**
 - (24) every literal within budget; every formatted line of every page within budget at the worst case, the
@@ -1940,25 +2174,50 @@ proof passing on the real provider's pacer (M.2: the boot is not refused).
      - **RUN, let it start, then switch the controller OFF ⇒ the wheels stop; RESULT `aborted by: controller
        lost`** (finding 4).
    - **M.5 a wheels-up full run:** expected RESULT FINISHED, END x ≈ 40 by the encoders — on a stand the
-     robot cannot turn, so no sideways error can build (D10). If it is NOT FINISHED wheels up, stop and copy
-     the lines: that is not the tank's drift.
+     robot cannot turn, so a weak side has nothing to pull off its line. If it is NOT FINISHED wheels up, stop
+     and copy the lines: that is not a weak side's drift. *(Re-predicted after TANK1, 2026-09-28: the
+     reasoning holds; the pre-TANK1 "no sideways error can build (D10)" clause is dropped.)*
    - **M.6 the floor run on the tape:**
+     - **capture serial BEFORE RUN (for the TSTR count; added at the check, 2026-09-28):** the tick lines
+       exist only on serial — the SD file gets each run's summary lines, not its ticks (D6). Use ONE of:
+       (a) the brain's micro-USB to a laptop running `pros terminal`, on a cable long enough for ~45 in of
+       travel, held slack and to the SIDE so it neither snags a wheel nor pulls the robot off its line; or
+       (b) the wireless terminal — the laptop's USB into the paired CONTROLLER, `pros terminal` (Station 5.5)
+       — whose rate at 100 lines a second is unmeasured, so it may drop lines. Save the whole transcript. The
+       `[t=…]` stamps step about 0.01 s per tick: a bigger jump between `[MOT]` lines means lines were lost —
+       write the count as "N of M, with gaps". **With neither, write the TSTR count as "not captured" —
+       never a guessed number;**
      - the robot on START, **the end that made EST x RISE in M.3 leading**, facing along the tape; RUN, step
        back — to the SIDE, never behind or in front;
-     - **the expected result (D10, stated BEFORE the run so nobody is surprised):** `ROUTINE STOPPED`, with
-       `faults this run: 1, last MOTION_TIMEOUT`, END x near 40 and END y beyond ±0.5 in, the brake still
-       run. `FINISHED` is possible if the drive is even; both are results, neither is a failure of the
-       tester;
-     - record: the RESULT word, the END estimate (x AND y), the faults line, the TAPE along the line (expect
-       ~43.6 in on today's record, ~40 after a good Calibrate rerun), how far off the line to the side, the
-       veer, whether it stopped firmly, and anything else;
+     - **the expected result (re-predicted after TANK1 Part A, 2026-09-28; stated BEFORE the run so nobody is
+       surprised):** `FINISHED`, `faults this run: none`, END x near 40 and END |y| within 0.5 in, the brake
+       run — on the host test plant a 9 % weak side finishes this way (T+1.89 s, END (39.64, 0.02, 0.10°), TSTR
+       on 116 of the run's 203 `[MOT]` tick lines), an even drive with TSTR on few or none (noise lights about
+       1 % — TANK1's P7). `ROUTINE STOPPED` (`faults this run: 1, last MOTION_TIMEOUT`, the brake still run)
+       stays possible — HA-179 (TANK1's constants against this robot's unmeasured motor lag) being wrong; that
+       is a result, not a failure of the tester. **A FINISHED is checked against the tape, not taken as a
+       pass:** a sideways skid (HA-180) is invisible to the robot's sensors, so it never turns the word red —
+       **a FINISHED whose tape offset from the line differs from END y by more than 0.5 in is HA-180 failing,
+       not a pass.** The `MOT` Warn `tank moveTo not steered … turn first: face()` must NOT appear (the 40 in
+       starts on its own heading): if it does, stop and copy the lines. *(Pre-TANK1 the expected result here
+       was `ROUTINE STOPPED` with END y beyond ±0.5 in (D10).)*
+     - record: the RESULT word, the END estimate (x AND y), the faults line, **how many of the run's `[MOT]`
+       tick lines on serial show TSTR, out of how many** (or "not captured"), the TAPE along the line (expect
+       ~43.6 in on today's record, ~40 after a good Calibrate rerun), how far off the line to the side and
+       WHICH side (looking the way the robot drove; END y is + to the LEFT) — **against END y: HA-180 settles
+       on three runs agreeing within 0.5 in** — the veer, whether it stopped firmly, and anything else;
      - write the numbers, never "about right".
    - **M.7 the SD log (HA-177):** on a card WITHOUT `shulib_auton_runs.txt`: boot ⇒ serial `SD run log ON,
      CREATED`; two runs; a power-cycle ⇒ `ON, APPENDED to /usd/shulib_auton_runs.txt`; one more run; copy
      `shulib_auton_runs.txt` to the laptop. All three runs must be there, in order, across the reboot.
      Write down the two boot words.
-   - **M.8 (optional) the acceptance run:** it ends back on the mark facing the other way — or, on the same
-     cause as M.6, `ROUTINE STOPPED` at step 1 (moveTo) with steps 2–4 skipped (§0.4 probe 4). Record which.
+   - **M.8 (optional) the acceptance run:** expected (re-predicted after TANK1, 2026-09-28) to end back on the
+     mark facing the other way — on the host test plant a 9 % weak side ends at (0.37, 0.06) facing 177.3°
+     after 6.14 s (its last leg faces its own bearing back to the mark, so not exactly 180°); or, if M.6
+     stopped for a weak side, `ROUTINE STOPPED` at step 1 (moveTo) with steps 2–4 skipped (§0.4 probe 4′: the
+     plant stops there from ×0.723). Record which, and the TSTR count (serial captured as in M.6, or "not
+     captured"). *(Pre-TANK1 this predicted the step-1
+     stop from a 5 % weak side, §0.4 probe 4.)*
    - **M.9 the claws:** the claw stays CLOSED through a run and the pivots hold (R12).
    - **Also:**
      - Station A's program list gains the tester (its slot per N4);
@@ -1972,10 +2231,17 @@ proof passing on the real provider's pacer (M.2: the boot is not refused).
      the one-tick stop; the RESULT against the tape; the ~8 % note; the SD log; what only a practice match
      shows. No `docs/internal` path.
    - **Chapter 16 also carries (re-check):** "forward" is the end that led the Calibrate push, checked by
-     the M.3 push before any floor run (finding 1); **what a tank does with a sideways drift** — `moveTo`
-     arrives only within 0.5 in of the point, a tank cannot drive sideways, so the first RESULT is likely
-     `ROUTINE STOPPED` / MOTION_TIMEOUT after the time limit (5 s, the robot's PROVISIONAL `defaultTimeout`),
-     and why that is the library being honest (finding 3); the SD words CREATED / APPENDED and where the file
+     the M.3 push before any floor run (finding 1); **what a tank does with a weak side (re-predicted after
+     TANK1 Part A, 2026-09-28)** — a tank cannot drive sideways, so a weaker side pulls it off its line;
+     `moveTo` steers it back while it drives (it cancels the turn it did not ask for and aims back toward the
+     line by at most 15°, only on a step that starts within 15° of its heading; TSTR on the tick lines), so
+     the RESULT to expect is `FINISHED` — on the host test plant with one side up to a quarter weaker (robot
+     two's is ~9 %), a host-test-plant number and never a robot promise until M.6's log says so; when it still
+     cannot arrive within 0.5 in and about a degree, the step ends after the time limit (5 s, the robot's
+     PROVISIONAL `defaultTimeout`) as `ROUTINE STOPPED` / MOTION_TIMEOUT, and why that is still the library
+     being honest (finding 3), with guide 04's tank steering for the how (quote the students' file's own
+     comment; no 6 in offset promised, no `docs/internal` path); *(pre-TANK1 this said the first RESULT was
+     likely `ROUTINE STOPPED` because "a tank cannot drive sideways")*; the SD words CREATED / APPENDED and where the file
      is on a computer (the card's root) (finding 12); touch the top half to abort (finding 13).
    - `docs/guide/README.md`: the table row, and the maintenance paragraph's "the team's files under
      `src/team/` that a chapter quotes (today: …), never the rest of `src/`" (§3.7.4) — never "the one
@@ -2026,10 +2292,14 @@ proof passing on the real provider's pacer (M.2: the boot is not refused).
    - **a deviations row, "a bench auton tester beside `autonomous()`"**: the team lead's words of 2026-09-27;
      that it does NOT reverse 2026-09-25 (same library path, only the trigger differs); and what stays with
      K;
-   - **a FOUND row (re-check finding 3, D10): "`moveTo` cannot arrive on a tank after a sideways drift"** —
-     the library's documented behaviour ("laterally-offset targets honestly exit TimedOut"), shown on the
-     host test plant from a 3 % weaker side; a tank arrival rule or a steering drive-to-point verb is a
-     plan entry for the coordinator (it touches the motion layer; R5's gains do not remove it).
+   - **a FOUND row (re-check finding 3, D10), written as found AND fixed (re-predicted after TANK1 Part A,
+     2026-09-28): "`moveTo` could not arrive on a tank after a sideways drift"** — the library's documented
+     behaviour before API 2.3 ("laterally-offset targets honestly exit TimedOut"), shown on the host test plant
+     from a 3 % weaker side; **fixed by TANK1** (`moveTo` on a tank steers back onto its line; COMP-t's probe
+     re-measured through `runTesterOnce`: the 40 in finishes to ×0.723 on the plant, the honest stop at ×0.65).
+     Where build-order already carries TANK1's own entry, the row points at it rather than repeating it.
+     *(Pre-TANK1 the row ended: "a tank arrival rule or a steering drive-to-point verb is a plan entry for the
+     coordinator (it touches the motion layer; R5's gains do not remove it)".)*
 8. **`docs/roadmap.md`:** the COMP / M4 rows — a bench path for the 40 in, not run — and "you are here".
 9. **`HANDOFF-remaining-work.md`:** L2 gains COMP-t; Part S gains Station M before K; §7's order.
 10. **`RESUMING.md` :114-121:** seven builds, `PROGRAM=autontest`.
@@ -2110,5 +2380,10 @@ builds`, `four tank builds`, `fourth, fifth and sixth`, `never src/`, `one excep
     absent; never a `+` mode (the brain refuses read-write, HA-166 (3)); no `fopen` and no `/usd/` in `src/`.
 16. **(Re-check) A precision makes `-Wformat-truncation` SEE a line.** Adding `%.23s` to the ABSENT line
     exposed its real 219-byte worst case; size every other precision on the same line against 199.
-17. **(Re-check) The first floor RESULT is likely red (D10).** Do not "fix" it in the tester, the auton or
-    the settle tolerances; record it (M.6).
+17. **(Re-check; re-predicted after TANK1 Part A, 2026-09-28) The first floor RESULT is expected FINISHED.**
+    If it is red, read the `MOT` Warn and the TSTR tick lines (and, once TANK1 Part B lands, the result line's
+    ` xt`) before touching anything. Do not "fix" it in the tester, the auton or the settle tolerances; record
+    it (M.6) — it is HA-179's evidence. A red result is never HA-180's: a skid is invisible to the estimate,
+    so it cannot turn the word red. HA-180 is answered only by the tape — **a green FINISHED whose tape
+    offset from the line differs from END y by more than 0.5 in is HA-180 failing, not a pass.**
+    *(Pre-TANK1: "The first floor RESULT is likely red (D10).")*
