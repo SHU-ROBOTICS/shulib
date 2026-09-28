@@ -1,5 +1,12 @@
 # T4 — the driver program: ONE driver file for robot two, run by the new "shulib Drive" and the competition program's `opcontrol()`; the old drive's protections move into the library; "shulib Teleop" retires
 
+> **THE TEAM LEAD'S ANSWERS TO THE 2026-09-28 RE-CHECK'S DECISIONS (~16:15), all as recommended:** **C** — the
+> velocity-exactly-0 check is DROPPED; **D** — the frozen-reading rule gets guard G4 (a majority-or-tie guard, a
+> read repeated only when position AND velocity are both unchanged); **A** — the SD copy holds events and
+> summaries only, through `diag::LogCopySink` (never a line per tick); **B** — the competition program keeps an SD
+> copy, appended, through one optional file-mode argument on the provider. His go on Parts 2 and 3 stands
+> (2026-09-28, "i want to do all this"); Part 2 after COMP-b, Part 3 after Part 2.
+
 > **THE TEAM LEAD'S ANSWERS (2026-09-27, ~03:40) to the new decisions:** **N7 (c)** — stop driving
 > mid-match only when MORE THAN TWO drive motors are dead in total ("Only when 3+ are dead in total");
 > **N1 (a)** — the over-current cut stays as ruled, ON by default with one config switch to turn it off,
@@ -25,6 +32,9 @@
 > file's marked region; worksheet Station A's slot map; the roadmap's row; HANDOFF's lines. The auton tester
 > (COMP-t) now waits for TANK1 (the team lead, 2026-09-27: "Fix the library first" — `moveTo` on a tank
 > steers back onto its line), so T4 Part 1a and TANK1 are the builds in flight, not 1a and COMP-t.
+> *(Superseded 2026-09-28: Part 1a and TANK1 Part A have LANDED (`8d89df7`, `3965791`). In flight: TANK1
+> Part B (the ` xt` column) and COMP-t, built next; then COMP-b, then T4 Part 2, then Part 3 (build-order
+> :632).)*
 
 > **Execution brief.** First written 2026-09-27 (00:15–01:30 EDT) from a read-only pass over `shulib-v2` at
 > `f6274e1` and the `g1-2c-final` worktree. Re-checked the same night against `37706ce` (G1 Part 2c final
@@ -40,7 +50,10 @@
 > **Status: the team lead's rulings of 2026-09-27 applied. WAITS for his go on each part at its turn.
 > Nothing is built.** The amendments raised seven NEW decisions, N1–N7 (§ Decisions). Each is answered
 > before the part that first needs it: N4 before Part 0; N1, N2, N3 and N7 before Part 2; N5 and N6
-> before Part 3.
+> before Part 3. *(Superseded 2026-09-28: Parts 0 and 1a LANDED; 1b SKIPPED, folded into Part 3. **The
+> team lead gave his go on Parts 2 and 3** with COMP-t and COMP-b ("i want to do all this", 2026-09-28;
+> build-order :632), in the order COMP-t → COMP-b → Part 2 → Part 3. The re-check of 2026-09-28 raised four
+> NEW decisions, A–D, which are his: **C and D before Part 2; A and B before Part 3.**)*
 >
 > **The parts, in the ruled order (R2).** Each is its own go, executor run, verification, documentation
 > pass and commit. Sizes are estimates from the pace of T3 Part 2 and COMP-a, not measurements.
@@ -50,9 +63,9 @@
 > | 0 | **the slots and the plan** | docs only: COMP moves to slot 6, the final slot map, T4's plan entry and its deviations rows | before COMP-b | ~1–2 h (coordinator) |
 > | 1a | **the driver file** | `src/team/robot_two_driver.hpp` + `src/common/driver_controls.hpp`, tied at compile time to the table's buttons; no T3 rework, no new build | before COMP-b | ~½ day |
 > | — | *COMP-b (not T4's)* | *its `opcontrol()` calls the driver file, written once (B11 as Part 1a replaces it)* | | |
-> | 1b | **one owner** | the buttons leave `src/robots/mechanism_table.hpp`; "shulib Teleop" runs the driver file until Part 3 retires it | after COMP-b | ~1 day |
-> | 2 | **the drive protections, in the library** | the old drive's mid-match absence rule and its two re-arming cuts, applied inside `teleop::runDriverControl` for every program, with a dead port's frozen readings kept out of both cuts; host-tested on the plant's member faults and on hand-stepped reads | after 1b, BEFORE 3 | ~1½–2 days (the ruling said ~½ day; see Part 2's note) |
-> | 3 | **the new "shulib Drive"; "shulib Teleop" retired** | `src/programs/drive_program.*`'s content REPLACED by the thin program around the driver file (slot 1, `PROGRAM=drive`, beacon `tank-drive`); Teleop's diagnostics become its DETAILS page; `PROGRAM=library` removed; every remaining word naming Teleop or slot 2 swept from `src/` and `include/shulib/` | after 2 | ~2 days (~1½ without N5 (a)) |
+> | 1b | ~~**one owner**~~ **SKIPPED — folded into Part 3** (2026-09-28) | ~~the buttons leave `src/robots/mechanism_table.hpp`; "shulib Teleop" runs the driver file until Part 3 retires it~~ — the table cleanup is Part 3 item 5; Teleop is never rewired | — | — |
+> | 2 | **the drive protections, in the library** | the old drive's mid-match absence rule and its two re-arming cuts, applied inside `teleop::runDriverControl` for every program, with a dead port's frozen readings kept out of both cuts; host-tested on the plant's member faults and on hand-stepped reads | after COMP-b, BEFORE 3 *(was "after 1b")* | ~2–2½ days *(re-check 2026-09-28; was ~1½–2; the ruling said ~½ day; see Part 2's note)* |
+> | 3 | **the new "shulib Drive"; "shulib Teleop" retired** | `src/programs/drive_program.*`'s content REPLACED by the thin program around the driver file (slot 1, `PROGRAM=drive`, beacon `tank-drive`); Teleop's diagnostics become its DETAILS page; `PROGRAM=library` removed; every remaining word naming Teleop or slot 2 swept from `src/` and `include/shulib/`; **and Part 1b's table cleanup (item 5)** | after 2 | ~3–3½ days, ~2½–3 without N5 (a) *(re-check 2026-09-28; was ~2, ~1½)* |
 >
 > **Executor model: `opus`. Do not commit.** Live log: `docs/internal/chunks/T4-PROGRESS.md`, **created
 > FIRST** and appended as you go, with a heading per part. **Hardware Assumptions numbers: HA-175 and
@@ -72,7 +85,395 @@
 > that names a `src/` file must name one that exists (`[printed-path]`). **Line numbers are still
 > `37706ce`'s** (SRC1 moved files and rewrote include lines, it changed no line count) — re-check each
 > against the tree. The §2 driver file was probed at `37706ce` with the flat includes; the executor
-> compiles it with the mapped ones.
+> compiles it with the mapped ones. *(Superseded 2026-09-28, re-check item 3: the sentence "Line numbers
+> are still `37706ce`'s (SRC1 … changed no line count)" was false — SRC1 moved the gate's lines, and Part 1a
+> and TANK1 moved others. **Re-find every `src/`, `tools/` and `include/` anchor by its quoted text; SRC1,
+> Part 1a and TANK1 moved lines.** The re-check's table re-anchors what Parts 2 and 3 cite.)*
+
+---
+
+## Re-check 2026-09-28 — amendments
+
+A checker re-read Parts 2 and 3 against `b81a590` (SRC1, Part 1a, TANK1 Part A and the team lead's rulings
+of 2026-09-28 landed; COMP-t, COMP-b and TANK1 Part B not). It returned thirteen findings. Each was
+re-verified in the tree at `e124b88`, which differs from `b81a590` only in COMP-t's brief, and in the
+checker's probes. **All thirteen are real.** While verifying findings 1 and 12, the fixer found a fourteenth,
+the most serious (item 14), with its own probe: `.claude/coordinator/scratch/recheck-2026-09-28/slip_probe.cpp`,
+output in `slip-probe-results.txt`, over the REAL `coupled_side_monitor.hpp`.
+
+The team lead's rulings (R1–R7, N1–N7 as answered, and those of 2026-09-28) are unchanged. There are four
+genuinely NEW decisions, A–D, all the team lead's (§ "Decisions (new, 2026-09-28)" below): **C and D before
+Part 2; A and B before Part 3.** Anchors here are `e124b88`'s; each part re-finds them by quoted text.
+
+1. **(major) The velocity-exactly-0 check's "mates" were undefined — REAL.**
+   - **Verified.**
+     - Item 1 hands `MemberAbsenceDetector::update(0, velocity, groupCommand, matesFastest)` and never says
+       whose speeds make `matesFastest`. The old program took every present, non-absent mate
+       (`drive_program.cpp` :483-492).
+     - The detector counts whenever the command is above 1 V, the mates are above 1 rad/s and the velocity
+       is exactly 0.0 (`coupled_side_monitor.hpp` :221-234).
+     - The rulings probe ran that signature only under its policy B (`race_probe.cpp` :102-127). So §0.4's
+       N column never covered item 1's pairing.
+   - **The checker's probe** (`zero_sig_probe.cpp`, the real detector): a port dies at full speed, a wall
+     comes 0-3 ticks later, and the live members read exactly 0 at once.
+     - Counting every present mate, 3 of 3 LIVE members latch before the dead one.
+     - With FROZEN mates excluded, none latch.
+     - The fixer's `slip_probe` row Z-a reproduces it: Z0 marks 3 live members; Z1 and Z2 mark none, and the
+       dead member is ABSENT at +28.
+     - On the plant, P2-5 latches both signatures on the same tick (+25), so the one Warn line's reason was
+       not pinned.
+   - **Fixed in item 1, if Decision C keeps the check.**
+     - `matesFastest` is the FROZEN detector's own "mates' fastest": the largest |velocity| among the OTHER
+       present, unlatched members whose `repeatReads` is below `frozenSuspectReads` (item 4). One definition
+       serves both signatures. It leaves out a FROZEN member by construction, and also a live member whose
+       encoder has stopped.
+     - When both signatures latch on one tick, the line carries the FROZEN reason. P2-5 pins that.
+   - **The check has no detection of its own left, and it keeps one path that marks live members.** In
+     `slip_probe` row Z-c, under the corrected guard (item 14), the velocity-0 check alone marks all three
+     stalled live members beside a slipping mate, whatever its mates are. **Decision C** recommends dropping
+     it. Part 2 is written for both answers.
+   - **Tests, if C keeps the check:**
+     - P2-19b: a member freezes at +v, then the side stalls reading exactly 0 under full stick. Expect only
+       the dead member ABSENT, and no REFUSE.
+     - The mutation "the velocity-0 mates count a member whose position repeats" turns P2-19b red.
+2. **(major) N5 (a)'s SD copy would write and flush a record line to the card every 10 ms — REAL.**
+   - **Verified.** One line reaches the card per drive tick:
+     - `TermSink::wantsRecord()` is true (`diag/term_sink.hpp` :104), and `emit()` writes one line per record
+       (:115-170).
+     - `Chassis::drive()` emits a record on every call (`chassis.hpp` :447, :455, :596).
+     - The Robot's telemetry IS the provider's sink (`robot.hpp` :552), a bare `TermSink` over USB
+       (`hal/pros/device_provider.hpp` :466-467).
+   - **The checker's plant probe:** 100 `drive()` ticks gave 100 lines, 11,300 bytes. COMP-t's `BlockCharSink`
+     does one block write and one flush per write (COMP-t :1840-1842). So N5 (a) as written flushes the card
+     100 times a second. That goes against HA-60 ("fine at a boundary, not in a tick"), and it makes N5 (a)'s
+     own sentence "Log lines are events only, never one per tick" false.
+   - **N5 (a) and Part 3 item 4 are superseded, pending Decision A.** A is the team lead's: §5 says N5 (a)'s
+     piece list is exhaustive.
+     - **Recommended:** the copy holds the LOG channel only. It gets `log()` lines, and `summarize()`'s block,
+       which is bounded; it never gets `emit()` records. The old `drive_log.txt` held the same, and HA-60
+       assumes it.
+     - **The piece that needs.** A telemetry-level piece replaces the character-level tee:
+       `diag::LogCopySink`, PROS-free and allocation-free, a decorator in `LevelFilterSink`'s shape.
+       - `log()` and `summarize()` go to the primary sink, then to the copy.
+       - `wantsRecord()` and `emit()` go to the primary only.
+       - The provider owns a second `TermSink` (the same clock) over COMP-t's `BlockCharSink`, as the copy.
+       - `hal::TeeCharSink` is then not built.
+   - **Test (Part 3):** N `drive()` ticks put ZERO record lines on the copy and N on serial; a `log()` line
+     reaches both, whole. The mutation "`LogCopySink` forwards `emit()` to the copy" turns it red.
+   - **Cost.** Even with events only, each line is one block write plus a flush. A cut's block (one cut line
+     plus one `at the cut:` line per member, about 9 lines) lands in one tick, after the 0 V write. The old
+     program wrote without flushing and flushed once per block (`drive_program.cpp` :117-144). The cost on the
+     brain is unmeasured (HA-60): log it, do not claim it.
+3. **(major) Part 3's gate list missed SRC1's self-test cases 28, 29 and 30 — REAL.**
+   - **Verified** (`tools/src_build_gate.py`). The plant constants: `DRIVE_PLANT` is
+     `src/programs/drive_program.cpp`, marked "(26, 29)" (:1388); `COMMON_PLANT` is :1391; `CLAWS_PLANT` is
+     `src/programs/teleop_claws.hpp` (:1392). `_replace` asserts that its target occurs exactly once
+     (:1443-1455), so all three cases fail the self-test after Part 3:
+     - **Case 28** `_replace`s `#include "common/boot_source.hpp"` in `CLAWS_PLANT` twice (:2220-2227), and
+       Part 3 deletes that file. It also plants `#if defined(SHULIB_PROGRAM_LIBRARY)` in `COMMON_PLANT`
+       (:2162-2163), a define Part 3 RETIRES.
+     - **Case 29** `_replace`s `#include "robots/chassis_table.hpp"` in the OLD `drive_program.cpp` (:2252; the
+       file's :67).
+     - **Case 30** `_replace`s the typed-table refusal literal `"fill src/robots/chassis_table.hpp, rebuild,
+       upload"` (:2269; the file's :329), which Part 3 deletes.
+   - **Fixed in N6, Part 3 item 3 and P3-T1.** Each re-point is logged one-for-one with its intent. Where no
+     surviving line fits, the plant retires with its mapping (the 12-13 rule).
+     - Case 28's two claws sub-cases move to a surviving `src/programs/` file that includes a `src/`
+       subfolder header. Their intent: a `../` or `./` include in a program file is reported.
+     - Case 28's folder-switch plant moves to a LIVE define.
+     - Case 29 moves to an include the NEW `drive_program.cpp` holds.
+     - Case 30 moves to a `src/` path the new file (or another program) prints.
+   - **The header's line-number sentence was false.** The gate's `VARIANTS` moved from :275 to :307, cases
+     12-13 from :1400-1419 to :1624-1646, and case 27's plants from :1870/:1909 to :2097/:2136. It is replaced
+     (the header), and the table below re-anchors what Parts 2 and 3 cite.
+4. **(major) Folding Part 1b into Part 3 was incomplete — REAL.**
+   - **Verified: code that reads the table's buttons.** The claw boot lines and the banner read the buttons
+     the table is losing: `motorClawBootLine` (`teleop_claws.hpp` :288-306), `pneumaticClawBootLine` (:312-333)
+     and `clawBannerLine` (:337-365).
+   - **Verified: tests.**
+     - `mechanism_table_test.cpp`: :58, :98, the button cases :744-830, the robot-two button pins :245-302,
+       and the completeness cases that reset `forward`/`toggle` (:594-654).
+     - `boot_source_test.cpp`'s hand-built tables (:902-927).
+     - `robot_two_driver_test.cpp`'s tie (:59-79, :808-848), and its `TeleopClaws` claw-row case (:850-856).
+   - **Verified: live text that names a part which will not happen.**
+     - "until T4 Part 1b": `teleop_program.cpp` :189, :192; `robot_two_driver_test.cpp` :76, :79.
+     - Comments: `mechanism_table.hpp` :112, :163; `teleop_claws.hpp` :11, :205-211, :492;
+       `teleop_program.cpp` :179-184.
+     - COMP B11's as-landed note (COMP brief :137).
+   - **1b's documentation had no owner.** Part 1a left it to 1b on purpose (T4-PROGRESS :145-151), and 1b is
+     skipped.
+   - **Fixed:**
+     - Part 3 gains item 5, "Part 1b's work, folded", covering the code, the tests and the documents, and §3
+       gains its tests (P3-T5).
+     - COMP-b may call the claw boot-line functions (the COMP re-check, RC5). So their new signature
+       re-points COMP's call sites in the same change.
+     - The COMP brief's :137 ("Until T4 Part 1b …") becomes "until T4 Part 3" before COMP-b starts. That is the
+       coordinator's edit, and the COMP re-check's RC5 already makes it. The in-code "until T4 Part 1b" strings
+       change in Part 3.
+5. **(minor) Part 3 still planned to create `hal::BlockCharSink` — REAL.**
+   - **Verified.** COMP-t creates it to N5 (a)'s specification: COMP-t §3.7.6 (:1827-1846), test (32)
+     (:2031), the changelog (:2257-2258), and "Callers gained" (:2331-2332). It also turns `ProsBlockSink`'s
+     two-argument constructor into a delegate to `(fileName, ProsFileMode, mountRoot)` with Truncate
+     (:1835-1837).
+   - **Fixed in N5 (a) and Part 3 item 4.**
+     - Reuse COMP-t's `hal::BlockCharSink`: no new file and no duplicate tests (cite its test (32)).
+     - Part 3 builds only two things: the copy piece (Decision A's `diag::LogCopySink`, or `hal::TeeCharSink`
+       if A is answered "every line") and the provider's optional argument.
+     - The provider's `ProsBlockSink` takes the Truncate path (one file per boot, N5 (a) as ruled), unless
+       Decision B says otherwise for COMP.
+     - Re-read `block_sink.hpp` as COMP-t leaves it. The changelog lists only the copy piece and the provider
+       argument.
+6. **(minor) Part 2's wording assumed Part 1b ran — REAL.**
+   - **Verified, in each place:**
+     - the heading (:1055) and the parts table (:54);
+     - item 2's "That is the driver file, so COMP's opcontrol(), and Teleop until Part 3" (:1159-1160).
+       Teleop calls `runDriverControl` directly, with a runtime `loopCfg` that names only `tickPeriod` and
+       `rezeroButton` (`teleop_program.cpp` :988-998). It gets the protections from the new field's default;
+     - item 6's "by 1b's diff check" (:1242-1243);
+     - §0.2 (:736);
+     - the header's in-flight sentence (:25-27);
+     - the status line (:40-43).
+   - **Fixed in each place:**
+     - Part 2 runs after COMP-b.
+     - Teleop gets the protections through `DriverLoopConfig`'s defaulted field until Part 3.
+     - Part 2 runs the diff check itself, and logs `kDeadPortLine1/2` (now :274-279) as the only literal
+       changes.
+     - The status records the team lead's go on Parts 2 and 3 (2026-09-28, "i want to do all this";
+       build-order :632).
+   - No host test compiles `teleop_program.cpp`. So a source pin states that Teleop's `loopCfg` names no
+     `protection`, which is what gives it the default.
+7. **(minor) Part 2 must re-read COMP-b's files, and its prose review would miss COMP-b's dead-port words in
+   `src/` — REAL.**
+   - **Verified:**
+     - `src/common/driver_panel.hpp` does not exist, and COMP B11 still calls it "proposed".
+     - Teleop's `kDeadPortLine1/2` say runtime absence is "AT BOOT ONLY" and "not in this graph yet", and B11
+       moves Teleop's pieces into COMP-b's header.
+     - The COMP re-check leaves two homes to a decision (RC6, ND3): the shared pieces', and the refusal
+       painter's. It keeps `clawRowText`/`faultRowText` in `teleop_claws.hpp` until Part 3.
+   - **Fixed:**
+     - Part 2 gains item 8, "re-read at start", and Part 3's item 3 a matching note.
+     - Part 2's prose review also runs over `src/` and `include/shulib/`, with the terms "AT BOOT ONLY",
+       "after boot", "not in this graph", "runtime absence" and "dead-port".
+8. **(minor) The cookbook quotes `run()`'s doc as one unbroken listing — REAL.**
+   - **Verified.**
+     - Cookbook 06's "How it runs" listing quotes `run()`'s `///` lines (`06-driver-control.md` :243-262).
+     - The listing is held to the unbroken-run rule (:264-266; `WHOLE_RUN_SOURCE_GLOBS`, T4-PROGRESS
+       :380-388, :465-469).
+     - The cookbook quotes no header paragraph.
+   - **Fixed in §4 Part 2:**
+     - Re-quote the "How it runs" listing once `run()`'s doc changes; `check-examples` stays red until then.
+     - Add one prose sentence on the protections to the chapter.
+     - "Header paragraph" is dropped. "`perTick`'s fourth argument in the loop recipe" is kept.
+9. **(minor) P2-20's write count does not exist, and the config check's place was unclear — REAL.**
+   - **Verified.**
+     - `FakeMotor` has only `commandedVoltage` and `brakeMode` (`fake_motor.hpp` :17-49).
+     - Before tick 1 the loop already does four things (`teleop_loop.hpp` :223-259): it releases leftover
+       claims, resets every binding and makes it safe, enters every toggle, and applies the release mode.
+   - **Fixed.**
+     - The config check is one more `SHULIB_PRECONDITION`, beside `tickPeriod` and `validBindings`
+       (:213-219). It runs before the claim release and before `DriveProtection` is built.
+     - P2-20 uses a test-side counting `IMotor`/`IDigitalOut` decorator, bound through
+       `FakeDeviceProvider::bindMotor`/`bindDigitalOut` (:123, :136). It counts drive AND mechanism writes and
+       brake-mode sets. `FakeMotor` gets no API change (§5).
+10. **(minor) The FROZEN exclusion mask outlived driver control, and `member(i)` on a runtime-absent member
+    was unspecified — REAL.**
+    - **Verified.**
+      - Nothing clears `setMonitorExcluded` on the disable return (`teleop_loop.hpp` :262-269) or on a throw.
+      - `member(i)` throws on a null slot (`motor_group.hpp` :299-305).
+    - **Fixed: the mask.**
+      - `DriveProtection`'s destructor (`noexcept`) sets every group's mask to 0. So the disable return AND a
+        throw both leave the groups bit-identical to what motion code expects.
+      - `enter()` clears the mask as well.
+      - New test P2-22: a member FROZEN on the disable tick is judged by the monitor in the next motion, and
+        MOTOR_GROUP_DISAGREE raises.
+    - **Fixed: `member(i)`.**
+      - It keeps its precondition on a BOOT hole only. A runtime-absent member is returned, because it exists
+        and is still commanded; its doc says so.
+      - The protections never read a runtime-absent member. The cut's `at the cut:` line prints `ABSENT` for
+        it, with no reading. The disable summary gives its peaks up to the tick it was marked.
+11. **(minor) The push check read its highest current from the disable line, which may never print — REAL.**
+    - **Verified.**
+      - The loop reaches step 1 only if it polls `disabled()` before PROS deletes the task. That race is
+        unmeasured: HA-161, and HA-145 is unknown (`teleop_loop.hpp` :19-26).
+      - The team has no competition switch, so a bench run may never see a disable at all.
+    - **Fixed: a peak line that does not depend on the disable.**
+      - At the end of each driven stretch (the side's command falls to or below `commandFloorV`), the
+        protections log ONE `TEL` line if that stretch's peak member current is a NEW high for this entry. For
+        example: `drive: LEFT peak 2.31 A (port 13) over a 3.1 s drive, no cut`.
+      - These are events, bounded because the peak only rises within an entry.
+      - Station K's push check reads this line (push 3 s, then let go) and the cut line's `at the cut:`
+        currents. The disable line is a bonus.
+    - **Test** P2-16b. The mutation "the peak line only on the disable path" turns P2-16b red.
+12. **(minor) Live members DO go briefly FROZEN when each member's encoder has its own phase; HA-175's wording
+    said never — REAL.**
+    - **Verified** by the checker's `phase_probe`/`phase_sweep` (the real monitor, item 4's rules). A
+      coast-down with an 80-300 ms velocity lag and a one-count phase spread puts live members FROZEN for up to
+      12 consecutive ticks: never 25, and no cut. With no phase spread, never. The fixer's `slip_probe` S6
+      agrees (item 4's guard: a 9-tick run).
+    - **Fixed:**
+      - HA-175 is reworded: a live member is never FROZEN for `persistTicks`; brief FROZEN spells at a stop are
+        expected and harmless.
+      - `DriveProtectionState::frozen` now reads "empty almost always; a live member may show in it for up to
+        ~120 ms as the train coasts to a stop".
+      - P2-19c is added (hand-stepped): a coast-down with a per-member phase offset and a 150 ms velocity lag.
+        Expect every FROZEN run under `persistTicks`, nobody ABSENT, and no cut.
+    - Under Decision D (a), the velocity-identical repeat shortens those spells to 3 ticks or fewer. In
+      `slip_probe`'s coast-down sweep (lags of 30-300 ms, coast time constants of 0.08-0.6 s), G4 gives 0 at
+      the checker's 150 ms point and at most 3 at a slow coast with a long lag, where a whole-RPM report holds
+      one value for a few ticks; item 4's guard gives up to 12. P2-19c pins the longest run either way.
+13. **(minor) Part 3's slot sweep, the build counts, the "five per side" prose and several anchors were stale —
+    REAL.**
+    - **Verified:**
+      - "slot 7" is not one of Part 3's prose-review terms, although COMP-t's documents name the slot beside
+        the name (COMP-t :513-515, and its own greps :2314).
+      - Part 3 says "six today; add COMP-b's seventh and COMP-t's" (:1380). COMP-t is the seventh build and
+        COMP-b the eighth (COMP-t :2269; the COMP re-check).
+      - These still say five per side: `drivetrain_degradation.hpp`'s THE REASONING (:19-29) and :45,
+        `motor_group.hpp` :37, `coupled_side_monitor.hpp` :8-9, and `drive_plant.hpp` :221-222.
+    - **Fixed:**
+      - "slot 7" and "Auton Tester" are added to Part 3's terms, and the sweep covers every document COMP-t
+        wrote.
+      - The count reads "eight after COMP-t (7th) and COMP-b (8th); seven after Part 3".
+      - Items 3 and 5 correct every "five per side" sentence in the headers Part 2 edits. The reasoning stays
+        honest: it was reasoned for five, and robot two is now four.
+      - The anchors are in the table below.
+14. **(major — found by the fixer while verifying 1 and 12) N2 (a)'s FROZEN rule marks LIVE members when one
+    member of a side SLIPS and the train stalls. On robot two's known slipping port, that REFUSES the drive for
+    the rest of the run.**
+    - **The hole.** Item 4's guard is "some other present, unlatched member is not SUSPECT".
+      - A member whose gear slips keeps turning its own encoder when the train stalls against a wall or a
+        robot under a held stick. That is the plant's `MemberFault::Decoupled`, and robot two's port 18
+        (HA-130: about 20 % short on a hand push, cause unknown, "watch it under power").
+      - The three coupled members' positions stop. The slipping member is a "moving mate": its position
+        changes, above 1 rad/s. So all three are SUSPECT, and because the slipping one is not, all three are
+        FROZEN for as long as the driver pushes.
+      - At 25 ticks all three latch ABSENT. That is three dead: **REFUSED for the rest of the run under
+        N7 (c).**
+      - The rulings probe had no slipping member. P2-8 has one, but no wall: the plant has no mass and cannot
+        hit one.
+    - **Probed** (`slip_probe.cpp`: the REAL monitor and item 4's rules, on a hardware-like side with an 80 ms
+      train lag, BLUE's 300 counts, a one-count phase spread and whole-RPM velocity reports).
+      - **S1 and S1b** (a slip with drag 0 or 0.8; a wall at 2 s under full stick for 3 s): item 4's rule
+        marks **3 live members ABSENT**, with 0 cuts.
+      - **S1c, a second path** (the same with a 150 ms velocity lag). During a cut the slipping member coasts
+        down. Its position stops while its lagging report stays above 0.5 rad/s, and its stalled mates are
+        not SUSPECT. So the LIVE slipping member itself is FROZEN for 25+ ticks and latches. A majority guard
+        alone does the same (G1/G2: 1 live).
+      - **The old velocity-exactly-0 signature has the same hole.** Row Z-c: it marks all three stalled
+        members beside the slipping one, under every definition of mates. So the old program had the hole
+        too, through that signature.
+    - **A fix that holds in every scenario the probe has (G4).** Two changes together:
+      - **A majority-or-tie guard.** FROZEN needs the side's present, unlatched members that are NOT suspect
+        to be at least as many as those that are. This replaces "some other".
+      - **A velocity-identical repeat.** A read counts as REPEATED only when position AND velocity are both
+        bit-identical to the previous read. ProsMotor's last-good screen holds EVERY reading of a dead port,
+        while a live motor's lagging report changes.
+    - **What G4 gives:**
+      - S1, S1b and S1c: 0 live members marked. There are 3 FIGHT cuts during the push instead: the monitor's
+        own verdict on stalled members beside a faster slipping one. The old program would have cut the same
+        way, and it happens inside N1's push cuts anyway.
+      - P2-6, P2-5, a death beside a slipping member, and deaths on sides at 3 of 4 and 2 of 4: the dead
+        member is ABSENT on the same tick as under item 4 — +28 after a death at speed, and 26 ticks after
+        the drive starts for a death at rest (S3, S4, S7, S8, S9).
+      - The wall and P2-8: nothing.
+      - The coast-down: at most a 3-tick FROZEN run across the sweep (0 at the S6 point), against 12 under
+        item 4's guard.
+    - **One case G4 does not fix.** A side ALREADY at 2 of 4 whose slipping member is at a wall (S10): the tie
+      marks the stalled one, which makes three dead and REFUSES. A strict majority fixes S10, but then a
+      2-of-4 side's next death is never marked and cuts every 1.25 s (S8).
+    - **Decision D** is the team lead's, because it changes the rule N2 (a) ruled, and it is needed before
+      Part 2. Item 4, HA-175, P2-10b and landmine 28 are written for D (a), and §3 gains P2-21 and P2-21b and
+      two mutations.
+
+### Re-anchored for Parts 2 and 3 (`e124b88`; re-find each by its quoted text at the part's start)
+
+| What | The brief said | Now |
+|---|---|---|
+| `teleop_loop.hpp` `runDriverControl` (the one loop body; the two older overloads forward to it) | :207-310 | :208-310 (overloads :316, :328); preconditions :213-219; claim release :223-240; entry safe state and release mode :241-259; disable :262-269; `drive()` :291, release :294; `perTick` :307 |
+| `chassis.hpp` `drive()` (TANK1 moved it; body unchanged) | :385-420 | :419-457; `emitDriveRecord` :596 |
+| `hal/pros/motor.hpp` the read screens | :230-258 | `position()` :233, `velocity()` :247, `current()` :259 (each with its screen) |
+| `hal/pros/device_provider.hpp` the provider's sink | ~:373-376 | `telemetry()` :376; `TermSink telemetry_{clock_, usb_}` :466-467 |
+| `motor_group.hpp` | :82-90, :283-300 | "later chunk" :82-90; `isPresent` :291; `member(i)` :299-305; "N = 5" :37 |
+| `coupled_side_monitor.hpp` | :197-252 | `SideMonitorConfig` :67-73; `MemberAbsenceDetector` :197-252 (velocity-0 :221-234); "the drive program" :15, :40, :65, :171, :195; "five motors" :8-9 |
+| `drivetrain_degradation.hpp` | :30-35, :38-40 | THE REASONING :19-29; DOMAIN :31-37; caller :38-40; :45; constants :46, :50 |
+| `robot.hpp` | `makeSideGroup` ~:922, `describe()` :745 | `makeSideGroup` :922 (called :513-514); `describe()` :747 |
+| `teleop_program.cpp` (1a added the tie at :179-192 and deleted `headingSample()`) | `kDeadPortLine1/2` :258-263; rows :302-316 | :274-279; `PanelRow` :318-332; `loopCfg` + the call :988-998; `TeleopState` :505; `paintRefusal` :536; `TeleopPanel` :619; `logBootLines` :791; `teleopInitialize` :885; `runTeleop` :973 |
+| `teleop_claws.hpp` | claw row :385, `kLcdClawAbsent` :445, `faultRowText` :452 | `TeleopClaws` :77; boot lines :288, :312; banner :337; the tie :205-248; `clawRowText` :442 (+ forwarder :494); `kLcdClawAbsent` :509; `faultRowText` :516 |
+| `mechanism_table.hpp` | `kTeleopRezeroButton` :159 | :169 |
+| `src_build_gate.py` | `VARIANTS` :275 … 27's plants :1870/:1909 | `VARIANTS` :307, `BUILD_ARGS` :308, `VARIANT_DEFINES` :316, `VARIANT_BEACONS` :325, `BUILD_ROBOT` :339, `BUILD_PROGRAM` :413, `PROGRAM_ENTRY_SYMBOLS` :421; plants :1380-1396; `_replace` :1443; cases 10-11 :1599-1622, 12-13 :1624-1646, 16 :1675-1696, 19 :1750-1852 (define plants :1763-1779, :1827-1831), 20 :1855-1873, 21 :1875-1896, 24 :1938-1964, 26 :2005-2081 (`tableSignedPort(kChassis, p)` :2029), 27's plants :2097, :2136, **28 :2146-2245, 29 :2247-2258, 30 :2260-2290** |
+| Worksheet | F dead-port :616-621; F.1 :569-570 | E :417; F :506; F.1's L/R rows :577-578; F dead-port :628; G :696; J :1217 |
+
+### Decisions (new, 2026-09-28)
+
+Each is the team lead's; none of them revisits a ruled matter except where it says so. A recommendation is
+given for each.
+
+**A — What the SD copy holds (N5 (a)'s pieces; needed before Part 3). RECOMMENDED (a).**
+- **(a) Events only.** `log()` lines and `summarize()`'s block go to the card, and never `emit()` records.
+  The piece is `diag::LogCopySink` (item 2), in place of `hal::TeeCharSink`.
+  - **Cost:** one additive PROS-free decorator outside N5 (a)'s list (§5 names that list exhaustive, hence
+    this question).
+  - The card holds no per-tick records; the blackbox is where those belong.
+- **(b) Every serial line, as N5 (a) was written.** **Cost:** about 100 lines, 11 KB and 100 flushes a second
+  on the card during driver control. That is against HA-60, and a slow flush costs the tick it lands in.
+
+**B — Whether the competition program keeps an SD copy, and in which mode (needed before Part 3).
+RECOMMENDED (a).**
+- **Why it is open now.** N5 (a) left it "at COMP's choice". But COMP-b lands before the provider's argument
+  exists, so the choice falls to Part 3.
+- **(a) A copy in Append mode.** It takes one more optional provider argument, a `hal::pros::ProsFileMode`
+  defaulting to Truncate (additive), and it uses COMP-t's append open (HA-177). The file is its own, for
+  example `comp_log.txt`, and each boot's session header separates the boots.
+  - **Cost:** the file grows across boots until someone deletes it.
+- **(b) Truncate, as "shulib Drive" does.** **Cost:** a reboot mid-match erases that match's log, which is
+  the case the log exists for.
+- **(c) No copy for COMP.** **Cost:** a practice match with no laptop leaves only COMP-t's run log
+  (autonomous runs) and the blackbox.
+
+**C — The velocity-exactly-0 signature (needed before Part 2). RECOMMENDED (a): drop it.** It is the team
+lead's. The checker offered it as the coordinator's, but the signature is part of N2 (a) as ruled ("stays
+beside it").
+- **(a) Drop it from Part 2.** `MemberAbsenceDetector` stays in the library unchanged, with its tests. No
+  caller is left after Part 3. HA-175 loses its clause.
+  - **Evidence:**
+    - Through IMotor, a dead port reads a velocity of exactly 0 only when it died at rest. Then its position
+      repeats too, and the FROZEN rule latches on the same tick (P2-5 on the plant).
+    - The signature latches alone only in two cases: a member whose position changes while its velocity
+      reads exactly 0, which is a live motor; and a stalled live member beside a slipping mate at a wall
+      (`slip_probe` Z-c, under every definition of mates).
+- **(b) Keep it.** Item 1's corrected mates, D's guard applied to it as well, the FROZEN reason on a
+  same-tick latch, and P2-19b. **Cost:** a second rule for students to defend, with no detection of its own.
+
+**D — The FROZEN rule's guard (item 14; it amends N2 (a) as ruled; needed before Part 2). RECOMMENDED (a).**
+- **(a) G4: a majority-or-tie guard AND a velocity-identical repeat.** There is no new number: `frozenSuspectReads`
+  and the monitor's floors are unchanged.
+  - **Cost:**
+    - A side already at 2 of 4 whose slipping member stalls at a wall still refuses (S10).
+    - A wall push with a slipping member CUTS instead of marking: the monitor, 1 s in every 1.25 s, as the
+      old program would have.
+    - It assumes a dead port holds its velocity bit-identically (ProsMotor's screen does; so does the plant's
+      Frozen). It also assumes a live motor's report CHANGES while it decays. That is unmeasured: a whole-RPM
+      report can hold one value for a few ticks, and the probe used whole output RPM and passed. HA-175
+      records both.
+- **(b) Item 4 as ruled.** **Cost:** whenever port 18 slips at a wall under a held stick, three live members
+  are marked and the drive is refused for the rest of the run.
+- **(c) The majority guard only (G2).** **Cost:** the lag path (S1c) still marks the slipping member itself,
+  and the coast-down FROZEN spells stay.
+- **(d) A strict majority plus the velocity-identical repeat.** **Cost:** a 2-of-4 side's next death is never
+  marked, and it cuts every 1.25 s instead (S8).
+
+### Honest size now
+- **Part 2: ~2–2½ days** (it was 1½–2). It adds D's guard and its tests (P2-21 and P2-21b, P2-19c), the
+  destructor's mask clear (P2-22), the peak line (P2-16b), the entry precondition, the re-read of COMP-b's
+  files, the cookbook re-quote and the `src/` prose sweep. It is about 1 h less if C drops the velocity-0
+  check. **It waits on C and D.**
+- **Part 3: ~3–3½ days** (it was ~2, or ~1½ without N5 (a)); ~2½–3 without N5 (a). **It waits on A and B.**
+  - +½–¾ day for Part 1b's folded work: the table's four fields and checks 4-7, the claw boot lines taking
+    the controls with COMP's call sites, three test files and 1b's documents;
+  - +~2 h for the gate's cases 28-30;
+  - +~2 h for A's log-only copy piece in place of the tee;
+  - −~1 h because COMP-t builds `BlockCharSink`;
+  - +~1 h for the slot-7 sweep.
 
 ---
 
@@ -357,7 +758,7 @@ Each finding re-verified in the tree at `37706ce`; all nine are real and fixed a
 | Slot | Now (`37706ce`) | Until T4 Part 3 | Final (R6) |
 |---|---|---|---|
 | 1 | "shulib Drive": the OLD program (typed table; it drives toward the 15/16 end) | the same OLD program | **"shulib Drive": the NEW driver program** (it drives toward the record's front, the camera end) |
-| 2 | "shulib Teleop" | "shulib Teleop" (runs the driver file from Part 1b) | **"shulib Auton Tester"** (COMP-t) |
+| 2 | "shulib Teleop" | "shulib Teleop" (~~runs the driver file from Part 1b~~ its own bindings, tied to the driver file's; 1b skipped, 2026-09-28) | **"shulib Auton Tester"** (COMP-t) |
 | 3 | "Bench Tests" | the same | the same |
 | 4 | "shulib Calibrate" | the same | the same |
 | 5 | HELD: the team's old-code fallback | the same | the same |
@@ -400,7 +801,8 @@ Each finding re-verified in the tree at `37706ce`; all nine are real and fixed a
   - Part 3 retires Teleop in the same change (N6: `PROGRAM=library` REMOVED).
   - Station J (the claw test) moves to the new program.
   - Until then Teleop keeps working, and Part 1b moves it onto the driver file so its buttons never have
-    two owners.
+    two owners. *(Superseded 2026-09-28: 1b is skipped; Teleop keeps its own bindings, tied at compile
+    time, until Part 3 deletes it.)*
 
 **R6. RULED: the slots are final** (the table above). The team lead added:
 - "shulib Auton Tester" is a NEW, separate chunk (COMP-t), built in parallel with T4 Part 1a.
@@ -470,7 +872,8 @@ Each finding re-verified in the tree at `37706ce`; all nine are real and fixed a
 `src/common/boot_source`, as Teleop and COMP do, and L9 Part B's one-line boot changes only the programs' boot
 lines, later.
 
-**D6 — SUPERSEDED by R5.** Teleop runs the driver file from Part 1b until Part 3 retires it.
+**D6 — SUPERSEDED by R5.** Teleop runs the driver file from Part 1b until Part 3 retires it. *(And that
+too is superseded, 2026-09-28: 1b is skipped, and Teleop never runs the driver file.)*
 
 ### NEW decisions the amendments raised (a recommendation for each, and the real cost of every option)
 
@@ -536,7 +939,9 @@ lead's: F4 is locked; needed before Part 2). RECOMMENDED (a), amended at the re-
 - **(a) RECOMMENDED — a FROZEN member, judged per side through IMotor alone** (a new pure
   `teleop::FrozenReadingDetector`, one per group; Part 2 item 4). Each tick, BEFORE `drive()`:
   - **SUSPECT.** The member's `position()` has been bit-identical for 5 consecutive reads
-    (`DriveProtectionConfig::frozenSuspectReads`, HA-175), AND one of these holds:
+    (`DriveProtectionConfig::frozenSuspectReads`, HA-175), AND one of these holds: *(Under Decision D (a),
+    re-check item 14: a read counts as repeated only when `position()` AND `velocity()` are both
+    bit-identical to the previous read.)*
     - its OWN reported |velocity| is above 0.5 rad/s. The motor says it turns and its encoder does not,
       which a live motor cannot do.
     - a side-mate whose position IS changing reports above 1 rad/s. The train turns and this encoder does
@@ -546,6 +951,10 @@ lead's: F4 is locked; needed before Part 2). RECOMMENDED (a), amended at the re-
     threshold.
   - **FROZEN.** SUSPECT while at least one other present member of its side is NOT. A whole side stopping
     at once is every member alike, never a death: a wall, a stall, or a velocity report lagging a stop.
+    *(Pending Decision D, re-check item 14: this guard marks the three stalled LIVE members of a side whose
+    fourth member SLIPS (HA-130's port 18) when the train stalls under a held stick. D (a) replaces "at
+    least one other" with "the present, unlatched members that are NOT suspect are at least as many as
+    those that are".)*
   - **What FROZEN does, from that tick on:**
     - the group's monitor is told `present = false` for it (`MotorGroup::setMonitorExcluded`, Part 2
       item 3), so its stale velocity can neither start a fight streak nor make its mates look stalled;
@@ -565,13 +974,18 @@ lead's: F4 is locked; needed before Part 2). RECOMMENDED (a), amended at the re-
     `frozenSuspectReads < persistTicks` is a precondition. In the probe the dead member's monitor streak
     peaked at 5 in every death scenario, against the 25 a cut needs.
   - The old "velocity exactly 0" signature stays beside it (`MemberAbsenceDetector`, unchanged).
-    Registered, with the new rule, as HA-175 (N3).
+    Registered, with the new rule, as HA-175 (N3). *(Re-check 2026-09-28, items 1 and 14: its "mates" were
+    never defined, and with every present mate a port that dies at speed gets three live members marked at a
+    wall; it has no detection the FROZEN rule lacks. **Decision C** recommends dropping it; if kept, its
+    mates are the FROZEN detector's own and D's guard applies to it.)*
   - **Cost:**
     - A LIVE member whose position really repeats for 5 reads while it, or a moving mate, reports above
       those floors leaves the fight monitor for those ticks (harmless). If that lasts 30 reads while a mate
       still answers, it is dropped. That is reasoned impossible on robot two's BLUE cartridge unless its
       data stops arriving, which is what "stops answering" means. BLUE counts 300 per output turn: about
-      one count every 42 ms at 0.5 rad/s, and every 21 ms at 1 rad/s. HA-175 settles it.
+      one count every 42 ms at 0.5 rad/s, and every 21 ms at 1 rad/s. HA-175 settles it. *(Re-check
+      2026-09-28, item 14: the reasoning missed a live member STALLED beside a slipping mate — its position
+      repeats because the train stopped, not because its data did. Decision D.)*
     - **A whole side that stops answering at once is not seen,** because every member looks alike. The old
       faulted-read count would have seen it. The robot shows it by not driving that side.
     - A stale reading stays in the group's median for up to 250 ms before it is ABSENT (today it stays
@@ -636,10 +1050,15 @@ BEFORE Part 0, which writes Station A). RECOMMENDED (a).**
   (`diag/term_sink.hpp` :81), and no `ICharSink` writes to the SD card today. `ProsBlockSink` is a BLOCK
   sink (`hal/pros/block_sink.hpp` :71). So (a) is three pieces, all additive (no frozen interface):
   - **`hal::TeeCharSink`** (PROS-free, `include/shulib/hal/`): an `ICharSink` over two `ICharSink&`. Each
-    `write()` goes to the first, then the second, whole. It never throws.
+    `write()` goes to the first, then the second, whole. It never throws. *(Pending Decision A, re-check
+    item 2: a character-level tee under the provider's ONE `TermSink` copies every `emit()` record too — one
+    line and one flush per 10 ms tick. A (a) replaces it with `diag::LogCopySink`, a telemetry-level
+    decorator: `log()`/`summarize()` to both, `wantsRecord()`/`emit()` to the primary only, the copy a second
+    `TermSink` over `BlockCharSink`.)*
   - **`hal::BlockCharSink`** (PROS-free): an `ICharSink` over an `IBlockSink&`. Each `write()` is one
     block `write()` then `flush()`. A refusal is dropped and counted (`droppedWrites()`), never thrown: a
-    full or missing card must not stop a drive.
+    full or missing card must not stop a drive. *(Re-check 2026-09-28, item 5: COMP-t BUILDS this piece,
+    to this specification (COMP-t §3.7.6, test (32)); Part 3 reuses it and builds no copy.)*
   - **`ProsDeviceProvider`** gains an optional constructor argument, `const char* serialCopyFile`
     (default `nullptr`: today's provider, byte-identical).
     - Given a BARE file name, the provider owns a `ProsBlockSink` on it (truncated at construction: one
@@ -650,9 +1069,12 @@ BEFORE Part 0, which writes Station A). RECOMMENDED (a).**
     argument through the shim (the copy holds exactly the serial bytes; a refusing card drops and counts).
   - The new "shulib Drive" passes `"drive_log.txt"`; COMP may do the same, at COMP's choice. The copy
     begins when the provider is built. So the banner and the boot-source lines printed before it are on
-    serial only, and F.7 says so.
+    serial only, and F.7 says so. *(Re-check 2026-09-28: COMP-b lands before the provider's argument
+    exists, so COMP's choice — a copy or not, Truncate or Append — is **Decision B**, made before Part 3.)*
   - It is done in Part 3, about 3 h more. **Cost:** a library change in Part 3, and one SD write + flush
-    per log line. Log lines are events only, never one per tick.
+    per log line. ~~Log lines are events only, never one per tick.~~ *(FALSE, re-check item 2: through the
+    provider's `TermSink` every `drive()` tick is a record line (`term_sink.hpp` :104, `chassis.hpp` :447,
+    :455) — 100 lines and 100 flushes a second. Events only needs Decision A (a).)*
 - **(b)** Accept the loss now. The robot console (R7) covers the bench, and the field record is COMP's to
   decide. **Cost:** a practice run without a laptop leaves nothing but the screen.
 
@@ -665,7 +1087,9 @@ stated so it can be objected to.
 - Part 3 item 3 gives the build-gate consequences:
   - the builds go down by one;
   - self-test cases 12–13 are RETIRED onto 10–11, which already test the same things for `tank-drive`;
-  - six cases are re-pointed (16, 19's define plants, 21, 24, 26 and 27's two plants);
+  - six cases are re-pointed (16, 19's define plants, 21, 24, 26 and 27's two plants) — *and SRC1's cases
+    28 (its two `CLAWS_PLANT` sub-cases and its `SHULIB_PROGRAM_LIBRARY` folder-switch plant), 29 and 30
+    (re-check 2026-09-28, item 3)*;
   - a new pair proves the retirement.
 
 **N7 — Whether a runtime death may STOP the drive mid-match (the team lead's; needed before Part 2).
@@ -733,7 +1157,9 @@ His rulings of 2026-09-27 (§ Decisions) add four things:
 ### 0.2 The design (the coordinator's principle, checked here)
 ONE readable driver file is the team's driver code. Every program that drives robot two for a driver runs
 it, so nothing is duplicated: the new "shulib Drive" (slot 1) and the competition program's `opcontrol()`
-(slot 6). "shulib Teleop" runs it from Part 1b until Part 3 retires it.
+(slot 6). "shulib Teleop" runs it from Part 1b until Part 3 retires it. *(Superseded 2026-09-28: Part 1b
+is skipped; Teleop never runs the driver file. It keeps its own `runDriverControl` call until Part 3 deletes
+it, and gets Part 2's protections from `DriverLoopConfig`'s defaulted field.)*
 - **What it declares:** each control in one line, the feel and the loop. The feel is Teleop's today:
   the default `DriverProfile`, field-centric off, Coast on release, re-zero on Y.
 - **What it runs:** the library's loop, `teleop::runDriverControl`, called in the file itself so the
@@ -751,6 +1177,9 @@ it, so nothing is duplicated: the new "shulib Drive" (slot 1) and the competitio
   functions (R7).
 
 ### 0.3 What exists (every anchor re-read at `37706ce`)
+*(Re-check 2026-09-28: SRC1, Part 1a and TANK1 moved many of these lines. The anchors Parts 2 and 3 cite are
+re-found in "Re-check 2026-09-28 — amendments", its table; every other one is re-found by its quoted text.)*
+
 | Piece | Where | What matters |
 |---|---|---|
 | The loop | `include/shulib/teleop/teleop_loop.hpp` | `DriverLoopConfig{tickPeriod, rezeroButton = L1, releaseBrakeMode = Coast}` :132-151; `HeadingSample` :155; the two-span `runDriverControl(chassis, controller, pacer, shaper, cfg, holds, toggles, disabled, heading, perTick)` :207-310 — `validBindings` as a PRECONDITION before tick 1 (:216-219), a leftover claim released at entry and logged Warn tag `TEL` through the chassis's sink (:223-240), toggles left alone on a disable (:262-270), `drive()` then the release mode (:291-294), `perTick(command, connected, shaper.state())` (:307); the banner already names Teleop AND the X-drive (:92-96) |
@@ -838,6 +1267,10 @@ it, so nothing is duplicated: the new "shulib Drive" (slot 1) and the competitio
     - the mates' fastest counting members whose position repeats (the latch moves from +28 to +128 in the
       cut-then-reverse case).
   - **It is a simulation, not the library.** The executor's tests in §3 are the proof.
+  - *(Re-check 2026-09-28: it had no SLIPPING member and never ran the velocity-exactly-0 signature beside
+    N. The fixer's `slip_probe` (`.claude/coordinator/scratch/recheck-2026-09-28/`) adds both — items 1 and
+    14 and Decisions C and D. It also gives every member its own encoder phase and whole-RPM velocity
+    reports, which the rulings probe did not.)*
 - **Not probed in the tree: Part 2.** Its design rests on the anchors in §0.3 and §0.5 and on the probe
   above. It adds an optional `DriverLoopConfig` field appended last, which the §2 file's designated
   initializer must still accept. The first thing Part 2's executor does is compile the §2 file against the
@@ -1007,7 +1440,10 @@ step.
    - `boot_source.hpp` :92-94 (prose only; SAFE-SAVE B2 edits this file later — whoever lands second
      re-reads).
 
-### Part 1b — one owner (after COMP-b)
+### Part 1b — one owner (after COMP-b) — **SKIPPED, FOLDED INTO PART 3** (the team lead, 2026-09-28)
+*(Items 1 and 2's table and claw-word work is Part 3 item 5; item 3's Teleop rewiring and item 4's banner
+sentence lapse. Part 2 makes the banner's caller list true. Kept below as the record and the specification
+item 5 points at.)*
 1. **`src/robots/mechanism_table.hpp`:**
    - remove `forward`, `reverse`, `volts` (the motor entry), `toggle` (the pneumatic entry),
      `kTeleopRezeroButton`, checks 4-7 and their asserts (robot two's and the build's), and update
@@ -1052,7 +1488,9 @@ step.
    X-drive) adds only "through robot two's driver file (src/team/robot_two_driver.hpp)". `docs/api` is
    regenerated; there are no declaration changes, so no changelog entry (say so in the commit body).
 
-### Part 2 — the drive protections, in the library (after Part 1b; BEFORE Part 3)
+### Part 2 — the drive protections, in the library (after COMP-b; BEFORE Part 3) *(was "after Part 1b"; 1b is skipped)*
+*(Re-check 2026-09-28: Decisions C and D are answered before this part starts; item 8 lists what it re-reads
+first, since COMP-b lands before it.)*
 The team lead's ruling R4. Everything here is library code (`include/shulib/`, PROS-free), apart from the
 few `src/` lines in item 6 that would otherwise go false. It is host-tested on the plant's member faults,
 and on hand-stepped `FakeMotor` reads where the plant cannot shape the case (a train with inertia, a wall).
@@ -1080,14 +1518,19 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
 
      It is checked at the loop's entry, before anything moves: every number finite and positive, and
      `frozenSuspectReads` below every group's `persistTicks`. A violation is a precondition error, and
-     nothing is commanded (P2-20). The fight and absence floors are NOT here. They are each group's
+     nothing is commanded (P2-20). *(Re-check item 9: the check is one more `SHULIB_PRECONDITION` in
+     `runDriverControl`, beside `tickPeriod` and `validBindings` (`teleop_loop.hpp` :213-219), BEFORE the
+     claim release and before `DriveProtection` is built. The claim release, the bindings' reset and
+     makeSafe, the toggles' enter and the release mode all command something.)* The fight and absence floors are NOT here. They are each group's
      `SideMonitorConfig` (HA-132/133): one set of numbers, as today.
    - **`struct DriveProtectionState`** (what a panel reads; trivially copyable):
      - `mode`: `Driving` / `Degraded` / `Cut` / `Refused` (`Refused` never occurs under N7 (b));
      - `cutTicksLeft`, `cutCount`;
      - `lastCut` (a bounded char array holding the log's own words);
      - `dead` (the runtime-dead ports as text, `"13 18"`);
-     - `frozen` (the ports FROZEN this tick, as text; empty almost always);
+     - `frozen` (the ports FROZEN this tick, as text; empty almost always) *(re-check item 12: under
+       item 4 as written, a live member may show here for up to ~120 ms as the train coasts to a stop;
+       under Decision D (a), for 3 ticks at most in the probe's sweep)*;
      - the `DegradationVerdict` in force;
      - each side's peak current this entry.
    - **`class DriveProtection`.** There is ONE per `runDriverControl` call (per driver-control entry). It
@@ -1096,6 +1539,10 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
      - **`enter()`** re-judges the degradation from each group's `memberCount()` / `presentCount()`, by
        N7's rule. Runtime marks live in the GROUPS, which sit in the program's static storage. So under N7
        (a) or (c) a robot whose marks meet the rule is REFUSED at the next entry, 0 V from tick 1.
+     - **The exclusion mask never outlives the protections** *(re-check item 10)*. `enter()` sets every
+       group's `setMonitorExcluded(0)`. `DriveProtection`'s destructor (`noexcept`) does the same, so the
+       disable return AND a throw out of the loop both leave the groups as motion code expects. Only the
+       runtime MARKS persist into a later autonomous (§5). P2-22 is the test.
      - **`beforeDrive()`: the FROZEN rule and RUNTIME ABSENCE, first** (N2 (a)). This keeps the old order
        (absence :482-520, THEN the fight :522-555), and it is the order that wins the race.
        - Every group's detector is handed each PRESENT member's fresh `position()` and `velocity()`.
@@ -1107,6 +1554,16 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
        - The old velocity-exactly-0 signature runs beside it: `MemberAbsenceDetector::update(0, velocity,
          groupCommand, matesFastest)`. The faulted-reads argument is a constant 0, because the seam has no
          count; `groupCommand` is the group's `commandedVoltage()` from the last `drive()`.
+         *(Re-check items 1 and 14 — pending **Decision C**.)*
+         - *If C (a), the recommendation:* this bullet is DELETED, and the absence rule is the FROZEN rule
+           alone.
+         - *If C (b):*
+           - `matesFastest` is the FROZEN detector's own "mates' fastest" for member i: the OTHER present,
+             unlatched members whose `repeatReads(j)` is below `frozenSuspectReads` (item 4). It is never
+             every present mate, which is what the old program used and what marks live members at a wall
+             after a death at speed.
+           - D's guard applies to it: it latches only a member the FROZEN guard would not outvote.
+           - When both signatures latch on one tick, the ONE line carries the FROZEN reason (P2-5).
        - After a latch, the degradation is re-judged by N7's rule, with its line (:505-512). Under N7 (a)
          or (c), a REFUSE latches `Refused` with its line (:513-518). The marks keep it refused at every
          later entry.
@@ -1137,12 +1594,24 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
            volts, and the old `stopAll` (:570) did the same.
          - `cutTicksLeft = cutTicks`, `++cutCount`.
          - The old words are logged (:547-553, :565-566, :574), plus one `at the cut:` line per member
-           (:576-580), within `maxCutsLogged` and its once-only notice (:581-583).
+           (:576-580), within `maxCutsLogged` and its once-only notice (:581-583). A runtime-absent member's
+           line says `ABSENT` and carries no reading: the protections never read one (item 3; re-check
+           item 10).
        - With `overCurrentCuts == false`, an over-current is logged and counted as a WARNING and nothing is
          cut.
+     - **The peak line** *(re-check item 11)*. It is written at the end of each driven stretch, the tick a
+       side's command falls to or below its `commandFloorV`, when that stretch's highest member current is a
+       NEW high for this entry. It is ONE `TEL` line, for example `drive: LEFT peak 2.31 A (port 13) over a
+       3.1 s drive, no cut` (or `, cut #2`).
+       - These are events, bounded: a side's peak only rises within an entry.
+       - It does not wait for the disable, which the loop may never see (HA-161; HA-145 unknown; the team
+         has no competition switch).
+       - Station K's push check reads it (P2-16b).
      - **On the disable** (the loop's step 1, unchanged: `cancel()`, 0 V + Brake, return): one summary line
        per group, giving each member's peak current and temperature this entry and the cut count. This
-       MOVES the old exit summary (:667-684) into the evidence HA-176 and HA-132 need.
+       MOVES the old exit summary (:667-684) into the evidence HA-176 and HA-132 need. *(A runtime-absent
+       member's peaks are those up to its mark. The line prints only if the loop polls `disabled()` before
+       PROS deletes the task, so it is a bonus; the peak line above is the record.)*
      - Every line goes through the chassis's sink with tag `TEL` (the loop's existing tag,
        `teleop_loop.hpp` :229). The old words keep their text, re-pointed from "port" to the label.
 2. **`include/shulib/teleop/teleop_loop.hpp`:**
@@ -1150,18 +1619,26 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
      initializers must follow declaration order. The driver file's `kLoop` names the first three fields
      and keeps compiling, with the defaults.
    - **`runDriverControl`** constructs one `DriveProtection` after the precondition checks and `enter()`s
-     it. Each tick, after shaping, it runs `beforeDrive()` → `chassis.drive(allowed ? command : zero, Body)`
+     it. *(Re-check item 9: the protection config's check is itself one of those preconditions, so a bad
+     config commands nothing at all.)* Each tick, after shaping, it runs `beforeDrive()` → `chassis.drive(allowed ? command : zero, Body)`
      → `afterDrive()` → step 6b (the release mode) → the bindings → the toggles → `perTick` → `pace`. The
      disable path is untouched, and a cut in force never delays it.
    - **`perTick` may take a FOURTH argument, `const DriveProtectionState&`.** It is detected with one
      `if constexpr (std::is_invocable_v<…>)`. The three-argument form still compiles and runs unchanged:
      Teleop's panel, the X-drive's, and every existing test use it.
-   - **It applies to EVERY caller.** That is the driver file, so COMP's `opcontrol()`, and Teleop until
-     Part 3. It also covers the invented X-drive, which has no groups. There it runs the over-current cut
+   - **It applies to EVERY caller.** ~~That is the driver file, so COMP's `opcontrol()`, and Teleop until
+     Part 3.~~ *(Re-check item 6: that is the driver file, so COMP's `opcontrol()`; and Teleop's own direct
+     call (`teleop_program.cpp` :988-998), whose runtime `loopCfg` names only `tickPeriod` and
+     `rezeroButton` and so gets `protection{}`'s defaults, until Part 3 deletes it. No host test compiles
+     Teleop's TU, so a source pin checks that its `loopCfg` names no `protection`.)* It also covers the invented X-drive, which has no groups. There it runs the over-current cut
      only, per bare drive motor, named by wheel index, and counted while that motor is commanded above 1 V.
      With no side to compare against, a bare motor's frozen current is NOT screened: stated, not solved.
      The X-drive refuses at boot on every robot.
-   - The header's tick order (:18-53) and its banner (:92-96) gain the protections, in place.
+   - The header's tick order (:18-53) and its banner (:92-96) gain the protections, in place. *(Re-check
+     item 6: the banner's callers are made true in the same edit — COMP's `opcontrol()` through robot two's
+     driver file (`src/team/robot_two_driver.hpp`), "shulib Teleop" by its own call until Part 3, and the
+     X-drive. That is the sentence 1b item 4 would have added; COMP-b may already have added it, so re-read
+     the banner first.)*
    - **Rejected:**
      - (i) a protection object each program builds and passes (another overload): a program that forgets
        it drives unprotected, and passing it through the driver file changes the file's code after its
@@ -1182,6 +1659,14 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
    - `presentCount()` / `isPresent()` reflect it. A new `runtimeAbsentMask()` says which members are
      runtime-absent. `absentMask()` stays the BOOT holes. `Robot::describe()` reads `isPresent`, so it
      names a runtime death too; its doc says so.
+   - **`member(i)` on a runtime-absent member** *(re-check item 10)*.
+     - Its precondition stays on a BOOT hole only (`members_[i] != nullptr`, `motor_group.hpp` :299-305). A
+       runtime-absent member is RETURNED, because it exists and is still commanded, and its readings are
+       stale.
+     - The doc's "slot i is PRESENT" becomes "slot i is not a boot hole (`absentMask()`); a runtime-absent
+       member is returned, and its readings are its last good ones".
+     - The protections never read a runtime-absent member. P2-10 pins both halves: `member(i)` does not
+       throw for it, and it throws for a boot hole.
    - **`void setMonitorExcluded(std::uint32_t mask) noexcept`** (N2 (a)). Members whose bit is set are fed
      to the monitor as `present = false` on every `evaluateDisagreement()` until the mask changes. They
      are the protection's FROZEN members, re-set every tick; `monitorExcludedMask()` reads the mask.
@@ -1189,7 +1674,8 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
      - Bits past `memberCount()`, and bits on holes or runtime-absent members, are ignored.
      - The default 0 is bit-identical to today.
      - Only the protections set it. Motion code never does, so MOTOR_GROUP_DISAGREE in an autonomous
-       motion (test 5f) is unchanged.
+       motion (test 5f) is unchanged. *(Re-check item 10: that holds only because `enter()` and
+       `DriveProtection`'s destructor clear the mask (item 1); P2-22 pins it.)*
    - **Labels:** `MotorGroup(members, thresholds = {}, labels = {})`, an optional span giving one port
      number per slot, so a log line can name the port. `robot::Robot` passes the description's port
      magnitudes (`makeSideGroup` ~:922). A group with no labels says "member i". A two-group tank names its
@@ -1198,6 +1684,9 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
        loop takes a Chassis — F6's shape).
    - **All-present groups with no marks are BIT-IDENTICAL.** The whole suite is the pin, with its
      assertion count recorded before and after, as at R3d Part 2.
+   - **Prose** *(re-check item 13)*: the header's "(Robot two is N = 5 per side; the bench bot N = 4.)" (:37)
+     says robot two is four per side (its record since 2026-09-25), and the "later chunk" paragraph
+     (:82-90) is rewritten for runtime absence.
 4. **`include/shulib/teleop/coupled_side_monitor.hpp`: N2 (a)'s `FrozenReadingDetector`** (NEW, additive;
    pure, allocation-free, sized `kMaxSideMembers` like the monitor; one per side):
    - **Construction.** `FrozenReadingDetector(SideMonitorConfig floors, int suspectReads)`, with the
@@ -1208,25 +1697,43 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
      tick. Also `reset()`, and `repeatReads(i)` for a panel.
    - **The rules, exactly.**
      - `repeat[i]` counts the consecutive reads bit-identical to member i's previous one. It is 0 on its
-       first read and whenever the reading changes, and a member that is not present resets.
+       first read and whenever the reading changes, and a member that is not present resets. *(Under
+       Decision D (a): "bit-identical" means `positionRad` AND `velocityRadS` both. ProsMotor's last-good
+       screen holds every reading of a dead port, while a live motor's lagging velocity report changes as it
+       decays. That shortens the coast-down FROZEN spells to 3 ticks or fewer in the probe's sweep (re-check
+       item 12), and closes the lag path of item 14.)*
      - **The mates' fastest for i** is the largest |velocity| among the OTHER present, unlatched members
        whose `repeat` is below `suspectReads`. A member whose own encoder has stopped is no evidence that
        the train turns.
      - **SUSPECT(i)** = `repeat[i] >= suspectReads` AND (`|v[i]| > oppositeFloorRadS` OR the mates'
        fastest `> movingFloorRadS`).
-     - **FROZEN(i)** = SUSPECT(i) AND some other present, unlatched member is not SUSPECT.
+     - **FROZEN(i)** = SUSPECT(i) AND some other present, unlatched member is not SUSPECT. *(Under Decision
+       D (a): SUSPECT(i) AND the side's present, unlatched members that are NOT suspect are AT LEAST AS MANY
+       as those that are. Two changes follow:*
+       - *A whole side SUSPECT is still nobody FROZEN.*
+       - *A live side with ONE slipping member at a wall is no longer three FROZEN members (re-check
+         item 14).*
+
+       *The known gap: a side already at 2/4, whose slipping member stalls, ties and marks — Decision D's
+       cost.)*
      - FROZEN for `persistTicks` consecutive ticks LATCHES the member, for the detector's life. The reason
        is `"reads frozen for 250 ms while its side answered"`.
    - `MemberAbsenceDetector` is UNCHANGED. Its velocity-exactly-0 signature runs beside the new detector.
      Its faulted-reads form stays for a caller that has the count; say that no `src/` caller does after
-     Part 3.
+     Part 3. *(Pending Decision C: if C (a), the signature does NOT run beside it, and the class stays only for
+     a caller with the count — none after Part 3. The header says both.)*
    - The header's "the drive program" sentences about the monitor and the detector (:15, :40, :65, :195)
-     are re-pointed to the library's protections. :171 (`tankSideVolts`, still the old program's until
+     are re-pointed to the library's protections. *(Re-check item 13: so is THE HAZARD's "robot two has five
+     motors per side" (:8-9): robot two is four per side, and the hazard's reasoning holds for four.)* :171 (`tankSideVolts`, still the old program's until
      Part 3) is Part 3's.
 5. **`include/shulib/teleop/drivetrain_degradation.hpp`:**
    - **Prose.** Its caller is now the boot check AND the library's protections mid-run (:38-40 names
      `src/programs/drive_program.cpp`). WHY THIS EXISTS keeps the team lead's words. The DOMAIN paragraph (:30-35)
-     says that robot two is now four per side.
+     says that robot two is now four per side. *(Re-check item 13: THE REASONING (:19-29) and
+     `kMinAnsweringPerSide`'s doc (:45) also say "robot two has five", "two of five" and "three of five".
+     They are corrected in the same edit, and kept honest. The numbers were reasoned for a five-per-side
+     train. Robot two is now four per side, where the per-side floor refuses 2/4 at BOOT, and mid-run only
+     the total cap applies (N7 (c)).)*
    - **Under N7 (c)**, one additive pure function, `evaluateRuntimeDegradation(left, right)`. It REFUSES
      only when the total dead exceeds `kMaxDeadTotal`, and otherwise gives Drive / DriveDegraded with the
      counts. It is host-tested at every boundary row beside `evaluateDegradation`, which does not change
@@ -1237,20 +1744,48 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
    - The SHARED driver panel header (COMP-b's; `src/common/driver_panel.hpp` as proposed): the PROTECTION row
      function and the LCD chooser's new words (`REFUSED see brain` under N7 (a)/(c), `CUT see brain`, and
      row 1's `dead <ports>`), at their places in D4's order. Pure and host-tested. COMP's page gains the
-     PROTECTION row.
-   - `src/programs/competition_program.cpp`: its `perTick` takes the fourth argument.
+     PROTECTION row. *(Re-check item 7: the header's name, its row functions and its chooser are COMP-b's AS
+     BUILT — item 8 re-reads them first.)*
+   - `src/programs/competition_program.cpp`: its `perTick` takes the fourth argument. *(As COMP-b built its
+     `perTick`, and with COMP-b's host source pins re-pointed one-for-one if the form changes — item 8.)*
    - `src/programs/teleop_program.cpp`: `kDeadPortLine1/2` (:258-263) are reworded to say that runtime absence is
      now the library's, in every program. They are logged as the ONLY literal changes, by 1b's diff check.
      Teleop's screen shows no cut: its twelve rows are full (:302-316) and it retires in Part 3. Its serial
-     log shows the cut, and its fault row shows a fight.
+     log shows the cut, and its fault row shows a fight. *(Re-check item 6: `kDeadPortLine1/2` are now
+     :274-279, and the rows :318-332. 1b's diff check never ran, so Part 2 runs it itself:
+     `git diff -U0 -- src/programs/teleop_program.cpp | grep '^[-+].*"'`. It accounts for every hit in the
+     log; the two lines are the only literal TEXT changes. Line 1 also names "shulib Drive" ("the same policy
+     shulib Drive uses"), which stays true until Part 3.)*
+   - *(Re-check item 7:)* any COMP-b boot line or panel word that carries Teleop's "AT BOOT ONLY" or "not in
+     this graph" claim is made true in the same edit, in the ONE place COMP-b put it.
    - The driver file's header (§2's protections paragraph, and `run()`'s doc), with the cookbook's quote
      of it.
 7. **HA** (texts in §4, numbers per N3):
    - **HA-175** — the mid-match absence rule: N2's FROZEN rule, the velocity-exactly-0 signature, and the
-     floor as N7 rules it;
+     floor as N7 rules it *(the velocity-0 clause leaves under Decision C (a); the rule is worded for
+     Decision D's answer)*;
    - **HA-176** — the over-current cut;
    - **HA-132/133 AMENDED**: their consumers now include the library's protections in every driver-control
      program; the blast radius is that a false fight now CUTS the drive for 1 s, in a match.
+
+8. **Re-read at start** *(re-check 2026-09-28, item 7)*. COMP-t and COMP-b land before this part, so the
+   executor reads these first and logs what each holds. Any difference from this brief is re-pointed and
+   logged, never forced:
+   - **`src/common/driver_panel.hpp` as COMP-b built it**, or wherever ND3 (the COMP re-check) put the shared
+     rows:
+     - its name and its row functions;
+     - the chooser's order, and whether it has a PROTECTION slot;
+     - where `clawRowText`, `faultRowText` and the refusal painter live now. The COMP re-check keeps the claw
+       and fault rows in `teleop_claws.hpp` until Part 3.
+   - **`src/programs/competition_program.cpp`:** its `perTick` form, its host source pins and its boot lines,
+     including any dead-port wording copied from Teleop.
+   - **Worksheet Station K as COMP-b wrote it:** where the push check and the protections line go.
+   - **The build list:** eight builds (COMP-t the 7th, `PROGRAM=autontest`; COMP-b the 8th), and COMP-t's and
+     COMP-b's self-test pairs.
+   - **`include/shulib/version.hpp` and the changelog:** after TANK1's API 2.3 (Part B adds no bump) and
+     COMP-t's Added entries. Follow the version rule the file states.
+   - **`teleop_loop.hpp`'s banner:** whether COMP-b already names the driver file as a caller.
+   - **COMP-b's reword of `-- in shulib Teleop only`** and its word pins (the COMP re-check, RC5).
 
 ### Part 3 — the new "shulib Drive"; "shulib Teleop" retired (after Part 2; ONE change, R5)
 1. **`src/programs/drive_program.{hpp,cpp}` — content REPLACED.** The names stay (R3). It is in
@@ -1261,7 +1796,8 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
    - **The boot, in Teleop's order** (`teleopInitialize` :877-953):
      - the banner (beacon, build stamp, the run status);
      - the shared boot source;
-     - the provider (given `"drive_log.txt"` under N5 (a), so its log is copied to the card from here on);
+     - the provider (given `"drive_log.txt"` under N5 (a), so its log is copied to the card from here on —
+       its LOG channel only, under Decision A (a); re-check item 2);
      - `validate`, `emplace` and `st.driver.bind()` in ONE try, with `st.driver.unbind()` first in its
        catch;
      - `attachFaultLatch`;
@@ -1309,7 +1845,9 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
      MAIN and DETAILS.
    - `sourceRows()` with its three static_asserts (:379-470); `paintHeaderBar`/`rowY` (:475-486).
    - `TeleopState` (:489-508), which becomes the program's state.
-   - `paintRefusal`/`refuse` (:520-555).
+   - `paintRefusal`/`refuse` (:520-555). *(Re-check item 7: if COMP-b made the shared PROS-bound refusal
+     painter (the COMP re-check's ND3), "shulib Drive" uses THAT one, and Teleop's copy is deleted, never
+     moved.)*
    - `qualityName`/`modeWord`/`fieldCentricWord` (:567-598), for DETAILS.
    - `TeleopPanel` (:611-781), split into the pure MAIN/DETAILS rows and a thin painter.
    - `logBootLines` (:783-875).
@@ -1317,7 +1855,12 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
      `driveAutonomous` / `runDrive`.
 3. **"shulib Teleop" RETIRED (R5), everywhere it is named:**
    - **Deleted:** `src/programs/teleop_program.{hpp,cpp}`. The remaining words in `src/programs/teleop_claws.hpp` MOVE to the
-     shared panel header: the claw row, the fault row, the LCD word and the claw boot lines.
+     shared panel header: the claw row, the fault row, the LCD word and the claw boot lines. *(Re-check
+     items 4 and 7:*
+     - *the claw boot lines take the driver file's controls, because the table's buttons go (item 5);*
+     - *COMP-b's `#include "programs/teleop_claws.hpp"` (the COMP re-check keeps the rows there until now)
+       and its calls are re-pointed to the shared header in the same change;*
+     - *`teleop_claws.hpp` is then deleted.)*
      `clawBannerLine()` is DELETED, because only Teleop printed it. `test/teleop_claws_test.cpp` becomes the
      shared panel's test:
      - every surviving word pin is UNEDITED and green;
@@ -1371,6 +1914,22 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
        - Each is logged one-for-one with its intent.
        - A re-pointed plant that would copy an existing one is RETIRED the same way, with its mapping. :1539
          already plants `#ifndef SHULIB_PROGRAM_DRIVE`, so check each of case 19's plants against it.
+     - **SRC1's cases 28, 29 and 30 are re-pointed too** *(re-check item 3; `_replace` asserts that its
+       target occurs exactly once, so each fails the self-test once its target is gone)*:
+       - **Case 28's two `CLAWS_PLANT` sub-cases** (`#include "common/boot_source.hpp"` → `"../…"` and
+         `"./…"`, gate :2220-2227). `CLAWS_PLANT` (:1392) is re-pointed to a surviving `src/programs/` file
+         that includes a `src/` subfolder header once, for example the new `drive_program.cpp` or
+         `calibrate_program.cpp`. The intent is kept: a relative or `./` include in a program file is
+         reported.
+       - **Case 28's folder-switch plant** `#if defined(SHULIB_PROGRAM_LIBRARY)` in `COMMON_PLANT` (:2162-2163)
+         is re-pointed to a LIVE define. Planted RETIRED, it would test the RETIRED list, not the folder walk.
+       - **Case 29's** `#include "robots/chassis_table.hpp"` in `DRIVE_PLANT` (:2252) is re-pointed to an
+         include the NEW `drive_program.cpp` holds exactly once.
+       - **Case 30's** refusal literal `"fill src/robots/chassis_table.hpp, rebuild, upload"` (:2269) goes
+         with the typed table. It is re-pointed to a `src/` path a program still prints; the comment plant in
+         `DRIVE_PLANT` stays.
+       - Each is logged one-for-one with its intent. A plant with no surviving target retires with its
+         mapping, as 12-13 do.
      - **Case 26's mutation of `src/programs/drive_program.cpp`** (`tableSignedPort(kChassis, p)`, :1802, which the
        new file does not hold) is re-pointed to a line the new file holds that names `kMechanisms`.
      - **A NEW pair:** `SHULIB_PROGRAM_LIBRARY` planted in a `src/` file, and `make ROBOT=tank
@@ -1378,24 +1937,90 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
    - **`.github/workflows/ci.yml`** (:8, :109-112) and **`RESUMING.md`**'s build list (:114-140).
    - **The build-gate consequences:**
      - The builds go down by one (six today; add COMP-b's seventh and COMP-t's if they have landed).
+       *(Re-check item 13: there are eight after COMP-t (the 7th, `PROGRAM=autontest`) and COMP-b (the 8th),
+       so SEVEN after Part 3. `ci.yml`, RESUMING and the Makefile's comment say seven.)*
      - `tank-drive`'s package grows: it now links `robot::Robot`, `runDriverControl` and the protections,
        where it held ten adapters.
      - Step 8 proves that `tank-drive` links `driveInitialize`, `kDriveAutonomousReason`, `driveAutonomous`
        and `runDrive`, and none of Calibrate's, COMP's, COMP-t's, the tester's or the X-drive's.
      - No build can link the `tank-library` beacon any more, because its literal is gone. The RETIRED list
        is what stops it coming back.
-4. **N5 (a), if ruled** (the pieces as N5 (a) names them):
-   - `include/shulib/hal/tee_char_sink.hpp` (`hal::TeeCharSink`) and `include/shulib/hal/block_char_sink.hpp`
-     (`hal::BlockCharSink`), both PROS-free. They are host-tested with `FakeCharSink`/`FakeBlockSink`:
-     - both outputs get every line whole and in order;
-     - a refusing block sink drops and counts, and never throws;
-     - nothing allocates.
-   - `ProsDeviceProvider`'s optional `serialCopyFile` (default `nullptr`, byte-identical). Given a bare
+4. **N5 (a), if ruled** (the pieces as N5 (a) names them): *(SUPERSEDED 2026-09-28 by 4′ below — re-check
+   items 2 and 5. The original text is kept as the record.)*
+   - ~~`include/shulib/hal/tee_char_sink.hpp` (`hal::TeeCharSink`) and `include/shulib/hal/block_char_sink.hpp`
+     (`hal::BlockCharSink`), both PROS-free. They are host-tested with `FakeCharSink`/`FakeBlockSink`:~~
+     - ~~both outputs get every line whole and in order;~~
+     - ~~a refusing block sink drops and counts, and never throws;~~
+     - ~~nothing allocates.~~
+   - ~~`ProsDeviceProvider`'s optional `serialCopyFile` (default `nullptr`, byte-identical). Given a bare
      name, the provider owns the `ProsBlockSink`, the `BlockCharSink` and the tee, and its `TermSink` writes
      through them. It is host-tested through the shim: the copy holds exactly the serial bytes, and with no
-     card, serial is unchanged.
-   - The program passes `"drive_log.txt"` (one file per boot, as the old program's was). It holds NO
-     `ProsBlockSink` of its own (P3-T3).
+     card, serial is unchanged.~~
+   - ~~The program passes `"drive_log.txt"` (one file per boot, as the old program's was). It holds NO
+     `ProsBlockSink` of its own (P3-T3).~~
+
+4′. **N5 (a), with Decisions A and B** *(re-check 2026-09-28)*:
+   - **`hal::BlockCharSink` is COMP-t's** (`include/shulib/hal/block_char_sink.hpp`, COMP-t §3.7.6; its test (32)).
+     Part 3 reuses it: no new file and no duplicate tests. `hal/pros/block_sink.hpp` is re-read as COMP-t leaves
+     it; its two-argument constructor now delegates to `(fileName, ProsFileMode::Truncate, mountRoot)`.
+   - **The copy piece — under A (a), the recommendation:** `include/shulib/diag/log_copy_sink.hpp`
+     (`diag::LogCopySink`), PROS-free and allocation-free, a decorator in `LevelFilterSink`'s shape.
+     - `log()` and `summarize()` go to the primary, then to the copy.
+     - `wantsRecord()` and `emit()` go to the PRIMARY only. It is overridden as a pair, per the seam's rule.
+     - Host-tested with two `TermSink`s over `FakeCharSink`s:
+       - N `drive()`-shaped `emit()`s put ZERO lines on the copy and N on the primary;
+       - a `log()` line reaches both, whole and in order;
+       - `summarize()`'s block reaches both;
+       - `wantsRecord()` is the primary's;
+       - nothing allocates.
+     - Mutation: `emit()` forwarded to the copy (red).
+     - *Under A (b):* `include/shulib/hal/tee_char_sink.hpp` (`hal::TeeCharSink`) as first written, with its
+       tests, and every record line goes to the card.
+   - **`ProsDeviceProvider`'s optional `serialCopyFile`** (default `nullptr`: today's provider,
+     byte-identical). Under B (a) a second optional argument, `hal::pros::ProsFileMode` (default `Truncate`).
+     - Given a bare name, the provider owns the `ProsBlockSink` (Truncate: one file per boot, as ruled; or the
+       mode passed), the `BlockCharSink`, a second `TermSink` (the same clock) over it, and the
+       `LogCopySink` over both. `telemetry()` returns the `LogCopySink`.
+     - Host-tested through the shim:
+       - the copy holds exactly the serial LOG lines and no record line;
+       - with no card, serial is unchanged and the drops are counted.
+   - **"shulib Drive" passes `"drive_log.txt"`** (Truncate). It holds NO `ProsBlockSink` of its own (P3-T3).
+     COMP's copy, and its mode, follow Decision B, in the same change.
+   - **The changelog:** the copy piece and the provider argument(s) only (`BlockCharSink` is COMP-t's entry).
+5. **Part 1b's work, folded here** *(the team lead, 2026-09-28; re-check item 4)*. Everything §1 Part 1b
+   items 1 and 2 said about the table and the claw words is done HERE, in the same change that retires
+   Teleop. Everything in 1b about re-wiring Teleop lapses.
+   - **`src/robots/mechanism_table.hpp`:**
+     - It loses `forward`, `reverse`, `volts` (the motor entry) and `toggle` (the pneumatic entry),
+       `kTeleopRezeroButton` (:169), and checks 4-7 with their asserts (robot two's and the build's).
+     - Completeness is updated.
+     - The header's WHAT IT DECLARES, WHY std::optional (its button half), COMPILE-TIME CHECKS (renumbered)
+       and WHO READS IT are rewritten. So are the interim comments :112 and :163.
+     - The provenance strings keep the team lead's words and add "(buttons: src/team/robot_two_driver.hpp
+       since T4)".
+     - **Nothing about ports, signs, cartridges, safe modes, the line, the polarity or the positions changes.**
+       `boot_source`'s conversion and Calibrate's drop are the pins.
+   - **The claw words take the driver file's controls:**
+     - `motorClawBootLine` and `pneumaticClawBootLine` take the controls (`std::span<const HoldControl>`,
+       `std::span<const ToggleControl>`) beside the table, and find each entry's buttons BY NAME.
+     - Every sentence stays byte-identical: J.3.1's (as COMP-b reworded it), J.9.1's, the claw row and the
+       fault row. The only exception is a word that names Teleop or slot 2, reworded and logged one-for-one.
+     - `clawBannerLine()` is deleted (item 3).
+     - COMP-b's call sites are re-pointed in the same change, with their pins.
+   - **The interim tie retires.** `controlsMatchTable` goes, and so do its two asserts in
+     `teleop_program.cpp` (the file is deleted) and in `test/robot_two_driver_test.cpp` (:59-79). The
+     "until T4 Part 1b" words go with them (`teleop_claws.hpp` :11, :205-211, :492; `teleop_program.cpp`
+     :179-192).
+   - **The driver file's header** (1a's interim clause → §2's "change it HERE and nowhere else"), and 1a's two
+     other interim sentences: cookbook 06's "Watch out for" bullet on both files, and HANDOFF L5's "ALSO
+     stated … until T4 Part 1b". The driver file's code does not change.
+   - **1b's documents** (§4 Part 1b), which Part 1a left to 1b on purpose (T4-PROGRESS :145-151):
+     - guide 10's driver-file example;
+     - guide 07 :130;
+     - HA-153's source text (the buttons are the driver file's);
+     - worksheet J.4's "where the buttons live" and F row 4's `kFeel` (Station F is rewritten here anyway);
+     - the parked T3-COMPLETED draft (the coordinator's).
+     Part 3's documentation list (§4) includes them.
 
 ---
 
@@ -1719,7 +2344,10 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
 - `validBindings()` is unreachable for the REAL set: the compile-time checks refuse everything it would.
   It is reachable and tested through `DriverBindings` directly.
 
-**Part 1b** — re-pointed, never weakened:
+**Part 1b** — re-pointed, never weakened: *(Superseded 2026-09-28: 1b is skipped. Its table and claw-word
+tests move to Part 3's P3-T5 (re-check item 4). Its Teleop-wiring pins (the fixture binding through the
+driver, 1l's rewiring, `st.driver.bind(` in Teleop) lapse, because Teleop is never rewired and is deleted
+in Part 3. This list is kept as the record.)*
 - **`test/mechanism_table_test.cpp`:** checks 4-7's cases move to `driver_controls_test`; the rest is
   unchanged.
 - **`test/boot_source_test.cpp`:** hand-built tables lose four fields; every decision pin is unchanged.
@@ -1781,6 +2409,9 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
 - **P2-5 runtime absence, a member frozen AT REST and then driven.**
   - It is FROZEN on the first tick a moving mate reports above 1 rad/s, because its position has repeated
     far more than 5 reads. It is ABSENT 24 ticks later, with ONE line naming the port. Pin both ticks.
+    *(Re-check item 1: that line's reason is `reads frozen for 250 ms while its side answered`, pinned. Under
+    Decision C (b) both signatures latch on this tick on the plant, and the one line still carries the
+    FROZEN reason. Under C (a) there is no second signature.)*
   - **No cut, and `MOTOR_GROUP_DISAGREE` raiseCount == 0**: it left the monitor on the first tick its mates
     turned. Run at least 50 ticks past the latch, so a `markAbsent` that left it in the monitor would
     raise.
@@ -1828,6 +2459,7 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
   - the monitor is told `present = false`;
   - it REFUSES (false, nothing changed, no throw) for out of range, a second call, and the LAST present
     member;
+  - `member(i)` RETURNS a runtime-absent member, and still throws for a boot hole *(re-check item 10)*;
   - a group with no marks is bit-identical;
   - **`setMonitorExcluded`:** an excluded member is fed `present = false`, stays in every read, and is
     still commanded. Bits past the range, and on holes, are ignored. A mask of 0 is bit-identical.
@@ -1840,6 +2472,12 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
   - FROZEN for 24 ticks vs 25;
   - a latched member stays latched;
   - its precondition (`suspectReads` 0, and `suspectReads == persistTicks`).
+  - *Under Decision D (a) (re-check item 14):*
+    - *the repeat: a read whose position repeats but whose velocity changed resets `repeat`;*
+    - *the guard, at its boundary on four members: 1 SUSPECT against 3 → FROZEN; 2 against 2 (a tie) → both
+      FROZEN; 3 against 1 → nobody FROZEN;*
+    - *on a side with two members latched: 1 against 1 → FROZEN;*
+    - *the whole side SUSPECT → nobody.*
 - **P2-11 a disable during a cut.** `cancel()` (0 V + Brake) returns at once. The next entry has cut
   count 0 and is not cut; the marks are kept.
 - **P2-12 the log bound.** 60 cuts give 50 per-port blocks and the notice exactly once; the count reads
@@ -1850,6 +2488,13 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
   counting down, during P2-2. A three-argument `perTick` compiles and sees exactly what it saw before.
 - **P2-15 the controller disconnected during a cut.** Still 0 V, and nothing is double-counted.
 - **P2-16 the disable summary.** Each member's peak current and temperature this entry, and the cut count.
+- **P2-16b the peak line** *(re-check item 11)*. A 3 s push at 2.30 A, below the cut, then let go.
+  - Expect ONE line: LEFT peak 2.30 A, the port, no cut. The loop is never disabled in this test, so the line
+    does not depend on the disable path.
+  - A second, smaller push: no line.
+  - A larger one: one more line.
+  - A push that cuts: the line names the cut.
+  - Mutation: "the peak line only on the disable path" turns it red.
 - **P2-17 labels.** A builder-made group names its members by port. A hand-made group with no labels says
   "member i".
 - **P2-18 the driver file's protections paragraph** (a source pin over `src/team/robot_two_driver.hpp`). Each
@@ -1865,12 +2510,46 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
 - **P2-19 THE WALL** (hand-stepped; the probe's own finding). Every member of a side stops at once under
   full stick, while each reported velocity decays over 300 ms. Expect nobody FROZEN, nobody ABSENT, no
   DEGRADED line and no cut. A live train that stops is never a death.
+- **P2-19b a dead member's stale speed at a wall** *(re-check item 1; only under Decision C (b))*.
+  Hand-stepped: member X freezes at +v, and 1 tick later the whole side stalls, the live members reading
+  EXACTLY 0 under full stick.
+  - Expect only X ABSENT, at the pinned tick, and no REFUSE.
+  - Mutation: "the velocity-0 mates count a member whose position repeats" turns it red (three live members
+    marked).
+- **P2-19c the coast-down with per-member phase** *(re-check item 12)*. Hand-stepped: full stick, then let
+  go; the train coasts down (τ 150 ms). Each member's position is quantized to BLUE's 300 counts with its own
+  phase offset (a quarter count apart), and each velocity report lags 150 ms.
+  - Under item 4 as written: every FROZEN run is below `persistTicks`, nobody is ABSENT, and there is no cut.
+  - Under Decision D (a): every FROZEN run is 3 ticks or fewer (0 in the probe at this point).
+  - Pin the longest run.
 - **P2-20 the config's entry check.** Each of these is a `PreconditionError` before tick 1, with nothing
-  commanded (every drive `FakeMotor`'s write count is 0):
+  commanded (every drive `FakeMotor`'s write count is 0) *(re-check item 9: `FakeMotor` has no write count.
+  The test binds a test-side counting `IMotor`/`IDigitalOut` decorator on every drive port, every pivot and
+  the claw's line, through `FakeDeviceProvider::bindMotor`/`bindDigitalOut`. It holds a leftover claim on a
+  pivot, and asserts ZERO voltage writes, brake-mode sets and line writes, and the claim still held. That
+  proves the check runs before the claim release, the bindings' makeSafe, the toggles' enter and the release
+  mode.)*:
   - a NaN `overCurrentAmps`;
   - `cutTicks = 0`;
   - `overCurrentTicks = -1`;
   - `frozenSuspectReads = 25` (not below `persistTicks`).
+- **P2-21 a SLIPPING member at a wall** *(re-check item 14; Decision D)*. Hand-stepped, four members on
+  the LEFT. Member 3 slips (the plant's `Decoupled` semantics, drag 0 and 0.8): its encoder follows its own
+  free spin. At 2 s the train stalls under full stick for 3 s.
+  - Under D (a): no member ABSENT, no DEGRADED line, no REFUSE. The monitor's FIGHT cuts during the push are
+    allowed; pin their count.
+  - Under item 4 as written, three live members are ABSENT and the drive is REFUSED (`slip_probe` S1). That
+    is the mutation below.
+- **P2-21b the slipping member coasting in a cut** *(re-check item 14)*. P2-21 with a 150 ms velocity lag:
+  during the cut the slipping member's position stops while its report still lags above 0.5 rad/s.
+  - Under D (a): it is never FROZEN and never ABSENT (`slip_probe` S1c).
+- **P2-22 the exclusion mask never outlives driver control** *(re-check item 10)*. A member is FROZEN on the
+  tick the field disables the robot. After `runDriverControl` returns:
+  - every group's `monitorExcludedMask()` is 0;
+  - a `turnTo` in the next autonomous, with that member still reading frozen, raises MOTOR_GROUP_DISAGREE
+    (test 5f's rule holds).
+  - The same after a precondition throw out of the loop (the destructor).
+  - Mutation: "no mask clear on the disable return" turns it red.
 - **The shared panel (host):**
   - the PROTECTION row's words for every mode;
   - the LCD chooser gives REFUSED > CUT > fault for every pair of states in force at once;
@@ -1908,6 +2587,14 @@ REAL `kRobotTwoMechanisms` and the 2026-09-25 record (the fixture of `test/teleo
 | the fourth `perTick` argument never passed | P2-14 |
 | `overCurrentCuts` ignored | P2-4's warn case |
 | the defaults' paragraph drifted (write "2.5 A") | P2-18 |
+| *(re-check 2026-09-28)* FROZEN guard "some other member not SUSPECT" (item 4 as first written) under D (a) | P2-21 (three live members ABSENT, REFUSE) |
+| the repeat on position alone under D (a) | P2-21b (the slipping member latches); P2-19c (FROZEN spells) |
+| the velocity-0 mates count a member whose position repeats (C (b) only) | P2-19b |
+| the velocity-0 signature without D's guard (C (b) only) | P2-21 |
+| no mask clear on the disable return / in the destructor | P2-22 |
+| the peak line only on the disable path | P2-16b |
+| the config check after the claim release | P2-20 (a write counted, the claim released) |
+| `member(i)` throwing for a runtime-absent member | P2-10 |
 
 **Stated EQUIVALENT, not counted:** each group's `resetDisagreement()` at the re-arm. The monitor already
 resets every streak on each tick the side is commanded 0 V (`coupled_side_monitor.hpp` :117-125), so
@@ -1916,7 +2603,10 @@ dropping it is unobservable. It is kept for the old program's stated intent (:45
 **Part 3** (the program TU is not host-compiled: `pros/screen.h` has no shim):
 - **P3-T1 the gate.**
   - The re-pointed cases (16, case 19's define plants, 21, 24, 26, case 27's plants at :1870 and :1909)
-    fail or pass exactly as their tank-library forms did, each logged.
+    fail or pass exactly as their tank-library forms did, each logged. *(Re-check item 3: so do SRC1's
+    cases 28 (both `CLAWS_PLANT` sub-cases and the folder-switch plant, on a LIVE define), 29 and 30, each on
+    its new target. Case 27's plants are now at gate :2097 and :2136. The self-test passes on the tree after
+    Part 3, and `_replace`'s exactly-once assertion is the proof that no plant silently matched nothing.)*
   - 12–13 are RETIRED with their mapping to 10–11 logged, and 10–11 are still green. The same holds for
     any plant retired as a copy.
   - The NEW pair: `SHULIB_PROGRAM_LIBRARY` planted in `src/` makes step 0 red, naming the retirement; `make
@@ -1953,16 +2643,44 @@ dropping it is unobservable. It is kept for the old program's stated intent (:45
     - `teleop_program`, `TeleopClaws`, `runTeleop`, `teleopInitialize` and `SHULIB_PROGRAM_LIBRARY` appear
       nowhere (the RETIRED list);
     - no string LITERAL in `src/` or `include/shulib/` says "shulib Teleop" or "(slot 2)" (the re-check's
-      finding 4: Calibrate's save line, the X-drive's refusal, `formatSaveReport`).
+      finding 4: Calibrate's save line, the X-drive's refusal, `formatSaveReport`);
+    - *(re-check 2026-09-28, item 4:)* `kTeleopRezeroButton`, `controlsMatchTable` and "until T4 Part 1b"
+      appear nowhere in `src/` or `test/`, and no `src/robots/` table sets `.forward`, `.reverse`, `.volts` or
+      `.toggle`.
 - **P3-T4 the moved words.** Every surviving word pin from `teleop_claws_test` is unedited and green in its
   new home, and each reworded pin is logged one-for-one.
+- **P3-T5 Part 1b's tests, folded** *(re-check item 4; §3's "Part 1b" list, re-pointed, never weakened)*:
+  - **`test/mechanism_table_test.cpp`:**
+    - checks 4-7's cases (:744-830: forward ≠ reverse, one button per pivot, avoiding the re-zero) are
+      retired;
+    - so are the robot-two button pins (:245-302) and the completeness cases that reset `forward`/`toggle`
+      (:594-654).
+    - Each is logged with its map: the button predicates to `driver_controls_test` (whose five predicates
+      already cover them, broken one way at a time); robot two's buttons to `robot_two_driver_test` T1/T2;
+      completeness to the remaining fields.
+    - Every port, sign, cartridge, safe-mode, line, polarity and position pin is unchanged.
+  - **`test/boot_source_test.cpp`:** the hand-built tables (:902-927) lose four fields; every decision pin is
+    unchanged.
+  - **`test/robot_two_driver_test.cpp`:** the tie's two `static_assert`s (:59-79) and the tie case (:808-848)
+    retire, logged. The claw-row case (:850-856), which binds a `TeleopClaws`, is rewritten to compare
+    against a pinned string, so it no longer compares against Teleop's form. Its FREED half is kept.
+  - **The claw boot lines with the controls** (in the shared panel's test):
+    - with robot two's real controls, every line is byte-identical to its pin;
+    - with a controls COPY whose R1/R2 are swapped, the pivot-6 line says R2 forward / R1 back. That proves
+      the line reads the controls, not a leftover table field;
+    - an ABSENT pivot's line names its buttons from the controls.
+  - Mutation: "the boot line reads the buttons from anywhere but the controls". It cannot compile once the
+    fields are gone; stated as such, and the swapped-controls case is the run-time proof.
 - **Part 3 mutations:**
   - each P3-T1 plant is run for real;
   - the program's `run` swapped for a direct `runDriverControl` (P3-T3 red);
   - `bind` moved outside the try (P3-T3 red);
   - the flip on PRESS (P3-T2 red);
   - CUT ranked below a fault in the chooser (P3-T2 red);
-  - a leftover `#include "programs/teleop_program.hpp"` in `main.cpp` (the build and P3-T3 red).
+  - a leftover `#include "programs/teleop_program.hpp"` in `main.cpp` (the build and P3-T3 red);
+  - *(re-check 2026-09-28)* `LogCopySink` forwarding `emit()` to the copy (4′'s test red; under Decision A (a));
+  - a boot line printing the table's old button instead of the control's (P3-T5's swapped-controls case);
+  - `kTeleopRezeroButton` left in `mechanism_table.hpp` (P3-T3's source pin).
 
 ---
 
@@ -1970,7 +2688,9 @@ dropping it is unobservable. It is kept for the old program's stated intent (:45
 
 Every part's prose review greps `docs/` and `README.md` for the changed files' names and concepts, and
 reads every hit. **Part 3's also greps `src/` and `include/shulib/`**, because it retires a program that
-runtime strings and header comments name. It is logged BEFORE the commit body claims it. `docs/api` and
+runtime strings and header comments name. *(Re-check 2026-09-28, item 7: **so does Part 2's**. COMP-b's
+boot lines and panel may carry Teleop's "AT BOOT ONLY" claim into `src/`, and Part 2's headers carry "five per
+side".)* It is logged BEFORE the commit body claims it. `docs/api` and
 the briefing are regenerated LAST.
 
 **Part 0:** as listed in §1. That is COMP B5/B29/§3 item 3; `build-order.md` (:1472, the T4 entry, the
@@ -2019,7 +2739,8 @@ documents.**
   **`HANDOFF-remaining-work.md`** (L5, §7).
 - **The prose review** terms: "headingSample", "cannot move when driver control", "which button".
 
-**Part 1b:**
+**Part 1b:** *(Superseded 2026-09-28: 1b is skipped. Every item below that is not about Teleop running the
+driver file is PART 3's, listed again in Part 3 item 5 and below; the Teleop-wiring items lapse.)*
 - **Guide chapter 10** ~:177-214: the driver file is the worked example, and "shulib Teleop" runs it
   until the driver program replaces it (:210's L1 default sentence stays true).
 - **Chapter 14** ~:331-350 (status).
@@ -2055,20 +2776,30 @@ documents.**
   **Guide 12:** a new symptom, "The drive stops for a second, or a motor is reported dead", written from
   the code: what the screen and the log say, and what to check. **Guide 14** (~:331-350): runtime absence
   is no longer "later".
-- **The cookbook:** the driver file quote's header paragraph; `perTick`'s fourth argument in the loop
-  recipe.
+- **The cookbook:** ~~the driver file quote's header paragraph~~ *(re-check item 8: the cookbook quotes no
+  header paragraph)*:
+  - **re-quote chapter 6's "How it runs" listing** (`06-driver-control.md` :243-262) once `run()`'s doc gains
+    the fourth-argument sentence. The listing is held as one unbroken run of the file
+    (`WHOLE_RUN_SOURCE_GLOBS`), so `check-examples` is red until it is re-quoted;
+  - one prose sentence in that chapter on what the protections do (from the header paragraph, with its
+    numbers);
+  - `perTick`'s fourth argument in the loop recipe.
 - **COMP:** B11's last bullet is replaced by what now holds.
 - **Worksheet Station K** (COMP-b has landed, by R2's order). It gains two things:
   - one line: what a CUT, a FROZEN port or a dead port looks like in the competition program;
   - **THE PUSH CHECK, REQUIRED before the competition program drives a match** (N1 (a)). On the ground,
     full stick into a wall for 3 s. Record whether it CUT, and the highest current on serial's disable
     line. This is HA-176. From this part on, the competition program's `opcontrol()` cuts on
-    over-current.
+    over-current. *(Re-check item 11: the highest current is read from the PEAK line, `drive: LEFT peak …`,
+    printed when the stick is let go after the push, and from a cut's `at the cut:` lines. The disable line
+    may never print — HA-161, and the team has no competition switch. So: push 3 s, let go, then read.)*
 - **Worksheet Station F** (still Teleop's): the dead-port paragraph (:616-621) is corrected, since runtime
   death is now detected in every program, and a CUT shows only on serial and the fault row in Teleop.
 - `build-order.md`, roadmap, HANDOFF.
 - **The prose review** terms: "MemberAbsenceDetector", "dies AFTER boot", "AT BOOT ONLY", "later chunk",
-  "2.4 A", "cut", "re-arm", "drive program", "runtime".
+  "2.4 A", "cut", "re-arm", "drive program", "runtime". *(Re-check items 7 and 13: also "after boot", "not in
+  this graph", "runtime absence", "dead-port", "five per side", "five motors", "N = 5", "Part 1b"; run over
+  `src/` and `include/shulib/` as well as `docs/` and `README.md`.)*
 
 **Part 3:**
 - **The worksheet:**
@@ -2124,7 +2855,10 @@ documents.**
     - G.6 becomes "shulib Drive from the record": G.6.1's boot lines, and G.6.3 reads `est` on DETAILS.
   - **Station A**'s program list: the final map.
   - **The DO NOT list:** "Station F's wheels-up run", and the OLD-package warning.
-  - **N4 (a):** the tester's slot-7 lines become slot 2.
+  - **N4 (a):** the tester's slot-7 lines become slot 2. *(Re-check item 13: in EVERY document COMP-t wrote
+    or edited, not the worksheet alone. COMP-t names the slot beside the name everywhere (COMP-t :513-515):
+    its guide chapter, README, the Makefile's comment, RESUMING, HANDOFF, build-order and roadmap. No code
+    string names it (COMP-t's source pin).)*
 - **`README.md`** (:194, :244-257, :292); **guide 07** (:122-131); **guide 10** (:186-190's honest status);
   **guide 14** (:337-347). Its "until a driver has compared the two on the robot" now names the
   comparison F.5 makes, against Bench Tests' 10 DRIVE.
@@ -2158,12 +2892,26 @@ documents.**
 - **The prose review terms:** "shulib Teleop", "PROGRAM=library", "tank-library", "teleop_program",
   "teleop_claws", "shulib Drive", "drive_program", "drive_log", "slot 1", "slot 2", "runDrive", "adapters,
   NOT the motion stack", "typed table". They are run over `docs/`, `README.md`, `src/` and
-  `include/shulib/`.
+  `include/shulib/`. *(Re-check items 4 and 13: also "slot 7", "Auton Tester", "Part 1b", "kTeleopRezeroButton",
+  "controlsMatchTable", "TeleopClaws", "both files", "there too", "seven builds" and "eight builds".)*
+- *(Re-check item 4:)* **Part 1b's documents, folded:** guide 10's driver-file example; guide 07 :130;
+  HA-153's source text; worksheet J.4's "where the buttons live" and F row 4's `kFeel`; 1a's three interim
+  sentences (the driver file's "there too" clause, cookbook 06's "Watch out for" bullet on both files, and
+  HANDOFF L5's "ALSO stated … until T4 Part 1b"); the parked T3-COMPLETED draft (the coordinator's). Also
+  cookbook 06's "Watch out for" re-zero sentence, if it names three places.
 - **More than five documents in Parts 2 and 3.** It is proposed, as with COMP-b's B21, that each part's
   list is accepted as one step under pace rule 7. They can be split at his word.
 
 **HA-175 (Part 2; per N3 — the mid-match absence rule):**
 `| HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() repeating their last good values, ProsMotor's screen — or as a velocity of exactly 0 while its train turns; a LIVE member's position is never bit-identical for 5 consecutive 10 ms reads while its own reported speed is above 0.5 rad/s or a moving side-mate's is above 1 rad/s, nor for 30 while a side-mate still answers (a whole side that stops together — a wall, a stall, a lagging velocity report — is never one member frozen); and a side still drives acceptably with its dead dropped, up to the mid-run floor N7 rules | reasoned (the adapter's screen, hal/pros/motor.hpp ~:224-280; BLUE's 300 counts per output turn: one about every 42 ms at 0.5 rad/s, every 21 ms at 1 rad/s) + invented (the 5 reads, the 250 ms latch; the floor, R3b Part 0b) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side |`
+
+*(SUPERSEDED 2026-09-28 — re-check items 12 and 14, Decisions C and D. The row above said a live member is
+never frozen when a whole side stops together. The checker's phase probe shows brief spells, and the fixer's
+slip probe shows a live side with one SLIPPING member marked three times over. The row is registered as
+follows under C (a) and D (a); under other answers the executor words it to match them, and logs it.)*
+
+`| HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a moving side-mate says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates too (brief spells as a train coasts to a stop are expected and harmless); and a side still drives acceptably with its dead dropped, up to the mid-run floor N7 rules | reasoned (the adapter's screen, hal/pros/motor.hpp position() :233, velocity() :247, current() :259; BLUE's 300 counts per output turn) + invented (the 5 reads, the 250 ms latch, the majority guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall; a coast-down with per-member encoder phase; 2026-09-28) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD, port 18 (HA-130) included |`
+
 - **The blast radius, in the long form.**
   - **A live member wrongly marked absent** drops out of the reads, which is harmless to the median. But
     it counts as dead, so any mid-run stop comes one death sooner.
@@ -2177,6 +2925,10 @@ documents.**
   - A stop lasts the REST OF THE RUN. Every later driver-control start is refused too, until the program
     is started again, because the marks live in the groups.
   - Too permissive a floor keeps a robot driving that drags into a curve.
+  - *(Re-check 2026-09-28, item 14.)* **A slipping member at a wall.** Under item 4 as first written, one
+    slipping member (HA-130's port 18) and a stalled train mark the THREE live members, and the drive is
+    refused for the rest of the run. Under Decision D (a) that is fixed, with one gap left: a side ALREADY at
+    2/4 whose slipping member stalls still marks one live member, which is the third dead and REFUSES.
 - **Contained:** one config field (`DriveProtectionConfig::frozenSuspectReads`), the monitor's two floors
   it reuses, and two library constants (`drivetrain_degradation.hpp` :46, :50).
 
@@ -2216,14 +2968,19 @@ documents.**
 - a second robot's driver file;
 - **the protections during AUTONOMOUS motions.** The scheduler's fault policy covers a motion
   (MOTOR_GROUP_DISAGREE continues). A runtime mark made in driver control does persist into a later
-  autonomous in the same run: stated, and not acted on;
+  autonomous in the same run: stated, and not acted on. *(The FROZEN exclusion mask does NOT persist:
+  re-check item 10, P2-22.)*;
 - **over-current on MECHANISM motors.** HA-154 stands: the driver is the only cut-off for a pivot held
   against its stop, and MAIN's claw row shows its temperature;
 - **a new FaultCode** for a cut or a runtime death. The vocabulary is wire-stable and read by the
   blackbox; the log and the panel carry both;
 - **any change to IMotor (F4)** — N2;
 - moving `DriverBindings` and `driverHeading()` into the library (still a candidate for L9 Part B);
-- **any other library API change.** Part 2's list and N5 (a) are exhaustive. Part 2's list includes N2's
+- **any other library API change.** Part 2's list and N5 (a) are exhaustive. *(Re-check 2026-09-28:
+  `hal::BlockCharSink` is COMP-t's, not T4's. Under Decision A (a), `diag::LogCopySink` replaces
+  `hal::TeeCharSink` in N5 (a)'s list. Under B (a), the provider's optional `ProsFileMode` argument joins
+  it. Decision D changes no declaration, only the detector's rules. Under C (a), Part 2 calls one class
+  fewer.)* Part 2's list includes N2's
   `FrozenReadingDetector`, `setMonitorExcluded` and `frozenSuspectReads`, and N7 (c)'s
   `evaluateRuntimeDegradation`. Part 3 may change library TEXT only, with no declaration changes:
   - the header comments §4 Part 3 lists;
@@ -2237,8 +2994,8 @@ documents.**
 - Every mutation RED on a fresh binary; every compile mutation's named message seen.
 - `python3 tools/src_build_gate.py self-test` and `check`:
   - Parts 1a, 1b and 2 on every build that exists at the time (six, plus COMP-b's and COMP-t's once
-    landed);
-  - Part 3 on that set **minus tank-library**;
+    landed) *(re-check 2026-09-28: Part 2 runs on EIGHT — COMP-t the 7th, COMP-b the 8th)*;
+  - Part 3 on that set **minus tank-library** *(seven)*;
   - 0 disallowed warnings, every beacon, step 8.
 - The ARM header gate (RESUMING's command, which Part 2's new header must pass); the CI greps (the new
   header is PROS-free).
@@ -2253,7 +3010,8 @@ documents.**
    - Edit a word pin in `test/teleop_claws_test.cpp` and the "byte-identical" claim is gone. Only the
      fixture and test 1l's SOURCE pins change in 1b. A call expression changing inside a word pin (the
      `clawRowText` forwarder going) is logged, with its expected string untouched.
-   - Part 2 changes exactly two Teleop literals (`kDeadPortLine1/2`), logged.
+   - Part 2 changes exactly two Teleop literals (`kDeadPortLine1/2`), logged. *(Re-check item 6: Part 2
+     runs the literal diff check itself; 1b's never ran.)*
    - Part 3 rewords only the pins whose sentence names Teleop or slot 2.
 2. **`-- in shulib Teleop only`** (`teleop_claws.hpp` :245) goes false the moment a second program binds
    the claws. COMP-b is first under R2: it rewords the line and re-quotes J.3.1.
@@ -2316,7 +3074,9 @@ documents.**
     - P2-6, P2-6b, P2-6c and P2-6d are the proof.
 17. **(Part 2) Nothing mid-match may throw.**
     - `markAbsent` refuses rather than throws. `MotorGroup::member(i)` on an absent slot IS a precondition
-      throw (:299-300), so the protections read only `isPresent` members.
+      throw (:299-300), so the protections read only `isPresent` members. *(Re-check item 10: `member(i)`
+      throws for a BOOT hole only, and returns a runtime-absent member. The protections still read only
+      `isPresent` members.)*
     - Every protection line is a bounded literal format.
 18. **(Part 2) F4 is locked.** No IMotor change (N2).
 19. **(Part 2) The cut's deciding tick.** `drive()` has already commanded this tick's stick volts, so the
@@ -2349,7 +3109,20 @@ documents.**
     proof.
 28. **(Part 2) A whole side stopping at once is not a death.** FROZEN needs another member of the side
     still answering. A live train at a wall, with its velocity reports lagging, must mark nobody. P2-19 is
-    the proof. The cost is stated in N2: a whole side that dies at once is not seen.
+    the proof. The cost is stated in N2: a whole side that dies at once is not seen. *(Re-check item 14:
+    "another member still answering" is not enough. One SLIPPING member answers while three stalled live
+    members do not, and all three would be marked. Under Decision D (a), the answering members must be at
+    least as many as the SUSPECT ones, and a repeated read needs position AND velocity unchanged. P2-21 and
+    P2-21b are the proof.)*
+29. **(Part 2) Robot two HAS a slipping member** (HA-130, port 18). It is the case the rulings probe did not
+    have and the plant cannot hit a wall with. Every rule that says "a mate turns, so this one should" must
+    be tried against it. P2-21 does that, hand-stepped *(re-check 2026-09-28)*.
+30. **(Part 3) The provider's `TermSink` writes a RECORD line on every `drive()` tick.** Anything under it at
+    the character level copies all of them. The SD copy is at the telemetry level (Decision A) *(re-check
+    item 2)*.
+31. **(Part 3) Every gate plant targets text that must exist exactly once** (`_replace`, gate :1443). A file
+    Part 3 deletes or rewrites fails the self-test until each plant naming it is re-pointed: cases 12-13,
+    16, 19, 21, 24, 26, 27, AND 28, 29, 30 *(re-check item 3)*.
 
 ## 8. Found while reading (not T4's to fix unless named above)
 - **COMP's slot 5 collided with the fallback's.** Part 0 re-points B5/B29/§3 and build-order.
@@ -2360,7 +3133,7 @@ documents.**
   macro is "which button does what", so it gets a line in WHICH BUTTON DOES WHAT, and its binder goes in
   `driver_controls.hpp`. The parked `.claude/coordinator/drafts/T3-COMPLETED.draft-for-when-macros-land.md`
   describes the claws "in shulib Teleop" with the table's buttons. The coordinator re-points it at Part 1b's
-  merge, and again at Part 3's (Teleop retired). T3's build-order entry gains a line saying where its
+  merge, and again at Part 3's (Teleop retired). *(1b is skipped: once, at Part 3's merge.)* T3's build-order entry gains a line saying where its
   macros will live.
 - **A field-centric test through the driver file is owed** the day field-centric becomes selectable (the
   EQUIVALENT mutations of §3 become real then).

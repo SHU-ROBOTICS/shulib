@@ -1,0 +1,231 @@
+# Everything left — the full list, in order
+
+> **Kept current by the coordinator at every milestone** (the team lead, 2026-09-28: "please keep this list up
+> to date and add more details to it"). The status board (the shulib Status Board artifact) carries an
+> easy-to-read version. The plan of record is [`build-order.md`](build-order.md) and
+> [`HANDOFF-remaining-work.md`](HANDOFF-remaining-work.md); this list is the readable view of them. Where this list
+> and the plan disagree, the stale side is corrected in the same commit: the plan when a ruling has not reached it
+> yet, this list otherwise. Anything the plan does not carry yet is tagged **NEW 2026-09-28 — PROPOSED, planning with the
+> team lead, not yet in the plan** until he rules and the plan is amended.
+>
+> **Sizes** are builder-days (one executor) taken from the chunk's brief where a brief exists. Every size without
+> a brief is marked **(rough)**. **Verification is in no row.** The reviewers, the fixes and a fresh verifier are
+> counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
+> than on builder time, so it is not in the total. **Last updated: 2026-09-28 ~17:10 (the tree at `e124b88`).**
+
+**Where things stand:** 31 of the phase table's 63 chunks are complete, and R2a (half of R2) has also landed; 32
+chunks are open. Landed most recently: SRC1 (`src/` organized), T4 Part 1a (robot two's driver file) and TANK1
+Part A (`3965791`: a tank's `moveTo` steers back onto its line). COMP-t and TANK1 Part B are being built now.
+Nothing new has run on the robot since 2026-09-25.
+
+---
+
+## 1. The auton — in progress (the team lead pushes the branch after this, before G3a)
+
+| # | Item | State | Waits on | Size |
+|---|---|---|---|---|
+| 1 | **TANK1 Part A**: a tank's `moveTo` bends back toward its line (≤ 15°, a 0.06 s look-ahead) and cancels the yaw a weak side makes. X/H drives unchanged | ✅ landed `3965791` (API 2.3) | — | — |
+| 2 | **COMP-t**: "shulib Auton Tester" (pick an auton, touch RUN, 3 s countdown, any button aborts; it runs the same `runAuton` path `autonomous()` uses) plus the students' auton file `src/team/autons.{hpp,cpp}` with the 40 in auton | **building** (build → 3 reviewers → fix → a fresh verifier → fix) | — | ~1 day (rough; its brief states no size) |
+| 3 | **TANK1 Part B**: the sideways-miss number (` xt`) on every tank result line; no API bump | **building** (its review findings are being dispositioned) | — | ~½ day |
+| 4 | **You run the 40 in on the bench**: worksheet Station M. Wheels up first, then the floor and the tape, with serial captured. Its `imuYawRate` column does not count as evidence until IMU1 (#32) lands | needs you at the robot | 2 | ~1 hour |
+| 5 | **COMP-b**, the competition program: `autonomous()` runs the chosen auton on the program's own task under the guard; `opcontrol()` runs the driver file; the brain-screen auton picker; slot 6; the eighth build | brief **re-checked 2026-09-28** (RC1–RC12: 3 major + 9 minor, all amended); your ND1/ND2 answered ~16:15; ND3–ND6 as recommended | 2 | ~2¼ days (~2, plus ~¼ for ND3 (b)) |
+| 6 | **Station K**: a practice match with the controller's Timed Run (does Timed Run start `autonomous()`? HA-162). B6 is decided after it (§11) | needs you at the robot | 5 | ~1 hour |
+| 7 | **R3b + M1** close when "a v2 tank auton runs on the robot under the library's own steering" (R3b's DoD) and M1's DoD holds. Both are judged against Station M's and Station K's logs. They also settle HA-18, the threshold half of HA-52 and the "drivable" half of HA-112 | open since June | 4, 6 | robot-session-bound |
+
+## 2. The driver program (T4) — after COMP-b
+
+| # | Item | State | Waits on | Size |
+|---|---|---|---|---|
+| 8 | **Part 1a**: `src/team/robot_two_driver.hpp` (which button does what, the feel) + `src/common/driver_controls.hpp` | ✅ landed `8d89df7` | — | — |
+| — | **Part 1b** was SKIPPED on 2026-09-28 by your ruling and folded into Part 3, so Teleop is never rewired | — | — | — |
+| 9 | **Part 2**: the old "shulib Drive"'s protections move into the library for every program. Driving continues with dead drive motors (it stops only when 3+ are dead). The FIGHT and OVER-CURRENT cuts are added; over-current is on by default, with an off switch and a push check before any match | brief **re-checked 2026-09-28** (4 major + 9 minor, plus a fourteenth finding, major: robot two's slipping port 18; all amended); your C/D answered | COMP-b | ~2–2½ days |
+| 10 | **Part 3**: the new "shulib Drive" replaces the old one (slot 1). "shulib Teleop" retires. The buttons leave the mechanism table (Part 1b's work). Each program can keep an optional SD copy of its log (events only). `main.cpp` reaches its final form | brief re-checked (as above); your A/B answered | Part 2 | ~3–3½ days |
+| 11 | **Stations F (drive) and J (claws) re-run on the new "shulib Drive"**: T4's DoD, and nothing of T4 is claimed on hardware until these logs exist | needs you at the robot | 10 | ~1 hour (rough) |
+
+## 3. Mechanisms (MECH) — NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan
+
+The requirements so far are in [`MECH-PANEL-requirements.md`](MECH-PANEL-requirements.md). That file is planning,
+not a brief, and no brief will be written until the team lead says the list is complete. In short: **any
+mechanism is described as data, bound to ports after it is created, and used the same way in autons, the driver
+file and the panel.** Every idea on the 2026-09-28 list is in the first version. PTO-readiness is one of its
+principles (P7); how it will be met is still open.
+
+| # | Part | What | Size (rough, unmeasured) |
+|---|---|---|---|
+| 12 | **MECH A**, the core | roles instead of ports + the wiring binding (validated every boot, one boot line per role); position control (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall); power control with done-conditions; pneumatics, including three positions; auton steps and the auton's mechanism lookup; driver presets; robot two's claws as the proving case; the per-tick mechanism service everything else depends on; the device provider's distance / optical / digital-in accessors; arm and lift models in the host test plant | ~9–15½ days (rough; +1½–2½ if PTO support is built now) |
+| 13 | **MECH B**, more kinds and protection | speed control (flywheels, "at speed"); cycle mechanisms (catapult/puncher); piece counting; colour sorting; jam auto-reverse; interlocks; loaded gains; low-power hold; current caps and heat derating with a driver warning; tip protection | ~8½–14 days (rough) |
+| 14 | **MECH C**, driver and auton extras | preset cycling, stick control with hold-where-released, long-press and double-tap, rumble, mechanism state on the controller screen, driver-interruptible macros (it would absorb T3's open chassis macros and angle presets, #16); triggers partway through a drive (run-while-driving moved into A) | ~5½–9 days (rough; +~1 if routes are in scope) |
+| 15 | **MECH D**, setup and diagnostics | a mechanism page in Bench Tests; the direction check; guided port binding on the brain; auto-tuning of an arm's gains; a per-match health log; arm, lift and flywheel models in the host test plant | ~7½–12½ days (rough; ~6½–10½ if bindings are compiled only) |
+
+On 2026-09-28 a read-only check of the requirements judged the first low ends optimistic; the sizes above are the
+re-priced ranges (requirements §7.1), still unmeasured until a brief is written, and it raised the questions now
+in the requirements' §5 (29 of them). Proposed placement (his to confirm): **MECH A after T4 Part 3 lands** (Part 3
+moves the buttons out of the mechanism table that MECH A rewrites; running them together is an exception needing
+his explicit go), then B, C and D, all **before G3a**, so the panel and robot file are designed around it. Open
+questions: §11 and the requirements' §5.
+
+### Plan chunks MECH would change (they stay open in the plan until he rules)
+
+| # | Chunk in the plan | What is open | Waits on | Size | The proposal |
+|---|---|---|---|---|---|
+| 16 | **T3**: chassis macros and angle presets | a button that runs a chassis motion the sticks take back within one tick; angle presets (T3's DoD). The claws' part has landed | — | ~½–1 day (rough, HANDOFF L5) | NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: absorbed into MECH C |
+| 17 | **F3**, the scoring primitives | `setQuadrantToggle`, `orientToScoringHalf`, `intakeUntilCapture`, `liftToLevel`, `rotateClampToAngle`, `clampActuate`/`clampConfirm`, `deployActuator`, each bounded and confirmed over the F1 seam | Q1 (the mechanism decisions) | ~2 days once decided (rough, HANDOFF L8) | NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: the generic pieces move into MECH; the rest is the students' season strategy (examples optional) |
+| 18 | **F4**, skills motion + reference routines (closes M4) | `fieldCentricStrafe`/`strafeTrim`, `moveToPoseProfiled`, `buildStack`, `matchLoadCycle`, `endInMidfield`, `strategyMode` | F3; hardware + final mechanisms | not sized | NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: re-scoped as for F3 |
+
+## 4. The robot panel and `.vexbot`
+
+| # | Item | What | Waits on | Size |
+|---|---|---|---|---|
+| 19 | **G3a**, as briefed | the robot file (the `.vexbot` profile block itself); its generator into the C++ tables and the driver file's button region, byte for byte; the freshness gate; one validator; the optional VS Code panel (a form over the file, with the calibration record shown read-only) | T4 Part 3; the team lead's push; his go and his answers to D1–D6 (§11) | ~5½–6 days (its draft brief, 2026-09-27) |
+| 20 | **G3a, the amended panel**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | a **new robot** (which creates its build too); **mechanisms** (add / remove / duplicate / reorder, with templates: Intake, Arm, Lift, Claw, Flywheel, Catapult, Conveyor, Blank); **wiring** (roles → ports, or "bind on the brain", with live warnings); **controls** (every MECH C control, with live warnings); **save** = generate + the build's own checks | MECH's design | grows G3a to ~13–18½ days (rough: the generator ~7½–11, the panel ~5½–7½; +1–1½ with X-drive generation) |
+| 21 | **G3**, `.vexbot` ingestion → **freeze F7** | **import** a `.vexbot` into G3a's generator; the optional SD-card runtime loader; `inferDrivetrain()` (the brittle fallback); `schemaVersion` negotiation with migration; freezes F7. DoD: a real `.vexbot` produces a working robot and routine | G3a; VexBuilder asks #1 (`paths[]`), #5 (the profile) and #2 (drivetrain fields). Today's `.vexbot` carries none of them | ~5½–8 days for the plan-of-record scope (rough; HANDOFF's ~1 day ignored it); ~2½–4 if re-scoped as proposed (import, `schemaVersion`, the F7 freeze — MECH-PANEL-requirements §5 Q27) |
+| 22 | **Export**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | the panel writes a starter `.vexbot` (profile, mechanisms, wiring, an empty path list, shulib's command list), so a team can start in the panel and continue in VexBuilder | G3; a new VexBuilder ask (open a project shulib started) | ~1–2 days (rough) |
+| 23 | **H4**, the robot console | the brain's screen and log on the computer over USB, and remote touches, in the same extension. A bench tool, off under field control | G3a; H1 | not sized |
+
+## 5. Sensors — after G3 (your ruling, 2026-09-28)
+
+| # | Item | Waits on | Size |
+|---|---|---|---|
+| 24 | **The AI Vision adapter** (R2b): objects and AprilTags from the camera on port 3 | Stations H and I (Bench Tests 11/12) run on the robot first | ~1 day (rough) |
+| 25 | **Wall reset with the distance sensors** (L6): drive toward a wall until the sensor reads a set distance, then correct that axis | Q2 (where the sensors face and sit) | ~1 day (rough) |
+| 26 | **Drive to a game piece** (L4): turn toward the piece the camera sees, then drive until the claw or a sensor confirms | 24 | ~1 day (rough) |
+
+After the adapter, **S6** puts vision on the bench (robot sessions below). NEW 2026-09-28 — PROPOSED, planning with
+the team lead, not yet in the plan: the sensors a MECHANISM needs (a limit switch, rotation, or a distance or optical
+sensor used as a piece sensor or colour sorter) would come with MECH rather than after G3 (§11).
+
+## 6. Library chunks already briefed ("accept all", 2026-09-26) — builders start after the auton merge
+
+| # | Item | Size |
+|---|---|---|
+| 27 | **DIAG1 Part B**: the odometry skips bad (non-finite) readings | ~½–1 day |
+| 28 | **SAFE-SAVE**: a failed Calibrate save can never erase the good record, and the boot falls back to a verified backup. **Part B1 lands before the next Calibrate rerun** (the plan's order). Until B1 is in the build, copy `shulib_drivetrain.bin` off the card before ANY Calibrate run (worksheet G.0.1) | ~2–2½ days |
+| 29 | **L9**: Part A, reverse driving (`reverseTo`, `faceAway`), takes API 2.4 because TANK1 took 2.3. Part B makes the boot library code and comes after COMP-b | ~1½–2 days (A ~½–1, B ~1) |
+| 30 | **H1**: the SHUL/2 telemetry wire (A1 read side, A2 write side, B freezes F9). The robot console uses it | ~2½–3 days (A1 1–1½, A2 1, B ½) |
+| 31 | **R5a**: the drive's gains and noise, measured by the robot and kept on the SD card. Parts A–D: C waits for SAFE-SAVE A and B1; D waits for COMP-b and SAFE-SAVE B2 | ~3½–4 days + robot sessions |
+
+Subtotal: ~10–12½ days.
+
+**Planned, not briefed:**
+
+| # | Item | State | Its DoD's constraint | Size |
+|---|---|---|---|---|
+| 32 | **IMU1**: read the IMU's turn rate once per tick. On a robot, a second read in the same tick returns about 0 or a spike. Found by TANK1's re-check; the team lead's D4 (a) | planned 2026-09-27; no brief yet | must land **before a robot record's `imuYawRate` is read as evidence** (Station M's records are the first) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~½–1 day (rough) |
+
+## 7. Chunks that close on the robot (robot-session-bound; not in the total)
+
+| # | Item | What closes it | Waits on | Size |
+|---|---|---|---|---|
+| 33 | **R3a**, platform validation | the register's groups settled or re-planned: (a) settled or corrected; (b) settled in part, with the rest named; (c)/(d) left open, naming the hardware each needs. Its `-COMPLETED.md` is written when that holds | every session feeds it (S1–S3) | robot-session-bound |
+| 34 | **R3c, the absolute-reference half**, this season, on a tank | GPS and AprilTags on a field (HA-01/06/07/09/10/31/106, HA-68/69/70) | a GPS or the camera mounted; the field (S7) | robot-session-bound |
+| 35 | **R4's remainder** | GPS latency and error, encoder noise and tracking-wheel slip, turned into the EKF's noise parameters with E4 re-verified; boot-time IMU cold calibration and tip detection (code). R5a took the rest capture | robot sessions | robot-session-bound (the code is not sized) |
+| 36 | **R5's remainder + S9 (retune)** | re-tune the C-phase controllers against the measured dynamics; motion re-verified on hardware; retune again after field runs | R5a's measurements; field runs | robot-session-bound |
+| 37 | **R6 / P1**: back-fit the host test plant | the measured numbers (R4, R5a) go into the plant and the whole suite is re-run; every new failure is fixed where it lives | R4's and R5a's sessions | not sized (it depends on what fails) |
+| 38 | **P2**: settle the register | every HA entry a session touched gets its settle line, citing the log | each session | robot-session-bound (written with each session) |
+| 39 | **I1**: robot one, also a tank (the 2026-09-14 ruling) | a second chassis table plus R3d's calibration; no new core | robot one; Q3 (its cartridge); S5 | robot-session-bound |
+
+## 8. Other open pieces
+
+| # | Item | Size |
+|---|---|---|
+| 40 | **T2's close-out**: a driver compares the feel on the robot (T4 Part 3 covers most of it), then `T2-COMPLETED.md` | ~½ day (rough) |
+| 41 | **Documentation, the big passes**: the finished-library set of guides, a field-day runbook, the API reference and a release | ~2–3 days (rough) |
+
+## 9. Last of all
+
+| # | Item | Waits on | Size |
+|---|---|---|---|
+| 42 | **PKG1**: a PROS template and a starter project, so a team starts from a template instead of a clone of this repository | every other chunk | not sized |
+| 43 | **G4**: the 10-minute guide, written from the starter. DoD: a team member who cannot code builds a robot and a routine in VexBuilder, exports one `.vexbot`, and the robot runs it | PKG1; VexBuilder asks #1 (`paths[]`) and #5 (the profile) | ~½ day (rough; shulib's side) |
+
+## 10. Robot sessions (you at the robot), in order
+
+- **Station J, the claws**, on "shulib Teleop" (its package is ready now).
+- **Station M, the 40 in on the bench** (after COMP-t). If the floor run's log shows the library's motion stack
+  drove, the **"never driven a robot under its own control" documentation sweep** follows: every instance in one
+  commit (HANDOFF S1). Station M's `imuYawRate` does not count as evidence until IMU1 (#32) lands.
+- **Station K, Timed Run** (after COMP-b). Then R3b and M1 are judged against Station M's and Station K's logs (#7),
+  and you rule on B6 (§11).
+- **Stations F and J re-run on the new "shulib Drive"** (after T4 Part 3; T4's DoD).
+- **A recorded Calibrate rerun**, which fixes the ~8 % distance error and closes R3d. It waits for **SAFE-SAVE
+  B1** (the plan's order). If a Calibrate run happens before B1, copy the record off the card first (G.0.1).
+- **Stations H and I (Bench Tests 11/12)**: the distance sensors and the camera, ~10 minutes, any time before
+  R2b.
+- **S6, vision on the bench** (after R2b): what the camera reports for a piece and a tag, its latency and frame
+  conventions. It settles R2b's HA entries.
+- **R5a's sessions (S2 gains, S3 noise)**, after R5a Part C. The host test plant is then re-fitted to the real
+  numbers (#37).
+- **Mechanism sessions.** In the plan this is S4, after F3, and it is F11's freeze trigger. With MECH (proposed):
+  directions, homing, holding under load and tuning.
+- **Robot one** (S5, after Q3; I1). Then **S7**, absolute references on the field (GPS, tags, the wall reset),
+  and **S9**, the retune after field runs.
+
+## 11. Your decisions still open
+
+| Who / when | Decision | Recommendation |
+|---|---|---|
+| COMP-b | **ND1**: after an error in the auton's task, does driver control still run? | ✅ **answered 2026-09-28: yes, after a safe stop**; later autons refused until reboot |
+| COMP-b | **ND2**: the tester only runs from the calibration record (D9); does the competition program? | ✅ **answered: refuse the auton, not the boot**; driver control still runs |
+| After Station K | **B6**: the auton pick under a Timed Run | you rule after Station K measures it (COMP brief B6) |
+| T4 Part 2 | **C**: keep or drop the "velocity exactly 0" dead-motor check | ✅ **answered: dropped** |
+| T4 Part 2 | **D**: the frozen-reading rule's guard (so a slipping port 18 at a wall does not get live motors marked dead) | ✅ **answered: guard G4** |
+| T4 Part 3 | **A**: what the SD log copy holds | ✅ **answered: events and summaries only** |
+| T4 Part 3 | **B**: does the competition program keep an SD copy? | ✅ **answered: yes, appended** |
+| MECH (proposed) | where port bindings live: compiled, on the SD card, or both | to decide in the planning |
+| MECH (proposed) | how a claw grab counts as done without a sensor | to decide in the planning |
+| MECH (proposed) | mechanism sensors come with MECH, not after G3 | to confirm |
+| MECH (proposed) | whether the list is complete, and the checker's ~20 further questions | before any brief |
+| G3a | its six decisions (D1–D6), and whether to flip robot two's typed front to the camera end | before its go |
+| Q2 / Q3 / Q6 | sensor placement; robot one's cartridge; the `MotionDeps` version question | open |
+| Q1 | the mechanisms each robot has. **In the plan it blocks F3 and every scoring routine**, and it is answered in part for robot two (the claws). NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: with MECH, Q1 would decide only the robots' **settings**, never library work | open |
+
+## Later, not this season
+
+- The VexBuilder link with run replay (H2) and an on-brain tuner (H3).
+- The holonomic half of R3c on the spring X-drive (2027).
+- Robot-to-robot coordination (I2, a stretch goal).
+- The rest of E5 (GPS lever arm, camera mount) and visual docking (E6).
+- Smooth path following.
+- Power take-off support.
+
+## The total, honestly
+
+Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3a's growth and G3 are priced in
+[`MECH-PANEL-requirements.md`](MECH-PANEL-requirements.md) §7.1 against the plan's own comparable chunks).
+
+| Group | Builder-days |
+|---|---|
+| 1. the auton: COMP-t (rough), TANK1 B, COMP-b | ~3¾ |
+| 2. T4 Parts 2 and 3 | ~5–6 |
+| 3. the plan chunks MECH would change: T3's macros and presets, F3 (rough); F4 not sized | ~2½–3 |
+| 4. the panel as planned: G3a as briefed (5½–6), G3 at its plan-of-record scope (~5½–8, rough); H4 not sized | ~11–14 |
+| 5. sensors (rough) | ~3 |
+| 6. the briefed library chunks | ~10–12½ |
+| 6. IMU1 (rough) | ~½–1 |
+| 8–9. T2's close-out, documentation, G4 (rough); PKG1 not sized | ~3–4 |
+| **The plan of record** | **~39–47** |
+| + MECH A–D, everything on the 2026-09-28 list (NEW — PROPOSED; rough, unmeasured) | +30½–51 |
+| + G3a's growth, 5½–6 → ~13–18½ (proposed; rough) | +7½–12½ |
+| − G3 re-scoped, ~5½–8 → ~2½–4 (proposed, §5 Q27) | −(3–4) |
+| + Export (proposed; rough) | +1–2 |
+| − T3's macros and F3, which MECH would absorb | −(2½–3) |
+| **With every proposal taken** | **~71–107** |
+
+**Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
+robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
+merges; the one brief that sizes this, COMP-b's, puts it at about half again (~1 day on ~2).
+
+**Calendar time.** More builders do not shorten the chain of steps that each wait on the one before, so the chain
+sets the pace:
+
+- **Plan of record:** COMP-t → COMP-b → T4 Part 2 → Part 3 → G3a → G3 → sensors → documentation → PKG1 → G4 —
+  ~25–30 builder-days in sequence, about 5–6 five-day weeks; ~7½–9 weeks with verification.
+- **With every proposal:** COMP-t → COMP-b → T4 Parts 2–3 → MECH A → MECH B, C, D → G3a amended → G3 → export →
+  sensors → documentation → PKG1 → G4 — ~61–91 builder-days in sequence if MECH B, C and D run one after another
+  (about 12–18 weeks; ~18–27 with verification), or ~48–69 if they run side by side (about 10–14 weeks; ~14½–21
+  with verification). That is roughly **4–6 months** for everything in the first version, against roughly **2
+  months** for the plan of record. MECH alone is more work than everything else left combined.
+
+These hold only if the decisions and robot sessions keep pace and the builders are not paused. They grew on
+2026-09-28 because the team lead added generic mechanisms (MECH) with every idea on the list, the panel's new pages
+and export, and because the re-checks re-sized COMP-b, T4 Parts 2–3 and G3. Estimates, not promises.

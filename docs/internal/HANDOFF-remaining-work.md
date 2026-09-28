@@ -342,7 +342,7 @@ dispatcher, the X-drive as data, the build gate's differential redesigned.
 - Done / docs owed: per the revised brief's DoD and documentation lists.
 - Size: ~1–1.5 days executor + verification, across its parts.
 
-**L2. [COMP] The competition program.** BRIEFED 2026-09-24 (`docs/internal/chunks/COMP-competition-program.md`, two parts, each on jal's go, after G1 Part 2b); it did not exist in the plan or the tree before that (the G1 Part 2
+**L2. [COMP] The competition program.** **Status 2026-09-28:** COMP-a LANDED (`b5aaf95`, host-proven only); COMP-t (the auton tester, L2t) BUILDING; COMP-b's brief RE-CHECKED (RC1–RC12, all amended; jal answered ND1/ND2 at ~16:15, and ND3–ND6 were taken as recommended), to be built after COMP-t lands. BRIEFED 2026-09-24 (`docs/internal/chunks/COMP-competition-program.md`, two parts, each on jal's go, after G1 Part 2b); it did not exist in the plan or the tree before that (the G1 Part 2
 brief names it as a future consumer of the builder's dead-port tolerance).
 - What: the program uploaded for a match. `initialize()`: boot the robot (IMU calibration, port check
   against the SD record, status screen, refusal by name). A **brain-screen auton selector** (touch
@@ -368,7 +368,9 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - Docs owed: a guide chapter "The competition program" (written from the code, examples compiled and
   quoted verbatim), README, roadmap (M4's guaranteed-park line), build-order entry + Next, the
   worksheet (a new station for a practice match), the changelog.
-- Size: ~1 day.
+- Size: ~1 day. *(Stale since the briefs, corrected 2026-09-28: COMP-a has landed; COMP-t is ~1 day (rough),
+  since its brief states no size; COMP-b is ~2¼ executor-days plus ~1 day of verification (its re-check,
+  "The honest size of COMP-b now"). The practice match is worksheet Station K.)*
 
 **L3. [R2] The AI Vision adapter.**
 - What: `hal/pros/vision.hpp` implementing `hal::IVision` (object observations) and `hal::ITagSource`
@@ -469,7 +471,8 @@ is a plan change for jal to confirm in the brief (Q7).
   round-trips; Teleop and the competition program use measured gains when present and say which.
 - Docs owed: HA-45/50/51/52 and the noise entries' settle lines, roadmap R4/R5, build-order R4/R5/E5,
   guide, worksheet station.
-- Size: ~1–1.5 days host; the measurement is S2/S3.
+- Size: ~1–1.5 days host; the measurement is S2/S3. *(Stale, corrected 2026-09-28: R5a's brief puts it at
+  ~3½–4 executor-days across parts A–D, plus verification and the robot sessions.)*
 
 **L8. [F3] The scoring primitives.** **BLOCKED on Q1 (the mechanism decisions).**
 - What (build-order's list, in its value order): `setQuadrantToggle` (index N clicks on the 3-state
@@ -483,7 +486,7 @@ is a plan change for jal to confirm in the brief (Q7).
   roadmap M4. **F11 does not freeze here** — its trigger is F3's primitives run **on hardware** (S4).
 - Size: ~2 days once decided.
 
-**L9. [NEW-ERGONOMICS] The small API additions the readable routine depends on.** **BRIEFED 2026-09-26** (`chunks/L9-rest-reverse-driving-and-one-line-boot.md`: `reverseTo` / `faceAway`, API 2.3; the boot as library code; T3 already delivered the mechanism lookup).
+**L9. [NEW-ERGONOMICS] The small API additions the readable routine depends on.** **BRIEFED 2026-09-26** (`chunks/L9-rest-reverse-driving-and-one-line-boot.md`: `reverseTo` / `faceAway`, API 2.3 *[2026-09-28: TANK1 Part A took 2.3, so L9 Part A takes 2.4]*; the boot as library code; T3 already delivered the mechanism lookup).
 - Reverse driving: **the facade has no `driveTo`** (it is `Routine`'s, F10-frozen), and the data path
   already has it (`Waypoint::reverse`, which the runner honours). So the work is an ADDITIVE option on
   `Routine::driveTo` — a `kApiMinor` bump, pins updated deliberately, a changelog entry — following
@@ -498,7 +501,8 @@ is a plan change for jal to confirm in the brief (Q7).
   Host-tested only.
 - A `Robot::fromCard()`-style one-liner (may be L1's `bootConfig()` exposed; decide in L1/L2).
 - Docs owed: the register rows touched, the changelog, guide, cookbook.
-- Size: ~1 day.
+- Size: ~1 day. *(Stale, corrected 2026-09-28: the brief puts it at Part A ~½–1 day plus Part B ~1 day, so
+  ~1½–2 days.)*
 
 **L9b. [SAFE-SAVE, NEW 2026-09-26, reactive] Calibrate's save can never erase a good record; the boot falls
 back to a verified backup.** BRIEFED (`chunks/SAFE-SAVE-calibrate-save-and-teleop-label.md`; every
@@ -518,7 +522,9 @@ recommended). "shulib Auton Tester" runs a registered auton on the bench through
 `src/team/autons.{hpp,cpp}` with the 40 in auton. Slot 7 until T4 Part 3, then slot 2. **Built after TANK1**;
 before its builder starts, every MOTION_TIMEOUT prediction in its brief is re-made from TANK1's tests.
 
-**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** BRIEFED
+**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** **Status
+2026-09-28: Part A LANDED (`3965791`, API 2.3), host- and build-gated, not run on a robot. Part B (the ` xt`
+column, no API bump) is BUILDING.** The "not committed" sentence below dates from before the merge. BRIEFED
 (`chunks/TANK1-tank-moveto-steers.md`; jal's go ~08:17, D1–D4 as recommended); Part A building, Part B alongside
 COMP-t; API 2.3 (L9 Part A then takes the next free minor). **IMU1** (the IMU's yaw rate read once per tick) is
 a separate small chunk from its D4. On
@@ -543,6 +549,10 @@ the buttons leave the mechanism table). jal's answers:
 N1 (a) the over-current cut ON with an off switch and a required push check; N2 (a) as amended; N4 (a) the
 auton tester in slot 7 until Part 3; N5 (a) an optional SD copy of every library program's log; N7 (c)
 driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 as the brief recommends.
+**Re-checked 2026-09-28** (Parts 2 and 3, against `b81a590`: thirteen findings plus a fourteenth, major, all
+amended); jal's answers of ~16:15, all as recommended: C drops the velocity-exactly-0 check, D adds guard G4,
+A limits the SD copy to events and summaries, and B has the competition program keep an appended SD copy.
+**Part 2 is ~2–2½ days after COMP-b; Part 3 is ~3–3½ days after Part 2.**
 - For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser (COMP-b's header), at
   its place after CLAW ABSENT — never into `teleop_program.cpp`.
 - For SAFE-SAVE A/B1's re-check: `formatSaveReport`'s sentences name Teleop, which T4 Part 3 retires.
@@ -550,6 +560,8 @@ driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 a
 **L10. The remaining plan chunks (lower priority for the season):**
 - **[G3a — NEW 2026-09-26, before G3] The robot profile, its generator and an optional VS Code robot
   panel** (jal: "lets do it for before implementing .vexbot"; build-order's G3a entry). ~3–5 days.
+  *(Stale, corrected 2026-09-28: its draft brief of 2026-09-27 puts it at ~5½–6 days; it waits for jal's go
+  and his answers to D1–D6.)*
 - **[G3] `.vexbot` ingestion into G3a's generator → freeze F7.** Serves VexBuilder's files. ~1 day
   after G3a.
 - **[G4] the ten-minute guide** (closes M5). The legacy `.shupaths` importer was DROPPED 2026-09-26
@@ -558,7 +570,8 @@ driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 a
   over USB, remote touches back, on H1's wire; a bench tool, inert under field control.
 - **[PKG1 — NEW 2026-09-27, LAST] The PROS template and the starter project** (jal: "after everything like
   after everything"); G4's guide is written from it, so G4 goes last with it.
-- **[H1] SHUL/2 telemetry wire → freeze F9.** BRIEFED 2026-09-26 (`chunks/H1-shul2-wire.md`; parts A1, A2, B; in this wave, last when slots are short). ~1–2 days.
+- **[H1] SHUL/2 telemetry wire → freeze F9.** BRIEFED 2026-09-26 (`chunks/H1-shul2-wire.md`; parts A1, A2, B; in this wave, last when slots are short). ~1–2 days. *(Stale,
+  corrected 2026-09-28: the brief gives A1 ~1–1½, A2 ~1 and B ~½, so ~2½–3 days.)*
 - **T2 finish:** re-point shulib Drive and the tester's DRIVE station at `DriveShaper` AFTER a driver
   has compared feels on hardware (the G1 Part 2 brief's ruling M4) — then **`T2-COMPLETED.md`**, which
   `T2-PROGRESS.md` owes.
@@ -709,7 +722,9 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    the students' auton file and the run pieces from COMP-t), then T4 Parts 2 and 3 (Part 1b folded into 3,
    jal 2026-09-28). The sensors (L3 the AI Vision adapter, L4 piece targeting, L6 the wall reset) come after G3
    (jal, 2026-09-28). jal pushes the branch
-   once the auton is complete, before G3a.** *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
+   once the auton is complete, before G3a.** *(Status 2026-09-28: TANK1 Part A landed `3965791`; COMP-t and
+   TANK1 Part B are building; COMP-b's and T4 Parts 2–3's briefs are re-checked and carry jal's answers of
+   ~16:15. The readable list of everything left is [`REMAINING-WORK.md`](REMAINING-WORK.md).)* *(G1 Part 2c was built in parallel with T3 on his "start all three"; its re-check of the
    brief against the tree is `G1-PROGRESS.md` 2c.1.)* The claws' first sight is worksheet Station J
    (after Station F).
 2. **The moment the brain enumerates: S1** — stop other work and do the first drive (Station G).
