@@ -42,27 +42,30 @@ Nothing new has run on the robot since 2026-09-25.
 | 10 | **Part 3**: the new "shulib Drive" replaces the old one (slot 1). "shulib Teleop" retires. The buttons leave the mechanism table (Part 1b's work). Each program can keep an optional SD copy of its log (events only). `main.cpp` reaches its final form | brief re-checked (as above); your A/B answered | Part 2 | ~3–3½ days |
 | 11 | **Stations F (drive) and J (claws) re-run on the new "shulib Drive"**: T4's DoD, and nothing of T4 is claimed on hardware until these logs exist | needs you at the robot | 10 | ~1 hour (rough) |
 
-## 3. Mechanisms (MECH) — NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan
+## 3. Mechanisms (MECH) — NEW 2026-09-28 — planning with the team lead; the ORDER is ruled, the brief is not written
 
 The requirements so far are in [`MECH-PANEL-requirements.md`](MECH-PANEL-requirements.md). That file is planning,
 not a brief, and no brief will be written until the team lead says the list is complete. In short: **any
 mechanism is described as data, bound to ports after it is created, and used the same way in autons, the driver
-file and the panel.** Every idea on the 2026-09-28 list is in the first version. PTO-readiness is one of its
-principles (P7); how it will be met is still open.
+file and the panel.** PTO-readiness is one of its principles (P7); how it will be met is still open.
 
-| # | Part | What | Size (rough, unmeasured) |
-|---|---|---|---|
-| 12 | **MECH A**, the core | roles instead of ports + the wiring binding (validated every boot, one boot line per role); position control (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall); power control with done-conditions; pneumatics, including three positions; auton steps and the auton's mechanism lookup; driver presets; robot two's claws as the proving case; the per-tick mechanism service everything else depends on; the device provider's distance / optical / digital-in accessors; arm and lift models in the host test plant | ~9–15½ days (rough; +1½–2½ if PTO support is built now) |
-| 13 | **MECH B**, more kinds and protection | speed control (flywheels, "at speed"); cycle mechanisms (catapult/puncher); piece counting; colour sorting; jam auto-reverse; interlocks; loaded gains; low-power hold; current caps and heat derating with a driver warning; tip protection | ~8½–14 days (rough) |
-| 14 | **MECH C**, driver and auton extras | preset cycling, stick control with hold-where-released, long-press and double-tap, rumble, mechanism state on the controller screen, driver-interruptible macros (it would absorb T3's open chassis macros and angle presets, #16); triggers partway through a drive (run-while-driving moved into A) | ~5½–9 days (rough; +~1 if routes are in scope) |
-| 15 | **MECH D**, setup and diagnostics | a mechanism page in Bench Tests; the direction check; guided port binding on the brain; auto-tuning of an arm's gains; a per-match health log; arm, lift and flywheel models in the host test plant | ~7½–12½ days (rough; ~6½–10½ if bindings are compiled only) |
+**The team lead's ruling (2026-09-28, ~17:15):** "lets do this so we have it, we can do the rest after the panel"
+— **the mechanism CORE is built first, before the panel; everything else comes after the panel** (and before G3,
+so the robot-file format is locked with VexBuilder once, with the whole vocabulary — the coordinator's placement,
+open to his objection).
 
-On 2026-09-28 a read-only check of the requirements judged the first low ends optimistic; the sizes above are the
-re-priced ranges (requirements §7.1), still unmeasured until a brief is written, and it raised the questions now
-in the requirements' §5 (29 of them). Proposed placement (his to confirm): **MECH A after T4 Part 3 lands** (Part 3
-moves the buttons out of the mechanism table that MECH A rewrites; running them together is an exception needing
-his explicit go), then B, C and D, all **before G3a**, so the panel and robot file are designed around it. Open
-questions: §11 and the requirements' §5.
+| # | Part | What | When | Size (rough, unmeasured) |
+|---|---|---|---|---|
+| 12 | **MECH core** | the four control kinds — **power** (with done-conditions), **position** (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall), **speed** (flywheels, "at speed"), **pneumatic** (incl. three positions); **port binding** (roles instead of ports, the wiring binding validated every boot, one boot line per role); **auton steps** (and the auton's mechanism lookup, run while driving); **presets** in the driver file; the per-tick mechanism service everything depends on; the device provider's distance / optical / digital-in accessors; arm, lift and flywheel models in the host test plant; robot two's claws as the proving case | after T4 Part 3, **before the panel** | ~10½–18 days (+1½–2½ if PTO support is built now) |
+| 13 | **MECH, the rest** — protection and more kinds | cycle mechanisms (catapult/puncher); piece counting; colour sorting; jam auto-reverse; interlocks; loaded gains; low-power hold; current caps and heat derating with a driver warning; tip protection | **after the panel** | ~7–11½ days |
+| 14 | **MECH, the rest** — driver and auton extras | preset cycling, stick control with hold-where-released, long-press and double-tap, rumble, mechanism state on the controller screen, driver-interruptible macros (would absorb T3's open chassis macros and angle presets, #16); triggers partway through a drive | **after the panel** | ~5½–9 days (+~1 if routes are in scope) |
+| 15 | **MECH, the rest** — setup and diagnostics | a mechanism page in Bench Tests; the direction check; guided port binding on the brain (and the SD binding record, if bindings live there); auto-tuning of an arm's gains; a per-match health log | **after the panel** | ~6½–11½ days |
+| 15b | **The panel's extension for the rest** | the panel gains what the rest adds (templates such as Catapult and Conveyor, interlocks, the extra controls, the bench-page links) | after the rest | ~2–3½ days (rough) |
+
+The sizes are the requirements' re-priced ranges (§7.1), still unmeasured until a brief is written. Its §5 holds
+29 questions; the ones the CORE needs answered before its brief are marked there. The core starts **after T4
+Part 3 lands** (Part 3 moves the buttons out of the mechanism table the core rewrites; running them together would
+be an exception needing his explicit go).
 
 ### Plan chunks MECH would change (they stay open in the plan until he rules)
 
@@ -204,28 +207,32 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | 6. IMU1 (rough) | ~½–1 |
 | 8–9. T2's close-out, documentation, G4 (rough); PKG1 not sized | ~3–4 |
 | **The plan of record** | **~39–47** |
-| + MECH A–D, everything on the 2026-09-28 list (NEW — PROPOSED; rough, unmeasured) | +30½–51 |
-| + G3a's growth, 5½–6 → ~13–18½ (proposed; rough) | +7½–12½ |
-| − G3 re-scoped, ~5½–8 → ~2½–4 (proposed, §5 Q27) | −(3–4) |
+| + the MECH core, before the panel (ruled 2026-09-28; rough, unmeasured) | +10½–18 |
+| + G3a amended for the core (new robot, mechanisms with templates, wiring, controls): 5½–6 → ~11½–16 (rough) | +5½–10½ |
+| + the rest of MECH, after the panel (ruled; rough) | +19–32 |
+| + the panel's extension for the rest (rough) | +2–3½ |
+| − G3 re-scoped, ~5½–8 → ~2½–4 (proposed, requirements §5 Q27) | −(3–4) |
 | + Export (proposed; rough) | +1–2 |
-| − T3's macros and F3, which MECH would absorb | −(2½–3) |
-| **With every proposal taken** | **~71–107** |
+| − T3's macros and F3, which MECH's rest would absorb | −(2½–3) |
+| **Everything, as now planned** | **~70–108** |
 
 **Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
 robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
 merges; the one brief that sizes this, COMP-b's, puts it at about half again (~1 day on ~2).
 
 **Calendar time.** More builders do not shorten the chain of steps that each wait on the one before, so the chain
-sets the pace:
+sets the pace. The milestones along it:
 
-- **Plan of record:** COMP-t → COMP-b → T4 Part 2 → Part 3 → G3a → G3 → sensors → documentation → PKG1 → G4 —
-  ~25–30 builder-days in sequence, about 5–6 five-day weeks; ~7½–9 weeks with verification.
-- **With every proposal:** COMP-t → COMP-b → T4 Parts 2–3 → MECH A → MECH B, C, D → G3a amended → G3 → export →
-  sensors → documentation → PKG1 → G4 — ~61–91 builder-days in sequence if MECH B, C and D run one after another
-  (about 12–18 weeks; ~18–27 with verification), or ~48–69 if they run side by side (about 10–14 weeks; ~14½–21
-  with verification). That is roughly **4–6 months** for everything in the first version, against roughly **2
-  months** for the plan of record. MECH alone is more work than everything else left combined.
+| Milestone | The chain to it | Builder-days in sequence | Weeks (five-day), with verification |
+|---|---|---|---|
+| **The 40 in on the bench** | COMP-t | ~1 | days |
+| **The 40 in through the real `autonomous()`** | + COMP-b | ~3¼ | ~1 |
+| **The driver program finished, Teleop retired, `main.cpp` final** | + T4 Parts 2 and 3 | ~8½–9½ | ~2½–3 |
+| **Mechanisms (the core) in the library** | + the MECH core | ~19–27½ | ~6–8 |
+| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~30½–43½ | ~9–13 |
+| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~50–75 | ~15–22 |
 
-These hold only if the decisions and robot sessions keep pace and the builders are not paused. They grew on
-2026-09-28 because the team lead added generic mechanisms (MECH) with every idea on the list, the panel's new pages
-and export, and because the re-checks re-sized COMP-b, T4 Parts 2–3 and G3. Estimates, not promises.
+These hold only if the decisions and robot sessions keep pace and the builders are not paused. The work grew on
+2026-09-28 because the team lead added generic mechanisms (MECH), the panel's new pages and export, and because
+the re-checks re-sized COMP-b, T4 Parts 2–3 and G3; the core-first ruling changes the ORDER (the panel arrives
+sooner), not the total. Estimates, not promises.

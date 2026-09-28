@@ -34,6 +34,11 @@
    (§5 Q4).
 6. "there is more to plan about the mechnisms so maybe dont write the brief now before we are 100% confident
    that we have everything down"
+7. On the sizes, choosing between everything in the first version and the core first: "lets do this so we have
+   it, we can do the rest after the panel" — **ruled (2026-09-28, ~17:15): the CORE first** (the four control kinds —
+   power, position, speed, pneumatic —, port binding, auton steps and presets, with what they need: the mechanism
+   service, the provider accessors, the host-plant models), **before the panel; the rest after the panel** (the
+   coordinator places it before G3, so the robot-file format is locked with VexBuilder once). See §7.2.
 
 ## 1. The principles (these decide every detail below)
 
@@ -702,6 +707,15 @@ below those comparables. The ranges narrow once §5 is answered (Q1, Q4, Q15, Q1
 | **Export** | the starter `.vexbot` and its round-trip tests, plus VexBuilder's side | **~1–2** |
 
 ### 7.2 Placement
+
+**Ruled 2026-09-28 (~17:15), superseding the placement below where they differ:** the CORE — MECH A (§7.1) plus
+speed control and the flywheel model from MECH B — is built after T4 Part 3 and **before the panel (G3a)**; the
+REST — the remainder of MECH B, MECH C and MECH D, and the panel's extension for them — **after the panel**, and
+(the coordinator's placement, open to his objection) before G3, so F7 locks the whole vocabulary once. Sizes: the
+core ~10½–18 days; the rest ~19–32; the panel's extension ~2–3½ (all rough). The §5 questions the CORE needs
+answered before its brief: Q1 (where bindings live — the core carries the compiled binding; guided binding and
+the SD record are in the rest), Q2, Q3, Q4, Q5, Q6, Q8 (presets beside hold/toggle), Q13, Q18, Q25, Q26, Q28,
+Q29; the others can wait for the rest.
 
 - **MECH A after T4 Part 3 lands** (§5 Q25). T4 Part 3 moves the buttons out of `src/robots/mechanism_table.hpp`
   and makes the driver file their one owner. MECH A rewrites that table into roles and a binding and extends
