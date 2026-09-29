@@ -42,7 +42,7 @@ Nothing new has run on the robot since 2026-09-25.
 | 10 | **Part 3**: the new "shulib Drive" replaces the old one (slot 1). "shulib Teleop" retires. The buttons leave the mechanism table (Part 1b's work). Each program can keep an optional SD copy of its log (events only). `main.cpp` reaches its final form | brief re-checked (as above); your A/B answered | Part 2 | ~3–3½ days |
 | 11 | **Stations F (drive) and J (claws) re-run on the new "shulib Drive"**: T4's DoD, and nothing of T4 is claimed on hardware until these logs exist | needs you at the robot | 10 | ~1 hour (rough) |
 
-## 3. Mechanisms (MECH) — NEW 2026-09-28 — planning with the team lead; the ORDER is ruled, the brief is not written
+## 3. Mechanisms (MECH) — NEW 2026-09-28 — the order is ruled, the list is COMPLETE (2026-09-29), the core's brief is being written
 
 The requirements so far are in [`MECH-PANEL-requirements.md`](MECH-PANEL-requirements.md). That file is planning,
 not a brief, and no brief will be written until the team lead says the list is complete. In short: **any
@@ -174,11 +174,8 @@ Subtotal: ~10–12½ days.
 | T4 Part 2 | **D**: the frozen-reading rule's guard (so a slipping port 18 at a wall does not get live motors marked dead) | ✅ **answered: guard G4** |
 | T4 Part 3 | **A**: what the SD log copy holds | ✅ **answered: events and summaries only** |
 | T4 Part 3 | **B**: does the competition program keep an SD copy? | ✅ **answered: yes, appended** |
-| MECH (proposed) | where port bindings live: compiled, on the SD card, or both | to decide in the planning |
-| MECH (proposed) | how a claw grab counts as done without a sensor | to decide in the planning |
-| MECH (proposed) | mechanism sensors come with MECH, not after G3 | to confirm |
-| MECH | whether the list is complete, and the requirements' §5 questions (30; the core's are marked) — incl. Q30: move the bench page and the direction check into the core, since they are the only way to confirm a binding (recommend yes, +~1½–2½ days) | before the core's brief |
-| G3a | its six decisions (D1–D6), and whether to flip robot two's typed front to the camera end | before its go |
+| MECH | the core's questions (Q1–Q6, Q8, Q13, Q18, Q25, Q28–Q30) | ✅ **answered 2026-09-29 ~03:50**: bindings only in the robot file; a sensorless claw grab by time, reported unconfirmed; mechanism sensors with the mechanisms; PTO: name the later change; no 3-wire expanders yet; the most recent input wins; three-position levels stated by the team; typed names checked at build; F3/F4 re-scoped; the bench page and direction check in the core; **the list is complete — write the core's brief**. Homing for robot two's pivots: not sure yet |
+| G3a | its six decisions (D1–D6); robot two's front | ✅ **D1–D6 answered 2026-09-29: all as recommended.** The front: "the front will be different depending on the robot" — per robot, already the design; robot two's own front (record: camera end; typed table: 15/16 end) to confirm at the amended panel brief |
 | Q2 / Q3 / Q6 | sensor placement; robot one's cartridge; the `MotionDeps` version question | open |
 | Q1 | the mechanisms each robot has. **In the plan it blocks F3 and every scoring routine**, and it is answered in part for robot two (the claws). NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: with MECH, Q1 would decide only the robots' **settings**, never library work | open |
 

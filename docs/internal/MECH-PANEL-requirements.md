@@ -512,6 +512,40 @@ in C++.
 
 ## 5. Open questions (the team lead's)
 
+> **THE TEAM LEAD'S ANSWERS (2026-09-29, ~03:45–03:55)** — the core's questions, asked after his approval of
+> speedup C (2026-09-28 ~17:35), and his word that **the list is complete: "It's complete, write the brief"**.
+> - **Q1 — where bindings live: (a) ONLY the robot file** (edit the wiring, rebuild, upload). Consequences, carried
+>   into the brief: no SD binding record; the direction check on the brain REPORTS a wrong direction and names the
+>   robot-file line to change (it cannot save a flip); guided binding (in the rest) becomes "tell me which port
+>   moved", the port then written into the robot file; the panel's wiring page has no "bind on the brain" option.
+> - **Q2 — a sensorless claw grab: (c) time now, a sensor later** — counted done after a set time and reported as
+>   `Unconfirmed`; a distance sensor confirms it once mounted.
+> - **Q3 — mechanism sensors come WITH the mechanisms** (limit switch, rotation, distance/optical as a piece sensor;
+>   the provider accessors in the core). The after-G3 ruling covers the AI Vision adapter, the wall reset and piece
+>   targeting only.
+> - **Q4 — PTO-ready: (b) name the later change** — nothing extra built; the plan records the three rules a PTO
+>   would change (§3.7).
+> - **Q5 — 3-wire expanders: (a) not in the first version.**
+> - **Q6 — homing for robot two's pivots: not sure yet** — decided once the pivots gain positions; the library
+>   supports every homing moment (§3.1).
+> - **Q8 — several controls on one mechanism: (a) the most recent input wins**; a mechanism may be marked auton-only
+>   (the gestures sub-question follows the recommendation: short + long on one button, a double-tap only on a button
+>   with no hold-to-run — in the rest, with MECH C).
+> - **Q13 — three-position pneumatics: (a) the team states each position's levels and the safe position.**
+> - **Q18 — names in autons: (a) generated typed handles, checked at build.**
+> - **Q25 — sequence against T4 Part 3:** answered by speedup C (2026-09-28 ~17:35): the core's brief is written
+>   while T4 builds and its LIBRARY half builds alongside T4 Part 3 (a stated file split; its `src/` half waits).
+> - **Q28 — the F3/F4 re-scope: YES** (the drafted deviations row and dependency #6 amendment, §7.3).
+> - **Q29 — anything missing: the list is complete.**
+> - **Q30 — the bench page and the direction check: INTO THE CORE** (+~1½–2½ days).
+> - **Not asked, carried to the brief as recommended for his go:** Q26 (MECH on hardware as the F11–F14 freeze
+>   trigger). The rest's questions (Q7, Q9–Q12, Q14–Q17, Q19–Q24, Q27) wait for the rest (after the panel).
+> - **The front (asked for the panel):** "the front will be different depending on the robot" — the design already
+>   makes the front a per-robot, human-stated setting (never a library default). Robot two's own front — its
+>   calibration record and how the team drives use the camera end; its typed table says the 15/16 end — is a
+>   robot-two setting to confirm with him at the panel brief.
+
+
 Each has its options and, where the evidence supports one, a recommendation. None is decided here.
 
 ### Scope and hardware
