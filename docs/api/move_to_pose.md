@@ -87,9 +87,9 @@ double holdFor = 0.0
 bool tankSteer = false
 ```
 
-TANK1: this motion may steer a tank back onto its target's line. Only the public MoveToPose constructor sets it; StrafeTo (a translation that HOLDS heading) and HoldPose (no line to steer along) leave it false, so on a tank they are unchanged.
+TANK1: this motion may steer a tank back onto its target's line. Only the public MoveToPose constructor sets it; StrafeTo (a translation that HOLDS heading) and HoldPose (no line to steer along) leave it false, so on a tank they move exactly as before. (Their result lines are another matter: the scheduler gives a tank's StrafeTo, and a HoldPose of a spot away from the robot, TANK1 Part B's ` xt` column — a report.)
 
-*field, declared at [`include/shulib/motion/move_to_pose.hpp:99`](../../include/shulib/motion/move_to_pose.hpp#L99).*
+*field, declared at [`include/shulib/motion/move_to_pose.hpp:101`](../../include/shulib/motion/move_to_pose.hpp#L101).*
 
 <a id="class-movetopose"></a>
 
@@ -101,7 +101,7 @@ class MoveToPose : public IMotion
 
 Drive to a FIELD-frame pose with three INDEPENDENT controllers — field-x, field-y and heading — each closing its own loop every tick and combining into one ChassisSpeeds. The robot therefore translates and rotates simultaneously; nothing in this class sequences a turn before a drive. Arrival needs BOTH criteria at once (translation distance AND heading error), so it composes two SettledUtils and one Watchdog rather than one scalar exit. StrafeTo and HoldPose are this same engine with different capture/exit options.  On a TANK (strafeAuthority() exactly 0) a leg that starts within config.tankSteer.maxSteer of its target heading also steers back onto the target's LINE while it drives (TANK1 — the file header; MotionConfig::tankSteer; tankSteerStatus()), and a leg that starts farther off runs unsteered and logs one Warn. It never plans a turn: face() the point first.  A MoveToPose owns no loop and no thread: the caller ticks it, having updated the Localizer first, until tick() returns something other than Running.
 
-*class, declared at [`include/shulib/motion/move_to_pose.hpp:116`](../../include/shulib/motion/move_to_pose.hpp#L116).*
+*class, declared at [`include/shulib/motion/move_to_pose.hpp:118`](../../include/shulib/motion/move_to_pose.hpp#L118).*
 
 <a id="movetopose-movetopose"></a>
 
@@ -113,7 +113,7 @@ MoveToPose(const MotionDeps& deps, const math::Pose2d& target, const MotionConfi
 
 Drive to `target` (FIELD frame). `timeout` seconds bounds the whole motion INCLUDING any boot wait; 0 selects config.defaultTimeout.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:120`](../../include/shulib/motion/move_to_pose.hpp#L120).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:122`](../../include/shulib/motion/move_to_pose.hpp#L122).*
 
 <a id="movetopose-start"></a>
 
@@ -125,7 +125,7 @@ void start() override
 
 Arm, or fully re-arm: the three PIDs, both settle detectors and the stall check are reset, the watchdog clock restarts, and the state drops back to WaitingForEstimate. Commands no motors. A capture-at-first-live target (StrafeTo's heading, HoldPose's pose) is re-armed too, so a re-started motion captures again from the CURRENT estimate rather than reusing the previous run's. A plain MoveToPose keeps its explicit target. TANK1's state is re-armed too: the engage decision is made again at the next first live tick, and the yaw correction starts from 0.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:131`](../../include/shulib/motion/move_to_pose.hpp#L131).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:133`](../../include/shulib/motion/move_to_pose.hpp#L133).*
 
 <a id="movetopose-tick"></a>
 
@@ -137,7 +137,7 @@ Arm, or fully re-arm: the three PIDs, both settle detectors and the stall check 
 
 One control tick, and the only member here that commands a DRIVING voltage — cancel() commands the motors too, into the shared safe state, and is in fact the only member that ever changes a brake mode (this one's stops just write 0 V). Precondition: start() has been called; the loop owner must have advanced the Localizer FIRST, since this reads the estimate as the world at time t. While the estimate is still Uninitialized it commands zero volts and makes no settle progress — but the watchdog keeps running through that wait, so a never-live estimate exits TimedOut instead of hanging. Returns Running until both criteria settle (Settled) or the watchdog fires (TimedOut, MotionTimeout raised); motors are stopped BEFORE the exit record is emitted, so the record stream ends on the true final state. After any non-Running verdict this is a no-op that returns the cached verdict. Emits AT MOST one DebugRecord per call: that cached-verdict path emits nothing, and no path emits unless the sink answers wantsRecord() — the record is built inside hal::emitRecord's lambda, so against a NullSink or any log-only sink it is never populated at all. When one is emitted its `commanded` field is the FINAL achievable command in the FIELD frame — post-clamp, so this layer's clamping is auditable from the stream.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:173`](../../include/shulib/motion/move_to_pose.hpp#L173).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:175`](../../include/shulib/motion/move_to_pose.hpp#L175).*
 
 <a id="movetopose-cancel"></a>
 
@@ -149,7 +149,7 @@ void cancel() override
 
 The cancel contract (motion.hpp): safe state whenever started, verdict only if still running, Idle untouched, idempotent, never raises.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:362`](../../include/shulib/motion/move_to_pose.hpp#L362).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:364`](../../include/shulib/motion/move_to_pose.hpp#L364).*
 
 <a id="movetopose-exitreason"></a>
 
@@ -161,7 +161,7 @@ The cancel contract (motion.hpp): safe state whenever started, verdict only if s
 
 The verdict cached by the last tick() or cancel() — Running until the first exit, then that exit reason for good. Reading it never recomputes anything and never advances the motion; only start() clears it back to Running.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:391`](../../include/shulib/motion/move_to_pose.hpp#L391).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:393`](../../include/shulib/motion/move_to_pose.hpp#L393).*
 
 <a id="movetopose-state"></a>
 
@@ -173,7 +173,7 @@ The verdict cached by the last tick() or cancel() — Running until the first ex
 
 The motion-layer state, which is also written into DebugRecord.activeCommandState every tick: Idle before start(), WaitingForEstimate through the boot window, Running while controlling, then the state matching the verdict. Finer-grained than exitReason(), which cannot tell Idle from Running.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:397`](../../include/shulib/motion/move_to_pose.hpp#L397).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:399`](../../include/shulib/motion/move_to_pose.hpp#L399).*
 
 <a id="movetopose-name"></a>
 
@@ -185,7 +185,7 @@ The motion-layer state, which is also written into DebugRecord.activeCommandStat
 
 Always the literal "MoveToPose" — the string that identifies this motion in MotionTimeout fault text and in run result lines. The siblings override it with their own names, so a StrafeTo never reports as its base class.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:402`](../../include/shulib/motion/move_to_pose.hpp#L402).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:404`](../../include/shulib/motion/move_to_pose.hpp#L404).*
 
 <a id="movetopose-tanksteerstatus"></a>
 
@@ -197,7 +197,7 @@ Always the literal "MoveToPose" — the string that identifies this motion in Mo
 
 TANK1's account of the most recent tick that computed a command (all zero / false off a tank, and before the first live tick; the exit tick commands nothing, so after it this still describes the tick before): whether this motion may steer, whether this run does, and that tick's cross-track error, the predicted one the bend steered on, the bend and the yaw correction.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:409`](../../include/shulib/motion/move_to_pose.hpp#L409).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:411`](../../include/shulib/motion/move_to_pose.hpp#L411).*
 
 <a id="movetopose-target"></a>
 
@@ -209,7 +209,7 @@ TANK1's account of the most recent tick that computed a command (all zero / fals
 
 The FIELD-frame target (after any first-live-tick capture).
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:419`](../../include/shulib/motion/move_to_pose.hpp#L419).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:421`](../../include/shulib/motion/move_to_pose.hpp#L421).*
 
 <a id="movetopose-settarget"></a>
 
@@ -221,7 +221,7 @@ void setTarget(const math::Pose2d& target)
 
 Retarget BEFORE start() (rebuilding a motion for a new waypoint). Precondition: not currently running.
 
-*function, declared at [`include/shulib/motion/move_to_pose.hpp:423`](../../include/shulib/motion/move_to_pose.hpp#L423).*
+*function, declared at [`include/shulib/motion/move_to_pose.hpp:425`](../../include/shulib/motion/move_to_pose.hpp#L425).*
 
 ## Design commentary, from the header
 

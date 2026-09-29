@@ -136,9 +136,9 @@ Heading bend per inch of cross-track error (rad/in). PROVISIONAL (A4: HA-179).
 double maxSteer = 0.2617993877991494
 ```
 
-The cap on the bend AND the engage window (rad, 15 degrees): the heading setpoint never leaves target heading ± maxSteer, and a leg whose first live heading is farther than this from its target heading is not steered. The two are ONE number on purpose: a leg that starts within the cap is one whose heading error the bend itself could have commanded; beyond it, steering would mean the heading loop first making the author's turn. So raising it to let the bend remove larger offsets also widens which un-faced legs are steered — on the host test plant un-faced legs arrive up to about 30 degrees off and time out from about 40, a cliff the author cannot see, so keep it well under 30 (HA-179). 0 turns TANK1 off entirely: a tank's moveTo then moves, records and ends exactly as it did before TANK1, bit for bit. Must be < pi/2 (a bend of 90 degrees or more would reverse which way the robot drives along the line). PROVISIONAL (A4: HA-179).
+The cap on the bend AND the engage window (rad, 15 degrees): the heading setpoint never leaves target heading ± maxSteer, and a leg whose first live heading is farther than this from its target heading is not steered. The two are ONE number on purpose: a leg that starts within the cap is one whose heading error the bend itself could have commanded; beyond it, steering would mean the heading loop first making the author's turn. So raising it to let the bend remove larger offsets also widens which un-faced legs are steered — on the host test plant un-faced legs arrive up to about 30 degrees off and time out from about 40, a cliff the author cannot see, so keep it well under 30 (HA-179). 0 turns the steering off entirely: a tank's moveTo then moves, records and ends exactly as it did before TANK1, bit for bit (its result line keeps TANK1 Part B's ` xt` column, a report kept whatever maxSteer is). Must be < pi/2 (a bend of 90 degrees or more would reverse which way the robot drives along the line). PROVISIONAL (A4: HA-179).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:99`](../../include/shulib/motion/motion_config.hpp#L99).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:100`](../../include/shulib/motion/motion_config.hpp#L100).*
 
 <a id="tanksteerconfig-fadedistance"></a>
 
@@ -150,7 +150,7 @@ double fadeDistance = 6.0
 
 Along-track distance over which the bend fades to zero at arrival (in, > 0): the bend is scaled by clamp(along-track distance to go / fadeDistance, -1, 1), which is continuous through arrival and carries the sign that makes a REVERSE approach steer the right way. PROVISIONAL (A4: HA-179).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:104`](../../include/shulib/motion/motion_config.hpp#L104).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:105`](../../include/shulib/motion/motion_config.hpp#L105).*
 
 <a id="tanksteerconfig-leadtime"></a>
 
@@ -162,7 +162,7 @@ double leadTime = 0.06
 
 How far ahead (s) the bend looks: it steers on the cross-track error predicted this far ahead from the robot's heading and the forward speed it was commanded the tick before (tank_steer.hpp, tankLeadCross), not on the error now. It damps the line loop: without it a leg that starts pointed at its line can overshoot the line near the target, where the fade leaves the rest unremovable — a leg that finished before TANK1 then timed out. On the host test plant (2026-09-28, the Part A review's grid of 24 563 legs) no lead from 0.05 to 0.10 s left any leg that settles with TANK1 off timing out with it on, at motor time constants from 0 to about 0.18 s; with no lead 178 did (0.04 s: 4; 0.25 s under lag: 72–102). 0.06 sits inside that band and keeps a 6 in offset over 40 in removable on the lag-free plant. >= 0 (0 = steer on the error now). PROVISIONAL (A4: HA-179).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:115`](../../include/shulib/motion/motion_config.hpp#L115).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:116`](../../include/shulib/motion/motion_config.hpp#L116).*
 
 <a id="tanksteerconfig-yawobservertime"></a>
 
@@ -174,7 +174,7 @@ double yawObserverTime = 0.1
 
 Time constant (s) of the low-pass that turns "measured yaw rate − commanded yaw rate" into the estimated unexplained yaw. It must be long against IMU noise and short against the leg; it assumes the drivetrain follows a yaw command much faster than this (a heavy robot's lag reads as unexplained yaw — HA-179 records the host-test-plant margin). > 0. PROVISIONAL (A4: HA-179).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:121`](../../include/shulib/motion/motion_config.hpp#L121).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:122`](../../include/shulib/motion/motion_config.hpp#L122).*
 
 <a id="tanksteerconfig-yawcorrectionlimit"></a>
 
@@ -186,7 +186,7 @@ double yawCorrectionLimit = 1.5
 
 The most yaw rate (rad/s) the correction may add, either way — bounding how large a side imbalance TANK1 will cancel, how hard it will fight a robot being turned by something else, and how far it integrates while the robot cannot follow (pinned, lagging). 0 disables the correction (the bend alone). >= 0. PROVISIONAL (A4: HA-179).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:126`](../../include/shulib/motion/motion_config.hpp#L126).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:127`](../../include/shulib/motion/motion_config.hpp#L127).*
 
 <a id="tanksteerconfig-valid"></a>
 
@@ -198,7 +198,7 @@ The most yaw rate (rad/s) the correction may add, either way — bounding how la
 
 Every field finite; crossGain, leadTime and yawCorrectionLimit >= 0; maxSteer in [0, pi/2); fadeDistance and yawObserverTime > 0. MotionConfig::validate() refuses a config whose tankSteer fails this.
 
-*function, declared at [`include/shulib/motion/motion_config.hpp:131`](../../include/shulib/motion/motion_config.hpp#L131).*
+*function, declared at [`include/shulib/motion/motion_config.hpp:132`](../../include/shulib/motion/motion_config.hpp#L132).*
 
 <a id="struct-motionconfig"></a>
 
@@ -210,7 +210,7 @@ struct MotionConfig
 
 Every knob the C1 motion primitives share. A motion COPIES it at construction and validate()s the copy, so later edits to the object you built from never reach a live motion — build a fresh config, then a fresh motion. Units are canonical throughout (inches, radians, seconds), but only the speed and geometry budgets carry theirs in the TYPE (units::Velocity / AngularVelocity / Length); the gains, defaultTimeout and every SettleConfig / OdoStallCheckConfig field are bare doubles whose units live only in the comment beside them. Nor are the gains dimensionless — kP is 1/s and kI 1/s², kD alone is dimensionless — what the axis they are handed to supplies is WHICH quantity they act on (inches for translation, radians for heading), not their dimension.
 
-*struct, declared at [`include/shulib/motion/motion_config.hpp:149`](../../include/shulib/motion/motion_config.hpp#L149).*
+*struct, declared at [`include/shulib/motion/motion_config.hpp:150`](../../include/shulib/motion/motion_config.hpp#L150).*
 
 <a id="motionconfig-wheelff"></a>
 
@@ -222,7 +222,7 @@ control::FeedforwardGains wheelFf{.kS = 1.0, .kV = 12.0 / 70.0, .kA = 0.0}
 
 Wheel feedforward — MUST match the drivetrain's characterization (R5). Default mirrors the plant's placeholder (≈70 in/s free speed at 12 V). PROVISIONAL (A4: HA-45/HA-50).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:153`](../../include/shulib/motion/motion_config.hpp#L153).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:154`](../../include/shulib/motion/motion_config.hpp#L154).*
 
 <a id="motionconfig-translation"></a>
 
@@ -234,7 +234,7 @@ AxisGains translation{.kP = 3.0}
 
 Translation: inches of field-axis error → in/s of field-axis velocity command. Applied identically to x AND y (header note). PROVISIONAL (HA-50).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:157`](../../include/shulib/motion/motion_config.hpp#L157).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:158`](../../include/shulib/motion/motion_config.hpp#L158).*
 
 <a id="motionconfig-heading"></a>
 
@@ -246,7 +246,7 @@ AxisGains heading{.kP = 4.0}
 
 Heading: radians of shortest-path error → rad/s. PROVISIONAL (HA-50).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:159`](../../include/shulib/motion/motion_config.hpp#L159).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:160`](../../include/shulib/motion/motion_config.hpp#L160).*
 
 <a id="motionconfig-maxlinearspeed"></a>
 
@@ -258,7 +258,7 @@ units::Velocity maxLinearSpeed{60.0}
 
 Field-frame linear speed budget (in/s) — the norm cap AND the base of the strafe-authority clamp. PROVISIONAL (HA-50).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:163`](../../include/shulib/motion/motion_config.hpp#L163).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:164`](../../include/shulib/motion/motion_config.hpp#L164).*
 
 <a id="motionconfig-maxangularspeed"></a>
 
@@ -270,7 +270,7 @@ units::AngularVelocity maxAngularSpeed{6.0}
 
 Yaw-rate budget (rad/s). PROVISIONAL (HA-50).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:165`](../../include/shulib/motion/motion_config.hpp#L165).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:166`](../../include/shulib/motion/motion_config.hpp#L166).*
 
 <a id="motionconfig-maxwheelspeed"></a>
 
@@ -282,7 +282,7 @@ units::Velocity maxWheelSpeed{60.0}
 
 Per-wheel surface-speed budget for desaturate() (in/s). PROVISIONAL (HA-50).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:167`](../../include/shulib/motion/motion_config.hpp#L167).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:168`](../../include/shulib/motion/motion_config.hpp#L168).*
 
 <a id="motionconfig-translationsettle"></a>
 
@@ -294,7 +294,7 @@ control::SettleConfig translationSettle{.maxError = 0.5, .maxErrorRate = 1.0, .s
 
 Translation settle: |pos error| (in), |d error/dt| (in/s), held (s). PROVISIONAL (A4: HA-51).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:171`](../../include/shulib/motion/motion_config.hpp#L171).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:172`](../../include/shulib/motion/motion_config.hpp#L172).*
 
 <a id="motionconfig-headingsettle"></a>
 
@@ -306,7 +306,7 @@ control::SettleConfig headingSettle{.maxError = 0.02, .maxErrorRate = 0.30, .set
 
 Heading settle: |shortest error| (rad ≈ 1.15°), rate (rad/s — noise floor note in header), held (s). PROVISIONAL (A4: HA-51).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:175`](../../include/shulib/motion/motion_config.hpp#L175).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:176`](../../include/shulib/motion/motion_config.hpp#L176).*
 
 <a id="motionconfig-brakesettle"></a>
 
@@ -318,7 +318,7 @@ control::SettleConfig brakeSettle{.maxError = 1.2, .maxErrorRate = 100.0, .settl
 
 DriveBrake settle on the AVERAGED speed norm |v| + rotationRadius·|ω| (in/s), its rate (in/s²), held (s). The threshold sits deliberately ABOVE the M2 estimator's averaged twist-noise floor (~0.3–0.9 in/s at a physical dead stop under composed hostility — drive_brake.hpp header); tighter would never settle on a hostile field. PROVISIONAL (A4: HA-51).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:182`](../../include/shulib/motion/motion_config.hpp#L182).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:183`](../../include/shulib/motion/motion_config.hpp#L183).*
 
 <a id="motionconfig-defaulttimeout"></a>
 
@@ -330,7 +330,7 @@ double defaultTimeout = 5.0
 
 Watchdog default when a motion is constructed without an explicit timeout (seconds). PROVISIONAL (A4: HA-51).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:187`](../../include/shulib/motion/motion_config.hpp#L187).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:188`](../../include/shulib/motion/motion_config.hpp#L188).*
 
 <a id="motionconfig-rotationradius"></a>
 
@@ -342,7 +342,7 @@ units::Length rotationRadius{7.0}
 
 Center-to-wheel distance (in) — converts |ω| to an equivalent linear speed in DriveBrake's norm. Stand-in geometry (A4: HA-17/HA-52).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:191`](../../include/shulib/motion/motion_config.hpp#L191).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:192`](../../include/shulib/motion/motion_config.hpp#L192).*
 
 <a id="motionconfig-stall"></a>
 
@@ -354,7 +354,7 @@ OdoStallCheckConfig stall{}
 
 The spin-vs-motion cross-check thresholds (A4: HA-52) and, since R3b Part 2, its per-wheel drive geometry (`stall.wheels`, hal::DriveGeometry — the same objects the drive-encoder odometry converts with; `stall.setAllWheels()` for a symmetric drive) and `stall.independentMotionSource` (false on a drivetrain whose odometry IS the drive encoders: the check then never reports a verdict — odo_stall_check.hpp's §2 ruling).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:198`](../../include/shulib/motion/motion_config.hpp#L198).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:199`](../../include/shulib/motion/motion_config.hpp#L199).*
 
 <a id="motionconfig-tanksteer"></a>
 
@@ -366,7 +366,7 @@ TankSteerConfig tankSteer{}
 
 Tank steering (chunk TANK1): read by MoveToPose only, and only when the drivetrain's strafeAuthority() is exactly 0. `tankSteer.maxSteer = 0` switches it off for every leg built from this config. Appended last so every designated initializer of this struct keeps compiling. PROVISIONAL (A4: HA-179).
 
-*field, declared at [`include/shulib/motion/motion_config.hpp:204`](../../include/shulib/motion/motion_config.hpp#L204).*
+*field, declared at [`include/shulib/motion/motion_config.hpp:205`](../../include/shulib/motion/motion_config.hpp#L205).*
 
 <a id="motionconfig-validate"></a>
 
@@ -378,7 +378,7 @@ void validate() const
 
 Re-check the invariants the motions rely on and RAISE on the first violation: feedforward and PID gains finite, integral limits non-negative, all FIVE speed / timeout / geometry scalars strictly positive (maxLinearSpeed, maxAngularSpeed, maxWheelSpeed, defaultTimeout, rotationRadius — 0 is rejected, never read as "unset"), and tankSteer.valid(). Every C1 motion calls this from its own constructor, so it is a backstop rather than a step you can forget — call it yourself only when validating a config you have not yet handed to a motion. It deliberately does NOT descend into the SettleConfig or OdoStallCheckConfig members: those are checked by SettledUtil and OdoStallCheck when the motion builds them, which is the only place their own invariants are known. It DOES descend into tankSteer (since TANK1): no other object owns that struct, and MoveToPose reads it on every tank tick, so this is the one place a bad value can be refused before it steers.
 
-*function, declared at [`include/shulib/motion/motion_config.hpp:218`](../../include/shulib/motion/motion_config.hpp#L218).*
+*function, declared at [`include/shulib/motion/motion_config.hpp:219`](../../include/shulib/motion/motion_config.hpp#L219).*
 
 <a id="validatedconfig"></a>
 
@@ -390,7 +390,7 @@ Re-check the invariants the motions rely on and RAISE on the first violation: fe
 
 Validate `config` (and a caller-supplied `timeout`) and hand the config straight back, so a motion can write `cfg_{validatedConfig(config, timeout, "TurnTo")}` as the FIRST member in its initializer list and have the check run before any component is built from these fields. The counterpart to MotionDeps::validatedClock(), which exists for exactly the same reason on the pointer half: "a null pointer trips the precondition rather than being dereferenced." Without it the first component constructed from a bad config reports the failure in ITS vocabulary, naming a class the caller never named.
 
-*free function, declared at [`include/shulib/motion/motion_config.hpp:257`](../../include/shulib/motion/motion_config.hpp#L257).*
+*free function, declared at [`include/shulib/motion/motion_config.hpp:258`](../../include/shulib/motion/motion_config.hpp#L258).*
 
 ## Design commentary, from the header
 

@@ -40,7 +40,7 @@ struct TankLineError
 
 The robot's position in its target's line frame (header): inches.
 
-*struct, declared at [`include/shulib/motion/tank_steer.hpp:61`](../../include/shulib/motion/tank_steer.hpp#L61).*
+*struct, declared at [`include/shulib/motion/tank_steer.hpp:64`](../../include/shulib/motion/tank_steer.hpp#L64).*
 
 <a id="tanklineerror-along"></a>
 
@@ -52,7 +52,7 @@ double along = 0.0
 
 along the target heading, from the target (− before it going forward)
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:62`](../../include/shulib/motion/tank_steer.hpp#L62).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:65`](../../include/shulib/motion/tank_steer.hpp#L65).*
 
 <a id="tanklineerror-cross"></a>
 
@@ -64,7 +64,7 @@ double cross = 0.0
 
 off the line, + to the LEFT of the target heading
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:63`](../../include/shulib/motion/tank_steer.hpp#L63).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:66`](../../include/shulib/motion/tank_steer.hpp#L66).*
 
 <a id="tanklineerror"></a>
 
@@ -76,7 +76,7 @@ off the line, + to the LEFT of the target heading
 
 Where `pose` sits relative to the line through `target` along `target.heading()`.
 
-*free function, declared at [`include/shulib/motion/tank_steer.hpp:67`](../../include/shulib/motion/tank_steer.hpp#L67).*
+*free function, declared at [`include/shulib/motion/tank_steer.hpp:70`](../../include/shulib/motion/tank_steer.hpp#L70).*
 
 <a id="tankleadcross"></a>
 
@@ -88,7 +88,7 @@ Where `pose` sits relative to the line through `target` along `target.heading()`
 
 The cross-track error (in) `cfg.leadTime` seconds ahead (header: the lead): the error now plus how far the robot closes on or leaves the line in that time if it keeps its heading and `forwardSpeed` (in/s along its own heading, + forward, − backing up — MoveToPose passes the body forward speed it commanded the tick before). `headingFromTarget` is the robot's heading minus the target heading (rad; any wrap — only its sine is used). leadTime 0 returns e.cross.
 
-*free function, declared at [`include/shulib/motion/tank_steer.hpp:82`](../../include/shulib/motion/tank_steer.hpp#L82).*
+*free function, declared at [`include/shulib/motion/tank_steer.hpp:85`](../../include/shulib/motion/tank_steer.hpp#L85).*
 
 <a id="tanksteerangle"></a>
 
@@ -100,7 +100,7 @@ The cross-track error (in) `cfg.leadTime` seconds ahead (header: the lead): the 
 
 The bend (rad) TANK1 adds to the target heading for this line error (header formula) — MoveToPose passes the error with its cross replaced by tankLeadCross(). Bounded by cfg.maxSteer; zero at along == 0 and at cross == 0; odd in cross; its sign flips with the direction of approach.
 
-*free function, declared at [`include/shulib/motion/tank_steer.hpp:92`](../../include/shulib/motion/tank_steer.hpp#L92).*
+*free function, declared at [`include/shulib/motion/tank_steer.hpp:95`](../../include/shulib/motion/tank_steer.hpp#L95).*
 
 <a id="tanklegengages"></a>
 
@@ -112,7 +112,7 @@ The bend (rad) TANK1 adds to the target heading for this line error (header form
 
 Whether a tank leg whose FIRST LIVE heading error (target heading minus heading, shortest, rad) is `startHeadingError` is steered at all: only when TANK1 is on (maxSteer > 0) and the leg starts within maxSteer of its heading — inclusive, so a leg exactly at the window is steered. A leg outside it is the author's turn (face()), and runs exactly as before TANK1.
 
-*free function, declared at [`include/shulib/motion/tank_steer.hpp:103`](../../include/shulib/motion/tank_steer.hpp#L103).*
+*free function, declared at [`include/shulib/motion/tank_steer.hpp:106`](../../include/shulib/motion/tank_steer.hpp#L106).*
 
 <a id="struct-tanksteerstatus"></a>
 
@@ -124,7 +124,7 @@ struct TankSteerStatus
 
 What TANK1 did on a MoveToPose's most recent tick — for tests and Tier-3 tooling; the record stream carries only the flag (DebugRecord::tankSteerActive).
 
-*struct, declared at [`include/shulib/motion/tank_steer.hpp:110`](../../include/shulib/motion/tank_steer.hpp#L110).*
+*struct, declared at [`include/shulib/motion/tank_steer.hpp:113`](../../include/shulib/motion/tank_steer.hpp#L113).*
 
 <a id="tanksteerstatus-eligible"></a>
 
@@ -136,7 +136,7 @@ bool eligible = false
 
 tank + plain MoveToPose + TANK1 on
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:111`](../../include/shulib/motion/tank_steer.hpp#L111).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:114`](../../include/shulib/motion/tank_steer.hpp#L114).*
 
 <a id="tanksteerstatus-engaged"></a>
 
@@ -148,7 +148,7 @@ bool engaged = false
 
 this run steers (decided at the first live tick)
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:112`](../../include/shulib/motion/tank_steer.hpp#L112).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:115`](../../include/shulib/motion/tank_steer.hpp#L115).*
 
 <a id="tanksteerstatus-cross"></a>
 
@@ -160,7 +160,7 @@ double cross = 0.0
 
 last tick's cross-track error (in), + left of the line
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:113`](../../include/shulib/motion/tank_steer.hpp#L113).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:116`](../../include/shulib/motion/tank_steer.hpp#L116).*
 
 <a id="tanksteerstatus-crossahead"></a>
 
@@ -172,7 +172,7 @@ double crossAhead = 0.0
 
 last tick's tankLeadCross() — the error the bend steered on
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:114`](../../include/shulib/motion/tank_steer.hpp#L114).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:117`](../../include/shulib/motion/tank_steer.hpp#L117).*
 
 <a id="tanksteerstatus-bend"></a>
 
@@ -184,7 +184,7 @@ double bend = 0.0
 
 last tick's heading-setpoint bend (rad)
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:115`](../../include/shulib/motion/tank_steer.hpp#L115).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:118`](../../include/shulib/motion/tank_steer.hpp#L118).*
 
 <a id="tanksteerstatus-yawcorrection"></a>
 
@@ -196,7 +196,7 @@ double yawCorrection = 0.0
 
 the yaw rate (rad/s) TANK1 subtracted last tick
 
-*field, declared at [`include/shulib/motion/tank_steer.hpp:116`](../../include/shulib/motion/tank_steer.hpp#L116).*
+*field, declared at [`include/shulib/motion/tank_steer.hpp:119`](../../include/shulib/motion/tank_steer.hpp#L119).*
 
 <a id="ktanksteernoisefraction"></a>
 
@@ -208,14 +208,14 @@ inline constexpr double kTankSteerNoiseFraction = 0.02
 
 tankSteerActive's legibility floor, as a fraction of maxAngularSpeed: TANK1 must have changed the tick's yaw command (its bend's P-share plus its yaw correction) by more than this before the tick is flagged. 2 % of the HA-50 budget is 0.12 rad/s; the floor in rad/s moves with maxAngularSpeed. Measured on the host test plant (test/motion_tank_steer_test.cpp, P7, at 6 rad/s): under composed hostility on an EVEN drive, over ten 40 in legs, the flag lights on 20 of 2 125 ticks (0.9 %; the worst single leg 2.9 %), where with no floor IMU rate noise reaching the yaw observer lights it on 2 109 of them — nearly every tick; a 5 % weaker side lights it on 81 of a leg's 186 ticks. (Re-measured 2026-09-28 with the bend's lead: 14 of 2 125 before it.) The same kind of telemetry-legibility constant as kStrafeFallbackNoiseFraction — host-decidable, not a register entry (A4 register rule 1).
 
-*constant, declared at [`include/shulib/motion/tank_steer.hpp:129`](../../include/shulib/motion/tank_steer.hpp#L129).*
+*constant, declared at [`include/shulib/motion/tank_steer.hpp:132`](../../include/shulib/motion/tank_steer.hpp#L132).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 49 lines, click to expand</summary>
+<summary>The header’s own reasoning — 52 lines, click to expand</summary>
 
 ```text
 
@@ -265,7 +265,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  test/tank_steer_test.cpp.
 
  What uses this: MoveToPose (move_to_pose.hpp) on a drivetrain whose strafeAuthority() is
- exactly 0, for a leg that starts within maxSteer of its target heading — and nothing else.
+ exactly 0, for a leg that starts within maxSteer of its target heading — the only thing that
+ STEERS with it. One reader besides (TANK1 Part B): the scheduler's MotionStatsSink
+ (motion_scheduler.hpp) reports tankLineError's `cross` of a finished motion's last estimate as
+ the result line's ` xt` column, on the same drivetrains — a number, never a command.
  PROS-free, allocation-free, no state: every function here is pure.
 ```
 

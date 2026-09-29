@@ -93,8 +93,9 @@ struct TankSteerConfig {
     /// raising it to let the bend remove larger offsets also widens which un-faced legs are
     /// steered — on the host test plant un-faced legs arrive up to about 30 degrees off and time
     /// out from about 40, a cliff the author cannot see, so keep it well under 30 (HA-179).
-    /// 0 turns TANK1 off entirely: a tank's moveTo then moves, records and ends exactly as it did
-    /// before TANK1, bit for bit. Must be < pi/2 (a bend of 90 degrees or more would reverse which
+    /// 0 turns the steering off entirely: a tank's moveTo then moves, records and ends exactly as
+    /// it did before TANK1, bit for bit (its result line keeps TANK1 Part B's ` xt` column, a
+    /// report kept whatever maxSteer is). Must be < pi/2 (a bend of 90 degrees or more would reverse which
     /// way the robot drives along the line). PROVISIONAL (A4: HA-179).
     double maxSteer = 0.2617993877991494;
     /// Along-track distance over which the bend fades to zero at arrival (in, > 0): the bend is

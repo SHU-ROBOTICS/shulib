@@ -95,7 +95,9 @@ struct PoseMotionOptions {
     double holdFor = 0.0;               ///< > 0 ⇒ hold-mode exit (HoldPose)
     /// TANK1: this motion may steer a tank back onto its target's line. Only the public
     /// MoveToPose constructor sets it; StrafeTo (a translation that HOLDS heading) and
-    /// HoldPose (no line to steer along) leave it false, so on a tank they are unchanged.
+    /// HoldPose (no line to steer along) leave it false, so on a tank they move exactly as
+    /// before. (Their result lines are another matter: the scheduler gives a tank's StrafeTo,
+    /// and a HoldPose of a spot away from the robot, TANK1 Part B's ` xt` column — a report.)
     bool tankSteer = false;
 };
 

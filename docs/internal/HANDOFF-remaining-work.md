@@ -522,20 +522,21 @@ recommended). "shulib Auton Tester" runs a registered auton on the bench through
 `src/team/autons.{hpp,cpp}` with the 40 in auton. Slot 7 until T4 Part 3, then slot 2. **Built after TANK1**;
 before its builder starts, every MOTION_TIMEOUT prediction in its brief is re-made from TANK1's tests.
 
-**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** **Status
-2026-09-28: Part A LANDED (`3965791`, API 2.3), host- and build-gated, not run on a robot. Part B (the ` xt`
-column, no API bump) is BUILDING.** The "not committed" sentence below dates from before the merge. BRIEFED
-(`chunks/TANK1-tank-moveto-steers.md`; jal's go ~08:17, D1–D4 as recommended); Part A building, Part B alongside
-COMP-t; API 2.3 (L9 Part A then takes the next free minor). **IMU1** (the IMU's yaw rate read once per tick) is
+**L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** **COMPLETE
+2026-09-29** (`chunks/TANK1-COMPLETED.md`): Part A LANDED 2026-09-28 (`3965791`, API 2.3); Part B (the ` xt`
+column, no API bump) LANDED 2026-09-29. Host- and build-gated, NOT run on a robot (COMP-t's Station M is the
+first). BRIEFED (`chunks/TANK1-tank-moveto-steers.md`; jal's go ~08:17, D1–D4 as recommended); API 2.3 (L9 Part A
+then takes the next free minor, 2.4). **IMU1** (the IMU's yaw rate read once per tick) is
 a separate small chunk from its D4. On
 today's tank `moveTo` nothing corrects a sideways drift, so the 40 in auton on a robot with one side a few
 percent weak ends MOTION_TIMEOUT (COMP-t's probe; robot two's sides differ by ~9 %). jal: "Fix the library
 first" — a bounded correction that never plans a turn, logged when it steers, the X-drive and H-drive
-byte-for-byte unchanged, the auton line unchanged. HA-179/180. **Part A BUILT 2026-09-27 in the `tank1`
-worktree, not committed** (`chunks/TANK1-PROGRESS.md`, Part A: the steering, TSTR, the Warn, 40 new test
-cases after the 2026-09-28 review added the bend's lead, API 2.3, HA-179/180) — it waits for the
-coordinator's verification; its build found that the
-Localizer reads the IMU rate twice at every chained-motion boundary (IMU1's, not TANK1's; TANK1 immune).
+byte-for-byte unchanged, the auton line unchanged. HA-179/180. **Part A LANDED 2026-09-28 as `3965791`**
+(`chunks/TANK1-PROGRESS.md`, Part A and the coordinator's merge record: the steering, TSTR, the Warn, 40 new test
+cases after the 2026-09-28 review added the bend's lead, API 2.3, HA-179/180); its build found that the
+Localizer reads the IMU rate twice at every chained-motion boundary (IMU1's, not TANK1's; TANK1 immune). **Part B LANDED
+2026-09-29** (`chunks/TANK1-PROGRESS.md`, Part B, its review findings and the coordinator's merge record: translating
+tank result lines end with ` xt`, the final cross-track error; X/H lines byte-identical).
 
 **L5b. [T4, NEW 2026-09-26] The driver program.** BRIEFED (`chunks/T4-driver-program.md`); Part 0 (the slots
 and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot, run

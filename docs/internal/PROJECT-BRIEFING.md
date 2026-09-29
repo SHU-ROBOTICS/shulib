@@ -105,12 +105,12 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 > Run `git log --oneline -20` and `git status` for them — §2 says so already,
 > and a command cannot go stale.
 
-**Position:** 32 of 63 chunks complete
+**Position:** 33 of 63 chunks complete
 
-- **Next up:** TANK1 Part A LANDED 2026-09-28 (moveTo on a tank steers back onto its line — host- and build-gated, NOT run on a robot; [live log](chunks/TANK1-PROGRESS.md)); now COMP-t (the auton tester with the 40 in auton — [brief](chunks/COMP-t-auton-tester.md), his answers D1–D9 as recommended, its predictions re-made from TANK1) alongside TANK1 Part B (the xt column), then COMP-b (the competition program — autonomous() and opcontrol() running the driver file), then T4 Part 2 (the protections) and Part 3 (the new shulib Drive; Teleop retires; the buttons leave the mechanism table — Part 1b was folded into it on the team lead's ruling of 2026-09-28) — the team lead's go on all of it (2026-09-28: "i want to do all this"). The sensors (the AI Vision adapter, the distance-sensor wall reset, piece targeting) come after G3 (his ruling, 2026-09-28). The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
+- **Next up:** TANK1 COMPLETE 2026-09-29 (moveTo on a tank steers back onto its line, Part A 2026-09-28 and Part B the xt column 2026-09-29 — host- and build-gated, NOT run on a robot; [record](chunks/TANK1-COMPLETED.md)); now COMP-t (the auton tester with the 40 in auton — [brief](chunks/COMP-t-auton-tester.md), his answers D1–D9 as recommended, its predictions re-made from TANK1) alongside TANK1 Part B (the xt column), then COMP-b (the competition program — autonomous() and opcontrol() running the driver file), then T4 Part 2 (the protections) and Part 3 (the new shulib Drive; Teleop retires; the buttons leave the mechanism table — Part 1b was folded into it on the team lead's ruling of 2026-09-28) — the team lead's go on all of it (2026-09-28: "i want to do all this"). The sensors (the AI Vision adapter, the distance-sensor wall reset, piece targeting) come after G3 (his ruling, 2026-09-28). The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
-- ⚠️ **OPEN CHUNK(S): COMP, DIAG1, R3a, R3b, R3d, T2, T3, T4, TANK1** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,725 cases / 2,648,032 assertions, 3 skipped — **green**  
+- ⚠️ **OPEN CHUNK(S): COMP, DIAG1, R3a, R3b, R3d, T2, T3, T4** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
+- **Suite:** 1,737 cases / 2,650,734 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 192  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
 - **Hardware assumptions:** 158 registered, **7 settled** — next free is **HA-181**  
@@ -118,7 +118,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
 
-> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DEFECTS2` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G1` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a` · `SRC1`
+> `A1` · `A2` · `A3` · `A4` · `C1` · `C2` · `C3` · `C4` · `C5` · `C6` · `C7` · `C8` · `D1` · `D2` · `D3` · `DEFECTS1` · `DEFECTS2` · `DOCS1` · `DOCS2` · `E1` · `E2` · `E3` · `E4` · `F1` · `F2` · `G1` · `G2` · `GATE1` · `R1a` · `R1b` · `R2a` · `SRC1` · `TANK1`
 
 **Freeze Register** *(source: `docs/roadmap.md`, which owns it)*:
 

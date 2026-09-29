@@ -40,6 +40,10 @@
   direction of travel, three inches sideways"* and record how the errors are linked. It grows
   while dead reckoning and shrinks when a fix is folded. Only the Kalman fusion tier has one.
   [Ch. 3]
+- **cross-track error** — how far to the side of a line the robot is, as opposed to how far
+  along it. For a tank's `moveTo`, the line runs through the target point along the target
+  heading; the result line's `xt` column is the cross-track error the leg finished with, + to the
+  left of the target heading (tank only, since API 2.3). [Ch. 11]
 - **dead reckoning** — estimating position purely by accumulating your own measured movement,
   with no external reference (the `DR` flag). [Ch. 3]
 - **desaturation** — uniformly scaling down a command that asks more than the wheels can give,

@@ -18,7 +18,10 @@
 // steering (move_to_pose.hpp) is deliberately NOT taken here: this motion's
 // promise is to HOLD the heading it found, and steering back onto a line means
 // bending the heading by up to 15° — so it is built with
-// PoseMotionOptions::tankSteer false and is unchanged on a tank, bit for bit.
+// PoseMotionOptions::tankSteer false and moves, records and ends on a tank
+// exactly as before TANK1, bit for bit. Only its result line changed (TANK1
+// Part B): the scheduler appends the ` xt` column, the distance it stopped off
+// its line — a report, never a command.
 
 #include "shulib/motion/move_to_pose.hpp"
 

@@ -28,6 +28,22 @@
 //       start 10–14 degrees off the target heading, pointed at the line), and the lateral reach
 //       has no holes (the lead — tank_steer.hpp)
 //   P16 tankSteerStatus() reports the tick's cross, predicted cross and bend exactly
+//
+// TANK1 Part B — the result line's ` xt` column (the final cross-track error; the formatter's own
+// bytes are test/motion_result_test.cpp):
+//   XT1 the stats sink's formula on a hand-fed record stream (the FIRST live target decides
+//       "did it translate"; the sign; beginMotion() forgets)
+//   XT2 a tank moveTo's line carries xt: exactly the final estimate's line error, signed, true
+//   XT3 a tank turn (also dragged by a weak side), a coasting brake and a hold of "here" do not;
+//       a strafeTo and a hold of a spot away do
+//   XT4 no X-drive or H-drive line ever does (an H-drive with no strafe authority is a tank)
+//   XT5 no path data (NullSink), no column; maxSteer = 0 keeps the column
+//   XT6 the auton shape (Routine: moveTo, turnTo, face, driveTo) — xt on the drives only
+//   XT7 every outcome carries it: a user cancel and a fault abort mid-leg (and the "none yet"
+//       record claims none)
+//   XT8 guide 12's reading of the sign, with the steering ON: an xt of an inch or more names the
+//       weak side on a leg that started on its line (a grid, with and without motor lag); a leg
+//       that started beside its line can end on its start side; a smaller xt names no side
 
 #include "doctest.h"
 
@@ -46,6 +62,7 @@
 #include "shulib/chassis/routine.hpp"
 #include "shulib/competition/acceptance_run.hpp"
 #include "shulib/diag/blackbox_format.hpp"
+#include "shulib/diag/line_format.hpp"
 #include "shulib/diag/term_sink.hpp"
 #include "shulib/hal/drive_geometry.hpp"
 #include "shulib/hal/fake/fake_char_sink.hpp"
@@ -336,9 +353,9 @@ struct ChassisTank {
     TracePacer pacer;
     chassis::Chassis chassis;
     ChassisTank(TankWorld w, const chassis::ChassisConfig& cc = chassisConfig(),
-                const Pose2d& start = {})
+                const Pose2d& start = {}, double plantKa = 0.0)
         : world{w},
-          rig{kin, TankLeg::cfgFor(start, 0.0), &sink, &world},
+          rig{kin, TankLeg::cfgFor(start, plantKa), &sink, &world},
           pacer{rig.h},
           chassis{rig.deps, pacer, cc} {}
     [[nodiscard]] double now() { return rig.h.clock().now().value(); }
@@ -1475,4 +1492,582 @@ TEST_CASE("P16 tankSteerStatus(): cross, crossAhead and bend are the tick's, exa
     CHECK(reason == ExitReason::Settled);
     CHECK(live > 100);
     CHECK(leading > live / 2);  // the lead is live while the leg moves (measured 178 of 179)
+}
+
+// ═══ TANK1 Part B — the result line's ` xt` column ══════════════════════════════════════
+//
+// A tank result line of a motion that set out to TRANSLATE ends in ` xt <signed inches>"`: the last
+// aggregated estimate's distance off the target's line (the line through the target point along
+// the target heading), + to the LEFT of the target heading. Nothing else on any line moves; the
+// X-drive and H-drive lines never gain it (except an H-drive with NO strafe authority — XT4 — which
+// is a tank). Every number here was measured on the built change
+// first (TANK1-PROGRESS.md, Part B) and is graded on ground truth where the case is about truth.
+
+namespace {
+
+/// Every result line — a [MOT] Info message — in `s`, in order (Warn lines are not result lines).
+std::vector<std::string> resultLines(const FakeTelemetrySink& s) {
+    std::vector<std::string> out;
+    for (int i = 0; i < s.size(); ++i) {
+        if (s.at(i).level == LogLevel::Info && s.at(i).subsystem == "MOT") {
+            out.push_back(s.at(i).message);
+        }
+    }
+    return out;
+}
+
+bool hasXt(const std::string& line) { return line.find(" xt ") != std::string::npos; }
+
+bool endsWith(const std::string& s, const std::string& tail) {
+    return s.size() >= tail.size() && s.compare(s.size() - tail.size(), tail.size(), tail) == 0;
+}
+
+/// What the formatter must render for `v`: ` xt `, the 6-wide 2-decimal number, the inch mark.
+std::string xtToken(double v) {
+    shulib::diag::lineformat::Line l;
+    l.appendLiteral(" xt ");
+    shulib::diag::lineformat::appendNum(l, v, 6, 2);
+    l.appendLiteral("\"");
+    return std::string{l.view()};
+}
+
+double dist(const Pose2d& a, const Pose2d& b) {
+    return std::hypot(a.x().value() - b.x().value(), a.y().value() - b.y().value());
+}
+
+/// The estimate on command `id`'s FIRST live (Running) record — where the motion started.
+Pose2d firstLiveMeasured(const FakeTelemetrySink& s, std::uint32_t id) {
+    for (int i = 0; i < s.recordCount(); ++i) {
+        const auto& r = s.recordAt(i);
+        if (r.activeCommandId == id
+            && r.activeCommandState == static_cast<std::uint8_t>(motion::MotionState::Running)) {
+            return r.measuredPose;
+        }
+    }
+    FAIL("no live record for command " << id);
+    return Pose2d{};
+}
+
+/// Command `id`'s LAST record (its exit record, for a motion that exited).
+shulib::diag::DebugRecord lastRecordOf(const FakeTelemetrySink& s, std::uint32_t id) {
+    int at = -1;
+    for (int i = 0; i < s.recordCount(); ++i) {
+        at = s.recordAt(i).activeCommandId == id ? i : at;
+    }
+    REQUIRE(at >= 0);
+    return s.recordAt(at);
+}
+
+}  // namespace
+
+// Bug caught: "did it translate" answered from the LATEST target (M29 — the draft: a turn a weak
+// side drags reads as a translation), from a record that is not live (a capture-at-live motion's
+// waiting record carries a not-yet-real target), or never forgotten between motions; the
+// cross-track error's sign flipped (M27) or taken from the wrong line. Hand-fed, so every number
+// is exact.
+TEST_CASE("XT1 the stats sink: 'did it translate' is the FIRST live target's question; xt is "
+          "signed + left of the target heading, off the LATEST target's line; beginMotion() "
+          "forgets") {
+    using motion::MotionState;
+    FakeTelemetrySink inner;
+    motion::MotionStatsSink stats{inner};
+    auto rec = [](std::uint32_t id, MotionState st, const Pose2d& measured, const Pose2d& target) {
+        shulib::diag::DebugRecord r;
+        r.activeCommandId = id;
+        r.activeCommandState = static_cast<std::uint8_t>(st);
+        r.measuredPose = measured;
+        r.targetPose = target;
+        return r;
+    };
+
+    // (a) A translation along 0 degrees ending 0.25 in LEFT of its line: xt +0.25 exactly. The
+    // waiting record's far target and an idle (id 0) record do not count.
+    stats.beginMotion();
+    stats.emit(rec(1, MotionState::WaitingForEstimate, P(0, 0, 0), P(500, 0, 0)));
+    stats.emit(rec(0, MotionState::Running, P(0, 0, 0), P(-300, 0, 0)));
+    CHECK_FALSE(stats.hadDirection());
+    CHECK(stats.crossTrack().value() == 0.0);
+    stats.emit(rec(1, MotionState::Running, P(0, 0, 0), P(10, 0, 0)));
+    stats.emit(rec(1, MotionState::Running, P(6, 1, 0), P(10, 0, 0)));
+    stats.emit(rec(1, MotionState::Settled, P(10, 0.25, 0), P(10, 0, 0)));
+    REQUIRE(stats.hasData());
+    CHECK(stats.hadDirection());
+    CHECK(stats.crossTrack().value() == 0.25);
+    CHECK(inner.recordCount() == 5);  // still a pure observer
+
+    // (b) beginMotion() forgets all of it (!hasData() => every aggregate reads its default).
+    stats.beginMotion();
+    CHECK_FALSE(stats.hasData());
+    CHECK_FALSE(stats.hadDirection());
+    CHECK(stats.crossTrack().value() == 0.0);
+
+    // (c) A turn a weak side drags: TurnTo publishes its target AT the robot on every record, so
+    // the LATEST target walks 0.86 in from the start while the FIRST is the start itself — no
+    // direction (re-check item 3: the draft's latest-target test called this a translation).
+    stats.emit(rec(2, MotionState::Running, P(0, 0, 0), P(0, 0, 90)));
+    stats.emit(rec(2, MotionState::Running, P(0.3, -0.4, 40), P(0.3, -0.4, 90)));
+    stats.emit(rec(2, MotionState::Settled, P(0.5, -0.7, 89), P(0.5, -0.7, 90)));
+    REQUIRE(dist(stats.targetPose(), P(0, 0, 0)) > 0.8);  // the latest target DID move
+    CHECK_FALSE(stats.hadDirection());
+
+    // (d) A capture-at-live motion (a hold of "here"): its waiting record carries the default
+    // target (the origin) while the robot is at (5, 5); its first LIVE target is (5, 5).
+    stats.beginMotion();
+    stats.emit(rec(3, MotionState::WaitingForEstimate, P(5, 5, 0), P(0, 0, 0)));
+    stats.emit(rec(3, MotionState::Running, P(5, 5, 0), P(5, 5, 0)));
+    stats.emit(rec(3, MotionState::Settled, P(5.02, 5, 0), P(5, 5, 0)));
+    CHECK_FALSE(stats.hadDirection());
+
+    // (e) The sign in a rotated frame: target heading 90 degrees (+y), whose LEFT is -x.
+    for (const double endX : {-2.0, 2.0}) {
+        CAPTURE(endX);
+        stats.beginMotion();
+        stats.emit(rec(4, MotionState::Running, P(0, 0, 90), P(0, 10, 90)));
+        stats.emit(rec(4, MotionState::TimedOut, P(endX, 10, 90), P(0, 10, 90)));
+        CHECK(stats.hadDirection());
+        CHECK(stats.crossTrack().value() == -endX);
+    }
+
+    // (f) The line is the LATEST target's — the one targetPose() serves and the result line's
+    // reader compares final() against — not the first's (a Tier-3 motion that moves its target).
+    stats.beginMotion();
+    stats.emit(rec(5, MotionState::Running, P(0, 0, 0), P(10, 0, 0)));
+    stats.emit(rec(5, MotionState::Settled, P(20, 4, 0), P(20, 5, 0)));
+    CHECK(stats.crossTrack().value() == -1.0);  // off y = 5 by -1, not off y = 0 by +4
+
+    // (g) The boundary is kHoldEpsilonIn (0.1 in), inclusive — the one overshoot() uses.
+    for (const double away : {0.1, 0.0999}) {
+        CAPTURE(away);
+        stats.beginMotion();
+        stats.emit(rec(6, MotionState::Running, P(0, 0, 0), P(away, 0, 0)));
+        CHECK(stats.hadDirection() == (away >= 0.1));
+    }
+}
+
+// Bug caught: the column missing from a tank moveTo, its value not the final estimate's line error
+// (the wrong pose, the wrong target, the sign flipped — M27), or the line's earlier bytes moved.
+// Forward and backing up, both weak sides, a rotated line, a leg that arrives and legs that cannot
+// (12 in off to either side: the steering's 15 degrees cannot remove 12 in over 40 — measured xt
+// -/+5.10 — which is exactly the leg the column exists for). On the clean plant the estimate IS the
+// truth, so the reported number must equal the true one.
+TEST_CASE("XT2 a tank moveTo's result line ends in xt: the final estimate's signed distance off "
+          "the target's line — exact, true, + left of the target heading") {
+    struct Case {
+        const char* name;
+        Pose2d start;
+        Pose2d target;
+        int wheel;
+        double scale;
+        ExitReason exit;
+        double measured;  // measured on the built change (TANK1-PROGRESS.md, Part B)
+    };
+    const Case cases[] = {
+        {"40 in, even", P(0, 0, 0), P(40, 0, 0), 1, 1.00, ExitReason::Settled, 0.0},
+        {"40 in, right side 9 % weak", P(0, 0, 0), P(40, 0, 0), 1, 0.91, ExitReason::Settled, 0.017},
+        {"40 in, left side 9 % weak", P(0, 0, 0), P(40, 0, 0), 0, 0.91, ExitReason::Settled, -0.017},
+        {"12 in to the left: ends RIGHT of its line", P(0, 0, 0), P(40, 12, 0), 1, 1.00,
+         ExitReason::TimedOut, -5.096},
+        {"12 in to the right: ends LEFT of its line", P(0, 0, 0), P(40, -12, 0), 1, 1.00,
+         ExitReason::TimedOut, 5.096},
+        {"heading 90: ends on the -x side of x = 12, its LEFT", P(0, 0, 90), P(12, 40, 90), 1, 1.00,
+         ExitReason::TimedOut, 5.096},
+        {"backing up 40 in, 12 in aside: ends right of heading 0", P(0, 0, 0), P(-40, 12, 0), 1,
+         1.00, ExitReason::TimedOut, -5.096},
+    };
+    for (const Case& c : cases) {
+        const std::string name{c.name};  // a string: CAPTURE of a const char* prints the pointer
+        CAPTURE(name);
+        ChassisTank r{TankWorld{c.wheel, c.scale}, chassisConfig(), c.start};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        REQUIRE(r.chassis.moveTo(c.target) == c.exit);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        REQUIRE(m.hasPathData);
+        REQUIRE(m.hasCrossTrack);
+        // Exactly the line error of the pose final() prints, and of the motion's last record.
+        CHECK(m.crossTrack.value() == tankLineError(m.finalPose, m.targetPose).cross);
+        const shulib::diag::DebugRecord last = lastRecordOf(r.sink, m.id);
+        CHECK(m.crossTrack.value() == tankLineError(last.measuredPose, last.targetPose).cross);
+        // True (clean sensors: measured |reported - true| <= 2.4e-13).
+        CHECK(std::abs(m.crossTrack.value() - tankLineError(r.rig.h.truePose(), c.target).cross)
+              <= 1e-9);
+        CHECK(std::abs(m.crossTrack.value() - c.measured) <= 0.01);
+        // The line: the §18.3 bytes, ending in the duration's "s", then the column, once, last.
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 1);
+        CHECK(endsWith(lines[0], "s" + xtToken(m.crossTrack.value())));
+        CHECK(lines[0].find(" xt ") == lines[0].rfind(" xt "));
+    }
+}
+
+// Bug caught: a motion that did not set out to translate gaining the column — a turn a weak side
+// drags 0.81 in sideways (measured; M29, the draft's latest-target test, printed `xt 0.00"` on
+// it), a brake whose target coasts 6.6 in with the robot (plant motor lag), a hold of "here" — or
+// a translation that is not a moveTo losing it: a strafeTo (a tank cannot strafe — its final
+// distance off its line IS its failure) and a hold of a spot away from the robot.
+TEST_CASE("XT3 no xt on a tank turn (also one a weak side drags), a coasting brake or a hold of "
+          "here; a strafeTo and a hold of a spot away carry it") {
+    for (const double scale : {1.0, 0.91}) {
+        CAPTURE(scale);
+        ChassisTank r{TankWorld{1, scale}};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        REQUIRE(r.chassis.turnTo(Angle::degrees(90.0)) == ExitReason::Settled);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        CHECK(m.hasPathData);
+        CHECK_FALSE(m.hasCrossTrack);
+        CHECK(m.crossTrack.value() == 0.0);
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 1);
+        CHECK_FALSE(hasXt(lines[0]));
+        CHECK(endsWith(lines[0], "s"));
+        if (scale < 1.0) {
+            // Non-vacuity: the turn's latest target (it follows the robot) ended 0.81 in (measured)
+            // from where the turn began — a latest-target test WOULD call it a translation.
+            CHECK(dist(m.targetPose, firstLiveMeasured(r.sink, m.id)) > 0.5);
+        }
+    }
+    {
+        // A brake on a robot still coasting (plant motor lag kA 0.02, about 0.12 s): a moveTo is
+        // pre-empted 0.5 s in, at speed.
+        ChassisTank r{TankWorld{}, chassisConfig(), Pose2d{}, 0.02};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        motion::MotionScheduler& sched = r.chassis.scheduler();
+        MoveToPose mv{sched.deps(), P(60, 0, 0), motionConfig(), 8.0};
+        sched.async(mv);
+        (void)sched.waitUntil([] { return false; }, 0.5);
+        REQUIRE(r.chassis.brake() == ExitReason::Settled);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        CHECK(std::string{m.name} == "DriveBrake");
+        CHECK_FALSE(m.hasCrossTrack);
+        CHECK(dist(m.targetPose, firstLiveMeasured(r.sink, m.id)) > 3.0);  // measured 6.61
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 2);
+        CHECK(lines[0].rfind("MoveToPose#1 ✗SUPERSEDED", 0) == 0);
+        CHECK(hasXt(lines[0]));  // the pre-empted moveTo HAD set out to translate
+        CHECK(lines[1].rfind("DriveBrake#2 ✓SETTLED", 0) == 0);
+        CHECK_FALSE(hasXt(lines[1]));
+    }
+    {
+        ChassisTank r{TankWorld{}};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        REQUIRE(r.chassis.hold(Time{0.5}) == ExitReason::Settled);
+        CHECK_FALSE(r.chassis.lastCompleted().hasCrossTrack);
+        motion::MotionScheduler& sched = r.chassis.scheduler();
+        motion::HoldPose there{sched.deps(), P(3, 1, 0), 1.0, motionConfig()};
+        sched.async(there);
+        (void)sched.waitUntilSettled();
+        const motion::CompletedMotion h = sched.lastCompleted();  // a COPY: the next verb reuses the slot
+        CHECK(h.hasCrossTrack);
+        CHECK(std::abs(h.crossTrack.value() - -1.0) <= 0.01);  // measured -1.000: 1 in aside, kept
+        (void)r.chassis.strafeTo(Length{30.0}, Length{6.0});
+        const motion::CompletedMotion s = r.chassis.lastCompleted();
+        CHECK(s.exit == ExitReason::TimedOut);
+        CHECK(s.hasCrossTrack);
+        CHECK(std::abs(s.crossTrack.value() - -6.0) <= 0.01);  // measured -6.000: all 6 in of it
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 3);
+        CHECK(lines[0].rfind("HoldPose#1 ", 0) == 0);
+        CHECK_FALSE(hasXt(lines[0]));
+        CHECK(lines[1].rfind("HoldPose#2 ", 0) == 0);
+        CHECK(endsWith(lines[1], xtToken(h.crossTrack.value())));
+        CHECK(lines[2].rfind("StrafeTo#3 ", 0) == 0);
+        CHECK(endsWith(lines[2], xtToken(s.crossTrack.value())));
+    }
+}
+
+// Bug caught: the column reaching a drivetrain that CAN strafe (M25 — the authority test dropped,
+// or loosened: any threshold above 0 lets some real H-drive in). P10 (b) cannot see this: it
+// compares TANK1 on against off, and both would carry the column. Every verb on the X-drive and the
+// H-bot, clean and under composed hostility; then H-drives whose strafe wheel is 1 %, 1e-9 and the
+// smallest double — none — and one declared dead (authority exactly 0): a tank, and it does.
+TEST_CASE("XT4 no X-drive or H-drive result line carries xt (every verb, clean and hostile); an "
+          "H-drive with no strafe authority at all is a tank and does") {
+    const auto xk = shulib::kinematics::xDrive(Length{7.0});
+    const auto hk = hBotKinematics();
+    struct Drive {
+        const char* name;
+        const shulib::kinematics::IKinematics* kin;
+    };
+    for (const Drive& d : {Drive{"X", &xk}, Drive{"H", &hk}}) {
+        for (const bool hostile : {false, true}) {
+            CAPTURE(d.name);
+            CAPTURE(hostile);
+            FakeTelemetrySink sink;
+            Trace t;
+            holonomicScript(*d.kin, hostile, chassisConfig(), sink, t);
+            const std::vector<std::string> lines = resultLines(sink);
+            REQUIRE(lines.size() == 9);  // every verb's boundary reported
+            int translations = 0;
+            for (const std::string& line : lines) {
+                CAPTURE(line);
+                CHECK_FALSE(hasXt(line));
+                CHECK(endsWith(line, "s"));
+                translations += (line.rfind("MoveToPose#", 0) == 0
+                                 || line.rfind("StrafeTo#", 0) == 0)
+                                    ? 1
+                                    : 0;
+            }
+            CHECK(translations == 6);  // non-vacuity: six lines a tank would give the column to
+        }
+    }
+    for (const double derate : {0.0, 0.01, 1e-9, std::numeric_limits<double>::denorm_min()}) {
+        CAPTURE(derate);
+        const auto hd = shulib::kinematics::hDrive({.trackWidth = Length{11.0},
+                                                    .strafeWheelOffset = Length{-4.0},
+                                                    .strafeTractionDerate = derate});
+        FakeTelemetrySink sink;
+        MotionRig rig{hd, plantConfig(), &sink};
+        TracePacer pacer{rig.h};
+        chassis::Chassis c{rig.deps, pacer, chassisConfig()};
+        motion::RunReporter rep{sink, c.scheduler()};
+        (void)c.moveTo(P(40, 2, 0));
+        const motion::CompletedMotion& m = c.lastCompleted();
+        CHECK(m.hasCrossTrack == (derate == 0.0));
+        if (derate != 0.0) {
+            // "Valid iff hasCrossTrack; 0 otherwise" — although this leg DID end off its line.
+            CHECK(m.crossTrack.value() == 0.0);
+            CHECK(tankLineError(m.finalPose, m.targetPose).cross != 0.0);
+        }
+        const std::vector<std::string> lines = resultLines(sink);
+        REQUIRE(lines.size() == 1);
+        CHECK(hasXt(lines[0]) == (derate == 0.0));
+    }
+}
+
+// Bug caught: a column with nothing behind it — a NullSink run (no records: the competition
+// posture with diagnostics off) printing `xt 0.00"` beside `over n/a` — and the column following
+// the steering's off switch: maxSteer = 0 restores the pre-TANK1 tank's motion bit for bit (P1),
+// and its result line keeps the column (the changelog's one exception), which then reads the
+// drift the steering exists to remove — here, all 2.86 in of it.
+TEST_CASE("XT5 no record stream, no column; with maxSteer = 0 the column stays, and shows the "
+          "drift") {
+    {
+        const TankKinematics kin{Length{12.0}};
+        TankWorld world{1, 0.91};
+        MotionRig rig{kin, plantConfig(), nullptr, &world};  // the harness's NullSink
+        TracePacer pacer{rig.h};
+        chassis::Chassis c{rig.deps, pacer, chassisConfig()};
+        FakeTelemetrySink out;
+        motion::RunReporter rep{out, c.scheduler()};
+        REQUIRE_FALSE(c.scheduler().deps().ctx->telemetry().wantsRecord());
+        REQUIRE(c.moveTo(P(40, 0, 0)) == ExitReason::Settled);
+        const motion::CompletedMotion& m = c.lastCompleted();
+        CHECK_FALSE(m.hasPathData);
+        CHECK_FALSE(m.hasCrossTrack);
+        CHECK(m.crossTrack.value() == 0.0);
+        const std::vector<std::string> lines = resultLines(out);
+        REQUIRE(lines.size() == 1);
+        CHECK(lines[0].find(" over   n/a  drift  n/a ") != std::string::npos);
+        CHECK_FALSE(hasXt(lines[0]));
+        CHECK(endsWith(lines[0], "s"));
+    }
+    {
+        chassis::ChassisConfig off = chassisConfig();
+        off.motion.tankSteer.maxSteer = 0.0;
+        ChassisTank r{TankWorld{1, 0.91}, off};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        REQUIRE(r.chassis.moveTo(P(40, 0, 0)) == ExitReason::TimedOut);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        REQUIRE(m.hasCrossTrack);
+        CHECK(std::abs(m.crossTrack.value() - -2.86) <= 0.01);  // measured -2.861 (P1's END y)
+        CHECK(m.crossTrack.value() == m.finalPose.y().value());  // the line is y = 0 along 0 degrees
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 1);
+        CHECK(endsWith(lines[0], "s xt  -2.86\""));
+    }
+    // Guide 12's reading of the sign: a weaker RIGHT side leaves a leg to the RIGHT of its line
+    // (negative xt) whether it drove forward or backed up — measured -2.861 on the backing leg and
+    // on L9's reverseTo shape too (a latest-heading or travel-direction sign would flip one).
+    struct Shape {
+        const char* name;
+        Pose2d start;
+        Pose2d target;
+    };
+    for (const Shape& sh : {Shape{"backing 40 in", P(0, 0, 0), P(-40, 0, 0)},
+                            Shape{"reverseTo shape", P(0, 0, 180), P(40, 0, 180)}}) {
+        const std::string name{sh.name};  // a string: CAPTURE of a const char* prints the pointer
+        CAPTURE(name);
+        chassis::ChassisConfig off = chassisConfig();
+        off.motion.tankSteer.maxSteer = 0.0;
+        ChassisTank r{TankWorld{1, 0.91}, off, sh.start};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        REQUIRE(r.chassis.moveTo(sh.target) == ExitReason::TimedOut);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        REQUIRE(m.hasCrossTrack);
+        CHECK(std::abs(m.crossTrack.value() - -2.86) <= 0.01);
+    }
+}
+
+// Bug caught: the column on the wrong lines of the path students write — a Routine's moveTo, turnTo,
+// face and driveTo (the acceptance run's shape) with one side 9 % weak: the two drives carry it,
+// each within the 0.5 in a settled leg's translation tolerance allows (measured 0.08), and neither
+// turn does, though the weak side drags the face() turn ~0.8 in (its latest target moves).
+TEST_CASE("XT6 the auton shape through Routine, 9 % weak either side: xt on the two drives, on "
+          "neither turn") {
+    for (const int wheel : {1, 0}) {
+        CAPTURE(wheel);
+        ChassisTank r{TankWorld{wheel, 0.91}};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        chassis::Routine rt{r.chassis, "acceptance-run"};
+        rt.moveTo(P(24, 0, 0))
+            .turnTo(Angle::degrees(90.0))
+            .face(Length{0.0}, Length{0.0})
+            .driveTo(Length{0.0}, Length{0.0});
+        REQUIRE(rt.result().ok);
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 4);
+        CHECK(lines[0].rfind("MoveToPose#1 ✓SETTLED", 0) == 0);
+        CHECK(hasXt(lines[0]));
+        CHECK(lines[1].rfind("TurnTo#2 ✓SETTLED", 0) == 0);
+        CHECK_FALSE(hasXt(lines[1]));
+        CHECK(lines[2].rfind("TurnTo#3 ✓SETTLED", 0) == 0);
+        CHECK_FALSE(hasXt(lines[2]));
+        CHECK(lines[3].rfind("MoveToPose#4 ✓SETTLED", 0) == 0);
+        const motion::CompletedMotion& last = r.chassis.lastCompleted();
+        REQUIRE(last.hasCrossTrack);
+        CHECK(std::abs(last.crossTrack.value()) <= 0.5);
+        CHECK(endsWith(lines[3], xtToken(last.crossTrack.value())));
+    }
+}
+
+// Bug caught: the column dropped on the outcomes a student debugs hardest — a leg the user
+// cancelled, or one the fault policy aborted (ODO_STUCK against a wall) — by a rule or a formatter
+// that keeps it only for exits that ran to the end (the Part B review's mutants N1, N10 and N11
+// survived the suite before this case); and the "none yet" record (Chassis::lastCompleted()
+// before any motion ran) claiming a cross-track number (N19). The leg starts 5 in right of its
+// line, so the column has a real value to carry when the leg is stopped 0.7 s in.
+TEST_CASE("XT7 every outcome carries xt: a user cancel and a fault abort mid-leg; the 'none yet' "
+          "record claims none") {
+    CHECK_FALSE(motion::CompletedMotion{}.hasCrossTrack);
+    CHECK(motion::CompletedMotion{}.crossTrack.value() == 0.0);
+    struct Stop {
+        const char* name;
+        bool fault;
+        const char* lineStart;
+        double measured;  // measured on the built change (TANK1-PROGRESS.md, Part B review)
+    };
+    for (const Stop& st : {Stop{"user cancel", false, "MoveToPose#1 ✗CANCELLED final(", -0.4772},
+                           Stop{"fault abort", true, "MoveToPose#1 ✗FAULT_ABORT=ODO_STUCK final(",
+                                -0.4536}}) {
+        const std::string name{st.name};  // a string: CAPTURE of a const char* prints the pointer
+        CAPTURE(name);
+        ChassisTank r{TankWorld{}};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        const motion::CompletedMotion none = r.chassis.lastCompleted();  // before any motion ran
+        CHECK(none.exit == ExitReason::Running);
+        CHECK_FALSE(none.hasCrossTrack);
+        CHECK(none.crossTrack.value() == 0.0);
+        motion::MotionScheduler& sched = r.chassis.scheduler();
+        MoveToPose mv{sched.deps(), P(40, 5, 0), motionConfig(), 8.0};
+        sched.async(mv);
+        (void)sched.waitUntil([] { return false; }, 0.7);
+        if (st.fault) {
+            r.rig.latch.raise(shulib::diag::FaultCode::OdoStuck, "TST", "XT7");
+        } else {
+            sched.cancel();
+        }
+        (void)sched.waitUntilSettled();
+        const motion::CompletedMotion m = sched.lastCompleted();
+        CHECK(m.exit == ExitReason::Cancelled);
+        CHECK_FALSE(m.preempted);  // a user cancel / an abort, NOT a pre-emption (XT3 has that)
+        CHECK(m.abortFault == (st.fault ? shulib::diag::FaultCode::OdoStuck
+                                        : shulib::diag::FaultCode::None));
+        REQUIRE(m.hasPathData);
+        REQUIRE(m.hasCrossTrack);
+        CHECK(m.crossTrack.value() == tankLineError(m.finalPose, m.targetPose).cross);
+        CHECK(std::abs(m.crossTrack.value() - st.measured) <= 0.01);
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 1);
+        CAPTURE(lines[0]);
+        CHECK(lines[0].rfind(st.lineStart, 0) == 0);
+        CHECK(endsWith(lines[0], "s" + xtToken(m.crossTrack.value())));
+    }
+}
+
+// Bug caught: guide 12's reading of the sign going false with the steering ON — the case its
+// sentence is about (a leg steered to the end, TSTR lit). XT5 pins the sign with the steering off;
+// this pins what the guide tells a student to conclude from a steered leg's xt:
+//   (a) on a leg that started ON its line, a TIMEOUT with |xt| >= 1 in names the weak side (right
+//       weak => negative), forward, backing, the reverseTo shape and at heading 90, with and
+//       without motor lag — a grid, so a steering change that overshoots the line by an inch, or a
+//       sign taken off the travel direction (B13), turns it red. Measured over a far larger sweep
+//       first (TANK1-PROGRESS.md, Part B review, finding 1): the largest |xt| any timed-out leg
+//       ended with on its STRONG side was 0.65 in, at 0.36 s of plant lag;
+//   (b) the guide's example that a smaller xt names no side: with plant lag kA 0.02 (about
+//       0.12 s) a 60 in leg with its RIGHT side 25 % weak, steered to the end, stops 0.42 in to
+//       the LEFT (if this goes red because the steering got better, the guide's sentence moves);
+//   (c) a leg that started BESIDE its line (the target 12 in to the right, so the robot starts
+//       left of the line) with its right side weak ends LEFT of the line — its start side.
+TEST_CASE("XT8 guide 12's sign rule with the steering on: an inch or more names the weak side on a "
+          "leg that started on its line; a smaller xt names no side; a leg started beside its "
+          "line can end on its start side") {
+    struct Shape {
+        Pose2d start;
+        Pose2d target;
+    };
+    const Shape shapes[] = {{P(0, 0, 0), P(24, 0, 0)},     {P(0, 0, 0), P(40, 0, 0)},
+                            {P(0, 0, 0), P(60, 0, 0)},     {P(0, 0, 0), P(-40, 0, 0)},
+                            {P(0, 0, 180), P(40, 0, 180)}, {P(0, 0, 90), P(0, 40, 90)}};
+    int timedOut = 0;
+    int named = 0;  // timed out with |xt| >= 1 (each must name the weak side)
+    for (const double kA : {0.0, 0.02, 0.03}) {
+        for (const int wheel : {1, 0}) {
+            for (const double scale : {0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90}) {
+                for (const Shape& sh : shapes) {
+                    ChassisTank r{TankWorld{wheel, scale}, chassisConfig(), sh.start, kA};
+                    if (r.chassis.moveTo(sh.target) != ExitReason::TimedOut) {
+                        continue;
+                    }
+                    ++timedOut;
+                    const motion::CompletedMotion& m = r.chassis.lastCompleted();
+                    REQUIRE(m.hasCrossTrack);
+                    const double xt = m.crossTrack.value();
+                    if (std::abs(xt) < 1.0) {
+                        continue;
+                    }
+                    ++named;
+                    CAPTURE(kA);
+                    CAPTURE(wheel);
+                    CAPTURE(scale);
+                    const double tx = sh.target.x().value();
+                    const double ty = sh.target.y().value();
+                    CAPTURE(tx);
+                    CAPTURE(ty);
+                    CAPTURE(xt);
+                    CHECK((wheel == 1 ? xt < 0.0 : xt > 0.0));
+                }
+            }
+        }
+    }
+    MESSAGE("XT8 (a): " << timedOut << " legs timed out, " << named << " with |xt| >= 1 in");
+    CHECK(named >= 100);  // non-vacuity (measured: see the log)
+
+    {
+        ChassisTank r{TankWorld{1, 0.75}, chassisConfig(), Pose2d{}, 0.02};
+        motion::RunReporter rep{r.sink, r.chassis.scheduler()};
+        REQUIRE(r.chassis.moveTo(P(60, 0, 0)) == ExitReason::TimedOut);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        REQUIRE(m.hasCrossTrack);
+        CHECK(m.crossTrack.value() > 0.0);  // LEFT of its line, though the RIGHT side is weak
+        CHECK(std::abs(m.crossTrack.value() - 0.415) <= 0.01);  // measured +0.4154
+        bool lastLiveTstr = false;  // the leg's LAST live (Running) record: steered to the end
+        for (int i = 0; i < r.sink.recordCount(); ++i) {
+            const auto& rec = r.sink.recordAt(i);
+            if (rec.activeCommandId == m.id
+                && rec.activeCommandState
+                       == static_cast<std::uint8_t>(motion::MotionState::Running)) {
+                lastLiveTstr = rec.tankSteerActive;
+            }
+        }
+        CHECK(lastLiveTstr);
+        const std::vector<std::string> lines = resultLines(r.sink);
+        REQUIRE(lines.size() == 1);
+        CHECK(endsWith(lines[0], "s xt   0.42\""));  // the bytes guide 12 quotes
+    }
+    {
+        ChassisTank r{TankWorld{1, 0.91}};
+        REQUIRE(r.chassis.moveTo(P(40, -12, 0)) == ExitReason::TimedOut);
+        const motion::CompletedMotion& m = r.chassis.lastCompleted();
+        REQUIRE(m.hasCrossTrack);
+        CHECK(m.crossTrack.value() > 1.0);  // measured +4.518: LEFT, where it started
+    }
 }

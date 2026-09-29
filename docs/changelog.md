@@ -18,7 +18,8 @@
 
 ### Changed — `moveTo` on a tank steers back onto its line (TANK1, 2026-09-27)
 
-> Written when it landed (chunk TANK1, Part A). **Minor bump, 2.2 → 2.3** — the team lead's ruling
+> Written when it landed (chunk TANK1, Part A; its Part B — the result line's ` xt` column —
+> landed with change 3 below, 2026-09-28). **Minor bump, 2.2 → 2.3** — the team lead's ruling
 > (2026-09-27): one sentence the FROZEN `Chassis` header carries ([Freeze Register](roadmap.md#freeze-register)
 > row F6, its strafe-fallback semantics) said *"On tank, laterally-offset targets honestly exit
 > TimedOut"*, and after this change some of them arrive. That relaxes a stated LIMIT — the same
@@ -27,8 +28,8 @@
 > back. **Tank only: the X-drive and H-drive are unchanged, byte for byte** (every record, log
 > line and motion checked with the change on and off) — with one exception by design: an H-drive
 > configured with NO strafe authority (`strafeTractionDerate` 0, a dead strafe wheel) cannot move
-> sideways either, reports authority 0, and is steered like a tank. **Host test plant only —
-> nothing here has run on a robot.**
+> sideways either, reports authority 0, and is steered — and reported, ` xt` included — like a
+> tank. **Host test plant only — nothing here has run on a robot.**
 
 **BEHAVIOUR CHANGE (tank drives — a drivetrain whose `strafeAuthority()` is exactly 0):**
 
@@ -60,11 +61,24 @@
      target heading is not steered at all — it runs exactly as before — and logs, once, at its
      first live tick: `[WARN][MOT] tank moveTo not steered: it starts 26.6 deg off its target
      heading (steers within 15.0 deg) -- turn first: face()`.
-  3. **(When the result line's cross-track column lands — TANK1 Part B, not yet built)**
-     translating tank result lines will gain an ` xt` column. Nothing in this entry adds it.
+  3. **Translating tank result lines end with an ` xt` column** (TANK1 Part B, 2026-09-28): the
+     final cross-track error — how far the leg finished off its line, in inches, + to the left of
+     the target heading — appended after the duration. On the host test plant the 40 in leg
+     with its right side 9 % weak now ends `… drift  0.1°   1.89s xt   0.02"` (with the left side
+     weak, `xt  -0.02"`: a leg the steering brings home can finish a hair to either side of its
+     line). It is on the line of every tank motion that set out to go somewhere, whatever its
+     outcome (a `moveTo`/`driveTo` leg, each `followTrajectory` leg, a `strafeTo`, and a Tier-3
+     `HoldPose` built with a spot away from the robot); turns, `brake` and the `hold` verb (it
+     holds where the robot is) never carry it, and no X-drive or H-drive line does — except an
+     H-drive with no strafe authority, which is treated as a tank (above).
+     Every earlier byte of the line is unchanged, so a reader that finds the fields by position
+     still finds them; one that expects a tank's line to END at the duration will meet the extra
+     column. With no record stream (`over n/a`) the column is left out.
+     [Chapter 11](guide/11-reading-the-diagnostics.md#per-motion-result-lines) reads it.
 - The tick log line of a steered tick carries the new flag ` TSTR` (after ` SFB`); ` SFB` lights
   on far fewer tank ticks than before, because the sideways error it reports is being steered out.
-- `strafeTo`, `hold`, `turnTo`, `face`, `brake` and `drive()` are unchanged on a tank.
+- `strafeTo`, `hold`, `turnTo`, `face`, `brake` and `drive()` move exactly as before on a tank;
+  of their result lines, only `strafeTo`'s changes — it gains ` xt` (change 3).
 
 **ADDED:**
 
@@ -83,12 +97,19 @@
   2 (the file format version stays 1: every earlier writer wrote that bit as 0, so an older file
   reads it as false, which is true of it); on the terminal as ` TSTR`.
 - `PoseMotionOptions::tankSteer` (Tier 3; false unless you build a plain `MoveToPose`).
+- The ` xt` column's data (Part B), each appended last: `motion::CompletedMotion::hasCrossTrack`
+  and `crossTrack` (`Chassis::lastCompleted()` carries them); `diag::MotionResult::hasCrossTrack`
+  and `crossTrack`, which `diag::emitResultLine` renders; and `MotionStatsSink::hadDirection()`
+  (did the motion set out to translate — judged on its first live target) and
+  `MotionStatsSink::crossTrack()`.
 
 **Migration:** nothing to change to keep compiling. To get the old tank back exactly, set
 `maxSteer` to 0 — `ChassisConfig.motion.tankSteer.maxSteer = 0` (on a robot built from a
 `RobotConfig`, its `tuning.motion.tankSteer.maxSteer`): a tank's `moveTo` then moves, records,
-logs and ends exactly as it did at 2.2, bit for bit, with no Warn. (Part B's ` xt` column, when it
-lands, will be the one exception: a diagnostic on the result line, kept whatever `maxSteer` is.)
+logs and ends exactly as it did at 2.2, bit for bit, with no Warn — except the ` xt` column on its
+result lines, a diagnostic kept whatever `maxSteer` is (with the steering off it reads the drift
+the steering exists to remove: ` xt  -2.86"` on the 40 in leg with its right side 9 % weak,
+` xt   2.86"` with its left side weak).
 The documented limits of the steering —
 what it removes and what still times out, and what motor lag does to it — are in the guide's
 [chapter 14](guide/14-what-it-cannot-do-yet.md#motion-quality-boundaries).

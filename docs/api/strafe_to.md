@@ -28,7 +28,7 @@ class StrafeTo final : public MoveToPose
 
 Translate to a FIELD (x, y) while actively HOLDING heading. The heading loop is not switched off — it is given a target: the heading the robot actually has at the FIRST LIVE tick, captured then rather than at start() so it can never lock onto a boot-window estimate. So "hold" here means a closed loop that fights disturbance, not an absence of rotation command, and a heading that wanders during the translation is a test failure. The target heading is therefore NOT knowable before the motion runs: read target() after the first live tick, and note that the heading component of the inherited setTarget() is discarded by the same capture. On a drivetrain with no strafe authority (tank) the body-lateral command is clamped to zero, so a laterally-offset target is physically unreachable and the motion exits TimedOut rather than hanging or claiming a success it never had — it never takes MoveToPose's tank steering (TANK1), which would mean leaving the held heading.
 
-*class, declared at [`include/shulib/motion/strafe_to.hpp:39`](../../include/shulib/motion/strafe_to.hpp#L39).*
+*class, declared at [`include/shulib/motion/strafe_to.hpp:42`](../../include/shulib/motion/strafe_to.hpp#L42).*
 
 <a id="strafeto-strafeto"></a>
 
@@ -40,7 +40,7 @@ StrafeTo(const MotionDeps& deps, units::Length x, units::Length y, const MotionC
 
 Translate to FIELD (x, y), holding the first-live heading. `timeout` (s) bounds the whole motion including any boot wait; 0 selects config.defaultTimeout.
 
-*function, declared at [`include/shulib/motion/strafe_to.hpp:44`](../../include/shulib/motion/strafe_to.hpp#L44).*
+*function, declared at [`include/shulib/motion/strafe_to.hpp:47`](../../include/shulib/motion/strafe_to.hpp#L47).*
 
 <a id="strafeto-name"></a>
 
@@ -52,14 +52,14 @@ Translate to FIELD (x, y), holding the first-live heading. `timeout` (s) bounds 
 
 "StrafeTo". Overridden so the two places this string surfaces name THIS motion rather than the MoveToPose it is built from: the detail of the MotionTimeout fault the base raises, and the scheduler's CompletedMotion / run result line. Without it a strafe failure would be reported under the wrong primitive. It does NOT reach the DebugRecord stream — a record identifies its motion only by the scheduler-assigned activeCommandId, so filtering a blackbox for "StrafeTo" finds nothing.
 
-*function, declared at [`include/shulib/motion/strafe_to.hpp:55`](../../include/shulib/motion/strafe_to.hpp#L55).*
+*function, declared at [`include/shulib/motion/strafe_to.hpp:58`](../../include/shulib/motion/strafe_to.hpp#L58).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 20 lines</summary>
+<summary>The header’s own reasoning — 23 lines</summary>
 
 ```text
 
@@ -81,7 +81,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  steering (move_to_pose.hpp) is deliberately NOT taken here: this motion's
  promise is to HOLD the heading it found, and steering back onto a line means
  bending the heading by up to 15° — so it is built with
- PoseMotionOptions::tankSteer false and is unchanged on a tank, bit for bit.
+ PoseMotionOptions::tankSteer false and moves, records and ends on a tank
+ exactly as before TANK1, bit for bit. Only its result line changed (TANK1
+ Part B): the scheduler appends the ` xt` column, the distance it stopped off
+ its line — a report, never a command.
 ```
 
 </details>

@@ -2058,7 +2058,8 @@ that leaves unproven. The numbers below are host-test-plant measurements of 2026
   rate on the 9 % weak 40 in leg, heading wobble to about 16° and a TIMEOUT, visible as TSTR lit and the
   correction pinned at its limit. Robot two's default rate (differentiated `get_rotation()`) has the
   heading's sign by construction. **Contained:** `maxSteer = 0` restores the pre-TANK1 tank's motion,
-  records and log exactly; every number is config.
+  records and log exactly — all but the result line's ` xt` column (TANK1 Part B, 2026-09-28), a
+  report kept whatever `maxSteer` is; every number is config.
 
 - [ ] **HA-180 — robot two's sideways error on a straight `moveTo` comes from its heading, not a skid.**
   *Claim:* the drift of a tank leg on robot two is the HEADING being pulled — which the IMU sees and the

@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,935 of them, across 156 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,941 of them, across 156 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -497,10 +497,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ComplementaryFusionConfig::maxNudgeRate` | field | [complementary_fusion.md](complementary_fusion.md#complementaryfusionconfig-maxnudgerate) |
 | `CompletedMotion` | struct | [motion_scheduler.md](motion_scheduler.md#struct-completedmotion) |
 | `CompletedMotion::abortFault` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-abortfault) |
+| `CompletedMotion::crossTrack` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-crosstrack) |
 | `CompletedMotion::drift` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-drift) |
 | `CompletedMotion::endTime` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-endtime) |
 | `CompletedMotion::exit` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-exit) |
 | `CompletedMotion::finalPose` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-finalpose) |
+| `CompletedMotion::hasCrossTrack` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-hascrosstrack) |
 | `CompletedMotion::hasPathData` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-haspathdata) |
 | `CompletedMotion::id` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-id) |
 | `CompletedMotion::name` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-name) |
@@ -1796,9 +1798,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `motionOutcomeName` | free function | [motion_result.md](motion_result.md#motionoutcomename) |
 | `MotionResult` | struct | [motion_result.md](motion_result.md#struct-motionresult) |
 | `MotionResult::abortFault` | field | [motion_result.md](motion_result.md#motionresult-abortfault) |
+| `MotionResult::crossTrack` | field | [motion_result.md](motion_result.md#motionresult-crosstrack) |
 | `MotionResult::drift` | field | [motion_result.md](motion_result.md#motionresult-drift) |
 | `MotionResult::duration` | field | [motion_result.md](motion_result.md#motionresult-duration) |
 | `MotionResult::finalPose` | field | [motion_result.md](motion_result.md#motionresult-finalpose) |
+| `MotionResult::hasCrossTrack` | field | [motion_result.md](motion_result.md#motionresult-hascrosstrack) |
 | `MotionResult::hasPathData` | field | [motion_result.md](motion_result.md#motionresult-haspathdata) |
 | `MotionResult::id` | field | [motion_result.md](motion_result.md#motionresult-id) |
 | `MotionResult::name` | field | [motion_result.md](motion_result.md#motionresult-name) |
@@ -1849,8 +1853,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionState::WaitingForEstimate` | enumerator | [motion.md](motion.md#motionstate-waitingforestimate) |
 | `MotionStatsSink` | class | [motion_scheduler.md](motion_scheduler.md#class-motionstatssink) |
 | `MotionStatsSink::beginMotion` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-beginmotion) |
+| `MotionStatsSink::crossTrack` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-crosstrack) |
 | `MotionStatsSink::drift` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-drift) |
 | `MotionStatsSink::emit` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-emit) |
+| `MotionStatsSink::hadDirection` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-haddirection) |
 | `MotionStatsSink::hasData` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-hasdata) |
 | `MotionStatsSink::log` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-log) |
 | `MotionStatsSink::MotionStatsSink` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-motionstatssink) |

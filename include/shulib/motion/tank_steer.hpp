@@ -46,7 +46,10 @@
 // test/tank_steer_test.cpp.
 //
 // What uses this: MoveToPose (move_to_pose.hpp) on a drivetrain whose strafeAuthority() is
-// exactly 0, for a leg that starts within maxSteer of its target heading — and nothing else.
+// exactly 0, for a leg that starts within maxSteer of its target heading — the only thing that
+// STEERS with it. One reader besides (TANK1 Part B): the scheduler's MotionStatsSink
+// (motion_scheduler.hpp) reports tankLineError's `cross` of a finished motion's last estimate as
+// the result line's ` xt` column, on the same drivetrains — a number, never a command.
 // PROS-free, allocation-free, no state: every function here is pure.
 
 #include <algorithm>

@@ -78,7 +78,16 @@ say. Where a diagnosis depends on an unverified assumption, the
       the leg started too far off its heading to be steered. Face the point first.
     - `TSTR` on the tick lines right to the end — the leg was being steered but the drift (a
       weak side) or the offset from its line was bigger than the steering is allowed to remove.
-      Check the drive for a weak side; face the point so the leg starts on its line.
+      The result line's `xt` says how far beside its line it stopped, and on which side
+      ([Chapter 11](11-reading-the-diagnostics.md#per-motion-result-lines)). When the leg
+      started on its line (faced at its point) and `xt` is an inch or more, the sign names the
+      weak side: on the host test plant a weaker right side leaves such a leg to the right of its
+      line (a negative `xt`), whether it drove forward or backed up. A leg that started *beside*
+      its line can end on the side it started from instead, whichever side is weak. And a
+      smaller `xt` names no side: with motor lag the steering can carry a leg a little past its
+      line — on the host test plant, with 0.12 s of lag, a 60 in leg with its right side 25 %
+      weak stopped at `xt   0.42"`, to the *left*. Check the drive for a weak side; face the
+      point so the leg starts on its line.
     - a `strafeTo` leg — `strafeTo` never steers on a tank; that timeout is unchanged and
       expected.
   - *Waiting for sensors the whole time:* tick lines show `▸1` (waiting-for-estimate) for the

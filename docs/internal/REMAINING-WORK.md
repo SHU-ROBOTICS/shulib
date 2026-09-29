@@ -13,9 +13,11 @@
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
 > than on builder time, so it is not in the total. **Last updated: 2026-09-28 ~17:10 (the tree at `e124b88`).**
 
-**Where things stand:** 31 of the phase table's 63 chunks are complete, and R2a (half of R2) has also landed; 32
-chunks are open. Landed most recently: SRC1 (`src/` organized), T4 Part 1a (robot two's driver file) and TANK1
-Part A (`3965791`: a tank's `moveTo` steers back onto its line). COMP-t and TANK1 Part B are being built now.
+**Where things stand:** 32 of the phase table's 63 chunks are complete (TANK1 on 2026-09-29), and R2a (half of R2) has
+also landed; 31 chunks are open. Landed most recently: SRC1 (`src/` organized), T4 Part 1a (robot two's driver file) and
+TANK1 (a tank's `moveTo` steers back onto its line; Part B the ` xt` column). Being built now (2026-09-29): COMP-t, DIAG1
+Part B, SAFE-SAVE Part A, L9 Part A1, H1 Part A1, R5a Part A and T4 Part 2a; the MECH core's brief and G3a's amendment are
+being written.
 Nothing new has run on the robot since 2026-09-25.
 
 ---
@@ -26,7 +28,7 @@ Nothing new has run on the robot since 2026-09-25.
 |---|---|---|---|---|
 | 1 | **TANK1 Part A**: a tank's `moveTo` bends back toward its line (≤ 15°, a 0.06 s look-ahead) and cancels the yaw a weak side makes. X/H drives unchanged | ✅ landed `3965791` (API 2.3) | — | — |
 | 2 | **COMP-t**: "shulib Auton Tester" (pick an auton, touch RUN, 3 s countdown, any button aborts; it runs the same `runAuton` path `autonomous()` uses) plus the students' auton file `src/team/autons.{hpp,cpp}` with the 40 in auton | **building** (build → 3 reviewers → fix → a fresh verifier → fix) | — | ~1 day (rough; its brief states no size) |
-| 3 | **TANK1 Part B**: the sideways-miss number (` xt`) on every tank result line; no API bump | **building** (its review findings are being dispositioned) | — | ~½ day |
+| 3 | **TANK1 Part B**: the sideways-miss number (` xt`) on every tank result line; no API bump | ✅ landed 2026-09-29 — **TANK1 COMPLETE** | — | — |
 | 4 | **You run the 40 in on the bench**: worksheet Station M. Wheels up first, then the floor and the tape, with serial captured. Its `imuYawRate` column does not count as evidence until IMU1 (#32) lands | needs you at the robot | 2 | ~1 hour |
 | 5 | **COMP-b**, the competition program: `autonomous()` runs the chosen auton on the program's own task under the guard; `opcontrol()` runs the driver file; the brain-screen auton picker; slot 6; the eighth build | brief **re-checked 2026-09-28** (RC1–RC12: 3 major + 9 minor, all amended); your ND1/ND2 answered ~16:15; ND3–ND6 as recommended | 2 | ~2¼ days (~2, plus ~¼ for ND3 (b)) |
 | 6 | **Station K**: a practice match with the controller's Timed Run (does Timed Run start `autonomous()`? HA-162). B6 is decided after it (§11) | needs you at the robot | 5 | ~1 hour |

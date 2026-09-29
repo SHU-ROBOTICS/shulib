@@ -9,6 +9,11 @@
 //
 //   [t=  12.50] [MOT] MoveToPose#7 ✓SETTLED final(  24.1,  36.0,  90.1°) over  0.20" drift  0.1°   1.16s
 //
+// and, on a TANK, for a motion that set out to translate (TANK1 Part B, API 2.3 — one column
+// APPENDED after the duration; every byte before it is the §18.3 shape above, unchanged):
+//
+//   [t=  12.50] [MOT] MoveToPose#7 ✓SETTLED final(  24.1,  36.0,  90.1°) over  0.20" drift  0.1°   1.16s xt  -0.10"
+//
 // The line rides log() as [MOT]-tagged Info text (the FaultLatch precedent), so it
 // lands in the tick stream exactly where the motion ended, in exact §18.3 shape.
 //
@@ -39,6 +44,21 @@
 //     the point) — the honest analogue.
 //   * drift (degrees): |final heading error| — how far the heading ended from the
 //     target heading (the §18.3 sample's "drift 0.1°").
+//   * xt (inches, SIGNED; TANK1 Part B): the final cross-track error — the last aggregated
+//     estimate's distance off the target's LINE (the line through the target point along the
+//     target heading), + to the LEFT of the target heading whichever way the robot drove (the
+//     `cross` of motion/tank_steer.hpp). Rendered only when the producer says it applies
+//     (hasCrossTrack): a motion that set out to TRANSLATE on a drivetrain with NO strafe
+//     authority — a tank — because that is the one sideways error such a drive cannot strafe
+//     out, so it is the number that says whether a leg that stopped short stopped BESIDE its
+//     line. Turns, brakes and holds of "here" do not set out to translate; X-drive and H-drive
+//     lines never carry it (except an H-drive declared with NO strafe authority — a dead strafe
+//     wheel, strafeAuthority() exactly 0 — which is a tank here as it is to MoveToPose's
+//     steering). Whatever the outcome: a TIMEOUT, CANCELLED, SUPERSEDED or FAULT_ABORT leg
+//     carries it too — those are the legs it exists for. Like over/drift it is the record
+//     stream's number, so it needs hasPathData: with no path data the column is simply absent
+//     (never a fabricated 0.00 — and never "n/a" either, because without the stream the
+//     producer cannot tell whether the motion translated at all).
 
 #include <cstdint>
 #include <string_view>
@@ -98,11 +118,21 @@ struct MotionResult {
     math::Pose2d finalPose{};        ///< estimate at the boundary (always real)
     units::Length overshoot{};       ///< see header; valid iff hasPathData
     units::AngleDim drift{};         ///< |final heading error|; valid iff hasPathData
+    /// TANK1 Part B (appended): whether the line carries the ` xt` column — the producer's
+    /// decision (motion::CompletedMotion::hasCrossTrack says when: a tank motion that set out to
+    /// translate, with path data). False by default, so a producer that never heard of the column
+    /// renders the §18.3 line exactly as before. Rendered only together with hasPathData (header).
+    bool hasCrossTrack = false;
+    /// The final signed cross-track error, inches, + to the LEFT of the target heading (header);
+    /// valid iff hasCrossTrack.
+    units::Length crossTrack{};
 };
 
 /// Format + log the §18.3 result line (one [MOT] Info line; byte shape pinned by
 /// test). ✓ marks SETTLED; every other outcome is ✗ — a glanceable pass/fail
-/// column. FAULT_ABORT carries its causal code: "✗FAULT_ABORT=ODO_STUCK".
+/// column. FAULT_ABORT carries its causal code: "✗FAULT_ABORT=ODO_STUCK". A tank's
+/// translating motion appends ` xt <signed inches>"` after the duration (header); nothing
+/// before it moves.
 inline void emitResultLine(hal::ITelemetrySink& sink, const MotionResult& r) {
     constexpr double kRadToDeg = 180.0 / math::Angle::kPi;
     constexpr std::size_t kMaxNameBytes = 24;  // stable literals; bound enforced anyway
@@ -137,6 +167,15 @@ inline void emitResultLine(hal::ITelemetrySink& sink, const MotionResult& r) {
     line.appendLiteral(" ");
     lineformat::appendNum(line, r.duration.value(), 6, 2);
     line.appendLiteral("s");
+    // TANK1 Part B — APPENDED after every existing byte, so a reader (or a regex) written for
+    // the §18.3 line still finds each field where it was. Needs path data as well as the
+    // producer's say-so: the value comes from the record stream, and a line whose over/drift say
+    // n/a must not carry a number from the same stream.
+    if (r.hasCrossTrack && r.hasPathData) {
+        line.appendLiteral(" xt ");
+        lineformat::appendNum(line, r.crossTrack.value(), 6, 2);
+        line.appendLiteral("\"");
+    }
     sink.log(hal::LogLevel::Info, "MOT", line.view());
 }
 

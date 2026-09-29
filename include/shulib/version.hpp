@@ -88,7 +88,11 @@ inline constexpr int kApiMajor = 2;
 /// tank). Added: `motion::TankSteerConfig` + `MotionConfig::tankSteer`,
 /// `motion/tank_steer.hpp`, `MoveToPose::tankSteerStatus()`,
 /// `DebugRecord::tankSteerActive` (blackbox tick flags bit 2, TermSink
-/// " TSTR"). docs/changelog.md, API 2.3, lists all of it.
+/// " TSTR"); and with its Part B (2026-09-28, the third visible effect — no
+/// further bump) the result line's ` xt` column on a tank's translating
+/// motions: `CompletedMotion` and `diag::MotionResult` gained `hasCrossTrack`
+/// + `crossTrack`, `MotionStatsSink` gained `hadDirection()` + `crossTrack()`.
+/// docs/changelog.md, API 2.3, lists all of it.
 inline constexpr int kApiMinor = 3;
 
 /// "major.minor", for session headers / logs that want one printable token.

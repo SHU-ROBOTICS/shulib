@@ -608,3 +608,533 @@ the unchanged 0.5 in / 0.02 rad rule.
 
 **Not done:** Part B (the ` xt` column on tank result lines) follows, alongside COMP-t. Nothing of TANK1 has run
 on a robot; COMP-t's floor run is its first.
+
+---
+
+## Part B — the result line's cross-track column
+
+- **Started:** Mon Sep 28 12:18:53 PM EDT 2026 (`date`).
+- **Tree at start:** `b81a590` (TANK1 Part A committed as `3965791`), clean, in the git worktree
+  `.claude/worktrees/tank1b` (branch `tank1b`) — NOT the main working tree.
+- **Go:** the coordinator's workflow run, 2026-09-28, on the team lead's go for TANK1 (D3 (a): Part B after
+  Part A, alongside COMP-t). Do not commit; no `pros` command; no `/dev/ttyACM*`. Mutation backups under
+  `.claude/coordinator/scratch/tank1-b/` (never `/tmp`), each restored file's mtime bumped.
+- **Scope:** Part B ONLY — every TRANSLATING tank result line gains ` xt  <signed in>"` (brief §1.5, re-check
+  item 3: `hadDirection()` judged on the FIRST live record's target); the stats sink, `CompletedMotion`,
+  `diag::MotionResult`, `emitResultLine`, `RunReporter`; §2.4's tests; M25/M27/M29; the Part B documents (§3).
+  X/H drives byte-identical including their log lines. No `src/` change, no HA entry, no version change (2.3
+  already names `xt`). COMP-t is being built in parallel from the same base (it touches `src/`, `competition/`,
+  `hal/pros/block_sink`, `sequence/run_guard`, `api_doc_tool`); any file of its brief this part touches is
+  logged here.
+
+### 12:18 — start
+- Read `docs/internal/RESUMING.md` (standing rules), the brief's header notes (the AMENDMENT: the lead), the
+  Re-check amendments, § Decisions (D3), §1.5, §1.6, §2.4, §2.5 (M25/M27/M29), §3's Part B documents, and this
+  log's Part A entries (as built, the review, the merge). This heading written before any code or probe.
+
+### 12:20–12:27 — baseline suite, then the pre-change golden (BEFORE any code edit) *(`date` 12:26:28 PM at the capture)*
+- **Baseline host suite** (briefing regenerated, fresh `cmake -S test -B build/test`, `Linking CXX executable
+  shulib_tests`): `[doctest] test cases: 1725 | 1725 passed | 0 failed | 3 skipped`, `assertions: 2648032 |
+  2648032 passed` — the merge record's numbers.
+- **The pre/post probe** `.claude/coordinator/scratch/tank1-b/pb_hash.cpp` (evidence, not project code; built by
+  `tank1-b/b.sh` with Part A's flags: g++ 13.3.0 `-std=c++20 -O2`, x86-64, host `lodgepc`), compiled against the
+  worktree while its code was still `b81a590`'s (`git diff --stat -- include test src` empty; only this log and
+  the regenerated briefing modified). Per script it prints the records+truth hash (`motion` — Part B must not
+  move it), the log-line hash (`log`), and the log-line hash with a trailing ` xt <n>"` stripped (`log-xt` — Part
+  B may add ONLY that), and writes every log line to `tank1-b/pre/<script>.log` for a line-by-line diff. Scripts:
+  X and H-bot every verb with a RunReporter (P10 (b)'s holonomicScript), clean and hostile s7; a tank every-verb
+  script with TANK1 ON and with `maxSteer = 0`, at ×1.00 clean, ×0.91 clean, ×0.91 hostile s7; the acceptance run
+  (Routine) at R ×1.00, R ×0.91, L ×0.91; a lone tank 40 in and a lone tank turnTo at ×1.00 and ×0.91; a
+  derate-0 H-drive (a moveTo and a turn). Output `tank1-b/pb_pre.txt`:
+
+```
+HOLO      X clean                rec  2671 motion 85461744ffad5c49 | lines   9 log d95cec78110e8a73 log-xt d95cec78110e8a73 | xt 0
+HOLO      X hostile s7           rec  3289 motion f9e919ccaac760fc | lines   9 log b30625d93ec6909f log-xt b30625d93ec6909f | xt 0
+HOLO      H clean                rec  2739 motion 6d876399a495c60f | lines   9 log a020b15c01f87d0a log-xt a020b15c01f87d0a | xt 0
+HOLO      H hostile s7           rec  3387 motion 2c72f7898f285d63 | lines   9 log 7a75994317bb5f36 log-xt 7a75994317bb5f36 | xt 0
+TANKON    x1.00 clean            rec  5382 motion 64fa0283ae6c4442 | lines  11 log b069841ea79baf15 log-xt b069841ea79baf15 | xt 0
+TANKON    x0.91 clean            rec  5359 motion 17d8e101c41d0dbb | lines  10 log 791b4057584f04d0 log-xt 791b4057584f04d0 | xt 0
+TANKON    x0.91 hostile s7       rec  5779 motion 71e64341a417fe1a | lines  10 log 6dcbb5b469ca50ef log-xt 6dcbb5b469ca50ef | xt 0
+TANKOFF   x1.00 clean            rec  5807 motion b85b92f876f17bec | lines   9 log 87f0422c4e61d5a6 log-xt 87f0422c4e61d5a6 | xt 0
+TANKOFF   x0.91 clean            rec  6515 motion 28278f847b3d85b5 | lines   9 log 140e0625d8c072b7 log-xt 140e0625d8c072b7 | xt 0
+TANKOFF   x0.91 hostile s7       rec  6515 motion 3b96e25324d28029 | lines   9 log d7fdb41ec08fc69b log-xt d7fdb41ec08fc69b | xt 0
+ACCEPT    accept R x1.00         rec  1092 motion 415cf0666529dba7 | lines   4 log 8ebe3e89f24727da log-xt 8ebe3e89f24727da | xt 0
+ACCEPT    accept R x0.91         rec  1232 motion be1d01203d5f35df | lines   4 log ade919d674d58f02 log-xt ade919d674d58f02 | xt 0
+ACCEPT    accept L x0.91         rec  1234 motion 845529d84c23748e | lines   4 log 4cc93c85c4ad2204 log-xt 4cc93c85c4ad2204 | xt 0
+SINGLE    moveTo40 x1.00         rec   361 motion 3121bdf45d6982b3 | lines   1 log 03cc448228e37e5c log-xt 03cc448228e37e5c | xt 0
+SINGLE    moveTo40 x0.91         rec   379 motion 03112ba93201a4c4 | lines   1 log fd5af9b5415a1657 log-xt fd5af9b5415a1657 | xt 0
+SINGLE    turnTo90 x1.00         rec   237 motion 3c4a7d9e1378ddd1 | lines   1 log 97b1d7eda4158e53 log-xt 97b1d7eda4158e53 | xt 0
+SINGLE    turnTo90 x0.91         rec   299 motion 043cf0023360bd41 | lines   1 log c9d10b7543865a88 log-xt c9d10b7543865a88 | xt 0
+HDEAD     H derate-0             rec   598 motion 28a1dcb5401fa0c9 | lines   2 log ebcbc039a5e87efa log-xt ebcbc039a5e87efa | xt 0
+```
+- Seen in `pre/SINGLE_turnTo90_x0.91.log`: `TurnTo#1 ✓SETTLED final(  -0.4,  -0.7,  89.1°) … 1.49s` — the weak side drags
+  the turn ~0.8 in (at ×1.00 it ends at (−0.0, −0.0)): the case where a LATEST-target direction test (re-check
+  item 3, M29) would print `xt` on a turn. Part B must keep that line byte-identical.
+
+### 12:27–12:37 — the code *(the suite binary's link time 12:37:02, its first green run — a file time)*
+- `diag/motion_result.hpp`: `MotionResult` appends `hasCrossTrack` (default false) and `crossTrack`;
+  `emitResultLine` appends ` xt ` + `appendNum(crossTrack, 6, 2)` + `"` AFTER the duration, only when
+  `hasCrossTrack && hasPathData` (a line whose over/drift say n/a never carries a number from the same stream —
+  the brief gated on the flag alone; the extra term is the formatter's own guard, pinned by a test, B1 below);
+  the header's target-shape comment shows the tank line and defines xt (signed, + left of the target heading).
+- `motion/motion_scheduler.hpp`: includes `tank_steer.hpp`; `MotionStatsSink` keeps `firstTarget_` (the FIRST
+  live record's target, captured beside `startPose_`) and `lastMeasured_`, both reset in `beginMotion()`;
+  `hadDirection()` (first target vs start ≥ `kHoldEpsilonIn`, re-check item 3) and `crossTrack()`
+  (`tankLineError(lastMeasured_, target_).cross`, computed when asked); the class doc's aggregation rules name the
+  one first-target question. `CompletedMotion` appends `hasCrossTrack` / `crossTrack`; `finalize()` sets
+  `hasCrossTrack = hasData && stats.hadDirection() && strafeAuthority() == 0.0` and `crossTrack` only under it
+  (0 otherwise — the brief filled it whenever there was data; "valid iff the flag, 0 otherwise" is the
+  `overshoot`/`drift` pattern, pinned by XT4 and B9). `overshoot()` untouched (its bytes are pinned).
+- `motion/run_reporter.hpp`: copies the two fields. `motion/tank_steer.hpp`: its "What uses this … and nothing
+  else" sentence was made false by this change — now names the stats sink as the one reader that does not steer.
+- `docs/api` regenerated (`motion_result`, `motion_scheduler`, `run_reporter`, `tank_steer` pages,
+  `all-entities.md` 2 935 → 2 941, `README.md`).
+- **The existing suite on the change, before any new test: 1725 | 1725 passed** — no existing test pinned a tank
+  result line (grep: the only byte-pinned result lines are the X-shaped goldens in `motion_result_test.cpp` and
+  `run_report_e2e_test.cpp`, both built by hand with the column off).
+
+### 12:37 — the post probe: X/H log lines byte-identical, tank lines gain ONLY the column *(`pb_post.txt`'s mtime 12:37:44 — a file time, not a `date` reading)*
+- `pb_hash.cpp` rebuilt unchanged against the change (`tank1-b/pb_post.txt`, logs `tank1-b/post/`); compared by
+  `tank1-b/cmp.py` and `diff` per script with ` xt …"` stripped from the post lines:
+  - **every `motion` hash (records + truth) identical to `pb_pre.txt`, all 18 scripts** — Part B moves nothing;
+  - **X and H-bot, clean and hostile: `log` hash identical** (d95cec78110e8a73, b30625d93ec6909f,
+    a020b15c01f87d0a, 7a75994317bb5f36) and the four `.log` files byte-identical (`cmp`);
+  - **every tank script (TANK1 on and `maxSteer = 0`), the acceptance runs, the lone 40 in legs and the derate-0
+    H-drive: `log-xt` (post, column stripped) == `log` (pre)**, and the per-line diff after stripping is empty —
+    the only change anywhere is the appended column;
+  - the column appears on exactly the translating lines: every MoveToPose (incl. SUPERSEDED/TIMEOUT, the un-faced
+    Warned leg, the trajectory legs), every tank StrafeTo; never on TurnTo, a capture-here HoldPose, DriveBrake;
+    the lone tank turn at ×0.91 (`TurnTo#1 … 1.49s`) stays byte-identical.
+- Examples (post): `MoveToPose#1 ✓SETTLED final(  39.8,   0.0,   0.0°) over  0.00" drift  0.0°   1.80s xt   0.00"`
+  (×1.00); `… final(  39.6,   0.0,   0.1°) … 1.89s xt   0.02"` (×0.91); `maxSteer = 0` ×0.91:
+  `MoveToPose#1 ✗TIMEOUT final(  39.8,  -2.9,  -0.8°) over  0.00" drift  0.8°   5.01s xt  -2.86"`; the un-faced leg
+  `✗TIMEOUT final(  62.8,   6.9,  30.1°) … 5.01s xt  -5.83"`.
+
+### 12:55–14:04 — measured, then the tests *(`pb_measure.txt`'s mtime 12:55:49; the tests were written between then and the mutation pass's first `date`, 14:05:02 — file times, not `date` readings; the test files' own mtimes were bumped by the mutation driver)*
+- On the built change: `crossTrack == tankLineError(finalPose, targetPose).cross` and `== ` the last record's,
+  **exactly (diff 0)** in all nine cases; vs truth ≤ 2.4e-13 (clean sensors). 40 in: ×1.00 0.000000, R ×0.91
+  +0.017206, L ×0.91 −0.017206, `maxSteer = 0` ×0.91 −2.861415 (TimedOut); lateral 12 in: +12 → −5.096176, −12 →
+  +5.096176; heading 90 to (12, 40) → +5.096176; backing to (−40, 12) → −5.096176; un-faced (40, 20) → −5.916509.
+  The tank turn: latest target 0.0000 in from its start at ×1.00, **0.8074 in at ×0.91** (M29's discriminator);
+  a brake pre-empting a moveTo 0.5 s in: 0.0000 on the memoryless plant, **6.6099 in with plant kA 0.02**
+  (the brake's target coasts with the robot — a second M29 discriminator); the explicit hold 3 in ahead / 1 in
+  aside −1.000000 (TimedOut), the lateral strafeTo −6.000000; the Routine auton shape at ×0.91: xt −0.08 on both
+  drives, none on the turns.
+- **Tests added (10):** `test/motion_result_test.cpp` — 4 formatter cases (absent unless the flag, incl. a
+  nonzero value with the flag off; the golden bytes and widths, any outcome; no path data ⇒ no column; NaN/Inf/
+  1e300 and the longest possible line, ~~179 bytes~~ *(wrong — the Part B review's finding 3: built from −1e300, not the widest column; the longest MESSAGE is 175 bytes, the whole line 197 — see "Part B review findings")*, still ends in the whole column under TermSink's 200-byte cut).
+  `test/motion_tank_steer_test.cpp` — XT1 (the stats sink, hand-fed: first-target direction, sign in two frames,
+  latest-target line, beginMotion forgets, the 0.1 in boundary), XT2 (tank moveTo: exact, true, signed; 7 legs),
+  XT3 (turn ×1.00/×0.91, coasting brake, hold here — none; strafeTo, hold there — xt), XT4 (X and H every verb,
+  clean and hostile — none; H derate 0.01/1e-9/denorm_min — none and `crossTrack == 0` though the leg ended off
+  its line; derate 0 — xt), XT5 (NullSink — none; `maxSteer = 0` — xt −2.86 == END y), XT6 (Routine auton shape,
+  both sides — xt on the drives only). One test bug of mine fixed on the way (XT3 held a REFERENCE to
+  `lastCompleted()` across the next verb, which reuses the slot — now a copy). ChassisTank gained an optional
+  plant kA (test helper).
+- Suite: **1735 | 1735 passed | 0 failed | 3 skipped, 2 648 326 assertions** (1725 + 10).
+
+### 14:05–14:09 — the mutations (one pass; each a FRESH binary) *(`date` 02:05:02 PM → 02:09:10 PM)*
+- Driver `tank1-b/mutate_b.py` (Part A's `mutate3.py` mechanics: backup under `tank1-b/mut/<id>/`, one exact
+  replacement, touch every TU whose depfile names the header — 54 for `motion_scheduler.hpp`, 5 for
+  `motion_result.hpp`, 4 for `run_reporter.hpp` — `--target shulib_tests/fast`, REQUIRE `Linking CXX executable
+  shulib_tests`, the WHOLE suite, restore + sha256 + mtime bump). Output `tank1-b/mut/<id>/result.txt` +
+  `suite.txt`, summaries `tank1-b/mut_pass1_a.txt`, `mut_pass1_b.txt`. **15 mutations, 15 fresh links, 15
+  restores sha256-ok; 14 RED, 1 GREEN (B11, predicted equivalent).**
+
+| # | mutation | red (failed cases) |
+|---|---|---|
+| M25 | (brief) `hasCrossTrack` without the authority check | **XT4** (57 assertions: every X/H translation line) |
+| M27 | (brief) cross-track sign flipped in the stats sink | **XT1**, **XT2**, XT3, XT5 |
+| M29 | (brief) `hadDirection()` on the LATEST target (the draft) | **XT3** (the ×0.91 turn only — ×1.00 passes — and the coasting brake), XT1 (c), XT6 (both turns, both sides) |
+| B1 | formatter drops the `hasPathData` gate | the no-path-data formatter case |
+| B2 | formatter puts xt BEFORE the duration | both formatter goldens, XT2, XT3, XT5, XT6 |
+| B3 | formatter decides by the value (`!= 0`), not the flag | "absent unless" (the nonzero value, flag off), the golden widths (0.00), XT2, XT3 |
+| B4 | waiting records aggregated (the live gate loosened) | XT1 (d), and the existing C5 hand-fed stats case |
+| B5 | `beginMotion()` keeps `firstTarget_` | XT1 (b) |
+| B6 | `beginMotion()` keeps `lastMeasured_` | XT1 (b) |
+| B7 | `crossTrack()` off the FIRST target's line | XT1 (f) |
+| B8 | RunReporter does not copy the fields | XT2, XT3, XT4 (the derate-0 line), XT5, XT6 |
+| B9 | `CompletedMotion::crossTrack` filled without the flag | XT4 (the authority > 0 H-drives' `crossTrack == 0`) |
+| B10 | the 0.1 in boundary exclusive (`>`) | XT1 (g) |
+| B11 | `hasCrossTrack` without the `hasData` term | **GREEN — equivalent, as predicted**: with no data both poses read their defaults (beginMotion's reset), so `hadDirection()` is already false; the term stays so the rule reads as documented and does not lean on that invariant |
+| B12 | the authority test loosened to `< 1e-6` | XT4 (the 1e-9 and denorm_min H-drives) |
+
+- **After the last restore:** the first full build stopped at the doc gates (the briefing's suite count), so the
+  binary was still B12's — the briefing regenerated, rebuilt (`[ 33%] Linking CXX executable shulib_tests`):
+  **1735 | 1735 passed**; the briefing generated AGAIN after that (the first regeneration had read the B12
+  binary and said "RED — 1 case(s) failing"), `briefing_status.py check` current.
+
+### 14:10–14:50 — documents; one test added for a guide sentence (B13) *(`date` 02:29:56 PM at B13, 02:49:16 PM at the final probe)*
+- **Public:** `docs/guide/11-reading-the-diagnostics.md` "Per-motion result lines" — the column (the golden tank
+  line, byte-pinned in `motion_result_test.cpp`; what it measures, its sign, why a tank gets it, where it never
+  appears, that `maxSteer = 0` keeps it and no stream leaves it out). `docs/guide/12-when-things-go-wrong.md` — the
+  tank TIMEOUT differential's TSTR bullet reads `xt`, with a MEASURED sign rule: `tank1-b/pb_side.cpp` →
+  `pb_side.txt` — a weaker RIGHT side gives a negative `xt` forward, backing, in L9's reverseTo shape and at
+  heading 90, with TANK1 off (−2.86 at ×0.91, −10.03 at ×0.70) and on (×0.70 times out at −0.41); pinned by
+  XT5's new backing/reverseTo checks *(only with the steering OFF — the review's finding 9; and the sentence was too strong with motor lag — finding 1; both fixed, XT8, in "Part B review findings")*, which the new mutation **B13** (the sign taken off the TRAVEL line,
+  start→target, instead of the target heading — a faced `driveTo`'s line, so a plausible bug) turns red
+  (XT5 ×2 at `motion_tank_steer_test.cpp:1888`, plus XT1/XT2/XT3; fresh binary, restored, `mut/B13/`).
+  `docs/guide/15-glossary.md` — **cross-track error** (a new term, guide-maintenance's rule).
+  `docs/changelog.md` 2.3 — change 3 now true (was "not yet built"), the header note and the derate-0 sentence,
+  ADDED (the five fields/functions), Migration (the ` xt` exception stated as fact, with its −2.86 reading).
+  `docs/diagnostics-plan.md` — the C5 result-line row names the column.
+- **Headers:** `motion_result.hpp` (the target-shape comment, xt's semantics), `motion_scheduler.hpp` (the stats
+  sink's aggregation rules, the two functions, `CompletedMotion`'s fields, `finalize()`'s rule), `run_reporter.hpp`,
+  `tank_steer.hpp` ("What uses this"), `version.hpp` (the 2.3 note's Added list — a comment, no version change).
+  `docs/api` regenerated after each `///` change (`motion_result`, `motion_scheduler`, `run_reporter`,
+  `tank_steer`, `version`, `all-entities`, `README`).
+- **Internal:** `build-order.md` TANK1 entry (a Part B executor status line; Part A's earlier lines left as the
+  coordinator's record), `HANDOFF-remaining-work.md` L2u (one sentence), this log, the briefing (regenerated).
+- **Deliberately not touched:** the brief (the coordinator's record); `docs/shulib-v2-master-plan.md` §18.3 (the
+  design sketch of the line, read — it was never the byte format, guide 11 is); `docs/guide/08` (its transcripts
+  are an X-drive's, and its `n/a` lines carry no column on any drive); guides 04/09/10/14 and cookbook 04 (read
+  for tank-log wording: nothing false — they send the reader to guide 11/12 for the log);
+  `docs/hardware-assumptions.md` (no new entry; HA-179/180's settle clauses read "END y by the estimate" — still
+  true, and the result line's `xt` is now the same number on a tank's 40 in leg: noted for the coordinator);
+  `docs/roadmap.md` (the C5 rows are history; F6 does not freeze `CompletedMotion`'s field set — its three public
+  types are `ChassisConfig`, `MotionOptions` and the trajectory result — so the appended fields are additive).
+
+### 14:50 — prose review (pace rule 4), grepped and read BEFORE this entry
+- Scope: `README.md`, `docs/*.md`, `docs/guide/`, `docs/cookbook/` (generated `docs/api/` excluded); every hit read.
+  - **Forward references to Part B** (`Part B`, `xt column`, `` ` xt``, `cross-track column`, `when it lands`,
+    `not yet built`), also over `include/`, `test/`, `src/`: the changelog's two "(when it lands)" sentences were
+    the only stale ones — rewritten; the rest are mine or other chunks' (DIAG1/COMP-b/…, unrelated).
+  - **Changed files' names** (`motion_result`, `motion_scheduler`, `run_reporter`, `tank_steer`): diagnostics-plan
+    :168/:275-276, guide 05 :132, guide 11 :16/:285/:518, guide 12 :225, roadmap :921/:1189-1190/:1355/:1358,
+    HA-179's source line, changelog — all still true (C5 history, reference links, the golden-file list).
+  - **Types** (`MotionResult`, `emitResultLine`, `CompletedMotion`, `MotionStatsSink`, `RunReporter`,
+    `hasPathData`, `lastCompleted`): guide 08 :325-331 (RunReporter wiring, X-drive), guide 09 :147, guide 10
+    :83/:325, roadmap F6 row :140 and :1306 — true; F6 freezes `lastCompleted()`'s signature, not
+    `CompletedMotion`'s field set.
+  - **Concepts** (`result line` 26 hits, `§18.3` 3, `overshoot` 14, `stationary` 9, `n/a` 27, `hadDirection` 1,
+    `kHoldEpsilon` 0, `cross-track` 8, `` xt`` 9, `sideways offset` 3, `END y` 2): guide 12 :201 ("Result lines
+    say `n/a`") still true (the column is absent then, as guide 11 says); guide 08's transcripts are an X-drive's;
+    master plan :848/:858 the §18.3 sketch (not edited, above); HA-179 :2029-2030 / HA-180 :2073 (not edited,
+    above); roadmap :628 is fusion's cross-track drift, unrelated. No stale sentence left.
+  - `simulat` in added lines: 0. Internal references from the changed public documents: 0. Links in every changed
+    `.md` (relative paths + anchors, mechanically): 246 checked, 0 bad.
+
+### 15:07 — Part B: final gates, and where it stands *(`date` 03:07:28 PM at this entry)*
+- **Host suite** (briefing regenerated, full build WITH the doc gates, `[100%] Linking CXX executable
+  shulib_tests`): **`test cases: 1735 | 1735 passed | 0 failed | 3 skipped`, `assertions: 2648332 | 2648332
+  passed`.** Baseline 1725 → 1735: +10 (4 formatter, XT1–XT6). No existing test's code changed; one test helper
+  gained a parameter (`ChassisTank`'s optional plant kA). The briefing regenerated after the suite binary, the
+  build re-run with the doc gates: rc 0.
+- **The pre/post probe on the FINAL tree** (`pb_final.txt`): byte-identical to `pb_post.txt`; vs `pb_pre.txt`
+  (`b81a590`'s code): all 18 `motion` hashes equal; the four X/H `log` hashes equal and their `.log` files
+  byte-identical; every tank/derate-0 log equals the pre log once the column is stripped.
+- **`src_build_gate.py self-test`**: `src build gate self-test: OK (189 detector cases, each against a real
+  build)`. **`check`** (re-run after the last header edit): `src build gate: PASS (all 6 builds link; …)` —
+  bench, xdrive, tank, tank-drive, tank-library, tank-calibrate: exit 0, 8/8 TUs, 0 disallowed warnings.
+  `git diff -- src/`: 0 lines.
+- **ARM header gate** (RESUMING's command, 192 headers): rc 0; `motion_result.hpp`, `motion_scheduler.hpp`,
+  `run_reporter.hpp`, `tank_steer.hpp`, `version.hpp` each alone: rc 0.
+- **CI greps:** `library is PROS-free (all of include/shulib except hal/pros/)`; `layering holds: core is sim-free`.
+- **api_doc_tool:** `self-test: OK`; `doc coverage: 2941 public entities across 156 headers, all documented`;
+  `check-fresh` rc 0; `doc example scan: 467 quoted lines, all verbatim (5 source files); 3 listings of whole-run
+  files, each one unbroken run`; `removability: no public doc references docs/internal/`.
+- **`doc_staleness_audit.py`**: `clean (27 live docs, 0 numeric claims checked)`; its self-test OK (10 cases).
+  **`briefing_status.py check`**: `generated block current`.
+- **Mutations:** 16 run (M25, M27, M29, B1–B13), 16 fresh links, 16 restores sha256-ok; 15 RED, 1 GREEN (B11,
+  the predicted equivalent). Table in the 14:05 entry; B13 above.
+- **Not committed. No `pros` command. No `/dev/ttyACM*`.** No new HA entry, no version change, no `src/` change.
+  No `TANK1-COMPLETED.md` (the coordinator's, at the merge); `roadmap.md`'s "you are here" and `build-order.md`'s
+  `Next:` pointer NOT moved (the coordinator's reconciliation).
+- **Shared with COMP-t (built in parallel from the same base):** `docs/changelog.md` (COMP-t's brief adds
+  Fixed/Added entries — mine touch only the TANK1 2.3 entry's lines 21-31, 64-74, 96-100, 105-107),
+  `docs/api/` (both regenerate — regenerate once more after the second merge), `docs/internal/PROJECT-BRIEFING.md`
+  (regenerate after the merge), `build-order.md`/HANDOFF status lines. No file under `src/`, `competition/`,
+  `hal/pros/block_sink`, `sequence/run_guard` or `tools/` was touched.
+- **For the coordinator:** (1) `MotionResult`'s formatter renders the column only with `hasPathData` as well as
+  the flag — one term beyond the brief's §1.5 (pinned, B1); `CompletedMotion::crossTrack` is 0 unless the flag
+  (the brief filled it whenever there was data; pinned, B9). (2) `build-order.md`'s TANK1 entry still carries
+  Part A's pre-merge lines ("Part A is being built", "BUILT … NOT committed", "Part B not started") — I added a
+  Part B line and left those to your reconciliation, as with HANDOFF L2u's Part A sentence. (3) HA-179/180's
+  settle clauses and COMP-t's Station M.6 read "END y by the estimate"; on the 40 in leg (line y = 0 along 0°) the
+  tank's result line now prints that number as `xt` — M.6 can read it off the result line. (4) Part A's P2
+  (`motion_tank_steer_test.cpp:468`) does `CAPTURE(c.name)` on a `const char*`, which doctest prints as a
+  pointer; mine print the name (a `std::string` copy) — P2 left as it is (not Part B's). (5) The IDE's clangd
+  resolves the MAIN tree's headers, so it flags the new members as missing in this worktree — noise, the build is
+  the evidence.
+
+### 15:39 — RESUMED by a second executor run (same workflow, same go) *(`date` 03:39:22 PM at this entry)*
+- Found the worktree dirty with the whole of Part B as the 15:07 entry records it (every changed file's mtime
+  ≤ 15:05:35 except this log, 15:20:06; the suite binary linked 15:05:21) and no final report delivered. Per
+  RESUMING ("if `git status` is dirty … verify and finish"), NOT rebuilding Part B: re-reading the brief's Part B
+  sections against the diff, then re-running the suite, the pre/post probe, the brief's three mutations and every
+  gate on the tree as it stands, and logging what I see below before reporting.
+
+### 15:39–15:55 — the second run's verification of the tree as it stands *(`date` 03:54:55 PM at the last check)*
+- **Read against the brief** (§1.5, §2.4, §2.5 M25/M27/M29, §3's Part B list, re-check item 3): every item is
+  in the diff; the ×0.91 turn, the coasting brake and the capture-here hold carry no column; the capture-here
+  hold's first live target equals that record's estimate by construction (`move_to_pose.hpp` ~:199-201 captures
+  `loc.pose()`, `baseRecord` writes the same `pose`); guide 11's "a ✓SETTLED leg's xt is inside the arrival
+  tolerance" holds (`SettledUtil::update` needs |hypot(errX, errY)| ≤ maxError on the exit tick, and the column
+  reads that exit record).
+- **Suite** (briefing regenerated, `cmake -S test -B build/test`, full build with the doc gates): `1735 | 1735
+  passed | 0 failed | 3 skipped`, `assertions: 2648332 | 2648332 passed`. The ten Part B cases alone: 10/10, 300
+  assertions.
+- **All 16 mutations RE-RUN** (`tank1-b/mutate_b_rerun.py` — `mutate_b.py` with its output under
+  `tank1-b/mut_rerun/`, so the first pass's evidence is kept; summary `tank1-b/mut_rerun.txt`; `date` 03:40:35 →
+  03:45:28 PM): 16 fresh links, 16 restores sha256-ok with mtimes bumped; **the same verdicts as the 14:05 pass
+  and B13** — M25 → XT4 (57 assertions); M27 → XT1, XT2, XT3, XT5; M29 → XT1, XT3, XT6; B1 → the no-path-data
+  formatter case; B2 → both formatter goldens + XT2/3/5/6; B3 → "absent unless", the goldens, XT2, XT3; B4 → XT1 +
+  C5's hand-fed stats case; B5/B6/B7/B10 → XT1; B8 → XT2–XT6; B9/B12 → XT4; B11 GREEN (the predicted
+  equivalent); B13 → XT1, XT2, XT3, XT5. Then the briefing regenerated, the suite relinked
+  (`[ 33%] Linking CXX executable shulib_tests`): 1735/1735; the briefing generated AGAIN on that fresh binary,
+  `check` current.
+- **The pre/post probe re-built and re-run** (`tank1-b/pb_rerun`, `pb_rerun.txt`, logs `tank1-b/rerun/`):
+  `pb_rerun.txt` byte-identical to `pb_final.txt` and `pb_post.txt`; against `pb_pre.txt` (`b81a590`'s code): all
+  18 `motion` hashes equal; X/H clean and hostile `log` hashes equal and the four `.log` files `cmp`-identical;
+  both lone tank turns (×1.00, ×0.91) `cmp`-identical; every other tank line differs only by the appended column.
+- **Gates:** `src_build_gate.py self-test` OK (189 cases), `check` PASS (6 builds, `v0.1.1-349-gb81a590-dirty`),
+  `git diff -- src/` 0 lines after it; ARM header gate (192 headers, the all-headers TU in `tank1-b/`) rc 0 and
+  the five changed headers alone rc 0; both CI greps; `api_doc_tool` self-test / check-coverage (2941 across 156) /
+  check-fresh / check-examples / check-removability; `doc_staleness_audit.py` self-test + clean;
+  `briefing_status.py check` current.
+- **One stale sentence found and fixed:** `build-order.md`'s Part B status line (written 14:24, before B13 and
+  the `version.hpp` comment) said "15 mutations … 14 red" and "four header comments" — now 16 / 15 red and five
+  header comments. Prose greps re-run over `README.md`, `docs/*.md`, `docs/guide/`, `docs/cookbook/` (`xt`,
+  `cross-track`, `result line` — 27 hits read, `Part B`/`when it lands`/`not yet built`, the four changed headers'
+  names, `simulat` in added lines — the one hit is this log's own "`simulat` … 0"): nothing else stale.
+- **For the coordinator (new in this pass):** my `motion_scheduler.hpp` edits add 52 lines above ~:700 and 7
+  more after ~:1090, so COMP-t's brief's line citations into that file (:704-705, :763-792, :765-775,
+  :1010-1017) move by +52 once both land — only a problem if COMP-t writes them into a document or comment.
+
+### Part B review findings and their disposition *(started `date` 04:21:45 PM)*
+- Three reviewers (correctness, identity, documents) returned 12 findings, all minor; deduped to 10 (the
+  changelog :70 H-drive exception is in two of them; the same code rule sits under three statements). Each is
+  re-checked against the tree and the reviewers' own probes (`tank1-b/review-correctness/`, `review-bitid/`)
+  BEFORE any edit; the disposition of each follows as it is done.
+- *(`date` 04:48 PM)* **Resumed by a fresh executor run** (the entry above was started at 04:21:45 PM and stopped
+  before any edit: every tracked file's mtime ≤ 16:21:50, this log's; the one thing it left is a measurement probe,
+  `tank1-b/review-fix/rf_measure.cpp` → `rf_measure.txt`, 16:31:06 — read, and used below as evidence where it
+  answers a finding; everything else re-checked from here).
+
+#### 16:48–17:06 — every finding re-checked, the edits made *(`date` 05:07 PM at this entry)*
+- **F1 (guide 12's sign rule fails with motor lag) — REAL, and wider than reported.** Re-checked with a sweep of
+  my own (`tank1-b/review-fix2/rf_sweep_fine.cpp` → `rf_sweep_fine.txt`: steering ON, plant lag kA 0–0.06 in 0.005
+  steps (τ up to ≈ 0.36 s), one side ×0.40–×0.95 in 0.01 steps, both sides, five legs that start ON their line —
+  7 280 legs): 6 706 timed out; **776 ended on the STRONG side, the largest |xt| among them 0.648 in** (0.415 at
+  kA 0.02 — the reviewer's leg, reproduced exactly by `review-fix/rf_measure.txt`; 0.445 at kA 0.03; 0.567 at
+  0.045; 0.648 at 0.06), and none at kA 0. So the sign names the weak side only for an `xt` of an inch or more.
+  **And a second hole the review did not name:** a leg that STARTS beside its line (`rf_offset.cpp` →
+  `rf_offset.txt`, targets 1–12 in aside, ×0.60/×0.75/×0.91): of 82 timeouts, 24 crossed to the weak side and
+  the rest ended on their START side — e.g. the target 12 in to the right (the robot starts left of the line)
+  with the RIGHT side 9 % weak ends at xt **+4.52** (lag-free). A first draft of my guide fix said "a leg that
+  started beside its line ends on the side it started from, whichever side is weak"; the probe showed that
+  false (24 crossings) BEFORE it was kept — reworded to "can end on the side it started from".
+  **Fix:** guide 12's TSTR bullet now says: on a leg that started on its line (faced at its point), an `xt` of an
+  inch or more names the weak side; a leg that started beside its line can end on its start side; a smaller `xt`
+  names no side (the reviewer's 60 in, ×0.75, kA 0.02 leg quoted: `xt   0.42"`, to the left). **Pinned by a new
+  case XT8** (steering ON): (a) a 324-leg grid — kA 0/0.02/0.03, either side ×0.50–×0.90, six legs (forward
+  24/40/60, backing 40, the reverseTo shape, heading 90) — every TIMEOUT with |xt| ≥ 1 names the weak side
+  (measured: 180 timed out, 130 of them ≥ 1 in; non-vacuity `>= 100`); (b) the guide's 0.42 leg — TIMEOUT, xt
+  +0.415, TSTR on its last live record, the line ending `s xt   0.42"`; (c) the 12 in-aside leg ends LEFT (> +1).
+- **F2 + F6 (the derate-0 H-drive exception missing from three statements) — REAL (documents only).** Fixed:
+  `motion_result.hpp`'s xt paragraph (names the exception, and that every outcome carries it),
+  `CompletedMotion::hasCrossTrack`'s doc ("False on every drivetrain with any strafe authority (every X-drive,
+  every H-drive with a live strafe wheel)"), changelog change 3 ("— except an H-drive with no strafe authority,
+  which is treated as a tank (above)"), and the test file's Part B section comment. `version.hpp`'s 2.3 note
+  already named it (read). `docs/api` regenerated.
+- **F3 (the formatter's "longest possible line" is not the longest) — REAL.** Confirmed by construction:
+  appendNum keeps a %f rendering up to 10 bytes and compacts a longer one to %.3g, whose longest is
+  `-1.23e+300` (10 bytes); `-1e300` gives 7. The case now tries four values of both kinds (−1.23e300, −1e300,
+  −999999.99, −123456.7) × every fault code 0–255 (a longer fault name added later is covered), measures the
+  MESSAGE (the bytes after `[MOT] `), and checks that EVERY one of the 1 024 lines ends with its whole column
+  (a message over 200 would be cut by TermSink and end in "…" — so a length bound read after the cut could
+  not see it; the per-line ending check can). Measured: **175 bytes** (the review's number), asserted `>= 175`
+  (non-vacuity) and `<= 200`. The 14:05 entry's "179 bytes" is corrected in place, marked.
+- **F4 (xt on a CANCELLED / FAULT_ABORT line unpinned) — REAL.** New case **XT7**: a tank moveTo (40, 5, 0)
+  stopped 0.7 s in by `sched.cancel()` and by an ODO_STUCK raised on the rig's latch — `exit == Cancelled`,
+  `!preempted`, the right `abortFault`, `hasCrossTrack`, xt == `tankLineError(final, target).cross` (measured
+  −0.4772 / −0.4536 — `review-fix/rf_measure.txt` §B), the line starts `MoveToPose#1 ✗CANCELLED final(` /
+  `MoveToPose#1 ✗FAULT_ABORT=ODO_STUCK final(` and ends in the column. The formatter's any-outcome golden
+  gained a CANCELLED and a SUPERSEDED line with the flag set.
+- **F5 (`CompletedMotion`'s default unpinned) — REAL.** XT7 checks `CompletedMotion{}` AND
+  `chassis.lastCompleted()` before any verb (exit Running): no flag, crossTrack 0. The field's doc now says why
+  the default matters (the "none yet" record claims no number).
+- **F7 (changelog: strafeTo "unchanged on a tank") — REAL.** Now: those verbs "move exactly as before on a
+  tank; of their result lines, only `strafeTo`'s changes — it gains ` xt` (change 3)".
+- **F8 (changelog: "one side 9 % weak" with a signed value) — REAL.** Both places now say the RIGHT side, with
+  the left side's value beside it (−0.02; +2.86 — `pb_side.txt`, `pb_measure.txt`), and change 3 says a leg the
+  steering brings home can finish a hair to either side of its line.
+- **F9 (the test "pinning" guide 12 runs with the steering off) — REAL.** XT8 above is the steering-ON pin; the
+  15:07-era claim in this log ("pinned by XT5's new backing/reverseTo checks") is corrected in place, marked.
+- **F10 (guide 11: "a small xt means it stopped short along its line") — REAL.** A TIMEOUT needs translation AND
+  heading settled (`move_to_pose.hpp`'s exit rule), and the reviewer's 0.42 leg is a third case (at the point,
+  0.3 in short and 0.42 aside: hypot 0.51 > 0.5 — neither error alone would stop it). Reworded: with a small
+  `xt`, being beside the line is not the story — compare `final(…)` with the target: short of it along the
+  line, or at it but never settled (`drift`, or hovering just outside the tolerance — Chapter 12's "almost
+  settled, never quite").
+- **F11 ("a hold of a spot away" — no public verb does that) — REAL (wording).** `Chassis::hold` and
+  `Routine::hold` take only a duration (`chassis.hpp:382`, `routine.hpp:306`). Guide 11, changelog change 3 and
+  the stats sink's `hadDirection()` doc now say "a Tier-3 `HoldPose` built with a spot away from the robot" and
+  "the `hold` verb (it holds where the robot is)". Guide 11 also says "whatever the outcome" (XT7 pins it).
+- **F12 (internal status text; no `TANK1-COMPLETED.md`) — PARTLY mine.** The status lines false at the base are
+  fixed where they sit (below, after the gates); the completion record, the roadmap's "you are here", the
+  build-order `Next:` pointer and the briefing's OPEN-chunk line stay the coordinator's at the merge — the
+  project's convention (SRC1-PROGRESS.md :288, "The -COMPLETED.md record, the commit and the merge verification
+  are the coordinator's"; the brief §3: "the coordinator reconciles 'you are here'"), and writing a completion
+  record before the coordinator's verification would claim a close that has not happened.
+- **Suite on the change** (`--target shulib_tests/fast`, fresh link 17:05:26): **1737 | 1737 passed | 0 failed |
+  3 skipped**, 2 650 734 assertions (1735 + XT7 + XT8). The Part B cases alone: 12/12.
+
+#### 03:36 (2026-09-29) — RESUMED by a third executor run after the team lead's pause *(`date`: Tue Sep 29 03:36:32 AM EDT 2026)*
+- The 16:48 run was stopped partway (the team lead paused all work, 2026-09-28 ~17:40). Found: every finding's
+  edit in the tree (tracked files' mtimes 17:01–17:26; the suite binary linked 17:26:43; `docs/api` regenerated
+  17:26:18; the briefing 17:36:53), a second mutation pass under `tank1-b/review-fix2/mut/` (`mut_rf.txt`, ended
+  17:22:11; an earlier pass `mut_contaminated_1710/` set aside by that run's own name), and a `build-order.md`
+  status line (17:25) that already claims that pass's verdicts — but NO log entry for the mutation pass, the
+  gates or the prose review. Those claims are not taken as done: re-checked below from the tree.
+- **One file the stopped run left wrong:** `src/build_selection.hpp` (mtime 17:47:00) carries ONE added line,
+  `SelfTestUnhandled,  ///< self-test plant (case 18)` — `tools/src_build_gate.py`'s self-test case 18 plants
+  exactly that line (`:1736-1738`) inside a `_replace` context and restores it on exit; the run was killed during
+  the self-test (`review-fix2/srcgate_selftest.log`, 17:42:53, empty), so the plant was never restored. Not a
+  Part B change (Part B has no `src/` change): restored to `HEAD` with `git checkout`, then `git diff -- src/`
+  checked empty. `bin/` (gitignored) holds that interrupted build's `cold.package.elf`; the gate deletes and
+  rebuilds `bin/`/`.d/` itself.
+- Plan: rebuild and run the suite on the tree as it stands; re-read each finding's edit against the finding;
+  re-run the review-round mutations whose evidence is not in this log (fresh binaries); every gate; the prose
+  review; then the disposition summary.
+
+#### 03:37–03:57 (2026-09-29) — the stopped run's work re-checked *(`date` 03:43:46 AM at the first suite run, 03:51:30 AM at the mutation pass's end)*
+- **Each finding's edit re-read in the diff against the finding** (not against the 16:48 entry): F1/F9 guide 12's
+  TSTR bullet + XT8; F2/F6 `motion_result.hpp` :54-58, `CompletedMotion::hasCrossTrack`'s doc, changelog change 3
+  (:72-73) and the test section comment; F3 the formatter case (four values × 256 fault codes, message measured,
+  every line's ending checked); F4/F5 XT7 and the formatter's CANCELLED/SUPERSEDED goldens; F7 changelog :80-81;
+  F8 changelog :66-68 and :109-112; F10 guide 11 :114-120; F11 guide 11 :97-99, changelog :70-72,
+  `hadDirection()`'s doc; F12 HANDOFF L2u and build-order's TANK1 entry. All present and each says what the
+  finding asked. Evidence probes read: `review-fix2/rf_sweep_fine.txt` ("TOTAL: 6706 legs timed out … 776 ended on
+  the STRONG side, largest such |xt| 0.648 in"), `rf_offset.txt` ("timeouts 82: ended on the start side 58,
+  crossed 24"), `review-fix/rf_measure.txt`.
+- **Suite on the tree as found** (briefing regenerated, `cmake -S test -B build/test`, full build with the doc
+  gates — `[  8%] Linking CXX executable shulib_tests`, the restored `src/build_selection.hpp` recompiling 8 TUs):
+  **`1737 | 1737 passed | 0 failed | 3 skipped`, `assertions: 2650734 | 2650734 passed`** — the 17:05 numbers.
+  The twelve Part B cases alone: 12/12, 2 702 assertions; the formatter's MESSAGE line reads `longest result-line
+  message: 175 bytes`, XT8's `180 legs timed out, 130 with |xt| >= 1 in`.
+- **The stopped run's review-round mutation pass** (`review-fix2/mutate_rf.py` → `mut_rf.txt`, 17:15:08 →
+  17:22:11; never logged before now): 23 mutants — M25, M27, M29, B1–B13, the reviewers' N1, N3, N8, N10, N11,
+  N19, and TC (TermSink's message cap 200 → 170) — each `linked=True`, each restored `sha256 ok, mtime bumped`;
+  **22 red, B11 green (the predicted equivalent)**. Is it evidence for THIS tree? Every one of its 23 backups
+  (`mut/<id>/*.orig`) was compared by sha256 with the current file: **23/23 identical**; the test files' mtimes are
+  the driver's last bump (17:22:11) and its unmutated-count runs read the same 1737 / 2 650 734 as today. (Its
+  first attempt, `mut_contaminated_1710/`, was set aside by that run: the `/fast` target does not re-scan header
+  dependencies, so B1–B3 linked M29's objects; the driver re-touches each mutation's TUs at restore since.)
+- **Re-confirmed on fresh binaries by this run** (`review-fix3/mutate_rf3.py` — the same driver, output under
+  `review-fix3/mut/`; `mut_rf3.txt`, 03:49:04 → 03:51:30 AM): the seven review-round mutants, M27 (the brief's
+  sign mutation) and B13 (the build's travel-line sign, which reds XT8), **each `linked=True`, each restored sha256 ok with mtime bumped, each RED with the same cases as
+  17:15**: N1 → XT7; N3 → XT3; N8 → XT3, XT7; N10 → the formatter golden, XT7; N11 → XT7; N19 → XT7; TC → the
+  worst-case formatter case + TermSink's two truncation cases; M27 → XT1, XT2, XT3, XT5, XT7, XT8; B13 → XT1, XT2,
+  XT3, XT5, XT7, XT8.
+- **One sentence of the stopped run's tightened:** guide 12's lag example named no lag; it now says "with 0.12 s
+  of lag" (plant kA 0.02 — the τ guide 14 quotes in the same words, and XT8 (b)'s), re-wrapped to the page's width.
+
+#### 03:57–04:22 (2026-09-29) — gates, a prose review of the review round, five more stale sentences *(`date` 04:22:17 AM at the src gate's end; the next `date` read 10:38:31 AM — a wall-clock jump like Part A's, no work between)*
+- **Gates on the tree as found** (after the `src/` restore, before this run's edits): `src_build_gate.py
+  self-test` OK (189 cases, 03:55:30 → 04:01:20), `check` PASS (six builds, 04:02:27), `git diff -- src/` empty
+  after both; ARM header gate (192 headers) rc 0 and the five Part B headers alone rc 0; both CI greps; every
+  `api_doc_tool` check; `doc_staleness_audit.py` self-test + clean; `briefing_status.py check` current.
+- **Prose review of the review round (pace rule 4), grepped and read BEFORE this entry** — the 14:50 and 15:39
+  reviews predate the review fixes, so none covered them. Scope `README.md`, `docs/*.md`, `docs/guide/`,
+  `docs/cookbook/`, and `include/` for the claims (hit counts re-counted on the FINAL tree, after this run's
+  edits): `` ` xt``/`xt  `/`cross-track`/`crossTrack`/`hasCrossTrack` (51 hits, `RobotContext` noise among them); `one side (a few|9|3)`, `unchanged on a tank`, `stopped short`, `179 bytes`, `longest possible`,
+  `weaker right`, `right side (9|25)`, `names the weak`, `no strafe authority`, `dead strafe` (20);
+  `never carr`, `no x-drive or h-drive`, `H-drive line` (12); `hold of a spot`, `hold of here`, `spot away` (12);
+  `almost settled`, `HoldPose`, `lastCompleted`, `✗CANCELLED`/`✗FAULT_ABORT`/`✗SUPERSEDED` (20); headers'
+  `unchanged`/`bit for bit`/`byte for byte` near tank/strafe/hold/log (16); `maxSteer` (10); `log exactly`,
+  `old tank exactly`, `pre-TANK1 tank` (5). Every hit read. **Five sentences Part B had made too strong — the
+  same class as findings 2/6 and 7, which no reviewer listed:**
+  - `docs/guide/14-what-it-cannot-do-yet.md` :363 "Setting `tankSteer.maxSteer` to 0 … restores the old tank
+    exactly" → names the one exception, the `xt` column, linking Chapter 11;
+  - `docs/hardware-assumptions.md` HA-179's **Contained:** clause, "`maxSteer = 0` restores the pre-TANK1 tank's
+    motion, records and log exactly" → "— all but the result line's ` xt` column (TANK1 Part B, 2026-09-28), a
+    report kept whatever `maxSteer` is" (an edit to an existing entry's clause; no new HA entry, the header count
+    unchanged);
+  - `motion_config.hpp` `TankSteerConfig::maxSteer`'s doc, "0 turns TANK1 off entirely: … moves, records and ends
+    exactly as it did before TANK1" → "0 turns the steering off entirely … (its result line keeps TANK1 Part B's
+    ` xt` column …)";
+  - `strafe_to.hpp`'s file header, "is unchanged on a tank, bit for bit" → moves, records and ends exactly as
+    before; only its result line changed (the scheduler's ` xt`);
+  - `move_to_pose.hpp` `PoseMotionOptions::tankSteer`'s doc, StrafeTo and HoldPose "on a tank they are
+    unchanged" → "move exactly as before", their result lines being another matter.
+  Read and left true: `version.hpp` :84 ("motion, records and truth bit for bit"), `chassis.hpp` :125 ("motion
+  exactly") and :304 (strafeTo's exit "unchanged by TANK1"), guide 10 :289 ("`maxSteer = 0` turns it off" — the
+  steering), guide 12 :91 (a `strafeTo`'s "timeout is unchanged"), guide 04 :109 (the steering), guide 11 :199
+  (`SFB` counts), guide 09 :147 and guide 10 :83/:325 (`lastCompleted()`), guide 12 :96-106 (the outcome
+  bullets), the glossary's "tank only" (Ch. 11 carries the derate-0 exception), the header section comment at
+  `motion_result_test.cpp` :187. No public doc cites a line of the three newly edited headers; COMP-t's brief
+  cites none either (grep). The 14:10 entry's "deliberately not touched" list read guide 14 ("nothing false") and the HA register
+  (only HA-179/180's settle clauses) — it missed these two sentences.
+- `docs/api` regenerated (`motion_config.md`, `move_to_pose.md`, `strafe_to.md` join the Part B pages; the
+  `move_to_pose.hpp` declarations below :98 move +2 lines). `simulat` in every added line: only this log's own
+  mentions of the search itself (three, this one included). Relative links and anchors in the seven changed public documents: 124, 0 bad.
+- **Final gates on the final tree** *(`date` 04:11:28 AM at the start)*: briefing regenerated; `cmake -S test -B
+  build/test`; full build with the doc gates (176 objects, `[100%] Linking CXX executable shulib_tests`): **`test
+  cases: 1737 | 1737 passed | 0 failed | 3 skipped`, `assertions: 2650734 | 2650734 passed`**; briefing
+  regenerated after the suite binary, the build re-run with the doc gates: rc 0. ARM header gate: 192 headers rc 0;
+  the eight changed headers alone rc 0. CI greps: `library is PROS-free (all of include/shulib except
+  hal/pros/)`, `layering holds: core is sim-free`. `api_doc_tool` self-test OK / check-coverage "2941 public
+  entities across 156 headers, all documented" / check-fresh rc 0 / check-examples "467 quoted lines, all
+  verbatim" / check-removability "no public doc references docs/internal/". `doc_staleness_audit.py` self-test OK
+  (10), "clean (27 live docs …)". `briefing_status.py check`: current. `src_build_gate.py self-test`: "OK (189
+  detector cases, each against a real build)" (04:14:01 → 04:21:15); `check`: "PASS (all 6 builds link …)",
+  bench/xdrive/tank/tank-drive/tank-library/tank-calibrate each exit 0, 8/8 TUs, 0 disallowed (04:22:17);
+  `git diff -- src/`: 0 lines.
+- **The pre/post probe on the final tree** (`pb_hash.cpp` rebuilt by `b.sh` → `review-fix3/pb_final3.txt`, logs
+  `review-fix3/final/`): byte-identical to `pb_rerun.txt` (15:39); against `pb_pre.txt` (`b81a590`'s code) all 18
+  `motion` hashes SAME; the four X/H `log` hashes SAME and their `.log` files `cmp`-identical; both lone tank turns
+  identical; every other tank line and the derate-0 H-drive's differ only by the appended column.
+
+#### Part B review — disposition summary *(`date` 10:38:31 AM)*
+Twelve findings, all minor; ten distinct (F2 = F6, the H-drive exception's statements; F1 and F9 share one fix,
+XT8). Each re-checked against the tree and the reviewers' probes before its edit.
+
+| # | finding | verdict | fix (and its pin) |
+|---|---|---|---|
+| F1 | guide 12's sign rule fails with motor lag | REAL, wider (a leg started beside its line too) | guide 12 states the measured rule (≥ 1 in, started on its line; 0.42 with 0.12 s lag); XT8 |
+| F2/F6 | "no X/H line carries xt" ×3 without the derate-0 exception | REAL (docs) | `motion_result.hpp`, `CompletedMotion` doc, changelog change 3 |
+| F3 | the formatter's "longest line" was not the longest | REAL | worst case rebuilt (175-byte message, 1 024 lines each checked for the whole column); TC red |
+| F4 | xt on CANCELLED / FAULT_ABORT unpinned | REAL | XT7 + formatter goldens; N1, N10, N11 red |
+| F5 | `CompletedMotion`'s default unpinned | REAL | XT7; N19 red |
+| F7 | changelog: strafeTo "unchanged on a tank" | REAL | changelog :80-81 |
+| F8 | changelog: "one side 9 % weak" with a signed value | REAL | right side named, left value beside it |
+| F9 | the "pin" of guide 12's rule ran with the steering off | REAL | XT8 (steering on); the 14:10 entry corrected in place |
+| F10 | guide 11: "a small xt means it stopped short" | REAL | reworded: short along the line, or there but unsettled |
+| F11 | "a hold of a spot away" — no public verb | REAL (wording) | "a Tier-3 `HoldPose` built with a spot away"; "the `hold` verb" |
+| F12 | stale internal status; no `TANK1-COMPLETED.md` | PARTLY | status lines fixed (HANDOFF L2u, build-order); the record, pointers and briefing's OPEN line stay the coordinator's (convention: SRC1-PROGRESS :288, G1-PROGRESS :1614) |
+
+Plus, from this run's prose review: five sentences in guide 14, HA-179, `motion_config.hpp`, `strafe_to.hpp` and
+`move_to_pose.hpp` qualified (above). Mutations: 23 on fresh binaries at 17:15 (22 red, B11 the predicted
+equivalent), nine of them re-run by this run with the same verdicts. Suite 1737/1737. **Not committed. No `pros`
+command. No `/dev/ttyACM*`. No `src/` change, no new HA entry, no version change.**
+
+**For the coordinator (new in this run):** (1) the stopped run's `src_build_gate.py` self-test plant in
+`src/build_selection.hpp` — restored here; a gate self-test killed mid-run leaves one, so a paused tree is worth a
+`git diff -- src/ Makefile` before its next build. (2) Files touched beyond the 15:07 list: `docs/guide/14`,
+`docs/hardware-assumptions.md` (HA-179's clause only — COMP-t's brief :1988 adds HA-177/178 to the same file, and
+its :1984 re-reads guide 14; merge both by hand), `motion_config.hpp`, `strafe_to.hpp`, `move_to_pose.hpp` (none of them COMP-t's files), and
+`docs/api/{motion_config,move_to_pose,strafe_to}.md` (regenerate after the second merge). (3) At the merge:
+`TANK1-COMPLETED.md`, the roadmap's "you are here", build-order's `Next:`, and the briefing last.
+
+## Part B — the coordinator's merge and verification (2026-09-29, 10:50–11:01)
+
+The tank1b worktree as the transport commit `920c704`, squash-merged onto `ee2e399`; one conflict (HANDOFF L2u's
+status line) resolved to the merged state. Suite **1737 | 1737 passed | 0 failed | 3 skipped**, 2,650,734
+assertions; `src_build_gate.py` self-test **OK (189)** and check **PASS** on all six builds; the ARM header gate,
+both CI greps, `check-fresh`, removability, the staleness audit and the briefing clean (regenerated before the
+build and after the suite binary).
+
+**Identity** (the review's `rv_hash.cpp` built `-O2 -DTANK1` against the merged tree, diffed with the pristine
+`a62067b` golden `hash_pre_O2.txt`): lines 1–6 (X and H drives, clean and hostile) identical; lines 7–17 (the tank
+scripts: the siblings, `maxSteer = 0`, the WEIRD config, the acceptance runs) differ ONLY in the `sink` hash — the
+log text, which now carries ` xt` — while `rec`, `lines`, `paces`, the pace hash and the end pose are identical.
+
+| # | Coordinator mutation (fresh binary each; restored, hash-checked) | Observed |
+|---|---|---|
+| TB1 | the strafe-authority test dropped (`>= 0.0`): every drivetrain gets `xt` | RED |
+| TB2 | `hadDirection()` dropped: turns and holds of here get `xt` | RED |
+| TB3 | the cross-track sign flipped | RED |
+| TB4 | the formatter prints the column without path data | RED (`motion_result_test.cpp:270`) |
+
+TANK1 is complete: [`TANK1-COMPLETED.md`](TANK1-COMPLETED.md).

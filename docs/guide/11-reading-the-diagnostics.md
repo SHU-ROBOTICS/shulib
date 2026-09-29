@@ -94,6 +94,39 @@ When `over` and `drift` read **`n/a`**, the high-rate record stream wasn't flowi
 competition build with diagnostics off), so there was no path data to compute them from. The
 library prints n/a instead of a fabricated 0.00 — no data is never dressed up as good news.
 
+On a **tank** (since API 2.3), the result line of a motion that set out to *go somewhere* — a
+`moveTo` or `driveTo` leg, each leg of `followTrajectory`, a `strafeTo`, and (Tier 3) a
+`HoldPose` built with a spot away from the robot — ends with one more column, after the
+duration, whatever the outcome:
+
+```text
+[t=  12.50] [MOT] MoveToPose#7 ✓SETTLED final(  24.1,  36.0,  90.1°) over  0.20" drift  0.1°   1.16s xt  -0.10"
+```
+
+- **`xt -0.10"`** — the **cross-track error**: how far the robot finished off its *line*, in
+  inches. The line is the one [Chapter 4](04-drivetrains.md) describes for tank steering: through
+  the target point, along the target heading. The sign says which side: **+ is left** of the
+  target heading, − is right — for a leg that backed up too, left and right of the target
+  *heading*, not of the way the robot was moving. This leg wanted (24, 36) facing 90° and ended
+  0.1 in to the right of that line. Like `final(…)`, it is the estimate's story, not a tape
+  measure.
+- **Why a tank gets it:** it is the one error a tank cannot drive out sideways, so it tells two
+  kinds of stopped leg apart. A `✗TIMEOUT` with a large `xt` ended *beside* its line — a weaker
+  side the steering could not fully cancel, or a point too far off the line
+  ([Chapter 12](12-when-things-go-wrong.md) has the differential). With a small `xt`, being
+  beside the line is not the story: compare `final(…)` with the target — short of it *along* the
+  line, or at it but never settled (the heading still off — `drift` — or hovering just outside
+  the tolerance: Chapter 12's *almost settled, never quite*). A `✓SETTLED` leg's `xt` is always
+  inside the arrival tolerance (half an inch by default), because arriving means being that
+  close to the point.
+- **Where it never appears:** turns (`turnTo`, `face`), `brake`, and the `hold` verb (it holds
+  the spot the robot is already on) — they did not set out to go anywhere. X-drive and H-drive
+  lines never carry it either (they can strafe a sideways error out), except an H-drive
+  configured with no strafe authority at all, which the library treats as a tank. The column is
+  there whether or not the steering is switched on (`maxSteer = 0`), and like `over` and `drift`
+  it comes from the high-rate record stream — with that stream off, the column is left out rather
+  than filled with a made-up number.
+
 ## The run summary
 
 The one-screen verdict, printed when the run reporter is told the run is over:

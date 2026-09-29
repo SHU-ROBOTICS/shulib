@@ -82,7 +82,7 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 
 | Item | Chunk |
 |---|---|
-| Per-motion result line (target vs final · overshoot · drift · time · exit-reason) | C5 |
+| Per-motion result line (target vs final · overshoot · drift · time · exit-reason) | C5 (a tank's translating lines gained the final cross-track error, ` xt`, at TANK1 Part B, 2026-09-28 — API 2.3) |
 | Session header (git hash, routine id, alliance, port map, battery start) | C5 |
 | End-of-run summary block | C5 |
 | `SdSink` — binary blackbox to `/usd/` | E1 ✅ (the sink, the format and the decoder; the `/usd/` adapter itself is R1's — E1 ships `hal::IBlockSink` and a host fake) |

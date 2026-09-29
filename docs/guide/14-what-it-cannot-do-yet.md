@@ -360,7 +360,9 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   - **It does nothing for a point beside you**, for `strafeTo` (which holds its heading by
     promise), or for a leg that starts more than 15° off its heading (that one logs
     `turn first: face()`).
-  - Setting `tankSteer.maxSteer` to 0 in the motion config restores the old tank exactly.
+  - Setting `tankSteer.maxSteer` to 0 in the motion config restores the old tank exactly — its
+    motion, its records, its log — except the result line's `xt` column, which stays
+    ([Chapter 11](11-reading-the-diagnostics.md#per-motion-result-lines)).
 - **`drive()` is a primitive, and the driver-control layer above it has never been driven.**
   The shaping now exists: `shulib/teleop/` carries a continuous deadband, a monotonic expo
   curve, an optional rate limit that is **off** by default, arcade / tank / field-centric
