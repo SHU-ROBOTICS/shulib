@@ -14,6 +14,47 @@
 > after the fact from those comments and the project records; everything above it was
 > written when the change landed.
 
+## API 2.4
+
+### Added — backing into a point in a recipe: `Routine::reverseTo` and `Routine::faceAway` (L9 Part A1, 2026-09-29)
+
+> Written when it landed (chunk L9, Part A1). **Minor bump, 2.3 → 2.4** — two new steps on the
+> FROZEN recipe layer ([Freeze Register](roadmap.md#freeze-register) row F10), its first new steps
+> since it locked, added by the path the freeze itself names (new steps, pinned the day they land);
+> nothing that existed changed shape or behaviour. **Host test plant only — nothing here has run on
+> a robot.**
+
+**ADDED:**
+
+- **`Routine::reverseTo(x, y, options)`** — back into a field point: arrive with the robot's back to
+  it. One `moveTo` whose target heading is the bearing from the live pose estimate to the point plus
+  180°, computed when the step runs. It is `driveTo` turned around, and exactly a route's `"drive"`
+  waypoint with `reverse` set: a route and a recipe that back into the same point drive identically,
+  bit for bit.
+- **`Routine::faceAway(x, y, options)`** — rotate in place so the robot's back points at a field
+  point: `face` turned around, one `turnTo`. After it, a `reverseTo` to the same point drives
+  backwards the whole way, on any drive.
+- Both pass your options through whole, stop the chain under their own names (`(reverseTo)`,
+  `(faceAway)`) when their motion fails, and throw — like `face` and `driveTo` — when the point is
+  where the robot already is (that message now names all four steps).
+- **A `reverseTo` leg starts as far off its heading as the robot's back is turned from the point.**
+  On a tank, write `faceAway` first — the turn is yours to write, as `face` is before `driveTo` — and
+  the backwards leg starts within about a degree of its heading, so it is steered back onto its line
+  like any tank leg since 2.3. From a robot *facing* the point, a `reverseTo` with no `faceAway`
+  starts 180° off: it is not steered, it logs `tank moveTo not steered: it starts 180.0 deg off its
+  target heading (steers within 15.0 deg) -- turn first: face()` — for a backwards leg that turn is
+  `faceAway` — and, measured on the host test plant, the robot swings round as it drives and times out
+  beside the point: almost 8 in beside it at the end of a 43 in leg, still about an inch at the end
+  of a 6 in one. A tank that just drove straight out from the point already has its back to it, so
+  backing straight back needs no `faceAway`. A holonomic drive arrives turned round without
+  `faceAway`, because it rotates in flight — so its nose leads early in the leg; write `faceAway`
+  first if the back must lead the whole way.
+
+**What you must do:** nothing — every 2.3 program compiles and behaves the same (`kApiMinor` is now
+4 and `kApiVersionString` `"2.4"`). Whether a tank backs up exactly as far as its calibration says —
+the scale comes from one unpowered push — has not been measured: HA-167 in the
+[Hardware Assumptions Register](hardware-assumptions.md).
+
 ## API 2.3
 
 ### Added and fixed since 2.3 (2026-09-28) — an append mode for the SD card, a text sink over a block sink, a guard pace count; a registry warning fixed

@@ -23,8 +23,11 @@
 // a route and a recipe aiming at the same point would disagree by an ulp today and by a
 // degree after the first refactor. `bearingTo` below is `Routine::bearingTo`'s expression,
 // character for character, and a test on identical rigs pins the two runs BIT-IDENTICAL.
-// (It is duplicated rather than shared because `Routine::bearingTo` is private and
-// `routine.hpp` is FROZEN — F10's pins fail the build if it is touched.)
+// (It is duplicated rather than shared because `Routine::bearingTo` is private, and F10 — the
+// frozen `Routine` surface — grows only additively: a new public member there would be a new
+// frozen step, not a helper for this file. F1 and L9 both grew it that way.) The same holds for
+// the one other piece of arithmetic here: `reverse`'s `+ π` below is `Routine::reverseTo`'s,
+// character for character, and pinned bit-identical to it on a tank and on the X-drive.
 //
 // ── The error policy is D1's, in meaning, verbatim ──────────────────────────────────
 // A route that keeps driving after a failed leg is chasing the field from a position it is
@@ -185,7 +188,10 @@ public:
     ///     heading is the ESTIMATE'S heading read at the leg's start ("keep what you have";
     ///     ruling R6) — `moveTo` always commands a heading, so there is no "don't care" to pass.
     ///   * `DriveTo`    — `moveTo({x, y, bearingTo(x, y)})`, arriving facing the point, exactly
-    ///     `Routine::driveTo`. `reverse` adds π, so the robot arrives BACKWARDS onto the point.
+    ///     `Routine::driveTo`. `reverse` adds π, so the robot arrives BACKWARDS onto the point —
+    ///     exactly `Routine::reverseTo` (a tank route turns its back to the point first with an
+    ///     authored `TurnTo`, as a recipe does with `faceAway`; HA-167 registers the belief that a
+    ///     tank backs up as far as its calibration says).
     ///   * `TurnTo`     — `turnTo(heading)`; `x` and `y` are not read.
     ///   * `StrafeTo`   — `strafeTo(x, y)`. Nothing here special-cases the drivetrain: a tank
     ///     reports strafe authority 0 and the facade's own honest fallback applies.

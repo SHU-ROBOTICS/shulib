@@ -75,7 +75,8 @@ say. Where a diagnosis depends on an unverified assumption, the
     Fix: the turn-then-drive idiom ([Chapter 10](10-the-api.md), `guide-10b`). Tell the three
     tank cases apart by the lines just before the result:
     - a `[WARN][MOT] tank moveTo not steered … turn first: face()` line at the start of the leg —
-      the leg started too far off its heading to be steered. Face the point first.
+      the leg started too far off its heading to be steered. Face the point first (`faceAway()`
+      it first, for a `reverseTo`).
     - `TSTR` on the tick lines right to the end — the leg was being steered but the drift (a
       weak side) or the offset from its line was bigger than the steering is allowed to remove.
       The result line's `xt` says how far beside its line it stopped, and on which side

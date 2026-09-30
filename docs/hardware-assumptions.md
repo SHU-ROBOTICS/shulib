@@ -36,7 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 160 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186.
+> The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
+> reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
+> may stay in its range.
+>
+> **Status: 7 of 161 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -85,8 +90,12 @@
 > invented** — what the bench auton tester's SD run log assumes an APPEND open does on the card, and
 > what its abort and its RUN gate read from PROS (the touch's press count, a button's level, the
 > competition status with nothing connected, a controller switched off); the register then holds
-> 160 entries. HA-162..HA-176 are not in it: numbers other chunks hold (briefed, not landed) —
-> never reissued. The
+> 160 entries. **L9 Part A1 added ONE on 2026-09-29 — HA-167, invented** — that a tank drives backwards
+> the way its calibration measured it, in one unpowered push (the recipe layer's new `reverseTo` /
+> `faceAway` and a route's `reverse` DriveTo both command backwards legs); with it, 161.
+> The rest of HA-162..HA-176 is not in it: numbers other chunks hold (briefed, not landed) — never
+> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
+> (the mechanism core: its brief, being written), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -274,6 +283,7 @@
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
+| HA-167 | A tank drives BACKWARDS the way its calibration measured it: each side's travel scale, from ONE unpowered push made one end first, holds within 1 % under power in BOTH directions, and a change of direction adds under 0.25 in of travel the chassis did not make (no backlash take-up) | **invented** (the scale comes from one UNPOWERED push in one direction; the host test plant has no backlash and is direction-symmetric by construction) | the first on-robot autonomous session (COMP-t's auton tester, or COMP-b's Station K) |
 | HA-177 | An APPEND open under `/usd/` (`fopen(path, "ab")`, which PROS hands to VEXos's `vexFileOpenWrite`) writes after an EXISTING file's last byte and keeps every earlier byte; on an ABSENT file it either fails or creates (the adapter handles both); a line written and flushed survives a power-off right after it | (1) reasoned (the vendored `libpros.a`/`libc.a`, disassembled 2026-09-26); (2)–(3) **invented** (VEXos's); (4) reasoned for the call, invented for what the sync commits | COMP-t Station M.7 |
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
@@ -2152,6 +2162,50 @@ observed; the tester has not run on a robot.**
   stops that much later. (c) wrong — RUN is refused on the bench, with the bits on the status line
   (fail-safe). (d) slow — a controller that dies mid-run is noticed that much later (a touch still aborts).
   **Contained:** the tester's watch and its two reads; the competition program's own watch is COMP-b's.
+
+**L9 (2026-09-29) added ONE — HA-167.** A routine can now back into a point: the recipe layer's
+`Routine::reverseTo` (with `faceAway`, the turn before it on a tank; the changelog's API 2.4 entry), and a
+route's `"drive"` waypoint with `reverse` set, which the path runner has executed since G2 — the two are
+bit-identical. Both command a tank to drive BACKWARDS under power for a whole leg, and everything that
+turns a tank's wheel travel into inches was measured in ONE unpowered push, one end first — never under
+power, and never in the other direction. The host test plant cannot see the difference: its motor model
+is the same in both directions and has no backlash. The number is L9's
+reservation (the numbers around it are other chunks'); **nothing here has run on a robot.**
+
+- [ ] **HA-167 — a tank drives backwards the way its calibration measured it.**
+  *Claim:* (a) shulib Calibrate measures each drive side's travel scale (inches of travel per radian of
+  motor rotation) from ONE unpowered 48 in push, either end first (a BACK-first push inverts every sign),
+  and that one scale holds within 1 % when the robot drives itself under power in BOTH directions — the
+  direction the push went and the other one. (A reversed leg after `faceAway` drives backwards for the
+  whole leg: the untested direction after the usual FRONT-first push; after a BACK-first one, the push's
+  own direction, but under power.) (b) A change of direction — where each side's gear train takes up its
+  backlash the other way — adds less than 0.25 in of travel that the chassis did not make.
+  *Source:* `include/shulib/chassis/routine.hpp` (`reverseTo`, whose doc comment names HA-167) and
+  `include/shulib/runner/path_runner.hpp` (the `DriveTo` with `reverse`, whose doc comment names
+  HA-167) command the backwards legs; the scale they are measured in comes from
+  `include/shulib/calibration/drivetrain_calibrator.hpp` (the one push, `PushCapture`, and BACK-first).
+  The host test plant models every wheel as odd-symmetric with no backlash term
+  (`include/shulib/sim/motor_model.hpp`: V = kS·sign(v) + kV·v + kA·a), so no host test can see either
+  effect — the L9 tests that drive backwards (a 43 in reversed leg on a tank, graded on the plant's truth)
+  prove the geometry, not this.
+  *Confidence:* **invented.** The scale was never measured under power, in either direction: the push is
+  unpowered, and it goes one way.
+  Calibrate's spin phase does drive one side backwards under power in each spin direction, but it
+  measures WIDTH (W = (dR − dL) / dθ), not scale. The one known anomaly on robot two came during
+  reversing — on 2026-09-25 an implausible-odometry fault fired right after about 0.35 s of hard
+  reversing (HA-160) — which says reversing is where trouble was seen, not that the scale is asymmetric.
+  *Settle (the first on-robot autonomous session — COMP-t's auton tester runs any auton on the team's
+  list, or COMP-b's Station K):* on the floor, along a tape, run a routine that drives 48 in forward,
+  stops, `faceAway`s the start and `reverseTo`s it; record the estimate and the tape at each end, three
+  times. (a) holds if the forward and the backward scale errors agree within 1 %; (b) if the estimate and
+  the tape disagree by less than 0.25 in more after the reversal than before it. Record the raw IMU
+  heading through every reversal as well (HA-160's settle).
+  *Blast radius if wrong:* a reversed leg ends short or long by the asymmetry, and every later leg starts
+  from that error — position only: the heading is the IMU's. A take-up at each direction change adds a
+  phantom offset along the heading that nothing corrects until a wall reset or GPS. An IMU glitch during a
+  hard reverse (HA-160) ENDS the motion (`ODO_STUCK`) rather than bending it. **Contained?** Only partly:
+  a measured asymmetry needs a per-direction scale, which is a change to the calibration RECORD (a
+  version bump of its 180-byte format), not a config constant.
 
 ---
 

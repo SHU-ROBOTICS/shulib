@@ -164,7 +164,8 @@ enum class WaypointMotion : std::uint8_t {
     /// (G2 ruling R6): "go there, keep facing where I am facing".
     MoveToPose = 2,
     /// `Routine::driveTo(x, y)` — move to the point ARRIVING FACING IT; `heading` is ignored and
-    /// computed from the approach, which is why headingMode must be Free.
+    /// computed from the approach, which is why headingMode must be Free. With `reverse`, it is
+    /// `Routine::reverseTo(x, y)`: the same point, arriving BACKWARDS.
     DriveTo = 3,
     /// `Chassis::turnTo(heading)` — rotate in place; `x` and `y` are ignored.
     TurnTo = 4,
@@ -274,10 +275,15 @@ struct Waypoint {
     HeadingMode headingMode = HeadingMode::Fixed;
     /// Which verb takes the robot here.
     WaypointMotion motion = WaypointMotion::MoveToPose;
-    /// Drive this leg backwards where the verb supports it. Advisory data for G2's runner; the
-    /// library's verbs are holonomic and do not read it today, and it is carried rather than
-    /// dropped because the legacy planner's rows have it and a route that loses it on import has
-    /// silently changed what a person drew.
+    /// Back into this leg's point. Only a `DriveTo` has an approach to reverse (`valid()` refuses
+    /// it on every other verb): the runner adds π to the bearing, so the robot arrives with its
+    /// back to the point — exactly `Routine::reverseTo` (L9, API 2.4), pinned bit-identical to it.
+    /// On a tank — or on any drive whose back must lead the whole leg, since a holonomic drive
+    /// otherwise turns round in flight — an authored `TurnTo` that puts the robot's back to the
+    /// point goes first, as `Routine::faceAway` does in a recipe. (Until L9 this comment called the
+    /// flag advisory and read by no verb; the runner has read it since G2.) Carried, too, because
+    /// the legacy planner's rows have it and a route that loses it on import has silently changed
+    /// what a person drew.
     bool reverse = false;
     /// This leg's budgets.
     Constraints constraints{};

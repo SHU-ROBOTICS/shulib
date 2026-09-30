@@ -47,7 +47,7 @@ enum class RunStopCause : std::uint8_t
 
 Why a route stopped early. `None` = it ran to the end. Append-only, like every verdict vocabulary in this project: a new stop cause arrives as a new enumerator, never as a re-meaning of an existing one, because log lines carry these spellings.
 
-*enum class, declared at [`include/shulib/runner/path_runner.hpp:94`](../../include/shulib/runner/path_runner.hpp#L94).*
+*enum class, declared at [`include/shulib/runner/path_runner.hpp:97`](../../include/shulib/runner/path_runner.hpp#L97).*
 
 <a id="runstopcause-none"></a>
 
@@ -59,7 +59,7 @@ None = 0
 
 Every waypoint ran and every marker succeeded.
 
-*enumerator, declared at [`include/shulib/runner/path_runner.hpp:96`](../../include/shulib/runner/path_runner.hpp#L96).*
+*enumerator, declared at [`include/shulib/runner/path_runner.hpp:99`](../../include/shulib/runner/path_runner.hpp#L99).*
 
 <a id="runstopcause-motionfailed"></a>
 
@@ -71,7 +71,7 @@ MotionFailed = 1
 
 A leg exited non-Settled (`RunReport::lastExit` carries which).
 
-*enumerator, declared at [`include/shulib/runner/path_runner.hpp:98`](../../include/shulib/runner/path_runner.hpp#L98).*
+*enumerator, declared at [`include/shulib/runner/path_runner.hpp:101`](../../include/shulib/runner/path_runner.hpp#L101).*
 
 <a id="runstopcause-markerfailed"></a>
 
@@ -83,7 +83,7 @@ MarkerFailed = 2
 
 A marker's handler — registered or built-in — returned an outcome other than `MechanismOutcome::Succeeded`.
 
-*enumerator, declared at [`include/shulib/runner/path_runner.hpp:101`](../../include/shulib/runner/path_runner.hpp#L101).*
+*enumerator, declared at [`include/shulib/runner/path_runner.hpp:104`](../../include/shulib/runner/path_runner.hpp#L104).*
 
 <a id="runstopcauseword"></a>
 
@@ -95,7 +95,7 @@ A marker's handler — registered or built-in — returned an outcome other than
 
 The stop cause as a word, for banners and reports. "UNKNOWN" for a byte outside the enum.
 
-*free function, declared at [`include/shulib/runner/path_runner.hpp:105`](../../include/shulib/runner/path_runner.hpp#L105).*
+*free function, declared at [`include/shulib/runner/path_runner.hpp:108`](../../include/shulib/runner/path_runner.hpp#L108).*
 
 <a id="struct-runreport"></a>
 
@@ -107,7 +107,7 @@ struct RunReport
 
 What one route run did — the whole-run verdict.  A bare `ExitReason` would lose WHERE the route broke and HOW MUCH of it never ran, which is exactly `RoutineResult`'s and `TrajectoryResult`'s argument one tier up. The counts are here so that "the auton just did not score" has an answer other than a guess.
 
-*struct, declared at [`include/shulib/runner/path_runner.hpp:119`](../../include/shulib/runner/path_runner.hpp#L119).*
+*struct, declared at [`include/shulib/runner/path_runner.hpp:122`](../../include/shulib/runner/path_runner.hpp#L122).*
 
 <a id="runreport-stoppedat"></a>
 
@@ -119,7 +119,7 @@ int stoppedAt = -1
 
 The 0-BASED index of the waypoint the route stopped at; **-1 when nothing stopped it**. Zero-based with a -1 sentinel, deliberately unlike `RoutineResult::stoppedAt` (1-based, 0 = none): waypoint 0 is a real, addressable waypoint here, and the number must match the index printed in this run's own log lines and drawn in the path editor. Re-basing it would make a report and the transcript describing it disagree.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:125`](../../include/shulib/runner/path_runner.hpp#L125).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:128`](../../include/shulib/runner/path_runner.hpp#L128).*
 
 <a id="runreport-reason"></a>
 
@@ -131,7 +131,7 @@ RunStopCause reason = RunStopCause::None
 
 What kind of thing stopped the route. Read this BEFORE `lastExit` — only `MotionFailed` puts a failing motion verdict there.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:128`](../../include/shulib/runner/path_runner.hpp#L128).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:131`](../../include/shulib/runner/path_runner.hpp#L131).*
 
 <a id="runreport-legsrun"></a>
 
@@ -143,7 +143,7 @@ int legsRun = 0
 
 Waypoints whose verb actually executed, including the one that failed.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:130`](../../include/shulib/runner/path_runner.hpp#L130).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:133`](../../include/shulib/runner/path_runner.hpp#L133).*
 
 <a id="runreport-legsskipped"></a>
 
@@ -155,7 +155,7 @@ int legsSkipped = 0
 
 Waypoints never attempted because the route stopped before them.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:132`](../../include/shulib/runner/path_runner.hpp#L132).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:135`](../../include/shulib/runner/path_runner.hpp#L135).*
 
 <a id="runreport-markersfired"></a>
 
@@ -167,7 +167,7 @@ int markersFired = 0
 
 Markers whose handler RAN — including the one that failed, and including the built-ins. An unknown id is not counted here (nothing ran); see `unknownIds`.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:135`](../../include/shulib/runner/path_runner.hpp#L135).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:138`](../../include/shulib/runner/path_runner.hpp#L138).*
 
 <a id="runreport-unknownids"></a>
 
@@ -179,7 +179,7 @@ int unknownIds = 0
 
 Markers whose id matched no built-in and no registration: warned, skipped, counted. A non-zero count on a route that "worked" is the single most useful number in this struct.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:138`](../../include/shulib/runner/path_runner.hpp#L138).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:141`](../../include/shulib/runner/path_runner.hpp#L141).*
 
 <a id="runreport-lastexit"></a>
 
@@ -191,7 +191,7 @@ control::ExitReason lastExit = control::ExitReason::Running
 
 The most recent MOTION leg's verdict. `Running` means no motion leg has run yet (a route of a lone `Start`, or an empty one) — the project's "no verdict here" convention, the same one `Routine::lastTrajectory()` uses.
 
-*field, declared at [`include/shulib/runner/path_runner.hpp:142`](../../include/shulib/runner/path_runner.hpp#L142).*
+*field, declared at [`include/shulib/runner/path_runner.hpp:145`](../../include/shulib/runner/path_runner.hpp#L145).*
 
 <a id="runreport-ok"></a>
 
@@ -203,7 +203,7 @@ The most recent MOTION leg's verdict. `Running` means no motion leg has run yet 
 
 True when the route ran to the end with every marker succeeding.
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:145`](../../include/shulib/runner/path_runner.hpp#L145).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:148`](../../include/shulib/runner/path_runner.hpp#L148).*
 
 <a id="class-pathrunner"></a>
 
@@ -215,7 +215,7 @@ class PathRunner
 
 The engine that executes a `config::Route` through the frozen `Chassis` verbs, firing each waypoint's markers through a `CommandRegistry` once the leg settles (file banner).  runner::CommandRegistry registry; registry.on("intake_in", intakeIn); runner::PathRunner runner{chassis, registry, telemetry}; const runner::RunReport report = runner.run(*routes.route("left_side_rush"));  Borrows all three (they must outlive it) and owns nothing. Non-copyable and non-movable for the same reason `Routine` is: it holds references, and a second handle would be a second opinion about a run that has one.
 
-*class, declared at [`include/shulib/runner/path_runner.hpp:159`](../../include/shulib/runner/path_runner.hpp#L159).*
+*class, declared at [`include/shulib/runner/path_runner.hpp:162`](../../include/shulib/runner/path_runner.hpp#L162).*
 
 <a id="pathrunner-pathrunner"></a>
 
@@ -227,7 +227,7 @@ explicit PathRunner(chassis::Chassis& chassis, const CommandRegistry& registry, 
 
 Borrows `chassis` (the verbs), `registry` (the id → action table) and `telemetry` (where the run's narrative goes). All three must outlive this object. The registry is `const`: running a route never registers anything.
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:164`](../../include/shulib/runner/path_runner.hpp#L164).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:167`](../../include/shulib/runner/path_runner.hpp#L167).*
 
 <a id="pathrunner-pathrunner-2"></a>
 
@@ -239,7 +239,7 @@ PathRunner(const PathRunner&) = delete
 
 Non-copyable, non-movable (class comment).
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:169`](../../include/shulib/runner/path_runner.hpp#L169).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:172`](../../include/shulib/runner/path_runner.hpp#L172).*
 
 <a id="pathrunner-operator-eq"></a>
 
@@ -251,7 +251,7 @@ PathRunner& operator=(const PathRunner&) = delete
 
 *Covered by the comment on [`PathRunner (overload 2)`](#pathrunner-pathrunner-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:170`](../../include/shulib/runner/path_runner.hpp#L170).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:173`](../../include/shulib/runner/path_runner.hpp#L173).*
 
 <a id="pathrunner-pathrunner-3"></a>
 
@@ -263,7 +263,7 @@ PathRunner(PathRunner&&) = delete
 
 *Covered by the comment on [`PathRunner (overload 2)`](#pathrunner-pathrunner-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:171`](../../include/shulib/runner/path_runner.hpp#L171).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:174`](../../include/shulib/runner/path_runner.hpp#L174).*
 
 <a id="pathrunner-operator-eq-2"></a>
 
@@ -275,7 +275,7 @@ PathRunner& operator=(PathRunner&&) = delete
 
 *Covered by the comment on [`PathRunner (overload 2)`](#pathrunner-pathrunner-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:172`](../../include/shulib/runner/path_runner.hpp#L172).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:175`](../../include/shulib/runner/path_runner.hpp#L175).*
 
 <a id="pathrunner-destructor-pathrunner"></a>
 
@@ -287,7 +287,7 @@ PathRunner& operator=(PathRunner&&) = delete
 
 *Covered by the comment on [`PathRunner (overload 2)`](#pathrunner-pathrunner-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:173`](../../include/shulib/runner/path_runner.hpp#L173).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:176`](../../include/shulib/runner/path_runner.hpp#L176).*
 
 <a id="pathrunner-run"></a>
 
@@ -297,16 +297,16 @@ PathRunner& operator=(PathRunner&&) = delete
 [[nodiscard]] RunReport run(const config::Route& route)
 ```
 
-Execute `route`, blocking until it finishes or stops, and report what happened.  Precondition: `route.valid()` — the refusal message is `valid()`'s own, so a bad route names the waypoint and the field rather than failing somewhere downstream. Validating at the door rather than per leg is `followTrajectory`'s rule: a contradiction at waypoint 7 must not let waypoints 0–6 drive first.  The mapping from waypoint to verb, in full: * `Start`      — `setPose(x, y, heading)`; no motion, no verdict. Legal at index 0 only. * `MoveToPose` — `moveTo({x, y, heading})`. With `HeadingMode::Free` the commanded heading is the ESTIMATE'S heading read at the leg's start ("keep what you have"; ruling R6) — `moveTo` always commands a heading, so there is no "don't care" to pass. * `DriveTo`    — `moveTo({x, y, bearingTo(x, y)})`, arriving facing the point, exactly `Routine::driveTo`. `reverse` adds π, so the robot arrives BACKWARDS onto the point. * `TurnTo`     — `turnTo(heading)`; `x` and `y` are not read. * `StrafeTo`   — `strafeTo(x, y)`. Nothing here special-cases the drivetrain: a tank reports strafe authority 0 and the facade's own honest fallback applies. * `Hold`       — `hold(constraints.timeout)`; for that verb the timeout IS the duration. Each waypoint's `Constraints` become the leg's `MotionOptions` field for field (0 = the robot's configured default, the same sentinel both types already use).
+Execute `route`, blocking until it finishes or stops, and report what happened.  Precondition: `route.valid()` — the refusal message is `valid()`'s own, so a bad route names the waypoint and the field rather than failing somewhere downstream. Validating at the door rather than per leg is `followTrajectory`'s rule: a contradiction at waypoint 7 must not let waypoints 0–6 drive first.  The mapping from waypoint to verb, in full: * `Start`      — `setPose(x, y, heading)`; no motion, no verdict. Legal at index 0 only. * `MoveToPose` — `moveTo({x, y, heading})`. With `HeadingMode::Free` the commanded heading is the ESTIMATE'S heading read at the leg's start ("keep what you have"; ruling R6) — `moveTo` always commands a heading, so there is no "don't care" to pass. * `DriveTo`    — `moveTo({x, y, bearingTo(x, y)})`, arriving facing the point, exactly `Routine::driveTo`. `reverse` adds π, so the robot arrives BACKWARDS onto the point — exactly `Routine::reverseTo` (a tank route turns its back to the point first with an authored `TurnTo`, as a recipe does with `faceAway`; HA-167 registers the belief that a tank backs up as far as its calibration says). * `TurnTo`     — `turnTo(heading)`; `x` and `y` are not read. * `StrafeTo`   — `strafeTo(x, y)`. Nothing here special-cases the drivetrain: a tank reports strafe authority 0 and the facade's own honest fallback applies. * `Hold`       — `hold(constraints.timeout)`; for that verb the timeout IS the duration. Each waypoint's `Constraints` become the leg's `MotionOptions` field for field (0 = the robot's configured default, the same sentinel both types already use).
 
-*function, declared at [`include/shulib/runner/path_runner.hpp:195`](../../include/shulib/runner/path_runner.hpp#L195).*
+*function, declared at [`include/shulib/runner/path_runner.hpp:201`](../../include/shulib/runner/path_runner.hpp#L201).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 68 lines, click to expand</summary>
+<summary>The header’s own reasoning — 71 lines, click to expand</summary>
 
 ```text
 
@@ -333,8 +333,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  a route and a recipe aiming at the same point would disagree by an ulp today and by a
  degree after the first refactor. `bearingTo` below is `Routine::bearingTo`'s expression,
  character for character, and a test on identical rigs pins the two runs BIT-IDENTICAL.
- (It is duplicated rather than shared because `Routine::bearingTo` is private and
- `routine.hpp` is FROZEN — F10's pins fail the build if it is touched.)
+ (It is duplicated rather than shared because `Routine::bearingTo` is private, and F10 — the
+ frozen `Routine` surface — grows only additively: a new public member there would be a new
+ frozen step, not a helper for this file. F1 and L9 both grew it that way.) The same holds for
+ the one other piece of arithmetic here: `reverse`'s `+ π` below is `Routine::reverseTo`'s,
+ character for character, and pinned bit-identical to it on a tank and on the X-drive.
 
  ── The error policy is D1's, in meaning, verbatim ──────────────────────────────────
  A route that keeps driving after a failed leg is chasing the field from a position it is

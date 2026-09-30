@@ -129,15 +129,38 @@ def header_count():
     return n
 
 
-def ha_entries():
-    """Registered hardware assumptions, and the next free number."""
-    path = os.path.join(REPO, "docs/hardware-assumptions.md")
-    if not os.path.exists(path):
-        return 0, 1, 0
-    text = open(path, encoding="utf-8").read()
+# The register's ONE "Held numbers" line: the HA numbers briefs have reserved and not yet registered
+# (never reissued). The next free number is above every registered AND every held one — without this,
+# the block named a brief's reserved number as free (found 2026-09-30: "next free is HA-181" while
+# G3a's amended brief held HA-181 and the mechanism core's HA-182..HA-186). `self-test` pins it.
+HELD_LINE = re.compile(r"^> \*\*Held numbers\*\*[^:\n]*:([^\n]*)$", re.M)
+
+
+def held_numbers(text):
+    """The numbers the register's Held line lists (`HA-n` or `HA-a..HA-b`), as a set."""
+    m = HELD_LINE.search(text)
+    held = set()
+    if m:
+        for a, b in re.findall(r"HA-(\d+)(?:\.\.HA-(\d+))?", m.group(1)):
+            held.update(range(int(a), int(b or a) + 1))
+    return held
+
+
+def next_free(ids, held):
+    """The first number above every registered and every held one."""
+    return max(set(ids) | held, default=0) + 1
+
+
+def ha_entries(text=None):
+    """Registered hardware assumptions, and the next free number (held numbers skipped)."""
+    if text is None:
+        path = os.path.join(REPO, "docs/hardware-assumptions.md")
+        if not os.path.exists(path):
+            return 0, 1, 0
+        text = open(path, encoding="utf-8").read()
     ids = [int(m) for m in re.findall(r"^\|\s*HA-(\d+)", text, re.M)]
     settled = len(re.findall(r"^\|\s*HA-\d+.*\bsettled\b", text, re.M | re.I))
-    return (len(ids), (max(ids) + 1) if ids else 1, settled)
+    return (len(ids), next_free(ids, held_numbers(text)), settled)
 
 
 def suite_counts():
@@ -390,7 +413,8 @@ def render():
              "the ARM gate compiles every one)*")
     L.append(f"- **Hardware assumptions:** {ha_n} registered, **{ha_settled} settled** — "
              f"next free is **HA-{ha_next}**  \n"
-             "  *(source: `docs/hardware-assumptions.md`. Nothing is settled until "
+             "  *(source: `docs/hardware-assumptions.md` — its rows, and its Held numbers line; "
+             "the next free is above both. Nothing is settled until "
              "hardware measures it.)*")
     L.append("")
     L.append("**Completed chunks** *(source: the `-COMPLETED.md` records, which are the "
@@ -508,12 +532,29 @@ def self_test():
             fails.append(f"after COMP-COMPLETED.md: in_flight_chunks = {got}, want {want}")
         if completed_chunks(d) != ["A1", "COMP", "DIAG1", "R2a"]:
             fails.append(f"after COMP-COMPLETED.md: completed_chunks = {completed_chunks(d)}")
+    # The next free HA number skips what briefs hold.
+    reg = "| HA-160 | x |\n| HA-161 | x |\n| HA-167 | x |\n"
+    held_line = "> **Held numbers** (reserved by briefs): HA-162..HA-176, HA-181..HA-186.\n"
+    ha_cases = [
+        (reg, 168, "no Held line: max + 1"),
+        (reg + held_line, 187, "held ranges above the rows are skipped"),
+        (reg + "> **Held numbers** (x): HA-165.\n", 168, "a held number below the max changes nothing"),
+        (reg + "> **Held numbers** (x): HA-170, HA-200.\n", 201, "single held numbers"),
+        ("> **Held numbers** (x): HA-3..HA-5.\n", 6, "no rows at all"),
+        (reg + "> Held numbers: HA-190.\n", 168, "only the bold, labelled line counts"),
+    ]
+    for text, want, why in ha_cases:
+        got = ha_entries(text)[1]
+        if got != want:
+            fails.append(f"next free HA = {got}, want {want} ({why})")
+    if held_numbers(held_line) != set(range(162, 177)) | set(range(181, 187)):
+        fails.append("held_numbers() misread 'HA-162..HA-176, HA-181..HA-186'")
     for f in fails:
         print(f"briefing status self-test: FAIL {f}", file=sys.stderr)
     if fails:
         return 1
-    print(f"briefing status self-test: OK ({len(names) + 4} cases: the chunk/part rule on names "
-          f"and on a scratch records directory)")
+    print(f"briefing status self-test: OK ({len(names) + 4 + len(ha_cases) + 1} cases: the chunk/part "
+          f"rule on names and on a scratch records directory; the next free HA number past held ones)")
     return 0
 
 

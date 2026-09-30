@@ -244,7 +244,8 @@ worth recognizing on sight:
   -- turn first: face()` — the leg starts too far off its target heading for tank steering to
   take it on (steering it would mean the library making your turn), so it runs exactly as a tank
   `moveTo` did before API 2.3 and will most likely time out. Fix: `face()` the point (or
-  `turnTo` the heading) before this leg ([Ch. 9](09-the-recipe-api.md)).
+  `turnTo` the heading) before this leg — for a `reverseTo` that backs in, `faceAway()` it,
+  since the turn it needs is the one that puts the robot's back to the point ([Ch. 9](09-the-recipe-api.md)).
 - **Boot-window guard** (Warn, tag `CHS`): `field-frame drive() before the estimate is live:
   commanding zero until it is` — a field-relative manual command arrived before the sensors
   were up ([Ch. 10](10-the-api.md)).

@@ -7,9 +7,11 @@
 // This surface is FROZEN, as its own register row (F10) rather than as part of
 // F6: the facade it delegates to is a different tier and can version
 // independently. Frozen: the constructor (both spellings, noexcept),
-// non-copyable/non-movable, ELEVEN steps — startAt / moveTo / driveTo /
+// non-copyable/non-movable, THIRTEEN steps — startAt / moveTo / driveTo /
 // strafeTo / turnTo / face / followTrajectory (span + brace) / brake / hold /
-// pause / waitFor — the four observers ok / result / lastTrajectory / chassis,
+// pause / waitFor, and reverseTo / faceAway, the two APPENDED at chunk L9
+// (API 2.4) by exactly the additive path below and pinned the day they
+// landed — the four observers ok / result / lastTrajectory / chassis,
 // the types RoutineResult (all eight fields) and RoutineStopCause (append-only,
 // existing values fixed), the documented error policy below, and typed time as
 // a SEMANTIC (hold(0.3) must not compile). Enforced structurally:
@@ -17,7 +19,8 @@
 // those drifts. Changes only with a major API-version bump plus a migration
 // note (include/shulib/version.hpp); ADDITIVE growth — new steps, new
 // observers, new RoutineResult fields, appended RoutineStopCause enumerators —
-// stays legal and is the intended path.
+// stays legal and is the intended path (F1 used it for the stop cause, L9 for
+// two steps: no existing member moved either time).
 //
 // NOT frozen, deliberately: **then()** — its accepted return types and its
 // `name` default were left out of F10 because they were chosen before
@@ -63,18 +66,25 @@
 // ═══ Tier discipline: this layer DELEGATES ═══════════════════════════════════════
 // Every step is exactly one Chassis call (§17: tiers are strict supersets — a
 // recipe is never the only way to do something). There is no motion logic
-// here: no gains, no kinematics, no exit criteria, no fault policy. The two
-// "field vocabulary" steps, face(x, y) and driveTo(x, y), compute ONE argument
-// (the bearing from the live pose estimate to a field point — pure trig) and
-// then delegate to turnTo / moveTo; that keeps C1's D12 intact on tank drives
-// (the AUTHOR still writes the turn — face() IS the author's turn, said in
-// field words), and a hand-written turnTo(atan2(...)) remains bit-identical
-// to it by construction. Since TANK1 (API 2.3) face() is also what makes a
+// here: no gains, no kinematics, no exit criteria, no fault policy. The four
+// "field vocabulary" steps — face(x, y) and driveTo(x, y), and their reversed
+// twins faceAway(x, y) and reverseTo(x, y) (L9, API 2.4) — each compute ONE
+// argument (the bearing from the live pose estimate to a field point — pure
+// trig — plus π for the reversed pair) and then delegate to turnTo / moveTo;
+// that keeps C1's D12 intact on tank drives (the AUTHOR still writes the turn
+// — face() IS the author's turn, said in field words, and faceAway() is the
+// same turn for backing into a point), and a hand-written turnTo(atan2(...))
+// — or turnTo(atan2(...) + π) — remains bit-identical to it by construction.
+// Since TANK1 (API 2.3) face() is also what makes a
 // tank's driveTo leg steerable: a tank moveTo steers back onto its line only
 // for a leg that starts within 15° of its target heading, and a leg right
 // after face() starts within about a degree of it — the library still plans
-// no turn (chassis.hpp: TANK STEERING). Dropping from Tier 2 to Tier 3 is deleting the
-// Routine object and keeping every verb.
+// no turn (chassis.hpp: TANK STEERING). faceAway() does the same for a
+// reverseTo leg, which starts as far off its heading as the robot's BACK is
+// turned from the point: 180° from a robot facing the point (not steered),
+// about 0 after driving straight out from it (steered, no faceAway() needed).
+// Dropping from Tier 2 to Tier 3 is deleting the Routine object and keeping
+// every verb.
 //
 // ═══ The error policy (decided, documented, tested — design constraint 4) ═════════
 // A fluent chain makes it EASY to swallow an ExitReason, so the chain acts on
@@ -245,6 +255,31 @@ public:
                          chassis_->moveTo(math::Pose2d{x, y, bearing}, options));
     }
 
+    /// Drive to the FIELD point (x, y) and arrive with the robot's BACK toward it: one moveTo
+    /// whose target heading is the bearing from the live pose estimate to (x, y) plus π, computed
+    /// when this step RUNS — driveTo turned around, and exactly a route's DriveTo waypoint with
+    /// `reverse` set (runner/path_runner.hpp spells the `+ π` the same way, so a route and a recipe
+    /// that name the same leg stay bit-identical). The caller's options pass through whole.
+    /// The leg starts as far off its target heading as the robot's back is turned from the point,
+    /// so after faceAway(x, y) it drives BACKWARDS the whole way, on any drive. Without it: a
+    /// holonomic drive rotates in flight — it still arrives turned round, but its nose leads early
+    /// in the leg. A tank never plans the turn (faceAway() is YOUR turn) and steers a leg back onto
+    /// its line only when it starts within 15° of its target heading: from a robot FACING the
+    /// point it starts 180° off, is not steered, logs "turn first: face()" — for a backwards leg
+    /// that turn is faceAway() — and times out beside the point (chassis.hpp: TANK STEERING); a
+    /// tank that just drove straight out from the point already has its back to it and needs no
+    /// faceAway(). No robot has run a reverseTo yet (robot two has reversed only under driver
+    /// control): whether a tank backs up as far as its calibration says is register entry HA-167.
+    /// (Appended at chunk L9, API 2.4.)
+    Routine& reverseTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
+        if (skipIfStopped("reverseTo")) {
+            return *this;
+        }
+        // Angle re-wraps, so + π is the whole operation (path_runner.hpp's DriveTo, verbatim).
+        const math::Angle away = bearingTo(x, y) + math::Angle::radians(math::Angle::kPi);
+        return runMotion("reverseTo", chassis_->moveTo(math::Pose2d{x, y, away}, options));
+    }
+
     /// Translate to FIELD (x, y) holding the current heading (Chassis::strafeTo;
     /// on tank an off-line target honestly exits TimedOut).
     Routine& strafeTo(units::Length x, units::Length y, const MotionOptions& options = {}) {
@@ -267,6 +302,21 @@ public:
         }
         const math::Angle bearing = bearingTo(x, y);
         return runMotion("face", chassis_->turnTo(bearing, options));
+    }
+
+    /// Rotate in place so the robot's BACK points at the FIELD point (x, y): one turnTo whose
+    /// target is the bearing from the live pose estimate to (x, y) plus π, computed when this
+    /// step runs — face() turned around, and the turn that goes before a reverseTo(x, y) on a
+    /// tank, or on any drive whose back must lead the whole way ("back into the goal" in field
+    /// words). The caller's options pass through whole (a turn in place reads the timeout and
+    /// the yaw budget); turnTo(atan2(...) + π) by hand is bit-identical. (Appended at chunk L9,
+    /// API 2.4.)
+    Routine& faceAway(units::Length x, units::Length y, const MotionOptions& options = {}) {
+        if (skipIfStopped("faceAway")) {
+            return *this;
+        }
+        const math::Angle away = bearingTo(x, y) + math::Angle::radians(math::Angle::kPi);
+        return runMotion("faceAway", chassis_->turnTo(away, options));
     }
 
     /// Chain waypoints as sequential moveTo legs (Chassis::followTrajectory —
@@ -454,8 +504,8 @@ private:
         const double dx = (x - here.x()).value();
         const double dy = (y - here.y()).value();
         SHULIB_PRECONDITION(std::hypot(dx, dy) > 1e-9,
-                            "Routine: face/driveTo target is (numerically) where the "
-                            "robot already is — no defined bearing");
+                            "Routine: face/driveTo/faceAway/reverseTo target is (numerically) "
+                            "where the robot already is — no defined bearing");
         return math::Angle::radians(std::atan2(dy, dx));
     }
 

@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,956 of them, across 157 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,958 of them, across 157 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -2487,6 +2487,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Routine::chassis` | function | [routine.md](routine.md#routine-chassis) |
 | `Routine::driveTo` | function | [routine.md](routine.md#routine-driveto) |
 | `Routine::face` | function | [routine.md](routine.md#routine-face) |
+| `Routine::faceAway` | function | [routine.md](routine.md#routine-faceaway) |
 | `Routine::followTrajectory` | function | [routine.md](routine.md#routine-followtrajectory) |
 | `Routine::followTrajectory (overload 2)` | function | [routine.md](routine.md#routine-followtrajectory-2) |
 | `Routine::hold` | function | [routine.md](routine.md#routine-hold) |
@@ -2497,6 +2498,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Routine::operator= (overload 2)` | function | [routine.md](routine.md#routine-operator-eq-2) |
 | `Routine::pause` | function | [routine.md](routine.md#routine-pause) |
 | `Routine::result` | function | [routine.md](routine.md#routine-result) |
+| `Routine::reverseTo` | function | [routine.md](routine.md#routine-reverseto) |
 | `Routine::Routine` | function | [routine.md](routine.md#routine-routine) |
 | `Routine::Routine (overload 2)` | function | [routine.md](routine.md#routine-routine-2) |
 | `Routine::Routine (overload 3)` | function | [routine.md](routine.md#routine-routine-3) |

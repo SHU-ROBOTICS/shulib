@@ -208,7 +208,7 @@ break the code (mutation checks actually run and observed red); document everyth
 thing, not the easy thing; students author competition routines (the library delivers primitives —
 never write the season's routines for them).
 
-### The stale-binary trap (learned three times — do not relearn it)
+### The stale-binary trap (learned five times — do not relearn it)
 
 `cmake --build build/test` runs the doc gates BEFORE linking, and the briefing gate runs the OLD
 binary. A red (mutant) binary therefore blocks its own relink, and the next run silently reports the
@@ -216,7 +216,13 @@ stale result. **Mutation recipe:** edit → `touch` EVERY test file that include
 (an `inline constexpr` table leaves stale objects otherwise) → `cmake --build build/test --target
 shulib_tests/fast -j"$(nproc)"` → **require `Linking CXX executable shulib_tests` in the output** →
 run → observe red → restore → relink → green. Regenerate the briefing (`python3
-tools/briefing_status.py generate`) only AFTER the last restore relinks green.
+tools/briefing_status.py generate`) only AFTER the last restore relinks green. **Two more forms (2026-09-29):**
+(1) a test file ADDED after the last full (non-`/fast`) build is not in make's dependency database, so a
+restored header does not rebuild it and the next mutation links the previous mutant through it — after
+adding a test file, run one FULL build before any mutation (L9 Part A1's first mutation pass, discarded);
+(2) a mutation run KILLED mid-way (a usage-limit stop) restores its source but leaves the last mutant
+LINKED — relink from source before trusting any suite result (H1 Part A1: two golden cases red on the
+M26 mutant's binary, 1,781 of 1,781 green after the relink).
 
 ### The coordinator's verification command set
 
@@ -503,7 +509,11 @@ is a plan change for jal to confirm in the brief (Q7).
 - Reverse driving: **the facade has no `driveTo`** (it is `Routine`'s, F10-frozen), and the data path
   already has it (`Waypoint::reverse`, which the runner honours). So the work is an ADDITIVE option on
   `Routine::driveTo` — a `kApiMinor` bump, pins updated deliberately, a changelog entry — following
-  `include/shulib/version.hpp`'s policy exactly.
+  `include/shulib/version.hpp`'s policy exactly. *(L9 Part A1, 2026-09-29, built as the brief's D1 (a) —
+  two new steps, `reverseTo` / `faceAway`, API 2.4 — not an option on `driveTo`; "which the runner honours" had
+  been shown for a reversed APPROACH (arriving at bearing + π) on an X-drive only, tank along-axis reverse legs
+  were already tested at C1, and L9 adds the first reversed approach on a tank — through `faceAway`, steered by
+  TANK1 — both as a recipe and as a route, bit-identical; [live log](chunks/L9-PROGRESS.md).)*
 - A named-mechanism lookup on `robot::Robot` (`robot.mechanism("intake")`): **DONE at T3 Part 1
   (2026-09-26)** — `MechanismConfig` gained a cartridge, a safe brake mode and a pneumatic START and
   SAFE level (each with an UNSET value `valid()` refuses); `Robot` builds a `MotorMechanism` or a

@@ -246,7 +246,7 @@ is the whole reason the list is short.
 |---|---|---|---|---|---|
 | `"start"` | Not a motion: *"the robot begins HERE."* Seeds the pose estimate's position. **Legal at index 0 only** | either | yes | when `"fixed"` — the heading a competition auton is seated to; a `"free"` start states none | no |
 | `"move"` | Translate and rotate to the full pose, simultaneously | `"fixed"` → arrive at `heading`; `"free"` → keep the heading the robot has when the leg starts | yes | when `"fixed"` | no |
-| `"drive"` | Drive to the point, **arriving facing it** — the heading is computed from the approach | **`"free"` only** | yes | no | **yes** — adds 180°, so the robot arrives backwards onto the point |
+| `"drive"` | Drive to the point, **arriving facing it** — the heading is computed from the approach | **`"free"` only** | yes | no | **yes** — adds 180°, so the robot arrives backwards onto the point. On a tank, author a `"turn"` that puts the robot's back to the point first: a reversed leg that starts facing the point is not steered and times out beside it (measured on the host test plant, 2026-09-29) |
 | `"turn"` | Rotate in place to `heading` | **`"fixed"` only** | no | yes | no |
 | `"strafe"` | Translate holding the current heading | either | yes | no | no |
 | `"hold"` | Actively hold the pose for `constraints.timeout` | either | no | no | no |

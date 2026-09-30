@@ -156,6 +156,26 @@ template <typename R>
 concept F10Pause = requires { static_cast<R& (R::*)(Time)>(&R::pause); };
 SHULIB_F10_PIN(F10Pause<Routine>, "Routine::pause(units::Time) -> Routine&");
 
+// The two steps APPENDED at chunk L9 (API 2.4) — the additive path the banner names, taken for
+// real. They are pinned the day they land, in exactly the shape of their forward twins (driveTo
+// and face above), so from here on they are as frozen as every step before them. ADDED pins
+// only: no pin above changed to make room for them.
+template <typename R>
+concept F10ReverseTo = requires {
+    static_cast<R& (R::*)(Length, Length, const MotionOptions&)>(&R::reverseTo);
+};
+SHULIB_F10_PIN(F10ReverseTo<Routine>,
+               "Routine::reverseTo(Length, Length, const MotionOptions&) -> Routine& "
+               "(appended at L9, API 2.4)");
+
+template <typename R>
+concept F10FaceAway = requires {
+    static_cast<R& (R::*)(Length, Length, const MotionOptions&)>(&R::faceAway);
+};
+SHULIB_F10_PIN(F10FaceAway<Routine>,
+               "Routine::faceAway(Length, Length, const MotionOptions&) -> Routine& "
+               "(appended at L9, API 2.4)");
+
 // The template step, pinned through an exact instantiation — the deduced
 // signature including the typed timeout and the defaulted step name.
 using PredPtr = bool (*)();
@@ -235,6 +255,16 @@ SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().waitFor(std::declval<PredPtr>()
                                                          std::declval<Time>(),
                                                          std::declval<const char*>()),
                         "Routine::waitFor");
+// L9's two steps: both reach bearingTo's precondition and a facade verb's option check, so a
+// noexcept on either would turn "the robot is already on that point" into std::terminate.
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().reverseTo(std::declval<Length>(),
+                                                           std::declval<Length>(),
+                                                           std::declval<const MotionOptions&>()),
+                        "Routine::reverseTo");
+SHULIB_F10_NOT_NOEXCEPT(std::declval<Routine&>().faceAway(std::declval<Length>(),
+                                                          std::declval<Length>(),
+                                                          std::declval<const MotionOptions&>()),
+                        "Routine::faceAway");
 
 // ── the whole-chain verdict (every one noexcept — see the header note) ────────────
 template <typename R>
@@ -340,6 +370,16 @@ concept F10TerseSpellings = requires(R& r, const Pose2d& p, Length l, Angle a, T
 SHULIB_F10_PIN(F10TerseSpellings<Routine>,
                "the defaulted spellings (moveTo(pose), waitFor(pred, t), ...)");
 
+// L9's two steps' defaulted spellings — a concept of their own, so the pin above stays
+// byte-for-byte what it was (additive growth adds pins; it does not edit them).
+template <typename R>
+concept F10TerseSpellingsReversed = requires(R& r, Length l) {
+    { r.reverseTo(l, l) } -> std::same_as<R&>;
+    { r.faceAway(l, l) } -> std::same_as<R&>;
+};
+SHULIB_F10_PIN(F10TerseSpellingsReversed<Routine>,
+               "the defaulted spellings reverseTo(x, y) and faceAway(x, y)");
+
 // ── NEGATIVE pins: typed time is a FROZEN SEMANTIC, not just a signature ──────────
 // A bare double where a duration belongs must stay uncompilable. Adding an
 // implicit conversion would break no member-pointer pin above (the types would
@@ -362,6 +402,17 @@ template <typename R>
 concept F10ConstStep = requires(const R& r, const Pose2d& p) { r.moveTo(p); };
 SHULIB_F10_PIN(!F10ConstStep<Routine>,
                "steps staying non-const (a const chain cannot secretly advance)");
+
+// …and the same for L9's two steps, each its own pin (added, not folded into the one above).
+template <typename R>
+concept F10ConstReverseTo = requires(const R& r, Length l) { r.reverseTo(l, l); };
+SHULIB_F10_PIN(!F10ConstReverseTo<Routine>,
+               "reverseTo staying non-const (a const chain cannot secretly advance)");
+
+template <typename R>
+concept F10ConstFaceAway = requires(const R& r, Length l) { r.faceAway(l, l); };
+SHULIB_F10_PIN(!F10ConstFaceAway<Routine>,
+               "faceAway staying non-const (a const chain cannot secretly advance)");
 
 #undef SHULIB_F10_PIN
 
@@ -387,14 +438,20 @@ SHULIB_F10_PIN(!F10ConstStep<Routine>,
 // said "main.cpp TODO(R1)" until G1 Part 2c: no such marker has existed since R1a, and
 // diag::SessionInfo has no version field yet — no program prints the token today.)
 //
-// kApiMinor is deliberately unpinned — additive growth is legal. Saying so is
-// the point; a vacuous assertion says it in a way that looks like a test.
+// kApiMinor is not pinned to a value; it has a floor — additive growth is legal
+// and must never fail this pin, but the growth F10 itself has had must not be
+// silently undone. (A vacuous `>= 0` would say "unpinned" in a way that looks
+// like a test; a floor at F10's own last growth says something true.)
 TEST_CASE("F10 pin: the frozen Routine surface is API major 2 and the mechanism exists") {
     CHECK(shulib::kApiMajor == 2);
 
     char expected[16];
     std::snprintf(expected, sizeof expected, "%d.%d", shulib::kApiMajor, shulib::kApiMinor);
     CHECK(std::string_view{shulib::kApiVersionString} == std::string_view{expected});
+
+    // F10 grew additively at 2.4 (L9: reverseTo and faceAway), so the minor must have moved
+    // past TANK1's 3.
+    CHECK(shulib::kApiMinor >= 4);
 }
 
 }  // namespace

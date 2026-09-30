@@ -15,9 +15,11 @@
 > by a compile-time signature pin
 > ([`test/routine_signature_pin_test.cpp`](../../test/routine_signature_pin_test.cpp)) that
 > fails the build if a spelling drifts. New steps arrive *additively* — and that path has since
-> been used for real: `RoutineStopCause` gained an **appended** `MechanismFailed`, which is a
-> minor version bump (2.0 → 2.1), not a breaking change. Existing enumerator *values* are
-> pinned; only the end of the list grows. If you `switch` exhaustively, add the new case.
+> been used for real, twice. First `RoutineStopCause` gained an **appended** `MechanismFailed`,
+> which is a minor version bump (2.0 → 2.1), not a breaking change: existing enumerator *values*
+> are pinned and only the end of the list grows, so if you `switch` exhaustively, add the new
+> case. Then, at 2.4, two new **steps** were appended, `reverseTo` and `faceAway` (below), with
+> nothing that already existed changing shape.
 > **One exception, deliberately:** `then()` is **not** frozen. It is the seam mechanisms plug
 > into. Mechanisms now *exist* — the seam was filled, and `then()` accepts a mechanism
 > operation's `MechanismOutcome` as a fourth return type — but the surface stays unfrozen until
@@ -98,9 +100,11 @@ verb's full behavior and gotchas, and they all apply verbatim.
 | `startAt(pose)` | Seeds the pose estimate with the measured starting pose — the first line of every auton you run yourself (one registered for `competition::runAuton` has none: its entry's `start` is seated for it — [Chapter 16](16-testing-an-auton-on-the-bench.md)) | `setPose` |
 | `moveTo(pose, opts)` | Drives to a field pose, translating and rotating at once | `moveTo` |
 | `driveTo(x, y, opts)` | Drives to a field *point*, arriving facing it (heading = the bearing, computed when the step runs) | `moveTo` |
+| `reverseTo(x, y, opts)` | Drives to a field point and arrives with its *back* to it (heading = the bearing + 180°, computed when the step runs) — backwards the whole way after a `faceAway` | `moveTo` |
 | `strafeTo(x, y, opts)` | Translates to a field point while holding the current heading | `strafeTo` |
 | `turnTo(heading, opts)` | Rotates in place to a field heading, the short way | `turnTo` |
 | `face(x, y, opts)` | Rotates in place to *face* a field point (the bearing, computed when the step runs) | `turnTo` |
+| `faceAway(x, y, opts)` | Rotates in place to turn its *back* to a field point (the bearing + 180°) — the turn before a `reverseTo` | `turnTo` |
 | `followTrajectory({…}, opts)` | Drives waypoints as chained moves; a leg that fails stops it | `followTrajectory` |
 | `brake(opts)` | Controlled stop: 0 V under brake until the estimate certifies rest | `brake` |
 | `hold(duration, opts)` | Actively holds the current pose against disturbance | `hold` |
@@ -108,9 +112,10 @@ verb's full behavior and gotchas, and they all apply verbatim.
 | `waitFor(pred, timeout)` | Waits for a condition; if the deadline passes first, **the chain stops** | `waitUntil` |
 | `then(action, name)` | Runs your code between motions (see the mechanism seam, below) | — |
 
-`face` and `driveTo` deserve one sentence of honesty: they are *argument sugar*, not new
-motion. Each computes a single number — the bearing from the current pose estimate to the
-point you named — and hands it to `turnTo` / `moveTo`. That matters most on a tank drive,
+`face` and `driveTo` — and their turned-around twins `faceAway` and `reverseTo` — deserve one
+sentence of honesty: they are *argument sugar*, not new motion. Each computes a single number —
+the bearing from the current pose estimate to the point you named, plus 180° for the two
+turned-around twins — and hands it to `turnTo` / `moveTo`. That matters most on a tank drive,
 where [Chapter 4](04-drivetrains.md) explained the drivetrain cannot slide sideways and
 [Chapter 10](10-the-api.md) showed you the turn-then-drive idiom with `atan2`. `face(x, y)`
 **is** that idiom's turn, written in field words — you are still the one deciding to turn,
@@ -220,6 +225,24 @@ REQUIRE(c.chassis.turnTo(0_deg, {.timeout = 3_s}) == ExitReason::Settled);
 r.driveTo(24_in, 24_in, {.timeout = 8_s}).brake();
 CHECK(r.ok());
 ```
+
+**Backing into a point** is the same idiom turned around: `faceAway(x, y)` turns the robot's
+*back* to the point, then `reverseTo(x, y)` drives backwards onto it and arrives with its back to
+it. On a tank the turn is still yours to write, for the same two reasons as `face()`: a tank
+cannot slide onto the line, and only a leg that starts within 15° of its heading is steered. A
+`reverseTo` leg starts as far off its heading as the robot's *back* is turned from the point — so
+right after `faceAway()` it starts within about a degree, and a robot that just drove straight
+out from the point already has its back to it and can back straight back without one. From a
+robot *facing* the point, though, a `reverseTo` with no `faceAway()` starts 180° off: it is not
+steered, the log says `tank moveTo not steered: it starts 180.0 deg off its target heading …
+turn first: face()` (for a backwards leg, that turn is `faceAway()`), and on the host test plant
+the robot swings round through the half turn as it drives and the step times out beside the
+point — almost 8 in beside it at the end of a 43 in leg, and still about an inch at the end of a
+6 in one. A holonomic drive arrives turned round without `faceAway()`, because it rotates in
+flight — which means its nose leads for the early part of the leg; write `faceAway()` first if
+the robot's back must lead the whole way (a mechanism on the back, say). Nothing here has run on
+a robot yet: whether a tank backs up exactly as far as its calibration says is an open entry,
+HA-167, in the [Hardware Assumptions Register](../hardware-assumptions.md).
 
 Because steps run eagerly, recipe steps and direct `chassis.` calls interleave in plain
 program order — the chain object keeps counting only its own steps, and the scheduler

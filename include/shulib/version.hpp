@@ -93,9 +93,16 @@ inline constexpr int kApiMajor = 2;
 /// motions: `CompletedMotion` and `diag::MotionResult` gained `hasCrossTrack`
 /// + `crossTrack`, `MotionStatsSink` gained `hadDirection()` + `crossTrack()`.
 /// docs/changelog.md, API 2.3, lists all of it.
-inline constexpr int kApiMinor = 3;
+/// 4 = chunk L9 Part A1 (2026-09-29): two new `Routine` steps, `reverseTo(x, y, options)` and
+/// `faceAway(x, y, options)` — `driveTo` and `face` turned around (the bearing to the point plus
+/// π, the same `+ π` a route's `reverse` DriveTo adds) — APPENDED to the FROZEN register row F10
+/// by the path its banner names ("new steps"), and pinned there. No existing member changed
+/// shape, no enumerator moved, no behaviour changed — every 2.3 program compiles and runs
+/// exactly as before.
+/// docs/changelog.md, API 2.4, lists it.
+inline constexpr int kApiMinor = 4;
 
 /// "major.minor", for session headers / logs that want one printable token.
-inline constexpr const char* kApiVersionString = "2.3";
+inline constexpr const char* kApiVersionString = "2.4";
 
 }  // namespace shulib

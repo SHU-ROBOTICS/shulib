@@ -749,6 +749,117 @@ TEST_CASE("G2 runner 10: reverse on a DriveTo turns the approach around; without
     CHECK(std::abs(std::abs(revTruth.heading().errorTo(fwdTruth.heading())) - Angle::kPi) < 0.20);
 }
 
+// ═══ L9 A3. A reverse DriveTo as DATA == Routine::reverseTo as a RECIPE, bit for bit ═══════════
+// Bug caught: the route and the recipe backing into the same point computing it two ways — a
+// `- π` in either file (the X-drive case sees it at this geometry; the tank case does not, because
+// its reverse bearing is read at the pose the authored turn left, where the `- π` target equals the
+// `+ π` one or its 1-ulp difference never reaches a volt), a `reverse` flag read by nobody (both
+// cases), or reverseTo carrying any motion logic the runner's DriveTo does not. Test 3's acceptance
+// argument, applied to the reversed leg: bit identity, never a tolerance.
+// NOT a bug these cases can catch, because there is none to catch: `Angle::radians(b + kPi)` and
+// `b + Angle::degrees(180.0)` do exactly the floating-point work of `b + Angle::radians(kPi)` (each
+// wraps the same sum once, and degrees(180) is kPi to the bit), so those spellings are the same
+// code at every bearing. Only a spelling that changes the arithmetic — the `- π` — can drift.
+//
+// Runner 10 only reverses on the X-drive, FROM THE ORIGIN AT BEARING 0 — where `b + π` and
+// `b − π` are the same bits after Angle's wrap, so a sign slip in either file is invisible there.
+// So this leg is the acceptance route's first one from `startPose()` (−24, −12) to (0, 24): bearing
+// 0.98279372324732905 rad, where the two differ. On a TANK the route turns its back to the point
+// first with an authored `TurnTo` — computed at authoring time, as `tankAcceptanceRoute` computes its
+// turns — and the recipe turns to the same authored angle; each then backs in. That makes this the
+// first reversed APPROACH on a tank that the runner has driven, and it guards F8's `reverse` on a
+// tank as well as the recipe (the brief's mutation 12: dropping the runner's `+ π` turns this RED).
+// Two TEST_CASEs, not two SUBCASEs of one: a REQUIRE failing in the first subcase would end the
+// case before the second ran, so each drivetrain's verdict could not be read on its own.
+namespace {
+
+constexpr double kL9LegTimeout = 10.0;
+
+/// The bearing + π a path editor would write for the tank's authored turn (and the X-drive's
+/// arrival heading): from the Start to (0, 24), computed at authoring time.
+double l9AuthoredAway() { return std::atan2(24.0 - kStartY, 0.0 - kStartX) + Angle::kPi; }
+
+cfgns::Route l9BackInRoute() {
+    cfgns::Route route{.name = "back_in"};
+    route.waypoints[0] = {.x = Length{kStartX},
+                          .y = Length{kStartY},
+                          .heading = Angle::degrees(kStartHeadingDeg),
+                          .headingMode = cfgns::HeadingMode::Fixed,
+                          .motion = cfgns::WaypointMotion::Start};
+    return route;
+}
+
+cfgns::Waypoint l9ReverseDriveTo() {
+    return {.x = Length{0.0},
+            .y = Length{24.0},
+            .headingMode = cfgns::HeadingMode::Free,
+            .motion = cfgns::WaypointMotion::DriveTo,
+            .reverse = true,
+            .constraints = {.timeout = Time{kL9LegTimeout}}};
+}
+
+}  // namespace
+
+TEST_CASE("L9 A3 (tank): an authored TurnTo + a reverse DriveTo route == turnTo + reverseTo, bit "
+          "for bit") {
+    const shulib::chassis::MotionOptions options{.timeout = Time{kL9LegTimeout}};
+    cfgns::Route route = l9BackInRoute();
+    route.waypoints[1] = {.heading = Angle::radians(l9AuthoredAway()),
+                          .headingMode = cfgns::HeadingMode::Fixed,
+                          .motion = cfgns::WaypointMotion::TurnTo,
+                          .constraints = {.timeout = Time{kL9LegTimeout}}};
+    route.waypoints[2] = l9ReverseDriveTo();
+    route.count = 3;
+    REQUIRE(route.valid());
+
+    const TankKinematics kin = tankKin();
+    RunnerRig a{kin, plantAt(startPose())};
+    CommandRegistry registry;
+    PathRunner runner{a.chassis, registry, a.telemetry};
+    const RunReport report = runner.run(route);
+    REQUIRE(report.ok());
+    CHECK(report.legsRun == 3);
+
+    RunnerRig b{kin, plantAt(startPose())};
+    Routine r{b.chassis, "back-in"};
+    r.startAt(startPose())
+        .turnTo(Angle::radians(l9AuthoredAway()), options)
+        .reverseTo(Length{0.0}, Length{24.0}, options);
+    REQUIRE(r.ok());
+
+    requireIdentical(a.pacer.trace, b.pacer.trace);
+    CHECK(a.pacer.trace.ticks > 200);  // it really drove; an empty trace is trivially identical
+    // …and it backed in, on truth.
+    const Pose2d truth = a.rig.h.truePose();
+    CHECK(motion_rig::posErr(truth, Pose2d{Length{0.0}, Length{24.0}, Angle{}}) < 1.0);
+    CHECK(std::abs(truth.heading().errorTo(Angle::radians(l9AuthoredAway()))) < 0.10);
+}
+
+TEST_CASE("L9 A3 (X-drive): a reverse DriveTo route == reverseTo, bit for bit") {
+    const shulib::chassis::MotionOptions options{.timeout = Time{kL9LegTimeout}};
+    cfgns::Route route = l9BackInRoute();
+    route.waypoints[1] = l9ReverseDriveTo();
+    route.count = 2;
+    REQUIRE(route.valid());
+
+    const shulib::kinematics::MatrixKinematics kin = xDrive(Length{7.0});
+    RunnerRig a{kin, plantAt(startPose())};
+    CommandRegistry registry;
+    PathRunner runner{a.chassis, registry, a.telemetry};
+    REQUIRE(runner.run(route).ok());
+
+    RunnerRig b{kin, plantAt(startPose())};
+    Routine r{b.chassis, "x-back-in"};
+    r.startAt(startPose()).reverseTo(Length{0.0}, Length{24.0}, options);
+    REQUIRE(r.ok());
+
+    requireIdentical(a.pacer.trace, b.pacer.trace);
+    CHECK(a.pacer.trace.ticks > 100);
+    const Pose2d truth = a.rig.h.truePose();
+    CHECK(motion_rig::posErr(truth, Pose2d{Length{0.0}, Length{24.0}, Angle{}}) < 1.0);
+    CHECK(std::abs(truth.heading().errorTo(Angle::radians(l9AuthoredAway()))) < 0.10);
+}
+
 // ═══ 10b. The runner's preconditions throw THROUGH, exactly as the facade's do ═══════
 // Bug caught: the error policy quietly swallowing a programming error. A nonsense route must be
 // a loud throw at the door, not a polite report saying the route "stopped".
