@@ -28,13 +28,16 @@
 //   make ROBOT=tank PROGRAM=library    "shulib Teleop"      src/programs/teleop_program.cpp     (slot 2)
 //                                                           + src/common/boot_source.{hpp,cpp}
 //   make ROBOT=tank PROGRAM=calibrate  "shulib Calibrate"   src/programs/calibrate_program.cpp  (slot 4)
+//   make ROBOT=tank PROGRAM=autontest  "shulib Auton Tester" src/programs/auton_tester_program.cpp
+//                                                           + src/team/autons.cpp (slot 7 until T4
+//                                                           Part 3, then 2 -- T4's N4)
 //   make ROBOT=xdrive                  the INVENTED X-drive src/programs/xdrive_program.cpp
 //                                                           + src/robots/xdrive_config.hpp (HA-111)
-// Four programs in four slots rather than one program with a chooser (the team lead's ruling,
+// Five programs in five slots rather than one program with a chooser (the team lead's ruling,
 // R3b Part 0b): the operator picks a program by NAME from the brain's slot list. Every .cpp under
 // src/ compiles into every build; the linker's --gc-sections drops what the selected program never
 // calls. The ROBOT is set by the same branch (kRobotId): the bench build carries the bench bot's
-// tables, the four tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
+// tables, the five tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
 // chassis table and no mechanisms (src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp
 // select them from kRobotId).
 //
@@ -47,8 +50,9 @@
 //     on hardware. No X-drive robot exists (ports invented, A4 register HA-111): the one X-drive
 //     boot on record is the old hand-wired graph over FAKE devices, 2026-08-12, none since R1a.
 //   * autonomous() commands NO motion in any build of this file, and no routine is ever added
-//     here: autonomous routines run only in the competition program's autonomous() (the team
-//     lead's ruling, 2026-09-25).
+//     here: autonomous routines run only in the competition program's autonomous() and, on the
+//     bench, the Auton Tester's RUN -- the same library call, competition::runAuton (COMP-t) --
+//     never in any other program (the team lead's ruling, 2026-09-25).
 //   * M2's on-robot clause — validated on a V5 — is OPEN, owned by chunk R3.
 //
 // ═══ The PROS boundary ══════════════════════════════════════════════════════════════
@@ -61,6 +65,7 @@
 #include <cstddef>
 #include <cstdio>
 
+#include "programs/auton_tester_program.hpp"
 #include "programs/bench_r3a.hpp"
 #include "build_selection.hpp"
 #include "programs/calibrate_program.hpp"
@@ -150,6 +155,9 @@ void initialize() {
         case Program::InventedXDrive:
             shulib::bench::xdriveInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
             return;
+        case Program::AutonTester:
+            shulib::bench::autonTesterInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
+            return;
     }
 }
 
@@ -170,6 +178,9 @@ void disabled() {
             return;
         case Program::InventedXDrive:
             return;
+        case Program::AutonTester:
+            // the tester's own task paints every state (one painter)
+            return;
     }
 }
 
@@ -189,6 +200,9 @@ void competition_initialize() {
             return;
         case Program::InventedXDrive:
             return;
+        case Program::AutonTester:
+            // the tester's own task paints every state (one painter)
+            return;
     }
 }
 
@@ -196,8 +210,10 @@ void competition_initialize() {
  * Runs the user autonomous code.
  *
  * Commands NO motion in ANY build of this file, deliberately, and no routine is ever added here:
- * autonomous routines run only in the competition program's autonomous() (COMP), never inside a
- * bench, drive, calibrate or teleop program (the team lead's ruling, 2026-09-25). The v2 motions
+ * autonomous routines run only in the competition program's autonomous() (COMP) and, on the bench,
+ * the Auton Tester's RUN -- the same library call, competition::runAuton (COMP-t) -- never in any
+ * other program: not a bench, drive, calibrate or teleop program (the team lead's ruling,
+ * 2026-09-25). The v2 motions
  * exist and settle on the host test plant (test/chassis_routine_test.cpp chains them through the
  * same facade); no library-commanded motion has run on a robot.
  */
@@ -224,6 +240,9 @@ void autonomous() {
         case Program::InventedXDrive:
             shulib::bench::xdriveAutonomous();  // one serial line; no screen, no motion
             return;
+        case Program::AutonTester:
+            // NO auton here: the tester runs one only from its RUN
+            return;
     }
 }
 
@@ -233,7 +252,9 @@ void autonomous() {
  * the task down; PROS calls opcontrol() again when driver control resumes), except "Bench Tests",
  * which never returns and powers motors ONLY in its DRIVE station. "shulib Teleop" and the
  * X-drive drive through the library's loop, teleop::runDriverControl; "shulib Drive" and the
- * tester keep the pinned raw stick mapping (the G1 Part 2 brief's ruling M4).
+ * tester keep the pinned raw stick mapping (the G1 Part 2 brief's ruling M4). The Auton Tester
+ * returns at once: its own task runs everything, started by initialize() (a task PROS never
+ * deletes on a mode change -- A4 register HA-161).
  */
 void opcontrol() {
     switch (kProgram) {
@@ -251,6 +272,9 @@ void opcontrol() {
             return;
         case Program::InventedXDrive:
             shulib::bench::runXdrive();
+            return;
+        case Program::AutonTester:
+            // everything runs on the tester's own task, started by initialize()
             return;
     }
 }

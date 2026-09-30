@@ -23,7 +23,9 @@ it drives from the moment it starts. Since R3b Parts 1–3 there is a THIRD, **"
 the answer to the SD card — Station G; "shulib Teleop" then boots from that answer instead of the
 typed table. Do not confuse the four: "Bench Tests" measures by hand, "shulib Drive" drives
 through the adapters, "shulib Calibrate" measures the drivetrain itself, "shulib Teleop" drives
-through the library.)*
+through the library. Since COMP-t there is a FIFTH, **"shulib Auton Tester"** in **slot 7** (T4 N4:
+slot 2 after T4 Part 3), which runs one of the team's AUTONS from RUN on its screen after a 3 s
+countdown — Station M.)*
 
 > **The slot map (the team lead's rulings, 2026-09-27 — T4 R6).** Slots 1–4 are as above until T4 Part 3.
 > **Slot 5 is HELD for the team's own old-code fallback: never upload a shulib program over it.** **Slot 6**
@@ -1538,6 +1540,227 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 
 ---
 
+## Station M — THE AUTON TESTER: run the 40 in auton on the bench, then on the tape  *("shulib Auton Tester", slot 7 until T4 Part 3 moves it to slot 2 — T4 N4; robot two — added COMP-t, 2026-09-28)*
+
+> ⚠ **This program RUNS AN AUTON: the library drives the robot on its own, under its own control, for
+> the first time.** You touch **RUN** on the brain's screen, a **3 s countdown** runs (nothing moves),
+> and then the chosen auton runs through `competition::runAuton` — the same call the competition
+> program's `autonomous()` will make, on the same entry from the team's file `src/team/autons.cpp`.
+> **ANY controller button, or a touch of the screen, aborts** — in the countdown (then nothing ever
+> moves) or in the run (the robot stops within one more 10 ms tick and brakes). So does switching the
+> controller off, or VEXos disabling the robot. **The sticks do NOT abort.** RUN is refused without a
+> connected controller, from a boot that did not use the calibration record, and in any competition
+> mode.
+>
+> **What has run: nothing.** No part of this program has run on a brain. Every expectation below is
+> from the host test plant (instant motors, a tank that never skids) and is marked so. K (the
+> competition program) and L (the driver program) are other chunks' stations; this one comes after J.
+>
+> **K still owns** what the tester cannot show: a field disable mid-auton, the auton → driver-control
+> hand-over, whether the controller's Timed Run enters `autonomous()` (HA-128), PROS deleting its
+> competition tasks (HA-161), and a route auton (the tester refuses one by name — it passes no command
+> registry yet).
+
+**M.0 — before you touch a program**
+
+- [ ] **M.0.1** A charged battery and a **FAT32 card** in the brain (the run log goes there — M.7).
+- [ ] **M.0.2** **If you re-run Calibrate first** (for a truer 40 in — M.6), **G.0.1's rule applies:
+      copy `shulib_drivetrain.bin` off the card on a laptop, dated, first** — and do it only after
+      SAFE-SAVE B1 is in the build (until then a NOT SAVED run can erase the record).
+- [ ] **M.0.3** **3 m clear ahead** of the robot, and a second person at the battery.
+- [ ] **M.0.4** A **straight tape at least 60 in long** on the floor, with a **START** mark, a **40 in**
+      mark and a **43.6 in** mark. *Why 43.6:* on 2026-09-25 the saved record read `est x` 44 at a taped
+      48 in — it under-reads distance by about 8 % — so an auton that drives 40 in BY THE ESTIMATE
+      should travel about 40 × 48 / 44 ≈ **43.6 in** on the tape, until a careful Calibrate rerun fixes
+      the record. **The number in the auton stays 40. Never change it to make the tape agree.**
+- [ ] **M.0.5** The controller **paired** (Station 5.5) and **ON, on its home screen** (never started
+      from its menu — HA-128).
+- [ ] **M.0.6** Do not touch the robot for **3 s after power-on** (the IMU calibrates; READY's estimate
+      line says `estimate NOT LIVE yet (the IMU is calibrating)` until it is done).
+
+**M.1 — upload**
+
+```sh
+rm -rf bin .d && make ROBOT=tank PROGRAM=autontest && pros upload --slot 7 --name "shulib Auton Tester"
+```
+
+Start it from the **BRAIN's** screen (Programs → slot 7 → Run). READY's last line ends with a
+`BUILD hh:mm:ss` stamp: it must be the time you just built — if not, the upload did not land.
+
+**M.2 — boot** (serial, `pros terminal`, if a laptop is on the micro-USB)
+
+- [ ] **M.2.1** The banner: `[ATS] booted: shulib AUTON TESTER build [shulib-robot-variant=tank-autontest]
+      -- runs ONE of the team's autons` … `NOT RUN ON A ROBOT YET.`, and `[ATS] competition status at
+      boot: 0x00 field=no disabled=no auton=no`.
+- [ ] **M.2.2** The three boot lines (one line once, split by the chunk's review so a long build hash
+      can never cut the SD path off):
+      `boot: shulib AUTON TESTER [shulib-robot-variant=tank-autontest] hash …`, then
+      `boot source RECORD, 2 autons, 3 of 3 mechanisms present`, then the SD line. **This is M.7's
+      CREATED check:** on the first boot on a card without the file it reads
+      `SD run log ON, CREATED /usd/shulib_auton_runs.txt`; if the file was already there,
+      `SD run log ON, APPENDED to /usd/shulib_auton_runs.txt`; with no card, `SD run log OFF (no card, or
+      the log would not open)` — write down which. `3 of 3` is the pneumatic claw and both pivots (the
+      ones the run guard safes — M.9): fewer is a mechanism not built, and its `mechanism '…' is
+      ABSENT` line says which — copy it.
+- [ ] **M.2.3** The first `competition status 0x00 field=no disabled=no auton=no -- RUN is allowed`
+      line (HA-178 (c)). If it reads anything else, RUN will be refused: copy the line.
+- [ ] **M.2.4** The boot is **not** refused with `the tester's pacer chain is WRONG` — the boot's chain
+      proof passed on the real provider (R13). If it is, stop: that is a build error.
+- [ ] **M.2.5** PICK shows `AUTON: NONE` in the bar, the two autons (`40in forward MATCH`, `TEST 24in
+      turn back MATCH`) and `NONE` bottom-centre. Write down any line that runs off the screen's edge
+      (HA-136).
+
+**M.3 — READY, and THE FORWARD CHECK**
+
+Touch `40in forward`. READY shows eight lines:
+
+```text
+MATCH park T+27.0s stop T+29.0s RELATIVE
+BOOT RECORD: forward = the end that led Calibrate
+EST x 0.0 y 0.0 in, facing 0.0 deg LIVE
+READY: touch RUN, then step back
+RUN counts 3 s, then it moves. Step back.
+ANY BUTTON or a touch of the screen aborts.
+SD: runs appended to shulib_auton_runs.txt
+faults: none  BUILD hh:mm:ss
+```
+
+- [ ] **M.3.1** The EST line reads `LIVE`, and the second line reads **`BOOT RECORD: forward = the end
+      that led Calibrate`**. A red `BOOT TYPED TABLE: its front may be the OTHER end` line, or RUN grey
+      with `RUN needs the calibration RECORD: run Calibrate`, is a **STOP**: do not go on — fix the
+      record first (D9).
+- [ ] **M.3.2** **THE FORWARD CHECK — a STOP condition.** Push the robot slowly about 6 in toward the
+      end you believe is forward (the **camera end** on today's record). **EST x must RISE.** If it
+      FALLS, **stop**: the record's forward is the other end, and M.6 would drive toward you. Write
+      down which end made x rise — **that end is "forward" for M.5–M.8.** Put the robot back.
+      → the end that made x rise: ______________
+- [ ] **M.3.3** Turn the controller **OFF**: the fourth line reads `NO CONTROLLER: RUN needs it (the
+      abort)` and RUN goes grey. Turn it back **ON**: RUN green again.
+
+**M.4 — the aborts, WHEELS UP** (the robot on a stand, wheels clear of everything)
+
+**Every touch in M.4 goes on the TOP HALF of the screen** — no button on the countdown, running or
+RESULT page is there, so the finger that aborts cannot also press something on RESULT. (PICK does
+have one there, its first auton; you are not on PICK when you abort.)
+
+- [ ] **M.4.1** RUN, then press **B** when the countdown shows `2` ⇒ RESULT `ABORTED`, `aborted in the
+      countdown by: button B`, `nothing moved: runAuton was never called`. Nothing turned (HA-178 (b)).
+- [ ] **M.4.2** RUN, then **touch** the screen in the countdown ⇒ `ABORTED`, `… by: touch`. Then again,
+      and this time **press and HOLD**: it must abort at the touch-DOWN (HA-178 (a)). Keep holding until
+      RESULT is up, then lift: `< PICK` and `AGAIN` must stay **GREY until half a second after the
+      lift** (R7). → did they? **YES / NO**
+- [ ] **M.4.3** RUN, then switch the **controller OFF** in the countdown ⇒ `ABORTED`, `… by: controller
+      lost`, nothing moved. Switch it back on. Note how long after the switch-off the screen changed
+      (HA-178 (d)): ______ s
+- [ ] **M.4.4** RUN, let it **start** (the wheels turn), then press any button ⇒ the wheels stop within
+      a blink; RESULT reads `ABORTED`, `aborted by: button …`, `end action skipped; …` (a press that
+      lands while the brake is already running reads `end action CUT; …` instead — the abort cut the
+      brake short; nothing is wrong with it). Copy the `[ATS]` lines from serial. **A red `ABORT
+      IGNORED` is a STOP**, whenever it appears: the button was seen but never reached the run — a
+      build error. Do not run on the floor; copy the lines and send them.
+- [ ] **M.4.5** RUN, let it start, then switch the **controller OFF** ⇒ the wheels stop; RESULT `aborted
+      by: controller lost`.
+
+**M.5 — a wheels-up full run** (still on the stand)
+
+- [ ] **M.5.1** RUN and let it finish. **Expected: RESULT `FINISHED`**, `END` x ≈ 40 by the encoders,
+      `faults this run: none`. On a stand the robot cannot turn, so a weak side has nothing to pull off
+      its line. **If it is NOT `FINISHED` wheels up, stop and copy the lines:** that is not a weak side's
+      drift.
+
+**M.6 — the floor run on the tape**
+
+- [ ] **M.6.1** **Capture serial BEFORE RUN** (it is the only place the tick lines are; the SD file gets
+      each run's summary lines, not its ticks). Use ONE of: (a) the brain's micro-USB to a laptop running
+      `pros terminal`, on a cable long enough for ~45 in of travel, held **slack and to the SIDE** so it
+      neither snags a wheel nor pulls the robot off its line; or (b) the wireless terminal — the laptop's
+      USB into the paired CONTROLLER, `pros terminal` (Station 5.5) — whose rate at 100 lines a second is
+      unmeasured, so it may drop lines. Save the whole transcript. The `[t=…]` stamps step about 0.01 s
+      per tick: a bigger jump between `[MOT]` lines means lines were lost — write the count as "N of M,
+      with gaps". **With neither, write the TSTR count as "not captured" — never a guessed number.**
+- [ ] **M.6.2** The robot on START, **the end that made EST x RISE in M.3 leading**, facing along the
+      tape. RUN, and step back — **to the SIDE, never behind or in front**.
+- [ ] **M.6.3** **The expected result (stated BEFORE the run so nobody is surprised; re-predicted after
+      TANK1 Part A, 2026-09-28):** `FINISHED`, `faults this run: none`, END x near 40 and END |y| within
+      0.5 in, the brake run. On the host test plant a 9 % weak side finishes this way (T+1.89 s, END
+      (39.64, 0.02, 0.10°), TSTR on 116 of the run's 203 `[MOT]` tick lines); an even drive shows TSTR on
+      few or none (noise lights about 1 % — TANK1's P7). `ROUTINE STOPPED` (`faults this run: 1, last
+      MOTION_TIMEOUT`, the brake still run) stays possible — HA-179 (TANK1's constants against this
+      robot's unmeasured motor lag) being wrong; that is a result, not a failure of the tester. **A
+      `FINISHED` is checked against the tape, not taken as a pass:** a sideways skid (HA-180) is
+      invisible to the robot's sensors, so it never turns the word red — **a `FINISHED` whose tape offset
+      from the line differs from END y by more than 0.5 in is HA-180 failing, not a pass.** The `MOT`
+      Warn `tank moveTo not steered … turn first: face()` must NOT appear (the 40 in starts on its own
+      heading): if it does, stop and copy the lines.
+- [ ] **M.6.4** Record — **the numbers, never "about right"**:
+
+      | | run 1 | run 2 | run 3 |
+      |---|---|---|---|
+      | RESULT word | | | |
+      | END x, END y (estimate, from RESULT or serial line 4) | | | |
+      | the faults line | | | |
+      | `[MOT]` tick lines showing TSTR, out of how many (or "not captured") | | | |
+      | TAPE along the line, in (expect ~43.6 today, ~40 after a good Calibrate rerun) | | | |
+      | TAPE off the line to the SIDE, in, and WHICH side looking the way it drove (END y is + to the LEFT) | | | |
+      | the veer you saw; did it stop firmly? | | | |
+
+      **HA-180 settles on three runs whose tape sideways offset agrees with END y within 0.5 in.**
+- [ ] **M.6.5** **Between runs, LIFT the robot back onto START** — the end that made EST x rise
+      leading, facing along the tape, as in M.6.2. After a run the drive is held under **Brake**, so
+      do not shove it back along the floor: that strains the motors against the brake. Lift it, set it
+      down, then touch AGAIN (RELATIVE start: where it is set down is the new (0, 0)).
+
+**M.7 — the SD log (HA-177)**
+
+The file M.2 found or created is the one this station checks — M.2.2's first boot was the CREATED
+check, and every run of M.4–M.6 has been appended to it since. **Never format the card and never
+swap in a blank one to get a "fresh" file:** `shulib_drivetrain.bin` (the calibration record) is on
+it, and without the record the tester refuses to boot (D9; robot two cannot boot from its typed
+table).
+
+- [ ] **M.7.1** Power-cycle the brain and start the tester again ⇒ the SD boot line reads `SD run log ON,
+      APPENDED to /usd/shulib_auton_runs.txt`. Do one more run (wheels up is fine). Then copy
+      `shulib_auton_runs.txt` (the card's root) to the laptop. **Every run since M.2 must be there, in
+      order, across the reboot** — M.4's aborts, M.5, M.6's floor runs, and this last one.
+      → M.2.2's SD word: __________ ; M.7.1's: __________ ; every run present in order? **YES / NO**
+- [ ] **M.7.2** *(Only if M.2.2 read APPENDED and a CREATED is still wanted.)* Copy
+      `shulib_auton_runs.txt` off first; then, on a laptop, delete **only that one file** from the card —
+      never format it, and leave `shulib_drivetrain.bin` where it is. Boot ⇒ `SD run log ON, CREATED
+      /usd/shulib_auton_runs.txt`. → CREATED seen? **YES / NO**
+
+**M.8 — (optional) the acceptance run**
+
+- [ ] **M.8.1** From PICK, `TEST 24in turn back`, on the tape, forward as in M.3. **Expected
+      (re-predicted after TANK1, 2026-09-28):** back on the START mark facing the other way — on the host
+      test plant a 9 % weak side ends at (0.37, 0.06) facing 177.3° after 6.14 s (its last leg faces its
+      own bearing back to the mark, so not exactly 180°); or, if M.6 stopped for a weak side, `ROUTINE
+      STOPPED` at step 1 (moveTo) with steps 2–4 skipped. Record which, and the TSTR count (serial
+      captured as in M.6, or "not captured"). Before it, and between any repeats, LIFT the robot onto
+      START as in M.6.5 — never shove a braked drive.
+
+**M.9 — the claws**
+
+- [ ] **M.9.1** Through every run above: the pneumatic claw stays **CLOSED** (its safe state and its
+      start level), and both pivots **HOLD** at the cut and at the end (the guard safes every PRESENT
+      mechanism; the tester never commands them otherwise). → did anything on a claw move? **YES / NO**
+      *(Today's autons never command a claw, so this station shows only that nothing moved one. That
+      the guard SAFES every present mechanism, at a run's end and on an abort, is shown by the host
+      suite — test (18b) — not here.)*
+
+**What to send back**
+
+1. M.2: the banner, the three boot lines, the first status line — word for word; and whether the
+   boot was refused.
+2. M.3: the BOOT line, and **which end made EST x rise**.
+3. M.4: each abort's RESULT lines, M.4.2's grey answer, M.4.3's seconds, and the `[ATS]` lines.
+4. M.5: the RESULT.
+5. M.6: the table, and the whole serial transcript (or "not captured").
+6. M.7: the SD words (M.2.2's and M.7.1's, and M.7.2's if run) and the file itself.
+7. M.8 (if run) and M.9.
+8. Anything surprising, as observed.
+
+---
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
@@ -1559,6 +1782,10 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 - ❌ **Do not disassemble anything** to read a gear — photograph it in place.
 - ❌ **Do not "correct" a reading to what this sheet expects.** A contradiction is the most valuable
       output of the session.
+- ❌ **Do not run "shulib Auton Tester" on a field, a competition switch or a Timed Run** (RUN is
+      refused there anyway), and **never "correct" an auton's 40 to what the tape says** — the
+      calibration record is what is wrong; re-run Calibrate (Station M, M.0.4). *(Added COMP-t,
+      2026-09-28.)*
 - ❌ **Do not rename or reconfigure ports** to match anything. The code moves to the robot, never the
       reverse.
 
@@ -1570,5 +1797,7 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 - [ ] Station 2's table filled in completely — it is the one that cannot be reconstructed later.
 - [ ] **3.2 answered PER SIDE**, not once.
 - [ ] **Station 5.5 done** — it is the cheapest item here and the one that has been missed twice.
+- [ ] **If Station M ran: `shulib_auton_runs.txt` copied off the SD card** (M.7), with the serial
+      transcripts of M.6.
 - [ ] Anything surprising written down **as observed**, before anyone interprets it.
 

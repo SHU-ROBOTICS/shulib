@@ -1821,14 +1821,20 @@ PUBLIC_DOC_FILES = ["README.md", "test/README.md"]
 #     controls, the feel, bind() and run()). It is compiled by every robot build
 #     and host-tested (test/robot_two_driver_test.cpp for robot two's), so a quote
 #     of it is held to the code as a listing is — and, by the whole-run rule
-#     below, each such listing to an unbroken run of the file.
-# The auton tester's chunk (COMP-t) appends src/team/autons.cpp, the students'
-# auton file, by the same rule. It is NEVER widened to all of src/: a program's
-# plumbing is not something a public document teaches from, and a quote of it
-# would pass this scan while describing code no reader should copy. The guide's
-# README states the same scope in prose ("the team's files under src/team/ that
-# a chapter quotes").
-EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp"]
+#     below, each such listing to an unbroken run of the file;
+#   * src/team/autons.cpp — the team's AUTON FILE (COMP-t, 2026-09-28): the
+#     autons the robot runs, which guide chapter 16 quotes piece by piece. The
+#     host suite compiles it and runs every auton in it on the host test plant
+#     (test/autons_test.cpp), and every robot build compiles it, so a quote of it
+#     is a quote of what the robot runs — and, by the whole-run rule, each
+#     listing is an unbroken run of it (a listing of an auton that skips a line
+#     misstates the auton).
+# It is NEVER widened to all of src/: a program's plumbing is not something a
+# public document teaches from, and a quote of it would pass this scan while
+# describing code no reader should copy. The guide's README states the same
+# scope in prose ("the team's files under src/team/ that a chapter quotes").
+EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp",
+                        "src/team/autons.cpp"]
 
 # THE WHOLE-RUN RULE, for the kinds a chapter shows AS THE FILE READS (T4 Part
 # 1a's review, 2026-09-27). The scan checks MEMBERSHIP: every quoted line must
@@ -1849,8 +1855,10 @@ EXAMPLE_SOURCE_GLOBS = ["test/*example*_test.cpp", "src/team/*_driver.hpp"]
 # will write): a recipe may still leave out lines of its test, such as a CHECK,
 # between the lines it shows. Measured when the rule was added: all 46 listings
 # that lie wholly inside one example test are unbroken runs already, so adding
-# that kind here would need no chapter re-quoted — a separate decision.
-WHOLE_RUN_SOURCE_GLOBS = ["src/team/*_driver.hpp"]
+# that kind here would need no chapter re-quoted — a separate decision. The
+# team's auton file joined at COMP-t (the coordinator's ruling, 2026-09-27: a
+# listing of an auton that skips a line misstates the auton).
+WHOLE_RUN_SOURCE_GLOBS = ["src/team/*_driver.hpp", "src/team/autons.cpp"]
 
 # The C7 removability property: docs/internal/ must be droppable without
 # breaking a single public link.
@@ -1902,9 +1910,9 @@ def do_check_examples():
     """Every ```cpp line in public docs must appear VERBATIM in a compiled source.
 
     The compiled sources are EXAMPLE_SOURCE_GLOBS: the example tests, and the
-    team's files a chapter quotes from (a robot's driver file, since T4). A
-    listing of a WHOLE_RUN_SOURCE_GLOBS file must also be one unbroken run of
-    it (the rule's reasoning is at that list).
+    team's files a chapter quotes from (a robot's driver file, since T4; the
+    team's auton file, since COMP-t). A listing of a WHOLE_RUN_SOURCE_GLOBS file
+    must also be one unbroken run of it (the rule's reasoning is at that list).
 
     CAMPAIGN FIND (D3, mutations H1 and H6): this rule has existed since C8 and
     was enforced only by the internal verify harness — so a rotted example
@@ -2596,6 +2604,16 @@ def do_self_test():
         _put("test/fixture_example_test.cpp", "    int onlyInTheExample = 1;\n")
         _put("src/team/fixture_driver.hpp",
              "    static constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n")
+        # The auton kind (COMP-t): its glob names ONE file, so the fixture must have it or
+        # every scan below fails on "no file matches" rather than on what it tests.
+        autons_whole = ("void registerAutons(Registry& registry) {\n"
+                        "    // 1. THE 40 IN AUTON.\n"
+                        "    forty.name = \"40in forward\";  // what the menu shows\n"
+                        "\n"
+                        "    forty.endActionAt = 27_s;\n"
+                        "    registry.add(forty);\n"
+                        "}\n")
+        _put("src/team/autons.cpp", autons_whole)
         _put("src/programs/fixture_program.cpp", "    int onlyInAProgram = 3;\n")
         quote = ("```cpp\nstatic constexpr int kOnlyInTheDriverFile = 7;  // a driver line\n"
                  "int onlyInTheExample = 1;\n```\n")
@@ -2666,6 +2684,42 @@ def do_self_test():
         finally:
             WHOLE_RUN_SOURCE_GLOBS[:] = saved_whole
         _put("docs/cookbook/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+
+        # ── the team's auton file (COMP-t): a quoted kind AND a whole-run kind ──
+        # Bug caught: guide 16's quote of an auton drifting from src/team/autons.cpp (the
+        # robot running 44 in while the chapter still says 40) with the scan green; and a
+        # listing of an auton that SKIPS a line of it (an added step, or the schedule's
+        # endActionAt dropped from the listing) — the auton misstated, every quoted line
+        # still present.
+        autons_listing = ("```cpp\nvoid registerAutons(Registry& registry) {\n"
+                          "// 1. THE 40 IN AUTON.\n"
+                          "forty.name = \"40in forward\";  // what the menu shows\n"
+                          "forty.endActionAt = 27_s;\nregistry.add(forty);\n}\n```\n")
+        _put("docs/guide/fixture.md", autons_listing)
+        check(_scan() == 0,
+              "check-examples: a listing that is one unbroken run of the auton file passes")
+        _put("docs/guide/fixture.md", autons_listing.replace("27_s", "28_s"))
+        check(_scan() == 1, "check-examples: a drifted quote of the auton file fails")
+        _put("docs/guide/fixture.md", autons_listing.replace("forty.endActionAt = 27_s;\n", ""))
+        check(_scan() == 1,
+              "check-examples: a listing of the auton file that SKIPS one of its lines fails "
+              "(the auton file is a whole-run kind)")
+        _put("docs/guide/fixture.md", "```cpp\nint onlyInTheExample = 1;\n```\n")
+        os.remove(os.path.join(ex, "src/team/autons.cpp"))
+        with contextlib.redirect_stdout(io.StringIO()):
+            err = io.StringIO()
+            saved_repo = globals()["REPO"]
+            globals()["REPO"] = ex
+            try:
+                with contextlib.redirect_stderr(err):
+                    rc = do_check_examples()
+            finally:
+                globals()["REPO"] = saved_repo
+        check(rc == 1 and "src/team/autons.cpp" in err.getvalue(),
+              "check-examples: the auton file missing fails, NAMING its glob")
+        _put("src/team/autons.cpp", autons_whole)
+        check(_scan() == 0, "check-examples: the auton file restored, the fixture passes again")
+
         os.remove(os.path.join(ex, "src/team/fixture_driver.hpp"))
         check(_scan() == 1,
               "check-examples: a kind whose glob matches NO file fails, even when no quote "

@@ -105,7 +105,7 @@ $(error unknown ROBOT '$(ROBOT)' — valid values: bench (default), xdrive, tank
 endif
 
 # ── WHICH PROGRAM? (R3b Part 0b, 2026-09-10 — the second build axis; third value at Parts 1–3) ──
-# PROGRAM selects what opcontrol() runs on robot two:
+# PROGRAM selects which program a robot-two build is (what its PROS entry points run):
 #     make ROBOT=tank                   → PROGRAM=tester — "Bench Tests": the read-only tester with its
 #                                         gated DRIVE station (slot 3, `pros upload --slot 3`)
 #     make ROBOT=tank PROGRAM=drive     → "shulib Drive": the program that JUST DRIVES robot two from
@@ -131,16 +131,26 @@ endif
 #                                         `pros upload --slot 4 --name "shulib Calibrate"`).
 #                                         It POWERS THE MOTORS. It has run on robot two since
 #                                         2026-09-24 (its recorded reproduction run is still owed).
-# Four programs in four slots rather than one program with a chooser (team lead's ruling): the
+#     make ROBOT=tank PROGRAM=autontest → "shulib Auton Tester" (COMP-t, 2026-09-28): runs ONE of
+#                                         the team's autons (src/team/autons.cpp) on the bench from
+#                                         RUN on the brain's screen — a 3 s countdown, then
+#                                         competition::runAuton, the competition program's own
+#                                         call; any controller button or a touch aborts
+#                                         (src/programs/auton_tester_program.cpp; slot 7 until
+#                                         T4 Part 3 retires Teleop, then 2 — T4's N4). It has not
+#                                         run on a robot.
+# Five programs in five slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
-# `drive`, `library` and `calibrate` are only meaningful on robot two — `drive` and `library`
-# because only its chassis table carries measured signs, `calibrate` because the calibrator only
-# supports a tank drivetrain and takes the cartridge from that table; so any of the three with any
-# other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM value is an
-# $(error) too — the same silent-no-op class GATE1 closed for ROBOT. tools/src_build_gate.py
-# builds this axis as its fourth, fifth and sixth entries (tank-drive, tank-library,
-# tank-calibrate) and asserts each define lands token-exact and the beacons are in the ELF.
+# `drive`, `library`, `calibrate` and `autontest` are only meaningful on robot two — `drive` and
+# `library` because only its chassis table carries measured signs, `calibrate` because the
+# calibrator only supports a tank drivetrain and takes the cartridge from that table, `autontest`
+# because the team's autons are robot two's and only robot two boots from a calibration record;
+# so any of the four with any other ROBOT is an $(error), not a program that refuses at boot. Any
+# other PROGRAM value is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT.
+# tools/src_build_gate.py builds this axis as its fourth to seventh entries (tank-drive,
+# tank-library, tank-calibrate, tank-autontest) and asserts each define lands token-exact and the
+# beacons are in the ELF.
 PROGRAM?=tester
 ifeq ($(PROGRAM),tester)
 # the default: no define; src/build_selection.hpp's chain picks the bench tester on bench and tank
@@ -159,8 +169,13 @@ ifneq ($(ROBOT),tank)
 $(error PROGRAM=calibrate needs ROBOT=tank — the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table; '$(ROBOT)' cannot be calibrated by it)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_CALIBRATE
+else ifeq ($(PROGRAM),autontest)
+ifneq ($(ROBOT),tank)
+$(error PROGRAM=autontest needs ROBOT=tank — the team's autons are robot two's; '$(ROBOT)' has none)
+endif
+override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_AUTONTEST
 else
-$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library, calibrate)
+$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library, calibrate, autontest)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

@@ -762,21 +762,63 @@ None of these was ruled before. Each has a recommendation. Nothing is built on a
   "shulib Competition"; `opcontrol()` per B11 as T4 Part 1a replaces it. Whichever of COMP-b and COMP-t (the
   auton tester, briefed as the seventh build) lands second takes the next build and the next self-test pair.
   *[Settled 2026-09-28, RC8/RC4: COMP-t lands first; COMP-b is the EIGHTH build, `Program::Competition` after
-  `AutonTester`, self-test pair 33/34 (re-count at start). The list above omits the Makefile branch and
+  `AutonTester`, self-test pair 34/35 (as COMP-t landed: case 33 is its tables-agree check). The list above omits the Makefile branch and
   several comments — RC4 lists every place; COMP-t §3.6 is the checklist.]*
 
-- **B30 (PENDING — COMP-t writes it into this brief at its landing; quoted from COMP-t §6 item 6, then
-  amended here by RC1 and RC6) — what COMP-b takes from COMP-t:** the pacer layering and the latch-every-tick
-  rule; the catch shape of `runTesterOnce` (ONE try from arm to end, a panic stop in the handler) and the
-  task-level catch with `stopAfterProgramError` (R14) *[RC1: its STOP only — FINISHED (per ND1) is then published and
-  the task lives on; R14's idle-for-ever is NOT taken]*; the boot's chain proof (`RunGuard::pacesTotal()` around
-  one idle tick, R13) — for its own watch; `kAutonPeriods` and `registerAutons`; the command registry when the
-  first ROUTE auton appears (registered once in the students' file, passed by both programs; until then
-  `nullptr`); the SD run log through `ProsBlockSink`'s Append mode and `hal::BlockCharSink` (COMP-b may append
-  match runs, its call — ND5: never before FINISHED); the pure-PROS-read pattern (`testerTouchFrom` /
-  `abortInputsFrom`) and the source-pin pattern. NOT taken: `AbortWatch`, and the idle estimate ticking.
-  *[RC6: `pacerChainProven`, `stopAfterProgramError` and `testerTouchFrom` are typed on, or live beside, the
-  tester's `AbortWatch` in `src/programs/` — their homes are ND3.]*
+
+### Amendments dated 2026-09-28 — COMP-t, "shulib Auton Tester", built first (BINDING on COMP-b)
+
+> COMP-t (the auton tester, `docs/internal/chunks/COMP-t-auton-tester.md` §6 item 6) landed first and built
+> pieces this brief assumed COMP-b would build. **B5 is unchanged here** — its slot wording is T4 Part 0's
+> (slot 6 "shulib Competition", slot 5 held). The amendments below override B8, B18, B25 (in B23-B27's
+> notes) and B29 where they conflict, and add B30.
+
+- **B8 (amended):** `BootConfig::buildOptions()`'s doc was **reworded by COMP-t** (R10): the ports are read
+  during construction only; a pacer a caller adds (`opts.pacer = &guard;`) is BORROWED for the Robot's whole
+  life. COMP-b finds it done and adds no `buildOptions(ITickPacer&)` overload. The tester's `initialize()`
+  (`src/programs/auton_tester_program.cpp`) is the worked example of B8's order, including the boot's chain
+  proof (B30).
+- **B18 (amended):** **the students' file IS `src/team/autons.{hpp,cpp}` (COMP-t)** — `kAutonPeriods` (the
+  manual's 30 s / 60 s) and `registerAutons(competition::AutonRegistry&)`, registering the 40 in auton (written
+  on the team lead's go of 2026-09-26, "no you can write the auton") and the acceptance run, both MATCH,
+  endActionAt 27 s, hardStopAt 29 s, RELATIVE start. COMP-b CALLS `registerAutons()` from its `initialize()`,
+  inside its try, and never writes a second file. The host suite compiles `src/team/autons.cpp` and runs every
+  auton in it (`test/autons_test.cpp`).
+- **B25 (amended, in B23-B27's notes):** the Makefile's program comment says "Five programs in five slots"
+  since COMP-t; COMP-b makes it **"Six programs"**.
+- **B29 (amended):** COMP-t took the seventh build (`tank-autontest`, `Program::AutonTester`, beacon
+  `shulib-robot-variant=tank-autontest`, self-test cases 31/32). **COMP-b's is the EIGHTH build;
+  `Program::Competition` goes after `AutonTester` in the enum; its self-test pair takes the next two numbers
+  after COMP-t's (34/35 as of COMP-t's review: case 33 is COMP-t's check that the gate's own tables agree — a build dropped from `VARIANTS` alone).** `tank-autontest` joins the list of beacons `…=tank` is a prefix of.
+- **B30 (NEW) — what COMP-b takes from COMP-t, and what it must not:**
+  - **Take:** the pacer layering and the latch-every-tick rule (the watch requests `requestAbandon()` on its
+    LATCHED cause every pace a run is live — a request made while idle is dropped at the arm); the catch shape
+    of `runTesterOnce` (ONE try from the arm to the end, a panic stop `chassis.cancel()` in each handler, and a
+    `catch (const std::exception&)` that keeps the throw's own words — COMP-t's review) and
+    the task-level try whose handler calls `stopAfterProgramError()` (the drive to 0 V + Brake, every PRESENT
+    mechanism safed, each step tried on its own) and then idles for ever (R14) *[RC1, with the team lead's ND1 (2026-09-28): COMP-b takes R14's STOP only — after the safe stop it posts FINISHED and its auton task lives on, so driver control still runs and later autons are refused until a reboot; R14's idle-for-ever is NOT taken]*; **the boot's chain proof** —
+    `RunGuard::pacesTotal()` (added by COMP-t) and the watch's own pace count around ONE idle tick, the boot
+    REFUSED when either did not move (R13) — AND the watch attached to that guard (`AbortWatch::attachedTo`,
+    COMP-t's review: an unattached watch paces and latches but asks nobody to abandon, and the run drove 14 in
+    past the button) — for COMP-b's own watch, with the same link check; the Robot's PRESENT mechanisms handed
+    to `runAuton` and to the last-resort stop (source-pinned, and test (18b) safes them through the run);
+    `kAutonPeriods` and `registerAutons()`;
+    the SD run log through `ProsBlockSink`'s Append mode and `hal::BlockCharSink` (ND5, answered: COMP-b
+    appends its match runs to the same `shulib_auton_runs.txt`, only after FINISHED is posted); the pure-PROS-read pattern (one line in the program,
+    the meaning in a host-tested template such as `testerTouchFrom` / `abortInputsFrom`) and the source-pin
+    pattern (`test/auton_tester_source_test.cpp`).
+  - **Where the shared pieces live (RC6; ND3 (b), the coordinator's, 2026-09-28):** `pacerChainProven`,
+    `stopAfterProgramError` and `testerTouchFrom` are typed on, or live beside, the tester's `AbortWatch` in
+    `src/programs/`; COMP-b's FIRST step moves them into `src/common/` with generic versions and re-points
+    COMP-t's call sites and pins, logged (~+¼ day).
+  - **The command registry, when the first ROUTE auton appears:** registered ONCE in the students' file (e.g.
+    `registerCommands(runner::CommandRegistry&)` beside `registerAutons`) and passed by BOTH programs. Until
+    then the tester passes `nullptr` and a route auton is REFUSED by name ("a route auton needs a command
+    registry to fire its markers") — the one argument that differs from COMP-b's call today.
+  - **Must NOT take:** `bench::AbortWatch` — it aborts on ANY button, and in a match a driver's bumped button
+    would end the auton; COMP-b's watch has the competition causes only. Nor the idle estimate ticking: B19's
+    `notify_take` idle stays COMP-b's.
+
 ---
 
 ## 0. What exists (read these; every line was re-checked at `8ac243f`)

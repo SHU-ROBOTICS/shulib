@@ -133,6 +133,7 @@ nav:
       - 13 — Extending the library: guide/13-extending-the-library.md
       - 14 — What it cannot do yet: guide/14-what-it-cannot-do-yet.md
       - 15 — Glossary: guide/15-glossary.md
+      - 16 — Testing an auton on the bench: guide/16-testing-an-auton-on-the-bench.md
 
   - Cookbook:
       - cookbook/README.md
@@ -237,6 +238,7 @@ nav:
           - Absent tag source: api/absent_tag_source.md
           - Absent vision: api/absent_vision.md
           - Battery: api/battery.md
+          - Block char sink: api/block_char_sink.md
           - Block sink: api/block_sink.md
           - Block source: api/block_source.md
           - Char sink: api/char_sink.md

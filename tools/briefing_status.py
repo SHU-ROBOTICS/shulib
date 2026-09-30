@@ -24,6 +24,7 @@ USAGE
   python3 tools/briefing_status.py generate   # rewrite the block in place
   python3 tools/briefing_status.py check      # exit 1 if the block is stale
   python3 tools/briefing_status.py show       # print the block, touch nothing
+  python3 tools/briefing_status.py self-test  # prove the chunk/part rule can fire
 
 `check` runs as a build-time doc gate beside check-coverage / check-fresh /
 check-examples / check-removability.
@@ -54,13 +55,33 @@ def _run(args, cwd=REPO):
         return ""
 
 
-def completed_chunks():
-    """Chunks with a completion record — the project's own definition of done."""
-    d = os.path.join(REPO, "docs/internal/chunks")
+# A PART of a chunk is named `<CHUNK>-<part>`, the part holding at least one lower-case letter —
+# `COMP-t` is COMP's auton-tester part (COMP = parts a, t and b); `T4-2a` would be T4's. A part may
+# keep its own live log and its own record (`COMP-t-PROGRESS.md`, `COMP-t-COMPLETED.md`), but the
+# plan counts CHUNKS: a part's record is not a completed chunk, and a part's log keeps its PARENT open
+# until the parent's own record exists. (Found 2026-09-29 at COMP-t's merge: its record made this
+# block count 33 of 63 while the phase table has COMP as one chunk.) Chunk names never match: they
+# are upper case, digits and hyphens (`SAFE-SAVE`, `DEFECTS2`), and where one ends in a lower-case
+# letter it follows a digit with no hyphen (`R1a`, `R2a`, `R5a` — chunks the phase table names).
+# `self-test` pins both sides of the rule.
+PART_NAME = re.compile(r"^([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)-([a-z0-9]*[a-z][a-z0-9]*)$")
+
+
+def chunk_of(name):
+    """The chunk a record or log belongs to: a PART's (PART_NAME) is its parent's."""
+    m = PART_NAME.match(name)
+    return m.group(1) if m else name
+
+
+def completed_chunks(d=None):
+    """Chunks with a completion record — the project's own definition of done. A PART's record
+    (PART_NAME) is not a chunk and is left out. `d` is the records' directory (self-test only)."""
+    d = d or os.path.join(REPO, "docs/internal/chunks")
     if not os.path.isdir(d):
         return []
     names = [f[: -len("-COMPLETED.md")] for f in os.listdir(d)
              if f.endswith("-COMPLETED.md")]
+    names = [n for n in names if not PART_NAME.match(n)]
 
     def key(n):
         # The suffix is part of the key, and that is load-bearing — DOCS1.
@@ -81,7 +102,7 @@ def completed_chunks():
     return sorted(names, key=key)
 
 
-def in_flight_chunks():
+def in_flight_chunks(d=None):
     """A PROGRESS log with no COMPLETED record = a chunk that is OPEN.
 
     Open means one of two things, and this function cannot tell which (the tree's
@@ -92,12 +113,13 @@ def in_flight_chunks():
     labelled INTERRUPTED until 2026-09-24, which was false for every chunk in the
     second case and told a new session to treat parked work as a crash.
     """
-    d = os.path.join(REPO, "docs/internal/chunks")
+    d = d or os.path.join(REPO, "docs/internal/chunks")
     if not os.path.isdir(d):
         return []
-    done = set(completed_chunks())
-    return sorted({f[: -len("-PROGRESS.md")] for f in os.listdir(d)
-                   if f.endswith("-PROGRESS.md")} - done)
+    done = set(completed_chunks(d))
+    logs = {f[: -len("-PROGRESS.md")] for f in os.listdir(d) if f.endswith("-PROGRESS.md")}
+    # A part's log (PART_NAME) keeps its PARENT open; the part itself is never listed.
+    return sorted({chunk_of(n) for n in logs} - done)
 
 
 def header_count():
@@ -455,8 +477,50 @@ def splice(text, block):
     return text.rstrip() + "\n\n" + block + "\n"
 
 
+def self_test():
+    """The chunk/part rule, both ways, on names and on a scratch records directory — a rule that
+    decides the briefing's position line has to be seen failing and passing. Exit 0 or 1."""
+    import tempfile
+    fails = []
+    # (name, the chunk it belongs to): a PART names its parent; every chunk name is its own.
+    names = [("COMP-t", "COMP"), ("SAFE-SAVE-a", "SAFE-SAVE"), ("T4-2a", "T4"), ("MECH-core", "MECH"),
+             ("COMP", "COMP"), ("R1a", "R1a"), ("R2a", "R2a"), ("R5a", "R5a"), ("SAFE-SAVE", "SAFE-SAVE"),
+             ("DEFECTS2", "DEFECTS2"), ("GATE1", "GATE1"), ("L9-A1", "L9-A1"), ("COMP-T", "COMP-T")]
+    for n, want in names:
+        if chunk_of(n) != want:
+            fails.append(f"chunk_of({n!r}) = {chunk_of(n)!r}, want {want!r}")
+    with tempfile.TemporaryDirectory() as d:
+        for f in ["A1-COMPLETED.md", "R2a-COMPLETED.md", "COMP-t-COMPLETED.md", "COMP-t-PROGRESS.md",
+                  "COMP-PROGRESS.md", "T4-PROGRESS.md", "SAFE-SAVE-a-PROGRESS.md", "DIAG1-PROGRESS.md",
+                  "DIAG1-COMPLETED.md", "MECH-core-COMPLETED.md"]:
+            open(os.path.join(d, f), "w").close()
+        got, want = completed_chunks(d), ["A1", "DIAG1", "R2a"]
+        if got != want:
+            fails.append(f"completed_chunks = {got}, want {want} (a part's record is not a chunk)")
+        got, want = in_flight_chunks(d), ["COMP", "SAFE-SAVE", "T4"]
+        if got != want:
+            fails.append(f"in_flight_chunks = {got}, want {want} (a part's log keeps its parent open; "
+                         f"a chunk with its own record is closed)")
+        # The parent's OWN record closes it, whatever its parts' records and logs say.
+        open(os.path.join(d, "COMP-COMPLETED.md"), "w").close()
+        got, want = in_flight_chunks(d), ["SAFE-SAVE", "T4"]
+        if got != want:
+            fails.append(f"after COMP-COMPLETED.md: in_flight_chunks = {got}, want {want}")
+        if completed_chunks(d) != ["A1", "COMP", "DIAG1", "R2a"]:
+            fails.append(f"after COMP-COMPLETED.md: completed_chunks = {completed_chunks(d)}")
+    for f in fails:
+        print(f"briefing status self-test: FAIL {f}", file=sys.stderr)
+    if fails:
+        return 1
+    print(f"briefing status self-test: OK ({len(names) + 4} cases: the chunk/part rule on names "
+          f"and on a scratch records directory)")
+    return 0
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
+    if cmd == "self-test":
+        return self_test()
     block = render()
     if cmd == "show":
         print(block)

@@ -4,8 +4,8 @@ name: ci
 # Runs the same checks we run locally: the architecture guards, the strict host
 # build, the test suite, (since chunk A4) a cross-COMPILE of every v2 header for
 # the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
-# AND link, every build (six since R3d Part 2: three robot variants and the tank
-# drive/library/calibrate programs) — of src/ under a warning policy.
+# AND link, every build (seven since COMP-t: three robot variants and the tank
+# drive/library/calibrate/autontest programs) — of src/ under a warning policy.
 # (This file said the ARM link was impossible in CI until 2026-08-19 — "needs
 #  PROS's bundled toolchain". MEASURED FALSE at GATE1: the firmware archives are
 #  vendored in-tree and `make` links end to end at apt's arm-none-eabi-g++ 13.2.1
@@ -46,6 +46,11 @@ jobs:
       # src/ remains the other deliberate exception: it lives outside include/shulib/
       # — main.cpp, the PROS entry points, and the programs under src/programs/ and
       # src/common/ (SRC1's layout, 2026-09-27) — and wires the PROS-free core to them.
+      # This grep says NOTHING about src/: the auton tester's pure headers
+      # (src/programs/auton_abort_watch.hpp, auton_tester_run.hpp, auton_tester_panel.hpp)
+      # and the team's src/team/autons.{hpp,cpp} are held PROS-free by a source pin in
+      # the host suite instead (test/auton_tester_source_test.cpp, COMP-t) — the host
+      # shim provides pros/rtos.hpp and pros/misc.hpp, so a compile could not tell.
       - name: No <pros/> in the library (except hal/pros, path-anchored)
         run: |
           if grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib \
@@ -81,6 +86,7 @@ jobs:
           python3 tools/api_doc_tool.py check-fresh
           python3 tools/api_doc_tool.py check-examples
           python3 tools/api_doc_tool.py check-removability
+          python3 tools/briefing_status.py self-test
           python3 tools/briefing_status.py check
           python3 tools/doc_staleness_audit.py self-test
           python3 tools/doc_staleness_audit.py
@@ -109,8 +115,9 @@ jobs:
   #  * The SRC BUILD GATE steps (GATE1) run the REAL `make` — compile AND LINK,
   #    producing bin/hot.package.bin — for EVERY build (ROBOT=bench, ROBOT=xdrive,
   #    since R3b Session 2 ROBOT=tank, and since R3b Part 0b the second axis
-  #    ROBOT=tank PROGRAM=drive, ROBOT=tank PROGRAM=library, and since R3d Part 2
-  #    ROBOT=tank PROGRAM=calibrate — six builds; the tool owns the list),
+  #    ROBOT=tank PROGRAM=drive, ROBOT=tank PROGRAM=library, since R3d Part 2
+  #    ROBOT=tank PROGRAM=calibrate, and since COMP-t ROBOT=tank PROGRAM=autontest
+  #    — seven builds; the tool owns the list),
   #    because until GATE1 src/ was in NO gate at all and the
   #    Makefile records that this blind spot shipped a data abort to the robot.
   #    Until 2026-08-19 this comment's ancestor claimed the link needed PROS's

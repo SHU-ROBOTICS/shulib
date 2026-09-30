@@ -14,6 +14,7 @@
 #include "doctest.h"
 
 #include <array>
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
@@ -22,6 +23,7 @@
 #include "shulib/chassis/routine.hpp"
 #include "shulib/control/exit_group.hpp"
 #include "shulib/core/check.hpp"
+#include "shulib/hal/fake/fake_mechanism.hpp"
 #include "shulib/hal/fake/fake_telemetry_sink.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor.hpp"
@@ -162,6 +164,116 @@ TEST_CASE("F2 inert-by-default: an unarmed guard is a bit-identical pass-through
     CHECK(guarded.rig.h.truePose().x().value() == rig.h.truePose().x().value());
     CHECK(guarded.rig.h.truePose().y().value() == rig.h.truePose().y().value());
     CHECK(guarded.seqLines() == 0);  // the guard said nothing, did nothing
+}
+
+// ── pacesTotal(): every pace, a run live or not (COMP-t, 2026-09-28; the brief's (33)) ─
+
+// Bug caught (mutation 26): a pace counter that counts only while a run is live — the Auton
+// Tester's boot proves its pacer chain by reading pacesTotal() around ONE IDLE tick (R13), and such
+// a counter would read no pace on a correct chain and refuse every boot; or a counter that also
+// moved `pacesSeen` (the report's "was the guard in the loop during THIS run" number would count
+// the idle ticks before it).
+TEST_CASE("COMP-t pacesTotal: counts every pace, run or not; pacesSeen still counts the run's") {
+    // Graded against the plant's own pace count (the guard's inner pacer), so the wait lengths'
+    // floating-point tick counts cannot make the expectation wrong.
+    GuardRig g;
+    CHECK(g.guard.pacesTotal() == 0);
+    g.chassis.wait(Time{0.05});  // idle ticks: no run live
+    REQUIRE(g.plant.paces > 0);
+    CHECK(g.guard.pacesTotal() == static_cast<std::uint64_t>(g.plant.paces));
+    const int beforeRun = g.plant.paces;
+    const auto report = g.guard.run(
+        g.chassis, RunGuardConfig{.endActionAt = Time{1.0}, .hardStopAt = Time{2.0}},
+        [&] { g.chassis.wait(Time{0.03}); }, [] { return true; });
+    CHECK(report.pacesSeen == g.plant.paces - beforeRun);  // the run's own: unchanged meaning
+    CHECK(report.pacesSeen > 0);
+    CHECK(g.guard.pacesTotal() == static_cast<std::uint64_t>(g.plant.paces));
+    const int afterRun = g.plant.paces;
+    g.chassis.wait(Time{0.02});  // idle again, after the run
+    CHECK(g.plant.paces > afterRun);
+    CHECK(g.guard.pacesTotal() == static_cast<std::uint64_t>(g.plant.paces));
+    const std::uint64_t direct = g.guard.pacesTotal();
+    g.guard.pace();  // a direct pace counts too
+    CHECK(g.guard.pacesTotal() == direct + 1);
+}
+
+// ── a mechanism that THROWS while being safed (COMP-t's review, 2026-09-29) ──────────────
+
+namespace {
+/// A broken adapter: its safe state throws, every time (counted).
+struct ThrowingSafeState final : IMechanism {
+    int calls = 0;
+    void applySafeState() override {
+        ++calls;
+        throw std::runtime_error("test: a mechanism's safe state threw");
+    }
+    [[nodiscard]] const char* name() const noexcept override { return "thrower"; }
+};
+}  // namespace
+
+// Bug caught: a mechanism whose applySafeState() throws KILLING the program through the guard's own
+// cancel-all. The normal path's cancel-all threw, the unwind's cancel-all (in a destructor) threw
+// again, and a second exception out of a destructor is std::terminate — measured by the Auton
+// Tester's review (exit 134): the tester's handler never ran and the mechanisms after the thrower
+// were never safed. Now: every listed mechanism is attempted (the one AFTER the thrower is safed),
+// the drive is safe, the guard is disarmed, and the thrower's exception reaches the caller (a broken
+// adapter stays loud). This case would abort the whole suite before the fix.
+TEST_CASE("COMP-t review: a throwing safe state is loud, never std::terminate, and skips nothing") {
+    GuardRig g;
+    shulib::hal::fake::FakeMechanism before{"before"};
+    ThrowingSafeState thrower;
+    shulib::hal::fake::FakeMechanism after{"after"};
+    std::array<IMechanism*, 3> mechs{&before, &thrower, &after};
+    bool threw = false;
+    std::string what;
+    try {
+        (void)g.guard.run(
+            g.chassis,
+            RunGuardConfig{.endActionAt = Time{1.0}, .hardStopAt = Time{2.0}, .mechanisms = mechs},
+            [&] { g.chassis.wait(Time{0.03}); }, [] { return true; });
+    } catch (const std::runtime_error& e) {
+        threw = true;
+        what = e.what();
+    }
+    CHECK(threw);  // loud: the thrower's own exception reached the caller
+    CHECK(what == "test: a mechanism's safe state threw");
+    CHECK(before.safeStateApplications() >= 1);
+    CHECK(after.safeStateApplications() >= 1);  // the mechanism AFTER the thrower: still safed
+    CHECK(thrower.calls >= 1);
+    CHECK_FALSE(g.guard.running());  // disarmed on the unwind
+    g.checkDriveSafe();
+    // The guard is usable again: the next run arms and ends normally.
+    std::array<IMechanism*, 2> good{&before, &after};
+    const auto next = g.guard.run(
+        g.chassis,
+        RunGuardConfig{.endActionAt = Time{1.0}, .hardStopAt = Time{2.0}, .mechanisms = good},
+        [&] { g.chassis.wait(Time{0.02}); }, [] { return true; });
+    CHECK(next.endActionSucceeded);
+}
+
+// Bug caught: the same thrower on the UNWIND path — scoring itself throws (a precondition), and the
+// unwind's cancel-all meets the throwing safe state inside a destructor. Before the fix: std::terminate.
+// Now: the ORIGINAL exception (the one already in flight) reaches the caller, never the thrower's,
+// and every mechanism was attempted.
+TEST_CASE("COMP-t review: a throwing safe state on the unwind drops its repeat; the original wins") {
+    GuardRig g;
+    ThrowingSafeState thrower;
+    shulib::hal::fake::FakeMechanism after{"after"};
+    std::array<IMechanism*, 2> mechs{&thrower, &after};
+    CHECK_THROWS_AS(
+        (void)g.guard.run(
+            g.chassis,
+            RunGuardConfig{.endActionAt = Time{1.0}, .hardStopAt = Time{2.0}, .mechanisms = mechs},
+            [&] {
+                g.chassis.wait(Time{0.02});
+                SHULIB_PRECONDITION(false, "test: scoring tripped a precondition");
+            },
+            [] { return true; }),
+        PreconditionError);
+    CHECK(thrower.calls == 1);  // the unwind's sweep reached it once...
+    CHECK(after.safeStateApplications() == 1);  // ...and the one after it
+    CHECK_FALSE(g.guard.running());
+    g.checkDriveSafe();
 }
 
 // ── configuration is validated, loudly, before anything moves ───────────────────────

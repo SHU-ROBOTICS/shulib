@@ -231,7 +231,7 @@ echo "int main(){return 0;}" >> /tmp/all.cpp
 arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow -Werror -Os -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=softfp -c /tmp/all.cpp -o /dev/null -Iinclude
 grep -rnE '#[[:space:]]*include[[:space:]]*[<"]pros/' include/shulib | grep -v '^include/shulib/hal/pros/'   # must print nothing
 grep -rnE --exclude-dir=sim '#[[:space:]]*include[[:space:]]*[<"]shulib/sim/' include/shulib                 # must print nothing
-python3 tools/api_doc_tool.py check-fresh && python3 tools/briefing_status.py check
+python3 tools/api_doc_tool.py check-fresh && python3 tools/briefing_status.py self-test && python3 tools/briefing_status.py check
 python3 tools/api_doc_tool.py check-removability   # the real C7 gate; stronger than a hand grep
 ```
 
@@ -267,21 +267,24 @@ pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
-Programs in `src/` (six builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
+Programs in `src/` (seven builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
 the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
 `src/programs/drive_program.cpp`), **shulib Teleop** (`PROGRAM=library`, slot 2, built from the SD record — the
 typed table cannot describe the drivetrain, see §2; since G1 Part 2b `robot::Robot` + the library's
 own loop in `src/programs/teleop_program.cpp`, **this version never run** — the previous, hand-wired one drove
 robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/programs/calibrate_program.cpp`;
 **first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
-serial capture; its recorded reproduction run is still owed), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
+serial capture; its recorded reproduction run is still owed), **shulib Auton Tester** (`PROGRAM=autontest`,
+slot 7 until T4 Part 3, `src/programs/auton_tester_program.cpp`; COMP-t, 2026-09-28 — runs one of the team's
+autons from `src/team/autons.cpp` on the bench through `competition::runAuton`; **never run**), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
 invented ports, HA-111 — since G1 Part 2c `src/robots/xdrive_config.hpp` on `robot::Robot`, refusing at boot
 on any robot that exists). `src/build_selection.hpp` chooses, in one chain, which program AND which robot's tables a build is,
 and `src/main.cpp` only hands each PROS entry point to that program (G1 Part 2c and its final run).
 Since SRC1 (2026-09-27, the team lead's layout) `src/` is one folder per job: `src/robots/` (what
 each robot IS — the two tables, the X-drive's config), `src/team/` (the team's own code, where
 students edit — its first file is robot two's driver file, `src/team/robot_two_driver.hpp` (T4
-Part 1a), and the auton list comes with COMP-t), `src/programs/` (one
+Part 1a), and its second the team's autons, `src/team/autons.{hpp,cpp}` (COMP-t), the one `src/`
+`.cpp` the host suite compiles), `src/programs/` (one
 program each) and `src/common/` (what the programs share — the boot source, the state screens,
 the screen-text path, the fault-latch hook, a driver file's binder and checks); every include of a `src/` file is written from `src/`
 (`#include "robots/chassis_table.hpp"`), and the `src` gate's step 0 fails any path a second
@@ -371,6 +374,16 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - Size: ~1 day. *(Stale since the briefs, corrected 2026-09-28: COMP-a has landed; COMP-t is ~1 day (rough),
   since its brief states no size; COMP-b is ~2¼ executor-days plus ~1 day of verification (its re-check,
   "The honest size of COMP-b now"). The practice match is worksheet Station K.)*
+- **COMP-t — the auton tester, a part of L2 — LANDED 2026-09-29, host- and build-gated, NOT run on a
+  robot** (`docs/internal/chunks/COMP-t-COMPLETED.md`): "shulib Auton Tester" (`make ROBOT=tank
+  PROGRAM=autontest`, the seventh build; slot 7 until T4 Part 3, then 2) runs one of the team's autons
+  on the bench from RUN on the brain's screen through the SAME `competition::runAuton` call
+  `autonomous()` will make — only the trigger differs; any button, a touch, a controller drop or a
+  disable aborts. It created the students' auton file `src/team/autons.{hpp,cpp}` (the 40 in auton,
+  the acceptance run) that COMP-b calls, never copies (COMP brief B18/B30, amended 2026-09-28); COMP-b
+  is the EIGHTH build. Its first run on robot two is worksheet Station M — the first time an uploaded
+  program commands a `moveTo`; whether that log closes R3b is to be judged against R3b's DoD when it
+  exists.
 
 **L3. [R2] The AI Vision adapter.**
 - What: `hal/pros/vision.hpp` implementing `hal::IVision` (object observations) and `hal::ITagSource`
@@ -516,11 +529,13 @@ already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all
 **DIAG1 Part B** (the median's non-finite handling) is BRIEFED too (`chunks/DIAG1-partB-median-nonfinite.md`;
 every recommendation accepted). ~½–1 day.
 
-**L2t. [COMP-t, NEW 2026-09-27] The auton tester.** BRIEFED (`chunks/COMP-t-auton-tester.md`; jal: D1–D9 as
-recommended). "shulib Auton Tester" runs a registered auton on the bench through the same `runAuton` path
-`autonomous()` uses — touch RUN, a 3 s countdown, any button aborts — and creates the students' auton file
-`src/team/autons.{hpp,cpp}` with the 40 in auton. Slot 7 until T4 Part 3, then slot 2. **Built after TANK1**;
-before its builder starts, every MOTION_TIMEOUT prediction in its brief is re-made from TANK1's tests.
+**L2t. [COMP-t, NEW 2026-09-27] The auton tester.** **LANDED 2026-09-28, host- and build-gated, NOT run on a
+robot** (`chunks/COMP-t-COMPLETED.md`; brief `chunks/COMP-t-auton-tester.md`; jal: D1–D9 as recommended).
+"shulib Auton Tester" runs a registered auton on the bench through the same `runAuton` path `autonomous()` uses
+— touch RUN, a 3 s countdown, any button aborts — and created the students' auton file
+`src/team/autons.{hpp,cpp}` with the 40 in auton. Slot 7 until T4 Part 3, then slot 2. Built after TANK1 Part A,
+its predictions re-made from TANK1 (the re-predicted table re-run on the built code: byte-identical). Its first
+robot run is worksheet Station M (Part S, S1b).
 
 **L2u. [TANK1, NEW 2026-09-27, reactive] `moveTo` on a tank steers back onto its line.** **COMPLETE
 2026-09-29** (`chunks/TANK1-COMPLETED.md`): Part A LANDED 2026-09-28 (`3965791`, API 2.3); Part B (the ` xt`
@@ -627,14 +642,23 @@ you mean so its in-progress edits cannot reach a package.
   line.)* →
   `SAVED` read back → a second Calibrate run for reproduction → shulib Teleop from the record, wheels
   up then floor. **What it closes:** R3d (on the reproduction run). **What it cannot close:** R3b and
-  M1 — no uploaded program commands a `moveTo`, so the "few inches of `moveTo`" this file used to list
-  is impossible until L2 (or a minimal auton hook) exists; R3b closes on that later run. Then write
+  M1 — no program S1 runs commands a `moveTo`, so the "few inches of `moveTo`" this file used to list
+  is not in S1. The first uploaded program that commands one is "shulib Auton Tester" (COMP-t, part of
+  L2; built 2026-09-28, not yet run) at S1b below — whether its floor runs close R3b is a ruling
+  against R3b's DoD when its log exists, not claimed here. Then write
   `R3d-COMPLETED.md` from the log, move the roadmap pointer and the Next block, flip only evidenced
   checkboxes. **The "never driven a robot under its own control" sweep** (`docs/internal/guide-maintenance.md`'s "R3 — first
   real robot run" row) happens when the log shows the library's MOTION STACK drove — every instance
   in ONE commit: `README.md`, `docs/README.md`, guide ch. 01, 07, 14 and the guide README, the master
   plan's status line, `docs/vexbuilder-integration.md`. Teleop driving from the record is the library
   driving open-loop through its own graph — say exactly that, not more.
+- **S1b. The 40 in auton on the bench — worksheet Station M** (COMP-t, "shulib Auton Tester"; after
+  S1's Calibrate rerun if the team wants a truer 40 in — copy the record off the card first, G.0.1):
+  the forward check (EST x must RISE — a STOP condition), the aborts wheels up, a wheels-up full run,
+  then three floor runs on the tape with serial captured (the RESULT word, END x and y, the faults
+  line, the TSTR count, the tape along and beside the line — HA-179, HA-180), the SD log across a
+  reboot (HA-177), and the abort/RUN-gate reads (HA-178). It comes BEFORE COMP-b's practice match
+  (Station K), which still owns the field disable, the Timed Run and the hand-over to driver control.
 - **S2. Real gains** (L7's ramp on the floor), persisted.
 - **S3. Real noise** (IMU at rest, encoders rolling, loop timing, battery sag under stall).
 - **S4. Mechanisms on hardware** (after L8), one log per primitive — F11's freeze trigger.
@@ -717,11 +741,12 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
    started only on his go. **DEFECTS2, T3 (both parts — the claws now driven by "shulib Teleop") and G1
    Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE. SRC1 (`src/`
-   organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; no program runs it yet). Next
-   (2026-09-27): TANK1 (`moveTo` on a tank steers back onto its line — jal: "Fix the library first"); then
-   COMP-t (the auton tester, with the 40 in auton) on TANK1, then COMP-b on COMP-t and T4 Part 1a (it takes
-   the students' auton file and the run pieces from COMP-t), then T4 Parts 2 and 3 (Part 1b folded into 3,
-   jal 2026-09-28). The sensors (L3 the AI Vision adapter, L4 piece targeting, L6 the wall reset) come after G3
+   organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; no program runs it yet).
+   TANK1 Part A (`moveTo` on a tank steers back onto its line — jal: "Fix the library first") and COMP-t
+   (the auton tester, with the 40 in auton, 2026-09-28) have landed, host- and build-gated, not run on a
+   robot; TANK1 Part B (the ` xt` column) is being built alongside. Next: COMP-b on COMP-t and T4 Part 1a
+   (it takes the students' auton file and the run pieces from COMP-t — B18/B30), then T4 Parts 2 and 3
+   (Part 1b folded into 3, jal 2026-09-28). The tester's first robot run is Station M (S1b). The sensors (L3 the AI Vision adapter, L4 piece targeting, L6 the wall reset) come after G3
    (jal, 2026-09-28). jal pushes the branch
    once the auton is complete, before G3a.** *(Status 2026-09-28: TANK1 Part A landed `3965791`; COMP-t and
    TANK1 Part B are building; COMP-b's and T4 Parts 2–3's briefs are re-checked and carry jal's answers of

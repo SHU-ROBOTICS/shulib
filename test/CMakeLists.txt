@@ -5,7 +5,9 @@
 #   Run:        ./build/test/shulib_tests        (or: ctest --test-dir build/test)
 #
 # This build is completely separate from the PROS ARM Makefile. It compiles only
-# the dependency-free core so we can catch bugs off-robot, fast.
+# the dependency-free core so we can catch bugs off-robot, fast — the library's
+# headers, the host tests, and (since COMP-t) ONE .cpp from src/: the team's
+# PROS-free auton file, src/team/autons.cpp (see target_sources below).
 cmake_minimum_required(VERSION 3.20)
 project(shulib_tests CXX)
 
@@ -78,6 +80,15 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
 
 add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 
+# THE ONE src/ .cpp THE HOST BUILDS (chunk COMP-t, 2026-09-28): the team's autons,
+# src/team/autons.cpp. It is PROS-free by design, and it is exactly what the robot
+# runs — so the host suite runs every auton in it on the host test plant through
+# the Auton Tester's own run sequence (test/autons_test.cpp), and a change to an
+# auton is tested before it is uploaded. Every other src/ file stays robot-only
+# (the programs include PROS); a PROS-free src/ header the host needs is included
+# from src/ through the root below, never compiled here.
+target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
+
 # shulib headers (added as we build them); doctest as a system header.
 target_include_directories(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
@@ -130,8 +141,9 @@ target_compile_definitions(shulib_tests PRIVATE
 #   check-examples  every ```cpp line in the public documentation must appear
 #                   VERBATIM in a compiled example test — or, since T4 Part 1a,
 #                   in a team file a chapter quotes from (a robot's driver file,
-#                   src/team/*_driver.hpp; the tool's EXAMPLE_SOURCE_GLOBS lists
-#                   the kinds — and each listing of a driver file must also be
+#                   src/team/*_driver.hpp, and since COMP-t the team's auton
+#                   file, src/team/autons.cpp; the tool's EXAMPLE_SOURCE_GLOBS
+#                   lists the kinds — and each listing of either must also be
 #                   an unbroken run of it, WHOLE_RUN_SOURCE_GLOBS, so a line
 #                   added to the file inside a listed part fails too). That rule has existed
 #                   since C8 — but it lived only in an internal verify script,
@@ -184,8 +196,9 @@ set(SHULIB_DOC_STAMP "${CMAKE_CURRENT_BINARY_DIR}/doc_gates.stamp")
 # until something unrelated forces a rebuild. CONFIGURE_DEPENDS so a new
 # chapter or a new examples file is picked up without a manual cmake re-run.
 # The example sources are the tool's EXAMPLE_SOURCE_GLOBS, each kind here too:
-# the example tests, and (since T4 Part 1a) a robot's driver file, which the
-# cookbook quotes part by part — an edit to it must re-run the verbatim scan.
+# the example tests, (since T4 Part 1a) a robot's driver file, which the
+# cookbook quotes part by part, and (since COMP-t) the team's auton file, which
+# guide chapter 16 quotes — an edit to either must re-run the verbatim scan.
 file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../README.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/README.md"
@@ -193,7 +206,8 @@ file(GLOB SHULIB_DOC_INPUTS CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/guide/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/../docs/cookbook/*.md"
   "${CMAKE_CURRENT_SOURCE_DIR}/*example*_test.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/*_driver.hpp")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/*_driver.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
 
 # ── EVERY header and EVERY generated page is an input (chunk DOCS2) ──────────
 # Until DOCS2 the gate depended on two headers and three pages, because those
@@ -247,6 +261,10 @@ add_custom_command(
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-fresh
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-examples
   COMMAND "${Python3_EXECUTABLE}" "${SHULIB_DOC_TOOL}" check-removability
+  # The briefing tool's chunk/part rule (COMP-t's merge, 2026-09-29) decides its position line;
+  # its self-test needs no briefing, so it runs on the published tree too.
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py" self-test
   ${SHULIB_BRIEFING_CMD}
   # staleness  the four gates above check that documentation EXISTS and is
   #            well-formed; none has an opinion about whether a sentence is

@@ -115,6 +115,10 @@
 // is NOT enough and the guard never relies on it alone: a live operation
 // re-commands its voltage on its next tick, restoring voltage but not brake
 // mode — the half-safe `brake=Hold, V=9.0` that passes any mode-only check.
+// A mechanism that THROWS there (a broken adapter) skips nothing: every listed
+// mechanism is attempted, then the first exception propagates; the unwind path's
+// own cancel-all drops its repeat, so a throwing safe state is a loud error the
+// caller catches, never std::terminate (COMP-t's review, 2026-09-29, measured).
 //
 // ── Verdict honesty (T5) ────────────────────────────────────────────────────────────
 // GuardedWaitResult is a sequence-layer vocabulary, minted because no existing
@@ -159,12 +163,16 @@
 // FREEZES NOTHING. TWO consumers since COMP-a: the host suites, and
 // competition::runAuton (match_runner.hpp), the competition program's auton
 // runner — which is why requestAbandon() could be added without a version bump.
+// pacesTotal() (COMP-t, 2026-09-28) is additive the same way: a counter every pace
+// increments, read by the Auton Tester's boot to prove its pacer chain.
 // The freeze itself is the team lead's call (Freeze Register row F12), and one
 // program that has not run on a robot is not yet the evidence a freeze wants.
 
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <exception>
 #include <functional>
 #include <span>
 #include <type_traits>
@@ -302,6 +310,7 @@ public:
     /// load-bearing (0.0000 in vs 10.79 in of post-deadline travel, measured)
     /// and pinned by test. Inert pass-through when no run is live.
     void pace() override {
+        ++pacesTotal_;  // every pace, run or not: a program proves its pacer chain with it
         if (running_) {
             ++pacesSeen_;
             const double now = clock_->now().value();
@@ -334,6 +343,14 @@ public:
     /// True once requestAbandon() has been called since the current (or, after run()
     /// returned, the most recent) run armed. Readable from any task.
     [[nodiscard]] bool abandonRequested() const noexcept { return abandon_.load(); }
+
+    /// Every pace() since construction, whether or not a run was live (RunGuardReport's
+    /// `pacesSeen` counts only a run's, so nothing in the report can say anything about the
+    /// wiring BEFORE a run). A program reads it before and after one idle tick to PROVE its
+    /// Chassis is paced through this guard -- the wiring run() itself cannot verify (it only
+    /// warns, after a run, when `pacesSeen` is 0). The Auton Tester refuses its boot when that
+    /// proof fails (COMP-t, 2026-09-28: additive). The pacing task only.
+    [[nodiscard]] std::uint64_t pacesTotal() const noexcept { return pacesTotal_; }
 
     // ── live observers (callable from scoring / the end action, during run()) ──────
 
@@ -442,7 +459,11 @@ public:
     /// If scoring() or endAction() THROWS (a precondition — a programming
     /// error), the guard cancels-all and safes on the unwind and RETHROWS: a
     /// broken program stays loud, and the guard does not drive to a pose on
-    /// its behalf (converting a throw into a park would hide the bug).
+    /// its behalf (converting a throw into a park would hide the bug). A
+    /// mechanism whose claimant or safe state throws does not stop the sweep:
+    /// every listed mechanism is still attempted, then the first such exception
+    /// propagates like any other throw — and the unwind never throws a second
+    /// one (that would be std::terminate).
     ///
     /// `chassis` MUST be the one constructed with THIS guard as its pacer —
     /// the guard has no way to verify that wiring, so it counts: a finished
@@ -493,13 +514,25 @@ private:
 
     /// Cancel-all + disarm on an exception unwinding run() (member comment
     /// on run()). Mirrors the facade's DetachGuard shape.
+    ///
+    /// NEVER THROWS (COMP-t's review, 2026-09-29). It runs while one exception is
+    /// already in flight, and a second one leaving a destructor is std::terminate —
+    /// measured: a mechanism whose applySafeState() threw made the NORMAL path's
+    /// cancel-all throw, and this destructor's cancel-all threw again (exit 134),
+    /// so the program died instead of reaching its handler. The cancel-all here is
+    /// still complete (safeMechanisms() attempts every mechanism whatever one of
+    /// them throws); anything it throws is dropped, because the exception already
+    /// unwinding is the one the caller must see.
     class RunUnwindGuard {
     public:
         explicit RunUnwindGuard(RunGuard& guard) noexcept : guard_{&guard} {}
         ~RunUnwindGuard() {
             if (guard_ != nullptr) {
                 guard_->inEndAction_ = false;
-                guard_->cancelAll();
+                try {
+                    guard_->cancelAll();
+                } catch (...) {  // NOLINT(bugprone-empty-catch): see the class comment
+                }
                 guard_->disarm();
             }
         }
@@ -660,22 +693,37 @@ private:
     /// safe + released), anonymous claims force-released with a Warn, then
     /// the declared safe state regardless — order pinned by test, because
     /// applySafeState() without the cancel lasts exactly one tick.
+    ///
+    /// EVERY mechanism is attempted, whatever one of them throws (COMP-t's review,
+    /// 2026-09-29): a throwing claimant or safe state no longer skips the mechanisms
+    /// after it. The FIRST exception is rethrown once the sweep is done, so a broken
+    /// adapter stays loud (run()'s unwind path then drops its repeat — RunUnwindGuard).
     void safeMechanisms() {
+        std::exception_ptr first;
         for (hal::IMechanism* m : mechanisms_) {
-            hal::ICancellable* claimant = m->claimant();
-            if (claimant != nullptr) {
-                claimant->cancel();
-            } else if (m->claimed()) {
-                m->releaseClaim();
-                ++anonymousReleases_;
-                char buf[112];
-                std::snprintf(buf, sizeof buf,
-                              "mechanism '%s': anonymous claim force-released — register "
-                              "a claimant so the guard can cancel the operation",
-                              m->name());
-                telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
+            try {
+                hal::ICancellable* claimant = m->claimant();
+                if (claimant != nullptr) {
+                    claimant->cancel();
+                } else if (m->claimed()) {
+                    m->releaseClaim();
+                    ++anonymousReleases_;
+                    char buf[112];
+                    std::snprintf(buf, sizeof buf,
+                                  "mechanism '%s': anonymous claim force-released — register "
+                                  "a claimant so the guard can cancel the operation",
+                                  m->name());
+                    telemetry_->log(hal::LogLevel::Warn, "SEQ", buf);
+                }
+                m->applySafeState();
+            } catch (...) {
+                if (!first) {
+                    first = std::current_exception();
+                }
             }
-            m->applySafeState();
+        }
+        if (first) {
+            std::rethrow_exception(first);
         }
     }
 
@@ -752,6 +800,7 @@ private:
     int postExpiryCancels_ = 0;
     int anonymousReleases_ = 0;
     int pacesSeen_ = 0;
+    std::uint64_t pacesTotal_ = 0;  // every pace since construction (pacesTotal())
     // The ONE member another task may write (banner: ABANDON). Everything else here
     // belongs to the run's own task, as before.
     std::atomic<bool> abandon_{false};

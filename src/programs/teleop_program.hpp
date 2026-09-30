@@ -26,8 +26,8 @@ namespace shulib::bench {
 /// The reason every autonomous() of this program gives, on the brain's state screen (src/main.cpp)
 /// and in the one serial line teleopAutonomous() writes. At most 50 characters (the screen's SMALL
 /// budget; checked where it is printed) and a promise: this program NEVER moves in autonomous —
-/// autonomous routines run only in the competition program's autonomous() (the team lead's
-/// ruling, 2026-09-25).
+/// autonomous routines run only in the competition program's autonomous() and, on the bench, the
+/// Auton Tester's RUN, through the same library call (the team lead's ruling, 2026-09-25; COMP-t).
 inline constexpr const char kTeleopAutonomousReason[] = "No motion here, ever: Teleop has no autonomous.";
 
 /// initialize()'s tank-library branch. Prints the boot banner (`booted: shulib TELEOP build

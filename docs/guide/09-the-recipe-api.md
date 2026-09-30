@@ -95,7 +95,7 @@ verb's full behavior and gotchas, and they all apply verbatim.
 
 | Step | What the robot does | Delegates to |
 |---|---|---|
-| `startAt(pose)` | Seeds the pose estimate with the measured starting pose — every auton's first line | `setPose` |
+| `startAt(pose)` | Seeds the pose estimate with the measured starting pose — the first line of every auton you run yourself (one registered for `competition::runAuton` has none: its entry's `start` is seated for it — [Chapter 16](16-testing-an-auton-on-the-bench.md)) | `setPose` |
 | `moveTo(pose, opts)` | Drives to a field pose, translating and rotating at once | `moveTo` |
 | `driveTo(x, y, opts)` | Drives to a field *point*, arriving facing it (heading = the bearing, computed when the step runs) | `moveTo` |
 | `strafeTo(x, y, opts)` | Translates to a field point while holding the current heading | `strafeTo` |

@@ -16,6 +16,59 @@
 
 ## API 2.3
 
+### Added and fixed since 2.3 (2026-09-28) — an append mode for the SD card, a text sink over a block sink, a guard pace count; a registry warning fixed
+
+> Written when it landed (chunk COMP-t — "shulib Auton Tester", the bench program that runs one of the
+> team's autons from the brain's screen through the competition program's own `competition::runAuton`
+> call). **No version bump:** every change is additive or a function body — no signature moved, no
+> existing behaviour changed except what happens when a mechanism's adapter THROWS during the run
+> guard's safing (the `RunGuard` fix below, found by the chunk's review), and none of these headers
+> is in the [Freeze Register](roadmap.md#freeze-register) (`RunGuard` is row F12, open by design).
+> **Host tests only; nothing here has run on a robot.**
+
+**ADDED:**
+
+- **`hal::pros::ProsBlockSink(fileName, ProsFileMode mode, mountRoot = "/usd/")`**, with
+  **`ProsFileMode { Truncate, Append }`**, **`AppendOpen { Appended, Created, Refused }`**,
+  **`appendOpen()`** and the free function **`hal::pros::openForAppend(path, open, close, how)`**.
+  Append keeps every earlier byte of the file and writes after them — one log across reboots. The
+  decision is made in `openForAppend()` alone: ask with `"rb"` whether the file exists, open `"ab"`,
+  and create with `"wb"` ONLY when the file was absent, so an existing file is never emptied
+  whichever way the brain answers an append on a missing file (that is a belief —
+  [HA-177](hardware-assumptions.md)). No mode has a `+`. **The two-argument constructor is unchanged:
+  it delegates with `Truncate` and still opens `"wb"`, byte for byte** — the blackbox's `SdSink` and
+  every other existing caller see no difference.
+- **`hal::BlockCharSink`** (`hal/block_char_sink.hpp`) — an `ICharSink` over a borrowed `IBlockSink`:
+  each `write()` is one block write and one flush; a refusal of either is dropped and counted
+  (`droppedWrites()`), never thrown. A `diag::TermSink` over it puts serial's exact lines on the SD
+  card.
+- **`sequence::RunGuard::pacesTotal()`** — every `pace()` since construction, whether or not a run
+  was live (`RunGuardReport::pacesSeen` still counts only a run's, as before). A program reads it
+  around one idle tick to PROVE its `Chassis` is paced through the guard — the wiring `run()` cannot
+  verify; the Auton Tester refuses its boot when that proof fails.
+
+**FIXED:**
+
+- **`competition::checkAutonEntry` — a `-Wformat-truncation` in every V5 build the first time a
+  program registers an auton.** Its buffer for a route's refusal sentence was 160 bytes; at `-Os` GCC
+  inlines `Route::valid()` into it and sees a sentence of up to 173 bytes. The buffer is now 192 (the
+  size `runner::PathRunner` uses for the same call) and the outer copy is bounded (`%.150s`).
+  Nothing called `add()` from a V5 source until the team's auton file did, so the warning — which
+  the robot build treats as an error — had never been emitted. No behaviour change on the host.
+- **`sequence::RunGuard` — a mechanism whose safe state (or whose claimant's `cancel()`) throws no
+  longer skips the mechanisms after it, and no longer ends the program in `std::terminate`.** Before,
+  the throw left the safing loop at once, so every mechanism listed after the thrower kept its last
+  command; and when it happened at a run's end, the unwind path's own cancel-all threw a second time
+  from a destructor — `std::terminate` (measured: exit 134), so no handler ever ran. Now every
+  mechanism is attempted, the FIRST exception is rethrown after the sweep (a broken adapter stays
+  loud), and the unwind path drops its repeat. The drive was never affected (the scheduler's cancel
+  runs first), and no shipped adapter throws there (`ProsMotor::setVoltage(0)` and `setBrakeMode`
+  have no throwing path) — so nothing changes unless an adapter is broken.
+
+**What to do:** nothing, unless you write to the SD card from a program: then open a log you want to
+keep across reboots with `ProsFileMode::Append`, and never with a raw `fopen` (the adapter owns the
+`/usd/` prefix and every mode).
+
 ### Changed — `moveTo` on a tank steers back onto its line (TANK1, 2026-09-27)
 
 > Written when it landed (chunk TANK1, Part A; its Part B — the result line's ` xt` column —

@@ -11,14 +11,14 @@
 > **Sizes** are builder-days (one executor) taken from the chunk's brief where a brief exists. Every size without
 > a brief is marked **(rough)**. **Verification is in no row.** The reviewers, the fixes and a fresh verifier are
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
-> than on builder time, so it is not in the total. **Last updated: 2026-09-28 ~17:10 (the tree at `e124b88`).**
+> than on builder time, so it is not in the total. **Last updated: 2026-09-29 ~22:30 (COMP-t's commit, on `a5bd83f`).**
 
 **Where things stand:** 32 of the phase table's 63 chunks are complete (TANK1 on 2026-09-29), and R2a (half of R2) has
-also landed; 31 chunks are open. Landed most recently: SRC1 (`src/` organized), T4 Part 1a (robot two's driver file) and
-TANK1 (a tank's `moveTo` steers back onto its line; Part B the ` xt` column). Being built now (2026-09-29): COMP-t, DIAG1
-Part B, SAFE-SAVE Part A, L9 Part A1, H1 Part A1, R5a Part A and T4 Part 2a; the MECH core's brief and G3a's amendment are
-being written.
-Nothing new has run on the robot since 2026-09-25.
+also landed; 31 chunks are open. Landed most recently: T4 Part 1a (robot two's driver file), TANK1 (a tank's `moveTo`
+steers back onto its line; Part B the ` xt` column) and **COMP-t, the auton tester** (2026-09-29; a part of COMP, so the
+chunk count does not move). Being built now (2026-09-29): DIAG1 Part B, SAFE-SAVE Part A, L9 Part A1, H1 Part A1, R5a
+Part A and T4 Part 2a; the MECH core's brief and G3a's amendment are being written.
+Nothing new has run on the robot since 2026-09-25. **The 40 in auton is ready for you on the bench** (#4).
 
 ---
 
@@ -27,9 +27,9 @@ Nothing new has run on the robot since 2026-09-25.
 | # | Item | State | Waits on | Size |
 |---|---|---|---|---|
 | 1 | **TANK1 Part A**: a tank's `moveTo` bends back toward its line (≤ 15°, a 0.06 s look-ahead) and cancels the yaw a weak side makes. X/H drives unchanged | ✅ landed `3965791` (API 2.3) | — | — |
-| 2 | **COMP-t**: "shulib Auton Tester" (pick an auton, touch RUN, 3 s countdown, any button aborts; it runs the same `runAuton` path `autonomous()` uses) plus the students' auton file `src/team/autons.{hpp,cpp}` with the 40 in auton | **building** (build → 3 reviewers → fix → a fresh verifier → fix) | — | ~1 day (rough; its brief states no size) |
+| 2 | **COMP-t**: "shulib Auton Tester" (pick an auton, touch RUN, 3 s countdown, any button aborts; it runs the same `runAuton` path `autonomous()` uses) plus the students' auton file `src/team/autons.{hpp,cpp}` with the 40 in auton | ✅ **landed 2026-09-29** (host- and build-gated, seven builds; the coordinator's ten safety mutations all red; **never run**) | — | — |
 | 3 | **TANK1 Part B**: the sideways-miss number (` xt`) on every tank result line; no API bump | ✅ landed 2026-09-29 — **TANK1 COMPLETE** | — | — |
-| 4 | **You run the 40 in on the bench**: worksheet Station M. Wheels up first, then the floor and the tape, with serial captured. Its `imuYawRate` column does not count as evidence until IMU1 (#32) lands | needs you at the robot | 2 | ~1 hour |
+| 4 | **You run the 40 in on the bench**: worksheet Station M. Wheels up first, then the floor and the tape, with serial captured. Its `imuYawRate` column does not count as evidence until IMU1 (#32) lands | **ready — needs you at the robot** (upload with `rm -rf bin .d` first; copy the calibration record off the card first) | — | ~1 hour |
 | 5 | **COMP-b**, the competition program: `autonomous()` runs the chosen auton on the program's own task under the guard; `opcontrol()` runs the driver file; the brain-screen auton picker; slot 6; the eighth build | brief **re-checked 2026-09-28** (RC1–RC12: 3 major + 9 minor, all amended); your ND1/ND2 answered ~16:15; ND3–ND6 as recommended | 2 | ~2¼ days (~2, plus ~¼ for ND3 (b)) |
 | 6 | **Station K**: a practice match with the controller's Timed Run (does Timed Run start `autonomous()`? HA-162). B6 is decided after it (§11) | needs you at the robot | 5 | ~1 hour |
 | 7 | **R3b + M1** close when "a v2 tank auton runs on the robot under the library's own steering" (R3b's DoD) and M1's DoD holds. Both are judged against Station M's and Station K's logs. They also settle HA-18, the threshold half of HA-52 and the "drivable" half of HA-112 | open since June | 4, 6 | robot-session-bound |
@@ -46,8 +46,8 @@ Nothing new has run on the robot since 2026-09-25.
 
 ## 3. Mechanisms (MECH) — NEW 2026-09-28 — the order is ruled, the list is COMPLETE (2026-09-29), the core's brief is being written
 
-The requirements so far are in [`MECH-PANEL-requirements.md`](MECH-PANEL-requirements.md). That file is planning,
-not a brief, and no brief will be written until the team lead says the list is complete. In short: **any
+The requirements are in [`MECH-PANEL-requirements.md`](MECH-PANEL-requirements.md). That file is planning, not a
+brief; the team lead declared the list complete on 2026-09-29, and the core's brief is being written. In short: **any
 mechanism is described as data, bound to ports after it is created, and used the same way in autons, the driver
 file and the panel.** PTO-readiness is one of its principles (P7); how it will be met is still open.
 
@@ -146,7 +146,7 @@ Subtotal: ~10–12½ days.
 ## 10. Robot sessions (you at the robot), in order
 
 - **Station J, the claws**, on "shulib Teleop" (its package is ready now).
-- **Station M, the 40 in on the bench** (after COMP-t). If the floor run's log shows the library's motion stack
+- **Station M, the 40 in on the bench** (ready: COMP-t landed 2026-09-29). If the floor run's log shows the library's motion stack
   drove, the **"never driven a robot under its own control" documentation sweep** follows: every instance in one
   commit (HANDOFF S1). Station M's `imuYawRate` does not count as evidence until IMU1 (#32) lands.
 - **Station K, Timed Run** (after COMP-b). Then R3b and M1 are judged against Station M's and Station K's logs (#7),
@@ -197,7 +197,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 
 | Group | Builder-days |
 |---|---|
-| 1. the auton: COMP-t (rough), TANK1 B, COMP-b | ~3¾ |
+| 1. the auton: COMP-b | ~2¼ |
 | 2. T4 Parts 2 and 3 | ~5–6 |
 | 3. the plan chunks MECH would change: T3's macros and presets, F3 (rough); F4 not sized | ~2½–3 |
 | 4. the panel as planned: G3a as briefed (5½–6), G3 at its plan-of-record scope (~5½–8, rough); H4 not sized | ~11–14 |
@@ -205,7 +205,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | 6. the briefed library chunks | ~10–12½ |
 | 6. IMU1 (rough) | ~½–1 |
 | 8–9. T2's close-out, documentation, G4 (rough); PKG1 not sized | ~3–4 |
-| **The plan of record** | **~39–47** |
+| **The plan of record** | **~37½–45½** |
 | + the MECH core, before the panel (ruled 2026-09-28; rough, unmeasured) | +10½–18 |
 | + G3a amended for the core (new robot, mechanisms with templates, wiring, controls): 5½–6 → ~11½–16 (rough) | +5½–10½ |
 | + the rest of MECH, after the panel (ruled; rough) | +19–32 |
@@ -213,7 +213,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | − G3 re-scoped, ~5½–8 → ~2½–4 (proposed, requirements §5 Q27) | −(3–4) |
 | + Export (proposed; rough) | +1–2 |
 | − T3's macros and F3, which MECH's rest would absorb | −(2½–3) |
-| **Everything, as now planned** | **~70–108** |
+| **Everything, as now planned** | **~68½–106½** |
 
 **Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
 robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
@@ -224,12 +224,12 @@ sets the pace. The milestones along it:
 
 | Milestone | The chain to it | Builder-days in sequence | Weeks (five-day), with verification |
 |---|---|---|---|
-| **The 40 in on the bench** | COMP-t | ~1 | days |
-| **The 40 in through the real `autonomous()`** | + COMP-b | ~3¼ | ~1 |
-| **The driver program finished, Teleop retired, `main.cpp` final** | + T4 Parts 2 and 3 | ~8½–9½ | ~2½–3 |
-| **Mechanisms (the core) in the library** | + the MECH core | ~19–27½ | ~6–8 |
-| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~30½–43½ | ~9–13 |
-| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~50–75 | ~15–22 |
+| **The 40 in on the bench** | COMP-t ✅ (2026-09-29) — waits on your Station M run | — | now |
+| **The 40 in through the real `autonomous()`** | COMP-b | ~2¼ | ~½–1 |
+| **The driver program finished, Teleop retired, `main.cpp` final** | + T4 Parts 2 and 3 | ~7½–8½ | ~2–2½ |
+| **Mechanisms (the core) in the library** | + the MECH core | ~18–26½ | ~5½–8 |
+| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~29½–42½ | ~9–13 |
+| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~49–74 | ~15–22 |
 
 These hold only if the decisions and robot sessions keep pace and the builders are not paused. The work grew on
 2026-09-28 because the team lead added generic mechanisms (MECH), the panel's new pages and export, and because

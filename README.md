@@ -192,7 +192,7 @@ validation measures them.
 The V5 package (compiles and links the real ARM binary; uploading needs a V5 brain and
 [pros-cli](https://pros.cs.purdue.edu/v5/getting-started/)). The default build is the bench
 tester for the measured bench robot; `make ROBOT=tank PROGRAM=…` builds robot two's programs.
-Remember that no program here steers a robot yet:
+Remember that no program here has steered a robot yet:
 
 ```sh
 make            # produces bin/hot.package.bin + bin/cold.package.bin
@@ -294,9 +294,14 @@ src/                the robot programs, one folder per job (every include writte
   robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
                     claws) and the invented X-drive (a RobotConfig constant)
   team/             the team's own code — where students edit: robot two's driver file (which
-                    button does what, the feel; no program runs it yet), the autonomous list next
+                    button does what, the feel; no program runs it yet) and the team's autons
+                    (autons.cpp — every auton the robot can run, one list both auton programs
+                    read; the host suite compiles it and runs every auton in it)
   programs/         one program each: the bench tester, shulib Drive, shulib Calibrate, shulib
-                    Teleop (built on robot::Robot) with its claw wiring, the X-drive's program
+                    Teleop (built on robot::Robot) with its claw wiring, the X-drive's program,
+                    and shulib Auton Tester (runs one of the team's autons on the bench from the
+                    brain's screen, through the competition program's own call — not run on a
+                    robot yet; guide chapter 16)
   common/           what the programs share: the boot source, the state screens, the screen
                     text path, the fault-latch hook, a driver file's binder and checks
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim

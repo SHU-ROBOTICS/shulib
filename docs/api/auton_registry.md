@@ -672,7 +672,7 @@ class AutonRegistry
 
 The autons a program can run: fixed capacity, filled by explicit add() calls from `initialize()` (file banner), read by the selector and the runner. Single-task while it is being filled; read-only afterwards, so any task may read it once registration is over.
 
-*class, declared at [`include/shulib/competition/auton_registry.hpp:363`](../../include/shulib/competition/auton_registry.hpp#L363).*
+*class, declared at [`include/shulib/competition/auton_registry.hpp:369`](../../include/shulib/competition/auton_registry.hpp#L369).*
 
 <a id="autonregistry-autonregistry"></a>
 
@@ -684,7 +684,7 @@ explicit AutonRegistry(const AutonPeriods& periods)
 
 `periods` are the PROGRAM's two constants (REQUIRED — AutonPeriods::validate()).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:366`](../../include/shulib/competition/auton_registry.hpp#L366).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:372`](../../include/shulib/competition/auton_registry.hpp#L372).*
 
 <a id="autonregistry-check"></a>
 
@@ -696,7 +696,7 @@ explicit AutonRegistry(const AutonPeriods& periods)
 
 Would `e` be accepted? checkAutonEntry() against its kind's period, then uniqueness and capacity. Pure: registers nothing.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:370`](../../include/shulib/competition/auton_registry.hpp#L370).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:376`](../../include/shulib/competition/auton_registry.hpp#L376).*
 
 <a id="autonregistry-add"></a>
 
@@ -708,7 +708,7 @@ void add(const AutonEntry& e)
 
 Register `e` (COPIED; its name and route stay borrowed). PRECONDITION: check(e) passes — a refused entry throws PreconditionError carrying check()'s sentence, which names the auton, so a program's `initialize()` try block can log it and refuse the boot by name (ruling B15: refusals happen at REGISTRATION, not in a match).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:393`](../../include/shulib/competition/auton_registry.hpp#L393).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:399`](../../include/shulib/competition/auton_registry.hpp#L399).*
 
 <a id="autonregistry-size"></a>
 
@@ -720,7 +720,7 @@ Register `e` (COPIED; its name and route stay borrowed). PRECONDITION: check(e) 
 
 How many autons are registered.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:400`](../../include/shulib/competition/auton_registry.hpp#L400).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:406`](../../include/shulib/competition/auton_registry.hpp#L406).*
 
 <a id="autonregistry-empty"></a>
 
@@ -732,7 +732,7 @@ How many autons are registered.
 
 True when none are.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:402`](../../include/shulib/competition/auton_registry.hpp#L402).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:408`](../../include/shulib/competition/auton_registry.hpp#L408).*
 
 <a id="autonregistry-at"></a>
 
@@ -744,7 +744,7 @@ True when none are.
 
 The auton at `index` (registration order). Precondition: index < size().
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:404`](../../include/shulib/competition/auton_registry.hpp#L404).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:410`](../../include/shulib/competition/auton_registry.hpp#L410).*
 
 <a id="autonregistry-find"></a>
 
@@ -756,7 +756,7 @@ The auton at `index` (registration order). Precondition: index < size().
 
 The auton called `name`, or nullptr.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:409`](../../include/shulib/competition/auton_registry.hpp#L409).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:415`](../../include/shulib/competition/auton_registry.hpp#L415).*
 
 <a id="autonregistry-periods"></a>
 
@@ -768,7 +768,7 @@ The auton called `name`, or nullptr.
 
 The program's two periods, as given.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:421`](../../include/shulib/competition/auton_registry.hpp#L421).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:427`](../../include/shulib/competition/auton_registry.hpp#L427).*
 
 <a id="autonregistry-periodfor"></a>
 
@@ -780,7 +780,7 @@ The program's two periods, as given.
 
 The period `e` runs in.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:423`](../../include/shulib/competition/auton_registry.hpp#L423).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:429`](../../include/shulib/competition/auton_registry.hpp#L429).*
 
 ## Design commentary, from the header
 

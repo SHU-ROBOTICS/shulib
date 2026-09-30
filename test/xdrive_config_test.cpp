@@ -1,6 +1,6 @@
 // xdrive_config_test.cpp — G1 Part 2c: the invented X-drive as DATA (src/robots/xdrive_config.hpp,
 // included from src/ the way chassis_table_test.cpp includes src/robots/chassis_table.hpp — the
-// host build compiles test/*.cpp only, never a .cpp under src/).
+// host build compiles test/*.cpp and, of src/, only the team's PROS-free src/team/autons.cpp).
 //
 // ═══ WHAT THIS FILE PROVES, AND HOW IT TRIES TO BREAK IT ═════════════════════════════
 //   * kInventedXDrive IS a constant expression — the tree's first constexpr RobotConfig. Proved

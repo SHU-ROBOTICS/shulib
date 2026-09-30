@@ -7,6 +7,8 @@
 > **Rewritten 2026-09-24:** the August version said our robots were X-drive and H-drive (both of this
 > fall's robots are tank drives) and listed three missing pieces that have since been built. A page
 > written to orient a confused reader is the worst page to leave stale.
+> **Brought up to date 2026-09-29,** when the bench auton program landed: the counts, what has run on
+> robot two since, and the next steps.
 
 ---
 
@@ -76,37 +78,40 @@ they share letters with chunk names and are *not* the same thing.
 "The library is nearly finished" and "the library's motion has never driven a robot" are both true,
 and they are true at different tiers.
 
-| Tier | What it proves | How much we have (2026-09-24) |
+| Tier | What it proves | How much we have (2026-09-29) |
 |---|---|---|
-| **1. The host test plant** | the **logic** is right — the maths, the control loops, the decisions | **Enormous.** 1,358 tests / 1.6M assertions, graded against exact ground truth |
-| **2. ARM compile + boot** | it will **build and run** on a V5 brain | **Complete for what exists.** All 181 headers cross-compile; six robot programs build and link every commit; the core booted on a brain 2026-08-12 |
-| **3. Physical hardware** | the **numbers** are right — what a millivolt is, which way is clockwise | **A little.** Motors spun at 2 V and seven conversions confirmed (2026-08-13); the gyro's direction and the SD card confirmed (2026-08-18/19); robot two's ports and motor directions measured (2026-09-10); robot two driven by hand through the library's hardware layer once (2026-09-17, no log). **The library's own steering has never moved a wheel.** |
+| **1. The host test plant** | the **logic** is right — the maths, the control loops, the decisions | **Enormous.** 1,808 tests / 2.65M assertions, graded against exact ground truth |
+| **2. ARM compile + boot** | it will **build and run** on a V5 brain | **Complete for what exists.** All 193 headers cross-compile; seven robot programs build and link every commit; the core booted on a brain 2026-08-12 |
+| **3. Physical hardware** | the **numbers** are right — what a millivolt is, which way is clockwise | **A little.** Motors spun at 2 V and seven conversions confirmed (2026-08-13); the gyro's direction and the SD card confirmed (2026-08-18/19); robot two's ports and motor directions measured (2026-09-10); robot two driven by hand through the library's hardware layer once (2026-09-17, no log); shulib Calibrate run on robot two (first 2026-09-24), and robot two driven from its calibration record by the earlier, hand-wired version of shulib Teleop (2026-09-25). **The library's own steering has never moved a wheel.** |
 
-## Where it stands (2026-09-24)
+## Where it stands (2026-09-29)
 
 - **Built and proven on the host test plant:** the whole thinking half — three drivetrain types,
-  sensor fusion, motion, sequencing, two ways to write a routine in code, a way to write a routine
-  as **data**, a robot described as data and built from it, the drivetrain teaching itself its own
-  facts (which motors, which way, how far apart the wheels are), driver-control feel, diagnostics,
-  and the documentation.
-- **Built for the robot:** seventeen hardware adapters and six programs — a measuring tool
-  ("Bench Tests"), a plain driving program ("shulib Drive"), the library's own driving program
-  ("shulib Teleop"), and a calibration program ("shulib Calibrate") for robot two, plus two others.
-- **Run on a robot:** Bench Tests (in several sessions) and shulib Drive (once). **shulib Calibrate and shulib
-  Teleop have never run.** Robot two's drivetrain was rebuilt around 2026-09-18, and nothing has run
-  since — the laptop has not been able to see the robot's brain over USB (a cable is being replaced).
+  sensor fusion, motion (a tank that drifts off its line now steers back onto it), sequencing, two
+  ways to write a routine in code, a way to write a routine as **data**, a robot described as data
+  and built from it, the drivetrain teaching itself its own facts (which motors, which way, how far
+  apart the wheels are), driver-control feel, the claws' buttons, diagnostics, and the documentation.
+- **Built for the robot:** the V5 hardware layer (eighteen files) and seven programs — a measuring
+  tool ("Bench Tests"), a plain driving program ("shulib Drive"), the library's own driving program
+  ("shulib Teleop", which also drives the claws), a calibration program ("shulib Calibrate") and a
+  bench auton program ("shulib Auton Tester": pick one of the team's autons on the brain's screen,
+  press RUN, and it runs exactly as it will in a match — any button stops it) for robot two, plus
+  two others.
+- **Run on a robot:** Bench Tests (in several sessions), shulib Drive (once), shulib Calibrate (from
+  2026-09-24) and the earlier, hand-wired version of shulib Teleop (2026-09-25). **Today's shulib
+  Teleop and shulib Auton Tester have never run.**
 - **Published:** everything through 2026-08-15 is live at docs.shurobotics.com.
-- **Not built yet:** the program you would upload for a match (with an auton picker), the camera
-  adapter, the claws' buttons in a robot program (the library's own mechanism buttons — hold-to-run
-  and a pneumatic toggle — and a robot that builds its motor and pneumatic mechanisms from its
-  config, exist since 2026-09-26 — host test plant only), the scoring moves (waiting on what the
-  robots' mechanisms will be), real tuning numbers, and the loading of routines from a file. **And
-  the students' own routines are the students' to write** — the library supplies the moves, not
-  the strategy.
+- **Not built yet:** the program you would upload for a match (it will run the same auton file the
+  Auton Tester runs), the driver-control program that replaces shulib Teleop, the camera adapter,
+  mechanisms in general (any mechanism a robot has, plugged into whatever ports it uses that day, and
+  usable inside an auton — planned next), the scoring moves, real tuning numbers, and the loading of
+  routines from a file. **And the students' own routines are the students' to write** — the library
+  supplies the moves, not the strategy.
 
 **An auton already works on the host test plant.** A six-step routine — move, move, strafe, turn,
-hold, brake — settles **0.228 in** from its target in 9.56 s. That is a measured result from a passing
-test, not a goal — and it is not a robot result.
+hold, brake — settles **0.228 in** from its target in 9.56 s, and the team's 40 in auton, run through
+the Auton Tester's exact path, finishes at 39.77 in after 1.80 s. Those are measured results from
+passing tests, not goals — and they are not robot results.
 
 ## The sentence that governs everything
 
@@ -121,12 +126,13 @@ is the easiest thing in this project to start quietly lying about.
 
 ## What stands between here and a robot that drives itself
 
-1. **The first drive on robot two** — calibrate it (the robot measures its own drivetrain and saves
-   the answer to its SD card), then drive it with shulib Teleop from that record. This needs only the
-   USB cable. It proves the calibration and the library's driving path; it does not yet prove an auton.
-2. **A program that runs an auton** — the match program with a picker on the brain's screen. Nothing
-   uploaded today commands a single autonomous move, deliberately. Once it exists, the first short
-   auton on the robot is the moment "the library has driven a robot" becomes true.
+1. **The first auton on robot two** — the Auton Tester runs the team's 40 in auton from its RUN
+   button, wheels on the floor, with a tape measure beside it (the bench worksheet's Station M). It
+   needs only the robot, its calibration record and the USB cable. That run is the moment "the library
+   has driven a robot" becomes true — or the first measurement of why not.
+2. **The match program and the driver program** — the program uploaded for a competition (an auton
+   picker, the field's autonomous period, then driver control) and the driver file's own program,
+   which retires shulib Teleop. Both are built from pieces that already exist.
 3. **Real numbers** — tuning measured on the robot instead of guessed, and position corrections
    (a wall reset, GPS or the camera) so the estimate does not drift over a routine.
 

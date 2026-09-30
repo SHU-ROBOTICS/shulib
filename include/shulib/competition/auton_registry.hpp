@@ -293,9 +293,15 @@ struct AutonVerdict {
                                                   : "has BOTH a routine and a route -- give one");
     }
     if (e.route != nullptr) {
-        char routeWhy[160] = "";
+        // 192, runner::PathRunner's own size for the same call (path_runner.hpp), and the outer
+        // copy bounded: at -Os GCC inlines Route::valid() here and SEES its longest sentence
+        // (up to 173 bytes) -- a 160-byte buffer is a -Wformat-truncation in every V5 build the
+        // first time a src/ file registers an auton (found by COMP-t, 2026-09-27: the students'
+        // src/team/autons.cpp is that first file; an inline function nothing calls is never
+        // analysed, so neither the ARM header gate nor the host suite could see it).
+        char routeWhy[192] = "";
         if (!e.route->valid(routeWhy, sizeof routeWhy)) {
-            std::snprintf(v.why, sizeof v.why, "auton '%s': its route is invalid: %s", shown,
+            std::snprintf(v.why, sizeof v.why, "auton '%s': its route is invalid: %.150s", shown,
                           routeWhy);
             return v;
         }

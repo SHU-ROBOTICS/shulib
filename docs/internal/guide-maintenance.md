@@ -29,11 +29,12 @@ doesn't know it yet.**
 
 Since D3 (2026-08-12) the verbatim half is **machine-checked**, in the build and in CI:
 `python3 tools/api_doc_tool.py check-examples` requires every non-blank line inside a ```` ```cpp ````
-block in any public document to appear verbatim in one of those test files — or, since T4
-Part 1a (2026-09-27), in a team file a chapter quotes: a robot's driver file, `src/team/*_driver.hpp`,
-each listing of which must ALSO be one unbroken run of the file's lines, so a line added to the file
-inside a quoted part fails too (the tool's `EXAMPLE_SOURCE_GLOBS` and `WHOLE_RUN_SOURCE_GLOBS`, with
-the reasoning). Before D3 the rule was real but the enforcement was a person running an internal
+block in any public document to appear verbatim in one of those test files — or in a team file
+under `src/team/` that a chapter quotes: a robot's driver file, `src/team/*_driver.hpp` (since T4
+Part 1a, 2026-09-27; the cookbook's chapter 6), and the team's auton file, `src/team/autons.cpp`
+(since COMP-t, 2026-09-28; guide chapter 16). Each listing of a team file must ALSO be one unbroken
+run of the file's lines, so a line added to the file inside a quoted part fails too (the tool's
+`EXAMPLE_SOURCE_GLOBS` and `WHOLE_RUN_SOURCE_GLOBS`, with the reasoning). Never the rest of `src/`. Before D3 the rule was real but the enforcement was a person running an internal
 script, and a mutation proved the consequence: a chapter's `.hold(300_ms)` retyped to
 `.hold(300_s)` built clean and passed the entire suite. The source set is a list of *globs*, one per
 kind of file, so a new examples file is covered the moment it exists.

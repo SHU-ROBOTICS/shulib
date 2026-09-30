@@ -53,6 +53,11 @@ The headline limitation, stated as many times as it takes:
   headline unchanged: a bench reading sensors is not a robot driving. Until a loop closes on
   hardware, "the adapters work" means "the adapters agree with our model of PROS, and that
   model has been spot-checked once."
+- **The program that will close the first loop exists — and has not run.** "shulib Auton Tester"
+  ([Chapter 16](16-testing-an-auton-on-the-bench.md), 2026-09-28) runs one of the team's autons —
+  a `moveTo` under the library's own control, through the competition program's own call — from
+  the brain's screen. On the host test plant it finishes the 40 in auton; it has never run on a
+  brain, and the beliefs its abort and its SD log rest on (HA-177, HA-178) are unchecked.
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)

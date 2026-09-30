@@ -1,5 +1,16 @@
 # COMP-t — "shulib Auton Tester": run one of the team's autons on the bench, from RUN, through exactly the path `autonomous()` uses
 
+> **AMENDED BY THE BUILD'S REVIEW (2026-09-29) — the tree governs these blocks, not this brief.** The review
+> changed three of this brief's VERBATIM blocks, each for a measured defect (COMP-t-COMPLETED.md, deviation 7):
+> `runTesterOnce` gained a `runPressCount` parameter (`watch.arm(runPressCount)` — a touch between RUN's read
+> and the arm never aborted) and a `std::exception` handler (a throw's text was lost); `pacerChainProven` gained
+> `&& watch.attachedTo(guard)` (an unattached watch let the robot drive 14.22 in past B under a green FINISHED);
+> and §3.5's program flow changed in `runOne` (the watch's baseline), the task's `std::exception` handler, the
+> chain refusal's words and the boot line (three lines, `testerBootLines()` — one line was 206 bytes at a real
+> `git describe`). **§3.1, the students' auton file, is unchanged, byte for byte.** The COMP brief's B30 copy
+> notes already carry the chain proof's link check, the handler and the PRESENT mechanisms. Committed with the
+> coordinator's merge verification (COMP-t-COMPLETED.md, "The coordinator's merge verification").
+>
 > **RE-PREDICTED AFTER TANK1 PART A (2026-09-28).** TANK1 Part A — `moveTo` on a tank steers back onto its
 > line — was built, reviewed and FIXED in the worktree `.claude/worktrees/tank1` (the review's blocker added a
 > lead term, `TankSteerConfig::leadTime` 0.06 s; the worktree's transport commit is `681ee1e`). Every prediction

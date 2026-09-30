@@ -66,15 +66,15 @@
 // is undefined, so neither is built at namespace scope; a function-local static whose constructor
 // THROWS would be re-attempted on the next call, so the static below holds only empty optionals
 // (a constructor that cannot throw) and teleopInitialize() emplaces into them, once. Function-local
-// rather than namespace-scope for one more reason: this file compiles in all six builds, and a
+// rather than namespace-scope for one more reason: this file compiles in all seven builds, and a
 // namespace-scope object with a non-trivial destructor registers that destructor from a static
 // initializer the linker must keep — dragging the whole graph's code into the tester's and the
 // other programs' packages. A function-local static is initialized on first call, so in the builds
 // that never call it, --gc-sections drops everything here.
 //
-// Compiled in all six builds (the brief's A12): nothing here reads a build switch (only
+// Compiled in all seven builds (the brief's A12): nothing here reads a build switch (only
 // src/build_selection.hpp's one chain does — G1 Part 2c final), no beacon literal lives here (landmine 10), and every symbol it needs from main.cpp
-// (attachFaultLatch) is defined in all six. ASCII only in every runtime string; every screen
+// (attachFaultLatch) is defined in all seven. ASCII only in every runtime string; every screen
 // string goes through printText(); only a literal "%s" reaches a PROS print.
 
 #include "programs/teleop_program.hpp"

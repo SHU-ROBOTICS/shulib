@@ -123,7 +123,9 @@ documents *"DO NOT PREPEND YOUR PATHS WITH /usd/"* — while `fopen` reaches the
 through paths that start with `/usd/` (HA-122). Get it backwards and you either list nothing
 or write nowhere. shulib's `ProsBlockSink` owns the prefix in exactly one place: you hand it a
 bare file name (a leading `/` is rejected loudly at construction), and it builds the real
-path itself.
+path itself. An append open is the adapter's too (`ProsFileMode::Append`, for a log kept across
+reboots), and it never empties an existing file: it creates one only after asking whether the
+file was there (HA-177).
 
 **The missing card.** A sink with no card behind it must not stop the robot — so
 `ProsBlockSink` constructs successfully either way and simply **refuses**: `write()` returns

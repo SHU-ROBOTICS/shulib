@@ -121,9 +121,11 @@ mental model, which matters more:
   [Hardware Assumptions Register](../hardware-assumptions.md) (HA-94 onward).
 - **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
   what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
-  own code — where students edit (its first file is robot two's driver file,
-  `src/team/robot_two_driver.hpp`: which button does what and the driving feel, in one file that no
-  program runs yet; the autonomous list comes with the auton tester) —
+  own code — where students edit: robot two's driver file, `src/team/robot_two_driver.hpp` (which
+  button does what and the driving feel, in one file that no program runs yet), and the team's
+  autons, `src/team/autons.cpp` (every autonomous routine the robot can run, listed by
+  `registerAutons()` — the one file the host suite also compiles, and runs every auton in; the
+  auton tester runs them on the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md)) —
   **`src/programs/`** holds one program each, and **`src/common/`** what the programs share.
   Every include of one of these files is written from `src/` —
   `#include "robots/chassis_table.hpp"` — the same in every folder. `src/build_selection.hpp` is
@@ -134,7 +136,8 @@ mental model, which matters more:
   whole robot — `robot::Robot` from a config over the real adapters — and
   `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the
   invented X-drive, built the same way by `src/programs/xdrive_program.cpp`). The other programs are
-  the bench tester, "shulib Drive" and "shulib Calibrate"; Teleop's claw wiring is
+  the bench tester ("Bench Tests"), "shulib Drive", "shulib Calibrate" and "shulib Auton Tester"
+  (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`); Teleop's claw wiring is
   `src/programs/teleop_claws.hpp`; `src/common/` holds the boot source Teleop shares and the
   competition-state screens; and the per-robot tables in `src/robots/` carry every robot's ports,
   and robot two's claws (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by

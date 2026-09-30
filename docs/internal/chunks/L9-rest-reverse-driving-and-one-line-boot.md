@@ -1,5 +1,10 @@
 # L9 (the rest) — reverse driving in a recipe, and booting a `robot::Robot` from the SD card as library code
 
+> **Caller gained at COMP-t (2026-09-28; noted here, the body not edited):** "shulib Auton Tester" builds
+> its Robot with `opts = boot.built.buildOptions(); opts.pacer = &*st.guard;` — the one-line boot of Part B
+> must pass `options` WHOLE, `.pacer` included (a pacer is borrowed for the Robot's whole life;
+> `BootConfig::buildOptions()`'s doc says so since COMP-t).
+
 > **Paths moved at SRC1 (2026-09-27):** the `src/` files this brief names each moved to a folder, names unchanged — `src/robots/` ← `chassis_table.hpp`, `mechanism_table.hpp`; `src/programs/` ← `teleop_claws.hpp`, `teleop_program.{hpp,cpp}`; `src/common/` ← `boot_source.{hpp,cpp}`. `src/main.cpp` and `src/build_selection.hpp` stay where they were. The full mapping is in the [SRC1 brief §1](SRC1-organize-src.md); every include of a `src/` file is now written from `src/` (`#include "robots/chassis_table.hpp"`). The body below is NOT rewritten — it describes the tree it was written against; its executor re-checks every path against the tree.
 
 > **THE TEAM LEAD'S ANSWERS (2026-09-26, ~23:10): every recommendation accepted** — "Accept all" on

@@ -13,15 +13,20 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "pros/shim_control.hpp"
 
 #include "shulib/core/check.hpp"
+#include "shulib/hal/block_char_sink.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
 
 using shulib::PreconditionError;
+using shulib::hal::pros::AppendOpen;
+using shulib::hal::pros::openForAppend;
 using shulib::hal::pros::ProsBlockSink;
+using shulib::hal::pros::ProsFileMode;
 
 namespace {
 
@@ -152,4 +157,196 @@ TEST_CASE("ProsBlockSink: the /usd/ double-prefix mistake is a LOUD precondition
     CHECK_THROWS_AS(ProsBlockSink("/usd/log.bin"), PreconditionError);
     CHECK_THROWS_AS(ProsBlockSink(""), PreconditionError);
     CHECK_THROWS_AS(ProsBlockSink("log.bin", "/tmp"), PreconditionError);  // no trailing '/'
+}
+
+// ═══ THE APPEND MODE (chunk COMP-t, 2026-09-28; the brief's test (31)) ═══════════════════
+// The Auton Tester keeps ONE run log on the card across reboots. What must never happen is an
+// EXISTING log truncated: the append open is decided in one function, openForAppend(), probed here
+// branch by branch with a scripted opener (VEXos's answer to an append on a missing file is
+// unknown — A4 register HA-177 — so both answers are scripted), then through the shim on a real
+// directory, boot after boot.
+
+namespace {
+
+/// A scripted fopen: which modes succeed, and the modes asked for, in order.
+struct ScriptedOpen {
+    bool exists = false;
+    bool appendOk = true;
+    bool createOk = true;
+    std::string calls;
+    int closes = 0;
+    int opens = 0;
+    char token = 0;  // its address stands in for a FILE*
+};
+
+ScriptedOpen script(bool exists, bool appendOk, bool createOk = true) {
+    ScriptedOpen sc;
+    sc.exists = exists;
+    sc.appendOk = appendOk;
+    sc.createOk = createOk;
+    return sc;
+}
+
+std::FILE* decide(ScriptedOpen& sc, AppendOpen& how) {
+    return openForAppend(
+        "log.txt",
+        [&sc](const char* path, const char* mode) -> std::FILE* {
+            CHECK(std::string{path} == "log.txt");
+            // never read-write: the brain refuses a read-write open (the vendored libpros's
+            // disassembly of 2026-09-26 -- SAFE-SAVE's belief, not yet in the register)
+            CHECK(std::string{mode}.find('+') == std::string::npos);
+            sc.calls += mode;
+            sc.calls += ' ';
+            const std::string m{mode};
+            const bool ok = m == "rb" ? sc.exists : m == "ab" ? sc.appendOk : sc.createOk;
+            if (ok) {
+                ++sc.opens;
+            }
+            return ok ? reinterpret_cast<std::FILE*>(&sc.token) : nullptr;
+        },
+        [&sc](std::FILE*) { ++sc.closes; }, how);
+}
+
+/// How many file descriptors this process holds open right now (Linux: /proc/self/fd), or -1 where
+/// that cannot be read. The directory listing's own descriptor is in every count alike.
+int openDescriptors() {
+    const fs::path fds{"/proc/self/fd"};
+    std::error_code ec;
+    if (!fs::is_directory(fds, ec)) {
+        return -1;
+    }
+    int n = 0;
+    for (auto it = fs::directory_iterator(fds, ec); !ec && it != fs::directory_iterator();
+         it.increment(ec)) {
+        ++n;
+    }
+    return ec ? -1 : n;
+}
+
+std::string readText(const fs::path& p) {
+    std::ifstream in(p, std::ios::binary);
+    return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+}
+
+}  // namespace
+
+TEST_CASE("openForAppend: the four branches — and an existing log is NEVER truncated") {
+    // BUG CAUGHT (mutations 34 and 35): a fallback to "wb" when the file EXISTED but the append
+    // open failed (the whole log emptied — the one outcome this mode exists to prevent), or no "rb"
+    // probe at all (Appended and Created indistinguishable, and the existed branch truncates).
+    AppendOpen how = AppendOpen::Refused;
+
+    ScriptedOpen a = script(true, true);
+    CHECK(decide(a, how) != nullptr);
+    CHECK(how == AppendOpen::Appended);
+    CHECK(a.calls == "rb ab ");
+    CHECK(a.closes == 1);  // the probe is closed
+
+    ScriptedOpen b = script(false, true);
+    CHECK(decide(b, how) != nullptr);
+    CHECK(how == AppendOpen::Created);
+    CHECK(b.calls == "rb ab ");
+    CHECK(b.closes == 0);
+
+    ScriptedOpen c = script(false, false, true);
+    CHECK(decide(c, how) != nullptr);
+    CHECK(how == AppendOpen::Created);
+    CHECK(c.calls == "rb ab wb ");  // "ab" refused an absent file: create it
+
+    ScriptedOpen d = script(true, false, true);
+    CHECK(decide(d, how) == nullptr);
+    CHECK(how == AppendOpen::Refused);
+    CHECK(d.calls == "rb ab ");  // NO "wb": the existing log is left as it is
+    CHECK(d.calls.find("wb") == std::string::npos);
+
+    ScriptedOpen e = script(false, false, false);
+    CHECK(decide(e, how) == nullptr);
+    CHECK(how == AppendOpen::Refused);
+}
+
+TEST_CASE("ProsBlockSink Append: two boots leave both lines, in order (CREATED, then APPENDED)") {
+    // BUG CAUGHT: the Append constructor still opening "wb" (every reboot would erase the earlier
+    // boots' runs), the path join broken in the new constructor, or appendOpen() misreporting —
+    // the boot line would tell the operator CREATED on a card that already held a session.
+    pros::shim::resetAll();
+    pros::shim::usdState().installed = true;
+    const std::string root = scratchRoot();
+    const fs::path file = fs::path(root) / "runs_append.txt";
+    fs::remove(file);
+    {
+        ProsBlockSink sd{"runs_append.txt", ProsFileMode::Append, root.c_str()};
+        REQUIRE(sd.isOpen());
+        CHECK(std::string{sd.path()} == file.string());
+        CHECK(sd.appendOpen() == AppendOpen::Created);
+        shulib::hal::BlockCharSink chars{sd};
+        chars.write("boot 1 run 1\n");
+        CHECK(chars.droppedWrites() == 0);
+    }
+    {
+        ProsBlockSink sd{"runs_append.txt", ProsFileMode::Append, root.c_str()};
+        REQUIRE(sd.isOpen());
+        CHECK(sd.appendOpen() == AppendOpen::Appended);
+        shulib::hal::BlockCharSink chars{sd};
+        chars.write("boot 2 run 1\n");
+    }
+    CHECK(readText(file) == "boot 1 run 1\nboot 2 run 1\n");
+
+    // THE ADAPTER'S OWN CLOSE (COMP-t's review, 2026-09-29: H13 — the real adapter's close callback
+    // made a no-op SURVIVED; the scripted opener above counts closes on the TEMPLATE only). On an
+    // existing file the probe "rb" is opened and must be closed before this constructor returns:
+    // exactly ONE descriptor more while the sink lives (its "ab" handle), none after it. A leaked
+    // "rb" handle on the same file during the "ab" open is exactly the untested VEXos case HA-177 is
+    // about — never left to chance on the brain.
+    const int fdBefore = openDescriptors();
+    if (fdBefore < 0) {
+        WARN_MESSAGE(false, "no /proc/self/fd on this host: the adapter's close is not observed");
+    } else {
+        {
+            ProsBlockSink sd{"runs_append.txt", ProsFileMode::Append, root.c_str()};
+            REQUIRE(sd.appendOpen() == AppendOpen::Appended);  // the probe WAS opened
+            CHECK(openDescriptors() == fdBefore + 1);  // the "ab" handle, and no leaked probe
+        }
+        CHECK(openDescriptors() == fdBefore);  // and the destructor closed that one
+    }
+
+    // No card: Refused, nothing created, nothing written.
+    pros::shim::resetAll();
+    const fs::path none = fs::path(root) / "runs_nocard.txt";
+    fs::remove(none);
+    {
+        ProsBlockSink sd{"runs_nocard.txt", ProsFileMode::Append, root.c_str()};
+        CHECK_FALSE(sd.isOpen());
+        CHECK(sd.appendOpen() == AppendOpen::Refused);
+    }
+    CHECK_FALSE(fs::exists(none));
+    // The same preconditions as the two-argument constructor.
+    CHECK_THROWS_AS(ProsBlockSink("/usd/x.txt", ProsFileMode::Append), PreconditionError);
+}
+
+TEST_CASE("ProsBlockSink: the two-argument constructor still TRUNCATES (every existing caller)") {
+    // BUG CAUGHT: the delegation changing the old constructor's meaning — the blackbox appending to
+    // last boot's file (its decoder would read two sessions as one) — or Truncate reporting an
+    // append it never made.
+    pros::shim::resetAll();
+    pros::shim::usdState().installed = true;
+    const std::string root = scratchRoot();
+    const fs::path file = fs::path(root) / "bb_truncate.bin";
+    {
+        std::ofstream old(file, std::ios::binary);
+        old << "last boot's bytes";
+    }
+    {
+        ProsBlockSink sink{"bb_truncate.bin", root.c_str()};
+        REQUIRE(sink.isOpen());
+        CHECK(sink.appendOpen() == AppendOpen::Refused);  // Truncate never asks
+        const std::array<std::byte, 2> payload{std::byte{'o'}, std::byte{'k'}};
+        CHECK(sink.write(payload));
+        CHECK(sink.flush());
+    }
+    CHECK(readText(file) == "ok");
+    {
+        ProsBlockSink sink{"bb_truncate.bin", ProsFileMode::Truncate, root.c_str()};
+        REQUIRE(sink.isOpen());
+    }
+    CHECK(readText(file).empty());
 }

@@ -107,13 +107,13 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Position:** 33 of 63 chunks complete
 
-- **Next up:** TANK1 COMPLETE 2026-09-29 (moveTo on a tank steers back onto its line, Part A 2026-09-28 and Part B the xt column 2026-09-29 — host- and build-gated, NOT run on a robot; [record](chunks/TANK1-COMPLETED.md)); now COMP-t (the auton tester with the 40 in auton — [brief](chunks/COMP-t-auton-tester.md), his answers D1–D9 as recommended, its predictions re-made from TANK1) alongside TANK1 Part B (the xt column), then COMP-b (the competition program — autonomous() and opcontrol() running the driver file), then T4 Part 2 (the protections) and Part 3 (the new shulib Drive; Teleop retires; the buttons leave the mechanism table — Part 1b was folded into it on the team lead's ruling of 2026-09-28) — the team lead's go on all of it (2026-09-28: "i want to do all this"). The sensors (the AI Vision adapter, the distance-sensor wall reset, piece targeting) come after G3 (his ruling, 2026-09-28). The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) are committed with his "accept all" and their builders start after the auton merge. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
+- **Next up:** COMP-t LANDED 2026-09-29 — "shulib Auton Tester" (make ROBOT=tank PROGRAM=autontest, the seventh build; slot 7 until T4 Part 3) and the team's auton file src/team/autons.{hpp,cpp} with the 40 in auton and the acceptance run; host- and build-gated, NOT run on a robot — worksheet Station M is its first run ([record](chunks/COMP-t-COMPLETED.md), [live log](chunks/COMP-t-PROGRESS.md), [brief](chunks/COMP-t-auton-tester.md)); TANK1 COMPLETE 2026-09-29 (moveTo on a tank steers back onto its line; Part B the xt column — [record](chunks/TANK1-COMPLETED.md)); now COMP-b (the competition program — autonomous() and opcontrol() running the driver file), then T4 Part 2 (the protections) and Part 3 (the new shulib Drive; Teleop retires; the buttons leave the mechanism table — Part 1b was folded into it on the team lead's ruling of 2026-09-28) — the team lead's go on all of it (2026-09-28: "i want to do all this"). The sensors (the AI Vision adapter, the distance-sensor wall reset, piece targeting) come after G3 (his ruling, 2026-09-28). The team lead pushes the branch once the auton is complete, before G3a; the next wave's five briefs (DIAG1 Part B, SAFE-SAVE, L9, H1, R5a) carry his "accept all", and on his speedups (approved 2026-09-28 ~17:35) DIAG1 Part B, SAFE-SAVE Part A, L9 Part A1, H1 Part A1, R5a Part A and T4 Part 2a (the protections' library half) are being built in parallel since 2026-09-29, and the MECH core's brief and G3a's amendment are being written. G1 is COMPLETE, and 2c, DIAG1 Part A, COMP-a and T3 Part 2 have landed (below) (the team lead, 2026-09-26)  
   *(source: `build-order.md`'s `Next:` pointer)*
 - ⚠️ **OPEN CHUNK(S): COMP, DIAG1, R3a, R3b, R3d, T2, T3, T4** — a `-PROGRESS.md` exists with no completion record: either interrupted mid-chunk (`git status` is dirty — read that log before anything else) or landed in parts with work remaining (read the log before starting its next part).
-- **Suite:** 1,737 cases / 2,650,734 assertions, 3 skipped — **green**  
+- **Suite:** 1,808 cases / 2,652,625 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
-- **Public headers:** 192  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 158 registered, **7 settled** — next free is **HA-181**  
+- **Public headers:** 193  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
+- **Hardware assumptions:** 160 registered, **7 settled** — next free is **HA-181**  
   *(source: `docs/hardware-assumptions.md`. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
@@ -145,7 +145,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 
 **Verification harnesses:** `verify-d1.sh`, `verify-d2.sh`, `verify-d3.sh`, `verify-e2.sh`, `verify-e3.sh`, `verify-e4.sh`, `verify-f1-chunk-selfcheck.sh`, `verify-f1.sh`, `verify-f2.sh` *(the reviewer's, not the chunk's — a chunk must not rewrite one)*
 
-**Honest partials:** 13 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
+**Honest partials:** 14 `[~]` items in the roadmap, each naming its owner *(under-claiming is a standard here, so a nonzero count is health, not debt)*
 
 **Deliberately skipped tests (3)** — each is evidence that does not exist yet, usually pending hardware:
 

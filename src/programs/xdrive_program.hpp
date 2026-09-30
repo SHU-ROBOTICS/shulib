@@ -29,8 +29,9 @@ namespace shulib::bench {
 void xdriveInitialize(const char* variantBeacon, const char* competitionStatusBits);
 
 /// autonomous()'s X-drive branch: one Warn line when the robot was built — NO motion here, ever
-/// (autonomous routines run only in the competition program's autonomous(), the team lead's
-/// ruling of 2026-09-25) — and nothing otherwise.
+/// (autonomous routines run only in the competition program's autonomous() and, on the bench, the
+/// Auton Tester's RUN through the same library call — the team lead's ruling of 2026-09-25) — and
+/// nothing otherwise.
 void xdriveAutonomous();
 
 /// opcontrol()'s X-drive branch: teleop::runDriverControl over the robot's Chassis (default

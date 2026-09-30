@@ -6,6 +6,16 @@
 > summaries only, through `diag::LogCopySink` (never a line per tick); **B** — the competition program keeps an SD
 > copy, appended, through one optional file-mode argument on the provider. His go on Parts 2 and 3 stands
 > (2026-09-28, "i want to do all this"); Part 2 after COMP-b, Part 3 after Part 2.
+>
+> **Callers gained at COMP-t (2026-09-28; noted here, the body not edited):** **N5 (a):**
+> `hal::BlockCharSink` EXISTS (`include/shulib/hal/block_char_sink.hpp`, to N5 (a)'s specification:
+> one block write + one flush per line, a refusal dropped and counted in `droppedWrites()`, never thrown,
+> host-tested with `FakeBlockSink`) — Part 3 builds only `hal::TeeCharSink` and the provider's argument.
+> **The shared panel:** the tester's refusal painter and fault line are a near-copy of Teleop's; the shared
+> panel gains it as a caller. **Item 6** is done: `EXAMPLE_SOURCE_GLOBS` holds `src/team/autons.cpp` beside
+> T4's `src/team/*_driver.hpp` (and `WHOLE_RUN_SOURCE_GLOBS` too, the coordinator's ruling); the guide
+> README's sentence names both files. **N4:** "shulib Auton Tester" is in slot 7; no string in its code
+> names a slot (a source pin).
 
 > **THE TEAM LEAD'S ANSWERS (2026-09-27, ~03:40) to the new decisions:** **N7 (c)** — stop driving
 > mid-match only when MORE THAN TWO drive motors are dead in total ("Only when 3+ are dead in total");

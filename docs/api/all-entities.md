@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 2,941 of them, across 156 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 2,956 of them, across 157 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -67,6 +67,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Answer::FrontFirst` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-frontfirst) |
 | `appendNum` | free function | [line_format.md](line_format.md#appendnum) |
 | `appendOdomTickAudit` | free function | [odom_tick_audit.md](odom_tick_audit.md#appendodomtickaudit) |
+| `AppendOpen` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-appendopen) |
+| `AppendOpen::Appended` | enumerator | [pros-block_sink.md](pros-block_sink.md#appendopen-appended) |
+| `AppendOpen::Created` | enumerator | [pros-block_sink.md](pros-block_sink.md#appendopen-created) |
+| `AppendOpen::Refused` | enumerator | [pros-block_sink.md](pros-block_sink.md#appendopen-refused) |
 | `appendPadded` | free function | [line_format.md](line_format.md#appendpadded) |
 | `appendTimestamp` | free function | [line_format.md](line_format.md#appendtimestamp) |
 | `appendUnsigned` | free function | [line_format.md](line_format.md#appendunsigned) |
@@ -241,6 +245,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BlackboxReader::truncated` | function | [blackbox_reader.md](blackbox_reader.md#blackboxreader-truncated) |
 | `BlackboxReader::truncatedFrameType` | function | [blackbox_reader.md](blackbox_reader.md#blackboxreader-truncatedframetype) |
 | `BlackboxReader::usable` | function | [blackbox_reader.md](blackbox_reader.md#blackboxreader-usable) |
+| `BlockCharSink` | class | [block_char_sink.md](block_char_sink.md#class-blockcharsink) |
+| `BlockCharSink::BlockCharSink` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-blockcharsink) |
+| `BlockCharSink::droppedWrites` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-droppedwrites) |
+| `BlockCharSink::write` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-write) |
 | `BodyTravel` | struct | [arc_step.md](arc_step.md#struct-bodytravel) |
 | `BodyTravel::forward` | field | [arc_step.md](arc_step.md#bodytravel-forward) |
 | `BodyTravel::lateral` | field | [arc_step.md](arc_step.md#bodytravel-lateral) |
@@ -1980,6 +1988,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
 | `onScreen` | free function | [touch_panel.md](touch_panel.md#onscreen) |
+| `openForAppend` | free function | [pros-block_sink.md](pros-block_sink.md#openforappend) |
 | `operator""_deg` | free function | [literals.md](literals.md#operator-quote-quote-_deg) |
 | `operator""_deg (overload 2)` | free function | [literals.md](literals.md#operator-quote-quote-_deg-2) |
 | `operator""_in` | free function | [literals.md](literals.md#operator-quote-quote-_in) |
@@ -2174,6 +2183,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsBattery::faultedReads` | function | [pros-battery.md](pros-battery.md#prosbattery-faultedreads) |
 | `ProsBattery::voltage` | function | [pros-battery.md](pros-battery.md#prosbattery-voltage) |
 | `ProsBlockSink` | class | [pros-block_sink.md](pros-block_sink.md#class-prosblocksink) |
+| `ProsBlockSink::appendOpen` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-appendopen) |
 | `ProsBlockSink::flush` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-flush) |
 | `ProsBlockSink::isOpen` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-isopen) |
 | `ProsBlockSink::operator=` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-operator-eq) |
@@ -2182,6 +2192,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsBlockSink::ProsBlockSink` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink) |
 | `ProsBlockSink::ProsBlockSink (overload 2)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-2) |
 | `ProsBlockSink::ProsBlockSink (overload 3)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-3) |
+| `ProsBlockSink::ProsBlockSink (overload 4)` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-prosblocksink-4) |
 | `ProsBlockSink::write` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-write) |
 | `ProsBlockSink::~ProsBlockSink` | function | [pros-block_sink.md](pros-block_sink.md#prosblocksink-destructor-prosblocksink) |
 | `ProsBlockSource` | class | [pros-block_source.md](pros-block_source.md#class-prosblocksource) |
@@ -2245,6 +2256,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsDistance::distance` | function | [pros-distance.md](pros-distance.md#prosdistance-distance) |
 | `ProsDistance::faultedReads` | function | [pros-distance.md](pros-distance.md#prosdistance-faultedreads) |
 | `ProsDistance::ProsDistance` | function | [pros-distance.md](pros-distance.md#prosdistance-prosdistance) |
+| `ProsFileMode` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-prosfilemode) |
+| `ProsFileMode::Append` | enumerator | [pros-block_sink.md](pros-block_sink.md#prosfilemode-append) |
+| `ProsFileMode::Truncate` | enumerator | [pros-block_sink.md](pros-block_sink.md#prosfilemode-truncate) |
 | `ProsGps` | class | [pros-gps.md](pros-gps.md#class-prosgps) |
 | `ProsGps::faultedReads` | function | [pros-gps.md](pros-gps.md#prosgps-faultedreads) |
 | `ProsGps::hasFix` | function | [pros-gps.md](pros-gps.md#prosgps-hasfix) |
@@ -2517,6 +2531,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunGuard::operator=` | function | [run_guard.md](run_guard.md#runguard-operator-eq) |
 | `RunGuard::operator= (overload 2)` | function | [run_guard.md](run_guard.md#runguard-operator-eq-2) |
 | `RunGuard::pace` | function | [run_guard.md](run_guard.md#runguard-pace) |
+| `RunGuard::pacesTotal` | function | [run_guard.md](run_guard.md#runguard-pacestotal) |
 | `RunGuard::pause` | function | [run_guard.md](run_guard.md#runguard-pause) |
 | `RunGuard::remaining` | function | [run_guard.md](run_guard.md#runguard-remaining) |
 | `RunGuard::requestAbandon` | function | [run_guard.md](run_guard.md#runguard-requestabandon) |

@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Status: 7 of 158 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 160 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -81,7 +81,12 @@
 > runs on (a bend toward the target's line and a cancelled weak-side yaw, tuned on the host test
 > plant's placeholder dynamics), and the belief it rests on that robot two's sideways drift is its
 > HEADING being pulled, not the chassis sliding sideways; the register then holds 158 entries.
-> HA-162..HA-178 are not in it: numbers other chunks hold (briefed, not landed) — never reissued. The
+> **COMP-t (2026-09-28) added TWO — HA-177, invented in its VEXos half, and HA-178, reasoned and
+> invented** — what the bench auton tester's SD run log assumes an APPEND open does on the card, and
+> what its abort and its RUN gate read from PROS (the touch's press count, a button's level, the
+> competition status with nothing connected, a controller switched off); the register then holds
+> 160 entries. HA-162..HA-176 are not in it: numbers other chunks hold (briefed, not landed) —
+> never reissued. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -269,6 +274,8 @@
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
+| HA-177 | An APPEND open under `/usd/` (`fopen(path, "ab")`, which PROS hands to VEXos's `vexFileOpenWrite`) writes after an EXISTING file's last byte and keeps every earlier byte; on an ABSENT file it either fails or creates (the adapter handles both); a line written and flushed survives a power-off right after it | (1) reasoned (the vendored `libpros.a`/`libc.a`, disassembled 2026-09-26); (2)–(3) **invented** (VEXos's); (4) reasoned for the call, invented for what the sync commits | COMP-t Station M.7 |
+| HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
 
@@ -1969,7 +1976,12 @@ were built in parallel; both have since landed, with the numbers below it.)
   mechanisms and their `IMotor*` arrays in its static state, never on the driver task's stack,
   which a deleted task would leave dangling. Half (b) is what COMP's own-task design rests on
   (`competition/match_runner.hpp` runs on whichever task calls it; the program's task and its
-  handshake are COMP-b's). The vendored `include/pros/misc.h` (`competition_get_status`,
+  handshake are COMP-b's). **The Auton Tester (COMP-t, 2026-09-28) rests on half (b) too:** after
+  boot it does everything — the idle ticks, the countdown, every run — on a `pros::Task` it creates
+  in `initialize()` (`src/programs/auton_tester_program.cpp`), and `src/main.cpp`'s `disabled()`,
+  `competition_initialize()`, `autonomous()` and `opcontrol()` return at once for it; on the bench
+  nothing changes mode (its RUN gate refuses any competition bit), so the tester alone never tests
+  (b). The vendored `include/pros/misc.h` (`competition_get_status`,
   `competition_is_disabled`, `competition_is_autonomous`, `competition_is_field`,
   `competition_is_switch`) says nothing about tasks.
   *Confidence:* **reasoned** — both halves are how PROS's competition template is generally
@@ -2076,6 +2088,70 @@ that leaves unproven. The numbers below are host-test-plant measurements of 2026
   *Blast radius if wrong:* the screen says FINISHED while the robot is off its line on the tape by the
   skid, and every later leg starts from that error. Not contained by config — only a GPS, a tracking wheel
   or a wall reset sees a skid.
+
+**COMP-t (2026-09-28) added TWO — HA-177 and HA-178.** "shulib Auton Tester" runs one of the team's
+autons on the bench from RUN on the brain's screen (a 3 s countdown, then `competition::runAuton`, the
+competition program's own call), aborts on any controller button, a touch of the screen, the controller
+dropping or the robot being disabled, and appends every run's summary lines to one file on the SD card
+across reboots. Two things it relies on are beliefs about the brain that the host cannot check: what an
+append open does on the card, and what the abort and the RUN gate read from PROS. **Neither has been
+observed; the tester has not run on a robot.**
+
+- [ ] **HA-177 — an APPEND open under `/usd/` keeps the file and writes after it.**
+  *Claim:* (1) `fopen(path, "ab")` reaches VEXos as `vexFileOpenWrite`: newlib makes `"ab"` a write-only
+  open with `O_APPEND`, and PROS's `usd_open_r` sends exactly that case to `vexFileOpenWrite` (every other
+  write-only open to `vexFileOpenCreate`). (2) On an EXISTING file, `vexFileOpenWrite` writes after its
+  last byte and keeps every earlier byte. (3) On an ABSENT file it may fail or create — unknown. (4) A line
+  written and flushed survives a power-off right after it (PROS calls `vexFileSync` after every write it
+  passes on).
+  *Source:* `include/shulib/hal/pros/block_sink.hpp` — `ProsFileMode::Append` and `openForAppend()`, the
+  ONE place the decision is made: probe with `"rb"`, open `"ab"`, and create with `"wb"` ONLY when the
+  probe said the file was absent, so an existing log is never truncated whichever way (3) goes; (3) only
+  changes which word the boot line prints (CREATED either way). `hal::BlockCharSink`
+  (`include/shulib/hal/block_char_sink.hpp`) turns it into the text sink the tester's second log writes
+  through; `src/programs/auton_tester_program.cpp` opens `shulib_auton_runs.txt` once at boot (a BARE
+  name — the adapter owns the prefix, HA-122). Host-tested through the shim on a real directory (two
+  constructions leave both lines, in order, CREATED then APPENDED) and with a scripted opener (all four
+  branches; no `"wb"` when the file existed); no mode has a `+` (the brain refuses read-write opens).
+  *Confidence:* (1) **reasoned** from the vendored `libpros.a` and `libc.a`, disassembled 2026-09-26 (the
+  reading the calibrator's safe-save work made); (2) and (3) **invented** — VEXos's behaviour; (4)
+  reasoned for the call, invented for what the sync commits. HA-122 confirmed `fopen` under `/usd/` for
+  `"wb"` only.
+  *Settle:* COMP-t Stations M.2 and M.7 — the first boot on a card without the file (M.2.2: the third boot
+  line says `SD run log ON, CREATED /usd/shulib_auton_runs.txt`), the runs of M.4–M.6, then a power-cycle
+  (M.7.1: `ON, APPENDED to /usd/shulib_auton_runs.txt`) and one more run; copy the file to a computer:
+  every run since M.2 present, in order, across the reboot. Never a blank or formatted card: the
+  calibration record is on it, and the tester refuses to boot without it (M.7.2 deletes only the log, for
+  a CREATED on a card that already had one).
+  *Blast radius if wrong:* (2) wrong — earlier boots' runs lost from the card (serial still has them when
+  it was captured); the robot's motion is unaffected. The one remaining truncation path: the `"rb"` probe
+  fails on a file that exists AND the `"ab"` open fails too — then `"wb"` empties it; its cost is the same
+  log. **Contained:** the SD log only; a refused card is `SD run log OFF` and serial carries every line.
+
+- [ ] **HA-178 — the tester's abort and RUN gate read the right things from PROS.**
+  *Claim:* read from a task the program created: (a) the touch struct's `press_count` rises when a finger
+  LANDS on the screen, not when it lifts; (b) a controller button's level (`get_digital`) turns true within
+  ~50 ms of the press; (c) started from the brain's screen with nothing connected and the controller on its
+  home screen, `competition_get_status()` reads 0x00 — there is no CONNECTED bit from the controller's own
+  link; (d) a controller switched OFF reads `is_connected()` false within ~1 s.
+  *Source:* `src/programs/auton_abort_watch.hpp` — `testerTouchFrom()` (the one place PROS's touch fields
+  are read: `press_count` is the abort's count, `release_count` the pages' release edge, an
+  `E_TOUCH_ERROR` read never counts, and a finger is "down" when `press_count > release_count`),
+  `abortInputsFrom()` and `AbortWatch` (armed with the press count of the very read whose release touched
+  RUN, so any landing after it counts — COMP-t's review); `src/programs/auton_tester_panel.hpp` (`runAllowed`: RUN refused
+  with any of DISABLED, AUTONOMOUS, CONNECTED set, and without a connected controller); the program's
+  two one-line PROS reads, pinned by `test/auton_tester_source_test.cpp`.
+  *Confidence:* (a) **reasoned** from the vendored `pros/screen.h` text; (b) **invented**; (c) **reasoned**
+  from HA-128's measurement (a controller-menu start arms a pretend match, status 0x0f); (d) **invented**.
+  *Settle:* COMP-t Stations M.2–M.4, wheels up: M.2's first `competition status 0x00` line (c); M.4's
+  button in the countdown (b), a press-and-hold of the screen that aborts at the touch-down (a), and the
+  controller switched off in the countdown and mid-run (d) — note how long after the switch-off the screen
+  changed.
+  *Blast radius if wrong:* (a) — a touch aborts later (at the lift) or never; the buttons still abort, and
+  the RESULT page's wait for a held finger falls back to its plain 0.5 s arming delay. (b) slow — the robot
+  stops that much later. (c) wrong — RUN is refused on the bench, with the bits on the status line
+  (fail-safe). (d) slow — a controller that dies mid-run is noticed that much later (a touch still aborts).
+  **Contained:** the tester's watch and its two reads; the competition program's own watch is COMP-b's.
 
 ---
 

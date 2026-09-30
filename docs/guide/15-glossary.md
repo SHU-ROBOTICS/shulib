@@ -4,6 +4,9 @@
 > Each term is explained properly in the chapter noted.
 > **Read this if:** you hit a word and want the one-line version.
 
+- **abort (the auton tester's)** — any controller button, a touch of the screen, the controller
+  dropping or the robot being disabled, ending the tester's countdown (nothing moves) or its run
+  (stopped within one more 10 ms tick, the end action skipped). [Ch. 16]
 - **adapter (`hal/pros`)** — the thin glue that implements one hardware interface over the real
   PROS SDK, converting units exactly once at the edge. The library core never touches PROS; the
   adapters are the only place that does. [Ch. 13]
@@ -14,6 +17,10 @@
   [Ch. 7]
 - **autonomous** — the phase (or whole run) where the robot acts entirely on its own code and
   sensors, nobody driving. [Ch. 1]
+- **auton tester ("shulib Auton Tester")** — the bench program that runs one of the team's autons
+  from RUN on the brain's screen, through the same library call the competition program's
+  `autonomous()` makes; only the trigger differs. Not "the tester" — that word is Bench Tests'.
+  [Ch. 16]
 - **blackbox** — the binary run record written to the SD card, so a run can be read back with no
   laptop attached. Its decoder ships with it. [Ch. 11]
 - **blocking (call)** — a function that doesn't return until its job is done, which is what

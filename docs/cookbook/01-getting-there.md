@@ -24,11 +24,14 @@ RoutineResult skeleton(Chassis& chassis) {
 
 **Why it is written this way.**
 
-- `startAt` is the first line of every auton. It tells the pose estimator where you physically
-  placed the robot. Skip it and every field coordinate afterwards is measured from wherever the
-  estimator happened to start, which is the origin — so the robot drives to the wrong place with
-  complete confidence. (Heading is not seeded here; the IMU owns it. See
-  [Chapter 3](../guide/03-knowing-where-you-are.md).)
+- `startAt` is the first line of every auton you run yourself. It tells the pose estimator where
+  you physically placed the robot. Skip it and every field coordinate afterwards is measured from
+  wherever the estimator happened to start, which is the origin — so the robot drives to the wrong
+  place with complete confidence. (Heading is not seeded here; the IMU owns it. See
+  [Chapter 3](../guide/03-knowing-where-you-are.md).) An auton registered for
+  `competition::runAuton` is the exception: its entry's `start` is seated for it — position AND
+  heading — before its first line, so it has no `startAt`
+  ([Chapter 16](../guide/16-testing-an-auton-on-the-bench.md)).
 - `brake` at the end is not decoration. Without it the routine returns while the last motion's
   residual velocity is still bleeding off, and "where the robot ended up" becomes a matter of
   luck. `brake` blocks until the estimate says the robot is genuinely at rest.

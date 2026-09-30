@@ -114,8 +114,8 @@ arm-none-eabi-g++ -std=gnu++20 -Wall -Wextra -Wconversion -Wsign-conversion -Wsh
 And the src/ BUILD gate (chunk GATE1, 2026-08-19) — the REAL `make`, compile AND link, every
 build (three robot variants since R3b Session 2: `bench`, `xdrive`, `tank`; plus the second
 axis: `ROBOT=tank PROGRAM=drive` since R3b Part 0b, `ROBOT=tank PROGRAM=library` since R3b
-Parts 1–3 and `ROBOT=tank PROGRAM=calibrate` since R3d Part 2 — six builds), warning policy in
-the tool's header. It deletes and rebuilds `bin/`/`.d/` (both gitignored), so it does not dirty
+Parts 1–3, `ROBOT=tank PROGRAM=calibrate` since R3d Part 2 and `ROBOT=tank PROGRAM=autontest`
+since COMP-t — seven builds), warning policy in the tool's header. It deletes and rebuilds `bin/`/`.d/` (both gitignored), so it does not dirty
 the tree:
 
 ```sh
@@ -132,8 +132,9 @@ python3 tools/src_build_gate.py check
 > re-measure with `make`; do not resurrect the old blocker from memory or old notes.
 > Variant selection is `make ROBOT=bench` (default) / `make ROBOT=xdrive` / `make ROBOT=tank`
 > (the 2026 chassis, since R3b Session 2), with `PROGRAM=drive` / `PROGRAM=library` /
-> `PROGRAM=calibrate` on tank for the drive program, the library program and (since R3d Part 2)
-> the self-calibration program — the old documented `CXXFLAGS_EXTRA` flag was a
+> `PROGRAM=calibrate` / `PROGRAM=autontest` on tank for the drive program, the library program,
+> (since R3d Part 2) the self-calibration program and (since COMP-t) the bench auton tester — the
+> old documented `CXXFLAGS_EXTRA` flag was a
 > measured silent no-op (transposed name; GATE1-PROGRESS §3–4) and survives only in comments that
 > say it used to be documented (`Makefile`, `src/build_selection.hpp` — the one file that reads the
 > ROBOT/PROGRAM defines since G1 Part 2c's final run; `src/main.cpp` read them until then) — never as

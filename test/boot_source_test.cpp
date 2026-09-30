@@ -1,6 +1,7 @@
 // boot_source_test.cpp — G1 Part 2b's test 6: the boot source feeds the builder faithfully
 // (src/common/boot_source.hpp, included from src/ the way chassis_table_test.cpp includes
-// src/robots/chassis_table.hpp — the host build compiles test/*.cpp only, never a .cpp under src/).
+// src/robots/chassis_table.hpp — the host build compiles test/*.cpp and, of src/, only the team's
+// PROS-free src/team/autons.cpp; never boot_source.cpp, which calls PROS).
 //
 // As the brief's amendment A11 strengthened it, and as the Part 2b reviews sharpened it:
 //   * the config the core builds is valid, carries the description's SOURCE, the drive-encoder

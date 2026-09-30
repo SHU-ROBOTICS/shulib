@@ -21,6 +21,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 13 | [Extending the library](13-extending-the-library.md) | The layers, the testing bar, adding drivetrains/motions |
 | 14 | [What it can't do yet](14-what-it-cannot-do-yet.md) | The honest limits, each linked to its tracking doc |
 | 15 | [Glossary](15-glossary.md) | Every term, one sentence |
+| 16 | [Testing an auton on the bench](16-testing-an-auton-on-the-bench.md) | "shulib Auton Tester", the team's auton file, and reading a run against the tape |
 
 ## The other two documents
 
@@ -45,8 +46,9 @@ hand is a fact that will go stale.
 ### How it's organised
 
 Numbered files, one topic each, so updating a topic means editing one file. Chapters 1–6 are
-concepts (no code) and should rot slowly; 7–12 touch the code and rot fast — check them first
-when the API moves. (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
+concepts (no code) and should rot slowly; 7–12 and 16 touch the code and rot fast — check them
+first when the API moves. (Chapter 16, the bench auton tester, was added after the glossary at
+chunk COMP-t, so the glossary kept its number.) (Chapter 9 was a deliberately reserved slot from the start; the Tier-2
 recipe chapter filled it at chunk D1 as an *added file*, with nothing renumbered — the
 pattern to reuse.) Add future chapters either into a reserved slot or at the end (before the
 glossary stays the glossary — renumber only as a last resort, in one commit, updating every
@@ -70,9 +72,11 @@ drift: a chapter's `300_ms` retyped to `300_s` built clean and passed the whole 
 build and CI now run a scan that requires every non-blank line inside a ```` ```cpp ```` block in
 any public document to appear verbatim in a compiled source: a compiled example test, or one of
 the team's files under `src/team/` that a chapter quotes (today: robot two's driver file,
-`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes) — never the rest of
-`src/`. A listing of a driver file must also be one unbroken run of the file's lines, so a line
-added to the file inside a part a chapter shows fails the scan too. The sources are matched by
+`src/team/robot_two_driver.hpp`, which the cookbook's chapter 6 quotes, and the team's auton
+file, `src/team/autons.cpp`, which chapter 16 quotes — the host suite compiles it and runs every
+auton in it) — never the rest of `src/`. A listing of either file must also be one unbroken run
+of the file's lines, so a line added to the file inside a part a chapter shows fails the scan
+too. The sources are matched by
 globs, one per kind of file, so a new examples file is covered the moment it exists, and a kind
 that matches no file fails the scan. The same run also checks that no public document links into
 the development-process notes.

@@ -39,9 +39,10 @@
 //    each line through printf under the caller's tag.
 // All of the first two is inline here so the host test (test/boot_source_test.cpp, the brief's
 // test 6) runs EVERY decision against the IBlockSource / IDeviceRegistry fakes, the way
-// test/chassis_table_test.cpp includes src/robots/chassis_table.hpp: the host build compiles only
-// test/*.cpp and never a .cpp under src/. (Until the Part 2b review's second round the decision flow
-// lived in the .cpp beside the PROS calls, where no test could reach it.)
+// test/chassis_table_test.cpp includes src/robots/chassis_table.hpp: the host build compiles
+// test/*.cpp and, of src/, only the team's PROS-free auton file (src/team/autons.cpp, since COMP-t)
+// — never this header's .cpp, which calls PROS. (Until the Part 2b review's second round the
+// decision flow lived in the .cpp beside the PROS calls, where no test could reach it.)
 //
 // ── The absent ports cross ONE door ─────────────────────────────────────────────────
 // The list is private storage with a length. It leaves only as `BootConfig::absent()` — a span
@@ -263,8 +264,11 @@ public:
 
     /// The builder's options for this boot: `{.absentDrivePorts = absent()}`, and nothing else.
     /// The only spelling of the options a program should use (header: one door). Borrows this
-    /// object's storage, so it must not outlive it — robot::Robot reads it during construction
-    /// only.
+    /// object's storage, so it must not outlive it — robot::Robot reads the PORTS during
+    /// construction only. A program may add a pacer before building (`opts.pacer = &guard;`,
+    /// the Auton Tester since COMP-t and the competition program after it): that pacer is
+    /// BORROWED for the Robot's whole life (robot.hpp, BuildOptions::pacer), so it must outlive
+    /// the Robot — declare it first.
     [[nodiscard]] robot::BuildOptions buildOptions() const noexcept {
         return robot::BuildOptions{.absentDrivePorts = absent()};
     }
