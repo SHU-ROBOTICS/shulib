@@ -32,8 +32,8 @@ Three consequences worth internalising:
 2. **Nothing you emit is wasted if you follow §6's versioning rule.** Additive fields are free.
 3. **One of the three seams is now FROZEN — F8** (`paths[]` + the command vocabulary), locked
    2026-09-18 with shulib's path runner; §4 is a contract, not a proposal. F7 is still a draft and
-   F9 is not written. §7 is the honest list of what can still move, and what we will do to stop it
-   moving under you.
+   F9 is not frozen (its format and reader exist since 2026-09-29, host-only — §5.2). §7 is the
+   honest list of what can still move, and what we will do to stop it moving under you.
 
 ---
 
@@ -66,11 +66,11 @@ Legend: ✅ exists and works · ⚠️ exists but incomplete · ❌ not built
 | The robot profile revised (§3.1), its generator, and an optional VS Code robot panel | ❌ | **G3a** — added 2026-09-26, before G3; the profile can change until G3 freezes it |
 | `.vexbot` ingestion (into G3a's generator) + SD runtime loader | ❌ | **G3** — freezes F7 |
 | The 10-minute guide | ❌ | **G4** — closes the accessibility milestone (the `.shupaths` importer was dropped on 2026-09-26) |
-| `SHUL/2` wire protocol | ❌ | **H1** — freezes F9. *Ungated: the wire is defined unilaterally* |
+| `SHUL/2` wire protocol | 🚧 | **H1** — freezes F9. **Part A1 landed 2026-09-29, host-only: the format and its reader exist (§5.2); NOT frozen yet.** The writer (the sink) is Part A2; the freeze is Part B. The wire has never crossed a real link. *Ungated: the wire is defined unilaterally* |
 | `hal/sim` adapter + record/replay | ❌ | **H2** — needs your Rapier sim |
 | On-brain live tuner | ❌ | **H3** |
 | **`DebugRecord`** — the record SHUL/2 serialises | ✅ | exists, stable, and already has reserved space for this (§5.2) |
-| **Blackbox binary format** — a shipped, versioned, round-trip-tested wire format | ✅ | **the working precedent SHUL/2 should follow** (§5.2) |
+| **Blackbox binary format** — a shipped, versioned, round-trip-tested wire format | ✅ | **the precedent SHUL/2 followed**: its Tick and Summary payloads ARE the blackbox's bytes (§5.2.5) |
 | The HAL, motion, localization, sequencing, both auton-authoring tiers | ✅ | done and frozen — this is what a loaded `.vexbot` will drive |
 
 **The honest read:** your side is further along on the file format; our side is further along on the
@@ -410,28 +410,279 @@ shulib discovers the socket by reading that file, connects to `port`, and authen
 **This is the one piece of the sim seam that already works**, and it is what makes the rest a plug-in
 rather than a redesign.
 
-### 5.2 The payload — and shulib has already done most of this work
+### 5.2 The payload — the `SHUL/2` v1.0 format (built 2026-09-29, host-only, NOT frozen)
 
-`SHUL/2` is the **versioned, sequenced wire serialisation of `DebugRecord`**, the diagnostic record
-defined in shulib's very first chunk. Defining it once and serialising it in four places is why that
-chunk came first: **one schema, four sinks** — terminal, SD blackbox, `SHUL/2`, and the tuner — so
+`SHUL/2` is the **versioned, sequenced, checked wire serialisation of `DebugRecord`**, the diagnostic
+record defined in shulib's very first chunk. Defining it once and serialising it in four places is why
+that chunk came first: **one schema, four sinks** — terminal, SD blackbox, `SHUL/2`, and the tuner — so
 bench, field and sim traces are directly comparable.
 
-**You are not starting from nothing.** shulib already ships a **binary blackbox format** that is
-versioned, magic-prefixed, self-describing and round-trip tested:
+**What exists, stated exactly.** Since 2026-09-29 shulib has the format (`diag/shul2_format.hpp`: the
+encoders, the decoders, the version negotiation and `scanFrame()`, the one function every reader is
+built on) and a reader over a whole capture (`diag/shul2_reader.hpp`), proven by the host test suite.
+**What does not exist yet:** the writer (the sink a program attaches — the next part of the same chunk),
+any program that writes the wire, and the socket end (H2). **These bytes have never crossed a real
+link** — no USB port, no socket. **Nothing here is frozen:** register row F9 freezes this wire at the
+chunk's last part, and until then any layout below may still move. After it, every frame type grows
+only by appending (§5.2.7).
 
-```
- 0  u8[4]  magic "SHBB"        12  f64     epochSeconds
- 4  u16    formatVersion       20  u32     ringCapacity
- 6  u16    headerBytes (256)   24  u32     byteBudget
- 8  u16    tickRecordBytes     28  u8[48]  buildHash
-10  u16    flags               76  u8[32]  routineId
-                              108  u8[16]  alliance / 124 side / 140 portMap
-```
+#### 5.2.1 The rules every field follows
 
-**`SHUL/2` should follow this shape**, not invent a second one. And space is already reserved in the
-record for exactly this seam: drop counters, and eight tick-phase timing slots of which **two are
-deliberately spare** — so adding a new phase later is a vocabulary append, never a wire reshape.
+- **Binary, not JSON.** Earlier shulib documents called `SHUL/2` "the JSON wire"; it is binary. JSON
+  cannot carry NaN or ±Inf at all, a double survives decimal text only with 17 significant digits and a
+  correct parser on both ends, and formatting text every tick costs heap and time on the brain.
+- **Little-endian, fixed-width, byte by byte.** Every floating-point field is IEEE-754 **binary64**,
+  with no narrowing anywhere: a decoded record equals the encoded one field for field, NaN, ±Inf, −0.0
+  and denormals included (bit-exact, by test).
+- **Canonical units:** inches, radians, seconds, volts, amperes, in/s, rad/s. Headings (the three
+  `math::Angle` fields) are wrapped to (−π, π]; a non-finite heading cannot be represented and decodes
+  as 0 with a "corrupt" flag raised. Heading errors, residuals and corrections (`errorHeading`,
+  `gateResidualHeading`, `correctionDTheta`, and the Summary's `headingMax` / `headingFinal`) are plain
+  radians that the decoder neither wraps nor validates: it carries what the writer computed.
+  `errorHeading` is always written as the shortest signed error, in (−π, π] — do not unwrap or
+  accumulate it.
+- **The time base.** Every time on the wire — the Tick's `t`, the Log's `t`, the End's `endTime` — is
+  the shulib program's clock reading in seconds, RAW. The Hello's `epochSeconds` is the same clock when
+  the session opened; subtract it for session-relative time.
+- **A value shulib does not name decodes as its number and is never refused** — a fault code, gate
+  reason, motion state or level code from a newer shulib arrives as a number you can print.
+
+#### 5.2.2 The envelope — 14 bytes per frame, the same in EVERY major version
+
+| Offset | Field | Notes |
+|---|---|---|
+| 0 | `u8` sync0 = `0xFE` | `0xFE` never occurs in valid UTF-8 text |
+| 1 | `u8` sync1 = `0x53` | `'S'` |
+| 2 | `u8` type | §5.2.3; 0 is never assigned |
+| 3 | `u8` flags | 0 in major 1; **ignore unknown bits** |
+| 4 | `u32` sequence | per writer, per session (§5.2.6) |
+| 8 | `u16` payloadBytes | at most **4096** |
+| 10 | payload | `payloadBytes` bytes |
+| 10+n | `u32` CRC-32 | over bytes [2, 10+n): type, flags, sequence, length and payload |
+
+**The CRC** is CRC-32/IEEE 802.3 — reflected polynomial `0xEDB88320`, initial value all-ones, final
+inversion: exactly `zlib.crc32` (`python3 -c "import zlib; print(hex(zlib.crc32(b'123456789')))"`
+prints `0xcbf43926`). **Verify it before you believe a single byte inside the frame.**
+
+**Resync.** After a failed candidate — no sync pair, a length above 4096, or a CRC that does not verify
+— resume scanning at the **next byte**, never at the claimed end: a corrupted length would otherwise
+throw away every good frame it claimed. A **live** reader must buffer at least 14 + 4096 = 4110 bytes;
+a corrupted length stalls it until that many bytes have arrived (about nine tick frames, ~90 ms at
+100 Hz), and then the frames inside those bytes are recovered. A reader of a **whole capture** that
+meets a candidate running past the end of the capture treats it the same way (resume one byte on): it is
+truncation only if no later frame verifies. **When a live stream ends** — the socket closes, the file you
+were following ends — what you still hold IS a whole capture: apply that same tail rule to it. Otherwise
+a corrupted length in the last 4 KB of a session holds back every frame after it, the End included, for
+good, and that session's link loss can never be known. (Applying it after an idle timeout as well is
+your policy to choose: it releases a held End sooner, at the cost of dropping a frame whose bytes were
+merely late.)
+
+**What reading costs.** Linear in the capture for ordinary damage and for random bytes (a random sync
+pair turns up about once in 65,536 positions). The worst case is bytes crafted to pack in as many
+candidates claiming an accepted length as a byte pattern can — about three per ten bytes, since a
+candidate's own `0x53` and its length's high byte (at most `0x10`) sit where no other candidate can
+start — each costing up to 4104 bytes of CRC before it fails: about 1,200 bytes of CRC per input byte,
+or roughly 14–23 s per MB of such input with a bitwise CRC on a desktop machine (measured 2026-09-30;
+the spread is the machine's other load). A reader on a UI thread should bound its own time; a
+table-driven CRC-32 gives the same values faster (shulib's is bitwise, to save the brain's flash).
+
+#### 5.2.3 Frame types, directions, and one writer per capture
+
+| Type | Name | Payload (v1.0) | Direction |
+|---|---|---|---|
+| 1 | Hello | 256 bytes (§5.2.4) | either — opens a session |
+| 2 | Tick | 428 bytes — one `DebugRecord` (§5.2.5) | shulib → peer |
+| 3 | Log | 14 bytes + text (§5.2.5) | shulib → peer |
+| 4 | Summary | 168 bytes — one run summary (§5.2.5) | shulib → peer |
+| 5 | End | 32 bytes (§5.2.5) | either — closes a session |
+
+Hello and End are **session** frames and travel in either direction (a peer's Hello carries role 1).
+The ranges govern **data** frames: **2–63** shulib → peer, **64–127** peer → shulib (your simulated
+sensor frames, at H2), **128–255** reserved. A verified frame of a type you do not know — 0 included —
+is **skipped by its length and counted**, never guessed at.
+
+**One capture carries ONE writer's bytes.** If you record both directions of the socket, keep two
+captures: two writers interleaved into one byte stream break the sequence rules.
+
+**What v1 does NOT carry:** per-motion results and path markers as data (both reach you as **Log
+text** — §5.3), inbound frames (H2's, in the peer range), or a separate fault-triage frame (a stream
+carries every tick, the one that faulted included).
+
+#### 5.2.4 The Hello (v1.0: 256 bytes)
+
+| Offset | Field |
+|---|---|
+| 0 | `u8[8]` signature `89 53 48 55 4C 00 0D 0A` (`0x89` "SHUL" NUL CR LF) |
+| 8 | `u16` versionMajor = 1 |
+| 10 | `u16` versionMinor = 0 |
+| 12 | `u8` role (0 = the runtime that emits records, 1 = a peer; other values reserved) |
+| 13 | `u8` reserved (0) |
+| 14 | `u16` flags (0) |
+| 16 | `u16` tickPayloadBytes = 428 |
+| 18 | `u16` summaryPayloadBytes = 168 |
+| 20 | `u16` endPayloadBytes = 32 |
+| 22 | `u16` logFixedBytes = 14 |
+| 24 | `f64` epochSeconds (the clock at session open, seconds) |
+| 32 | `u8` apiMajor (shulib's API version) |
+| 33 | `u8` apiMinor |
+| 34 | `u16` reserved (0) |
+| 36 | `u8[48]` buildHash (text) — **empty means MISSING: show it loudly** |
+| 84 | `u8[32]` routineId |
+| 116 | `u8[16]` alliance |
+| 132 | `u8[16]` side |
+| 148 | `u8[96]` portMap |
+| 244 | `u8[12]` reserved (zero) |
+
+Text fields are NUL-padded to their width; a field ends at its first NUL (or fills its width). Reserved
+bytes and flag bits are written 0 and **never judged** — a later minor may give them only a meaning that
+is safe to ignore.
+
+**The signature** exists so that a transport which strips bit 7, truncates at a NUL, or translates
+newlines corrupts **every** Hello — so no session ever starts on such a link. Because the CRC catches
+that corruption first, a reader reports those links as "no frame verified" (bit 7, NUL) or "frames but
+no Hello" (newline translation), not as a bad signature. A bad signature means a Hello whose CRC
+verified and whose signature is wrong: a writer bug, or something that is not `SHUL/2` at all.
+
+#### 5.2.5 The payloads
+
+**The Tick** is exactly the SD blackbox's tick record — the same 428 bytes, by construction (one
+encoder writes both), so a tick read off a robot's SD card can be re-wrapped as a `SHUL/2` frame without
+decoding it.
+
+| Off | Field | Off | Field | Off | Field |
+|---|---|---|---|---|---|
+| 0 | `f64` t (s) | 112 | `u8` wheelCount (0–8) | 260 | `f64` imuYaw (rad, wrapped) |
+| 8 | `f64` dt (s) | 113 | `u8` activeCommandState (MotionState) | 268 | `f64` imuYawRate (rad/s) |
+| 16 | `f64` targetPose.x (in) | 114 | `u8` deadReckoning (0/1) | 276 | `f64` quality (0–1) |
+| 24 | `f64` targetPose.y (in) | 115 | `u8` qualityClass | 284 | `f64` covarianceTrace |
+| 32 | `f64` targetPose.heading (rad, wrapped) | 116 | `u32` activeCommandId (0 = none) | 292 | `f64` gateResidualX (in) |
+| 40 | `f64` measuredPose.x (in) | 120 | `u16` fault (FaultCode) | 300 | `f64` gateResidualY (in) |
+| 48 | `f64` measuredPose.y (in) | 122 | `u8` gateReason (GateReason) | 308 | `f64` gateResidualHeading (rad) |
+| 56 | `f64` measuredPose.heading (rad, wrapped) | 123 | `u8` flags (below) | 316 | `f64` gateMahalanobis |
+| 64 | `f64` errorX (in) | 124 | `u32` droppedRecords | 324 | `f64` correctionDx (in) |
+| 72 | `f64` errorY (in) | 128 | `u32` droppedLines | 332 | `f64` correctionDy (in) |
+| 80 | `f64` errorHeading (rad) | 132 | `f64[8]` wheelVoltage (V) | 340 | `f64` correctionDTheta (rad) |
+| 88 | `f64` commanded.vx (in/s) | 196 | `f64[8]` wheelCurrent (A) | 348 | `f64` batteryVoltage (V) |
+| 96 | `f64` commanded.vy (in/s) | | | 356 | `f64` batteryCurrent (A) |
+| 104 | `f64` commanded.omega (rad/s) | | | 364 | `f64[8]` tickPhase (s, by TickPhase) |
+
+Only the first `wheelCount` entries of the wheel arrays are meaningful; a `wheelCount` above 8 is
+corruption (a reader clamps it to 8 and flags the record). `activeCommandId` 0 means no active command.
+
+**The tick flags byte (offset 123):** bit 0 `clampedThisTick` (the per-tick correction budget bound the
+nudge), bit 1 `strafeFallbackActive` (an H-drive's turn-then-drive fallback), bit 2 `tankSteerActive` (a
+tank's `moveTo` steering back onto its line, added 2026-09-27); bits 3–7 are written 0 and ignored.
+
+**The Summary** is exactly the SD blackbox's summary frame — one run summary, 168 bytes:
+
+| Off | Field | Off | Field |
+|---|---|---|---|
+| 0 | `i32` motionsStarted | 44 | `f64` worstLoopDt (s) |
+| 4 | `i32` motionsSettled | 52 | `f64` firstFaultTime (s) |
+| 8 | `i32` motionsTimedOut | 60 | `u32` droppedRecords |
+| 12 | `i32` motionsCancelled | 64 | `u32` droppedLines |
+| 16 | `i32` motionsAborted | 68 | `u32` blackboxDropped (the summary's own figure) |
+| 20 | `i32` gatingRejects | 72 | `f64` batteryStart (V) |
+| 24 | `u8` hasHeadingData (0/1) | 80 | `f64` batteryEnd (V) |
+| 25 | `u8` brownout (0/1) | 88 | `u8[48]` buildHash (text) |
+| 26 | `u16` firstFault (FaultCode) | 136 | `u8[32]` routineId (text) |
+| 28 | `f64` headingMax (rad) | 168 | end |
+| 36 | `f64` headingFinal (rad) | | |
+
+**The Log** — one leveled, tagged line, 14 fixed bytes and then the text:
+
+| Offset | Field |
+|---|---|
+| 0 | `u8` level (wire code, below) |
+| 1 | `u8` flags (bit 0: tag truncated, bit 1: message truncated; bits 2–7 ignored) |
+| 2 | `u8` tagBytes |
+| 3 | `u8` reserved |
+| 4 | `u16` messageBytes |
+| 6 | `f64` t (s, the clock when the line was logged) |
+| 14 | the tag, then the message — **verbatim**, never sanitized, never NUL-terminated |
+
+The text always starts at offset 14; fields a later minor adds go **after** the text. `logFixedBytes`
+(in the Hello) means every Log byte that is not text — `payloadBytes − tagBytes − messageBytes` — 14 in
+v1.0. Sanitizing the text is a display concern: do it where you render, never on the wire.
+
+**The End** — the writer's own account of the session:
+
+| Offset | Field |
+|---|---|
+| 0 | `u32` framesOffered (the End's own sequence number) |
+| 4 | `u32` framesFailed (frames the writer's own device refused — they appear as gaps) |
+| 8 | `u32` recordsSeen |
+| 12 | `u32` linesSeen |
+| 16 | `u32` linesTruncated |
+| 20 | `u32` notOpenDropped (items handed over while no session was open) |
+| 24 | `f64` endTime (s) |
+
+#### 5.2.6 The value tables
+
+| `FaultCode` (u16) | | `GateReason` (u8) | |
+|---|---|---|---|
+| 0 | None | 0 | None |
+| 1 | Precondition | 1 | Accepted |
+| 2 | NanPose | 2 | RejectedInnovation |
+| 3 | LoopOverrun | 3 | RejectedMahalanobis |
+| 4 | OdoStuck | 4 | RejectedNoFix |
+| 5 | ImuLost | 5 | RejectedHighYawRate |
+| 6 | GpsGateReject | 6 | RejectedNormalizedInnovation |
+| 7 | Brownout | 7 | RejectedStaleFix |
+| 8 | MotionTimeout | 8 | RejectedSensorQuality |
+| 9 | MotorOverTemp | 9 | RejectedNoTagMapEntry |
+| 10 | Implausible | 10 | RejectedTagRange |
+| 11 | MechanismStalled | 11 | RejectedObservationAge |
+| 12 | MotorGroupDisagree | 12 | CovarianceReinit |
+
+| `MotionState` (`activeCommandState`) | | `qualityClass` | | `TickPhase` (index into `tickPhase`) | |
+|---|---|---|---|---|---|
+| 0 | Idle | 0 | Uninitialized | 0 | Localization |
+| 1 | WaitingForEstimate | 1 | DeadReckon | 1 | Motion |
+| 2 | Running | 2 | Corrected | 2 | Health (reserved) |
+| 3 | Settled | 3 | Degraded | 3 | Telemetry (reserved) |
+| 4 | TimedOut | | | 4 | Scheduler (reserved) |
+| 5 | Cancelled | | | 5 | User (reserved); 6–7 spare |
+
+**Log level codes:** Error 0, Warn 1, Info 2, Debug 3, Trace 4.
+
+Every table here is append-only: a value is never renumbered or re-meant, and a new one arrives as a
+new number.
+
+#### 5.2.7 Sessions, sequence numbers and versions
+
+- **A session** opens with a Hello at sequence 0 and closes with an End. The writer re-sends its Hello
+  periodically (every N frames — a writer policy, not part of the format), so a reader that joins late
+  can start at the next Hello; such a **late-joined** session is read normally. A Hello at sequence > 0
+  inside a session must repeat that session's Hello byte for byte, or it starts a new session. A Hello
+  at sequence 0 always starts a new session — even inside one that never sent its End, which is what a
+  writer that restarted (a reset, a brownout) leaves behind.
+- **What a reader delivers.** Read a frame only inside an **accepted** session — after its Hello and
+  before its End. A Tick, Summary or End must be exactly the width its session's Hello declared, and a
+  Log's non-text bytes (`payloadBytes − tagBytes − messageBytes`) must equal the Hello's
+  `logFixedBytes`; a frame that disagrees is skipped and counted, never decoded — decoding it would be
+  guessing. Frames outside any session (before the first Hello, or after an End and before the next
+  Hello) and every frame of a **refused** session (its re-Hellos and its End included, until a Hello that
+  differs) are skipped and counted the same way.
+- **Sequence numbers** run per writer, per session, modulo 2³². With `d = seq − expected` (mod 2³²):
+  `d = 0` in order; `0 < d < 2³¹` means `d` frames were lost; `d ≥ 2³¹` is a stale or duplicate frame
+  to skip. A wrap from `0xFFFFFFFF` to 0 is in order; only a **Hello** at 0 starts a session.
+- **Link loss** is `max(0, frames lost − End.framesFailed)`: the frames the link lost, as opposed to
+  the ones the writer's device refused. It is knowable only for a session read from its sequence-0 Hello
+  whose End arrived.
+- **What every major version keeps:** the envelope (sync bytes, offsets and widths, the 4096 bound, the
+  CRC and what it covers), the Hello's type (1), and the Hello's payload bytes 0–11 (the signature and
+  the version). So a reader of any version can always NAME a stream as another major and refuse it,
+  rather than seeing only noise. Everything else may change at a major.
+- **Versions, from the reader's side:** another **major** is refused whole — read nothing from it. A
+  **newer minor** is accepted: decode the prefix of each payload you know and ignore the appended bytes
+  (every frame type grows only by appending). An **older minor** is accepted when its declared widths
+  equal that minor's documented widths; fields it lacks take their documented defaults. At the **same
+  minor**, a declared width that differs is refused — it means a layout changed without a version bump.
+  shulib's own reader implements exactly these rules and is tested against a hand-built v1.7 stream (every
+  frame 16 bytes longer: read, extras ignored and counted) and a v2.0 stream (refused whole, with the
+  v1.0 session after it in the same capture still read). This is §6's promise, made concrete for the
+  wire: unknown newer fields are ignored, never fatal; missing fields get safe defaults.
 
 ### 5.3 Direction of travel
 
@@ -440,6 +691,11 @@ Bidirectional, once Rapier lands:
 - **VexBuilder → shulib:** simulated sensor readings, fed in so the *same unmodified estimator* runs.
 - **shulib → VexBuilder:** pose, twist, wheel commands, markers — so you render the ghost robot and
   overlay planned-vs-actual.
+
+**Markers, in v1 of the wire:** there is no marker frame. A path's markers, like each motion's result,
+reach you only as **Log text** — the lines the path runner and the motion layer already print, carried
+verbatim in Log frames (§5.2.5). Parse them as text for now; a data frame for either is an additive
+frame type later (a new number in the 2–63 range), which a v1 reader skips by its length.
 
 Because shulib's core depends only on a PROS-free hardware seam, **"works in the simulator" is a
 structural guarantee rather than a feature** — the identical motion and localization code already runs
@@ -473,6 +729,7 @@ You asked not to be blindsided. This is the list.
 | **F7 (`robotProfile`) is not frozen.** Field names and nesting can change | **real** | §3's schema is the current best draft. It freezes when shulib's ingestion ships. **Build against §3 and flag anything awkward — early feedback changes the schema cheaply, late feedback does not** |
 | ~~**F8 (`paths[]` + ids) is not frozen**~~ | **RETIRED 2026-09-18** | **F8 is frozen.** §4.1's field names, the `motion`/`headingMode` value sets, the capacities and the four built-in ids are pinned by a compile-time test in shulib. What still grows is the **vocabulary of team-registered ids**, which is additive by design and arrives through the manifest |
 | ~~**The command-id manifest does not exist**~~ | **RETIRED 2026-09-18** | It exists, with a byte-exact golden test behind it. Its format and a real example are in §4.2.3 |
+| **F9 (`SHUL/2`, §5.2) is published but not frozen.** Its layouts and rules can still move | **real, until H1's last part** | The format and shulib's reader exist (host-only, 2026-09-29); the writer comes next, then the freeze. Build a reader against §5.2 now and flag anything awkward — before the freeze a change is cheap. After it, every frame type grows only by appending (§5.2.7) |
 | **`gearRatio` is a new field with no shulib reader behind it yet** | certain | shulib had **no gear-ratio concept at all** when this was written; since R3b (2026-09-14) `hal::DriveGeometry` carries a per-side motor-to-wheel ratio, and the self-calibrator measures the effective scale per side — but nothing reads a `.vexbot` yet (G3). Emit it anyway; it is cheap to carry |
 | **Per-side gear ratios may be required** | likely | At least one team robot is believed to be geared differently left vs right. §3.1 puts `gearRatio` per motor for this reason — do not hoist it to a single drivetrain-level field |
 | ~~**`NONE` boundary-marker representation is undecided**~~ | **RETIRED 2026-09-18** | Decided: **`NONE` is not an id.** A waypoint IS a segment; the importer folds the boundary rows away and the picker never renders one. §4.3.1 |

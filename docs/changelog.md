@@ -16,6 +16,51 @@
 
 ## API 2.4
 
+### Added since 2.4 (2026-10-01) — the SHUL/2 wire format and its reader
+
+> Written when it was built (chunk H1 Part A1 — the READ side of the SHUL/2 telemetry wire; its
+> writer, the sink, is Part A2, and the freeze of register row F9 is Part B). **No version bump —
+> every change is ADDITIVE:** nothing frozen changed shape, and the wire carries its own version in
+> every Hello (F9 is not frozen yet, so its layouts may still move until Part B). **Host only —
+> these bytes have never crossed a real link**, and no program writes them yet.
+
+**ADDED:**
+
+- **`include/shulib/diag/crc32.hpp`** — `diag::crc32Ieee`, the bitwise CRC-32/IEEE (the same number
+  `zlib.crc32` gives), moved here from the calibration record so the wire can share it.
+- **`include/shulib/diag/shul2_format.hpp`** — namespace `diag::shul2`, the SHUL/2 v1.0 format:
+  BINARY (not the "JSON wire" older documents named), little-endian binary64, a 14-byte envelope with
+  a CRC on every frame; five frame types — Hello, Tick, Log, Summary, End — where a Tick and a Summary
+  ARE the SD blackbox's own bytes. The envelope constants, `FrameType`, `kSignature`, `WidthRow` and
+  `kWidthTable`, `ReaderProfile` and `kThisReader`, `Verdict` and `negotiate()` (another major is
+  refused; a newer minor is read, its appended bytes ignored; an older minor is read at its own
+  widths), `ScanResult` and `scanFrame()` (the one function any reader — a file reader or a live
+  socket loop — is built on), `encodeFrame`/`encodeHello`/`encodeLog`/`encodeEnd`,
+  `decodeHello`/`decodeLog`/`decodeEnd`/`decodeTick`/`decodeSummary`, `WireLevel` with
+  `wireLevel()`/`logLevelFromWire()`, and `utf8Prefix()`.
+- **`include/shulib/diag/shul2_reader.hpp`** — `Shul2Reader`, a reader over a whole capture that
+  delivers only verified frames of accepted sessions, resynchronises one byte on after any damaged
+  frame, names what it could not read (`CaptureStatus`: EMPTY, NO_FRAME, NO_SESSION, REFUSED, OK) and
+  counts every skipped byte and frame by name (`ReaderCounters`, `SessionReport` — including sequence
+  gaps and, when an End arrived, the frames the link itself lost). It BORROWS the capture: keep the
+  buffer alive as long as the reader, and never hand it a temporary.
+- The format is written out for other tools — every layout, value table and rule — in
+  [`vexbuilder-integration.md`](vexbuilder-integration.md) §5.2.
+
+**FIXED:**
+
+- **`blackbox::decodeTick` now clamps `wheelCount` to 8** (`DebugRecord::kMaxWheels`) and raises
+  `corrupt` when the byte is above it — before, a damaged byte of 9–255 decoded as-is, and any
+  consumer that looped to `wheelCount` would index past the 8-wide wheel arrays.
+  **`blackbox::encodeTick` writes it clamped to [0, 8]** (before, a count above 255 wrapped). No
+  file changes: every writer in the tree already wrote at most 8.
+
+**CHANGED (same behaviour):** `calibration::crc32Ieee` is now a one-line forwarding function to
+`diag::crc32Ieee` — the same spelling and the same number, so the calibration record and every
+caller are unchanged.
+
+**What you must do:** nothing.
+
 ### Changed since 2.4 (2026-10-01) — a motor group leaves out a reading that is not a number; the calibrator names a port with no reading
 
 > Written when it landed (DIAG1 Part B). **No version bump:** `hal::MotorGroup`,

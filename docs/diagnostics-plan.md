@@ -55,6 +55,17 @@ vocabulary `diag::MotionOutcome` (0–4, wire-pinned). H1 should freeze `DebugRe
 `TickPhase`, `FaultCode`, and decide whether SHUL/2 v1 also carries `RunSummary`/`MotionOutcome` or
 defers them to v2 — both are already wire-stable either way.
 
+**Answered at H1 (the team lead's ruling of 2026-09-26; the format built host-only 2026-09-29, NOT yet
+frozen — the freeze is H1's last part).** SHUL/2 v1 carries five frame types: Hello, **Tick** (the
+`DebugRecord`, as the blackbox's own 428 bytes), **Log** (the message channel, which the blackbox omits),
+**Summary** (`RunSummary`, as the blackbox's own 168 bytes) and End. It does **not** carry
+`MotionOutcome` or per-motion results as data: no seam channel carries them — they ride `log()` as
+text, so they reach the wire inside Log frames, verbatim; a data frame for them is an additive type
+later. It carries no Triage frame either (a stream carries every tick, the faulting one included). The
+`tankSteerActive` bit above arrives as tick-flags bit 2 with no wire code of its own — the Tick IS the
+blackbox's bytes — and the wire's decoder exposes it. The whole format is `vexbuilder-integration.md`
+§5.2.
+
 ---
 
 ## What exists today (A1 + A3 + C1)
@@ -88,7 +99,7 @@ pose — the guard is load-bearing), and C1 as `TermSink`'s first consumer found
 | `SdSink` — binary blackbox to `/usd/` | E1 ✅ (the sink, the format and the decoder; the `/usd/` adapter itself is R1's — E1 ships `hal::IBlockSink` and a host fake) |
 | Estimator introspection (residual, Mahalanobis, accept/reject reason, covariance trace) | E1 → **E4 ✅** (E1 built and proved the PATH with a synthetic corrector; E2/E3 filled the residuals and the corrector-side reasons; **E4 filled the last two slots from a real filter covariance** — `gateMahalanobis` from `S = H P Hᵀ + R` and `covarianceTrace` as the position block in in². Both are re-read from decoded blackbox bytes. Zero on complementary-tier records by design, so old files keep their meaning) |
 | Latched brownout marker + graceful-end contract | E1 ✅ |
-| `SHUL/2` wire protocol (**F9 freeze**) | H1 |
+| `SHUL/2` wire protocol (**F9 freeze**) | H1 — **Part A1 ✅ 2026-09-29, host-only**: the format (binary, a CRC on every frame; Tick and Summary are the blackbox's bytes) and its reader. The sink is Part A2; the F9 freeze is Part B. Never crossed a real link |
 | Run record/replay | H2 |
 | On-brain live PID/FF tuner | H3 |
 

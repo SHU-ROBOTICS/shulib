@@ -826,8 +826,11 @@ comparable. Sinks sit behind the `ITelemetrySink` HAL seam (M1), `NullSink` defa
 | `BrainHud` | optional on-brain HUD/summary screen | add-on | **add-on / Frontier** |
 
 `SHUL/2` v1 **is** the serialized `DebugRecord` (Freeze F9) — define the schema once, every sink
-serializes it (text / binary / wire). `TermSink` is not the JSON wire; it's a *pretty-printer* for
-humans.
+serializes it (text / binary / wire). `TermSink` is not the wire; it's a *pretty-printer* for
+humans. The wire is **binary, not JSON** (decided at H1, 2026-09-26; built host-only 2026-09-29):
+little-endian binary64 with a CRC on every frame, and its Tick and Summary payloads are the blackbox's
+own bytes — JSON cannot carry NaN or ±Inf, and a double survives decimal text only with 17 digits
+and a correct parser on both ends. The format is `vexbuilder-integration.md` §5.2.
 
 **18.2 — The `DebugRecord` (per-tick snapshot).** Captured each control tick, rate-budgeted:
 `t`, `dt`, target/measured `Pose2d`, per-axis error, commanded `(vx,vy,ω)`, per-wheel `V`+`I`,

@@ -207,6 +207,7 @@ nav:
           - Blackbox reader: api/blackbox_reader.md
           - Build info: api/build_info.md
           - Controller display: api/controller_display.md
+          - Crc32: api/crc32.md
           - Debug record: api/debug_record.md
           - Fault: api/fault.md
           - Finite guard: api/finite_guard.md
@@ -221,6 +222,8 @@ nav:
           - Run summary: api/run_summary.md
           - SD sink: api/sd_sink.md
           - Session info: api/session_info.md
+          - Shul2 format: api/shul2_format.md
+          - Shul2 reader: api/shul2_reader.md
           - Term sink: api/term_sink.md
           - Tick attribution: api/tick_attribution.md
           - Trace: api/trace.md

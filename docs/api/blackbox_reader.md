@@ -48,7 +48,7 @@ enum class ReadStatus : std::uint8_t
 
 Why a file is or is not readable by THIS build. Anything other than Ok means no frames are delivered at all — the refuse-don't-misread rule.
 
-*enum class, declared at [`include/shulib/diag/blackbox_reader.hpp:68`](../../include/shulib/diag/blackbox_reader.hpp#L68).*
+*enum class, declared at [`include/shulib/diag/blackbox_reader.hpp:76`](../../include/shulib/diag/blackbox_reader.hpp#L76).*
 
 <a id="readstatus-ok"></a>
 
@@ -60,7 +60,7 @@ Ok = 0
 
 header parsed and this build can read this version
 
-*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:69`](../../include/shulib/diag/blackbox_reader.hpp#L69).*
+*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:77`](../../include/shulib/diag/blackbox_reader.hpp#L77).*
 
 <a id="readstatus-empty"></a>
 
@@ -72,7 +72,7 @@ Empty = 1
 
 nothing at all was written (a run with nothing to say)
 
-*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:70`](../../include/shulib/diag/blackbox_reader.hpp#L70).*
+*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:78`](../../include/shulib/diag/blackbox_reader.hpp#L78).*
 
 <a id="readstatus-headertruncated"></a>
 
@@ -84,7 +84,7 @@ HeaderTruncated = 2
 
 fewer bytes than a complete header
 
-*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:71`](../../include/shulib/diag/blackbox_reader.hpp#L71).*
+*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:79`](../../include/shulib/diag/blackbox_reader.hpp#L79).*
 
 <a id="readstatus-badmagic"></a>
 
@@ -96,7 +96,7 @@ BadMagic = 3
 
 not a shulib blackbox
 
-*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:72`](../../include/shulib/diag/blackbox_reader.hpp#L72).*
+*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:80`](../../include/shulib/diag/blackbox_reader.hpp#L80).*
 
 <a id="readstatus-unsupportedversion"></a>
 
@@ -108,7 +108,7 @@ UnsupportedVersion = 4
 
 a version this build was not written for — REFUSED
 
-*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:73`](../../include/shulib/diag/blackbox_reader.hpp#L73).*
+*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:81`](../../include/shulib/diag/blackbox_reader.hpp#L81).*
 
 <a id="readstatus-layoutmismatch"></a>
 
@@ -120,7 +120,7 @@ LayoutMismatch = 5
 
 right version, wrong record width — REFUSED (header note)
 
-*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:74`](../../include/shulib/diag/blackbox_reader.hpp#L74).*
+*enumerator, declared at [`include/shulib/diag/blackbox_reader.hpp:82`](../../include/shulib/diag/blackbox_reader.hpp#L82).*
 
 <a id="readstatusname"></a>
 
@@ -132,7 +132,7 @@ right version, wrong record width — REFUSED (header note)
 
 The §18.5 spelling of a ReadStatus, for messages. Never returns null.
 
-*free function, declared at [`include/shulib/diag/blackbox_reader.hpp:78`](../../include/shulib/diag/blackbox_reader.hpp#L78).*
+*free function, declared at [`include/shulib/diag/blackbox_reader.hpp:86`](../../include/shulib/diag/blackbox_reader.hpp#L86).*
 
 <a id="class-blackboxreader"></a>
 
@@ -144,7 +144,7 @@ class BlackboxReader
 
 The decoder for a blackbox file: point it at bytes the caller already holds — it BORROWS the span, copies nothing and allocates nothing — and pull frames with next() until that returns false. Three rules it will not bend. A file this build cannot interpret is REFUSED WHOLE: status() says why and not one frame is delivered, because a number read wrongly but confidently sends an investigation somewhere false. It never throws and never reads past the end, which matters most for the damaged files that matter most. And truncation is a RESULT, not an error: every frame before the cut is delivered, truncated() is true, sawEnd() is false — the exact signature a brownout leaves. Frame kinds this build does not know are skipped by their declared length and counted in skippedFrames(), which is what lets a v1 reader survive a later writer. There is deliberately NO per-frame checksum, so a bit flip landing on a merely-wrong value inside a known frame decodes silently as that value (measured, not assumed — the header states the boundary in full). A consumer needing end-to-end integrity must add its own check rather than inherit one from here that does not exist.
 
-*class, declared at [`include/shulib/diag/blackbox_reader.hpp:104`](../../include/shulib/diag/blackbox_reader.hpp#L104).*
+*class, declared at [`include/shulib/diag/blackbox_reader.hpp:112`](../../include/shulib/diag/blackbox_reader.hpp#L112).*
 
 <a id="blackboxreader-blackboxreader"></a>
 
@@ -156,7 +156,7 @@ explicit BlackboxReader(std::span<const std::byte> file) noexcept
 
 Parse the header of `file` and position at the first frame. Never throws; the verdict is in status(). The span must outlive the reader.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:115`](../../include/shulib/diag/blackbox_reader.hpp#L115).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:123`](../../include/shulib/diag/blackbox_reader.hpp#L123).*
 
 <a id="blackboxreader-status"></a>
 
@@ -168,7 +168,7 @@ Parse the header of `file` and position at the first frame. Never throws; the ve
 
 Whether this build can read this file at all (header note, rule 1).
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:142`](../../include/shulib/diag/blackbox_reader.hpp#L142).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:150`](../../include/shulib/diag/blackbox_reader.hpp#L150).*
 
 <a id="blackboxreader-usable"></a>
 
@@ -180,7 +180,7 @@ Whether this build can read this file at all (header note, rule 1).
 
 Shorthand for status() == Ok.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:144`](../../include/shulib/diag/blackbox_reader.hpp#L144).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:152`](../../include/shulib/diag/blackbox_reader.hpp#L152).*
 
 <a id="blackboxreader-header"></a>
 
@@ -192,7 +192,7 @@ Shorthand for status() == Ok.
 
 The decoded header. Meaningful for Ok and UnsupportedVersion (a refused file still tells you which version it claims to be — that is how you find the build that wrote it).
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:148`](../../include/shulib/diag/blackbox_reader.hpp#L148).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:156`](../../include/shulib/diag/blackbox_reader.hpp#L156).*
 
 <a id="blackboxreader-next"></a>
 
@@ -204,7 +204,7 @@ The decoded header. Meaningful for Ok and UnsupportedVersion (a refused file sti
 
 Deliver the next KNOWN frame, skipping (and counting) unknown ones. Returns false at the end of the file, on a cut, or when the file is not usable.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:152`](../../include/shulib/diag/blackbox_reader.hpp#L152).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:160`](../../include/shulib/diag/blackbox_reader.hpp#L160).*
 
 <a id="blackboxreader-truncated"></a>
 
@@ -216,7 +216,7 @@ Deliver the next KNOWN frame, skipping (and counting) unknown ones. Returns fals
 
 True when the file ended mid-frame — the run was cut short (brownout, pulled card, a program that never closed). The frames delivered before the cut are all valid; this says the story stops there.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:193`](../../include/shulib/diag/blackbox_reader.hpp#L193).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:201`](../../include/shulib/diag/blackbox_reader.hpp#L201).*
 
 <a id="blackboxreader-truncatedframetype"></a>
 
@@ -228,7 +228,7 @@ True when the file ended mid-frame — the run was cut short (brownout, pulled c
 
 The raw frame-type byte of the frame that was cut, when truncated() (0 if the cut fell in a frame prefix).
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:196`](../../include/shulib/diag/blackbox_reader.hpp#L196).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:204`](../../include/shulib/diag/blackbox_reader.hpp#L204).*
 
 <a id="blackboxreader-sawend"></a>
 
@@ -240,7 +240,7 @@ The raw frame-type byte of the frame that was cut, when truncated() (0 if the cu
 
 True once the graceful-end frame has been delivered. Its ABSENCE at the end of iteration is the honest signal that the run did not close cleanly.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:199`](../../include/shulib/diag/blackbox_reader.hpp#L199).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:207`](../../include/shulib/diag/blackbox_reader.hpp#L207).*
 
 <a id="blackboxreader-framesread"></a>
 
@@ -252,7 +252,7 @@ True once the graceful-end frame has been delivered. Its ABSENCE at the end of i
 
 Known frames delivered so far.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:201`](../../include/shulib/diag/blackbox_reader.hpp#L201).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:209`](../../include/shulib/diag/blackbox_reader.hpp#L209).*
 
 <a id="blackboxreader-skippedframes"></a>
 
@@ -264,7 +264,7 @@ Known frames delivered so far.
 
 Frames skipped because this build does not know their type, or because a known type carried a payload of the wrong size (a corruption signal that must not stop the rest of the file from being read).
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:205`](../../include/shulib/diag/blackbox_reader.hpp#L205).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:213`](../../include/shulib/diag/blackbox_reader.hpp#L213).*
 
 <a id="blackboxreader-bytesconsumed"></a>
 
@@ -276,7 +276,7 @@ Frames skipped because this build does not know their type, or because a known t
 
 Bytes consumed so far, including the header.
 
-*function, declared at [`include/shulib/diag/blackbox_reader.hpp:207`](../../include/shulib/diag/blackbox_reader.hpp#L207).*
+*function, declared at [`include/shulib/diag/blackbox_reader.hpp:215`](../../include/shulib/diag/blackbox_reader.hpp#L215).*
 
 <a id="struct-blackboxreader-frame"></a>
 
@@ -288,7 +288,7 @@ struct Frame
 
 One frame as delivered by next(): its type and a view of its payload, valid for as long as the caller's file buffer is.
 
-*struct, declared at [`include/shulib/diag/blackbox_reader.hpp:108`](../../include/shulib/diag/blackbox_reader.hpp#L108).*
+*struct, declared at [`include/shulib/diag/blackbox_reader.hpp:116`](../../include/shulib/diag/blackbox_reader.hpp#L116).*
 
 <a id="blackboxreader-frame-type"></a>
 
@@ -300,7 +300,7 @@ FrameType type = FrameType::Tick
 
 the frame's kind (known types only)
 
-*field, declared at [`include/shulib/diag/blackbox_reader.hpp:109`](../../include/shulib/diag/blackbox_reader.hpp#L109).*
+*field, declared at [`include/shulib/diag/blackbox_reader.hpp:117`](../../include/shulib/diag/blackbox_reader.hpp#L117).*
 
 <a id="blackboxreader-frame-payload"></a>
 
@@ -312,14 +312,14 @@ std::span<const std::byte> payload{}
 
 exactly the declared payload bytes
 
-*field, declared at [`include/shulib/diag/blackbox_reader.hpp:110`](../../include/shulib/diag/blackbox_reader.hpp#L110).*
+*field, declared at [`include/shulib/diag/blackbox_reader.hpp:118`](../../include/shulib/diag/blackbox_reader.hpp#L118).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 55 lines, click to expand</summary>
+<summary>The header’s own reasoning — 63 lines, click to expand</summary>
 
 ```text
 
@@ -341,8 +341,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  2. NEVER THROW, NEVER READ PAST THE END. The files that matter most are the damaged
     ones — a run that died mid-write, a card pulled at the wrong moment. Every read
     goes through a bounds-latching cursor, and a non-finite heading (which the Angle
-    type refuses by precondition) decodes to zero with `corrupt()` raised rather than
-    aborting the program that is trying to read the evidence.
+    type refuses by precondition) decodes to zero with decodeTick()'s `corrupt` flag
+    raised rather than aborting the program that is trying to read the evidence. (Since
+    H1 Part A1 a wheelCount byte above the 8-wide wheel arrays decodes as 8 with the same
+    flag, so a consumer that loops to it cannot index past them.)
  3. TRUNCATION IS A RESULT, NOT AN ERROR. A cut file decodes up to the cut and SAYS
     SO: truncated() is true, the frames before the cut are all delivered, and sawEnd()
     is false because the graceful-end frame never arrived. That combination — good
@@ -359,8 +361,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  What is detected: a file that is not a blackbox (BadMagic), a version this build does
  not know (UnsupportedVersion), a layout whose declared widths disagree (LayoutMismatch),
  a cut (truncated()), a frame kind this build lacks (skippedFrames()), and a decoded
- value that is implausible on its face — a non-finite heading raises corrupt() rather
- than tripping Angle's precondition.
+ value that is implausible on its face — a non-finite heading raises decodeTick()'s
+ `corrupt` flag rather than tripping Angle's precondition, and so (since H1 Part A1) does
+ a wheelCount above DebugRecord::kMaxWheels, decoded as 8.
 
  What is NOT detected: there is deliberately NO per-frame checksum, so a bit flip inside
  a frame this build CAN interpret, landing on a value that is merely wrong rather than
@@ -373,6 +376,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  consumer needs end-to-end integrity (a wire protocol over a lossy link is the obvious
  case, and F9 is exactly that), it must add its own frame check rather than inherit one
  from here that does not exist. (Boundary verified during E1's independent review.)
+ SHUL/2 did exactly that (chunk H1 Part A1): every frame of the wire carries a CRC-32
+ over its type, sequence, length and payload, verified before anything inside is read,
+ and its reader (diag/shul2_reader.hpp) resynchronises past a failed frame instead of
+ stopping. The blackbox FILE still has no check — the wire's CRC protects bytes on the
+ wire, not bytes on the card.
 
  Allocation-free and PROS-free, like everything in this tree: it reads a span the
  caller already holds (a whole file loaded into a buffer, or the bytes a test just

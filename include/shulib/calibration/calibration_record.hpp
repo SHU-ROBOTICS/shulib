@@ -36,7 +36,10 @@
 // 180 bytes of input, and the bitwise loop runs in microseconds on a Cortex-A9. The
 // implementation is the textbook one so that any other tool (`python3 -c "import zlib"`,
 // `crc32` on the card's file) computes the same number — which is how the golden test
-// derives its expected value WITHOUT running this code.
+// derives its expected value WITHOUT running this code. Since chunk H1 Part A1 (2026-09-29)
+// the algorithm lives in diag/crc32.hpp, because the SHUL/2 wire checks every frame with it
+// and diag/ may not include calibration/; crc32Ieee below forwards there, so this spelling
+// and every caller of it are unchanged.
 //
 // ── Fixed width, little-endian, DECLARATION ORDER, byte by byte ─────────────────────
 // Never a struct memcpy: padding and ABI are not a file format, and a host test writing a
@@ -62,6 +65,7 @@
 #include <string_view>
 
 #include "shulib/diag/blackbox_format.hpp"
+#include "shulib/diag/crc32.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -103,21 +107,13 @@ inline constexpr std::size_t kRecordBytes = kRecordPrefixBytes + kRecordPayloadB
 static_assert(kRecordPayloadBytes == 168, "the v1 payload is 168 bytes — see the layout table");
 static_assert(kRecordBytes == 180, "the v1 record is 180 bytes — see the layout table");
 
-/// CRC-32/IEEE 802.3 over `bytes`: reflected polynomial 0xEDB88320, initial value all-ones,
-/// final inversion — the same number `zlib.crc32`, `crc32` and every V5 tool produce, which
-/// is what lets an INDEPENDENT implementation derive the golden test's expected value.
-/// Computed BITWISE with no lookup table (header: 1 KiB of flash for 180 bytes of input is
-/// the wrong trade in a header a composition root includes).
+/// CRC-32/IEEE 802.3 over `bytes` — FORWARDS to diag::crc32Ieee (diag/crc32.hpp), where the
+/// algorithm has lived since chunk H1 Part A1 so the SHUL/2 wire can share it; this spelling
+/// is kept so the record's encoder and decoder and every existing caller compile unchanged.
+/// The same number `zlib.crc32` and `crc32` produce (reflected polynomial 0xEDB88320,
+/// all-ones initial value, final inversion), computed bitwise with no lookup table.
 [[nodiscard]] inline std::uint32_t crc32Ieee(std::span<const std::byte> bytes) noexcept {
-    std::uint32_t crc = 0xFFFFFFFFU;
-    for (const std::byte b : bytes) {
-        crc ^= static_cast<std::uint32_t>(static_cast<std::uint8_t>(b));
-        for (int bit = 0; bit < 8; ++bit) {
-            const std::uint32_t mask = (crc & 1U) != 0U ? 0xEDB88320U : 0U;
-            crc = (crc >> 1) ^ mask;
-        }
-    }
-    return crc ^ 0xFFFFFFFFU;
+    return diag::crc32Ieee(bytes);
 }
 
 // ── THE LAYOUT, v1 — this table IS the document ─────────────────────────────────────

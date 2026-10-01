@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 2,960 of them across 157 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 3,140 of them across 160 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -115,6 +115,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Blackbox reader](blackbox_reader.md) | [`diag/blackbox_reader.hpp`](../../include/shulib/diag/blackbox_reader.hpp) | BlackboxReader — THE DECODER. It ships in the same chunk as the encoder, because a format nothing can read is not a record: the first time a blackbox genuinely matters is a competition afternoon, and a file that cannot be opened that afternoon is worth exac… |
 | [Build info](build_info.md) | [`diag/build_info.hpp`](../../include/shulib/diag/build_info.hpp) | build_info — the git build hash plumbing for the §18.5 session header. |
 | [Controller display](controller_display.md) | [`diag/controller_display.hpp`](../../include/shulib/diag/controller_display.hpp) | ControllerFaultDisplay — the D-4 controller-screen content. |
+| [Crc32](crc32.md) | [`diag/crc32.hpp`](../../include/shulib/diag/crc32.hpp) | CRC-32/IEEE — the one checksum in shulib, in the one place both of its callers can reach. |
 | [Debug record](debug_record.md) | [`diag/debug_record.hpp`](../../include/shulib/diag/debug_record.hpp) | DebugRecord — the per-tick snapshot schema. |
 | [Fault](fault.md) | [`diag/fault.hpp`](../../include/shulib/diag/fault.hpp) | Fault discipline (master plan §18.4; WS13, chunk A1) — the stable numeric fault-code enum and the latched first-fault capture. |
 | [Finite guard](finite_guard.md) | [`diag/finite_guard.hpp`](../../include/shulib/diag/finite_guard.hpp) | Finite-value invariant guards (master plan §18.4) — the LOG-AND-RECOVER counterpart to SHULIB_PRECONDITION's throw. |
@@ -129,6 +130,8 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Run summary](run_summary.md) | [`diag/run_summary.hpp`](../../include/shulib/diag/run_summary.hpp) | RunSummary — the end-of-run one-screen summary, as DATA. |
 | [SD sink](sd_sink.md) | [`diag/sd_sink.hpp`](../../include/shulib/diag/sd_sink.hpp) | SdSink — the BLACKBOX: a binary, versioned, session-stamped record of a run, written to the brain's SD card. |
 | [Session info](session_info.md) | [`diag/session_info.hpp`](../../include/shulib/diag/session_info.hpp) | SessionInfo + the §18.5 session header — provenance as the FIRST lines of every run. |
+| [Shul2 format](shul2_format.md) | [`diag/shul2_format.hpp`](../../include/shulib/diag/shul2_format.hpp) | SHUL/2 — the telemetry WIRE, format v1.0: DebugRecord streamed, sequenced, checked and versioned. |
+| [Shul2 reader](shul2_reader.md) | [`diag/shul2_reader.hpp`](../../include/shulib/diag/shul2_reader.hpp) | Shul2Reader — the SHUL/2 reader over a WHOLE capture. |
 | [Term sink](term_sink.md) | [`diag/term_sink.hpp`](../../include/shulib/diag/term_sink.hpp) | TermSink — the human-readable terminal stream, the PRIMARY dev/debug surface. |
 | [Tick attribution](tick_attribution.md) | [`diag/tick_attribution.hpp`](../../include/shulib/diag/tick_attribution.hpp) | TickAttribution — WHO consumed the loop budget. |
 | [Trace](trace.md) | [`diag/trace.hpp`](../../include/shulib/diag/trace.hpp) | SHULIB_TRACE — the compile-time TRACE strip. |
@@ -294,7 +297,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 2,960 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 3,140 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

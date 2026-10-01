@@ -1837,7 +1837,7 @@ file path testable before the file format exists.)*
 *See the robot; tune it without a laptop; run it in simulation.*
 
 **Telemetry & tuning (WS10/WS13)** — *the `Shul2Sink` wire on top of the `DebugRecord`; `TermSink`/`SdSink` already shipped at M2/M3 (§18)*
-- [ ] **`SHUL/2`** — the versioned, sequenced **wire serialization of `DebugRecord`** behind the same `ITelemetrySink` seam (F9).
+- [~] **`SHUL/2`** — the versioned, sequenced **wire serialization of `DebugRecord`** behind the same `ITelemetrySink` seam (F9). *Partial, H1 Part A1 (2026-09-29, host-only): the binary format (a CRC on every frame; the Tick and Summary are the blackbox's bytes) and its reader, [`vexbuilder-integration.md`](vexbuilder-integration.md) §5.2. Owed: the sink (H1 Part A2) and the F9 freeze (Part B); the wire has never crossed a real link.*
 - [ ] Run **record/replay** (for VexBuilder visualize/overlay).
 - [ ] On-brain **live PID/FF tuner**; *(add-on)* on-brain HUD/summary screen.
 
@@ -2016,7 +2016,9 @@ must add for the integration to close. They are tracked here so the dependency i
 > manifest landed at G2 and F8 is LOCKED** — a `Route` executes on the host plant, bit-identically to
 > the same legs hand-written as a `Routine`, and VexBuilder's picker is unblocked. The `.vexbot`
 > codegen and the `SHUL/2` wire are still unbuilt (G3–G4, H1), and **nothing in Phase G has run on a
-> robot.** Listing only one side's obligations is how a
+> robot.** *(Corrected 2026-09-29, H1 Part A1: the `SHUL/2` wire's format and its reader now exist,
+> host-only; its sink and the F9 freeze do not, and it has never crossed a real link.)*
+> Listing only one side's obligations is how a
 > two-sided dependency turns into a stall with each side believing it is blocked. Both lists are below.
 
 ### What VexBuilder must add

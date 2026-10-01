@@ -2,7 +2,9 @@
 //
 // TermSink — the human-readable terminal stream, the PRIMARY dev/debug surface (master
 // plan §18.3; WS13, chunk A1). A pretty-printer for humans: leveled, subsystem-tagged,
-// column-aligned lines — never prose, never the JSON wire (that is Shul2Sink at H1).
+// column-aligned lines — never prose, never the wire (SHUL/2 is BINARY, not JSON: its
+// format and reader are diag/shul2_format.hpp and shul2_reader.hpp; its sink, Shul2Sink,
+// is H1 Part A2's).
 //
 // Injected dependencies (the pattern control/ set): the clock stamps leveled messages;
 // the character sink is where bytes go — which is what makes every line here a golden-

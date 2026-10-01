@@ -3,13 +3,13 @@
 
 # Every public entity, alphabetically
 
-All 2,960 of them, across 157 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 3,140 of them, across 160 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
 The [reference overview](README.md) says what is deliberately *not* here, and why.
 
-[A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [K](#k) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [Q](#q) · [R](#r) · [S](#s) · [T](#t) · [V](#v) · [W](#w) · [X](#x) · [Y](#y)
+[A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) · [H](#h) · [I](#i) · [K](#k) · [L](#l) · [M](#m) · [N](#n) · [O](#o) · [P](#p) · [Q](#q) · [R](#r) · [S](#s) · [T](#t) · [U](#u) · [V](#v) · [W](#w) · [X](#x) · [Y](#y)
 
 ## A
 
@@ -27,6 +27,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Acceleration` | type alias | [quantity.md](quantity.md#acceleration) |
 | `acceptanceRun` | free function | [acceptance_run.md](acceptance_run.md#acceptancerun) |
 | `acceptanceRunEntry` | free function | [acceptance_run.md](acceptance_run.md#acceptancerunentry) |
+| `accepted` | free function | [shul2_format.md](shul2_format.md#accepted) |
 | `ActuateAndConfirm` | class | [mechanism_op.md](mechanism_op.md#class-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm (overload 2)` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm-2) |
@@ -416,6 +417,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CameraMount::x` | field | [vision_conversion.md](vision_conversion.md#cameramount-x) |
 | `CameraMount::y` | field | [vision_conversion.md](vision_conversion.md#cameramount-y) |
 | `CameraMount::yaw` | field | [vision_conversion.md](vision_conversion.md#cameramount-yaw) |
+| `CaptureStatus` | enum class | [shul2_reader.md](shul2_reader.md#enum-class-capturestatus) |
+| `CaptureStatus::Empty` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-empty) |
+| `CaptureStatus::NoFrame` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-noframe) |
+| `CaptureStatus::NoSession` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-nosession) |
+| `CaptureStatus::Ok` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-ok) |
+| `CaptureStatus::Refused` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-refused) |
+| `captureStatusName` | free function | [shul2_reader.md](shul2_reader.md#capturestatusname) |
 | `cartridgeWord` | free function | [drivetrain_description.md](drivetrain_description.md#cartridgeword) |
 | `Chassis` | class | [chassis.md](chassis.md#class-chassis) |
 | `Chassis::brake` | function | [chassis.md](chassis.md#chassis-brake) |
@@ -567,6 +575,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CoupledSideMonitor::reset` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-reset) |
 | `CoupledSideMonitor::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-update) |
 | `crc32Ieee` | free function | [calibration_record.md](calibration_record.md#crc32ieee) |
+| `crc32Ieee` | free function | [crc32.md](crc32.md#crc32ieee) |
 | `Current` | type alias | [quantity.md](quantity.md#current) |
 
 ## D
@@ -616,10 +625,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DeclaredMotorPorts::label` | field | [boot_check.md](boot_check.md#declaredmotorports-label) |
 | `DeclaredMotorPorts::ports` | field | [boot_check.md](boot_check.md#declaredmotorports-ports) |
 | `decodeEnd` | free function | [blackbox_format.md](blackbox_format.md#decodeend) |
+| `decodeEnd` | free function | [shul2_format.md](shul2_format.md#decodeend) |
 | `decodeHeader` | free function | [blackbox_format.md](blackbox_format.md#decodeheader) |
+| `decodeHello` | free function | [shul2_format.md](shul2_format.md#decodehello) |
+| `decodeLog` | free function | [shul2_format.md](shul2_format.md#decodelog) |
 | `decodeRecord` | free function | [calibration_record.md](calibration_record.md#decoderecord) |
 | `decodeSummary` | free function | [blackbox_format.md](blackbox_format.md#decodesummary) |
+| `decodeSummary` | free function | [shul2_format.md](shul2_format.md#decodesummary) |
 | `decodeTick` | free function | [blackbox_format.md](blackbox_format.md#decodetick) |
+| `decodeTick` | free function | [shul2_format.md](shul2_format.md#decodetick) |
 | `decodeTriage` | free function | [blackbox_format.md](blackbox_format.md#decodetriage) |
 | `DegradationVerdict` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-degradationverdict) |
 | `DegradationVerdict::leftDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-leftdead) |
@@ -824,19 +838,31 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `emitSessionHeader` | free function | [session_info.md](session_info.md#emitsessionheader) |
 | `emitTriageBlock` | free function | [triage.md](triage.md#emittriageblock) |
 | `encodeEnd` | free function | [blackbox_format.md](blackbox_format.md#encodeend) |
+| `encodeEnd` | free function | [shul2_format.md](shul2_format.md#encodeend) |
+| `encodeFrame` | free function | [shul2_format.md](shul2_format.md#encodeframe) |
 | `encodeFrameHeader` | free function | [blackbox_format.md](blackbox_format.md#encodeframeheader) |
 | `encodeHeader` | free function | [blackbox_format.md](blackbox_format.md#encodeheader) |
+| `encodeHello` | free function | [shul2_format.md](shul2_format.md#encodehello) |
+| `encodeLog` | free function | [shul2_format.md](shul2_format.md#encodelog) |
 | `encodeRecord` | free function | [calibration_record.md](calibration_record.md#encoderecord) |
 | `encodeSummary` | free function | [blackbox_format.md](blackbox_format.md#encodesummary) |
 | `encodeTick` | free function | [blackbox_format.md](blackbox_format.md#encodetick) |
 | `encodeTriage` | free function | [blackbox_format.md](blackbox_format.md#encodetriage) |
 | `EndInfo` | struct | [blackbox_format.md](blackbox_format.md#struct-endinfo) |
+| `EndInfo` | struct | [shul2_format.md](shul2_format.md#struct-endinfo) |
 | `EndInfo::brownout` | field | [blackbox_format.md](blackbox_format.md#endinfo-brownout) |
 | `EndInfo::bytesBefore` | field | [blackbox_format.md](blackbox_format.md#endinfo-bytesbefore) |
 | `EndInfo::deviceFailed` | field | [blackbox_format.md](blackbox_format.md#endinfo-devicefailed) |
 | `EndInfo::droppedFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-droppedframes) |
 | `EndInfo::endTime` | field | [blackbox_format.md](blackbox_format.md#endinfo-endtime) |
+| `EndInfo::endTime` | field | [shul2_format.md](shul2_format.md#endinfo-endtime) |
+| `EndInfo::framesFailed` | field | [shul2_format.md](shul2_format.md#endinfo-framesfailed) |
+| `EndInfo::framesOffered` | field | [shul2_format.md](shul2_format.md#endinfo-framesoffered) |
+| `EndInfo::linesSeen` | field | [shul2_format.md](shul2_format.md#endinfo-linesseen) |
+| `EndInfo::linesTruncated` | field | [shul2_format.md](shul2_format.md#endinfo-linestruncated) |
 | `EndInfo::messagesSeen` | field | [blackbox_format.md](blackbox_format.md#endinfo-messagesseen) |
+| `EndInfo::notOpenDropped` | field | [shul2_format.md](shul2_format.md#endinfo-notopendropped) |
+| `EndInfo::recordsSeen` | field | [shul2_format.md](shul2_format.md#endinfo-recordsseen) |
 | `EndInfo::tickFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-tickframes) |
 | `evaluateDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluatedegradation) |
 | `ExitGroup` | class | [exit_group.md](exit_group.md#class-exitgroup) |
@@ -922,9 +948,15 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
 | `Frame::Field` | enumerator | [frame.md](frame.md#frame-field) |
 | `FrameType` | enum class | [blackbox_format.md](blackbox_format.md#enum-class-frametype) |
+| `FrameType` | enum class | [shul2_format.md](shul2_format.md#enum-class-frametype) |
 | `FrameType::End` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-end) |
+| `FrameType::End` | enumerator | [shul2_format.md](shul2_format.md#frametype-end) |
+| `FrameType::Hello` | enumerator | [shul2_format.md](shul2_format.md#frametype-hello) |
+| `FrameType::Log` | enumerator | [shul2_format.md](shul2_format.md#frametype-log) |
 | `FrameType::Summary` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-summary) |
+| `FrameType::Summary` | enumerator | [shul2_format.md](shul2_format.md#frametype-summary) |
 | `FrameType::Tick` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-tick) |
+| `FrameType::Tick` | enumerator | [shul2_format.md](shul2_format.md#frametype-tick) |
 | `FrameType::Triage` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-triage) |
 | `FusionResult` | struct | [correction.md](correction.md#struct-fusionresult) |
 | `FusionResult::applied` | field | [correction.md](correction.md#fusionresult-applied) |
@@ -1049,6 +1081,23 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitorConfig::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-maxmotortempc) |
 | `heightFor` | free function | [calibrate_panel.md](calibrate_panel.md#heightfor) |
 | `heightFor` | free function | [touch_panel.md](touch_panel.md#heightfor) |
+| `Hello` | struct | [shul2_format.md](shul2_format.md#struct-hello) |
+| `Hello::alliance` | field | [shul2_format.md](shul2_format.md#hello-alliance) |
+| `Hello::apiMajor` | field | [shul2_format.md](shul2_format.md#hello-apimajor) |
+| `Hello::apiMinor` | field | [shul2_format.md](shul2_format.md#hello-apiminor) |
+| `Hello::buildHash` | field | [shul2_format.md](shul2_format.md#hello-buildhash) |
+| `Hello::complete` | field | [shul2_format.md](shul2_format.md#hello-complete) |
+| `Hello::declared` | field | [shul2_format.md](shul2_format.md#hello-declared) |
+| `Hello::epochSeconds` | field | [shul2_format.md](shul2_format.md#hello-epochseconds) |
+| `Hello::flags` | field | [shul2_format.md](shul2_format.md#hello-flags) |
+| `Hello::payloadBytes` | field | [shul2_format.md](shul2_format.md#hello-payloadbytes) |
+| `Hello::portMap` | field | [shul2_format.md](shul2_format.md#hello-portmap) |
+| `Hello::role` | field | [shul2_format.md](shul2_format.md#hello-role) |
+| `Hello::routineId` | field | [shul2_format.md](shul2_format.md#hello-routineid) |
+| `Hello::side` | field | [shul2_format.md](shul2_format.md#hello-side) |
+| `Hello::signature` | field | [shul2_format.md](shul2_format.md#hello-signature) |
+| `Hello::versionMajor` | field | [shul2_format.md](shul2_format.md#hello-versionmajor) |
+| `Hello::versionMinor` | field | [shul2_format.md](shul2_format.md#hello-versionminor) |
 | `hitBox` | free function | [calibrate_panel.md](calibrate_panel.md#hitbox) |
 | `hitBox` | free function | [touch_panel.md](touch_panel.md#hitbox) |
 | `hitTest` | free function | [calibrate_panel.md](calibrate_panel.md#hittest) |
@@ -1419,7 +1468,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kAcceptanceRunName` | constant | [acceptance_run.md](acceptance_run.md#kacceptancerunname) |
 | `kAll` | constant | [calibrate_panel.md](calibrate_panel.md#kall) |
 | `kApiMajor` | constant | [version.md](version.md#kapimajor) |
+| `kApiMajorByte` | constant | [shul2_format.md](shul2_format.md#kapimajorbyte) |
 | `kApiMinor` | constant | [version.md](version.md#kapiminor) |
+| `kApiMinorByte` | constant | [shul2_format.md](shul2_format.md#kapiminorbyte) |
 | `kApiVersionString` | constant | [version.md](version.md#kapiversionstring) |
 | `kArcStraightEps` | constant | [arc_step.md](arc_step.md#karcstraighteps) |
 | `kArmingDelaySeconds` | constant | [calibrate_panel.md](calibrate_panel.md#karmingdelayseconds) |
@@ -1434,6 +1485,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kCopyNow` | constant | [calibrate_panel.md](calibrate_panel.md#kcopynow) |
 | `kCopyThenRunAgain` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythenrunagain) |
 | `kCopyThese` | constant | [calibrate_panel.md](calibrate_panel.md#kcopythese) |
+| `kCrcBytes` | constant | [shul2_format.md](shul2_format.md#kcrcbytes) |
 | `kDefaultDeadband` | constant | [input_shaping.md](input_shaping.md#kdefaultdeadband) |
 | `kDefaultExpo` | constant | [input_shaping.md](input_shaping.md#kdefaultexpo) |
 | `kDefaultFlightRingTicks` | constant | [sd_sink.md](sd_sink.md#kdefaultflightringticks) |
@@ -1444,8 +1496,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kDockedHeadingTypicalDeg` | constant | [accuracy.md](accuracy.md#kdockedheadingtypicaldeg) |
 | `kDockedPositionError` | constant | [accuracy.md](accuracy.md#kdockedpositionerror) |
 | `kEndPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#kendpayloadbytes) |
+| `kEndPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kendpayloadbytes) |
+| `kFirstPeerDataType` | constant | [shul2_format.md](shul2_format.md#kfirstpeerdatatype) |
+| `kFirstRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#kfirstruntimedatatype) |
+| `kFlagsOffset` | constant | [shul2_format.md](shul2_format.md#kflagsoffset) |
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
+| `kFrameOverheadBytes` | constant | [shul2_format.md](shul2_format.md#kframeoverheadbytes) |
 | `kFrontBox` | constant | [calibrate_panel.md](calibrate_panel.md#kfrontbox) |
 | `kFullReasonOnSerial` | constant | [calibrate_panel.md](calibrate_panel.md#kfullreasononserial) |
 | `kGpsDefaultNorthHeadingDeg` | constant | [gps_conversion.md](gps_conversion.md#kgpsdefaultnorthheadingdeg) |
@@ -1464,6 +1521,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kHeaderStopped` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderstopped) |
 | `kHeaderWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kheaderwhichend) |
 | `kHeadingErrorMaxDeg` | constant | [accuracy.md](accuracy.md#kheadingerrormaxdeg) |
+| `kHelloInvariantBytes` | constant | [shul2_format.md](shul2_format.md#khelloinvariantbytes) |
+| `kHelloPayloadBytes` | constant | [shul2_format.md](shul2_format.md#khellopayloadbytes) |
 | `kHitPadX` | constant | [calibrate_panel.md](calibrate_panel.md#khitpadx) |
 | `kHitPadX` | constant | [touch_panel.md](touch_panel.md#khitpadx) |
 | `kHitPadY` | constant | [calibrate_panel.md](calibrate_panel.md#khitpady) |
@@ -1482,6 +1541,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kLargeCols` | constant | [touch_panel.md](touch_panel.md#klargecols) |
 | `kLargeHeight` | constant | [calibrate_panel.md](calibrate_panel.md#klargeheight) |
 | `kLargeHeight` | constant | [touch_panel.md](touch_panel.md#klargeheight) |
+| `kLastPeerDataType` | constant | [shul2_format.md](shul2_format.md#klastpeerdatatype) |
+| `kLastRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#klastruntimedatatype) |
+| `kLogFixedBytes` | constant | [shul2_format.md](shul2_format.md#klogfixedbytes) |
+| `kLogMessageTruncated` | constant | [shul2_format.md](shul2_format.md#klogmessagetruncated) |
+| `kLogTagTruncated` | constant | [shul2_format.md](shul2_format.md#klogtagtruncated) |
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
 | `kManifestSchemaVersion` | constant | [manifest.md](manifest.md#kmanifestschemaversion) |
 | `kMaxAutonNameChars` | constant | [auton_registry.md](auton_registry.md#kmaxautonnamechars) |
@@ -1489,6 +1553,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
+| `kMaxFrameBytes` | constant | [shul2_format.md](shul2_format.md#kmaxframebytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |
 | `kMaxMarkerArgs` | constant | [route.md](route.md#kmaxmarkerargs) |
 | `kMaxMarkerIdBytes` | constant | [route.md](route.md#kmaxmarkeridbytes) |
@@ -1496,6 +1561,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
 | `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
+| `kMaxPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kmaxpayloadbytes) |
 | `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
 | `kMaxPulseLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulselevels) |
@@ -1546,6 +1612,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPanelMaxLines` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelmaxlines) |
 | `kPanelWidth` | constant | [calibrate_panel.md](calibrate_panel.md#kpanelwidth) |
 | `kPanelWidth` | constant | [touch_panel.md](touch_panel.md#kpanelwidth) |
+| `kPayloadBytesOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadbytesoffset) |
+| `kPayloadOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadoffset) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
@@ -1560,9 +1628,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRepeatability` | constant | [accuracy.md](accuracy.md#krepeatability) |
 | `kReproScaleTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreproscaletolerance) |
 | `kReproWidthTolerance` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kreprowidthtolerance) |
+| `kRolePeer` | constant | [shul2_format.md](shul2_format.md#krolepeer) |
+| `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
 | `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
+| `kSequenceOffset` | constant | [shul2_format.md](shul2_format.md#ksequenceoffset) |
 | `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
 | `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
+| `kSignature` | constant | [shul2_format.md](shul2_format.md#ksignature) |
 | `kSmallCols` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallcols) |
 | `kSmallCols` | constant | [touch_panel.md](touch_panel.md#ksmallcols) |
 | `kSmallHeight` | constant | [calibrate_panel.md](calibrate_panel.md#ksmallheight) |
@@ -1574,12 +1646,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
+| `kSync0` | constant | [shul2_format.md](shul2_format.md#ksync0) |
+| `kSync1` | constant | [shul2_format.md](shul2_format.md#ksync1) |
 | `kTankSteerNoiseFraction` | constant | [tank_steer.md](tank_steer.md#ktanksteernoisefraction) |
+| `kThisReader` | constant | [shul2_format.md](shul2_format.md#kthisreader) |
 | `kTickPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktickpayloadbytes) |
 | `kTickPhaseSlots` | constant | [debug_record.md](debug_record.md#ktickphaseslots) |
 | `kTriagePayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ktriagepayloadbytes) |
 | `kTwitching` | constant | [calibrate_panel.md](calibrate_panel.md#ktwitching) |
+| `kTypeOffset` | constant | [shul2_format.md](shul2_format.md#ktypeoffset) |
+| `kVersionMajor` | constant | [shul2_format.md](shul2_format.md#kversionmajor) |
+| `kVersionMinor` | constant | [shul2_format.md](shul2_format.md#kversionminor) |
 | `kWhichEnd` | constant | [calibrate_panel.md](calibrate_panel.md#kwhichend) |
+| `kWidthTable` | constant | [shul2_format.md](shul2_format.md#kwidthtable) |
 
 ## L
 
@@ -1641,6 +1720,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LogLevel::Info` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-info) |
 | `LogLevel::Trace` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-trace) |
 | `LogLevel::Warn` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-warn) |
+| `logLevelFromWire` | free function | [shul2_format.md](shul2_format.md#loglevelfromwire) |
+| `LogLine` | struct | [shul2_format.md](shul2_format.md#struct-logline) |
+| `LogLine::flags` | field | [shul2_format.md](shul2_format.md#logline-flags) |
+| `LogLine::level` | field | [shul2_format.md](shul2_format.md#logline-level) |
+| `LogLine::message` | field | [shul2_format.md](shul2_format.md#logline-message) |
+| `LogLine::nonTextBytes` | field | [shul2_format.md](shul2_format.md#logline-nontextbytes) |
+| `LogLine::t` | field | [shul2_format.md](shul2_format.md#logline-t) |
+| `LogLine::tag` | field | [shul2_format.md](shul2_format.md#logline-tag) |
 | `LoopMonitor` | class | [loop_monitor.md](loop_monitor.md#class-loopmonitor) |
 | `LoopMonitor::LoopMonitor` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-loopmonitor) |
 | `LoopMonitor::overrunCount` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overruncount) |
@@ -1936,6 +2023,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `negotiate` | free function | [shul2_format.md](shul2_format.md#negotiate) |
 | `NullCorrector` | class | [i_corrector.md](i_corrector.md#class-nullcorrector) |
 | `NullCorrector::name` | function | [i_corrector.md](i_corrector.md#nullcorrector-name) |
 | `NullCorrector::propose` | function | [i_corrector.md](i_corrector.md#nullcorrector-propose) |
@@ -2358,6 +2446,33 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RateLimitedSink::RateLimitedSink` | function | [rate_limit_sink.md](rate_limit_sink.md#ratelimitedsink-ratelimitedsink) |
 | `RateLimitedSink::summarize` | function | [rate_limit_sink.md](rate_limit_sink.md#ratelimitedsink-summarize) |
 | `RateLimitedSink::wantsRecord` | function | [rate_limit_sink.md](rate_limit_sink.md#ratelimitedsink-wantsrecord) |
+| `ReaderCounters` | struct | [shul2_reader.md](shul2_reader.md#struct-readercounters) |
+| `ReaderCounters::bytesSkipped` | field | [shul2_reader.md](shul2_reader.md#readercounters-bytesskipped) |
+| `ReaderCounters::crcFailures` | field | [shul2_reader.md](shul2_reader.md#readercounters-crcfailures) |
+| `ReaderCounters::endDisagreements` | field | [shul2_reader.md](shul2_reader.md#readercounters-enddisagreements) |
+| `ReaderCounters::extensionBytesIgnored` | field | [shul2_reader.md](shul2_reader.md#readercounters-extensionbytesignored) |
+| `ReaderCounters::framesDelivered` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesdelivered) |
+| `ReaderCounters::framesInRefusedSessions` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesinrefusedsessions) |
+| `ReaderCounters::framesOutsideSession` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesoutsidesession) |
+| `ReaderCounters::framesVerified` | field | [shul2_reader.md](shul2_reader.md#readercounters-framesverified) |
+| `ReaderCounters::helloMismatches` | field | [shul2_reader.md](shul2_reader.md#readercounters-hellomismatches) |
+| `ReaderCounters::helloRepeats` | field | [shul2_reader.md](shul2_reader.md#readercounters-hellorepeats) |
+| `ReaderCounters::lateJoins` | field | [shul2_reader.md](shul2_reader.md#readercounters-latejoins) |
+| `ReaderCounters::lengthOverruns` | field | [shul2_reader.md](shul2_reader.md#readercounters-lengthoverruns) |
+| `ReaderCounters::linkLostFrames` | field | [shul2_reader.md](shul2_reader.md#readercounters-linklostframes) |
+| `ReaderCounters::lostFrames` | field | [shul2_reader.md](shul2_reader.md#readercounters-lostframes) |
+| `ReaderCounters::refusedSessions` | field | [shul2_reader.md](shul2_reader.md#readercounters-refusedsessions) |
+| `ReaderCounters::sessions` | field | [shul2_reader.md](shul2_reader.md#readercounters-sessions) |
+| `ReaderCounters::sessionsEnded` | field | [shul2_reader.md](shul2_reader.md#readercounters-sessionsended) |
+| `ReaderCounters::sessionsLinkLossUnknown` | field | [shul2_reader.md](shul2_reader.md#readercounters-sessionslinklossunknown) |
+| `ReaderCounters::staleFrames` | field | [shul2_reader.md](shul2_reader.md#readercounters-staleframes) |
+| `ReaderCounters::truncated` | field | [shul2_reader.md](shul2_reader.md#readercounters-truncated) |
+| `ReaderCounters::truncatedAt` | field | [shul2_reader.md](shul2_reader.md#readercounters-truncatedat) |
+| `ReaderCounters::unknownTypeSkipped` | field | [shul2_reader.md](shul2_reader.md#readercounters-unknowntypeskipped) |
+| `ReaderCounters::wrongWidthSkipped` | field | [shul2_reader.md](shul2_reader.md#readercounters-wrongwidthskipped) |
+| `ReaderProfile` | struct | [shul2_format.md](shul2_format.md#struct-readerprofile) |
+| `ReaderProfile::rows` | field | [shul2_format.md](shul2_format.md#readerprofile-rows) |
+| `ReaderProfile::versionMajor` | field | [shul2_format.md](shul2_format.md#readerprofile-versionmajor) |
 | `ReadStatus` | enum class | [blackbox_reader.md](blackbox_reader.md#enum-class-readstatus) |
 | `ReadStatus::BadMagic` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-badmagic) |
 | `ReadStatus::Empty` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-empty) |
@@ -2641,6 +2756,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
 | `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
 | `SaveOutcome::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-saved) |
+| `scanFrame` | free function | [shul2_format.md](shul2_format.md#scanframe) |
+| `ScanKind` | enum class | [shul2_format.md](shul2_format.md#enum-class-scankind) |
+| `ScanKind::Frame` | enumerator | [shul2_format.md](shul2_format.md#scankind-frame) |
+| `ScanKind::NeedMore` | enumerator | [shul2_format.md](shul2_format.md#scankind-needmore) |
+| `ScanKind::Skip` | enumerator | [shul2_format.md](shul2_format.md#scankind-skip) |
+| `ScanResult` | struct | [shul2_format.md](shul2_format.md#struct-scanresult) |
+| `ScanResult::consumed` | field | [shul2_format.md](shul2_format.md#scanresult-consumed) |
+| `ScanResult::flags` | field | [shul2_format.md](shul2_format.md#scanresult-flags) |
+| `ScanResult::kind` | field | [shul2_format.md](shul2_format.md#scanresult-kind) |
+| `ScanResult::payload` | field | [shul2_format.md](shul2_format.md#scanresult-payload) |
+| `ScanResult::reason` | field | [shul2_format.md](shul2_format.md#scanresult-reason) |
+| `ScanResult::seq` | field | [shul2_format.md](shul2_format.md#scanresult-seq) |
+| `ScanResult::type` | field | [shul2_format.md](shul2_format.md#scanresult-type) |
 | `screenText` | free function | [calibrate_panel.md](calibrate_panel.md#screentext) |
 | `screenText` | free function | [touch_panel.md](touch_panel.md#screentext) |
 | `SdSink` | class | [sd_sink.md](sd_sink.md#class-sdsink) |
@@ -2687,6 +2815,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SessionInfo::portMap` | field | [session_info.md](session_info.md#sessioninfo-portmap) |
 | `SessionInfo::routineId` | field | [session_info.md](session_info.md#sessioninfo-routineid) |
 | `SessionInfo::side` | field | [session_info.md](session_info.md#sessioninfo-side) |
+| `SessionReport` | struct | [shul2_reader.md](shul2_reader.md#struct-sessionreport) |
+| `SessionReport::end` | field | [shul2_reader.md](shul2_reader.md#sessionreport-end) |
+| `SessionReport::hello` | field | [shul2_reader.md](shul2_reader.md#sessionreport-hello) |
+| `SessionReport::helloSeq` | field | [shul2_reader.md](shul2_reader.md#sessionreport-helloseq) |
+| `SessionReport::lateJoin` | field | [shul2_reader.md](shul2_reader.md#sessionreport-latejoin) |
+| `SessionReport::linkLossKnown` | field | [shul2_reader.md](shul2_reader.md#sessionreport-linklossknown) |
+| `SessionReport::linkLostFrames` | field | [shul2_reader.md](shul2_reader.md#sessionreport-linklostframes) |
+| `SessionReport::lostFrames` | field | [shul2_reader.md](shul2_reader.md#sessionreport-lostframes) |
+| `SessionReport::sawEnd` | field | [shul2_reader.md](shul2_reader.md#sessionreport-sawend) |
+| `SessionReport::verdict` | field | [shul2_reader.md](shul2_reader.md#sessionreport-verdict) |
 | `setPreconditionHandler` | free function | [check.md](check.md#setpreconditionhandler) |
 | `SettleConfig` | struct | [settled_util.md](settled_util.md#struct-settleconfig) |
 | `SettleConfig::maxError` | field | [settled_util.md](settled_util.md#settleconfig-maxerror) |
@@ -2700,6 +2838,21 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `shapeAxis` | free function | [input_shaping.md](input_shaping.md#shapeaxis) |
 | `shapeRequest` | free function | [input_shaping.md](input_shaping.md#shaperequest) |
 | `shapeToChassisSpeeds` | free function | [driver_control.md](driver_control.md#shapetochassisspeeds) |
+| `Shul2Reader` | class | [shul2_reader.md](shul2_reader.md#class-shul2reader) |
+| `Shul2Reader::bytesConsumed` | function | [shul2_reader.md](shul2_reader.md#shul2reader-bytesconsumed) |
+| `Shul2Reader::counters` | function | [shul2_reader.md](shul2_reader.md#shul2reader-counters) |
+| `Shul2Reader::drain` | function | [shul2_reader.md](shul2_reader.md#shul2reader-drain) |
+| `Shul2Reader::finished` | function | [shul2_reader.md](shul2_reader.md#shul2reader-finished) |
+| `Shul2Reader::Frame` | struct | [shul2_reader.md](shul2_reader.md#struct-shul2reader-frame) |
+| `Shul2Reader::Frame::flags` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-flags) |
+| `Shul2Reader::Frame::payload` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-payload) |
+| `Shul2Reader::Frame::seq` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-seq) |
+| `Shul2Reader::Frame::type` | field | [shul2_reader.md](shul2_reader.md#shul2reader-frame-type) |
+| `Shul2Reader::hasSession` | function | [shul2_reader.md](shul2_reader.md#shul2reader-hassession) |
+| `Shul2Reader::latestSession` | function | [shul2_reader.md](shul2_reader.md#shul2reader-latestsession) |
+| `Shul2Reader::next` | function | [shul2_reader.md](shul2_reader.md#shul2reader-next) |
+| `Shul2Reader::Shul2Reader` | function | [shul2_reader.md](shul2_reader.md#shul2reader-shul2reader) |
+| `Shul2Reader::status` | function | [shul2_reader.md](shul2_reader.md#shul2reader-status) |
 | `SideCount` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-sidecount) |
 | `SideCount::answering` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-answering) |
 | `SideCount::expected` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-expected) |
@@ -2722,6 +2875,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SideVolts` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidevolts) |
 | `SideVolts::left` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-left) |
 | `SideVolts::right` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidevolts-right) |
+| `SkipReason` | enum class | [shul2_format.md](shul2_format.md#enum-class-skipreason) |
+| `SkipReason::CrcMismatch` | enumerator | [shul2_format.md](shul2_format.md#skipreason-crcmismatch) |
+| `SkipReason::LengthTooLarge` | enumerator | [shul2_format.md](shul2_format.md#skipreason-lengthtoolarge) |
+| `SkipReason::None` | enumerator | [shul2_format.md](shul2_format.md#skipreason-none) |
+| `SkipReason::NoSync` | enumerator | [shul2_format.md](shul2_format.md#skipreason-nosync) |
 | `SlewConfig` | struct | [slew_limiter.md](slew_limiter.md#struct-slewconfig) |
 | `SlewConfig::ratePerSecond` | field | [slew_limiter.md](slew_limiter.md#slewconfig-ratepersecond) |
 | `SlewLimiter` | class | [slew_limiter.md](slew_limiter.md#class-slewlimiter) |
@@ -3001,6 +3159,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Twist2d::vx` | function | [twist2d.md](twist2d.md#twist2d-vx) |
 | `Twist2d::vy` | function | [twist2d.md](twist2d.md#twist2d-vy) |
 
+## U
+
+| Name | Kind | Page |
+|---|---|---|
+| `utf8Prefix` | free function | [shul2_format.md](shul2_format.md#utf8prefix) |
+
 ## V
 
 | Name | Kind | Page |
@@ -3010,6 +3174,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `validBindings` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings) |
 | `validBindings (overload 2)` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings-2) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
+| `Verdict` | enum class | [shul2_format.md](shul2_format.md#enum-class-verdict) |
+| `Verdict::BadSignature` | enumerator | [shul2_format.md](shul2_format.md#verdict-badsignature) |
+| `Verdict::Exact` | enumerator | [shul2_format.md](shul2_format.md#verdict-exact) |
+| `Verdict::LayoutMismatch` | enumerator | [shul2_format.md](shul2_format.md#verdict-layoutmismatch) |
+| `Verdict::NewerMinor` | enumerator | [shul2_format.md](shul2_format.md#verdict-newerminor) |
+| `Verdict::OlderMinor` | enumerator | [shul2_format.md](shul2_format.md#verdict-olderminor) |
+| `Verdict::RefusedMajor` | enumerator | [shul2_format.md](shul2_format.md#verdict-refusedmajor) |
+| `verdictName` | free function | [shul2_format.md](shul2_format.md#verdictname) |
 | `verifyAgainstRegistry` | free function | [boot_check.md](boot_check.md#verifyagainstregistry) |
 | `verifyAgainstRegistry (overload 2)` | free function | [boot_check.md](boot_check.md#verifyagainstregistry-2) |
 | `viewFor` | free function | [calibrate_panel.md](calibrate_panel.md#viewfor) |
@@ -3056,6 +3228,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::size` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-size) |
 | `WheelSpeeds::WheelSpeeds` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds) |
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
+| `WidthRow` | struct | [shul2_format.md](shul2_format.md#struct-widthrow) |
+| `WidthRow::end` | field | [shul2_format.md](shul2_format.md#widthrow-end) |
+| `WidthRow::hello` | field | [shul2_format.md](shul2_format.md#widthrow-hello) |
+| `WidthRow::logFixed` | field | [shul2_format.md](shul2_format.md#widthrow-logfixed) |
+| `WidthRow::summary` | field | [shul2_format.md](shul2_format.md#widthrow-summary) |
+| `WidthRow::tick` | field | [shul2_format.md](shul2_format.md#widthrow-tick) |
+| `WireLevel` | enum class | [shul2_format.md](shul2_format.md#enum-class-wirelevel) |
+| `wireLevel` | free function | [shul2_format.md](shul2_format.md#wirelevel) |
+| `WireLevel::Debug` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-debug) |
+| `WireLevel::Error` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-error) |
+| `WireLevel::Info` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-info) |
+| `WireLevel::Trace` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-trace) |
+| `WireLevel::Warn` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-warn) |
 | `within` | free function | [calibrate_panel.md](calibrate_panel.md#within) |
 | `within` | free function | [touch_panel.md](touch_panel.md#within) |
 | `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |

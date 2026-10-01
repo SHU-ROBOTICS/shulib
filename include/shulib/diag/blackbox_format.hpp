@@ -47,10 +47,17 @@
 //
 // ── What H1 (F9, the SHUL/2 wire) inherits ──────────────────────────────────────────
 // This is a PERSISTENCE contract the moment a file exists, but it is deliberately NOT
-// the wire: SHUL/2 is streamed, sequenced and versioned on its own terms. What H1
-// should reuse is the FIELD ORDER of encodeTick() (it follows debug_record.hpp's own
-// declaration order, so a schema append lands at the end on both) and the refuse-don't-
-// misread rule. Nothing here freezes anything: F9 is H1's, and E1 freezes nothing.
+// the wire: SHUL/2 is streamed, sequenced, checked and versioned on its own terms
+// (diag/shul2_format.hpp, chunk H1 Part A1). What it inherits is stronger than a field
+// order: SHUL/2's Tick and Summary payloads ARE this file's bytes — the wire calls
+// encodeTick()/encodeSummary() and these decoders, and has no encoder of its own, so a
+// Tick payload read off the SD card can be re-wrapped as a SHUL/2 frame without decoding
+// it. The consequence runs this way: once F9 freezes (H1 Part B), the tick and summary
+// layouts below are frozen with it, and a later change to the file's layout must fork its
+// own encoder rather than move the wire's (the SHUL/2 Tick golden fails if it does not).
+// What the wire does NOT inherit is this file's refuse-any-other-width rule (its reader
+// accepts a newer minor's longer frames) or its lack of a check (every SHUL/2 frame
+// carries a CRC). Nothing here freezes anything yet: F9 is H1 Part B's.
 
 #include <cmath>
 #include <cstddef>
@@ -443,7 +450,8 @@ private:
 
 /// Encode one DebugRecord. Returns the bytes written, or 0 if `out` was too small or
 /// the layout did not come out to exactly kTickPayloadBytes (a loud, testable failure
-/// rather than a silently short record).
+/// rather than a silently short record). `wheelCount` is written clamped to
+/// [0, DebugRecord::kMaxWheels] (since H1 Part A1; above 255 it used to wrap).
 [[nodiscard]] inline std::size_t encodeTick(std::span<std::byte> out, const DebugRecord& r) noexcept {
     if (out.size() < kTickPayloadBytes) {
         return 0U;  // whole or nothing (see encodeHeader)
@@ -463,7 +471,11 @@ private:
     w.f64(r.commanded.vx().value());
     w.f64(r.commanded.vy().value());
     w.f64(r.commanded.omega().value());
-    w.u8(static_cast<std::uint8_t>(r.wheelCount < 0 ? 0 : r.wheelCount));
+    // Clamped to [0, kMaxWheels]: the arrays below are 8 wide, so a count above 8 is not a
+    // fact the record can carry — and before H1 a count above 255 wrapped in this cast.
+    w.u8(static_cast<std::uint8_t>(r.wheelCount < 0 ? 0
+                                   : r.wheelCount > DebugRecord::kMaxWheels ? DebugRecord::kMaxWheels
+                                                                            : r.wheelCount));
     w.u8(r.activeCommandState);
     w.boolean(r.deadReckoning);
     w.u8(r.qualityClass);
@@ -515,7 +527,8 @@ private:
 
 /// Decode one DebugRecord. Returns false if the payload is not exactly
 /// kTickPayloadBytes. `corrupt` is set (never cleared) when a field could not be
-/// represented — today: a non-finite heading, which decodes to zero (safeAngle).
+/// represented — a non-finite heading, which decodes to zero (safeAngle), or a wheelCount
+/// above DebugRecord::kMaxWheels, which decodes as kMaxWheels (since H1 Part A1).
 [[nodiscard]] inline bool decodeTick(std::span<const std::byte> in, DebugRecord& r,
                                      bool& corrupt) noexcept {
     if (in.size() != kTickPayloadBytes) {
@@ -546,7 +559,18 @@ private:
         r.commanded = math::ChassisSpeeds{units::Velocity{vx}, units::Velocity{vy},
                                           units::AngularVelocity{w}};
     }
-    r.wheelCount = static_cast<int>(b.u8());
+    {
+        // A count above the 8-wide arrays would let any consumer that loops to wheelCount
+        // index past them, so it decodes as kMaxWheels with `corrupt` raised (H1 Part A1:
+        // any byte can arrive from a damaged file or a wire, and H2's peer will loop).
+        const int wheels = static_cast<int>(b.u8());
+        if (wheels > DebugRecord::kMaxWheels) {
+            corrupt = true;
+            r.wheelCount = DebugRecord::kMaxWheels;
+        } else {
+            r.wheelCount = wheels;
+        }
+    }
     r.activeCommandState = b.u8();
     r.deadReckoning = b.boolean();
     r.qualityClass = b.u8();

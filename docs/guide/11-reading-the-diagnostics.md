@@ -536,6 +536,12 @@ For the deeper design — what's planned beyond the terminal (live telemetry, re
 
 Every field of every record in this chapter has an exact spelling in the reference: [`DebugRecord`](../api/debug_record.md), [`MotionResult`](../api/motion_result.md), [`RunSummary`](../api/run_summary.md), [`SessionInfo`](../api/session_info.md) and the [fault codes](../api/fault.md). The sinks are there too — [`TermSink`](../api/term_sink.md), [`SdSink`](../api/sd_sink.md), [`NullSink`](../api/null_sink.md), [`LevelFilterSink`](../api/level_filter_sink.md), [`RateLimitedSink`](../api/rate_limit_sink.md) — along with the [blackbox format](../api/blackbox_format.md) and its [reader](../api/blackbox_reader.md), and [`TickAttribution`](../api/tick_attribution.md), which answers *which phase* spent the tick.
 
+The SHUL/2 telemetry wire — the binary stream a laptop tool such as VexBuilder will read — has its
+format in [`shul2_format`](../api/shul2_format.md), its reader in
+[`shul2_reader`](../api/shul2_reader.md), and the checksum it shares with the calibration record in
+[`crc32`](../api/crc32.md). Nothing writes the wire yet: its sink is still to come, so today these
+read only bytes the host test suite built.
+
 ---
 
 *Next: [Chapter 12 — When things go wrong](12-when-things-go-wrong.md)*

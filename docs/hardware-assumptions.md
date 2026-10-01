@@ -1477,7 +1477,12 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   no lookup table — 1 KiB of flash for 180 bytes of input is the wrong trade in a header a
   composition root includes); `test/calibration_record_test.cpp`, which pins the arithmetic against
   the published CRC-32/IEEE check values (`"123456789"` → 0xCBF43926) and flips one bit in each
-  field class.
+  field class. **Since H1 Part A1 (2026-09-29) the bitwise CRC itself lives in
+  `include/shulib/diag/crc32.hpp` (`diag::crc32Ieee`)**, because the SHUL/2 wire checks every frame
+  with the same function and `diag/` may not include `calibration/`; the calibration record calls it
+  through `calibration::crc32Ieee`, now a one-line forwarding function, so the record, its tests and
+  this judgement are unchanged. (The wire's rate — a CRC on every tick frame — is a separate trade,
+  judged with the wire's sink, not here.)
   *Confidence:* **reasoned.** The polynomial and its properties are standard; what is a JUDGEMENT
   is the trade — four bytes and a few microseconds per boot against the class of silent failure it
   removes. It is recorded here because it is exactly the kind of decision a later chunk would
@@ -1485,10 +1490,15 @@ calibrator they belong to is proven against the A2 plant and has never moved a p
   *Settle (R3d Part 3):* not a measurement so much as a confirmation — the record decodes on the
   brain and the boot log prints the description it spells. If the bitwise CRC ever shows up in a
   loop-rate measurement (it will not: 180 bytes × 8 iterations, once per boot), the table version
-  is a two-line change.
+  is a two-line change. *(Since H1 Part A1 that one function is also the SHUL/2 wire's per-frame
+  check, so a switch to a table is decided for both at once — with the wire's sink, which judges
+  the per-tick rate.)*
   *Blast radius if wrong (the CRC is not worth it):* four wasted bytes. **If it were ABSENT:** a
   corrupt record drives a robot wrong, confidently, and the first symptom is a robot that will not
-  drive straight. The asymmetry is the whole argument. **Contained:** one function, one format.
+  drive straight. The asymmetry is the whole argument. **Contained:** one function
+  (`diag/crc32.hpp`), shared since H1 Part A1 by two formats — the calibration record and the
+  SHUL/2 wire. A change to it moves both, and both pin it: the record's golden and the wire's
+  goldens each carry CRC values computed outside the code.
 
 **G1 Part 2a (2026-09-24) added HA-141.** Like HA-138 it is about the PLATFORM, and it is the
 belief the new on-robot device provider rests on: HA-138 says WHICH registry index is which port;
