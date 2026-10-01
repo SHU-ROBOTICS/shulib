@@ -6,6 +6,12 @@
 > `perTick`'s fourth argument) and item 8 (the re-read of COMP-b's files). Part 2b is now **Part 3's FIRST step**:
 > Part 3's executor builds items 6 and 8 against the tree COMP-b leaves, then Part 3's own items, in ONE run with
 > one review round and one commit. Wherever the body or the parts table says "Part 2" for items 6 or 8, read Part 3.
+> **PART 3 STARTS EARLY, IN TWO STEPS (the team lead, 2026-10-01: "Start Part 3 early").** It no longer waits for
+> COMP-b: its executor starts as soon as Part 2a merges, in its own worktree. **The EARLY step** builds every item
+> that needs nothing of COMP-b. **The LATE step**, after COMP-b lands, has main (with COMP-b) merged into the
+> worktree, resolves the conflicts, and builds the rest: Part 2b's items 6 and 8, the competition program's SD copy
+> (Decision B) and `main.cpp`'s final form. Still ONE review round (after the late step), one fresh verify and one
+> commit; nothing is checked less.
 >
 > **THE TEAM LEAD'S ANSWERS TO THE 2026-09-28 RE-CHECK'S DECISIONS (~16:15), all as recommended:** **C** — the
 > velocity-exactly-0 check is DROPPED; **D** — the frozen-reading rule gets guard G4 (a majority-or-tie guard, a
