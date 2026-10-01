@@ -1,5 +1,12 @@
 # T4 — the driver program: ONE driver file for robot two, run by the new "shulib Drive" and the competition program's `opcontrol()`; the old drive's protections move into the library; "shulib Teleop" retires
 
+> **PART 2b FOLDED INTO PART 3 (the team lead, 2026-10-01: "you can fold it").** Part 2 was split on 2026-09-28
+> (~17:35, his speedup B): **Part 2a**, the library half (§1 Part 2 items 1–5 and 7, HA-175/176), built beside
+> COMP-b; **Part 2b**, §1 Part 2 item 6 (the `src/` words, the PROTECTION row on the competition program's panel,
+> `perTick`'s fourth argument) and item 8 (the re-read of COMP-b's files). Part 2b is now **Part 3's FIRST step**:
+> Part 3's executor builds items 6 and 8 against the tree COMP-b leaves, then Part 3's own items, in ONE run with
+> one review round and one commit. Wherever the body or the parts table says "Part 2" for items 6 or 8, read Part 3.
+>
 > **THE TEAM LEAD'S ANSWERS TO THE 2026-09-28 RE-CHECK'S DECISIONS (~16:15), all as recommended:** **C** — the
 > velocity-exactly-0 check is DROPPED; **D** — the frozen-reading rule gets guard G4 (a majority-or-tie guard, a
 > read repeated only when position AND velocity are both unchanged); **A** — the SD copy holds events and
