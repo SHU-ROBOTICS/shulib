@@ -11,15 +11,16 @@
 > **Sizes** are builder-days (one executor) taken from the chunk's brief where a brief exists. Every size without
 > a brief is marked **(rough)**. **Verification is in no row.** The reviewers, the fixes and a fresh verifier are
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
-> than on builder time, so it is not in the total. **Last updated: 2026-09-30 ~04:00 (L9 Part A1's commit, on `0f56301`).**
+> than on builder time, so it is not in the total. **Last updated: 2026-10-01 ~02:30 (DIAG1 Part B's commit, on `ce95325`).**
 
-**Where things stand:** 32 of the phase table's 63 chunks are complete (TANK1 on 2026-09-29), and R2a (half of R2) has
-also landed; 31 chunks are open. Landed most recently: T4 Part 1a (robot two's driver file), TANK1 (a tank's `moveTo`
+**Where things stand:** 33 of the phase table's 63 chunks are complete (DIAG1 on 2026-10-01), and R2a (half of R2) has
+also landed; 30 chunks are open. Landed most recently: T4 Part 1a (robot two's driver file), TANK1 (a tank's `moveTo`
 steers back onto its line; Part B the ` xt` column) and **COMP-t, the auton tester** (2026-09-29; a part of COMP, so the
-chunk count does not move). Built and in review or fixes (2026-09-30): DIAG1 Part B, SAFE-SAVE Part A, H1 Part A1,
+chunk count does not move). Built and in review or fixes (2026-10-01): SAFE-SAVE Part A, H1 Part A1,
 R5a Part A and T4 Part 2a; COMP-b is being built; the MECH core's brief is being written; G3a's amendment is written
 and waits for your D6′–D10.
-L9 Part A1 (backing into a point in a recipe) landed 2026-09-30.
+L9 Part A1 (backing into a point in a recipe) landed 2026-09-30; DIAG1 Part B (a reading that is not a number left out) on
+2026-10-01, completing DIAG1.
 Nothing new has run on the robot since 2026-09-25. **The 40 in auton is ready for you on the bench** (#4).
 
 ---
@@ -105,7 +106,7 @@ sensor used as a piece sensor or colour sorter) would come with MECH rather than
 
 | # | Item | Size |
 |---|---|---|
-| 27 | **DIAG1 Part B**: the odometry skips bad (non-finite) readings | ~½–1 day |
+| 27 | **DIAG1 Part B**: the odometry skips bad (non-finite) readings — ✅ **landed 2026-10-01; DIAG1 complete** | — |
 | 28 | **SAFE-SAVE**: a failed Calibrate save can never erase the good record, and the boot falls back to a verified backup. **Part B1 lands before the next Calibrate rerun** (the plan's order). Until B1 is in the build, copy `shulib_drivetrain.bin` off the card before ANY Calibrate run (worksheet G.0.1) | ~2–2½ days |
 | 29 | **L9**: reverse driving. **Part A1 ✅ landed 2026-09-30** (`reverseTo`, `faceAway`; API 2.4, because TANK1 took 2.3). Left: Part A2 (cookbook 04c and the rest of the documentation) and Part B, which makes the boot library code and comes after COMP-b | ~1¼–1½ days left (A2 ~¼–½, B ~1) |
 | 30 | **H1**: the SHUL/2 telemetry wire (A1 read side, A2 write side, B freezes F9). The robot console uses it | ~2½–3 days (A1 1–1½, A2 1, B ½) |
@@ -200,14 +201,14 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | Group | Builder-days |
 |---|---|
 | 1. the auton: COMP-b | ~2¼ |
-| 2. T4 Parts 2 and 3 | ~5–6 |
+| 2. T4 Part 3 with Part 2b's items (Part 2a built) | ~3½–4 |
 | 3. the plan chunks MECH would change: T3's macros and presets, F3 (rough); F4 not sized | ~2½–3 |
 | 4. the panel as planned: G3a as briefed (5½–6), G3 at its plan-of-record scope (~5½–8, rough); H4 not sized | ~11–14 |
 | 5. sensors (rough) | ~3 |
-| 6. the briefed library chunks | ~9½–12 |
+| 6. the briefed library chunks | ~9–11 |
 | 6. IMU1 (rough) | ~½–1 |
 | 8–9. T2's close-out, documentation, G4 (rough); PKG1 not sized | ~3–4 |
-| **The plan of record** | **~37–45** |
+| **The plan of record** | **~35–42** |
 | + the MECH core, before the panel (ruled 2026-09-28; rough, unmeasured) | +10½–18 |
 | + G3a amended for the core (new robot, mechanisms with templates, wiring, controls): 5½–6 → ~11½–16 (rough) | +5½–10½ |
 | + the rest of MECH, after the panel (ruled; rough) | +19–32 |
@@ -215,7 +216,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | − G3 re-scoped, ~5½–8 → ~2½–4 (proposed, requirements §5 Q27) | −(3–4) |
 | + Export (proposed; rough) | +1–2 |
 | − T3's macros and F3, which MECH's rest would absorb | −(2½–3) |
-| **Everything, as now planned** | **~68–106** |
+| **Everything, as now planned** | **~66–103** |
 
 **Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
 robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
@@ -228,10 +229,10 @@ sets the pace. The milestones along it:
 |---|---|---|---|
 | **The 40 in on the bench** | COMP-t ✅ (2026-09-29) — waits on your Station M run | — | now |
 | **The 40 in through the real `autonomous()`** | COMP-b | ~2¼ | ~½–1 |
-| **The driver program finished, Teleop retired, `main.cpp` final** | + T4 Parts 2 and 3 | ~7½–8½ | ~2–2½ |
-| **Mechanisms (the core) in the library** | + the MECH core | ~18–26½ | ~5½–8 |
-| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~29½–42½ | ~9–13 |
-| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~49–74 | ~15–22 |
+| **The driver program finished, Teleop retired, `main.cpp` final** | + T4 Part 3 (with Part 2b's items) | ~6–6½ | ~1½–2 |
+| **Mechanisms (the core) in the library** | + the MECH core | ~16½–24½ | ~5–7½ |
+| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~28–40½ | ~8½–12½ |
+| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~47½–72 | ~14½–21½ |
 
 These hold only if the decisions and robot sessions keep pace and the builders are not paused. The work grew on
 2026-09-28 because the team lead added generic mechanisms (MECH), the panel's new pages and export, and because

@@ -536,8 +536,8 @@ G.0.1). Part A (the library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-f
 Calibrate rerun; B2 (the boot's fallback, Teleop's words) after COMP-b. Teleop's "table" label was
 already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all.
 
-**DIAG1 Part B** (the median's non-finite handling) is BRIEFED too (`chunks/DIAG1-partB-median-nonfinite.md`;
-every recommendation accepted). ~½–1 day.
+**DIAG1 Part B** (the median's non-finite handling) LANDED 2026-10-01 — **DIAG1 is COMPLETE**
+(`chunks/DIAG1-COMPLETED.md`; brief `chunks/DIAG1-partB-median-nonfinite.md`); host test plant only.
 
 **L2t. [COMP-t, NEW 2026-09-27] The auton tester.** **LANDED 2026-09-28, host- and build-gated, NOT run on a
 robot** (`chunks/COMP-t-COMPLETED.md`; brief `chunks/COMP-t-auton-tester.md`; jal: D1–D9 as recommended).

@@ -16,6 +16,109 @@
 
 ## API 2.4
 
+### Changed since 2.4 (2026-10-01) — a motor group leaves out a reading that is not a number; the calibrator names a port with no reading
+
+> Written when it landed (DIAG1 Part B). **No version bump:** `hal::MotorGroup`,
+> `hal::medianInPlace` and the drivetrain calibrator are not in the
+> [Freeze Register](roadmap.md#freeze-register) (F4 freezes `IMotor`'s signatures, which are
+> untouched), every signature that existed still compiles (in a build that does not assume every
+> number is finite — CHANGED, below), and a group whose every reading is a number reads exactly as
+> before, bit for bit — except the one overflow under CHANGED, below. **Host test plant only —
+> nothing here has run on a robot**, and on a V5 none of it is expected to fire: the motor adapter
+> replaces a failed read with the last good one before any group or the calibrator sees it
+> ([HA-08](hardware-assumptions.md), amended). It defines what the library does when a reading
+> does get through — a future adapter, a nested group, a host test.
+
+**BEHAVIOUR CHANGE (a member reading NaN, +Inf or -Inf — never on a V5 through `ProsMotor`):**
+
+- **`hal::MotorGroup`'s `position()` and `velocity()` leave such a member out of that read,**
+  the way they leave out an absent member: the median of the present members whose reading is
+  finite, and a fresh NaN only when none is. The rule is per read — the member's next finite
+  reading counts again — and `presentCount()` / `absentMask()` never change for it. Before, the
+  median sorted every value: a NaN broke `std::sort`'s ordering (undefined behaviour — on the host
+  library, 21 members with 1–3 NaN gave a WRONG FINITE number on 18,030 of 20,000 draws), and an
+  infinity was an ordinary outlier until infinities of one sign made up half the members or more
+  (a single one on a side of one or two members): the side then read ±Inf, or NaN where both
+  signs met in the middle. On a drive-encoder robot, one bad member of a side no longer makes the
+  side NaN (which ended the motion on `ODO_STUCK` — observed on the host test plant: a scheduled
+  `moveTo` with one of five members reading NaN mid-motion used to abort on the next tick, and now
+  finishes identical, bit for bit, to the clean run).
+- **Leaving members out can STEP the side's reading, and step it back when they return** — the
+  membership step ([HA-165](hardware-assumptions.md), new, invented). For one member left out it
+  is at most half a gap between the members' positions beside the middle one; for several it can
+  be as large as the members' spread — at worst, the member farthest from the side's median read
+  alone. The odometry takes the step as travel: under its 36 in travel bound the pose moves
+  silently, past it the tick is `TRAVEL` and raises `ODO_STUCK`. That now includes a side whose
+  infinite members used to reach the middle: it read infinite, which froze the tick
+  (`NONFINITE+TRAVEL`, `ODO_STUCK`); it now reads the rest's median and integrates.
+- **`current()` and `totalCurrent()` sum only the finite readings, and `current()` divides by
+  how many that was; `temperature()` is the max over the finite readings.** A member reading
+  +Inf °C no longer raises `MOTOR_OVER_TEMP` on its own, and a NaN in the FIRST member no longer
+  makes the temperature NaN (it used to, and a NaN anywhere else did not — the answer depended on
+  member order). With no finite reading, all three return NaN — `totalCurrent()` included: an
+  empty sum would read 0 A, a side drawing nothing. A side whose readings are all finite reads
+  exactly as before, bit for bit — 0 A at rest included. `temperature()` now reads each member
+  once.
+- **The drivetrain calibrator no longer makes a candidate whose push reading is not finite into a
+  drive port.** Before, a NaN push reading was already "not moved" — silently — while a ±Inf one
+  passed the moved test and became a drive port with a sign read off PROS's failure sentinel; on
+  the host test plant that run was then refused `PULSE_CONTRADICTION` at that port, and one whose
+  motor recovered after FRONT could finish with it on the WRONG side. Now one predicate decides
+  "moved on the push" for the classification, `pushSummary()`, `pushReady()` and the live
+  `movedNow`, and the candidate is NAMED: its PUSH TABLE line reads `NO READING` where it read
+  `still` (a NaN) or `MOVED` (±Inf) — `push port 13 travel +inf deg NO READING sign +0` — and
+  `warning()` gains `port 13 gave no reading at DONE -- not counted as a drive port; if it drives
+  the robot, check it and run again`. The Done screen shows the first two 50-column lines of it
+  (up to `check it and`); the program's serial summary prints `warning()` only beside a port LEFT
+  OUT as slipping, so there the PUSH TABLE line is what names the port. If that port does drive
+  the robot and recovers, the first pulse on its side back-drives it and the run is refused
+  `NON_DRIVE_MOVED` naming it, with a reason that says so — `port 13 moved (… rad/s) while only
+  port … was pulsed -- it gave no reading at DONE, so it was not counted as a drive port` (a
+  port that READ a number and did not move keeps the old reason). Its `PortObservation`'s
+  `pushTravelRad` is exactly +0.0, as every port's with no sign now is: it was sign × reading —
+  a NaN for a port with no reading, and -0.0 for a still port read slightly backward (the one
+  difference on an all-finite run, and nothing reads it: the scale reads drive ports only, and
+  the PUSH TABLE prints the reading). The spin's side travel uses the same median, so a member
+  reading NaN there is left out too.
+- **The `ODO_STUCK` line:** a drive side whose every member is `+Inf` now prints `L=NaNin`
+  (the fresh NaN), where it printed `L=+Infin`. The odometry's verdict is the same.
+- **The stall check (`motion::OdoStallCheck`), on a drivetrain with an independent motion source
+  (tracking wheels — the check's default):** a drive side with no finite reading when a window
+  closes now gives that window NO verdict, nor the next (its new baseline is the NaN), where a
+  side all `+Inf` or all `-Inf` read as an infinite spin travel and raised `ODO_STUCK`. A side
+  with only SOME members infinite reads the others' median instead of `±Inf`, so its window is
+  judged on its real travel. (Robot two has no independent source; its check gives no verdict at
+  all — [HA-131](hardware-assumptions.md).)
+
+**CHANGED (a weaker post-condition):**
+
+- **`hal::medianInPlace(v, n)` REORDERS `v`; its contents afterwards are unspecified** (it used to
+  sort `v` in place). It leaves out a value that is not finite, as above, returns a fresh quiet NaN
+  when none is, and takes the midpoint of an even count with `std::midpoint` — bit-identical to
+  the old `0.5 * (a + b)` wherever that did not overflow, and finite where it did (a middle pair
+  whose sum overflowed, which gave `+Inf` or `-Inf`). Every caller in the library passes a scratch
+  array and never reads it again. **Migration:** if you read `v` after the call, sort it yourself.
+
+**CHANGED (a build constraint):**
+
+- **A build that assumes every number is finite is refused.** `hal/motor_group.hpp` stops the
+  compile with an `#error` under `-ffinite-math-only`, `-ffast-math` or `-Ofast`: under those flags
+  the compiler may fold `std::isfinite` to `true` (measured: `arm-none-eabi-g++` 13.2.1 does), which
+  would put every NaN this change leaves out back into the median, with no warning. No build in
+  this repository sets any of them. **Migration:** remove the flag.
+
+**ADDED:**
+
+- `hal::MotorGroup::nonFiniteReads()` — how many member readings the group has left out for not
+  being finite, cumulative, counted with the exclusion's own test (it mirrors
+  `ProsMotor::faultedReads()`). An observable only: nothing raises on it.
+- `hal::isUsableReading(double)` — THE test (`std::isfinite`): the median excludes with it, the
+  counter counts with it, and the calibrator's push rule is built on it.
+
+**Migration:** nothing to change, unless you read `medianInPlace`'s array after the call or build
+with `-ffast-math` (both CHANGED, above). To see whether a group ever left a member out, read
+`nonFiniteReads()`.
+
 ### Added — backing into a point in a recipe: `Routine::reverseTo` and `Routine::faceAway` (L9 Part A1, 2026-09-29)
 
 > Written when it landed (chunk L9, Part A1). **Minor bump, 2.3 → 2.4** — two new steps on the

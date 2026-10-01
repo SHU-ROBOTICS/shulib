@@ -271,7 +271,7 @@ but not narrated there. The authoritative list is always
 | `PRECONDITION` | code broke a library contract mid-run | a bug in routine or library code (NaN input, bad config) | ends that motion | read the message; fix the calling code — this is a programming error surfaced politely |
 | `NAN_POSE` | a not-a-number reached the data path; a safe fallback was substituted | divide-by-zero upstream, corrupt sensor math | no | the estimate froze rather than went insane — treat the pose as suspect from this moment; find the named quantity in the detail |
 | `LOOP_OVERRUN` | a control tick blew its time budget | too much work on the control task, a blocking call where none belongs | no | check the attribution line for *which phase*; recurring overruns degrade control quality everywhere |
-| `ODO_STUCK` | **the estimate is lying**, for one of two reasons the line names: `wheels spin but odometry reports no motion` (the stall cross-check), or `implausible odometry tick why=…` (the odometry's own trust gate refused one tick — [how to read it](#reading-an-odo_stuck-line)) | stall: a dead/unplugged rotation sensor, or the robot pinned against something. Trust gate: a heading that jumped more than 90° in one tick (`ROT`), one side or pod that moved more than 36 in in one tick (`TRAVEL` — a pod's or single-motor side's port waking up late, a corrupt reading; on a side driven by a motor group the odometry reads the members' median, so one waking member cannot trip it — a drive-side `TRAVEL` there means several members jumped together, and the group-level check for one bad member is `MOTOR_GROUP_DISAGREE`, which compares member velocities — whether it catches a member whose velocity is held too is not established), or a reading that came back NaN/Inf (`NONFINITE`) | **yes** (the only default abort) | this is the serious one: after it, the pose can't be trusted. Read the `why=` first — it says where to look. A robot with no tracking wheels (odometry from the drive motors) cannot run the stall check, so on it this code always comes from the trust gate, and "check the tracking wheels" does not apply |
+| `ODO_STUCK` | **the estimate is lying**, for one of two reasons the line names: `wheels spin but odometry reports no motion` (the stall cross-check), or `implausible odometry tick why=…` (the odometry's own trust gate refused one tick — [how to read it](#reading-an-odo_stuck-line)) | stall: a dead/unplugged rotation sensor, or the robot pinned against something. Trust gate: a heading that jumped more than 90° in one tick (`ROT`), one side or pod that moved more than 36 in in one tick (`TRAVEL` — a pod's or single-motor side's port waking up late, a corrupt reading; on a side driven by a motor group the odometry reads the members' median, so one waking member cannot trip it — a drive-side `TRAVEL` there means several members jumped together, or that members whose readings were not numbers were left out of the median of a side whose members had drifted far apart (the membership step, under `L=`/`R=` below), and the group-level check for one bad member is `MOTOR_GROUP_DISAGREE`, which compares member velocities — whether it catches a member whose velocity is held too is not established), or a reading that came back NaN/Inf (`NONFINITE` — on a side driven by a motor group only when NO member of that side gave a number: one member's bad reading is left out of the median, like a missing member) | **yes** (the only default abort) | this is the serious one: after it, the pose can't be trusted. Read the `why=` first — it says where to look. A robot with no tracking wheels (odometry from the drive motors) cannot run the stall check, so on it this code always comes from the trust gate, and "check the tracking wheels" does not apply |
 | `IMU_LOST` | the IMU was alive, then stopped responding | cable/port failure mid-run | no | heading is now coasting on the last good data; expect growing heading error after this timestamp. Check the cable |
 | `GPS_GATE_REJECT` | an absolute fix arrived and the fusion gate refused it | sensor glitch — or an estimate so far gone the truth looks crazy | no | a few: the gate doing its job. Many in a row: estimate and sensor disagree badly — cross-check the pose story around that time |
 | `BROWNOUT` | battery at/below the danger threshold | tired battery + heavy motor load | no | swap the battery; re-read the rest of the log knowing the motors were weak |
@@ -306,7 +306,13 @@ fault=ODO_STUCK n=1 FIRST implausible odometry tick why=ROT dth=1.745rad h0=0.01
     default is **36 in**.
   - `NONFINITE` — the tick's position change came out NaN or infinite, so position was held for
     that tick. A NaN side shows as `NONFINITE+TRAVEL` together: a NaN is not "within the bound"
-    either. `NONFINITE` *alone* means every reading was within its bound but the arithmetic
+    either. On a side driven by a motor group, a side reads `NaN` only when **no** member of it
+    gave a finite reading: a member whose reading is NaN or infinite is left out of that tick's
+    median, exactly like a member that is not there, and the side reads the others. (On a V5 this
+    is not expected at all — the motor adapter replaces a failed read with the last good one
+    before the group sees it — HA-08 in the
+    [Hardware Assumptions Register](../hardware-assumptions.md) — and nothing here has been run
+    on a robot.) `NONFINITE` *alone* means every reading was within its bound but the arithmetic
     overflowed — possible only when the travel bound or a tracking wheel's offset is configured
     near the largest number a `double` holds, so check the configuration, not the robot.
 - **`dth=`** — the heading change of that tick, in **radians** (1.571 = 90°, 3.142 = 180°).
@@ -318,8 +324,16 @@ fault=ODO_STUCK n=1 FIRST implausible odometry tick why=ROT dth=1.745rad h0=0.01
   `lat=`** (the forward pod's raw reading and the lateral pod's). A `TRAVEL` names the side or
   pod with the big number — start with its ports and cables. On a side driven by a motor
   group the number is the members' **median**, so it moved because several members jumped
-  together; a single bad member is absorbed by the median and shows up, if at all, as
-  `MOTOR_GROUP_DISAGREE`.
+  together — or because members with no reading were left out of it (next sentence); a single
+  bad member is absorbed by the median and shows up, if at all, as `MOTOR_GROUP_DISAGREE`. A
+  member whose reading is not a number at all is left out of the median for that tick, which can
+  shift the side's number and shift it back on the tick the member returns: the median of the
+  others is not exactly the median of all. While coupled members' positions agree that is a
+  fraction of the gap between them; with several left out it can be as large as their whole
+  spread — the member farthest from the median, read alone (HA-165 in the
+  [Hardware Assumptions Register](../hardware-assumptions.md), invented).
+  Under the 36 in bound such a shift is not reported; past it, the tick reads `TRAVEL`.
+  `L=NaN` means no member of that side gave a number.
 
 Numbers print as `NaN`, `+Inf` or `-Inf` when they are not finite, and a huge value prints
 compactly (`1e+09in`) rather than as a wall of digits. Two more endings you may see:

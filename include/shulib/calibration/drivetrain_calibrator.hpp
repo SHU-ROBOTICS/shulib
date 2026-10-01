@@ -57,6 +57,13 @@
 //                            (straightBound) and long enough (minPushRad). Then the operator
 //                            says which end went first; BACK-first inverts every sign. Ports that
 //                            did not move are not drive motors and are never touched again.
+//                            A candidate whose push reading is NOT FINITE (NaN, ±Inf) did not
+//                            "move" either — it gave no reading — so it is not a drive port;
+//                            unlike a still one it is NAMED, in the push record (NO READING)
+//                            and in warning() (DIAG1 Part B; one predicate, movedOnPush()).
+//                            Proven on the host test plant only: on a V5 no push reading is
+//                            expected to be non-finite, because ProsMotor screens a failed read
+//                            to the last good one first (A4 register HA-08).
 //   SideAssign   powered     one member at a time, a brief pulse at a RAMP of levels. On a tank,
 //                            driving ONE side forward turns the robot toward the other: LEFT
 //                            forward turns it CLOCKWISE, which is NEGATIVE yaw in shulib's
@@ -92,7 +99,11 @@
 // 4. THE MEDIAN, NOT THE MEAN, for each side's scale — and it is hal::medianInPlace, the SAME
 //    function hal::MotorGroup reports position() with. A member that travels short (robot two's
 //    port 18, ~20 %, A4 register HA-130) therefore cancels EXACTLY between calibration and run
-//    time rather than poisoning the scale or being accepted as the truth of the side.
+//    time rather than poisoning the scale or being accepted as the truth of the side. Since
+//    DIAG1 Part B that median leaves out a value that is not finite, as the group does; the
+//    push's own medians only ever see finite values (a non-finite push reading is not a drive
+//    port, rule of the PushCapture phase above), so the one site that can meet one is the
+//    spin's side travel, which reads the shafts live.
 // 5. THE PUSH IS POWERLESS. Polarity is found with nothing driven, because a pulse on a coupled
 //    train whose signs are unknown IS the fight the coupled-side monitor exists to prevent. Only
 //    members whose sign is already captured are ever pulsed, one at a time, and a member left
@@ -206,7 +217,7 @@ enum class Refusal : std::uint8_t {
     PushCurved,          ///< the push turned the robot by more than straightBound
     PushTooShort,        ///< the push (or one side of it) turned the shafts less than minPushRad
     RestTimeout,         ///< nothing came to rest within restTimeout (a motor still turning, or the robot still rotating)
-    NonDriveMoved,       ///< a motor that did not move on the push moved while one drive port was pulsed
+    NonDriveMoved,       ///< a motor that did not move on the push (or gave no reading at DONE) moved while one drive port was pulsed
     PulseContradiction,  ///< a pulsed member's own encoder went against its captured sign
     PulseRolled,         ///< its train moved at the top level but the robot did not turn (it rolled, or is off the floor)
     PulseStill,          ///< nothing moved at the top level
@@ -255,9 +266,11 @@ struct HumanFacts {
 /// first run and carried as fields so a bench session can move them without touching code.
 /// PROVISIONAL, all of them (A4: HA-136) — `pushDistance` is a CHOICE rather than a belief.
 struct CalibratorConfig {
-    /// Shaft travel over the push above which a candidate counts as a DRIVE port. 5 degrees —
-    /// the bench tester's MOTOR WATCH number, invented there and carried here unchanged so the
-    /// two tools call the same push the same thing. PROVISIONAL (A4: HA-136).
+    /// Shaft travel over the push above which a candidate counts as a DRIVE port — a FINITE
+    /// travel: a push reading that is not finite is no reading, and never a drive port (DIAG1
+    /// Part B). 5 degrees — the bench tester's MOTOR WATCH number, invented there and carried
+    /// here unchanged so the two tools call the same push the same thing. PROVISIONAL
+    /// (A4: HA-136).
     units::AngleDim movedThreshold{5.0 * kDegreesToRadians};
     /// |velocity| below which a motor counts as stopped, for the rest windows. PROVISIONAL
     /// (A4: HA-136).
@@ -356,7 +369,8 @@ struct PortObservation {
     /// The candidate's port as handed in: always POSITIVE (the sign is captured, not given).
     std::int8_t port = 0;
     /// The sign captured from the push, already inverted if the push was BACK-first: +1, −1, or 0
-    /// for a candidate that did not move and is therefore not a drive motor.
+    /// for a candidate that did not move and is therefore not a drive motor — or whose push
+    /// reading was not finite, which is no reading and no sign (the push record says NO READING).
     std::int8_t sign = 0;
     /// −1 LEFT, +1 RIGHT, 0 = not a drive port, not yet decided, or LEFT OUT.
     std::int8_t side = 0;
@@ -364,8 +378,10 @@ struct PortObservation {
     /// push is watched, then the number the sign was read off.
     double pushDeltaRad = 0.0;
     /// The same travel sign-corrected (sign × pushDeltaRad): the port's travel in the robot's
-    /// forward direction — positive for a front-first push, negative for a back-first one. 0 for
-    /// a port that is not a drive motor.
+    /// forward direction — positive for a front-first push, negative for a back-first one.
+    /// Exactly +0.0 for a port that is not a drive motor — a still one, and (since DIAG1 Part B)
+    /// one whose push reading was not finite (NO READING), where sign × pushDeltaRad would be
+    /// 0 × ±Inf or 0 × NaN, a NaN.
     double pushTravelRad = 0.0;
     /// The IMU's accumulated dtheta over this port's DECIDING pulse (its last), radians.
     double pulseYawRad = 0.0;
@@ -488,8 +504,9 @@ struct CalibratorStatus {
     double phaseSeconds = 0.0;
     /// How many candidates were handed in.
     std::uint8_t candidates = 0;
-    /// Candidates whose push travel is past movedThreshold — live while the push is watched, the
-    /// captured count after it.
+    /// Candidates whose push travel is past movedThreshold (a finite travel — the same predicate
+    /// the finish and pushReady() use) — live while the push is watched, the captured count after
+    /// it.
     std::uint8_t movedNow = 0;
     /// The median |push travel| of the moved candidates, radians (0 with none moved).
     double pushTravelRad = 0.0;
@@ -743,9 +760,12 @@ public:
     /// that disagreed, an abort).
     [[nodiscard]] int refusalPort() const noexcept { return refusalPort_; }
 
-    /// The warnings a run that is NOT refused still owes the operator — today, one sentence per
-    /// port LEFT OUT as decoupled ("port 18 turns but does not move the robot -- its gear is
-    /// slipping; it is left out"), joined by " | ". Empty when there is none. ASCII, no '%'.
+    /// The warnings a run that is NOT refused still owes the operator, joined by " | " — one
+    /// sentence per port LEFT OUT as decoupled ("port 18 turns but does not move the robot -- its
+    /// gear is slipping; it is left out"), and (since DIAG1 Part B) one per candidate whose push
+    /// reading was not finite at DONE ("port 13 gave no reading at DONE -- not counted as a drive
+    /// port; if it drives the robot, check it and run again"). Empty when there is none. Bounded:
+    /// a sentence that does not fit is cut, and the report still names every port. ASCII, no '%'.
     [[nodiscard]] const char* warning() const noexcept { return warning_; }
 
     /// The measured description. Precondition: phase() == Done — a refused run has no result, and
@@ -793,14 +813,16 @@ public:
 
     /// True when the push is PLAUSIBLY COMPLETE, so a panel may OFFER DONE (added at 2F-1 — two of
     /// robot two's five starts ended because DONE was touched before any push, on a screen that
-    /// offered it with nothing moved). All three of: at least two candidates past movedThreshold;
-    /// their median |travel| at least minPushRad (the push's "far enough"); and everything at rest
-    /// — every motor under restFloor AND the IMU's yaw rate under restYawRateFloor. Read LIVE from
-    /// the motors and the IMU, through the SAME helpers the finish uses (pushSummary(), atRest()),
-    /// so the gate cannot drift from the finish: DONE with the first two false is refused by the
-    /// finish (PushTooFew, PushTooShort) under the same predicate. At-rest is the one clause the
-    /// finish does NOT refuse on (the brief's "a readiness query, not a new refusal"): the gate is
-    /// STRICTER than the finish, never looser. False outside the push.
+    /// offered it with nothing moved). All three of: at least two candidates past movedThreshold
+    /// (a FINITE travel — the finish's own movedOnPush() predicate, so a candidate with no reading
+    /// is counted by neither); their median |travel| at least minPushRad (the push's "far
+    /// enough"); and everything at rest — every motor under restFloor AND the IMU's yaw rate
+    /// under restYawRateFloor. Read LIVE from the motors and the IMU, through the SAME helpers
+    /// the finish uses (pushSummary(), atRest()), so the gate cannot drift from the finish: DONE
+    /// with the first two false is refused by the finish (PushTooFew, PushTooShort) under the
+    /// same predicate. At-rest is the one clause the finish does NOT refuse on (the brief's "a
+    /// readiness query, not a new refusal"): the gate is STRICTER than the finish, never looser.
+    /// False outside the push.
     [[nodiscard]] bool pushReady() const {
         if (step_ != Step::PushWatching) {
             return false;
@@ -877,11 +899,22 @@ private:
                 continue;
             }
             if (std::abs(motors_[j]->velocity().value()) > cfg_.restFloor.value()) {
+                // Two different stories behind the same refusal: a port that read a number and
+                // did not move on the push, and (DIAG1 Part B) a port that gave NO READING at
+                // DONE and so was never counted as a drive port — possibly a drive motor whose
+                // reading came back, back-driven now by its train (the net the no-reading rule
+                // relies on). The second must not be told it "did not move on the push": nobody
+                // knows that it did not. Both sentences fit the Aborted screen's three 50-column
+                // lines (calibrate_panel.hpp), whose own words say "check the port shown".
+                const bool noReading = !hal::isUsableReading(report_.ports[j].pushDeltaRad);
                 char msg[kReasonCap];
                 std::snprintf(msg, sizeof msg,
-                              "port %d moved (%.3f rad/s) while only port %d was pulsed -- it "
-                              "did not move on the push, so it is not a drive motor and must "
-                              "be still",
+                              noReading ? "port %d moved (%.3f rad/s) while only port %d was "
+                                          "pulsed -- it gave no reading at DONE, so it was not "
+                                          "counted as a drive port"
+                                        : "port %d moved (%.3f rad/s) while only port %d was "
+                                          "pulsed -- it did not move on the push, so it is not "
+                                          "a drive motor and must be still",
                               static_cast<int>(ports_[j]), motors_[j]->velocity().value(),
                               static_cast<int>(ports_[pulseIndex_]));
                 refuse(Refusal::NonDriveMoved, static_cast<int>(ports_[j]), msg);
@@ -1025,17 +1058,22 @@ private:
 
     /// DONE: every candidate that moved by more than the threshold is a drive port and the
     /// DIRECTION it moved is its sign (MOTOR WATCH's rule, in the library); then the push must
-    /// have been straight and long enough.
+    /// have been straight and long enough. "Moved" is movedOnPush() — the SAME predicate
+    /// pushSummary() counts with — so a candidate whose push reading is not finite is not a drive
+    /// port, and it is named in warning() rather than dropped in silence (DIAG1 Part B).
     void finishPushCapture() {
         std::uint8_t moved = 0;
         for (std::size_t i = 0; i < n_; ++i) {
             const double d = motors_[i]->position().value() - base_[i];
             report_.ports[i].pushDeltaRad = d;
-            drive_[i] = std::abs(d) >= cfg_.movedThreshold.value();
+            drive_[i] = movedOnPush(d);
             sign_[i] = drive_[i] ? static_cast<std::int8_t>(d > 0.0 ? 1 : -1) : std::int8_t{0};
             report_.ports[i].sign = sign_[i];
             if (drive_[i]) {
                 ++moved;
+            }
+            if (!hal::isUsableReading(d)) {
+                appendWarning(static_cast<int>(ports_[i]), Warning::NoReading);
             }
         }
         const PushSummary s = pushSummary();  // the SAME helper pushReady() reads
@@ -1084,8 +1122,11 @@ private:
                 sign_[i] = static_cast<std::int8_t>(-sign_[i]);
             }
             report_.ports[i].sign = sign_[i];
+            // A port with no sign has no travel: +0.0, not 0 × its delta — for a candidate with
+            // no reading that product is 0 × ±Inf or 0 × NaN, a NaN (DIAG1 Part B review round).
             report_.ports[i].pushTravelRad =
-                static_cast<double>(sign_[i]) * report_.ports[i].pushDeltaRad;
+                sign_[i] != 0 ? static_cast<double>(sign_[i]) * report_.ports[i].pushDeltaRad
+                              : 0.0;
         }
         pulseIndex_ = 0;
         levelIndex_ = 0;
@@ -1155,7 +1196,7 @@ private:
                 excluded_[i] = true;
                 report_.ports[i].excluded = true;
                 report_.excludedPorts[report_.excludedCount++] = ports_[i];
-                appendWarning(static_cast<int>(ports_[i]));
+                appendWarning(static_cast<int>(ports_[i]), Warning::Slipping);
                 nextPort();
                 return;
             }
@@ -1248,6 +1289,10 @@ private:
         for (int s = 0; s < 2; ++s) {
             const std::size_t* idx = (s == 0) ? leftIdx_ : rightIdx_;
             const std::size_t count = (s == 0) ? leftN_ : rightN_;
+            // No guard for a non-finite value is needed below, and none is written: a drive port
+            // is one movedOnPush() accepted, whose push reading is FINITE by construction, so its
+            // push travel (sign x that reading) is finite too — the spread, the median and the
+            // minPushRad check only ever see numbers (DIAG1 Part B).
             double v[hal::kMaxSmartPorts];
             double lo = 0.0;
             double hi = 0.0;
@@ -1432,22 +1477,38 @@ private:
                && std::abs(imu_.yawRate().value()) <= cfg_.restYawRateFloor.value();
     }
 
-    /// The push so far, read LIVE from every candidate: the count past movedThreshold and the
-    /// median |travel| of those. pushReady() and finishPushCapture() both read it, so the DONE
-    /// gate and the DONE finish are one predicate.
+    /// The push so far, read LIVE from every candidate: the count that moved on the push
+    /// (movedOnPush() — a FINITE travel past movedThreshold) and the median |travel| of those.
+    /// pushReady() and finishPushCapture() both read it, so the DONE gate and the DONE finish are
+    /// one predicate — and the finish's own classification uses movedOnPush() too, so
+    /// drivePortCount, this count, pushReady(), status().movedNow and the captured signs all
+    /// describe the same candidates. (The finish reads every shaft again for its classification:
+    /// one PREDICATE, two reads; on a FakeMotor they agree, on a robot they can differ only by
+    /// what moved between two reads in the same tick.)
     [[nodiscard]] PushSummary pushSummary() const {
         PushSummary s;
         double v[hal::kMaxSmartPorts];
         std::size_t k = 0;
         for (std::size_t i = 0; i < n_; ++i) {
-            const double d = std::abs(motors_[i]->position().value() - base_[i]);
-            if (d >= cfg_.movedThreshold.value()) {
-                v[k++] = d;
+            const double d = motors_[i]->position().value() - base_[i];
+            if (movedOnPush(d)) {
+                v[k++] = std::abs(d);
             }
         }
         s.moved = static_cast<std::uint8_t>(k);
         s.medianRad = k > 0 ? hal::medianInPlace(v, k) : 0.0;
         return s;
+    }
+
+    /// "Moved on the push": a push delta (radians, as read, before any sign) that is a FINITE
+    /// number whose size reaches movedThreshold. The ONE test the push's classification
+    /// (finishPushCapture) and its live count (pushSummary, and through it pushReady() and the
+    /// panel's movedNow) share — neither keeps its own comparison (DIAG1 Part B, D5). A NaN delta
+    /// already failed the old `std::abs(d) >= threshold`; a ±Inf one passed it and became a drive
+    /// port with a sign read off PROS's failure sentinel — now it is no reading, like the NaN, and
+    /// finishPushCapture names it. Finite by hal::isUsableReading(), the median's own test.
+    [[nodiscard]] bool movedOnPush(double d) const noexcept {
+        return hal::isUsableReading(d) && std::abs(d) >= cfg_.movedThreshold.value();
     }
 
     void safeState() {
@@ -1568,11 +1629,25 @@ private:
         o.verdict = v;
     }
 
-    /// The LEFT-OUT warning for one port, appended (bounded; a warning that does not fit is cut,
-    /// the report's excludedPorts still names every port).
-    void appendWarning(int port) {
+    /// Which sentence appendWarning() adds.
+    enum class Warning : std::uint8_t {
+        Slipping,   ///< LEFT OUT as decoupled at its top pulse level
+        NoReading,  ///< its push reading at DONE was not finite: not counted as a drive port
+    };
+
+    /// One warning sentence for one port, appended (bounded; a warning that does not fit is cut —
+    /// the report still names every port: excludedPorts for a slipping one, the push record's
+    /// NO READING for one with no reading).
+    void appendWarning(int port, Warning which) {
         const std::size_t used = std::strlen(warning_);
         if (used + 1 >= sizeof warning_) {
+            return;
+        }
+        if (which == Warning::NoReading) {
+            std::snprintf(warning_ + used, sizeof warning_ - used,
+                          "%sport %d gave no reading at DONE -- not counted as a drive port; if "
+                          "it drives the robot, check it and run again",
+                          used > 0 ? " | " : "", port);
             return;
         }
         std::snprintf(warning_ + used, sizeof warning_ - used,
@@ -1863,12 +1938,18 @@ private:
 ///
 /// One line of the PUSH TABLE for the serial record (F1.5): the candidate's port, its travel as
 /// read, whether it moved and the sign captured —
-/// `push port 11 travel -373.2 deg MOVED sign -1`. Written into `out` (NUL-terminated, cut to
+/// `push port 11 travel -373.2 deg MOVED sign -1`. A candidate whose push reading was not finite
+/// keeps its port and its reading, and its word is `NO READING` instead of `still` (DIAG1 Part B:
+/// it is not a drive port, and unlike a still one it is a motor the run could not read — the
+/// number is spelled the C library's way, e.g. `+inf`). Written into `out` (NUL-terminated, cut to
 /// `cap`); returns what std::snprintf returns. ASCII, no '%'.
 inline int formatPushRecord(const PortObservation& o, char* out, std::size_t cap) {
+    const char* word = o.sign != 0                           ? "MOVED"
+                       : hal::isUsableReading(o.pushDeltaRad) ? "still"
+                                                              : "NO READING";
     return std::snprintf(out, cap, "push port %d travel %+.1f deg %s sign %+d",
                          static_cast<int>(o.port), o.pushDeltaRad / kDegreesToRadians + 0.0,
-                         o.sign != 0 ? "MOVED" : "still", static_cast<int>(o.sign));
+                         word, static_cast<int>(o.sign));
 }
 
 /// One line per PULSE for the serial record (F1.5) — the numbers that would have explained robot

@@ -27,9 +27,10 @@
 // position() and velocity() are the MEDIAN across members. Members are coupled, so they
 // agree to within noise when healthy; the question is what happens when one is not. A
 // member whose port stopped answering reports its LAST GOOD position forever (ProsMotor's
-// sentinel screen, hal/motor.hpp:47-54). A MEAN would then drift by 1/N of all further
-// travel — silently wrong odometry, exactly the failure the odometry cross-checks cannot
-// see because the number keeps moving. A median is untouched until a MAJORITY fails.
+// sentinel screen — the IMotor class doc in hal/motor.hpp, ~:60-67). A MEAN would then drift
+// by 1/N of all further travel — silently wrong odometry, exactly the failure the odometry
+// cross-checks cannot see because the number keeps moving. A median is untouched until a
+// MAJORITY fails.
 // Rejected: mean (above); "first member" (one dead port kills the side with no signal at
 // all). For an even N the median is the mean of the two middle values, which one dead
 // member still cannot reach when N >= 4; for N == 2 no aggregate can tell the live member
@@ -42,6 +43,67 @@
 // throttles first, and the thermal monitor must see the worst one. brakeMode() is the
 // FIRST member's read-back (a device answer, not the library's memory — the IMotor
 // contract), with a member that disagrees with it counted by the observable below.
+//
+// ── A READING THAT IS NOT A NUMBER (DIAG1 Part B, 2026-09-29) ───────────────────────
+// A member whose reading is not finite — NaN of either sign, +Inf or -Inf — is LEFT OUT of that
+// read, the way an ABSENT member (below) is left out of every read: position() and velocity()
+// are the median of the present members whose reading is finite, current() the mean and
+// totalCurrent() the sum over them, temperature() their max. The rule lives in ONE place,
+// isUsableReading(): medianInPlace() excludes with it and nonFiniteReads() counts with it.
+//  * PER READ, NEVER A LATCH. The same member's next finite reading is counted again;
+//    presentCount() and absentMask() never change for it. A member that is ALWAYS unreadable is
+//    a dead port, and that is the absent member's business, decided at boot.
+//  * NaN WHEN NONE IS FINITE. When no present member gives a finite reading the read returns a
+//    fresh quiet NaN (std::numeric_limits<double>::quiet_NaN()), never one of its inputs, so the
+//    answer does not depend on which non-finite values arrived ({+Inf, -Inf} used to give a
+//    NEGATIVE NaN). The drive-encoder odometry already handles a NaN side: that tick freezes
+//    position and the next finite tick integrates across it. motion::OdoStallCheck, which reads
+//    the drive motors when a window closes, gets a NaN spin travel from such a side and gives NO
+//    verdict for that window, nor for the next (its new baseline is the NaN) — where a side all
+//    +Inf or all -Inf used to read as an infinite travel and, on a drivetrain with an independent
+//    motion source, a stall (ODO_STUCK). What the check should do with a travel it cannot read
+//    is a follow-up's decision.
+//  * WHY ±Inf TOO, NOT ONLY NaN. +Inf is PROS's own failure sentinel (PROS_ERR_F, A4 register
+//    HA-08): it means "no reading", not a position. Kept in, one infinite member of three or
+//    more still moves the median by half a neighbour's gap, and on a side of one or two members
+//    it makes the whole side non-finite.
+//  * WHY NOT A LAST-GOOD CACHE HERE. The adapter already holds last-good (ProsMotor's screen);
+//    a second cache in the group would be a frozen member feeding the median — the drag this
+//    median exists to survive — and a latch the absent-member rule does not have.
+//  * WHY NOT A MAJORITY RULE (NaN once half or more are non-finite — the DIAG1 research's other
+//    option). The recommendation the team lead approved (2026-09-26) chose exclusion: one rule
+//    for "no reading", whether the port died at boot or one read failed.
+//  * THE MEMBERSHIP STEP (A4 register HA-165). Leaving members out changes WHICH values the
+//    median is taken over, so the side's reading can step on the tick a member drops out, and
+//    step back on the tick it returns, with nothing moving. For ONE member left out: of an odd
+//    count (three or more), the median moves to the midpoint of the two values then in the
+//    middle — the middle value and a neighbour, or the middle value's two neighbours when the
+//    member left out IS the middle one — by at most HALF the larger of the two gaps beside the
+//    middle value; of an even count, it moves from the midpoint to one of the two middle
+//    values — by half the gap between them (for a two-member side, half the gap between the
+//    two). With SEVERAL left out, the median of the rest can land anywhere between the lowest
+//    and the highest member position, so the step is bounded only by the members' SPREAD
+//    (highest minus lowest); the worst case is the one member farthest from the full median,
+//    read alone. Coupled members sit close together, so the step is small — unless their
+//    CUMULATIVE positions have drifted apart: robot two's port 18 travelled ~20 % short on a
+//    hand push (HA-130; unmeasured under power), so its offset would grow with the distance
+//    driven. The odometry reads the step as travel; its trust gate bounds one tick at
+//    maxTickTravel (HA-123), and the return tick carries the step back. A side whose infinite
+//    members used to reach the middle — two +Inf of three, say — read non-finite and froze its
+//    tick as NONFINITE+TRAVEL; it now reads the rest's median and integrates, so a step under
+//    maxTickTravel (36 in by default) moves the pose SILENTLY (DIAG1 N7 pins that, and TRAVEL
+//    past the bound).
+//  * THE UNDEFINED BEHAVIOUR IT REMOVES. The median used to std::sort every value, and a NaN
+//    breaks the strict weak ordering std::sort requires. Probed against this header before the
+//    change (host x86-64, g++ 13.3.0 libstdc++, -O2; the robot's library was not probed):
+//    {3, NaN, 1, 2} gave NaN; {NaN, 1, 2, 3, 4} gave 2 where the finite median is 2.5;
+//    {1, 2, NaN, 3, 4} gave NaN while {1, 2, 3, 4, NaN} gave 3; 21 members with 1-3 NaN gave a
+//    WRONG FINITE value on 18,030 of 20,000 draws and NaN on 1,350 — a plausible wrong number,
+//    decided by which slot was bad.
+//  * NOT A ROBOT PATH TODAY. ProsMotor screens a non-finite read to the last good one before any
+//    group sees it (HA-08), so on a V5 this exclusion is expected never to fire. It defines what
+//    the library does when a reading does get through — a future adapter, a nested group, a host
+//    test. Nothing here has run on a robot.
 //
 // ── The disagreement observable: ONE evaluator, shared with the drive program ───────
 // The fighting-motor / frozen-member detector is teleop::CoupledSideMonitor — the pure,
@@ -95,16 +157,21 @@
 // SLOTS the group has (so the panel's port list keeps its indices) and presentCount() how
 // many answer. ALL-PRESENT GROUPS ARE BIT-IDENTICAL — not "equivalent": the whole
 // pre-existing suite is the pin, and its assertion count was recorded before and after this
-// change, with `MotorGroup 8b` and the plant's case 7 as the local half of it.
+// change, with `MotorGroup 8b` and the plant's case 7 as the local half of it. A PRESENT
+// member whose reading is not finite (above) is left out of that one read and moves neither
+// count: it is still a slot, still present, still commanded.
 //
 // Non-owning: the pointer ARRAY the span views, and the motors it points to, must
-// outlive the group — the tree's ownership convention (hal/motor.hpp:57-65).
+// outlive the group — the tree's ownership convention (the IMotor destructor's doc in
+// hal/motor.hpp, ~:70-78).
 // PROS-free; host-tested against FakeMotors and through the A2 plant's coupled members.
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <numeric>
 #include <span>
 
 #include "shulib/core/check.hpp"
@@ -112,32 +179,85 @@
 #include "shulib/teleop/coupled_side_monitor.hpp"
 #include "shulib/units/quantity.hpp"
 
+// ── A BUILD THAT ASSUMES EVERY NUMBER IS FINITE IS REFUSED HERE ─────────────────────
+// isUsableReading() below is std::isfinite, and under -ffinite-math-only (which -ffast-math and
+// -Ofast imply) the compiler may assume no value is ever NaN or infinite and fold that test to
+// "true". Measured (DIAG1 Part B review round, 2026-09-30): arm-none-eabi-g++ 13.2.1 at
+// -Os -ffinite-math-only compiles std::isfinite(x) to `mov r0, #1; bx lr`, and host g++ 13.3.0
+// at -O2 -ffinite-math-only gives isUsableReading(NaN) == true and medianInPlace({1, 2, NaN, 3,
+// 4}) == NaN — the undefined behaviour this header removes, back, with every gate green. No
+// build sets either flag today (the Makefile, common.mk and the host CMake were grepped); this
+// makes one that does stop at compile time, in every build that includes this header (the ARM
+// header gate and every robot build the src build gate links). GCC and Clang define
+// __FINITE_MATH_ONLY__ as 1 under those flags and 0 otherwise.
+#if defined(__FINITE_MATH_ONLY__) && __FINITE_MATH_ONLY__
+#error "shulib needs NaN and infinity: build without -ffinite-math-only, -ffast-math or -Ofast"
+#endif
+
 namespace shulib::hal {
 
-/// THE median of the `n` values in `v` — the one definition in the tree, so nothing that has to
-/// agree with a hal::MotorGroup's reading can drift from it. Odd n: the middle value, no
-/// arithmetic at all (n == 1 is the bare value, bit for bit). Even n: the mean of the two middle
-/// values (exact when they agree), which one dead member still cannot reach when n >= 4 — see the
-/// header's "why not the mean". SORTS `v` IN PLACE, which is why the caller passes a scratch
-/// array it owns. Precondition: v non-null, n >= 1.
+/// True when `v` is a READING the group's aggregates count: a finite number. NaN (of either
+/// sign), +Inf and -Inf are not readings — PROS's failure sentinel is +Inf (A4 register HA-08) —
+/// and every aggregate in this header leaves them out, the way it leaves out an ABSENT member
+/// (the header's "A READING THAT IS NOT A NUMBER"). This is the ONE test: medianInPlace()
+/// excludes with it, MotorGroup::nonFiniteReads() counts with it, and the drivetrain
+/// calibrator's "moved on the push" rule is built on it, so the three cannot disagree about what
+/// a reading is (DIAG1 Part B). It needs a build that keeps NaN and infinity: a build with
+/// -ffinite-math-only or -ffast-math is refused by an #error just above it.
+[[nodiscard]] inline bool isUsableReading(double v) noexcept { return std::isfinite(v); }
+
+/// THE median of the FINITE values among the `n` in `v` — the one definition in the tree, so
+/// nothing that has to agree with a hal::MotorGroup's reading can drift from it. A value that is
+/// not finite (isUsableReading() false: NaN of either sign, ±Inf) is LEFT OUT, the way the group
+/// leaves out an absent member; when none is finite the result is a fresh quiet NaN, never one of
+/// the inputs. Over the k finite values: odd k, the middle value, no arithmetic at all (k == 1 is
+/// the bare value, bit for bit); even k, std::midpoint of the two middle values — exact when they
+/// agree, and it cannot overflow where 0.5 * (a + b) could — which one dead member still cannot
+/// reach when k >= 4 (the header's "why not the mean"). REORDERS `v`: its contents afterwards are
+/// unspecified, which is why the caller passes a scratch array it owns and never reads it again.
+/// Precondition: v non-null, n >= 1.
 ///
 /// Extracted from MotorGroup at chunk R3d Part 1 because the drivetrain calibrator measures each
 /// side's distance scale through the SAME statistic the group will later report to the odometry:
 /// a slow member (robot two's port 18, A4 register HA-130) then cancels exactly instead of
 /// approximately. A second, privately written median would have made that cancellation an
-/// accident rather than a guarantee.
+/// accident rather than a guarantee — and two medians that treated a NaN differently would break
+/// it exactly when a reading is bad, which is why the exclusion lives HERE and not in the group.
+///
+/// DIAG1 Part B (2026-09-29) — how, and what it pins. The finite values are copied FORWARD in
+/// their input order before the sort, never compacted with std::partition or swap-with-last:
+/// std::sort is not stable, so among EQUAL values (+0.0 and -0.0) which one lands in the middle
+/// depends on the order it is handed, and a compaction that reordered the finite values would let
+/// {+0.0, NaN, -0.0, +0.0} answer differently from the same group with that member absent,
+/// {+0.0, -0.0, +0.0}. With every value finite the answer is bit-identical to the version that
+/// sorted everything and halved the sum — except where the two middle values' SUM overflowed
+/// (possible only when at least one of them is past DBL_MAX/2 in size, so reachable only in host
+/// tests), which gave +Inf or -Inf and now gives the finite midpoint. So the median is non-finite
+/// exactly when no value is finite.
 [[nodiscard]] inline double medianInPlace(double* v, std::size_t n) {
     SHULIB_PRECONDITION(v != nullptr, "medianInPlace: values must be non-null");
     SHULIB_PRECONDITION(n >= 1, "medianInPlace: needs at least one value");
-    std::sort(v, v + n);
-    return (n % 2 == 1) ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+    std::size_t k = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (isUsableReading(v[i])) {
+            v[k++] = v[i];  // copy forward: the finite values keep their input order
+        }
+    }
+    if (k == 0) {
+        return std::numeric_limits<double>::quiet_NaN();  // no reading at all: a FRESH NaN
+    }
+    std::sort(v, v + k);
+    return (k % 2 == 1) ? v[k / 2] : std::midpoint(v[k / 2 - 1], v[k / 2]);
 }
 
 /// N coupled motors presented as ONE IMotor: commands fan out to every member unchanged;
 /// position and velocity read back as the MEDIAN (a dead port's frozen reading cannot drag
 /// them until a majority is dead), current as the per-member mean (the sum is
 /// totalCurrent()), temperature as the maximum, brake mode as the first member's device
-/// read-back. The coupled-side monitor rides inside as the disagreement observable — one
+/// read-back. Every aggregate is over the PRESENT members whose reading is FINITE: a member
+/// reading NaN or ±Inf is left out of that read (never latched), counted by nonFiniteReads(),
+/// and a read with no finite member returns NaN (the header's "A READING THAT IS NOT A NUMBER").
+/// The coupled-side monitor rides inside as the disagreement observable — one
 /// evaluation per tick through evaluateDisagreement(), which motion::tickHealthObservables
 /// performs for every group it is handed. Raises nothing itself; never negates a member.
 /// Non-owning: members and the array the span views must outlive the group.
@@ -204,12 +324,15 @@ public:
     /// The FIRST PRESENT member's read-back (the device's answer, per the IMotor contract).
     [[nodiscard]] BrakeMode brakeMode() const override { return first().brakeMode(); }
 
-    /// MEDIAN of the PRESENT members' cumulative shaft rotation (header: why not the mean).
+    /// MEDIAN of the PRESENT members' cumulative shaft rotation (header: why not the mean), over
+    /// the members whose reading is FINITE; NaN if none is finite. A member left out is counted
+    /// by nonFiniteReads().
     [[nodiscard]] units::AngleDim position() const override {
         return units::AngleDim{medianOf([](const IMotor& m) { return m.position().value(); })};
     }
 
-    /// MEDIAN of the PRESENT members' measured angular velocity.
+    /// MEDIAN of the PRESENT members' measured angular velocity, over the members whose reading
+    /// is FINITE; NaN if none is finite.
     [[nodiscard]] units::AngularVelocity velocity() const override {
         return units::AngularVelocity{
             medianOf([](const IMotor& m) { return m.velocity().value(); })};
@@ -217,25 +340,61 @@ public:
 
     /// MEAN current PER PRESENT MEMBER, so per-motor thresholds keep their meaning. An ABSENT
     /// member is not a member drawing 0 A: dividing by the SLOT count would make a side with a
-    /// dead port read cooler than it is. The sum is totalCurrent().
+    /// dead port read cooler than it is. Neither is a member whose reading is not finite: it is
+    /// left out of the sum AND of the count it is divided by (header: "A READING THAT IS NOT A
+    /// NUMBER"). NaN if no present member's reading is finite. The sum is totalCurrent().
     [[nodiscard]] units::Current current() const override {
-        return units::Current{sumCurrent() / static_cast<double>(present_)};
+        const CurrentSum s = sumCurrent();
+        return units::Current{s.counted > 0 ? s.amps / static_cast<double>(s.counted)
+                                            : std::numeric_limits<double>::quiet_NaN()};
     }
 
-    /// MAX PRESENT member temperature (°C): the hottest member throttles first.
+    /// MAX temperature (°C) over the PRESENT members whose reading is FINITE: the hottest member
+    /// throttles first. A member reading +Inf °C is left out, not taken as the hottest — so on its
+    /// own it no longer raises MOTOR_OVER_TEMP — and counted by nonFiniteReads(); a NaN member can
+    /// no longer win by standing first (std::max keeps its first argument against a NaN, so the
+    /// old answer depended on member order). NaN if no present member's reading is finite. Each
+    /// member is read ONCE (until DIAG1 Part B the first present member was read twice, once as
+    /// the seed).
     [[nodiscard]] double temperature() const override {
-        double worst = first().temperature();
+        double worst = std::numeric_limits<double>::quiet_NaN();
+        bool any = false;
         for (const IMotor* m : members_) {
-            if (m != nullptr) {
-                worst = std::max(worst, m->temperature());
+            if (m == nullptr) {
+                continue;
             }
+            const double t = m->temperature();
+            if (!isUsableReading(t)) {
+                ++nonFiniteReads_;
+                continue;
+            }
+            worst = any ? std::max(worst, t) : t;
+            any = true;
         }
         return worst;
     }
 
-    /// The SUM of every PRESENT member's current draw (amperes) — the side's total, exposed
-    /// outside the IMotor surface so current() can stay per-member.
-    [[nodiscard]] units::Current totalCurrent() const { return units::Current{sumCurrent()}; }
+    /// The SUM of the current draw (amperes) of every PRESENT member whose reading is FINITE — the
+    /// side's total, exposed outside the IMotor surface so current() can stay per-member. NaN if
+    /// no present member's reading is finite: an empty sum would read 0 A, a side drawing nothing,
+    /// which is a claim no member made.
+    [[nodiscard]] units::Current totalCurrent() const {
+        const CurrentSum s = sumCurrent();
+        return units::Current{s.counted > 0 ? s.amps : std::numeric_limits<double>::quiet_NaN()};
+    }
+
+    /// How many member READINGS this group has left out for not being finite (NaN of either
+    /// sign, +Inf, -Inf) — one per member per read, over position(), velocity(), current(),
+    /// totalCurrent() and temperature() alike; cumulative for the group's life, never reset.
+    /// It makes the exclusion OBSERVABLE, as absentMask() does a hole: a member left out in
+    /// silence would be a reading nobody knows is missing. Counted with the exclusion's own test
+    /// (isUsableReading()), so the two cannot drift. Mirrors hal::pros::ProsMotor::faultedReads(),
+    /// including its `mutable` counter bumped by a const read. evaluateDisagreement()'s velocity
+    /// samples are NOT counted: what the monitor does with a non-finite member velocity is its own,
+    /// later change. The group raises nothing on this number (raising is the loop layer's policy,
+    /// header) and nothing in the library reads it yet. On a V5 it is expected to stay 0 —
+    /// ProsMotor screens a non-finite read to the last good one first (A4 register HA-08).
+    [[nodiscard]] int nonFiniteReads() const noexcept { return nonFiniteReads_; }
 
     /// One tick of the disagreement observable: samples every member's velocity() against
     /// the group's commanded voltage through the shared coupled-side monitor, advancing its
@@ -311,8 +470,8 @@ public:
 
 private:
     /// The first PRESENT member. The constructor's precondition guarantees there is one, so
-    /// this never falls off the end; the loop is what makes brakeMode() and temperature() read
-    /// a DEVICE rather than a hole.
+    /// this never falls off the end; the loop is what makes brakeMode() read a DEVICE rather
+    /// than a hole. (temperature() used it as its seed until DIAG1 Part B; it no longer does.)
     [[nodiscard]] IMotor& first() const {
         for (IMotor* m : members_) {
             if (m != nullptr) {
@@ -328,23 +487,42 @@ private:
         std::size_t k = 0;
         for (const IMotor* m : members_) {
             if (m != nullptr) {
-                v[k++] = read(*m);
+                const double x = read(*m);
+                if (!isUsableReading(x)) {
+                    ++nonFiniteReads_;  // the exclusion's own test (medianInPlace leaves it out)
+                }
+                v[k++] = x;
             }
         }
         // Over the PRESENT members only: an absent member counted as a reading (0, or a
         // neighbour's) would drag the median exactly the way a dead port's frozen reading
-        // would, which is the failure this median exists to survive.
+        // would, which is the failure this median exists to survive. A present member whose
+        // reading is not finite is handed in and left out BY the median itself, so the
+        // calibrator's sites, which call it directly, cannot treat it differently.
         return medianInPlace(v, k);  // the ONE median (above), shared with the calibrator
     }
 
-    [[nodiscard]] double sumCurrent() const {
-        double sum = 0.0;
+    /// The current draw summed over the present members whose reading is finite, and how many
+    /// that was — current() divides by the SAME count it summed over.
+    struct CurrentSum {
+        double amps = 0.0;
+        std::size_t counted = 0;
+    };
+
+    [[nodiscard]] CurrentSum sumCurrent() const {
+        CurrentSum s;
         for (const IMotor* m : members_) {
             if (m != nullptr) {
-                sum += m->current().value();
+                const double a = m->current().value();
+                if (!isUsableReading(a)) {
+                    ++nonFiniteReads_;
+                    continue;
+                }
+                s.amps += a;
+                ++s.counted;
             }
         }
-        return sum;
+        return s;
     }
 
     std::span<IMotor* const> members_;
@@ -353,6 +531,9 @@ private:
     teleop::CoupledSideMonitor monitor_;
     teleop::SideVerdict verdict_{};
     units::Voltage commanded_{0.0};
+    /// nonFiniteReads(): `mutable` because the reads that bump it are const (the IMotor
+    /// contract), exactly as hal::pros::ProsMotor's faultedReads_ is.
+    mutable int nonFiniteReads_ = 0;
 };
 
 }  // namespace shulib::hal

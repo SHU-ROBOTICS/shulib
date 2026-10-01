@@ -6,7 +6,8 @@
 //
 // ── What it integrates, and the decision it borrows ─────────────────────────────────
 // Per tick: ΔL and ΔR are each side's cumulative IMotor::position() delta (output-shaft
-// radians, the MEDIAN of a hal::MotorGroup on a real robot) times that side's inches per
+// radians, on a real robot the MEDIAN of a hal::MotorGroup over the members whose reading is
+// finite — hal/motor_group.hpp's "A READING THAT IS NOT A NUMBER") times that side's inches per
 // radian (hal::DriveGeometry — the ONE representation of the per-side ratio, shared with
 // the stall check). The centre's forward travel is (ΔL + ΔR)/2 and its LATERAL travel is
 // EXACTLY 0: kinematics/tank.hpp's forward() already states, in writing, that "this
@@ -41,7 +42,14 @@
 // absorbed and never reaches the gate; a trip there means enough members jumped together to
 // move the median (two of four), and one bad member is the group's coupled-side monitor's
 // to find (MOTOR_GROUP_DISAGREE — velocity-based; whether it sees a member whose velocity
-// is held too is not established). Since DIAG1 the gate also
+// is held too is not established). The same holds for a member whose reading is NOT FINITE
+// (since DIAG1 Part B): the group leaves it out of that read, so a side with ANY finite member
+// reads finite — moved only by the MEMBERSHIP STEP (A4 register HA-165), which the gate bounds
+// like any travel, and which with several members left out can be as large as the members'
+// spread — and a NON-FINITE side reading now means that NO present member of the side gave a
+// finite reading. That path is proven on the host test plant only: on a V5, ProsMotor screens
+// a non-finite read to the last good one before any group sees it (A4 register HA-08), so it
+// is not expected to fire there. Since DIAG1 the gate also
 // keeps its ACCOUNT of every tick — lastTickAudit(): which checks tripped, Δθ, the two IMU
 // headings and ΔL/ΔR — and the verdict is read from it, so the ODO_STUCK line can name the
 // check and its values (diag/odom_tick_audit.hpp).
@@ -155,6 +163,10 @@ public:
         // NaN too. Kept finite, the NEXT finite read integrates the travel across the bad
         // tick instead of losing it — one step better than the tracking-wheel path, which
         // freezes for good after a NaN. The bad tick itself still freezes position (below).
+        // On a side that is a hal::MotorGroup a non-finite reading here means EVERY present
+        // member was non-finite: a bad member is left out of the group's median (DIAG1 Part B),
+        // so while any member reads finite the side does too, and the baseline re-arms to that
+        // subset median.
         const double pL = left_.position().value();
         const double pR = right_.position().value();
         const double dL = (pL - baseLeft_) * leftIpr_;

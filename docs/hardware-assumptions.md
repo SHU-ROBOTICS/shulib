@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 161 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 162 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -93,6 +93,11 @@
 > 160 entries. **L9 Part A1 added ONE on 2026-09-29 — HA-167, invented** — that a tank drives backwards
 > the way its calibration measured it, in one unpowered push (the recipe layer's new `reverseTo` /
 > `faceAway` and a route's `reverse` DriveTo both command backwards legs); with it, 161.
+> **DIAG1 Part B added ONE on 2026-10-01 — HA-165, invented** — that the members of one drive side
+> stay close enough in cumulative position that leaving members out of the side's median (members
+> whose reading is not finite, now left out like absent ones) is a small step, and AMENDED HA-08 (what
+> a motor group and the drivetrain calibrator do with a non-finite reading that gets past the adapter's
+> screen); with it, 162.
 > The rest of HA-162..HA-176 is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
 > (the mechanism core: its brief, being written), held the same way. The
@@ -134,7 +139,7 @@
 | HA-05 | Post-cal tare invalidates bootHeading; offset applied once | reasoned — **AMENDED** 2026-09-26 (COMP-a): the start heading's one owner is the chosen auton's start pose, applied at autonomous start through the Localizer's bias (`reseatHeading`) — bootHeading stays 0 and the IMU is never re-zeroed | R1/R3 |
 | HA-06 | Firmware GPS offset unset ⇒ `get_position()` = SENSOR pose | reasoned | R1/R3 |
 | HA-07 | GPS `get_error()` returns meters | reasoned | R3 |
-| HA-08 | Failed reads return PROS_ERR/PROS_ERR_F; adapters screen to stale-finite | reasoned | R1/R3 |
+| HA-08 | Failed reads return PROS_ERR/PROS_ERR_F; adapters screen to stale-finite | reasoned — **AMENDED 2026-09-29** (DIAG1 Part B: what a motor group and the calibrator do if one gets through) | R1/R3 |
 | HA-09 | `northHeadingDeg = 90°` matches our field setup | reasoned | R3 |
 | HA-10 | GPS lever arm value (body inches) as configured | **invented** | R3 |
 | HA-11 | Rotation `get_position()` cumulative; int32 centidegree never wraps in a match | reasoned | R1/R3 |
@@ -283,6 +288,7 @@
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
+| HA-165 | The present members of one drive side stay close enough in CUMULATIVE position, through a match's driving and slip, that leaving members out of the side's median (one or several whose reading is not finite, DIAG1 Part B) moves the side by far less than `maxTickTravel` (36 in) — at worst, the member farthest from the median read alone | **invented** — the members' spread over a match has never been recorded; HA-130's port 18 is the evidence it can grow; exercised only when a member read is non-finite, which HA-08 says never reaches a group on a V5 | R4 |
 | HA-167 | A tank drives BACKWARDS the way its calibration measured it: each side's travel scale, from ONE unpowered push made one end first, holds within 1 % under power in BOTH directions, and a change of direction adds under 0.25 in of travel the chassis did not make (no backlash take-up) | **invented** (the scale comes from one UNPOWERED push in one direction; the host test plant has no backlash and is direction-symmetric by construction) | the first on-robot autonomous session (COMP-t's auton tester, or COMP-b's Station K) |
 | HA-177 | An APPEND open under `/usd/` (`fopen(path, "ab")`, which PROS hands to VEXos's `vexFileOpenWrite`) writes after an EXISTING file's last byte and keeps every earlier byte; on an ABSENT file it either fails or creates (the adapter handles both); a line written and flushed survives a power-off right after it | (1) reasoned (the vendored `libpros.a`/`libc.a`, disassembled 2026-09-26); (2)–(3) **invented** (VEXos's); (4) reasoned for the call, invented for what the sync commits | COMP-t Station M.7 |
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
@@ -434,7 +440,13 @@ a config constant **by design** — a correction here never touches the core.
   A3:** the conversion functions throw on sentinels (fail-loud backstop), and `PilonsOdometry`'s
   last-resort finite guard freezes position rather than integrating — the A3 breach attack
   measured ~1.05″ of bounded damage and zero NaNs, with `HealthMonitor` raising `ODO_STUCK`.
-  (`math::Angle` cannot even carry a NaN, by construction.)
+  (`math::Angle` cannot even carry a NaN, by construction.) **Amended 2026-09-29 (DIAG1 Part B):**
+  a drive side that is a `hal::MotorGroup` now also leaves a member whose reading is not finite
+  out of that read — its median, its mean current, its max temperature — like an absent member
+  (the side reads NaN only when no member is finite; the membership step that costs is HA-165),
+  and the drivetrain calibrator no longer makes a candidate whose push reading is not finite into
+  a drive port (it names it `NO READING` instead). Host test plant only; nothing has run on a
+  robot, and through `ProsMotor`'s screen neither is expected to fire.
 
 - [ ] **HA-09 — `northHeadingDeg = 90°`: VEX-North points toward canonical +Y (away from red) on
   our field setup.**
@@ -2292,6 +2304,47 @@ settleable before hardware, and none block any host chunk.
   corrected blast radius). **Contained:** detection only — the trust gate, the pose-delta guard
   and now the fault line's values. Nothing filters the IMU heading, deliberately: a filter would
   lag every real turn to hide a fault whose cause is not yet known.
+- [ ] **HA-165 — the members of one drive side stay close enough in cumulative position that
+  leaving members out of the side's median is a small step.**
+  *Claim:* the PRESENT members of one drive side (robot two: four or five coupled motors) stay
+  close enough in CUMULATIVE position, through a match's driving and slip, that leaving one or
+  more of them out of the side's median moves the median by far less than `maxTickTravel` (36 in,
+  HA-123) divided by the side's inches per radian. Since DIAG1 Part B (2026-09-29) a member whose
+  reading is not finite (NaN, ±Inf) is left out of that read, like an absent member — so on the
+  tick it drops out the side's reading can STEP with nothing moving, and step back on the tick it
+  returns. The step, for ONE member left out: of an odd count (three or more), at most half the
+  larger of the two gaps beside the middle value in sorted order; of an even count, half the gap
+  between the two middle values; on a two-member side, half the gap between the two. For SEVERAL
+  left out, the median of the rest can land anywhere between the lowest and the highest member
+  position: the step is bounded only by the members' SPREAD, and its worst case is the member
+  farthest from the side's median, read alone.
+  *Source:* `include/shulib/hal/motor_group.hpp` (the label, in its "A READING THAT IS NOT A
+  NUMBER" section); `test/median_nonfinite_test.cpp` case DIAG1 N7 — the exact step and its return
+  on `[100, 100.5, 101, 101.5, 80]` (∓0.25); the MIDDLE member of `[80, 100, 100.5, 102, 103]` left
+  out (+0.5, the midpoint of its two neighbours); a step past the bound on a two-member side
+  (`[0, 100]` → `L=-50.000in`, `why=TRAVEL`, one fault line); and four of five members left out at
+  robot two's 1.625 in/rad, the drifted one read alone — at 80, a -33.3125 in step, under the
+  bound and NOT flagged (on the unchanged tree those four `+Inf` members reached the middle and the
+  tick froze as `NONFINITE+TRAVEL`), and at 69, -51.1875 in, `TRAVEL`. Both files carry the string
+  HA-165.
+  *Confidence:* **invented.** The members' spread over a match has never been recorded. The
+  evidence that it can grow is HA-130 — robot two's port 18 travelled about 20 % short of its
+  side-mates on both hand pushes measured, so if that holds under power (unmeasured) its offset
+  grows with the distance driven. It is exercised only when a member's reading is not finite,
+  which HA-08's screen says never reaches a group on a V5.
+  *Settle (R4):* after a match-length drive, read every member's cumulative position and compute,
+  for the saved record's member set, the largest distance of any member from the side's median
+  times the side's inches per radian: the worst step (that member read alone). The spread
+  (highest minus lowest, times inches per radian) bounds it; with one member left out the step is
+  at most half the larger gap beside the middle value.
+  *Blast radius if wrong:* one tick carries the step and the return tick carries it back. They
+  cancel in the side's travel, and in the pose only up to the heading turned between them. A side
+  step under 36 in moves the pose (by half of it) SILENTLY — and that now includes a side whose
+  infinite members used to reach the middle, which read non-finite and froze the tick as
+  `NONFINITE+TRAVEL` (raising `ODO_STUCK`) and now integrates the rest's median; over 36 in,
+  `why=TRAVEL` → `ODO_STUCK` → the active motion ends (HA-123's blast radius). **Contained:** HA-08
+  must fail first — a non-finite reading has to get past the adapter's screen before this step
+  exists at all.
 - [ ] **HA-20 — IMU per-boot rate bias is ≤ 1°/min (typical 0.1–0.5°/min).**
   *Claim:* a calibrated V5 IMU's per-boot yaw-rate bias magnitude does not exceed 1°/min.
   *Source:* `include/shulib/sim/hostile/imu_hostility.hpp:71` (`rateBiasMax`); consumed by the
