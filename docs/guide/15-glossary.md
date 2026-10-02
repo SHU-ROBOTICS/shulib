@@ -17,6 +17,9 @@
   [Ch. 7]
 - **autonomous** — the phase (or whole run) where the robot acts entirely on its own code and
   sensors, nobody driving. [Ch. 1]
+- **auton task** — the task the competition program creates once at boot and owns for the whole
+  run. It serves every `autonomous()` request, so PROS deleting its own `autonomous()` task at a
+  mode change never cuts a running auton off mid-statement. [Ch. 17]
 - **auton tester ("shulib Auton Tester")** — the bench program that runs one of the team's autons
   from RUN on the brain's screen, through the same library call the competition program's
   `autonomous()` makes; only the trigger differs. Not "the tester" — that word is Bench Tests'.
@@ -36,6 +39,9 @@
   breakage is caught the day it's made. [Ch. 7]
 - **command id** — the per-run serial number (1, 2, 3…) stamped on each motion and all its
   diagnostic lines, tying them together. [Ch. 11]
+- **competition program ("shulib Competition")** — the program uploaded for a match: the auton
+  chosen on the brain's menu runs in `autonomous()` on the program's own auton task, then driver
+  control runs the team's driver file. [Ch. 17]
 - **control loop** — the measure → compare → command cycle, repeated ~100 times a second.
   [Ch. 5]
 - **corrector** — a source of *absolute* fixes that can tell the estimate it is wrong (the GPS
@@ -162,7 +168,7 @@
   runs your end-of-run action before an unconditional floor — unless the program *abandons* the
   run (the field disabled the robot mid-auton), when the motion is cut at once and the end action
   is skipped. It holds no opinion about strategy — no default match length, no park pose; both
-  instants and the action are yours. [Ch. 6, Ch. 14]
+  instants and the action are yours. [Ch. 6, Ch. 14, Ch. 17]
 - **end-of-run action** — the thing you guarantee happens before time runs out (park, retract,
   end legal). Supplied by you to the run guard, which performs it after cancelling everything
   else. [Ch. 6]
@@ -196,11 +202,18 @@
 - **telemetry sink** — anything that accepts the diagnostic stream: the terminal formatter, a
   test capture, a level filter, a rate limiter, or the SD-card blackbox (which is shipped, not
   future). [Ch. 11]
+- **terminal word** — the competition program's auton task's signal that a run request is over
+  (FINISHED), published on EVERY path — an auton that finished, NONE, a refusal, an abandon, a
+  caught throw. Driver control waits for it, with no upper bound, before it touches the robot.
+  [Ch. 17]
 - **tick** — one iteration of the control loop, nominally every 10 ms. [Ch. 5]
 - **tier** — one of the master plan's four levels of using shulib (zero-code hardware,
   data-driven auton, recipes, full API), each a strict superset of the one below. **Only the top
   two exist today**: recipes and the full C++ API. The two zero-code tiers are unbuilt.
   [Ch. 9, Ch. 14]
+- **Timed Run** — the controller's own way to start a pretend match from its program menu: the
+  competition program's start on the bench. A program started that way comes up disabled; what the
+  Timed Run does next is not yet measured (the Hardware Assumptions Register, HA-162). [Ch. 17]
 - **tolerance** — the "close enough" threshold in settling. [Ch. 5]
 - **tracking center** — the specific point on the robot whose position the estimate tracks.
   [Ch. 2]
@@ -215,6 +228,10 @@
 - **V5 brain** — the VEX controller-computer that runs the robot's code. [Ch. 1]
 - **VEX U** — the university division of the VEX Robotics Competition; two robots per team.
   [Ch. 1]
+- **watch (the competition program's)** — the pacer under the run guard that reads the
+  competition status every tick and asks the guard to abandon a live auton the moment the robot is
+  disabled or leaves autonomous. A controller button never ends an auton in a match (that is the
+  auton tester's abort). [Ch. 17]
 - **watchdog** — the per-motion timer guaranteeing no motion can run (or block) forever.
   [Ch. 5]
 - **waypoint** — one target pose in a trajectory. [Ch. 10]

@@ -122,10 +122,12 @@ mental model, which matters more:
 - **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
   what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
   own code — where students edit: robot two's driver file, `src/team/robot_two_driver.hpp` (which
-  button does what and the driving feel, in one file that no program runs yet), and the team's
-  autons, `src/team/autons.cpp` (every autonomous routine the robot can run, listed by
-  `registerAutons()` — the one file the host suite also compiles, and runs every auton in; the
-  auton tester runs them on the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md)) —
+  button does what and the driving feel, in one file; the competition program's driver control
+  runs it, [Chapter 17](17-the-competition-program.md)), and the team's autons,
+  `src/team/autons.cpp` (every autonomous routine the robot can run, listed by `registerAutons()` —
+  the one file the host suite also compiles, and runs every auton in; the auton tester runs them on
+  the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md), and the competition program in a
+  match, [Chapter 17](17-the-competition-program.md)) —
   **`src/programs/`** holds one program each, and **`src/common/`** what the programs share.
   Every include of one of these files is written from `src/` —
   `#include "robots/chassis_table.hpp"` — the same in every folder. `src/build_selection.hpp` is

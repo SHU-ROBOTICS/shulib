@@ -3,8 +3,12 @@
 // auton_tester_run.hpp -- ONE run of "shulib Auton Tester", exactly as the program performs it
 // (COMP-t, 2026-09-28): arm the abort watch, the 3 s countdown (one-tick waits: nothing is
 // commanded), ONE quiet tick, then competition::runAuton -- the competition program's call -- and
-// the record of what happened. Plus the boot's chain proof, the task's last-resort stop, the words
-// the RESULT page and the log lines say, and the boot's log lines.
+// the record of what happened. Plus the task's last-resort stop, the words the RESULT page and the
+// log lines say, and the boot's log lines. The boot's chain proof and the generic half of the
+// last-resort stop moved to src/common/guarded_run.hpp at COMP-b's first step (2026-09-30, the
+// COMP brief's ND3 (b)), because the competition program needs both with its own watch; the
+// tester calls them from there, unchanged, and keeps the thin wrapper below that also disarms
+// ITS watch.
 //
 // WHY PROS-FREE: this is the sequence that decides whether the robot moves. The program's TU cannot
 // be compiled on the host (pros/screen.h), so the sequence lives here, where the host suite runs it
@@ -33,6 +37,8 @@
 #include <span>
 #include <string_view>
 
+#include "common/auton_run_log.hpp"
+#include "common/guarded_run.hpp"
 #include "programs/auton_abort_watch.hpp"
 #include "shulib/chassis/chassis.hpp"
 #include "shulib/chassis/routine.hpp"
@@ -55,6 +61,8 @@ namespace shulib::bench {
 inline constexpr double kTesterCountdownSeconds = 3.0;
 /// One countdown wait: the motion tick (the program static_asserts it equals ProsTickPacer's).
 inline constexpr double kTesterTickSeconds = 0.01;
+static_assert(kTesterTickSeconds == kGuardedTickSeconds,
+              "the countdown's tick and the chain proof's idle tick are the same motion tick");
 
 /// One run, as the tester saw it -- the RESULT page and the log lines are built from it.
 struct TesterRunRecord {
@@ -166,40 +174,18 @@ inline TesterRunRecord& runTesterOnce(TesterRunRecord& rec, int number, chassis:
     return rec;
 }
 
-/// THE BOOT'S CHAIN PROOF: one idle tick (Chassis::wait commands nothing) must pace BOTH the guard
-/// and the watch, or the abort could not reach the motion -- a Chassis built without the guard as
-/// its pacer (or on the watch directly) would drive through every button. And the watch must be
-/// ATTACHED to this guard: the chain's one link back, which no pace can show -- a watch never
-/// attached paces, latches, and asks nobody to abandon (COMP-t's review, 2026-09-29). The program
-/// refuses its boot when this is false. Call it before the painter is enabled, from the task that
-/// owns the Chassis.
-[[nodiscard]] inline bool pacerChainProven(chassis::Chassis& chassis,
-                                           const sequence::RunGuard& guard,
-                                           const AbortWatch& watch) {
-    const std::uint64_t g0 = guard.pacesTotal();
-    const std::uint64_t w0 = watch.paces();
-    chassis.wait(units::Time{kTesterTickSeconds});
-    return guard.pacesTotal() > g0 && watch.paces() > w0 && watch.attachedTo(guard);
-}
+// THE BOOT'S CHAIN PROOF is src/common/guarded_run.hpp's pacerChainProven() since COMP-b's first
+// step (2026-09-30): the same body, a template over any watch with paces() and attachedTo() -- the
+// tester's AbortWatch is one. The program calls it by the same name and refuses its boot when it
+// is false (a Chassis built without the guard, or a watch never attached, could not be aborted).
 
 /// A throw reached the tester's task (a programming error): the drive at 0 V + Brake (the panic
-/// stop), every PRESENT mechanism to its safe state, the watch disarmed. Never throws: each step
-/// is tried on its own, so one that fails cannot skip the rest.
+/// stop), every PRESENT mechanism to its safe state -- src/common/guarded_run.hpp's program-error
+/// stop, each step tried on its own -- then the watch disarmed. Never throws.
 inline void stopAfterProgramError(chassis::Chassis& chassis,
                                   std::span<hal::IMechanism* const> present,
                                   AbortWatch& watch) noexcept {
-    try {
-        chassis.cancel();
-    } catch (...) {
-    }
-    for (hal::IMechanism* m : present) {
-        try {
-            if (m != nullptr) {
-                m->applySafeState();
-            }
-        } catch (...) {
-        }
-    }
+    stopAfterProgramError(chassis, present);
     watch.disarm();
 }
 
@@ -435,12 +421,10 @@ inline void noteLine(TesterRunLines& out, int written) noexcept {
     return out;
 }
 
-/// The SD run log's state at boot, for the boot lines.
-enum class TesterSdLog : std::uint8_t {
-    Off,       ///< no card, or the log would not open: serial only
-    Created,   ///< the log file was absent and was created
-    Appended,  ///< the log file was there, and this boot's lines follow its last byte
-};
+/// The SD run log's state at boot, for the boot lines: src/common/auton_run_log.hpp's AutonRunLog
+/// since COMP-b (2026-09-30) -- the competition program appends to the same file and says the same
+/// words about it, so both are stated once there. The tester's name for it stays.
+using TesterSdLog = AutonRunLog;
 
 /// The boot's log lines (serial and the SD card), THREE of them: what booted and which build; how
 /// it booted and with what; the SD run log. The brief's flow printed them as ONE line, and at a
@@ -474,10 +458,7 @@ struct TesterBootLines {
     note(std::snprintf(out.line[1], kTesterLineBytes,
                        "boot source %.11s, %d autons, %d of %d mechanisms present",
                        bootSource != nullptr ? bootSource : "", autons, present, mechanisms));
-    note(std::snprintf(out.line[2], kTesterLineBytes, "SD run log %s%.60s",
-                       sd == TesterSdLog::Off       ? "OFF (no card, or the log would not open)"
-                       : sd == TesterSdLog::Created ? "ON, CREATED "
-                                                    : "ON, APPENDED to ",
+    note(std::snprintf(out.line[2], kTesterLineBytes, "SD run log %s%.60s", autonRunLogWords(sd),
                        sd != TesterSdLog::Off && sdPath != nullptr ? sdPath : ""));
     return out;
 }

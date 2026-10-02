@@ -9,7 +9,7 @@
 // here. The order of the side effects is the old block's: open the card, read it, close it; THEN
 // ask the registry — all before any adapter exists.
 //
-// Compiled in all seven builds, like every .cpp under src/ (the brief's A12): nothing here reads a build
+// Compiled in all eight builds, like every .cpp under src/ (the brief's A12): nothing here reads a build
 // switch (only src/build_selection.hpp's one chain does — G1 Part 2c final), and in the builds whose
 // program never calls decideBootSource() the linker's --gc-sections drops it. In the bench build
 // src/robots/chassis_table.hpp's kChassis is the bench bot's table and in the xdrive build it is

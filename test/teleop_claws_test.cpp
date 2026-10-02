@@ -484,10 +484,10 @@ TEST_CASE("T3 P2 test 1g: the boot lines, the banner's claw sentence and the cla
     RobotTwoTeleop t;
     CHECK(std::string{motorClawBootLine(kRobotTwoMechanisms, *t.robot, 0).text}
           == std::string{"claw pivot 6: BUILT -- port 6 (typed +6), RED, R1 forward / R2 reverse at "
-                         "12 V, HOLD on release -- in shulib Teleop only"});
+                         "12 V, HOLD on release -- in shulib Teleop and shulib Competition"});
     CHECK(std::string{motorClawBootLine(kRobotTwoMechanisms, *t.robot, 1).text}
           == std::string{"claw pivot 7: BUILT -- port 7 (typed +7), RED, L1 forward / L2 reverse at "
-                         "12 V, HOLD on release -- in shulib Teleop only"});
+                         "12 V, HOLD on release -- in shulib Teleop and shulib Competition"});
     CHECK(std::string{pneumaticClawBootLine(kRobotTwoMechanisms, *t.robot, 0).text}
           == std::string{"claw: BUILT -- 3-wire port A, CLOSED at the start (line low; line high "
                          "opens it -- polarity UNVERIFIED, HA-159); A toggles it; a disable leaves "
@@ -786,7 +786,7 @@ TEST_CASE("T3 P2 test 1n: a pivot flipped to -6 in the table is still PORT 6 in 
         RobotTwoTeleop t{true, true, flipped};
         CHECK(std::string{motorClawBootLine(flipped, *t.robot, 0).text}
               == std::string{"claw pivot 6: BUILT -- port 6 (typed -6), RED, R1 forward / R2 reverse "
-                             "at 12 V, HOLD on release -- in shulib Teleop only"});
+                             "at 12 V, HOLD on release -- in shulib Teleop and shulib Competition"});
         CHECK(std::string{clawBannerLine(flipped, kTeleopRezeroButton).text}
               == std::string{"THE CLAWS are in THIS program (slot 2), NOT shulib Drive (slot 1): "
                              "R1/R2 port 6, L1/L2 port 7, A the claw on 3-wire A; re-zero Y"});
@@ -967,13 +967,29 @@ TEST_CASE("T3 P2 test 1l: \"shulib Teleop\"'s wiring, read from its source — t
                         "kColText, claws.text);")
           == 1U);
     // Station F's LCD: the last fault, `no controller 0V`, `DEGRADED see brain`, `CLAW ABSENT`,
-    // `ok` — in that order of urgency.
-    CHECK(count(teleop, "std::snprintf(want[2], sizeof want[2], \"%.19s\", "
-                        "r_.faults().hasFault() ? diag::faultCodeName(r_.faults().lastFault()) : "
-                        "!connected ? \"no controller 0V\" : boot_.verdict.decision == "
-                        "calibration::BootDecision::Degraded ? \"DEGRADED see brain\" : "
-                        "anyClawAbsent(r_) ? kLcdClawAbsent.data() : \"ok\");")
+    // `ok` — in that order of urgency. Since COMP-b (2026-09-30) the lines and the ONE chooser are
+    // src/common/driver_panel.hpp's (the COMP brief's B11: MOVED there, never copied, for the
+    // competition program too), and test/driver_panel_test.cpp runs the order for every pair of
+    // states and pins the three lines' formats. What stays here is what only this file can get
+    // wrong: each fact Teleop hands the chooser, from its source, and the call. (Re-pointed WITH A
+    // LOG — COMP-PROGRESS, "Part b": the expression moved; the words and their order did not.)
+    CHECK(count(teleop, "ControllerFacts f{}; f.batteryVolts = "
+                        "r_.context().battery().voltage().value(); f.headingDegrees = "
+                        "r_.localizer().pose().heading().radians() * 180.0 / math::Angle::kPi; "
+                        "f.hasFault = r_.faults().hasFault(); f.lastFault = "
+                        "r_.faults().lastFault(); f.connected = connected; f.degraded = "
+                        "boot_.verdict.decision == calibration::BootDecision::Degraded; "
+                        "f.clawAbsent = anyClawAbsent(r_); const ControllerScreen want = "
+                        "controllerScreenLines(f);")
           == 1U);
+    CHECK(count(teleop, "controllerScreenLines(") == 1U);
+    CHECK(count(teleop, "\"no controller 0V\"") == 0U);  // no second chooser left in Teleop
+    // ...and the lines are written through the shared writer, ONE per write, line 2 first (COMP-b's
+    // review, 2026-10-01: a burst of three left two lines stale): the one device write is its row.
+    CHECK(count(teleop, "const int row = lcdWriter_.next(want, r_.context().clock().now().value()); "
+                        "if (row >= 0) { lcd_.setLine(row, want.line[row]); }")
+          == 1U);
+    CHECK(count(teleop, "setLine(") == 1U);
     // Station F.2.7: the exit line, which names what the disable did to the claws.
     CHECK(count(teleop, "\"opcontrol(): field DISABLED -- loop exited cleanly after cancel() (0 V + "
                         "Brake); \" \"each claw pivot made safe, the pneumatic claw left as it "

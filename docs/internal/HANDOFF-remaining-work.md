@@ -273,7 +273,7 @@ pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
-Programs in `src/` (seven builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
+Programs in `src/` (eight builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
 the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
 `src/programs/drive_program.cpp`), **shulib Teleop** (`PROGRAM=library`, slot 2, built from the SD record — the
 typed table cannot describe the drivetrain, see §2; since G1 Part 2b `robot::Robot` + the library's
@@ -282,7 +282,12 @@ robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibra
 **first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
 serial capture; its recorded reproduction run is still owed), **shulib Auton Tester** (`PROGRAM=autontest`,
 slot 7 until T4 Part 3, `src/programs/auton_tester_program.cpp`; COMP-t, 2026-09-28 — runs one of the team's
-autons from `src/team/autons.cpp` on the bench through `competition::runAuton`; **never run**), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
+autons from `src/team/autons.cpp` on the bench through `competition::runAuton`; **never run**), **shulib
+Competition** (`PROGRAM=competition`, slot 6 — slot 5 stays the team's old-code fallback —
+`src/programs/competition_program.cpp`; COMP-b, 2026-09-30 — THE program for a match: the auton chosen on the
+brain's menu runs in `autonomous()` on the program's own task through the same `competition::runAuton`, a
+disable or the end of the period ends it, then driver control runs the team's driver file; **never run**,
+worksheet Station K), plus `bench` (the measured bench bot's tester) and `xdrive` (the only build with
 invented ports, HA-111 — since G1 Part 2c `src/robots/xdrive_config.hpp` on `robot::Robot`, refusing at boot
 on any robot that exists). `src/build_selection.hpp` chooses, in one chain, which program AND which robot's tables a build is,
 and `src/main.cpp` only hands each PROS entry point to that program (G1 Part 2c and its final run).
@@ -351,26 +356,30 @@ dispatcher, the X-drive as data, the build gate's differential redesigned.
 - Done / docs owed: per the revised brief's DoD and documentation lists.
 - Size: ~1–1.5 days executor + verification, across its parts.
 
-**L2. [COMP] The competition program.** **Status 2026-09-28:** COMP-a LANDED (`b5aaf95`, host-proven only); COMP-t (the auton tester, L2t) BUILDING; COMP-b's brief RE-CHECKED (RC1–RC12, all amended; jal answered ND1/ND2 at ~16:15, and ND3–ND6 were taken as recommended), to be built after COMP-t lands. BRIEFED 2026-09-24 (`docs/internal/chunks/COMP-competition-program.md`, two parts, each on jal's go, after G1 Part 2b); it did not exist in the plan or the tree before that (the G1 Part 2
+**L2. [COMP] The competition program.** **Status 2026-09-30:** COMP-a LANDED (`b5aaf95`, host-proven only); COMP-t (the auton tester, L2t) LANDED (`0f56301`); **COMP-b BUILT 2026-09-30 in its worktree — host- and build-gated (the eighth build), NOT run on a robot; its first run is worksheet Station K** (`COMP-PROGRESS.md`, "Part b"; the coordinator's merge records its landing). *(2026-09-28: COMP-b's brief RE-CHECKED — RC1–RC12, all amended; jal answered ND1/ND2 at ~16:15, and ND3–ND6 were taken as recommended.)* BRIEFED 2026-09-24 (`docs/internal/chunks/COMP-competition-program.md`, two parts, each on jal's go; COMP-b after COMP-t — the order was re-ruled 2026-09-28, superseding the brief's first "after G1 Part 2b"); it did not exist in the plan or the tree before that (the G1 Part 2
 brief names it as a future consumer of the builder's dead-port tolerance).
 - What: the program uploaded for a match. `initialize()`: boot the robot (IMU calibration, port check
-  against the SD record, status screen, refusal by name). A **brain-screen auton selector** (touch
-  buttons: e.g. Left / Right / Skills / None; the choice survives until `autonomous()`; defaults to
-  None). `autonomous()`: run the chosen routine under `sequence::RunGuard` with the match duration and
+  against the SD record, status screen, refusal by name). A **brain-screen auton selector** (as built:
+  the team's registered autons by name, two per page, from `src/team/autons.cpp`, and NONE — always
+  present and the default; the choice is LOCKED when the auton starts). `autonomous()`: run the chosen routine under `sequence::RunGuard` with the match duration and
   the guaranteed end-of-run action (the park); both a `chassis::Routine` function and a
-  `runner::PathRunner` route must be selectable. `opcontrol()`: `runDriverControl` with the driver's
-  profile and the bindings (L5). `disabled()`/`competition_initialize()`: state screens. Handoff:
-  anything running when a phase ends is cancelled into the safe state.
-- **A wiring problem to solve in the brief:** `RunGuard` only guarantees its end-of-run action when
+  `runner::PathRunner` route must be selectable (as built: a `Routine` runs; a route is refused by name
+  until the team registers its commands — neither program passes a `CommandRegistry` yet). `opcontrol()`: the team's DRIVER FILE
+  (`src/team/robot_two_driver.hpp`, T4 Part 1a — the COMP brief's B11 as replaced), after the auton
+  task's terminal word. `disabled()`/`competition_initialize()`: one log line on entry and on return,
+  and the screen handed to the program's own menu, which its auton task paints (RC3/RC7 — never the
+  state screens). Handoff: anything running when a phase ends is cancelled into the safe state.
+- **A wiring problem to solve in the brief — SOLVED at COMP-a** (`robot::BuildOptions::pacer`, which
+  "shulib Competition" sets to its guard): `RunGuard` only guarantees its end-of-run action when
   it IS the chassis's pacer (`run_guard.hpp`, "`chassis` MUST be the one constructed with THIS guard
-  as its pacer"), but `robot::Robot` builds its `Chassis` with `devices.pacer()` and has no way to
-  take another. Either the provider hands out a guard-wrapped pacer or `Robot` gains an option to
-  take a pacer — decide in the brief; either is additive.
+  as its pacer"), and `robot::Robot` built its `Chassis` with `devices.pacer()` with no way to
+  take another.
 - Why: every piece exists except the thing that ties them into a match. **It is also what lets R3b
-  and M1 close**: R3b's DoD is "a v2 tank auton runs on the robot under the library's own steering",
-  and no program can command one today.
+  and M1 close**: R3b's DoD is "a v2 tank auton runs on the robot under the library's own steering";
+  since COMP-t (the tester) and COMP-b (this program) two programs can command one — neither has run on
+  a robot.
 - Builds on: L1's provider/loop/`Robot`, `RunGuard`, `Routine`, `PathRunner`, `CommandRegistry`.
-- Done: a seventh build (`PROGRAM=competition`, a beacon, the gate updated), the selector and the
+- Done: the EIGHTH build (`PROGRAM=competition`, a beacon, the gate updated — COMP-t took the seventh), the selector and the
   phase logic host-tested with fakes (phase transitions, cancellation, the park firing on a stalled
   loop), routines registered by the STUDENTS' code (the library provides the registration API; it
   ships only an example routine in the cookbook, not season content).
@@ -384,7 +393,7 @@ brief names it as a future consumer of the builder's dead-port tolerance).
   robot** (`docs/internal/chunks/COMP-t-COMPLETED.md`): "shulib Auton Tester" (`make ROBOT=tank
   PROGRAM=autontest`, the seventh build; slot 7 until T4 Part 3, then 2) runs one of the team's autons
   on the bench from RUN on the brain's screen through the SAME `competition::runAuton` call
-  `autonomous()` will make — only the trigger differs; any button, a touch, a controller drop or a
+  "shulib Competition"'s `autonomous()` makes — only the trigger differs; any button, a touch, a controller drop or a
   disable aborts. It created the students' auton file `src/team/autons.{hpp,cpp}` (the 40 in auton,
   the acceptance run) that COMP-b calls, never copies (COMP brief B18/B30, amended 2026-09-28); COMP-b
   is the EIGHTH build. Its first run on robot two is worksheet Station M — the first time an uploaded
@@ -564,8 +573,8 @@ Localizer reads the IMU rate twice at every chained-motion boundary (IMU1's, not
 tank result lines end with ` xt`, the final cross-track error; X/H lines byte-identical).
 
 **L5b. [T4, NEW 2026-09-26] The driver program.** BRIEFED (`chunks/T4-driver-program.md`); Part 0 (the slots
-and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot, run
-by NO program yet** (`chunks/T4-PROGRESS.md` "Part 1a"): robot two's driver file `src/team/robot_two_driver.hpp`
+and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot; run
+by "shulib Competition"'s `opcontrol()` since COMP-b (built 2026-09-30, not run on a robot)** (`chunks/T4-PROGRESS.md` "Part 1a"): robot two's driver file `src/team/robot_two_driver.hpp`
 and its generic half `src/common/driver_controls.hpp` (the binder by name, the five checks, the ONE heading rule
 Teleop and the X-drive now call); the buttons also stay in `src/robots/mechanism_table.hpp`, tied at compile
 time in Teleop, until Part 3 (Part 1b was folded into Part 3 on jal's ruling of 2026-09-28: Teleop is never
@@ -579,7 +588,7 @@ driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 a
 amended); jal's answers of ~16:15, all as recommended: C drops the velocity-exactly-0 check, D adds guard G4,
 A limits the SD copy to events and summaries, and B has the competition program keep an appended SD copy.
 **Part 2 is ~2–2½ days after COMP-b; Part 3 is ~3–3½ days after Part 2.** *(2026-09-29: Part 2 was SPLIT on
-jal's approval of 2026-09-28 ~17:35. **Part 2a — the library half — LANDED 2026-09-29, host- and build-gated, NOT
+jal's approval of 2026-09-28 ~17:35. **Part 2a — the library half — LANDED 2026-10-01, host- and build-gated, NOT
 run on a robot** (`chunks/T4-PROGRESS.md` "Part 2a"): `runDriverControl` drops a drive motor whose readings
 freeze (250 ms), refuses at 3+ dead in total, and cuts for 1 s on a fight or 2.4 A for 250 ms, for EVERY caller —
 so COMP-b's `opcontrol()` has them from its first build; HA-175/176 registered. **Part 2b** (the PROTECTION row,
@@ -587,10 +596,10 @@ COMP's `perTick`, the driver file's paragraph, Station K's push check unless COM
 COMP-b's files) was FOLDED INTO PART 3 on jal's ruling of 2026-10-01 — Part 3's late step, after COMP-b. Part
 2a's review (2026-09-30) and its verification (2026-10-01) found guard G4's gap at a wall wider than decision D
 weighed — at ANY wall a motor whose speed report settles well before its mates' is marked dead (P2-19e), and
-beside the slipping port 18 less is needed (P2-21d) — pinned as built, stated in HA-175, jal's to rule
-(`REMAINING-WORK.md` §11, "D, again"); and the push check gains a full-stick reversal and a launch from rest
+beside the slipping port 18 less is needed (P2-21d) — pinned as built and stated in HA-175; jal ruled "D, again" on 2026-10-01 — the
+encoder check, built in Part 3 (`REMAINING-WORK.md` §11); and the push check gains a full-stick reversal and a launch from rest
 (HA-176), its log read for `went ABSENT` on any port.)*
-- For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser (COMP-b's header), at
+- For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser (COMP-b's header, `src/common/driver_panel.hpp`), at
   its place after CLAW ABSENT — never into `teleop_program.cpp`.
 - For SAFE-SAVE A/B1's re-check: `formatSaveReport`'s sentences name Teleop, which T4 Part 3 retires.
 
@@ -762,7 +771,8 @@ exists and was written FROM WHAT ACTUALLY HAPPENED, not from intent):
    ports 6/7, R1/R2 and L1/L2 — L5), then G1 Part 2c, then COMP,** each briefed, shown to him and
    started only on his go. **DEFECTS2, T3 (both parts — the claws now driven by "shulib Teleop") and G1
    Part 2c have landed, host- and build-gated, not run on a robot — G1 is COMPLETE. SRC1 (`src/`
-   organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; no program runs it yet).
+   organized) has landed, and so has T4 Part 1a (the driver file, 2026-09-27; the competition program
+   runs it since COMP-b).
    TANK1 Part A (`moveTo` on a tank steers back onto its line — jal: "Fix the library first") and COMP-t
    (the auton tester, with the 40 in auton, 2026-09-28) have landed, host- and build-gated, not run on a
    robot; TANK1 Part B (the ` xt` column) is being built alongside. Next: COMP-b on COMP-t and T4 Part 1a

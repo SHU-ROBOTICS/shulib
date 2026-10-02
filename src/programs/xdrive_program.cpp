@@ -32,11 +32,11 @@
 // landmine 1): ONE function-local static of EMPTY optionals — a constructor that cannot throw —
 // emplaced once from xdriveInitialize(). Never at namespace scope (built before initialize() has
 // installed the precondition handler, in an order nobody controls, and kept alive by a static
-// initializer in every one of the seven builds this file compiles into).
+// initializer in every one of the eight builds this file compiles into).
 //
-// Compiled in all seven builds (the brief's A12): no SHULIB_* macro is read here, no beacon literal
+// Compiled in all eight builds (the brief's A12): no SHULIB_* macro is read here, no beacon literal
 // lives here (landmine 10), and the one symbol it needs from src/main.cpp (attachFaultLatch) is
-// defined in all seven. ASCII only in every runtime string; every screen string goes through
+// defined in all eight. ASCII only in every runtime string; every screen string goes through
 // printText(); only a literal "%s" reaches a PROS print.
 
 #include "programs/xdrive_program.hpp"

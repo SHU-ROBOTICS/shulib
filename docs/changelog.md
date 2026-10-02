@@ -274,6 +274,35 @@ the scale comes from one unpowered push — has not been measured: HA-167 in the
 
 ## API 2.3
 
+### 2026-09-30 — the competition program runs the competition library in a match — no API change
+
+> Written when it was built (chunk COMP-b). **No version bump and no library change:** nothing under
+> `include/shulib/` moved. **Nothing here has run on a robot.**
+
+"shulib Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`,
+slot 6) is the first program whose `autonomous()` runs an auton: the one chosen on the brain's
+`competition::AutonMenu` runs through `competition::runAuton` — the call the bench's "shulib Auton
+Tester" makes — on a task the program owns, under a `sequence::RunGuard` whose inner pacer is the
+program's own watch, which calls `RunGuard::requestAbandon()` on every tick after the robot is
+disabled or leaves autonomous. [Guide chapter 17](guide/17-the-competition-program.md) describes the
+program; what it shows a library user is the pattern for those three pieces in a real program: run
+the auton on a task PROS does not delete, end it through the abandon latch rather than a killed task,
+publish a terminal word on every path out of a run (a throw included) before driver control touches
+the robot, and prove the pacer chain at boot (one idle tick must reach the guard and the watch, and the
+watch must be attached to the guard). **Hardware assumptions:** HA-162 is NEW (what the controller's
+Timed Run does after it starts a program disabled — unknown, measured first at the program's bench
+station), and HA-161's settle now reads the program's own log lines. See the
+[hardware assumptions register](hardware-assumptions.md).
+
+Its review (2026-10-01) added three more parts of that pattern, before anything ran: the auton task
+does not start a run while the driver loop still holds the robot — it waits until the loop has left,
+or until the loop's once-a-tick heartbeat has stopped for 0.1 s — so the two never share the robot
+even if PROS keeps `opcontrol()` running at a change to autonomous; a request served after its period
+has already ended reads the competition status once before anything moves and runs nothing (`TOO
+LATE`); and the controller's three lines are written one at a time, at most one every 0.1 s, the word
+line first, because PROS does not apply faster text updates. That last change applies to "shulib
+Teleop" too: both programs write through the same writer.
+
 ### Added and fixed since 2.3 (2026-09-28) — an append mode for the SD card, a text sink over a block sink, a guard pace count; a registry warning fixed
 
 > Written when it landed (chunk COMP-t — "shulib Auton Tester", the bench program that runs one of the

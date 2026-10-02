@@ -91,18 +91,18 @@ and they are true at different tiers.
   ways to write a routine in code, a way to write a routine as **data**, a robot described as data
   and built from it, the drivetrain teaching itself its own facts (which motors, which way, how far
   apart the wheels are), driver-control feel, the claws' buttons, diagnostics, and the documentation.
-- **Built for the robot:** the V5 hardware layer (eighteen files) and seven programs — a measuring
+- **Built for the robot:** the V5 hardware layer (eighteen files) and eight programs — a measuring
   tool ("Bench Tests"), a plain driving program ("shulib Drive"), the library's own driving program
   ("shulib Teleop", which also drives the claws), a calibration program ("shulib Calibrate") and a
   bench auton program ("shulib Auton Tester": pick one of the team's autons on the brain's screen,
-  press RUN, and it runs exactly as it will in a match — any button stops it) for robot two, plus
-  two others.
+  press RUN, and it runs exactly as it will in a match — any button stops it) and the program for a
+  match ("shulib Competition": the auton chosen on the brain's screen runs in `autonomous()`, then
+  driver control runs the team's driver file — built 2026-09-30) for robot two, plus two others.
 - **Run on a robot:** Bench Tests (in several sessions), shulib Drive (once), shulib Calibrate (from
   2026-09-24) and the earlier, hand-wired version of shulib Teleop (2026-09-25). **Today's shulib
-  Teleop and shulib Auton Tester have never run.**
+  Teleop, shulib Auton Tester and shulib Competition have never run.**
 - **Published:** everything through 2026-08-15 is live at docs.shurobotics.com.
-- **Not built yet:** the program you would upload for a match (it will run the same auton file the
-  Auton Tester runs), the driver-control program that replaces shulib Teleop, the camera adapter,
+- **Not built yet:** the driver-control program that replaces shulib Teleop, the camera adapter,
   mechanisms in general (any mechanism a robot has, plugged into whatever ports it uses that day, and
   usable inside an auton — planned next), the scoring moves, real tuning numbers, and the loading of
   routines from a file. **And the students' own routines are the students' to write** — the library
@@ -130,9 +130,11 @@ is the easiest thing in this project to start quietly lying about.
    button, wheels on the floor, with a tape measure beside it (the bench worksheet's Station M). It
    needs only the robot, its calibration record and the USB cable. That run is the moment "the library
    has driven a robot" becomes true — or the first measurement of why not.
-2. **The match program and the driver program** — the program uploaded for a competition (an auton
-   picker, the field's autonomous period, then driver control) and the driver file's own program,
-   which retires shulib Teleop. Both are built from pieces that already exist.
+2. **The match program on the robot, and the driver program** — the program uploaded for a
+   competition ("shulib Competition": an auton picker, the field's autonomous period, then driver
+   control) is BUILT, not run: its first run is the bench worksheet's Station K, a practice match
+   through the controller's Timed Run. The driver file's own program, which retires shulib Teleop, is
+   still to build, from pieces that already exist.
 3. **Real numbers** — tuning measured on the robot instead of guessed, and position corrections
    (a wall reset, GPS or the camera) so the estimate does not drift over a routine.
 

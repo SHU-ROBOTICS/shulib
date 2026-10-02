@@ -6,6 +6,8 @@
 //   guide-08a/b/c/d-> docs/guide/08-your-first-routine.md   (the tutorial)
 //   guide-09a/b/c/d-> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
 //   guide-10a..e   -> docs/guide/10-the-api.md              (API idioms)
+//   guide-17a/b/c  -> docs/guide/17-the-competition-program.md (registering an auton:
+//                     a FIELD start, a schedule refused by name, the selector's NONE; COMP-b)
 //
 // The guide quotes these bodies VERBATIM. If you change code here, change the
 // matching listing in the chapter (and vice versa) — that rule is the whole
@@ -45,6 +47,10 @@
 #include "shulib/motion/run_reporter.hpp"
 #include "shulib/sim/scenario.hpp"
 #include "shulib/units/literals.hpp"
+#include "shulib/competition/auton_menu.hpp"
+#include "shulib/competition/auton_registry.hpp"
+#include "shulib/core/check.hpp"
+#include "team/autons.hpp"
 
 using namespace shulib::units::literals;
 using shulib::chassis::Chassis;
@@ -686,4 +692,66 @@ TEST_CASE("guide-10e: waitUntil — an honest, bounded strategy branch") {
     const WaitResult seen = c.chassis.waitUntil([] { return false; }, 0.5_s);
     CHECK(seen == WaitResult::TimedOut);
     CHECK_FALSE(c.rig.latch.hasFault());
+}
+
+// ═══ guide-17: the competition program — registering an auton (COMP-b, 2026-09-30) ═════════
+// Chapter 17 quotes the team's real registrations live from src/team/autons.cpp; these are the
+// program-only idioms it shows beside them: a FIELD start, a schedule refused BY NAME when it is
+// registered (the competition program then refuses its boot with that sentence), and the
+// selector's NONE. Each is a registration the students write in src/team/autons.cpp.
+
+namespace {
+shulib::chassis::RoutineResult leftSide(shulib::competition::AutonContext& ctx) {
+    Routine r{ctx.chassis, "left side"};
+    r.moveTo(Pose2d{-24_in, -24_in, 90_deg});
+    return r.result();
+}
+}  // namespace
+
+TEST_CASE("guide-17a: a FIELD start — placed at a known spot, facing a known way") {
+    namespace competition = shulib::competition;
+    competition::AutonRegistry registry{shulib::bench::kAutonPeriods};
+
+    competition::AutonEntry left{};
+    left.name = "left side";
+    left.kind = competition::AutonKind::Match;
+    left.routine = &leftSide;
+    left.start = competition::StartPose::field(-48_in, -24_in, 90_deg);
+    left.endActionAt = 27_s;
+    left.hardStopAt = 29_s;
+    registry.add(left);
+
+    CHECK(registry.size() == 1);
+    CHECK(registry.at(0).effectiveStart().mode() == competition::StartPose::Mode::Field);
+    CHECK(registry.at(0).effectiveStart().pose().x().value() == -48.0);
+}
+
+TEST_CASE("guide-17b: a schedule past its period is refused BY NAME when it is registered") {
+    namespace competition = shulib::competition;
+    competition::AutonRegistry registry{shulib::bench::kAutonPeriods};
+    competition::AutonEntry late{};
+    late.name = "left side late";
+    late.kind = competition::AutonKind::Match;
+    late.routine = &leftSide;
+    late.start = competition::StartPose::relative();
+    late.endActionAt = 27_s;
+    late.hardStopAt = 31_s;  // a MATCH auton's period is 30 s
+
+    const competition::AutonVerdict verdict = registry.check(late);
+    CHECK_FALSE(verdict.ok);
+    CHECK(std::string{verdict.why}.rfind("auton 'left side late': ", 0) == 0);
+    CHECK_THROWS_AS(registry.add(late), shulib::PreconditionError);
+    CHECK(registry.empty());
+}
+
+TEST_CASE("guide-17c: the selector — NONE until someone chooses, LOCKED when the auton starts") {
+    namespace competition = shulib::competition;
+    competition::AutonRegistry registry{shulib::bench::kAutonPeriods};
+    shulib::bench::registerAutons(registry);
+
+    competition::AutonMenu menu{registry, 0};
+    CHECK(menu.choice() == -1);  // NONE: nobody touched the screen, so no auton runs
+    const int running = menu.lockChoice();
+    CHECK(running == -1);
+    CHECK(menu.locked());
 }

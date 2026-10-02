@@ -6,10 +6,12 @@
 //
 // ── Why this is its own file ────────────────────────────────────────────────────────
 // Until G1 Part 2b the boot source was a 77-line block inside src/main.cpp's initialize(), and it
-// wrote six program globals and painted the screen on the way. Two programs need it now: "shulib
-// Teleop" (src/programs/teleop_program.cpp) and the competition program (COMP), whose brief's §0 row "The
-// boot source" names this file. So the decisions live here ONCE, and each program paints its own
-// refusal and logs with its own prefix. Nothing here writes a program global or a screen.
+// wrote six program globals and painted the screen on the way. Every program that boots robot two's
+// graph needs it: "shulib Teleop" (src/programs/teleop_program.cpp), "shulib Auton Tester" (COMP-t)
+// and "shulib Competition" (src/programs/competition_program.cpp, COMP-b); the invented X-drive's
+// program builds its own graph without it. So the decisions live here
+// ONCE, and each program paints its own refusal and logs with its own prefix. Nothing here writes a
+// program global or a screen.
 //
 // ── The decisions (R3d Part 2, rulings P2/P3 — moved, not changed) ──────────────────
 // TWO sources, one representation (hal::DrivetrainDescription), a fixed order:

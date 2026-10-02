@@ -34,14 +34,14 @@ auton starts to the moment the end action finishes. What it **cannot** show you 
 match on a real field (or the controller's Timed Run) still must — is everything around that: a
 field disabling the robot mid-auton, the hand-over from autonomous to driver control, whether
 the controller's Timed Run really enters `autonomous()`, and the first moments after a mode
-change. There is one difference in the call itself today: the tester passes **no command
+change. One limit holds for the call in both programs today: neither passes a **command
 registry**, so an auton written as a *route* (the path editor's kind, with markers) is refused
-by name until the team registers its commands once, beside the autons, for both programs to use.
+by name — in the tester and in the match — until the team registers its commands once, beside the
+autons, for both programs to use.
 
-**The competition program ("shulib Competition") is not built yet.** It is the next part of this
-work, and it will call the same `registerAutons()` and the same `competition::runAuton`; until it
-exists, the tester is the only program that runs these autons. Where this chapter says "the
-competition program", read "the competition program, once it is built".
+**The competition program ("shulib Competition") calls the same `registerAutons()` and the same
+`competition::runAuton`** — [Chapter 17](17-the-competition-program.md) describes it. Like the
+tester, it has not run on a robot yet.
 
 Build and upload it like the other robot-two programs:
 
@@ -64,7 +64,7 @@ competition mode.
 
 Every auton the robot can run lives in one file the team owns, `src/team/autons.cpp`, and one
 function at its bottom, `registerAutons()`, lists them in the order the brain's menu shows them.
-Both programs — the tester and the competition program (once it is built) — call that function;
+Both programs — the tester and the competition program — call that function;
 neither has an auton of its own. The host test suite compiles the same file and runs every auton
 in it on the host test plant through the tester's own run sequence, so a change to an auton is
 tested before it is uploaded.
@@ -146,7 +146,7 @@ x **rise** on the READY page. If it falls, stop — the auton would drive toward
 
 ## The pages
 
-**PICK** is the same selector the competition program will show (`NONE` in the middle of the
+**PICK** is the same selector the competition program shows (`NONE` in the middle of the
 bottom row, the autons above it). Touch an auton's name.
 
 **READY** says everything you need before the robot moves, one line each:

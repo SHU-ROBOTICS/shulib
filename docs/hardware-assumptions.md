@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 164 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 165 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -104,11 +104,14 @@
 > than two dead in total), and the over-current cut — and AMENDED HA-132 and HA-133 (their consumers now
 > include those protections in every driver-control program, and a false fight now CUTS the drive for
 > 1 s); with them, 164.
-> The rest of HA-162..HA-176 (all but HA-165, HA-167, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
+> **COMP-b, the competition program, added ONE on 2026-10-02 — HA-162, its reservation, unknown** —
+> what the controller's Timed Run does after it starts a program disabled (the bench's only way to run a
+> pretend match); with it, 165.
+> The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-167, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
 > (the mechanism core: its brief, being written), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
-> 122, have no bucket for UNKNOWN (HA-143, HA-145 and HA-157's confidence), and a recount is due.)* **No *v2* robot exists**, and
+> 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
 > commanded real motors and read real sensors on 2026-08-13 — but **no control loop has ever
 > closed and nothing has driven.** Counts: **78 invented · 41 reasoned · 2 measured elsewhere · 1 mixed** (HA-44:
@@ -294,6 +297,7 @@
 | HA-159 | Robot two's pneumatic claw is driven by ONE solenoid line on the brain's 3-wire port A (line 1), and that line at the level `kClawOpenCommand` (`true`, HIGH) OPENS the claw | **reported** 2026-09-26 (team lead: "port A") — single or double solenoid and the polarity **UNKNOWN** (the team lead said so); `true` is a starting guess | T3 addendum (E2) / worksheet Station J.9 |
 | HA-160 | The V5 IMU's heading is CONTINUOUS tick to tick while it reports ready: two reads ~10 ms apart differ by no more than the robot turned in between — never by tens of degrees | **invented** (assumed since M2, unregistered until DIAG1) — **QUESTIONED** by 2026-09-25: in one start, during a hard reverse, the reconstructed heading swung up to 37° per 10 ms tick — 8 of the last 9 ticks at 16.9° or more, alternating in sign; cause UNKNOWN | R3 / R4 |
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
+| HA-162 | Started from the controller's own menu with **Timed Run**, a program comes up DISABLED (HA-128) and VEXos then ENABLES `autonomous()` after a disabled window of __ s, for __ s, then __ — every blank unmeasured | **unknown** (no vendored text; HA-128 measured only the start) | COMP-b Station K, K.3 (its first match step) |
 | HA-165 | The present members of one drive side stay close enough in CUMULATIVE position, through a match's driving and slip, that leaving members out of the side's median (one or several whose reading is not finite, DIAG1 Part B) moves the side by far less than `maxTickTravel` (36 in) — at worst, the member farthest from the median read alone | **invented** — the members' spread over a match has never been recorded; HA-130's port 18 is the evidence it can grow; exercised only when a member read is non-finite, which HA-08 says never reaches a group on a V5 | R4 |
 | HA-167 | A tank drives BACKWARDS the way its calibration measured it: each side's travel scale, from ONE unpowered push made one end first, holds within 1 % under power in BOTH directions, and a change of direction adds under 0.25 in of travel the chassis did not make (no backlash take-up) | **invented** (the scale comes from one UNPOWERED push in one direction; the host test plant has no backlash and is direction-symmetric by construction) | the first on-robot autonomous session (COMP-t's auton tester, or COMP-b's Station K) |
 | HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates too (brief spells as a train coasts to a stop are expected and harmless), EXCEPT at a wall, where the guard holds only while every stalled member reads alike — at ANY wall when one member's report settles to 0 well before its mates' (their lagging reports still say the train turns), and beside a slipping side-mate (HA-130's port 18) more easily (the known gaps, in the long form); and a side still drives acceptably with its dead dropped, up to the mid-run stop at more than two dead in total | reasoned (the adapter's screen, `hal/pros/motor.hpp` `position()`, `velocity()`, `current()`; BLUE's 300 counts per output turn) + **invented** (the 5 reads, the 250 ms latch, the majority-or-tie guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall, with and without one stalled member reading unlike its mates; a plain wall with one report settling sooner; a coast-down with per-member encoder phase; 2026-09-28/30, 2026-10-01) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD on any drive port, port 18 (HA-130) included — the push check's push (HA-176): read its log for a `went ABSENT` line |
@@ -2032,7 +2036,17 @@ were built in parallel; both have since landed, with the numbers below it.)
   in `initialize()` (`src/programs/auton_tester_program.cpp`), and `src/main.cpp`'s `disabled()`,
   `competition_initialize()`, `autonomous()` and `opcontrol()` return at once for it; on the bench
   nothing changes mode (its RUN gate refuses any competition bit), so the tester alone never tests
-  (b). The vendored `include/pros/misc.h` (`competition_get_status`,
+  (b). **The competition program (COMP-b, 2026-09-30) rests on both halves:** its auton task
+  (`src/programs/competition_program.cpp`, created once in `initialize()`) serves every
+  `autonomous()` request and ends a live auton itself, through its watch and the guard's abandon,
+  when the robot is disabled or leaves autonomous — half (b); and its `autonomous()` only asks and
+  waits, its driver loop ends on the autonomous bit and on a waiting request as well as on a
+  disable, and the auton task does not serve a request while a driver loop holds the robot — not
+  until that loop has LEFT, or its once-a-tick heartbeat has stood still for 0.1 s (a loop PROS
+  deleted mid-tick never leaves: `DriverLoopPresence` in `src/programs/competition_run.hpp`, added at
+  COMP-b's review, 2026-10-01) — so neither depends on being deleted at the mode change: half (a)'s
+  failure is contained, not relied on. One REASONED margin is left: a driver-loop tick that took
+  longer than 0.1 s while a request waited would be taken for a deleted loop. The vendored `include/pros/misc.h` (`competition_get_status`,
   `competition_is_disabled`, `competition_is_autonomous`, `competition_is_field`,
   `competition_is_switch`) says nothing about tasks.
   *Confidence:* **reasoned** — both halves are how PROS's competition template is generally
@@ -2040,19 +2054,68 @@ were built in parallel; both have since landed, with the numbers below it.)
   Part 0b; neither half is stated in the vendored PROS text, and neither has been observed directly
   on this project's brain (R3b Part 0b's "finding" was a correction to a brief's REASONING — a
   deleted FreeRTOS task does not unwind its stack — not an observation of what PROS does).
-  *Settle (COMP-b's practice-match station, K):* a program whose `autonomous()` holds an object whose
-  destructor logs a line and loops logging "alive N" every 50 ms, and whose own task logs "task
-  alive N" likewise; end autonomous (the controller's Timed Run, or a competition switch). (a) is
-  confirmed if "alive" stops at the mode change and the destructor's line never appears; (b) if
-  "task alive" continues through it.
+  *Settle (COMP-b's practice-match station, K — from the competition program's OWN lines, no probe
+  build; the claim is unchanged):* during the mid-auton disable step, with the auton still RUNNING
+  when the mode changes, read the serial log in its order. The change's own mark is the NEXT phase
+  function's `entry` line (`disabled() entry at <ms>` or `opcontrol() entry at <ms>`): PROS starts
+  that function at the change and it logs that line first. **(a)** is confirmed if `autonomous()`'s
+  `normal return` line NEVER appears for that run (an `autonomous()` PROS did not delete would log
+  it within a tick of its request's terminal word, which the abandon publishes 1–3 ticks after the
+  change); a `normal return` logged AFTER the next phase function's `entry` line refutes it; one
+  logged BEFORE that line is AMBIGUOUS (the watch's abandon finished the run before PROS acted on
+  the change) and settles nothing. **(b)** is confirmed if the run's `request N:` lines appear at all
+  — the auton task writes them only after the run has ended, so after the change — and its
+  `competition status ... at <ms>` lines continue at later changes. The station states one limit:
+  the routine must still be running at the change — an auton that finished before it logs a normal
+  return legitimately, so this rides on the mid-auton disable, never on an ordinary run. (The auton
+  task's own status-change line cannot mark the change: it does not log while it serves a run, so a
+  change during a run is logged after the run's lines, and only when the status then differs from
+  the last one it logged — COMP-b's review, 2026-10-01, which moved the anchor from RC2's wording.)
+  For `opcontrol()`, a request line `a driver loop still held the robot when it was served -- it
+  LEFT` (logged only after a change straight from driver control to autonomous) shows a driver task
+  PROS did NOT delete at that change; `its heartbeat STOPPED` is consistent with one it did.
   *Blast radius if wrong:* if (a) is wrong (PROS does not delete its tasks), an `autonomous()` that
   kept running would command the drive alongside driver control — COMP-b's design does not let it
-  (the auton runs on the program's own task, which `opcontrol()` waits for), so the damage is
-  contained to the loops that assume the kill. If (b) is wrong (PROS deletes the program's tasks
+  (the auton runs on the program's own task, which `opcontrol()` waits for, and a driver loop that
+  survived a change straight to autonomous ends at its next tick and leaves before the auton task
+  serves), so the damage is contained to the loops that assume the kill. If (b) is wrong (PROS deletes the program's tasks
   too), a routine could be killed mid-motion, leaving the scheduler's active motion on a freed
   stack — the failure the own-task design exists to avoid; the recovery would be a disable-aware
   pacer that ends the routine before the mode change lands, which the abandon latch already is.
   **Contained:** the program's task body and its watch pacer (COMP-b).
+
+**COMP-b (2026-09-30) added ONE — HA-162, its reservation (the number was held for it since the COMP
+brief's re-check of 2026-09-28).** The team owns no competition switch, so the bench's only way to run
+the competition program through a pretend match — disabled, autonomous, driver control — is the
+controller's own Timed Run. HA-128 measured how such a start BEGINS; nothing has measured what it does
+next, and the bench's practice-match station is written around that measurement.
+
+- [ ] **HA-162 — a controller Timed Run enables `autonomous()` after a disabled window, for a set time,
+  then moves on.**
+  *Claim:* a program started from the controller's own program menu with **Timed Run** comes up
+  DISABLED in a pretend field-control match (HA-128, measured: status `0x0f`), and VEXos then ENABLES
+  `autonomous()` after a disabled window of __ s, for __ s, then __ (a disable, driver control for
+  __ s, or the end) — every blank UNMEASURED.
+  *Source:* "shulib Competition" (`src/programs/competition_program.cpp`) is started this way at the
+  bench's practice-match station; the auton is chosen on its menu during the disabled window, and
+  its `autonomous()` runs only if the Timed Run enables it. The worksheet's rule "never start a
+  program from the controller's menu" carries ONE exception for it (slot 6, at that station); the
+  guide's chapter 17 says what is measured and what is not.
+  *Confidence:* **unknown** — no vendored PROS or VEXos text describes the controller's Timed Run;
+  HA-128 measured only its start.
+  *Settle (Station K's K.3, its FIRST match step — after K.2's brain start, which only reads the boot
+  and leaves the claw open for K.4):* start slot 6 with Timed Run and copy the program's own lines:
+  each phase function's `entry` / `normal return` lines (the brain's milliseconds and the decoded
+  status) and the auton task's `competition status ... at <ms>` lines give the disabled window, the
+  autonomous period and what follows, to the tick. If Timed Run never enters `autonomous()`, record
+  that and try **Match** from the same menu. The program's periods (30 s / 60 s, the game manual's)
+  never come from this measurement.
+  *Blast radius if wrong:* the bench procedure only. No disabled window before autonomous means no
+  auton can be chosen on the bench before it starts (NONE runs: nothing moves — the safe failure),
+  and how to choose one then is the team lead's to decide after the measurement; a Timed Run that
+  never enters autonomous means the station needs Match or a field. A real field drives the modes
+  itself. **Contained:** the practice-match station; the program's behaviour does not depend on the
+  numbers.
 
 **TANK1 (2026-09-27) added TWO — HA-179 and HA-180.** A tank `moveTo` now steers back onto its line
 while it drives (the changelog's API 2.3 entry; `motion/tank_steer.hpp`, `motion/move_to_pose.hpp`): the
@@ -2185,9 +2248,12 @@ observed; the tester has not run on a robot.**
   ~50 ms of the press; (c) started from the brain's screen with nothing connected and the controller on its
   home screen, `competition_get_status()` reads 0x00 — there is no CONNECTED bit from the controller's own
   link; (d) a controller switched OFF reads `is_connected()` false within ~1 s.
-  *Source:* `src/programs/auton_abort_watch.hpp` — `testerTouchFrom()` (the one place PROS's touch fields
-  are read: `press_count` is the abort's count, `release_count` the pages' release edge, an
-  `E_TOUCH_ERROR` read never counts, and a finger is "down" when `press_count > release_count`),
+  *Source:* `src/common/screen_touch.hpp` — `screenTouchFrom()` (the one place PROS's touch fields are
+  read for the Auton Tester and the competition program since COMP-b moved it there, 2026-09-30 —
+  shulib Calibrate and the bench tests read the status themselves: `press_count` is the abort's count,
+  `release_count` the pages' release edge, an `E_TOUCH_ERROR` read never counts) — and
+  `src/programs/auton_abort_watch.hpp`'s `testerTouchFrom()`, which adds the tester's one fact (a finger
+  is "down" when `press_count > release_count`),
   `abortInputsFrom()` and `AbortWatch` (armed with the press count of the very read whose release touched
   RUN, so any landing after it counts — COMP-t's review); `src/programs/auton_tester_panel.hpp` (`runAllowed`: RUN refused
   with any of DISABLED, AUTONOMOUS, CONNECTED set, and without a connected controller); the program's

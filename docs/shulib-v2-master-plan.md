@@ -838,7 +838,10 @@ IMU yaw+yaw-rate, active command id/state, **dead-reckon flag**, **quality flag*
 trace / filter trust weights, gating `(residual, Mahalanobis, reason)`, applied-correction
 `(dx,dy,dθ)` + `clampedThisTick` (audits *never-snap*, §13 #4), `strafeFallbackActive` (§13 #5),
 **fault code**, battery `V`/`I`. Competition build routes it to `NullSink` (≈free); dev build to
-`TermSink` (+`SdSink`).
+`TermSink` (+`SdSink`). *(A "competition build" in this section means a build with diagnostics off — a
+design option. The team's match program, "shulib Competition" (COMP-b, 2026-09-30), is not one today:
+it routes the records to `TermSink` on USB serial like every robot-two program and appends its run
+lines to the SD card — guide chapter 17.)*
 
 **18.3 — Readable terminal output (the headline requirement).** Leveled
 (`ERROR`/`WARN`/`INFO`/`DEBUG`/`TRACE`, compile-time `TRACE` strip off the hot path), tagged by

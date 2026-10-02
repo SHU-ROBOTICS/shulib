@@ -356,8 +356,9 @@ not silently break them. This table is the spine of the no-staleness promise.
 > **Next: the competition program (COMP-b)**, which calls the same `registerAutons()`; the tester's
 > first run on robot two is the bench worksheet's Station M. T4's driver file (Part 1a)
 > has LANDED, host- and build-gated: robot two's buttons, feel and driver loop in one file,
-> `src/team/robot_two_driver.hpp`, which no program runs yet — COMP-b's `opcontrol()` will, and so
-> will the driver program that replaces the old "shulib Drive"; "shulib Teleop" retires when that
+> `src/team/robot_two_driver.hpp`, which the competition program's `opcontrol()` runs since COMP-b
+> (built 2026-09-30, not run on a robot — the M4 Sequencing row), and so will the driver program
+> that replaces the old "shulib Drive"; "shulib Teleop" retires when that
 > lands. G1 is COMPLETE** — Part 2c and its final run have landed: one
 > chain in `src/build_selection.hpp` picks each build's program and robot, and `src/main.cpp` only
 > dispatches. — the team lead's order of 2026-09-26; 2c, DIAG1 and COMP's library half were built in
@@ -380,7 +381,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > *(COMP-a — COMP's LIBRARY half — was built in parallel in an isolated worktree on the team lead's
 > ruling of 2026-09-26 and has LANDED, host-proven only: the auton registry, the selector model, the
 > auton runner with the start-pose re-seat, and the abandon latch; see the M4 Sequencing row. COMP-b,
-> the program itself, still follows 2c.)*
+> the program itself, followed COMP-t: built 2026-09-30, host- and build-gated, not run on a robot.)*
 > **`src/` was reorganized before the next programs are built (SRC1, 2026-09-27, the team lead's
 > request):** `src/robots/` is what each robot IS (its tables), `src/team/` the team's own code —
 > where students edit; its first file is robot two's driver file (T4 Part 1a), and the team's
@@ -1706,6 +1707,21 @@ is required, not optional, to hold < 1°.)*
   SD run log appends across reboots (`ProsBlockSink`'s Append mode — HA-177). Kept `[~]`: nothing has
   run on a robot (worksheet Station M), and a field disable, the Timed Run and the hand-over to
   driver control stay with COMP-b's Station K.
+- [~] **The competition program — chunk COMP-b (2026-09-30), HOST- AND BUILD-GATED, NOT RUN ON A
+  ROBOT:** "shulib Competition" (`src/programs/competition_program.cpp`, the EIGHTH build,
+  `PROGRAM=competition`, slot 6) — **the guaranteed park now reaches a real program**: the auton
+  chosen on the brain's menu (NONE by default; LOCKED at the start) runs in `autonomous()` on the
+  program's OWN task through `competition::runAuton`, under a `RunGuard` whose inner pacer is the
+  program's competition watch; a disable or the end of the autonomous period abandons it within one
+  more tick, and every path out of a request — a throw included — publishes a terminal word that
+  `opcontrol()` waits for with no upper bound before it runs the team's driver file. A typed-table
+  boot refuses every auton (driver control still runs); a program error stops the robot safely and
+  refuses later autons until a restart. Its decisions are PROS-free headers the host suite runs on
+  the plant with the real watch (the request, the watch, the screen owner, the pages), its program
+  code is held by source pins, its boot proves its pacer chain or refuses, and the gate builds,
+  links and checks it; guide chapter 17. Kept `[~]`: it is UNRUN — worksheet Station K (the
+  controller's Timed Run, measured first: HA-162; HA-161 settled from its own lines) is its first
+  run, and driver control has no drive protections until T4 Part 2.
 - [x] **The v1 combinator ruling (chunk F2, explicit):** the engine ships as **the wall-clock guard +
   deadline-aware waits + the existing async handle (`scheduler()`)** — exactly the smaller v1 this
   document and the master plan's cut-list sanctioned. `Sequence`/`Parallel`/`Race` types are **not
@@ -1764,11 +1780,12 @@ only the INPUT half is missing.*
   tick, and releasing the button cancels the operation and safes the mechanism.
 - [~] **The driver program** *(T4, 2026-09-27 — Part 1a LANDED, host- and build-gated: the driver file
   `src/team/robot_two_driver.hpp` and its generic half `src/common/driver_controls.hpp`, held by
-  `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp`; NO program runs it yet and
-  nothing of it has run on a robot. **Part 2a LANDED 2026-09-29, host- and build-gated:** the old
+  `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp`; the competition program's
+  `opcontrol()` runs it since COMP-b (2026-10-02), and nothing of it has run on a robot. **Part 2a LANDED 2026-10-01, host- and build-gated:** the old
   drive's protections inside `teleop::runDriverControl` for every program (`teleop/drive_protection.hpp`,
   `teleop::FrozenReadingDetector`, `hal::MotorGroup::markAbsent`; `test/drive_protection_test.cpp`),
-  not run on a robot, with known gaps a ruling is pending on — live motors marked dead at a wall: at
+  not run on a robot, with known gaps the team lead ruled on 2026-10-01 (the encoder check, built in
+  Part 3) — live motors marked dead at a wall: at
   any wall, one whose speed report settles well before its mates'; beside a slipping drive gear, more
   easily (A4 register HA-175). Parts 1b and 2b folded into Part 3 (2b's items are its late step);
   Part 3 PLANNED)* — ONE readable driver file for robot

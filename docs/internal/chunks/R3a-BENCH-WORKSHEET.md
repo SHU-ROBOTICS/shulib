@@ -25,11 +25,13 @@ typed table. Do not confuse the four: "Bench Tests" measures by hand, "shulib Dr
 through the adapters, "shulib Calibrate" measures the drivetrain itself, "shulib Teleop" drives
 through the library. Since COMP-t there is a FIFTH, **"shulib Auton Tester"** in **slot 7** (T4 N4:
 slot 2 after T4 Part 3), which runs one of the team's AUTONS from RUN on its screen after a 3 s
-countdown — Station M.)*
+countdown — Station M. Since COMP-b there is a SIXTH, **"shulib Competition"** in **slot 6**, THE
+program for a MATCH: the auton chosen on its brain-screen menu runs in `autonomous()`, then driver
+control runs the team's driver file — Station K, after M.)*
 
 > **The slot map (the team lead's rulings, 2026-09-27 — T4 R6).** Slots 1–4 are as above until T4 Part 3.
 > **Slot 5 is HELD for the team's own old-code fallback: never upload a shulib program over it.** **Slot 6**
-> is reserved for **"shulib Competition"** (COMP-b). **Slot 7** is **"shulib Auton Tester"** (COMP-t) until
+> is **"shulib Competition"** (COMP-b — Station K). **Slot 7** is **"shulib Auton Tester"** (COMP-t) until
 > T4 Part 3 moves it to slot 2. At T4 Part 3 the NEW **"shulib Drive"** replaces the old one in slot 1 (same
 > name — it drives toward the calibration record's front, the camera end, where the old one drives toward
 > the 15/16 end) and "shulib Teleop" is retired. **Before any upload session, photograph the brain's
@@ -44,6 +46,10 @@ countdown — Station M.)*
    turn the controller off, wait ten seconds while the menu comes back on its own, turn the
    controller on again and leave it on its home screen. A linked controller sitting on its home
    screen is fine; the same session proved the program boots straight into driver control that way.
+   **One exception, and only one (COMP-b, 2026-09-30):** "shulib Competition" in **slot 6** is
+   started from the controller's **Timed Run** at **Station K** — the team owns no competition switch,
+   and a pretend match is what K tests (A4 register HA-162). Afterwards turn the controller off, wait
+   ten seconds, and see the menu return before starting any other slot.
    The header bar also shows **`T x,y r# h#`** — the last touch the program saw, the release count,
    and which button it hit (`h-1` = none). If a tap seems to do nothing, read that line to whoever
    is helping: it says whether the program saw the tap and where it thinks it landed.
@@ -596,7 +602,9 @@ the feel note, the stall note, and the port map (`[SES] ports MEASURED L -16 +17
 The controller LCD: row 0 `LIB 12V B12.9V` (the program and the battery), row 1 `hdg  +45.2 deg`
 (the estimate's heading), row 2 the last fault by name, `no controller 0V`, `DEGRADED see brain`,
 `CLAW ABSENT` (a declared claw was not built — the brain's claw row says which) or `ok`, in that
-order of urgency.
+order of urgency. (Since COMP-b's review, 2026-10-01, the program writes ONE changed line at a time,
+row 2 first — PROS does not apply faster controller text updates — so after the program starts the
+three rows appear over about 0.4 s, not at once.)
 
 **What "feels different from shulib Drive" means.** "shulib Drive" puts the stick straight on the
 motors as volts. This program turns the stick into a **speed request** and sends it through the
@@ -780,8 +788,8 @@ covers the fight, and the push check belongs to the competition program's statio
       the end with ports **______**.
 - [ ] **G.0.5** Read the **DO NOT** list at the end of this sheet. The two that bite here:
       **never start a program from the CONTROLLER's own menu** (HA-128 — it arms a pretend match
-      and the program never gets driver control), and **do not "correct" a reading** to what this
-      sheet expects.
+      and the program never gets driver control; its one exception, slot 6 at Station K, is not
+      this station's), and **do not "correct" a reading** to what this sheet expects.
 
 **G.1 — upload all four programs (lab computer, brain on micro-USB)**
 
@@ -1334,8 +1342,10 @@ lines — copied from the code, final:
 
 - [ ] **J.3.1** The boot lines, one per pivot, each BUILT or ABSENT — copy both word for word.
       BUILT, as the code words them:
-      `[R3B] claw pivot 6: BUILT -- port 6 (typed +6), RED, R1 forward / R2 reverse at 12 V, HOLD on release -- in shulib Teleop only`
-      `[R3B] claw pivot 7: BUILT -- port 7 (typed +7), RED, L1 forward / L2 reverse at 12 V, HOLD on release -- in shulib Teleop only`
+      `[R3B] claw pivot 6: BUILT -- port 6 (typed +6), RED, R1 forward / R2 reverse at 12 V, HOLD on release -- in shulib Teleop and shulib Competition`
+      `[R3B] claw pivot 7: BUILT -- port 7 (typed +7), RED, L1 forward / L2 reverse at 12 V, HOLD on release -- in shulib Teleop and shulib Competition`
+      *(Reworded at COMP-b, 2026-09-30: it read `-- in shulib Teleop only` until the competition program
+      began binding the same buttons; Station K reads the same lines with its own `[CMP]` tag.)*
       ABSENT (a warning; the drive still runs), with the device provider's own sentence for the
       port — e.g. for an empty port 7:
       `[WARN][R3B] claw pivot 7: ABSENT -- port 7: nothing plugged in (expected a motor) -- L1/L2 do nothing; the drive still runs`
@@ -1530,7 +1540,7 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
       the end of a Timed Run started from the BRAIN's screen if that ends in a disable of the same
       run (nobody here has seen what one does at its end). **A launch from the CONTROLLER's own
       menu does NOT count and is forbidden** (Station A step 1, G.0.5, the DO NOT list; A4
-      register HA-128): it RESTARTS the program and leaves it disabled before driver control ever
+      register HA-128 — the rule's one exception is slot 6 at Station K, never slot 2): it RESTARTS the program and leaves it disabled before driver control ever
       runs, so A can never open the claw first, and the restart commands CLOSED again. **The
       serial log decides:** Teleop's boot lines printed a second time mean the program restarted,
       and the check does not count. If no such disable is available, write "not available": this
@@ -1574,7 +1584,7 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 > ⚠ **This program RUNS AN AUTON: the library drives the robot on its own, under its own control, for
 > the first time.** You touch **RUN** on the brain's screen, a **3 s countdown** runs (nothing moves),
 > and then the chosen auton runs through `competition::runAuton` — the same call the competition
-> program's `autonomous()` will make, on the same entry from the team's file `src/team/autons.cpp`.
+> program's `autonomous()` makes (Station K), on the same entry from the team's file `src/team/autons.cpp`.
 > **ANY controller button, or a touch of the screen, aborts** — in the countdown (then nothing ever
 > moves) or in the run (the robot stops within one more 10 ms tick and brakes). So does switching the
 > controller off, or VEXos disabling the robot. **The sticks do NOT abort.** RUN is refused without a
@@ -1583,12 +1593,13 @@ is pressed: never on a disconnect, never on a disable (J.9.5, J.9.6).
 >
 > **What has run: nothing.** No part of this program has run on a brain. Every expectation below is
 > from the host test plant (instant motors, a tank that never skids) and is marked so. K (the
-> competition program) and L (the driver program) are other chunks' stations; this one comes after J.
+> competition program — written at COMP-b, below, and run after this one) and L (the driver program)
+> are other chunks' stations; this one comes after J.
 >
 > **K still owns** what the tester cannot show: a field disable mid-auton, the auton → driver-control
-> hand-over, whether the controller's Timed Run enters `autonomous()` (HA-128), PROS deleting its
-> competition tasks (HA-161), and a route auton (the tester refuses one by name — it passes no command
-> registry yet).
+> hand-over, whether the controller's Timed Run enters `autonomous()` (HA-162; HA-128 measured only how
+> it starts) and PROS deleting its competition tasks (HA-161). A route auton is neither station's: both
+> programs pass no command registry yet, so each refuses one by name.
 
 **M.0 — before you touch a program**
 
@@ -1790,6 +1801,220 @@ table).
 
 ---
 
+## Station K — THE PRACTICE MATCH: "shulib Competition" through the controller's Timed Run  *("shulib Competition", slot 6 — slot 5 stays the team's old-code fallback; robot two — added COMP-b, 2026-09-30)*
+
+> ⚠ **This is the program for a MATCH.** Before a match you choose an auton on the brain's menu
+> (**NONE**, the default, runs nothing); when autonomous starts, the chosen auton runs on the program's
+> OWN task through `competition::runAuton` — Station M's call, on the same entry — and a **disable**, or
+> the end of the autonomous period, ends it at once (one more 10 ms tick at most, then 0 V + Brake);
+> then driver control runs the team's driver file (Station J's buttons). **No button aborts an auton
+> here** — that is the tester's rule, never the match's.
+>
+> **What has run: nothing.** No part of this program has run on a brain. Every expectation below is
+> from the host test plant (instant motors, a tank that never skids) or from Station M's measured runs,
+> and is marked so. **The team owns no competition switch**, so the match here is the controller's
+> **Timed Run** — and what a Timed Run does after it starts the program disabled is itself UNMEASURED
+> (A4 register **HA-162**); K.3 measures it before anything else depends on it. A field or a switch
+> stays UNRUN at the bench.
+>
+> **Run K only after F, J and M have passed on the same build line** (the same commit's builds):
+> **M.3's forward check passed** (the only station that proves "forward" before an auton drives) and
+> **M.6's floor result recorded**, whatever it was. **Driver control here has NO drive protections
+> yet** — no cut when a drive side's motors fight, no rule for a drive motor lost mid-match — until T4
+> Part 2 lands; drive it as gently as Station F.
+
+**K.0 — before you touch a program**
+
+- [ ] **K.0.1** F, J and M passed on this build line (above) — write the commit: __________
+- [ ] **K.0.2** A charged battery; the **FAT32 card** in the brain with `shulib_drivetrain.bin` (the
+      calibration record) and Station M's `shulib_auton_runs.txt` on it. Never format it.
+- [ ] **K.0.3** **A laptop on serial for the WHOLE station** (`pros terminal`, micro-USB to the brain, or
+      the wireless terminal through the controller — Station 5.5): K's measurements ARE the program's
+      lines. Save every transcript. With no serial, K.3 and K.6 cannot be settled — write "no serial".
+- [ ] **K.0.4** The robot **WHEELS UP** on a stand for K.2–K.4 and K.6; on the tape (M.0.4's) for K.5.
+      A second person at the battery.
+- [ ] **K.0.5** **The claw at the OTHER level from its start level** for K.4: the start level is CLOSED,
+      so leave it **OPEN** — open it with **A** in the brain start below (K.2.5), then end that run by
+      stopping the program from the brain, so it stays open. → claw left OPEN? **YES / NO**
+
+**K.1 — upload**
+
+```sh
+rm -rf bin .d && make ROBOT=tank PROGRAM=competition && pros upload --slot 6 --name "shulib Competition"
+```
+
+**Slot 6. Never slot 5** (the team's own old code, held as the fallback — photograph the Programs list
+first, Station A's slot map).
+
+**K.2 — the brain start: the boot, the menu, driver control** (started from the **BRAIN's** screen, the
+controller on its home screen — nothing competition-like is connected, so PROS goes straight to driver
+control after the boot)
+
+- [ ] **K.2.1** The banner: `[CMP] booted: shulib COMPETITION build [shulib-robot-variant=tank-competition]
+      -- the auton chosen on the brain's` … `NOT RUN ON A ROBOT YET.`, and `[CMP] competition status at
+      boot: 0x00 field=no disabled=no auton=no`.
+- [ ] **K.2.2** The three boot lines: `boot: shulib COMPETITION [shulib-robot-variant=tank-competition] hash
+      …`, then `boot source RECORD, 2 autons, 3 of 3 mechanisms present; autons ALLOWED`, then `SD run log
+      ON, APPENDED to /usd/shulib_auton_runs.txt` (Station M created the file — the same one). **A boot line
+      reading `autons REFUSED (a typed-table boot: run shulib Calibrate)` is a STOP** (the record did not
+      load); so is any refusal screen — copy its words. The boot is **not** refused with `the competition
+      program's pacer chain is WRONG` (the chain proof passed on the real provider). After a refused
+      boot no auton task exists, so serial carries **no** `competition status … at <ms>` line at all —
+      only the four phase functions' `entry` and `normal return` lines (`autonomous()`'s reads `the boot
+      was REFUSED: no auton runs`).
+- [ ] **K.2.3** The claw lines, word for word: each pivot's BUILT line now ends **`-- in shulib Teleop and
+      shulib Competition`** (J.3.1's lines, with this program's `[CMP]` tag), and the claw's own line.
+- [ ] **K.2.4** The phase lines: `opcontrol() entry at <ms>, status 0x00 field=no disabled=no auton=no`,
+      then `opcontrol(): driver control starts -- the driver file, after 0.000 s waiting for the auton
+      task`. The screen: the **driver page** — `shulib COMPETITION` and the BUILD time in the bar (the time
+      you just built: else the upload did not land), then `auton: none requested on this boot`,
+      `controller: CONNECTED`, the fault row, the claw row. (The menu shows only for a moment at boot: with
+      nothing connected, driver control takes the screen at once.)
+- [ ] **K.2.5** Wheels up, drive briefly: the sticks drive as at Station F (forward = the end M.3 found);
+      R1/R2 and L1/L2 move the pivots as at J; **A opens the claw — leave it OPEN** (K.0.5). The
+      controller's lines: `LIB 12V B…V`, `hdg …`, `ok`. Then stop the program **from the brain**.
+
+**K.3 — THE TIMED RUN, MEASURED (HA-162 — the FIRST match step; everything after it depends on it)**
+
+The one exception to "never start from the controller's menu": **this program, slot 6, at this station.**
+(K.2's brain start comes before it only to read the boot and to leave the claw OPEN for K.4, which
+shares this start; nothing in K.2 is a match.)
+
+- [ ] **K.3.1** The robot wheels up, the claw OPEN (K.0.5), **touch nothing on the brain**: NONE stays
+      the choice, so nothing will drive. On the CONTROLLER: Programs → slot 6 "shulib Competition" →
+      **Timed Run**. Watch the claw from the moment you start it — that is K.4, the same start.
+- [ ] **K.3.2** Copy, from serial, every phase line and every status line, in order, with their
+      milliseconds — the boot, then e.g. `disabled() entry at <ms>, status 0x… …`, `competition status 0x…
+      field=… disabled=… auton=… at <ms>`, `autonomous() entry at <ms>, …`, the request's lines
+      (`request 1: NONE -- no auton was chosen …`), `autonomous() normal return at <ms>, … -- its request
+      FINISHED`, and whatever follows (`opcontrol() entry …`, or `disabled() entry …`). From them:
+      → the disabled window before autonomous: ______ s (`0` if none) ; autonomous enabled for: ______ s ;
+      then: ______________________ (driver control for ____ s? a disable? the end?) ; the status bytes seen:
+      ______
+- [ ] **K.3.3** **If no `autonomous() entry` line ever appears**, write "Timed Run never entered
+      autonomous()" and try **Match** from the same controller menu, the same way; record its lines
+      instead. If neither enters autonomous, **stop here**: K.5–K.6 need it.
+- [ ] **K.3.4** **If there is NO disabled window before autonomous** (autonomous starts at once), the
+      auton cannot be chosen on the bench before it starts — write that down and **stop**: how to choose
+      one then is the team lead's call, after this measurement (nothing is built for it).
+- [ ] **K.3.5** **Afterwards: turn the controller OFF, wait ten seconds, and see the brain's menu return**
+      before starting any other slot. (Every later start in K is the same Timed Run.)
+
+**K.4 — the claw at a disabled start (HA-157's second half — the COMP brief's B28)**
+
+From K.3.1's start (the claw left OPEN, the brain coming up DISABLED, so `initialize()` writes the claw's
+start level — CLOSED — while disabled):
+- [ ] **K.4.1** Did the claw move **at the start** (the write reached the valve while disabled), **only when
+      the robot was enabled**, **only when driver control began** (the driver file's first entry tells it
+      CLOSED, whatever autonomous left), or **never**? → ______________ (and at which line's milliseconds)
+
+**K.5 — a practice match on the tape** (only if K.3 found a disabled window before autonomous)
+
+- [ ] **K.5.1** The robot on START, **the end that made EST x rise in M.3 leading**, facing along the tape.
+      Start the Timed Run (K.3.1's way). **In the disabled window**, touch `40in forward MATCH` on the
+      brain: the bar reads `AUTON: 40in forward` and serial logs `menu: the auton is now '40in forward'`.
+      Step back — to the SIDE.
+- [ ] **K.5.2** When autonomous starts: the screen shows **AUTON RUNNING** (an amber bar, `AUTON: 40in
+      forward`), the robot drives, then the **result page**. **Expected (stated BEFORE the run):** the
+      same as **M.6 measured** on this robot — Station M's table is the prediction here, because the run
+      is the same call on the same entry. On the host test plant (re-predicted after TANK1): `FINISHED`,
+      END x near 40 and END |y| within 0.5 in, `faults this run: none`, the brake run (a 9 % weak side
+      finishes at T+1.89 s, END (39.64, 0.02, 0.10°), TSTR on 116 of the run's 203 `[MOT]` tick lines);
+      `ROUTINE STOPPED` with `faults this run: 1, last MOTION_TIMEOUT` stays possible (HA-179), and if M.6
+      read that, expect it here too. **COMP-t's thresholds, through THIS program's request** (host test
+      plant; `test/competition_run_test.cpp` (R24) reproduces them): the 40 in FINISHES down to a weak
+      side at ×0.723 of the other and stops (`motion TIMEOUT`) at ×0.722; the acceptance run (K.6's)
+      FINISHES down to ×0.724 — at ~9 % weak, `FINISHED` at T+6.14 s, END (0.37, 0.06, 177.28°) — and
+      stops at ×0.723. A motion the odometry calls stuck is ended by the library (`ODO_STUCK`, the
+      scheduler's abort): for the 40 in, line 3 then reads `routine STOPPED, 0 of 1 steps done, stopped at
+      moveTo (motion CANCELLED); faults this run: 1, last ODO_STUCK -- see the [ERROR] line` — record it,
+      never re-run blind.
+- [ ] **K.5.3** Copy the four `[CMP] request 1: …` lines — `… '40in forward' FINISHED -- ROUTINE_RAN; in
+      time, end action succeeded`, `… hand-off 0.0__s after autonomous(), live after …`, `… routine OK, 1 of
+      1 steps done; faults this run: none`, `… seated (0.00, 0.00) facing 0.0 deg (the IMU read …); END
+      estimate (…) … LIVE` — and the `[COMP]`, `[SEQ]` and `[MOT]` lines. The moveTo's `[MOT]` result line
+      ends with the cross-track column, printed as `xt` and the distance in inches with a `"` (e.g.
+      ` xt   0.02"`); the tick lines carry ` TSTR` where the library was steering. Record — **the numbers,
+      never "about right"**:
+
+      | | run 1 | run 2 |
+      |---|---|---|
+      | RESULT word | | |
+      | line 3: `routine OK`, or `stopped at <step> (<cause>)` and the last fault by name (e.g. `ODO_STUCK`) | | |
+      | the hand-off (line 2), s | | |
+      | END x, END y (line 4) | | |
+      | the `xt` value on the `[MOT]` result line | | |
+      | `[MOT]` tick lines with TSTR, of how many (or "not captured") | | |
+      | TAPE along the line, in (expect M.6's) | | |
+      | TAPE off the line to the side, in, and which side | | |
+
+- [ ] **K.5.4** **Driver control after the auton** (if K.3 found one): the driver page's auton row reads
+      `auton FINISHED: 40in forward` (or the word the result page showed). **`AUTON ENDING` must NOT
+      appear** — the auton ended long before; if it does, copy its `opcontrol(): AUTON ENDING -- …` line and
+      stop. Drive gently, wheels down only if the space allows (no protections yet).
+- [ ] **K.5.5** Between runs, LIFT the robot back onto START (M.6.5's rule — never shove a braked drive).
+      Turn the controller off, ten seconds, the menu back (K.3.5) before each new Timed Run.
+
+**K.6 — THE MID-AUTON DISABLE (HA-161; written from K.3's measurement)** — wheels up
+
+The auton must still be RUNNING when the mode changes, so this uses the acceptance run, `TEST 24in turn
+back` (about 6 s on the host test plant, its legs 24 in, a turn, back).
+- [ ] **K.6.1** Choose `TEST 24in turn back MATCH` in the disabled window and let autonomous start it.
+      **If K.3 found the autonomous period SHORTER than ~6 s**, the period's own end lands mid-auton: wait
+      for it. **Otherwise** switch the **controller OFF** about 2 s into the run (what that does to a Timed
+      Run is itself unmeasured — the status lines will say).
+- [ ] **K.6.2** **Expected:** the wheels stop within a blink. **Read the result on SERIAL, not on the
+      brain:** the change that ends the run also starts the next phase function, which hands the screen
+      over at once — `disabled()` to the **menu**, `opcontrol()` to the **driver page** — while the auton
+      task is still unwinding, so the result page of an ended run is NOT painted, or shows only for a
+      moment (the brain shows the menu after a disable). The request's first `[CMP]` line reads `… ABANDONED -- ROUTINE_RAN; ABANDONED: the
+      robot was disabled (status 0x…), end action …` (or `the match left autonomous`), the end action
+      `skipped` (or `CUT by the abandon` if the brake had begun — nothing is wrong then); when driver
+      control follows, the
+      driver page's auton row reads `auton ABANDONED: …`. **A first line reading `ABANDON IGNORED` is a
+      STOP** (on serial — no page shows it here): the change was seen and the run went on — copy
+      everything, never run it on the floor.
+- [ ] **K.6.3** **HA-161, from the program's own lines** (copy them with their milliseconds, IN THEIR
+      SERIAL ORDER). The change's own mark is the **next phase function's `entry` line** (`disabled() entry
+      at <ms>` or `opcontrol() entry at <ms>`): PROS starts that function at the change, and it logs that
+      line first. (The auton task's `competition status … at <ms>` line cannot mark the change: it cannot
+      log while it serves a run, so a change during a run is logged only after the run's lines, and only
+      when the status then differs from the last one it logged.)
+      **(a)** PROS deleted `autonomous()` at the change if its **`autonomous() normal return` line NEVER
+      appears** for this run; a `normal return` logged **after** the next phase function's `entry` line
+      **refutes** (a) (`autonomous()` was still running when the next phase began); a `normal return`
+      logged **before** it is **AMBIGUOUS** — the watch's abandon finished the run before PROS acted on the
+      change — record it as such; it settles nothing. **(b)** the program's own task survived the change if
+      the run's **`[CMP] request <n>: …` lines appear at all** — the auton task writes them only after the run
+      has ended, so after the change — and its `competition status` lines continue at later changes.
+      **The limit:** an auton that had already finished logs a normal return legitimately — this settles
+      nothing unless the run's first line says `ABANDONED`. (A request line `a driver loop still held the
+      robot when it was served -- it LEFT` appears only after a change straight from driver control to
+      autonomous; if one appears anywhere in K, copy it: PROS did not delete `opcontrol()` at that change.)
+      → `normal return` for this run: **NEVER / at ____ ms, BEFORE / AFTER the next `entry` line** ; the
+      request's lines present: **YES / NO**
+
+**K.7 — the SD log**
+
+- [ ] **K.7.1** Copy `shulib_auton_runs.txt` off the card: after Station M's runs it must carry K's boot
+      lines and every K request's lines, in order (the competition program appends to the tester's file).
+      → present, in order? **YES / NO**
+
+**What to send back**
+
+1. K.2: the banner, the three boot lines, the claw lines, the phase lines — word for word.
+2. **K.3: every phase and status line with its milliseconds, and the three blanks** (or K.3.3/K.3.4's
+   stop).
+3. K.4's answer.
+4. K.5: the table, the four `[CMP]` lines per run, and the transcript (or "not captured").
+5. K.6: what the brain showed after the change (the menu, or the driver page's auton row), the request's
+   lines (its first line's word is the result), the next phase function's `entry` line, and K.6.3's two
+   answers.
+6. K.7's file.
+7. Anything surprising, as observed.
+
+---
+
 ## DO NOT
 
 - ❌ **Do not upload an old build.** The default build is the **bench tester**
@@ -1807,7 +2032,10 @@ table).
 - ❌ **Do not start a program from the CONTROLLER's own menu** (Run, Timed Run or Match) — start it
       from the brain's screen or the laptop. From the controller it arms a pretend match: the
       program restarts and sits DISABLED, never reaching driver control (Station A, step 1; A4
-      register HA-128). *(Added 2026-09-26 by T3's addendum: G.0.5 and J.9.6 point here.)*
+      register HA-128). *(Added 2026-09-26 by T3's addendum: G.0.5 and J.9.6 point here.)* **The
+      one exception (COMP-b, 2026-09-30): slot 6, "shulib Competition", started with Timed Run at
+      Station K** — then turn the controller off, wait ten seconds, and see the menu return before
+      starting any other slot.
 - ❌ **Do not disassemble anything** to read a gear — photograph it in place.
 - ❌ **Do not "correct" a reading to what this sheet expects.** A contradiction is the most valuable
       output of the session.
@@ -1828,5 +2056,7 @@ table).
 - [ ] **Station 5.5 done** — it is the cheapest item here and the one that has been missed twice.
 - [ ] **If Station M ran: `shulib_auton_runs.txt` copied off the SD card** (M.7), with the serial
       transcripts of M.6.
+- [ ] **If Station K ran: every K serial transcript saved** (K.3's milliseconds are the measurement),
+      and `shulib_auton_runs.txt` copied off again (K.7).
 - [ ] Anything surprising written down **as observed**, before anyone interprets it.
 

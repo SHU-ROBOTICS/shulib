@@ -294,7 +294,9 @@ on the `shulib-v2` branch.
 1. **One record, many sinks.** New diagnostics extend `DebugRecord`; sinks only ever *format*. Bench,
    terminal, field, and sim traces stay directly comparable.
 2. **Zero cost in a competition build.** `NullSink` default and `wantsRecord()` so the record isn't
-   even built. Anything added here honours that.
+   even built. Anything added here honours that. (A "competition build" here means one with
+   diagnostics off. The team's match program, "shulib Competition" — COMP-b, 2026-09-30, guide
+   chapter 17 — is not one today: it logs to USB serial like every robot-two program.)
 3. **Structured fields, not essays.** The legacy code's prose diagnosis trees and ALL-CAPS banners are
    the anti-pattern §18 exists to prevent.
 4. **Log and recover, never crash.** A diagnostic that can take down an auton is worse than no

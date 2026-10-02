@@ -284,7 +284,10 @@ struct ClawLine {
 
 /// Motor entry `i`'s boot line: BUILT (its port, sign, cartridge, buttons, volts, stop) or ABSENT
 /// with the provider's own sentence (`robot.mechanismAbsence(i)`). A complete entry of a table the
-/// robot was built from (config index i).
+/// robot was built from (config index i). The BUILT line ends `-- in shulib Teleop and shulib
+/// Competition`: both programs bind these buttons and print this line (it read `-- in shulib Teleop
+/// only` until COMP-b, 2026-09-30, when the competition program began binding the claws through
+/// the driver file, whose buttons are tied to this table's until T4 Part 3 -- controlsMatchTable).
 inline ClawLine motorClawBootLine(const MechanismTable& t, const robot::Robot& robot,
                                   std::size_t i) {
     ClawLine out;
@@ -294,7 +297,7 @@ inline ClawLine motorClawBootLine(const MechanismTable& t, const robot::Robot& r
     if (robot.builtMechanismAt(i) != nullptr) {
         std::snprintf(out.text, sizeof out.text,
                       "%.23s: BUILT -- port %d (typed %+d), %.5s, %.5s forward / %.5s reverse at "
-                      "%d V, %.5s on release -- in shulib Teleop only",
+                      "%d V, %.5s on release -- in shulib Teleop and shulib Competition",
                       e.name, absPort(e.signedPort), static_cast<int>(e.signedPort),
                       clawCartridgeWord(e.cartridge), fwd, rev,
                       static_cast<int>(std::lround(e.volts)), clawStopWord(*e.safeMode));
@@ -505,7 +508,11 @@ inline bool anyClawAbsent(const robot::Robot& robot) noexcept {
     return false;
 }
 
-/// The controller's word for an absent claw (at most 19 characters, HA-57's line).
+/// The controller's word for an absent claw (at most 19 characters, HA-57's line). Since COMP-b
+/// (2026-09-30) the ONE controller chooser that says it is src/common/driver_panel.hpp's, which
+/// includes this header for it as an INTERIM step (the COMP brief's ND3: the claw words stay here
+/// until T4 Part 3 moves them) -- as the competition program includes it for its claw and fault
+/// rows.
 inline constexpr std::string_view kLcdClawAbsent = "CLAW ABSENT";
 static_assert(kLcdClawAbsent.size() <= 19, "the controller line holds 19 characters");
 

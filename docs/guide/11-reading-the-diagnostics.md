@@ -362,7 +362,10 @@ lines go?" is never a mystery:
 - **The zero-cost off switch** — competition builds route diagnostics to a `NullSink`, which
   costs approximately nothing (records aren't even assembled). This is why result lines can
   read `n/a` for a competition run, and why leaving diagnostics code in place for matches is
-  fine.
+  fine. (A *competition build* here means one built with diagnostics off. The team's match
+  program, "shulib Competition" — [Chapter 17](17-the-competition-program.md) — is not one today:
+  it logs to the USB serial line like every robot-two program, so a practice match leaves a full
+  transcript.)
 
 There's also a three-line **controller LCD display** (first fault, fault count, battery, and a
 deliberately ticking clock — so a frozen screen is distinguishable from a crashed program) for

@@ -36,11 +36,25 @@
 // PROS-free. Compiled in every build, like every .cpp under src/ (the G1 Part 2 brief's A12);
 // --gc-sections drops benchStateScreen() from the X-drive's package, where nothing calls it
 // (competitionBits() stays: src/main.cpp formats every program's boot status bits with it).
+//
+// THE STATUS BITS, PROS-free (moved here from src/programs/auton_tester_panel.hpp at chunk COMP-b's
+// first step, 2026-09-30 — the COMP brief's ND3 (b)): "shulib Auton Tester" decides whether RUN may
+// be touched from them, and the competition program's watch decides from them whether a run must
+// be abandoned. One definition for both (the COMP brief's B11: never copied), checked against
+// PROS's own enum in state_screens.cpp, where pros/misc.h is included.
 
 #include <cstddef>
 #include <cstdint>
 
 namespace shulib::bench {
+
+/// competition_get_status()'s DISABLED bit, PROS-free (checked against COMPETITION_DISABLED in
+/// state_screens.cpp).
+inline constexpr std::uint8_t kStatusDisabled = 1u << 0;
+/// The AUTONOMOUS bit (a field, a switch, or a Timed Run in its autonomous part).
+inline constexpr std::uint8_t kStatusAutonomous = 1u << 1;
+/// The CONNECTED bit (a field or a competition switch through the controller).
+inline constexpr std::uint8_t kStatusConnected = 1u << 2;
 
 /// The competition status byte `status` (pros::c::competition_get_status()) in words, written into
 /// `buf` (`n` bytes, always terminated): `0x04 field=yes disabled=no auton=no`. Returns `buf`, so a

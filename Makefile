@@ -139,18 +139,27 @@ endif
 #                                         (src/programs/auton_tester_program.cpp; slot 7 until
 #                                         T4 Part 3 retires Teleop, then 2 — T4's N4). It has not
 #                                         run on a robot.
-# Five programs in five slots rather than one program with a chooser (team lead's ruling): the
+#     make ROBOT=tank PROGRAM=competition → "shulib Competition" (COMP-b, 2026-09-30): THE
+#                                         COMPETITION PROGRAM — the auton chosen on the brain's
+#                                         menu runs in autonomous() on the program's own task
+#                                         (competition::runAuton, the tester's call), a disable or
+#                                         the end of autonomous ends it, then driver control runs
+#                                         the team's driver file (src/programs/competition_program.cpp;
+#                                         slot 6 — slot 5 is held for the team's old-code fallback,
+#                                         T4 Part 0). It has not run on a robot.
+# Six programs in six slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
-# `drive`, `library`, `calibrate` and `autontest` are only meaningful on robot two — `drive` and
-# `library` because only its chassis table carries measured signs, `calibrate` because the
-# calibrator only supports a tank drivetrain and takes the cartridge from that table, `autontest`
-# because the team's autons are robot two's and only robot two boots from a calibration record;
-# so any of the four with any other ROBOT is an $(error), not a program that refuses at boot. Any
-# other PROGRAM value is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT.
-# tools/src_build_gate.py builds this axis as its fourth to seventh entries (tank-drive,
-# tank-library, tank-calibrate, tank-autontest) and asserts each define lands token-exact and the
-# beacons are in the ELF.
+# `drive`, `library`, `calibrate`, `autontest` and `competition` are only meaningful on robot two —
+# `drive` and `library` because only its chassis table carries measured signs, `calibrate` because
+# the calibrator only supports a tank drivetrain and takes the cartridge from that table,
+# `autontest` and `competition` because the team's autons (and, for `competition`, its driver
+# file) are robot two's and only robot two boots from a calibration record; so any of the five
+# with any other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM value
+# is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT.
+# tools/src_build_gate.py builds this axis as its fourth to eighth entries (tank-drive,
+# tank-library, tank-calibrate, tank-autontest, tank-competition) and asserts each define lands
+# token-exact and the beacons are in the ELF.
 PROGRAM?=tester
 ifeq ($(PROGRAM),tester)
 # the default: no define; src/build_selection.hpp's chain picks the bench tester on bench and tank
@@ -174,8 +183,13 @@ ifneq ($(ROBOT),tank)
 $(error PROGRAM=autontest needs ROBOT=tank — the team's autons are robot two's; '$(ROBOT)' has none)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_AUTONTEST
+else ifeq ($(PROGRAM),competition)
+ifneq ($(ROBOT),tank)
+$(error PROGRAM=competition needs ROBOT=tank — the team's autons and driver file are robot two's; '$(ROBOT)' has neither)
+endif
+override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_COMPETITION
 else
-$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library, calibrate, autontest)
+$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library, calibrate, autontest, competition)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

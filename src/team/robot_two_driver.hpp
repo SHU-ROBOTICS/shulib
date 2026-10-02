@@ -2,9 +2,10 @@
 //
 // robot_two_driver.hpp — ROBOT TWO'S DRIVER CONTROL: what every stick and button does.
 //
-// This is the team's driver code (chunk T4). No program runs this file yet: the competition
-// program's opcontrol() will (chunk COMP-b), and so will the driver program that replaces "shulib
-// Drive" (T4). To change what a button does, change it HERE -- and, until T4 moves the buttons
+// This is the team's driver code (chunk T4). The competition program's opcontrol() runs it
+// ("shulib Competition", src/programs/competition_program.cpp, chunk COMP-b, 2026-09-30 -- not yet
+// on a robot: worksheet Station K), and so will the driver program that replaces "shulib Drive"
+// (T4). To change what a button does, change it HERE -- and, until T4 moves the buttons
 // out of src/robots/mechanism_table.hpp, there too (the re-zero also in "shulib Teleop"): `make`
 // refuses a build in which they disagree. What the robot IS -- its ports, its cartridges, that a
 // claw pivot is put in Hold when let go, that the claw starts CLOSED and which line level closes

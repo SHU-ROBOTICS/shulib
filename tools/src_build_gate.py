@@ -2,7 +2,7 @@
 """src build gate — src/ compiles AND links for the V5, every robot variant (GATE1; third
 variant at R3b Session 2; a second axis, the PROGRAM, at R3b Part 0b; its third value, the
 LIBRARY program, at R3b Parts 1–3; its fourth, the CALIBRATE program, at R3d Part 2; its fifth,
-the AUTON TESTER, at COMP-t).
+the AUTON TESTER, at COMP-t; its sixth, the COMPETITION program, at COMP-b).
 
 WHY THIS EXISTS
 ---------------
@@ -53,12 +53,18 @@ $(error))
                                          (src/programs/auton_tester_program.cpp)
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_AUTONTEST
-  (PROGRAM=drive, =library, =calibrate or =autontest with any other ROBOT is a Makefile
-   $(error): only robot two has a signed table, only a tank can be calibrated by this
-   procedure, and the team's autons are robot two's.)
+  tank-competition ROBOT=tank PROGRAM=competition "shulib Competition" (COMP-b): THE
+                                         COMPETITION PROGRAM — the chosen auton in autonomous()
+                                         on the program's own task, then the team's driver file
+                                         (src/programs/competition_program.cpp); slot 6
+                                                              -DSHULIB_ROBOT_TANK_2026
+                                                              -DSHULIB_PROGRAM_COMPETITION
+  (PROGRAM=drive, =library, =calibrate, =autontest or =competition with any other ROBOT is a
+   Makefile $(error): only robot two has a signed table, only a tank can be calibrated by this
+   procedure, and the team's autons and driver file are robot two's.)
 
 WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-library, tank-calibrate,
-tank-autontest)
+tank-autontest, tank-competition)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -86,15 +92,15 @@ tank-autontest)
     differential, retired" below) — so the structural check has to be exact on its own.
  6. Asserts the IDENTITY BEACONS — two per build.
     THE VARIANT BEACON (R3b Session 2): src/build_selection.hpp defines one string per build —
-    `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-library|tank-calibrate|tank-autontest`
-    —
+    `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-library|tank-calibrate|tank-autontest|`
+    `tank-competition` —
     in THE SAME BRANCH of THE ONE #if chain that sets the program (`kProgram`) and the robot
     (`kRobotId`) — one chain since G1 Part 2c, in that header since 2c's final run, and step 0
     below enforces it — and the program prints it at boot so it is linked in. The expected
-    beacon must be in the bytes of bin/hot.package.elf and the other six must NOT be. MATCHED
+    beacon must be in the bytes of bin/hot.package.elf and the other seven must NOT be. MATCHED
     WITH THE NUL TERMINATOR (Part 0b): `…=tank` is a prefix of `…=tank-drive`, `…=tank-library`,
-    `…=tank-calibrate` and `…=tank-autontest`, so a plain substring search would false-fail every
-    one of those; a
+    `…=tank-calibrate`, `…=tank-autontest` and `…=tank-competition`, so a plain substring search
+    would false-fail every one of those; a
     C string literal sits in the ELF with its terminating zero byte, and that is what is
     searched for. This is the end-to-end proof that the `#if` in the SOURCE took the branch the
     Makefile asked for — the one case no command-line check can see is a macro renamed or
@@ -121,7 +127,8 @@ tank-autontest)
     it (PROGRAM_ENTRY_SYMBOLS) to be LINKED, and every other program's to be ABSENT. It holds
     because a switch on a `constexpr` enum folds at -Os, a call into another TU is never
     inlined (no LTO), and --gc-sections drops every function nothing calls — measured for all
-    six builds at 2c, and for the seventh at COMP-t. If any of that stops being true, this step
+    six builds at 2c, for the seventh at COMP-t and the eighth at COMP-b. If any of that stops
+    being true, this step
     FAILS (a program's own name missing, or another's present); it cannot pass silently. What
     it does NOT see: the
     sentences src/main.cpp paints itself (the DISABLED / FIELD CONTROL reasons and the tester's
@@ -188,7 +195,7 @@ Once per `check`, before any build — step 0, five source checks:
   src/main.cpp uses (comments stripped) belongs to one program, to SHARED_BENCH_NAMES or to
   BUILD_SELECTION_NAMES, and every name in the table is one main.cpp uses. So a program cannot
   be added to the source (the Auton Tester, COMP-t, was the sixth; COMP-b's competition program
-  will be the seventh) without telling this gate which functions are its own.
+  the seventh) without telling this gate which functions are its own.
   THE INCLUDE ROOT (SRC1, 2026-09-27, the team lead's layout): src/ is organized by job — robots/,
   team/, programs/, common/, with main.cpp and build_selection.hpp at the top — and BOTH builds
   make src/ itself an include root: the Makefile's EXTRA_INCDIR (common.mk: -iquote"./src", AFTER
@@ -245,7 +252,8 @@ the policy below FAILS. And what the variant beacon cannot vouch for — which p
 assigns and which function a case calls (step 8, from the symbol table), which robot a branch
 assigns (step 6's robot beacon) — is read from the package. The self-test plants every one
 (cases 16-27; SRC1's folders and include root, cases 28-29; the paths a program prints, case 30;
-the seventh build's define and beacon, cases 31-32; a build dropped from VARIANTS alone, case 33);
+the seventh build's define and beacon, cases 31-32; a build dropped from VARIANTS alone, case 33;
+the eighth build's define and beacon, cases 34-35);
 the G1 Part 2c and SRC1 logs
 carry the hand mutations.
 
@@ -323,7 +331,7 @@ ARM_GXX = "arm-none-eabi-g++"
 # chain against them); a build added to one place and not the others fails here, which is the
 # point of having the tables.
 VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-library", "tank-calibrate",
-            "tank-autontest")
+            "tank-autontest", "tank-competition")
 BUILD_ARGS = {
     "bench": ("ROBOT=bench",),
     "xdrive": ("ROBOT=xdrive",),
@@ -332,6 +340,7 @@ BUILD_ARGS = {
     "tank-library": ("ROBOT=tank", "PROGRAM=library"),
     "tank-calibrate": ("ROBOT=tank", "PROGRAM=calibrate"),
     "tank-autontest": ("ROBOT=tank", "PROGRAM=autontest"),
+    "tank-competition": ("ROBOT=tank", "PROGRAM=competition"),
 }
 VARIANT_DEFINES = {
     "bench": (),
@@ -341,6 +350,7 @@ VARIANT_DEFINES = {
     "tank-library": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_LIBRARY"),
     "tank-calibrate": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_CALIBRATE"),
     "tank-autontest": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_AUTONTEST"),
+    "tank-competition": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_COMPETITION"),
 }
 ALL_DEFINES = sorted({d for ds in VARIANT_DEFINES.values() for d in ds})
 VARIANT_BEACONS = {
@@ -351,6 +361,7 @@ VARIANT_BEACONS = {
     "tank-library": b"shulib-robot-variant=tank-library",
     "tank-calibrate": b"shulib-robot-variant=tank-calibrate",
     "tank-autontest": b"shulib-robot-variant=tank-autontest",
+    "tank-competition": b"shulib-robot-variant=tank-competition",
 }
 # (XDRIVE_WIRING_DEAD_IN — the retired variant differential's table — was removed at G1
 #  Part 2c; the header's "the variant differential, retired" says what replaced it and why.)
@@ -366,6 +377,7 @@ BUILD_ROBOT = {
     "tank-library": "RobotTwo",
     "tank-calibrate": "RobotTwo",
     "tank-autontest": "RobotTwo",
+    "tank-competition": "RobotTwo",
 }
 ROBOT_BEACONS = {
     "BenchBot": b"shulib-robot=bench-bot",
@@ -441,6 +453,7 @@ BUILD_PROGRAM = {
     "tank-library": "Teleop",
     "tank-calibrate": "Calibrate",
     "tank-autontest": "AutonTester",
+    "tank-competition": "Competition",
 }
 PROGRAM_ENTRY_SYMBOLS = {
     "BenchTests": ("shulib::bench::testerInitialize", "shulib::bench::runR3a"),
@@ -451,6 +464,9 @@ PROGRAM_ENTRY_SYMBOLS = {
     "InventedXDrive": ("shulib::bench::xdriveInitialize", "shulib::bench::xdriveAutonomous",
                        "shulib::bench::runXdrive"),
     "AutonTester": ("shulib::bench::autonTesterInitialize",),
+    "Competition": ("shulib::bench::competitionInitialize", "shulib::bench::competitionDisabled",
+                    "shulib::bench::competitionConnected", "shulib::bench::competitionAutonomous",
+                    "shulib::bench::runCompetition"),
 }
 # The shulib::bench:: names src/main.cpp uses that belong to NO single program: the shared
 # state screens, and the fault-latch hook main.cpp defines. Anything else main.cpp names must be
@@ -2390,6 +2406,32 @@ def do_self_test():
                for p in found),
            f"33: its branch, still in the chain, was not reported: {found}")
     expect(chain_table_problems() == [], "33: VARIANTS was not restored")
+
+    # ── COMP-b (2026-09-30): the eighth build, "shulib Competition" ─────────────────────────
+    # 34: the Makefile's PROGRAM=competition append DROPPED (`make ROBOT=tank PROGRAM=competition`
+    #     silently builds the tester) -> FAIL on the token-exact structural check naming the define
+    #     AND on the beacon (a tank build wearing the tank-competition label) — cases 14's and 31's
+    #     shape. The program a team uploads for a MATCH must never be an upload that is silently
+    #     Bench Tests: at a field it would sit through autonomous and driver control doing nothing.
+    competition_line = "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_COMPETITION\n"
+    with _replace(MAKEFILE, competition_line, "# (self-test plant: competition append dropped)\n"):
+        b = run_build("tank-competition")
+        ok, problems = verdict("tank-competition", b)
+        expect(not ok, "34: PROGRAM=competition with its Makefile append dropped PASSED — the "
+                       "silent-no-op class is back for the competition program")
+        expect(any("whole token -DSHULIB_PROGRAM_COMPETITION" in p for p in problems),
+               "34: the failure did not name the missing PROGRAM=competition define")
+        expect(any("beacon" in p and "NOT in" in p for p in problems),
+               "34: the tank-competition beacon's absence was not caught")
+        expect(any("tank build wearing a tank-competition label" in p for p in problems),
+               "34: the tank beacon's presence (NUL-terminated match) was not caught")
+
+    # 35: the real tank-competition build, alone -> PASS (the `…=tank` prefix inside
+    #     `…=tank-competition` must not false-fail, and the competition program must link — its
+    #     five entry functions linked, no other program's).
+    b = run_build("tank-competition")
+    ok, problems = verdict("tank-competition", b)
+    expect(ok, f"35: the real tank-competition build FAILED the gate: {problems}")
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

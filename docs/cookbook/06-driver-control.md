@@ -277,10 +277,10 @@ Every line of these listings is the file's own, and each listing is an unbroken 
 the documentation build fails when a quoted line changes in the file, and when a line is added to
 the file inside a part listed here, until the listing is quoted again.
 
-**No program runs this file yet.** The competition program's driver control will, and so will
-the driver program that replaces the old "shulib Drive". **Nothing of it
-has run on a robot**: it is tested on the host, through a stand-in for PROS, against robot two's
-real mechanism table.
+**The competition program's driver control runs this file** ("shulib Competition" —
+[guide chapter 17](../guide/17-the-competition-program.md)), and so will the driver program that
+replaces the old "shulib Drive". **Nothing of it has run on a robot**: it is tested on the host,
+through a stand-in for PROS, against robot two's real mechanism table.
 
 **Why it is written this way.**
 

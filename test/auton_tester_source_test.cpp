@@ -13,159 +13,21 @@
 #include "doctest.h"
 
 #include <cstddef>
-#include <filesystem>
-#include <fstream>
 #include <regex>
-#include <sstream>
 #include <string>
-#include <vector>
+
+#include "source_pins.hpp"
 
 namespace {
 
-namespace fs = std::filesystem;
-
-std::string readFile(const std::string& rel) {
-    const fs::path p = fs::path(SHULIB_SOURCE_DIR) / rel;
-    std::ifstream in(p);
-    REQUIRE_MESSAGE(in.good(), "cannot open ", p.string(),
-                    " — a pin that cannot read its subject is decoration");
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    return ss.str();
-}
-
-/// `text` with // and /* */ comments removed (string and character literals kept, line breaks
-/// kept).
-std::string stripComments(const std::string& text) {
-    std::string out;
-    out.reserve(text.size());
-    std::size_t i = 0;
-    const std::size_t n = text.size();
-    while (i < n) {
-        const char c = text[i];
-        if (c == '"' || c == '\'') {
-            const char q = c;
-            out += c;
-            ++i;
-            while (i < n && text[i] != q) {
-                if (text[i] == '\\' && i + 1 < n) {
-                    out += text[i];
-                    ++i;
-                }
-                out += text[i];
-                ++i;
-            }
-            if (i < n) {
-                out += text[i];
-                ++i;
-            }
-        } else if (c == '/' && i + 1 < n && text[i + 1] == '/') {
-            while (i < n && text[i] != '\n') {
-                ++i;
-            }
-        } else if (c == '/' && i + 1 < n && text[i + 1] == '*') {
-            i += 2;
-            while (i + 1 < n && !(text[i] == '*' && text[i + 1] == '/')) {
-                if (text[i] == '\n') {
-                    out += '\n';
-                }
-                ++i;
-            }
-            i += 2;
-        } else {
-            out += c;
-            ++i;
-        }
-    }
-    return out;
-}
-
-/// Every string literal's contents in `code` (comments already stripped), adjacent ones joined.
-std::vector<std::string> stringLiterals(const std::string& code) {
-    std::vector<std::string> out;
-    std::size_t i = 0;
-    bool joining = false;
-    while (i < code.size()) {
-        if (code[i] == '\'') {  // a character literal: skip it whole
-            ++i;
-            while (i < code.size() && code[i] != '\'') {
-                i += code[i] == '\\' ? std::size_t{2} : std::size_t{1};
-            }
-            ++i;
-            continue;
-        }
-        if (code[i] != '"') {
-            if (code[i] != ' ' && code[i] != '\n' && code[i] != '\t') {
-                joining = false;
-            }
-            ++i;
-            continue;
-        }
-        std::string lit;
-        ++i;
-        while (i < code.size() && code[i] != '"') {
-            if (code[i] == '\\' && i + 1 < code.size()) {
-                lit += code[i];
-                ++i;
-            }
-            lit += code[i];
-            ++i;
-        }
-        ++i;
-        if (joining && !out.empty()) {
-            out.back() += lit;
-        } else {
-            out.push_back(lit);
-        }
-        joining = true;
-    }
-    return out;
-}
-
-std::size_t count(const std::string& hay, const std::string& needle) {
-    std::size_t n = 0;
-    for (std::size_t at = hay.find(needle); at != std::string::npos;
-         at = hay.find(needle, at + needle.size())) {
-        ++n;
-    }
-    return n;
-}
-
-/// The body of the first function whose header contains `signature`: from its `{` to the
-/// matching `}` (braces inside literals are not in this file's code).
-std::string bodyOf(const std::string& code, const std::string& signature) {
-    const std::size_t at = code.find(signature);
-    REQUIRE_MESSAGE(at != std::string::npos, "no function '", signature, "'");
-    const std::size_t open = code.find('{', at);
-    int depth = 0;
-    for (std::size_t i = open; i < code.size(); ++i) {
-        if (code[i] == '{') {
-            ++depth;
-        } else if (code[i] == '}' && --depth == 0) {
-            return code.substr(open + 1, i - open - 1);
-        }
-    }
-    FAIL("unbalanced braces after '", signature, "'");
-    return {};
-}
-
-/// `text` with every run of whitespace collapsed to one space, trimmed.
-std::string squash(const std::string& text) {
-    std::string out;
-    bool space = false;
-    for (const char c : text) {
-        if (c == ' ' || c == '\n' || c == '\t' || c == '\r') {
-            space = !out.empty();
-            continue;
-        }
-        if (space) {
-            out += ' ';
-            space = false;
-        }
-        out += c;
-    }
-    return out;
-}
+// The source-pin helpers were this file's until COMP-b (2026-09-30) moved them, unchanged, to
+// test/source_pins.hpp for the competition program's pins too (one copy, never two).
+using source_pins::bodyOf;
+using source_pins::count;
+using source_pins::readFile;
+using source_pins::squash;
+using source_pins::stringLiterals;
+using source_pins::stripComments;
 
 const std::string kProgramFile = "src/programs/auton_tester_program.cpp";
 
@@ -269,7 +131,12 @@ TEST_CASE("pins: the SD run log goes through the adapter's Append mode, and name
         CHECK_MESSAGE(lit.find("/usd/") == std::string::npos, "a /usd/ literal: ", lit);
     }
     CHECK(count(code, "ProsFileMode::Append") == 1);
-    CHECK(count(code, "constexpr const char* kSdRunLogFile = \"shulib_auton_runs.txt\";") == 1);
+    // (COMP-b, 2026-09-30) the file's name is stated ONCE, in src/common/auton_run_log.hpp, for
+    // both programs that append to it; the tester's constant is that one.
+    CHECK(count(code, "constexpr const char* kSdRunLogFile = kAutonRunLogFile;") == 1);
+    CHECK(count(stripComments(readFile("src/common/auton_run_log.hpp")),
+                "inline constexpr const char* kAutonRunLogFile = \"shulib_auton_runs.txt\";")
+          == 1);
 }
 
 // Bug caught: the program commanding the drive itself — every motion the tester makes must be the
@@ -430,4 +297,39 @@ TEST_CASE("pins: the boot lines are testerBootLines', all three logged") {
         CHECK_MESSAGE(lit.find("boot source") == std::string::npos, "a boot line here: ", lit);
         CHECK_MESSAGE(lit.find("SD run log") == std::string::npos, "an SD boot line here: ", lit);
     }
+}
+
+// ── COMP-b's first step (2026-09-30, the COMP brief's ND3 (b)): the shared pieces MOVED ─────────
+
+// Bug caught: a COPY left behind by the move — the tester keeping its own palette, painters,
+// refusal painter, chain proof or touch reduction beside the shared ones in src/common/ (two copies
+// drift; the COMP brief's B11: "never copied") — or a call site not re-pointed. The tester's
+// pixels, pages and proofs are the shared code's since this step; these pins say so mechanically.
+TEST_CASE("pins: the tester calls the SHARED painters, chain proof, stop and touch reduction") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    // The painters: the shared ones, and none of the tester's own left.
+    CHECK(count(code, "paintRefusalScreen(RefusalScreen{") == 1);
+    CHECK(count(code, "paintMenuFrame(v.menu);") == 1);
+    CHECK(count(code, "paintMenuText(was.menu, now.menu);") == 1);
+    CHECK(count(code, "void paintRefusal(") == 0);
+    CHECK(count(code, "rgb(") == 0);
+    CHECK(count(code, "0x1E5AA8") == 0);  // the palette lives in src/common/screen_paint.hpp
+    CHECK(count(code, "screen_erase") == 0);
+    CHECK(count(code, "screen_fill_rect") == 0);
+    CHECK(count(code, "printText(") == 0);  // every string reaches the screen via the painters
+    // The chain proof and the stop: the shared ones; the tester's header keeps only the wrapper.
+    const std::string run = stripComments(readFile("src/programs/auton_tester_run.hpp"));
+    CHECK(count(run, "bool pacerChainProven(") == 0);
+    CHECK(count(run, "#include \"common/guarded_run.hpp\"") == 1);
+    CHECK(squash(bodyOf(run, "AbortWatch& watch) noexcept"))
+          == "stopAfterProgramError(chassis, present); watch.disarm();");
+    // The touch reduction: the shared one, plus the tester's finger-down fact.
+    const std::string watch = stripComments(readFile("src/programs/auton_abort_watch.hpp"));
+    CHECK(count(watch, "screenTouchFrom(t, touchErrorStatus)") == 1);
+    CHECK(count(watch, "t.press_count") == 0);
+    CHECK(count(watch, "t.release_count") == 0);
+    // The status bits: defined once, in src/common/state_screens.hpp.
+    const std::string panel = stripComments(readFile("src/programs/auton_tester_panel.hpp"));
+    CHECK(count(panel, "kStatusDisabled =") == 0);
+    CHECK(count(stripComments(readFile("src/common/state_screens.hpp")), "kStatusDisabled =") == 1);
 }

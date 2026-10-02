@@ -11,6 +11,11 @@
 
 namespace shulib::bench {
 
+static_assert(kStatusDisabled == static_cast<std::uint8_t>(COMPETITION_DISABLED)
+                  && kStatusAutonomous == static_cast<std::uint8_t>(COMPETITION_AUTONOMOUS)
+                  && kStatusConnected == static_cast<std::uint8_t>(COMPETITION_CONNECTED),
+              "the PROS-free status bits (state_screens.hpp) are PROS's");
+
 const char* competitionBits(std::uint8_t s, char* buf, std::size_t n) {
     std::snprintf(buf, n, "0x%02x field=%s disabled=%s auton=%s", static_cast<unsigned>(s),
                   (s & COMPETITION_CONNECTED) ? "yes" : "no",

@@ -294,16 +294,22 @@ src/                the robot programs, one folder per job (every include writte
   robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
                     claws) and the invented X-drive (a RobotConfig constant)
   team/             the team's own code — where students edit: robot two's driver file (which
-                    button does what, the feel; no program runs it yet) and the team's autons
-                    (autons.cpp — every auton the robot can run, one list both auton programs
-                    read; the host suite compiles it and runs every auton in it)
+                    button does what, the feel; the competition program's driver control runs
+                    it) and the team's autons (autons.cpp — every auton the robot can run, one
+                    list both auton programs read; the host suite compiles it and runs every
+                    auton in it)
   programs/         one program each: the bench tester, shulib Drive, shulib Calibrate, shulib
                     Teleop (built on robot::Robot) with its claw wiring, the X-drive's program,
-                    and shulib Auton Tester (runs one of the team's autons on the bench from the
-                    brain's screen, through the competition program's own call — not run on a
-                    robot yet; guide chapter 16)
+                    shulib Auton Tester (runs one of the team's autons on the bench from the
+                    brain's screen, through the competition program's own call — guide chapter
+                    16) and shulib Competition (THE program for a match: the auton chosen on the
+                    brain's menu runs in autonomous() on the program's own task, then driver
+                    control runs the team's driver file — guide chapter 17); neither has run on
+                    a robot yet
   common/           what the programs share: the boot source, the state screens, the screen
-                    text path, the fault-latch hook, a driver file's binder and checks
+                    text path and the painters (the selector, the refusal screen), the
+                    fault-latch hook, a driver file's binder and checks and the driver page's
+                    controller lines, and an auton run's boot chain proof and program-error stop
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

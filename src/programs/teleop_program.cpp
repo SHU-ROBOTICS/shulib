@@ -67,15 +67,18 @@
 // is undefined, so neither is built at namespace scope; a function-local static whose constructor
 // THROWS would be re-attempted on the next call, so the static below holds only empty optionals
 // (a constructor that cannot throw) and teleopInitialize() emplaces into them, once. Function-local
-// rather than namespace-scope for one more reason: this file compiles in all seven builds, and a
+// rather than namespace-scope for one more reason: this file compiles in all eight builds, and a
 // namespace-scope object with a non-trivial destructor registers that destructor from a static
 // initializer the linker must keep — dragging the whole graph's code into the tester's and the
 // other programs' packages. A function-local static is initialized on first call, so in the builds
-// that never call it, --gc-sections drops everything here.
+// that never call it, --gc-sections drops all of its CODE. (Not always its text: a file's string
+// literals share one section, which the linker keeps whole when it keeps this file's copy of a
+// shared inline function -- COMP-b's review measured Teleop's words in the X-drive's package at
+// 0f56301. Words only, never code that runs.)
 //
-// Compiled in all seven builds (the brief's A12): nothing here reads a build switch (only
+// Compiled in all eight builds (the brief's A12): nothing here reads a build switch (only
 // src/build_selection.hpp's one chain does — G1 Part 2c final), no beacon literal lives here (landmine 10), and every symbol it needs from main.cpp
-// (attachFaultLatch) is defined in all seven. ASCII only in every runtime string; every screen
+// (attachFaultLatch) is defined in all eight. ASCII only in every runtime string; every screen
 // string goes through printText(); only a literal "%s" reaches a PROS print.
 
 #include "programs/teleop_program.hpp"
@@ -93,6 +96,7 @@
 
 #include "common/boot_source.hpp"
 #include "common/driver_controls.hpp"
+#include "common/driver_panel.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "robots/mechanism_table.hpp"
 #include "common/screen_text.hpp"
@@ -617,7 +621,10 @@ const char* fieldCentricWord(const teleop::FieldCentricState& s) {
 ///
 /// LCD (3 x 19, HA-57): `LIB 12V Bxx.xV` / `hdg +ddd.d deg` / the last fault, `no controller 0V`,
 /// `DEGRADED see brain`, `CLAW ABSENT` (T3 Part 2: a declared claw was not built) or `ok` — in that
-/// order of urgency, written only when a line changed.
+/// order of urgency, written only when a line changed. The lines and the chooser are
+/// src/common/driver_panel.hpp's since COMP-b (shared with the competition program, never copied),
+/// and so, since COMP-b's review, is HOW they are written: one line per write, line 2 first, at most
+/// one write per 0.1 s (ControllerLineWriter) — a burst of three left two lines stale.
 class TeleopPanel {
 public:
     TeleopPanel(const robot::Robot& r, hal::ILineDisplay& lcd, const BootOutcome& boot,
@@ -756,24 +763,23 @@ private:
                  claws.text);
     }
 
+    /// The controller's three lines come from src/common/driver_panel.hpp's ONE chooser since
+    /// COMP-b (2026-09-30: the COMP brief's B11 moved it there, word for word and in the same order
+    /// of urgency, for the competition program too); this reads the facts and writes ONE changed
+    /// line through the shared writer (line 2 first; COMP-b's review).
     void refreshLcd(bool connected) {
-        char want[3][24];
-        std::snprintf(want[0], sizeof want[0], "LIB %2.0fV B%4.1fV",
-                      hal::kMaxMotorVoltage.value(), r_.context().battery().voltage().value());
-        std::snprintf(want[1], sizeof want[1], "hdg %+6.1f deg",
-                      r_.localizer().pose().heading().radians() * 180.0 / math::Angle::kPi);
-        std::snprintf(want[2], sizeof want[2], "%.19s",
-                      r_.faults().hasFault() ? diag::faultCodeName(r_.faults().lastFault())
-                      : !connected           ? "no controller 0V"
-                      : boot_.verdict.decision == calibration::BootDecision::Degraded
-                          ? "DEGRADED see brain"
-                      : anyClawAbsent(r_) ? kLcdClawAbsent.data()
-                                          : "ok");
-        for (int row = 0; row < 3; ++row) {
-            if (std::strcmp(want[row], lcdRow_[row]) != 0) {
-                lcd_.setLine(row, want[row]);
-                std::memcpy(lcdRow_[row], want[row], sizeof lcdRow_[row]);
-            }
+        ControllerFacts f{};
+        f.batteryVolts = r_.context().battery().voltage().value();
+        f.headingDegrees = r_.localizer().pose().heading().radians() * 180.0 / math::Angle::kPi;
+        f.hasFault = r_.faults().hasFault();
+        f.lastFault = r_.faults().lastFault();
+        f.connected = connected;
+        f.degraded = boot_.verdict.decision == calibration::BootDecision::Degraded;
+        f.clawAbsent = anyClawAbsent(r_);
+        const ControllerScreen want = controllerScreenLines(f);
+        const int row = lcdWriter_.next(want, r_.context().clock().now().value());
+        if (row >= 0) {
+            lcd_.setLine(row, want.line[row]);
         }
     }
 
@@ -785,7 +791,7 @@ private:
     const hal::MotorGroup* right_ = nullptr;
     int tick_ = 0;
     Row rows_[kRowCount]{};
-    char lcdRow_[3][24] = {"", "", ""};
+    ControllerLineWriter lcdWriter_{};
 };
 
 /// The boot lines after the session header — every line the previous program said that is still

@@ -13,8 +13,8 @@
 // after its Robot exists, so a precondition AFTER boot still latches exactly as it did.
 //
 // DEFINED in src/main.cpp for EVERY build (not under a program's #if): every .cpp under src/ compiles
-// in all seven builds (the teleop program included), so a symbol one of them calls must exist in
-// all seven or the link fails. In the builds whose program never calls it, --gc-sections drops it.
+// in all eight builds (the teleop program included), so a symbol one of them calls must exist in
+// all eight or the link fails. In the builds whose program never calls it, --gc-sections drops it.
 
 namespace shulib::diag {
 class FaultLatch;

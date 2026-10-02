@@ -31,13 +31,14 @@
 // test/auton_tester_source_test.cpp. NOTHING HERE HAS RUN ON A ROBOT (worksheet Station M).
 //
 // NOT for the competition program: in a match a driver's bumped button must not end the auton, so
-// COMP-b's watch has the competition causes only (it may share the layering and the
-// latch-every-tick rule, never this class).
+// COMP-b's watch (src/programs/competition_watch.hpp) has the competition causes only — it shares
+// the layering and the latch-every-tick rule, never this class.
 
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 
+#include "common/screen_touch.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/sequence/run_guard.hpp"
@@ -111,19 +112,20 @@ struct TesterTouch {
     bool fingerDown = false;      ///< a good read whose press_count is above its release_count
 };
 
-/// PROS's screen_touch_status_s_t, reduced (the one place its five fields are read). A template so
-/// the host suite runs it on a struct with PROS's field names and the program on the real one;
+/// PROS's screen_touch_status_s_t, reduced: src/common/screen_touch.hpp's screenTouchFrom() (the
+/// one place its five fields are read for this program and the competition program, since COMP-b's
+/// first step, 2026-09-30),
+/// plus the one fact only the tester uses -- a finger on the glass now. A template so the host
+/// suite runs it on a struct with PROS's field names and the program on the real one;
 /// `touchErrorStatus` is pros::E_TOUCH_ERROR (an error read: every field -1, nothing counts).
 template <class ProsTouch>
 [[nodiscard]] constexpr TesterTouch testerTouchFrom(const ProsTouch& t,
                                                     int touchErrorStatus) noexcept {
+    const ScreenTouch s = screenTouchFrom(t, touchErrorStatus);
     TesterTouch r{};
-    r.sample.error = static_cast<int>(t.touch_status) == touchErrorStatus;
-    r.sample.releaseCount = t.release_count;
-    r.sample.x = t.x;
-    r.sample.y = t.y;
-    r.pressCount = t.press_count;
-    r.fingerDown = !r.sample.error && t.press_count > t.release_count;
+    r.sample = s.sample;
+    r.pressCount = s.pressCount;
+    r.fingerDown = !s.sample.error && s.pressCount > s.sample.releaseCount;
     return r;
 }
 
@@ -195,7 +197,7 @@ public:
     /// which pacing alone cannot show: a watch never attached still paces and still latches, but
     /// its abandon request goes nowhere and the run drives on through the button (measured by
     /// COMP-t's review, 2026-09-29: 14.22 in after B, and a green FINISHED). The boot's chain
-    /// proof requires it (pacerChainProven, auton_tester_run.hpp).
+    /// proof requires it (pacerChainProven, src/common/guarded_run.hpp).
     [[nodiscard]] bool attachedTo(const sequence::RunGuard& guard) const noexcept {
         return guard_ == &guard;
     }
@@ -238,7 +240,7 @@ public:
     /// True while armed. Any task.
     [[nodiscard]] bool armed() const noexcept { return armed_.load(); }
     /// Every pace() since construction, armed or not (the pacing task only): the boot's chain
-    /// proof reads it (pacerChainProven, auton_tester_run.hpp).
+    /// proof reads it (pacerChainProven, src/common/guarded_run.hpp).
     [[nodiscard]] std::uint64_t paces() const noexcept { return paces_; }
 
     /// The pacer seam (file banner).

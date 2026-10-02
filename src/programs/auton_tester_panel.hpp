@@ -45,6 +45,9 @@
 #include <optional>
 #include <string_view>
 
+#include "common/auton_run_log.hpp"
+#include "common/screen_paint.hpp"
+#include "common/state_screens.hpp"
 #include "programs/auton_abort_watch.hpp"
 #include "programs/auton_tester_run.hpp"
 #include "shulib/competition/auton_menu.hpp"
@@ -57,12 +60,9 @@
 
 namespace shulib::bench {
 
-/// competition_get_status()'s bits, PROS-free (the program static_asserts them against PROS).
-inline constexpr std::uint8_t kStatusDisabled = 1u << 0;
-/// The AUTONOMOUS bit (a field, a switch, or a Timed Run in its autonomous part).
-inline constexpr std::uint8_t kStatusAutonomous = 1u << 1;
-/// The CONNECTED bit (a field or a competition switch through the controller).
-inline constexpr std::uint8_t kStatusConnected = 1u << 2;
+// competition_get_status()'s bits (kStatusDisabled, kStatusAutonomous, kStatusConnected) are
+// src/common/state_screens.hpp's since COMP-b's first step (2026-09-30): the competition program's
+// watch reads the same three, and they are defined once, checked against PROS there.
 
 /// Which page is up.
 enum class TesterPage : std::uint8_t { Pick, Ready, Countdown, Running, Result };
@@ -143,6 +143,8 @@ inline constexpr std::string_view kCompetition = "field/switch/Timed Run on: sta
 inline constexpr std::string_view kDisabledWord = "the robot is DISABLED";
 inline constexpr std::string_view kRunAllowed = "READY: touch RUN, then step back";
 inline constexpr std::string_view kSdOn = "SD: runs appended to shulib_auton_runs.txt";
+// The file READY names is the one both programs append to (src/common/auton_run_log.hpp).
+static_assert(kSdOn.ends_with(kAutonRunLogFile), "READY names another file than the run log");
 inline constexpr std::string_view kSdOff = "SD: NO CARD -- this boot's runs on serial only";
 inline constexpr std::string_view kBootRecord = "BOOT RECORD: forward = the end that led Calibrate";
 inline constexpr std::string_view kBootTable = "BOOT TYPED TABLE: its front may be the OTHER end";
@@ -217,18 +219,9 @@ static_assert(ui::screenText(kReadyHint, ui::kSmallCols) && ui::screenText(kAbor
         return false;
     }
     if (a.page == TesterPage::Pick) {
-        if (a.menu.page != b.menu.page || a.menu.buttonCount != b.menu.buttonCount) {
-            return false;
-        }
-        for (std::size_t i = 0; i < a.menu.buttonCount; ++i) {
-            const competition::MenuButton& x = a.menu.buttons[i];
-            const competition::MenuButton& y = b.menu.buttons[i];
-            if (x.id != y.id || x.entry != y.entry || !(x.rect == y.rect) || x.armed != y.armed
-                || x.chosen != y.chosen || std::string_view{x.label} != std::string_view{y.label}) {
-                return false;
-            }
-        }
-        return true;
+        // The selector's frames: src/common/screen_paint.hpp's sameMenuButtons() since COMP-b (the
+        // competition program repaints the same selector by the same rule; moved, never copied).
+        return sameMenuButtons(a.menu, b.menu);
     }
     if (a.buttonCount != b.buttonCount) {
         return false;

@@ -204,8 +204,9 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
 
 ## "The transcript itself looks wrong"
 
-- **Result lines say `n/a`:** record stream not connected — expected in competition builds and
-  in the tutorial's first wiring ([Chapter 8](08-your-first-routine.md)).
+- **Result lines say `n/a`:** record stream not connected — expected in a build with diagnostics
+  off (none of the team's programs is one today) and in the tutorial's first wiring
+  ([Chapter 8](08-your-first-routine.md)).
 - **Lines missing:** check for `throttled …: dropped N lines` notices and the summary's
   `dropped` field (rate limiting), or a level filter you configured and forgot.
 - **No lines at all, and the upload said it worked:** suspect the *cable* before the code. When

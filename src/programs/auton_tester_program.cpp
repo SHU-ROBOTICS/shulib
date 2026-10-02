@@ -25,9 +25,11 @@
 //     Chassis -> RunGuard -> AbortWatch -> ScreenPacer -> the provider's 10 ms ProsTickPacer
 // The guard checks its deadlines and its abandon latch first; the watch reads the abort inputs;
 // the painter paints; the tick pacer waits for the next 10 ms boundary. The BOOT PROVES the chain
-// (pacerChainProven, the brief's R13): one idle tick must pace both the guard and the watch, or the
-// boot is REFUSED -- a Chassis built without the guard, or on the watch directly, could not be
-// aborted, and no pin can see every spelling of that mistake.
+// (pacerChainProven, the brief's R13 -- src/common/guarded_run.hpp's since COMP-b's first step,
+// shared with the competition program): one idle tick must pace both the guard and the watch, and
+// the watch must be attached to the guard, or the boot is REFUSED -- a Chassis built without the
+// guard, or on the watch directly, could not be aborted, and no pin can see every spelling of that
+// mistake.
 //
 // ═══ RUN IS REFUSED UNLESS ... (the brief's R4; D5, D9) ═════════════════════════════
 // the estimate is live, a controller is connected (it carries the abort), VEXos reports no field,
@@ -46,9 +48,11 @@
 // file names neither. Never written during a run: the lines go out after the guard hands the
 // robot back. No card = serial only, never a refusal.
 //
-// Compiled in all seven builds (every .cpp under src/ is); nothing here reads a build switch, no
+// Compiled in all eight builds (every .cpp under src/ is); nothing here reads a build switch, no
 // beacon literal lives here, and the state is one function-local static of EMPTY optionals, so
-// --gc-sections drops all of it from every build but tank-autontest. ASCII only in every runtime
+// --gc-sections drops all of its CODE from every build but tank-autontest (its string literals can
+// still ride along where the linker keeps this file's copy of a shared inline function -- words
+// only; COMP-b's review measured that for the competition program's). ASCII only in every runtime
 // string; every screen string goes through printText(); only a literal "%s" reaches a PROS print.
 // No slot number appears in any string here (the slot is the documents' to name).
 //
@@ -69,9 +73,10 @@
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
+#include "common/auton_run_log.hpp"
 #include "common/boot_source.hpp"
 #include "common/fault_latch_hook.hpp"
-#include "common/screen_text.hpp"
+#include "common/screen_paint.hpp"
 #include "common/state_screens.hpp"
 #include "programs/auton_abort_watch.hpp"
 #include "programs/auton_tester_panel.hpp"
@@ -99,26 +104,24 @@
 namespace shulib::bench {
 namespace {
 
-using calibration::TextSize;
-
 /// Every serial line of this program carries this prefix.
 constexpr const char* kTag = "ATS";
 /// The upload check: the time this file was compiled, on the READY page and the refusal bar.
 constexpr std::string_view kBuildTimeText = "BUILD " __TIME__;
-/// The SD run log: ONE file across boots, appended (A4 register HA-177). A BARE name: the adapter
-/// owns the /usd/ prefix and every open mode (hal/pros/block_sink.hpp; HA-122).
-constexpr const char* kSdRunLogFile = "shulib_auton_runs.txt";
+/// The SD run log: ONE file across boots, appended (A4 register HA-177) -- and the competition
+/// program's too, so its name is src/common/auton_run_log.hpp's since COMP-b. A BARE name: the
+/// adapter owns the /usd/ prefix and every open mode (hal/pros/block_sink.hpp; HA-122).
+constexpr const char* kSdRunLogFile = kAutonRunLogFile;
 /// Live numbers repaint at most 5 Hz (PROS leaks every print).
 constexpr double kLiveRepaintSeconds = 0.2;
 
 static_assert(kTesterTickSeconds * 1000.0 == static_cast<double>(hal::pros::ProsTickPacer::kTickMs),
               "the countdown's wait is one motion tick");
-static_assert(kStatusDisabled == static_cast<std::uint8_t>(COMPETITION_DISABLED)
-                  && kStatusAutonomous == static_cast<std::uint8_t>(COMPETITION_AUTONOMOUS)
-                  && kStatusConnected == static_cast<std::uint8_t>(COMPETITION_CONNECTED),
-              "the panel's status bits are PROS's");
-// The screen's two size enums, mapped one to one (printText takes calibration::TextSize, the pages
-// ui::TextSize): the budgets must be equal, or a line checked against one is cut by the other.
+// (The status bits the panel reads -- kStatusDisabled, kStatusAutonomous, kStatusConnected -- are
+// src/common/state_screens.hpp's since COMP-b's first step, and are checked against PROS there.)
+// The screen's two size enums, mapped one to one by the shared painter (printText takes
+// calibration::TextSize, the pages ui::TextSize): the budgets must be equal, or a line checked
+// against one is cut by the other.
 static_assert(calibration::kSmallCols == ui::kSmallCols && calibration::kMediumCols == ui::kMediumCols
                   && calibration::kLargeCols == ui::kLargeCols,
               "calibration:: and ui:: text budgets must be the same numbers");
@@ -129,13 +132,12 @@ constexpr std::string_view kNothingPowered =
     "Nothing is powered. The full text is on the serial log.";
 constexpr std::string_view kStoppedFooter =
     "The drive is stopped (0 V + Brake). Restart the program.";
-constexpr std::string_view kMoreOnSerial = "(the full text is on the serial log)";
-static_assert(calibration::screenText(kBarWord, calibration::kHeaderCols)
-                  && calibration::screenText(kMoreOnSerial, calibration::kSmallCols)
+// Checked against the shared refusal painter's own budgets (src/common/screen_paint.hpp, since
+// COMP-b's first step; its "(the full text is on the serial log)" pointer is checked there).
+static_assert(refusalBarFits(kBarWord)
                   && calibration::screenText(kBuildTimeText, calibration::kSmallCols),
               "a refusal-screen literal does not fit its budget");
-static_assert(calibration::wrapWords<calibration::kSmallCols, 2>(kNothingPowered).complete
-                  && calibration::wrapWords<calibration::kSmallCols, 2>(kStoppedFooter).complete,
+static_assert(refusalFooterFits(kNothingPowered) && refusalFooterFits(kStoppedFooter),
               "a refusal footer must fit its two SMALL rows");
 
 /// One read of the brain's touch screen: the ONE place PROS's touch struct is read, reduced by
@@ -217,66 +219,24 @@ TesterState& state() {
     return s;
 }
 
-// ═══ PAINTING (every string through common/screen_text.hpp's printText) ════════════════════
-constexpr std::uint32_t kBg = 0x101418;
-
-std::uint32_t rgb(ui::Tone t) {
-    switch (t) {
-        case ui::Tone::Blue: return 0x1E5AA8;
-        case ui::Tone::Amber: return 0xE0A000;
-        case ui::Tone::Green: return 0x2E8B3A;
-        case ui::Tone::Red: return 0xC0392B;
-        case ui::Tone::Grey: return 0x707070;
-        case ui::Tone::White: return 0xF0F0F0;
-    }
-    return 0xF0F0F0;
-}
-
-TextSize printSize(ui::TextSize s) {
-    switch (s) {
-        case ui::TextSize::Small: return TextSize::Small;
-        case ui::TextSize::Medium: return TextSize::Medium;
-        case ui::TextSize::Large: return TextSize::Large;
-    }
-    return TextSize::Small;
-}
-
-void paintLine(const competition::MenuLine& l, std::uint32_t eraser) {
-    printText(printSize(l.size), l.x, l.y, rgb(l.tone), eraser, l.text, ui::budgetFor(l.size));
-}
-
-void paintButton(ui::Rect r, const char* label, bool armed, ui::Tone tone) {
-    const std::uint32_t fill = armed ? rgb(tone) : rgb(ui::Tone::Grey);
-    pros::c::screen_set_pen(fill);
-    pros::c::screen_fill_rect(r.x0, r.y0, r.x1, r.y1);
-    printText(TextSize::Medium, static_cast<std::int16_t>(r.x0 + 8),
-              static_cast<std::int16_t>(r.y0 + 16), rgb(ui::Tone::White), fill, label);
-}
+// ═══ PAINTING (every string through common/screen_text.hpp's printText, in the shared painters) ═══
+// The painters -- the tone colours, a line, a button, the bar, the auton selector's frame -- are
+// src/common/screen_paint.{hpp,cpp}'s since COMP-b's first step (2026-09-30): the competition
+// program paints the same selector. The calls below are the ones this file made before, in the
+// same order, so the pages look exactly as they did.
 
 void paintFrame(const TesterView& v) {
-    pros::c::screen_set_eraser(kBg);
-    pros::c::screen_erase();
     if (v.page == TesterPage::Pick) {
-        const competition::MenuView& m = v.menu;
-        pros::c::screen_set_pen(rgb(m.header.tone));
-        pros::c::screen_fill_rect(0, 0, 479, 26);
-        paintLine(m.header, rgb(m.header.tone));
-        paintLine(m.info, kBg);
-        paintLine(m.status, kBg);
-        for (std::size_t i = 0; i < m.buttonCount; ++i) {
-            const competition::MenuButton& b = m.buttons[i];
-            paintButton(b.rect, b.label, b.armed, b.chosen ? ui::Tone::Green : ui::Tone::Blue);
-        }
+        paintMenuFrame(v.menu);  // clear, the bar, info, status, the buttons
         return;
     }
-    pros::c::screen_set_pen(rgb(v.bar));
-    pros::c::screen_fill_rect(0, 0, 479, 26);
-    paintLine(v.header, rgb(v.bar));
+    clearPanel();
+    paintBar(v.bar, v.header);
     for (std::size_t i = 0; i < v.bigCount; ++i) {
-        paintLine(v.big[i], kBg);
+        paintLine(v.big[i], kPanelBg);
     }
     for (std::size_t i = 0; i < v.lineCount; ++i) {
-        paintLine(v.lines[i], kBg);
+        paintLine(v.lines[i], kPanelBg);
     }
     for (std::size_t i = 0; i < v.buttonCount; ++i) {
         const TesterButton& b = v.buttons[i];
@@ -287,29 +247,18 @@ void paintFrame(const TesterView& v) {
 
 /// Repaint only the text lines that changed (same page, same buttons).
 void paintText(const TesterView& was, const TesterView& now) {
-    const auto differs = [](const competition::MenuLine& a, const competition::MenuLine& b) {
-        return a.tone != b.tone || std::string_view{a.text} != std::string_view{b.text};
-    };
     if (now.page == TesterPage::Pick) {
-        if (differs(was.menu.header, now.menu.header)) {
-            paintLine(now.menu.header, rgb(now.menu.header.tone));
-        }
-        if (differs(was.menu.info, now.menu.info)) {
-            paintLine(now.menu.info, kBg);
-        }
-        if (differs(was.menu.status, now.menu.status)) {
-            paintLine(now.menu.status, kBg);
-        }
+        paintMenuText(was.menu, now.menu);
         return;
     }
     for (std::size_t i = 0; i < now.bigCount; ++i) {
-        if (i >= was.bigCount || differs(was.big[i], now.big[i])) {
-            paintLine(now.big[i], kBg);
+        if (i >= was.bigCount || lineDiffers(was.big[i], now.big[i])) {
+            paintLine(now.big[i], kPanelBg);
         }
     }
     for (std::size_t i = 0; i < now.lineCount; ++i) {
-        if (i >= was.lineCount || differs(was.lines[i], now.lines[i])) {
-            paintLine(now.lines[i], kBg);
+        if (i >= was.lineCount || lineDiffers(was.lines[i], now.lines[i])) {
+            paintLine(now.lines[i], kPanelBg);
         }
     }
 }
@@ -360,47 +309,22 @@ void logBoth(hal::LogLevel level, const char* text) {
     }
 }
 
-// ═══ THE REFUSAL SCREEN (teleop_program.cpp's painter, wrapped the same way) ═══════════════════
-/// A full-screen refusal, every string through printText(): the bar, the headline wrapped over two
-/// MEDIUM rows, the reason over four SMALL rows (and a pointer to the serial log when it is
-/// longer), and the footer over two SMALL rows. Also the serial line.
-void paintRefusal(const char* headline, const char* why, std::string_view footer) {
-    pros::c::screen_set_eraser(kBg);
-    pros::c::screen_erase();
-    pros::c::screen_set_pen(rgb(ui::Tone::Red));
-    pros::c::screen_fill_rect(0, 0, 479, 26);
-    printText(TextSize::Medium, 8, 4, rgb(ui::Tone::White), rgb(ui::Tone::Red), kBarWord.data());
-    printText(TextSize::Small, 330, 8, rgb(ui::Tone::White), rgb(ui::Tone::Red),
-              kBuildTimeText.data());
-    const auto h =
-        calibration::wrapWords<calibration::kMediumCols, 2>(headline != nullptr ? headline : "");
-    for (std::size_t k = 0; k < h.count; ++k) {
-        printText(TextSize::Medium, 8, static_cast<std::int16_t>(34 + 22 * static_cast<int>(k)),
-                  rgb(ui::Tone::Red), kBg, h.line[k]);
-    }
-    const auto w = calibration::wrapWords<calibration::kSmallCols, 4>(why != nullptr ? why : "");
-    for (std::size_t k = 0; k < w.count; ++k) {
-        printText(TextSize::Small, 8, static_cast<std::int16_t>(82 + 16 * static_cast<int>(k)),
-                  rgb(ui::Tone::White), kBg, w.line[k]);
-    }
-    if (!w.complete || !h.complete) {
-        printText(TextSize::Small, 8, 146, rgb(ui::Tone::Grey), kBg, kMoreOnSerial.data());
-    }
-    const auto foot = calibration::wrapWords<calibration::kSmallCols, 2>(footer);
-    for (std::size_t k = 0; k < foot.count; ++k) {
-        printText(TextSize::Small, 8, static_cast<std::int16_t>(182 + 16 * static_cast<int>(k)),
-                  rgb(ui::Tone::Grey), kBg, foot.line[k]);
-    }
-    std::printf("[%s] REFUSED: %s -- %s\n", kTag, headline != nullptr ? headline : "",
-                why != nullptr ? why : "");
-    std::fflush(stdout);
-}
-
+// ═══ THE REFUSAL SCREEN ═══════════════════════════════════════════════════════════════
+// Painted by src/common/screen_paint.cpp's paintRefusalScreen() since COMP-b's first step
+// (2026-09-30) -- the painter this file carried until then ("teleop_program.cpp's, wrapped the
+// same way"), moved there unchanged for the competition program: the red bar with this program's
+// name and BUILD time, the headline over two MEDIUM rows, the reason over four SMALL rows (and a
+// pointer to the serial log when longer), the footer over two SMALL rows, and the serial line.
 void refuse(const char* headline, const char* why, std::string_view footer = kNothingPowered) {
     TesterState& st = state();
     std::snprintf(st.refusalHeadline, sizeof st.refusalHeadline, "%.63s", headline);
     std::snprintf(st.refusalWhy, sizeof st.refusalWhy, "%.191s", why);
-    paintRefusal(st.refusalHeadline, st.refusalWhy, footer);
+    paintRefusalScreen(RefusalScreen{.tag = kTag,
+                                     .barWord = kBarWord.data(),
+                                     .buildTime = kBuildTimeText.data(),
+                                     .headline = st.refusalHeadline,
+                                     .why = st.refusalWhy,
+                                     .footer = footer});
 }
 
 // ═══ ONE RUN ═══════════════════════════════════════════════════════════════════════════

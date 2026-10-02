@@ -57,7 +57,11 @@ The headline limitation, stated as many times as it takes:
   ([Chapter 16](16-testing-an-auton-on-the-bench.md), 2026-09-28) runs one of the team's autons —
   a `moveTo` under the library's own control, through the competition program's own call — from
   the brain's screen. On the host test plant it finishes the 40 in auton; it has never run on a
-  brain, and the beliefs its abort and its SD log rest on (HA-177, HA-178) are unchecked.
+  brain, and the beliefs its abort and its SD log rest on (HA-177, HA-178) are unchecked. The
+  competition program itself, "shulib Competition" ([Chapter 17](17-the-competition-program.md),
+  2026-09-30), runs the same autons in `autonomous()`; it has not run on a brain either, and the
+  beliefs a match rests on — that PROS deletes its phase tasks on a mode change (HA-161), and what
+  the controller's Timed Run does (HA-162) — are unchecked.
 - **Every physical constant is a labeled guess.** Control gains, settle tolerances, sensor
   noise levels, drivetrain geometry, fault thresholds — all provisional, and cataloged as
   falsifiable claims in the [Hardware Assumptions Register](../hardware-assumptions.md)
