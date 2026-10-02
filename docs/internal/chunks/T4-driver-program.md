@@ -50,6 +50,19 @@
 > nowhere else" restored; 1a's three interim sentences removed). Everything in 1b about re-wiring Teleop lapses.
 > The order is Part 1a (landed) → COMP-b → Part 2 → Part 3.
 >
+> **PART 2 SPLIT — 2a BEFORE COMP-b (the team lead's approval, 2026-09-28 ~17:35, "speedup B"); 2b FOLDED INTO
+> PART 3 (his ruling, 2026-10-01).** **Part 2a** is the LIBRARY half: §1 Part 2 items 1-5 and 7, their tests (§3's
+> P2-* bar the shared panel's and P2-18) and their library documents — built in its own worktree and landed by
+> the coordinator's merge (its live log: T4-PROGRESS "Part 2a", with the review round and the verification). It
+> reaches Teleop and the X-drive through `runDriverControl`'s defaulted field, and COMP-b's `opcontrol()` the same
+> way from that program's first build, so COMP-b is never unprotected. **Part 2b** — item 6 (the `src/` words,
+> the PROTECTION row on the competition program's panel and its host tests, COMP's `perTick` taking the fourth
+> argument, the driver file's protections paragraph, P2-18 and cookbook 06's "How it runs" re-quote), item 8 (the
+> re-read of COMP-b's files), and Station K's two lines with THE PUSH CHECK, unless COMP-b writes them with the
+> station (the list: T4-PROGRESS "Part 2b's list") — is Part 3's LATE step, built after COMP-b lands. The order
+> is now Part 1a (landed) → Part 2a → Part 3, whose early step runs beside COMP-b and whose late step builds 2b's
+> items after it (the team lead, 2026-10-01); every "after COMP-b" said of Part 2 below holds for 2b's items.
+>
 > **PART 0 LANDED (2026-09-27)** with the coordinator's plan commit after SRC1 (`1237c91`): COMP's B5, B29
 > and §3 item 3 name slot 6; the build order's T4 entry, count and deviations rows; G3a's line on the driver
 > file's marked region; worksheet Station A's slot map; the roadmap's row; HANDOFF's lines. The auton tester
@@ -88,6 +101,8 @@
 > | — | *COMP-b (not T4's)* | *its `opcontrol()` calls the driver file, written once (B11 as Part 1a replaces it)* | | |
 > | 1b | ~~**one owner**~~ **SKIPPED — folded into Part 3** (2026-09-28) | ~~the buttons leave `src/robots/mechanism_table.hpp`; "shulib Teleop" runs the driver file until Part 3 retires it~~ — the table cleanup is Part 3 item 5; Teleop is never rewired | — | — |
 > | 2 | **the drive protections, in the library** | the old drive's mid-match absence rule and its two re-arming cuts, applied inside `teleop::runDriverControl` for every program, with a dead port's frozen readings kept out of both cuts; host-tested on the plant's member faults and on hand-stepped reads | after COMP-b, BEFORE 3 *(was "after 1b")* | ~2–2½ days *(re-check 2026-09-28; was ~1½–2; the ruling said ~½ day; see Part 2's note)* |
+> | 2a | *(2026-09-28: Part 2 SPLIT, the header)* **the library half** | items 1-5 and 7: the protections inside `runDriverControl`, their tests and library documents; reaches Teleop, the X-drive and COMP-b's `opcontrol()` by the defaulted field | BEFORE COMP-b | — |
+> | 2b | **the program half** — **FOLDED INTO PART 3** (2026-10-01) | item 6 (the panel's PROTECTION row, COMP's `perTick`, the driver file's paragraph, P2-18, the cookbook re-quote), item 8 (COMP-b's files re-read), Station K's push check unless COMP-b writes it | with Part 3, as its late step, after COMP-b | — |
 > | 3 | **the new "shulib Drive"; "shulib Teleop" retired** | `src/programs/drive_program.*`'s content REPLACED by the thin program around the driver file (slot 1, `PROGRAM=drive`, beacon `tank-drive`); Teleop's diagnostics become its DETAILS page; `PROGRAM=library` removed; every remaining word naming Teleop or slot 2 swept from `src/` and `include/shulib/`; **and Part 1b's table cleanup (item 5)** | after 2 | ~3–3½ days, ~2½–3 without N5 (a) *(re-check 2026-09-28; was ~2, ~1½)* |
 >
 > **Executor model: `opus`. Do not commit.** Live log: `docs/internal/chunks/T4-PROGRESS.md`, **created
@@ -762,7 +777,11 @@ Each finding re-verified in the tree at `37706ce`; all nine are real and fixed a
   - Station K, not J, is the driver file's first run on the robot.
   - **Until Part 2 lands, the competition program's `opcontrol()` drives with no mid-match absence rule
     and no cuts.** MOTOR_GROUP_DISAGREE is still raised. The OLD "shulib Drive" in slot 1 keeps its
-    protections until Part 3 replaces it, so at no moment is the only protected program gone.
+    protections until Part 3 replaces it, so at no moment is the only protected program gone. *(2026-09-28:
+    Part 2 SPLIT, the header — Part 2a, the library half, lands BEFORE COMP-b, so this cost no longer
+    exists: `opcontrol()` is protected from its first build, through `runDriverControl`'s defaulted field.
+    What waits for Part 2b's items — Part 3's late step since 2026-10-01 — is the panel's PROTECTION row
+    and the push check's place on Station K.)*
 
 **D3 → R3 and R6. RULED: replace "shulib Drive" now; the slots final.**
 - **The question.** The team lead asked: "why cant we just replace it? that shulib drive is just the old one
@@ -974,6 +993,9 @@ lead's: F4 is locked; needed before Part 2). RECOMMENDED (a), amended at the re-
     threshold.
   - **FROZEN.** SUSPECT while at least one other present member of its side is NOT. A whole side stopping
     at once is every member alike, never a death: a wall, a stall, or a velocity report lagging a stop.
+    *(Part 2a's verification, 2026-10-01: alike only while the side's reports settle at the same pace —
+    at a wall, one whose report settles well before its mates' is SUSPECT alone and can be marked; the
+    note under §1 Part 2 item 4, and HA-175's known gaps.)*
     *(Pending Decision D, re-check item 14: this guard marks the three stalled LIVE members of a side whose
     fourth member SLIPS (HA-130's port 18) when the train stalls under a held stick. D (a) replaces "at
     least one other" with "the present, unlatched members that are NOT suspect are at least as many as
@@ -1008,7 +1030,9 @@ lead's: F4 is locked; needed before Part 2). RECOMMENDED (a), amended at the re-
       data stops arriving, which is what "stops answering" means. BLUE counts 300 per output turn: about
       one count every 42 ms at 0.5 rad/s, and every 21 ms at 1 rad/s. HA-175 settles it. *(Re-check
       2026-09-28, item 14: the reasoning missed a live member STALLED beside a slipping mate — its position
-      repeats because the train stopped, not because its data did. Decision D.)*
+      repeats because the train stopped, not because its data did. Decision D.)* *(Part 2a's verification,
+      2026-10-01: and at ANY wall, beside no slipping mate, when its report settles well before its mates'
+      — landmine 28's note.)*
     - **A whole side that stops answering at once is not seen,** because every member looks alike. The old
       faulted-read count would have seen it. The robot shows it by not driving that side.
     - A stale reading stays in the group's median for up to 250 ms before it is ABSENT (today it stays
@@ -1727,7 +1751,13 @@ N1, N2, N3 and N7 are answered before it starts. **No line of the driver file's 
        item 12), and closes the lag path of item 14.)*
      - **The mates' fastest for i** is the largest |velocity| among the OTHER present, unlatched members
        whose `repeat` is below `suspectReads`. A member whose own encoder has stopped is no evidence that
-       the train turns.
+       the train turns. *(Part 2a's verification, 2026-10-01: under D (a)'s repeat — position AND velocity —
+       this filter keeps a mate whose encoder HAS stopped while its lagging report still decays, so that
+       sentence no longer holds of the rule as built, nor of the probe D was ruled on (`slip_probe.cpp`
+       :86, the same `repeat`). The consequence is a gap at ANY wall: a member whose report settles well
+       before its mates' is marked (P2-19e; HA-175's known gaps). Filtering on the encoder alone, as this
+       sentence and the FROZEN rule's first wording ("a side-mate whose position IS changing") say, was
+       probed and closes it, at a cost — the team lead's to rule: REMAINING-WORK §11, "D, again".)*
      - **SUSPECT(i)** = `repeat[i] >= suspectReads` AND (`|v[i]| > oppositeFloorRadS` OR the mates'
        fastest `> movingFloorRadS`).
      - **FROZEN(i)** = SUSPECT(i) AND some other present, unlatched member is not SUSPECT. *(Under Decision
@@ -2532,7 +2562,9 @@ in Part 3. This list is kept as the record.)*
   A changed default fails it.
 - **P2-19 THE WALL** (hand-stepped; the probe's own finding). Every member of a side stops at once under
   full stick, while each reported velocity decays over 300 ms. Expect nobody FROZEN, nobody ABSENT, no
-  DEGRADED line and no cut. A live train that stops is never a death.
+  DEGRADED line and no cut. A live train that stops is never a death. *(Part 2a's verification,
+  2026-10-01: never, while its reports decay ALIKE, as here; P2-19d and P2-19e pin what one report
+  settling sooner does — landmine 28's note.)*
 - **P2-19b a dead member's stale speed at a wall** *(re-check item 1; only under Decision C (b))*.
   Hand-stepped: member X freezes at +v, and 1 tick later the whole side stalls, the live members reading
   EXACTLY 0 under full stick.
@@ -3107,7 +3139,9 @@ follows under C (a) and D (a); under other answers the executor words it to matc
 20. **(Part 2) The median when a member drops** (P2-9).
 21. **(Part 2) Part 3 must NOT land before Part 2** (R4). Station K run before Part 2 drives unprotected,
     and the OLD "shulib Drive" keeps its protections until Part 3, so no window exists in which the only
-    protected program is gone.
+    protected program is gone. *(2026-09-28, the split: Part 2a lands before COMP-b, so Station K never
+    runs unprotected; and since 2026-10-01 Part 2b's items are Part 3's own late step, so Part 3 cannot
+    land without them.)*
 22. **(Part 3) A retired build must not come back silently:** the RETIRED list in step 0, and the
     Makefile's named `$(error)`.
 23. **(Part 3) COMP-t's files are not T4's; slot 2 per N4.**
@@ -3136,7 +3170,10 @@ follows under C (a) and D (a); under other answers the executor words it to matc
     "another member still answering" is not enough. One SLIPPING member answers while three stalled live
     members do not, and all three would be marked. Under Decision D (a), the answering members must be at
     least as many as the SUSPECT ones, and a repeated read needs position AND velocity unchanged. P2-21 and
-    P2-21b are the proof.)*
+    P2-21b are the proof.)* *(Part 2a's verification, 2026-10-01: "must mark nobody" holds only while the
+    side's reports lag ALIKE, which is what P2-19 proves. One whose report settles well before its mates'
+    is marked — a live motor (P2-19e, the gap pinned as built; HA-175's known gaps; REMAINING-WORK §11,
+    "D, again").)*
 29. **(Part 2) Robot two HAS a slipping member** (HA-130, port 18). It is the case the rulings probe did not
     have and the plant cannot hit a wall with. Every rule that says "a mate turns, so this one should" must
     be tried against it. P2-21 does that, hand-stepped *(re-check 2026-09-28)*.

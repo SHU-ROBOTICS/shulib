@@ -216,6 +216,56 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
   that a control test disproved. The [FAQ](../faq.md) has the full version.
 - **`build MISSING`:** the binary lost its identity stamp — Chapter 11's session-header note.
 
+## "The drive stops for a second, or a motor is reported dead" (driver control)
+
+Since the drive protections moved into the library's driver loop ([Chapter 10](10-the-api.md)),
+driver control can stop the drive by itself, and it always says why on the log, tag `TEL`. Find
+the line first; each one names the ports.
+
+- **`CUT: FIGHT on LEFT -- port(s) 18 -- both sides 0 V for 1 s, cut #1, then re-arm`**, then
+  `re-armed after cut #1 (1 s at 0 V)`: a drive motor ran against its side for 250 ms. The
+  `at the cut:` lines after it give every motor's speed, current and temperature at that tick —
+  the named one reads the other way, or far slower than its mates. **Likely:** a wrong sign for
+  that port (a record from another wiring — recalibrate), a slipping or broken gear, a motor
+  wired backwards. A cut that comes back every 1.25 s while the stick is held is the same fight
+  each time. `CUT: whole LEFT side OPPOSITE/stalled vs command` means every motor on the side
+  disagreed — the side as a whole is wired or signed backwards. **One to rule out:** a full-speed
+  stick reversal that takes longer than 250 ms to turn the train around (register entry HA-132).
+- **`CUT: port 17 (LEFT) over 2.4 A for 250 ms …`**: one drive motor drew more than 2.4 A for
+  250 ms while its side was driven. **Likely:** pushing a wall or a robot (a V5 motor at its
+  current limit is believed to draw about 2.5 A, the PROS default — register entry HA-154, not
+  measured), or a fight too locked to turn anything. **One to rule out:** a full-stick reversal at
+  speed, or a full-stick launch from rest, that holds the limit for 250 ms — a cut in the middle of
+  ordinary driving. If the robot must push, `DriverLoopConfig::protection.overCurrentCuts = false`
+  makes this a logged warning instead; the push check is how you find out what your robot draws
+  (HA-176: a wall push, a reversal and a launch). The `drive: LEFT peak …` line written when you let
+  go of the stick records the highest current of that stretch.
+- **`WARNING: port 18 (LEFT) went ABSENT at runtime: reads frozen for 250 ms while its side
+  answered`**: that motor's readings stopped changing while its side turned — a port that stopped
+  answering (a cable, a port, a motor). It is dropped from every reading and still commanded; the
+  robot drives on degraded, and the next line re-counts the dead. Check its cable and port; it stays
+  ABSENT until the program is restarted, even if it answers again.
+- **`REFUSED: more than 2 motors dead in total -- 0 V for the rest of the run …`** (or `REFUSED at
+  the start of driver control: …` with a `dead:` list): three or more drive motors are dead in total
+  — a harness, a bank of ports, a battery — and the drive stays at 0 V until the program is
+  restarted. Fix the robot first; a restart with the same fault refuses again — at boot, if those
+  ports are dead then, or once more than two are dead again.
+- **A motor reported dead that is not:** the rule marks a motor whose position AND reported speed
+  repeat while its side is plainly turning, and only when at least as many of its side answer. A
+  whole side stopping together (a wall) marks nobody — as long as its motors' reported speeds
+  settle alike. The known gaps are all at a wall. At ANY wall, the mates' reported speeds lag the
+  stop and still say the train turns, so a motor whose reported speed settles to 0 well before
+  theirs can be marked (in the host tests: its report lagging 30 ms beside theirs at 120 ms, at
+  full stick). Beside a motor whose gear SLIPS (robot two's port 18), whose encoder keeps turning
+  while its mates stall, it takes less: a side ALREADY down to two can have its last live mate
+  marked; and on a full side, ONE stalled motor whose readings flicker, or whose reported speed
+  settles sooner than its mates', can get one or two live motors marked — and a second push then
+  the last one, which stops the drive (register entry HA-175). Fixing the slipping gear removes the
+  slipping cases, not the first one. Capture the log lines around it — they are the evidence that
+  number needs.
+
+None of these lines has been seen on a robot yet; the rules and their numbers are host-tested only.
+
 ## When you're stuck
 
 Capture the transcript (the whole thing), note what you *saw* the robot do, and bring both to

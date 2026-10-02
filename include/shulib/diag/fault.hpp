@@ -76,10 +76,13 @@ enum class FaultCode : std::uint16_t {
                               ///< gear, a frozen encoder on one of N coupled motors). Raised
                               ///< by HealthMonitor from the group's shared coupled-side
                               ///< monitor (teleop/coupled_side_monitor.hpp); lands on the
-                              ///< CONTINUE side of the scheduler's default abort mask — the
-                              ///< drive still works with one bad member and the driver must
-                              ///< be told, not stopped (hal/motor_group.hpp header). APPENDED
-                              ///< at chunk R3b Part 1, per the append-only rule above.
+                              ///< CONTINUE side of the scheduler's default abort mask — in a
+                              ///< motion the drive still works with one bad member and the
+                              ///< driver must be told, not stopped (hal/motor_group.hpp
+                              ///< header); in DRIVER CONTROL, since T4 Part 2, the library's
+                              ///< drive protections also CUT the drive for 1 s on the same
+                              ///< persisted verdict, then re-arm (teleop/drive_protection.hpp).
+                              ///< APPENDED at chunk R3b Part 1, per the append-only rule above.
 };
 
 /// The §18.4 spelling of each code, for TermSink lines and the run summary.

@@ -8,11 +8,14 @@
 
 #include "doctest.h"
 
+#include <string>
+
 #include "shulib/teleop/drivetrain_degradation.hpp"
 
 using shulib::teleop::DegradationVerdict;
 using shulib::teleop::DriveVerdict;
 using shulib::teleop::evaluateDegradation;
+using shulib::teleop::evaluateRuntimeDegradation;
 using shulib::teleop::kMaxDeadTotal;
 using shulib::teleop::kMinAnsweringPerSide;
 using shulib::teleop::SideCount;
@@ -123,4 +126,67 @@ TEST_CASE("degradation: nonsense counts REFUSE rather than drive") {
     CHECK(eval(5, -1, 5, 5).verdict == DriveVerdict::Refuse);
     CHECK(eval(-5, -5, 5, 5).verdict == DriveVerdict::Refuse);
     CHECK(eval(0, 0, 5, 5).reason[0] != '\0');
+}
+
+// ═══ T4 Part 2 — the MID-RUN rule (the team lead's N7 (c), 2026-09-27: "Only when 3+ are dead in
+// total") ════════════════════════════════════════════════════════════════════════════════
+namespace {
+[[nodiscard]] DegradationVerdict runtime(int lExp, int lAns, int rExp, int rAns) {
+    return evaluateRuntimeDegradation(SideCount{lExp, lAns}, SideCount{rExp, rAns});
+}
+}  // namespace
+
+static_assert(evaluateRuntimeDegradation(SideCount{4, 4}, SideCount{4, 4}).verdict
+              == DriveVerdict::Drive);
+
+TEST_CASE("T4 runtime degradation: robot two's four a side — 2/4 on ONE side DRIVES (degraded) "
+          "mid-run, where the boot rule refuses it; the third dead anywhere REFUSES") {
+    // BUG CAUGHT (the brief's mutation "the per-side floor applied mid-run under N7 (c)"): the
+    // second death on one side of robot two stopping the robot for the rest of the match — against
+    // the team lead's words ("1-2 dead ports shouldn't stop driving"). And the cap off by one.
+    CHECK(runtime(4, 4, 4, 4).verdict == DriveVerdict::Drive);
+    CHECK(runtime(4, 3, 4, 4).verdict == DriveVerdict::DriveDegraded);
+    CHECK(runtime(4, 2, 4, 4).verdict == DriveVerdict::DriveDegraded);  // the boot rule's REFUSE
+    CHECK(eval(4, 2, 4, 4).verdict == DriveVerdict::Refuse);             // …unchanged at boot
+    CHECK(runtime(4, 4, 4, 2).verdict == DriveVerdict::DriveDegraded);
+    CHECK(runtime(4, 3, 4, 3).verdict == DriveVerdict::DriveDegraded);  // 1 + 1
+    CHECK(runtime(4, 2, 4, 3).verdict == DriveVerdict::Refuse);         // 2 + 1 = 3
+    CHECK(runtime(4, 3, 4, 2).verdict == DriveVerdict::Refuse);         // 1 + 2 = 3
+    CHECK(runtime(4, 1, 4, 4).verdict == DriveVerdict::Refuse);         // 3 on one side
+    const DegradationVerdict two = runtime(4, 2, 4, 4);
+    CHECK(two.leftDead == 2);
+    CHECK(two.rightDead == 0);
+    CHECK(two.totalDead == 2);
+    CHECK(two.reason[0] != '\0');
+    CHECK(runtime(4, 4, 4, 4).reason[0] == '\0');
+    const DegradationVerdict three = runtime(4, 3, 4, 2);
+    CHECK(three.totalDead == 3);
+    CHECK(std::string{three.reason} == "REFUSE: more than 2 motors dead in total");
+    // Five a side (the typed table's shape): the same cap.
+    CHECK(runtime(5, 3, 5, 5).verdict == DriveVerdict::DriveDegraded);
+    CHECK(runtime(5, 2, 5, 5).verdict == DriveVerdict::Refuse);
+}
+
+TEST_CASE("T4 runtime degradation: an EMPTY side is legal mid-run (only the total is judged); a "
+          "negative count or more answering than listed still REFUSES") {
+    // BUG CAUGHT: a one-group chassis refused at every entry (the boot rule's "empty side" check
+    // copied here), or a census that cannot be right driving anyway.
+    CHECK(runtime(4, 4, 0, 0).verdict == DriveVerdict::Drive);
+    CHECK(runtime(4, 2, 0, 0).verdict == DriveVerdict::DriveDegraded);
+    CHECK(runtime(4, 1, 0, 0).verdict == DriveVerdict::Refuse);
+    CHECK(runtime(0, 0, 0, 0).verdict == DriveVerdict::Drive);
+    CHECK(runtime(4, 5, 4, 4).verdict == DriveVerdict::Refuse);
+    CHECK(runtime(4, -1, 4, 4).verdict == DriveVerdict::Refuse);
+    CHECK(runtime(-1, 0, 4, 4).verdict == DriveVerdict::Refuse);
+    CHECK(runtime(4, 4, 4, 5).reason[0] != '\0');
+    // The RIGHT side's clauses, each by its VERDICT and its REASON (the review of 2026-09-30, D2 /
+    // D3: a non-empty reason alone is also what a DEGRADED verdict gives, and a nonsense census that
+    // happens to exceed the cap refuses for the wrong reason — so neither check could fail).
+    const std::string nonsense = "REFUSE: motor counts make no sense";
+    for (const DegradationVerdict v : {runtime(4, 4, 4, 5), runtime(4, 4, 4, -1), runtime(4, 4, -1, -1),
+                                       runtime(4, 4, -1, 0), runtime(4, 5, 4, 4), runtime(-1, -1, 4, 4)}) {
+        CAPTURE(v.reason);
+        CHECK(v.verdict == DriveVerdict::Refuse);
+        CHECK(std::string{v.reason}.rfind(nonsense, 0) == 0);
+    }
 }

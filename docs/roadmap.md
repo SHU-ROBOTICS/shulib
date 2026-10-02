@@ -1765,7 +1765,13 @@ only the INPUT half is missing.*
 - [~] **The driver program** *(T4, 2026-09-27 — Part 1a LANDED, host- and build-gated: the driver file
   `src/team/robot_two_driver.hpp` and its generic half `src/common/driver_controls.hpp`, held by
   `test/robot_two_driver_test.cpp` and `test/driver_controls_test.cpp`; NO program runs it yet and
-  nothing of it has run on a robot. Parts 1b, 2 and 3 PLANNED)* — ONE readable driver file for robot
+  nothing of it has run on a robot. **Part 2a LANDED 2026-09-29, host- and build-gated:** the old
+  drive's protections inside `teleop::runDriverControl` for every program (`teleop/drive_protection.hpp`,
+  `teleop::FrozenReadingDetector`, `hal::MotorGroup::markAbsent`; `test/drive_protection_test.cpp`),
+  not run on a robot, with known gaps a ruling is pending on — live motors marked dead at a wall: at
+  any wall, one whose speed report settles well before its mates'; beside a slipping drive gear, more
+  easily (A4 register HA-175). Parts 1b and 2b folded into Part 3 (2b's items are its late step);
+  Part 3 PLANNED)* — ONE readable driver file for robot
   two (which button does what, the feel), run by the new "shulib Drive" and by the competition
   program's `opcontrol()`, never copied; the old drive's protections (a dead drive motor, a motor
   fighting its side, over-current) moved into the library's driver loop for every program; "shulib

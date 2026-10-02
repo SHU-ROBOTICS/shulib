@@ -80,6 +80,11 @@
 // drivetrain that is not a tank, a side left with no present member — and everything the
 // provider will not make still refuses the build, as before. With no absent ports (the
 // default) every byte of the graph is what it was: Part 1's bit-identity cases are the pin.
+// A port that dies AFTER boot is not the builder's either: the driver loop's protections
+// (teleop/drive_protection.hpp, T4 Part 2) mark it ABSENT in its group mid-run
+// (MotorGroup::markAbsent — out of every read, still commanded), and describe() names it
+// from then on; nothing is ever rebuilt. Each group is labelled with its slots' port numbers,
+// so those lines name the port.
 //
 // ── MECHANISMS: built from the config, ABSENT rather than refused (chunk T3) ────────
 // Every `config::MechanismConfig` with motors becomes ONE hal::MotorMechanism, built in the
@@ -510,8 +515,9 @@ public:
           kin_{tankKin_.has_value() ? static_cast<const kinematics::IKinematics*>(&*tankKin_)
                                     : static_cast<const kinematics::IKinematics*>(&*matrixKin_)},
           wiring_{wireMotors(cfg_, devices, options)},
-          left_{makeSideGroup(cfg_, wiring_.leftMembers, wiring_.leftCount)},
-          right_{makeSideGroup(cfg_, wiring_.rightMembers, wiring_.rightCount)},
+          left_{makeSideGroup(cfg_, wiring_.leftMembers, wiring_.leftLabels, wiring_.leftCount)},
+          right_{makeSideGroup(cfg_, wiring_.rightMembers, wiring_.rightLabels,
+                               wiring_.rightCount)},
           driveMotors_{makeDriveMotors(wiring_, left_, right_)},
           driveMotorCount_{static_cast<std::size_t>(cfg_.drivetrain.driveMotorCount())},
           groups_{makeGroupArray(left_, right_)},
@@ -736,7 +742,8 @@ public:
 
     /// The BANNER LINE: identity, the drivetrain kind and where its numbers came from, both
     /// sides' ports AS STORED (signs included — the one place a sign lives), any drive port
-    /// built ABSENT (`DEGRADED: absent 3,13` — only when there is one), the geometry that
+    /// ABSENT (`DEGRADED: absent 3,13` — only when there is one: built absent at boot, or marked
+    /// absent mid-run by the driver loop's protections, T4 Part 2), the geometry that
     /// governs, the estimator, and each optional device as present or ABSENT. Truncates rather
     /// than overflowing; writes at least a NUL whenever cap > 0.
     ///
@@ -812,6 +819,11 @@ private:
         std::size_t leftCount = 0;
         /// How many entries of `rightMembers` are real.
         std::size_t rightCount = 0;
+        /// Each LEFT slot's port NUMBER (the signed port's magnitude), in the same order — the
+        /// labels the side's MotorGroup prints a member by (T4 Part 2). Tank only.
+        int leftLabels[hal::kMaxSmartPorts]{};
+        /// Each RIGHT slot's port number, the same way. Tank only.
+        int rightLabels[hal::kMaxSmartPorts]{};
         /// The holonomic wheels' motors, in the F5 wheel order. Holonomic only.
         hal::IMotor* wheels[static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)]{};
         /// How many entries of `wheels` are real.
@@ -894,9 +906,13 @@ private:
             case config::DrivetrainKind::Tank: {
                 const hal::DrivetrainDescription& d = cfg.drivetrain.tank.description;
                 for (std::size_t i = 0; i < d.left.count; ++i) {
+                    w.leftLabels[w.leftCount] =
+                        hal::DrivetrainDescription::portMagnitude(d.left.signedPorts[i]);
                     w.leftMembers[w.leftCount++] = takeUnlessAbsent(d.left.signedPorts[i]);
                 }
                 for (std::size_t i = 0; i < d.right.count; ++i) {
+                    w.rightLabels[w.rightCount] =
+                        hal::DrivetrainDescription::portMagnitude(d.right.signedPorts[i]);
                     w.rightMembers[w.rightCount++] = takeUnlessAbsent(d.right.signedPorts[i]);
                 }
                 break;
@@ -917,15 +933,19 @@ private:
 
     /// ONE `hal::MotorGroup` over a tank side's members — the object that IS the motor for that
     /// kinematic wheel (R3b Part 1: N physical motors on one side go behind one group, or the
-    /// surplus is silently uncommanded). Nothing on a holonomic drivetrain, whose wheels are
+    /// surplus is silently uncommanded) — labelled with each slot's PORT NUMBER, so the driver
+    /// loop's protections name a port a pit crew can find (T4 Part 2; the labels live in
+    /// `wiring_`, which outlives the group). Nothing on a holonomic drivetrain, whose wheels are
     /// single motors.
     [[nodiscard]] static std::optional<hal::MotorGroup> makeSideGroup(
-        const config::RobotConfig& cfg, hal::IMotor* const* members, std::size_t count) {
+        const config::RobotConfig& cfg, hal::IMotor* const* members, const int* labels,
+        std::size_t count) {
         if (cfg.drivetrain.kind != config::DrivetrainKind::Tank) {
             return std::nullopt;
         }
         return std::optional<hal::MotorGroup>{
-            std::in_place, std::span<hal::IMotor* const>{members, count}};
+            std::in_place, std::span<hal::IMotor* const>{members, count},
+            teleop::SideMonitorConfig{}, std::span<const int>{labels, count}};
     }
 
     /// The context's drive-motor array, in KINEMATIC WHEEL ORDER: the two groups on a tank
@@ -1066,10 +1086,11 @@ private:
         }
     }
 
-    /// Write the port numbers (magnitudes, "3,13") of every drive slot built ABSENT, LEFT side
-    /// then RIGHT, read back from the groups' own slots — which were built from the description
-    /// in its stored order, so slot i IS the description's port i. Empty on a complete robot and
-    /// on a holonomic one. Bounded by hand like appendPorts(), always NUL-terminated.
+    /// Write the port numbers (magnitudes, "3,13") of every drive slot that is not PRESENT — a
+    /// boot hole, or a member marked ABSENT mid-run (T4 Part 2) — LEFT side then RIGHT, read back
+    /// from the groups' own slots, which were built from the description in its stored order, so
+    /// slot i IS the description's port i. Empty on a complete robot and on a holonomic one.
+    /// Bounded by hand like appendPorts(), always NUL-terminated.
     void appendAbsent(char* out, std::size_t cap) const {
         if (cap == 0) {
             return;

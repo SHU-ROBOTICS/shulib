@@ -377,7 +377,15 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   program uses it: "shulib Teleop" (`src/programs/teleop_program.cpp`) now drives through
   `teleop::runDriverControl` with the default profile, and that version of the program has not
   run on a robot yet; "shulib Drive" and the bench tester's drive station keep the older raw
-  mapping (`teleop/stick_mapping.hpp`) until a driver has compared the two on the robot.
+  mapping (`teleop/stick_mapping.hpp`) until a driver has compared the two on the robot. The old
+  "shulib Drive"'s protections are no longer that program's alone: since T4 Part 2 the loop drops a
+  drive motor that stops answering mid-run, stops the drive once more than two are dead, and cuts it
+  for 1 s on a fight or an over-current ([Chapter 10](10-the-api.md)) — host-tested only, every
+  number invented (HA-132, HA-175, HA-176), and no push, full-stick reversal or launch has ever been
+  measured against the 2.4 A limit. One case it gets wrong is known: at a wall, live motors can be
+  marked dead — at any wall, one whose reported speed settles well before its mates'; beside a drive
+  motor whose gear slips (robot two's port 18), more easily, and a second push can then stop the
+  drive (HA-175's known gaps; [Chapter 12](12-when-things-go-wrong.md)).
   **Second, no driver has felt any of it.** Every default in the feel layer is invented and registered as a guess
   (HA-112) — which deadband, which curve, which slew rate a driver actually prefers is a
   question only a person on a robot can answer, and nobody has been asked. Treat the defaults

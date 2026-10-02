@@ -60,6 +60,18 @@ held — or both are — it goes to its declared safe state (here Hold: the brak
 test drives this for ten ticks and checks the claw's volts tick by tick: 0, 0, 12, 12, 12, 12,
 0, 0, 0, 0, with the motor left in Hold.
 
+The loop also protects the drive, and there is nothing to write for it: a drive motor whose
+readings freeze while its side turns is dropped after 250 ms, more than two dead drive motors in
+total stop the drive for the rest of the run, and a motor fighting its side — or drawing more than
+2.4 A while driven — for 250 ms sends both sides to 0 V for 1 s, then driving resumes
+([Chapter 10](../guide/10-the-api.md) has the rules; the numbers are `DriverLoopConfig::protection`,
+every one unmeasured). `panel` above is the loop's `perTick`, called once a tick after the drive
+with `(const ChassisSpeeds& command, bool connected, const DriveShaperState& state)` — the driver's
+request, whether the controller is there, and the feel layer's state. To show the protections on
+a screen, give it a fourth parameter, `const DriveProtectionState&`: the loop hands the
+protections' state (driving, degraded, cut or refused; the dead ports; the cut count) to a
+`perTick` that takes it, and one with the three parameters works exactly as before.
+
 **Why it is written this way.**
 
 - **Letting go is the stop.** A mechanism the driver uses *while driving* cannot be interrupted by

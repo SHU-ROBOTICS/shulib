@@ -32,7 +32,10 @@ infinity). The `hal/pros` adapters screen every read **before** any conversion:
   held member is absorbed and the gate never sees it: a `TRAVEL` there means enough of that
   side's members jumped together to move the median (on a four-motor side, two of them). The
   group-level check is `MOTOR_GROUP_DISAGREE`, which compares each member's velocity with its
-  mates'; whether it catches a member whose velocity is held as well is not established.)*
+  mates'; whether it catches a member whose velocity is held as well is not established. In
+  DRIVER CONTROL, since T4 Part 2, the library's drive protections look for exactly that member —
+  its position and velocity repeating while its side turns — and mark it absent after 250 ms, with a
+  log line naming the port; in an autonomous motion nothing does.)*
 - **The conversions themselves throw on a sentinel** — a fail-loud backstop, not the normal
   path; the adapters exist to make it unreachable (register entry HA-08).
 

@@ -204,7 +204,7 @@ a mechanism's stall detector tripped: stall-grade current with the shaft not tur
 MotorGroupDisagree = 12
 ```
 
-a member of a hal::MotorGroup has PERSISTENTLY disagreed with its coupled group — turning against the command or not turning while its mates do (a wrong sign, a stripped gear, a frozen encoder on one of N coupled motors). Raised by HealthMonitor from the group's shared coupled-side monitor (teleop/coupled_side_monitor.hpp); lands on the CONTINUE side of the scheduler's default abort mask — the drive still works with one bad member and the driver must be told, not stopped (hal/motor_group.hpp header). APPENDED at chunk R3b Part 1, per the append-only rule above.
+a member of a hal::MotorGroup has PERSISTENTLY disagreed with its coupled group — turning against the command or not turning while its mates do (a wrong sign, a stripped gear, a frozen encoder on one of N coupled motors). Raised by HealthMonitor from the group's shared coupled-side monitor (teleop/coupled_side_monitor.hpp); lands on the CONTINUE side of the scheduler's default abort mask — in a motion the drive still works with one bad member and the driver must be told, not stopped (hal/motor_group.hpp header); in DRIVER CONTROL, since T4 Part 2, the library's drive protections also CUT the drive for 1 s on the same persisted verdict, then re-arm (teleop/drive_protection.hpp). APPENDED at chunk R3b Part 1, per the append-only rule above.
 
 *enumerator, declared at [`include/shulib/diag/fault.hpp:73`](../../include/shulib/diag/fault.hpp#L73).*
 
@@ -218,7 +218,7 @@ a member of a hal::MotorGroup has PERSISTENTLY disagreed with its coupled group 
 
 The §18.4 spelling of each code, for TermSink lines and the run summary. Never returns null; an out-of-range cast renders as "UNKNOWN" (never a crash).
 
-*free function, declared at [`include/shulib/diag/fault.hpp:87`](../../include/shulib/diag/fault.hpp#L87).*
+*free function, declared at [`include/shulib/diag/fault.hpp:90`](../../include/shulib/diag/fault.hpp#L90).*
 
 <a id="class-faultlatch"></a>
 
@@ -230,7 +230,7 @@ class FaultLatch
 
 Latched first-fault capture + cascade counting (§18.4). See the header note for the root-cause rationale and the noexcept/concurrency contracts.
 
-*class, declared at [`include/shulib/diag/fault.hpp:108`](../../include/shulib/diag/fault.hpp#L108).*
+*class, declared at [`include/shulib/diag/fault.hpp:111`](../../include/shulib/diag/fault.hpp#L111).*
 
 <a id="faultlatch-faultlatch"></a>
 
@@ -242,7 +242,7 @@ FaultLatch(hal::ITelemetrySink& sink, hal::IClock& clock) noexcept
 
 Both references must outlive the latch. The sink receives one Error-level line per raised fault; the clock timestamps the first fault.
 
-*function, declared at [`include/shulib/diag/fault.hpp:112`](../../include/shulib/diag/fault.hpp#L112).*
+*function, declared at [`include/shulib/diag/fault.hpp:115`](../../include/shulib/diag/fault.hpp#L115).*
 
 <a id="faultlatch-raise"></a>
 
@@ -254,7 +254,7 @@ void raise(FaultCode code, std::string_view subsystem, std::string_view detail) 
 
 Raise a fault: latch it (first-fault immutably), count it, and log one structured Error line — `fault=<NAME> n=<count>[ FIRST] <detail>`. Raising FaultCode::None is a defensive NO-OP (it is "no fault", and the error path must never crash — a precondition throw here would turn a bad raise into a dead robot).
 
-*function, declared at [`include/shulib/diag/fault.hpp:119`](../../include/shulib/diag/fault.hpp#L119).*
+*function, declared at [`include/shulib/diag/fault.hpp:122`](../../include/shulib/diag/fault.hpp#L122).*
 
 <a id="faultlatch-hasfault"></a>
 
@@ -266,7 +266,7 @@ Raise a fault: latch it (first-fault immutably), count it, and log one structure
 
 True once ANY fault has been raised since construction/clear(), and true for the rest of the run thereafter — this is a LATCH, not a live "is something wrong right now" query, and nothing but clear() lowers it. Raising FaultCode::None is a no-op and never sets it. For triage read firstFault(): the root cause is the first fault, not the last or the loudest.
 
-*function, declared at [`include/shulib/diag/fault.hpp:153`](../../include/shulib/diag/fault.hpp#L153).*
+*function, declared at [`include/shulib/diag/fault.hpp:156`](../../include/shulib/diag/fault.hpp#L156).*
 
 <a id="faultlatch-raisecount"></a>
 
@@ -278,7 +278,7 @@ True once ANY fault has been raised since construction/clear(), and true for the
 
 How many times `code` has been raised since construction/clear(). ADDED at chunk C2 (additive, like the A3 MotorOverTemp append): the scheduler's fault policy must distinguish a fault raised DURING the current motion from one latched by an earlier motion — a since-clear bitmask cannot see a RE-raise (a dead encoder that faulted in motion 1 must still abort motion 2), so the latch keeps a per-code tally. Saturates at UINT16_MAX; codes beyond the fixed slot capacity (far past today's 12) count only in faultCount().
 
-*function, declared at [`include/shulib/diag/fault.hpp:161`](../../include/shulib/diag/fault.hpp#L161).*
+*function, declared at [`include/shulib/diag/fault.hpp:164`](../../include/shulib/diag/fault.hpp#L164).*
 
 <a id="faultlatch-firstfault"></a>
 
@@ -290,7 +290,7 @@ How many times `code` has been raised since construction/clear(). ADDED at chunk
 
 The ROOT CAUSE: the first fault raised since construction/clear() (None if none).
 
-*function, declared at [`include/shulib/diag/fault.hpp:166`](../../include/shulib/diag/fault.hpp#L166).*
+*function, declared at [`include/shulib/diag/fault.hpp:169`](../../include/shulib/diag/fault.hpp#L169).*
 
 <a id="faultlatch-firstfaulttime"></a>
 
@@ -302,7 +302,7 @@ The ROOT CAUSE: the first fault raised since construction/clear() (None if none)
 
 When the first fault was raised (Time{0} if none, or if the clock threw).
 
-*function, declared at [`include/shulib/diag/fault.hpp:168`](../../include/shulib/diag/fault.hpp#L168).*
+*function, declared at [`include/shulib/diag/fault.hpp:171`](../../include/shulib/diag/fault.hpp#L171).*
 
 <a id="faultlatch-lastfault"></a>
 
@@ -314,7 +314,7 @@ When the first fault was raised (Time{0} if none, or if the clock threw).
 
 The most recent fault in the cascade (None if none) — display only, never triage.
 
-*function, declared at [`include/shulib/diag/fault.hpp:170`](../../include/shulib/diag/fault.hpp#L170).*
+*function, declared at [`include/shulib/diag/fault.hpp:173`](../../include/shulib/diag/fault.hpp#L173).*
 
 <a id="faultlatch-faultcount"></a>
 
@@ -326,7 +326,7 @@ The most recent fault in the cascade (None if none) — display only, never tria
 
 Total faults raised since construction/clear() (first + cascade).
 
-*function, declared at [`include/shulib/diag/fault.hpp:172`](../../include/shulib/diag/fault.hpp#L172).*
+*function, declared at [`include/shulib/diag/fault.hpp:175`](../../include/shulib/diag/fault.hpp#L175).*
 
 <a id="faultlatch-clear"></a>
 
@@ -338,7 +338,7 @@ void clear() noexcept
 
 Reset between runs. The first-fault latch is immutable WITHIN a run by design; only an explicit new-run boundary may clear it.
 
-*function, declared at [`include/shulib/diag/fault.hpp:176`](../../include/shulib/diag/fault.hpp#L176).*
+*function, declared at [`include/shulib/diag/fault.hpp:179`](../../include/shulib/diag/fault.hpp#L179).*
 
 ## Design commentary, from the header
 

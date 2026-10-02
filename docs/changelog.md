@@ -16,6 +16,75 @@
 
 ## API 2.4
 
+### Added and changed since 2.4 (2026-10-01) — the drive protections, inside the driver loop
+
+> Written when it landed (chunk T4 Part 2, its library half). **No version bump:** nothing here
+> extends or changes a FROZEN surface — `teleop/` and `hal::MotorGroup` are not in the
+> [Freeze Register](roadmap.md#freeze-register), and `version.hpp` bumps `kApiMinor` for additive
+> extensions of a frozen one — and **`hal::IMotor` (F4) is untouched**: a dead port is recognised
+> from what the seam already reports, not from a new validity channel. Every previously-compiling
+> program compiles unchanged. **Host test plant and hand-made readings only — nothing here has run
+> on a robot, and every number is invented** (A4 register HA-132, HA-175, HA-176).
+
+**BEHAVIOUR CHANGE (driver control):** `teleop::runDriverControl` now runs the old "shulib Drive"'s
+three protections on every call, from `DriverLoopConfig::protection`'s defaults unless a program
+states otherwise (the team lead's ruling R4, 2026-09-27):
+
+- **A drive member whose readings FREEZE is dropped.** A member of a `hal::MotorGroup` whose position
+  AND velocity repeat bit for bit for 5 reads while it, or a side-mate whose readings still change,
+  says the train turns — with at least as many of its side answering as not — is kept out of the
+  group's fight monitor at once, and after 250 ms marked ABSENT for the rest of the run (out of every
+  read, still commanded), with one `[WARN][TEL]` line naming the port. **Known gap:** at a wall it can
+  mark a LIVE motor — one whose speed report settles well before its mates', or, beside a slipping
+  gear, one that reads unlike its stalled mates (A4 register HA-175, its known gaps).
+- **More than two dead drive motors in total stop the drive for the rest of the run** — 0 V, one
+  `[ERROR][TEL]` line, and every later start of driver control refused until the program is started
+  again (the marks live in the groups). One or two dead drive on, degraded. The BOOT rule is unchanged.
+- **A fight, or an over-current, CUTS the drive for 1 s** — a group's own monitor persisting (the same
+  verdict that raises `MOTOR_GROUP_DISAGREE`), or one member above 2.4 A for 250 ms while its side is
+  driven above 1 V: both sides to 0 V in that tick, a cut line and an `at the cut:` line per member,
+  then a re-arm. A drive motor in no group (the X-drive) gets the over-current cut only.
+- **New log lines, tag `TEL`:** the cut, re-arm, absence and refusal lines above; a peak line at the end
+  of a driven stretch whose highest member current is a new high for the entry; and, on the disable,
+  one summary line per group (each member's peak current and temperature, and the cut count).
+- A drive with nothing dead, fighting or over current commands exactly what it did before: the whole
+  pre-existing suite runs unchanged (two cases count more assertions: one checks each header, one checks
+  every line a disable writes).
+
+**What you must do:** nothing. A robot that must push against a wall or a robot in a match can make
+the over-current cut a logged, counted warning with
+`DriverLoopConfig::protection.overCurrentCuts = false`; the fight cut has no switch. Measure your
+robot's push — and a full-stick reversal at top speed and a full-stick launch from rest, which may
+hold the limit too — before deciding (HA-176).
+
+**Added:**
+
+- **`teleop/drive_protection.hpp`** (new): `teleop::DriveProtectionConfig` (`overCurrentAmps` 2.4,
+  `overCurrentTicks` 25, `cutTicks` 100, `maxCutsLogged` 50, `overCurrentCuts` true,
+  `frozenSuspectReads` 5), `teleop::ProtectionMode`, `teleop::DriveProtectionState` (trivially
+  copyable, for a panel), `teleop::kMaxProtectedGroups` (4), `teleop::kProtectionTextBytes`,
+  `teleop::validProtectionConfig()`, and `teleop::DriveProtection` (the loop builds one per call; a
+  program never needs to).
+- **`teleop::DriverLoopConfig::protection`** — appended LAST, so every designated initializer still
+  compiles; checked before the first tick, before anything is commanded (a bad one is a
+  `PreconditionError` and nothing moves).
+- **`runDriverControl`'s `perTick` may take a fourth argument**, `const DriveProtectionState&`
+  (detected at compile time; the three-argument form is unchanged).
+- **`hal::MotorGroup`:** `markAbsent(i)` (noexcept; refuses — never throws — out of range, a boot hole,
+  a second mark and the last present member), `runtimeAbsentMask()`, `setMonitorExcluded(mask)` /
+  `monitorExcludedMask()`, and labels — a third, defaulted constructor argument
+  (`std::span<const int>`, one port number per slot) and `label(i)`. `presentCount()` and `isPresent()`
+  now count a runtime mark too; `absentMask()` stays the boot holes; `member(i)` returns a marked
+  member and still refuses a boot hole. `robot::Robot` labels its groups with the description's port
+  numbers, and `describe()` names a runtime mark as absent.
+- **`teleop::FrozenReadingDetector`**, `teleop::MemberReading`, `teleop::FrozenVerdict`
+  (`teleop/coupled_side_monitor.hpp`) — the frozen-reading rule, pure and allocation-free.
+  `teleop::MemberAbsenceDetector` is unchanged (the library does not run it: it needs a faulted-read
+  count IMotor does not have).
+- **`teleop::evaluateRuntimeDegradation(left, right)`** (`teleop/drivetrain_degradation.hpp`) — the
+  mid-run rule: only the total cap (more than two dead refuses); `evaluateDegradation`, the boot rule,
+  is unchanged.
+
 ### Added since 2.4 (2026-10-01) — the SHUL/2 wire format and its reader
 
 > Written when it was built (chunk H1 Part A1 — the READ side of the SHUL/2 telemetry wire; its

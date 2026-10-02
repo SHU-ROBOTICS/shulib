@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 162 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 164 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -98,7 +98,13 @@
 > whose reading is not finite, now left out like absent ones) is a small step, and AMENDED HA-08 (what
 > a motor group and the drivetrain calibrator do with a non-finite reading that gets past the adapter's
 > screen); with it, 162.
-> The rest of HA-162..HA-176 is not in it: numbers other chunks hold (briefed, not landed) — never
+> **T4 Part 2a (the drive protections' library half) added TWO on 2026-10-01 — HA-175, invented on
+> reasoned mechanics and host-probed only, and HA-176, invented** — the frozen-reading rule by which the
+> library's driver loop drops a drive motor that stops answering mid-run (and the mid-run stop at more
+> than two dead in total), and the over-current cut — and AMENDED HA-132 and HA-133 (their consumers now
+> include those protections in every driver-control program, and a false fight now CUTS the drive for
+> 1 s); with them, 164.
+> The rest of HA-162..HA-176 (all but HA-165, HA-167, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
 > (the mechanism core: its brief, being written), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
@@ -290,6 +296,8 @@
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
 | HA-165 | The present members of one drive side stay close enough in CUMULATIVE position, through a match's driving and slip, that leaving members out of the side's median (one or several whose reading is not finite, DIAG1 Part B) moves the side by far less than `maxTickTravel` (36 in) — at worst, the member farthest from the median read alone | **invented** — the members' spread over a match has never been recorded; HA-130's port 18 is the evidence it can grow; exercised only when a member read is non-finite, which HA-08 says never reaches a group on a V5 | R4 |
 | HA-167 | A tank drives BACKWARDS the way its calibration measured it: each side's travel scale, from ONE unpowered push made one end first, holds within 1 % under power in BOTH directions, and a change of direction adds under 0.25 in of travel the chassis did not make (no backlash take-up) | **invented** (the scale comes from one UNPOWERED push in one direction; the host test plant has no backlash and is direction-symmetric by construction) | the first on-robot autonomous session (COMP-t's auton tester, or COMP-b's Station K) |
+| HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates too (brief spells as a train coasts to a stop are expected and harmless), EXCEPT at a wall, where the guard holds only while every stalled member reads alike — at ANY wall when one member's report settles to 0 well before its mates' (their lagging reports still say the train turns), and beside a slipping side-mate (HA-130's port 18) more easily (the known gaps, in the long form); and a side still drives acceptably with its dead dropped, up to the mid-run stop at more than two dead in total | reasoned (the adapter's screen, `hal/pros/motor.hpp` `position()`, `velocity()`, `current()`; BLUE's 300 counts per output turn) + **invented** (the 5 reads, the 250 ms latch, the majority-or-tie guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall, with and without one stalled member reading unlike its mates; a plain wall with one report settling sooner; a coast-down with per-member encoder phase; 2026-09-28/30, 2026-10-01) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD on any drive port, port 18 (HA-130) included — the push check's push (HA-176): read its log for a `went ABSENT` line |
+| HA-176 | On robot two a drive motor above 2.4 A for 250 ms while its side is driven above 1 V means something is WRONG (a fight on the coupled train, or a stall) and not ordinary driving — a full-stick reversal at top speed and a full-stick launch from rest included, each believed to hold the current limit for less than 250 ms — and a drive motor CAN draw more than 2.4 A (the per-motor limit stays at the PROS default 2500 mA with twelve motors plugged in, HA-154) | **invented** (R3b Session 2's first-run number, the old "shulib Drive"'s `kCurrentLimitA`; no current trace of robot two under power exists) | the competition program's push check (its practice-match station, K), with a full-stick reversal at top speed and a full-stick launch from rest; T4 Part 3's Station F: the highest A at full stick wheels-up, then F.6 (ii) |
 | HA-177 | An APPEND open under `/usd/` (`fopen(path, "ab")`, which PROS hands to VEXos's `vexFileOpenWrite`) writes after an EXISTING file's last byte and keeps every earlier byte; on an ABSENT file it either fails or creates (the adapter handles both); a line written and flushed survives a power-off right after it | (1) reasoned (the vendored `libpros.a`/`libc.a`, disassembled 2026-09-26); (2)–(3) **invented** (VEXos's); (4) reasoned for the call, invented for what the sync commits | COMP-t Station M.7 |
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
@@ -1206,16 +1214,26 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   side's fastest; and requiring 25 consecutive 10 ms ticks (250 ms) — together catch a real
   fight (a wrong sign, a stripped gear, a frozen encoder) and ignore a stick reversal's coast.
   *Source:* `include/shulib/teleop/coupled_side_monitor.hpp` (`SideMonitorConfig`,
-  `PROVISIONAL (A4: HA-132)`); consumed by "shulib Drive", the tester's DRIVE station, and
-  `hal::MotorGroup` — one evaluator, one set of numbers.
+  `PROVISIONAL (A4: HA-132)`); consumed by the old "shulib Drive" (its own loop), the tester's DRIVE
+  station, `hal::MotorGroup`, the self-calibrator (`calibration/drivetrain_calibrator.hpp`) and —
+  **since T4 Part 2 (2026-09-29)** — the library's drive protections
+  (`teleop/drive_protection.hpp`) in every program that drives through
+  `teleop::runDriverControl` ("shulib Teleop" until it retires, the X-drive, and robot two's driver
+  file — so the competition program's `opcontrol()` once it runs that file), which CUT on the group
+  monitor's verdict and
+  reuse two of its floors for the frozen-reading rule (HA-175) — one evaluator, one set of numbers.
   *Confidence:* **invented** for a first run (R3b Session 2's own words). No fight has yet been
   observed under power; the 250 ms window equals the over-current window by choice.
   *Settle (R3d/R4):* the drive logs' cut lines and the library's MOTOR_GROUP_DISAGREE episodes
   over a season of practice; a real fight (one motor deliberately reversed, wheels up, 3 V)
   must persist; a stick reversal at full speed must not.
-  *Blast radius if wrong:* too tight = a healthy drive cut every second (the drive program) or
-  a fault line every run (the library); too loose = a fight stalls five motors against four
-  until something strips. **Contained:** one config struct, five fields.
+  *Blast radius if wrong:* too tight = a healthy drive cut every second (the old drive program)
+  or a fault line every run (a library motion); too loose = a fight stalls one motor against the
+  rest of its side (five against four on the typed table, one against three on the 2026-09-25
+  record) until something strips. **Since T4 Part 2 a false fight CUTS the drive for 1 s, in a
+  match**, in every driver-control program that drives through the library's loop — a stick
+  reversal at full speed that outlasts 250 ms is the first thing to watch for. **Contained:** one
+  config struct, five fields.
 
 - [ ] **HA-133 — the disagreement FLOOR: under 25 % of the side's fastest is disagreeing; 80 %
   is not.**
@@ -1230,7 +1248,8 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   panel shows every member); if a healthy member ever sits below 50 % of its mates, the floor
   moves.
   *Blast radius if wrong:* a slow-but-healthy member reported as a fight on every run (and a
-  fault line per run), or a nearly-frozen member (25–50 %) missed. **Contained:** one field
+  fault line per run — and, since T4 Part 2, a 1 s CUT of the drive in driver control, repeating
+  every 1.25 s while it lasts), or a nearly-frozen member (25–50 %) missed. **Contained:** one field
   of HA-132's struct.
 
 ### R3d Part 1's additions — the beliefs the self-calibration is built on (2026-09-17)
@@ -2229,6 +2248,179 @@ reservation (the numbers around it are other chunks'); **nothing here has run on
   a measured asymmetry needs a per-direction scale, which is a change to the calibration RECORD (a
   version bump of its 180-byte format), not a config constant.
 
+**T4 Part 2a (its library half; landed 2026-10-01) added TWO — HA-175 and HA-176 — and AMENDED HA-132 and
+HA-133.** The old "shulib Drive"'s protections moved into the library's driver loop
+(`teleop::runDriverControl`, `teleop/drive_protection.hpp`; the changelog's "the drive protections,
+inside the driver loop"), so every program that drives through it now drops a drive motor that stops
+answering, stops the drive once more than two are dead, and cuts it for 1 s on a fight or an
+over-current — in a match. The old
+program saw a dead port through the adapter's faulted-read count; the library holds its drive motors
+as `hal::IMotor`, which has no such count (F4, locked), so it recognises a dead port by the one thing
+the seam does show — readings that stop changing. HA-175 is that rule and the stop it feeds; HA-176 is
+the over-current cut, unregistered until now (the old program carried its number as "INVENTED for a
+first run"). HA-175's number was first reserved for a belief about program names that the team lead's
+ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has run on a robot.**
+
+- [ ] **HA-175 — a dead drive port FREEZES its readings; a live one never freezes for 250 ms.**
+  *Claim:* (a) a robot-two drive port that stops answering mid-run shows through the `hal::IMotor` seam
+  as a FROZEN reading: its `position()`, `velocity()` and `current()` all repeat their last good values,
+  bit for bit, for as long as it is dead. (b) A LIVE member is never FROZEN for 25 consecutive 10 ms
+  ticks — FROZEN being its position AND velocity bit-identical for 5 consecutive reads while its own
+  report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does
+  (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity
+  report changes while it decays, and a stall stops its mates too. Brief FROZEN spells as a train coasts
+  to a stop are expected and harmless. The EXCEPTION is a wall, where the guard — a COUNT of suspect
+  members against answering ones — holds only while every stalled member reads alike: at ANY wall, a
+  member whose velocity report settles to 0 well before its mates' is suspect alone, because their
+  lagging reports still say the train turns, and can stay FROZEN for 250 ms; beside a slipping side-mate
+  (HA-130's port 18), whose encoder keeps turning, smaller differences do it (the known gaps, below).
+  (c) A side still drives acceptably with its dead dropped, up to the mid-run stop: more than two drive
+  motors dead in total (the team lead's ruling N7 (c), 2026-09-27: "Only when 3+ are dead in total");
+  the per-side floor (three answering) is applied at BOOT only.
+  *Source:* `include/shulib/teleop/coupled_side_monitor.hpp` (`FrozenReadingDetector`: the rule);
+  `include/shulib/teleop/drive_protection.hpp` (`DriveProtectionConfig::frozenSuspectReads` = 5,
+  labelled A4 register HA-175, and the loop's use of the verdict: out of the fight monitor and the
+  over-current watch at once, ABSENT after the monitor's 250 ms); `include/shulib/hal/motor_group.hpp`
+  (`markAbsent`, `setMonitorExcluded`); `include/shulib/teleop/drivetrain_degradation.hpp`
+  (`evaluateRuntimeDegradation`); `include/shulib/hal/pros/motor.hpp` (the screen: `position()`,
+  `velocity()` and `current()` hold their last good values on a failed read). Host-tested in
+  `test/drive_protection_test.cpp`: P2-5 and P2-6 to P2-6d (a death at rest or at speed, a fight that
+  then freezes, a death just before a cut, a deceleration through zero — FROZEN within 5 reads, ABSENT
+  24 ticks later, no cut); P2-19 (a live train at a wall, every report lagging alike, marks nobody);
+  P2-19c (a coast-down with a quarter-count encoder phase per member and a 150 ms report lag: no
+  FROZEN tick at all); P2-21 and P2-21b (a slipping member at a wall, drag 0 and 0.8, and coasting
+  through a cut: no live member marked; 3 fight cuts during the push); P2-19d (a PLAIN wall with one stalled member reading unlike its
+  mates — a 1-RPM report flicker, a one-count encoder dither, a report settling sooner by too little:
+  nobody marked, each longest live FROZEN spell pinned, up to 24 ticks); P2-19e, P2-21c and P2-21d
+  (the known gaps below, pinned); and `test/coupled_side_monitor_test.cpp`'s P2-10b cases, each rule at
+  its boundary, forward and backward.
+  *Confidence:* the numbers are **invented** (the 5 reads, the 250 ms latch, the majority-or-tie
+  guard; the floor, R3b Part 0b), on **reasoned** mechanics (the adapter's screen, read from the code;
+  BLUE's 300 counts per output turn — one count about every 42 ms at 0.5 rad/s and every 21 ms at
+  1 rad/s, so a turning live encoder changes well inside 5 reads), and the rest is **host-probed
+  only**: the 2026-09-28 re-check's probe and this chunk's hand-stepped rig model a train lag,
+  whole-RPM velocity reports, a per-member encoder phase and a slipping member (robot two's port 18,
+  HA-130). Two beliefs under the rule are unmeasured: that a dead V5 port holds its VELOCITY bit for
+  bit (ProsMotor's screen does; that a pulled cable produces the failed read the screen catches is
+  HA-98's family), and that a live motor's reported velocity CHANGES while it decays — a whole-RPM
+  report can hold one value for a few ticks. A third is unmeasured and load-bearing at EVERY wall (the
+  review of 2026-09-30 found it beside the slipping member, the verification of 2026-10-01 at a plain
+  wall): that the stalled members read ALIKE — first of all, that one side's velocity reports settle
+  at the same pace. No V5 motor's report lag has been measured; the model's 80 ms is invented. At a
+  plain wall the model marks a member whose report lags 30 ms beside mates at 120 ms (full stick),
+  10 ms beside 100 ms, or 30 ms beside 150 ms at half stick — each time 29 ticks between its own
+  report first reading 0 and its mates' falling under 1 rad/s; 30 ms beside 80 ms stays FROZEN 9 ticks.
+  Beside the slipping member the same model with ONE stalled member perturbed marked live members
+  every time; one stalled member's report reading 1 RPM instead of 0 on a random half of the ticks of
+  one push, and a second push without it, REFUSED the drive in 20 of 20 seeds (11 of 20 at three ticks
+  in ten, 8 of 20 at two, none at one) — host-probed only.
+  *Settle:* T4 Part 3's Station F.6 (i): wheels up, half stick, pull one drive motor's cable — expect
+  it FROZEN within about 50 ms and DEAD about 250 ms later, logged once, no cut, and still DEAD after it
+  is plugged back in (latched until the restart); the DEGRADED boot with one port unplugged per side;
+  and a full-stick wall push watched for a false DEAD on ANY drive port, port 18 (HA-130) included —
+  the push check's push (HA-176) is such a push, so its log is read for any `went ABSENT` line too.
+  Whether this wall push is REQUIRED before a match, like the push check, is the team lead's to rule
+  with the known gaps below.
+  *Blast radius if wrong:*
+  - **A live member wrongly marked absent** drops out of the reads, which is harmless to the median,
+    but it counts as dead, so the mid-run stop comes one death sooner.
+  - **A dead member missed** stays in the fight monitor: its stale velocity can read as a FIGHT — a 1 s
+    cut that repeats every 1.25 s — and its stale current can do the same through the over-current cut
+    (HA-176).
+  - **Since T4 Part 2 the stop applies MID-MATCH, in every driver-control program that drives through
+    the library's loop.** On robot two (four a side) it comes at the THIRD dead drive motor in total,
+    anywhere; two dead on one side drive on, degraded (the boot would refuse that robot). A stop lasts
+    the REST OF THE RUN: every later start of driver control is refused too, until the program is
+    started again, because the marks live in the robot's motor groups.
+  - **The known gaps — the guard is a COUNT of suspect members against answering ones (the team
+    lead's decision D (a) of 2026-09-28), and at a wall it is right only while every stalled member
+    reads alike:**
+    - **At ANY wall** (found by the verification of 2026-10-01 — no slipping member needed; wider than
+      decision D weighed, and the team lead's to rule on): every encoder stops with the train, but the
+      mates' lagging velocity REPORTS still count as the train turning. A member whose report settles to
+      0 well before theirs repeats and is SUSPECT alone — one against three, so the guard holds — and
+      stays FROZEN while a mate's report reads above 1 rad/s; if that lasts 29 ticks after its own
+      report first reads 0, it is marked, a LIVE motor (two of four reading so: a tie, both marked). In
+      the host model: a 30 ms report beside 120 ms ones at full stick, 10 ms beside 100 ms, 30 ms beside
+      150 ms at half stick (P2-19e); 30 ms beside 80 ms stays FROZEN 9 ticks, 50 ms beside 150 ms 24
+      (P2-19d). The side drives on degraded, the mid-run stop one death closer.
+    - **A side ALREADY at two of four** (D (a)'s accepted cost), whose slipping member keeps turning
+      while its last live mate stalls at a wall, is one suspect against one answering — a tie — so the
+      stalled LIVE member is marked, which is the third dead, and the drive is REFUSED (P2-21c: 1.6 s
+      into the push). A strict majority would close it, and then a two-of-four side's next REAL death
+      would never be marked and would cut the drive every 1.25 s instead.
+    - **A FULL side beside the slipping member** (found by the review of 2026-09-30 — wider than
+      decision D weighed, and the team lead's to rule on): ONE stalled member whose readings keep
+      changing — a report flickering by 1 RPM, an encoder toggling a count on a humming train — counts
+      as answering, a 2-2 tie that marks two LIVE members; one whose report settles sooner than its
+      mates' is suspect alone, and is marked at a smaller difference than at a plain wall (30 ms beside
+      80 ms: the slipping member's encoder keeps the evidence alive). The side drives on degraded; a
+      second push, its stalled members now reading alike, marks the last one against the slipping
+      member — the third dead, REFUSED for the rest of the run, on a side of four live motors (P2-21d).
+    - **The obvious changes each cost something:** a strict majority ends the ties but not the lone
+      suspect, and costs what the two-of-four case says; counting as answering only a member whose own
+      reading shows the train turning leaves a dead member in the monitor through a slow push, cut again
+      and again; counting a mate as EVIDENCE only while its encoder moved within the last 5 reads — not
+      on a lagging report over a stopped encoder; probed on the host test plant by the verification of
+      2026-10-01 — closed the first gap at every probed difference and changed no other host test's
+      result, but the same push then CUT once for 1 s while its motors drew under 2.4 A (the fight
+      monitor saw the early-settling member under a quarter of its mates' reported speed for 250 ms,
+      which the FROZEN exclusion had hidden; at 2.5 A each, the over-current cuts came first and it
+      added none), and it leaves the two slipping-member gaps as they are.
+    - Port 18's slipping gear is the trigger of the two slipping-member gaps: fixing it ends them, NOT
+      the any-wall one. And a whole side that stops answering at once is never seen — every member
+      alike looks like a side that stopped; the robot shows it by not driving that side.
+  - Too permissive a floor keeps a robot driving that drags into a curve.
+  **Contained:** one config field (`DriveProtectionConfig::frozenSuspectReads`), the monitor's two
+  floors it reuses (HA-132), and two library constants (`drivetrain_degradation.hpp`'s
+  `kMinAnsweringPerSide`, `kMaxDeadTotal`).
+
+- [ ] **HA-176 — above 2.4 A for 250 ms is a fault, not driving; and a drive motor can get there.**
+  *Claim:* on robot two a drive motor drawing more than 2.4 A for 250 ms while its side is driven
+  above 1 V means something is WRONG — a fight on the coupled train, or a stall — and not ordinary
+  driving, a full-stick REVERSAL at top speed and a full-stick LAUNCH from rest included: each is
+  expected to hold every drive motor near its current limit while the train turns round or spins up,
+  and the belief is that this lasts LESS than 250 ms; and a drive motor CAN draw more than 2.4 A (the
+  per-motor limit stays at the PROS default 2500 mA with twelve motors plugged in, HA-154).
+  *Source:* `include/shulib/teleop/drive_protection.hpp` (`DriveProtectionConfig::overCurrentAmps`
+  2.4, `overCurrentTicks` 25 — pinned equal to the fight monitor's window by a `static_assert`, HA-132 —
+  and `overCurrentCuts` true; labelled A4 register HA-176), carried from the old "shulib Drive"'s
+  `kCurrentLimitA` (`src/programs/drive_program.cpp`, "INVENTED for a first run"). Judged per member,
+  never on the side's total, only while the side is commanded above 1 V, and never for a FROZEN or
+  ABSENT member (a dead port's current is its last good reading). Host-tested in
+  `test/drive_protection_test.cpp`: P2-4 (2.41 A for 24 ticks no, 25 yes, driving forward and in
+  reverse; 2.40 A never; the command floor; the warn switch), P2-4c (a side commanded exactly 1 V
+  counts nothing), P2-4b (a member that dies at the current limit cuts once, never again), P2-13b (an
+  X-drive wheel's streak starts over at the re-arm), P2-16b and P2-16c (the peak line, for a push
+  forward and one backing up), P2-5c (a FROZEN member's current is in no peak). The host test plant
+  synthesizes no current: every current in those tests is set by hand, so none of them shows how long
+  a reversal or a launch holds the limit.
+  *Confidence:* **invented** (R3b Session 2's first-run number; no current trace of robot two under
+  power exists).
+  *Settle:* the PUSH CHECK, required before the competition program drives a match (the team lead's
+  ruling N1 (a), 2026-09-27): on the ground, full stick into a wall for 3 s, then let go; record whether
+  it CUT, and the highest current — from the `drive: LEFT peak … A (port n) over a … s drive, …` line
+  printed when the stick is let go, and from a cut's `at the cut:` lines (the disable summary may never
+  print: the loop must see the disable before PROS deletes its task, HA-161, and the team has no
+  competition switch). Then, on the ground and clear of everything, a full-stick REVERSAL at top speed
+  (full forward until it is at speed, then full back at once) and a full-stick LAUNCH from rest, each
+  let go after it: read
+  the same peak line and look for any `CUT:` line. A reversal or a launch that cuts is the team lead's
+  to decide before a match (N1: the number, or the switch). It belongs to the competition program's
+  practice-match station (K); T4 Part 3's Station F repeats it (F.6 (ii)) after reading the highest A
+  at full stick wheels-up.
+  *Blast radius if wrong:* too tight, and a push against a wall or a robot trips it: the drive is cut
+  for 1 s of every 1.25 s, IN A MATCH, in every driver-control program since T4 Part 2 (a V5 motor
+  pushing is believed to sit at its current limit — the PROS default 2.5 A, above 2.4 A; HA-154,
+  unmeasured). And if a full-stick reversal or launch holds the limit for 250 ms, a HEALTHY drive is
+  cut for 1 s in the middle of the manoeuvre — the case the push alone does not try. If VEXos lowers the
+  per-motor limit below 2.4 A with this many motors plugged in, the cut can never fire, and a locked
+  fight — which the fight monitor cannot see, since it judges a side only while it turns above
+  1 rad/s — is caught only by MOTOR_OVER_TEMP (55 °C, HA-44), minutes later.
+  **Contained:** one config field and one switch (`DriveProtectionConfig::overCurrentAmps`,
+  `overCurrentCuts` — false makes an over-current a logged, counted warning; the team lead's N1 (a):
+  ON by default, one switch, and the push check before any match).
+
 ---
 
 ## Group R4 — noise, drift, latency, timing, power, traction (characterization)
@@ -2260,7 +2452,10 @@ settleable before hardware, and none block any host chunk.
   bound never sees it — a drive-side trip there means enough members jumped together to move
   the median (two of four). The group-level detector for one bad member is the coupled-side
   monitor (`MOTOR_GROUP_DISAGREE`), which samples member velocity; whether it catches a member
-  whose velocity is held too is not established.
+  whose velocity is held too is not established. (In DRIVER CONTROL, since T4 Part 2, the
+  library's drive protections look for exactly that member — its position AND velocity repeating
+  while its side turns — and mark it ABSENT after 250 ms, out of the median from then on: HA-175.
+  In an autonomous motion nothing does.)
   *Confidence:* **invented.** Nobody has measured a real loop rate under load, and neither class
   holds a clock, so the bound is **dt-BLIND** — the same 36 in is 300 ft/s on a 10 ms tick and
   15 ft/s on a 200 ms one. That is why it is generous rather than tight, and why the gate

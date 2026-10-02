@@ -578,7 +578,18 @@ driving stops mid-match only when 3+ drive motors are dead in total. N3 and N6 a
 **Re-checked 2026-09-28** (Parts 2 and 3, against `b81a590`: thirteen findings plus a fourteenth, major, all
 amended); jal's answers of ~16:15, all as recommended: C drops the velocity-exactly-0 check, D adds guard G4,
 A limits the SD copy to events and summaries, and B has the competition program keep an appended SD copy.
-**Part 2 is ~2–2½ days after COMP-b; Part 3 is ~3–3½ days after Part 2.**
+**Part 2 is ~2–2½ days after COMP-b; Part 3 is ~3–3½ days after Part 2.** *(2026-09-29: Part 2 was SPLIT on
+jal's approval of 2026-09-28 ~17:35. **Part 2a — the library half — LANDED 2026-09-29, host- and build-gated, NOT
+run on a robot** (`chunks/T4-PROGRESS.md` "Part 2a"): `runDriverControl` drops a drive motor whose readings
+freeze (250 ms), refuses at 3+ dead in total, and cuts for 1 s on a fight or 2.4 A for 250 ms, for EVERY caller —
+so COMP-b's `opcontrol()` has them from its first build; HA-175/176 registered. **Part 2b** (the PROTECTION row,
+COMP's `perTick`, the driver file's paragraph, Station K's push check unless COMP-b writes it, the re-read of
+COMP-b's files) was FOLDED INTO PART 3 on jal's ruling of 2026-10-01 — Part 3's late step, after COMP-b. Part
+2a's review (2026-09-30) and its verification (2026-10-01) found guard G4's gap at a wall wider than decision D
+weighed — at ANY wall a motor whose speed report settles well before its mates' is marked dead (P2-19e), and
+beside the slipping port 18 less is needed (P2-21d) — pinned as built, stated in HA-175, jal's to rule
+(`REMAINING-WORK.md` §11, "D, again"); and the push check gains a full-stick reversal and a launch from rest
+(HA-176), its log read for `went ABSENT` on any port.)*
 - For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser (COMP-b's header), at
   its place after CLAW ABSENT — never into `teleop_program.cpp`.
 - For SAFE-SAVE A/B1's re-check: `formatSaveReport`'s sentences name Teleop, which T4 Part 3 retires.

@@ -261,7 +261,7 @@ worth recognizing on sight:
 ## Every fault code
 
 The complete vocabulary. [Chapter 6](06-how-things-fail.md) tells the story behind most of
-them — not all; `MECHANISM_STALLED`, `GPS_GATE_REJECT` and `PRECONDITION` are catalogued here
+them — not all; `MECHANISM_STALLED`, `GPS_GATE_REJECT`, `PRECONDITION` and `MOTOR_GROUP_DISAGREE` are catalogued here
 but not narrated there. The authoritative list is always
 [`include/shulib/diag/fault.hpp`](../../include/shulib/diag/fault.hpp).
 "Aborts?" = does it cancel the active motion under the default fault policy.
@@ -278,6 +278,7 @@ but not narrated there. The authoritative list is always
 | `MOTION_TIMEOUT` | a motion's watchdog fired | blocked, jammed, unreachable, or under-budgeted ([Ch. 12](12-when-things-go-wrong.md) has the differential) | n/a (already ended) | informational — the result line's `✗TIMEOUT` is the same event |
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
 | `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
+| `MOTOR_GROUP_DISAGREE` | one motor of a drive side disagreed with its mates for 250 ms: running opposite to the side's command, or under a quarter of its fastest mate's speed, while the side was driven above 1 V and turning above 1 rad/s | a wrong sign for that port, a fight on the gear train, a slipping gear, a stalled or frozen encoder | no | the drive continues in a motion. In DRIVER CONTROL the same verdict also CUTS the drive for 1 s (the library's drive protections, [Chapter 12](12-when-things-go-wrong.md)): read the `TEL` cut line for the port |
 | `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* ends with a stalled verdict; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one |
 
 Notes on the machinery: fault raising is **edge-triggered** (a problem persisting 500 ticks is
@@ -334,6 +335,9 @@ fault=ODO_STUCK n=1 FIRST implausible odometry tick why=ROT dth=1.745rad h0=0.01
   [Hardware Assumptions Register](../hardware-assumptions.md), invented).
   Under the 36 in bound such a shift is not reported; past it, the tick reads `TRAVEL`.
   `L=NaN` means no member of that side gave a number.
+  (In driver control a member whose readings are held — position AND velocity repeating while its
+  side turns — is caught by the library's drive protections instead: marked ABSENT after 250 ms with a
+  `TEL` line naming the port, [Chapter 12](12-when-things-go-wrong.md).)
 
 Numbers print as `NaN`, `+Inf` or `-Inf` when they are not finite, and a huge value prints
 compactly (`1e+09in`) rather than as a wall of digits. Two more endings you may see:

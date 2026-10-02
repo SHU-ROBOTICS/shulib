@@ -20,7 +20,8 @@
 //   * the PANEL is re-laid out to fit the screen's SMALL budget (the brief's A3), painted only
 //     where it changed, live numbers at most 5 Hz, every string through src/common/screen_text.hpp's
 //     printText().
-// What did NOT change: the boot decisions, the dead-port policy (applied once, by the boot check),
+// What did NOT change: the boot decisions, the dead-port policy at boot (applied once, by the boot
+// check; a port that dies mid-run is teleop::runDriverControl's since T4 Part 2),
 // the stall-check wiring (robot::Robot::effectiveTuning does what tankChassisConfig() did), the
 // provisional gains and budgets, the session header's port map (robot::Robot::portMap() prints
 // what tankPortMapString() printed, byte for byte), the controller-screen lines, and every boot
@@ -272,11 +273,12 @@ constexpr std::string_view kAbsentDevicesLine =
     "absent devices (deliberate): gps=ABSENT tags=ABSENT vision=ABSENT -- robot two has no GPS, "
     "and its AI Vision camera (port 3) has no adapter yet; nothing is polled over an absent source";
 constexpr std::string_view kDeadPortLine1 =
-    "dead-port tolerance: AT BOOT ONLY (R3d Part 2) -- a recorded port the registry reports EMPTY "
-    "becomes an absent group member under the same policy shulib Drive uses.";
+    "dead-port tolerance at BOOT (R3d Part 2): a recorded port the registry reports EMPTY becomes "
+    "an absent group member under the same policy shulib Drive uses.";
 constexpr std::string_view kDeadPortLine2 =
-    "dead-port tolerance: a port that dies AFTER boot is still shulib Drive's (slot 1): runtime "
-    "absence detection is not in this graph yet";
+    "dead-port tolerance MID-RUN (T4 Part 2, the library's driver loop): a drive port reading "
+    "frozen while its side turns is dropped after 250 ms; 3+ dead in total stops the drive for "
+    "the run";
 // The driver line's fixed words; the button and field-centric's state are appended from the
 // constants above (logBootLines), so neither can drift from what the loop is given.
 constexpr std::string_view kDriverLine =

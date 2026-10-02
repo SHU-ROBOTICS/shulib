@@ -518,8 +518,10 @@ progress: STOP, read the `last:` line, and send it word for word.**
 > library's own graph ([R3d-PROGRESS.md](R3d-PROGRESS.md), "2026-09-25 evening"); no
 > library-commanded motion has run (R3b open). So this version's first run is **WHEELS UP, then the
 > ground**. It POWERS THE MOTORS from the moment driver control starts, up to 12 V. Bench Tests
-> (slot 3) stays the diagnosis tool, and "shulib Drive" (slot 1) stays the program that notices a
-> port dying mid-run.
+> (slot 3) stays the diagnosis tool. Since T4 Part 2 (2026-09-29) this program also notices a drive
+> port dying mid-run, and CUTS the drive for 1 s on a fight or an over-current — the library's
+> driver loop does both for every program that drives through it ("What happens with a dead port"
+> and "What a CUT looks like", below); "shulib Drive" (slot 1) keeps its own.
 
 > ⚠ **WHICH END IS FORWARD — read this before any stick moves.**
 > 1. In **"shulib Teleop"**, forward (stick up, `est x` rising) is the end that **LED the Calibrate
@@ -576,11 +578,11 @@ which, word for word.
 | 2 cmd | `cmd vx  +20.0 in/s  w +0.50 rad/s` · `  NO CONTROLLER` (amber) when the controller is not linked | what the sticks ask for, in SPEEDS (not volts): forward in inches per second, yaw in radians per second. Unlinked = exactly zero |
 | 3 est | `est x   +12.3  y    -0.4  hdg  +45.2 DEADRECKON` | the library's own **estimate of where the robot is**, from the drive encoders and the IMU, in inches and degrees from where it booted; the word is its quality: `UNINIT` (IMU still calibrating, ~2 s after boot), `DEADRECKON` (normal on this robot), `DEGRADED` (amber: the IMU dropped out or the odometry saw an implausible tick — read the fault row) |
 | 4 driver | `driver ARCADE BODY  field-centric OFF` | the stick mapping in force — ARCADE BODY: left stick drives (up = forward, see WHICH END), right stick left/right turns — and field-centric's state. It is OFF in this build (a constant in the code); `ON`, `FELL BACK` or `LATCHED` appear only if it is switched on |
-| 5 L | `L  +6.2 V  4/4 present  0 disagree` | the LEFT group: volts sent, motors answering / motors in the record, motors **disagreeing** with their side-mates. **Green** = all present, none disagree; **amber** = a motor is absent (dead at boot); **red** = a motor is fighting or frozen |
+| 5 L | `L  +6.2 V  4/4 present  0 disagree` | the LEFT group: volts sent, motors answering / motors in the record, motors **disagreeing** with their side-mates. **Green** = all present, none disagree; **amber** = a motor is absent (dead at boot, or — since T4 Part 2 — marked dead mid-run: `3/4 present`); **red** = a motor fought its side for 250 ms — since T4 Part 2 a flash at most: the same tick CUTS the drive ("What a CUT looks like", below), the count is back to 0 on the next tick, and the row is recomputed every 200 ms, so it is seldom caught. A FROZEN motor is not red since T4 Part 2: it leaves the comparison within 5 reads, and once it is marked dead, about 300 ms after it froze, the row shows `3/4 present` in amber. During a 1 s CUT both rows read `+0.0 V` |
 | 6 R | `R  +6.2 V  4/4 present  0 disagree` | the same for the RIGHT group |
 | 7 xcheck | `hdg xcheck +0.0003 rad/tick  batt 12.90 V` | the heading the wheels imply vs the heading the IMU measured, per tick — near 0 rolling cleanly; a steady bias while driving straight means a side is slipping or the track width is off; then the battery |
 | 8 travel | `L/R travel  +0.20  +0.20 in (last tick)` | how far each side rolled in the last tick |
-| 9 faults | `faults: none`, or (red) `FAULT n=1 last MOTOR_GROUP_DISAGREE` — ONE row since T3 Part 2 (the two fault rows were merged to make room for the claws, the team lead's ruling R3). It names the FIRST and the LAST fault only when both fit the row's 50 characters, e.g. `FAULT n=1 first IMU_LOST last IMU_LOST` or, at the very edge, `FAULT n=2 first IMU_LOST last MOTOR_GROUP_DISAGREE`; otherwise it shows only the latest, as above — `MOTOR_GROUP_DISAGREE` is 20 characters, so with it the row usually has room for one name (serial has every fault) | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the drive CONTINUES; the driver is told); `ODO_STUCK` = the odometry saw an implausible tick; `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
+| 9 faults | `faults: none`, or (red) `FAULT n=1 last MOTOR_GROUP_DISAGREE` — ONE row since T3 Part 2 (the two fault rows were merged to make room for the claws, the team lead's ruling R3). It names the FIRST and the LAST fault only when both fit the row's 50 characters, e.g. `FAULT n=1 first IMU_LOST last IMU_LOST` or, at the very edge, `FAULT n=2 first IMU_LOST last MOTOR_GROUP_DISAGREE`; otherwise it shows only the latest, as above — `MOTOR_GROUP_DISAGREE` is 20 characters, so with it the row usually has room for one name (serial has every fault) | the fault latch, by name. `MOTOR_GROUP_DISAGREE` = a motor fought its group for 250 ms (the fault is latched and the driver is told; since T4 Part 2 the driver loop also CUTS the drive for 1 s — both sides 0 V — then re-arms, and serial's `CUT: FIGHT on ...` line names the port; this screen shows no cut word); `ODO_STUCK` = the odometry saw an implausible tick; `IMU_LOST`, `BROWNOUT`, `MOTOR_OVER_TEMP` as their names say |
 | 10 claws | `CLAW 6 HOLD 34C \| 7 HOLD 33C \| CLAW CLOSED` (T3 Part 2) — amber when a claw is `ABSENT` or the row ends `FREED` | robot two's claws: each pivot by its port — `FWD` / `REV` while its button is held, `HOLD` when stopped, `ABSENT` when it was not built — and its temperature (the motor's last good reading: it freezes, unmarked, if the motor stops answering — J.3.3); then the pneumatic claw, `OPEN` / `CLOSED` / `ABSENT`. Station J reads this row |
 | 11–12 source | green: `MEASURED record from the SD card, verified against` / `the ports` — or amber: `MEASURED record \| DEGRADED: dead 13 -- driving` / `without them (left dead 0, right dead 1). ...` — or amber: `TYPED TABLE -- unverified since the rebuild; run` / `shulib Calibrate` | where the numbers came from, and which ports are dead. A reason longer than two rows ends at its last whole sentence with ` ...` (a DEGRADED one always does: the NEW-motors list follows); the whole reason is the serial `port check:` line |
 
@@ -627,8 +629,31 @@ know — you will.** Let go of the stick.
 under the same rule "shulib Drive" uses (a side below three answering, or more than two dead in
 total, refuses): the program drives without it, the source rows say `MEASURED record | DEGRADED:
 dead <ports> -- driving without them ...`, that side's row shows `3/4 present` in amber, and the
-LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by this program —
-"shulib Drive" (slot 1) is the one with runtime dead-port detection.
+LCD says `DEGRADED see brain`. **A port that dies AFTER boot** is detected since T4 Part 2 by the
+library's driver loop (serial's boot line `dead-port tolerance MID-RUN ...` says so): a drive motor
+whose readings freeze while its side turns is dropped after 250 ms — serial prints `[WARN][TEL]
+WARNING: port <n> (LEFT|RIGHT) went ABSENT at runtime: reads frozen for 250 ms while its side
+answered -- ...`, then `degradation re-evaluated: ...` — and the robot drives on. Its side's row
+shows `3/4 present` in amber; the source rows and the LCD's `DEGRADED see brain` stay the BOOT's
+verdict and do not change. It stays dead until the program is restarted. Mid-run only the TOTAL
+counts: **more than two dead in total** stops the drive — `[ERROR][TEL] REFUSED: more than 2 motors
+dead in total -- 0 V for the rest of the run ...` — and every later start of driver control is
+refused too until the program is restarted; two dead on ONE side still drive (the boot would refuse
+that robot). Nothing here has run on a robot: this is the host-tested rule (A4 register HA-175).
+
+**What a CUT looks like.** Since T4 Part 2 the driver loop cuts the drive — both sides to 0 V for
+1 s, then driving resumes by itself — when a drive motor fights its side for 250 ms (the same
+verdict that latches `MOTOR_GROUP_DISAGREE`), or when one drive motor draws more than **2.4 A** for
+250 ms while its side is driven above 1 V (pushing a wall is expected to do that, and a full-stick
+reversal at speed or a launch from rest might — A4 register HA-176, invented, no current of this
+robot ever measured: a `CUT:` line in ordinary driving is exactly what to send back). Serial:
+`[WARN][TEL] CUT: FIGHT on LEFT -- port(s) <n> -- both sides 0 V for 1 s, cut #1, then re-arm` (or
+`CUT: port <n> (LEFT) over 2.4 A for 250 ms ...`), one `  at the cut:` line per motor (its speed,
+current and temperature), then `re-armed after cut #1 (1 s at 0 V)`. On this program's screen a cut
+shows only as `+0.0 V` on the L/R rows for that second; there is no cut word. When the stick is let
+go after a drive, serial may add `drive: LEFT peak <A> A (port <n>) over a <s> s drive, no cut` (a
+new highest current for this start). **Do not stage a fight or a push here** — the host plant
+covers the fight, and the push check belongs to the competition program's station.
 
 **F.2 — the first run of THIS version: WHEELS UP, then the ground**
 
@@ -681,7 +706,10 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
 - [ ] **F.2.7** Turn the program off from the brain (or the field disables it: the loop exits
       cleanly and commands the drive 0 V + Brake, and serial says `opcontrol(): field DISABLED --
       loop exited cleanly after cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw
-      left as it was; N screen prints so far` — the claw clause since T3 Part 2). Since DEFECTS2 that
+      left as it was; N screen prints so far` — the claw clause since T3 Part 2; since T4 Part 2 it
+      is preceded by one line a side, `drive at the disable: LEFT, cuts 0 | port 16 <A> A <C> C |
+      ...`, each drive motor's highest current and temperature this start — printed only if the loop
+      sees the disable before PROS ends the task). Since DEFECTS2 that
       cancel reaches the motors as a real `brake()` — but a DISABLE is a poor test of it: the stop
       goes out only once the brain already reports disabled, and whether VEXos is cutting motor
       output by then is UNKNOWN (HA-145). The clean check of Brake is a library stop while ENABLED
@@ -689,7 +717,8 @@ LCD says `DEGRADED see brain`. A port that dies AFTER boot is not detected by th
       Everything printed to serial is the session's record.
 
 > **What to send back:** the YES/NO answers and the numbers from F.2.2–F.2.6, every fault name and
-> every `disagree` count above 0 word for word, any screen row that ran off the edge, and the
+> every `disagree` count above 0 word for word, every serial `CUT:`, `went ABSENT` or `REFUSED` line
+> word for word (since T4 Part 2; none is expected), any screen row that ran off the edge, and the
 > serial capture. The coordinator records them in the development log; they are the first
 > hardware evidence for THIS version of the program and for the driver-feel layer.
 

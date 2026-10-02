@@ -12,8 +12,10 @@
 #include <array>
 #include <cstdint>
 #include <initializer_list>
+#include <limits>
 #include <span>
 
+#include "shulib/core/check.hpp"
 #include "shulib/teleop/coupled_side_monitor.hpp"
 #include "shulib/teleop/stick_mapping.hpp"
 
@@ -373,4 +375,324 @@ TEST_CASE("absence detector: velocity EXACTLY 0 while the train turns for 25 tic
     // Command below the floor: the train "turning" from a push, not a command — not absence.
     MemberAbsenceDetector pushed;
     for (int i = 0; i < 500; ++i) CHECK_FALSE(pushed.update(0, 0.0, 0.5, 8.0));
+}
+
+// ═══ T4 Part 2 — THE FROZEN-READING RULE (FrozenReadingDetector), alone (P2-10b) ═════════
+// The rule the library's driver loop runs to see a drive port die through the IMotor seam
+// (drive_protection.hpp). Every rule is pinned at its boundary, on FOUR members (robot two's side
+// since its record of 2026-09-25), with the team lead's decision D (a) of 2026-09-28: a repeat needs
+// position AND velocity unchanged, and FROZEN needs at least as many of the side answering as not.
+// Each case names the bug it catches; the mutations are in T4-PROGRESS "Part 2a".
+using shulib::teleop::FrozenReadingDetector;
+using shulib::teleop::FrozenVerdict;
+using shulib::teleop::MemberReading;
+
+namespace {
+
+/// Four members, each either HELD (the same reading every tick, as ProsMotor's screen holds a dead
+/// port) or TURNING (its position advancing by velocity × 10 ms each tick, as a live encoder does).
+struct Side4 {
+    std::array<double, 4> pos{0.0, 0.0, 0.0, 0.0};
+    std::array<double, 4> vel{5.0, 5.0, 5.0, 5.0};
+    std::array<bool, 4> held{false, false, false, false};
+    std::array<bool, 4> present{true, true, true, true};
+    FrozenReadingDetector det{SideMonitorConfig{}, 5};
+
+    /// One tick: the readings as they are now, then the turning members advance.
+    FrozenVerdict tick() {
+        std::array<MemberReading, 4> r{};
+        for (std::size_t i = 0; i < 4; ++i) {
+            r[i] = MemberReading{pos[i], vel[i], present[i]};
+        }
+        const FrozenVerdict v = det.update(std::span<const MemberReading>{r});
+        for (std::size_t i = 0; i < 4; ++i) {
+            if (!held[i]) pos[i] += vel[i] * 0.01;
+        }
+        return v;
+    }
+    FrozenVerdict ticks(int n) {
+        FrozenVerdict v{};
+        for (int k = 0; k < n; ++k) v = tick();
+        return v;
+    }
+};
+
+constexpr std::uint32_t bit(std::size_t i) { return std::uint32_t{1} << i; }
+
+}  // namespace
+
+TEST_CASE("T4 P2-10b: SUSPECT at the 5th REPEATED read, not the 4th — a dead member held at +v "
+          "beside turning mates") {
+    // BUG CAUGHT: the read count off by one either way; SUSPECT on the first repeat (a live
+    // encoder between counts would leave the monitor every other tick).
+    Side4 s;
+    s.held[0] = true;
+    s.vel[0] = 3.0;  // its stale report says it turns
+    // Read 1 is the first (repeat 0); reads 2..5 are repeats 1..4.
+    const FrozenVerdict at4 = s.ticks(5);
+    CHECK(s.det.repeatReads(0) == 4);
+    CHECK((at4.suspectMask & bit(0)) == 0u);
+    CHECK((at4.frozenMask & bit(0)) == 0u);
+    const FrozenVerdict at5 = s.tick();
+    CHECK(s.det.repeatReads(0) == 5);
+    CHECK(at5.suspectMask == bit(0));
+    CHECK(at5.frozenMask == bit(0));  // one suspect against three answering
+    CHECK(at5.latchedMask == 0u);
+}
+
+TEST_CASE("T4 P2-10b: the OWN-speed branch at its floor — a held member reporting 0.50 rad/s is "
+          "not SUSPECT, 0.51 is (mates answering, but slower than the 1 rad/s moving floor)") {
+    // BUG CAUGHT: `>=` for `>` on the opposite floor; the own-speed branch dropped (a member that
+    // dies turning slowly, beside slow mates, is then never seen).
+    for (const double own : {0.50, 0.51}) {
+        Side4 s;
+        s.vel = {own, 0.9, 0.9, 0.9};  // the mates turn (their encoders change) below 1 rad/s
+        s.held[0] = true;
+        const FrozenVerdict v = s.ticks(10);
+        CAPTURE(own);
+        CHECK(((v.suspectMask & bit(0)) != 0) == (own > 0.5));
+        CHECK(((v.frozenMask & bit(0)) != 0) == (own > 0.5));
+    }
+    // …and the same boundary BACKWARD (the review of 2026-09-30, F8): the floor is on the speed's
+    // magnitude, so a member that died turning in reverse is caught by its own stale speed too.
+    for (const double own : {-0.50, -0.51}) {
+        Side4 s;
+        s.vel = {own, -0.9, -0.9, -0.9};
+        s.held[0] = true;
+        const FrozenVerdict v = s.ticks(10);
+        CAPTURE(own);
+        CHECK(((v.suspectMask & bit(0)) != 0) == (own < -0.5));
+        CHECK(((v.frozenMask & bit(0)) != 0) == (own < -0.5));
+    }
+}
+
+TEST_CASE("T4 P2-10b: the MATES branch at its floor — a held member reading 0 beside mates at "
+          "1.00 rad/s is not SUSPECT, at 1.01 it is") {
+    // BUG CAUGHT: `>=` for `>` on the moving floor; the mates branch dropped (a port that died AT
+    // REST, reading 0, is then never seen when the train drives away — P2-5).
+    for (const double mates : {1.00, 1.01}) {
+        Side4 s;
+        s.vel = {0.0, mates, mates, mates};
+        s.held[0] = true;
+        const FrozenVerdict v = s.ticks(10);
+        CAPTURE(mates);
+        CHECK(((v.suspectMask & bit(0)) != 0) == (mates > 1.0));
+    }
+    // …and the same boundary with the mates turning BACKWARD (the review of 2026-09-30, F7): their
+    // speed is judged by its magnitude, so a port that died at rest is seen when the robot backs away.
+    for (const double mates : {-1.00, -1.01}) {
+        Side4 s;
+        s.vel = {0.0, mates, mates, mates};
+        s.held[0] = true;
+        const FrozenVerdict v = s.ticks(10);
+        CAPTURE(mates);
+        CHECK(((v.suspectMask & bit(0)) != 0) == (mates < -1.0));
+    }
+}
+
+TEST_CASE("T4 P2-10b: a mate whose OWN readings repeat is NOT evidence that the train turns") {
+    // BUG CAUGHT (the brief's mutation "the mates' fastest counting a member whose position
+    // repeats"): one dead member's stale +v making every standing mate look stalled — during a cut
+    // the train stands, the dead member's report still says 5 rad/s, and the three live members
+    // would all turn SUSPECT, outvote it, and it would never be marked (P2-6c on the loop).
+    Side4 s;
+    s.vel = {0.0, 5.0, 0.5, 0.5};  // member 1 is the dead one, frozen at +5; 2 and 3 creep
+    s.held[0] = true;               // member 0 genuinely stands (0 rad/s, position unchanged)
+    s.held[1] = true;
+    const FrozenVerdict v = s.ticks(10);
+    CHECK((v.suspectMask & bit(1)) != 0);  // its own stale speed makes it SUSPECT
+    CHECK((v.suspectMask & bit(0)) == 0);  // member 1's 5 rad/s is not a mate's evidence
+    CHECK(v.frozenMask == bit(1));
+}
+
+TEST_CASE("T4 P2-10b: a mate stops being evidence at EXACTLY suspectReads repeats — at its 4th repeat it "
+          "still is, at its 5th it is not") {
+    // BUG CAUGHT (the review of 2026-09-30, F2): the mates' fastest counting a mate whose repeat has
+    // just reached suspectReads (`<=` for `<`) — the case above asserts only long after, so the
+    // boundary itself was unpinned. Two members only (the others not present), both held from the
+    // first read: member 1 at a stale 2 rad/s, member 0 at rest. Their repeats rise together.
+    Side4 s;
+    s.present = {true, true, false, false};
+    s.held = {true, true, false, false};
+    s.vel = {0.0, 2.0, 0.0, 0.0};
+    const FrozenVerdict at4 = s.ticks(5);  // repeat 4 each
+    REQUIRE(s.det.repeatReads(0) == 4);
+    REQUIRE(s.det.repeatReads(1) == 4);
+    CHECK(at4.suspectMask == 0u);  // nobody has 5 repeats yet
+    const FrozenVerdict at5 = s.tick();  // repeat 5 each
+    REQUIRE(s.det.repeatReads(1) == 5);
+    // Member 1 is SUSPECT by its own stale speed; member 0 is NOT — its only mate has now repeated
+    // suspectReads times and is no evidence that the train turns. One against one: a tie, FROZEN.
+    CHECK(at5.suspectMask == bit(1));
+    CHECK(at5.frozenMask == bit(1));
+}
+
+TEST_CASE("T4 P2-10b: a repeat is BIT FOR BIT — a report alternating 0.0 and -0.0 is no repeat; a NaN "
+          "held bit for bit is one") {
+    // BUG CAUGHT (the review of 2026-09-30, F1): the repeat compared with `==`, which calls 0.0 and
+    // -0.0 the same reading (a live report whose sign bit flickers at zero would read as held) and
+    // never calls a NaN a repeat (a port whose screen held a NaN would never be seen) — the two
+    // reasons the header gives for comparing bits.
+    Side4 flicker;
+    flicker.held[0] = true;
+    for (int k = 0; k < 20; ++k) {
+        flicker.vel[0] = (k % 2 == 0) ? 0.0 : -0.0;
+        const FrozenVerdict v = flicker.tick();
+        CHECK(flicker.det.repeatReads(0) == 0);
+        CHECK((v.suspectMask & bit(0)) == 0u);
+    }
+    Side4 nan;
+    nan.held[0] = true;
+    nan.vel[0] = std::numeric_limits<double>::quiet_NaN();
+    (void)nan.ticks(5);
+    CHECK(nan.det.repeatReads(0) == 4);
+    const FrozenVerdict v = nan.tick();
+    CHECK(nan.det.repeatReads(0) == 5);
+    CHECK(v.suspectMask == bit(0));  // by its mates (a NaN is above no floor)
+    CHECK(v.frozenMask == bit(0));
+}
+
+TEST_CASE("T4 P2-10b: D (a) — a read whose position repeats but whose VELOCITY changed is not a "
+          "repeat") {
+    // BUG CAUGHT (the brief's mutation "the repeat on position alone"): a live member whose
+    // encoder stops between counts while its lagging report is still decaying — a slipping member
+    // coasting in a cut (the re-check's S1c), or a coast-down (P2-19c) — counted as frozen.
+    Side4 s;
+    s.held[0] = true;
+    for (int k = 0; k < 40; ++k) {
+        s.vel[0] = (k % 2 == 0) ? 3.0 : 2.9;  // the report changes, the position does not
+        const FrozenVerdict v = s.tick();
+        CHECK(s.det.repeatReads(0) == 0);
+        CHECK((v.suspectMask & bit(0)) == 0u);
+    }
+    CHECK(s.det.latchedMask() == 0u);
+}
+
+TEST_CASE("T4 P2-10b: D (a)'s guard at its boundary on four members — 1 suspect vs 3 FROZEN, 2 vs 2 "
+          "(a tie) both FROZEN, 3 vs 1 NOBODY, 4 vs 0 nobody") {
+    // BUG CAUGHT (the brief's mutation "FROZEN guard 'some other member not SUSPECT'", item 4 as
+    // first written): three stalled LIVE members beside one slipping mate all FROZEN and marked —
+    // three dead, the drive REFUSED (the re-check's finding 14, port 18). And a strict majority,
+    // which would never mark a 2-of-4 side's next death (S8).
+    for (int nHeld = 1; nHeld <= 4; ++nHeld) {
+        Side4 s;
+        for (std::size_t i = 0; i < 4; ++i) {
+            s.held[i] = static_cast<int>(i) < nHeld;
+            s.vel[i] = 3.0;  // every one says it turns: the held ones are SUSPECT by their own speed
+        }
+        const FrozenVerdict v = s.ticks(8);
+        CAPTURE(nHeld);
+        std::uint32_t heldMask = 0;
+        for (int i = 0; i < nHeld; ++i) heldMask |= bit(static_cast<std::size_t>(i));
+        CHECK(v.suspectMask == heldMask);
+        CHECK(v.frozenMask == (nHeld <= 2 ? heldMask : 0u));
+    }
+}
+
+TEST_CASE("T4 P2-10b: on a side with two members already gone (not present), 1 suspect vs 1 "
+          "answering is a tie — FROZEN") {
+    // BUG CAUGHT: the census counting absent members (a 2-of-4 side's next death never marked, and
+    // it cuts every 1.25 s instead — the re-check's S8), or a strict majority.
+    Side4 s;
+    s.present[0] = false;
+    s.present[1] = false;
+    s.held[2] = true;
+    s.vel[2] = 3.0;
+    const FrozenVerdict v = s.ticks(8);
+    CHECK(v.suspectMask == bit(2));
+    CHECK(v.frozenMask == bit(2));
+    CHECK(s.det.repeatReads(0) == 0);  // a member not present is reset, never counted
+    // …and the two that are left stopping TOGETHER (a wall) is two suspect against none answering:
+    // nobody. A census that counted the gone members as answering would freeze both — the robot's
+    // last two on that side marked at a wall.
+    Side4 both;
+    both.present[0] = false;
+    both.present[1] = false;
+    both.held[2] = true;
+    both.held[3] = true;
+    both.vel = {0.0, 0.0, 3.0, 3.0};
+    const FrozenVerdict w = both.ticks(8);
+    CHECK(w.suspectMask == (bit(2) | bit(3)));
+    CHECK(w.frozenMask == 0u);
+}
+
+TEST_CASE("T4 P2-10b: a member NOT PRESENT for a tick starts over — its repeat count and its FROZEN "
+          "streak reset, and its first read back is a first read") {
+    // BUG CAUGHT: a presence that flickers (a caller's present flag) carrying a stale repeat count
+    // across the gap — a member that came back reading what it read before would be SUSPECT on its
+    // first read back.
+    Side4 s;
+    s.held[0] = true;
+    s.vel[0] = 3.0;
+    (void)s.ticks(12);  // repeat 11, FROZEN for 7
+    REQUIRE(s.det.repeatReads(0) == 11);
+    REQUIRE(s.det.frozenTicks(0) == 7);
+    s.present[0] = false;
+    const FrozenVerdict gone = s.tick();
+    CHECK(s.det.repeatReads(0) == 0);
+    CHECK(s.det.frozenTicks(0) == 0);
+    CHECK((gone.suspectMask & bit(0)) == 0u);
+    s.present[0] = true;  // back, reading exactly what it read before the gap
+    const FrozenVerdict back = s.tick();
+    CHECK(s.det.repeatReads(0) == 0);  // a first read, not the 12th repeat
+    CHECK((back.suspectMask & bit(0)) == 0u);
+    (void)s.ticks(4);
+    CHECK(s.det.repeatReads(0) == 4);
+    CHECK((s.tick().frozenMask & bit(0)) != 0u);  // SUSPECT and FROZEN again at its 5th repeat
+}
+
+TEST_CASE("T4 P2-10b: LATCHED on the 25th consecutive FROZEN tick, not the 24th — and a latched "
+          "member stays latched, whatever it reads after") {
+    // BUG CAUGHT: the latch window off by one; a latch that forgets (a port that answered again for
+    // a moment is not one to hand the fight monitor back to — the old detector's rule).
+    Side4 s;
+    s.held[0] = true;
+    s.vel[0] = 3.0;
+    (void)s.ticks(5);  // repeats 0..4: not yet FROZEN
+    for (int k = 1; k <= 24; ++k) {
+        const FrozenVerdict v = s.tick();
+        REQUIRE(v.frozenMask == bit(0));
+        CHECK(v.latchedMask == 0u);
+        CHECK(s.det.frozenTicks(0) == k);
+    }
+    const FrozenVerdict at25 = s.tick();
+    CHECK(at25.latchedMask == bit(0));
+    CHECK(at25.frozenMask == bit(0));
+    CHECK(s.det.latchedMask() == bit(0));
+    s.held[0] = false;  // it "answers" again
+    for (int k = 0; k < 30; ++k) {
+        const FrozenVerdict v = s.tick();
+        CHECK(v.latchedMask == 0u);  // latched ONCE — never again, never un-latched
+        CHECK((v.suspectMask & bit(0)) == 0u);
+        CHECK((v.frozenMask & bit(0)) == 0u);
+    }
+    CHECK(s.det.latchedMask() == bit(0));
+    s.det.reset();
+    CHECK(s.det.latchedMask() == 0u);
+}
+
+TEST_CASE("T4 P2-10b: a whole side that stops together is NOBODY frozen — the wall, a stall, a "
+          "report that lags a stop") {
+    // BUG CAUGHT: a live train at a wall with its reports lagging marking a live member dead (the
+    // 2026-09-27 re-check's fourth failure). Every member alike is never one death.
+    Side4 s;
+    s.held = {true, true, true, true};
+    s.vel = {4.0, 3.9, 4.1, 4.0};  // lagging reports, held (the probe's worst case: they do not decay)
+    for (int k = 0; k < 60; ++k) {
+        const FrozenVerdict v = s.tick();
+        CHECK(v.frozenMask == 0u);
+    }
+    CHECK(s.det.latchedMask() == 0u);
+}
+
+TEST_CASE("T4 P2-10b: the precondition — 0 < suspectReads < persistTicks") {
+    // BUG CAUGHT: a read count as long as the monitor's window (the first proposal's): a dead
+    // member's stale velocity then starts a fight streak before it is excluded — the race P2-6 pins.
+    CHECK_THROWS_AS(FrozenReadingDetector(SideMonitorConfig{}, 0), shulib::PreconditionError);
+    CHECK_THROWS_AS(FrozenReadingDetector(SideMonitorConfig{}, -1), shulib::PreconditionError);
+    CHECK_THROWS_AS(FrozenReadingDetector(SideMonitorConfig{}, 25), shulib::PreconditionError);
+    CHECK_NOTHROW(FrozenReadingDetector(SideMonitorConfig{}, 24));
+    SideMonitorConfig shortWindow{};
+    shortWindow.persistTicks = 5;
+    CHECK_THROWS_AS(FrozenReadingDetector(shortWindow, 5), shulib::PreconditionError);
 }

@@ -551,3 +551,216 @@ TEST_CASE("MotorGroup 8b: an ALL-PRESENT group is bit-identical to what it was b
     CHECK(&g.member(0) == &f.motors[0]);
     CHECK(&g.member(4) == &f.motors[4]);
 }
+
+// ═══ P2-10. RUNTIME ABSENCE — markAbsent (chunk T4 Part 2) ══════════════════════════
+// Bug caught: a member marked dead mid-run that still drags the median, still cools the per-member
+// current, still reaches the fight monitor (a dead port read as a FIGHT, which now CUTS the drive),
+// or — the other way — one that stops being COMMANDED (the old program's rule: a member whose reads
+// failed while its motor still turns keeps pulling). And a mark that THROWS mid-match, or that takes
+// a side's last member (a group with nothing to report).
+//
+// Mutations these must fail under: markAbsent leaves the member in the median; leaves it in the
+// monitor; stops commanding it; allows the last member; member(i) throwing for a marked member.
+TEST_CASE("T4 P2-10: markAbsent — out of every read and the monitor, STILL commanded, refused "
+          "without a throw out of range / twice / on a hole / on the last member") {
+    std::array<FakeMotor, 5> motors{};
+    std::array<IMotor*, 5> ptrs{&motors[0], &motors[1], nullptr, &motors[3], &motors[4]};
+    const int labels[5] = {11, 12, 13, 14, 15};
+    MotorGroup g{std::span<IMotor* const>{ptrs}, {}, std::span<const int>{labels}};
+    const double p[5] = {1.0, 2.0, -999.0, 3.0, 50.0};  // member 4 will be the dead one
+    for (std::size_t i = 0; i < 5; ++i) {
+        motors[i].setPosition(AngleDim{p[i]});
+        motors[i].setVelocity(AngularVelocity{10.0 * p[i]});
+        motors[i].setCurrent(Current{i == 4 ? 9.0 : 1.0});
+        motors[i].setTemperature(i == 4 ? 80.0 : 30.0 + static_cast<double>(i));
+    }
+    REQUIRE(g.presentCount() == 4);
+    REQUIRE(g.position().value() == 2.5);  // median of 1, 2, 3, 50
+
+    REQUIRE(g.markAbsent(4));
+    CHECK(g.presentCount() == 3);
+    CHECK_FALSE(g.isPresent(4));
+    CHECK(g.runtimeAbsentMask() == (std::uint32_t{1} << 4));
+    CHECK(g.absentMask() == 0b00100u);  // the BOOT holes are unchanged by a runtime mark
+    CHECK(g.memberCount() == 5);
+
+    SUBCASE("out of every read: the median, the mean current, the sum, the max temperature") {
+        CHECK(g.position().value() == 2.0);   // median of 1, 2, 3 — the 50 is gone
+        CHECK(g.velocity().value() == 20.0);
+        CHECK(g.current().value() == 1.0);    // (1 + 1 + 1) / 3, not (… + 9) / 4
+        CHECK(g.totalCurrent().value() == 3.0);
+        CHECK(g.temperature() == 33.0);       // the 80 °C of the dead member is not a member's
+        // And identical to a group built over the three survivors.
+        std::array<IMotor*, 3> three{&motors[0], &motors[1], &motors[3]};
+        MotorGroup dense{std::span<IMotor* const>{three}};
+        CHECK(g.position().value() == dense.position().value());
+        CHECK(g.velocity().value() == dense.velocity().value());
+        CHECK(g.current().value() == dense.current().value());
+    }
+
+    SUBCASE("STILL commanded — voltage and brake mode both reach the marked member") {
+        g.setVoltage(Voltage{-6.5});
+        g.setBrakeMode(BrakeMode::Hold);
+        CHECK(motors[4].commandedVoltage().value() == -6.5);
+        CHECK(motors[4].brakeMode() == BrakeMode::Hold);
+        CHECK(motors[2].commandedVoltage().value() == 0.0);  // the BOOT hole is still skipped
+    }
+
+    SUBCASE("the monitor is told present = FALSE: its stale reading can neither fight nor stall") {
+        g.setVoltage(Voltage{8.0});
+        for (const std::size_t i : {std::size_t{0}, std::size_t{1}, std::size_t{3}}) {
+            motors[i].setVelocity(AngularVelocity{20.0});
+        }
+        motors[4].setVelocity(AngularVelocity{-20.0});  // would be a fight if it were fed
+        for (int t = 0; t < 40; ++t) {
+            g.evaluateDisagreement();
+        }
+        CHECK(g.disagreeingMembers() == 0);
+        CHECK(g.lastVerdict().presentCount == 3);
+        motors[4].setVelocity(AngularVelocity{0.0});  // …or a stall
+        for (int t = 0; t < 40; ++t) {
+            g.evaluateDisagreement();
+        }
+        CHECK(g.disagreeingMembers() == 0);
+    }
+
+    SUBCASE("member(i) RETURNS a marked member (it exists, it is commanded) and still throws for a "
+            "boot hole") {
+        CHECK(&g.member(4) == &motors[4]);
+        CHECK_THROWS_AS((void)g.member(2), PreconditionError);
+        CHECK_THROWS_AS((void)g.member(5), PreconditionError);
+    }
+
+    SUBCASE("REFUSED, with nothing changed and no throw: out of range, a second mark, a boot hole, "
+            "and the LAST present member") {
+        CHECK_FALSE(g.markAbsent(5));
+        CHECK_FALSE(g.markAbsent(99));
+        CHECK_FALSE(g.markAbsent(4));  // already marked
+        CHECK_FALSE(g.markAbsent(2));  // a boot hole is not a member to mark
+        CHECK(g.presentCount() == 3);
+        CHECK(g.runtimeAbsentMask() == (std::uint32_t{1} << 4));
+        REQUIRE(g.markAbsent(0));
+        REQUIRE(g.markAbsent(1));
+        REQUIRE(g.presentCount() == 1);
+        CHECK_FALSE(g.markAbsent(3));  // the last one answers: a group must have a reading
+        CHECK(g.presentCount() == 1);
+        CHECK(g.isPresent(3));
+        CHECK(g.position().value() == 3.0);
+        // first() skips holes AND marks: give every member its own mode, so the read-back can only
+        // be member 3's (the review of 2026-09-30: with every mode left at the default this check
+        // could not fail).
+        motors[0].setBrakeMode(BrakeMode::Hold);
+        motors[1].setBrakeMode(BrakeMode::Brake);
+        motors[3].setBrakeMode(BrakeMode::Coast);
+        motors[4].setBrakeMode(BrakeMode::Hold);
+        CHECK(g.brakeMode() == BrakeMode::Coast);
+    }
+
+    SUBCASE("the FIRST member marked: temperature() and brakeMode() read the first PRESENT member, "
+            "not the marked one's held readings") {
+        // BUG CAUGHT (the review of 2026-09-30, G1): first() returning a runtime-MARKED member —
+        // its held temperature would seed the group's (and MOTOR_OVER_TEMP reads the group's,
+        // motion.hpp's health tick), and brakeMode() would read back a dead port's last mode.
+        std::array<FakeMotor, 4> m{};
+        std::array<IMotor*, 4> q{&m[0], &m[1], &m[2], &m[3]};
+        MotorGroup first{std::span<IMotor* const>{q}};
+        for (std::size_t i = 0; i < 4; ++i) {
+            m[i].setTemperature(i == 0 ? 80.0 : 30.0 + static_cast<double>(i));
+        }
+        first.setBrakeMode(BrakeMode::Coast);
+        m[0].setBrakeMode(BrakeMode::Hold);  // the dead port's last mode
+        REQUIRE(first.markAbsent(0));
+        CHECK(first.temperature() == 33.0);  // not the marked member's 80 °C
+        CHECK(first.brakeMode() == BrakeMode::Coast);
+    }
+
+    SUBCASE("labels: one port number per slot, 0 out of range; none given is 0 everywhere") {
+        CHECK(g.label(0) == 11);
+        CHECK(g.label(2) == 13);  // a hole still has its port — the log names it
+        CHECK(g.label(4) == 15);
+        CHECK(g.label(5) == 0);
+        Fakes<2> f;
+        MotorGroup plain{f.span()};
+        CHECK(plain.label(0) == 0);
+        CHECK(plain.label(1) == 0);
+        const int wrong[1] = {7};
+        CHECK_THROWS_AS((MotorGroup{f.span(), {}, std::span<const int>{wrong}}), PreconditionError);
+    }
+}
+
+// ═══ P2-10. The exclusion mask — setMonitorExcluded (chunk T4 Part 2) ════════════════
+// Bug caught: an exclusion that also drops the member from the reads or the command (the mask is
+// for the MONITOR only — a FROZEN member is still a member until it is marked), an exclusion that
+// does not reach the monitor (a dead member's stale velocity starts a fight streak and cuts), and a
+// mask that keeps bits it should drop (a hole's, a marked member's, one past the range).
+TEST_CASE("T4 P2-10: setMonitorExcluded — fed present = FALSE to the monitor, and NOTHING else "
+          "changes; dropped bits dropped; a zero mask is bit-identical") {
+    std::array<FakeMotor, 4> motors{};
+    std::array<IMotor*, 4> ptrs{&motors[0], &motors[1], &motors[2], nullptr};
+    MotorGroup g{std::span<IMotor* const>{ptrs}};
+    const double p[3] = {1.0, 2.0, 40.0};
+    for (std::size_t i = 0; i < 3; ++i) {
+        motors[i].setPosition(AngleDim{p[i]});
+        motors[i].setCurrent(Current{static_cast<double>(i + 1)});
+    }
+    CHECK(g.monitorExcludedMask() == 0u);  // the default
+
+    g.setMonitorExcluded(0b0100u);
+    CHECK(g.monitorExcludedMask() == 0b0100u);
+    // Every read and the command are untouched.
+    CHECK(g.presentCount() == 3);
+    CHECK(g.isPresent(2));
+    CHECK(g.position().value() == 2.0);         // median of 1, 2, 40 — the excluded 40 is in it
+    CHECK(g.totalCurrent().value() == 6.0);
+    g.setVoltage(Voltage{9.0});
+    CHECK(motors[2].commandedVoltage().value() == 9.0);
+
+    SUBCASE("…but the monitor is told present = FALSE for it") {
+        motors[0].setVelocity(AngularVelocity{20.0});
+        motors[1].setVelocity(AngularVelocity{20.0});
+        motors[2].setVelocity(AngularVelocity{-20.0});  // a fight, if it were fed
+        for (int t = 0; t < 40; ++t) {
+            g.evaluateDisagreement();
+        }
+        CHECK(g.disagreeingMembers() == 0);
+        CHECK(g.lastVerdict().presentCount == 2);
+        g.setMonitorExcluded(0u);  // cleared: the next 25 ticks flag it — the mask is the only cause
+        for (int t = 0; t < 25; ++t) {
+            g.evaluateDisagreement();
+        }
+        CHECK(g.disagreeingMask() == 0b0100u);
+    }
+
+    SUBCASE("bits past the range, on a hole and on a marked member are dropped") {
+        g.setMonitorExcluded(0xFFFFFFFFu);
+        CHECK(g.monitorExcludedMask() == 0b0111u);  // slot 3 is a hole; nothing past 4 slots
+        REQUIRE(g.markAbsent(1));
+        CHECK(g.monitorExcludedMask() == 0b0101u);  // a mark clears its bit
+        g.setMonitorExcluded(0b0010u);
+        CHECK(g.monitorExcludedMask() == 0u);
+    }
+
+    SUBCASE("a mask of 0 set explicitly is bit-identical to one never set") {
+        Fakes<3> a;
+        Fakes<3> b;
+        MotorGroup ga{a.span()};
+        MotorGroup gb{b.span()};
+        gb.setMonitorExcluded(0u);
+        const double v[3] = {5.0, 5.5, -0.5};
+        for (std::size_t i = 0; i < 3; ++i) {
+            a.motors[i].setVelocity(AngularVelocity{v[i]});
+            b.motors[i].setVelocity(AngularVelocity{v[i]});
+        }
+        ga.setVoltage(Voltage{6.0});
+        gb.setVoltage(Voltage{6.0});
+        for (int t = 0; t < 30; ++t) {
+            const auto va = ga.evaluateDisagreement();
+            const auto vb = gb.evaluateDisagreement();
+            CHECK(va.persistedMask == vb.persistedMask);
+            CHECK(va.disagreeingMask == vb.disagreeingMask);
+            CHECK(va.fastestRadS == vb.fastestRadS);
+            CHECK(va.presentCount == vb.presentCount);
+        }
+        CHECK(ga.disagreeingMask() != 0u);  // the run did flag something (member 2 is stalled)
+    }
+}

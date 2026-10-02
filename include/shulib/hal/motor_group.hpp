@@ -35,7 +35,8 @@
 // all). For an even N the median is the mean of the two middle values, which one dead
 // member still cannot reach when N >= 4; for N == 2 no aggregate can tell the live member
 // from the dead one, and the median degrades to a half-drag — stated, not hidden.
-// (Robot two is N = 5 per side; the bench bot N = 4.)
+// (Robot two is N = 4 per side on its calibration record of 2026-09-25 — its typed table
+// listed five, and this header was written for five; the bench bot is N = 4 too.)
 //
 // current() is the MEAN per member, so the tree's per-motor stall/capture thresholds keep
 // their meaning (a member at 2.4 A reads as a member at 2.4 A); the SUM is exposed as the
@@ -130,6 +131,10 @@
 // NOT a fight — A4 register HA-130; test 16 pins that it is tolerated and that an opposing
 // member is not — the disagreement FLOOR, A4 register HA-133, invented with the rest of the
 // thresholds, HA-132). Configure the mask to abort if a season's data says otherwise.
+// In DRIVER CONTROL, since T4 Part 2, the library's drive protections act on the same verdict
+// with a third trade — the old "shulib Drive"'s, ruled in by the team lead (R4): a 1 s CUT of
+// the whole drive that re-arms by itself (teleop/drive_protection.hpp) — a pause, never the end
+// of a match; the fault is still raised as above.
 //
 // ── THE ABSENT MEMBER (chunk R3d Part 2, ruling P4) ─────────────────────────────────
 // A `nullptr` in the members span is an ABSENT member: a drive port the composition root
@@ -141,15 +146,12 @@
 // velocity() with SOMETHING — and every answer is a lie the median would then average in.
 // A hole cannot be read by accident.
 //
-// WHY BOOT, AND NOT RUNTIME: a dead port is known before the graph exists. The drive program
-// finds one by catching hal/pros/motor.hpp's constructor throw per port (its HA-98 read-back,
-// kept as std::optional<ProsMotor> in its `Member` shape) and drives the rest itself, without
-// this class. The graphs that DO use this class — robot::Robot (`BuildOptions::absentDrivePorts`,
-// since G1 Part 2a), which "shulib Teleop" is built on since G1 Part 2b (until then its
-// hand-wired `TankMotors` in src/main.cpp did the same) — take the MISSING set
-// calibration::boot_check read from the brain's own registry, never construct those ports, and
-// hand this class a span with a hole where each one would be. Runtime death INSIDE the library
-// graph — promoting the drive program's MemberAbsenceDetector in here — is a later chunk.
+// WHY A HOLE AT BOOT: a dead port is known before the graph exists. The graphs that use this
+// class — robot::Robot (`BuildOptions::absentDrivePorts`, since G1 Part 2a), which "shulib
+// Teleop" is built on since G1 Part 2b — take the MISSING set calibration::boot_check read from
+// the brain's own registry, never construct those ports, and hand this class a span with a hole
+// where each one would be. (The old "shulib Drive", src/programs/drive_program.cpp, never used
+// this class: it caught hal/pros/motor.hpp's constructor throw per port and drove the rest itself.)
 //
 // WHAT CHANGES, AND WHAT DOES NOT: setVoltage/setBrakeMode SKIP the holes; position(),
 // velocity(), current() and temperature() are over the PRESENT members only; the monitor is
@@ -160,6 +162,33 @@
 // change, with `MotorGroup 8b` and the plant's case 7 as the local half of it. A PRESENT
 // member whose reading is not finite (above) is left out of that one read and moves neither
 // count: it is still a slot, still present, still commanded.
+//
+// ── A MEMBER THAT DIES MID-RUN (chunk T4 Part 2, 2026-09-29) ─────────────────────────
+// A port that answered at boot can still stop answering in a match. Through the IMotor seam it
+// does not say so — ProsMotor holds its last good readings (hal/pros/motor.hpp) and IMotor has no
+// validity channel (F4, locked) — so the group cannot see it by itself. The driver loop's
+// protections can (teleop/drive_protection.hpp: a member whose readings FREEZE while its side
+// answers, teleop::FrozenReadingDetector), and they act through two calls here:
+//   * markAbsent(i) LATCHES member i ABSENT for the group's life. From then on it is out of EVERY
+//     read, exactly like a boot hole, and the monitor is told `present = false` — but it is STILL
+//     COMMANDED: setVoltage and setBrakeMode still reach it (the old "shulib Drive"'s rule, "still
+//     commanded (harmless)": a dead port ignores a command, and a member whose READS failed while
+//     its motor still turns keeps pulling). It REFUSES — returns false, changes nothing, never
+//     throws — out of range, a hole, a second mark, and the LAST present member: a throw mid-match
+//     would end driver control, and a group must always have a reading to report.
+//   * setMonitorExcluded(mask) keeps the members whose bit is set out of the fight monitor (fed
+//     `present = false`) until the mask changes, and changes NOTHING else: they stay in every read
+//     and are still commanded. It is how a member whose readings are FROZEN this tick is kept from
+//     starting a fight streak with its stale velocity before it is marked. Only the protections set
+//     it, and they clear it whenever driver control ends; motion code never touches it, so
+//     MOTOR_GROUP_DISAGREE in an autonomous motion is unchanged.
+// absentMask() stays the BOOT holes; runtimeAbsentMask() is the runtime marks; presentCount() and
+// isPresent() count both. A group with no marks and a zero mask is BIT-IDENTICAL to one before
+// T4 Part 2 (the whole suite is the pin, its assertion count recorded before and after).
+//
+// LABELS: an optional span giving each slot's PORT NUMBER, so a log line can name the port a pit
+// crew can find. robot::Robot passes the description's port magnitudes; a group with no labels
+// names a slot "member i". Labels are only printed — nothing reads them to decide anything.
 //
 // Non-owning: the pointer ARRAY the span views, and the motors it points to, must
 // outlive the group — the tree's ownership convention (the IMotor destructor's doc in
@@ -270,17 +299,23 @@ public:
     /// `members`: N >= 1 slots in a FIXED order (the bit positions of disagreeingMask() and
     /// absentMask() index this span). A `nullptr` slot is an ABSENT member — a drive port found
     /// dead at boot (header). `thresholds`: the disagreement detector's knobs — the defaults are
-    /// the drive program's (INVENTED for a first run; R4 measures).
+    /// the old "shulib Drive"'s (INVENTED for a first run; R4 measures). `labels`: empty, or ONE
+    /// port number per slot in the same order, for log lines (header, LABELS) — non-owning, so the
+    /// array it views must outlive the group.
     ///
     /// Precondition: at least ONE member is PRESENT. A group of nothing but holes has no
     /// position, no velocity and no temperature to report, and every read below would have to
     /// invent one — so it is refused at construction, where a composition root can still paint
-    /// a refusal, rather than at the first read, mid-match.
+    /// a refusal, rather than at the first read, mid-match. And `labels` is empty or exactly
+    /// as long as `members`.
     explicit MotorGroup(std::span<IMotor* const> members,
-                        teleop::SideMonitorConfig thresholds = {})
-        : members_{members}, monitor_{thresholds} {
+                        teleop::SideMonitorConfig thresholds = {},
+                        std::span<const int> labels = {})
+        : members_{members}, labels_{labels}, monitor_{thresholds} {
         SHULIB_PRECONDITION(!members_.empty(), "MotorGroup: members is empty (N >= 1 required)");
         SHULIB_PRECONDITION(members_.size() <= kMaxMembers, "MotorGroup: too many members");
+        SHULIB_PRECONDITION(labels_.empty() || labels_.size() == members_.size(),
+                            "MotorGroup: labels must be empty or one per member slot");
         for (std::size_t i = 0; i < members_.size(); ++i) {
             if (members_[i] != nullptr) {
                 ++present_;
@@ -295,14 +330,15 @@ public:
 
     /// Fan the SAME command to every member (each clamps for itself); the group mirrors the
     /// clamped value for commandedVoltage(). Non-finite is rejected here, before any member
-    /// sees it, so a bad command cannot half-apply.
+    /// sees it, so a bad command cannot half-apply. A boot hole is skipped; a member marked
+    /// ABSENT at runtime is still commanded (header).
     void setVoltage(units::Voltage volts) override {
         SHULIB_PRECONDITION(std::isfinite(volts.value()),
                             "MotorGroup::setVoltage: voltage must be finite");
         commanded_ = units::Voltage{
             std::clamp(volts.value(), -kMaxMotorVoltage.value(), kMaxMotorVoltage.value())};
         for (IMotor* m : members_) {
-            if (m != nullptr) {  // an ABSENT member is skipped, not commanded (header)
+            if (m != nullptr) {  // a boot HOLE is skipped, not commanded (header)
                 m->setVoltage(volts);
             }
         }
@@ -312,7 +348,8 @@ public:
     /// (the ProsMotor convention), never a member read-back. 0 V until the first setVoltage().
     [[nodiscard]] units::Voltage commandedVoltage() const override { return commanded_; }
 
-    /// Fan the mode to every PRESENT member.
+    /// Fan the mode to every member that is not a boot hole — a runtime-ABSENT member included
+    /// (header: it is still commanded).
     void setBrakeMode(BrakeMode mode) override {
         for (IMotor* m : members_) {
             if (m != nullptr) {
@@ -359,11 +396,11 @@ public:
     [[nodiscard]] double temperature() const override {
         double worst = std::numeric_limits<double>::quiet_NaN();
         bool any = false;
-        for (const IMotor* m : members_) {
-            if (m == nullptr) {
-                continue;
+        for (std::size_t i = 0; i < members_.size(); ++i) {
+            if (!readable(i)) {
+                continue;  // a boot hole or a member marked ABSENT at runtime: not read
             }
-            const double t = m->temperature();
+            const double t = members_[i]->temperature();
             if (!isUsableReading(t)) {
                 ++nonFiniteReads_;
                 continue;
@@ -399,16 +436,19 @@ public:
     /// One tick of the disagreement observable: samples every member's velocity() against
     /// the group's commanded voltage through the shared coupled-side monitor, advancing its
     /// persistence counters ONCE. Call exactly once per control tick — the health tick
-    /// (motion::tickHealthObservables) does. Returns the verdict it also stores.
+    /// (motion::tickHealthObservables) does. Returns the verdict it also stores. A member that
+    /// is ABSENT (a boot hole or a runtime mark) or excluded by setMonitorExcluded() is fed as
+    /// `present = false`, with no reading taken.
     const teleop::SideVerdict& evaluateDisagreement() {
         teleop::MemberSample samples[kMaxMembers];
         const std::size_t n = members_.size();
         for (std::size_t i = 0; i < n; ++i) {
             // An ABSENT member is reported present = FALSE, with no reading taken (there is
-            // nothing to read). The monitor excludes it from the fastest-member comparison and
-            // never flags it — a dead port must not read as a fighting one.
-            samples[i] = members_[i] != nullptr
-                             ? teleop::MemberSample{members_[i]->velocity().value(), true}
+            // nothing to read, or nothing worth reading). The monitor excludes it from the
+            // fastest-member comparison and never flags it — a dead port must not read as a
+            // fighting one. An EXCLUDED member (a frozen reading, this tick) the same way.
+            const bool fed = readable(i) && (excluded_ & bit(i)) == 0;
+            samples[i] = fed ? teleop::MemberSample{members_[i]->velocity().value(), true}
                              : teleop::MemberSample{0.0, false};
         }
         verdict_ = monitor_.update(commanded_.value(),
@@ -434,27 +474,65 @@ public:
         verdict_ = teleop::SideVerdict{};
     }
 
+    /// Latch member `i` ABSENT for the rest of the group's life — a port that stopped answering
+    /// mid-run (header, A MEMBER THAT DIES MID-RUN). From then on it is out of every read and fed
+    /// to the monitor as `present = false`, and it is STILL COMMANDED. Returns true when it marked
+    /// the member; REFUSES — false, nothing changed, never a throw — when `i` is out of range, is
+    /// a boot hole, is already marked, or is the LAST present member (a group must always have a
+    /// reading to report). A mark also clears the member's setMonitorExcluded() bit.
+    bool markAbsent(std::size_t i) noexcept {
+        if (i >= members_.size() || members_[i] == nullptr || (runtimeAbsent_ & bit(i)) != 0
+            || present_ <= 1) {
+            return false;
+        }
+        runtimeAbsent_ |= bit(i);
+        excluded_ &= ~bit(i);
+        --present_;
+        return true;
+    }
+
+    /// Bit i set = member i was marked ABSENT at runtime (markAbsent()). 0 = no runtime mark.
+    /// absentMask() is the BOOT holes; the two never overlap.
+    [[nodiscard]] std::uint32_t runtimeAbsentMask() const noexcept { return runtimeAbsent_; }
+
+    /// Keep the members whose bit is set OUT of the fight monitor — fed `present = false` on
+    /// every evaluateDisagreement() until the mask changes — and change nothing else: they stay
+    /// in every read and are still commanded (header). Bits past memberCount(), and bits on a
+    /// boot hole or a runtime-ABSENT member, are dropped. 0 (the default) is bit-identical to a
+    /// group that never had a mask. The driver loop's protections set it every tick and clear it
+    /// whenever driver control ends; nothing else should.
+    void setMonitorExcluded(std::uint32_t mask) noexcept {
+        excluded_ = mask & rangeMask() & ~absent_ & ~runtimeAbsent_;
+    }
+
+    /// The mask setMonitorExcluded() left in force, with its dropped bits already gone.
+    [[nodiscard]] std::uint32_t monitorExcludedMask() const noexcept { return excluded_; }
+
     /// How many SLOTS the group has — present and absent together, so a panel's port list keeps
     /// its indices when a member goes missing. presentCount() is how many answer.
     [[nodiscard]] std::size_t memberCount() const noexcept { return members_.size(); }
 
-    /// How many members are PRESENT (not a nullptr slot). Always >= 1.
+    /// How many members are PRESENT — neither a boot hole nor marked ABSENT at runtime. Always
+    /// >= 1 (the constructor's precondition, and markAbsent()'s refusal of the last one).
     [[nodiscard]] std::size_t presentCount() const noexcept { return present_; }
 
-    /// Bit i set = slot i is ABSENT. 0 = a complete group — the state every graph built from a
-    /// healthy robot is in, and the one the whole pre-existing suite pins.
+    /// Bit i set = slot i is a BOOT hole (a nullptr slot). 0 = a complete group — the state every
+    /// graph built from a healthy robot is in, and the one the whole pre-existing suite pins.
+    /// A member marked ABSENT at runtime is runtimeAbsentMask()'s, not this.
     [[nodiscard]] std::uint32_t absentMask() const noexcept { return absent_; }
 
-    /// True when slot `i` is present. Out of range is false, so a panel walking a fixed-size
-    /// array cannot fall off the end.
+    /// True when slot `i` is PRESENT: neither a boot hole nor marked ABSENT at runtime. Out of
+    /// range is false, so a panel walking a fixed-size array cannot fall off the end.
     [[nodiscard]] bool isPresent(std::size_t i) const noexcept {
-        return i < members_.size() && members_[i] != nullptr;
+        return i < members_.size() && readable(i);
     }
 
-    /// Member `i` (0-based, the span's order). Preconditions: i < memberCount() AND slot i is
-    /// PRESENT. Asking an absent slot for its motor is a caller bug — there is no object to
-    /// return and no sentinel that would not be a lie — so it is a precondition violation
-    /// rather than a reference to nothing.
+    /// Member `i` (0-based, the span's order). Preconditions: i < memberCount() AND slot i is not
+    /// a BOOT hole (absentMask()). Asking a hole for its motor is a caller bug — there is no
+    /// object to return and no sentinel that would not be a lie — so it is a precondition
+    /// violation rather than a reference to nothing. A member marked ABSENT at runtime IS
+    /// returned — it exists and is still commanded — and its readings are its last good ones,
+    /// which is why nothing in the library reads it (ask isPresent(i) first).
     [[nodiscard]] IMotor& member(std::size_t i) const {
         SHULIB_PRECONDITION(i < members_.size(), "MotorGroup::member: index out of range");
         SHULIB_PRECONDITION(members_[i] != nullptr,
@@ -463,31 +541,54 @@ public:
         return *members_[i];
     }
 
+    /// Slot `i`'s label — the port number the composition root gave it — or 0 when this group
+    /// was built without labels or `i` is out of range. Only printed, never decided on.
+    [[nodiscard]] int label(std::size_t i) const noexcept {
+        return i < labels_.size() ? labels_[i] : 0;
+    }
+
     /// The thresholds the disagreement observable runs under.
     [[nodiscard]] const teleop::SideMonitorConfig& thresholds() const noexcept {
         return monitor_.config();
     }
 
 private:
-    /// The first PRESENT member. The constructor's precondition guarantees there is one, so
-    /// this never falls off the end; the loop is what makes brakeMode() read a DEVICE rather
-    /// than a hole. (temperature() used it as its seed until DIAG1 Part B; it no longer does.)
+    /// Bit `i` of a member mask.
+    [[nodiscard]] static constexpr std::uint32_t bit(std::size_t i) noexcept {
+        return std::uint32_t{1} << i;
+    }
+
+    /// Every slot's bit.
+    [[nodiscard]] std::uint32_t rangeMask() const noexcept {
+        return members_.size() >= 32 ? ~std::uint32_t{0}
+                                     : (std::uint32_t{1} << members_.size()) - 1U;
+    }
+
+    /// Slot `i` holds a member that is READ: not a boot hole, not marked ABSENT at runtime.
+    [[nodiscard]] bool readable(std::size_t i) const noexcept {
+        return members_[i] != nullptr && (runtimeAbsent_ & bit(i)) == 0;
+    }
+
+    /// The first PRESENT member. The constructor's precondition and markAbsent()'s refusal of the
+    /// last member guarantee there is one, so this never falls off the end; the loop is what makes
+    /// brakeMode() read a DEVICE rather than a hole. (temperature() used it as its seed until DIAG1
+    /// Part B; it no longer does.)
     [[nodiscard]] IMotor& first() const {
-        for (IMotor* m : members_) {
-            if (m != nullptr) {
-                return *m;
+        for (std::size_t i = 0; i < members_.size(); ++i) {
+            if (readable(i)) {
+                return *members_[i];
             }
         }
-        return *members_[0];  // unreachable: present_ >= 1 is a construction precondition
+        return *members_[0];  // unreachable: present_ >= 1 always
     }
 
     template <typename Read>
     [[nodiscard]] double medianOf(Read read) const {
         double v[kMaxMembers];
         std::size_t k = 0;
-        for (const IMotor* m : members_) {
-            if (m != nullptr) {
-                const double x = read(*m);
+        for (std::size_t i = 0; i < members_.size(); ++i) {
+            if (readable(i)) {
+                const double x = read(*members_[i]);
                 if (!isUsableReading(x)) {
                     ++nonFiniteReads_;  // the exclusion's own test (medianInPlace leaves it out)
                 }
@@ -503,7 +604,8 @@ private:
     }
 
     /// The current draw summed over the present members whose reading is finite, and how many
-    /// that was — current() divides by the SAME count it summed over.
+    /// that was — current() divides by the SAME count it summed over. "Present" is readable():
+    /// neither a boot hole nor a member marked ABSENT at runtime (T4 Part 2a).
     struct CurrentSum {
         double amps = 0.0;
         std::size_t counted = 0;
@@ -511,9 +613,9 @@ private:
 
     [[nodiscard]] CurrentSum sumCurrent() const {
         CurrentSum s;
-        for (const IMotor* m : members_) {
-            if (m != nullptr) {
-                const double a = m->current().value();
+        for (std::size_t i = 0; i < members_.size(); ++i) {
+            if (readable(i)) {
+                const double a = members_[i]->current().value();
                 if (!isUsableReading(a)) {
                     ++nonFiniteReads_;
                     continue;
@@ -526,8 +628,11 @@ private:
     }
 
     std::span<IMotor* const> members_;
+    std::span<const int> labels_;
     std::size_t present_ = 0;
     std::uint32_t absent_ = 0;
+    std::uint32_t runtimeAbsent_ = 0;
+    std::uint32_t excluded_ = 0;
     teleop::CoupledSideMonitor monitor_;
     teleop::SideVerdict verdict_{};
     units::Voltage commanded_{0.0};

@@ -201,6 +201,53 @@ what lets the test suite run the whole loop on the host test plant. Honest statu
 below — but that version of the program has not run on a robot yet, so the loop is host-tested
 only, and no driver has felt it.
 
+The banner at the top of this chapter does not cover the loop: `teleop::runDriverControl`, like the
+rest of `teleop/`, is in no row of the Freeze Register, so it is not part of the frozen surface. It
+changes without a major version bump — and with a changelog entry every time, as it did when the
+drive protections below arrived (the changelog's "the drive protections, inside the driver loop"):
+a program built against an earlier version keeps compiling unchanged, and now cuts and refuses.
+
+#### The drive protections — in the loop, for every program
+
+The loop also protects the drive, with no wiring of your own (`teleop::DriveProtection`,
+[`teleop/drive_protection.hpp`](../api/drive_protection.md); its numbers are
+`DriverLoopConfig::protection`, and a program that leaves the field out gets the defaults below).
+They are the old "shulib Drive"'s three rules, moved into the library so every program that drives
+through `runDriverControl` has them:
+
+- **A drive motor that stops answering is dropped.** Through the motor seam a dead port does not
+  say so — its adapter keeps repeating its last good position, velocity and current. So the loop
+  watches for exactly that: a member whose readings repeat bit for bit for 5 reads while it, or a
+  side-mate whose readings still change, says the train is turning, with at least as many of its
+  side answering as not. That member is FROZEN — kept out of the fight check at once — and after
+  250 ms of it, marked ABSENT for the rest of the run: out of every reading, still commanded, and
+  said in one `[WARN][TEL]` line
+  (`WARNING: port 18 (LEFT) went ABSENT at runtime: reads frozen for 250 ms
+  while its side answered …`). The robot drives on, degraded. At a wall it can mark a motor that is
+  NOT dead — [Chapter 12](12-when-things-go-wrong.md)'s "A motor reported dead that is not".
+- **More than two dead drive motors, in total, stops the drive for the rest of the run** — 0 V, one
+  `[ERROR][TEL]` line (`REFUSED: more than 2 motors dead in total -- 0 V for the rest of the run,
+  every later start of driver control included …`), and every later start of driver control is
+  refused too until the program is started again (the marks live in the robot's motor groups). One
+  or two dead, in any arrangement, drive on with a warning — the team lead's rule ("1-2 dead ports
+  shouldn't stop driving"). At boot the stricter rule still applies (a side with fewer than three
+  answering is refused before the match starts).
+- **A fight, or too much current, cuts the drive for 1 s.** A drive motor running against its side
+  (opposite to the command, or under a quarter of its fastest mate, while the side is driven above
+  1 V and turning), or one drawing more than 2.4 A while its side is driven above 1 V, for 250 ms,
+  sends BOTH sides to 0 V for 1 s — in that same tick — with one cut line and an `at the cut:` line
+  per motor; then driving resumes on its own (`re-armed after cut #1 (1 s at 0 V)`).
+  `protection.overCurrentCuts = false` turns the over-current cut into a logged, counted warning
+  (a robot that must push); the fight cut has no switch.
+
+After each driven stretch the loop logs one line if that stretch's highest motor current is a new
+high for this start of driver control (`drive: LEFT peak 2.31 A (port 17) over a 3.1 s drive, no
+cut`) — the record a push test reads. A `perTick` that takes a fourth argument,
+`const teleop::DriveProtectionState&`, is handed what the protections are doing (driving, degraded,
+cut with its ticks left, or refused; the dead ports; the cut count) for a panel. **None of it has run
+on a robot**: every number is invented (register entries HA-132, HA-175, HA-176), and it is proven
+on the host test plant and on hand-made readings only.
+
 #### Buttons for mechanisms
 
 A mechanism the driver works *while* driving — a claw, an arm, an intake — is a

@@ -41,7 +41,10 @@
 //   6. scale + drive   toChassisSpeeds(request, maxLinearSpeed, maxAngularSpeed) with the
 //                      budgets from chassis.motionConfig(), then chassis.drive(…, Frame::Body)
 //                      — ALWAYS Body, field-centric included: the rotation already happened
-//                      inside shape().
+//                      inside shape(). The DRIVE PROTECTIONS (chunk T4 Part 2, below) wrap it:
+//                      their beforeDrive() runs just before it, and while a cut or a refusal is
+//                      in force drive() is handed a ZERO command instead of this one; their
+//                      afterDrive() runs just after it, and may CUT in this same tick.
 //   6b. release mode   cfg.releaseBrakeMode (default Coast) on every drive motor — also once
 //                      at ENTRY, before the first tick (chunk DEFECTS2). drive() pre-empting a
 //                      motion cancels it into Brake, and since DEFECTS2 a Brake at 0 V goes to
@@ -49,8 +52,26 @@
 //                      pre-emption — keeps the invariant independent of which library path
 //                      set another mode, for one set_brake_mode per motor per tick (believed
 //                      harmless to a running motor: A4 register HA-146).
-//   7. perTick(command, connected, shaper.state())  the caller's panel.
+//   7. perTick(command, connected, shaper.state())  the caller's panel — or, when the caller's
+//                      perTick takes a FOURTH argument, perTick(…, protection.state()), the
+//                      drive protections' state (DriveProtectionState). The three-argument form
+//                      compiles and sees exactly what it saw before.
 //   8. pacer.pace()    the tick boundary.
+//
+// THE DRIVE PROTECTIONS (chunk T4 Part 2, 2026-09-29; the team lead's ruling R4): the old
+// "shulib Drive"'s mid-match absence rule and its two re-arming cuts, applied HERE, for every
+// program that drives through this loop — teleop/drive_protection.hpp has the rules. After the
+// precondition checks (the protections' numbers are one of them: validProtectionConfig, so a bad
+// DriverLoopConfig::protection commands NOTHING), ONE DriveProtection is built and enter()'d —
+// it REFUSES from tick 1 a drive whose ABSENT marks, left in the groups by an earlier entry, are
+// more than two in total. Each tick: beforeDrive() → drive() (the stick, or zero while cut or
+// refused) → afterDrive() → 6b and the rest as above. On the disable, after cancel(), its one
+// summary line per group. Its destructor clears every group's exclusion mask on every way out of
+// this function — the disable return and a throw — so motion code after driver control sees the
+// groups as it expects. The way out it cannot cover is step 1's: when PROS deletes the task
+// before the loop polls the disable, no destructor runs, and the mask holds the last tick's
+// FROZEN members until the next entry's enter() clears it (drive_protection.hpp — stated, not
+// solved). A cut never delays the disable: step 1 still runs first on every tick.
 //
 // With MECHANISM BINDINGS (the overload taking a span; chunk T3, teleop/mechanism_binding.hpp),
 // three things are added and nothing above moves: BEFORE tick 1 every binding is reset() and
@@ -90,16 +111,21 @@
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp)
-// drives through it, with the default DriverProfile (ArcadeBody) and field-centric selectable but
-// OFF — and, since G1 Part 2c, so does the invented X-drive's program (src/programs/xdrive_program.cpp), which
-// refuses at boot on every robot that exists. Neither version has run on hardware, so nothing in the
-// feel layer it runs has been felt by a driver (HA-112).
+// drives through it, by its own call, with the default DriverProfile (ArcadeBody) and field-centric
+// selectable but OFF — and, since G1 Part 2c, so does the invented X-drive's program
+// (src/programs/xdrive_program.cpp), which refuses at boot on every robot that exists. Robot two's
+// driver file (src/team/robot_two_driver.hpp, T4 Part 1a) calls it too, and the competition program's
+// opcontrol() will run that file (chunk COMP-b). Every one of them gets the drive protections from
+// DriverLoopConfig::protection's defaults, since none names the field. No version has run on
+// hardware, so nothing in the feel layer it runs has been felt by a driver (HA-112), and no
+// protection has cut or marked a real motor (HA-175, HA-176).
 //
 // PROS-free, sim-free, allocation-free.
 
 #include <cmath>
 #include <cstdio>
 #include <span>
+#include <type_traits>
 #include <utility>
 
 #include "shulib/chassis/chassis.hpp"
@@ -111,6 +137,7 @@
 #include "shulib/math/twist2d.hpp"
 #include "shulib/motion/motion_config.hpp"
 #include "shulib/motion/motion_scheduler.hpp"
+#include "shulib/teleop/drive_protection.hpp"
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/teleop/mechanism_binding.hpp"
 #include "shulib/teleop/stick_mapping.hpp"
@@ -128,7 +155,9 @@ namespace shulib::teleop {
 /// that collision running is `validBindings()` (chunk T3): a binding on the re-zero button is
 /// refused before the first tick, by `runDriverControl`'s precondition. A program should still
 /// name its button, and "shulib Teleop" does. The third, `releaseBrakeMode`, has a working
-/// default (Coast, the team lead's ruling).
+/// default (Coast, the team lead's ruling). The fourth, `protection`, is APPENDED LAST so every
+/// existing designated initializer still compiles, and its defaults are the old "shulib Drive"'s
+/// numbers: a program that names no `protection` is protected (chunk T4 Part 2).
 struct DriverLoopConfig {
     /// How long one tick is — the pacer's period (on a brain, `ProsTickPacer::kTickMs` = 10 ms,
     /// HA-32). Handed to the shaper as its dt, where only the slew limiter reads it. Must be
@@ -148,6 +177,13 @@ struct DriverLoopConfig {
     /// PROS brake() at a zero command (`hal/pros/motor.hpp`, THE STOP — not yet seen on a robot).
     /// The disable path is NOT governed by this: a disable still cancels into Brake.
     hal::BrakeMode releaseBrakeMode = hal::BrakeMode::Coast;
+    /// The drive protections' numbers (chunk T4 Part 2; teleop/drive_protection.hpp): the
+    /// frozen-reading rule's read count, the over-current limit and window, the cut's length, the
+    /// log bound, and the one switch that turns the over-current CUT into a warning. The defaults
+    /// are the old "shulib Drive"'s — every one of them unmeasured (HA-175, HA-176) — and apply
+    /// to every program that leaves this field out. Checked before the first tick
+    /// (validProtectionConfig).
+    DriveProtectionConfig protection{};
 };
 
 /// One tick's heading, as the loop hands it to the shaper: the robot's estimated heading and
@@ -164,8 +200,9 @@ struct HeadingSample {
 
 /// Run driver control until `disabled()` says stop: sticks → `shaper` → budgets → the chassis,
 /// once per tick, in the order the file header lists (disabled check, sticks while connected,
-/// one heading sample, the re-zero edge, shape, `drive(Body)`, the release mode, the hold
-/// bindings, the toggles, `perTick`, `pace`).
+/// one heading sample, the re-zero edge, shape, the drive protections' check before `drive`,
+/// `drive(Body)`, their check after it, the release mode, the hold bindings, the toggles,
+/// `perTick`, `pace`).
 ///
 /// * `chassis` — the facade to drive; its `motionConfig()` supplies the speed budgets
 ///   (`maxLinearSpeed`, `maxAngularSpeed` — HA-50, provisional).
@@ -175,9 +212,12 @@ struct HeadingSample {
 ///   plant-stepping pacer.
 /// * `shaper` — the driver's feel (`DriveShaper`, one per driver, held across calls so its
 ///   field-centric zero and latch survive a disable).
-/// * `cfg` — the tick period, the re-zero button and the release brake mode (applied at entry
-///   and after every `drive()`). PRECONDITION: `cfg.tickPeriod` finite and > 0, checked before
-///   the first tick.
+/// * `cfg` — the tick period, the re-zero button, the release brake mode (applied at entry
+///   and after every `drive()`) and the drive protections' numbers. PRECONDITIONS, checked before
+///   the first tick and before anything is commanded: `cfg.tickPeriod` finite and > 0, and
+///   `validProtectionConfig(cfg.protection, chassis.deps().motorGroups)` — together, every
+///   precondition of the DriveProtection the loop builds, so nothing is refused after the entry
+///   has commanded something.
 /// * `bindings` — the driver's mechanism buttons (chunk T3), each ticked after `drive()` with its
 ///   two buttons read only while connected. PRECONDITION, checked before the first tick:
 ///   `validBindings(bindings, cfg.rezeroButton)` — no null, no button used twice, none equal to
@@ -201,9 +241,17 @@ struct HeadingSample {
 /// * `heading` — `HeadingSample()`: called once per tick, after the sticks, before shaping.
 /// * `perTick` — `void(const math::ChassisSpeeds& command, bool connected,
 ///   const DriveShaperState& state)`: called after `drive()`, before `pace()` — the panel's hook.
+///   One that ALSO takes `const DriveProtectionState&` as a fourth argument is handed the drive
+///   protections' state (detected at compile time; the three-argument form is unchanged).
+///   `command` is always the driver's request, also while a cut sends the drive zero.
 ///
 /// Nothing is read from the controller while it is disconnected; the command is then exactly
 /// zero whatever the axes claim (HA-103).
+///
+/// The DRIVE PROTECTIONS run inside it for every caller (the file header; drive_protection.hpp):
+/// a drive member whose readings freeze is kept out of the fight monitor and marked ABSENT after
+/// 250 ms; more than two dead in total REFUSES the drive for the rest of the run; a fight or a
+/// member over 2.4 A for 250 ms while driven cuts the drive to 0 V for 1 s, then re-arms.
 template <typename IsDisabled, typename HeadingSource, typename PerTick>
 void runDriverControl(chassis::Chassis& chassis, const hal::IController& controller,
                       motion::ITickPacer& pacer, DriveShaper& shaper, const DriverLoopConfig& cfg,
@@ -217,6 +265,13 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
     SHULIB_PRECONDITION(
         validBindings(bindings, toggles, cfg.rezeroButton, bindingWhy, sizeof bindingWhy),
         bindingWhy);
+    // The protections' numbers, checked with the rest — BEFORE the claim release, the entry safe
+    // state, the toggles' enter and the release mode below, each of which commands something: a
+    // bad config commands nothing at all (T4 Part 2).
+    char protectionWhy[192] = "";
+    SHULIB_PRECONDITION(validProtectionConfig(cfg.protection, chassis.deps().motorGroups,
+                                              protectionWhy, sizeof protectionWhy),
+                        protectionWhy);
     // A claim still on a bound mechanism at entry is RELEASED, and said (the team lead's ruling,
     // 2026-09-26): a claim left by a deleted autonomous task must never lock the driver out. After
     // the set check (a refused set touches nothing), before the entry safe state below.
@@ -257,6 +312,12 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
         }
     };
     applyReleaseMode();
+    // The drive protections for this entry (T4 Part 2): judged from the groups as they stand, so a
+    // drive left with more than two dead by an earlier entry is REFUSED from tick 1. Its destructor
+    // clears every group's exclusion mask on every way out of this function.
+    DriveProtection protection{chassis, cfg.protection, cfg.tickPeriod};
+    protection.enter();
+    const math::ChassisSpeeds zeroCommand{};
     while (true) {
         // 1. A field disable: safe the drive, then leave.
         if (disabled()) {
@@ -266,6 +327,7 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
             }
             // No toggle is touched: a pneumatic claw keeps its level through a disable (whether
             // the BRAIN keeps a 3-wire output's level while disabled: A4 register HA-157).
+            protection.onDisable();  // the summary, after the drive is already safe
             return;
         }
         // 2. The sticks — every channel read only while the controller is there.
@@ -288,7 +350,11 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
         const DriveRequest request = shaper.shape(sticks, dtSeconds, h.radians, h.trusted);
         const math::ChassisSpeeds command =
             toChassisSpeeds(request, budgets.maxLinearSpeed, budgets.maxAngularSpeed);
-        chassis.drive(command, math::Frame::Body);
+        // The protections wrap drive(): the frozen-reading rule BEFORE it (the group monitors are
+        // judged inside it), a ZERO command while a cut or a refusal is in force, the cuts AFTER.
+        protection.beforeDrive();
+        chassis.drive(protection.commandAllowed() ? command : zeroCommand, math::Frame::Body);
+        protection.afterDrive();
         // 6b. The release mode again, in this same tick: undoes a pre-emption's Brake (DEFECTS2).
         //     Drive motors only (driveMotors()) — a mechanism's motor is its binding's alone.
         applyReleaseMode();
@@ -303,8 +369,14 @@ void runDriverControl(chassis::Chassis& chassis, const hal::IController& control
             toggle->tick(sticks.connected,
                          sticks.connected && controller.pressed(toggle->button()));
         }
-        // 7–8. The caller's panel, then the tick boundary.
-        perTick(command, sticks.connected, shaper.state());
+        // 7–8. The caller's panel, then the tick boundary. A panel that takes a fourth argument is
+        //      handed the protections' state; the three-argument form is unchanged.
+        if constexpr (std::is_invocable_v<PerTick&, const math::ChassisSpeeds&, bool,
+                                          const DriveShaperState&, const DriveProtectionState&>) {
+            perTick(command, sticks.connected, shaper.state(), protection.state());
+        } else {
+            perTick(command, sticks.connected, shaper.state());
+        }
         pacer.pace();
     }
 }

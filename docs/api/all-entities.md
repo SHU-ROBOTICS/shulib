@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 3,140 of them, across 160 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 3,204 of them, across 161 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -698,11 +698,44 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveMode::ArcadeBody` | enumerator | [drive_modes.md](drive_modes.md#drivemode-arcadebody) |
 | `DriveMode::ArcadeField` | enumerator | [drive_modes.md](drive_modes.md#drivemode-arcadefield) |
 | `DriveMode::TankSticks` | enumerator | [drive_modes.md](drive_modes.md#drivemode-tanksticks) |
+| `DriveProtection` | class | [drive_protection.md](drive_protection.md#class-driveprotection) |
+| `DriveProtection::afterDrive` | function | [drive_protection.md](drive_protection.md#driveprotection-afterdrive) |
+| `DriveProtection::beforeDrive` | function | [drive_protection.md](drive_protection.md#driveprotection-beforedrive) |
+| `DriveProtection::commandAllowed` | function | [drive_protection.md](drive_protection.md#driveprotection-commandallowed) |
+| `DriveProtection::config` | function | [drive_protection.md](drive_protection.md#driveprotection-config) |
+| `DriveProtection::DriveProtection` | function | [drive_protection.md](drive_protection.md#driveprotection-driveprotection) |
+| `DriveProtection::DriveProtection (overload 2)` | function | [drive_protection.md](drive_protection.md#driveprotection-driveprotection-2) |
+| `DriveProtection::DriveProtection (overload 3)` | function | [drive_protection.md](drive_protection.md#driveprotection-driveprotection-3) |
+| `DriveProtection::enter` | function | [drive_protection.md](drive_protection.md#driveprotection-enter) |
+| `DriveProtection::onDisable` | function | [drive_protection.md](drive_protection.md#driveprotection-ondisable) |
+| `DriveProtection::operator=` | function | [drive_protection.md](drive_protection.md#driveprotection-operator-eq) |
+| `DriveProtection::operator= (overload 2)` | function | [drive_protection.md](drive_protection.md#driveprotection-operator-eq-2) |
+| `DriveProtection::state` | function | [drive_protection.md](drive_protection.md#driveprotection-state) |
+| `DriveProtection::~DriveProtection` | function | [drive_protection.md](drive_protection.md#driveprotection-destructor-driveprotection) |
+| `DriveProtectionConfig` | struct | [drive_protection.md](drive_protection.md#struct-driveprotectionconfig) |
+| `DriveProtectionConfig::cutTicks` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-cutticks) |
+| `DriveProtectionConfig::frozenSuspectReads` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-frozensuspectreads) |
+| `DriveProtectionConfig::maxCutsLogged` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-maxcutslogged) |
+| `DriveProtectionConfig::overCurrentAmps` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-overcurrentamps) |
+| `DriveProtectionConfig::overCurrentCuts` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-overcurrentcuts) |
+| `DriveProtectionConfig::overCurrentTicks` | field | [drive_protection.md](drive_protection.md#driveprotectionconfig-overcurrentticks) |
+| `DriveProtectionState` | struct | [drive_protection.md](drive_protection.md#struct-driveprotectionstate) |
+| `DriveProtectionState::cutCount` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-cutcount) |
+| `DriveProtectionState::cutTicksLeft` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-cutticksleft) |
+| `DriveProtectionState::dead` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-dead) |
+| `DriveProtectionState::frozen` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-frozen) |
+| `DriveProtectionState::groupCount` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-groupcount) |
+| `DriveProtectionState::lastCut` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-lastcut) |
+| `DriveProtectionState::mode` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-mode) |
+| `DriveProtectionState::overCurrentWarnings` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-overcurrentwarnings) |
+| `DriveProtectionState::peakAmps` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-peakamps) |
+| `DriveProtectionState::verdict` | field | [drive_protection.md](drive_protection.md#driveprotectionstate-verdict) |
 | `DriveRequest` | struct | [stick_mapping.md](stick_mapping.md#struct-driverequest) |
 | `DriveRequest::forward` | field | [stick_mapping.md](stick_mapping.md#driverequest-forward) |
 | `DriveRequest::left` | field | [stick_mapping.md](stick_mapping.md#driverequest-left) |
 | `DriveRequest::yawCcw` | field | [stick_mapping.md](stick_mapping.md#driverequest-yawccw) |
 | `DriverLoopConfig` | struct | [teleop_loop.md](teleop_loop.md#struct-driverloopconfig) |
+| `DriverLoopConfig::protection` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-protection) |
 | `DriverLoopConfig::releaseBrakeMode` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-releasebrakemode) |
 | `DriverLoopConfig::rezeroButton` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-rezerobutton) |
 | `DriverLoopConfig::tickPeriod` | field | [teleop_loop.md](teleop_loop.md#driverloopconfig-tickperiod) |
@@ -865,6 +898,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `EndInfo::recordsSeen` | field | [shul2_format.md](shul2_format.md#endinfo-recordsseen) |
 | `EndInfo::tickFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-tickframes) |
 | `evaluateDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluatedegradation) |
+| `evaluateRuntimeDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluateruntimedegradation) |
 | `ExitGroup` | class | [exit_group.md](exit_group.md#class-exitgroup) |
 | `ExitGroup::check` | function | [exit_group.md](exit_group.md#exitgroup-check) |
 | `ExitGroup::ExitGroup` | function | [exit_group.md](exit_group.md#exitgroup-exitgroup) |
@@ -958,6 +992,19 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FrameType::Tick` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-tick) |
 | `FrameType::Tick` | enumerator | [shul2_format.md](shul2_format.md#frametype-tick) |
 | `FrameType::Triage` | enumerator | [blackbox_format.md](blackbox_format.md#frametype-triage) |
+| `FrozenReadingDetector` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-frozenreadingdetector) |
+| `FrozenReadingDetector::floors` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-floors) |
+| `FrozenReadingDetector::FrozenReadingDetector` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-frozenreadingdetector) |
+| `FrozenReadingDetector::frozenTicks` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-frozenticks) |
+| `FrozenReadingDetector::latchedMask` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-latchedmask) |
+| `FrozenReadingDetector::repeatReads` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-repeatreads) |
+| `FrozenReadingDetector::reset` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-reset) |
+| `FrozenReadingDetector::suspectReads` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-suspectreads) |
+| `FrozenReadingDetector::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#frozenreadingdetector-update) |
+| `FrozenVerdict` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-frozenverdict) |
+| `FrozenVerdict::frozenMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#frozenverdict-frozenmask) |
+| `FrozenVerdict::latchedMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#frozenverdict-latchedmask) |
+| `FrozenVerdict::suspectMask` | field | [coupled_side_monitor.md](coupled_side_monitor.md#frozenverdict-suspectmask) |
 | `FusionResult` | struct | [correction.md](correction.md#struct-fusionresult) |
 | `FusionResult::applied` | field | [correction.md](correction.md#fusionresult-applied) |
 | `FusionResult::appliedConfidence` | field | [correction.md](correction.md#fusionresult-appliedconfidence) |
@@ -1564,6 +1611,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kmaxpayloadbytes) |
 | `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
+| `kMaxProtectedGroups` | constant | [drive_protection.md](drive_protection.md#kmaxprotectedgroups) |
 | `kMaxPulseLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulselevels) |
 | `kMaxPulseRecords` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulserecords) |
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
@@ -1616,6 +1664,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kPayloadOffset` | constant | [shul2_format.md](shul2_format.md#kpayloadoffset) |
 | `kPositionErrorEndOfRun` | constant | [accuracy.md](accuracy.md#kpositionerrorendofrun) |
 | `kPrimarySlot` | constant | [calibrate_panel.md](calibrate_panel.md#kprimaryslot) |
+| `kProtectionTextBytes` | constant | [drive_protection.md](drive_protection.md#kprotectiontextbytes) |
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
 | `kPushForward` | constant | [calibrate_panel.md](calibrate_panel.md#kpushforward) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
@@ -1814,6 +1863,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MemberAbsenceDetector::MemberAbsenceDetector (overload 2)` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-memberabsencedetector-2) |
 | `MemberAbsenceDetector::reason` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-reason) |
 | `MemberAbsenceDetector::update` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-update) |
+| `MemberReading` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-memberreading) |
+| `MemberReading::positionRad` | field | [coupled_side_monitor.md](coupled_side_monitor.md#memberreading-positionrad) |
+| `MemberReading::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#memberreading-present) |
+| `MemberReading::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#memberreading-velocityrads) |
 | `MemberSample` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-membersample) |
 | `MemberSample::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-present) |
 | `MemberSample::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-velocityrads) |
@@ -1978,15 +2031,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorGroup::evaluateDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-evaluatedisagreement) |
 | `MotorGroup::isPresent` | function | [motor_group.md](motor_group.md#motorgroup-ispresent) |
 | `MotorGroup::kMaxMembers` | field | [motor_group.md](motor_group.md#motorgroup-kmaxmembers) |
+| `MotorGroup::label` | function | [motor_group.md](motor_group.md#motorgroup-label) |
 | `MotorGroup::lastVerdict` | function | [motor_group.md](motor_group.md#motorgroup-lastverdict) |
+| `MotorGroup::markAbsent` | function | [motor_group.md](motor_group.md#motorgroup-markabsent) |
 | `MotorGroup::member` | function | [motor_group.md](motor_group.md#motorgroup-member) |
 | `MotorGroup::memberCount` | function | [motor_group.md](motor_group.md#motorgroup-membercount) |
+| `MotorGroup::monitorExcludedMask` | function | [motor_group.md](motor_group.md#motorgroup-monitorexcludedmask) |
 | `MotorGroup::MotorGroup` | function | [motor_group.md](motor_group.md#motorgroup-motorgroup) |
 | `MotorGroup::nonFiniteReads` | function | [motor_group.md](motor_group.md#motorgroup-nonfinitereads) |
 | `MotorGroup::position` | function | [motor_group.md](motor_group.md#motorgroup-position) |
 | `MotorGroup::presentCount` | function | [motor_group.md](motor_group.md#motorgroup-presentcount) |
 | `MotorGroup::resetDisagreement` | function | [motor_group.md](motor_group.md#motorgroup-resetdisagreement) |
+| `MotorGroup::runtimeAbsentMask` | function | [motor_group.md](motor_group.md#motorgroup-runtimeabsentmask) |
 | `MotorGroup::setBrakeMode` | function | [motor_group.md](motor_group.md#motorgroup-setbrakemode) |
+| `MotorGroup::setMonitorExcluded` | function | [motor_group.md](motor_group.md#motorgroup-setmonitorexcluded) |
 | `MotorGroup::setVoltage` | function | [motor_group.md](motor_group.md#motorgroup-setvoltage) |
 | `MotorGroup::temperature` | function | [motor_group.md](motor_group.md#motorgroup-temperature) |
 | `MotorGroup::thresholds` | function | [motor_group.md](motor_group.md#motorgroup-thresholds) |
@@ -2393,6 +2451,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsTickPacer` | class | [pros-tick_pacer.md](pros-tick_pacer.md#class-prostickpacer) |
 | `ProsTickPacer::kTickMs` | field | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-ktickms) |
 | `ProsTickPacer::pace` | function | [pros-tick_pacer.md](pros-tick_pacer.md#prostickpacer-pace) |
+| `ProtectionMode` | enum class | [drive_protection.md](drive_protection.md#enum-class-protectionmode) |
+| `ProtectionMode::Cut` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-cut) |
+| `ProtectionMode::Degraded` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-degraded) |
+| `ProtectionMode::Driving` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-driving) |
+| `ProtectionMode::Refused` | enumerator | [drive_protection.md](drive_protection.md#protectionmode-refused) |
 | `PulseRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-pulserecord) |
 | `PulseRecord::levelVolts` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-levelvolts) |
 | `PulseRecord::ordinal` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulserecord-ordinal) |
@@ -3173,6 +3236,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `validatedConfig` | free function | [motion_config.md](motion_config.md#validatedconfig) |
 | `validBindings` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings) |
 | `validBindings (overload 2)` | free function | [mechanism_binding.md](mechanism_binding.md#validbindings-2) |
+| `validProtectionConfig` | free function | [drive_protection.md](drive_protection.md#validprotectionconfig) |
 | `Velocity` | type alias | [quantity.md](quantity.md#velocity) |
 | `Verdict` | enum class | [shul2_format.md](shul2_format.md#enum-class-verdict) |
 | `Verdict::BadSignature` | enumerator | [shul2_format.md](shul2_format.md#verdict-badsignature) |

@@ -109,8 +109,12 @@
 - **Builds.** COMP-b is the **EIGHTH build** (`PROGRAM=competition`, beacon `shulib-robot-variant=tank-competition`).
   `Program::Competition` comes after COMP-t's `AutonTester`. The slot is 6 (T4 Part 0).
 - **T4.** Part 1b was SKIPPED and folded into Part 3 (the team lead, 2026-09-28). So the driver file's buttons stay
-  tied to `src/robots/mechanism_table.hpp` until T4 Part 3 (RC5). T4 Part 2's drive protections land AFTER COMP-b:
-  COMP-b's `opcontrol()` runs without them until then, and Station K says so (B11, unchanged).
+  tied to `src/robots/mechanism_table.hpp` until T4 Part 3 (RC5). ~~T4 Part 2's drive protections land AFTER COMP-b:
+  COMP-b's `opcontrol()` runs without them until then, and Station K says so (B11, unchanged).~~ *[2026-09-29, T4
+  Part 2a: Part 2 was SPLIT (the team lead, 2026-09-28 ~17:35). Its LIBRARY half, Part 2a, lands BEFORE COMP-b, so
+  COMP-b's `opcontrol()` has the drive protections from its first build, through `runDriverControl`'s defaulted
+  `DriverLoopConfig::protection`; Part 2b (the PROTECTION row, `perTick`'s fourth argument, the `src/` words) was
+  FOLDED INTO T4 PART 3 on 2026-10-01 (the team lead) — Part 3's late step, after COMP-b. See B11's last bullet.]*
 - **TANK1.** A tank `moveTo` steers back onto its line (API 2.3; TSTR on tick lines). TANK1 Part B (in flight) adds
   ` xt` to tank result lines (RC9).
 - **Pending from COMP-t §6 item 6** (applied to this brief at COMP-t's landing, quoted here so the builder reads
@@ -653,9 +657,25 @@ None of these was ruled before. Each has a recommendation. Nothing is built on a
     on the robot.
   - The driver file's header caller sentence gains this program.
   - A host source pin proves the wiring (T4's pattern).
-  - The drive protections (T4 Part 2, which lands after this) reach opcontrol() through
-    runDriverControl with no wiring. Until then this program's driver control has no mid-match absence
-    rule and no cuts, and Station K says so.
+  - The drive protections reach opcontrol() through runDriverControl with no wiring. ~~(T4 Part 2, which
+    lands after this) … Until then this program's driver control has no mid-match absence rule and no
+    cuts, and Station K says so.~~ *[2026-09-29, T4 Part 2a, replacing that sentence with what now holds:
+    the library half LANDED BEFORE this program, so from its first build its driver control drops a drive
+    motor whose readings freeze while its side turns (ABSENT after 250 ms), stops the drive for the rest of
+    the run once more than two drive motors are dead in total, and cuts it for 1 s on a fight or on one
+    motor above 2.4 A for 250 ms — all on serial as `TEL` lines (`teleop/drive_protection.hpp`; guide 12's
+    "The drive stops for a second" section). Its `DriverLoopConfig` is the driver file's `kLoop`, which
+    names no `protection` (pinned by `test/drive_protection_test.cpp`'s source pins), so it runs the
+    defaults, the over-current cut ON (the team lead's N1 (a)). What Station K needs from this: one line on
+    what a CUT, a FROZEN port and a dead port look like in this program, and **the PUSH CHECK, REQUIRED
+    before this program drives a match** (N1 (a); HA-176): on the ground, full stick into a wall for 3 s,
+    let go, then read the `drive: LEFT peak … A (port n)` line and any cut's `at the cut:` lines; then a
+    full-stick reversal at top speed and a full-stick launch from rest, each let go after it, read the same
+    (HA-176); and read the whole log for any `went ABSENT` line — a live motor marked dead at the wall, on
+    any port (HA-175's known gaps). T4 §4 Part 2 assigned both to Station K, which COMP-b writes; whether
+    COMP-b writes them with the station or T4 Part 3's late step adds them (Part 2b's items, folded into
+    Part 3 on 2026-10-01) is the coordinator's call (T4-PROGRESS "Part 2a"). The PROTECTION row and
+    `perTick`'s fourth argument are Part 2b's items, now T4 Part 3's late step.]*
   - *(As landed at T4 Part 1a, for COMP-b's builder: the shared claw row is
     `clawRowText(const MechanismTable&, const robot::Robot&, bool freed)` in
     `src/programs/teleop_claws.hpp`, byte-identical to Teleop's; the driver file's `bindings()` is a

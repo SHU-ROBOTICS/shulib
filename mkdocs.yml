@@ -320,6 +320,7 @@ nav:
       - Teleop:
           - Coupled side monitor: api/coupled_side_monitor.md
           - Drive modes: api/drive_modes.md
+          - Drive protection: api/drive_protection.md
           - Driver control: api/driver_control.md
           - Drivetrain degradation: api/drivetrain_degradation.md
           - Field centric: api/field_centric.md
