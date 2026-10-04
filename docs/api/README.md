@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 3,204 of them across 161 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 3,326 of them across 164 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -176,6 +176,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Distance conversion](distance_conversion.md) | [`hal/distance_conversion.hpp`](../../include/shulib/hal/distance_conversion.hpp) | Distance-sensor canonical conversions — the ONE place the V5 distance sensor's millimeters become shulib's canonical inches and its raw 0–63 confidence becomes [0, 1] (§7: "convert exactly once, at the edge"). |
 | [Drive geometry](drive_geometry.md) | [`hal/drive_geometry.hpp`](../../include/shulib/hal/drive_geometry.hpp) | DriveGeometry — ONE description of a drive side's geometry, consumed by BOTH the drive-encoder odometry and the stall cross-check. |
 | [Drivetrain description](drivetrain_description.md) | [`hal/drivetrain_description.hpp`](../../include/shulib/hal/drivetrain_description.hpp) | DrivetrainDescription — the ONE representation of a drivetrain's discovered facts. |
+| [File store](file_store.md) | [`hal/file_store.hpp`](../../include/shulib/hal/file_store.hpp) | IFileStore — the two things the brain's SD card offers that a SAFE save can be built on (chunk SAFE-SAVE Part A, 2026-09-29): read a whole named file, or replace one by truncating it. |
 | [GPS](gps.md) | [`hal/gps.hpp`](../../include/shulib/hal/gps.hpp) | IGps — the VEX GPS behind the HAL, reporting in shulib's CANONICAL frame (the VEX meters / clockwise-from-North convention is converted away in the hal/pros adapter via gps_conversion.hpp). |
 | [GPS conversion](gps_conversion.md) | [`hal/gps_conversion.hpp`](../../include/shulib/hal/gps_conversion.hpp) | GPS canonical conversions — the ONE place the VEX GPS frame becomes shulib's canonical frame (§7: "convert exactly once, at the edge"). |
 | [IMU](imu.md) | [`hal/imu.hpp`](../../include/shulib/hal/imu.hpp) | IImu — the inertial sensor behind the HAL, reporting in shulib's CANONICAL frame (the V5's clockwise/degrees convention is converted away in the hal/pros adapter via imu_conversion.hpp, so everything above this line is CCW-positive radians). |
@@ -209,6 +210,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Digital in (PROS)](pros-digital_in.md) | [`hal/pros/digital_in.hpp`](../../include/shulib/hal/pros/digital_in.hpp) | ProsDigitalIn — IDigitalIn over pros::adi::DigitalIn (chunk R1b): a limit switch / bumper line behind the HAL. |
 | [Digital out (PROS)](pros-digital_out.md) | [`hal/pros/digital_out.hpp`](../../include/shulib/hal/pros/digital_out.hpp) | ProsDigitalOut — IDigitalOut over pros::adi::DigitalOut (chunk R1b): the pneumatic solenoid line behind the HAL (F1's seam, finally on hardware). |
 | [Distance (PROS)](pros-distance.md) | [`hal/pros/distance.hpp`](../../include/shulib/hal/pros/distance.hpp) | ProsDistance — IDistance over pros::Distance (chunk R1b): the capture/dock-confirm rangefinder behind the HAL. |
+| [File store (PROS)](pros-file_store.md) | [`hal/pros/file_store.hpp`](../../include/shulib/hal/pros/file_store.hpp) | ProsFileStore — hal::IFileStore on the V5's SD card (chunk SAFE-SAVE Part A, 2026-09-29): the two operations the safe save builds on — read a file whole, replace it by truncating it — composed from the two adapters that already own the card, one adapter per… |
 | [GPS (PROS)](pros-gps.md) | [`hal/pros/gps.hpp`](../../include/shulib/hal/pros/gps.hpp) | ProsGps — IGps over pros::Gps (chunk R1a): the absolute-position corrector's sensor behind the HAL. |
 | [IMU (PROS)](pros-imu.md) | [`hal/pros/imu.hpp`](../../include/shulib/hal/pros/imu.hpp) | ProsImu — IImu over pros::Imu (chunk R1a): the load-bearing < 1° heading source behind the HAL. |
 | [Line display (PROS)](pros-line_display.md) | [`hal/pros/line_display.hpp`](../../include/shulib/hal/pros/line_display.hpp) | ProsLineDisplay — ILineDisplay over the V5 controller's LCD (chunk R1a): where the D-4 status rows physically go. |
@@ -243,6 +245,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Calibrate panel](calibrate_panel.md) | [`calibration/calibrate_panel.hpp`](../../include/shulib/calibration/calibrate_panel.hpp) | calibrate_panel — the calibration screen as a PURE MODEL. |
 | [Calibration record](calibration_record.md) | [`calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) | The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card. |
 | [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
+| [Record store](record_store.md) | [`calibration/record_store.hpp`](../../include/shulib/calibration/record_store.hpp) | The calibration record's SAFE SAVE and its LOAD (chunk SAFE-SAVE Part A, 2026-09-29): a save designed so a failure part-way does not leave the card without a good record — given HA-166 (4) and (5), short of a stated two-fault limit — a load that falls back… |
 
 ### Competition
 
@@ -298,7 +301,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 3,204 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 3,326 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

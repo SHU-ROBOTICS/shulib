@@ -46,7 +46,7 @@ enum class ProsFileMode : std::uint8_t
 
 How a ProsBlockSink opens its file (header: THE APPEND MODE). The default, and every caller before COMP-t, is Truncate.
 
-*enum class, declared at [`include/shulib/hal/pros/block_sink.hpp:78`](../../include/shulib/hal/pros/block_sink.hpp#L78).*
+*enum class, declared at [`include/shulib/hal/pros/block_sink.hpp:80`](../../include/shulib/hal/pros/block_sink.hpp#L80).*
 
 <a id="prosfilemode-truncate"></a>
 
@@ -58,7 +58,7 @@ Truncate
 
 "wb": one file per boot (the blackbox's; every existing caller)
 
-*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:79`](../../include/shulib/hal/pros/block_sink.hpp#L79).*
+*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:81`](../../include/shulib/hal/pros/block_sink.hpp#L81).*
 
 <a id="prosfilemode-append"></a>
 
@@ -70,7 +70,7 @@ Append
 
 keep every earlier byte and write after them (openForAppend below)
 
-*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:80`](../../include/shulib/hal/pros/block_sink.hpp#L80).*
+*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:82`](../../include/shulib/hal/pros/block_sink.hpp#L82).*
 
 <a id="enum-class-appendopen"></a>
 
@@ -82,7 +82,7 @@ enum class AppendOpen : std::uint8_t
 
 How an Append open went — for the caller's one boot line.
 
-*enum class, declared at [`include/shulib/hal/pros/block_sink.hpp:84`](../../include/shulib/hal/pros/block_sink.hpp#L84).*
+*enum class, declared at [`include/shulib/hal/pros/block_sink.hpp:86`](../../include/shulib/hal/pros/block_sink.hpp#L86).*
 
 <a id="appendopen-appended"></a>
 
@@ -94,7 +94,7 @@ Appended
 
 the file existed; new bytes go after its last byte
 
-*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:85`](../../include/shulib/hal/pros/block_sink.hpp#L85).*
+*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:87`](../../include/shulib/hal/pros/block_sink.hpp#L87).*
 
 <a id="appendopen-created"></a>
 
@@ -106,7 +106,7 @@ Created
 
 the file did not exist; it was created
 
-*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:86`](../../include/shulib/hal/pros/block_sink.hpp#L86).*
+*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:88`](../../include/shulib/hal/pros/block_sink.hpp#L88).*
 
 <a id="appendopen-refused"></a>
 
@@ -118,7 +118,7 @@ Refused
 
 no card, or the file exists but would not open for appending (never truncated)
 
-*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:87`](../../include/shulib/hal/pros/block_sink.hpp#L87).*
+*enumerator, declared at [`include/shulib/hal/pros/block_sink.hpp:89`](../../include/shulib/hal/pros/block_sink.hpp#L89).*
 
 <a id="openforappend"></a>
 
@@ -130,7 +130,7 @@ template <class Open, class Close> [[nodiscard]] std::FILE* openForAppend(const 
 
 THE APPEND OPEN, decided here and nowhere else (header: THE APPEND MODE): ask with "rb" whether `path` exists (closing that probe with `close`), open "ab", and if that fails create with "wb" ONLY when the file was absent — an existing log is never truncated. `open(path, mode)` returns a FILE* or nullptr; the adapter passes std::fopen, a host test a script. `how` says which branch was taken. No mode here has a '+'. Returns the open FILE*, or nullptr (then `how` is Refused).
 
-*free function, declared at [`include/shulib/hal/pros/block_sink.hpp:97`](../../include/shulib/hal/pros/block_sink.hpp#L97).*
+*free function, declared at [`include/shulib/hal/pros/block_sink.hpp:99`](../../include/shulib/hal/pros/block_sink.hpp#L99).*
 
 <a id="class-prosblocksink"></a>
 
@@ -142,7 +142,7 @@ class ProsBlockSink final : public IBlockSink
 
 IBlockSink over a PROS FILE* on the V5's SD card — where the blackbox's binary blocks physically land. It OWNS the file: opened at construction — truncating by default (one file per boot), or appending (ProsFileMode::Append, since COMP-t) — and closed at destruction, so it must outlive every SdSink or char sink writing through it. A MISSING CARD IS NOT AN ERROR — construction still succeeds and the sink simply refuses (isOpen() false, every write()/flush() false), because a robot must still drive without a card, and E1's drop-and-count design already handles a sink that says no. It also owns the /usd/ prefix: pass a BARE file name.
 
-*class, declared at [`include/shulib/hal/pros/block_sink.hpp:126`](../../include/shulib/hal/pros/block_sink.hpp#L126).*
+*class, declared at [`include/shulib/hal/pros/block_sink.hpp:128`](../../include/shulib/hal/pros/block_sink.hpp#L128).*
 
 <a id="prosblocksink-prosblocksink"></a>
 
@@ -154,7 +154,7 @@ explicit ProsBlockSink(const char* fileName, const char* mountRoot = "/usd/")
 
 Open `<mountRoot><fileName>` for binary writing (truncating — one blackbox file per boot). `fileName` must be BARE: no leading '/' (the adapter owns the /usd/ prefix — header note). `mountRoot` must end in '/'; it defaults to the robot truth and exists so host tests exercise the same join+open path. No card / failed open → a refusing sink, NOT a throw (T5): isOpen() false, every write()/flush() false.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:134`](../../include/shulib/hal/pros/block_sink.hpp#L134).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:136`](../../include/shulib/hal/pros/block_sink.hpp#L136).*
 
 <a id="prosblocksink-prosblocksink-2"></a>
 
@@ -166,7 +166,7 @@ ProsBlockSink(const char* fileName, ProsFileMode mode, const char* mountRoot = "
 
 The same, in `mode`: Truncate is exactly the constructor above; Append keeps the file's earlier bytes and writes after them (openForAppend — `appendOpen()` says how it went). The prefix rule, the no-card refusal and the preconditions are the same.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:140`](../../include/shulib/hal/pros/block_sink.hpp#L140).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:142`](../../include/shulib/hal/pros/block_sink.hpp#L142).*
 
 <a id="prosblocksink-destructor-prosblocksink"></a>
 
@@ -178,7 +178,7 @@ The same, in `mode`: Truncate is exactly the constructor above; Append keeps the
 
 fclose the file, which also pushes newlib's remaining buffer out. Nothing else holds this FILE*, so anything still writing through this sink — an SdSink, most likely — must be destroyed first. No-op on a refusing sink.  THE ONE UNREPORTABLE FAILURE, stated rather than left implicit. fclose FLUSHES before it closes and returns EOF if that write fails — the card-full, card-yanked, dying-card case — and a destructor has no channel to say so. Every other path in this class is bool-valued for exactly that reason (write() is even [[nodiscard]], and block_sink.hpp justifies it: "a caller that ignores the result cannot notice a truncated file"). The last buffered block is both the most likely to be lost and the only one whose loss nothing here can report. A caller that needs the final bytes CONFIRMED must call flush(), which is bool for this reason, before letting the sink die.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:174`](../../include/shulib/hal/pros/block_sink.hpp#L174).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:176`](../../include/shulib/hal/pros/block_sink.hpp#L176).*
 
 <a id="prosblocksink-prosblocksink-3"></a>
 
@@ -190,7 +190,7 @@ ProsBlockSink(const ProsBlockSink&) = delete
 
 Non-copyable and non-movable: this adapter OWNS the FILE*, and a second handle to it would fclose the same file twice. (ProsCharSink merely borrows stdout, which is why it carries no such restriction — the difference is ownership, not policy.)
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:183`](../../include/shulib/hal/pros/block_sink.hpp#L183).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:185`](../../include/shulib/hal/pros/block_sink.hpp#L185).*
 
 <a id="prosblocksink-operator-eq"></a>
 
@@ -202,7 +202,7 @@ ProsBlockSink& operator=(const ProsBlockSink&) = delete
 
 *Covered by the comment on [`ProsBlockSink (overload 3)`](#prosblocksink-prosblocksink-3) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:184`](../../include/shulib/hal/pros/block_sink.hpp#L184).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:186`](../../include/shulib/hal/pros/block_sink.hpp#L186).*
 
 <a id="prosblocksink-prosblocksink-4"></a>
 
@@ -214,7 +214,7 @@ ProsBlockSink(ProsBlockSink&&) = delete
 
 *Covered by the comment on [`ProsBlockSink (overload 3)`](#prosblocksink-prosblocksink-3) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:185`](../../include/shulib/hal/pros/block_sink.hpp#L185).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:187`](../../include/shulib/hal/pros/block_sink.hpp#L187).*
 
 <a id="prosblocksink-operator-eq-2"></a>
 
@@ -226,7 +226,7 @@ ProsBlockSink& operator=(ProsBlockSink&&) = delete
 
 *Covered by the comment on [`ProsBlockSink (overload 3)`](#prosblocksink-prosblocksink-3) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:186`](../../include/shulib/hal/pros/block_sink.hpp#L186).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:188`](../../include/shulib/hal/pros/block_sink.hpp#L188).*
 
 <a id="prosblocksink-write"></a>
 
@@ -238,7 +238,7 @@ ProsBlockSink& operator=(ProsBlockSink&&) = delete
 
 Verbatim bytes; false unless EVERY byte was accepted (a short write leaves a prefix — the format decodes up to the cut). False always while refusing (no card / failed open).
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:191`](../../include/shulib/hal/pros/block_sink.hpp#L191).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:193`](../../include/shulib/hal/pros/block_sink.hpp#L193).*
 
 <a id="prosblocksink-flush"></a>
 
@@ -250,7 +250,7 @@ bool flush() noexcept override
 
 fflush to the FatFS driver (the platform's strongest "on the medium" — header note). False on device failure or while refusing.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:203`](../../include/shulib/hal/pros/block_sink.hpp#L203).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:205`](../../include/shulib/hal/pros/block_sink.hpp#L205).*
 
 <a id="prosblocksink-isopen"></a>
 
@@ -262,7 +262,7 @@ fflush to the FatFS driver (the platform's strongest "on the medium" — header 
 
 False = the sink is refusing (no card at boot, or the open failed). The composition root checks this ONCE and reports through the diagnostics layer — the T5 visibility rule.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:213`](../../include/shulib/hal/pros/block_sink.hpp#L213).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:215`](../../include/shulib/hal/pros/block_sink.hpp#L215).*
 
 <a id="prosblocksink-path"></a>
 
@@ -274,7 +274,7 @@ False = the sink is refusing (no card at boot, or the open failed). The composit
 
 The full path this sink writes (for the one-time diagnostics line).
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:216`](../../include/shulib/hal/pros/block_sink.hpp#L216).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:218`](../../include/shulib/hal/pros/block_sink.hpp#L218).*
 
 <a id="prosblocksink-appendopen"></a>
 
@@ -286,14 +286,14 @@ The full path this sink writes (for the one-time diagnostics line).
 
 How an Append open went: Appended, Created, or Refused (no card, or an existing file that would not open for appending). Always Refused in Truncate mode, which never asks.
 
-*function, declared at [`include/shulib/hal/pros/block_sink.hpp:220`](../../include/shulib/hal/pros/block_sink.hpp#L220).*
+*function, declared at [`include/shulib/hal/pros/block_sink.hpp:222`](../../include/shulib/hal/pros/block_sink.hpp#L222).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 55 lines, click to expand</summary>
+<summary>The header’s own reasoning — 57 lines, click to expand</summary>
 
 ```text
 
@@ -334,7 +334,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  flush() is fflush() — pushing newlib's buffer to the FatFS driver; there
  is no fsync in PROS's exposed surface, so "on the medium" is as strong as
  the platform allows (HA-122's weak half — bench: yank the card after a
- flushed write and count what survived).
+ flushed write and count what survived). PROS's own usd_write_r does call
+ vexFileSync after every write it passes on, ignoring what it returns; what
+ that sync commits is VEXos's (HA-166 (5)).
 
  OWNERSHIP: this adapter OWNS its FILE* (fclose at destruction), so it is
  non-copyable/non-movable — unlike ProsCharSink, which borrows stdout.

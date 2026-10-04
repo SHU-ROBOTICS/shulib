@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 3,204 of them, across 161 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 3,326 of them, across 164 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -28,6 +28,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `acceptanceRun` | free function | [acceptance_run.md](acceptance_run.md#acceptancerun) |
 | `acceptanceRunEntry` | free function | [acceptance_run.md](acceptance_run.md#acceptancerunentry) |
 | `accepted` | free function | [shul2_format.md](shul2_format.md#accepted) |
+| `acceptRecord` | free function | [record_store.md](record_store.md#acceptrecord) |
 | `ActuateAndConfirm` | class | [mechanism_op.md](mechanism_op.md#class-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm) |
 | `ActuateAndConfirm::ActuateAndConfirm (overload 2)` | function | [mechanism_op.md](mechanism_op.md#actuateandconfirm-actuateandconfirm-2) |
@@ -213,6 +214,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `BackupLoad` | struct | [record_store.md](record_store.md#struct-backupload) |
+| `BackupLoad::backup` | field | [record_store.md](record_store.md#backupload-backup) |
+| `BackupLoad::bytes` | field | [record_store.md](record_store.md#backupload-bytes) |
+| `BackupLoad::count` | field | [record_store.md](record_store.md#backupload-count) |
+| `BackupLoad::from` | field | [record_store.md](record_store.md#backupload-from) |
+| `BackupLoad::primary` | field | [record_store.md](record_store.md#backupload-primary) |
 | `BlackboxHeader` | struct | [blackbox_format.md](blackbox_format.md#struct-blackboxheader) |
 | `BlackboxHeader::alliance` | function | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance) |
 | `BlackboxHeader::alliance_` | field | [blackbox_format.md](blackbox_format.md#blackboxheader-alliance_) |
@@ -264,6 +271,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BootPortStatus::side` | field | [boot_check.md](boot_check.md#bootportstatus-side) |
 | `BootPortStatus::signedPort` | field | [boot_check.md](boot_check.md#bootportstatus-signedport) |
 | `BootPortStatus::state` | field | [boot_check.md](boot_check.md#bootportstatus-state) |
+| `BootReadsBackup` | enum class | [record_store.md](record_store.md#enum-class-bootreadsbackup) |
+| `BootReadsBackup::No` | enumerator | [record_store.md](record_store.md#bootreadsbackup-no) |
+| `BootReadsBackup::Yes` | enumerator | [record_store.md](record_store.md#bootreadsbackup-yes) |
 | `BootSource` | enum class | [boot_check.md](boot_check.md#enum-class-bootsource) |
 | `BootSource::Refuse` | enumerator | [boot_check.md](boot_check.md#bootsource-refuse) |
 | `BootSource::UseRecord` | enumerator | [boot_check.md](boot_check.md#bootsource-userecord) |
@@ -467,6 +477,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Checked::cols` | field | [calibrate_panel.md](calibrate_panel.md#checked-cols) |
 | `Checked::text` | field | [calibrate_panel.md](calibrate_panel.md#checked-text) |
 | `chooseBootSource` | free function | [boot_check.md](boot_check.md#choosebootsource) |
+| `chooseEffective` | free function | [record_store.md](record_store.md#chooseeffective) |
 | `CommandEntry` | struct | [command_registry.md](command_registry.md#struct-commandentry) |
 | `CommandEntry::argCount` | field | [command_registry.md](command_registry.md#commandentry-argcount) |
 | `CommandEntry::handler` | field | [command_registry.md](command_registry.md#commandentry-handler) |
@@ -974,9 +985,24 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FieldDelta::dx` | field | [arc_step.md](arc_step.md#fielddelta-dx) |
 | `FieldDelta::dy` | field | [arc_step.md](arc_step.md#fielddelta-dy) |
 | `fieldToRobot` | free function | [frame.md](frame.md#fieldtorobot) |
+| `FileHolds` | enum class | [record_store.md](record_store.md#enum-class-fileholds) |
+| `FileHolds::Absent` | enumerator | [record_store.md](record_store.md#fileholds-absent) |
+| `FileHolds::Earlier` | enumerator | [record_store.md](record_store.md#fileholds-earlier) |
+| `FileHolds::New` | enumerator | [record_store.md](record_store.md#fileholds-new) |
+| `FileHolds::NotAccepted` | enumerator | [record_store.md](record_store.md#fileholds-notaccepted) |
+| `FileHolds::NotMeasured` | enumerator | [record_store.md](record_store.md#fileholds-notmeasured) |
+| `FileHolds::Other` | enumerator | [record_store.md](record_store.md#fileholds-other) |
+| `FileRead` | struct | [record_store.md](record_store.md#struct-fileread) |
+| `FileRead::accepted` | field | [record_store.md](record_store.md#fileread-accepted) |
+| `FileRead::count` | field | [record_store.md](record_store.md#fileread-count) |
+| `FileRead::opened` | field | [record_store.md](record_store.md#fileread-opened) |
+| `FileRead::path` | field | [record_store.md](record_store.md#fileread-path) |
+| `FileRead::tried` | field | [record_store.md](record_store.md#fileread-tried) |
+| `FileRead::why` | field | [record_store.md](record_store.md#fileread-why) |
 | `findBuiltinCommand` | free function | [route.md](route.md#findbuiltincommand) |
 | `formatPulseRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpulserecord) |
 | `formatPushRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpushrecord) |
+| `formatSaveReport` | free function | [record_store.md](record_store.md#formatsavereport) |
 | `formatSpinRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatspinrecord) |
 | `Frame` | enum class | [frame.md](frame.md#enum-class-frame) |
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
@@ -1285,6 +1311,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IDistance::operator=` | function | [distance.md](distance.md#idistance-operator-eq) |
 | `IDistance::operator= (overload 2)` | function | [distance.md](distance.md#idistance-operator-eq-2) |
 | `IDistance::~IDistance` | function | [distance.md](distance.md#idistance-destructor-idistance) |
+| `IFileStore` | class | [file_store.md](file_store.md#class-ifilestore) |
+| `IFileStore::cardPresent` | function | [file_store.md](file_store.md#ifilestore-cardpresent) |
+| `IFileStore::IFileStore` | function | [file_store.md](file_store.md#ifilestore-ifilestore) |
+| `IFileStore::IFileStore (overload 2)` | function | [file_store.md](file_store.md#ifilestore-ifilestore-2) |
+| `IFileStore::IFileStore (overload 3)` | function | [file_store.md](file_store.md#ifilestore-ifilestore-3) |
+| `IFileStore::operator=` | function | [file_store.md](file_store.md#ifilestore-operator-eq) |
+| `IFileStore::operator= (overload 2)` | function | [file_store.md](file_store.md#ifilestore-operator-eq-2) |
+| `IFileStore::read` | function | [file_store.md](file_store.md#ifilestore-read) |
+| `IFileStore::replace` | function | [file_store.md](file_store.md#ifilestore-replace) |
+| `IFileStore::~IFileStore` | function | [file_store.md](file_store.md#ifilestore-destructor-ifilestore) |
 | `IFusionPolicy` | class | [i_fusion_policy.md](i_fusion_policy.md#class-ifusionpolicy) |
 | `IFusionPolicy::fuse` | function | [i_fusion_policy.md](i_fusion_policy.md#ifusionpolicy-fuse) |
 | `IFusionPolicy::IFusionPolicy` | function | [i_fusion_policy.md](i_fusion_policy.md#ifusionpolicy-ifusionpolicy) |
@@ -1544,6 +1580,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kDockedPositionError` | constant | [accuracy.md](accuracy.md#kdockedpositionerror) |
 | `kEndPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#kendpayloadbytes) |
 | `kEndPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kendpayloadbytes) |
+| `kFileReasonBytes` | constant | [record_store.md](record_store.md#kfilereasonbytes) |
 | `kFirstPeerDataType` | constant | [shul2_format.md](shul2_format.md#kfirstpeerdatatype) |
 | `kFirstRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#kfirstruntimedatatype) |
 | `kFlagsOffset` | constant | [shul2_format.md](shul2_format.md#kflagsoffset) |
@@ -1617,6 +1654,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
 | `kMaxSmartPorts` | constant | [drivetrain_description.md](drivetrain_description.md#kmaxsmartports) |
 | `kMaxSpinLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxspinlevels) |
+| `kMaxStoredFileBytes` | constant | [record_store.md](record_store.md#kmaxstoredfilebytes) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
 | `kMediumCols` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumcols) |
 | `kMediumCols` | constant | [touch_panel.md](touch_panel.md#kmediumcols) |
@@ -1668,6 +1706,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kProvenanceBytes` | constant | [calibration_record.md](calibration_record.md#kprovenancebytes) |
 | `kPushForward` | constant | [calibrate_panel.md](calibrate_panel.md#kpushforward) |
 | `kRecommendedBufferBytes` | constant | [sd_sink.md](sd_sink.md#krecommendedbufferbytes) |
+| `kRecordBackupFileName` | constant | [calibration_record.md](calibration_record.md#krecordbackupfilename) |
 | `kRecordBytes` | constant | [calibration_record.md](calibration_record.md#krecordbytes) |
 | `kRecordFileName` | constant | [calibration_record.md](calibration_record.md#krecordfilename) |
 | `kRecordMagic` | constant | [calibration_record.md](calibration_record.md#krecordmagic) |
@@ -1680,6 +1719,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRolePeer` | constant | [shul2_format.md](shul2_format.md#krolepeer) |
 | `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
 | `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
+| `kSaveReportLineBytes` | constant | [record_store.md](record_store.md#ksavereportlinebytes) |
 | `kSequenceOffset` | constant | [shul2_format.md](shul2_format.md#ksequenceoffset) |
 | `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
 | `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
@@ -1693,6 +1733,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSpinning` | constant | [calibrate_panel.md](calibrate_panel.md#kspinning) |
 | `kStandClear` | constant | [calibrate_panel.md](calibrate_panel.md#kstandclear) |
 | `kStickDeadband` | constant | [stick_mapping.md](stick_mapping.md#kstickdeadband) |
+| `kStorePathBytes` | constant | [file_store.md](file_store.md#kstorepathbytes) |
+| `kStoreReadSlackBytes` | constant | [record_store.md](record_store.md#kstorereadslackbytes) |
 | `kStrafeFallbackNoiseFraction` | constant | [command_pipeline.md](command_pipeline.md#kstrafefallbacknoisefraction) |
 | `kSummaryPayloadBytes` | constant | [blackbox_format.md](blackbox_format.md#ksummarypayloadbytes) |
 | `kSync0` | constant | [shul2_format.md](shul2_format.md#ksync0) |
@@ -1736,6 +1778,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Line::kCapacity` | field | [line_format.md](line_format.md#line-kcapacity) |
 | `Line::n` | field | [line_format.md](line_format.md#line-n) |
 | `Line::view` | function | [line_format.md](line_format.md#line-view) |
+| `LoadedRecord` | struct | [record_store.md](record_store.md#struct-loadedrecord) |
+| `LoadedRecord::backup` | field | [record_store.md](record_store.md#loadedrecord-backup) |
+| `LoadedRecord::description` | field | [record_store.md](record_store.md#loadedrecord-description) |
+| `LoadedRecord::from` | field | [record_store.md](record_store.md#loadedrecord-from) |
+| `LoadedRecord::primary` | field | [record_store.md](record_store.md#loadedrecord-primary) |
+| `loadRecord` | free function | [record_store.md](record_store.md#loadrecord) |
+| `loadWithBackup` | free function | [record_store.md](record_store.md#loadwithbackup) |
 | `Localizer` | class | [localizer.md](localizer.md#class-localizer) |
 | `Localizer::distanceSinceCorrection` | function | [localizer.md](localizer.md#localizer-distancesincecorrection) |
 | `Localizer::headingBias` | function | [localizer.md](localizer.md#localizer-headingbias) |
@@ -2407,6 +2456,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsFileMode` | enum class | [pros-block_sink.md](pros-block_sink.md#enum-class-prosfilemode) |
 | `ProsFileMode::Append` | enumerator | [pros-block_sink.md](pros-block_sink.md#prosfilemode-append) |
 | `ProsFileMode::Truncate` | enumerator | [pros-block_sink.md](pros-block_sink.md#prosfilemode-truncate) |
+| `ProsFileStore` | class | [pros-file_store.md](pros-file_store.md#class-prosfilestore) |
+| `ProsFileStore::cardPresent` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-cardpresent) |
+| `ProsFileStore::ProsFileStore` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-prosfilestore) |
+| `ProsFileStore::ProsFileStore (overload 2)` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-prosfilestore-2) |
+| `ProsFileStore::read` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-read) |
+| `ProsFileStore::replace` | function | [pros-file_store.md](pros-file_store.md#prosfilestore-replace) |
 | `ProsGps` | class | [pros-gps.md](pros-gps.md#class-prosgps) |
 | `ProsGps::faultedReads` | function | [pros-gps.md](pros-gps.md#prosgps-faultedreads) |
 | `ProsGps::hasFix` | function | [pros-gps.md](pros-gps.md#prosgps-hasfix) |
@@ -2474,6 +2529,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PulseVerdict::Still` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-still) |
 | `PulseVerdict::Weak` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdict-weak) |
 | `pulseVerdictWord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#pulseverdictword) |
+| `PutRecord` | struct | [record_store.md](record_store.md#struct-putrecord) |
+| `PutRecord::attempted` | field | [record_store.md](record_store.md#putrecord-attempted) |
+| `PutRecord::readCount` | field | [record_store.md](record_store.md#putrecord-readcount) |
+| `PutRecord::readOpened` | field | [record_store.md](record_store.md#putrecord-readopened) |
+| `PutRecord::reported` | field | [record_store.md](record_store.md#putrecord-reported) |
+| `PutRecord::verified` | field | [record_store.md](record_store.md#putrecord-verified) |
 
 ## Q
 
@@ -2544,6 +2605,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReadStatus::Ok` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-ok) |
 | `ReadStatus::UnsupportedVersion` | enumerator | [blackbox_reader.md](blackbox_reader.md#readstatus-unsupportedversion) |
 | `readStatusName` | free function | [blackbox_reader.md](blackbox_reader.md#readstatusname) |
+| `RecordFileRead` | struct | [record_store.md](record_store.md#struct-recordfileread) |
+| `RecordFileRead::count` | field | [record_store.md](record_store.md#recordfileread-count) |
+| `RecordFileRead::decoded` | field | [record_store.md](record_store.md#recordfileread-decoded) |
+| `RecordFileRead::opened` | field | [record_store.md](record_store.md#recordfileread-opened) |
+| `RecordFileRead::path` | field | [record_store.md](record_store.md#recordfileread-path) |
+| `RecordFileRead::tried` | field | [record_store.md](record_store.md#recordfileread-tried) |
+| `RecordFileRead::why` | field | [record_store.md](record_store.md#recordfileread-why) |
 | `recoverFinite` | free function | [finite_guard.md](finite_guard.md#recoverfinite) |
 | `recoverFinitePose` | free function | [finite_guard.md](finite_guard.md#recoverfinitepose) |
 | `recoverWheelVoltage` | free function | [plausibility_guard.md](plausibility_guard.md#recoverwheelvoltage) |
@@ -2579,6 +2647,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReleaseEdge` | class | [touch_panel.md](touch_panel.md#class-releaseedge) |
 | `ReleaseEdge::ReleaseEdge` | function | [touch_panel.md](touch_panel.md#releaseedge-releaseedge) |
 | `ReleaseEdge::take` | function | [touch_panel.md](touch_panel.md#releaseedge-take) |
+| `ReplaceStep` | enum class | [file_store.md](file_store.md#enum-class-replacestep) |
+| `ReplaceStep::Flush` | enumerator | [file_store.md](file_store.md#replacestep-flush) |
+| `ReplaceStep::NoCard` | enumerator | [file_store.md](file_store.md#replacestep-nocard) |
+| `ReplaceStep::None` | enumerator | [file_store.md](file_store.md#replacestep-none) |
+| `ReplaceStep::Open` | enumerator | [file_store.md](file_store.md#replacestep-open) |
+| `ReplaceStep::Write` | enumerator | [file_store.md](file_store.md#replacestep-write) |
 | `Robot` | class | [robot.md](robot.md#class-robot) |
 | `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
 | `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
@@ -2815,10 +2889,42 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SafeBrakeMode::Coast` | enumerator | [robot_config.md](robot_config.md#safebrakemode-coast) |
 | `SafeBrakeMode::Hold` | enumerator | [robot_config.md](robot_config.md#safebrakemode-hold) |
 | `safeBrakeModeWord` | free function | [robot_config.md](robot_config.md#safebrakemodeword) |
+| `safeReplace` | free function | [record_store.md](record_store.md#safereplace) |
+| `sameFileOnCard` | free function | [file_store.md](file_store.md#samefileoncard) |
 | `SaveOutcome` | enum class | [calibrate_panel.md](calibrate_panel.md#enum-class-saveoutcome) |
 | `SaveOutcome::NotAttempted` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notattempted) |
 | `SaveOutcome::NotSaved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-notsaved) |
 | `SaveOutcome::Saved` | enumerator | [calibrate_panel.md](calibrate_panel.md#saveoutcome-saved) |
+| `saveRecordSafely` | free function | [record_store.md](record_store.md#saverecordsafely) |
+| `SaveRefusal` | enum class | [record_store.md](record_store.md#enum-class-saverefusal) |
+| `SaveRefusal::BytesRefused` | enumerator | [record_store.md](record_store.md#saverefusal-bytesrefused) |
+| `SaveRefusal::DescriptionInvalid` | enumerator | [record_store.md](record_store.md#saverefusal-descriptioninvalid) |
+| `SaveRefusal::EncodeFailed` | enumerator | [record_store.md](record_store.md#saverefusal-encodefailed) |
+| `SaveRefusal::NoCard` | enumerator | [record_store.md](record_store.md#saverefusal-nocard) |
+| `SaveRefusal::None` | enumerator | [record_store.md](record_store.md#saverefusal-none) |
+| `SaveReport` | struct | [record_store.md](record_store.md#struct-savereport) |
+| `SaveReport::backupAfter` | field | [record_store.md](record_store.md#savereport-backupafter) |
+| `SaveReport::backupDisagreed` | field | [record_store.md](record_store.md#savereport-backupdisagreed) |
+| `SaveReport::backupFirst` | field | [record_store.md](record_store.md#savereport-backupfirst) |
+| `SaveReport::backupPath` | field | [record_store.md](record_store.md#savereport-backuppath) |
+| `SaveReport::backupRefresh` | field | [record_store.md](record_store.md#savereport-backuprefresh) |
+| `SaveReport::before` | field | [record_store.md](record_store.md#savereport-before) |
+| `SaveReport::effective` | field | [record_store.md](record_store.md#savereport-effective) |
+| `SaveReport::length` | field | [record_store.md](record_store.md#savereport-length) |
+| `SaveReport::outcome` | field | [record_store.md](record_store.md#savereport-outcome) |
+| `SaveReport::primaryAfter` | field | [record_store.md](record_store.md#savereport-primaryafter) |
+| `SaveReport::primaryDisagreed` | field | [record_store.md](record_store.md#savereport-primarydisagreed) |
+| `SaveReport::primaryOpenedForWriting` | function | [record_store.md](record_store.md#savereport-primaryopenedforwriting) |
+| `SaveReport::primaryPath` | field | [record_store.md](record_store.md#savereport-primarypath) |
+| `SaveReport::primaryWrite` | field | [record_store.md](record_store.md#savereport-primarywrite) |
+| `SaveReport::refused` | field | [record_store.md](record_store.md#savereport-refused) |
+| `SaveReport::restore` | field | [record_store.md](record_store.md#savereport-restore) |
+| `SaveReport::unconfirmed` | field | [record_store.md](record_store.md#savereport-unconfirmed) |
+| `SaveReport::why` | field | [record_store.md](record_store.md#savereport-why) |
+| `SaveResult` | enum class | [record_store.md](record_store.md#enum-class-saveresult) |
+| `SaveResult::NotSaved` | enumerator | [record_store.md](record_store.md#saveresult-notsaved) |
+| `SaveResult::Saved` | enumerator | [record_store.md](record_store.md#saveresult-saved) |
+| `SaveResult::Unconfirmed` | enumerator | [record_store.md](record_store.md#saveresult-unconfirmed) |
 | `scanFrame` | free function | [shul2_format.md](shul2_format.md#scanframe) |
 | `ScanKind` | enum class | [shul2_format.md](shul2_format.md#enum-class-scankind) |
 | `ScanKind::Frame` | enumerator | [shul2_format.md](shul2_format.md#scankind-frame) |
@@ -3004,6 +3110,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StoppedWords::doLine` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-doline) |
 | `StoppedWords::headline` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-headline) |
 | `StoppedWords::why` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-why) |
+| `StoreRead` | struct | [file_store.md](file_store.md#struct-storeread) |
+| `StoreRead::count` | field | [file_store.md](file_store.md#storeread-count) |
+| `StoreRead::opened` | field | [file_store.md](file_store.md#storeread-opened) |
+| `StoreRead::path` | field | [file_store.md](file_store.md#storeread-path) |
+| `StoreReplace` | struct | [file_store.md](file_store.md#struct-storereplace) |
+| `StoreReplace::failed` | field | [file_store.md](file_store.md#storereplace-failed) |
+| `StoreReplace::path` | field | [file_store.md](file_store.md#storereplace-path) |
 | `StrafeTo` | class | [strafe_to.md](strafe_to.md#class-strafeto) |
 | `StrafeTo::name` | function | [strafe_to.md](strafe_to.md#strafeto-name) |
 | `StrafeTo::StrafeTo` | function | [strafe_to.md](strafe_to.md#strafeto-strafeto) |
@@ -3226,6 +3339,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `UnconfirmedWhy` | enum class | [record_store.md](record_store.md#enum-class-unconfirmedwhy) |
+| `UnconfirmedWhy::CardGone` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-cardgone) |
+| `UnconfirmedWhy::None` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-none) |
+| `UnconfirmedWhy::NothingOpened` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-nothingopened) |
+| `UnconfirmedWhy::ReadBackDiffers` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-readbackdiffers) |
 | `utf8Prefix` | free function | [shul2_format.md](shul2_format.md#utf8prefix) |
 
 ## V
@@ -3292,6 +3410,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WheelSpeeds::size` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-size) |
 | `WheelSpeeds::WheelSpeeds` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds) |
 | `WheelSpeeds::WheelSpeeds (overload 2)` | function | [wheel_speeds.md](wheel_speeds.md#wheelspeeds-wheelspeeds-2) |
+| `Which` | enum class | [record_store.md](record_store.md#enum-class-which) |
+| `Which::Backup` | enumerator | [record_store.md](record_store.md#which-backup) |
+| `Which::None` | enumerator | [record_store.md](record_store.md#which-none) |
+| `Which::Primary` | enumerator | [record_store.md](record_store.md#which-primary) |
 | `WidthRow` | struct | [shul2_format.md](shul2_format.md#struct-widthrow) |
 | `WidthRow::end` | field | [shul2_format.md](shul2_format.md#widthrow-end) |
 | `WidthRow::hello` | field | [shul2_format.md](shul2_format.md#widthrow-hello) |

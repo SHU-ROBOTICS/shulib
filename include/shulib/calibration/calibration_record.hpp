@@ -52,9 +52,11 @@
 // decoder that move together agree perfectly, and a round trip cannot see it (the E1
 // lesson, mutation 1b).
 //
-// NO HARDWARE CLAIM. No record has ever been written to, or read from, a physical SD card
-// by this code. The bytes are proven against the host suite and a real temp directory;
-// what a V5 brain's FatFS does with them is Part 3's measurement (HA-122).
+// ON HARDWARE, ONCE. On 2026-09-25 a record "shulib Calibrate" wrote to robot two's card was
+// read back and DECODED — magic, version, length, CRC and valid() — at all eight starts of
+// "shulib Teleop" that evening, which booted from it. That is one card, one record, one night;
+// it settles nothing about a torn write, a pulled card or a power cut (HA-139, HA-166). The
+// golden bytes are still proven against the host suite and a real temp directory only.
 //
 // PROS-free, sim-free, allocation-free.
 
@@ -67,6 +69,7 @@
 #include "shulib/diag/blackbox_format.hpp"
 #include "shulib/diag/crc32.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/hal/file_store.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::calibration {
@@ -86,6 +89,38 @@ inline constexpr std::uint16_t kRecordVersion = 1;
 /// reads. BARE — the /usd/ prefix belongs to hal/pros/block_sink.hpp and block_source.hpp,
 /// which own it in one place each (HA-122).
 inline constexpr const char* kRecordFileName = "shulib_drivetrain.bin";
+
+/// The record's BACKUP copy (chunk SAFE-SAVE Part A): the same 180 bytes, in a second file, so
+/// that a save which fails part-way does not leave the card without a good record — given the
+/// two beliefs about the card it rests on (HA-166 (4) and (5)), and short of the two-fault limit
+/// calibration/record_store.hpp states. The brain cannot rename or delete a file, and "wb" is
+/// taken to empty one at the open (HA-166), so the safe save copies the old record HERE and reads
+/// it back before it opens the record file for writing, and a load that finds the record file
+/// damaged falls back to it. Named beside kRecordFileName so both programs share ONE spelling of
+/// each. BARE, like it.
+inline constexpr const char* kRecordBackupFileName = "shulib_drivetrain.bak";
+
+namespace detail {
+/// True when `name` is non-empty and holds no '/' — a BARE name the adapters accept.
+[[nodiscard]] constexpr bool isBareFileName(const char* name) noexcept {
+    if (name == nullptr || name[0] == '\0') {
+        return false;
+    }
+    for (const char* c = name; *c != '\0'; ++c) {
+        if (*c == '/') {
+            return false;
+        }
+    }
+    return true;
+}
+}  // namespace detail
+
+static_assert(detail::isBareFileName(kRecordFileName) &&
+                  detail::isBareFileName(kRecordBackupFileName),
+              "both record file names must be BARE -- the adapters own the /usd/ prefix (HA-122)");
+static_assert(!hal::sameFileOnCard(kRecordFileName, kRecordBackupFileName),
+              "the record and its backup must be two DIFFERENT files on the card (FAT ignores "
+              "letter case and trailing dots and spaces) -- or the backup IS the record");
 
 /// Width of the description's provenance field, in bytes — taken from the struct rather than
 /// retyped, so a widening there is a compile error here instead of a silently short record.

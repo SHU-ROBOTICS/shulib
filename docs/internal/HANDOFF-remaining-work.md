@@ -542,7 +542,10 @@ recommendation accepted). The brain cannot rename or delete a file, so today a f
 record Teleop boots from while its NOT SAVED text says the old one survived. **Until Part B1 is in the
 build: copy `shulib_drivetrain.bin` off the card on a laptop, dated, before ANY Calibrate run** (worksheet
 G.0.1). Part A (the library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-final, before the next
-Calibrate rerun; B2 (the boot's fallback, Teleop's words) after COMP-b. Teleop's "table" label was
+Calibrate rerun; B2 (the boot's fallback, Teleop's words) after COMP-b. **Status 2026-09-29: Part A BUILT
+in the `safesave-a` worktree, host- and build-gated, awaiting the coordinator's verification** (the store
+seam, `ProsFileStore`, `FakeFileStore`, `calibration/record_store.hpp`, HA-166; `chunks/SAFE-SAVE-PROGRESS.md`)
+— no program uses it yet, so the copy-first rule above still stands. Teleop's "table" label was
 already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all.
 
 **DIAG1 Part B** (the median's non-finite handling) LANDED 2026-10-01 — **DIAG1 is COMPLETE**

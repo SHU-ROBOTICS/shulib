@@ -139,6 +139,38 @@ one honest limit even with a card: small writes sit in a buffer and can report a
 the card is already refusing — the failure then lands on `flush()`, which is why its result is
 a `bool` too.
 
+## Can a program rename or delete a file on the SD card?
+
+No — not on PROS 4.2.2. A program on the brain can **read** a whole file, **replace** a file by opening
+it with `"wb"`, and open one with `"ab"` (C's append mode); it cannot rename, delete or `stat()` a file,
+and it cannot open one read-write to change it in place (HA-166). Read from PROS's and newlib's own
+vendored libraries on 2026-09-26: `rename()` is a link followed by an unlink, and PROS defines both of
+those — and `stat()` and `mkdir()` — as stubs that fail with `ENOSYS`; a read-write open (`"r+b"`) is
+refused with `EINVAL`; and `"wb"` goes to VEXos's create-a-file call, which is taken to empty an existing
+file **at the open**, before a single byte is written (reasoned from those libraries, not yet measured),
+while `"ab"` goes to a different VEXos call — what that one does to an existing file is not yet measured
+either. On a laptop, and in the host test suite, rename and remove work — so code that saves "write a
+temporary file, then rename it" passes every host test and then fails on the robot.
+
+That is why the library saves the calibration record with a **verified backup copy** instead of a rename
+(`calibration::saveRecordSafely()`, in `calibration/record_store.hpp`): the old record is first copied to
+`shulib_drivetrain.bak` and read back, only then is `shulib_drivetrain.bin` replaced and read back, and
+then the backup is refreshed. It is designed so that whatever fails part-way — a full card, a pulled
+card, a power cut — the card still holds the record that was in effect before, or the new one, and
+`calibration::loadRecord()` falls back to the backup when the record file does not decode. That rests on
+two beliefs about the card that no robot has tested yet (HA-166 (4) and (5): writing one file never
+damages another, and a file that reads back whole is really on the card), and it does not cover two
+faults in the same save when the first is the card misreading a file at the save's very first reads in a
+way its checks cannot see — the record file read as damaged twice in a row, or a stale copy of a file
+read in place of what it now holds — and the second a failed write or a power cut. The save's report
+says only what it re-read at the end: `SAVED`, `NOT SAVED` with what the card now holds, or `SAVE
+UNCONFIRMED` when the card could not be read back. On a FAT card, `GAINS.BIN` and `gains.bin` are one
+file, and the brain's card is taken to follow that rule (not yet measured), so the library requires a
+backup's name to differ from its record's by more than letter case. To reset a card on purpose, delete
+**both** files on a laptop. None of this has run on a robot yet, and **the programs do
+not use it yet**: until "shulib Calibrate" saves through it, a Calibrate run that says NOT SAVED may
+already have emptied `shulib_drivetrain.bin` — copy that file off the card on a laptop before every rerun.
+
 ## My program uploaded fine and prints nothing. Is the code broken?
 
 **Check that the brain is still plugged in before you suspect a single line of code.** This one

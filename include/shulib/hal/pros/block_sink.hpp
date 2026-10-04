@@ -37,7 +37,9 @@
 // flush() is fflush() — pushing newlib's buffer to the FatFS driver; there
 // is no fsync in PROS's exposed surface, so "on the medium" is as strong as
 // the platform allows (HA-122's weak half — bench: yank the card after a
-// flushed write and count what survived).
+// flushed write and count what survived). PROS's own usd_write_r does call
+// vexFileSync after every write it passes on, ignoring what it returns; what
+// that sync commits is VEXos's (HA-166 (5)).
 //
 // OWNERSHIP: this adapter OWNS its FILE* (fclose at destruction), so it is
 // non-copyable/non-movable — unlike ProsCharSink, which borrows stdout.

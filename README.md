@@ -86,7 +86,9 @@ current state, so here it is, third heading from the top:
   simulation, and **not one control loop has ever closed on hardware.**
 - Seventeen hardware adapters exist (`include/shulib/hal/pros/` — motors, IMU, GPS, battery,
   encoders, controller, distance, optical, ADI digital in and out, USB serial, the controller
-  LCD, the SD card (write and read), the brain's device list, the loop pacer, and real time).
+  LCD, the SD card (write and read — and, built over those two, the store the calibration record's
+  safe save uses, which is not counted as an adapter of its own), the brain's device list, the loop
+  pacer, and real time).
   The motor, IMU, battery, controller and clock adapters and the SD-card writer have met real
   devices on the bench. **Distance, optical and ADI digital in and out are constructed by no
   program yet** — no V5 build compiles them into a package, and none has touched a physical
@@ -265,8 +267,8 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   hal/              the hardware interfaces (motor, motor groups, IMU, GPS, clock, distance,
                     optical, digital in/out, controller, mechanism, device provider, …) + fakes
     pros/           the real V5 adapters over the PROS SDK — the ONE exempted path (see rule 1)
-  calibration/      the drivetrain self-calibrator, its screen model, its SD-card record,
-                    the boot check
+  calibration/      the drivetrain self-calibrator, its screen model, its SD-card record and
+                    its safe save and load (a verified backup copy), the boot check
   config/           a robot and a route described as DATA (RobotConfig, Route)
   robot/            robot::Robot — the whole library graph built from a RobotConfig
   runner/           runs a Route: the path runner, the command-id registry, the manifest

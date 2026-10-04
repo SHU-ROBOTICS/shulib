@@ -8,7 +8,7 @@
 
 The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card.
 
-This header declares **3** free functions and **7** constants.
+This header declares **3** free functions and **8** constants.
 
 Extracted from [`include/shulib/calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -17,6 +17,7 @@ Extracted from [`include/shulib/calibration/calibration_record.hpp`](../../inclu
 - [`kRecordMagic`](#krecordmagic) — *constant*
 - [`kRecordVersion`](#krecordversion) — *constant*
 - [`kRecordFileName`](#krecordfilename) — *constant*
+- [`kRecordBackupFileName`](#krecordbackupfilename) — *constant*
 - [`kProvenanceBytes`](#kprovenancebytes) — *constant*
 - [`kRecordPayloadBytes`](#krecordpayloadbytes) — *constant*
 - [`kRecordPrefixBytes`](#krecordprefixbytes) — *constant*
@@ -35,7 +36,7 @@ inline constexpr char kRecordMagic[4] = {'S', 'H', 'D', 'C'}
 
 The four magic bytes every calibration record starts with ("SHulib Drivetrain Calibration"). Distinct from the blackbox's "SHBB" so a file pointed at the wrong decoder is refused at byte 0 instead of being parsed into nonsense.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:77`](../../include/shulib/calibration/calibration_record.hpp#L77).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:80`](../../include/shulib/calibration/calibration_record.hpp#L80).*
 
 <a id="krecordversion"></a>
 
@@ -47,7 +48,7 @@ inline constexpr std::uint16_t kRecordVersion = 1
 
 On-card format version. BUMP THIS whenever the layout below changes — a decoder refuses a version it was not built for rather than misreading it. Append-only reasoning applies to the enums the payload carries as bytes (hal::DrivetrainKind, hal::MotorCartridge, hal::DescriptionSource all say so at their declarations).
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:83`](../../include/shulib/calibration/calibration_record.hpp#L83).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:86`](../../include/shulib/calibration/calibration_record.hpp#L86).*
 
 <a id="krecordfilename"></a>
 
@@ -59,7 +60,19 @@ inline constexpr const char* kRecordFileName = "shulib_drivetrain.bin"
 
 The ONE file name both programs use, so "shulib Calibrate" writes what "shulib Teleop" reads. BARE — the /usd/ prefix belongs to hal/pros/block_sink.hpp and block_source.hpp, which own it in one place each (HA-122).
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:88`](../../include/shulib/calibration/calibration_record.hpp#L88).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:91`](../../include/shulib/calibration/calibration_record.hpp#L91).*
+
+<a id="krecordbackupfilename"></a>
+
+## `kRecordBackupFileName`
+
+```cpp
+inline constexpr const char* kRecordBackupFileName = "shulib_drivetrain.bak"
+```
+
+The record's BACKUP copy (chunk SAFE-SAVE Part A): the same 180 bytes, in a second file, so that a save which fails part-way does not leave the card without a good record — given the two beliefs about the card it rests on (HA-166 (4) and (5)), and short of the two-fault limit calibration/record_store.hpp states. The brain cannot rename or delete a file, and "wb" is taken to empty one at the open (HA-166), so the safe save copies the old record HERE and reads it back before it opens the record file for writing, and a load that finds the record file damaged falls back to it. Named beside kRecordFileName so both programs share ONE spelling of each. BARE, like it.
+
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:101`](../../include/shulib/calibration/calibration_record.hpp#L101).*
 
 <a id="kprovenancebytes"></a>
 
@@ -71,7 +84,7 @@ inline constexpr std::size_t kProvenanceBytes = sizeof(hal::DrivetrainDescriptio
 
 Width of the description's provenance field, in bytes — taken from the struct rather than retyped, so a widening there is a compile error here instead of a silently short record.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:92`](../../include/shulib/calibration/calibration_record.hpp#L92).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:127`](../../include/shulib/calibration/calibration_record.hpp#L127).*
 
 <a id="krecordpayloadbytes"></a>
 
@@ -83,7 +96,7 @@ inline constexpr std::size_t kRecordPayloadBytes = 1 + 1 + 1 + (hal::kMaxSmartPo
 
 Bytes of the payload (everything between the length field and the CRC), v1: kind 1 + cartridge 1 + imuPort 1 + left (21 + 1 + 8) + right (21 + 1 + 8) + trackWidth 8 + source 1 + provenance 96 = 168. The encoder asserts it wrote exactly this many.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:97`](../../include/shulib/calibration/calibration_record.hpp#L97).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:132`](../../include/shulib/calibration/calibration_record.hpp#L132).*
 
 <a id="krecordprefixbytes"></a>
 
@@ -95,7 +108,7 @@ inline constexpr std::size_t kRecordPrefixBytes = 4 + 2 + 2
 
 Bytes of the fixed prefix: magic 4 + version 2 + payloadBytes 2.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:101`](../../include/shulib/calibration/calibration_record.hpp#L101).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:136`](../../include/shulib/calibration/calibration_record.hpp#L136).*
 
 <a id="krecordbytes"></a>
 
@@ -107,7 +120,7 @@ inline constexpr std::size_t kRecordBytes = kRecordPrefixBytes + kRecordPayloadB
 
 The WHOLE record, in bytes: prefix + payload + the trailing u32 CRC. A file of any other length is refused by name before a single field is believed.
 
-*constant, declared at [`include/shulib/calibration/calibration_record.hpp:105`](../../include/shulib/calibration/calibration_record.hpp#L105).*
+*constant, declared at [`include/shulib/calibration/calibration_record.hpp:140`](../../include/shulib/calibration/calibration_record.hpp#L140).*
 
 <a id="crc32ieee"></a>
 
@@ -119,7 +132,7 @@ The WHOLE record, in bytes: prefix + payload + the trailing u32 CRC. A file of a
 
 CRC-32/IEEE 802.3 over `bytes` — FORWARDS to diag::crc32Ieee (diag/crc32.hpp), where the algorithm has lived since chunk H1 Part A1 so the SHUL/2 wire can share it; this spelling is kept so the record's encoder and decoder and every existing caller compile unchanged. The same number `zlib.crc32` and `crc32` produce (reflected polynomial 0xEDB88320, all-ones initial value, final inversion), computed bitwise with no lookup table.
 
-*free function, declared at [`include/shulib/calibration/calibration_record.hpp:115`](../../include/shulib/calibration/calibration_record.hpp#L115).*
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:150`](../../include/shulib/calibration/calibration_record.hpp#L150).*
 
 <a id="encoderecord"></a>
 
@@ -131,7 +144,7 @@ CRC-32/IEEE 802.3 over `bytes` — FORWARDS to diag::crc32Ieee (diag/crc32.hpp),
 
 Write `desc` into `out` as a v1 record. Returns the bytes written (kRecordBytes) or 0 if `out` is too small or the layout did not come out to exactly kRecordBytes — whole or nothing, so a short buffer can never leave a half-record that decodes.  It does NOT check desc.valid(): a caller may legitimately want to persist whatever the calibrator produced, and the DECODER is where the refusal lives (one gate, at the point where the bytes become a belief). The calibrate program checks valid() itself before it ever gets here, because a record nobody can boot from is not worth writing.
 
-*free function, declared at [`include/shulib/calibration/calibration_record.hpp:153`](../../include/shulib/calibration/calibration_record.hpp#L153).*
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:188`](../../include/shulib/calibration/calibration_record.hpp#L188).*
 
 <a id="decoderecord"></a>
 
@@ -143,14 +156,14 @@ Write `desc` into `out` as a v1 record. Returns the bytes written (kRecordBytes)
 
 Read a v1 record out of `in` into `desc`. Returns false — leaving `desc` untouched — and writes the CAUSE into `why` (optional; pass nullptr and 0 to skip) for any of the five refusals in the header, in that order: magic, version, length, CRC, then the decoded description's own valid(). Never throws, never allocates, never reads past `in`.  The ORDER is deliberate. Length before CRC, because a CRC over the wrong number of bytes says "corrupt" about a file that is really "from another layout", and the operator needs the second answer. valid() LAST, because a description that fails valid() with an intact CRC is a producer bug, not a card problem, and saying "CRC ok but the description contradicts itself" is what separates the two at 8 a.m. on a bench.
 
-*free function, declared at [`include/shulib/calibration/calibration_record.hpp:202`](../../include/shulib/calibration/calibration_record.hpp#L202).*
+*free function, declared at [`include/shulib/calibration/calibration_record.hpp:237`](../../include/shulib/calibration/calibration_record.hpp#L237).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 58 lines, click to expand</summary>
+<summary>The header’s own reasoning — 60 lines, click to expand</summary>
 
 ```text
 
@@ -206,9 +219,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  decoder that move together agree perfectly, and a round trip cannot see it (the E1
  lesson, mutation 1b).
 
- NO HARDWARE CLAIM. No record has ever been written to, or read from, a physical SD card
- by this code. The bytes are proven against the host suite and a real temp directory;
- what a V5 brain's FatFS does with them is Part 3's measurement (HA-122).
+ ON HARDWARE, ONCE. On 2026-09-25 a record "shulib Calibrate" wrote to robot two's card was
+ read back and DECODED — magic, version, length, CRC and valid() — at all eight starts of
+ "shulib Teleop" that evening, which booted from it. That is one card, one record, one night;
+ it settles nothing about a torn write, a pulled card or a power cut (HA-139, HA-166). The
+ golden bytes are still proven against the host suite and a real temp directory only.
 
  PROS-free, sim-free, allocation-free.
 ```

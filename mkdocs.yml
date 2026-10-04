@@ -257,6 +257,7 @@ nav:
           - Distance conversion: api/distance_conversion.md
           - Drive geometry: api/drive_geometry.md
           - Drivetrain description: api/drivetrain_description.md
+          - File store: api/file_store.md
           - GPS: api/gps.md
           - GPS conversion: api/gps_conversion.md
           - IMU: api/imu.md
@@ -286,6 +287,7 @@ nav:
           - Digital in (PROS): api/pros-digital_in.md
           - Digital out (PROS): api/pros-digital_out.md
           - Distance (PROS): api/pros-distance.md
+          - File store (PROS): api/pros-file_store.md
           - GPS (PROS): api/pros-gps.md
           - IMU (PROS): api/pros-imu.md
           - Line display (PROS): api/pros-line_display.md
@@ -304,6 +306,7 @@ nav:
           - Calibrate panel: api/calibrate_panel.md
           - Calibration record: api/calibration_record.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
+          - Record store: api/record_store.md
       - Competition:
           - Acceptance run: api/acceptance_run.md
           - Auton menu: api/auton_menu.md

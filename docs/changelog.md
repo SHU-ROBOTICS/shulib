@@ -16,6 +16,67 @@
 
 ## API 2.4
 
+### Added since 2.4 (2026-10-04) — the calibration record's safe save: a verified backup, a load that falls back to it, and a report that measures the card
+
+> Written when it landed (chunk SAFE-SAVE, Part A — the LIBRARY; "shulib Calibrate" switches to it in
+> Part B1, and the boot's fallback and Teleop's words are Part B2). **No version bump — every change is
+> ADDITIVE:** four new headers and one new constant; nothing frozen changed shape, and the calibration
+> record's layout, version (1) and golden bytes are unchanged. **Nothing below has run on a robot**, and
+> no program uses it yet.
+
+**Why:** on the brain there is no rename, no delete and no read-write open (HA-166, read from the
+vendored PROS and newlib libraries), and `fopen "wb"` reaches VEXos's create call, which is taken to empty
+an existing file at the OPEN (reasoned from those libraries, not measured). So "shulib Calibrate"'s save —
+open the record with `"wb"`, write, read back — is taken to erase the good record whenever it fails after
+the open, and it then printed that the earlier record was "still on the card". A rename-based fix cannot
+be built on this platform (it would pass every host test and fail on the robot).
+
+**ADDED:**
+
+- **`hal/file_store.hpp`** — `hal::IFileStore`: `cardPresent()`, `read(name, into)` → `StoreRead`
+  (opened, count, the path used), `replace(name, bytes)` → `StoreReplace` (`ReplaceStep` `None` /
+  `NoCard` / `Open` / `Write` / `Flush`, the path used). Deliberately no rename, remove, stat or
+  read-write open. A sibling of `IBlockSink`/`IBlockSource`, not a change to them. Not `noexcept`: a
+  name that is not bare throws `PreconditionError`; every refusal by the card is a returned value. And
+  `hal::sameFileOnCard(a, b)`: whether FAT's name rule makes two names ONE file (it ignores letter case
+  and trailing dots and spaces) — the rule the brain's card is taken to follow, not yet measured (HA-166
+  (6)).
+- **`hal/pros/file_store.hpp`** — `hal::pros::ProsFileStore`: builds a `ProsBlockSource` or
+  `ProsBlockSink` per call, each closed before the call returns; no `fopen`, mode string or `/usd/` of
+  its own. `ProsFileStore(root)` for host tests against a real directory.
+- **`hal/fake/fake_file_store.hpp`** — `hal::fake::FakeFileStore`: named files in memory, with reported
+  faults (open refused, short write, false flush, short read), silent faults (a cut, a flipped byte, a
+  write that never landed, a read that returns a flipped byte), and a crash at any operation that leaves
+  the file absent, empty, a prefix, all new, or torn — with the card then gone or silent — plus an
+  operation log.
+- **`calibration/record_store.hpp`** — `chooseEffective()` (the load rule: the record file if it
+  decodes, else the backup, else none); `loadWithBackup<MaxBytes>()` and `safeReplace<MaxBytes>()`, the
+  generic byte-level load and save (for any small file with a backup — up to 1024 bytes, stated stack);
+  `acceptRecord()`, `saveRecordSafely()`, `loadRecord()` → `LoadedRecord` for the drivetrain record;
+  `SaveReport` (`SaveResult` `Saved` / `NotSaved` / `Unconfirmed`, what each step did, and what both
+  files hold when re-read at the end); `formatSaveReport(report, BootReadsBackup, emit)`, the serial
+  words, every sentence derived from what the save re-read. The save: read both files (the record file
+  twice when its first read does not decode), copy the old record to the backup and read it back, THEN
+  replace the record and read it back (restoring the old one if that fails), THEN refresh the backup,
+  THEN re-read both files. `SAVED` only when the record file re-reads as the new record; `SAVE
+  UNCONFIRMED` when the card is gone, refuses every open, or does not read back the same way twice. It is
+  designed so that a failure part-way leaves the record in effect before or the new one — given HA-166
+  (4) and (5), and short of two faults in one save that begin with a misread of its first reads that its
+  checks cannot see (the header states the limit). A store's read count is never trusted past the
+  buffer, and a read that did not open counts as no bytes.
+- **`calibration::kRecordBackupFileName`** = `"shulib_drivetrain.bak"`, beside `kRecordFileName`, with a
+  compile-time check that both names are bare and name two different files under FAT's name rule.
+
+**What you must do:** nothing — no existing call changes. To reset a card on purpose once the programs
+use the backup, delete BOTH files. **Until "shulib Calibrate" saves through this (Part B1), copy
+`shulib_drivetrain.bin` off the card before every Calibrate rerun** — its NOT SAVED can still mean the
+record was erased.
+
+**Hardware assumptions:** HA-166 is NEW (the six beliefs about the SD card the design rests on — three
+reasoned from the vendored binaries, two invented, and FAT's name rule, whose VEXos half is invented);
+HA-122 gains two cross-references (no status change).
+See the [hardware assumptions register](hardware-assumptions.md).
+
 ### Added and changed since 2.4 (2026-10-01) — the drive protections, inside the driver loop
 
 > Written when it landed (chunk T4 Part 2, its library half). **No version bump:** nothing here

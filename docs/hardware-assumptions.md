@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 165 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 166 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -107,7 +107,13 @@
 > **COMP-b, the competition program, added ONE on 2026-10-02 — HA-162, its reservation, unknown** —
 > what the controller's Timed Run does after it starts a program disabled (the bench's only way to run a
 > pretend match); with it, 165.
-> The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-167, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
+> **SAFE-SAVE Part A added ONE on 2026-10-04 — HA-166**, the six beliefs about the brain's SD card that
+> the calibration record's safe save rests on (no rename, no delete, no read-write open, `"wb"` empties a
+> file at the open — reasoned from the vendored binaries; that a crash spares every other file and that a
+> read-back proves the medium — invented; that two names differing only in letter case or trailing dots
+> are one file — FAT's rule, its VEXos half invented), and AMENDED HA-122 with two cross-references (no
+> status change); with it, 166.
+> The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
 > (the mechanism core: its brief, being written), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
@@ -299,6 +305,7 @@
 | HA-161 | PROS runs `competition_initialize()` / `disabled()` / `autonomous()` / `opcontrol()` each on a task it DELETES on a mode change (a deleted task runs no destructor) — and does NOT delete a task the program created itself | reasoned (the belief code comments have carried since R3b Part 0b; no vendored PROS text says either half, and neither has been observed directly) — the competition program's own auton task rests on the second half | COMP-b's practice-match station (K) |
 | HA-162 | Started from the controller's own menu with **Timed Run**, a program comes up DISABLED (HA-128) and VEXos then ENABLES `autonomous()` after a disabled window of __ s, for __ s, then __ — every blank unmeasured | **unknown** (no vendored text; HA-128 measured only the start) | COMP-b Station K, K.3 (its first match step) |
 | HA-165 | The present members of one drive side stay close enough in CUMULATIVE position, through a match's driving and slip, that leaving members out of the side's median (one or several whose reading is not finite, DIAG1 Part B) moves the side by far less than `maxTickTravel` (36 in) — at worst, the member farthest from the median read alone | **invented** — the members' spread over a match has never been recorded; HA-130's port 18 is the evidence it can grow; exercised only when a member read is non-finite, which HA-08 says never reaches a group on a V5 | R4 |
+| HA-166 | On the brain's SD card a program has no rename, no delete, no stat and no read-write open — the safe save is built from a whole-file read and a truncating replace: fopen "wb" empties an existing file at the open (an "ab" open goes to a different VEXos call, not measured, which the save does not use); rename(), remove()/unlink(), stat() and mkdir() fail (ENOSYS); a read-write open fails (EINVAL); a crash while one file is written leaves every other file intact; a file flushed, closed and read back whole is on the medium before the next file is opened; two names that differ only in letter case or trailing dots and spaces are ONE file | **reasoned** (1)-(3), and (5)'s sync call, from the vendored libpros.a/libc.a disassembled 2026-09-26; (6) from the FAT rule, **invented** that VEXos follows it; **invented** (4) and what (5)'s sync commits; none measured | Station G, once SAFE-SAVE B1 is in the build (a) / Bench Tests' SD probe (b, unowned) / a deliberate power cut (c, unowned) |
 | HA-167 | A tank drives BACKWARDS the way its calibration measured it: each side's travel scale, from ONE unpowered push made one end first, holds within 1 % under power in BOTH directions, and a change of direction adds under 0.25 in of travel the chassis did not make (no backlash take-up) | **invented** (the scale comes from one UNPOWERED push in one direction; the host test plant has no backlash and is direction-symmetric by construction) | the first on-robot autonomous session (COMP-t's auton tester, or COMP-b's Station K) |
 | HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates too (brief spells as a train coasts to a stop are expected and harmless), EXCEPT at a wall, where the guard holds only while every stalled member reads alike — at ANY wall when one member's report settles to 0 well before its mates' (their lagging reports still say the train turns), and beside a slipping side-mate (HA-130's port 18) more easily (the known gaps, in the long form); and a side still drives acceptably with its dead dropped, up to the mid-run stop at more than two dead in total | reasoned (the adapter's screen, `hal/pros/motor.hpp` `position()`, `velocity()`, `current()`; BLUE's 300 counts per output turn) + **invented** (the 5 reads, the 250 ms latch, the majority-or-tie guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall, with and without one stalled member reading unlike its mates; a plain wall with one report settling sooner; a coast-down with per-member encoder phase; 2026-09-28/30, 2026-10-01) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD on any drive port, port 18 (HA-130) included — the push check's push (HA-176): read its log for a `went ABSENT` line |
 | HA-176 | On robot two a drive motor above 2.4 A for 250 ms while its side is driven above 1 V means something is WRONG (a fight on the coupled train, or a stall) and not ordinary driving — a full-stick reversal at top speed and a full-stick launch from rest included, each believed to hold the current limit for less than 250 ms — and a drive motor CAN draw more than 2.4 A (the per-motor limit stays at the PROS default 2500 mA with twelve motors plugged in, HA-154) | **invented** (R3b Session 2's first-run number, the old "shulib Drive"'s `kCurrentLimitA`; no current trace of robot two under power exists) | the competition program's push check (its practice-match station, K), with a full-stick reversal at top speed and a full-stick launch from rest; T4 Part 3's Station F: the highest A at full stick wheels-up, then F.6 (ii) |
@@ -1042,6 +1049,13 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   *Blast radius if wrong:* a blackbox that never exists while everything reports healthy —
   the exact silent failure E1's bool-returning seam was built to surface. **Contained:** one
   adapter; the no-card path is mutation-proven (campaign M11).
+  *Cross-references (SAFE-SAVE Part A, 2026-09-29; no status change):* belief (3) stays true — no
+  fsync is EXPOSED — but PROS's own `usd_write_r` calls `vexFileSync` after every write it passes on,
+  ignoring what it returns (HA-166 (5), read from the vendored `libpros.a`). And the calibration record's
+  safe save reads belief (1)'s `usd_is_installed()` again at the END of a save, while the program runs —
+  which was confirmed only at boot, never for a card pulled mid-run. If a pulled card still read 1, the
+  save's report would fall back on its two other checks (nothing on the card could be opened, or a file
+  did not read back the same way twice) and say SAVE UNCONFIRMED, so no false claim rests on it.
 
 ---
 
@@ -2116,6 +2130,100 @@ next, and the bench's practice-match station is written around that measurement.
   never enters autonomous means the station needs Match or a field. A real field drives the modes
   itself. **Contained:** the practice-match station; the program's behaviour does not depend on the
   numbers.
+
+**SAFE-SAVE Part A (landed 2026-10-04) added ONE — HA-166.** "shulib Calibrate" saved the calibration record
+by opening it with `fopen "wb"` and writing it, and printed, after any failure, that the earlier record
+"is still on the card". On this brain `"wb"` reaches VEXos's create-a-file call, which is taken to empty
+an existing file at the OPEN (belief (1) below — reasoned from the vendored libraries, not measured), so
+every failure after it is taken to leave no record at all (found 2026-09-26). The obvious fix — write a
+temporary file and rename it over the old one — cannot be built here, because the brain has no rename.
+The library's safe save (`calibration/record_store.hpp`) writes a BACKUP copy first, reads it back, only
+then replaces the record, and measures both files at the end; this entry is every belief about the card
+that design rests on.
+Nothing of it has run on a robot: "shulib Calibrate" does not use it until SAFE-SAVE Part B1.
+
+- [ ] **HA-166 — what a program can do to a file on the brain's SD card, and what the safe save
+  assumes about it.**
+  *Claim:* six beliefs that the calibration record's safe save is designed around.
+  1. `fopen(path, "wb")` under `/usd/` on an **existing** file succeeds and empties it **at the open**.
+     PROS's `usd_open_r` sends a write-only open without `O_APPEND` to `vexFileOpenCreate`; `O_CREAT` and
+     `O_TRUNC` are never consulted, so what happens to an existing file is VEXos's. (A write-only open
+     WITH `O_APPEND` — `"ab"` — goes to `vexFileOpenWrite` instead. What that call does to a file is
+     VEXos's and is not a belief of this entry; the safe save does not use it, since it needs a
+     whole-file replace and an append is not one.)
+  2. There is **no rename and no delete.** newlib's `rename()` is `_link_r` followed by `_unlink_r`, and
+     `remove()`/`unlink()` are `_unlink_r`. PROS 4.2.2's `file_system_stubs.c` defines `_link`, `_unlink`,
+     `_stat`, `mkdir` and `chdir` (and `chmod`, `fchmod`, `fchmodat`, `pathconf`, `symlink`, `readlink`,
+     `getcwd`) as `errno = 88 (ENOSYS); return -1`, and no other vendored archive defines `_link` or
+     `_unlink`; the VEXos jump table exports no delete and no rename either. A program also cannot make a
+     directory, and cannot ask `stat()` whether a file exists — an `"rb"` open answers that.
+  3. A read-write open (`"r+b"`, `"w+b"`, `"a+b"`) fails with `EINVAL` (22): `usd_open_r` accepts only
+     read-only or write-only, so a file cannot be updated in place.
+  4. A power cut, a brownout or a card pulled while ONE file is being written leaves every OTHER file
+     readable with its previous bytes. (FatFS writes the FAT and a directory sector for the file being
+     written; two files' directory entries can share one 512-byte sector; whether the card tears a sector
+     write is the card's.)
+  5. A file whose bytes went through `fflush`, whose writer closed it, and whose read-back matched is **on
+     the medium** — its data, its FAT chain and its directory entry — before the program's next open of
+     another file, and a read-back reads what the medium holds. PROS's `usd_write_r` passes each write to
+     `vexFileWrite` and then calls `vexFileSync`, ignoring what the sync returns; `usd_close_r` calls
+     `vexFileClose` and returns 0 whatever it answers. So a sync is CALLED after every write the driver
+     passes on; what `vexFileSync` commits (FatFS's `f_sync`, or less), and whether the card has a write
+     cache of its own, is VEXos's and the card's.
+  6. Two names that differ only in **letter case**, or in **trailing dots and spaces**, name ONE file on
+     the card: `"gains.bin"`, `"GAINS.BIN"` and `"gains.bin."` are the same file, while Linux — and so
+     every host test — holds three. That is FAT's rule (long names match without regard to case; FatFS
+     drops trailing dots and spaces when it parses a name); that VEXos's file system follows it is
+     invented. A FAT short-name alias such as `SHULIB~1.BIN` is not covered: no caller names a file
+     that way.
+  *Source:* the vendored `firmware/libpros.a` (`file_system_stubs.c.o`; `usd_driver.c.o`: `usd_open_r`,
+  `usd_write_r`, `usd_close_r`; `v5_apijump.c.obj`'s `vexFile*` exports) and `firmware/libc.a`
+  (`libc_a-renamer.o`, `libc_a-remove.o`, `libc_a-unlinkr.o`), read with `arm-none-eabi-objdump -dr` on
+  2026-09-26. The design that rests on it: `include/shulib/calibration/record_store.hpp` (the save, the
+  load, the report) and the store seam `include/shulib/hal/file_store.hpp`, which has, on purpose, no
+  rename, no delete and no read-write open; `include/shulib/hal/pros/file_store.hpp` (the adapter) and
+  `include/shulib/hal/fake/fake_file_store.hpp` (the host model, which ASSUMES (4) and (5) and says so).
+  `test/record_store_platform_scan_test.cpp` scans the library and `src/` for rename, remove, unlink,
+  link, stat, mkdir, freopen, fdopen, openat, creat, an `#include` of `<fcntl.h>`, `<fstream>` or
+  `<filesystem>`, any `fopen` outside the two SD adapters and Bench Tests' probe, and any `+` mode. For
+  (6): `hal::sameFileOnCard()` in the store seam, which the save's and the load's preconditions and the
+  record's own two names (a compile-time check) go through.
+  *Confidence:* (1)–(3), and the sync call in (5), are **reasoned** from the vendored binaries. **The host
+  test cannot see them:** on Linux `std::rename` and `std::remove` work, so a rename-based save would pass
+  every host test and fail on the brain — this entry, and the scan, exist so nobody simplifies the save
+  back to a rename. (4), and what the sync in (5) commits, are **invented**. (6) is FAT's documented
+  rule; that VEXos applies it is **invented**. None is measured.
+  *Settle:* (a) Station G, once "shulib Calibrate" saves through the library (SAFE-SAVE Part B1): after a
+  SAVED run, on a laptop, `shulib_drivetrain.bin` and `shulib_drivetrain.bak` both exist, 180 bytes each,
+  byte-identical (`cmp`) — which settles (1)'s success half for these names and the `.bak` file name.
+  (b) (2) and (3) by extending Bench Tests' existing SD probe (button 5, `probeSdCard` in
+  `src/programs/bench_r3a.cpp`) to call `rename`, `remove`, `mkdir` and an `"r+b"` open on its own scratch
+  file and print each return value and `errno`, and (6) the same way — write its scratch file, then try
+  to read it back under the same name in capitals and with a trailing dot — unowned; the design holds
+  either way. (c) (4) and (5) need a deliberate power cut during a save and right after one, then both
+  files read on a laptop — unowned.
+  *Blast radius if wrong:* (1) the other way — an existing file refuses `"wb"` — every re-save says NOT
+  SAVED and the record file is untouched: loud. (2)/(3): nothing breaks; a simpler design was available.
+  (4) or (5): a power cut in the save's few milliseconds could damage BOTH files, and the boot then
+  REFUSES by name (CRC or length) — or leave a file that decodes but is not the one the save last read
+  back (an older record), which the boot would use. So the boot never drives from a DAMAGED record; it may
+  drive from the record in effect before the save, or an older backup copy (amber BACKUP once SAFE-SAVE
+  Part B2 lands). (6) the other way — VEXos telling `a.bin` from `A.BIN` — nothing breaks: the check
+  refuses a few name pairs it did not need to. Short of the limit below, the save's report also never
+  claims more than it measured: a card that is gone, refuses every open, or does not read back the same
+  way twice is reported SAVE UNCONFIRMED. **What the design does not defend** takes two faults in one
+  save, the first a misread at the save's first reads that its checks cannot catch, and the second a
+  failed write or a power cut. The misread is either the record file read as damaged at BOTH of its first
+  two reads, or a read that returns a VALID record the file does not hold — a stale read (HA-139): the
+  record file read as some other record than it holds (it is damaged, missing or different), or the backup
+  (damaged, older or missing) read as identical to the record. That can lose the record, or leave the next
+  boot a record other than the one in effect (an older one). The save's words rest on what its first reads
+  saw: after the first kind they say the record file "did not read as usable"; after a stale read they
+  call the record it returned "the earlier record", and can say it is still on the card. A single misread
+  the checks CAN see — refused, short, or failing the CRC or the length check — followed by a crash or a
+  write fault IS defended, and the host tests enumerate it (the record file is read again when its first
+  read does not decode — added after the review of 2026-10-01). **Contained:** two files, one program's
+  save, one boot read.
 
 **TANK1 (2026-09-27) added TWO — HA-179 and HA-180.** A tank `moveTo` now steers back onto its line
 while it drives (the changelog's API 2.3 entry; `motion/tank_steer.hpp`, `motion/move_to_pose.hpp`): the
