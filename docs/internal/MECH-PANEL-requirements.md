@@ -436,7 +436,10 @@ The panel is the optional VS Code extension over the robot file (G3a). Nothing n
 the robot file and the build can do without it. Its job: making a robot is super simple, with nothing typed
 in C++.
 
-1. **New robot** — name, drivetrain kind, motor cartridge, which end is the front. Everything measurable
+1. **New robot** — name, drivetrain kind, motor cartridge. *(The front is NOT asked — the team lead, 2026-10-06: "itll be
+   hard to say which way is the front through the panel ... maybe we just get it from the calibrate?" The end that LEADS
+   Calibrate's push is the front, carried by the calibration record, with a warning when a recalibration flips it — CAL1,
+   the standard Calibrate.)* Everything measurable
    (track width, wheel size, motor directions) is measured by Calibrate and SHOWN, never typed. G3a's brief
    generates a TANK only (the X-drive is a C++ config), so which kinds the first version offers is §5 Q22.
    It creates the robot's build too, the gap found 2026-09-28 in G3a's brief as written. It writes these

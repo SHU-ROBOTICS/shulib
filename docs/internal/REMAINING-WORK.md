@@ -11,10 +11,10 @@
 > **Sizes** are builder-days (one executor) taken from the chunk's brief where a brief exists. Every size without
 > a brief is marked **(rough)**. **Verification is in no row.** The reviewers, the fixes and a fresh verifier are
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
-> than on builder time, so it is not in the total. **Last updated: 2026-10-06 (R5a Part A's commit, on `fab1ebb`).**
+> than on builder time, so it is not in the total. **Last updated: 2026-10-06 (the front and CAL1 rulings, on `083e232`).**
 
-**Where things stand:** 34 of the phase table's 63 chunks are complete (COMP on 2026-10-02), and R2a (half of R2) has
-also landed; 29 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
+**Where things stand:** 34 of the phase table's 64 chunks are complete (CAL1, the standard Calibrate, added 2026-10-06) (COMP on 2026-10-02), and R2a (half of R2) has
+also landed; 30 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
 Part B (a reading that is not a number left out, completing DIAG1), H1 Part A1 (the SHUL/2 wire's read side) and T4
 Part 2a (the drive protections) on 2026-10-01; and **COMP-b, the competition program** (2026-10-02, completing COMP).
 SAFE-SAVE Part A (the safe save's library) landed 2026-10-04, and R5a Part A (the gains-and-noise measurements as
@@ -83,6 +83,7 @@ be an exception needing his explicit go).
 
 | # | Item | What | Waits on | Size |
 |---|---|---|---|---|
+| 18b | **CAL1, the standard Calibrate** — NEW 2026-10-06, your request | Calibrate moves into the library so every team (and the panel) gets the same, correct Calibrate; a team states only drive kind, motor cartridge and its mechanisms' ports. It absorbs SAFE-SAVE B1 (the safe save) and adds your FRONT rule: the end that leads the push is the front, with a warning when a recalibration flips it. Robot two's Calibrate becomes a few lines calling it | its brief is being written; after T4 Part 3, beside the mechanism core | ~2–3 days (rough, until its brief), B1's ~1 included |
 | 19 | **G3a**, as briefed | the robot file (the `.vexbot` profile block itself); its generator into the C++ tables and the driver file's button region, byte for byte; the freshness gate; one validator; the optional VS Code panel (a form over the file, with the calibration record shown read-only) | T4 Part 3; the team lead's push; his go and his answers to D1–D6 (§11) | ~5½–6 days (its draft brief, 2026-09-27) |
 | 20 | **G3a, the amended panel**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | a **new robot** (which creates its build too); **mechanisms** (add / remove / duplicate / reorder, with templates: Intake, Arm, Lift, Claw, Flywheel, Catapult, Conveyor, Blank); **wiring** (roles → ports, or "bind on the brain", with live warnings); **controls** (every MECH C control, with live warnings); **save** = generate + the build's own checks | MECH's design | grows G3a to ~13–18½ days (rough: the generator ~7½–11, the panel ~5½–7½; +1–1½ with X-drive generation) |
 | 21 | **G3**, `.vexbot` ingestion → **freeze F7** | **import** a `.vexbot` into G3a's generator; the optional SD-card runtime loader; `inferDrivetrain()` (the brittle fallback); `schemaVersion` negotiation with migration; freezes F7. DoD: a real `.vexbot` produces a working robot and routine | G3a; VexBuilder asks #1 (`paths[]`), #5 (the profile) and #2 (drivetrain fields). Today's `.vexbot` carries none of them | ~5½–8 days for the plan-of-record scope (rough; HANDOFF's ~1 day ignored it); ~2½–4 if re-scoped as proposed (import, `schemaVersion`, the F7 freeze — MECH-PANEL-requirements §5 Q27) |
@@ -106,7 +107,7 @@ sensor used as a piece sensor or colour sorter) would come with MECH rather than
 | # | Item | Size |
 |---|---|---|
 | 27 | **DIAG1 Part B**: the odometry skips bad (non-finite) readings — ✅ **landed 2026-10-01; DIAG1 complete** | — |
-| 28 | **SAFE-SAVE**: a failed Calibrate save can never erase the good record, and the boot falls back to a verified backup. **Part B1 lands before the next Calibrate rerun** (the plan's order). Until B1 is in the build, copy `shulib_drivetrain.bin` off the card before ANY Calibrate run (worksheet G.0.1). **Part A (the library) ✅ landed 2026-10-04**; B1 (Calibrate's save) and B2 (the boot's fallback) remain | ~1½ days left (B1 ~1, B2 ~½) |
+| 28 | **SAFE-SAVE**: a failed Calibrate save can never erase the good record, and the boot falls back to a verified backup. **Part A (the library) ✅ landed 2026-10-04.** **Part B1 (Calibrate's save) is now part of CAL1** (2026-10-06, row 18b); B2 (the boot's fallback) remains. Until CAL1 is in the build, copy `shulib_drivetrain.bin` off the card before ANY Calibrate run (worksheet G.0.1) | ~½ day left (B2) |
 | 29 | **L9**: reverse driving. **Part A1 ✅ landed 2026-09-30** (`reverseTo`, `faceAway`; API 2.4, because TANK1 took 2.3). Left: Part A2 (cookbook 04c and the rest of the documentation) and Part B, which makes the boot library code and comes after COMP-b | ~1¼–1½ days left (A2 ~¼–½, B ~1) |
 | 30 | **H1**: the SHUL/2 telemetry wire (A1 read side, A2 write side, B freezes F9). The robot console uses it. **Part A1 ✅ landed 2026-10-01** | ~1½ days left (A2 1, B ½) |
 | 31 | **R5a**: the drive's gains and noise, measured by the robot and kept on the SD card. **Part A (the library) ✅ landed 2026-10-06**; B (the card and the builder), C (Calibrate runs them — waits for SAFE-SAVE B1) and D (waits for SAFE-SAVE B2) remain | ~2½–3 days left + robot sessions |
@@ -182,7 +183,7 @@ Subtotal: ~10–12½ days.
 | T4 Part 3 | **A**: what the SD log copy holds | ✅ **answered: events and summaries only** |
 | T4 Part 3 | **B**: does the competition program keep an SD copy? | ✅ **answered: yes, appended** |
 | MECH | the core's questions (Q1–Q6, Q8, Q13, Q18, Q25, Q28–Q30) | ✅ **answered 2026-09-29 ~03:50**: bindings only in the robot file; a sensorless claw grab by time, reported unconfirmed; mechanism sensors with the mechanisms; PTO: name the later change; no 3-wire expanders yet; the most recent input wins; three-position levels stated by the team; typed names checked at build; F3/F4 re-scoped; the bench page and direction check in the core; **the list is complete — write the core's brief**. Homing for robot two's pivots: not sure yet |
-| G3a | its six decisions (D1–D6); robot two's front | ✅ **D1–D6 answered 2026-09-29: all as recommended.** The front: "the front will be different depending on the robot" — per robot, already the design; robot two's own front (record: camera end; typed table: 15/16 end) to confirm at the amended panel brief |
+| G3a | its six decisions (D1–D6); robot two's front | ✅ **D1–D6 answered 2026-09-29: all as recommended.** ✅ **The front, answered 2026-10-06:** never asked in the panel — the end that leads Calibrate's push is the front, with a flip warning (built in CAL1). The amended brief's D6′, D8, D9 and D10 are still yours; its D7 (flip robot two's typed table to the camera end) now only keeps the no-record fallback consistent |
 | Q2 / Q3 / Q6 | sensor placement; robot one's cartridge; the `MotionDeps` version question | open |
 | Q1 | the mechanisms each robot has. **In the plan it blocks F3 and every scoring routine**, and it is answered in part for robot two (the claws). NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan: with MECH, Q1 would decide only the robots' **settings**, never library work | open |
 

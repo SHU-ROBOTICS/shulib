@@ -1,5 +1,11 @@
 # SAFE-SAVE — Calibrate's save can never erase a good calibration record; Teleop names where its numbers came from
 
+> **PART B1 ABSORBED INTO CAL1 (the team lead, 2026-10-06).** CAL1 — the standard Calibrate, shipped with the library —
+> moves Calibrate's program into the library and builds B1's save (through `calibration/record_store.hpp`, Part A, landed
+> 2026-10-04) into it, so the save is built once. Everything this brief says of B1 (its flow, its words, its tests) is
+> CAL1's to carry, and its brief cites this one. Part B2 (the boot's backup fallback and the driver panel's word) stays
+> SAFE-SAVE's.
+
 > **Callers gained at COMP-t (2026-09-28; noted here, the body not edited — the COMP-t brief §6):**
 > **Part A:** `include/shulib/hal/pros/block_sink.hpp` gained `ProsFileMode::Append`, a three-argument
 > constructor and `openForAppend()` — the file's `"wb"` line moved into the Truncate branch of that
