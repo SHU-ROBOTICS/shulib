@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 3,326 of them, across 164 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 3,633 of them, across 169 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -435,6 +435,81 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CaptureStatus::Refused` | enumerator | [shul2_reader.md](shul2_reader.md#capturestatus-refused) |
 | `captureStatusName` | free function | [shul2_reader.md](shul2_reader.md#capturestatusname) |
 | `cartridgeWord` | free function | [drivetrain_description.md](drivetrain_description.md#cartridgeword) |
+| `CharacterizationSource` | enum class | [drive_characterization.md](drive_characterization.md#enum-class-characterizationsource) |
+| `CharacterizationSource::Measured` | enumerator | [drive_characterization.md](drive_characterization.md#characterizationsource-measured) |
+| `CharacterizationSource::Unset` | enumerator | [drive_characterization.md](drive_characterization.md#characterizationsource-unset) |
+| `CharacterizerConfig` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizerconfig) |
+| `CharacterizerConfig::asymRefuse` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-asymrefuse) |
+| `CharacterizerConfig::asymWarn` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-asymwarn) |
+| `CharacterizerConfig::clearAheadAndBehind` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-clearaheadandbehind) |
+| `CharacterizerConfig::commandTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-commandtimeout) |
+| `CharacterizerConfig::curveGuard` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-curveguard) |
+| `CharacterizerConfig::fit` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-fit) |
+| `CharacterizerConfig::imuReadyTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-imureadytimeout) |
+| `CharacterizerConfig::monitor` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-monitor) |
+| `CharacterizerConfig::rampMax` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-rampmax) |
+| `CharacterizerConfig::rampRate` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-ramprate) |
+| `CharacterizerConfig::restFloor` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-restfloor) |
+| `CharacterizerConfig::restSettleTime` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-restsettletime) |
+| `CharacterizerConfig::restTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-resttimeout) |
+| `CharacterizerConfig::restYawRateFloor` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-restyawratefloor) |
+| `CharacterizerConfig::segmentDistance` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-segmentdistance) |
+| `CharacterizerConfig::segmentTimeout` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-segmenttimeout) |
+| `CharacterizerConfig::sidewaysExcursion` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-sidewaysexcursion) |
+| `CharacterizerConfig::stepVolts` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-stepvolts) |
+| `CharacterizerConfig::stopBound` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-stopbound) |
+| `CharacterizerConfig::tempGuard` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-tempguard) |
+| `CharacterizerConfig::timing` | field | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-timing) |
+| `CharacterizerConfig::valid` | function | [drive_characterizer.md](drive_characterizer.md#characterizerconfig-valid) |
+| `CharacterizerPhase` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-characterizerphase) |
+| `CharacterizerPhase::Aborted` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-aborted) |
+| `CharacterizerPhase::Done` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-done) |
+| `CharacterizerPhase::Driving` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-driving) |
+| `CharacterizerPhase::Idle` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-idle) |
+| `CharacterizerPhase::Rest` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-rest) |
+| `CharacterizerPhase::Stopping` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-stopping) |
+| `CharacterizerPhase::WaitImu` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerphase-waitimu) |
+| `CharacterizerRefusal` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-characterizerrefusal) |
+| `CharacterizerRefusal::Aborted` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-aborted) |
+| `CharacterizerRefusal::CurveExceeded` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-curveexceeded) |
+| `CharacterizerRefusal::Fight` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-fight) |
+| `CharacterizerRefusal::FitRefused` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-fitrefused) |
+| `CharacterizerRefusal::ImuNotReady` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-imunotready) |
+| `CharacterizerRefusal::MissedTick` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-missedtick) |
+| `CharacterizerRefusal::None` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-none) |
+| `CharacterizerRefusal::RestTimeout` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-resttimeout) |
+| `CharacterizerRefusal::StopTooLong` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-stoptoolong) |
+| `CharacterizerRefusal::TooHot` | enumerator | [drive_characterizer.md](drive_characterizer.md#characterizerrefusal-toohot) |
+| `characterizerRefusalName` | free function | [drive_characterizer.md](drive_characterizer.md#characterizerrefusalname) |
+| `CharacterizerReport` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizerreport) |
+| `CharacterizerReport::asymmetryWarning` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-asymmetrywarning) |
+| `CharacterizerReport::combined` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-combined) |
+| `CharacterizerReport::curveGuardRad` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-curveguardrad) |
+| `CharacterizerReport::emptySegmentWarning` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-emptysegmentwarning) |
+| `CharacterizerReport::fit` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-fit) |
+| `CharacterizerReport::kVAsymmetry` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-kvasymmetry) |
+| `CharacterizerReport::segmentCount` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-segmentcount) |
+| `CharacterizerReport::segments` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-segments) |
+| `CharacterizerReport::timing` | field | [drive_characterizer.md](drive_characterizer.md#characterizerreport-timing) |
+| `CharacterizerSample` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizersample) |
+| `CharacterizerSample::battery` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-battery) |
+| `CharacterizerSample::headingRad` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-headingrad) |
+| `CharacterizerSample::maxCurrent` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-maxcurrent) |
+| `CharacterizerSample::position` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-position) |
+| `CharacterizerSample::powered` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-powered) |
+| `CharacterizerSample::segment` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-segment) |
+| `CharacterizerSample::speed` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-speed) |
+| `CharacterizerSample::t` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-t) |
+| `CharacterizerSample::valid` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-valid) |
+| `CharacterizerSample::volts` | field | [drive_characterizer.md](drive_characterizer.md#characterizersample-volts) |
+| `CharacterizerStatus` | struct | [drive_characterizer.md](drive_characterizer.md#struct-characterizerstatus) |
+| `CharacterizerStatus::atRest` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-atrest) |
+| `CharacterizerStatus::curveRad` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-curverad) |
+| `CharacterizerStatus::phase` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-phase) |
+| `CharacterizerStatus::segment` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-segment) |
+| `CharacterizerStatus::stopIn` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-stopin) |
+| `CharacterizerStatus::travelIn` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-travelin) |
+| `CharacterizerStatus::volts` | field | [drive_characterizer.md](drive_characterizer.md#characterizerstatus-volts) |
 | `Chassis` | class | [chassis.md](chassis.md#class-chassis) |
 | `Chassis::brake` | function | [chassis.md](chassis.md#chassis-brake) |
 | `Chassis::cancel` | function | [chassis.md](chassis.md#chassis-cancel) |
@@ -683,6 +758,35 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveBrake::start` | function | [drive_brake.md](drive_brake.md#drivebrake-start) |
 | `DriveBrake::state` | function | [drive_brake.md](drive_brake.md#drivebrake-state) |
 | `DriveBrake::tick` | function | [drive_brake.md](drive_brake.md#drivebrake-tick) |
+| `DriveCharacterization` | struct | [drive_characterization.md](drive_characterization.md#struct-drivecharacterization) |
+| `DriveCharacterization::combined` | function | [drive_characterization.md](drive_characterization.md#drivecharacterization-combined) |
+| `DriveCharacterization::hasGains` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-hasgains) |
+| `DriveCharacterization::hasRest` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-hasrest) |
+| `DriveCharacterization::kVAsymmetry` | function | [drive_characterization.md](drive_characterization.md#drivecharacterization-kvasymmetry) |
+| `DriveCharacterization::left` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-left) |
+| `DriveCharacterization::provenance` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-provenance) |
+| `DriveCharacterization::rampTiming` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-ramptiming) |
+| `DriveCharacterization::rest` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-rest) |
+| `DriveCharacterization::right` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-right) |
+| `DriveCharacterization::source` | field | [drive_characterization.md](drive_characterization.md#drivecharacterization-source) |
+| `DriveCharacterization::valid` | function | [drive_characterization.md](drive_characterization.md#drivecharacterization-valid) |
+| `DriveCharacterizer` | class | [drive_characterizer.md](drive_characterizer.md#class-drivecharacterizer) |
+| `DriveCharacterizer::abort` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-abort) |
+| `DriveCharacterizer::config` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-config) |
+| `DriveCharacterizer::DriveCharacterizer` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-drivecharacterizer) |
+| `DriveCharacterizer::DriveCharacterizer (overload 2)` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-drivecharacterizer-2) |
+| `DriveCharacterizer::lastSample` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-lastsample) |
+| `DriveCharacterizer::operator=` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-operator-eq) |
+| `DriveCharacterizer::phase` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-phase) |
+| `DriveCharacterizer::reason` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-reason) |
+| `DriveCharacterizer::refusal` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-refusal) |
+| `DriveCharacterizer::refusalPort` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-refusalport) |
+| `DriveCharacterizer::report` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-report) |
+| `DriveCharacterizer::result` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-result) |
+| `DriveCharacterizer::start` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-start) |
+| `DriveCharacterizer::status` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-status) |
+| `DriveCharacterizer::tick` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-tick) |
+| `DriveCharacterizer::warning` | function | [drive_characterizer.md](drive_characterizer.md#drivecharacterizer-warning) |
 | `DriveEncoderOdometry` | class | [drive_encoder_odometry.md](drive_encoder_odometry.md#class-driveencoderodometry) |
 | `DriveEncoderOdometry::DriveEncoderOdometry` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-driveencoderodometry) |
 | `DriveEncoderOdometry::lastDeltaImplausible` | function | [drive_encoder_odometry.md](drive_encoder_odometry.md#driveencoderodometry-lastdeltaimplausible) |
@@ -770,10 +874,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DriveShaperState::controllerAbsent` | field | [driver_control.md](driver_control.md#driveshaperstate-controllerabsent) |
 | `DriveShaperState::fieldCentric` | field | [driver_control.md](driver_control.md#driveshaperstate-fieldcentric) |
 | `DriveShaperState::slewOutput` | field | [driver_control.md](driver_control.md#driveshaperstate-slewoutput) |
+| `DriveSide` | struct | [rest_capture.md](rest_capture.md#struct-driveside) |
+| `DriveSide::inchesPerRadian` | field | [rest_capture.md](rest_capture.md#driveside-inchesperradian) |
+| `DriveSide::members` | field | [rest_capture.md](rest_capture.md#driveside-members) |
 | `DriveSideDescription` | struct | [drivetrain_description.md](drivetrain_description.md#struct-drivesidedescription) |
 | `DriveSideDescription::count` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-count) |
 | `DriveSideDescription::inchesPerRadian` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-inchesperradian) |
 | `DriveSideDescription::signedPorts` | field | [drivetrain_description.md](drivetrain_description.md#drivesidedescription-signedports) |
+| `driveSideValid` | free function | [rest_capture.md](rest_capture.md#drivesidevalid) |
 | `DrivetrainCalibrator` | class | [drivetrain_calibrator.md](drivetrain_calibrator.md#class-drivetraincalibrator) |
 | `DrivetrainCalibrator::abort` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-abort) |
 | `DrivetrainCalibrator::accepts` | function | [drivetrain_calibrator.md](drivetrain_calibrator.md#drivetraincalibrator-accepts) |
@@ -957,6 +1065,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Feedforward::calculate` | function | [feedforward.md](feedforward.md#feedforward-calculate) |
 | `Feedforward::calculate (overload 2)` | function | [feedforward.md](feedforward.md#feedforward-calculate-2) |
 | `Feedforward::Feedforward` | function | [feedforward.md](feedforward.md#feedforward-feedforward) |
+| `FeedforwardFit` | class | [feedforward_fit.md](feedforward_fit.md#class-feedforwardfit) |
+| `FeedforwardFit::add` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-add) |
+| `FeedforwardFit::admitted` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-admitted) |
+| `FeedforwardFit::config` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-config) |
+| `FeedforwardFit::excluded` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-excluded) |
+| `FeedforwardFit::FeedforwardFit` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-feedforwardfit) |
+| `FeedforwardFit::result` | function | [feedforward_fit.md](feedforward_fit.md#feedforwardfit-result) |
 | `FeedforwardGains` | struct | [feedforward.md](feedforward.md#struct-feedforwardgains) |
 | `FeedforwardGains::kA` | field | [feedforward.md](feedforward.md#feedforwardgains-ka) |
 | `FeedforwardGains::kS` | field | [feedforward.md](feedforward.md#feedforwardgains-ks) |
@@ -1000,6 +1115,57 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FileRead::tried` | field | [record_store.md](record_store.md#fileread-tried) |
 | `FileRead::why` | field | [record_store.md](record_store.md#fileread-why) |
 | `findBuiltinCommand` | free function | [route.md](route.md#findbuiltincommand) |
+| `FitConfig` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitconfig) |
+| `FitConfig::alphaMin` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-alphamin) |
+| `FitConfig::currentGuard` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-currentguard) |
+| `FitConfig::dtTolerance` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-dttolerance) |
+| `FitConfig::freeSpeedMax` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-freespeedmax) |
+| `FitConfig::freeSpeedMin` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-freespeedmin) |
+| `FitConfig::kAMax` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-kamax) |
+| `FitConfig::kAMin` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-kamin) |
+| `FitConfig::kSMax` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-ksmax) |
+| `FitConfig::kSMin` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-ksmin) |
+| `FitConfig::maxResidualRms` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-maxresidualrms) |
+| `FitConfig::minSamples` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-minsamples) |
+| `FitConfig::minSpeed` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-minspeed) |
+| `FitConfig::nominalDt` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-nominaldt) |
+| `FitConfig::tauMinFraction` | field | [feedforward_fit.md](feedforward_fit.md#fitconfig-tauminfraction) |
+| `FitConfig::valid` | function | [feedforward_fit.md](feedforward_fit.md#fitconfig-valid) |
+| `FitExclusion` | enum class | [feedforward_fit.md](feedforward_fit.md#enum-class-fitexclusion) |
+| `FitExclusion::DeadBand` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-deadband) |
+| `FitExclusion::None` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-none) |
+| `FitExclusion::NonFinite` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-nonfinite) |
+| `FitExclusion::OffNominalDt` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-offnominaldt) |
+| `FitExclusion::OverCurrent` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-overcurrent) |
+| `FitExclusion::Stop` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitexclusion-stop) |
+| `fitExclusionName` | free function | [feedforward_fit.md](feedforward_fit.md#fitexclusionname) |
+| `FitResult` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitresult) |
+| `FitResult::alpha` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-alpha) |
+| `FitResult::beta` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-beta) |
+| `FitResult::excluded` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-excluded) |
+| `FitResult::gains` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-gains) |
+| `FitResult::gamma` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-gamma) |
+| `FitResult::kABelowResolution` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-kabelowresolution) |
+| `FitResult::residualRms` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-residualrms) |
+| `FitResult::samples` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-samples) |
+| `FitResult::verdict` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-verdict) |
+| `FitResult::voltsMax` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-voltsmax) |
+| `FitResult::voltsMin` | field | [feedforward_fit.md](feedforward_fit.md#fitresult-voltsmin) |
+| `FitSample` | struct | [feedforward_fit.md](feedforward_fit.md#struct-fitsample) |
+| `FitSample::dt` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-dt) |
+| `FitSample::maxCurrent` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-maxcurrent) |
+| `FitSample::speedAfter` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-speedafter) |
+| `FitSample::speedBefore` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-speedbefore) |
+| `FitSample::volts` | field | [feedforward_fit.md](feedforward_fit.md#fitsample-volts) |
+| `FitVerdict` | enum class | [feedforward_fit.md](feedforward_fit.md#enum-class-fitverdict) |
+| `FitVerdict::Implausible` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-implausible) |
+| `FitVerdict::NonPhysical` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-nonphysical) |
+| `FitVerdict::NotExcited` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-notexcited) |
+| `FitVerdict::Ok` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-ok) |
+| `FitVerdict::PoorFit` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-poorfit) |
+| `FitVerdict::SignMismatch` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-signmismatch) |
+| `FitVerdict::TooFewSamples` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-toofewsamples) |
+| `fitVerdictName` | free function | [feedforward_fit.md](feedforward_fit.md#fitverdictname) |
 | `formatPulseRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpulserecord) |
 | `formatPushRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpushrecord) |
 | `formatSaveReport` | free function | [record_store.md](record_store.md#formatsavereport) |
@@ -1048,6 +1214,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `gainsPlausible` | free function | [feedforward_fit.md](feedforward_fit.md#gainsplausible) |
 | `GateAudit` | struct | [correction.md](correction.md#struct-gateaudit) |
 | `GateAudit::covarianceTrace` | field | [correction.md](correction.md#gateaudit-covariancetrace) |
 | `GateAudit::mahalanobis` | field | [correction.md](correction.md#gateaudit-mahalanobis) |
@@ -1583,6 +1750,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kFileReasonBytes` | constant | [record_store.md](record_store.md#kfilereasonbytes) |
 | `kFirstPeerDataType` | constant | [shul2_format.md](shul2_format.md#kfirstpeerdatatype) |
 | `kFirstRuntimeDataType` | constant | [shul2_format.md](shul2_format.md#kfirstruntimedatatype) |
+| `kFitExclusionReasons` | constant | [feedforward_fit.md](feedforward_fit.md#kfitexclusionreasons) |
+| `kFitRankTolerance` | constant | [feedforward_fit.md](feedforward_fit.md#kfitranktolerance) |
 | `kFlagsOffset` | constant | [shul2_format.md](shul2_format.md#kflagsoffset) |
 | `kFormatVersion` | constant | [blackbox_format.md](blackbox_format.md#kformatversion) |
 | `kFrameHeaderBytes` | constant | [blackbox_format.md](blackbox_format.md#kframeheaderbytes) |
@@ -1720,6 +1889,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kRoleRuntime` | constant | [shul2_format.md](shul2_format.md#kroleruntime) |
 | `kRunAgainBox` | constant | [calibrate_panel.md](calibrate_panel.md#krunagainbox) |
 | `kSaveReportLineBytes` | constant | [record_store.md](record_store.md#ksavereportlinebytes) |
+| `kSegmentCount` | constant | [drive_characterizer.md](drive_characterizer.md#ksegmentcount) |
 | `kSequenceOffset` | constant | [shul2_format.md](shul2_format.md#ksequenceoffset) |
 | `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
 | `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
@@ -2653,6 +2823,68 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ReplaceStep::None` | enumerator | [file_store.md](file_store.md#replacestep-none) |
 | `ReplaceStep::Open` | enumerator | [file_store.md](file_store.md#replacestep-open) |
 | `ReplaceStep::Write` | enumerator | [file_store.md](file_store.md#replacestep-write) |
+| `RestCapture` | class | [rest_capture.md](rest_capture.md#class-restcapture) |
+| `RestCapture::abort` | function | [rest_capture.md](rest_capture.md#restcapture-abort) |
+| `RestCapture::captureSeconds` | function | [rest_capture.md](rest_capture.md#restcapture-captureseconds) |
+| `RestCapture::config` | function | [rest_capture.md](rest_capture.md#restcapture-config) |
+| `RestCapture::operator=` | function | [rest_capture.md](rest_capture.md#restcapture-operator-eq) |
+| `RestCapture::phase` | function | [rest_capture.md](rest_capture.md#restcapture-phase) |
+| `RestCapture::reason` | function | [rest_capture.md](rest_capture.md#restcapture-reason) |
+| `RestCapture::refusal` | function | [rest_capture.md](rest_capture.md#restcapture-refusal) |
+| `RestCapture::refusalPort` | function | [rest_capture.md](rest_capture.md#restcapture-refusalport) |
+| `RestCapture::RestCapture` | function | [rest_capture.md](rest_capture.md#restcapture-restcapture) |
+| `RestCapture::RestCapture (overload 2)` | function | [rest_capture.md](rest_capture.md#restcapture-restcapture-2) |
+| `RestCapture::start` | function | [rest_capture.md](rest_capture.md#restcapture-start) |
+| `RestCapture::summary` | function | [rest_capture.md](rest_capture.md#restcapture-summary) |
+| `RestCapture::tick` | function | [rest_capture.md](rest_capture.md#restcapture-tick) |
+| `RestCapture::unreadSides` | function | [rest_capture.md](rest_capture.md#restcapture-unreadsides) |
+| `RestCaptureConfig` | struct | [rest_capture.md](rest_capture.md#struct-restcaptureconfig) |
+| `RestCaptureConfig::duration` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-duration) |
+| `RestCaptureConfig::imuReadyTimeout` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-imureadytimeout) |
+| `RestCaptureConfig::moveBound` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-movebound) |
+| `RestCaptureConfig::restFloor` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-restfloor) |
+| `RestCaptureConfig::restSettleTime` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-restsettletime) |
+| `RestCaptureConfig::restTimeout` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-resttimeout) |
+| `RestCaptureConfig::restYawRateFloor` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-restyawratefloor) |
+| `RestCaptureConfig::settleMarginWarn` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-settlemarginwarn) |
+| `RestCaptureConfig::timing` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-timing) |
+| `RestCaptureConfig::turnBound` | field | [rest_capture.md](rest_capture.md#restcaptureconfig-turnbound) |
+| `RestCaptureConfig::valid` | function | [rest_capture.md](rest_capture.md#restcaptureconfig-valid) |
+| `RestPhase` | enum class | [rest_capture.md](rest_capture.md#enum-class-restphase) |
+| `RestPhase::Aborted` | enumerator | [rest_capture.md](rest_capture.md#restphase-aborted) |
+| `RestPhase::Capture` | enumerator | [rest_capture.md](rest_capture.md#restphase-capture) |
+| `RestPhase::Done` | enumerator | [rest_capture.md](rest_capture.md#restphase-done) |
+| `RestPhase::Idle` | enumerator | [rest_capture.md](rest_capture.md#restphase-idle) |
+| `RestPhase::Settle` | enumerator | [rest_capture.md](rest_capture.md#restphase-settle) |
+| `RestPhase::WaitImu` | enumerator | [rest_capture.md](rest_capture.md#restphase-waitimu) |
+| `RestRefusal` | enum class | [rest_capture.md](rest_capture.md#enum-class-restrefusal) |
+| `RestRefusal::Aborted` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-aborted) |
+| `RestRefusal::ImuNotReady` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-imunotready) |
+| `RestRefusal::Moved` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-moved) |
+| `RestRefusal::None` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-none) |
+| `RestRefusal::RestTimeout` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-resttimeout) |
+| `RestRefusal::Turned` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-turned) |
+| `restRefusalName` | free function | [rest_capture.md](rest_capture.md#restrefusalname) |
+| `RestSummary` | struct | [drive_characterization.md](drive_characterization.md#struct-restsummary) |
+| `RestSummary::driftDegPerMin` | function | [drive_characterization.md](drive_characterization.md#restsummary-driftdegpermin) |
+| `RestSummary::driftRadPerS` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftradpers) |
+| `RestSummary::driftSigmaWalk` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftsigmawalk) |
+| `RestSummary::driftSigmaWhite` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftsigmawhite) |
+| `RestSummary::driftTurnBiasBound` | function | [drive_characterization.md](drive_characterization.md#restsummary-driftturnbiasbound) |
+| `RestSummary::durationS` | field | [drive_characterization.md](drive_characterization.md#restsummary-durations) |
+| `RestSummary::encoderMoveMaxIn` | field | [drive_characterization.md](drive_characterization.md#restsummary-encodermovemaxin) |
+| `RestSummary::encoderTurnMaxRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-encoderturnmaxrad) |
+| `RestSummary::encoderTurnRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-encoderturnrad) |
+| `RestSummary::headingSigmaRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-headingsigmarad) |
+| `RestSummary::maxHeadingStepRad` | field | [drive_characterization.md](drive_characterization.md#restsummary-maxheadingsteprad) |
+| `RestSummary::samples` | field | [drive_characterization.md](drive_characterization.md#restsummary-samples) |
+| `RestSummary::speedSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-speedsigma) |
+| `RestSummary::stepRateSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-stepratesigma) |
+| `RestSummary::structureRatio` | field | [drive_characterization.md](drive_characterization.md#restsummary-structureratio) |
+| `RestSummary::structureRatioDefined` | function | [drive_characterization.md](drive_characterization.md#restsummary-structureratiodefined) |
+| `RestSummary::timing` | field | [drive_characterization.md](drive_characterization.md#restsummary-timing) |
+| `RestSummary::yawRateMean` | field | [drive_characterization.md](drive_characterization.md#restsummary-yawratemean) |
+| `RestSummary::yawRateSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-yawratesigma) |
 | `Robot` | class | [robot.md](robot.md#class-robot) |
 | `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
 | `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
@@ -2976,6 +3208,36 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SdSinkStorage` | struct | [sd_sink.md](sd_sink.md#struct-sdsinkstorage) |
 | `SdSinkStorage::buffer` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-buffer) |
 | `SdSinkStorage::ring` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-ring) |
+| `SegmentEnd` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-segmentend) |
+| `SegmentEnd::Distance` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-distance) |
+| `SegmentEnd::None` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-none) |
+| `SegmentEnd::RampTop` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-ramptop) |
+| `SegmentEnd::Timeout` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-timeout) |
+| `segmentEndName` | free function | [drive_characterizer.md](drive_characterizer.md#segmentendname) |
+| `SegmentKind` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-segmentkind) |
+| `SegmentKind::QuasiBackward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-quasibackward) |
+| `SegmentKind::QuasiForward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-quasiforward) |
+| `SegmentKind::StepBackward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-stepbackward) |
+| `SegmentKind::StepForward` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentkind-stepforward) |
+| `segmentKindName` | free function | [drive_characterizer.md](drive_characterizer.md#segmentkindname) |
+| `SegmentRecord` | struct | [drive_characterizer.md](drive_characterizer.md#struct-segmentrecord) |
+| `SegmentRecord::admitted` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-admitted) |
+| `SegmentRecord::batteryMean` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-batterymean) |
+| `SegmentRecord::batteryMin` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-batterymin) |
+| `SegmentRecord::encoderCurveRad` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-encodercurverad) |
+| `SegmentRecord::end` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-end) |
+| `SegmentRecord::excluded` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-excluded) |
+| `SegmentRecord::imuMinusEncoderRad` | function | [drive_characterizer.md](drive_characterizer.md#segmentrecord-imuminusencoderrad) |
+| `SegmentRecord::imuYawRad` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-imuyawrad) |
+| `SegmentRecord::kind` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-kind) |
+| `SegmentRecord::lastVolts` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-lastvolts) |
+| `SegmentRecord::maxHeadingStepRad` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-maxheadingsteprad) |
+| `SegmentRecord::maxTemperature` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-maxtemperature) |
+| `SegmentRecord::seconds` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-seconds) |
+| `SegmentRecord::stopIn` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-stopin) |
+| `SegmentRecord::stopped` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-stopped) |
+| `SegmentRecord::timing` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-timing) |
+| `SegmentRecord::travelIn` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-travelin) |
 | `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
 | `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
 | `SessionInfo` | struct | [session_info.md](session_info.md#struct-sessioninfo) |
@@ -3004,6 +3266,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SettledUtil::reset` | function | [settled_util.md](settled_util.md#settledutil-reset) |
 | `SettledUtil::SettledUtil` | function | [settled_util.md](settled_util.md#settledutil-settledutil) |
 | `SettledUtil::update` | function | [settled_util.md](settled_util.md#settledutil-update) |
+| `settleFloorReport` | free function | [rest_capture.md](rest_capture.md#settlefloorreport) |
+| `SettleFloorReport` | struct | [rest_capture.md](rest_capture.md#struct-settlefloorreport) |
+| `SettleFloorReport::headingMargin` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingmargin) |
+| `SettleFloorReport::headingRateFloor` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingratefloor) |
+| `SettleFloorReport::headingRateNoise` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingratenoise) |
+| `SettleFloorReport::headingWarn` | field | [rest_capture.md](rest_capture.md#settlefloorreport-headingwarn) |
+| `SettleFloorReport::speedFloor` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedfloor) |
+| `SettleFloorReport::speedMargin` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedmargin) |
+| `SettleFloorReport::speedNoise` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speednoise) |
+| `SettleFloorReport::speedWarn` | field | [rest_capture.md](rest_capture.md#settlefloorreport-speedwarn) |
 | `shapeAxis` | free function | [input_shaping.md](input_shaping.md#shapeaxis) |
 | `shapeRequest` | free function | [input_shaping.md](input_shaping.md#shaperequest) |
 | `shapeToChassisSpeeds` | free function | [driver_control.md](driver_control.md#shapetochassisspeeds) |
@@ -3022,15 +3294,31 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Shul2Reader::next` | function | [shul2_reader.md](shul2_reader.md#shul2reader-next) |
 | `Shul2Reader::Shul2Reader` | function | [shul2_reader.md](shul2_reader.md#shul2reader-shul2reader) |
 | `Shul2Reader::status` | function | [shul2_reader.md](shul2_reader.md#shul2reader-status) |
+| `SideCharacterization` | struct | [drive_characterization.md](drive_characterization.md#struct-sidecharacterization) |
+| `SideCharacterization::alpha` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-alpha) |
+| `SideCharacterization::gains` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-gains) |
+| `SideCharacterization::kABelowResolution` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-kabelowresolution) |
+| `SideCharacterization::members` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-members) |
+| `SideCharacterization::residualRms` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-residualrms) |
+| `SideCharacterization::samples` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-samples) |
+| `SideCharacterization::voltsMax` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-voltsmax) |
+| `SideCharacterization::voltsMin` | field | [drive_characterization.md](drive_characterization.md#sidecharacterization-voltsmin) |
 | `SideCount` | struct | [drivetrain_degradation.md](drivetrain_degradation.md#struct-sidecount) |
 | `SideCount::answering` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-answering) |
 | `SideCount::expected` | field | [drivetrain_degradation.md](drivetrain_degradation.md#sidecount-expected) |
+| `SideMember` | struct | [rest_capture.md](rest_capture.md#struct-sidemember) |
+| `SideMember::motor` | field | [rest_capture.md](rest_capture.md#sidemember-motor) |
+| `SideMember::port` | field | [rest_capture.md](rest_capture.md#sidemember-port) |
+| `SideMember::sign` | field | [rest_capture.md](rest_capture.md#sidemember-sign) |
 | `SideMonitorConfig` | struct | [coupled_side_monitor.md](coupled_side_monitor.md#struct-sidemonitorconfig) |
 | `SideMonitorConfig::commandFloorV` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-commandfloorv) |
 | `SideMonitorConfig::movingFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-movingfloorrads) |
 | `SideMonitorConfig::nearZeroFraction` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-nearzerofraction) |
 | `SideMonitorConfig::oppositeFloorRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-oppositefloorrads) |
 | `SideMonitorConfig::persistTicks` | field | [coupled_side_monitor.md](coupled_side_monitor.md#sidemonitorconfig-persistticks) |
+| `sidePosition` | free function | [rest_capture.md](rest_capture.md#sideposition) |
+| `sideSpeed` | free function | [rest_capture.md](rest_capture.md#sidespeed) |
+| `sideTravel` | free function | [rest_capture.md](rest_capture.md#sidetravel) |
 | `SideTravel` | struct | [drive_encoder_odometry.md](drive_encoder_odometry.md#struct-sidetravel) |
 | `SideTravel::left` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#sidetravel-left) |
 | `SideTravel::right` | field | [drive_encoder_odometry.md](drive_encoder_odometry.md#sidetravel-right) |
@@ -3235,6 +3523,25 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TickPhase::Telemetry` | enumerator | [debug_record.md](debug_record.md#tickphase-telemetry) |
 | `TickPhase::User` | enumerator | [debug_record.md](debug_record.md#tickphase-user) |
 | `tickPhaseName` | free function | [tick_attribution.md](tick_attribution.md#tickphasename) |
+| `TickTimingConfig` | struct | [tick_timing_stats.md](tick_timing_stats.md#struct-ticktimingconfig) |
+| `TickTimingConfig::budget` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingconfig-budget) |
+| `TickTimingConfig::nominal` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingconfig-nominal) |
+| `TickTimingStats` | class | [tick_timing_stats.md](tick_timing_stats.md#class-ticktimingstats) |
+| `TickTimingStats::config` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-config) |
+| `TickTimingStats::rebaseline` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-rebaseline) |
+| `TickTimingStats::reset` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-reset) |
+| `TickTimingStats::summary` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-summary) |
+| `TickTimingStats::tick` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-tick) |
+| `TickTimingStats::TickTimingStats` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingstats-ticktimingstats) |
+| `TickTimingSummary` | struct | [tick_timing_stats.md](tick_timing_stats.md#struct-ticktimingsummary) |
+| `TickTimingSummary::count` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-count) |
+| `TickTimingSummary::maxS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-maxs) |
+| `TickTimingSummary::meanS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-means) |
+| `TickTimingSummary::minS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-mins) |
+| `TickTimingSummary::overBudget` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-overbudget) |
+| `TickTimingSummary::overDouble` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-overdouble) |
+| `TickTimingSummary::sigmaS` | field | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-sigmas) |
+| `TickTimingSummary::valid` | function | [tick_timing_stats.md](tick_timing_stats.md#ticktimingsummary-valid) |
 | `Time` | type alias | [quantity.md](quantity.md#time) |
 | `toBrakeMode` | free function | [robot_config.md](robot_config.md#tobrakemode) |
 | `toChassisSpeeds` | free function | [stick_mapping.md](stick_mapping.md#tochassisspeeds) |

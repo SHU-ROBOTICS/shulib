@@ -16,6 +16,83 @@
 
 ## API 2.4
 
+### Added since 2.4 (2026-10-06) — the drive's gains and the IMU's noise, measured by the robot: the library half
+
+> Written when it was built (chunk R5a, Part A of four). **No version bump — every change is
+> ADDITIVE:** five new headers, and one field appended to the host test plant's config; nothing
+> frozen changed, and no existing header's behaviour moved (a default host test plant is
+> bit-for-bit what it was — checked against a hash of eight default runs taken before the change).
+> **Nothing below has run on a robot, and no program runs it yet** — it is proven on the host test
+> plant and on synthetic data only. The team lead ruled on 2026-09-26 that the drive's
+> feedforward gains are measured BY THE ROBOT, inside shulib Calibrate, and kept on the SD card —
+> never typed or committed as constants. This is the measuring half; the card, the robot builder
+> consuming the gains, Calibrate's new GAINS and REST steps and every program's gains line are
+> R5a's later parts. Until they land every drive runs on the placeholder gains, exactly as before.
+
+**ADDED:**
+
+- **`calibration::FeedforwardFit`** (`calibration/feedforward_fit.hpp`) — kS, kV and kA of ONE
+  drive side, fitted on the brain from that side's own run, one sample per tick. It fits the
+  DISCRETE form of the feedforward law, v[k+1] = α·v[k] + β·u[k] + γ·sgn(v[k]), by incremental QR
+  (never the normal equations), so no differentiated velocity is used anywhere. Every excluded
+  sample is counted by its reason (`FitExclusion`: not a number, an off-nominal tick, a stop at
+  0 V, the dead band, a member at the current guard); the result carries a `FitVerdict` (`Ok`,
+  `TooFewSamples`, `NotExcited`, `SignMismatch`, `NonPhysical`, `Implausible`, `PoorFit`), the
+  residual and the voltage range fitted over. A kA below the fit's resolution is reported as
+  exactly 0, flagged. **What `PoorFit` does not catch is stated in the header and measured:** a
+  quadratic drag never reaches it (it biases kS down and kV up instead — at a drag of 0.45 V at
+  30 in/s, kS −9.5 % and kV +10.5 %), and neither does a filtered `velocity()`, a one-tick command
+  latency, or noise on the speed reading (which biases kA low and kS high under an `Ok` verdict —
+  at 1 in/s of noise, kA −46 % and kS +11 % on average); each bias is pinned by a test and recorded
+  in the register (HA-171).
+- **`calibration::DriveCharacterizer`** (`calibration/drive_characterizer.hpp`) — the GAINS step:
+  a tick-driven routine that drives the robot through two voltage ramps and two held steps, forward
+  and back, both sides at the same volts, fitting each side separately. Each segment ends on the
+  FIRST of either side's travel reaching 36 in, the ramp reaching 10 V, or 8 s; it then stops at
+  0 V + BRAKE until the robot is at rest (then Coast), measuring each side's stopping distance.
+  It refuses — always to 0 V + COAST on the same tick, so a person can push the robot — on a curve
+  past its guard (read from the ENCODERS, never the IMU, which only records), a fighting member,
+  a missed tick while driving, a motor at 45 °C before a segment, a stop longer than 12 in, a robot
+  that never rests, an IMU that never readies, a fit that is not `Ok`, or `abort()`; each refusal
+  names its port or its sides. The report carries every segment's numbers (travel, stopping
+  distance, battery, temperature, the encoder curve against the IMU's yaw, the largest heading
+  step, the loop timing) — a segment a refusal ended keeps how far it got — and `lastSample()`
+  exposes each tick's raw reading. `CharacterizerConfig::clearAheadAndBehind()` /
+  `sidewaysExcursion(W)` give the lane it needs: 48 in ahead and behind, and 26.6 in to each side at
+  a 12.5 in track width (the arc of a segment curving up to the guard plus the whole 12 in stop
+  bound — the stop is not curve-guarded; the header states what both numbers assume). It does NOT
+  refuse a segment that cannot move (something in the way): that segment ends on its ramp's top or
+  its 8 s timeout, the run finishes on the other segments, and `warning()` names the segment and
+  side that admitted no sample (`CharacterizerReport::emptySegmentWarning`); whether to refuse it
+  instead is an open decision before Calibrate runs the step.
+  **A measured kA is recorded, not applied** — the motion layer applies the cruise form
+  `Feedforward::calculate(v)` only.
+- **`calibration::RestCapture`** (`calibration/rest_capture.hpp`) — the REST step: the robot sits
+  still and unpowered for 60 s while the IMU's drift (the slope of the unwrapped heading, with its
+  σ under both white-heading-noise and random-walk models, and a structure ratio saying which the
+  data fits), heading noise, yaw-rate noise, the per-tick heading step, the encoders' noise at rest
+  and the loop timing are measured. It refuses a robot that MOVES or TURNS by its encoders — never
+  by the IMU, whose apparent rotation at rest is the drift being measured — and records the
+  rotation it admitted under its 3° bound, with the most that rotation can have moved the drift
+  (`RestSummary::driftTurnBiasBound()`: a hand on the robot turns the IMU too). A side that gives
+  no finite reading on a tick is left out of that tick and counted (`RestCapture::unreadSides()`),
+  so one bad tick cannot spoil the capture's numbers. Also
+  **`settleFloorReport()`**: how far each settle floor of a `MotionConfig` clears the measured noise
+  (a warning under 2×) — it changes nothing. **The drift is a per-boot number and is never applied
+  as a correction** (HA-173).
+- **`calibration::DriveCharacterization`** (`calibration/drive_characterization.hpp`) — what the
+  two steps measure, as fixed-width data (each side's gains and the facts behind them, the rest
+  summary, the timing, provenance), with `combined()` (the two sides' mean — what R5a Part B will
+  hand the motion layer) and `valid()` naming the offending field.
+- **`diag::TickTimingStats`** (`diag/tick_timing_stats.hpp`) — a loop's dt statistics (count, mean,
+  σ, min, max, ticks at or over the 15 ms budget, ticks over twice the period), a sibling of
+  `LoopMonitor`, which is unchanged.
+- **Host test plant:** `sim::DrivePlantConfig::wheelFfOverride` — per-wheel gains, so a host test
+  can tell a drivetrain's LEFT from its RIGHT. Empty by default, appended last (every designated
+  initializer still compiles), and a default plant is bit-identical to before.
+
+Five new register entries, HA-170 to HA-174, in the [Hardware Assumptions Register](hardware-assumptions.md).
+
 ### Added since 2.4 (2026-10-04) — the calibration record's safe save: a verified backup, a load that falls back to it, and a report that measures the card
 
 > Written when it landed (chunk SAFE-SAVE, Part A — the LIBRARY; "shulib Calibrate" switches to it in

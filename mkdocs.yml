@@ -227,6 +227,7 @@ nav:
           - Shul2 reader: api/shul2_reader.md
           - Term sink: api/term_sink.md
           - Tick attribution: api/tick_attribution.md
+          - Tick timing stats: api/tick_timing_stats.md
           - Trace: api/trace.md
           - Triage: api/triage.md
       - Math and frames:
@@ -305,8 +306,12 @@ nav:
           - Boot check: api/boot_check.md
           - Calibrate panel: api/calibrate_panel.md
           - Calibration record: api/calibration_record.md
+          - Drive characterization: api/drive_characterization.md
+          - Drive characterizer: api/drive_characterizer.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
+          - Feedforward fit: api/feedforward_fit.md
           - Record store: api/record_store.md
+          - Rest capture: api/rest_capture.md
       - Competition:
           - Acceptance run: api/acceptance_run.md
           - Auton menu: api/auton_menu.md

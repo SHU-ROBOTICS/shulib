@@ -1148,7 +1148,9 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   owns unit consistency. `control/` added to the CI PROS-free guard.*
 - [x] `Feedforward{kS,kV,kA}`; **voltage/brownout compensation**. *`control/feedforward.hpp` +
   `test/feedforward_test.cpp` (7 cases): `V = kS·sign(v) + kV·v + kA·a` (typed Velocity/Acceleration
-  in, Voltage out; bare gains from sysid), kS follows the velocity sign and is zero at rest;
+  in, Voltage out; bare gains — to be measured by the robot in shulib Calibrate's GAINS step (built as
+  library in R5a Part A; Calibrate runs it from Part C; not yet on a robot); a measured kA is recorded,
+  not applied), kS follows the velocity sign and is zero at rest;
   `compensateForBattery()` limits a desired voltage to ±battery and flags brownout-saturation (the park
   fires as the battery collapses). Mutation-checked (kS-sign and the battery clamp each go red).*
 - [x] `MotionProfile` (trapezoid). *`control/trapezoid_profile.hpp` + `test/trapezoid_profile_test.cpp`
@@ -1166,7 +1168,24 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
 - [x] **Motion watchdog** (hard timeout — a motion can never hang). *`control/watchdog.hpp` +
   `test/exit_group_test.cpp`: clock-driven, start()/expired()/elapsed()/reset(); expires at/after the
   timeout, never before start; mutation-checked (the `>=` boundary reds). Consumed by `ExitGroup`.*
-- [ ] `tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.
+- [~] ~~`tools/sysid` offline kS/kV/kA least-squares → emits **constants**; one on-robot ramp routine.~~
+  **Reframed 2026-09-26 (the team lead's ruling): kS/kV/kA are measured BY THE ROBOT, inside shulib
+  Calibrate, and kept on the SD card beside the drivetrain record — never typed or committed as
+  constants** (chunk R5a, four parts). *Part A (2026-09-29) — the measurements as library, HOST-PROVEN
+  ONLY:* the fit runs on the brain (`calibration/feedforward_fit.hpp` — the discrete feedforward law by
+  incremental QR, no differentiated velocity; each exclusion counted by reason; a verdict per side); the
+  ramp routine is the GAINS step (`calibration/drive_characterizer.hpp` — two ramps and two steps, each
+  side fitted separately, a curve guard read from the ENCODERS, 0 V + Brake at a normal segment end and
+  its stopping distance measured, 0 V + Coast on every refusal); the stationary capture is the REST step
+  (`calibration/rest_capture.hpp` — the IMU's drift with its σ under both noise structures, the per-tick
+  rate noise against the settle floors); both record their loop timing (`diag/tick_timing_stats.hpp`);
+  the host test plant can give each wheel its own gains. Evidence: 78 new host test cases and every
+  listed mutation run red (63 on 2026-09-29, 15 more in its review of 2026-10-04; recorded in the
+  development log on the `shulib-v2` branch); A4 register HA-170..HA-174. **Nothing has been measured on a robot, and no program runs these yet:**
+  Part B puts the result on the card and makes the robot builder consume it, Part C adds the GAINS and
+  REST steps to shulib Calibrate (with a small laptop re-fit that cross-checks the brain's arithmetic
+  from the raw samples), Part D makes every program say which gains it used. A measured kA is recorded, not applied — the motion layer applies the cruise
+  form only.
 
 **Motion (WS6)**
 - [x] `IMotion`; `MoveToPose` (decoupled x/y/θ), `TurnTo`, `StrafeTo`, `driveBrake`, `holdPose`.
@@ -1225,6 +1244,11 @@ the V5, swapping only `RobotContext`. **Freezes:** F4 ✅, F5 ✅ *(both host-fr
   (`IPoseSource`/`ICorrector`/`IFusionPolicy`); `ComplementaryFusion` gated nudge (accumulates + never
   snaps); fused `Twist2d` + measurable `quality()`. 43-agent red-team (caught + fixed the no-accumulation CRITICAL).
 - [ ] IMU cold-calibrate at boot; per-boot bias characterization; tip detection (pitch/roll).
+  *(R5a Part A, 2026-09-29: the per-boot bias can now be measured by library code — the REST step built
+  for shulib Calibrate (`calibration/rest_capture.hpp`, host-proven only; Calibrate runs it from Part C)
+  reports the drift with its σ under both noise structures, one boot per run (A4 register HA-173: a
+  sample, never a correction).
+  Nothing has been measured; boot-time bias estimation and tip detection are untouched.)*
 
 **Host sim plant & closed-loop harness (WS10/WS2)** — *added 2026-08-01 by chunk A2.
 This task was the roadmap's incompleteness bug: this milestone's DoD (and M4's) requires "settles

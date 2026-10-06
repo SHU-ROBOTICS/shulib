@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 166 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 171 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -113,7 +113,13 @@
 > read-back proves the medium — invented; that two names differing only in letter case or trailing dots
 > are one file — FAT's rule, its VEXos half invented), and AMENDED HA-122 with two cross-references (no
 > status change); with it, 166.
-> The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
+> **R5a Part A added FIVE on 2026-10-06 — HA-170 to HA-174** — the beliefs shulib Calibrate's GAINS
+> and REST steps rest on (built as library and proven on the host test plant only; no program runs
+> them yet): HA-170 their every threshold, invented; HA-171 that a drive side follows the fitted law
+> outside the fitted range, invented; HA-172 the current limit as the ramp's only non-linearity,
+> reasoned and invented; HA-173 the IMU drift's per-boot nature and its noise STRUCTURE, reasoned and
+> invented; HA-174 that measured gains hold for a match, invented and reasoned; with them, 171.
+> The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
 > (the mechanism core: its brief, being written), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
@@ -307,6 +313,11 @@
 | HA-165 | The present members of one drive side stay close enough in CUMULATIVE position, through a match's driving and slip, that leaving members out of the side's median (one or several whose reading is not finite, DIAG1 Part B) moves the side by far less than `maxTickTravel` (36 in) — at worst, the member farthest from the median read alone | **invented** — the members' spread over a match has never been recorded; HA-130's port 18 is the evidence it can grow; exercised only when a member read is non-finite, which HA-08 says never reaches a group on a V5 | R4 |
 | HA-166 | On the brain's SD card a program has no rename, no delete, no stat and no read-write open — the safe save is built from a whole-file read and a truncating replace: fopen "wb" empties an existing file at the open (an "ab" open goes to a different VEXos call, not measured, which the save does not use); rename(), remove()/unlink(), stat() and mkdir() fail (ENOSYS); a read-write open fails (EINVAL); a crash while one file is written leaves every other file intact; a file flushed, closed and read back whole is on the medium before the next file is opened; two names that differ only in letter case or trailing dots and spaces are ONE file | **reasoned** (1)-(3), and (5)'s sync call, from the vendored libpros.a/libc.a disassembled 2026-09-26; (6) from the FAT rule, **invented** that VEXos follows it; **invented** (4) and what (5)'s sync commits; none measured | Station G, once SAFE-SAVE B1 is in the build (a) / Bench Tests' SD probe (b, unowned) / a deliberate power cut (c, unowned) |
 | HA-167 | A tank drives BACKWARDS the way its calibration measured it: each side's travel scale, from ONE unpowered push made one end first, holds within 1 % under power in BOTH directions, and a change of direction adds under 0.25 in of travel the chassis did not make (no backlash take-up) | **invented** (the scale comes from one UNPOWERED push in one direction; the host test plant has no backlash and is direction-symmetric by construction) | the first on-robot autonomous session (COMP-t's auton tester, or COMP-b's Station K) |
+| HA-170 | Every number the GAINS and REST steps judge by — `FitConfig`, `CharacterizerConfig` and `RestCaptureConfig`: the 2 V/s ramp to 10 V, the 6 V step, the 36 in / 8 s segment, the curve guard's 0.30 asymmetry, the 12 in stop bound, 45 °C, the 2.3 A current guard, the fit's admission and ranges, the 60 s capture and its bounds — is a first-run choice | **invented** | R5a's robot sessions (gains S2, rest S3) |
+| HA-171 | A V5 drive side follows V = kS·sgn(v) + kV·v + kA·a closely enough that gains fitted over the ramp's range hold outside it (full stick, turning); `velocity()` is current within a tick and unfiltered; a command takes effect within one tick. The fit's PoorFit verdict is NOT a mismatch detector — a quadratic drag never reaches it, and noise on `velocity()` biases kA low and kS high under an Ok verdict (measured on synthetic data generated off the law) | **invented** | S2 (R5) |
+| HA-172 | Inside the ramp's range the only non-linearity is the per-motor current limit (the PROS default, 2500 mA — whether VEXos lowers it with 12 motors plugged in is UNVERIFIED), `current()` reports it within a tick, and the firmware adds no slew of its own to `move_voltage` | reasoned (the limit) · **invented** (the rest) | S2 (R5) |
+| HA-173 | A stationary V5 IMU's drift is a PER-BOOT bias (HA-20), never a correction for a later boot — and whether one 60 s capture separates it from noise depends on the noise's STRUCTURE (white heading noise, or integrated rate noise), which the host cannot show | reasoned (per-boot) · **invented** (the structure) | S3, ≥ 10 boots (R4) |
+| HA-174 | Gains measured once hold for the match: the same foam tiles, a charged pack (HA-47), the same drive members — a member absent at a later boot leaves kV roughly unchanged and raises kS roughly as 1/(members present) | **invented** (surface) · reasoned (members) | S2 (R5) |
 | HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates too (brief spells as a train coasts to a stop are expected and harmless), EXCEPT at a wall, where the guard holds only while every stalled member reads alike — at ANY wall when one member's report settles to 0 well before its mates' (their lagging reports still say the train turns), and beside a slipping side-mate (HA-130's port 18) more easily (the known gaps, in the long form); and a side still drives acceptably with its dead dropped, up to the mid-run stop at more than two dead in total | reasoned (the adapter's screen, `hal/pros/motor.hpp` `position()`, `velocity()`, `current()`; BLUE's 300 counts per output turn) + **invented** (the 5 reads, the 250 ms latch, the majority-or-tie guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall, with and without one stalled member reading unlike its mates; a plain wall with one report settling sooner; a coast-down with per-member encoder phase; 2026-09-28/30, 2026-10-01) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD on any drive port, port 18 (HA-130) included — the push check's push (HA-176): read its log for a `went ABSENT` line |
 | HA-176 | On robot two a drive motor above 2.4 A for 250 ms while its side is driven above 1 V means something is WRONG (a fight on the coupled train, or a stall) and not ordinary driving — a full-stick reversal at top speed and a full-stick launch from rest included, each believed to hold the current limit for less than 250 ms — and a drive motor CAN draw more than 2.4 A (the per-motor limit stays at the PROS default 2500 mA with twelve motors plugged in, HA-154) | **invented** (R3b Session 2's first-run number, the old "shulib Drive"'s `kCurrentLimitA`; no current trace of robot two under power exists) | the competition program's push check (its practice-match station, K), with a full-stick reversal at top speed and a full-stick launch from rest; T4 Part 3's Station F: the highest A at full stick wheels-up, then F.6 (ii) |
 | HA-177 | An APPEND open under `/usd/` (`fopen(path, "ab")`, which PROS hands to VEXos's `vexFileOpenWrite`) writes after an EXISTING file's last byte and keeps every earlier byte; on an ABSENT file it either fails or creates (the adapter handles both); a line written and flushed survives a power-off right after it | (1) reasoned (the vendored `libpros.a`/`libc.a`, disassembled 2026-09-26); (2)–(3) **invented** (VEXos's); (4) reasoned for the call, invented for what the sync commits | COMP-t Station M.7 |
@@ -533,7 +544,8 @@ a config constant **by design** — a correction here never touches the core.
 - [ ] **HA-14 — drive wheels are 3.25″ and wheel↔motor-shaft gearing is 1:1.**
   *Claim:* the plant's drive-encoder synthesis (shaft ← ∫spin/r, no external ratio term) matches
   the eventual drivetrain: 3.25″ wheels driven 1:1 from the cartridge output.
-  *Source:* `include/shulib/sim/drive_plant.hpp:135–138`.
+  *Source:* `include/shulib/sim/drive_plant.hpp:149–151` (re-pointed at R5a Part A, 2026-09-29: the
+  line numbers had drifted since A4; the HA-13/HA-14 tag is the anchor).
   *Confidence:* **invented** — the drivetrain is not designed.
   *Settle (R3):* count teeth / read the build; one wheel revolution by hand must read one motor
   revolution × ratio on the encoder.
@@ -575,6 +587,10 @@ a config constant **by design** — a correction here never touches the core.
   *Settle (R3/R5):* R3's push/strafe/spin signature checks (forward at V ⇒ wheels at V/√2;
   in-place spin ⇒ all wheels equal; strafe symmetric with forward); residual asymmetry falls out
   of R5's sysid fit.
+  *Settle path note (R5a Part A's review, 2026-10-04):* R5's fit became shulib Calibrate's GAINS step
+  (`calibration/drive_characterizer.hpp`), which is built for a TANK's two sides only — an X-drive's
+  mount asymmetry does not fall out of it. This entry needs its own measurement when an X-drive is
+  built.
   *Blast radius if wrong:* small mount asymmetry → small systematic twist error, absorbed by
   closed-loop control and R5 tuning; gross mismatch → a corrected coefficient table
   (`MatrixKinematics` exists precisely so a drivetrain is *data*, and relaxing orthogonality is
@@ -2595,6 +2611,170 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   `overCurrentCuts` — false makes an over-current a logged, counted warning; the team lead's N1 (a):
   ON by default, one switch, and the push check before any match).
 
+### R5a Part A's additions — the beliefs shulib Calibrate's GAINS and REST steps are built on (landed 2026-10-06)
+
+**R5a Part A added FIVE — HA-170 to HA-174.** The team lead ruled on 2026-09-26 that the drive's gains
+are measured by the robot and kept on the SD card, never typed or committed as constants; R5a builds
+that in four parts, and Part A is the measurements as library: the fit (`calibration/feedforward_fit.hpp`),
+the GAINS step's ramp routine (`calibration/drive_characterizer.hpp`), the REST step's stationary capture
+(`calibration/rest_capture.hpp`), the tick-timing statistics both record (`diag/tick_timing_stats.hpp`),
+and per-wheel gains in the host test plant so a test can tell LEFT from RIGHT. **None of it has run on a
+robot, and no program runs it yet** (shulib Calibrate gains the two steps in R5a's Part C). The host test
+plant's motor model IS the law the fit fits, so recovering the plant's gains proves the arithmetic and
+the safety rules — not physics. These five entries are what that leaves.
+
+- [ ] **HA-170 — every number the GAINS and REST steps judge by is invented for a first run.**
+  *Claim:* the values below let a healthy robot two finish both steps and refuse a sick one: the ramp at
+  2 V/s to at most 10 V and the 6 V step; 36 in and 8 s per segment; the curve guard's asymmetry of 0.30
+  (ψ_g = 36 × 0.30 / W, 49.5° at W = 12.5 in) against the 15 % asymmetry warning; a 12 in stop bound; a
+  45 °C temperature guard (under HA-44's first throttle step); the fit's 2.3 A current guard, 1 in/s dead
+  band, dt within ±10 % of 10 ms, τMin = dt/5, at least 100 samples a side, a residual of at most 3 in/s,
+  and its ranges (kS 0–4 V, the implied free speed at 12 V 20–200 in/s, kA 0–0.2 V·s²/in); the REST
+  capture's 60 s, 0.25 in of translation and 3° of rotation by the encoders, and the settle-margin warning
+  at 2×. It also covers two numbers R5a's later parts add: the full-stick budget D3 keeps (a CHOICE, 79/7 V
+  exactly, from HA-45 × HA-50; Part B) and the raw-sample buffer's size inside HA-59 (Part C).
+  *Source:* `include/shulib/calibration/feedforward_fit.hpp` (`FitConfig`),
+  `include/shulib/calibration/drive_characterizer.hpp` (`CharacterizerConfig`) and
+  `include/shulib/calibration/rest_capture.hpp` (`RestCaptureConfig`) — every field PROVISIONAL (A4:
+  HA-170). The rest floors, IMU wait and missed-tick ceiling both steps reuse are the drivetrain
+  calibrator's and keep HA-136; the fight monitor keeps HA-132/133.
+  *Confidence:* **invented.** The clear space the lane needs follows from them: 36 + 12 = 48 in ahead and
+  behind, and 26.6 in to each side at W = 12.5 in (`CharacterizerConfig::sidewaysExcursion`: the arc of a
+  segment curving up to the guard, 14.6 in, PLUS the whole 12 in stop bound). *Corrected 2026-10-04 (R5a
+  Part A's review):* the 14.6 in first stated here left out the stop. The curve guard is judged only while
+  a segment is powered; the stop that follows is not guarded and can keep curving, or curve harder than
+  the powered part when one side brakes short — on the host test plant a run that finished normally,
+  curving 46° a segment with stops near 11 in, swept 19.7 in sideways. Both numbers are per segment and
+  assume three things the drive characterizer's header spells out: each backward segment drives back
+  roughly along its forward one (nothing tracks the run's own position); the powered part curves at a
+  roughly constant rate (a robot that turned the whole guard at once and then ran straight could go
+  36·sin 49.5° ≈ 27.4 in sideways); and every stop stays inside `stopBound` — a stop past it is refused only
+  after the robot has rolled it, so the lane's ends need room beyond the bound for that one stop.
+  *Settle:* the serial logs of R5a's robot sessions (gains S2, rest S3); each number moves with a logged
+  line, and a moved `stopBound` or curve guard moves the clear space with it.
+  *Blast radius if wrong:* a bound too tight refuses a good run; too loose admits a bad one. Most of that
+  is loud — every refusal names itself, and a finished run prints every number behind it — with ONE
+  exception found on 2026-10-04: a REST capture admits a rotation under `turnBound` (3°), and a robot that
+  really turns turns the IMU with it, so the drift's slope absorbs the turn — one nudge of size θ at
+  mid-capture moves the drift by 1.5·θ/T, and a heading swung by up to `turnBound` moves it by up to
+  3·`turnBound`/T: 4.5 to 9 °/min at the defaults, several times HA-20's whole bound, with no refusal.
+  The capture now RECORDS what the encoders saw (`RestSummary::encoderTurnRad`, `encoderTurnMaxRad`,
+  `encoderMoveMaxIn`) and states the bound (`driftTurnBiasBound()` = 3·`encoderTurnMaxRad`/T), so the bias
+  is visible in the record, but it is not removed: whether `turnBound` should shrink, or the drift be
+  regressed on the IMU heading minus the encoders' rotation, is open for the team lead. A `stopBound` or
+  ψ_g sized wrong also changes the clear space the lane needs. **Contained:** config fields only.
+
+- [ ] **HA-171 — a V5 drive side follows V = kS·sgn(v) + kV·v + kA·a closely enough that gains fitted
+  over the ramp's range hold outside it.**
+  *Claim:* the gains fitted over the volts a 36 in segment reaches — the range the fit admitted,
+  recorded per side as `voltsMin`–`voltsMax`; on the host test plant about 1–6 V, because the ramp runs
+  out of lane near 6 V and the steps hold 6 V — hold at the full-stick voltage and while turning; the
+  fit's two channels are faithful — `IMotor::velocity()` (PROS
+  `get_actual_velocity`, HA-96) is current within a tick with no filter or lag of its own, and a motor
+  command takes effect within one tick (unregistered until now).
+  *Source:* `include/shulib/calibration/feedforward_fit.hpp` (the discrete law it fits, v[k+1] =
+  α·v[k] + β·u[k] + γ·sgn(v[k]); no differentiated velocity anywhere). **What the fit's PoorFit verdict
+  does NOT catch** — measured on synthetic data generated off the law (2026-09-29; the reading noise
+  2026-10-04), pinned by `test/feedforward_fit_test.cpp` M4–M7 (the host test plant has no drag, filter,
+  latency or velocity-noise term of its own; its encoder-hostility run, the characterizer's C16, shows the
+  noise bias on the plant as well):
+  - **a quadratic drag never reaches PoorFit.** Swept from 0 to 0.011 V/(in/s)², the residual stays
+    under 0.08 in/s (PoorFit is 3 in/s) while a larger kV and a smaller kS absorb the drag: at 0.0005 (a
+    drag of 0.45 V at 30 in/s) kS reads 9.5 % low and kV 10.5 % high; the fit still says Ok at 0.0100
+    (kS 0.024 against the true 1.0, kV 2.4× the truth); the first refusal is NonPhysical (kS < 0) at
+    0.0105. PoorFit catches a reading the law cannot follow at all (white noise of 5 in/s), not a law
+    that is subtly wrong;
+  - a `velocity()` low-pass filtered over 1 / 2 / 3 ticks is fitted, not refused: kS +0.8 / +2.0 /
+    +2.1 %, kV −0.25 / −0.6 / −1.0 %, kA +3.3 / +8.6 / +19 %;
+  - a one-tick command latency is fitted, not refused: kS +2.8 %, kV −0.4 %, kA −0.6 %;
+  - **noise on the speed reading is fitted, not refused, and biases the gains** — the one mismatch every
+    robot has. A noisy speed is noise in a regressor (errors in variables): it pulls α toward 0, so kA
+    reads LOW and kS HIGH, while the residual it leaves is only ~1.3·σ — the 3 in/s PoorFit bound calls a
+    fit Ok up to a side-median σ of ~2.2 in/s. Over 40 seeds a level on the four segments' exact law
+    (kS 1.0, kV 0.16, kA 0.02), every fit Ok, the mean relative error: σ 0.5 in/s — kS +3 %, kV +1 %,
+    kA −18 % (single runs to kS +9 %); σ 1 in/s — kS +11 %, kV +1 %, kA −46 % (single runs to kS +26 %);
+    σ 2 in/s — kS +6 %, kV +5 %, kA −72 % (single runs to kS +33 %, kV +11 %). The current guard (HA-172)
+    makes it worse: excluding the step's current-limited opening ticks, which carry most of the
+    excitation, multiplies the bias three- to fourfold (σ 0.5 in/s with a 100 in/s² limit: kS +14 %
+    against +3 %, kA −56 % against −18 %). kS and kV are applied. The REST step's encoder speed σ at
+    rest (`RestSummary::speedSigma`) is a floor on this σ, which turns the table into a bias estimate
+    for S2.
+  HA-48 is this entry's plant-side twin (the plant's shape is the same law).
+  *Confidence:* **invented.**
+  *Settle (S2, R5):* the residual per voltage band in S2's serial log; the laptop re-fit's comparison of
+  the reported speed against the differenced position (R5a Part C writes both to the card); one
+  full-stick run whose speed is predicted from the gains; the REST step's encoder speed σ read against
+  the noise table above (whether `maxResidualRms` should be sized from a bias tolerance rather than 3 in/s
+  is an open choice under HA-170).
+  *Blast radius if wrong:* Teleop's top speed and every motion's feedforward are off by the bias; the
+  PID absorbs it and settles slower. Only kS and kV reach a motor — a measured kA is recorded, not
+  applied (the command pipeline calls the cruise form `Feedforward::calculate(v)`).
+
+- [ ] **HA-172 — inside the ramp's range, the only non-linearity is the per-motor current limit.**
+  *Claim:* the limit is the PROS default of 2500 mA (the vendored `motors.h` figure HA-154 also cites);
+  `IMotor::current()` reports it within a tick, so a sample with any member at or above 2.3 A can be
+  excluded; the firmware adds no slew of its own to `move_voltage`; the motors are below HA-44's first
+  throttle step, which the 45 °C guard enforces. **Whether VEXos lowers the per-motor limit when more
+  than eight motors are plugged in is not stated in the vendored text and is UNVERIFIED** — robot two
+  carries 12 (10 drive, 2 claw pivots).
+  *Source:* `include/shulib/calibration/feedforward_fit.hpp` (`FitConfig::currentGuard` and the
+  OverCurrent exclusion, labelled HA-172); the GAINS step (`calibration/drive_characterizer.hpp`) feeds
+  it each side's largest member current every tick and holds the temperature guard (HA-170).
+  *Confidence:* reasoned (the limit) · **invented** (the timing, the motor-count question, no firmware
+  slew).
+  *Settle (S2, R5):* the step segments' current column and its plateau in S2's raw samples; one reading of
+  `get_current_limit` on robot two.
+  *Blast radius if wrong:* current-limited samples that slip past the guard bias kS and kV, which ARE
+  applied (Teleop's top speed, every motion's feedforward); a torque-limited step also inflates kA, which
+  is recorded only — it reaches the report and R6's plant back-fit (a too-sluggish plant), and would reach
+  a motor only through a future acceleration channel. HA-49 is the plant-side twin.
+
+- [ ] **HA-173 — a stationary V5 IMU's drift is a PER-BOOT bias, and one 60 s capture may not separate it
+  from noise.**
+  *Claim:* (a) the drift is HA-20's per-boot bias: one REST capture measures that boot, never a property
+  of the robot — a stored drift is a sample for this register and is never applied as a heading
+  correction at a later boot; (b) whether one capture separates the bias from the noise depends on the
+  noise's STRUCTURE, which the host cannot show. With WHITE heading noise (the host's hostile IMU; HA-21's
+  0.05°) the slope's σ is σ·√12/(√N·T) ≈ 0.002 °/min at 60 s and 100 Hz. With INTEGRATED rate noise (a
+  gyro's heading is its integrated rate; HA-22's 0.5 °/s per 10 ms sample) it is ≈ 0.42 °/min at 60 s and
+  0.19 °/min at 300 s — HA-20's typical drift itself, so one boot cannot separate them and only the spread
+  across boots can. Under that structure the settle floor's derivation √2·σ/dt also overstates the rate
+  noise `SettledUtil` sees (on the host test plant's scripted walks it reads 0.14–0.29 rad/s against a true
+  ~0.009 rad/s, and would warn falsely against the 0.30 rad/s floor in seven walks of eight).
+  *Source:* `include/shulib/calibration/rest_capture.hpp` — `RestCapture` reports the drift with its σ
+  under BOTH models and the structure ratio ρ = σ_Δ/(√2·σ_line) (≈ 1 white, ≪ 1 a walk: 0.03–0.06 on the
+  host test plant's walks); `settleFloorReport()` compares HA-51's floors with the MEASURED per-tick step,
+  never √2·σ/dt. Nothing applies a drift anywhere. *Two ways a boot's numbers mislead, found 2026-10-04
+  (R5a Part A's review), and how each is now visible in the summary:* (1) a robot nudged UNDER the
+  capture's `turnBound` turns the IMU with it — the drift absorbs up to 3·`turnBound`/T (1.5·θ/T for one
+  nudge of θ at mid-capture; a 2.1° pivot on the host test plant read as −3.2 °/min of drift on an IMU
+  with none) and ρ drops toward 0, so the nudge also reads as random-walk evidence. The summary records
+  the encoders' rotation (`encoderTurnRad`, `encoderTurnMaxRad`) and `driftTurnBiasBound()`; a boot whose
+  drift is not well clear of that bound is a nudge, not a sample (HA-170). (2) ρ is undefined when the
+  heading has no noise about its line (σ_line = 0 — an IMU that reports a constant): it is reported as 0,
+  and `structureRatioDefined()` says it means nothing.
+  *Confidence:* reasoned (the per-boot bias) · **invented** (the structure).
+  *Settle (S3, R4):* REST on ≥ 10 separate boots; ρ says which structure holds, and the spread between
+  boots is compared with the within-run slope σ of that structure — leaving out any boot whose
+  `driftTurnBiasBound()` is not small against its drift, and reading ρ only where it is defined.
+  *Blast radius if wrong:* if the bias were stable per robot, an easy correction is left unused — a missed
+  gain, not an error. If the structure is a walk, HA-51's heading-rate floor was sized on the wrong
+  formula, and the REST step's margin line shows by how much. A nudged boot left in the spread inflates
+  it, and pushes the structure verdict toward "walk".
+
+- [ ] **HA-174 — gains measured once hold for the match.**
+  *Claim:* the gains measured on the same foam tiles (not carpet or a bench top), on a charged pack
+  (HA-47), with the same drive members, hold through a match. A member ABSENT at a later boot leaves kV
+  roughly unchanged (the motors on one train share the back-EMF) but raises kS roughly as 1/(members
+  present); kS IS applied. kA rises the same way, and is recorded only.
+  *Source:* `include/shulib/calibration/drive_characterization.hpp` (`SideCharacterization::members`
+  keeps each side's member count at measurement, so R5a's Part B can say when fewer are present).
+  *Confidence:* **invented** (the surface) · reasoned (the members).
+  *Settle (S2, R5):* the GAINS step on tiles and again on another surface; one run with a member
+  unplugged.
+  *Blast radius if wrong:* creep at low speed, or a settle that stalls short. The member-count note R5a
+  Part B adds makes the second half visible.
+
 ---
 
 ## Group R4 — noise, drift, latency, timing, power, traction (characterization)
@@ -2677,6 +2857,13 @@ settleable before hardware, and none block any host chunk.
   reverses and stops, wheels up and on the floor; any consecutive-read step larger than the
   robot can turn in 10 ms falsifies the claim. Since DIAG1 a step over 90° also names itself on
   the fault line (`why=ROT dth=… h0=… h1=…`).
+  *Amended R5a Part A (2026-09-29; worded 2026-10-04):* the GAINS step's StepBackward segment
+  reproduces the condition of that hard reverse — a reverse from rest at a held 6 V (whether the
+  2026-09-25 episode itself began from rest was not established). The step is built as library (R5a
+  Part A; shulib Calibrate runs it from Part C, and no robot has run it): every segment records the
+  largest tick-to-tick heading step and the IMU's accumulated yaw beside the encoders' curve (their
+  difference is this entry's evidence), and the IMU never refuses the run — its curve guard reads the
+  encoders, so a 37° jump is recorded, not obeyed (host-tested).
   *Blast radius if wrong:* the pose's heading jumps with the reading, and every tick's arc is
   integrated along the wrong average heading, so position is corrupted too; a step over 90°
   trips `ODO_STUCK`, which ENDS the active motion under the default fault policy (HA-123's
@@ -2732,6 +2919,11 @@ settleable before hardware, and none block any host chunk.
   *Settle (R4):* ≥ 10 boots, 60 s stationary each, log heading vs time; the fitted slope
   distribution replaces both the bound and the "typical" range. Build-order R4 names the 60 s
   drift number as a deliverable.
+  *Settle path amended R5a Part A (2026-09-29; worded 2026-10-04):* that capture is built as shulib
+  Calibrate's REST step (`calibration/rest_capture.hpp` — library only; Calibrate runs it from R5a
+  Part C) — one boot per run, ≥ 10 boots; it reports the slope with its σ under both noise structures,
+  and the encoders' rotation that bounds how much of the slope a nudge could be (HA-173). A measured
+  drift is a sample for this entry, never a correction.
   *Blast radius if wrong:* **the F2 `< 1°` ceiling itself.** At exactly 1°/min the margin is zero
   by construction (1°/min × 60 s = 1°); A3 measured the stack adding ~nothing on top (worst
   end-of-60s 0.912°, worst instantaneous 1.065°). If the real bound is worse, the M2 acceptance
@@ -2743,6 +2935,9 @@ settleable before hardware, and none block any host chunk.
 - [ ] **HA-21 — IMU heading white noise σ ≈ 0.05°.**
   *Source:* `imu_hostility.hpp:73`. *Confidence:* **invented**.
   *Settle (R4):* stationary high-rate log; σ of the detrended heading stream.
+  *Amended R5a Part A (2026-09-29):* the REST step reports that σ (about the fitted line, never the
+  mean). "σ" here presumes WHITE heading noise; if a V5 heading is integrated rate noise instead, this
+  number is the wrong description of it — see HA-173 and the structure ratio the REST step reports.
   *Blast radius if wrong:* `SettledUtil` deadbands and E4's measurement covariance were sized
   against fiction — loops may chatter at settle (σ larger) or tolerances are needlessly loose
   (σ smaller). Constants only.
@@ -2750,6 +2945,8 @@ settleable before hardware, and none block any host chunk.
 - [ ] **HA-22 — IMU yaw-rate white noise σ ≈ 0.5°/s.**
   *Source:* `imu_hostility.hpp:75`. *Confidence:* **invented**.
   *Settle (R4):* same stationary log, rate channel.
+  *Amended R5a Part A (2026-09-29):* the REST step reports the yaw-rate channel's mean and σ, and the
+  σ of the per-tick heading step over dt — the rate noise `SettledUtil` actually sees (HA-51, HA-173).
   *Blast radius if wrong:* E-phase rate weighting and any rate-based rejection thresholds
   (E2 high-yaw-rate gate) miscalibrated. Constants only.
 
@@ -2854,6 +3051,11 @@ settleable before hardware, and none block any host chunk.
   unmeasured under our full eventual load (E4 EKF + sinks + vision).
   *Settle (R3, re-checked each phase):* `LoopMonitor` (A1) on the first real runs — it exists
   precisely to measure this; overruns raise `LOOP_OVERRUN` with the observed dt.
+  *Amended R5a Part A (2026-09-29; worded 2026-10-04):* the GAINS and REST steps built for shulib
+  Calibrate (library in R5a Part A; Calibrate runs them from Part C) record their loop's dt
+  statistics (`diag/tick_timing_stats.hpp`: mean, σ, min, max, ticks at or over 15 ms, ticks over
+  2× nominal) — PARTIAL evidence: Calibrate's loop does less work per tick than a motion loop, so its
+  timing is a floor for a motion loop's, not a measurement of it.
   *Blast radius if wrong:* slower loops enlarge per-tick Δθ (aliasing horizon approaches — at
   even 20 ms the margin is still enormous for real yaw rates), coarsen control discretization
   (the derived instability thresholds in the closed-loop tests scale with dt), and inflate all
@@ -2877,6 +3079,8 @@ settleable before hardware, and none block any host chunk.
   *Confidence:* **invented** — PROS task-contention statistics are unmeasured.
   *Settle (R4):* dt histograms from real-run telemetry (the A1 `DebugRecord` carries per-tick
   dt; `LOOP_OVERRUN` counts spikes).
+  *Amended R5a Part A (2026-09-29):* the GAINS and REST steps' timing statistics (HA-32's note) will be
+  a partial settle once a robot session runs them — a lighter loop than a motion's.
   *Blast radius if wrong:* the robustness *envelope* host tests certified is mis-shaped — the
   suite proves survival under THIS schedule (Pid convergence through ×5 stalls is pinned); a
   wilder real distribution means re-running the suite under the measured schedule, which is a
@@ -3343,6 +3547,12 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Confidence:* **invented**; co-depends on HA-45's feedforward constants.
   *Settle (R5):* falls straight out of the sysid ramp — the measured peak acceleration IS this
   number.
+  *Settle path note (R5a Part A's review, 2026-10-04):* that ramp became shulib Calibrate's GAINS step
+  (`calibration/drive_characterizer.hpp`; built as library, not yet run on a robot). Its two STEP
+  segments start from rest at a held 6 V, so their first ticks carry the drive's hardest acceleration
+  in the run, and R5a Part C writes every tick's speed to the card; the fitted gains say the same
+  thing, (u − kS)/kA at the step's start. A 6 V step is not a full-power launch, so the measured peak
+  is a lower bound for this number, not the number.
   *Blast radius if wrong (too small):* the filter lags the wheels through every acceleration, and
   the position estimate lags with it. (Too large): encoder noise passes straight through, which is
   mostly harmless.
@@ -3482,19 +3692,29 @@ E2's tuning constants make the corrector work better or worse; these three make 
 - [ ] **HA-45 — the plant's wheel feedforward placeholders: kS = 1.0 V, kV = 12/70 V·s/in
   (≈ 70 in/s free speed at 12 V), kA = 0.**
   *Claim:* the real drive's sysid constants are within order-of-magnitude of these.
-  *Source:* `include/shulib/sim/drive_plant.hpp:130–135` (declared PLACEHOLDERS since A2).
+  *Source:* `include/shulib/sim/drive_plant.hpp:142–148` (declared PLACEHOLDERS since A2; re-pointed
+  at R5a Part A, 2026-09-29 — the lines had drifted).
   *Confidence:* **invented** — right order of magnitude for a V5 drive by construction, nothing
   more. (Free speed co-depends on HA-14/HA-15: 200 RPM green × 3.25″ ≈ 34 in/s at the wheel for
   1:1 — the 70 in/s figure is deliberately generous; R5 measures reality.)
   *Settle (R5):* `tools/sysid` least-squares over one on-robot ramp routine → committed
   constants; R6 feeds them back into this config and re-runs the whole suite.
+  *Settle path amended R5a Part A (2026-09-29; the team lead's ruling of 2026-09-26):* the measurement
+  moved onto the robot. shulib Calibrate's GAINS step (`calibration/drive_characterizer.hpp`, fitted on
+  the brain by `calibration/feedforward_fit.hpp`) measures kS/kV/kA for each side, and R5a's later parts
+  keep them on the SD card beside the drivetrain record — never committed as constants. Built as
+  library and proven on the host test plant only; no program runs it yet, so every drive still runs on
+  these placeholders. A measured kA is RECORDED, NOT APPLIED: the command pipeline calls the cruise form
+  `Feedforward::calculate(v)`. The host test plant can now give each wheel its own gains
+  (`DrivePlantConfig::wheelFfOverride`, empty by default — a default plant is unchanged).
   *Blast radius if wrong:* every sim-tuned gain and every open-loop distance in sim is
   quantitatively off — **which is already the declared position**: the plant proves logic, not
   constants; C-phase gains are provisional until R5 *by explicit rule* (the Phase C rule: the
   sim proves control logic; real gain values are established on hardware). No conclusion currently drawn from the suite depends on these values being right.
 
 - [ ] **HA-46 — a fresh pack reads ≈ 12.6 V.**
-  *Source:* `include/shulib/sim/drive_plant.hpp:141` (`batteryVoltage` default).
+  *Source:* `include/shulib/sim/drive_plant.hpp:154` (`batteryVoltage` default; re-pointed at R5a
+  Part A, 2026-09-29).
   *Confidence:* measured elsewhere — documented Li-ion pack behavior.
   *Settle (R4):* trivially, with the first battery log.
   *Blast radius if wrong:* negligible — a sim default; the F4 `IBattery` path reads reality.
@@ -3509,6 +3729,10 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Confidence:* reasoned — matches PROS documentation of `move_voltage` semantics; PWM-level
   firmware behavior unverified.
   *Settle (R5):* measure velocity at fixed partial commands across pack states during sysid.
+  *Settle path note (R5a Part A's review, 2026-10-04):* shulib Calibrate's GAINS step (built as
+  library; not yet run on a robot) holds a fixed 6 V command through each step segment and records
+  every segment's battery minimum and mean — run at two pack states, the step segments' speeds against
+  their battery columns are this measurement.
   *Blast radius if wrong:* gains tuned at partial throttle would be pack-dependent (R5 would
   discover this in its own data); the plant's power model semantics get adjusted at R6.
 
@@ -3540,6 +3764,11 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Confidence:* **invented** — the floors they must clear are themselves provisional (HA-21/22).
   *Settle (R4 noise floors, R5 tolerances):* measure real estimator twist noise at a dead stop
   and real settle behavior; tighten or loosen with data.
+  *Amended R5a Part A (2026-09-29):* the REST step's `settleFloorReport()`
+  (`calibration/rest_capture.hpp`) reports how far the heading-rate floor clears the MEASURED per-tick
+  heading step over dt, and the brake floor the larger side's encoder-speed σ at rest, each as a margin
+  with a warning under 2× — it changes nothing. The "~0.12 rad/s" above is √2·σ/dt, right only for
+  white heading noise (HA-173); the report never uses it.
   *Blast radius if wrong:* too tight ⇒ motions time out on a healthy robot (visible, bounded);
   too loose ⇒ arrival accuracy degrades toward the tolerance (bounded by it). Either failure is
   loud; neither corrupts state.
@@ -3581,6 +3810,10 @@ E2's tuning constants make the corrector work better or worse; these three make 
   distance from competition speeds on our robot's mass/wheels is unmeasured.
   *Settle (R3 bench, R5 at speed):* command a cancel from cruise on hardware; measure
   stop distance vs the coast prediction; verify motion-after-cancel resumes cleanly.
+  *Amended R5a Part A (2026-09-29):* the GAINS step ends each normal segment with 0 V + Brake and
+  measures each side's stopping distance by the encoders, from the end tick to rest (refusing a stop
+  past 12 in, HA-170) — four measured Brake stops per run, each from the segment's end speed (about
+  30 in/s at the host tests' gains). The plant models no brake torque, so its stopping distances are its τ = kA/kV decay only.
   *Blast radius if wrong:* the robot rolls further than expected after any cancel/abort —
   bounded by the coast physics either way (never re-energized: the 0 V command is proven by
   test), so the failure mode is "stops like coast", not "keeps driving". If Brake proves
@@ -3657,6 +3890,10 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Settle (R3/R5):* measure top linear speed and yaw rate during sysid; tighten the envelope
   toward measured × margin so the invariant gains sensitivity (today it only catches gross
   lies; a tight envelope catches subtle ones).
+  *Settle path note (R5a Part A's review, 2026-10-04):* the GAINS step that R5's ramp became does NOT
+  reach top speed — its ramp runs out of its 36 in lane near 6 V on the host test plant — so the free
+  speed its gains imply, (12 − kS)/kV, is an extrapolation (HA-171), not a measurement of this
+  envelope. Top linear speed and yaw rate still need a full-stick run.
   *Blast radius if wrong (too low):* false IMPLAUSIBLE faults — advisory only (never aborts,
   never rewrites the pose), and episode-gated, so the damage is log noise; the C5 suites prove
   zero false positives across every clean AND hostile run at the defaults. *(Too high):* subtle
@@ -3691,6 +3928,8 @@ E2's tuning constants make the corrector work better or worse; these three make 
   *Settle (R6):* the back-fit — feed measured parameters in, replay a recorded run, compare
   trajectories; every newly-failing suite test is a real defect the invented parameters had been
   hiding (R6's definition of done, verbatim).
+  *Amended R5a Part A (2026-09-29):* its robot-side twin is HA-171 — the GAINS step fits exactly this
+  law, so the same shape is now a belief about the fit's extrapolation as well as the plant's.
   *Blast radius if wrong:* the model grows exactly where the residual says (that is R6's job) and
   the suite re-runs against the improved plant. Host *logic* conclusions stand — they were
   constructed not to depend on plant constants; what would change is sim-vs-real *quantitative*
@@ -3705,6 +3944,10 @@ E2's tuning constants make the corrector work better or worse; these three make 
   honesty boundary forbids), the no-consequence claim is the assumption.
   *Settle (R6):* record stall-adjacent events (wall pushes, jams) on hardware; back-fit; check
   which host results move.
+  *Amended R5a Part A (2026-09-29):* the GAINS step's two step segments record each side's largest
+  member current every tick (`CharacterizerSample::maxCurrent`, the current column of R5a Part C's raw
+  samples) — once a robot session (S2) runs it, the first measured evidence of where the limit bites;
+  nothing has been measured yet. HA-172 is its robot-side twin.
   *Blast radius if wrong:* stall-adjacent behavior in sim is optimistic — affects F′-phase
   mechanism sequencing realism most (jam handling), where F1's hostile mechanism fakes model
   jams *independently* of the drive plant, by design.

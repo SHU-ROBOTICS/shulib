@@ -54,9 +54,13 @@ inline constexpr double kUsualKs = 1.2;
 
 /// The plant a case runs on. κ (coast-follow) has NO default: every case states it, because the
 /// idle side's behaviour is exactly what the old rig got wrong. kS defaults to the tree's usual.
-[[nodiscard]] inline SimHarnessConfig calibPlant(double kappa, double kS = kUsualKs, double drag = 0.0) {
+/// kA (added at R5a Part A, defaulting to the 0 every earlier caller ran on) gives the wheels the
+/// plant's first-order lag, τ = kA / kKv — the GAINS step's end-to-end case needs it, because at
+/// kA = 0 there is no acceleration term to measure.
+[[nodiscard]] inline SimHarnessConfig calibPlant(double kappa, double kS = kUsualKs, double drag = 0.0,
+                                                 double kA = 0.0) {
     SimHarnessConfig cfg;
-    cfg.plant.wheelFf = {.kS = kS, .kV = kKv, .kA = 0.0};
+    cfg.plant.wheelFf = {.kS = kS, .kV = kKv, .kA = kA};
     cfg.plant.coastFollow = kappa;
     cfg.plant.decoupledDrag = drag;
     return cfg;

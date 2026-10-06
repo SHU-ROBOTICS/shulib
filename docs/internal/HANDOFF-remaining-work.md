@@ -485,8 +485,8 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - Docs owed: cookbook recipe, guide, HA entries (sensor offset, wall positions), roadmap, changelog.
 - Size: ~1 day (it was ½ before the gaps were found).
 
-**L7. [R4 + R5 + E5, reframed] Gains and noise as self-run calibration routines** **BRIEFED 2026-09-26 as chunk R5a** (`chunks/R5a-gains-and-noise-on-the-sd-card.md`; every recommendation accepted, Q7 ruled: the SD card). inside shulib
-Calibrate. **The plan already has this work** — R4 (IMU bias/drift), R5 (the on-robot ramp routine),
+**L7. [R4 + R5 + E5, reframed] Gains and noise as self-run calibration routines inside shulib
+Calibrate.** **BRIEFED 2026-09-26 as chunk R5a** (`chunks/R5a-gains-and-noise-on-the-sd-card.md`; every recommendation accepted, Q7 ruled: the SD card). **Part A BUILT 2026-09-29 (reviewed 2026-10-04) — the measurements as library, host-proven only; no program runs them; nothing measured** (`chunks/R5a-PROGRESS.md`); Parts B–D not started. **The plan already has this work** — R4 (IMU bias/drift), R5 (the on-robot ramp routine),
 E5 (calibration routines + persistence to SD) — so it is not new; what is new is the framing jal
 agreed to on 2026-09-18 ("calibrate absolutely everything it needs to know"): **R5's DoD says the gains
 are committed as constants, and this persists them to the SD card at runtime instead.** That departure

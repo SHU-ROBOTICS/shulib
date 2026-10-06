@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 3,326 of them across 164 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 3,633 of them across 169 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -134,6 +134,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Shul2 reader](shul2_reader.md) | [`diag/shul2_reader.hpp`](../../include/shulib/diag/shul2_reader.hpp) | Shul2Reader — the SHUL/2 reader over a WHOLE capture. |
 | [Term sink](term_sink.md) | [`diag/term_sink.hpp`](../../include/shulib/diag/term_sink.hpp) | TermSink — the human-readable terminal stream, the PRIMARY dev/debug surface. |
 | [Tick attribution](tick_attribution.md) | [`diag/tick_attribution.hpp`](../../include/shulib/diag/tick_attribution.hpp) | TickAttribution — WHO consumed the loop budget. |
+| [Tick timing stats](tick_timing_stats.md) | [`diag/tick_timing_stats.hpp`](../../include/shulib/diag/tick_timing_stats.hpp) | TickTimingStats — the statistics of a loop's tick-to-tick dt, as DATA. |
 | [Trace](trace.md) | [`diag/trace.hpp`](../../include/shulib/diag/trace.hpp) | SHULIB_TRACE — the compile-time TRACE strip. |
 | [Triage](triage.md) | [`diag/triage.hpp`](../../include/shulib/diag/triage.hpp) | The D-7 TRIAGE BLOCK — "why did it break", rendered for a human. |
 
@@ -244,8 +245,12 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Boot check](boot_check.md) | [`calibration/boot_check.hpp`](../../include/shulib/calibration/boot_check.hpp) | THE BOOT CHECK — is this description still true of THIS robot? |
 | [Calibrate panel](calibrate_panel.md) | [`calibration/calibrate_panel.hpp`](../../include/shulib/calibration/calibrate_panel.hpp) | calibrate_panel — the calibration screen as a PURE MODEL. |
 | [Calibration record](calibration_record.md) | [`calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) | The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card. |
+| [Drive characterization](drive_characterization.md) | [`calibration/drive_characterization.hpp`](../../include/shulib/calibration/drive_characterization.hpp) | DriveCharacterization — what the GAINS and REST steps of shulib Calibrate MEASURE, as data. |
+| [Drive characterizer](drive_characterizer.md) | [`calibration/drive_characterizer.hpp`](../../include/shulib/calibration/drive_characterizer.hpp) | DriveCharacterizer — shulib Calibrate's GAINS step: the robot drives itself through four short, bounded segments while each drive side's kS, kV and kA are fitted on the brain. |
 | [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
+| [Feedforward fit](feedforward_fit.md) | [`calibration/feedforward_fit.hpp`](../../include/shulib/calibration/feedforward_fit.hpp) | FeedforwardFit — kS, kV and kA of ONE drive side, fitted on the brain from that side's own run. |
 | [Record store](record_store.md) | [`calibration/record_store.hpp`](../../include/shulib/calibration/record_store.hpp) | The calibration record's SAFE SAVE and its LOAD (chunk SAFE-SAVE Part A, 2026-09-29): a save designed so a failure part-way does not leave the card without a good record — given HA-166 (4) and (5), short of a stated two-fault limit — a load that falls back… |
+| [Rest capture](rest_capture.md) | [`calibration/rest_capture.hpp`](../../include/shulib/calibration/rest_capture.hpp) | RestCapture — shulib Calibrate's REST step: the robot sits still, unpowered, for a minute while the IMU's drift and noise, the encoders' noise at rest and the loop's timing are measured. |
 
 ### Competition
 
@@ -301,7 +306,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 3,326 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 3,633 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

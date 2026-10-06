@@ -266,7 +266,9 @@ register row F11._
 
 **IO / Tools** — `io/Trajectory` + `.vexbot` `paths[]` reader (the legacy `.shupaths` importer was dropped 2026-09-26); `io/Telemetry` SHUL/2
 (ports/absorbs `logger.hpp` into the new core **before** the end-of-M2 legacy deletion, fixing its 3 known bugs — §18.6); `tools/sysid` (offline kS/kV/kA least-squares → emits **constants**,
-not code) + on-robot tuner.
+not code) + on-robot tuner. *(Reframed 2026-09-26 by the team lead: the gains are measured by the
+robot inside shulib Calibrate and kept on the SD card, never committed as constants — chunk R5a; a
+small laptop re-fit that checks the brain's arithmetic replaces the offline tool.)*
 
 ---
 

@@ -16,7 +16,10 @@
 //        the same volts, else the members' mean — wheelCommand(), the coupled-train
 //        model added at R3d Part 1 (T6b); a one-member wheel is the original line
 //   2. DegradationModel::effectiveVoltage()       (A3 seam; identity today)
-//   3. MotorModel::advance() per wheel            (the inverted-feedforward "dynamics")
+//   3. MotorModel::advance() per wheel            (the inverted-feedforward "dynamics") — every
+//        wheel on DrivePlantConfig::wheelFf unless its slot of wheelFfOverride is filled (R5a
+//        Part A: per-wheel gains, so a test can tell LEFT from RIGHT; empty by default, and an
+//        empty slot runs the very MotorModel object the plant always ran — bit for bit)
 //   3b. COAST-FOLLOW (R3d Part 2F-1; OFF by default — DrivePlantConfig::coastFollow = 0):
 //        a wheel whose every coupled member is at 0 V AND in BrakeMode::Coast turns at
 //        coastFollow × the driven wheel's spin instead of sitting pinned — see the config
@@ -93,6 +96,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <span>
 
 #include "shulib/core/check.hpp"
@@ -135,10 +139,12 @@ struct TrackingWheelSpec {
 };
 
 struct DrivePlantConfig {
-    /// Per-wheel surface-speed feedforward gains (see motor_model.hpp). The defaults
+    /// Per-wheel surface-speed feedforward gains (see motor_model.hpp), shared by EVERY wheel
+    /// whose wheelFfOverride slot is empty — which, by default, is all of them. The defaults
     /// are PLACEHOLDERS in the right order of magnitude for a V5 drive (≈70 in/s free
-    /// speed at 12 V with a little static offset) — NOT measurements. R5 measures the
-    /// real ones; R6 feeds them back here. (A4 register HA-45.)
+    /// speed at 12 V with a little static offset) — NOT measurements. shulib Calibrate's GAINS
+    /// step (chunk R5a) is built to measure the real ones on a robot, and has not yet; R6 feeds
+    /// measured ones back here. (A4 register HA-45.)
     control::FeedforwardGains wheelFf{.kS = 1.0, .kV = 12.0 / 70.0, .kA = 0.0};
     /// For drive-encoder synthesis (inches). Diameter AND the implied 1:1 wheel↔shaft
     /// gearing are unmeasured guesses until the drivetrain exists (A4 register HA-13/HA-14).
@@ -186,6 +192,23 @@ struct DrivePlantConfig {
     /// WHEEL turns it (a hand push), while its motor cannot turn the wheel: robot two's port 18,
     /// which travels 22–33 % short on a push (A4 register HA-130). INVENTED, a sim shape only.
     double decoupledDrag = 0.0;
+    /// PER-WHEEL gains (chunk R5a Part A, additive): slot i, when filled, gives wheel i — the
+    /// drivetrain's canonical wheel order, 0 = LEFT and 1 = RIGHT on a tank — its OWN gains in
+    /// place of `wheelFf`, for its motor model AND for the free spin of any Decoupled member on
+    /// it. Until R5a every wheel shared one `wheelFf`, so no host test could tell a drivetrain's
+    /// two sides apart: a characterizer that swapped LEFT for RIGHT, or read one side twice,
+    /// fitted the same numbers either way. Empty — the default, every slot — runs the SAME
+    /// MotorModel object every plant before R5a ran, so a default plant is bit-identical
+    /// (drive_plant_per_wheel_test.cpp pins the override path against the shared one; the
+    /// development log on the shulib-v2 branch records a pristine-tree hash of eight default runs
+    /// matching after the change).
+    /// Preconditions: a filled slot satisfies MotorModel's (finite, kV > 0, kS >= 0, kA >= 0),
+    /// and no slot at or past the kinematics' wheelCount() is filled. Appended last, so every
+    /// designated initializer of this struct keeps compiling. The numbers a test puts here are
+    /// as INVENTED as `wheelFf`'s.
+    std::array<std::optional<control::FeedforwardGains>,
+               static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        wheelFfOverride{};
 };
 
 /// How one COUPLED member of a wheel misbehaves (R3b Part 1 — the hal::MotorGroup
@@ -275,6 +298,17 @@ public:
                             "kinematics only");
         SHULIB_PRECONDITION(cfg_.decoupledDrag >= 0.0 && cfg_.decoupledDrag <= 1.0,
                             "DrivePlant: decoupledDrag must be in [0, 1]");
+        // Per-wheel gains (R5a Part A). A filled slot gets its own MotorModel, whose constructor
+        // is the gains' validation; an empty slot keeps modelFor() on `model_` (bit-identity).
+        for (std::size_t i = 0; i < cfg_.wheelFfOverride.size(); ++i) {
+            if (!cfg_.wheelFfOverride[i].has_value()) {
+                continue;
+            }
+            SHULIB_PRECONDITION(i < motors.size(),
+                                "DrivePlant: wheelFfOverride names a wheel the kinematics does not "
+                                "have");
+            wheelModel_[i].emplace(*cfg_.wheelFfOverride[i]);
+        }
 
         // Seed every sensor from the INITIAL truth before any controller runs, so the
         // first tick reads a consistent world (odometry seeded from imu.heading() sees
@@ -303,7 +337,7 @@ public:
                 const units::Voltage commanded = wheelCommand(idx);  // the coupled-train model (T6b)
                 const units::Voltage effective =
                     degradation_.effectiveVoltage(i, commanded, now, rng_);
-                wheelSpin_[idx] = model_.advance(wheelSpin_[idx], effective, dt);
+                wheelSpin_[idx] = modelFor(idx).advance(wheelSpin_[idx], effective, dt);
                 motion.set(i, degradation_.wheelMotionVelocity(i, wheelSpin_[idx], now, rng_));
             }
         } else {
@@ -460,6 +494,14 @@ private:
                                               + decoupledOwnSpin_[w][m] / r});
     }
 
+    /// The motor model wheel `w` turns under: its own, when DrivePlantConfig::wheelFfOverride
+    /// filled its slot, else the shared `model_` — the SAME object every plant before R5a used,
+    /// which is what keeps a default plant bit-identical (not merely equal gains: one object, one
+    /// set of instructions).
+    [[nodiscard]] const MotorModel& modelFor(std::size_t w) const noexcept {
+        return wheelModel_[w].has_value() ? *wheelModel_[w] : model_;
+    }
+
     /// True when member `m` of wheel `w` is Decoupled.
     [[nodiscard]] bool isDecoupled(std::size_t w, std::size_t m) const noexcept {
         return memberFault_[w][m] == MemberFault::Decoupled;
@@ -478,7 +520,7 @@ private:
                     continue;
                 }
                 const hal::fake::FakeMotor& fm = (m == 0) ? *motors_[w] : *extra_[w][m - 1];
-                decoupledOwnSpin_[w][m] = model_
+                decoupledOwnSpin_[w][m] = modelFor(w)
                                               .advance(units::Velocity{decoupledOwnSpin_[w][m]},
                                                        fm.commandedVoltage(), dt)
                                               .value();
@@ -518,7 +560,7 @@ private:
             const units::Voltage commanded = wheelCommand(idx);
             const units::Voltage effective =
                 degradation_.effectiveVoltage(i, commanded, now, rng_);
-            wheelSpin_[idx] = model_.advance(wheelSpin_[idx], effective, dt);
+            wheelSpin_[idx] = modelFor(idx).advance(wheelSpin_[idx], effective, dt);
             coasting[idx] = wheelCoasting(idx);
             if (!coasting[idx]) {
                 drivenSum += wheelSpin_[idx].value();
@@ -718,6 +760,10 @@ private:
     hal::ITelemetrySink& sink_;
     DrivePlantConfig cfg_;
     MotorModel model_;
+    /// Per-wheel models for the filled slots of cfg_.wheelFfOverride (R5a Part A); empty
+    /// slots read `model_` through modelFor().
+    std::array<std::optional<MotorModel>, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
+        wheelModel_{};
     Rng rng_;
 
     std::array<hal::fake::FakeMotor*, static_cast<std::size_t>(kinematics::WheelSpeeds::kMaxWheels)>
