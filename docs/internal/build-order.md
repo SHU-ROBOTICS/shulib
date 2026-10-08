@@ -1624,13 +1624,15 @@ written with them (D12 honesty reaching the data layer intact).
 > builds, Calibrate included) build on it; PKG1's starter project ships it. HA-187/HA-188 reserved. Size: from its brief.
 
 ### SER1 — the USB serial log keeps every line whole across tasks (HA-189) ⟵ NEW 2026-10-08, reactive
-> **Status 2026-10-08: the team lead's GO with his choice of fix — UNBUFFERED stdout** (one line = one write call =
-> one device write under PROS's own serial mutex; no lock of ours, which a deleted task could leave held). Found at T4
+> **Status 2026-10-08: the team lead's GO; his fix re-ruled to ONE-CALL WRITES** ([brief](chunks/SER1-serial-lines-whole.md)) —
+> his first choice, unbuffered stdout, crashes the brain (PROS's serial daemon overflows its 2 KB stack printing its banner
+> when `pros terminal` connects), so stdout stays line-buffered and every shulib line is ONE direct `write()` that PROS's
+> own serial mutex keeps whole; no lock of ours, which a deleted task could leave held. Found at T4
 > Part 3's merge: the vendored newlib's per-FILE locks are no-ops and stdout is line-buffered through one shared
 > buffer, so two tasks writing the log at once can mix or lose bytes (HA-189, reasoned from the binaries). Brief
-> (short form, the coordinator's, one checker): `hal::pros::unbufferStdout()` first in `initialize()`, the
-> `ProsCharSink` constructor as a backstop, host tests and a source pin, the banner's false claim corrected. ~½
-> builder-day, built beside the MECH core. Settled only by HA-189's bench test (Station K).
+> (short form, the coordinator's, checked twice): `ProsCharSink` writes each line with one `write()`, a new
+> `hal::pros::serialLine()` for every `src/` line, the src gate's object check bans stdout stdio, HA-190/HA-191 new.
+> ~¾–1 builder-day, built beside the MECH core. Settled only by HA-189's bench test (Station K).
 
 ### DOCS3 — the documentation redo ⟵ NEW 2026-10-08, after the MECH core, before G3a
 > **Status 2026-10-08: RULED, not yet briefed.** The team lead: "maybe we wait till after we finish the mechanisms core but before the panel that way we can like have basically everything and absolutely redo all the documentation I really want to do that and make it nice and easier to navigate and accurate".

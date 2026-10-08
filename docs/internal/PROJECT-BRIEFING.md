@@ -113,7 +113,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
 - **Suite:** 2,253 cases / 2,783,363 assertions, 3 skipped — **green**  
   *(source: `./build/test/shulib_tests`. Assertion counts flatter — they measure seeds swept. Mutation results are the measure this project trusts.)*
 - **Public headers:** 207  *(source: `find include/shulib -name '*.hpp'`; the ARM gate compiles every one)*
-- **Hardware assumptions:** 172 registered, **7 settled** — next free is **HA-190**  
+- **Hardware assumptions:** 172 registered, **7 settled** — next free is **HA-192**  
   *(source: `docs/hardware-assumptions.md` — its rows, and its Held numbers line; the next free is above both. Nothing is settled until hardware measures it.)*
 
 **Completed chunks** *(source: the `-COMPLETED.md` records, which are the project's own definition of done)*:
