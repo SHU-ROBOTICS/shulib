@@ -498,11 +498,14 @@ in C++.
    then vex not only CAN but can just take in that route that was done in the panel and add physics sim to it"): a field
    view where a team draws a route (waypoints, headings, reversed legs) and drops MECHANISM STEPS on it, picked from the
    robot's own route ids (below); it saves in the shared, frozen route format (F8, the `paths[]` VexBuilder reads), so
-   VexBuilder can take the same route and add its physics simulation. **With a preview on shulib's own simulator** (the
-   host test plant running the real library controllers through `PathRunner`): the panel shows what the robot's code
-   will do on the route and flags a leg it cannot finish, before the robot ever runs it. One validator, as everywhere.
+   VexBuilder can take the same route and add its physics simulation. One validator, as everywhere: a marker naming a
+   route id the robot does not have, or a malformed leg, is refused before saving. **No simulation in the panel**
+   (the team lead, 2026-10-08, reversing the same day's preview: "it can be misconstrued between that and vex and for them
+   to be accurate they basically have to be both the same ... simulating it in the panel is not good and should be kept to
+   vexbuilder") — VexBuilder is the ONE place a route is simulated; shulib's host test plant stays inside the library's
+   tests.
    **Placement (ruled the same day):** its own panel part RIGHT AFTER the mechanism pages (G3a Part 6), before the
-   panel's extension for the rest; ~4–6 builder-days for the field and the route editing, ~2–3 for the preview (rough).
+   panel's extension for the rest; ~4–6 builder-days (rough).
    **Mechanism route ids (ruled 2026-10-08, built in the MECH core):** every mechanism publishes its actions as route
    ids AUTOMATICALLY (an arm's presets as `arm_stow`, `arm_score`; an intake's `intake_run`, `intake_until_piece`), in
    shulib's manifest that VexBuilder's marker picker reads — a coder no longer registers each id by hand.
