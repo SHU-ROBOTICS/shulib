@@ -494,6 +494,18 @@ in C++.
    carries empty electrical arrays and no robot profile, so an import fills only what is there until VexBuilder
    writes the profile (the integration doc's asks #5 and #2). A field the file lacks is taken from the robot
    file, never defaulted (§4.10).
+7b. **Routes, drawn in the panel — NEW 2026-10-08, the team lead's ruling** ("i honestly think that it should be able to and
+   then vex not only CAN but can just take in that route that was done in the panel and add physics sim to it"): a field
+   view where a team draws a route (waypoints, headings, reversed legs) and drops MECHANISM STEPS on it, picked from the
+   robot's own route ids (below); it saves in the shared, frozen route format (F8, the `paths[]` VexBuilder reads), so
+   VexBuilder can take the same route and add its physics simulation. **With a preview on shulib's own simulator** (the
+   host test plant running the real library controllers through `PathRunner`): the panel shows what the robot's code
+   will do on the route and flags a leg it cannot finish, before the robot ever runs it. One validator, as everywhere.
+   **Placement (ruled the same day):** its own panel part RIGHT AFTER the mechanism pages (G3a Part 6), before the
+   panel's extension for the rest; ~4–6 builder-days for the field and the route editing, ~2–3 for the preview (rough).
+   **Mechanism route ids (ruled 2026-10-08, built in the MECH core):** every mechanism publishes its actions as route
+   ids AUTOMATICALLY (an arm's presets as `arm_stow`, `arm_score`; an intake's `intake_run`, `intake_until_piece`), in
+   shulib's manifest that VexBuilder's marker picker reads — a coder no longer registers each id by hand.
 8. **Export a starter `.vexbot`** — the robot profile, its mechanisms and (per §3.9) its wiring, an empty path
    list, and shulib's command list (VexBuilder's command picker can already read it, ask #4), so a team can
    start in the panel and continue in VexBuilder. It needs two NEW asks of VexBuilder: open a project shulib
