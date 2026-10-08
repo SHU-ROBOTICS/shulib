@@ -11,10 +11,10 @@
 > **Sizes** are builder-days (one executor) taken from the chunk's brief where a brief exists. Every size without
 > a brief is marked **(rough)**. **Verification is in no row.** The reviewers, the fixes and a fresh verifier are
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
-> than on builder time, so it is not in the total. **Last updated: 2026-10-06 (the front and CAL1 rulings, on `083e232`).**
+> than on builder time, so it is not in the total. **Last updated: 2026-10-08 (the MECH core's brief: your go, N1–N13 as recommended; on `2fce38a`).**
 
-**Where things stand:** 34 of the phase table's 64 chunks are complete (CAL1, the standard Calibrate, added 2026-10-06) (COMP on 2026-10-02), and R2a (half of R2) has
-also landed; 30 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
+**Where things stand:** 34 of the phase table's 65 chunks are complete (CAL1 added 2026-10-06, MECH 2026-10-08) (COMP on 2026-10-02), and R2a (half of R2) has
+also landed; 31 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
 Part B (a reading that is not a number left out, completing DIAG1), H1 Part A1 (the SHUL/2 wire's read side) and T4
 Part 2a (the drive protections) on 2026-10-01; and **COMP-b, the competition program** (2026-10-02, completing COMP).
 SAFE-SAVE Part A (the safe save's library) landed 2026-10-04, and R5a Part A (the gains-and-noise measurements as
@@ -60,10 +60,10 @@ open to his objection).
 
 | # | Part | What | When | Size (rough, unmeasured) |
 |---|---|---|---|---|
-| 12 | **MECH core** | the four control kinds — **power** (with done-conditions), **position** (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall), **speed** (flywheels, "at speed"), **pneumatic** (incl. three positions); **port binding** (roles instead of ports, the wiring binding validated every boot, one boot line per role); **auton steps** (and the auton's mechanism lookup, run while driving); **presets** in the driver file; the per-tick mechanism service everything depends on; the device provider's distance / optical / digital-in accessors; arm, lift and flywheel models in the host test plant; robot two's claws as the proving case; **every mechanism publishes its actions as route ids automatically** (ruled 2026-10-08) | after T4 Part 3, **before the panel** | ~10½–18 days (+1½–2½ if PTO support is built now) |
+| 12 | **MECH core** | the four control kinds — **power** (with done-conditions), **position** (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall), **speed** (flywheels, "at speed"), **pneumatic** (incl. three positions); **port binding** (roles instead of ports, the wiring binding validated every boot, one boot line per role); **auton steps** (and the auton's mechanism lookup, run while driving); **presets** in the driver file; the per-tick mechanism service everything depends on; the device provider's distance / optical / digital-in accessors; arm, lift and flywheel models in the host test plant; robot two's claws as the proving case; **every mechanism publishes its actions as route ids automatically** (ruled 2026-10-08) | after T4 Part 3, **before the panel** — **brief ✅ GO 2026-10-08** (N1–N13 as recommended; [brief](chunks/MECH-core-mechanism-library.md)) | ~19¼–26 (its brief; six runs A1–A6) |
 | 13 | **MECH, the rest** — protection and more kinds | cycle mechanisms (catapult/puncher); piece counting; colour sorting; jam auto-reverse; interlocks; loaded gains; low-power hold; current caps and heat derating with a driver warning; tip protection | **after the panel** | ~7–11½ days |
 | 14 | **MECH, the rest** — driver and auton extras | preset cycling, stick control with hold-where-released, long-press and double-tap, rumble, mechanism state on the controller screen, driver-interruptible macros (would absorb T3's open chassis macros and angle presets, #16); triggers partway through a drive | **after the panel** | ~5½–9 days (+~1 if routes are in scope) |
-| 15 | **MECH, the rest** — setup and diagnostics | a mechanism page in Bench Tests; the direction check; guided port binding on the brain (and the SD binding record, if bindings live there); auto-tuning of an arm's gains; a per-match health log | **after the panel** | ~6½–11½ days |
+| 15 | **MECH, the rest** — setup and diagnostics | ~~a mechanism page in Bench Tests; the direction check~~ (moved into the core by its brief, 2026-10-08: Bench Tests' MECHANISMS station and its direction check); guided port binding on the brain (and the SD binding record, if bindings live there); auto-tuning of an arm's gains; a per-match health log | **after the panel** | ~6½–11½ days |
 | 15b | **The panel's extension for the rest** | the panel gains what the rest adds (templates such as Catapult and Conveyor, interlocks, the extra controls, the bench-page links) | after the rest | ~2–3½ days (rough) |
 
 The sizes are the requirements' re-priced ranges (§7.1), still unmeasured until a brief is written. Its §5 holds
@@ -213,7 +213,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | 6. IMU1 (rough) | ~½–1 |
 | 8–9. T2's close-out, documentation, G4 (rough); PKG1 not sized | ~3–4 |
 | **The plan of record** | **~29¾–36¼** |
-| + the MECH core, before the panel (ruled 2026-09-28; rough, unmeasured) | +10½–18 |
+| + the MECH core, before the panel (its brief, 2026-10-08) | +19¼–26 |
 | + G3a amended for the core (new robot, mechanisms with templates, wiring, controls): 5½–6 → ~11½–16 (rough) | +5½–10½ |
 | + the rest of MECH, after the panel (ruled; rough) | +19–32 |
 | + the panel's extension for the rest (rough) | +2–3½ |
@@ -221,7 +221,7 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | + Export (proposed; rough) | +1–2 |
 | + routes in the panel (ruled 2026-10-08; rough; no simulation — VexBuilder's) | +4–6 |
 | − T3's macros and F3, which MECH's rest would absorb | −(2½–3) |
-| **Everything, as now planned** | **~64¾–103¼** |
+| **Everything, as now planned** | **~73½–111¼** |
 
 **Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
 robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
@@ -235,11 +235,13 @@ sets the pace. The milestones along it:
 | **The 40 in on the bench** | COMP-t ✅ (2026-09-29) — waits on your Station M run | — | now |
 | **The 40 in through the real `autonomous()`** | COMP-b ✅ (2026-10-02) — waits on Station K | — | now |
 | **The driver program finished, Teleop retired, `main.cpp` final** | T4 Part 3 (with Part 2b's items; early step running) | ~3½–4 | ~1 |
-| **Mechanisms (the core) in the library** | + the MECH core | ~14¼–22¼ | ~4½–7 |
-| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~25¾–38¼ | ~8–12 |
-| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~45¼–69¾ | ~14–21 |
+| **Mechanisms (the core) in the library** | + the MECH core (its brief: six runs A1–A6; CAL1 beside it, landing before A5) | ~23–30¼ | ~7–9 |
+| **The panel: make a robot with its mechanisms, no C++** | + G3a amended | ~34½–46¼ | ~10–14 |
+| **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~54–77¾ | ~16–23 |
 
 These hold only if the decisions and robot sessions keep pace and the builders are not paused. The work grew on
 2026-09-28 because the team lead added generic mechanisms (MECH), the panel's new pages and export, and because
 the re-checks re-sized COMP-b, T4 Parts 2–3 and G3; the core-first ruling changes the ORDER (the panel arrives
-sooner), not the total. Estimates, not promises.
+sooner), not the total. The core grew again on 2026-10-08, when its brief sized it at ~19¼–26 (the rough
+range was 10½–18): it carries the 66 build refusals, the read-fault channel, the stall signatures and Bench Tests'
+MECHANISMS station that the rough figure did not. Estimates, not promises.
