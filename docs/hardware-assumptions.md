@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 171 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 172 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -132,6 +132,9 @@
 > mid-copy ends the card's copy for that boot. A second belief is named there and left unnumbered: it
 > would be needed only by a guard that recovers from such a deletion (`task_get_state()` on a deleted
 > task's handle).
+> **The coordinator added ONE on 2026-10-08 — HA-189** — T4 Part 3's hand-over left one belief unnumbered (do two
+> tasks' writes to stdout stay whole?); reading the vendored C library answers it the wrong way: reasoned FALSE. With
+> it, 172.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
 > (the mechanism core: its brief, accepted 2026-10-08), held the same way. The
@@ -337,6 +340,7 @@
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
+| HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over |
 
 ---
 
@@ -2662,6 +2666,37 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   ON by default, one switch, and the push check before any match).
 
 ### R5a Part A's additions — the beliefs shulib Calibrate's GAINS and REST steps are built on (landed 2026-10-06)
+
+**T4 Part 3's hand-over (the coordinator, 2026-10-08) added ONE — HA-189.** The competition program logs from
+more than one task (the auton task, PROS's phase tasks and the opcontrol task's driver loop), so around a mode change two
+can write the serial log at once; "shulib Drive" has one writer today. The card copy got its own one-writer guard at T4
+Part 3 (`diag::LogCopySink`); serial did not, on the belief below — which the vendored binaries contradict.
+
+- [ ] **HA-189 — two tasks writing the USB serial (stdout) at once keep their lines whole.**
+  *Claim:* `hal::pros::ProsCharSink::write()` (`include/shulib/hal/pros/char_sink.hpp`) does `std::fwrite` + `std::fflush`
+  on stdout, and its banner says "fwrite is atomic per call at this layer, so lines never interleave" — i.e. the C library
+  serializes two tasks' calls on one `FILE*`.
+  *Source:* the vendored toolchain, read 2026-10-08 (`.claude/coordinator/scratch/ha189/`, and `nm`/`objdump` on the
+  linked `bin/cold.package.elf` of the seven-build tree): (1) newlib's per-FILE locks are the default stubs — every
+  `__retarget_lock_*` in `firmware/libc.a` (`libc_a-lock.o`) is `bx lr` (2 bytes, linked as such), and `libpros.a`
+  overrides only `__malloc_lock` and `__env_lock`; `vfprintf`, `fwrite` and `fflush` call those stubs. (2) stdout is a
+  TERMINAL to newlib — PROS's `ser_isatty_r` is `movs r0, #1` — so it is LINE-BUFFERED through one buffer every task
+  shares; nothing calls `setvbuf` on it (the only `setvbuf` caller is libstdc++'s `basic_file`). (3) Below the buffer,
+  PROS's `ser_write_r` DOES take a mutex around each device write (`mutex_take`/`mutex_give` around
+  `ser_output_write`) — so one flushed chunk reaches the USB whole, but the buffer filling it is unguarded.
+  *Confidence:* **reasoned — FALSE as stated.** Two tasks inside `fwrite` on stdout at once can interleave their bytes
+  in the buffer, and newlib's unguarded updates of the buffer's pointer and count can lose or repeat bytes; whether the
+  race can also write past the buffer's end is reasoned possible, never observed. How often it happens on the brain
+  (PROS's preemption, each task's priority, the time-slice) is unmeasured.
+  *Settle:* a bench program with two tasks of equal priority each printing numbered 120-byte lines as fast as they can
+  for 60 s; capture `pros terminal` to a file and check every line is whole and every number present once. Then the
+  competition program's own Station K log around each mode change. A fix that makes one line one device write (stdout
+  unbuffered, or a mutex in `ProsCharSink`) is settled by the same test passing.
+  *Blast radius if wrong (as believed):* serial log lines mixed or lost around mode changes in the competition program —
+  the log a match is diagnosed from; the robot's motion is unaffected unless the buffer race ever writes out of bounds
+  (then anything, a crash included — not observed, not excluded). The SD card's copy is unaffected (its own guard).
+  **Not contained:** every program that logs from more than one task. A fix is planned (a small chunk for the team
+  lead's go); until then `ProsCharSink`'s banner claim stands corrected here.
 
 **R5a Part A added FIVE — HA-170 to HA-174.** The team lead ruled on 2026-09-26 that the drive's gains
 are measured by the robot and kept on the SD card, never typed or committed as constants; R5a builds
