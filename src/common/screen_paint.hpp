@@ -13,10 +13,10 @@
 // of the same shape, and the COMP brief's rule for a piece two programs need is that it moves to
 // one shared place and is never copied (B11; ND3 (c), near-copies, was rejected). So the tester's
 // painters moved here, and the tester now calls them — the same calls, in the same order, with the
-// same colours and positions, so what its screen shows did not change. "shulib Teleop" keeps its
-// OWN refusal painter (src/programs/teleop_program.cpp), which retires with Teleop at T4 Part 3;
-// only its controller lines moved -- to src/common/driver_panel.hpp (the chooser, B11, and since
-// COMP-b's review the writer).
+// same colours and positions, so what its screen shows did not change. "shulib Teleop" kept its own
+// refusal painter until T4 Part 3 retired it (its controller lines had moved to
+// src/common/driver_panel.hpp at COMP-b); the new "shulib Drive" paints its refusal HERE, and its
+// pages with the line, button and bar painters below — three programs, one painter.
 //
 // ── What each piece paints ──────────────────────────────────────────────────────────
 //   toneRgb()            a ui::Tone (a colour by MEANING) as the RGB the brain draws;

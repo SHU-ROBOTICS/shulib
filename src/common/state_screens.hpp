@@ -11,7 +11,8 @@
 // that drives only in driver control now paints the screen with the state VEXos reports and what to
 // do about it, and the raw status bits print at boot — so "the touchscreen does not work" cannot be
 // the diagnosis again (A4 register HA-128: launching from the controller's own menu arms the pretend
-// match). "Bench Tests", "shulib Drive", "shulib Calibrate" and "shulib Teleop" share them;
+// match). "Bench Tests", "shulib Drive" and "shulib Calibrate" share them ("shulib Teleop" did too,
+// until T4 Part 3 retired it);
 // "shulib Calibrate" also paints its OWN not-driver-control screen from inside its loop (it powers
 // motors and must say so in its own words), but needs these for disabled() and
 // competition_initialize(), which run before and after its loop exists. The invented X-drive
@@ -29,7 +30,7 @@
 // printText(): its SMALL budget (50 characters, an estimate — A4 register HA-136) would cut three
 // of the fixed lines below (53-54 characters) and all four of src/main.cpp's own reason literals
 // (DISABLED, FIELD CONTROL, the tester's and Calibrate's AUTONOMOUS: 66-126 characters; only
-// "shulib Teleop"'s own reason, kTeleopAutonomousReason, is checked to fit 50), so it would change
+// "shulib Drive"'s own reason, kDriveAutonomousReason, is checked to fit 50), so it would change
 // what the brain shows, and G1 Part 2c changes nothing a robot shows.
 //
 // PROS-bound (pros/misc.h, pros/screen.h) in the .cpp, so it lives in src/. This header is

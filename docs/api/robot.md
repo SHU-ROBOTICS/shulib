@@ -70,7 +70,7 @@ struct BuildVerdict
 
 The answer to "can this robot be built, on this target, right now?" — one bool and one sentence. The sentence is what a person reads off the brain screen when the robot refuses to boot, so it names the PORT or the FIELD and nothing else; 192 bytes is enough for the longest message any check below can produce and small enough to sit on a boot stack.
 
-*struct, declared at [`include/shulib/robot/robot.hpp:173`](../../include/shulib/robot/robot.hpp#L173).*
+*struct, declared at [`include/shulib/robot/robot.hpp:175`](../../include/shulib/robot/robot.hpp#L175).*
 
 <a id="buildverdict-ok"></a>
 
@@ -82,7 +82,7 @@ bool ok = false
 
 True when every check passed and `Robot` may be constructed from the same pair.
 
-*field, declared at [`include/shulib/robot/robot.hpp:175`](../../include/shulib/robot/robot.hpp#L175).*
+*field, declared at [`include/shulib/robot/robot.hpp:177`](../../include/shulib/robot/robot.hpp#L177).*
 
 <a id="buildverdict-why"></a>
 
@@ -94,7 +94,7 @@ char why[192]{}
 
 The FIRST thing that was wrong, naming the port or the config field. Empty when `ok`.
 
-*field, declared at [`include/shulib/robot/robot.hpp:177`](../../include/shulib/robot/robot.hpp#L177).*
+*field, declared at [`include/shulib/robot/robot.hpp:179`](../../include/shulib/robot/robot.hpp#L179).*
 
 <a id="struct-buildoptions"></a>
 
@@ -106,7 +106,7 @@ struct BuildOptions
 
 What the builder is told about THIS boot that the config cannot say: which tank drive ports the boot check found dead, and (since COMP-a) a pacer to put between the chassis and the provider's. Default-constructed, it changes nothing — every Part 1 caller's graph is byte-for-byte what it was. The two fields have DIFFERENT lifetimes, and that is the thing to read before passing one: `absentDrivePorts` is read during construction only; `pacer` is kept for the Robot's whole life.
 
-*struct, declared at [`include/shulib/robot/robot.hpp:185`](../../include/shulib/robot/robot.hpp#L185).*
+*struct, declared at [`include/shulib/robot/robot.hpp:187`](../../include/shulib/robot/robot.hpp#L187).*
 
 <a id="buildoptions-absentdriveports"></a>
 
@@ -118,7 +118,7 @@ std::span<const int> absentDrivePorts = {}
 
 Tank drive ports the boot check reported MISSING, as port MAGNITUDES 1..21 — exactly the numbers `calibration::BootVerdict::isMissing()` answers for. Each becomes an ABSENT (`nullptr`) member of its side's MotorGroup and is never requested from the provider. A repeated entry is harmless (membership, not a count). BORROWED: read during `validate()` and during `Robot`'s construction only, never kept — the Robot recovers what it needs from its own groups.
 
-*field, declared at [`include/shulib/robot/robot.hpp:192`](../../include/shulib/robot/robot.hpp#L192).*
+*field, declared at [`include/shulib/robot/robot.hpp:194`](../../include/shulib/robot/robot.hpp#L194).*
 
 <a id="buildoptions-pacer"></a>
 
@@ -130,7 +130,7 @@ motion::ITickPacer* pacer = nullptr
 
 The pacer the Chassis is built with, or `nullptr` (the default) for `devices.pacer()` — exactly the graph every earlier caller got. A competition program passes its `sequence::RunGuard` here (constructed around `devices.pacer()` BEFORE the Robot), because the guard's deadline reaches a running motion only through the pacer seam (run_guard.hpp's banner) and a Chassis takes its pacer once, at construction.  BORROWED FOR THE ROBOT'S WHOLE LIFE — unlike `absentDrivePorts`, this is NOT read during construction only: the Chassis keeps the reference (chassis.hpp's constructor), so the pacer must outlive the Robot. Declared after `absentDrivePorts` so the designated spelling reads in declaration order: `robot::BuildOptions{.absentDrivePorts = ..., .pacer = &guard}`. `validate()` does not read it (a pacer is not a device and cannot be refused).
 
-*field, declared at [`include/shulib/robot/robot.hpp:205`](../../include/shulib/robot/robot.hpp#L205).*
+*field, declared at [`include/shulib/robot/robot.hpp:207`](../../include/shulib/robot/robot.hpp#L207).*
 
 <a id="buildoptions-isabsent"></a>
 
@@ -142,7 +142,7 @@ The pacer the Chassis is built with, or `nullptr` (the default) for `devices.pac
 
 True when physical port `port` is in `absentDrivePorts`.
 
-*function, declared at [`include/shulib/robot/robot.hpp:208`](../../include/shulib/robot/robot.hpp#L208).*
+*function, declared at [`include/shulib/robot/robot.hpp:210`](../../include/shulib/robot/robot.hpp#L210).*
 
 <a id="validate"></a>
 
@@ -154,7 +154,7 @@ True when physical port `port` is in `absentDrivePorts`.
 
 Can `cfg` be built with `devices`? PURE, TOTAL, and the precondition `Robot`'s constructor runs (ruling B3). Four passes, in this order:  1. **The config's own rules** — `config::RobotConfig::valid()`, whose message (including a tank description's own refusal, verbatim) surfaces unchanged. 2. **The F5 cross-check** — the number of KINEMATIC WHEELS the drivetrain has must equal the number of `hal::IMotor` handles the builder will put in the context. This is the same check `motion::MotionDeps::validate()` makes at the bottom of the stack, and it is the ONLY thing standing between a config typo and an unchecked `std::span::operator[]` on the hot path — so it is made HERE too, before the deps exist, where it can name the config field instead of saying "3 != 4". (It lives in exactly these two places and nowhere else; `RobotConfig::valid()` deliberately does not duplicate it — see its documentation.) 3. **The absent ports** (`options.absentDrivePorts`, G1 Part 2a) — refused, naming the port, when the list is given for a drivetrain that is not a tank (only a tank side is a group that can carry a hole), when a port in it is not one of the description's drive ports, or when it would leave a side with NO present member. Nothing else: the dead-port POLICY was applied by the boot check that produced the list (header, ruling M1). 4. **Every device obtainable** — each drive port that is not absent, the IMU, the GPS if one is configured, and each tracking-wheel encoder is requested from the provider. The first `nullptr` becomes the verdict, carrying the provider's own `lastRefusal()` so the port that is empty or dead is named by the layer that actually looked. An absent port is never asked for, so a dead port is named once — by the boot check — and never twice. MECHANISM motors are deliberately not asked for here (chunk T3): one the provider will not make leaves that mechanism ABSENT when the Robot is built, and never refuses the robot. Nor are a pneumatic mechanism's 3-wire lines (addendum B2): asking for one DRIVES it, and the only refusal the on-robot provider can make — a line outside 1..8 — is pass 1's. Their CONFIG is checked in pass 1 (cartridge, safe brake mode, safe and start levels, ports and lines that collide with the drive or each other).  It is not `const` on the provider because obtaining a device may construct one; it is idempotent, so calling it and then constructing a `Robot` asks for the same objects twice and gets the same addresses both times.
 
-*free function, declared at [`include/shulib/robot/robot.hpp:250`](../../include/shulib/robot/robot.hpp#L250).*
+*free function, declared at [`include/shulib/robot/robot.hpp:252`](../../include/shulib/robot/robot.hpp#L252).*
 
 <a id="writeportmap"></a>
 
@@ -164,9 +164,9 @@ Can `cfg` be built with `devices`? PURE, TOTAL, and the precondition `Robot`'s c
 inline void writePortMap(const config::RobotConfig& cfg, char* out, std::size_t cap) noexcept
 ```
 
-The §18.5 session header's PORT MAP for `cfg` — the text `diag::SessionInfo::portMap` carries — generated from the config, so it cannot drift from the wiring (the "G1 generates" promise in diag/session_info.hpp). `Robot::portMap()` is this over the Robot's own config; it is a free function as well so the formatting can be tested on a description no valid Robot could carry (a 21-port side).  The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder changed no session header (G1 Part 2b moved "shulib Teleop", G1 Part 2c the invented X-drive):  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides' inches per radian and the track width. For a drive-encoder tank without a GPS (robot two) the text is byte-for-byte what `tankPortMapString()` printed (pinned against a transcription of it in test/robot_builder_test.cpp, and against robot two's 2026-09-25 capture in test/boot_source_test.cpp). * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the GPS when present, the IMU. * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.  Deliberately NOT marked for absent ports: this is what the robot is WIRED to be; a dead port is `describe()`'s and the panel's to announce. Bounded BY HAND — assembled in a generous local buffer and copied into `out` with an explicit bound, never a moving `snprintf` (the on-robot build gate treats `-Wformat-truncation` as an error) — so it truncates rather than overflowing and writes a NUL whenever `cap > 0`. Does not validate: it formats what is stored.
+The §18.5 session header's PORT MAP for `cfg` — the text `diag::SessionInfo::portMap` carries — generated from the config, so it cannot drift from the wiring (the "G1 generates" promise in diag/session_info.hpp). `Robot::portMap()` is this over the Robot's own config; it is a free function as well so the formatting can be tested on a description no valid Robot could carry (a 21-port side).  The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder changed no session header (G1 Part 2b moved "shulib Teleop" — retired at T4 Part 3 — and G1 Part 2c the invented X-drive):  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then — only when configured — `GPS<n>` and the two pods `ROTF<n> ROTL<n>`, then both sides' inches per radian and the track width. For a drive-encoder tank without a GPS (robot two) the text is byte-for-byte what `tankPortMapString()` printed (pinned against a transcription of it in test/robot_builder_test.cpp, and against robot two's 2026-09-25 capture in test/boot_source_test.cpp). * **X-drive** — `portMapString()`'s: `FL BL BR FR` (the F5 wheel order), the two pods, the GPS when present, the IMU. * **H-drive** — the same shape: `L R S` (left line, right line, strafe wheel), pods, GPS, IMU.  Deliberately NOT marked for absent ports: this is what the robot is WIRED to be; a dead port is `describe()`'s and the panel's to announce. Bounded BY HAND — assembled in a generous local buffer and copied into `out` with an explicit bound, never a moving `snprintf` (the on-robot build gate treats `-Wformat-truncation` as an error) — so it truncates rather than overflowing and writes a NUL whenever `cap > 0`. Does not validate: it formats what is stored.
 
-*free function, declared at [`include/shulib/robot/robot.hpp:416`](../../include/shulib/robot/robot.hpp#L416).*
+*free function, declared at [`include/shulib/robot/robot.hpp:419`](../../include/shulib/robot/robot.hpp#L419).*
 
 <a id="class-robot"></a>
 
@@ -178,7 +178,7 @@ class Robot
 
 A whole robot: the PROS-free object graph a `config::RobotConfig` describes, owned, with its devices borrowed from an `hal::IDeviceProvider`.  **The provider must outlive the Robot**, and so must everything the provider borrows (on the host: the harness whose clock, battery, sink and pacer it was given). The Robot owns the graph; it owns no hardware, by ruling B2.  Neither copyable nor movable, for the same structural reason `chassis::Chassis` is not: the graph is a web of references into this object's own storage, so a copy or a move would leave half of it pointing at the wrong place. Construct it where it will live.
 
-*class, declared at [`include/shulib/robot/robot.hpp:495`](../../include/shulib/robot/robot.hpp#L495).*
+*class, declared at [`include/shulib/robot/robot.hpp:498`](../../include/shulib/robot/robot.hpp#L498).*
 
 <a id="robot-robot"></a>
 
@@ -190,7 +190,7 @@ Robot(const config::RobotConfig& cfg, hal::IDeviceProvider& devices, const Build
 
 Build the whole graph. PRECONDITION: `validate(cfg, devices, options)` passes — and this runs it, with the SAME options, so a config that cannot be built throws `PreconditionError` carrying the verdict's own sentence, before any member exists. `cfg` is COPIED (a boot sequence that decodes a record into a local and hands out a reference to it is the dangling-reference bug this copy makes impossible); `devices` is borrowed and must outlive the Robot; `options.absentDrivePorts` is read during construction only (its absent ports become `nullptr` group members and are never requested — G1 Part 2a, ruling M1), so that span may die as soon as the constructor returns — but `options.pacer`, when set, is KEPT by the Chassis and must outlive the Robot (COMP-a; `BuildOptions::pacer`). Default options build exactly the graph the two-argument form always built. LAST, after the whole drive graph, each configured mechanism with motors, or with 3-wire lines, is built — or recorded ABSENT with the provider's sentence (chunk T3 and its addendum B2; the file header's MECHANISMS section).
 
-*function, declared at [`include/shulib/robot/robot.hpp:510`](../../include/shulib/robot/robot.hpp#L510).*
+*function, declared at [`include/shulib/robot/robot.hpp:513`](../../include/shulib/robot/robot.hpp#L513).*
 
 <a id="robot-robot-2"></a>
 
@@ -202,7 +202,7 @@ Robot(const Robot&) = delete
 
 Non-copyable: the graph is a web of references into this object's own storage.
 
-*function, declared at [`include/shulib/robot/robot.hpp:574`](../../include/shulib/robot/robot.hpp#L574).*
+*function, declared at [`include/shulib/robot/robot.hpp:577`](../../include/shulib/robot/robot.hpp#L577).*
 
 <a id="robot-robot-3"></a>
 
@@ -214,7 +214,7 @@ Robot(Robot&&) = delete
 
 Non-copyable: the graph is a web of references into this object's own storage. Non-movable, same reasoning — and `chassis::Chassis` is non-movable in any case.
 
-*function, declared at [`include/shulib/robot/robot.hpp:576`](../../include/shulib/robot/robot.hpp#L576).*
+*function, declared at [`include/shulib/robot/robot.hpp:579`](../../include/shulib/robot/robot.hpp#L579).*
 
 <a id="robot-operator-eq"></a>
 
@@ -226,7 +226,7 @@ Robot& operator=(const Robot&) = delete
 
 Non-copyable: the graph is a web of references into this object's own storage. Non-movable, same reasoning — and `chassis::Chassis` is non-movable in any case. Non-copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/robot/robot.hpp:578`](../../include/shulib/robot/robot.hpp#L578).*
+*function, declared at [`include/shulib/robot/robot.hpp:581`](../../include/shulib/robot/robot.hpp#L581).*
 
 <a id="robot-operator-eq-2"></a>
 
@@ -238,7 +238,7 @@ Robot& operator=(Robot&&) = delete
 
 Non-copyable: the graph is a web of references into this object's own storage. Non-movable, same reasoning — and `chassis::Chassis` is non-movable in any case. Non-copy-assignable, same reasoning. Non-move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/robot/robot.hpp:580`](../../include/shulib/robot/robot.hpp#L580).*
+*function, declared at [`include/shulib/robot/robot.hpp:583`](../../include/shulib/robot/robot.hpp#L583).*
 
 <a id="robot-destructor-robot"></a>
 
@@ -250,7 +250,7 @@ Non-copyable: the graph is a web of references into this object's own storage. N
 
 Non-copyable: the graph is a web of references into this object's own storage. Non-movable, same reasoning — and `chassis::Chassis` is non-movable in any case. Non-copy-assignable, same reasoning. Non-move-assignable, same reasoning. Destroys the graph. The provider and everything it borrows must still be alive.
 
-*function, declared at [`include/shulib/robot/robot.hpp:582`](../../include/shulib/robot/robot.hpp#L582).*
+*function, declared at [`include/shulib/robot/robot.hpp:585`](../../include/shulib/robot/robot.hpp#L585).*
 
 <a id="robot-chassis"></a>
 
@@ -262,7 +262,7 @@ Non-copyable: the graph is a web of references into this object's own storage. N
 
 The public facade every auton is written against — the whole point of the class.
 
-*function, declared at [`include/shulib/robot/robot.hpp:585`](../../include/shulib/robot/robot.hpp#L585).*
+*function, declared at [`include/shulib/robot/robot.hpp:588`](../../include/shulib/robot/robot.hpp#L588).*
 
 <a id="robot-chassis-2"></a>
 
@@ -274,7 +274,7 @@ The public facade every auton is written against — the whole point of the clas
 
 The facade, read-only.
 
-*function, declared at [`include/shulib/robot/robot.hpp:587`](../../include/shulib/robot/robot.hpp#L587).*
+*function, declared at [`include/shulib/robot/robot.hpp:590`](../../include/shulib/robot/robot.hpp#L590).*
 
 <a id="robot-localizer"></a>
 
@@ -286,7 +286,7 @@ The facade, read-only.
 
 The fused estimator, for a caller that wants the quality class or a corrector's record rather than just the pose.
 
-*function, declared at [`include/shulib/robot/robot.hpp:591`](../../include/shulib/robot/robot.hpp#L591).*
+*function, declared at [`include/shulib/robot/robot.hpp:594`](../../include/shulib/robot/robot.hpp#L594).*
 
 <a id="robot-localizer-2"></a>
 
@@ -298,7 +298,7 @@ The fused estimator, for a caller that wants the quality class or a corrector's 
 
 The estimator, read-only.
 
-*function, declared at [`include/shulib/robot/robot.hpp:593`](../../include/shulib/robot/robot.hpp#L593).*
+*function, declared at [`include/shulib/robot/robot.hpp:596`](../../include/shulib/robot/robot.hpp#L596).*
 
 <a id="robot-faults"></a>
 
@@ -310,7 +310,7 @@ The estimator, read-only.
 
 The run-scoped fault latch — what the run summary and the boot banner read.
 
-*function, declared at [`include/shulib/robot/robot.hpp:596`](../../include/shulib/robot/robot.hpp#L596).*
+*function, declared at [`include/shulib/robot/robot.hpp:599`](../../include/shulib/robot/robot.hpp#L599).*
 
 <a id="robot-faults-2"></a>
 
@@ -322,7 +322,7 @@ The run-scoped fault latch — what the run summary and the boot banner read.
 
 The fault latch, read-only.
 
-*function, declared at [`include/shulib/robot/robot.hpp:598`](../../include/shulib/robot/robot.hpp#L598).*
+*function, declared at [`include/shulib/robot/robot.hpp:601`](../../include/shulib/robot/robot.hpp#L601).*
 
 <a id="robot-health"></a>
 
@@ -334,7 +334,7 @@ The fault latch, read-only.
 
 The health monitor (the A3 pathology → fault policy).
 
-*function, declared at [`include/shulib/robot/robot.hpp:601`](../../include/shulib/robot/robot.hpp#L601).*
+*function, declared at [`include/shulib/robot/robot.hpp:604`](../../include/shulib/robot/robot.hpp#L604).*
 
 <a id="robot-health-2"></a>
 
@@ -346,7 +346,7 @@ The health monitor (the A3 pathology → fault policy).
 
 The health monitor, read-only.
 
-*function, declared at [`include/shulib/robot/robot.hpp:603`](../../include/shulib/robot/robot.hpp#L603).*
+*function, declared at [`include/shulib/robot/robot.hpp:606`](../../include/shulib/robot/robot.hpp#L606).*
 
 <a id="robot-context"></a>
 
@@ -358,7 +358,7 @@ The health monitor, read-only.
 
 The one object every layer reads hardware through — the Tier-3 seam for code that wants a device this facade does not expose.
 
-*function, declared at [`include/shulib/robot/robot.hpp:607`](../../include/shulib/robot/robot.hpp#L607).*
+*function, declared at [`include/shulib/robot/robot.hpp:610`](../../include/shulib/robot/robot.hpp#L610).*
 
 <a id="robot-context-2"></a>
 
@@ -370,7 +370,7 @@ The one object every layer reads hardware through — the Tier-3 seam for code t
 
 The context, read-only.
 
-*function, declared at [`include/shulib/robot/robot.hpp:609`](../../include/shulib/robot/robot.hpp#L609).*
+*function, declared at [`include/shulib/robot/robot.hpp:612`](../../include/shulib/robot/robot.hpp#L612).*
 
 <a id="robot-config"></a>
 
@@ -382,7 +382,7 @@ The context, read-only.
 
 The config this robot was built from, as stored.
 
-*function, declared at [`include/shulib/robot/robot.hpp:612`](../../include/shulib/robot/robot.hpp#L612).*
+*function, declared at [`include/shulib/robot/robot.hpp:615`](../../include/shulib/robot/robot.hpp#L615).*
 
 <a id="robot-hasgpscorrector"></a>
 
@@ -394,7 +394,7 @@ The config this robot was built from, as stored.
 
 Whether this robot has a GPS corrector installed — the observable half of "absent is explicit": false means `hal::AbsentGps` is in the context and the Localizer's corrector span is EMPTY, not that a corrector is present and quiet.
 
-*function, declared at [`include/shulib/robot/robot.hpp:617`](../../include/shulib/robot/robot.hpp#L617).*
+*function, declared at [`include/shulib/robot/robot.hpp:620`](../../include/shulib/robot/robot.hpp#L620).*
 
 <a id="robot-motorgroupcount"></a>
 
@@ -406,7 +406,7 @@ Whether this robot has a GPS corrector installed — the observable half of "abs
 
 How many `hal::MotorGroup`s this robot has — 2 on a tank (one per side), 0 on a holonomic drivetrain, whose wheels are single motors.
 
-*function, declared at [`include/shulib/robot/robot.hpp:621`](../../include/shulib/robot/robot.hpp#L621).*
+*function, declared at [`include/shulib/robot/robot.hpp:624`](../../include/shulib/robot/robot.hpp#L624).*
 
 <a id="robot-driveodometry"></a>
 
@@ -418,7 +418,7 @@ How many `hal::MotorGroup`s this robot has — 2 on a tank (one per side), 0 on 
 
 The drive-encoder odometry this robot runs, for a panel that wants its cross-check (the per-side distances beside the fused estimate) — or `nullptr` when this robot runs tracking wheels instead. Read-only: the Localizer owns the updating.
 
-*function, declared at [`include/shulib/robot/robot.hpp:626`](../../include/shulib/robot/robot.hpp#L626).*
+*function, declared at [`include/shulib/robot/robot.hpp:629`](../../include/shulib/robot/robot.hpp#L629).*
 
 <a id="robot-mechanismcount"></a>
 
@@ -430,7 +430,7 @@ The drive-encoder odometry this robot runs, for a panel that wants its cross-che
 
 How many mechanisms the config declares, built or not, of both kinds — `config().mechanismCount`. `builtMechanismAt()`, `mechanismAt()`, `pneumaticMechanismAt()` and `mechanismAbsence()` take an index below this.
 
-*function, declared at [`include/shulib/robot/robot.hpp:635`](../../include/shulib/robot/robot.hpp#L635).*
+*function, declared at [`include/shulib/robot/robot.hpp:638`](../../include/shulib/robot/robot.hpp#L638).*
 
 <a id="robot-builtmechanismat"></a>
 
@@ -442,7 +442,7 @@ How many mechanisms the config declares, built or not, of both kinds — `config
 
 The `i`-th declared mechanism if it was BUILT, of EITHER kind — nullptr when it is ABSENT, has nothing to build, or `i` is not below `mechanismCount()`. This is THE "is this one built?" question: a boot line or a panel row that reports each declared mechanism asks this (and prints its `name()`), never `mechanismAt()`, which is nullptr for a built PNEUMATIC mechanism too and would report a working claw as absent. `mechanismAbsence(i)` is empty exactly when this is non-null.
 
-*function, declared at [`include/shulib/robot/robot.hpp:643`](../../include/shulib/robot/robot.hpp#L643).*
+*function, declared at [`include/shulib/robot/robot.hpp:646`](../../include/shulib/robot/robot.hpp#L646).*
 
 <a id="robot-builtmechanismat-2"></a>
 
@@ -454,7 +454,7 @@ The `i`-th declared mechanism if it was BUILT, of EITHER kind — nullptr when i
 
 The `i`-th declared mechanism if it was built, read-only (same rules).
 
-*function, declared at [`include/shulib/robot/robot.hpp:654`](../../include/shulib/robot/robot.hpp#L654).*
+*function, declared at [`include/shulib/robot/robot.hpp:657`](../../include/shulib/robot/robot.hpp#L657).*
 
 <a id="robot-mechanismat"></a>
 
@@ -466,7 +466,7 @@ The `i`-th declared mechanism if it was built, read-only (same rules).
 
 The `i`-th declared mechanism as a BUILT MOTOR mechanism — or nullptr when it is ABSENT (the provider refused one of its motors), is a pneumatic mechanism (see `pneumaticMechanismAt()`), has nothing to build, or `i` is not below `mechanismCount()`. A TYPED lookup, for code that needs the motor type (a `teleop::MechanismBinding`): null here does NOT mean "absent" — `builtMechanismAt()` answers that.
 
-*function, declared at [`include/shulib/robot/robot.hpp:670`](../../include/shulib/robot/robot.hpp#L670).*
+*function, declared at [`include/shulib/robot/robot.hpp:673`](../../include/shulib/robot/robot.hpp#L673).*
 
 <a id="robot-mechanismat-2"></a>
 
@@ -478,7 +478,7 @@ The `i`-th declared mechanism as a BUILT MOTOR mechanism — or nullptr when it 
 
 The `i`-th declared mechanism, read-only (same rules).
 
-*function, declared at [`include/shulib/robot/robot.hpp:675`](../../include/shulib/robot/robot.hpp#L675).*
+*function, declared at [`include/shulib/robot/robot.hpp:678`](../../include/shulib/robot/robot.hpp#L678).*
 
 <a id="robot-pneumaticmechanismat"></a>
 
@@ -490,7 +490,7 @@ The `i`-th declared mechanism, read-only (same rules).
 
 The `i`-th declared mechanism as a BUILT PNEUMATIC mechanism (addendum B2) — or nullptr when it is ABSENT (the provider refused one of its lines), is a motor mechanism (see `mechanismAt()`), has nothing to build, or `i` is not below `mechanismCount()`. Typed, like `mechanismAt()`: null here does not mean "absent" either.
 
-*function, declared at [`include/shulib/robot/robot.hpp:684`](../../include/shulib/robot/robot.hpp#L684).*
+*function, declared at [`include/shulib/robot/robot.hpp:687`](../../include/shulib/robot/robot.hpp#L687).*
 
 <a id="robot-pneumaticmechanismat-2"></a>
 
@@ -502,7 +502,7 @@ The `i`-th declared mechanism as a BUILT PNEUMATIC mechanism (addendum B2) — o
 
 The `i`-th declared pneumatic mechanism, read-only (same rules).
 
-*function, declared at [`include/shulib/robot/robot.hpp:689`](../../include/shulib/robot/robot.hpp#L689).*
+*function, declared at [`include/shulib/robot/robot.hpp:692`](../../include/shulib/robot/robot.hpp#L692).*
 
 <a id="robot-mechanismabsence"></a>
 
@@ -514,7 +514,7 @@ The `i`-th declared pneumatic mechanism, read-only (same rules).
 
 Why the `i`-th declared mechanism was NOT built: the provider's own sentence (naming the port or the 3-wire line) for an ABSENT one, a fixed sentence for one with nothing to build, and "no mechanism is declared at this index" for an `i` not below `mechanismCount()`. The empty string EXACTLY when `builtMechanismAt(i)` is non-null — a built mechanism of either kind, and nothing else. Stable for the Robot's lifetime.
 
-*function, declared at [`include/shulib/robot/robot.hpp:699`](../../include/shulib/robot/robot.hpp#L699).*
+*function, declared at [`include/shulib/robot/robot.hpp:702`](../../include/shulib/robot/robot.hpp#L702).*
 
 <a id="robot-mechanism"></a>
 
@@ -526,7 +526,7 @@ Why the `i`-th declared mechanism was NOT built: the provider's own sentence (na
 
 The BUILT MOTOR mechanism whose config name is `name` — nullptr when no declared mechanism has that name (or `name` is null), when that one was not built, or when it is a pneumatic mechanism (`pneumaticMechanism()` finds those: the lookup is typed because a binding needs the concrete type, and the library does not downcast). Names are unique: the config's `valid()` refuses two mechanisms with one name.
 
-*function, declared at [`include/shulib/robot/robot.hpp:709`](../../include/shulib/robot/robot.hpp#L709).*
+*function, declared at [`include/shulib/robot/robot.hpp:712`](../../include/shulib/robot/robot.hpp#L712).*
 
 <a id="robot-mechanism-2"></a>
 
@@ -538,7 +538,7 @@ The BUILT MOTOR mechanism whose config name is `name` — nullptr when no declar
 
 The named mechanism, read-only (same rules).
 
-*function, declared at [`include/shulib/robot/robot.hpp:713`](../../include/shulib/robot/robot.hpp#L713).*
+*function, declared at [`include/shulib/robot/robot.hpp:716`](../../include/shulib/robot/robot.hpp#L716).*
 
 <a id="robot-pneumaticmechanism"></a>
 
@@ -550,7 +550,7 @@ The named mechanism, read-only (same rules).
 
 The BUILT PNEUMATIC mechanism whose config name is `name` (addendum B2) — what a `teleop::ToggleBinding` is bound to. nullptr when no declared mechanism has that name (or `name` is null), when that one was not built, or when it is a motor mechanism.
 
-*function, declared at [`include/shulib/robot/robot.hpp:720`](../../include/shulib/robot/robot.hpp#L720).*
+*function, declared at [`include/shulib/robot/robot.hpp:723`](../../include/shulib/robot/robot.hpp#L723).*
 
 <a id="robot-pneumaticmechanism-2"></a>
 
@@ -562,7 +562,7 @@ The BUILT PNEUMATIC mechanism whose config name is `name` (addendum B2) — what
 
 The named pneumatic mechanism, read-only (same rules).
 
-*function, declared at [`include/shulib/robot/robot.hpp:724`](../../include/shulib/robot/robot.hpp#L724).*
+*function, declared at [`include/shulib/robot/robot.hpp:727`](../../include/shulib/robot/robot.hpp#L727).*
 
 <a id="robot-mechanisms"></a>
 
@@ -574,7 +574,7 @@ The named pneumatic mechanism, read-only (same rules).
 
 Every BUILT mechanism of BOTH kinds, in config order, as the `hal::IMechanism*` span an end-of-run guard walks (`sequence::RunGuardConfig::mechanisms`) — an ABSENT one is not in it, because there is nothing there to make safe. Empty on a robot with none. The storage is this Robot's, so the span is valid for the Robot's lifetime.
 
-*function, declared at [`include/shulib/robot/robot.hpp:732`](../../include/shulib/robot/robot.hpp#L732).*
+*function, declared at [`include/shulib/robot/robot.hpp:735`](../../include/shulib/robot/robot.hpp#L735).*
 
 <a id="robot-portmap"></a>
 
@@ -586,7 +586,7 @@ void portMap(char* out, std::size_t cap) const noexcept
 
 The §18.5 session header's port map for this robot, generated from the config it was built with — `writePortMap(config(), out, cap)`, whose documentation gives the formats. Truncates rather than overflowing (the header field is `diag::kMaxPortMapBytes`, 96 bytes); writes a NUL whenever cap > 0. Use this, never `describe()`, for the header: the banner is longer than the field.
 
-*function, declared at [`include/shulib/robot/robot.hpp:741`](../../include/shulib/robot/robot.hpp#L741).*
+*function, declared at [`include/shulib/robot/robot.hpp:744`](../../include/shulib/robot/robot.hpp#L744).*
 
 <a id="robot-describe"></a>
 
@@ -598,14 +598,14 @@ void describe(char* buf, std::size_t cap) const
 
 The BANNER LINE: identity, the drivetrain kind and where its numbers came from, both sides' ports AS STORED (signs included — the one place a sign lives), any drive port ABSENT (`DEGRADED: absent 3,13` — only when there is one: built absent at boot, or marked absent mid-run by the driver loop's protections, T4 Part 2), the geometry that governs, the estimator, and each optional device as present or ABSENT. Truncates rather than overflowing; writes at least a NUL whenever cap > 0.  It is built from the CONFIG this robot was constructed with, not from a second copy of the numbers, so it cannot drift from the wiring — the same property src/main.cpp's retired `portMapString()` had and for the same reason. The absent ports are read back from the two groups' own slots, which were built from the same description in the same order.
 
-*function, declared at [`include/shulib/robot/robot.hpp:754`](../../include/shulib/robot/robot.hpp#L754).*
+*function, declared at [`include/shulib/robot/robot.hpp:757`](../../include/shulib/robot/robot.hpp#L757).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 127 lines, click to expand</summary>
+<summary>The header’s own reasoning — 129 lines, click to expand</summary>
 
 ```text
 
@@ -622,13 +622,14 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      hal::pros::ProsDeviceProvider devices;      // the adapters, made on demand, by port
      robot::Robot robot{kRobotConfig, devices};  // the whole graph, wired
 
- and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the
- first line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the
- PROS shim); since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp) is built from these two
- pieces — the first program that is. On a brain the second line is spelled the way that program
- spells it: `robot::validate()` first (it names the port or the field before anything is
- constructed), then `std::optional<Robot>::emplace` into storage that lives for the whole
- program, once, from `initialize()` (below: a Robot is constructed where it will live).
+ and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the first
+ line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the PROS shim);
+ since G1 Part 2b the programs that drive robot two are built from these two pieces ("shulib
+ Teleop" first, which T4 Part 3 retired; "shulib Drive", src/programs/drive_program.cpp, since
+ then). On a brain the second line is spelled the way those programs spell it: `robot::validate()`
+ first (it names the port or the field before anything is constructed), then
+ `std::optional<Robot>::emplace` into storage that lives for the whole program, once, from
+ `initialize()` (below: a Robot is constructed where it will live).
 
  ── IT ADDS A WAY TO WIRE; IT NEVER CHANGES THE PHYSICS (ruling B4) ─────────────────
  The graph below is the SAME objects, in the SAME order, with the SAME arguments as the
@@ -661,7 +662,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  too, and returning one by value would depend on elision games the V5 toolchain should not
  be asked to play. A Robot is constructed WHERE IT WILL LIVE: on a brain, an EMPTY
  `std::optional<Robot>` that lives for the program, emplaced ONCE from `initialize()` —
- src/programs/teleop_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
+ src/programs/drive_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
  before `initialize()` has installed the on-robot precondition handler, in an order across
  translation units nobody controls; inside a function, one whose constructor THROWS is
  constructed again on the next call, and PROS calls opcontrol() again after every disable. In a
@@ -726,9 +727,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
 
  ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
  A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
- No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
- graph with this class over the on-robot provider (src/programs/teleop_program.cpp), and THAT version of
- the program has not run on hardware. Since G1 Part 2c the invented X-drive is built the same way
+ No config has ever been used on a physical robot. Since T4 Part 3 "shulib Drive" builds its
+ graph with this class over the on-robot provider (src/programs/drive_program.cpp), as "shulib
+ Teleop" did from G1 Part 2b until T4 Part 3 retired it; THIS version of the program has not run
+ on hardware. Since G1 Part 2c the invented X-drive is built the same way
  (src/robots/xdrive_config.hpp, src/programs/xdrive_program.cpp) and no program wires a graph by hand; its ports
  are invented, so it refuses at boot on every robot that exists.
 

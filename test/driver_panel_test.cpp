@@ -2,7 +2,10 @@
 // (src/common/driver_panel.hpp; chunk COMP-b, 2026-09-30; the COMP brief's B11 as T4 Part 1a
 // replaced it): the controller's three lines with their ONE chooser, MOVED out of "shulib Teleop"'s
 // panel so the competition program shows the same words, and the controller row a brain page
-// shows. Every case names the bug it would catch.
+// shows; since T4 Part 3 (Part 2b's item 6) the PROTECTION row and the chooser's REFUSED / CUT /
+// dead words too (D6-D8), for both programs that hand robot two to a driver. The claw words that
+// moved into the same header are test/driver_panel_claws_test.cpp's. Every case names the bug it
+// would catch.
 //
 // Before the move the chooser lived inside teleop_program.cpp's refreshLcd(), which the host cannot
 // compile (pros/screen.h): its words and their order were guarded by one source pin. Here the host
@@ -13,13 +16,14 @@
 
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <string_view>
 
 #include "common/driver_panel.hpp"
-#include "programs/teleop_claws.hpp"
 #include "shulib/diag/fault.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/teleop/drive_protection.hpp"
 #include "shulib/ui/touch_panel.hpp"
 
 using shulib::bench::ControllerFacts;
@@ -238,4 +242,213 @@ TEST_CASE("driver panel (D5): the controller writer -- one line per write, line 
     CHECK(c.next(driving, 5.30) == 0);
     CHECK(c.next(driving, 5.40) == 1);
     CHECK(std::string{c.shown(7)}.empty());  // a row past the three: nothing, never a crash
+}
+
+// ═══ T4 Part 2b's words (built in Part 3's late step): the PROTECTION row and the chooser ═══════
+
+namespace {
+using shulib::teleop::DriveProtectionState;
+using shulib::teleop::DriveVerdict;
+using shulib::teleop::ProtectionMode;
+DriveProtectionState stateOf(ProtectionMode m) {
+    DriveProtectionState s{};
+    s.mode = m;
+    return s;
+}
+void put(char (&dst)[shulib::teleop::kProtectionTextBytes], const char* text) {
+    std::snprintf(dst, sizeof dst, "%s", text);
+}
+}  // namespace
+
+// (D6) Bug caught: the PROTECTION row hiding what stopped the drive — a cut shown as OK, a refusal
+// without its count or without "for the run", the dead ports dropped from DEGRADED, a frozen port
+// never shown (on its way to dead in 250 ms), over-current WARNINGS (cuts switched off, N1) shown as
+// a clean OK — or in the wrong colour (a cut amber), or over the SMALL budget, or with a character
+// the screen cannot carry. Every mode, by its exact words.
+TEST_CASE("driver panel (D6): the PROTECTION row's words and tone in every mode") {
+    using shulib::bench::protectionRowText;
+    using shulib::ui::Tone;
+    shulib::bench::PanelRow r = protectionRowText(stateOf(ProtectionMode::Driving), 1.0);
+    CHECK(std::string{r.text} == "drive OK");
+    CHECK(r.tone == Tone::Green);
+    DriveProtectionState s = stateOf(ProtectionMode::Driving);
+    put(s.frozen, "13");
+    r = protectionRowText(s, 1.0);
+    CHECK(std::string{r.text} == "drive OK -- frozen 13");
+    CHECK(r.tone == Tone::Amber);
+    s = stateOf(ProtectionMode::Driving);
+    s.overCurrentWarnings = 1;
+    CHECK(std::string{protectionRowText(s, 1.0).text} == "drive OK -- 1 over-current warning");
+    s.overCurrentWarnings = 2;
+    r = protectionRowText(s, 1.0);
+    CHECK(std::string{r.text} == "drive OK -- 2 over-current warnings");
+    CHECK(r.tone == Tone::Amber);
+    // Both at once (warnings happen only with the over-current cut switched off): the FROZEN
+    // reading is named -- a port about to be dropped is the more urgent of the two, and the MORE
+    // page and the serial log carry the warnings (the T4-3 review's RV3: their order was unpinned).
+    put(s.frozen, "13");
+    r = protectionRowText(s, 1.0);
+    CHECK(std::string{r.text} == "drive OK -- frozen 13");
+    CHECK(r.tone == Tone::Amber);
+    s = stateOf(ProtectionMode::Degraded);
+    put(s.dead, "18 13");
+    r = protectionRowText(s, 1.0);
+    CHECK(std::string{r.text} == "DEGRADED dead 18 13");
+    CHECK(r.tone == Tone::Amber);
+    put(s.frozen, "14");
+    CHECK(std::string{protectionRowText(s, 1.0).text} == "DEGRADED dead 18 13 frozen 14");
+    s = stateOf(ProtectionMode::Cut);
+    s.cutCount = 2;
+    put(s.lastCut, "CUT: FIGHT on LEFT -- port(s) 18");
+    r = protectionRowText(s, 1.0);
+    CHECK(std::string{r.text} == "CUT 1 s #2: FIGHT on LEFT -- port(s) 18");
+    CHECK(r.tone == Tone::Red);
+    put(s.lastCut, "port 17 (LEFT) over 2.4 A");  // words without the log's "CUT: " prefix
+    CHECK(std::string{protectionRowText(s, 1.0).text} == "CUT 1 s #2: port 17 (LEFT) over 2.4 A");
+    // The log's own over-current words are longer than the row: cut at the SMALL budget (the
+    // serial log and "shulib Drive"'s MORE page carry the whole), never past it.
+    put(s.lastCut, "CUT: port 17 (LEFT) over 2.4 A for 250 ms");
+    CHECK(std::string{protectionRowText(s, 1.0).text}
+          == std::string{"CUT 1 s #2: port 17 (LEFT) over 2.4 A for 250 ms"}.substr(0, 50));
+    CHECK(std::string{protectionRowText(s, std::numeric_limits<double>::quiet_NaN()).text}.rfind(
+              "CUT 0 s #2: ", 0)
+          == 0);  // a cut length that is not a number never prints "nan"
+    // The length is the CONFIG's, handed in, never typed into the row: a loop configured for a
+    // half-second or a 2 s cut says so (a mutation printing "1 s" whatever the config passed every
+    // check above, which all hand in 1 s -- the T4 late step's LPR2).
+    put(s.lastCut, "CUT: FIGHT on LEFT -- port(s) 18");
+    CHECK(std::string{protectionRowText(s, 0.5).text} == "CUT 0.5 s #2: FIGHT on LEFT -- port(s) 18");
+    CHECK(std::string{protectionRowText(s, 2.0).text} == "CUT 2 s #2: FIGHT on LEFT -- port(s) 18");
+    s = stateOf(ProtectionMode::Refused);
+    s.verdict.totalDead = 3;
+    r = protectionRowText(s, 1.0);
+    CHECK(std::string{r.text} == "REFUSED: 3 drive motors dead -- 0 V for the run");
+    CHECK(r.tone == Tone::Red);
+    // Every row at its worst case: full dead and frozen lists, a cut's words filling the log's
+    // buffer, a '%' in them -- within the SMALL budget and screen-safe, always.
+    for (const ProtectionMode m : {ProtectionMode::Driving, ProtectionMode::Degraded,
+                                   ProtectionMode::Cut, ProtectionMode::Refused}) {
+        DriveProtectionState w = stateOf(m);
+        for (std::size_t i = 0; i + 1 < sizeof w.dead; ++i) {
+            w.dead[i] = '9';
+            w.frozen[i] = '8';
+            w.lastCut[i] = i == 10 ? '%' : 'c';
+        }
+        w.cutCount = 2147483647;
+        w.overCurrentWarnings = 2147483647;
+        w.verdict.totalDead = -2147483647;
+        CAPTURE(static_cast<int>(m));
+        const shulib::bench::PanelRow worst = protectionRowText(w, 1e300);
+        CHECK(std::strlen(worst.text) <= shulib::ui::kSmallCols);
+        CHECK(shulib::ui::screenText(worst.text, shulib::ui::kSmallCols));
+    }
+}
+
+// (D7) Bug caught (the T4 brief's D4; the mutation "CUT ranked below a fault"): a state in force
+// hidden behind a latched history -- a cut or a refusal shown as an old fault, or as "no controller"
+// / DEGRADED / CLAW ABSENT -- so the driver blames the wrong thing while the sticks do nothing. The
+// order of urgency, over EVERY pair of words held at once: AUTON ENDING > REFUSED > CUT > the last
+// fault > no controller > DEGRADED > CLAW ABSENT > ok.
+TEST_CASE("driver panel (D7): the ONE chooser's full order, every pair -- REFUSED > CUT > fault > ...") {
+    struct Word {
+        const char* text;
+        void (*set)(ControllerFacts&);
+    };
+    const Word order[] = {
+        {"AUTON ENDING", [](ControllerFacts& f) { f.autonEnding = true; }},
+        {"REFUSED see brain", [](ControllerFacts& f) { f.refused = true; }},
+        {"CUT see brain", [](ControllerFacts& f) { f.cut = true; }},
+        {"MOTION_TIMEOUT",
+         [](ControllerFacts& f) {
+             f.hasFault = true;
+             f.lastFault = FaultCode::MotionTimeout;
+         }},
+        {"no controller 0V", [](ControllerFacts& f) { f.connected = false; }},
+        {"DEGRADED see brain", [](ControllerFacts& f) { f.degraded = true; }},
+        {"CLAW ABSENT", [](ControllerFacts& f) { f.clawAbsent = true; }},
+    };
+    constexpr std::size_t n = sizeof order / sizeof order[0];
+    int pairs = 0;
+    for (std::size_t hi = 0; hi < n; ++hi) {
+        ControllerFacts alone{};
+        alone.connected = true;
+        order[hi].set(alone);
+        CAPTURE(order[hi].text);
+        CHECK(std::string_view{controllerWord(alone)} == order[hi].text);
+        for (std::size_t lo = hi + 1; lo < n; ++lo) {
+            ControllerFacts both{};
+            both.connected = true;
+            order[lo].set(both);
+            order[hi].set(both);
+            CAPTURE(order[lo].text);
+            CHECK(std::string_view{controllerWord(both)} == order[hi].text);
+            ++pairs;
+        }
+    }
+    CHECK(pairs == 21);
+    ControllerFacts ok{};
+    ok.connected = true;
+    CHECK(std::string_view{controllerWord(ok)} == "ok");
+    for (const char* w : {"REFUSED see brain", "CUT see brain"}) {
+        CHECK(std::strlen(w) <= shulib::bench::kControllerCols);
+    }
+}
+
+// (D8) Bug caught: the protections' state not reaching the controller -- a cut or a refusal never
+// said, a runtime death never DEGRADED, the dead ports never on line 1 -- or the hand-over CLEARING
+// a word the program set (the boot's DEGRADED, a refusal) because the protections' state says
+// otherwise this tick; line 1 past 19 characters with a long dead list.
+TEST_CASE("driver panel (D8): addProtectionFacts -- REFUSED, CUT, DEGRADED and line 1's dead ports; "
+          "it only ever SETS") {
+    using shulib::bench::addProtectionFacts;
+    ControllerFacts f{};
+    f.connected = true;
+    f.headingDegrees = 12.0;
+    DriveProtectionState s = stateOf(ProtectionMode::Driving);
+    addProtectionFacts(f, s);
+    CHECK_FALSE(f.refused);
+    CHECK_FALSE(f.cut);
+    CHECK_FALSE(f.degraded);
+    CHECK(std::string{controllerScreenLines(f).line[1]} == "hdg  +12.0 deg");
+    CHECK(std::string{controllerScreenLines(f).line[2]} == "ok");
+    // A runtime death: DEGRADED by the mid-run verdict, and line 1 names the dead.
+    s = stateOf(ProtectionMode::Degraded);
+    s.verdict.verdict = DriveVerdict::DriveDegraded;
+    put(s.dead, "18 13");
+    addProtectionFacts(f, s);
+    CHECK(f.degraded);
+    ControllerScreen lines = controllerScreenLines(f);
+    CHECK(std::string{lines.line[1]} == "dead 18 13");
+    CHECK(std::string{lines.line[2]} == "DEGRADED see brain");
+    // A cut over it, then a refusal over that.
+    s.mode = ProtectionMode::Cut;
+    addProtectionFacts(f, s);
+    CHECK(std::string{controllerScreenLines(f).line[2]} == "CUT see brain");
+    s.mode = ProtectionMode::Refused;
+    addProtectionFacts(f, s);
+    CHECK(std::string{controllerScreenLines(f).line[2]} == "REFUSED see brain");
+    // It only SETS: a later Driving state does not clear what the program already set.
+    ControllerFacts boot{};
+    boot.connected = true;
+    boot.degraded = true;  // the boot's port check
+    addProtectionFacts(boot, stateOf(ProtectionMode::Driving));
+    CHECK(boot.degraded);
+    CHECK(std::string{controllerScreenLines(boot).line[2]} == "DEGRADED see brain");
+    // ... and the same for a REFUSED or a CUT the program set itself (the T4-3 review's RV14: only
+    // DEGRADED was pinned, though this case's comment names a refusal too).
+    ControllerFacts set{};
+    set.connected = true;
+    set.refused = true;
+    set.cut = true;
+    addProtectionFacts(set, stateOf(ProtectionMode::Driving));
+    CHECK(set.refused);
+    CHECK(set.cut);
+    CHECK(std::string{controllerScreenLines(set).line[2]} == "REFUSED see brain");
+    // A long dead list: line 1 cut at 19 characters.
+    DriveProtectionState many = stateOf(ProtectionMode::Degraded);
+    put(many.dead, "11 12 13 14 15 16 17 18 19 20");
+    ControllerFacts g{};
+    addProtectionFacts(g, many);
+    CHECK(std::strlen(controllerScreenLines(g).line[1]) <= shulib::bench::kControllerCols);
+    CHECK(std::string{controllerScreenLines(g).line[1]} == "dead 11 12 13 14 15");
 }

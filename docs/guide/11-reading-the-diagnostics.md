@@ -230,13 +230,18 @@ worth recognizing on sight:
   is the run's first fault (the root-cause marker), then detail (here: which quantity went bad;
   for a brownout you'd see `battery=10.50V`, for a loop overrun `dt=0.7500 budget=0.5000`, and
   for an odometry tick the odometry refused, the check and its numbers —
-  [below](#reading-an-odo_stuck-line)).
+  [below](#reading-an-odo_stuck-line)). A loop that stays slow is said **once per slow stretch**:
+  its first slow tick logs the line, and every later slow tick of the stretch is counted (in `n=`
+  of the next fault line, and in the run's fault count) without a line of its own — the per-tick
+  `dt` is on every record. A tick back under the budget ends the stretch; the next slow one is
+  said again.
 - **Fault-policy aborts** (Warn, from the scheduler):
   `[SCH] fault abort: ODO_STUCK — cancelling MoveToPose` — pairs with a `✗FAULT_ABORT` result
   line moments later.
-- **Overrun attribution** (Warn, tick after an overrun):
+- **Overrun attribution** (Warn, the tick after a slow stretch begins — once per stretch, beside its
+  `LOOP_OVERRUN` line):
   `[SCH] overrun attribution: loc 0.5ms · mot 5.5ms · other 0.2ms (worst mot)` — *which phase*
-  of the control tick ate the budget.
+  of the control tick ate the budget (every later slow tick's phases ride its records).
 - **Throttle notices** (Warn, tag `DIA`): `throttled MOT: dropped 47 lines` — the rate limiter
   (below) dropped output and is telling you exactly how much.
 - **A tank leg that will not be steered** (Warn, tag `MOT`, once, at the leg's first live tick):

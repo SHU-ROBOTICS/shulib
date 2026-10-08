@@ -230,8 +230,12 @@ the line first; each one names the ports.
   that port (a record from another wiring — recalibrate), a slipping or broken gear, a motor
   wired backwards. A cut that comes back every 1.25 s while the stick is held is the same fight
   each time. `CUT: whole LEFT side OPPOSITE/stalled vs command` means every motor on the side
-  disagreed — the side as a whole is wired or signed backwards. **One to rule out:** a full-speed
-  stick reversal that takes longer than 250 ms to turn the train around (register entry HA-132).
+  disagreed — the side as a whole is wired or signed backwards. **Two to rule out:** a full-speed
+  stick reversal that takes longer than 250 ms to turn the train around (register entry HA-132);
+  and ONE cut a moment after the robot hits a wall under a held stick, naming one port and not
+  coming back — that motor's reported speed settled to 0 sooner than its mates', which still
+  reported motion, and since the encoder check (the team lead's ruling, 2026-10-01) that one cut is
+  the rule's accepted price for never marking such a motor dead (register entry HA-175).
 - **`CUT: port 17 (LEFT) over 2.4 A for 250 ms …`**: one drive motor drew more than 2.4 A for
   250 ms while its side was driven. **Likely:** pushing a wall or a robot (a V5 motor at its
   current limit is believed to draw about 2.5 A, the PROS default — register entry HA-154, not
@@ -252,18 +256,16 @@ the line first; each one names the ports.
   restarted. Fix the robot first; a restart with the same fault refuses again — at boot, if those
   ports are dead then, or once more than two are dead again.
 - **A motor reported dead that is not:** the rule marks a motor whose position AND reported speed
-  repeat while its side is plainly turning, and only when at least as many of its side answer. A
-  whole side stopping together (a wall) marks nobody — as long as its motors' reported speeds
-  settle alike. The known gaps are all at a wall. At ANY wall, the mates' reported speeds lag the
-  stop and still say the train turns, so a motor whose reported speed settles to 0 well before
-  theirs can be marked (in the host tests: its report lagging 30 ms beside theirs at 120 ms, at
-  full stick). Beside a motor whose gear SLIPS (robot two's port 18), whose encoder keeps turning
-  while its mates stall, it takes less: a side ALREADY down to two can have its last live mate
-  marked; and on a full side, ONE stalled motor whose readings flicker, or whose reported speed
-  settles sooner than its mates', can get one or two live motors marked — and a second push then
-  the last one, which stops the drive (register entry HA-175). Fixing the slipping gear removes the
-  slipping cases, not the first one. Capture the log lines around it — they are the evidence that
-  number needs.
+  repeat while its side is plainly turning — its own reported speed says so, or a side-mate's
+  ENCODER is still moving — and only when at least as many of its side answer. A whole side
+  stopping together (a wall) marks nobody, however unevenly its motors' reported speeds settle: a
+  mate whose encoder has stopped is no evidence, whatever its lagging report still says (the team
+  lead's encoder check, 2026-10-01). The known gaps are beside a motor whose gear SLIPS (robot two's
+  port 18), whose encoder keeps turning while its mates stall: a side ALREADY down to two can have
+  its last live mate marked; and on a full side, ONE stalled motor whose readings flicker, or whose
+  reported speed settles sooner than its mates', can get one or two live motors marked — and a
+  second push then the last one, which stops the drive (register entry HA-175). Fixing the slipping
+  gear removes them. Capture the log lines around it — they are the evidence that number needs.
 
 None of these lines has been seen on a robot yet; the rules and their numbers are host-tested only.
 

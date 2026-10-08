@@ -527,6 +527,65 @@ TEST_CASE("T4 P2-10b: a mate stops being evidence at EXACTLY suspectReads repeat
     CHECK(at5.frozenMask == bit(1));
 }
 
+TEST_CASE("T4 P2-10b: THE ENCODER CHECK (the team lead's ruling of 2026-10-01, \"D, again\") — a mate "
+          "whose ENCODER has held for suspectReads reads is no evidence that the train turns, however "
+          "its report still changes: at its 4th encoder repeat it still is, at its 5th it is not") {
+    // BUG CAUGHT: the mates' evidence on a changing REPORT over a stopped encoder (the rule until
+    // 2026-10-01): at a wall every encoder stops while the lagging reports decay, and a member whose
+    // report settled first was SUSPECT, FROZEN and marked — a live motor (P2-19e on the loop). And the
+    // encoder window off by one either way. Member 0 stands from its first read (reading 0); its
+    // mates turn for 10 ticks, then their encoders hold while their reports keep decaying above
+    // 1 rad/s — so their position-AND-velocity repeat stays 0 throughout, and only the ENCODER's
+    // repeat can take them out of the evidence.
+    Side4 s;
+    s.held[0] = true;
+    s.vel = {0.0, 3.0, 3.0, 3.0};
+    const FrozenVerdict turning = s.ticks(10);
+    CHECK(turning.suspectMask == bit(0));  // the mates' encoders move: member 0 is SUSPECT, FROZEN
+    CHECK(turning.frozenMask == bit(0));
+    s.held = {true, true, true, true};  // the wall: every encoder stops from this read on
+    for (int k = 0; k <= 4; ++k) {      // the mates' encoder repeats 0..4 (their first held read is 0)
+        for (std::size_t j = 1; j < 4; ++j) s.vel[j] -= 0.05;  // their reports decay, still > 1 rad/s
+        const FrozenVerdict v = s.tick();
+        CAPTURE(k);
+        CHECK(s.det.repeatReads(1) == 0);  // the report changes: no position-AND-velocity repeat
+        CHECK(v.suspectMask == bit(0));     // an encoder that moved within 5 reads is evidence
+    }
+    for (int k = 5; k < 30; ++k) {  // the mates' 5th encoder repeat on: no longer evidence
+        for (std::size_t j = 1; j < 4; ++j) s.vel[j] -= 0.05;
+        const FrozenVerdict v = s.tick();
+        CAPTURE(k);
+        REQUIRE(s.vel[1] > 1.0);  // their reports still say "turning", above the moving floor
+        CHECK(v.suspectMask == 0u);
+        CHECK(v.frozenMask == 0u);
+    }
+    CHECK(s.det.latchedMask() == 0u);
+}
+
+TEST_CASE("T4 P2-10b: THE ENCODER CHECK at a wall whose reports settle UNEVENLY — every encoder stops "
+          "together, one report reaches 0 first, the others decay for 60 reads: NOBODY is suspect, "
+          "nobody FROZEN, nobody latched") {
+    // BUG CAUGHT: the any-wall gap of the verification of 2026-10-01 at the detector itself — the
+    // member whose report settles first repeats, and the mates' still-decaying reports (with every
+    // encoder stopped) kept it SUSPECT and FROZEN for 25 ticks: latched, a live motor marked. Under
+    // the encoder check its mates are no evidence from their 5th encoder repeat, before its own
+    // position-AND-velocity repeat can reach 5.
+    Side4 s;
+    s.vel = {3.0, 3.0, 3.0, 3.0};
+    (void)s.ticks(10);
+    s.held = {true, true, true, true};
+    for (int k = 0; k < 60; ++k) {
+        s.vel[0] = k < 2 ? 1.5 - 0.75 * k : 0.0;  // member 0's report: 1.5, 0.75, then 0 for good
+        for (std::size_t j = 1; j < 4; ++j) s.vel[j] = 3.0 - 0.03 * k;  // theirs: still > 1 at 60
+        const FrozenVerdict v = s.tick();
+        CAPTURE(k);
+        CHECK(v.suspectMask == 0u);
+        CHECK(v.frozenMask == 0u);
+    }
+    CHECK(s.det.repeatReads(0) >= 5);  // member 0 HAS repeated: only its mates' evidence is gone
+    CHECK(s.det.latchedMask() == 0u);
+}
+
 TEST_CASE("T4 P2-10b: a repeat is BIT FOR BIT — a report alternating 0.0 and -0.0 is no repeat; a NaN "
           "held bit for bit is one") {
     // BUG CAUGHT (the review of 2026-09-30, F1): the repeat compared with `==`, which calls 0.0 and

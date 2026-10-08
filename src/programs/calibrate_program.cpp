@@ -7,7 +7,7 @@
 // brain's own registry, discovers the IMU port, runs the calibrator with the operator answering
 // on the touch screen, and — when the run reaches Done — writes the measured
 // hal::DrivetrainDescription to /usd/shulib_drivetrain.bin, reads it back, and only then says
-// SAVED. "shulib Teleop" boots from that file. The finished screen and the stopped screen both
+// SAVED. "shulib Drive" (slot 1) and the competition program boot from that file. The finished screen and the stopped screen both
 // carry RUN AGAIN, which starts a fresh run inside the same program.
 //
 // ═══ WHAT HAS RUN ON HARDWARE, AND WHAT HAS NOT ════════════════════════════════════
@@ -44,8 +44,8 @@
 // ═══ ONLY A LITERAL "%s" EVER REACHES A PROS SCREEN CALL ═══════════════════════════
 // PROS hands the already-formatted text to VEXos AS A FORMAT STRING, so a '%' that reaches the
 // screen is re-read as a conversion with no argument behind it; and VEXos's fonts carry ASCII
-// only. printText() (src/common/screen_text.hpp since G1 Part 2b, shared with "shulib Teleop"; it lived
-// in this file until then) is the ONE path to screen_print_at: it copies the text into a buffer sized
+// only. printText() (src/common/screen_text.hpp since G1 Part 2b, shared with the programs that
+// boot from the record; it lived in this file until then) is the ONE path to screen_print_at: it copies the text into a buffer sized
 // from the size's budget, turns '%' and control bytes into '?', a UTF-8 em/en dash into '-' and
 // any other non-ASCII character into one '?' (the hal/pros adapters' precondition messages carry
 // em dashes, and a refusal screen shows them), cuts it at the budget, and prints it through "%s".
@@ -104,7 +104,8 @@
 // ═══ SIGNS: THE CALIBRATOR APPLIES THEM, SO THE ADAPTERS ARE POSITIVE ══════════════
 // Every ProsMotor here is built with a POSITIVE port (the calibrator's rule 1). The sign is what
 // the procedure MEASURES; it lands inside the description's `signedPorts` and is applied ONCE,
-// by PROS, in the adapter "shulib Teleop" builds from the record.
+// by PROS, in the adapter "shulib Drive" (and every program that boots from the record) builds
+// from it.
 //
 // ═══ SAVED IS A MEASUREMENT, NOT A CLAIM (ruling P5) ═══════════════════════════════
 // encode → write → flush → CLOSE → re-open → read back → compare the bytes → decode. Only then
@@ -253,7 +254,7 @@ std::uint32_t barTextColour(PanelTone t) {
 
 // formatOf(), the budget static_assert, g_screenPrints and printText() lived here until G1
 // Part 2b (2026-09-26), which moved them VERBATIM into src/common/screen_text.hpp so "shulib Teleop"
-// paints through the same path; every call below is unchanged, and g_screenPrints (now
+// (retired at T4 Part 3) painted through the same path; every call below is unchanged, and g_screenPrints (now
 // shulib::bench::g_screenPrints, found by the same unqualified name) still counts this program's
 // prints.
 
@@ -894,7 +895,7 @@ SaveOutcome finishDone(const DrivetrainCalibrator& cal, const RunRecord& run) {
     }
     if (outcome == SaveOutcome::Saved) {
         emitf("SAVED -- /usd/%s: written, flushed, RE-READ and compared byte for byte (%d bytes). "
-              "shulib Teleop (slot 2) will boot from it.",
+              "shulib Drive (slot 1) and the competition program boot from it.",
               calibration::kRecordFileName, static_cast<int>(calibration::kRecordBytes));
         emit("COPY THE 'MEASURED tank ...' LINE ABOVE DOWN. Then touch RUN AGAIN and check");
         emit("the two runs agree -- a number that does not reproduce is not a measurement");

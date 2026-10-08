@@ -50,7 +50,7 @@ Three parts, and keeping them separate in your head is most of the learning:
 1. **The wiring** — build a `Chassis` out of parts: a drivetrain description, hardware,
    localization, diagnostics. Done once, at startup. (On a real robot the same parts are built
    from the real `hal/pros` adapters, plugged into the slots your test wiring fills with fakes —
-   `src/programs/teleop_program.cpp` does it for robot two through `robot::Robot`, the two-line form at
+   `src/programs/drive_program.cpp` does it for robot two through `robot::Robot`, the two-line form at
    the end of Step 2. `src/build_selection.hpp` chooses which program runs, on which robot, and
    `src/main.cpp` only hands it the PROS entry points.)
 2. **The routine** — a plain function that tells the chassis what to do. This is the part
@@ -217,7 +217,7 @@ robot is physically placed (`initialPose`) — the simulation's equivalent of pu
 the field — and we give it feedforward constants (`kS`, `kV`, `kA`,
 [Chapter 5](05-getting-there.md)) describing its motors. On a real robot, this step becomes
 "construct the objects that talk to real hardware" — and **those adapters now exist**
-(`include/shulib/hal/pros/`, built in the R1 chunks; `src/programs/teleop_program.cpp` is the worked
+(`include/shulib/hal/pros/`, built in the R1 chunks; `src/programs/drive_program.cpp` is the worked
 example). This
 harness implements the *same interfaces* they do, which is exactly why the routine below does
 not change between them.
@@ -310,11 +310,12 @@ agree to the last bit. `built.chassis()` is the same `Chassis` your routine alre
 The longhand stays, and it stays worth reading: it is exactly what `Robot` does for you, and it is
 the path you take (Tier 3 in the project's
 [accessibility model](../shulib-v2-master-plan.md#17-accessibility--progressive-disclosure-for-teams-that-cant-code-yet))
-when you need something the builder does not build. One honest note: two programs in `src/` are
-built this way, and no program wires a graph by hand any more. "shulib Teleop", in
-`src/programs/teleop_program.cpp`, builds its `robot::Robot` from robot two's calibration record — and this
-version of it has not run on a robot yet (the version before it, wired by hand, drove robot two
-open-loop under a driver on 2026-09-25). The other is an X-drive typed as a `constexpr RobotConfig`
+when you need something the builder does not build. One honest note: every program in `src/` that
+builds a robot builds it this way, and no program wires a graph by hand any more. "shulib Drive", in
+`src/programs/drive_program.cpp`, builds its `robot::Robot` from robot two's calibration record (the
+auton tester builds robot two the same way) — and it has not run on a robot yet (a program before
+it, "shulib Teleop", drove robot two open-loop under a driver on 2026-09-25, in a version wired by
+hand). The other kind is an X-drive typed as a `constexpr RobotConfig`
 in `src/robots/xdrive_config.hpp` — worth reading as the shape of a robot described by hand — whose ports
 are invented, so on every robot that exists it refuses at boot, naming the first port that is not
 what it says. Nothing built this way has run on a robot, and the on-robot provider has only been

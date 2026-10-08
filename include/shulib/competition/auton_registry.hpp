@@ -1,7 +1,8 @@
 #pragma once
 //
 // competition::AutonRegistry — the autons a competition program can run, as DATA (chunk COMP-a,
-// 2026-09-26; the COMP brief's rulings C2, C3, C6 and amendments B15, B16).
+// 2026-09-26; the COMP brief's rulings C2, C3, C6 and amendments B15, B16; OnRefusal::DropEntry at
+// T4 Part 3, the team lead's ruling of 2026-10-02 on COMP-b's C5).
 //
 // ── What an auton is here ───────────────────────────────────────────────────────────
 // An AutonEntry is a row of data the STUDENTS' file registers, from `initialize()`, by an explicit
@@ -42,6 +43,19 @@
 // recommended (the guide will say so): the period is when the field disables the robot, and a
 // hard stop that lands on it is a hard stop that never had a tick to act.
 //
+// ── A refused entry: the boot, or just that auton (the team lead's ruling of 2026-10-02) ──
+// By default add() THROWS on an entry check() refuses (B15: refusals happen at registration, not in
+// a match), so a program's initialize() refuses its boot by name. The team lead ruled otherwise for
+// the competition program (COMP-b's review, its C5: "drop just that auton" — an auton bug must not
+// cost the match's driver period), and the Auton Tester, which registers through the same function,
+// does the same (the coordinator's extension of the ruling, T4 Part 3; the team lead confirmed it
+// 2026-10-08): a registry built with
+// OnRefusal::DropEntry registers NOTHING for a refused entry, keeps check()'s sentence (refusal(),
+// which names the auton first), and RETURNS — so the students' registration function goes on to its
+// next entry, the refused one is never on the menu (AutonMenu names it there instead), and the
+// program logs every sentence. The rules themselves are unchanged: the same check(), the same
+// sentences.
+//
 // ── Names (B25) ─────────────────────────────────────────────────────────────────────
 // A name is shown as "AUTON: <name>" on ONE medium line of the brain screen, so it is at most
 // kMaxAutonNameChars = ui::kMediumCols - 7 = 29 printable ASCII characters, no '%', unique, and
@@ -78,6 +92,16 @@ inline constexpr std::size_t kMaxAutons = 16;
 /// The longest auton name: "AUTON: " (7 characters) plus the name must fit ONE medium line (B25).
 inline constexpr std::size_t kMaxAutonNameChars = ui::kMediumCols - 7;
 static_assert(kMaxAutonNameChars == 29, "B25 fixes the name budget at kMediumCols - 7 = 29");
+
+/// The most refused entries one registry keeps the sentences of (refusal()); refusedCount() counts
+/// past it.
+inline constexpr std::size_t kMaxAutonRefusals = 8;
+
+/// What AutonRegistry::add() does with an entry its check() refuses (file banner: A refused entry).
+enum class OnRefusal : std::uint8_t {
+    Throw = 0,      ///< throw PreconditionError carrying check()'s sentence (B15; the default)
+    DropEntry = 1,  ///< register nothing, keep check()'s sentence (refusal()), and return
+};
 
 /// The selector's reserved choice. No registered auton may be called this.
 inline constexpr std::string_view kNoAutonName = "NONE";
@@ -369,7 +393,12 @@ struct AutonVerdict {
 class AutonRegistry {
 public:
     /// `periods` are the PROGRAM's two constants (REQUIRED — AutonPeriods::validate()).
-    explicit AutonRegistry(const AutonPeriods& periods) : periods_{periods} { periods_.validate(); }
+    /// `onRefusal`: what add() does with an entry check() refuses (file banner: A refused entry) —
+    /// throw (the default), or drop just that entry and keep its sentence.
+    explicit AutonRegistry(const AutonPeriods& periods, OnRefusal onRefusal = OnRefusal::Throw)
+        : periods_{periods}, onRefusal_{onRefusal} {
+        periods_.validate();
+    }
 
     /// Would `e` be accepted? checkAutonEntry() against its kind's period, then uniqueness and
     /// capacity. Pure: registers nothing.
@@ -392,14 +421,35 @@ public:
         return v;
     }
 
-    /// Register `e` (COPIED; its name and route stay borrowed). PRECONDITION: check(e) passes —
-    /// a refused entry throws PreconditionError carrying check()'s sentence, which names the
-    /// auton, so a program's `initialize()` try block can log it and refuse the boot by name
-    /// (ruling B15: refusals happen at REGISTRATION, not in a match).
+    /// Register `e` (COPIED; its name and route stay borrowed) when check(e) passes. When it does
+    /// not: under OnRefusal::Throw (the default) a PreconditionError carrying check()'s sentence,
+    /// which names the auton, so a program's `initialize()` try block can log it and refuse the
+    /// boot by name (ruling B15: refusals happen at REGISTRATION, not in a match); under
+    /// OnRefusal::DropEntry nothing is registered, the sentence is kept (refusal()) and counted
+    /// (refusedCount()), and add() returns — never throws — so the next entry is registered as if
+    /// the refused one had never been written (the team lead's ruling of 2026-10-02).
     void add(const AutonEntry& e) {
         const AutonVerdict v = check(e);
+        if (!v.ok && onRefusal_ == OnRefusal::DropEntry) {
+            if (refused_ < kMaxAutonRefusals) {
+                refusals_[refused_] = v;
+            }
+            ++refused_;
+            return;
+        }
         SHULIB_PRECONDITION(v.ok, v.why);
         entries_[count_++] = e;
+    }
+
+    /// What add() does with a refused entry (the constructor's choice).
+    [[nodiscard]] OnRefusal onRefusal() const noexcept { return onRefusal_; }
+    /// How many entries add() DROPPED (OnRefusal::DropEntry) — every one, kept or not. Always 0
+    /// under OnRefusal::Throw, where a refusal throws instead.
+    [[nodiscard]] std::size_t refusedCount() const noexcept { return refused_; }
+    /// The sentence of dropped entry `i`, in the order add() met them — check()'s, beginning
+    /// "auton '<name>': " — for `i` below both refusedCount() and kMaxAutonRefusals; "" otherwise.
+    [[nodiscard]] const char* refusal(std::size_t i) const noexcept {
+        return i < refused_ && i < kMaxAutonRefusals ? refusals_[i].why : "";
     }
 
     /// How many autons are registered.
@@ -432,8 +482,11 @@ public:
 
 private:
     AutonPeriods periods_;
+    OnRefusal onRefusal_ = OnRefusal::Throw;
     AutonEntry entries_[kMaxAutons]{};
     std::size_t count_ = 0;
+    AutonVerdict refusals_[kMaxAutonRefusals]{};
+    std::size_t refused_ = 0;
 };
 
 }  // namespace shulib::competition

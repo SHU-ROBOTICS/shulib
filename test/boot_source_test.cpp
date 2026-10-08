@@ -895,22 +895,18 @@ void requirePneumaticMechanism(const cfgns::MechanismConfig& m, std::string_view
 /// A table whose every field is DISTINGUISHABLE — the fields robot two's table cannot tell apart
 /// (its two pivots share a cartridge and a mode; its claw's start and safe are both CLOSED, and its
 /// polarity makes CLOSED the LOW level, which is also what a CLOSED position read as a bool gives).
+/// (Its entries carried buttons and volts until T4 Part 3 moved them to the driver file; the
+/// conversion never read them, so every decision this file pins is unchanged.)
 constexpr MechanismTable kDistinguishable = {
     .motors = {{.name = "lift",
                 .signedPort = -9,
                 .cartridge = Cartridge::Green,
                 .safeMode = shulib::hal::BrakeMode::Brake,
-                .forward = shulib::hal::ControllerButton::Up,
-                .reverse = shulib::hal::ControllerButton::Down,
-                .volts = 8.0,
                 .provenance = "test"},
                {.name = "intake",
                 .signedPort = 10,
                 .cartridge = Cartridge::Blue,
                 .safeMode = shulib::hal::BrakeMode::Coast,
-                .forward = shulib::hal::ControllerButton::Left,
-                .reverse = shulib::hal::ControllerButton::Right,
-                .volts = 6.0,
                 .provenance = "test"}},
     .motorCount = 2,
     .pneumatics = {{.name = "clamp",
@@ -918,14 +914,12 @@ constexpr MechanismTable kDistinguishable = {
                     .openCommand = false,  // LOW opens: CLOSED is HIGH
                     .start = PneumaticPosition::Closed,
                     .safe = PneumaticPosition::Open,
-                    .toggle = shulib::hal::ControllerButton::X,
                     .provenance = "test"},
                    {.name = "wing",
                     .adiLine = 8,
                     .openCommand = true,
                     .start = PneumaticPosition::Open,
                     .safe = PneumaticPosition::Closed,
-                    .toggle = shulib::hal::ControllerButton::B,
                     .provenance = "test"}},
     .pneumaticCount = 2,
 };

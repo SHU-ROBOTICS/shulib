@@ -76,12 +76,19 @@ TEST_CASE("pins (P2): the boot — B8's order, the chain, the proof and the bind
     CHECK(count(code, "pacerChainProven(") == 1);
 
     const std::string init = squash(bodyOf(code, "void competitionInitialize("));
-    const std::size_t tryAt = init.find("try { st.devices.emplace();");
+    // T4 Part 3 (Decision B): the provider is built WITH the log copy, appended; re-pointed
+    // one-for-one from "try { st.devices.emplace();".
+    const std::size_t tryAt =
+        init.find("try { st.devices.emplace(kLogCopyFile, hal::pros::ProsFileMode::Append);");
     const std::size_t robotAt = init.find("st.robot.emplace(");
     const std::size_t bindAt = init.find("if (!st.driver.bind(*st.robot, why, sizeof why)) {");
-    const std::size_t registerAt = init.find("registerAutons(*st.registry);");
+    // T4 Part 3 (the team lead's C5 ruling, 2026-10-02): the registry DROPS a refused entry --
+    // built so right before the team's registration, inside the try.
+    const std::size_t registerAt = init.find(
+        "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry); "
+        "registerAutons(*st.registry);");
     const std::size_t proofAt = init.find("if (!pacerChainProven(st.robot->chassis(), *st.guard, *st.watch)) {");
-    const std::size_t catchAt = init.find("} catch (const std::exception& e) { unbuild();");
+    const std::size_t catchAt = init.find("} catch (const std::exception& e) { refuseBuilt(");
     const std::size_t latchAt = init.find("attachFaultLatch(&st.robot->faults());");
     const std::size_t taskAt = init.find("st.task.emplace(");
     for (const std::size_t at : {tryAt, robotAt, bindAt, registerAt, proofAt, catchAt, latchAt, taskAt}) {
@@ -100,13 +107,30 @@ TEST_CASE("pins (P2): the boot — B8's order, the chain, the proof and the bind
                       "TASK_STACK_DEPTH_DEFAULT, \"auton task\");") == 1);
     CHECK(count(code, "st.task.emplace(") == 1);
     // Each refusal inside the try un-builds, then refuses, then returns -- a refusal that went on
-    // would start a task over a destroyed Robot.
-    CHECK(count(init, "unbuild(); refuse(\"the library graph REFUSED to build\", verdict.why); "
+    // would start a task over a destroyed Robot. (Re-pinned one-for-one at the T4-3 review: each goes
+    // through refuseBuilt(), which says the refusal through the provider's sink FIRST -- so the log
+    // copy, comp_log.txt, holds why the boot refused -- then un-builds, then paints with no serial
+    // line of its own.)
+    CHECK(count(init, "refuseBuilt(\"the library graph REFUSED to build\", verdict.why); "
                       "return;") == 1);
-    CHECK(count(init, "unbuild(); refuse(\"the driver's controls REFUSED\", why); return;") == 1);
-    CHECK(count(init, "unbuild(); refuse(\"the competition program's pacer chain is WRONG\",") == 1);
-    CHECK(count(init, "} catch (const std::exception& e) { unbuild(); refuse(\"the competition "
+    CHECK(count(init, "refuseBuilt(\"the driver's controls REFUSED\", why); return;") == 1);
+    CHECK(count(init, "refuseBuilt(\"the competition program's pacer chain is WRONG\",") == 1);
+    CHECK(count(init, "} catch (const std::exception& e) { refuseBuilt(\"the competition "
                       "program REFUSED to start\", e.what()); return; }") == 1);
+    // The serial line is left to the sink ONLY when the sink said it (`logged`, read before
+    // unbuild() releases the provider -- the T4-3 verification: with no provider the refusal was
+    // painted with its serial line off and said nowhere on serial).
+    CHECK(count(init, "const auto refuseBuilt = [&st, &unbuild](const char* headline, const char* "
+                      "why) { const bool logged = st.devices.has_value(); if (logged) { "
+                      "logBootRefusal(st.devices->telemetry(), kTag, headline, why); } unbuild(); "
+                      "refuse(headline, why, !logged); };") == 1);
+    CHECK(count(code, "refuse(headline, why, false)") == 0);
+    CHECK(count(init, "refuseBuilt(") == 4);  // its four refusals
+    CHECK(count(init, "unbuild();") == 1);    // only inside refuseBuilt
+    CHECK(count(code, "logBootRefusal(") == 1);
+    CHECK(count(squash(bodyOf(code, "void refuse(const char* headline, const char* why, bool "
+                                    "serialLine = true)")),
+                ".footer = kNothingPowered, .logToSerial = serialLine});") == 1);
     // The unbuild: the driver's bindings FIRST, then the objects from the outside in.
     CHECK(count(squash(code), "const auto unbuild = [&st] { st.driver.unbind(); st.menu.reset(); "
                               "st.registry.reset(); st.robot.reset(); st.guard.reset(); "
@@ -291,7 +315,9 @@ TEST_CASE("pins (P9): the SD run log is the shared file, through the adapter's A
     }
     CHECK(count(code, "st.sdBlock.emplace(kAutonRunLogFile, hal::pros::ProsFileMode::Append);")
           == 1);
-    CHECK(count(code, "ProsFileMode::") == 1);
+    // Two Append opens since T4 Part 3: the run log (above) and the provider's log copy (P17).
+    CHECK(count(code, "ProsFileMode::") == 2);
+    CHECK(count(code, "ProsFileMode::Append") == 2);
     // The boot lines are competitionBootLines' three (host-tested at the worst case), each to the
     // card too; no one-line boot format of the program's own.
     CHECK(count(code, "competitionBootLines(") == 1);
@@ -317,12 +343,20 @@ TEST_CASE("pins (P10): the program names no motion verb") {
 }
 
 // Bug caught (RC5): the claw boot lines printed from words of the program's own (the worksheet's
-// J.3.1 and K quote the shared words, true for both programs).
-TEST_CASE("pins (P11): the claw boot lines are teleop_claws.hpp's (interim), one per entry") {
+// J.3.1 and K quote the shared words, true for both programs). T4 Part 3 re-pointed it one-for-one:
+// the words MOVED from src/programs/teleop_claws.hpp (deleted) into src/common/driver_panel.hpp,
+// and the buttons they name come from the driver file's controls (the table lost them) -- so a
+// line read from anything but RobotTwoDriver's kHolds / kToggles is red here.
+TEST_CASE("pins (P11): the claw boot lines are the shared panel's, from the driver file's controls") {
     const std::string code = program();
-    CHECK(count(code, "motorClawBootLine(kMechanisms, *st.robot, i).text") == 1);
-    CHECK(count(code, "pneumaticClawBootLine(kMechanisms, *st.robot, j).text") == 1);
-    CHECK(count(code, "#include \"programs/teleop_claws.hpp\"") == 1);
+    CHECK(count(code, "motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, *st.robot, i).text")
+          == 1);
+    CHECK(count(code,
+                "pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, *st.robot, j).text")
+          == 1);
+    CHECK(count(code, "ClawBootLine(") == 2);
+    CHECK(count(code, "#include \"common/driver_panel.hpp\"") == 1);
+    CHECK(count(code, "teleop_claws") == 0);
     CHECK(count(code, "kRobotTwoMechanisms") == 0);  // the build's table by the selected name only
 }
 
@@ -460,33 +494,37 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
          "ERROR outside a request: %.80s -- the robot was not \" \"touched; later autons REFUSED "
          "until a restart\", what != nullptr ? what : \"\"); logLine(hal::LogLevel::Error, line); "
          "} catch (...) { }"},
+        // T4 Part 3 (Part 2b's item 6): the hook takes the FOURTH argument, the drive protections'
+        // state, and hands it to the page (the PROTECTION row) and the controller (REFUSED, CUT,
+        // the dead ports) -- re-pointed one-for-one; every other statement unchanged.
         {"void operator()(const math::ChassisSpeeds&",
          "++tick_; const double now = robot_.context().clock().now().value(); const PaintAction "
          "action = tracker_.next(st_.owner.snapshot(), ScreenOwner::Driver, now); if (action == "
-         "PaintAction::Whole) { painted_ = view(connected); paintViewWhole(painted_); paintedAt_ = "
-         "now; } else if (action == PaintAction::Changes && now - paintedAt_ >= "
-         "kLiveRepaintSeconds) { const CompetitionView next = view(connected); "
+         "PaintAction::Whole) { painted_ = view(connected, protection); paintViewWhole(painted_); "
+         "paintedAt_ = now; } else if (action == PaintAction::Changes && now - paintedAt_ >= "
+         "kLiveRepaintSeconds) { const CompetitionView next = view(connected, protection); "
          "paintViewChanges(painted_, next); painted_ = next; paintedAt_ = now; } if (tick_ % "
-         "kLcdEveryTicks == 1) { refreshLcd(connected, now); }"},
-        {"CompetitionView view(bool connected)",
+         "kLcdEveryTicks == 1) { refreshLcd(connected, protection, now); }"},
+        {"CompetitionView view(bool connected,",
          "const diag::FaultLatch& f = robot_.faults(); faultRow_ = faultRowText(f.hasFault() ? "
          "f.faultCount() : 0, f.firstFault(), f.lastFault()); clawRow_ = clawRowText(kMechanisms, "
          "robot_, st_.driver.bindings().anyReleasedLeftoverClaim()); CompetitionDriverFacts "
-         "facts{}; facts.auton = competitionAutonRow(st_.last, *st_.registry, "
+         "facts{}; facts.protection = protectionRowText(protection, kCutSeconds); facts.auton = "
+         "competitionAutonRow(st_.last, *st_.registry, "
          "st_.flags.programError.load(), st_.flags.bootFromRecord); facts.controller = "
          "controllerRowText(connected); facts.faultRow = faultRow_.text; facts.faultRed = "
          "f.hasFault(); facts.clawRow = clawRow_.text; facts.clawAmber = anyClawAbsent(robot_) || "
          "st_.driver.bindings().anyReleasedLeftoverClaim(); facts.buildStamp = kBuildTimeText; "
          "return competitionDriverView(facts);"},
-        {"void refreshLcd(bool connected, double now)",
+        {"void refreshLcd(bool connected, const teleop::DriveProtectionState& protection, double now)",
          "ControllerFacts f{}; f.batteryVolts = robot_.context().battery().voltage().value(); "
          "f.headingDegrees = robot_.localizer().pose().heading().radians() * 180.0 / "
          "math::Angle::kPi; f.hasFault = robot_.faults().hasFault(); f.lastFault = "
          "robot_.faults().lastFault(); f.connected = connected; f.degraded = "
          "st_.boot.verdict.decision == calibration::BootDecision::Degraded; f.clawAbsent = "
-         "anyClawAbsent(robot_); const ControllerScreen want = controllerScreenLines(f); const int "
-         "row = state().lcdWriter.next(want, now); if (row >= 0) { state().lcd->setLine(row, "
-         "want.line[row]); }"},
+         "anyClawAbsent(robot_); addProtectionFacts(f, protection); const ControllerScreen want = "
+         "controllerScreenLines(f); const int row = state().lcdWriter.next(want, now); if (row >= "
+         "0) { state().lcd->setLine(row, want.line[row]); }"},
         {"void sayAutonEnding(double waitedSeconds)",
          "CompetitionState& st = state(); st.owner.handTo(ScreenOwner::Driver); const "
          "competition::AutonEntry* running = st.menu->chosenEntry(); const char* name = running != "
@@ -507,7 +545,8 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
     // The controller is written in exactly two places: AUTON ENDING's line, and the writer's line.
     CHECK(count(code, "->setLine(") == 2);
     // logLine is the program's ONE line writer, and only the boot and the auton task pass `alsoSd`.
-    CHECK(count(code, ", true);") == 2);  // the boot's lines and an ABSENT mechanism's
+    // The boot's lines, an ABSENT mechanism's, and (T4 Part 3, C5) each DROPPED auton's.
+    CHECK(count(code, ", true);") == 3);
 }
 
 // Bug caught (RC1, ND5 -- the review's RV2 and RV3, both green on the full suite): the END estimate
@@ -595,4 +634,88 @@ TEST_CASE("pins (P16): the handshake's store-then-load pair -- the claim before 
     CHECK(count(bodyOf(code, "class DriverLoopPresence"), "memory_order") == 0);
     CHECK(count(code, "requested_.fetch_add(") == 1);
     CHECK(count(code, "active_.store(") == 3);  // enter's claim and its undo, and leave()
+}
+
+// Bug caught (T4 Part 3; the team lead's N5 (a), A (a) and B (a)): the competition program's SD
+// copy of its log opened TRUNCATING (a reboot mid-match would erase that match's log -- B (a)'s
+// reason), named with a /usd/ path of its own (the provider's ProsBlockSink owns the prefix), taken
+// from a second ProsBlockSink of the program's (a second writer on the card, and every record line
+// with it -- A (a)), or never said at boot (a practice match believed recorded with no card in the
+// brain), or said in words of its own (the two programs' lines would drift).
+TEST_CASE("pins (P17): the log copy -- the provider's, APPENDED, said once in the shared words") {
+    const std::string code = program();
+    CHECK(count(code, "constexpr const char* kLogCopyFile = \"comp_log.txt\";") == 1);
+    CHECK(count(code, "kLogCopyFile") == 2);  // its definition and the provider's construction
+    CHECK(count(code, "st.devices.emplace(") == 1);
+    CHECK(count(code, "st.devices.emplace(kLogCopyFile, hal::pros::ProsFileMode::Append);") == 1);
+    CHECK(count(code, "ProsBlockSink") == 1);  // the run log's (P9) -- never a second one for the copy
+    CHECK(count(code, "#include \"common/log_copy_line.hpp\"") == 1);
+    CHECK(count(code, "logCopyBootLine(") == 1);
+    // (Re-pinned at the T4-3 review: the shared mapping, with the card asked whether it is in, so a
+    // copy that failed to open says NO SD CARD only when there is none; `true`: an Append copy.)
+    CHECK(count(squash(code),
+                "const LogCopyOpen how = logCopyOpenFrom( st.devices->serialCopyOpen(), "
+                "pros::c::usd_is_installed() != 0, true, st.devices->serialCopyAppendOpen() == "
+                "hal::pros::AppendOpen::Created); const LogCopyLine copy = "
+                "logCopyBootLine(how, st.devices->serialCopyPath(), "
+                "st.devices->serialCopyDroppedLines()); logLine(copy.warn ? hal::LogLevel::Warn : "
+                "hal::LogLevel::Info, copy.text);")
+          == 1);
+    CHECK(count(code, "usd_is_installed") == 1);
+    for (const std::string& lit : stringLiterals(code)) {
+        CHECK_MESSAGE(lit.find("log copy") == std::string::npos, "a log-copy line of its own: ", lit);
+    }
+}
+
+// Bug caught (T4 Part 3; the team lead's ruling of 2026-10-02 on COMP-b's C5, "drop just that
+// auton"): one auton entry the registry refuses costing the whole boot -- driver control included
+// -- because the registry was built to throw (the default) inside the boot's try; or a dropped
+// entry never named at boot (the student sees it missing from the menu and the log is silent), or
+// named in words of the program's own; or the students' file wrapped in a try of the program's (a
+// throw half-way through it would lose every later entry).
+TEST_CASE("pins (P18): the team's autons register through a registry that DROPS a refused entry") {
+    const std::string code = program();
+    CHECK(count(code, "st.registry.emplace(") == 1);
+    CHECK(count(code, "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);") == 1);
+    CHECK(count(code, "OnRefusal::Throw") == 0);
+    CHECK(count(code, "#include \"common/dropped_autons.hpp\"") == 1);
+    // `true`: the competition program's driver control still runs past a dropped auton (C5).
+    CHECK(count(squash(code), "sayDroppedAutons(*st.registry, true, [](const char* dropped) { "
+                              "logLine(hal::LogLevel::Warn, dropped, true); });")
+          == 1);
+    CHECK(count(code, "refusal(") == 0);       // the sentences are said by the shared words only
+    CHECK(count(code, "refusedCount(") == 0);
+    for (const std::string& lit : stringLiterals(code)) {
+        CHECK_MESSAGE(lit.find("DROPPED") == std::string::npos, "a drop line of its own: ", lit);
+    }
+    // The dropped lines come AFTER the registry is built and the boot is past its try (the run
+    // log they go to opens after the try), and before the auton task exists.
+    const std::string init = squash(bodyOf(code, "void competitionInitialize("));
+    const std::size_t sdAt = init.find("st.sdBlock.emplace(");
+    const std::size_t sayAt = init.find("sayDroppedAutons(");
+    const std::size_t taskAt = init.find("st.task.emplace(");
+    REQUIRE(sdAt != std::string::npos);
+    REQUIRE(sayAt != std::string::npos);
+    REQUIRE(taskAt != std::string::npos);
+    CHECK(sdAt < sayAt);
+    CHECK(sayAt < taskAt);
+}
+
+// Bug caught (T4 Part 3, Part 2b's item 6): the driver page and the controller never told of a cut
+// or a refusal -- the hook taking three arguments (the library's loop then hands it nothing), the
+// PROTECTION row built from a number of the program's own (a retyped cut length drifts from the
+// config the loop runs with), or the controller's facts left without the protections' words.
+TEST_CASE("pins (P19): the driver page's hook takes the protections' state; the cut length is the config's") {
+    const std::string code = program();
+    CHECK(count(squash(code), "void operator()(const math::ChassisSpeeds& , bool connected, const "
+                              "teleop::DriveShaperState& , const teleop::DriveProtectionState& "
+                              "protection) {")
+          == 1);
+    CHECK(count(squash(code), "constexpr double kCutSeconds = "
+                              "RobotTwoDriver::kLoop.protection.cutTicks * "
+                              "RobotTwoDriver::kLoop.tickPeriod.value();")
+          == 1);
+    CHECK(count(code, "protectionRowText(") == 1);
+    CHECK(count(code, "addProtectionFacts(") == 1);
+    CHECK(count(code, "#include \"shulib/teleop/drive_protection.hpp\"") == 1);
 }

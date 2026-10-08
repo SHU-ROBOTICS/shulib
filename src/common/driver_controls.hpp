@@ -257,8 +257,8 @@ constexpr bool controlsCoverTable(std::span<const HoldControl> holds,
 // ═══ THE HEADING RULE ════════════════════════════════════════════════════════════════════
 
 /// THE heading field-centric turns the sticks by (driver_control.hpp's contract), for every
-/// driver-control program — "shulib Teleop", the X-drive and every driver file call this one; there
-/// is no second copy. The fused heading, TRUSTED only when all three hold:
+/// driver-control program — the X-drive and every driver file call this one; there is no second
+/// copy. The fused heading, TRUSTED only when all three hold:
 ///   * the estimate is live — the Localizer is past Uninitialized (motion.hpp's wait-for-live
 ///     contract; Degraded has four causes and says nothing specific about the heading, so it is not
 ///     the test);

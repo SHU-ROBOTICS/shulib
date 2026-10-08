@@ -1561,14 +1561,14 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  RobotConfig — a whole robot, described as DATA (chunk G1 Part 1, 2026-09-18).
 
  ── Why this type exists ────────────────────────────────────────────────────────────
- Everything a composition root says about a robot — which ports drive, which way, how
- the chassis is measured, which sensors are on it, which mechanisms it carries, what the
- motion layer is tuned to — was spelled only as C++ object construction in one place
- (src/main.cpp's hand-wired graphs, until G1 Part 2b built "shulib Teleop" from a
- RobotConfig instead). That is a fine thing for a code-fluent team and a closed
- door for everyone else. This header is the OTHER door: the same facts as a plain value
- a person can type, a calibrator can fill in, or a generator can emit, and which
- robot/robot.hpp turns into the identical object graph.
+ Everything a composition root says about a robot — which ports drive, which way, how the chassis
+ is measured, which sensors are on it, which mechanisms it carries, what the motion layer is tuned
+ to — was spelled only as C++ object construction in one place (src/main.cpp's hand-wired graphs,
+ until G1 Part 2b built "shulib Teleop" — a program T4 Part 3 retired into "shulib Drive" — from a
+ RobotConfig instead). That is a fine thing for a code-fluent team and a closed door for everyone
+ else. This header is the OTHER door: the same facts as a plain value a person can type, a
+ calibrator can fill in, or a generator can emit, and which robot/robot.hpp turns into the
+ identical object graph.
 
    ONE representation, THREE producers:
      * a human typing a `constexpr RobotConfig` (today; the standalone path);

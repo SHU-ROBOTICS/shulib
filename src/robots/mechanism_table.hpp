@@ -10,23 +10,28 @@
 // `#if defined(SHULIB_ROBOT_TANK_2026)` from T3 until then). The src build gate's step 0 fails any
 // build switch named here.
 //
-// WHAT IT DECLARES. Robot two (the 2026 tank chassis) has two SEPARATE claw PIVOT motors, stated
-// by the team lead on 2026-09-26: port 6 drives one pivot forward while R1 is held and backward
-// while R2 is held; port 7 drives the other forward on L1 and backward on L2; RED cartridge each,
-// full power (12 V) while held, and on release each HOLDS its angle. Every other robot declares
-// none. Two pivots are two ENTRIES — one entry per motor — never one entry with two ports: a single
-// mechanism fans one voltage to all its motors, so one two-motor entry would move both claws on R1
-// (T3 brief, landmine 1).
+// WHAT IT DECLARES — what the robot IS, never which button does what. Robot two (the 2026 tank
+// chassis) has two SEPARATE claw PIVOT motors, stated by the team lead on 2026-09-26: ports 6 and
+// 7, RED cartridge each, and on release each HOLDS its angle. Every other robot declares none. Two
+// pivots are two ENTRIES — one entry per motor — never one entry with two ports: a single
+// mechanism fans one voltage to all its motors, so one two-motor entry would move both claws at
+// once (T3 brief, landmine 1).
 // Robot two also has a PNEUMATIC CLAW, stated by the team lead the same day (T3 addendum §0): its
-// solenoid is on the brain's 3-wire port A; pressing A opens the claw and pressing A again closes
-// it; it is CLOSED at program start; and when the robot is disabled it KEEPS its state (it must
-// not drop what it holds). Whether its valve is single or double, and which line level opens it,
-// are NOT KNOWN (A4 register HA-159) — see "THE POLARITY" and "ONE LINE" below.
+// solenoid is on the brain's 3-wire port A; it is CLOSED at program start; and when the robot is
+// disabled it KEEPS its state (it must not drop what it holds). Whether its valve is single or
+// double, and which line level opens it, are NOT KNOWN (A4 register HA-159) — see "THE POLARITY"
+// and "ONE LINE" below.
+// WHICH BUTTON DOES WHAT — R1/R2 for port 6, L1/L2 for port 7, A for the claw, 12 V while held, Y
+// to re-zero — is NOT here: it is robot two's DRIVER FILE's, src/team/robot_two_driver.hpp, its one
+// owner since T4 Part 3 (the team lead's ruling R1, 2026-09-27: "the driver file" owns which button
+// does what, the table keeps what the robot IS). The buttons, the volts and the re-zero were stated
+// here from T3 until then, and twice — here and in the driver file, tied at compile time — from T4
+// Part 1a until Part 3 removed this file's copy.
 //
 // TWO KINDS, TWO ENTRY TYPES. A motor mechanism (MotorMechanismEntry: a signed SMART port, a
-// cartridge, a brake mode, two hold-to-run buttons, a voltage) and a pneumatic one
-// (PneumaticMechanismEntry: a 3-WIRE line, a polarity, a start and a safe POSITION, one toggle
-// button) share nothing but a name and a provenance, so they are separate types in separate arrays
+// cartridge, a brake mode) and a pneumatic one (PneumaticMechanismEntry: a 3-WIRE line, a
+// polarity, a start and a safe POSITION) share nothing but a name and a provenance, so they are
+// separate types in separate arrays
 // — mirroring the library's own hal::MotorMechanism / hal::PneumaticMechanism and
 // config::MechanismConfig's motorCount / pneumaticCount — not one struct with a kind tag. With a
 // tag, every check would have to branch on it, and a field of the other kind (a voltage on a
@@ -36,17 +41,17 @@
 // isDeclaredMechanismPort() — "shulib Calibrate"'s drop — reads the MOTOR entries only.
 //
 // RULE (chassis_table.hpp's, adopted whole): A VALUE IS NEVER INVENTED. Each field has an UNSET
-// value — port 0, line 0, Cartridge::Unset, std::nullopt, volts 0, a null or empty string — and an
+// value — port 0, line 0, Cartridge::Unset, std::nullopt, a null or empty string — and an
 // entry is DECLARED only when every field is stated: the completeness check below refuses a
 // partial entry at COMPILE time. When a fact arrives, THIS is the one place to edit, with the date
 // and the source beside it.
 //
-// WHY std::optional FOR THE MODES, THE BUTTONS, THE POLARITY AND THE POSITIONS. A field left out
-// of a designated initializer is value-initialised, and a value-initialised enum is its FIRST
+// WHY std::optional FOR THE MODES, THE POLARITY AND THE POSITIONS. A field left out of a
+// designated initializer is value-initialised, and a value-initialised enum is its FIRST
 // enumerator: hal::BrakeMode's is Coast (the invented default that DROPS a loaded pivot — T3 brief,
-// landmine 7), hal::ControllerButton's is L1 (the port-7 pivot's forward button, AND
-// teleop::DriverLoopConfig's default re-zero button), and PneumaticPosition's is Closed; a
-// value-initialised bool is `false` — an invented polarity. A plain field would turn "nobody
+// landmine 7) and PneumaticPosition's is Closed; a value-initialised bool is `false` — an invented
+// polarity. (The buttons were optional here for the same reason — hal::ControllerButton's first
+// enumerator is L1 — until they left this file at T4 Part 3.) A plain field would turn "nobody
 // stated it" into a plausible real value; an optional makes it a value of its own, which the
 // completeness check refuses. The cartridge reuses chassis_table.hpp's Cartridge, whose first
 // enumerator already IS Unset.
@@ -54,20 +59,21 @@
 // SIGNS LIVE HERE AND NOWHERE ELSE, as in the chassis table: `signedPort` is handed to the motor
 // adapter AS TYPED, and PROS reverses a negative port exactly once, in the adapter. Robot two's
 // entries are +6 and +7 because nobody has seen which way either pivot turns under a positive
-// command: "forward" is the team lead's word for R1 / L1, and which PHYSICAL way that moves each
-// claw is UNMEASURED (worksheet Station J, A4 register HA-153). A pivot that moves the wrong way
-// is fixed by flipping ITS sign here — never by swapping its buttons.
+// command: "forward" is the team lead's word for R1 / L1 (the driver file's buttons), and which
+// PHYSICAL way that moves each claw is UNMEASURED (worksheet Station J, A4 register HA-153). A
+// pivot that moves the wrong way is fixed by flipping ITS sign here — never by swapping its
+// buttons in the driver file.
 //
 // THE POLARITY LIVES HERE, IN ONE CONSTANT: kClawOpenCommand (below), the 3-wire line level that
 // OPENS the claw. Its value is a GUESS ("ON = open", the addendum's starting point), UNVERIFIED:
 // worksheet Station J.9 settles it (the claw must be CLOSED after the start, and the first press
-// of A must OPEN it). The claw's start and safe states are stated as POSITIONS (Closed), never as
-// levels, and pneumaticCommandFor() is the one place a position becomes a level — so flipping
-// kClawOpenCommand moves the start command and the safe command together, and no other CODE is
-// edited. Its VALUE is recorded the way a pivot's sign is: the host test pins it, and A4 register
+// of its toggle button — A, in the driver file — must OPEN it). The claw's start and safe states
+// are stated as POSITIONS (Closed), never as levels, and pneumaticCommandFor() is the one place a
+// position becomes a level — so flipping kClawOpenCommand moves the start command and the safe
+// command together, and no other CODE is edited. Its VALUE is recorded the way a pivot's sign is: the host test pins it, and A4 register
 // HA-159 and Station J.9 quote it — a flip is a measurement, and all three change with it in the
 // same change. A claw that opens on the wrong press is fixed by flipping that constant — never by
-// changing its positions or its button.
+// changing its positions, or its button in the driver file.
 //
 // ONE LINE, because one is what was reported (port A). Whether the valve is single or double is
 // NOT KNOWN; Station J looks at how many 3-wire cables run from the valve into the brain. If it is
@@ -80,9 +86,10 @@
 //
 // THE HOST SUITE TESTS THESE VERY BYTES. Robot two's table is defined in EVERY build under its own
 // name, kRobotTwoMechanisms, and only the selection — mechanismTableFor(kRobotId), below — depends on
-// the build — so test/mechanism_table_test.cpp reads the real entries, and a swapped button in this
-// file turns the suite red; it also calls mechanismTableFor() for EVERY RobotId, so the table robot
-// two's builds select is host-tested too, not only the host's own. A program uses kMechanisms, never
+// the build — so test/mechanism_table_test.cpp reads the real entries, and a changed port, sign,
+// cartridge, safe mode or polarity in this file turns the suite red; it also calls
+// mechanismTableFor() for EVERY RobotId, so the table robot two's builds select is host-tested too,
+// not only the host's own. A program uses kMechanisms, never
 // the per-robot name: the src build gate's step 0 fails one that names kRobotTwoMechanisms,
 // kNoMechanisms or mechanismTableFor() outside a static_assert (a static_assert may: it is
 // compile-time only). (T3 set this pattern while the chassis table still defined ONE name differently
@@ -90,7 +97,7 @@
 // one test TU would have given kChassis two definitions across the suite. Since G1 Part 2c's final
 // run the chassis table follows this one: kRobotTwoChassis is on the host too.)
 //
-// WHO READS IT, as of this commit:
+// WHO READS IT, as of T4 Part 3:
 //   * "shulib Calibrate" (src/programs/calibrate_program.cpp): the census's motor ports go through
 //     dropDeclaredMechanismPorts() BEFORE any ProsMotor is built, so a declared claw PIVOT is
 //     never a drive candidate — no gearing written, no Coast, no pulse. It logs one line per
@@ -99,42 +106,40 @@
 //     declares another kind of motor mechanism changes that line with it. The pneumatic claw is
 //     not in the census at all (a 3-wire port is not a smart port), and Calibrate never drives a
 //     3-wire line.
-//   * "shulib Teleop" (since T3 Part 2, 2026-09-26): src/common/boot_source.hpp converts every entry into
-//     a config::MechanismConfig (the pivots as single-motor mechanisms, the claw as a pneumatic
-//     one whose START and SAFE are LEVELS from pneumaticStartCommand() / pneumaticSafeCommand()),
-//     so robot::Robot builds them, and names the declared motor ports as claw pivots in its port
-//     check; src/programs/teleop_claws.hpp binds each built one to its buttons (the toggle's initial level
-//     from pneumaticStartCommand() too) and words its boot line and panel row. Nothing HERE depends
-//     on the library: the conversion is the program's, and this file stays plain data.
+//   * every program that BOOTS robot two from the record ("shulib Drive" since T4 Part 3; the
+//     Auton Tester; "shulib Teleop" from T3 Part 2 until T4 Part 3 retired it):
+//     src/common/boot_source.hpp converts every entry into a config::MechanismConfig (the pivots
+//     as single-motor mechanisms, the claw as a pneumatic one whose START and SAFE are LEVELS from
+//     pneumaticStartCommand() / pneumaticSafeCommand()), so robot::Robot builds them, and names
+//     the declared motor ports as claw pivots in its port check. src/common/driver_panel.hpp
+//     words their boot lines and panel row from this table AND the driver file's controls (an
+//     entry's buttons found BY NAME). Nothing HERE depends on the library: the conversion is the
+//     program's, and this file stays plain data.
 //   * robot two's DRIVER FILE (src/team/robot_two_driver.hpp, since T4 Part 1a, 2026-09-27): its
 //     compile-time checks read kRobotTwoMechanisms BY NAME — every control names an entry of its
-//     kind, and every entry has a control (src/common/driver_controls.hpp). The buttons are stated
-//     there AND here until T4 Part 1b removes them from this file: until then "shulib Teleop"
-//     static_asserts that the two agree, entry by entry (controlsMatchTable), and that the driver
-//     file's re-zero is kTeleopRezeroButton's Y, so a button changed in one place only does not
-//     compile.
+//     kind, and every entry has a control (src/common/driver_controls.hpp) — and its binder gives
+//     the claw's toggle its initial level from the config this table became. Since T4 Part 3 the
+//     buttons, the volts and the re-zero are stated THERE and nowhere else.
 //
 // COMPILE-TIME CHECKS (the static_asserts at the end of this file) — each the thing a typo would
 // produce, each a named predicate the host test breaks with hand-built tables:
 //   1. no more entries of either kind than its array holds;
 //   2. every declared entry COMPLETE, of either kind (the rule above);
 //   3. every motor port a real SMART port, |p| in 1..21, and no port declared twice;
-//   4. forward != reverse on every motor entry;
-//   5. every binding button unique across the WHOLE table — the pivots' forward and reverse
-//      buttons and the claw's toggle (one button, one mechanism);
-//   6. no binding button, of either kind, is kTeleopRezeroButton (below — Y);
-//   7. 0 < volts <= 12 (hal::kMaxMotorVoltage) on every motor entry, which also refuses NaN and
-//      infinity;
-//   8. no MOTOR port is a drive port of the SAME robot's typed chassis table, nor its IMU port
+//   4. no MOTOR port is a drive port of the SAME robot's typed chassis table, nor its IMU port
 //      (checked for robot two's REAL pair, kRobotTwoMechanisms / kRobotTwoChassis, and for the
 //      build's kChassis / kMechanisms pair; the host suite also breaks the predicate by hand). A
 //      3-wire line is a different connector: the chassis table names no 3-wire port, so there is
 //      nothing to collide with;
-//   9. every pneumatic line a real 3-WIRE port, 1..8 ('A'..'H'), and no line declared twice.
-// All nine run on robot two's REAL tables in EVERY build, the host's included (check 8 on robot
-// two's pair only since G1 Part 2c's final run put both of its tables on the host), and all nine
-// again on the build's own pair. What no compiler can check — that a motor is really on the port, which
-// way it turns, and which level opens the claw — is Station J's.
+//   5. every pneumatic line a real 3-WIRE port, 1..8 ('A'..'H'), and no line declared twice.
+// All five run on robot two's REAL tables in EVERY build, the host's included (check 4 on robot
+// two's pair only since G1 Part 2c's final run put both of its tables on the host), and all five
+// again on the build's own pair. (Until T4 Part 3 there were nine: forward != reverse, every button
+// unique, none the re-zero button, and 0 < volts <= 12. They are the driver file's now —
+// controlButtonsDistinct, controlsAvoid and holdVoltsValid in src/common/driver_controls.hpp, which
+// src/team/robot_two_driver.hpp static_asserts — because the buttons and the volts are.) What no
+// compiler can check — that a motor is really on the port, which way it turns, and which level
+// opens the claw — is Station J's.
 //
 // PROS-FREE ON PURPOSE: plain data and pure helpers, so the host test can include it by relative
 // path. It lives in src/, not include/shulib/, because it is a per-robot composition fact, not
@@ -147,26 +152,9 @@
 
 #include "build_selection.hpp"
 #include "robots/chassis_table.hpp"
-#include "shulib/hal/controller.hpp"
 #include "shulib/hal/motor.hpp"
 
 namespace shulib::bench {
-
-/// THE BUTTON NO MECHANISM MAY TAKE: "shulib Teleop"'s field-centric RE-ZERO button — **Y**, the
-/// team lead's ruling of 2026-09-26 (T3 addendum §0): A became the pneumatic claw's toggle, so the
-/// re-zero moved to Y. (It was A, in G1 Part 2b's Teleop; the library's own
-/// DriverLoopConfig::rezeroButton default is L1, which robot two's port-7 pivot uses.)
-/// TIED TO TELEOP since T3 Part 2 (2026-09-26): Teleop's own constant, `kRezeroButton` in
-/// src/programs/teleop_program.cpp, is Y, and a `static_assert(kRezeroButton == kTeleopRezeroButton)` right
-/// under it makes the two one fact — a build in which they drift does not compile. (Since T4 Part
-/// 1a Teleop's constant is also static_assert-tied to robot two's driver file's re-zero,
-/// `RobotTwoDriver::kLoop.rezeroButton` in src/team/robot_two_driver.hpp, until T4 Part 1b makes
-/// the driver file its one owner.) Beside it, a
-/// second static_assert checks that no binding button of either table is the re-zero button. This
-/// table's check 6 (below) keeps every DECLARED button off it at compile time; at run time
-/// Teleop's teleopInitialize() and the library's runDriverControl() refuse, before the first tick,
-/// a binding on the loop's re-zero button (teleop::validBindings).
-inline constexpr hal::ControllerButton kTeleopRezeroButton = hal::ControllerButton::Y;
 
 /// THE CLAW'S OPEN POLARITY — **UNVERIFIED**. The 3-wire line level that OPENS robot two's
 /// pneumatic claw: `true` (line HIGH = open) is the addendum's starting GUESS, nothing more — the
@@ -182,17 +170,15 @@ inline constexpr hal::ControllerButton kTeleopRezeroButton = hal::ControllerButt
 /// the pin and both quotes change with it, in the same change.
 inline constexpr bool kClawOpenCommand = true;
 
-/// One mechanism MOTOR driven hold-to-run from two buttons. Aggregate, so a host test can build a
-/// bad one by hand. Every field has an UNSET value (the header's rule), and a declared entry must
-/// state them all.
+/// One mechanism MOTOR: what it IS (its port, cartridge and state on release). Which buttons drive
+/// it, and at how many volts, is the driver file's (header, WHAT IT DECLARES). Aggregate, so a
+/// host test can build a bad one by hand. Every field has an UNSET value (the header's rule), and
+/// a declared entry must state them all.
 struct MotorMechanismEntry {
     const char* name;          // "claw pivot 6": boot lines, panel, log. UNSET = null or ""
     std::int8_t signedPort;    // |p| in 1..21, the SIGN is the flip (header). 0 = UNSET
     Cartridge cartridge;       // RED / GREEN / BLUE. Unset = nobody has READ one off the motor
     std::optional<hal::BrakeMode> safeMode;        // the state on release. nullopt = UNSET
-    std::optional<hal::ControllerButton> forward;  // held => +volts. nullopt = UNSET
-    std::optional<hal::ControllerButton> reverse;  // held => -volts. nullopt = UNSET
-    double volts;              // the magnitude while a button is held, in (0, 12]. 0 = UNSET
     const char* provenance;    // who stated what, and when. UNSET = null or ""
 };
 
@@ -206,9 +192,9 @@ enum class PneumaticPosition { Closed, Open };
 /// pneumaticPorts and hal::pros::ProsDigitalOut use.
 inline constexpr int kMaxAdiLine = 8;
 
-/// One PNEUMATIC mechanism on ONE 3-wire line, toggled by one button (header, "ONE LINE"). Its own
-/// type, never a MotorMechanismEntry with a kind tag (header, "TWO KINDS"). Aggregate; every field
-/// has an UNSET value, and a declared entry must state them all.
+/// One PNEUMATIC mechanism on ONE 3-wire line (header, "ONE LINE"); the button that toggles it is
+/// the driver file's. Its own type, never a MotorMechanismEntry with a kind tag (header, "TWO
+/// KINDS"). Aggregate; every field has an UNSET value, and a declared entry must state them all.
 struct PneumaticMechanismEntry {
     const char* name;           // "claw": boot lines, panel, log. UNSET = null or ""
     std::uint8_t adiLine;       // the 3-wire port, 1..8 = 'A'..'H'. 0 = UNSET
@@ -218,19 +204,18 @@ struct PneumaticMechanismEntry {
     /// end-of-run guard, later). NOT what a disable does: on a disable or a disconnect the toggle
     /// commands NOTHING and the mechanism keeps its state (T3 addendum §0). nullopt = UNSET
     std::optional<PneumaticPosition> safe;
-    std::optional<hal::ControllerButton> toggle;  // each press flips it. nullopt = UNSET
     const char* provenance;     // who stated what, and when. UNSET = null or ""
 };
 
-/// The most MOTOR entries a table can hold. The controller has twelve driver-usable buttons, one
-/// is reserved (kTeleopRezeroButton), each motor entry takes two distinct ones and each pneumatic
-/// entry one — so 2 x motors + pneumatics <= 11, and FIVE motor entries is the most any valid
-/// table can declare (the eleventh button then left for one pneumatic). The array holds six, so a
-/// sixth motor entry is refused by the button checks (it would need the reserved button) rather
-/// than by the array's size.
+/// The most MOTOR entries a table can hold: six. (The bound used to be argued from the buttons —
+/// twelve driver-usable ones, one reserved for the re-zero, two per motor entry, so at most five
+/// could ever be bound. The buttons are the driver file's since T4 Part 3, and its own checks
+/// refuse a set of controls the controller cannot carry — src/common/driver_controls.hpp; a table
+/// may declare a sixth motor that its driver file then has no button for, and the driver file's
+/// controlsCoverTable() refuses that at compile time.)
 inline constexpr std::size_t kMaxMechanisms = 6;
 
-/// The most PNEUMATIC entries a table can hold: one per 3-wire port (check 9 refuses a line
+/// The most PNEUMATIC entries a table can hold: one per 3-wire port (check 5 refuses a line
 /// declared twice), so the array can hold every valid table.
 inline constexpr std::size_t kMaxPneumatics = static_cast<std::size_t>(kMaxAdiLine);
 
@@ -249,19 +234,21 @@ struct MechanismTable {
 /// 11-18 and 20, so no census has shown a motor on 6 or 7 yet (A4 register HA-153). SIGNS: + on
 /// both, i.e. each motor's own forward; which physical way that moves each claw is UNMEASURED.
 /// SAFE STATE Hold: the team lead's "holds its angle" -- a Hold at 0 V reaches the motor only after
-/// DEFECTS2, and holding a LOADED pivot is unmeasured (A4 register HA-156). VOLTS 12: full power
-/// passes straight through while a button is held (a stall cut-off is out of T3), so a pivot held
-/// against its stop heats at the motor's DEFAULT current limit, 2500 mA, and nothing in shulib
-/// acts on a mechanism motor's temperature yet — "shulib Teleop"'s claw row SHOWS it (T3 Part 2),
-/// and the driver is the only cut-off (A4 register HA-154). THE PORTS are all the brain
-/// can check: a claw cable swapped with a drive cable is invisible to it (A4 register HA-155).
+/// DEFECTS2, and holding a LOADED pivot is unmeasured (A4 register HA-156). THE BUTTONS AND THE 12 V
+/// are the driver file's (src/team/robot_two_driver.hpp): full power passes straight through while a
+/// button is held (a stall cut-off is out of T3), so a pivot held against its stop heats at the
+/// motor's DEFAULT current limit, 2500 mA, and nothing in shulib acts on a mechanism motor's
+/// temperature yet — "shulib Drive"'s claw row SHOWS it, on its DETAILS page, and the driver is the
+/// only cut-off (A4 register HA-154). THE PORTS are all the brain can check: a claw cable swapped
+/// with a drive cable is invisible to it (A4 register HA-155).
 /// THE PNEUMATIC CLAW: REPORTED by the team lead 2026-09-26 (T3 addendum §0) — 3-wire port A
-/// (line 1), toggled by A, CLOSED at program start, keeps its state when disabled; single or
-/// double, and the polarity, NOT KNOWN (A4 register HA-159): one line declared, the polarity
-/// kClawOpenCommand's guess. Its SAFE position, CLOSED, is the addendum's statement — a closed claw
-/// keeps what it holds — not the team lead's words. Nothing has seen it: shulib's census reads
-/// the 21 smart ports only, and the one program that drives its line — "shulib Teleop", since T3
-/// Part 2 (the line made at the START level, then A's toggle) — has not run on the robot.
+/// (line 1), CLOSED at program start, keeps its state when disabled (its toggle, A, is the driver
+/// file's); single or double, and the polarity, NOT KNOWN (A4 register HA-159): one line declared,
+/// the polarity kClawOpenCommand's guess. Its SAFE position, CLOSED, is the addendum's statement —
+/// a closed claw keeps what it holds — not the team lead's words. Nothing has seen it: shulib's
+/// census reads the 21 smart ports only, and no program that drives its line ("shulib Drive" since
+/// T4 Part 3 — the line made at the START level, then the driver file's toggle; "shulib Teleop"
+/// from T3 Part 2 until then) has run on the robot.
 inline constexpr MechanismTable kRobotTwoMechanisms = {
     .motors =
         {
@@ -270,24 +257,20 @@ inline constexpr MechanismTable kRobotTwoMechanisms = {
                 .signedPort = +6,
                 .cartridge = Cartridge::Red,
                 .safeMode = hal::BrakeMode::Hold,
-                .forward = hal::ControllerButton::R1,
-                .reverse = hal::ControllerButton::R2,
-                .volts = 12.0,
                 .provenance = "team lead 2026-09-26: port 6, RED, R1 forward / R2 back, 12 V while "
                               "held, holds on release; REPORTED, not yet seen by a census; sign + "
-                              "= the motor's own forward (way UNMEASURED)",
+                              "= the motor's own forward (way UNMEASURED) (buttons: "
+                              "src/team/robot_two_driver.hpp since T4)",
             },
             {
                 .name = "claw pivot 7",
                 .signedPort = +7,
                 .cartridge = Cartridge::Red,
                 .safeMode = hal::BrakeMode::Hold,
-                .forward = hal::ControllerButton::L1,
-                .reverse = hal::ControllerButton::L2,
-                .volts = 12.0,
                 .provenance = "team lead 2026-09-26: port 7, RED, L1 forward / L2 back, 12 V while "
                               "held, holds on release; REPORTED, not yet seen by a census; sign + "
-                              "= the motor's own forward (way UNMEASURED)",
+                              "= the motor's own forward (way UNMEASURED) (buttons: "
+                              "src/team/robot_two_driver.hpp since T4)",
             },
         },
     .motorCount = 2,
@@ -299,11 +282,11 @@ inline constexpr MechanismTable kRobotTwoMechanisms = {
                 .openCommand = kClawOpenCommand,  // UNVERIFIED: flip the CONSTANT, never this line
                 .start = PneumaticPosition::Closed,
                 .safe = PneumaticPosition::Closed,
-                .toggle = hal::ControllerButton::A,
                 .provenance = "team lead 2026-09-26 (port A; polarity unknown): A opens, A again "
                               "closes, CLOSED at program start, keeps its state when disabled; "
                               "single or double solenoid NOT KNOWN, one line declared; safe = "
-                              "CLOSED is the T3 addendum's (a closed claw keeps what it holds)",
+                              "CLOSED is the T3 addendum's (a closed claw keeps what it holds) "
+                              "(buttons: src/team/robot_two_driver.hpp since T4)",
             },
         },
     .pneumaticCount = 1,
@@ -359,17 +342,15 @@ constexpr bool mechanismTextStated(const char* s) { return s != nullptr && s[0] 
 /// separately.
 constexpr bool motorEntryComplete(const MotorMechanismEntry& e) {
     return mechanismTextStated(e.name) && mechanismTextStated(e.provenance) && e.signedPort != 0
-           && e.cartridge != Cartridge::Unset && e.safeMode.has_value() && e.forward.has_value()
-           && e.reverse.has_value() && e.volts != 0.0;
+           && e.cartridge != Cartridge::Unset && e.safeMode.has_value();
 }
 
-/// Check 2, for one pneumatic entry: every field stated — the line, the polarity, both positions
-/// and the button included (none may default: header, "WHY std::optional"). The line's RANGE is
-/// check 9's.
+/// Check 2, for one pneumatic entry: every field stated — the line, the polarity and both
+/// positions included (none may default: header, "WHY std::optional"). The line's RANGE is
+/// check 5's.
 constexpr bool pneumaticEntryComplete(const PneumaticMechanismEntry& e) {
     return mechanismTextStated(e.name) && mechanismTextStated(e.provenance) && e.adiLine != 0
-           && e.openCommand.has_value() && e.start.has_value() && e.safe.has_value()
-           && e.toggle.has_value();
+           && e.openCommand.has_value() && e.start.has_value() && e.safe.has_value();
 }
 
 /// Check 2: every declared entry, of either kind, complete.
@@ -396,7 +377,7 @@ constexpr bool mechanismPortsValid(const MechanismTable& t) {
     return true;
 }
 
-/// Check 9: every pneumatic line in 1..8 ('A'..'H'), none declared twice.
+/// Check 5: every pneumatic line in 1..8 ('A'..'H'), none declared twice.
 constexpr bool pneumaticLinesValid(const MechanismTable& t) {
     const std::size_t n = pneumaticEntryCount(t);
     for (std::size_t i = 0; i < n; ++i) {
@@ -409,78 +390,7 @@ constexpr bool pneumaticLinesValid(const MechanismTable& t) {
     return true;
 }
 
-/// Two STATED buttons that are the same button. An unset button is nobody's button: it collides
-/// with nothing here, and check 2 (completeness) is the one that refuses it — each check tests one
-/// property, so a failing static_assert names the real fault.
-constexpr bool mechanismSameButton(const std::optional<hal::ControllerButton>& a,
-                                   const std::optional<hal::ControllerButton>& b) {
-    return a.has_value() && b.has_value() && *a == *b;
-}
-
-/// True when motor entry `e` binds `b` (as its forward or its reverse button).
-constexpr bool motorEntryBinds(const MotorMechanismEntry& e,
-                               const std::optional<hal::ControllerButton>& b) {
-    return mechanismSameButton(e.forward, b) || mechanismSameButton(e.reverse, b);
-}
-
-/// Check 4: no motor entry's forward button is its own reverse button — one button cannot mean
-/// both ways.
-constexpr bool mechanismForwardReverseDistinct(const MechanismTable& t) {
-    for (std::size_t i = 0; i < motorEntryCount(t); ++i) {
-        const MotorMechanismEntry& e = t.motors[i];
-        if (mechanismSameButton(e.forward, e.reverse)) return false;
-    }
-    return true;
-}
-
-/// Check 5: no button is bound by two entries, of either kind: motor vs motor (any pairing of
-/// forward/reverse), pneumatic toggle vs every motor button, and toggle vs toggle. (An entry's own
-/// forward vs its own reverse is check 4's.)
-constexpr bool mechanismButtonsUnique(const MechanismTable& t) {
-    const std::size_t n = motorEntryCount(t);
-    const std::size_t k = pneumaticEntryCount(t);
-    for (std::size_t i = 0; i < n; ++i) {
-        const MotorMechanismEntry& e = t.motors[i];
-        for (std::size_t j = i + 1; j < n; ++j) {
-            const MotorMechanismEntry& o = t.motors[j];
-            if (motorEntryBinds(o, e.forward) || motorEntryBinds(o, e.reverse)) return false;
-        }
-    }
-    for (std::size_t i = 0; i < k; ++i) {
-        const std::optional<hal::ControllerButton>& toggle = t.pneumatics[i].toggle;
-        for (std::size_t j = 0; j < n; ++j) {
-            if (motorEntryBinds(t.motors[j], toggle)) return false;
-        }
-        for (std::size_t j = i + 1; j < k; ++j) {
-            if (mechanismSameButton(t.pneumatics[j].toggle, toggle)) return false;
-        }
-    }
-    return true;
-}
-
-/// Check 6: no entry, of either kind, binds `reserved` (the build passes kTeleopRezeroButton).
-constexpr bool mechanismButtonsAvoid(const MechanismTable& t, hal::ControllerButton reserved) {
-    for (std::size_t i = 0; i < motorEntryCount(t); ++i) {
-        const MotorMechanismEntry& e = t.motors[i];
-        if (e.forward == reserved || e.reverse == reserved) return false;
-    }
-    for (std::size_t i = 0; i < pneumaticEntryCount(t); ++i) {
-        if (t.pneumatics[i].toggle == reserved) return false;
-    }
-    return true;
-}
-
-/// Check 7: every motor entry's volts in (0, kMaxMotorVoltage]. Written as a negated conjunction
-/// so a NaN fails it (every comparison with NaN is false).
-constexpr bool mechanismVoltsValid(const MechanismTable& t) {
-    for (std::size_t i = 0; i < motorEntryCount(t); ++i) {
-        const double v = t.motors[i].volts;
-        if (!(v > 0.0 && v <= hal::kMaxMotorVoltage.value())) return false;
-    }
-    return true;
-}
-
-/// Check 8: no MOTOR port is a drive port of `c` (either side, by |port|) or `c`'s IMU port. The
+/// Check 4: no MOTOR port is a drive port of `c` (either side, by |port|) or `c`'s IMU port. The
 /// pneumatic lines are 3-wire ports, a different connector the chassis table never names.
 constexpr bool mechanismsDisjointFromChassis(const MechanismTable& m, const ChassisTable& c) {
     for (std::size_t i = 0; i < motorEntryCount(m); ++i) {
@@ -502,9 +412,9 @@ constexpr bool pneumaticCommandFor(const PneumaticMechanismEntry& e, PneumaticPo
 
 /// The level `e` is commanded to at program start (its `start` position). Since T3 Part 2 it is
 /// BOTH the config's START level (src/common/boot_source.hpp: config::MechanismConfig::pneumaticStart,
-/// which robot::Robot drives the 3-wire line to when it makes it) AND the driver's toggle's
-/// initial level (src/programs/teleop_claws.hpp; a driver file's binder reads the same level back
-/// from the config, src/common/driver_controls.hpp) — one function, so the two cannot disagree.
+/// which robot::Robot drives the 3-wire line to when it makes it) AND, through that config, the
+/// driver's toggle's initial level (the driver file's binder reads the same level back from the
+/// config, src/common/driver_controls.hpp) — one function, so the two cannot disagree.
 /// THE RULE (corrected at T4 Part 1a, 2026-09-27; this said "the claw cannot move when driver
 /// control first starts" until then): the first driver-control entry in a run SENDS this level;
 /// nothing moves unless something commanded the line in between; after an autonomous that left
@@ -579,7 +489,7 @@ struct DroppedMechanismPorts {
 }
 
 // ═══ THE COMPILE-TIME CHECKS (header, "COMPILE-TIME CHECKS") ══════════════════════════
-// Robot two's table, in EVERY build (checks 1-7 and 9):
+// Robot two's table, in EVERY build (checks 1-3 and 5):
 static_assert(mechanismCountValid(kRobotTwoMechanisms), "robot two: more mechanisms than fit");
 static_assert(mechanismTableComplete(kRobotTwoMechanisms),
               "robot two: a declared mechanism has an UNSET field (a value is never invented)");
@@ -587,26 +497,14 @@ static_assert(mechanismPortsValid(kRobotTwoMechanisms),
               "robot two: a mechanism port is outside 1..21 or declared twice");
 static_assert(pneumaticLinesValid(kRobotTwoMechanisms),
               "robot two: a pneumatic line is outside 1..8 (3-wire A..H) or declared twice");
-static_assert(mechanismForwardReverseDistinct(kRobotTwoMechanisms),
-              "robot two: a mechanism's forward and reverse buttons are the same button");
-static_assert(mechanismButtonsUnique(kRobotTwoMechanisms),
-              "robot two: one button is bound to two mechanisms (pivots and claw together)");
-static_assert(mechanismButtonsAvoid(kRobotTwoMechanisms, kTeleopRezeroButton),
-              "robot two: a mechanism takes shulib Teleop's re-zero button (kTeleopRezeroButton)");
-static_assert(mechanismVoltsValid(kRobotTwoMechanisms),
-              "robot two: a mechanism's volts are not in (0, 12]");
-// ...and check 8 on robot two's REAL pair, in every build (both tables are defined everywhere since
+// ...and check 4 on robot two's REAL pair, in every build (both tables are defined everywhere since
 // G1 Part 2c's final run):
 static_assert(mechanismsDisjointFromChassis(kRobotTwoMechanisms, kRobotTwoChassis),
               "robot two: a mechanism port is one of robot two's DRIVE ports (or its IMU port)");
-// The BUILD's table (all nine; the same eight again when it is robot two's, and check 8 against
+// The BUILD's table (all five; the same four again when it is robot two's, and check 4 against
 // the SAME variant's chassis table — the only pairing that means anything):
 static_assert(mechanismCountValid(kMechanisms) && mechanismTableComplete(kMechanisms)
-                  && mechanismPortsValid(kMechanisms) && pneumaticLinesValid(kMechanisms)
-                  && mechanismForwardReverseDistinct(kMechanisms)
-                  && mechanismButtonsUnique(kMechanisms)
-                  && mechanismButtonsAvoid(kMechanisms, kTeleopRezeroButton)
-                  && mechanismVoltsValid(kMechanisms),
+                  && mechanismPortsValid(kMechanisms) && pneumaticLinesValid(kMechanisms),
               "this build's mechanism table fails a consistency check");
 static_assert(mechanismsDisjointFromChassis(kMechanisms, kChassis),
               "a mechanism port is a DRIVE port (or the IMU port) of this build's chassis table");

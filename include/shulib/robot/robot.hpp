@@ -13,13 +13,14 @@
 //     hal::pros::ProsDeviceProvider devices;      // the adapters, made on demand, by port
 //     robot::Robot robot{kRobotConfig, devices};  // the whole graph, wired
 //
-// and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the
-// first line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the
-// PROS shim); since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp) is built from these two
-// pieces — the first program that is. On a brain the second line is spelled the way that program
-// spells it: `robot::validate()` first (it names the port or the field before anything is
-// constructed), then `std::optional<Robot>::emplace` into storage that lives for the whole
-// program, once, from `initialize()` (below: a Robot is constructed where it will live).
+// and `robot.chassis()` is the same facade a hand-wired graph produces. The provider on the first
+// line exists since G1 Part 2a (hal/pros/device_provider.hpp, host-tested through the PROS shim);
+// since G1 Part 2b the programs that drive robot two are built from these two pieces ("shulib
+// Teleop" first, which T4 Part 3 retired; "shulib Drive", src/programs/drive_program.cpp, since
+// then). On a brain the second line is spelled the way those programs spell it: `robot::validate()`
+// first (it names the port or the field before anything is constructed), then
+// `std::optional<Robot>::emplace` into storage that lives for the whole program, once, from
+// `initialize()` (below: a Robot is constructed where it will live).
 //
 // ── IT ADDS A WAY TO WIRE; IT NEVER CHANGES THE PHYSICS (ruling B4) ─────────────────
 // The graph below is the SAME objects, in the SAME order, with the SAME arguments as the
@@ -52,7 +53,7 @@
 // too, and returning one by value would depend on elision games the V5 toolchain should not
 // be asked to play. A Robot is constructed WHERE IT WILL LIVE: on a brain, an EMPTY
 // `std::optional<Robot>` that lives for the program, emplaced ONCE from `initialize()` —
-// src/programs/teleop_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
+// src/programs/drive_program.cpp's pattern. Never a `static Robot r{…}`: at namespace scope it is built
 // before `initialize()` has installed the on-robot precondition handler, in an order across
 // translation units nobody controls; inside a function, one whose constructor THROWS is
 // constructed again on the next call, and PROS calls opcontrol() again after every disable. In a
@@ -117,9 +118,10 @@
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // A Robot built from a config has driven the A2 host plant, through fakes, and nothing else.
-// No config has ever been used on a physical robot. Since G1 Part 2b "shulib Teleop" builds its
-// graph with this class over the on-robot provider (src/programs/teleop_program.cpp), and THAT version of
-// the program has not run on hardware. Since G1 Part 2c the invented X-drive is built the same way
+// No config has ever been used on a physical robot. Since T4 Part 3 "shulib Drive" builds its
+// graph with this class over the on-robot provider (src/programs/drive_program.cpp), as "shulib
+// Teleop" did from G1 Part 2b until T4 Part 3 retired it; THIS version of the program has not run
+// on hardware. Since G1 Part 2c the invented X-drive is built the same way
 // (src/robots/xdrive_config.hpp, src/programs/xdrive_program.cpp) and no program wires a graph by hand; its ports
 // are invented, so it refuses at boot on every robot that exists.
 //
@@ -395,7 +397,8 @@ struct BuildOptions {
 /// (a 21-port side).
 ///
 /// The formats are the ones src/main.cpp printed by hand, so moving a program onto the builder
-/// changed no session header (G1 Part 2b moved "shulib Teleop", G1 Part 2c the invented X-drive):
+/// changed no session header (G1 Part 2b moved "shulib Teleop" — retired at T4 Part 3 — and G1
+/// Part 2c the invented X-drive):
 ///
 ///  * **tank** — the retired `tankPortMapString()`'s: the description's source word, both sides' SIGNED
 ///    ports as stored (`%+d`, space-separated, each side capped at 39 characters), the IMU, then

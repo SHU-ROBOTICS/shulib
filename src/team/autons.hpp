@@ -5,9 +5,11 @@
 // src/team/autons.cpp.
 //
 // "shulib Auton Tester" and "shulib Competition" both call registerAutons() from initialize(),
-// inside the try around building the robot: an entry the registry refuses throws a
-// PreconditionError whose sentence names the auton, the program refuses its boot with that
-// sentence on the screen, and nothing moves.
+// inside the try around building the robot, on a registry that DROPS an entry it refuses (the team
+// lead's ruling of 2026-10-02 for the competition program, "drop just that auton"; the tester does
+// the same): that entry alone is left off the menu and named there in red and in the boot's log, by
+// a sentence that names the auton, and every other auton still runs — and, in the competition
+// program, driver control. Fix the entry in src/team/autons.cpp and upload again.
 //
 // PROS-free on purpose: the host suite compiles src/team/autons.cpp and runs every auton on the
 // host test plant (test/autons_test.cpp).
@@ -25,8 +27,9 @@ inline constexpr competition::AutonPeriods kAutonPeriods{.match = units::Time{30
                                                          .skills = units::Time{60.0}};
 
 /// Register every auton the team has written, in the order the brain's menu lists them. Called
-/// ONCE, from a program's initialize(), inside its try: `registry.add()` throws a
-/// PreconditionError naming the auton when an entry is refused.
+/// ONCE, from a program's initialize(), inside its try. An entry the registry refuses is dropped
+/// by both programs' registries (the file banner); a registry built without asking for that
+/// throws a PreconditionError naming the auton at its `registry.add()`.
 void registerAutons(competition::AutonRegistry& registry);
 
 }  // namespace shulib::bench

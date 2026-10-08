@@ -25,32 +25,35 @@
 //                                                           two's signed table
 //                                                           (src/robots/chassis_table.hpp)
 //   make ROBOT=tank PROGRAM=drive      "shulib Drive"       src/programs/drive_program.cpp      (slot 1)
-//   make ROBOT=tank PROGRAM=library    "shulib Teleop"      src/programs/teleop_program.cpp     (slot 2)
+//                                                           + src/team/robot_two_driver.hpp
 //                                                           + src/common/boot_source.{hpp,cpp}
-//   make ROBOT=tank PROGRAM=calibrate  "shulib Calibrate"   src/programs/calibrate_program.cpp  (slot 4)
 //   make ROBOT=tank PROGRAM=autontest  "shulib Auton Tester" src/programs/auton_tester_program.cpp
-//                                                           + src/team/autons.cpp (slot 7 until T4
-//                                                           Part 3, then 2 -- T4's N4)
+//                                                           + src/team/autons.cpp       (slot 2)
+//   make ROBOT=tank PROGRAM=calibrate  "shulib Calibrate"   src/programs/calibrate_program.cpp  (slot 4)
 //   make ROBOT=tank PROGRAM=competition "shulib Competition" src/programs/competition_program.cpp
 //                                                           + src/team/ (slot 6; slot 5 is held)
+//   (PROGRAM=library — "shulib Teleop", slot 2 until T4 Part 3 — is RETIRED: an $(error) naming
+//    the retirement; its diagnostics are "shulib Drive"'s DETAILS page.)
 //   make ROBOT=xdrive                  the INVENTED X-drive src/programs/xdrive_program.cpp
 //                                                           + src/robots/xdrive_config.hpp (HA-111)
-// Six programs in six slots rather than one program with a chooser (the team lead's ruling,
+// Five programs in five slots (1 Drive, 2 Auton Tester, 3 Bench Tests, 4 Calibrate, 6 Competition)
+// rather than one program with a chooser (the team lead's ruling,
 // R3b Part 0b): the operator picks a program by NAME from the brain's slot list. Every .cpp under
 // src/ compiles into every build; the linker's --gc-sections drops what the selected program never
 // calls. The ROBOT is set by the same branch (kRobotId): the bench build carries the bench bot's
-// tables, the six tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
+// tables, the five tank builds robot two's, the xdrive build the invented X-drive's -- an UNSET
 // chassis table and no mechanisms (src/robots/chassis_table.hpp and src/robots/mechanism_table.hpp
 // select them from kRobotId).
 //
 // ═══ WHAT RUNS, AND WHAT HAS RUN (no claim beyond the logs) ════════════════════════════
-//   * NO LIBRARY-COMMANDED MOTION HAS RUN ON A ROBOT (R3b open). "shulib Drive" drove robot two
-//     open-loop on 2026-09-17 (the team lead's report; no log was captured); the PREVIOUS
-//     "shulib Teleop" (build v0.1.1-319-g2780462) drove it
-//     from the calibration record on 2026-09-25 — eight starts, open-loop under driver control
-//     through the library's own graph. THIS VERSION of "shulib Teleop" (G1 Part 2b) has not run
-//     on hardware. No X-drive robot exists (ports invented, A4 register HA-111): the one X-drive
-//     boot on record is the old hand-wired graph over FAKE devices, 2026-08-12, none since R1a.
+//   * NO LIBRARY-COMMANDED MOTION HAS RUN ON A ROBOT (R3b open). The OLD "shulib Drive" drove
+//     robot two open-loop on 2026-09-17 (the team lead's report; no log was captured), and a
+//     "shulib Teleop" (build v0.1.1-319-g2780462) drove it from the calibration record on
+//     2026-09-25 — eight starts, open-loop under driver control through the library's own graph.
+//     Both are gone since T4 Part 3: THIS "shulib Drive" (robot two's driver file on
+//     robot::Robot) replaced the first and retired the second, and has not run on hardware. No
+//     X-drive robot exists (ports invented, A4 register HA-111): the one X-drive boot on record is
+//     the old hand-wired graph over FAKE devices, 2026-08-12, none since R1a.
 //   * autonomous() commands NO motion in any build but "shulib Competition", whose case asks that
 //     program's OWN task to run the chosen auton through competition::runAuton (COMP-b); the Auton
 //     Tester makes the same call from its RUN (COMP-t), and no other program ever runs a routine
@@ -75,7 +78,6 @@
 #include "programs/drive_program.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/state_screens.hpp"
-#include "programs/teleop_program.hpp"
 #include "programs/xdrive_program.hpp"
 
 #include "shulib/core/check.hpp"
@@ -149,9 +151,6 @@ void initialize() {
         case Program::Drive:
             shulib::bench::driveInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
             return;
-        case Program::Teleop:
-            shulib::bench::teleopInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
-            return;
         case Program::Calibrate:
             shulib::bench::calibrateInitialize(kVariantBeacon, bootStatusBits(bits, sizeof bits));
             return;
@@ -178,7 +177,6 @@ void disabled() {
     switch (kProgram) {
         case Program::BenchTests:
         case Program::Drive:
-        case Program::Teleop:
         case Program::Calibrate:
             shulib::bench::benchStateScreen(
                 "DISABLED", "VEXos reports the robot DISABLED, so the driver task is not running.");
@@ -202,7 +200,6 @@ void competition_initialize() {
     switch (kProgram) {
         case Program::BenchTests:
         case Program::Drive:
-        case Program::Teleop:
         case Program::Calibrate:
             shulib::bench::benchStateScreen(
                 "FIELD CONTROL CONNECTED",
@@ -225,28 +222,28 @@ void competition_initialize() {
  * Commands NO motion in any build but the competition program's, whose case asks that program's
  * own task to run the chosen auton through competition::runAuton and waits for it (COMP-b); the
  * Auton Tester makes the same call from its RUN (COMP-t) -- never any other program: not a bench,
- * drive, calibrate or teleop program (the team lead's ruling, 2026-09-25). No routine is ever
- * added here. No library-commanded motion has run on a robot.
+ * drive or calibrate program (the team lead's ruling, 2026-09-25). No routine is ever added here.
+ * The v2 motions exist and settle on the host test plant (test/chassis_routine_test.cpp chains
+ * them through the same facade); no library-commanded motion has run on a robot.
  */
 void autonomous() {
     switch (kProgram) {
         case Program::BenchTests:
-        case Program::Drive:
             shulib::bench::benchStateScreen(
                 "AUTONOMOUS",
                 "No motion here, ever: the tester's DRIVE station lives under driver control.");
+            return;
+        case Program::Drive:
+            // The program's own sentence, at most 50 characters (checked in drive_program.cpp),
+            // on the screen here and logged once by the program.
+            shulib::bench::benchStateScreen("AUTONOMOUS", shulib::bench::kDriveAutonomousReason);
+            shulib::bench::driveAutonomous();
             return;
         case Program::Calibrate:
             shulib::bench::benchStateScreen(
                 "AUTONOMOUS",
                 "No motion here, ever: calibration powers the motors and lives under driver "
                 "control, where a person is standing by the battery.");
-            return;
-        case Program::Teleop:
-            // The program's own sentence, at most 50 characters (checked in teleop_program.cpp),
-            // on the screen here and logged once by the program.
-            shulib::bench::benchStateScreen("AUTONOMOUS", shulib::bench::kTeleopAutonomousReason);
-            shulib::bench::teleopAutonomous();
             return;
         case Program::InventedXDrive:
             shulib::bench::xdriveAutonomous();  // one serial line; no screen, no motion
@@ -264,11 +261,11 @@ void autonomous() {
  * Runs the operator control code: the selected program's driver-control entry. Each returns on a
  * field DISABLE (its loop polls for it, so the drive is put in its safe state before PROS tears
  * the task down; PROS calls opcontrol() again when driver control resumes), except "Bench Tests",
- * which never returns and powers motors ONLY in its DRIVE station. "shulib Teleop" and the
- * X-drive drive through the library's loop, teleop::runDriverControl; "shulib Drive" and the
- * tester keep the pinned raw stick mapping (the G1 Part 2 brief's ruling M4). The Auton Tester
- * returns at once: its own task runs everything, started by initialize() (a task PROS never
- * deletes on a mode change -- A4 register HA-161). "shulib Competition" waits for its auton
+ * which never returns and powers motors ONLY in its DRIVE station. "shulib Drive" (robot two's
+ * driver file) and the X-drive drive through the library's loop, teleop::runDriverControl; the
+ * tester's DRIVE station keeps the pinned raw stick mapping (the G1 Part 2 brief's ruling M4). The
+ * Auton Tester returns at once: its own task runs everything, started by initialize() (a task PROS
+ * never deletes on a mode change -- A4 register HA-161). "shulib Competition" waits for its auton
  * task to hand the robot back, then runs the team's driver file (the library's loop too).
  */
 void opcontrol() {
@@ -278,9 +275,6 @@ void opcontrol() {
             return;
         case Program::Drive:
             shulib::bench::runDrive();
-            return;
-        case Program::Teleop:
-            shulib::bench::runTeleop();
             return;
         case Program::Calibrate:
             shulib::bench::runCalibrate();

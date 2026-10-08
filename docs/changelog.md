@@ -16,6 +16,95 @@
 
 ## API 2.4
 
+### Added and changed since 2.4 (2026-10-08) — an SD copy of a program's log; the frozen-reading rule's encoder check; one refused auton entry dropped, not the boot; a slow loop said once per episode
+
+> Written when it was built (chunk T4 Part 3, the library pieces of both its steps, and its review's
+> fixes of 2026-10-08). **No version bump — every change is ADDITIVE or a rule inside an unfrozen
+> layer:** `diag::LogCopySink` is a new implementation of `hal::ITelemetrySink`, whose interface (F4) is
+> untouched; `ProsDeviceProvider` is an adapter, not a frozen contract, and its two existing
+> constructors are byte-for-byte unchanged; `teleop/`, `competition/` and `diag/`'s latch and loop
+> monitor are in no row of the [Freeze Register](roadmap.md#freeze-register) (F9 freezes the
+> `DebugRecord` wire, whose fault codes and numbers are unchanged); no existing declaration in any of
+> them changed, and `AutonRegistry`'s new constructor argument defaults to what it did before. **Host
+> only — nothing here has run on a robot.**
+
+**BEHAVIOUR CHANGE (driver control) — the frozen-reading rule counts a side-mate's ENCODER, not its
+speed report** (the team lead's ruling, 2026-10-01). `teleop::FrozenReadingDetector` — the rule the
+driver loop's protections drop a dead drive motor by — now counts a side-mate as evidence that the
+train turns only while that mate's POSITION moved within the last 5 reads; a mate whose encoder has
+stopped is no evidence, however fast its lagging speed report still reads. Before, a mate counted
+while any of its readings changed, so at a wall — every encoder stopped, the speed reports still
+decaying — a live motor whose report settled first could be marked ABSENT (the known gap the entry
+below names). Now a plain wall push marks nobody; when one motor's report settles well before its
+mates', it costs at most one 1 s FIGHT cut instead — the fight monitor sees it lag (pinned at every
+report-lag spread probed, under the 2.4 A limit; at 2.45 A and 2.5 A per motor the over-current cuts
+come first). Nothing else changed: the 5 reads, the 250 ms latch, the majority-or-tie guard and a member's
+OWN repeat (position AND velocity) are as before. **Still a known gap:** beside a drive gear that
+slips (robot two's port 18) at a wall, the rule can still mark a live motor (A4 register HA-175).
+**What you must do:** nothing.
+
+**BEHAVIOUR CHANGE (diagnostics) — a slow loop is said once per EPISODE, not once per tick** (the
+T4 Part 3 review, 2026-10-08). `diag::LoopMonitor` still raises `LOOP_OVERRUN` on EVERY tick at or past
+its budget — `overrunCount()`, the latch's `faultCount()` and `raiseCount()`, and every record's fault
+stamp count each one, as before — but only the FIRST tick of an overrun episode logs its `fault=`
+line; the episode ends at the first tick back under the budget, or at `reset()`, and the next slow
+tick is said again (its `n=` carries the ticks counted silently). The scheduler's `overrun
+attribution:` line follows the same rule (once per episode, beside it). Why: a loop that stayed slow
+logged an Error line every tick — 50 a second at a 20 ms tick — and the programs' SD copy of the log
+(below) turned each into a card write and a flush INSIDE that already-late tick. The per-tick `dt` is
+still on every record. A loop slow only now and then (a slow tick between healthy ones) is a new
+episode each time, so it still logs each one, as before. **What you must do:** nothing — read `n=` (or
+`overrunCount()`) for how many ticks a stretch lasted, not the number of lines.
+
+**Added:**
+
+- **`diag::FaultLatch::raiseRepeat(code, subsystem, detail)`** — raise a fault as the continuation of
+  an episode whose opening `raise()` was already logged: latched, counted and tallied exactly as
+  `raise()`, with no line — except when it is the first fault since construction or `clear()`, which
+  is always logged (the root cause is never silent). **`diag::LoopMonitor::overrunEpisodes()`** — how
+  many overrun episodes began (each said once).
+
+- **`include/shulib/diag/log_copy_sink.hpp`** (new): `diag::LogCopySink(primary, copy)` — a
+  decorator that hands every `log()` line and every `summarize()` block to the primary sink and then
+  to the copy, and every per-tick record (`wantsRecord()`/`emit()`) to the primary ONLY: a copy of a
+  program's events and summaries, never a line per tick (a record line every 10 ms would be a card
+  write and a flush every 10 ms, A4 register HA-60). PROS-free, allocation-free; `primary()` and
+  `copy()` read the two sinks back. The COPY has one writer at a time (the T4 Part 3 review): a line or
+  summary that arrives while another task is mid-copy reaches the primary, is left off the copy — never
+  waited for, so one task's card write never stalls another's loop — and is counted,
+  `contendedLines()`; the next line or summary that does reach the copy is preceded there by ONE Warn
+  line, `copy: <n> line(s) left off here while another task was writing it -- serial has them`
+  (`LogCopySink::kGapTag`, `DIA`), so the gap is visible where it happened — once the writer that
+  held the copy returns. A writer that never returns (a task PROS deletes mid-line, A4 register
+  HA-161 (a), reasoned — e.g. at a disable, right as a driver program logs that its loop ended) keeps
+  the guard: the copy ENDS for the rest of that boot, every later line counted and on the primary,
+  with no gap line. That is the chosen failure — a released guard would hand the next writer, the
+  driver loop included, whatever the deleted one left half-done on the card (unmeasured), where it
+  could block; the header says why and what would remove it. Neither copied nor moved (it holds the
+  guard).
+- **`hal::pros::ProsDeviceProvider(serialCopyFile, copyMode = Truncate, copyMountRoot = "/usd/")`**
+  — a new constructor: given a BARE file name, the provider keeps a copy of its serial log on the SD
+  card (a `ProsBlockSink` in the mode asked — `Truncate`, one file per boot, or `Append`, kept across
+  boots — under COMP-t's `hal::BlockCharSink`, a second `diag::TermSink` over the same clock, and a
+  `diag::LogCopySink` over the serial sink and that one, which `telemetry()` then returns). A null
+  name is the default provider exactly. A missing or full card leaves serial unchanged and is
+  COUNTED, never thrown: `serialCopyOpen()`, `serialCopyPath()`, `serialCopyDroppedLines()` (every
+  line the copy lost: the card's refusals plus the lines the one-writer guard kept off) and
+  `serialCopyAppendOpen()` say what happened, for a program's one boot line. The copy starts when the
+  provider is constructed.
+- **`competition::OnRefusal` and `AutonRegistry(periods, onRefusal = OnRefusal::Throw)`** — what
+  `add()` does with an entry `check()` refuses (the team lead's ruling of 2026-10-02: "drop just that
+  auton"). `Throw`, the default, is unchanged: a `PreconditionError` carrying `check()`'s sentence.
+  `DropEntry` registers NOTHING for that entry, keeps its sentence, and returns, so a registration
+  function's later `add()` calls still register — one bad auton no longer costs every other one, or a
+  program's boot. `refusedCount()` counts every drop; `refusal(i)` gives the first
+  `competition::kMaxAutonRefusals` (8) sentences, each beginning `auton '<name>': `; `onRefusal()`
+  reads the choice back. **`AutonMenu`** names each dropped entry on its status line, in red,
+  `REFUSED auton '<name>': ...` (`kMenuRefusedPrefix`), one at a time for `kMenuRefusalTurnSeconds`
+  (2 s) each, while the choice is open (LOCKED still wins once the auton starts) — a menu over a
+  registry that dropped nothing is unchanged. **What you must do:** nothing; a program that wants the
+  drop asks for it (shulib's competition program and auton tester do).
+
 ### Added since 2.4 (2026-10-06) — the drive's gains and the IMU's noise, measured by the robot: the library half
 
 > Written when it was built (chunk R5a, Part A of four). **No version bump — every change is

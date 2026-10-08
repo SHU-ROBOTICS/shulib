@@ -701,7 +701,12 @@ None of these was ruled before. Each has a recommendation. Nothing is built on a
 - **B15 — each AutonEntry declares its KIND (Match or Skills)**; the period follows from the program's two
   constants (30 s, 60 s); the selector shows the kind; the registry refuses at REGISTRATION (inside the try,
   logged by name) an unset schedule or a `hardStopAt` beyond the kind's period; `runAuton` keeps its own
-  checks. The guide recommends a margin inside the period.
+  checks. The guide recommends a margin inside the period. *[Amended by the team lead's C5 ruling of
+  2026-10-02 ("drop just that auton"; built at T4 Part 3's late step, 2026-10-04): a refusal at registration
+  DROPS that entry, never the boot — the competition program (and the Auton Tester) build their registry with
+  `competition::OnRefusal::DropEntry`; the dropped entry is left off the menu and named there in red and in
+  the boot's log (`src/common/dropped_autons.hpp`), and every other auton and driver control still run. A
+  registry built without asking still throws.]*
 - **B16 — routes:** a route entry's start pose IS its route's Start waypoint (field mode); the registry
   refuses a route entry that also declares a different StartPose; a route with no Start takes the entry's.
   `runAuton` returns the RunGuardReport plus EITHER the routine's RoutineResult OR the route's RunReport (a
@@ -802,7 +807,8 @@ None of these was ruled before. Each has a recommendation. Nothing is built on a
   manual's 30 s / 60 s) and `registerAutons(competition::AutonRegistry&)`, registering the 40 in auton (written
   on the team lead's go of 2026-09-26, "no you can write the auton") and the acceptance run, both MATCH,
   endActionAt 27 s, hardStopAt 29 s, RELATIVE start. COMP-b CALLS `registerAutons()` from its `initialize()`,
-  inside its try, and never writes a second file. The host suite compiles `src/team/autons.cpp` and runs every
+  inside its try, and never writes a second file. *[Since T4 Part 3 (the C5 ruling, B15's note): an entry the
+  registry refuses is DROPPED, not the boot; the students' file is unchanged.]* The host suite compiles `src/team/autons.cpp` and runs every
   auton in it (`test/autons_test.cpp`).
 - **B25 (amended, in B23-B27's notes):** the Makefile's program comment says "Five programs in five slots"
   since COMP-t; COMP-b makes it **"Six programs"**.

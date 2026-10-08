@@ -226,13 +226,14 @@ struct CompetitionView {
 };
 
 // ── layout (every number an ESTIMATE, A4 register HA-136) ───────────────────────────────────
-/// The bar's right-hand text (the BUILD stamp): Teleop's place for it.
+/// The bar's right-hand text (the BUILD stamp): "shulib Drive"'s place for it ("shulib Teleop"'s
+/// until T4 Part 3).
 inline constexpr std::int16_t kCompetitionBarRightX = 340;
 /// The big word's top, under the bar.
 inline constexpr std::int16_t kCompetitionBigY = 34;
 /// A page's first SMALL line under a big word: eight lines end at y 200.
 inline constexpr std::int16_t kCompetitionLineY0 = 72;
-/// The driver page's first row (no big word): Teleop's.
+/// The driver page's first row (no big word): "shulib Drive"'s ("shulib Teleop"'s until T4 Part 3).
 inline constexpr std::int16_t kCompetitionDriverRowY0 = 32;
 static_assert(kCompetitionLineY0 + ui::kSmallHeight * static_cast<std::int16_t>(kCompetitionMaxLines)
                   <= ui::kPanelLastRow,
@@ -556,23 +557,28 @@ inline void competitionAutonHeader(char (&out)[2 * ui::kSmallCols + 1], const ch
     return r;
 }
 
-/// What the driver page shows, read by the program each refresh (it owns the robot by then).
+/// What the driver page shows, read by the program each refresh (it owns the robot by then). Every
+/// row but the AUTON row is src/common/driver_panel.hpp's (shared with "shulib Drive", never
+/// copied).
 struct CompetitionDriverFacts {
+    PanelRow protection{};           ///< protectionRowText() -- the drive protections' state
     PanelRow auton{};                ///< competitionAutonRow()
-    PanelRow controller{};           ///< controllerRowText() (src/common/driver_panel.hpp)
-    const char* faultRow = "";       ///< faultRowText() (src/programs/teleop_claws.hpp, interim)
+    PanelRow controller{};           ///< controllerRowText()
+    const char* faultRow = "";       ///< faultRowText()
     bool faultRed = false;           ///< the fault latch holds a fault
-    const char* clawRow = "";        ///< clawRowText() (teleop_claws.hpp, interim)
+    const char* clawRow = "";        ///< clawRowText()
     bool clawAmber = false;          ///< a claw ABSENT, or a claim released at this entry (FREED)
     std::string_view buildStamp{};   ///< "BUILD hh:mm:ss"
 };
 
 /// THE DRIVER PAGE (opcontrol(), after the handover -- B11 as T4 Part 1a replaced it): the header,
-/// the AUTON row, the CONTROLLER row, the ONE fault row and the CLAW row. T4 Part 2 adds its
-/// PROTECTION row here.
+/// the PROTECTION row (T4 Part 2b, added in Part 3's late step: FIRST, as on "shulib Drive"'s MAIN
+/// -- it is what explains a drive that stopped), the AUTON row, the CONTROLLER row, the ONE fault
+/// row and the CLAW row.
 [[nodiscard]] inline CompetitionView competitionDriverView(const CompetitionDriverFacts& f) {
     CompetitionView v{};
     detail::setCompetitionBar(v, ui::Tone::Blue, kCompetitionName, f.buildStamp);
+    detail::addCompetitionLine(v, kCompetitionDriverRowY0, f.protection.tone, f.protection.text);
     detail::addCompetitionLine(v, kCompetitionDriverRowY0, f.auton.tone, f.auton.text);
     detail::addCompetitionLine(v, kCompetitionDriverRowY0, f.controller.tone, f.controller.text);
     detail::addCompetitionLine(v, kCompetitionDriverRowY0,

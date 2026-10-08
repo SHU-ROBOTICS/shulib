@@ -48,7 +48,7 @@
 // file names neither. Never written during a run: the lines go out after the guard hands the
 // robot back. No card = serial only, never a refusal.
 //
-// Compiled in all eight builds (every .cpp under src/ is); nothing here reads a build switch, no
+// Compiled in all seven builds (every .cpp under src/ is); nothing here reads a build switch, no
 // beacon literal lives here, and the state is one function-local static of EMPTY optionals, so
 // --gc-sections drops all of its CODE from every build but tank-autontest (its string literals can
 // still ride along where the linker keeps this file's copy of a shared inline function -- words
@@ -75,6 +75,7 @@
 
 #include "common/auton_run_log.hpp"
 #include "common/boot_source.hpp"
+#include "common/dropped_autons.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/screen_paint.hpp"
 #include "common/state_screens.hpp"
@@ -185,10 +186,11 @@ private:
 };
 
 // ═══ PROGRAM STATE: one function-local static of EMPTY optionals ═════════════════════════
-// (teleop_program.cpp's rule: nothing non-movable at namespace scope, nothing whose constructor
-// can throw in the static itself). Declaration order is the borrow order: the provider, the
-// controller and the inputs, then the pacer chain from the inside out (painter, watch, guard),
-// then the Robot, whose Chassis keeps the guard as its pacer for the Robot's whole life.
+// ("shulib Drive"'s rule -- "shulib Teleop"'s until T4 Part 3 retired it: nothing non-movable at
+// namespace scope, nothing whose constructor can throw in the static itself). Declaration order
+// is the borrow order: the provider, the controller and the inputs, then the pacer chain from the
+// inside out (painter, watch, guard), then the Robot, whose Chassis keeps the guard as its pacer
+// for the Robot's whole life.
 struct TesterState {
     BootOutcome boot{};
     std::optional<hal::pros::ProsDeviceProvider> devices{};
@@ -476,8 +478,14 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
             return;
         }
         st.robot.emplace(st.boot.built.config, *st.devices, opts);
-        st.registry.emplace(kAutonPeriods);
-        registerAutons(*st.registry);  // an entry the registry refuses throws, naming the auton
+        // The team's autons. An entry the registry refuses is DROPPED -- never on PICK, named there
+        // and in the log -- and the boot goes on: the team lead's ruling of 2026-10-02 for the
+        // competition program ("drop just that auton"), applied here too by the coordinator
+        // (T4 Part 3's late step; the team lead is asked to confirm it), because this program
+        // registers through the same function (src/team/autons.cpp) and a student fixing one
+        // auton must still be able to test the others.
+        st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);
+        registerAutons(*st.registry);
         // The guard safes the Robot's PRESENT mechanisms (the COMP brief's B9).
         for (std::size_t i = 0; i < st.robot->mechanismCount(); ++i) {
             hal::IMechanism* m = st.robot->builtMechanismAt(i);
@@ -511,7 +519,8 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
         st.sdLog.emplace(st.devices->clock(), *st.sdChars);
     }
     // The session header (the S18.5 provenance block, serial): the hash LOUD when missing, the
-    // port map generated from the config -- teleop_program.cpp's block.
+    // port map generated from the config -- the block "shulib Drive" prints too ("shulib Teleop"'s
+    // until T4 Part 3).
     st.robot->portMap(st.portMap, sizeof st.portMap);
     diag::SessionInfo session{};
     session.buildHash = diag::compiledBuildHash();
@@ -544,6 +553,11 @@ void autonTesterInitialize(const char* variantBeacon, const char* competitionSta
             logBoth(hal::LogLevel::Warn, line);
         }
     }
+    // Every auton the registry DROPPED, by name, on serial and the SD run log (the words shared
+    // with the competition program: src/common/dropped_autons.hpp). `false`: this program's
+    // driver control does nothing, so its line never says driver control still runs.
+    sayDroppedAutons(*st.registry, false,
+                     [](const char* dropped) { logBoth(hal::LogLevel::Warn, dropped); });
 
     st.task.emplace(&testerTask, nullptr, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT,
                     "auton tester");

@@ -1074,11 +1074,14 @@ private:
         // E1: the estimator's account of the tick just localized, stamped onto every
         // record this tick emits (motion or idle) — see CommandIdStampSink's header.
         stamperSink_.setEstimatorAudit(schedDeps_.localizer->lastCorrection());
+        const int episodesBefore = loopMonitor_.overrunEpisodes();
         const units::Time dt = loopMonitor_.tick();
         // D-3 payoff: when this tick's dt says the PREVIOUS tick overran
         // (LoopMonitor just raised), name who consumed it — the last completed
-        // attribution IS that tick (tick_attribution.hpp's lag note).
-        if (dt.value() >= cfg_.loopMonitor.budget.value() && att_.has_value()
+        // attribution IS that tick (tick_attribution.hpp's lag note). Said ONCE per
+        // overrun EPISODE, beside LOOP_OVERRUN's own line (loop_monitor.hpp, ONE LINE
+        // PER EPISODE; T4 Part 3): every later slow tick's phases ride its records.
+        if (loopMonitor_.overrunEpisodes() > episodesBefore && att_.has_value()
             && att_->hasCompletedTick()) {
             char buf[112];
             std::snprintf(buf, sizeof buf,

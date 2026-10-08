@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """src build gate — src/ compiles AND links for the V5, every robot variant (GATE1; third
 variant at R3b Session 2; a second axis, the PROGRAM, at R3b Part 0b; its third value, the
-LIBRARY program, at R3b Parts 1–3; its fourth, the CALIBRATE program, at R3d Part 2; its fifth,
-the AUTON TESTER, at COMP-t; its sixth, the COMPETITION program, at COMP-b).
+LIBRARY program, at R3b Parts 1–3 — RETIRED at T4 Part 3; its fourth, the CALIBRATE program, at
+R3d Part 2; its fifth, the AUTON TESTER, at COMP-t; its sixth, the COMPETITION program, at COMP-b).
 
 WHY THIS EXISTS
 ---------------
@@ -29,19 +29,13 @@ $(error))
   tank        ROBOT=tank                 the 2026 tank chassis, robot two — boots the bench
                                          tester over its SIGNED chassis table
                                                               -DSHULIB_ROBOT_TANK_2026
-  tank-drive  ROBOT=tank PROGRAM=drive   "shulib Drive" (R3b Part 0b): robot two drives from
-                                         the sticks through the hal/pros adapters — its own
-                                         program in its own slot
+  tank-drive  ROBOT=tank PROGRAM=drive   "shulib Drive" (T4 Part 3; the R3b Part 0b program of
+                                         that name REPLACED in place): robot two's driver file
+                                         (src/team/robot_two_driver.hpp) on robot::Robot over the
+                                         PROS device provider, built from the SD card's
+                                         calibration record (src/programs/drive_program.cpp); slot 1
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_DRIVE
-  tank-library ROBOT=tank PROGRAM=library "shulib Teleop" (R3b Parts 1–3; on robot::Robot since
-                                         G1 Part 2b): THE LIBRARY drives robot two —
-                                         src/programs/teleop_program.cpp, robot::Robot over the PROS device
-                                         provider (two MotorGroups, drive-encoder odometry,
-                                         Chassis), built from the SD card's calibration record
-                                         when there is one, else from the chassis table; slot 2
-                                                              -DSHULIB_ROBOT_TANK_2026
-                                                              -DSHULIB_PROGRAM_LIBRARY
   tank-calibrate ROBOT=tank PROGRAM=calibrate "shulib Calibrate" (R3d Part 2): the robot MEASURES
                                          its own drivetrain (src/programs/calibrate_program.cpp) and
                                          writes /usd/shulib_drivetrain.bin; slot 4
@@ -50,7 +44,7 @@ $(error))
   tank-autontest ROBOT=tank PROGRAM=autontest "shulib Auton Tester" (COMP-t): runs ONE of the
                                          team's autons (src/team/autons.cpp) from RUN on the
                                          brain's screen through competition::runAuton
-                                         (src/programs/auton_tester_program.cpp)
+                                         (src/programs/auton_tester_program.cpp); slot 2
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_AUTONTEST
   tank-competition ROBOT=tank PROGRAM=competition "shulib Competition" (COMP-b): THE
@@ -59,12 +53,20 @@ $(error))
                                          (src/programs/competition_program.cpp); slot 6
                                                               -DSHULIB_ROBOT_TANK_2026
                                                               -DSHULIB_PROGRAM_COMPETITION
-  (PROGRAM=drive, =library, =calibrate, =autontest or =competition with any other ROBOT is a
-   Makefile $(error): only robot two has a signed table, only a tank can be calibrated by this
-   procedure, and the team's autons and driver file are robot two's.)
+  (PROGRAM=drive, =calibrate, =autontest or =competition with any other ROBOT is a Makefile
+   $(error): only robot two has a driver file and a calibration record, only a tank can be
+   calibrated by this procedure, and the team's autons and driver file are robot two's.)
+  RETIRED (T4 Part 3, 2026-10-01): tank-library, ROBOT=tank PROGRAM=library, "shulib Teleop" —
+   replaced by "shulib Drive" (the team lead's ruling R5). `make ROBOT=tank PROGRAM=library` is a
+   Makefile $(error) naming the retirement, never a different program under the old name; and
+   RETIRED (below) keeps its switch, its define and its beacon out of the tree for good: the
+   switch named in any code under src/, include/shulib/ or test/ — src/build_selection.hpp
+   included — fails step 0, its define on a compile line fails step 5, and its beacon in a
+   package fails step 6. Self-test cases 12-13 prove both halves (they stand where the library
+   build's own cases did; those retired onto 10-11, which test the same things for tank-drive).
 
-WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-library, tank-calibrate,
-tank-autontest, tank-competition)
+WHAT `check` DOES, per build (bench, xdrive, tank, tank-drive, tank-calibrate, tank-autontest,
+tank-competition)
 --------------------------------------------------------------
  1. Removes bin/ and .d/ (exactly what `make clean` removes; both gitignored, so the
     tree stays clean). make is INCREMENTAL: a gate that compiles nothing reports green,
@@ -92,19 +94,20 @@ tank-autontest, tank-competition)
     differential, retired" below) — so the structural check has to be exact on its own.
  6. Asserts the IDENTITY BEACONS — two per build.
     THE VARIANT BEACON (R3b Session 2): src/build_selection.hpp defines one string per build —
-    `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-library|tank-calibrate|tank-autontest|`
+    `shulib-robot-variant=bench|xdrive|tank|tank-drive|tank-calibrate|tank-autontest|`
     `tank-competition` —
     in THE SAME BRANCH of THE ONE #if chain that sets the program (`kProgram`) and the robot
     (`kRobotId`) — one chain since G1 Part 2c, in that header since 2c's final run, and step 0
     below enforces it — and the program prints it at boot so it is linked in. The expected
-    beacon must be in the bytes of bin/hot.package.elf and the other seven must NOT be. MATCHED
-    WITH THE NUL TERMINATOR (Part 0b): `…=tank` is a prefix of `…=tank-drive`, `…=tank-library`,
+    beacon must be in the bytes of bin/hot.package.elf and the other six — the RETIRED
+    `…=tank-library` too — must NOT be. MATCHED
+    WITH THE NUL TERMINATOR (Part 0b): `…=tank` is a prefix of `…=tank-drive`,
     `…=tank-calibrate`, `…=tank-autontest` and `…=tank-competition`, so a plain substring search
     would false-fail every one of those; a
     C string literal sits in the ELF with its terminating zero byte, and that is what is
     searched for. This is the end-to-end proof that the `#if` in the SOURCE took the branch the
     Makefile asked for — the one case no command-line check can see is a macro renamed or
-    broken in the chain, and a "shulib Teleop" upload that was silently the tester is HA-111's
+    broken in the chain, and a "shulib Drive" upload that was silently the tester is HA-111's
     defect class again.
     THE ROBOT BEACON (G1 Part 2c's final run, the team lead's ruling "one chain picks both"):
     one string per ROBOT — `shulib-robot=bench-bot|robot-two|invented-xdrive` — DERIVED from
@@ -118,17 +121,17 @@ tank-autontest, tank-competition)
  7. Asserts bin/hot.package.bin exists — the link is part of the gate.
  8. Asserts THE PROGRAM (added in G1 Part 2c's review). The beacon vouches for the chain's
     BRANCH — not for the enumerator that branch assigns, nor for the function each entry
-    point's case calls: `kProgram = Program::BenchTests` under the tank-library beacon, or
+    point's case calls: `kProgram = Program::BenchTests` under the tank-drive beacon, or
     opcontrol()'s BenchTests and Drive calls swapped, pass steps 0-7 untouched (measured), and
-    either one is an upload whose name is not its program — a "shulib Teleop" slot that is the
+    either one is an upload whose name is not its program — a "shulib Drive" slot that is the
     tester, a "Bench Tests" slot a helper was told is read-only driving the motors. So this step
     reads the linked ELF's symbol table (`arm-none-eabi-nm -C --defined-only`) and requires,
     for the build's program (BUILD_PROGRAM), every shulib::bench:: name src/main.cpp uses for
     it (PROGRAM_ENTRY_SYMBOLS) to be LINKED, and every other program's to be ABSENT. It holds
     because a switch on a `constexpr` enum folds at -Os, a call into another TU is never
     inlined (no LTO), and --gc-sections drops every function nothing calls — measured for all
-    six builds at 2c, for the seventh at COMP-t and the eighth at COMP-b. If any of that stops
-    being true, this step
+    six builds at 2c, for the seventh at COMP-t, the eighth at COMP-b, and for the new tank-drive
+    at T4 Part 3. If any of that stops being true, this step
     FAILS (a program's own name missing, or another's present); it cannot pass silently. What
     it does NOT see: the
     sentences src/main.cpp paints itself (the DISABLED / FIELD CONTROL reasons and the tester's
@@ -196,6 +199,11 @@ Once per `check`, before any build — step 0, five source checks:
   BUILD_SELECTION_NAMES, and every name in the table is one main.cpp uses. So a program cannot
   be added to the source (the Auton Tester, COMP-t, was the sixth; COMP-b's competition program
   the seventh) without telling this gate which functions are its own.
+  A RETIRED SWITCH (T4 Part 3): RETIRED_SWITCHES' names — SHULIB_PROGRAM_LIBRARY, "shulib
+  Teleop"'s — may not be named in code ANYWHERE under ONE_CHAIN_ROOTS, src/build_selection.hpp and
+  the host build's CMake included (comments and string literals stripped, as above): a retired
+  switch read in an #error guard or in the chain would bring the retired build back under its old
+  name. The problem names the retirement.
   THE INCLUDE ROOT (SRC1, 2026-09-27, the team lead's layout): src/ is organized by job — robots/,
   team/, programs/, common/, with main.cpp and build_selection.hpp at the top — and BOTH builds
   make src/ itself an include root: the Makefile's EXTRA_INCDIR (common.mk: -iquote"./src", AFTER
@@ -229,8 +237,8 @@ Once per `check`, before any build — step 0, five source checks:
 
 THE VARIANT DIFFERENTIAL, RETIRED AT G1 PART 2c — what it was, why it went, what replaced it
 ------------------------------------------------------------------------------------------
-It was the brief's warning-count detector: the bench, tank, tank-drive, tank-library and
-tank-calibrate builds each had to emit >= 1 -Wunused-function from src/main.cpp (the invented
+It was the brief's warning-count detector: the bench, tank, tank-drive, tank-library (a build
+itself retired at T4 Part 3) and tank-calibrate builds each had to emit >= 1 -Wunused-function from src/main.cpp (the invented
 X-drive wiring — `robot()`, `portMapString()` — was dead code there, and the Makefile
 documented those warnings as the evidence) and the xdrive build none (the wiring live). It was
 meant to catch a define passed on the command line while the #ifdef in main.cpp that reads it
@@ -253,7 +261,8 @@ assigns and which function a case calls (step 8, from the symbol table), which r
 assigns (step 6's robot beacon) — is read from the package. The self-test plants every one
 (cases 16-27; SRC1's folders and include root, cases 28-29; the paths a program prints, case 30;
 the seventh build's define and beacon, cases 31-32; a build dropped from VARIANTS alone, case 33;
-the eighth build's define and beacon, cases 34-35);
+the eighth build's define and beacon, cases 34-35; the retired library build, cases 12-13 since
+T4 Part 3);
 the G1 Part 2c and SRC1 logs
 carry the hand mutations.
 
@@ -330,14 +339,13 @@ ARM_GXX = "arm-none-eabi-g++"
 # Makefile's ROBOT and PROGRAM blocks and src/build_selection.hpp's #if chain (step 0 checks the
 # chain against them); a build added to one place and not the others fails here, which is the
 # point of having the tables.
-VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-library", "tank-calibrate",
-            "tank-autontest", "tank-competition")
+VARIANTS = ("bench", "xdrive", "tank", "tank-drive", "tank-calibrate", "tank-autontest",
+            "tank-competition")
 BUILD_ARGS = {
     "bench": ("ROBOT=bench",),
     "xdrive": ("ROBOT=xdrive",),
     "tank": ("ROBOT=tank",),
     "tank-drive": ("ROBOT=tank", "PROGRAM=drive"),
-    "tank-library": ("ROBOT=tank", "PROGRAM=library"),
     "tank-calibrate": ("ROBOT=tank", "PROGRAM=calibrate"),
     "tank-autontest": ("ROBOT=tank", "PROGRAM=autontest"),
     "tank-competition": ("ROBOT=tank", "PROGRAM=competition"),
@@ -347,7 +355,6 @@ VARIANT_DEFINES = {
     "xdrive": ("-DSHULIB_ROBOT_XDRIVE_INVENTED",),
     "tank": ("-DSHULIB_ROBOT_TANK_2026",),
     "tank-drive": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_DRIVE"),
-    "tank-library": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_LIBRARY"),
     "tank-calibrate": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_CALIBRATE"),
     "tank-autontest": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_AUTONTEST"),
     "tank-competition": ("-DSHULIB_ROBOT_TANK_2026", "-DSHULIB_PROGRAM_COMPETITION"),
@@ -358,13 +365,23 @@ VARIANT_BEACONS = {
     "xdrive": b"shulib-robot-variant=xdrive",
     "tank": b"shulib-robot-variant=tank",
     "tank-drive": b"shulib-robot-variant=tank-drive",
-    "tank-library": b"shulib-robot-variant=tank-library",
     "tank-calibrate": b"shulib-robot-variant=tank-calibrate",
     "tank-autontest": b"shulib-robot-variant=tank-autontest",
     "tank-competition": b"shulib-robot-variant=tank-competition",
 }
 # (XDRIVE_WIRING_DEAD_IN — the retired variant differential's table — was removed at G1
 #  Part 2c; the header's "the variant differential, retired" says what replaced it and why.)
+
+# THE RETIRED BUILDS (header, "RETIRED"; T4 Part 3, 2026-10-01): a build switch, its define and its
+# beacon that no build may carry again, each with the sentence a failure names. Kept so a retired
+# build cannot come back silently — by an #if that reads its switch (step 0, anywhere, the selection
+# header included), by a Makefile that appends its define (step 5, on every compile line), or by a
+# branch that types its beacon (step 6, in every package).
+RETIRED_WHY = ('RETIRED at T4 Part 3: "shulib Teleop" (PROGRAM=library) was replaced by "shulib '
+               'Drive" (PROGRAM=drive) -- the team lead\'s ruling R5')
+RETIRED_SWITCHES = {"SHULIB_PROGRAM_LIBRARY": RETIRED_WHY}
+RETIRED_DEFINES = {"-DSHULIB_PROGRAM_LIBRARY": RETIRED_WHY}
+RETIRED_BEACONS = {b"shulib-robot-variant=tank-library": RETIRED_WHY}
 
 # Step 6's robot half (header): the ROBOT each build carries the tables of — the `RobotId`
 # enumerator its branch of src/build_selection.hpp's chain sets — and each robot's beacon,
@@ -374,7 +391,6 @@ BUILD_ROBOT = {
     "xdrive": "InventedXDrive",
     "tank": "RobotTwo",
     "tank-drive": "RobotTwo",
-    "tank-library": "RobotTwo",
     "tank-calibrate": "RobotTwo",
     "tank-autontest": "RobotTwo",
     "tank-competition": "RobotTwo",
@@ -450,16 +466,14 @@ BUILD_PROGRAM = {
     "xdrive": "InventedXDrive",
     "tank": "BenchTests",
     "tank-drive": "Drive",
-    "tank-library": "Teleop",
     "tank-calibrate": "Calibrate",
     "tank-autontest": "AutonTester",
     "tank-competition": "Competition",
 }
 PROGRAM_ENTRY_SYMBOLS = {
     "BenchTests": ("shulib::bench::testerInitialize", "shulib::bench::runR3a"),
-    "Drive": ("shulib::bench::driveInitialize", "shulib::bench::runDrive"),
-    "Teleop": ("shulib::bench::teleopInitialize", "shulib::bench::kTeleopAutonomousReason",
-               "shulib::bench::teleopAutonomous", "shulib::bench::runTeleop"),
+    "Drive": ("shulib::bench::driveInitialize", "shulib::bench::kDriveAutonomousReason",
+              "shulib::bench::driveAutonomous", "shulib::bench::runDrive"),
     "Calibrate": ("shulib::bench::calibrateInitialize", "shulib::bench::runCalibrate"),
     "InventedXDrive": ("shulib::bench::xdriveInitialize", "shulib::bench::xdriveAutonomous",
                        "shulib::bench::runXdrive"),
@@ -680,13 +694,40 @@ def one_chain_problems(repo=None):
                     continue
                 if f == ONE_CHAIN_CMAKE[0] or f.endswith(ONE_CHAIN_CMAKE[1:]):
                     problems += _cmake_selection_problems(repo, rel)
+                    problems += _retired_switch_problems(
+                        rel, enumerate(_strip_cmake_comments(_read(repo, rel)).split("\n"), 1))
                     continue
                 if not f.endswith(ONE_CHAIN_EXTS):
                     continue
                 problems += _macro_problems(repo, rel, macro_names)
+                problems += _retired_switch_problems(
+                    rel, _logical_lines(_strip_comments(_read(repo, rel), literals=True)))
                 if rel != SELECTION_HEADER:
                     problems += _stray_selection_problems(repo, rel, per_robot)
     problems += _selection_header_problems(repo)
+    return problems
+
+
+def _live_switches_on(line):
+    """The build-switch names `line` reads that are NOT retired (a retired one is
+    _retired_switch_problems()' to report, once, naming the retirement)."""
+    return {m.group(0) for m in READS_SWITCH.finditer(line)} - set(RETIRED_SWITCHES)
+
+
+def _retired_switch_problems(rel, lines):
+    """Any file step 0 reads, SELECTION_HEADER and the host build's CMake included (header, A
+    RETIRED SWITCH): a RETIRED build switch named in its code. `lines` are the file's (line number,
+    line) pairs with comments (and, for C++, string literals) already stripped. Returns a list of
+    problem strings."""
+    problems = []
+    for n, line in lines:
+        for m in READS_SWITCH.finditer(line):
+            why = RETIRED_SWITCHES.get(m.group(0))
+            if why is not None:
+                problems.append(
+                    f"{rel}:{n} names {m.group(0)}, a RETIRED build switch — {why}; it may not "
+                    f"come back under its old name (header, step 0, A RETIRED SWITCH): "
+                    f"`{line.strip()}`")
     return problems
 
 
@@ -697,7 +738,7 @@ def _stray_selection_problems(repo, rel, per_robot=frozenset()):
     problems = []
     code = _strip_comments(_read(repo, rel), literals=True)
     for n, line in _logical_lines(code):
-        if READS_SWITCH.search(line):
+        if _live_switches_on(line):
             problems.append(
                 f"{rel}:{n} names a build switch — only {SELECTION_HEADER} may read them "
                 f"(header, step 0): `{line.strip()}`")
@@ -738,7 +779,7 @@ def _cmake_selection_problems(repo, rel):
     ODR violation across the suite that test/build_selection_test.cpp's static_assert cannot see."""
     problems = []
     for n, line in enumerate(_strip_cmake_comments(_read(repo, rel)).split("\n"), 1):
-        if READS_SWITCH.search(line):
+        if _live_switches_on(line):
             problems.append(
                 f"{rel}:{n} names a build switch in the host build — only {SELECTION_HEADER} may "
                 f"read them (header, step 0): `{line.strip()}`")
@@ -1292,6 +1333,10 @@ def verdict(robot, b):
             if other in tokens:
                 problems.append(f"build {robot} but {tu} carries another build's "
                                 f"define {other}")
+        for retired, why in RETIRED_DEFINES.items():
+            if retired in tokens:
+                problems.append(f"build {robot} but {tu} carries the RETIRED define {retired} — "
+                                f"{why} (header, step 5)")
 
     # End-to-end, from the bytes of the linked ELF: the hash string must survive into it
     # (exactly the `strings` measurement that exposed §4.1's second half), and so must
@@ -1320,6 +1365,11 @@ def verdict(robot, b):
                 problems.append(
                     f"build {robot} but bin/hot.package.elf carries the {v} beacon "
                     f"{beacon.decode()!r} — this is a {v} build wearing a {robot} label")
+        for beacon, why in RETIRED_BEACONS.items():
+            if _beacon_bytes(beacon) in elf_bytes:
+                problems.append(
+                    f"build {robot} but bin/hot.package.elf carries the RETIRED beacon "
+                    f"{beacon.decode()!r} — {why} (header, step 6)")
 
         # Step 6's robot half (header): the ROBOT the branch set, from the beacon robotBeacon()
         # derives from kRobotId — what the typed variant beacon cannot vouch for.
@@ -1449,11 +1499,10 @@ MECHANISM_TABLE_PATH = os.path.join(REPO, "src", "robots", "mechanism_table.hpp"
 LIBRARY_PLANT = os.path.join(REPO, "include", "shulib", "config", "robot_config.hpp")  # (19)
 TEST_PLANT = os.path.join(REPO, "test", "build_selection_test.cpp")                 # (19)
 VENDORED_TEST_PLANT = os.path.join(REPO, "test", "vendor", "doctest.h")              # (19)
-DRIVE_PLANT = os.path.join(REPO, "src", "programs", "drive_program.cpp")           # (26, 29)
+DRIVE_PLANT = os.path.join(REPO, "src", "programs", "drive_program.cpp")     # (26, 28, 29, 30)
 CALIBRATE_PLANT = os.path.join(REPO, "src", "programs", "calibrate_program.cpp")   # (26)
 CMAKE_PLANT = os.path.join(REPO, "test", "CMakeLists.txt")                          # (27)
 COMMON_PLANT = os.path.join(REPO, "src", "common", "boot_source.hpp")               # (28)
-CLAWS_PLANT = os.path.join(REPO, "src", "programs", "teleop_claws.hpp")             # (28)
 TEAM_DIR = os.path.join(REPO, "src", "team")                                        # (28)
 TEAM_README = os.path.join(TEAM_DIR, "README.md")                                   # (28)
 HOST_INCLUDE_PLANT = os.path.join(REPO, "test", "chassis_table_test.cpp")           # (28)
@@ -1697,29 +1746,70 @@ def do_self_test():
     ok, problems = verdict("tank-drive", b)
     expect(ok, f"11: the real tank-drive build FAILED the gate: {problems}")
 
-    # 12: the Makefile's PROGRAM=library append DROPPED (R3b Parts 1–3, brief test 19:
-    #     `make ROBOT=tank PROGRAM=library` silently builds the tester) -> FAIL on the
-    #     token-exact structural check naming the define AND on the beacon (a tank build
-    #     wearing the tank-library label). Both detectors must fire (the retired warning-count
-    #     detector never could see this one).
-    library_line = "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_LIBRARY\n"
-    with _replace(MAKEFILE, library_line, "# (self-test plant: library append dropped)\n"):
-        b = run_build("tank-library")
-        ok, problems = verdict("tank-library", b)
-        expect(not ok, "12: PROGRAM=library with its Makefile append dropped PASSED — the "
-                       "silent-no-op class is back for the library program")
-        expect(any("whole token -DSHULIB_PROGRAM_LIBRARY" in p for p in problems),
-               "12: the failure did not name the missing PROGRAM=library define")
-        expect(any("beacon" in p and "NOT in" in p for p in problems),
-               "12: the tank-library beacon's absence was not caught")
-        expect(any("tank build wearing a tank-library label" in p for p in problems),
-               "12: the tank beacon's presence (NUL-terminated match) was not caught")
+    # 12-13 (T4 Part 3, 2026-10-01): THE RETIRED LIBRARY BUILD. Until T4 Part 3, cases 12 and 13
+    #     were the tank-library build's own — 12 its Makefile append dropped, 13 the real build
+    #     alone. They RETIRED with the build, onto cases 10 and 11, which test the same two things
+    #     for tank-drive: 12's intent (a dropped PROGRAM append is caught by the token-exact define
+    #     check AND the beacon) lives on in 10, and 13's (the `…=tank` prefix inside a longer beacon
+    #     must not false-fail, and the library graph must link — tank-drive links robot::Robot,
+    #     runDriverControl and the protections since T4 Part 3) in 11. In their place, the
+    #     retirement itself (header, RETIRED):
+    # 12: SHULIB_PROGRAM_LIBRARY planted (a) in a src/ program, (b) in src/build_selection.hpp as
+    #     an #error guard — a form that is LEGAL there for a live switch — and (c) in the host
+    #     build's CMake: step 0 must FAIL each, naming the retirement (and (a) once, not also as a
+    #     stray switch). Then from the build: (d) the Makefile's drive branch ALSO appending the
+    #     retired define — step 5 must name it on the compile lines; (e) the tank-drive branch
+    #     typing the retired beacon — step 6 must name it in the package.
+    retired = "a RETIRED build switch"
+    for where, form in ((SRC_PLANT, "#if defined(SHULIB_PROGRAM_LIBRARY)"),
+                        (SELECTION_PATH, "#if defined(SHULIB_PROGRAM_LIBRARY)\n"
+                                         "#error \"self-test plant: a retired switch's guard\"")):
+        rel = os.path.relpath(where, REPO)
+        body = "" if "#error" in form else "static int self_test_retired;\n"
+        with _plant(where, f"\n{form}\n{body}#endif\n"):
+            found = one_chain_problems()
+            expect(any(rel in p and retired in p and "RETIRED at T4 Part 3" in p for p in found),
+                   f"12: SHULIB_PROGRAM_LIBRARY in {rel} was not reported as RETIRED: {found}")
+            expect(not any(rel in p and "names a build switch" in p for p in found),
+                   f"12: the retired switch in {rel} was reported twice: {found}")
+    with _plant(CMAKE_PLANT, "\ntarget_compile_definitions(shulib_tests PRIVATE "
+                             "SHULIB_PROGRAM_LIBRARY)\n"):
+        found = one_chain_problems()
+        expect(any(os.path.relpath(CMAKE_PLANT, REPO) in p and retired in p for p in found),
+               f"12: SHULIB_PROGRAM_LIBRARY in the host build's CMake was not reported: {found}")
+    expect(one_chain_problems() == [], "12: a plant was not restored")
+    drive_line = "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE\n"
+    with _replace(MAKEFILE, drive_line,
+                  drive_line + "override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_LIBRARY\n"):
+        b = run_build("tank-drive")
+        ok, problems = verdict("tank-drive", b)
+        expect(not ok, "12: a tank-drive build carrying the retired define PASSED")
+        expect(any("carries the RETIRED define -DSHULIB_PROGRAM_LIBRARY" in p for p in problems),
+               f"12: the retired define on the compile lines was not named: {problems}")
+    with _replace(SELECTION_PATH, 'kVariantBeacon[] = "shulib-robot-variant=tank-drive";',
+                  'kVariantBeacon[] = "shulib-robot-variant=tank-library";'):
+        b = run_build("tank-drive")
+        ok, problems = verdict("tank-drive", b)
+        expect(not ok, "12: a tank-drive build typing the retired beacon PASSED")
+        expect(any("carries the RETIRED beacon 'shulib-robot-variant=tank-library'" in p
+                   for p in problems),
+               f"12: the retired beacon in the package was not named: {problems}")
 
-    # 13: the real tank-library build, alone -> PASS (the `…=tank` prefix inside
-    #     `…=tank-library` must not false-fail, and the library graph must link).
-    b = run_build("tank-library")
-    ok, problems = verdict("tank-library", b)
-    expect(ok, f"13: the real tank-library build FAILED the gate: {problems}")
+    # 13: `make ROBOT=tank PROGRAM=library` -> make FAILS before it compiles anything, with the
+    #     Makefile's $(error) naming the retirement and the right command — never a different
+    #     program under the retired name (header, RETIRED).
+    for d in ("bin", ".d"):
+        shutil.rmtree(os.path.join(REPO, d), ignore_errors=True)
+    p = subprocess.run(["make", "ROBOT=tank", "PROGRAM=library", "V=1"], cwd=REPO,
+                       capture_output=True, text=True, timeout=600)
+    said = ANSI.sub("", p.stdout + p.stderr)
+    expect(p.returncode != 0, "13: `make ROBOT=tank PROGRAM=library` SUCCEEDED — the retired "
+                              "build came back")
+    expect("PROGRAM=library was retired at T4" in said and "PROGRAM=drive" in said,
+           f"13: the failure did not name the retirement and the right command: {said[-400:]}")
+    expect(not re.search(r"^Compiled ", said, flags=re.M)
+           and not os.path.exists(os.path.join(REPO, "bin")),
+           "13: make compiled something before refusing the retired build")
 
     # 14: the Makefile's PROGRAM=calibrate append DROPPED (R3d Part 2: `make ROBOT=tank
     #     PROGRAM=calibrate` silently builds the tester) -> FAIL on the token-exact structural
@@ -1751,20 +1841,22 @@ def do_self_test():
     # 16: a branch of THE ONE CHAIN (src/build_selection.hpp since 2c's final run) broken — the
     #     define lands on the command line but the #elif that reads it is misspelt (the case the
     #     retired differential existed for, which it could see only for xdrive) -> the
-    #     tank-library build silently becomes the tester, and the VARIANT BEACON must fail it:
-    #     the tank-library beacon absent, the tank one present. The structural define check must
+    #     tank-drive build silently becomes the tester, and the VARIANT BEACON must fail it:
+    #     the tank-drive beacon absent, the tank one present. The structural define check must
     #     NOT be what fires (the define did land), nor the robot beacon (both branches are robot
-    #     two's) — each detector is proven on its own.
-    library_branch = "defined(SHULIB_PROGRAM_LIBRARY)\ninline constexpr Program kProgram"
-    with _replace(SELECTION_PATH, library_branch,
-                  "defined(SHULIB_PROGRAM_LIBRARY_BROKEN)\ninline constexpr Program kProgram"):
-        b = run_build("tank-library")
-        ok, problems = verdict("tank-library", b)
-        expect(not ok, "16: a broken #elif in the one chain PASSED the tank-library build — "
+    #     two's) — each detector is proven on its own. (On the tank-library branch until T4 Part
+    #     3 retired it; re-pointed to tank-drive, its intent unchanged — case 10 drops the
+    #     Makefile's append instead, so the define does NOT land there: not a copy.)
+    drive_branch = "defined(SHULIB_PROGRAM_DRIVE)\ninline constexpr Program kProgram"
+    with _replace(SELECTION_PATH, drive_branch,
+                  "defined(SHULIB_PROGRAM_DRIVE_BROKEN)\ninline constexpr Program kProgram"):
+        b = run_build("tank-drive")
+        ok, problems = verdict("tank-drive", b)
+        expect(not ok, "16: a broken #elif in the one chain PASSED the tank-drive build — "
                        "the beacon no longer vouches for the program")
-        expect(any("beacon 'shulib-robot-variant=tank-library' is NOT in" in p for p in problems),
-               "16: the tank-library beacon's absence was not caught")
-        expect(any("tank build wearing a tank-library label" in p for p in problems),
+        expect(any("beacon 'shulib-robot-variant=tank-drive' is NOT in" in p for p in problems),
+               "16: the tank-drive beacon's absence was not caught")
+        expect(any("tank build wearing a tank-drive label" in p for p in problems),
                "16: the tank beacon's presence was not caught")
         expect(not any("whole token" in p for p in problems),
                "16: the define check fired — the plant was meant to leave the define landing")
@@ -1835,13 +1927,16 @@ def do_self_test():
     expect(one_chain_problems() == [],
            f"19: the real tree broke the one-chain rule: {one_chain_problems()}")
     only_header = f"only {SELECTION_HEADER} may read them"
+    # (T4 Part 3 re-pointed the plants on SHULIB_PROGRAM_LIBRARY, a switch it RETIRED, to live
+    # switches — planted retired they would test the RETIRED list, case 12, not the one-chain rule.
+    # Each keeps its file and its directive form, so none copies another plant.)
     plants = [
-        (MAIN_CPP_PATH, "#if defined(SHULIB_PROGRAM_LIBRARY)"),
-        (SRC_PLANT, "#if defined(SHULIB_PROGRAM_LIBRARY)"),
+        (MAIN_CPP_PATH, "#if defined(SHULIB_PROGRAM_CALIBRATE)"),
+        (SRC_PLANT, "#if defined(SHULIB_PROGRAM_AUTONTEST)"),
         (SRC_PLANT, "#ifdef SHULIB_ROBOT_TANK_2026"),
         (MAIN_CPP_PATH, "#ifndef SHULIB_PROGRAM_DRIVE"),
         (MAIN_CPP_PATH, "#if 0\n#elifdef SHULIB_ROBOT_XDRIVE_INVENTED"),
-        (SRC_PLANT, "#if 0\n#elifndef SHULIB_PROGRAM_LIBRARY"),
+        (SRC_PLANT, "#if 0\n#elifndef SHULIB_PROGRAM_CALIBRATE"),
     ]
     for table in (CHASSIS_TABLE_PATH, MECHANISM_TABLE_PATH):
         plants += [
@@ -1852,7 +1947,7 @@ def do_self_test():
     # ...and outside src/: a library header every src/ file includes, and a host test TU.
     plants += [
         (LIBRARY_PLANT, "#ifdef SHULIB_ROBOT_TANK_2026"),
-        (TEST_PLANT, "#if defined(SHULIB_PROGRAM_LIBRARY)"),
+        (TEST_PLANT, "#if defined(SHULIB_PROGRAM_AUTONTEST)"),
     ]
     for where, form in plants:
         rel = os.path.relpath(where, REPO)
@@ -1900,11 +1995,11 @@ def do_self_test():
                f"{one_chain_problems()}")
     rel = SELECTION_HEADER
     for form, expected in (
-            ("#if defined(SHULIB_PROGRAM_LIBRARY)\nstatic int self_test_second_chain;\n#endif",
+            ("#if defined(SHULIB_PROGRAM_CALIBRATE)\nstatic int self_test_second_chain;\n#endif",
              "opens a SECOND chain"),
             ("#ifdef SHULIB_ROBOT_TANK_2026\nstatic int self_test_second_chain;\n#endif",
              "opens a SECOND chain"),
-            ("#if 0\n#elifndef SHULIB_PROGRAM_LIBRARY\nstatic int self_test_x;\n#endif",
+            ("#if 0\n#elifndef SHULIB_PROGRAM_AUTONTEST\nstatic int self_test_x;\n#endif",
              "reads a build switch outside an #error guard"),
             ("namespace shulib::bench::self_test {\n"
              "inline constexpr Program kProgram = Program::Drive;\n}",
@@ -1948,26 +2043,28 @@ def do_self_test():
         expect(not any("beacon" in p for p in problems),
                "20: a beacon fired — the plant was meant to leave every beacon right")
 
-    # 21: the tank-library branch assigns the WRONG program (`kProgram = Program::BenchTests`)
-    #     under the RIGHT beacon: the "shulib Teleop" upload is silently the tester (HA-111's
+    # 21: the tank-drive branch assigns the WRONG program (`kProgram = Program::BenchTests`)
+    #     under the RIGHT beacon: the "shulib Drive" upload is silently the tester (HA-111's
     #     defect class). The one-chain rule and the program table pass (the branch still sets
     #     all three); step 0's CHAIN TABLE reports it from the source, and step 8 — proven here
-    #     on its own, from the build — must fail it on both halves, with no beacon firing.
-    with _replace(SELECTION_PATH, "inline constexpr Program kProgram = Program::Teleop;",
+    #     on its own, from the build — must fail it on both halves, with no beacon firing. (On the
+    #     tank-library branch until T4 Part 3 retired it; re-pointed, its intent unchanged — case
+    #     20 swaps main.cpp's CALLS in the bench build, not a branch's program: not a copy.)
+    with _replace(SELECTION_PATH, "inline constexpr Program kProgram = Program::Drive;",
                   "inline constexpr Program kProgram = Program::BenchTests;"):
         expect(one_chain_problems() == [] and program_table_problems() == [],
                "21: the plant tripped the one-chain rule or the program table")
         expect(any("sets kProgram = Program::BenchTests, but this gate's BUILD_PROGRAM says "
-                   "Teleop" in p for p in chain_table_problems()),
+                   "Drive" in p for p in chain_table_problems()),
                f"21: the chain table did not report the wrong program: {chain_table_problems()}")
-        b = run_build("tank-library")
-        ok, problems = verdict("tank-library", b)
-        expect(not ok, "21: a tank-library build that is the tester PASSED")
+        b = run_build("tank-drive")
+        ok, problems = verdict("tank-drive", b)
+        expect(not ok, "21: a tank-drive build that is the tester PASSED")
         expect(any("links the BenchTests program's shulib::bench::runR3a" in p
                    for p in problems),
-               f"21: the tester's function in the tank-library build was not reported: {problems}")
-        expect(any("does not link its shulib::bench::teleopInitialize" in p for p in problems),
-               f"21: Teleop's missing boot was not reported: {problems}")
+               f"21: the tester's function in the tank-drive build was not reported: {problems}")
+        expect(any("does not link its shulib::bench::driveInitialize" in p for p in problems),
+               f"21: Drive's missing boot was not reported: {problems}")
         expect(not any("beacon" in p for p in problems),
                "21: a beacon fired — the plant was meant to leave every beacon right")
 
@@ -2011,25 +2108,26 @@ def do_self_test():
             expect(where in warned,
                    f"23: no -Wswitch in {where} for the unhandled robot (warned: {sorted(warned)})")
 
-    # 24: THE WRONG ROBOT INSIDE A BRANCH (the ruling's case): the tank-library branch sets
+    # 24: THE WRONG ROBOT INSIDE A BRANCH (the ruling's case): the tank-drive branch sets
     #     `kRobotId = RobotId::BenchBot` under the right program and the right beacon. The build
-    #     compiles, links and runs "shulib Teleop" — over the bench bot's chassis table and no
-    #     claws. Step 0's chain table reports it from the source; from the package, ONLY the
-    #     robot beacon can (the variant beacon is typed in the branch and step 8 checks programs):
-    #     robot two's robot beacon absent, the bench bot's present, and nothing else firing.
+    #     compiles, links and runs "shulib Drive" — over the bench bot's tables: no claws, and
+    #     the driver file's controls bound to nothing. Step 0's chain table reports it from the
+    #     source; from the package, ONLY the robot beacon can (the variant beacon is typed in the
+    #     branch and step 8 checks programs): robot two's robot beacon absent, the bench bot's
+    #     present, and nothing else firing. (On the tank-library branch until T4 Part 3.)
     with _replace(SELECTION_PATH,
-                  "inline constexpr Program kProgram = Program::Teleop;\n"
+                  "inline constexpr Program kProgram = Program::Drive;\n"
                   "inline constexpr RobotId kRobotId = RobotId::RobotTwo;\n",
-                  "inline constexpr Program kProgram = Program::Teleop;\n"
+                  "inline constexpr Program kProgram = Program::Drive;\n"
                   "inline constexpr RobotId kRobotId = RobotId::BenchBot;\n"):
         expect(one_chain_problems() == [] and program_table_problems() == [],
                "24: the plant tripped the one-chain rule or the program table")
         expect(any("sets kRobotId = RobotId::BenchBot, but this gate's BUILD_ROBOT says RobotTwo"
                    in p for p in chain_table_problems()),
                f"24: the chain table did not report the wrong robot: {chain_table_problems()}")
-        b = run_build("tank-library")
-        ok, problems = verdict("tank-library", b)
-        expect(not ok, "24: a tank-library build carrying the bench bot's tables PASSED")
+        b = run_build("tank-drive")
+        ok, problems = verdict("tank-drive", b)
+        expect(not ok, "24: a tank-drive build carrying the bench bot's tables PASSED")
         expect(any("robot beacon 'shulib-robot=robot-two' is NOT in" in p for p in problems),
                f"24: robot two's missing robot beacon was not caught: {problems}")
         expect(any("carries the robot beacon 'shulib-robot=bench-bot'" in p for p in problems),
@@ -2082,8 +2180,10 @@ def do_self_test():
     #     so a program could name ANOTHER robot's by a one-token edit, and nothing in the package
     #     would notice. The per-robot names are DERIVED from the table files; each one named in a
     #     program is reported; the review's own mutations (the bench tester's IMU from robot two's
-    #     table; shulib Drive's ports from the bench bot's; Calibrate dropping the bench bot's
-    #     mechanisms, i.e. none — its claws become drive candidates) are reported; a library header
+    #     table; shulib Drive's claw boot lines from the bench bot's mechanisms — re-pointed at T4
+    #     Part 3 from the OLD Drive's ports from the bench bot's chassis table, a line the new file
+    #     does not hold; Calibrate dropping the bench bot's mechanisms, i.e. none — its claws become
+    #     drive candidates) are reported; a library header
     #     is read too. NOT reported: the tables themselves, test/, a static_assert's argument (T3
     #     Part 2's checks on robot two's claws), a comment, a string. A table added for a new robot
     #     is covered the moment it exists, and a table file whose selection function step 0 cannot
@@ -2102,7 +2202,8 @@ def do_self_test():
                    f"26: {name} named in a program was not reported: {found}")
     for where, old, new in (
             (SRC_PLANT, "ProsImu imu{kChassis.imuPort", "ProsImu imu{kRobotTwoChassis.imuPort"),
-            (DRIVE_PLANT, "tableSignedPort(kChassis, p)", "tableSignedPort(kBenchBotChassis, p)"),
+            (DRIVE_PLANT, "motorClawBootLine(kMechanisms, ",
+             "motorClawBootLine(mechanismTableFor(RobotId::BenchBot), "),
             (CALIBRATE_PLANT, "dropDeclaredMechanismPorts(kMechanisms,",
              "dropDeclaredMechanismPorts(mechanismTableFor(RobotId::BenchBot),")):
         rel = os.path.relpath(where, REPO)
@@ -2115,7 +2216,7 @@ def do_self_test():
         expect(any(os.path.relpath(LIBRARY_PLANT, REPO) in p and by_name in p for p in found),
                f"26: a per-robot table named in a library header was not reported: {found}")
     # the legal places: T3 Part 2's static_assert form (multi-line), a comment, a string, test/
-    legal = ("\nstatic_assert(mechanismButtonsAvoid(kRobotTwoMechanisms, kTeleopRezeroButton)\n"
+    legal = ("\nstatic_assert(mechanismPortsValid(kRobotTwoMechanisms)\n"
              "                  && &chassisTableFor(RobotId::RobotTwo) == &kRobotTwoChassis,\n"
              "              \"self-test: a static_assert may name robot two's tables\");\n"
              "// kBenchBotChassis, named in a comment\n"
@@ -2170,7 +2271,7 @@ def do_self_test():
         expect(any("self_test_probe.c++" in p and only_header in p for p in found),
                f"27: a switch read in a .c++ file (make compiles it) was not reported: {found}")
     with _newfile(os.path.join(REPO, "src", "self_test_probe.S"),
-                  "#if defined(SHULIB_PROGRAM_LIBRARY)\n#endif\n"):
+                  "#if defined(SHULIB_PROGRAM_CALIBRATE)\n#endif\n"):
         found = one_chain_problems()
         expect(any("self_test_probe.S" in p and only_header in p for p in found),
                f"27: a switch read in a .S file (make assembles it) was not reported: {found}")
@@ -2209,7 +2310,7 @@ def do_self_test():
                  "COMPILE_DEFINITIONS SHULIB_ROBOT_TANK_2026)",
                  # a quoted '#' starts no comment: the switch after it is still code
                  "target_compile_definitions(shulib_tests PRIVATE \"SELF_TEST=#\" "
-                 "SHULIB_PROGRAM_LIBRARY)"):
+                 "SHULIB_PROGRAM_AUTONTEST)"):
         with _plant(CMAKE_PLANT, f"\n{line}\n"):
             found = one_chain_problems()
             expect(any(rel in p and only_header in p for p in found),
@@ -2236,7 +2337,7 @@ def do_self_test():
     #     src/team/README.md is not a source: neither step 0 nor step 1 counts it. Source-only;
     #     every plant restored.
     for where, form in ((SRC_PLANT, "#ifdef SHULIB_ROBOT_TANK_2026"),
-                        (COMMON_PLANT, "#if defined(SHULIB_PROGRAM_LIBRARY)")):
+                        (COMMON_PLANT, "#if defined(SHULIB_PROGRAM_CALIBRATE)")):
         rel = os.path.relpath(where, REPO)
         with _plant(where, f"\n{form}\nstatic int self_test_folder_switch;\n#endif\n"):
             found = one_chain_problems()
@@ -2293,12 +2394,15 @@ def do_self_test():
             (MECHANISM_TABLE_PATH, '#include "robots/chassis_table.hpp"\n',
              '#include "chassis_table.hpp"\n',
              'includes "chassis_table.hpp", which resolves beside it in src/robots/'),
-            (CLAWS_PLANT, '#include "common/boot_source.hpp"\n',
+            # (T4 Part 3: on src/programs/teleop_claws.hpp until then, a file Part 3 deleted;
+            # re-pointed to the new shulib Drive, a src/programs/ file that includes the same
+            # src/common/ header once — the intent unchanged: a relative include in a program.)
+            (DRIVE_PLANT, '#include "common/boot_source.hpp"\n',
              '#include "../common/boot_source.hpp"\n',
              'includes "../common/boot_source.hpp" by a relative path'),
             # (SRC1's review) the `./` form: it BUILDS (not beside its includer, so the -iquote src
             # root answers it), and it is not written from src/.
-            (CLAWS_PLANT, '#include "common/boot_source.hpp"\n',
+            (DRIVE_PLANT, '#include "common/boot_source.hpp"\n',
              '#include "./common/boot_source.hpp"\n',
              'includes "./common/boot_source.hpp" by a relative path'),
             (HOST_INCLUDE_PLANT, '#include "robots/chassis_table.hpp"\n',
@@ -2325,29 +2429,32 @@ def do_self_test():
     #     program's own folder, not include/, not src/ — so a half-done move can never compile
     #     against a stale copy. (Step 0 does not report it: the include resolves nowhere, which is
     #     the compiler's to say; case 28 is the form that DOES build.)
-    with _replace(DRIVE_PLANT, '#include "robots/chassis_table.hpp"\n',
-                  '#include "chassis_table.hpp"\n'):
+    #     (T4 Part 3: the include re-pointed from robots/chassis_table.hpp, which the new
+    #     drive_program.cpp no longer includes, to robots/mechanism_table.hpp, which it does, once.)
+    with _replace(DRIVE_PLANT, '#include "robots/mechanism_table.hpp"\n',
+                  '#include "mechanism_table.hpp"\n'):
         b = run_build("bench")
         ok, problems = verdict("bench", b)
         expect(not ok, "29: an old-form include in src/programs/ BUILT")
-        expect(any("drive_program.cpp" in p and "chassis_table.hpp" in p for p in problems),
+        expect(any("drive_program.cpp" in p and "mechanism_table.hpp" in p for p in problems),
                f"29: the failure did not name the file and the include: {problems}")
 
     # 30: THE PATHS A PROGRAM PRINTS (SRC1's review, 2026-09-27; header). The real tree reports
     #     nothing — its printed src/ paths all exist, some followed by a sentence's full stop,
     #     which is not part of the path. A path that names nothing is reported: in a program's
-    #     refusal (the review's surviving mutation, `src/robot/` for `src/robots/` in shulib Drive's
-    #     fix line), split across two adjacent literals (the compiler joins them, so the check
+    #     boot line (the review's surviving mutation, `src/robot/` for `src/robots/`, was in the OLD
+    #     shulib Drive's refusal, a literal T4 Part 3 deleted; re-pointed to the new shulib Drive's
+    #     TYPED TABLE boot line), split across two adjacent literals (the compiler joins them, so the check
     #     does), and in a library header; the same dead path in a comment is not (a comment
     #     reaches no robot). Source-only; every plant restored.
     expect(printed_path_problems() == [],
            f"30: the real tree's printed paths do not all exist: {printed_path_problems()}")
     rel = os.path.relpath(DRIVE_PLANT, REPO)
-    with _replace(DRIVE_PLANT, '"fill src/robots/chassis_table.hpp, rebuild, upload"',
-                  '"fill src/robot/chassis_table.hpp, rebuild, upload"'):
+    with _replace(DRIVE_PLANT, '"TYPED TABLE (src/robots/chassis_table.hpp)"',
+                  '"TYPED TABLE (src/robot/chassis_table.hpp)"'):
         found = printed_path_problems()
         expect(any(rel in p and 'prints "src/robot/chassis_table.hpp"' in p for p in found),
-               f"30: a dead path in {rel}'s refusal was not reported: {found}")
+               f"30: a dead path in {rel}'s boot line was not reported: {found}")
     rel = os.path.relpath(COMMON_PLANT, REPO)
     with _plant(COMMON_PLANT, '\ninline constexpr const char* kSelfTestSplit = "fill src/robots/"\n'
                               '    "chasis_table.hpp, rebuild, upload";\n'):

@@ -94,11 +94,38 @@
 // §6). It allocates nothing: every device lives in fixed per-port std::optional storage. The
 // controller and the controller's screen are not on the seam; a program keeps its own.
 //
+// ── AN OPTIONAL COPY OF THE LOG ON THE SD CARD (chunk T4 Part 3, 2026-10-01) ──────────
+// The team lead's N5 (a): every library program may keep a copy of its log on the card, so a
+// practice run with no laptop still leaves the dead ports, every cut and the peak currents
+// behind (the old "shulib Drive" kept one in /usd/drive_log.txt). His A (a): EVENTS AND
+// SUMMARIES ONLY — the log() lines and summarize()'s block, never the per-tick records serial
+// carries (diag/log_copy_sink.hpp says why: a record line every 10 ms would be a card write and a
+// flush every 10 ms). Given a BARE file name, this provider owns the whole copy: a ProsBlockSink
+// on the card in the mode asked (Truncate, one file per boot — "shulib Drive"'s; or Append, the
+// file kept across boots — his B (a), for the competition program), a hal::BlockCharSink over it
+// (one block write and one flush per line; a refusal dropped and COUNTED, never thrown), a second
+// diag::TermSink over the same clock, and a diag::LogCopySink over the serial TermSink and that
+// one — which is what telemetry() then returns. Without a file name it is today's provider, byte
+// for byte: telemetry() is the serial TermSink. A missing or full card leaves serial unchanged;
+// serialCopyOpen() and serialCopyDroppedLines() say so, for the program's one boot line (the T5
+// visibility rule ProsBlockSink states). The copy begins when the provider is constructed: a
+// banner a program prints before that is on serial only. The copy has ONE writer at a time
+// (diag::LogCopySink's guard, the T4-3 review): a line that finds another task mid-copy stays on
+// serial, is left off the card, and is counted in serialCopyDroppedLines(), and the card's next
+// line says how many it missed there — no task ever waits on another's card write. A task PROS
+// deletes while it is mid-copy (the register's HA-161 (a), reasoned) never releases the guard:
+// the card's copy then ENDS for the rest of the boot, every later line counted, serial keeping all
+// of them (diag/log_copy_sink.hpp, "A writer that never comes back": the chosen failure).
+//
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
 // Host-tested through test/pros_shim/ only, which tests this class against our BELIEF about
-// PROS and cannot test the belief (shim_control.hpp says so in full). Since G1 Part 2b one
-// program constructs one — "shulib Teleop" (src/programs/teleop_program.cpp) — and that version of the
-// program has not run on hardware, so no provider has yet made a device on a brain.
+// PROS and cannot test the belief (shim_control.hpp says so in full). The programs that construct
+// one — "shulib Drive" (src/programs/drive_program.cpp, since T4 Part 3; "shulib Teleop" did from
+// G1 Part 2b until T4 Part 3 retired it), "shulib Auton Tester"
+// (src/programs/auton_tester_program.cpp), "shulib Competition"
+// (src/programs/competition_program.cpp, since COMP-b) and the invented X-drive
+// (src/programs/xdrive_program.cpp, which refuses at boot on every robot) — have not run this
+// version on hardware; no provider has yet made a device on a brain.
 //
 // No pros header is included here directly — only the hal/pros adapters, whose own diagnostic
 // fences cover the vendored code (test/pros_adapter_fence_test.cpp requires a file with no
@@ -111,11 +138,14 @@
 #include <optional>
 
 #include "shulib/core/check.hpp"
+#include "shulib/diag/log_copy_sink.hpp"
 #include "shulib/diag/term_sink.hpp"
+#include "shulib/hal/block_char_sink.hpp"
 #include "shulib/hal/device_provider.hpp"
 #include "shulib/hal/device_registry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/pros/battery.hpp"
+#include "shulib/hal/pros/block_sink.hpp"
 #include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/device_registry.hpp"
@@ -157,6 +187,27 @@ public:
     /// one. The registry is BORROWED and must outlive the provider.
     explicit ProsDeviceProvider(const IDeviceRegistry& registry)
         : ownRegistry_{}, registry_{&registry} {}
+
+    /// The provider as it runs on a brain, keeping a COPY of its log on the SD card (header: AN
+    /// OPTIONAL COPY OF THE LOG): `serialCopyFile` is a BARE file name ("drive_log.txt"; the
+    /// adapter owns the /usd/ prefix), opened in `copyMode` (Truncate: one file per boot; Append:
+    /// the file kept across boots). A null `serialCopyFile` is exactly the default constructor —
+    /// no copy, telemetry() the serial TermSink. `copyMountRoot` is the card's mount point (it
+    /// must end in '/'), injectable so a host test writes the same path to a scratch directory.
+    /// A missing card is NOT a refusal: the copy refuses its lines and counts them, and serial is
+    /// unchanged. PRECONDITION: a non-null `serialCopyFile` is non-empty and does not start with
+    /// '/' (ProsBlockSink's own rule).
+    explicit ProsDeviceProvider(const char* serialCopyFile,
+                                ProsFileMode copyMode = ProsFileMode::Truncate,
+                                const char* copyMountRoot = "/usd/")
+        : ownRegistry_{}, registry_{&ownRegistry_} {
+        if (serialCopyFile != nullptr) {
+            copyFile_.emplace(serialCopyFile, copyMode, copyMountRoot);
+            copyChars_.emplace(*copyFile_);
+            copyTerm_.emplace(clock_, *copyChars_);
+            logCopy_.emplace(telemetry_, *copyTerm_);
+        }
+    }
 
     /// Non-copyable: a copy would duplicate the adapters while the graph kept pointing at the
     /// originals.
@@ -372,8 +423,44 @@ public:
     [[nodiscard]] IBattery& battery() override { return battery_; }
     /// The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) —
     /// exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's until G1
-    /// Part 2c, which builds it over this provider). Never refused.
-    [[nodiscard]] ITelemetrySink& telemetry() override { return telemetry_; }
+    /// Part 2c, which builds it over this provider). With a log copy (the log-copy constructor), a
+    /// `diag::LogCopySink` over that TermSink and the card's: every line and summary to both,
+    /// every per-tick record to serial only. Never refused.
+    [[nodiscard]] ITelemetrySink& telemetry() override {
+        if (logCopy_.has_value()) {
+            return *logCopy_;
+        }
+        return telemetry_;
+    }
+
+    /// True when this provider keeps a log copy AND its file on the card is open. False with no
+    /// copy asked for, and with no card or a failed open (the copy then refuses every line).
+    [[nodiscard]] bool serialCopyOpen() const noexcept {
+        return copyFile_.has_value() && copyFile_->isOpen();
+    }
+
+    /// The copy's full path on the card ("/usd/drive_log.txt"), or "" with no copy asked for —
+    /// for the program's one boot line.
+    [[nodiscard]] const char* serialCopyPath() const noexcept {
+        return copyFile_.has_value() ? copyFile_->path() : "";
+    }
+
+    /// Lines the copy LOST since construction: those its card refused (the write or the flush —
+    /// every line, with no card), plus those left off because another task was mid-copy
+    /// (diag::LogCopySink's one-writer guard; every line after a task PROS deleted mid-copy, too).
+    /// 0 with no copy asked for. Read it where no other task is logging (the boot line does): the
+    /// card's half is a plain count its writer keeps.
+    [[nodiscard]] std::uint32_t serialCopyDroppedLines() const noexcept {
+        return copyChars_.has_value() && logCopy_.has_value()
+                   ? copyChars_->droppedWrites() + logCopy_->contendedLines()
+                   : 0U;
+    }
+
+    /// How the copy's Append open went (Appended / Created / Refused); Refused in Truncate mode,
+    /// which never asks, and with no copy asked for.
+    [[nodiscard]] AppendOpen serialCopyAppendOpen() const noexcept {
+        return copyFile_.has_value() ? copyFile_->appendOpen() : AppendOpen::Refused;
+    }
     /// The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace). Never
     /// refused.
     [[nodiscard]] motion::ITickPacer& pacer() override { return pacer_; }
@@ -466,6 +553,13 @@ private:
     ProsCharSink usb_{};
     diag::TermSink telemetry_{clock_, usb_};
     ProsTickPacer pacer_{};
+
+    // ── the optional log copy (header), made by the log-copy constructor in this order, destroyed
+    //    in reverse: each borrows the one before it, and the copy sink borrows `telemetry_` too ──
+    std::optional<ProsBlockSink> copyFile_{};
+    std::optional<BlockCharSink> copyChars_{};
+    std::optional<diag::TermSink> copyTerm_{};
+    std::optional<diag::LogCopySink> logCopy_{};
 
     // ── the port devices: fixed storage, made on demand, owned for the program's life ──
     std::optional<ProsMotor> motors_[kSlots]{};

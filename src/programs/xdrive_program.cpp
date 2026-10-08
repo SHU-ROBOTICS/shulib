@@ -5,8 +5,8 @@
 // by a function-local static on first use), `portMapString()`, and `runTeleopLoop()` — a 30-line
 // loop mapping the sticks through the raw R1a mapping. Now:
 //   * the ROBOT is data — src/robots/xdrive_config.hpp's `kInventedXDrive`, the same numbers — and the
-//     GRAPH is robot::Robot over hal::pros::ProsDeviceProvider, the way "shulib Teleop" builds
-//     robot two. The builder installs a GPS corrector the hand-wired graph did not have (the
+//     GRAPH is robot::Robot over hal::pros::ProsDeviceProvider, the way "shulib Teleop" built
+//     robot two then ("shulib Drive" does since T4 Part 3). The builder installs a GPS corrector the hand-wired graph did not have (the
 //     config header says why);
 //   * the LOOP is teleop::runDriverControl with the DriveShaper's default profile (ArcadeBody:
 //     the old mapping's axes, with a continuous deadband instead of a hard one), field-centric
@@ -28,15 +28,15 @@
 // it drove nothing and could not. None is on record booting since R1a gave it real adapters.
 //
 // ═══ STORAGE ════════════════════════════════════════════════════════════════════════
-// Exactly "shulib Teleop"'s pattern (src/programs/teleop_program.cpp, "STORAGE"; the G1 Part 2 brief's
-// landmine 1): ONE function-local static of EMPTY optionals — a constructor that cannot throw —
+// Exactly "shulib Teleop"'s pattern then (src/programs/drive_program.cpp's "STORAGE" since T4 Part 3
+// retired Teleop; the G1 Part 2 brief's landmine 1): ONE function-local static of EMPTY optionals — a constructor that cannot throw —
 // emplaced once from xdriveInitialize(). Never at namespace scope (built before initialize() has
 // installed the precondition handler, in an order nobody controls, and kept alive by a static
-// initializer in every one of the eight builds this file compiles into).
+// initializer in every one of the seven builds this file compiles into).
 //
-// Compiled in all eight builds (the brief's A12): no SHULIB_* macro is read here, no beacon literal
+// Compiled in all seven builds (the brief's A12): no SHULIB_* macro is read here, no beacon literal
 // lives here (landmine 10), and the one symbol it needs from src/main.cpp (attachFaultLatch) is
-// defined in all eight. ASCII only in every runtime string; every screen string goes through
+// defined in all seven. ASCII only in every runtime string; every screen string goes through
 // printText(); only a literal "%s" reaches a PROS print.
 
 #include "programs/xdrive_program.hpp"
@@ -94,8 +94,8 @@ constexpr teleop::DriverProfile kProfile{};
 /// this one — keep the call passing kLoopConfig by name.) It carries:
 ///  * the tick period: the pacer's (ProsTickPacer::kTickMs, HA-32);
 ///  * the field-centric re-zero button: `Y`. Harmless in ArcadeBody. Never a shoulder button (the
-///    library's own default, L1, is a claw pivot's button on robot two — T3), and the button
-///    "shulib Teleop"'s re-zero moves to at T3, so the two programs agree once T3 lands;
+///    library's own default, L1, is a claw pivot's button on robot two — T3), and the button robot
+///    two's driver file re-zeroes on (src/team/robot_two_driver.hpp's kLoop), so the programs agree;
 ///  * the drive's mode on stick release: Coast (the team lead's ruling for driver control) —
 ///    STATED, not left to the default, so the boot line and the loop cannot disagree.
 constexpr teleop::DriverLoopConfig kLoopConfig{
@@ -112,8 +112,8 @@ static_assert(kLoopConfig.rezeroButton != hal::ControllerButton::L1
 
 /// What the driver line says — ArcadeBody, deadband 0.05, no expo, no slew, re-zero Y, release
 /// COAST — checked against the profile and the loop configuration the loop is given, so a change
-/// to either (or to the library's defaults) cannot leave it saying the old words
-/// (src/programs/teleop_program.cpp's driverLineMatchesProfile(), for this program's profile).
+/// to either (or to the library's defaults) cannot leave it saying the old words (the check
+/// src/programs/drive_program.cpp makes as driverLineMatchesFeel(), for this program's profile).
 constexpr bool driverLineMatchesProfile() {
     const teleop::AxisShaping* axes[3] = {&kProfile.forward, &kProfile.left, &kProfile.yaw};
     for (const teleop::AxisShaping* a : axes) {
@@ -171,7 +171,7 @@ namespace text {
 inline constexpr std::string_view kRefusedWord = "X-DRIVE REFUSED AT BOOT";
 inline constexpr std::string_view kInvented = "Every port in this build is INVENTED (HA-111).";
 inline constexpr std::string_view kNothingPowered = "The graph was NOT built. Nothing is powered.";
-inline constexpr std::string_view kRobotTwo = "Robot two runs shulib Teleop (slot 2) instead.";
+inline constexpr std::string_view kRobotTwo = "Robot two runs shulib Drive (slot 1) instead.";
 inline constexpr std::string_view kMoreOnSerial = "(the full text is on the serial log)";
 static_assert(calibration::screenText(kRefusedWord, kMediumCols)
                   && calibration::screenText(kInvented, kSmallCols)
@@ -235,8 +235,8 @@ void refuse(const char* why) {
 }
 
 // The heading the feel layer trusts is src/common/driver_controls.hpp's driverHeading() — the ONE
-// heading rule since T4 Part 1a (2026-09-27), shared with "shulib Teleop" and every driver file,
-// and host-tested there. (G1 Part 2c wrote it here a second time, deliberately, while T3 was
+// heading rule since T4 Part 1a (2026-09-27), shared with every driver file (and with "shulib
+// Teleop" until T4 Part 3 retired it), and host-tested there. (G1 Part 2c wrote it here a second time, deliberately, while T3 was
 // changing Teleop in parallel, and listed the merge as owed; T4 Part 1a made it.)
 
 }  // namespace

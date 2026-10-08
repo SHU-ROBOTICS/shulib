@@ -336,3 +336,105 @@ TEST_CASE("B18 the acceptance run's entry registers, RELATIVE, with the schedule
         shulib::competition::acceptanceRunEntry(AutonKind::Match, Time{0.0}, Time{0.0});
     CHECK(says(checkAutonEntry(unset, Time{30.0}), "UNSET"));
 }
+
+// ── OnRefusal::DropEntry (T4 Part 3, the team lead's ruling of 2026-10-02 on COMP-b's C5: "drop
+//    just that auton") ──────────────────────────────────────────────────────────────────────────
+
+namespace {
+/// A students'-file-shaped registration: three add() calls in a row, the FIRST one refused (its
+/// hard stop is past the 30 s match period). The real file (src/team/autons.cpp) has the same
+/// shape: a list of add() calls, nothing between them that could catch a throw.
+void registerThree(AutonRegistry& reg) {
+    AutonEntry late = good("late stop");
+    late.hardStopAt = Time{35.0};  // past the MATCH period: check() refuses it
+    reg.add(late);
+    reg.add(good("left rush"));
+    reg.add(good("right rush"));
+}
+}  // namespace
+
+// Bug caught (C5): one refused entry costing EVERY auton — and, in a program, the boot and its
+// driver control. Under DropEntry the refused entry is registered as if it had never been written:
+// add() returns, the NEXT entries register in order, the dropped one is findable by nobody, and its
+// sentence is kept, naming it. The default is unchanged: the same registration THROWS, by name, with
+// nothing half-registered — every caller that did not ask for a drop keeps B15.
+TEST_CASE("C5 DropEntry: a refused entry is dropped, named and counted; the rest register") {
+    AutonRegistry drop{periods(), shulib::competition::OnRefusal::DropEntry};
+    CHECK(drop.onRefusal() == shulib::competition::OnRefusal::DropEntry);
+    CHECK_NOTHROW(registerThree(drop));
+    CHECK(drop.size() == 2);
+    CHECK(std::string{drop.at(0).name} == "left rush");
+    CHECK(std::string{drop.at(1).name} == "right rush");
+    CHECK(drop.find("late stop") == nullptr);
+    CHECK(drop.refusedCount() == 1);
+    CHECK(std::string{drop.refusal(0)}.rfind("auton 'late stop': ", 0) == 0);  // names it FIRST
+    AutonEntry late = good("late stop");
+    late.hardStopAt = Time{35.0};
+    CHECK(std::string{drop.refusal(0)} == std::string{drop.check(late).why});  // check()'s own words
+    CHECK(says(drop.check(late), "hardStopAt"));
+    CHECK(std::string{drop.refusal(1)}.empty());   // past the count: "", never a stale sentence
+    CHECK(std::string{drop.refusal(99)}.empty());
+
+    AutonRegistry strict{periods()};  // the default: B15, unchanged
+    CHECK(strict.onRefusal() == shulib::competition::OnRefusal::Throw);
+    bool threw = false;
+    try {
+        registerThree(strict);
+    } catch (const PreconditionError& e) {
+        threw = true;
+        CHECK(std::string{e.what()}.find("auton 'late stop'") != std::string::npos);
+    }
+    CHECK(threw);
+    CHECK(strict.size() == 0);
+    CHECK(strict.refusedCount() == 0);  // a throw is not a drop
+}
+
+// Bug caught: a drop that keeps the WRONG sentence (another entry's, or a stale one) or loses the
+// order, a drop that still takes a capacity slot, and a registry that stops counting past the
+// sentences it keeps (the program says how many more there were).
+TEST_CASE("C5 DropEntry: each dropped sentence in order; a drop takes no slot; counted past the cap") {
+    AutonRegistry reg{periods(), shulib::competition::OnRefusal::DropEntry};
+    AutonEntry noKind = good("no kind");
+    noKind.kind = AutonKind{};  // neither MATCH nor SKILLS
+    reg.add(noKind);
+    reg.add(good("left rush"));
+    reg.add(good("left rush"));  // a duplicate name: dropped too
+    AutonEntry unset = good("unset");
+    unset.endActionAt = Time{0.0};
+    unset.hardStopAt = Time{0.0};
+    reg.add(unset);
+    CHECK(reg.size() == 1);
+    REQUIRE(reg.refusedCount() == 3);
+    CHECK(std::string{reg.refusal(0)}.rfind("auton 'no kind': ", 0) == 0);
+    CHECK(std::string{reg.refusal(1)}.find("already registered") != std::string::npos);
+    CHECK(std::string{reg.refusal(2)}.rfind("auton 'unset': ", 0) == 0);
+    // A drop takes no slot: kMaxAutons - 1 more good entries still fit.
+    char names[kMaxAutons][8]{};
+    for (std::size_t i = 0; i + 1 < kMaxAutons; ++i) {
+        std::snprintf(names[i], sizeof names[i], "g%d", static_cast<int>(i));
+        reg.add(good(names[i]));
+    }
+    CHECK(reg.size() == kMaxAutons);
+    // Past the kept sentences: still counted, the kept ones untouched.
+    AutonRegistry many{periods(), shulib::competition::OnRefusal::DropEntry};
+    for (std::size_t i = 0; i < shulib::competition::kMaxAutonRefusals + 3; ++i) {
+        AutonEntry bad = good("same");
+        bad.hardStopAt = Time{99.0};
+        many.add(bad);
+    }
+    CHECK(many.size() == 0);
+    CHECK(many.refusedCount() == shulib::competition::kMaxAutonRefusals + 3);
+    CHECK(std::string{many.refusal(shulib::competition::kMaxAutonRefusals - 1)}.rfind("auton 'same'", 0)
+          == 0);
+    CHECK(std::string{many.refusal(shulib::competition::kMaxAutonRefusals)}.empty());
+    // The cap by ADDRESS, not by content (the T4-3 review's RV1: without the cap half of the guard,
+    // refusal(kMaxAutonRefusals) read one slot past the array -- the next member's bytes, which
+    // happened to start with a zero, so the emptiness check above passed on undefined behaviour).
+    // Past the cap the answer is the guard's own "" -- the same pointer an index past the count
+    // gets -- and never a pointer into the registry.
+    const char* pastCap = many.refusal(shulib::competition::kMaxAutonRefusals);
+    const char* pastCount = many.refusal(99);
+    CHECK(pastCap == pastCount);
+    const char* begin = reinterpret_cast<const char*>(&many);
+    CHECK((pastCap < begin || pastCap >= begin + sizeof many));
+}

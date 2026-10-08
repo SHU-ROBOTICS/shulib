@@ -122,8 +122,9 @@ mental model, which matters more:
 - **`src/`** — the programs that run on a real V5 brain, one folder per job: **`src/robots/`** is
   what each robot IS (its ports, motor directions and mechanisms), **`src/team/`** is the team's
   own code — where students edit: robot two's driver file, `src/team/robot_two_driver.hpp` (which
-  button does what and the driving feel, in one file; the competition program's driver control
-  runs it, [Chapter 17](17-the-competition-program.md)), and the team's autons,
+  button does what and the driving feel, in one file; "shulib Drive" runs it on its own, and the
+  competition program's driver control runs it, [Chapter 17](17-the-competition-program.md)), and
+  the team's autons,
   `src/team/autons.cpp` (every autonomous routine the robot can run, listed by `registerAutons()` —
   the one file the host suite also compiles, and runs every auton in; the auton tester runs them on
   the bench, [Chapter 16](16-testing-an-auton-on-the-bench.md), and the competition program in a
@@ -134,14 +135,18 @@ mental model, which matters more:
   where a build becomes one program on one robot: the `make ROBOT=… PROGRAM=…` switches are read
   there and nowhere else, by one chain that picks the program and the robot's tables together.
   `src/main.cpp` is the PROS entry point, and all it does is hand each PROS entry point to that
-  program. "shulib Teleop" (`src/programs/teleop_program.cpp`) is the worked example of building a
-  whole robot — `robot::Robot` from a config over the real adapters — and
+  program. "shulib Drive" (`src/programs/drive_program.cpp`) is the worked example of building a
+  whole robot — `robot::Robot` from a config over the real adapters, then robot two's driver file
+  bound to it — and
   `src/robots/xdrive_config.hpp` shows a robot typed by hand as a `constexpr RobotConfig` (the
   invented X-drive, built the same way by `src/programs/xdrive_program.cpp`). The other programs are
-  the bench tester ("Bench Tests"), "shulib Drive", "shulib Calibrate" and "shulib Auton Tester"
-  (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`); Teleop's claw wiring is
-  `src/programs/teleop_claws.hpp`; `src/common/` holds the boot source Teleop shares and the
-  competition-state screens; and the per-robot tables in `src/robots/` carry every robot's ports,
+  the bench tester ("Bench Tests"), "shulib Calibrate", "shulib Auton Tester"
+  (`src/programs/auton_tester_program.cpp`, `make ROBOT=tank PROGRAM=autontest`) and "shulib
+  Competition" (`src/programs/competition_program.cpp`, `make ROBOT=tank PROGRAM=competition`);
+  `src/common/` holds what those programs share — the boot source, the competition-state screens, the
+  painters, and the driver-control screen's words (`src/common/driver_panel.hpp`: the drive
+  protections' row, the controller's lines, and the claws' boot lines and panel row, whose buttons are
+  the driver file's); and the per-robot tables in `src/robots/` carry every robot's ports,
   and robot two's claws (`src/robots/mechanism_table.hpp`). (Wiring a robot by hand, object by
   object, is still possible — the test suite's standalone case does it — but no program here does
   any more.) Which robot a build targets is

@@ -14,9 +14,9 @@
 // DRIVE station carries this logic as its gate 5, and that station has run on robot
 // two's brain (2026-09-10, ten adapters constructed; no motor has yet turned under
 // it); this header is that logic EXTRACTED into a pure, host-tested evaluator so the
-// old "shulib Drive", the station, hal::MotorGroup and — since T4 Part 2 — the
-// library's driver-loop protections (teleop/drive_protection.hpp) share one detector
-// and one set of numbers.
+// old "shulib Drive" (until T4 Part 3 replaced it), the station, hal::MotorGroup and —
+// since T4 Part 2 — the library's driver-loop protections (teleop/drive_protection.hpp)
+// share one detector and one set of numbers.
 //
 // WHAT COUNTS AS DISAGREEING (the station's gate 5, verbatim in meaning):
 //   * evaluated only while the side is COMMANDED above `commandFloorV` and its
@@ -178,12 +178,12 @@ struct SideVolts {
     double right = 0.0;  ///< Volts for every member of the RIGHT side.
 };
 
-/// The arcade arithmetic both the drive program and the tester's DRIVE station use — ONE
-/// definition, so the driver feels one robot: left = maxV × (forward − yawCcw), right =
-/// maxV × (forward + yawCcw), each clamped to ±maxV. A CCW (left) turn is a positive yawCcw,
-/// which slows the left side and speeds the right — the sign convention of the locked body
-/// frame (stick_mapping.hpp). Every member of a side gets the same volts (a group is a
-/// voltage fan-out).
+/// The arcade arithmetic the tester's DRIVE station uses — ONE definition (the old "shulib Drive"
+/// shared it until T4 Part 3 replaced that program; the station is its only caller now): left =
+/// maxV × (forward − yawCcw), right = maxV × (forward + yawCcw), each clamped to ±maxV. A CCW
+/// (left) turn is a positive yawCcw, which slows the left side and speeds the right — the sign
+/// convention of the locked body frame (stick_mapping.hpp). Every member of a side gets the same
+/// volts (a group is a voltage fan-out).
 [[nodiscard]] constexpr SideVolts tankSideVolts(const DriveRequest& request,
                                                double maxVolts) noexcept {
     return SideVolts{
@@ -203,16 +203,17 @@ struct SideVolts {
 ///     and its side-mates' fastest exceeded the moving floor (the train is turning, this
 ///     encoder is not: a port that reports nothing, not a stalled motor — a stall reads a
 ///     small nonzero velocity and a large current, and is the monitor's business).
-/// Its caller — the old "shulib Drive" (src/programs/drive_program.cpp), which holds each
-/// port as a hal::pros::ProsMotor and so HAS the count — keeps commanding the absent member's
-/// voltage (harmless) and drops it from the monitor's agreement set by passing present = false.
+/// Its caller was the old "shulib Drive" (src/programs/drive_program.cpp until T4 Part 3
+/// replaced it), which held each port as a hal::pros::ProsMotor and so HAD the count; it kept
+/// commanding the absent member's voltage (harmless) and dropped it from the monitor's agreement
+/// set by passing present = false.
 /// The library's driver loop does NOT run this class: it holds its drive motors as hal::IMotor,
 /// which has no faulted-read count (F4, locked), and it does not run the velocity-exactly-0
 /// signature either (the team lead's ruling of 2026-09-28, decision C: through IMotor a dead
 /// port reads exactly 0 only when it died at rest, where FrozenReadingDetector below latches on
 /// the same tick, and alone the signature marks live members — a stalled side beside a slipping
-/// mate). It stays for a caller that has the count; after T4 Part 3 retires the old program,
-/// no src/ caller does.
+/// mate). It stays for a caller that has the count; since T4 Part 3 retired the old program, no
+/// src/ caller does.
 class MemberAbsenceDetector {
 public:
     /// Default thresholds are the monitor's.
@@ -295,22 +296,24 @@ private:
 //     bit-identical to the member's previous read. 0 on its first read, whenever either
 //     changes, and whenever the member is not present (which resets it).
 //   * THE MATES' FASTEST for i: the largest |velocity| among the OTHER present, unlatched
-//     members whose `repeat` is below `suspectReads` — a member whose readings have ALL held (a
-//     dead port's, or a stalled one's once its report has settled) is no evidence that the train
-//     turns. A mate whose encoder has stopped while its lagging REPORT still decays DOES count:
-//     its report keeps changing, so its `repeat` stays 0 (decision D (a)'s repeat, applied here
-//     too). That is where the report-lag gap in WHAT IT CANNOT SEE comes from.
+//     members whose ENCODER moved within the last `suspectReads` reads — whose position alone
+//     has repeated fewer than `suspectReads` times. A mate whose encoder has stopped is no
+//     evidence that the train turns, whatever its speed REPORT still says: at a wall every
+//     encoder stops at once while the lagging reports decay at their own paces, and a report is
+//     not a turning train (the team lead's ruling of 2026-10-01 on "D, again": "Encoder check").
+//     So a dead port's held readings, a stalled member's, and a mate whose lagging report still
+//     decays over a stopped encoder all count for nothing here.
 //   * SUSPECT(i): `repeat[i] >= suspectReads`, AND its own |velocity| is above the floors'
 //     `oppositeFloorRadS` (the motor says it turns and its encoder does not, which a live motor
 //     cannot do) OR the mates' fastest is above `movingFloorRadS` (the train turns and this
 //     encoder does not).
 //   * FROZEN(i): SUSPECT(i), AND the side's present, unlatched members that are NOT suspect are
 //     AT LEAST AS MANY as those that are. A whole side stopping at once — a wall, a stall, a
-//     coast-down whose reports lag — is every member alike, never one death, for as long as its
-//     members' reports settle alike; and a side where ONE member slips (robot two's port 18, A4
-//     register HA-130) and the other three stall at a wall is three suspect against one
-//     answering, so nobody is frozen — for as long as the three stalled members read alike
-//     (WHAT IT CANNOT SEE, below).
+//     coast-down whose reports lag — is every member alike, never one death, however unevenly its
+//     reports settle (no mate's stopped encoder is evidence); and a side where ONE member slips
+//     (robot two's port 18, A4 register HA-130) and the other three stall at a wall is three
+//     suspect against one answering, so nobody is frozen — for as long as the three stalled
+//     members read alike (WHAT IT CANNOT SEE, below).
 //   * LATCHED: FROZEN for the floors' `persistTicks` consecutive ticks (250 ms). Latched for the
 //     detector's life; a latched member is left out of every rule above.
 //
@@ -324,35 +327,40 @@ private:
 // floor while its position has stopped), because ProsMotor's screen holds every reading of a
 // dead port while a live motor's lagging report changes as it decays.
 //
+// WHY THE ENCODER CHECK (the team lead's ruling of 2026-10-01, "D, again": "Encoder check"; built
+// at T4 Part 3). Until then a mate counted as evidence while ANY of its readings changed — so at
+// a plain wall, with no slipping member, the mates' lagging REPORTS still said "the train turns"
+// after every encoder had stopped, and a member whose report settled enough sooner than theirs
+// was SUSPECT alone and marked: a LIVE motor (a 30 ms report beside 120 ms ones, in the host
+// model; the verification of 2026-10-01). Counting a mate only while its ENCODER moved within the
+// last 5 reads closes that at every spread the verification probed (P2-19e). ITS COST, measured
+// on the host and accepted with the ruling: that member, no longer FROZEN, stays in the fight
+// monitor, under a quarter of its mates' reported speed while their reports still read above
+// 1 rad/s — so a hard wall push whose reports settle unevenly gets ONE 1 s FIGHT cut, with every
+// motor under the 2.4 A over-current limit (P2-19e; P2-19d pins the rows that cut nothing). When
+// every motor is over that limit at the wall, the over-current cuts come first and the encoder
+// check adds no cut.
+//
 // WHAT IT CANNOT SEE, stated. A whole side that stops answering at once looks like a side that
 // stopped, so it is never marked (the robot shows it by not driving that side). And the guard is
-// a COUNT, which at a wall is right only while every stalled member reads alike:
-//   * AT ANY WALL — any sudden stop under a held stick, no slipping member needed: every encoder
-//     stops at once, but the mates' lagging REPORTS still count as the train turning (THE MATES'
-//     FASTEST). A member whose report settles to 0 enough sooner repeats and is SUSPECT alone —
-//     one against three, so the guard holds — and stays FROZEN while a mate's report still reads
-//     above `movingFloorRadS`. If that lasts 29 ticks after its own report first reads 0 (5
-//     reads to SUSPECT, then 25 FROZEN), a LIVE motor is marked (two of four reading so: a tie,
-//     both marked). In the host model: a 30 ms report beside 120 ms ones at full stick, 10 ms
-//     beside 100 ms, 30 ms beside 150 ms at half stick (P2-19e); 30 beside 80 stays FROZEN 9 ticks,
-//     50 beside 150 24, one short (P2-19d). Found by the verification of 2026-10-01.
-//   * BESIDE A SLIPPING MEMBER, whose encoder keeps turning, so the evidence never stops: a side
-//     ALREADY down to two of four, whose slipping member keeps turning while its last live mate
-//     stalls, is one suspect against one answering — a tie — and the stalled live member is
+// a COUNT, which beside a SLIPPING member — whose encoder keeps turning, so the evidence never
+// stops — is right only while every stalled member reads alike:
+//   * a side ALREADY down to two of four, whose slipping member keeps turning while its last live
+//     mate stalls, is one suspect against one answering — a tie — and the stalled live member is
 //     marked (the cost decision D accepted; P2-21c);
 //   * and on a FULL side there, ONE stalled member whose readings keep changing — a report
 //     flickering by 1 RPM, an encoder toggling a count on a humming train — counts as answering:
 //     a 2-2 tie, and two LIVE members are marked; one whose report settles sooner is suspect
-//     alone, at a smaller spread than at a plain wall (30 ms beside 80), and is marked. After the
-//     tie, a second push marks the side's last stalled member against the slipping one — the
-//     third dead, REFUSED for the rest of the run (P2-21d; the review of 2026-09-30).
-// The first and the third are wider than decision D weighed, and the team lead's to rule on (the
-// second is the cost D accepted). Fixing port 18's slipping gear ends the ties and the smaller
-// spread, NOT the report-lag case. Without a slipping member, the flicker and the dither marked
-// nobody in the probes (P2-19d). A live member's report that holds one value while its encoder
-// also holds for 5 reads beside moving mates would be suspect; the probe saw spells of at most 3
-// ticks at a coast-down. All of it is A4 register HA-175 — reasoned and host-probed, NOT measured
-// on a robot.
+//     alone (30 ms beside 80) and is marked. After the tie, a second push marks the side's last
+//     stalled member against the slipping one — the third dead, REFUSED for the rest of the run
+//     (P2-21d; the review of 2026-09-30).
+// Both stay until port 18's slipping gear is fixed (the ruling of 2026-10-01 keeps them: the
+// encoder check does not reach them, because the slipping member's own encoder IS evidence).
+// Without a slipping member, a stalled member whose report flickers or whose encoder dithers
+// marked nobody in the probes (P2-19d). A live member's report that holds one value while its
+// encoder also holds for 5 reads beside mates whose encoders still move would be suspect; the
+// probe saw spells of at most 3 ticks at a coast-down. All of it is A4 register HA-175 —
+// reasoned and host-probed, NOT measured on a robot.
 //
 // PURE, allocation-free, PROS-free: readings in, a verdict out; the per-member counters are the
 // only state and reset() clears them.
@@ -366,7 +374,7 @@ struct MemberReading {
 
 /// What one FrozenReadingDetector::update() concluded, as member bit masks (bit i = member i).
 struct FrozenVerdict {
-    std::uint32_t suspectMask = 0;  ///< SUSPECT this tick: repeated for suspectReads reads while it, or a mate whose readings still change, says the train turns.
+    std::uint32_t suspectMask = 0;  ///< SUSPECT this tick: repeated for suspectReads reads while it, or a mate whose ENCODER still moves, says the train turns.
     std::uint32_t frozenMask = 0;   ///< FROZEN this tick — the members a caller keeps out of the fight monitor and the over-current watch.
     std::uint32_t latchedMask = 0;  ///< NEWLY latched ABSENT this tick (each member latches once in the detector's life).
 };
@@ -402,12 +410,14 @@ public:
             if (!m.present || (latched_ & bit(i)) != 0) {
                 seen_[i] = false;
                 repeat_[i] = 0;
+                encoderRepeat_[i] = 0;
                 frozenTicks_[i] = 0;
                 continue;
             }
             live[i] = true;
-            const bool same = seen_[i] && sameBits(m.positionRad, prevPos_[i])
-                              && sameBits(m.velocityRadS, prevVel_[i]);
+            const bool samePosition = seen_[i] && sameBits(m.positionRad, prevPos_[i]);
+            encoderRepeat_[i] = samePosition ? std::min(encoderRepeat_[i] + 1, kCountCap) : 0;
+            const bool same = samePosition && sameBits(m.velocityRadS, prevVel_[i]);
             repeat_[i] = same ? std::min(repeat_[i] + 1, kCountCap) : 0;
             prevPos_[i] = m.positionRad;
             prevVel_[i] = m.velocityRadS;
@@ -416,9 +426,11 @@ public:
         for (std::size_t i = n; i < kMaxSideMembers; ++i) {
             seen_[i] = false;
             repeat_[i] = 0;
+            encoderRepeat_[i] = 0;
             frozenTicks_[i] = 0;
         }
-        // 2. SUSPECT, and the census the guard compares.
+        // 2. SUSPECT, and the census the guard compares. A mate is evidence that the train turns
+        //    only while its ENCODER moved within the last suspectReads reads (THE MATES' FASTEST).
         int nSuspect = 0;
         int nAnswering = 0;
         for (std::size_t i = 0; i < n; ++i) {
@@ -427,7 +439,7 @@ public:
             }
             double matesFastest = 0.0;
             for (std::size_t j = 0; j < n; ++j) {
-                if (j != i && live[j] && repeat_[j] < suspectReads_) {
+                if (j != i && live[j] && encoderRepeat_[j] < suspectReads_) {
                     matesFastest = std::max(matesFastest, magnitudeOf(members[j].velocityRadS));
                 }
             }
@@ -466,6 +478,7 @@ public:
         for (std::size_t i = 0; i < kMaxSideMembers; ++i) {
             seen_[i] = false;
             repeat_[i] = 0;
+            encoderRepeat_[i] = 0;
             frozenTicks_[i] = 0;
             prevPos_[i] = 0.0;
             prevVel_[i] = 0.0;
@@ -512,7 +525,8 @@ private:
     double prevPos_[kMaxSideMembers] = {};
     double prevVel_[kMaxSideMembers] = {};
     bool seen_[kMaxSideMembers] = {};
-    int repeat_[kMaxSideMembers] = {};
+    int repeat_[kMaxSideMembers] = {};         // position AND velocity repeated: SUSPECT's count
+    int encoderRepeat_[kMaxSideMembers] = {};  // position alone repeated: a mate's evidence
     int frozenTicks_[kMaxSideMembers] = {};
     std::uint32_t latched_ = 0;
 };

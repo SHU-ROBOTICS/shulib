@@ -27,6 +27,11 @@
 //     auton that runs — and, once locked, no touch changes it at all (every button is dead).
 //   * Every string it draws passes ui::screenText(): printable ASCII, no '%', within its budget —
 //     literals by static_assert, names because the registry refused anything else.
+//   * An entry the registry DROPPED (OnRefusal::DropEntry, the team lead's ruling of 2026-10-02)
+//     is never a button — it was never registered — and the status line NAMES it, in red, while
+//     the choice is not locked: `REFUSED auton '<name>': <why>`, cut at the line's budget (the
+//     program's log has the whole sentence), each dropped entry in turn, kMenuRefusalTurnSeconds
+//     apiece. A person choosing an auton must not be left to wonder why theirs is missing.
 //
 // ── What it does NOT decide ─────────────────────────────────────────────────────────
 // Which task polls the screen, when to lock and unlock (the program: lock when the auton task
@@ -37,6 +42,7 @@
 // PROS-free, allocation-free, header-only.
 
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -84,6 +90,10 @@ inline constexpr std::string_view kMenuHintText = "touch a name to choose it; NO
 inline constexpr std::string_view kMenuLockedText = "LOCKED -- the auton has started";
 /// The info line for NONE.
 inline constexpr std::string_view kMenuNoneInfo = "NONE: no auton runs (the default)";
+/// The status line's prefix before a dropped entry's sentence (file banner).
+inline constexpr std::string_view kMenuRefusedPrefix = "REFUSED ";
+/// How long the status line names each dropped entry before the next (file banner).
+inline constexpr double kMenuRefusalTurnSeconds = 2.0;
 
 // The layout rules, checked where they are written (the calibrate panel's discipline).
 static_assert(kMenuHeaderPrefix.size() + kMaxAutonNameChars <= ui::kMediumCols,
@@ -97,6 +107,7 @@ static_assert(ui::screenText(kMenuNextLabel, ui::kMediumCols));
 static_assert(ui::screenText(kMenuHintText, ui::kSmallCols));
 static_assert(ui::screenText(kMenuLockedText, ui::kSmallCols));
 static_assert(ui::screenText(kMenuNoneInfo, ui::kSmallCols));
+static_assert(ui::screenText(kMenuRefusedPrefix, ui::kSmallCols));
 static_assert(ui::onScreen(kMenuHeaderBar) && ui::onScreen(kMenuEntryRow0)
               && ui::onScreen(kMenuEntryRow1) && ui::onScreen(kMenuPrevSlot)
               && ui::onScreen(kMenuNoneSlot) && ui::onScreen(kMenuNextSlot));
@@ -211,9 +222,9 @@ public:
     /// buttons) differs from the last view this returned, so a new layout's buttons come up greyed
     /// on the very first frame they appear.
     [[nodiscard]] MenuView view(double nowSeconds) {
-        MenuView v = build(0.0);
+        MenuView v = build(0.0, nowSeconds);
         const double since = clock_.observe(layoutKey(v), nowSeconds);
-        return build(since);
+        return build(since, nowSeconds);
     }
 
     /// One touch read against the view that is ON THE SCREEN (`drawn`). A new release on an armed
@@ -346,8 +357,21 @@ private:
         b.chosen = chosen;
     }
 
-    /// The whole view, for a layout that has been up `sinceChange` seconds.
-    [[nodiscard]] MenuView build(double sinceChange) const {
+    /// Which dropped entry the status line names at `nowSeconds` (file banner): each in turn,
+    /// kMenuRefusalTurnSeconds apiece; the first for a time that is not a number or is negative.
+    [[nodiscard]] std::size_t refusalTurn(double nowSeconds) const noexcept {
+        const std::size_t kept = registry_->refusedCount() < kMaxAutonRefusals
+                                     ? registry_->refusedCount()
+                                     : kMaxAutonRefusals;
+        if (kept == 0 || !std::isfinite(nowSeconds) || nowSeconds < 0.0) {
+            return 0;
+        }
+        const double turns = std::floor(nowSeconds / kMenuRefusalTurnSeconds);
+        return turns < 1e9 ? static_cast<std::size_t>(turns) % kept : 0;
+    }
+
+    /// The whole view at `nowSeconds`, for a layout that has been up `sinceChange` seconds.
+    [[nodiscard]] MenuView build(double sinceChange, double nowSeconds) const {
         MenuView v{};
         const std::int32_t state = state_.load();
         const int chosen = indexOf(state);
@@ -373,6 +397,10 @@ private:
         }
         if (v.locked) {
             setLine(v.status, 6, 46, ui::TextSize::Small, ui::Tone::Amber, kMenuLockedText);
+        } else if (registry_->refusedCount() > 0) {
+            std::snprintf(text, sizeof text, "%s%.42s", kMenuRefusedPrefix.data(),
+                          registry_->refusal(refusalTurn(nowSeconds)));
+            setLine(v.status, 6, 46, ui::TextSize::Small, ui::Tone::Red, text);
         } else if (v.pageCount > 1) {
             std::snprintf(text, sizeof text, "PAGE %d/%d -- %s", v.page + 1, v.pageCount,
                           "touch a name");

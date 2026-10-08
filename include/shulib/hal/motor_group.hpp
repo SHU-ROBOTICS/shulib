@@ -106,20 +106,19 @@
 //    the library does when a reading does get through — a future adapter, a nested group, a host
 //    test. Nothing here has run on a robot.
 //
-// ── The disagreement observable: ONE evaluator, shared with the drive program ───────
-// The fighting-motor / frozen-member detector is teleop::CoupledSideMonitor — the pure,
-// host-tested evaluator "shulib Drive" and the tester's DRIVE station already run (R3b
-// Part 0b). This class REUSES it rather than writing a second one: same thresholds, same
-// persistence window, same meaning of "disagreeing" (a member opposite in sign to the
-// command above 0.5 rad/s, or under 25 % of the group's fastest, while the group is
-// commanded above 1 V and turning above 1 rad/s, for 25 consecutive ticks). Because the
-// monitor COUNTS PERSISTENCE, it must be evaluated exactly ONCE per control tick, not on
-// every read: evaluateDisagreement() is that tick, and motion::tickHealthObservables()
-// calls it for every group in MotionDeps::motorGroups — so it runs in Chassis::drive()
-// and in every motion with no extra caller wiring. (The Session 2 brief said "evaluated
-// on each read"; a stateful persistence counter cannot be, and a read-side evaluation
-// would advance the window once per position()/velocity()/temperature() call. Recorded
-// in the Parts 1–3 log.)
+// ── The disagreement observable: ONE evaluator, shared with the tester's DRIVE station ─
+// The fighting-motor / frozen-member detector is teleop::CoupledSideMonitor — the pure, host-tested
+// evaluator the tester's DRIVE station runs, as the old "shulib Drive" did (R3b Part 0b; until T4
+// Part 3 replaced that program). This class REUSES it rather than writing a second one: same
+// thresholds, same persistence window, same meaning of "disagreeing" (a member opposite in sign to
+// the command above 0.5 rad/s, or under 25 % of the group's fastest, while the group is commanded
+// above 1 V and turning above 1 rad/s, for 25 consecutive ticks). Because the monitor COUNTS
+// PERSISTENCE, it must be evaluated exactly ONCE per control tick, not on every read:
+// evaluateDisagreement() is that tick, and motion::tickHealthObservables() calls it for every group
+// in MotionDeps::motorGroups — so it runs in Chassis::drive() and in every motion with no extra
+// caller wiring. (The Session 2 brief said "evaluated on each read"; a stateful persistence counter
+// cannot be, and a read-side evaluation would advance the window once per
+// position()/velocity()/temperature() call. Recorded in the Parts 1–3 log.)
 //
 // The group RAISES NO FAULT — raising is the loop layer's policy, exactly as
 // hal/pros/motor.hpp says of the adapter. diag::HealthMonitor turns a persisted
@@ -147,11 +146,12 @@
 // A hole cannot be read by accident.
 //
 // WHY A HOLE AT BOOT: a dead port is known before the graph exists. The graphs that use this
-// class — robot::Robot (`BuildOptions::absentDrivePorts`, since G1 Part 2a), which "shulib
-// Teleop" is built on since G1 Part 2b — take the MISSING set calibration::boot_check read from
-// the brain's own registry, never construct those ports, and hand this class a span with a hole
-// where each one would be. (The old "shulib Drive", src/programs/drive_program.cpp, never used
-// this class: it caught hal/pros/motor.hpp's constructor throw per port and drove the rest itself.)
+// class — robot::Robot (`BuildOptions::absentDrivePorts`, since G1 Part 2a), which every
+// program that drives robot two is built on ("shulib Drive" since T4 Part 3) — take the MISSING
+// set calibration::boot_check read from the brain's own registry, never construct those ports,
+// and hand this class a span with a hole where each one would be. (The old "shulib Drive" —
+// src/programs/drive_program.cpp until T4 Part 3 replaced it — never used this class: it caught
+// hal/pros/motor.hpp's constructor throw per port and drove the rest itself.)
 //
 // WHAT CHANGES, AND WHAT DOES NOT: setVoltage/setBrakeMode SKIP the holes; position(),
 // velocity(), current() and temperature() are over the PRESENT members only; the monitor is

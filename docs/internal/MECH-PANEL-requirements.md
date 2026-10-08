@@ -101,7 +101,7 @@
 | Driver buttons | `teleop/mechanism_binding.hpp`, `teleop/teleop_loop.hpp`, `src/common/driver_controls.hpp`, `src/team/robot_two_driver.hpp` | hold-to-run and toggle, bound BY NAME (already port-free); `runDriverControl` releases a leftover claim at loop entry; compile-time checks refuse a button used twice and a mechanism with no control |
 | Autons | `chassis/routine.hpp` (F10, LOCKED), `competition/auton_registry.hpp` (COMP-a) | EAGER steps (each runs when chained; a deferred chain was rejected); `then()` (unfrozen) already accepts a `MechanismOutcome`; `AutonContext` holds the mechanisms for the guard's safing only — no lookup by name |
 | Route markers | `runner/path_runner.hpp` (G2, F8) | fire only AFTER a leg settles, never partway; a timed-out leg fires none (ruling R2) |
-| The controller screen | `diag/controller_display.hpp` | all three rows used by the fault display in Drive and Teleop; row 0 is rewritten ~10 times a second |
+| The controller screen | `diag/controller_display.hpp` | all three rows used by the fault display in "shulib Drive" and the competition program (and Teleop's, until T4 Part 3 retired it); row 0 is rewritten ~10 times a second |
 | Robot two's mechanisms | `src/robots/mechanism_table.hpp` | the claw pivots on ports 6 and 7 (power only, Hold on release), the pneumatic claw on line A (with ports — P2 changes this) |
 | Sensor adapters | `hal/pros/{distance,optical,rotation,digital_in}.hpp` | readings with their sentinels screened. The device provider hands out **rotation** today (tracking wheels); **distance, optical and digital-in are not handed out** |
 
@@ -277,7 +277,7 @@ operation". The requirement:
 - **Rumble** when a piece is captured or a motor overheats.
 - **The controller screen** shows mechanism state: an arm's angle, pieces held, a temperature warning.
 - **The controller's output budget** (a requirement, from PROS's own notes and the tree):
-  - All three rows are already used by the fault display in Drive and Teleop. Which rows show mechanism state,
+  - All three rows are already used by the fault display in "shulib Drive" and the competition program (Teleop's too, until T4 Part 3 retired it). Which rows show mechanism state,
     on which controller, is §5 Q10.
   - PROS drops text AND rumble updates faster than 50 ms apart over VEXnet (10 ms wired). The fault display's
     row 0 alone already writes ~10 times a second.

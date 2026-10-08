@@ -1,687 +1,703 @@
-// drive_program.cpp — "shulib Drive": robot two drives from the sticks, through the
-// library's hal/pros ADAPTERS, with dead-port tolerance (chunk R3b Part 0b, 2026-09-10).
+// drive_program.cpp — "shulib Drive": robot two's DRIVER PROGRAM — the team's driver file
+// (src/team/robot_two_driver.hpp) on robot::Robot, built from the calibration record (chunk T4
+// Part 3, 2026-10-01; the team lead's rulings R3 and R5, 2026-09-27).
 //
-// ═══ WHAT THIS IS ══════════════════════════════════════════════════════════════════
-// The bench tester's DRIVE station (src/programs/bench_r3a.cpp, station 10) with the menu, the
-// sign-capture dependency, the voltage ceiling and the dead-man REMOVED, and dead-port
-// tolerance ADDED. Built as its OWN program in its own slot (`make ROBOT=tank
-// PROGRAM=drive`; `pros upload --slot 1 --name "shulib Drive"`), because the operator picks
-// a program by name from the brain's slot list and "Drive" must mean drive.
+// ═══ WHAT CHANGED AT T4 PART 3 ═════════════════════════════════════════════════════════
+// This file's content was REPLACED, its name kept (R3: "shulib Drive" is the same name, slot 1,
+// `PROGRAM=drive` and beacon `tank-drive`). What it held until then — the old "shulib Drive" of R3b
+// Part 0b: ten bare ProsMotors from the typed chassis table, open-loop volts, its own SD text log,
+// its own panel, and the protections — is gone from here:
+//   * the open-loop drive: the library drives now (the driver file's feel, Chassis::drive()); ruling
+//     M4's raw-volts baseline lives on in Bench Tests' DRIVE station (src/programs/bench_r3a.cpp);
+//   * the protections: MOVED into the library at T4 Part 2 (teleop/drive_protection.hpp), applied
+//     inside teleop::runDriverControl for every program — the driver file reaches them with no
+//     wiring of its own;
+//   * the SD text log: the PROVIDER's copy now (hal/pros/device_provider.hpp, `drive_log.txt`,
+//     events and summaries only — the team lead's N5 (a) and A (a));
+//   * the typed table's refusals and the per-port adapters: the boot source's record check and the
+//     Robot's absent ports (src/common/boot_source.hpp).
+// And "shulib Teleop" (src/programs/teleop_program.cpp, retired at T4 Part 3, R5) MOVED in: its
+// boot order, its storage rule, its boot lines (without its banner's claw sentence), its run status
+// row and source rows, and its panel — split into this program's MAIN, DETAILS and MORE pages
+// (src/programs/drive_panel.hpp, pure and host-tested). Nothing was copied: both files lost what
+// this one gained.
 //
-// ═══ WHAT IT IS NOT ════════════════════════════════════════════════════════════════
-// The library's motion stack. No Chassis::drive(), no scheduler, no odometry, no heading.
-// Ten ProsMotors, one ProsController, open-loop volts: the SAME adapters the library will
-// drive through, exercised for real, and nothing above them. The banner says so at boot.
-// The library has still never driven a robot.
+// ═══ WHICH END IS FORWARD ═══════════════════════════════════════════════════════════
+// Stick up drives toward the end that LED the Calibrate push saved in the record: on robot two
+// since 2026-09-25, the AI Vision (camera, port 3) end — the 11/20 end. The OLD "shulib Drive"
+// drove toward the typed table's front, the 15/16 end: a brain still holding the old package drives
+// the OTHER way on the same stick (worksheet Station F.0: tell them apart before a wheel moves —
+// the old one's serial tag was `[R3B]`, this one's is `[DRV]`).
 //
-// ═══ THE DEGRADATION RULE (team lead, 2026-09-10) ══════════════════════════════════
-// "Some ports might die during comp; 1–2 dead ports shouldn't stop driving, just let it be
-// a warning that gets logged." So: every ProsMotor is constructed inside its own try; a port
-// that refuses is a WARNING (log, panel, LCD) and the program drives on without it, under a
-// PURE policy (shulib/teleop/drivetrain_degradation.hpp, host-tested): refuse only when a
-// side has fewer than three answering motors or more than two are dead in total. A member
-// can also go ABSENT at runtime (shulib/teleop/coupled_side_monitor.hpp's
-// MemberAbsenceDetector): logged once, dropped from the fight detector, still commanded
-// (harmless), shown grey. A dead port is NEVER a silent zero.
+// ═══ ORDER AT BOOT (initialize()) ═══════════════════════════════════════════════════
+// src/main.cpp installs the precondition handler FIRST, then calls driveInitialize(): the banner and
+// competition status (from main.cpp's arguments — the beacon stays a literal in
+// src/build_selection.hpp's one chain), the boot source (which prints its own decision lines), then
+// the graph, ONCE, into std::optional storage inside the graph boundary's ONE try — the provider
+// (which opens the SD copy), validate(), the Robot's construction, and the driver file's bind(),
+// because a provider configuration conflict and a binding's volts are preconditions — then the
+// fault latch handed to main.cpp's handler (fault_latch_hook.hpp), the session header, and the boot
+// lines. The banner and the boot source's lines come BEFORE the provider, so they are on serial
+// only; everything from the provider's construction on is in the SD copy too — a refusal decided
+// after it included: refuseBuilt() says it through the provider's sink before releasing it (the
+// T4-3 review), so the card's drive_log.txt, truncated by this boot, says why this boot refused.
+// (A refusal decided BEFORE the provider — the boot source's — is serial and the screen only: no
+// copy is open yet, and the card keeps the previous boot's file.) The copy's two exceptions, each
+// counted by the provider (serialCopyDroppedLines(); the boot line says it as of the boot only):
+// a line that found another task mid-copy, and — when PROS deletes a task while it is mid-copy
+// (HA-161 (a), reasoned; this program's opcontrol() logs a line right after its loop sees the
+// disable, the moment PROS deletes the task) — every later line of that boot: the card's copy ends
+// there and serial keeps them all (diag/log_copy_sink.hpp, "A writer that never comes back").
 //
-// ═══ THE TWO PROTECTIONS, NON-FATAL ════════════════════════════════════════════════
-// Kept from the station and made 1-second cuts that log, count and RE-ARM — a match must not
-// end on a transient, and a fight must still be visible:
-//   * FIGHT: the station's gate-5 logic, through the shared pure CoupledSideMonitor — a
-//     member opposite its side's command (above 0.5 rad/s) or under 25 % of the side's fastest,
-//     while the side is commanded above 1 V and moving above 1 rad/s, for 250 ms.
-//   * OVER-CURRENT: any member above 2.4 A for 250 ms.
-// On either: BOTH sides to 0 V for 1 s, the port(s) and reason logged, the cut counted, then
-// re-arm (the monitors' streaks reset, so the same fight has to persist again for the full
-// 250 ms before it cuts again).
+// ═══ STORAGE: one function-local static ═════════════════════════════════════════════
+// robot::Robot and the provider are non-movable, and construction order across translation units
+// is undefined, so neither is built at namespace scope; a function-local static whose constructor
+// THROWS would be re-attempted on the next call, so the static below holds empty optionals and
+// members whose constructors cannot throw and touch no hardware — the driver file's
+// RobotTwoDriver: its ProsController touches no device until it is read (hal/pros/controller.hpp),
+// its DriveShaper's constructor is noexcept, and its bindings start empty. driveInitialize()
+// emplaces into the optionals, once. Function-local rather than namespace-scope for one more
+// reason: this file compiles in every build, and a namespace-scope object with a non-trivial
+// destructor registers that destructor from a static initializer the linker must keep — dragging
+// the whole graph's code into every other program's package. A function-local static is
+// initialized on first call, so in the builds that never call it, --gc-sections drops everything
+// here.
 //
-// ═══ SIGNS LIVE IN ONE PLACE ═══════════════════════════════════════════════════════
-// The table's signed entry (src/robots/chassis_table.hpp: LEFT -11 +12 -13 +14 -15 | RIGHT +20 -19
-// +18 -17 +16, measured 2026-09-10) goes to ProsMotor AS TYPED; PROS applies the reversal
-// once, in the adapter. Nothing in this file negates anything.
+// Compiled in every build: nothing here reads a build switch (only src/build_selection.hpp's one
+// chain does), no beacon literal lives here, and every symbol it needs from main.cpp
+// (attachFaultLatch) is defined in every build. ASCII only in every runtime string; only a literal
+// "%s" reaches a PROS print.
 //
-// ═══ EVERY EXIT LEAVES THE MOTORS AT 0 V, COAST ════════════════════════════════════
-// An RAII guard runs stopAll() on every C++ exit path (return, throw). A FIELD DISABLE is
-// NOT a C++ exit — PROS deletes the opcontrol task, and a deleted task runs no destructors
-// (VEXos itself cuts motor output on DISABLED; that is the mechanism that actually stops the
-// robot then). So this loop polls competition_is_disabled() every tick and EXITS cleanly on
-// it, which does run the guard before the task is torn down. Stated so nobody believes the
-// guard covers a kill.
+// ═══ THE SCREEN AND THE CONTROLLER (DriveScreen, below) ═══════════════════════════════
+// Three pages — MAIN (the driver's: the PROTECTION row, the controller row, a DETAILS button),
+// DETAILS and MORE — built from src/programs/drive_panel.hpp's pure model, whose rows the shared
+// driver-panel header words (src/common/driver_panel.hpp, shared with the competition program).
+// Only the visible page is painted, through the shared painters (src/common/screen_paint.hpp); its
+// rows are rebuilt at most every 200 ms and a row is repainted only when its text or tone changed
+// (driveRepaint(), host-tested): PROS leaks every screen print. A touch flips the page on its
+// RELEASE edge, once the page has been up the arming delay, and never for a press held across a
+// flip (DrivePager); the touch is read through src/common/screen_touch.hpp's reduction, one PROS
+// read per tick. The controller's three lines come from the ONE chooser and go out ONE line per
+// write through its writer (driver_panel.hpp's controllerScreenLines() and ControllerLineWriter),
+// the protections' REFUSED / CUT / dead words included. A boot that refuses paints the shared
+// refusal screen (paintRefusalScreen) in place of all of it, and opcontrol() paints it again and
+// idles. Every layout number is an ESTIMATE (A4 register HA-136); nothing here has been seen on a
+// brain.
 
 #include "programs/drive_program.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <cstdarg>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 #include <optional>
-#include <span>
 #include <string_view>
 
 #include "pros/misc.h"
 #include "pros/rtos.hpp"
 #include "pros/screen.h"
 
-#include "robots/chassis_table.hpp"
+#include "common/boot_source.hpp"
+#include "common/driver_controls.hpp"
+#include "common/driver_panel.hpp"
+#include "common/fault_latch_hook.hpp"
+#include "common/log_copy_line.hpp"
+#include "common/screen_paint.hpp"
+#include "common/screen_text.hpp"
+#include "common/screen_touch.hpp"
+#include "programs/drive_panel.hpp"
+#include "robots/mechanism_table.hpp"
+#include "team/robot_two_driver.hpp"
+#include "shulib/calibration/boot_check.hpp"
+#include "shulib/calibration/calibrate_panel.hpp"
 #include "shulib/core/check.hpp"
 #include "shulib/diag/build_info.hpp"
+#include "shulib/diag/fault.hpp"
+#include "shulib/diag/session_info.hpp"
 #include "shulib/hal/controller.hpp"
-#include "shulib/hal/motor.hpp"
-#include "shulib/hal/pros/battery.hpp"
-#include "shulib/hal/pros/block_sink.hpp"
-#include "shulib/hal/pros/controller.hpp"
+#include "shulib/hal/motor_group.hpp"
+#include "shulib/hal/line_display.hpp"
+#include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/hal/pros/line_display.hpp"
-#include "shulib/hal/pros/motor.hpp"
+#include "shulib/hal/pros/tick_pacer.hpp"
+#include "shulib/hal/telemetry_sink.hpp"
+#include "shulib/localization/drive_encoder_odometry.hpp"
+#include "shulib/localization/localizer.hpp"
+#include "shulib/math/angle.hpp"
+#include "shulib/math/twist2d.hpp"
+#include "shulib/motion/odo_stall_check.hpp"
+#include "shulib/robot/robot.hpp"
 #include "shulib/teleop/coupled_side_monitor.hpp"
+#include "shulib/teleop/drive_protection.hpp"
 #include "shulib/teleop/drivetrain_degradation.hpp"
-#include "shulib/teleop/stick_mapping.hpp"
+#include "shulib/teleop/driver_control.hpp"
+#include "shulib/teleop/input_shaping.hpp"
+#include "shulib/teleop/mechanism_binding.hpp"
+#include "shulib/teleop/teleop_loop.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::bench {
 namespace {
 
-/// Compiled-in build stamp (the tester's reasoning, verbatim: the hash names the COMMIT, the
-/// stamp names the BUILD, and only the stamp answers "did my upload land?").
+/// Every serial line of this program carries this prefix — NEW at T4 Part 3, so a capture tells
+/// this program from the old "shulib Drive" (`[R3B] booted: shulib DRIVE`).
+constexpr const char* kTag = "DRV";
+
+/// The SD copy's file on the card (BARE: the provider's ProsBlockSink owns the /usd/ prefix) —
+/// one file per boot, as the old program's was.
+constexpr const char* kLogCopyFile = "drive_log.txt";
+
+/// The BUILD stamp (the tester's reasoning, 2026-08-18: the git hash names the COMMIT, this names
+/// the BUILD, and only the second answers "did my upload actually land?"). The serial banner prints
+/// it whole; the pages' header bar carries its time.
 constexpr const char* kBuildStamp = __DATE__ " " __TIME__;
+constexpr std::string_view kBuildTimeText = "BUILD " __TIME__;
+static_assert(calibration::screenText(kBuildTimeText, calibration::kSmallCols)
+                  && calibration::screenText(std::string_view{kDriveAutonomousReason},
+                                             calibration::kSmallCols),
+              "drive_program: the build time or the autonomous reason does not fit the SMALL budget");
+static_assert(refusalBarFits(kDriveRefusedWord) && refusalFooterFits(kDriveRefusalFooter),
+              "drive_program: the refusal screen's bar word or footer does not fit the painter");
 
-/// Full battery volts to the sticks. Chunk T2 owns curves, slew and per-driver limits; until
-/// then the driver gets the whole pack and the deadband-only mapping (HA-112).
-constexpr double kMaxDriveV = 12.0;
+/// How long a protection cut holds — the config the driver file's loop runs with (its cutTicks
+/// times its tick), what the PROTECTION row says; never retyped.
+constexpr double kCutSeconds =
+    RobotTwoDriver::kLoop.protection.cutTicks * RobotTwoDriver::kLoop.tickPeriod.value();
 
-constexpr int kTickMs = 10;
-constexpr int kPersistTicks = 25;      // 250 ms: the over-current window (the monitor's own is
-                                       // the same number, pinned below)
-constexpr double kCurrentLimitA = 2.4;  // INVENTED for a first run (R3b Session 2)
-constexpr int kCutTicks = 100;          // the 1 s non-fatal cut
-constexpr int kPanelEveryTicks = 10;    // 100 ms
-constexpr int kLcdEveryTicks = 20;      // 200 ms = the 5 Hz ceiling; writes only on change
-constexpr int kMaxCutsLogged = 50;      // after this many, cuts are counted but no longer
-                                        // logged per port (a permanent fight must not fill
-                                        // the card)
+// ═══ PROS's READS: one line each, the meaning in host-tested code ═════════════════════════════
+/// One read of the touch screen, reduced by src/common/screen_touch.hpp's screenTouchFrom().
+ScreenTouch readTouch() {
+    return screenTouchFrom(pros::c::screen_touch_status(), static_cast<int>(pros::E_TOUCH_ERROR));
+}
 
-static_assert(teleop::SideMonitorConfig{}.persistTicks == kPersistTicks);
-static_assert(teleop::SideMonitorConfig{}.commandFloorV == 1.0);
-static_assert(teleop::SideMonitorConfig{}.movingFloorRadS == 1.0);
-static_assert(teleop::SideMonitorConfig{}.oppositeFloorRadS == 0.5);
-static_assert(teleop::SideMonitorConfig{}.nearZeroFraction == 0.25);
+// ═══ THE RUN STATUS — one sentence, said at boot on serial ═════════════════════════════
+constexpr const char* kRunStatus =
+    "THIS VERSION of \"shulib Drive\" (T4 Part 3: robot two's driver file on robot::Robot) has not "
+    "run on hardware. The program it replaced in slot 1 drove robot two open-loop on 2026-09-17, "
+    "and the library program it retired drove it from the calibration record on 2026-09-25. No "
+    "library-commanded motion has run (R3b open). Its claws (the pivots on 6 and 7, the pneumatic "
+    "claw on 3-wire A) have never been driven.";
 
-// ── the brain screen: 480x240 usable (the tester measured it; lv_conf.h agrees) ──────
-constexpr std::int16_t kUsableW = 480;
-constexpr std::int16_t kUsableH = 240;
-constexpr std::uint32_t kColBg = 0x101418, kColBar = 0x1E5AA8, kColText = 0xF0F0F0,
-                        kColDim = 0x9AA4AE, kColGood = 0x39C36E, kColWarn = 0xE8B23A,
-                        kColBad = 0xE2564A, kColGrey = 0x5A6470, kColSub = 0xC8D8F0;
+// ═══ TermSink CUTS A MESSAGE AT 200 BYTES (diag/term_sink.hpp, kMaxMessageBytes) ════════════
+// Four boot lines were cut on the brain on 2026-09-25 (the port check, the run-status line, the
+// stall note, the dead-port tolerance line). A line this program owns is therefore either a
+// literal checked below to be <= 200 bytes, or goes through logWrapped(), which splits it at
+// spaces into pieces of at most kLogPieceCols characters — the second and later prefixed "... " —
+// each its own log() call, so every word reaches the serial log (and the SD copy).
+constexpr std::size_t kLogMessageBytes = 200;  // term_sink.hpp's kMaxMessageBytes (private there)
+constexpr std::size_t kLogPieceCols = 196;     // + "... " is exactly kLogMessageBytes
+static_assert(kLogPieceCols + 4 <= kLogMessageBytes, "a continuation piece would be cut");
 
-// ── Output: USB serial always, SD card when one is installed (T5's no-card rule). ────
-hal::pros::ProsBlockSink* g_card = nullptr;
-
-void emit(const char* line) {
-    std::printf("%s\n", line);
-    std::fflush(stdout);
-    if (g_card != nullptr && g_card->isOpen()) {
-        // Return values discarded on purpose: a full/absent card must not stop a drive
-        // program (isOpen() already reported the card's state, once, at boot).
-        (void)g_card->write(std::as_bytes(std::span<const char>{line, std::strlen(line)}));
-        const char nl = '\n';
-        (void)g_card->write(std::as_bytes(std::span<const char>{&nl, 1}));
+void logWrapped(hal::ITelemetrySink& sink, hal::LogLevel level, const char* text) {
+    const auto w = calibration::wrapWords<kLogPieceCols, 4>(text != nullptr ? text : "");
+    for (std::size_t i = 0; i < w.count; ++i) {
+        if (i == 0) {
+            sink.log(level, kTag, w.line[0]);
+            continue;
+        }
+        char piece[kLogPieceCols + 8];
+        std::snprintf(piece, sizeof piece, "... %s", w.line[i]);
+        sink.log(level, kTag, piece);
+    }
+    if (!w.complete) {
+        sink.log(level, kTag, "... (the rest of this line did not fit four log lines)");
     }
 }
 
-void emitf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
-void emitf(const char* fmt, ...) {
-    char buf[220];
-    va_list args;
-    va_start(args, fmt);
-    std::vsnprintf(buf, sizeof buf, fmt, args);
-    va_end(args);
-    emit(buf);
-}
+// The fixed boot lines, each <= kLogMessageBytes so TermSink never cuts them (checked below).
+constexpr std::string_view kProvisionalLine =
+    "gains and budgets are PROVISIONAL (HA-45/50/51/52): speeds go through the feedforward and are "
+    "capped by the budgets -- R5's measurement owes them, so the feel is not final";
+constexpr std::string_view kAbsentDevicesLine =
+    "absent devices (deliberate): gps=ABSENT tags=ABSENT vision=ABSENT -- robot two has no GPS, "
+    "and its AI Vision camera (port 3) has no adapter yet; nothing is polled over an absent source";
+constexpr std::string_view kDeadPortLine1 =
+    "dead-port tolerance at BOOT (R3d Part 2): a recorded port the registry reports EMPTY becomes "
+    "an absent group member under the boot check's policy.";
+constexpr std::string_view kDeadPortLine2 =
+    "dead-port tolerance MID-RUN (T4 Part 2, the library's driver loop): a drive port reading "
+    "frozen while its side turns is dropped after 250 ms; 3+ dead in total stops the drive for "
+    "the run";
+constexpr std::string_view kOpcontrolLive =
+    "opcontrol(): robot two's driver file is live -- teleop::runDriverControl over "
+    "Chassis::drive(Body) and two MotorGroups, with the library's drive protections";
+static_assert(kProvisionalLine.size() <= kLogMessageBytes
+                  && kAbsentDevicesLine.size() <= kLogMessageBytes
+                  && kDeadPortLine1.size() <= kLogMessageBytes
+                  && kDeadPortLine2.size() <= kLogMessageBytes
+                  && kOpcontrolLive.size() <= kLogMessageBytes,
+              "a fixed boot line would be cut by TermSink at 200 bytes -- split it");
 
-void flushCard() {
-    if (g_card != nullptr) (void)g_card->flush();
-}
-
-/// One drive motor, as this program sees it.
-struct Member {
-    int port = 0;
-    int side = 0;                                // -1 LEFT, +1 RIGHT
-    std::int8_t signedPort = 0;                  // THE one place a sign lives (from the table)
-    std::optional<hal::pros::ProsMotor> motor;   // nullopt = the adapter refused at boot
-    bool absent = false;                         // refused at boot, or died at runtime
-    const char* absentWhy = "";
-    teleop::MemberAbsenceDetector absence{};
-    int overTicks = 0;
-    int disagreeTicks = 0;                       // mirrored from the side's monitor, for colour
-    double v = 0.0, amps = 0.0, temp = 0.0;
-    double maxAmps = 0.0, maxTemp = 0.0;
-};
-
-/// 0 V + Coast on every constructed member (absent-at-runtime ones included: harmless).
-void stopAll(Member* m, std::size_t n) {
-    for (std::size_t i = 0; i < n; ++i) {
-        if (m[i].motor) {
-            m[i].motor->setVoltage(units::Voltage{0.0});
-            m[i].motor->setBrakeMode(hal::BrakeMode::Coast);
+/// What the boot's driver line says about the feel — "continuous deadband 0.05, no expo, no slew"
+/// on all three axes — checked against the profile the driver file actually runs, so a change to
+/// the profile, or to the library's defaults under it, cannot leave the line saying the old numbers.
+constexpr bool driverLineMatchesFeel() {
+    const teleop::DriverProfile p = RobotTwoDriver::kFeel;
+    const teleop::AxisShaping* axes[3] = {&p.forward, &p.left, &p.yaw};
+    for (const teleop::AxisShaping* a : axes) {
+        if (a->deadband != 0.05 || a->expo != 0.0) {
+            return false;
         }
     }
+    return !(p.slew.ratePerSecond > 0.0);
 }
+static_assert(driverLineMatchesFeel(),
+              "the driver line says deadband 0.05, no expo, no slew: reword it with the driver file's "
+              "feel");
 
-/// The all-stop on every C++ exit path (header: a task kill is not one of them).
-struct AllStopGuard {
-    Member* m;
-    const std::size_t* n;
-    ~AllStopGuard() { stopAll(m, *n); }
+// ═══ PROGRAM STATE (header: one function-local static) ═════════════════════════════════
+struct DriveState {
+    BootOutcome boot{};
+    // The provider BEFORE the robot: the robot borrows the provider's devices, so it must be
+    // destroyed first (reverse declaration order), and the provider must outlive it.
+    std::optional<hal::pros::ProsDeviceProvider> devices{};
+    std::optional<robot::Robot> robot{};
+    // Robot two's driver file — the buttons, the feel and the loop — bound ONCE, inside
+    // driveInitialize()'s try; held here, never on runDrive()'s stack, because the loop holds the
+    // bindings by address and PROS deletes the opcontrol task on a field disable. Its constructor
+    // cannot throw and touches no hardware (header, STORAGE).
+    RobotTwoDriver driver{};
+    // The controller's three lines (emplaced after the graph is built; touches no hardware).
+    std::optional<hal::pros::ProsLineDisplay> lcd{};
+    char portMap[diag::kMaxPortMapBytes]{};
+    char refusalHeadline[64]{};
+    char refusalWhy[192]{};
 };
 
-/// The one-line list of dead ports, "dead: 18 19" or "all N ok".
-void deadPortsLine(const Member* m, std::size_t n, char* buf, std::size_t cap) {
-    buf[0] = '\0';
-    int dead = 0;
-    for (std::size_t i = 0; i < n; ++i) {
-        if (!m[i].absent) continue;
-        char one[8];
-        std::snprintf(one, sizeof one, "%s%d", dead ? " " : "dead: ", m[i].port);
-        std::strncat(buf, one, cap - std::strlen(buf) - 1);
-        ++dead;
+DriveState& state() {
+    static DriveState s;
+    return s;
+}
+
+/// The refusal screen (src/common/screen_paint.hpp's paintRefusalScreen(): the red bar with
+/// kDriveRefusedWord and the BUILD time, the headline, the reason, kDriveRefusalFooter) and, unless
+/// `serialLine` is false (refuseBuilt() said it through the provider's sink already), its serial
+/// line, `[DRV] REFUSED: <headline> -- <why>`. Nothing is powered: no graph was built, and every
+/// adapter the provider may have made was released.
+void paintRefusal(bool serialLine = true) {
+    DriveState& st = state();
+    paintRefusalScreen(RefusalScreen{.tag = kTag,
+                                     .barWord = kDriveRefusedWord.data(),
+                                     .buildTime = kBuildTimeText.data(),
+                                     .headline = st.refusalHeadline,
+                                     .why = st.refusalWhy,
+                                     .footer = kDriveRefusalFooter,
+                                     .logToSerial = serialLine});
+}
+
+/// A refusal at boot: remembered (opcontrol() paints it again — a state screen may have replaced
+/// it), painted, and said on serial.
+void refuse(const char* headline, const char* why) {
+    DriveState& st = state();
+    std::snprintf(st.refusalHeadline, sizeof st.refusalHeadline, "%.63s", headline);
+    std::snprintf(st.refusalWhy, sizeof st.refusalWhy, "%.191s", why);
+    paintRefusal();
+}
+
+/// A refusal decided AFTER the provider was built: said through the provider's sink FIRST —
+/// serial and the SD copy, which this boot already truncated, so the card keeps why this boot
+/// refused (src/common/log_copy_line.hpp's logBootRefusal(); the T4-3 review) — then the graph
+/// released (no binding may outlive the mechanisms it points at, nor the Robot the provider), then
+/// remembered and painted with no serial line of its own (the sink said it). With NO provider (a
+/// throw inside its own construction) nothing was said, so the painter says it on serial (the T4-3
+/// verification: a refusal said nowhere on serial).
+void refuseBuilt(const char* headline, const char* why) {
+    DriveState& st = state();
+    std::snprintf(st.refusalHeadline, sizeof st.refusalHeadline, "%.63s", headline);
+    std::snprintf(st.refusalWhy, sizeof st.refusalWhy, "%.191s", why);
+    const bool logged = st.devices.has_value();
+    if (logged) {
+        logBootRefusal(st.devices->telemetry(), kTag, st.refusalHeadline, st.refusalWhy);
     }
-    if (dead == 0) std::snprintf(buf, cap, "all %u ok", static_cast<unsigned>(n));
+    st.driver.unbind();
+    st.robot.reset();
+    st.devices.reset();
+    paintRefusal(!logged);
 }
 
-/// The degradation policy over the members as they stand right now.
-teleop::DegradationVerdict evaluate(const Member* m, std::size_t n) {
-    teleop::SideCount left{}, right{};
-    for (std::size_t i = 0; i < n; ++i) {
-        teleop::SideCount& s = m[i].side < 0 ? left : right;
-        ++s.expected;
-        if (!m[i].absent) ++s.answering;
+// ═══ THE SCREEN: the pages, the page flip and the controller's lines ══════════════════════
+/// The program's screen (header, THE SCREEN AND THE CONTROLLER), called once per tick by the driver
+/// file's loop with a FOURTH argument: the drive protections' state. Every tick it reads the touch
+/// (a flip repaints at once); every kRefreshTicks (200 ms — live numbers at most 5 Hz, R3d Part 2F's
+/// rule) it reads the robot, the boot and the protections, builds every row the three pages show
+/// (src/programs/drive_panel.hpp) and repaints what changed on the visible page; every
+/// kLcdEveryTicks it hands the controller's facts to the ONE chooser and writes at most ONE line.
+class DriveScreen {
+public:
+    static constexpr int kRefreshTicks = 20;
+    static constexpr int kLcdEveryTicks = 5;
+
+    /// `lcd` is the controller's three lines; `atStart` the touch read when the screen first
+    /// appears (a tap made before it is never replayed).
+    DriveScreen(const robot::Robot& r, const BootOutcome& boot, const RobotTwoDriver& driver,
+                hal::ILineDisplay& lcd, const ScreenTouch& atStart)
+        : r_{r},
+          boot_{boot},
+          driver_{driver},
+          lcd_{lcd},
+          pager_{atStart.sample.releaseCount, atStart.pressCount} {
+        const auto groups = r_.chassis().deps().motorGroups;
+        SHULIB_PRECONDITION(groups.size() == 2 && groups[0] != nullptr && groups[1] != nullptr,
+                            "DriveScreen: a tank robot has exactly two motor groups");
+        left_ = groups[0];
+        right_ = groups[1];
+        rows_.buildTime = kBuildTimeText;
+        rows_.status = driveRow(kDriveScreenRunStatus, ui::Tone::Amber);
+        // WHERE THE NUMBERS CAME FROM, and what is dead: a typed table on a rebuilt robot is a
+        // belief, not a measurement, and the driver must be able to see which one is driving them
+        // (drive_panel.hpp's driveSourceRows() words and colours them).
+        driveSourceRows(rows_, boot_.source == calibration::BootSource::UseTable,
+                        boot_.verdict.decision == calibration::BootDecision::Degraded,
+                        boot_.verdict.reason);
     }
-    return teleop::evaluateDegradation(left, right);
-}
 
-/// Paint a full-screen refusal and say it on serial/SD. The program then returns: nothing
-/// is powered, and the screen keeps the reason until the next program starts.
-void paintRefusal(const char* headline, const char* why, const char* fix) {
-    pros::c::screen_set_eraser(kColBg);
-    pros::c::screen_erase();
-    pros::c::screen_set_pen(kColBad);
-    pros::c::screen_fill_rect(0, 0, kUsableW, 34);
-    pros::c::screen_set_eraser(kColBad);
-    pros::c::screen_set_pen(kColText);
-    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 6, "shulib DRIVE -- REFUSED");
-    pros::c::screen_set_eraser(kColBg);
-    pros::c::screen_set_pen(kColBad);
-    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 48, "%.34s", headline);
-    pros::c::screen_set_pen(kColText);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 84, "%.54s", why);
-    pros::c::screen_set_pen(kColDim);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 110, "%.54s", fix);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 140, "Nothing is powered. BUILD %s", kBuildStamp);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 160, "Bench Tests (slot 3) is the diagnosis tool.");
-    emitf("REFUSED: %s -- %s", headline, why);
-    emitf("  %s", fix);
-    flushCard();
-}
+    void operator()(const math::ChassisSpeeds& command, bool connected,
+                    const teleop::DriveShaperState& shaper,
+                    const teleop::DriveProtectionState& protection) {
+        ++tick_;
+        const double now = r_.context().clock().now().value();
+        const ScreenTouch touch = readTouch();
+        const bool flipped = pager_.touch(touch.sample, touch.pressCount, now);
+        if (tick_ == 1 || flipped || tick_ % kRefreshTicks == 0) {
+            refreshRows(command, connected, shaper, protection);
+            paint(driveView(pager_.page(), rows_, pager_.armed(now)));
+        }
+        if (tick_ % kLcdEveryTicks == 1) {  // the FIRST tick too
+            refreshLcd(connected, protection, now);
+        }
+    }
 
-/// The fixed header bar: name, build stamp, SD state.
-void drawHeader(bool logging) {
-    pros::c::screen_set_pen(kColBar);
-    pros::c::screen_fill_rect(0, 0, kUsableW, 32);
-    pros::c::screen_set_eraser(kColBar);
-    pros::c::screen_set_pen(kColText);
-    pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 2, "shulib DRIVE");
-    pros::c::screen_set_pen(kColSub);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 8, 20, "adapters, NOT the motion stack");
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 250, 20, "BUILD %s", kBuildStamp);
-    pros::c::screen_set_pen(logging ? kColGood : kColBad);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, 250, 2, logging ? "SD: logging" : "SD: OFF");
-    pros::c::screen_set_eraser(kColBg);
-}
+private:
+    /// Every live row the three pages show: the robot, the boot and the protections read into
+    /// DriveLiveFacts here, the rows made from them by drive_panel.hpp's driveLiveRows() (pure,
+    /// host-tested: which row says what, in which colour).
+    void refreshRows(const math::ChassisSpeeds& command, bool connected,
+                     const teleop::DriveShaperState& shaper,
+                     const teleop::DriveProtectionState& protection) {
+        const math::Pose2d pose = r_.localizer().pose();
+        const localization::DriveEncoderOdometry* odom = r_.driveOdometry();
+        const diag::FaultLatch& faults = r_.faults();
+        const bool freed = driver_.bindings().anyReleasedLeftoverClaim();
+        const ClawRow claw = clawRowText(kMechanisms, r_, freed);
+        DriveLiveFacts f{};
+        f.cutSeconds = kCutSeconds;
+        f.connected = connected;
+        f.cmdVx = command.vx().value();
+        f.cmdOmega = command.omega().value();
+        f.estX = pose.x().value();
+        f.estY = pose.y().value();
+        f.estHeadingDeg = pose.heading().radians() * 180.0 / math::Angle::kPi;
+        f.quality = r_.localizer().qualityClass();
+        f.mode = RobotTwoDriver::kFeel.mode;
+        f.fieldCentric = shaper.fieldCentric;
+        f.hasOdometry = odom != nullptr;
+        f.headingDisagreement = odom != nullptr ? odom->lastHeadingDisagreement() : 0.0;
+        f.batteryVolts = r_.context().battery().voltage().value();
+        f.travelLeft = odom != nullptr ? odom->lastSideTravel().left.value() : 0.0;
+        f.travelRight = odom != nullptr ? odom->lastSideTravel().right.value() : 0.0;
+        f.faultCount = faults.hasFault() ? faults.faultCount() : 0;
+        f.firstFault = faults.firstFault();
+        f.lastFault = faults.lastFault();
+        f.clawText = claw.text;
+        f.clawAbsent = anyClawAbsent(r_);
+        f.clawFreed = freed;
+        driveLiveRows(rows_, f, protection, *left_, *right_);
+    }
 
-/// One row of the panel, erased then printed.
-void rowText(std::int16_t x, std::int16_t y, std::int16_t w, std::uint32_t colour,
-             const char* text) {
-    pros::c::screen_set_eraser(kColBg);
-    pros::c::screen_erase_rect(x, y, static_cast<std::int16_t>(x + w),
-                               static_cast<std::int16_t>(y + 16));
-    pros::c::screen_set_pen(colour);
-    pros::c::screen_print_at(pros::E_TEXT_SMALL, x, y, "%s", text);
+    /// The visible page: what driveRepaint() says changed since the last paint, and nothing else.
+    void paint(const DriveView& next) {
+        const DriveRepaint plan = driveRepaint(painted_, next, havePainted_);
+        if (plan.whole) {
+            clearPanel();
+            paintBar(next.bar, next.header);
+            paintLine(next.barRight, toneRgb(next.bar));
+            for (std::size_t i = 0; i < next.lineCount; ++i) {
+                paintLine(next.lines[i], kPanelBg);
+            }
+            for (std::size_t i = 0; i < next.buttonCount; ++i) {
+                paintButton(next.buttons[i].rect, next.buttons[i].label, next.buttons[i].armed,
+                            ui::Tone::Blue);
+            }
+        } else {
+            if (plan.header) {
+                paintLine(next.header, toneRgb(next.bar));
+            }
+            if (plan.barRight) {
+                paintLine(next.barRight, toneRgb(next.bar));
+            }
+            for (std::size_t i = 0; i < kDriveMaxLines; ++i) {
+                if ((plan.lines & (1u << i)) == 0) {
+                    continue;
+                }
+                // A row that went is painted EMPTY over its old place (driveLineToPaint()).
+                paintLine(driveLineToPaint(painted_, next, i), kPanelBg);
+            }
+            for (std::size_t i = 0; i < next.buttonCount; ++i) {
+                if ((plan.buttons & (1u << i)) != 0) {
+                    paintButton(next.buttons[i].rect, next.buttons[i].label,
+                                next.buttons[i].armed, ui::Tone::Blue);
+                }
+            }
+        }
+        painted_ = next;
+        havePainted_ = true;
+    }
+
+    /// The controller's three lines: the facts read here, the words chosen by the ONE chooser
+    /// (src/common/driver_panel.hpp), ONE changed line written through its writer (line 2 first,
+    /// at most one write per 0.1 s).
+    void refreshLcd(bool connected, const teleop::DriveProtectionState& protection, double now) {
+        ControllerFacts f{};
+        f.batteryVolts = r_.context().battery().voltage().value();
+        f.headingDegrees = r_.localizer().pose().heading().radians() * 180.0 / math::Angle::kPi;
+        f.hasFault = r_.faults().hasFault();
+        f.lastFault = r_.faults().lastFault();
+        f.connected = connected;
+        f.degraded = boot_.verdict.decision == calibration::BootDecision::Degraded;
+        f.clawAbsent = anyClawAbsent(r_);
+        addProtectionFacts(f, protection);  // REFUSED, CUT, DEGRADED mid-run, the dead ports
+        const ControllerScreen want = controllerScreenLines(f);
+        const int row = lcdWriter_.next(want, now);  // ONE line, line 2 first, >= 0.1 s apart
+        if (row >= 0) {
+            lcd_.setLine(row, want.line[row]);
+        }
+    }
+
+    const robot::Robot& r_;
+    const BootOutcome& boot_;
+    const RobotTwoDriver& driver_;
+    hal::ILineDisplay& lcd_;
+    const hal::MotorGroup* left_ = nullptr;
+    const hal::MotorGroup* right_ = nullptr;
+    int tick_ = 0;
+    DriveRows rows_{};
+    DrivePager pager_;
+    DriveView painted_{};
+    bool havePainted_ = false;
+    ControllerLineWriter lcdWriter_{};
+};
+
+/// The boot lines after the session header — every line "shulib Teleop" said that is still true,
+/// in its order, each within TermSink's 200 bytes; the driver line and the protections line are
+/// GENERATED from the driver file's constants and the library's defaults it runs with, never
+/// retyped.
+void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& boot,
+                  const hal::pros::ProsDeviceProvider& devices) {
+    char line[240];
+    // THE SD COPY (N5 (a)): where it is, or that it did not open and why (no card, or a card that
+    // would not take the file) — once (the T5 rule), in the words src/common/log_copy_line.hpp
+    // makes for both programs that keep one.
+    {
+        const LogCopyLine copy = logCopyBootLine(
+            logCopyOpenFrom(devices.serialCopyOpen(), pros::c::usd_is_installed() != 0, false,
+                            false),
+            devices.serialCopyPath(), devices.serialCopyDroppedLines());
+        log.log(copy.warn ? hal::LogLevel::Warn : hal::LogLevel::Info, kTag, copy.text);
+    }
+    const hal::DrivetrainDescription& d = r.config().drivetrain.tank.description;
+    {
+        char described[128];
+        d.describe(described, sizeof described);
+        std::snprintf(line, sizeof line, "library graph BUILT from the %s: %.120s",
+                      boot.source == calibration::BootSource::UseRecord
+                          ? "CALIBRATION RECORD on the SD card"
+                          : "TYPED TABLE (src/robots/chassis_table.hpp)",
+                      described);
+        log.log(hal::LogLevel::Info, kTag, line);
+    }
+    {
+        char banner[240];
+        r.describe(banner, sizeof banner);
+        std::snprintf(line, sizeof line, "robot::Robot: %.220s", banner);
+        logWrapped(log, hal::LogLevel::Info, line);
+    }
+    const auto groups = r.chassis().deps().motorGroups;
+    std::snprintf(line, sizeof line,
+                  "%u+%u slots behind two MotorGroups, %u+%u PRESENT -- median reads are over the "
+                  "PRESENT members; the sign lives inside each port entry and PROS applies it once",
+                  static_cast<unsigned>(groups[0]->memberCount()),
+                  static_cast<unsigned>(groups[1]->memberCount()),
+                  static_cast<unsigned>(groups[0]->presentCount()),
+                  static_cast<unsigned>(groups[1]->presentCount()));
+    log.log(hal::LogLevel::Info, kTag, line);
+    std::snprintf(line, sizeof line, "description provenance: %.190s", d.provenance);
+    log.log(hal::LogLevel::Info, kTag, line);
+    std::snprintf(line, sizeof line, "boot source: %.200s", boot.sourceWhy);
+    log.log(driveBootLevel(boot.source == calibration::BootSource::UseRecord), kTag, line);
+    {
+        char check[340];
+        std::snprintf(check, sizeof check, "port check: %s", boot.verdict.reason);
+        logWrapped(log, driveBootLevel(boot.verdict.decision == calibration::BootDecision::Ok),
+                   check);
+    }
+    {
+        char status[520];
+        std::snprintf(status, sizeof status, "HARDWARE-UNVALIDATED: %s", kRunStatus);
+        logWrapped(log, hal::LogLevel::Warn, status);
+    }
+    log.log(hal::LogLevel::Warn, kTag, kProvisionalLine);
+    log.log(hal::LogLevel::Info, kTag, kAbsentDevicesLine);
+    // The §2 ruling, said ONCE at boot (odo_stall_check.hpp carries the reasoning) — in pieces,
+    // because the library's note is longer than TermSink's 200 bytes.
+    logWrapped(log, hal::LogLevel::Warn, motion::kNoIndependentStallSourceNote);
+    if (driveDegradedBootLine(line, sizeof line, boot.built.absent().size(),
+                              boot.verdict.reason)) {
+        logWrapped(log, hal::LogLevel::Warn, line);
+    }
+    log.log(hal::LogLevel::Info, kTag, kDeadPortLine1);
+    log.log(hal::LogLevel::Info, kTag, kDeadPortLine2);
+    const motion::MotionConfig& cfg = r.chassis().motionConfig();
+    std::snprintf(line, sizeof line,
+                  "facade alive: strafeAuthority=%.2f (tank: 0.00); stall check canDetectStall=%s; "
+                  "budgets lin %.0f in/s ang %.2f rad/s wheel %.0f in/s; ff kS %.2f kV %.4f kA %.4f",
+                  r.chassis().strafeAuthority(),
+                  cfg.stall.independentMotionSource ? "true" : "false (by config)",
+                  cfg.maxLinearSpeed.value(), cfg.maxAngularSpeed.value(),
+                  cfg.maxWheelSpeed.value(), cfg.wheelFf.kS, cfg.wheelFf.kV, cfg.wheelFf.kA);
+    log.log(hal::LogLevel::Info, kTag, line);
+    // THE DRIVER LINE: generated from the driver file (src/team/robot_two_driver.hpp), so it cannot
+    // drift from what the loop is given.
+    std::snprintf(line, sizeof line,
+                  "driver control: robot two's driver file (src/team/robot_two_driver.hpp) -> "
+                  "teleop::runDriverControl + DriveShaper, the default profile (continuous deadband "
+                  "0.05, no expo, no slew -- HA-112, unfelt); re-zero button %.5s; mode %.12s",
+                  teleop::controllerButtonWord(RobotTwoDriver::kLoop.rezeroButton),
+                  modeWord(RobotTwoDriver::kFeel.mode));
+    logWrapped(log, hal::LogLevel::Info, line);
+    // THE PROTECTIONS LINE: generated from the config the driver file's loop runs with
+    // (DriverLoopConfig::protection, the library's defaults — the driver file names none) and the
+    // groups' monitors' window, never retyped (the T4 brief's D4; drive_panel.hpp's
+    // driveProtectionsLine() words it, host-tested against those configs).
+    {
+        char protections[360];
+        (void)driveProtectionsLine(protections, sizeof protections,
+                                   RobotTwoDriver::kLoop.protection,
+                                   RobotTwoDriver::kLoop.tickPeriod.value(),
+                                   teleop::SideMonitorConfig{}.persistTicks);
+        logWrapped(log, hal::LogLevel::Info, protections);
+    }
+    // THE CLAWS: one line per declared mechanism, BUILT or ABSENT with the provider's own sentence
+    // (src/common/driver_panel.hpp words them from the table AND the driver file's controls — the
+    // competition program prints the same lines; Station J.3.1 / J.9.1 quote them). An ABSENT one is a warning: its buttons do nothing, and the
+    // drive runs anyway.
+    for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
+        logWrapped(log, r.builtMechanismAt(i) != nullptr ? hal::LogLevel::Info : hal::LogLevel::Warn,
+                   motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, r, i).text);
+    }
+    for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) {
+        logWrapped(log,
+                   r.builtMechanismAt(mechanismConfigIndexOfPneumatic(kMechanisms, j)) != nullptr
+                       ? hal::LogLevel::Info
+                       : hal::LogLevel::Warn,
+                   pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, r, j).text);
+    }
 }
 
 }  // namespace
 
 void driveInitialize(const char* variantBeacon, const char* competitionStatusBits) {
-    // Moved VERBATIM from src/main.cpp's initialize() at G1 Part 2c (the dispatcher forwards
-    // here); the bytes on serial are unchanged — including the second line's "[R3A]" prefix and
-    // its "the tester runs only" wording, which this program has printed since R3b Part 0b (it
-    // shares the tester's line; G1-PROGRESS "Part 2c" lists the wording, not changed here).
-    std::printf("\n[R3B] booted: shulib DRIVE build [%s].\n"
-                "[R3B] robot two drives from the sticks through the hal/pros adapters (open-loop\n"
-                "[R3B] volts, dead-port tolerance, 1 s non-fatal cuts) -- never through the motion\n"
-                "[R3B] stack. The library has still not driven a robot.\n"
-                "[R3B] the X-drive object graph is deliberately NOT constructed.\n",
-                variantBeacon);
-    std::printf("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
-                "CONTROL, enabled; any other state paints the screen with the reason.\n",
-                competitionStatusBits);
+    DriveState& st = state();
+    std::printf("\n[%s] booted: shulib DRIVE build [%s] -- robot two's DRIVER FILE drives it\n"
+                "[%s] (src/team/robot_two_driver.hpp) through robot::Robot: two hal::MotorGroups,\n"
+                "[%s] drive-encoder odometry and Chassis::drive(), built from the CALIBRATION RECORD\n"
+                "[%s] on the SD card, with the library's drive protections. Forward is the record's\n"
+                "[%s] front. This is NOT the old shulib Drive (its tag was [R3B]).\n"
+                "[%s] %s\n"
+                "[%s] BUILD STAMP %s\n",
+                kTag, variantBeacon, kTag, kTag, kTag, kTag, kTag, kRunStatus, kTag, kBuildStamp);
+    std::printf("[%s] competition status at boot: %s -- the loop runs only in DRIVER CONTROL, "
+                "enabled; any other state paints the screen with the reason.\n",
+                kTag, competitionStatusBits);
     std::fflush(stdout);
+
+    // ── which description drives this robot: decided, and printed, before any adapter exists.
+    st.boot = decideBootSource(kTag);
+    if (!st.boot.ok) {
+        refuse(st.boot.headline, st.boot.why);
+        return;
+    }
+
+    // ── the graph, at its boundary: the provider (and its SD copy), validate() AND the
+    //    construction AND the driver file's bind(), once, in ONE try. The options are the boot
+    //    check's absent ports and nothing else, through `built` — boot_source.hpp's one door — so a
+    //    port it found dead is never requested and is named once.
+    try {
+        st.devices.emplace(kLogCopyFile);
+        const robot::BuildVerdict verdict =
+            robot::validate(st.boot.built.config, *st.devices, st.boot.built.buildOptions());
+        if (!verdict.ok) {
+            refuseBuilt("the library graph REFUSED to build", verdict.why);
+            return;
+        }
+        st.robot.emplace(st.boot.built.config, *st.devices, st.boot.built.buildOptions());
+        // Robot two's driver file binds its buttons BY NAME against the robot just built (a binding's
+        // constructor may throw, and nothing that can throw runs after driver control starts). An
+        // ABSENT mechanism gets no binding; a robot these controls are not for is refused.
+        char why[192] = "";
+        if (!st.driver.bind(*st.robot, why, sizeof why)) {
+            refuseBuilt("the driver file REFUSED this robot", why);
+            return;
+        }
+    } catch (const PreconditionError& e) {
+        // refuseBuilt() unbinds FIRST: no binding may outlive the mechanisms it points at.
+        refuseBuilt("the library graph REFUSED to build", e.what());
+        return;
+    }
+    robot::Robot& r = *st.robot;
+    hal::ITelemetrySink& log = st.devices->telemetry();
+    attachFaultLatch(&r.faults());  // a precondition after boot latches FaultCode::Precondition
+    st.lcd.emplace();               // the controller's three lines (touches no hardware)
+    log.log(hal::LogLevel::Info, kTag, variantBeacon);
+
+    // ── the §18.5 session header: provenance FIRST, a missing hash LOUD; the port map GENERATED
+    //    from the config by robot::Robot::portMap() — never retyped.
+    r.portMap(st.portMap, sizeof st.portMap);
+    diag::SessionInfo session{};
+    session.buildHash = diag::compiledBuildHash();
+    session.routineId = "(none: driver control only)";
+    session.alliance = "";
+    session.side = "";
+    session.portMap = st.portMap;
+    diag::emitSessionHeader(log, session, r.context().battery().voltage());
+
+    logBootLines(r, log, st.boot, *st.devices);
+}
+
+void driveAutonomous() {
+    DriveState& st = state();
+    if (!st.robot.has_value()) {
+        return;  // refused at boot: nothing was built, and the boot said why (serial)
+    }
+    char line[96];
+    std::snprintf(line, sizeof line, "autonomous(): %s", kDriveAutonomousReason);
+    st.devices->telemetry().log(hal::LogLevel::Warn, kTag, line);
 }
 
 void runDrive() {
-    // The SD text log, opened first so the banner itself is captured. One file per boot
-    // (the sink owns its FILE*). Static: opcontrol() can be entered more than once per boot
-    // (field enable/disable cycles) and the file must not be re-truncated each time.
-    static hal::pros::ProsBlockSink card{"drive_log.txt"};
-    g_card = &card;
-    static int entries = 0;
-    ++entries;
-
-    // ── 1. the banner: serial + SD ────────────────────────────────────────────────
-    emit("");
-    emit("################################################################");
-    emit("#  shulib DRIVE  --  robot two drives from the sticks through the hal/pros ADAPTERS");
-    emit("#  NOT the library's motion stack (no Chassis, no odometry, no heading -- R3b Parts 1-3).");
-    emit("#  The library has still not driven a robot; this program drives one through its adapters.");
-    emit("################################################################");
-    emitf("BUILD STAMP: %s   <-- must match the build you just uploaded", kBuildStamp);
-    // compiledBuildHash() is a string_view: NEVER hand it to %s (the 2026-08-18 data abort).
-    const std::string_view hash = diag::compiledBuildHash();
-    if (hash.empty()) {
-        emit("build hash : [ERROR] MISSING -- the build injected no hash (S18.5)");
-    } else {
-        emitf("build hash : %.*s", static_cast<int>(hash.size()), hash.data());
-    }
-    emitf("robot      : %s", kChassis.robot);
-    {
-        char l[80], r[80];
-        portsToString(kChassis.left, kChassis.leftCount, kChassis.signsMeasured, l, sizeof l);
-        portsToString(kChassis.right, kChassis.rightCount, kChassis.signsMeasured, r, sizeof r);
-        emitf("table      : LEFT %s | RIGHT %s | cartridge %s | %s | signs %s", l, r,
-              cartridgeWord(kChassis.cartridge), kChassis.measured ? "MEASURED" : "NOT measured",
-              kChassis.signsMeasured ? "IN THE TABLE (measured)" : "NOT in the table");
-        emitf("provenance : %s", kChassis.provenance);
-    }
-    if (kChassis.imuPort != 0) {
-        emitf("IMU        : port %u -- in the table, NOT used by this program (no heading, no "
-              "odometry: those are R3b Parts 1-3)", static_cast<unsigned>(kChassis.imuPort));
-    } else {
-        emit("IMU        : UNSET in the table (not used by this program)");
-    }
-    emitf("sd logging : %s", card.isOpen() ? "ON -> /usd/drive_log.txt (one file per boot)"
-                                           : "OFF -- no card at boot; serial only (T5: never stop for a missing card)");
-    emitf("opcontrol entry #%d this boot; competition status 0x%02x", entries,
-          static_cast<unsigned>(pros::c::competition_get_status()));
-    emitf("policy     : %.0f V to the sticks (T2 owns curves/slew/limits); no dead-man; fight cut "
-          "and over-current cut are 1 s, non-fatal, counted; refuse if a side < 3 answering or "
-          "> 2 dead in total", kMaxDriveV);
-    flushCard();
-
-    // ── 2. the table must be SIGNED, set, and consistent, or nothing is powered ──────
-    char why[96];
-    if (!kChassis.signsMeasured) {
-        paintRefusal("chassis table has NO SIGNS",
-                     "only a table with MEASURED signs can drive (robot two's has them)",
-                     "this build is for a robot whose signs were never typed in: use Bench Tests");
-        return;
-    }
-    if (describeMissing(kChassis, why, sizeof why, true)) {
-        paintRefusal("chassis table UNSET", why, "fill src/robots/chassis_table.hpp, rebuild, upload");
-        return;
-    }
-    if (!tableConsistent(kChassis, why, sizeof why)) {
-        paintRefusal("chassis table CONTRADICTS ITSELF", why,
-                     "fix src/robots/chassis_table.hpp, rebuild, upload");
-        return;
-    }
-
-    // ── 3. construct one ProsMotor per table port, each inside its own try ─────────
-    Member members[kMaxPort];
-    std::size_t n = 0;
-    AllStopGuard guard{members, &n};  // every C++ exit from here on: 0 V, coast
-    const hal::pros::MotorGearset gearset =
-        kChassis.cartridge == Cartridge::Red     ? hal::pros::MotorGearset::Red
-        : kChassis.cartridge == Cartridge::Green ? hal::pros::MotorGearset::Green
-                                                 : hal::pros::MotorGearset::Blue;
-    emitf("CARTRIDGE BELIEF: %s -- ProsMotor WRITES this to every motor and reads it back; a "
-          "wrong belief passes the read-back (volts unaffected; rad/s scale by it)",
-          cartridgeWord(kChassis.cartridge));
-    for (int p = 1; p <= kMaxPort; ++p) {
-        const int side = tableSideOf(kChassis, p);
-        if (side == 0) continue;
-        Member& m = members[n];
-        m.port = p;
-        m.side = side;
-        m.signedPort = tableSignedPort(kChassis, p);  // AS TYPED; never negated here
-        try {
-            m.motor.emplace(m.signedPort, gearset);
-            emitf("port %2d (%s, signed %+3d): ProsMotor constructed, gearset written and read back",
-                  p, side < 0 ? "LEFT " : "RIGHT", static_cast<int>(m.signedPort));
-        } catch (const PreconditionError& e) {
-            // THE WARNING, not a fault: logged with the port and the side, shown on the panel
-            // and the LCD below, and the program drives on without it (policy permitting).
-            m.absent = true;
-            m.absentWhy = "refused at boot (no device, or not a motor)";
-            emitf("WARNING: port %2d (%s, signed %+3d) DEAD AT BOOT -- adapter refused: %s", p,
-                  side < 0 ? "LEFT " : "RIGHT", static_cast<int>(m.signedPort), e.what());
+    DriveState& st = state();
+    if (!st.robot.has_value()) {
+        // Refused at boot: no graph exists, nothing is powered. Paint the refusal again (a state
+        // screen may have replaced it; its serial line says why once more) and idle.
+        paintRefusal();
+        while (true) {
+            pros::delay(250);
         }
-        ++n;
     }
-    stopAll(members, n);  // 0 V + Coast is the declared starting state, not an inherited one
-
-    // ── 4. the degradation policy, once at boot ───────────────────────────────────
-    teleop::DegradationVerdict policy = evaluate(members, n);
-    char dead[64];
-    deadPortsLine(members, n, dead, sizeof dead);
-    emitf("degradation: %s (left dead %d, right dead %d, total %d) -- %s",
-          policy.verdict == teleop::DriveVerdict::Drive            ? "DRIVE"
-          : policy.verdict == teleop::DriveVerdict::DriveDegraded  ? "DRIVE_DEGRADED"
-                                                                   : "REFUSE",
-          policy.leftDead, policy.rightDead, policy.totalDead, dead);
-    if (policy.verdict == teleop::DriveVerdict::Refuse) {
-        char headline[64];
-        std::snprintf(headline, sizeof headline, "%d of %u motors dead", policy.totalDead,
-                      static_cast<unsigned>(n));
-        paintRefusal(headline, policy.reason, dead);
-        return;  // the guard leaves every constructed motor at 0 V, coast
-    }
-    if (policy.verdict == teleop::DriveVerdict::DriveDegraded) {
-        emitf("WARNING: driving DEGRADED -- %s", dead);
-    }
-    flushCard();
-
-    // ── 5. the driver's hands, the LCD, the battery ────────────────────────────────
-    hal::pros::ProsController master{hal::pros::ControllerId::Master};
-    hal::pros::ProsLineDisplay lcd{};
-    hal::pros::ProsBattery battery{};
-    emitf("controller : %s (a disconnected controller commands 0 V)",
-          master.isConnected() ? "CONNECTED" : "NOT CONNECTED");
-    emitf("battery    : %.2f V", battery.voltage().value());
-    emit("DRIVING. Left stick Y = forward, right stick X = yaw. Every state change is logged.");
-    flushCard();
-
-    // ── the panel: fixed layout, two columns (LEFT members | RIGHT members) ──────────
-    pros::c::screen_set_eraser(kColBg);
-    pros::c::screen_erase();
-    drawHeader(card.isOpen());
-    constexpr std::int16_t kRowsY = 74, kRowPitch = 22, kColW = 236;
-    constexpr std::int16_t kWarnY = 190, kCutY = 208;
-    std::size_t sideIdx[2][kMaxPort];
-    std::size_t sideN[2] = {0, 0};
-    for (std::size_t i = 0; i < n; ++i) {
-        const int s = members[i].side < 0 ? 0 : 1;
-        sideIdx[s][sideN[s]++] = i;
-    }
-    teleop::CoupledSideMonitor monitor[2];
-
-    // ── loop state ────────────────────────────────────────────────────────────────
-    bool refused = false;          // the policy said REFUSE at runtime: 0 V until disabled
-    int cutTicksLeft = 0;          // > 0 while the 1 s cut is in force
-    int cutCount = 0;
-    char cutWhy[120] = "";
-    char lcdRow[3][24] = {"", "", ""};
-    char line[80];
-    int tick = 0;
-    int drivenTicks = 0;
-    double vL = 0.0, vR = 0.0;
-    const char* exitWhy = "field DISABLED (competition_is_disabled)";
-
-    for (;; ++tick) {
-        // A field DISABLE exits this loop cleanly so the guard runs before PROS kills the
-        // task (header). Polled every tick: 10 ms is the most the robot can drive past it.
-        if (pros::c::competition_is_disabled()) break;
-
-        // ── sticks -> the ONE shared mapping -> the ONE shared per-side arithmetic ──
-        const bool connected = master.isConnected();
-        teleop::StickInput sticks{.connected = connected};
-        if (connected) {
-            sticks.leftY = master.axis(hal::ControllerAxis::LeftY);
-            sticks.leftX = master.axis(hal::ControllerAxis::LeftX);
-            sticks.rightX = master.axis(hal::ControllerAxis::RightX);
-        }
-        const teleop::DriveRequest req = teleop::mapSticks(sticks);  // all-zero when disconnected
-        const teleop::SideVolts sv = teleop::tankSideVolts(req, kMaxDriveV);
-        vL = sv.left;
-        vR = sv.right;
-
-        // ── the cut in force, and its re-arm ─────────────────────────────────────
-        if (cutTicksLeft > 0) {
-            --cutTicksLeft;
-            vL = vR = 0.0;
-            if (cutTicksLeft == 0) {
-                // RE-ARM: the streaks start over, so the same fight must persist again for the
-                // full 250 ms before it cuts again. Logged as a state change.
-                monitor[0].reset();
-                monitor[1].reset();
-                for (std::size_t i = 0; i < n; ++i) members[i].overTicks = 0;
-                emitf("re-armed after cut #%d (1 s at 0 V)", cutCount);
-                flushCard();
-            }
-        }
-        if (refused) vL = vR = 0.0;
-
-        // ── command: the same volts to every constructed member of a side ───────────
-        for (std::size_t i = 0; i < n; ++i) {
-            if (members[i].motor) {
-                members[i].motor->setVoltage(units::Voltage{members[i].side < 0 ? vL : vR});
-            }
-        }
-        if (vL != 0.0 || vR != 0.0) ++drivenTicks;
-
-        // ── read every constructed member ─────────────────────────────────────────
-        for (std::size_t i = 0; i < n; ++i) {
-            Member& m = members[i];
-            if (!m.motor) continue;
-            m.v = m.motor->velocity().value();
-            m.amps = m.motor->current().value();
-            m.temp = m.motor->temperature();
-            m.maxAmps = std::max(m.maxAmps, m.amps);
-            m.maxTemp = std::max(m.maxTemp, m.temp);
-        }
-
-        // ── runtime absence: a port that died since boot ───────────────────────────
-        bool newlyAbsent = false;
-        for (int s = 0; s < 2; ++s) {
-            const double cmd = s == 0 ? vL : vR;
-            for (std::size_t j = 0; j < sideN[s]; ++j) {
-                Member& m = members[sideIdx[s][j]];
-                if (!m.motor || m.absent) continue;
-                double matesFastest = 0.0;
-                for (std::size_t k = 0; k < sideN[s]; ++k) {
-                    const Member& o = members[sideIdx[s][k]];
-                    if (k == j || o.absent || !o.motor) continue;
-                    matesFastest = std::max(matesFastest, std::abs(o.v));
-                }
-                if (m.absence.update(m.motor->faultedReads(), m.v, cmd, matesFastest)) {
-                    m.absent = true;
-                    m.absentWhy = m.absence.reason();
-                    newlyAbsent = true;
-                    emitf("WARNING: port %2d (%s) went ABSENT at runtime: %s -- dropped from the "
-                          "fight detector, still commanded (harmless)", m.port,
-                          m.side < 0 ? "LEFT" : "RIGHT", m.absentWhy);
-                }
-            }
-        }
-        if (newlyAbsent) {
-            policy = evaluate(members, n);
-            deadPortsLine(members, n, dead, sizeof dead);
-            emitf("degradation re-evaluated: %s (left dead %d, right dead %d, total %d) -- %s",
-                  policy.verdict == teleop::DriveVerdict::Drive            ? "DRIVE"
-                  : policy.verdict == teleop::DriveVerdict::DriveDegraded  ? "DRIVE_DEGRADED"
-                                                                           : "REFUSE",
-                  policy.leftDead, policy.rightDead, policy.totalDead, dead);
-            if (policy.verdict == teleop::DriveVerdict::Refuse && !refused) {
-                refused = true;
-                stopAll(members, n);
-                std::snprintf(cutWhy, sizeof cutWhy, "REFUSED: %s", policy.reason);
-                emitf("%s -- 0 V until the field disables; then fix the robot", cutWhy);
-            }
-            flushCard();
-        }
-
-        // ── the fight cut (shared monitor) and the over-current cut ────────────────
-        if (cutTicksLeft == 0 && !refused) {
-            bool cutNow = false;
-            for (int s = 0; s < 2 && !cutNow; ++s) {
-                const double cmd = s == 0 ? vL : vR;
-                teleop::MemberSample samples[kMaxPort];
-                for (std::size_t j = 0; j < sideN[s]; ++j) {
-                    const Member& m = members[sideIdx[s][j]];
-                    samples[j] = teleop::MemberSample{m.v, !m.absent && m.motor.has_value()};
-                }
-                const teleop::SideVerdict verdict = monitor[s].update(
-                    cmd, std::span<const teleop::MemberSample>{samples, sideN[s]});
-                char names[48] = "";
-                for (std::size_t j = 0; j < sideN[s]; ++j) {
-                    Member& m = members[sideIdx[s][j]];
-                    m.disagreeTicks = monitor[s].disagreeTicks(j);
-                    if (verdict.persistedMask & (std::uint32_t{1} << j)) {
-                        char one[8];
-                        std::snprintf(one, sizeof one, " %d", m.port);
-                        std::strncat(names, one, sizeof names - std::strlen(names) - 1);
-                    }
-                }
-                if (verdict.persistedCount > 0) {
-                    cutNow = true;
-                    if (verdict.persistedCount == verdict.presentCount) {
-                        std::snprintf(cutWhy, sizeof cutWhy,
-                                      "CUT: whole %s side OPPOSITE/stalled vs command (ports%s)",
-                                      s == 0 ? "LEFT" : "RIGHT", names);
-                    } else {
-                        std::snprintf(cutWhy, sizeof cutWhy, "CUT: FIGHT on %s -- port(s)%s",
-                                      s == 0 ? "LEFT" : "RIGHT", names);
-                    }
-                }
-            }
-            for (std::size_t i = 0; i < n && !cutNow; ++i) {
-                Member& m = members[i];
-                if (!m.motor || m.absent) {
-                    m.overTicks = 0;
-                    continue;
-                }
-                m.overTicks = m.amps > kCurrentLimitA ? m.overTicks + 1 : 0;
-                if (m.overTicks >= kPersistTicks) {
-                    cutNow = true;
-                    std::snprintf(cutWhy, sizeof cutWhy, "CUT: port %d over %.1f A for 250 ms",
-                                  m.port, kCurrentLimitA);
-                }
-            }
-            if (cutNow) {
-                stopAll(members, n);
-                cutTicksLeft = kCutTicks;
-                ++cutCount;
-                if (cutCount <= kMaxCutsLogged) {
-                    emitf("%s -- both sides 0 V for 1 s, cut #%d, then re-arm", cutWhy, cutCount);
-                    for (std::size_t i = 0; i < n; ++i) {
-                        const Member& m = members[i];
-                        emitf("  at the cut: port %2d signed %+3d %s v=%+7.2f rad/s %5.2f A %3.0f C",
-                              m.port, static_cast<int>(m.signedPort),
-                              m.absent ? "ABSENT" : "      ", m.v, m.amps, m.temp);
-                    }
-                    if (cutCount == kMaxCutsLogged) {
-                        emit("  (further cuts are counted on the panel but no longer logged per port)");
-                    }
-                    flushCard();
-                }
-            }
-        }
-
-        // ── the panel (100 ms) ─────────────────────────────────────────────────────
-        if (tick % kPanelEveryTicks == 0) {
-            const char* mode = refused ? "REFUSED" : cutTicksLeft > 0 ? "CUT"
-                               : policy.verdict == teleop::DriveVerdict::DriveDegraded ? "DEGRADED"
-                                                                                       : "DRIVE";
-            std::snprintf(line, sizeof line, "%-8s %4.1fV  B%5.2fV  L %+5.1fV  R %+5.1fV  %s", mode,
-                          kMaxDriveV, battery.voltage().value(), vL, vR,
-                          connected ? "" : "NO CTRL");
-            pros::c::screen_set_eraser(kColBg);
-            pros::c::screen_erase_rect(0, 36, kUsableW, 70);
-            pros::c::screen_set_pen(refused || cutTicksLeft > 0 ? kColBad
-                                    : !connected                ? kColWarn
-                                    : (vL != 0.0 || vR != 0.0)  ? kColGood
-                                                                : kColText);
-            pros::c::screen_print_at(pros::E_TEXT_MEDIUM, 8, 40, "%s", line);
-            for (int s = 0; s < 2; ++s) {
-                for (std::size_t j = 0; j < sideN[s]; ++j) {
-                    const Member& m = members[sideIdx[s][j]];
-                    const std::uint32_t colour =
-                        m.absent                                                    ? kColGrey
-                        : (cutTicksLeft > 0 && (m.disagreeTicks >= kPersistTicks
-                                                || m.overTicks >= kPersistTicks))   ? kColBad
-                        : (m.disagreeTicks > 0 || m.overTicks > 0)                  ? kColWarn
-                        : std::abs(m.v) > 1.0                                       ? kColGood
-                                                                                    : kColDim;
-                    if (m.absent) {
-                        std::snprintf(line, sizeof line, "%s%+3d  ABSENT", s == 0 ? "L" : "R",
-                                      static_cast<int>(m.signedPort));
-                    } else {
-                        std::snprintf(line, sizeof line, "%s%+3d %+6.1fr/s %4.2fA %3.0fC%s",
-                                      s == 0 ? "L" : "R", static_cast<int>(m.signedPort), m.v,
-                                      m.amps, m.temp,
-                                      m.disagreeTicks >= kPersistTicks ? " FIGHT"
-                                      : m.overTicks >= kPersistTicks   ? " AMPS"
-                                                                       : "");
-                    }
-                    rowText(static_cast<std::int16_t>(8 + s * kColW),
-                            static_cast<std::int16_t>(kRowsY + static_cast<int>(j) * kRowPitch),
-                            static_cast<std::int16_t>(kColW - 12), colour, line);
-                }
-            }
-            std::snprintf(line, sizeof line, "WARNINGS: %s", dead);
-            rowText(8, kWarnY, static_cast<std::int16_t>(kUsableW - 16),
-                    policy.totalDead > 0 ? kColWarn : kColDim, line);
-            if (cutCount > 0 || refused) {
-                std::snprintf(line, sizeof line, "cuts: %d  last: %.60s", cutCount, cutWhy);
-            } else {
-                std::snprintf(line, sizeof line, "cuts: 0  (fight or >2.4 A = 1 s at 0 V, then re-arm)");
-            }
-            rowText(8, kCutY, static_cast<std::int16_t>(kUsableW - 16),
-                    refused ? kColBad : cutTicksLeft > 0 ? kColBad : cutCount > 0 ? kColWarn : kColDim,
-                    line);
-        }
-
-        // ── the controller LCD (200 ms, on change only) ───────────────────────────
-        if (tick % kLcdEveryTicks == 0) {
-            char want[3][24];
-            std::snprintf(want[0], sizeof want[0], "%s %2.0fV B%4.1fV",
-                          refused ? "REFUSD" : cutTicksLeft > 0 ? "CUT  "
-                          : policy.verdict == teleop::DriveVerdict::DriveDegraded ? "DEGRD" : "DRIVE",
-                          kMaxDriveV, battery.voltage().value());
-            std::snprintf(want[1], sizeof want[1], "%.19s", dead);
-            std::snprintf(want[2], sizeof want[2], "%.19s",
-                          refused ? "REFUSED see brain"
-                          : cutCount > 0 ? cutWhy + 5 /* past "CUT: " */
-                          : !connected   ? "no controller 0V"
-                                         : "ok");
-            for (int row = 0; row < 3; ++row) {
-                if (std::strcmp(want[row], lcdRow[row]) != 0) {
-                    lcd.setLine(row, want[row]);
-                    std::memcpy(lcdRow[row], want[row], sizeof lcdRow[row]);
-                }
-            }
-        }
-
-        pros::delay(kTickMs);
-    }
-
-    // ── exit: every motor 0 V, coast (the guard repeats it), and the summary ────────
-    stopAll(members, n);
-    lcd.setLine(0, "DRIVE stopped 0V");
-    lcd.setLine(1, dead);
-    lcd.setLine(2, cutCount > 0 ? "cuts: see log" : "no cuts");
-    emitf("DRIVE ended: %s", exitWhy);
-    emitf("  %d ticks (%.1f s); motors driven %.1f s; cuts %d; %s", tick, tick * kTickMs / 1000.0,
-          drivenTicks * kTickMs / 1000.0, cutCount, dead);
-    if (cutCount > 0) emitf("  last cut: %s", cutWhy);
-    emit("  port side signed   max A   max C   state");
-    for (std::size_t i = 0; i < n; ++i) {
-        const Member& m = members[i];
-        emitf("  %2d    %s    %+3d    %5.2f   %4.0f   %s", m.port, m.side < 0 ? "L" : "R",
-              static_cast<int>(m.signedPort), m.maxAmps, m.maxTemp,
-              m.absent ? m.absentWhy : "ok");
-    }
-    emit("  Everything above is in /usd/drive_log.txt when a card was present at boot.");
-    flushCard();
+    robot::Robot& r = *st.robot;
+    hal::ITelemetrySink& log = st.devices->telemetry();
+    log.log(hal::LogLevel::Info, kTag, kOpcontrolLive);
+    DriveScreen screen{r, st.boot, st.driver, *st.lcd, readTouch()};
+    st.driver.run(r, st.devices->pacer(), [] { return pros::c::competition_is_disabled() != 0; },
+                  screen);
+    // This line races PROS's deletion of this task (HA-161 (a)): one that lands while the line is
+    // being copied to the card ends the card's copy for the rest of the boot (serial keeps every
+    // line; diag/log_copy_sink.hpp, "A writer that never comes back").
+    char line[200];
+    std::snprintf(line, sizeof line,
+                  "opcontrol(): field DISABLED -- the driver file's loop exited cleanly after "
+                  "cancel() (0 V + Brake); each claw pivot made safe, the pneumatic claw left as it "
+                  "was; %lu screen prints so far",
+                  static_cast<unsigned long>(g_screenPrints));
+    log.log(hal::LogLevel::Info, kTag, line);
 }
 
 }  // namespace shulib::bench

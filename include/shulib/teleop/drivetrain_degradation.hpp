@@ -52,9 +52,9 @@
 // evaluateDegradation() once, before any adapter exists; the library's driver loop
 // (teleop/drive_protection.hpp, since T4 Part 2) re-counts each group's present
 // members whenever one is marked ABSENT mid-run, and at every entry, and applies
-// evaluateRuntimeDegradation(); and the old "shulib Drive"
-// (src/programs/drive_program.cpp) still applies evaluateDegradation() both at boot
-// and mid-run, until T4 Part 3 replaces it.
+// evaluateRuntimeDegradation(). The old "shulib Drive" applied evaluateDegradation()
+// both at boot and mid-run itself, until T4 Part 3 replaced it with a program that
+// drives through that loop.
 
 namespace shulib::teleop {
 

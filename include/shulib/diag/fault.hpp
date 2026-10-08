@@ -9,7 +9,21 @@
 // pose) typically triggers a burst of follow-on faults (odom stuck, gate rejects, motion
 // timeout). At 2am you need the ROOT CAUSE, and it is the first fault, not the loudest or
 // the last. FaultLatch therefore records the first (code + time) immutably until clear(),
-// while still counting and logging every subsequent fault in the cascade.
+// while still counting every subsequent fault in the cascade and logging each (an episode's
+// continuations excepted — below).
+//
+// ONE LINE PER EPISODE, where a monitor raises every tick (raiseRepeat(), chunk T4 Part 3,
+// 2026-10-08): a monitor whose condition holds for many ticks in a row — LoopMonitor's slow loop
+// — still raises on EVERY tick (the count, the per-code tally and each tick's fault stamp stay
+// true), but logs only the episode's FIRST raise. A line per tick was noise on serial and, since
+// the programs keep a copy of their log on the SD card (diag/log_copy_sink.hpp), one card write
+// and one flush inside every slow tick — the very cost that keeps the loop slow. HealthMonitor's
+// faults and the plausibility guard's pose check already raised once per episode. The per-CALL
+// guards still raise (and log) every offending call — finite_guard.hpp's NaN recoveries and the
+// plausibility guard's command and wheel-volt audits: each is a defect (a non-finite value, a
+// command past the robot's capability), not a state a healthy run sits in, and a defect that
+// repeats every tick also repeats its line, on serial and in the card copy. Left so (the T4-3
+// review): stated here for whoever meets one.
 //
 // Why the enum values are EXPLICIT and never reordered: these numbers go on the F9 wire
 // (the SHUL/2 serialization of DebugRecord, frozen at H1) and into SdSink blackbox files
@@ -111,7 +125,8 @@ enum class FaultCode : std::uint16_t {
 class FaultLatch {
 public:
     /// Both references must outlive the latch. The sink receives one Error-level line per
-    /// raised fault; the clock timestamps the first fault.
+    /// raise() — none for a raiseRepeat() but the run's first fault; the clock timestamps the
+    /// first fault.
     FaultLatch(hal::ITelemetrySink& sink, hal::IClock& clock) noexcept
         : sink_{sink}, clock_{clock} {}
 
@@ -120,33 +135,17 @@ public:
     /// a defensive NO-OP (it is "no fault", and the error path must never crash — a
     /// precondition throw here would turn a bad raise into a dead robot).
     void raise(FaultCode code, std::string_view subsystem, std::string_view detail) noexcept {
-        if (code == FaultCode::None) {
-            return;
-        }
-        // Latch FIRST, log second — the latch must survive even a throwing sink/clock.
-        ++count_;
-        last_ = code;
-        const auto idx = static_cast<std::size_t>(code);
-        if (idx < kCodeSlots && perCode_[idx] < UINT16_MAX) {
-            ++perCode_[idx];  // per-code tally (see raiseCount below)
-        }
-        const bool isFirst = (count_ == 1);
-        if (isFirst) {
-            first_ = code;
-        }
-        try {
-            if (isFirst) {
-                firstTime_ = clock_.now();
-            }
-            char buf[176];
-            std::snprintf(buf, sizeof buf, "fault=%s n=%d%s%s%.*s", faultCodeName(code), count_,
-                          isFirst ? " FIRST" : "", detail.empty() ? "" : " ",
-                          static_cast<int>(detail.size()), detail.empty() ? "" : detail.data());
-            sink_.log(hal::LogLevel::Error, subsystem, buf);
-        } catch (...) {
-            // A throwing sink/clock violates its interface contract. The fault is already
-            // latched; swallowing here keeps "faults never crash" true unconditionally.
-        }
+        raiseAndMaybeLog(code, subsystem, detail, true);
+    }
+
+    /// Raise `code` as the CONTINUATION of an episode whose opening raise() was already logged:
+    /// latched, counted and tallied exactly as raise() — faultCount(), raiseCount(), lastFault()
+    /// and every per-tick fault stamp see it — but with NO line (the header's ONE LINE PER
+    /// EPISODE). One exception keeps the root cause loud: when this is the FIRST fault since
+    /// construction or clear(), it is logged exactly as raise() would log it. FaultCode::None is
+    /// a no-op, as for raise().
+    void raiseRepeat(FaultCode code, std::string_view subsystem, std::string_view detail) noexcept {
+        raiseAndMaybeLog(code, subsystem, detail, false);
     }
 
     /// True once ANY fault has been raised since construction/clear(), and true for the rest of
@@ -185,6 +184,42 @@ public:
     }
 
 private:
+    /// raise() and raiseRepeat() in one place: latch FIRST, then the line when `logLine` (or when
+    /// this is the first fault — the root cause is never silent).
+    void raiseAndMaybeLog(FaultCode code, std::string_view subsystem, std::string_view detail,
+                          bool logLine) noexcept {
+        if (code == FaultCode::None) {
+            return;
+        }
+        // Latch FIRST, log second — the latch must survive even a throwing sink/clock.
+        ++count_;
+        last_ = code;
+        const auto idx = static_cast<std::size_t>(code);
+        if (idx < kCodeSlots && perCode_[idx] < UINT16_MAX) {
+            ++perCode_[idx];  // per-code tally (see raiseCount below)
+        }
+        const bool isFirst = (count_ == 1);
+        if (isFirst) {
+            first_ = code;
+        }
+        try {
+            if (isFirst) {
+                firstTime_ = clock_.now();
+            }
+            if (!logLine && !isFirst) {
+                return;  // an episode's repeat: counted above, said by its opening raise
+            }
+            char buf[176];
+            std::snprintf(buf, sizeof buf, "fault=%s n=%d%s%s%.*s", faultCodeName(code), count_,
+                          isFirst ? " FIRST" : "", detail.empty() ? "" : " ",
+                          static_cast<int>(detail.size()), detail.empty() ? "" : detail.data());
+            sink_.log(hal::LogLevel::Error, subsystem, buf);
+        } catch (...) {
+            // A throwing sink/clock violates its interface contract. The fault is already
+            // latched; swallowing here keeps "faults never crash" true unconditionally.
+        }
+    }
+
     /// Per-code tally capacity: covers FaultCode values 0..31 — well over double
     /// today's 12, and the enum is append-only so growth is deliberate and
     /// visible.

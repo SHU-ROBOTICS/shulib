@@ -665,8 +665,9 @@ inline void copyRecordFileRead(RecordFileRead& to, const FileRead& from) noexcep
 
 // ═══ THE WORDS ══════════════════════════════════════════════════════════════════════
 
-/// Whether the boot of the drive program this Calibrate ships with (today "shulib Teleop") reads
-/// the BACKUP when the record file does not decode. The save's words depend on it; no default, so
+/// Whether the boot of the driver programs this Calibrate ships with ("shulib Drive" and the
+/// competition program since T4 Part 3; "shulib Teleop" before it) reads the BACKUP when the
+/// record file does not decode. The save's words depend on it; no default, so
 /// every caller states it.
 enum class BootReadsBackup : std::uint8_t {
     No,   ///< the boot reads the record file only: a damaged one REFUSES
@@ -736,9 +737,10 @@ inline void putFailureClause(char (&out)[kSaveReportLineBytes], const PutRecord&
 /// whether the boot this build ships with falls back to the backup. The formatter is TOTAL: a
 /// measured combination with no named branch prints the measurement itself (which file the next
 /// boot uses, and what it holds). The words name the drivetrain record, "shulib Calibrate" and "the
-/// next boot" — never a drive program by name: more than one program boots from the record (the
-/// competition program too), and the one called "shulib Teleop" today is retired by T4 Part 3. A
-/// sibling file words its own lines from the same SaveReport.
+/// next boot" — never a drive program by name: more than one program boots from the record
+/// ("shulib Drive", the competition program and the Auton Tester since T4 Part 3, which retired the
+/// "shulib Teleop" these words were first written beside). A sibling file words its own lines from
+/// the same SaveReport.
 template <typename Emit>
 void formatSaveReport(const SaveReport& r, BootReadsBackup bootReadsBackup, Emit&& emit) {
     char line[kSaveReportLineBytes];

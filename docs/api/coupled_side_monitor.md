@@ -411,7 +411,7 @@ Volts for every member of the RIGHT side.
 [[nodiscard]] constexpr SideVolts tankSideVolts(const DriveRequest& request, double maxVolts) noexcept
 ```
 
-The arcade arithmetic both the drive program and the tester's DRIVE station use — ONE definition, so the driver feels one robot: left = maxV × (forward − yawCcw), right = maxV × (forward + yawCcw), each clamped to ±maxV. A CCW (left) turn is a positive yawCcw, which slows the left side and speeds the right — the sign convention of the locked body frame (stick_mapping.hpp). Every member of a side gets the same volts (a group is a voltage fan-out).
+The arcade arithmetic the tester's DRIVE station uses — ONE definition (the old "shulib Drive" shared it until T4 Part 3 replaced that program; the station is its only caller now): left = maxV × (forward − yawCcw), right = maxV × (forward + yawCcw), each clamped to ±maxV. A CCW (left) turn is a positive yawCcw, which slows the left side and speeds the right — the sign convention of the locked body frame (stick_mapping.hpp). Every member of a side gets the same volts (a group is a voltage fan-out).
 
 *free function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:187`](../../include/shulib/teleop/coupled_side_monitor.hpp#L187).*
 
@@ -423,9 +423,9 @@ The arcade arithmetic both the drive program and the tester's DRIVE station use 
 class MemberAbsenceDetector
 ```
 
-Runtime dead-port detection for ONE member, from the ADAPTER's faulted-read count (R3b Part 0b brief §3 item 4): a port whose adapter constructed at boot can still die in a match. Two signatures, either one for `persistTicks` consecutive ticks marks the member ABSENT — LATCHED for the rest of the run, because a port that answered again for a moment is not one to hand the fight detector back to: * its adapter's faultedReads() counter ADVANCED on every one of those ticks (every read screened to last-good — the port is not answering), or * its velocity read EXACTLY 0.0 while the side was commanded above the command floor and its side-mates' fastest exceeded the moving floor (the train is turning, this encoder is not: a port that reports nothing, not a stalled motor — a stall reads a small nonzero velocity and a large current, and is the monitor's business). Its caller — the old "shulib Drive" (src/programs/drive_program.cpp), which holds each port as a hal::pros::ProsMotor and so HAS the count — keeps commanding the absent member's voltage (harmless) and drops it from the monitor's agreement set by passing present = false. The library's driver loop does NOT run this class: it holds its drive motors as hal::IMotor, which has no faulted-read count (F4, locked), and it does not run the velocity-exactly-0 signature either (the team lead's ruling of 2026-09-28, decision C: through IMotor a dead port reads exactly 0 only when it died at rest, where FrozenReadingDetector below latches on the same tick, and alone the signature marks live members — a stalled side beside a slipping mate). It stays for a caller that has the count; after T4 Part 3 retires the old program, no src/ caller does.
+Runtime dead-port detection for ONE member, from the ADAPTER's faulted-read count (R3b Part 0b brief §3 item 4): a port whose adapter constructed at boot can still die in a match. Two signatures, either one for `persistTicks` consecutive ticks marks the member ABSENT — LATCHED for the rest of the run, because a port that answered again for a moment is not one to hand the fight detector back to: * its adapter's faultedReads() counter ADVANCED on every one of those ticks (every read screened to last-good — the port is not answering), or * its velocity read EXACTLY 0.0 while the side was commanded above the command floor and its side-mates' fastest exceeded the moving floor (the train is turning, this encoder is not: a port that reports nothing, not a stalled motor — a stall reads a small nonzero velocity and a large current, and is the monitor's business). Its caller was the old "shulib Drive" (src/programs/drive_program.cpp until T4 Part 3 replaced it), which held each port as a hal::pros::ProsMotor and so HAD the count; it kept commanding the absent member's voltage (harmless) and dropped it from the monitor's agreement set by passing present = false. The library's driver loop does NOT run this class: it holds its drive motors as hal::IMotor, which has no faulted-read count (F4, locked), and it does not run the velocity-exactly-0 signature either (the team lead's ruling of 2026-09-28, decision C: through IMotor a dead port reads exactly 0 only when it died at rest, where FrozenReadingDetector below latches on the same tick, and alone the signature marks live members — a stalled side beside a slipping mate). It stays for a caller that has the count; since T4 Part 3 retired the old program, no src/ caller does.
 
-*class, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:216`](../../include/shulib/teleop/coupled_side_monitor.hpp#L216).*
+*class, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:217`](../../include/shulib/teleop/coupled_side_monitor.hpp#L217).*
 
 <a id="memberabsencedetector-memberabsencedetector"></a>
 
@@ -437,7 +437,7 @@ constexpr MemberAbsenceDetector() noexcept = default
 
 Default thresholds are the monitor's.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:219`](../../include/shulib/teleop/coupled_side_monitor.hpp#L219).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:220`](../../include/shulib/teleop/coupled_side_monitor.hpp#L220).*
 
 <a id="memberabsencedetector-memberabsencedetector-2"></a>
 
@@ -449,7 +449,7 @@ constexpr explicit MemberAbsenceDetector(SideMonitorConfig thresholds) noexcept
 
 Thresholds stated by the caller.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:222`](../../include/shulib/teleop/coupled_side_monitor.hpp#L222).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:223`](../../include/shulib/teleop/coupled_side_monitor.hpp#L223).*
 
 <a id="memberabsencedetector-update"></a>
 
@@ -461,7 +461,7 @@ Thresholds stated by the caller.
 
 One tick. `faultedReadsNow` is the adapter's cumulative faultedReads(); `velocityRadS` its velocity(); `sideCommandVolts` the side's command; `matesFastestRadS` the largest |velocity| among the OTHER present members of the side. Returns true once the member is absent (and stays true: latched).
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:229`](../../include/shulib/teleop/coupled_side_monitor.hpp#L229).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:230`](../../include/shulib/teleop/coupled_side_monitor.hpp#L230).*
 
 <a id="memberabsencedetector-absent"></a>
 
@@ -473,7 +473,7 @@ One tick. `faultedReadsNow` is the adapter's cumulative faultedReads(); `velocit
 
 True once update() has latched the member absent.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:258`](../../include/shulib/teleop/coupled_side_monitor.hpp#L258).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:259`](../../include/shulib/teleop/coupled_side_monitor.hpp#L259).*
 
 <a id="memberabsencedetector-reason"></a>
 
@@ -485,7 +485,7 @@ True once update() has latched the member absent.
 
 Which signature latched it ("" while present) — for the one-time log line.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:261`](../../include/shulib/teleop/coupled_side_monitor.hpp#L261).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:262`](../../include/shulib/teleop/coupled_side_monitor.hpp#L262).*
 
 <a id="struct-memberreading"></a>
 
@@ -497,7 +497,7 @@ struct MemberReading
 
 One member's readings this tick, in the side's fixed order, as FrozenReadingDetector needs them.
 
-*struct, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:361`](../../include/shulib/teleop/coupled_side_monitor.hpp#L361).*
+*struct, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:369`](../../include/shulib/teleop/coupled_side_monitor.hpp#L369).*
 
 <a id="memberreading-positionrad"></a>
 
@@ -509,7 +509,7 @@ double positionRad = 0.0
 
 The member's position(), radians — compared bit for bit.
 
-*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:362`](../../include/shulib/teleop/coupled_side_monitor.hpp#L362).*
+*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:370`](../../include/shulib/teleop/coupled_side_monitor.hpp#L370).*
 
 <a id="memberreading-velocityrads"></a>
 
@@ -521,7 +521,7 @@ double velocityRadS = 0.0
 
 Its velocity(), rad/s — compared bit for bit, and its magnitude against the floors.
 
-*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:363`](../../include/shulib/teleop/coupled_side_monitor.hpp#L363).*
+*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:371`](../../include/shulib/teleop/coupled_side_monitor.hpp#L371).*
 
 <a id="memberreading-present"></a>
 
@@ -533,7 +533,7 @@ bool present = true
 
 false = not read this tick (a boot hole, or a member already marked ABSENT): its counters reset and it takes part in no rule.
 
-*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:364`](../../include/shulib/teleop/coupled_side_monitor.hpp#L364).*
+*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:372`](../../include/shulib/teleop/coupled_side_monitor.hpp#L372).*
 
 <a id="struct-frozenverdict"></a>
 
@@ -545,7 +545,7 @@ struct FrozenVerdict
 
 What one FrozenReadingDetector::update() concluded, as member bit masks (bit i = member i).
 
-*struct, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:368`](../../include/shulib/teleop/coupled_side_monitor.hpp#L368).*
+*struct, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:376`](../../include/shulib/teleop/coupled_side_monitor.hpp#L376).*
 
 <a id="frozenverdict-suspectmask"></a>
 
@@ -555,9 +555,9 @@ What one FrozenReadingDetector::update() concluded, as member bit masks (bit i =
 std::uint32_t suspectMask = 0
 ```
 
-SUSPECT this tick: repeated for suspectReads reads while it, or a mate whose readings still change, says the train turns.
+SUSPECT this tick: repeated for suspectReads reads while it, or a mate whose ENCODER still moves, says the train turns.
 
-*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:369`](../../include/shulib/teleop/coupled_side_monitor.hpp#L369).*
+*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:377`](../../include/shulib/teleop/coupled_side_monitor.hpp#L377).*
 
 <a id="frozenverdict-frozenmask"></a>
 
@@ -569,7 +569,7 @@ std::uint32_t frozenMask = 0
 
 FROZEN this tick — the members a caller keeps out of the fight monitor and the over-current watch.
 
-*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:370`](../../include/shulib/teleop/coupled_side_monitor.hpp#L370).*
+*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:378`](../../include/shulib/teleop/coupled_side_monitor.hpp#L378).*
 
 <a id="frozenverdict-latchedmask"></a>
 
@@ -581,7 +581,7 @@ std::uint32_t latchedMask = 0
 
 NEWLY latched ABSENT this tick (each member latches once in the detector's life).
 
-*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:371`](../../include/shulib/teleop/coupled_side_monitor.hpp#L371).*
+*field, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:379`](../../include/shulib/teleop/coupled_side_monitor.hpp#L379).*
 
 <a id="class-frozenreadingdetector"></a>
 
@@ -593,7 +593,7 @@ class FrozenReadingDetector
 
 The frozen-reading rule for ONE side (the header section above): which members read FROZEN this tick, and which have been FROZEN long enough to be marked ABSENT. Construct one per side with that side's monitor thresholds (its floors) and the read count; call update() once per tick with the side's members in a FIXED order. Members beyond kMaxSideMembers are ignored.
 
-*class, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:378`](../../include/shulib/teleop/coupled_side_monitor.hpp#L378).*
+*class, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:386`](../../include/shulib/teleop/coupled_side_monitor.hpp#L386).*
 
 <a id="frozenreadingdetector-frozenreadingdetector"></a>
 
@@ -605,7 +605,7 @@ FrozenReadingDetector(SideMonitorConfig floors, int suspectReads)
 
 `floors`: the side's own monitor thresholds (`oppositeFloorRadS`, `movingFloorRadS`, `persistTicks`). `suspectReads`: the consecutive repeated reads that make a member SUSPECT (DriveProtectionConfig::frozenSuspectReads, 5, A4 register HA-175). PRECONDITION: `0 < suspectReads < floors.persistTicks` — the rule must decide before the monitor can.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:384`](../../include/shulib/teleop/coupled_side_monitor.hpp#L384).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:392`](../../include/shulib/teleop/coupled_side_monitor.hpp#L392).*
 
 <a id="frozenreadingdetector-update"></a>
 
@@ -617,7 +617,7 @@ FrozenReadingDetector(SideMonitorConfig floors, int suspectReads)
 
 One tick: the side's members' readings, in the fixed order. Returns this tick's verdict.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:395`](../../include/shulib/teleop/coupled_side_monitor.hpp#L395).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:403`](../../include/shulib/teleop/coupled_side_monitor.hpp#L403).*
 
 <a id="frozenreadingdetector-reset"></a>
 
@@ -629,7 +629,7 @@ void reset() noexcept
 
 Forget every counter and every latch — a new detector in all but its thresholds.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:465`](../../include/shulib/teleop/coupled_side_monitor.hpp#L465).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:477`](../../include/shulib/teleop/coupled_side_monitor.hpp#L477).*
 
 <a id="frozenreadingdetector-repeatreads"></a>
 
@@ -641,7 +641,7 @@ Forget every counter and every latch — a new detector in all but its threshold
 
 Member `i`'s consecutive repeated reads right now (0 out of range) — for a panel or a test.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:477`](../../include/shulib/teleop/coupled_side_monitor.hpp#L477).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:490`](../../include/shulib/teleop/coupled_side_monitor.hpp#L490).*
 
 <a id="frozenreadingdetector-frozenticks"></a>
 
@@ -653,7 +653,7 @@ Member `i`'s consecutive repeated reads right now (0 out of range) — for a pan
 
 Member `i`'s consecutive FROZEN ticks right now (0 out of range, or not frozen).
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:482`](../../include/shulib/teleop/coupled_side_monitor.hpp#L482).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:495`](../../include/shulib/teleop/coupled_side_monitor.hpp#L495).*
 
 <a id="frozenreadingdetector-latchedmask"></a>
 
@@ -665,7 +665,7 @@ Member `i`'s consecutive FROZEN ticks right now (0 out of range, or not frozen).
 
 Every member latched ABSENT so far, as a bit mask.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:487`](../../include/shulib/teleop/coupled_side_monitor.hpp#L487).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:500`](../../include/shulib/teleop/coupled_side_monitor.hpp#L500).*
 
 <a id="frozenreadingdetector-suspectreads"></a>
 
@@ -677,7 +677,7 @@ Every member latched ABSENT so far, as a bit mask.
 
 The read count this detector was built with.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:490`](../../include/shulib/teleop/coupled_side_monitor.hpp#L490).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:503`](../../include/shulib/teleop/coupled_side_monitor.hpp#L503).*
 
 <a id="frozenreadingdetector-floors"></a>
 
@@ -689,7 +689,7 @@ The read count this detector was built with.
 
 The side's thresholds this detector reads its floors and its window from.
 
-*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:493`](../../include/shulib/teleop/coupled_side_monitor.hpp#L493).*
+*function, declared at [`include/shulib/teleop/coupled_side_monitor.hpp:506`](../../include/shulib/teleop/coupled_side_monitor.hpp#L506).*
 
 ## Design commentary, from the header
 
@@ -714,9 +714,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  DRIVE station carries this logic as its gate 5, and that station has run on robot
  two's brain (2026-09-10, ten adapters constructed; no motor has yet turned under
  it); this header is that logic EXTRACTED into a pure, host-tested evaluator so the
- old "shulib Drive", the station, hal::MotorGroup and — since T4 Part 2 — the
- library's driver-loop protections (teleop/drive_protection.hpp) share one detector
- and one set of numbers.
+ old "shulib Drive" (until T4 Part 3 replaced it), the station, hal::MotorGroup and —
+ since T4 Part 2 — the library's driver-loop protections (teleop/drive_protection.hpp)
+ share one detector and one set of numbers.
 
  WHAT COUNTS AS DISAGREEING (the station's gate 5, verbatim in meaning):
    * evaluated only while the side is COMMANDED above `commandFloorV` and its

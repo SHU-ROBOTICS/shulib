@@ -4,7 +4,7 @@
 // (chunk R3d Part 2, 2026-09-18; its screen rewritten at R3d Part 2F-2, 2026-09-24). Built with
 // `make ROBOT=tank PROGRAM=calibrate`, uploaded to slot 4 as "shulib Calibrate".
 //
-// The interface is one function, exactly like "shulib Drive"'s: the program IS the build,
+// The interface is one function, as the old "shulib Drive"'s was: the program IS the build,
 // there is no chooser, and the operator picks it by NAME from the brain's slot list (the
 // team lead's ruling, R3b Part 0b). src/main.cpp's opcontrol() calls it.
 //

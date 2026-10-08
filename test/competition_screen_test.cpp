@@ -483,7 +483,9 @@ TEST_CASE("screen (S10): every page at the worst case of every field — nothing
 // (S11) Bug caught (ND1, ND2 on the driver page; B11): the driver page's AUTON row not saying that
 // autons are refused (a program error, a typed-table boot) — the driver would expect the next
 // autonomous() to run — or naming the wrong request's word; the controller row wrong; the rows out
-// of Teleop's place or order.
+// of their place or order. Since T4 Part 3 (Part 2b's item 6) the PROTECTION row is FIRST — what
+// explains a drive that stopped — and the four COMP-b rows follow it, each one row lower
+// (re-pointed one-for-one: every word pin below is unchanged).
 TEST_CASE("screen (S11): the driver page — the AUTON row's four states; the rows in order") {
     AutonRegistry reg{shulib::bench::kAutonPeriods};
     shulib::bench::registerAutons(reg);
@@ -504,6 +506,11 @@ TEST_CASE("screen (S11): the driver page — the AUTON row's four states; the ro
     CHECK(std::string{ok.text} == "auton FINISHED: 40in forward");
     CHECK(ok.tone == shulib::ui::Tone::Green);
     shulib::bench::CompetitionDriverFacts f{};
+    shulib::teleop::DriveProtectionState cut{};
+    cut.mode = shulib::teleop::ProtectionMode::Cut;
+    cut.cutCount = 2;
+    std::snprintf(cut.lastCut, sizeof cut.lastCut, "%s", "CUT: FIGHT on LEFT -- port(s) 18");
+    f.protection = shulib::bench::protectionRowText(cut, 1.0);
     f.auton = ok;
     f.controller = shulib::bench::controllerRowText(false);
     f.faultRow = "faults: none";
@@ -511,16 +518,33 @@ TEST_CASE("screen (S11): the driver page — the AUTON row's four states; the ro
     f.buildStamp = "BUILD 01:02:03";
     const CompetitionView v = shulib::bench::competitionDriverView(f);
     checkView(v);
-    REQUIRE(v.lineCount == 4);
+    REQUIRE(v.lineCount == 5);
     CHECK(std::string{v.header.text} == "shulib COMPETITION");
-    CHECK(lineText(v, 0) == "auton FINISHED: 40in forward");
-    CHECK(lineText(v, 1) == "NO CONTROLLER -- the drive gets 0 V");
-    CHECK(v.lines[1].tone == shulib::ui::Tone::Red);
-    CHECK(lineText(v, 2) == "faults: none");
-    CHECK(v.lines[2].tone == shulib::ui::Tone::Green);
-    CHECK(lineText(v, 3) == "claws: 3 built");
+    CHECK(lineText(v, 0) == "CUT 1 s #2: FIGHT on LEFT -- port(s) 18");
+    CHECK(v.lines[0].tone == shulib::ui::Tone::Red);
+    CHECK(lineText(v, 1) == "auton FINISHED: 40in forward");
+    CHECK(lineText(v, 2) == "NO CONTROLLER -- the drive gets 0 V");
+    CHECK(v.lines[2].tone == shulib::ui::Tone::Red);
+    CHECK(lineText(v, 3) == "faults: none");
+    CHECK(v.lines[3].tone == shulib::ui::Tone::Green);
+    CHECK(lineText(v, 4) == "claws: 3 built");
     CHECK(v.lines[0].y == shulib::bench::kCompetitionDriverRowY0);
-    CHECK(v.lines[3].y == shulib::bench::kCompetitionDriverRowY0 + 3 * shulib::ui::kSmallHeight);
+    CHECK(v.lines[4].y == shulib::bench::kCompetitionDriverRowY0 + 4 * shulib::ui::kSmallHeight);
+    // Every protection word fits the page: the longest REFUSED and a cut whose words fill the
+    // log's buffer are cut at the SMALL budget by the shared row, never counted unsafe here.
+    shulib::teleop::DriveProtectionState refused{};
+    refused.mode = shulib::teleop::ProtectionMode::Refused;
+    refused.verdict.totalDead = 8;
+    f.protection = shulib::bench::protectionRowText(refused, 1.0);
+    CHECK(lineText(shulib::bench::competitionDriverView(f), 0)
+          == "REFUSED: 8 drive motors dead -- 0 V for the run");
+    cut.lastCut[0] = '\0';
+    for (std::size_t i = 0; i + 1 < sizeof cut.lastCut; ++i) {
+        cut.lastCut[i] = 'w';
+    }
+    cut.lastCut[sizeof cut.lastCut - 1] = '\0';
+    f.protection = shulib::bench::protectionRowText(cut, 1.0);
+    CHECK(shulib::bench::competitionDriverView(f).unsafeLines == 0);
 }
 
 // (S12) Bug caught: a line over its budget CUT SILENTLY — the safety copy cuts it either way, but a
@@ -536,10 +560,10 @@ TEST_CASE("screen (S12): a row over budget, or not screen-safe, is COUNTED, neve
     f.clawRow = "claws: 100% ok";  // a '%' (PROS re-reads printed text as a format)
     const CompetitionView v = shulib::bench::competitionDriverView(f);
     CHECK(v.unsafeLines == 2);
-    REQUIRE(v.lineCount == 4);
-    CHECK(std::strlen(v.lines[2].text) == shulib::ui::kSmallCols);  // cut at the budget
-    CHECK(shulib::ui::screenText(v.lines[2].text, shulib::ui::kSmallCols));
-    CHECK(shulib::ui::screenText(v.lines[3].text, shulib::ui::kSmallCols));  // made safe
+    REQUIRE(v.lineCount == 5);  // the PROTECTION row first since T4 Part 3: the rest one lower
+    CHECK(std::strlen(v.lines[3].text) == shulib::ui::kSmallCols);  // cut at the budget
+    CHECK(shulib::ui::screenText(v.lines[3].text, shulib::ui::kSmallCols));
+    CHECK(shulib::ui::screenText(v.lines[4].text, shulib::ui::kSmallCols));  // made safe
     f.faultRow = "faults: none";
     f.clawRow = "claws: ok";
     CHECK(shulib::bench::competitionDriverView(f).unsafeLines == 0);

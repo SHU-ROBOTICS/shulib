@@ -196,10 +196,13 @@ the curve, the mode: arcade, tank sticks, or field-centric with its honest fallb
 to the chassis's speed budgets, calls `drive(…, Frame::Body)`, lets your code paint a panel, and
 waits for the next tick. The things it cannot know — how long a tick is, whether the robot is
 disabled, what the heading is and whether to trust it — are arguments you hand it, which is also
-what lets the test suite run the whole loop on the host test plant. Honest status: "shulib Teleop"
-(`src/programs/teleop_program.cpp`) now drives through it — robot two's claws included, on the buttons
-below — but that version of the program has not run on a robot yet, so the loop is host-tested
-only, and no driver has felt it.
+what lets the test suite run the whole loop on the host test plant. Honest status: robot two's
+driver file (`src/team/robot_two_driver.hpp` — the [cookbook](../cookbook/06-driver-control.md)
+quotes it whole) drives through it — the sticks, the feel, and robot two's claws on the buttons
+below, all stated in that one file — and two programs run that file: "shulib Drive"
+(`src/programs/drive_program.cpp`) on its own, and the competition program's driver control
+([Chapter 17](17-the-competition-program.md)). Neither has run on a robot yet, so the loop is
+host-tested only, and no driver has felt it.
 
 The banner at the top of this chapter does not cover the loop: `teleop::runDriverControl`, like the
 rest of `teleop/`, is in no row of the Freeze Register, so it is not part of the frozen surface. It
@@ -218,13 +221,14 @@ through `runDriverControl` has them:
 - **A drive motor that stops answering is dropped.** Through the motor seam a dead port does not
   say so — its adapter keeps repeating its last good position, velocity and current. So the loop
   watches for exactly that: a member whose readings repeat bit for bit for 5 reads while it, or a
-  side-mate whose readings still change, says the train is turning, with at least as many of its
+  side-mate whose encoder is still moving, says the train is turning, with at least as many of its
   side answering as not. That member is FROZEN — kept out of the fight check at once — and after
   250 ms of it, marked ABSENT for the rest of the run: out of every reading, still commanded, and
   said in one `[WARN][TEL]` line
   (`WARNING: port 18 (LEFT) went ABSENT at runtime: reads frozen for 250 ms
-  while its side answered …`). The robot drives on, degraded. At a wall it can mark a motor that is
-  NOT dead — [Chapter 12](12-when-things-go-wrong.md)'s "A motor reported dead that is not".
+  while its side answered …`). The robot drives on, degraded. At a wall beside a slipping drive
+  gear it can mark a motor that is NOT dead — [Chapter 12](12-when-things-go-wrong.md)'s "A motor
+  reported dead that is not".
 - **More than two dead drive motors, in total, stops the drive for the rest of the run** — 0 V, one
   `[ERROR][TEL]` line (`REFUSED: more than 2 motors dead in total -- 0 V for the rest of the run,
   every later start of driver control included …`), and every later start of driver control is

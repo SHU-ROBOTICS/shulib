@@ -6,8 +6,9 @@
 // ── Why this exists ─────────────────────────────────────────────────────────────────
 // The team lead's ruling R4 (2026-09-27): "Moved into the library, so the competition program's
 // opcontrol() and Teleop get them too, not just this program: the mid-match absence rule and the
-// two re-arming cuts." Until this file only the old "shulib Drive" (src/programs/drive_program.cpp)
-// had them, and it drives through bare adapters, never through the library. Now
+// two re-arming cuts." Until this file only the old "shulib Drive" (src/programs/drive_program.cpp
+// until T4 Part 3 replaced it) had them, and it drove through bare adapters, never through the
+// library. (The "Teleop" of the ruling is "shulib Teleop", which T4 Part 3 retired.) Now
 // teleop::runDriverControl (teleop_loop.hpp) builds ONE DriveProtection per call and runs it on
 // every tick, so every program that drives through the library's loop is protected with no wiring
 // of its own — and no program can forget to be. The numbers are DriverLoopConfig::protection, a
@@ -17,7 +18,7 @@
 //   beforeDrive()  THE FROZEN RULE, first. Every group's FrozenReadingDetector
 //                  (coupled_side_monitor.hpp) is handed each PRESENT member's fresh position()
 //                  and velocity(). A member whose readings are FROZEN — repeated bit for bit for
-//                  5 reads while it, or a side-mate whose readings still change, says the train
+//                  5 reads while it, or a side-mate whose ENCODER still moves, says the train
 //                  turns, with at least as many of its side answering as not — is kept out of its
 //                  group's fight monitor for this tick (MotorGroup::setMonitorExcluded) and out
 //                  of the over-current watch. One FROZEN for the monitor's 250 ms is marked ABSENT
@@ -123,7 +124,7 @@
 
 namespace shulib::teleop {
 
-/// The drive protections' numbers — the old "shulib Drive"'s (src/programs/drive_program.cpp),
+/// The drive protections' numbers — the old "shulib Drive"'s (R3b Part 0b; T4 Part 3 replaced it),
 /// each with its source, and ONE new one, `frozenSuspectReads`. A program leaves this at its
 /// defaults by naming no `protection` in its DriverLoopConfig. The fight's floors are NOT here:
 /// they are each group's SideMonitorConfig (HA-132/133), one set of numbers as before.
@@ -193,12 +194,11 @@ struct DriveProtectionState {
     char dead[kProtectionTextBytes]{};
     /// The members FROZEN this tick, the same way ("13"). Empty almost always: a dead member
     /// passes through it for 250 ms on its way to `dead`, and a LIVE member may show for a few
-    /// ticks as its train stops (the probes: at most 3 at a coast-down; at a wall, one member
-    /// whose report settles sooner than its mates' shows for as long as their lagging reports
-    /// still read above 1 rad/s — 9 ticks at 30 ms beside 80 ms). The exception is the rule's
-    /// known gap (A4 register HA-175): a stalled LIVE member can stay here the full 250 ms and
-    /// then be marked dead — at any wall when its report settles enough sooner (30 ms beside
-    /// 120 ms in the host model), and beside a slipping side-mate at smaller differences.
+    /// ticks as its train stops (the probes: at most 3 at a coast-down; at a plain wall none,
+    /// since the encoder check of 2026-10-01 — a mate whose encoder has stopped is no evidence
+    /// that the train turns, however its lagging report reads). The exception is the rule's
+    /// known gap (A4 register HA-175): BESIDE A SLIPPING side-mate, a stalled LIVE member can
+    /// stay here the full 250 ms and then be marked dead (a tie, or a report settling sooner).
     char frozen[kProtectionTextBytes]{};
     /// The degradation verdict in force, by the MID-RUN rule (evaluateRuntimeDegradation).
     DegradationVerdict verdict{.verdict = DriveVerdict::Drive};

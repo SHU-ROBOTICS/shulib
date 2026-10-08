@@ -16,11 +16,11 @@
 //     (input_shaping.hpp), which rescales the surviving range instead of
 //     cutting it, so the output leaves zero smoothly. It is kept, unchanged,
 //     for two reasons that are not sentiment: test/stick_mapping_test.cpp pins
-//     it BIT FOR BIT against a verbatim copy of the R1a loop, and the drive
-//     program plus the bench tester's DRIVE station still call `mapSticks()`
-//     directly. Both callers move to `DriveShaper` when src/ is re-pointed;
-//     until then, "improving" either body below breaks a pin that exists to
-//     catch exactly that.
+//     it BIT FOR BIT against a verbatim copy of the R1a loop, and the bench
+//     tester's DRIVE station still calls `mapSticks()` directly (the old
+//     "shulib Drive" did too, until T4 Part 3 replaced it with a program that
+//     drives through `DriveShaper`). "Improving" either body below breaks a pin
+//     that exists to catch exactly that.
 //   * `mapSticks()` is superseded by `arcadeRequest()` + `shapeAxis()`
 //     (drive_modes.hpp, input_shaping.hpp). Same signs, same order of
 //     operations, same sign of zero — the shaped default profile differs from
@@ -101,8 +101,9 @@ struct DriveRequest {
 /// untouched. Discontinuous at the threshold by construction.
 ///
 /// SUPERSEDED by continuousDeadband() (input_shaping.hpp) and kept deliberately: this body is
-/// pinned bit for bit against the original R1a loop, and the drive program and the bench
-/// tester still call it. Do not "improve" it — see the file header.
+/// pinned bit for bit against the original R1a loop, and the bench tester still calls it (the
+/// old "shulib Drive" did too, until T4 Part 3 replaced it). Do not "improve" it — see the file
+/// header.
 [[nodiscard]] constexpr double deadbanded(double axis) noexcept {
     return (axis > -kStickDeadband && axis < kStickDeadband) ? 0.0 : axis;
 }
@@ -131,8 +132,8 @@ struct DriveRequest {
 }
 
 /// The whole mapping in one call — what src/main.cpp's R1a loop (`runTeleopLoop`) used each tick.
-/// "shulib Teleop" used it until G1 Part 2b moved it onto the library's own loop,
-/// `teleop::runDriverControl` (teleop_loop.hpp), which shapes through `DriveShaper` and
+/// "shulib Teleop" (retired at T4 Part 3) used it until G1 Part 2b moved it onto the library's
+/// own loop, `teleop::runDriverControl` (teleop_loop.hpp), which shapes through `DriveShaper` and
 /// `toChassisSpeeds` instead; the invented X-drive, the loop's last caller, moved the same way at
 /// G1 Part 2c, which deleted `runTeleopLoop`. No program calls this function now; it stays for its
 /// bit-identity pin (test/stick_mapping_test.cpp). Bit-identical

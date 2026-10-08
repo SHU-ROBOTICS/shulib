@@ -73,10 +73,9 @@ endif
 # and the identity beacon together:
 #     make                → ROBOT=bench  — the measured tank BENCH bot: boots the bench tester
 #     make ROBOT=tank     → the 2026 tank chassis, robot two: boots the bench tester too, over
-#                            its MEASURED, SIGNED chassis table (src/robots/chassis_table.hpp, shared
-#                            with the drive program and the library program). Add PROGRAM=drive
-#                            (below) for the program that just drives it, or PROGRAM=library for
-#                            the program in which THE LIBRARY drives it (R3b Parts 1–3).
+#                            its MEASURED, SIGNED chassis table (src/robots/chassis_table.hpp). Add
+#                            PROGRAM=drive (below) for robot two's driver program, "shulib Drive"
+#                            (its driver file on the library, from the calibration record).
 #     make ROBOT=xdrive   → the invented X-drive (HA-111): src/robots/xdrive_config.hpp, built on
 #                            robot::Robot by src/programs/xdrive_program.cpp since G1 Part 2c. Its
 #                            ports are invented, so on every robot that exists it refuses at
@@ -108,26 +107,28 @@ endif
 # PROGRAM selects which program a robot-two build is (what its PROS entry points run):
 #     make ROBOT=tank                   → PROGRAM=tester — "Bench Tests": the read-only tester with its
 #                                         gated DRIVE station (slot 3, `pros upload --slot 3`)
-#     make ROBOT=tank PROGRAM=drive     → "shulib Drive": the program that JUST DRIVES robot two from
-#                                         the sticks through the hal/pros adapters, with dead-port
-#                                         tolerance (src/programs/drive_program.cpp; slot 1,
-#                                         `pros upload --slot 1 --name "shulib Drive"`)
-#     make ROBOT=tank PROGRAM=library   → "shulib Teleop" (R3b Parts 1–3, 2026-09-14; rebuilt on
-#                                         robot::Robot at G1 Part 2b, 2026-09-26): THE LIBRARY
-#                                         drives robot two — src/programs/teleop_program.cpp, robot::Robot
+#     make ROBOT=tank PROGRAM=drive     → "shulib Drive" (T4 Part 3, 2026-10-01; it REPLACED the
+#                                         R3b Part 0b program of that name in place): robot two's
+#                                         DRIVER FILE (src/team/robot_two_driver.hpp) on robot::Robot
 #                                         over the PROS device provider, built from the CALIBRATION
-#                                         RECORD on the SD card when there is one, else from
-#                                         src/robots/chassis_table.hpp (src/common/boot_source.{hpp,cpp}), through
-#                                         teleop::runDriverControl and Chassis::drive() (slot 2,
-#                                         `pros upload --slot 2 --name "shulib Teleop"`). Refuses
-#                                         at boot, on screen, when neither source can describe a
-#                                         drivetrain, or when the record does not match the ports.
+#                                         RECORD on the SD card (src/common/boot_source.{hpp,cpp}),
+#                                         through teleop::runDriverControl with the library's drive
+#                                         protections, its log copied to /usd/drive_log.txt
+#                                         (src/programs/drive_program.cpp; slot 1,
+#                                         `pros upload --slot 1 --name "shulib Drive"`). Refuses at
+#                                         boot when no source can describe a drivetrain, or when the
+#                                         record does not match the ports. It drives toward the
+#                                         RECORD's front — the OTHER end from the old "shulib Drive".
+#     make ROBOT=tank PROGRAM=library   → RETIRED at T4 Part 3: "shulib Teleop" was replaced by
+#                                         "shulib Drive", whose DETAILS page carries its diagnostics
+#                                         (the team lead's ruling R5). An $(error) below says so; the
+#                                         define is NOT re-pointed at another program.
 #     make ROBOT=tank PROGRAM=calibrate → "shulib Calibrate" (R3d Part 2, 2026-09-18): the robot
 #                                         MEASURES ITS OWN drivetrain — which ports drive, which
 #                                         way each is wired, which side each is on, inches per
 #                                         radian per side, the effective track width — and writes
 #                                         the answer to /usd/shulib_drivetrain.bin for "shulib
-#                                         Teleop" to boot from (slot 4,
+#                                         Drive" to boot from (slot 4,
 #                                         `pros upload --slot 4 --name "shulib Calibrate"`).
 #                                         It POWERS THE MOTORS. It has run on robot two since
 #                                         2026-09-24 (its recorded reproduction run is still owed).
@@ -136,43 +137,42 @@ endif
 #                                         RUN on the brain's screen — a 3 s countdown, then
 #                                         competition::runAuton, the competition program's own
 #                                         call; any controller button or a touch aborts
-#                                         (src/programs/auton_tester_program.cpp; slot 7 until
-#                                         T4 Part 3 retires Teleop, then 2 — T4's N4). It has not
-#                                         run on a robot.
+#                                         (src/programs/auton_tester_program.cpp; slot 2 since
+#                                         T4 Part 3 retired Teleop — slot 7 until then, T4's N4).
+#                                         It has not run on a robot.
 #     make ROBOT=tank PROGRAM=competition → "shulib Competition" (COMP-b, 2026-09-30): THE
 #                                         COMPETITION PROGRAM — the auton chosen on the brain's
 #                                         menu runs in autonomous() on the program's own task
 #                                         (competition::runAuton, the tester's call), a disable or
 #                                         the end of autonomous ends it, then driver control runs
-#                                         the team's driver file (src/programs/competition_program.cpp;
+#                                         the team's driver file, its log appended to
+#                                         /usd/comp_log.txt (src/programs/competition_program.cpp;
 #                                         slot 6 — slot 5 is held for the team's old-code fallback,
 #                                         T4 Part 0). It has not run on a robot.
-# Six programs in six slots rather than one program with a chooser (team lead's ruling): the
+# Five programs in five slots rather than one program with a chooser (team lead's ruling): the
 # operator picks a program by NAME from the brain's slot list, and a program called Drive that
 # hides the tester behind a timeout is one more thing to explain at a field.
-# `drive`, `library`, `calibrate`, `autontest` and `competition` are only meaningful on robot two —
-# `drive` and `library` because only its chassis table carries measured signs, `calibrate` because
-# the calibrator only supports a tank drivetrain and takes the cartridge from that table,
-# `autontest` and `competition` because the team's autons (and, for `competition`, its driver
-# file) are robot two's and only robot two boots from a calibration record; so any of the five
-# with any other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM value
-# is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT.
-# tools/src_build_gate.py builds this axis as its fourth to eighth entries (tank-drive,
-# tank-library, tank-calibrate, tank-autontest, tank-competition) and asserts each define lands
-# token-exact and the beacons are in the ELF.
+# `drive`, `calibrate`, `autontest` and `competition` are only meaningful on robot two — `drive`
+# because only robot two has a driver file and a calibration record, `calibrate` because the
+# calibrator only supports a tank drivetrain and takes the cartridge from robot two's chassis
+# table, `autontest` and `competition` because the team's autons (and, for `competition`, its
+# driver file) are robot two's and only robot two boots from a calibration record; so any of the
+# four with any other ROBOT is an $(error), not a program that refuses at boot. Any other PROGRAM
+# value is an $(error) too — the same silent-no-op class GATE1 closed for ROBOT — and so is the
+# RETIRED `library`, by name. tools/src_build_gate.py builds this axis as its fourth to seventh
+# entries (tank-drive, tank-calibrate, tank-autontest, tank-competition), asserts each define
+# lands token-exact and the beacons are in the ELF, and fails the retired define or beacon
+# anywhere.
 PROGRAM?=tester
 ifeq ($(PROGRAM),tester)
 # the default: no define; src/build_selection.hpp's chain picks the bench tester on bench and tank
 else ifeq ($(PROGRAM),drive)
 ifneq ($(ROBOT),tank)
-$(error PROGRAM=drive needs ROBOT=tank — only robot two's chassis table carries measured signs; '$(ROBOT)' cannot drive)
+$(error PROGRAM=drive needs ROBOT=tank — only robot two has a driver file and a calibration record; '$(ROBOT)' cannot drive)
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_DRIVE
 else ifeq ($(PROGRAM),library)
-ifneq ($(ROBOT),tank)
-$(error PROGRAM=library needs ROBOT=tank — only robot two has a calibration record and a signed chassis table; '$(ROBOT)' has no library graph)
-endif
-override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_LIBRARY
+$(error PROGRAM=library was retired at T4: "shulib Teleop"'s diagnostics are "shulib Drive"'s DETAILS page -- use make ROBOT=tank PROGRAM=drive)
 else ifeq ($(PROGRAM),calibrate)
 ifneq ($(ROBOT),tank)
 $(error PROGRAM=calibrate needs ROBOT=tank — the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table; '$(ROBOT)' cannot be calibrated by it)
@@ -189,7 +189,7 @@ $(error PROGRAM=competition needs ROBOT=tank — the team's autons and driver fi
 endif
 override EXTRA_CXXFLAGS+=-DSHULIB_PROGRAM_COMPETITION
 else
-$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, library, calibrate, autontest, competition)
+$(error unknown PROGRAM '$(PROGRAM)' — valid values: tester (default), drive, calibrate, autontest, competition)
 endif
 
 # Pin the language standards to ones arm-none-eabi-gcc 13.2 accepts. The PROS template's common.mk

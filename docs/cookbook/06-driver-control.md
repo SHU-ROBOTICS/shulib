@@ -263,7 +263,8 @@ bool bind(robot::Robot& robot, char* why, std::size_t cap) {
 
 /// opcontrol(): drive until the field disables the robot, then return (PROS calls
 /// opcontrol() again when driver control comes back). `pacer` is the brain's tick,
-/// `disabled` asks the field, and `perTick` is the program's screen (it may do nothing).
+/// `disabled` asks the field, and `perTick` is the program's screen (it may do nothing; one
+/// that takes a fourth argument is also handed the drive protections' state).
 template <class IsDisabled, class PerTick>
 void run(robot::Robot& robot, motion::ITickPacer& pacer, IsDisabled&& disabled,
          PerTick&& perTick) {
@@ -277,9 +278,12 @@ Every line of these listings is the file's own, and each listing is an unbroken 
 the documentation build fails when a quoted line changes in the file, and when a line is added to
 the file inside a part listed here, until the listing is quoted again.
 
-**The competition program's driver control runs this file** ("shulib Competition" —
-[guide chapter 17](../guide/17-the-competition-program.md)), and so will the driver program that
-replaces the old "shulib Drive". **Nothing of it has run on a robot**: it is tested on the host,
+**Two programs run this file**: "shulib Drive" on its own, and the competition program's driver
+control ("shulib Competition" — [guide chapter 17](../guide/17-the-competition-program.md)). Under
+it, in both, the library protects the drive, as the file's header says in plain words: a drive motor
+that stops answering is dropped and the robot drives on; more than two dead stop the drive for the
+rest of the run; a fight, or more than 2.4 A while driven, for 250 ms stops both sides for 1 s — the
+loop's numbers, every one unmeasured. **Nothing of it has run on a robot**: it is tested on the host,
 through a stand-in for PROS, against robot two's real mechanism table.
 
 **Why it is written this way.**
@@ -315,9 +319,9 @@ through a stand-in for PROS, against robot two's real mechanism table.
   bindings by address.
 - **Call `bind()` inside the boot's `try`**, and `unbind()` first in its `catch`: a binding that
   cannot be built throws, and nothing may be left pointing at a robot the `catch` tears down.
-- **Until the buttons leave the mechanism table, change a button in both files** — and the
-  re-zero button in three, because "shulib Teleop" also names its own. For now robot two's
-  mechanism table still states the buttons as well, for the program that binds from it; the build
-  refuses the files when they disagree. That second copy is being removed.
+- **Change a button in the driver file and nowhere else.** The buttons — the re-zero button
+  included — are stated only there; the mechanism table says what each mechanism IS (its ports,
+  its stop), never which button works it, and the claws' boot lines read their buttons from the
+  driver file's controls.
 - **A robot with no toggle (or no hold)** drops that list and passes `{}` in its place — in `bind()`
   and in the checks. C++ has no empty `[]` array, so the compiler walks you through it.

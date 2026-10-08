@@ -170,9 +170,9 @@ CCW-positive yaw fraction: right stick pushed RIGHT is NEGATIVE (clockwise).
 [[nodiscard]] constexpr double deadbanded(double axis) noexcept
 ```
 
-The R1a deadband, verbatim: an axis strictly inside (−kStickDeadband, +kStickDeadband) becomes exactly 0.0; anything else — the threshold value itself included — passes through untouched. Discontinuous at the threshold by construction.  SUPERSEDED by continuousDeadband() (input_shaping.hpp) and kept deliberately: this body is pinned bit for bit against the original R1a loop, and the drive program and the bench tester still call it. Do not "improve" it — see the file header.
+The R1a deadband, verbatim: an axis strictly inside (−kStickDeadband, +kStickDeadband) becomes exactly 0.0; anything else — the threshold value itself included — passes through untouched. Discontinuous at the threshold by construction.  SUPERSEDED by continuousDeadband() (input_shaping.hpp) and kept deliberately: this body is pinned bit for bit against the original R1a loop, and the bench tester still calls it (the old "shulib Drive" did too, until T4 Part 3 replaced it). Do not "improve" it — see the file header.
 
-*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:106`](../../include/shulib/teleop/stick_mapping.hpp#L106).*
+*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:107`](../../include/shulib/teleop/stick_mapping.hpp#L107).*
 
 <a id="mapsticks"></a>
 
@@ -184,7 +184,7 @@ The R1a deadband, verbatim: an axis strictly inside (−kStickDeadband, +kStickD
 
 Sticks → dimensionless request. A disconnected controller yields the all-zero request no matter what the axes read (HA-103). Otherwise: forward = deadbanded(leftY), left = deadbanded(−leftX), yawCcw = deadbanded(−rightX) — NEGATE FIRST, then deadband, exactly the original loop's `shaped(-axis)` (header: the order decides the sign of zero).
 
-*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:114`](../../include/shulib/teleop/stick_mapping.hpp#L114).*
+*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:115`](../../include/shulib/teleop/stick_mapping.hpp#L115).*
 
 <a id="tochassisspeeds"></a>
 
@@ -196,7 +196,7 @@ Sticks → dimensionless request. A disconnected controller yields the all-zero 
 
 Request × budgets → the body-frame ChassisSpeeds that Chassis::drive(…, Frame::Body) takes: (forward·maxLinear, left·maxLinear, yawCcw·maxAngular). The budgets are the caller's MotionConfig::maxLinearSpeed / maxAngularSpeed (HA-50, provisional) — passed in rather than read here so this stays a pure function of its arguments.
 
-*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:125`](../../include/shulib/teleop/stick_mapping.hpp#L125).*
+*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:126`](../../include/shulib/teleop/stick_mapping.hpp#L126).*
 
 <a id="mapstickstochassisspeeds"></a>
 
@@ -206,9 +206,9 @@ Request × budgets → the body-frame ChassisSpeeds that Chassis::drive(…, Fra
 [[nodiscard]] constexpr math::ChassisSpeeds mapSticksToChassisSpeeds( const StickInput& in, units::Velocity maxLinear, units::AngularVelocity maxAngular) noexcept
 ```
 
-The whole mapping in one call — what src/main.cpp's R1a loop (`runTeleopLoop`) used each tick. "shulib Teleop" used it until G1 Part 2b moved it onto the library's own loop, `teleop::runDriverControl` (teleop_loop.hpp), which shapes through `DriveShaper` and `toChassisSpeeds` instead; the invented X-drive, the loop's last caller, moved the same way at G1 Part 2c, which deleted `runTeleopLoop`. No program calls this function now; it stays for its bit-identity pin (test/stick_mapping_test.cpp). Bit-identical to the R1a loop it replaced: a disconnected controller returns a default-constructed ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a connected one returns toChassisSpeeds(mapSticks(in), …).
+The whole mapping in one call — what src/main.cpp's R1a loop (`runTeleopLoop`) used each tick. "shulib Teleop" (retired at T4 Part 3) used it until G1 Part 2b moved it onto the library's own loop, `teleop::runDriverControl` (teleop_loop.hpp), which shapes through `DriveShaper` and `toChassisSpeeds` instead; the invented X-drive, the loop's last caller, moved the same way at G1 Part 2c, which deleted `runTeleopLoop`. No program calls this function now; it stays for its bit-identity pin (test/stick_mapping_test.cpp). Bit-identical to the R1a loop it replaced: a disconnected controller returns a default-constructed ChassisSpeeds (never 0·budget, so the answer does not depend on the budgets' values), and a connected one returns toChassisSpeeds(mapSticks(in), …).
 
-*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:142`](../../include/shulib/teleop/stick_mapping.hpp#L142).*
+*free function, declared at [`include/shulib/teleop/stick_mapping.hpp:143`](../../include/shulib/teleop/stick_mapping.hpp#L143).*
 
 ## Design commentary, from the header
 
@@ -235,11 +235,11 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      (input_shaping.hpp), which rescales the surviving range instead of
      cutting it, so the output leaves zero smoothly. It is kept, unchanged,
      for two reasons that are not sentiment: test/stick_mapping_test.cpp pins
-     it BIT FOR BIT against a verbatim copy of the R1a loop, and the drive
-     program plus the bench tester's DRIVE station still call `mapSticks()`
-     directly. Both callers move to `DriveShaper` when src/ is re-pointed;
-     until then, "improving" either body below breaks a pin that exists to
-     catch exactly that.
+     it BIT FOR BIT against a verbatim copy of the R1a loop, and the bench
+     tester's DRIVE station still calls `mapSticks()` directly (the old
+     "shulib Drive" did too, until T4 Part 3 replaced it with a program that
+     drives through `DriveShaper`). "Improving" either body below breaks a pin
+     that exists to catch exactly that.
    * `mapSticks()` is superseded by `arcadeRequest()` + `shapeAxis()`
      (drive_modes.hpp, input_shaping.hpp). Same signs, same order of
      operations, same sign of zero — the shaped default profile differs from

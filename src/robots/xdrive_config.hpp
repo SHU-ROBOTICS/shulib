@@ -17,7 +17,7 @@
 // `struct Robot` holding four ProsMotors, a ProsImu, a ProsGps, two ProsRotations, the Pilons
 // odometry, the localizer, the context, the motion deps and the Chassis, built by a function-local
 // static on first use. It is now ONE config::RobotConfig, built by robot::Robot over
-// hal::pros::ProsDeviceProvider — exactly the way "shulib Teleop" builds robot two, and the way a
+// hal::pros::ProsDeviceProvider — exactly the way "shulib Drive" builds robot two, and the way a
 // student's program will build theirs. The numbers are main.cpp's, unchanged:
 // test/xdrive_config_test.cpp pins every field against a transcription of the old constants, and
 // the session header's port map against the text main.cpp's portMapString() printed.

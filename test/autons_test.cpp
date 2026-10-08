@@ -169,8 +169,9 @@ TEST_CASE("autons (1b): EVERY registered auton runs through runTesterOnce and en
 }
 
 // (2) Bug caught: a schedule that is never really checked against the period it runs in. The same
-// file registered into a registry whose match period is 28 s must THROW, and the sentence must name
-// the auton — the program shows that sentence on its refusal screen and starts nothing.
+// file registered into a registry whose match period is 28 s must THROW (a registry's default), and
+// the sentence must name the auton. (Since T4 Part 3 the two programs build their registries to
+// DROP such an entry instead -- (2b) below; the team lead's ruling of 2026-10-02.)
 TEST_CASE("autons (2): a period the 29 s hard stop does not fit is refused, naming the auton") {
     AutonRegistry reg{AutonPeriods{.match = Time{28.0}, .skills = Time{60.0}}};
     bool threw = false;
@@ -184,6 +185,27 @@ TEST_CASE("autons (2): a period the 29 s hard stop does not fit is refused, nami
     CHECK(threw);
     CHECK(says(what, "40in forward"));
     CHECK(reg.size() == 0);  // the first entry is refused: nothing half-registered
+}
+
+// (2b) Bug caught (T4 Part 3; the team lead's ruling of 2026-10-02 on COMP-b's C5, "drop just that
+// auton"): the REAL students' file, registered the way both programs now register it (a registry
+// that DROPS a refused entry), throwing anyway -- the boot, and with it driver control, would be
+// lost to one bad schedule -- or stopping at the first refused entry, or losing an entry's name.
+// With a 28 s match period both of the file's entries (each with its 29 s hard stop) are refused:
+// both are DROPPED, in the file's order, each named, nothing thrown, nothing registered.
+TEST_CASE("autons (2b): the real file into a DROPPING registry -- each refused entry dropped by name") {
+    AutonRegistry reg{AutonPeriods{.match = Time{28.0}, .skills = Time{60.0}},
+                      shulib::competition::OnRefusal::DropEntry};
+    CHECK_NOTHROW(registerAutons(reg));
+    CHECK(reg.size() == 0);
+    REQUIRE(reg.refusedCount() == 2);
+    CHECK(says(reg.refusal(0), "auton '40in forward': hardStopAt 29.00 s is past its MATCH period"));
+    CHECK(says(reg.refusal(1), std::string{"auton '"} + shulib::competition::kAcceptanceRunName));
+    // ...and with the game manual's periods, the same registry drops nothing.
+    AutonRegistry real{kAutonPeriods, shulib::competition::OnRefusal::DropEntry};
+    registerAutons(real);
+    CHECK(real.refusedCount() == 0);
+    CHECK(real.size() == teamRegistry().size());
 }
 
 // (3) Bug caught: the 40 in auton not running through the tester's path to the end — a schedule,

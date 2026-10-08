@@ -247,7 +247,7 @@ there is only ever one convention in play at a call site.
 
 Two things need the registry and cannot be written without it: "shulib Calibrate" builds its
 candidate list from the ports that actually carry a motor (a calibration that starts from a typed
-list can only ever confirm the typing), and "shulib Teleop" checks its calibration record against
+list can only ever confirm the typing), and "shulib Drive" checks its calibration record against
 the ports **before it constructs a single adapter**, so a rewired robot is refused instead of
 driven. If you write your own port-scanning diagnostic, use the seam rather than the raw call —
 that is where the trap is waiting, and adding one rather than zero is the whole of it.

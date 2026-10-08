@@ -7,10 +7,11 @@
 // ── Why this is its own file ────────────────────────────────────────────────────────
 // Until G1 Part 2b the boot source was a 77-line block inside src/main.cpp's initialize(), and it
 // wrote six program globals and painted the screen on the way. Every program that boots robot two's
-// graph needs it: "shulib Teleop" (src/programs/teleop_program.cpp), "shulib Auton Tester" (COMP-t)
-// and "shulib Competition" (src/programs/competition_program.cpp, COMP-b); the invented X-drive's
-// program builds its own graph without it. So the decisions live here
-// ONCE, and each program paints its own refusal and logs with its own prefix. Nothing here writes a
+// graph needs it: "shulib Drive" (src/programs/drive_program.cpp, since T4 Part 3 — "shulib Teleop"
+// until then), "shulib Auton Tester" (COMP-t) and "shulib Competition"
+// (src/programs/competition_program.cpp, COMP-b); the invented X-drive's program builds its own
+// graph without it. So the decisions live here ONCE, and each program paints its own refusal and
+// logs with its own prefix. Nothing here writes a
 // program global or a screen.
 //
 // ── The decisions (R3d Part 2, rulings P2/P3 — moved, not changed) ──────────────────
@@ -83,18 +84,18 @@ namespace shulib::bench {
 // ═══ THE MECHANISMS, INTO THE CONFIG (T3 Part 2, 2026-09-26) ═════════════════════════════
 // src/robots/mechanism_table.hpp is the ONE typed input about a robot's mechanisms; config::MechanismConfig
 // is what robot::Robot builds them from. The conversion is here, in the pure core, so the host
-// suite runs it against the REAL table (test/boot_source_test.cpp, test/teleop_claws_test.cpp).
+// suite runs it against the REAL table (test/boot_source_test.cpp, test/driver_panel_claws_test.cpp).
 // CONFIG ORDER IS TABLE ORDER: the motor entries first, in the table's order, then the pneumatic
 // ones — so robot.mechanismAt(i) is motor entry i and robot.pneumaticMechanismAt(motorCount + j) is
-// pneumatic entry j (mechanismConfigIndexOfPneumatic() below; src/programs/teleop_claws.hpp binds by it).
+// pneumatic entry j (mechanismConfigIndexOfPneumatic() below; src/common/driver_panel.hpp words by it).
 // EVERY FIELD IS CONVERTED, NOTHING DEFAULTED: a name is copied WHOLE (one that does not fit is
 // refused, never cut), the signed port as typed, the cartridge and the safe mode each to the
 // config's own enum, the 3-wire line, and the START and SAFE of a pneumatic entry as LEVELS —
 // pneumaticStartCommand() / pneumaticSafeCommand(), through the entry's polarity — never as its
 // positions. The START level is what the builder drives the line to when it makes it (A4 register
 // HA-119: a 3-wire output is driven the moment it is constructed), and the SAME function gives the
-// driver's toggle its initial level (src/programs/teleop_claws.hpp; a driver file's binder reads it
-// back from this config, src/common/driver_controls.hpp), so the two cannot disagree. THE RULE
+// driver's toggle its initial level (a driver file's binder reads it back from this config,
+// src/common/driver_controls.hpp), so the two cannot disagree. THE RULE
 // (corrected at T4 Part 1a, 2026-09-27; this said "the claw cannot move when driver control first
 // starts" until then): the first driver-control entry in a run SENDS the start level; nothing moves
 // unless something commanded the line in between; after an autonomous that left the claw OPEN, the

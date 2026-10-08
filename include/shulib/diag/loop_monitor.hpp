@@ -24,6 +24,21 @@
 // not count toward worstDt(). reset() exists for deliberate pauses (e.g. between runs)
 // so a legitimate gap is not reported as an overrun.
 //
+// ONE LINE PER EPISODE (chunk T4 Part 3, 2026-10-08; the T4-3 review's finding): EVERY tick at or
+// past the budget still raises LOOP_OVERRUN — overrunCount(), the latch's faultCount() and
+// raiseCount(), and each tick's fault stamp count every one, as they always did — but only the
+// FIRST tick of an EPISODE logs its line (FaultLatch::raiseRepeat for the rest). An episode is a
+// run of overrunning ticks: it ends at the first tick under the budget, and at reset(), so the
+// next overrun opens a new one and is said. WHY: a loop that stays slow used to log one Error
+// line per tick — 50 a second at a 20 ms tick — and the programs' SD copy of the log
+// (diag/log_copy_sink.hpp) turned each into one card write and one flush INSIDE the slow tick,
+// the cost that keeps a loop slow. The per-tick detail is not lost: every DebugRecord carries
+// its tick's dt (the blackbox and the serial records keep it), and worstDt() the worst. NOT
+// bounded further, stated: an INTERMITTENT overrun — one slow tick between healthy ones — is a
+// new episode each time, so a loop slow every few ticks still logs a line every few ticks (as
+// every overrun did before this rule). Merging near episodes (a hysteresis on the healthy ticks)
+// was not done: nothing measured says it is needed.
+//
 // Single-task by contract, like the rest of diag/ (see fault.hpp's concurrency note).
 
 #include <algorithm>
@@ -47,9 +62,10 @@ struct LoopMonitorConfig {
 
 /// Loop-overrun detection: it measures the real dt between consecutive tick() calls on the
 /// INJECTED clock and raises FaultCode::LoopOverrun through the latch when a tick reaches its
-/// budget. It exists because a blown control tick silently corrupts every dt-dependent
-/// computation downstream — PID derivative and integral, profile sampling, the odometry twist —
-/// which is how a promised sub-degree heading quietly decays into drift nobody can explain.
+/// budget — every such tick counted, its line logged once per episode (header). It exists
+/// because a blown control tick silently corrupts every dt-dependent computation downstream —
+/// PID derivative and integral, profile sampling, the odometry twist — which is how a promised
+/// sub-degree heading quietly decays into drift nobody can explain.
 /// Single-task by contract, like the rest of the diagnostics layer.
 class LoopMonitor {
 public:
@@ -63,7 +79,8 @@ public:
     }
 
     /// Call exactly once per loop iteration. Returns this tick's measured dt (0 on the
-    /// baseline tick). Raises LOOP_OVERRUN via the latch when dt >= budget.
+    /// baseline tick). Raises LOOP_OVERRUN via the latch when dt >= budget — on every such
+    /// tick, with its line on the first of an episode only (header: ONE LINE PER EPISODE).
     units::Time tick() {
         const units::Time now = clock_.now();
         if (!hasLast_) {
@@ -79,7 +96,15 @@ public:
             char buf[64];
             std::snprintf(buf, sizeof buf, "dt=%.4f budget=%.4f", dt.value(),
                           config_.budget.value());
-            faults_.raise(FaultCode::LoopOverrun, "DIAG", buf);
+            if (inEpisode_) {
+                faults_.raiseRepeat(FaultCode::LoopOverrun, "DIAG", buf);
+            } else {
+                inEpisode_ = true;
+                ++episodeCount_;
+                faults_.raise(FaultCode::LoopOverrun, "DIAG", buf);
+            }
+        } else {
+            inEpisode_ = false;  // a tick under the budget ends the episode
         }
         return dt;
     }
@@ -88,13 +113,22 @@ public:
     /// quantity, consumed at C5). Time{0} until two ticks have happened.
     [[nodiscard]] units::Time worstDt() const noexcept { return worstDt_; }
     /// How many ticks have reached the budget since construction. It counts TICKS, not
-    /// episodes — a loop that stays slow increments (and raises, and logs) once per tick —
-    /// and reset() does not clear it, so this is a whole-run total. Baseline ticks never count.
+    /// episodes — a loop that stays slow increments (and raises) once per tick, though it logs
+    /// once per episode — and reset() does not clear it, so this is a whole-run total. Baseline
+    /// ticks never count.
     [[nodiscard]] int overrunCount() const noexcept { return overrunCount_; }
 
+    /// How many overrun EPISODES have begun since construction — each one logged ONE line (the
+    /// header). A whole-run total, like overrunCount(); always <= it.
+    [[nodiscard]] int overrunEpisodes() const noexcept { return episodeCount_; }
+
     /// Re-baseline after a DELIBERATE gap (run boundary, pause): the next tick() only
-    /// baselines, so the gap is not misreported as an overrun. Keeps worstDt/counts.
-    void reset() noexcept { hasLast_ = false; }
+    /// baselines, so the gap is not misreported as an overrun, and an episode in progress ends
+    /// (the next overrun opens a new one, with its line). Keeps worstDt/counts.
+    void reset() noexcept {
+        hasLast_ = false;
+        inEpisode_ = false;
+    }
 
 private:
     hal::IClock& clock_;
@@ -103,7 +137,9 @@ private:
     units::Time lastNow_{0.0};
     units::Time worstDt_{0.0};
     int overrunCount_ = 0;
+    int episodeCount_ = 0;
     bool hasLast_ = false;
+    bool inEpisode_ = false;
 };
 
 }  // namespace shulib::diag

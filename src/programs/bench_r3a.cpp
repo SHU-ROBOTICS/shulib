@@ -25,7 +25,7 @@
 //     driven a robot, and this station is labelled that way on every screen.
 //   * The drivetrain it was written for is a SECOND robot: the season's tank
 //     chassis, five COUPLED motors per side. Its chassis table (src/robots/chassis_table.hpp
-//     since R3b Part 0b, shared with the drive program) shipped UNSET until measured
+//     since R3b Part 0b, shared with the old drive program until T4 Part 3) shipped UNSET until measured
 //     (no port is ever invented -- HA-111 was that defect) and now carries the
 //     measured ports AND signs; the bench bot keeps its measured, unsigned table.
 //   * Station 12 AI VISION (R2a, 2026-09-24) WRITES THE CAMERA'S OWN SETTINGS -- tag and
@@ -147,8 +147,9 @@ constexpr int kMaxRegistryIndex = 20;
 constexpr int kLoopSamples = 200; // 200 × 10 ms ≈ 2 s of cadence measurement
 
 // ═══ THE CHASSIS TABLE — the ONE typed input (R3b Session 2, brief §3.1) ═══════════
-// Lives in src/robots/chassis_table.hpp since R3b Part 0b, shared with src/programs/drive_program.cpp so
-// the tester and the drive program cannot disagree about which robot they are on. It
+// Lives in src/robots/chassis_table.hpp since R3b Part 0b, shared then with the old "shulib Drive" so
+// the tester and that program could not disagree about which robot they were on (T4 Part 3 replaced
+// it with a program that boots from the calibration record). It
 // carries robot two's MEASURED SIGNS (signsMeasured = true); the bench bot's stays
 // unsigned. The helpers below are this file's thin bindings of the header's pure
 // functions to kChassis.
@@ -237,8 +238,8 @@ constexpr int kScreenCols = 54;
 // So text now goes through panelSafe(): '%' and control bytes become '?', a UTF-8 em/en dash
 // becomes '-', any other non-ASCII character becomes ONE '?', and the copy stops at the
 // budget. screenText() then prints it through a literal "%s" -- the same rules as
-// src/common/screen_text.hpp's printText(), the shared path "shulib Calibrate" and "shulib Teleop" use
-// since G1 Part 2b. The tester deliberately keeps its OWN copy: it cuts at this file's 54-column
+// src/common/screen_text.hpp's printText(), the shared path "shulib Calibrate" and the programs that
+// boot from the record use since G1 Part 2b. The tester deliberately keeps its OWN copy: it cuts at this file's 54-column
 // scrolling-log width (kScreenCols), not the SMALL budget printText() cuts at, and counts its
 // prints in its own g_screenPrints -- and those widths ran on hardware as they are (R2a-R3), so
 // moving it onto the shared header would change what ran.
@@ -1637,7 +1638,7 @@ void driveStation(pros::c::v5_device_e_t* found) {
         const bool deadMan = connected && master.pressed(kDeadMan);
         double vL = 0.0, vR = 0.0;
         if (deadMan && !cut) {
-            // The ONE arcade arithmetic, shared with the drive program (host-pinned):
+            // The ONE arcade arithmetic (the old drive program's too; host-pinned):
             // ceiling x (forward -/+ yawCcw), clamped to the ceiling.
             const teleop::SideVolts sv = teleop::tankSideVolts(req, ceiling);
             vL = sv.left;

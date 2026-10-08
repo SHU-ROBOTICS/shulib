@@ -43,6 +43,31 @@ TEST_CASE("pins: the program runs autons ONLY through runTesterOnce") {
     CHECK(count(code, "registerAutons(") == 1);
 }
 
+// Bug caught (T4 Part 3; the team lead's ruling of 2026-10-02 on COMP-b's C5, applied here because
+// this program registers through the same function): one auton entry the registry refuses costing
+// the tester's whole boot -- every OTHER auton untestable until the bad one is fixed -- because the
+// registry was built to throw; or a dropped entry never named (PICK would just be missing it), or
+// named in words of the program's own (the two programs' lines would drift).
+TEST_CASE("pins: the tester's registry DROPS a refused entry and names it in the shared words") {
+    const std::string code = stripComments(readFile(kProgramFile));
+    CHECK(count(code, "st.registry.emplace(") == 1);
+    CHECK(count(code, "st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);") == 1);
+    CHECK(count(squash(code), "st.registry.emplace(kAutonPeriods, "
+                              "competition::OnRefusal::DropEntry); registerAutons(*st.registry);")
+          == 1);
+    CHECK(count(code, "#include \"common/dropped_autons.hpp\"") == 1);
+    // `false`: the tester's opcontrol() drives nothing, so its line must not say driver control
+    // still runs (the T4-3 review).
+    CHECK(count(squash(code), "sayDroppedAutons(*st.registry, false, [](const char* dropped) { "
+                              "logBoth(hal::LogLevel::Warn, dropped); });")
+          == 1);
+    CHECK(count(code, "refusedCount(") == 0);
+    const std::size_t sayAt = code.find("sayDroppedAutons(");
+    const std::size_t taskAt = code.find("st.task.emplace(");
+    REQUIRE(sayAt != std::string::npos);
+    CHECK(sayAt < taskAt);
+}
+
 // Bug caught (the re-check's finding 4; mutations 24 and 25): the Robot built WITHOUT the options
 // that carry the guard (`buildOptions()` passed straight through — the guard never paces, and no
 // abort can stop a motion), or built on the watch (the abandon requested and never acted on), and

@@ -377,27 +377,29 @@ Deliberate v1 boundaries, documented where they bind (each is on the roadmap or 
   curve, an optional rate limit that is **off** by default, arcade / tank / field-centric
   modes, and a `DriveShaper` that composes them in one call per tick — all host-tested,
   including a test that pins a stick step reaching the commanded motor volts in the same tick.
-  Two things are still missing, and the second is the one that matters. **First**, only one
-  program uses it: "shulib Teleop" (`src/programs/teleop_program.cpp`) now drives through
-  `teleop::runDriverControl` with the default profile, and that version of the program has not
-  run on a robot yet; "shulib Drive" and the bench tester's drive station keep the older raw
-  mapping (`teleop/stick_mapping.hpp`) until a driver has compared the two on the robot. The old
+  Two things are still missing, and the second is the one that matters. **First**, nothing that
+  uses it has run on a robot: robot two's driver file (`src/team/robot_two_driver.hpp`) drives
+  through `teleop::runDriverControl` with the default profile, and "shulib Drive"
+  (`src/programs/drive_program.cpp`) runs that file — a program that has not run on a robot yet. The
+  bench tester's drive station keeps the older raw mapping (`teleop/stick_mapping.hpp`) — raw volts,
+  the baseline a driver can compare the library's feel against, wheels up; nobody has yet. The old
   "shulib Drive"'s protections are no longer that program's alone: since T4 Part 2 the loop drops a
   drive motor that stops answering mid-run, stops the drive once more than two are dead, and cuts it
   for 1 s on a fight or an over-current ([Chapter 10](10-the-api.md)) — host-tested only, every
   number invented (HA-132, HA-175, HA-176), and no push, full-stick reversal or launch has ever been
-  measured against the 2.4 A limit. One case it gets wrong is known: at a wall, live motors can be
-  marked dead — at any wall, one whose reported speed settles well before its mates'; beside a drive
-  motor whose gear slips (robot two's port 18), more easily, and a second push can then stop the
-  drive (HA-175's known gaps; [Chapter 12](12-when-things-go-wrong.md)).
+  measured against the 2.4 A limit. One case it gets wrong is known: at a wall beside a drive motor
+  whose gear slips (robot two's port 18), live motors can be marked dead, and a second push can then
+  stop the drive; at any other wall, a motor whose reported speed settles well before its mates'
+  costs one 1 s cut instead (HA-175's known gaps; [Chapter 12](12-when-things-go-wrong.md)).
   **Second, no driver has felt any of it.** Every default in the feel layer is invented and registered as a guess
   (HA-112) — which deadband, which curve, which slew rate a driver actually prefers is a
   question only a person on a robot can answer, and nobody has been asked. Treat the defaults
   as a starting point, not a recommendation. Mechanism BUTTONS exist since chunk T3
   (`teleop::MechanismBinding`: hold a button to drive a mechanism, let go and it goes to its safe
   state; `teleop::ToggleBinding`: press a button to open a pneumatic claw, press again to close it
-  — [Chapter 10](10-the-api.md)), and since T3's second part "shulib Teleop" gives robot two's
-  claws to the driver with them: R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
+  — [Chapter 10](10-the-api.md)), and robot two's driver file gives robot two's claws to the
+  driver with them (the claws since T3's second part, in the driver file since T4; "shulib Drive"
+  runs that file): R1/R2 move the claw pivot on port 6, L1/L2 the one on port 7
   (full power while held, holding on release), A opens and closes the pneumatic claw, and the
   field-centric re-zero moved to Y. **None of it has run on a robot**: no claw has moved, whether a
   released pivot really holds its load, which way each one turns and which line level opens the

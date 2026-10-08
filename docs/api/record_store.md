@@ -1133,9 +1133,9 @@ Load the calibration record: the record file if it decodes, else its backup if T
 enum class BootReadsBackup : std::uint8_t
 ```
 
-Whether the boot of the drive program this Calibrate ships with (today "shulib Teleop") reads the BACKUP when the record file does not decode. The save's words depend on it; no default, so every caller states it.
+Whether the boot of the driver programs this Calibrate ships with ("shulib Drive" and the competition program since T4 Part 3; "shulib Teleop" before it) reads the BACKUP when the record file does not decode. The save's words depend on it; no default, so every caller states it.
 
-*enum class, declared at [`include/shulib/calibration/record_store.hpp:671`](../../include/shulib/calibration/record_store.hpp#L671).*
+*enum class, declared at [`include/shulib/calibration/record_store.hpp:672`](../../include/shulib/calibration/record_store.hpp#L672).*
 
 <a id="bootreadsbackup-no"></a>
 
@@ -1147,7 +1147,7 @@ No
 
 the boot reads the record file only: a damaged one REFUSES
 
-*enumerator, declared at [`include/shulib/calibration/record_store.hpp:672`](../../include/shulib/calibration/record_store.hpp#L672).*
+*enumerator, declared at [`include/shulib/calibration/record_store.hpp:673`](../../include/shulib/calibration/record_store.hpp#L673).*
 
 <a id="bootreadsbackup-yes"></a>
 
@@ -1159,7 +1159,7 @@ Yes
 
 the boot falls back to a decodable backup (in amber)
 
-*enumerator, declared at [`include/shulib/calibration/record_store.hpp:673`](../../include/shulib/calibration/record_store.hpp#L673).*
+*enumerator, declared at [`include/shulib/calibration/record_store.hpp:674`](../../include/shulib/calibration/record_store.hpp#L674).*
 
 <a id="ksavereportlinebytes"></a>
 
@@ -1171,7 +1171,7 @@ inline constexpr std::size_t kSaveReportLineBytes = 240
 
 Longest line formatSaveReport() emits, terminator included — exactly Calibrate's emitf buffer, so a line passed through emitf("%s") is never cut. Every format below is budgeted against it with each bounded string at its full precision (what -Wformat-truncation assumes).
 
-*constant, declared at [`include/shulib/calibration/record_store.hpp:679`](../../include/shulib/calibration/record_store.hpp#L679).*
+*constant, declared at [`include/shulib/calibration/record_store.hpp:680`](../../include/shulib/calibration/record_store.hpp#L680).*
 
 <a id="formatsavereport"></a>
 
@@ -1181,9 +1181,9 @@ Longest line formatSaveReport() emits, terminator included — exactly Calibrate
 template <typename Emit> void formatSaveReport(const SaveReport& r, BootReadsBackup bootReadsBackup, Emit&& emit)
 ```
 
-The serial lines for a save of the DRIVETRAIN record, one `emit(const char*)` per line: ASCII, no '%', each under kSaveReportLineBytes. EVERY sentence is derived from the measured report — "is still on the card" only when the final read found the earlier record in the record file and the next boot uses it (untouched, or written back and re-read). `bootReadsBackup` says whether the boot this build ships with falls back to the backup. The formatter is TOTAL: a measured combination with no named branch prints the measurement itself (which file the next boot uses, and what it holds). The words name the drivetrain record, "shulib Calibrate" and "the next boot" — never a drive program by name: more than one program boots from the record (the competition program too), and the one called "shulib Teleop" today is retired by T4 Part 3. A sibling file words its own lines from the same SaveReport.
+The serial lines for a save of the DRIVETRAIN record, one `emit(const char*)` per line: ASCII, no '%', each under kSaveReportLineBytes. EVERY sentence is derived from the measured report — "is still on the card" only when the final read found the earlier record in the record file and the next boot uses it (untouched, or written back and re-read). `bootReadsBackup` says whether the boot this build ships with falls back to the backup. The formatter is TOTAL: a measured combination with no named branch prints the measurement itself (which file the next boot uses, and what it holds). The words name the drivetrain record, "shulib Calibrate" and "the next boot" — never a drive program by name: more than one program boots from the record ("shulib Drive", the competition program and the Auton Tester since T4 Part 3, which retired the "shulib Teleop" these words were first written beside). A sibling file words its own lines from the same SaveReport.
 
-*free function, declared at [`include/shulib/calibration/record_store.hpp:743`](../../include/shulib/calibration/record_store.hpp#L743).*
+*free function, declared at [`include/shulib/calibration/record_store.hpp:745`](../../include/shulib/calibration/record_store.hpp#L745).*
 
 ## Design commentary, from the header
 

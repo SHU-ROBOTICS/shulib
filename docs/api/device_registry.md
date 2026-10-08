@@ -47,7 +47,7 @@ enum class DeviceKind : std::uint8_t
 
 What kind of device a smart port carries. Ours, not PROS's (header): the kinds this tree has adapters for, plus Other for a device it knows nothing about. `None` is an EMPTY port — no device, or a port outside 1..kMaxSmartPorts, which answers None without asking the platform.
 
-*enum class, declared at [`include/shulib/hal/device_registry.hpp:49`](../../include/shulib/hal/device_registry.hpp#L49).*
+*enum class, declared at [`include/shulib/hal/device_registry.hpp:50`](../../include/shulib/hal/device_registry.hpp#L50).*
 
 <a id="devicekind-none"></a>
 
@@ -59,7 +59,7 @@ None
 
 nothing plugged in (or the port number is out of range)
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:50`](../../include/shulib/hal/device_registry.hpp#L50).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:51`](../../include/shulib/hal/device_registry.hpp#L51).*
 
 <a id="devicekind-motor"></a>
 
@@ -71,7 +71,7 @@ Motor
 
 a V5 smart motor — hal/pros/motor.hpp
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:51`](../../include/shulib/hal/device_registry.hpp#L51).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:52`](../../include/shulib/hal/device_registry.hpp#L52).*
 
 <a id="devicekind-imu"></a>
 
@@ -83,7 +83,7 @@ Imu
 
 an inertial sensor — hal/pros/imu.hpp
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:52`](../../include/shulib/hal/device_registry.hpp#L52).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:53`](../../include/shulib/hal/device_registry.hpp#L53).*
 
 <a id="devicekind-rotation"></a>
 
@@ -95,7 +95,7 @@ Rotation
 
 a rotation sensor — hal/pros/rotation.hpp
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:53`](../../include/shulib/hal/device_registry.hpp#L53).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:54`](../../include/shulib/hal/device_registry.hpp#L54).*
 
 <a id="devicekind-distance"></a>
 
@@ -107,7 +107,7 @@ Distance
 
 a distance sensor — hal/pros/distance.hpp
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:54`](../../include/shulib/hal/device_registry.hpp#L54).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:55`](../../include/shulib/hal/device_registry.hpp#L55).*
 
 <a id="devicekind-optical"></a>
 
@@ -119,7 +119,7 @@ Optical
 
 an optical sensor — hal/pros/optical.hpp
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:55`](../../include/shulib/hal/device_registry.hpp#L55).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:56`](../../include/shulib/hal/device_registry.hpp#L56).*
 
 <a id="devicekind-vision"></a>
 
@@ -131,7 +131,7 @@ Vision
 
 a vision sensor (including AI Vision) — no adapter yet; R2 owns the camera
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:56`](../../include/shulib/hal/device_registry.hpp#L56).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:57`](../../include/shulib/hal/device_registry.hpp#L57).*
 
 <a id="devicekind-gps"></a>
 
@@ -143,7 +143,7 @@ Gps
 
 a GPS sensor — hal/pros/gps.hpp
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:57`](../../include/shulib/hal/device_registry.hpp#L57).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:58`](../../include/shulib/hal/device_registry.hpp#L58).*
 
 <a id="devicekind-radio"></a>
 
@@ -155,7 +155,7 @@ Radio
 
 the VEXnet radio
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:58`](../../include/shulib/hal/device_registry.hpp#L58).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:59`](../../include/shulib/hal/device_registry.hpp#L59).*
 
 <a id="devicekind-adi"></a>
 
@@ -167,7 +167,7 @@ Adi
 
 an ADI (three-wire) expander — hal/pros/digital_in.hpp's pair form
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:59`](../../include/shulib/hal/device_registry.hpp#L59).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:60`](../../include/shulib/hal/device_registry.hpp#L60).*
 
 <a id="devicekind-other"></a>
 
@@ -179,7 +179,7 @@ Other
 
 a device this library has no name for (serial, undefined, anything new)
 
-*enumerator, declared at [`include/shulib/hal/device_registry.hpp:60`](../../include/shulib/hal/device_registry.hpp#L60).*
+*enumerator, declared at [`include/shulib/hal/device_registry.hpp:61`](../../include/shulib/hal/device_registry.hpp#L61).*
 
 <a id="devicekindword"></a>
 
@@ -191,7 +191,7 @@ a device this library has no name for (serial, undefined, anything new)
 
 The kind as one short word, for a census line or a refusal message. Never invents: an unknown byte reads "?".
 
-*free function, declared at [`include/shulib/hal/device_registry.hpp:65`](../../include/shulib/hal/device_registry.hpp#L65).*
+*free function, declared at [`include/shulib/hal/device_registry.hpp:66`](../../include/shulib/hal/device_registry.hpp#L66).*
 
 <a id="class-ideviceregistry"></a>
 
@@ -203,7 +203,7 @@ class IDeviceRegistry
 
 The seam that answers "what is plugged into this port?" without opening anything. Stated in PHYSICAL port numbers, 1..kMaxSmartPorts — the zero-indexed PROS call it is implemented over is the adapter's business and nobody else's (header). Non-owning and const: a registry is asked, never told.
 
-*class, declared at [`include/shulib/hal/device_registry.hpp:86`](../../include/shulib/hal/device_registry.hpp#L86).*
+*class, declared at [`include/shulib/hal/device_registry.hpp:87`](../../include/shulib/hal/device_registry.hpp#L87).*
 
 <a id="ideviceregistry-destructor-ideviceregistry"></a>
 
@@ -215,7 +215,7 @@ virtual ~IDeviceRegistry() = default
 
 The polymorphic-base special members: a virtual destructor so a registry may be owned and destroyed through this interface, and defaulted copy/move because the interface itself holds no state.
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:91`](../../include/shulib/hal/device_registry.hpp#L91).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:92`](../../include/shulib/hal/device_registry.hpp#L92).*
 
 <a id="ideviceregistry-ideviceregistry"></a>
 
@@ -227,7 +227,7 @@ IDeviceRegistry() = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:92`](../../include/shulib/hal/device_registry.hpp#L92).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:93`](../../include/shulib/hal/device_registry.hpp#L93).*
 
 <a id="ideviceregistry-ideviceregistry-2"></a>
 
@@ -239,7 +239,7 @@ IDeviceRegistry(const IDeviceRegistry&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:93`](../../include/shulib/hal/device_registry.hpp#L93).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:94`](../../include/shulib/hal/device_registry.hpp#L94).*
 
 <a id="ideviceregistry-ideviceregistry-3"></a>
 
@@ -251,7 +251,7 @@ IDeviceRegistry(IDeviceRegistry&&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:94`](../../include/shulib/hal/device_registry.hpp#L94).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:95`](../../include/shulib/hal/device_registry.hpp#L95).*
 
 <a id="ideviceregistry-operator-eq"></a>
 
@@ -263,7 +263,7 @@ IDeviceRegistry& operator=(const IDeviceRegistry&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:95`](../../include/shulib/hal/device_registry.hpp#L95).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:96`](../../include/shulib/hal/device_registry.hpp#L96).*
 
 <a id="ideviceregistry-operator-eq-2"></a>
 
@@ -275,7 +275,7 @@ IDeviceRegistry& operator=(IDeviceRegistry&&) = default
 
 *Covered by the comment on [`~IDeviceRegistry`](#ideviceregistry-destructor-ideviceregistry) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:96`](../../include/shulib/hal/device_registry.hpp#L96).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:97`](../../include/shulib/hal/device_registry.hpp#L97).*
 
 <a id="ideviceregistry-pluggedkind"></a>
 
@@ -287,7 +287,7 @@ IDeviceRegistry& operator=(IDeviceRegistry&&) = default
 
 What PHYSICAL port `port` (1..kMaxSmartPorts) currently carries. Out of range answers None without asking the platform — a loop that walks 0..21, or 1..22, gets an honest "empty" rather than a shifted reading or a phantom device (header, and HA-120's 2026-08-18 finding). MUST NOT throw.
 
-*function, declared at [`include/shulib/hal/device_registry.hpp:102`](../../include/shulib/hal/device_registry.hpp#L102).*
+*function, declared at [`include/shulib/hal/device_registry.hpp:103`](../../include/shulib/hal/device_registry.hpp#L103).*
 
 <a id="issmartport"></a>
 
@@ -299,14 +299,14 @@ What PHYSICAL port `port` (1..kMaxSmartPorts) currently carries. Out of range an
 
 True when `port` is a physical smart port number a registry may be asked about. The ONE place the 1..kMaxSmartPorts range is spelled for this seam, so the fake, the adapter and every caller agree about the boundary.
 
-*free function, declared at [`include/shulib/hal/device_registry.hpp:108`](../../include/shulib/hal/device_registry.hpp#L108).*
+*free function, declared at [`include/shulib/hal/device_registry.hpp:109`](../../include/shulib/hal/device_registry.hpp#L109).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 36 lines</summary>
+<summary>The header’s own reasoning — 37 lines</summary>
 
 ```text
 
@@ -318,7 +318,8 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  Two things in R3d need exactly that and nothing more:
    * "shulib Calibrate" builds its candidate list from the ports that carry a MOTOR,
      because a calibration that starts from a typed list can only ever confirm the typing;
-   * "shulib Teleop" checks a calibration record against the ports BEFORE it constructs a
+   * a program that boots from the record ("shulib Drive", the competition program, the Auton
+     Tester) checks a calibration record against the ports BEFORE it constructs a
      single adapter, so a card carried over from another robot, or a robot re-plugged
      since the calibration, is refused instead of driven (calibration/boot_check.hpp).
  Neither wants to open a device to find out. Constructing an adapter to discover whether

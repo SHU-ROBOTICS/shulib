@@ -3,8 +3,9 @@
 > **Covers:** "shulib Competition" — the program you upload for a match: choosing an auton on the
 > brain's menu, how `autonomous()` runs it on the program's own task, what ends it early (a disable,
 > or the end of the autonomous period), the hand-over to driver control, what the screen and the
-> serial log say in each phase, the three ways an auton is refused, and how to start a pretend match
-> on the bench with no field.
+> serial log say in each phase, the drive protections' row and words, the three ways an auton is
+> refused (and the entry that is dropped instead), and how to start a pretend match on the bench with
+> no field.
 > **Read this if:** you are uploading a program for a match, or running the bench worksheet's
 > practice-match station.
 > **Assumes:** [Chapter 16](16-testing-an-auton-on-the-bench.md) (the team's auton file and the
@@ -92,10 +93,15 @@ a MATCH auton's is 30 s, a SKILLS run's 60 s, the game manual's numbers, declare
     const competition::AutonVerdict verdict = registry.check(late);
 ```
 
-`verdict.why` begins `auton 'left side late': ` and says what is wrong; `registry.add()` of the same
-entry throws, and the competition program **refuses its boot** with that sentence on the screen
-rather than carry an auton that could never run its end action. Leave a margin inside the period: a
-hard stop exactly on the field's 30 s never gets a tick to act.
+`verdict.why` begins `auton 'left side late': ` and says what is wrong. The competition program (and
+the tester) build their registry so that `registry.add()` of such an entry **drops that entry and
+nothing else**: it is never on the menu, the menu names it in red while you choose (`REFUSED auton
+'left side late': ...`), the boot logs its whole sentence (`DROPPED: auton 'left side late': ...`),
+and every other auton and driver control still run — an auton bug must not cost the match's driver
+period (the team lead's ruling, 2026-10-02). Fix the entry in `src/team/autons.cpp` and upload again.
+A registry built without asking for that (`competition::AutonRegistry registry{periods};`) still
+throws the sentence at the `add()`. Leave a margin inside the period: a hard stop exactly on the
+field's 30 s never gets a tick to act.
 
 ## The selector
 
@@ -182,7 +188,7 @@ one at a time: whichever holds the screen paints it, and PROS's phase tasks pain
 | driver control (`opcontrol()`) | waits for the terminal word, then the driver file until a disable, the autonomous bit or a new auton request | the **driver page** (or AUTON ENDING) |
 
 **At boot**, serial carries a banner, the boot's decision lines, the session header, and three boot
-lines — the build, how it booted, and the SD log:
+lines — the build, how it booted, and the SD run log:
 
 ```text
 boot: shulib COMPETITION [shulib-robot-variant=tank-competition] hash ...
@@ -190,9 +196,15 @@ boot source RECORD, 2 autons, 3 of 3 mechanisms present; autons ALLOWED
 SD run log ON, APPENDED to /usd/shulib_auton_runs.txt
 ```
 
-then one line per claw, in the words "shulib Teleop" prints (each pivot's line ends `-- in shulib
-Teleop and shulib Competition`: both programs bind those buttons), and one line per mechanism the
-robot could not build (`mechanism '...' is ABSENT -- the run guard cannot safe it: ...`).
+then one line per mechanism the robot could not build (`mechanism '...' is ABSENT -- the run guard
+cannot safe it: ...`), the autons the registry dropped (`N auton(s) REFUSED at registration and
+DROPPED -- the dropped ones are NOT on the menu (each named below); every other auton and driver
+control still run -- ...`, then `DROPPED: auton '...': ...` for each — past eight, the line says `(the
+first 8 named below)` and a last line counts the rest), where the log copy is (`log
+copy: /usd/comp_log.txt (APPENDED, kept across boots) -- ...`, or that it did not open and why: `NO
+SD CARD`, or a card that is in and would not take the file), and one line per
+claw, in the words "shulib Drive" prints too (each pivot's line ends `-- buttons:
+src/team/robot_two_driver.hpp`: the buttons are the driver file's, whichever program binds them).
 
 **Every phase function** logs one line when it starts and one when it returns normally, with the
 brain's clock in milliseconds and the competition status in words:
@@ -242,14 +254,27 @@ page — while the auton task is still unwinding, so the result page of an `ABAN
 `ABANDON IGNORED` one) is not painted, or shows only for a moment. Its word is in the run's first `[CMP]` line, and on the driver
 page's auton row when driver control follows.
 
-**The driver page** (driver control): the program's name and build time, then four rows — the last
-auton's word (or why autons are refused), the controller (`controller: CONNECTED`, or red `NO
-CONTROLLER -- the drive gets 0 V`), the faults, and the claws — and the controller shows the same
-three lines "shulib Teleop" shows (`LIB 12V B12.9V`, the heading, and the most urgent word). Both
-programs write those lines **one at a time**, at most one every 0.1 s, the word line first — PROS's
-own documentation says faster controller text updates are not applied — so a full refresh takes up to
-0.3 s here (about 0.4 s in "shulib Teleop", which reads its facts every 0.2 s). When driver control
-ends on a disable, the screen goes back to the menu.
+**The driver page** (driver control): the program's name and build time, then five rows — the
+**drive protections** first (what explains a drive that stopped), the last auton's word (or why autons
+are refused), the controller (`controller: CONNECTED`, or red `NO CONTROLLER -- the drive gets 0 V`),
+the faults, and the claws. The protections row (the library's protections run under the driver file in
+every program — [Chapter 12](12-when-things-go-wrong.md) says what each does):
+
+| Row | Means |
+|---|---|
+| `drive OK` (green) | every drive motor answers, nothing is cut |
+| `drive OK -- frozen 13` (amber) | port 13's reading froze this tick — dropped 250 ms later if it stays frozen, or a train stopping |
+| `DEGRADED dead 18 13` (amber) | those drive ports are dead (at boot, or dropped mid-run); the stick still drives |
+| `CUT 1 s #2: FIGHT on LEFT -- port(s) 18` (red) | a protection cut: both sides at 0 V for 1 s, then driving resumes by itself |
+| `REFUSED: 3 drive motors dead -- 0 V for the run` (red) | more than two dead: the drive stays at 0 V until the program is started again |
+
+The controller shows the same three lines "shulib Drive" shows: `LIB 12V B12.9V`, then the dead drive
+ports (`dead 18 13`) or else the heading, then the most urgent word — `AUTON ENDING`, `REFUSED see
+brain`, `CUT see brain`, the last fault, `no controller 0V`, `DEGRADED see brain`, `CLAW ABSENT`, or
+`ok`, the first that holds. Both programs write those lines **one at a time**, at most one every
+0.1 s, the word line first — PROS's own documentation says faster controller text updates are not
+applied — so a full refresh takes up to 0.3 s. When driver control ends on a disable, the screen goes
+back to the menu.
 
 **Each auton run's lines.** Four `[CMP]` lines per run (two for NONE, TOO LATE, a refusal or a program
 error; one more when the auton task first waited for the driver loop to leave):
@@ -266,18 +291,37 @@ armed — the auton's clock starts there. The `END estimate` is the robot's own 
 the terminal word; put it against the tape, as [Chapter 16](16-testing-an-auton-on-the-bench.md)
 explains.
 
-**The SD card.** The boot lines and every run's lines are **appended** to the same file the tester
-writes, `shulib_auton_runs.txt` at the card's root — one record across reboots and across both
-programs. A run's lines are written only **after** its terminal word, so the card can never delay
-driver control. No card: serial only, never a refusal.
+**The SD card** holds two files, each **appended** across reboots. The run log: the boot lines and
+every run's lines go to the same file the tester writes, `shulib_auton_runs.txt` at the card's root —
+one record across both programs — and a run's lines are written only **after** its terminal word. The
+log copy, `comp_log.txt`: a copy of this program's log lines and summaries from the moment the brain's
+devices are set up (the banner before that is on serial only) — the dead ports, every cut, the peak
+currents, and why a boot was refused once the devices existed — but never the per-tick records serial
+carries, so a practice match with no laptop still leaves its story behind. Each line of the copy is
+written when it is logged, so a line logged during an auton (the auton's own event lines, a fault) or
+during driver control (a protection's line) costs one card write in that tick; what that costs on the
+brain is not measured. A loop that runs slow says so **once** for each slow stretch (`fault=LOOP_OVERRUN`
+on its first slow tick), never once per tick, so a slow stretch never adds a card write to every tick
+of it. When two parts of the program log at the same instant, the card takes one of the lines and
+leaves the other off (serial keeps both), and the card's next line says so where it happened: `copy: <n>
+line(s) left off here while another task was writing it -- serial has them`. One case ends the card's
+copy instead: the program believes (not yet seen on a robot) that when the field disables the robot,
+PROS stops the driver-control task wherever it is — and this program logs two lines just as its driver
+loop sees that disable. If PROS stops the task in the middle of writing one of them to the card, the
+card's copy **ends there for the rest of that boot** — no later line reaches the card, and no `copy:`
+line says so — while serial keeps every line. The program does this on purpose: a card write PROS
+stopped half-way may leave the card's file in a state nobody has measured, and the next task to touch
+it could hang; a copy that stops never makes the driver loop wait. So a `comp_log.txt` whose boot ends
+at a disable, while the robot ran on, lost the rest of that boot — read serial. How often it happens is
+not measured. No card: serial only, never a refusal.
 
 ## Refused, not run
 
 There are three refusals, and each says why on the screen and on serial.
 
 - **A refused boot.** When the robot cannot be described — no calibration record and no usable typed
-  table, the graph refused to build, the driver's controls do not fit the robot, an auton refused at
-  registration, or the boot's **tick-chain proof** failed (one idle tick must reach both the run
+  table, the graph refused to build, the driver's controls do not fit the robot, or the boot's
+  **tick-chain proof** failed (one idle tick must reach both the run
   guard and the watch, and the watch must be attached to the guard; otherwise no disable could end an
   auton) — the program paints the red refusal screen, powers nothing and starts **no auton task**.
   Nothing paints over the refusal afterwards; each phase still logs its two lines, and
@@ -299,6 +343,10 @@ There are three refusals, and each says why on the screen and on serial.
   commanded. The menu phase's page gives the reason the auton task recorded — what threw, and whether
   the robot was stopped or never touched — and the driver page's auton row says `restart`.
 
+One more case is **not** a refusal of the boot: an auton entry the registry refuses at registration is
+**dropped** — that entry alone. It is never on the menu, the menu names it in red, the boot logs its
+sentence, and every other auton and driver control run (the schedule section above).
+
 ## Starting a pretend match on the bench
 
 The team owns no competition switch. On the bench, the controller's **Timed Run** (from the
@@ -316,9 +364,12 @@ controller off, wait ten seconds, and see the brain's menu return before startin
 
 ## What it does not do yet
 
-- **No drive protections in driver control** until the library's protections land (the driver
-  program's work, T4 Part 2): no cut when a drive side's motors fight each other, and no rule for a
-  drive motor lost mid-match. Driver control runs the driver file as it is.
+- **The drive protections have never run on a robot.** Driver control runs them (the driver file, on
+  the library's loop), but every number they use is a guess: whether a full-stick push against a wall
+  CUTS the drive (a V5 motor pushing is believed to sit near its 2.5 A limit, above the 2.4 A cut —
+  [HA-154](../hardware-assumptions.md), not measured) is what the bench
+  worksheet's practice-match station's **push check** measures, and it is **required before this
+  program drives a match**.
 - **No route autons.** An auton written as a route (the path editor's kind) needs the team's
   commands registered once, beside the autons; until then it is refused by name, as in the tester.
 - **The auton pick under a Timed Run** waits on the measurement above: if the Timed Run gives no

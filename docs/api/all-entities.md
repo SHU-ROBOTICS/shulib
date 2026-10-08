@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 3,633 of them, across 169 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 3,663 of them, across 170 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -176,8 +176,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AutonRegistry::check` | function | [auton_registry.md](auton_registry.md#autonregistry-check) |
 | `AutonRegistry::empty` | function | [auton_registry.md](auton_registry.md#autonregistry-empty) |
 | `AutonRegistry::find` | function | [auton_registry.md](auton_registry.md#autonregistry-find) |
+| `AutonRegistry::onRefusal` | function | [auton_registry.md](auton_registry.md#autonregistry-onrefusal) |
 | `AutonRegistry::periodFor` | function | [auton_registry.md](auton_registry.md#autonregistry-periodfor) |
 | `AutonRegistry::periods` | function | [auton_registry.md](auton_registry.md#autonregistry-periods) |
+| `AutonRegistry::refusal` | function | [auton_registry.md](auton_registry.md#autonregistry-refusal) |
+| `AutonRegistry::refusedCount` | function | [auton_registry.md](auton_registry.md#autonregistry-refusedcount) |
 | `AutonRegistry::size` | function | [auton_registry.md](auton_registry.md#autonregistry-size) |
 | `AutonRoutine` | type alias | [auton_registry.md](auton_registry.md#autonroutine) |
 | `AutonRunOutcome` | enum class | [match_runner.md](match_runner.md#enum-class-autonrunoutcome) |
@@ -1061,6 +1064,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FaultLatch::lastFault` | function | [fault.md](fault.md#faultlatch-lastfault) |
 | `FaultLatch::raise` | function | [fault.md](fault.md#faultlatch-raise) |
 | `FaultLatch::raiseCount` | function | [fault.md](fault.md#faultlatch-raisecount) |
+| `FaultLatch::raiseRepeat` | function | [fault.md](fault.md#faultlatch-raiserepeat) |
 | `Feedforward` | class | [feedforward.md](feedforward.md#class-feedforward) |
 | `Feedforward::calculate` | function | [feedforward.md](feedforward.md#feedforward-calculate) |
 | `Feedforward::calculate (overload 2)` | function | [feedforward.md](feedforward.md#feedforward-calculate-2) |
@@ -1802,6 +1806,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMagic` | constant | [blackbox_format.md](blackbox_format.md#kmagic) |
 | `kManifestSchemaVersion` | constant | [manifest.md](manifest.md#kmanifestschemaversion) |
 | `kMaxAutonNameChars` | constant | [auton_registry.md](auton_registry.md#kmaxautonnamechars) |
+| `kMaxAutonRefusals` | constant | [auton_registry.md](auton_registry.md#kmaxautonrefusals) |
 | `kMaxAutons` | constant | [auton_registry.md](auton_registry.md#kmaxautons) |
 | `kMaxCommands` | constant | [command_registry.md](command_registry.md#kmaxcommands) |
 | `kMaxDeadTotal` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kmaxdeadtotal) |
@@ -1845,6 +1850,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMenuNoneSlot` | constant | [auton_menu.md](auton_menu.md#kmenunoneslot) |
 | `kMenuPrevLabel` | constant | [auton_menu.md](auton_menu.md#kmenuprevlabel) |
 | `kMenuPrevSlot` | constant | [auton_menu.md](auton_menu.md#kmenuprevslot) |
+| `kMenuRefusalTurnSeconds` | constant | [auton_menu.md](auton_menu.md#kmenurefusalturnseconds) |
+| `kMenuRefusedPrefix` | constant | [auton_menu.md](auton_menu.md#kmenurefusedprefix) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
 | `kNextDoneWhenMoved` | constant | [calibrate_panel.md](calibrate_panel.md#knextdonewhenmoved) |
@@ -1982,6 +1989,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LocalizerConfig::maxDt` | field | [localizer.md](localizer.md#localizerconfig-maxdt) |
 | `LocalizerConfig::minDt` | field | [localizer.md](localizer.md#localizerconfig-mindt) |
 | `LocalizerConfig::qFloor` | field | [localizer.md](localizer.md#localizerconfig-qfloor) |
+| `LogCopySink` | class | [log_copy_sink.md](log_copy_sink.md#class-logcopysink) |
+| `LogCopySink::contendedLines` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-contendedlines) |
+| `LogCopySink::copy` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-copy) |
+| `LogCopySink::emit` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-emit) |
+| `LogCopySink::kGapTag` | field | [log_copy_sink.md](log_copy_sink.md#logcopysink-kgaptag) |
+| `LogCopySink::log` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-log) |
+| `LogCopySink::LogCopySink` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-logcopysink) |
+| `LogCopySink::LogCopySink (overload 2)` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-logcopysink-2) |
+| `LogCopySink::LogCopySink (overload 3)` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-logcopysink-3) |
+| `LogCopySink::operator=` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-operator-eq) |
+| `LogCopySink::operator= (overload 2)` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-operator-eq-2) |
+| `LogCopySink::primary` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-primary) |
+| `LogCopySink::summarize` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-summarize) |
+| `LogCopySink::wantsRecord` | function | [log_copy_sink.md](log_copy_sink.md#logcopysink-wantsrecord) |
 | `LogLevel` | enum class | [telemetry_sink.md](telemetry_sink.md#enum-class-loglevel) |
 | `LogLevel::Debug` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-debug) |
 | `LogLevel::Error` | enumerator | [telemetry_sink.md](telemetry_sink.md#loglevel-error) |
@@ -1999,6 +2020,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LoopMonitor` | class | [loop_monitor.md](loop_monitor.md#class-loopmonitor) |
 | `LoopMonitor::LoopMonitor` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-loopmonitor) |
 | `LoopMonitor::overrunCount` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overruncount) |
+| `LoopMonitor::overrunEpisodes` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-overrunepisodes) |
 | `LoopMonitor::reset` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-reset) |
 | `LoopMonitor::tick` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-tick) |
 | `LoopMonitor::worstDt` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-worstdt) |
@@ -2354,6 +2376,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `OdoStallCheckConfig::setAllWheels` | function | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-setallwheels) |
 | `OdoStallCheckConfig::wheels` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-wheels) |
 | `OdoStallCheckConfig::window` | field | [odo_stall_check.md](odo_stall_check.md#odostallcheckconfig-window) |
+| `OnRefusal` | enum class | [auton_registry.md](auton_registry.md#enum-class-onrefusal) |
+| `OnRefusal::DropEntry` | enumerator | [auton_registry.md](auton_registry.md#onrefusal-dropentry) |
+| `OnRefusal::Throw` | enumerator | [auton_registry.md](auton_registry.md#onrefusal-throw) |
 | `onScreen` | free function | [touch_panel.md](touch_panel.md#onscreen) |
 | `openForAppend` | free function | [pros-block_sink.md](pros-block_sink.md#openforappend) |
 | `operator""_deg` | free function | [literals.md](literals.md#operator-quote-quote-_deg) |
@@ -2599,7 +2624,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsDeviceProvider::ProsDeviceProvider (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-2) |
 | `ProsDeviceProvider::ProsDeviceProvider (overload 3)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-3) |
 | `ProsDeviceProvider::ProsDeviceProvider (overload 4)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-4) |
+| `ProsDeviceProvider::ProsDeviceProvider (overload 5)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-5) |
 | `ProsDeviceProvider::rotation` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-rotation) |
+| `ProsDeviceProvider::serialCopyAppendOpen` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopyappendopen) |
+| `ProsDeviceProvider::serialCopyDroppedLines` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopydroppedlines) |
+| `ProsDeviceProvider::serialCopyOpen` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopyopen) |
+| `ProsDeviceProvider::serialCopyPath` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopypath) |
 | `ProsDeviceProvider::telemetry` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-telemetry) |
 | `ProsDeviceProvider::~ProsDeviceProvider` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-destructor-prosdeviceprovider) |
 | `ProsDeviceRegistry` | class | [pros-device_registry.md](pros-device_registry.md#class-prosdeviceregistry) |

@@ -47,18 +47,18 @@ Build and upload it like the other robot-two programs:
 
 ```sh
 rm -rf bin .d && make ROBOT=tank PROGRAM=autontest
-pros upload --slot 7 --name "shulib Auton Tester"
+pros upload --slot 2 --name "shulib Auton Tester"
 ```
 
 The `rm -rf bin .d` is not optional. `make` rebuilds only the files that changed, and it does not
 notice that the `PROGRAM=` word changed: after building another program it recompiles nothing and
-links **that** program again — and the upload would put it in slot 7 under the tester's name. The
+links **that** program again — and the upload would put it in slot 2 under the tester's name. The
 same holds whenever you switch between any two of the `make` lines in the README.
 
-(Slot 7 for now; it moves to slot 2 when the new driver program replaces "shulib Teleop".) Start
-it from the **brain's** screen, with the controller paired and on its home screen — started from
-the controller's menu it would be a pretend match, and the tester refuses to run an auton in any
-competition mode.
+(Slot 2, since the new "shulib Drive" retired "shulib Teleop" from it; until then the tester was
+in slot 7, so a brain uploaded before that may still hold it there.) Start it from the **brain's**
+screen, with the controller paired and on its home screen — started from the controller's menu it
+would be a pretend match, and the tester refuses to run an auton in any competition mode.
 
 ## The team's file: `src/team/autons.cpp`
 
@@ -126,7 +126,11 @@ new author gets wrong most often, so read it slowly: at `endActionAt` the routin
 wherever it is and the **end action** runs (here the brake); at `hardStopAt` everything stops,
 end action included. A hard stop that landed exactly on the field's 30 s would never get a tick
 to act, which is why 29 s. An entry whose hard stop does not fit its period is **refused by name
-when it is registered** — the program shows that sentence on its screen and moves nothing.
+when it is registered** — and **dropped, that entry alone**: it is not on the menu (the menu names it
+in red, `REFUSED auton '<name>': ...`), the boot logs its whole sentence (`DROPPED: auton '<name>':
+...`), and every other auton still runs. That is the team lead's ruling for the competition program
+(2026-10-02: one bad auton must never cost the rest, or a match's driver period); the tester does the
+same, so a student fixing one auton can still test the others.
 
 **RELATIVE start** means: wherever you place the robot is (0, 0), facing 0°, at the moment the
 auton starts — the library re-seats both the position and the heading there, so any drift the

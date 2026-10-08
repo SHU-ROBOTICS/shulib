@@ -540,7 +540,8 @@ TEST_CASE("driver controls T7: driverHeading() trusts the heading only when the 
 
 // ═══ ONE heading rule in src/ (a source pin) ═════════════════════════════════════════════
 TEST_CASE("driver controls: the heading rule has ONE copy in src/ — src/common/driver_controls.hpp "
-          "— and \"shulib Teleop\", the X-drive and robot two's driver file each call it") {
+          "— and the X-drive and robot two's driver file each call it (\"shulib Drive\" runs the "
+          "driver file's)") {
     // BUG CAUGHT: a second copy of the rule creeping back into a program file (the two programs
     // carried one each until T4 Part 1a; neither program file compiles on the host, so a copy
     // there would drift untested).
@@ -579,7 +580,9 @@ TEST_CASE("driver controls: the heading rule has ONE copy in src/ — src/common
         text << in.rdbuf();
         return text.str();
     };
-    CHECK(count(read("programs/teleop_program.cpp"), "[&r] { return driverHeading(r); }") == 1U);
+    // ("shulib Teleop" called it too, until T4 Part 3 retired it; "shulib Drive", which replaced
+    // it, reaches it only through the driver file's run(), so it names it nowhere.)
+    CHECK(count(read("programs/drive_program.cpp"), "driverHeading(") == 0U);
     CHECK(count(read("programs/xdrive_program.cpp"), "[&r] { return driverHeading(r); }") == 1U);
     CHECK(count(read("team/robot_two_driver.hpp"), "[&robot] { return driverHeading(robot); }")
           == 1U);

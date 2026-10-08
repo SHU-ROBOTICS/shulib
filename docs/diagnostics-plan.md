@@ -139,6 +139,9 @@ the sim clock doesn't advance intra-tick; nullptr in `MotionSchedulerConfig` = o
 the scheduler brackets Localization and Motion, stamps the last COMPLETED tick's breakdown onto
 records (one-tick lag, documented on the field), and the LOOP_OVERRUN path logs
 `overrun attribution: loc …ms · mot …ms · other …ms (worst mot)` — the overrun now has a NAME.
+*(Since T4 Part 3, 2026-10-08: once per overrun EPISODE, beside LOOP_OVERRUN's own line, which is
+logged once per episode too — a slow stretch used to log both on every tick, and the programs' SD
+copy of the log made each a card write inside the slow tick; every tick is still counted.)*
 `test/tick_attribution_test.cpp` + the e2e attribution case.
 
 **D-4. ✅ DELIVERED (content + seam; PROS glue → R1, as planned).** Controller-screen fault display.

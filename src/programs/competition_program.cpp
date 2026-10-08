@@ -44,15 +44,41 @@
 // program error caught on the auton task stops the robot safely and refuses every later auton
 // until the program restarts; driver control still runs.
 //
-// ═══ THE LOGS (B5(1), ND5) ════════════════════════════════════════════════════════════════
+// ═══ THE LOGS (B5(1), ND5; the T4 brief's N5 (a) with Decisions A and B) ═════════════════════════
 // Serial: the banner, the boot's decision lines, the session header, the three boot lines, every
-// absent mechanism, the claw lines, every competition-status CHANGE (millis and the decoded bits,
-// from the auton task's idle loop -- one tick of latency), one line on entry to and on normal
-// return from each of competition_initialize(), disabled(), autonomous() and opcontrol(), and each
-// request's lines; runAuton's own [COMP] lines and the guard's [SEQ] lines ride the provider's sink.
-// The SD card (src/common/auton_run_log.hpp's file, APPENDED -- the Auton Tester's): the boot lines
-// and each request's lines, written only AFTER the request's terminal word, so the card never delays
-// driver control.
+// auton the registry DROPPED, every absent mechanism, where the log copy is, the claw lines, every
+// competition-status CHANGE (millis and the decoded bits, from the auton task's idle loop -- one
+// tick of latency), one line on entry to and on normal return from each of
+// competition_initialize(), disabled(), autonomous() and opcontrol(), and each request's lines;
+// runAuton's own [COMP] lines, the guard's [SEQ] lines and the driver loop's protection lines ride
+// the provider's sink.
+// The SD card holds TWO files. (1) THE RUN LOG (src/common/auton_run_log.hpp's file, APPENDED --
+// the Auton Tester's too): the boot lines and each request's lines, written by this program only
+// AFTER the request's terminal word. (2) THE LOG COPY, /usd/comp_log.txt, APPENDED across boots
+// (T4 Part 3; the team lead's B (a): a reboot mid-match must not erase that match's log): the
+// provider's own copy of every log() line and summary that reaches its sink from the provider's
+// construction on -- never a per-tick record (A (a)), and never a line per slow tick either: a
+// loop that overruns logs LOOP_OVERRUN once per episode (diag/loop_monitor.hpp, the T4-3 review)
+// -- so a practice match with no laptop still leaves the dead ports, every cut, the peak currents,
+// and a boot refused after the provider was built (refuseBuilt). That copy is written WHEN each
+// line is logged: during an auton (runAuton's and the guard's event lines, the scheduler's fault
+// lines) and during driver control (the protections' events: a port dropped, a cut, a peak) a
+// line is one card write and one flush in the tick it is logged (hal::BlockCharSink). What that
+// costs on the brain is UNMEASURED (A4 register HA-60; the T4 brief's re-check item 2): Station K
+// reads it.
+// MORE THAN ONE TASK writes the provider's sink: the auton task (a status change, a request's
+// lines), the PROS phase tasks (each phase function's entry and return lines) and the opcontrol
+// task's driver loop (the protections' events) -- so around a mode change two can log at once.
+// The CARD COPY has one writer at a time (diag/log_copy_sink.hpp's guard, the T4-3 review): a line
+// that finds another task mid-copy stays on serial, is left off the card and counted, and the
+// card's next line says how many it missed there -- no task waits on another's card write. A task
+// PROS deletes while it is mid-copy (HA-161 (a), reasoned) never releases the guard, so the card's
+// copy ENDS there for the rest of the boot, every later line counted and on serial -- the chosen
+// failure (log_copy_sink.hpp, "A writer that never comes back"); this program's opcontrol() logs
+// two lines right after its loop sees a disable, the moment PROS deletes the task.
+// SERIAL has had the same exposure since COMP-b, unguarded:
+// whether PROS's C library serializes two tasks' writes to stdout is measured nowhere here and
+// stated in no A4 register entry (left for the coordinator: an entry, or a lock).
 //
 // ═══ ON THE BENCH: THE CONTROLLER'S TIMED RUN ═════════════════════════════════════════════
 // The team owns no competition switch, so the bench's pretend match is the controller's Timed Run.
@@ -62,13 +88,14 @@
 // status lines before anything depends on it. Nothing here depends on its numbers: every phase is
 // driven by what VEXos reports, and the periods are the game manual's (src/team/autons.hpp).
 //
-// Compiled in all eight builds (every .cpp under src/ is); nothing here reads a build switch, no
-// beacon literal lives here, and the state is one function-local static of EMPTY optionals, so
-// --gc-sections drops all of its CODE from every build but tank-competition. Not always its TEXT:
-// a file's string literals share one section, which the linker keeps whole when it keeps this
-// file's copy of a shared inline function -- measured at COMP-b's review, 48 of these strings ride
-// in the tank-library (Teleop) package and 26 in the X-drive's, as Teleop's rode in the X-drive's
-// before. Words only, never code that runs; no beacon is among them. ASCII only in every runtime
+// Compiled in every build -- seven since T4 Part 3 (every .cpp under src/ is); nothing here reads a
+// build switch, no beacon literal lives here, and the state is one function-local static of EMPTY
+// optionals, so --gc-sections drops all of its CODE from every build but tank-competition. Not
+// always its TEXT: a file's string literals share one section, which the linker keeps whole when it
+// keeps this file's copy of a shared inline function -- measured at COMP-b's review, 48 of these
+// strings rode in the tank-library (Teleop) package and 26 in the X-drive's, as Teleop's rode in
+// the X-drive's before (Teleop retired at T4 Part 3; not re-measured since). Words only, never
+// code that runs; no beacon is among them. ASCII only in every runtime
 // string; every screen string goes through the shared painters (printText); only a literal "%s"
 // reaches a PROS print. No slot number appears in any string here (the documents name the slot).
 //
@@ -92,8 +119,10 @@
 #include "common/auton_run_log.hpp"
 #include "common/boot_source.hpp"
 #include "common/driver_panel.hpp"
+#include "common/dropped_autons.hpp"
 #include "common/fault_latch_hook.hpp"
 #include "common/guarded_run.hpp"
+#include "common/log_copy_line.hpp"
 #include "common/screen_paint.hpp"
 #include "common/screen_text.hpp"
 #include "common/screen_touch.hpp"
@@ -101,9 +130,6 @@
 #include "programs/competition_run.hpp"
 #include "programs/competition_screen.hpp"
 #include "programs/competition_watch.hpp"
-// INTERIM (the COMP brief's ND3): the claw row, the fault row, anyClawAbsent() and the claw boot
-// lines stay in Teleop's claw header until T4 Part 3 moves them; this program includes it for them.
-#include "programs/teleop_claws.hpp"
 #include "robots/mechanism_table.hpp"
 #include "team/autons.hpp"
 #include "team/robot_two_driver.hpp"
@@ -127,6 +153,7 @@
 #include "shulib/math/twist2d.hpp"
 #include "shulib/robot/robot.hpp"
 #include "shulib/sequence/run_guard.hpp"
+#include "shulib/teleop/drive_protection.hpp"
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -139,6 +166,9 @@ constexpr const char* kTag = kCompetitionTag;
 constexpr std::string_view kBuildTimeText = "BUILD " __TIME__;
 /// The auton task's idle wait and the phase functions' wait tick: one brain tick (RC3).
 constexpr std::uint32_t kTickMs = 10;
+/// THE LOG COPY's file on the card (header, THE LOGS): BARE -- the provider's ProsBlockSink owns
+/// the /usd/ prefix -- and APPENDED across boots (the team lead's B (a)).
+constexpr const char* kLogCopyFile = "comp_log.txt";
 /// The controller's facts are read on the driver loop's first tick and then every 5 ticks (50 ms);
 /// a changed line is written through src/common/driver_panel.hpp's ControllerLineWriter -- one line
 /// per write, at most one write per 0.1 s, line 2 first.
@@ -179,8 +209,8 @@ public:
 };
 
 // ═══ PROGRAM STATE: one function-local static of EMPTY optionals ═════════════════════════════
-// (teleop_program.cpp's rule: nothing non-movable at namespace scope, nothing whose constructor
-// can throw in the static itself.) Declaration order is the borrow order: the provider, the status
+// ("shulib Drive"'s rule, and "shulib Teleop"'s before it: nothing non-movable at namespace scope,
+// nothing whose constructor can throw in the static itself.) Declaration order is the borrow order: the provider, the status
 // source, the pacer chain from the inside out (watch, guard), the Robot -- whose Chassis keeps the
 // guard as its pacer for the Robot's whole life -- the driver's bindings over it, the registry and
 // the menu. The driver file lives HERE for the program's life (its loop holds the bindings by
@@ -290,8 +320,10 @@ void paintViewChanges(const CompetitionView& was, const CompetitionView& now) {
     }
 }
 
-/// The boot's refusal: the shared refusal screen and its serial line (nothing is powered).
-void refuse(const char* headline, const char* why) {
+/// The boot's refusal: the shared refusal screen and, unless `serialLine` is false (a refusal
+/// after the provider was built is said through its sink first, so the log copy holds it), its
+/// serial line (nothing is powered).
+void refuse(const char* headline, const char* why, bool serialLine = true) {
     CompetitionState& st = state();
     std::snprintf(st.refusalHeadline, sizeof st.refusalHeadline, "%.63s", headline);
     std::snprintf(st.refusalWhy, sizeof st.refusalWhy, "%.191s", why);
@@ -300,7 +332,8 @@ void refuse(const char* headline, const char* why) {
                                      .buildTime = kBuildTimeText.data(),
                                      .headline = st.refusalHeadline,
                                      .why = st.refusalWhy,
-                                     .footer = kNothingPowered});
+                                     .footer = kNothingPowered,
+                                     .logToSerial = serialLine});
 }
 
 /// The menu phase's page when autons are REFUSED (ND1's program error, or ND2's typed-table
@@ -487,39 +520,49 @@ void autonTask(void* /*unused*/) {
 }
 
 // ═══ THE DRIVER PAGE and the controller's lines (the opcontrol task, after the handover) ═══════════
+/// The cut's length, from the config the driver file's loop runs with (its cutTicks times its
+/// tick) -- what the PROTECTION row says a cut lasts; never retyped.
+constexpr double kCutSeconds =
+    RobotTwoDriver::kLoop.protection.cutTicks * RobotTwoDriver::kLoop.tickPeriod.value();
+
 class DriverPanel {
 public:
     DriverPanel(const robot::Robot& robot, const CompetitionState& st) noexcept
         : robot_{robot}, st_{st} {}
 
-    /// runDriverControl's per-tick hook (the driver file's run()).
+    /// runDriverControl's per-tick hook (the driver file's run()), with the FOURTH argument: the
+    /// library's drive protections' state this tick (teleop/drive_protection.hpp) -- the
+    /// PROTECTION row and the controller's REFUSED / CUT / dead words (T4 Part 2b).
     void operator()(const math::ChassisSpeeds& /*command*/, bool connected,
-                    const teleop::DriveShaperState& /*shaper*/) {
+                    const teleop::DriveShaperState& /*shaper*/,
+                    const teleop::DriveProtectionState& protection) {
         ++tick_;
         const double now = robot_.context().clock().now().value();
         const PaintAction action = tracker_.next(st_.owner.snapshot(), ScreenOwner::Driver, now);
         if (action == PaintAction::Whole) {
-            painted_ = view(connected);
+            painted_ = view(connected, protection);
             paintViewWhole(painted_);
             paintedAt_ = now;
         } else if (action == PaintAction::Changes && now - paintedAt_ >= kLiveRepaintSeconds) {
-            const CompetitionView next = view(connected);
+            const CompetitionView next = view(connected, protection);
             paintViewChanges(painted_, next);
             painted_ = next;
             paintedAt_ = now;
         }
         if (tick_ % kLcdEveryTicks == 1) {  // the FIRST tick too: AUTON ENDING must not linger
-            refreshLcd(connected, now);
+            refreshLcd(connected, protection, now);
         }
     }
 
 private:
-    [[nodiscard]] CompetitionView view(bool connected) {
+    [[nodiscard]] CompetitionView view(bool connected,
+                                       const teleop::DriveProtectionState& protection) {
         const diag::FaultLatch& f = robot_.faults();
         faultRow_ = faultRowText(f.hasFault() ? f.faultCount() : 0, f.firstFault(), f.lastFault());
         clawRow_ = clawRowText(kMechanisms, robot_,
                                st_.driver.bindings().anyReleasedLeftoverClaim());
         CompetitionDriverFacts facts{};
+        facts.protection = protectionRowText(protection, kCutSeconds);
         facts.auton = competitionAutonRow(st_.last, *st_.registry, st_.flags.programError.load(),
                                           st_.flags.bootFromRecord);
         facts.controller = controllerRowText(connected);
@@ -532,7 +575,7 @@ private:
         return competitionDriverView(facts);
     }
 
-    void refreshLcd(bool connected, double now) {
+    void refreshLcd(bool connected, const teleop::DriveProtectionState& protection, double now) {
         ControllerFacts f{};
         f.batteryVolts = robot_.context().battery().voltage().value();
         f.headingDegrees = robot_.localizer().pose().heading().radians() * 180.0 / math::Angle::kPi;
@@ -541,6 +584,7 @@ private:
         f.connected = connected;
         f.degraded = st_.boot.verdict.decision == calibration::BootDecision::Degraded;
         f.clawAbsent = anyClawAbsent(robot_);
+        addProtectionFacts(f, protection);  // REFUSED, CUT, DEGRADED mid-run, the dead ports
         const ControllerScreen want = controllerScreenLines(f);
         const int row = state().lcdWriter.next(want, now);  // ONE line, line 2 first, >= 0.1 s apart
         if (row >= 0) {
@@ -610,8 +654,21 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
         st.status.reset();
         st.devices.reset();
     };
+    // A refusal decided once the provider exists is said through its sink FIRST -- serial and the
+    // log copy, so the card's comp_log.txt holds why this boot refused (log_copy_line.hpp's
+    // logBootRefusal(); the T4-3 review) -- then everything is un-built and the screen painted
+    // with no serial line of its own. With NO provider (a throw inside its own construction)
+    // nothing was said, so the painter says it on serial (the T4-3 verification).
+    const auto refuseBuilt = [&st, &unbuild](const char* headline, const char* why) {
+        const bool logged = st.devices.has_value();
+        if (logged) {
+            logBootRefusal(st.devices->telemetry(), kTag, headline, why);
+        }
+        unbuild();
+        refuse(headline, why, !logged);
+    };
     try {
-        st.devices.emplace();
+        st.devices.emplace(kLogCopyFile, hal::pros::ProsFileMode::Append);  // + the log copy
         st.status.emplace();
         st.watch.emplace(st.devices->pacer(), *st.status);
         st.guard.emplace(*st.watch);
@@ -620,20 +677,21 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
         opts.pacer = &*st.guard;  // BORROWED for the Robot's whole life (robot.hpp)
         const robot::BuildVerdict verdict = robot::validate(st.boot.built.config, *st.devices, opts);
         if (!verdict.ok) {
-            unbuild();
-            refuse("the library graph REFUSED to build", verdict.why);
+            refuseBuilt("the library graph REFUSED to build", verdict.why);
             return;
         }
         st.robot.emplace(st.boot.built.config, *st.devices, opts);
         // The team's driver file (B11): its buttons bound over this Robot, inside the try.
         char why[192] = "";
         if (!st.driver.bind(*st.robot, why, sizeof why)) {
-            unbuild();
-            refuse("the driver's controls REFUSED", why);
+            refuseBuilt("the driver's controls REFUSED", why);
             return;
         }
-        st.registry.emplace(kAutonPeriods);
-        registerAutons(*st.registry);  // an entry the registry refuses throws, naming the auton
+        // The team's autons. An entry the registry refuses is DROPPED -- never on the menu, named
+        // there and in the log -- and the boot goes on: the team lead's ruling of 2026-10-02 ("drop
+        // just that auton"; an auton bug must not cost the match's driver control).
+        st.registry.emplace(kAutonPeriods, competition::OnRefusal::DropEntry);
+        registerAutons(*st.registry);
         // The guard safes the Robot's PRESENT mechanisms (B9).
         for (std::size_t i = 0; i < st.robot->mechanismCount(); ++i) {
             hal::IMechanism* m = st.robot->builtMechanismAt(i);
@@ -645,16 +703,14 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
         // THE CHAIN PROOF (B30): one idle tick must pace the guard AND the watch, and the watch
         // must be attached to the guard, or no disable could end an auton. Refused, not warned.
         if (!pacerChainProven(st.robot->chassis(), *st.guard, *st.watch)) {
-            unbuild();
-            refuse("the competition program's pacer chain is WRONG",
+            refuseBuilt("the competition program's pacer chain is WRONG",
                    "one idle tick did not pace the run guard and the competition watch, or the "
                    "watch is not attached to the guard -- a disable could not end an auton; this is "
                    "a build error, not a robot fault");
             return;
         }
     } catch (const std::exception& e) {
-        unbuild();
-        refuse("the competition program REFUSED to start", e.what());
+        refuseBuilt("the competition program REFUSED to start", e.what());
         return;
     }
     st.flags.bootFromRecord = st.boot.source == calibration::BootSource::UseRecord;  // ND2
@@ -702,14 +758,32 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
             logLine(hal::LogLevel::Warn, line, true);
         }
     }
-    // The claws, one line each (src/programs/teleop_claws.hpp's words, true for both programs that
-    // bind them -- worksheet J.3.1 and K quote them), printed whole: an ABSENT line can pass
-    // TermSink's 200 bytes.
+    // Every auton the registry DROPPED (the team lead's ruling of 2026-10-02), by name, on serial
+    // and the SD run log -- in the words src/common/dropped_autons.hpp makes for both programs that
+    // register the team's autons; the menu names each too, in red, while the choice is open.
+    sayDroppedAutons(*st.registry, true, [](const char* dropped) {
+        logLine(hal::LogLevel::Warn, dropped, true);
+    });
+    // THE LOG COPY (header, THE LOGS): where it is, or that it did not open and why (no card, or
+    // a card that would not take the file) -- ONCE.
+    {
+        const LogCopyOpen how = logCopyOpenFrom(
+            st.devices->serialCopyOpen(), pros::c::usd_is_installed() != 0, true,
+            st.devices->serialCopyAppendOpen() == hal::pros::AppendOpen::Created);
+        const LogCopyLine copy = logCopyBootLine(how, st.devices->serialCopyPath(),
+                                                 st.devices->serialCopyDroppedLines());
+        logLine(copy.warn ? hal::LogLevel::Warn : hal::LogLevel::Info, copy.text);
+    }
+    // The claws, one line each (src/common/driver_panel.hpp's words, from the table AND the driver
+    // file's controls -- the same lines "shulib Drive" prints; worksheet J.3.1 and K quote them),
+    // printed whole: an ABSENT line can pass TermSink's 200 bytes.
     for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
-        std::printf("[%s] %s\n", kTag, motorClawBootLine(kMechanisms, *st.robot, i).text);
+        std::printf("[%s] %s\n", kTag,
+                    motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, *st.robot, i).text);
     }
     for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) {
-        std::printf("[%s] %s\n", kTag, pneumaticClawBootLine(kMechanisms, *st.robot, j).text);
+        std::printf("[%s] %s\n", kTag,
+                    pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, *st.robot, j).text);
     }
     std::fflush(stdout);
 

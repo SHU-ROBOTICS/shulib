@@ -334,7 +334,7 @@ not silently break them. This table is the spine of the no-staleness promise.
 > Teleop" uses all four, and none of it has run on a robot still.)*
 >
 > **G1 Part 2b LANDED 2026-09-26 — "shulib Teleop" is rebuilt on the library, and THIS version has
-> not run on a robot.** `src/programs/teleop_program.cpp` builds `robot::Robot` over
+> not run on a robot.** `src/programs/teleop_program.cpp` (deleted at T4 Part 3) builds `robot::Robot` over
 > `hal::pros::ProsDeviceProvider` from a shared boot source (`src/common/boot_source.{hpp,cpp}`: the card's
 > calibration record, else the typed table, else refuse — the decisions unchanged) and drives through
 > `teleop::runDriverControl` with the driver-feel layer's default profile (the team lead chose the
@@ -345,7 +345,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > driver, the first time the library's own object graph drove the robot; no library-commanded motion
 > has run.
 >
-> **Now (2026-09-28): the auton tester has LANDED (COMP-t) — host- and build-gated, NOT run on a
+> **Now (2026-10-08): T4 is COMPLETE — the driver program has LANDED, host- and build-gated, NOT run on a
+> robot.** The new "shulib Drive" (slot 1) runs the team's driver file with the library's drive protections;
+> "shulib Teleop" is retired; the Auton Tester is on slot 2; the competition program (slot 6) shows the
+> PROTECTION row on its driver page; "shulib Drive" and the competition program keep an SD copy of their log;
+> and an auton the registry refuses is dropped and named, never the boot. Seven builds. **Next: the mechanism
+> core (MECH) with the standard Calibrate (CAL1) beside it, then a documentation redo (DOCS3) before the panel.**
+>
+> **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
+> slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver
 > program replaces Teleop) runs one of the team's autons on the bench from RUN on the brain's screen
 > — a 3 s countdown, then the competition program's own `competition::runAuton` call; any controller
@@ -1745,7 +1753,10 @@ is required, not optional, to hold < 1°.)*
   code is held by source pins, its boot proves its pacer chain or refuses, and the gate builds,
   links and checks it; guide chapter 17. Kept `[~]`: it is UNRUN — worksheet Station K (the
   controller's Timed Run, measured first: HA-162; HA-161 settled from its own lines) is its first
-  run, and driver control has no drive protections until T4 Part 2.
+  run. Its driver control runs the library's drive protections (T4 Part 2a, through the driver
+  file), with their PROTECTION row on the driver page and the push check (Station K.8) since T4 Part 3;
+  since T4 Part 3 too, an auton entry the registry refuses is DROPPED, never the boot (the team lead's
+  C5 ruling, 2026-10-02), and its log has an appended SD copy (`comp_log.txt`).
 - [x] **The v1 combinator ruling (chunk F2, explicit):** the engine ships as **the wall-clock guard +
   deadline-aware waits + the existing async handle (`scheduler()`)** — exactly the smaller v1 this
   document and the master plan's cut-list sanctioned. `Sequence`/`Parallel`/`Race` types are **not
@@ -1779,12 +1790,12 @@ only the INPUT half is missing.*
   *consumes* the press, so a shared detector starves the second consumer (HA-104); the seam reports
   levels and the ban is guard-test-pinned. An **F4-additive sibling, outside that freeze**, exactly as
   `IDigitalOut` was; recorded as register row F13, **not frozen** — T2 is its first real consumer.
-- [~] **Input shaping + drive modes** *(T2, 2026-09-18: built and host-proven in `teleop/` — continuous deadband, expo, slew off by default, arcade/field/tank modes, one-tick latency pinned on the plant. Since G1 Part 2b (2026-09-26) "shulib Teleop" drives through it — `teleop::runDriverControl`, the default profile, field-centric OFF — but that version of the program has not run on a robot; "shulib Drive" and the bench tester's DRIVE station keep the raw mapping until a driver has compared the two on the robot. No driver has felt it)* — the chunk that decides whether the robot feels controllable.
+- [~] **Input shaping + drive modes** *(T2, 2026-09-18: built and host-proven in `teleop/` — continuous deadband, expo, slew off by default, arcade/field/tank modes, one-tick latency pinned on the plant. From G1 Part 2b (2026-09-26) "shulib Teleop" drove through it, and since T4 Part 3 robot two's driver file does — `teleop::runDriverControl`, the default profile, field-centric OFF — run by the new "shulib Drive" and the competition program, neither of which has run on a robot; the bench tester's DRIVE station keeps the raw mapping until a driver has compared the two on the robot. No driver has felt it)* — the chunk that decides whether the robot feels controllable.
   **Continuous** deadband (the naive form jumps 0 → threshold and is what "twitchy" actually means),
   monotonic response curves through `(0,0)` and `(±1,±1)`, configurable slew that is **off by default**
   (it protects the drivetrain and adds lag; lag is the enemy of feel), one-tick input→motor latency
   pinned, and field-centric / robot-centric / arcade / tank modes.
-- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. Since G1 Part 2b (2026-09-26) "shulib Teleop"'s panel shows the state in words (OFF / ON / FELL BACK / LATCHED) and its loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling) — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
+- [~] **Field-centric's honest failure mode** *(T2, 2026-09-18: the fallback is a LATCH cleared only by the driver's re-zero, the indication is a state struct for a panel. From G1 Part 2b (2026-09-26) "shulib Teleop"'s panel showed the state in words (OFF / ON / FELL BACK / LATCHED) — since T4 Part 3 the new "shulib Drive"'s DETAILS page does — and the loop binds the re-zero to a button — A at 2b, **Y since T3 Part 2 (2026-09-26)**, because A became the pneumatic claw's toggle (the team lead's ruling), stated in robot two's driver file since T4 — with field-centric itself selectable but OFF; none of it has run on a robot)* — field-centric rotates the driver's stick frame by the
   *estimated* heading, so degraded heading silently rotates the controls away from reality while
   everything still appears to work. Requires a documented fallback to robot-centric, a driver-accessible
   re-zero, and a visible indication. Not shippable without it.
@@ -1808,11 +1819,16 @@ only the INPUT half is missing.*
   `opcontrol()` runs it since COMP-b (2026-10-02), and nothing of it has run on a robot. **Part 2a LANDED 2026-10-01, host- and build-gated:** the old
   drive's protections inside `teleop::runDriverControl` for every program (`teleop/drive_protection.hpp`,
   `teleop::FrozenReadingDetector`, `hal::MotorGroup::markAbsent`; `test/drive_protection_test.cpp`),
-  not run on a robot, with known gaps the team lead ruled on 2026-10-01 (the encoder check, built in
-  Part 3) — live motors marked dead at a wall: at
-  any wall, one whose speed report settles well before its mates'; beside a slipping drive gear, more
-  easily (A4 register HA-175). Parts 1b and 2b folded into Part 3 (2b's items are its late step);
-  Part 3 PLANNED)* — ONE readable driver file for robot
+  not run on a robot, with known gaps — live motors marked dead at a wall: at any wall, one whose
+  speed report settles well before its mates' (CLOSED by the encoder check the team lead ruled
+  2026-10-01, built in Part 3's early step, at the cost of one 1 s fight cut); beside a slipping drive
+  gear, more easily (kept until its gear is fixed; A4 register HA-175). Parts 1b and 2b folded into
+  Part 3 (2b's items are its late step); **Part 3 LANDED 2026-10-08 — T4 COMPLETE** (built 2026-10-04/06, reviewed
+  2026-10-07, its findings fixed and verified 2026-10-08): the new "shulib Drive" (slot 1) runs the driver file with MAIN / DETAILS / MORE pages,
+  "shulib Teleop" retired (seven builds), the Auton Tester in slot 2, the buttons in the driver file
+  only, the PROTECTION row and the push check, an SD copy of "shulib Drive"'s and the competition
+  program's logs, and one refused auton entry dropped, never the boot — none of it run on a robot;
+  Stations F, J and K are its first runs)* — ONE readable driver file for robot
   two (which button does what, the feel), run by the new "shulib Drive" and by the competition
   program's `opcontrol()`, never copied; the old drive's protections (a dead drive motor, a motor
   fighting its side, over-current) moved into the library's driver loop for every program; "shulib
@@ -1842,7 +1858,7 @@ R4.)*
   *G1 Part 2a, 2026-09-24: `hal::pros::ProsDeviceProvider` landed (host-tested through the PROS
   shim only), with dead drive ports honoured by the builder and the port map generated.*
   *G1 Part 2b, 2026-09-26: the first program on the builder — "shulib Teleop"
-  (`src/programs/teleop_program.cpp`) builds `robot::Robot` over the provider from the calibration record;
+  (`src/programs/teleop_program.cpp`, deleted at T4 Part 3) builds `robot::Robot` over the provider from the calibration record;
   that version has not run on a robot.*
   **OPEN:** the `src/main.cpp` collapse (G1 Part 2c), and the codegen that fills these types from a
   `.vexbot` (G3).*

@@ -119,9 +119,22 @@
 > outside the fitted range, invented; HA-172 the current limit as the ramp's only non-linearity,
 > reasoned and invented; HA-173 the IMU drift's per-boot nature and its noise STRUCTURE, reasoned and
 > invented; HA-174 that measured gains hold for a match, invented and reasoned; with them, 171.
+> **T4 Part 3 (the new "shulib Drive", Teleop retired; built 2026-10-04/06, reviewed 2026-10-07/08)
+> added no entry** — and brought the tree's words up to it: HA-175's claim (b) re-worded to the team
+> lead's ruling of 2026-10-01 (the ENCODER check: a side-mate is evidence the train turns only while its
+> encoder moved), its known gaps re-stated (the any-wall case closed at the cost of one fight cut; port
+> 18's two kept); HA-112, HA-124, HA-131, HA-132, HA-141, HA-143, HA-153..HA-159, HA-161 and HA-176's
+> program text moved from "shulib Teleop" and the old "shulib Drive" to the new "shulib Drive" and the
+> driver file; and HA-60 names its second consumer, the programs' SD log copy, written inside a tick.
+> One belief it met is left for the coordinator, unnumbered: whether PROS serializes two tasks' writes
+> to one FILE* (stdout; the card copy no longer depends on it — `diag::LogCopySink` keeps one writer).
+> HA-161 gained a consequence line at its verification (2026-10-08): as built, a deletion that lands
+> mid-copy ends the card's copy for that boot. A second belief is named there and left unnumbered: it
+> would be needed only by a guard that recovers from such a deletion (`task_get_state()` on a deleted
+> task's handle).
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
-> (the mechanism core: its brief, being written), held the same way. The
+> (the mechanism core: its brief, accepted 2026-10-08), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -318,7 +331,7 @@
 | HA-172 | Inside the ramp's range the only non-linearity is the per-motor current limit (the PROS default, 2500 mA — whether VEXos lowers it with 12 motors plugged in is UNVERIFIED), `current()` reports it within a tick, and the firmware adds no slew of its own to `move_voltage` | reasoned (the limit) · **invented** (the rest) | S2 (R5) |
 | HA-173 | A stationary V5 IMU's drift is a PER-BOOT bias (HA-20), never a correction for a later boot — and whether one 60 s capture separates it from noise depends on the noise's STRUCTURE (white heading noise, or integrated rate noise), which the host cannot show | reasoned (per-boot) · **invented** (the structure) | S3, ≥ 10 boots (R4) |
 | HA-174 | Gains measured once hold for the match: the same foam tiles, a charged pack (HA-47), the same drive members — a member absent at a later boot leaves kV roughly unchanged and raises kS roughly as 1/(members present) | **invented** (surface) · reasoned (members) | S2 (R5) |
-| HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates too (brief spells as a train coasts to a stop are expected and harmless), EXCEPT at a wall, where the guard holds only while every stalled member reads alike — at ANY wall when one member's report settles to 0 well before its mates' (their lagging reports still say the train turns), and beside a slipping side-mate (HA-130's port 18) more easily (the known gaps, in the long form); and a side still drives acceptably with its dead dropped, up to the mid-run stop at more than two dead in total | reasoned (the adapter's screen, `hal/pros/motor.hpp` `position()`, `velocity()`, `current()`; BLUE's 300 counts per output turn) + **invented** (the 5 reads, the 250 ms latch, the majority-or-tie guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall, with and without one stalled member reading unlike its mates; a plain wall with one report settling sooner; a coast-down with per-member encoder phase; 2026-09-28/30, 2026-10-01) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD on any drive port, port 18 (HA-130) included — the push check's push (HA-176): read its log for a `went ABSENT` line |
+| HA-175 | A robot-two drive port that stops answering mid-run shows through the IMotor seam as a FROZEN reading — position(), velocity() and current() all repeating their last good values bit for bit (ProsMotor's screen); a LIVE member is never FROZEN for 25 consecutive 10 ms ticks — FROZEN being position AND velocity bit-identical for 5 reads while its own report says it turns (above 0.5 rad/s) or a side-mate whose ENCODER moved within the last 5 reads says the train does (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity report changes while it decays and a stall stops its mates' encoders too (brief spells as a train coasts to a stop are expected and harmless), EXCEPT at a wall beside a slipping side-mate (HA-130's port 18), whose encoder keeps turning, where the guard holds only while every stalled member reads alike (the known gaps, in the long form; at a plain wall, one report settling sooner now costs one 1 s fight cut instead of a mark — the team lead's encoder check, 2026-10-01); and a side still drives acceptably with its dead dropped, up to the mid-run stop at more than two dead in total | reasoned (the adapter's screen, `hal/pros/motor.hpp` `position()`, `velocity()`, `current()`; BLUE's 300 counts per output turn) + **invented** (the 5 reads, the 250 ms latch, the majority-or-tie guard; the floor, R3b Part 0b) + host-probed only (a slipping member at a wall, with and without one stalled member reading unlike its mates; a plain wall with one report settling sooner; a coast-down with per-member encoder phase; 2026-09-28/30, 2026-10-01) | T4 Part 3's Station F.6 (i); the DEGRADED boot with one port unplugged per side; a full-stick wall push watched for a false DEAD on any drive port, port 18 (HA-130) included — the push check's push (HA-176): read its log for a `went ABSENT` line and a `CUT: FIGHT` line |
 | HA-176 | On robot two a drive motor above 2.4 A for 250 ms while its side is driven above 1 V means something is WRONG (a fight on the coupled train, or a stall) and not ordinary driving — a full-stick reversal at top speed and a full-stick launch from rest included, each believed to hold the current limit for less than 250 ms — and a drive motor CAN draw more than 2.4 A (the per-motor limit stays at the PROS default 2500 mA with twelve motors plugged in, HA-154) | **invented** (R3b Session 2's first-run number, the old "shulib Drive"'s `kCurrentLimitA`; no current trace of robot two under power exists) | the competition program's push check (its practice-match station, K), with a full-stick reversal at top speed and a full-stick launch from rest; T4 Part 3's Station F: the highest A at full stick wheels-up, then F.6 (ii) |
 | HA-177 | An APPEND open under `/usd/` (`fopen(path, "ab")`, which PROS hands to VEXos's `vexFileOpenWrite`) writes after an EXISTING file's last byte and keeps every earlier byte; on an ABSENT file it either fails or creates (the adapter handles both); a line written and flushed survives a power-off right after it | (1) reasoned (the vendored `libpros.a`/`libc.a`, disassembled 2026-09-26); (2)–(3) **invented** (VEXos's); (4) reasoned for the call, invented for what the sync commits | COMP-t Station M.7 |
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
@@ -881,9 +894,12 @@ dependency order (battery scale before anything drives, signs before any closed 
   `DriverProfile`), `slew_limiter.hpp` (`SlewConfig`), `drive_modes.hpp` (`DriveMode`),
   `field_centric.hpp` (the latch), `driver_control.hpp` (`DriveShaper`, the order); the
   original signs and the hard-cut deadband remain in `teleop/stick_mapping.hpp`, whose
-  `mapSticks` the drive program ("shulib Drive") and the bench tester's DRIVE station still call.
-  Since G1 Part 2b "shulib Teleop" runs the feel layer instead (`src/programs/teleop_program.cpp`, through
-  `teleop::runDriverControl`, `teleop/teleop_loop.hpp`), with this default profile; since G1 Part
+  `mapSticks` the bench tester's DRIVE station still calls (the old "shulib Drive" did too, until T4
+  Part 3 replaced it). Robot two's driver file runs the feel layer instead
+  (`src/team/robot_two_driver.hpp`, through `teleop::runDriverControl`, `teleop/teleop_loop.hpp`),
+  with this default profile, and "shulib Drive" runs that file since T4 Part 3
+  (`src/programs/drive_program.cpp`; "shulib Teleop" ran the feel layer from G1 Part 2b until T4
+  Part 3 retired it); since G1 Part
   2c the invented X-drive does too (`src/programs/xdrive_program.cpp` — it replaced `src/main.cpp`'s R1a
   loop, the last caller of `mapSticksToChassisSpeeds`), and it refuses at boot on every robot that
   exists, so no driver has felt it there either.
@@ -893,9 +909,9 @@ dependency order (battery scale before anything drives, signs before any closed 
   defaults were chosen to reproduce the shipped mapping as closely as a continuous deadband
   allows (identical at centre and at both rails; inside that range the rescale asks for at
   most 0.05 less), which is a compatibility argument, not a feel argument. The feel layer has
-  never been driven by a person: the previous "shulib Teleop" drove robot two under a driver on
+  never been driven by a person: a previous "shulib Teleop" drove robot two under a driver on
   2026-09-25 (eight starts, open-loop), but through the OLD raw mapping; the feel layer's first
-  driver is the G1 Part 2b version's first run, which has not happened.
+  driver is the new "shulib Drive"'s first run (worksheet Station F), which has not happened.
   *Settle (T2/R3, runbook step 10):* a human drives it. Signs that feel backwards get flipped
   at the mapping; the deadband, the expo and any slew rate get tuned by feel and recorded as
   a named profile rather than edited into a constant.
@@ -1092,14 +1108,15 @@ are not rewritten.
 rather than the robot — what PROS's registry means by a port, what newlib does with a binary file
 on the card, and what a record on that card is worth protecting with. They sit here rather than in
 the R1a/R1b groups because they were found and are settled by robot two's session, and because two
-of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
+of them are the direct inputs to "shulib Calibrate" and to the programs that boot from its record
+("shulib Teleop" when they were written; "shulib Drive" since T4 Part 3).
 
 - [ ] **HA-124 — robot two's drive wheels are 2.75 in in diameter.**
   *Claim:* a ruler across the tread of any of robot two's eight drive wheels reads 2.75 in.
   *Source:* `src/robots/chassis_table.hpp` (`.wheelDiameterIn = 2.75`, tagged `A4 register HA-124`);
   consumed through `tableDriveGeometry()` into `tableToDescription()`, i.e. only when the library
-  program falls back to the TYPED TABLE. *(Amended at R3d Part 2, 2026-09-18: "shulib Teleop" now
-  builds from a `hal::DrivetrainDescription`, and when that comes from the SD card's calibration
+  program falls back to the TYPED TABLE. *(Amended at R3d Part 2, 2026-09-18: "shulib Teleop" then —
+  "shulib Drive" since T4 Part 3 — builds from a `hal::DrivetrainDescription`, and when that comes from the SD card's calibration
   record the wheel diameter is not read at all — the record carries a MEASURED inches-per-radian
   per side instead, which is the radius × ratio product this entry and HA-126 together stand in
   for. The table remains the fallback, so the entry stays live until a record exists on the
@@ -1226,8 +1243,9 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   robot is INVISIBLE to the health monitor until a detector built on the encoder-vs-IMU heading
   cross-check exists.
   *Source:* `include/shulib/motion/odo_stall_check.hpp` (the §2 ruling; `A4 register HA-131`);
-  `src/programs/teleop_program.cpp` (`kNoIndependentStallSourceNote` logged once at boot, in two pieces
-  so the 200-byte log line does not cut it; `src/main.cpp` until G1 Part 2b); `localization/
+  `src/programs/drive_program.cpp` (`kNoIndependentStallSourceNote` logged once at boot, in pieces
+  so the 200-byte log line does not cut it; `src/main.cpp` until G1 Part 2b, "shulib Teleop" until T4
+  Part 3); `localization/
   drive_encoder_odometry.hpp` (`lastHeadingDisagreement()`, the future detector's input).
   *Confidence:* reasoned (structural — a fact about the sources, not a measurement).
   *Settle (**R4** — RE-HOMED from "R3d/R4" on 2026-09-17 by R3d Part 1):* a stuck/slip detector on
@@ -1252,8 +1270,9 @@ of them are the direct inputs to "shulib Calibrate" and "shulib Teleop".
   station, `hal::MotorGroup`, the self-calibrator (`calibration/drivetrain_calibrator.hpp`) and —
   **since T4 Part 2 (2026-09-29)** — the library's drive protections
   (`teleop/drive_protection.hpp`) in every program that drives through
-  `teleop::runDriverControl` ("shulib Teleop" until it retires, the X-drive, and robot two's driver
-  file — so the competition program's `opcontrol()` once it runs that file), which CUT on the group
+  `teleop::runDriverControl` (robot two's driver file — so "shulib Drive", and the competition
+  program's `opcontrol()`, which run it — and the X-drive; "shulib Teleop" until T4 Part 3 retired
+  it), which CUT on the group
   monitor's verdict and
   reuse two of its floors for the frozen-reading rule (HA-175) — one evaluator, one set of numbers.
   *Confidence:* **invented** for a first run (R3b Session 2's own words). No fight has yet been
@@ -1579,8 +1598,8 @@ this says the KIND the registry reports on that port can be trusted for the thre
   `ProsGps` defers on an unreadable device, so for those three kinds the registry's answer is now the
   ONLY thing that can refuse an empty or wrong port — which is why the belief gets its own entry.
   No rotation sensor or GPS has ever been plugged into either robot.
-  *Settle (G1 Part 2b's first boot of "shulib Teleop" / R3) — reworded at G1 Part 2b:* on
-  "shulib Teleop" the boot check reaches every IMU and drive-port fault FIRST, through the same
+  *Settle (the first boot of a program that boots from the record — "shulib Drive" since T4 Part 3 —
+  / R3) — reworded at G1 Part 2b:* on such a program the boot check reaches every IMU and drive-port fault FIRST, through the same
   registry call (`calibration/boot_check.hpp`'s `verifyAgainstRegistry`, which refuses a record
   whose IMU port no longer reads IMU), so a pulled IMU cable is refused by the BOOT CHECK and never
   reaches the provider — that boot cannot show "nothing plugged in (expected an IMU)". So the belief
@@ -1646,8 +1665,9 @@ motor — now rests on. **None of them has been observed on a robot.**
   short-circuits the windings (a dynamic brake), or holds.
   *Source:* `include/shulib/hal/motor.hpp` (the `BrakeMode::Coast` doc, tagged `A4 register
   HA-143`); `include/shulib/hal/pros/motor.hpp` (THE STOP: Coast, and every zero under no commanded
-  mode, stays `move_voltage(0)` — exactly the pre-DEFECTS2 wire traffic, so Calibrate, shulib Drive
-  and the tester's DRIVE station are unchanged); the plant's coast-follow (HA-137) and the
+  mode, stays `move_voltage(0)` — exactly the pre-DEFECTS2 wire traffic, so Calibrate, the old
+  shulib Drive (until T4 Part 3) and the tester's DRIVE station are unchanged); the plant's
+  coast-follow (HA-137) and the
   calibrator's one-sided pulses assume it.
   *Confidence:* **invented — UNKNOWN.** PROS says only that the voltage "simply" is set; it does not
   say what an H-bridge at 0 V does. Two QUALITATIVE observations point toward a coast and neither is
@@ -1663,7 +1683,7 @@ motor — now rests on. **None of them has been observed on a robot.**
   at hold as at coast (which also checks HA-142's first half).
   *Blast radius if wrong (0 V brakes):* the "coast" in Calibrate's pulses and the plant's κ is
   really a brake — the calibration's side test is modelled with the wrong sign of error — and the
-  ruled Teleop release feel is a braking one. Nothing DEFECTS2 did makes it worse: the Coast path is
+  ruled driver-control release feel is a braking one. Nothing DEFECTS2 did makes it worse: the Coast path is
   byte-for-byte the wire traffic it was. **Contained:** it is a fact about the motor; the only code
   it steers is the plant's coast-follow model.
 
@@ -1757,8 +1777,9 @@ are unused. HA-153 to HA-156 are beliefs about motors NOBODY HAS SEEN YET: the t
 the two claw pivots on 2026-09-26, no census or capture has shown a motor on port 6 or 7, and
 nothing has commanded either on a robot. `src/robots/mechanism_table.hpp` declares them;
 `src/programs/calibrate_program.cpp` acts on the declaration (it never makes 6 or 7 a drive candidate);
-"shulib Teleop" builds and drives them since T3's Teleop wiring (its Part 2, the same day) —
-host- and build-gated, never run. Worksheet Station J is their first run.
+"shulib Drive" builds them and robot two's driver file drives them (since T4 Part 3; "shulib Teleop"
+did from T3's Teleop wiring, its Part 2, the same day, until then) — host- and build-gated, never
+run. Worksheet Station J is their first run.
 
 - [ ] **HA-147 — a V5 controller's connected flag and its button levels change together.**
   *Claim:* on the first tick `is_connected()` reads true after a disconnect, `get_digital()`
@@ -1795,9 +1816,11 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   L1 moves its claw the "back" way.
   *Source:* `src/robots/mechanism_table.hpp` (`kRobotTwoMechanisms`, tagged `A4 register HA-153`): the
   ports, the cartridge and the `+` signs; `src/programs/calibrate_program.cpp` drops 6 and 7 from its drive
-  candidates on this belief, and since T3 Part 2 "shulib Teleop" builds both pivots from it
-  (`src/common/boot_source.hpp`), names them as claw pivots in its port check, and binds R1/R2 and L1/L2
-  to them (`src/programs/teleop_claws.hpp`). `test/mechanism_table_test.cpp` pins the table's contents — which
+  candidates on this belief, and every program that boots robot two from the record builds both
+  pivots from it (`src/common/boot_source.hpp`) and names them as claw pivots in its port check;
+  robot two's driver file binds R1/R2 and L1/L2 to them by name (`src/team/robot_two_driver.hpp` —
+  the buttons are stated there and nowhere else since T4 Part 3), and "shulib Drive" runs that
+  file. `test/mechanism_table_test.cpp` pins the table's contents — which
   tests the TYPING against the report, never the report.
   *Confidence:* **reported** by the team lead, 2026-09-26 — not measured. No capture has seen a
   motor on 6 or 7: the 2026-09-24 Calibrate census lists motors on 11–18 and 20 only, and the
@@ -1808,11 +1831,11 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   colour read off each motor; Calibrate prints `port 6: claw pivot (declared) -- not a candidate,
   not touched` and the same for 7; J's direction check — hold R1, which way does the port-6 claw
   go; hold L1, the port-7 claw.
-  *Blast radius if wrong:* a wrong PORT leaves that claw ABSENT in Teleop (the provider refuses a
+  *Blast radius if wrong:* a wrong PORT leaves that claw ABSENT in "shulib Drive" (the provider refuses a
   port with no motor on it, by name, and the drive still runs) — or, if a DRIVE motor is on 6 or
   7, Calibrate drops that drive motor (the side calibrates one short) and R1 spins a wheel. (A
   calibration RECORD that lists 6 or 7 as a drive port — one taken before Calibrate skipped the
-  claws — makes Teleop refuse at boot, "recalibrate", since T3 Part 2.) A wrong CARTRIDGE writes the
+  claws — makes every program that boots from it refuse at boot, "recalibrate", since T3 Part 2.) A wrong CARTRIDGE writes the
   wrong gearset: the volts still reach the motor and the claw still moves; only the motor's speed
   and position scaling — unused by a hold-to-run button, needed by a future angle preset — would be
   off. A wrong SIGN moves the claw opposite to what the driver expects, and is fixed by flipping
@@ -1837,14 +1860,14 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   TIMING is **invented**, and none is written here on purpose: nothing may use one until Station J
   measures it.
   *Settle (worksheet Station J):* close one claw against its stop and hold the button for a timed
-  interval, reading the motor's temperature before and after (Teleop's claw row, `CLAW 6 HOLD
-  34C | ...`, since T3 Part 2); stop well below HA-44's 55 °C first step. The row shows the
+  interval, reading the motor's temperature before and after (the claw row — `CLAW 6 HOLD
+  34C | ...`, since T3 Part 2; on "shulib Drive"'s DETAILS page since T4 Part 3); stop well below HA-44's 55 °C first step. The row shows the
   motor's LAST GOOD reading — it freezes, unmarked, if the motor stops answering, and reads 20 °C
   if it never answered (`hal/pros/motor.hpp`'s screen; the motor seam has no validity channel) —
   so a reading that does not move while the pivot is held means a cable check first.
   *Blast radius if wrong:* a claw that goes weak mid-match as its motor derates, or a motor that
   cuts itself out hot — and shulib would not say why: `MOTOR_OVER_TEMP` watches the drive only.
-  The driver sees a claw that stopped gripping; Teleop's claw row SHOWS each pivot's temperature
+  The driver sees a claw that stopped gripping; the claw row SHOWS each pivot's temperature
   (T3 Part 2; its last good reading — see the settle text), but nothing acts on it. **Contained:** one mechanism; the drive is not
   affected.
 
@@ -1852,11 +1875,11 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   registry.**
   *Claim:* the brain's device registry reports a port's device KIND — MOTOR — never WHICH motor,
   so a claw-pivot cable and a drive-motor cable swapped with each other at the brain look identical
-  to every check shulib runs before power: the census, Calibrate's declared-port drop, Teleop's
-  port check against the record, the provider's kind check. False only if the registry could tell
+  to every check shulib runs before power: the census, Calibrate's declared-port drop, the boot
+  check's port check against the record, the provider's kind check. False only if the registry could tell
   one motor from another, which its API (HA-138, HA-141) does not offer.
   *Source:* `src/programs/calibrate_program.cpp` (the declared-port drop, tagged `A4 register HA-155`): it
-  drops PORTS, trusting that the cable in port 6 is the claw's; `src/robots/mechanism_table.hpp`. Teleop's
+  drops PORTS, trusting that the cable in port 6 is the claw's; `src/robots/mechanism_table.hpp`. The
   boot check already says the same of two DRIVE cables swapped with each other ("NOT CHECKED: two
   drive cables swapped WITH EACH OTHER look identical here").
   *Confidence:* reasoned (what the registry reports).
@@ -1865,7 +1888,7 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   *Blast radius if a swap happens:* Calibrate skips the drive motor now on 6 or 7 (that side
   calibrates one short) and takes the claw motor now on a drive port as a candidate — geared BLUE
   and set to Coast, so a loaded claw drops, and if the push swings it far enough to count as moved,
-  it is taken for a drive motor and PULSED. On a record made before the swap, Teleop drives the claw
+  it is taken for a drive motor and PULSED. On a record made before the swap, "shulib Drive" drives the claw
   motor as a member of a drive side — the coupled-side monitor catches that half
   (`MOTOR_GROUP_DISAGREE`: a claw at its stop cannot follow its side) — while R1 drives a wheel at
   12 V, which only a person sees. **Contained:** by labels and Station J; no software can contain
@@ -1882,8 +1905,10 @@ host- and build-gated, never run. Worksheet Station J is their first run.
   brief specifies that the library's hold-to-run binding applies the safe state ONCE on release
   (never re-applied per tick, which could creep the hold point); that binding is
   `teleop::MechanismBinding` (T3 Part 1, `include/shulib/teleop/mechanism_binding.hpp`), and
-  "shulib Teleop" binds both pivots with it since T3 Part 2 — a release is ONE `brake()` under Hold
-  at the PROS shim (`test/teleop_claws_test.cpp` test 1), which says nothing about the load.
+  robot two's driver file binds both pivots with it ("shulib Teleop" did from T3 Part 2 until T4
+  Part 3; "shulib Drive" runs the driver file since) — a release is ONE `brake()` under Hold at the
+  PROS shim (`test/driver_panel_claws_test.cpp` test 1 — renamed from `test/teleop_claws_test.cpp`
+  at T4 Part 3), which says nothing about the load.
   *Confidence:* **invented** — the load, the hold's stiffness and the hold current are all
   unmeasured; the V5's Hold is a position hold whose strength under a claw's load nobody here has
   measured.
@@ -1897,9 +1922,9 @@ host- and build-gated, never run. Worksheet Station J is their first run.
 **T3's addendum (E2, the pneumatic claw, 2026-09-26) added HA-159** (its library half, B2, owns
 HA-157 and HA-158). The team lead reported a PNEUMATIC claw the same night: its solenoid on the
 brain's 3-wire port A, toggled by the controller's A button, closed at program start, keeping its
-state when the robot is disabled. `src/robots/mechanism_table.hpp` declares it; "shulib Teleop" drives
-its line since T3 Part 2 (made at the START level when the Robot is built, then A's toggle) — not
-yet on the robot — and shulib's census cannot show it (it reads the 21 smart ports). Worksheet
+state when the robot is disabled. `src/robots/mechanism_table.hpp` declares it; "shulib Drive" drives
+its line since T4 Part 3, through robot two's driver file ("shulib Teleop" did from T3 Part 2) — made
+at the START level when the Robot is built, then A's toggle — not yet on the robot — and shulib's census cannot show it (it reads the 21 smart ports). Worksheet
 Station J.9 is its first run.
 
 **T3's addendum B2 (2026-09-26) added HA-157 and HA-158.** Both are about the brain's own eight
@@ -1915,8 +1940,8 @@ opens it are the program half's entry, from the team lead's report).
   (2) A level the program commands WHILE the brain is disabled reaches the valve — at once, or at
   the latest when the brain is enabled. The second half is not a corner case: `robot::Robot` makes
   each pneumatic line at the config's `pneumaticStart` the moment it is built, and a program builds
-  its Robot in `initialize()` ("shulib Teleop" does, since G1 Part 2b: its `teleopInitialize()`,
-  commit `7f9b9a1`), which on a field — and whenever the program is started from the
+  its Robot in `initialize()` ("shulib Drive" does, since T4 Part 3: its `driveInitialize()`;
+  "shulib Teleop" did from G1 Part 2b, commit `7f9b9a1`), which on a field — and whenever the program is started from the
   controller's own menu (HA-128, measured: the brain then starts DISABLED) — runs while the brain
   is disabled. False if VEXos drives the brain's 3-wire outputs to any level of its own while
   disabled (as it cuts the motors) or on the way back to enabled, or drops (or holds back past
@@ -1979,7 +2004,8 @@ opens it are the program half's entry, from the team lead's report).
   program set.
   *Settle (Station J — a step the station does not have yet; the coordinator adds it to J.9, whose
   J.9.0 only LOOKS at the valve's cable and whose J.9.5 pulls the CONTROLLER's):* with no hand in
-  the claw, pull the valve's 3-wire cable out of port A and start slot 2 — the program must build
+  the claw, pull the valve's 3-wire cable out of port A and start "shulib Drive" (slot 1; slot 2's
+  "shulib Teleop" until T4 Part 3) — the program must build
   the claw exactly as it does with it plugged in (the same boot line for the claw, no refusal, no
   difference on the screen) — and look at the brain's own Devices screen for any entry for the
   valve, plugged and unplugged. Confirming the belief means seeing NO difference. Plug the cable
@@ -2008,13 +2034,14 @@ opens it are the program half's entry, from the team lead's report).
   *Confidence:* **reported** by the team lead, 2026-09-26 — the PORT only ("port A"). Whether the
   valve is single or double, and the polarity, are **unknown**: the team lead said so, and `true`
   is a guess recorded as one. Nothing has seen the claw move under a program: the one program that
-  drives its line ("shulib Teleop", since T3 Part 2) has not run on the robot, shulib's census
+  drives its line ("shulib Drive", since T4 Part 3; "shulib Teleop" from T3 Part 2) has not run on
+  the robot, shulib's census
   reads the 21 smart ports only, and nothing in shulib
   can ask the brain what is on a 3-wire line (the library half's register entries carry what the
   brain can and cannot report there).
   *Settle (worksheet Station J.9):* J.9.0 — look at the valve: one cable or two into the brain,
   and which letters (one cable NOT in A stops the station: the port is wrong, not the polarity);
-  J.9.2 — where the claw is after slot 2 starts; J.9.3 — the FIRST press of A decides, with one
+  J.9.2 — where the claw is after "shulib Drive" (slot 1) starts; J.9.3 — the FIRST press of A decides, with one
   cable in A: CLOSED after the start and the press OPENS it ⇒ the polarity is right; OPEN after
   the start and the press CLOSES it ⇒ it is backwards (flip `kClawOpenCommand`, the only code
   edit, and record it — the test's pin, this entry, J.9); the press moves NOTHING ⇒ no answer
@@ -2050,14 +2077,19 @@ were built in parallel; both have since landed, with the numbers below it.)
   *Source:* half (a) is written, as a belief, in code comments only:
   `include/shulib/teleop/teleop_loop.hpp` (step 1: "PROS deletes the opcontrol task on a field
   disable, and a deleted task runs no destructor", so the driver loop polls the disable and
-  returns, braking the drive before the task is torn down), `src/main.cpp` (the X-drive loop:
-  "PROS deletes the task on disable and a deleted task runs no destructor"),
-  `src/programs/drive_program.cpp` ("A FIELD DISABLE is NOT a C++ exit — PROS deletes the opcontrol task,
-  and a deleted task runs no destructors … Stated so nobody believes the guard covers a kill")
-  and `src/programs/calibrate_program.cpp` (the same belief, nearly word for word, for its all-stop guard), and
-  `include/shulib/robot/robot.hpp` ("PROS calls opcontrol() again after every disable"). Two
-  rules rest on half (a) as well: the claw bindings take no claim (a claim would survive a
-  deleted task), and T3's static-state rule — the teleop program keeps its bindings, its
+  returns, braking the drive before the task is torn down — the loop the X-drive runs too, since G1
+  Part 2c moved it out of `src/main.cpp`, whose own X-drive loop said "PROS deletes the task on disable
+  and a deleted task runs no destructor" until then; corrected at T4 Part 3's review, 2026-10-08),
+  `src/programs/calibrate_program.cpp` ("A FIELD DISABLE is NOT a C++ exit — PROS deletes the
+  opcontrol task and a deleted task runs no destructors", for its all-stop guard — the old
+  `src/programs/drive_program.cpp` said it nearly word for word for its own guard until T4 Part 3
+  replaced that program; the new one says it for its storage: the driver file is held in the
+  program's static state, never on the opcontrol task's stack, "because the loop holds the bindings
+  by address and PROS deletes the opcontrol task on a field disable"), `src/common/driver_controls.hpp`
+  (its Storage note: the bindings live in static storage because PROS "runs no destructor"), and `include/shulib/robot/robot.hpp` ("PROS calls opcontrol() again after
+  every disable"). Two rules rest on half (a) as well: the claw bindings take no claim (a claim
+  would survive a deleted task), and T3's static-state rule — a driver program ("shulib Drive" and
+  the competition program since T4 Part 3; "shulib Teleop" until then) keeps its bindings, its
   mechanisms and their `IMotor*` arrays in its static state, never on the driver task's stack,
   which a deleted task would leave dangling. Half (b) is what COMP's own-task design rests on
   (`competition/match_runner.hpp` runs on whichever task calls it; the program's task and its
@@ -2113,6 +2145,21 @@ were built in parallel; both have since landed, with the numbers below it.)
   stack — the failure the own-task design exists to avoid; the recovery would be a disable-aware
   pacer that ends the routine before the mode change lands, which the abandon latch already is.
   **Contained:** the program's task body and its watch pacer (COMP-b).
+  *A consequence if (a) is RIGHT (T4 Part 3's verification, 2026-10-08):* the SD copy of a program's
+  log (`diag/log_copy_sink.hpp`) lets one task at a time write the card, and only a task that
+  RETURNS from its copy releases the guard. Both driver programs log a line right after their loop
+  sees the disable ("shulib Drive"'s `opcontrol(): field DISABLED ...`; the competition program's
+  `driver control ended` and `normal return`) — the moment (a) says PROS deletes the task. A deletion
+  that lands while that line is being copied leaves the guard held, so the card's copy ENDS for the
+  rest of that boot: every later line is counted and stays on serial, and no gap line is written.
+  That is the chosen failure, not an oversight. A released guard would hand the next writer — the
+  driver loop included — whatever the deleted task left half-done in newlib's FILE or the card's
+  driver (unmeasured), and that writer could hang. How often the deletion lands inside a copy is
+  unmeasured; worksheet F.7.2 and K.7.2 compare the card with serial at each disable. No new
+  belief is added here. A guard that recovers from a dead holder would add one: that PROS's
+  `task_get_state()` reads DELETED for a deleted task's handle, never the state of a later task built
+  in its memory. That is left for the coordinator, with the design that would remove the case: one
+  card-writer task that alone touches the file.
 
 **COMP-b (2026-09-30) added ONE — HA-162, its reservation (the number was held for it since the COMP
 brief's re-check of 2026-09-28).** The team owns no competition switch, so the bench's only way to run
@@ -2456,14 +2503,14 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   as a FROZEN reading: its `position()`, `velocity()` and `current()` all repeat their last good values,
   bit for bit, for as long as it is dead. (b) A LIVE member is never FROZEN for 25 consecutive 10 ms
   ticks — FROZEN being its position AND velocity bit-identical for 5 consecutive reads while its own
-  report says it turns (above 0.5 rad/s) or a side-mate whose readings still change says the train does
-  (above 1 rad/s), with at least as many of its side answering as not — because a live motor's velocity
-  report changes while it decays, and a stall stops its mates too. Brief FROZEN spells as a train coasts
-  to a stop are expected and harmless. The EXCEPTION is a wall, where the guard — a COUNT of suspect
-  members against answering ones — holds only while every stalled member reads alike: at ANY wall, a
-  member whose velocity report settles to 0 well before its mates' is suspect alone, because their
-  lagging reports still say the train turns, and can stay FROZEN for 250 ms; beside a slipping side-mate
-  (HA-130's port 18), whose encoder keeps turning, smaller differences do it (the known gaps, below).
+  report says it turns (above 0.5 rad/s) or a side-mate whose ENCODER moved within the last 5 reads says
+  the train does (above 1 rad/s), with at least as many of its side answering as not — because a live
+  motor's velocity report changes while it decays, and a stall stops its mates' encoders too (a mate
+  whose encoder has stopped is no evidence, however its lagging report still reads: the team lead's
+  ruling of 2026-10-01, "Encoder check"). Brief FROZEN spells as a train coasts to a stop are expected
+  and harmless. The EXCEPTION is a wall BESIDE A SLIPPING side-mate (HA-130's port 18), whose encoder
+  keeps turning and so stays evidence: there the guard — a COUNT of suspect members against answering
+  ones — holds only while every stalled member reads alike (the known gaps, below).
   (c) A side still drives acceptably with its dead dropped, up to the mid-run stop: more than two drive
   motors dead in total (the team lead's ruling N7 (c), 2026-09-27: "Only when 3+ are dead in total");
   the per-side floor (three answering) is applied at BOOT only.
@@ -2480,10 +2527,12 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   P2-19c (a coast-down with a quarter-count encoder phase per member and a 150 ms report lag: no
   FROZEN tick at all); P2-21 and P2-21b (a slipping member at a wall, drag 0 and 0.8, and coasting
   through a cut: no live member marked; 3 fight cuts during the push); P2-19d (a PLAIN wall with one stalled member reading unlike its
-  mates — a 1-RPM report flicker, a one-count encoder dither, a report settling sooner by too little:
-  nobody marked, each longest live FROZEN spell pinned, up to 24 ticks); P2-19e, P2-21c and P2-21d
-  (the known gaps below, pinned); and `test/coupled_side_monitor_test.cpp`'s P2-10b cases, each rule at
-  its boundary, forward and backward.
+  mates — a 1-RPM report flicker, a one-count encoder dither, a report settling 30 ms beside 80 ms:
+  nobody marked, nobody FROZEN, no cut); P2-19e (a plain wall, one report settling sooner at every
+  spread the verification of 2026-10-01 probed: nobody marked or FROZEN, and ONE 1 s fight cut from 30
+  beside 100 ms on — the encoder check's cost, pinned); P2-21c and P2-21d (the known gaps below,
+  pinned); and `test/coupled_side_monitor_test.cpp`'s P2-10b cases, each rule at its boundary, forward
+  and backward, the encoder check's window among them.
   *Confidence:* the numbers are **invented** (the 5 reads, the 250 ms latch, the majority-or-tie
   guard; the floor, R3b Part 0b), on **reasoned** mechanics (the adapter's screen, read from the code;
   BLUE's 300 counts per output turn — one count about every 42 ms at 0.5 rad/s and every 21 ms at
@@ -2493,14 +2542,15 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   HA-130). Two beliefs under the rule are unmeasured: that a dead V5 port holds its VELOCITY bit for
   bit (ProsMotor's screen does; that a pulled cable produces the failed read the screen catches is
   HA-98's family), and that a live motor's reported velocity CHANGES while it decays — a whole-RPM
-  report can hold one value for a few ticks. A third is unmeasured and load-bearing at EVERY wall (the
-  review of 2026-09-30 found it beside the slipping member, the verification of 2026-10-01 at a plain
-  wall): that the stalled members read ALIKE — first of all, that one side's velocity reports settle
-  at the same pace. No V5 motor's report lag has been measured; the model's 80 ms is invented. At a
-  plain wall the model marks a member whose report lags 30 ms beside mates at 120 ms (full stick),
-  10 ms beside 100 ms, or 30 ms beside 150 ms at half stick — each time 29 ticks between its own
-  report first reading 0 and its mates' falling under 1 rad/s; 30 ms beside 80 ms stays FROZEN 9 ticks.
-  Beside the slipping member the same model with ONE stalled member perturbed marked live members
+  report can hold one value for a few ticks. A third is unmeasured and load-bearing beside the slipping
+  member (the review of 2026-09-30): that the stalled members read ALIKE. At a plain wall it no longer
+  bears on a mark — since the encoder check, no stopped encoder is evidence — but it bears on a CUT: no
+  V5 motor's report lag has been measured (the model's 80 ms is invented), and in the model a member
+  whose report settles 30 ms beside mates at 100 ms or more, or 10 ms beside 80 ms, gets the push one
+  1 s fight cut (P2-19e; HA-132/133's monitor, which now sees it). Before the ruling the same model
+  marked that member dead (30 ms beside 120 ms at full stick, 10 beside 100, 30 beside 150 at half
+  stick — the verification of 2026-10-01). Beside the slipping member the same model with ONE stalled
+  member perturbed marked live members
   every time; one stalled member's report reading 1 RPM instead of 0 on a random half of the ticks of
   one push, and a second push without it, REFUSED the drive in 20 of 20 seeds (11 of 20 at three ticks
   in ten, 8 of 20 at two, none at one) — host-probed only.
@@ -2508,9 +2558,10 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   it FROZEN within about 50 ms and DEAD about 250 ms later, logged once, no cut, and still DEAD after it
   is plugged back in (latched until the restart); the DEGRADED boot with one port unplugged per side;
   and a full-stick wall push watched for a false DEAD on ANY drive port, port 18 (HA-130) included —
-  the push check's push (HA-176) is such a push, so its log is read for any `went ABSENT` line too.
-  Whether this wall push is REQUIRED before a match, like the push check, is the team lead's to rule
-  with the known gaps below.
+  the push check's push (HA-176) is such a push, so its log is read for any `went ABSENT` line too, and
+  for a `CUT: FIGHT` line (the encoder check's cost when one report settles sooner). Whether this wall
+  push is REQUIRED before a match, like the push check, is the team lead's to rule with the known gaps
+  below.
   *Blast radius if wrong:*
   - **A live member wrongly marked absent** drops out of the reads, which is harmless to the median,
     but it counts as dead, so the mid-run stop comes one death sooner.
@@ -2523,17 +2574,19 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
     the REST OF THE RUN: every later start of driver control is refused too, until the program is
     started again, because the marks live in the robot's motor groups.
   - **The known gaps — the guard is a COUNT of suspect members against answering ones (the team
-    lead's decision D (a) of 2026-09-28), and at a wall it is right only while every stalled member
-    reads alike:**
-    - **At ANY wall** (found by the verification of 2026-10-01 — no slipping member needed; wider than
-      decision D weighed, and the team lead's to rule on): every encoder stops with the train, but the
-      mates' lagging velocity REPORTS still count as the train turning. A member whose report settles to
-      0 well before theirs repeats and is SUSPECT alone — one against three, so the guard holds — and
-      stays FROZEN while a mate's report reads above 1 rad/s; if that lasts 29 ticks after its own
-      report first reads 0, it is marked, a LIVE motor (two of four reading so: a tie, both marked). In
-      the host model: a 30 ms report beside 120 ms ones at full stick, 10 ms beside 100 ms, 30 ms beside
-      150 ms at half stick (P2-19e); 30 ms beside 80 ms stays FROZEN 9 ticks, 50 ms beside 150 ms 24
-      (P2-19d). The side drives on degraded, the mid-run stop one death closer.
+    lead's decision D (a) of 2026-09-28), and beside a slipping member it is right only while every
+    stalled member reads alike:**
+    - **At ANY wall — CLOSED by the encoder check** (found by the verification of 2026-10-01; the team
+      lead's ruling the same day, "Encoder check"; built at T4 Part 3): every encoder stops with the
+      train, and until the ruling the mates' lagging velocity REPORTS still counted as the train
+      turning, so a member whose report settled to 0 well before theirs was SUSPECT alone and marked
+      dead, a LIVE motor (30 ms beside 120 ms in the host model). Now a mate counts only while its
+      ENCODER moved within the last 5 reads, and nobody is marked or FROZEN at any spread the
+      verification probed (P2-19e). **Its cost, accepted with the ruling:** that member, no longer
+      FROZEN, stays in the fight monitor under a quarter of its mates' REPORTED speed while their
+      reports read above 1 rad/s, so the push gets ONE 1 s FIGHT cut while its motors draw under 2.4 A
+      (in the model, from 30 ms beside 100 ms, or 10 beside 80, on; P2-19e). With every motor over
+      2.4 A at the wall the over-current cuts come first (HA-176) and it adds none.
     - **A side ALREADY at two of four** (D (a)'s accepted cost), whose slipping member keeps turning
       while its last live mate stalls at a wall, is one suspect against one answering — a tie — so the
       stalled LIVE member is marked, which is the third dead, and the drive is REFUSED (P2-21c: 1.6 s
@@ -2547,19 +2600,15 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
       80 ms: the slipping member's encoder keeps the evidence alive). The side drives on degraded; a
       second push, its stalled members now reading alike, marks the last one against the slipping
       member — the third dead, REFUSED for the rest of the run, on a side of four live motors (P2-21d).
-    - **The obvious changes each cost something:** a strict majority ends the ties but not the lone
-      suspect, and costs what the two-of-four case says; counting as answering only a member whose own
-      reading shows the train turning leaves a dead member in the monitor through a slow push, cut again
-      and again; counting a mate as EVIDENCE only while its encoder moved within the last 5 reads — not
-      on a lagging report over a stopped encoder; probed on the host test plant by the verification of
-      2026-10-01 — closed the first gap at every probed difference and changed no other host test's
-      result, but the same push then CUT once for 1 s while its motors drew under 2.4 A (the fight
-      monitor saw the early-settling member under a quarter of its mates' reported speed for 250 ms,
-      which the FROZEN exclusion had hidden; at 2.5 A each, the over-current cuts came first and it
-      added none), and it leaves the two slipping-member gaps as they are.
-    - Port 18's slipping gear is the trigger of the two slipping-member gaps: fixing it ends them, NOT
-      the any-wall one. And a whole side that stops answering at once is never seen — every member
-      alike looks like a side that stopped; the robot shows it by not driving that side.
+    - **The other changes weighed, and what each costs:** a strict majority ends the ties but not the
+      lone suspect, and costs what the two-of-four case says; counting as answering only a member whose
+      own reading shows the train turning leaves a dead member in the monitor through a slow push, cut
+      again and again. The encoder check (chosen, above) does not reach the two slipping-member gaps:
+      the slipping member's own encoder keeps turning, so it stays evidence — the ruling keeps them
+      until port 18's gear is fixed.
+    - Port 18's slipping gear is the trigger of the two slipping-member gaps: fixing it ends them. And
+      a whole side that stops answering at once is never seen — every member alike looks like a side
+      that stopped; the robot shows it by not driving that side.
   - Too permissive a floor keeps a robot driving that drags into a curve.
   **Contained:** one config field (`DriveProtectionConfig::frozenSuspectReads`), the monitor's two
   floors it reuses (HA-132), and two library constants (`drivetrain_degradation.hpp`'s
@@ -2575,7 +2624,8 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   *Source:* `include/shulib/teleop/drive_protection.hpp` (`DriveProtectionConfig::overCurrentAmps`
   2.4, `overCurrentTicks` 25 — pinned equal to the fight monitor's window by a `static_assert`, HA-132 —
   and `overCurrentCuts` true; labelled A4 register HA-176), carried from the old "shulib Drive"'s
-  `kCurrentLimitA` (`src/programs/drive_program.cpp`, "INVENTED for a first run"). Judged per member,
+  `kCurrentLimitA` (in its `src/programs/drive_program.cpp`, "INVENTED for a first run"; that program was
+  replaced at T4 Part 3 — Bench Tests' DRIVE station keeps its own `kCurrentLimitA`, 2.4). Judged per member,
   never on the side's total, only while the side is commanded above 1 V, and never for a FROZEN or
   ABSENT member (a dead port's current is its last good reading). Host-tested in
   `test/drive_protection_test.cpp`: P2-4 (2.41 A for 24 ticks no, 25 yes, driving forward and in
@@ -2597,8 +2647,8 @@ ruling of 2026-09-27 made moot; it was never issued for it. **Nothing here has r
   let go after it: read
   the same peak line and look for any `CUT:` line. A reversal or a launch that cuts is the team lead's
   to decide before a match (N1: the number, or the switch). It belongs to the competition program's
-  practice-match station (K); T4 Part 3's Station F repeats it (F.6 (ii)) after reading the highest A
-  at full stick wheels-up.
+  practice-match station (K.8, written at T4 Part 3's late step); T4 Part 3's Station F repeats it
+  (F.6 (ii)) after reading the highest A at full stick wheels-up.
   *Blast radius if wrong:* too tight, and a push against a wall or a robot trips it: the drive is cut
   for 1 s of every 1.25 s, IN A MATCH, in every driver-control program since T4 Part 2 (a V5 motor
   pushing is believed to sit at its current limit — the PROS default 2.5 A, above 2.4 A; HA-154,
@@ -3221,6 +3271,19 @@ settleable before hardware, and none block any host chunk.
   LoopMonitor would report it as an overrun, so it is at least VISIBLE. The fix is a policy
   change — flush less often, or only at auton end — not a format change. R1 should re-check
   this the first time the adapter runs on hardware.
+  *A second consumer, IN the tick (T4 Part 3, 2026-10-04; amended at its review, 2026-10-08):* the
+  programs' SD copy of their log ("shulib Drive"'s `drive_log.txt`, the competition program's
+  `comp_log.txt`; `diag/log_copy_sink.hpp` through `hal::BlockCharSink`) writes and flushes ONE
+  LINE whenever a line is logged — so an event line in driver control or during an auton costs a
+  small card write and a flush inside that tick, not at a boundary. Two things keep that to events
+  rather than ticks, without this number: the copy never carries the per-tick records (decision A
+  (a)), and a loop that stays slow now logs `LOOP_OVERRUN` once per EPISODE rather than once per tick
+  (`diag/loop_monitor.hpp`; before the review a 20 ms-tick turn put 50 such lines, 50 flushes, on
+  the card — each inside an already-late tick, the overrun's own report feeding it). Not bounded
+  further: an INTERMITTENT overrun — a slow tick between healthy ones — is a new episode each time,
+  so a loop slow every few ticks still writes a line every few ticks (as it did before the review). The cost of
+  one small line's write and flush is the same unknown as this entry's; worksheet Station K reads
+  it (K.7.2), and an overrun that the copy causes would itself be said once, not hidden.
 
 ### The E2 `GpsCorrector` tuning set (HA-61 … HA-67)
 
@@ -3970,7 +4033,7 @@ order of magnitude, the stand-in is corroborated; where they diverge, R-phase sh
 | Rotation sensor ticks/rev | 36000 (centidegree) — `odomUnit.cpp:17` computes travel as `position·πd/36000` | HA-16 | **This is the "measured elsewhere" provenance:** the conversion ran on a real robot all season. HA-16 confidence is effectively settled-by-prior-use; R3 still confirms on current sensors |
 | Minimum drive command to move | 20/127 linear, 25/127 rotational (`main.cpp:838-839`, measured by `test_min_output()`'s +1-per-500 ms ramp) | HA-45 (kS) | ≈ 1.9 V equivalent linear kS on that robot vs the 1.0 V placeholder — **R5 should expect kS nearer 2 V** on a comparable drivetrain; the placeholder is likely low, not high |
 | Drive geometry, as built | trackWidth 15″, wheel 3.25″, 400 rpm cartridge-equivalent (`main.cpp:38`) | HA-14/HA-15/HA-17 | Corroborates 3.25″ as this team's habitual wheel size (HA-14's guess); rpm differs from HA-15's GREEN/900-ticks stand-in — cartridge is an R3 read-off either way |
-| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — since G1 the session header's port map is generated from a robot's config (`robot::Robot::portMap()`), and since G1 Part 2c every program built on `robot::Robot` prints it that way ("shulib Teleop" and the invented X-drive, whose map is now a config constant); the typed table the tester and "shulib Drive" read (`src/robots/chassis_table.hpp`) is still typed by hand. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
+| Port map, last season | Drive L {11,−12,13,−14,−15} / R {16,−17,18,−19,20}; Rotation L(−8)/R(10)/B(9); IMU 6; ADI arm 'B', lever 'C'; intake {2,−3}, conveyor {4,−5}, releaser {−6,7} (`main.cpp:23-62`) | R1/R3 runbook | Historical only — since G1 the session header's port map is generated from a robot's config (`robot::Robot::portMap()`), and since G1 Part 2c every program built on `robot::Robot` prints it that way ("shulib Teleop" then, and the invented X-drive, whose map is now a config constant; since T4 Part 3, which retired Teleop, "shulib Drive", the Auton Tester and the competition program); the typed table the bench tester and the boot source read (`src/robots/chassis_table.hpp`) is still typed by hand. Recorded so the *shape* of a real port map (5-motor sides, reversed-port minus convention) informs R1's adapter tests |
 | Calibration-routine specimens | `test_min_output()` (kS ramp), `rotation_calibration()` (iterative IMU-vs-wheel θ-scale comparison, ×3 passes) (`main.cpp:101-217`) | M3 calibration routines, R5 | The *procedures* are the salvage: both are legitimate bench routines to re-derive cleanly at M3/R5. The θ-scale factor itself is obsolete (v2 heading is IMU-owned) |
 
 Diagnostic-culture evidence from the same files (stuck-wheel detection, L/R travel-imbalance and
@@ -3991,7 +4054,7 @@ Recorded so "exhaustive" is checkable — these were examined and deliberately N
 | `Localizer` `maxDt`/`minDt` (0.1 s / 0.1 ms) | Self-referential policy bounds on *our own* loop, not claims about hardware; the hardware-facing part is HA-32/HA-34. |
 | Cross-libm bit-identity of sim runs | A documented A2 determinism caveat about *host toolchains*, not about the robot; no hardware measurement settles it. |
 | Stochastic truth-side hostility (random per-tick traction) | A3 D10/§3.8: a possible model extension, not an assumption — nothing at M2 needs it; revisit only if R4's data shows slip is noise-dominated (HA-37..39 will say). |
-| Pneumatics/air budget, mechanism-specific constants | When written, no mechanism existed even on paper (F′-phase, build-team-gated). *(Since T3, 2026-09-26, robot two's claws exist on paper and in "shulib Teleop" — their beliefs ARE registered, HA-153..HA-159 and HA-147; what stays excluded is the AIR budget (how many actuations a tank holds — nobody has stated the tank or the cylinders) and the constants of mechanisms not yet declared, which F3's primitives register when authored.)* |
+| Pneumatics/air budget, mechanism-specific constants | When written, no mechanism existed even on paper (F′-phase, build-team-gated). *(Since T3, 2026-09-26, robot two's claws exist on paper and in robot two's driver file — their beliefs ARE registered, HA-153..HA-159 and HA-147; what stays excluded is the AIR budget (how many actuations a tank holds — nobody has stated the tank or the cylinders) and the constants of mechanisms not yet declared, which F3's primitives register when authored.)* |
 | ~~AprilTag camera intrinsics/mount~~ | **No longer excluded — E3 authored the PnP path and registered HA-68…HA-82.** Camera INTRINSICS themselves remain out: `CameraIntrinsics` has no defaults to be wrong about, and R2 obtains them by calibration. The MOUNT is now HA-70. |
 
 ---

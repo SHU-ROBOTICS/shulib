@@ -7,14 +7,15 @@
 // exists (core/check.hpp §18.4): a failed SHULIB_PRECONDITION raises FaultCode::Precondition on the
 // run's fault latch — when there is one — and then throws. Until G1 Part 2b the latch pointer was
 // set by main.cpp itself (`g_faults = &r.faults`), because both object graphs lived in main.cpp.
-// "shulib Teleop"'s graph is now a robot::Robot built in src/programs/teleop_program.cpp, and since G1 Part
-// 2c the invented X-drive's is one built in src/programs/xdrive_program.cpp; neither can see main.cpp's
+// "shulib Drive"'s graph is a robot::Robot built in src/programs/drive_program.cpp (since T4 Part 3;
+// "shulib Teleop"'s was, from G1 Part 2b until then), and since G1 Part 2c the invented X-drive's is
+// one built in src/programs/xdrive_program.cpp; neither can see main.cpp's
 // anonymous namespace, so this one function is the hand-off. Each program calls it once, right
 // after its Robot exists, so a precondition AFTER boot still latches exactly as it did.
 //
 // DEFINED in src/main.cpp for EVERY build (not under a program's #if): every .cpp under src/ compiles
-// in all eight builds (the teleop program included), so a symbol one of them calls must exist in
-// all eight or the link fails. In the builds whose program never calls it, --gc-sections drops it.
+// in all seven builds (every program's file included), so a symbol one of them calls must exist in
+// all seven or the link fails. In the builds whose program never calls it, --gc-sections drops it.
 
 namespace shulib::diag {
 class FaultLatch;

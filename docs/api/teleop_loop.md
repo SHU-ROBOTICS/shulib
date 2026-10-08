@@ -34,9 +34,9 @@ Extracted from [`include/shulib/teleop/teleop_loop.hpp`](../../include/shulib/te
 struct DriverLoopConfig
 ```
 
-What the loop needs that neither the chassis nor the controller can supply.  State the first TWO, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`. The period's default is deliberately not a working configuration: a zero period trips `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never run. The button's default is NOT a refusal by itself: a config that leaves `rezeroButton` unset quietly gets `L1` — a shoulder button, which robot two's claw pivot 7 takes. What stops that collision running is `validBindings()` (chunk T3): a binding on the re-zero button is refused before the first tick, by `runDriverControl`'s precondition. A program should still name its button, and "shulib Teleop" does. The third, `releaseBrakeMode`, has a working default (Coast, the team lead's ruling). The fourth, `protection`, is APPENDED LAST so every existing designated initializer still compiles, and its defaults are the old "shulib Drive"'s numbers: a program that names no `protection` is protected (chunk T4 Part 2).
+What the loop needs that neither the chassis nor the controller can supply.  State the first TWO, with designated initializers — `{.tickPeriod = …, .rezeroButton = …}`. The period's default is deliberately not a working configuration: a zero period trips `runDriverControl`'s precondition before anything moves, so a config nobody wrote can never run. The button's default is NOT a refusal by itself: a config that leaves `rezeroButton` unset quietly gets `L1` — a shoulder button, which robot two's claw pivot 7 takes. What stops that collision running is `validBindings()` (chunk T3): a binding on the re-zero button is refused before the first tick, by `runDriverControl`'s precondition. A program should still name its button, and robot two's driver file does (its kLoop names Y). The third, `releaseBrakeMode`, has a working default (Coast, the team lead's ruling). The fourth, `protection`, is APPENDED LAST so every existing designated initializer still compiles, and its defaults are the old "shulib Drive"'s numbers: a program that names no `protection` is protected (chunk T4 Part 2).
 
-*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:161`](../../include/shulib/teleop/teleop_loop.hpp#L161).*
+*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:162`](../../include/shulib/teleop/teleop_loop.hpp#L162).*
 
 <a id="driverloopconfig-tickperiod"></a>
 
@@ -48,7 +48,7 @@ units::Time tickPeriod{0.0}
 
 How long one tick is — the pacer's period (on a brain, `ProsTickPacer::kTickMs` = 10 ms, HA-32). Handed to the shaper as its dt, where only the slew limiter reads it. Must be finite and > 0. `motion::ITickPacer` has no period of its own, and cannot gain one (M3), which is why the program states it here.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:166`](../../include/shulib/teleop/teleop_loop.hpp#L166).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:167`](../../include/shulib/teleop/teleop_loop.hpp#L167).*
 
 <a id="driverloopconfig-rezerobutton"></a>
 
@@ -60,7 +60,7 @@ hal::ControllerButton rezeroButton = hal::ControllerButton::L1
 
 The driver's field-centric re-zero button (`DriveShaper::rezero`). Harmless in a body mode, where a press only pre-arms the zero for a later switch to `ArcadeField`. Which button is the PROGRAM's choice, so state it.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:170`](../../include/shulib/teleop/teleop_loop.hpp#L170).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:171`](../../include/shulib/teleop/teleop_loop.hpp#L171).*
 
 <a id="driverloopconfig-releasebrakemode"></a>
 
@@ -72,7 +72,7 @@ hal::BrakeMode releaseBrakeMode = hal::BrakeMode::Coast
 
 What the drive does when the sticks are released (chunk DEFECTS2): the brake mode the loop puts on every drive motor at entry and again after every `drive()`, so a library stop inside the loop — `drive()` pre-empting a motion cancels it into Brake — never outlives its tick. Default `Coast`, the team lead's ruling (2026-09-26): the drive rolls free on release, the feel shulib Teleop was driven with on 2026-09-25. `Brake` or `Hold` make a release stop the drive; since DEFECTS2 the V5 adapter sends them to the motor as PROS brake() at a zero command (`hal/pros/motor.hpp`, THE STOP — not yet seen on a robot). The disable path is NOT governed by this: a disable still cancels into Brake.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:179`](../../include/shulib/teleop/teleop_loop.hpp#L179).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:180`](../../include/shulib/teleop/teleop_loop.hpp#L180).*
 
 <a id="driverloopconfig-protection"></a>
 
@@ -84,7 +84,7 @@ DriveProtectionConfig protection{}
 
 The drive protections' numbers (chunk T4 Part 2; teleop/drive_protection.hpp): the frozen-reading rule's read count, the over-current limit and window, the cut's length, the log bound, and the one switch that turns the over-current CUT into a warning. The defaults are the old "shulib Drive"'s — every one of them unmeasured (HA-175, HA-176) — and apply to every program that leaves this field out. Checked before the first tick (validProtectionConfig).
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:186`](../../include/shulib/teleop/teleop_loop.hpp#L186).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:187`](../../include/shulib/teleop/teleop_loop.hpp#L187).*
 
 <a id="struct-headingsample"></a>
 
@@ -96,7 +96,7 @@ struct HeadingSample
 
 One tick's heading, as the loop hands it to the shaper: the robot's estimated heading and the caller's verdict on it. What a `runDriverControl` heading source returns.
 
-*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:191`](../../include/shulib/teleop/teleop_loop.hpp#L191).*
+*struct, declared at [`include/shulib/teleop/teleop_loop.hpp:192`](../../include/shulib/teleop/teleop_loop.hpp#L192).*
 
 <a id="headingsample-radians"></a>
 
@@ -108,7 +108,7 @@ double radians = 0.0
 
 The estimated heading, radians, CCW-positive, in the same frame the driver's zero is captured in. Ignored unless the profile's mode is `ArcadeField`.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:194`](../../include/shulib/teleop/teleop_loop.hpp#L194).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:195`](../../include/shulib/teleop/teleop_loop.hpp#L195).*
 
 <a id="headingsample-trusted"></a>
 
@@ -120,7 +120,7 @@ bool trusted = false
 
 True only when the estimate is live and the heading is believable (for a robot::Robot: the Localizer is past `Quality::Uninitialized` and the IMU reports ready). False makes field-centric fall back to robot-centric and LATCH until the driver re-zeroes.
 
-*field, declared at [`include/shulib/teleop/teleop_loop.hpp:198`](../../include/shulib/teleop/teleop_loop.hpp#L198).*
+*field, declared at [`include/shulib/teleop/teleop_loop.hpp:199`](../../include/shulib/teleop/teleop_loop.hpp#L199).*
 
 <a id="rundrivercontrol"></a>
 
@@ -132,7 +132,7 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 Run driver control until `disabled()` says stop: sticks → `shaper` → budgets → the chassis, once per tick, in the order the file header lists (disabled check, sticks while connected, one heading sample, the re-zero edge, shape, the drive protections' check before `drive`, `drive(Body)`, their check after it, the release mode, the hold bindings, the toggles, `perTick`, `pace`).  * `chassis` — the facade to drive; its `motionConfig()` supplies the speed budgets (`maxLinearSpeed`, `maxAngularSpeed` — HA-50, provisional). * `controller` — the driver's controller (VEX U's partner is a second call with a second shaper). * `pacer` — the tick boundary: on a brain the provider's `ProsTickPacer`; in a host test the plant-stepping pacer. * `shaper` — the driver's feel (`DriveShaper`, one per driver, held across calls so its field-centric zero and latch survive a disable). * `cfg` — the tick period, the re-zero button, the release brake mode (applied at entry and after every `drive()`) and the drive protections' numbers. PRECONDITIONS, checked before the first tick and before anything is commanded: `cfg.tickPeriod` finite and > 0, and `validProtectionConfig(cfg.protection, chassis.deps().motorGroups)` — together, every precondition of the DriveProtection the loop builds, so nothing is refused after the entry has commanded something. * `bindings` — the driver's mechanism buttons (chunk T3), each ticked after `drive()` with its two buttons read only while connected. PRECONDITION, checked before the first tick: `validBindings(bindings, cfg.rezeroButton)` — no null, no button used twice, none equal to the re-zero button, no mechanism bound twice. A claim still on a bound mechanism at entry is RELEASED (`releaseLeftoverClaim()`) and logged — one Warn line each, tag `TEL`, on the chassis's sink (the team lead's ruling, 2026-09-26). Every binding is `reset()` and `makeSafe()`'d before the first tick, and `makeSafe()`'d again on the disable. BORROWED for the call; for a PROS program the bindings (and their mechanisms and motors) live in static storage, because a field disable deletes the task. The overload without this argument passes an empty span. * `toggles` — the driver's TOGGLE buttons (addendum B2: one button flipping one pneumatic mechanism per press), ticked after the hold bindings with their buttons read only while connected. A claim still on a toggle's mechanism at entry is released and logged, as for `bindings`, BEFORE its `enter()`. Every toggle is `enter()`'d before the first tick (its initial level, once in its life) and is NOT touched on the disable: the claw keeps its level. Checked with `bindings` as ONE set by the same precondition, `validBindings(bindings, toggles, cfg.rezeroButton)`. BORROWED, static storage on a brain, exactly as `bindings`. The overloads without this argument pass an empty span. * `disabled` — `bool()`: polled FIRST every tick; true ⇒ `chassis.cancel()` (0 V + Brake), every hold binding's `makeSafe()` — no toggle is touched — and return. The only way out. * `heading` — `HeadingSample()`: called once per tick, after the sticks, before shaping. * `perTick` — `void(const math::ChassisSpeeds& command, bool connected, const DriveShaperState& state)`: called after `drive()`, before `pace()` — the panel's hook. One that ALSO takes `const DriveProtectionState&` as a fourth argument is handed the drive protections' state (detected at compile time; the three-argument form is unchanged). `command` is always the driver's request, also while a cut sends the drive zero.  Nothing is read from the controller while it is disconnected; the command is then exactly zero whatever the axes claim (HA-103).  The DRIVE PROTECTIONS run inside it for every caller (the file header; drive_protection.hpp): a drive member whose readings freeze is kept out of the fight monitor and marked ABSENT after 250 ms; more than two dead in total REFUSES the drive for the rest of the run; a fight or a member over 2.4 A for 250 ms while driven cuts the drive to 0 V for 1 s, then re-arms.
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:256`](../../include/shulib/teleop/teleop_loop.hpp#L256).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:257`](../../include/shulib/teleop/teleop_loop.hpp#L257).*
 
 <a id="rundrivercontrol-2"></a>
 
@@ -144,7 +144,7 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 `runDriverControl` with hold bindings and NO toggles — the chunk-T3 signature, forwarding to the overload above with an empty toggle span, so there is one loop body and every rule above holds unchanged.
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:388`](../../include/shulib/teleop/teleop_loop.hpp#L388).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:389`](../../include/shulib/teleop/teleop_loop.hpp#L389).*
 
 <a id="rundrivercontrol-3"></a>
 
@@ -156,14 +156,14 @@ template <typename IsDisabled, typename HeadingSource, typename PerTick> void ru
 
 `runDriverControl` with NO mechanism bindings — the 2a signature, forwarding to the overload above with an empty span, so there is one loop body and every rule above holds unchanged.
 
-*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:400`](../../include/shulib/teleop/teleop_loop.hpp#L400).*
+*free function, declared at [`include/shulib/teleop/teleop_loop.hpp:401`](../../include/shulib/teleop/teleop_loop.hpp#L401).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 122 lines, click to expand</summary>
+<summary>The header’s own reasoning — 123 lines, click to expand</summary>
 
 ```text
 
@@ -277,13 +277,14 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
 
  ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
- Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp)
- drives through it, by its own call, with the default DriverProfile (ArcadeBody) and field-centric
- selectable but OFF — and, since G1 Part 2c, so does the invented X-drive's program
- (src/programs/xdrive_program.cpp), which refuses at boot on every robot that exists. Robot two's
- driver file (src/team/robot_two_driver.hpp, T4 Part 1a) calls it too, and the competition program's
- opcontrol() will run that file (chunk COMP-b). Every one of them gets the drive protections from
- DriverLoopConfig::protection's defaults, since none names the field. No version has run on
+ Host-proven on the A2 plant only. Two callers: robot two's driver file
+ (src/team/robot_two_driver.hpp, T4 Part 1a), with the default DriverProfile (ArcadeBody) and
+ field-centric OFF — "shulib Drive" runs that file (T4 Part 3, src/programs/drive_program.cpp),
+ and so does the competition program's opcontrol() (chunk COMP-b) — and the invented X-drive's
+ program (src/programs/xdrive_program.cpp, since G1 Part 2c), which refuses at boot on every
+ robot that exists. ("shulib Teleop" called it by its own call from G1 Part 2b until T4 Part 3
+ retired it.) Every one of them gets the drive protections from DriverLoopConfig::protection's
+ defaults, since none names the field. No version has run on
  hardware, so nothing in the feel layer it runs has been felt by a driver (HA-112), and no
  protection has cut or marked a real motor (HA-175, HA-176).
 

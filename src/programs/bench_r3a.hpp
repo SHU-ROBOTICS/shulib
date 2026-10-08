@@ -12,7 +12,8 @@
 // (ROBOT=bench, the measured bench bot; ROBOT=tank, the 2026 chassis whose
 // table carries MEASURED SIGNS since R3b Part 0b) boot into this as "Bench
 // Tests" -- unless built with PROGRAM=drive, which boots src/programs/drive_program.cpp
-// ("shulib Drive") instead. The chassis table both share is src/robots/chassis_table.hpp.
+// ("shulib Drive") instead. The chassis table is src/robots/chassis_table.hpp (the old "shulib
+// Drive" shared it until T4 Part 3; the new one boots from the calibration record).
 //
 // This lives in src/, not include/shulib/, deliberately: it makes raw
 // <pros/*> calls to print RAW value beside CANONICAL value, which is the

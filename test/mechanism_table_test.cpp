@@ -55,16 +55,11 @@ using shulib::bench::kMaxPort;
 using shulib::bench::kMechanisms;
 using shulib::bench::kNoMechanisms;
 using shulib::bench::kRobotTwoMechanisms;
-using shulib::bench::kTeleopRezeroButton;
 using shulib::bench::MechanismTable;
-using shulib::bench::mechanismButtonsAvoid;
-using shulib::bench::mechanismButtonsUnique;
 using shulib::bench::mechanismCountValid;
-using shulib::bench::mechanismForwardReverseDistinct;
 using shulib::bench::mechanismPortsValid;
 using shulib::bench::mechanismsDisjointFromChassis;
 using shulib::bench::mechanismTableComplete;
-using shulib::bench::mechanismVoltsValid;
 using shulib::bench::motorEntryComplete;
 using shulib::bench::motorEntryCount;
 using shulib::bench::MotorMechanismEntry;
@@ -78,7 +73,6 @@ using shulib::bench::pneumaticSafeCommand;
 using shulib::bench::pneumaticStartCommand;
 using shulib::bench::tableSideOf;
 using shulib::hal::BrakeMode;
-using shulib::hal::ControllerButton;
 
 namespace {
 
@@ -91,22 +85,21 @@ namespace {
 [[nodiscard]] MechanismTable robotTwo() { return kRobotTwoMechanisms; }
 
 /// Every consistency check at once — what the header's static_asserts demand of a build's table
-/// (all but check 8, the chassis pairing, which takes a second table).
+/// (all but check 4, the chassis pairing, which takes a second table). Four checks of the nine T3
+/// wrote — the buttons and the volts — left with the buttons at T4 Part 3: they are the driver
+/// file's now (src/common/driver_controls.hpp; test/driver_controls_test.cpp breaks each).
 [[nodiscard]] bool allChecksPass(const MechanismTable& t) {
     return mechanismCountValid(t) && mechanismTableComplete(t) && mechanismPortsValid(t)
-           && pneumaticLinesValid(t) && mechanismForwardReverseDistinct(t)
-           && mechanismButtonsUnique(t) && mechanismButtonsAvoid(t, kTeleopRezeroButton)
-           && mechanismVoltsValid(t);
+           && pneumaticLinesValid(t);
 }
 
-/// Robot two with a SECOND pneumatic entry — a copy of the claw on line `line`, toggled by
-/// `toggle` — for the cases that need two of them (the real table declares one).
-[[nodiscard]] MechanismTable robotTwoWithSecondPneumatic(int line, ControllerButton toggle) {
+/// Robot two with a SECOND pneumatic entry — a copy of the claw on line `line` — for the cases
+/// that need two of them (the real table declares one).
+[[nodiscard]] MechanismTable robotTwoWithSecondPneumatic(int line) {
     MechanismTable t = kRobotTwoMechanisms;
     t.pneumatics[1] = t.pneumatics[0];
     t.pneumatics[1].name = "second pneumatic";
     t.pneumatics[1].adiLine = static_cast<std::uint8_t>(line);
-    t.pneumatics[1].toggle = toggle;
     t.pneumaticCount = 2;
     return t;
 }
@@ -228,11 +221,13 @@ struct Filtered {
 
 TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team lead stated "
           "(2026-09-26) -- the real table, not a copy") {
-    // BUG CAUGHT: any typo in src/robots/mechanism_table.hpp's robot-two block — a swapped R1/R2 (the
-    // claw runs backwards on the button the driver thinks is forward), the pivots' buttons crossed
-    // (R1 moves the port-7 claw), a wrong port (the binding drives some other motor), a sign
-    // flipped without a measurement, a wrong cartridge (RED gearing written as something else), a
-    // safe mode other than Hold (a released claw drops), or a voltage other than full power.
+    // BUG CAUGHT: any typo in src/robots/mechanism_table.hpp's robot-two block — a wrong port (the
+    // binding drives some other motor), a sign flipped without a measurement, a wrong cartridge
+    // (RED gearing written as something else), or a safe mode other than Hold (a released claw
+    // drops). The BUTTONS and the VOLTS are not here since T4 Part 3 (the team lead's ruling R1:
+    // the driver file owns which button does what): robot two's R1/R2, L1/L2 and 12 V are pinned in
+    // test/robot_two_driver_test.cpp (T1, through the driver file), the pins that stood here until
+    // then retired with the fields.
     const MechanismTable& t = kRobotTwoMechanisms;
     REQUIRE(t.motorCount == 2);
 
@@ -242,13 +237,10 @@ TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team le
     CHECK(six.cartridge == Cartridge::Red);
     REQUIRE(six.safeMode.has_value());
     CHECK(*six.safeMode == BrakeMode::Hold);
-    REQUIRE(six.forward.has_value());
-    REQUIRE(six.reverse.has_value());
-    CHECK(*six.forward == ControllerButton::R1);
-    CHECK(*six.reverse == ControllerButton::R2);
-    CHECK(six.volts == 12.0);
     REQUIRE(six.provenance != nullptr);
     CHECK(std::strstr(six.provenance, "team lead 2026-09-26") != nullptr);
+    CHECK(std::strstr(six.provenance, "(buttons: src/team/robot_two_driver.hpp since T4)")
+          != nullptr);
 
     const MotorMechanismEntry& seven = t.motors[1];
     CHECK(std::strcmp(seven.name, "claw pivot 7") == 0);
@@ -256,13 +248,10 @@ TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team le
     CHECK(seven.cartridge == Cartridge::Red);
     REQUIRE(seven.safeMode.has_value());
     CHECK(*seven.safeMode == BrakeMode::Hold);
-    REQUIRE(seven.forward.has_value());
-    REQUIRE(seven.reverse.has_value());
-    CHECK(*seven.forward == ControllerButton::L1);
-    CHECK(*seven.reverse == ControllerButton::L2);
-    CHECK(seven.volts == 12.0);
     REQUIRE(seven.provenance != nullptr);
     CHECK(std::strstr(seven.provenance, "team lead 2026-09-26") != nullptr);
+    CHECK(std::strstr(seven.provenance, "(buttons: src/team/robot_two_driver.hpp since T4)")
+          != nullptr);
 
     // And the table as a whole passes every check the header's static_asserts make.
     CHECK(allChecksPass(t));
@@ -270,13 +259,12 @@ TEST_CASE("mechanism table: robot two's claw pivots are EXACTLY what the team le
 }
 
 TEST_CASE("mechanism table: robot two's PNEUMATIC claw is EXACTLY what the team lead stated "
-          "(2026-09-26) -- 3-wire A, CLOSED at start, toggled by A, safe CLOSED, the polarity "
-          "the ONE constant") {
+          "(2026-09-26) -- 3-wire A, CLOSED at start, safe CLOSED, the polarity the ONE "
+          "constant") {
     // BUG CAUGHT: any typo in the claw's entry — the wrong 3-wire line (the toggle fires some
     // other valve, or nothing), the claw starting OPEN (it drops its preload the moment the
     // program starts), a safe position of OPEN (a library-forced safe state — COMP's end-of-run
-    // guard — would drop what the claw holds), the wrong button (the driver presses A and nothing
-    // happens, or another mechanism's button fires the claw), the polarity typed as a level instead
+    // guard — would drop what the claw holds), the polarity typed as a level instead
     // of read from kClawOpenCommand, the wrong name, or a missing provenance — and the polarity
     // flipped without a measurement (the claw then OPENS at program start and drops what it holds,
     // while HA-159 and Station J.9 still say `true`).
@@ -298,8 +286,7 @@ TEST_CASE("mechanism table: robot two's PNEUMATIC claw is EXACTLY what the team 
     CHECK(*claw.start == PneumaticPosition::Closed);
     REQUIRE(claw.safe.has_value());
     CHECK(*claw.safe == PneumaticPosition::Closed);
-    REQUIRE(claw.toggle.has_value());
-    CHECK(*claw.toggle == ControllerButton::A);
+    // (Its toggle, A, is the driver file's since T4 Part 3: test/robot_two_driver_test.cpp T2.)
     REQUIRE(claw.provenance != nullptr);
     CHECK(std::strlen(claw.provenance) > 0);
     CHECK(std::strstr(claw.provenance, "team lead 2026-09-26 (port A; polarity unknown)")
@@ -574,8 +561,9 @@ TEST_CASE("mechanism table: the claw ports are not robot two's drive ports, nor 
 TEST_CASE("mechanism table: an UNSET field anywhere makes a declared entry incomplete -- a value "
           "is never invented") {
     // BUG CAUGHT: a table entry typed without one of its facts. The field would silently take its
-    // value-initialised value: Coast for the safe mode (a released claw DROPS), L1 for a button
-    // (another pivot's button, and the library loop's default re-zero button), 0 V, port 0.
+    // value-initialised value: Coast for the safe mode (a released claw DROPS), port 0, no
+    // cartridge. (Until T4 Part 3 the buttons and the volts were fields too — L1 and 0 V as the
+    // invented values; they are the driver file's now, its own checks refuse them.)
     CHECK(motorEntryComplete(kRobotTwoMechanisms.motors[0]));
     CHECK(motorEntryComplete(kRobotTwoMechanisms.motors[1]));
 
@@ -591,23 +579,17 @@ TEST_CASE("mechanism table: an UNSET field anywhere makes a declared entry incom
     CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.signedPort = 0; }));
     CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.cartridge = Cartridge::Unset; }));
     CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.safeMode.reset(); }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.forward.reset(); }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.reverse.reset(); }));
-    CHECK_FALSE(brokenBy([](MotorMechanismEntry& e) { e.volts = 0.0; }));
 
     // THE REASON FOR std::optional, pinned: a field LEFT OUT is value-initialised — the same thing
-    // a designated initializer does to a member it does not name — and for these three that is
-    // "unset", refused, not Coast / L1 / L1. (Built by assignment rather than with designators so
-    // that clang's -Wmissing-designated-field-initializers, an error under -Werror, stays quiet.)
+    // a designated initializer does to a member it does not name — and for the safe mode that is
+    // "unset", refused, not Coast. (Built by assignment rather than with designators so that
+    // clang's -Wmissing-designated-field-initializers, an error under -Werror, stays quiet.)
     MotorMechanismEntry forgotten{};
-    forgotten.name = "forgot three fields";
+    forgotten.name = "forgot its safe mode";
     forgotten.signedPort = 9;
     forgotten.cartridge = Cartridge::Red;
-    forgotten.volts = 6.0;
     forgotten.provenance = "test";
     CHECK_FALSE(forgotten.safeMode.has_value());
-    CHECK_FALSE(forgotten.forward.has_value());
-    CHECK_FALSE(forgotten.reverse.has_value());
     CHECK_FALSE(motorEntryComplete(forgotten));
 
     // Only the DECLARED entries are judged: a garbage entry past `motorCount` is not.
@@ -618,12 +600,12 @@ TEST_CASE("mechanism table: an UNSET field anywhere makes a declared entry incom
 }
 
 TEST_CASE("mechanism table: an UNSET field anywhere makes a declared PNEUMATIC entry incomplete -- "
-          "no invented line, polarity, position or button") {
+          "no invented line, polarity or position") {
     // BUG CAUGHT: a claw entry typed without one of its facts, which would silently take its
     // value-initialised value: line 0 (no port), polarity `false` (an invented guess — the one fact
-    // that is NOT known), start or safe position Closed (plausible, and still invented), toggle L1
-    // (port 7's forward button, and the library loop's default re-zero button). Also: a
-    // completeness check that forgot to look at the pneumatic entries at all.
+    // that is NOT known), start or safe position Closed (plausible, and still invented). Also: a
+    // completeness check that forgot to look at the pneumatic entries at all. (The toggle button
+    // was a field until T4 Part 3; it is the driver file's now.)
     CHECK(pneumaticEntryComplete(kRobotTwoMechanisms.pneumatics[0]));
     CHECK(mechanismTableComplete(kRobotTwoMechanisms));
 
@@ -640,23 +622,21 @@ TEST_CASE("mechanism table: an UNSET field anywhere makes a declared PNEUMATIC e
     CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.openCommand.reset(); }));
     CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.start.reset(); }));
     CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.safe.reset(); }));
-    CHECK_FALSE(brokenBy([](PneumaticMechanismEntry& e) { e.toggle.reset(); }));
 
-    // THE REASON FOR std::optional, pinned for this kind too: the four fields LEFT OUT come back
-    // "unset", refused — not false / Closed / Closed / L1. (By assignment, as above.)
+    // THE REASON FOR std::optional, pinned for this kind too: the three fields LEFT OUT come back
+    // "unset", refused — not false / Closed / Closed. (By assignment, as above.)
     PneumaticMechanismEntry forgotten{};
-    forgotten.name = "forgot four fields";
+    forgotten.name = "forgot three fields";
     forgotten.adiLine = 2;
     forgotten.provenance = "test";
     CHECK_FALSE(forgotten.openCommand.has_value());
     CHECK_FALSE(forgotten.start.has_value());
     CHECK_FALSE(forgotten.safe.has_value());
-    CHECK_FALSE(forgotten.toggle.has_value());
     CHECK_FALSE(pneumaticEntryComplete(forgotten));
 
     // A second pneumatic entry with one field unset is refused too (the loop reads every entry,
     // not only the first)...
-    MechanismTable second = robotTwoWithSecondPneumatic(2, ControllerButton::B);
+    MechanismTable second = robotTwoWithSecondPneumatic(2);
     REQUIRE(mechanismTableComplete(second));
     second.pneumatics[1].safe.reset();
     CHECK_FALSE(mechanismTableComplete(second));
@@ -713,11 +693,11 @@ TEST_CASE("mechanism table: 3-wire lines must be real and declared once -- 0, 9 
     }
     // Two entries: on one line refused, on two lines fine — and the SECOND entry's range is read
     // too (not only the first's).
-    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(1, ControllerButton::B)));
-    CHECK(pneumaticLinesValid(robotTwoWithSecondPneumatic(2, ControllerButton::B)));
-    CHECK(allChecksPass(robotTwoWithSecondPneumatic(8, ControllerButton::B)));
-    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(9, ControllerButton::B)));
-    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(0, ControllerButton::B)));
+    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(1)));
+    CHECK(pneumaticLinesValid(robotTwoWithSecondPneumatic(2)));
+    CHECK(allChecksPass(robotTwoWithSecondPneumatic(8)));
+    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(9)));
+    CHECK_FALSE(pneumaticLinesValid(robotTwoWithSecondPneumatic(0)));
     // A line past `pneumaticCount` is not judged.
     MechanismTable none = robotTwo();
     none.pneumaticCount = 0;
@@ -741,148 +721,16 @@ TEST_CASE("mechanism table: 3-wire lines must be real and declared once -- 0, 9 
     }
 }
 
-TEST_CASE("mechanism table: the buttons -- forward != reverse, one button one pivot, and never "
-          "shulib Teleop's re-zero button (Y)") {
-    // BUG CAUGHT: port 7 typed on L1/R2 (R2 would drive both claws), one button meaning both ways,
-    // or a claw bound to the button that re-zeroes field-centric driving (every claw press would
-    // also re-zero the heading).
-    CHECK(mechanismForwardReverseDistinct(kRobotTwoMechanisms));
-    CHECK(mechanismButtonsUnique(kRobotTwoMechanisms));
-    CHECK(mechanismButtonsAvoid(kRobotTwoMechanisms, kTeleopRezeroButton));
-    // Y: the team lead's ruling, 2026-09-26 (T3 addendum §0) — A became the claw's toggle.
-    CHECK(kTeleopRezeroButton == ControllerButton::Y);
-
-    // forward == reverse on one entry.
-    MechanismTable same = robotTwo();
-    same.motors[0].reverse = ControllerButton::R1;
-    CHECK_FALSE(mechanismForwardReverseDistinct(same));
-
-    // THE BRIEF'S MUTATION, as a table: port 7 on L1 / R2 — R2 is port 6's reverse.
-    MechanismTable l1r2 = robotTwo();
-    l1r2.motors[1].reverse = ControllerButton::R2;
-    CHECK(mechanismForwardReverseDistinct(l1r2));  // each entry alone is fine...
-    CHECK_FALSE(mechanismButtonsUnique(l1r2));     // ...the table is not
-    // Every pairing across two entries: forward/forward, forward/reverse, reverse/forward,
-    // reverse/reverse.
-    MechanismTable ff = robotTwo();
-    ff.motors[1].forward = ControllerButton::R1;
-    CHECK_FALSE(mechanismButtonsUnique(ff));
-    MechanismTable fr = robotTwo();
-    fr.motors[1].forward = ControllerButton::R2;
-    CHECK_FALSE(mechanismButtonsUnique(fr));
-    MechanismTable rf = robotTwo();
-    rf.motors[1].reverse = ControllerButton::R1;
-    CHECK_FALSE(mechanismButtonsUnique(rf));
-    // Swapping the two pivots' buttons wholesale is still a UNIQUE table — which is exactly why the
-    // contents case above pins each entry's buttons by name: no consistency check can catch it.
-    MechanismTable crossed = robotTwo();
-    crossed.motors[0].forward = ControllerButton::L1;
-    crossed.motors[0].reverse = ControllerButton::L2;
-    crossed.motors[1].forward = ControllerButton::R1;
-    crossed.motors[1].reverse = ControllerButton::R2;
-    CHECK(allChecksPass(crossed));
-
-    // THE ADDENDUM'S MUTATION: a pivot on Y, the reserved button — forward or reverse. Each such
-    // table is still UNIQUE (nothing else binds Y): only the reserved-button check catches it.
-    MechanismTable yFwd = robotTwo();
-    yFwd.motors[0].forward = ControllerButton::Y;
-    CHECK(mechanismButtonsUnique(yFwd));
-    CHECK_FALSE(mechanismButtonsAvoid(yFwd, kTeleopRezeroButton));
-    MechanismTable yRev = robotTwo();
-    yRev.motors[1].reverse = ControllerButton::Y;
-    CHECK(mechanismButtonsUnique(yRev));
-    CHECK_FALSE(mechanismButtonsAvoid(yRev, kTeleopRezeroButton));
-    // The check is about the button it is GIVEN: robot two's table binds L1, which is the library
-    // loop's DEFAULT re-zero button — a Teleop that kept the default would collide.
-    CHECK_FALSE(mechanismButtonsAvoid(kRobotTwoMechanisms, ControllerButton::L1));
-
-    // Unset buttons collide with nothing here (completeness refuses them — one check, one fault).
-    MechanismTable unset = robotTwo();
-    unset.motors[0].forward.reset();
-    unset.motors[0].reverse.reset();
-    unset.motors[1].forward.reset();
-    CHECK(mechanismForwardReverseDistinct(unset));
-    CHECK(mechanismButtonsUnique(unset));
-    CHECK_FALSE(mechanismTableComplete(unset));
-}
-
-TEST_CASE("mechanism table: the buttons across the pivots AND the claw -- the claw's A is its own, "
-          "it takes no pivot's button, no pivot takes A, and nothing takes Y") {
-    // BUG CAUGHT: the claw typed on a pivot's button (one press would open the claw AND swing a
-    // pivot), a pivot typed on A (the same collision the other way round), two toggles on one
-    // button, the claw on the re-zero button Y — or a uniqueness / reserved-button check that
-    // never looks at the pneumatic entries at all.
-    //
-    // THE ADDENDUM'S MUTATION: the claw on R1 (port 6's forward) — and on each other pivot button.
-    for (const ControllerButton b : {ControllerButton::R1, ControllerButton::R2,
-                                     ControllerButton::L1, ControllerButton::L2}) {
-        CAPTURE(static_cast<int>(b));
-        MechanismTable t = robotTwo();
-        t.pneumatics[0].toggle = b;
-        CHECK_FALSE(mechanismButtonsUnique(t));
-        CHECK(mechanismButtonsAvoid(t, kTeleopRezeroButton));  // uniqueness is what catches it
-        CHECK(mechanismForwardReverseDistinct(t));
-    }
-    // A pivot on A, as its forward and as its reverse: it collides with the claw.
-    MechanismTable pivotFwdA = robotTwo();
-    pivotFwdA.motors[0].forward = ControllerButton::A;
-    CHECK_FALSE(mechanismButtonsUnique(pivotFwdA));
-    CHECK(mechanismButtonsAvoid(pivotFwdA, kTeleopRezeroButton));  // A is not reserved any more
-    MechanismTable pivotRevA = robotTwo();
-    pivotRevA.motors[1].reverse = ControllerButton::A;
-    CHECK_FALSE(mechanismButtonsUnique(pivotRevA));
-    // Two toggles: on one button refused; on two buttons fine. The SECOND toggle against the
-    // pivots is read too (not only the first).
-    CHECK_FALSE(mechanismButtonsUnique(robotTwoWithSecondPneumatic(2, ControllerButton::A)));
-    CHECK(mechanismButtonsUnique(robotTwoWithSecondPneumatic(2, ControllerButton::B)));
-    CHECK_FALSE(mechanismButtonsUnique(robotTwoWithSecondPneumatic(2, ControllerButton::L2)));
-    // The claw on Y, the re-zero button: unique, and refused by the reserved-button check; a second
-    // pneumatic on Y the same.
-    MechanismTable clawOnY = robotTwo();
-    clawOnY.pneumatics[0].toggle = ControllerButton::Y;
-    CHECK(mechanismButtonsUnique(clawOnY));
-    CHECK_FALSE(mechanismButtonsAvoid(clawOnY, kTeleopRezeroButton));
-    const MechanismTable secondOnY = robotTwoWithSecondPneumatic(2, ControllerButton::Y);
-    CHECK(mechanismButtonsUnique(secondOnY));
-    CHECK_FALSE(mechanismButtonsAvoid(secondOnY, kTeleopRezeroButton));
-    // WHY THE RE-ZERO MOVED: robot two's table binds A now, so a Teleop that kept its old re-zero
-    // button (A) would collide — since T3 Part 2 Teleop's kRezeroButton is Y, static_assert-tied
-    // to kTeleopRezeroButton in src/programs/teleop_program.cpp (header, kTeleopRezeroButton).
-    CHECK_FALSE(mechanismButtonsAvoid(kRobotTwoMechanisms, ControllerButton::A));
-    // An unset toggle collides with nothing here (completeness refuses it — one check, one fault).
-    MechanismTable unset = robotTwo();
-    unset.pneumatics[0].toggle.reset();
-    CHECK(mechanismButtonsUnique(unset));
-    CHECK(mechanismButtonsAvoid(unset, kTeleopRezeroButton));
-    CHECK_FALSE(mechanismTableComplete(unset));
-    // A toggle past `pneumaticCount` is not judged, whatever it binds.
-    MechanismTable past = robotTwo();
-    past.pneumatics[1] = past.pneumatics[0];
-    past.pneumatics[1].toggle = ControllerButton::R1;
-    CHECK(mechanismButtonsUnique(past));
-}
-
-TEST_CASE("mechanism table: volts must be in (0, 12] -- 0, negative, 12.01, NaN and infinity are "
-          "refused; 12 exactly and a small positive value are fine") {
-    // BUG CAUGHT: a sign typed into the voltage (the direction lives in the port's sign and the
-    // buttons, never here), a value the motor clamps anyway, or a NaN that a naive `v <= 0 || v >
-    // 12` would wave through.
-    CHECK(mechanismVoltsValid(kRobotTwoMechanisms));
-    constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
-    constexpr double kInf = std::numeric_limits<double>::infinity();
-    for (double bad : {0.0, -0.0, -12.0, -1.0, 12.01, 13.0, kNaN, kInf, -kInf}) {
-        CAPTURE(bad);
-        MechanismTable t = robotTwo();
-        t.motors[1].volts = bad;
-        CHECK_FALSE(mechanismVoltsValid(t));
-    }
-    for (double good : {12.0, 0.5, 6.0}) {
-        CAPTURE(good);
-        MechanismTable t = robotTwo();
-        t.motors[1].volts = good;
-        CHECK(mechanismVoltsValid(t));
-    }
-}
+// ── RETIRED AT T4 PART 3 (2026-10-01): the table's BUTTON and VOLTS checks ─────────────────────
+// Three cases stood here — "the buttons" (forward != reverse, one button one pivot, never the
+// re-zero button Y), "the buttons across the pivots AND the claw", and "volts must be in (0, 12]" —
+// with checks 4-7 of the table they tested. The buttons and the volts left the table (the team
+// lead's ruling R1; Part 1b folded into Part 3), and each property is the DRIVER FILE's check now,
+// broken one way at a time in test/driver_controls_test.cpp: forward != reverse and one button one
+// job -> controlButtonsDistinct (a button in two holds, a pivot's forward = its back, a toggle on a
+// hold's button); never the re-zero button -> controlsAvoid; (0, 12] with NaN refused ->
+// holdVoltsValid (0 / 12.0001 / NaN / -1). Robot two's real buttons are pinned through the driver
+// file (test/robot_two_driver_test.cpp T1/T2), and robot_two_driver.hpp static_asserts all three.
 
 TEST_CASE("mechanism table: a count past the array is refused, and nothing reads past the array") {
     // BUG CAUGHT: a hand-typed count larger than its entries array (either kind); every loop would
@@ -901,50 +749,24 @@ TEST_CASE("mechanism table: a count past the array is refused, and nothing reads
     p.pneumaticCount = kMaxPneumatics;
     CHECK(mechanismCountValid(p));
     CHECK(kMaxPneumatics == static_cast<std::size_t>(kMaxAdiLine));  // one per 3-wire port
-    // A full table of six can never pass: six entries need twelve distinct buttons, and one of the
-    // twelve is reserved — the header's arithmetic for kMaxMechanisms.
+    // A full table of six motor entries passes since T4 Part 3: the table no longer carries the
+    // buttons whose arithmetic capped it at five (the header's kMaxMechanisms); a driver file that
+    // could not bind them all is refused by ITS checks (controlsCoverTable needs a control per
+    // entry, and controlButtonsDistinct / controlsAvoid run out of buttons at five).
     MechanismTable six{};
     six.motorCount = kMaxMechanisms;
-    const ControllerButton buttons[12] = {
-        ControllerButton::L1,   ControllerButton::L2,    ControllerButton::R1,
-        ControllerButton::R2,   ControllerButton::Up,    ControllerButton::Down,
-        ControllerButton::Left, ControllerButton::Right, ControllerButton::X,
-        ControllerButton::B,    ControllerButton::Y,     ControllerButton::A};
     for (std::size_t i = 0; i < kMaxMechanisms; ++i) {
         six.motors[i] = MotorMechanismEntry{
             .name = "pivot",
             .signedPort = static_cast<std::int8_t>(1 + i),
             .cartridge = Cartridge::Red,
             .safeMode = BrakeMode::Hold,
-            .forward = buttons[2 * i],
-            .reverse = buttons[2 * i + 1],
-            .volts = 12.0,
             .provenance = "test",
         };
     }
-    CHECK(mechanismButtonsUnique(six));
-    CHECK_FALSE(mechanismButtonsAvoid(six, kTeleopRezeroButton));
+    CHECK(allChecksPass(six));
+    six.motors[5].signedPort = 1;  // ...and a repeated port is still refused, at the sixth entry
     CHECK_FALSE(allChecksPass(six));
-    // Five, without the reserved button, is the most that passes.
-    MechanismTable five = six;
-    five.motorCount = 5;
-    CHECK(allChecksPass(five));
-    // With pneumatics the arithmetic is 2 x motors + pneumatics <= 11: five motor entries leave
-    // ONE button (A) for one pneumatic, and a second pneumatic has none left — Y is reserved and
-    // every other button is taken.
-    MechanismTable fivePlusClaw = five;
-    fivePlusClaw.pneumatics[0] = kRobotTwoMechanisms.pneumatics[0];  // on A
-    fivePlusClaw.pneumaticCount = 1;
-    CHECK(allChecksPass(fivePlusClaw));
-    for (const ControllerButton b : buttons) {
-        CAPTURE(static_cast<int>(b));
-        MechanismTable fivePlusTwo = fivePlusClaw;
-        fivePlusTwo.pneumatics[1] = fivePlusClaw.pneumatics[0];
-        fivePlusTwo.pneumatics[1].adiLine = 2;
-        fivePlusTwo.pneumatics[1].toggle = b;
-        fivePlusTwo.pneumaticCount = 2;
-        CHECK_FALSE(allChecksPass(fivePlusTwo));
-    }
 }
 
 TEST_CASE("mechanism table: the source reader this suite pins Calibrate with -- comments go, "

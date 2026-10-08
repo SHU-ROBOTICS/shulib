@@ -23,27 +23,42 @@
 
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <optional>
 #include <span>
 #include <string>
 #include <vector>
 
 #include "pros/shim_control.hpp"
+#include "source_pins.hpp"
 
 #include "shulib/config/robot_config.hpp"
 #include "shulib/core/check.hpp"
+#include "shulib/diag/debug_record.hpp"
+#include "shulib/diag/log_copy_sink.hpp"
+#include "shulib/diag/run_summary.hpp"
 #include "shulib/diag/session_info.hpp"
 #include "shulib/diag/term_sink.hpp"
+#include "shulib/hal/fake/fake_char_sink.hpp"
+#include "shulib/hal/fake/fake_clock.hpp"
 #include "shulib/hal/device_registry.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/fake/fake_device_registry.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/motor_group.hpp"
 #include "shulib/hal/pros/device_provider.hpp"
+#include "shulib/math/angle.hpp"
+#include "shulib/motion/motion_scheduler.hpp"
 #include "shulib/robot/robot.hpp"
 #include "shulib/units/quantity.hpp"
 
 using shulib::PreconditionError;
+using source_pins::bodyOf;
+using source_pins::readFile;
+using source_pins::squash;
+using source_pins::stripComments;
 using shulib::hal::DeviceKind;
 using shulib::hal::MotorCartridge;
 using shulib::hal::pros::ProsDeviceProvider;
@@ -610,4 +625,261 @@ TEST_CASE("ProsDeviceProvider 1m: robot::Robot builds a pneumatic claw over the 
         CAPTURE(static_cast<int>(line));
         CHECK(pros::shim::adiLine(0, line).writes.empty());
     }
+}
+
+// ═══ 1n-1q. The optional log copy on the SD card (T4 Part 3; decisions N5 (a), A (a), B (a)) ══════
+namespace {
+
+namespace fs = std::filesystem;
+
+/// A fresh scratch "card" (with the trailing '/' the adapter demands), the ProsBlockSink tests'
+/// pattern: the provider's copy runs the SAME join+open+write path it runs against /usd/.
+std::string copyRoot() {
+    const fs::path dir = fs::temp_directory_path() / "shulib_t4p3_logcopy";
+    fs::create_directories(dir);
+    return dir.string() + "/";
+}
+
+std::string readText(const fs::path& p) {
+    std::ifstream in(p, std::ios::binary);
+    REQUIRE_MESSAGE(in.good(), "cannot open ", p.string());
+    return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+}
+
+/// What the provider's sink is asked to carry in 1n-1p: two lines, ten per-tick records, a
+/// summary, one more line — in that order.
+void sayThings(shulib::hal::ITelemetrySink& sink) {
+    sink.log(shulib::hal::LogLevel::Info, "DRV", "booted: shulib DRIVE");
+    sink.log(shulib::hal::LogLevel::Warn, "TEL", "WARNING: port 18 (LEFT) went ABSENT at runtime");
+    for (int k = 0; k < 10; ++k) {
+        shulib::diag::DebugRecord r;
+        r.t = shulib::units::Time{0.01 * k};
+        sink.emit(r);
+    }
+    shulib::diag::RunSummary s{};
+    s.motionsStarted = 1;
+    s.motionsSettled = 1;
+    sink.summarize(s);
+    sink.log(shulib::hal::LogLevel::Error, "TEL", "REFUSED: more than 2 motors dead in total");
+}
+
+}  // namespace
+
+TEST_CASE("ProsDeviceProvider 1n: given a bare file name, the provider copies every LOG line and the "
+          "summary to the card, byte for byte what serial prints for them, and NO per-tick record; "
+          "telemetry() is the copy sink over the serial TermSink") {
+    // BUG CAUGHT (the brief's 4' test; decision A (a)): the copy taken at the character level — every
+    // record line on the card, a block write and a flush every 10 ms; the copy file never opened, or
+    // opened somewhere else; telemetry() still the bare serial sink, so the copy constructor's
+    // argument did nothing; a copy whose lines differ from serial's (another clock, another format).
+    pros::shim::resetAll();
+    pros::shim::usdState().installed = true;
+    const std::string root = copyRoot();
+    const fs::path file = fs::path(root) / "drive_log.txt";
+    {
+        std::ofstream old(file, std::ios::binary);
+        old << "a previous boot's log\n";  // Truncate: one file per boot
+    }
+    pros::shim::advanceUs(3'250'000);
+    ProsDeviceProvider devices{"drive_log.txt", shulib::hal::pros::ProsFileMode::Truncate,
+                               root.c_str()};
+    REQUIRE(devices.serialCopyOpen());
+    CHECK(std::string{devices.serialCopyPath()} == file.string());
+    auto* copy = dynamic_cast<shulib::diag::LogCopySink*>(&devices.telemetry());
+    REQUIRE(copy != nullptr);
+    CHECK(dynamic_cast<shulib::diag::TermSink*>(&copy->primary()) != nullptr);  // serial's
+    CHECK(dynamic_cast<shulib::diag::TermSink*>(&copy->copy()) != nullptr);     // the card's
+    CHECK(&copy->primary() != &copy->copy());
+    CHECK(devices.telemetry().wantsRecord());  // records are still built — for serial
+    sayThings(devices.telemetry());
+    // The reference: what a TermSink over the provider's own clock prints for the LOG channel and
+    // the summary alone — the serial line for each of them, with no record line.
+    shulib::hal::fake::FakeCharSink expected;
+    shulib::diag::TermSink reference{devices.clock(), expected};
+    reference.log(shulib::hal::LogLevel::Info, "DRV", "booted: shulib DRIVE");
+    reference.log(shulib::hal::LogLevel::Warn, "TEL",
+                  "WARNING: port 18 (LEFT) went ABSENT at runtime");
+    shulib::diag::RunSummary s{};
+    s.motionsStarted = 1;
+    s.motionsSettled = 1;
+    reference.summarize(s);
+    reference.log(shulib::hal::LogLevel::Error, "TEL", "REFUSED: more than 2 motors dead in total");
+    const std::string onCard = readText(file);
+    CHECK(onCard == expected.text());
+    CHECK(onCard.find("a previous boot") == std::string::npos);
+    CHECK(onCard.find("[t=   3.25] [WARN][TEL] WARNING: port 18") != std::string::npos);
+    CHECK(onCard.find("[LOC]") == std::string::npos);  // no record line (an idle tick is [LOC])
+    CHECK(devices.serialCopyDroppedLines() == 0U);
+}
+
+TEST_CASE("ProsDeviceProvider 1o: NO CARD — the copy refuses every line and COUNTS it, nothing is "
+          "thrown, and serial keeps every line; with no file name there is no copy at all") {
+    // BUG CAUGHT: a missing card stopping a robot (a throw at boot or mid-run), or dropping lines
+    // without a count (the T5 rule: a drop is said, never silent); a provider whose default form
+    // changed (the no-copy provider must stay today's, byte for byte).
+    pros::shim::resetAll();  // the shim's default: no card (HA-122)
+    ProsDeviceProvider devices{"drive_log.txt"};
+    CHECK_FALSE(devices.serialCopyOpen());
+    CHECK(std::string{devices.serialCopyPath()} == "/usd/drive_log.txt");
+    CHECK_NOTHROW(sayThings(devices.telemetry()));
+    // Three log lines and the summary's block, every one refused by the card and counted; the ten
+    // records never reached the copy, so they are not among them.
+    shulib::hal::fake::FakeCharSink summaryLines;
+    shulib::hal::fake::FakeClock clock;
+    shulib::diag::TermSink countSummary{clock, summaryLines};
+    countSummary.summarize(shulib::diag::RunSummary{});
+    std::uint32_t summaryWrites = 0;
+    for (const char c : summaryLines.text()) {
+        if (c == '\n') ++summaryWrites;
+    }
+    REQUIRE(summaryWrites >= 6U);
+    CHECK(devices.serialCopyDroppedLines() == 3U + summaryWrites);
+    auto* copy = dynamic_cast<shulib::diag::LogCopySink*>(&devices.telemetry());
+    REQUIRE(copy != nullptr);
+    CHECK(dynamic_cast<shulib::diag::TermSink*>(&copy->primary()) != nullptr);  // serial, unchanged
+    // A null name is the default provider: no copy, telemetry() the serial TermSink (1j).
+    ProsDeviceProvider plain{nullptr};
+    CHECK(dynamic_cast<shulib::diag::TermSink*>(&plain.telemetry()) != nullptr);
+    CHECK_FALSE(plain.serialCopyOpen());
+    CHECK(std::string{plain.serialCopyPath()}.empty());
+    CHECK(plain.serialCopyDroppedLines() == 0U);
+    CHECK(plain.serialCopyAppendOpen() == shulib::hal::pros::AppendOpen::Refused);
+}
+
+TEST_CASE("ProsDeviceProvider 1p: APPEND (decision B (a), the competition program's) — an existing "
+          "log keeps every byte and the new lines follow it; a missing one is created") {
+    // BUG CAUGHT: the mode argument ignored (a reboot mid-match erasing that match's log — the case
+    // the log exists for), or Append on a missing file refusing instead of creating it.
+    pros::shim::resetAll();
+    pros::shim::usdState().installed = true;
+    const std::string root = copyRoot();
+    const fs::path file = fs::path(root) / "comp_log.txt";
+    fs::remove(file);
+    {
+        ProsDeviceProvider first{"comp_log.txt", shulib::hal::pros::ProsFileMode::Append,
+                                 root.c_str()};
+        REQUIRE(first.serialCopyOpen());
+        CHECK(first.serialCopyAppendOpen() == shulib::hal::pros::AppendOpen::Created);
+        first.telemetry().log(shulib::hal::LogLevel::Info, "CMP", "boot one");
+    }
+    {
+        ProsDeviceProvider second{"comp_log.txt", shulib::hal::pros::ProsFileMode::Append,
+                                  root.c_str()};
+        REQUIRE(second.serialCopyOpen());
+        CHECK(second.serialCopyAppendOpen() == shulib::hal::pros::AppendOpen::Appended);
+        second.telemetry().log(shulib::hal::LogLevel::Info, "CMP", "boot two");
+    }
+    const std::string onCard = readText(file);
+    const std::size_t one = onCard.find("boot one");
+    const std::size_t two = onCard.find("boot two");
+    CHECK(one != std::string::npos);
+    CHECK(two != std::string::npos);
+    CHECK(one < two);
+}
+
+TEST_CASE("ProsDeviceProvider 1q: the copy's file name must be BARE — a leading '/' or an empty name "
+          "is a precondition (ProsBlockSink's own rule, through the provider)") {
+    // BUG CAUGHT: the double-prefix mistake ("/usd//usd/drive_log.txt") compiled out of sight.
+    pros::shim::resetAll();
+    CHECK_THROWS_AS(ProsDeviceProvider{"/usd/drive_log.txt"}, PreconditionError);
+    CHECK_THROWS_AS(ProsDeviceProvider{""}, PreconditionError);
+}
+
+// ═══ 1r-1s. The copy never carries a line per tick, nor waits on another task (the T4-3 review) ═══
+namespace {
+
+/// A pacer whose every tick lasts `us` on the shim's clock — 20 ms is past LoopMonitor's 15 ms
+/// budget, so every tick of a motion paced by it overruns.
+struct ShimSlowPacer final : shulib::motion::ITickPacer {
+    explicit ShimSlowPacer(std::uint64_t tickUs) noexcept : us{tickUs} {}
+    void pace() override {
+        ++paces;
+        pros::shim::advanceUs(us);
+    }
+    std::uint64_t us;
+    int paces = 0;
+};
+
+/// What one turnTo over the REAL provider (with the competition program's copy, Append) and the
+/// REAL Robot left behind, at a tick of `tickUs`.
+struct OverrunRun {
+    int paces = 0;
+    int overrunTicks = 0;        ///< the scheduler's LoopMonitor
+    int overrunRaises = 0;       ///< the Robot's fault latch
+    int overrunLinesOnCard = 0;  ///< `fault=LOOP_OVERRUN` lines in the copy
+};
+
+int countOf(const std::string& text, const std::string& what) {
+    int n = 0;
+    for (std::size_t p = text.find(what); p != std::string::npos; p = text.find(what, p + 1)) {
+        ++n;
+    }
+    return n;
+}
+
+OverrunRun turnWithTicksOf(std::uint64_t tickUs) {
+    pros::shim::resetAll();
+    pros::shim::usdState().installed = true;
+    const std::string root = copyRoot();
+    const fs::path file = fs::path(root) / "comp_log.txt";
+    fs::remove(file);
+    for (const int p : {11, 12, 13, 14, 15, 20, 19, 18, 17, 16}) {
+        pros::shim::setPluggedAtPort(p, pros::c::E_DEVICE_MOTOR);
+    }
+    pros::shim::setPluggedAtPort(2, pros::c::E_DEVICE_IMU);
+    OverrunRun out;
+    ShimSlowPacer pacer{tickUs};
+    {
+        ProsDeviceProvider devices{"comp_log.txt", shulib::hal::pros::ProsFileMode::Append,
+                                   root.c_str()};
+        REQUIRE(devices.serialCopyOpen());
+        const shulib::config::RobotConfig cfg = shimTankConfig();
+        const shulib::robot::BuildOptions options{.pacer = &pacer};
+        const shulib::robot::BuildVerdict v = shulib::robot::validate(cfg, devices, options);
+        CAPTURE(v.why);
+        REQUIRE(v.ok);
+        shulib::robot::Robot robot{cfg, devices, options};
+        (void)robot.chassis().turnTo(shulib::math::Angle::degrees(90.0),
+                                     {.timeout = shulib::units::Time{1.0}});
+        out.overrunTicks = robot.chassis().scheduler().loopMonitor().overrunCount();
+        out.overrunRaises = robot.faults().raiseCount(shulib::diag::FaultCode::LoopOverrun);
+    }
+    out.paces = pacer.paces;
+    out.overrunLinesOnCard = countOf(readText(file), "fault=LOOP_OVERRUN");
+    return out;
+}
+
+}  // namespace
+
+TEST_CASE("ProsDeviceProvider 1r: an auton motion whose EVERY tick overruns puts ONE LOOP_OVERRUN "
+          "line on the card copy, while every slow tick is still counted") {
+    // BUG CAUGHT (the T4-3 review's major finding, its probe's shape): a slow loop logging a fault
+    // line on every tick, which the copy turned into one card write and one flush inside every
+    // slow tick (50 in a 1 s turn at 20 ms) — decision A's "never a line per tick" broken, and the
+    // card's cost added to the very ticks that were already late. Counting must not change: the
+    // monitor and the latch still see every slow tick.
+    const OverrunRun slow = turnWithTicksOf(20'000);
+    CAPTURE(slow.paces);
+    REQUIRE(slow.paces >= 40);
+    CHECK(slow.overrunTicks >= slow.paces - 2);  // every tick but the baselines
+    CHECK(slow.overrunRaises == slow.overrunTicks);
+    CHECK(slow.overrunLinesOnCard == 1);
+    // The control: at 10 ms nothing overruns, and nothing is said.
+    const OverrunRun healthy = turnWithTicksOf(10'000);
+    CHECK(healthy.paces >= 40);
+    CHECK(healthy.overrunTicks == 0);
+    CHECK(healthy.overrunLinesOnCard == 0);
+}
+
+TEST_CASE("ProsDeviceProvider 1s: the lines the copy LOST are the card's refusals PLUS the lines "
+          "another task's copy write kept off (diag::LogCopySink's guard)") {
+    // BUG CAUGHT: a line left off the card because another task was mid-copy, never counted — the
+    // boot line's "N line(s) lost" would under-say what the card is missing. Contention needs a
+    // second task, which the host cannot schedule into the provider's own chain, so the sum is
+    // pinned in the source (log_copy_sink_test.cpp drives the guard itself, re-entered).
+    const std::string text = readFile("include/shulib/hal/pros/device_provider.hpp");
+    CHECK(squash(bodyOf(stripComments(text),
+                        "std::uint32_t serialCopyDroppedLines() const noexcept"))
+          == "return copyChars_.has_value() && logCopy_.has_value() ? copyChars_->droppedWrites() "
+             "+ logCopy_->contendedLines() : 0U;");
 }

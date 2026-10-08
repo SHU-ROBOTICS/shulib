@@ -8,6 +8,7 @@
 #include "doctest.h"
 
 #include <cstdio>
+#include <limits>
 #include <set>
 #include <string>
 #include <string_view>
@@ -364,4 +365,104 @@ TEST_CASE("C4 every reachable view is screen-safe: ASCII, no percent, within bud
     v = fresh.view(t);
     CHECK(std::string_view{v.header.text} == std::string{"AUTON: "} + kNames[0]);
     CHECK(std::string_view{v.header.text}.size() == 7 + kMaxAutonNameChars);
+}
+
+// Bug caught (T4 Part 3; the team lead's ruling of 2026-10-02 on COMP-b's C5, "drop just that
+// auton"): an entry the registry DROPPED leaving no trace on the selector — the person choosing an
+// auton sees theirs missing and cannot tell why — or a dropped entry still drawn as a button (it was
+// never registered: choosing it would run nothing). The status line names each dropped entry in
+// RED, in turn (kMenuRefusalTurnSeconds apiece, back to the first), while the choice is open; once
+// the auton has started it says LOCKED as before; a time that is not a number shows the first; and
+// a registry that dropped nothing shows no REFUSED word at all.
+TEST_CASE("C5 the selector names each DROPPED entry in red, in turn; a dropped entry is no button") {
+    using shulib::competition::kMenuRefusalTurnSeconds;
+    using shulib::competition::OnRefusal;
+    AutonRegistry reg{AutonPeriods{.match = Time{30.0}, .skills = Time{60.0}},
+                      OnRefusal::DropEntry};
+    const auto entry = [](const char* name, double hardStop) {
+        AutonEntry e{};
+        e.name = name;
+        e.kind = AutonKind::Match;
+        e.routine = &noop;
+        e.start = StartPose::relative();
+        e.endActionAt = Time{25.0};
+        e.hardStopAt = Time{hardStop};
+        return e;
+    };
+    reg.add(entry("too late", 31.0));   // dropped: past the period
+    reg.add(entry("left rush", 29.0));
+    reg.add(entry("also late", 45.0));  // dropped
+    reg.add(entry("right rush", 29.0));
+    REQUIRE(reg.size() == 2);
+    REQUIRE(reg.refusedCount() == 2);
+    AutonMenu menu{reg, 0};
+    const auto statusAt = [&menu](double t) { return std::string{menu.view(t).status.text}; };
+    CHECK(statusAt(0.0) == "REFUSED " + std::string{reg.refusal(0)}.substr(0, 42));
+    CHECK(statusAt(0.0).find("hardStopAt 31.00 s") != std::string::npos);
+    CHECK(menu.view(0.0).status.tone == ui::Tone::Red);
+    CHECK(statusAt(kMenuRefusalTurnSeconds * 0.99).rfind("REFUSED auton 'too late'", 0) == 0);
+    CHECK(statusAt(kMenuRefusalTurnSeconds).rfind("REFUSED auton 'also late'", 0) == 0);
+    CHECK(statusAt(2 * kMenuRefusalTurnSeconds + 0.1).rfind("REFUSED auton 'too late'", 0) == 0);
+    CHECK(statusAt(-1.0).rfind("REFUSED auton 'too late'", 0) == 0);
+    CHECK(statusAt(std::numeric_limits<double>::quiet_NaN()).rfind("REFUSED auton 'too late'", 0)
+          == 0);
+    CHECK(statusAt(1e300).rfind("REFUSED auton '", 0) == 0);
+    for (double t = 0.0; t < 6.0; t += 0.5) {
+        const MenuView v = menu.view(t);
+        checkScreenSafe(v);
+        CHECK(std::string_view{v.status.text}.size() <= ui::kSmallCols);
+        for (std::size_t i = 0; i < v.buttonCount; ++i) {
+            CHECK(std::string_view{v.buttons[i].label}.find("late") == std::string_view::npos);
+        }
+    }
+    // Each dropped entry is named for 2 s: the number the changelog and chapter 17 state ("(2 s)
+    // each"), pinned so a change of the constant cannot leave the documents saying the old one
+    // (the T4-3 review's RV5).
+    static_assert(kMenuRefusalTurnSeconds == 2.0,
+                  "the documents say each dropped entry is named for 2 s -- reword them with it");
+    (void)menu.lockChoice();
+    CHECK(statusAt(0.0) == std::string{shulib::competition::kMenuLockedText});
+    // Nothing dropped: no REFUSED word, whatever the time.
+    const AutonRegistry clean = makeRegistry(2);
+    AutonMenu plain{clean, 0};
+    for (double t = 0.0; t < 6.0; t += 0.5) {
+        CHECK(std::string{plain.view(t).status.text}.find("REFUSED") == std::string::npos);
+    }
+}
+
+// Bug caught (the T4-3 review's RV2): MORE entries dropped than the registry keeps sentences for
+// (kMaxAutonRefusals; kMaxAutons is 16, so 9 or more can be dropped), with the turn not clamped to
+// the KEPT sentences -- every ninth turn would ask for a sentence that was never kept and the red
+// line would read a bare `REFUSED `. Every turn of a whole cycle names a kept entry.
+TEST_CASE("C5 the selector's turn walks only the KEPT sentences when more were dropped than kept") {
+    using shulib::competition::kMenuRefusalTurnSeconds;
+    using shulib::competition::OnRefusal;
+    AutonRegistry reg{AutonPeriods{.match = Time{30.0}, .skills = Time{60.0}},
+                      OnRefusal::DropEntry};
+    char names[shulib::competition::kMaxAutonRefusals + 1][12]{};
+    for (std::size_t i = 0; i < shulib::competition::kMaxAutonRefusals + 1; ++i) {
+        std::snprintf(names[i], sizeof names[i], "late %d", static_cast<int>(i));
+        AutonEntry e{};
+        e.name = names[i];
+        e.kind = AutonKind::Match;
+        e.routine = &noop;
+        e.start = StartPose::relative();
+        e.endActionAt = Time{25.0};
+        e.hardStopAt = Time{31.0};  // past the 30 s match period: dropped
+        reg.add(e);
+    }
+    REQUIRE(reg.refusedCount() == shulib::competition::kMaxAutonRefusals + 1);
+    AutonMenu menu{reg, 0};
+    const double cycle =
+        static_cast<double>(shulib::competition::kMaxAutonRefusals + 1) * kMenuRefusalTurnSeconds;
+    std::set<std::string> named;
+    for (double t = 0.0; t < 2.0 * cycle; t += kMenuRefusalTurnSeconds / 2.0) {
+        const std::string status{menu.view(t).status.text};
+        CAPTURE(t);
+        CAPTURE(status);
+        REQUIRE(status.rfind("REFUSED auton 'late ", 0) == 0);  // never the bare prefix
+        named.insert(status.substr(0, std::string{"REFUSED auton 'late 0'"}.size()));
+    }
+    CHECK(named.size() == shulib::competition::kMaxAutonRefusals);  // the kept ones, each in turn
+    CHECK(named.count("REFUSED auton 'late 8'") == 0U);             // the ninth was never kept
 }

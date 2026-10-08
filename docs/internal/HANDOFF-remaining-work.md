@@ -65,8 +65,9 @@
 - **Side worktrees:** `.claude/worktrees/agent-aef02a3f7fb230a9d` (T2's, integrated — remove with
   `git worktree remove --force <path>` and then `git branch -D worktree-agent-aef02a3f7fb230a9d`,
   its leftover branch); `.claude/worktrees/hw-17aa4eb` (detached at `5e4ce65`; **its `bin/` holds ONE
-  package — shulib Drive**: each `rm -rf bin .d && make …` overwrote the one before, so Bench Tests,
-  Calibrate and Teleop must be rebuilt).
+  package — shulib Drive** (the OLD one, replaced at T4 Part 3): each `rm -rf bin .d && make …`
+  overwrote the one before, so Bench Tests, Calibrate and the programs since must be rebuilt — "shulib
+  Teleop" no longer among them: T4 Part 3 retired it, and `PROGRAM=library` is now a `make` error).
 - **Commits since the last push, newest first:** run `git log --oneline origin/shulib-v2..HEAD` —
   this file used to list a selection by hand and dropped four (`d9d0ee3`, `e9ba69f`, `280dce8`,
   `76a5819`) without saying so.
@@ -106,11 +107,13 @@
   travels ~20 % short on a push (HA-130, unexplained). **The drivetrain was REBUILT around
   2026-09-18** — trust none of these until the census + MOTOR WATCH (or the calibrator) re-measure
   them.
-- **The typed table is NOT a Teleop fallback.** `src/robots/chassis_table.hpp` carries ports, signs and the
-  cartridge but `trackWidthIn = 0.0` and `externalRatio = 0.0`, so `tableToDescription()` yields an
-  invalid description and **shulib Teleop refuses to start without a SAVED calibration record** on
-  the card. The table does drive shulib Drive and Bench Tests (they need only ports and the
-  cartridge). So on the robot: Calibrate must succeed before Teleop can run at all.
+- **The typed table is NOT a fallback for the programs that boot from the record.** `src/robots/chassis_table.hpp`
+  carries ports, signs and the cartridge but `trackWidthIn = 0.0` and `externalRatio = 0.0`, so
+  `tableToDescription()` yields an invalid description and **"shulib Drive" (since T4 Part 3; "shulib
+  Teleop" until then) refuses to start without a SAVED calibration record** on the card — as does
+  every program that boots robot two from the record. The table drives Bench Tests only now (it needs only
+  ports and the cartridge; the OLD "shulib Drive" drove from it until T4 Part 3 replaced it). So on
+  the robot: Calibrate must succeed before "shulib Drive" can run at all.
 - **Robot one:** also tank. **Its ports do not need typing** — shulib Calibrate takes every motor the
   brain's registry reports as a candidate — EXCEPT a port `src/robots/mechanism_table.hpp` declares as a
   mechanism motor (robot two's claw pivots on 6 and 7, since T3: never a candidate, never touched) —
@@ -164,7 +167,8 @@
 - **Competition:** jal has a competition the weekend of 2026-09-26/27 (his words, 2026-09-23). **Do
   not rush verification to hit it; do not promise the whole library by then.** Report honestly what
   is and is not proven at each step. As of 2026-09-24: no program can run an autonomous in a match
-  (L2 does not exist), and the only driver-control program with a hardware history is shulib Drive.
+  (L2 does not exist), and the only driver-control program with a hardware history is shulib Drive
+  (the OLD one — T4 Part 3 replaced it with a new program of the same name, which has never run).
 - **VexBuilder:** jal, 2026-09-23: *"We are not working on the VexBuilder app. I want to code whatever
   I want on the real robots through our own library."* shulib's own no-code data layer (G1, G2) stays;
   work that exists only to serve VexBuilder's files (G3, G4) waits until after L1–L9 unless he says
@@ -262,26 +266,29 @@ source (SD), line display, tick pacer, device registry, and (G1 Part 2a, 2026-09
 provider `ProsDeviceProvider` — **no AI Vision adapter.** Drivetrain:
 `hal::MotorGroup` (median reads, ABSENT members), `hal::DriveGeometry`, `hal::DrivetrainDescription`.
 Calibration: `calibration/drivetrain_calibrator.hpp`, `calibration_record.hpp` (180-byte, CRC-32),
-`boot_check.hpp`. Driver control: `teleop/stick_mapping.hpp` (raw, used by shulib Drive),
+`boot_check.hpp`. Driver control: `teleop/stick_mapping.hpp` (raw, used by the bench tester's DRIVE
+station; the OLD shulib Drive used it until T4 Part 3),
 `coupled_side_monitor.hpp`, `drivetrain_degradation.hpp`, and T2's `input_shaping.hpp`,
 `slew_limiter.hpp`, `drive_modes.hpp`, `field_centric.hpp`, `driver_control.hpp`, and (G1 Part 2a)
-`teleop_loop.hpp` — `runDriverControl`, the loop over them (**wired into "shulib Teleop" since G1
-Part 2b and the invented X-drive since Part 2c; neither has run with it**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
+`teleop_loop.hpp` — `runDriverControl`, the loop over them (**called by robot two's driver file —
+which "shulib Drive" and the competition program run, since T4 Part 3; "shulib Teleop" called it from
+G1 Part 2b until then — and by the invented X-drive since Part 2c; none has run with it**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
 constructs a mechanism from it yet**), `config/route.hpp` (**F8 frozen**; `Waypoint::reverse` exists),
 `hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, clock, battery, telemetry,
 pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
-Programs in `src/` (eight builds, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`, slot 3,
-the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
-`src/programs/drive_program.cpp`), **shulib Teleop** (`PROGRAM=library`, slot 2, built from the SD record — the
-typed table cannot describe the drivetrain, see §2; since G1 Part 2b `robot::Robot` + the library's
-own loop in `src/programs/teleop_program.cpp`, **this version never run** — the previous, hand-wired one drove
-robot two from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/programs/calibrate_program.cpp`;
+Programs in `src/` (seven builds since T4 Part 3, `make ROBOT=… PROGRAM=…`): **Bench Tests** (`make ROBOT=tank`,
+slot 3, the measuring tool; `src/programs/bench_r3a.cpp`), **shulib Drive** (`PROGRAM=drive`, slot 1,
+`src/programs/drive_program.cpp` — since T4 Part 3 the team's driver file on `robot::Robot`, built from the SD
+record (the typed table cannot describe the drivetrain, see §2), with the library's drive protections, the
+claws and "shulib Teleop"'s diagnostics as its DETAILS page; **never run** — the OLD "shulib Drive" it replaced
+drove robot two open-loop on 2026-09-17, and the "shulib Teleop" it retired (`PROGRAM=library`, slot 2, now an
+`$(error)`) drove it from the record on 2026-09-25), **shulib Calibrate** (`PROGRAM=calibrate`, slot 4, `src/programs/calibrate_program.cpp`;
 **first ran on robot two 2026-09-24** — run 1 stopped on `SPIN_DISAGREE`, run 2 finished with no
 serial capture; its recorded reproduction run is still owed), **shulib Auton Tester** (`PROGRAM=autontest`,
-slot 7 until T4 Part 3, `src/programs/auton_tester_program.cpp`; COMP-t, 2026-09-28 — runs one of the team's
+slot 2 — slot 7 until T4 Part 3 —, `src/programs/auton_tester_program.cpp`; COMP-t, 2026-09-28 — runs one of the team's
 autons from `src/team/autons.cpp` on the bench through `competition::runAuton`; **never run**), **shulib
 Competition** (`PROGRAM=competition`, slot 6 — slot 5 stays the team's old-code fallback —
 `src/programs/competition_program.cpp`; COMP-b, 2026-09-30 — THE program for a match: the auton chosen on the
@@ -348,9 +355,10 @@ the work into three parts so each doc pass fits: **2a** library only (provider, 
 dispatcher, the X-drive as data, the build gate's differential redesigned.
 - What: `hal/pros/device_provider.hpp` (`ProsDeviceProvider`, registry-checked); absent drive ports
   in the builder, from the boot check; `teleop/teleop_loop.hpp` (`runDriverControl`, PROS-free); shulib Teleop moved to
-  `src/programs/teleop_program.cpp` built as provider → `bootConfig()` (SD record → typed table → refuse) →
+  `src/programs/teleop_program.cpp` (deleted at T4 Part 3) built as provider → `bootConfig()` (SD record → typed table → refuse) →
   `robot::Robot` → the loop; the X-drive graph as a config constant; `src/main.cpp` a dispatcher.
-- Rulings already made: only Teleop changes feel (shulib Drive and the tester keep `mapSticks`);
+- Rulings already made: only Teleop changes feel (shulib Drive and the tester keep `mapSticks` — the
+  OLD shulib Drive; the new one, since T4 Part 3, drives through `DriveShaper` by robot two's driver file);
   field-centric ships selectable but OFF; the registry check and the builder's device pass both stay
   and name a port once.
 - Done / docs owed: per the revised brief's DoD and documentation lists.
@@ -452,19 +460,19 @@ brief names it as a future consumer of the builder's dead-port tolerance).
   autonomous operation left on a bound mechanism is RELEASED by `runDriverControl` when driver
   control starts, and logged (`[WARN][TEL] driver control: RELEASED a claim ...`) — his ruling,
   T3 Part 2. **Still open here: chassis macros** (a button running a chassis motion the sticks can
-  interrupt) and angle presets. Station J is where the claws are first seen. **Since T4 Part 1a
-  (2026-09-27)** robot two's buttons are ALSO stated in its driver file (`src/team/robot_two_driver.hpp`,
-  L5b), tied to the table's at compile time in Teleop until T4 Part 3 (which took over Part 1b) makes the
-  driver file their one owner; the macros, when they come, get their line in its WHICH BUTTON block and their binder in
-  `src/common/driver_controls.hpp` (T4 brief §8).
+  interrupt) and angle presets. Station J is where the claws are first seen. **Since T4 Part 3 (which
+  took over Part 1b; landed 2026-10-08)** robot two's buttons are stated ONLY in its
+  driver file (`src/team/robot_two_driver.hpp`, L5b): they left `src/robots/mechanism_table.hpp` with
+  `kTeleopRezeroButton`, its button checks and Part 1a's interim tie; the macros, when they come, get their
+  line in its WHICH BUTTON block and their binder in `src/common/driver_controls.hpp` (T4 brief §8).
 - **The re-zero default, and what guards it now:** `teleop::DriverLoopConfig::rezeroButton` still
   DEFAULTS to `L1` (pivot 7's forward button). What stops the collision running is
   `teleop::validBindings()` — `runDriverControl` refuses, before its first tick, a binding on the
-  loop's re-zero button (T3 Part 1). "shulib Teleop" names **Y** (the team lead's ruling: A became
-  the claw's toggle), `static_assert`s that it equals the table's `kTeleopRezeroButton` and is no
-  binding button of either mechanism table (and, since T4 Part 1a, that it equals the driver file's
-  `kLoop.rezeroButton`), and validates its whole set against it in `teleopInitialize()`. The default itself was NOT moved or made a sentinel — a program with no
-  bindings still gets L1, harmlessly.
+  loop's re-zero button (T3 Part 1). Robot two's driver file names **Y** in its `kLoop` (the team
+  lead's ruling: A became the claw's toggle), its checks refuse a control on Y at compile time, and
+  its `bind()` validates the whole set against it before driver control starts ("shulib Teleop" named Y
+  itself, beside the table's `kTeleopRezeroButton`, until T4 Part 3 retired both). The default itself
+  was NOT moved or made a sentinel — a program with no bindings still gets L1, harmlessly.
 - Docs owed (for the macros): guide chapter section, cookbook, roadmap Phase T rows, build-order.
 - Size: the macros ~½–1 day.
 
@@ -496,7 +504,8 @@ is a plan change for jal to confirm in the brief (Q7).
   (a record v2 with its version bump and a decoder that still reads v1, or a sibling record — decide in
   the brief) and consumed by the builder as the tuning.
 - Done: host-proven on the plant (the fitted gains recover the plant's configured gains); the record
-  round-trips; Teleop and the competition program use measured gains when present and say which.
+  round-trips; "shulib Drive" (Teleop until T4 Part 3 retired it) and the competition program use
+  measured gains when present and say which.
 - Docs owed: HA-45/50/51/52 and the noise entries' settle lines, roadmap R4/R5, build-order R4/R5/E5,
   guide, worksheet station.
 - Size: ~1–1.5 days host; the measurement is S2/S3. *(Stale, corrected 2026-09-28: R5a's brief puts it at
@@ -528,8 +537,10 @@ is a plan change for jal to confirm in the brief (Q7).
   SAFE level (each with an UNSET value `valid()` refuses); `Robot` builds a `MotorMechanism` or a
   `PneumaticMechanism` per configured mechanism (ABSENT, never a whole-build refusal, when the
   provider refuses one) with typed lookups `mechanism(name)` / `pneumaticMechanism(name)` and the
-  RunGuard span; the provider gained `digitalOut()`. Since T3 Part 2 "shulib Teleop"'s boot source
-  converts `src/robots/mechanism_table.hpp` into those configs, so robot two's claws are built from it.
+  RunGuard span; the provider gained `digitalOut()`. Since T3 Part 2 the boot source ("shulib Teleop"'s
+  then; `src/common/boot_source.cpp`, shared by "shulib Drive", the Auton Tester and the competition
+  program, since T4 Part 3 retired Teleop) converts `src/robots/mechanism_table.hpp` into those configs,
+  so robot two's claws are built from it.
   Host-tested only.
 - A `Robot::fromCard()`-style one-liner (may be L1's `bootConfig()` exposed; decide in L1/L2).
 - Docs owed: the register rows touched, the changelog, guide, cookbook.
@@ -539,14 +550,16 @@ is a plan change for jal to confirm in the brief (Q7).
 **L9b. [SAFE-SAVE, NEW 2026-09-26, reactive] Calibrate's save can never erase a good record; the boot falls
 back to a verified backup.** BRIEFED (`chunks/SAFE-SAVE-calibrate-save-and-teleop-label.md`; every
 recommendation accepted). The brain cannot rename or delete a file, so today a failed save can erase the
-record Teleop boots from while its NOT SAVED text says the old one survived. **Until Part B1 is in the
+record the programs boot from ("shulib Drive" since T4 Part 3, Teleop until then; the Auton Tester and
+the competition program too) while its NOT SAVED text says the old one survived. **Until Part B1 is in the
 build: copy `shulib_drivetrain.bin` off the card on a laptop, dated, before ANY Calibrate run** (worksheet
 G.0.1). Part A (the library) now; B1 (Calibrate's save) after T3 Part 2 and 2c-final, before the next
-Calibrate rerun; B2 (the boot's fallback, Teleop's words) after COMP-b. **Status 2026-09-29: Part A BUILT
+Calibrate rerun; B2 (the boot's fallback, and the boot-source words Teleop said — "shulib Drive"'s and
+the competition program's since T4 Part 3) after COMP-b. **Status 2026-09-29: Part A BUILT
 in the `safesave-a` worktree, host- and build-gated, awaiting the coordinator's verification** (the store
 seam, `ProsFileStore`, `FakeFileStore`, `calibration/record_store.hpp`, HA-166; `chunks/SAFE-SAVE-PROGRESS.md`)
-— no program uses it yet, so the copy-first rule above still stands. Teleop's "table" label was
-already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all.
+— no program uses it yet, so the copy-first rule above still stands. The boot source's "table" label
+(Teleop's when it was fixed) was already fixed at G1 Part 2b (D3) — a regression pin only. ~2–2½ days in all.
 
 **DIAG1 Part B** (the median's non-finite handling) LANDED 2026-10-01 — **DIAG1 is COMPLETE**
 (`chunks/DIAG1-COMPLETED.md`; brief `chunks/DIAG1-partB-median-nonfinite.md`); host test plant only.
@@ -579,9 +592,9 @@ tank result lines end with ` xt`, the final cross-track error; X/H lines byte-id
 and the plan) landed 2026-09-27. **Part 1a LANDED 2026-09-27, host- and build-gated, NOT run on a robot; run
 by "shulib Competition"'s `opcontrol()` since COMP-b (built 2026-09-30, not run on a robot)** (`chunks/T4-PROGRESS.md` "Part 1a"): robot two's driver file `src/team/robot_two_driver.hpp`
 and its generic half `src/common/driver_controls.hpp` (the binder by name, the five checks, the ONE heading rule
-Teleop and the X-drive now call); the buttons also stay in `src/robots/mechanism_table.hpp`, tied at compile
-time in Teleop, until Part 3 (Part 1b was folded into Part 3 on jal's ruling of 2026-09-28: Teleop is never
-rewired); COMP-b's B11 replaced ("`opcontrol()` IS the driver file"). Parts (COMP-b) → 2 (the old drive's
+— Teleop and the X-drive called it then; the driver file and the X-drive since Part 3); the buttons also
+stayed in `src/robots/mechanism_table.hpp`, tied at compile time in Teleop, until Part 3 moved them into the
+driver file (Part 1b was folded into Part 3 on jal's ruling of 2026-09-28: Teleop was never rewired); COMP-b's B11 replaced ("`opcontrol()` IS the driver file"). Parts (COMP-b) → 2 (the old drive's
 protections, moved into the library) → 3 (the new "shulib Drive" replaces the old one; "shulib Teleop" retires;
 the buttons leave the mechanism table). jal's answers:
 N1 (a) the over-current cut ON with an off switch and a required push check; N2 (a) as amended; N4 (a) the
@@ -599,12 +612,32 @@ COMP's `perTick`, the driver file's paragraph, Station K's push check unless COM
 COMP-b's files) was FOLDED INTO PART 3 on jal's ruling of 2026-10-01 — Part 3's late step, after COMP-b. Part
 2a's review (2026-09-30) and its verification (2026-10-01) found guard G4's gap at a wall wider than decision D
 weighed — at ANY wall a motor whose speed report settles well before its mates' is marked dead (P2-19e), and
-beside the slipping port 18 less is needed (P2-21d) — pinned as built and stated in HA-175; jal ruled "D, again" on 2026-10-01 — the
-encoder check, built in Part 3 (`REMAINING-WORK.md` §11); and the push check gains a full-stick reversal and a launch from rest
-(HA-176), its log read for `went ABSENT` on any port.)*
-- For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser (COMP-b's header, `src/common/driver_panel.hpp`), at
-  its place after CLAW ABSENT — never into `teleop_program.cpp`.
-- For SAFE-SAVE A/B1's re-check: `formatSaveReport`'s sentences name Teleop, which T4 Part 3 retires.
+beside the slipping port 18 less is needed (P2-21d) — pinned as built, stated in HA-175, jal's to rule
+(`REMAINING-WORK.md` §11, "D, again"); and the push check gains a full-stick reversal and a launch from rest
+(HA-176), its log read for `went ABSENT` on any port. **"D, again" ANSWERED 2026-10-01: the encoder check**
+— a side-mate counts as evidence only while its ENCODER moved in the last 5 reads; BUILT in Part 3's early step
+(`chunks/T4-PROGRESS.md` "Part 3"): the any-wall case marks nobody now (P2-19e re-pinned), and a hard wall push
+whose reports settle unevenly gets one 1 s fight cut instead; port 18's gaps (P2-21c/d) stay until its gear is
+fixed.)*
+- **Part 3 LANDED 2026-10-08 — T4 COMPLETE** (built in both steps 2026-10-04/06; reviewed 2026-10-07; the
+  review's and the fresh verification's findings fixed 2026-10-08; verified by the coordinator) (`chunks/T4-PROGRESS.md` "Part 3"): the new "shulib Drive" (MAIN / DETAILS / MORE through COMP-b's
+  painters, the touch page flip, the controller's lines through the ONE chooser), "shulib Teleop" retired
+  (`PROGRAM=library` an `$(error)`; seven builds), the Auton Tester in slot 2, the buttons in the driver file
+  only, Part 2b (the PROTECTION row and the chooser's REFUSED / CUT / dead words, COMP's four-argument
+  `perTick`, the driver file's protections paragraph, Station K's push check, K.8), the SD log copy for
+  "shulib Drive" (`drive_log.txt`) and the competition program (`comp_log.txt`, appended), and jal's C5
+  ruling (2026-10-02: one refused auton entry is DROPPED, never the boot — `competition::OnRefusal::DropEntry`,
+  in the competition program; the Auton Tester does the same — the coordinator's extension of the ruling,
+  confirmed by jal 2026-10-08). The review's fixes (2026-10-08): a slow loop says
+  `LOOP_OVERRUN` once per EPISODE (`FaultLatch::raiseRepeat`, `LoopMonitor::overrunEpisodes`), the SD copy has
+  one writer at a time, a boot refused after the provider is built says why in the copy, and "shulib Drive"'s
+  row building and generated boot lines moved into `src/programs/drive_panel.hpp`'s host-tested functions.
+- For SAFE-SAVE B2's re-check: its `BACKUP see brain` word goes into the shared chooser
+  (`src/common/driver_panel.hpp`), at its place after CLAW ABSENT (`teleop_program.cpp` is deleted).
+- For SAFE-SAVE A/B1's re-check: `formatSaveReport`'s sentences name no drive program (SAFE-SAVE A wrote them
+  that way); its two COMMENTS that named Teleop were re-worded at T4 Part 3.
+- R5a Part D's and L9 Part B's callers are now "shulib Drive" and the competition program (they named Teleop);
+  their briefs are re-read at their go, not edited now.
 
 **L10. The remaining plan chunks (lower priority for the season):**
 - **[G3a — NEW 2026-09-26, before G3] The robot profile, its generator and an optional VS Code robot
@@ -621,9 +654,10 @@ encoder check, built in Part 3 (`REMAINING-WORK.md` §11); and the push check ga
   after everything"); G4's guide is written from it, so G4 goes last with it.
 - **[H1] SHUL/2 telemetry wire → freeze F9.** BRIEFED 2026-09-26 (`chunks/H1-shul2-wire.md`; parts A1, A2, B; in this wave, last when slots are short). ~1–2 days. *(Stale,
   corrected 2026-09-28: the brief gives A1 ~1–1½, A2 ~1 and B ~½, so ~2½–3 days.)*
-- **T2 finish:** re-point shulib Drive and the tester's DRIVE station at `DriveShaper` AFTER a driver
-  has compared feels on hardware (the G1 Part 2 brief's ruling M4) — then **`T2-COMPLETED.md`**, which
-  `T2-PROGRESS.md` owes.
+- **T2 finish:** re-point the tester's DRIVE station at `DriveShaper` AFTER a driver has compared
+  feels on hardware (the G1 Part 2 brief's ruling M4) — the new "shulib Drive" already drives through
+  it (robot two's driver file, since T4 Part 3), so the station is all that is left — then
+  **`T2-COMPLETED.md`**, which `T2-PROGRESS.md` owes.
 
 ### Part Q — decisions only jal and the build team can make (code waits on these)
 
@@ -664,8 +698,8 @@ behind) — and, if an executor is working in the main tree, build in a separate
 you mean so its in-progress edits cannot reach a package.
 
 - **S1. The first drive** — worksheet **Station G** (`docs/internal/chunks/R3a-BENCH-WORKSHEET.md`,
-  from line ~597) is the runbook: rebuild Bench Tests, Calibrate and Teleop (the hardware checkout
-  holds only Drive) → Bench Tests census + MOTOR WATCH on the rebuilt drivetrain → shulib Calibrate
+  from line ~597) is the runbook: rebuild Bench Tests, Calibrate and "shulib Drive" (Teleop until T4
+  Part 3 retired it; the hardware checkout holds only the OLD Drive) → Bench Tests census + MOTOR WATCH on the rebuilt drivetrain → shulib Calibrate
   wheels-up (expect the yaw-floor refusal — that is correct) → Calibrate on the floor (push
   front-first, answer the prompts, tape push, spin — 3 m clear, a second person at the battery) →
   *(Superseded in part by R3d Part 2F-1, 2026-09-24: the calibrator now takes ONE 48 in push — no
@@ -673,7 +707,8 @@ you mean so its in-progress edits cannot reach a package.
   "rolled / not on the floor" after a 3 → 6 → 9 V ramp, not at the yaw floor. Station G was rewritten
   from the new program at 2F-2 — the wheels-up run is now OPTIONAL; follow Station G, not this
   line.)* →
-  `SAVED` read back → a second Calibrate run for reproduction → shulib Teleop from the record, wheels
+  `SAVED` read back → a second Calibrate run for reproduction → shulib Drive from the record (shulib
+  Teleop until T4 Part 3), wheels
   up then floor. **What it closes:** R3d (on the reproduction run). **What it cannot close:** R3b and
   M1 — no program S1 runs commands a `moveTo`, so the "few inches of `moveTo`" this file used to list
   is not in S1. The first uploaded program that commands one is "shulib Auton Tester" (COMP-t, part of
@@ -683,8 +718,8 @@ you mean so its in-progress edits cannot reach a package.
   checkboxes. **The "never driven a robot under its own control" sweep** (`docs/internal/guide-maintenance.md`'s "R3 — first
   real robot run" row) happens when the log shows the library's MOTION STACK drove — every instance
   in ONE commit: `README.md`, `docs/README.md`, guide ch. 01, 07, 14 and the guide README, the master
-  plan's status line, `docs/vexbuilder-integration.md`. Teleop driving from the record is the library
-  driving open-loop through its own graph — say exactly that, not more.
+  plan's status line, `docs/vexbuilder-integration.md`. "shulib Drive" driving from the record (Teleop
+  until T4 Part 3) is the library driving open-loop through its own graph — say exactly that, not more.
 - **S1b. The 40 in auton on the bench — worksheet Station M** (COMP-t, "shulib Auton Tester"; after
   S1's Calibrate rerun if the team wants a truer 40 in — copy the record off the card first, G.0.1):
   the forward check (EST x must RISE — a STOP condition), the aborts wheels up, a wheels-up full run,

@@ -7,7 +7,8 @@
 // The calibrator (Part 1) measures a drivetrain in about two minutes of pushing and
 // spinning. Without somewhere to put the answer, every boot would have to repeat that,
 // which means nobody would ever run it and the typed table would stay the truth. So the
-// answer goes on the card, and "shulib Teleop" reads it at boot. One file, one format,
+// answer goes on the card, and the programs that drive robot two read it at boot ("shulib
+// Drive", the competition program, the Auton Tester). One file, one format,
 // one name (kRecordFileName): a second spelling is how a program reads a file another
 // program never wrote.
 //
@@ -85,9 +86,9 @@ inline constexpr char kRecordMagic[4] = {'S', 'H', 'D', 'C'};
 /// hal::DescriptionSource all say so at their declarations).
 inline constexpr std::uint16_t kRecordVersion = 1;
 
-/// The ONE file name both programs use, so "shulib Calibrate" writes what "shulib Teleop"
-/// reads. BARE — the /usd/ prefix belongs to hal/pros/block_sink.hpp and block_source.hpp,
-/// which own it in one place each (HA-122).
+/// The ONE file name every program uses, so "shulib Calibrate" writes what "shulib Drive" (and
+/// every program that boots from the record) reads. BARE — the /usd/ prefix belongs to
+/// hal/pros/block_sink.hpp and block_source.hpp, which own it in one place each (HA-122).
 inline constexpr const char* kRecordFileName = "shulib_drivetrain.bin";
 
 /// The record's BACKUP copy (chunk SAFE-SAVE Part A): the same 180 bytes, in a second file, so

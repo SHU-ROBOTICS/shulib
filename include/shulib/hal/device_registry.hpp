@@ -8,7 +8,8 @@
 // Two things in R3d need exactly that and nothing more:
 //   * "shulib Calibrate" builds its candidate list from the ports that carry a MOTOR,
 //     because a calibration that starts from a typed list can only ever confirm the typing;
-//   * "shulib Teleop" checks a calibration record against the ports BEFORE it constructs a
+//   * a program that boots from the record ("shulib Drive", the competition program, the Auton
+//     Tester) checks a calibration record against the ports BEFORE it constructs a
 //     single adapter, so a card carried over from another robot, or a robot re-plugged
 //     since the calibration, is refused instead of driven (calibration/boot_check.hpp).
 // Neither wants to open a device to find out. Constructing an adapter to discover whether

@@ -243,11 +243,11 @@ exit reason says so.
 Wiring a `Chassis` is ordinary C++ too, and there are two ways to do it. The on-ramp is the
 builder: describe the robot as a `config::RobotConfig`, and `robot::Robot` builds the whole graph
 from it over a device provider — `robot::validate()` names the port or the field that is wrong
-before anything is constructed. `src/programs/teleop_program.cpp` ("shulib Teleop") is the worked example
+before anything is constructed. `src/programs/drive_program.cpp` ("shulib Drive") is the worked example
 on a real robot: robot two's config comes from the calibration record on its SD card, and
 `hal::pros::ProsDeviceProvider` supplies the real adapters. (A typed port table is the fallback in
 general, but robot two's cannot describe its drivetrain — its track width and gearing are unset —
-so without a record "shulib Teleop" refuses to build.) The longhand
+so without a record "shulib Drive" refuses to build.) The longhand
 — construct a kinematics preset, the hardware interfaces, the localizer, and hand them over — is
 always available (Tier 3), and no config file or code generator is ever required: the test suite
 builds the same stack by hand in one place against the host test plant
@@ -256,7 +256,7 @@ any more: which program a build is, and which robot's tables it carries, are cho
 `#if` chain in `src/build_selection.hpp` (the only place the `make ROBOT=… PROGRAM=…` switches are
 read), `src/main.cpp` only hands the PROS entry points to that program, and the one other robot
 described there — an X-drive whose port map is labelled as the invention it is — is a
-`constexpr RobotConfig` (`src/robots/xdrive_config.hpp`) built the same way as Teleop's.
+`constexpr RobotConfig` (`src/robots/xdrive_config.hpp`) built the same way as robot two's.
 
 ## How the tree is laid out
 
@@ -296,22 +296,25 @@ src/                the robot programs, one folder per job (every include writte
   robots/           what each robot IS: the per-robot tables (every robot's ports; robot two's
                     claws) and the invented X-drive (a RobotConfig constant)
   team/             the team's own code — where students edit: robot two's driver file (which
-                    button does what, the feel; the competition program's driver control runs
-                    it) and the team's autons (autons.cpp — every auton the robot can run, one
-                    list both auton programs read; the host suite compiles it and runs every
-                    auton in it)
-  programs/         one program each: the bench tester, shulib Drive, shulib Calibrate, shulib
-                    Teleop (built on robot::Robot) with its claw wiring, the X-drive's program,
-                    shulib Auton Tester (runs one of the team's autons on the bench from the
-                    brain's screen, through the competition program's own call — guide chapter
-                    16) and shulib Competition (THE program for a match: the auton chosen on the
-                    brain's menu runs in autonomous() on the program's own task, then driver
-                    control runs the team's driver file — guide chapter 17); neither has run on
-                    a robot yet
+                    button does what, the feel; shulib Drive runs it on its own, and the
+                    competition program's driver control runs it) and the team's autons
+                    (autons.cpp — every auton the robot can run, one list both auton programs
+                    read; the host suite compiles it and runs every auton in it)
+  programs/         one program each: the bench tester, shulib Drive (robot two's driver file on
+                    robot::Robot, with its MAIN / DETAILS / MORE pages), shulib Calibrate, the
+                    X-drive's program, shulib Auton Tester (runs one of the team's autons on the
+                    bench from the brain's screen, through the competition program's own call —
+                    guide chapter 16) and shulib Competition (THE program for a match: the auton
+                    chosen on the brain's menu runs in autonomous() on the program's own task,
+                    then driver control runs the team's driver file — guide chapter 17); this
+                    shulib Drive, the Auton Tester and Competition have not run on a robot yet,
+                    and no X-drive robot exists
   common/           what the programs share: the boot source, the state screens, the screen
                     text path and the painters (the selector, the refusal screen), the
-                    fault-latch hook, a driver file's binder and checks and the driver page's
-                    controller lines, and an auton run's boot chain proof and program-error stop
+                    fault-latch hook, a driver file's binder and checks, the driver-control
+                    screen's words (the drive protections' row, the controller's lines, the
+                    claws' boot lines and row), the log copy's and the dropped autons' boot
+                    lines, and an auton run's boot chain proof and program-error stop
 test/               the host suite (doctest) against plant + hostile sims + a PROS shim
                     (test/pros_shim/ — the programmable SDK stand-in the adapter tests run on;
                     its headers refuse to compile outside the host test build, on purpose)

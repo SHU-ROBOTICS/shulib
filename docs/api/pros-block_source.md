@@ -157,7 +157,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  ProsBlockSource — IBlockSource over a PROS FILE* on the V5's SD card (chunk R3d
  Part 2): where the calibration record is read back from. The mirror image of
  ProsBlockSink, deliberately line for line, because the two must agree about the
- path or "shulib Teleop" reads a file "shulib Calibrate" never wrote.
+ path or "shulib Drive" reads a file "shulib Calibrate" never wrote.
 
  BINDS:
   * ::pros::usd::is_installed() — the no-card probe, at construction

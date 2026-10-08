@@ -63,9 +63,9 @@ Extracted from [`include/shulib/teleop/drive_protection.hpp`](../../include/shul
 struct DriveProtectionConfig
 ```
 
-The drive protections' numbers — the old "shulib Drive"'s (src/programs/drive_program.cpp), each with its source, and ONE new one, `frozenSuspectReads`. A program leaves this at its defaults by naming no `protection` in its DriverLoopConfig. The fight's floors are NOT here: they are each group's SideMonitorConfig (HA-132/133), one set of numbers as before. runDriverControl checks it before anything moves (validProtectionConfig).
+The drive protections' numbers — the old "shulib Drive"'s (R3b Part 0b; T4 Part 3 replaced it), each with its source, and ONE new one, `frozenSuspectReads`. A program leaves this at its defaults by naming no `protection` in its DriverLoopConfig. The fight's floors are NOT here: they are each group's SideMonitorConfig (HA-132/133), one set of numbers as before. runDriverControl checks it before anything moves (validProtectionConfig).
 
-*struct, declared at [`include/shulib/teleop/drive_protection.hpp:131`](../../include/shulib/teleop/drive_protection.hpp#L131).*
+*struct, declared at [`include/shulib/teleop/drive_protection.hpp:132`](../../include/shulib/teleop/drive_protection.hpp#L132).*
 
 <a id="driveprotectionconfig-overcurrentamps"></a>
 
@@ -77,7 +77,7 @@ double overCurrentAmps = 2.4
 
 A drive motor drawing MORE than this, in amperes, is over-current — the old program's `kCurrentLimitA`, INVENTED for a first run (A4 register HA-176). Finite and > 0.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:134`](../../include/shulib/teleop/drive_protection.hpp#L134).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:135`](../../include/shulib/teleop/drive_protection.hpp#L135).*
 
 <a id="driveprotectionconfig-overcurrentticks"></a>
 
@@ -89,7 +89,7 @@ int overCurrentTicks = 25
 
 Consecutive ticks over `overCurrentAmps` before an over-current counts (25 = 250 ms at 10 ms) — EQUAL to the fight monitor's `persistTicks` by choice, as the old program pinned it (HA-132). > 0.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:138`](../../include/shulib/teleop/drive_protection.hpp#L138).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:139`](../../include/shulib/teleop/drive_protection.hpp#L139).*
 
 <a id="driveprotectionconfig-cutticks"></a>
 
@@ -101,7 +101,7 @@ int cutTicks = 100
 
 How long a cut holds the drive at 0 V, in ticks (100 = the old program's 1 s). > 0.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:140`](../../include/shulib/teleop/drive_protection.hpp#L140).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:141`](../../include/shulib/teleop/drive_protection.hpp#L141).*
 
 <a id="driveprotectionconfig-maxcutslogged"></a>
 
@@ -113,7 +113,7 @@ int maxCutsLogged = 50
 
 Cuts logged in full — the cut line and one `at the cut:` line per member; later cuts are counted but no longer logged per port, so a permanent fight cannot fill a log (the old program's 50). Over-current WARNINGS are logged within the same number, counted apart. > 0.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:144`](../../include/shulib/teleop/drive_protection.hpp#L144).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:145`](../../include/shulib/teleop/drive_protection.hpp#L145).*
 
 <a id="driveprotectionconfig-overcurrentcuts"></a>
 
@@ -125,7 +125,7 @@ bool overCurrentCuts = true
 
 true (the default, the team lead's N1 (a)): an over-current CUTS the drive. false: it is logged and counted as a WARNING (DriveProtectionState::overCurrentWarnings) and nothing is cut — the one switch for a robot that must push. The fight cut is not switched by this.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:148`](../../include/shulib/teleop/drive_protection.hpp#L148).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:149`](../../include/shulib/teleop/drive_protection.hpp#L149).*
 
 <a id="driveprotectionconfig-frozensuspectreads"></a>
 
@@ -137,7 +137,7 @@ int frozenSuspectReads = 5
 
 The consecutive repeated reads — position AND velocity bit-identical — that make a member SUSPECT (FrozenReadingDetector; A4 register HA-175, invented). > 0 and below EVERY group's `persistTicks`: the frozen-reading rule must decide before the fight monitor can cut.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:152`](../../include/shulib/teleop/drive_protection.hpp#L152).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:153`](../../include/shulib/teleop/drive_protection.hpp#L153).*
 
 <a id="enum-class-protectionmode"></a>
 
@@ -149,7 +149,7 @@ enum class ProtectionMode
 
 What the drive protections are doing to the drive right now.
 
-*enum class, declared at [`include/shulib/teleop/drive_protection.hpp:163`](../../include/shulib/teleop/drive_protection.hpp#L163).*
+*enum class, declared at [`include/shulib/teleop/drive_protection.hpp:164`](../../include/shulib/teleop/drive_protection.hpp#L164).*
 
 <a id="protectionmode-driving"></a>
 
@@ -161,7 +161,7 @@ Driving
 
 Every drive motor answers; the stick drives.
 
-*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:164`](../../include/shulib/teleop/drive_protection.hpp#L164).*
+*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:165`](../../include/shulib/teleop/drive_protection.hpp#L165).*
 
 <a id="protectionmode-degraded"></a>
 
@@ -173,7 +173,7 @@ Degraded
 
 Some are dead (at boot, or marked mid-run) but no more than two: the stick drives, and the driver is told.
 
-*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:165`](../../include/shulib/teleop/drive_protection.hpp#L165).*
+*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:166`](../../include/shulib/teleop/drive_protection.hpp#L166).*
 
 <a id="protectionmode-cut"></a>
 
@@ -185,7 +185,7 @@ Cut
 
 A 1 s cut is in force (a fight, or an over-current): the drive is at 0 V, and re-arms by itself.
 
-*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:166`](../../include/shulib/teleop/drive_protection.hpp#L166).*
+*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:167`](../../include/shulib/teleop/drive_protection.hpp#L167).*
 
 <a id="protectionmode-refused"></a>
 
@@ -197,7 +197,7 @@ Refused
 
 More than two drive motors are dead in total: 0 V for the rest of the run.
 
-*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:167`](../../include/shulib/teleop/drive_protection.hpp#L167).*
+*enumerator, declared at [`include/shulib/teleop/drive_protection.hpp:168`](../../include/shulib/teleop/drive_protection.hpp#L168).*
 
 <a id="kmaxprotectedgroups"></a>
 
@@ -209,7 +209,7 @@ inline constexpr std::size_t kMaxProtectedGroups = 4
 
 The most motor groups one DriveProtection covers — a tank's two, or a four-wheel holonomic with a group per wheel. runDriverControl refuses a chassis with more before anything moves.
 
-*constant, declared at [`include/shulib/teleop/drive_protection.hpp:172`](../../include/shulib/teleop/drive_protection.hpp#L172).*
+*constant, declared at [`include/shulib/teleop/drive_protection.hpp:173`](../../include/shulib/teleop/drive_protection.hpp#L173).*
 
 <a id="kprotectiontextbytes"></a>
 
@@ -221,7 +221,7 @@ inline constexpr std::size_t kProtectionTextBytes = 96
 
 The size of each text field of DriveProtectionState, terminating NUL included.
 
-*constant, declared at [`include/shulib/teleop/drive_protection.hpp:175`](../../include/shulib/teleop/drive_protection.hpp#L175).*
+*constant, declared at [`include/shulib/teleop/drive_protection.hpp:176`](../../include/shulib/teleop/drive_protection.hpp#L176).*
 
 <a id="struct-driveprotectionstate"></a>
 
@@ -233,7 +233,7 @@ struct DriveProtectionState
 
 What the protections are doing, for a panel — handed to a `perTick` that takes a fourth argument (runDriverControl). Trivially copyable; every text is NUL-terminated, cut to fit.
 
-*struct, declared at [`include/shulib/teleop/drive_protection.hpp:179`](../../include/shulib/teleop/drive_protection.hpp#L179).*
+*struct, declared at [`include/shulib/teleop/drive_protection.hpp:180`](../../include/shulib/teleop/drive_protection.hpp#L180).*
 
 <a id="driveprotectionstate-mode"></a>
 
@@ -245,7 +245,7 @@ ProtectionMode mode = ProtectionMode::Driving
 
 Driving, degraded, cut, or refused.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:181`](../../include/shulib/teleop/drive_protection.hpp#L181).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:182`](../../include/shulib/teleop/drive_protection.hpp#L182).*
 
 <a id="driveprotectionstate-cutticksleft"></a>
 
@@ -257,7 +257,7 @@ int cutTicksLeft = 0
 
 Ticks of the cut in force still to run (0 when no cut is in force).
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:183`](../../include/shulib/teleop/drive_protection.hpp#L183).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:184`](../../include/shulib/teleop/drive_protection.hpp#L184).*
 
 <a id="driveprotectionstate-cutcount"></a>
 
@@ -269,7 +269,7 @@ int cutCount = 0
 
 Cuts this driver-control entry — logged ones and unlogged ones alike.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:185`](../../include/shulib/teleop/drive_protection.hpp#L185).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:186`](../../include/shulib/teleop/drive_protection.hpp#L186).*
 
 <a id="driveprotectionstate-overcurrentwarnings"></a>
 
@@ -281,7 +281,7 @@ int overCurrentWarnings = 0
 
 Over-current WARNINGS this entry (DriveProtectionConfig::overCurrentCuts false).
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:187`](../../include/shulib/teleop/drive_protection.hpp#L187).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:188`](../../include/shulib/teleop/drive_protection.hpp#L188).*
 
 <a id="driveprotectionstate-lastcut"></a>
 
@@ -293,7 +293,7 @@ char lastCut[kProtectionTextBytes]{}
 
 The last cut's words, as its log line gives them ("CUT: FIGHT on LEFT -- port(s) 18"); empty before the first cut.
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:190`](../../include/shulib/teleop/drive_protection.hpp#L190).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:191`](../../include/shulib/teleop/drive_protection.hpp#L191).*
 
 <a id="driveprotectionstate-dead"></a>
 
@@ -305,7 +305,7 @@ char dead[kProtectionTextBytes]{}
 
 Every DEAD drive port — a boot hole or a runtime mark — by label, in group order (LEFT's, then RIGHT's: "18 13"); empty when all answer. An unlabelled member is "m<index>".
 
-*field, declared at [`include/shulib/teleop/drive_protection.hpp:193`](../../include/shulib/teleop/drive_protection.hpp#L193).*
+*field, declared at [`include/shulib/teleop/drive_protection.hpp:194`](../../include/shulib/teleop/drive_protection.hpp#L194).*
 
 <a id="driveprotectionstate-frozen"></a>
 
@@ -315,7 +315,7 @@ Every DEAD drive port — a boot hole or a runtime mark — by label, in group o
 char frozen[kProtectionTextBytes]{}
 ```
 
-The members FROZEN this tick, the same way ("13"). Empty almost always: a dead member passes through it for 250 ms on its way to `dead`, and a LIVE member may show for a few ticks as its train stops (the probes: at most 3 at a coast-down; at a wall, one member whose report settles sooner than its mates' shows for as long as their lagging reports still read above 1 rad/s — 9 ticks at 30 ms beside 80 ms). The exception is the rule's known gap (A4 register HA-175): a stalled LIVE member can stay here the full 250 ms and then be marked dead — at any wall when its report settles enough sooner (30 ms beside 120 ms in the host model), and beside a slipping side-mate at smaller differences.
+The members FROZEN this tick, the same way ("13"). Empty almost always: a dead member passes through it for 250 ms on its way to `dead`, and a LIVE member may show for a few ticks as its train stops (the probes: at most 3 at a coast-down; at a plain wall none, since the encoder check of 2026-10-01 — a mate whose encoder has stopped is no evidence that the train turns, however its lagging report reads). The exception is the rule's known gap (A4 register HA-175): BESIDE A SLIPPING side-mate, a stalled LIVE member can stay here the full 250 ms and then be marked dead (a tie, or a report settling sooner).
 
 *field, declared at [`include/shulib/teleop/drive_protection.hpp:202`](../../include/shulib/teleop/drive_protection.hpp#L202).*
 
@@ -540,7 +540,7 @@ The numbers this entry runs under.
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 101 lines, click to expand</summary>
+<summary>The header’s own reasoning — 102 lines, click to expand</summary>
 
 ```text
 
@@ -550,8 +550,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  ── Why this exists ─────────────────────────────────────────────────────────────────
  The team lead's ruling R4 (2026-09-27): "Moved into the library, so the competition program's
  opcontrol() and Teleop get them too, not just this program: the mid-match absence rule and the
- two re-arming cuts." Until this file only the old "shulib Drive" (src/programs/drive_program.cpp)
- had them, and it drives through bare adapters, never through the library. Now
+ two re-arming cuts." Until this file only the old "shulib Drive" (src/programs/drive_program.cpp
+ until T4 Part 3 replaced it) had them, and it drove through bare adapters, never through the
+ library. (The "Teleop" of the ruling is "shulib Teleop", which T4 Part 3 retired.) Now
  teleop::runDriverControl (teleop_loop.hpp) builds ONE DriveProtection per call and runs it on
  every tick, so every program that drives through the library's loop is protected with no wiring
  of its own — and no program can forget to be. The numbers are DriverLoopConfig::protection, a
@@ -561,7 +562,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
    beforeDrive()  THE FROZEN RULE, first. Every group's FrozenReadingDetector
                   (coupled_side_monitor.hpp) is handed each PRESENT member's fresh position()
                   and velocity(). A member whose readings are FROZEN — repeated bit for bit for
-                  5 reads while it, or a side-mate whose readings still change, says the train
+                  5 reads while it, or a side-mate whose ENCODER still moves, says the train
                   turns, with at least as many of its side answering as not — is kept out of its
                   group's fight monitor for this tick (MotorGroup::setMonitorExcluded) and out
                   of the over-current watch. One FROZEN for the monitor's 250 ms is marked ABSENT

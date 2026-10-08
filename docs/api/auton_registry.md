@@ -8,7 +8,7 @@
 
 competition::AutonRegistry — the autons a competition program can run, as DATA.
 
-This header declares **8** types (43 members), **3** free functions, **3** constants, and **2** type aliass.
+This header declares **9** types (48 members), **3** free functions, **4** constants, and **2** type aliass.
 
 Extracted from [`include/shulib/competition/auton_registry.hpp`](../../include/shulib/competition/auton_registry.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -16,6 +16,10 @@ Extracted from [`include/shulib/competition/auton_registry.hpp`](../../include/s
 
 - [`kMaxAutons`](#kmaxautons) — *constant*
 - [`kMaxAutonNameChars`](#kmaxautonnamechars) — *constant*
+- [`kMaxAutonRefusals`](#kmaxautonrefusals) — *constant*
+- [`enum class OnRefusal`](#enum-class-onrefusal)
+  - [`Throw`](#onrefusal-throw)
+  - [`DropEntry`](#onrefusal-dropentry)
 - [`kNoAutonName`](#knoautonname) — *constant*
 - [`enum class AutonKind`](#enum-class-autonkind)
   - [`Unset`](#autonkind-unset)
@@ -67,6 +71,9 @@ Extracted from [`include/shulib/competition/auton_registry.hpp`](../../include/s
   - [`AutonRegistry`](#autonregistry-autonregistry)
   - [`check`](#autonregistry-check)
   - [`add`](#autonregistry-add)
+  - [`onRefusal`](#autonregistry-onrefusal)
+  - [`refusedCount`](#autonregistry-refusedcount)
+  - [`refusal`](#autonregistry-refusal)
   - [`size`](#autonregistry-size)
   - [`empty`](#autonregistry-empty)
   - [`at`](#autonregistry-at)
@@ -84,7 +91,7 @@ inline constexpr std::size_t kMaxAutons = 16
 
 The most autons one registry holds. Fixed capacity so registration never allocates; sixteen is several pages of the selector and more than a season has ever needed.
 
-*constant, declared at [`include/shulib/competition/auton_registry.hpp:76`](../../include/shulib/competition/auton_registry.hpp#L76).*
+*constant, declared at [`include/shulib/competition/auton_registry.hpp:90`](../../include/shulib/competition/auton_registry.hpp#L90).*
 
 <a id="kmaxautonnamechars"></a>
 
@@ -96,7 +103,55 @@ inline constexpr std::size_t kMaxAutonNameChars = ui::kMediumCols - 7
 
 The longest auton name: "AUTON: " (7 characters) plus the name must fit ONE medium line (B25).
 
-*constant, declared at [`include/shulib/competition/auton_registry.hpp:79`](../../include/shulib/competition/auton_registry.hpp#L79).*
+*constant, declared at [`include/shulib/competition/auton_registry.hpp:93`](../../include/shulib/competition/auton_registry.hpp#L93).*
+
+<a id="kmaxautonrefusals"></a>
+
+## `kMaxAutonRefusals`
+
+```cpp
+inline constexpr std::size_t kMaxAutonRefusals = 8
+```
+
+The most refused entries one registry keeps the sentences of (refusal()); refusedCount() counts past it.
+
+*constant, declared at [`include/shulib/competition/auton_registry.hpp:98`](../../include/shulib/competition/auton_registry.hpp#L98).*
+
+<a id="enum-class-onrefusal"></a>
+
+## `enum class OnRefusal`
+
+```cpp
+enum class OnRefusal : std::uint8_t
+```
+
+What AutonRegistry::add() does with an entry its check() refuses (file banner: A refused entry).
+
+*enum class, declared at [`include/shulib/competition/auton_registry.hpp:101`](../../include/shulib/competition/auton_registry.hpp#L101).*
+
+<a id="onrefusal-throw"></a>
+
+### `OnRefusal::Throw`
+
+```cpp
+Throw = 0
+```
+
+throw PreconditionError carrying check()'s sentence (B15; the default)
+
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:102`](../../include/shulib/competition/auton_registry.hpp#L102).*
+
+<a id="onrefusal-dropentry"></a>
+
+### `OnRefusal::DropEntry`
+
+```cpp
+DropEntry = 1
+```
+
+register nothing, keep check()'s sentence (refusal()), and return
+
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:103`](../../include/shulib/competition/auton_registry.hpp#L103).*
 
 <a id="knoautonname"></a>
 
@@ -108,7 +163,7 @@ inline constexpr std::string_view kNoAutonName = "NONE"
 
 The selector's reserved choice. No registered auton may be called this.
 
-*constant, declared at [`include/shulib/competition/auton_registry.hpp:83`](../../include/shulib/competition/auton_registry.hpp#L83).*
+*constant, declared at [`include/shulib/competition/auton_registry.hpp:107`](../../include/shulib/competition/auton_registry.hpp#L107).*
 
 <a id="enum-class-autonkind"></a>
 
@@ -120,7 +175,7 @@ enum class AutonKind : std::uint8_t
 
 What kind of run an auton is — which PERIOD it runs in (B15). Unset is refused.
 
-*enum class, declared at [`include/shulib/competition/auton_registry.hpp:86`](../../include/shulib/competition/auton_registry.hpp#L86).*
+*enum class, declared at [`include/shulib/competition/auton_registry.hpp:110`](../../include/shulib/competition/auton_registry.hpp#L110).*
 
 <a id="autonkind-unset"></a>
 
@@ -132,7 +187,7 @@ Unset = 0
 
 not stated — refused at registration
 
-*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:87`](../../include/shulib/competition/auton_registry.hpp#L87).*
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:111`](../../include/shulib/competition/auton_registry.hpp#L111).*
 
 <a id="autonkind-match"></a>
 
@@ -144,7 +199,7 @@ Match = 1
 
 a head-to-head match's autonomous period
 
-*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:88`](../../include/shulib/competition/auton_registry.hpp#L88).*
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:112`](../../include/shulib/competition/auton_registry.hpp#L112).*
 
 <a id="autonkind-skills"></a>
 
@@ -156,7 +211,7 @@ Skills = 2
 
 an autonomous coding skills run
 
-*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:89`](../../include/shulib/competition/auton_registry.hpp#L89).*
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:113`](../../include/shulib/competition/auton_registry.hpp#L113).*
 
 <a id="autonkindword"></a>
 
@@ -168,7 +223,7 @@ an autonomous coding skills run
 
 The kind as a word for screens and logs ("MATCH", "SKILLS"; "UNSET"; "UNKNOWN" for a bad byte).
 
-*free function, declared at [`include/shulib/competition/auton_registry.hpp:93`](../../include/shulib/competition/auton_registry.hpp#L93).*
+*free function, declared at [`include/shulib/competition/auton_registry.hpp:117`](../../include/shulib/competition/auton_registry.hpp#L117).*
 
 <a id="struct-autonperiods"></a>
 
@@ -180,7 +235,7 @@ struct AutonPeriods
 
 The two periods an auton can run in — the PROGRAM's constants, from the game manual (the COMP brief's C6 records the 2026-27 Override numbers: a 30 s match autonomous, a 60 s skills run). REQUIRED: both default to 0, which validate() refuses, because a library default here would be an invented match length (run_guard.hpp's banner — the HA-51 cautionary tale).
 
-*struct, declared at [`include/shulib/competition/auton_registry.hpp:106`](../../include/shulib/competition/auton_registry.hpp#L106).*
+*struct, declared at [`include/shulib/competition/auton_registry.hpp:130`](../../include/shulib/competition/auton_registry.hpp#L130).*
 
 <a id="autonperiods-match"></a>
 
@@ -192,7 +247,7 @@ units::Time match{0.0}
 
 The match autonomous period.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:108`](../../include/shulib/competition/auton_registry.hpp#L108).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:132`](../../include/shulib/competition/auton_registry.hpp#L132).*
 
 <a id="autonperiods-skills"></a>
 
@@ -204,7 +259,7 @@ units::Time skills{0.0}
 
 The autonomous skills period.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:110`](../../include/shulib/competition/auton_registry.hpp#L110).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:134`](../../include/shulib/competition/auton_registry.hpp#L134).*
 
 <a id="autonperiods-validate"></a>
 
@@ -216,7 +271,7 @@ void validate() const
 
 Refuse a period that could not mean anything: both finite and > 0.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:113`](../../include/shulib/competition/auton_registry.hpp#L113).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:137`](../../include/shulib/competition/auton_registry.hpp#L137).*
 
 <a id="autonperiods-periodfor"></a>
 
@@ -228,7 +283,7 @@ Refuse a period that could not mean anything: both finite and > 0.
 
 The period for `kind` — 0 for Unset (which no valid entry has).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:121`](../../include/shulib/competition/auton_registry.hpp#L121).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:145`](../../include/shulib/competition/auton_registry.hpp#L145).*
 
 <a id="class-startpose"></a>
 
@@ -240,7 +295,7 @@ class StartPose
 
 Where an auton starts (ruling C2): a FIELD pose, or RELATIVE — wherever the robot is placed becomes (0, 0) facing 0. Either way the auton runner re-seats position AND heading at the instant the auton starts. Default-constructed it is UNSET, which a routine entry may not be.
 
-*class, declared at [`include/shulib/competition/auton_registry.hpp:134`](../../include/shulib/competition/auton_registry.hpp#L134).*
+*class, declared at [`include/shulib/competition/auton_registry.hpp:158`](../../include/shulib/competition/auton_registry.hpp#L158).*
 
 <a id="startpose-startpose"></a>
 
@@ -252,7 +307,7 @@ constexpr StartPose() noexcept = default
 
 Unset.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:144`](../../include/shulib/competition/auton_registry.hpp#L144).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:168`](../../include/shulib/competition/auton_registry.hpp#L168).*
 
 <a id="startpose-field"></a>
 
@@ -264,7 +319,7 @@ Unset.
 
 The robot is placed at field pose (x, y) facing `heading`.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:147`](../../include/shulib/competition/auton_registry.hpp#L147).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:171`](../../include/shulib/competition/auton_registry.hpp#L171).*
 
 <a id="startpose-field-2"></a>
 
@@ -276,7 +331,7 @@ The robot is placed at field pose (x, y) facing `heading`.
 
 The same, from a pose.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:151`](../../include/shulib/competition/auton_registry.hpp#L151).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:175`](../../include/shulib/competition/auton_registry.hpp#L175).*
 
 <a id="startpose-relative"></a>
 
@@ -288,7 +343,7 @@ The same, from a pose.
 
 Wherever the robot is placed becomes (0, 0) facing 0.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:155`](../../include/shulib/competition/auton_registry.hpp#L155).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:179`](../../include/shulib/competition/auton_registry.hpp#L179).*
 
 <a id="startpose-mode"></a>
 
@@ -300,7 +355,7 @@ Wherever the robot is placed becomes (0, 0) facing 0.
 
 Which kind of start this is.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:158`](../../include/shulib/competition/auton_registry.hpp#L158).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:182`](../../include/shulib/competition/auton_registry.hpp#L182).*
 
 <a id="startpose-pose"></a>
 
@@ -312,7 +367,7 @@ Which kind of start this is.
 
 The pose the runner seats: the field pose, or (0, 0, 0) for RELATIVE (and for Unset).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:160`](../../include/shulib/competition/auton_registry.hpp#L160).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:184`](../../include/shulib/competition/auton_registry.hpp#L184).*
 
 <a id="startpose-isset"></a>
 
@@ -324,7 +379,7 @@ The pose the runner seats: the field pose, or (0, 0, 0) for RELATIVE (and for Un
 
 True unless Unset.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:162`](../../include/shulib/competition/auton_registry.hpp#L162).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:186`](../../include/shulib/competition/auton_registry.hpp#L186).*
 
 <a id="startpose-sameas"></a>
 
@@ -336,7 +391,7 @@ True unless Unset.
 
 Same mode and the same pose (positions within 1e-9 in, headings within 1e-9 rad).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:165`](../../include/shulib/competition/auton_registry.hpp#L165).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:189`](../../include/shulib/competition/auton_registry.hpp#L189).*
 
 <a id="enum-class-startpose-mode"></a>
 
@@ -348,7 +403,7 @@ enum class Mode : std::uint8_t
 
 Which of the three it is.
 
-*enum class, declared at [`include/shulib/competition/auton_registry.hpp:137`](../../include/shulib/competition/auton_registry.hpp#L137).*
+*enum class, declared at [`include/shulib/competition/auton_registry.hpp:161`](../../include/shulib/competition/auton_registry.hpp#L161).*
 
 <a id="startpose-mode-unset"></a>
 
@@ -360,7 +415,7 @@ Unset = 0
 
 not stated (a route entry may take its route's Start instead)
 
-*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:138`](../../include/shulib/competition/auton_registry.hpp#L138).*
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:162`](../../include/shulib/competition/auton_registry.hpp#L162).*
 
 <a id="startpose-mode-field"></a>
 
@@ -372,7 +427,7 @@ Field = 1
 
 a known field pose
 
-*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:139`](../../include/shulib/competition/auton_registry.hpp#L139).*
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:163`](../../include/shulib/competition/auton_registry.hpp#L163).*
 
 <a id="startpose-mode-relative"></a>
 
@@ -384,7 +439,7 @@ Relative = 2
 
 (0, 0) facing 0, wherever the robot is placed
 
-*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:140`](../../include/shulib/competition/auton_registry.hpp#L140).*
+*enumerator, declared at [`include/shulib/competition/auton_registry.hpp:164`](../../include/shulib/competition/auton_registry.hpp#L164).*
 
 <a id="startmodeword"></a>
 
@@ -396,7 +451,7 @@ Relative = 2
 
 The start mode as a word ("FIELD", "RELATIVE", "UNSET").
 
-*free function, declared at [`include/shulib/competition/auton_registry.hpp:178`](../../include/shulib/competition/auton_registry.hpp#L178).*
+*free function, declared at [`include/shulib/competition/auton_registry.hpp:202`](../../include/shulib/competition/auton_registry.hpp#L202).*
 
 <a id="struct-autoncontext"></a>
 
@@ -408,7 +463,7 @@ struct AutonContext
 
 What a routine gets to work with while it runs. Built by the runner for one run; every reference is valid for exactly that run.
 
-*struct, declared at [`include/shulib/competition/auton_registry.hpp:191`](../../include/shulib/competition/auton_registry.hpp#L191).*
+*struct, declared at [`include/shulib/competition/auton_registry.hpp:215`](../../include/shulib/competition/auton_registry.hpp#L215).*
 
 <a id="autoncontext-chassis"></a>
 
@@ -420,7 +475,7 @@ chassis::Chassis& chassis
 
 The facade — every verb an auton is written with.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:193`](../../include/shulib/competition/auton_registry.hpp#L193).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:217`](../../include/shulib/competition/auton_registry.hpp#L217).*
 
 <a id="autoncontext-guard"></a>
 
@@ -432,7 +487,7 @@ sequence::RunGuard& guard
 
 The run's guard. Its waitFor()/pause() are the only waits the deadline (and a mid-auton disable) can cut: a frozen wait (Chassis::wait, Routine::pause) runs to its own end first.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:196`](../../include/shulib/competition/auton_registry.hpp#L196).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:220`](../../include/shulib/competition/auton_registry.hpp#L220).*
 
 <a id="autoncontext-telemetry"></a>
 
@@ -444,7 +499,7 @@ hal::ITelemetrySink& telemetry
 
 Where the auton's own log lines go.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:198`](../../include/shulib/competition/auton_registry.hpp#L198).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:222`](../../include/shulib/competition/auton_registry.hpp#L222).*
 
 <a id="autoncontext-mechanisms"></a>
 
@@ -456,7 +511,7 @@ std::span<hal::IMechanism* const> mechanisms
 
 The mechanisms the guard SAFES at the cut and at the end — the Robot's PRESENT ones (B9). For the guard's safing only (B25): a routine that commands a mechanism looks it up by name from the Robot, not from this list.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:202`](../../include/shulib/competition/auton_registry.hpp#L202).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:226`](../../include/shulib/competition/auton_registry.hpp#L226).*
 
 <a id="autoncontext-entry"></a>
 
@@ -468,7 +523,7 @@ const AutonEntry& entry
 
 The entry being run.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:204`](../../include/shulib/competition/auton_registry.hpp#L204).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:228`](../../include/shulib/competition/auton_registry.hpp#L228).*
 
 <a id="autonroutine"></a>
 
@@ -480,7 +535,7 @@ using AutonRoutine = chassis::RoutineResult (*)(AutonContext&)
 
 An auton's routine: runs the auton and returns the Routine's verdict (a bare ExitReason would lose where and why it stopped — routine.hpp's argument).
 
-*type alias, declared at [`include/shulib/competition/auton_registry.hpp:209`](../../include/shulib/competition/auton_registry.hpp#L209).*
+*type alias, declared at [`include/shulib/competition/auton_registry.hpp:233`](../../include/shulib/competition/auton_registry.hpp#L233).*
 
 <a id="autonendaction"></a>
 
@@ -492,7 +547,7 @@ using AutonEndAction = bool (*)(AutonContext&)
 
 An auton's end action — the park — run by the guard when scoring ends (run_guard.hpp). Returns success. nullptr means the default: `chassis.brake()`, Settled = success.
 
-*type alias, declared at [`include/shulib/competition/auton_registry.hpp:213`](../../include/shulib/competition/auton_registry.hpp#L213).*
+*type alias, declared at [`include/shulib/competition/auton_registry.hpp:237`](../../include/shulib/competition/auton_registry.hpp#L237).*
 
 <a id="struct-autonentry"></a>
 
@@ -504,7 +559,7 @@ struct AutonEntry
 
 One registered auton (file banner). Every field without a meaningful default is refused when unset, at registration.
 
-*struct, declared at [`include/shulib/competition/auton_registry.hpp:217`](../../include/shulib/competition/auton_registry.hpp#L217).*
+*struct, declared at [`include/shulib/competition/auton_registry.hpp:241`](../../include/shulib/competition/auton_registry.hpp#L241).*
 
 <a id="autonentry-name"></a>
 
@@ -516,7 +571,7 @@ const char* name = nullptr
 
 Shown on the screen and in the log: at most kMaxAutonNameChars printable ASCII, no '%', unique, never "NONE". BORROWED — a string literal.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:220`](../../include/shulib/competition/auton_registry.hpp#L220).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:244`](../../include/shulib/competition/auton_registry.hpp#L244).*
 
 <a id="autonentry-kind"></a>
 
@@ -528,7 +583,7 @@ AutonKind kind = AutonKind::Unset
 
 MATCH or SKILLS: which period it runs in. Unset is refused.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:222`](../../include/shulib/competition/auton_registry.hpp#L222).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:246`](../../include/shulib/competition/auton_registry.hpp#L246).*
 
 <a id="autonentry-routine"></a>
 
@@ -540,7 +595,7 @@ AutonRoutine routine = nullptr
 
 The routine to run — EXACTLY one of `routine` / `route` is set.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:224`](../../include/shulib/competition/auton_registry.hpp#L224).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:248`](../../include/shulib/competition/auton_registry.hpp#L248).*
 
 <a id="autonentry-route"></a>
 
@@ -552,7 +607,7 @@ const config::Route* route = nullptr
 
 The route to run through a runner::PathRunner — BORROWED, must outlive the registry. A route entry needs a runner::CommandRegistry at run time (the runner refuses without one).
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:227`](../../include/shulib/competition/auton_registry.hpp#L227).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:251`](../../include/shulib/competition/auton_registry.hpp#L251).*
 
 <a id="autonentry-start"></a>
 
@@ -564,7 +619,7 @@ StartPose start{}
 
 Where the robot starts (file banner: FIELD or RELATIVE; a route may take its Start's).
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:229`](../../include/shulib/competition/auton_registry.hpp#L229).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:253`](../../include/shulib/competition/auton_registry.hpp#L253).*
 
 <a id="autonentry-endactionat"></a>
 
@@ -576,7 +631,7 @@ units::Time endActionAt{0.0}
 
 When scoring stops and the end action starts, from the auton's start. 0 = UNSET, refused.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:231`](../../include/shulib/competition/auton_registry.hpp#L231).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:255`](../../include/shulib/competition/auton_registry.hpp#L255).*
 
 <a id="autonentry-hardstopat"></a>
 
@@ -588,7 +643,7 @@ units::Time hardStopAt{0.0}
 
 The unconditional safe floor, from the auton's start. 0 = UNSET, refused; must be >= endActionAt and within the kind's period.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:234`](../../include/shulib/competition/auton_registry.hpp#L234).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:258`](../../include/shulib/competition/auton_registry.hpp#L258).*
 
 <a id="autonentry-endaction"></a>
 
@@ -600,7 +655,7 @@ AutonEndAction endAction = nullptr
 
 The park. nullptr = `chassis.brake()`.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:236`](../../include/shulib/competition/auton_registry.hpp#L236).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:260`](../../include/shulib/competition/auton_registry.hpp#L260).*
 
 <a id="autonentry-effectivestart"></a>
 
@@ -612,7 +667,7 @@ The park. nullptr = `chassis.brake()`.
 
 The start pose the runner seats: `start`, or — for a route entry that left it unset — the route's Start waypoint as a FIELD pose (B16), when that waypoint STATES its heading (HeadingMode::Fixed). Unset when neither says, which includes a route whose Start is `Free`: it states no heading, and the seat will not invent one (file banner, Routes).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:242`](../../include/shulib/competition/auton_registry.hpp#L242).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:266`](../../include/shulib/competition/auton_registry.hpp#L266).*
 
 <a id="struct-autonverdict"></a>
 
@@ -624,7 +679,7 @@ struct AutonVerdict
 
 A registration verdict: one bool and the sentence a person reads — naming the auton first.
 
-*struct, declared at [`include/shulib/competition/auton_registry.hpp:254`](../../include/shulib/competition/auton_registry.hpp#L254).*
+*struct, declared at [`include/shulib/competition/auton_registry.hpp:278`](../../include/shulib/competition/auton_registry.hpp#L278).*
 
 <a id="autonverdict-ok"></a>
 
@@ -636,7 +691,7 @@ bool ok = false
 
 True when the entry may be registered / run.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:256`](../../include/shulib/competition/auton_registry.hpp#L256).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:280`](../../include/shulib/competition/auton_registry.hpp#L280).*
 
 <a id="autonverdict-why"></a>
 
@@ -648,7 +703,7 @@ char why[192]{}
 
 The FIRST thing wrong, beginning "auton '<name>': ". Empty when `ok`.
 
-*field, declared at [`include/shulib/competition/auton_registry.hpp:258`](../../include/shulib/competition/auton_registry.hpp#L258).*
+*field, declared at [`include/shulib/competition/auton_registry.hpp:282`](../../include/shulib/competition/auton_registry.hpp#L282).*
 
 <a id="checkautonentry"></a>
 
@@ -660,7 +715,7 @@ The FIRST thing wrong, beginning "auton '<name>': ". Empty when `ok`.
 
 Can `e` run in a period of `period`? PURE and TOTAL (never throws, never allocates). The checks, in order: the name (present, printable ASCII, no '%', within kMaxAutonNameChars, not "NONE"); the kind; exactly one of routine/route; a route that is itself valid; the start pose (B16's rules for a route; set, for a routine) and its finiteness; the schedule (stated, finite, endActionAt > 0, hardStopAt >= endActionAt); and hardStopAt within `period`. It does NOT check uniqueness (the registry does) or a route's command registry (the runner does, at run time).
 
-*free function, declared at [`include/shulib/competition/auton_registry.hpp:267`](../../include/shulib/competition/auton_registry.hpp#L267).*
+*free function, declared at [`include/shulib/competition/auton_registry.hpp:291`](../../include/shulib/competition/auton_registry.hpp#L291).*
 
 <a id="class-autonregistry"></a>
 
@@ -672,19 +727,19 @@ class AutonRegistry
 
 The autons a program can run: fixed capacity, filled by explicit add() calls from `initialize()` (file banner), read by the selector and the runner. Single-task while it is being filled; read-only afterwards, so any task may read it once registration is over.
 
-*class, declared at [`include/shulib/competition/auton_registry.hpp:369`](../../include/shulib/competition/auton_registry.hpp#L369).*
+*class, declared at [`include/shulib/competition/auton_registry.hpp:393`](../../include/shulib/competition/auton_registry.hpp#L393).*
 
 <a id="autonregistry-autonregistry"></a>
 
 ### `AutonRegistry::AutonRegistry`
 
 ```cpp
-explicit AutonRegistry(const AutonPeriods& periods)
+explicit AutonRegistry(const AutonPeriods& periods, OnRefusal onRefusal = OnRefusal::Throw)
 ```
 
-`periods` are the PROGRAM's two constants (REQUIRED — AutonPeriods::validate()).
+`periods` are the PROGRAM's two constants (REQUIRED — AutonPeriods::validate()). `onRefusal`: what add() does with an entry check() refuses (file banner: A refused entry) — throw (the default), or drop just that entry and keep its sentence.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:372`](../../include/shulib/competition/auton_registry.hpp#L372).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:398`](../../include/shulib/competition/auton_registry.hpp#L398).*
 
 <a id="autonregistry-check"></a>
 
@@ -696,7 +751,7 @@ explicit AutonRegistry(const AutonPeriods& periods)
 
 Would `e` be accepted? checkAutonEntry() against its kind's period, then uniqueness and capacity. Pure: registers nothing.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:376`](../../include/shulib/competition/auton_registry.hpp#L376).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:405`](../../include/shulib/competition/auton_registry.hpp#L405).*
 
 <a id="autonregistry-add"></a>
 
@@ -706,9 +761,45 @@ Would `e` be accepted? checkAutonEntry() against its kind's period, then uniquen
 void add(const AutonEntry& e)
 ```
 
-Register `e` (COPIED; its name and route stay borrowed). PRECONDITION: check(e) passes — a refused entry throws PreconditionError carrying check()'s sentence, which names the auton, so a program's `initialize()` try block can log it and refuse the boot by name (ruling B15: refusals happen at REGISTRATION, not in a match).
+Register `e` (COPIED; its name and route stay borrowed) when check(e) passes. When it does not: under OnRefusal::Throw (the default) a PreconditionError carrying check()'s sentence, which names the auton, so a program's `initialize()` try block can log it and refuse the boot by name (ruling B15: refusals happen at REGISTRATION, not in a match); under OnRefusal::DropEntry nothing is registered, the sentence is kept (refusal()) and counted (refusedCount()), and add() returns — never throws — so the next entry is registered as if the refused one had never been written (the team lead's ruling of 2026-10-02).
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:399`](../../include/shulib/competition/auton_registry.hpp#L399).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:431`](../../include/shulib/competition/auton_registry.hpp#L431).*
+
+<a id="autonregistry-onrefusal"></a>
+
+### `AutonRegistry::onRefusal`
+
+```cpp
+[[nodiscard]] OnRefusal onRefusal() const noexcept
+```
+
+What add() does with a refused entry (the constructor's choice).
+
+*function, declared at [`include/shulib/competition/auton_registry.hpp:445`](../../include/shulib/competition/auton_registry.hpp#L445).*
+
+<a id="autonregistry-refusedcount"></a>
+
+### `AutonRegistry::refusedCount`
+
+```cpp
+[[nodiscard]] std::size_t refusedCount() const noexcept
+```
+
+How many entries add() DROPPED (OnRefusal::DropEntry) — every one, kept or not. Always 0 under OnRefusal::Throw, where a refusal throws instead.
+
+*function, declared at [`include/shulib/competition/auton_registry.hpp:448`](../../include/shulib/competition/auton_registry.hpp#L448).*
+
+<a id="autonregistry-refusal"></a>
+
+### `AutonRegistry::refusal`
+
+```cpp
+[[nodiscard]] const char* refusal(std::size_t i) const noexcept
+```
+
+The sentence of dropped entry `i`, in the order add() met them — check()'s, beginning "auton '<name>': " — for `i` below both refusedCount() and kMaxAutonRefusals; "" otherwise.
+
+*function, declared at [`include/shulib/competition/auton_registry.hpp:451`](../../include/shulib/competition/auton_registry.hpp#L451).*
 
 <a id="autonregistry-size"></a>
 
@@ -720,7 +811,7 @@ Register `e` (COPIED; its name and route stay borrowed). PRECONDITION: check(e) 
 
 How many autons are registered.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:406`](../../include/shulib/competition/auton_registry.hpp#L406).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:456`](../../include/shulib/competition/auton_registry.hpp#L456).*
 
 <a id="autonregistry-empty"></a>
 
@@ -732,7 +823,7 @@ How many autons are registered.
 
 True when none are.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:408`](../../include/shulib/competition/auton_registry.hpp#L408).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:458`](../../include/shulib/competition/auton_registry.hpp#L458).*
 
 <a id="autonregistry-at"></a>
 
@@ -744,7 +835,7 @@ True when none are.
 
 The auton at `index` (registration order). Precondition: index < size().
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:410`](../../include/shulib/competition/auton_registry.hpp#L410).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:460`](../../include/shulib/competition/auton_registry.hpp#L460).*
 
 <a id="autonregistry-find"></a>
 
@@ -756,7 +847,7 @@ The auton at `index` (registration order). Precondition: index < size().
 
 The auton called `name`, or nullptr.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:415`](../../include/shulib/competition/auton_registry.hpp#L415).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:465`](../../include/shulib/competition/auton_registry.hpp#L465).*
 
 <a id="autonregistry-periods"></a>
 
@@ -768,7 +859,7 @@ The auton called `name`, or nullptr.
 
 The program's two periods, as given.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:427`](../../include/shulib/competition/auton_registry.hpp#L427).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:477`](../../include/shulib/competition/auton_registry.hpp#L477).*
 
 <a id="autonregistry-periodfor"></a>
 
@@ -780,19 +871,20 @@ The program's two periods, as given.
 
 The period `e` runs in.
 
-*function, declared at [`include/shulib/competition/auton_registry.hpp:429`](../../include/shulib/competition/auton_registry.hpp#L429).*
+*function, declared at [`include/shulib/competition/auton_registry.hpp:479`](../../include/shulib/competition/auton_registry.hpp#L479).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 49 lines, click to expand</summary>
+<summary>The header’s own reasoning — 63 lines, click to expand</summary>
 
 ```text
 
  competition::AutonRegistry — the autons a competition program can run, as DATA (chunk COMP-a,
- 2026-09-26; the COMP brief's rulings C2, C3, C6 and amendments B15, B16).
+ 2026-09-26; the COMP brief's rulings C2, C3, C6 and amendments B15, B16; OnRefusal::DropEntry at
+ T4 Part 3, the team lead's ruling of 2026-10-02 on COMP-b's C5).
 
  ── What an auton is here ───────────────────────────────────────────────────────────
  An AutonEntry is a row of data the STUDENTS' file registers, from `initialize()`, by an explicit
@@ -832,6 +924,19 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  run_guard.hpp's banner); `hardStopAt` past the period is refused. A margin INSIDE the period is
  recommended (the guide will say so): the period is when the field disables the robot, and a
  hard stop that lands on it is a hard stop that never had a tick to act.
+
+ ── A refused entry: the boot, or just that auton (the team lead's ruling of 2026-10-02) ──
+ By default add() THROWS on an entry check() refuses (B15: refusals happen at registration, not in
+ a match), so a program's initialize() refuses its boot by name. The team lead ruled otherwise for
+ the competition program (COMP-b's review, its C5: "drop just that auton" — an auton bug must not
+ cost the match's driver period), and the Auton Tester, which registers through the same function,
+ does the same (the coordinator's extension of the ruling, T4 Part 3; the team lead confirmed it
+ 2026-10-08): a registry built with
+ OnRefusal::DropEntry registers NOTHING for a refused entry, keeps check()'s sentence (refusal(),
+ which names the auton first), and RETURNS — so the students' registration function goes on to its
+ next entry, the refused one is never on the menu (AutonMenu names it there instead), and the
+ program logs every sentence. The rules themselves are unchanged: the same check(), the same
+ sentences.
 
  ── Names (B25) ─────────────────────────────────────────────────────────────────────
  A name is shown as "AUTON: <name>" on ONE medium line of the brain screen, so it is at most

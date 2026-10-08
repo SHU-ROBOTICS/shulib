@@ -6,9 +6,9 @@
 //
 // ═══ THE RULE ═════════════════════════════════════════════════════════════════════════
 // The build switches — SHULIB_ROBOT_XDRIVE_INVENTED, SHULIB_ROBOT_TANK_2026, SHULIB_PROGRAM_DRIVE,
-// SHULIB_PROGRAM_LIBRARY, SHULIB_PROGRAM_CALIBRATE, SHULIB_PROGRAM_AUTONTEST and
-// SHULIB_PROGRAM_COMPETITION, set by the Makefile's validated ROBOT and PROGRAM variables — are
-// READ IN THIS FILE AND NOWHERE ELSE: not in another src/ file, not in a
+// SHULIB_PROGRAM_CALIBRATE, SHULIB_PROGRAM_AUTONTEST and SHULIB_PROGRAM_COMPETITION, set by the
+// Makefile's validated ROBOT and PROGRAM variables — are READ IN THIS FILE AND NOWHERE ELSE: not in
+// another src/ file, not in a
 // library header under include/shulib/ (every src/ file includes them, so they see the same -D
 // flags), not in a host test. They are read here twice:
 //   * by the impossible-combination guards (an #error, never a program); and
@@ -23,6 +23,15 @@
 // -Wswitch warning, which the src build gate fails. tools/src_build_gate.py's step 0 enforces the
 // rule on the source: a build switch named in any other file under src/, include/shulib/ or test/,
 // a second chain, or a branch that does not set all three constants FAILS the gate.
+//
+// ═══ A RETIRED SWITCH (T4 Part 3, 2026-10-01) ═══════════════════════════════════════════
+// SHULIB_PROGRAM_LIBRARY — `make ROBOT=tank PROGRAM=library`, "shulib Teleop" — was RETIRED when
+// "shulib Drive" (robot two's driver file) replaced it (the team lead's ruling R5, 2026-09-27). It
+// is not re-pointed at another program: a stale command in someone's notes would then upload a
+// different program under a retired name without a word. So the Makefile's PROGRAM=library is an
+// $(error) naming the retirement, and tools/src_build_gate.py keeps it on a RETIRED list: the
+// switch named ANYWHERE — here included — fails step 0, and a build carrying its define or its
+// beacon fails steps 5 and 6.
 //
 // ═══ WHY THE ROBOT IS CHOSEN HERE TOO ═════════════════════════════════════════════════
 // Until this change the program was chosen here (in src/main.cpp, which held this chain) and the
@@ -70,16 +79,12 @@
 #if defined(SHULIB_ROBOT_XDRIVE_INVENTED) && defined(SHULIB_ROBOT_TANK_2026)
 #error "two robot variant defines are set at once -- select exactly one with make ROBOT=..."
 #endif
-#if (defined(SHULIB_PROGRAM_DRIVE) + defined(SHULIB_PROGRAM_LIBRARY) \
-     + defined(SHULIB_PROGRAM_CALIBRATE) + defined(SHULIB_PROGRAM_AUTONTEST) \
-     + defined(SHULIB_PROGRAM_COMPETITION)) > 1
+#if (defined(SHULIB_PROGRAM_DRIVE) + defined(SHULIB_PROGRAM_CALIBRATE) \
+     + defined(SHULIB_PROGRAM_AUTONTEST) + defined(SHULIB_PROGRAM_COMPETITION)) > 1
 #error "two PROGRAM defines are set at once -- select exactly one with make PROGRAM=..."
 #endif
 #if defined(SHULIB_PROGRAM_DRIVE) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=drive needs ROBOT=tank -- only robot two's chassis table carries measured signs"
-#endif
-#if defined(SHULIB_PROGRAM_LIBRARY) && !defined(SHULIB_ROBOT_TANK_2026)
-#error "PROGRAM=library needs ROBOT=tank -- only robot two has a calibration record and a signed chassis table"
+#error "PROGRAM=drive needs ROBOT=tank -- only robot two has a driver file and a calibration record"
 #endif
 #if defined(SHULIB_PROGRAM_CALIBRATE) && !defined(SHULIB_ROBOT_TANK_2026)
 #error "PROGRAM=calibrate needs ROBOT=tank -- the calibrator supports only a tank drivetrain and takes the cartridge from robot two's chassis table"
@@ -96,8 +101,7 @@ namespace shulib::bench {
 /// The programs a build can be. src/main.cpp's five entry points switch on it.
 enum class Program {
     BenchTests,      ///< "Bench Tests" — the bench bot's, or robot two's (ROBOT=tank)
-    Drive,           ///< "shulib Drive"
-    Teleop,          ///< "shulib Teleop" — THE LIBRARY drives robot two
+    Drive,           ///< "shulib Drive" — robot two's driver file on the library (T4 Part 3)
     Calibrate,       ///< "shulib Calibrate" — robot two measures itself
     InventedXDrive,  ///< the invented X-drive (HA-111)
     AutonTester,     ///< "shulib Auton Tester" — runs one of the team's autons from RUN (COMP-t)
@@ -115,8 +119,8 @@ enum class RobotId {
 // ═══ THE ONE CHAIN: the program, the robot AND the beacon, chosen in the same branch ════════
 // The VARIANT IDENTITY BEACON (R3b Session 2) is one string per BUILD, printed in the program's
 // boot banner so it is referenced and survives into the linked package; the gate asserts the
-// expected one IS in bin/hot.package.elf and the other seven are NOT (matched WITH the NUL
-// terminator, because `...=tank` is a prefix of `...=tank-drive`, `...=tank-library`,
+// expected one IS in bin/hot.package.elf and the other six — and the RETIRED `...=tank-library` —
+// are NOT (matched WITH the NUL terminator, because `...=tank` is a prefix of `...=tank-drive`,
 // `...=tank-calibrate`, `...=tank-autontest` and `...=tank-competition`). Every branch sets all
 // three constants and nothing else, so a broken or
 // renamed #if here changes the program, the robot and the beacon at once, and the gate FAILS. NEVER
@@ -131,10 +135,6 @@ inline constexpr char kVariantBeacon[] = "shulib-robot-variant=xdrive";
 inline constexpr Program kProgram = Program::Drive;
 inline constexpr RobotId kRobotId = RobotId::RobotTwo;
 inline constexpr char kVariantBeacon[] = "shulib-robot-variant=tank-drive";
-#elif defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_LIBRARY)
-inline constexpr Program kProgram = Program::Teleop;
-inline constexpr RobotId kRobotId = RobotId::RobotTwo;
-inline constexpr char kVariantBeacon[] = "shulib-robot-variant=tank-library";
 #elif defined(SHULIB_ROBOT_TANK_2026) && defined(SHULIB_PROGRAM_CALIBRATE)
 inline constexpr Program kProgram = Program::Calibrate;
 inline constexpr RobotId kRobotId = RobotId::RobotTwo;
@@ -157,7 +157,7 @@ inline constexpr RobotId kRobotId = RobotId::BenchBot;
 inline constexpr char kVariantBeacon[] = "shulib-robot-variant=bench";
 #endif
 
-/// THE ROBOT BEACON of robot `id`: one string per ROBOT (the six tank builds share robot two's),
+/// THE ROBOT BEACON of robot `id`: one string per ROBOT (the five tank builds share robot two's),
 /// DERIVED here from the enum and never typed in a branch — so it vouches for the kRobotId the
 /// build's branch set, which the branch's own typed kVariantBeacon cannot. The gate asserts the
 /// build's robot beacon IS in its linked package and the other robots' are NOT (step 6), matched

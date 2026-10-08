@@ -215,6 +215,7 @@ nav:
           - Health monitor: api/health_monitor.md
           - Level filter sink: api/level_filter_sink.md
           - Line format: api/line_format.md
+          - Log copy sink: api/log_copy_sink.md
           - Loop monitor: api/loop_monitor.md
           - Motion result: api/motion_result.md
           - Odom tick audit: api/odom_tick_audit.md

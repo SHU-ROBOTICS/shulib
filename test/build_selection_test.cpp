@@ -3,7 +3,7 @@
 //
 // WHAT THIS TU SEES. The host test build sets no build switch, so the header's one chain takes its
 // #else: this TU is the bench build's selection — exactly what `make` with no ROBOT builds. So the
-// first case pins that branch whole (program, robot, variant beacon, robot beacon). The other seven
+// first case pins that branch whole (program, robot, variant beacon, robot beacon). The other six
 // branches are compiled only in the robot builds; what checks them there is the src build gate
 // (tools/src_build_gate.py): step 0 reads every branch against the gate's own per-build table, and
 // step 6 finds each build's two beacons — and no other build's — in its linked package.

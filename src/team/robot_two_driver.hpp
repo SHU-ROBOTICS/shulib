@@ -2,14 +2,11 @@
 //
 // robot_two_driver.hpp — ROBOT TWO'S DRIVER CONTROL: what every stick and button does.
 //
-// This is the team's driver code (chunk T4). The competition program's opcontrol() runs it
-// ("shulib Competition", src/programs/competition_program.cpp, chunk COMP-b, 2026-09-30 -- not yet
-// on a robot: worksheet Station K), and so will the driver program that replaces "shulib Drive"
-// (T4). To change what a button does, change it HERE -- and, until T4 moves the buttons
-// out of src/robots/mechanism_table.hpp, there too (the re-zero also in "shulib Teleop"): `make`
-// refuses a build in which they disagree. What the robot IS -- its ports, its cartridges, that a
-// claw pivot is put in Hold when let go, that the claw starts CLOSED and which line level closes
-// it -- is in src/robots/mechanism_table.hpp, and is not the driver's to choose.
+// This is the team's driver code (chunk T4). Every program that hands robot two to a driver runs
+// THIS file for it: "shulib Drive" on its own, and the competition program's opcontrol(). To
+// change what a button does, change it HERE and nowhere else. What the robot IS -- its ports, its
+// cartridges, that a claw pivot is put in Hold when let go, that the claw starts CLOSED and which
+// line level closes it -- is in src/robots/mechanism_table.hpp, and is not the driver's to choose.
 //
 // It runs on the library's front door. The program builds a robot::Robot from the calibration
 // record on the SD card and hands it to bind(), once, in initialize(); opcontrol() calls run(),
@@ -30,6 +27,13 @@
 //                nothing. Which line level closes it is a guess (HA-159)
 //   Y            field-centric re-zero. Field-centric is OFF, so Y changes nothing yet
 //   let go of the sticks and the drive coasts (Coast is set on every drive motor)
+//
+// The library protects the drive under this file, in every program (teleop/drive_protection.hpp):
+// a drive motor that stops answering is dropped, the robot drives on, and the driver is told --
+// but once more than two are dead, the drive stays at 0 V for the rest of the run, every later
+// start of driver control included, until the program is started again. A drive motor fighting
+// its side, or drawing more than 2.4 A while it is driven, for 250 ms stops BOTH sides for 1 s,
+// and then driving resumes. None of those numbers has been measured (HA-132, HA-175, HA-176).
 //
 // NOTHING HERE HAS RUN ON A ROBOT. It is tested on the host, through the PROS shim, against
 // robot two's real mechanism table (test/robot_two_driver_test.cpp).
@@ -95,7 +99,8 @@ public:
 
     /// opcontrol(): drive until the field disables the robot, then return (PROS calls
     /// opcontrol() again when driver control comes back). `pacer` is the brain's tick,
-    /// `disabled` asks the field, and `perTick` is the program's screen (it may do nothing).
+    /// `disabled` asks the field, and `perTick` is the program's screen (it may do nothing; one
+    /// that takes a fourth argument is also handed the drive protections' state).
     template <class IsDisabled, class PerTick>
     void run(robot::Robot& robot, motion::ITickPacer& pacer, IsDisabled&& disabled,
              PerTick&& perTick) {

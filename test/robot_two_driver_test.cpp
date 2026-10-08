@@ -2,9 +2,10 @@
 // end to end through the REAL src/ table, hal::pros::ProsDeviceProvider and the PROS shim.
 //
 // ═══ WHAT THIS FILE PINS ════════════════════════════════════════════════════════════
-// The driver file is what the competition program's opcontrol() will run (chunk COMP-b), and the
-// driver program after it (T4 Part 3); no program runs it yet. So each case below builds the
-// composition a program will: the boot decision over robot two's 2026-09-25 record and the shim's
+// The driver file is what "shulib Drive" runs (T4 Part 3, src/programs/drive_program.cpp), and the
+// competition program's opcontrol() (chunk COMP-b); neither program TU compiles on the host. So
+// each case below builds the composition a program does: the boot decision over robot two's
+// 2026-09-25 record and the shim's
 // registry with the REAL kRobotTwoMechanisms (or a copy with ONE field changed), robot::Robot over
 // the REAL provider, RobotTwoDriver::bind(), then RobotTwoDriver::run() — and reads the result at
 // the bottom of the stack: each port's millivolts, brake() calls and brake mode in the shim, and
@@ -33,7 +34,7 @@
 
 #include "common/boot_source.hpp"
 #include "common/driver_controls.hpp"
-#include "programs/teleop_claws.hpp"
+#include "common/driver_panel.hpp"
 #include "pros/shim_control.hpp"
 #include "robots/mechanism_table.hpp"
 #include "shulib/hal/controller.hpp"
@@ -51,32 +52,29 @@
 #include "shulib/teleop/driver_control.hpp"
 #include "shulib/teleop/input_shaping.hpp"
 #include "shulib/teleop/teleop_loop.hpp"
+#include "shulib/teleop/coupled_side_monitor.hpp"
+#include "shulib/teleop/drive_protection.hpp"
+#include "shulib/teleop/drivetrain_degradation.hpp"
 #include "shulib/units/quantity.hpp"
+#include "source_pins.hpp"
 #include "team/robot_two_driver.hpp"
 
 using shulib::bench::BootOutcome;
 using shulib::bench::clawRowText;
-using shulib::bench::controlsMatchTable;
 using shulib::bench::decideBootSourceFrom;
 using shulib::bench::kRobotTwoMechanisms;
-using shulib::bench::kTeleopRezeroButton;
 using shulib::bench::MechanismTable;
 using shulib::bench::PneumaticPosition;
 using shulib::bench::RecordRead;
 using shulib::bench::RobotTwoDriver;
 using shulib::hal::ControllerButton;
 
-// ═══ THE INTERIM TIE (T4 Part 1a → 1b), seen by the host suite too ════════════════════
-// The same two checks src/programs/teleop_program.cpp makes (that file is not host-compiled). The
-// second is written against the table's reserved button: Teleop's own kRezeroButton lives in its
-// anonymous namespace, and is static_assert-tied to kTeleopRezeroButton there.
-static_assert(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles,
-                                 kRobotTwoMechanisms),
-              "the driver file and the mechanism table disagree about a button -- change both "
-              "until T4 Part 1b");
-static_assert(RobotTwoDriver::kLoop.rezeroButton == kTeleopRezeroButton,
-              "the driver file's re-zero button and the table's kTeleopRezeroButton disagree -- "
-              "change both until T4 Part 1b");
+// (THE INTERIM TIE — two static_asserts that robot two's buttons in this driver file equal the
+// mechanism table's, and its re-zero the table's kTeleopRezeroButton — stood here from T4 Part 1a
+// until T4 Part 3, which removed the table's copy: the driver file is the buttons' one owner, and
+// the tie, controlsMatchTable() and kTeleopRezeroButton retired with it. What the tie protected —
+// a button whose two statements disagree — cannot happen with one statement; robot two's buttons
+// are pinned through the driver file by T1 and T2 below.)
 
 namespace {
 
@@ -760,7 +758,6 @@ TEST_CASE("T4 1a T10: bind() REFUSES, by name and with nothing bound, a robot th
         kinds.pneumatics[1] = kRobotTwoMechanisms.pneumatics[0];
         kinds.pneumatics[1].name = "claw pivot 7";
         kinds.pneumatics[1].adiLine = 2;
-        kinds.pneumatics[1].toggle = ControllerButton::B;
         kinds.pneumaticCount = 2;
         Rig r{true, true, kinds, false};
         CHECK_FALSE(d.bind(*r.robot, why, sizeof why));
@@ -776,8 +773,6 @@ TEST_CASE("T4 1a T10: bind() REFUSES, by name and with nothing bound, a robot th
         withIntake.motors[2] = kRobotTwoMechanisms.motors[0];
         withIntake.motors[2].name = "intake";
         withIntake.motors[2].signedPort = 8;
-        withIntake.motors[2].forward = ControllerButton::X;
-        withIntake.motors[2].reverse = ControllerButton::B;
         withIntake.motorCount = 3;
         Rig r{true, true, withIntake, false, {8}};
         CHECK_FALSE(d.bind(*r.robot, why, sizeof why));
@@ -804,61 +799,76 @@ TEST_CASE("T4 1a T10: bind() REFUSES, by name and with nothing bound, a robot th
     d.unbind();
 }
 
-// ═══ The interim tie, broken by hand ════════════════════════════════════════════════════
-TEST_CASE("T4 1a: the interim tie (controlsMatchTable) — robot two's driver file matches its table; "
-          "a table copy with ONE button, the volts or the toggle changed does not, and neither does "
-          "one that lacks an entry a control names — the toggle's, a hold's, or a hold's declared "
-          "only as the other kind") {
-    // BUG CAUGHT: a tie that compares only the holds, only the forward buttons, or only by
-    // position — a button changed in the table alone would then build a Teleop whose claws differ
-    // from the competition program's.
-    CHECK(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, kRobotTwoMechanisms));
-    MechanismTable t = kRobotTwoMechanisms;
-    t.motors[0].forward = ControllerButton::X;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    t = kRobotTwoMechanisms;
-    t.motors[1].reverse = ControllerButton::X;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    t = kRobotTwoMechanisms;
-    t.motors[1].volts = 11.0;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    t = kRobotTwoMechanisms;
-    t.pneumatics[0].toggle = ControllerButton::B;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    t = kRobotTwoMechanisms;  // the claw's entry gone: the toggle has no entry to match
-    t.pneumaticCount = 0;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    // A HOLD with no entry of its kind (mutation RV-M2 — the hold loop starting from "matched" —
-    // survived the Part 1a review until these two): pivot 7's entry gone; then pivot 7 declared
-    // only as a PNEUMATIC entry of the same name, so no motor entry answers it.
-    t = kRobotTwoMechanisms;
-    t.motors[1] = shulib::bench::MotorMechanismEntry{};
-    t.motorCount = 1;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    t.pneumatics[1] = kRobotTwoMechanisms.pneumatics[0];
-    t.pneumatics[1].name = "claw pivot 7";
-    t.pneumatics[1].adiLine = 2;
-    t.pneumatics[1].toggle = ControllerButton::L1;
-    t.pneumaticCount = 2;
-    CHECK_FALSE(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-    t = kRobotTwoMechanisms;  // the two pivots' entries in the other ORDER: still the same facts
-    t.motors[0] = kRobotTwoMechanisms.motors[1];
-    t.motors[1] = kRobotTwoMechanisms.motors[0];
-    CHECK(controlsMatchTable(RobotTwoDriver::kHolds, RobotTwoDriver::kToggles, t));
-}
+// (The interim tie's own case — "the interim tie (controlsMatchTable) — robot two's driver file
+// matches its table …", seven table copies each breaking one button, the volts, the toggle or an
+// entry — RETIRED with the tie at T4 Part 3, above. Its mutations RV-M2 and the hold/forward-only
+// tie have nothing left to mutate.)
 
-TEST_CASE("T4 1a: the shared claw row — clawRowText(table, robot, freed) — prints what Teleop's "
-          "TeleopClaws form prints, byte for byte, with FREED exactly when `freed`") {
-    // BUG CAUGHT: the shared form reading a different entry, or dropping FREED, so the competition
-    // program's row would differ from the one Station J quotes.
+TEST_CASE("T4 1a: the shared claw row — clawRowText(table, robot, freed) — prints the row Station J "
+          "quotes, byte for byte, with FREED exactly when `freed`") {
+    // BUG CAUGHT: the shared form reading a different entry, or dropping FREED, so a driver-control
+    // program's row would differ from the one Station J quotes. (T4 Part 3: until then this case
+    // also compared it with "shulib Teleop"'s TeleopClaws form, which retired with Teleop; the
+    // pinned strings below are what that form printed, so the comparison is kept in the strings.)
     Rig r;
-    shulib::bench::TeleopClaws claws;
-    REQUIRE(claws.bind(kRobotTwoMechanisms, *r.robot, kTeleopRezeroButton, r.why, sizeof r.why));
-    CHECK(std::string{clawRowText(kRobotTwoMechanisms, *r.robot, false).text}
-          == std::string{clawRowText(kRobotTwoMechanisms, *r.robot, claws).text});
     CHECK(std::string{clawRowText(kRobotTwoMechanisms, *r.robot, false).text}
           == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED");
     CHECK(std::string{clawRowText(kRobotTwoMechanisms, *r.robot, true).text}
           == "CLAW 6 HOLD 20C | 7 HOLD 20C | CLAW CLOSED FREED");
-    claws.unbind();
+}
+
+
+// P2-18 (the T4 brief's §3; built in Part 3's late step with Part 2b's items) — the driver file's
+// PROTECTIONS paragraph, its every number against its source. BUG CAUGHT: the paragraph a student
+// defends drifting from what the library does under it — a default changed (write "2.5 A", or a
+// 99-tick cut) and the file still telling the driver the old number, or the stop's duration
+// shortened to "until the field disables the robot" (the marks live in the groups: the REST OF
+// THE RUN). The paragraph is read from the file (comments are not compiled), joined into one line,
+// and every number in it is checked against the config the file's kLoop runs with.
+TEST_CASE("P2-18: the driver file's protections paragraph states the library's own numbers") {
+    const std::string raw = source_pins::readFile("src/team/robot_two_driver.hpp");
+    const std::size_t from = raw.find("// The library protects the drive under this file");
+    REQUIRE(from != std::string::npos);
+    const std::size_t to = raw.find("\n//\n", from);
+    REQUIRE(to != std::string::npos);
+    std::string para;
+    for (std::size_t at = from; at < to;) {
+        const std::size_t eol = raw.find('\n', at);
+        std::string line = raw.substr(at, eol - at);
+        REQUIRE(line.rfind("// ", 0) == 0);
+        para += (para.empty() ? "" : " ") + line.substr(3);
+        at = eol + 1;
+    }
+    const shulib::teleop::DriveProtectionConfig& p = RobotTwoDriver::kLoop.protection;
+    const double tickMs = RobotTwoDriver::kLoop.tickPeriod.value() * 1000.0;
+    // The defaults ARE what the file runs with (kLoop names no protection field).
+    CHECK(p.overCurrentAmps == shulib::teleop::DriveProtectionConfig{}.overCurrentAmps);
+    CHECK(p.cutTicks == shulib::teleop::DriveProtectionConfig{}.cutTicks);
+    CHECK(p.overCurrentTicks == shulib::teleop::DriveProtectionConfig{}.overCurrentTicks);
+    CHECK(p.overCurrentCuts);  // the paragraph says the over-current STOPS both sides
+    char want[160];
+    std::snprintf(want, sizeof want, "drawing more than %.1f A while it is driven, for %.0f ms",
+                  p.overCurrentAmps, p.overCurrentTicks * tickMs);
+    CAPTURE(para);
+    CHECK(para.find(want) != std::string::npos);
+    // The fight's window is the groups' monitors' (SideMonitorConfig::persistTicks), the same 250
+    // ms the paragraph gives both — pinned equal to the over-current's by the library.
+    CHECK(shulib::teleop::SideMonitorConfig{}.persistTicks == p.overCurrentTicks);
+    std::snprintf(want, sizeof want, "stops BOTH sides for %.0f s, and then driving resumes",
+                  p.cutTicks * tickMs / 1000.0);
+    CHECK(para.find(want) != std::string::npos);
+    CHECK(p.cutTicks * tickMs == 1000.0);  // "1 s" is whole: a 99-tick cut would print "1 s" too
+    const char* const words[] = {"zero", "one", "two", "three", "four", "five"};
+    REQUIRE(shulib::teleop::kMaxDeadTotal >= 0);
+    REQUIRE(shulib::teleop::kMaxDeadTotal < 6);
+    std::snprintf(want, sizeof want, "once more than %s are dead, the drive stays at 0 V for the rest "
+                                     "of the run",
+                  words[shulib::teleop::kMaxDeadTotal]);
+    CHECK(para.find(want) != std::string::npos);
+    CHECK(para.find("every later start of driver control included, until the program is started "
+                    "again")
+          != std::string::npos);
+    CHECK(para.find("until the field disables") == std::string::npos);
+    CHECK(para.find("None of those numbers has been measured (HA-132, HA-175, HA-176)")
+          != std::string::npos);
 }

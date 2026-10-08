@@ -2,8 +2,10 @@
 //
 // THE CHASSIS TABLE — the ONE typed input about a drivetrain (R3b Session 2 brief §3.1;
 // moved out of src/programs/bench_r3a.cpp at R3b Part 0b so the bench tester and the drive program
-// share ONE definition — two copies of a port table is how two programs come to disagree
-// about which robot they are on).
+// shared ONE definition — two copies of a port table is how two programs come to disagree
+// about which robot they are on). Since T4 Part 3 its readers are the bench tester and the boot
+// source's fallback (src/common/boot_source.hpp, through tableToDescription()): the old drive
+// program that built bare adapters from it was replaced by one that boots from the record.
 //
 // Per robot: which ports drive which side, WITH THEIR MEASURED SIGNS when those have been
 // measured, the cartridge, the IMU port, and whether any of it was MEASURED. Every robot's table
@@ -27,8 +29,9 @@
 //
 // SIGNS LIVE HERE AND NOWHERE ELSE (Part 0b, brief §2 and landmine 1): when `signsMeasured`
 // is true, every port entry carries its sign -- `-11` is port 11 constructed with a NEGATIVE
-// port number, which PROS reverses exactly once, in the adapter. The drive program hands the
-// entry to ProsMotor AS TYPED and never negates; the tester's MOTOR WATCH cross-checks a push
+// port number, which PROS reverses exactly once, in the adapter. The tester's DRIVE station (and
+// the old drive program, until T4 Part 3) hands the entry to ProsMotor AS TYPED and never negates,
+// and tableToDescription() carries it into a description unchanged; the tester's MOTOR WATCH cross-checks a push
 // against these signs (AGREES / DISAGREES per port); its DRIVE station uses them and refuses
 // if a fresh capture disagrees. A table that says `signsMeasured = false` carries POSITIVE
 // entries only -- a '-' typed without flipping the flag is a half-signed table, and
@@ -75,7 +78,7 @@ struct ChassisTable {
     bool signsMeasured;           // true = every port entry above carries its MEASURED sign
     const char* provenance;       // who measured what, and when -- printed in every banner
     // ── DRIVE GEOMETRY (R3b Parts 1-3, 2026-09-14): what the LIBRARY graph needs and the
-    //    tester/drive program do not. 0 = UNSET, and UNSET REFUSES the library program at boot
+    //    tester does not. 0 = UNSET, and UNSET REFUSES a program that boots from the table
     //    (describeMissingForLibrary); a value is typed here only from a measurement, with its
     //    provenance beside it. NEVER guessed: TankKinematics needs the track width and the
     //    odometry needs the scale, and a guess in either drives the robot wrong in silence.
@@ -148,8 +151,8 @@ inline constexpr ChassisTable kRobotTwoChassis = {
 // motor is worksheet 3.3 and is what settles HA-15.
 // SIGNS: NOT in this table (signsMeasured = false; every entry positive). The bench bot's
 // signs were captured on the panel (R3a-PROGRESS §17.3/§18.2) but never typed into a
-// table, so its DRIVE station keeps using MOTOR WATCH's per-power-cycle capture, and the
-// drive program refuses it: an unsigned table is not a drivable one.
+// table, so its DRIVE station keeps using MOTOR WATCH's per-power-cycle capture (the old
+// drive program refused it: an unsigned table is not a drivable one).
 // kChassis in the ROBOT=bench build — `make` with no ROBOT — and on the host, which sets no switch
 // (chassisTableFor(RobotId::BenchBot)).
 inline constexpr ChassisTable kBenchBotChassis = {
@@ -258,8 +261,8 @@ constexpr int tableSideOf(const ChassisTable& t, int port) {
 }
 
 /// The table's entry for physical `port` AS TYPED -- signed when signsMeasured, positive
-/// otherwise -- or 0 when the port is not in the table. THIS is the value a drive program
-/// hands to ProsMotor: the one place a sign lives.
+/// otherwise -- or 0 when the port is not in the table. THIS is the value the tester's DRIVE
+/// station hands to ProsMotor: the one place a sign lives.
 constexpr std::int8_t tableSignedPort(const ChassisTable& t, int port) {
     for (std::size_t i = 0; i < t.leftCount; ++i) {
         if (absPort(t.left[i]) == port) return t.left[i];
@@ -447,7 +450,7 @@ inline void portsToString(const std::int8_t* ports, std::size_t n, bool withSign
 }
 
 /// A table that contradicts itself is worse than an unset one. Printed at boot, refused by
-/// DRIVE and by the drive program. Returns true when the table is internally consistent;
+/// DRIVE (and by the old drive program, until T4 Part 3). Returns true when the table is internally consistent;
 /// otherwise `why` names the first contradiction. The checks, each the thing a typo would
 /// produce:
 ///   1. every entry is a real port: |p| in 1..21 (0 is "no port", and cannot be an entry)

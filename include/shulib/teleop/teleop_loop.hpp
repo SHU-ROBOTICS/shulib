@@ -110,13 +110,14 @@
 // input-to-motion latency is PROS call cost plus loop rate, and neither is measured.
 //
 // ── NO HARDWARE CLAIM ───────────────────────────────────────────────────────────────
-// Host-proven on the A2 plant only. Since G1 Part 2b "shulib Teleop" (src/programs/teleop_program.cpp)
-// drives through it, by its own call, with the default DriverProfile (ArcadeBody) and field-centric
-// selectable but OFF — and, since G1 Part 2c, so does the invented X-drive's program
-// (src/programs/xdrive_program.cpp), which refuses at boot on every robot that exists. Robot two's
-// driver file (src/team/robot_two_driver.hpp, T4 Part 1a) calls it too, and the competition program's
-// opcontrol() will run that file (chunk COMP-b). Every one of them gets the drive protections from
-// DriverLoopConfig::protection's defaults, since none names the field. No version has run on
+// Host-proven on the A2 plant only. Two callers: robot two's driver file
+// (src/team/robot_two_driver.hpp, T4 Part 1a), with the default DriverProfile (ArcadeBody) and
+// field-centric OFF — "shulib Drive" runs that file (T4 Part 3, src/programs/drive_program.cpp),
+// and so does the competition program's opcontrol() (chunk COMP-b) — and the invented X-drive's
+// program (src/programs/xdrive_program.cpp, since G1 Part 2c), which refuses at boot on every
+// robot that exists. ("shulib Teleop" called it by its own call from G1 Part 2b until T4 Part 3
+// retired it.) Every one of them gets the drive protections from DriverLoopConfig::protection's
+// defaults, since none names the field. No version has run on
 // hardware, so nothing in the feel layer it runs has been felt by a driver (HA-112), and no
 // protection has cut or marked a real motor (HA-175, HA-176).
 //
@@ -154,8 +155,8 @@ namespace shulib::teleop {
 /// unset quietly gets `L1` — a shoulder button, which robot two's claw pivot 7 takes. What stops
 /// that collision running is `validBindings()` (chunk T3): a binding on the re-zero button is
 /// refused before the first tick, by `runDriverControl`'s precondition. A program should still
-/// name its button, and "shulib Teleop" does. The third, `releaseBrakeMode`, has a working
-/// default (Coast, the team lead's ruling). The fourth, `protection`, is APPENDED LAST so every
+/// name its button, and robot two's driver file does (its kLoop names Y). The third,
+/// `releaseBrakeMode`, has a working default (Coast, the team lead's ruling). The fourth, `protection`, is APPENDED LAST so every
 /// existing designated initializer still compiles, and its defaults are the old "shulib Drive"'s
 /// numbers: a program that names no `protection` is protected (chunk T4 Part 2).
 struct DriverLoopConfig {

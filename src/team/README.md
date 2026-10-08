@@ -4,8 +4,9 @@ This folder is where the team's own robot code lives: the code students write, c
 matches and must be able to explain and defend — the driver's controls and the autonomous routines
 first, as the programs that run them are built. Its first file is robot two's driver file,
 `robot_two_driver.hpp` (chunk T4): which button does what, the feel, and the call into the
-library's driver loop — the competition program's driver control runs it ("shulib Competition",
-since chunk COMP-b; not yet on a robot), and so will the driver program; the generic half it uses (the binder, the checks, the one heading rule) is in
+library's driver loop — "shulib Drive" runs it on its own (since T4 Part 3), and the competition
+program's driver control runs it ("shulib Competition", since chunk COMP-b); neither has run on a
+robot yet; the generic half it uses (the binder, the checks, the one heading rule) is in
 `src/common/driver_controls.hpp`, never copied here. Its second is the team's AUTONS,
 `autons.hpp` / `autons.cpp` (chunk COMP-t): every autonomous routine the robot can run, and
 `registerAutons()` at the bottom of `autons.cpp`, the one list both auton programs read — "shulib

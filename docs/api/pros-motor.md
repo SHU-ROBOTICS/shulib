@@ -250,9 +250,9 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
      repeated brake() under Hold may re-capture the held position and let a loaded shaft creep
      (A4 register HA-144, invented).
    * Coast, or NO mode commanded yet ⇒ move_voltage(0) on every call, exactly as before
-     DEFECTS2. Calibrate, shulib Drive and the tester's DRIVE station set Coast and their
-     measured behaviour rests on this 0 V path (what a motor physically does at 0 V is
-     A4 register HA-143 — unknown).
+     DEFECTS2. Calibrate, the old shulib Drive (until T4 Part 3) and the tester's DRIVE station
+     set Coast and their measured behaviour rests on this 0 V path (what a motor physically does
+     at 0 V is A4 register HA-143 — unknown).
    * setBrakeMode() while the last command was 0 mV RE-ISSUES the stop under the new mode, so
      the order of the two calls never matters: Hold-then-0 V and 0 V-then-Hold both hold, and
      Hold-then-0 V-then-Coast leaves the motor at 0 V as Coast always meant.

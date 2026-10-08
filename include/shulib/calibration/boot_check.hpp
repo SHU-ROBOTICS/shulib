@@ -7,8 +7,9 @@
 // now: a cable can be re-seated into the next port, a motor can die, a card can be carried
 // from robot one to robot two, a sensor can be swapped for a different kind. None of those
 // is visible from inside the record — the CRC will be perfect, `valid()` will pass, and the
-// description will describe a robot that no longer exists. So before "shulib Teleop"
-// constructs a single adapter, it asks the brain what is actually plugged in and compares.
+// description will describe a robot that no longer exists. So before a program that boots robot
+// two from the record ("shulib Drive", the competition program, the Auton Tester) constructs a
+// single adapter, it asks the brain what is actually plugged in and compares.
 //
 // BEFORE ANY ADAPTER EXISTS, deliberately (ruling P2). Constructing ten ProsMotors to find
 // out which ones answer is how HA-111's invented port map turned into ten throwing
@@ -19,7 +20,7 @@
 //   MISSING  the port is EMPTY. A dead cable, a dead motor, a port bank that browned out.
 //            This is TOLERATED by policy, not by this file: teleop::evaluateDegradation
 //            (the team lead's rule — "1–2 dead ports shouldn't stop driving") decides, so
-//            the drive program and the library program cannot disagree about it.
+//            every program that boots from the record judges a dead port the same way.
 //   SWAPPED  the port carries a DIFFERENT KIND of device. This always REFUSES (ruling P2).
 //            A port that lost its motor may be a dead cable; a port that now carries a
 //            rotation sensor is a REWIRED ROBOT, and a rewired robot needs a new
@@ -197,7 +198,8 @@ struct DeclaredMotorPorts {
 ///  2. any SWAPPED port — Refuse, naming each one and what is there instead (ruling P2);
 ///  3. the IMU port missing or carrying something else — Refuse, naming what is there;
 ///  4. whatever `teleop::evaluateDegradation` says about the PRESENT counts — Refuse,
-///     Degraded (listing the missing ports) or Ok. One policy, shared with "shulib Drive".
+///     Degraded (listing the missing ports) or Ok. One policy (it was shared with the old
+///     typed-table "shulib Drive" until T4 Part 3 replaced that program).
 /// NEW motors are always listed, and never change the decision. A motor on a port in `declared`
 /// that the description does not list is not NEW: it is listed after them under the caller's
 /// label, and never changes the decision either. With no declared port (or none carrying a motor)

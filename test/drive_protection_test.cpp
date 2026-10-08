@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <fstream>
@@ -38,6 +39,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "motion_test_rig.hpp"
@@ -1689,10 +1691,10 @@ TEST_CASE("T4 P2-21c: THE KNOWN GAP (decision D's accepted cost, the re-check's 
 namespace {
 
 /// One stalled member that does not read like its stalled mates (the review of 2026-09-30; the
-/// verification of 2026-10-01 added the lags and the stick): its report flickering by 1 RPM, its
-/// encoder toggling a count every 3 ticks, or its report settling sooner than its mates' — its own
-/// lag `fastTau` beside the LEFT side's `matesTau`. -1 = none of that kind. Every slot is LEFT's;
-/// the RIGHT side reads alike, every report at HandSide's 80 ms.
+/// verification of 2026-10-01 added the lags and the stick; T4 Part 3 the currents): its report
+/// flickering by 1 RPM, its encoder toggling a count every 3 ticks, or its report settling sooner
+/// than its mates' — its own lag `fastTau` beside the LEFT side's `matesTau`. -1 = none of that
+/// kind. Every slot is LEFT's; the RIGHT side reads alike, every report at HandSide's 80 ms.
 struct OddMember {
     int flicker = -1;
     int dither = -1;
@@ -1700,6 +1702,7 @@ struct OddMember {
     double fastTau = 0.03;   ///< the `fastLag` member's own report lag, s
     double matesTau = 0.08;  ///< every other LEFT member's report lag (HandSide::tauV), s
     double stick = 1.0;      ///< the stick held through the push
+    double wallAmps = 0.0;   ///< > 0: every drive member draws this during the push (1 A outside it)
 };
 
 /// P2-19's wall (a push at `odd.stick`, the train held from tick 200 to 499, let go at 500) with
@@ -1716,40 +1719,50 @@ std::vector<TickLog> oddWall(World& w, const OddMember& odd, int slip) {
         w.stick(k < 500 ? odd.stick : 0.0);
         left.wall = right.wall = (k >= 200 && k < 500);
         handTick(w, left, right);
+        if (odd.wallAmps > 0.0) w.allAmps(k >= 200 && k < 500 ? odd.wallAmps : 1.0);
     });
+}
+
+/// One FIGHT cut at `at`, exactly 1 s long: the deciding tick and the 100 after it at exactly 0 V,
+/// the stick driving again (still against the wall) on the 101st, and one cut line naming `port`.
+void checkOneFightCut(const std::vector<TickLog>& log, const FakeTelemetrySink& sink, int at,
+                      int port) {
+    const std::vector<int> cuts = cutTicks(log);
+    REQUIRE(cuts.size() == 1U);
+    CHECK(cuts[0] == at);
+    for (int k = at; k <= at + 100; ++k) {
+        CAPTURE(k);
+        CHECK(allDriveZero(log[static_cast<std::size_t>(k)]));
+    }
+    CHECK(log[static_cast<std::size_t>(at + 101)].mv[0] > 0.5);
+    const auto lines = telLines(sink);
+    CHECK(countContaining(lines, "CUT: FIGHT on LEFT -- port(s) " + std::to_string(port)
+                                     + " -- both sides 0 V for 1 s, cut #1, then re-arm")
+          == 1);
+    CHECK(countContaining(lines, "CUT: ") == 1);
+    CHECK(countContaining(lines, " over 2.4 A for ") == 0);
 }
 
 }  // namespace
 
 TEST_CASE("T4 P2-19d: a PLAIN wall (no slipping member) with ONE stalled member that does not read like "
           "its mates — a report flickering by 1 RPM, an encoder toggling a count, a report settling "
-          "sooner by too little — marks NOBODY and cuts nothing; each longest live FROZEN spell is "
-          "pinned (up to 24 ticks, one short of the mark)") {
-    // BUG CAUGHT: a rule that one odd reading on a stalled LIVE train pushes into a mark. At a plain
-    // wall every ENCODER stops with the train, but its mates' REPORTS do not stop at once: a lagging
-    // report keeps reading above 1 rad/s for a while, and the mates' fastest counts any mate whose
-    // position OR report still changes. So a member whose report settles first repeats, is SUSPECT
-    // alone, the guard holds (one against three), and it is FROZEN until its mates' reports fall
-    // under 1 rad/s: 9 ticks at 30 ms beside 80 ms (the review of 2026-09-30's "NO slip" row), 17 at
-    // 30 ms beside 100 ms, 24 at 50 ms beside 150 ms — one short of the mark — and 20 at HALF stick
-    // at 30 ms beside 120 ms, a spread that marks at full stick (the train stops from a lower speed,
-    // so the mates' reports fall under the floor sooner). A wider spread reaches 25 and marks a live
-    // motor: P2-19e, that gap pinned. Each spell is pinned so a rule change that lengthens it is seen
-    // before it reaches 25; the 24-tick row is the latch's own boundary at a plain wall.
+          "30 ms beside 80 — marks NOBODY, FREEZES nobody and cuts nothing") {
+    // BUG CAUGHT: a rule that one odd reading on a stalled LIVE train pushes into a FROZEN spell, a
+    // mark or a cut. Since the encoder check (the team lead's ruling of 2026-10-01, "D, again") a
+    // mate is evidence that the train turns only while its ENCODER moved in the last 5 reads, so at
+    // a plain wall — every encoder stopped — nobody is ever SUSPECT through its mates: no member is
+    // FROZEN at all (these rows were 0, 0, 9 FROZEN ticks under the rule before it). A wider spread
+    // of report lags keeps the early-settling member in the fight monitor long enough for ONE 1 s
+    // cut: P2-19e.
     struct Row {
         const char* name;
         OddMember odd;
-        int longest;
     };
     const Row rows[] = {
-        {"port 20's report flickers 0/1 RPM", {.flicker = 3}, 0},
-        {"port 16's encoder toggles a count every 3 ticks", {.dither = 0}, 0},
-        {"port 16's report lags 30 ms, its mates' 80 ms", {.fastLag = 0}, 9},
-        {"port 16's report lags 30 ms, its mates' 100 ms", {.fastLag = 0, .matesTau = 0.10}, 17},
-        {"port 16's report lags 50 ms, its mates' 150 ms (one short)",
-         {.fastLag = 0, .fastTau = 0.05, .matesTau = 0.15}, 24},
-        {"half stick: port 16's report lags 30 ms, its mates' 120 ms",
-         {.fastLag = 0, .matesTau = 0.12, .stick = 0.5}, 20},
+        {"port 20's report flickers 0/1 RPM", {.flicker = 3}},
+        {"port 16's encoder toggles a count every 3 ticks", {.dither = 0}},
+        {"port 16's report lags 30 ms, its mates' 80 ms", {.fastLag = 0}},
     };
     for (const Row& row : rows) {
         const std::string rowName{row.name};  // CAPTURE prints a const char* as an address
@@ -1760,53 +1773,98 @@ TEST_CASE("T4 P2-19d: a PLAIN wall (no slipping member) with ONE stalled member 
         CHECK(log.back().runtimeAbsent[1] == 0u);
         CHECK(countContaining(telLines(w.sink), "went ABSENT") == 0);
         CHECK(cutTicks(log).empty());
-        CHECK(longestLiveFrozenRun(log) == row.longest);
+        CHECK(longestLiveFrozenRun(log) == 0);
         CHECK(log[150].mv[0] > 1.0);  // it drove before the wall
+        CHECK(log.back().st.mode == ProtectionMode::Driving);
     }
 }
 
-TEST_CASE("T4 P2-19e: THE REPORT-LAG GAP (found by the verification of 2026-10-01; the team lead's to "
-          "rule on) — a PLAIN wall, NO slipping member: ONE stalled member whose report settles enough "
-          "sooner than its mates' is marked ABSENT, a live motor, and its side drives on DEGRADED") {
-    // PINNED ON PURPOSE, not a bug caught (as P2-21c and P2-21d). At a wall every encoder stops, but
-    // the mates' lagging REPORTS still read above 1 rad/s, and they are the evidence that the train
-    // turns (the mates' fastest counts a mate whose position OR report still changes). The member
-    // whose report reaches 0 first repeats, is SUSPECT alone, and the guard holds (one against
-    // three); when its mates' reports stay above 1 rad/s for 29 ticks after its own first reads 0 —
-    // 5 reads to SUSPECT, then 25 FROZEN ticks — it is marked: a 30 ms report beside 120 ms ones (the
-    // verification's row), 10 ms beside 100 ms, and 30 ms beside 150 ms at HALF stick (the same
-    // 30-beside-120 marks nobody at half stick: P2-19d). No slipping gear is involved, so fixing
-    // port 18's does not close this; beside it the bar is lower (P2-21d's third row: 30 beside 80).
-    // A4 register HA-175 states the gap; a change to the guard or its evidence must be a ruling, not
-    // an accident, and this case goes red with it, to be re-pinned to the ruled behaviour.
+TEST_CASE("T4 P2-19e: THE REPORT-LAG SPREAD, CLOSED by the encoder check (the team lead's ruling of "
+          "2026-10-01, \"D, again\") — a PLAIN wall, ONE stalled member whose report settles sooner "
+          "than its mates', at every spread the verification probed: NOBODY marked, nobody FROZEN; the "
+          "push gets exactly ONE 1 s FIGHT cut under the 2.4 A limit, and NONE of its own at 2.45 or "
+          "2.5 A, where the over-current cuts come first") {
+    // BUG CAUGHT: the any-wall gap found by the verification of 2026-10-01 — under the rule before
+    // the ruling, a mate whose encoder had stopped still counted as evidence while its lagging REPORT
+    // decayed, so the member whose report settled first was SUSPECT alone, FROZEN for 25 ticks and
+    // marked: a LIVE motor (port 16 at tick 244 in the verification's 30-beside-120 ms row). Now
+    // nobody is marked or FROZEN at any spread. THE RULING'S COST, PINNED ON PURPOSE (as P2-21c and
+    // P2-21d pin theirs): the early-settling member, no longer kept out as FROZEN, is under a quarter
+    // of its mates' REPORTED speed while their reports still read above 1 rad/s, so the fight monitor
+    // persists and cuts ONCE — at every spread from 30 beside 100 ms (10 beside 80) on, with every
+    // motor drawing 0 A or 2.3 A, under the 2.4 A over-current limit. Every lag alike cuts nothing.
+    // With every motor at 2.45 or 2.5 A at the wall, the OVER-CURRENT cuts come first — three, at
+    // 224, 349 and 474, the same as with every lag alike — and the fight adds none. A4 register
+    // HA-175 states it; a change to the evidence or the guard must be a ruling, and turns this red.
     struct Row {
         const char* name;
         OddMember odd;
-        int at;
+        int fastPort;  ///< the member that settles sooner (its port), or 0
+        int cutAt;     ///< the one FIGHT cut's deciding tick, or -1 for none
     };
     const Row rows[] = {
-        {"port 16's report lags 30 ms, its mates' 120 ms", {.fastLag = 0, .matesTau = 0.12}, 244},
-        {"port 16's report lags 10 ms, its mates' 100 ms",
-         {.fastLag = 0, .fastTau = 0.01, .matesTau = 0.10}, 229},
-        {"half stick: port 16's report lags 30 ms, its mates' 150 ms",
-         {.fastLag = 0, .matesTau = 0.15, .stick = 0.5}, 242},
+        {"30 ms beside 100 ms", {.fastLag = 0, .matesTau = 0.10}, 16, 228},
+        {"30 ms beside 120 ms (the verification's row)", {.fastLag = 0, .matesTau = 0.12}, 16, 228},
+        {"30 ms beside 150 ms", {.fastLag = 0, .matesTau = 0.15}, 16, 228},
+        {"30 ms beside 200 ms", {.fastLag = 0, .matesTau = 0.20}, 16, 227},
+        {"10 ms beside 80 ms", {.fastLag = 0, .fastTau = 0.01}, 16, 224},
+        {"10 ms beside 100 ms", {.fastLag = 0, .fastTau = 0.01, .matesTau = 0.10}, 16, 224},
+        {"20 ms beside 100 ms", {.fastLag = 0, .fastTau = 0.02, .matesTau = 0.10}, 16, 226},
+        {"20 ms beside 120 ms", {.fastLag = 0, .fastTau = 0.02, .matesTau = 0.12}, 16, 226},
+        {"50 ms beside 150 ms", {.fastLag = 0, .fastTau = 0.05, .matesTau = 0.15}, 16, 233},
+        {"50 ms beside 200 ms", {.fastLag = 0, .fastTau = 0.05, .matesTau = 0.20}, 16, 232},
+        {"80 ms beside 200 ms", {.fastLag = 0, .fastTau = 0.08, .matesTau = 0.20}, 16, 240},
+        {"port 20 at 30 ms beside 120 ms", {.fastLag = 3, .matesTau = 0.12}, 20, 228},
+        {"port 17 at 30 ms beside 120 ms", {.fastLag = 1, .matesTau = 0.12}, 17, 228},
+        {"half stick: 30 ms beside 120 ms", {.fastLag = 0, .matesTau = 0.12, .stick = 0.5}, 16, 228},
+        {"half stick: 30 ms beside 150 ms", {.fastLag = 0, .matesTau = 0.15, .stick = 0.5}, 16, 228},
+        {"half stick: 30 ms beside 200 ms", {.fastLag = 0, .matesTau = 0.20, .stick = 0.5}, 16, 227},
+        {"30 ms beside 120 ms, every motor at 2.3 A (under the limit)",
+         {.fastLag = 0, .matesTau = 0.12, .wallAmps = 2.3}, 16, 228},
+        {"every report at 80 ms", {}, 0, -1},
+        {"every report at 150 ms", {.matesTau = 0.15}, 0, -1},
+        {"every report at 200 ms", {.matesTau = 0.20}, 0, -1},
     };
     for (const Row& row : rows) {
         const std::string rowName{row.name};  // CAPTURE prints a const char* as an address
         CAPTURE(rowName);
         World w{World::Mode::Hand};
         const auto log = oddWall(w, row.odd, -1);
-        CHECK(absentTick(log, 0, 0) == row.at);
-        CHECK(log.back().runtimeAbsent[0] == 0b0001u);  // port 16 only
-        CHECK(log.back().runtimeAbsent[1] == 0u);       // the RIGHT, at the same wall, reads alike
+        CHECK(log.back().runtimeAbsent[0] == 0u);  // nobody marked, on either side
+        CHECK(log.back().runtimeAbsent[1] == 0u);
+        CHECK(countContaining(telLines(w.sink), "went ABSENT") == 0);
+        CHECK(longestLiveFrozenRun(log) == 0);     // nobody FROZEN, for a single tick
+        CHECK(log.back().st.mode == ProtectionMode::Driving);
+        CHECK(log[150].mv[0] > 0.5);  // it drove before the wall
+        if (row.cutAt < 0) {
+            CHECK(cutTicks(log).empty());
+        } else {
+            checkOneFightCut(log, w.sink, row.cutAt, row.fastPort);
+        }
+    }
+    // Over the limit at the wall: the over-current cuts come first, and the fight adds none.
+    const Row overLimit[] = {
+        {"30 ms beside 120 ms, every motor at 2.45 A", {.fastLag = 0, .matesTau = 0.12, .wallAmps = 2.45},
+         16, -1},
+        {"30 ms beside 120 ms, every motor at 2.5 A", {.fastLag = 0, .matesTau = 0.12, .wallAmps = 2.5},
+         16, -1},
+        {"30 ms beside 100 ms, every motor at 2.5 A", {.fastLag = 0, .matesTau = 0.10, .wallAmps = 2.5},
+         16, -1},
+        {"every report at 80 ms, every motor at 2.5 A", {.wallAmps = 2.5}, 0, -1},
+    };
+    for (const Row& row : overLimit) {
+        const std::string rowName{row.name};
+        CAPTURE(rowName);
+        World w{World::Mode::Hand};
+        const auto log = oddWall(w, row.odd, -1);
+        CHECK(log.back().runtimeAbsent[0] == 0u);
+        CHECK(log.back().runtimeAbsent[1] == 0u);
+        CHECK(longestLiveFrozenRun(log) == 0);
+        CHECK(cutTicks(log) == std::vector<int>{224, 349, 474});
         const auto lines = telLines(w.sink);
-        CHECK(countContaining(lines, "WARNING: port 16 (LEFT) went ABSENT at runtime") == 1);
-        CHECK(countContaining(lines, "went ABSENT") == 1);
-        CHECK(countContaining(lines, "REFUSED") == 0);  // one dead: it drives on, DEGRADED
-        CHECK(cutTicks(log).empty());
-        CHECK(log.back().st.mode == ProtectionMode::Degraded);
-        CHECK(log[150].mv[0] > 1.0);  // it drove before the wall
-        CHECK(log[400].mv[0] > 1.0);  // marked, and still commanded: a mark drops reads, not drive
+        CHECK(countContaining(lines, "CUT: FIGHT") == 0);
+        CHECK(countContaining(lines, "CUT: ") == 3);
+        CHECK(countContaining(lines, "went ABSENT") == 0);
     }
 }
 
@@ -1818,10 +1876,12 @@ TEST_CASE("T4 P2-21d: THE WIDER GAP (found by the review of 2026-09-30; the team
     // every stalled member reads alike (P2-21). One stalled member whose readings keep changing
     // counts as ANSWERING — a 2-2 tie, and two live members are FROZEN and marked; one whose report
     // settles sooner than its mates' is SUSPECT ALONE — marked, at a 30-beside-80 ms spread here,
-    // where the slipping member's encoder keeps the evidence alive (with no slipping member the same
-    // lone suspect takes a wider spread: P2-19d, P2-19e). A4 register HA-175, guide 12 and
-    // coupled_side_monitor.hpp state this wider gap; a change to the guard must be a ruling, not an
-    // accident, and this case goes red with it, to be re-pinned to the ruled behaviour.
+    // where the slipping member's own ENCODER keeps the evidence alive (with no slipping member the
+    // encoder check of 2026-10-01 leaves no evidence at a wall, and nobody is marked: P2-19d,
+    // P2-19e). The ruling of 2026-10-01 keeps this gap until port 18's slipping gear is fixed. A4
+    // register HA-175, guide 12 and coupled_side_monitor.hpp state it; a change to the guard must
+    // be a ruling, not an accident, and this case goes red with it, to be re-pinned to the ruled
+    // behaviour.
     struct Row {
         const char* name;
         OddMember odd;
@@ -2363,21 +2423,59 @@ std::string readSource(const std::string& relative) {
 }
 }  // namespace
 
-TEST_CASE("T4 Part 2 source pins: \"shulib Teleop\"'s loopCfg, the driver file's kLoop and the "
-          "X-drive's kLoopConfig name no `protection` — so all three get the library's defaults (no host "
-          "test compiles Teleop's or the X-drive's TU)") {
+TEST_CASE("T4 Part 2 source pins: the driver file's kLoop and the X-drive's kLoopConfig name no "
+          "`protection`, and \"shulib Drive\" has no loop config of its own — so every program gets "
+          "the library's defaults (no host test compiles a program's TU)") {
     // BUG CAUGHT: a program that quietly turns the protections down, or off, in its own config — the
-    // protections are the library's, not a program's.
-    const std::string teleop = readSource("src/programs/teleop_program.cpp");
-    const std::size_t at = teleop.find("const teleop::DriverLoopConfig loopCfg{");
-    REQUIRE(at != std::string::npos);
-    const std::size_t end = teleop.find("};", at);
-    REQUIRE(end != std::string::npos);
-    const std::string block = teleop.substr(at, end - at);
-    CHECK(block.find("tickPeriod") != std::string::npos);
-    CHECK(block.find("protection") == std::string::npos);
-    CHECK(teleop.find(".protection") == std::string::npos);
-    CHECK(teleop.find("loopCfg, st.claws.holds()") != std::string::npos);  // the call that uses it
+    // protections are the library's, not a program's. (T4 Part 3: "shulib Teleop"'s loopCfg was the
+    // first program pinned here; Teleop retired, and "shulib Drive", which replaced it, runs the
+    // driver file's kLoop through st.driver.run() — it may READ the protections' config for its boot
+    // line, never set one.)
+    // The program's CODE: its comments name DriverLoopConfig::protection to say it sets none.
+    const std::string drive = [] {
+        const std::string raw = readSource("src/programs/drive_program.cpp");
+        std::string out;
+        char quote = 0;
+        for (std::size_t i = 0; i < raw.size(); ++i) {
+            const char c = raw[i];
+            if (quote != 0) {
+                out += c;
+                if (c == '\\' && i + 1 < raw.size()) {
+                    out += raw[++i];
+                } else if (c == quote) {
+                    quote = 0;
+                }
+            } else if (c == '/' && i + 1 < raw.size() && raw[i + 1] == '/') {
+                while (i < raw.size() && raw[i] != '\n') ++i;
+                out += '\n';
+            } else {
+                if (c == '"') quote = c;
+                out += c;
+            }
+        }
+        return out;
+    }();
+    CHECK(drive.find("DriverLoopConfig") == std::string::npos);
+    CHECK(drive.find("runDriverControl(") == std::string::npos);
+    CHECK(drive.find("st.driver.run(") != std::string::npos);  // the driver file's loop, and its kLoop
+    std::size_t reads = 0;
+    std::size_t mentions = 0;
+    for (std::size_t at = drive.find(".protection"); at != std::string::npos;
+         at = drive.find(".protection", at + 1)) {
+        const std::size_t after = at + std::string_view{".protection"}.size();
+        if (after < drive.size()
+            && (std::isalnum(static_cast<unsigned char>(drive[after])) != 0 || drive[after] == '_')) {
+            continue;  // another name that starts the same (`rows_.protections`)
+        }
+        if (at >= 5 && drive.compare(at - 5, 5, "rows_") == 0) {
+            continue;  // the MAIN page's PROTECTION ROW (DriveRows::protection, words, not config --
+                       // T4 Part 3's late step wired it; re-pointed one-for-one)
+        }
+        ++mentions;
+        reads += at >= 5 && drive.compare(at - 5, 16, "kLoop.protection") == 0 ? 1U : 0U;
+    }
+    CHECK(mentions >= 1U);       // the boot's protections line reads it ...
+    CHECK(reads == mentions);    // ... and nothing else names a protection field
     const std::string driver = readSource("src/team/robot_two_driver.hpp");
     const std::size_t k = driver.find("static constexpr teleop::DriverLoopConfig kLoop{");
     REQUIRE(k != std::string::npos);

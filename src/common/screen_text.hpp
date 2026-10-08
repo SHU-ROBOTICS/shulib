@@ -5,8 +5,8 @@
 // printText() was written for "shulib Calibrate" at R3d Part 2F-2 (2026-09-24), inside
 // src/programs/calibrate_program.cpp's anonymous namespace. G1 Part 2b moved it here, VERBATIM (its body is
 // byte-for-byte what it was; only the `inline` a header needs was added), so that "shulib Teleop"
-// (src/programs/teleop_program.cpp) paints through the same sanitizer, and the competition program (COMP)
-// can too. Calibrate's behaviour is unchanged: its call sites are untouched and the print counter
+// painted through the same sanitizer (until T4 Part 3 retired it; "shulib Drive",
+// src/programs/drive_program.cpp, holds its words now), and the competition program (COMP) can too. Calibrate's behaviour is unchanged: its call sites are untouched and the print counter
 // below still counts every one of its prints.
 //
 // ═══ ONLY A LITERAL "%s" EVER REACHES A PROS SCREEN CALL ═══════════════════════════
@@ -24,7 +24,7 @@
 // from include/shulib/calibration/calibrate_panel.hpp, which this header does NOT modify (the
 // COMP brief's §0 row "The boot source" / COMP-b §3.1). A literal a program prints is checked
 // against those budgets at compile time with calibration::screenText(), as calibrate_program.cpp's
-// `text::kAll` and teleop_program.cpp's own table do.
+// `text::kAll` and src/programs/drive_panel.hpp's own words do.
 //
 // ═══ WHY NOT "Bench Tests" TOO ══════════════════════════════════════════════════════
 // src/programs/bench_r3a.cpp keeps its OWN sanitizer (panelSafe/screenText, R2a): the same rules, but cut

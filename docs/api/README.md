@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 3,633 of them across 169 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 3,663 of them across 170 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -122,6 +122,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Health monitor](health_monitor.md) | [`diag/health_monitor.hpp`](../../include/shulib/diag/health_monitor.hpp) | HealthMonitor — sensor/power pathology → FaultCode, edge-triggered. |
 | [Level filter sink](level_filter_sink.md) | [`diag/level_filter_sink.hpp`](../../include/shulib/diag/level_filter_sink.hpp) | LevelFilterSink — per-subsystem log levels. |
 | [Line format](line_format.md) | [`diag/line_format.hpp`](../../include/shulib/diag/line_format.hpp) | line_format — the ONE set of §18.3 text-formatting primitives. |
+| [Log copy sink](log_copy_sink.md) | [`diag/log_copy_sink.hpp`](../../include/shulib/diag/log_copy_sink.hpp) | LogCopySink — a COPY of a sink's leveled messages and run summaries in a second sink, and nothing else (chunk T4 Part 3, the team lead's decisions N5 (a) and A (a), 2026-09-27/28). |
 | [Loop monitor](loop_monitor.md) | [`diag/loop_monitor.hpp`](../../include/shulib/diag/loop_monitor.hpp) | LoopMonitor — loop-overrun / tick-timing detection. |
 | [Motion result](motion_result.md) | [`diag/motion_result.hpp`](../../include/shulib/diag/motion_result.hpp) | MotionResult — the per-motion result line, as data + one formatter. |
 | [Odom tick audit](odom_tick_audit.md) | [`diag/odom_tick_audit.hpp`](../../include/shulib/diag/odom_tick_audit.hpp) | OdomTickAudit — the odometry trust gate's account of ONE tick: which of its checks tripped and the values it tripped on. |
@@ -306,7 +307,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 3,633 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 3,663 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 
