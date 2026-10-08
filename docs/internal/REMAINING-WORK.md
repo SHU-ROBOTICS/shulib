@@ -13,14 +13,14 @@
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
 > than on builder time, so it is not in the total. **Last updated: 2026-10-08 (the MECH core's brief: your go, N1–N13 as recommended; DOCS3, the documentation redo, before the panel).**
 
-**Where things stand:** 35 of the phase table's 66 chunks are complete (CAL1 added 2026-10-06, MECH and DOCS3 2026-10-08) (COMP on 2026-10-02, T4 on 2026-10-08), and R2a (half of R2) has
-also landed; 31 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
+**Where things stand:** 35 of the phase table's 67 chunks are complete (CAL1 added 2026-10-06, MECH, DOCS3 and SER1 2026-10-08) (COMP on 2026-10-02, T4 on 2026-10-08), and R2a (half of R2) has
+also landed; 32 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
 Part B (a reading that is not a number left out, completing DIAG1), H1 Part A1 (the SHUL/2 wire's read side) and T4
 Part 2a (the drive protections) on 2026-10-01; and **COMP-b, the competition program** (2026-10-02, completing COMP).
 SAFE-SAVE Part A (the safe save's library) landed 2026-10-04, and R5a Part A (the gains-and-noise measurements as
 library) 2026-10-06. **T4 Part 3 landed 2026-10-08, completing T4**: the new "shulib Drive", Teleop retired, the
 Auton Tester on slot 2, the SD log copy, one bad auton dropped (never the boot), `main.cpp` final, seven builds. The
-MECH core's brief has your go and builds next; CAL1's brief has your answers; G3a's amendment waits for your D6′–D10.
+**MECH core is building** (run A1 since 2026-10-08; the runs overlap, your speedup); CAL1's brief has your answers; G3a's amendment waits for your D6′–D10.
 Nothing new has run on the robot since 2026-09-25. **The 40 in auton is ready for you on the bench** (#4).
 
 ---
@@ -61,7 +61,7 @@ open to his objection).
 
 | # | Part | What | When | Size (rough, unmeasured) |
 |---|---|---|---|---|
-| 12 | **MECH core** | the four control kinds — **power** (with done-conditions), **position** (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall), **speed** (flywheels, "at speed"), **pneumatic** (incl. three positions); **port binding** (roles instead of ports, the wiring binding validated every boot, one boot line per role); **auton steps** (and the auton's mechanism lookup, run while driving); **presets** in the driver file; the per-tick mechanism service everything depends on; the device provider's distance / optical / digital-in accessors; arm, lift and flywheel models in the host test plant; robot two's claws as the proving case; **every mechanism publishes its actions as route ids automatically** (ruled 2026-10-08) | after T4 Part 3, **before the panel** — **brief ✅ GO 2026-10-08** (N1–N13 as recommended; [brief](chunks/MECH-core-mechanism-library.md)) | ~19¼–26 (its brief; six runs A1–A6) |
+| 12 | **MECH core** | the four control kinds — **power** (with done-conditions), **position** (degrees or inches, non-linear lifts, smooth moves, gravity compensation, travel limits, homing by switch or stall), **speed** (flywheels, "at speed"), **pneumatic** (incl. three positions); **port binding** (roles instead of ports, the wiring binding validated every boot, one boot line per role); **auton steps** (and the auton's mechanism lookup, run while driving); **presets** in the driver file; the per-tick mechanism service everything depends on; the device provider's distance / optical / digital-in accessors; arm, lift and flywheel models in the host test plant; robot two's claws as the proving case; **every mechanism publishes its actions as route ids automatically** (ruled 2026-10-08) | after T4 Part 3, **before the panel** — **brief ✅ GO 2026-10-08; run A1 BUILDING since 2026-10-08** (N1–N13 as recommended; [brief](chunks/MECH-core-mechanism-library.md)) | ~19¼–26 (its brief; six runs A1–A6) |
 | 13 | **MECH, the rest** — protection and more kinds | cycle mechanisms (catapult/puncher); piece counting; colour sorting; jam auto-reverse; interlocks; loaded gains; low-power hold; current caps and heat derating with a driver warning; tip protection | **after the panel** | ~7–11½ days |
 | 14 | **MECH, the rest** — driver and auton extras | preset cycling, stick control with hold-where-released, long-press and double-tap, rumble, mechanism state on the controller screen, driver-interruptible macros (would absorb T3's open chassis macros and angle presets, #16); triggers partway through a drive | **after the panel** | ~5½–9 days (+~1 if routes are in scope) |
 | 15 | **MECH, the rest** — setup and diagnostics | ~~a mechanism page in Bench Tests; the direction check~~ (moved into the core by its brief, 2026-10-08: Bench Tests' MECHANISMS station and its direction check); guided port binding on the brain (and the SD binding record, if bindings live there); auto-tuning of an arm's gains; a per-match health log | **after the panel** | ~6½–11½ days |
@@ -86,6 +86,7 @@ be an exception needing his explicit go).
 |---|---|---|---|---|
 | 18b | **CAL1, the standard Calibrate** — NEW 2026-10-06, your request | Calibrate moves into the library so every team (and the panel) gets the same, correct Calibrate; a team states only drive kind, motor cartridge and its mechanisms' ports. It absorbs SAFE-SAVE B1 (the safe save) and adds your FRONT rule: the end that leads the push is the front, with a warning when a recalibration flips it. Robot two's Calibrate becomes a few lines calling it | its brief is being written; after T4 Part 3, beside the mechanism core | ~2–3 days (rough, until its brief), B1's ~1 included |
 | 19 | **G3a**, as briefed | the robot file (the `.vexbot` profile block itself); its generator into the C++ tables and the driver file's button region, byte for byte; the freshness gate; one validator; the optional VS Code panel (a form over the file, with the calibration record shown read-only) | T4 Part 3; the team lead's push; his go and his answers to D1–D6 (§11) | ~5½–6 days (its draft brief, 2026-09-27) |
+| 18c | **SER1, the serial log's lines kept whole across tasks** — NEW 2026-10-08 (HA-189), your go with your fix | stdout made unbuffered first thing in `initialize()` (and by the serial sink), so each log line is one device write that PROS's own lock keeps whole; tests, a source pin, the false comment corrected | beside the MECH core | ~½ day |
 | 19b | **DOCS3, the documentation redo** — NEW 2026-10-08, your ruling | every current document re-organised so each reader has one front door (driving, coding, mentoring, maintaining), rewritten where unclear, every claim re-checked against the code, the site's navigation and the API reference's layout redone; the history records (briefs, logs, completion records, changelog entries, HA numbers) indexed, not rewritten. Until then each chunk keeps its own documents current | after the MECH core (A6), **before the panel** | ~5–8 days (rough, until its brief) |
 | 20 | **G3a, the amended panel**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | a **new robot** (which creates its build too); **mechanisms** (add / remove / duplicate / reorder, with templates: Intake, Arm, Lift, Claw, Flywheel, Catapult, Conveyor, Blank); **wiring** (roles → ports, or "bind on the brain", with live warnings); **controls** (every MECH C control, with live warnings); **save** = generate + the build's own checks | MECH's design | grows G3a to ~13–18½ days (rough: the generator ~7½–11, the panel ~5½–7½; +1–1½ with X-drive generation) |
 | 20b | **G3a Part R, routes in the panel** — NEW 2026-10-08, your ruling | draw a route on the field (waypoints, headings, reversed legs), drop mechanism steps from the robot's own route ids, save in the shared route format VexBuilder reads; **a visual of the route** (the path, headings, the robot's outline at each waypoint, the mechanism markers, a step-through — geometry only), and **VexBuilder simulates it — the panel never does** (your rulings, 2026-10-08: one simulator, so the two can never disagree) | right after G3a's mechanism pages (Part 6); the route ids come from the MECH core | ~4–6 days (rough) |
@@ -223,8 +224,9 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | + Export (proposed; rough) | +1–2 |
 | + routes in the panel (ruled 2026-10-08; rough; no simulation — VexBuilder's) | +4–6 |
 | + DOCS3, the documentation redo, after the core and before the panel (ruled 2026-10-08; rough) | +5–8 |
+| + SER1, the serial log's lines kept whole (HA-189; 2026-10-08) | +½ |
 | − T3's macros and F3, which MECH's rest would absorb | −(2½–3) |
-| **Everything, as now planned** | **~75–115¼** |
+| **Everything, as now planned** | **~75½–115¾** |
 
 **Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
 robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
