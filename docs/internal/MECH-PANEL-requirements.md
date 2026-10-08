@@ -504,6 +504,12 @@ in C++.
    to be accurate they basically have to be both the same ... simulating it in the panel is not good and should be kept to
    vexbuilder") — VexBuilder is the ONE place a route is simulated; shulib's host test plant stays inside the library's
    tests.
+   **But a VISUAL of the route, yes** (the team lead, the same day: "i still would like to see a visual of the route
+   though ... it doesnt have to be an actual simulation"): the field view draws the route as written — the path between
+   waypoints, heading arrows, reversed legs marked, the robot's outline to scale at each waypoint (does it fit past the
+   field elements?), the mechanism steps as markers, and a step-through that moves the outline waypoint to waypoint in
+   order. GEOMETRY ONLY: it shows where the route tells the robot to go, never how the robot will drive it (speed, drift,
+   timing are VexBuilder's simulation).
    **Placement (ruled the same day):** its own panel part RIGHT AFTER the mechanism pages (G3a Part 6), before the
    panel's extension for the rest; ~4–6 builder-days (rough).
    **Mechanism route ids (ruled 2026-10-08, built in the MECH core):** every mechanism publishes its actions as route
