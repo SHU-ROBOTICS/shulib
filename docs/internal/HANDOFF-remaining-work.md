@@ -670,9 +670,10 @@ fixed.)*
   census yet (A4 register HA-153, HA-159); the pivots' physical directions, a loaded Hold, the
   claw's single/double solenoid and its polarity are UNMEASURED (worksheet Station J). Still open:
   every other mechanism on robot two (intake? lift?), everything on robot one, and the homing.
-- **Q2. Sensor placement:** AI Vision per §2 (one per robot, chassis, front, level, offsets measured);
-  GPS — bought? where mounted? (lever arm offsets); distance sensors for the wall reset — where, facing
-  which way.
+- **Q2. Sensor placement — PARTLY ANSWERED 2026-10-08** (the team lead, for the auto-flipper question: "we are going to
+  have two distance sensors one on each side and the ai vision sensor in the front"): the AI Vision camera faces FORWARD;
+  two distance sensors, one on EACH SIDE (facing left and right). Still open: which robot(s), the measured mount offsets
+  and heights (lever arms), and whether a GPS is bought and where it sits.
 - **Q3. Robot one's cartridge**, and whether it gets its own build variant (Calibrate builds only for
   robot two's `ROBOT=tank` today). Its ports are discovered by the calibrator.
 - **Q4. ANSWERED 2026-09-24:** yes — AprilTags on the nine goals, ids 0–4 with 1–4 duplicated (§2).
