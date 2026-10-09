@@ -13,8 +13,8 @@
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
 > than on builder time, so it is not in the total. **Last updated: 2026-10-08 (the MECH core's brief: your go, N1–N13 as recommended; DOCS3, the documentation redo, before the panel).**
 
-**Where things stand:** 35 of the phase table's 67 chunks are complete (CAL1 added 2026-10-06, MECH, DOCS3 and SER1 2026-10-08) (COMP on 2026-10-02, T4 on 2026-10-08), and R2a (half of R2) has
-also landed; 32 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
+**Where things stand:** 35 of the phase table's 69 chunks are complete (CAL1 added 2026-10-06, MECH, DOCS3, SER1, VIS1 and AF1 2026-10-08) (COMP on 2026-10-02, T4 on 2026-10-08), and R2a (half of R2) has
+also landed; 34 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
 Part B (a reading that is not a number left out, completing DIAG1), H1 Part A1 (the SHUL/2 wire's read side) and T4
 Part 2a (the drive protections) on 2026-10-01; and **COMP-b, the competition program** (2026-10-02, completing COMP).
 SAFE-SAVE Part A (the safe save's library) landed 2026-10-04, and R5a Part A (the gains-and-noise measurements as
@@ -86,6 +86,8 @@ be an exception needing his explicit go).
 |---|---|---|---|---|
 | 18b | **CAL1, the standard Calibrate** — NEW 2026-10-06, your request | Calibrate moves into the library so every team (and the panel) gets the same, correct Calibrate; a team states only drive kind, motor cartridge and its mechanisms' ports. It absorbs SAFE-SAVE B1 (the safe save) and adds your FRONT rule: the end that leads the push is the front, with a warning when a recalibration flips it. Robot two's Calibrate becomes a few lines calling it | **brief ✅ answered 2026-10-08** (D1–D5 as recommended, D6 (a) — [brief](chunks/CAL1-standard-calibrate.md)); Part A1 BUILDING beside the mechanism core (your speedup); A2 SPLIT into A2a and A2b (your call, 2026-10-08) | ~6¼–6¾ days (its brief: A1, A2a, A2b, B; B1's ~1 included) |
 | 19 | **G3a**, as briefed | the robot file (the `.vexbot` profile block itself); its generator into the C++ tables and the driver file's button region, byte for byte; the freshness gate; one validator; the optional VS Code panel (a form over the file, with the calibration record shown read-only) | T4 Part 3; the team lead's push; his go and his answers to D1–D6 (§11) | ~5½–6 days (its draft brief, 2026-09-27) |
+| 18d | **VIS1, the AI Vision camera's colours** — NEW 2026-10-08, your auto-flipper | the camera adapter (R2b's, pulled forward, objects and colours only), a frame type beside the frozen interface, the Toggle colour tracker, Station 12 with colours | beside the MECH core; Step 0 at the robot first | ~4¾–6½ days (rough) |
+| 18e | **AF1, the Toggle auto-flipper** — NEW 2026-10-08, your request; both robots, a motor arm | an automatic flip that never fights the driver, never stops on the opponent's colour, always gets off the Toggle, and never starts what it cannot finish; the alliance colour (RED / BLUE / SKILLS, unset until chosen); a period clock; a host Toggle model; a TOGGLE bench station. Supersedes F3's `setQuadrantToggle` | after MECH-A4, before DOCS3; the Optical-at-the-flipper question after Step 0 | ~8¾–11½ days (rough) |
 | 18c | **SER1, the serial log's lines kept whole across tasks** — NEW 2026-10-08 (HA-189), your go with your fix | your fix re-ruled to ONE-CALL WRITES (unbuffered stdout would crash the brain when `pros terminal` connects): every shulib serial line is one direct write that PROS's own lock keeps whole; the build gate bans stdout printing in `src/`; two new register entries (HA-190, HA-191) | beside the MECH core | ~¾–1 day |
 | 19b | **DOCS3, the documentation redo** — NEW 2026-10-08, your ruling | every current document re-organised so each reader has one front door (driving, coding, mentoring, maintaining), rewritten where unclear, every claim re-checked against the code, the site's navigation and the API reference's layout redone; the history records (briefs, logs, completion records, changelog entries, HA numbers) indexed, not rewritten. Until then each chunk keeps its own documents current | after the MECH core (A6), **before the panel** | ~5–8 days (rough, until its brief) |
 | 20 | **G3a, the amended panel**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | a **new robot** (which creates its build too); **mechanisms** (add / remove / duplicate / reorder, with templates: Intake, Arm, Lift, Claw, Flywheel, Catapult, Conveyor, Blank); **wiring** (roles → ports, or "bind on the brain", with live warnings); **controls** (every MECH C control, with live warnings); **save** = generate + the build's own checks | MECH's design | grows G3a to ~13–18½ days (rough: the generator ~7½–11, the panel ~5½–7½; +1–1½ with X-drive generation) |
@@ -94,7 +96,7 @@ be an exception needing his explicit go).
 | 22 | **Export**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | the panel writes a starter `.vexbot` (profile, mechanisms, wiring, an empty path list, shulib's command list), so a team can start in the panel and continue in VexBuilder | G3; a new VexBuilder ask (open a project shulib started) | ~1–2 days (rough) |
 | 23 | **H4**, the robot console | the brain's screen and log on the computer over USB, and remote touches, in the same extension. A bench tool, off under field control | G3a; H1 | not sized |
 
-## 5. Sensors — after G3 (your ruling, 2026-09-28)
+## 5. Sensors — after G3 (your ruling, 2026-09-28; the AI Vision camera's colours moved before the panel for the auto-flipper, 2026-10-08 — #18d)
 
 | # | Item | Waits on | Size |
 |---|---|---|---|
@@ -225,8 +227,9 @@ Sizes are from the briefs where one exists, and rough ranges otherwise (MECH, G3
 | + routes in the panel (ruled 2026-10-08; rough; no simulation — VexBuilder's) | +4–6 |
 | + DOCS3, the documentation redo, after the core and before the panel (ruled 2026-10-08; rough) | +5–8 |
 | + SER1, the serial log's lines kept whole (HA-189; 2026-10-08) | +¾–1 |
+| + the Toggle auto-flipper, VIS1 + AF1, before the panel (2026-10-08; rough, from its research; ~2½–3 of it planned work moved earlier, netted here) | +12½–18 |
 | − T3's macros and F3, which MECH's rest would absorb | −(2½–3) |
-| **Everything, as now planned** | **~75¾–116** |
+| **Everything, as now planned** | **~88¼–134** |
 
 **Not in these numbers:** H4, PKG1 and F4 (not sized); the robot-session-bound items (§7, #7 and #11) and every
 robot session; and **verification**. Each result is reviewed, fixed and checked by a fresh verifier before it
@@ -241,7 +244,8 @@ sets the pace. The milestones along it:
 | **The 40 in through the real `autonomous()`** | COMP-b ✅ (2026-10-02) — waits on Station K | — | now |
 | **The driver program finished, Teleop retired, `main.cpp` final** | T4 Part 3 ✅ (2026-10-08; with Part 2b's items) — its robot check is #11 (Stations F and J on the new "shulib Drive") | — | now |
 | **Mechanisms (the core) in the library** | the MECH core (its brief: six runs A1–A6; CAL1 beside it, landing before A5) | ~19½–26¼ | ~6–8 |
-| **The panel: make a robot with its mechanisms, no C++** | + DOCS3 (the documentation redo), then G3a amended | ~36–50¼ | ~11–15 |
+| **The Toggle auto-flipper (library, host-tested)** | VIS1 beside the core; AF1 after MECH-A4 | ~23–30 | ~7–9 |
+| **The panel: make a robot with its mechanisms, no C++** | + the auto-flipper, DOCS3 (the documentation redo), then G3a amended | ~40–55 | ~12–16½ |
 | **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~55½–81¾ | ~17–25 |
 
 These hold only if the decisions and robot sessions keep pace and the builders are not paused. The work grew on

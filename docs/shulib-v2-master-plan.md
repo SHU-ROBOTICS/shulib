@@ -76,6 +76,10 @@ shulib v2 inverts both:
   - **24" robot — X-drive** (4 omni @ 45°, full holonomic).
   - **15" robot — H-drive** (tank + transverse strafe wheel; limited strafe authority).
 
+  > **AMENDED 2026-10-08 (team lead): BOTH robots are 15" this season** ("both bots are going to be 15\""). `<VUR1>`
+  > allows a 24" and a 15"; the team builds two 15" robots. `<SG2>`a's 24" × 24" footprint applies all match, so
+  > either may reach out to 24". Both carry a Toggle auto-flipper (a motor arm).
+
   > **AMENDED 2026-09-14 (team lead):** the plan above was the June intent. **Both fall-2026
   > competition robots are TANK drives** — robot two's chassis was built in September (five
   > coupled motors per side, four wheels per side) and robot one follows the same pattern. **The
@@ -605,6 +609,12 @@ for denial value.
 - **15" H-drive = Toggle-owner + match-load cycler + parker.** Self-aligning vertical clamp
   (standing/match-load only — sidesteps floor pickup, the season's hardest unsolved problem) +
   poly-cutout passive dock. Owns the other two Toggles and **parks the Midfield (+8)** at the buzzer.
+
+> **Rules check 2026-10-08 (the auto-flipper research, Override manual v2.0):** a Toggle counts only at the end of
+> autonomous and of the match, and a robot TOUCHING it then makes it yellow (`<SC4>`b) — so "hold/brake on it" and
+> "wedge-jam" below LOSE the Toggle at the buzzer; a wedge cannot be left behind (`<GG8>`), and Q&A 3135's allowance for
+> wedging is provisional. In Skills a Toggle owns only when it shows its QUADRANT's colour (`<RSC3>`a-iii-1), not ours.
+> Scoring is per visible yellow HALF (`<SC3>`c). The concepts below are the June intent, kept as history.
 
 ### Two 60s routing concepts (separate per-robot autons)
 - **Concept A — X-drive tall-tower (~90–130 pts):** own home Toggle (t0–4) → preload + deny the
