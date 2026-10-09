@@ -1608,8 +1608,10 @@ written with them (D12 honesty reaching the data layer intact).
 > A–C: protection and more kinds, driver and auton extras, setup and diagnostics) comes after the panel. HA-182..186.
 
 ### CAL1 — the standard Calibrate, shipped with the library ⟵ NEW 2026-10-06, before G3a's Part 2
-> **Status 2026-10-06: BRIEF BEING WRITTEN** (`.claude/coordinator/briefs/CAL1-standard-calibrate.md`; it comes to the
-> team lead before any build). **The team lead's request (2026-10-06):** "we need to standardize this calibrate program
+> **Status 2026-10-08: BRIEF ANSWERED, Part A1 BUILDING** ([brief](chunks/CAL1-standard-calibrate.md)): the team lead took
+> D1–D5 as recommended and D6 (a) — a first record is checked against the robot's typed drive ports when the boot could
+> drive from that table (robot two's cannot, so it gets the FIRST RECORD note). Three parts, ~6–6½ builder-days (A1
+> ~1¼–1⅜, A2 ~2½–2⅞, B ~1⅞–2⅛); A1 builds beside the MECH core (his speedup); A2's split is his call. **The team lead's request (2026-10-06):** "we need to standardize this calibrate program
 > so that we can push it with the library so people who want to use the vscode extension can have the correct calibrate
 > program to actually use the extension." **His rulings the same day:** (1) the robot's FRONT is the end that LEADS
 > Calibrate's push — never asked in the panel or typed — carried by the calibration record, WITH A FLIP WARNING when a

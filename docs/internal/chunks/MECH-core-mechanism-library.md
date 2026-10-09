@@ -1,5 +1,9 @@
 # MECH, the core — any mechanism described as data, bound to ports after it is made, run by one per-tick service: four control kinds, auton steps, driver presets, the boot binding check, the bench page and the direction check
 
+> **Coordinator's note (2026-10-08, from CAL1's answered brief): MECH-A5 must KEEP CAL1's typed-port mapping** —
+> robot two's `src/robots/calibrate_facts.hpp` builds its facts with `withTypedDriveFrom(kCalibrateFacts, kChassis)`
+> (CAL1 D6 (a): a table's drive ports count only when the boot could drive from it); A5's edits to the robot tables
+> and the facts mapping must leave that call and its parity test intact. CAL1 Part B lands before A5 (N9).
 > **THE TEAM LEAD'S GO (2026-10-08): "Accept all, go" — N1–N13 all as recommended (a).** The core is built right
 > after T4 Part 3 lands (N12), in six runs A1–A6, each its own executor run, review round and coordinator
 > verification, strictly in order; CAL1 (the standard Calibrate) lands before A5 (N9). Committed to the plan the same
