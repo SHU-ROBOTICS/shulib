@@ -1,5 +1,7 @@
 # CAL1 — the standard Calibrate, shipped with the library: a team states its drive kind, its cartridge and its mechanisms' ports, and gets the same, correct Calibrate; the front is the end that leads the push, with a flip check; SAFE-SAVE B1's safe save inside it
 
+> **A2 SPLIT (the team lead, 2026-10-08, "Split it"):** A2a — the standard program with NO typed reference (~1¾–1⅞ builder-days); A2b — the typed reference (D6 (a)) and the proof through the real PROS shell (~¾–1). Each its own go after the one before; ~6¼–6¾ in all.
+
 > **THE TEAM LEAD'S ANSWERS (2026-10-08)** to "Decisions for the team lead", in his words: **"Accept, but add
 > D6's check."**
 > - **D1 (a) — DECIDED, as recommended:** the split — a PROS-free `calibration::CalibrateProgram` over seams, plus a
