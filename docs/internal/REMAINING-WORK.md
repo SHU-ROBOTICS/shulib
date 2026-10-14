@@ -96,13 +96,13 @@ be an exception needing his explicit go).
 | 22 | **Export**: NEW 2026-09-28 — PROPOSED, planning with the team lead, not yet in the plan | the panel writes a starter `.vexbot` (profile, mechanisms, wiring, an empty path list, shulib's command list), so a team can start in the panel and continue in VexBuilder | G3; a new VexBuilder ask (open a project shulib started) | ~1–2 days (rough) |
 | 23 | **H4**, the robot console | the brain's screen and log on the computer over USB, and remote touches, in the same extension. A bench tool, off under field control | G3a; H1 | not sized |
 
-## 5. Sensors — after G3 (your ruling, 2026-09-28; the AI Vision camera's colours moved before the panel for the auto-flipper, 2026-10-08 — #18d)
+## 5. Sensors — the distance sensors and the camera's OBJECTS now BEFORE THE PANEL (your ruling, 2026-10-14); AprilTags and GPS stay after G3 (2026-09-28)
 
 | # | Item | Waits on | Size |
 |---|---|---|---|
-| 24 | **The AI Vision adapter** (R2b): objects and AprilTags from the camera on port 3 | Stations H and I (Bench Tests 11/12) run on the robot first | ~1 day (rough) |
-| 25 | **Wall reset with the distance sensors** (L6): drive toward a wall until the sensor reads a set distance, then correct that axis | Q2 (where the sensors face and sit) | ~1 day (rough) |
-| 26 | **Drive to a game piece** (L4): turn toward the piece the camera sees, then drive until the claw or a sensor confirms | 24 | ~1 day (rough) |
+| 24 | **The AI Vision adapter** (R2b): **its OBJECTS part (pins, cups) is now in VIS1 (#18d), before the panel** (your ruling, 2026-10-14); its AprilTags part (and the field's duplicate tag ids) stays after G3 | Stations H and I (Bench Tests 11/12) run on the robot first | AprilTags: ~1 day (rough) |
+| 25 | **Wall reset with the distance sensors** (L6): drive toward a wall until the sensor reads a set distance, then correct that axis — **BEFORE THE PANEL, beside the MECH core** (your ruling, 2026-10-14; it helps autons, so before 2026-11-23 if it can) | Q2: ANSWERED 2026-10-08 — one sensor on each side (left, right), straight out | ~1 day (rough) |
+| 26 | **Drive to a game piece** (L4): turn toward the piece the camera sees, then drive until the claw or a sensor confirms — **BEFORE THE PANEL, after VIS1** (your ruling, 2026-10-14) | VIS1's objects | ~1 day (rough) |
 
 After the adapter, **S6** puts vision on the bench (robot sessions below). NEW 2026-09-28 — PROPOSED, planning with
 the team lead, not yet in the plan: the sensors a MECHANISM needs (a limit switch, rotation, or a distance or optical
@@ -245,7 +245,7 @@ sets the pace. The milestones along it:
 | **The driver program finished, Teleop retired, `main.cpp` final** | T4 Part 3 ✅ (2026-10-08; with Part 2b's items) — its robot check is #11 (Stations F and J on the new "shulib Drive") | — | now |
 | **Mechanisms (the core) in the library** | the MECH core (its brief: six runs A1–A6; CAL1 beside it, landing before A5) | ~19½–26¼ | ~6–8 |
 | **The Toggle auto-flipper (library, host-tested)** | VIS1 beside the core; AF1 after MECH-A4 | ~23–30 | ~7–9 |
-| **The panel: make a robot with its mechanisms, no C++** | + the auto-flipper, DOCS3 (the documentation redo), then G3a amended | ~40–55 | ~12–16½ |
+| **The panel: make a robot with its mechanisms, no C++** | + the auto-flipper, the wall reset (L6) and driving to a piece (L4), DOCS3 (the documentation redo), then G3a amended | ~42–57 | ~12½–17 |
 | **Everything** | + the rest of MECH (its three parts side by side where their files allow) and the panel's extension, then G3 → export → sensors → documentation → PKG1 → G4 | ~55½–81¾ | ~17–25 |
 
 These hold only if the decisions and robot sessions keep pace and the builders are not paused. The work grew on
