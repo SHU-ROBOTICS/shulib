@@ -352,6 +352,15 @@ not silently break them. This table is the spine of the no-staleness promise.
 > and an auton the registry refuses is dropped and named, never the boot. Seven builds. **Next: the mechanism
 > core (MECH) with the standard Calibrate (CAL1) beside it, then a documentation redo (DOCS3) before the panel.**
 >
+> **Now (2026-10-08, later): MECH-A1, the mechanism core's first part of six, has LANDED — host-only.** A robot
+> file declares each mechanism once (`Arm`, `Lift`, `Flywheel`, `Power`, `Pneumatic` — what it IS, never a port)
+> and wires it separately (`mechanisms(wire(arm, motors(1)), …)`); the build refuses, each by name, 69 kinds of
+> mistake in one mechanism's spec (52 of them a declaration can make; the rest only an entry built by hand), and the
+> wiring's, the route ids' and the words' own — 132 named reasons in all — and every mechanism's actions are route ids derived at build; the robot
+> builds every role (motors, lines, angle sensor, home switch, piece sensor) through its device provider, one
+> boot fact per role, and counts a sensor's screened reads. **Nothing runs a mechanism through it yet: next is
+> MECH-A2 (the service), with CAL1 beside the core.**
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver
@@ -1699,6 +1708,14 @@ is required, not optional, to hold < 1°.)*
   `[x]`, for two honest reasons: the seam is **deliberately unfrozen** until F3 — its second
   consumer — stresses it (register row F11), and **no mechanism hardware has ever moved** —
   the per-mechanism safe-state physics is HA-92, a registered guess.
+- [~] **The mechanism core (MECH, six runs A1–A6; the team lead's go 2026-10-08)** — **A1 LANDED 2026-10-08,
+  host-only**: the five declarations and their words (`mechanism/kinds.hpp`), one mechanism as data and its 63
+  build refusals (`spec.hpp`), the wiring checked at build (`wiring.hpp`), route ids derived at build
+  (`route_ids.hpp`), every role built at boot (`robot/mechanism_parts.hpp`, `mechanism/devices.hpp`), the
+  read-fault seam (`hal/read_faults.hpp`), the config's sensor roles and `valid()`'s claims of them, and a
+  compile-refusal harness in CI (every build refusal must fail to compile naming its reason). `[~]` until A6:
+  the service (A2), position and speed (A3), auton steps and driver controls (A4), robot two and the programs
+  (A5), the bench page (A6) are to come, and **no mechanism has moved through it** (HA-184, HA-186 new).
 - [ ] `setQuadrantToggle` (index N clicks on the 3-state Toggle + Optical color confirm) — *highest-value primitive*.
 - [ ] `orientToScoringHalf` (yellow-side-out: color-sense → pass-through vs flip) — *second highest-value*.
 - [ ] `intakeUntilCapture` (counter-roller, retry, sensor-confirm).

@@ -89,9 +89,20 @@ add_executable(shulib_tests test_main.cpp ${TEST_SOURCES})
 # from src/ through the root below, never compiled here.
 target_sources(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src/team/autons.cpp")
 
+# ── THE SUITE'S OWN FLAGS, as ONE INTERFACE target (chunk MECH-A1, 2026-10-08) ──────────────
+# Every include root, option and define below used to be PRIVATE to shulib_tests. The mechanism
+# core's compile-refusal harness (compile_refusals/, below) must compile its translation units
+# with EXACTLY the suite's flags — a refusal proven under different flags proves nothing about the
+# suite's — so the flags now live on `shulib_test_flags`, which both link: one definition, no copy
+# to drift. (The warning set is the directory's add_compile_options above, which every target here
+# already shares.) The suite's compile command is byte-identical to what it was (MECH-PROGRESS.md
+# records the before/after diff of one TU's command).
+add_library(shulib_test_flags INTERFACE)
+target_link_libraries(shulib_tests PRIVATE shulib_test_flags)
+
 # shulib headers (added as we build them); doctest as a system header.
-target_include_directories(shulib_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
+target_include_directories(shulib_test_flags INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+target_include_directories(shulib_test_flags SYSTEM INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
 
 # src/'s own include root (chunk SRC1, 2026-09-27) — the same one the PROS Makefile gives the
 # robot build (its EXTRA_INCDIR comment carries the whole reasoning). The tests that read a
@@ -100,7 +111,7 @@ target_include_directories(shulib_tests SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_D
 # -iquote (quoted includes only), not -I; the joined spelling keeps it ONE option, which CMake's
 # option de-duplication cannot split. tools/src_build_gate.py's step 0 [include-root] fails any
 # path two roots could both answer, so the search order never decides which file is meant.
-target_compile_options(shulib_tests PRIVATE "-iquote${CMAKE_CURRENT_SOURCE_DIR}/../src")
+target_compile_options(shulib_test_flags INTERFACE "-iquote${CMAKE_CURRENT_SOURCE_DIR}/../src")
 
 # ── The host PROS shim (chunk R1a) ──────────────────────────────────────────────────
 # hal/pros adapters #include <pros/*.hpp>. On the HOST they must resolve to
@@ -114,14 +125,14 @@ target_compile_options(shulib_tests PRIVATE "-iquote${CMAKE_CURRENT_SOURCE_DIR}/
 # (The shim tests the adapter against our BELIEF about PROS; it cannot test
 # the belief — hardware tests the belief. pros_shim/pros/shim_control.hpp
 # carries the full statement.)
-target_include_directories(shulib_tests BEFORE PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/pros_shim")
-target_compile_definitions(shulib_tests PRIVATE SHULIB_HOST_PROS_SHIM)
+target_include_directories(shulib_test_flags BEFORE INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/pros_shim")
+target_compile_definitions(shulib_test_flags INTERFACE SHULIB_HOST_PROS_SHIM)
 
 # The API-reference fidelity test reads the COMMITTED docs/api/ markdown and
 # compares its rendered signatures against the headers, so it needs to know
 # where the source tree is. (It fails loudly if it cannot open the files —
 # a fidelity test that skips is decoration.)
-target_compile_definitions(shulib_tests PRIVATE
+target_compile_definitions(shulib_test_flags INTERFACE
   SHULIB_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 # ── The documentation gates (chunk D3) ──────────────────────────────────────────────
@@ -303,3 +314,13 @@ add_custom_target(shulib_doc_gates DEPENDS "${SHULIB_DOC_STAMP}")
 add_dependencies(shulib_tests shulib_doc_gates)
 
 add_test(NAME shulib_tests COMMAND shulib_tests)
+
+# ── THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0) ──────────
+# The mechanism core refuses a robot file's mistakes AT BUILD, each by name (a consteval check calls
+# a function whose NAME is the reason). A refusal no test can see is one a mutation can delete, so
+# every refusal a robot file can reach has a translation unit in compile_refusals/ that must FAIL
+# to compile, naming its reason (all but the two unreachable "used twice" fallbacks in
+# mechanism/wiring.hpp — test/README.md says which); each is a CTest (`ctest -R compile_refusal`), run by CI beside the suite. The TUs are NOT
+# part of shulib_tests (they are EXCLUDE_FROM_ALL object targets): compile_refusals/CMakeLists.txt
+# and run_refusal.py say how a TU is judged.
+add_subdirectory(compile_refusals)

@@ -272,10 +272,12 @@ station; the OLD shulib Drive used it until T4 Part 3),
 `slew_limiter.hpp`, `drive_modes.hpp`, `field_centric.hpp`, `driver_control.hpp`, and (G1 Part 2a)
 `teleop_loop.hpp` — `runDriverControl`, the loop over them (**called by robot two's driver file —
 which "shulib Drive" and the competition program run, since T4 Part 3; "shulib Teleop" called it from
-G1 Part 2b until then — and by the invented X-drive since Part 2c; none has run with it**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data; **nothing
-constructs a mechanism from it yet**), `config/route.hpp` (**F8 frozen**; `Waypoint::reverse` exists),
-`hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, clock, battery, telemetry,
-pacer — **no distance, vision or digital-out yet**), `robot/robot.hpp` (`robot::validate` +
+G1 Part 2b until then — and by the invented X-drive since Part 2c; none has run with it**). Data layer: `config/robot_config.hpp` (`MechanismConfig` exists as data, and since T3
+`robot::Robot` builds each one — since MECH-A1, 2026-10-08, through `robot::MechanismParts`, with its sensor roles), `config/route.hpp` (**F8 frozen**; `Waypoint::reverse` exists),
+`hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, digitalOut (T3), and since MECH-A1
+distance, optical, digitalIn and the read-fault pair; clock, battery, telemetry, pacer — **no vision yet**); the
+mechanism core's vocabulary `mechanism/{kinds,spec,wiring,route_ids,devices}.hpp` (MECH-A1, host-only, nothing runs
+through it yet), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 
@@ -485,7 +487,8 @@ brief names it as a future consumer of the builder's dead-port tolerance).
   one-axis re-seat is an additive member (on the facade it is an F6 additive → a minor bump). (2)
   **Nothing detects a drive stall on these robots** (the odometry stall check has no independent
   source), so the stop is the distance reading, with motor current/velocity as a secondary stop the
-  chunk must build. (3) `IDeviceProvider` has no `distance()` member (the adapter exists).
+  chunk must build. (3) `IDeviceProvider` had no `distance()` member when this was written; since
+  MECH-A1 (2026-10-08) it has one (a mechanism's piece sensor), which this chunk can ask for its own port.
 - Why: with drive-encoder odometry the estimate drifts with every skid; this is the cheapest,
   field-independent correction a tank auton has.
 - Done: host-tested on the plant with a synthetic distance channel derived from truth; a routine step

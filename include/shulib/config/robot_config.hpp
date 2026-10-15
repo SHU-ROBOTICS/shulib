@@ -431,15 +431,14 @@ enum class PneumaticLevel : std::uint8_t {
 ///
 /// Two mechanisms that must move independently are TWO entries, never one entry with two motors:
 /// a `MotorMechanism` fans ONE voltage to all its motors, so two claws in one entry would move
-/// together on every button. The same holds for lines: a `PneumaticMechanism` fans ONE level to
-/// every line, so its two lines are two valves fired together — NOT the two coils of a
-/// double-coil solenoid, which need opposite levels and are not built by this library. How one
-/// WOULD be, once a robot is known to have one (said here, deliberately not built — T3's addendum
-/// B2): its two lines stay ONE mechanism (one name, one toggle button), and each line gains a
-/// stated polarity; for an inverted line the builder asks the provider at the OPPOSITE start level
-/// and hands the mechanism a one-line `hal::IDigitalOut` adapter that writes (and reports) the
-/// opposite of what it is told — so `PneumaticMechanism` still fans one level, each coil gets its
-/// own, and nothing else changes: not the toggle, not the guard's span.
+/// together on every button. The same holds for lines in the one-level form: a `PneumaticMechanism`
+/// built from `pneumaticSafe` / `pneumaticStart` fans ONE level to every line, so its two lines are
+/// two valves fired together. A mechanism whose positions need DIFFERENT levels on its lines — a
+/// three-position pair, or the two coils of a double-coil solenoid, opposite in each position —
+/// states them per line (`pneumaticSafeByLine` / `pneumaticStartByLine`, appended by the mechanism
+/// core, MECH-A1, 2026-10-08) and is built as `hal::PneumaticMechanism`'s per-line form, whose safe
+/// state drives each line to its own level. (T3's addendum B2 had sketched an inverted-line adapter
+/// for the double coil instead; it was never built — the per-line form replaced it.)
 struct MechanismConfig {
     /// The mechanism's name — the key `robot::Robot::mechanism()` looks it up by, and the key a
     /// command-id registry will bind against. Non-empty, NUL-terminated inside these 24 bytes, and
@@ -480,6 +479,38 @@ struct MechanismConfig {
     /// this is the one level the builder itself puts on the robot. The byte 0 is UNSET, refused by
     /// `RobotConfig::valid()` whenever `pneumaticCount > 0`. Not read when `pneumaticCount == 0`.
     PneumaticLevel pneumaticStart = static_cast<PneumaticLevel>(0);
+
+    // ── APPENDED by the mechanism core (MECH-A1, 2026-10-08): the SENSOR roles, and per-line levels.
+    // Every field below is 0 by default, which is the form every config before MECH-A1 had: a
+    // mechanism with no sensors whose lines all share one start and one safe level. The mechanism
+    // core fills them from a robot file's declarations and wiring (mechanism::toMechanismConfig);
+    // robot::MechanismParts builds each one; valid() claims each port and line like any device.
+
+    /// A ROTATION sensor role — a position or speed mechanism's angle sensor: its smart port,
+    /// 1..21; 0 = none. Claimed by valid() (PortUse::MechanismSensor). A refused one makes the
+    /// mechanism ABSENT at boot: its angle is how it knows where it is.
+    std::uint8_t rotationPort = 0;
+    /// A DISTANCE sensor used as the mechanism's PIECE sensor: its smart port, 1..21; 0 = none.
+    /// Claimed by valid(). A refused one leaves the mechanism running WITHOUT a piece sensor.
+    std::uint8_t distancePort = 0;
+    /// An OPTICAL sensor used as the mechanism's PIECE sensor: its smart port, 1..21; 0 = none.
+    /// Never stated beside `distancePort` or a piece switch (`switchLines[1]`): a piece sensor is
+    /// one device — valid() refuses two.
+    std::uint8_t opticalPort = 0;
+    /// LIMIT-SWITCH roles on the brain's 3-wire lines, 1..8 = A..H; 0 = none: [0] the HOME switch,
+    /// [1] a switch used as the PIECE sensor — never stated beside `distancePort` or `opticalPort`
+    /// (one piece sensor: valid() refuses it). One owner per line: valid() refuses a switch on a line
+    /// a pneumatic (or another switch) already claims.
+    std::uint8_t switchLines[2]{};
+    /// PER-LINE SAFE levels, for a mechanism whose positions need DIFFERENT levels on its lines (a
+    /// three-position pair — the team states each position's levels, Q13 (a)). All UNSET (0) = every
+    /// line takes `pneumaticSafe` (the form above); otherwise EVERY line below `pneumaticCount` is
+    /// stated and none past it — valid() refuses a half-stated set. robot::MechanismParts then builds
+    /// the hal::PneumaticMechanism's per-line form.
+    PneumaticLevel pneumaticSafeByLine[kMaxPneumaticsPerMechanism]{};
+    /// PER-LINE START levels — each line made (and so DRIVEN, HA-119) at its own level. Stated
+    /// exactly when `pneumaticSafeByLine` is (valid()); all UNSET = every line at `pneumaticStart`.
+    PneumaticLevel pneumaticStartByLine[kMaxPneumaticsPerMechanism]{};
 };
 
 /// The motion layer's gains, budgets and fault policy for this robot — `chassis::ChassisConfig`
@@ -500,6 +531,7 @@ enum class PortUse : std::uint8_t {
     PodLateral,    ///< the lateral tracking wheel's rotation sensor
     Gps,           ///< the GPS
     Mechanism,     ///< a mechanism motor
+    MechanismSensor,  ///< a mechanism's rotation, distance or optical sensor (MECH-A1, appended)
 };
 
 /// A port claim as words, for the collision message — "port 7 is claimed by the LEFT drive and by
@@ -515,6 +547,7 @@ enum class PortUse : std::uint8_t {
         case PortUse::PodLateral: return "the lateral tracking wheel";
         case PortUse::Gps: return "the GPS";
         case PortUse::Mechanism: return "a mechanism motor";
+        case PortUse::MechanismSensor: return "a mechanism sensor";
     }
     return "something unnamed";
 }
@@ -565,6 +598,14 @@ struct RobotConfig {
     /// cartridge byte, an UNSET or unknown safe brake mode byte; for every mechanism with lines
     /// (addendum B2), an UNSET or unknown safe level byte, an UNSET or unknown start level byte;
     /// and, for all mechanisms, two with the same name.
+    /// SINCE THE MECHANISM CORE (MECH-A1, 2026-10-08) the first pass also claims every mechanism
+    /// SENSOR role: a rotation, distance or optical port outside 1..21, or claimed by anything else
+    /// (so a calibration record that drives a mechanism sensor's port is refused naming both — "port 9
+    /// is claimed by the LEFT drive and by a mechanism sensor"); two piece sensors on one mechanism
+    /// (any two of a distance, an optical and a limit switch — a piece sensor is one device); a
+    /// limit-switch line outside 1..8, or on a line a pneumatic or another switch already claims. The
+    /// second pass refuses a half-stated per-line level set (some lines stated, or a level past the
+    /// mechanism's lines, or per-line levels on a mechanism with none).
     ///
     /// WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than
     /// a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is
@@ -862,6 +903,80 @@ struct RobotConfig {
                 }
                 lineOwner[line] = static_cast<std::uint8_t>(m + 1);
             }
+            // MECH-A1: the SENSOR roles claim their smart ports like any device, and their 3-wire
+            // lines like a pneumatic's — after this mechanism's own motors and lines, so every
+            // older collision keeps the message it always had.
+            for (const std::uint8_t port : {mech.rotationPort, mech.distancePort, mech.opticalPort}) {
+                if (port == 0) {
+                    continue;
+                }
+                if (port > static_cast<std::uint8_t>(hal::kMaxSmartPorts)) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanism '%s' sensor port %d is not a port in 1..21",
+                                      mech.name, static_cast<int>(port));
+                    }
+                    return false;
+                }
+                if (!claim(static_cast<int>(port), PortUse::MechanismSensor)) {
+                    return false;
+                }
+            }
+            if (mech.distancePort != 0 && mech.opticalPort != 0) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap,
+                                  "mechanism '%s' has a distance AND an optical piece sensor -- a "
+                                  "piece sensor is one device",
+                                  mech.name);
+                }
+                return false;
+            }
+            // MECH-A1's review: a limit-switch piece sensor beside a distance or optical one was
+            // accepted (its line claimed), and robot::MechanismParts then built only the smart one —
+            // the switch silently missing. One piece sensor, whichever device it is.
+            if (mech.switchLines[1] != 0 && (mech.distancePort != 0 || mech.opticalPort != 0)) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap,
+                                  "mechanism '%s' has %s AND a limit-switch piece sensor -- a piece "
+                                  "sensor is one device",
+                                  mech.name, mech.distancePort != 0 ? "a distance" : "an optical");
+                }
+                return false;
+            }
+            for (const std::uint8_t line : mech.switchLines) {
+                if (line == 0) {
+                    continue;
+                }
+                if (line > 8) {
+                    if (why != nullptr && cap > 0) {
+                        std::snprintf(why, cap,
+                                      "mechanism '%s' limit switch line %d is not an ADI line in "
+                                      "1..8",
+                                      mech.name, static_cast<int>(line));
+                    }
+                    return false;
+                }
+                const std::uint8_t earlier = lineOwner[line];
+                if (earlier != 0) {
+                    if (why != nullptr && cap > 0) {
+                        const char letter = static_cast<char>('A' + line - 1);
+                        if (earlier - 1U == m) {
+                            std::snprintf(why, cap,
+                                          "mechanism '%s' lists 3-wire port %c (line %d) twice (a "
+                                          "limit switch)",
+                                          mech.name, letter, static_cast<int>(line));
+                        } else {
+                            std::snprintf(why, cap,
+                                          "3-wire port %c (line %d) is claimed by mechanism '%s' "
+                                          "and by mechanism '%s' (a limit switch)",
+                                          letter, static_cast<int>(line),
+                                          mechanisms[earlier - 1U].name, mech.name);
+                        }
+                    }
+                    return false;
+                }
+                lineOwner[line] = static_cast<std::uint8_t>(m + 1);
+            }
         }
         // ── the mechanisms, second pass (chunk T3): what a BUILT mechanism needs ─────────
         // AFTER every port above is claimed, on purpose: a config with a collision AND an unset
@@ -932,6 +1047,11 @@ struct RobotConfig {
                     return false;
                 }
             }
+            // MECH-A1: per-line levels are all-or-nothing (the field's note): a half-stated set
+            // would build a line at an UNSET level, which toLineValue() would read as Low.
+            if (!perLineLevelsValid(mech, why, cap)) {
+                return false;
+            }
             for (std::size_t earlier = 0; earlier < m; ++earlier) {
                 if (sameName(mechanisms[earlier].name, mech.name)) {
                     if (why != nullptr && cap > 0) {
@@ -942,6 +1062,42 @@ struct RobotConfig {
                     }
                     return false;
                 }
+            }
+        }
+        return true;
+    }
+
+    /// MECH-A1: whether `mech`'s PER-LINE levels are all-or-nothing (MechanismConfig's note), writing
+    /// the refusal when they are not: none stated is valid (the one-level form); otherwise every line
+    /// below `pneumaticCount` states a Low or High safe AND start level, no line past it states one,
+    /// and the mechanism has lines at all.
+    [[nodiscard]] static bool perLineLevelsValid(const MechanismConfig& mech, char* why,
+                                                 std::size_t cap) noexcept {
+        bool any = false;
+        for (std::size_t l = 0; l < kMaxPneumaticsPerMechanism; ++l) {
+            any = any || mech.pneumaticSafeByLine[l] != static_cast<PneumaticLevel>(0)
+                  || mech.pneumaticStartByLine[l] != static_cast<PneumaticLevel>(0);
+        }
+        if (!any) {
+            return true;
+        }
+        for (std::size_t l = 0; l < kMaxPneumaticsPerMechanism; ++l) {
+            const bool line = l < mech.pneumaticCount;
+            const bool stated = isPneumaticLevel(mech.pneumaticSafeByLine[l])
+                                && isPneumaticLevel(mech.pneumaticStartByLine[l]);
+            const bool blank = mech.pneumaticSafeByLine[l] == static_cast<PneumaticLevel>(0)
+                               && mech.pneumaticStartByLine[l] == static_cast<PneumaticLevel>(0);
+            if (line ? !stated : !blank) {
+                if (why != nullptr && cap > 0) {
+                    std::snprintf(why, cap,
+                                  "mechanism '%s' per-line levels: line %d %s -- state a Low or "
+                                  "High safe and start level for every one of its %d lines, or "
+                                  "for none",
+                                  mech.name, static_cast<int>(l) + 1,
+                                  line ? "is not stated" : "is past its lines",
+                                  static_cast<int>(mech.pneumaticCount));
+                }
+                return false;
             }
         }
         return true;

@@ -58,6 +58,17 @@
 // host stand-in for a provider that will not make a line — which the on-robot provider can only do
 // for a line outside 1..8, because nothing on a brain can see an empty 3-wire port (HA-158).
 //
+// ── The mechanism sensors and their read-fault counts (chunk MECH-A1, 2026-10-08) ──
+// distance(port) / optical(port) serve this provider's own FakeDistance / FakeOptical, refused on a
+// refusePort()'d port like every port device; digitalIn(line) serves its own FakeDigitalIn, refused
+// on a refuseLine()'d line or outside 1..8 — and one line is one direction, as on the brain: an
+// input asked for on a line made as an output, or the reverse, is a precondition. readFaults(port)
+// and lineReadFaults(line) answer this provider's own hal::fake::FakeReadFaults for that port or
+// line — but ONLY where distance()/optical() or digitalIn() SERVED a sensor, nullptr elsewhere,
+// exactly the on-robot provider's contract: a builder that read a count for a sensor it never got
+// would pass here and fail on the brain, so the fake does not let it pass. fakeReadFaults(port) /
+// fakeLineReadFaults(line) hand a test those counters, to set one `failing`.
+//
 // ── SIM-FREE, on purpose ────────────────────────────────────────────────────────────
 // Nothing in this file includes shulib/sim/, and the CI layering guard enforces that. The
 // PLANT attachment is done BY THE TEST, which may include sim/ and does; this header only
@@ -74,10 +85,14 @@
 #include "shulib/core/check.hpp"
 #include "shulib/hal/device_provider.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
+#include "shulib/hal/fake/fake_digital_in.hpp"
 #include "shulib/hal/fake/fake_digital_out.hpp"
+#include "shulib/hal/fake/fake_distance.hpp"
 #include "shulib/hal/fake/fake_gps.hpp"
 #include "shulib/hal/fake/fake_imu.hpp"
 #include "shulib/hal/fake/fake_motor.hpp"
+#include "shulib/hal/fake/fake_optical.hpp"
+#include "shulib/hal/fake/fake_read_faults.hpp"
 #include "shulib/hal/fake/fake_rotation.hpp"
 #include "shulib/units/quantity.hpp"
 
@@ -155,6 +170,24 @@ public:
     [[nodiscard]] FakeDigitalOut& fakeDigitalOut(std::uint8_t line) {
         return lines_[checkedLine(line)];
     }
+    /// This provider's own FakeDistance for `port` — what `distance()` hands out (MECH-A1).
+    [[nodiscard]] FakeDistance& fakeDistance(std::uint8_t port) {
+        return distances_[checkedIndex(port)];
+    }
+    /// This provider's own FakeOptical for `port` — what `optical()` hands out (MECH-A1).
+    [[nodiscard]] FakeOptical& fakeOptical(std::uint8_t port) { return opticals_[checkedIndex(port)]; }
+    /// This provider's own FakeDigitalIn for 3-wire `line` (1..8) — what `digitalIn()` hands out.
+    [[nodiscard]] FakeDigitalIn& fakeDigitalIn(std::uint8_t line) { return inputs_[checkedLine(line)]; }
+    /// This provider's own read-fault counter for smart `port` — what `readFaults(port)` answers
+    /// once a distance or optical sensor was served there. A test sets it `failing` (MECH-A1).
+    [[nodiscard]] FakeReadFaults& fakeReadFaults(std::uint8_t port) {
+        return readFaults_[checkedIndex(port)];
+    }
+    /// This provider's own read-fault counter for 3-wire `line` — what `lineReadFaults(line)`
+    /// answers once a digital input was served there.
+    [[nodiscard]] FakeReadFaults& fakeLineReadFaults(std::uint8_t line) {
+        return lineReadFaults_[checkedLine(line)];
+    }
 
     // ── the refusal switch ─────────────────────────────────────────────────────────────
 
@@ -215,6 +248,8 @@ public:
     [[nodiscard]] int digitalOutRequestCount(std::uint8_t line) const {
         return lineRequests_[checkedLine(line)];
     }
+    /// Whether a digital INPUT was served on 3-wire `line` (MECH-A1). Asking for one never drives it.
+    [[nodiscard]] bool digitalInMade(std::uint8_t line) const { return inputMade_[checkedLine(line)]; }
     /// Whether 3-wire `line` has been MADE (served once, and so driven once).
     [[nodiscard]] bool digitalOutMade(std::uint8_t line) const { return lineMade_[checkedLine(line)]; }
     /// The level 3-wire `line` was MADE at — the `initialState` of the request that made it. Read
@@ -297,6 +332,9 @@ public:
                           static_cast<char>('A' + l - 1), l);
             return nullptr;
         }
+        SHULIB_PRECONDITION(!inputMade_[i],
+                            "FakeDeviceProvider: a 3-wire line made as an INPUT was asked for as an "
+                            "output -- one line, one direction");
         IDigitalOut* out =
             boundLine_[i] != nullptr ? boundLine_[i] : static_cast<IDigitalOut*>(&lines_[i]);
         if (lineMade_[i]) {
@@ -309,6 +347,75 @@ public:
         lineMade_[i] = true;
         lineInitial_[i] = initialState;
         return out;
+    }
+
+    /// MECH-A1: the distance sensor on `port` — this provider's own fake; nullptr + a refusal on an
+    /// out-of-range or refused port. Idempotent (fixed storage).
+    [[nodiscard]] IDistance* distance(std::uint8_t port) override {
+        const int p = static_cast<int>(port);
+        if (!servable(p, "distance sensor")) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        distanceMade_[i] = true;
+        return &distances_[i];
+    }
+
+    /// MECH-A1: the optical sensor on `port` — this provider's own fake; nullptr + a refusal on an
+    /// out-of-range or refused port. Idempotent.
+    [[nodiscard]] IOptical* optical(std::uint8_t port) override {
+        const int p = static_cast<int>(port);
+        if (!servable(p, "optical sensor")) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        opticalMade_[i] = true;
+        return &opticals_[i];
+    }
+
+    /// MECH-A1: the digital input on 3-wire `line` — this provider's own fake; nullptr + a refusal
+    /// for a line outside 1..8 or a refused line. Drives nothing. PRECONDITION: the line was not
+    /// made as an output (one line, one direction). Idempotent.
+    [[nodiscard]] IDigitalIn* digitalIn(std::uint8_t line) override {
+        const int l = static_cast<int>(line);
+        if (l < 1 || l > static_cast<int>(kBrainAdiLines)) {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "3-wire port %d is not a brain 3-wire port (1..8 are A..H)", l);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(l);
+        if (lineRefused_[i]) {
+            std::snprintf(refusal_, sizeof refusal_, "3-wire port %c (line %d) has no digital in",
+                          static_cast<char>('A' + l - 1), l);
+            return nullptr;
+        }
+        SHULIB_PRECONDITION(!lineMade_[i],
+                            "FakeDeviceProvider: a 3-wire line made as an OUTPUT was asked for as an "
+                            "input -- one line, one direction");
+        inputMade_[i] = true;
+        return &inputs_[i];
+    }
+
+    /// MECH-A1: this provider's own read-fault counter for smart `port` — only where a distance or
+    /// optical sensor was SERVED (header: the on-robot contract); nullptr otherwise. Never makes.
+    [[nodiscard]] const IReadFaults* readFaults(std::uint8_t port) const noexcept override {
+        const int p = static_cast<int>(port);
+        if (p < 1 || p > static_cast<int>(kMaxSmartPorts)) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        return (distanceMade_[i] || opticalMade_[i]) ? &readFaults_[i] : nullptr;
+    }
+
+    /// MECH-A1: this provider's own read-fault counter for 3-wire `line` — only where a digital
+    /// input was SERVED; nullptr otherwise. Never makes.
+    [[nodiscard]] const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept override {
+        const int l = static_cast<int>(line);
+        if (l < 1 || l > static_cast<int>(kBrainAdiLines)) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(l);
+        return inputMade_[i] ? &lineReadFaults_[i] : nullptr;
     }
 
     /// The borrowed clock.
@@ -365,6 +472,11 @@ private:
     FakeImu imus_[kSlots]{};
     FakeGps gpss_[kSlots]{};
     FakeRotation rotations_[kSlots]{};
+    FakeDistance distances_[kSlots]{};  // MECH-A1: piece sensors and their counts
+    FakeOptical opticals_[kSlots]{};
+    FakeReadFaults readFaults_[kSlots]{};
+    bool distanceMade_[kSlots]{};
+    bool opticalMade_[kSlots]{};
 
     IMotor* boundMotor_[kSlots]{};
     IImu* boundImu_[kSlots]{};
@@ -385,6 +497,9 @@ private:
     int lineRequests_[kLineSlots]{};
     bool lineMade_[kLineSlots]{};
     bool lineInitial_[kLineSlots]{};
+    FakeDigitalIn inputs_[kLineSlots]{};  // MECH-A1: limit switches and their counts
+    FakeReadFaults lineReadFaults_[kLineSlots]{};
+    bool inputMade_[kLineSlots]{};
 
     char refusal_[96]{};
 };

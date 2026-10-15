@@ -137,7 +137,8 @@ found fully formed in its own predecessor.)
 
 **Level 1 — the devices** ([`hal/mechanism.hpp`](../../include/shulib/hal/mechanism.hpp)):
 `MotorMechanism` is a group of motors on one shaft, commanded as one; `PneumaticMechanism`
-is one air circuit behind one or more digital lines. Both are built from the same hardware
+is one air circuit behind one or more digital lines (commanded as one level, or — since the
+mechanism core — one level per line, for named positions that differ across its lines). Both are built from the same hardware
 interfaces the rest of the library uses, so they run identically on fakes (tests), the
 simulator, and — through the `hal/pros/` adapters — the robot. The one decision you MUST make
 at construction is the **declared safe state**, and it is per-mechanism because no single

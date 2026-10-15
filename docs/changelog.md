@@ -16,6 +16,101 @@
 
 ## API 2.4
 
+### Added since 2.4 (2026-10-08, later; its review round 2026-10-15) — the mechanism core, part 1: any mechanism declared once and wired separately, checked at build; its route ids; every role built at boot
+
+> Written when it was built (chunk MECH-A1, the first of the mechanism core's six parts). **No
+> version bump — every change is ADDITIVE:** eight new headers; appended fields, an appended enum
+> value and new members on surfaces the [Freeze Register](roadmap.md#freeze-register) does not freeze
+> (`config::RobotConfig`, `robot::Robot` and `hal::IDeviceProvider` are in no row of it; the mechanism
+> seam is row F11's, still NOT FROZEN); the F4 sensor seams untouched (the read-fault count is a
+> SIBLING interface, as `IDigitalIn` was). Every config that was valid stays valid and builds the same robot: the new
+> config fields are all 0 by default, which is the form every config had. **This part is the
+> vocabulary, the build checks and the devices — nothing RUNS a mechanism through it yet** (the
+> service, the auton steps and the driver controls are the core's next parts, and robot two's table
+> moves to these words in a later one). **Host only — nothing here has run on a robot.**
+
+**ADDED:**
+
+- **The five declarations** (`mechanism/kinds.hpp`) — `Arm` (an angle in degrees, held), `Lift` (a
+  height in inches — a `spool`, a `linkage` or a `measured` table), `Flywheel` (an output rpm, "at
+  speed"), `Power` (run at a voltage) and `Pneumatic` (two or three named positions, each the line
+  levels the team states). A declaration says what a mechanism IS — never a port — and is the HANDLE an
+  auton names (`arm["score"]`, `arm.to(120)`, `lift.to(18_in)`, `flywheel["shoot"]`, `claw["closed"]`).
+  The words come from one `using namespace shulib::mechanism::words;`: `gears(12, 60)` / `direct` (the
+  gearing as TOOTH COUNTS, motor's gear first — a bare number does not compile), `Forward` /
+  `Reversed`, `rotationSensor()`, `distanceSensor(2_in)`, `opticalSensor(0.5)`, `limitSwitch()`,
+  `cosine(...)` / `constantGravity(...)` / `noGravity`, `restsAtStop` / `homeBySwitch` / `homeByStall`
+  / `absoluteSensor` / `neverHomed`, `within(...)`, `High` / `Low`, `grabs` / `releases`, `Red` /
+  `Green` / `Blue`, and one `Hold` / `Brake` / `Coast` that reads as either a mechanism's safe state or
+  a drive brake mode. Each declaration records the file and line it was written on.
+- **One mechanism as data, and THE build check** (`mechanism/spec.hpp`) — `MechanismSpec` and
+  `specRefusal()`: 69 reasons, one property each, each with a sentence (`refusalText`) and a function
+  named for it in `mechanism::refused`, which is what the compiler prints. Among them: a jam signature
+  (`.stall`) is REQUIRED on an `Arm`, a `Lift` and a `Flywheel`, and every signature written must be
+  able to trip — amps above 0 and below the motor's 2.5 A current limit, `belowMotorRpm` above 0,
+  `lasting` above 0; a homing push must point at its home end; a lift needs its `.shape`; a homing
+  push and a gravity hold within the motor's 12 V either way, `.unhomedVolts` from 0 to 12; a negative
+  settle time, at-speed lasting or `.confirmWithin` each its own reason; a range check refuses a value
+  that is not a number.
+- **The wiring** (`mechanism/wiring.hpp`) — `mechanisms(wire(arm, motors(1)), wire(claw, lines('A')),
+  ...)`: a `MechanismTable`, checked at build — every port in range and of the right kind (a NUMBER for
+  a smart port, a LETTER for a 3-wire one), at most four motors and two lines, each sensor role written
+  once, a port or a line used twice refused BY NAME (`smart_port_4_is_used_twice`), the declaration's
+  own check, every pneumatic position stating one level per wired line; `entryProblem()` (the
+  per-mechanism wiring rules as data — `mechanisms()` holds every entry to them, one built by hand
+  included); `wiringProblem()` (the same rules at run time, plus a drive's ports and the IMU's);
+  `toMechanismConfig()` (THE projection to `config::MechanismConfig` — a Reversed motor role is a
+  negative port); `declaredMotorPorts()`; `roleLine()` (one boot line per role).
+- **Route ids** (`mechanism/route_ids.hpp`) — every mechanism's actions as the ids a route marker
+  names, DERIVED from the list, never typed: an arm's or a lift's `<name>_<preset>` and
+  `<name>_home`; a flywheel's `<name>_<preset>` and `<name>_stop`; a power mechanism's `<name>_run`,
+  `<name>_until_piece`, `<name>_until_gone` (with a piece sensor) and `<name>_stop`; a pneumatic's
+  `<name>_<position>`. An id past 23 characters, two alike, a built-in, or more than 32 fail the build
+  at the list. (Running one is a later part.)
+- **The devices** — `hal::IReadFaults` (`hal/read_faults.hpp`): how many reads a sensor adapter has
+  screened; `ProsDistance`, `ProsOptical` and `ProsDigitalIn` implement it. `robot::MechanismParts`
+  (`robot/mechanism_parts.hpp`): every role of every mechanism built over a device provider — the
+  actuators, then an angle sensor (refused: the mechanism is ABSENT), a home switch, a piece sensor
+  (refused: it runs WITHOUT one) — with one `mechanism::RoleFact` per role and one `mechanism::Devices`
+  per mechanism (`mechanism/devices.hpp`, the read-fault counts included). `robot::Robot` owns one and
+  hands it out (`mechanismParts()`); its other mechanism accessors are unchanged.
+- **`hal::MotorMechanism::meanPosition()`**, and a PER-LINE form of `hal::PneumaticMechanism` (one
+  declared safe level per line, `setLevels()`, `commandedLevel(i)`, `perLine()`, `safeLevel(i)`) — a
+  three-position mechanism on two lines has a safe POSITION its `applySafeState()` applies. The
+  single-level form is unchanged.
+- **`config::MechanismConfig`** appends the sensor roles (`rotationPort`, `distancePort`,
+  `opticalPort`, `switchLines[2]`) and per-line levels (`pneumaticSafeByLine`, `pneumaticStartByLine`);
+  `config::PortUse::MechanismSensor` is appended.
+
+**CHANGED (for an implementer, or a config that uses the new fields only):**
+
+- **`hal::IDeviceProvider` has five new pure virtuals** — `distance(port)`, `optical(port)` (a piece
+  sensor; refused on a port holding anything else), `digitalIn(line)` (a limit switch; refused only
+  outside 1..8 — one 3-wire line is ONE direction: an input on a line made as an output, or the
+  reverse, is a precondition), and the read-fault pair `readFaults(port)` / `lineReadFaults(line)`.
+  Code that only CALLS a provider is unaffected; a class that IMPLEMENTS one must add them (the two in
+  the library have). **Migration:** answer each — make the sensor or refuse it naming the port, and
+  return the count of what you made (nullptr where you made nothing, or your sensors never screen a
+  read).
+- **`config::RobotConfig::valid()`** also claims each mechanism's sensor ports (a calibration record
+  that drives one is refused naming both: "port 9 is claimed by the LEFT drive and by a mechanism
+  sensor") and its limit-switch lines (against the pneumatic lines), and refuses two piece sensors on
+  one mechanism (a distance, an optical or a limit switch: a piece sensor is one device) and a
+  half-stated per-line level set. A config without the new fields is unaffected. **What you must do:**
+  nothing.
+
+**TESTED:** every refusal at run time, one property per case (both sides of every two-sided rule),
+the check order pinned; every refusal a robot file can reach AT BUILD by a translation unit that must
+fail to compile naming its reason (all but two "used twice" fallbacks no list can reach) — every place
+that calls one a robot file can reach, and where two layers could both
+refuse, the line GCC must cite (`test/compile_refusals/`, `ctest -R compile_refusal`, run by CI, which also fails when the
+harness finds no tests or fewer than its translation units); the wiring mirror both ways (every
+hand-built entry the build refuses, the run-time check refuses); robot two's claws written in the
+new words project to EXACTLY the config today's boot builds, field by field. Two beliefs about the
+hardware are new in the [register](hardware-assumptions.md): HA-184 (a limit switch reads 1 when
+pressed; an unplugged line reads released) and HA-186 (a rotation sensor starts at its shaft's
+absolute angle).
+
 ### Added and changed since 2.4 (2026-10-08) — an SD copy of a program's log; the frozen-reading rule's encoder check; one refused auton entry dropped, not the boot; a slow loop said once per episode
 
 > Written when it was built (chunk T4 Part 3, the library pieces of both its steps, and its review's

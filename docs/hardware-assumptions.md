@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 172 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 174 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -135,9 +135,16 @@
 > **The coordinator added ONE on 2026-10-08 — HA-189** — T4 Part 3's hand-over left one belief unnumbered (do two
 > tasks' writes to stdout stay whole?); reading the vendored C library answers it the wrong way: reasoned FALSE. With
 > it, 172.
+> **MECH-A1 (the mechanism core's first part; built 2026-10-08, landed 2026-10-15) added TWO — HA-184, UNKNOWN, and HA-186,
+> reasoned** — the two beliefs about the sensors the core's declarations name: that a limit switch reads
+> 1 when pressed and an unplugged switch line reads released (the core's `pressedLevel = true`), and that
+> a rotation sensor's cumulative position starts at the shaft's absolute angle (`absoluteSensor()`
+> homing). In this part the core only DECLARES those roles and builds their devices; nothing reads a
+> switch or homes a mechanism yet (the core's service, its next parts). With them, 174.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
-> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182..HA-186**
-> (the mechanism core: its brief, accepted 2026-10-08), held the same way. The
+> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182, HA-183
+> and HA-185** (the mechanism core's later parts: its brief, accepted 2026-10-08; HA-184 and HA-186
+> landed with its first part, above), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -340,6 +347,8 @@
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
+| HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
+| HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
 | HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over |
 
 ---
@@ -1092,6 +1101,66 @@ robot — the steps say what can be done with a sensor on a loose cable at the t
   which was confirmed only at boot, never for a card pulled mid-run. If a pulled card still read 1, the
   save's report would fall back on its two other checks (nothing on the card could be opened, or a file
   did not read back the same way twice) and say SAVE UNCONFIRMED, so no false claim rests on it.
+
+
+### MECH-A1's additions — the mechanism core's beliefs about the sensors it names (2026-10-08)
+
+The mechanism core's robot file declares a mechanism's sensor ROLES — a limit switch (a home switch or
+a piece sensor) and a rotation sensor (an angle sensor, possibly homed by its absolute reading) — and
+its first part builds their devices. Two beliefs about what those sensors READ are new; both sit
+beside R1b's (HA-121, HA-11), and neither is settled by any host test. In this part nothing reads a
+switch or homes a mechanism: the service that will (the core's later parts) is where each belief
+starts to matter, and Bench Tests' station 13 (the core's last part) is where each is settled.
+
+- [ ] **HA-184 — a VEX limit switch reads 1 (TRUE) when PRESSED, and an UNPLUGGED switch line reads
+  RELEASED.**
+  *Claim:* `ProsDigitalIn::state()` (the vendored `pros::adi::DigitalIn::get_value()`, a level —
+  HA-121) returns 1 while a VEX limit switch or bumper is pressed and 0 while it is released, so the
+  core's `pressedLevel = true` (every switch role's, today) is right; and a 3-wire line with NOTHING
+  plugged in reads 0 — released — never pressed.
+  *Source:* `include/shulib/mechanism/kinds.hpp` (`Sensor::pressedLevel`, `limitSwitch()`),
+  `include/shulib/mechanism/spec.hpp` (`SensorRole::pressedLevel`), `include/shulib/hal/pros/digital_in.hpp`
+  (the adapter's read-fault note); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
+  digital value (1 or 0) of a pin" — nothing about which level a pressed switch gives, or what an empty
+  line reads; :705-729, which an earlier draft of the core's brief cited, is `get_new_press()`'s doc).
+  *Confidence:* **unknown** — no vendored text says which level means pressed or what an unplugged
+  input reads. HA-121 (that `get_value()` is a level) is its neighbour, not its answer.
+  *Settle (MECH-A6, Bench Tests station 13):* read a switch PRESSED, RELEASED and with its CABLE OUT;
+  the screen asks for all three.
+  *Blast radius if wrong:* if pressed reads 0 — every switch-homed mechanism believes it is home
+  wherever it stands at boot (the rule "a switch already pressed at bind: homed, no motion" fires on a
+  released switch), and every switch piece sensor reads inverted. If an unplugged line reads 1 — the
+  same, for a cable that fell out. The nets the core's later parts build (measured on the host test
+  plant by its brief): the REQUIRED jam signature stops a move into the hard stop (STALLED at 1.70 s),
+  and a switch whose reads FAIL from boot no longer homes it (the read-fault rule). What no net sees:
+  an unplugged 3-wire line reads a LEVEL, not PROS_ERR (`hal/read_faults.hpp` says so), so its
+  read-fault count never moves. **Contained:** one field per switch role (`pressedLevel`), set in one
+  place (`limitSwitch()` and the switch-homing words) — a measured inversion is a one-line change.
+
+- [ ] **HA-186 — at power-up a V5 rotation sensor's cumulative position starts at the shaft's absolute
+  angle within one turn, and so it does after a PROGRAM restart without a power cycle.**
+  *Claim:* the vendored `pros::Rotation::get_position()` (which `ProsRotation::position()` binds —
+  HA-11's binding; cumulative, never wrapped) reads, at a program's start, the shaft's absolute angle
+  within one turn — not 0 — so `absoluteSensor(at, sensorReadsDeg)` homing needs no motion: the
+  mechanism is at `at` when the sensor reads `sensorReadsDeg`, a FIXED offset. And restarting only the
+  program (the brain powered throughout, the arm moved meanwhile) gives the arm's NEW angle, not the
+  old count.
+  *Source:* `include/shulib/mechanism/kinds.hpp` (`absoluteSensor()`), `include/shulib/mechanism/spec.hpp`
+  (`HomeMethod::Absolute`, `PositionSpec::absoluteSensorAtZeroDeg`, and the refusal of a reading outside
+  [0, 360)); `include/shulib/hal/pros/rotation.hpp` :79 binds `get_position()` (it carries HA-11, not this
+  ID); vendored `include/pros/rotation.hpp` :194-216 (`get_position()`: "the Rotation Sensor's current
+  position in centidegrees" — nothing about its value at power-up; :244-266, which an earlier draft of
+  the core's brief cited, is `get_angle()`).
+  *Confidence:* reasoned — VEX describes the sensor as absolute within a turn; the vendored text says
+  only "current position", and the program-restart half is not described anywhere we have.
+  *Settle (MECH-A6, station 13):* with the shaft at two marked angles, power-cycle the brain and read;
+  then move the arm, restart only the PROGRAM, and read again.
+  *Blast radius if wrong:* an absolute-homed mechanism's zero is wherever the count started — every
+  preset and limit offset by the arm's boot angle, the very bug the core's first prototype had ("zero
+  wherever it stands"). The nets: the required jam signature stops a move into the hard stop, and the
+  bench page's direction check reads the sensor against the motors. **Contained:** one homing method —
+  `restsAtStop`, switch and stall homing never read it; and the F4 rotation seam is LOCKED, so reading
+  `get_angle()` instead would be a sibling seam, built only if this fails.
 
 ---
 
@@ -2000,7 +2069,8 @@ opens it are the program half's entry, from the team lead's report).
   sense — reports what is plugged into a 3-wire port.
   *Source:* `include/shulib/hal/device_provider.hpp` (the header's "A 3-WIRE LINE IS THE
   EXCEPTION"), `include/shulib/hal/pros/device_provider.hpp` (`digitalOut()` asks no registry,
-  tagged `A4 register HA-158`), `include/shulib/hal/fake/fake_device_provider.hpp`;
+  tagged `A4 register HA-158`; since MECH-A1, 2026-10-08, `digitalIn()` — a limit switch — asks none
+  either, tagged HA-158), `include/shulib/hal/fake/fake_device_provider.hpp`;
   `test/pros_device_provider_test.cpp` 1l (the line is made with the registry reporting NONE on
   every port, and the registry is never asked).
   *Confidence:* **reasoned** — from the registry's documented index range, the internal-ADI port

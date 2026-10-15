@@ -270,7 +270,11 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   calibration/      the drivetrain self-calibrator, its screen model, its SD-card record and
                     its safe save and load (a verified backup copy), the boot check
   config/           a robot and a route described as DATA (RobotConfig, Route)
-  robot/            robot::Robot — the whole library graph built from a RobotConfig
+  robot/            robot::Robot — the whole library graph built from a RobotConfig (its
+                    mechanisms' motors, lines and sensor roles built by MechanismParts)
+  mechanism/        a mechanism declared once (what it is: kind, gearing, homing, presets)
+                    and wired separately (where it is plugged in) — each mistake refused at
+                    build by name; the route ids derived from the declarations
   runner/           runs a Route: the path runner, the command-id registry, the manifest
   teleop/           driver control: stick mapping, input shaping, drive modes, field-centric,
                     mechanism buttons

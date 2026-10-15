@@ -8,7 +8,7 @@
 
 RobotConfig — a whole robot, described as DATA.
 
-This header declares **19** types (86 members), **9** free functions, **3** constants, and **1** type alias.
+This header declares **19** types (94 members), **9** free functions, **3** constants, and **1** type alias.
 
 Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/config/robot_config.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -93,6 +93,12 @@ Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/c
   - [`pneumaticCount`](#mechanismconfig-pneumaticcount)
   - [`pneumaticSafe`](#mechanismconfig-pneumaticsafe)
   - [`pneumaticStart`](#mechanismconfig-pneumaticstart)
+  - [`rotationPort`](#mechanismconfig-rotationport)
+  - [`distancePort`](#mechanismconfig-distanceport)
+  - [`opticalPort`](#mechanismconfig-opticalport)
+  - [`switchLines`](#mechanismconfig-switchlines)
+  - [`pneumaticSafeByLine`](#mechanismconfig-pneumaticsafebyline)
+  - [`pneumaticStartByLine`](#mechanismconfig-pneumaticstartbyline)
 - [`TuningConfig`](#tuningconfig) — *type alias*
 - [`enum class PortUse`](#enum-class-portuse)
   - [`Free`](#portuse-free)
@@ -104,6 +110,7 @@ Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/c
   - [`PodLateral`](#portuse-podlateral)
   - [`Gps`](#portuse-gps)
   - [`Mechanism`](#portuse-mechanism)
+  - [`MechanismSensor`](#portuse-mechanismsensor)
 - [`portUseWord`](#portuseword) — *free function*
 - [`struct RobotConfig`](#struct-robotconfig)
   - [`identity`](#robotconfig-identity)
@@ -114,6 +121,7 @@ Extracted from [`include/shulib/config/robot_config.hpp`](../../include/shulib/c
   - [`mechanismCount`](#robotconfig-mechanismcount)
   - [`tuning`](#robotconfig-tuning)
   - [`valid`](#robotconfig-valid)
+  - [`perLineLevelsValid`](#robotconfig-perlinelevelsvalid)
   - [`terminatedName`](#robotconfig-terminatedname)
   - [`sameName`](#robotconfig-samename)
   - [`describe`](#robotconfig-describe)
@@ -969,9 +977,9 @@ The line value a level stands for: `High` is `true`, `Low` is `false`. Only for 
 struct MechanismConfig
 ```
 
-One mechanism — an intake, a lift, a clamp, a claw pivot, a pneumatic claw — as data.  BUILT since chunk T3 (2026-09-26): `robot::Robot` builds ONE `hal::MotorMechanism` per mechanism that has motors, asking the provider for each motor with THIS mechanism's cartridge (not the drivetrain's), names it with `name`, and exposes it by name (`Robot::mechanism()`) and as the `hal::IMechanism*` span an end-of-run guard walks (`Robot::mechanisms()`). Since T3's addendum B2 (the same day) it also builds ONE `hal::PneumaticMechanism` per mechanism that has 3-wire lines and no motors — each line made at `pneumaticStart` (on a brain, making a line DRIVES it), the mechanism's safe level `pneumaticSafe` — found by `Robot::pneumaticMechanism()` and in the same span. A device the provider will not make leaves that mechanism ABSENT, reported with the provider's sentence — never the whole robot refused. A mechanism with BOTH motors and lines is refused by `RobotConfig::valid()`: one name is one object, and a voltage and a level do not fan through one. What a mechanism MEANS — which buttons drive it, what confirms it — stays with the program (teleop/mechanism_binding.hpp, manipulation/).  Two mechanisms that must move independently are TWO entries, never one entry with two motors: a `MotorMechanism` fans ONE voltage to all its motors, so two claws in one entry would move together on every button. The same holds for lines: a `PneumaticMechanism` fans ONE level to every line, so its two lines are two valves fired together — NOT the two coils of a double-coil solenoid, which need opposite levels and are not built by this library. How one WOULD be, once a robot is known to have one (said here, deliberately not built — T3's addendum B2): its two lines stay ONE mechanism (one name, one toggle button), and each line gains a stated polarity; for an inverted line the builder asks the provider at the OPPOSITE start level and hands the mechanism a one-line `hal::IDigitalOut` adapter that writes (and reports) the opposite of what it is told — so `PneumaticMechanism` still fans one level, each coil gets its own, and nothing else changes: not the toggle, not the guard's span.
+One mechanism — an intake, a lift, a clamp, a claw pivot, a pneumatic claw — as data.  BUILT since chunk T3 (2026-09-26): `robot::Robot` builds ONE `hal::MotorMechanism` per mechanism that has motors, asking the provider for each motor with THIS mechanism's cartridge (not the drivetrain's), names it with `name`, and exposes it by name (`Robot::mechanism()`) and as the `hal::IMechanism*` span an end-of-run guard walks (`Robot::mechanisms()`). Since T3's addendum B2 (the same day) it also builds ONE `hal::PneumaticMechanism` per mechanism that has 3-wire lines and no motors — each line made at `pneumaticStart` (on a brain, making a line DRIVES it), the mechanism's safe level `pneumaticSafe` — found by `Robot::pneumaticMechanism()` and in the same span. A device the provider will not make leaves that mechanism ABSENT, reported with the provider's sentence — never the whole robot refused. A mechanism with BOTH motors and lines is refused by `RobotConfig::valid()`: one name is one object, and a voltage and a level do not fan through one. What a mechanism MEANS — which buttons drive it, what confirms it — stays with the program (teleop/mechanism_binding.hpp, manipulation/).  Two mechanisms that must move independently are TWO entries, never one entry with two motors: a `MotorMechanism` fans ONE voltage to all its motors, so two claws in one entry would move together on every button. The same holds for lines in the one-level form: a `PneumaticMechanism` built from `pneumaticSafe` / `pneumaticStart` fans ONE level to every line, so its two lines are two valves fired together. A mechanism whose positions need DIFFERENT levels on its lines — a three-position pair, or the two coils of a double-coil solenoid, opposite in each position — states them per line (`pneumaticSafeByLine` / `pneumaticStartByLine`, appended by the mechanism core, MECH-A1, 2026-10-08) and is built as `hal::PneumaticMechanism`'s per-line form, whose safe state drives each line to its own level. (T3's addendum B2 had sketched an inverted-line adapter for the double coil instead; it was never built — the per-line form replaced it.)
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:443`](../../include/shulib/config/robot_config.hpp#L443).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:442`](../../include/shulib/config/robot_config.hpp#L442).*
 
 <a id="mechanismconfig-name"></a>
 
@@ -983,7 +991,7 @@ char name[24]{}
 
 The mechanism's name — the key `robot::Robot::mechanism()` looks it up by, and the key a command-id registry will bind against. Non-empty, NUL-terminated inside these 24 bytes, and unique among the robot's mechanisms (all three refused by `RobotConfig::valid()`). The Robot BORROWS this text for the mechanism's `name()` from its own copy of the config.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:448`](../../include/shulib/config/robot_config.hpp#L448).*
+*field, declared at [`include/shulib/config/robot_config.hpp:447`](../../include/shulib/config/robot_config.hpp#L447).*
 
 <a id="mechanismconfig-motorports"></a>
 
@@ -995,7 +1003,7 @@ std::int8_t motorPorts[kMaxMotorsPerMechanism]{}
 
 The mechanism's motor ports WITH THEIR SIGNS, same one-place-for-a-sign rule as the drivetrain's: a pivot that moves the wrong way on its forward button is fixed by flipping the sign HERE, nowhere else. Entries beyond `motorCount` are 0 and are not read.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:452`](../../include/shulib/config/robot_config.hpp#L452).*
+*field, declared at [`include/shulib/config/robot_config.hpp:451`](../../include/shulib/config/robot_config.hpp#L451).*
 
 <a id="mechanismconfig-motorcount"></a>
 
@@ -1007,7 +1015,7 @@ std::uint8_t motorCount = 0
 
 How many entries of `motorPorts` are real. 0 is legal — a purely pneumatic mechanism (a mechanism with motors AND lines is refused).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:455`](../../include/shulib/config/robot_config.hpp#L455).*
+*field, declared at [`include/shulib/config/robot_config.hpp:454`](../../include/shulib/config/robot_config.hpp#L454).*
 
 <a id="mechanismconfig-cartridge"></a>
 
@@ -1019,7 +1027,7 @@ hal::MotorCartridge cartridge = static_cast<hal::MotorCartridge>(0)
 
 The cartridge in THIS mechanism's motors — its own, never the drivetrain's (a RED claw on a BLUE drive is the normal case). HUMAN-STATED and unverifiable from inside, exactly as `hal::MotorCartridge` documents. The byte 0 is UNSET, and `RobotConfig::valid()` refuses it (or any byte outside the enum) whenever `motorCount > 0`; not read when `motorCount == 0`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:460`](../../include/shulib/config/robot_config.hpp#L460).*
+*field, declared at [`include/shulib/config/robot_config.hpp:459`](../../include/shulib/config/robot_config.hpp#L459).*
 
 <a id="mechanismconfig-safemode"></a>
 
@@ -1031,7 +1039,7 @@ SafeBrakeMode safeMode = static_cast<SafeBrakeMode>(0)
 
 The DECLARED safe brake mode every stop of this mechanism lands in. The byte 0 is UNSET, and `RobotConfig::valid()` refuses it whenever `motorCount > 0` — see `SafeBrakeMode` for why there is no default. Not read when `motorCount == 0`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:464`](../../include/shulib/config/robot_config.hpp#L464).*
+*field, declared at [`include/shulib/config/robot_config.hpp:463`](../../include/shulib/config/robot_config.hpp#L463).*
 
 <a id="mechanismconfig-pneumaticports"></a>
 
@@ -1043,7 +1051,7 @@ std::uint8_t pneumaticPorts[kMaxPneumaticsPerMechanism]{}
 
 The mechanism's pneumatic (ADI digital-out) lines: the brain's three-wire ports as numbers, 1..8 for A..H. Entries beyond `pneumaticCount` are 0 and are not read. No line may appear twice — in one mechanism or across two (refused by `RobotConfig::valid()`). BUILT since T3's addendum B2, as one `hal::PneumaticMechanism` (see above).
 
-*field, declared at [`include/shulib/config/robot_config.hpp:469`](../../include/shulib/config/robot_config.hpp#L469).*
+*field, declared at [`include/shulib/config/robot_config.hpp:468`](../../include/shulib/config/robot_config.hpp#L468).*
 
 <a id="mechanismconfig-pneumaticcount"></a>
 
@@ -1055,7 +1063,7 @@ std::uint8_t pneumaticCount = 0
 
 How many entries of `pneumaticPorts` are real. 0 is legal — a purely motorized mechanism.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:471`](../../include/shulib/config/robot_config.hpp#L471).*
+*field, declared at [`include/shulib/config/robot_config.hpp:470`](../../include/shulib/config/robot_config.hpp#L470).*
 
 <a id="mechanismconfig-pneumaticsafe"></a>
 
@@ -1067,7 +1075,7 @@ PneumaticLevel pneumaticSafe = static_cast<PneumaticLevel>(0)
 
 The level every line is driven to whenever anything STOPS this mechanism — its `applySafeState()`, which an end-of-run guard calls. (A driver's toggle button never commands it: a claw keeps its level through a disable.) The byte 0 is UNSET, and `RobotConfig::valid()` refuses it whenever `pneumaticCount > 0` — see `PneumaticLevel` for why there is no default. Not read when `pneumaticCount == 0`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:477`](../../include/shulib/config/robot_config.hpp#L477).*
+*field, declared at [`include/shulib/config/robot_config.hpp:476`](../../include/shulib/config/robot_config.hpp#L476).*
 
 <a id="mechanismconfig-pneumaticstart"></a>
 
@@ -1079,7 +1087,79 @@ PneumaticLevel pneumaticStart = static_cast<PneumaticLevel>(0)
 
 The level every line is driven to when the Robot is BUILT — the program-start state (a claw that starts closed). On a brain, making a 3-wire line drives it (A4 register HA-119), so this is the one level the builder itself puts on the robot. The byte 0 is UNSET, refused by `RobotConfig::valid()` whenever `pneumaticCount > 0`. Not read when `pneumaticCount == 0`.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:482`](../../include/shulib/config/robot_config.hpp#L482).*
+*field, declared at [`include/shulib/config/robot_config.hpp:481`](../../include/shulib/config/robot_config.hpp#L481).*
+
+<a id="mechanismconfig-rotationport"></a>
+
+### `MechanismConfig::rotationPort`
+
+```cpp
+std::uint8_t rotationPort = 0
+```
+
+A ROTATION sensor role — a position or speed mechanism's angle sensor: its smart port, 1..21; 0 = none. Claimed by valid() (PortUse::MechanismSensor). A refused one makes the mechanism ABSENT at boot: its angle is how it knows where it is.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:492`](../../include/shulib/config/robot_config.hpp#L492).*
+
+<a id="mechanismconfig-distanceport"></a>
+
+### `MechanismConfig::distancePort`
+
+```cpp
+std::uint8_t distancePort = 0
+```
+
+A DISTANCE sensor used as the mechanism's PIECE sensor: its smart port, 1..21; 0 = none. Claimed by valid(). A refused one leaves the mechanism running WITHOUT a piece sensor.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:495`](../../include/shulib/config/robot_config.hpp#L495).*
+
+<a id="mechanismconfig-opticalport"></a>
+
+### `MechanismConfig::opticalPort`
+
+```cpp
+std::uint8_t opticalPort = 0
+```
+
+An OPTICAL sensor used as the mechanism's PIECE sensor: its smart port, 1..21; 0 = none. Never stated beside `distancePort` or a piece switch (`switchLines[1]`): a piece sensor is one device — valid() refuses two.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:499`](../../include/shulib/config/robot_config.hpp#L499).*
+
+<a id="mechanismconfig-switchlines"></a>
+
+### `MechanismConfig::switchLines`
+
+```cpp
+std::uint8_t switchLines[2]{}
+```
+
+LIMIT-SWITCH roles on the brain's 3-wire lines, 1..8 = A..H; 0 = none: [0] the HOME switch, [1] a switch used as the PIECE sensor — never stated beside `distancePort` or `opticalPort` (one piece sensor: valid() refuses it). One owner per line: valid() refuses a switch on a line a pneumatic (or another switch) already claims.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:504`](../../include/shulib/config/robot_config.hpp#L504).*
+
+<a id="mechanismconfig-pneumaticsafebyline"></a>
+
+### `MechanismConfig::pneumaticSafeByLine`
+
+```cpp
+PneumaticLevel pneumaticSafeByLine[kMaxPneumaticsPerMechanism]{}
+```
+
+PER-LINE SAFE levels, for a mechanism whose positions need DIFFERENT levels on its lines (a three-position pair — the team states each position's levels, Q13 (a)). All UNSET (0) = every line takes `pneumaticSafe` (the form above); otherwise EVERY line below `pneumaticCount` is stated and none past it — valid() refuses a half-stated set. robot::MechanismParts then builds the hal::PneumaticMechanism's per-line form.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:510`](../../include/shulib/config/robot_config.hpp#L510).*
+
+<a id="mechanismconfig-pneumaticstartbyline"></a>
+
+### `MechanismConfig::pneumaticStartByLine`
+
+```cpp
+PneumaticLevel pneumaticStartByLine[kMaxPneumaticsPerMechanism]{}
+```
+
+PER-LINE START levels — each line made (and so DRIVEN, HA-119) at its own level. Stated exactly when `pneumaticSafeByLine` is (valid()); all UNSET = every line at `pneumaticStart`.
+
+*field, declared at [`include/shulib/config/robot_config.hpp:513`](../../include/shulib/config/robot_config.hpp#L513).*
 
 <a id="tuningconfig"></a>
 
@@ -1091,7 +1171,7 @@ using TuningConfig = chassis::ChassisConfig
 
 The motion layer's gains, budgets and fault policy for this robot — `chassis::ChassisConfig` passed through WHOLE, not mirrored, for exactly the reason ruling B1 gives for the drivetrain description: a second struct with the same fields drifts. Every value in it is PROVISIONAL until R5 tunes on hardware (HA-45/50/51/52).
 
-*type alias, declared at [`include/shulib/config/robot_config.hpp:489`](../../include/shulib/config/robot_config.hpp#L489).*
+*type alias, declared at [`include/shulib/config/robot_config.hpp:520`](../../include/shulib/config/robot_config.hpp#L520).*
 
 <a id="enum-class-portuse"></a>
 
@@ -1103,7 +1183,7 @@ enum class PortUse : std::uint8_t
 
 What claims a smart port, for the one-owner-per-port check. Ordered by nothing; the values are interior to `RobotConfig::valid()` and are not persisted anywhere.
 
-*enum class, declared at [`include/shulib/config/robot_config.hpp:493`](../../include/shulib/config/robot_config.hpp#L493).*
+*enum class, declared at [`include/shulib/config/robot_config.hpp:524`](../../include/shulib/config/robot_config.hpp#L524).*
 
 <a id="portuse-free"></a>
 
@@ -1115,7 +1195,7 @@ Free = 0
 
 nothing claims this port
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:494`](../../include/shulib/config/robot_config.hpp#L494).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:525`](../../include/shulib/config/robot_config.hpp#L525).*
 
 <a id="portuse-driveleft"></a>
 
@@ -1127,7 +1207,7 @@ DriveLeft
 
 a tank LEFT-side drive motor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:495`](../../include/shulib/config/robot_config.hpp#L495).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:526`](../../include/shulib/config/robot_config.hpp#L526).*
 
 <a id="portuse-driveright"></a>
 
@@ -1139,7 +1219,7 @@ DriveRight
 
 a tank RIGHT-side drive motor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:496`](../../include/shulib/config/robot_config.hpp#L496).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:527`](../../include/shulib/config/robot_config.hpp#L527).*
 
 <a id="portuse-drivewheel"></a>
 
@@ -1151,7 +1231,7 @@ DriveWheel
 
 a holonomic drive motor (X-drive or H-drive wheel)
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:497`](../../include/shulib/config/robot_config.hpp#L497).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:528`](../../include/shulib/config/robot_config.hpp#L528).*
 
 <a id="portuse-imu"></a>
 
@@ -1163,7 +1243,7 @@ Imu
 
 the drivetrain's inertial sensor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:498`](../../include/shulib/config/robot_config.hpp#L498).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:529`](../../include/shulib/config/robot_config.hpp#L529).*
 
 <a id="portuse-podforward"></a>
 
@@ -1175,7 +1255,7 @@ PodForward
 
 the forward tracking wheel's rotation sensor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:499`](../../include/shulib/config/robot_config.hpp#L499).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:530`](../../include/shulib/config/robot_config.hpp#L530).*
 
 <a id="portuse-podlateral"></a>
 
@@ -1187,7 +1267,7 @@ PodLateral
 
 the lateral tracking wheel's rotation sensor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:500`](../../include/shulib/config/robot_config.hpp#L500).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:531`](../../include/shulib/config/robot_config.hpp#L531).*
 
 <a id="portuse-gps"></a>
 
@@ -1199,7 +1279,7 @@ Gps
 
 the GPS
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:501`](../../include/shulib/config/robot_config.hpp#L501).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:532`](../../include/shulib/config/robot_config.hpp#L532).*
 
 <a id="portuse-mechanism"></a>
 
@@ -1211,7 +1291,19 @@ Mechanism
 
 a mechanism motor
 
-*enumerator, declared at [`include/shulib/config/robot_config.hpp:502`](../../include/shulib/config/robot_config.hpp#L502).*
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:533`](../../include/shulib/config/robot_config.hpp#L533).*
+
+<a id="portuse-mechanismsensor"></a>
+
+### `PortUse::MechanismSensor`
+
+```cpp
+MechanismSensor
+```
+
+a mechanism's rotation, distance or optical sensor (MECH-A1, appended)
+
+*enumerator, declared at [`include/shulib/config/robot_config.hpp:534`](../../include/shulib/config/robot_config.hpp#L534).*
 
 <a id="portuseword"></a>
 
@@ -1223,7 +1315,7 @@ a mechanism motor
 
 A port claim as words, for the collision message — "port 7 is claimed by the LEFT drive and by a mechanism motor" reads as an instruction to go and fix one of them.
 
-*free function, declared at [`include/shulib/config/robot_config.hpp:507`](../../include/shulib/config/robot_config.hpp#L507).*
+*free function, declared at [`include/shulib/config/robot_config.hpp:539`](../../include/shulib/config/robot_config.hpp#L539).*
 
 <a id="struct-robotconfig"></a>
 
@@ -1235,7 +1327,7 @@ struct RobotConfig
 
 EVERYTHING about one robot, as one value.  Plain data with designated initializers at the call site, like every other config type in this tree. Nothing validates itself on construction: a caller builds one and then asks `valid()`, which is what lets a host test build a deliberately contradictory config by hand and watch it be refused by name.
 
-*struct, declared at [`include/shulib/config/robot_config.hpp:528`](../../include/shulib/config/robot_config.hpp#L528).*
+*struct, declared at [`include/shulib/config/robot_config.hpp:561`](../../include/shulib/config/robot_config.hpp#L561).*
 
 <a id="robotconfig-identity"></a>
 
@@ -1247,7 +1339,7 @@ RobotIdentity identity{}
 
 Who this robot is — banner material.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:530`](../../include/shulib/config/robot_config.hpp#L530).*
+*field, declared at [`include/shulib/config/robot_config.hpp:563`](../../include/shulib/config/robot_config.hpp#L563).*
 
 <a id="robotconfig-drivetrain"></a>
 
@@ -1259,7 +1351,7 @@ DrivetrainConfig drivetrain{}
 
 Which drivetrain it has, and its numbers.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:532`](../../include/shulib/config/robot_config.hpp#L532).*
+*field, declared at [`include/shulib/config/robot_config.hpp:565`](../../include/shulib/config/robot_config.hpp#L565).*
 
 <a id="robotconfig-odometry"></a>
 
@@ -1271,7 +1363,7 @@ OdometryConfig odometry{}
 
 Which estimator it runs.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:534`](../../include/shulib/config/robot_config.hpp#L534).*
+*field, declared at [`include/shulib/config/robot_config.hpp:567`](../../include/shulib/config/robot_config.hpp#L567).*
 
 <a id="robotconfig-sensors"></a>
 
@@ -1283,7 +1375,7 @@ SensorsConfig sensors{}
 
 Which other sensors it carries.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:536`](../../include/shulib/config/robot_config.hpp#L536).*
+*field, declared at [`include/shulib/config/robot_config.hpp:569`](../../include/shulib/config/robot_config.hpp#L569).*
 
 <a id="robotconfig-mechanisms"></a>
 
@@ -1295,7 +1387,7 @@ MechanismConfig mechanisms[kMaxMechanisms]{}
 
 Its mechanisms. Entries beyond `mechanismCount` are ignored entirely.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:538`](../../include/shulib/config/robot_config.hpp#L538).*
+*field, declared at [`include/shulib/config/robot_config.hpp:571`](../../include/shulib/config/robot_config.hpp#L571).*
 
 <a id="robotconfig-mechanismcount"></a>
 
@@ -1307,7 +1399,7 @@ std::uint8_t mechanismCount = 0
 
 How many entries of `mechanisms` are real. Must be <= kMaxMechanisms.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:540`](../../include/shulib/config/robot_config.hpp#L540).*
+*field, declared at [`include/shulib/config/robot_config.hpp:573`](../../include/shulib/config/robot_config.hpp#L573).*
 
 <a id="robotconfig-tuning"></a>
 
@@ -1319,7 +1411,7 @@ TuningConfig tuning{}
 
 The motion layer's gains, budgets and fault policy. Defaults are the library's PROVISIONAL ones.
 
-*field, declared at [`include/shulib/config/robot_config.hpp:543`](../../include/shulib/config/robot_config.hpp#L543).*
+*field, declared at [`include/shulib/config/robot_config.hpp:576`](../../include/shulib/config/robot_config.hpp#L576).*
 
 <a id="robotconfig-valid"></a>
 
@@ -1329,9 +1421,21 @@ The motion layer's gains, budgets and fault policy. Defaults are the library's P
 [[nodiscard]] bool valid(char* why = nullptr, std::size_t cap = 0) const noexcept
 ```
 
-True when nothing in the config contradicts itself. `why` (optional; pass nullptr and 0 to skip) receives the FIRST contradiction found, naming the field or the port.  WHAT IT CHECKS — exactly the mistakes a typo, a mis-wire or a mis-generated file produce: an unknown drivetrain or odometry kind byte; a tank whose `hal::DrivetrainDescription` is invalid (ITS OWN message surfaces verbatim — one representation, one refusal); a tank whose description disagrees with the config tag; an unknown cartridge byte; an IMU port outside 1..21; a holonomic port outside -21..21; the same holonomic wheel port twice; a non-finite or non-positive drive radius / track width; a non-finite strafe offset; `DriveEncoders` on a holonomic drivetrain (that estimator reads two sides and a holonomic drivetrain has none); a tracking wheel with an unset port, a non-positive diameter or a non-finite offset; a GPS declared present with an unset port or a non-finite lever arm; more mechanisms than capacity, a mechanism with an empty name or a name with no NUL inside its 24 bytes, too many motors or pneumatics, a motor port out of range or a pneumatic line outside 1..8, a 3-wire line listed twice (by two mechanisms or by one — T3's addendum B2); and — across ALL of the above at once — any smart port claimed by two different things, naming both (so a mechanism port that is also a drive port is refused here, before any device is asked for with either cartridge). THEN, in a second pass once every port is claimed (chunk T3 — so each collision above keeps its own message): a mechanism with BOTH motors and 3-wire lines (addendum B2); for every mechanism with motors, an UNSET or unknown cartridge byte, an UNSET or unknown safe brake mode byte; for every mechanism with lines (addendum B2), an UNSET or unknown safe level byte, an UNSET or unknown start level byte; and, for all mechanisms, two with the same name.  WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is representable ("no port" is the tree's meaning for 0 everywhere else), and the refusal it deserves is the F5 cross-check `robot::validate()` already has to make — the same wheel-count-equals-motor-count check `motion::MotionDeps::validate()` makes at the bottom of the stack. Making it here as WELL would be two owners for one rule, which is how two checks come to disagree; one owner, named in both places, is the choice.  noexcept and total: it allocates nothing, throws nothing, and returns for every input.
+True when nothing in the config contradicts itself. `why` (optional; pass nullptr and 0 to skip) receives the FIRST contradiction found, naming the field or the port.  WHAT IT CHECKS — exactly the mistakes a typo, a mis-wire or a mis-generated file produce: an unknown drivetrain or odometry kind byte; a tank whose `hal::DrivetrainDescription` is invalid (ITS OWN message surfaces verbatim — one representation, one refusal); a tank whose description disagrees with the config tag; an unknown cartridge byte; an IMU port outside 1..21; a holonomic port outside -21..21; the same holonomic wheel port twice; a non-finite or non-positive drive radius / track width; a non-finite strafe offset; `DriveEncoders` on a holonomic drivetrain (that estimator reads two sides and a holonomic drivetrain has none); a tracking wheel with an unset port, a non-positive diameter or a non-finite offset; a GPS declared present with an unset port or a non-finite lever arm; more mechanisms than capacity, a mechanism with an empty name or a name with no NUL inside its 24 bytes, too many motors or pneumatics, a motor port out of range or a pneumatic line outside 1..8, a 3-wire line listed twice (by two mechanisms or by one — T3's addendum B2); and — across ALL of the above at once — any smart port claimed by two different things, naming both (so a mechanism port that is also a drive port is refused here, before any device is asked for with either cartridge). THEN, in a second pass once every port is claimed (chunk T3 — so each collision above keeps its own message): a mechanism with BOTH motors and 3-wire lines (addendum B2); for every mechanism with motors, an UNSET or unknown cartridge byte, an UNSET or unknown safe brake mode byte; for every mechanism with lines (addendum B2), an UNSET or unknown safe level byte, an UNSET or unknown start level byte; and, for all mechanisms, two with the same name. SINCE THE MECHANISM CORE (MECH-A1, 2026-10-08) the first pass also claims every mechanism SENSOR role: a rotation, distance or optical port outside 1..21, or claimed by anything else (so a calibration record that drives a mechanism sensor's port is refused naming both — "port 9 is claimed by the LEFT drive and by a mechanism sensor"); two piece sensors on one mechanism (any two of a distance, an optical and a limit switch — a piece sensor is one device); a limit-switch line outside 1..8, or on a line a pneumatic or another switch already claims. The second pass refuses a half-stated per-line level set (some lines stated, or a level past the mechanism's lines, or per-line levels on a mechanism with none).  WHAT IT DELIBERATELY DOES NOT CHECK, and why the omission is a design decision rather than a hole: that every kinematic wheel actually HAS a motor. A holonomic port left at 0 is representable ("no port" is the tree's meaning for 0 everywhere else), and the refusal it deserves is the F5 cross-check `robot::validate()` already has to make — the same wheel-count-equals-motor-count check `motion::MotionDeps::validate()` makes at the bottom of the stack. Making it here as WELL would be two owners for one rule, which is how two checks come to disagree; one owner, named in both places, is the choice.  noexcept and total: it allocates nothing, throws nothing, and returns for every input.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:578`](../../include/shulib/config/robot_config.hpp#L578).*
+*function, declared at [`include/shulib/config/robot_config.hpp:619`](../../include/shulib/config/robot_config.hpp#L619).*
+
+<a id="robotconfig-perlinelevelsvalid"></a>
+
+### `RobotConfig::perLineLevelsValid`
+
+```cpp
+[[nodiscard]] static bool perLineLevelsValid(const MechanismConfig& mech, char* why, std::size_t cap) noexcept
+```
+
+MECH-A1: whether `mech`'s PER-LINE levels are all-or-nothing (MechanismConfig's note), writing the refusal when they are not: none stated is valid (the one-level form); otherwise every line below `pneumaticCount` states a Low or High safe AND start level, no line past it states one, and the mechanism has lines at all.
+
+*function, declared at [`include/shulib/config/robot_config.hpp:1074`](../../include/shulib/config/robot_config.hpp#L1074).*
 
 <a id="robotconfig-terminatedname"></a>
 
@@ -1343,7 +1447,7 @@ True when nothing in the config contradicts itself. `why` (optional; pass nullpt
 
 True when `name` has a NUL inside its 24 bytes — the precondition for reading it as a C string at all.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:952`](../../include/shulib/config/robot_config.hpp#L952).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1108`](../../include/shulib/config/robot_config.hpp#L1108).*
 
 <a id="robotconfig-samename"></a>
 
@@ -1355,7 +1459,7 @@ True when `name` has a NUL inside its 24 bytes — the precondition for reading 
 
 Two TERMINATED mechanism names, compared as C strings (bytes after the NUL are ignored, so a name typed into a reused buffer still compares by what it says).
 
-*function, declared at [`include/shulib/config/robot_config.hpp:963`](../../include/shulib/config/robot_config.hpp#L963).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1119`](../../include/shulib/config/robot_config.hpp#L1119).*
 
 <a id="robotconfig-describe"></a>
 
@@ -1367,7 +1471,7 @@ void describe(char* buf, std::size_t cap) const
 
 The one-line banner: identity, drivetrain kind and source, the geometry that governs, the estimator, and which optional devices are present. Truncates rather than overflowing; writes at least a NUL whenever cap > 0. Only meaningful on a `valid()` config.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:978`](../../include/shulib/config/robot_config.hpp#L978).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1134`](../../include/shulib/config/robot_config.hpp#L1134).*
 
 <a id="robotconfig-validcartridge"></a>
 
@@ -1379,7 +1483,7 @@ The one-line banner: identity, drivetrain kind and source, the geometry that gov
 
 The cartridge check, shared by the two holonomic branches (the tank's lives inside `hal::DrivetrainDescription::valid()`, where it already was).
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1025`](../../include/shulib/config/robot_config.hpp#L1025).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1181`](../../include/shulib/config/robot_config.hpp#L1181).*
 
 <a id="robotconfig-validimuport"></a>
 
@@ -1391,7 +1495,7 @@ The cartridge check, shared by the two holonomic branches (the tank's lives insi
 
 The IMU-port range check, shared by the two holonomic branches.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1039`](../../include/shulib/config/robot_config.hpp#L1039).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1195`](../../include/shulib/config/robot_config.hpp#L1195).*
 
 <a id="robotconfig-validwheelport"></a>
 
@@ -1403,7 +1507,7 @@ The IMU-port range check, shared by the two holonomic branches.
 
 One holonomic wheel port's range check. `0` (no port) passes HERE on purpose — see the "what it deliberately does not check" note on valid(); only a number that is not a port at all is refused. `kindWord` and `wheel` are what make the message point at a field.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1053`](../../include/shulib/config/robot_config.hpp#L1053).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1209`](../../include/shulib/config/robot_config.hpp#L1209).*
 
 <a id="robotconfig-validpod"></a>
 
@@ -1415,7 +1519,7 @@ One holonomic wheel port's range check. `0` (no port) passes HERE on purpose —
 
 One tracking wheel's own checks (port set and in range, diameter finite and > 0, offset finite). `role` names the slot in the message.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1072`](../../include/shulib/config/robot_config.hpp#L1072).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1228`](../../include/shulib/config/robot_config.hpp#L1228).*
 
 <a id="class-irobotconfig"></a>
 
@@ -1427,7 +1531,7 @@ class IRobotConfig
 
 The config seam (master plan decision #10, name kept): where a robot's description comes from. ONE virtual call, made once at boot — a generated header, a card read at boot, or a constant typed by hand all look the same to `robot::Robot` through this.
 
-*class, declared at [`include/shulib/config/robot_config.hpp:1106`](../../include/shulib/config/robot_config.hpp#L1106).*
+*class, declared at [`include/shulib/config/robot_config.hpp:1262`](../../include/shulib/config/robot_config.hpp#L1262).*
 
 <a id="irobotconfig-destructor-irobotconfig"></a>
 
@@ -1439,7 +1543,7 @@ virtual ~IRobotConfig() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1111`](../../include/shulib/config/robot_config.hpp#L1111).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1267`](../../include/shulib/config/robot_config.hpp#L1267).*
 
 <a id="irobotconfig-irobotconfig"></a>
 
@@ -1451,7 +1555,7 @@ IRobotConfig() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1113`](../../include/shulib/config/robot_config.hpp#L1113).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1269`](../../include/shulib/config/robot_config.hpp#L1269).*
 
 <a id="irobotconfig-irobotconfig-2"></a>
 
@@ -1463,7 +1567,7 @@ IRobotConfig(const IRobotConfig&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1115`](../../include/shulib/config/robot_config.hpp#L1115).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1271`](../../include/shulib/config/robot_config.hpp#L1271).*
 
 <a id="irobotconfig-irobotconfig-3"></a>
 
@@ -1475,7 +1579,7 @@ IRobotConfig(IRobotConfig&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1117`](../../include/shulib/config/robot_config.hpp#L1117).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1273`](../../include/shulib/config/robot_config.hpp#L1273).*
 
 <a id="irobotconfig-operator-eq"></a>
 
@@ -1487,7 +1591,7 @@ IRobotConfig& operator=(const IRobotConfig&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1119`](../../include/shulib/config/robot_config.hpp#L1119).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1275`](../../include/shulib/config/robot_config.hpp#L1275).*
 
 <a id="irobotconfig-operator-eq-2"></a>
 
@@ -1499,7 +1603,7 @@ IRobotConfig& operator=(IRobotConfig&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRobotConfig&`/`*` destroys correctly, and DECLARING it suppresses the implicit copy/move, which are re-defaulted below. The base carries no state. Default-constructible: the base has nothing to initialize. Copyable: the base holds no state, so a derived type decides what copying means. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1121`](../../include/shulib/config/robot_config.hpp#L1121).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1277`](../../include/shulib/config/robot_config.hpp#L1277).*
 
 <a id="irobotconfig-config"></a>
 
@@ -1511,7 +1615,7 @@ Polymorphic-base boilerplate: the destructor is virtual so a source held as `IRo
 
 This robot's description. The reference must stay valid for as long as the caller uses it — every implementation in the tree returns a reference to storage it owns, never a temporary.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1125`](../../include/shulib/config/robot_config.hpp#L1125).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1281`](../../include/shulib/config/robot_config.hpp#L1281).*
 
 <a id="class-staticrobotconfig"></a>
 
@@ -1523,7 +1627,7 @@ class StaticRobotConfig final : public IRobotConfig
 
 An `IRobotConfig` over one config held BY VALUE — the implementation a generated header, a hand-typed constant or a card read at boot all end up using. Holding by value rather than by reference is deliberate: a boot sequence that decodes a record into a local and then hands out a reference to it is the dangling-reference bug this type exists to make impossible.
 
-*class, declared at [`include/shulib/config/robot_config.hpp:1132`](../../include/shulib/config/robot_config.hpp#L1132).*
+*class, declared at [`include/shulib/config/robot_config.hpp:1288`](../../include/shulib/config/robot_config.hpp#L1288).*
 
 <a id="staticrobotconfig-staticrobotconfig"></a>
 
@@ -1535,7 +1639,7 @@ explicit StaticRobotConfig(const RobotConfig& cfg) noexcept
 
 Copy `cfg` into this source. The copy is the point; nothing is borrowed.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1135`](../../include/shulib/config/robot_config.hpp#L1135).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1291`](../../include/shulib/config/robot_config.hpp#L1291).*
 
 <a id="staticrobotconfig-config"></a>
 
@@ -1547,7 +1651,7 @@ Copy `cfg` into this source. The copy is the point; nothing is borrowed.
 
 The held config.
 
-*function, declared at [`include/shulib/config/robot_config.hpp:1138`](../../include/shulib/config/robot_config.hpp#L1138).*
+*function, declared at [`include/shulib/config/robot_config.hpp:1294`](../../include/shulib/config/robot_config.hpp#L1294).*
 
 ## Design commentary, from the header
 

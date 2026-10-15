@@ -194,11 +194,13 @@ disable ends driver control and the claw is **still open**.
   same set is refused.
 - **Which level opens the claw is a guess until you press the button.** If the claw closes on the
   first press, the constant is backwards — flip `kClawOpen`, and nothing else.
-- **Two valves in one mechanism move together.** A `PneumaticMechanism` sends one level to all its
-  lines — right for two cylinders that must fire together, wrong for the two coils of a double
-  solenoid, which need opposite levels (not supported yet;
-  [`config::MechanismConfig`](../api/robot_config.md#struct-mechanismconfig) says how it would
-  be). A single valve on ONE 3-wire port is one line, whatever cylinder it drives.
+- **Two valves in one mechanism move together.** The toggle sends one level to all of a
+  `PneumaticMechanism`'s lines — right for two cylinders that must fire together, wrong for the two
+  coils of a double solenoid, which need opposite levels. (Since the mechanism core's first part a
+  mechanism can DESCRIBE such positions — each position states every line's level, and
+  [`config::MechanismConfig`](../api/robot_config.md#struct-mechanismconfig) carries per-line
+  levels — but no driver control drives one yet; the core's later parts do.) A single valve on ONE
+  3-wire port is one line, whatever cylinder it drives.
 - **From a config, the robot builds the claw.** State the mechanism's 3-wire port (A..H, stored as
   1..8), its `pneumaticStart` and its `pneumaticSafe` level, and bind to
   `robot.pneumaticMechanism("claw")`. Making the line sets it to the start level at once, so a claw

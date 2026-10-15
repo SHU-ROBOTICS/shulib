@@ -1,7 +1,8 @@
 # 10 — The API, as prose
 
 > **Covers:** the public operations on `Chassis` you write routines with — what each does, when
-> to use it, what it does when things go wrong, and the gotchas. It is deliberately selective
+> to use it, what it does when things go wrong, and the gotchas — and, since the mechanism core's
+> first part, how a robot's mechanisms are declared and wired (the last section before the gotchas). It is deliberately selective
 > rather than exhaustive: construction and the advanced accessors are covered where they matter
 > and skipped where they do not. The [generated API reference](../api/README.md) is the
 > exhaustive one, and it cannot disagree with the code. Plus typed units, per-call options, and the escape
@@ -25,7 +26,9 @@
 
 The code examples in this chapter are compiled and run in
 [`test/guide_examples_test.cpp`](../../test/guide_examples_test.cpp), cases `guide-10a` through
-`guide-10e`. The authoritative fine print for everything here is the header itself —
+`guide-10e`, and the mechanism section's in
+[`test/mechanism_guide_example_test.cpp`](../../test/mechanism_guide_example_test.cpp), cases
+`guide-10f` through `guide-10h`. The authoritative fine print for everything here is the header itself —
 [`include/shulib/chassis/chassis.hpp`](../../include/shulib/chassis/chassis.hpp) opens with a
 long design commentary that is meant to be read, not skipped.
 
@@ -275,7 +278,9 @@ the loop's re-zero button — which defaults to **L1**, so name another one if a
 With a `robot::Robot`, the mechanisms come from the config: each `config::MechanismConfig` with
 motors states its own cartridge and safe brake mode (neither has a default),
 `Robot::mechanism("…")` finds it by name, and one whose motor is unplugged is reported absent
-rather than stopping the robot. The [cookbook](../cookbook/06-driver-control.md) has the recipe.
+rather than stopping the robot. (Since the mechanism core's first part the Robot also builds each
+mechanism's SENSOR roles — [the section below](#mechanisms--declared-once-wired-separately).) The
+[cookbook](../cookbook/06-driver-control.md) has the recipe.
 Honest status: host-tested only; no driver has used a binding, and whether Hold keeps a loaded
 mechanism up is unmeasured.
 
@@ -388,6 +393,154 @@ in. Two things to know even if you never use it: it's the *same* one-motion-at-a
 verbs use (an async motion and a verb pre-empt each other — that's a feature), and motions built
 from raw materials rather than `chassis.deps()` lose their id stamp in the diagnostics (records
 show `cmd#0`). Until you need it, you don't need it.
+
+## Mechanisms — declared once, wired separately
+
+> **What exists, and what does not yet.** The mechanism core's first part (MECH-A1, 2026-10-08) is
+> the VOCABULARY and the BUILD CHECKS: how a robot file says what each mechanism is and where it is
+> plugged in, what the build refuses, the route ids every mechanism publishes, and the devices the
+> robot builds for every role. Nothing RUNS a mechanism through it yet — the service that runs every
+> mechanism each tick, the auton steps (`r.move(arm["score"], 1.5_s)`) and the driver controls are
+> the core's next parts. Robot two's programs build their claws through it (the Robot builds every
+> role), but the per-role boot lines below are only worded by the library today — the programs first
+> print them in the core's fifth part — and nothing reads a sensor's read-fault count until the
+> service does. **Nothing here has run on a robot.**
+
+A mechanism is written ONCE, as **what it is** — its kind, its motors and which way each is mounted,
+its cartridge, its gearing as tooth counts, what it does when stopped and what a jam looks like, and
+the numbers only you know. There is no port in it. The five kinds are `Arm` (an angle in degrees,
+held), `Lift` (a height in inches, held — a spool, a linkage or a measured table), `Flywheel` (an
+output rpm, "at speed"), `Power` (run at a voltage: an intake, a roller, a claw pivot) and
+`Pneumatic` (two or three named positions, each the line levels you state). One
+`using namespace shulib::mechanism::words;` gives every word (`guide-10f`):
+
+```cpp
+inline constexpr Arm arm{
+    .name = "arm",
+    .motors = {Forward},
+    .cartridge = Green,
+    .gearing = gears(12, 60),         // a 12-tooth gear on the motor drives a 60 on the arm
+    .safe = Hold,
+    .stall = {.amps = 2.0, .belowMotorRpm = 10, .lasting = 0.5_s},
+    .range = {0, 160},                // degrees: down on its stop .. just past vertical
+    .gravity = cosine(1.6_volt, 45),  // 1.6 V holds it out level; it is level at 45 degrees
+    .home = restsAtStop(0),           // it rests on its stop at 0 when the program starts
+    .presets = {{"stow", 0}, {"score", 95}, {"high", 140}},
+};
+```
+
+**The members go in ONE order per kind — C++ requires it** (a designated initializer out of order is
+a plain C++ error): what it IS (name, motors, cartridge, gearing, a lift's shape, a sensor), what it
+does STOPPED (`.safe`, `.stall`), where it GOES (`.range`, `.gravity`, `.home`, `.presets`), then the
+extras (`.unhomedVolts`, `.tuning`). The [generated reference](../api/kinds.md) lists each kind's
+members in that order. The rules that matter most:
+
+- **The gearing is tooth counts, the motor's gear first:** `gears(12, 60)` is five motor turns per
+  output turn; stages multiply (`gears(12, 36) * gears(12, 60)`); `direct` is none. A bare number
+  does not compile — the drive's own geometry states its ratio the other way round, and a bare `5`
+  or `1.0/5` would compile either way and be wrong by 25 times.
+- **An arm's angle is a plain number** (`arm.to(90)`); `90_deg` is a WRAPPING heading (270 reads
+  −90) and does not compile there. A lift's height is inches (`lift.to(18_in)`).
+- **A jam signature is REQUIRED on an `Arm`, a `Lift` and a `Flywheel`** — they keep holding or
+  spinning after their step, and must never sit at stall current — and every signature you write must
+  be able to trip: `.amps` below the motor's 2.5 A current limit (a limited motor never reads more),
+  `.belowMotorRpm` above 0 (a stalled motor still reads a little creep) and `.lasting` above 0 (a motor
+  starting from rest draws stall-grade current with its shaft still). Optional on a `Power`.
+- **Every number you own is yours to state.** A field left out is UNSET and refused at build, by
+  name. The only numbers the library supplies are its STARTING gains, smooth-move speed and "reached"
+  tolerance — derived from your cartridge and gearing, provisional until tuned, and replaced one by
+  one with `.tuning`.
+
+**Where each one is plugged in** is a separate block, one `wire(...)` line per mechanism, in boot
+order — re-cabling changes only these lines. A smart port is a NUMBER and a 3-wire port a LETTER in
+quotes, so the two cannot be confused:
+
+```cpp
+inline constexpr MechanismTable kGuideMechanisms = mechanisms(
+    wire(arm, motors(1)),
+    wire(intake, motors(5), pieceSensor(9)),
+    wire(claw, lines('A')));
+```
+
+Name a robot's list `k<Robot>Mechanisms`; `MechanismTable` is the library's one type for it. (The
+intake and the claw are declared the way the arm is — a `Power` with a `distanceSensor(2_in)`, a
+`Pneumatic` with `{{"closed", {Low}, grabs}, {"open", {High}}}` — and `guide-10f` compiles all three.)
+
+### What the build refuses, and how to read a refusal
+
+The build refuses — each by NAME — a port or a 3-wire port used twice (`smart_port_4_is_used_twice`),
+a number where a letter belongs and the reverse, a motor count that is not the declaration's (and
+more than four motors or two lines), a sensor the declaration has but the wiring leaves unplugged
+(or the reverse), one sensor written twice in a `wire(...)` line, a pneumatic position that states a
+different number of levels than its wiring has lines, a preset past a travel limit, a homing push
+that points away from its home end, a voltage past the motor's 12 V (a homing push, a gravity hold,
+`.unhomedVolts`), a jam signature that could never trip, a missing number, a misspelt preset, and
+every route id the list could not publish (below). The reason is the name of a function GCC refuses
+to call, so a refusal reads like this:
+
+```text
+your_robot.hpp:12:47:   in 'constexpr' expansion of 'shulib::mechanism::mechanisms<...>(...)'
+.../shulib/mechanism/wiring.hpp:...:   in 'constexpr' expansion of '...refuseSmartPortTwice(...)'
+.../shulib/mechanism/wiring.hpp:...: error: call to non-'constexpr' function
+    'void shulib::mechanism::refused::smart_port_4_is_used_twice()'
+```
+
+**Your line is in the first "in 'constexpr' expansion of" note just above it** (for a mistake between
+two `wire(...)` lines — a port twice — that is the list's first line; for a declaration's own mistake,
+its `wire(...)` line). A few slips are refused ON your line (`intake["fast"]` — a power mechanism has
+no presets —, `lift.to(18)`, `.gearing = 5`); a misspelt preset is not one of them: its error is in the
+library, and your line is the expansion note's, as above. Three stay plain C++ errors: `arm.to(90_deg)` ("call to non-'constexpr' function
+operator""_deg"), a run-time value where a constant is checked ("is not a constant expression" — a
+computed target is `arm.clampedTo(x)`, clamped to the limits when it runs), and a misspelt mechanism
+("was not declared in this scope"). Every refusal your robot file can reach has a test that fails to compile on purpose
+(`test/compile_refusals/`).
+
+### Route ids — the actions every mechanism publishes, automatically
+
+Every mechanism's actions are ROUTE IDS a route marker can name, derived from its declaration —
+nobody types one (`guide-10g`): an arm's or a lift's `<name>_<preset>` and `<name>_home`; a
+flywheel's `<name>_<preset>` and `<name>_stop`; a power mechanism's `<name>_run`, `<name>_until_piece`
+and `<name>_until_gone` (with a piece sensor) and `<name>_stop`; a pneumatic's `<name>_<position>`.
+The name is lower-cased and every run of other characters becomes one `_` ("claw pivot 6" →
+`claw_pivot_6`). The list above publishes `arm_stow`, `arm_score`, `arm_high`, `arm_home`,
+`intake_run`, `intake_until_piece`, `intake_until_gone`, `intake_stop`, `claw_closed` and `claw_open`.
+An id longer than 23 characters, two ids alike (a preset named `home` beside a homing method), an id
+that is one of the library's own (`wait_ms`, `brake`, `hold_ms`, `log`) and more than 32 ids are each
+refused at the list. (Running a marker's id is the core's later part.)
+
+### At boot — every role built, one line each
+
+The robot builds every ROLE a mechanism declares through its device provider (the provider is the
+kind check: a port holding the wrong device is refused, naming what it found), and
+`mechanism::roleLine()` words one boot line per role (`guide-10h`). Robot two's programs already build
+their claws this way (the Robot does it for them) but do not print these lines yet — that starts in
+the core's fifth part:
+
+```text
+arm: motor 1 -> port 1 ok
+intake: piece sensor -> port 9 MISSING, it runs WITHOUT it: port 9 has no distance sensor
+claw: line 1 -> 3-wire A not checkable (the brain cannot see a 3-wire device)
+```
+
+A missing or wrong-kind MOTOR, line or ANGLE sensor makes that mechanism ABSENT — nothing commands
+it, and the robot still drives. A missing PIECE sensor leaves the mechanism running WITHOUT one. A
+3-wire role is always "not checkable": the brain cannot see a switch or a solenoid. Two cables of the
+SAME kind swapped between mechanisms look fine at boot — that is the bench page's direction check
+(the core's last part). Beside each piece sensor and home switch the provider also answers its
+READ-FAULT count (`hal::IReadFaults`, through `readFaults(port)` / `lineReadFaults(line)`): a sensor
+whose read fails is answered with its last good value, and a distance sensor held from a far reading
+is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
+the core's service (its next part) never takes a held value for evidence; nothing reads it yet.
+
+At run time `config::RobotConfig::valid()` owns every port collision — now including each
+mechanism's sensor ports and switch lines — against the drivetrain the boot actually chose, so a
+calibration record that drives a mechanism sensor's port is refused naming both
+("port 9 is claimed by the LEFT drive and by a mechanism sensor").
+
+**Hardware beliefs this rests on, unmeasured:** that a limit switch reads 1 when pressed and an
+unplugged switch line reads released (the Hardware Assumptions Register's HA-184), and that a V5
+rotation sensor starts at its shaft's absolute angle at power-up (HA-186). Both are settled at the
+bench page.
 
 ## Gotchas, collected
 

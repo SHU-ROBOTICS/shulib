@@ -59,6 +59,10 @@
   left of the target heading (tank only, since API 2.3). [Ch. 11]
 - **dead reckoning** — estimating position purely by accumulating your own measured movement,
   with no external reference (the `DR` flag). [Ch. 3]
+- **declaration (a mechanism's)** — what a mechanism IS, written once in the robot file
+  (`inline constexpr Arm arm{...}`): its kind, its motors and which way each is mounted, its numbers —
+  never a port (that is the *wiring*). The same declaration is the handle an auton names
+  (`arm["score"]`), checked at build. [Ch. 10]
 - **desaturation** — uniformly scaling down a command that asks more than the wheels can give,
   preserving its direction. [Ch. 4]
 - **doctest** — the test framework the suite is written in. [Ch. 7]
@@ -115,9 +119,10 @@
   the estimator is sure of itself and nothing at all when it has been driving blind. The Kalman
   tier refuses anything past three. [Ch. 3, Ch. 11]
 - **mechanism** — anything on the robot that is not the drivetrain (an intake, a lift, a clamp),
-  behind a seam with one required verb: go to your safe state. The library ships the grammar for
-  commanding and confirming them, never a named `Intake` or `Lift` — those change every season
-  and are yours to write. [Ch. 13]
+  behind a seam with one required verb: go to your safe state. The library ships five generic KINDS
+  you declare yours with (`Arm`, `Lift`, `Flywheel`, `Power`, `Pneumatic`) and the grammar for
+  commanding and confirming them — never a season's mechanism: what your robot has, and what you
+  call it, is yours to write. [Ch. 10, Ch. 13]
 - **declared safe state** — what a given mechanism does when a run ends or is cancelled, stated
   per mechanism rather than assumed. A lift holds; an intake coasts; a clamp that has
   successfully grabbed *keeps holding*, because a clamp whose safe state were "open" would fling
@@ -126,6 +131,8 @@
   antidote to tests that pass no matter what. [Ch. 13]
 - **NaN ("not a number")** — the poison value floating-point math produces from impossible
   operations; guarded against at boundaries. [Ch. 6]
+- **not checkable** — the boot line of a 3-wire role (a switch, a solenoid's line): the brain cannot
+  see a 3-wire device, so the role is made and reported, never verified. [Ch. 10]
 - **odometry** — tracking position by accumulating wheel-measured movement each tick. [Ch. 3]
 - **omniwheel** — a wheel with rollers around its rim, so it can slide freely along its axle
   direction; what makes X-drives possible. [Ch. 4]
@@ -137,6 +144,9 @@
   step physics; robot: wait for the next tick). [Ch. 8]
 - **PID (proportional–integral–derivative)** — the classic feedback strategy: push
   proportionally to error, lean on stubborn leftovers, brake early on fast approaches. [Ch. 5]
+- **piece sensor** — a mechanism's sensor for "is a game piece here": a distance sensor (closer than
+  its threshold), an optical sensor (its proximity) or a limit switch. One that is missing at boot
+  leaves its mechanism running without it. [Ch. 10]
 - **plant** — control-engineering jargon for "the thing being controlled"; here, the simulated
   robot's physics. [Ch. 7]
 - **PnP (perspective-n-point)** — the geometry that turns a marker's corners in an image back
@@ -157,11 +167,21 @@
   consequences. [Ch. 3]
 - **rate limiting** — capping diagnostic output volume, with every dropped line counted and
   announced. [Ch. 11]
+- **read fault** — a sensor read the adapter screened because the device failed, answering with
+  its last good value instead; counted (`IReadFaults`), so that a reader — the mechanism core's
+  service, its next part — can tell a held value from a measured one. [Ch. 10]
 - **recipe** — a routine written as a `Routine` chain of steps that runs in exactly the order
   it reads and stops (parking the robot) at the first failed step. [Ch. 9]
 - **result line** — the one-line verdict each motion leaves in the transcript. [Ch. 11]
 - **robot-relative (Body frame)** — directions fixed to the robot ("forward" = wherever its
   front points right now). [Ch. 2]
+- **role (a mechanism's)** — one part a mechanism declares: a motor ("motor 1"), a 3-wire line, an
+  angle sensor, a home switch, a piece sensor. The declaration states the roles, the wiring their
+  ports, and each gets one boot line. [Ch. 10]
+- **route id** — the word a route marker names to make the robot do something at a waypoint. Every
+  mechanism publishes its actions as route ids automatically, derived from its declaration
+  (`arm_score`, `intake_until_piece`, `claw_closed`); one that would not fit, would repeat or is the
+  library's own is refused at build. [Ch. 10]
 - **routine** — the function encoding one autonomous plan as a sequence of commands. [Ch. 8]
 - **run guard** — a wrapper around the tick pacer that gives a whole routine a hard deadline: it
   cuts the active motion at the instant you name, *refuses* every motion started after it, and
@@ -235,4 +255,7 @@
 - **watchdog** — the per-motion timer guaranteeing no motion can run (or block) forever.
   [Ch. 5]
 - **waypoint** — one target pose in a trajectory. [Ch. 10]
+- **wiring (a robot's)** — the block of the robot file saying which port each mechanism's roles are
+  plugged into, one `wire(...)` line per mechanism; re-cabling changes only these lines. A smart
+  port is a number, a 3-wire port a letter in quotes, and each role is written once. [Ch. 10]
 - **X-drive** — four omniwheels at 45°; fully holonomic, strafes as fast as it drives. [Ch. 4]

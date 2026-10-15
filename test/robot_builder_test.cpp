@@ -1795,6 +1795,16 @@ TEST_CASE("T3 builder M5: a provider that refuses a claw motor WITHOUT a reason 
         [[nodiscard]] shulib::hal::IDigitalOut* digitalOut(std::uint8_t line, bool initial) override {
             return inner->digitalOut(line, initial);
         }
+        // MECH-A1: the mechanism sensors and their read-fault counts, forwarded.
+        [[nodiscard]] shulib::hal::IDistance* distance(std::uint8_t p) override { return inner->distance(p); }
+        [[nodiscard]] shulib::hal::IOptical* optical(std::uint8_t p) override { return inner->optical(p); }
+        [[nodiscard]] shulib::hal::IDigitalIn* digitalIn(std::uint8_t l) override { return inner->digitalIn(l); }
+        [[nodiscard]] const shulib::hal::IReadFaults* readFaults(std::uint8_t p) const noexcept override {
+            return inner->readFaults(p);
+        }
+        [[nodiscard]] const shulib::hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
+            return inner->lineReadFaults(l);
+        }
         [[nodiscard]] shulib::hal::IClock& clock() override { return inner->clock(); }
         [[nodiscard]] shulib::hal::IBattery& battery() override { return inner->battery(); }
         [[nodiscard]] shulib::hal::ITelemetrySink& telemetry() override {
@@ -2172,6 +2182,18 @@ TEST_CASE("B2 builder P2: a 3-wire line the provider refuses leaves THAT mechani
             }
             [[nodiscard]] shulib::hal::IDigitalOut* digitalOut(std::uint8_t, bool) override {
                 return nullptr;
+            }
+            // MECH-A1: the mechanism sensors and their read-fault counts, forwarded.
+            [[nodiscard]] shulib::hal::IDistance* distance(std::uint8_t p) override { return inner->distance(p); }
+            [[nodiscard]] shulib::hal::IOptical* optical(std::uint8_t p) override { return inner->optical(p); }
+            [[nodiscard]] shulib::hal::IDigitalIn* digitalIn(std::uint8_t l) override {
+                return inner->digitalIn(l);
+            }
+            [[nodiscard]] const shulib::hal::IReadFaults* readFaults(std::uint8_t p) const noexcept override {
+                return inner->readFaults(p);
+            }
+            [[nodiscard]] const shulib::hal::IReadFaults* lineReadFaults(std::uint8_t l) const noexcept override {
+                return inner->lineReadFaults(l);
             }
             [[nodiscard]] shulib::hal::IClock& clock() override { return inner->clock(); }
             [[nodiscard]] shulib::hal::IBattery& battery() override { return inner->battery(); }

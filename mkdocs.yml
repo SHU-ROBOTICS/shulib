@@ -272,6 +272,7 @@ nav:
           - Null sink: api/null_sink.md
           - Optical: api/optical.md
           - Optical conversion: api/optical_conversion.md
+          - Read faults: api/read_faults.md
           - Rotation: api/rotation.md
           - Rotation conversion: api/rotation_conversion.md
           - Telemetry sink: api/telemetry_sink.md
@@ -321,7 +322,14 @@ nav:
       - Config:
           - Robot config: api/robot_config.md
           - Route: api/route.md
+      - Mechanism:
+          - Devices: api/devices.md
+          - Kinds: api/kinds.md
+          - Route ids: api/route_ids.md
+          - Spec: api/spec.md
+          - Wiring: api/wiring.md
       - Robot:
+          - Mechanism parts: api/mechanism_parts.md
           - Robot: api/robot.md
       - Runner:
           - Command registry: api/command_registry.md

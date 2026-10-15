@@ -1,0 +1,10 @@
+// n63_route_ids_too_many: five arms of six presets: 35 route ids, more than a route registry holds (32).
+// Generated with the MECH-A1 harness; run_refusal.py judges it (CMakeLists.txt beside it).
+#include "refusal_common.hpp"
+inline constexpr Arm a0{.name = "a0", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0), .presets = {{"p1", 1}, {"p2", 2}, {"p3", 3}, {"p4", 4}, {"p5", 5}, {"p6", 6}}};
+inline constexpr Arm a1{.name = "a1", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0), .presets = {{"p1", 1}, {"p2", 2}, {"p3", 3}, {"p4", 4}, {"p5", 5}, {"p6", 6}}};
+inline constexpr Arm a2{.name = "a2", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0), .presets = {{"p1", 1}, {"p2", 2}, {"p3", 3}, {"p4", 4}, {"p5", 5}, {"p6", 6}}};
+inline constexpr Arm a3{.name = "a3", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0), .presets = {{"p1", 1}, {"p2", 2}, {"p3", 3}, {"p4", 4}, {"p5", 5}, {"p6", 6}}};
+inline constexpr Arm a4{.name = "a4", .motors = {Forward}, .cartridge = Green, .gearing = gears(12, 60), .safe = Hold, .stall = {.amps = 2.0, .belowMotorRpm = 5, .lasting = 0.5_s}, .range = {0, 160}, .gravity = noGravity, .home = restsAtStop(0), .presets = {{"p1", 1}, {"p2", 2}, {"p3", 3}, {"p4", 4}, {"p5", 5}, {"p6", 6}}};
+inline constexpr MechanismTable m = mechanisms(wire(a0, motors(1)), wire(a1, motors(2)), wire(a2, motors(3)), wire(a3, motors(4)), wire(a4, motors(5)));
+// expect: more_route_ids_than_a_route_registry_holds_32

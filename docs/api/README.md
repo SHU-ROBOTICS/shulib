@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 3,663 of them across 170 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 4,503 of them across 177 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -191,6 +191,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Null sink](null_sink.md) | [`hal/null_sink.hpp`](../../include/shulib/hal/null_sink.hpp) | NullSink — the zero-cost default ITelemetrySink (§18.1). |
 | [Optical](optical.md) | [`hal/optical.hpp`](../../include/shulib/hal/optical.hpp) | IOptical — a color / optical sensor (pros::Optical) behind the HAL. |
 | [Optical conversion](optical_conversion.md) | [`hal/optical_conversion.hpp`](../../include/shulib/hal/optical_conversion.hpp) | Optical-sensor canonical conversions — the ONE place the V5 optical sensor's raw channels become shulib's canonical ranges (§7: "convert exactly once, at the edge"). |
+| [Read faults](read_faults.md) | [`hal/read_faults.hpp`](../../include/shulib/hal/read_faults.hpp) | IReadFaults — how many reads a SENSOR ADAPTER has SCREENED. |
 | [Rotation](rotation.md) | [`hal/rotation.hpp`](../../include/shulib/hal/rotation.hpp) | IRotation — a rotation / tracking-wheel sensor (pros::Rotation) behind the HAL. |
 | [Rotation conversion](rotation_conversion.md) | [`hal/rotation_conversion.hpp`](../../include/shulib/hal/rotation_conversion.hpp) | Rotation-sensor canonical conversions — the ONE place the V5 rotation sensor's centidegrees become shulib's canonical radians (§7: "convert exactly once, at the edge"). |
 | [Telemetry sink](telemetry_sink.md) | [`hal/telemetry_sink.hpp`](../../include/shulib/hal/telemetry_sink.hpp) | ITelemetrySink — the diagnostics output seam. |
@@ -269,10 +270,21 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Robot config](robot_config.md) | [`config/robot_config.hpp`](../../include/shulib/config/robot_config.hpp) | RobotConfig — a whole robot, described as DATA. |
 | [Route](route.md) | [`config/route.hpp`](../../include/shulib/config/route.hpp) | Route — an autonomous routine as DATA. |
 
+### Mechanism
+
+| Page | Header | What it is |
+|---|---|---|
+| [Devices](devices.md) | [`mechanism/devices.hpp`](../../include/shulib/mechanism/devices.hpp) | mechanism/devices.hpp — the DEVICES one mechanism was built over, and what the build found for each of its ROLES. |
+| [Kinds](kinds.md) | [`mechanism/kinds.hpp`](../../include/shulib/mechanism/kinds.hpp) | mechanism/kinds.hpp — WHAT A MECHANISM IS, the way a team writes it. |
+| [Route ids](route_ids.md) | [`mechanism/route_ids.hpp`](../../include/shulib/mechanism/route_ids.hpp) | mechanism/route_ids.hpp — EVERY MECHANISM'S ACTIONS AS ROUTE IDS, automatically (the mechanism core, chunk MECH-A1, 2026-10-08; the team lead's ruling of 2026-10-08, MECH-PANEL-requirements §4 item 7b: "an arm's presets as arm_stow, arm_score; an intake's i… |
+| [Spec](spec.md) | [`mechanism/spec.hpp`](../../include/shulib/mechanism/spec.hpp) | mechanism/spec.hpp — ONE MECHANISM AS DATA, and THE BUILD CHECK. |
+| [Wiring](wiring.md) | [`mechanism/wiring.hpp`](../../include/shulib/mechanism/wiring.hpp) | mechanism/wiring.hpp — THE BINDING (the mechanism core, chunk MECH-A1, 2026-10-08): which port each ROLE is plugged into, a block of the robot file SEPARATE from the declarations, compiled in (P2; the team lead's Q1 (a): the binding lives only in the robot… |
+
 ### Robot
 
 | Page | Header | What it is |
 |---|---|---|
+| [Mechanism parts](mechanism_parts.md) | [`robot/mechanism_parts.hpp`](../../include/shulib/robot/mechanism_parts.hpp) | robot::MechanismParts — every ROLE of every mechanism, built from the config over a device provider. |
 | [Robot](robot.md) | [`robot/robot.hpp`](../../include/shulib/robot/robot.hpp) | robot::Robot — a config::RobotConfig, wired. |
 
 ### Runner
@@ -307,7 +319,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 3,663 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 4,503 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

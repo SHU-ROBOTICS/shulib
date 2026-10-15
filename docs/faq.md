@@ -19,7 +19,10 @@ infinity). The `hal/pros` adapters screen every read **before** any conversion:
   estimator dead-reckons past the gap. That path is exercised millions of times in the host
   suite.
 - **Sensors without one** (motors, rotation sensors, the battery) hold their **last good
-  value** and count the screened reads (each adapter's `faultedReads()`). Deliberately NOT
+  value** and count the screened reads (each adapter's `faultedReads()`; for the distance and
+  optical sensors and a 3-wire input, also through `hal::IReadFaults` since the mechanism core's
+  first part, so that its service — the core's next part — never takes a held value for a fresh
+  one; nothing reads that count yet). Deliberately NOT
   zero: a zeroed encoder reads as "the robot stopped", which is exactly the lie that makes a
   dead-encoder runaway invisible — a *frozen* value is what the health layer's
   wheels-spin-but-no-motion cross-check is designed to catch, raising `ODO_STUCK` and (by

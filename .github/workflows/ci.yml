@@ -2,7 +2,10 @@ name: ci
 
 # Host-side verification of the PROS-free core, plus the ARM gate.
 # Runs the same checks we run locally: the architecture guards, the strict host
-# build, the test suite, (since chunk A4) a cross-COMPILE of every v2 header for
+# build, the test suite, (since chunk MECH-A1) the compile-refusal harness — every
+# build-time refusal of the mechanism core a robot file can reach must fail to
+# compile, naming its reason —,
+# (since chunk A4) a cross-COMPILE of every v2 header for
 # the V5's Cortex-A9, and (since chunk GATE1) the REAL on-robot BUILD — compile
 # AND link, every build (seven since T4 Part 3 retired the tank library program:
 # three robot variants and the tank drive/calibrate/autontest/competition
@@ -100,6 +103,28 @@ jobs:
 
       - name: Run tests
         run: ./build/test/shulib_tests
+
+      # THE COMPILE-REFUSAL HARNESS (chunk MECH-A1, 2026-10-08; the MECH brief's §3.0). The
+      # mechanism core refuses a robot file's mistakes AT BUILD, each by name; a refusal no test can
+      # see is one a mutation can delete. Every one a robot file can reach (all but the two "used
+      # twice" fallbacks in mechanism/wiring.hpp, which no list can) has a translation unit in
+      # test/compile_refusals/ that must FAIL to compile and name its reason
+      # (test/compile_refusals/run_refusal.py judges it, matching the reason in a diagnostic's
+      # MESSAGE, never a path); four self-tests prove the judge cannot be fooled (a TU that
+      # compiles, the wrong reason, the reason only in a file name, the wrong line). The TUs are
+      # EXCLUDE_FROM_ALL object targets, so the build above never compiles them — this step does,
+      # one at a time (they share a lock on the build tree).
+      # A DETACHED harness must not pass (MECH-A1's review): with no test matching, ctest prints "No
+      # tests were found!!!" and exits 0 — so --no-tests=error, and the number of compile_refusal
+      # CTests must EQUAL the number of TUs in test/compile_refusals/ (a dropped add_subdirectory, a
+      # broken glob or a renamed test all fail here).
+      - name: Compile refusals (every build-time refusal names its reason)
+        run: |
+          ctest --test-dir build/test -R compile_refusal --no-tests=error --output-on-failure
+          tus=$(ls test/compile_refusals/*.cpp | wc -l)
+          tests=$(ctest --test-dir build/test -N -R compile_refusal | sed -n 's/^Total Tests: //p')
+          echo "compile-refusal TUs: $tus; their CTests: $tests"
+          test "$tests" -eq "$tus"
 
   # ARM GATE (chunk A4: every v2 header; widened at chunk GATE1: the real src/
   # build). The v2 core was verified to cross-compile clean for the V5's Cortex-A9

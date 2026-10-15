@@ -8,7 +8,7 @@
 
 IDeviceProvider — devices BY PORT, and the one target-specific seam a builder needs.
 
-This header declares **1** type (16 members) and **1** constant.
+This header declares **1** type (21 members) and **1** constant.
 
 Extracted from [`include/shulib/hal/device_provider.hpp`](../../include/shulib/hal/device_provider.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -27,6 +27,11 @@ Extracted from [`include/shulib/hal/device_provider.hpp`](../../include/shulib/h
   - [`gps`](#ideviceprovider-gps)
   - [`rotation`](#ideviceprovider-rotation)
   - [`digitalOut`](#ideviceprovider-digitalout)
+  - [`distance`](#ideviceprovider-distance)
+  - [`optical`](#ideviceprovider-optical)
+  - [`digitalIn`](#ideviceprovider-digitalin)
+  - [`readFaults`](#ideviceprovider-readfaults)
+  - [`lineReadFaults`](#ideviceprovider-linereadfaults)
   - [`clock`](#ideviceprovider-clock)
   - [`battery`](#ideviceprovider-battery)
   - [`telemetry`](#ideviceprovider-telemetry)
@@ -43,7 +48,7 @@ inline constexpr std::uint8_t kBrainAdiLines = 8
 
 The brain's own 3-wire (ADI) ports, lettered A..H on the brain and numbered 1..8 on this seam (A = 1). An expander's lines are not on the seam.
 
-*constant, declared at [`include/shulib/hal/device_provider.hpp:91`](../../include/shulib/hal/device_provider.hpp#L91).*
+*constant, declared at [`include/shulib/hal/device_provider.hpp:108`](../../include/shulib/hal/device_provider.hpp#L108).*
 
 <a id="class-ideviceprovider"></a>
 
@@ -55,7 +60,7 @@ class IDeviceProvider
 
 Devices by port, made or looked up on demand and owned by the provider (ruling B2).  The per-port accessors are NOT const: obtaining a device may construct one, and the provider is the object that then owns it. They are also not `noexcept` by declaration — an implementation is free to be, and both shipped ones are — because refusing to construct is spelled as a nullptr return rather than as an exception, and pinning `noexcept` on the interface would forbid an implementation that legitimately allocates its storage lazily.
 
-*class, declared at [`include/shulib/hal/device_provider.hpp:100`](../../include/shulib/hal/device_provider.hpp#L100).*
+*class, declared at [`include/shulib/hal/device_provider.hpp:117`](../../include/shulib/hal/device_provider.hpp#L117).*
 
 <a id="ideviceprovider-destructor-ideviceprovider"></a>
 
@@ -67,7 +72,7 @@ virtual ~IDeviceProvider() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at).
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:107`](../../include/shulib/hal/device_provider.hpp#L107).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:124`](../../include/shulib/hal/device_provider.hpp#L124).*
 
 <a id="ideviceprovider-ideviceprovider"></a>
 
@@ -79,7 +84,7 @@ IDeviceProvider() = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:109`](../../include/shulib/hal/device_provider.hpp#L109).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:126`](../../include/shulib/hal/device_provider.hpp#L126).*
 
 <a id="ideviceprovider-ideviceprovider-2"></a>
 
@@ -91,7 +96,7 @@ IDeviceProvider(const IDeviceProvider&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:111`](../../include/shulib/hal/device_provider.hpp#L111).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:128`](../../include/shulib/hal/device_provider.hpp#L128).*
 
 <a id="ideviceprovider-ideviceprovider-3"></a>
 
@@ -103,7 +108,7 @@ IDeviceProvider(IDeviceProvider&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:113`](../../include/shulib/hal/device_provider.hpp#L113).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:130`](../../include/shulib/hal/device_provider.hpp#L130).*
 
 <a id="ideviceprovider-operator-eq"></a>
 
@@ -115,7 +120,7 @@ IDeviceProvider& operator=(const IDeviceProvider&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:115`](../../include/shulib/hal/device_provider.hpp#L115).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:132`](../../include/shulib/hal/device_provider.hpp#L132).*
 
 <a id="ideviceprovider-operator-eq-2"></a>
 
@@ -127,7 +132,7 @@ IDeviceProvider& operator=(IDeviceProvider&&) = default
 
 Polymorphic-base boilerplate: the destructor is virtual so a provider held as `IDeviceProvider&`/`*` destroys correctly — and destroying it destroys every device it made, which is why it must outlive every graph built from it. Declaring the destructor suppresses the implicit copy/move, which are re-defaulted below; a CONCRETE provider is normally non-copyable for the same reason a graph is (its devices are pointed at). Default-constructible: the base has nothing to initialize. Copyable at the base, because the base holds no state; concrete providers decide. Movable, same reasoning as the copy constructor. Copy-assignable, same reasoning. Move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:117`](../../include/shulib/hal/device_provider.hpp#L117).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:134`](../../include/shulib/hal/device_provider.hpp#L134).*
 
 <a id="ideviceprovider-motor"></a>
 
@@ -139,7 +144,7 @@ Polymorphic-base boilerplate: the destructor is virtual so a provider held as `I
 
 The motor on `signedPort` — |p| in 1..kMaxSmartPorts, SIGN = the PROS reversal, handed over AS STORED so the sign is applied exactly once, in the adapter (the one-place-for-a- sign rule that hal/motor_group.hpp and hal/drivetrain_description.hpp both state). `cartridge` is the human-stated gearset. Returns nullptr and sets lastRefusal() when the port is out of range, empty, or carries something that is not a motor. Idempotent: the same port yields the same object.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:125`](../../include/shulib/hal/device_provider.hpp#L125).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:142`](../../include/shulib/hal/device_provider.hpp#L142).*
 
 <a id="ideviceprovider-imu"></a>
 
@@ -151,7 +156,7 @@ The motor on `signedPort` — |p| in 1..kMaxSmartPorts, SIGN = the PROS reversal
 
 The inertial sensor on physical `port`, 1..kMaxSmartPorts. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:129`](../../include/shulib/hal/device_provider.hpp#L129).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:146`](../../include/shulib/hal/device_provider.hpp#L146).*
 
 <a id="ideviceprovider-gps"></a>
 
@@ -163,7 +168,7 @@ The inertial sensor on physical `port`, 1..kMaxSmartPorts. Returns nullptr + a r
 
 The GPS on physical `port`, with its lever arm from the robot centre (`leverArmForward` is the +X body coordinate, `leverArmLeft` the +Y). The lever arm is a CONSTRUCTION argument rather than a later setter because the adapter removes it at the HAL edge, once, and a GPS that has already been read with the wrong arm has already lied. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:136`](../../include/shulib/hal/device_provider.hpp#L136).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:153`](../../include/shulib/hal/device_provider.hpp#L153).*
 
 <a id="ideviceprovider-rotation"></a>
 
@@ -175,7 +180,7 @@ The GPS on physical `port`, with its lever arm from the robot centre (`leverArmF
 
 The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's encoder. Returns nullptr + a refusal on a port that cannot serve one. Idempotent.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:141`](../../include/shulib/hal/device_provider.hpp#L141).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:158`](../../include/shulib/hal/device_provider.hpp#L158).*
 
 <a id="ideviceprovider-digitalout"></a>
 
@@ -185,9 +190,69 @@ The rotation sensor on physical `port`, 1..kMaxSmartPorts — a tracking wheel's
 [[nodiscard]] virtual IDigitalOut* digitalOut(std::uint8_t line, bool initialState) = 0
 ```
 
-The digital output on the brain's 3-wire port `line`, 1..kBrainAdiLines (= A..H; a letter byte such as 'A' is NOT translated — state the number) — a pneumatic solenoid's line. MAKING ONE DRIVES IT: the line is set to `initialState` the moment it is made (on a brain, inside `pros::adi::DigitalOut`'s constructor — A4 register HA-119), so the level is STATED here, never defaulted: state what the mechanism must be at program start. Returns nullptr and sets lastRefusal() for a line outside 1..8. Idempotent: the same line yields the same object, driven only when it was MADE — a later request drives nothing. PRECONDITION: a later request for a made line states the SAME `initialState` (one line, one configuration — two parts of a program disagreeing about a line's boot level is not a wiring fault). Nothing can refuse an EMPTY line: the brain's registry cannot see a solenoid (header; HA-158). Added in T3's addendum B2 (2026-09-26); every implementer must answer it.
+The digital output on the brain's 3-wire port `line`, 1..kBrainAdiLines (= A..H; a letter byte such as 'A' is NOT translated — state the number) — a pneumatic solenoid's line. MAKING ONE DRIVES IT: the line is set to `initialState` the moment it is made (on a brain, inside `pros::adi::DigitalOut`'s constructor — A4 register HA-119), so the level is STATED here, never defaulted: state what the mechanism must be at program start. Returns nullptr and sets lastRefusal() for a line outside 1..8. Idempotent: the same line yields the same object, driven only when it was MADE — a later request drives nothing. PRECONDITION: a later request for a made line states the SAME `initialState` (one line, one configuration — two parts of a program disagreeing about a line's boot level is not a wiring fault). Nothing can refuse an EMPTY line: the brain's registry cannot see a solenoid (header; HA-158). PRECONDITION (since MECH-A1): the line was not made as a digitalIn() — one line, one direction. Added in T3's addendum B2 (2026-09-26); every implementer must answer it.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:154`](../../include/shulib/hal/device_provider.hpp#L154).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:172`](../../include/shulib/hal/device_provider.hpp#L172).*
+
+<a id="ideviceprovider-distance"></a>
+
+### `IDeviceProvider::distance`
+
+```cpp
+[[nodiscard]] virtual IDistance* distance(std::uint8_t port) = 0
+```
+
+The DISTANCE sensor on physical `port`, 1..kMaxSmartPorts — a mechanism's piece sensor (MECH-A1). Returns nullptr and sets lastRefusal() when the port is out of range, empty, or carries something else. Idempotent: the same port yields the same object. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:178`](../../include/shulib/hal/device_provider.hpp#L178).*
+
+<a id="ideviceprovider-optical"></a>
+
+### `IDeviceProvider::optical`
+
+```cpp
+[[nodiscard]] virtual IOptical* optical(std::uint8_t port) = 0
+```
+
+The OPTICAL sensor on physical `port`, 1..kMaxSmartPorts — a mechanism's piece sensor (MECH-A1). nullptr + a refusal on a port that cannot serve one. Idempotent. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:183`](../../include/shulib/hal/device_provider.hpp#L183).*
+
+<a id="ideviceprovider-digitalin"></a>
+
+### `IDeviceProvider::digitalIn`
+
+```cpp
+[[nodiscard]] virtual IDigitalIn* digitalIn(std::uint8_t line) = 0
+```
+
+The digital INPUT on the brain's 3-wire port `line`, 1..kBrainAdiLines (A = 1) — a limit switch (MECH-A1). Reading one drives nothing, and making one drives nothing. nullptr + a refusal ONLY for a line outside 1..8 on the brain: its registry cannot see a 3-wire device (header; HA-158), so an in-range line is always made. PRECONDITION: the line was not made as a digitalOut() (one line, one direction — and digitalOut() states the converse). Idempotent.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:190`](../../include/shulib/hal/device_provider.hpp#L190).*
+
+<a id="ideviceprovider-readfaults"></a>
+
+### `IDeviceProvider::readFaults`
+
+```cpp
+[[nodiscard]] virtual const IReadFaults* readFaults(std::uint8_t port) const noexcept = 0
+```
+
+The READ-FAULT count of the piece sensor this provider made on smart `port` with distance() or optical() — how a consumer tells a HELD value from a measured one (hal/read_faults.hpp). nullptr when no such sensor was made there, or when this provider's sensors never screen a read. Never makes anything. Every implementer must answer it (header).
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:196`](../../include/shulib/hal/device_provider.hpp#L196).*
+
+<a id="ideviceprovider-linereadfaults"></a>
+
+### `IDeviceProvider::lineReadFaults`
+
+```cpp
+[[nodiscard]] virtual const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept = 0
+```
+
+The READ-FAULT count of the digital input this provider made on 3-wire `line` with digitalIn(); nullptr when none was made there (or it never screens a read). Never makes anything. Every implementer must answer it.
+
+*function, declared at [`include/shulib/hal/device_provider.hpp:201`](../../include/shulib/hal/device_provider.hpp#L201).*
 
 <a id="ideviceprovider-clock"></a>
 
@@ -199,7 +264,7 @@ The digital output on the brain's 3-wire port `line`, 1..kBrainAdiLines (= A..H;
 
 The run's clock. PORT-LESS and never refused: every target has one, and a robot without a clock cannot report that it has no clock.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:158`](../../include/shulib/hal/device_provider.hpp#L158).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:205`](../../include/shulib/hal/device_provider.hpp#L205).*
 
 <a id="ideviceprovider-battery"></a>
 
@@ -211,7 +276,7 @@ The run's clock. PORT-LESS and never refused: every target has one, and a robot 
 
 The battery. Port-less and never refused, same reasoning as the clock.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:161`](../../include/shulib/hal/device_provider.hpp#L161).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:208`](../../include/shulib/hal/device_provider.hpp#L208).*
 
 <a id="ideviceprovider-telemetry"></a>
 
@@ -223,7 +288,7 @@ The battery. Port-less and never refused, same reasoning as the clock.
 
 The one diagnostics sink for this robot. Port-less and never refused: a NullSink is a valid answer and is what "telemetry is off" means, so there is nothing to refuse.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:165`](../../include/shulib/hal/device_provider.hpp#L165).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:212`](../../include/shulib/hal/device_provider.hpp#L212).*
 
 <a id="ideviceprovider-pacer"></a>
 
@@ -235,7 +300,7 @@ The one diagnostics sink for this robot. Port-less and never refused: a NullSink
 
 The tick pacer — how the world advances during a blocking verb. Port-less and never refused. See the header note on the forward declaration.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:169`](../../include/shulib/hal/device_provider.hpp#L169).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:216`](../../include/shulib/hal/device_provider.hpp#L216).*
 
 <a id="ideviceprovider-lastrefusal"></a>
 
@@ -247,14 +312,14 @@ The tick pacer — how the world advances during a blocking verb. Port-less and 
 
 Why the most recent device request returned nullptr, naming the PORT. The empty string when nothing has been refused. The returned pointer is owned by the provider and stays valid until the next refusal, which is enough for a builder that reads it immediately and copies it into a verdict.
 
-*function, declared at [`include/shulib/hal/device_provider.hpp:175`](../../include/shulib/hal/device_provider.hpp#L175).*
+*function, declared at [`include/shulib/hal/device_provider.hpp:222`](../../include/shulib/hal/device_provider.hpp#L222).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 65 lines, click to expand</summary>
+<summary>The header’s own reasoning — 78 lines, click to expand</summary>
 
 ```text
 
@@ -305,6 +370,19 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  (A4 register HA-158; hal/digital_out.hpp's no-validity note). So digitalOut() can refuse only a
  line that is not one of the eight — on the brain nothing can tell it a solenoid is missing. And
  MAKING a line DRIVES it (HA-119), which is why the line's level is an argument of the request.
+
+ ── THE MECHANISM SENSORS, and their READ-FAULT counts (chunk MECH-A1, 2026-10-08) ──────
+ The mechanism core builds every ROLE a mechanism declares (robot/mechanism_parts.hpp): its
+ motors or lines as before, and now its sensors — a rotation sensor as its angle sensor (the
+ existing rotation()), a distance or an optical sensor as its PIECE sensor (distance(), optical()),
+ and a limit switch on a 3-wire line (digitalIn()). A smart sensor is refused like any port device
+ (on the brain: the registry's kind answer, HA-141); a 3-wire INPUT, like an output, is refused only
+ outside 1..8 (HA-158) — and one line is ONE direction: asking for a line as an input after it was
+ made an output, or the reverse, is a precondition (two parts of a program disagreeing about one
+ wire). Beside each piece sensor and switch the provider answers its READ-FAULT count
+ (readFaults(port), lineReadFaults(line) — hal/read_faults.hpp says why: a held value is otherwise
+ indistinguishable from a measured one). Those two are PURE like the rest: a provider that forgot
+ them would silently re-open the false "piece gone" the count exists to stop.
 
  ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
  Asking twice for the same port must return the SAME object. The graph borrows these

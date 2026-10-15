@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 3,663 of them, across 170 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 4,503 of them, across 177 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -15,6 +15,36 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero` | free function | [spec.md](spec.md#a_distance_piece_sensor_needs_its_sees_within_distance_more_than_zero) |
+| `a_home_switch_role_on_a_mechanism_that_is_not_position` | free function | [spec.md](spec.md#a_home_switch_role_on_a_mechanism_that_is_not_position) |
+| `a_limit_switch_is_a_three_wire_device_give_it_a_letter` | free function | [wiring.md](wiring.md#a_limit_switch_is_a_three_wire_device_give_it_a_letter) |
+| `a_mechanism_has_no_name` | free function | [spec.md](spec.md#a_mechanism_has_no_name) |
+| `a_mechanism_name_does_not_fit_twenty_three_characters` | free function | [spec.md](spec.md#a_mechanism_name_does_not_fit_twenty_three_characters) |
+| `a_mechanisms_kind_is_unset` | free function | [spec.md](spec.md#a_mechanisms_kind_is_unset) |
+| `a_motor_mechanism_has_three_wire_line_roles_make_two_mechanisms` | free function | [spec.md](spec.md#a_motor_mechanism_has_three_wire_line_roles_make_two_mechanisms) |
+| `a_motor_mechanism_is_wired_with_motors_like_motors_6_not_lines` | free function | [wiring.md](wiring.md#a_motor_mechanism_is_wired_with_motors_like_motors_6_not_lines) |
+| `a_motor_mechanism_needs_one_to_four_motor_roles` | free function | [spec.md](spec.md#a_motor_mechanism_needs_one_to_four_motor_roles) |
+| `a_motor_mechanisms_cartridge_is_unset` | free function | [spec.md](spec.md#a_motor_mechanisms_cartridge_is_unset) |
+| `a_motor_mechanisms_safe_brake_mode_is_unset` | free function | [spec.md](spec.md#a_motor_mechanisms_safe_brake_mode_is_unset) |
+| `a_motor_port_is_a_number_like_6_a_letter_in_quotes_is_a_three_wire_port` | free function | [wiring.md](wiring.md#a_motor_port_is_a_number_like_6_a_letter_in_quotes_is_a_three_wire_port) |
+| `a_piece_sensor_cannot_be_a_rotation_sensor` | free function | [spec.md](spec.md#a_piece_sensor_cannot_be_a_rotation_sensor) |
+| `a_piece_sensor_is_a_smart_sensor_give_it_a_port_number` | free function | [wiring.md](wiring.md#a_piece_sensor_is_a_smart_sensor_give_it_a_port_number) |
+| `a_pneumatic_is_wired_with_lines_like_lines_A_not_motors` | free function | [wiring.md](wiring.md#a_pneumatic_is_wired_with_lines_like_lines_a_not_motors) |
+| `a_pneumatic_mechanism_has_motor_roles` | free function | [spec.md](spec.md#a_pneumatic_mechanism_has_motor_roles) |
+| `a_pneumatic_mechanism_needs_one_or_two_line_roles` | free function | [spec.md](spec.md#a_pneumatic_mechanism_needs_one_or_two_line_roles) |
+| `a_position_states_a_different_number_of_levels_than_the_wiring_has_lines` | free function | [wiring.md](wiring.md#a_position_states_a_different_number_of_levels_than_the_wiring_has_lines) |
+| `a_preset_or_position_name_does_not_fit_fifteen_characters` | free function | [spec.md](spec.md#a_preset_or_position_name_does_not_fit_fifteen_characters) |
+| `a_route_id_does_not_fit_23_characters_shorten_the_mechanism_or_preset_name` | free function | [route_ids.md](route_ids.md#a_route_id_does_not_fit_23_characters_shorten_the_mechanism_or_preset_name) |
+| `a_route_id_is_one_of_the_librarys_own_wait_ms_brake_hold_ms_log` | free function | [route_ids.md](route_ids.md#a_route_id_is_one_of_the_librarys_own_wait_ms_brake_hold_ms_log) |
+| `a_smart_port_is_not_a_number_from_1_to_21_or_more_than_four_motors` | free function | [wiring.md](wiring.md#a_smart_port_is_not_a_number_from_1_to_21_or_more_than_four_motors) |
+| `a_smart_port_is_used_twice` | free function | [wiring.md](wiring.md#a_smart_port_is_used_twice) |
+| `a_stall_signature_needs_belowMotorRpm_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_belowmotorrpm_above_0) |
+| `a_stall_signature_needs_its_amps_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_its_amps_above_0) |
+| `a_stall_signature_needs_lasting_above_0` | free function | [spec.md](spec.md#a_stall_signature_needs_lasting_above_0) |
+| `a_stall_signatures_amps_must_be_below_the_motors_2_5_A_current_limit` | free function | [spec.md](spec.md#a_stall_signatures_amps_must_be_below_the_motors_2_5_a_current_limit) |
+| `a_three_wire_port_is_a_letter_in_quotes_like_A_a_number_is_a_smart_port` | free function | [wiring.md](wiring.md#a_three_wire_port_is_a_letter_in_quotes_like_a_a_number_is_a_smart_port) |
+| `a_three_wire_port_is_not_a_letter_from_A_to_H_or_more_than_two_lines` | free function | [wiring.md](wiring.md#a_three_wire_port_is_not_a_letter_from_a_to_h_or_more_than_two_lines) |
+| `a_three_wire_port_is_used_twice` | free function | [wiring.md](wiring.md#a_three_wire_port_is_used_twice) |
 | `AbsentGps` | class | [absent_gps.md](absent_gps.md#class-absentgps) |
 | `AbsentGps::hasFix` | function | [absent_gps.md](absent_gps.md#absentgps-hasfix) |
 | `AbsentGps::kNoInformationRmsInches` | field | [absent_gps.md](absent_gps.md#absentgps-knoinformationrmsinches) |
@@ -24,6 +54,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AbsentTagSource::tags` | function | [absent_tag_source.md](absent_tag_source.md#absenttagsource-tags) |
 | `AbsentVision` | class | [absent_vision.md](absent_vision.md#class-absentvision) |
 | `AbsentVision::objects` | function | [absent_vision.md](absent_vision.md#absentvision-objects) |
+| `absolute_homing_the_sensors_reading_at_zero_must_be_in_from_0_up_to_360` | free function | [spec.md](spec.md#absolute_homing_the_sensors_reading_at_zero_must_be_in_from_0_up_to_360) |
+| `absoluteSensor` | free function | [kinds.md](kinds.md#absolutesensor) |
+| `absoluteSensor (overload 2)` | type alias | [kinds.md](kinds.md#absolutesensor-2) |
 | `Acceleration` | type alias | [quantity.md](quantity.md#acceleration) |
 | `acceptanceRun` | free function | [acceptance_run.md](acceptance_run.md#acceptancerun) |
 | `acceptanceRunEntry` | free function | [acceptance_run.md](acceptance_run.md#acceptancerunentry) |
@@ -48,6 +81,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ActuateAndConfirmConfig::target` | field | [mechanism_op.md](mechanism_op.md#actuateandconfirmconfig-target) |
 | `AlwaysConfirmed` | struct | [mechanism_op.md](mechanism_op.md#struct-alwaysconfirmed) |
 | `AlwaysConfirmed::operator()` | function | [mechanism_op.md](mechanism_op.md#alwaysconfirmed-operator-call) |
+| `an_angle_sensor_is_a_smart_sensor_give_it_a_port_number` | free function | [wiring.md](wiring.md#an_angle_sensor_is_a_smart_sensor_give_it_a_port_number) |
+| `an_angle_sensor_role_on_a_mechanism_that_is_not_position_or_speed` | free function | [spec.md](spec.md#an_angle_sensor_role_on_a_mechanism_that_is_not_position_or_speed) |
+| `an_optical_piece_sensor_needs_its_proximity_threshold_in_above_0_and_at_most_1` | free function | [spec.md](spec.md#an_optical_piece_sensor_needs_its_proximity_threshold_in_above_0_and_at_most_1) |
 | `Angle` | class | [angle.md](angle.md#class-angle) |
 | `Angle::Angle` | function | [angle.md](angle.md#angle-angle) |
 | `Angle::approxEqual` | function | [angle.md](angle.md#angle-approxequal) |
@@ -60,7 +96,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Angle::operator- (overload 2)` | function | [angle.md](angle.md#angle-operator-minus-2) |
 | `Angle::radians` | function | [angle.md](angle.md#angle-radians) |
 | `Angle::radians (overload 2)` | function | [angle.md](angle.md#angle-radians-2) |
+| `angleDegToPosition` | free function | [spec.md](spec.md#angledegtoposition) |
 | `AngleDim` | type alias | [quantity.md](quantity.md#angledim) |
+| `angleSensor` | free function | [wiring.md](wiring.md#anglesensor) |
+| `angleSensor (overload 2)` | type alias | [wiring.md](wiring.md#anglesensor-2) |
 | `AngularVelocity` | type alias | [quantity.md](quantity.md#angularvelocity) |
 | `Answer` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-answer) |
 | `Answer::Abort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#answer-abort) |
@@ -123,9 +162,32 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `AprilTagCorrectorConfig::stdDevPerInch` | field | [apriltag_corrector.md](apriltag_corrector.md#apriltagcorrectorconfig-stddevperinch) |
 | `arcadeRequest` | free function | [drive_modes.md](drive_modes.md#arcaderequest) |
 | `arcStep` | free function | [arc_step.md](arc_step.md#arcstep) |
+| `Arm` | struct | [kinds.md](kinds.md#struct-arm) |
+| `Arm` | type alias | [kinds.md](kinds.md#arm) |
+| `Arm::angleSensor` | field | [kinds.md](kinds.md#arm-anglesensor) |
+| `Arm::cartridge` | field | [kinds.md](kinds.md#arm-cartridge) |
+| `Arm::clampedTo` | function | [kinds.md](kinds.md#arm-clampedto) |
+| `Arm::gearing` | field | [kinds.md](kinds.md#arm-gearing) |
+| `Arm::gravity` | field | [kinds.md](kinds.md#arm-gravity) |
+| `Arm::home` | field | [kinds.md](kinds.md#arm-home) |
+| `Arm::motors` | field | [kinds.md](kinds.md#arm-motors) |
+| `Arm::name` | field | [kinds.md](kinds.md#arm-name) |
+| `Arm::operator[]` | function | [kinds.md](kinds.md#arm-operator-index) |
+| `Arm::presets` | field | [kinds.md](kinds.md#arm-presets) |
+| `Arm::range` | field | [kinds.md](kinds.md#arm-range) |
+| `Arm::requires` | function | [kinds.md](kinds.md#arm-requires) |
+| `Arm::safe` | field | [kinds.md](kinds.md#arm-safe) |
+| `Arm::spec` | function | [kinds.md](kinds.md#arm-spec) |
+| `Arm::stall` | field | [kinds.md](kinds.md#arm-stall) |
+| `Arm::to` | function | [kinds.md](kinds.md#arm-to) |
+| `Arm::tuning` | field | [kinds.md](kinds.md#arm-tuning) |
+| `Arm::unhomedVolts` | field | [kinds.md](kinds.md#arm-unhomedvolts) |
 | `ArmingClock` | class | [touch_panel.md](touch_panel.md#class-armingclock) |
 | `ArmingClock::armedAfter` | function | [touch_panel.md](touch_panel.md#armingclock-armedafter) |
 | `ArmingClock::observe` | function | [touch_panel.md](touch_panel.md#armingclock-observe) |
+| `AtSpeed` | struct | [kinds.md](kinds.md#struct-atspeed) |
+| `AtSpeed::lasting` | field | [kinds.md](kinds.md#atspeed-lasting) |
+| `AtSpeed::rpm` | field | [kinds.md](kinds.md#atspeed-rpm) |
 | `AutonContext` | struct | [auton_registry.md](auton_registry.md#struct-autoncontext) |
 | `AutonContext::chassis` | field | [auton_registry.md](auton_registry.md#autoncontext-chassis) |
 | `AutonContext::entry` | field | [auton_registry.md](auton_registry.md#autoncontext-entry) |
@@ -260,6 +322,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BlockCharSink::BlockCharSink` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-blockcharsink) |
 | `BlockCharSink::droppedWrites` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-droppedwrites) |
 | `BlockCharSink::write` | function | [block_char_sink.md](block_char_sink.md#blockcharsink-write) |
+| `Blue` | constant | [kinds.md](kinds.md#blue) |
 | `BodyTravel` | struct | [arc_step.md](arc_step.md#struct-bodytravel) |
 | `BodyTravel::forward` | field | [arc_step.md](arc_step.md#bodytravel-forward) |
 | `BodyTravel::lateral` | field | [arc_step.md](arc_step.md#bodytravel-lateral) |
@@ -301,10 +364,16 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BootVerdict::reason` | field | [boot_check.md](boot_check.md#bootverdict-reason) |
 | `BootVerdict::swappedCount` | field | [boot_check.md](boot_check.md#bootverdict-swappedcount) |
 | `BootVerdict::usable` | function | [boot_check.md](boot_check.md#bootverdict-usable) |
+| `Brake` | constant | [kinds.md](kinds.md#brake) |
 | `BrakeMode` | enum class | [motor.md](motor.md#enum-class-brakemode) |
 | `BrakeMode::Brake` | enumerator | [motor.md](motor.md#brakemode-brake) |
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
+| `BrakeWord` | struct | [kinds.md](kinds.md#struct-brakeword) |
+| `BrakeWord::config::SafeBrakeMode` | function | [kinds.md](kinds.md#brakeword-config-safebrakemode) |
+| `BrakeWord::drive` | field | [kinds.md](kinds.md#brakeword-drive) |
+| `BrakeWord::hal::BrakeMode` | function | [kinds.md](kinds.md#brakeword-hal-brakemode) |
+| `BrakeWord::safe` | field | [kinds.md](kinds.md#brakeword-safe) |
 | `budgetFor` | free function | [calibrate_panel.md](calibrate_panel.md#budgetfor) |
 | `budgetFor` | free function | [touch_panel.md](touch_panel.md#budgetfor) |
 | `BuildOptions` | struct | [robot.md](robot.md#struct-buildoptions) |
@@ -556,6 +625,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Checked::text` | field | [calibrate_panel.md](calibrate_panel.md#checked-text) |
 | `chooseBootSource` | free function | [boot_check.md](boot_check.md#choosebootsource) |
 | `chooseEffective` | free function | [record_store.md](record_store.md#chooseeffective) |
+| `clearOfDrive` | free function | [wiring.md](wiring.md#clearofdrive) |
+| `Coast` | constant | [kinds.md](kinds.md#coast) |
 | `CommandEntry` | struct | [command_registry.md](command_registry.md#struct-commandentry) |
 | `CommandEntry::argCount` | field | [command_registry.md](command_registry.md#commandentry-argcount) |
 | `CommandEntry::handler` | field | [command_registry.md](command_registry.md#commandentry-handler) |
@@ -615,6 +686,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CompletedMotion::preempted` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-preempted) |
 | `CompletedMotion::startTime` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-starttime) |
 | `CompletedMotion::targetPose` | field | [motion_scheduler.md](motion_scheduler.md#completedmotion-targetpose) |
+| `Confirm` | enum class | [spec.md](spec.md#enum-class-confirm) |
+| `Confirm::None` | enumerator | [spec.md](spec.md#confirm-none) |
+| `Confirm::Sees` | enumerator | [spec.md](spec.md#confirm-sees) |
+| `Confirm::StopsSeeing` | enumerator | [spec.md](spec.md#confirm-stopsseeing) |
+| `constantGravity` | free function | [kinds.md](kinds.md#constantgravity) |
+| `constantGravity (overload 2)` | type alias | [kinds.md](kinds.md#constantgravity-2) |
 | `Constraints` | struct | [route.md](route.md#struct-constraints) |
 | `Constraints::maxAngular` | field | [route.md](route.md#constraints-maxangular) |
 | `Constraints::maxLinear` | field | [route.md](route.md#constraints-maxlinear) |
@@ -656,6 +733,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `CorrectionProposal::providesHeading` | field | [correction.md](correction.md#correctionproposal-providesheading) |
 | `CorrectionProposal::selfAudit` | field | [correction.md](correction.md#correctionproposal-selfaudit) |
 | `CorrectionProposal::valid` | field | [correction.md](correction.md#correctionproposal-valid) |
+| `cosine` | free function | [kinds.md](kinds.md#cosine) |
+| `cosine (overload 2)` | type alias | [kinds.md](kinds.md#cosine-2) |
 | `CoupledSideMonitor` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-coupledsidemonitor) |
 | `CoupledSideMonitor::config` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-config) |
 | `CoupledSideMonitor::CoupledSideMonitor` | function | [coupled_side_monitor.md](coupled_side_monitor.md#coupledsidemonitor-coupledsidemonitor) |
@@ -710,6 +789,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DebugRecord::wheelCount` | field | [debug_record.md](debug_record.md#debugrecord-wheelcount) |
 | `DebugRecord::wheelCurrent` | field | [debug_record.md](debug_record.md#debugrecord-wheelcurrent) |
 | `DebugRecord::wheelVoltage` | field | [debug_record.md](debug_record.md#debugrecord-wheelvoltage) |
+| `declaredMotorPorts` | free function | [wiring.md](wiring.md#declaredmotorports) |
 | `DeclaredMotorPorts` | struct | [boot_check.md](boot_check.md#struct-declaredmotorports) |
 | `DeclaredMotorPorts::label` | field | [boot_check.md](boot_check.md#declaredmotorports-label) |
 | `DeclaredMotorPorts::ports` | field | [boot_check.md](boot_check.md#declaredmotorports-ports) |
@@ -730,6 +810,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DegradationVerdict::rightDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-rightdead) |
 | `DegradationVerdict::totalDead` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-totaldead) |
 | `DegradationVerdict::verdict` | field | [drivetrain_degradation.md](drivetrain_degradation.md#degradationverdict-verdict) |
+| `DegreePreset` | struct | [kinds.md](kinds.md#struct-degreepreset) |
+| `DegreePreset::name` | field | [kinds.md](kinds.md#degreepreset-name) |
+| `DegreePreset::value` | field | [kinds.md](kinds.md#degreepreset-value) |
+| `DegreeRange` | struct | [kinds.md](kinds.md#struct-degreerange) |
+| `DegreeRange::max` | field | [kinds.md](kinds.md#degreerange-max) |
+| `DegreeRange::min` | field | [kinds.md](kinds.md#degreerange-min) |
 | `desaturateUniform` | free function | [desaturate.md](desaturate.md#desaturateuniform) |
 | `DescriptionSource` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-descriptionsource) |
 | `DescriptionSource::RobotMeasured` | enumerator | [drivetrain_description.md](drivetrain_description.md#descriptionsource-robotmeasured) |
@@ -747,11 +833,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `DeviceKind::Rotation` | enumerator | [device_registry.md](device_registry.md#devicekind-rotation) |
 | `DeviceKind::Vision` | enumerator | [device_registry.md](device_registry.md#devicekind-vision) |
 | `deviceKindWord` | free function | [device_registry.md](device_registry.md#devicekindword) |
+| `Devices` | struct | [devices.md](devices.md#struct-devices) |
+| `Devices::absence` | field | [devices.md](devices.md#devices-absence) |
+| `Devices::angleSensor` | field | [devices.md](devices.md#devices-anglesensor) |
+| `Devices::homeSwitch` | field | [devices.md](devices.md#devices-homeswitch) |
+| `Devices::homeSwitchFaults` | field | [devices.md](devices.md#devices-homeswitchfaults) |
+| `Devices::motors` | field | [devices.md](devices.md#devices-motors) |
+| `Devices::pieceDistance` | field | [devices.md](devices.md#devices-piecedistance) |
+| `Devices::pieceFaults` | field | [devices.md](devices.md#devices-piecefaults) |
+| `Devices::pieceOptical` | field | [devices.md](devices.md#devices-pieceoptical) |
+| `Devices::pieceSwitch` | field | [devices.md](devices.md#devices-pieceswitch) |
+| `Devices::pneumatic` | field | [devices.md](devices.md#devices-pneumatic) |
+| `direct` | constant | [kinds.md](kinds.md#direct) |
+| `direct (overload 2)` | type alias | [kinds.md](kinds.md#direct-2) |
 | `DisplayController` | enum class | [pros-line_display.md](pros-line_display.md#enum-class-displaycontroller) |
 | `DisplayController::Master` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-master) |
 | `DisplayController::Partner` | enumerator | [pros-line_display.md](pros-line_display.md#displaycontroller-partner) |
 | `distanceConfidenceToCanonical` | free function | [distance_conversion.md](distance_conversion.md#distanceconfidencetocanonical) |
 | `distanceMmToCanonical` | free function | [distance_conversion.md](distance_conversion.md#distancemmtocanonical) |
+| `distanceSensor` | free function | [kinds.md](kinds.md#distancesensor) |
+| `distanceSensor (overload 2)` | type alias | [kinds.md](kinds.md#distancesensor-2) |
 | `DriveBrake` | class | [drive_brake.md](drive_brake.md#class-drivebrake) |
 | `DriveBrake::cancel` | function | [drive_brake.md](drive_brake.md#drivebrake-cancel) |
 | `DriveBrake::DriveBrake` | function | [drive_brake.md](drive_brake.md#drivebrake-drivebrake) |
@@ -1019,6 +1120,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `EndInfo::notOpenDropped` | field | [shul2_format.md](shul2_format.md#endinfo-notopendropped) |
 | `EndInfo::recordsSeen` | field | [shul2_format.md](shul2_format.md#endinfo-recordsseen) |
 | `EndInfo::tickFrames` | field | [blackbox_format.md](blackbox_format.md#endinfo-tickframes) |
+| `EntryProblem` | enum class | [wiring.md](wiring.md#enum-class-entryproblem) |
+| `entryProblem` | free function | [wiring.md](wiring.md#entryproblem) |
+| `EntryProblem::AngleSensorExtra` | enumerator | [wiring.md](wiring.md#entryproblem-anglesensorextra) |
+| `EntryProblem::AngleSensorUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-anglesensorunplugged) |
+| `EntryProblem::HomeSwitchExtra` | enumerator | [wiring.md](wiring.md#entryproblem-homeswitchextra) |
+| `EntryProblem::HomeSwitchUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-homeswitchunplugged) |
+| `EntryProblem::LevelsVsLines` | enumerator | [wiring.md](wiring.md#entryproblem-levelsvslines) |
+| `EntryProblem::LineExtra` | enumerator | [wiring.md](wiring.md#entryproblem-lineextra) |
+| `EntryProblem::LinePastH` | enumerator | [wiring.md](wiring.md#entryproblem-linepasth) |
+| `EntryProblem::LineRoleUnbound` | enumerator | [wiring.md](wiring.md#entryproblem-lineroleunbound) |
+| `EntryProblem::MotorPortExtra` | enumerator | [wiring.md](wiring.md#entryproblem-motorportextra) |
+| `EntryProblem::MotorRoleUnbound` | enumerator | [wiring.md](wiring.md#entryproblem-motorroleunbound) |
+| `EntryProblem::NameDiffers` | enumerator | [wiring.md](wiring.md#entryproblem-namediffers) |
+| `EntryProblem::None` | enumerator | [wiring.md](wiring.md#entryproblem-none) |
+| `EntryProblem::PieceSensorExtra` | enumerator | [wiring.md](wiring.md#entryproblem-piecesensorextra) |
+| `EntryProblem::PieceSensorUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-piecesensorunplugged) |
+| `EntryProblem::PieceSwitchExtra` | enumerator | [wiring.md](wiring.md#entryproblem-pieceswitchextra) |
+| `EntryProblem::PieceSwitchUnplugged` | enumerator | [wiring.md](wiring.md#entryproblem-pieceswitchunplugged) |
+| `EntryProblem::SmartPortPast21` | enumerator | [wiring.md](wiring.md#entryproblem-smartportpast21) |
+| `entryProblemText` | free function | [wiring.md](wiring.md#entryproblemtext) |
 | `evaluateDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluatedegradation) |
 | `evaluateRuntimeDegradation` | free function | [drivetrain_degradation.md](drivetrain_degradation.md#evaluateruntimedegradation) |
 | `ExitGroup` | class | [exit_group.md](exit_group.md#class-exitgroup) |
@@ -1170,10 +1291,29 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `FitVerdict::SignMismatch` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-signmismatch) |
 | `FitVerdict::TooFewSamples` | enumerator | [feedforward_fit.md](feedforward_fit.md#fitverdict-toofewsamples) |
 | `fitVerdictName` | free function | [feedforward_fit.md](feedforward_fit.md#fitverdictname) |
+| `Flywheel` | struct | [kinds.md](kinds.md#struct-flywheel) |
+| `Flywheel` | type alias | [kinds.md](kinds.md#flywheel) |
+| `Flywheel::angleSensor` | field | [kinds.md](kinds.md#flywheel-anglesensor) |
+| `Flywheel::at` | function | [kinds.md](kinds.md#flywheel-at) |
+| `Flywheel::atSpeed` | field | [kinds.md](kinds.md#flywheel-atspeed) |
+| `Flywheel::cartridge` | field | [kinds.md](kinds.md#flywheel-cartridge) |
+| `Flywheel::clampedTo` | function | [kinds.md](kinds.md#flywheel-clampedto) |
+| `Flywheel::freeRpm` | function | [kinds.md](kinds.md#flywheel-freerpm) |
+| `Flywheel::gearing` | field | [kinds.md](kinds.md#flywheel-gearing) |
+| `Flywheel::motors` | field | [kinds.md](kinds.md#flywheel-motors) |
+| `Flywheel::name` | field | [kinds.md](kinds.md#flywheel-name) |
+| `Flywheel::operator[]` | function | [kinds.md](kinds.md#flywheel-operator-index) |
+| `Flywheel::presets` | field | [kinds.md](kinds.md#flywheel-presets) |
+| `Flywheel::safe` | field | [kinds.md](kinds.md#flywheel-safe) |
+| `Flywheel::spec` | function | [kinds.md](kinds.md#flywheel-spec) |
+| `Flywheel::stall` | field | [kinds.md](kinds.md#flywheel-stall) |
+| `Flywheel::tuning` | field | [kinds.md](kinds.md#flywheel-tuning) |
 | `formatPulseRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpulserecord) |
 | `formatPushRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatpushrecord) |
 | `formatSaveReport` | free function | [record_store.md](record_store.md#formatsavereport) |
 | `formatSpinRecord` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#formatspinrecord) |
+| `Forward` | constant | [kinds.md](kinds.md#forward) |
+| `Forward (overload 2)` | type alias | [kinds.md](kinds.md#forward-2) |
 | `Frame` | enum class | [frame.md](frame.md#enum-class-frame) |
 | `Frame::Body` | enumerator | [frame.md](frame.md#frame-body) |
 | `Frame::Field` | enumerator | [frame.md](frame.md#frame-field) |
@@ -1240,6 +1380,18 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `GateReason::RejectedSensorQuality` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedsensorquality) |
 | `GateReason::RejectedStaleFix` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedstalefix) |
 | `GateReason::RejectedTagRange` | enumerator | [debug_record.md](debug_record.md#gatereason-rejectedtagrange) |
+| `Gearing` | struct | [kinds.md](kinds.md#struct-gearing) |
+| `Gearing::Gearing` | function | [kinds.md](kinds.md#gearing-gearing) |
+| `Gearing::Gearing (overload 2)` | function | [kinds.md](kinds.md#gearing-gearing-2) |
+| `Gearing::motorTurnsPerTurn` | field | [kinds.md](kinds.md#gearing-motorturnsperturn) |
+| `Gearing::operator*` | function | [kinds.md](kinds.md#gearing-operator-star) |
+| `gears` | free function | [kinds.md](kinds.md#gears) |
+| `gears (overload 2)` | type alias | [kinds.md](kinds.md#gears-2) |
+| `Geometry` | enum class | [spec.md](spec.md#enum-class-geometry) |
+| `Geometry::Arm` | enumerator | [spec.md](spec.md#geometry-arm) |
+| `Geometry::Rotary` | enumerator | [spec.md](spec.md#geometry-rotary) |
+| `Geometry::Spool` | enumerator | [spec.md](spec.md#geometry-spool) |
+| `Geometry::Table` | enumerator | [spec.md](spec.md#geometry-table) |
 | `GpsConfig` | struct | [robot_config.md](robot_config.md#struct-gpsconfig) |
 | `GpsConfig::leverArmForward` | field | [robot_config.md](robot_config.md#gpsconfig-leverarmforward) |
 | `GpsConfig::leverArmLeft` | field | [robot_config.md](robot_config.md#gpsconfig-leverarmleft) |
@@ -1272,6 +1424,17 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `gpsRmsErrorToCanonical` | free function | [gps_conversion.md](gps_conversion.md#gpsrmserrortocanonical) |
 | `gpsSensorPose` | free function | [gps_conversion.md](gps_conversion.md#gpssensorpose) |
 | `gpsToRobotPose` | free function | [gps_conversion.md](gps_conversion.md#gpstorobotpose) |
+| `grabs` | constant | [kinds.md](kinds.md#grabs) |
+| `grabs (overload 2)` | type alias | [kinds.md](kinds.md#grabs-2) |
+| `Gravity` | enum class | [spec.md](spec.md#enum-class-gravity) |
+| `Gravity::Constant` | enumerator | [spec.md](spec.md#gravity-constant) |
+| `Gravity::Cosine` | enumerator | [spec.md](spec.md#gravity-cosine) |
+| `Gravity::None` | enumerator | [spec.md](spec.md#gravity-none) |
+| `GravityTerm` | struct | [kinds.md](kinds.md#struct-gravityterm) |
+| `GravityTerm::kind` | field | [kinds.md](kinds.md#gravityterm-kind) |
+| `GravityTerm::levelAtDeg` | field | [kinds.md](kinds.md#gravityterm-levelatdeg) |
+| `GravityTerm::volts` | field | [kinds.md](kinds.md#gravityterm-volts) |
+| `Green` | constant | [kinds.md](kinds.md#green) |
 | `GuardedWaitResult` | enum class | [run_guard.md](run_guard.md#enum-class-guardedwaitresult) |
 | `GuardedWaitResult::RunExpired` | enumerator | [run_guard.md](run_guard.md#guardedwaitresult-runexpired) |
 | `GuardedWaitResult::Satisfied` | enumerator | [run_guard.md](run_guard.md#guardedwaitresult-satisfied) |
@@ -1323,6 +1486,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `HealthMonitorConfig::brownoutRecoverVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutrecovervolts) |
 | `HealthMonitorConfig::brownoutVolts` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-brownoutvolts) |
 | `HealthMonitorConfig::maxMotorTempC` | field | [health_monitor.md](health_monitor.md#healthmonitorconfig-maxmotortempc) |
+| `HeightAt` | struct | [kinds.md](kinds.md#struct-heightat) |
+| `HeightAt` | type alias | [kinds.md](kinds.md#heightat) |
+| `HeightAt::degrees` | field | [kinds.md](kinds.md#heightat-degrees) |
+| `HeightAt::height` | field | [kinds.md](kinds.md#heightat-height) |
 | `heightFor` | free function | [calibrate_panel.md](calibrate_panel.md#heightfor) |
 | `heightFor` | free function | [touch_panel.md](touch_panel.md#heightfor) |
 | `Hello` | struct | [shul2_format.md](shul2_format.md#struct-hello) |
@@ -1342,14 +1509,37 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Hello::signature` | field | [shul2_format.md](shul2_format.md#hello-signature) |
 | `Hello::versionMajor` | field | [shul2_format.md](shul2_format.md#hello-versionmajor) |
 | `Hello::versionMinor` | field | [shul2_format.md](shul2_format.md#hello-versionminor) |
+| `High` | constant | [kinds.md](kinds.md#high) |
+| `High (overload 2)` | type alias | [kinds.md](kinds.md#high-2) |
 | `hitBox` | free function | [calibrate_panel.md](calibrate_panel.md#hitbox) |
 | `hitBox` | free function | [touch_panel.md](touch_panel.md#hitbox) |
 | `hitTest` | free function | [calibrate_panel.md](calibrate_panel.md#hittest) |
 | `hitTest` | free function | [touch_panel.md](touch_panel.md#hittest) |
+| `Hold` | constant | [kinds.md](kinds.md#hold) |
 | `HoldPose` | class | [hold_pose.md](hold_pose.md#class-holdpose) |
 | `HoldPose::HoldPose` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose) |
 | `HoldPose::HoldPose (overload 2)` | function | [hold_pose.md](hold_pose.md#holdpose-holdpose-2) |
 | `HoldPose::name` | function | [hold_pose.md](hold_pose.md#holdpose-name) |
+| `homeByStall` | free function | [kinds.md](kinds.md#homebystall) |
+| `homeByStall (overload 2)` | free function | [kinds.md](kinds.md#homebystall-2) |
+| `homeByStall (overload 3)` | type alias | [kinds.md](kinds.md#homebystall-3) |
+| `homeBySwitch` | free function | [kinds.md](kinds.md#homebyswitch) |
+| `homeBySwitch (overload 2)` | free function | [kinds.md](kinds.md#homebyswitch-2) |
+| `homeBySwitch (overload 3)` | type alias | [kinds.md](kinds.md#homebyswitch-3) |
+| `HomeMethod` | enum class | [spec.md](spec.md#enum-class-homemethod) |
+| `HomeMethod::Absolute` | enumerator | [spec.md](spec.md#homemethod-absolute) |
+| `HomeMethod::None` | enumerator | [spec.md](spec.md#homemethod-none) |
+| `HomeMethod::RestsAtStop` | enumerator | [spec.md](spec.md#homemethod-restsatstop) |
+| `HomeMethod::Stall` | enumerator | [spec.md](spec.md#homemethod-stall) |
+| `HomeMethod::Switch` | enumerator | [spec.md](spec.md#homemethod-switch) |
+| `homeSwitch` | free function | [wiring.md](wiring.md#homeswitch) |
+| `homeSwitch (overload 2)` | type alias | [wiring.md](wiring.md#homeswitch-2) |
+| `Homing` | struct | [kinds.md](kinds.md#struct-homing) |
+| `Homing::at` | field | [kinds.md](kinds.md#homing-at) |
+| `Homing::method` | field | [kinds.md](kinds.md#homing-method) |
+| `Homing::sensorAtZeroDeg` | field | [kinds.md](kinds.md#homing-sensoratzerodeg) |
+| `Homing::stall` | field | [kinds.md](kinds.md#homing-stall) |
+| `Homing::volts` | field | [kinds.md](kinds.md#homing-volts) |
 | `HumanFacts` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-humanfacts) |
 | `HumanFacts::cartridge` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-cartridge) |
 | `HumanFacts::imuPort` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#humanfacts-imuport) |
@@ -1434,17 +1624,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IDeviceProvider` | class | [device_provider.md](device_provider.md#class-ideviceprovider) |
 | `IDeviceProvider::battery` | function | [device_provider.md](device_provider.md#ideviceprovider-battery) |
 | `IDeviceProvider::clock` | function | [device_provider.md](device_provider.md#ideviceprovider-clock) |
+| `IDeviceProvider::digitalIn` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalin) |
 | `IDeviceProvider::digitalOut` | function | [device_provider.md](device_provider.md#ideviceprovider-digitalout) |
+| `IDeviceProvider::distance` | function | [device_provider.md](device_provider.md#ideviceprovider-distance) |
 | `IDeviceProvider::gps` | function | [device_provider.md](device_provider.md#ideviceprovider-gps) |
 | `IDeviceProvider::IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider) |
 | `IDeviceProvider::IDeviceProvider (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-2) |
 | `IDeviceProvider::IDeviceProvider (overload 3)` | function | [device_provider.md](device_provider.md#ideviceprovider-ideviceprovider-3) |
 | `IDeviceProvider::imu` | function | [device_provider.md](device_provider.md#ideviceprovider-imu) |
 | `IDeviceProvider::lastRefusal` | function | [device_provider.md](device_provider.md#ideviceprovider-lastrefusal) |
+| `IDeviceProvider::lineReadFaults` | function | [device_provider.md](device_provider.md#ideviceprovider-linereadfaults) |
 | `IDeviceProvider::motor` | function | [device_provider.md](device_provider.md#ideviceprovider-motor) |
 | `IDeviceProvider::operator=` | function | [device_provider.md](device_provider.md#ideviceprovider-operator-eq) |
 | `IDeviceProvider::operator= (overload 2)` | function | [device_provider.md](device_provider.md#ideviceprovider-operator-eq-2) |
+| `IDeviceProvider::optical` | function | [device_provider.md](device_provider.md#ideviceprovider-optical) |
 | `IDeviceProvider::pacer` | function | [device_provider.md](device_provider.md#ideviceprovider-pacer) |
+| `IDeviceProvider::readFaults` | function | [device_provider.md](device_provider.md#ideviceprovider-readfaults) |
 | `IDeviceProvider::rotation` | function | [device_provider.md](device_provider.md#ideviceprovider-rotation) |
 | `IDeviceProvider::telemetry` | function | [device_provider.md](device_provider.md#ideviceprovider-telemetry) |
 | `IDeviceProvider::~IDeviceProvider` | function | [device_provider.md](device_provider.md#ideviceprovider-destructor-ideviceprovider) |
@@ -1610,6 +1805,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IMotor::~IMotor` | function | [motor.md](motor.md#imotor-destructor-imotor) |
 | `imuHeadingToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuheadingtocanonical) |
 | `imuYawRateToCanonical` | free function | [imu_conversion.md](imu_conversion.md#imuyawratetocanonical) |
+| `InchPreset` | struct | [kinds.md](kinds.md#struct-inchpreset) |
+| `InchPreset::name` | field | [kinds.md](kinds.md#inchpreset-name) |
+| `InchPreset::value` | field | [kinds.md](kinds.md#inchpreset-value) |
+| `InchRange` | struct | [kinds.md](kinds.md#struct-inchrange) |
+| `InchRange::max` | field | [kinds.md](kinds.md#inchrange-max) |
+| `InchRange::min` | field | [kinds.md](kinds.md#inchrange-min) |
 | `IOdometry` | class | [odometry.md](odometry.md#class-iodometry) |
 | `IOdometry::IOdometry` | function | [odometry.md](odometry.md#iodometry-iodometry) |
 | `IOdometry::IOdometry (overload 2)` | function | [odometry.md](odometry.md#iodometry-iodometry-2) |
@@ -1644,6 +1845,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `IPoseSource::quality` | function | [i_pose_source.md](i_pose_source.md#iposesource-quality) |
 | `IPoseSource::twist` | function | [i_pose_source.md](i_pose_source.md#iposesource-twist) |
 | `IPoseSource::~IPoseSource` | function | [i_pose_source.md](i_pose_source.md#iposesource-destructor-iposesource) |
+| `IReadFaults` | class | [read_faults.md](read_faults.md#class-ireadfaults) |
+| `IReadFaults::faultedReads` | function | [read_faults.md](read_faults.md#ireadfaults-faultedreads) |
+| `IReadFaults::IReadFaults` | function | [read_faults.md](read_faults.md#ireadfaults-ireadfaults) |
+| `IReadFaults::IReadFaults (overload 2)` | function | [read_faults.md](read_faults.md#ireadfaults-ireadfaults-2) |
+| `IReadFaults::IReadFaults (overload 3)` | function | [read_faults.md](read_faults.md#ireadfaults-ireadfaults-3) |
+| `IReadFaults::operator=` | function | [read_faults.md](read_faults.md#ireadfaults-operator-eq) |
+| `IReadFaults::operator= (overload 2)` | function | [read_faults.md](read_faults.md#ireadfaults-operator-eq-2) |
+| `IReadFaults::~IReadFaults` | function | [read_faults.md](read_faults.md#ireadfaults-destructor-ireadfaults) |
 | `IRobotConfig` | class | [robot_config.md](robot_config.md#class-irobotconfig) |
 | `IRobotConfig::config` | function | [robot_config.md](robot_config.md#irobotconfig-config) |
 | `IRobotConfig::IRobotConfig` | function | [robot_config.md](robot_config.md#irobotconfig-irobotconfig) |
@@ -1785,6 +1994,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kHitPadY` | constant | [calibrate_panel.md](calibrate_panel.md#khitpady) |
 | `kHitPadY` | constant | [touch_panel.md](touch_panel.md#khitpady) |
 | `kImuWarming` | constant | [calibrate_panel.md](calibrate_panel.md#kimuwarming) |
+| `Kind` | enum class | [spec.md](spec.md#enum-class-kind) |
+| `Kind::Pneumatic` | enumerator | [spec.md](spec.md#kind-pneumatic) |
+| `Kind::Position` | enumerator | [spec.md](spec.md#kind-position) |
+| `Kind::Power` | enumerator | [spec.md](spec.md#kind-power) |
+| `Kind::Speed` | enumerator | [spec.md](spec.md#kind-speed) |
+| `kindWord` | free function | [spec.md](spec.md#kindword) |
 | `kInstallTagCorrector` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrector) |
 | `kInstallTagCorrector<AbsentTagSource>` | constant | [absent_tag_source.md](absent_tag_source.md#kinstalltagcorrectorabsenttagsource) |
 | `kInstallVisionPoller` | constant | [absent_vision.md](absent_vision.md#kinstallvisionpoller) |
@@ -1813,22 +2028,29 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMaxFieldBytes` | constant | [session_info.md](session_info.md#kmaxfieldbytes) |
 | `kMaxFrameBytes` | constant | [shul2_format.md](shul2_format.md#kmaxframebytes) |
 | `kMaxHashBytes` | constant | [session_info.md](session_info.md#kmaxhashbytes) |
+| `kMaxLineRoles` | constant | [spec.md](spec.md#kmaxlineroles) |
 | `kMaxMarkerArgs` | constant | [route.md](route.md#kmaxmarkerargs) |
 | `kMaxMarkerIdBytes` | constant | [route.md](route.md#kmaxmarkeridbytes) |
 | `kMaxMarkersPerWaypoint` | constant | [route.md](route.md#kmaxmarkersperwaypoint) |
 | `kMaxMechanisms` | constant | [robot_config.md](robot_config.md#kmaxmechanisms) |
+| `kMaxMechanisms` | constant | [spec.md](spec.md#kmaxmechanisms) |
+| `kMaxMotorRoles` | constant | [spec.md](spec.md#kmaxmotorroles) |
 | `kMaxMotorsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxmotorspermechanism) |
 | `kMaxMotorVoltage` | constant | [motor.md](motor.md#kmaxmotorvoltage) |
 | `kMaxPayloadBytes` | constant | [shul2_format.md](shul2_format.md#kmaxpayloadbytes) |
+| `kMaxPneumaticPositions` | constant | [spec.md](spec.md#kmaxpneumaticpositions) |
 | `kMaxPneumaticsPerMechanism` | constant | [robot_config.md](robot_config.md#kmaxpneumaticspermechanism) |
 | `kMaxPortMapBytes` | constant | [session_info.md](session_info.md#kmaxportmapbytes) |
+| `kMaxPresets` | constant | [spec.md](spec.md#kmaxpresets) |
 | `kMaxProtectedGroups` | constant | [drive_protection.md](drive_protection.md#kmaxprotectedgroups) |
 | `kMaxPulseLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulselevels) |
 | `kMaxPulseRecords` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxpulserecords) |
+| `kMaxRouteIds` | constant | [route_ids.md](route_ids.md#kmaxrouteids) |
 | `kMaxSideMembers` | constant | [coupled_side_monitor.md](coupled_side_monitor.md#kmaxsidemembers) |
 | `kMaxSmartPorts` | constant | [drivetrain_description.md](drivetrain_description.md#kmaxsmartports) |
 | `kMaxSpinLevels` | constant | [drivetrain_calibrator.md](drivetrain_calibrator.md#kmaxspinlevels) |
 | `kMaxStoredFileBytes` | constant | [record_store.md](record_store.md#kmaxstoredfilebytes) |
+| `kMaxTablePoints` | constant | [spec.md](spec.md#kmaxtablepoints) |
 | `kMaxWaypoints` | constant | [route.md](route.md#kmaxwaypoints) |
 | `kMediumCols` | constant | [calibrate_panel.md](calibrate_panel.md#kmediumcols) |
 | `kMediumCols` | constant | [touch_panel.md](touch_panel.md#kmediumcols) |
@@ -1854,6 +2076,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kMenuRefusedPrefix` | constant | [auton_menu.md](auton_menu.md#kmenurefusedprefix) |
 | `kMetersToInches` | constant | [gps_conversion.md](gps_conversion.md#kmeterstoinches) |
 | `kMinAnsweringPerSide` | constant | [drivetrain_degradation.md](drivetrain_degradation.md#kminansweringperside) |
+| `kNameBytes` | constant | [spec.md](spec.md#knamebytes) |
 | `kNextDoneWhenMoved` | constant | [calibrate_panel.md](calibrate_panel.md#knextdonewhenmoved) |
 | `kNextLetGo` | constant | [calibrate_panel.md](calibrate_panel.md#knextletgo) |
 | `kNextSaves` | constant | [calibrate_panel.md](calibrate_panel.md#knextsaves) |
@@ -1947,14 +2170,75 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LevelFilterSink::setLevel` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-setlevel) |
 | `LevelFilterSink::summarize` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-summarize) |
 | `LevelFilterSink::wantsRecord` | function | [level_filter_sink.md](level_filter_sink.md#levelfiltersink-wantsrecord) |
+| `Levels` | struct | [kinds.md](kinds.md#struct-levels) |
+| `Levels::count` | field | [kinds.md](kinds.md#levels-count) |
+| `Levels::l` | field | [kinds.md](kinds.md#levels-l) |
+| `Levels::Levels` | function | [kinds.md](kinds.md#levels-levels) |
+| `Levels::Levels (overload 2)` | function | [kinds.md](kinds.md#levels-levels-2) |
+| `Levels::tooMany` | field | [kinds.md](kinds.md#levels-toomany) |
+| `Lift` | struct | [kinds.md](kinds.md#struct-lift) |
+| `Lift` | type alias | [kinds.md](kinds.md#lift) |
+| `Lift::angleSensor` | field | [kinds.md](kinds.md#lift-anglesensor) |
+| `Lift::cartridge` | field | [kinds.md](kinds.md#lift-cartridge) |
+| `Lift::clampedTo` | function | [kinds.md](kinds.md#lift-clampedto) |
+| `Lift::gearing` | field | [kinds.md](kinds.md#lift-gearing) |
+| `Lift::gravity` | field | [kinds.md](kinds.md#lift-gravity) |
+| `Lift::home` | field | [kinds.md](kinds.md#lift-home) |
+| `Lift::motors` | field | [kinds.md](kinds.md#lift-motors) |
+| `Lift::name` | field | [kinds.md](kinds.md#lift-name) |
+| `Lift::operator[]` | function | [kinds.md](kinds.md#lift-operator-index) |
+| `Lift::presets` | field | [kinds.md](kinds.md#lift-presets) |
+| `Lift::range` | field | [kinds.md](kinds.md#lift-range) |
+| `Lift::safe` | field | [kinds.md](kinds.md#lift-safe) |
+| `Lift::shape` | field | [kinds.md](kinds.md#lift-shape) |
+| `Lift::spec` | function | [kinds.md](kinds.md#lift-spec) |
+| `Lift::stall` | field | [kinds.md](kinds.md#lift-stall) |
+| `Lift::to` | function | [kinds.md](kinds.md#lift-to) |
+| `Lift::to (overload 2)` | function | [kinds.md](kinds.md#lift-to-2) |
+| `Lift::tuning` | field | [kinds.md](kinds.md#lift-tuning) |
+| `Lift::unhomedVolts` | field | [kinds.md](kinds.md#lift-unhomedvolts) |
+| `LiftShape` | struct | [kinds.md](kinds.md#struct-liftshape) |
+| `LiftShape::armLengthIn` | field | [kinds.md](kinds.md#liftshape-armlengthin) |
+| `LiftShape::geometry` | field | [kinds.md](kinds.md#liftshape-geometry) |
+| `LiftShape::pivotHeightIn` | field | [kinds.md](kinds.md#liftshape-pivotheightin) |
+| `LiftShape::points` | field | [kinds.md](kinds.md#liftshape-points) |
+| `LiftShape::spoolDiameterIn` | field | [kinds.md](kinds.md#liftshape-spooldiameterin) |
+| `LiftShape::stages` | field | [kinds.md](kinds.md#liftshape-stages) |
+| `LiftShape::table` | field | [kinds.md](kinds.md#liftshape-table) |
+| `limitSwitch` | free function | [kinds.md](kinds.md#limitswitch) |
+| `limitSwitch (overload 2)` | type alias | [kinds.md](kinds.md#limitswitch-2) |
+| `Line` | enum class | [wiring.md](wiring.md#enum-class-line) |
 | `Line` | struct | [line_format.md](line_format.md#struct-line) |
+| `Line::A` | enumerator | [wiring.md](wiring.md#line-a) |
 | `Line::appendLiteral` | function | [line_format.md](line_format.md#line-appendliteral) |
 | `Line::appendRaw` | function | [line_format.md](line_format.md#line-appendraw) |
 | `Line::appendSanitized` | function | [line_format.md](line_format.md#line-appendsanitized) |
+| `Line::B` | enumerator | [wiring.md](wiring.md#line-b) |
 | `Line::buf` | field | [line_format.md](line_format.md#line-buf) |
+| `Line::C` | enumerator | [wiring.md](wiring.md#line-c) |
+| `Line::D` | enumerator | [wiring.md](wiring.md#line-d) |
+| `Line::E` | enumerator | [wiring.md](wiring.md#line-e) |
+| `Line::F` | enumerator | [wiring.md](wiring.md#line-f) |
+| `Line::G` | enumerator | [wiring.md](wiring.md#line-g) |
+| `Line::H` | enumerator | [wiring.md](wiring.md#line-h) |
 | `Line::kCapacity` | field | [line_format.md](line_format.md#line-kcapacity) |
 | `Line::n` | field | [line_format.md](line_format.md#line-n) |
+| `Line::None` | enumerator | [wiring.md](wiring.md#line-none) |
 | `Line::view` | function | [line_format.md](line_format.md#line-view) |
+| `lineLetter` | free function | [wiring.md](wiring.md#lineletter) |
+| `LinePorts` | struct | [wiring.md](wiring.md#struct-lineports) |
+| `LinePorts::bad` | field | [wiring.md](wiring.md#lineports-bad) |
+| `LinePorts::count` | field | [wiring.md](wiring.md#lineports-count) |
+| `LinePorts::file` | field | [wiring.md](wiring.md#lineports-file) |
+| `LinePorts::line` | field | [wiring.md](wiring.md#lineports-line) |
+| `LinePorts::lineNo` | field | [wiring.md](wiring.md#lineports-lineno) |
+| `lines` | free function | [wiring.md](wiring.md#lines) |
+| `lines (overload 2)` | free function | [wiring.md](wiring.md#lines-2) |
+| `lines (overload 3)` | free function | [wiring.md](wiring.md#lines-3) |
+| `lines (overload 4)` | free function | [wiring.md](wiring.md#lines-4) |
+| `lines (overload 5)` | type alias | [wiring.md](wiring.md#lines-5) |
+| `linkage` | free function | [kinds.md](kinds.md#linkage) |
+| `linkage (overload 2)` | type alias | [kinds.md](kinds.md#linkage-2) |
 | `LoadedRecord` | struct | [record_store.md](record_store.md#struct-loadedrecord) |
 | `LoadedRecord::backup` | field | [record_store.md](record_store.md#loadedrecord-backup) |
 | `LoadedRecord::description` | field | [record_store.md](record_store.md#loadedrecord-description) |
@@ -2026,6 +2310,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `LoopMonitor::worstDt` | function | [loop_monitor.md](loop_monitor.md#loopmonitor-worstdt) |
 | `LoopMonitorConfig` | struct | [loop_monitor.md](loop_monitor.md#struct-loopmonitorconfig) |
 | `LoopMonitorConfig::budget` | field | [loop_monitor.md](loop_monitor.md#loopmonitorconfig-budget) |
+| `Low` | constant | [kinds.md](kinds.md#low) |
+| `Low (overload 2)` | type alias | [kinds.md](kinds.md#low-2) |
 
 ## M
 
@@ -2050,6 +2336,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MatrixKinematics::Wheel::turnInches` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-turninches) |
 | `MatrixKinematics::Wheel::v` | field | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheel-v) |
 | `MatrixKinematics::wheelCount` | function | [matrix_kinematics.md](matrix_kinematics.md#matrixkinematics-wheelcount) |
+| `measured` | free function | [kinds.md](kinds.md#measured) |
+| `measured (overload 2)` | type alias | [kinds.md](kinds.md#measured-2) |
 | `MechanismBinding` | class | [mechanism_binding.md](mechanism_binding.md#class-mechanismbinding) |
 | `MechanismBinding::forwardButton` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-forwardbutton) |
 | `MechanismBinding::makeSafe` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-makesafe) |
@@ -2075,14 +2363,20 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismBinding::~MechanismBinding` | function | [mechanism_binding.md](mechanism_binding.md#mechanismbinding-destructor-mechanismbinding) |
 | `MechanismConfig` | struct | [robot_config.md](robot_config.md#struct-mechanismconfig) |
 | `MechanismConfig::cartridge` | field | [robot_config.md](robot_config.md#mechanismconfig-cartridge) |
+| `MechanismConfig::distancePort` | field | [robot_config.md](robot_config.md#mechanismconfig-distanceport) |
 | `MechanismConfig::motorCount` | field | [robot_config.md](robot_config.md#mechanismconfig-motorcount) |
 | `MechanismConfig::motorPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-motorports) |
 | `MechanismConfig::name` | field | [robot_config.md](robot_config.md#mechanismconfig-name) |
+| `MechanismConfig::opticalPort` | field | [robot_config.md](robot_config.md#mechanismconfig-opticalport) |
 | `MechanismConfig::pneumaticCount` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticcount) |
 | `MechanismConfig::pneumaticPorts` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticports) |
 | `MechanismConfig::pneumaticSafe` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticsafe) |
+| `MechanismConfig::pneumaticSafeByLine` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticsafebyline) |
 | `MechanismConfig::pneumaticStart` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticstart) |
+| `MechanismConfig::pneumaticStartByLine` | field | [robot_config.md](robot_config.md#mechanismconfig-pneumaticstartbyline) |
+| `MechanismConfig::rotationPort` | field | [robot_config.md](robot_config.md#mechanismconfig-rotationport) |
 | `MechanismConfig::safeMode` | field | [robot_config.md](robot_config.md#mechanismconfig-safemode) |
+| `MechanismConfig::switchLines` | field | [robot_config.md](robot_config.md#mechanismconfig-switchlines) |
 | `MechanismDeps` | struct | [mechanism_op.md](mechanism_op.md#struct-mechanismdeps) |
 | `MechanismDeps::clock` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-clock) |
 | `MechanismDeps::faults` | field | [mechanism_op.md](mechanism_op.md#mechanismdeps-faults) |
@@ -2097,6 +2391,66 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismOutcome::TimedOut` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-timedout) |
 | `MechanismOutcome::Unconfirmed` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-unconfirmed) |
 | `mechanismOutcomeName` | free function | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcomename) |
+| `MechanismParts` | class | [mechanism_parts.md](mechanism_parts.md#class-mechanismparts) |
+| `MechanismParts::absence` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-absence) |
+| `MechanismParts::build` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-build) |
+| `MechanismParts::built` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-built) |
+| `MechanismParts::builtAt` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-builtat) |
+| `MechanismParts::config` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-config) |
+| `MechanismParts::devices` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-devices) |
+| `MechanismParts::indexOf` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-indexof) |
+| `MechanismParts::kMaxRoles` | field | [mechanism_parts.md](mechanism_parts.md#mechanismparts-kmaxroles) |
+| `MechanismParts::kReasonBytes` | field | [mechanism_parts.md](mechanism_parts.md#mechanismparts-kreasonbytes) |
+| `MechanismParts::MechanismParts` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-mechanismparts) |
+| `MechanismParts::MechanismParts (overload 2)` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-mechanismparts-2) |
+| `MechanismParts::MechanismParts (overload 3)` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-mechanismparts-3) |
+| `MechanismParts::motorAt` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-motorat) |
+| `MechanismParts::operator=` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-operator-eq) |
+| `MechanismParts::operator= (overload 2)` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-operator-eq-2) |
+| `MechanismParts::pneumaticAt` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-pneumaticat) |
+| `MechanismParts::roles` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-roles) |
+| `MechanismParts::size` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-size) |
+| `MechanismParts::~MechanismParts` | function | [mechanism_parts.md](mechanism_parts.md#mechanismparts-destructor-mechanismparts) |
+| `mechanisms` | free function | [wiring.md](wiring.md#mechanisms) |
+| `mechanisms (overload 2)` | free function | [wiring.md](wiring.md#mechanisms-2) |
+| `mechanisms (overload 3)` | type alias | [wiring.md](wiring.md#mechanisms-3) |
+| `MechanismSpec` | struct | [spec.md](spec.md#struct-mechanismspec) |
+| `MechanismSpec::angleSensor` | field | [spec.md](spec.md#mechanismspec-anglesensor) |
+| `MechanismSpec::cartridge` | field | [spec.md](spec.md#mechanismspec-cartridge) |
+| `MechanismSpec::declaredFile` | field | [spec.md](spec.md#mechanismspec-declaredfile) |
+| `MechanismSpec::declaredLine` | field | [spec.md](spec.md#mechanismspec-declaredline) |
+| `MechanismSpec::homeSwitch` | field | [spec.md](spec.md#mechanismspec-homeswitch) |
+| `MechanismSpec::kind` | field | [spec.md](spec.md#mechanismspec-kind) |
+| `MechanismSpec::lineCount` | field | [spec.md](spec.md#mechanismspec-linecount) |
+| `MechanismSpec::motorCount` | field | [spec.md](spec.md#mechanismspec-motorcount) |
+| `MechanismSpec::motors` | field | [spec.md](spec.md#mechanismspec-motors) |
+| `MechanismSpec::name` | field | [spec.md](spec.md#mechanismspec-name) |
+| `MechanismSpec::pieceSensor` | field | [spec.md](spec.md#mechanismspec-piecesensor) |
+| `MechanismSpec::pneumatic` | field | [spec.md](spec.md#mechanismspec-pneumatic) |
+| `MechanismSpec::position` | field | [spec.md](spec.md#mechanismspec-position) |
+| `MechanismSpec::power` | field | [spec.md](spec.md#mechanismspec-power) |
+| `MechanismSpec::presetNameTooLong` | field | [spec.md](spec.md#mechanismspec-presetnametoolong) |
+| `MechanismSpec::safeMode` | field | [spec.md](spec.md#mechanismspec-safemode) |
+| `MechanismSpec::speed` | field | [spec.md](spec.md#mechanismspec-speed) |
+| `MechanismTable` | struct | [wiring.md](wiring.md#struct-mechanismtable) |
+| `MechanismTable` | type alias | [wiring.md](wiring.md#mechanismtable) |
+| `MechanismTable::count` | field | [wiring.md](wiring.md#mechanismtable-count) |
+| `MechanismTable::declared` | field | [wiring.md](wiring.md#mechanismtable-declared) |
+| `MechanismTable::indexOf` | function | [wiring.md](wiring.md#mechanismtable-indexof) |
+| `MechanismTable::specs` | field | [wiring.md](wiring.md#mechanismtable-specs) |
+| `MechanismTable::specSpan` | function | [wiring.md](wiring.md#mechanismtable-specspan) |
+| `MechanismTable::wiring` | field | [wiring.md](wiring.md#mechanismtable-wiring) |
+| `MechanismTable::wiringSpan` | function | [wiring.md](wiring.md#mechanismtable-wiringspan) |
+| `MechanismWiring` | struct | [wiring.md](wiring.md#struct-mechanismwiring) |
+| `MechanismWiring::angleSensor` | field | [wiring.md](wiring.md#mechanismwiring-anglesensor) |
+| `MechanismWiring::file` | field | [wiring.md](wiring.md#mechanismwiring-file) |
+| `MechanismWiring::homeSwitch` | field | [wiring.md](wiring.md#mechanismwiring-homeswitch) |
+| `MechanismWiring::line` | field | [wiring.md](wiring.md#mechanismwiring-line) |
+| `MechanismWiring::lines` | field | [wiring.md](wiring.md#mechanismwiring-lines) |
+| `MechanismWiring::mechanism` | field | [wiring.md](wiring.md#mechanismwiring-mechanism) |
+| `MechanismWiring::motors` | field | [wiring.md](wiring.md#mechanismwiring-motors) |
+| `MechanismWiring::pieceSensorPort` | field | [wiring.md](wiring.md#mechanismwiring-piecesensorport) |
+| `MechanismWiring::pieceSwitch` | field | [wiring.md](wiring.md#mechanismwiring-pieceswitch) |
 | `medianInPlace` | free function | [motor_group.md](motor_group.md#medianinplace) |
 | `MemberAbsenceDetector` | class | [coupled_side_monitor.md](coupled_side_monitor.md#class-memberabsencedetector) |
 | `MemberAbsenceDetector::absent` | function | [coupled_side_monitor.md](coupled_side_monitor.md#memberabsencedetector-absent) |
@@ -2149,6 +2503,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MenuView::pageCount` | field | [auton_menu.md](auton_menu.md#menuview-pagecount) |
 | `MenuView::status` | field | [auton_menu.md](auton_menu.md#menuview-status) |
 | `modeRequest` | free function | [drive_modes.md](drive_modes.md#moderequest) |
+| `more_mechanisms_than_a_robot_can_have` | free function | [wiring.md](wiring.md#more_mechanisms_than_a_robot_can_have) |
+| `more_route_ids_than_a_route_registry_holds_32` | free function | [route_ids.md](route_ids.md#more_route_ids_than_a_route_registry_holds_32) |
 | `MotionConfig` | struct | [motion_config.md](motion_config.md#struct-motionconfig) |
 | `MotionConfig::brakeSettle` | field | [motion_config.md](motion_config.md#motionconfig-brakesettle) |
 | `MotionConfig::defaultTimeout` | field | [motion_config.md](motion_config.md#motionconfig-defaulttimeout) |
@@ -2254,6 +2610,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotionStatsSink::summarize` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-summarize) |
 | `MotionStatsSink::targetPose` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-targetpose) |
 | `MotionStatsSink::wantsRecord` | function | [motion_scheduler.md](motion_scheduler.md#motionstatssink-wantsrecord) |
+| `Motor` | struct | [kinds.md](kinds.md#struct-motor) |
+| `Motor::changeAt` | field | [kinds.md](kinds.md#motor-changeat) |
+| `Motor::present` | field | [kinds.md](kinds.md#motor-present) |
+| `Motor::reversed` | field | [kinds.md](kinds.md#motor-reversed) |
 | `MotorCartridge` | enum class | [drivetrain_description.md](drivetrain_description.md#enum-class-motorcartridge) |
 | `MotorCartridge::Blue` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-blue) |
 | `MotorCartridge::Green` | enumerator | [drivetrain_description.md](drivetrain_description.md#motorcartridge-green) |
@@ -2295,6 +2655,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorMechanism::applySafeState` | function | [mechanism.md](mechanism.md#motormechanism-applysafestate) |
 | `MotorMechanism::commandedVoltage` | function | [mechanism.md](mechanism.md#motormechanism-commandedvoltage) |
 | `MotorMechanism::maxCurrent` | function | [mechanism.md](mechanism.md#motormechanism-maxcurrent) |
+| `MotorMechanism::meanPosition` | function | [mechanism.md](mechanism.md#motormechanism-meanposition) |
 | `MotorMechanism::meanVelocity` | function | [mechanism.md](mechanism.md#motormechanism-meanvelocity) |
 | `MotorMechanism::MotorMechanism` | function | [mechanism.md](mechanism.md#motormechanism-motormechanism) |
 | `MotorMechanism::motors` | function | [mechanism.md](mechanism.md#motormechanism-motors) |
@@ -2302,8 +2663,34 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MotorMechanism::safeBrakeMode` | function | [mechanism.md](mechanism.md#motormechanism-safebrakemode) |
 | `MotorMechanism::setVoltage` | function | [mechanism.md](mechanism.md#motormechanism-setvoltage) |
 | `motorMilliampsToCanonical` | free function | [motor_conversion.md](motor_conversion.md#motormilliampstocanonical) |
+| `MotorPorts` | struct | [wiring.md](wiring.md#struct-motorports) |
+| `MotorPorts::bad` | field | [wiring.md](wiring.md#motorports-bad) |
+| `MotorPorts::count` | field | [wiring.md](wiring.md#motorports-count) |
+| `MotorPorts::file` | field | [wiring.md](wiring.md#motorports-file) |
+| `MotorPorts::line` | field | [wiring.md](wiring.md#motorports-line) |
+| `MotorPorts::port` | field | [wiring.md](wiring.md#motorports-port) |
 | `motorPositionDegToCanonical` | free function | [motor_conversion.md](motor_conversion.md#motorpositiondegtocanonical) |
+| `MotorRole` | struct | [spec.md](spec.md#struct-motorrole) |
+| `MotorRole::file` | field | [spec.md](spec.md#motorrole-file) |
+| `MotorRole::line` | field | [spec.md](spec.md#motorrole-line) |
+| `MotorRole::reversed` | field | [spec.md](spec.md#motorrole-reversed) |
+| `MotorRole::source` | field | [spec.md](spec.md#motorrole-source) |
 | `motorRpmToCanonical` | free function | [motor_conversion.md](motor_conversion.md#motorrpmtocanonical) |
+| `motors` | free function | [wiring.md](wiring.md#motors) |
+| `Motors` | struct | [kinds.md](kinds.md#struct-motors) |
+| `motors (overload 2)` | free function | [wiring.md](wiring.md#motors-2) |
+| `motors (overload 3)` | free function | [wiring.md](wiring.md#motors-3) |
+| `motors (overload 4)` | free function | [wiring.md](wiring.md#motors-4) |
+| `motors (overload 5)` | free function | [wiring.md](wiring.md#motors-5) |
+| `motors (overload 6)` | free function | [wiring.md](wiring.md#motors-6) |
+| `motors (overload 7)` | type alias | [wiring.md](wiring.md#motors-7) |
+| `Motors::count` | field | [kinds.md](kinds.md#motors-count) |
+| `Motors::file` | field | [kinds.md](kinds.md#motors-file) |
+| `Motors::line` | field | [kinds.md](kinds.md#motors-line) |
+| `Motors::m` | field | [kinds.md](kinds.md#motors-m) |
+| `Motors::Motors` | function | [kinds.md](kinds.md#motors-motors) |
+| `Motors::Motors (overload 2)` | function | [kinds.md](kinds.md#motors-motors-2) |
+| `Motors::tooMany` | field | [kinds.md](kinds.md#motors-toomany) |
 | `motorVoltageApplied` | free function | [motor_conversion.md](motor_conversion.md#motorvoltageapplied) |
 | `motorVoltageToMillivolts` | free function | [motor_conversion.md](motor_conversion.md#motorvoltagetomillivolts) |
 | `MoveToPose` | class | [move_to_pose.md](move_to_pose.md#class-movetopose) |
@@ -2322,7 +2709,22 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 
 | Name | Kind | Page |
 |---|---|---|
+| `Name` | struct | [kinds.md](kinds.md#struct-name) |
+| `Name::file` | field | [kinds.md](kinds.md#name-file) |
+| `Name::line` | field | [kinds.md](kinds.md#name-line) |
+| `Name::Name` | function | [kinds.md](kinds.md#name-name) |
+| `Name::Name (overload 2)` | function | [kinds.md](kinds.md#name-name-2) |
+| `Name::text` | field | [kinds.md](kinds.md#name-text) |
+| `NamedPosition` | struct | [kinds.md](kinds.md#struct-namedposition) |
+| `NamedPosition::confirm` | field | [kinds.md](kinds.md#namedposition-confirm) |
+| `NamedPosition::levels` | field | [kinds.md](kinds.md#namedposition-levels) |
+| `NamedPosition::name` | field | [kinds.md](kinds.md#namedposition-name) |
+| `nameOf` | free function | [spec.md](spec.md#nameof) |
 | `negotiate` | free function | [shul2_format.md](shul2_format.md#negotiate) |
+| `neverHomed` | constant | [kinds.md](kinds.md#neverhomed) |
+| `neverHomed (overload 2)` | type alias | [kinds.md](kinds.md#neverhomed-2) |
+| `noGravity` | constant | [kinds.md](kinds.md#nogravity) |
+| `noGravity (overload 2)` | type alias | [kinds.md](kinds.md#nogravity-2) |
 | `NullCorrector` | class | [i_corrector.md](i_corrector.md#class-nullcorrector) |
 | `NullCorrector::name` | function | [i_corrector.md](i_corrector.md#nullcorrector-name) |
 | `NullCorrector::propose` | function | [i_corrector.md](i_corrector.md#nullcorrector-propose) |
@@ -2399,6 +2801,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `operator/` | free function | [quantity.md](quantity.md#operator-slash) |
 | `opticalHueToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalhuetocanonical) |
 | `opticalProximityToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalproximitytocanonical) |
+| `opticalSensor` | free function | [kinds.md](kinds.md#opticalsensor) |
+| `opticalSensor (overload 2)` | type alias | [kinds.md](kinds.md#opticalsensor-2) |
 | `opticalUnitIntervalToCanonical` | free function | [optical_conversion.md](optical_conversion.md#opticalunitintervaltocanonical) |
 | `overlaps` | free function | [calibrate_panel.md](calibrate_panel.md#overlaps) |
 | `overlaps` | free function | [touch_panel.md](touch_panel.md#overlaps) |
@@ -2485,6 +2889,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PidConfig::kP` | field | [pid.md](pid.md#pidconfig-kp) |
 | `PidConfig::outputMax` | field | [pid.md](pid.md#pidconfig-outputmax) |
 | `PidConfig::outputMin` | field | [pid.md](pid.md#pidconfig-outputmin) |
+| `pieceSensor` | free function | [wiring.md](wiring.md#piecesensor) |
+| `pieceSensor (overload 2)` | type alias | [wiring.md](wiring.md#piecesensor-2) |
 | `PilonsOdometry` | class | [pilons_odometry.md](pilons_odometry.md#class-pilonsodometry) |
 | `PilonsOdometry::lastDeltaImplausible` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lastdeltaimplausible) |
 | `PilonsOdometry::lastTickAudit` | function | [pilons_odometry.md](pilons_odometry.md#pilonsodometry-lasttickaudit) |
@@ -2500,6 +2906,32 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PlausibilityConfig::maxSpeed` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxspeed) |
 | `PlausibilityConfig::maxYawRate` | field | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-maxyawrate) |
 | `PlausibilityConfig::validate` | function | [plausibility_guard.md](plausibility_guard.md#plausibilityconfig-validate) |
+| `Pneumatic` | struct | [kinds.md](kinds.md#struct-pneumatic) |
+| `Pneumatic` | type alias | [kinds.md](kinds.md#pneumatic) |
+| `Pneumatic::changeAt` | field | [kinds.md](kinds.md#pneumatic-changeat) |
+| `Pneumatic::confirmWithin` | field | [kinds.md](kinds.md#pneumatic-confirmwithin) |
+| `Pneumatic::moveTime` | field | [kinds.md](kinds.md#pneumatic-movetime) |
+| `Pneumatic::name` | field | [kinds.md](kinds.md#pneumatic-name) |
+| `Pneumatic::operator[]` | function | [kinds.md](kinds.md#pneumatic-operator-index) |
+| `Pneumatic::pieceSensor` | field | [kinds.md](kinds.md#pneumatic-piecesensor) |
+| `Pneumatic::positions` | field | [kinds.md](kinds.md#pneumatic-positions) |
+| `Pneumatic::safe` | field | [kinds.md](kinds.md#pneumatic-safe) |
+| `Pneumatic::spec` | function | [kinds.md](kinds.md#pneumatic-spec) |
+| `Pneumatic::start` | field | [kinds.md](kinds.md#pneumatic-start) |
+| `Pneumatic::to` | function | [kinds.md](kinds.md#pneumatic-to) |
+| `pneumatic_a_position_has_no_name` | free function | [spec.md](spec.md#pneumatic_a_position_has_no_name) |
+| `pneumatic_actuationtime_must_be_more_than_zero` | free function | [spec.md](spec.md#pneumatic_actuationtime_must_be_more_than_zero) |
+| `pneumatic_confirmwithin_must_not_be_negative` | free function | [spec.md](spec.md#pneumatic_confirmwithin_must_not_be_negative) |
+| `pneumatic_its_safe_names_none_of_its_positions` | free function | [spec.md](spec.md#pneumatic_its_safe_names_none_of_its_positions) |
+| `pneumatic_its_start_names_none_of_its_positions` | free function | [spec.md](spec.md#pneumatic_its_start_names_none_of_its_positions) |
+| `pneumatic_start_or_safe_is_not_one_of_its_positions` | free function | [spec.md](spec.md#pneumatic_start_or_safe_is_not_one_of_its_positions) |
+| `pneumatic_two_or_three_positions` | free function | [spec.md](spec.md#pneumatic_two_or_three_positions) |
+| `pneumatic_two_positions_have_the_same_line_levels` | free function | [spec.md](spec.md#pneumatic_two_positions_have_the_same_line_levels) |
+| `PneumaticGoal` | struct | [kinds.md](kinds.md#struct-pneumaticgoal) |
+| `PneumaticGoal::mechanism` | field | [kinds.md](kinds.md#pneumaticgoal-mechanism) |
+| `PneumaticGoal::mechanismName` | field | [kinds.md](kinds.md#pneumaticgoal-mechanismname) |
+| `PneumaticGoal::position` | field | [kinds.md](kinds.md#pneumaticgoal-position) |
+| `PneumaticGoal::positionName` | field | [kinds.md](kinds.md#pneumaticgoal-positionname) |
 | `PneumaticLevel` | enum class | [robot_config.md](robot_config.md#enum-class-pneumaticlevel) |
 | `PneumaticLevel::High` | enumerator | [robot_config.md](robot_config.md#pneumaticlevel-high) |
 | `PneumaticLevel::Low` | enumerator | [robot_config.md](robot_config.md#pneumaticlevel-low) |
@@ -2507,11 +2939,35 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PneumaticMechanism` | class | [mechanism.md](mechanism.md#class-pneumaticmechanism) |
 | `PneumaticMechanism::applySafeState` | function | [mechanism.md](mechanism.md#pneumaticmechanism-applysafestate) |
 | `PneumaticMechanism::commanded` | function | [mechanism.md](mechanism.md#pneumaticmechanism-commanded) |
+| `PneumaticMechanism::commandedLevel` | function | [mechanism.md](mechanism.md#pneumaticmechanism-commandedlevel) |
+| `PneumaticMechanism::kMaxPerLineLevels` | field | [mechanism.md](mechanism.md#pneumaticmechanism-kmaxperlinelevels) |
 | `PneumaticMechanism::lines` | function | [mechanism.md](mechanism.md#pneumaticmechanism-lines) |
 | `PneumaticMechanism::name` | function | [mechanism.md](mechanism.md#pneumaticmechanism-name) |
+| `PneumaticMechanism::perLine` | function | [mechanism.md](mechanism.md#pneumaticmechanism-perline) |
 | `PneumaticMechanism::PneumaticMechanism` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism) |
+| `PneumaticMechanism::PneumaticMechanism (overload 2)` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism-2) |
+| `PneumaticMechanism::PneumaticMechanism (overload 3)` | function | [mechanism.md](mechanism.md#pneumaticmechanism-pneumaticmechanism-3) |
 | `PneumaticMechanism::safeCommand` | function | [mechanism.md](mechanism.md#pneumaticmechanism-safecommand) |
+| `PneumaticMechanism::safeLevel` | function | [mechanism.md](mechanism.md#pneumaticmechanism-safelevel) |
 | `PneumaticMechanism::set` | function | [mechanism.md](mechanism.md#pneumaticmechanism-set) |
+| `PneumaticMechanism::setLevels` | function | [mechanism.md](mechanism.md#pneumaticmechanism-setlevels) |
+| `PneumaticPositionSpec` | struct | [spec.md](spec.md#struct-pneumaticpositionspec) |
+| `PneumaticPositionSpec::confirm` | field | [spec.md](spec.md#pneumaticpositionspec-confirm) |
+| `PneumaticPositionSpec::levelCount` | field | [spec.md](spec.md#pneumaticpositionspec-levelcount) |
+| `PneumaticPositionSpec::levels` | field | [spec.md](spec.md#pneumaticpositionspec-levels) |
+| `PneumaticPositionSpec::name` | field | [spec.md](spec.md#pneumaticpositionspec-name) |
+| `PneumaticSpec` | struct | [spec.md](spec.md#struct-pneumaticspec) |
+| `PneumaticSpec::actuationTime` | field | [spec.md](spec.md#pneumaticspec-actuationtime) |
+| `PneumaticSpec::confirmWindow` | field | [spec.md](spec.md#pneumaticspec-confirmwindow) |
+| `PneumaticSpec::levelsFile` | field | [spec.md](spec.md#pneumaticspec-levelsfile) |
+| `PneumaticSpec::levelsLine` | field | [spec.md](spec.md#pneumaticspec-levelsline) |
+| `PneumaticSpec::levelsSource` | field | [spec.md](spec.md#pneumaticspec-levelssource) |
+| `PneumaticSpec::positionCount` | field | [spec.md](spec.md#pneumaticspec-positioncount) |
+| `PneumaticSpec::positions` | field | [spec.md](spec.md#pneumaticspec-positions) |
+| `PneumaticSpec::safe` | field | [spec.md](spec.md#pneumaticspec-safe) |
+| `PneumaticSpec::safeNamed` | field | [spec.md](spec.md#pneumaticspec-safenamed) |
+| `PneumaticSpec::start` | field | [spec.md](spec.md#pneumaticspec-start) |
+| `PneumaticSpec::startNamed` | field | [spec.md](spec.md#pneumaticspec-startnamed) |
 | `PortClass` | enum class | [boot_check.md](boot_check.md#enum-class-portclass) |
 | `PortClass::Missing` | enumerator | [boot_check.md](boot_check.md#portclass-missing) |
 | `PortClass::Present` | enumerator | [boot_check.md](boot_check.md#portclass-present) |
@@ -2537,6 +2993,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PortUse::Gps` | enumerator | [robot_config.md](robot_config.md#portuse-gps) |
 | `PortUse::Imu` | enumerator | [robot_config.md](robot_config.md#portuse-imu) |
 | `PortUse::Mechanism` | enumerator | [robot_config.md](robot_config.md#portuse-mechanism) |
+| `PortUse::MechanismSensor` | enumerator | [robot_config.md](robot_config.md#portuse-mechanismsensor) |
 | `PortUse::PodForward` | enumerator | [robot_config.md](robot_config.md#portuse-podforward) |
 | `PortUse::PodLateral` | enumerator | [robot_config.md](robot_config.md#portuse-podlateral) |
 | `portUseWord` | free function | [robot_config.md](robot_config.md#portuseword) |
@@ -2556,12 +3013,120 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PoseMotionOptions::capturePoseAtLive` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-captureposeatlive) |
 | `PoseMotionOptions::holdFor` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-holdfor) |
 | `PoseMotionOptions::tankSteer` | field | [move_to_pose.md](move_to_pose.md#posemotionoptions-tanksteer) |
+| `position_a_lift_is_in_inches` | free function | [spec.md](spec.md#position_a_lift_is_in_inches) |
+| `position_a_lifts_shape_is_unset_give_it_spool_linkage_or_measured` | free function | [spec.md](spec.md#position_a_lifts_shape_is_unset_give_it_spool_linkage_or_measured) |
+| `position_a_lookup_table_needs_two_to_eight_points` | free function | [spec.md](spec.md#position_a_lookup_table_needs_two_to_eight_points) |
+| `position_a_preset_has_no_name` | free function | [spec.md](spec.md#position_a_preset_has_no_name) |
+| `position_a_preset_is_outside_the_travel_limits` | free function | [spec.md](spec.md#position_a_preset_is_outside_the_travel_limits) |
+| `position_a_rotary_mechanism_is_in_degrees` | free function | [spec.md](spec.md#position_a_rotary_mechanism_is_in_degrees) |
+| `position_absolute_homing_needs_an_anglesensor_rotation_role` | free function | [spec.md](spec.md#position_absolute_homing_needs_an_anglesensor_rotation_role) |
+| `position_an_arm_needs_one_to_three_stages` | free function | [spec.md](spec.md#position_an_arm_needs_one_to_three_stages) |
+| `position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there` | free function | [spec.md](spec.md#position_an_arms_travel_limits_reach_past_its_linkage_the_height_formula_has_no_inverse_there) |
+| `position_arm_length_must_be_more_than_zero` | free function | [spec.md](spec.md#position_arm_length_must_be_more_than_zero) |
+| `position_gearratio_must_be_more_than_zero` | free function | [spec.md](spec.md#position_gearratio_must_be_more_than_zero) |
+| `position_gravity_unset` | free function | [spec.md](spec.md#position_gravity_unset) |
+| `position_homing_by_switch_needs_a_homeswitch_role` | free function | [spec.md](spec.md#position_homing_by_switch_needs_a_homeswitch_role) |
+| `position_homing_method_unset` | free function | [spec.md](spec.md#position_homing_method_unset) |
+| `position_homing_needs_homevolts` | free function | [spec.md](spec.md#position_homing_needs_homevolts) |
+| `position_more_presets_than_fit` | free function | [spec.md](spec.md#position_more_presets_than_fit) |
+| `position_spool_diameter_must_be_more_than_zero` | free function | [spec.md](spec.md#position_spool_diameter_must_be_more_than_zero) |
+| `position_stall_homing_needs_its_stall_signature` | free function | [spec.md](spec.md#position_stall_homing_needs_its_stall_signature) |
+| `position_the_gravity_hold_must_be_within_12_volts_either_way` | free function | [spec.md](spec.md#position_the_gravity_hold_must_be_within_12_volts_either_way) |
+| `position_the_home_position_is_outside_the_travel_limits` | free function | [spec.md](spec.md#position_the_home_position_is_outside_the_travel_limits) |
+| `position_the_homing_push_must_be_within_12_volts_either_way` | free function | [spec.md](spec.md#position_the_homing_push_must_be_within_12_volts_either_way) |
+| `position_the_homing_push_points_away_from_its_home_end` | free function | [spec.md](spec.md#position_the_homing_push_points_away_from_its_home_end) |
+| `position_the_lookup_table_is_not_strictly_increasing` | free function | [spec.md](spec.md#position_the_lookup_table_is_not_strictly_increasing) |
+| `position_the_profile_needs_maxvelocity_and_maxacceleration_more_than_zero` | free function | [spec.md](spec.md#position_the_profile_needs_maxvelocity_and_maxacceleration_more_than_zero) |
+| `position_the_settle_time_must_not_be_negative` | free function | [spec.md](spec.md#position_the_settle_time_must_not_be_negative) |
+| `position_the_stall_signature_is_unset_a_held_mechanism_must_never_sit_at_stall_current` | free function | [spec.md](spec.md#position_the_stall_signature_is_unset_a_held_mechanism_must_never_sit_at_stall_current) |
+| `position_tolerance_must_be_more_than_zero` | free function | [spec.md](spec.md#position_tolerance_must_be_more_than_zero) |
+| `position_travel_limits_missing_or_min_at_least_max` | free function | [spec.md](spec.md#position_travel_limits_missing_or_min_at_least_max) |
+| `position_unhomedvolts_must_be_from_0_to_12` | free function | [spec.md](spec.md#position_unhomedvolts_must_be_from_0_to_12) |
+| `position_units_unset` | free function | [spec.md](spec.md#position_units_unset) |
+| `PositionGoal` | struct | [kinds.md](kinds.md#struct-positiongoal) |
+| `PositionGoal::computed` | field | [kinds.md](kinds.md#positiongoal-computed) |
+| `PositionGoal::mechanism` | field | [kinds.md](kinds.md#positiongoal-mechanism) |
+| `PositionGoal::mechanismName` | field | [kinds.md](kinds.md#positiongoal-mechanismname) |
+| `PositionGoal::presetName` | field | [kinds.md](kinds.md#positiongoal-presetname) |
+| `PositionGoal::value` | field | [kinds.md](kinds.md#positiongoal-value) |
+| `Positions` | struct | [kinds.md](kinds.md#struct-positions) |
+| `Positions::count` | field | [kinds.md](kinds.md#positions-count) |
+| `Positions::file` | field | [kinds.md](kinds.md#positions-file) |
+| `Positions::line` | field | [kinds.md](kinds.md#positions-line) |
+| `Positions::p` | field | [kinds.md](kinds.md#positions-p) |
+| `Positions::Positions` | function | [kinds.md](kinds.md#positions-positions) |
+| `Positions::Positions (overload 2)` | function | [kinds.md](kinds.md#positions-positions-2) |
+| `Positions::tooMany` | field | [kinds.md](kinds.md#positions-toomany) |
+| `PositionSpec` | struct | [spec.md](spec.md#struct-positionspec) |
+| `PositionSpec::absoluteSensorAtZeroDeg` | field | [spec.md](spec.md#positionspec-absolutesensoratzerodeg) |
+| `PositionSpec::armLengthIn` | field | [spec.md](spec.md#positionspec-armlengthin) |
+| `PositionSpec::armStages` | field | [spec.md](spec.md#positionspec-armstages) |
+| `PositionSpec::gearRatio` | field | [spec.md](spec.md#positionspec-gearratio) |
+| `PositionSpec::geometry` | field | [spec.md](spec.md#positionspec-geometry) |
+| `PositionSpec::gravity` | field | [spec.md](spec.md#positionspec-gravity) |
+| `PositionSpec::home` | field | [spec.md](spec.md#positionspec-home) |
+| `PositionSpec::homePosition` | field | [spec.md](spec.md#positionspec-homeposition) |
+| `PositionSpec::homeStall` | field | [spec.md](spec.md#positionspec-homestall) |
+| `PositionSpec::homeVolts` | field | [spec.md](spec.md#positionspec-homevolts) |
+| `PositionSpec::horizontalAt` | field | [spec.md](spec.md#positionspec-horizontalat) |
+| `PositionSpec::kA` | field | [spec.md](spec.md#positionspec-ka) |
+| `PositionSpec::kD` | field | [spec.md](spec.md#positionspec-kd) |
+| `PositionSpec::kG` | field | [spec.md](spec.md#positionspec-kg) |
+| `PositionSpec::kI` | field | [spec.md](spec.md#positionspec-ki) |
+| `PositionSpec::kP` | field | [spec.md](spec.md#positionspec-kp) |
+| `PositionSpec::kS` | field | [spec.md](spec.md#positionspec-ks) |
+| `PositionSpec::kV` | field | [spec.md](spec.md#positionspec-kv) |
+| `PositionSpec::maxAcceleration` | field | [spec.md](spec.md#positionspec-maxacceleration) |
+| `PositionSpec::maxPosition` | field | [spec.md](spec.md#positionspec-maxposition) |
+| `PositionSpec::maxVelocity` | field | [spec.md](spec.md#positionspec-maxvelocity) |
+| `PositionSpec::minPosition` | field | [spec.md](spec.md#positionspec-minposition) |
+| `PositionSpec::pivotHeightIn` | field | [spec.md](spec.md#positionspec-pivotheightin) |
+| `PositionSpec::presetCount` | field | [spec.md](spec.md#positionspec-presetcount) |
+| `PositionSpec::presets` | field | [spec.md](spec.md#positionspec-presets) |
+| `PositionSpec::settleTime` | field | [spec.md](spec.md#positionspec-settletime) |
+| `PositionSpec::spoolDiameterIn` | field | [spec.md](spec.md#positionspec-spooldiameterin) |
+| `PositionSpec::stall` | field | [spec.md](spec.md#positionspec-stall) |
+| `PositionSpec::table` | field | [spec.md](spec.md#positionspec-table) |
+| `PositionSpec::tablePoints` | field | [spec.md](spec.md#positionspec-tablepoints) |
+| `PositionSpec::tolerance` | field | [spec.md](spec.md#positionspec-tolerance) |
+| `PositionSpec::unhomedVolts` | field | [spec.md](spec.md#positionspec-unhomedvolts) |
+| `PositionSpec::units` | field | [spec.md](spec.md#positionspec-units) |
+| `positionToAngleDeg` | free function | [spec.md](spec.md#positiontoangledeg) |
+| `PositionTuning` | struct | [kinds.md](kinds.md#struct-positiontuning) |
+| `PositionTuning::kA` | field | [kinds.md](kinds.md#positiontuning-ka) |
+| `PositionTuning::kD` | field | [kinds.md](kinds.md#positiontuning-kd) |
+| `PositionTuning::kI` | field | [kinds.md](kinds.md#positiontuning-ki) |
+| `PositionTuning::kP` | field | [kinds.md](kinds.md#positiontuning-kp) |
+| `PositionTuning::kS` | field | [kinds.md](kinds.md#positiontuning-ks) |
+| `PositionTuning::kV` | field | [kinds.md](kinds.md#positiontuning-kv) |
+| `PositionTuning::maxAcceleration` | field | [kinds.md](kinds.md#positiontuning-maxacceleration) |
+| `PositionTuning::maxSpeed` | field | [kinds.md](kinds.md#positiontuning-maxspeed) |
+| `PositionTuning::settle` | field | [kinds.md](kinds.md#positiontuning-settle) |
+| `PositionTuning::within` | field | [kinds.md](kinds.md#positiontuning-within) |
+| `Power` | struct | [kinds.md](kinds.md#struct-power) |
+| `Power` | type alias | [kinds.md](kinds.md#power) |
 | `Power` | type alias | [quantity.md](quantity.md#power) |
+| `Power::cartridge` | field | [kinds.md](kinds.md#power-cartridge) |
+| `Power::maxVolts` | field | [kinds.md](kinds.md#power-maxvolts) |
+| `Power::motors` | field | [kinds.md](kinds.md#power-motors) |
+| `Power::name` | field | [kinds.md](kinds.md#power-name) |
+| `Power::operator[]` | function | [kinds.md](kinds.md#power-operator-index) |
+| `Power::pieceSensor` | field | [kinds.md](kinds.md#power-piecesensor) |
+| `Power::safe` | field | [kinds.md](kinds.md#power-safe) |
+| `Power::spec` | function | [kinds.md](kinds.md#power-spec) |
+| `Power::stall` | field | [kinds.md](kinds.md#power-stall) |
+| `power_maxvolts_is_not_in_above_0_and_at_most_12` | free function | [spec.md](spec.md#power_maxvolts_is_not_in_above_0_and_at_most_12) |
+| `PowerSpec` | struct | [spec.md](spec.md#struct-powerspec) |
+| `PowerSpec::maxVolts` | field | [spec.md](spec.md#powerspec-maxvolts) |
+| `PowerSpec::stall` | field | [spec.md](spec.md#powerspec-stall) |
 | `precondition_failed` | free function | [check.md](check.md#precondition_failed) |
 | `PreconditionError` | struct | [check.md](check.md#struct-preconditionerror) |
 | `PreconditionError::logic_error` | alias | [check.md](check.md#preconditionerror-logic_error) |
 | `PreconditionHandler` | type alias | [check.md](check.md#preconditionhandler) |
 | `preconditionHandler (overload 2)` | free function | [check.md](check.md#preconditionhandler-2) |
+| `Preset` | struct | [spec.md](spec.md#struct-preset) |
+| `Preset::name` | field | [spec.md](spec.md#preset-name) |
+| `Preset::value` | field | [spec.md](spec.md#preset-value) |
 | `ProfileConstraints` | struct | [trapezoid_profile.md](trapezoid_profile.md#struct-profileconstraints) |
 | `ProfileConstraints::maxAcceleration` | field | [trapezoid_profile.md](trapezoid_profile.md#profileconstraints-maxacceleration) |
 | `ProfileConstraints::maxVelocity` | field | [trapezoid_profile.md](trapezoid_profile.md#profileconstraints-maxvelocity) |
@@ -2610,21 +3175,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsDeviceProvider` | class | [pros-device_provider.md](pros-device_provider.md#class-prosdeviceprovider) |
 | `ProsDeviceProvider::battery` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-battery) |
 | `ProsDeviceProvider::clock` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-clock) |
+| `ProsDeviceProvider::digitalIn` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalin) |
 | `ProsDeviceProvider::digitalOut` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-digitalout) |
+| `ProsDeviceProvider::distance` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-distance) |
 | `ProsDeviceProvider::gps` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-gps) |
 | `ProsDeviceProvider::imu` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-imu) |
 | `ProsDeviceProvider::kRefusalBytes` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-krefusalbytes) |
 | `ProsDeviceProvider::kSlots` | field | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-kslots) |
 | `ProsDeviceProvider::lastRefusal` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-lastrefusal) |
+| `ProsDeviceProvider::lineReadFaults` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-linereadfaults) |
 | `ProsDeviceProvider::motor` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-motor) |
 | `ProsDeviceProvider::operator=` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-operator-eq) |
 | `ProsDeviceProvider::operator= (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-operator-eq-2) |
+| `ProsDeviceProvider::optical` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-optical) |
 | `ProsDeviceProvider::pacer` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-pacer) |
 | `ProsDeviceProvider::ProsDeviceProvider` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider) |
 | `ProsDeviceProvider::ProsDeviceProvider (overload 2)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-2) |
 | `ProsDeviceProvider::ProsDeviceProvider (overload 3)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-3) |
 | `ProsDeviceProvider::ProsDeviceProvider (overload 4)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-4) |
 | `ProsDeviceProvider::ProsDeviceProvider (overload 5)` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-prosdeviceprovider-5) |
+| `ProsDeviceProvider::readFaults` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-readfaults) |
 | `ProsDeviceProvider::rotation` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-rotation) |
 | `ProsDeviceProvider::serialCopyAppendOpen` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopyappendopen) |
 | `ProsDeviceProvider::serialCopyDroppedLines` | function | [pros-device_provider.md](pros-device_provider.md#prosdeviceprovider-serialcopydroppedlines) |
@@ -2821,15 +3391,77 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Rect::x1` | field | [touch_panel.md](touch_panel.md#rect-x1) |
 | `Rect::y0` | field | [touch_panel.md](touch_panel.md#rect-y0) |
 | `Rect::y1` | field | [touch_panel.md](touch_panel.md#rect-y1) |
+| `Red` | constant | [kinds.md](kinds.md#red) |
 | `Refusal` | enum class | [drivetrain_calibrator.md](drivetrain_calibrator.md#enum-class-refusal) |
+| `Refusal` | enum class | [spec.md](spec.md#enum-class-refusal) |
 | `Refusal::Aborted` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-aborted) |
+| `Refusal::AbsoluteHomingTheSensorSReadingAtZeroMustBeIn0360` | enumerator | [spec.md](spec.md#refusal-absolutehomingthesensorsreadingatzeromustbein0360) |
+| `Refusal::ADistancePieceSensorNeedsItsSeesWithinDistance0` | enumerator | [spec.md](spec.md#refusal-adistancepiecesensorneedsitsseeswithindistance0) |
+| `Refusal::AHomeSwitchRoleOnAMechanismThatIsNotPosition` | enumerator | [spec.md](spec.md#refusal-ahomeswitchroleonamechanismthatisnotposition) |
+| `Refusal::AMechanismHasNoName` | enumerator | [spec.md](spec.md#refusal-amechanismhasnoname) |
+| `Refusal::AMechanismNameDoesNotFit23Characters` | enumerator | [spec.md](spec.md#refusal-amechanismnamedoesnotfit23characters) |
+| `Refusal::AMechanismSKindIsUNSET` | enumerator | [spec.md](spec.md#refusal-amechanismskindisunset) |
+| `Refusal::AMotorMechanismHas3WireLineRolesMakeTwoMechanisms` | enumerator | [spec.md](spec.md#refusal-amotormechanismhas3wirelinerolesmaketwomechanisms) |
+| `Refusal::AMotorMechanismNeeds14MotorRoles` | enumerator | [spec.md](spec.md#refusal-amotormechanismneeds14motorroles) |
+| `Refusal::AMotorMechanismSCartridgeIsUNSET` | enumerator | [spec.md](spec.md#refusal-amotormechanismscartridgeisunset) |
+| `Refusal::AMotorMechanismSSafeBrakeModeIsUNSET` | enumerator | [spec.md](spec.md#refusal-amotormechanismssafebrakemodeisunset) |
+| `Refusal::AnAngleSensorRoleOnAMechanismThatIsNotPositionOrSpeed` | enumerator | [spec.md](spec.md#refusal-ananglesensorroleonamechanismthatisnotpositionorspeed) |
+| `Refusal::AnOpticalPieceSensorNeedsItsProximityThresholdIn01` | enumerator | [spec.md](spec.md#refusal-anopticalpiecesensorneedsitsproximitythresholdin01) |
+| `Refusal::APieceSensorCannotBeARotationSensor` | enumerator | [spec.md](spec.md#refusal-apiecesensorcannotbearotationsensor) |
+| `Refusal::APneumaticMechanismHasMotorRoles` | enumerator | [spec.md](spec.md#refusal-apneumaticmechanismhasmotorroles) |
+| `Refusal::APneumaticMechanismNeeds12LineRoles` | enumerator | [spec.md](spec.md#refusal-apneumaticmechanismneeds12lineroles) |
+| `Refusal::APresetOrPositionNameDoesNotFit15Characters` | enumerator | [spec.md](spec.md#refusal-apresetorpositionnamedoesnotfit15characters) |
+| `Refusal::AStallSignatureNeedsAmpsAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsampsabove0) |
+| `Refusal::AStallSignatureNeedsBelowMotorRpmAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedsbelowmotorrpmabove0) |
+| `Refusal::AStallSignatureNeedsLastingAbove0` | enumerator | [spec.md](spec.md#refusal-astallsignatureneedslastingabove0) |
+| `Refusal::AStallSignatureSAmpsMustBeBelowTheMotorS25ACurrentLimit` | enumerator | [spec.md](spec.md#refusal-astallsignaturesampsmustbebelowthemotors25acurrentlimit) |
 | `Refusal::ImuNotReady` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-imunotready) |
 | `Refusal::InvalidDescription` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-invaliddescription) |
 | `Refusal::MissedTick` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-missedtick) |
 | `Refusal::NonDriveMoved` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-nondrivemoved) |
 | `Refusal::None` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-none) |
+| `Refusal::None` | enumerator | [spec.md](spec.md#refusal-none) |
 | `Refusal::OneSided` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-onesided) |
 | `Refusal::OutOfOrder` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-outoforder) |
+| `Refusal::Pneumatic2Or3Positions` | enumerator | [spec.md](spec.md#refusal-pneumatic2or3positions) |
+| `Refusal::PneumaticActuationTimeMustBe0` | enumerator | [spec.md](spec.md#refusal-pneumaticactuationtimemustbe0) |
+| `Refusal::PneumaticAPositionHasNoName` | enumerator | [spec.md](spec.md#refusal-pneumaticapositionhasnoname) |
+| `Refusal::PneumaticItsSafeNamesNoneOfItsPositions` | enumerator | [spec.md](spec.md#refusal-pneumaticitssafenamesnoneofitspositions) |
+| `Refusal::PneumaticItsStartNamesNoneOfItsPositions` | enumerator | [spec.md](spec.md#refusal-pneumaticitsstartnamesnoneofitspositions) |
+| `Refusal::PneumaticStartSafeIsNotOneOfItsPositions` | enumerator | [spec.md](spec.md#refusal-pneumaticstartsafeisnotoneofitspositions) |
+| `Refusal::PneumaticTheConfirmWindowIsNegative` | enumerator | [spec.md](spec.md#refusal-pneumatictheconfirmwindowisnegative) |
+| `Refusal::PneumaticTwoPositionsHaveTheSameLineLevels` | enumerator | [spec.md](spec.md#refusal-pneumatictwopositionshavethesamelinelevels) |
+| `Refusal::PositionAbsoluteHomingNeedsAnAngleSensorRotationRole` | enumerator | [spec.md](spec.md#refusal-positionabsolutehomingneedsananglesensorrotationrole) |
+| `Refusal::PositionALiftIsInInches` | enumerator | [spec.md](spec.md#refusal-positionaliftisininches) |
+| `Refusal::PositionALookupTableNeeds28Points` | enumerator | [spec.md](spec.md#refusal-positionalookuptableneeds28points) |
+| `Refusal::PositionAnArmNeeds13Stages` | enumerator | [spec.md](spec.md#refusal-positionanarmneeds13stages) |
+| `Refusal::PositionAnArmSTravelLimitsReachPastItsLinkageTheHeightFormul` | enumerator | [spec.md](spec.md#refusal-positionanarmstravellimitsreachpastitslinkagetheheightformul) |
+| `Refusal::PositionAPresetHasNoName` | enumerator | [spec.md](spec.md#refusal-positionapresethasnoname) |
+| `Refusal::PositionAPresetIsOutsideTheTravelLimits` | enumerator | [spec.md](spec.md#refusal-positionapresetisoutsidethetravellimits) |
+| `Refusal::PositionArmLengthMustBe0` | enumerator | [spec.md](spec.md#refusal-positionarmlengthmustbe0) |
+| `Refusal::PositionARotaryMechanismIsInDegrees` | enumerator | [spec.md](spec.md#refusal-positionarotarymechanismisindegrees) |
+| `Refusal::PositionGearRatioMustBe0` | enumerator | [spec.md](spec.md#refusal-positiongearratiomustbe0) |
+| `Refusal::PositionGeometryUNSET` | enumerator | [spec.md](spec.md#refusal-positiongeometryunset) |
+| `Refusal::PositionGravityUNSET` | enumerator | [spec.md](spec.md#refusal-positiongravityunset) |
+| `Refusal::PositionHomingBySwitchNeedsAHomeSwitchRole` | enumerator | [spec.md](spec.md#refusal-positionhomingbyswitchneedsahomeswitchrole) |
+| `Refusal::PositionHomingMethodUNSET` | enumerator | [spec.md](spec.md#refusal-positionhomingmethodunset) |
+| `Refusal::PositionHomingNeedsHomeVolts` | enumerator | [spec.md](spec.md#refusal-positionhomingneedshomevolts) |
+| `Refusal::PositionHomingPushesAwayFromItsHomeEnd` | enumerator | [spec.md](spec.md#refusal-positionhomingpushesawayfromitshomeend) |
+| `Refusal::PositionMorePresetsThanFit` | enumerator | [spec.md](spec.md#refusal-positionmorepresetsthanfit) |
+| `Refusal::PositionSpoolDiameterMustBe0` | enumerator | [spec.md](spec.md#refusal-positionspooldiametermustbe0) |
+| `Refusal::PositionStallHomingNeedsItsStallSignature` | enumerator | [spec.md](spec.md#refusal-positionstallhomingneedsitsstallsignature) |
+| `Refusal::PositionTheGravityHoldIsPast12Volts` | enumerator | [spec.md](spec.md#refusal-positionthegravityholdispast12volts) |
+| `Refusal::PositionTheHomePositionIsOutsideTheTravelLimits` | enumerator | [spec.md](spec.md#refusal-positionthehomepositionisoutsidethetravellimits) |
+| `Refusal::PositionTheHomingPushIsPast12Volts` | enumerator | [spec.md](spec.md#refusal-positionthehomingpushispast12volts) |
+| `Refusal::PositionTheLookupTableIsNotStrictlyIncreasing` | enumerator | [spec.md](spec.md#refusal-positionthelookuptableisnotstrictlyincreasing) |
+| `Refusal::PositionTheProfileNeedsMaxVelocityAndMaxAcceleration0` | enumerator | [spec.md](spec.md#refusal-positiontheprofileneedsmaxvelocityandmaxacceleration0) |
+| `Refusal::PositionTheSettleTimeIsNegative` | enumerator | [spec.md](spec.md#refusal-positionthesettletimeisnegative) |
+| `Refusal::PositionTheStallSignatureIsUNSET` | enumerator | [spec.md](spec.md#refusal-positionthestallsignatureisunset) |
+| `Refusal::PositionToleranceMustBe0` | enumerator | [spec.md](spec.md#refusal-positiontolerancemustbe0) |
+| `Refusal::PositionTravelLimitsMissingOrMinMax` | enumerator | [spec.md](spec.md#refusal-positiontravellimitsmissingorminmax) |
+| `Refusal::PositionUnhomedVoltsIsNotIn0To12` | enumerator | [spec.md](spec.md#refusal-positionunhomedvoltsisnotin0to12) |
+| `Refusal::PositionUnitsUNSET` | enumerator | [spec.md](spec.md#refusal-positionunitsunset) |
+| `Refusal::PowerMaxVoltsIsNotIn012` | enumerator | [spec.md](spec.md#refusal-powermaxvoltsisnotin012) |
 | `Refusal::PulseContradiction` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulsecontradiction) |
 | `Refusal::PulseRolled` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulserolled) |
 | `Refusal::PulseStill` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pulsestill) |
@@ -2837,16 +3469,31 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Refusal::PushTooFew` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtoofew) |
 | `Refusal::PushTooShort` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-pushtooshort) |
 | `Refusal::RestTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-resttimeout) |
+| `Refusal::SpeedAPresetHasNoName` | enumerator | [spec.md](spec.md#refusal-speedapresethasnoname) |
+| `Refusal::SpeedAPresetIsPastMaxRpm` | enumerator | [spec.md](spec.md#refusal-speedapresetispastmaxrpm) |
+| `Refusal::SpeedGearRatioAndMaxRpmMustBe0` | enumerator | [spec.md](spec.md#refusal-speedgearratioandmaxrpmmustbe0) |
+| `Refusal::SpeedMorePresetsThanFit` | enumerator | [spec.md](spec.md#refusal-speedmorepresetsthanfit) |
+| `Refusal::SpeedTheAtSpeedBandMustBe0` | enumerator | [spec.md](spec.md#refusal-speedtheatspeedbandmustbe0) |
+| `Refusal::SpeedTheAtSpeedLastingIsNegative` | enumerator | [spec.md](spec.md#refusal-speedtheatspeedlastingisnegative) |
+| `Refusal::SpeedTheStallSignatureIsUNSET` | enumerator | [spec.md](spec.md#refusal-speedthestallsignatureisunset) |
 | `Refusal::SpinDisagree` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spindisagree) |
 | `Refusal::SpinFight` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinfight) |
 | `Refusal::SpinNoStart` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinnostart) |
 | `Refusal::SpinTimeout` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spintimeout) |
 | `Refusal::SpinWidthInvalid` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwidthinvalid) |
 | `Refusal::SpinWrongWay` | enumerator | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusal-spinwrongway) |
+| `Refusal::TheAngleSensorRoleIsNotARotationSensor` | enumerator | [spec.md](spec.md#refusal-theanglesensorroleisnotarotationsensor) |
+| `Refusal::TheHomeSwitchRoleIsNotALimitSwitch` | enumerator | [spec.md](spec.md#refusal-thehomeswitchroleisnotalimitswitch) |
+| `Refusal::TwoPresetsOrPositionsShareAName` | enumerator | [spec.md](spec.md#refusal-twopresetsorpositionsshareaname) |
 | `refusalName` | free function | [drivetrain_calibrator.md](drivetrain_calibrator.md#refusalname) |
+| `refusalText` | free function | [spec.md](spec.md#refusaltext) |
+| `refuse` | free function | [spec.md](spec.md#refuse) |
+| `refuseRouteIds` | free function | [route_ids.md](route_ids.md#refuserouteids) |
 | `ReleaseEdge` | class | [touch_panel.md](touch_panel.md#class-releaseedge) |
 | `ReleaseEdge::ReleaseEdge` | function | [touch_panel.md](touch_panel.md#releaseedge-releaseedge) |
 | `ReleaseEdge::take` | function | [touch_panel.md](touch_panel.md#releaseedge-take) |
+| `releases` | constant | [kinds.md](kinds.md#releases) |
+| `releases (overload 2)` | type alias | [kinds.md](kinds.md#releases-2) |
 | `ReplaceStep` | enum class | [file_store.md](file_store.md#enum-class-replacestep) |
 | `ReplaceStep::Flush` | enumerator | [file_store.md](file_store.md#replacestep-flush) |
 | `ReplaceStep::NoCard` | enumerator | [file_store.md](file_store.md#replacestep-nocard) |
@@ -2895,6 +3542,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RestRefusal::RestTimeout` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-resttimeout) |
 | `RestRefusal::Turned` | enumerator | [rest_capture.md](rest_capture.md#restrefusal-turned) |
 | `restRefusalName` | free function | [rest_capture.md](rest_capture.md#restrefusalname) |
+| `restsAtStop` | free function | [kinds.md](kinds.md#restsatstop) |
+| `restsAtStop (overload 2)` | free function | [kinds.md](kinds.md#restsatstop-2) |
+| `restsAtStop (overload 3)` | type alias | [kinds.md](kinds.md#restsatstop-3) |
 | `RestSummary` | struct | [drive_characterization.md](drive_characterization.md#struct-restsummary) |
 | `RestSummary::driftDegPerMin` | function | [drive_characterization.md](drive_characterization.md#restsummary-driftdegpermin) |
 | `RestSummary::driftRadPerS` | field | [drive_characterization.md](drive_characterization.md#restsummary-driftradpers) |
@@ -2915,6 +3565,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RestSummary::timing` | field | [drive_characterization.md](drive_characterization.md#restsummary-timing) |
 | `RestSummary::yawRateMean` | field | [drive_characterization.md](drive_characterization.md#restsummary-yawratemean) |
 | `RestSummary::yawRateSigma` | field | [drive_characterization.md](drive_characterization.md#restsummary-yawratesigma) |
+| `Reversed` | constant | [kinds.md](kinds.md#reversed) |
+| `Reversed (overload 2)` | type alias | [kinds.md](kinds.md#reversed-2) |
 | `Robot` | class | [robot.md](robot.md#class-robot) |
 | `Robot::builtMechanismAt` | function | [robot.md](robot.md#robot-builtmechanismat) |
 | `Robot::builtMechanismAt (overload 2)` | function | [robot.md](robot.md#robot-builtmechanismat-2) |
@@ -2938,6 +3590,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Robot::mechanismAt` | function | [robot.md](robot.md#robot-mechanismat) |
 | `Robot::mechanismAt (overload 2)` | function | [robot.md](robot.md#robot-mechanismat-2) |
 | `Robot::mechanismCount` | function | [robot.md](robot.md#robot-mechanismcount) |
+| `Robot::mechanismParts` | function | [robot.md](robot.md#robot-mechanismparts) |
 | `Robot::mechanisms` | function | [robot.md](robot.md#robot-mechanisms) |
 | `Robot::motorGroupCount` | function | [robot.md](robot.md#robot-motorgroupcount) |
 | `Robot::operator=` | function | [robot.md](robot.md#robot-operator-eq) |
@@ -2958,6 +3611,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotConfig::mechanismCount` | field | [robot_config.md](robot_config.md#robotconfig-mechanismcount) |
 | `RobotConfig::mechanisms` | field | [robot_config.md](robot_config.md#robotconfig-mechanisms) |
 | `RobotConfig::odometry` | field | [robot_config.md](robot_config.md#robotconfig-odometry) |
+| `RobotConfig::perLineLevelsValid` | function | [robot_config.md](robot_config.md#robotconfig-perlinelevelsvalid) |
 | `RobotConfig::sameName` | function | [robot_config.md](robot_config.md#robotconfig-samename) |
 | `RobotConfig::sensors` | field | [robot_config.md](robot_config.md#robotconfig-sensors) |
 | `RobotConfig::terminatedName` | function | [robot_config.md](robot_config.md#robotconfig-terminatedname) |
@@ -2991,13 +3645,66 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RobotIdentity::season` | field | [robot_config.md](robot_config.md#robotidentity-season) |
 | `RobotIdentity::team` | field | [robot_config.md](robot_config.md#robotidentity-team) |
 | `robotToField` | free function | [frame.md](frame.md#robottofield) |
+| `RoleFact` | struct | [devices.md](devices.md#struct-rolefact) |
+| `RoleFact::degradeOnly` | field | [devices.md](devices.md#rolefact-degradeonly) |
+| `RoleFact::line` | field | [devices.md](devices.md#rolefact-line) |
+| `RoleFact::port` | field | [devices.md](devices.md#rolefact-port) |
+| `RoleFact::refusal` | field | [devices.md](devices.md#rolefact-refusal) |
+| `RoleFact::role` | field | [devices.md](devices.md#rolefact-role) |
+| `RoleFact::state` | field | [devices.md](devices.md#rolefact-state) |
+| `roleLine` | free function | [wiring.md](wiring.md#roleline) |
+| `RolePort` | struct | [wiring.md](wiring.md#struct-roleport) |
+| `RolePort::bad` | field | [wiring.md](wiring.md#roleport-bad) |
+| `RolePort::letter` | field | [wiring.md](wiring.md#roleport-letter) |
+| `RolePort::line` | field | [wiring.md](wiring.md#roleport-line) |
+| `RolePort::port` | field | [wiring.md](wiring.md#roleport-port) |
+| `RolePort::Role` | enum class | [wiring.md](wiring.md#enum-class-roleport-role) |
+| `RolePort::Role::Angle` | enumerator | [wiring.md](wiring.md#roleport-role-angle) |
+| `RolePort::Role::HomeSwitch` | enumerator | [wiring.md](wiring.md#roleport-role-homeswitch) |
+| `RolePort::Role::Piece` | enumerator | [wiring.md](wiring.md#roleport-role-piece) |
+| `RoleState` | enum class | [devices.md](devices.md#enum-class-rolestate) |
+| `RoleState::NotAsked` | enumerator | [devices.md](devices.md#rolestate-notasked) |
+| `RoleState::NotCheckable` | enumerator | [devices.md](devices.md#rolestate-notcheckable) |
+| `RoleState::Present` | enumerator | [devices.md](devices.md#rolestate-present) |
+| `RoleState::Refused` | enumerator | [devices.md](devices.md#rolestate-refused) |
 | `rotationCentidegPerSecToCanonical` | free function | [rotation_conversion.md](rotation_conversion.md#rotationcentidegpersectocanonical) |
 | `rotationCentidegToCanonical` | free function | [rotation_conversion.md](rotation_conversion.md#rotationcentidegtocanonical) |
+| `rotationSensor` | free function | [kinds.md](kinds.md#rotationsensor) |
+| `rotationSensor (overload 2)` | type alias | [kinds.md](kinds.md#rotationsensor-2) |
 | `Route` | struct | [route.md](route.md#struct-route) |
 | `Route::count` | field | [route.md](route.md#route-count) |
 | `Route::name` | field | [route.md](route.md#route-name) |
 | `Route::valid` | function | [route.md](route.md#route-valid) |
 | `Route::waypoints` | field | [route.md](route.md#route-waypoints) |
+| `RouteAction` | enum class | [route_ids.md](route_ids.md#enum-class-routeaction) |
+| `RouteAction::GoToPreset` | enumerator | [route_ids.md](route_ids.md#routeaction-gotopreset) |
+| `RouteAction::Home` | enumerator | [route_ids.md](route_ids.md#routeaction-home) |
+| `RouteAction::Run` | enumerator | [route_ids.md](route_ids.md#routeaction-run) |
+| `RouteAction::RunUntilGone` | enumerator | [route_ids.md](route_ids.md#routeaction-rununtilgone) |
+| `RouteAction::RunUntilPiece` | enumerator | [route_ids.md](route_ids.md#routeaction-rununtilpiece) |
+| `RouteAction::SetPosition` | enumerator | [route_ids.md](route_ids.md#routeaction-setposition) |
+| `RouteAction::SpinUp` | enumerator | [route_ids.md](route_ids.md#routeaction-spinup) |
+| `RouteAction::Stop` | enumerator | [route_ids.md](route_ids.md#routeaction-stop) |
+| `RouteId` | struct | [route_ids.md](route_ids.md#struct-routeid) |
+| `RouteId::action` | field | [route_ids.md](route_ids.md#routeid-action) |
+| `RouteId::argCount` | field | [route_ids.md](route_ids.md#routeid-argcount) |
+| `RouteId::id` | field | [route_ids.md](route_ids.md#routeid-id) |
+| `RouteId::index` | field | [route_ids.md](route_ids.md#routeid-index) |
+| `RouteId::mechanism` | field | [route_ids.md](route_ids.md#routeid-mechanism) |
+| `RouteId::view` | function | [route_ids.md](route_ids.md#routeid-view) |
+| `RouteIdProblem` | enum class | [route_ids.md](route_ids.md#enum-class-routeidproblem) |
+| `RouteIdProblem::Builtin` | enumerator | [route_ids.md](route_ids.md#routeidproblem-builtin) |
+| `RouteIdProblem::Duplicate` | enumerator | [route_ids.md](route_ids.md#routeidproblem-duplicate) |
+| `RouteIdProblem::None` | enumerator | [route_ids.md](route_ids.md#routeidproblem-none) |
+| `RouteIdProblem::TooLong` | enumerator | [route_ids.md](route_ids.md#routeidproblem-toolong) |
+| `RouteIdProblem::TooMany` | enumerator | [route_ids.md](route_ids.md#routeidproblem-toomany) |
+| `routeIdProblemText` | free function | [route_ids.md](route_ids.md#routeidproblemtext) |
+| `RouteIds` | struct | [route_ids.md](route_ids.md#struct-routeids) |
+| `RouteIds::count` | field | [route_ids.md](route_ids.md#routeids-count) |
+| `RouteIds::ids` | field | [route_ids.md](route_ids.md#routeids-ids) |
+| `RouteIds::offending` | field | [route_ids.md](route_ids.md#routeids-offending) |
+| `RouteIds::problem` | field | [route_ids.md](route_ids.md#routeids-problem) |
+| `routeIdsOf` | free function | [route_ids.md](route_ids.md#routeidsof) |
 | `Routine` | class | [routine.md](routine.md#class-routine) |
 | `Routine::brake` | function | [routine.md](routine.md#routine-brake) |
 | `Routine::chassis` | function | [routine.md](routine.md#routine-chassis) |
@@ -3039,6 +3746,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RoutineStopCause::MotionFailed` | enumerator | [routine.md](routine.md#routinestopcause-motionfailed) |
 | `RoutineStopCause::None` | enumerator | [routine.md](routine.md#routinestopcause-none) |
 | `RoutineStopCause::WaitTimedOut` | enumerator | [routine.md](routine.md#routinestopcause-waittimedout) |
+| `RpmPreset` | struct | [kinds.md](kinds.md#struct-rpmpreset) |
+| `RpmPreset::name` | field | [kinds.md](kinds.md#rpmpreset-name) |
+| `RpmPreset::rpm` | field | [kinds.md](kinds.md#rpmpreset-rpm) |
 | `runAuton` | free function | [match_runner.md](match_runner.md#runauton) |
 | `runDriverControl` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol) |
 | `runDriverControl (overload 2)` | free function | [teleop_loop.md](teleop_loop.md#rundrivercontrol-2) |
@@ -3268,6 +3978,30 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SegmentRecord::stopped` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-stopped) |
 | `SegmentRecord::timing` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-timing) |
 | `SegmentRecord::travelIn` | field | [drive_characterizer.md](drive_characterizer.md#segmentrecord-travelin) |
+| `Sensor` | struct | [kinds.md](kinds.md#struct-sensor) |
+| `Sensor::changeAt` | field | [kinds.md](kinds.md#sensor-changeat) |
+| `Sensor::file` | field | [kinds.md](kinds.md#sensor-file) |
+| `Sensor::kind` | field | [kinds.md](kinds.md#sensor-kind) |
+| `Sensor::line` | field | [kinds.md](kinds.md#sensor-line) |
+| `Sensor::pressedLevel` | field | [kinds.md](kinds.md#sensor-pressedlevel) |
+| `Sensor::reversed` | field | [kinds.md](kinds.md#sensor-reversed) |
+| `Sensor::seesProximity` | field | [kinds.md](kinds.md#sensor-seesproximity) |
+| `Sensor::seesWithinIn` | field | [kinds.md](kinds.md#sensor-seeswithinin) |
+| `SensorKind` | enum class | [spec.md](spec.md#enum-class-sensorkind) |
+| `SensorKind::Distance` | enumerator | [spec.md](spec.md#sensorkind-distance) |
+| `SensorKind::None` | enumerator | [spec.md](spec.md#sensorkind-none) |
+| `SensorKind::Optical` | enumerator | [spec.md](spec.md#sensorkind-optical) |
+| `SensorKind::Rotation` | enumerator | [spec.md](spec.md#sensorkind-rotation) |
+| `SensorKind::Switch` | enumerator | [spec.md](spec.md#sensorkind-switch) |
+| `SensorRole` | struct | [spec.md](spec.md#struct-sensorrole) |
+| `SensorRole::file` | field | [spec.md](spec.md#sensorrole-file) |
+| `SensorRole::kind` | field | [spec.md](spec.md#sensorrole-kind) |
+| `SensorRole::line` | field | [spec.md](spec.md#sensorrole-line) |
+| `SensorRole::pressedLevel` | field | [spec.md](spec.md#sensorrole-pressedlevel) |
+| `SensorRole::reversed` | field | [spec.md](spec.md#sensorrole-reversed) |
+| `SensorRole::seesProximity` | field | [spec.md](spec.md#sensorrole-seesproximity) |
+| `SensorRole::seesWithinIn` | field | [spec.md](spec.md#sensorrole-seeswithinin) |
+| `SensorRole::source` | field | [spec.md](spec.md#sensorrole-source) |
 | `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
 | `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
 | `SessionInfo` | struct | [session_info.md](session_info.md#struct-sessioninfo) |
@@ -3378,6 +4112,60 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SlewLimiter::SlewLimiter (overload 3)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-3) |
 | `SlewLimiter::update` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-update) |
 | `SlewLimiter::value` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-value) |
+| `smart_port_10_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_10_is_used_twice) |
+| `smart_port_11_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_11_is_used_twice) |
+| `smart_port_12_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_12_is_used_twice) |
+| `smart_port_13_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_13_is_used_twice) |
+| `smart_port_14_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_14_is_used_twice) |
+| `smart_port_15_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_15_is_used_twice) |
+| `smart_port_16_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_16_is_used_twice) |
+| `smart_port_17_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_17_is_used_twice) |
+| `smart_port_18_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_18_is_used_twice) |
+| `smart_port_19_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_19_is_used_twice) |
+| `smart_port_1_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_1_is_used_twice) |
+| `smart_port_20_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_20_is_used_twice) |
+| `smart_port_21_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_21_is_used_twice) |
+| `smart_port_2_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_2_is_used_twice) |
+| `smart_port_3_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_3_is_used_twice) |
+| `smart_port_4_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_4_is_used_twice) |
+| `smart_port_5_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_5_is_used_twice) |
+| `smart_port_6_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_6_is_used_twice) |
+| `smart_port_7_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_7_is_used_twice) |
+| `smart_port_8_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_8_is_used_twice) |
+| `smart_port_9_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_9_is_used_twice) |
+| `specProblem` | free function | [spec.md](spec.md#specproblem) |
+| `specRefusal` | free function | [spec.md](spec.md#specrefusal) |
+| `speed_a_preset_has_no_name` | free function | [spec.md](spec.md#speed_a_preset_has_no_name) |
+| `speed_a_preset_is_past_its_free_speed` | free function | [spec.md](spec.md#speed_a_preset_is_past_its_free_speed) |
+| `speed_gearratio_and_its_free_speed_must_be_more_than_zero` | free function | [spec.md](spec.md#speed_gearratio_and_its_free_speed_must_be_more_than_zero) |
+| `speed_more_presets_than_fit` | free function | [spec.md](spec.md#speed_more_presets_than_fit) |
+| `speed_the_at_speed_band_must_be_more_than_zero` | free function | [spec.md](spec.md#speed_the_at_speed_band_must_be_more_than_zero) |
+| `speed_the_at_speed_lasting_must_not_be_negative` | free function | [spec.md](spec.md#speed_the_at_speed_lasting_must_not_be_negative) |
+| `speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current` | free function | [spec.md](spec.md#speed_the_stall_signature_is_unset_a_jammed_wheel_must_never_sit_at_stall_current) |
+| `SpeedGoal` | struct | [kinds.md](kinds.md#struct-speedgoal) |
+| `SpeedGoal::computed` | field | [kinds.md](kinds.md#speedgoal-computed) |
+| `SpeedGoal::mechanism` | field | [kinds.md](kinds.md#speedgoal-mechanism) |
+| `SpeedGoal::mechanismName` | field | [kinds.md](kinds.md#speedgoal-mechanismname) |
+| `SpeedGoal::presetName` | field | [kinds.md](kinds.md#speedgoal-presetname) |
+| `SpeedGoal::rpm` | field | [kinds.md](kinds.md#speedgoal-rpm) |
+| `SpeedSpec` | struct | [spec.md](spec.md#struct-speedspec) |
+| `SpeedSpec::atSpeedBandRpm` | field | [spec.md](spec.md#speedspec-atspeedbandrpm) |
+| `SpeedSpec::atSpeedTime` | field | [spec.md](spec.md#speedspec-atspeedtime) |
+| `SpeedSpec::gearRatio` | field | [spec.md](spec.md#speedspec-gearratio) |
+| `SpeedSpec::kA` | field | [spec.md](spec.md#speedspec-ka) |
+| `SpeedSpec::kI` | field | [spec.md](spec.md#speedspec-ki) |
+| `SpeedSpec::kP` | field | [spec.md](spec.md#speedspec-kp) |
+| `SpeedSpec::kS` | field | [spec.md](spec.md#speedspec-ks) |
+| `SpeedSpec::kV` | field | [spec.md](spec.md#speedspec-kv) |
+| `SpeedSpec::maxRpm` | field | [spec.md](spec.md#speedspec-maxrpm) |
+| `SpeedSpec::presetCount` | field | [spec.md](spec.md#speedspec-presetcount) |
+| `SpeedSpec::presets` | field | [spec.md](spec.md#speedspec-presets) |
+| `SpeedSpec::stall` | field | [spec.md](spec.md#speedspec-stall) |
+| `SpeedTuning` | struct | [kinds.md](kinds.md#struct-speedtuning) |
+| `SpeedTuning::kI` | field | [kinds.md](kinds.md#speedtuning-ki) |
+| `SpeedTuning::kP` | field | [kinds.md](kinds.md#speedtuning-kp) |
+| `SpeedTuning::kS` | field | [kinds.md](kinds.md#speedtuning-ks) |
+| `SpeedTuning::kV` | field | [kinds.md](kinds.md#speedtuning-kv) |
 | `SpinRecord` | struct | [drivetrain_calibrator.md](drivetrain_calibrator.md#struct-spinrecord) |
 | `SpinRecord::direction` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-direction) |
 | `SpinRecord::leftTravelIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-lefttravelin) |
@@ -3386,6 +4174,13 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SpinRecord::seconds` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-seconds) |
 | `SpinRecord::widthIn` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-widthin) |
 | `SpinRecord::yawRad` | field | [drivetrain_calibrator.md](drivetrain_calibrator.md#spinrecord-yawrad) |
+| `spool` | free function | [kinds.md](kinds.md#spool) |
+| `spool (overload 2)` | type alias | [kinds.md](kinds.md#spool-2) |
+| `Stall` | struct | [kinds.md](kinds.md#struct-stall) |
+| `Stall` | type alias | [kinds.md](kinds.md#stall) |
+| `Stall::amps` | field | [kinds.md](kinds.md#stall-amps) |
+| `Stall::belowMotorRpm` | field | [kinds.md](kinds.md#stall-belowmotorrpm) |
+| `Stall::lasting` | field | [kinds.md](kinds.md#stall-lasting) |
 | `StallConfig` | struct | [stall_detector.md](stall_detector.md#struct-stallconfig) |
 | `StallConfig::currentAtLeast` | field | [stall_detector.md](stall_detector.md#stallconfig-currentatleast) |
 | `StallConfig::persistence` | field | [stall_detector.md](stall_detector.md#stallconfig-persistence) |
@@ -3395,6 +4190,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallDetector::reset` | function | [stall_detector.md](stall_detector.md#stalldetector-reset) |
 | `StallDetector::StallDetector` | function | [stall_detector.md](stall_detector.md#stalldetector-stalldetector) |
 | `StallDetector::update` | function | [stall_detector.md](stall_detector.md#stalldetector-update) |
+| `StallSpec` | struct | [spec.md](spec.md#struct-stallspec) |
+| `StallSpec::amps` | field | [spec.md](spec.md#stallspec-amps) |
+| `StallSpec::speedRadS` | field | [spec.md](spec.md#stallspec-speedrads) |
+| `StallSpec::stated` | function | [spec.md](spec.md#stallspec-stated) |
+| `StallSpec::time` | field | [spec.md](spec.md#stallspec-time) |
+| `StallSpec::written` | function | [spec.md](spec.md#stallspec-written) |
 | `startModeWord` | free function | [auton_registry.md](auton_registry.md#startmodeword) |
 | `StartPose` | class | [auton_registry.md](auton_registry.md#class-startpose) |
 | `StartPose::field` | function | [auton_registry.md](auton_registry.md#startpose-field) |
@@ -3522,6 +4323,23 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `TextSize::Medium` | enumerator | [touch_panel.md](touch_panel.md#textsize-medium) |
 | `TextSize::Small` | enumerator | [calibrate_panel.md](calibrate_panel.md#textsize-small) |
 | `TextSize::Small` | enumerator | [touch_panel.md](touch_panel.md#textsize-small) |
+| `the_angle_sensor_role_is_not_a_rotation_sensor` | free function | [spec.md](spec.md#the_angle_sensor_role_is_not_a_rotation_sensor) |
+| `the_home_switch_role_is_not_a_limit_switch` | free function | [spec.md](spec.md#the_home_switch_role_is_not_a_limit_switch) |
+| `the_mechanism_has_a_sensor_the_wiring_does_not_plug_in` | free function | [wiring.md](wiring.md#the_mechanism_has_a_sensor_the_wiring_does_not_plug_in) |
+| `the_same_mechanism_is_wired_twice` | free function | [wiring.md](wiring.md#the_same_mechanism_is_wired_twice) |
+| `the_wiring_gives_a_different_number_of_lines_than_the_mechanism_has` | free function | [wiring.md](wiring.md#the_wiring_gives_a_different_number_of_lines_than_the_mechanism_has) |
+| `the_wiring_gives_a_different_number_of_motors_than_the_mechanism_has` | free function | [wiring.md](wiring.md#the_wiring_gives_a_different_number_of_motors_than_the_mechanism_has) |
+| `the_wiring_names_another_mechanism_than_its_declaration` | free function | [wiring.md](wiring.md#the_wiring_names_another_mechanism_than_its_declaration) |
+| `the_wiring_plugs_in_a_sensor_the_mechanism_does_not_have` | free function | [wiring.md](wiring.md#the_wiring_plugs_in_a_sensor_the_mechanism_does_not_have) |
+| `the_wiring_plugs_in_the_same_sensor_twice` | free function | [wiring.md](wiring.md#the_wiring_plugs_in_the_same_sensor_twice) |
+| `three_wire_port_A_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_a_is_used_twice) |
+| `three_wire_port_B_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_b_is_used_twice) |
+| `three_wire_port_C_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_c_is_used_twice) |
+| `three_wire_port_D_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_d_is_used_twice) |
+| `three_wire_port_E_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_e_is_used_twice) |
+| `three_wire_port_F_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_f_is_used_twice) |
+| `three_wire_port_G_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_g_is_used_twice) |
+| `three_wire_port_H_is_used_twice` | free function | [wiring.md](wiring.md#three_wire_port_h_is_used_twice) |
 | `throwingPreconditionHandler` | free function | [check.md](check.md#throwingpreconditionhandler) |
 | `TickAttribution` | class | [tick_attribution.md](tick_attribution.md#class-tickattribution) |
 | `TickAttribution::abandonTick` | function | [tick_attribution.md](tick_attribution.md#tickattribution-abandontick) |
@@ -3591,6 +4409,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ToggleBinding::ToggleBinding (overload 3)` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-togglebinding-3) |
 | `ToggleBinding::~ToggleBinding` | function | [mechanism_binding.md](mechanism_binding.md#togglebinding-destructor-togglebinding) |
 | `toLineValue` | free function | [robot_config.md](robot_config.md#tolinevalue) |
+| `toMechanismConfig` | free function | [wiring.md](wiring.md#tomechanismconfig) |
 | `Tone` | enum class | [touch_panel.md](touch_panel.md#enum-class-tone) |
 | `Tone::Amber` | enumerator | [touch_panel.md](touch_panel.md#tone-amber) |
 | `Tone::Blue` | enumerator | [touch_panel.md](touch_panel.md#tone-blue) |
@@ -3671,6 +4490,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Twist2d::Twist2d (overload 2)` | function | [twist2d.md](twist2d.md#twist2d-twist2d-2) |
 | `Twist2d::vx` | function | [twist2d.md](twist2d.md#twist2d-vx) |
 | `Twist2d::vy` | function | [twist2d.md](twist2d.md#twist2d-vy) |
+| `two_mechanisms_share_a_name` | free function | [wiring.md](wiring.md#two_mechanisms_share_a_name) |
+| `two_presets_or_positions_share_a_name` | free function | [spec.md](spec.md#two_presets_or_positions_share_a_name) |
+| `two_route_ids_are_the_same_rename_a_mechanism_a_preset_or_a_position` | free function | [route_ids.md](route_ids.md#two_route_ids_are_the_same_rename_a_mechanism_a_preset_or_a_position) |
 
 ## U
 
@@ -3681,6 +4503,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `UnconfirmedWhy::None` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-none) |
 | `UnconfirmedWhy::NothingOpened` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-nothingopened) |
 | `UnconfirmedWhy::ReadBackDiffers` | enumerator | [record_store.md](record_store.md#unconfirmedwhy-readbackdiffers) |
+| `Units` | enum class | [spec.md](spec.md#enum-class-units) |
+| `Units::Degrees` | enumerator | [spec.md](spec.md#units-degrees) |
+| `Units::Inches` | enumerator | [spec.md](spec.md#units-inches) |
 | `utf8Prefix` | free function | [shul2_format.md](shul2_format.md#utf8prefix) |
 
 ## V
@@ -3757,6 +4582,18 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WidthRow::logFixed` | field | [shul2_format.md](shul2_format.md#widthrow-logfixed) |
 | `WidthRow::summary` | field | [shul2_format.md](shul2_format.md#widthrow-summary) |
 | `WidthRow::tick` | field | [shul2_format.md](shul2_format.md#widthrow-tick) |
+| `wire` | free function | [wiring.md](wiring.md#wire) |
+| `wire (overload 2)` | free function | [wiring.md](wiring.md#wire-2) |
+| `wire (overload 3)` | free function | [wiring.md](wiring.md#wire-3) |
+| `wire (overload 4)` | free function | [wiring.md](wiring.md#wire-4) |
+| `wire (overload 5)` | free function | [wiring.md](wiring.md#wire-5) |
+| `wire (overload 6)` | free function | [wiring.md](wiring.md#wire-6) |
+| `wire (overload 7)` | free function | [wiring.md](wiring.md#wire-7) |
+| `wire (overload 8)` | type alias | [wiring.md](wiring.md#wire-8) |
+| `Wired` | struct | [wiring.md](wiring.md#struct-wired) |
+| `Wired::declared` | field | [wiring.md](wiring.md#wired-declared) |
+| `Wired::spec` | field | [wiring.md](wiring.md#wired-spec) |
+| `Wired::wiring` | field | [wiring.md](wiring.md#wired-wiring) |
 | `WireLevel` | enum class | [shul2_format.md](shul2_format.md#enum-class-wirelevel) |
 | `wireLevel` | free function | [shul2_format.md](shul2_format.md#wirelevel) |
 | `WireLevel::Debug` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-debug) |
@@ -3764,8 +4601,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `WireLevel::Info` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-info) |
 | `WireLevel::Trace` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-trace) |
 | `WireLevel::Warn` | enumerator | [shul2_format.md](shul2_format.md#wirelevel-warn) |
+| `wiringProblem` | free function | [wiring.md](wiring.md#wiringproblem) |
 | `within` | free function | [calibrate_panel.md](calibrate_panel.md#within) |
+| `within` | free function | [kinds.md](kinds.md#within) |
 | `within` | free function | [touch_panel.md](touch_panel.md#within) |
+| `within (overload 2)` | type alias | [kinds.md](kinds.md#within-2) |
 | `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |
 | `Wrapped::1]` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-1) |
 | `Wrapped::complete` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-complete) |

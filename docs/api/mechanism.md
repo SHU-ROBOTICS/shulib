@@ -8,7 +8,7 @@
 
 The mechanism device seam (chunk F1, WS7/M4): IMechanism + the two concrete compositions every VEX mechanism reduces to at the device level — a group of motors on one shaft (MotorMechanism) and a set of digital lines switching one pneumatic circuit (Pneumat…
 
-This header declares **4** types (36 members).
+This header declares **4** types (44 members).
 
 Extracted from [`include/shulib/hal/mechanism.hpp`](../../include/shulib/hal/mechanism.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -45,14 +45,22 @@ Extracted from [`include/shulib/hal/mechanism.hpp`](../../include/shulib/hal/mec
   - [`safeBrakeMode`](#motormechanism-safebrakemode)
   - [`maxCurrent`](#motormechanism-maxcurrent)
   - [`meanVelocity`](#motormechanism-meanvelocity)
+  - [`meanPosition`](#motormechanism-meanposition)
   - [`motors`](#motormechanism-motors)
 - [`class PneumaticMechanism`](#class-pneumaticmechanism)
   - [`PneumaticMechanism`](#pneumaticmechanism-pneumaticmechanism)
+  - [`kMaxPerLineLevels`](#pneumaticmechanism-kmaxperlinelevels)
+  - [`PneumaticMechanism (overload 2)`](#pneumaticmechanism-pneumaticmechanism-2)
+  - [`PneumaticMechanism (overload 3)`](#pneumaticmechanism-pneumaticmechanism-3)
   - [`set`](#pneumaticmechanism-set)
+  - [`setLevels`](#pneumaticmechanism-setlevels)
+  - [`commandedLevel`](#pneumaticmechanism-commandedlevel)
   - [`commanded`](#pneumaticmechanism-commanded)
   - [`applySafeState`](#pneumaticmechanism-applysafestate)
   - [`name`](#pneumaticmechanism-name)
   - [`safeCommand`](#pneumaticmechanism-safecommand)
+  - [`perLine`](#pneumaticmechanism-perline)
+  - [`safeLevel`](#pneumaticmechanism-safelevel)
   - [`lines`](#pneumaticmechanism-lines)
 
 <a id="class-icancellable"></a>
@@ -427,6 +435,18 @@ Mean output-shaft angular velocity across the group (one coupled shaft, so the m
 
 *function, declared at [`include/shulib/hal/mechanism.hpp:270`](../../include/shulib/hal/mechanism.hpp#L270).*
 
+<a id="motormechanism-meanposition"></a>
+
+### `MotorMechanism::meanPosition`
+
+```cpp
+[[nodiscard]] units::AngleDim meanPosition() const
+```
+
+Mean output-shaft ANGLE across the group, radians, CUMULATIVE (each motor's position() never wraps — motor.hpp). One coupled shaft, so the mean IS the shaft, exactly as meanVelocity() argues; each motor's own direction is already applied by its adapter (the signed port), so a mirrored motor reads the same way as its mate. The position reader a position controller needs (the mechanism core, MECH-A1; read by MECH-A3's behaviours).
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:283`](../../include/shulib/hal/mechanism.hpp#L283).*
+
 <a id="motormechanism-motors"></a>
 
 ### `MotorMechanism::motors`
@@ -437,7 +457,7 @@ Mean output-shaft angular velocity across the group (one coupled shaft, so the m
 
 The devices themselves — for readers this grammar does not cover (per-motor position for F3's liftToLevel homing, temperatures). Handing out the seam rather than wrapping every reader keeps this class honest about what it is: a command fan-out with a declared safe state.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:282`](../../include/shulib/hal/mechanism.hpp#L282).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:295`](../../include/shulib/hal/mechanism.hpp#L295).*
 
 <a id="class-pneumaticmechanism"></a>
 
@@ -447,9 +467,9 @@ The devices themselves — for readers this grammar does not cover (per-motor po
 class PneumaticMechanism : public IMechanism
 ```
 
-One pneumatic circuit behind N digital lines (a clamp's solenoid, a pair of deploy cylinders fired together), commanded as one. The declared safe value is per-mechanism for the same reason the brake mode is (T4): whether "safe at the buzzer" means clamp-closed (keep the goal) or cylinder-retracted (inside expansion limits) is a fact about the robot, not about the library.
+One pneumatic circuit behind N digital lines (a clamp's solenoid, a pair of deploy cylinders fired together), commanded as one. The declared safe value is per-mechanism for the same reason the brake mode is (T4): whether "safe at the buzzer" means clamp-closed (keep the goal) or cylinder-retracted (inside expansion limits) is a fact about the robot, not about the library. Since the mechanism core (MECH-A1, 2026-10-08) it has a second, PER-LINE form as well: one declared safe level per line and `setLevels()`, for a mechanism whose named positions are different level patterns across its lines (a three-position hood on two). The fan-out form and its constructor are unchanged; the two forms differ only in what applySafeState() drives.
 
-*class, declared at [`include/shulib/hal/mechanism.hpp:295`](../../include/shulib/hal/mechanism.hpp#L295).*
+*class, declared at [`include/shulib/hal/mechanism.hpp:313`](../../include/shulib/hal/mechanism.hpp#L313).*
 
 <a id="pneumaticmechanism-pneumaticmechanism"></a>
 
@@ -461,7 +481,43 @@ PneumaticMechanism(std::span<IDigitalOut* const> lines, bool safe, const char* m
 
 `lines` (non-empty, all non-null) must outlive the mechanism; `safe` is the DECLARED safe command. `mechName` must be a stable literal.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:299`](../../include/shulib/hal/mechanism.hpp#L299).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:317`](../../include/shulib/hal/mechanism.hpp#L317).*
+
+<a id="pneumaticmechanism-kmaxperlinelevels"></a>
+
+### `PneumaticMechanism::kMaxPerLineLevels`
+
+```cpp
+static constexpr std::size_t kMaxPerLineLevels = 4
+```
+
+The most lines the PER-LINE form below stores a safe level for (fixed storage; the robot config allows two per mechanism, config::kMaxPneumaticsPerMechanism).
+
+*field, declared at [`include/shulib/hal/mechanism.hpp:328`](../../include/shulib/hal/mechanism.hpp#L328).*
+
+<a id="pneumaticmechanism-pneumaticmechanism-2"></a>
+
+### `PneumaticMechanism::PneumaticMechanism (overload 2)`
+
+```cpp
+PneumaticMechanism(std::span<IDigitalOut* const> lines, std::span<const bool> safeLevels, const char* mechName)
+```
+
+The PER-LINE form (the mechanism core, MECH-A1): each line has its OWN declared safe level, `safeLevels[i]` for `lines[i]`. A mechanism whose positions need different levels on different lines — a three-position hood on two lines: down = low/low, middle = high/low, up = high/high — then has a declared safe POSITION that applySafeState() applies, so the end-of-run guard needs no knowledge of the mechanism. The single-level constructor above is unchanged and is what a mechanism whose safe position is one level on every line uses. PRECONDITIONS: `lines` non-empty, all non-null, at most kMaxPerLineLevels; one safe level per line; `mechName` non-null and a stable literal.
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:338`](../../include/shulib/hal/mechanism.hpp#L338).*
+
+<a id="pneumaticmechanism-pneumaticmechanism-3"></a>
+
+### `PneumaticMechanism::PneumaticMechanism (overload 3)`
+
+```cpp
+template <std::size_t N> PneumaticMechanism(std::span<IDigitalOut* const> lines, const bool (&safeLevels)[N], const char* mechName)
+```
+
+The per-line form from a C ARRAY of safe levels — `const bool safe[2]{true, false}; PneumaticMechanism hood{lines, safe, "hood"};`. Needed, not sugar: without it an array argument DECAYS to a pointer and converts to `bool` (a standard conversion, which overload resolution prefers to the span's user-defined one), so the call would silently pick the single-level constructor with `safe = true` (found by MECH-A1's own test, whose braces turned it into a narrowing error). An array binds here exactly and forwards to the span form.
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:362`](../../include/shulib/hal/mechanism.hpp#L362).*
 
 <a id="pneumaticmechanism-set"></a>
 
@@ -473,7 +529,31 @@ void set(bool value)
 
 Command every line.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:309`](../../include/shulib/hal/mechanism.hpp#L309).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:366`](../../include/shulib/hal/mechanism.hpp#L366).*
+
+<a id="pneumaticmechanism-setlevels"></a>
+
+### `PneumaticMechanism::setLevels`
+
+```cpp
+void setLevels(std::span<const bool> levels)
+```
+
+Command EACH line its own level — `levels[i]` to line i, in the construction order (the mechanism core's positions, MECH-A1). PRECONDITION: one level per line.
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:374`](../../include/shulib/hal/mechanism.hpp#L374).*
+
+<a id="pneumaticmechanism-commandedlevel"></a>
+
+### `PneumaticMechanism::commandedLevel`
+
+```cpp
+[[nodiscard]] bool commandedLevel(std::size_t i) const
+```
+
+What line `i` was last commanded — its DEVICE readback, never this object's record (the bottom-of-stack rule commanded() follows). PRECONDITION: `i` is below the line count.
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:384`](../../include/shulib/hal/mechanism.hpp#L384).*
 
 <a id="pneumaticmechanism-commanded"></a>
 
@@ -485,7 +565,7 @@ Command every line.
 
 The command the DEVICE actually got (first line's readback — the same bottom-of-stack rule as MotorMechanism::commandedVoltage). Remember what this is NOT (digital_out.hpp): evidence that anything moved.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:318`](../../include/shulib/hal/mechanism.hpp#L318).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:392`](../../include/shulib/hal/mechanism.hpp#L392).*
 
 <a id="pneumaticmechanism-applysafestate"></a>
 
@@ -495,9 +575,9 @@ The command the DEVICE actually got (first line's readback — the same bottom-o
 void applySafeState() override
 ```
 
-The declared safe state: every line driven to `safe`. ONE command, not the motor version's brake-then-zero two-step — a solenoid has no coast phase to slip through. Still only a command: nothing here is evidence the air actually moved.
+The declared safe state: every line driven to `safe`. ONE command, not the motor version's brake-then-zero two-step — a solenoid has no coast phase to slip through. Still only a command: nothing here is evidence the air actually moved. The PER-LINE form drives each line to ITS declared safe level instead — the declared safe POSITION.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:323`](../../include/shulib/hal/mechanism.hpp#L323).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:398`](../../include/shulib/hal/mechanism.hpp#L398).*
 
 <a id="pneumaticmechanism-name"></a>
 
@@ -509,7 +589,7 @@ The declared safe state: every line driven to `safe`. ONE command, not the motor
 
 The `mechName` pointer given at construction, returned verbatim — BORROWED, never copied, so the literal must outlive the mechanism.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:327`](../../include/shulib/hal/mechanism.hpp#L327).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:410`](../../include/shulib/hal/mechanism.hpp#L410).*
 
 <a id="pneumaticmechanism-safecommand"></a>
 
@@ -519,9 +599,33 @@ The `mechName` pointer given at construction, returned verbatim — BORROWED, ne
 [[nodiscard]] bool safeCommand() const noexcept
 ```
 
-The declared safe command (construction-time fact, for tests/logs).
+The declared safe command (construction-time fact, for tests/logs). For the PER-LINE form, line 0's safe level — read safeLevel(i) for the others.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:330`](../../include/shulib/hal/mechanism.hpp#L330).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:414`](../../include/shulib/hal/mechanism.hpp#L414).*
+
+<a id="pneumaticmechanism-perline"></a>
+
+### `PneumaticMechanism::perLine`
+
+```cpp
+[[nodiscard]] bool perLine() const noexcept
+```
+
+Whether this mechanism was built in the PER-LINE form (one declared safe level per line).
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:417`](../../include/shulib/hal/mechanism.hpp#L417).*
+
+<a id="pneumaticmechanism-safelevel"></a>
+
+### `PneumaticMechanism::safeLevel`
+
+```cpp
+[[nodiscard]] bool safeLevel(std::size_t i) const
+```
+
+Line `i`'s declared safe level: its own in the per-line form, the one safe command otherwise. PRECONDITION: `i` is below the line count.
+
+*function, declared at [`include/shulib/hal/mechanism.hpp:421`](../../include/shulib/hal/mechanism.hpp#L421).*
 
 <a id="pneumaticmechanism-lines"></a>
 
@@ -533,7 +637,7 @@ The declared safe command (construction-time fact, for tests/logs).
 
 The lines themselves, in the construction order — for anything this fan-out grammar does not cover (driving one cylinder of a pair alone on a bench check). NON-OWNING, like the span it was built from: the caller still owns every line.
 
-*function, declared at [`include/shulib/hal/mechanism.hpp:335`](../../include/shulib/hal/mechanism.hpp#L335).*
+*function, declared at [`include/shulib/hal/mechanism.hpp:429`](../../include/shulib/hal/mechanism.hpp#L429).*
 
 ## Design commentary, from the header
 

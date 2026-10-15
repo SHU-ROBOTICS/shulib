@@ -25,12 +25,12 @@ Extracted from [`include/shulib/hal/pros/distance.hpp`](../../include/shulib/hal
 ## `class ProsDistance`
 
 ```cpp
-class ProsDistance final : public IDistance
+class ProsDistance final : public IDistance, public IReadFaults
 ```
 
-IDistance over pros::Distance: millimetres become canonical inches and the raw 0–63 confidence becomes [0, 1], each converted exactly once. The value of this adapter is the three screens it puts in front of PROS's sentinels. (1) A raw 9999 — PROS's plain IN-BAND "cannot detect an object", which converts to a perfectly plausible 393.66 in — reports confidence 0.0 and raises nothing: an empty intake is a normal state, and a fault every tick would cry wolf. (2) At or below 200 mm, where get_confidence() is documented as unavailable and its value undefined, confidence is 1.0, because there the returned distance IS the detection. (3) PROS_ERR is a DEVICE failure — unplugged, wrong port — and is different: distance() holds the last good finite value (initially the far no-object distance, never 0.0, so a sensor dead from boot cannot read "object touching the sensor"), confidence() is 0.0, and faultedReads() counts it. Raising a fault is the loop layer's job, not this one's. Reads are LIVE: each accessor hits the device, so distance() and confidence() are two samples, not one atomic snapshot.
+IDistance over pros::Distance: millimetres become canonical inches and the raw 0–63 confidence becomes [0, 1], each converted exactly once. The value of this adapter is the three screens it puts in front of PROS's sentinels. (1) A raw 9999 — PROS's plain IN-BAND "cannot detect an object", which converts to a perfectly plausible 393.66 in — reports confidence 0.0 and raises nothing: an empty intake is a normal state, and a fault every tick would cry wolf. (2) At or below 200 mm, where get_confidence() is documented as unavailable and its value undefined, confidence is 1.0, because there the returned distance IS the detection. (3) PROS_ERR is a DEVICE failure — unplugged, wrong port — and is different: distance() holds the last good finite value (initially the far no-object distance, never 0.0, so a sensor dead from boot cannot read "object touching the sensor"), confidence() is 0.0, and faultedReads() counts it. Raising a fault is the loop layer's job, not this one's. Reads are LIVE: each accessor hits the device, so distance() and confidence() are two samples, not one atomic snapshot.  ALSO an `IReadFaults` (MECH-A1, 2026-10-08): the count is reachable through the F4-additive sibling seam (hal/read_faults.hpp), because a value held from a FAR reading is byte for byte the 9999 "no object" reading and only the count tells them apart — the mechanism core's piece-sensor rule reads it beside every sample.
 
-*class, declared at [`include/shulib/hal/pros/distance.hpp:76`](../../include/shulib/hal/pros/distance.hpp#L76).*
+*class, declared at [`include/shulib/hal/pros/distance.hpp:82`](../../include/shulib/hal/pros/distance.hpp#L82).*
 
 <a id="prosdistance-prosdistance"></a>
 
@@ -42,7 +42,7 @@ explicit ProsDistance(std::uint8_t port)
 
 `port`: 1..21.
 
-*function, declared at [`include/shulib/hal/pros/distance.hpp:79`](../../include/shulib/hal/pros/distance.hpp#L79).*
+*function, declared at [`include/shulib/hal/pros/distance.hpp:85`](../../include/shulib/hal/pros/distance.hpp#L85).*
 
 <a id="prosdistance-distance"></a>
 
@@ -54,7 +54,7 @@ explicit ProsDistance(std::uint8_t port)
 
 Canonical inches. 9999 (no object) converts honestly — far and finite — with confidence() reporting 0.0 (the T4 rule); PROS_ERR holds the last good value (T7).
 
-*function, declared at [`include/shulib/hal/pros/distance.hpp:84`](../../include/shulib/hal/pros/distance.hpp#L84).*
+*function, declared at [`include/shulib/hal/pros/distance.hpp:90`](../../include/shulib/hal/pros/distance.hpp#L90).*
 
 <a id="prosdistance-confidence"></a>
 
@@ -66,19 +66,19 @@ Canonical inches. 9999 (no object) converts honestly — far and finite — with
 
 [0, 1]; 0.0 = no usable return (no object, or device failure). Full 1.0 at or below 200 mm, where a returned distance IS the detection (the close-range rule).
 
-*function, declared at [`include/shulib/hal/pros/distance.hpp:97`](../../include/shulib/hal/pros/distance.hpp#L97).*
+*function, declared at [`include/shulib/hal/pros/distance.hpp:103`](../../include/shulib/hal/pros/distance.hpp#L103).*
 
 <a id="prosdistance-faultedreads"></a>
 
 ### `ProsDistance::faultedReads`
 
 ```cpp
-[[nodiscard]] int faultedReads() const noexcept
+[[nodiscard]] int faultedReads() const noexcept override
 ```
 
-How many DEVICE-FAILURE reads were screened (T7 observability). The 9999 no-object state is NOT counted — it is a reading, not a fault.
+How many DEVICE-FAILURE reads were screened (T7 observability). The 9999 no-object state is NOT counted — it is a reading, not a fault. Monotonic; the `IReadFaults` answer (MECH-A1).
 
-*function, declared at [`include/shulib/hal/pros/distance.hpp:119`](../../include/shulib/hal/pros/distance.hpp#L119).*
+*function, declared at [`include/shulib/hal/pros/distance.hpp:126`](../../include/shulib/hal/pros/distance.hpp#L126).*
 
 ## Design commentary, from the header
 

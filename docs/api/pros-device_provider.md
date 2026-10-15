@@ -8,7 +8,7 @@
 
 ProsDeviceProvider — hal::IDeviceProvider over the real V5 adapters.
 
-This header declares **1** type (24 members).
+This header declares **1** type (29 members).
 
 Extracted from [`include/shulib/hal/pros/device_provider.hpp`](../../include/shulib/hal/pros/device_provider.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -30,6 +30,11 @@ Extracted from [`include/shulib/hal/pros/device_provider.hpp`](../../include/shu
   - [`gps`](#prosdeviceprovider-gps)
   - [`rotation`](#prosdeviceprovider-rotation)
   - [`digitalOut`](#prosdeviceprovider-digitalout)
+  - [`distance`](#prosdeviceprovider-distance)
+  - [`optical`](#prosdeviceprovider-optical)
+  - [`digitalIn`](#prosdeviceprovider-digitalin)
+  - [`readFaults`](#prosdeviceprovider-readfaults)
+  - [`lineReadFaults`](#prosdeviceprovider-linereadfaults)
   - [`clock`](#prosdeviceprovider-clock)
   - [`battery`](#prosdeviceprovider-battery)
   - [`telemetry`](#prosdeviceprovider-telemetry)
@@ -50,7 +55,7 @@ class ProsDeviceProvider final : public IDeviceProvider
 
 The on-robot `hal::IDeviceProvider`: real adapters made on demand, one per port, each only after the brain's registry says the port carries the expected kind of device, and owned here for the life of the program (header). Refusal is `nullptr` plus a sentence naming the port; a conflicting second request for a made device is a precondition violation. Neither copyable nor movable — the graph holds pointers into this object's storage.
 
-*class, declared at [`include/shulib/hal/pros/device_provider.hpp:168`](../../include/shulib/hal/pros/device_provider.hpp#L168).*
+*class, declared at [`include/shulib/hal/pros/device_provider.hpp:183`](../../include/shulib/hal/pros/device_provider.hpp#L183).*
 
 <a id="prosdeviceprovider-kslots"></a>
 
@@ -62,7 +67,7 @@ static constexpr std::size_t kSlots = kMaxSmartPorts + 1
 
 One more than the highest physical port, so a port number indexes the storage directly and slot 0 is never used.
 
-*field, declared at [`include/shulib/hal/pros/device_provider.hpp:172`](../../include/shulib/hal/pros/device_provider.hpp#L172).*
+*field, declared at [`include/shulib/hal/pros/device_provider.hpp:187`](../../include/shulib/hal/pros/device_provider.hpp#L187).*
 
 <a id="prosdeviceprovider-krefusalbytes"></a>
 
@@ -74,7 +79,7 @@ static constexpr std::size_t kRefusalBytes = 160
 
 The longest refusal sentence this provider writes, NUL included. Sized so the builder's verdict (`robot::BuildVerdict::why`, 192 bytes, which prefixes a role such as "a RIGHT drive motor cannot be made: ") still carries the port and the start of the adapter's reason; longer text truncates, never overflows.
 
-*field, declared at [`include/shulib/hal/pros/device_provider.hpp:178`](../../include/shulib/hal/pros/device_provider.hpp#L178).*
+*field, declared at [`include/shulib/hal/pros/device_provider.hpp:193`](../../include/shulib/hal/pros/device_provider.hpp#L193).*
 
 <a id="prosdeviceprovider-prosdeviceprovider"></a>
 
@@ -86,7 +91,7 @@ ProsDeviceProvider()
 
 The provider as it runs on a brain: it owns a `ProsDeviceRegistry` and asks it, port by port, before constructing anything. Constructing the provider opens NO device — every adapter is made on its first request.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:183`](../../include/shulib/hal/pros/device_provider.hpp#L183).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:198`](../../include/shulib/hal/pros/device_provider.hpp#L198).*
 
 <a id="prosdeviceprovider-prosdeviceprovider-2"></a>
 
@@ -98,7 +103,7 @@ explicit ProsDeviceProvider(const IDeviceRegistry& registry)
 
 The same provider over a caller's registry — a `hal::fake::FakeDeviceRegistry` in a host test that wants to program the census without the shim, or a program that already holds one. The registry is BORROWED and must outlive the provider.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:188`](../../include/shulib/hal/pros/device_provider.hpp#L188).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:203`](../../include/shulib/hal/pros/device_provider.hpp#L203).*
 
 <a id="prosdeviceprovider-prosdeviceprovider-3"></a>
 
@@ -110,7 +115,7 @@ explicit ProsDeviceProvider(const char* serialCopyFile, ProsFileMode copyMode = 
 
 The provider as it runs on a brain, keeping a COPY of its log on the SD card (header: AN OPTIONAL COPY OF THE LOG): `serialCopyFile` is a BARE file name ("drive_log.txt"; the adapter owns the /usd/ prefix), opened in `copyMode` (Truncate: one file per boot; Append: the file kept across boots). A null `serialCopyFile` is exactly the default constructor — no copy, telemetry() the serial TermSink. `copyMountRoot` is the card's mount point (it must end in '/'), injectable so a host test writes the same path to a scratch directory. A missing card is NOT a refusal: the copy refuses its lines and counts them, and serial is unchanged. PRECONDITION: a non-null `serialCopyFile` is non-empty and does not start with '/' (ProsBlockSink's own rule).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:200`](../../include/shulib/hal/pros/device_provider.hpp#L200).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:215`](../../include/shulib/hal/pros/device_provider.hpp#L215).*
 
 <a id="prosdeviceprovider-prosdeviceprovider-4"></a>
 
@@ -122,7 +127,7 @@ ProsDeviceProvider(const ProsDeviceProvider&) = delete
 
 Non-copyable: a copy would duplicate the adapters while the graph kept pointing at the originals.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:214`](../../include/shulib/hal/pros/device_provider.hpp#L214).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:229`](../../include/shulib/hal/pros/device_provider.hpp#L229).*
 
 <a id="prosdeviceprovider-prosdeviceprovider-5"></a>
 
@@ -134,7 +139,7 @@ ProsDeviceProvider(ProsDeviceProvider&&) = delete
 
 Non-copyable: a copy would duplicate the adapters while the graph kept pointing at the originals. Non-movable, same reasoning.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:216`](../../include/shulib/hal/pros/device_provider.hpp#L216).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:231`](../../include/shulib/hal/pros/device_provider.hpp#L231).*
 
 <a id="prosdeviceprovider-operator-eq"></a>
 
@@ -146,7 +151,7 @@ ProsDeviceProvider& operator=(const ProsDeviceProvider&) = delete
 
 Non-copyable: a copy would duplicate the adapters while the graph kept pointing at the originals. Non-movable, same reasoning. Non-copy-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:218`](../../include/shulib/hal/pros/device_provider.hpp#L218).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:233`](../../include/shulib/hal/pros/device_provider.hpp#L233).*
 
 <a id="prosdeviceprovider-operator-eq-2"></a>
 
@@ -158,7 +163,7 @@ ProsDeviceProvider& operator=(ProsDeviceProvider&&) = delete
 
 Non-copyable: a copy would duplicate the adapters while the graph kept pointing at the originals. Non-movable, same reasoning. Non-copy-assignable, same reasoning. Non-move-assignable, same reasoning.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:220`](../../include/shulib/hal/pros/device_provider.hpp#L220).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:235`](../../include/shulib/hal/pros/device_provider.hpp#L235).*
 
 <a id="prosdeviceprovider-destructor-prosdeviceprovider"></a>
 
@@ -170,7 +175,7 @@ Non-copyable: a copy would duplicate the adapters while the graph kept pointing 
 
 Non-copyable: a copy would duplicate the adapters while the graph kept pointing at the originals. Non-movable, same reasoning. Non-copy-assignable, same reasoning. Non-move-assignable, same reasoning. Destroys every adapter this provider made — so it must outlive every graph built from it.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:222`](../../include/shulib/hal/pros/device_provider.hpp#L222).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:237`](../../include/shulib/hal/pros/device_provider.hpp#L237).*
 
 <a id="prosdeviceprovider-motor"></a>
 
@@ -182,7 +187,7 @@ Non-copyable: a copy would duplicate the adapters while the graph kept pointing 
 
 The motor on `signedPort` (|p| in 1..21, NEGATIVE = reversed by PROS, once, inside the adapter), configured with `cartridge`'s gearset. Made on the first request the registry (kind MOTOR) and the adapter's read-back both allow; the same object ever after. nullptr + a refusal for a port outside 1..21, a cartridge byte that is not a V5 gearset, a port the registry says is empty or carries something else, or a motor that rejects its configuration. PRECONDITION: a later request for a made port states the SAME signed port and cartridge (header: one port, one configuration).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:233`](../../include/shulib/hal/pros/device_provider.hpp#L233).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:248`](../../include/shulib/hal/pros/device_provider.hpp#L248).*
 
 <a id="prosdeviceprovider-imu"></a>
 
@@ -194,7 +199,7 @@ The motor on `signedPort` (|p| in 1..21, NEGATIVE = reversed by PROS, once, insi
 
 The inertial sensor on `port`. Made on the first request the registry (kind IMU) allows, and its calibration STARTED right then, exactly once (header); the same object ever after. nullptr + a refusal for a port outside 1..21 or a port the registry says is empty or carries something else. PRECONDITION: this provider serves ONE IMU, so a request for a different port after one was made is a programming error.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:282`](../../include/shulib/hal/pros/device_provider.hpp#L282).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:297`](../../include/shulib/hal/pros/device_provider.hpp#L297).*
 
 <a id="prosdeviceprovider-gps"></a>
 
@@ -206,7 +211,7 @@ The inertial sensor on `port`. Made on the first request the registry (kind IMU)
 
 The GPS on `port`, with its lever arm from the robot centre (+X forward, +Y left, inches), which the adapter removes once, at the edge. Made on the first request the registry (kind GPS) and the adapter's own boot check both allow; the same object ever after. nullptr + a refusal for a port outside 1..21, a port the registry says is empty or carries something else, or a GPS the adapter rejects (a configured firmware offset, HA-06). PRECONDITION: ONE GPS per provider, and a later request states the same port and the same lever arm.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:321`](../../include/shulib/hal/pros/device_provider.hpp#L321).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:336`](../../include/shulib/hal/pros/device_provider.hpp#L336).*
 
 <a id="prosdeviceprovider-rotation"></a>
 
@@ -218,7 +223,7 @@ The GPS on `port`, with its lever arm from the robot centre (+X forward, +Y left
 
 The rotation sensor on `port` — a tracking wheel's encoder, never reversed by port (the seam's port is unsigned; a pod's direction is its offset's sign). Made on the first request the registry (kind ROTATION) allows; the same object ever after. nullptr + a refusal for a port outside 1..21 or a port the registry says is empty or carries something else.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:364`](../../include/shulib/hal/pros/device_provider.hpp#L364).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:379`](../../include/shulib/hal/pros/device_provider.hpp#L379).*
 
 <a id="prosdeviceprovider-digitalout"></a>
 
@@ -228,9 +233,69 @@ The rotation sensor on `port` — a tracking wheel's encoder, never reversed by 
 [[nodiscard]] IDigitalOut* digitalOut(std::uint8_t line, bool initialState) override
 ```
 
-The digital out on the brain's 3-wire port `line` (1..8 = A..H) — a solenoid's line. Made on the first request, and MAKING IT DRIVES IT to `initialState` (ProsDigitalOut's constructor; HA-119); the same object ever after, never driven again by a request. nullptr + a refusal ONLY for a line outside 1..8 — the registry is not asked because it cannot see a solenoid (header; HA-158), so an in-range line is always made. PRECONDITION: a later request for a made line states the same `initialState` (one line, one configuration).
+The digital out on the brain's 3-wire port `line` (1..8 = A..H) — a solenoid's line. Made on the first request, and MAKING IT DRIVES IT to `initialState` (ProsDigitalOut's constructor; HA-119); the same object ever after, never driven again by a request. nullptr + a refusal ONLY for a line outside 1..8 — the registry is not asked because it cannot see a solenoid (header; HA-158), so an in-range line is always made. PRECONDITION: a later request for a made line states the same `initialState` (one line, one configuration), and the line was not made as a digitalIn() (one line, one direction — MECH-A1).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:394`](../../include/shulib/hal/pros/device_provider.hpp#L394).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:410`](../../include/shulib/hal/pros/device_provider.hpp#L410).*
+
+<a id="prosdeviceprovider-distance"></a>
+
+### `ProsDeviceProvider::distance`
+
+```cpp
+[[nodiscard]] IDistance* distance(std::uint8_t port) override
+```
+
+MECH-A1: the distance sensor on `port` — a mechanism's piece sensor. Made on the first request the registry (kind DISTANCE) allows; the same object ever after. nullptr + a refusal for a port outside 1..21 or a port the registry says is empty or carries something else (header).
+
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:441`](../../include/shulib/hal/pros/device_provider.hpp#L441).*
+
+<a id="prosdeviceprovider-optical"></a>
+
+### `ProsDeviceProvider::optical`
+
+```cpp
+[[nodiscard]] IOptical* optical(std::uint8_t port) override
+```
+
+MECH-A1: the optical sensor on `port` — a mechanism's piece sensor; as distance(), with the registry's kind OPTICAL.
+
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:467`](../../include/shulib/hal/pros/device_provider.hpp#L467).*
+
+<a id="prosdeviceprovider-digitalin"></a>
+
+### `ProsDeviceProvider::digitalIn`
+
+```cpp
+[[nodiscard]] IDigitalIn* digitalIn(std::uint8_t line) override
+```
+
+MECH-A1: the digital input on the brain's 3-wire port `line` (1..8 = A..H) — a limit switch. Made on the first request; the registry is NOT asked (it cannot see a switch, HA-158), so an in-range line is always made, and making it drives nothing. nullptr + a refusal ONLY for a line outside 1..8. PRECONDITION: the line was not made as a digitalOut() (one line, one direction).
+
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:496`](../../include/shulib/hal/pros/device_provider.hpp#L496).*
+
+<a id="prosdeviceprovider-readfaults"></a>
+
+### `ProsDeviceProvider::readFaults`
+
+```cpp
+[[nodiscard]] const IReadFaults* readFaults(std::uint8_t port) const noexcept override
+```
+
+MECH-A1: the read-fault count of the distance or optical sensor THIS provider made on `port` — that adapter itself, as an hal::IReadFaults; nullptr when neither was made there. Looks up, never makes (header).
+
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:516`](../../include/shulib/hal/pros/device_provider.hpp#L516).*
+
+<a id="prosdeviceprovider-linereadfaults"></a>
+
+### `ProsDeviceProvider::lineReadFaults`
+
+```cpp
+[[nodiscard]] const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept override
+```
+
+MECH-A1: the read-fault count of the digital input THIS provider made on 3-wire `line`; nullptr when none was made there. Looks up, never makes.
+
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:533`](../../include/shulib/hal/pros/device_provider.hpp#L533).*
 
 <a id="prosdeviceprovider-clock"></a>
 
@@ -242,7 +307,7 @@ The digital out on the brain's 3-wire port `line` (1..8 = A..H) — a solenoid's
 
 The V5's real clock (`ProsClock`, microseconds → seconds once). Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:421`](../../include/shulib/hal/pros/device_provider.hpp#L421).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:545`](../../include/shulib/hal/pros/device_provider.hpp#L545).*
 
 <a id="prosdeviceprovider-battery"></a>
 
@@ -254,7 +319,7 @@ The V5's real clock (`ProsClock`, microseconds → seconds once). Never refused.
 
 The V5 battery (`ProsBattery`). Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:423`](../../include/shulib/hal/pros/device_provider.hpp#L423).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:547`](../../include/shulib/hal/pros/device_provider.hpp#L547).*
 
 <a id="prosdeviceprovider-telemetry"></a>
 
@@ -266,7 +331,7 @@ The V5 battery (`ProsBattery`). Never refused.
 
 The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, stdout) — exactly the sink src/main.cpp's hand-wired graphs built (the invented X-drive's until G1 Part 2c, which builds it over this provider). With a log copy (the log-copy constructor), a `diag::LogCopySink` over that TermSink and the card's: every line and summary to both, every per-tick record to serial only. Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:429`](../../include/shulib/hal/pros/device_provider.hpp#L429).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:553`](../../include/shulib/hal/pros/device_provider.hpp#L553).*
 
 <a id="prosdeviceprovider-serialcopyopen"></a>
 
@@ -278,7 +343,7 @@ The diagnostics sink: a `diag::TermSink` over the USB serial (`ProsCharSink`, st
 
 True when this provider keeps a log copy AND its file on the card is open. False with no copy asked for, and with no card or a failed open (the copy then refuses every line).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:438`](../../include/shulib/hal/pros/device_provider.hpp#L438).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:562`](../../include/shulib/hal/pros/device_provider.hpp#L562).*
 
 <a id="prosdeviceprovider-serialcopypath"></a>
 
@@ -290,7 +355,7 @@ True when this provider keeps a log copy AND its file on the card is open. False
 
 The copy's full path on the card ("/usd/drive_log.txt"), or "" with no copy asked for — for the program's one boot line.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:444`](../../include/shulib/hal/pros/device_provider.hpp#L444).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:568`](../../include/shulib/hal/pros/device_provider.hpp#L568).*
 
 <a id="prosdeviceprovider-serialcopydroppedlines"></a>
 
@@ -302,7 +367,7 @@ The copy's full path on the card ("/usd/drive_log.txt"), or "" with no copy aske
 
 Lines the copy LOST since construction: those its card refused (the write or the flush — every line, with no card), plus those left off because another task was mid-copy (diag::LogCopySink's one-writer guard; every line after a task PROS deleted mid-copy, too). 0 with no copy asked for. Read it where no other task is logging (the boot line does): the card's half is a plain count its writer keeps.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:453`](../../include/shulib/hal/pros/device_provider.hpp#L453).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:577`](../../include/shulib/hal/pros/device_provider.hpp#L577).*
 
 <a id="prosdeviceprovider-serialcopyappendopen"></a>
 
@@ -314,7 +379,7 @@ Lines the copy LOST since construction: those its card refused (the write or the
 
 How the copy's Append open went (Appended / Created / Refused); Refused in Truncate mode, which never asks, and with no copy asked for.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:461`](../../include/shulib/hal/pros/device_provider.hpp#L461).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:585`](../../include/shulib/hal/pros/device_provider.hpp#L585).*
 
 <a id="prosdeviceprovider-pacer"></a>
 
@@ -326,7 +391,7 @@ How the copy's Append open went (Appended / Created / Refused); Refused in Trunc
 
 The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace). Never refused.
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:466`](../../include/shulib/hal/pros/device_provider.hpp#L466).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:590`](../../include/shulib/hal/pros/device_provider.hpp#L590).*
 
 <a id="prosdeviceprovider-lastrefusal"></a>
 
@@ -338,14 +403,14 @@ The 10 ms `ProsTickPacer` (`pros::Task::delay_until`, anchored on its first pace
 
 Why the most recent refused request returned nullptr, naming the port and — when the registry answered — what was found and what was expected. Plain ASCII. The empty string until something is refused; not cleared by a later success (the builder reads it immediately after the nullptr it explains).
 
-*function, declared at [`include/shulib/hal/pros/device_provider.hpp:472`](../../include/shulib/hal/pros/device_provider.hpp#L472).*
+*function, declared at [`include/shulib/hal/pros/device_provider.hpp:596`](../../include/shulib/hal/pros/device_provider.hpp#L596).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 131 lines, click to expand</summary>
+<summary>The header’s own reasoning — 143 lines, click to expand</summary>
 
 ```text
 
@@ -424,6 +489,18 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  request with a different initial state is a precondition, like a motor's sign. There is no `try`
  around the construction: the vendored DigitalOut constructor reports a bad port through errno
  (ENXIO, vendored adi.hpp:539-542), never by throwing, and the range is checked before it runs.
+
+ ── THE MECHANISM SENSORS (chunk MECH-A1, 2026-10-08) ───────────────────────────────
+ distance(port) and optical(port) are a mechanism's PIECE sensors: made like rotation() — on the
+ first request the registry allows (kind DISTANCE / OPTICAL), the same object ever after, a
+ refusal naming the port and what was found ("port 9: a rotation sensor (expected a distance
+ sensor)"). digitalIn(line) is a limit switch on a 3-wire port: like digitalOut(), the registry is
+ NOT asked (it cannot see a switch, HA-158), only a line outside 1..8 is refused, and making one
+ drives nothing. ONE LINE, ONE DIRECTION: a line made as an output and then asked for as an input,
+ or the reverse, is a precondition — never a second adapter on one wire. readFaults(port) and
+ lineReadFaults(line) answer the adapter THIS provider made there (ProsDistance, ProsOptical,
+ ProsDigitalIn are each an hal::IReadFaults), or nullptr where it made none: they look up, never
+ make, so asking for a count can never construct a device the build did not ask for.
 
  ── IMU CALIBRATION STARTS HERE, EXACTLY ONCE ───────────────────────────────────────
  imu() starts the sensor's calibration (ProsImu::calibrate(), non-blocking — HA-108) when it

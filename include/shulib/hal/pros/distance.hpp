@@ -56,6 +56,7 @@
 
 #include "shulib/hal/distance.hpp"
 #include "shulib/hal/distance_conversion.hpp"
+#include "shulib/hal/read_faults.hpp"
 #include "shulib/units/quantity.hpp"
 
 namespace shulib::hal::pros {
@@ -73,7 +74,12 @@ namespace shulib::hal::pros {
 /// the sensor"), confidence() is 0.0, and faultedReads() counts it. Raising a fault is the
 /// loop layer's job, not this one's. Reads are LIVE: each accessor hits the device, so
 /// distance() and confidence() are two samples, not one atomic snapshot.
-class ProsDistance final : public IDistance {
+///
+/// ALSO an `IReadFaults` (MECH-A1, 2026-10-08): the count is reachable through the F4-additive
+/// sibling seam (hal/read_faults.hpp), because a value held from a FAR reading is byte for byte the
+/// 9999 "no object" reading and only the count tells them apart — the mechanism core's piece-sensor
+/// rule reads it beside every sample.
+class ProsDistance final : public IDistance, public IReadFaults {
 public:
     /// `port`: 1..21.
     explicit ProsDistance(std::uint8_t port) : sensor_{port} {}
@@ -115,8 +121,9 @@ public:
     }
 
     /// How many DEVICE-FAILURE reads were screened (T7 observability). The
-    /// 9999 no-object state is NOT counted — it is a reading, not a fault.
-    [[nodiscard]] int faultedReads() const noexcept { return faultedReads_; }
+    /// 9999 no-object state is NOT counted — it is a reading, not a fault. Monotonic; the
+    /// `IReadFaults` answer (MECH-A1).
+    [[nodiscard]] int faultedReads() const noexcept override { return faultedReads_; }
 
 private:
     mutable ::pros::v5::Distance sensor_;  // PROS's readers are non-const

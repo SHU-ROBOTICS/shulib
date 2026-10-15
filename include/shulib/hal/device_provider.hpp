@@ -48,6 +48,19 @@
 // line that is not one of the eight — on the brain nothing can tell it a solenoid is missing. And
 // MAKING a line DRIVES it (HA-119), which is why the line's level is an argument of the request.
 //
+// ── THE MECHANISM SENSORS, and their READ-FAULT counts (chunk MECH-A1, 2026-10-08) ──────
+// The mechanism core builds every ROLE a mechanism declares (robot/mechanism_parts.hpp): its
+// motors or lines as before, and now its sensors — a rotation sensor as its angle sensor (the
+// existing rotation()), a distance or an optical sensor as its PIECE sensor (distance(), optical()),
+// and a limit switch on a 3-wire line (digitalIn()). A smart sensor is refused like any port device
+// (on the brain: the registry's kind answer, HA-141); a 3-wire INPUT, like an output, is refused only
+// outside 1..8 (HA-158) — and one line is ONE direction: asking for a line as an input after it was
+// made an output, or the reverse, is a precondition (two parts of a program disagreeing about one
+// wire). Beside each piece sensor and switch the provider answers its READ-FAULT count
+// (readFaults(port), lineReadFaults(line) — hal/read_faults.hpp says why: a held value is otherwise
+// indistinguishable from a measured one). Those two are PURE like the rest: a provider that forgot
+// them would silently re-open the false "piece gone" the count exists to stop.
+//
 // ── IDEMPOTENCE IS PART OF THE CONTRACT ─────────────────────────────────────────────
 // Asking twice for the same port must return the SAME object. The graph borrows these
 // pointers and holds them for the life of the robot; a provider that made a second adapter
@@ -69,11 +82,15 @@
 
 #include "shulib/hal/battery.hpp"
 #include "shulib/hal/clock.hpp"
+#include "shulib/hal/digital_in.hpp"
 #include "shulib/hal/digital_out.hpp"
+#include "shulib/hal/distance.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/gps.hpp"
 #include "shulib/hal/imu.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/hal/optical.hpp"
+#include "shulib/hal/read_faults.hpp"
 #include "shulib/hal/rotation.hpp"
 #include "shulib/hal/telemetry_sink.hpp"
 #include "shulib/units/quantity.hpp"
@@ -150,8 +167,38 @@ public:
     /// request for a made line states the SAME `initialState` (one line, one configuration — two
     /// parts of a program disagreeing about a line's boot level is not a wiring fault). Nothing
     /// can refuse an EMPTY line: the brain's registry cannot see a solenoid (header; HA-158).
-    /// Added in T3's addendum B2 (2026-09-26); every implementer must answer it.
+    /// PRECONDITION (since MECH-A1): the line was not made as a digitalIn() — one line, one
+    /// direction. Added in T3's addendum B2 (2026-09-26); every implementer must answer it.
     [[nodiscard]] virtual IDigitalOut* digitalOut(std::uint8_t line, bool initialState) = 0;
+
+    /// The DISTANCE sensor on physical `port`, 1..kMaxSmartPorts — a mechanism's piece sensor
+    /// (MECH-A1). Returns nullptr and sets lastRefusal() when the port is out of range, empty, or
+    /// carries something else. Idempotent: the same port yields the same object. Every implementer
+    /// must answer it.
+    [[nodiscard]] virtual IDistance* distance(std::uint8_t port) = 0;
+
+    /// The OPTICAL sensor on physical `port`, 1..kMaxSmartPorts — a mechanism's piece sensor
+    /// (MECH-A1). nullptr + a refusal on a port that cannot serve one. Idempotent. Every
+    /// implementer must answer it.
+    [[nodiscard]] virtual IOptical* optical(std::uint8_t port) = 0;
+
+    /// The digital INPUT on the brain's 3-wire port `line`, 1..kBrainAdiLines (A = 1) — a limit
+    /// switch (MECH-A1). Reading one drives nothing, and making one drives nothing. nullptr + a
+    /// refusal ONLY for a line outside 1..8 on the brain: its registry cannot see a 3-wire device
+    /// (header; HA-158), so an in-range line is always made. PRECONDITION: the line was not made as
+    /// a digitalOut() (one line, one direction — and digitalOut() states the converse). Idempotent.
+    [[nodiscard]] virtual IDigitalIn* digitalIn(std::uint8_t line) = 0;
+
+    /// The READ-FAULT count of the piece sensor this provider made on smart `port` with distance()
+    /// or optical() — how a consumer tells a HELD value from a measured one (hal/read_faults.hpp).
+    /// nullptr when no such sensor was made there, or when this provider's sensors never screen a
+    /// read. Never makes anything. Every implementer must answer it (header).
+    [[nodiscard]] virtual const IReadFaults* readFaults(std::uint8_t port) const noexcept = 0;
+
+    /// The READ-FAULT count of the digital input this provider made on 3-wire `line` with
+    /// digitalIn(); nullptr when none was made there (or it never screens a read). Never makes
+    /// anything. Every implementer must answer it.
+    [[nodiscard]] virtual const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept = 0;
 
     /// The run's clock. PORT-LESS and never refused: every target has one, and a robot without a
     /// clock cannot report that it has no clock.

@@ -17,6 +17,29 @@ ctest --test-dir build/test --output-on-failure
 
 `build/` is gitignored, so this never pollutes the repo. A non-zero exit code means a test failed.
 
+**The compile-refusal harness** (since the mechanism core's first part): the mechanism core refuses a
+robot file's mistakes AT BUILD, each by name. Every named refusal a robot file can reach has a
+translation unit in [`compile_refusals/`](compile_refusals/) that must FAIL to compile, naming its
+reason. Two names have none, on purpose: `a_smart_port_is_used_twice` and
+`a_three_wire_port_is_used_twice`, the "used twice" fallbacks no list can reach (each said so beside it
+in `mechanism/wiring.hpp`). And every PLACE in the headers that calls a refusal is reached by a TU, not
+only every name (checked by deleting each call in turn and seeing a TU go red: 148 of the 150 direct
+calls — the other two are those fallbacks — and all 11 calls made through a dispatcher, such as
+`refuse(specRefusal(...))` or the route-id recorder). Where two layers could both refuse with the same
+name — a `wire(...)` check and `mechanisms()`' own re-check of each entry — the TU also pins the line
+GCC must cite (`// expect-at:`). They are not part of `shulib_tests` — `ctest` builds each one on its
+own, one at a time even under `ctest -j` (they share a lock on the build tree), which takes two to three
+minutes for all of them (127 s and 153 s, measured 2026-10-15 at 195 TUs), and
+`ctest --test-dir build/test -R compile_refusal --no-tests=error --output-on-failure` runs just those.
+The TU's own `// expect:` line states its reason; [`compile_refusals/run_refusal.py`](compile_refusals/run_refusal.py)
+is the judge (the reason must be in a diagnostic's message, never only in a path), and four
+`harness_*` TUs prove the judge cannot be fooled (a TU that compiles, the wrong reason, the reason only
+in a file name, the wrong line). A TU dropped into that directory is a test at the next configure, and
+CI fails when the number of harness tests is not the number of TUs (a detached harness would otherwise
+report "No tests were found" and pass). The suite and the harness compile with the same flags
+(`shulib_test_flags`, in `CMakeLists.txt`). The spec's per-field CONDITIONS (both sides of a range,
+each field of a pair) are pinned at run time, one property per case, by `mechanism_spec_test.cpp`.
+
 **The build needs `python3`.** Before compiling anything it runs the documentation gates
 (`tools/api_doc_tool.py`): a public entity anywhere under `include/shulib/` with no
 documentation comment fails the build *naming that entity, its file and its line*; the generated reference in

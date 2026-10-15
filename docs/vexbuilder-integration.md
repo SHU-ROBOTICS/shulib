@@ -134,8 +134,10 @@ project.robotProfile {
   shulib translates. *(There is a real trap here: one PROS registry call is 0-indexed while every
   device API is 1-indexed, and mixing them yields plausible wrong answers with no error. Keep the
   boundary explicit and neither side can make that mistake.)*
-- **`gearRatio` is new to this schema and it is not optional.** shulib currently has **no gear-ratio
-  concept anywhere**, which is a known defect; a real team drivetrain has an external reduction
+- **`gearRatio` is new to this schema and it is not optional.** When this was written shulib had **no
+  gear-ratio concept anywhere** — a known defect; since then `hal::DriveGeometry` carries a per-side
+  motor-to-wheel ratio (R3b) and a mechanism states its gearing as tooth counts (`gears(12, 60)`, the
+  mechanism core, 2026-10-08), but nothing reads a `.vexbot` yet. A real team drivetrain has an external reduction
   between the motor cartridge and the wheel, and it may **differ between the left and right sides**.
   Emit it per motor. If a drive is direct, emit `1:1` explicitly rather than omitting the field.
 - **`cartridge` is a software declaration, not a measurement.** A V5 motor cannot report its physical
@@ -166,8 +168,10 @@ project.robotProfile {
   the 3-wire ports as the brain's letters A–H: shulib's config stores them as the numbers 1–8
   (A = 1). A port may appear once across all mechanisms. **Two ports in one mechanism are two
   valves fired together at the same level**, not the two coils of a double-coil solenoid (which
-  need opposite levels and are not supported yet — when a robot needs one, each port gains a
-  stated polarity; no such field exists today, so do not emit one). Nothing on the brain can
+  need opposite levels: since the mechanism core's first part, 2026-10-08, shulib's config can
+  state a level PER LINE — `pneumaticStartByLine` / `pneumaticSafeByLine` — and builds such a
+  mechanism so its safe state drives each line to its own level; this contract has no field for
+  them yet, so do not emit one). Nothing on the brain can
   confirm a solenoid is plugged into a 3-wire port — the UI is the only check there is.
 - **`role` on odometry wheels is required**, not inferred. shulib's odometry refuses two wheels of the
   same role, which is the guard that stops a forward and a lateral pod being swapped.

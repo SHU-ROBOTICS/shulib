@@ -76,6 +76,18 @@
 // around the construction: the vendored DigitalOut constructor reports a bad port through errno
 // (ENXIO, vendored adi.hpp:539-542), never by throwing, and the range is checked before it runs.
 //
+// ── THE MECHANISM SENSORS (chunk MECH-A1, 2026-10-08) ───────────────────────────────
+// distance(port) and optical(port) are a mechanism's PIECE sensors: made like rotation() — on the
+// first request the registry allows (kind DISTANCE / OPTICAL), the same object ever after, a
+// refusal naming the port and what was found ("port 9: a rotation sensor (expected a distance
+// sensor)"). digitalIn(line) is a limit switch on a 3-wire port: like digitalOut(), the registry is
+// NOT asked (it cannot see a switch, HA-158), only a line outside 1..8 is refused, and making one
+// drives nothing. ONE LINE, ONE DIRECTION: a line made as an output and then asked for as an input,
+// or the reverse, is a precondition — never a second adapter on one wire. readFaults(port) and
+// lineReadFaults(line) answer the adapter THIS provider made there (ProsDistance, ProsOptical,
+// ProsDigitalIn are each an hal::IReadFaults), or nullptr where it made none: they look up, never
+// make, so asking for a count can never construct a device the build did not ask for.
+//
 // ── IMU CALIBRATION STARTS HERE, EXACTLY ONCE ───────────────────────────────────────
 // imu() starts the sensor's calibration (ProsImu::calibrate(), non-blocking — HA-108) when it
 // constructs the adapter, and never again: a second reset() would re-zero the sensor under a
@@ -149,10 +161,13 @@
 #include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/device_registry.hpp"
+#include "shulib/hal/pros/digital_in.hpp"
 #include "shulib/hal/pros/digital_out.hpp"
+#include "shulib/hal/pros/distance.hpp"
 #include "shulib/hal/pros/gps.hpp"
 #include "shulib/hal/pros/imu.hpp"
 #include "shulib/hal/pros/motor.hpp"
+#include "shulib/hal/pros/optical.hpp"
 #include "shulib/hal/pros/rotation.hpp"
 #include "shulib/hal/pros/tick_pacer.hpp"
 #include "shulib/math/angle.hpp"
@@ -390,7 +405,8 @@ public:
     /// constructor; HA-119); the same object ever after, never driven again by a request. nullptr +
     /// a refusal ONLY for a line outside 1..8 — the registry is not asked because it cannot see a
     /// solenoid (header; HA-158), so an in-range line is always made. PRECONDITION: a later request
-    /// for a made line states the same `initialState` (one line, one configuration).
+    /// for a made line states the same `initialState` (one line, one configuration), and the line
+    /// was not made as a digitalIn() (one line, one direction — MECH-A1).
     [[nodiscard]] IDigitalOut* digitalOut(std::uint8_t line, bool initialState) override {
         const int l = static_cast<int>(line);
         if (l < 1 || l > static_cast<int>(kBrainAdiLines)) {
@@ -410,9 +426,117 @@ public:
             }
             return &*lines_[i];
         }
+        SHULIB_PRECONDITION(!inputs_[i].has_value(),
+                            "ProsDeviceProvider: a 3-wire port made as an INPUT was asked for as an "
+                            "output -- one line, one direction");
         lines_[i].emplace(line, initialState);  // DRIVES the line now (HA-119); no registry (HA-158)
         lineInitial_[i] = initialState;
         return &*lines_[i];
+    }
+
+    /// MECH-A1: the distance sensor on `port` — a mechanism's piece sensor. Made on the first
+    /// request the registry (kind DISTANCE) allows; the same object ever after. nullptr + a
+    /// refusal for a port outside 1..21 or a port the registry says is empty or carries something
+    /// else (header).
+    [[nodiscard]] IDistance* distance(std::uint8_t port) override {
+        const int p = static_cast<int>(port);
+        if (!isSmartPort(p)) {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "port %d is not a smart port (ports are 1..21)", p);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        if (distances_[i].has_value()) {
+            return &*distances_[i];
+        }
+        if (!expectKind(p, DeviceKind::Distance, "a distance sensor")) {
+            return nullptr;
+        }
+        try {
+            distances_[i].emplace(port);
+        } catch (const std::exception& e) {
+            distances_[i].reset();
+            refuseRejected(p, "distance sensor", e.what());
+            return nullptr;
+        }
+        return &*distances_[i];
+    }
+
+    /// MECH-A1: the optical sensor on `port` — a mechanism's piece sensor; as distance(), with the
+    /// registry's kind OPTICAL.
+    [[nodiscard]] IOptical* optical(std::uint8_t port) override {
+        const int p = static_cast<int>(port);
+        if (!isSmartPort(p)) {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "port %d is not a smart port (ports are 1..21)", p);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        if (opticals_[i].has_value()) {
+            return &*opticals_[i];
+        }
+        if (!expectKind(p, DeviceKind::Optical, "an optical sensor")) {
+            return nullptr;
+        }
+        try {
+            opticals_[i].emplace(port);
+        } catch (const std::exception& e) {
+            opticals_[i].reset();
+            refuseRejected(p, "optical sensor", e.what());
+            return nullptr;
+        }
+        return &*opticals_[i];
+    }
+
+    /// MECH-A1: the digital input on the brain's 3-wire port `line` (1..8 = A..H) — a limit
+    /// switch. Made on the first request; the registry is NOT asked (it cannot see a switch,
+    /// HA-158), so an in-range line is always made, and making it drives nothing. nullptr + a
+    /// refusal ONLY for a line outside 1..8. PRECONDITION: the line was not made as a
+    /// digitalOut() (one line, one direction).
+    [[nodiscard]] IDigitalIn* digitalIn(std::uint8_t line) override {
+        const int l = static_cast<int>(line);
+        if (l < 1 || l > static_cast<int>(kBrainAdiLines)) {
+            std::snprintf(refusal_, sizeof refusal_,
+                          "3-wire port %d is not a brain 3-wire port (1..8 are A..H)", l);
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(l);
+        SHULIB_PRECONDITION(!lines_[i].has_value(),
+                            "ProsDeviceProvider: a 3-wire port made as an OUTPUT was asked for as an "
+                            "input -- one line, one direction");
+        if (!inputs_[i].has_value()) {
+            inputs_[i].emplace(line);  // no registry (HA-158); a DigitalIn drives nothing
+        }
+        return &*inputs_[i];
+    }
+
+    /// MECH-A1: the read-fault count of the distance or optical sensor THIS provider made on
+    /// `port` — that adapter itself, as an hal::IReadFaults; nullptr when neither was made there.
+    /// Looks up, never makes (header).
+    [[nodiscard]] const IReadFaults* readFaults(std::uint8_t port) const noexcept override {
+        const int p = static_cast<int>(port);
+        if (!isSmartPort(p)) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(p);
+        if (distances_[i].has_value()) {
+            return &*distances_[i];
+        }
+        if (opticals_[i].has_value()) {
+            return &*opticals_[i];
+        }
+        return nullptr;
+    }
+
+    /// MECH-A1: the read-fault count of the digital input THIS provider made on 3-wire `line`;
+    /// nullptr when none was made there. Looks up, never makes.
+    [[nodiscard]] const IReadFaults* lineReadFaults(std::uint8_t line) const noexcept override {
+        const int l = static_cast<int>(line);
+        if (l < 1 || l > static_cast<int>(kBrainAdiLines)) {
+            return nullptr;
+        }
+        const auto i = static_cast<std::size_t>(l);
+        return inputs_[i].has_value() ? &*inputs_[i] : nullptr;
     }
 
     // ── IDeviceProvider: the port-less handles ─────────────────────────────────────────
@@ -572,7 +696,10 @@ private:
     units::Length gpsLeverForward_{0.0};
     units::Length gpsLeverLeft_{0.0};
     std::optional<ProsRotation> rotations_[kSlots]{};
+    std::optional<ProsDistance> distances_[kSlots]{};  // MECH-A1: piece sensors
+    std::optional<ProsOptical> opticals_[kSlots]{};
     std::optional<ProsDigitalOut> lines_[kBrainAdiLines + 1]{};  // slot 0 unused, like the ports
+    std::optional<ProsDigitalIn> inputs_[kBrainAdiLines + 1]{};  // MECH-A1: limit switches
     bool lineInitial_[kBrainAdiLines + 1]{};
 
     char refusal_[kRefusalBytes]{};
