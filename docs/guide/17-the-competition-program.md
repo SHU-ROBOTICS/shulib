@@ -153,7 +153,8 @@ PROS's task:
 **disabled**, or the status leaves **autonomous** (the period ended, or the match moved straight to
 driver control), it asks the run guard to **abandon** the run. The guard cuts the motion before the
 world advances again — at most **one more commanded 10 ms tick** after the watch saw the change —
-skips the end action (a disabled robot's motors are off; the brake cannot run), puts the drive at
+and in the same tick cancels every mechanism operation still running that registered its claim (as
+the library's own do, since the mechanism core's second part), skips the end action (a disabled robot's motors are off; the brake cannot run), puts the drive at
 0 V under Brake and every present claw and pivot in its safe state, and lets the routine unwind on
 the auton task's own stack. Nothing is left dangling. A driver's bumped button does **not** end an
 auton here (that is the tester's abort, never the match's).

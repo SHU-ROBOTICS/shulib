@@ -279,7 +279,10 @@ Unpacked, that is three separate limits:
   loops against `guard.expired()`.
 - **Frozen waits pay their remainder.** `pause`/`waitFor`/`waitUntil` on the frozen
   surfaces cannot see the deadline ([Chapter 9](09-the-recipe-api.md) has the exact
-  formula and the deadline-aware alternative).
+  formula and the deadline-aware alternative). One exception, since the mechanism core's
+  second part: a wait on a mechanism operation that registered its claim ends one pace after
+  the deadline, because the guard cuts the OPERATION it waits on (Chapter 9, the same
+  section).
 - **"Zero travel after the deadline" is a simulator result, not a robot one.** The host
   measurement is exactly 0.0 inches, and it is real — but it holds because the guard
   refuses the next command *before* the world advances **and** because the simulated

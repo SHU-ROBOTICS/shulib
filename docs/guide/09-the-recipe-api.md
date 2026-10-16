@@ -325,6 +325,14 @@ while a chain is executing:
   term — the wait it was standing in — because its next motion step is refused and stops the
   chain. Consecutive `pause()` steps each pay in full (a pause never fails, so it never stops
   the chain). Budget waits tightly.
+- **A mechanism operation is cut too** (since the mechanism core's second part). An operation still
+  running at the deadline — the grab in the listing above, ticked inside the chassis's
+  `waitUntil`, or a mechanism-service step — is cancelled into its declared safe state at the
+  next pace, so the wait standing on it sees it end one pace after the deadline and its verdict
+  reads `Cancelled` (which stops the chain). The guard reaches it through the claim it
+  registered; an operation of your own that claims ANONYMOUSLY is not reached until the guard's
+  cancel-all ([Chapter 13](13-extending-the-library.md) says how to register). The wait's own
+  lateness bound above still applies to a wait on anything else.
 
 When the wait itself is the thing that must respect the deadline — "wait for the partner, but
 never past our budget" — use the guard's own wait through `then()`. Only `Satisfied` continues

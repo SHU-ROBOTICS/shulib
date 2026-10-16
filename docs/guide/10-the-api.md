@@ -399,12 +399,14 @@ show `cmd#0`). Until you need it, you don't need it.
 > **What exists, and what does not yet.** The mechanism core's first part (MECH-A1, 2026-10-08) is
 > the VOCABULARY and the BUILD CHECKS: how a robot file says what each mechanism is and where it is
 > plugged in, what the build refuses, the route ids every mechanism publishes, and the devices the
-> robot builds for every role. Nothing RUNS a mechanism through it yet — the service that runs every
-> mechanism each tick, the auton steps (`r.move(arm["score"], 1.5_s)`) and the driver controls are
-> the core's next parts. Robot two's programs build their claws through it (the Robot builds every
-> role), but the per-role boot lines below are only worded by the library today — the programs first
-> print them in the core's fifth part — and nothing reads a sensor's read-fault count until the
-> service does. **Nothing here has run on a robot.**
+> robot builds for every role. Since its second part (MECH-A2, 2026-10-15) a mechanism SERVICE runs
+> POWER and PNEUMATIC mechanisms through it, ticked once per control tick — but no program builds a
+> service yet, and its API is taught with the auton steps that call it. The position and speed
+> behaviours (an `Arm`, a `Lift`, a `Flywheel`), the auton steps (`r.move(arm["score"], 1.5_s)`) and
+> the driver controls are the core's next parts. Robot two's programs build their claws through it
+> (the Robot builds every role), but the per-role boot lines below are only worded by the library
+> today — the programs first print them in the core's fifth part. **Nothing here has run on a
+> robot.**
 
 A mechanism is written ONCE, as **what it is** — its kind, its motors and which way each is mounted,
 its cartridge, its gearing as tooth counts, what it does when stopped and what a jam looks like, and
@@ -530,7 +532,9 @@ SAME kind swapped between mechanisms look fine at boot — that is the bench pag
 READ-FAULT count (`hal::IReadFaults`, through `readFaults(port)` / `lineReadFaults(line)`): a sensor
 whose read fails is answered with its last good value, and a distance sensor held from a far reading
 is, byte for byte, the "no object" reading — only the count tells them apart. The count is there so
-the core's service (its next part) never takes a held value for evidence; nothing reads it yet.
+the core's service never takes a held value for evidence: since its second part the service reads a
+PIECE sensor's count (a home switch's arrives with the position behaviours, its only reader) — and
+no program builds the service yet.
 
 At run time `config::RobotConfig::valid()` owns every port collision — now including each
 mechanism's sensor ports and switch lines — against the drivetrain the boot actually chose, so a

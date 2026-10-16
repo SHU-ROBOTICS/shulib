@@ -196,7 +196,15 @@ The run-scoped guard ([Chapter 6](06-how-things-fail.md)) leaves a clear trail u
   robot no longer belongs to your auton. The first line's `T+` says when it happened.
 - **The run went long anyway, in a wait:** a frozen-surface wait (`pause`, `waitFor`,
   `chassis.waitUntil`) cannot be cut and pays its own remaining budget —
-  [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative.
+  [Chapter 9](09-the-recipe-api.md) has the exact bound and the deadline-aware alternative. (A
+  wait on a mechanism operation is the exception: the guard cuts the OPERATION, and the wait sees
+  it end one pace later — the next line.)
+- **`mechanism 'intake' cut at the deadline -- its operation cancelled into its safe state`** (or
+  `cut after the abandon`): a mechanism step or operation was still running when the deadline (or
+  the field's disable) arrived, and the guard cancelled it — the step's own `MECH` line reads
+  `CANCELLED` ([Chapter 11](11-reading-the-diagnostics.md)). Said once per run; the report's
+  `mechanismCuts` counts every one. If it happens every run, that step does not finish before your
+  end-action time: give it a shorter time limit, or move it earlier in the auton.
 - **`anonymous claim force-released`:** a mechanism was claimed by something the guard cannot
   see into (a hand-rolled operation using the bare claim). The guard freed the claim so the
   end action could run, but it could not make the unknown operation inert — register a

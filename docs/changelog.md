@@ -16,6 +16,101 @@
 
 ## API 2.4
 
+### Added and changed since 2.4 (2026-10-15; built 2026-10-08–15) — the mechanism core, part 2: one service runs power and pneumatic mechanisms; the run guard's deadline now cuts a claimed mechanism
+
+> Written when it was built (chunk MECH-A2, the second of the mechanism core's six parts). **No
+> version bump — every change is ADDITIVE in its signatures:** three new headers, three APPENDED values
+> of `manipulation::MechanismOutcome` (its own append-only rule), one appended field of
+> `sequence::RunGuardReport` (the run guard is row F12 of the
+> [Freeze Register](roadmap.md#freeze-register), NOT FROZEN). **One BEHAVIOUR CHANGE**, below. In this
+> part the service runs POWER and PNEUMATIC mechanisms only — the position and speed behaviours (an
+> `Arm`, a `Lift`, a `Flywheel`) are the core's next part, and the auton steps and driver controls that
+> call the service come after that; until then a program calls the service's slots directly. Until
+> that next part, `bind()` REFUSES a list that holds an `Arm`, a `Lift` or a `Flywheel` (a precondition
+> naming the part that brings them) — it never skips one silently. **Host only — nothing here has run
+> on a robot.**
+
+**ADDED:**
+
+- **Done-conditions** (`mechanism/until.hpp`) — `mechanism::Until`, the words `seesPiece`,
+  `stopsSeeingPiece` and `stalls` (from `using namespace shulib::mechanism::words;`), `seesPiece(grip)` /
+  `stopsSeeingPiece(grip)` for ANOTHER mechanism's sensor (one that declares none FAILS THE BUILD, named
+  `that_mechanism_has_no_piece_sensor`), `Until::time(...)`, `seesPiece.orAfter(2.5_s)` ("or after
+  2.5 s, whichever comes first" — SUCCEEDED by time), and `|` (either ends the step; two times keep the
+  earlier; two DIFFERENT mechanisms' sensors in one condition are refused at the step — the step's own
+  sensor beside a name, `seesPiece | stopsSeeingPiece(intake)`, is one sensor when the step runs on
+  the intake itself). A declaration written without `.name` is on no robot's list: `seesPiece(m)` on
+  one fails the build (`a_mechanism_has_no_name`), and a hand-made `Until` naming one is refused at the
+  step. A condition never replaces a step's time limit — every step still states one.
+- **The mechanism service** (`mechanism/service.hpp`) — `mechanism::MechanismService`: one object, ticked
+  once per control tick, that runs every mechanism's behaviour, so a mechanism step goes on while the robot
+  drives. It is a `motion::ITickPacer` a program puts in the chassis's pacer chain (Chassis → `RunGuard` →
+  `MechanismService` → the world), and the driver loop's stated place is `tickFromDriverLoop()` — exactly
+  ONE tick per control tick either way. `bind()` makes one SLOT per mechanism of the robot's list over the
+  devices `robot::MechanismParts` built (the same devices the guard's span lists); a slot is the mechanism's
+  registered claimant, so the guard reaches every running behaviour. A `PowerSlot` runs at a voltage until
+  its conditions or its time limit (`run()`), or as the driver's hold-to-run (`drive()` / `stop()`); a
+  `PneumaticSlot` goes to a named position, every line at its level at once, and gives its verdict after the
+  robot file's move time (`set()`). The most recent command wins; a mechanism ANOTHER owner has claimed is
+  never commanded (the step says REFUSED). The mode changes: `enterDriverControl()`, `enterAutonomous()` and
+  `leaveDriverControl()` — a claim left by an operation whose task PROS deleted is released WITHOUT calling
+  into it, counted and said (its motor then made safe, like any other). None of the three puts a pneumatic in
+  its safe state: `leaveDriverControl()` (a disable) and `enterAutonomous()` send it nothing, and
+  `enterDriverControl()` only its START position, on the first entry (T4's ruling: the claw starts closed) —
+  so through a disable the service leaves a pneumatic at its level ([HA-157](hardware-assumptions.md)). The
+  run guard is another matter: `run()`'s cancel-all at the end of every guarded auton still puts every LISTED
+  mechanism, a pneumatic included, in its safe state, as before, and its new cut (below) puts a pneumatic
+  whose step has not given its verdict yet in its safe position too. A service destroyed while a slot holds
+  its claim ends that behaviour first (CANCELLED, the safe state, the claim released), so no claimant is
+  left pointing into it — its devices, clock, fault latch and sink must outlive it. A piece sensor is read
+  as POSITIVE evidence: a reading that may be a held value (a distance near with no confidence, or ANY
+  sample taken while the sensor's read-fault count moved — a pulled cable reads exactly like "no object")
+  satisfies neither `seesPiece` nor `stopsSeeingPiece`. Every step ends with ONE `[MECH]` log line
+  ([Chapter 11](guide/11-reading-the-diagnostics.md) reads it field by field).
+- **Three verdicts**, appended to `manipulation::MechanismOutcome` — `Absent = 6` (`ABSENT`: the
+  mechanism was not built at boot), `NotHomed = 7` (`NOT_HOMED`: a position move before the mechanism
+  found its zero — produced from the core's next part on) and `Refused = 8` (`REFUSED`: another owner
+  holds the mechanism's claim). Each is a step that moved NOTHING. A `switch` over the enum that lists
+  every value needs three more `case`s (none in the library or its programs did).
+- **`sequence::RunGuardReport::mechanismCuts`** — how many claimed mechanisms the guard's latch
+  cancelled after the deadline or an abandon (the change below).
+- **The host test plant's mechanisms** (`sim/mechanism_plant.hpp`, test-only — the library cannot
+  include it) — `sim::ArmPlant` (one joint driven by N fake motors: a gravity load, hard stops, an
+  obstacle, a jam, the brake modes at 0 V; a lift and a roller are the same joint) and
+  `sim::FlywheelPlant`. Every constant is invented: [HA-183](hardware-assumptions.md).
+
+**BEHAVIOUR CHANGE (an auton run by `sequence::RunGuard`) — the guard's deadline and an abandon now CUT a
+claimed mechanism** (the team lead's ruling, 2026-10-08). A mechanism step waits in `Chassis::waitUntil`, a
+wait the guard cannot cut, so before this an intake step still running when the end action was due ran on to
+its OWN time limit: measured 1.01 s late on a 2 s step and 2.02 s late on a 5 s one — the hard stop then
+fired during scoring and the end action (the park) failed; after a disable it ran up to 2.52 s on, which the
+competition program's driver control waits out. Now, in the two places the guard already cuts the drive's
+motion, it also calls `cancel()` on every listed mechanism whose claim has a REGISTERED claimant (a
+mechanism-service slot, or an F1 operation started with one): the step ends CANCELLED and its wait sees it
+at the next pace — one pace (0.01 s) after the deadline; after a disable, two (0.02 s: the guard reads the
+request at its next pace) — nothing commanded after the cut. The DEADLINE cut never runs inside the end
+action (the end action's own steps are exempt from the deadline, as its motions are); an ABANDON (a disable)
+cuts claimed mechanisms everywhere, the end action included. A mechanism nobody has claimed is not re-made
+safe every pace (a repeated Hold re-captures where it holds and lets a loaded shaft creep); `run()`'s
+cancel-all still makes every listed mechanism safe, as before. The run's first cut is logged once (`SEQ`:
+`mechanism 'intake' cut at the deadline -- ...`) and every cut is counted in `mechanismCuts`. **What it
+changes for you:** an F1 operation (`RunUntilConfirmed`, `ActuateAndConfirm`) with a registered claimant,
+still running at the deadline, now ends CANCELLED there instead of running to its own timeout. **What you
+must do:** nothing, unless an auton RELIED on an operation outliving the deadline — the library's whole
+suite passed with the cut, and none did. An operation claimed ANONYMOUSLY (no claimant) is not reached until
+`run()`'s cancel-all, as before.
+
+**TESTED** (every case against the REAL guard, the REAL `MechanismParts` over the fake provider, and the
+host test plant): exactly one service tick per control tick through all three pacers a driver loop can be
+handed; the guard's reach leaves nothing that re-commands on the next tick; every done-condition alone and
+OR-ed; a declared piece sensor MISSING this boot runs the step's whole time with the motor running and ends
+UNCONFIRMED, counted done — never a false SUCCEEDED; a piece sensor whose reads FAIL, through the REAL PROS
+distance and optical adapters over the PROS shim, never read as an answer; the deadline cuts a 2 s and a 5 s
+step one pace after it, the disable two paces after it; and a mechanism left at 12 V by a driver task PROS
+deleted runs 0 of 269 auton paces with `enterAutonomous()` (all 269 without it). Every rule's mutation was
+run and turned its test red. One hardware belief is new in the [register](hardware-assumptions.md): HA-183
+(the host test plant's mechanism models stand in for real ones).
+
 ### Fixed and added since 2.4 (2026-10-15; built 2026-10-08) — the serial log keeps every line whole when two tasks print: one `write()` per line
 
 > Written when it was built (chunk SER1, the team lead's ruling "one-call writes", 2026-10-08). **No

@@ -63,8 +63,9 @@ core never touches PROS directly (that separation is load-bearing; see the layou
   built from a config builds its declared mechanisms of both kinds (host-tested only; none of it
   has run on a robot yet).
 - **A guaranteed end of run**: wrap the tick pacer and a routine gets a hard deadline — the
-  active motion is cut at the instant you name, every later motion is *refused* (a latch, not a
-  pause), your end action runs strictly after cancel-all, and an unconditional floor fires
+  active motion — and every mechanism operation still running that registered its claim, as the
+  library's own do — is cut at the instant you name, every later motion is *refused* (a latch,
+  not a pause), your end action runs strictly after cancel-all, and an unconditional floor fires
   regardless. The library refuses to know your strategy: no field coordinate, no park pose, no
   default match length, no default lead time. Both instants and the action are yours.
 - **Diagnostics**: per-tick structured records, leveled logs, first-fault latching, brownout and

@@ -208,7 +208,8 @@ reachable by name through `Robot::mechanism("…")` or `Robot::pneumaticMechanis
 Second, if you write your OWN operation type (not the two shipped shapes), claim
 the mechanism with the **registering** overload — `tryClaim(*this)`, implementing
 `hal::ICancellable`, exactly as the shipped operations do — or the guard cannot reach your
-operation at the deadline: it can repaint the device safe, but a live operation re-commands
+operation at the deadline (a registered one it cancels the moment the deadline passes, or the field
+disables the robot, and again at its cancel-all): it can repaint the device safe, but a live operation re-commands
 its voltage on its very next tick, and the guard will only be able to force-release your
 claim and warn (`anonymous claim force-released` in the transcript is this). Third, your
 confirmation predicate is *trusted*: an operation cannot second-guess its only eye on the

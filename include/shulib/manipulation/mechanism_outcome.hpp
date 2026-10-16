@@ -35,6 +35,14 @@
 // do not emit per-tick records at F1), but log lines carry the spellings below,
 // so the values are treated as stable anyway: re-meaning a value someone
 // grepped a transcript for is the same bug class at human scale.
+//
+// Three verdicts APPENDED by the mechanism core (MECH-A2, 2026-10-15), each a
+// step that moved NOTHING: `Absent` (the mechanism was not built at boot — a
+// device missing), `NotHomed` (a position move asked of a mechanism that has not
+// found its zero — produced from MECH-A3 on) and `Refused` (another owner holds
+// the mechanism's claim). Never "a target the build could not check": a COMPUTED
+// target past a travel limit is CLAMPED to it (the soft stop), not refused.
+// Like every non-Succeeded verdict, each is a failure where the vocabularies meet.
 
 #include <cstdint>
 
@@ -58,6 +66,12 @@ enum class MechanismOutcome : std::uint8_t {
     Cancelled = 4,    ///< stopped from outside via cancel()
     Stalled = 5,      ///< the stall detector tripped (jam / mechanical bind) —
                       ///< FaultCode::MechanismStalled raised
+    // APPENDED by the mechanism core (MECH-A2) — the append-only rule above:
+    Absent = 6,       ///< the mechanism was not built (a device missing at boot):
+                      ///< nothing moved
+    NotHomed = 7,     ///< a position move asked of a mechanism that has not found
+                      ///< its zero: nothing moved
+    Refused = 8,      ///< another owner holds the mechanism's claim: nothing moved
 };
 
 /// Stable spelling for log lines. Never returns null; an out-of-range cast
@@ -70,6 +84,9 @@ enum class MechanismOutcome : std::uint8_t {
         case MechanismOutcome::TimedOut: return "TIMED_OUT";
         case MechanismOutcome::Cancelled: return "CANCELLED";
         case MechanismOutcome::Stalled: return "STALLED";
+        case MechanismOutcome::Absent: return "ABSENT";
+        case MechanismOutcome::NotHomed: return "NOT_HOMED";
+        case MechanismOutcome::Refused: return "REFUSED";
     }
     return "UNKNOWN";
 }

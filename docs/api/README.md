@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 4,514 of them across 177 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 4,634 of them across 179 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -15,7 +15,7 @@
 - **`include/shulib/sim/`** — the host simulator. Test-only, and not by convention: a CI guard fails the build if anything outside `sim/` includes it, so no robot binary can reach it.
 - **`hal/fake/` and `localization/fake/`** — the test doubles the suite drives the real seams with. Public by file placement, test fixtures by charter; `test/README.md` is their documentation.
 - **Preprocessor macros** (`SHULIB_PRECONDITION`, `SHULIB_TRACE`). A macro has no signature, no access and no type, so there is nothing for an extractor to render without inventing it. Each is explained at length in its own header's design commentary, which every page below reproduces in full — so they are on the site, in prose, but not in the member lists or the index.
-- **`protected` members** — one section in the tree, in `motion/move_to_pose.hpp`. This reference documents the surface you *call*; the surface you *subclass* is [guide chapter 13](../guide/13-extending-the-library.md)'s subject.
+- **`protected` members** — 2 sections in the tree, in `mechanism/service.hpp`, `motion/move_to_pose.hpp`. This reference documents the surface you *call*; the surface you *subclass* is [guide chapter 13](../guide/13-extending-the-library.md)'s subject.
 
 **Being on this page does not freeze anything.** Most of what follows is unfrozen and expected to move. The Freeze Register in the [roadmap](../roadmap.md) is the only place a contract is locked, and it is enforced by compile-time signature pins, not by this page: changing a frozen signature fails a C++ test that names the register row, while changing anything else here costs one `///` edit and a regeneration. Those are different mechanisms and only the first is a promise.
 
@@ -277,7 +277,9 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Devices](devices.md) | [`mechanism/devices.hpp`](../../include/shulib/mechanism/devices.hpp) | mechanism/devices.hpp — the DEVICES one mechanism was built over, and what the build found for each of its ROLES. |
 | [Kinds](kinds.md) | [`mechanism/kinds.hpp`](../../include/shulib/mechanism/kinds.hpp) | mechanism/kinds.hpp — WHAT A MECHANISM IS, the way a team writes it. |
 | [Route ids](route_ids.md) | [`mechanism/route_ids.hpp`](../../include/shulib/mechanism/route_ids.hpp) | mechanism/route_ids.hpp — EVERY MECHANISM'S ACTIONS AS ROUTE IDS, automatically (the mechanism core, chunk MECH-A1, 2026-10-08; the team lead's ruling of 2026-10-08, MECH-PANEL-requirements §4 item 7b: "an arm's presets as arm_stow, arm_score; an intake's i… |
+| [Service](service.md) | [`mechanism/service.hpp`](../../include/shulib/mechanism/service.hpp) | mechanism/service.hpp — THE MECHANISM SERVICE: one object, ticked once per control tick, that runs every mechanism's behaviour. |
 | [Spec](spec.md) | [`mechanism/spec.hpp`](../../include/shulib/mechanism/spec.hpp) | mechanism/spec.hpp — ONE MECHANISM AS DATA, and THE BUILD CHECK. |
+| [Until](until.md) | [`mechanism/until.hpp`](../../include/shulib/mechanism/until.hpp) | mechanism/until.hpp — WHEN A STEP IS DONE: a power step's done-conditions. |
 | [Wiring](wiring.md) | [`mechanism/wiring.hpp`](../../include/shulib/mechanism/wiring.hpp) | mechanism/wiring.hpp — THE BINDING (the mechanism core, chunk MECH-A1, 2026-10-08): which port each ROLE is plugged into, a block of the robot file SEPARATE from the declarations, compiled in (P2; the team lead's Q1 (a): the binding lives only in the robot… |
 
 ### Robot
@@ -319,7 +321,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 4,514 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 4,634 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

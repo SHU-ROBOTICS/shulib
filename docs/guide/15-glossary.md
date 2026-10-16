@@ -169,7 +169,8 @@
   announced. [Ch. 11]
 - **read fault** — a sensor read the adapter screened because the device failed, answering with
   its last good value instead; counted (`IReadFaults`), so that a reader — the mechanism core's
-  service, its next part — can tell a held value from a measured one. [Ch. 10]
+  service, which reads a piece sensor's count since the core's second part — can tell a held value
+  from a measured one. [Ch. 10]
 - **recipe** — a routine written as a `Routine` chain of steps that runs in exactly the order
   it reads and stops (parking the robot) at the first failed step. [Ch. 9]
 - **result line** — the one-line verdict each motion leaves in the transcript. [Ch. 11]
@@ -184,10 +185,11 @@
   library's own is refused at build. [Ch. 10]
 - **routine** — the function encoding one autonomous plan as a sequence of commands. [Ch. 8]
 - **run guard** — a wrapper around the tick pacer that gives a whole routine a hard deadline: it
-  cuts the active motion at the instant you name, *refuses* every motion started after it, and
+  cuts the active motion — and every mechanism operation still running that registered its claim,
+  as the library's own do — at the instant you name, *refuses* every motion started after it, and
   runs your end-of-run action before an unconditional floor — unless the program *abandons* the
-  run (the field disabled the robot mid-auton), when the motion is cut at once and the end action
-  is skipped. It holds no opinion about strategy — no default match length, no park pose; both
+  run (the field disabled the robot mid-auton), when the motion and those operations are cut at
+  once and the end action is skipped. It holds no opinion about strategy — no default match length, no park pose; both
   instants and the action are yours. [Ch. 6, Ch. 14, Ch. 17]
 - **end-of-run action** — the thing you guarantee happens before time runs out (park, retract,
   end legal). Supplied by you to the run guard, which performs it after cancelling everything

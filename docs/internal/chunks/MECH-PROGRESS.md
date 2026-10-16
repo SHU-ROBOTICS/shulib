@@ -818,3 +818,784 @@ restores them — `git status --short` on each is EMPTY, so their content is `HE
   sensors must; the piece sensor's read-fault channel; NOT ASKED roles after an absence; `meanPosition`; the per-line safe
   state; the route words' case; the fake's read-fault count); **MA9** (the route words joined by `-`) is refused AT BUILD by the
   library's own route-id check (`refused::a_route_id_does_not_fit_…`, `route_ids.hpp` :263) — caught.
+
+---
+
+## MECH-A2 — the service, power, pneumatic, the guard's cut
+
+- **Started:** Thu Oct  8 09:07:27 PM EDT 2026 (`date`).
+- **Tree at start:** `85e0285` — a SNAPSHOT of MECH-A1's worktree taken the moment A1's BUILD finished (the team
+  lead's SPEEDUP of 2026-10-08: the runs OVERLAP), on main `bdcbc7c`; clean, in the git worktree
+  `.claude/worktrees/mech-a2` (branch `mech-a2`) — NOT the main working tree. MECH-A1 is in its review round in
+  `.claude/worktrees/mech-a1`, NOT merged; the coordinator ports A1's final fixes into this tree before the merge.
+- **Go:** the team lead, 2026-10-08: "Accept all, go" — N1–N13 all as recommended (a); the coordinator's workflow
+  launched MECH-A2 ONLY. Do not commit; no `pros` command; no `/dev/ttyACM*`. Mutation backups and probes under
+  `.claude/coordinator/scratch/mech-a2/` (never `/tmp`, never the repository root).
+- **Scope:** §2's A2 row — §1.6 `until.hpp` and `service.hpp` (the slot, power, pneumatic, the service's seams,
+  claimant, entry, `enterAutonomous`, leave, lookup; the evidence rule and the read-fault rule; the step
+  preconditions); §1.8 the outcome appends (`manipulation/mechanism_outcome.hpp`) and N1 in `sequence/run_guard.hpp`
+  with D5's wording; §1.12's plant scaffolding (`sim/mechanism_plant.hpp`); §3.2's tests and mutations; §4.1's A2
+  documents (changelog — N1's BEHAVIOUR CHANGE; `docs/api/`; guide 11: the `[MECH]` lines, `MECHANISM_STALLED`,
+  `mechanismCuts`); HA-183 ONLY. NOTHING of A3–A6: no position/speed behaviours, no `src/` or `tools/` file. A1's
+  files are not edited except where A2's own scope requires an addition — each such touch logged under "A2 edits to
+  A1 files (for the port)" below.
+
+### 21:07 — start
+- Read `docs/internal/RESUMING.md` (standing rules, pace rules 1–8), the brief in full (the go note, the
+  amendments — which override the body —, N1–N13, §0–§9, "Found while reading"), and `## MECH-A1` above. This
+  heading appended before any code.
+
+### 00:24 (2026-10-15) — RESUMED after the team lead's pause *(`date`: Thu Oct 15 12:22:42 AM EDT 2026)*
+- The previous run was STOPPED at 21:23 on 2026-10-08 (the team lead paused all work for the night); resumed
+  2026-10-15 by the coordinator's workflow, same worktree, same base `85e0285`. This entry is the resuming
+  executor's (opus).
+- **What the tree holds, checked before anything else:** `git status` → only this log and
+  `docs/internal/PROJECT-BRIEFING.md` modified (the briefing's generated block regenerated before a build — "Suite: not
+  built"; it is regenerated again below); `git diff -- src/ Makefile` → EMPTY (no gate self-test plant left by the
+  killed run); no new file in `include/` or `test/`. `scratch/mech-a2/` holds `configure.log` and `build0.log` (the
+  stopped run's baseline build: `[100%] Built target shulib_tests`, no result logged). **So the stopped run did the
+  start entry and a baseline build ONLY — no code. Nothing to keep or revert; MECH-A2 continues from "start".**
+- **The plan from here:** a FRESH build from source and the suite (the baseline); the overlay's A2 slice read against
+  this base; the code; the tests; the mutations; the docs; the prose review; every gate.
+
+### 01:03 (2026-10-15) — RESUMED a second time *(`date`: Thu Oct 15 01:02:48 AM EDT 2026)*
+- The 00:24 run above was itself STOPPED (its last file write 00:58:06, `test/sim_mechanism_plant_test.cpp`); it
+  logged nothing after "the plan from here". This entry is the third executor's (opus), same worktree, same base
+  `85e0285`. The machine is held awake for the run (a `systemd-inhibit --what=sleep:idle:handle-lid-switch` "Claude
+  shulib builds" block, PID 8045, listed by `systemd-inhibit --list` at 01:02).
+- **What the tree holds, checked first:** `git diff -- src/ Makefile` → EMPTY (no gate plant). `git status`: modified
+  `manipulation/mechanism_outcome.hpp` (00:36), `sequence/run_guard.hpp` (00:41), this log; NEW (unlogged, by the
+  00:24 run, reconstructed from file times) `mechanism/until.hpp` (00:36), `mechanism/service.hpp` (00:40),
+  `sim/mechanism_plant.hpp` (00:42), `test/mechanism_service_rig.hpp` (00:43), `test/mechanism_service_test.cpp`
+  (00:48), `test/mechanism_until_test.cpp` (00:49), `test/mechanism_service_power_test.cpp` (00:52),
+  `test/mechanism_service_pneumatic_test.cpp` (00:52), `test/mechanism_service_evidence_test.cpp` (00:54),
+  `test/run_guard_mechanism_cut_test.cpp` (00:57), `test/sim_mechanism_plant_test.cpp` (00:58). Its scratch: a
+  baseline `suite1.log` at 00:24 (**2316/2316, 2,787,160 assertions, 3 skipped** — A1's final numbers, the base is
+  sound) and `tu.sh` (one-TU syntax check with the suite's flags). No mutation backup exists in `scratch/mech-a2/`
+  (none was run). **None of the unlogged code is trusted until re-read against the brief and built FRESH.**
+- **The plan:** read every new/changed file against §1.6–§1.8, §1.12, §3.2 and the overlay's A2 slice; fix what is
+  wrong (logged); a FRESH build and the suite; the remaining §3.2 tests; every mutation on a fresh binary; the docs;
+  the prose review; every gate.
+
+### 01:03–01:17 — the 00:24 run's code re-read, built FRESH, and four defects its never-run tests found *(`date` 01:17:29)*
+- **Re-read against the brief** (§1.6–§1.8, §1.12, §3.2) and the overlay's A2 slice (`proposed4/shulib/mechanism/
+  {until,service}.hpp`, `sim/mechanism_plant.hpp`, `manipulation/mechanism_outcome.hpp`, `sequence/run_guard.hpp`):
+  the design is the brief's; the deltas are logged below (A2-D1 …). No `PROBE_` switch and no "PROTOTYPE"/"proposed"
+  marker was copied (the overlay's A2 headers carry `PROBE_NO_MECH_CUT`, `PROBE_SETTLE_SPEED`,
+  `PROBE_TIMEOUT_HOLDS_TARGET` — none is in the tree; `grep -rn PROBE_ include/` empty).
+- **The first fresh build STOPPED at the doc gate** (`api_doc_tool` coverage): 32 "UNDOCUMENTED" — every member the
+  00:24 run defined OUTSIDE its class (the overlay's layout) reads to the tool as an undocumented namespace-scope
+  free function, and would have rendered on the API page as one. No other library header defines a member out of
+  line. **A2-D1 (structure):** `service.hpp` restructured to the house style — every body inside its class; a slot
+  reaches the clock, latch, sink and its robot's other slots through `detail::SlotHost` (owned by the service,
+  pointed at by each slot), so no slot body needs the service's complete type. Behaviour unchanged but for A2-D2.
+  Alternative: teach `tools/api_doc_tool.py` to skip `X::y(` definitions — rejected: `tools/` is not this run's
+  (SER1 edits the tool; the brief's §7: `git diff -- src/ tools/` EMPTY). Pre-restructure copy kept at
+  `scratch/mech-a2/pre-restructure/service.hpp`.
+- **Built past the gate by the suite's `/fast` target first** (to see the tests before the restructure): 2392
+  cases, **5 FAILED** — the 00:24 run's tests had never been built or run. Each was diagnosed, not loosened:
+  1. `run_guard_mechanism_cut_test.cpp` (3 cases): "mechanism 'intake' cut ..." never found — the TEST read the
+     wrong sink (the guard logs to the CHASSIS's telemetry; the rig built `MotionRig` with its own). Fixed in the
+     rig: one sink for the chassis and the service (`MotionRig rig{kin, plantConfig(), &sink}`, the house pattern of
+     `sequence_run_guard_test.cpp` :805).
+  2. The D5 case expected the end action to return at T+4.0: wrong arithmetic — scoring returned at 0.9 s, so the
+     end action STARTED there (before the 1 s deadline) and its 3 s step ran THROUGH the deadline to T+3.92 (the
+     brief's own measured number for the tree's guard). Re-stated exactly: the end action starts before the
+     deadline, returns after it, and the step ran its own bound (≥ 3.0 s, < one pace past).
+  3. **A REAL PLANT DEFECT (A2-D3)** — `sim_mechanism_plant_test.cpp` "the BRAKE MODE at 0 V": Brake fell FASTER
+     than Coast (3.6° vs 9.4°). Cause: Brake's volts were computed from the LAST step's speed (`−B·ω`), and with a
+     memoryless joint (kA 0) the speed then flips sign every step once B/kV > 1 (here 3/1.2 = 2.5) — a ringing
+     discrete loop, not damping. A stiff Hold on a fast joint rings the same way once S·dt/kV > 1. **Fixed: both
+     solved IMPLICITLY** (the applied volts are `a0 − c·ω_next`: Brake c = B; Hold a0 = −S·(θ − held), c = S·dt;
+     τ = kA/(kV + c); the ±12 V clamp re-solved), the flywheel's Brake the same; steady states unchanged. A new case
+     pins it on a FAST joint (gear 1, kV 0.19: explicit gains 15.6 and 2.1) — at most one reversal, Hold at rest,
+     Brake never faster than its damped steady speed.
+  4. The same test's Coast expectation was wrong PHYSICS: an arm with its level at 90° does not fall to its −10°
+     stop — the cosine load reaches the static band at θ* = 90 − acos(kS/kG) = 8.63°. Re-stated from that
+     equation (and Brake approaches the same rest angle, slower).
+- **A2-D2 (behaviour, found re-reading the tick):** a slot whose claim was RELEASED outside it (no `cancel()`, nobody
+  took it — what T3's driver loop does to every leftover claim at its entry) went inert and left the motor at its
+  last voltage, commanded by nobody (the half-safe failure in another coat). Now the slot puts it in its declared
+  safe state on its way out (only when NOBODY holds the claim — a taken claim is the new owner's, untouched), the
+  step CANCELLED "(its claim was released outside the service)". New case pins it, a step and a hold-to-run.
+- **Fresh build** (`cmake --build build/test --target clean`, then the full doc-gated build; `docs/api/`
+  regenerated for the gate — `service.md`, `until.md` new; `mechanism_outcome.md`, `run_guard.md` updated): rc 0,
+  225 TUs. **Suite: 2394/2394 passed, 2,789,440 assertions, 3 skipped** (`-tc='MECH-A2*'`: 78 cases, 1976
+  assertions).
+
+### 01:17–01:26 — the remaining §3.2 tests, the harness's until.hpp TUs, and EVERY mutation run *(`date` 01:25:39)*
+- **Tests added** (beyond the 00:24 run's files): `mechanism_service_power_test.cpp` "conditions OR-ed —
+  `seesPiece | stalls`" (the jam first → SUCCEEDED by stall, no fault; the piece first → SUCCEEDED by the switch;
+  `time | stalls` → by time) — §3.2's "alone AND OR-ed"; `mechanism_service_test.cpp` "a claim RELEASED outside the
+  slot" (A2-D2); `sim_mechanism_plant_test.cpp` "Hold and Brake are IMPLICIT — a FAST joint never rings" (A2-D3).
+- **The compile-refusal harness grows by until.hpp's refusal** (§3.0: "MECH-A2 adds until.hpp's") — four TUs, each
+  pinned to its line (`// expect-at: 5`): `n39_sees_piece_on_an_arm` (the kind-has-none branch), `n40_stops_seeing_
+  piece_on_a_pneumatic_with_none` (the declares-none branch), `u_sees_piece_on_a_power_with_none` (robot two's
+  pivot), `u_stops_seeing_piece_on_a_flywheel`. `ctest -R "compile_refusal_(n39|n40|u_)"`: 4/4. The brief's n39/n40
+  call `r.run(...)` (MECH-A4's Routine); here the condition alone — the refusal is the word's, not the step's.
+  A1's `refusal_common.hpp` is NOT edited: each TU includes `until.hpp` itself.
+- **ARM header gate** (RESUMING :107-112): 218 headers, rc 0; `service.hpp`, `until.hpp`, `sim/mechanism_plant.hpp`
+  each alone, rc 0. **Sizes (ARM `-Os`, `sizeof`):** `MechanismService` 3 048 B (power + pneumatic only — the brief's
+  8 048 B is the whole service with A3's slots), `PowerSlot` 224 B, `PneumaticSlot` 128 B.
+- **MUTATIONS — 29, each RUN on a fresh build of the suite target (header dependencies tracked; the binary deleted
+  after each so none can be reused), observed RED, restored byte-identical (the driver checks; timestamps bumped).**
+  Driver: `scratch/mech-a2/mutate.py` (MECH-A1's, re-pointed), list `scratch/mech-a2/mutlist.py`, old/new text in
+  `scratch/mech-a2/mutdefs/`, one log each in `scratch/mech-a2/mut/`. The brief's:
+  - **M8** `cutClaimedMechanisms()` removed from both branches → RED 5: the deadline cut (P6), the disable cut, the
+    abandon-inside-the-end-action cut, the F1 BEHAVIOUR CHANGE case, the retry count. **Its numbers re-measured (M8m,
+    the deadline case alone): without the cut the 2 s step returns T+2.01 with 12.0 V·s past the cut, the 5 s step
+    T+3.02 with 24.12 V·s, the hard stop FIRED and the end action FAILED; the disable case T+2.01 / T+3.02 with 18.0 /
+    30.12 V·s; the in-end-action abandon T+3.92, 28.92 V·s; the F1 operation T+4.01 — the brief's P6 table and the
+    checker's numbers, reproduced to the hundredth. With the cut: T+1.01, < 0.05 V·s.**
+  - **M9** the tick skips `holdsClaim()` → RED 2: the claim TAKEN OVER, the claim RELEASED.
+  - **M10** `pace()` ticks after `tickFromDriverLoop()` → RED 2: P8 (1200 ticks for 600), the seam case.
+  - **M11** a leftover claim's `cancel()` called → RED 2: driver entry's spy, `enterAutonomous`'s spy.
+  - **M12** a sensorless `grabs` not counted done → RED 2: robot two's claw, the missing-sensor grip.
+  - **M13** `applySafeState()` drives every line to line 0's level (A1's `hal/mechanism.hpp`, restored) → RED: the
+    hood's safe POSITION ("middle" = High, Low).
+  - **M13b** a missing sensor read as "sees nothing" → RED: P13 (the false success returns).
+  - **M35′** — the brief's M35 mutates `runAuton`'s service overload, which is MECH-A4's (it does not exist yet).
+    Run here on the call's TARGET instead: `enterAutonomous()` drops nothing → RED 2: the D1 handover (269 of 269
+    paces at 12 V) and the foreign-claim case. **For MECH-A4: M35 proper is yours.**
+  - **M37** the abandon cut gated on `!inEndAction_` → RED: the abandon-inside-the-end-action case.
+  - **M42** `seen()` ignores the read-fault count → RED 3: the moved-count case, R, the part-blind case. Re-run on
+    R alone (M42r) to name its subcases: **R2, R3, R5, R8** red — the false verdicts return (R2, R3, R8 a false
+    SUCCEEDED "stopped seeing", the motor never run; R5 a false TIMED_OUT, "it never came"); R4 stays green
+    without the channel (its held NEAR value has confidence 0, which the evidence rule already reads as UNKNOWN —
+    case J's net), R1, R6, R7 green as they should be.
+  - **M43** a distance near at confidence 0 read as "gone" → RED 2: the evidence table, case J.
+  The run's own: **M8b** the cut re-safes UNCLAIMED mechanisms → RED (HA-144: the counter's safes during scoring);
+  **M37b** the DEADLINE cut inside the end action → RED 2; **MORD** the world advances before the service ticks →
+  RED (the world's first step saw 0 V); **M9b** a released claim left unsafe (A2-D2 reverted) → RED; **M22a** the
+  read-fault snapshot never taken at a tick's end (landmine 22) → RED 3; **MU1** `|` keeps the LEFT time (the
+  overlay's operator) → RED 2; **MU2** two sensors not flagged → RED 2 (the until case, the step's precondition);
+  **MP1** the evidence ignored on the tick the time is up → RED (the tie); **MP2** a missing sensor's verdict not
+  counted (N8 (b)) → RED 2; **MP3** the hold-to-run's stall watch removed → RED; **MP4** `stalls` asked → still
+  STALLED → RED 2; **MP5** volts not clamped to `maxVolts` → RED; **MP6** `stop()` repaints another owner's
+  mechanism → RED; **MN1** START sent on EVERY driver entry → RED; **ML1** a disable makes a pneumatic safe → RED;
+  **MD1** Brake explicit again (the plant, A2-D3) → RED 2; **MD2** Hold explicit again → RED; **MD3** a hard stop
+  keeps the speed → RED 2.
+  After the last: `grep -c MUTATION` over the five files touched → 0 each; `git diff --stat 85e0285 --
+  include/shulib/hal/mechanism.hpp` → empty.
+- **Rebuilt normally after the mutations** (`docs/api/` regenerated, the briefing regenerated, the doc-gated build):
+  rc 0. **Suite: 2395/2395 passed, 2,789,466 assertions, 3 skipped** (`-tc='MECH-A2*'`: 79 cases, 1986 assertions).
+
+### 01:26–01:41 — one more evidence hole, the documents, the prose review *(reconstructed from the file's mtime 01:41:24; no `date` was taken — the run was stopped; the header said "01:45" and "`date` at the entry's end" until the review round, 2026-10-15)*
+- **A2-D12 (found re-reading `seen()`):** a reading that is NOT A NUMBER compared its way to an answer — an optical
+  proximity of NaN fails `>=`, so it read "no piece" and would satisfy `stopsSeeingPiece`. The F4 seams promise finite
+  readings (`hal/pros/optical.hpp` :52, :73), so no conforming adapter sends one; the service must still not turn
+  "not a number" into evidence. Now UNKNOWN (a distance's or its confidence's NaN/Inf, an optical's NaN). Pinned in
+  the evidence table case (four readings).
+- **Documents (§4.1's A2 list, plus what the prose review found stale):**
+  - `docs/changelog.md` — "Added and changed since 2.4 (2026-10-15)" at the top of `## API 2.4`, newest first: ADDED
+    (until.hpp, service.hpp, the three verdicts, `mechanismCuts`, the plant), the **BEHAVIOUR CHANGE** (N1: an
+    operation with a registered claimant now stops at the run's deadline, not at its own bound — with the numbers
+    re-measured under M8), TESTED, HA-183. No version bump (A1's rule; API 2.5 is A4's). The claim "a `switch` over
+    the enum ... none in the library or its programs did" was grepped first: the only `switch` over
+    `MechanismOutcome` is `mechanismOutcomeName()`'s own.
+  - `docs/guide/11-reading-the-diagnostics.md` — three new line entries under "Warnings, errors, and other lines":
+    the `[MECH]` step verdict line field by field (every verdict word, every bracket the code writes; eight example
+    lines in the tests' format — five verbatim from assertions, the rest with another mechanism's name or time),
+    the service's leftover-claim line, the guard's `SEQ` mechanism-cut
+    line with `RunGuardReport::mechanismCuts`; the `MECHANISM_STALLED` row widened (the service raises it once per
+    stall, beside the step's line; a step that ASKED for `stalls` succeeds and raises nothing).
+  - `docs/hardware-assumptions.md` — **HA-183** (row + entry + the MECH-A2 history paragraph; status 173 → 174; the
+    held-numbers note now names HA-182 and HA-185 only). Reconciled both ways: every file HA-183 names carries the
+    ID (`sim/mechanism_plant.hpp` 3, `sim_mechanism_plant_test.cpp` 1, `mechanism_service_power_test.cpp` 2); the
+    direction-1 grep (`PROVISIONAL (A4` without an HA id) is empty.
+  - `docs/api/` regenerated (`service.md`, `until.md` new; `mechanism_outcome.md`, `run_guard.md`, `README.md`,
+    `all-entities.md` updated; `mkdocs.yml`'s nav gains the two pages under A1's "Mechanism" group).
+  - Plan docs (only MECH's lines): `build-order.md` (the first bold `Next:` — "MECH-A2 LANDED 2026-10-15 … NEXT:
+    MECH-A3"; MECH's own entry), `roadmap.md` ("You are here" gains a 2026-10-15 paragraph; the `[~]` MECH row gains
+    A2), `REMAINING-WORK.md` row 12 ("A2 LANDED … A3 next"), `HANDOFF-remaining-work.md` (the inventory: the service;
+    the guard's cut). They say "LANDED" for the tree after the coordinator's commit, as A1's do (pace rule 5).
+    `PROJECT-BRIEFING.md`'s generated block regenerated (`briefing_status.py check`: current).
+- **The prose review (pace rule 4; the brief's §4.2 A2 greps, then the run's own names) — RUN, every hit READ:**
+  Scope: `docs/` and `README.md`, `*.md`, excluding `docs/api/` (generated, gated) and `docs/internal/chunks/`
+  (dated records).
+  - §4.2 A2: `grep -rnE "RunGuard|cancel-all|safeMechanisms|MechanismOutcome"` → 14 files. Read: cookbook 05 :73/:80
+    and guide 09 :25/:268/:288 (`then()` accepts a `MechanismOutcome`, only `Succeeded` continues — still true; the
+    three new values are non-successes and stop it too); cookbook 03 :115-150 (the guard's use; "frozen waits pay
+    their remainder" — still true of a wait); diagnostics-plan :199 (D-8's history); guide 13 :154/:203/:258 (the
+    cancel-all; the seam list); HA :2176 (abandon); `MECH-PANEL-requirements.md` :63-241 (the requirements as
+    written — internal, stays); `PROJECT-BRIEFING.md` :137/:600 (generated / the briefing's history); the plan docs
+    (MECH lines, mine). **Stale by omission after N1, FIXED:** `README.md` :65-68 (the guaranteed end of run now cuts
+    every mechanism operation that registered its claim, not only the motion); `docs/guide/09-the-recipe-api.md`
+    "The match clock" gains a bullet (a mechanism operation is cut too; the wait standing on it sees it end one pace
+    later; an anonymous claim is reached only by the cancel-all); `docs/guide/13-extending-the-library.md` :207-213
+    (a registered operation is cancelled the moment the deadline passes or the field disables, and again at the
+    cancel-all); `docs/guide/12-when-things-go-wrong.md` (the guard's line list gains `mechanism '…' cut at the
+    deadline`, and "a wait cannot be cut" gains its one exception).
+  - The run's names: `grep -rnE "MechanismService|mechanism service|seesPiece|stopsSeeingPiece|orAfter|mechanismCuts|
+    NOT_HOMED|ArmPlant|FlywheelPlant|mechanism_plant|until\.hpp|service\.hpp|enterAutonomous|enterDriverControl|
+    leaveDriverControl"` → only this run's own new lines, the requirements doc (stays) and the plan docs.
+    `grep -rnE "nothing runs|nothing reads a|its next parts|later parts|core's service"` → A1's dated changelog
+    entry (history, stays), the HA register's MECH-A1 paragraph and section preamble (dated "In this part"; the
+    preamble gains a "since MECH-A2" sentence — the service now READS a limit switch used as a piece sensor), cookbook
+    06 :202 ("no driver control drives one yet; the core's later parts do" — still true: A4), vexbuilder-integration
+    and roadmap :1920 (`.vexbot`, not ours).
+  - `grep -rnE "\bclaimant\b"` → guide 12 :203 (the anonymous-claim line; true), roadmap F11 row (history). `grep -rnE
+    "(six|five|seven) (verdicts|outcomes)"` → guide 11 :73, the MOTION outcomes (not ours).
+  - **The register's consumers:** HA-154 (a pivot held into its stop is not watched) now says the service CAN watch a
+    power mechanism's hold-to-run when it states a signature, and that robot two's pivots state none in the core's
+    plan, so the claim stands for them; HA-157 names the service's `leaveDriverControl()` / `enterAutonomous()`
+    (a pneumatic keeps its level); HA-184 names `Slot::seen()` (a switch piece sensor read against `pressedLevel`).
+    `service.hpp` carries each ID at the line (HA-154 at `drive()`, HA-157 at both mode changes, HA-184 at
+    `seen()`'s switch read).
+  - **Not touched, deliberately:** `docs/guide/15-glossary.md` (no A2 entry in §4.1; "mechanism service",
+    "done-condition" and "slot" would be the first — the mechanisms chapter, A3/A4, is where they are taught;
+    **for the coordinator**); `docs/guide/10-the-api.md` (A1's mechanism section describes the declarations and the
+    wiring, all still true; the service's API is A4's to teach with the steps that call it) *(**WRONG** —
+    the review round found guide 10's box still saying "Nothing RUNS a mechanism through it yet" and "nothing
+    reads it yet": this run's grep was case-sensitive and missed both. Corrected in "MECH-A2 review findings and
+    their disposition", finding 19)*; the cookbook (A4's
+    recipe). Pace rule 7: SEVEN public documents moved (changelog, guide 11, the register, `docs/api/` as listed;
+    README, guides 09, 12, 13 as the prose review's fixes of statements N1 made incomplete) — the four fixes are each
+    one paragraph and are the review's, not new scope.
+
+### 09:54 (2026-10-15) — RESUMED a third time *(`date`: Thu Oct 15 09:54:32 AM EDT 2026)*
+- The 01:03 run above was STOPPED after its prose-review entry (its last writes: this log 01:41:24, guide 11
+  01:41:19); the laptop rebooted at 09:45 (`last -x reboot`). This entry is the fourth executor's (opus), same
+  worktree, same base `85e0285`.
+- **What the tree holds, checked first:** `git diff -- src/ Makefile` → EMPTY (no gate self-test plant);
+  `git diff --stat 85e0285 -- src/ tools/` → EMPTY; `grep -rn PROBE_ include/ test/` → EMPTY. Every file the entries
+  above name is present. **Not yet evidenced:** A2-D12 (`service.hpp` 01:38:54, the evidence test 01:38:38) was
+  written AFTER the last build (`build11.log`, 01:32) and AFTER the mutation run (01:25) — no build, suite or mutation
+  has seen it; `scratch/.../gate_check.log` (rc 0, 01:39) predates nothing it needs to but is re-run anyway; the
+  gate self-test log is EMPTY (never ran to completion). Every mutation backup in `scratch/mech-a2/mut/` is checked
+  against the tree before anything is built (a `MUTATION` grep over every file the list touches).
+- **The plan from here:** the mutation-restore check; the brief re-read (the A2 row, §1.6–§1.8, §1.12, §2.1, §3.2,
+  §4.1–§4.2, the amendments, N1–N13) against what the entries above claim; a FRESH build from source and the suite;
+  A2-D12's own mutation; every gate; the prose-review greps re-run; the final report.
+
+### 09:54–10:03 — the brief re-read, a FRESH build, A2-D12's mutations (one false GREEN caught), two small fixes *(`date` 10:02:50)*
+- **Re-read** (this executor, in full): the brief's header and go, the amendments (which override the body), N1–N13,
+  §0–§9 and "Found while reading"; the A2 row, §1.6–§1.8, §1.12, §2.1, §3.2, §4.1–§4.2, §7, landmines 1–24 against
+  `service.hpp`, `until.hpp`, `sim/mechanism_plant.hpp`, the two appended headers and the eight test files. The
+  deltas A2-D1 … D15 below stand as logged; nothing found that the entries above mis-state.
+- **Mutation backups:** every `scratch/mech-a2/mut/*.orig` of `run_guard.hpp`, `until.hpp`, `mechanism_plant.hpp` and
+  `hal/mechanism.hpp` is byte-identical to the tree; every `service.hpp` backup is identical to the others and differs
+  from the tree ONLY by A2-D12's hunks and two HA-ID comments (HA-154 at `drive()`, HA-157 at `enterAutonomous()`)
+  — `diff` read line by line. `grep -rn MUTATION include/ test/ src/` → only five older, unrelated comments.
+- **FRESH build:** `briefing_status.py generate`; `cmake -S test -B build/test`; `--target clean`; the full doc-gated
+  build — rc 0, **225 TUs compiled** (`build12.log`). **Suite: 2395/2395 passed, 2,789,470 assertions, 3 skipped**
+  (`-tc='MECH-A2*'`: 79 cases, 1990 assertions — A2-D12's four NaN/Inf readings are the +4 over 01:25's 1986).
+- **A2-D12's mutations — and a false GREEN, caught.** MNAN1 (the distance's non-finite guard → `if (false)`) and
+  MNAN2 (the optical's `isfinite` → `if (true)`) first came back GREEN in 2 s each: **the driver's direct `build.make`
+  call recompiled NOTHING** (`Building CXX` 0 in both logs) — a `--target clean` build leaves
+  `CMakeFiles/shulib_tests.dir/compiler_depend.make` EMPTY (115 bytes) until a normal `cmake --build` runs the depend
+  step, so a header mutation reaches no object file. Both runs are kept, renamed `*.invalid-no-recompile.log`, and
+  count for nothing. One normal build (`compiler_depend.make` → 3.2 MB, `service.hpp` listed), then both re-run:
+  **MNAN1 RED** (the evidence table, `:181` a NaN distance read YES, `:187` an infinite one NO), **MNAN2 RED** (`:179`
+  a NaN proximity read NO) — 5 TUs recompiled each, restored byte-identical. *(The 01:20–01:25 campaign is not
+  affected: every one of its logs shows its TUs recompiled — e.g. `M42.log`, `MP6.log`: 5 each.)*
+- **A green hole closed (test added):** the confidence half of A2-D12's guard (`|| !std::isfinite(c)`) had no
+  assertion of its own — a NaN confidence already fails `c > 0.0` by itself. The evidence table now also asserts an
+  INFINITE confidence beside a near distance reads UNKNOWN (the seam promises [0, 1]). **MNAN3** (that half removed)
+  → **RED** at `:188`; restored byte-identical.
+- **A doc comment that was false, fixed (A2-D16):** `Slot::lastStep()` / `stepsBegun()` said "0 steps begun: lastStep()
+  is a default report, not a verdict" — but a hold-to-run (`drive()`, not a step) that STALLS writes its STALLED into
+  `lastStep()` with `stepsBegun()` still 0. The two comments now say so; the drive-stall case pins it
+  (`stepsBegun() == 0`, `running()` false beside the STALLED). `docs/api/` regenerated (`service.md`); check-fresh 0.
+- Rebuilt normally: rc 0. `-tc='MECH-A2*'`: **79 cases, 1993 assertions**, all passed.
+
+### 10:03–10:26 — the harness mutation, the prose review re-run (two more stale-by-omission statements), every gate *(`date` 10:26:20)*
+- **The until.hpp refusal's own mutation (§3.0: "a refusal no test can see is a refusal a mutation can delete")** —
+  not in the 01:25 campaign: **MUH** `detail::needsPieceSensor` made a no-op → `ctest -R
+  'compile_refusal_(n39|n40|u_)'` **RED 4/4** (each TU compiled, no reason named); restored byte-identical, the four
+  green again.
+- **The prose review, re-run by this executor (pace rule 4; every hit read):** §4.2's A2 grep `RunGuard|cancel-all|
+  safeMechanisms|MechanismOutcome` (README.md + docs/, minus `docs/api/` and `docs/internal/chunks/`) — 14 files,
+  the same hits as 01:26–01:45 plus this run's own lines; the run's names grep — only this run's lines, the
+  requirements doc, the plan docs. **One more grep, for the claim N1 made incomplete:** `cannot be cut|can.t be
+  cut|pays? (its|their) (own )?remain|frozen wait|runs? (on )?to its own (bound|timeout)` → cookbook 03 :144
+  (`pause`/`waitFor` only — true), guide README :147 (F2's dated note — history), guide 12 :198 (already carries the
+  exception), diagnostics-plan :202 (D-8's DELIVERED-at-F2 record — history, stays), guide 09 :321 (`pause()` and
+  `waitFor()` — true; the mechanism bullet follows it), and **guide 14 :280 — STALE BY OMISSION, FIXED**: "Frozen
+  waits pay their remainder. `pause`/`waitFor`/`waitUntil` …" now names the one exception (a wait on a mechanism
+  operation that registered its claim ends one pace after the deadline — the guard cuts the operation), pointing at
+  guide 09's section. Guide 06 ("Running out of match") and guide 17 ("The one wait an abandon cannot cut":
+  `Chassis::wait()` / `Routine::pause()`) read — still true. **The Freeze Register's F12 row** (`docs/roadmap.md`
+  :146) records every change to the guard's surface since F2 (COMP-a's abandon, COMP-t's `pacesTotal()`, its
+  review's sweep) and did not record this one — **added**: "MECH-A2, 2026-10-15, made the latch also cancel every
+  CLAIMED mechanism at the deadline and at an abandon — a BEHAVIOUR change, no signature change — and appended
+  `RunGuardReport::mechanismCuts`". Pace rule 7: public documents moved are now EIGHT plus `docs/api/` (changelog,
+  guide 11, the register — §4.1's; README, guides 09, 12, 13, 14 and the roadmap's F12 row — each one paragraph or
+  clause, the prose review's fixes of statements N1 made incomplete).
+- **GATES, final (the tree as handed back):**
+  - fresh build earlier (`--target clean`, 225 TUs); the final doc-gated build rc 0 (`build16.log`); **suite
+    2395/2395 passed, 2,789,473 assertions, 3 skipped** (`suite16.log`); `-tc='MECH-A2*'` 79 cases, 1993 assertions.
+  - `ctest --test-dir build/test -R compile_refusal`: **147/147 passed** (`ctest_refusal2.log`).
+  - ARM header gate (RESUMING :107-112, TU in `scratch/mech-a2/probes/all.cpp`): **218 headers, rc 0**; `service.hpp`,
+    `until.hpp`, `sim/mechanism_plant.hpp`, `sequence/run_guard.hpp`, `manipulation/mechanism_outcome.hpp` each alone
+    rc 0. `sizeof(MechanismService)` on ARM re-read through a failing `static_assert`: 3048 B.
+  - `python3 tools/src_build_gate.py self-test`: **OK (211 detector cases, each against a real build)**, 14 min;
+    `check`: **PASS (all 7 builds link …)**, every build `exit 0, 11/11 TUs compiled, 0 disallowed`. `git diff --
+    src/ Makefile` EMPTY after both (the self-test's plants restored).
+  - CI greps: "library is PROS-free (all of include/shulib except hal/pros/)"; "layering holds: core is sim-free".
+  - `api_doc_tool.py` self-test OK; check-coverage "4583 public entities across 179 headers, all documented";
+    check-fresh rc 0; check-examples "537 quoted lines, all verbatim (7 source files); 6 listings of whole-run files,
+    each one unbroken run"; check-removability "no public doc references docs/internal/". `briefing_status.py`
+    self-test OK (24 cases), check "generated block current" (regenerated before the build and again after the
+    suite binary existed). `doc_staleness_audit.py` self-test OK (10 cases); the audit "clean (29 live docs …)".
+  - `grep -rn PROBE_ include/` EMPTY; no "PROTOTYPE" / "(proposed)" / "proposed4" in any file this run wrote; the C7
+    removability grep EMPTY; `git diff --stat 85e0285 -- src/ tools/` EMPTY.
+- **Tree state:** nothing committed (`git log -1` = `85e0285`); 21 tracked files modified, 17 new (the code, tests,
+  harness TUs and generated API pages listed in the entries above), no file outside this worktree touched but the
+  scratch directory. MECH-A2's DoD (§2.1) is met as far as an executor can meet it; the coordinator's verification,
+  the review round and the port of MECH-A1's final fixes come next.
+
+### Deltas from the brief (MECH-A2), each with its reason
+- **A2-D1** `service.hpp` defines every member INSIDE its class (the overlay defined ~30 out of line), a slot reaching
+  the clock, latch, sink and its robot's other slots through `detail::SlotHost`. Reason: the doc gate reads a
+  namespace-scope `X::y(` as an undocumented free function (and would render it as one); no library header defines a
+  member out of line; `tools/` is not this run's to teach otherwise.
+- **A2-D2** a slot whose claim was RELEASED outside it (nobody holding it) puts the mechanism in its declared safe state
+  on its way out (the overlay went inert and left the motor at its last voltage). A TAKEN claim is untouched.
+- **A2-D3** the plant's Hold and Brake (and the flywheel's Brake) are solved IMPLICITLY — the explicit form rang
+  (Brake fell faster than Coast). Steady states unchanged; HA-183's text says so.
+- **A2-D4** `Until::operator|` keeps the EARLIER of two times (the overlay kept the left one's: `time(3) | time(1)`
+  was 3 s); `Until::conflicting()` ADDED — two different mechanisms' sensors in one condition (the overlay stored one
+  name and silently dropped the other) are refused at the step.
+- **A2-D5** the brief's §1.6 surface lists `PositionSlot`, `SpeedSlot`, `position(i)`, `speed(i)` and the `find()`
+  overloads for `Arm`, `Lift`, `Flywheel`, `PositionGoal`, `SpeedGoal` in `service.hpp`: they are MECH-A3's behaviours
+  (§2's A3 row), not built here. Until A3, `bind()` REFUSES a list holding an arm, a lift or a flywheel (a precondition
+  naming MECH-A3) — never a slot that silently does nothing. **For MECH-A3: lift that refusal and its test case.**
+- **A2-D6** the home switch's half of the read-fault rule, `Slot::homeSwitchPressed()`, and the R probe's case S (a
+  switch dead from boot must not home the arm at bind) need a position slot and homing — MECH-A3's. Not built here;
+  `bind()` refuses a home switch on a power or pneumatic mechanism. **For MECH-A3: S is yours.**
+- **A2-D7** M35 mutates `runAuton`'s service overload (MECH-A4's); run here as M35′ on `enterAutonomous()` itself.
+  **For MECH-A4: M35 proper.**
+- **A2-D8** a piece sensor blind on EVEN ONE sample of a step ends it, at its bound, UNCONFIRMED not counted ("stopped
+  answering: no evidence on N of M reads") — the brief says "a sensor that stops answering mid-step"; a sensor that
+  answered NO again before the bound may still have missed the piece in its blind window, so TIMED_OUT ("it never
+  came") would claim more than it knows. Both stop the chain; only the word differs.
+- **A2-D9** surface added beyond the brief's verbatim: `Slot::stepsBegun()` (a default report is not a verdict),
+  `Slot::pieceSensorPlace()`, `PneumaticSlot::kNoPosition` (its `commandedPosition()` reads the DEVICES back, so it is
+  not `noexcept`), `MechanismService::bound()`, `Until::conflicting()`.
+- **A2-D10** ONE step-line format for every verdict: `'<name>': <VERDICT>[ -- <what ended it>] in <s>s[ (<note>[;
+  counted done])]` — the brief's examples spell some verdicts differently (`… ran 1.00 s`); guide 11 documents the one
+  format field by field.
+- **A2-D11** the guard's cut attempts every mechanism whatever one claimant throws, then rethrows the first (the
+  `safeMechanisms()` rule of COMP-t's review), and logs the run's FIRST cut once (`SEQ`) — the brief's verbatim loop
+  had neither.
+- **A2-D12** a non-finite piece reading is UNKNOWN (above).
+- **A2-D13** the brief's §3.2 "an unclaimed mechanism is not re-safed each pace (applySafeState counted: once, at the
+  run's end)": run() has TWO cancel-alls (before and after the end action), both older than this run — the test pins
+  2, and 0 during scoring.
+- **A2-D14** the D1 handover's control reads 269 of 269 paces at 12 V without the call (the brief's probe: 257 of 269
+  — its auton commanded something else meanwhile); with the call 0, as the brief.
+- **A2-D15** the harness's until.hpp TUs state the condition alone (`seesPiece(rx::arm)`), not inside `r.run(...)`
+  (MECH-A4's Routine).
+- **A2-D16** (surface wording, 2026-10-15 09:54 run) `Slot::lastStep()` also carries the STALLED that ends a driver's
+  hold-to-run (`drive()` is not a step, so `stepsBegun()` stays 0) — the brief's surface does not say what a
+  hold-to-run's stall reports; the doc comments and a test now do.
+- **A2-D17** (the review round, finding 3) a PNEUMATIC whose claim is RELEASED outside the service mid-step KEEPS its
+  level (the step CANCELLED, said); a MOTOR mechanism is still made safe (A2-D2). Alternative: the safe position for
+  every kind, as A2-D2 first did — rejected: every mode change keeps a pneumatic's level and its own verdict leaves it
+  there (a claw must not drop what it holds); a release is not a request to be safe — the guard's reach (`cancel()`)
+  is, and it still applies the safe state.
+- **A2-D18** (finding 27) `REFUSED`'s documented meaning is "another owner holds the claim" only; the brief's §1.8
+  second half ("or a route marker's args are wrong", N13 (a)(2)) names a refusal that does not exist until the route
+  markers do (MECH-A4). **For MECH-A4:** widen `MechanismOutcome::Refused`'s doc comment, the changelog and guide 11's
+  verdict list when a marker with bad args is refused as REFUSED.
+- **A2-D19** (findings 4, 5) `Until` keeps the step's OWN sensor beside a NAMED one as a fact —
+  `Until::readsOwnSensorToo()` (new surface) — and the STEP resolves it (one sensor when the name is its own
+  mechanism's, refused as "two different mechanisms' piece sensors" otherwise); two different NAMES are still
+  `conflicting()` at once. A declaration with no `.name` is stored as "" (never kSelf), refused at build by the words
+  (`a_mechanism_has_no_name`, A1's) and at the step ("names a declaration with no .name"). Alternative: keep the
+  second name and resolve both at run time — equivalent here, since the only unresolved pair is "self" + one name.
+- **A2-D20** (finding 7) `~MechanismService` ends every slot still holding its claim (CANCELLED "its service was
+  destroyed", the safe state, released) — the F1 operations' destructor rule; a device that throws is left, its claim
+  STILL released, the other slots still ended. Alternative: state the lifetime as a precondition for MECH-A5's rig —
+  rejected: a dangling registered claimant is the failure the claimant design exists to prevent, and bind() already
+  requires the devices to outlive the service, which is exactly what the destructor needs.
+- **A2-D21** (finding 8, and one found beside it) every `snprintf` field of the step line BOUNDED (`%.23s`, `%.11s`,
+  `%.22s`, `%.180s`, the seconds clamped) so GCC proves no truncation at any -O; and `find(PneumaticGoal)` checks
+  `kMaxPneumaticPositions` before the run-time count, so -O3 proves the index in range (`-Warray-bounds`).
+
+### A2 edits to A1 files (for the port)
+- **No A1 header, test, fixture or harness file was edited.** `include/shulib/hal/mechanism.hpp` was mutated (M13) and
+  restored byte-identical (`git diff --stat 85e0285 -- include/shulib/hal/mechanism.hpp` empty). Four NEW TUs were
+  added to A1's harness directory (`test/compile_refusals/{n39,n40,u_sees,u_stops}_*.cpp` — the CMake glob picks them
+  up; `refusal_common.hpp`, `CMakeLists.txt` and `run_refusal.py` untouched).
+- **A1's DOCUMENT lines touched** (the port merges them with A1's review): `docs/hardware-assumptions.md` — HA-184's
+  *Source* gains `mechanism/service.hpp`; the "MECH-A1's additions" preamble gains one "(Since MECH-A2 …)" sentence;
+  the register's held-numbers note (A1's sentence "HA-182, HA-183 and HA-185 … held") now names HA-182 and HA-185.
+  `docs/internal/build-order.md` — A1's sentence in the first bold `Next:` ("host-only, nothing runs a mechanism
+  through it yet … NEXT: MECH-A2 …") is rewritten into A2's; `docs/roadmap.md` — A1's "You are here" paragraph loses its
+  last sentence ("Nothing runs a mechanism through it yet: next is MECH-A2 …"), A2's paragraph follows it;
+  `docs/internal/HANDOFF-remaining-work.md` — A1's inventory clause "(MECH-A1, host-only, nothing runs through it
+  yet)" is rewritten to add the service; `docs/internal/REMAINING-WORK.md` row 12's "A2 next".
+- **What A2's code reads from A1's** (if A1's review renames any, the port re-points these): `MechanismSpec` (`name`,
+  `kind`, `motorCount`, `lineCount`, `pieceSensor.{kind, seesWithinIn, seesProximity, pressedLevel}`,
+  `power.{maxVolts, stall.{amps, speedRadS, time, stated()}}`, `pneumatic.{positions[].{name, levels, confirm},
+  positionCount, start, actuationTime, confirmWindow}`), `nameOf`, `specRefusal`, `specProblem`, `Refusal::None`,
+  `SensorKind`, `Confirm`, `MechanismWiring.{pieceSensorPort, pieceSwitch}`, `Line`, `lineLetter`,
+  `MechanismTable.{specSpan(), wiring}`, `Devices` (every field), `PositionGoal`/`PneumaticGoal` fields,
+  `hal::PneumaticMechanism::{setLevels, commandedLevel, lines}`, `hal::MotorMechanism::motors()`,
+  `robot::MechanismParts::{build, devices, built}`, the fixtures' robots x / two / y, and `FakeDeviceProvider`'s
+  `fakeMotor` / `fakeDistance` / `fakeOptical` / `fakeDigitalIn` / `fakeDigitalOut` / `fakeReadFaults` /
+  `fakeLineReadFaults` / `refusePort` / `refuseLine`.
+- **Added by the review round (2026-10-15, after the A1 port — the merge onto main meets these):**
+  - **The A1 port itself is DONE in this tree** (the 14:50–15:02 entry: `git diff 85e0285 bcb1cdb` applied, seven
+    overlaps resolved — build-order's first `Next:` line, the changelog's A1 heading A1's review renamed, this log, the
+    roadmap merged clean, and four GENERATED files regenerated). A1's files are now `bcb1cdb`'s byte for byte.
+  - **`mkdocs.yml`**: two nav lines (`Service: api/service.md`, `Until: api/until.md`) inside A1's `Mechanism:` group —
+    INSIDE the `BEGIN/END GENERATED API NAV` block, written by `api_doc_tool.py generate`, never by hand: regenerate after
+    any merge rather than merging the lines. **`docs/api/`** (`README.md`, `all-entities.md` list A1's entities beside
+    A2's): regenerate after the merge too. **`PROJECT-BRIEFING.md`**'s status block: regenerate (finding 28's HA total
+    and next free number among it).
+  - **`docs/changelog.md`**: A2's section sits DIRECTLY above A1's entry heading — the one hunk of this port that
+    conflicted (A1's review renamed that heading). A merge onto a main whose 2.4 section has grown again must keep A2's
+    section on top (newest first) and A1's heading as main has it.
+  - **A1-written PUBLIC text A2 now edits** (the review round's prose fixes): `docs/guide/10-the-api.md` — the
+    mechanism section's "What exists, and what does not yet" box (A1's, as A1's review rewrote it) and the read-fault
+    paragraph's last sentence ("nothing reads it yet"); `docs/faq.md` :18-27 (A1's review's read-fault sentence,
+    "nothing reads that count yet"); `docs/guide/15-glossary.md` — the `read fault` entry (A1's, "its next part") and
+    the `run guard` entry (older than A1). Each now says the service reads a PIECE sensor's count since the core's
+    second part.
+  - **A1's harness directory gains a FIFTH A2 TU**: `test/compile_refusals/u_sees_piece_on_a_nameless_declaration.cpp`
+    (expects A1's own `a_mechanism_has_no_name`, raised by `until.hpp`'s `needsPieceSensor` — a CALL of A1's refusal,
+    not an edit of `spec.hpp`). The CI step's TU = CTest count check covers it (200 = 195 + 5).
+- **Added by the verification round (2026-10-15):** `docs/hardware-assumptions.md` — A1's top-of-register paragraph
+  ("**MECH-A1 … added TWO** … nothing reads a switch or homes a mechanism yet … With them, 173.") gains the SAME
+  "*(Since MECH-A2, 2026-10-15, …)*" sentence the section preamble carries (V1). A merge that rewords A1's paragraph
+  keeps the sentence after it.
+
+### 11:01 (2026-10-15) — MECH-A2 review findings and their disposition — START *(`date`: Thu Oct 15 11:01:36 AM EDT 2026)*
+- The builder again (opus), same worktree, same base `85e0285`. Three reviewers (correctness, tests, docs) returned 29
+  findings (overlaps deduplicated below). Each is RE-CHECKED against the tree before anything is changed; a real one is
+  fixed at its root, one that is not is answered with evidence. The tree at start: as the 10:26 entry left it
+  (`find include test -newer suite16.log` → nothing; only this log and the generated briefing changed since the
+  build) — the reviewers worked in copies under `scratch/mech-a2/review-*/`, never in this worktree.
+
+### 14:49 (2026-10-15) — the fix round RESUMED *(`date`: Thu Oct 15 02:49:54 PM EDT 2026)*
+- The 11:01 fix run was STOPPED (the team lead paused all work at ~11:10 near a usage limit); the coordinator relaunched
+  it as a continuation. This entry is the next executor's (opus), same worktree, same base `85e0285`, nothing
+  committed. MECH-A1 has since LANDED on main (`fd36e07`), its final worktree change being `git diff 85e0285 bcb1cdb`.
+- **What the stopped run left, checked before anything else:** its log section holds only the START line — NO
+  finding dispositioned. But five files were changed after it (11:04–11:06): `mechanism/service.hpp`,
+  `mechanism/until.hpp`, `sim/mechanism_plant.hpp`, `test/mechanism_service_rig.hpp`, `test/mechanism_service_test.cpp`
+  — never built, tested or logged. Every other file equals the reviewers' copies (`diff -rq` of include/, test/,
+  src/, docs/, tools/, README, mkdocs.yml against `scratch/mech-a2/review-correctness/a2/`; the three reviewers'
+  copies agree with one another), so those copies ARE the pre-fix tree; the five pre-fix files are saved in
+  `scratch/mech-a2/fix/prefix/`, the stopped run's versions in `scratch/mech-a2/fix/stopped/`, its diff in
+  `fix/stopped-run-partial.diff` (441 lines). What it holds, read: the step line's bounded `snprintf` (finding 8);
+  `Until` keeping the step's own sensor beside a name (`readsOwnSensorToo()`) and a nameless declaration stored as ""
+  and refused (findings 4, 5); `~MechanismService` ending a slot that still holds its claim (finding 7) and the
+  rig/fixture members reordered so the devices outlive the service; the ORDER comments at the two mode changes
+  (finding 1, a comment only); a released PNEUMATIC keeping its level (finding 3, labelled "A2-D17" — renumbered
+  below); the plant's Hold captured AFTER the step integrates (finding 2); one test (every mode change forgets a
+  driver tick — findings 6/12). It is treated as a DRAFT: each piece is re-read against its finding and kept only
+  with a test seen red under its mutation on a fresh binary.
+- **Mutations left applied?** None. `grep -rn MUTATION include/ test/ src/` → only five older, unrelated comments; no
+  `mut/` log or backup is newer than 10:05 (MUH, restored byte-identical then); the reviewers' drivers
+  (`review-tests/rmut.py`, the correctness probes) wrote only to their own copies (`W = …/review-tests/src-copy`).
+  `git diff --stat -- src/ Makefile tools/` → EMPTY (no gate self-test plant).
+- **The plan:** (1) the A1 port, built and gated with the stopped run's edits PARKED (the pre-fix five in place), so
+  the port is proven on its own; (2) the stopped run's edits back, each re-verified; (3) every finding not yet
+  dispositioned, fixed at its root or answered; (4) every mutation on a fresh binary; (5) every gate on the final
+  tree.
+
+### 14:50–15:02 — THE A1 PORT: `git diff 85e0285 bcb1cdb` applied, every overlap resolved, built and gated with the stopped run's edits parked *(`date` 15:01:56 at the src gate's check)*
+- **The diff** (`scratch/mech-a2/fix/a1-port.diff`, 7374 lines, 91 files; `bcb1cdb` = "MECH-A1 transport commit
+  (worktree): built, reviewed (25 findings fixed), verified (2 doc fixes)", one commit on `bdcbc7c`). Overlap with
+  this worktree's own changes, computed (`comm` of the two file lists): **seven files** — `docs/changelog.md`,
+  `docs/internal/build-order.md`, `docs/internal/chunks/MECH-PROGRESS.md`, `docs/roadmap.md` (hand-written) and
+  `docs/api/README.md`, `docs/api/all-entities.md`, `docs/internal/PROJECT-BRIEFING.md` (generated). The other 84
+  (A1's `spec.hpp`, `wiring.hpp`, `robot_config.hpp`, the 52 new or changed harness TUs, `mechanism_hand_built.hpp`,
+  the A1 tests, `ci.yml`, `test/README.md`, guide 10, the glossary, the faq, vexbuilder-integration, A1's API
+  pages) applied cleanly (`git apply --exclude=<the seven>`, `--check` first); afterwards **each of the 84 is
+  byte-identical to `bcb1cdb`'s** (`git show bcb1cdb:<f> | cmp`). A2's untracked files collide with none of A1's
+  new ones.
+- **The overlaps, each resolved by a three-way merge** (`git merge-file`, base `85e0285`; copies in
+  `scratch/mech-a2/fix/merge/`):
+  - `docs/roadmap.md` — merged clean (A1 reworded its own "Now (2026-10-08, later)" paragraph's count to "69 kinds
+    of mistake in one mechanism's spec … 132 named reasons"; A2's removal of that paragraph's last sentence and
+    A2's own paragraph sit beside it untouched). Read after the merge: both paragraphs whole and in order.
+  - `docs/internal/build-order.md` — ONE conflict, the first bold `Next:` line both sides rewrote: A2's line kept
+    (A2 LANDED, NEXT MECH-A3) with A1's one change applied on top ("123 named reasons: 63 in a declaration, 47 in
+    the wiring" → "132 named reasons: 69 checks on one mechanism's spec — 52 of them a declaration can trip …, 50
+    in the wiring").
+  - `docs/changelog.md` — ONE conflict: A1's review renamed its own entry heading ("… (2026-10-08, later; its
+    review round 2026-10-15) …"). A2's section kept above it, A1's new heading taken; A1's entry body (69 reasons,
+    the harness wording) merged clean.
+  - `docs/internal/chunks/MECH-PROGRESS.md` — both sides appended after A1's 21:01 entry: A1's four review-round
+    sections placed FIRST (they belong to `## MECH-A1`), then `## MECH-A2` whole; `bcb1cdb`'s file is checked to
+    be an exact prefix of the result.
+  - `docs/api/*`, `mkdocs.yml`'s API nav, `PROJECT-BRIEFING.md`'s status block — GENERATED (between their
+    `BEGIN/END GENERATED` markers): A2's copies kept and regenerated by `api_doc_tool.py generate` /
+    `briefing_status.py generate` below (the nav's `Service` / `Until` lines are the generator's, inside A1's
+    `Mechanism:` group).
+- **What A1's review changed that A2's code relies on — checked, one by one:**
+  - `specRefusal()` grew 63 → 69 reasons (64–69: a negative settle time, at-speed lasting or confirm window; a
+    homing push, a gravity hold past ±12 V; `unhomedVolts` outside 0..12) and its range checks now refuse a NaN.
+    `bindImpl` calls `specRefusal(s) == Refusal::None` / `specProblem(s)` — it inherits all 69 with no change.
+    Every A2 test spec (the fixtures' and the hand-edited ones: `maxVolts = 13`, `pressedLevel`) still passes or
+    fails exactly as asserted (the suite below).
+  - `entryProblem()` / `EntryProblem` (wiring.hpp): the per-entry rules `mechanisms()` now re-checks. A2 reads a
+    table's `wiring[i]` only to NAME a missing sensor's port in a log line; `bind(const MechanismTable&)` states
+    "the robot's list (`mechanisms(...)`)", which `mechanisms()` has already held to those rules at build, and A1
+    gives the run-time check of a hand-built table to the robot table file (`wiringProblem`, MECH-A5 —
+    `wiring.hpp`'s header :37). **Not adapted, deliberately:** a second check in `bind()` would duplicate A5's, and
+    the devices the service COMMANDS are checked against the spec in `bindImpl` already.
+  - `MechanismParts`, `hal/mechanism.hpp`, `devices.hpp`, the read-fault seam: unchanged by A1's review
+    (not in the diff). `valid()` now refuses a limit-switch piece sensor beside a distance or optical one — A2's
+    `bindImpl` already refuses two piece sensors in one `Devices`; no A2 fixture states two.
+  - The harness: A1's CI step now requires the CTest count to EQUAL the TU count; A2's four TUs (and this round's
+    fifth, below) are counted by the same glob.
+- **Built and gated with the stopped run's five edits PARKED** (the pre-fix files in place, so the port is proven
+  on its own; `fix/gates.sh`, logs `fix/port-gates/`): configure; `api_doc_tool.py generate`; briefing generate;
+  CLEAN build, **225 objects compiled**, rc 0; **suite 2400/2400 passed, 2,790,009 assertions, 3 skipped** — exactly
+  A1's final 2321 / 2,787,696 plus A2's 79 / 2,313 (2,789,473 − 2,787,160); `-tc='MECH-A2*'` 79 / 1993; briefing
+  generate + check "generated block current" + self-test (24); **harness 199/199** ("compile-refusal TUs: 199;
+  their CTests: 199" — A1's 195 + A2's 4); api_doc_tool self-test, coverage "4622 public entities across 179
+  headers, all documented", check-fresh, check-examples "537 quoted lines, all verbatim", removability;
+  staleness audit self-test + clean; PROS-free and sim-free greps; **ARM header gate: 218 headers, rc 0**; no
+  `PROBE_`/PROTOTYPE; C7 clean; the register's direction 1 clean; **`src_build_gate.py check`: PASS** (7 builds, 11/11
+  TUs each, 0 disallowed). The src gate's self-test ran next (below).
+- 15:02–15:16 — the src gate's **self-test: OK (211 detector cases, each against a real build)**, 829 s; afterwards
+  every file it plants into (`robot_config.hpp`, `test/CMakeLists.txt`, `test/build_selection_test.cpp`,
+  `test/chassis_table_test.cpp`, `test/vendor/doctest.h`, the vendored lvgl header) `cmp`-equal to `bcb1cdb`'s, and
+  `git status --short src tools Makefile` EMPTY. **The A1 port is proven on its own: every gate green.**
+
+### 15:02–15:28 — MECH-A2 review findings and their disposition *(`date`: Thu Oct 15 03:28:22 PM EDT 2026)*
+- **The stopped run's five edits put back** (15:02) and each re-read against its finding before anything was built on
+  it: kept, with these changes — the destructor now releases the claim even when the device throws (it did not); the
+  ORDER comment's "puts a motor one SAFE" typo; the tick's released-pneumatic comment no longer tags HA-157 (a release
+  is not a disable — HA-157 is the disable belief); its "A2-D17" label kept for the pneumatic rule (logged below,
+  with REFUSED's half as A2-D18). Its one test (every mode change forgets a stale driver tick) kept as written.
+- **Twenty-nine findings, three pairs and one triple the same** (6 = 11 + 12 + 14 — the correctness lens's R18, R2,
+  R13 are the tests lens's R1, R5, R7; 9 = 26). Numbered in the order received. Every one was re-checked against the
+  tree first; **every one was real** (17's premise in part: `mkdocs.yml`'s nav is GENERATED, see 9/26).
+- **The build with every edit** (`fix/build1/`, 15:18–15:23): configure (the new TU globbed); `api_doc_tool.py
+  generate`; briefing generate; CLEAN build, 225 objects, rc 0; **suite 2413/2413, 2,790,169 assertions, 3 skipped**
+  (`-tc='MECH-A2*'`: **92 cases** — 79 + 13 new — **2141 assertions**); **harness 200/200**; every doc gate, the
+  ARM gate (218 headers), the greps — all rc 0.
+- **The mutations, on driver v3** (`scratch/mech-a2/fix/mutate3.py` — finding 17's fix, below; list
+  `fix/mutlist_fix.py`; one log each in `fix/mut3/`; summary `fix/mut3/summary.txt`): **26 of 26 RED, 0 green, 0
+  invalid, 26 restored byte-identical**, every suite verdict on a build that recompiled EVERY object depending on the mutated
+  file (5 for `service.hpp`, 6 for `until.hpp`, 2 for the plant, 22 for `run_guard.hpp`), the harness verdict on
+  ctest — and **M8r** (15:30, below) makes it **27 of 27**. **The first campaign (15:24) was STOPPED after six "INVALID" verdicts and counts for nothing**
+  (`fix/mut3_run1_invalid/`): the new driver's dependents parser read `compiler_depend.make`'s trailing one-line rule
+  per header as belonging to the last object (`xdrive_config_test.cpp.o`), so it demanded a sixth object that never
+  depends on `service.hpp` — the INVALID rule did its job (no verdict rather than a false one). Parser fixed (only
+  indented lines continue an object's list); the kill left no mutant (`service.hpp` `cmp`-equal to R14's backup,
+  no `MUTATION` marker anywhere; its timestamp bumped).
+
+| # | Lens, severity | Finding | Re-checked | Disposition | Proof (each mutation RED on fresh objects, restored) |
+|---|---|---|---|---|---|
+| 1 | correctness, major | a released FOREIGN claim's motor made safe only by statement order; reorder survives | REAL — both leftover tests asserted no motor | **FIXED (tests)**: both leftover tests seed pivot 7 at 12 V, Coast, before the mode change, and assert 0 V and Hold after; the ORDER comment at both calls | **R1a** (enterDriverControl reordered) RED; **R1b** (enterAutonomous) RED |
+| 2 | correctness, major | the plant's Hold captured the angle one step BEFORE the command stopped | REAL — 17.55° back at 6 V, 35.54° at 12 V (the review's probe) | **FIXED** (the stopped run's): the capture after the step integrates (and in the jam branch). New case: a fast joint at 6, 12 and −9 V, then Hold, ends EXACTLY where it stopped (no gravity: no sag); HA-183's text says where Hold captures | **HOLDCAP** (capture one step behind) RED |
+| 3 | correctness, minor | A2-D2 drove a released PNEUMATIC to its safe position mid-step | REAL | **FIXED + decided (A2-D17)**: a pneumatic keeps its level, as every mode change keeps it; a motor still made safe. New case on robot two's claw (open, mid-move, released → still open, CANCELLED, said) | **D17** (safe for every kind) RED; **D2m** (safe for none — A2-D2 re-checked after the split) RED |
+| 4 | correctness, minor | `seesPiece \| stopsSeeingPiece(intake)` on the intake refused as two mechanisms | REAL | **FIXED (A2-D19)**: `Until::readsOwnSensorToo()`; the step accepts it on that mechanism and refuses it on any other. Until cases (both orders, joins, a third name) + a step case (runs on the roller and SUCCEEDS on its sensor; refused on the catapult, nothing commanded) | **MU3** (the flag dropped) RED; **MU4** (the step's check removed) RED; **MU8** (the reviewer's defect back) RED; **MU2r** (two NAMES not flagged, the 01:25 MU2 on the rewritten `\|`) RED; **MU1r** (keep the LEFT time) RED |
+| 5 | correctness, minor | `seesPiece(nameless)` read the step's OWN sensor | REAL | **FIXED (A2-D19)**: a null name stored as ""; the words refuse it at build by A1's `a_mechanism_has_no_name`; the step refuses it by name. Until case, step case, and a fifth A2 harness TU (`u_sees_piece_on_a_nameless_declaration`, pinned at its line) | **MU5** (null stored as-is) RED; **MU6** (the build refusal gone) harness RED 1/5; **MU7** (the step's refusal gone: refused, but as "does not have") RED |
+| 6 | correctness, minor | R2, R13, R18 survive | REAL | = 12, 14, 11 | (there) |
+| 7 | correctness, minor | a destroyed service left a dangling claimant and the motor at its last volts | REAL | **FIXED (A2-D20)**: `~MechanismService` ends what it holds; releases the claim even when the device throws. Two cases: a step and a hold-to-run mid-flight (safe, released, no claimant left, another owner's claim untouched and never cancelled, the CANCELLED line); a device that THROWS (its claim still released, the next slot still ended, nothing escapes). Every fixture audited for the lifetime the destructor needs (the devices declared BEFORE the service: `Rig`, `HandPower` reordered by the stopped run; the evidence, cut and bind fixtures already were) | **DTOR** (ends nothing) RED 2; **DTORREL** (no release after a throw) RED |
+| 8 | correctness, minor | the step line's `snprintf` warns `-Wformat-truncation` at -O1/-Os | REAL — reproduced on the pre-fix copy: -O1 5 warnings, -Os 1 | **FIXED (A2-D21)**: every field bounded. `fix/fmt_probe.sh` (the suite's flags without -Werror, -O1/-O2/-O3/-Os) over six TUs (the four service tests, the cut test, the guard's own): **0 warnings in all 24 compiles** (`fix/fmt_after.log`). **Found beside it:** -O3 `-Warray-bounds` in `find(PneumaticGoal)` (a constant goal index 9 past `positions[3]`, guarded only at run time) — on the pre-fix copy too; fixed by checking `kMaxPneumaticPositions` first; re-probed clean | the probe (not a mutation: a warning, not a behaviour) |
+| 9 = 26 | correctness minor; docs minor | `mkdocs.yml` and the regenerated A1 API pages missing from the port list | REAL as a list omission; the premise "hand-edited" is not: the nav lines sit inside `BEGIN/END GENERATED API NAV`, written by `api_doc_tool.py generate` | **FIXED**: the port list now names `mkdocs.yml`'s generated nav, `docs/api/`, the briefing (regenerate, never merge by hand) and the changelog placement against A1's heading (the port's one conflict there) | the port itself (14:50–15:02) |
+| 10 | tests, major | the throwing-claimant test passes with the cut's catch deleted (run()'s cancel-all masks it) | REAL | **FIXED (tests)**: a case where scoring CATCHES each throw and keeps waiting — at the first catch (1.00 s) the roller is already at 0 V and CANCELLED; run() then rethrows from its own cancel-all | **R3** (`throw;` in the catch) RED |
+| 11 | tests, minor | the bind-time read-fault snapshot untested | REAL | **FIXED (tests)**: one failed read counted before bind, then healthy — no piece: TIMED_OUT "in 1.00s"; a piece: SUCCEEDED at elapsed 0 | **R18** RED |
+| 12 | tests, minor | no mode change pinned to clear `driverTicked_` | REAL | **FIXED (tests)** (the stopped run's case): a stale driver tick, each mode change, then pace() ticks exactly once | **R2**, **R13dc**, **R14** each RED |
+| 13 | tests, minor | the per-run first-cut log unpinned | REAL | **FIXED (tests)**: the retry test's second run cuts too — its count 1 (reset, not 5) and its own "cut at the deadline" line (2 over both runs); a third run cuts nothing | **R4** RED |
+| 14 | tests, minor | the stall-window resets in `run()` and `drive()` invisible | REAL | **FIXED (tests)**: the catapult's motor held stall-grade BY HAND (2.4 A, 0 rpm): a hold-to-run trips after ≥ 20 ticks; let go, pressed again: its own ≥ 20; then two steps, each STALLED at ≥ 0.2 s; four trips | **R7**, **R8** each RED |
+| 15 | tests, minor | a switch's `pressedLevel` never exercised | REAL | **FIXED (tests)**: a hand-built spec with `pressedLevel = false` — low YES, high NO, and a step ends on each as asked | **R6** RED |
+| 16 | tests, minor | the bare-specs branch of `pieceSensorPlace` untested; a comment claims it | REAL | **FIXED (tests)**: robot y's catapult bound from bare specs, its switch missing — the place and the whole line; the false comment corrected | **R21** RED |
+| 17 | tests, minor | any re-configure empties `compiler_depend.make`; a `build.make` mutation run links stale objects | REAL (the 10:03 run had met half of it) | **FIXED (the process)**: driver v3 runs the `depend` step before every build and refuses a verdict unless EVERY object depending on the mutated file was recompiled (INVALID otherwise); the binary deleted after every run; every gate run ends with a CLEAN full build. It caught its own parser bug as INVALID, never as a verdict (above) | 26 verdicts, each with its object count |
+| 18 | tests, minor | the flywheel's Hold-at-0-V braking unpinned | REAL | **FIXED (tests)**: Hold decays below Coast and equals Brake | **FWHOLD** (Brake only) RED |
+| 19 | docs, major | guide 10 says nothing runs a mechanism; the prose review logged it "all still true" | REAL — and a second sentence the reviewer did not name (:533 "nothing reads it yet"), and two more beyond guide 10 (faq :24-25, glossary "read fault") | **FIXED**: guide 10's box and read-fault paragraph, the faq, the glossary entry; the 01:26 entry's claim marked WRONG in place; the grep re-run case-insensitive (below) | the prose review below |
+| 20 | docs, minor | the glossary's run guard omits the mechanism cut | REAL | **FIXED**: the same clause README carries; and guide 17's abandon paragraph (found by the `run guard` grep) | — |
+| 21 | docs, minor | guide 11 states A4 behaviour as current; TIMED_OUT too narrow | REAL | **FIXED**: counted done in `StepReport::countedDone` terms, "from the core's auton steps on (its fourth part)", today's `then()` rule said; TIMED_OUT covers no-condition and no-stall; MECHANISM_STALLED's held-button clause qualified; `its service was destroyed` added to the CANCELLED brackets | — |
+| 22 | docs, minor | "one pace late" claimed for the disable | REAL — MEASURED (`fix/probes/f22.cpp`): deadline returned 1.0100 (0.01 s late), disable 0.5200 (0.02 s), 0.1200 V·s past, both bounds | **FIXED**: the changelog says one pace after the deadline, two after a disable (and why); the disable test tightened to the measurement (0.52 s ± 0.5 %, 0.12 V·s ± 1 %) | **M8r** (the ABANDON cut removed, 15:30) RED 2: the tightened case and the in-end-action abandon |
+| 23 | docs, minor | "a pneumatic keeps its level through a disable" without HA-157 | REAL | **FIXED**: "is sent nothing on a disable, so it keeps its level ([HA-157])" *(**superseded** — that wording read as a fact about the whole library and contradicted the guard's cancel-all; re-scoped to the service's mode changes by the verification round, V2)* | — |
+| 24 | docs, minor | the changelog never says bind() REFUSES an Arm/Lift/Flywheel | REAL | **FIXED**: the preamble says so | — |
+| 25 | docs, minor | the brief's cited lines not re-verified in the log | REAL | **FIXED**: the entry below | — |
+| 27 | docs, minor | REFUSED's route-marker half dropped without a delta | REAL | **LOGGED: A2-D18** and its "For MECH-A4" hand-on | — |
+| 28 | docs, minor | a section header's time not a `date` reading | REAL | **FIXED**: "01:26–01:41 (reconstructed from the file's mtime 01:41:24; no `date` was taken …)" | — |
+| 29 | docs, minor | the HA total and next free number are relative to the A1 snapshot | REAL, and not this tree's to change | **FOR THE COORDINATOR** (below) | — |
+
+- **The brief's cited lines, re-checked at `85e0285` (finding 25)** — every §0.2 citation A2's code depends on, read
+  at `bdcbc7c` and at `85e0285`: `hal/mechanism.hpp` `ICancellable` :101, `IMechanism` :125, `applySafeState` :153,
+  `tryClaim(claimant)` :178, `MotorMechanism` :209 — unchanged; **`MotorMechanism::motors()` :282 → :295 and
+  `PneumaticMechanism` :295 → :313** (A1's per-line pneumatic and `meanPosition()` above them).
+  `manipulation/mechanism_outcome.hpp` :33, :50; `manipulation/stall_detector.hpp` `StallConfig` :37;
+  `sequence/run_guard.hpp` the waits ~:92, "FREEZES NOTHING" :163, `RunGuardReport` :241, `pace()` :312, `run()`
+  :473, `cutActiveMotion` :653, `safeMechanisms` :701; `teleop/teleop_loop.hpp` the tick order :18-59 — all exact.
+  A1's review changed none of these files (`git diff 85e0285 bcb1cdb --stat` names none of them).
+- **The prose review for this round (pace rule 4 — every grep RUN, every hit READ, before this line); scope README.md
+  and docs/**/*.md minus `docs/api/` and `docs/internal/chunks/`, CASE-INSENSITIVE this time:**
+  - `nothing runs|nothing reads|next parts?|later parts?|core's service` → guide 10 :406 and :535 (this round's
+    text), :511 (a marker's id is A4's — true); **faq :24-25 STALE, FIXED**; **glossary :172 ("read fault … its next
+    part") STALE, FIXED**; the register :126-127 and :1114-1115 (A1's dated "In this part" paragraphs, each already
+    followed by its "since MECH-A2" sentence — history, stays) *(**WRONG** for :126-127 — only :1114-1117, the
+    section preamble, carried the sentence; the top-of-register paragraph had none and A2's HA-183 entry after it
+    says nothing of the switch. Found by the verification round, fixed there: "Verification-round findings and their
+    disposition", V1)*, :132 and :149 (A3's, A5's — true); cookbook 06 :202
+    (A4's — true); the changelog's A1 entry (dated — stays); vexbuilder-integration, the master plan, roadmap :1921,
+    the changelog's R5a / D-lines (other subjects).
+  - `\brun guard\b` over the guides, cookbook, faq and README → **guide 17 :154 STALE BY OMISSION, FIXED** (the
+    abandon also cancels every claimed mechanism operation in the same tick); glossary :186 FIXED (finding 20); guide
+    11 :291/:316, guide 13 :18/:203, cookbook 03 :8/:109/:199, cookbook 06 :103/:112, guide 17 :39/:179/:199/:289 —
+    read, true.
+  - `two different mechanisms|conflicting\(|one mechanism's sensor|seesPiece|stopsSeeingPiece` → the register's
+    HA-184 *Source* (true) and the roadmap's F11 row (another sense) — the condition words are taught only in the
+    changelog (updated) until MECH-A4's steps.
+  - `service (is |was )?destroyed|outlive the service|MechanismService` → guide 11 :290 (this round's).
+  - `where the command stopped|holdStiffness|ArmPlant|FlywheelPlant|mechanism_plant` → **HA-183's *Claim* (:1186)
+    amended**: Hold captures at the END of the last commanded step (finding 2); the changelog's and the roadmap's
+    plant mentions — true.
+  - `pace late|one pace|two paces|0\.02 s` → guide 09 :331, guide 14 :283, guide 12 :201 — all about the DEADLINE
+    (one pace — measured, true) or "one pace later" after the cut (true for both); the changelog (this round's).
+  - `keeps? (its|the) level|drop what it holds` → cookbook 06 :176/:212 (the driver toggle and HA-157 — true); the
+    register's HA-157 row and entry (its *Source* names the service's two mode changes, which still carry the tag).
+  - `TIMED_OUT|counted done|auton goes on|auton stops` → guide 11 only (this round's).
+  - `bind\(\)|refuses a list|power and pneumatic` → the changelog (this round's), guide 10 (this round's), the register
+    :1174 (A2's paragraph, true), roadmap :1727 (true); cookbook 06's `bind()` is T4's driver bindings (another
+    function).
+  - **Pace rule 7, this round:** public documents moved — the changelog, guides 10, 11, 15 (glossary) and 17, the faq,
+    the register (HA-183's claim), `docs/api/` (regenerated); each edit one sentence to one paragraph, every one a
+    review finding or a hit of its grep. **Not touched, deliberately:** README (its guard sentence already carries
+    the cut), guides 09/12/13/14 (their "one pace" is the deadline's — measured true), the cookbook (A4's recipes).
+- **For the coordinator (this round's):**
+  1. **Finding 29, the merge:** this tree's register reads "7 of 174 settled", its briefing "174 registered … next
+     free HA-189" — counted on `bdcbc7c` + A1 + A2. `shulib-v2` (`fd36e07`) already reads 174 with HA-189 registered
+     and HA-190..191 held: after A2 merges, **175 registered, next free HA-192**. Take main's register header lines,
+     apply A2's HA-183 row, entry and "MECH-A2 … added ONE" sentence on top (its running count "With it, 174" becomes
+     175), and REGENERATE `PROJECT-BRIEFING.md`.
+  2. **`mkdocs.yml`'s nav and `docs/api/` are generated** — regenerate after the merge (the port list says so).
+  3. **The mutation driver lesson (finding 17) is worth carrying into every later run's driver:** `depend` first, and
+     no verdict unless every dependent object was rebuilt — counted from the consolidated depend file with only
+     INDENTED lines continuing an object's list.
+  4. **For MECH-A4 (new): A2-D18** — REFUSED's route-marker half.
+
+### 15:30–15:55 — every gate on the FINAL tree *(`date`: Thu Oct 15 03:56:24 PM EDT 2026)*
+- One comment changed after the campaign (15:30): the step line's "the longest real line is under 200 characters"
+  (never measured) replaced by its provable bound (bracket ≤ 177, line ≤ 254, buffer 320). A comment only — no
+  mutation is owed; the first final-gate run was stopped at its build for it and restarted (`fix/final/`).
+- **`fix/gates.sh final all`, 26 of 26 rc 0:** configure; `api_doc_tool.py generate`; briefing generate; CLEAN build,
+  **225 objects**, rc 0; **suite 2413/2413 passed, 2,790,169 assertions, 3 skipped**; `-tc='MECH-A2*'` **92 cases, 2141
+  assertions**; briefing generate (binary present) + **check "generated block current"** + self-test (24 cases);
+  **harness 200/200** ("compile-refusal TUs: 200; their CTests: 200"); api_doc_tool self-test, **check-coverage "4623
+  public entities across 179 headers, all documented"**, check-fresh (silent), check-examples "537 quoted lines, all
+  verbatim", check-removability; doc_staleness_audit self-test + "clean (29 live docs)"; the PROS-free and sim-free CI
+  greps; **ARM header gate: 218 headers, rc 0**; no `PROBE_` / PROTOTYPE / "(proposed)"; C7 removability clean; the
+  register's direction 1 clean; **`src_build_gate.py check`: PASS** (7 builds link, 11/11 TUs each, 0 disallowed
+  warnings); **`self-test`: OK, 211 detector cases** (949 s); **`git diff --stat 85e0285 -- src/ tools/` and
+  `git status --short src tools Makefile` EMPTY.**
+- After it: every file the self-test plants into `cmp`-equal to `bcb1cdb`'s; `service.hpp`, `until.hpp`,
+  `sim/mechanism_plant.hpp`, `sequence/run_guard.hpp` each ALONE through the ARM compile (-Werror -Os): rc 0;
+  `fix/fmt_probe.sh` over eight TUs (the four service tests, the until and plant tests, the cut test, the guard's
+  own) at -O1/-O2/-O3/-Os: **32 of 32 compiles, 0 warnings** (`fix/fmt_final.log`); no `MUTATION` marker in any file
+  the campaign touched, each `cmp`-equal to its last backup before the comment.
+- **The tree's state:** NOTHING COMMITTED (`git log -1` = `85e0285`). 124 paths in `git status --short` (53
+  modified, 71 untracked) — A2's own change, A1's final change ported (`bcb1cdb`'s files byte for byte), and this
+  round's. New this round: 13 test cases across six test files, one harness TU
+  (`u_sees_piece_on_a_nameless_declaration.cpp`), `Until::readsOwnSensorToo()`, `~MechanismService`'s body;
+  docs: the changelog, guides 10, 11, 15, 17, the faq, the register's HA-183 claim, `docs/api/` regenerated, this
+  log. Every finding is dispositioned above; every mutation of the round (27) RED on fresh objects; every gate
+  green on the final tree. MECH-A2's §2.1 DoD holds as at 10:26, with the A1 port and this round added.
+
+### 16:15 (2026-10-15) — Verification-round findings and their disposition *(`date` at the first backup: Thu Oct 15 04:21:23 PM EDT 2026; at this entry's writing: 04:33:10 PM)*
+- The builder again, same worktree, same base `85e0285`, A1's final (`bcb1cdb`) already ported (14:50). A fresh
+  verifier returned TWO findings, both minor, both docs. Each re-checked against the tree before any edit; **both
+  REAL**, and the second wider than its suggested fix. Backups of the two code-side files before their edits:
+  `scratch/mech-a2/vr2/{service.hpp,mechanism_service_test.cpp}.before`; gate logs `scratch/mech-a2/fix/vr2-gates/`.
+
+| # | Finding | Re-checked | Disposition |
+|---|---|---|---|
+| V1 | the 15:02 prose review said the register's :126-127 paragraph is "already followed by its 'since MECH-A2' sentence"; it is not | **REAL.** `sed -n 122,130p docs/hardware-assumptions.md`: A1's top-of-register paragraph ends "nothing reads a switch or homes a mechanism yet (the core's service, its next parts). With them, 173." and the next text is A2's own "MECH-A2 … added ONE — HA-183" entry, silent on the switch. Only the "MECH-A1's additions" section preamble (then :1114-1117, now :1113-1119) carried the sentence; the 01:26 entry said exactly that (only the preamble gains it), and the 15:02 entry mis-stated it | **FIXED.** The section preamble's sentence, word for word, after "With them, 173." (:127-129): "*(Since MECH-A2, 2026-10-15, the service reads a limit switch used as a PIECE sensor — HA-184 matters from there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*" — each half re-verified first: `service.hpp` :226-227 reads `pieceSwitch->state() == spec_->pieceSensor.pressedLevel` (tagged HA-184); the brief's §2 A3 row (:2127) owns "every homing moment". The 15:02 entry's false claim marked **WRONG** in place (pace rule 4); the touch of A1's paragraph added to "A2 edits to A1 files (for the port)" |
+| V2 | finding 23's new changelog wording "a pneumatic is sent nothing on a disable" reads as a fact about the library and contradicts the guard's cancel-all | **REAL — and the suggested replacement ("the mode changes send a pneumatic nothing") is itself false.** (a) `RunGuard::run()` performs `cancelAll()` → `safeMechanisms()` → `applySafeState()` on EVERY listed mechanism at the end of EVERY run (its steps 3 and 5 — not only on an abandon), and `competition_program.cpp` :695-701 lists every present mechanism, robot two's claw included; guide 17 :157-158 says so. (b) A2's own cut: `Slot::cancel()` (`service.hpp` :268) → `stopBehaviour(true)` applies the safe state for EVERY kind — pinned by "MECH-A2 pneumatic: the guard's safe state is the declared safe POSITION on every line -- claimed mid-step and unclaimed". (c) `enterDriverControl()` sends a pneumatic its START on the FIRST entry (`PneumaticSlot::onDriverEntry`, :758-761) — pinned by "MECH-A2 driver entry: the claw goes to START on the FIRST entry only …". Only `leaveDriverControl()` and `enterAutonomous()` send a pneumatic nothing (`stopBehaviour(kind != Pneumatic)`, :905, :922) | **FIXED** (changelog :57-63): "None of the three puts a pneumatic in its safe state: `leaveDriverControl()` (a disable) and `enterAutonomous()` send it nothing, and `enterDriverControl()` only its START position, on the first entry (T4's ruling: the claw starts closed) — so through a disable the service leaves a pneumatic at its level ([HA-157]). The run guard is another matter: `run()`'s cancel-all at the end of every guarded auton still puts every LISTED mechanism, a pneumatic included, in its safe state, as before, and its new cut (below) puts a pneumatic whose step has not given its verdict yet in its safe position too." **One clause drafted and DROPPED:** "only while nobody holds its claim" (`onDriverEntry`'s `!mech_->claimed()`) — unreachable: `enterDriverControl()` runs `releaseLeftover()` and `stopBehaviour()` on the same slot just before it, which between them release every claim, so the clause would describe no behaviour (its removal is an equivalent mutant; no test is owed). The 15:02 table's finding-23 row annotated **superseded** |
+
+- **Beside V2, the same over-general phrase in A2's own code (fixed, no behaviour changed):** the tick's
+  released-claim comment (`service.hpp` :1121-1127) said a pneumatic keeps its level "as every mode change keeps
+  it" — now "no mode change makes one safe either (driver control's FIRST entry sends its START, nothing else
+  does)"; the test case at `mechanism_service_test.cpp` :518 renamed "… KEEPS its level -- no mode change makes one
+  safe either" (run under its new name: 1 case, 11 assertions; the old name now matches nothing). A `//` comment
+  and a test NAME: no `///` changed, no mutation owed; the full rebuild below recompiled both.
+- **The prose review for this round (pace rule 4 — every grep RUN, every hit READ, before this line); scope README.md
+  and docs/**/*.md minus `docs/api/` and `docs/internal/chunks/`, CASE-INSENSITIVE:**
+  - `nothing reads|reads? a switch|homes? a mechanism|reads? a limit switch` → the register :126-129 (V1, FIXED) and
+    :1113-1119 (the section preamble under :1111, already carrying it), :1131 and :1137 (HA-184's *Source* and *Settle* — true);
+    vexbuilder-integration :140/:213/:259/:737, roadmap :1921, the master plan :692, the changelog :611,
+    build-order :1744 (`.vexbot`, `.shupaths`, the scale, the wire — other subjects).
+  - `sent nothing|commands? nothing|keeps? its level` (the verifier's grep, widened) and `through a disable|on a
+    disable|keeps what it holds|at its level` → the changelog :53 and :60 (this round's text); the changelog :1060 and
+    :1076 (T3's hold and toggle bindings — driver control, true in their scope), roadmap :395/:1837 and HANDOFF :462
+    (T3's toggle — driver control), guide 17 :145/:277 (the driver loop's end — true), HANDOFF :315 and build-order
+    :2155 (`autonomous()` before COMP — history); **HA-157's row :335, its *Source* :2075/:2081, cookbook 06 :212-213
+    and guide 14 :233 — pre-A2, over-general since COMP: for the coordinator (below).** A2's own HA-157 sentence
+    (:2077-2078, "the mechanism service keeps the same rule … `leaveDriverControl()` and `enterAutonomous()`") names
+    the service and its two mode changes — true as scoped.
+  - The same greps over A2's `///` text (`docs/api/service.md`, `run_guard.md`): `enterAutonomous()`'s and
+    `leaveDriverControl()`'s docs and the file banner's released-claim rule — each scoped to its own call, true.
+  - **Pace rule 7, this round:** public documents moved — the changelog (one paragraph of A2's entry), the register
+    (A1's top paragraph, one sentence). `docs/api/` regenerated (no `///` changed; `check-fresh` silent).
+- **For the coordinator (unnumbered; pre-A2 text, not this run's lines):** HA-157's *Source* (:2075, "the library
+  commands NOTHING to a pneumatic claw on a disable"), cookbook 06 :213 ("The library commands nothing on a
+  disable") and guide 14 :233 ("because the library commands the claw nothing on a disable") are over-general since
+  COMP (2026-10-02): in "shulib Competition", a disable DURING a guarded auton makes the watch abandon the run, and
+  `run()`'s cancel-all then writes the claw's SAFE level while the brain is disabled — a write HA-157's half (2)
+  governs, and a consumer HA-157's *Source* does not name (guide 17 :157-158 already states the behaviour). Not a
+  new hardware belief: an existing one with an unnamed consumer. A2's cut adds no new write there (the cancel-all
+  that follows reaches every listed mechanism anyway).
+- **Every gate on the round's tree** (`fix/gates.sh vr2-gates all`, 16:22–16:47, **26 of 26 rc 0**): configure;
+  `api_doc_tool.py generate`; briefing generate; CLEAN build, **225 objects**, rc 0, 0 warnings; **suite 2413/2413,
+  2,790,169 assertions, 3 skipped**; `-tc='MECH-A2*'` **92 cases, 2141 assertions**; briefing generate (binary
+  present) + check "generated block current" + self-test (24 cases); **harness 200/200**; api_doc_tool self-test,
+  check-coverage (4623 entities, 179 headers), check-fresh (silent), check-examples (537 lines), check-removability;
+  doc_staleness_audit self-test + "clean (29 live docs)"; the PROS-free and sim-free greps; **ARM header gate 218
+  headers, rc 0**; no `PROBE_` / PROTOTYPE / "(proposed)"; C7 clean; the register's direction 1 clean;
+  **`src_build_gate.py check` PASS** (7 builds link, 0 disallowed warnings); **`self-test` OK, 211 detector cases**
+  (884 s); **`git diff --stat 85e0285 -- src/ tools/` and `git status --short src tools Makefile` EMPTY** (a
+  `src/programs/bench_r3a.cpp` seen modified at 16:32:59 mid-run was the self-test's own plant, restored by it — the
+  final gate's check is after it). **After this entry was written** (16:48): api generate, briefing generate +
+  check, check-fresh / -examples / -coverage / -removability, the staleness audit, C7 — all rc 0
+  (`scratch/mech-a2/vr2/post-log-gates.txt`). One slip: that re-run's per-command output went to a throwaway file in
+  the session's /tmp scratchpad (against the run's scratch rule), deleted at once; its verdict lines are in the
+  scratch file above.
+- **The tree's state:** NOTHING COMMITTED (`git log -1` = `85e0285`); 124 paths in `git status --short` (53
+  modified, 71 untracked — the same paths as at 15:55). Changed this round: `docs/hardware-assumptions.md` (V1),
+  `docs/changelog.md` (V2), `include/shulib/mechanism/service.hpp` (one `//` comment),
+  `test/mechanism_service_test.cpp` (one case name), this log; `docs/api/`, `mkdocs.yml`'s generated nav and the
+  briefing regenerated. Both findings dispositioned; no behaviour changed, so no mutation was owed.
+
+### The coordinator's merge verification — MECH-A2 (2026-10-15 21:50–22:45, main `2506067` + the squash of `mech-a2`)
+- **Audit before the merge:** the 37 mutation logs under `scratch/mech-a2/mut/` all say restored, and no mutation's new
+  text is in its file; no gate plant; no stray root file; `git diff --stat -- src/ tools/` empty. The transport commit
+  `a4cb685`, then `git merge --squash mech-a2`.
+- **The merge base was not A1's final tree** (A2 was built on the snapshot `85e0285`, whose parent is `bdcbc7c`), so git's
+  own three-way merge saw A1 on both sides: 15 files conflicted. Every document was re-merged with **`bcb1cdb` (A1's
+  final worktree) as the base** — against it A2's changes are pure additions (this log +741 −0, the changelog +95 −0) —
+  and every file git merged by itself was checked to equal that re-merge byte for byte (it did). Hand-resolved: the
+  changelog (A2's entry first, dated as merged, then SER1's); the register (**177 rows, "7 of 177 settled", next free
+  HA-192** — finding 29's arithmetic plus SER1's HA-190/191; A2's paragraph after SER1's, "With it, 177"; A1's paragraph
+  given A2's italic note); REMAINING-WORK row 12 (A1's date from main, "A2 LANDED" from A2, word by word);
+  build-order's `Next:` (A2 LANDED; NEXT A3 — and the line's stale "the sensors come after G3", corrected to the team
+  lead's ruling of 2026-10-14: the distance sensors and the camera's objects BEFORE the panel); this log (A1's merge
+  record, then A2's section). `docs/api/`, `mkdocs.yml`'s nav and the briefing regenerated (findings 29 and the port
+  list's note 2).
+- **Gates on the merged tree** (`.claude/coordinator/logs/mech_a2_merge_verify.out`): host build with the doc gates;
+  suite **2,445 | 2,445 passed, 3 skipped** (A2's 2,413 + SER1's 32); `src_build_gate.py` self-test OK and check
+  **PASS, all 7 builds**; ARM header gate over **218** headers clean; CI greps empty; api check-fresh, the briefing,
+  removability and the staleness audit clean; the compile-refusal harness **200 of 200** (105 s).
+- **The coordinator's hand mutations** (`muts_mech_a2_main.json`, on `mechanism/service.hpp`, `sequence/run_guard.hpp`,
+  `mechanism/until.hpp`; each on a fresh link, the whole suite under a 4 GiB / 300 s cap, restored and hash-checked):
+  **13 of 15 caught at first** — MB1 (a near reading with confidence 0 counted), MB2 (the read-fault rule never firing),
+  MB3 (an optical NaN read as "no piece"), MB6 (an asked stall reported STALLED), MB7 (`enterAutonomous` releasing the
+  leftover claim after the safe state), MB8 (a released motor mechanism left at its last voltage), MB9 (a pneumatic's
+  START on every driver entry), MB10 (the read-fault counts never snapshotted), MB11 (the abandon not cutting a claimed
+  mechanism), MB12 (a cut counted, not cancelled), MB13 (the cut count not reset per run), MB14 (a throwing cancel
+  swallowed), MB15 (two joined times keeping the later) RED. **Two SURVIVED — real gaps, now closed:**
+  - **MB4** (`blind > 0` → `blind > 1`): nothing pinned the boundary — ONE blind sample in a whole step. New case
+    "ONE blind sample in a whole step is enough for UNCONFIRMED" (`test/mechanism_service_evidence_test.cpp`):
+    "no evidence on 1 of 101 reads".
+  - **MB5** (`elapsed >= time` → `>`): the case "a time EQUAL to the bound ends SUCCEEDED by time" never landed on the
+    equality — with 0.01 s ticks the elapsed time always overshoots it (0.01 has no exact binary form), so it passed
+    either way. New case on an exact 1/128 s clock (`test/mechanism_service_power_test.cpp`) that also asserts the
+    elapsed time EQUALS the bound, so the edge is provably reached.
+  Re-run (`muts_mech_a2_main_b.json`): **MB4 and MB5 RED**, each at the new case's lines; restored tree **2,447 | 2,447**.
+  **15 of 15.** The lesson is carried into MECH-A3's run: an equality edge must be tested on an exact clock.
+- **Hand-ons:** A2-D18 (REFUSED's route-marker half) is MECH-A4's; the unnumbered HA-157 note (three pre-A2 sentences,
+  "the library commands nothing on a disable", over-general since COMP) is fixed in its own documentation commit after
+  this one.

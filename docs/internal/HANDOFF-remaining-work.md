@@ -260,7 +260,8 @@ blackbox + reader, fault latch, health monitor, loop monitor. Mechanisms: `hal/m
 (`IMechanism`, `MotorMechanism`, `PneumaticMechanism`), `manipulation/mechanism_op.hpp`
 (`RunUntilConfirmed`, `ActuateAndConfirm`) and `manipulation/stall_detector.hpp` (`StallDetector`) —
 **seam only, F11 unfrozen, never on hardware.** Sequencing: `sequence/run_guard.hpp` (`RunGuard`, the
-guaranteed end-of-run action; F12 unfrozen). Adapters (`hal/pros/`, 18 headers): motor, IMU, GPS,
+guaranteed end-of-run action; F12 unfrozen; since MECH-A2 its deadline and an abandon also cut a claimed
+mechanism). Adapters (`hal/pros/`, 18 headers): motor, IMU, GPS,
 rotation, distance, optical, digital in/out, controller, battery, clock, char sink, block sink +
 source (SD), line display, tick pacer, device registry, and (G1 Part 2a, 2026-09-24) the device
 provider `ProsDeviceProvider` — **no AI Vision adapter.** Drivetrain:
@@ -276,8 +277,9 @@ G1 Part 2b until then — and by the invented X-drive since Part 2c; none has ru
 `robot::Robot` builds each one — since MECH-A1, 2026-10-08, through `robot::MechanismParts`, with its sensor roles), `config/route.hpp` (**F8 frozen**; `Waypoint::reverse` exists),
 `hal/device_provider.hpp` + fake (members: motor, imu, gps, rotation, digitalOut (T3), and since MECH-A1
 distance, optical, digitalIn and the read-fault pair; clock, battery, telemetry, pacer — **no vision yet**); the
-mechanism core's vocabulary `mechanism/{kinds,spec,wiring,route_ids,devices}.hpp` (MECH-A1, host-only, nothing runs
-through it yet), `robot/robot.hpp` (`robot::validate` +
+mechanism core's vocabulary `mechanism/{kinds,spec,wiring,route_ids,devices}.hpp` (MECH-A1) and its service
+`mechanism/{until,service}.hpp` (MECH-A2: power and pneumatic mechanisms run through it; host-only, no program builds
+one yet), `robot/robot.hpp` (`robot::validate` +
 `robot::Robot`; since G1 Part 2a also `BuildOptions` for the boot check's absent drive ports,
 `portMap()` and `driveOdometry()`), `runner/command_registry.hpp`, `runner/path_runner.hpp`, `runner/manifest.hpp`.
 

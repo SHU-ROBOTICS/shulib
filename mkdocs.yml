@@ -326,7 +326,9 @@ nav:
           - Devices: api/devices.md
           - Kinds: api/kinds.md
           - Route ids: api/route_ids.md
+          - Service: api/service.md
           - Spec: api/spec.md
+          - Until: api/until.md
           - Wiring: api/wiring.md
       - Robot:
           - Mechanism parts: api/mechanism_parts.md

@@ -262,6 +262,63 @@ worth recognizing on sight:
   running when the field ended it still held that mechanism; driver control freed it so its
   buttons work ([Ch. 10](10-the-api.md), "Buttons for mechanisms"). Expected after an autonomous
   cut off mid-operation; anywhere else, find out who took the claim.
+- **A mechanism step's verdict** (tag `MECH`; `Info` when it SUCCEEDED, `Warn` for every other
+  verdict) — ONE line per step the mechanism service ran, written the moment the step ended:
+
+  ```text
+  'intake': SUCCEEDED -- sees a piece in 0.97s
+  'claw': UNCONFIRMED -- time in 0.50s (no piece sensor to confirm it; counted done)
+  ```
+
+  Field by field: the mechanism's name as the robot file spells it; the verdict; after `--`, WHAT
+  ended it — `time` (its time condition, or a pneumatic's move time), `sees a piece`,
+  `stopped seeing a piece`, `stalled` — or nothing, when no condition ended it (its time limit, a
+  refusal, a cancel); `in` the seconds since the step was commanded; and, in brackets, the reason
+  when there is one. The verdicts: `SUCCEEDED`; `UNCONFIRMED` — done, but nothing CONFIRMED it, and
+  the bracket says whether it was `counted done` (`StepReport::countedDone`: no sensor exists to
+  ask — a sensorless grab, or a declared piece sensor missing this boot, named with its port) or
+  not (the sensor was there and said no, or did not answer). From the core's auton steps on (its
+  fourth part), a counted-done step lets the auton go on and any other `UNCONFIRMED` stops it; today
+  nothing but your own code reads the verdict, and a `then()` that returns it continues on
+  `SUCCEEDED` only ([Ch. 9](09-the-recipe-api.md)), so a counted-done step stops that chain too.
+  `TIMED_OUT` (its time limit came first and no condition it asked for was met — a piece sensor
+  that answered on every read but never as asked, a stall that never came, or no condition at all
+  but the limit, `Until::bound()`); `STALLED` (a stall signature the robot file states tripped — the
+  same tick also raises `MECHANISM_STALLED`, once); `CANCELLED` (stopped from outside — the bracket
+  names by what: `replaced by a newer command`, `stopped`, `driver control began`, `autonomous
+  began`, `driver control ended`, `its claim was taken by another owner`, `its claim was released
+  outside the service`, `its service was destroyed`; NO bracket means it was cancelled through its
+  claim — by the run guard (its deadline or abandon cut, whose own `SEQ` line is below, or its
+  end-of-run cancel-all) or by a program's own `cancel()`); `REFUSED` (`another owner holds its
+  claim` — nothing moved); `ABSENT` (`not built at boot: ...`, the boot's own sentence for the port
+  — nothing moved). Lines you will meet:
+
+  ```text
+  'intake': UNCONFIRMED -- time in 1.00s (its piece sensor is missing this boot, port 9; counted done)
+  'intake': UNCONFIRMED in 1.00s (its piece sensor stopped answering: no evidence on 101 of 101 reads)
+  'grip': UNCONFIRMED in 0.45s (its piece sensor did not see a piece)
+  'roller': TIMED_OUT in 1.00s
+  'catapult': STALLED -- stalled in 0.71s (a stated stall signature tripped)
+  'intake': REFUSED in 0.00s (another owner holds its claim)
+  ```
+
+  **"Stopped answering" is not "saw nothing".** A sensor cable that comes out does not read as an
+  error: the adapter answers with its last good value, and a distance sensor's "far" is exactly its
+  "no object". So a reading taken while the sensor's read-fault count moved is NO evidence either
+  way, and a step that had any such reading cannot say the piece never came — `no evidence on N of
+  M reads` counts them. Check the sensor's cable; a step that keeps saying it needs its sensor
+  looked at, not a longer time limit.
+- **A leftover claim released by the mechanism service** (Warn, tag `MECH`, at a mode change — once
+  per mechanism): `'claw pivot 7': a claim left by another owner RELEASED as driver control began
+  (its operation was not cancelled -- it may have lived on a deleted task)` — the mechanism
+  service's line for the same kind of event as the `TEL` line above (`as autonomous began` when it is
+  an auton that starts with a claim driver control left).
+- **The run guard cut a mechanism** (Warn, tag `SEQ`, once per run — later cuts are counted, not
+  logged): `mechanism 'intake' cut at the deadline -- its operation cancelled into its safe state
+  (later cuts are counted, not logged)` (or `after the abandon`, when the field disabled the robot) —
+  a mechanism step was still running when the guard's deadline arrived (or the abandon came), and the
+  guard cancelled it: the step's own `MECH` line reads `CANCELLED` with no bracket. Expected when an
+  auton runs long; the guard's report carries the run's total in `RunGuardReport::mechanismCuts`.
 
 ## Every fault code
 
@@ -284,7 +341,7 @@ but not narrated there. The authoritative list is always
 | `MOTOR_OVER_TEMP` | a drive motor crossed the thermal throttle step (55 °C) | sustained load; too much current for too long | no | the motor is now weaker than the control model thinks; rest it. In a match: expect sluggishness |
 | `IMPLAUSIBLE` | the estimate or a command violated a physical sanity bound (e.g. pose jumped impossibly fast) | usually a symptom of another problem; occasionally a library bug being caught in the act | no | advisory — look at what *else* happened that tick; report persistent ones |
 | `MOTOR_GROUP_DISAGREE` | one motor of a drive side disagreed with its mates for 250 ms: running opposite to the side's command, or under a quarter of its fastest mate's speed, while the side was driven above 1 V and turning above 1 rad/s | a wrong sign for that port, a fight on the gear train, a slipping gear, a stalled or frozen encoder | no | the drive continues in a motion. In DRIVER CONTROL the same verdict also CUTS the drive for 1 s (the library's drive protections, [Chapter 12](12-when-things-go-wrong.md)): read the `TEL` cut line for the port |
-| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* ends with a stalled verdict; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one |
+| `MECHANISM_STALLED` | a mechanism's stall detector tripped: stall-grade current with the shaft not turning — an operation's, or a stall signature the robot file states (`.stall`), watched by the mechanism service through a step and through a driver's hold-to-run; once per stall, beside the step's `MECH` line (`STALLED -- stalled`) | a jam on a game piece, an over-travelled lift against its stop, a seized gearbox | no (the *operation* or the *step* ends with a stalled verdict and the mechanism is put in its safe state; a driver's hold-to-run ends too and its command number moves — from the core's driver controls on (its fourth part), the held button then does nothing more until it is let go; the drive keeps going) | the mechanism stopped itself before it cooked a motor — clear the jam. A stall on every attempt is a mechanical problem, not a tuning one. (A step that ASKED to end on a stall — `stalls`, a squeeze — SUCCEEDS instead and raises nothing) |
 
 Notes on the machinery: fault raising is **edge-triggered** (a problem persisting 500 ticks is
 *one* fault episode, not 500 lines), the **first** fault of a run is latched immutably (that's

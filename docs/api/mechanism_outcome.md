@@ -8,7 +8,7 @@
 
 MechanismOutcome — the verdict vocabulary of a bounded mechanism operation.
 
-This header declares **1** type (6 members) and **1** free function.
+This header declares **1** type (9 members) and **1** free function.
 
 Extracted from [`include/shulib/manipulation/mechanism_outcome.hpp`](../../include/shulib/manipulation/mechanism_outcome.hpp) — this page **is** that header's documentation, reformatted, so it cannot disagree with the code. Prose about *how to think about* the API lives in the [user guide](../guide/README.md); worked recipes live in the [cookbook](../cookbook/README.md); this page is the complete, mechanical list of what exists.
 
@@ -21,6 +21,9 @@ Extracted from [`include/shulib/manipulation/mechanism_outcome.hpp`](../../inclu
   - [`TimedOut`](#mechanismoutcome-timedout)
   - [`Cancelled`](#mechanismoutcome-cancelled)
   - [`Stalled`](#mechanismoutcome-stalled)
+  - [`Absent`](#mechanismoutcome-absent)
+  - [`NotHomed`](#mechanismoutcome-nothomed)
+  - [`Refused`](#mechanismoutcome-refused)
 - [`mechanismOutcomeName`](#mechanismoutcomename) — *free function*
 
 <a id="enum-class-mechanismoutcome"></a>
@@ -33,7 +36,7 @@ enum class MechanismOutcome : std::uint8_t
 
 The verdict of a bounded mechanism operation, and deliberately NOT control::ExitReason: a mechanism can finish healthy and still fail its task (`Unconfirmed`), which no motion can do. Where the two vocabularies meet — Routine::then() — only `Succeeded` maps to success. Scoped with no conversion to bool on purpose: `if (outcome)` does not compile, so a failed grab can never read as truthy. Explicit values, append-only; log lines carry the spellings below, so re-meaning one breaks a grep of an old transcript.
 
-*enum class, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:50`](../../include/shulib/manipulation/mechanism_outcome.hpp#L50).*
+*enum class, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:58`](../../include/shulib/manipulation/mechanism_outcome.hpp#L58).*
 
 <a id="mechanismoutcome-running"></a>
 
@@ -45,7 +48,7 @@ Running = 0
 
 still working; tick again next loop iteration
 
-*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:51`](../../include/shulib/manipulation/mechanism_outcome.hpp#L51).*
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:59`](../../include/shulib/manipulation/mechanism_outcome.hpp#L59).*
 
 <a id="mechanismoutcome-succeeded"></a>
 
@@ -57,7 +60,7 @@ Succeeded = 1
 
 completed AND confirmed (where the operation defines a confirmation; completed, where it does not)
 
-*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:52`](../../include/shulib/manipulation/mechanism_outcome.hpp#L52).*
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:60`](../../include/shulib/manipulation/mechanism_outcome.hpp#L60).*
 
 <a id="mechanismoutcome-unconfirmed"></a>
 
@@ -69,7 +72,7 @@ Unconfirmed = 2
 
 the operation ran to completion and the confirmation said the world did not change — healthy mechanism, failed task. Strategy, not pathology: NO fault.
 
-*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:54`](../../include/shulib/manipulation/mechanism_outcome.hpp#L54).*
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:62`](../../include/shulib/manipulation/mechanism_outcome.hpp#L62).*
 
 <a id="mechanismoutcome-timedout"></a>
 
@@ -81,7 +84,7 @@ TimedOut = 3
 
 the watchdog fired before the operation completed
 
-*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:57`](../../include/shulib/manipulation/mechanism_outcome.hpp#L57).*
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:65`](../../include/shulib/manipulation/mechanism_outcome.hpp#L65).*
 
 <a id="mechanismoutcome-cancelled"></a>
 
@@ -93,7 +96,7 @@ Cancelled = 4
 
 stopped from outside via cancel()
 
-*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:58`](../../include/shulib/manipulation/mechanism_outcome.hpp#L58).*
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:66`](../../include/shulib/manipulation/mechanism_outcome.hpp#L66).*
 
 <a id="mechanismoutcome-stalled"></a>
 
@@ -105,7 +108,43 @@ Stalled = 5
 
 the stall detector tripped (jam / mechanical bind) — FaultCode::MechanismStalled raised
 
-*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:59`](../../include/shulib/manipulation/mechanism_outcome.hpp#L59).*
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:67`](../../include/shulib/manipulation/mechanism_outcome.hpp#L67).*
+
+<a id="mechanismoutcome-absent"></a>
+
+### `MechanismOutcome::Absent`
+
+```cpp
+Absent = 6
+```
+
+the mechanism was not built (a device missing at boot): nothing moved
+
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:70`](../../include/shulib/manipulation/mechanism_outcome.hpp#L70).*
+
+<a id="mechanismoutcome-nothomed"></a>
+
+### `MechanismOutcome::NotHomed`
+
+```cpp
+NotHomed = 7
+```
+
+a position move asked of a mechanism that has not found its zero: nothing moved
+
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:72`](../../include/shulib/manipulation/mechanism_outcome.hpp#L72).*
+
+<a id="mechanismoutcome-refused"></a>
+
+### `MechanismOutcome::Refused`
+
+```cpp
+Refused = 8
+```
+
+another owner holds the mechanism's claim: nothing moved
+
+*enumerator, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:74`](../../include/shulib/manipulation/mechanism_outcome.hpp#L74).*
 
 <a id="mechanismoutcomename"></a>
 
@@ -117,14 +156,14 @@ the stall detector tripped (jam / mechanical bind) — FaultCode::MechanismStall
 
 Stable spelling for log lines. Never returns null; an out-of-range cast renders as "UNKNOWN" (never a crash) — faultCodeName's rule.
 
-*free function, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:65`](../../include/shulib/manipulation/mechanism_outcome.hpp#L65).*
+*free function, declared at [`include/shulib/manipulation/mechanism_outcome.hpp:79`](../../include/shulib/manipulation/mechanism_outcome.hpp#L79).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1" open>
-<summary>The header’s own reasoning — 36 lines</summary>
+<summary>The header’s own reasoning — 44 lines</summary>
 
 ```text
 
@@ -163,6 +202,14 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  do not emit per-tick records at F1), but log lines carry the spellings below,
  so the values are treated as stable anyway: re-meaning a value someone
  grepped a transcript for is the same bug class at human scale.
+
+ Three verdicts APPENDED by the mechanism core (MECH-A2, 2026-10-15), each a
+ step that moved NOTHING: `Absent` (the mechanism was not built at boot — a
+ device missing), `NotHomed` (a position move asked of a mechanism that has not
+ found its zero — produced from MECH-A3 on) and `Refused` (another owner holds
+ the mechanism's claim). Never "a target the build could not check": a COMPUTED
+ target past a travel limit is CLAMPED to it (the soft stop), not refused.
+ Like every non-Succeeded verdict, each is a failure where the vocabularies meet.
 ```
 
 </details>

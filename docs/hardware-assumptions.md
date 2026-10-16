@@ -41,7 +41,7 @@
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 176 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 177 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -141,16 +141,23 @@
 > 1 when pressed and an unplugged switch line reads released (the core's `pressedLevel = true`), and that
 > a rotation sensor's cumulative position starts at the shaft's absolute angle (`absoluteSensor()`
 > homing). In this part the core only DECLARES those roles and builds their devices; nothing reads a
-> switch or homes a mechanism yet (the core's service, its next parts). With them, 174.
+> switch or homes a mechanism yet (the core's service, its next parts). With them, 174. *(Since MECH-A2, 2026-10-15, the service reads a limit switch used as a PIECE
+> sensor — HA-184 matters from there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
 > **SER1 (the serial log's lines kept whole; built 2026-10-08, landed 2026-10-15) added TWO — HA-190 and HA-191** — what its fix, ONE `write()`
 > per line, leaves in PROS's hands: a task deleted inside that write holds PROS's serial mutex for ever (HA-190), and
 > one write must fit PROS's 2047-byte serial stream (HA-191); both reasoned from the vendored `libpros.a`. HA-189's
 > entry now names the fix; it stays unsettled until the bench — its dedicated two-task test is owed, and Station
 > K.7.3 is evidence toward it (SER1's review, 2026-10-15, corrected an over-claim there). With them, 176.
+> **MECH-A2 (the mechanism core's second part; built 2026-10-08–15, landed 2026-10-15) added ONE — HA-183, invented** — that the host
+> test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`: an inverted-feedforward joint
+> with a gravity load, hard stops, a jam, the brake modes at 0 V, and a stall current capped at 2.5 A)
+> stand in for a real arm, lift, roller and flywheel closely enough that the core's host verdicts
+> transfer. Every constant in them is invented; the core's next part (MECH-A3, the position and speed
+> behaviours) leans on them far more than this one. With it, 177.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
-> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182, HA-183
-> and HA-185** (the mechanism core's later parts: its brief, accepted 2026-10-08; HA-184 and HA-186
-> landed with its first part, above), held the same way. The
+> reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182 and
+> HA-185** (the mechanism core's later parts: its brief, accepted 2026-10-08; HA-184 and HA-186
+> landed with its first part, HA-183 with its second, above), held the same way. The
 > per-confidence counts below predate every entry from HA-124 on (2026-09-26): they still sum to
 > 122, have no bucket for UNKNOWN (HA-143, HA-145, HA-157 and HA-162's confidence), and a recount is due.)* **No *v2* robot exists**, and
 > the platform layer has now been validated on the team's old competition bot — real adapters
@@ -353,6 +360,7 @@
 | HA-178 | The Auton Tester's abort and RUN gate read the right things from PROS: `press_count` rises when a finger LANDS; a controller button's level turns true within ~50 ms; with nothing connected and the tester started from the brain, `competition_get_status()` reads 0x00; a controller switched OFF reads `is_connected()` false within ~1 s — each read from a task the program created | (a) reasoned (the vendored text); (b), (d) **invented**; (c) reasoned (HA-128's measurement) | COMP-t Stations M.2–M.4 |
 | HA-179 | TANK1's tank-steering constants (bend 0.1 rad/in capped at 15°, fade 6 in, lead 0.06 s; yaw observer 0.1 s, limit 1.5 rad/s) remove robot two's weak-side drift on a tank `moveTo` within the unchanged 0.5 in / 0.02 rad rule, without heading oscillation — its drivetrain follows a yaw command much faster than 0.1 s | **invented** (tuned on the host test plant's placeholder dynamics; with unmodelled motor lag the plant's margin shrinks — measured) | COMP-t Station M.6 / R5 |
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
+| HA-183 | The host test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`) stand in for a real V5 arm, lift, roller and flywheel closely enough that the mechanism core's host verdicts transfer: the inverted-feedforward joint (static band kS, speed per volt kV, first-order approach τ = kA/kV), gravity as a load in volts (kG·cos(θ − level) for an arm, kG for a lift), the brake modes at 0 V (Hold's restoring stiffness, Brake's damping, Coast free), the current's shape (\|V − kV·ω\|·2.5/12, capped at 2.5 A — HA-93's), and a hard stop or a jam reading ZERO speed at stall-grade current | **invented** (no constant is measured; a real stalled motor creeps — HA-93 — the plant's does not) | the first robot session that logs a real arm's and a real flywheel's step response beside the model's (MECH on hardware) |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
 | HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (evidence — the dedicated two-task test is owed) |
@@ -1118,7 +1126,9 @@ a piece sensor) and a rotation sensor (an angle sensor, possibly homed by its ab
 its first part builds their devices. Two beliefs about what those sensors READ are new; both sit
 beside R1b's (HA-121, HA-11), and neither is settled by any host test. In this part nothing reads a
 switch or homes a mechanism: the service that will (the core's later parts) is where each belief
-starts to matter, and Bench Tests' station 13 (the core's last part) is where each is settled.
+starts to matter, and Bench Tests' station 13 (the core's last part) is where each is settled. *(Since
+MECH-A2, 2026-10-15, the service reads a limit switch used as a PIECE sensor — HA-184 matters from
+there; homing, and so HA-186 and the home-switch half of HA-184, from MECH-A3.)*
 
 - [ ] **HA-184 — a VEX limit switch reads 1 (TRUE) when PRESSED, and an UNPLUGGED switch line reads
   RELEASED.**
@@ -1128,7 +1138,9 @@ starts to matter, and Bench Tests' station 13 (the core's last part) is where ea
   plugged in reads 0 — released — never pressed.
   *Source:* `include/shulib/mechanism/kinds.hpp` (`Sensor::pressedLevel`, `limitSwitch()`),
   `include/shulib/mechanism/spec.hpp` (`SensorRole::pressedLevel`), `include/shulib/hal/pros/digital_in.hpp`
-  (the adapter's read-fault note); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
+  (the adapter's read-fault note); since MECH-A2 (2026-10-15) `include/shulib/mechanism/service.hpp`
+  (`Slot::seen()` reads a limit switch used as a PIECE sensor against `pressedLevel`, so every `seesPiece`
+  / `stopsSeeingPiece` on one leans on this belief — homing on a switch waits for MECH-A3); vendored `include/pros/adi.hpp` :731-757 (`get_value()`: "Gets the
   digital value (1 or 0) of a pin" — nothing about which level a pressed switch gives, or what an empty
   line reads; :705-729, which an earlier draft of the core's brief cited, is `get_new_press()`'s doc).
   *Confidence:* **unknown** — no vendored text says which level means pressed or what an unplugged
@@ -1169,6 +1181,44 @@ starts to matter, and Bench Tests' station 13 (the core's last part) is where ea
   bench page's direction check reads the sensor against the motors. **Contained:** one homing method —
   `restsAtStop`, switch and stall homing never read it; and the F4 rotation seam is LOCKED, so reading
   `get_angle()` instead would be a sibling seam, built only if this fails.
+
+### MECH-A2's addition — the host test plant's mechanisms (2026-10-15)
+
+The mechanism core's second part runs power and pneumatic mechanisms through one service, and its tests
+drive a power mechanism into a jam, a stall and a hold-to-run on a NEW part of the host test plant: a
+mechanism joint and a flywheel. The plant is the only place any of this has run; what it stands in for
+is a belief.
+
+- [ ] **HA-183 — the host test plant's mechanism models stand in for real ones closely enough that the
+  core's host verdicts transfer.**
+  *Claim:* `sim::ArmPlant` (one joint driven by N fake motors — an arm, a lift through its spool, a
+  roller or a claw pivot) and `sim::FlywheelPlant` behave like a real V5 mechanism in every way the
+  core's host tests lean on: the INVERTED feedforward relation the drive plant uses (a static band kS,
+  kV volts per rad/s of the output, a first-order approach with τ = kA/kV); gravity as a LOAD in volts
+  (kG·cos(θ − level) for an arm, kG for a lift; a game piece adds to it); the brake modes at 0 V
+  commanded — Hold pulls back toward where the command stopped, the angle at the END of the last
+  commanded step (`holdStiffness` volts per radian of sag; captured one step earlier it drove a fast
+  joint back a whole step of travel the moment it stopped — the MECH-A2 review's finding), Brake damps (`brakeDamping` volts per rad/s), Coast is free — each solved implicitly in the step
+  (an explicit form rang on a fast joint, MECH-A2's own finding); the current I = |V − kV·ω|·(2.5/12),
+  capped at 2.5 A at a 12 V stall (HA-93's shape); and a hard stop, an obstacle or a jam reading ZERO
+  speed at stall-grade current.
+  *Source:* `include/shulib/sim/mechanism_plant.hpp` (its banner names every constant invented),
+  `test/sim_mechanism_plant_test.cpp` (the model's equations, each pinned against a number derived by
+  hand), and the core's tests that run a power mechanism through it (`test/mechanism_service_power_test.cpp`).
+  *Confidence:* **invented** — no constant is measured; the shape is the A2 drive plant's, not a measured
+  mechanism's.
+  *Settle (MECH on hardware):* the first robot session that logs a real arm's and a real flywheel's step
+  response — volts, position, velocity and current every 10 ms — beside the model's, and a real
+  roller pushed into a jam.
+  *Blast radius if wrong:* a host verdict that rests on the model's dynamics may not transfer. In this
+  part: the stall-signature timings (a 0.2 s signature trips at ~0.21 s here because the plant's jam
+  reads zero speed at once; a real stalled motor CREEPS — HA-93 — so a `belowMotorRpm` below the creep
+  would never trip — the reason `spec.hpp` refuses a signature whose `belowMotorRpm` is 0),
+  and the hold-to-run into a jam. MECH-A3's moves, holds, soft stop and flywheel lean on it far more
+  (it tunes the model and adds its numbers here). **Contained:** test-only — `shulib/sim/` is
+  unreachable from the library (the CI layering guard), no program runs any of it, and every adversarial
+  case sets the controller's constants and the plant's SEPARATELY (the A2 truth-integrator lesson): a
+  test that gave both the same numbers would prove only the algebra.
 
 ---
 
@@ -1934,7 +1984,11 @@ run. Worksheet Station J is their first run.
   cut-off is not optional).
   *Source:* `src/robots/mechanism_table.hpp` (`volts = 12.0`, tagged `A4 register HA-154`) — the ordered
   full power passes straight through while a button is held; a stall cut-off is OUT of T3 by the
-  brief. The vendored `include/pros/motors.h` (`motor_get_current_limit`: "The default value is
+  brief. Since MECH-A2 (2026-10-15) the mechanism service CAN watch it: a power mechanism's optional
+  stall signature (`.stall`) watches the driver's hold-to-run and cuts it STALLED, said
+  (`include/shulib/mechanism/service.hpp`, `PowerSlot::drive()`, tagged HA-154; host-tested) — but a
+  power mechanism that states NONE, as robot two's pivots do in the core's plan, is still cut only by
+  the driver letting go, and the claim below stands for it. The vendored `include/pros/motors.h` (`motor_get_current_limit`: "The default value is
   2500 mA."). `include/shulib/diag/health_monitor.hpp` raises `MOTOR_OVER_TEMP` from the hottest
   motor "over the drive" — a claw motor is not in it.
   *Confidence:* reasoned (the limit is the vendored default; a stalled DC motor heats) — every
@@ -2030,7 +2084,9 @@ opens it are the program half's entry, from the team lead's report).
   *Source:* `include/shulib/teleop/mechanism_binding.hpp` (ToggleBinding, the DISCONNECT/DISABLE
   rule, tagged `A4 register HA-157`) and `include/shulib/teleop/teleop_loop.hpp` (the disable path
   leaves every toggle untouched): the library commands NOTHING to a pneumatic claw on a disable, on
-  the team lead's rule that the claw keeps its state. `include/shulib/robot/robot.hpp` (the
+  the team lead's rule that the claw keeps its state. Since MECH-A2 (2026-10-15) the mechanism
+  service keeps the same rule for every pneumatic it runs (`include/shulib/mechanism/service.hpp`,
+  `leaveDriverControl()` and `enterAutonomous()`: a pneumatic KEEPS its level, tagged HA-157). `include/shulib/robot/robot.hpp` (the
   MECHANISMS section and `buildPneumatic()`, tagged `A4 register HA-157`): the start level is
   written when the Robot is built, whatever the brain's state. `test/toggle_binding_test.cpp` TL3
   pins that the LIBRARY commands nothing on a disable, and `test/pros_device_provider_test.cpp` 1m

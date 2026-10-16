@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 4,514 of them, across 177 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 4,634 of them, across 179 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -853,6 +853,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `distanceMmToCanonical` | free function | [distance_conversion.md](distance_conversion.md#distancemmtocanonical) |
 | `distanceSensor` | free function | [kinds.md](kinds.md#distancesensor) |
 | `distanceSensor (overload 2)` | type alias | [kinds.md](kinds.md#distancesensor-2) |
+| `DoneBy` | enum class | [until.md](until.md#enum-class-doneby) |
+| `DoneBy::None` | enumerator | [until.md](until.md#doneby-none) |
+| `DoneBy::Reached` | enumerator | [until.md](until.md#doneby-reached) |
+| `DoneBy::Sees` | enumerator | [until.md](until.md#doneby-sees) |
+| `DoneBy::Stalled` | enumerator | [until.md](until.md#doneby-stalled) |
+| `DoneBy::StopsSeeing` | enumerator | [until.md](until.md#doneby-stopsseeing) |
+| `DoneBy::Time` | enumerator | [until.md](until.md#doneby-time) |
+| `doneByWord` | free function | [until.md](until.md#donebyword) |
 | `DriveBrake` | class | [drive_brake.md](drive_brake.md#class-drivebrake) |
 | `DriveBrake::cancel` | function | [drive_brake.md](drive_brake.md#drivebrake-cancel) |
 | `DriveBrake::DriveBrake` | function | [drive_brake.md](drive_brake.md#drivebrake-drivebrake) |
@@ -2388,7 +2396,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MechanismDeps::validate` | function | [mechanism_op.md](mechanism_op.md#mechanismdeps-validate) |
 | `MechanismDeps::validatedClock` | function | [mechanism_op.md](mechanism_op.md#mechanismdeps-validatedclock) |
 | `MechanismOutcome` | enum class | [mechanism_outcome.md](mechanism_outcome.md#enum-class-mechanismoutcome) |
+| `MechanismOutcome` | type alias | [service.md](service.md#mechanismoutcome) |
+| `MechanismOutcome::Absent` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-absent) |
 | `MechanismOutcome::Cancelled` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-cancelled) |
+| `MechanismOutcome::NotHomed` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-nothomed) |
+| `MechanismOutcome::Refused` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-refused) |
 | `MechanismOutcome::Running` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-running) |
 | `MechanismOutcome::Stalled` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-stalled) |
 | `MechanismOutcome::Succeeded` | enumerator | [mechanism_outcome.md](mechanism_outcome.md#mechanismoutcome-succeeded) |
@@ -2418,6 +2430,36 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `mechanisms` | free function | [wiring.md](wiring.md#mechanisms) |
 | `mechanisms (overload 2)` | free function | [wiring.md](wiring.md#mechanisms-2) |
 | `mechanisms (overload 3)` | type alias | [wiring.md](wiring.md#mechanisms-3) |
+| `MechanismService` | class | [service.md](service.md#class-mechanismservice) |
+| `MechanismService::bind` | function | [service.md](service.md#mechanismservice-bind) |
+| `MechanismService::bind (overload 2)` | function | [service.md](service.md#mechanismservice-bind-2) |
+| `MechanismService::bound` | function | [service.md](service.md#mechanismservice-bound) |
+| `MechanismService::clock` | function | [service.md](service.md#mechanismservice-clock) |
+| `MechanismService::enterAutonomous` | function | [service.md](service.md#mechanismservice-enterautonomous) |
+| `MechanismService::enterDriverControl` | function | [service.md](service.md#mechanismservice-enterdrivercontrol) |
+| `MechanismService::faults` | function | [service.md](service.md#mechanismservice-faults) |
+| `MechanismService::find` | function | [service.md](service.md#mechanismservice-find) |
+| `MechanismService::find (overload 2)` | function | [service.md](service.md#mechanismservice-find-2) |
+| `MechanismService::find (overload 3)` | function | [service.md](service.md#mechanismservice-find-3) |
+| `MechanismService::leaveDriverControl` | function | [service.md](service.md#mechanismservice-leavedrivercontrol) |
+| `MechanismService::leftoverClaimsReleased` | function | [service.md](service.md#mechanismservice-leftoverclaimsreleased) |
+| `MechanismService::mechanisms` | function | [service.md](service.md#mechanismservice-mechanisms) |
+| `MechanismService::MechanismService` | function | [service.md](service.md#mechanismservice-mechanismservice) |
+| `MechanismService::MechanismService (overload 2)` | function | [service.md](service.md#mechanismservice-mechanismservice-2) |
+| `MechanismService::MechanismService (overload 3)` | function | [service.md](service.md#mechanismservice-mechanismservice-3) |
+| `MechanismService::operator=` | function | [service.md](service.md#mechanismservice-operator-eq) |
+| `MechanismService::operator= (overload 2)` | function | [service.md](service.md#mechanismservice-operator-eq-2) |
+| `MechanismService::pace` | function | [service.md](service.md#mechanismservice-pace) |
+| `MechanismService::pneumatic` | function | [service.md](service.md#mechanismservice-pneumatic) |
+| `MechanismService::power` | function | [service.md](service.md#mechanismservice-power) |
+| `MechanismService::size` | function | [service.md](service.md#mechanismservice-size) |
+| `MechanismService::slot` | function | [service.md](service.md#mechanismservice-slot) |
+| `MechanismService::slotFor` | function | [service.md](service.md#mechanismservice-slotfor) |
+| `MechanismService::slotPtr` | function | [service.md](service.md#mechanismservice-slotptr) |
+| `MechanismService::telemetry` | function | [service.md](service.md#mechanismservice-telemetry) |
+| `MechanismService::tickFromDriverLoop` | function | [service.md](service.md#mechanismservice-tickfromdriverloop) |
+| `MechanismService::ticks` | function | [service.md](service.md#mechanismservice-ticks) |
+| `MechanismService::~MechanismService` | function | [service.md](service.md#mechanismservice-destructor-mechanismservice) |
 | `MechanismSpec` | struct | [spec.md](spec.md#struct-mechanismspec) |
 | `MechanismSpec::angleSensor` | field | [spec.md](spec.md#mechanismspec-anglesensor) |
 | `MechanismSpec::cartridge` | field | [spec.md](spec.md#mechanismspec-cartridge) |
@@ -2960,6 +3002,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PneumaticPositionSpec::levelCount` | field | [spec.md](spec.md#pneumaticpositionspec-levelcount) |
 | `PneumaticPositionSpec::levels` | field | [spec.md](spec.md#pneumaticpositionspec-levels) |
 | `PneumaticPositionSpec::name` | field | [spec.md](spec.md#pneumaticpositionspec-name) |
+| `PneumaticSlot` | class | [service.md](service.md#class-pneumaticslot) |
+| `PneumaticSlot::commandedPosition` | function | [service.md](service.md#pneumaticslot-commandedposition) |
+| `PneumaticSlot::kNoPosition` | field | [service.md](service.md#pneumaticslot-knoposition) |
+| `PneumaticSlot::lastStepBound` | function | [service.md](service.md#pneumaticslot-laststepbound) |
+| `PneumaticSlot::PneumaticSlot` | function | [service.md](service.md#pneumaticslot-pneumaticslot) |
+| `PneumaticSlot::set` | function | [service.md](service.md#pneumaticslot-set) |
 | `PneumaticSpec` | struct | [spec.md](spec.md#struct-pneumaticspec) |
 | `PneumaticSpec::actuationTime` | field | [spec.md](spec.md#pneumaticspec-actuationtime) |
 | `PneumaticSpec::confirmWindow` | field | [spec.md](spec.md#pneumaticspec-confirmwindow) |
@@ -3122,6 +3170,12 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Power::spec` | function | [kinds.md](kinds.md#power-spec) |
 | `Power::stall` | field | [kinds.md](kinds.md#power-stall) |
 | `power_maxvolts_is_not_in_above_0_and_at_most_12` | free function | [spec.md](spec.md#power_maxvolts_is_not_in_above_0_and_at_most_12) |
+| `PowerSlot` | class | [service.md](service.md#class-powerslot) |
+| `PowerSlot::commandedVolts` | function | [service.md](service.md#powerslot-commandedvolts) |
+| `PowerSlot::drive` | function | [service.md](service.md#powerslot-drive) |
+| `PowerSlot::PowerSlot` | function | [service.md](service.md#powerslot-powerslot) |
+| `PowerSlot::run` | function | [service.md](service.md#powerslot-run) |
+| `PowerSlot::stop` | function | [service.md](service.md#powerslot-stop) |
 | `PowerSpec` | struct | [spec.md](spec.md#struct-powerspec) |
 | `PowerSpec::maxVolts` | field | [spec.md](spec.md#powerspec-maxvolts) |
 | `PowerSpec::stall` | field | [spec.md](spec.md#powerspec-stall) |
@@ -3789,6 +3843,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `RunGuardReport::endActionRan` | field | [run_guard.md](run_guard.md#runguardreport-endactionran) |
 | `RunGuardReport::endActionSucceeded` | field | [run_guard.md](run_guard.md#runguardreport-endactionsucceeded) |
 | `RunGuardReport::floorFired` | field | [run_guard.md](run_guard.md#runguardreport-floorfired) |
+| `RunGuardReport::mechanismCuts` | field | [run_guard.md](run_guard.md#runguardreport-mechanismcuts) |
 | `RunGuardReport::pacesSeen` | field | [run_guard.md](run_guard.md#runguardreport-pacesseen) |
 | `RunGuardReport::postExpiryCancels` | field | [run_guard.md](run_guard.md#runguardreport-postexpirycancels) |
 | `RunGuardReport::scoringCut` | field | [run_guard.md](run_guard.md#runguardreport-scoringcut) |
@@ -3955,6 +4010,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SdSinkStorage` | struct | [sd_sink.md](sd_sink.md#struct-sdsinkstorage) |
 | `SdSinkStorage::buffer` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-buffer) |
 | `SdSinkStorage::ring` | field | [sd_sink.md](sd_sink.md#sdsinkstorage-ring) |
+| `seesPiece` | constant | [until.md](until.md#seespiece) |
+| `SeesPiece` | struct | [until.md](until.md#struct-seespiece) |
+| `seesPiece (overload 2)` | type alias | [until.md](until.md#seespiece-2) |
+| `SeesPiece::operator()` | function | [until.md](until.md#seespiece-operator-call) |
+| `SeesPiece::SeesPiece` | function | [until.md](until.md#seespiece-seespiece) |
 | `SegmentEnd` | enum class | [drive_characterizer.md](drive_characterizer.md#enum-class-segmentend) |
 | `SegmentEnd::Distance` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-distance) |
 | `SegmentEnd::None` | enumerator | [drive_characterizer.md](drive_characterizer.md#segmentend-none) |
@@ -4122,6 +4182,34 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SlewLimiter::SlewLimiter (overload 3)` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-slewlimiter-3) |
 | `SlewLimiter::update` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-update) |
 | `SlewLimiter::value` | function | [slew_limiter.md](slew_limiter.md#slewlimiter-value) |
+| `Slot` | class | [service.md](service.md#class-slot) |
+| `Slot::absence` | function | [service.md](service.md#slot-absence) |
+| `Slot::built` | function | [service.md](service.md#slot-built) |
+| `Slot::cancel` | function | [service.md](service.md#slot-cancel) |
+| `Slot::commandSeq` | function | [service.md](service.md#slot-commandseq) |
+| `Slot::declaresPieceSensor` | function | [service.md](service.md#slot-declarespiecesensor) |
+| `Slot::hasPieceSensor` | function | [service.md](service.md#slot-haspiecesensor) |
+| `Slot::holdsClaim` | function | [service.md](service.md#slot-holdsclaim) |
+| `Slot::index` | function | [service.md](service.md#slot-index) |
+| `Slot::kind` | function | [service.md](service.md#slot-kind) |
+| `Slot::lastStep` | function | [service.md](service.md#slot-laststep) |
+| `Slot::name` | function | [service.md](service.md#slot-name) |
+| `Slot::operator=` | function | [service.md](service.md#slot-operator-eq) |
+| `Slot::operator= (overload 2)` | function | [service.md](service.md#slot-operator-eq-2) |
+| `Slot::pieceSensorMissing` | function | [service.md](service.md#slot-piecesensormissing) |
+| `Slot::pieceSensorPlace` | function | [service.md](service.md#slot-piecesensorplace) |
+| `Slot::running` | function | [service.md](service.md#slot-running) |
+| `Slot::Seen` | enum class | [service.md](service.md#enum-class-slot-seen) |
+| `Slot::seen` | function | [service.md](service.md#slot-seen) |
+| `Slot::Seen::No` | enumerator | [service.md](service.md#slot-seen-no) |
+| `Slot::Seen::Unknown` | enumerator | [service.md](service.md#slot-seen-unknown) |
+| `Slot::Seen::Yes` | enumerator | [service.md](service.md#slot-seen-yes) |
+| `Slot::sees` | function | [service.md](service.md#slot-sees) |
+| `Slot::Slot` | function | [service.md](service.md#slot-slot) |
+| `Slot::Slot (overload 2)` | function | [service.md](service.md#slot-slot-2) |
+| `Slot::spec` | function | [service.md](service.md#slot-spec) |
+| `Slot::stepsBegun` | function | [service.md](service.md#slot-stepsbegun) |
+| `Slot::~Slot` | function | [service.md](service.md#slot-destructor-slot) |
 | `smart_port_10_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_10_is_used_twice) |
 | `smart_port_11_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_11_is_used_twice) |
 | `smart_port_12_is_used_twice` | free function | [wiring.md](wiring.md#smart_port_12_is_used_twice) |
@@ -4200,6 +4288,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StallDetector::reset` | function | [stall_detector.md](stall_detector.md#stalldetector-reset) |
 | `StallDetector::StallDetector` | function | [stall_detector.md](stall_detector.md#stalldetector-stalldetector) |
 | `StallDetector::update` | function | [stall_detector.md](stall_detector.md#stalldetector-update) |
+| `stalls` | constant | [until.md](until.md#stalls) |
+| `stalls (overload 2)` | type alias | [until.md](until.md#stalls-2) |
 | `StallSpec` | struct | [spec.md](spec.md#struct-stallspec) |
 | `StallSpec::amps` | field | [spec.md](spec.md#stallspec-amps) |
 | `StallSpec::speedRadS` | field | [spec.md](spec.md#stallspec-speedrads) |
@@ -4228,6 +4318,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StaticRoutes::count` | function | [route.md](route.md#staticroutes-count) |
 | `StaticRoutes::route` | function | [route.md](route.md#staticroutes-route) |
 | `StaticRoutes::StaticRoutes` | function | [route.md](route.md#staticroutes-staticroutes) |
+| `StepReport` | struct | [service.md](service.md#struct-stepreport) |
+| `StepReport::countedDone` | field | [service.md](service.md#stepreport-counteddone) |
+| `StepReport::doneBy` | field | [service.md](service.md#stepreport-doneby) |
+| `StepReport::elapsed` | field | [service.md](service.md#stepreport-elapsed) |
+| `StepReport::outcome` | field | [service.md](service.md#stepreport-outcome) |
 | `StickInput` | struct | [stick_mapping.md](stick_mapping.md#struct-stickinput) |
 | `StickInput::connected` | field | [stick_mapping.md](stick_mapping.md#stickinput-connected) |
 | `StickInput::leftX` | field | [stick_mapping.md](stick_mapping.md#stickinput-leftx) |
@@ -4239,6 +4334,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `StoppedWords::doLine` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-doline) |
 | `StoppedWords::headline` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-headline) |
 | `StoppedWords::why` | field | [calibrate_panel.md](calibrate_panel.md#stoppedwords-why) |
+| `stopsSeeingPiece` | constant | [until.md](until.md#stopsseeingpiece) |
+| `StopsSeeingPiece` | struct | [until.md](until.md#struct-stopsseeingpiece) |
+| `stopsSeeingPiece (overload 2)` | type alias | [until.md](until.md#stopsseeingpiece-2) |
+| `StopsSeeingPiece::operator()` | function | [until.md](until.md#stopsseeingpiece-operator-call) |
+| `StopsSeeingPiece::StopsSeeingPiece` | function | [until.md](until.md#stopsseeingpiece-stopsseeingpiece) |
 | `StoreRead` | struct | [file_store.md](file_store.md#struct-storeread) |
 | `StoreRead::count` | field | [file_store.md](file_store.md#storeread-count) |
 | `StoreRead::opened` | field | [file_store.md](file_store.md#storeread-opened) |
@@ -4516,6 +4616,26 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `Units` | enum class | [spec.md](spec.md#enum-class-units) |
 | `Units::Degrees` | enumerator | [spec.md](spec.md#units-degrees) |
 | `Units::Inches` | enumerator | [spec.md](spec.md#units-inches) |
+| `Until` | class | [until.md](until.md#class-until) |
+| `Until::bound` | function | [until.md](until.md#until-bound) |
+| `Until::conflicting` | function | [until.md](until.md#until-conflicting) |
+| `Until::has` | function | [until.md](until.md#until-has) |
+| `Until::kSees` | field | [until.md](until.md#until-ksees) |
+| `Until::kSelf` | field | [until.md](until.md#until-kself) |
+| `Until::kStalled` | field | [until.md](until.md#until-kstalled) |
+| `Until::kStops` | field | [until.md](until.md#until-kstops) |
+| `Until::kTime` | field | [until.md](until.md#until-ktime) |
+| `Until::operator\|` | function | [until.md](until.md#until-operator-or) |
+| `Until::orAfter` | function | [until.md](until.md#until-orafter) |
+| `Until::readsOwnSensorToo` | function | [until.md](until.md#until-readsownsensortoo) |
+| `Until::seconds` | function | [until.md](until.md#until-seconds) |
+| `Until::sees` | function | [until.md](until.md#until-sees) |
+| `Until::sees (overload 2)` | function | [until.md](until.md#until-sees-2) |
+| `Until::sensor` | function | [until.md](until.md#until-sensor) |
+| `Until::stalled` | function | [until.md](until.md#until-stalled) |
+| `Until::stopsSeeing` | function | [until.md](until.md#until-stopsseeing) |
+| `Until::stopsSeeing (overload 2)` | function | [until.md](until.md#until-stopsseeing-2) |
+| `Until::time` | function | [until.md](until.md#until-time) |
 | `utf8Prefix` | free function | [shul2_format.md](shul2_format.md#utf8prefix) |
 
 ## V
