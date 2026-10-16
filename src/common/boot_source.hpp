@@ -39,7 +39,8 @@
 //    text and order, before the session header).
 //  * THE SHIM (src/common/boot_source.cpp, PROS-bound, a dozen lines): decideBootSource() opens the
 //    card, makes the registry, turns this build's typed table into a description, and prints
-//    each line through printf under the caller's tag.
+//    each line under the caller's tag as ONE serial write() per piece (hal::pros::serialWrapped,
+//    SER1 — a line can run to 511 characters, so it wraps, never cut).
 // All of the first two is inline here so the host test (test/boot_source_test.cpp, the brief's
 // test 6) runs EVERY decision against the IBlockSource / IDeviceRegistry fakes, the way
 // test/chassis_table_test.cpp includes src/robots/chassis_table.hpp: the host build compiles
@@ -591,8 +592,8 @@ template <class PrintLine>
 /// THE BOOT (src/common/boot_source.cpp; the PROS shim): open the card's record and read it, make the
 /// brain's registry, turn this build's typed table into a description, and run
 /// decideBootSourceFrom() with this build's mechanism table (kMechanisms) — printing each decision
-/// line through printf as `[<tag>] …`, BEFORE any adapter exists. Returns the outcome; paints
-/// nothing and sets no global.
+/// line as `[<tag>] …` through hal::pros::serialWrapped() (one serial write() per piece; SER1),
+/// BEFORE any adapter exists. Returns the outcome; paints nothing and sets no global.
 [[nodiscard]] BootOutcome decideBootSource(const char* tag);
 
 }  // namespace shulib::bench

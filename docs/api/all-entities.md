@@ -3,7 +3,7 @@
 
 # Every public entity, alphabetically
 
-All 4,503 of them, across 177 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
+All 4,514 of them, across 177 shipped headers: types, their members, nested types and their members, free functions, namespace-scope constants and type aliases. Generated from the headers by the same parse that produces the pages, so a name missing here is a name missing everywhere — which is why the build fails if this file is not byte-identical to a fresh run.
 
 Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write. Overloads are numbered in source order and each has its own link.
 
@@ -370,9 +370,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `BrakeMode::Coast` | enumerator | [motor.md](motor.md#brakemode-coast) |
 | `BrakeMode::Hold` | enumerator | [motor.md](motor.md#brakemode-hold) |
 | `BrakeWord` | struct | [kinds.md](kinds.md#struct-brakeword) |
-| `BrakeWord::config::SafeBrakeMode` | function | [kinds.md](kinds.md#brakeword-config-safebrakemode) |
 | `BrakeWord::drive` | field | [kinds.md](kinds.md#brakeword-drive) |
-| `BrakeWord::hal::BrakeMode` | function | [kinds.md](kinds.md#brakeword-hal-brakemode) |
+| `BrakeWord::operator config::SafeBrakeMode` | function | [kinds.md](kinds.md#brakeword-operator-config-safebrakemode) |
+| `BrakeWord::operator hal::BrakeMode` | function | [kinds.md](kinds.md#brakeword-operator-hal-brakemode) |
 | `BrakeWord::safe` | field | [kinds.md](kinds.md#brakeword-safe) |
 | `budgetFor` | free function | [calibrate_panel.md](calibrate_panel.md#budgetfor) |
 | `budgetFor` | free function | [touch_panel.md](touch_panel.md#budgetfor) |
@@ -1446,7 +1446,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 |---|---|---|
 | `Handler` | struct | [command_registry.md](command_registry.md#struct-handler) |
 | `Handler::ctx` | field | [command_registry.md](command_registry.md#handler-ctx) |
-| `Handler::manipulation::MechanismOutcome` | function | [command_registry.md](command_registry.md#handler-manipulation-mechanismoutcome) |
+| `Handler::fn` | field | [command_registry.md](command_registry.md#handler-fn) |
 | `hDrive` | free function | [h_drive.md](h_drive.md#hdrive) |
 | `HDriveConfig` | struct | [h_drive.md](h_drive.md#struct-hdriveconfig) |
 | `HDriveConfig::strafeSpeedRatio` | field | [h_drive.md](h_drive.md#hdriveconfig-strafespeedratio) |
@@ -2121,6 +2121,10 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `kSaveReportLineBytes` | constant | [record_store.md](record_store.md#ksavereportlinebytes) |
 | `kSegmentCount` | constant | [drive_characterizer.md](drive_characterizer.md#ksegmentcount) |
 | `kSequenceOffset` | constant | [shul2_format.md](shul2_format.md#ksequenceoffset) |
+| `kSerialCutMarker` | constant | [pros-char_sink.md](pros-char_sink.md#kserialcutmarker) |
+| `kSerialLineBytes` | constant | [pros-char_sink.md](pros-char_sink.md#kseriallinebytes) |
+| `kSerialTagBytes` | constant | [pros-char_sink.md](pros-char_sink.md#kserialtagbytes) |
+| `kSerialWriteMaxBytes` | constant | [pros-char_sink.md](pros-char_sink.md#kserialwritemaxbytes) |
 | `kSettling` | constant | [calibrate_panel.md](calibrate_panel.md#ksettling) |
 | `kSettlingHandsOff` | constant | [calibrate_panel.md](calibrate_panel.md#ksettlinghandsoff) |
 | `kSignature` | constant | [shul2_format.md](shul2_format.md#ksignature) |
@@ -2466,11 +2470,11 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MemberSample::present` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-present) |
 | `MemberSample::velocityRadS` | field | [coupled_side_monitor.md](coupled_side_monitor.md#membersample-velocityrads) |
 | `MenuButton` | struct | [auton_menu.md](auton_menu.md#struct-menubutton) |
-| `MenuButton::1]` | field | [auton_menu.md](auton_menu.md#menubutton-1) |
 | `MenuButton::armed` | field | [auton_menu.md](auton_menu.md#menubutton-armed) |
 | `MenuButton::chosen` | field | [auton_menu.md](auton_menu.md#menubutton-chosen) |
 | `MenuButton::entry` | field | [auton_menu.md](auton_menu.md#menubutton-entry) |
 | `MenuButton::id` | field | [auton_menu.md](auton_menu.md#menubutton-id) |
+| `MenuButton::label` | field | [auton_menu.md](auton_menu.md#menubutton-label) |
 | `MenuButton::rect` | field | [auton_menu.md](auton_menu.md#menubutton-rect) |
 | `MenuButtonId` | enum class | [auton_menu.md](auton_menu.md#enum-class-menubuttonid) |
 | `MenuButtonId::Entry` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-entry) |
@@ -2478,8 +2482,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `MenuButtonId::None` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-none) |
 | `MenuButtonId::Prev` | enumerator | [auton_menu.md](auton_menu.md#menubuttonid-prev) |
 | `MenuLine` | struct | [auton_menu.md](auton_menu.md#struct-menuline) |
-| `MenuLine::1]` | field | [auton_menu.md](auton_menu.md#menuline-1) |
 | `MenuLine::size` | field | [auton_menu.md](auton_menu.md#menuline-size) |
+| `MenuLine::text` | field | [auton_menu.md](auton_menu.md#menuline-text) |
 | `MenuLine::tone` | field | [auton_menu.md](auton_menu.md#menuline-tone) |
 | `MenuLine::x` | field | [auton_menu.md](auton_menu.md#menuline-x) |
 | `MenuLine::y` | field | [auton_menu.md](auton_menu.md#menuline-y) |
@@ -3103,6 +3107,8 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `PositionTuning::maxSpeed` | field | [kinds.md](kinds.md#positiontuning-maxspeed) |
 | `PositionTuning::settle` | field | [kinds.md](kinds.md#positiontuning-settle) |
 | `PositionTuning::within` | field | [kinds.md](kinds.md#positiontuning-within) |
+| `PosixWrite` | struct | [pros-char_sink.md](pros-char_sink.md#struct-posixwrite) |
+| `PosixWrite::operator()` | function | [pros-char_sink.md](pros-char_sink.md#posixwrite-operator-call) |
 | `Power` | struct | [kinds.md](kinds.md#struct-power) |
 | `Power` | type alias | [kinds.md](kinds.md#power) |
 | `Power` | type alias | [quantity.md](quantity.md#power) |
@@ -3164,6 +3170,7 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `ProsBlockSource::~ProsBlockSource` | function | [pros-block_source.md](pros-block_source.md#prosblocksource-destructor-prosblocksource) |
 | `ProsCharSink` | class | [pros-char_sink.md](pros-char_sink.md#class-proscharsink) |
 | `ProsCharSink::ProsCharSink` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink) |
+| `ProsCharSink::ProsCharSink (overload 2)` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-proscharsink-2) |
 | `ProsCharSink::write` | function | [pros-char_sink.md](pros-char_sink.md#proscharsink-write) |
 | `ProsClock` | class | [pros-clock.md](pros-clock.md#class-prosclock) |
 | `ProsClock::now` | function | [pros-clock.md](pros-clock.md#prosclock-now) |
@@ -4004,6 +4011,9 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `SensorRole::source` | field | [spec.md](spec.md#sensorrole-source) |
 | `SensorsConfig` | struct | [robot_config.md](robot_config.md#struct-sensorsconfig) |
 | `SensorsConfig::gps` | field | [robot_config.md](robot_config.md#sensorsconfig-gps) |
+| `serialLine` | free function | [pros-char_sink.md](pros-char_sink.md#serialline) |
+| `serialWrapped` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped) |
+| `serialWrapped (overload 2)` | free function | [pros-char_sink.md](pros-char_sink.md#serialwrapped-2) |
 | `SessionInfo` | struct | [session_info.md](session_info.md#struct-sessioninfo) |
 | `SessionInfo::alliance` | field | [session_info.md](session_info.md#sessioninfo-alliance) |
 | `SessionInfo::buildHash` | field | [session_info.md](session_info.md#sessioninfo-buildhash) |
@@ -4607,13 +4617,14 @@ The [reference overview](README.md) says what is deliberately *not* here, and wh
 | `within` | free function | [touch_panel.md](touch_panel.md#within) |
 | `within (overload 2)` | type alias | [kinds.md](kinds.md#within-2) |
 | `Wrapped` | struct | [calibrate_panel.md](calibrate_panel.md#struct-wrapped) |
-| `Wrapped::1]` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-1) |
 | `Wrapped::complete` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-complete) |
 | `Wrapped::count` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-count) |
+| `Wrapped::line` | field | [calibrate_panel.md](calibrate_panel.md#wrapped-line) |
 | `wrapWords` | free function | [calibrate_panel.md](calibrate_panel.md#wrapwords) |
 | `writeManifest` | free function | [manifest.md](manifest.md#writemanifest) |
 | `writeManifestEntry` | free function | [manifest.md](manifest.md#writemanifestentry) |
 | `writePortMap` | free function | [robot.md](robot.md#writeportmap) |
+| `writeWhole` | free function | [pros-char_sink.md](pros-char_sink.md#writewhole) |
 
 ## X
 

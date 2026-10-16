@@ -496,7 +496,8 @@ pretend-match trap).
       refusal paints the red refusal screen — bar `DRIVE REFUSED AT BOOT` and the BUILD time, the
       headline, the reason (with `(the full text is on the serial log)` when it did not fit), then
       `Nothing is powered. Run shulib Calibrate (slot 4) to save the record this program boots
-      from.` — and serial prints `[DRV] REFUSED: <headline> -- <reason>` (for a refusal decided once
+      from.` — and serial prints `[DRV] REFUSED: <headline> -- <reason>` (since SER1 in pieces when the
+      line passes 255 characters, the later ones starting `[DRV] ... `; for a refusal decided once
       the brain's devices exist — the last two headlines below — it comes through the log as
       `[ERROR][DRV] REFUSED: <headline> -- <reason>`, perhaps in two or three pieces, the later ones
       starting `... `, and the card's `drive_log.txt` holds it too); driver control paints it again
@@ -559,7 +560,8 @@ brain`, `CLAW ABSENT`, `ok` — a state in force outranks an old fault. ONE line
 row 2 first, at most every 0.1 s (PROS does not apply faster controller text), so the three appear over
 about 0.3 s.
 
-**On serial only:** the banner (`[DRV] booted: shulib DRIVE ...`, the run status, `BUILD STAMP`), the
+**On serial only:** the banner (`[DRV] booted: shulib DRIVE ...`, the run status — two lines since SER1,
+the second beginning `[DRV] ... `, one sentence wrapped — and `BUILD STAMP`), the
 boot source's lines, then everything from the brain's devices on — also in the SD copy (F.7):
 `log copy: /usd/drive_log.txt (one file per boot) -- ...` (or `... did NOT open: NO SD CARD --
 serial only ...` with no card, `... did NOT open, though an SD card is in (full? write-protected? a
@@ -2012,7 +2014,7 @@ back` (about 6 s on the host test plant, its legs 24 in, a turn, back).
       → `normal return` for this run: **NEVER / at ____ ms, BEFORE / AFTER the next `entry` line** ; the
       request's lines present: **YES / NO**
 
-**K.7 — the SD logs**
+**K.7 — the SD logs and the serial**
 
 - [ ] **K.7.1** Copy `shulib_auton_runs.txt` off the card: after Station M's runs it must carry K's boot
       lines and every K request's lines, in order (the competition program appends to the tester's file).
@@ -2034,6 +2036,33 @@ back` (about 6 s on the host test plant, its legs 24 in, a turn, back).
       sighting of how often it happens; nothing has measured it).
       → present, one session header per boot of this station? **YES / NO** → a card copy that
       stopped at a disable while serial ran on? **NO / YES (at which line: ______)**
+- [ ] **K.7.3** **The serial log's lines WHOLE** (since SER1, 2026-10-08 — EVIDENCE toward A4 register
+      HA-189, whose dedicated settle is owed (the note after K.7.4); and HA-190). Every line the program
+      prints is now ONE write to the USB, which PROS keeps in one piece; before, two tasks printing at
+      once — the auton task and PROS's phase tasks, at every mode change
+      — could mix or lose bytes. Read K.0.3's saved transcripts around EVERY Timed-Run mode change of K.3–K.6
+      (each phase's `entry`/`return` lines, the `competition status` lines, the auton task's `request` lines):
+      every line starts with its tag (`[CMP]`, `[t=`, ...) and ends before the next one starts — no line
+      spliced into another, none broken off mid-word, none printed twice. A line longer than one write
+      arrives as pieces on purpose, the later ones beginning `[CMP] ... ` — that is whole.
+      → every line whole at every change? **YES / NO** (copy any broken line word for word, with the lines
+      around it). **HA-190:** a transcript that STOPS at a mode change while the brain still shows the program
+      running — and the robot does not answer the sticks after the next enable, because every phase function
+      logs its `entry` line first and blocks on it — is PROS's own serial lock left held by a task PROS
+      deleted in the middle of a write (believed, never seen). `comp_log.txt` stops at the same line (the card
+      copy is written after serial, so it waits too). Note the last line, then restart the program.
+      → serial stopped at a mode change? **NO / YES (last line: ______)**
+- [ ] **K.7.4** **`pros terminal` connected to a RUNNING program, once** (SER1): start the program from the
+      brain with the USB cable unplugged, wait for the menu, then plug in and start `pros terminal`. PROS
+      prints its banner, and the program keeps running — no halt, no red data-abort screen. (The first fix
+      considered for HA-189, unbuffered stdout, was reasoned to crash exactly here — SER1's brief.)
+      → banner printed and the program still running? **YES / NO**
+      *(HA-189's dedicated settle — two tasks printing numbered lines through `pros terminal` for 60 s, with
+      Timed-Run mode changes while they print, every line whole and every number once (SER1's brief, §1.5) —
+      is OWED: no build carries such a program (the bench program's menu is full, twelve stations in its
+      3 × 4 grid), and whether to add one, and how, is the team lead's call. Until then K.7.3 is evidence,
+      not the settle: it reads the competition program's own lines, which carry no sequence numbers, so a
+      line LOST between two whole ones shows only as an expected line missing.)*
 
 **K.8 — THE PUSH CHECK (REQUIRED before this program drives a match — the team lead's N1; HA-176)** —
 on the ground
@@ -2072,7 +2101,7 @@ measurement.
 5. K.6: what the brain showed after the change (the menu, or the driver page's auton row), the request's
    lines (its first line's word is the result), the next phase function's `entry` line, and K.6.3's two
    answers.
-6. K.7's two files.
+6. K.7's two files, K.7.3's answers (and any broken or last line, word for word) and K.7.4's.
 7. **K.8's answers and lines — the push check is required before a match.**
 8. Anything surprising, as observed.
 

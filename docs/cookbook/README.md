@@ -98,7 +98,9 @@ so it cannot disagree with the code.
 
 **1. Steps run as you chain them.** A `Routine` is not a plan that executes later; each step
 blocks until its motion ends. The routine happens in the order it reads. That is why you can put
-a `printf`, a sensor read, or a whole `if` between two steps and nothing surprising happens.
+a printed line, a sensor read, or a whole `if` between two steps and nothing surprising happens.
+(Print with `serialLine`, never `printf` — the guide's
+[chapter 11](../guide/11-reading-the-diagnostics.md) says why.)
 
 **2. A failed step stops the chain and parks the robot.** Everything after it is skipped and
 logged. You do not have to check anything for the robot to be safe — you check `r.ok()` when you

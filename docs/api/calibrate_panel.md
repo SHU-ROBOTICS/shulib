@@ -148,7 +148,7 @@ Extracted from [`include/shulib/calibration/calibrate_panel.hpp`](../../include/
 - [`panelLiteralsFit`](#panelliteralsfit) — *free function*
 - [`panelLayoutHolds`](#panellayoutholds) — *free function*
 - [`struct Wrapped`](#struct-wrapped)
-  - [`1]`](#wrapped-1)
+  - [`line`](#wrapped-line)
   - [`count`](#wrapped-count)
   - [`complete`](#wrapped-complete)
 - [`wrapWords`](#wrapwords) — *free function*
@@ -1782,9 +1782,9 @@ Text broken into at most `Lines` lines of at most `Cols` characters — see wrap
 
 *struct, declared at [`include/shulib/calibration/calibrate_panel.hpp:501`](../../include/shulib/calibration/calibrate_panel.hpp#L501).*
 
-<a id="wrapped-1"></a>
+<a id="wrapped-line"></a>
 
-### `Wrapped::1]`
+### `Wrapped::line`
 
 ```cpp
 char line[Lines][Cols + 1]{}

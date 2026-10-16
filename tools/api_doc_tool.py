@@ -392,8 +392,67 @@ def _normalize(text):
     return re.sub(r"\s+", " ", " ".join(lines)).strip()
 
 
+# A leading attribute-specifier-seq: `[[nodiscard]]`, `[[gnu::format(printf, 1, 2)]]`.
+# (SER1, 2026-10-08.) The name and the kind are read from the first `(` at depth
+# zero, and an attribute's own `(` came first: `[[gnu::format(printf, 1, 2)]] inline
+# void serialLine(...)` was named "?" — published under that name and counted as
+# documented by the coverage gate. `[[nodiscard]]` never showed it (no parenthesis).
+LEADING_ATTRIBUTES = re.compile(r"^\s*(?:\[\[[^\]]*\]\]\s*)+")
+
+
+def _without_leading_attributes(sig):
+    """The declaration with its leading `[[...]]` attributes removed — for reading
+    the name and the kind only; the rendered signature keeps them."""
+    return LEADING_ATTRIBUTES.sub("", sig)
+
+
+# A parenthesised POINTER (or reference) declarator where a parameter list would
+# be: `R (*fn)(args)`, `R (&fn)(args)`, `R (Owner::*fn)(args)` — a field (or a
+# constant) holding a function, not a function. (SER1's review, 2026-10-15: the
+# reader took `manipulation::MechanismOutcome (*fn)(void* ctx, …)` for a function
+# named after its return type, and the coverage gate passed it.)
+POINTER_DECLARATOR = re.compile(
+    r"\(\s*(?:[A-Za-z_]\w*::)*[*&]+\s*(?:const\s+)?([A-Za-z_]\w*)\s*\)\s*\(")
+
+# What a member's or an entity's NAME may look like once read: an identifier (a
+# destructor's `~` allowed), a template specialization's `name<args>`, or an
+# operator. Anything else — `?`, `1]`, a type — is the name reader misreading the
+# declaration, and the coverage gate FAILS it (do_check_coverage): a misread name is
+# published under a heading nobody can search for, and it used to count as
+# documented. (SER1's review, 2026-10-15.)
+READABLE_NAME = re.compile(r"^(?:~?[A-Za-z_]\w*(?:<.+>)?|operator\b.+)$")
+
+# A lone keyword is never a name either, though it looks like an identifier: it is
+# what the reader returned for a CONVERSION operator before it learned that shape —
+# `explicit operator bool() const` would have been published as `bool`, and READABLE_NAME
+# alone would have passed it. (SER1's review, resumed 2026-10-15: MECH-A1's
+# `BrakeWord`, kinds.hpp, declares `operator config::SafeBrakeMode()` and
+# `operator hal::BrakeMode()`; the reader named them after the TYPE.)
+NOT_A_NAME = frozenset({
+    "auto", "bool", "char", "char8_t", "char16_t", "char32_t", "class", "const",
+    "consteval", "constexpr", "constinit", "decltype", "double", "enum", "explicit",
+    "extern", "final", "float", "friend", "inline", "int", "long", "mutable", "noexcept",
+    "operator", "override", "return", "short", "signed", "static", "struct", "template",
+    "typename", "union", "unsigned", "virtual", "void", "volatile", "wchar_t",
+})
+
+
+def unreadable_name(name):
+    """True when `name` is not a shape READABLE_NAME allows, or is a lone keyword —
+    the reader misread it."""
+    return not READABLE_NAME.match(name or "") or name in NOT_A_NAME
+
+
+# A CONVERSION operator's head, read up to its parameter list: `operator bool`,
+# `operator config::SafeBrakeMode`, `operator const char*`. Its name is the keyword
+# with the type it converts to; without this the head's last token — the TYPE — was
+# the name. (SER1's review, resumed 2026-10-15; see NOT_A_NAME.)
+CONVERSION_OPERATOR_HEAD = re.compile(r"\boperator\s+([^()]*?)\s*$")
+
+
 def _member_name(sig):
     """The identifier a human would call this member, from its rendered form."""
+    sig = _without_leading_attributes(sig)
     # A using-declaration names its alias, and the name is NOT the last token
     # before the first `(` — `using PreconditionHandler = void (*)(const char*)`
     # would otherwise be called "void".
@@ -422,6 +481,14 @@ def _member_name(sig):
             if ch == "=":
                 break            # an initializer, not a parameter list
             if ch == "(":
+                pointer = POINTER_DECLARATOR.match(sig, i)
+                if pointer:
+                    return pointer.group(1)   # `R (*fn)(args)`: the field is `fn`
+                conversion = CONVERSION_OPERATOR_HEAD.search(sig[:i])
+                if conversion and conversion.group(1):
+                    # `operator config::SafeBrakeMode()`: the name is the keyword and
+                    # the type, not the type alone.
+                    return "operator " + re.sub(r"\s+", " ", conversion.group(1))
                 return _bare_identifier(sig[:i])
     # No parameter list: a field or a constant. Name is the identifier before
     # = or { or ;.
@@ -435,6 +502,15 @@ def _bare_identifier(head):
     anchor and an index row carrying the bound would not match what a reader
     searches for.
     """
+    # Every `[...]` group first, innermost out — a bound may hold spaces
+    # (`char label[ui::kMediumCols + 1]`) or come twice (`char line[Lines][Cols + 1]`),
+    # and the last TOKEN was then `1]` (SER1's review, 2026-10-15: three fields in the
+    # shipped reference were published as `1]`).
+    while True:
+        stripped = re.sub(r"\[[^\[\]]*\]", "", head)
+        if stripped == head:
+            break
+        head = stripped
     tokens = head.strip().split()
     if not tokens:
         return "?"
@@ -980,11 +1056,13 @@ def _looks_like_function(sig):
     The first has a `(` at depth zero, after an `=`. The second has one inside a
     brace initializer, which was not tracked at all. So a top-level `=` ends the
     search (everything after it is an initializer), and braces are a depth.
+    A leading `[[...]]` attribute is skipped: its own `(` is not a parameter list.
     """
+    sig = _without_leading_attributes(sig)
     if OPERATOR_NAME.search(sig):
         return True                       # every operator declaration is one
     angle = brace = 0
-    for ch in sig:
+    for i, ch in enumerate(sig):
         if ch == "<":
             angle += 1
         elif ch == ">":
@@ -997,7 +1075,8 @@ def _looks_like_function(sig):
             if ch == "=":
                 return False
             if ch == "(":
-                return True
+                # `R (*fn)(args)` declares a pointer to a function: a field.
+                return not POINTER_DECLARATOR.match(sig, i)
     return False
 
 
@@ -1668,32 +1747,64 @@ def do_generate(outroot=None):
     return written
 
 
-def do_check_coverage(only=None):
-    """Report every public entity with no /// documentation.
-
-    `only` narrows the report to one header — the whole tree is 115 headers, and
-    someone documenting one of them needs the list for that one, not a wall.
-    It narrows the REPORT, never the gate: the build always runs it unfiltered.
-    """
-    missing = []
-    pages = build_pages()
-    if only:
-        only = only.replace(os.sep, "/")
-        pages = [p for p in pages if p[0]["header"].endswith(only)]
-        if not pages:
-            raise SystemExit(f"api_doc_tool: no target header matches {only!r}")
+def coverage_problems(pages):
+    """(missing, unreadable) over `pages`: every public entity with no /// documentation, and
+    every one whose NAME the reader could not read (unreadable_name) — each as
+    (header, line, name, signature)."""
+    missing, unreadable = [], []
     for target, _banner, entries in pages:
         for section in sections_of(entries):
+            if unreadable_name(section.name):
+                unreadable.append((target["header"], section.line, section.name,
+                                   section.signature or section.name))
             if not section.documented:
                 what = (f"{section.kind} {section.qualified}"
                         if isinstance(section, TypeDecl) else section.name)
                 missing.append((target["header"], section.line, what,
                                 section.signature or what))
             for mem in getattr(section, "members", []):
+                if unreadable_name(mem.name):
+                    unreadable.append((target["header"], mem.line,
+                                       f"{section.qualified}::{mem.name}", mem.signature))
                 if not mem.documented:
                     missing.append((target["header"], mem.line,
                                     f"{section.qualified}::{mem.name}",
                                     mem.signature))
+    return missing, unreadable
+
+
+def do_check_coverage(only=None, pages=None):
+    """Report every public entity with no /// documentation, and FAIL on any
+    entity whose name the reader could not read (coverage_problems).
+
+    `only` narrows the report to one header — the whole tree is 115 headers, and
+    someone documenting one of them needs the list for that one, not a wall.
+    It narrows the REPORT, never the gate: the build always runs it unfiltered.
+    `pages` is the self-test's: a page set checked in place of the tree's
+    (build_pages()), so both failures are proved on planted entities.
+    """
+    if pages is None:
+        pages = build_pages()
+    if only:
+        only = only.replace(os.sep, "/")
+        pages = [p for p in pages if p[0]["header"].endswith(only)]
+        if not pages:
+            raise SystemExit(f"api_doc_tool: no target header matches {only!r}")
+    missing, unreadable = coverage_problems(pages)
+    if unreadable:
+        print("", file=sys.stderr)
+        print(f"DOC COVERAGE FAILURE — the name reader could not read {len(unreadable)} "
+              "public entities' names.", file=sys.stderr)
+        print("Each would be published under a heading nobody can search for (`?`, `1]`, a "
+              "type),", file=sys.stderr)
+        print("and counted as documented. Teach _member_name() the declaration's shape.",
+              file=sys.stderr)
+        print("", file=sys.stderr)
+        for header, line, name, sig in unreadable:
+            print(f"  UNREADABLE NAME: {name!r}", file=sys.stderr)
+            print(f"      at {header}:{line}", file=sys.stderr)
+            print(f"      {sig}", file=sys.stderr)
+        return 1
     if not missing:
         total = sum(1 for _t, _b, e in pages for s in sections_of(e)
                     for _ in [s] + list(getattr(s, "members", [])))
@@ -2078,6 +2189,13 @@ inline int freeHelper(int a, int b = 2) { return a + b; }
 template <typename T>
 inline T freeTemplate(T v) { return v; }
 
+/// A free function behind a PARENTHESISED attribute (SER1's serialLine shape):
+/// named for the identifier before its parameter list, not the attribute's `(`.
+[[gnu::format(printf, 1, 2)]] inline void attributed(const char* fmt, ...) {}
+
+/// A constant behind a parenthesised attribute: a constant, not a function.
+[[deprecated("fixture")]] inline constexpr int kAttributed = 1;
+
 /// Two overloads of one operator, plus a different operator, all of which
 /// reduce to the same characters once punctuation is stripped.
 constexpr Count operator""_ct(unsigned long long v) { return static_cast<Count>(v); }
@@ -2144,6 +2262,28 @@ struct Initializers {
     double scaled{(3.0 + 4.0) * 2.0};
     /// A genuine function, for contrast: the `(` here is a parameter list.
     double scale(double by) const { return scaled * by; }
+};
+
+/// DECLARATORS THE NAME READER MISREAD IN THE SHIPPED TREE (SER1's review,
+/// 2026-10-15): an array bound with a space in it, a second bound, and a
+/// pointer-to-function field — published as `1]`, `1]` and the field's RETURN
+/// TYPE (a "function"), every one counted as documented.
+struct Declarators {
+    /// A width, for the bounds below.
+    static constexpr int kCols = 4;
+    /// An array whose bound has spaces in it.
+    char label[kCols + 1]{};
+    /// Two bounds.
+    char grid[2][kCols + 1]{};
+    /// A pointer to a function: a FIELD named `callback`.
+    int (*callback)(void* ctx, int n) = nullptr;
+    /// Conversion operators (resumed review, 2026-10-15): each was named after its
+    /// TYPE — `bool`, `std::size_t`, `char*` — the first two passing as names.
+    explicit operator bool() const noexcept { return true; }
+    /// To a qualified type, the shape MECH-A1's BrakeWord declares.
+    constexpr operator std::size_t() const noexcept { return 4; }
+    /// To a pointer, with a cv-qualifier in the type.
+    operator const char*() const noexcept { return label; }
 };
 
 /// A documented class.
@@ -2248,7 +2388,7 @@ def do_self_test():
         # coverage gate vacuously green — the worst possible failure here).
         names = [t.name for t in types]
         check(names == ["Colour", "Sized", "Wrapped", "Thing", "Derived",
-                        "Initializers", "Widget"], f"types found: {names}")
+                        "Initializers", "Declarators", "Widget"], f"types found: {names}")
         by = {t.name: t for t in types}
 
         # Bug caught: FOUND IN THE SHIPPED TREE by a reader, not by any gate. A
@@ -2296,9 +2436,23 @@ def do_self_test():
         # spec/accuracy.hpp and all of version.hpp.
         fnames = [m.name for m in frees]
         check(fnames == ["kPunctuation", "kSemicolon", "kOpenBrace", "Count",
-                         "freeHelper", "freeTemplate", 'operator""_ct'],
+                         "freeHelper", "freeTemplate", "attributed", "kAttributed",
+                         'operator""_ct'],
               f"namespace-scope entities: {fnames}")
         fby = {m.name: m for m in frees}
+        # Bug caught (SER1, 2026-10-08): a declaration opening with a PARENTHESISED
+        # attribute was named after the attribute — `[[gnu::format(printf, 1, 2)]]
+        # inline void serialLine(...)` rendered as "?" in docs/api/, and the
+        # coverage gate counted "?" as documented. And the kind half: an
+        # attribute's `(` read as a parameter list made a constant a function.
+        check("attributed" in fby and fby["attributed"].kind == "free function",
+              f"a function behind [[gnu::format(...)]] is named and kinded: {fnames}")
+        check("kAttributed" in fby and fby["kAttributed"].kind == "constant",
+              f"a constant behind [[deprecated(...)]] is a constant: "
+              f"{fby.get('kAttributed') and fby['kAttributed'].kind}")
+        check(fby.get("attributed") is not None and fby["attributed"].signature.startswith(
+                  "[[gnu::format(printf, 1, 2)]] inline void attributed("),
+              "the rendered signature keeps the attribute")
         check(fby["kPunctuation"].kind == "constant", "constant kind")
         # Bug caught: FOUND BY MUTATION (DOCS2 campaign M3, which stayed GREEN on
         # the first fixture). `kPunctuation`'s three literals happen to BALANCE,
@@ -2351,6 +2505,91 @@ def do_self_test():
               f"…and keeps it whole: {init['scaled'].signature!r}")
         check(init["scale"].kind == "function",
               "a real parameter list is still a function")
+
+        # Bug caught (SER1's review, 2026-10-15): FOUND IN THE SHIPPED TREE when
+        # the coverage gate learned to fail on an unreadable name — three fields
+        # published as `1]` (an array bound with a space, a second bound) and a
+        # pointer-to-function field published as a FUNCTION named after its
+        # return type. Each name, and the pointer's kind, pinned.
+        decl = {m.name: m for m in by["Declarators"].members}
+        check(set(decl) == {"kCols", "label", "grid", "callback", "operator bool",
+                            "operator std::size_t", "operator const char*"},
+              f"Declarators: {sorted(decl)}")
+        # Bug caught (SER1's review, resumed 2026-10-15): a CONVERSION operator named
+        # after its type — `bool` passed as a name; MECH-A1's
+        # `operator config::SafeBrakeMode()` failed the gate as unreadable. Named
+        # `operator <type>`, kinded a function, and anchored apart.
+        for conv in ("operator bool", "operator std::size_t", "operator const char*"):
+            check(decl.get(conv) is not None and decl[conv].kind == "function",
+                  f"a conversion operator is a function named {conv!r}: "
+                  f"{decl.get(conv) and decl[conv].kind}")
+        conv_anchors = {_spell(n) for n in ("operator bool", "operator std::size_t",
+                                            "operator const char*")}
+        check(len(conv_anchors) == 3 and all(a.startswith("operator-") for a in conv_anchors),
+              f"conversion operators anchor apart: {sorted(conv_anchors)}")
+        check(decl.get("callback") is not None and decl["callback"].kind == "field",
+              f"a pointer-to-function field is a field: "
+              f"{decl.get('callback') and decl['callback'].kind}")
+        check(decl.get("grid") is not None and
+              decl["grid"].signature == "char grid[2][kCols + 1]{}",
+              f"…and the rendered signature keeps both bounds: "
+              f"{decl.get('grid') and decl['grid'].signature!r}")
+
+        # Bug caught (SER1's review, 2026-10-15): the coverage gate counting an
+        # entity whose name the reader could not read — `?` (serialLine, before
+        # the attribute skip), `1]`, a type — as documented. The clean fixture
+        # has none; a planted `?` member, `1]` member, lone-keyword `bool` member
+        # (a conversion operator read before the reader knew the shape) and `?`
+        # namespace-scope entity must each be REPORTED, and a documented one stays
+        # documented (the name check is its own failure, not a coverage miss).
+        fixture_pages = [({"header": "fixture.hpp"}, banner, entries)]
+        _missing, unreadable = coverage_problems(fixture_pages)
+        check(unreadable == [], f"the clean fixture has no unreadable name: {unreadable}")
+        planted = [Member("field", "?", "int ? = 0", ["documented"], 1),
+                   Member("field", "1]", "char x[n + 1]", ["documented"], 2),
+                   Member("function", "bool", "explicit operator bool() const", ["documented"],
+                          4)]
+        for m in planted:
+            m.owner = by["Thing"]
+        by["Thing"].members.extend(planted)
+        stray = Member("constant", "?", "[[odd(\"]\")]] int odd = 0", ["documented"], 3)
+        entries.append(stray)
+        try:
+            _missing, unreadable = coverage_problems(fixture_pages)
+            names_found = [u[2] for u in unreadable]
+            check(names_found.count("Thing::?") == 1 and "Thing::1]" in names_found
+                  and "Thing::bool" in names_found and "?" in names_found,
+                  f"planted unreadable names were not all reported: {names_found}")
+        finally:
+            for m in planted:
+                by["Thing"].members.remove(m)
+            entries.remove(stray)
+
+        # Bug caught (SER1's verification, 2026-10-15): the check above proves
+        # coverage_problems() REPORTS a misread name — not that check-coverage
+        # FAILS on one. With the failing branch lost, the tree (which has no
+        # misread name) passes every gate, and the next shape the reader misreads
+        # is published as `?` again. One page whose every entity is documented:
+        # with a name the reader could not read, check-coverage must return 1 and
+        # print it; with that name readable it must pass — the control, so the
+        # failure is the NAME's, not a coverage miss.
+        import contextlib
+        import io
+        for name, want in (("?", 1), ("1]", 1), ("bool", 1), ("readableName", 0)):
+            page = [({"header": "fixture.hpp"}, banner,
+                     [Member("constant", name, "int odd = 0", ["documented"], 7)])]
+            out, err = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                rc = do_check_coverage(pages=page)
+            said = err.getvalue()
+            check(rc == want,
+                  f"check-coverage on a documented {name!r}: rc {rc}, not {want}: {said}")
+            if want:
+                check(f"UNREADABLE NAME: {name!r}" in said and "fixture.hpp:7" in said,
+                      f"check-coverage did not name the unreadable {name!r}: {said}")
+            else:
+                check(said == "" and "all documented" in out.getvalue(),
+                      f"check-coverage failed a readable, documented name: {said}")
 
         # Bug caught: enumerators not treated as members, so an undocumented
         # enumerator would never be reported.

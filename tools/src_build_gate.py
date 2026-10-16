@@ -137,6 +137,47 @@ tank-competition)
     sentences src/main.cpp paints itself (the DISABLED / FIELD CONTROL reasons and the tester's
     and Calibrate's AUTONOMOUS reasons are main.cpp's own literals, no program's symbol) — a
     swap there shows the wrong sentence and passes.
+ 9. Asserts ONE-CALL WRITES (SER1, 2026-10-08; A4 register HA-189): no src/ OBJECT prints
+    through stdio. Every task on the brain shares ONE stdout FILE, line-buffered, and the
+    vendored newlib's per-FILE locks are no-op stubs — so two tasks inside printf/puts/fwrite on
+    stdout at once can mix or lose each other's bytes (HA-189, reasoned from the vendored
+    libc.a/libpros.a). A line is whole only as ONE write() call, which PROS's serial write mutex
+    keeps whole (reasoned, HA-189): include/shulib/hal/pros/char_sink.hpp's
+    serialLine()/serialWrapped() and its ProsCharSink. So this step runs `arm-none-eabi-nm -A -u`
+    over every object make built (bin/**/*.o — STDIO_EXEMPT_OBJECT, PROS's generated link
+    timestamp, aside) and FAILS, naming the object and the symbol, on any of STDIO_BANNED:
+      * every printer that writes stdout or stderr WITHOUT naming it — its object references only
+        the printer's own name, never stdout: printf, iprintf, vprintf, viprintf, puts, putchar,
+        putchar_unlocked, wprintf, vwprintf, putwchar, putwchar_unlocked, perror, psignal, and
+        each reentrant `_r` form. That is every such writer the vendored libc.a DEFINES: the
+        self-test derives the family from the archive's own symbol table (STDIO_IMPLICIT_WRITER)
+        and fails on one the list lacks (the review of 2026-10-15 found viprintf,
+        putchar_unlocked and the wide printers PASSING the first list, A1's);
+      * the C++ standard streams, narrow and wide: std::cout, cerr, clog, wcout, wcerr, wclog;
+      * the FILE-taking printers A1 bans outright: putc, fputc, __swbuf_r, fputs, fprintf,
+        vfprintf, fiprintf;
+      * and stdio's FILEs themselves: _impure_ptr — what NAMING stdin, stdout or stderr compiles
+        to in newlib (`fflush(stdout)`, `fwrite(…, stdout)`, `fputws(…, stdout)`) — and __sf, the
+        three FILEs' own array (`&__sf[1]` is stdout by another name). This is how the check sees
+        any other stdio call aimed at stdout without banning the call itself.
+    ALLOWED: fwrite, fflush, fopen and snprintf/vsnprintf — the SD card's FILEs
+    (hal/pros/block_sink.hpp; the bench tester's card probe) and formatting into a buffer — and
+    write() itself. It reads the OBJECTS, not the source, because the compiler rewrites
+    `printf("x\n")` into `puts("x")` invisibly — and newlib's puts sends the text and the
+    newline as TWO writes; and the objects before the link, because --gc-sections would drop an
+    unused printer from the package and hide it. Every src/ TU must have its object (a check
+    that read nothing would pass). And once per `check`, before any build, the LIST itself is
+    checked against the libraries it names ([stdio-list], stdio_list_problems()): every
+    STDIO_IMPLICIT_WRITER the vendored libc.a defines must be in it, and every name in it must be
+    defined by libc.a or the toolchain's libstdc++.a (a misspelt name bans nothing). A newer libc
+    with a new printer FAILS the gate until the list names it. What it does NOT see: a write()
+    of a line in two calls (`serialLine` then a second write for the newline) — the host suite
+    pins the one-call shape (test/serial_line_test.cpp); a FILE a program opens on the serial's
+    descriptor itself (`fdopen(1, …)`, then `fwrite`), or a stdout FILE* handed in from code
+    outside src/; stdin's readers (getchar, scanf, gets and their wide forms — they read);
+    assert()'s failure message (`__assert_func`) and std::terminate's, both on the way to a
+    crash; and the vendored libraries' own stdio (PROS's serial daemon banners, the expander
+    ADI's `puts`, crash dumps), which are not src/ objects.
 
 Once per `check`, before any build — step 0, five source checks:
   THE ONE-CHAIN RULE (G1 Part 2c; widened at 2c's final run, 2026-09-26, the team lead's ruling
@@ -262,7 +303,7 @@ assigns (step 6's robot beacon) — is read from the package. The self-test plan
 (cases 16-27; SRC1's folders and include root, cases 28-29; the paths a program prints, case 30;
 the seventh build's define and beacon, cases 31-32; a build dropped from VARIANTS alone, case 33;
 the eighth build's define and beacon, cases 34-35; the retired library build, cases 12-13 since
-T4 Part 3);
+T4 Part 3; step 9's stdio printers, cases 36-39 since SER1 and 40-41 since its review);
 the G1 Part 2c and SRC1 logs
 carry the hand mutations.
 
@@ -322,6 +363,8 @@ USAGE — one command locally, the identical command in CI (arm-compile-gate job
                                               # verdict, restore byte-exact
 """
 
+import contextlib
+import io
 import os
 import re
 import shutil
@@ -491,6 +534,40 @@ SHARED_BENCH_NAMES = {"benchStateScreen", "competitionBits", "attachFaultLatch"}
 BUILD_SELECTION_NAMES = {"Program", "kProgram", "kRobotBeacon", "kVariantBeacon"}
 ARM_NM = "arm-none-eabi-nm"
 ENTRY_POINTS = ("initialize", "disabled", "competition_initialize", "autonomous", "opcontrol")
+
+# Step 9, ONE-CALL WRITES (header; SER1, 2026-10-08, the brief's amendment A1; widened by SER1's
+# review, 2026-10-15). The undefined symbols a src/ object may NOT reference. fwrite/fflush/fopen
+# and snprintf/vsnprintf are deliberately NOT here: the SD card's FILEs need them, and a buffer is
+# not the serial.
+STDIO_BANNED = frozenset({
+    # A1's list, as the team lead's go carried it.
+    "puts", "_puts_r", "putchar", "putc", "fputc", "__swbuf_r", "fputs", "printf", "iprintf",
+    "vprintf", "fprintf", "vfprintf", "fiprintf", "perror", "_ZSt4cout", "_ZSt4cerr",
+    "_ZSt4clog", "_impure_ptr",
+    # The review's (2026-10-15): the rest of the printers that write stdout/stderr WITHOUT naming
+    # it — every member of STDIO_IMPLICIT_WRITER the vendored libc.a defines (the self-test derives
+    # them) — the wide C++ streams (mangled: nm runs without -C), and the FILE array itself.
+    "_printf_r", "_iprintf_r", "_vprintf_r", "viprintf", "_viprintf_r", "_putchar_r",
+    "putchar_unlocked", "_putchar_unlocked_r", "_perror_r", "psignal",
+    "wprintf", "_wprintf_r", "vwprintf", "_vwprintf_r", "putwchar", "_putwchar_r",
+    "putwchar_unlocked", "_putwchar_unlocked_r",
+    "_ZSt5wcout", "_ZSt5wcerr", "_ZSt5wclog", "__sf",
+})
+# The family of printers that write stdout or stderr without naming it (the object then references
+# only the printer), as a pattern over a library's own symbol table: the self-test reads the
+# vendored libc.a with it and requires every match in STDIO_BANNED, so a printer the list lacks
+# FAILS the self-test rather than passing every build (viprintf and putchar_unlocked did, until the
+# review of 2026-10-15). sprintf/snprintf/dprintf and the FILE-taking forms do not match: the first
+# three format into a buffer or write one descriptor, and the last need a FILE — stdout's is caught
+# by _impure_ptr or __sf.
+STDIO_IMPLICIT_WRITER = re.compile(
+    r"^_?(?:v?i?printf|v?wprintf|puts|putchar|putchar_unlocked|putwchar|putwchar_unlocked"
+    r"|perror|psignal)(?:_r)?$")
+VENDORED_LIBC = os.path.join(REPO, "firmware", "libc.a")
+# PROS's generated link timestamp (common.mk compiles it into bin/ beside src/'s objects); not
+# from src/, and it prints nothing.
+STDIO_EXEMPT_OBJECT = "_pros_ld_timestamp.o"
+_NM_UNDEFINED = re.compile(r"^(?P<obj>.+?):\s+U\s+(?P<sym>\S+)$")
 
 
 def _logical_lines(text):
@@ -1165,6 +1242,115 @@ def program_problems(robot, linked):
     return problems
 
 
+def object_of(tu):
+    """The object make builds from a src/ TU (common.mk): `src/programs/x.cpp` ->
+    `bin/programs/x.cpp.o`."""
+    return os.path.join("bin", os.path.relpath(tu, "src")) + ".o"
+
+
+def built_objects():
+    """Every object under bin/ (repo-relative), PROS's link timestamp aside (step 9)."""
+    out = []
+    for root, _dirs, files in os.walk(os.path.join(REPO, "bin")):
+        for f in files:
+            if f.endswith(".o") and f != STDIO_EXEMPT_OBJECT:
+                out.append(os.path.relpath(os.path.join(root, f), REPO))
+    return sorted(out)
+
+
+def stdio_problems(robot, nm):
+    """Step 9 for one build (header): every src/ object's undefined symbols against STDIO_BANNED,
+    after the build. Fails, too, when a src/ TU has no object — a check that read nothing passes
+    nothing."""
+    objects = built_objects()
+    problems = []
+    missing = [object_of(tu) for tu in expected_tus() if object_of(tu) not in objects]
+    if missing:
+        problems.append(f"build {robot}: no object for {missing} under bin/ — the stdio check "
+                        f"(step 9) cannot read what it cannot find")
+    if not objects:
+        return problems or [f"build {robot}: no object under bin/ (step 9 read nothing)"]
+    p = subprocess.run([nm, "-A", "-u", *objects], cwd=REPO, capture_output=True, text=True,
+                       timeout=120)
+    if p.returncode != 0:
+        raise RuntimeError(f"{ARM_NM} -u exited {p.returncode}: {p.stderr.strip()}")
+    for line in p.stdout.splitlines():
+        m = _NM_UNDEFINED.match(line.strip())
+        if m is None or m.group("sym") not in STDIO_BANNED:
+            continue
+        sym = m.group("sym")
+        what = ("stdin/stdout/stderr (newlib's _impure_ptr: `fflush(stdout)`, "
+                "`fwrite(..., stdout)`, ...)" if sym == "_impure_ptr" else
+                "stdio's FILEs (`__sf`: `&__sf[1]` is stdout)" if sym == "__sf" else f"`{sym}`")
+        problems.append(
+            f"build {robot}: {m.group('obj')} references {what} — a write through stdio's "
+            f"shared, unguarded FILEs, which two tasks can corrupt (A4 register HA-189). Send each "
+            f"line as ONE write(): hal::pros::serialLine() / serialWrapped() or a sink "
+            f"(include/shulib/hal/pros/char_sink.hpp) (step 9)")
+    return problems
+
+
+def _defined_symbols(nm, archive):
+    """Every global symbol `archive` DEFINES (any section: a function, stdout's FILE pointer, a
+    stream object), by name."""
+    p = subprocess.run([nm, "-g", "--defined-only", archive], capture_output=True, text=True,
+                       timeout=120)
+    if p.returncode != 0:
+        raise RuntimeError(f"{ARM_NM} on {archive} exited {p.returncode}: {p.stderr.strip()}")
+    return {parts[2] for parts in (line.split() for line in p.stdout.splitlines())
+            if len(parts) == 3}
+
+
+def toolchain_libstdcxx(path_env=None):
+    """The libstdc++.a the build links (common.mk's `-lstdc++`), for common.mk's own MFLAGS —
+    read from common.mk, never typed twice — or None."""
+    gxx = find_compiler(path_env)
+    if gxx is None:
+        return None
+    with open(os.path.join(REPO, "common.mk"), encoding="utf-8") as fh:
+        m = re.search(r"^MFLAGS=(.*)$", fh.read(), re.M)
+    if m is None:
+        return None
+    p = subprocess.run([gxx, *m.group(1).split(), "-print-file-name=libstdc++.a"],
+                       capture_output=True, text=True, timeout=60)
+    path = p.stdout.strip()
+    return path if p.returncode == 0 and os.path.isabs(path) and os.path.isfile(path) else None
+
+
+def stdio_list_problems(nm, banned=None, path_env=None):
+    """Step 9's LIST against the libraries it names (header), once per check: every printer the
+    vendored libc.a defines that writes stdout/stderr without naming it (STDIO_IMPLICIT_WRITER)
+    must be in `banned`, and every name in `banned` must be DEFINED by libc.a or the toolchain's
+    libstdc++.a — a misspelt name bans nothing. `banned` defaults to STDIO_BANNED as it is AT THE
+    CALL (the self-test rebinds it). Returns (the writers found, the problems)."""
+    if banned is None:
+        banned = STDIO_BANNED
+    libc = _defined_symbols(nm, VENDORED_LIBC)
+    writers = sorted(s for s in libc if STDIO_IMPLICIT_WRITER.match(s))
+    problems = []
+    if not writers:
+        problems.append(f"no stdout/stderr printer found in {VENDORED_LIBC} — the list check "
+                        f"(step 9) read nothing")
+    for w in writers:
+        if w not in banned:
+            problems.append(f"{w}: the vendored libc.a defines it and it writes stdout/stderr "
+                            f"without naming it, so an object calling it references only `{w}` "
+                            f"— it is not in STDIO_BANNED, and every build calling it PASSES "
+                            f"(step 9)")
+    cxx = toolchain_libstdcxx(path_env)
+    if cxx is None:
+        problems.append("the toolchain's libstdc++.a was not found — the C++ stream names in "
+                        "STDIO_BANNED cannot be checked (step 9)")
+        defined = libc
+    else:
+        defined = libc | _defined_symbols(nm, cxx)
+    for name in sorted(banned - defined):
+        problems.append(f"{name}: in STDIO_BANNED, but neither the vendored libc.a nor the "
+                        f"toolchain's libstdc++.a defines it — a misspelt name bans nothing "
+                        f"(step 9)")
+    return writers, problems
+
+
 def _beacon_bytes(beacon):
     """A beacon as it sits in the ELF: the literal PLUS its NUL terminator, so that
     `…=tank` cannot match inside `…=tank-drive` (header, step 6)."""
@@ -1407,6 +1593,18 @@ def verdict(robot, b):
         problems.append("bin/hot.package.elf missing — the beacon (step 6) and the program "
                         "(step 8) cannot be checked")
 
+    # Step 9 (header): ONE-CALL WRITES — no src/ object names stdio's FILEs or calls a stdout/stderr
+    # printer. From the OBJECTS, before --gc-sections could hide an unused one.
+    nm = find_nm()
+    if nm is None:
+        problems.append(f"{ARM_NM} not found — the stdio check (step 9) cannot run, and a skip "
+                        f"is not a pass")
+    else:
+        try:
+            problems += stdio_problems(robot, nm)
+        except (RuntimeError, OSError, subprocess.SubprocessError) as e:
+            problems.append(f"the stdio check (step 9) could not read the objects: {e}")
+
     return not problems, problems
 
 
@@ -1417,7 +1615,7 @@ def _summary(robot, b):
             f"compiled, warnings: {allowed}{len(b.vendor)} vendor-ignored, "
             f"{len(b.disallowed)} disallowed, hash "
             f"{'asserted (' + b.hash_expected + ')' if b.hash_expected else 'UNAVAILABLE'}"
-            f", beacons (variant, robot) and program checked")
+            f", beacons (variant, robot), program and stdio printers checked")
 
 
 def cmd_check(path_env=None, quiet=False):
@@ -1463,6 +1661,16 @@ def cmd_check(path_env=None, quiet=False):
     say(f"  [printed-path] every src/ path in a string literal under "
         f"{' and '.join(r + '/' for r in PRINTED_PATH_ROOTS)} "
         f"{'names a file or folder that exists' if not path_problems else 'does NOT — see below'}")
+    # Step 9's list, once (header): against the libraries it names, before any build reads it.
+    try:
+        writers, list_problems = stdio_list_problems(find_nm(path_env), path_env=path_env)
+    except (RuntimeError, OSError, subprocess.SubprocessError) as e:
+        writers, list_problems = [], [f"the stdio list (step 9) could not be checked: {e}"]
+    all_problems += [f"[stdio-list] {p}" for p in list_problems]
+    say(f"  [stdio-list] {len(STDIO_BANNED)} banned names, every one defined by the vendored "
+        f"libc.a or libstdc++.a, and all {len(writers)} stdout/stderr printers libc.a defines "
+        f"among them" if not list_problems else
+        f"  [stdio-list] NOT CLEAN, see below")
 
     for robot in VARIANTS:
         b = run_build(robot, path_env)
@@ -1482,8 +1690,24 @@ def cmd_check(path_env=None, quiet=False):
     say(f"src build gate: PASS (all {len(VARIANTS)} builds link; policy: errors fail, "
         f"vendor warnings path-ignored, {allowed}every other warning fails; defines "
         f"token-exact; one chain picks program and robot; variant and robot beacons asserted; "
-        f"programs asserted; src/'s include root unambiguous; every printed src/ path exists)")
+        f"programs asserted; src/'s include root unambiguous; every printed src/ path exists; "
+        f"no src/ object names stdio's FILEs or calls a stdout/stderr printer)")
     return 0
+
+
+def _check_with(banned, variants):
+    """cmd_check, quiet, with STDIO_BANNED and VARIANTS rebound — the self-test's case 40, which
+    empties VARIANTS so no build runs — both restored after; (its exit code, its stderr)."""
+    global STDIO_BANNED, VARIANTS
+    saved = (STDIO_BANNED, VARIANTS)
+    said = io.StringIO()
+    try:
+        STDIO_BANNED, VARIANTS = banned, variants
+        with contextlib.redirect_stderr(said):
+            rc = cmd_check(quiet=True)
+    finally:
+        STDIO_BANNED, VARIANTS = saved
+    return rc, said.getvalue()
 
 
 # ── self-test ──────────────────────────────────────────────────────────────────────
@@ -2539,6 +2763,115 @@ def do_self_test():
     b = run_build("tank-competition")
     ok, problems = verdict("tank-competition", b)
     expect(ok, f"35: the real tank-competition build FAILED the gate: {problems}")
+
+    # ── SER1 (2026-10-08): step 9, ONE-CALL WRITES — no src/ object writes through stdout ─────
+    # Each plant is an EXTERNAL function (declared first, so no warning and no dead code), which
+    # its object keeps whatever --gc-sections later does to the package — the reason step 9 reads
+    # objects, not the ELF.
+    # 36: `printf("x\n")` in a src/ file -> FAIL naming the object AND `puts`: the compiler
+    #     rewrites it, invisibly in the source, into puts("x") — two writes in newlib, into
+    #     stdout's shared buffer (A4 register HA-189). The bench tester's emit() was exactly this.
+    with _plant(SRC_PLANT, "\nvoid ser1SelfTestPrintf();\n"
+                           "void ser1SelfTestPrintf() { std::printf(\"x\\n\"); }\n"):
+        b = run_build("bench")
+        ok, problems = verdict("bench", b)
+        expect(not ok, "36: a printf(\"x\\n\") in src/ PASSED the stdio check (step 9)")
+        expect(any("bench_r3a.cpp.o" in p and "`puts`" in p and "(step 9)" in p
+                   for p in problems),
+               f"36: the failure did not name bench_r3a.cpp.o and `puts`: {problems}")
+    # 37: `fflush(stdout)` -> FAIL naming _impure_ptr (fflush itself is allowed — the card needs
+    #     it; what makes this stdout's is the _impure_ptr reference every use of stdout compiles to).
+    with _plant(SRC_PLANT, "\nvoid ser1SelfTestFlush();\n"
+                           "void ser1SelfTestFlush() { (void)std::fflush(stdout); }\n"):
+        b = run_build("bench")
+        ok, problems = verdict("bench", b)
+        expect(not ok, "37: a fflush(stdout) in src/ PASSED the stdio check (step 9)")
+        expect(any("bench_r3a.cpp.o" in p and "_impure_ptr" in p for p in problems),
+               f"37: the failure did not name bench_r3a.cpp.o and _impure_ptr: {problems}")
+        expect(not any("`fflush`" in p for p in problems),
+               f"37: fflush ITSELF was reported — the card's flush would fail too: {problems}")
+    # 38: the NEGATIVE CONTROL — `fwrite` to a FILE* PARAMETER (a card file's shape) -> PASS:
+    #     the check bans stdout, not stdio.
+    with _plant(SRC_PLANT, "\nvoid ser1SelfTestCard(std::FILE* f);\n"
+                           "void ser1SelfTestCard(std::FILE* f) "
+                           "{ (void)std::fwrite(\"x\", 1, 1, f); (void)std::fflush(f); }\n"):
+        b = run_build("bench")
+        ok, problems = verdict("bench", b)
+        expect(ok, f"38: an fwrite/fflush to a FILE* parameter FAILED the gate: {problems}")
+        # 39: a src/ TU with NO object -> FAIL (a check that read nothing must not pass). Uses
+        #     38's bin/ (no extra build): one object removed, step 9 alone re-run.
+        os.remove(os.path.join(REPO, "bin", "programs", "bench_r3a.cpp.o"))
+        found = stdio_problems("bench", find_nm())
+        expect(any("no object for" in p and "bench_r3a.cpp.o" in p for p in found),
+               f"39: a src/ TU without its object was not reported: {found}")
+
+    # ── SER1's review (2026-10-15): step 9's LIST, pinned to the libraries and the forms ──────
+    # 40: the list against the libraries (source-only, two nm reads). The first list (A1's) lacked
+    #     viprintf, putchar_unlocked and the wide printers, and a real bench build calling any of
+    #     them PASSED (the review). The real list must be clean; the libc.a read must find the
+    #     family (a check that read nothing would pass); a list missing one printer, or naming one
+    #     no library defines, must be REPORTED by name.
+    nm = find_nm()
+    writers, list_problems = stdio_list_problems(nm)
+    expect(list_problems == [], f"40: the real STDIO_BANNED is not clean: {list_problems}")
+    expect({"printf", "puts", "putchar", "viprintf", "putchar_unlocked", "wprintf", "putwchar",
+            "psignal", "_printf_r"} <= set(writers),
+           f"40: the libc.a read did not find the printer family: {writers}")
+    _w, gap = stdio_list_problems(nm, banned=STDIO_BANNED - {"viprintf"})
+    expect(any(p.startswith("viprintf:") and "not in STDIO_BANNED" in p for p in gap),
+           f"40: a list without viprintf was not reported: {gap}")
+    _w, typo = stdio_list_problems(nm, banned=(STDIO_BANNED - {"_ZSt5wcout"}) | {"_ZSt5wcoutt"})
+    expect(any(p.startswith("_ZSt5wcoutt:") and "misspelt" in p for p in typo),
+           f"40: a misspelt name was not reported: {typo}")
+    #     And `check` RUNS it: cmd_check with a list missing viprintf must FAIL on [stdio-list].
+    #     VARIANTS is emptied for the call so no build runs (the chain-table check then reports the
+    #     empty build list too — expected; only the [stdio-list] line is asserted).
+    saved = (STDIO_BANNED, VARIANTS)
+    rc, said = _check_with(STDIO_BANNED - {"viprintf"}, ())
+    expect(rc == 1 and "[stdio-list] viprintf:" in said,
+           f"40: `check` did not run the list check (rc {rc}): {said[-600:]}")
+    expect(STDIO_BANNED is saved[0] and VARIANTS is saved[1], "40: the list was not restored")
+    # 41: the forms a student writes, in ONE real build — each must FAIL by its own name: printf
+    #     WITH arguments (`printf`, not puts: no _impure_ptr or puts to fall back on, so the name
+    #     leaving the list would blind the gate — the review's GM1 cut the list to two names and
+    #     cases 36-39 stayed green), `std::cout << …` (`_ZSt4cout`), and the review's four that
+    #     passed the first list: viprintf, putchar_unlocked, std::wprintf and std::wcout (plus
+    #     putwchar, psignal and `&__sf[1]`). Every plant is an external function (no warning).
+    forms = (
+        "\n#include <cstdarg>\n#include <csignal>\n#include <cwchar>\n#include <iostream>\n"
+        "#include <signal.h>\n"
+        "extern \"C\" std::FILE __sf[3];\n"
+        "void ser1ReviewPrintf(int n);\n"
+        "void ser1ReviewPrintf(int n) { std::printf(\"x %d\\n\", n); }\n"
+        "void ser1ReviewCout(int n);\n"
+        "void ser1ReviewCout(int n) { std::cout << \"x\" << n; }\n"
+        "void ser1ReviewViprintf(int n, ...);\n"
+        "void ser1ReviewViprintf(int n, ...) { va_list a; va_start(a, n); "
+        "(void)viprintf(\"x %d\\n\", a); va_end(a); }\n"
+        "void ser1ReviewPutcharUnlocked(int c);\n"
+        "void ser1ReviewPutcharUnlocked(int c) { (void)putchar_unlocked(c); }\n"
+        "void ser1ReviewWprintf(int n);\n"
+        "void ser1ReviewWprintf(int n) { (void)std::wprintf(L\"x %d\\n\", n); }\n"
+        "void ser1ReviewWcout(int n);\n"
+        "void ser1ReviewWcout(int n) { std::wcout << L\"x\" << n; }\n"
+        "void ser1ReviewPutwchar(wchar_t c);\n"
+        "void ser1ReviewPutwchar(wchar_t c) { (void)std::putwchar(c); }\n"
+        "void ser1ReviewPsignal(int s);\n"
+        "void ser1ReviewPsignal(int s) { psignal(s, \"x\"); }\n"
+        "void ser1ReviewSf();\n"
+        "void ser1ReviewSf() { (void)std::fflush(&__sf[1]); }\n")
+    with _plant(SRC_PLANT, forms):
+        b = run_build("bench")
+        ok, problems = verdict("bench", b)
+        expect(not ok, "41: printf/cout/viprintf/putchar_unlocked/wprintf/wcout/putwchar/psignal/"
+                       "__sf in src/ PASSED the stdio check (step 9)")
+        expect(not b.disallowed, f"41: the plants raised a warning, so the case proves the "
+                                 f"warning policy, not step 9: {b.disallowed[:3]}")
+        for sym in ("`printf`", "`_ZSt4cout`", "`viprintf`", "`putchar_unlocked`", "`wprintf`",
+                    "`_ZSt5wcout`", "`putwchar`", "`psignal`", "`__sf`"):
+            expect(any("bench_r3a.cpp.o" in p and sym in p and "(step 9)" in p
+                       for p in problems),
+                   f"41: the failure did not name bench_r3a.cpp.o and {sym}: {problems}")
 
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)

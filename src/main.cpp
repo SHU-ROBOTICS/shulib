@@ -68,7 +68,6 @@
 #include "main.h"
 
 #include <cstddef>
-#include <cstdio>
 
 #include "programs/auton_tester_program.hpp"
 #include "programs/bench_r3a.hpp"
@@ -82,6 +81,7 @@
 
 #include "shulib/core/check.hpp"
 #include "shulib/diag/fault.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 
 // ═══ WHICH PROGRAM, WHICH ROBOT? — src/build_selection.hpp ══════════════════════════════
 // The build switches are read there and nowhere else (tools/src_build_gate.py's step 0 fails a
@@ -141,8 +141,10 @@ void initialize() {
     // The ROBOT this build carries the tables of (src/build_selection.hpp's kRobotBeacon, derived
     // from kRobotId): printed so it is linked, and so the gate can assert it (step 6) — a build whose
     // branch set another robot carries another robot's beacon, and FAILS.
-    std::printf("[BLD] robot tables: %s (src/robots/chassis_table.hpp, src/robots/mechanism_table.hpp)\n",
-                kRobotBeacon);
+    // ONE write() for the line (SER1, HA-189): never printf — stdout's buffer is shared, unguarded.
+    shulib::hal::pros::serialLine(
+        "[BLD] robot tables: %s (src/robots/chassis_table.hpp, src/robots/mechanism_table.hpp)",
+        kRobotBeacon);
     char bits[64];
     switch (kProgram) {
         case Program::BenchTests:

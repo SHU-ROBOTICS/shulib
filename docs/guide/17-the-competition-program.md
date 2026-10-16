@@ -315,6 +315,18 @@ it could hang; a copy that stops never makes the driver loop wait. So a `comp_lo
 at a disable, while the robot ran on, lost the rest of that boot — read serial. How often it happens is
 not measured. No card: serial only, never a refusal.
 
+Serial keeps every line whole, even when two parts of the program print at the same instant: each line
+goes out as ONE write to the USB, which PROS keeps in one piece (since 2026-10-08 — before, two lines
+printed at once could mix; reasoned from PROS's C library, not yet seen on a robot either way). Serial
+has one case of its own that nothing in shulib can cover, also believed and not seen: if PROS stops the
+driver-control task at that same disable **in the middle of writing a line to serial** (a window of
+microseconds per line), PROS's own serial lock is never released, and every later serial line of that
+boot waits for ever — the program's first line in the next phase would wait with it, so the next driver
+control's loop would never start: the robot would not answer the sticks. The card's copy stops at the same
+line (it is written after serial, so it waits too): both logs end there. A capture that ends at a change
+of mode while the brain still shows the program running is that case: restart the program. (The A4
+register's HA-190 has the reasoning; the fix would be PROS's.)
+
 ## Refused, not run
 
 There are three refusals, and each says why on the screen and on serial.

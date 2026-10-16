@@ -424,6 +424,9 @@ TEST_CASE("pins (P13): no slot number in any string; the pure headers include no
 // body is pinned WHOLE, with the bug its pin was written for:
 //   logLine            -- every line to the SD card too (two writers on a sink that is not
 //                         thread-safe; opcontrol()'s line on the card before driver control: ND5);
+//                         and (SER1, 2026-10-08) the pre-provider line back to printf + fflush
+//                         (stdout's shared, unguarded buffer -- HA-189) instead of ONE write()
+//                         per piece through hal::pros::serialWrapped();
 //   logPhase           -- the phase lines' status bits or millis lost (B5(1); HA-161, HA-162);
 //   paintAutonsRefused -- the refused page's headline or reason (ND1, ND2; the review's PD);
 //   paintMenuPhase     -- a typed-table boot painting the SELECTOR (ND2: it invites a choice that is
@@ -446,8 +449,8 @@ TEST_CASE("pins (P14): the program's log, screen and controller functions, each 
     } pins[] = {
         {"void logLine(hal::LogLevel level, const char* text, bool alsoSd = false)",
          "CompetitionState& st = state(); if (st.devices.has_value()) { "
-         "st.devices->telemetry().log(level, kTag, text); } else { std::printf(\"[%s] %s\\n\", "
-         "kTag, text); std::fflush(stdout); } if (alsoSd && st.sdLog.has_value()) { "
+         "st.devices->telemetry().log(level, kTag, text); } else { "
+         "hal::pros::serialWrapped(kTag, text); } if (alsoSd && st.sdLog.has_value()) { "
          "st.sdLog->log(level, kTag, text); }"},
         {"void logPhase(const char* what, const char* when, const char* note)",
          "char bits[64]; competitionBits(readStatus(), bits, sizeof bits); char "

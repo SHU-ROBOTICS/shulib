@@ -76,9 +76,13 @@
 // copy ENDS there for the rest of the boot, every later line counted and on serial -- the chosen
 // failure (log_copy_sink.hpp, "A writer that never comes back"); this program's opcontrol() logs
 // two lines right after its loop sees a disable, the moment PROS deletes the task.
-// SERIAL has had the same exposure since COMP-b, unguarded:
-// whether PROS's C library serializes two tasks' writes to stdout is measured nowhere here and
-// stated in no A4 register entry (left for the coordinator: an entry, or a lock).
+// SERIAL keeps every line whole since SER1 (2026-10-08, HA-189): every line this program sends --
+// through the provider's sink or hal::pros::serialLine()/serialWrapped() -- is ONE write() call,
+// which PROS's serial write mutex keeps whole; nothing here touches stdout's FILE buffer, which
+// every task shares with no lock (HA-189, reasoned from the vendored C library; Station K settles
+// it). The deletion case above has a serial twin no lock of ours can cure: a task PROS deletes
+// while it is INSIDE that one write() leaves PROS's own mutex held, and every later serial line
+// of the boot blocks its writer (A4 register HA-190, reasoned).
 //
 // ═══ ON THE BENCH: THE CONTROLLER'S TIMED RUN ═════════════════════════════════════════════
 // The team owns no competition switch, so the bench's pretend match is the controller's Timed Run.
@@ -145,6 +149,7 @@
 #include "shulib/hal/block_char_sink.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/hal/pros/line_display.hpp"
 #include "shulib/hal/pros/tick_pacer.hpp"
@@ -256,7 +261,8 @@ CompetitionState& state() {
 }
 
 // ═══ THE LOG ═════════════════════════════════════════════════════════════════════════════
-/// One line to serial -- through the provider's sink once the boot built it, else printf -- and,
+/// One line to serial -- through the provider's sink once the boot built it, else
+/// hal::pros::serialWrapped() (one write() per piece, never printf: SER1) -- and,
 /// when `alsoSd` and the run log is open, to the card. Only initialize() and the auton task pass
 /// `alsoSd` (one writer on the card at a time).
 void logLine(hal::LogLevel level, const char* text, bool alsoSd = false) {
@@ -264,8 +270,7 @@ void logLine(hal::LogLevel level, const char* text, bool alsoSd = false) {
     if (st.devices.has_value()) {
         st.devices->telemetry().log(level, kTag, text);
     } else {
-        std::printf("[%s] %s\n", kTag, text);
-        std::fflush(stdout);
+        hal::pros::serialWrapped(kTag, text);  // a refusal's text can pass one line: it wraps
     }
     if (alsoSd && st.sdLog.has_value()) {
         st.sdLog->log(level, kTag, text);
@@ -629,13 +634,16 @@ void sayAutonEnding(double waitedSeconds) {
 
 void competitionInitialize(const char* variantBeacon, const char* competitionStatusBits) {
     CompetitionState& st = state();
-    std::printf("\n[%s] booted: shulib COMPETITION build [%s] -- the auton chosen on the brain's\n"
-                "[%s] menu runs in autonomous() on the program's own task (competition::runAuton,\n"
-                "[%s] the Auton Tester's call); a disable or the end of autonomous ends it at once;\n"
-                "[%s] driver control runs the team's driver file. NOT RUN ON A ROBOT YET.\n"
-                "[%s] competition status at boot: %s\n",
-                kTag, variantBeacon, kTag, kTag, kTag, kTag, competitionStatusBits);
-    std::fflush(stdout);
+    // ONE write() per line (SER1, HA-189); the first carries the blank line before it.
+    hal::pros::serialLine("\n[%s] booted: shulib COMPETITION build [%s] -- the auton chosen on "
+                          "the brain's", kTag, variantBeacon);
+    hal::pros::serialLine("[%s] menu runs in autonomous() on the program's own task "
+                          "(competition::runAuton,", kTag);
+    hal::pros::serialLine("[%s] the Auton Tester's call); a disable or the end of autonomous "
+                          "ends it at once;", kTag);
+    hal::pros::serialLine("[%s] driver control runs the team's driver file. NOT RUN ON A ROBOT "
+                          "YET.", kTag);
+    hal::pros::serialLine("[%s] competition status at boot: %s", kTag, competitionStatusBits);
 
     st.boot = decideBootSource(kTag);
     if (!st.boot.ok) {
@@ -776,16 +784,16 @@ void competitionInitialize(const char* variantBeacon, const char* competitionSta
     }
     // The claws, one line each (src/common/driver_panel.hpp's words, from the table AND the driver
     // file's controls -- the same lines "shulib Drive" prints; worksheet J.3.1 and K quote them),
-    // printed whole: an ABSENT line can pass TermSink's 200 bytes.
+    // printed whole: an ABSENT line can pass TermSink's 200 bytes -- and one serial line's 256
+    // (SER1), so each is serialWrapped(): one write() per piece, never cut.
     for (std::size_t i = 0; i < motorEntryCount(kMechanisms); ++i) {
-        std::printf("[%s] %s\n", kTag,
-                    motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, *st.robot, i).text);
+        hal::pros::serialWrapped(
+            kTag, motorClawBootLine(kMechanisms, RobotTwoDriver::kHolds, *st.robot, i).text);
     }
     for (std::size_t j = 0; j < pneumaticEntryCount(kMechanisms); ++j) {
-        std::printf("[%s] %s\n", kTag,
-                    pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, *st.robot, j).text);
+        hal::pros::serialWrapped(
+            kTag, pneumaticClawBootLine(kMechanisms, RobotTwoDriver::kToggles, *st.robot, j).text);
     }
-    std::fflush(stdout);
 
     st.owner.handTo(ScreenOwner::Menu);  // the auton task paints the menu from its first tick
     st.task.emplace(&autonTask, nullptr, TASK_PRIORITY_DEFAULT, TASK_STACK_DEPTH_DEFAULT,

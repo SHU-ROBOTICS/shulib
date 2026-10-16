@@ -16,7 +16,7 @@ order — each chapter assumes the ones before it and says so in its header.
 | 8 | [Your first routine](08-your-first-routine.md) | The full tutorial, every line explained |
 | 9 | [The recipe API](09-the-recipe-api.md) | Tier 2: a routine as a chain of steps, and what happens when one fails |
 | 10 | [The API, as prose](10-the-api.md) | Every verb: what, when, failure behavior, gotchas |
-| 11 | [Reading the diagnostics](11-reading-the-diagnostics.md) | The transcript line by line; every fault code |
+| 11 | [Reading the diagnostics](11-reading-the-diagnostics.md) | The transcript line by line; every fault code; printing your own lines |
 | 12 | [When things go wrong](12-when-things-go-wrong.md) | Symptom-first troubleshooting |
 | 13 | [Extending the library](13-extending-the-library.md) | The layers, the testing bar, adding drivetrains/motions |
 | 14 | [What it can't do yet](14-what-it-cannot-do-yet.md) | The honest limits, each linked to its tracking doc |

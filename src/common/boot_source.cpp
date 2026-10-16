@@ -1,5 +1,5 @@
 // boot_source.cpp — the PROS shim of the boot source: the card, the registry, this build's typed
-// table, and printf (G1 Part 2b, 2026-09-26). Every DECISION is in boot_source.hpp
+// table, and the serial (G1 Part 2b, 2026-09-26). Every DECISION is in boot_source.hpp
 // (decideBootSourceFrom(), readRecord(), bootConfigFrom()), PROS-free and host-tested
 // (test/boot_source_test.cpp); this file only supplies what a host cannot: the SD card, the brain's
 // port registry and the per-build kChassis. Together they are src/main.cpp's R3d Part 2 boot block
@@ -15,18 +15,19 @@
 // src/robots/chassis_table.hpp's kChassis is the bench bot's table and in the xdrive build it is
 // kNoChassis, which is harmless because no program in those builds asks for a boot source.
 //
-// The one printf below uses a LITERAL format (src/ compiles under -Wformat-nonliteral), and every
-// bounded copy in the header carries a precision the compiler can check (-Wformat-truncation):
-// both are errors in the src build gate.
+// Every bounded copy in the header carries a precision the compiler can check (-Wformat-truncation),
+// an error in the src build gate. Each line goes to the serial as ONE write() (SER1, HA-189):
+// hal::pros::serialWrapped(), never printf — stdout's buffer is shared by every task, unguarded, and
+// a boot line runs to kBootLineBytes - 1 = 511 characters, so it WRAPS into pieces of at most
+// hal::pros::kSerialLineBytes, one write() each, and is never cut.
 
 #include "common/boot_source.hpp"
-
-#include <cstdio>
 
 #include "robots/chassis_table.hpp"
 #include "shulib/calibration/calibration_record.hpp"
 #include "shulib/hal/drivetrain_description.hpp"
 #include "shulib/hal/pros/block_source.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/device_registry.hpp"
 
 namespace shulib::bench {
@@ -49,8 +50,7 @@ BootOutcome decideBootSource(const char* tag) {
     // ROBOT=tank builds, none elsewhere — converted into the config here (T3 Part 2).
     BootOutcome out = decideBootSourceFrom(
         record, registry, fromTable, missing, kMechanisms, kChassis.robot,
-        [tag](const char* line) { std::printf("[%s] %s\n", tag, line); });
-    std::fflush(stdout);
+        [tag](const char* line) { hal::pros::serialWrapped(tag, line); });
     return out;
 }
 

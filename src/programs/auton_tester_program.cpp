@@ -93,6 +93,7 @@
 #include "shulib/hal/block_char_sink.hpp"
 #include "shulib/hal/mechanism.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/controller.hpp"
 #include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/hal/pros/tick_pacer.hpp"
@@ -436,13 +437,16 @@ void testerTask(void* /*unused*/) {
 
 void autonTesterInitialize(const char* variantBeacon, const char* competitionStatusBits) {
     TesterState& st = state();
-    std::printf("\n[%s] booted: shulib AUTON TESTER build [%s] -- runs ONE of the team's autons\n"
-                "[%s] (src/team/autons.cpp) through competition::runAuton, the competition\n"
-                "[%s] program's call, when RUN is touched: a 3 s countdown, then the run. ANY\n"
-                "[%s] controller button or a touch of the screen aborts. NOT RUN ON A ROBOT YET.\n"
-                "[%s] competition status at boot: %s\n",
-                kTag, variantBeacon, kTag, kTag, kTag, kTag, competitionStatusBits);
-    std::fflush(stdout);
+    // ONE write() per line (SER1, HA-189); the first carries the blank line before it.
+    hal::pros::serialLine("\n[%s] booted: shulib AUTON TESTER build [%s] -- runs ONE of the "
+                          "team's autons", kTag, variantBeacon);
+    hal::pros::serialLine("[%s] (src/team/autons.cpp) through competition::runAuton, the "
+                          "competition", kTag);
+    hal::pros::serialLine("[%s] program's call, when RUN is touched: a 3 s countdown, then the "
+                          "run. ANY", kTag);
+    hal::pros::serialLine("[%s] controller button or a touch of the screen aborts. NOT RUN ON A "
+                          "ROBOT YET.", kTag);
+    hal::pros::serialLine("[%s] competition status at boot: %s", kTag, competitionStatusBits);
 
     st.boot = decideBootSource(kTag);
     if (!st.boot.ok) {

@@ -63,6 +63,7 @@
 #include "shulib/diag/session_info.hpp"
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/motor.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/controller.hpp"
 #include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/hal/pros/line_display.hpp"
@@ -222,10 +223,11 @@ void paintRefusal(const char* why) {
     printText(TextSize::Small, kRowX, 150, kColWarn, kColBg, text::kInvented.data());
     printText(TextSize::Small, kRowX, 166, kColDim, kColBg, text::kNothingPowered.data());
     printText(TextSize::Small, kRowX, 182, kColDim, kColBg, text::kRobotTwo.data());
-    std::printf("[%s] X-DRIVE REFUSED AT BOOT: %s -- every port in this build is INVENTED "
-                "(HA-111); nothing is powered\n",
-                kTag, why != nullptr ? why : "");
-    std::fflush(stdout);
+    // ONE write() per piece (SER1, HA-189): a 191-character reason and the fixed sentence can
+    // pass one serial line's 256 bytes, so the line wraps -- never cut, never printf.
+    hal::pros::serialWrapped(kTag, {"X-DRIVE REFUSED AT BOOT: ", why != nullptr ? why : "",
+                                    " -- every port in this build is INVENTED (HA-111); nothing is "
+                                    "powered"});
 }
 
 void refuse(const char* why) {
@@ -246,13 +248,14 @@ void xdriveInitialize(const char* variantBeacon, const char* competitionStatusBi
     // ── the banner FIRST — the beacon and the competition status bits, before the graph boundary,
     //    as every other program prints them: a REFUSED boot (on every robot that exists) is the one
     //    this build will actually have, and its serial capture must still say which build it was.
-    std::printf("\n[%s] booted: INVENTED X-DRIVE build [%s] -- every port and sign INVENTED\n"
-                "[%s] (HA-111); on a robot without exactly those devices it refuses below.\n",
-                kTag, variantBeacon, kTag);
-    std::printf("[%s] competition status at boot: %s -- the drive loop runs only in DRIVER "
-                "CONTROL, enabled; this program paints no state screen.\n",
-                kTag, competitionStatusBits != nullptr ? competitionStatusBits : "");
-    std::fflush(stdout);
+    //    ONE write() per line (SER1, HA-189); the first carries the blank line before it.
+    hal::pros::serialLine("\n[%s] booted: INVENTED X-DRIVE build [%s] -- every port and sign "
+                          "INVENTED", kTag, variantBeacon);
+    hal::pros::serialLine("[%s] (HA-111); on a robot without exactly those devices it refuses "
+                          "below.", kTag);
+    hal::pros::serialLine("[%s] competition status at boot: %s -- the drive loop runs only in "
+                          "DRIVER CONTROL, enabled; this program paints no state screen.",
+                          kTag, competitionStatusBits != nullptr ? competitionStatusBits : "");
 
     // ── the graph, at its boundary: validate() AND the construction, once, into the optionals.
     //    A provider configuration conflict is a precondition, so the try covers both.

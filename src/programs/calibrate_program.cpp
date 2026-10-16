@@ -147,6 +147,7 @@
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
 #include "shulib/hal/pros/block_source.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/device_registry.hpp"
 #include "shulib/hal/pros/imu.hpp"
@@ -190,8 +191,9 @@ constexpr double kPushLogKeepaliveSeconds = 5.0;
 
 // ═══ OUTPUT: USB serial, always ═════════════════════════════════════════════════════
 void emit(const char* line) {
-    std::printf("[R3D] %s\n", line);
-    std::fflush(stdout);
+    // ONE write() per line (SER1, HA-189), never printf: stdout's buffer is shared, unguarded. A
+    // line past one serial line's 256 bytes wraps into `[R3D] ... ` pieces, one write() each.
+    hal::pros::serialWrapped("R3D", line);
 }
 
 void emitf(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
@@ -1041,21 +1043,28 @@ void calibrateInitialize(const char* variantBeacon, const char* competitionStatu
     // file's kBuildStamp — the same __DATE__ " " __TIME__ the banner printed, from main.cpp's own
     // copy (kCalibrateBuildStamp) until the move. One stamp for the program now, where main.cpp's
     // comment said a partial rebuild could show two.
-    std::printf("\n[R3D] booted: shulib CALIBRATE build [%s].\n"
-                "[R3D] robot two MEASURES ITS OWN DRIVETRAIN -- which ports drive, which way each\n"
-                "[R3D] is wired, which side each is on, inches per radian per side, and the\n"
-                "[R3D] EFFECTIVE track width -- then writes them to /usd/%s.\n"
-                "[R3D] It POWERS THE MOTORS. THIS VERSION (R3d Part 2F) first ran on robot two on\n"
-                "[R3D] 2026-09-24 -- run 1 STOPPED on SPIN_DISAGREE, run 2 finished (unrecorded);\n"
-                "[R3D] the Part 2 version finished none of five starts. Every threshold in it is\n"
-                "[R3D] INVENTED (A4 register HA-136).\n"
-                "[R3D] no object graph is constructed at boot; the X-drive wiring is NOT built.\n"
-                "[R3D] BUILD STAMP %s\n",
-                variantBeacon, calibration::kRecordFileName, kBuildStamp);
-    std::printf("[R3D] competition status at boot: %s -- calibration runs only in DRIVER "
-                "CONTROL, enabled; any other state stops the run and says so.\n",
-                competitionStatusBits);
-    std::fflush(stdout);
+    // ONE write() per line since SER1 (HA-189) — the bytes unchanged; the first carries the blank
+    // line before it.
+    hal::pros::serialLine("\n[R3D] booted: shulib CALIBRATE build [%s].", variantBeacon);
+    hal::pros::serialLine("[R3D] robot two MEASURES ITS OWN DRIVETRAIN -- which ports drive, "
+                          "which way each");
+    hal::pros::serialLine("[R3D] is wired, which side each is on, inches per radian per side, "
+                          "and the");
+    hal::pros::serialLine("[R3D] EFFECTIVE track width -- then writes them to /usd/%s.",
+                          calibration::kRecordFileName);
+    hal::pros::serialLine("[R3D] It POWERS THE MOTORS. THIS VERSION (R3d Part 2F) first ran on "
+                          "robot two on");
+    hal::pros::serialLine("[R3D] 2026-09-24 -- run 1 STOPPED on SPIN_DISAGREE, run 2 finished "
+                          "(unrecorded);");
+    hal::pros::serialLine("[R3D] the Part 2 version finished none of five starts. Every "
+                          "threshold in it is");
+    hal::pros::serialLine("[R3D] INVENTED (A4 register HA-136).");
+    hal::pros::serialLine("[R3D] no object graph is constructed at boot; the X-drive wiring is "
+                          "NOT built.");
+    hal::pros::serialLine("[R3D] BUILD STAMP %s", kBuildStamp);
+    hal::pros::serialLine("[R3D] competition status at boot: %s -- calibration runs only in "
+                          "DRIVER CONTROL, enabled; any other state stops the run and says so.",
+                          competitionStatusBits);
 }
 
 void runCalibrate() {

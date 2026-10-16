@@ -92,7 +92,7 @@ TEST_CASE("fence: every adapter's suppression set is EXACTLY -Wshadow + -Wsign-c
     for (const auto& f : filesIn(kAdapterDir, ".hpp")) {
         const std::string src = readFile(f);
         if (src.find("#include \"pros/") == std::string::npos) {
-            // char_sink.hpp: deliberately PROS-free (stdout only) — no fence needed.
+            // char_sink.hpp: deliberately PROS-free (write() on a descriptor only) — no fence.
             CHECK(src.find("#pragma GCC diagnostic") == std::string::npos);
             continue;
         }

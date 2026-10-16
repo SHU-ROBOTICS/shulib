@@ -39,7 +39,7 @@ class LogCopySink final : public hal::ITelemetrySink
 
 A decorator that hands every leveled message and every run summary to TWO sinks — the primary, then the copy — and every per-tick record to the primary ONLY (file banner: the team lead's decision A (a), "events and summaries only"). Both sinks are BORROWED and must outlive this object; nothing here allocates or throws. The copy has ONE writer at a time: a line or summary that finds another task mid-copy is left off the copy and counted, and the copy's next line says how many it missed there (file banner, One writer on the copy at a time) — once the writer that held it returns. A writer that never returns (a task PROS deleted mid-line) ends the copy for the rest of the boot: every later line is counted and none is copied (file banner, A writer that never comes back).
 
-*class, declared at [`include/shulib/diag/log_copy_sink.hpp:93`](../../include/shulib/diag/log_copy_sink.hpp#L93).*
+*class, declared at [`include/shulib/diag/log_copy_sink.hpp:99`](../../include/shulib/diag/log_copy_sink.hpp#L99).*
 
 <a id="logcopysink-logcopysink"></a>
 
@@ -51,7 +51,7 @@ LogCopySink(hal::ITelemetrySink& primary, hal::ITelemetrySink& copy) noexcept
 
 `primary` gets everything; `copy` gets log() and summarize() only. Both must outlive this.
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:96`](../../include/shulib/diag/log_copy_sink.hpp#L96).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:102`](../../include/shulib/diag/log_copy_sink.hpp#L102).*
 
 <a id="logcopysink-logcopysink-2"></a>
 
@@ -63,7 +63,7 @@ LogCopySink(const LogCopySink&) = delete
 
 It holds the copy's guard: neither copied nor moved.
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:100`](../../include/shulib/diag/log_copy_sink.hpp#L100).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:106`](../../include/shulib/diag/log_copy_sink.hpp#L106).*
 
 <a id="logcopysink-operator-eq"></a>
 
@@ -75,7 +75,7 @@ LogCopySink& operator=(const LogCopySink&) = delete
 
 *Covered by the comment on [`LogCopySink (overload 2)`](#logcopysink-logcopysink-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:101`](../../include/shulib/diag/log_copy_sink.hpp#L101).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:107`](../../include/shulib/diag/log_copy_sink.hpp#L107).*
 
 <a id="logcopysink-logcopysink-3"></a>
 
@@ -87,7 +87,7 @@ LogCopySink(LogCopySink&&) = delete
 
 *Covered by the comment on [`LogCopySink (overload 2)`](#logcopysink-logcopysink-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:102`](../../include/shulib/diag/log_copy_sink.hpp#L102).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:108`](../../include/shulib/diag/log_copy_sink.hpp#L108).*
 
 <a id="logcopysink-operator-eq-2"></a>
 
@@ -99,7 +99,7 @@ LogCopySink& operator=(LogCopySink&&) = delete
 
 *Covered by the comment on [`LogCopySink (overload 2)`](#logcopysink-logcopysink-2) — one comment documents this run of special members.*
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:103`](../../include/shulib/diag/log_copy_sink.hpp#L103).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:109`](../../include/shulib/diag/log_copy_sink.hpp#L109).*
 
 <a id="logcopysink-log"></a>
 
@@ -111,7 +111,7 @@ void log(hal::LogLevel level, std::string_view subsystem, std::string_view messa
 
 The line to the primary, then the same line to the copy — whole, in that order (the copy only when no other task is mid-copy; else counted, contendedLines()).
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:107`](../../include/shulib/diag/log_copy_sink.hpp#L107).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:113`](../../include/shulib/diag/log_copy_sink.hpp#L113).*
 
 <a id="logcopysink-wantsrecord"></a>
 
@@ -123,7 +123,7 @@ The line to the primary, then the same line to the copy — whole, in that order
 
 The PRIMARY's answer: records are built only when the primary consumes them, never for the copy, which never receives one. Overridden as a PAIR with emit() (the seam's rule).
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:120`](../../include/shulib/diag/log_copy_sink.hpp#L120).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:126`](../../include/shulib/diag/log_copy_sink.hpp#L126).*
 
 <a id="logcopysink-emit"></a>
 
@@ -135,7 +135,7 @@ void emit(const DebugRecord& record) override
 
 To the PRIMARY only: a per-tick record never reaches the copy (file banner).
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:123`](../../include/shulib/diag/log_copy_sink.hpp#L123).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:129`](../../include/shulib/diag/log_copy_sink.hpp#L129).*
 
 <a id="logcopysink-summarize"></a>
 
@@ -147,7 +147,7 @@ void summarize(const RunSummary& summary) override
 
 The summary to the primary, then to the copy (the seam's decorator rule) — the copy under the same one-writer guard as log().
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:127`](../../include/shulib/diag/log_copy_sink.hpp#L127).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:133`](../../include/shulib/diag/log_copy_sink.hpp#L133).*
 
 <a id="logcopysink-primary"></a>
 
@@ -159,7 +159,7 @@ The summary to the primary, then to the copy (the seam's decorator rule) — the
 
 The sink that gets everything.
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:138`](../../include/shulib/diag/log_copy_sink.hpp#L138).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:144`](../../include/shulib/diag/log_copy_sink.hpp#L144).*
 
 <a id="logcopysink-copy"></a>
 
@@ -171,7 +171,7 @@ The sink that gets everything.
 
 The sink that gets the leveled messages and the summaries only. For READING back (which sink it is): a line written through it directly bypasses the one-writer guard, and nothing in the library does that.
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:143`](../../include/shulib/diag/log_copy_sink.hpp#L143).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:149`](../../include/shulib/diag/log_copy_sink.hpp#L149).*
 
 <a id="logcopysink-contendedlines"></a>
 
@@ -183,7 +183,7 @@ The sink that gets the leveled messages and the summaries only. For READING back
 
 Lines and summaries left off the copy because another task was mid-copy (file banner), since construction — every one after a writer that never returned included. They reached the primary.
 
-*function, declared at [`include/shulib/diag/log_copy_sink.hpp:148`](../../include/shulib/diag/log_copy_sink.hpp#L148).*
+*function, declared at [`include/shulib/diag/log_copy_sink.hpp:154`](../../include/shulib/diag/log_copy_sink.hpp#L154).*
 
 <a id="logcopysink-kgaptag"></a>
 
@@ -195,14 +195,14 @@ static constexpr std::string_view kGapTag = "DIA"
 
 The subsystem tag of the copy's own GAP line (file banner): the diagnostics layer's.
 
-*field, declared at [`include/shulib/diag/log_copy_sink.hpp:153`](../../include/shulib/diag/log_copy_sink.hpp#L153).*
+*field, declared at [`include/shulib/diag/log_copy_sink.hpp:159`](../../include/shulib/diag/log_copy_sink.hpp#L159).*
 
 ## Design commentary, from the header
 
 The header opens with the reasoning behind these shapes. It is reproduced here in full because a reference that only lists signatures teaches nobody *why*.
 
 <details markdown="1">
-<summary>The header’s own reasoning — 70 lines, click to expand</summary>
+<summary>The header’s own reasoning — 76 lines, click to expand</summary>
 
 ```text
 
@@ -237,9 +237,10 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  ── One writer on the copy at a time (the T4-3 review, 2026-10-08) ──────────────────────
  A program logs through this sink from more than one task: the competition program's auton
  task, PROS's phase tasks and the opcontrol task's driver loop each say lines, so around a mode
- change two can arrive at once. The copy writes ONE FILE* on the card, and whether PROS's C
- library serializes two tasks' writes to one FILE* is measured nowhere (no register entry states
- it). So the COPY half takes a try-lock: the line that finds another task mid-copy is NOT copied
+ change two can arrive at once. The copy writes ONE FILE* on the card, and PROS's C library
+ does NOT serialize two tasks' writes to one FILE*: newlib's per-FILE locks are no-op stubs in
+ the vendored toolchain (A4 register HA-189, reasoned from the binaries). So the COPY half takes
+ a try-lock: the line that finds another task mid-copy is NOT copied
  — never waited for, so a card write in one task can never stall another's loop — and is counted
  (contendedLines()); the provider adds the count to the lines its copy lost
  (hal/pros/device_provider.hpp, serialCopyDroppedLines()). A count said only at boot would hide
@@ -248,8 +249,13 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  task was writing it -- serial has them` (kGapTag, noteGap()) — on the copy only; the primary
  already holds every line. The flag is a std::atomic_flag: a lock-free C++ guarantee, nothing of
  PROS's (on the brain's one ARMv7 core, an exclusive load/store pair; never run there). The
- PRIMARY half is unchanged and unguarded — it is the primary's business (the serial TermSink's
- exposure predates this sink).
+ PRIMARY half takes no guard — it is the primary's business, and the serial's needs none since
+ chunk SER1 (2026-10-08): hal::pros::ProsCharSink sends each line as ONE direct write(), never
+ through stdout's FILE, and PROS's own serial write mutex keeps one call whole (HA-189 — reasoned
+ from PROS's library, not yet seen). Its one exposure is PROS's, not ours: a task deleted INSIDE
+ that write() is believed to leave PROS's mutex held (HA-190, reasoned) — and then every later
+ write() of the primary blocks, so no writer ever reaches the copy below it: the copy ENDS at the
+ same line as serial (this guard's give-up covers contention on the copy, not a blocked primary).
 
  ── A writer that never comes back (the T4-3 verification, 2026-10-08) ─────────────────
  The guard is released when the writer holding it RETURNS from its copy — normally, or past a

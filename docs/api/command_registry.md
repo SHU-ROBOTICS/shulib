@@ -16,7 +16,7 @@ Extracted from [`include/shulib/runner/command_registry.hpp`](../../include/shul
 
 - [`kMaxCommands`](#kmaxcommands) — *constant*
 - [`struct Handler`](#struct-handler)
-  - [`manipulation::MechanismOutcome`](#handler-manipulation-mechanismoutcome)
+  - [`fn`](#handler-fn)
   - [`ctx`](#handler-ctx)
 - [`struct CommandEntry`](#struct-commandentry)
   - [`id`](#commandentry-id)
@@ -55,9 +55,9 @@ One bound action: a plain function pointer plus the opaque context it is called 
 
 *struct, declared at [`include/shulib/runner/command_registry.hpp:79`](../../include/shulib/runner/command_registry.hpp#L79).*
 
-<a id="handler-manipulation-mechanismoutcome"></a>
+<a id="handler-fn"></a>
 
-### `Handler::manipulation::MechanismOutcome`
+### `Handler::fn`
 
 ```cpp
 manipulation::MechanismOutcome (*fn)(void* ctx, const config::Marker& marker) = nullptr
@@ -65,7 +65,7 @@ manipulation::MechanismOutcome (*fn)(void* ctx, const config::Marker& marker) = 
 
 The action. Never null in a registered Handler (a precondition of `on`).
 
-*function, declared at [`include/shulib/runner/command_registry.hpp:81`](../../include/shulib/runner/command_registry.hpp#L81).*
+*field, declared at [`include/shulib/runner/command_registry.hpp:81`](../../include/shulib/runner/command_registry.hpp#L81).*
 
 <a id="handler-ctx"></a>
 

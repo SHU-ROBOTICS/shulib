@@ -188,7 +188,7 @@ fclose the file, which also pushes newlib's remaining buffer out. Nothing else h
 ProsBlockSink(const ProsBlockSink&) = delete
 ```
 
-Non-copyable and non-movable: this adapter OWNS the FILE*, and a second handle to it would fclose the same file twice. (ProsCharSink merely borrows stdout, which is why it carries no such restriction — the difference is ownership, not policy.)
+Non-copyable and non-movable: this adapter OWNS the FILE*, and a second handle to it would fclose the same file twice. (ProsCharSink merely borrows a descriptor — the serial's, fd 1 — which is why it carries no such restriction: ownership, not policy.)
 
 *function, declared at [`include/shulib/hal/pros/block_sink.hpp:185`](../../include/shulib/hal/pros/block_sink.hpp#L185).*
 
@@ -339,7 +339,7 @@ The header opens with the reasoning behind these shapes. It is reproduced here i
  that sync commits is VEXos's (HA-166 (5)).
 
  OWNERSHIP: this adapter OWNS its FILE* (fclose at destruction), so it is
- non-copyable/non-movable — unlike ProsCharSink, which borrows stdout.
+ non-copyable/non-movable — unlike ProsCharSink, which borrows a descriptor (the serial's, fd 1).
 
  ── THE APPEND MODE (chunk COMP-t, 2026-09-28 — additive) ─────────────────────────
  ProsFileMode::Append keeps every earlier byte of the file and writes after them: the

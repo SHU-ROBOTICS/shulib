@@ -281,8 +281,8 @@ Extracted from [`include/shulib/mechanism/kinds.hpp`](../../include/shulib/mecha
 - [`struct BrakeWord`](#struct-brakeword)
   - [`safe`](#brakeword-safe)
   - [`drive`](#brakeword-drive)
-  - [`config::SafeBrakeMode`](#brakeword-config-safebrakemode)
-  - [`hal::BrakeMode`](#brakeword-hal-brakemode)
+  - [`operator config::SafeBrakeMode`](#brakeword-operator-config-safebrakemode)
+  - [`operator hal::BrakeMode`](#brakeword-operator-hal-brakemode)
 - [`Hold`](#hold) — *constant*
 - [`Brake`](#brake) — *constant*
 - [`Coast`](#coast) — *constant*
@@ -3491,9 +3491,9 @@ As the drive's brake mode.
 
 *field, declared at [`include/shulib/mechanism/kinds.hpp:1180`](../../include/shulib/mechanism/kinds.hpp#L1180).*
 
-<a id="brakeword-config-safebrakemode"></a>
+<a id="brakeword-operator-config-safebrakemode"></a>
 
-### `BrakeWord::config::SafeBrakeMode`
+### `BrakeWord::operator config::SafeBrakeMode`
 
 ```cpp
 constexpr operator config::SafeBrakeMode() const noexcept
@@ -3503,9 +3503,9 @@ Read as a mechanism's `.safe`.
 
 *function, declared at [`include/shulib/mechanism/kinds.hpp:1182`](../../include/shulib/mechanism/kinds.hpp#L1182).*
 
-<a id="brakeword-hal-brakemode"></a>
+<a id="brakeword-operator-hal-brakemode"></a>
 
-### `BrakeWord::hal::BrakeMode`
+### `BrakeWord::operator hal::BrakeMode`
 
 ```cpp
 constexpr operator hal::BrakeMode() const noexcept

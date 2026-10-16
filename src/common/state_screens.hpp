@@ -65,8 +65,8 @@ const char* competitionBits(std::uint8_t status, char* buf, std::size_t n);
 /// Paint the whole brain screen for a competition state the program does not run in — `state` in
 /// LARGE yellow (`DISABLED`, `AUTONOMOUS`, `FIELD CONTROL CONNECTED`), `why` beneath it, the raw
 /// status bits, and the three fixed lines that tell a person what to do — and print one
-/// `[R3A] competition state: <state> (<bits>) -- <why>` line on serial. `state` and `why` must be
-/// ASCII literals with no '%' (header).
+/// `[R3A] competition state: <state> (<bits>) -- <why>` line on serial (one write(); a longer
+/// line wraps — SER1). `state` and `why` must be ASCII literals with no '%' (header).
 void benchStateScreen(const char* state, const char* why);
 
 }  // namespace shulib::bench

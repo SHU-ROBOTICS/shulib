@@ -129,6 +129,7 @@ the one moment where it is most authoritative-looking.
 | A code example in a chapter | Change `test/*example*_test.cpp` first, re-quote the listing from it |
 | **Added a header** | **Nothing.** The target list is a glob over `include/shulib/` — the header is covered because it exists. Write a `///` on everything public in it, run `generate`, and commit the new page *and* the `mkdocs.yml` nav line the tool writes |
 | Added a public member to any shipped header | Write its `///`. The build fails naming it, its file and its line; an empty `///` does not count |
+| Wrote a declaration the tool cannot NAME (`check-coverage` says `UNREADABLE NAME`, since SER1's review, 2026-10-15) | Teach the name reader the shape (`_member_name()` / `_bare_identifier()` in `tools/api_doc_tool.py`) and add it to the self-test's FIXTURE — never rename the code around the tool. A misread name used to be published as `?`, `1]` or a type and counted as documented — four shipped that way, and a conversion operator (`operator T()`) was named after its type `T`; a lone keyword (`bool`) now fails too |
 | Deleted or renamed a header | `generate`, then delete the orphaned page — `check-fresh` fails on a page the generator no longer produces |
 
 The build runs `check-coverage`, `check-fresh`, `check-examples` and `check-removability` before

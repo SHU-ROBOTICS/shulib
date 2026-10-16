@@ -6,6 +6,8 @@
 //   guide-08a/b/c/d-> docs/guide/08-your-first-routine.md   (the tutorial)
 //   guide-09a/b/c/d-> docs/guide/09-the-recipe-api.md       (the Tier-2 chain)
 //   guide-10a..e   -> docs/guide/10-the-api.md              (API idioms)
+//   guide-11a      -> docs/guide/11-reading-the-diagnostics.md (printing your own lines:
+//                     one line, one write — SER1)
 //   guide-17a/b/c  -> docs/guide/17-the-competition-program.md (registering an auton:
 //                     a FIELD start, a schedule refused by name, the selector's NONE; COMP-b)
 //
@@ -17,6 +19,9 @@
 //   SHULIB_GUIDE_PRINT=1 ./build/test/shulib_tests -tc='guide-*'
 
 #include "doctest.h"
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <cmath>
 #include <cstdio>
@@ -39,6 +44,7 @@
 #include "shulib/diag/health_monitor.hpp"
 #include "shulib/diag/term_sink.hpp"
 #include "shulib/hal/fake/fake_char_sink.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/kinematics/tank.hpp"
 #include "shulib/kinematics/x_drive.hpp"
 #include "shulib/localization/complementary_fusion.hpp"
@@ -754,4 +760,38 @@ TEST_CASE("guide-17c: the selector — NONE until someone chooses, LOCKED when t
     const int running = menu.lockChoice();
     CHECK(running == -1);
     CHECK(menu.locked());
+}
+
+// ═══ Chapter 11 — printing your own lines (quoted in "Printing your own lines: one line, one call") ═══
+// A team's own line goes to the V5's serial log as ONE write: serialLine() for a line, serialWrapped()
+// for a text of any length (chunk SER1, 2026-10-08). On the host they write fd 1 — the test's own
+// output — so the case sends them to /dev/null unless SHULIB_GUIDE_PRINT asks to see them.
+// test/serial_line_test.cpp proves each is one write() per line.
+
+namespace {
+void sayArm(int angle, const char* reason) {
+    shulib::hal::pros::serialLine("[ARM] at %d deg", angle);
+    shulib::hal::pros::serialWrapped("ARM", reason);
+}
+}  // namespace
+
+TEST_CASE("guide-11a: a line with serialLine, a long text with serialWrapped") {
+    std::fflush(stdout);
+    const bool show = std::getenv("SHULIB_GUIDE_PRINT") != nullptr;
+    const int saved = show ? -1 : ::dup(STDOUT_FILENO);
+    const int null = show ? -1 : ::open("/dev/null", O_WRONLY);
+    if (!show) {
+        REQUIRE(saved >= 0);
+        REQUIRE(null >= 0);
+        REQUIRE(::dup2(null, STDOUT_FILENO) == STDOUT_FILENO);
+    }
+    sayArm(90, "the claw stopped short: the pivot read 88 deg when the auton asked for 90, so the "
+               "next step waits for it -- a sentence long enough to need a second piece on serial "
+               "if it ran on, which serialWrapped breaks at a space and never cuts");
+    if (!show) {
+        ::dup2(saved, STDOUT_FILENO);
+        ::close(saved);
+        ::close(null);
+    }
+    CHECK(::fcntl(STDOUT_FILENO, F_GETFD) >= 0);  // the suite's own output is back
 }

@@ -31,9 +31,10 @@
 // ── One writer on the copy at a time (the T4-3 review, 2026-10-08) ──────────────────────
 // A program logs through this sink from more than one task: the competition program's auton
 // task, PROS's phase tasks and the opcontrol task's driver loop each say lines, so around a mode
-// change two can arrive at once. The copy writes ONE FILE* on the card, and whether PROS's C
-// library serializes two tasks' writes to one FILE* is measured nowhere (no register entry states
-// it). So the COPY half takes a try-lock: the line that finds another task mid-copy is NOT copied
+// change two can arrive at once. The copy writes ONE FILE* on the card, and PROS's C library
+// does NOT serialize two tasks' writes to one FILE*: newlib's per-FILE locks are no-op stubs in
+// the vendored toolchain (A4 register HA-189, reasoned from the binaries). So the COPY half takes
+// a try-lock: the line that finds another task mid-copy is NOT copied
 // — never waited for, so a card write in one task can never stall another's loop — and is counted
 // (contendedLines()); the provider adds the count to the lines its copy lost
 // (hal/pros/device_provider.hpp, serialCopyDroppedLines()). A count said only at boot would hide
@@ -42,8 +43,13 @@
 // task was writing it -- serial has them` (kGapTag, noteGap()) — on the copy only; the primary
 // already holds every line. The flag is a std::atomic_flag: a lock-free C++ guarantee, nothing of
 // PROS's (on the brain's one ARMv7 core, an exclusive load/store pair; never run there). The
-// PRIMARY half is unchanged and unguarded — it is the primary's business (the serial TermSink's
-// exposure predates this sink).
+// PRIMARY half takes no guard — it is the primary's business, and the serial's needs none since
+// chunk SER1 (2026-10-08): hal::pros::ProsCharSink sends each line as ONE direct write(), never
+// through stdout's FILE, and PROS's own serial write mutex keeps one call whole (HA-189 — reasoned
+// from PROS's library, not yet seen). Its one exposure is PROS's, not ours: a task deleted INSIDE
+// that write() is believed to leave PROS's mutex held (HA-190, reasoned) — and then every later
+// write() of the primary blocks, so no writer ever reaches the copy below it: the copy ENDS at the
+// same line as serial (this guard's give-up covers contention on the copy, not a blocked primary).
 //
 // ── A writer that never comes back (the T4-3 verification, 2026-10-08) ─────────────────
 // The guard is released when the writer holding it RETURNS from its copy — normally, or past a

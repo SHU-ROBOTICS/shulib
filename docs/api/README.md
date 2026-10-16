@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 4,503 of them across 177 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 4,514 of them across 177 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -205,7 +205,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Battery (PROS)](pros-battery.md) | [`hal/pros/battery.hpp`](../../include/shulib/hal/pros/battery.hpp) | ProsBattery — IBattery over the pros::battery namespace (chunk R1a): the brownout-compensation input behind the HAL. |
 | [Block sink (PROS)](pros-block_sink.md) | [`hal/pros/block_sink.hpp`](../../include/shulib/hal/pros/block_sink.hpp) | ProsBlockSink — IBlockSink over a PROS FILE* on the V5's SD card (chunk R1b): where the blackbox's binary blocks physically go. |
 | [Block source (PROS)](pros-block_source.md) | [`hal/pros/block_source.hpp`](../../include/shulib/hal/pros/block_source.hpp) | ProsBlockSource — IBlockSource over a PROS FILE* on the V5's SD card (chunk R3d Part 2): where the calibration record is read back from. |
-| [Char sink (PROS)](pros-char_sink.md) | [`hal/pros/char_sink.hpp`](../../include/shulib/hal/pros/char_sink.hpp) | ProsCharSink — ICharSink over the V5's USB serial (chunk R1a): where TermSink's diagnostic bytes physically go on the robot (`pros terminal` displays them). |
+| [Char sink (PROS)](pros-char_sink.md) | [`hal/pros/char_sink.hpp`](../../include/shulib/hal/pros/char_sink.hpp) | ProsCharSink, serialLine() and serialWrapped() — the V5's USB serial, where TermSink's diagnostic bytes and every program's own lines physically go (`pros terminal` displays them). |
 | [Clock (PROS)](pros-clock.md) | [`hal/pros/clock.hpp`](../../include/shulib/hal/pros/clock.hpp) | ProsClock — IClock over the V5's real time. |
 | [Controller (PROS)](pros-controller.md) | [`hal/pros/controller.hpp`](../../include/shulib/hal/pros/controller.hpp) | ProsController — IController over pros::Controller (chunk R1a): the driver's hands behind the HAL. |
 | [Device provider (PROS)](pros-device_provider.md) | [`hal/pros/device_provider.hpp`](../../include/shulib/hal/pros/device_provider.hpp) | ProsDeviceProvider — hal::IDeviceProvider over the real V5 adapters. |
@@ -319,7 +319,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 4,503 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 4,514 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

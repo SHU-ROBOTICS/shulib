@@ -103,6 +103,7 @@
 #include "shulib/hal/motor.hpp"
 #include "shulib/hal/pros/battery.hpp"
 #include "shulib/hal/pros/block_sink.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/clock.hpp"
 #include "shulib/hal/pros/controller.hpp"
 #include "shulib/hal/pros/distance.hpp"
@@ -175,8 +176,11 @@ hal::pros::ProsBlockSink* g_card = nullptr;
 void screenEmit(const char* line);  // fwd: defined with the screen helpers below
 
 void emit(const char* line) {
-    std::printf("%s\n", line);
-    std::fflush(stdout);
+    // ONE write() per line (SER1, HA-189). This was `std::printf("%s\n", line)`, which the compiler
+    // rewrites to `puts` — and newlib's puts sends the text and the newline as TWO writes into
+    // stdout's shared, unguarded buffer. serialWrapped(nullptr, ...) sends the line exactly as
+    // printed (no tag: the line carries its own), whole, and wraps a line past 255 characters.
+    hal::pros::serialWrapped(nullptr, line);
     screenEmit(line);
     if (g_card != nullptr && g_card->isOpen()) {
         // Return value deliberately discarded: a full/absent card must not stop a
@@ -3124,16 +3128,19 @@ void testerInitialize(const char* variantBeacon, const char* competitionStatusBi
     // Moved VERBATIM from src/main.cpp's initialize() at G1 Part 2c (the dispatcher forwards
     // here); the bytes on serial are unchanged. The X-drive graph is not constructed in this
     // build — it lives in src/programs/xdrive_program.cpp, which only the xdrive build calls.
-    std::printf("\n[R3A] booted: bench-tester build [%s].\n"
-                "[R3A] read-only EXCEPT the tester's DRIVE station (R3b Session 2), which powers\n"
-                "[R3A] the drive motors through the hal/pros adapters behind six safety gates --\n"
-                "[R3A] never through the motion stack. The library has still not driven a robot.\n"
-                "[R3A] the X-drive object graph is deliberately NOT constructed.\n",
-                variantBeacon);
-    std::printf("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
-                "CONTROL, enabled; any other state paints the screen with the reason.\n",
-                competitionStatusBits);
-    std::fflush(stdout);
+    // ONE write() per line since SER1 (HA-189) — the bytes unchanged; the first carries the blank
+    // line before it. The longest is 201 bytes (the status line, with 63 characters of bits).
+    hal::pros::serialLine("\n[R3A] booted: bench-tester build [%s].", variantBeacon);
+    hal::pros::serialLine("[R3A] read-only EXCEPT the tester's DRIVE station (R3b Session 2), "
+                          "which powers");
+    hal::pros::serialLine("[R3A] the drive motors through the hal/pros adapters behind six "
+                          "safety gates --");
+    hal::pros::serialLine("[R3A] never through the motion stack. The library has still not "
+                          "driven a robot.");
+    hal::pros::serialLine("[R3A] the X-drive object graph is deliberately NOT constructed.");
+    hal::pros::serialLine("[R3A] competition status at boot: %s -- the tester runs only in DRIVER "
+                          "CONTROL, enabled; any other state paints the screen with the reason.",
+                          competitionStatusBits);
 }
 
 void runR3a() {

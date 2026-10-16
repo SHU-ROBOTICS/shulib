@@ -41,7 +41,7 @@ Extracted from [`include/shulib/competition/auton_menu.hpp`](../../include/shuli
   - [`id`](#menubutton-id)
   - [`entry`](#menubutton-entry)
   - [`rect`](#menubutton-rect)
-  - [`1]`](#menubutton-1)
+  - [`label`](#menubutton-label)
   - [`armed`](#menubutton-armed)
   - [`chosen`](#menubutton-chosen)
 - [`struct MenuLine`](#struct-menuline)
@@ -49,7 +49,7 @@ Extracted from [`include/shulib/competition/auton_menu.hpp`](../../include/shuli
   - [`y`](#menuline-y)
   - [`size`](#menuline-size)
   - [`tone`](#menuline-tone)
-  - [`1]`](#menuline-1)
+  - [`text`](#menuline-text)
 - [`struct MenuView`](#struct-menuview)
   - [`header`](#menuview-header)
   - [`info`](#menuview-info)
@@ -410,9 +410,9 @@ Where it is drawn (its hit box is ui::hitBox(rect)).
 
 *field, declared at [`include/shulib/competition/auton_menu.hpp:137`](../../include/shulib/competition/auton_menu.hpp#L137).*
 
-<a id="menubutton-1"></a>
+<a id="menubutton-label"></a>
 
-### `MenuButton::1]`
+### `MenuButton::label`
 
 ```cpp
 char label[ui::kMediumCols + 1]{}
@@ -506,9 +506,9 @@ Its colour, by meaning.
 
 *field, declared at [`include/shulib/competition/auton_menu.hpp:155`](../../include/shulib/competition/auton_menu.hpp#L155).*
 
-<a id="menuline-1"></a>
+<a id="menuline-text"></a>
 
-### `MenuLine::1]`
+### `MenuLine::text`
 
 ```cpp
 char text[ui::kSmallCols + 1]{}

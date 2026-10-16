@@ -1,8 +1,8 @@
 # 11 — Reading the diagnostics
 
 > **Covers:** the terminal output, line by line and field by field — the session header, result
-> lines, the run summary, per-tick lines, warnings — and **every fault code: what it means,
-> what causes it, what to do about it.**
+> lines, the run summary, per-tick lines, warnings — **every fault code: what it means,
+> what causes it, what to do about it** — and how your own code prints lines into the same log.
 > **Read this if:** you have a transcript in front of you, or you want to be the person the
 > team hands transcripts to.
 > **Assumes:** [Chapters 6](06-how-things-fail.md) and [8](08-your-first-routine.md). This
@@ -376,6 +376,54 @@ There's also a three-line **controller LCD display** (first fault, fault count, 
 deliberately ticking clock — so a frozen screen is distinguishable from a crashed program) for
 reading health at the field without a laptop; see `diag/controller_display.hpp`.
 
+## Printing your own lines: one line, one call
+
+Your own code — an auton, a driver file, a task of your own — can add lines to the same serial log.
+Do it one way (`#include "shulib/hal/pros/char_sink.hpp"`):
+
+```cpp
+void sayArm(int angle, const char* reason) {
+    shulib::hal::pros::serialLine("[ARM] at %d deg", angle);
+    shulib::hal::pros::serialWrapped("ARM", reason);
+}
+```
+
+- **A line — `serialLine`:** printf-style, one line per call. It adds the newline if you left it off
+  (and never doubles one), and sends the whole line to the USB in ONE write.
+- **A long text — `serialWrapped`:** any length, sent as `[ARM] ` lines of at most 256 bytes, broken at
+  spaces, the later pieces beginning `[ARM] ... `. Nothing is cut. `serialLine` stops at 256 bytes (its
+  newline included) and ends a longer line with `...[cut]` — so a text that can be long belongs to
+  `serialWrapped`. (The limits as of 2026-10-08; the [reference](../api/pros-char_sink.md) has the exact
+  names.)
+
+**Never `printf`, `puts`, `putchar` or `std::cout << ... << ...`** in code that runs while another task
+prints — and in a competition program something always might (the auton runs on its own task, and PROS
+runs each phase function on another). Every task on the V5 shares ONE stdout buffer with no lock on it,
+so two tasks inside `printf` at once can mix their bytes or lose a line; and `printf("text\n")` is not
+even one write — the compiler turns it into `puts`, which sends the text and the newline separately.
+(That is reasoned from PROS's C library, not yet seen on a robot — the A4 register's HA-189. The two
+functions above are how shulib's own programs print since 2026-10-08, and the project's src build gate
+fails a build whose code in `src/` names stdout or stderr, or calls any printer that writes them — every
+one in PROS's C library, `std::cout` and its family.) Don't mix the two on one line either:
+a `serialLine` sent while `printf` text still waits in stdout's buffer goes out first.
+
+Three limits worth knowing:
+
+- **Keep one write under about 2 KB.** PROS's serial output holds 2047 bytes, and a larger single write
+  is believed to wait for ever (HA-191 — reasoned from PROS's library, not yet seen). shulib never sends
+  more than 512 bytes in one write: the two functions stay under 256, and a longer text through a sink
+  goes out in 512-byte pieces — another task's line can land between two of them, so a line that must
+  stay whole stays under 512. Only a `write()` of your own on the serial can reach the limit.
+- **The stack.** A `serialLine` takes about 0.9 KB of the calling task's stack, and about 1.25 KB with
+  `%f`, `%e` or `%g` — which also allocate memory, so keep them out of a fast loop (upper bounds read from
+  the compiled code, 2026-10-08 — not a run on a robot; the header's banner has the numbers). A task you
+  create with PROS's default stack (32 KB) has plenty; one created with the smallest
+  (`TASK_STACK_DEPTH_MIN`, 2 KB) does not.
+- **One case nothing on our side can fix:** if PROS stops a task in the middle of one of these writes,
+  PROS's own serial lock is believed never to be released, so every later line of that boot would wait
+  for ever (HA-190 — reasoned from PROS's library, not yet seen; [Chapter 17](17-the-competition-program.md)
+  says when the competition program can meet it).
+
 ## The blackbox: what you read when there was no laptop
 
 Everything above assumes somebody was watching a terminal. At a competition nobody is, and that
@@ -546,7 +594,7 @@ For the deeper design — what's planned beyond the terminal (live telemetry, re
 
 ## The exact signatures
 
-Every field of every record in this chapter has an exact spelling in the reference: [`DebugRecord`](../api/debug_record.md), [`MotionResult`](../api/motion_result.md), [`RunSummary`](../api/run_summary.md), [`SessionInfo`](../api/session_info.md) and the [fault codes](../api/fault.md). The sinks are there too — [`TermSink`](../api/term_sink.md), [`SdSink`](../api/sd_sink.md), [`NullSink`](../api/null_sink.md), [`LevelFilterSink`](../api/level_filter_sink.md), [`RateLimitedSink`](../api/rate_limit_sink.md) — along with the [blackbox format](../api/blackbox_format.md) and its [reader](../api/blackbox_reader.md), and [`TickAttribution`](../api/tick_attribution.md), which answers *which phase* spent the tick.
+Every field of every record in this chapter has an exact spelling in the reference: [`DebugRecord`](../api/debug_record.md), [`MotionResult`](../api/motion_result.md), [`RunSummary`](../api/run_summary.md), [`SessionInfo`](../api/session_info.md) and the [fault codes](../api/fault.md). The serial's own writer — `ProsCharSink`, `serialLine` and `serialWrapped` — is [`char_sink`](../api/pros-char_sink.md). The sinks are there too — [`TermSink`](../api/term_sink.md), [`SdSink`](../api/sd_sink.md), [`NullSink`](../api/null_sink.md), [`LevelFilterSink`](../api/level_filter_sink.md), [`RateLimitedSink`](../api/rate_limit_sink.md) — along with the [blackbox format](../api/blackbox_format.md) and its [reader](../api/blackbox_reader.md), and [`TickAttribution`](../api/tick_attribution.md), which answers *which phase* spent the tick.
 
 The SHUL/2 telemetry wire — the binary stream a laptop tool such as VexBuilder will read — has its
 format in [`shul2_format`](../api/shul2_format.md), its reader in

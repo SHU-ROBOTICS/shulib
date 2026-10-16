@@ -116,6 +116,7 @@
 #include "shulib/hal/controller.hpp"
 #include "shulib/hal/motor_group.hpp"
 #include "shulib/hal/line_display.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 #include "shulib/hal/pros/device_provider.hpp"
 #include "shulib/hal/pros/line_display.hpp"
 #include "shulib/hal/pros/tick_pacer.hpp"
@@ -596,18 +597,23 @@ void logBootLines(robot::Robot& r, hal::ITelemetrySink& log, const BootOutcome& 
 
 void driveInitialize(const char* variantBeacon, const char* competitionStatusBits) {
     DriveState& st = state();
-    std::printf("\n[%s] booted: shulib DRIVE build [%s] -- robot two's DRIVER FILE drives it\n"
-                "[%s] (src/team/robot_two_driver.hpp) through robot::Robot: two hal::MotorGroups,\n"
-                "[%s] drive-encoder odometry and Chassis::drive(), built from the CALIBRATION RECORD\n"
-                "[%s] on the SD card, with the library's drive protections. Forward is the record's\n"
-                "[%s] front. This is NOT the old shulib Drive (its tag was [R3B]).\n"
-                "[%s] %s\n"
-                "[%s] BUILD STAMP %s\n",
-                kTag, variantBeacon, kTag, kTag, kTag, kTag, kTag, kRunStatus, kTag, kBuildStamp);
-    std::printf("[%s] competition status at boot: %s -- the loop runs only in DRIVER CONTROL, "
-                "enabled; any other state paints the screen with the reason.\n",
-                kTag, competitionStatusBits);
-    std::fflush(stdout);
+    // ONE write() per line (SER1, HA-189); the first carries the blank line before it. The run
+    // status is one 408-character sentence: serialWrapped() sends it as `[DRV] ` pieces of at most
+    // kSerialLineBytes, one write() each, never cut.
+    hal::pros::serialLine("\n[%s] booted: shulib DRIVE build [%s] -- robot two's DRIVER FILE "
+                          "drives it", kTag, variantBeacon);
+    hal::pros::serialLine("[%s] (src/team/robot_two_driver.hpp) through robot::Robot: two "
+                          "hal::MotorGroups,", kTag);
+    hal::pros::serialLine("[%s] drive-encoder odometry and Chassis::drive(), built from the "
+                          "CALIBRATION RECORD", kTag);
+    hal::pros::serialLine("[%s] on the SD card, with the library's drive protections. Forward is "
+                          "the record's", kTag);
+    hal::pros::serialLine("[%s] front. This is NOT the old shulib Drive (its tag was [R3B]).", kTag);
+    hal::pros::serialWrapped(kTag, kRunStatus);
+    hal::pros::serialLine("[%s] BUILD STAMP %s", kTag, kBuildStamp);
+    hal::pros::serialLine("[%s] competition status at boot: %s -- the loop runs only in DRIVER "
+                          "CONTROL, enabled; any other state paints the screen with the reason.",
+                          kTag, competitionStatusBits);
 
     // ── which description drives this robot: decided, and printed, before any adapter exists.
     st.boot = decideBootSource(kTag);

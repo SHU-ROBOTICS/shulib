@@ -9,6 +9,8 @@
 #include "pros/misc.h"
 #include "pros/screen.h"
 
+#include "shulib/hal/pros/char_sink.hpp"
+
 namespace shulib::bench {
 
 static_assert(kStatusDisabled == static_cast<std::uint8_t>(COMPETITION_DISABLED)
@@ -27,8 +29,9 @@ const char* competitionBits(std::uint8_t s, char* buf, std::size_t n) {
 void benchStateScreen(const char* state, const char* why) {
     char bits[64];
     competitionBits(pros::c::competition_get_status(), bits, sizeof bits);
-    std::printf("[R3A] competition state: %s (%s) -- %s\n", state, bits, why);
-    std::fflush(stdout);
+    // ONE write() per piece (SER1, HA-189): the longest today is 206 bytes with its newline
+    // (src/main.cpp's Calibrate AUTONOMOUS reason), one piece; a longer `why` wraps, never cut, never printf.
+    hal::pros::serialWrapped("R3A", {"competition state: ", state, " (", bits, ") -- ", why});
     // "status bits " + the bits, formatted here so the screen call's format is the literal "%s".
     char statusLine[80];
     std::snprintf(statusLine, sizeof statusLine, "status bits %s", bits);

@@ -36,12 +36,12 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-187..HA-188, HA-190..HA-191.
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-187..HA-188.
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
 >
-> **Status: 7 of 174 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
+> **Status: 7 of 176 settled** (HA-94/95/96/97/99/100/101, all measured on the old competition bot
 > 2026-08-13 — one robot, once; not proof of portability). HA-98 partially settled. *(The total read
 > "122" while HA-123 existed — a one-entry drift, corrected 2026-09-14 when robot two's section,
 > HA-124–HA-133, was added: of those ten, four are MEASURED on robot two (HA-127/128/129/130),
@@ -128,6 +128,7 @@
 > driver file; and HA-60 names its second consumer, the programs' SD log copy, written inside a tick.
 > One belief it met is left for the coordinator, unnumbered: whether PROS serializes two tasks' writes
 > to one FILE* (stdout; the card copy no longer depends on it — `diag::LogCopySink` keeps one writer).
+> (Numbered HA-189 the same day, below — reasoned FALSE — and fixed in shulib's code by SER1.)
 > HA-161 gained a consequence line at its verification (2026-10-08): as built, a deletion that lands
 > mid-copy ends the card's copy for that boot. A second belief is named there and left unnumbered: it
 > would be needed only by a guard that recovers from such a deletion (`task_get_state()` on a deleted
@@ -141,6 +142,11 @@
 > a rotation sensor's cumulative position starts at the shaft's absolute angle (`absoluteSensor()`
 > homing). In this part the core only DECLARES those roles and builds their devices; nothing reads a
 > switch or homes a mechanism yet (the core's service, its next parts). With them, 174.
+> **SER1 (the serial log's lines kept whole; built 2026-10-08, landed 2026-10-15) added TWO — HA-190 and HA-191** — what its fix, ONE `write()`
+> per line, leaves in PROS's hands: a task deleted inside that write holds PROS's serial mutex for ever (HA-190), and
+> one write must fit PROS's 2047-byte serial stream (HA-191); both reasoned from the vendored `libpros.a`. HA-189's
+> entry now names the fix; it stays unsettled until the bench — its dedicated two-task test is owed, and Station
+> K.7.3 is evidence toward it (SER1's review, 2026-10-15, corrected an over-claim there). With them, 176.
 > The rest of HA-162..HA-176 (all but HA-162, HA-165, HA-166, HA-167, HA-170..HA-174, HA-175 and HA-176) is not in it: numbers other chunks hold (briefed, not landed) — never
 > reissued — and neither are **HA-181** (G3a, the robot panel: its amended brief) and **HA-182, HA-183
 > and HA-185** (the mechanism core's later parts: its brief, accepted 2026-10-08; HA-184 and HA-186
@@ -349,7 +355,9 @@
 | HA-180 | Robot two's sideways error on a straight tank `moveTo` comes from its HEADING being pulled (the IMU sees it), not from the chassis sliding sideways (which no sensor on robot two sees) | reasoned (the 2026-09-25 veer was a heading change read on the IMU; a skid was never measured) | COMP-t Station M.6 |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
-| HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over |
+| HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (evidence — the dedicated two-task test is owed) |
+| HA-190 | A task PROS deletes while it is INSIDE `ser_write_r` (one serial `write()`) leaves PROS's serial write mutex held, and every later serial write of that boot — stdout and stderr alike — blocks its writer for ever | **reasoned** (the vendored `libpros.a`: `ser_write_r` holds the mutex across `stream_buf_send`'s unbounded waits; `task_delete` releases no mutex) | SER1; Station K.7.3 (Timed-Run mode changes while two tasks print) |
+| HA-191 | One serial `write()` must fit PROS's 2047-byte serial stream (about 2,035 bytes of text: a 4-byte stream id, COBS framing and a delimiter around it); a larger one waits for ever holding PROS's write mutex | **reasoned** (the vendored `libpros.a`: `ser_driver_initialize` +0x38, `stream_buf_send` waits until the WHOLE frame fits) | SER1 (no shulib call offers one `write()` more than 512 bytes — `kSerialWriteMaxBytes`; `serialLine` 256) |
 
 ---
 
@@ -2743,9 +2751,9 @@ can write the serial log at once; "shulib Drive" has one writer today. The card 
 Part 3 (`diag::LogCopySink`); serial did not, on the belief below — which the vendored binaries contradict.
 
 - [ ] **HA-189 — two tasks writing the USB serial (stdout) at once keep their lines whole.**
-  *Claim:* `hal::pros::ProsCharSink::write()` (`include/shulib/hal/pros/char_sink.hpp`) does `std::fwrite` + `std::fflush`
-  on stdout, and its banner says "fwrite is atomic per call at this layer, so lines never interleave" — i.e. the C library
-  serializes two tasks' calls on one `FILE*`.
+  *Claim:* `hal::pros::ProsCharSink::write()` (`include/shulib/hal/pros/char_sink.hpp`) did `std::fwrite` + `std::fflush`
+  on stdout until SER1, and its banner said "fwrite is atomic per call at this layer, so lines never interleave" — i.e.
+  the C library serializes two tasks' calls on one `FILE*`.
   *Source:* the vendored toolchain, read 2026-10-08 (`.claude/coordinator/scratch/ha189/`, and `nm`/`objdump` on the
   linked `bin/cold.package.elf` of the seven-build tree): (1) newlib's per-FILE locks are the default stubs — every
   `__retarget_lock_*` in `firmware/libc.a` (`libc_a-lock.o`) is `bx lr` (2 bytes, linked as such), and `libpros.a`
@@ -2761,12 +2769,86 @@ Part 3 (`diag::LogCopySink`); serial did not, on the belief below — which the 
   *Settle:* a bench program with two tasks of equal priority each printing numbered 120-byte lines as fast as they can
   for 60 s; capture `pros terminal` to a file and check every line is whole and every number present once. Then the
   competition program's own Station K log around each mode change. A fix that makes one line one device write (stdout
-  unbuffered, or a mutex in `ProsCharSink`) is settled by the same test passing.
+  unbuffered, or a mutex in `ProsCharSink` — SER1 chose neither: one direct `write()` per line, below) is settled by the
+  same test passing.
   *Blast radius if wrong (as believed):* serial log lines mixed or lost around mode changes in the competition program —
   the log a match is diagnosed from; the robot's motion is unaffected unless the buffer race ever writes out of bounds
   (then anything, a crash included — not observed, not excluded). The SD card's copy is unaffected (its own guard).
-  **Not contained:** every program that logs from more than one task. A fix is planned (a small chunk for the team
-  lead's go); until then `ProsCharSink`'s banner claim stands corrected here.
+  **Not contained:** every program that logs from more than one task — until SER1, below.
+  *The fix (chunk SER1, 2026-10-08, the team lead's ruling "one-call writes"):* shulib never writes the serial through
+  stdout's FILE any more. `ProsCharSink::write()` sends each line with ONE direct `write()` on the serial's descriptor
+  (`hal::pros::writeWhole()`: the remainder after a short write, a stop on 0 or −1); `hal::pros::serialLine()` formats a
+  line on the CALLER'S stack (256 bytes) and sends it the same way; `hal::pros::serialWrapped()` sends a longer text as
+  pieces of at most 256 bytes, one write each — and all 20 `printf` sites and 14 `fflush(stdout)` lines in `src/` went
+  through them. No call is offered more than 512 bytes (`kSerialWriteMaxBytes`, HA-191) — above every line shulib
+  prints, so each stays one call. One `write()` is one frame under PROS's write mutex (claim (3) above), so the claim
+  the register states is now what shulib's own lines DO — reasoned from the same disassembly, never seen on a brain.
+  The src build gate's step 9 fails any `src/` object that names stdio's FILEs (`_impure_ptr`, what naming stdin,
+  stdout or stderr compiles to, and `__sf`) or calls a printer that writes stdout or stderr — every one the vendored
+  `libc.a` defines (`printf`, `puts`, `viprintf`, `putchar_unlocked`, `wprintf`, …; the list is checked against the
+  archive's symbol table on every run) and the C++ standard streams. stdout itself stays line-buffered (unbuffered
+  stdout, the first ruling, would have given every `printf` a ~1.2 KB stack frame — enough to overflow PROS's 2 KB
+  serial daemon when `pros terminal` connects). What it
+  does NOT cover: PROS's own stdio (the serial daemon's banners, the expander ADI's `puts("Error: validate_type")`, crash
+  dumps, `task_fn_wrapper`'s `fprintf(stderr)`), each of which ends its lines and so meets shulib's at a line boundary;
+  a team's own `printf` (the guide's chapter 11 gives the rule); and PROS's own mutex on a deletion (HA-190).
+  *Settle (as fixed):* the dedicated two-task numbered-line test above is still the settle, and it is OWED: no build
+  carries a program that prints numbered lines from two tasks (the bench program's menu is full — twelve stations, three
+  across and four down, with no room for a row on the panel — so it needs a station retired or a new layout; that call
+  is the team lead's). Until it runs, worksheet Station K.7.3 is EVIDENCE toward it, not the settle: the competition
+  program's own serial capture around every Timed-Run mode change, every expected line whole — with no sequence numbers,
+  a lost line shows only as an expected line missing; and K.7.4, `pros terminal` connected to a RUNNING program once
+  (the banner prints, no halt).
+
+**SER1 (2026-10-08) added TWO — HA-190 and HA-191** — what one `write()` per line leaves in PROS's hands (reasoned from
+the vendored `libpros.a` by SER1's brief checker, `.claude/coordinator/scratch/ser1-check/`; not caused, and not cured,
+by SER1).
+
+- [ ] **HA-190 — a task PROS deletes INSIDE one serial write leaves PROS's serial write mutex held.**
+  *Claim:* `ser_write_r` takes PROS's serial write mutex (`mutex_take` +0x72), builds the frame on the caller's stack and
+  hands it to `ser_output_write` → `stream_buf_send`, whose wait for room is unbounded, then gives the mutex back
+  (`mutex_give` +0xa6); `task_delete` releases no mutex a task holds. So a task deleted between the take and the give
+  leaves the mutex held, and every later serial write — stdout and stderr alike, PROS's own included — blocks its
+  writer for the rest of the boot.
+  *Source:* `include/shulib/hal/pros/char_sink.hpp`'s banner (THE LIMITS); `src/programs/competition_program.cpp`'s file
+  banner: its `opcontrol()` logs two lines right after its loop sees a disable — the moment PROS deletes that task
+  (HA-161 (a), reasoned). `diag/log_copy_sink.hpp` names the same exposure for a writer deleted inside the CARD
+  copy: the copy ends there for the rest of the boot, but no task waits (its guard gives up rather than waits) — and it
+  says a blocked serial ends the copy too.
+  *Confidence:* **reasoned** (the disassembly; never observed). How often a deletion lands inside that window — a few
+  microseconds per line — is unmeasured.
+  *Settle:* worksheet Station K.7.3 — Timed-Run mode changes while the competition program logs. This case looks like
+  a serial capture that STOPS at a mode change, and after the next enable the robot does NOT answer the sticks while
+  the brain still shows the program: every phase function's FIRST line is a log line (`competition_program.cpp`:
+  `disabled()`, `autonomous()` and `opcontrol()` each call `logPhase(…, "entry", …)` before anything else, `opcontrol()`
+  before its driver loop), so the next phase task blocks on it and driver control never starts. Restart the program.
+  *Blast radius if wrong (as believed):* every later serial line of that boot blocks its writer — the next phase
+  function blocks at its entry line, so driver control never starts (the robot stops answering the sticks), and the
+  auton task likewise. The SD copy STOPS AT THE SAME LINE: `diag::LogCopySink` writes the primary (serial) first and only
+  then the copy (`log_copy_sink.hpp`), so a writer blocked on serial never reaches the card — `comp_log.txt` and
+  `drive_log.txt` end where the serial capture ends (the card file itself is not damaged; the copy guard's give-up
+  covers contention on the CARD, not a blocked primary). **Not contained by shulib:** a fix would be PROS's (a mutex
+  released on deletion), or a single printing task — the team lead's "one printing task" option, not chosen (SER1's
+  brief, §2).
+
+- [ ] **HA-191 — one serial write must fit PROS's 2047-byte serial stream.**
+  *Claim:* PROS's serial output is a FreeRTOS stream buffer of 2047 bytes (`ser_driver_initialize` +0x38,
+  `movw r0, #2047`), and `stream_buf_send` waits until the WHOLE frame fits — a 4-byte stream id, the COBS-encoded data
+  and its delimiter, so about 2,035 bytes of text at most; a larger write waits for ever, holding PROS's write mutex
+  (HA-190's consequence without any deletion).
+  *Source:* `include/shulib/hal/pros/char_sink.hpp`: `writeWhole()` — the one loop every shulib serial write goes
+  through — offers each `write()` at most `kSerialWriteMaxBytes` = 512 bytes (`static_assert` ≤ 1024), so a longer text
+  through `ProsCharSink` goes out in 512-byte pieces (SER1's review, 2026-10-15: before it, the sink offered a text of
+  ANY length to one call); `serialLine()`'s and `serialWrapped()`'s lines are at most `kSerialLineBytes` = 256.
+  shulib's own lines are at most 384 bytes (`diag/line_format.hpp`'s `Line::kCapacity`, pinned ≤ 512 by the host
+  suite) and TermSink's messages 200.
+  *Confidence:* **reasoned** (the disassembly). No shulib call comes near it; a team's own `write()` on fd 1, or a
+  `printf` of a long buffer, could.
+  *Settle:* not needed for shulib's calls (a quarter of it at most); a team that must send more splits it
+  (`serialWrapped()`, or the sink, which pieces it).
+  *Blast radius if wrong:* if the stream were SMALLER than believed, a 512-byte write could hang the serial — the same
+  as HA-190's. **Contained** for shulib's calls by `writeWhole()`'s 512-byte ceiling (and its `static_assert` ≤ 1024);
+  a 512-byte piece is a quarter of the stream, so the margin is a factor of four.
 
 **R5a Part A added FIVE — HA-170 to HA-174.** The team lead ruled on 2026-09-26 that the drive's gains
 are measured by the robot and kept on the SD card, never typed or committed as constants; R5a builds

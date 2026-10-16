@@ -35,7 +35,8 @@
 // A RED bar with the program's name and its BUILD time; the headline over two MEDIUM rows; the
 // reason over four SMALL rows, with "(the full text is on the serial log)" when either did not
 // fit; the footer over two SMALL rows. And one serial line, `[<tag>] REFUSED: <headline> --
-// <why>`. The layout is COMP-t's, unchanged (every number an ESTIMATE, A4 register HA-136).
+// <why>` — wrapped into `[<tag>] ... ` pieces, one write() each, when it passes one serial line's
+// 256 bytes (SER1). The layout is COMP-t's, unchanged (every number an ESTIMATE, A4 register HA-136).
 // A program checks its own literals against the painter's budgets at compile time with
 // refusalBarFits() and refusalFooterFits() below.
 //

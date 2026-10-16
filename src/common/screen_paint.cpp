@@ -6,11 +6,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 
 #include "pros/screen.h"
 
 #include "common/screen_text.hpp"
+#include "shulib/hal/pros/char_sink.hpp"
 
 namespace shulib::bench {
 namespace {
@@ -105,9 +105,10 @@ void paintRefusalScreen(const RefusalScreen& screen) {
                   toneRgb(ui::Tone::Grey), kPanelBg, foot.line[k]);
     }
     if (screen.logToSerial) {
-        std::printf("[%s] REFUSED: %s -- %s\n", screen.tag != nullptr ? screen.tag : "", headline,
-                    why);
-        std::fflush(stdout);
+        // ONE write() per piece (SER1, HA-189): a headline of 63 and a reason of 191 characters
+        // can pass one serial line's kSerialLineBytes, so the line WRAPS — never cut, never printf.
+        hal::pros::serialWrapped(screen.tag != nullptr ? screen.tag : "",
+                                 {"REFUSED: ", headline, " -- ", why});
     }
 }
 

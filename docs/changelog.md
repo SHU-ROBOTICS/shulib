@@ -16,6 +16,78 @@
 
 ## API 2.4
 
+### Fixed and added since 2.4 (2026-10-15; built 2026-10-08) — the serial log keeps every line whole when two tasks print: one `write()` per line
+
+> Written when it was built (chunk SER1, the team lead's ruling "one-call writes", 2026-10-08). **No
+> version bump — a fix inside an adapter, and additions:** `hal::pros::ProsCharSink` is an adapter, not a
+> frozen contract (`hal::ICharSink` is deliberately outside the [Freeze Register](roadmap.md#freeze-register)'s
+> F4), its constructor taking a `FILE*` keeps its signature, and every other name below is new. **Host and
+> build gated only — nothing here has run on a robot**; the fix is reasoned from the vendored C library and
+> can be settled only at the bench (A4 register HA-189, whose dedicated two-task test is still owed).
+
+**FIXED — two tasks printing at once could mix or lose each other's serial lines** (A4 register HA-189,
+reasoned from the vendored `libc.a`/`libpros.a`). Every task on the V5 shares ONE stdout buffer, and the
+C library's locks on it are empty stubs, so two tasks inside `printf`/`fwrite` at once (the competition
+program's auton task and PROS's phase tasks, around every mode change) could interleave or drop bytes —
+and `ProsCharSink`'s old banner said the opposite. Now every line shulib sends is ONE direct `write()` on
+the serial's descriptor, which PROS's own serial lock keeps whole: `ProsCharSink::write()` no longer
+goes through stdout's buffer at all, and every line the programs print at boot goes through the new
+functions below. One case nothing on our side can cover is new in the register: a task PROS deletes in
+the middle of that one write is believed to leave PROS's serial lock held, so every later serial line of
+that boot would wait for ever (HA-190, reasoned, not seen — the guide's
+[chapter 17](guide/17-the-competition-program.md) says when that can happen).
+
+**Added** (`include/shulib/hal/pros/char_sink.hpp`):
+- `hal::pros::serialLine(format, ...)` — one printf-style line, formatted on the caller's stack, given
+  exactly one trailing newline, sent with one `write()`. At most `kSerialLineBytes` (256) bytes with its
+  newline; a longer result is CUT, visibly (`kSerialCutMarker`, `...[cut]`).
+- `hal::pros::serialWrapped(tag, text)` and `serialWrapped(tag, {part, part, ...})` — a text of any
+  length as `[tag] ` lines of at most 256 bytes, one `write()` each, broken at spaces and never cut;
+  later pieces begin `[tag] ... `. `kSerialTagBytes` (16) caps the tag.
+- `hal::pros::writeWhole(fd, bytes, writeFn)` and `hal::pros::PosixWrite` — the write loop underneath:
+  the remainder after a short write, a stop (never a spin) on 0 or −1, and no call offered more than
+  `hal::pros::kSerialWriteMaxBytes` (512) bytes — a longer text goes in pieces of that size, so no shulib
+  call can reach PROS's ~2 KB limit on one write (A4 register HA-191). Every line shulib prints (at most
+  384 bytes) is still one call.
+- `ProsCharSink()` — a default constructor for the robot's serial (fd 1) that names no `FILE` at all.
+  `hal::pros::ProsDeviceProvider` uses it, unchanged in its source.
+
+**BEHAVIOUR CHANGE (`ProsCharSink(std::FILE*)`)** — it writes that FILE's DESCRIPTOR directly, flushes
+the FILE once when it is built (so earlier text goes first), and now also refuses a FILE with no
+descriptor (a contract breach, loud on the host; a null FILE it refused already). Anything written into
+the FILE through stdio AFTER the sink exists may come out after the sink's lines. **What you must do:**
+build the sink before anything else writes that FILE, and stop writing it through stdio (a test that
+handed it `tmpfile()` and read the file back still works).
+
+**BEHAVIOUR CHANGE (`ProsCharSink::write()`)** — a text longer than 512 bytes now goes out in 512-byte
+pieces, one `write()` each, in order; before, it went in one write of any length, which on the brain is
+believed to wait for ever past about 2 KB (HA-191). Nothing shulib prints is that long (a diagnostic line
+is at most 384 bytes); a team's own sink text that is longer can now have another task's line land
+between two pieces — keep a line that must stay whole under 512 bytes.
+
+**BEHAVIOUR CHANGE (the programs' serial output)** — the bytes of every boot line are unchanged, except
+a line longer than 255 characters: it now arrives as `[TAG] ` pieces, the later ones `[TAG] ... `
+("shulib Drive"'s run-status sentence on every boot; a long refusal reason; a claw's ABSENT line).
+
+**FIXED (the API reference)** — the documentation tool had published four entries under names it misread,
+and its coverage gate counted them as documented: `MenuButton::label` and `MenuLine::text`
+(`competition/auton_menu.hpp`) and `Wrapped::line` (`calibration/calibrate_panel.hpp`) appeared as `1]`,
+and `Handler::fn` (`runner/command_registry.hpp`), a pointer-to-function field, as a function named after
+its return type. Their headings and link anchors changed to the real names (`#menubutton-label`,
+`#menuline-text`, `#wrapped-line`, `#handler-fn`); the declarations are unchanged. A conversion operator
+(`operator T()`) is now named `operator T` — it was named after the type it converts to. The gate now FAILS
+any name it cannot read, or one that is only a keyword.
+
+**What you must do** (a team's own code that prints): print a line with
+`shulib::hal::pros::serialLine("[TAG] ...", ...)`, a long text with `serialWrapped("TAG", text)` — never
+`printf`, `puts`, `putchar` or a `std::cout << ...` chain from code that runs while another task prints,
+and never more than about 2 KB in one `write()` of your own (HA-191; shulib's calls stay under 512). The
+project's src build gate now fails a build whose `src/` code names stdout or stderr, or calls any
+printer that writes them — every one the vendored C library defines (the list is checked against the
+library's own symbol table on every run) and `std::cout`, `std::wcout` and their family
+(`tools/src_build_gate.py`, step 9), so code in `src/team/` follows the rule or does not build.
+[Chapter 11](guide/11-reading-the-diagnostics.md) has the rule and its why.
+
 ### Added since 2.4 (2026-10-08, later; its review round 2026-10-15) — the mechanism core, part 1: any mechanism declared once and wired separately, checked at build; its route ids; every role built at boot
 
 > Written when it was built (chunk MECH-A1, the first of the mechanism core's six parts). **No
