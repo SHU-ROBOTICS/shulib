@@ -373,6 +373,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > (and a disable) now CUTS a mechanism step instead of letting it run to its own limit. No program builds the service
 > yet, and no auton step calls it: **next is MECH-A3 (position and speed), with CAL1 beside the core.**
 >
+> **Now (2026-10-15): CAL1 Part A1, the standard Calibrate's seams, has LANDED — host-only.** The brain's screen is
+> now a seam with ONE sanitizer (`hal::IBrainScreen`, `hal::screenSafeLine()`), a painter draws Calibrate's screens
+> on it (`calibration/calibrate_screen.hpp`), and `calibration::compareFronts()` judges whether a new Calibrate's
+> front matches the saved record's — or, for a first Calibrate, the robot's typed drive ports (the team lead's
+> D6 (a)). No program uses them yet: **next for CAL1 is Part A2a, the standard Calibrate program.**
+>
 > **As of 2026-09-28 (kept as history — T4 Part 3 has since retired "shulib Teleop" and moved the tester to
 > slot 2): the auton tester had LANDED (COMP-t) — host- and build-gated, NOT run on a
 > robot:** "shulib Auton Tester" (`make ROBOT=tank PROGRAM=autontest`, slot 7 until the driver

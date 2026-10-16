@@ -247,6 +247,7 @@ nav:
           - Block char sink: api/block_char_sink.md
           - Block sink: api/block_sink.md
           - Block source: api/block_source.md
+          - Brain screen: api/brain_screen.md
           - Char sink: api/char_sink.md
           - Clock: api/clock.md
           - Controller: api/controller.md
@@ -282,6 +283,7 @@ nav:
           - Battery (PROS): api/pros-battery.md
           - Block sink (PROS): api/pros-block_sink.md
           - Block source (PROS): api/pros-block_source.md
+          - Brain screen (PROS): api/pros-brain_screen.md
           - Char sink (PROS): api/pros-char_sink.md
           - Clock (PROS): api/pros-clock.md
           - Controller (PROS): api/pros-controller.md
@@ -307,11 +309,13 @@ nav:
       - Calibration:
           - Boot check: api/boot_check.md
           - Calibrate panel: api/calibrate_panel.md
+          - Calibrate screen: api/calibrate_screen.md
           - Calibration record: api/calibration_record.md
           - Drive characterization: api/drive_characterization.md
           - Drive characterizer: api/drive_characterizer.md
           - Drivetrain calibrator: api/drivetrain_calibrator.md
           - Feedforward fit: api/feedforward_fit.md
+          - Front check: api/front_check.md
           - Record store: api/record_store.md
           - Rest capture: api/rest_capture.md
       - Competition:

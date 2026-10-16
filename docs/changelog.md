@@ -16,6 +16,91 @@
 
 ## API 2.4
 
+### Added since 2.4 (2026-10-15; built 2026-10-08–15) — the standard Calibrate's seams: the brain's screen as a seam, the painter that draws on it, and the front check
+
+> Written when it was built (chunk CAL1, Part A1 of four: the seams; the standard Calibrate program is
+> its Parts A2a and A2b, and robot two moves onto it in Part B). **No version bump — every change is
+> ADDITIVE:** five new headers, and no existing header changed; `hal::IBrainScreen` is a new device
+> seam beside `hal::ILineDisplay`, not one of the frozen F4 interfaces, and `calibration/` is in no row
+> of the [Freeze Register](roadmap.md#freeze-register). **No program uses any of it yet**, so every
+> program paints, prints and saves exactly as before. **Host only — nothing here has run on a robot.**
+
+**Why:** the team lead asked on 2026-10-06 for Calibrate to ship WITH the library, so every team —
+and the VS Code panel, which reads the record Calibrate saves — gets the same, correct Calibrate.
+Today's "shulib Calibrate" is robot two's program and calls PROS's screen inline, so the host suite
+can run only the pure pieces it calls (`viewFor`, `TouchGate`, the calibrator). These seams let the
+library's Calibrate draw through an interface the host suite records, and its front check be a
+library function.
+
+**ADDED:**
+
+- **`hal::IBrainScreen`** (`hal/brain_screen.hpp`) — the V5 brain's own touch screen as a seam:
+  `fillRect`, `outlineRect`, `eraseRect`, `eraseAll`, `print(size, x, y, pen, eraser, text, cols,
+  padTo)`, `touch()` (a `hal::ScreenTouch`: an error flag, the release count and the last place) and
+  `prints()`. Beside it, **`hal::screenSafeLine()`**, the screen's sanitizer for the library: `'%'` and
+  control bytes become `?`, a UTF-8 en or em dash becomes `-`, any other non-ASCII character becomes ONE
+  `?`, and the text is cut at `cols`, then padded to `padTo`, never past the cut. Every `print()` passes
+  its text through it, so no caller can hand VEXos a format character. Its rules are, byte for byte,
+  those of the robot programs' own `printText()` (`src/common/screen_text.hpp`), which keeps its own
+  copy until Part B makes it call this one; a host test feeds both copies the same 5,008 texts at every
+  size and five pad widths (75,120 comparisons) and requires the same bytes. (Bench Tests keeps its own
+  sanitizer at its 54-column width.)
+- **`hal::pros::ProsBrainScreen`** (`hal/pros/brain_screen.hpp`) — the seam over PROS's screen API, in
+  the order "shulib Calibrate" makes the calls today: the pen or the eraser set, then the draw; a print
+  sets the eraser, then the pen, then prints the sanitized line through a literal `"%s"`; a touch read
+  PROS answers with `E_TOUCH_ERROR` (every field −1) is an error, never a tap. It counts its prints,
+  because PROS 4.2.2's print is believed to leak its buffer on every call (read from the vendored
+  `libpros.a` at R3d Part 2F, never measured — like the belief that PROS re-reads printed text as a
+  format string, which the sanitizer guards against; neither is in the assumptions register yet).
+- **`hal::fake::FakeBrainScreen`** (`hal/fake/fake_brain_screen.hpp`) — the host's screen: it records
+  every call as one line, in exactly the words the host PROS shim records for the same draw through
+  `ProsBrainScreen` (a host test holds the two equal, call for call), sanitizes as the adapter does,
+  counts prints, and plays back the touch as PROS reports it: a press moves the place, a release the
+  release count, and an error read is PROS's — every field −1, never the last tap (a second host test
+  holds its touch reads equal to the adapter's, read for read, so a reader that took its baseline
+  from an error read would see the same phantom tap here as on the robot).
+- **`calibration::CalibratePainter`** and the program's words, **`calibration::screen_text`**
+  (`calibration/calibrate_screen.hpp`) — the palette and the painter "shulib Calibrate" uses today,
+  re-expressed through the seam with the same rules: a change of screen, or of a line's place or size,
+  repaints everything; a colour change is painted at once; a live number is repainted at most every
+  `kLiveRepaintSeconds` (0.2 s — PROS is believed to leak each print); an in-place change is padded
+  over the old text, never erased; a button that vanished is erased. Also the program's own screens
+  (starting, cannot start, not driver control, the competition-state screen) and their words: every
+  word the library itself paints is checked at compile time against its line's budget
+  (`screen_text::kAll`) — the competition-state screen's names for its three states and their reasons
+  among them (`kStateName*`, `kStateWhy*`; its name for `competition_initialize()` is
+  `FIELD CONNECTED`, because the `FIELD CONTROL CONNECTED` robot two's other programs paint is five
+  characters past the LARGE budget). Text a caller passes — a refusal's reason and fix, the status
+  bits, the words a program hands the state screen — is cut at its budget by the sanitizer, and a
+  screen that cut or dropped any of it says so on its last line: the full text is on the serial log.
+  The header's build time is cut at `kBuildTimeCols` (14 characters, `BUILD hh:mm:ss`) and its word
+  at `kHeaderCols` (24), the widths the header's layout is checked for. Two kinds of cut are NOT
+  said on screen, because they are clamps that keep the layout whole: the build time's, and
+  `render()`'s of a view's header word, lines and button labels (the views `viewFor()` builds are
+  checked to fit; `paintCannot()` does say a header word it cut). The words that named robot
+  two are general here (no slot numbers, no "Bench Tests": a team's project may have neither).
+- **`calibration::compareFronts`** (`calibration/front_check.hpp`) — did a new calibration put the
+  robot's FRONT at the other end? A record carries each drive port's side and sign relative to the
+  push, so a push led by the other end gives every port the other side AND the other sign. Port by
+  port over the ports both descriptions list: same side and sign agree, other side and other sign are
+  flipped, one without the other is a re-mounted motor or a moved cable. `FrontVerdict::Flipped` only
+  when the flipped ports are a strict majority, `Same` when the agreeing ones are, else `Undetermined`
+  (a tie included) — never a guess. **What it cannot tell:** a robot whose LEFT and RIGHT drive cables
+  were swapped between the sides gives the same record as one pushed from the other end, so FLIPPED
+  says what the records say, never what the operator did. The earlier description may be the card's
+  record or, with no usable record on the card, the drive ports a team typed (the team lead's decision
+  of 2026-10-08); the function needs neither to be a valid description, and a side whose count runs
+  past 21 decides nothing.
+- **The host PROS shim** (test infrastructure, never on a robot): a `pros/screen.h` that records every
+  draw (each of PROS's five text formats apart) and scripts the touch in PROS's two steps, press and
+  release; the competition reads of `pros/misc.h`; three C-API motor reads of
+  `pros/motors.h` (position, encoder units, gearing) that write nothing and count their calls; an
+  advance hook in `pros/rtos.hpp`, called at every wait (`delay()`, and a `Task::delay_until()` that
+  blocks) so a host test can step the host test plant with a program's own waits — it changes nothing
+  while none is installed; and a host `main.h` that declares PROS's five entry points.
+
+**What you must do:** nothing. The standard Calibrate that uses these comes in the next parts.
+
 ### Added and changed since 2.4 (2026-10-15; built 2026-10-08–15) — the mechanism core, part 2: one service runs power and pneumatic mechanisms; the run guard's deadline now cuts a claimed mechanism
 
 > Written when it was built (chunk MECH-A2, the second of the mechanism core's six parts). **No

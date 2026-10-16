@@ -6,7 +6,7 @@
 > **Writing an autonomous routine? You need two of these pages.**
 > [`Chassis`](chassis.md) is the facade every routine is written against, and [`Routine`](routine.md) is the fluent recipe layer on top of it. Everything else on this page is the machinery underneath — real, documented, and safe to ignore until you want it.
 
-**Every public entity in every shipped header** — 4,634 of them across 179 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
+**Every public entity in every shipped header** — 4,744 of them across 183 headers: types and their members, nested types, free functions, namespace-scope constants and type aliases. Extracted from the headers, so it cannot fall behind the code: anything added to a shipped header appears here the next time the tool runs, and the host test build fails if it has not.
 
 **A public entity with no documentation comment fails the build**, naming itself and its file and line. That gate is what makes "generated" mean "complete" rather than "generated from whatever someone remembered to write".
 
@@ -166,6 +166,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Block char sink](block_char_sink.md) | [`hal/block_char_sink.hpp`](../../include/shulib/hal/block_char_sink.hpp) | BlockCharSink — an ICharSink over an IBlockSink: text lines onto a block device such as the SD card. |
 | [Block sink](block_sink.md) | [`hal/block_sink.hpp`](../../include/shulib/hal/block_sink.hpp) | IBlockSink — where BINARY BLOCKS physically go (an SD-card file on the brain, a captured buffer in a test). |
 | [Block source](block_source.md) | [`hal/block_source.hpp`](../../include/shulib/hal/block_source.hpp) | IBlockSource — where BINARY BLOCKS come FROM (an SD-card file on the brain, a canned buffer in a test). |
+| [Brain screen](brain_screen.md) | [`hal/brain_screen.hpp`](../../include/shulib/hal/brain_screen.hpp) | IBrainScreen — the V5 BRAIN's own touch screen, as a seam. |
 | [Char sink](char_sink.md) | [`hal/char_sink.hpp`](../../include/shulib/hal/char_sink.hpp) | ICharSink — where formatted diagnostic BYTES physically go (a terminal, a captured string in a test, later a serial port). |
 | [Clock](clock.md) | [`hal/clock.hpp`](../../include/shulib/hal/clock.hpp) | IClock — the single source of "now" for the whole stack. |
 | [Controller](controller.md) | [`hal/controller.hpp`](../../include/shulib/hal/controller.hpp) | IController — the V5 game controller behind the HAL (chunk R1a, absorbing Phase T's T1): the INPUT half of driver control. |
@@ -205,6 +206,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 | [Battery (PROS)](pros-battery.md) | [`hal/pros/battery.hpp`](../../include/shulib/hal/pros/battery.hpp) | ProsBattery — IBattery over the pros::battery namespace (chunk R1a): the brownout-compensation input behind the HAL. |
 | [Block sink (PROS)](pros-block_sink.md) | [`hal/pros/block_sink.hpp`](../../include/shulib/hal/pros/block_sink.hpp) | ProsBlockSink — IBlockSink over a PROS FILE* on the V5's SD card (chunk R1b): where the blackbox's binary blocks physically go. |
 | [Block source (PROS)](pros-block_source.md) | [`hal/pros/block_source.hpp`](../../include/shulib/hal/pros/block_source.hpp) | ProsBlockSource — IBlockSource over a PROS FILE* on the V5's SD card (chunk R3d Part 2): where the calibration record is read back from. |
+| [Brain screen (PROS)](pros-brain_screen.md) | [`hal/pros/brain_screen.hpp`](../../include/shulib/hal/pros/brain_screen.hpp) | ProsBrainScreen — hal::IBrainScreen over PROS's screen API. |
 | [Char sink (PROS)](pros-char_sink.md) | [`hal/pros/char_sink.hpp`](../../include/shulib/hal/pros/char_sink.hpp) | ProsCharSink, serialLine() and serialWrapped() — the V5's USB serial, where TermSink's diagnostic bytes and every program's own lines physically go (`pros terminal` displays them). |
 | [Clock (PROS)](pros-clock.md) | [`hal/pros/clock.hpp`](../../include/shulib/hal/pros/clock.hpp) | ProsClock — IClock over the V5's real time. |
 | [Controller (PROS)](pros-controller.md) | [`hal/pros/controller.hpp`](../../include/shulib/hal/pros/controller.hpp) | ProsController — IController over pros::Controller (chunk R1a): the driver's hands behind the HAL. |
@@ -246,11 +248,13 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 |---|---|---|
 | [Boot check](boot_check.md) | [`calibration/boot_check.hpp`](../../include/shulib/calibration/boot_check.hpp) | THE BOOT CHECK — is this description still true of THIS robot? |
 | [Calibrate panel](calibrate_panel.md) | [`calibration/calibrate_panel.hpp`](../../include/shulib/calibration/calibrate_panel.hpp) | calibrate_panel — the calibration screen as a PURE MODEL. |
+| [Calibrate screen](calibrate_screen.md) | [`calibration/calibrate_screen.hpp`](../../include/shulib/calibration/calibrate_screen.hpp) | calibrate_screen — how the standard Calibrate PAINTS the brain's screen. |
 | [Calibration record](calibration_record.md) | [`calibration/calibration_record.hpp`](../../include/shulib/calibration/calibration_record.hpp) | The CALIBRATION RECORD — a hal::DrivetrainDescription as bytes on the SD card. |
 | [Drive characterization](drive_characterization.md) | [`calibration/drive_characterization.hpp`](../../include/shulib/calibration/drive_characterization.hpp) | DriveCharacterization — what the GAINS and REST steps of shulib Calibrate MEASURE, as data. |
 | [Drive characterizer](drive_characterizer.md) | [`calibration/drive_characterizer.hpp`](../../include/shulib/calibration/drive_characterizer.hpp) | DriveCharacterizer — shulib Calibrate's GAINS step: the robot drives itself through four short, bounded segments while each drive side's kS, kV and kA are fitted on the brain. |
 | [Drivetrain calibrator](drivetrain_calibrator.md) | [`calibration/drivetrain_calibrator.hpp`](../../include/shulib/calibration/drivetrain_calibrator.hpp) | DrivetrainCalibrator — the robot describes its own drivetrain. |
 | [Feedforward fit](feedforward_fit.md) | [`calibration/feedforward_fit.hpp`](../../include/shulib/calibration/feedforward_fit.hpp) | FeedforwardFit — kS, kV and kA of ONE drive side, fitted on the brain from that side's own run. |
+| [Front check](front_check.md) | [`calibration/front_check.hpp`](../../include/shulib/calibration/front_check.hpp) | front_check — did a new calibration put the robot's FRONT at the other end? |
 | [Record store](record_store.md) | [`calibration/record_store.hpp`](../../include/shulib/calibration/record_store.hpp) | The calibration record's SAFE SAVE and its LOAD (chunk SAFE-SAVE Part A, 2026-09-29): a save designed so a failure part-way does not leave the card without a good record — given HA-166 (4) and (5), short of a stated two-fault limit — a load that falls back… |
 | [Rest capture](rest_capture.md) | [`calibration/rest_capture.hpp`](../../include/shulib/calibration/rest_capture.hpp) | RestCapture — shulib Calibrate's REST step: the robot sits still, unpowered, for a minute while the IMU's drift and noise, the encoders' noise at rest and the loop's timing are measured. |
 
@@ -321,7 +325,7 @@ Prose about *how to think about* the API lives in the [user guide](../guide/READ
 
 ## Every public entity, alphabetically
 
-**[The alphabetical index](all-entities.md)** lists all 4,634 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
+**[The alphabetical index](all-entities.md)** lists all 4,744 of them with a link to each. Nested types appear under their qualified name (`BlackboxReader::Frame::type`), so a member of a nested type is findable by the name you would actually write.
 
 ## Where the other documents fit
 

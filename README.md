@@ -85,21 +85,26 @@ current state, so here it is, third heading from the top:
 - **Everything about motion and control is verified off-robot**, against a simulated plant and
   simulated sensors. The simulation was built to be hostile, not flattering — but it is still
   simulation, and **not one control loop has ever closed on hardware.**
-- Seventeen hardware adapters exist (`include/shulib/hal/pros/` — motors, IMU, GPS, battery,
+- Eighteen hardware adapters exist (`include/shulib/hal/pros/` — motors, IMU, GPS, battery,
   encoders, controller, distance, optical, ADI digital in and out, USB serial, the controller
-  LCD, the SD card (write and read — and, built over those two, the store the calibration record's
-  safe save uses, which is not counted as an adapter of its own), the brain's device list, the loop
-  pacer, and real time).
+  LCD, the brain's own touch screen, the SD card (write and read — and, built over those two, the
+  store the calibration record's safe save uses, which is not counted as an adapter of its own), the
+  brain's device list, the loop pacer, and real time).
   The motor, IMU, battery, controller and clock adapters and the SD-card writer have met real
-  devices on the bench. **Distance, optical and ADI digital in and out are constructed by no
-  program yet** — no V5 build compiles them into a package, and none has touched a physical
-  device — and GPS and rotation appear only in the X-drive build, which has never run. All
-  seventeen are host-tested against a hand-written stand-in for PROS, which proves the glue is
+  devices on the bench. **Distance, optical, ADI digital in and out, and the brain's touch screen
+  are constructed by no program yet** — no V5 build compiles them into a package, and none has
+  touched a physical device (the touch screen's calls are the ones robot two's Calibrate program
+  makes itself today; the adapter is the library's standard Calibrate's, still to come) — and GPS
+  and rotation appear only in the X-drive build, which has never run. All
+  eighteen are host-tested against a hand-written stand-in for PROS, which proves the glue is
   faithful to *our beliefs* about PROS — units, signs, error values — and cannot prove the
   beliefs themselves; every such belief is a labelled entry in the assumptions register (HA-94
-  onward). Only the X-drive build (`make ROBOT=xdrive`) carries an invented, labelled port map;
-  the default build and robot two's builds use port tables measured on those robots (robot
-  two's is owed a re-measure after its drivetrain was rebuilt).
+  onward) — except two the touch-screen adapter shares with robot two's Calibrate program, read from
+  the SDK and not yet entered: that PROS re-reads printed text as a format string, and that each
+  print leaks its buffer (the adapter sanitizes and counts its prints either way). Only the
+  X-drive build (`make ROBOT=xdrive`) carries an invented, labelled port map; the default build
+  and robot two's builds use port tables measured on those robots (robot two's is owed a
+  re-measure after its drivetrain was rebuilt).
 - **What has been confirmed on hardware — and only this.** On 2026-08-12 the package was built,
   uploaded, and booted on a V5 brain, where it constructed its whole object graph and printed
   its diagnostics banner over USB serial. Every motor and sensor it spoke to was still a fake.
@@ -268,8 +273,9 @@ include/shulib/     the library — pure C++20, PROS-free by CI guard
   hal/              the hardware interfaces (motor, motor groups, IMU, GPS, clock, distance,
                     optical, digital in/out, controller, mechanism, device provider, …) + fakes
     pros/           the real V5 adapters over the PROS SDK — the ONE exempted path (see rule 1)
-  calibration/      the drivetrain self-calibrator, its screen model, its SD-card record and
-                    its safe save and load (a verified backup copy), the boot check
+  calibration/      the drivetrain self-calibrator, its screen model and the painter that draws
+                    it, its SD-card record and its safe save and load (a verified backup copy),
+                    the boot check, the front check
   config/           a robot and a route described as DATA (RobotConfig, Route)
   robot/            robot::Robot — the whole library graph built from a RobotConfig (its
                     mechanisms' motors, lines and sensor roles built by MechanismParts)

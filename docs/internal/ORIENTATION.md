@@ -91,7 +91,7 @@ and they are true at different tiers.
   ways to write a routine in code, a way to write a routine as **data**, a robot described as data
   and built from it, the drivetrain teaching itself its own facts (which motors, which way, how far
   apart the wheels are), driver-control feel, the claws' buttons, diagnostics, and the documentation.
-- **Built for the robot:** the V5 hardware layer (eighteen files) and seven programs — a measuring
+- **Built for the robot:** the V5 hardware layer (twenty files) and seven programs — a measuring
   tool ("Bench Tests"), the driving program ("shulib Drive": the team's driver file — which button does
   what — on the library, with the library's drive protections and the claws; since T4 Part 3 it
   replaces both the old plain "shulib Drive" and "shulib Teleop"), a calibration program ("shulib
