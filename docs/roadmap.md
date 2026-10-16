@@ -360,6 +360,12 @@ not silently break them. This table is the spine of the no-staleness promise.
 > builds every role (motors, lines, angle sensor, home switch, piece sensor) through its device provider, one
 > boot fact per role, and counts a sensor's screened reads.
 >
+> **Now (2026-10-15): SER1 is COMPLETE — host- and build-gated, NOT run on a robot.** Every line shulib sends to
+> the brain's serial stream leaves in ONE `write()` that PROS's own serial lock keeps whole, never through the C
+> library's shared, unlocked stdout buffer (HA-189, fixed in code, settled only at the bench); the `src/` build
+> gate refuses any program object that names stdio's FILEs or calls a stdout/stderr printer
+> (its completion record is in the development log, as every chunk's is).
+>
 > **Now (2026-10-15): MECH-A2, the second part, has LANDED — host-only.** One mechanism SERVICE, ticked once per
 > control tick (inside a drive's wait under the run guard, or at the driver loop's stated place), runs every power
 > and pneumatic mechanism: a step until a piece sensor sees (or stops seeing) a piece, until a stall, or for a time,
