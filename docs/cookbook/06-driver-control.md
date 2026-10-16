@@ -210,7 +210,9 @@ disable ends driver control and the claw is **still open**.
   lookup and returns null for a claw that works.)
 - **What the brain does with a 3-wire output while it is disabled has not been measured** — whether
   it keeps the level through a disable, and whether it acts on a level set while it is disabled.
-  The library commands nothing on a disable; if the brain itself drops the line, the claw moves
+  Driver control commands nothing on a disable (the one write on a disable is the competition
+  program's: a disable DURING a guarded auton puts every claw in its safe state —
+  [Chapter 17](../guide/17-the-competition-program.md)); if the brain itself drops the line, the claw moves
   anyway. And on a field the robot is usually built in `initialize()`, while the brain is disabled,
   so the start level is set then: if the brain ignores it, the claw sits wherever its valve rests
   until the robot is enabled — or until driver control starts and the toggle sets its level. Check

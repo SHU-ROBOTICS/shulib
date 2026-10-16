@@ -2083,13 +2083,16 @@ opens it are the program half's entry, from the team lead's report).
   the enable) a 3-wire write made while disabled.
   *Source:* `include/shulib/teleop/mechanism_binding.hpp` (ToggleBinding, the DISCONNECT/DISABLE
   rule, tagged `A4 register HA-157`) and `include/shulib/teleop/teleop_loop.hpp` (the disable path
-  leaves every toggle untouched): the library commands NOTHING to a pneumatic claw on a disable, on
-  the team lead's rule that the claw keeps its state. Since MECH-A2 (2026-10-15) the mechanism
+  leaves every toggle untouched): driver control commands NOTHING to a pneumatic claw on a disable, on
+  the team lead's rule that the claw keeps its state. One consumer of the SECOND half: in "shulib
+  Competition", a disable DURING a guarded auton makes the watch abandon the run, and the run guard's
+  cancel-all then puts every present claw in its SAFE level while the brain is disabled
+  ([guide 17](guide/17-the-competition-program.md), the watch) — a write made while disabled. Since MECH-A2 (2026-10-15) the mechanism
   service keeps the same rule for every pneumatic it runs (`include/shulib/mechanism/service.hpp`,
   `leaveDriverControl()` and `enterAutonomous()`: a pneumatic KEEPS its level, tagged HA-157). `include/shulib/robot/robot.hpp` (the
   MECHANISMS section and `buildPneumatic()`, tagged `A4 register HA-157`): the start level is
   written when the Robot is built, whatever the brain's state. `test/toggle_binding_test.cpp` TL3
-  pins that the LIBRARY commands nothing on a disable, and `test/pros_device_provider_test.cpp` 1m
+  pins that driver control's toggle commands nothing on a disable, and `test/pros_device_provider_test.cpp` 1m
   that construction writes the start level once; no host test can pin what the brain does with
   either.
   *Confidence:* **UNKNOWN.** The vendored PROS headers document the 3-wire output's constructor

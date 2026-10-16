@@ -230,8 +230,9 @@ The mechanism seam that used to be a placeholder here is now real code
   holds a *loaded* lift is a registered assumption (HA-92), not a fact. Nor is it known whether
   the brain keeps a 3-wire output's level while it is disabled, or acts on a level set while it
   is disabled (HA-157) — a pneumatic claw on a driver's toggle button relies on the first,
-  because the library commands the claw nothing on a disable, and its start level on a field
-  relies on the second — and nothing the program can read is believed to see a valve on a
+  because driver control commands the claw nothing on a disable, and its start level on a field
+  relies on the second (so does the safe level the competition program's run guard writes when a
+  disable lands DURING a guarded auton — [Chapter 17](17-the-competition-program.md)) — and nothing the program can read is believed to see a valve on a
   3-wire port at all (HA-158, reasoned), so an unplugged solenoid is invisible to every check.
   The stall thresholds
   an operation needs are required parameters
