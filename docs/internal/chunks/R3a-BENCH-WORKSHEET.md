@@ -2036,10 +2036,10 @@ back` (about 6 s on the host test plant, its legs 24 in, a turn, back).
       sighting of how often it happens; nothing has measured it).
       → present, one session header per boot of this station? **YES / NO** → a card copy that
       stopped at a disable while serial ran on? **NO / YES (at which line: ______)**
-- [ ] **K.7.3** **The serial log's lines WHOLE** (since SER1, 2026-10-08 — EVIDENCE toward A4 register
-      HA-189, whose dedicated settle is owed (the note after K.7.4); and HA-190). Every line the program
-      prints is now ONE write to the USB, which PROS keeps in one piece; before, two tasks printing at
-      once — the auton task and PROS's phase tasks, at every mode change
+- [ ] **K.7.3** **The serial log's lines WHOLE** (since SER1, 2026-10-08 — A4 register HA-189's ROBOT TEST, accepted
+      as such by the team lead 2026-10-18 in place of the dedicated settle (the note after K.7.4); and HA-190).
+      Every line the program prints is now ONE write to the USB, which PROS keeps in one piece; before, two
+      tasks printing at once — the auton task and PROS's phase tasks, at every mode change
       — could mix or lose bytes. Read K.0.3's saved transcripts around EVERY Timed-Run mode change of K.3–K.6
       (each phase's `entry`/`return` lines, the `competition status` lines, the auton task's `request` lines):
       every line starts with its tag (`[CMP]`, `[t=`, ...) and ends before the next one starts — no line
@@ -2059,10 +2059,11 @@ back` (about 6 s on the host test plant, its legs 24 in, a turn, back).
       → banner printed and the program still running? **YES / NO**
       *(HA-189's dedicated settle — two tasks printing numbered lines through `pros terminal` for 60 s, with
       Timed-Run mode changes while they print, every line whole and every number once (SER1's brief, §1.5) —
-      is OWED: no build carries such a program (the bench program's menu is full, twelve stations in its
-      3 × 4 grid), and whether to add one, and how, is the team lead's call. Until then K.7.3 is evidence,
-      not the settle: it reads the competition program's own lines, which carry no sequence numbers, so a
-      line LOST between two whole ones shows only as an expected line missing.)*
+      is NOT built: no build carries such a program (the bench program's menu is full, twelve stations in its
+      3 × 4 grid). **The team lead ruled on 2026-10-18 ("Use Station K's K.7.3"): K.7.3 is accepted, in
+      writing, as HA-189's robot test — no new Bench Tests station.** Its known weakness, accepted with it: it
+      reads the competition program's own lines, which carry no sequence numbers, so a line LOST between two
+      whole ones shows only as an expected line missing. HA-189 stays unsettled until K.7.3 runs.)*
 
 **K.8 — THE PUSH CHECK (REQUIRED before this program drives a match — the team lead's N1; HA-176)** —
 on the ground

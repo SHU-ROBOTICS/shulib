@@ -50,14 +50,18 @@ builds, none of it yet on a robot (HA-189 settles only at the bench).
   `serial_line_test.cpp` under ASan + UBSan, 31/31; hand mutations SM1–SM7, **7 of 7 caught** (SM2 by the 4 GiB cap
   on the suite — the mutant that once froze the coordinator's laptop).
 
-## Open — the team lead's calls
+## Open — the team lead's calls (both ANSWERED 2026-10-18)
 
 1. **The 512-byte pieces.** His ruling, by its letter, is one call per line whatever its length; a text longer than
    512 bytes through a team's own sink now goes in several whole calls. Every line shulib prints (at most 384
    bytes) is still one call. The alternative is the old single call, with HA-191's hang documented as the team's
    to avoid. Recorded in build-order's SER1 section and REMAINING-WORK 18c.
+   **ANSWERED 2026-10-18 — "Accept pieces":** a text longer than 512 bytes through a team's own sink goes out as
+   several whole pieces (`kSerialWriteMaxBytes`; HA-191). Nothing to build: it is what landed.
 2. **HA-189's bench test:** (a) a station in Bench Tests (its 3 × 4 menu is full — a layout change or a station
    retired), or (b) K.7.3 accepted in its place, in writing.
+   **ANSWERED 2026-10-18 — "Use Station K's K.7.3" (b):** K.7.3 is accepted, in writing, as HA-189's robot test; no
+   new Bench Tests station. HA-189 stays unsettled until K.7.3 runs.
 
 ## Hardware assumptions
 

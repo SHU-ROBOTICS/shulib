@@ -36,7 +36,7 @@
 > 4. Labels in code: `PROVISIONAL (A4: HA-nn)` on config fields; `A4 register HA-nn` in prose
 >    comments. Reconciliation is bidirectional and grep-verified (see §Reconciliation).
 >
-> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-187..HA-188.
+> **Held numbers** (reserved by briefs, not yet registered; never reissued): HA-162..HA-176, HA-181..HA-186, HA-187..HA-188, HA-192..HA-203.
 > The briefing names the next free number above every row AND every held one (`tools/briefing_status.py`
 > reads the line above); a brief that reserves numbers adds them to it, and a number that lands as a row
 > may stay in its range.
@@ -148,6 +148,8 @@
 > one write must fit PROS's 2047-byte serial stream (HA-191); both reasoned from the vendored `libpros.a`. HA-189's
 > entry now names the fix; it stays unsettled until the bench — its dedicated two-task test is owed, and Station
 > K.7.3 is evidence toward it (SER1's review, 2026-10-15, corrected an over-claim there). With them, 176.
+> *(2026-10-18: the team lead accepted K.7.3, in writing, as HA-189's robot test — no dedicated station; HA-189
+> stays unsettled until K.7.3 runs.)*
 > **MECH-A2 (the mechanism core's second part; built 2026-10-08–15, landed 2026-10-15) added ONE — HA-183, invented** — that the host
 > test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`: an inverted-feedforward joint
 > with a gravity load, hard stops, a jam, the brake modes at 0 V, and a stall current capped at 2.5 A)
@@ -363,7 +365,7 @@
 | HA-183 | The host test plant's mechanism models (`sim::ArmPlant`, `sim::FlywheelPlant`) stand in for a real V5 arm, lift, roller and flywheel closely enough that the mechanism core's host verdicts transfer: the inverted-feedforward joint (static band kS, speed per volt kV, first-order approach τ = kA/kV), gravity as a load in volts (kG·cos(θ − level) for an arm, kG for a lift), the brake modes at 0 V (Hold's restoring stiffness, Brake's damping, Coast free), the current's shape (\|V − kV·ω\|·2.5/12, capped at 2.5 A — HA-93's), and a hard stop or a jam reading ZERO speed at stall-grade current | **invented** (no constant is measured; a real stalled motor creeps — HA-93 — the plant's does not) | the first robot session that logs a real arm's and a real flywheel's step response beside the model's (MECH on hardware) |
 | HA-184 | A VEX limit switch read through `ProsDigitalIn::state()` reads 1 (TRUE) when PRESSED, so the mechanism core's `pressedLevel = true` is right; and an UNPLUGGED switch line reads RELEASED | **unknown** (the vendored `get_value()` doc says only "the digital value (1 or 0) of a pin") | MECH-A6's Bench Tests station 13: the switch read pressed, released AND with its cable out |
 | HA-186 | At power-up a V5 rotation sensor's CUMULATIVE `get_position()` (what `ProsRotation::position()` reads, HA-11) starts at the shaft's ABSOLUTE angle within one turn — and so it does after a PROGRAM restart without a power cycle — so `absoluteSensor()` homing needs no motion | reasoned (VEX's description of the sensor as absolute within a turn; the vendored doc says only "current position") | MECH-A6's station 13: power-cycle at two marked angles; move the arm, restart only the program, read again |
-| HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (evidence — the dedicated two-task test is owed) |
+| HA-189 | Two tasks writing the V5 USB serial (stdout) at once never mix or lose each other's lines — `ProsCharSink`'s "fwrite is atomic per call at this layer" — believed FALSE: the vendored newlib's per-FILE locks are no-ops, stdout is line-buffered (`ser_isatty_r` returns 1) through ONE shared buffer, and only PROS's device write below it takes a mutex. **FIXED in shulib's code by SER1 (2026-10-08):** every line is ONE direct `write()`, which that mutex keeps whole — unconfirmed until the bench | **reasoned** (FALSE — from the vendored `libc.a`/`libpros.a`, disassembled 2026-10-08) | the coordinator, T4 Part 3's hand-over; SER1's fix; Station K.7.3 (HA-189's robot test — accepted by the team lead 2026-10-18 in place of the dedicated two-task test; unsettled until it runs) |
 | HA-190 | A task PROS deletes while it is INSIDE `ser_write_r` (one serial `write()`) leaves PROS's serial write mutex held, and every later serial write of that boot — stdout and stderr alike — blocks its writer for ever | **reasoned** (the vendored `libpros.a`: `ser_write_r` holds the mutex across `stream_buf_send`'s unbounded waits; `task_delete` releases no mutex) | SER1; Station K.7.3 (Timed-Run mode changes while two tasks print) |
 | HA-191 | One serial `write()` must fit PROS's 2047-byte serial stream (about 2,035 bytes of text: a 4-byte stream id, COBS framing and a delimiter around it); a larger one waits for ever holding PROS's write mutex | **reasoned** (the vendored `libpros.a`: `ser_driver_initialize` +0x38, `stream_buf_send` waits until the WHOLE frame fits) | SER1 (no shulib call offers one `write()` more than 512 bytes — `kSerialWriteMaxBytes`; `serialLine` 256) |
 
@@ -2851,13 +2853,15 @@ Part 3 (`diag::LogCopySink`); serial did not, on the belief below — which the 
   does NOT cover: PROS's own stdio (the serial daemon's banners, the expander ADI's `puts("Error: validate_type")`, crash
   dumps, `task_fn_wrapper`'s `fprintf(stderr)`), each of which ends its lines and so meets shulib's at a line boundary;
   a team's own `printf` (the guide's chapter 11 gives the rule); and PROS's own mutex on a deletion (HA-190).
-  *Settle (as fixed):* the dedicated two-task numbered-line test above is still the settle, and it is OWED: no build
-  carries a program that prints numbered lines from two tasks (the bench program's menu is full — twelve stations, three
-  across and four down, with no room for a row on the panel — so it needs a station retired or a new layout; that call
-  is the team lead's). Until it runs, worksheet Station K.7.3 is EVIDENCE toward it, not the settle: the competition
-  program's own serial capture around every Timed-Run mode change, every expected line whole — with no sequence numbers,
-  a lost line shows only as an expected line missing; and K.7.4, `pros terminal` connected to a RUNNING program once
-  (the banner prints, no halt).
+  *Settle (as fixed):* **the team lead accepted, in writing on 2026-10-18 ("Use Station K's K.7.3"), worksheet
+  Station K.7.3 as HA-189's robot test — no new Bench Tests station.** Until then the dedicated two-task numbered-line
+  test above was the settle, and it was OWED: no build carries a program that prints numbered lines from two tasks (the
+  bench program's menu is full — twelve stations, three across and four down, with no room for a row on the panel — so
+  it needed a station retired or a new layout; that call was the team lead's, and he chose neither). K.7.3 is the
+  competition program's own serial capture around every Timed-Run mode change, every expected line whole — with no
+  sequence numbers, a lost line shows only as an expected line missing (the weakness he accepted); and K.7.4, `pros
+  terminal` connected to a RUNNING program once (the banner prints, no halt). **HA-189 stays UNSETTLED until K.7.3
+  runs.**
 
 **SER1 (2026-10-08) added TWO — HA-190 and HA-191** — what one `write()` per line leaves in PROS's hands (reasoned from
 the vendored `libpros.a` by SER1's brief checker, `.claude/coordinator/scratch/ser1-check/`; not caused, and not cured,
@@ -2898,7 +2902,8 @@ by SER1).
   *Source:* `include/shulib/hal/pros/char_sink.hpp`: `writeWhole()` — the one loop every shulib serial write goes
   through — offers each `write()` at most `kSerialWriteMaxBytes` = 512 bytes (`static_assert` ≤ 1024), so a longer text
   through `ProsCharSink` goes out in 512-byte pieces (SER1's review, 2026-10-15: before it, the sink offered a text of
-  ANY length to one call); `serialLine()`'s and `serialWrapped()`'s lines are at most `kSerialLineBytes` = 256.
+  ANY length to one call; the team lead accepted the pieces on 2026-10-18, "Accept pieces"); `serialLine()`'s and
+  `serialWrapped()`'s lines are at most `kSerialLineBytes` = 256.
   shulib's own lines are at most 384 bytes (`diag/line_format.hpp`'s `Line::kCapacity`, pinned ≤ 512 by the host
   suite) and TermSink's messages 200.
   *Confidence:* **reasoned** (the disassembly). No shulib call comes near it; a team's own `write()` on fd 1, or a

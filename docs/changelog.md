@@ -203,7 +203,10 @@ run and turned its test red. One hardware belief is new in the [register](hardwa
 > frozen contract (`hal::ICharSink` is deliberately outside the [Freeze Register](roadmap.md#freeze-register)'s
 > F4), its constructor taking a `FILE*` keeps its signature, and every other name below is new. **Host and
 > build gated only — nothing here has run on a robot**; the fix is reasoned from the vendored C library and
-> can be settled only at the bench (A4 register HA-189, whose dedicated two-task test is still owed).
+> can be settled only at the bench (A4 register HA-189, whose dedicated two-task test is still owed). *(2026-10-18:
+> the team lead accepted the bench worksheet's practice-match serial check — the competition program's own lines,
+> read around every mode change — as HA-189's robot test in place of that dedicated test; HA-189 stays unsettled
+> until it runs.)*
 
 **FIXED — two tasks printing at once could mix or lose each other's serial lines** (A4 register HA-189,
 reasoned from the vendored `libc.a`/`libpros.a`). Every task on the V5 shares ONE stdout buffer, and the

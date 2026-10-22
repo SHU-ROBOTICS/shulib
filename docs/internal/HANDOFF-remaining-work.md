@@ -42,9 +42,11 @@
   snapshot** of `release/v2` (made with `git commit-tree`, not a merge or squash), and `release/v2` is
   `shulib-v2` merged in with `docs/internal/` dropped — `docs/internal/RELEASING.md` is the procedure.
   Never measure `main` by commit distance.
-- **Pushed:** `origin/shulib-v2` is `6ceb244` (2026-09-17 19:58, "shulib Drive drove robot two").
-  **Everything after it is unpushed** — `git log --oneline origin/shulib-v2..HEAD` lists it. Push only
-  when jal asks.
+- **Pushed:** `origin/shulib-v2` is `ceb17c0` (CAL1 Part A1), pushed 2026-10-18 on jal's "Push now" — every
+  commit up to it, those since `bdcbc7c` included, is on GitHub. *(Corrected 2026-10-18: this line said
+  `6ceb244` (2026-09-17 19:58, "shulib Drive drove robot two") and "everything after it is unpushed" — the
+  tree moved past both.)* Anything newer is unpushed — `git log --oneline origin/shulib-v2..HEAD` lists it.
+  Push only when jal asks.
 - **Suite:** 1358 test cases / 1,635,266 assertions, 3 skipped, all green (since the 2026-09-24
   build-identity fix `05ad50a`; the 1,635,290 recorded before it included six assertions from a stale
   `-dirty` build hash — see `C5-COMPLETED.md` D8's correction).
