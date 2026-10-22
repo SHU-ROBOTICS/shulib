@@ -49,9 +49,11 @@ extend this, extend the SCOPE reluctantly and the FILTERS eagerly.
 import glob as _glob
 import os
 import re
-import subprocess
 import sys
 from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # also under python -P / -I
+import suite_run  # noqa: E402 — tools/suite_run.py, the bounded suite run
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -144,27 +146,102 @@ def truth():
     # So: if anything under test/ or include/ is newer than the binary, the counts
     # are NOT DERIVED AT ALL rather than derived wrongly. Absent keys are simply
     # not checked, and the caller says so out loud.
-    binpath = os.path.join(REPO, "build/test/shulib_tests")
-    if os.path.exists(binpath):
-        btime = os.path.getmtime(binpath)
-        newest = 0.0
-        for base in ("test", "include"):
-            for root, _d, files in os.walk(os.path.join(REPO, base)):
-                for f in files:
-                    if f.endswith((".cpp", ".hpp", ".h")):
-                        newest = max(newest, os.path.getmtime(os.path.join(root, f)))
-        if newest <= btime:
-            try:
-                run = subprocess.run([binpath], capture_output=True, text=True,
-                                     timeout=1800).stdout
-                m = re.search(r"test cases:\s*(\d+)", run)
-                if m:
-                    t["cases"] = int(m.group(1))
-                m = re.search(r"assertions:\s*(\d+)", run)
-                if m:
-                    t["assertions"] = int(m.group(1))
-            except Exception:
-                pass
+    #
+    # The run itself goes through tools/suite_run.py (2026-10-22) — the bounded run every tool uses:
+    # this gate used to run the binary unbounded, holding all of its output, for up to 30 minutes —
+    # the same unbounded code as the run that reached 54 GB through briefing_status.py generate on
+    # 2026-10-15 (suite_run.py's header). A BROKEN binary yields no counts, and says why.
+    binpath = suite_run.BINARY
+    if not os.path.exists(binpath):
+        t["_counts_why"] = "the test binary is not built"
+        return t
+    newer = stale_sources(os.path.getmtime(binpath), counts_sources(REPO), os.path.getmtime)
+    if newer:
+        t["_counts_why"] = (f"the test binary is older than {os.path.relpath(newer[0], REPO)}"
+                            f"{f' and {len(newer) - 1} more' if len(newer) > 1 else ''}, so it was not trusted")
+        return t
+    got = suite_counts_for(binpath)
+    if got and "broken" in got:
+        t["_counts_why"] = f"the test binary is BROKEN ({got['broken']})"
+    elif got:
+        t["cases"] = got["cases"]
+        t["assertions"] = got["assertions"]
+    return t
+
+
+def suite_counts_for(binpath):
+    """The suite's counts — ALWAYS through tools/suite_run.py's bounded run (the self-test pins it)."""
+    return suite_run.counts(binpath)
+
+
+def dependency_src_files(texts, src_root, exists):
+    """Every src/ path the build's dependency records name (compiler_depend.make, and each object's
+    .o.d, which is current after every compile — the first lags a build). System headers ignored."""
+    found = set()
+    for text in texts:
+        for m in re.finditer(r"(/[^\s:\\]+)", text):
+            path = os.path.normpath(m.group(1))
+            if path.startswith(src_root) and exists(path):
+                found.add(path)
+    return found
+
+
+def counts_sources(repo, walk=os.walk, exists=os.path.exists):
+    """The files whose change makes the test binary stale: every source under test/ and include/
+    (a new test file is in no dependency record yet), and exactly the src/ files the dependency
+    records name — the suite compiles one auton .cpp and the PROS-free headers the tests include;
+    a robot-only src/ edit does not touch it. With no records at all, every src/ source."""
+    def tree(base):
+        out = set()
+        for root, _d, files in walk(os.path.join(repo, base)):
+            out.update(os.path.join(root, f) for f in files if f.endswith((".cpp", ".hpp", ".h")))
+        return out
+    sources = tree("test") | tree("include")
+    dep_dir = os.path.join(repo, "build/test/CMakeFiles/shulib_tests.dir")
+    texts = []
+    for root, _d, files in walk(dep_dir):
+        for f in files:
+            if f == "compiler_depend.make" or f.endswith(".o.d"):
+                try:
+                    texts.append(open(os.path.join(root, f), encoding="utf-8", errors="replace").read())
+                except OSError:
+                    pass
+    from_records = dependency_src_files(texts, os.path.join(repo, "src") + os.sep, exists)
+    return sources | (from_records if from_records else tree("src"))
+
+
+def stale_sources(binary_mtime, sources, mtime):
+    """The sources newer than the binary, newest first (empty: the binary may be trusted)."""
+    return sorted((f for f in sources if mtime(f) > binary_mtime), key=mtime, reverse=True)
+    btime = os.path.getmtime(binpath)
+    sources = set()
+    for base in ("test", "include"):
+        for root, _d, files in os.walk(os.path.join(REPO, base)):
+            sources.update(os.path.join(root, f) for f in files if f.endswith((".cpp", ".hpp", ".h")))
+    depend = os.path.join(REPO, "build/test/CMakeFiles/shulib_tests.dir/compiler_depend.make")
+    src_root = os.path.join(REPO, "src") + os.sep
+    from_depend = set()
+    if os.path.exists(depend):
+        for m in re.finditer(r"(/[^\s:\\]+)", open(depend, encoding="utf-8", errors="replace").read()):
+            path = os.path.normpath(m.group(1))
+            if path.startswith(src_root) and os.path.exists(path):
+                from_depend.add(path)
+    if from_depend:
+        sources |= from_depend
+    else:
+        for root, _d, files in os.walk(os.path.join(REPO, "src")):
+            sources.update(os.path.join(root, f) for f in files if f.endswith((".cpp", ".hpp", ".h")))
+    newer = [f for f in sources if os.path.getmtime(f) > btime]
+    if newer:
+        t["_counts_why"] = (f"the test binary is older than {os.path.relpath(max(newer, key=os.path.getmtime), REPO)}"
+                            f"{f' and {len(newer) - 1} more' if len(newer) > 1 else ''}, so it was not trusted")
+        return t
+    got = suite_run.counts(binpath)
+    if got and "broken" in got:
+        t["_counts_why"] = f"the test binary is BROKEN ({got['broken']})"
+    elif got:
+        t["cases"] = got["cases"]
+        t["assertions"] = got["assertions"]
     return t
 
 
@@ -253,11 +330,56 @@ def do_self_test():
                           lambda p: False),
            "C: a doc declaring itself historical was still flagged")
 
+    # The suite counts' staleness rule (truth()): a fake tree, fake mtimes.
+    R = "/repo"
+    tree_files = {f"{R}/test": ["a_test.cpp", "new_test.cpp"], f"{R}/include": ["x.hpp"],
+                  f"{R}/src": ["robot_only.cpp", "auton.cpp"],
+                  f"{R}/build/test/CMakeFiles/shulib_tests.dir": ["compiler_depend.make", "a.cpp.o.d"]}
+    depend = {f"{R}/build/test/CMakeFiles/shulib_tests.dir/a.cpp.o.d":
+              f"a.cpp.o: {R}/test/a_test.cpp {R}/src/auton.cpp \\\n /usr/include/stdio.h\n",
+              f"{R}/build/test/CMakeFiles/shulib_tests.dir/compiler_depend.make": ""}
+    walk = lambda base: [(base, [], tree_files.get(base, []))]
+    real_open = open
+    def fake_open(path, *a, **k):
+        if path in depend:
+            import io as _io
+            return _io.StringIO(depend[path])
+        return real_open(path, *a, **k)
+    exists = lambda p: p.startswith(R)
+    globals()["open"] = fake_open
+    try:
+        got = counts_sources(R, walk=walk, exists=exists)
+    finally:
+        del globals()["open"]
+    expect(f"{R}/src/auton.cpp" in got and f"{R}/src/robot_only.cpp" not in got,
+           "D: the src/ files the dependency records name are not exactly the ones used")
+    expect(f"{R}/test/new_test.cpp" in got, "D: a new test file is not a source")
+    times = {f"{R}/src/robot_only.cpp": 50, f"{R}/src/auton.cpp": 5, f"{R}/test/new_test.cpp": 5,
+             f"{R}/test/a_test.cpp": 5, f"{R}/include/x.hpp": 5}
+    expect(not stale_sources(10, got, lambda f: times.get(f, 0)),
+           "D: a robot-only src/ edit made the binary stale")
+    times[f"{R}/src/auton.cpp"] = 50
+    expect(stale_sources(10, got, lambda f: times.get(f, 0)) == [f"{R}/src/auton.cpp"],
+           "D: a newer src/ file the suite compiles did not make it stale")
+    walk_nodep = lambda base: [(base, [], [] if "CMakeFiles" in base else tree_files.get(base, []))]
+    expect(f"{R}/src/robot_only.cpp" in counts_sources(R, walk=walk_nodep, exists=exists),
+           "D: with no dependency records, src/ is not walked whole")
+    # The counts ALWAYS come through the bounded run (a stub stands in for it).
+    calls = []
+    real_counts = suite_run.counts
+    try:
+        suite_run.counts = lambda *a, **k: calls.append((a, k)) or {"broken": "probe"}
+        suite_counts_for("/x/shulib_tests")
+    finally:
+        suite_run.counts = real_counts
+    expect(calls == [(("/x/shulib_tests",), {})], "E: the suite counts did not come through suite_run.counts")
+
     for f in failures:
         print(f"  SELF-TEST FAILURE — {f}", file=sys.stderr)
     if failures:
         return 1
-    print(f"doc staleness audit self-test: OK ({checks} detector/filter cases)")
+    print(f"doc staleness audit self-test: OK ({checks} detector/filter cases, the staleness rule and "
+          f"the bounded run included)")
     return 0
 
 
@@ -311,15 +433,14 @@ def main():
     note = ""
     unchecked = [k for k in ("cases", "assertions") if k not in t]
     if unchecked:
-        note += (f" [{'/'.join(unchecked)} NOT derived — the test binary is older than "
-                 f"a source file, so it was not trusted]")
+        note += f" [{'/'.join(unchecked)} NOT derived — {t.get('_counts_why', 'no reason recorded')}]"
     if not claims:
         # Said out loud rather than passing silently: check-examples has the same
         # guard for the same reason. Here, though, zero is the GOAL — a figure that
         # must be maintained by hand belongs in a command — so this is a note, not
         # a failure. The self-test is what keeps the detectors honest when the
         # live docs give them nothing to chew on.
-        note = " — no live doc states a checkable figure, which is the intended end state"
+        note = " — no live doc states a checkable figure, which is the intended end state" + note
     if ghosts:
         note += f"; {len(ghosts)} report-only symbol notes suppressed"
     print(f"doc staleness audit: clean ({len(live)} live docs, "

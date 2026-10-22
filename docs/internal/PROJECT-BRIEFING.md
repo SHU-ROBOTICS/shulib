@@ -54,7 +54,7 @@ Work thoroughly, and **push hard** — but the standards in §7 do not bend for 
    ```sh
    git log --oneline -20
    git status
-   ./build/test/shulib_tests | tail -3
+   python3 tools/suite_run.py green   # the BOUNDED run (tools/suite_run.py)
    ```
 
 ### Current status — GENERATED, never hand-typed
@@ -415,7 +415,7 @@ have bitten before, phrased for this chunk specifically**.
 **This is the step that makes the process real.**
 
 ```sh
-cmake --build build/test -j"$(nproc)" && ./build/test/shulib_tests | tail -6
+cmake --build build/test -j"$(nproc)" && python3 tools/suite_run.py green   # the BOUNDED run (tools/suite_run.py)
 
 # GUARD 1 is PATH-ANCHORED — the amendment R1a made and this file did not carry.
 # The unanchored form printed here until DOCS2 (2026-08-14) reports 21 hits on a

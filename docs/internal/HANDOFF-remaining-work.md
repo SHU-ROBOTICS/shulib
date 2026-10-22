@@ -221,7 +221,9 @@ binary. A red (mutant) binary therefore blocks its own relink, and the next run 
 stale result. **Mutation recipe:** edit → `touch` EVERY test file that includes the edited header
 (an `inline constexpr` table leaves stale objects otherwise) → `cmake --build build/test --target
 shulib_tests/fast -j"$(nproc)"` → **require `Linking CXX executable shulib_tests` in the output** →
-run → observe red → restore → relink → green. Regenerate the briefing (`python3
+run it BOUNDED — `(ulimit -v 4194304; timeout 300 ./build/test/shulib_tests)`, never bare (a
+mutant can loop and allocate without end: on 2026-10-15 one took the desktop down) → observe red → restore →
+relink → green. Regenerate the briefing (`python3
 tools/briefing_status.py generate`) only AFTER the last restore relinks green. **Two more forms (2026-09-29):**
 (1) a test file ADDED after the last full (non-`/fast`) build is not in make's dependency database, so a
 restored header does not rebuild it and the next mutation links the previous mutant through it — after
@@ -236,7 +238,7 @@ There is no tracked `verify.sh` — earlier sessions kept one in their scratchpa
 the set:
 
 ```sh
-cmake --build build/test -j"$(nproc)" && ./build/test/shulib_tests | tail -6
+cmake --build build/test -j"$(nproc)" && python3 tools/suite_run.py green   # the BOUNDED run (tools/suite_run.py)
 python3 tools/src_build_gate.py self-test && python3 tools/src_build_gate.py check
 find include/shulib -name '*.hpp' | sed 's|^include/||' | LC_ALL=C sort | awk '{print "#include \""$0"\""}' > /tmp/all.cpp
 echo "int main(){return 0;}" >> /tmp/all.cpp

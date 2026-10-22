@@ -307,6 +307,8 @@ add_custom_command(
     ${SHULIB_BRIEFING_DEP}
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/briefing_status.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/../tools/doc_staleness_audit.py"
+    # The bounded suite run both of them use (2026-10-22): a change to its bounds re-runs the gate.
+    "${CMAKE_CURRENT_SOURCE_DIR}/../tools/suite_run.py"
     ${SHULIB_DOC_INPUTS}
   COMMENT "shulib doc gates: coverage, freshness, verbatim examples, removability"
   VERBATIM)

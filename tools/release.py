@@ -117,12 +117,14 @@ def _gates():
     by running the binary that already exists. So a stale binary can fail the gate, which then
     blocks the rebuild that would fix it. If this function reports the build failing on
     briefing_status alone, run `python3 tools/briefing_status.py generate` and try again — that
-    is the documented deadlock, and it is once per build, not once ever.
+    is the documented deadlock, and it is once per build, not once ever. If the binary on disk is
+    BROKEN (crashed or hit a bound — tools/suite_run.py), `generate` refuses it and prints the
+    order that works: remove the binary, generate, build, generate.
     """
     print("── the suite and every gate ──────────────────────────────────────────")
     ok = True
     ok &= run(["cmake", "--build", "build/test", "-j", str(os.cpu_count() or 4)], "build (carries the doc gates)")
-    ok &= run("./build/test/shulib_tests > /dev/null", "suite green")
+    ok &= run(["python3", "tools/suite_run.py", "green"], "suite green (the bounded run, tools/suite_run.py)")
     for c in ("self-test", "check-coverage", "check-fresh", "check-examples", "check-removability"):
         ok &= run(["python3", "tools/api_doc_tool.py", c], f"api_doc_tool {c}")
     ok &= run(["python3", "tools/briefing_status.py", "check"], "briefing status current")

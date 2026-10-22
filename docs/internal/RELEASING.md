@@ -90,8 +90,32 @@ stops and says so, because that means real content diverged and a human has to c
 state by running **the binary that already exists**. So the moment the suite is red — or the
 binary is stale — the gate fails, and the failing gate blocks the rebuild that would fix it.
 
-The escape is always the same: `python3 tools/briefing_status.py generate`, then build. During a
+For a red or stale binary the escape is the same every time: `python3 tools/briefing_status.py generate`,
+then build (for a BROKEN one, see below). During a
 mutation campaign that is once per mutation, which is worth knowing before you start one.
+
+**A binary that is present but BROKEN** (since 2026-10-22). Every tool that runs the suite —
+`briefing_status.py`, `doc_staleness_audit.py` (both in this gate) and `release.py` — runs it through
+`tools/suite_run.py` (its header has the details): 4 GiB of address space (Linux; macOS does not
+enforce RLIMIT_AS, so there the run has the other bounds only), 256 MiB of output (to a file, never
+held by the tool), 600 s of CPU, 300 s of wall time; the run stays in the caller's process group, so
+an outer `timeout` or Ctrl-C reaches it, and on Linux it dies with the tool that started it (the
+timeout kill and that tie reach the suite process itself — it does not fork). The bounds are per
+process. (On 2026-10-15 a mutation run's mutant reached 58 GB in the mutation runner;
+left linked, it reached 54 GB through `briefing_status.py generate`, unbounded, and took the desktop
+down; this gate ran the same unbounded code.) A run is BROKEN when it is killed by a signal or a
+bound, does not finish, prints no doctest summary, exits non-zero with a summary that says nothing
+failed, uses half or more of its memory bound at its peak (an allocation failure the code under
+test caught and swallowed — the library's own `catch (...)` blocks do that by design), or prints
+any of doctest's reports of a CAUGHT `std::bad_alloc` — a test case or an assertion
+that threw it, or "threw a DIFFERENT exception" that was it: doctest catches an allocation failure and
+goes on to a normal summary, so a memory-bound hit would otherwise read as an ordinary red count. A
+BROKEN binary is never "not built" and never a count to commit: `check` exempts its suite line and
+SAYS so (failing here would block the rebuild that replaces it; the staleness audit then derives no
+counts and says why), and `generate` refuses it. The order that works — each step needs the one
+before, because the build runs this gate before it relinks:
+`rm -f build/test/shulib_tests && python3 tools/briefing_status.py generate && cmake --build build/test && python3 tools/briefing_status.py generate`.
+Known limit: a red run that prints more than 256 MiB of failure reports reads BROKEN.
 
 **And a second-order trap that only exists since DOCS2:** `docs/api/` records the declaration
 *line number* of every entity, so any edit that shifts lines fails `check-fresh` — and if that

@@ -24,10 +24,17 @@ USAGE
   python3 tools/briefing_status.py generate   # rewrite the block in place
   python3 tools/briefing_status.py check      # exit 1 if the block is stale
   python3 tools/briefing_status.py show       # print the block, touch nothing
-  python3 tools/briefing_status.py self-test  # prove the chunk/part rule can fire
+  python3 tools/briefing_status.py self-test  # prove the chunk/part rule and the bounded suite run
 
 `check` runs as a build-time doc gate beside check-coverage / check-fresh /
 check-examples / check-removability.
+
+THE SUITE LINE comes from tools/suite_run.py, the bounded run every tool uses (4 GiB of
+memory on Linux, 256 MiB of output, 600 s of CPU, 300 s; killed on a timeout, and on Linux it dies
+with the tool — tools/suite_run.py has the details). A binary that
+is present but BROKEN is never written into the briefing (`generate` refuses and prints the
+recovery order) and never silently mistaken for "not built" (`check` exempts its suite line
+because the build runs it before relinking the binary, and SAYS so).
 
 DELIBERATELY NOT IN THE GENERATED BLOCK: anything that changes without the repo
 changing — unpushed-commit counts (depends on whether a remote ref exists),
@@ -163,20 +170,39 @@ def ha_entries(text=None):
     return (len(ids), next_free(ids, held_numbers(text)), settled)
 
 
-def suite_counts():
-    """The authoritative test numbers, from the built binary. ('—' if unbuilt.)"""
-    binary = os.path.join(REPO, "build/test/shulib_tests")
-    if not os.path.exists(binary):
-        return None
-    out = _run([binary, "--no-intro=true"])
-    cases = re.search(r"test cases:\s*(\d+)\s*\|\s*(\d+) passed \|\s*(\d+) failed"
-                      r"\s*\|\s*(\d+) skipped", out)
-    asserts = re.search(r"assertions:\s*(\d+)\s*\|\s*(\d+) passed \|\s*(\d+) failed", out)
-    if not cases or not asserts:
-        return None
-    return {"cases": int(cases.group(1)), "failed": int(cases.group(3)),
-            "skipped": int(cases.group(4)), "assertions": int(asserts.group(1)),
-            "afailed": int(asserts.group(3))}
+# ── THE SUITE RUN IS BOUNDED (tools/suite_run.py, 2026-10-22) ─────────────────────────────
+# The suite line comes from tools/suite_run.py — the one bounded way every tool runs the test binary
+# (its header says why: on 2026-10-15 a mutant left linked by a killed mutation run reached 54 GB
+# through this tool's own unbounded `generate` and took the desktop down). A binary that is PRESENT
+# but BROKEN is never "not built" (which `check` exempts silently) and never a count to commit:
+# `generate` refuses it and prints the recovery; `check` exempts its suite line and SAYS so, because
+# the build runs this gate before it relinks the binary (RELEASING.md §3) — failing would block the
+# very rebuild that replaces it. suite_rule() below is that decision, pinned by the self-test.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # also under python -P / -I
+import suite_run  # noqa: E402
+
+_SUITE_MEMO = {}  # render() and main() both ask: the suite runs once per invocation
+
+
+def suite_counts(binary=None):
+    """The authoritative test numbers, from the built binary (tools/suite_run.py): None if it is not
+    built; a dict holding "broken" (why) if it is present but BROKEN."""
+    path = os.path.abspath(binary or suite_run.BINARY)
+    if path not in _SUITE_MEMO:
+        _SUITE_MEMO[path] = suite_run.counts(path)
+    return _SUITE_MEMO[path]
+
+
+def suite_rule(cmd, suite):
+    """What `cmd` does with this suite verdict (the header above): "refuse" — generate never writes a
+    BROKEN binary; "exempt" — check does not compare the suite line when there is no binary or a
+    BROKEN one (and says which); "compare" — everything else, the suite line included."""
+    broken = bool(suite and "broken" in suite)
+    if cmd == "generate" and broken:
+        return "refuse"
+    if cmd == "check" and (suite is None or broken):
+        return "exempt"
+    return "compare"
 
 
 def freeze_rows():
@@ -399,7 +425,10 @@ def render():
     else:
         L.append("- **No open chunks** — every `-PROGRESS.md` has a matching "
                  "`-COMPLETED.md`.")
-    if suite:
+    if suite and "broken" in suite:
+        L.append(f"- **Suite:** **BROKEN** — `./build/test/shulib_tests` is present but "
+                 f"{suite['broken']}. Rebuild it from source.")
+    elif suite:
         health = ("**green**" if suite["failed"] == 0 and suite["afailed"] == 0
                   else f"**RED — {suite['failed']} case(s) failing**")
         L.append(f"- **Suite:** {suite['cases']:,} cases / {suite['assertions']:,} "
@@ -549,12 +578,77 @@ def self_test():
             fails.append(f"next free HA = {got}, want {want} ({why})")
     if held_numbers(held_line) != set(range(162, 177)) | set(range(181, 187)):
         fails.append("held_numbers() misread 'HA-162..HA-176, HA-181..HA-186'")
+    # The memo: two asks in one invocation run the suite ONCE (a counting stub stands in for the
+    # bounded run — nothing is executed, so a noexec temporary directory cannot fail this).
+    calls = []
+    real_counts = suite_run.counts
+    try:
+        suite_run.counts = lambda path: calls.append(path) or {"cases": 1, "failed": 0, "skipped": 0,
+                                                               "assertions": 1, "afailed": 0}
+        _SUITE_MEMO.pop(os.path.abspath("memo-probe"), None)
+        first, second = suite_counts("memo-probe"), suite_counts("./memo-probe")
+    finally:
+        suite_run.counts = real_counts
+        _SUITE_MEMO.pop(os.path.abspath("memo-probe"), None)
+    if not (first == second and len(calls) == 1):
+        fails.append(f"suite_counts memo: {len(calls)} runs for two asks of the same path — want 1")
+    # The rule main() applies (the header above suite_rule).
+    ok_suite, broken_suite = {"cases": 1, "failed": 0, "skipped": 0, "assertions": 1, "afailed": 0}, {"broken": "x"}
+    for cmd, suite, want in (("generate", broken_suite, "refuse"), ("generate", None, "compare"),
+                             ("generate", ok_suite, "compare"), ("check", broken_suite, "exempt"),
+                             ("check", None, "exempt"), ("check", ok_suite, "compare"),
+                             ("show", broken_suite, "compare")):
+        if suite_rule(cmd, suite) != want:
+            fails.append(f"suite_rule({cmd!r}, {suite}) = {suite_rule(cmd, suite)!r}, want {want!r}")
+    # main() itself, end to end, on a scratch copy of the briefing (suite_counts stubbed): generate
+    # writes a counted suite and refuses a BROKEN one (file untouched); check then reads current,
+    # exempts a BROKEN or absent binary, and fails on a stale block.
+    global BRIEFING
+    real_briefing, real_counts, real_argv = BRIEFING, suite_counts, sys.argv
+    import contextlib
+    import io
+    with tempfile.TemporaryDirectory() as d:
+        try:
+            BRIEFING = os.path.join(d, "PROJECT-BRIEFING.md")
+            with open(BRIEFING, "w", encoding="utf-8") as f:
+                f.write(f"# scratch briefing\n\n{BEGIN}\nold\n{END}\n")
+            ok_suite = {"cases": 7, "failed": 0, "skipped": 0, "assertions": 9, "afailed": 0}
+
+            def drive(cmd, suite):
+                globals()["suite_counts"] = lambda binary=None: suite
+                sys.argv = ["briefing_status.py", cmd]
+                with contextlib.redirect_stdout(io.StringIO()) as out, \
+                        contextlib.redirect_stderr(io.StringIO()) as err:
+                    rc = main()
+                return rc, out.getvalue() + err.getvalue()
+            rc, _ = drive("generate", ok_suite)
+            text = open(BRIEFING, encoding="utf-8").read()
+            if rc != 0 or "7 cases" not in text:
+                fails.append(f"main(): generate with a counted suite: rc {rc}, suite line written: {'7 cases' in text}")
+            rc, msg = drive("generate", {"broken": "probe"})
+            if rc != 1 or open(BRIEFING, encoding="utf-8").read() != text or "NOTHING WRITTEN" not in msg:
+                fails.append(f"main(): generate with a BROKEN suite: rc {rc} (want 1, the file untouched)")
+            for suite, want_rc, word, why in ((ok_suite, 0, "current", "a counted suite, the block current"),
+                                              ({"broken": "probe"}, 0, "BROKEN", "a BROKEN binary is exempted, said"),
+                                              (None, 0, "no test binary is built", "no binary is exempted, said"),
+                                              ({**ok_suite, "cases": 8}, 1, "STALE", "a changed count is stale")):
+                rc, msg = drive("check", suite)
+                if rc != want_rc or word not in msg:
+                    fails.append(f"main(): check, {why}: rc {rc} (want {want_rc}), {word!r} said: {word in msg}")
+        finally:
+            BRIEFING, sys.argv = real_briefing, real_argv
+            globals()["suite_counts"] = real_counts
+    # The bounded run itself: tools/suite_run.py's own self-test (every bound and verdict, seen firing).
+    if suite_run.self_test() != 0:
+        fails.append("tools/suite_run.py self-test failed (its lines above say which case)")
     for f in fails:
         print(f"briefing status self-test: FAIL {f}", file=sys.stderr)
     if fails:
         return 1
-    print(f"briefing status self-test: OK ({len(names) + 4 + len(ha_cases) + 1} cases: the chunk/part "
-          f"rule on names and on a scratch records directory; the next free HA number past held ones)")
+    print(f"briefing status self-test: OK ({len(names) + 4 + len(ha_cases) + 1 + 1 + 7 + 6} cases: the chunk/part "
+          f"rule on names and on a scratch records directory; the next free HA number past held ones; "
+          f"the suite run's memo; the generate/check rule; main() end to end on a scratch briefing) — and "
+          f"tools/suite_run.py's own self-test, above")
     return 0
 
 
@@ -585,6 +679,15 @@ def main():
         return 1
     text = open(BRIEFING, encoding="utf-8").read()
     updated = splice(text, block)
+    suite = suite_counts()
+    broken = bool(suite and "broken" in suite)
+    rule = suite_rule(cmd, suite)
+    if rule == "refuse":
+        # A broken binary's line is never written into the briefing (header: bounded).
+        print(f"briefing status: NOTHING WRITTEN — build/test/shulib_tests is present but BROKEN: "
+              f"{suite['broken']}. Recover in this order (each step needs the one before): "
+              f"{suite_run.recovery()}", file=sys.stderr)
+        return 1
     if cmd == "generate":
         open(BRIEFING, "w", encoding="utf-8").write(updated)
         print("briefing status: regenerated")
@@ -615,15 +718,26 @@ def main():
         # still compared byte for byte. When a binary IS present the suite line is
         # compared like everything else, so a developer cannot commit a stale
         # count.
-        if suite_counts() is None:
+        #
+        # A binary that is present but BROKEN (crashed, hit a bound, printed no summary — the
+        # header's bounded run) is exempted the same way, and SAYS so: the build runs this gate
+        # BEFORE it relinks the binary (RELEASING.md §3), so failing here would block the very
+        # rebuild that replaces it. `generate` refuses it instead.
+        if rule == "exempt":
             drop = lambda b: "\n".join(
                 ln for ln in b.splitlines()
                 if not ln.startswith("- **Suite:**")
                 and "source: `./build/test/shulib_tests`" not in ln)
             if drop(updated) == drop(text):
-                print("briefing status: generated block current, EXCEPT the suite line, "
-                      "which was not compared — no test binary is built, so the count "
-                      "cannot be derived here. Build the suite to check it.")
+                if broken:
+                    print(f"briefing status: generated block current, EXCEPT the suite line, "
+                          f"which was not compared — build/test/shulib_tests is present but "
+                          f"BROKEN: {suite['broken']}. The build relinks it; then run "
+                          f"generate. (Stuck? {suite_run.recovery()})")
+                else:
+                    print("briefing status: generated block current, EXCEPT the suite line, "
+                          "which was not compared — no test binary is built, so the count "
+                          "cannot be derived here. Build the suite to check it.")
                 return 0
         if updated == text:
             print("briefing status: generated block current "
@@ -635,7 +749,12 @@ def main():
         print("A stale briefing is worse than none: the next session trusts it and "
               "starts from a false picture.", file=sys.stderr)
         print("", file=sys.stderr)
-        print("    python3 tools/briefing_status.py generate", file=sys.stderr)
+        if broken:
+            # generate refuses a broken binary: the order that works (tools/suite_run.py, recovery()).
+            print(f"    the test binary is also BROKEN ({suite['broken']}), so:", file=sys.stderr)
+            print(f"    {suite_run.recovery()}", file=sys.stderr)
+        else:
+            print("    python3 tools/briefing_status.py generate", file=sys.stderr)
         print("", file=sys.stderr)
         print("Only the block between the markers is generated. If a DURABLE section "
               "(the traps, the", file=sys.stderr)

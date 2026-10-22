@@ -98,7 +98,7 @@ contract, **"do not commit"**, and **"create the PROGRESS log first and append a
 This is the step that makes the process real. Re-run everything yourself:
 
 ```sh
-cmake --build build/test -j"$(nproc)" && ./build/test/shulib_tests | tail -6
+cmake --build build/test -j"$(nproc)" && python3 tools/suite_run.py green   # the BOUNDED run (tools/suite_run.py)
 ```
 
 Then the CI PROS-free guard (exact command in `.github/workflows/ci.yml`, scope grows per chunk), and

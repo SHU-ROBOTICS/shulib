@@ -119,7 +119,7 @@ Some changes touch the guide's *framing*, not one chapter:
 
 Before calling a guide change done:
 
-- [ ] `cmake --build build/test && ./build/test/shulib_tests` — green, including the example tests
+- [ ] `cmake --build build/test && python3 tools/suite_run.py green` (the bounded run) — green, including the example tests
       **and the four documentation gates the build runs first** (coverage, freshness, verbatim
       examples, removability)
 - [ ] Every link resolves (check mechanically, not by eye)
