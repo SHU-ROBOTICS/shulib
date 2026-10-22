@@ -486,7 +486,9 @@ brief names it as a future consumer of the builder's dead-port tolerance).
 - Docs owed (for the macros): guide chapter section, cookbook, roadmap Phase T rows, build-order.
 - Size: the macros ~½–1 day.
 
-**L6. [NEW-WALLRESET] Re-seat the position estimate against a wall or goal.**
+**L6. [NEW-WALLRESET] Re-seat the position estimate against a wall or goal.** *(2026-10-22: superseded by its brief,
+`chunks/L6-wall-reset.md` — answered "Accept all"; the plan below is kept as history: a SIDE sensor re-seats against a
+wall the robot parked beside, it does not "drive toward" one.)*
 - What: a primitive "drive slowly toward a known wall until the distance sensor reads X, then set the
   estimate's coordinate on that axis from the known wall position and the sensor offset." Never touch
   heading (IMU-owned).

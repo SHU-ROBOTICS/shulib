@@ -547,6 +547,12 @@ compiled-path artifact + full schema-hash handshake (versioned JSON `.vexbot` fi
 | 4 | GPS/AprilTag aggressiveness | Innovation-bounded, covariance-weighted, per-tick-clamped **gated nudge (never snap)** + hard dead-reckon-only flag. `relocalize()` feeds this corrector — it does not snap. Clamp/gate/gain are M3-tuned (mechanism locked, numbers open); complementary tier realizes the same contract heuristically. | **Locked 2026-06-19** |
 | 5 | H-drive model | `strafeAuthority()` = **pure read-only query** returning the max sustainable lateral speed as a fraction of `maxLinearSpeed` (XDrive 1.0, HDrive ~0.35 *sysid-measured default, not a constant*, Tank 0.0); the **motion/Chassis layer** reads it to clamp commanded `vy` + trigger the fallback — kinematics does **not** clamp inside `toWheels()`. Telemetry-visible (`strafeFallbackActive`). | **Locked 2026-06-19** · *clarified at C3 (2026-08-06), see note* |
 
+> **Amendment to decision #4 (2026-10-22, the team lead's go on the L6 brief, D2 (a)).** Decision #4 stays locked
+> for every corrector and every other relocalization; it now reads: "… `relocalize()` feeds this corrector — it does
+> not snap, **except a caller-invoked ONE-AXIS wall reset (L6), which seats that axis only while no motion is active,
+> inside gates whose largest jump is the author's `maxCorrection`; no sensor ever seats the heading**." The hazard
+> never-snap guards against — a pose jump mid-motion — cannot arise: the reset refuses while any motion is active.
+
 > **C3 clarification to decision #5 — semantics sharpened, decision unchanged.** Two wordings above were
 > imprecise and are corrected here rather than silently in place, because #5 is a locked row.
 > 1. **The cap is absolute, not a ratio.** The original text said max sustainable `|vy|/|vx|`. C3 confirmed

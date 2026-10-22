@@ -11,9 +11,9 @@
 > **Sizes** are builder-days (one executor) taken from the chunk's brief where a brief exists. Every size without
 > a brief is marked **(rough)**. **Verification is in no row.** The reviewers, the fixes and a fresh verifier are
 > counted once, under the total. **Robot-session-bound** means the item closes on evidence from the robot rather
-> than on builder time, so it is not in the total. **Last updated: 2026-10-18 (VIS1's brief: your "Accept all", D1–D11 as recommended — VIS1 ~6½–8½ in three runs, VIS1-A1 next; ALLY1, our alliance colour, added as its own chunk; SER1's two calls answered; the branch pushed at `ceb17c0`).**
+> than on builder time, so it is not in the total. **Last updated: 2026-10-22 (the L6 and IMU1 briefs: your "Accept all" — L6 ~6–7½ in four runs, D2 amending locked decision #4; IMU1 ~1¾, before Station M's floor run; MECH-A3 landed); before that 2026-10-18 (VIS1's brief: your "Accept all", D1–D11 as recommended — VIS1 ~6½–8½ in three runs, VIS1-A1 next; ALLY1, our alliance colour, added as its own chunk; SER1's two calls answered; the branch pushed at `ceb17c0`).**
 
-**Where things stand:** 36 of the phase table's 70 chunks are complete (CAL1 added 2026-10-06, MECH, DOCS3, SER1, VIS1 and AF1 2026-10-08, ALLY1 2026-10-18) (COMP on 2026-10-02, T4 on 2026-10-08, SER1 on 2026-10-15), and R2a (half of R2) has
+**Where things stand:** 36 of the phase table's 71 chunks are complete (CAL1 added 2026-10-06, MECH, DOCS3, SER1, VIS1 and AF1 2026-10-08, ALLY1 2026-10-18) (COMP on 2026-10-02, T4 on 2026-10-08, SER1 on 2026-10-15), and R2a (half of R2) has
 also landed; 34 chunks are open. Landed most recently: L9 Part A1 (backing into a point in a recipe, 2026-09-30); DIAG1
 Part B (a reading that is not a number left out, completing DIAG1), H1 Part A1 (the SHUL/2 wire's read side) and T4
 Part 2a (the drive protections) on 2026-10-01; and **COMP-b, the competition program** (2026-10-02, completing COMP).
@@ -104,7 +104,7 @@ be an exception needing his explicit go).
 | # | Item | Waits on | Size |
 |---|---|---|---|
 | 24 | **The AI Vision adapter** (R2b): **its OBJECTS part (pins, cups) is now in VIS1 (#18d), before the panel** (your ruling, 2026-10-14); its AprilTags part (and the field's duplicate tag ids) stays after G3 | Stations H and I (Bench Tests 11/12) run on the robot first | AprilTags: ~1 day (rough) |
-| 25 | **Wall reset with the distance sensors** (L6): drive toward a wall until the sensor reads a set distance, then correct that axis — **BEFORE THE PANEL, beside the MECH core** (your ruling, 2026-10-14; it helps autons, so before 2026-11-23 if it can) | Q2: ANSWERED 2026-10-08 — one sensor on each side (left, right), straight out | ~1 day (rough) |
+| 25 | **Wall reset with the side distance sensors** (L6): a robot parked square along a field wall re-seats ONE coordinate (x or y) from the side sensor facing that wall — never the heading, never in the background — inside gates that refuse rather than guess — **BEFORE THE PANEL** (your ruling, 2026-10-14) — **brief ✅ GO 2026-10-22** ("Accept all", D1–D13; D2 amends locked decision #4) | L6-A1 on the go; A2 after VIS1-A1 merges; B before MECH-A5; C after MECH-A4 | ~6–7½ days (its brief; four runs) |
 | 26 | **Drive to a game piece** (L4): turn toward the piece the camera sees, then drive until the claw or a sensor confirms — **BEFORE THE PANEL, after VIS1** (your ruling, 2026-10-14) | VIS1's objects; ALLY1 (#18f — our colour, to choose "our" piece; VIS1's D8, 2026-10-18) | ~1 day (rough) |
 
 After the adapter, **S6** puts vision on the bench (robot sessions below). NEW 2026-09-28 — PROPOSED, planning with
@@ -127,7 +127,7 @@ Subtotal: ~10–12½ days.
 
 | # | Item | State | Its DoD's constraint | Size |
 |---|---|---|---|---|
-| 32 | **IMU1**: read the IMU's turn rate once per tick. On a robot, a second read in the same tick returns about 0 or a spike. Found by TANK1's re-check; the team lead's D4 (a) | planned 2026-09-27; no brief yet | must land **before a robot record's `imuYawRate` is read as evidence** (Station M's records are the first) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~½–1 day (rough) |
+| 32 | **IMU1**: read the IMU's turn rate once per tick (the adapter keeps its answer for 5 ms, so every reader in a tick gets one value). Found by TANK1's re-check; its probe found the double read can turn the 40 in auton into a 5 s timeout in one timing band | **brief ✅ GO 2026-10-22** ("Accept all", D1–D4) | must land **before Station M's floor run** (D4) and before any GPS- or tag-corrected robot runs a tank `moveTo` | ~1¼ + ~½ days (its brief) |
 
 ## 7. Chunks that close on the robot (robot-session-bound; not in the total)
 
